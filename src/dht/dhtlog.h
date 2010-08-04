@@ -72,16 +72,17 @@ struct GNUNET_DHTLOG_Handle
 {
 
   /*
-   * Insert the result of a query into the database
+   * Inserts the specified query into the dhttests.queries table
    *
-   * @param sqlqueryuid return value for the sql uid for this query
-   * @param queryid gnunet internal query id (doesn't exist)
-   * @param type the type of query (DHTLOG_GET, DHTLOG_PUT, DHTLOG_RESULT)
-   * @param hops the hops the query has traveled
-   * @param succeeded is successful or not (GNUNET_YES or GNUNET_NO)
-   * @param GNUNET_PeerIdentity of the node the query is at now
-   * @param key the GNUNET_HashCode of this query
+   * @param sqlqueruid inserted query uid
+   * @param queryid dht query id
+   * @param type type of the query
+   * @param hops number of hops query traveled
+   * @param succeeded whether or not query was successful
+   * @param node the node the query hit
+   * @param key the key of the query
    *
+   * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
    */
   int (*insert_query) (unsigned long long *sqlqueryuid,
                        unsigned long long queryid, DHTLOG_MESSAGE_TYPES type,
@@ -91,7 +92,28 @@ struct GNUNET_DHTLOG_Handle
                        const GNUNET_HashCode * key);
 
   /*
-   * Inserts the trial information into the database
+   * Inserts the specified trial into the dhttests.trials table
+   *
+   * @param trialuid return the trialuid of the newly inserted trial
+   * @param num_nodes how many nodes are in the trial
+   * @param topology integer representing topology for this trial
+   * @param blacklist_topology integer representing blacklist topology for this trial
+   * @param connect_topology integer representing connect topology for this trial
+   * @param connect_topology_option integer representing connect topology option
+   * @param connect_topology_option_modifier float to modify connect option
+   * @param topology_percentage percentage modifier for certain topologies
+   * @param topology_probability probability modifier for certain topologies
+   * @param puts number of puts to perform
+   * @param gets number of gets to perform
+   * @param concurrent number of concurrent requests
+   * @param settle_time time to wait between creating topology and starting testing
+   * @param num_rounds number of times to repeat the trial
+   * @param malicious_getters number of malicious GET peers in the trial
+   * @param malicious_putters number of malicious PUT peers in the trial
+   * @param malicious_droppers number of malicious DROP peers in the trial
+   * @param message string to put into DB for this trial
+   *
+   * @return GNUNET_OK on success, GNUNET_SYSERR on failure
    */
   int (*insert_trial) (unsigned long long *trialuid, int num_nodes, int topology,
                        int blacklist_topology, int connect_topology,
@@ -103,7 +125,14 @@ struct GNUNET_DHTLOG_Handle
                        char *message);
 
   /*
-   * Update the trial information with the ending time and dropped message stats
+   * Update dhttests.trials table with current server time as end time
+   *
+   * @param trialuid trial to update
+   * @param totalMessagesDropped stats value for messages dropped
+   * @param totalBytesDropped stats value for total bytes dropped
+   * @param unknownPeers stats value for unknown peers
+   *
+   * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
    */
   int (*update_trial) (unsigned long long trialuid,
                        unsigned long long totalMessagesDropped,
@@ -111,26 +140,58 @@ struct GNUNET_DHTLOG_Handle
                        unsigned long long unknownPeers);
 
   /*
-   * Update the trial information with the total connections
+   * Records the current topology (number of connections, time, trial)
+   *
+   * @param num_connections how many connections are in the topology
+   *
+   * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+   */
+  int (*insert_topology) (int num_connections);
+
+  /*
+   * Records a connection between two peers in the current topology
+   *
+   * @param first one side of the connection
+   * @param second other side of the connection
+   *
+   * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+   */
+  int (*insert_extended_topology) (struct GNUNET_PeerIdentity *first, struct GNUNET_PeerIdentity *second);
+
+  /*
+   * Update dhttests.trials table with total connections information
+   *
+   * @param trialuid the trialuid to update
+   * @param totalConnections the number of connections
+   *
+   * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
    */
   int (*update_connections) (unsigned long long trialuid,
                              unsigned int totalConnections);
 
   /*
-   * Insert the query information from a single hop into the database
+   * Update dhttests.trials table with total connections information
    *
-   * @param sqlqueryuid return value for the sql uid for this query
-   * @param queryid gnunet internal query id (doesn't exist)
-   * @param type the type of query (DHTLOG_GET, DHTLOG_PUT, DHTLOG_RESULT)
-   * @param hops the hops the query has traveled
-   * @param succeeded query is successful or not (GNUNET_YES or GNUNET_NO)
-   * @param node GNUNET_PeerIdentity of the node the query is at now
-   * @param key the GNUNET_HashCode of this query
-   * @param from_node GNUNET_PeerIdentity of the node the query was
-   *        received from (NULL if origin)
-   * @param to_node GNUNET_PeerIdentity of the node this node will forward
-   *        to (NULL if none)
+   * @param connections the number of connections
    *
+   * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
+   */
+  int (*update_topology) (unsigned int connections);
+
+  /*
+   * Inserts the specified route information into the dhttests.routes table
+   *
+   * @param sqlqueruid inserted query uid
+   * @param queryid dht query id
+   * @param type type of the query
+   * @param hops number of hops query traveled
+   * @param succeeded whether or not query was successful
+   * @param node the node the query hit
+   * @param key the key of the query
+   * @param from_node the node that sent the message to node
+   * @param to_node next node to forward message to
+   *
+   * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
    */
   int (*insert_route) (unsigned long long *sqlqueryuid,
                        unsigned long long queryid,
@@ -144,12 +205,23 @@ struct GNUNET_DHTLOG_Handle
 
   /*
    * Inserts the specified node into the dhttests.nodes table
+   *
+   * @param nodeuid the inserted node uid
+   * @param node the node to insert
+   *
+   * @return GNUNET_OK on success, GNUNET_SYSERR on failure
    */
   int (*insert_node) (unsigned long long *nodeuid,
                       struct GNUNET_PeerIdentity * node);
 
   /*
-   * Inserts a dhtkey into the database
+   * Inserts the specified dhtkey into the dhttests.dhtkeys table,
+   * stores return value of dhttests.dhtkeys.dhtkeyuid into dhtkeyuid
+   *
+   * @param dhtkeyuid return value
+   * @param dhtkey hashcode of key to insert
+   *
+   * @return GNUNET_OK on success, GNUNET_SYSERR on failure
    */
   int (*insert_dhtkey) (unsigned long long *dhtkeyuid,
                         const GNUNET_HashCode * dhtkey);

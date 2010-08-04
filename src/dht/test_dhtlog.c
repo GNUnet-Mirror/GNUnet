@@ -32,6 +32,7 @@
 
 static int ok;
 
+#define CHECK(a) if (a != GNUNET_OK) return a
 /**
  * Actual test of the service operations
  */
@@ -67,11 +68,11 @@ test (struct GNUNET_DHTLOG_Handle * api)
                        .75, .25, .5, 42, 14,
                        5, 1, 12, 0, 0, 0,
                        "TEST INSERT TRIAL");
+  CHECK(ret);
 
-  if (ret != GNUNET_OK)
-    {
-      return ret;
-    }
+  ret = api->insert_topology(500);
+
+  CHECK(ret);
 
   fprintf (stderr, "Trial uid is %llu\n", trialuid);
 
@@ -80,20 +81,17 @@ test (struct GNUNET_DHTLOG_Handle * api)
   ret = api->insert_node (&nodeuid, &p3);
   ret = api->insert_node (&nodeuid, &p4);
 
-  if (ret != GNUNET_OK)
-    {
-      fprintf (stderr, "received ret value of %d\n", ret);
-      return ret;
-    }
+  CHECK(ret);
 
+  ret = api->insert_topology(0);
+  ret = api->insert_extended_topology(&p1, &p2);
+  ret = api->insert_extended_topology(&p3, &p4);
+  ret = api->update_topology(101);
+  CHECK(ret);
   ret = api->insert_dhtkey (&dhtkeyuid, &k1);
   ret = api->insert_dhtkey (&dhtkeyuid, &k2);
 
-  if (ret != GNUNET_OK)
-    {
-      fprintf (stderr, "received ret value of %d\n", ret);
-      return ret;
-    }
+  CHECK(ret);
 
   ret = api->insert_query (&sqlqueryuid, internaluid, 2, 4, 0, &p2, &k1);
 
@@ -119,10 +117,7 @@ test (struct GNUNET_DHTLOG_Handle * api)
   fprintf (stderr, "Updating trial %llu with endtime of now\n", trialuid);
   ret = api->update_trial (trialuid, 0, 0, 0);
 
-  if (ret != GNUNET_OK)
-    {
-      return ret;
-    }
+  CHECK(ret);
 
   return 0;
 }

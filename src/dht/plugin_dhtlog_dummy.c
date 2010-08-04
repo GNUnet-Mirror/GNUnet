@@ -183,6 +183,48 @@ add_route (unsigned long long *sqlqueryuid, unsigned long long queryid,
   return GNUNET_OK;
 }
 
+
+/*
+ * Records the current topology (number of connections, time, trial)
+ *
+ * @param num_connections how many connections are in the topology
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int
+add_topology (int num_connections)
+{
+  return GNUNET_OK;
+}
+
+/*
+ * Records a connection between two peers in the current topology
+ *
+ * @param first one side of the connection
+ * @param second other side of the connection
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int
+add_extended_topology (struct GNUNET_PeerIdentity *first, struct GNUNET_PeerIdentity *second)
+{
+  return GNUNET_OK;
+}
+
+/*
+ * Update dhttests.topology table with total connections information
+ *
+ * @param totalConnections the number of connections
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
+ */
+int
+update_topology (unsigned int connections)
+{
+  return GNUNET_OK;
+}
+
+
 /*
  * Provides the dhtlog api
  *
@@ -206,6 +248,9 @@ libgnunet_plugin_dhtlog_dummy_init (void * cls)
   plugin->dhtlog_api->insert_node = &add_node;
   plugin->dhtlog_api->insert_dhtkey = &add_dhtkey;
   plugin->dhtlog_api->update_connections = &add_connections;
+  plugin->dhtlog_api->insert_topology = &add_topology;
+  plugin->dhtlog_api->update_topology = &update_topology;
+  plugin->dhtlog_api->insert_extended_topology = &add_extended_topology;
   return NULL;
 }
 

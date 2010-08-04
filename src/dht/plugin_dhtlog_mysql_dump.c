@@ -66,6 +66,7 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 #define EXTEND_TOPOLOGY_STMT "prepare extend_topology from 'INSERT INTO extended_topology (topology_uid, uid_first, uid_second) "\
                              "VALUES (@temp_topology, ?, ?)'"
 
+#define UPDATE_TOPOLOGY_STMT "prepare update_topology from 'update topology set connections = ?  where topology_uid = @temp_topology'"
 
 #define INSERT_TRIALS_STMT "prepare insert_trial from 'INSERT INTO trials"\
                            "(starttime, numnodes, topology,"\
@@ -147,7 +148,11 @@ iopen ()
       PINIT (GET_DHTKEYUID_STMT) ||
       PINIT (GET_NODEUID_STMT) ||
       PINIT (UPDATE_CONNECTIONS_STMT) ||
-      PINIT (GET_TRIAL_STMT))
+      PINIT (INSERT_TOPOLOGY_STMT) ||
+      PINIT (EXTEND_TOPOLOGY_STMT) ||
+      PINIT (UPDATE_TOPOLOGY_STMT) ||
+      PINIT (GET_TRIAL_STMT) ||
+      PINIT (GET_TOPOLOGY_STMT))
     {
       return GNUNET_SYSERR;
     }
@@ -440,6 +445,34 @@ add_connections (unsigned long long trialuid, unsigned int totalConnections)
     return GNUNET_SYSERR;
 }
 
+
+/*
+ * Update dhttests.topology table with total connections information
+ *
+ * @param totalConnections the number of connections
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
+ */
+int
+update_topology (unsigned int connections)
+{
+  int ret;
+  if (outfile == NULL)
+    return GNUNET_SYSERR;
+
+  ret = fprintf(outfile, "set @temp_conns = %u;\n", connections);
+
+  if (ret < 0)
+    return GNUNET_SYSERR;
+
+  ret = fprintf(outfile, "execute update_topology using @temp_conns;\n");
+
+  if (ret >= 0)
+    return GNUNET_OK;
+  else
+    return GNUNET_SYSERR;
+}
+
 /*
  * Inserts the specified query into the dhttests.queries table
  *
@@ -625,6 +658,9 @@ libgnunet_plugin_dhtlog_mysql_dump_init (void * cls)
   plugin->dhtlog_api->insert_node = &add_node;
   plugin->dhtlog_api->insert_dhtkey = &add_dhtkey;
   plugin->dhtlog_api->update_connections = &add_connections;
+  plugin->dhtlog_api->insert_topology = &add_topology;
+  plugin->dhtlog_api->insert_extended_topology = &add_extended_topology;
+  plugin->dhtlog_api->update_topology = &update_topology;
 
   return NULL;
 }

@@ -137,11 +137,25 @@ static struct StatementHandle *update_connection;
 #define GET_TRIAL_STMT "SELECT MAX( trialuid ) FROM trials"
 static struct StatementHandle *get_trial;
 
+#define GET_TOPOLOGY_STMT "SELECT MAX( topology_uid ) FROM topology"
+static struct StatementHandle *get_topology;
+
 #define GET_DHTKEYUID_STMT "SELECT dhtkeyuid FROM dhtkeys where dhtkey = ? and trialuid = ?"
 static struct StatementHandle *get_dhtkeyuid;
 
 #define GET_NODEUID_STMT "SELECT nodeuid FROM nodes where trialuid = ? and nodeid = ?"
 static struct StatementHandle *get_nodeuid;
+
+#define INSERT_TOPOLOGY_STMT "INSERT INTO topology (trialuid, date, connections) "\
+                             "VALUES (?, NOW(), ?)"
+static struct StatementHandle *insert_topology;
+
+#define EXTEND_TOPOLOGY_STMT "INSERT INTO extended_topology (topology_uid, uid_first, uid_second) "\
+                             "VALUES (?, ?, ?)"
+static struct StatementHandle *extend_topology;
+
+#define UPDATE_TOPOLOGY_STMT "update topology set connections = ?  where topology_uid = ?"
+static struct StatementHandle *update_topology;
 
 /**
  * Run a query (not a select statement)
@@ -244,6 +258,23 @@ itable ()
              ") ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1"))
     return GNUNET_SYSERR;
 
+  if (MRUNS ("CREATE TABLE IF NOT EXISTS `topology` ("
+              "`topology_uid` int(10) unsigned NOT NULL AUTO_INCREMENT,"
+              "`trialuid` int(10) unsigned NOT NULL,"
+              "`date` datetime NOT NULL,"
+              "`connections` int(10) unsigned NOT NULL,"
+              "PRIMARY KEY (`topology_uid`)) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1"))
+    return GNUNET_SYSERR;
+
+  if (MRUNS ("CREATE TABLE IF NOT EXISTS `extended_topology` ("
+             "`extended_uid` int(10) unsigned NOT NULL AUTO_INCREMENT,"
+             "`topology_uid` int(10) unsigned NOT NULL,"
+             "`uid_first` int(10) unsigned NOT NULL,"
+             "`uid_second` int(10) unsigned NOT NULL,"
+             "PRIMARY KEY (`extended_uid`)"
+             ") ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1"))
+    return GNUNET_SYSERR;
+
   if (MRUNS ("SET AUTOCOMMIT = 1"))
     return GNUNET_SYSERR;
 
@@ -327,7 +358,11 @@ iopen ()
       PINIT (get_dhtkeyuid, GET_DHTKEYUID_STMT) ||
       PINIT (get_nodeuid, GET_NODEUID_STMT) ||
       PINIT (update_connection, UPDATE_CONNECTIONS_STMT) ||
-      PINIT (get_trial, GET_TRIAL_STMT))
+      PINIT (get_trial, GET_TRIAL_STMT) ||
+      PINIT (get_topology, GET_TOPOLOGY_STMT) ||
+      PINIT (insert_topology, INSERT_TOPOLOGY_STMT)||
+      PINIT (update_topology, UPDATE_TOPOLOGY_STMT)||
+      PINIT (extend_topology, EXTEND_TOPOLOGY_STMT))
     {
       return GNUNET_SYSERR;
     }
@@ -530,6 +565,44 @@ prepared_statement_run_select (struct StatementHandle
   return total;
 }
 
+
+static int
+get_node_uid (unsigned long long *nodeuid, const GNUNET_HashCode * peerHash)
+{
+  MYSQL_BIND rbind[1];
+  struct GNUNET_CRYPTO_HashAsciiEncoded encPeer;
+  unsigned long long p_len;
+
+  int ret;
+  memset (rbind, 0, sizeof (rbind));
+  rbind[0].buffer_type = MYSQL_TYPE_LONG;
+  rbind[0].buffer = nodeuid;
+  rbind[0].is_unsigned = GNUNET_YES;
+
+  GNUNET_CRYPTO_hash_to_enc (peerHash, &encPeer);
+  p_len = strlen ((char *) &encPeer);
+
+  if (1 != (ret = prepared_statement_run_select (get_nodeuid,
+                                                              1,
+                                                              rbind,
+                                                              return_ok,
+                                                              NULL,
+                                                              MYSQL_TYPE_LONG,
+                                                              &current_trial,
+                                                              GNUNET_YES,
+                                                              MYSQL_TYPE_VAR_STRING,
+                                                              &encPeer,
+                                                              max_varchar_len,
+                                                              &p_len, -1)))
+    {
+#if DEBUG_DHTLOG
+      fprintf (stderr, "FAILED\n");
+#endif
+      return GNUNET_SYSERR;
+    }
+  return GNUNET_OK;
+}
+
 static int
 get_current_trial (unsigned long long *trialuid)
 {
@@ -552,6 +625,59 @@ get_current_trial (unsigned long long *trialuid)
   return GNUNET_OK;
 }
 
+static int
+get_current_topology (unsigned long long *topologyuid)
+{
+  MYSQL_BIND rbind[1];
+
+  memset (rbind, 0, sizeof (rbind));
+  rbind[0].buffer_type = MYSQL_TYPE_LONGLONG;
+  rbind[0].is_unsigned = 1;
+  rbind[0].buffer = topologyuid;
+
+  if ((GNUNET_OK !=
+       prepared_statement_run_select (get_topology,
+                                      1,
+                                      rbind,
+                                      return_ok, NULL, -1)))
+    {
+      return GNUNET_SYSERR;
+    }
+
+  return GNUNET_OK;
+}
+
+static int
+get_dhtkey_uid (unsigned long long *dhtkeyuid, const GNUNET_HashCode * key)
+{
+  MYSQL_BIND rbind[1];
+  struct GNUNET_CRYPTO_HashAsciiEncoded encKey;
+  unsigned long long k_len;
+  memset (rbind, 0, sizeof (rbind));
+  rbind[0].buffer_type = MYSQL_TYPE_LONG;
+  rbind[0].is_unsigned = 1;
+  rbind[0].buffer = dhtkeyuid;
+  GNUNET_CRYPTO_hash_to_enc (key, &encKey);
+  k_len = strlen ((char *) &encKey);
+
+  if ((GNUNET_OK !=
+       prepared_statement_run_select (get_dhtkeyuid,
+                                      1,
+                                      rbind,
+                                      return_ok, NULL,
+                                      MYSQL_TYPE_VAR_STRING,
+                                      &encKey,
+                                      max_varchar_len,
+                                      &k_len,
+                                      MYSQL_TYPE_LONGLONG,
+                                      &current_trial,
+                                      GNUNET_YES, -1)))
+    {
+      return GNUNET_SYSERR;
+    }
+
+  return GNUNET_OK;
+}
 
 /**
  * Run a prepared statement that does NOT produce results.
@@ -711,38 +837,6 @@ add_trial (unsigned long long *trialuid, int num_nodes, int topology,
   return GNUNET_OK;
 }
 
-static int
-get_dhtkey_uid (unsigned long long *dhtkeyuid, const GNUNET_HashCode * key)
-{
-  MYSQL_BIND rbind[1];
-  struct GNUNET_CRYPTO_HashAsciiEncoded encKey;
-  unsigned long long k_len;
-  memset (rbind, 0, sizeof (rbind));
-  rbind[0].buffer_type = MYSQL_TYPE_LONG;
-  rbind[0].is_unsigned = 1;
-  rbind[0].buffer = dhtkeyuid;
-  GNUNET_CRYPTO_hash_to_enc (key, &encKey);
-  k_len = strlen ((char *) &encKey);
-
-  if ((GNUNET_OK !=
-       prepared_statement_run_select (get_dhtkeyuid,
-                                      1,
-                                      rbind,
-                                      return_ok, NULL,
-                                      MYSQL_TYPE_VAR_STRING,
-                                      &encKey,
-                                      max_varchar_len,
-                                      &k_len,
-                                      MYSQL_TYPE_LONGLONG,
-                                      &current_trial,
-                                      GNUNET_YES, -1)))
-    {
-      return GNUNET_SYSERR;
-    }
-
-  return GNUNET_OK;
-}
-
 /*
  * Inserts the specified dhtkey into the dhttests.dhtkeys table,
  * stores return value of dhttests.dhtkeys.dhtkeyuid into dhtkeyuid
@@ -797,43 +891,6 @@ add_dhtkey (unsigned long long *dhtkeyuid, const GNUNET_HashCode * dhtkey)
   return GNUNET_OK;
 }
 
-
-static int
-get_node_uid (unsigned long long *nodeuid, const GNUNET_HashCode * peerHash)
-{
-  MYSQL_BIND rbind[1];
-  struct GNUNET_CRYPTO_HashAsciiEncoded encPeer;
-  unsigned long long p_len;
-
-  int ret;
-  memset (rbind, 0, sizeof (rbind));
-  rbind[0].buffer_type = MYSQL_TYPE_LONG;
-  rbind[0].buffer = nodeuid;
-  rbind[0].is_unsigned = GNUNET_YES;
-
-  GNUNET_CRYPTO_hash_to_enc (peerHash, &encPeer);
-  p_len = strlen ((char *) &encPeer);
-
-  if (1 != (ret = prepared_statement_run_select (get_nodeuid,
-                                                              1,
-                                                              rbind,
-                                                              return_ok,
-                                                              NULL,
-                                                              MYSQL_TYPE_LONG,
-                                                              &current_trial,
-                                                              GNUNET_YES,
-                                                              MYSQL_TYPE_VAR_STRING,
-                                                              &encPeer,
-                                                              max_varchar_len,
-                                                              &p_len, -1)))
-    {
-#if DEBUG_DHTLOG
-      fprintf (stderr, "FAILED\n");
-#endif
-      return GNUNET_SYSERR;
-    }
-  return GNUNET_OK;
-}
 
 
 /*
@@ -1152,6 +1209,125 @@ add_route (unsigned long long *sqlqueryuid, unsigned long long queryid,
 }
 
 /*
+ * Update dhttests.topology table with total connections information
+ *
+ * @param totalConnections the number of connections
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
+ */
+int
+update_current_topology (unsigned int connections)
+{
+  int ret;
+  unsigned long long topologyuid;
+
+  get_current_topology(&topologyuid);
+
+  if (GNUNET_OK !=
+      (ret = prepared_statement_run (update_topology,
+                                     NULL,
+                                     MYSQL_TYPE_LONG,
+                                     &connections,
+                                     GNUNET_YES,
+                                     MYSQL_TYPE_LONGLONG,
+                                     &topologyuid, GNUNET_YES, -1)))
+    {
+      if (ret == GNUNET_SYSERR)
+        {
+          return GNUNET_SYSERR;
+        }
+    }
+  if (ret > 0)
+    return GNUNET_OK;
+  else
+    return GNUNET_SYSERR;
+  return GNUNET_OK;
+}
+
+/*
+ * Records the current topology (number of connections, time, trial)
+ *
+ * @param num_connections how many connections are in the topology
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int
+add_topology (int num_connections)
+{
+  int ret;
+
+  if (GNUNET_OK !=
+      (ret = prepared_statement_run (insert_topology,
+                                     NULL,
+                                     MYSQL_TYPE_LONGLONG,
+                                     &current_trial,
+                                     GNUNET_YES,
+                                     MYSQL_TYPE_LONG,
+                                     &num_connections,
+                                     GNUNET_YES, -1)))
+    {
+      if (ret == GNUNET_SYSERR)
+        {
+          return GNUNET_SYSERR;
+        }
+    }
+  if (ret > 0)
+    return GNUNET_OK;
+  else
+    return GNUNET_SYSERR;
+  return GNUNET_OK;
+}
+
+/*
+ * Records a connection between two peers in the current topology
+ *
+ * @param first one side of the connection
+ * @param second other side of the connection
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int
+add_extended_topology (struct GNUNET_PeerIdentity *first, struct GNUNET_PeerIdentity *second)
+{
+  int ret;
+  unsigned long long first_uid;
+  unsigned long long second_uid;
+  unsigned long long topologyuid;
+
+  if (GNUNET_OK != get_current_topology(&topologyuid))
+    return GNUNET_SYSERR;
+  if (GNUNET_OK != get_node_uid(&first_uid, &first->hashPubKey))
+    return GNUNET_SYSERR;
+  if (GNUNET_OK != get_node_uid(&second_uid, &second->hashPubKey))
+    return GNUNET_SYSERR;
+
+  if (GNUNET_OK !=
+      (ret = prepared_statement_run (extend_topology,
+                                     NULL,
+                                     MYSQL_TYPE_LONGLONG,
+                                     &topologyuid,
+                                     GNUNET_YES,
+                                     MYSQL_TYPE_LONGLONG,
+                                     &first_uid,
+                                     GNUNET_YES,
+                                     MYSQL_TYPE_LONGLONG,
+                                     &second_uid,
+                                     GNUNET_YES,-1)))
+    {
+      if (ret == GNUNET_SYSERR)
+        {
+          return GNUNET_SYSERR;
+        }
+    }
+  if (ret > 0)
+    return GNUNET_OK;
+  else
+    return GNUNET_SYSERR;
+  return GNUNET_OK;
+}
+
+
+/*
  * Provides the dhtlog api
  *
  * @param c the configuration to use to connect to a server
@@ -1215,6 +1391,9 @@ libgnunet_plugin_dhtlog_mysql_init (void * cls)
   plugin->dhtlog_api->insert_node = &add_node;
   plugin->dhtlog_api->insert_dhtkey = &add_dhtkey;
   plugin->dhtlog_api->update_connections = &add_connections;
+  plugin->dhtlog_api->insert_topology = &add_topology;
+  plugin->dhtlog_api->update_topology = &update_current_topology;
+  plugin->dhtlog_api->insert_extended_topology = &add_extended_topology;
   get_current_trial (&current_trial);
 
   return NULL;
@@ -1242,6 +1421,10 @@ libgnunet_plugin_dhtlog_mysql_done (void * cls)
   prepared_statement_close(get_nodeuid);
   prepared_statement_close(update_connection);
   prepared_statement_close(get_trial);
+  prepared_statement_close(get_topology);
+  prepared_statement_close(insert_topology);
+  prepared_statement_close(update_topology);
+  prepared_statement_close(extend_topology);
 
   if (conn != NULL)
     mysql_close (conn);
