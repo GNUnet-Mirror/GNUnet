@@ -36,7 +36,7 @@
 #include "gnunet_transport_service.h"
 #include "transport.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define VERBOSE_ARM GNUNET_NO
 
@@ -549,7 +549,6 @@ main (int argc, char *argv[])
   else if (strstr(argv[0], "https") != NULL)
     {
       is_https = GNUNET_YES;
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"HTTPS!!!!");
     }
   else if (strstr(argv[0], "http") != NULL)
     {
