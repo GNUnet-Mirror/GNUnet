@@ -60,6 +60,13 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 #define INSERT_NODES_STMT "prepare insert_node from 'INSERT INTO nodes (trialuid, nodeid) "\
                           "VALUES (@temp_trial, ?)'"
 
+#define INSERT_TOPOLOGY_STMT "prepare insert_topology from 'INSERT INTO topology (trialuid, date, connections) "\
+                             "VALUES (@temp_trial, ?, ?)'"
+
+#define EXTEND_TOPOLOGY_STMT "prepare extend_topology from 'INSERT INTO extended_topology (topology_uid, uid_first, uid_second) "\
+                             "VALUES (@temp_topology, ?, ?)'"
+
+
 #define INSERT_TRIALS_STMT "prepare insert_trial from 'INSERT INTO trials"\
                            "(starttime, numnodes, topology,"\
                            "topology_percentage, topology_probability,"\
@@ -67,25 +74,48 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
                            "connect_topology_option_modifier, puts, gets, "\
                            "concurrent, settle_time, num_rounds, malicious_getters,"\
                            "malicious_putters, malicious_droppers, message) "\
-                           "VALUES (NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'"
+                           "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'"
 
 #define INSERT_DHTKEY_STMT "prepare insert_dhtkey from 'INSERT ignore INTO dhtkeys (dhtkey, trialuid) "\
                            "VALUES (?, @temp_trial)'"
 
-#define UPDATE_TRIALS_STMT "prepare update_trial from 'UPDATE trials set endtime=NOW(), total_messages_dropped = ?, total_bytes_dropped = ?, unknownPeers = ? where trialuid = @temp_trial'"
+#define UPDATE_TRIALS_STMT "prepare update_trial from 'UPDATE trials set endtime= ?, total_messages_dropped = ?, total_bytes_dropped = ?, unknownPeers = ? where trialuid = @temp_trial'"
 
 #define UPDATE_CONNECTIONS_STMT "prepare update_conn from 'UPDATE trials set totalConnections = ? where trialuid = @temp_trial'"
 
 #define GET_TRIAL_STMT "prepare select_trial from 'SELECT MAX( trialuid ) FROM trials into @temp_trial'"
 
+#define GET_TOPOLOGY_STMT "prepare select_topology from 'SELECT MAX( topology_uid ) FROM topology into @temp_topology'"
+
 #define GET_DHTKEYUID_STMT "prepare get_dhtkeyuid from 'SELECT dhtkeyuid FROM dhtkeys where dhtkey = ? and trialuid = @temp_trial'"
 
 #define GET_NODEUID_STMT "prepare get_nodeuid from 'SELECT nodeuid FROM nodes where trialuid = @temp_trial and nodeid = ?'"
+
+#define DATE_STR_SIZE 50
 
 /**
  * File to dump all sql statements to.
  */
 FILE *outfile;
+
+
+static char *
+get_sql_time()
+{
+  static char date[DATE_STR_SIZE];
+  time_t timetmp;
+  struct tm *tmptr;
+
+  time (&timetmp);
+  memset (date, 0, DATE_STR_SIZE);
+  tmptr = localtime (&timetmp);
+  if (NULL != tmptr)
+    strftime (date, DATE_STR_SIZE, "%Y-%m-%d %H:%M:%S", tmptr);
+  else
+    strcpy (date, "");
+
+  return date;
+}
 
 /**
  * Create a prepared statement.
@@ -124,6 +154,75 @@ iopen ()
 #undef PINIT
 
   return GNUNET_OK;
+}
+
+
+
+/*
+ * Records the current topology (number of connections, time, trial)
+ *
+ * @param num_connections how many connections are in the topology
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int
+add_topology (int num_connections)
+{
+  int ret;
+  if (outfile == NULL)
+    return GNUNET_SYSERR;
+
+  ret = fprintf(outfile, "set @date = \"%s\", @num = %d;\n", get_sql_time(), num_connections);
+
+  if (ret < 0)
+    return GNUNET_SYSERR;
+  ret = fprintf(outfile, "execute insert_topology using "
+                         "@date, @num;\n");
+
+  ret = fprintf(outfile, "execute select_topology;\n");
+
+  if (ret >= 0)
+    return GNUNET_OK;
+  return GNUNET_SYSERR;
+}
+
+/*
+ * Records a connection between two peers in the current topology
+ *
+ * @param first one side of the connection
+ * @param second other side of the connection
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int
+add_extended_topology (struct GNUNET_PeerIdentity *first, struct GNUNET_PeerIdentity *second)
+{
+  int ret;
+  if (outfile == NULL)
+    return GNUNET_SYSERR;
+
+  if (first != NULL)
+    ret = fprintf(outfile, "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_first_node;\n", GNUNET_h2s_full(&first->hashPubKey));
+  else
+    ret = fprintf(outfile, "set @temp_first_node = 0;\n");
+
+  if (ret < 0)
+    return GNUNET_SYSERR;
+
+  if (second != NULL)
+    ret = fprintf(outfile, "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_second_node;\n", GNUNET_h2s_full(&second->hashPubKey));
+  else
+    ret = fprintf(outfile, "set @temp_second_node = 0;\n");
+
+  if (ret < 0)
+    return GNUNET_SYSERR;
+
+  ret = fprintf(outfile, "execute extend_topology using "
+                         "@temp_first_node, @temp_second_node;\n");
+
+  if (ret >= 0)
+    return GNUNET_OK;
+  return GNUNET_SYSERR;
 }
 
 
@@ -166,12 +265,12 @@ add_trial (unsigned long long *trialuid, int num_nodes, int topology,
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "set @num = %d, @topology = %d, @bl = %d, "
+  ret = fprintf(outfile, "set @date = \"%s\", @num = %d, @topology = %d, @bl = %d, "
                    "@connect = %d, @c_t_o = %d, @c_t_o_m = %f, @t_p = %f, "
                    "@t_pr = %f, @puts = %d, @gets = %d, "
                    "@concurrent = %d, @settle = %d, @rounds = %d, "
                    "@m_gets = %d, @m_puts = %d, @m_drops = %d, "
-                   "@message = \"%s\";\n", num_nodes, topology,
+                   "@message = \"%s\";\n", get_sql_time(), num_nodes, topology,
                    blacklist_topology, connect_topology,
                    connect_topology_option, connect_topology_option_modifier,
                    topology_percentage, topology_probability,
@@ -182,7 +281,7 @@ add_trial (unsigned long long *trialuid, int num_nodes, int topology,
   if (ret < 0)
     return GNUNET_SYSERR;
   ret = fprintf(outfile, "execute insert_trial using "
-                         "@num, @topology, @t_p, @t_pr,"
+                         "@date, @num, @topology, @t_p, @t_pr,"
                          " @bl, @connect, @c_t_o,"
                          "@c_t_o_m, @puts, @gets,"
                          "@concurrent, @settle, @rounds,"
@@ -292,12 +391,12 @@ update_trials (unsigned long long trialuid,
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "set @m_dropped = %llu, @b_dropped = %llu, @unknown = %llu;\n", totalMessagesDropped, totalBytesDropped, unknownPeers);
+  ret = fprintf(outfile, "set @date = \"%s\", @m_dropped = %llu, @b_dropped = %llu, @unknown = %llu;\n", get_sql_time(), totalMessagesDropped, totalBytesDropped, unknownPeers);
 
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "execute update_trial using @m_dropped, @b_dropped, @unknown;\n");
+  ret = fprintf(outfile, "execute update_trial using @date, @m_dropped, @b_dropped, @unknown;\n");
 
   if (ret >= 0)
     return GNUNET_OK;
