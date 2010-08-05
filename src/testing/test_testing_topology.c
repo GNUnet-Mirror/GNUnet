@@ -33,7 +33,7 @@
 /**
  * How long until we fail the whole testcase?
  */
-#define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 600)
+#define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 240)
 
 /**
  * How long until we give up on starting the peers?
@@ -51,6 +51,8 @@ static float fail_percentage = 0.05;
 static int ok;
 
 static unsigned long long num_peers;
+
+static unsigned int topology_connections;
 
 static unsigned int total_connections;
 
@@ -75,6 +77,8 @@ const struct GNUNET_CONFIGURATION_Handle *main_cfg;
 GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 static char *dotOutFileName;
+
+static struct GNUNET_TIME_Relative settle_time;
 
 static FILE *dotOutFile;
 
@@ -184,6 +188,7 @@ static void gather_log_data ()
 }
 
 #endif
+
 static void
 finish_testing ()
 {
@@ -219,8 +224,8 @@ finish_testing ()
       GNUNET_free(free_pos);
     }
 #if VERBOSE
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Transmit_ready's scheduled %d, failed %d, transmit_ready's called %d\n", transmit_ready_scheduled, transmit_ready_failed, transmit_ready_called);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Transmit_ready's scheduled %d, failed %d, transmit_ready's called %d\n", transmit_ready_scheduled, transmit_ready_failed, transmit_ready_called);
 #endif
 
 #if VERBOSE
@@ -276,23 +281,22 @@ void topology_cb (void *cls,
   outfile = cls;
   if (first != NULL)
   {
-    if (outfile == NULL)
-      fprintf(stderr, "Peer %s connected to %s\n", GNUNET_i2s(first), GNUNET_h2s(&second->hashPubKey));
-    else
+    if (outfile != NULL)
     {
       fprintf(outfile, "\t\"%s\" -- ", GNUNET_i2s(first));
       fprintf(outfile, "\"%s\";\n", GNUNET_i2s(second));
     }
+    topology_connections++;
   }
   else
     {
-      fprintf(stderr, "Finished iterating over topology!\n");
+      fprintf(stderr, "Finished iterating over topology, %d total connections!\n", topology_connections);
       if (outfile != NULL)
       {
         fprintf(outfile, "}\n");
         fclose(outfile);
+        GNUNET_SCHEDULER_add_now (sched, &finish_testing, NULL);
       }
-      GNUNET_SCHEDULER_add_now (sched, &finish_testing, NULL);
     }
 }
 
@@ -348,6 +352,7 @@ process_mtype (void *cls,
       {
         fprintf(dotOutFileFinished, "strict graph G {\n");
       }
+      topology_connections = 0;
       GNUNET_TESTING_get_topology (pg, &topology_cb, dotOutFileFinished);
       //GNUNET_SCHEDULER_add_now (sched, &finish_testing, NULL);
     }
@@ -385,6 +390,13 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
       pos = pos->next;
       GNUNET_free(free_pos);
     }
+
+#if VERBOSE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Transmit_ready's scheduled %d, failed %d, transmit_ready's called %d\n", transmit_ready_scheduled, transmit_ready_failed, transmit_ready_called);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Total messages received %d, expected %d.\n", total_messages_received, expected_messages);
+#endif
 
   if (pg != NULL)
     {
@@ -500,6 +512,11 @@ send_test_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   struct TestMessageContext *pos = cls;
 
+  if ((pos == test_messages) && (settle_time.value > 0))
+    {
+      topology_connections = 0;
+      GNUNET_TESTING_get_topology (pg, &topology_cb, NULL);
+    }
   if ((tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN) || (cls == NULL))
     return;
 
@@ -507,7 +524,7 @@ send_test_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
     {
       die_task = GNUNET_SCHEDULER_add_delayed (sched,
                                                TEST_TIMEOUT,
-                                               &end_badly, "from create topology (timeout)");
+                                               &end_badly, "from send test messages (timeout)");
     }
 
   if (total_server_connections >= MAX_OUTSTANDING_CONNECTIONS)
@@ -626,7 +643,11 @@ topology_callback (void *cls,
                                     &send_test_messages, test_messages);
       gather_log_data();
 #else
-      GNUNET_SCHEDULER_add_now (sched, &send_test_messages, test_messages);
+      if (settle_time.value > 0)
+        {
+          GNUNET_TESTING_get_topology (pg, &topology_cb, NULL);
+        }
+      GNUNET_SCHEDULER_add_delayed (sched, settle_time, &send_test_messages, test_messages);
 #endif
 #if VERBOSE
       fprintf(stdout, "Test message progress: [");
@@ -852,6 +873,7 @@ run (void *cls,
   char * blacklist_topology_str;
   char * connect_topology_option_str;
   char * connect_topology_option_modifier_string;
+  unsigned long long temp_settle;
   sched = s;
   ok = 1;
 
@@ -926,6 +948,11 @@ run (void *cls,
     }
   GNUNET_free_non_null(topology_str);
   GNUNET_free_non_null(blacklist_topology_str);
+
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "settle_time",
+                                             &temp_settle))
+    settle_time = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, temp_settle);
 
   if (GNUNET_SYSERR ==
       GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "num_peers",
