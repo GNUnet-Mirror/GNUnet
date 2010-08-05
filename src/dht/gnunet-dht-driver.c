@@ -39,6 +39,8 @@
 /* Timeout for waiting for (individual) replies to get requests */
 #define DEFAULT_GET_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 90)
 
+#define DEFAULT_TOPOLOGY_CAPTURE_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 90)
+
 /* Timeout for waiting for gets to be sent to the service */
 #define DEFAULT_GET_DELAY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10)
 
@@ -140,6 +142,18 @@ struct ProgressMeter
   char *startup_string;
 };
 
+/**
+ * Context for getting a topology, logging it, and continuing
+ * on with some next operation.
+ */
+struct TopologyIteratorContext
+{
+  unsigned int total_connections;
+  GNUNET_SCHEDULER_Task cont;
+  void *cls;
+  struct GNUNET_TIME_Relative timeout;
+};
+
 /* Globals */
 
 /**
@@ -210,6 +224,11 @@ static struct GNUNET_TESTING_PeerGroup *pg;
  * Global scheduler, used for all GNUNET_SCHEDULER_* functions.
  */
 static struct GNUNET_SCHEDULER_Handle *sched;
+
+/**
+ * Global config handle.
+ */
+const struct GNUNET_CONFIGURATION_Handle *config;
 
 /**
  * Total number of peers to run, set based on config file.
@@ -448,6 +467,45 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   ok = 0;
 }
 
+/**
+ * Callback for iterating over all the peer connections of a peer group.
+ */
+void log_topology_cb (void *cls,
+                      const struct GNUNET_PeerIdentity *first,
+                      const struct GNUNET_PeerIdentity *second,
+                      struct GNUNET_TIME_Relative latency,
+                      uint32_t distance,
+                      const char *emsg)
+{
+  struct TopologyIteratorContext *topo_ctx = cls;
+  if ((first != NULL) && (second != NULL))
+    {
+      topo_ctx->total_connections++;
+      if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(config, "dht_testing", "mysql_logging_extended"))
+        dhtlog_handle->insert_extended_topology(first, second);
+    }
+  else
+    {
+      GNUNET_assert(dhtlog_handle != NULL);
+      fprintf(stderr, "topology iteration finished (%u connections), scheduling continuation\n", topo_ctx->total_connections);
+      dhtlog_handle->update_topology(topo_ctx->total_connections);
+      GNUNET_SCHEDULER_add_now (sched, topo_ctx->cont, topo_ctx->cls);
+      GNUNET_free(topo_ctx);
+    }
+}
+
+/**
+ * Connect to all peers in the peer group and iterate over their
+ * connections.
+ */
+static void
+capture_current_topology (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct TopologyIteratorContext *topo_ctx = cls;
+  dhtlog_handle->insert_topology(0);
+  GNUNET_TESTING_get_topology (pg, &log_topology_cb, topo_ctx);
+}
+
 
 /**
  * Check if the get_handle is being used, if so stop the request.  Either
@@ -484,7 +542,6 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 
   GNUNET_TESTING_daemons_stop (pg, DEFAULT_TIMEOUT, &shutdown_callback, NULL);
 
-  /* FIXME: optionally get stats for dropped messages, etc. */
   if (dhtlog_handle != NULL)
     {
       fprintf(stderr, "Update trial endtime\n");
@@ -512,6 +569,7 @@ static void
 get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   struct TestGetContext *test_get = cls;
+  struct TopologyIteratorContext *topo_ctx;
   outstanding_gets--; /* GET is really finished */
   GNUNET_DHT_disconnect(test_get->dht_handle);
   test_get->dht_handle = NULL;
@@ -520,15 +578,18 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%d gets succeeded, %d gets failed!\n", gets_completed, gets_failed);
 #endif
   update_meter(get_meter);
-  if ((gets_completed == num_gets) && (outstanding_gets == 0))/* All gets successful */
+  if ((gets_completed + gets_failed == num_gets) && (outstanding_gets == 0))
     {
       GNUNET_SCHEDULER_cancel(sched, die_task);
-      GNUNET_SCHEDULER_add_now(sched, &finish_testing, NULL);
-    }
-  else if ((gets_completed + gets_failed == num_gets) && (outstanding_gets == 0)) /* Had some failures */
-    {
-      GNUNET_SCHEDULER_cancel(sched, die_task);
-      GNUNET_SCHEDULER_add_now(sched, &finish_testing, NULL);
+      //GNUNET_SCHEDULER_add_now(sched, &finish_testing, NULL);
+      if (dhtlog_handle != NULL)
+        {
+          topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
+          topo_ctx->cont = &finish_testing;
+          GNUNET_SCHEDULER_add_now(sched, &capture_current_topology, topo_ctx);
+        }
+      else
+        GNUNET_SCHEDULER_add_now (sched, &finish_testing, NULL);
     }
 }
 
@@ -658,6 +719,7 @@ static void
 put_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   struct TestPutContext *test_put = cls;
+  struct TopologyIteratorContext *topo_ctx;
   outstanding_puts--;
   puts_completed++;
 
@@ -670,9 +732,23 @@ put_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
     {
       GNUNET_assert(outstanding_puts == 0);
       GNUNET_SCHEDULER_cancel (sched, die_task);
-      die_task = GNUNET_SCHEDULER_add_delayed (sched, all_get_timeout,
-                                               &end_badly, "from do gets");
-      GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time), &do_get, all_gets);
+      if (dhtlog_handle != NULL)
+        {
+          topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
+          topo_ctx->cont = &do_get;
+          topo_ctx->cls = all_gets;
+          topo_ctx->timeout = DEFAULT_GET_TIMEOUT;
+          die_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_add(GNUNET_TIME_relative_add(DEFAULT_GET_TIMEOUT, all_get_timeout), DEFAULT_TOPOLOGY_CAPTURE_TIMEOUT),
+                                                   &end_badly, "from do gets");
+          GNUNET_SCHEDULER_add_now(sched, &capture_current_topology, topo_ctx);
+        }
+      else
+        {
+          die_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_add(DEFAULT_GET_TIMEOUT, all_get_timeout),
+                                                       &end_badly, "from do gets");
+          GNUNET_SCHEDULER_add_delayed(sched, DEFAULT_GET_TIMEOUT, &do_get, all_gets);
+          GNUNET_SCHEDULER_add_now (sched, &finish_testing, NULL);
+        }
       return;
     }
 }
@@ -764,6 +840,26 @@ setup_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
                                            &end_badly, "from do puts");
   GNUNET_SCHEDULER_add_now (sched, &do_put, all_puts);
 }
+
+/**
+ * Set up some all of the put and get operations we want
+ * to do.  Allocate data structure for each, add to list,
+ * then call actual insert functions.
+ */
+static void
+continue_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct TopologyIteratorContext *topo_ctx;
+  if (dhtlog_handle != NULL)
+    {
+      topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
+      topo_ctx->cont = &setup_puts_and_gets;
+      GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time), &capture_current_topology, topo_ctx);
+    }
+  else
+    GNUNET_SCHEDULER_add_now (sched, &setup_puts_and_gets, NULL);
+}
+
 /**
  * This function is called whenever a connection attempt is finished between two of
  * the started peers (started with GNUNET_TESTING_daemons_start).  The total
@@ -784,6 +880,7 @@ topology_callback (void *cls,
                    struct GNUNET_TESTING_Daemon *second_daemon,
                    const char *emsg)
 {
+  struct TopologyIteratorContext *topo_ctx;
   if (emsg == NULL)
     {
       total_connections++;
@@ -812,13 +909,22 @@ topology_callback (void *cls,
                   total_connections);
 #endif
       if (dhtlog_handle != NULL)
-        dhtlog_handle->update_connections (trialuid, total_connections);
+        {
+          dhtlog_handle->update_connections (trialuid, total_connections);
+          dhtlog_handle->insert_topology(expected_connections);
+        }
 
       GNUNET_SCHEDULER_cancel (sched, die_task);
       /*die_task = GNUNET_SCHEDULER_add_delayed (sched, DEFAULT_TIMEOUT,
                                                &end_badly, "from setup puts/gets");*/
-
-      GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time), &setup_puts_and_gets, NULL);
+      if ((dhtlog_handle != NULL) && (settle_time > 0))
+        {
+          topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
+          topo_ctx->cont = &continue_puts_and_gets;
+          GNUNET_SCHEDULER_add_now(sched, &capture_current_topology, topo_ctx);
+        }
+      else
+        GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time), &continue_puts_and_gets, NULL);
     }
   else if (total_connections + failed_connections == expected_connections)
     {
@@ -862,6 +968,7 @@ peers_started_callback (void *cls,
       if ((pg != NULL) && (peers_left == 0))
         {
           expected_connections = GNUNET_TESTING_connect_topology (pg, connect_topology, connect_topology_option, connect_topology_option_modifier);
+
           peer_connect_meter = create_meter(expected_connections, "Peer connection ", GNUNET_YES);
 #if VERBOSE
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -957,28 +1064,27 @@ run (void *cls,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  struct stat frstat;
   struct GNUNET_TESTING_Host *hosts;
   struct GNUNET_TESTING_Host *temphost;
-  char * topology_str;
-  char * connect_topology_str;
-  char * blacklist_topology_str;
-  char * connect_topology_option_str;
-  char * connect_topology_option_modifier_string;
+  char *topology_str;
+  char *connect_topology_str;
+  char *blacklist_topology_str;
+  char *connect_topology_option_str;
+  char *connect_topology_option_modifier_string;
   char *trialmessage;
-  char * topology_percentage_str;
+  char *topology_percentage_str;
   float topology_percentage;
-  char * topology_probability_str;
-  char * hostfile;
+  char *topology_probability_str;
+  char *hostfile;
   float topology_probability;
   unsigned long long temp_config_number;
   char *buf;
   char *data;
-
-  struct stat frstat;
   int count;
 
   sched = s;
-
+  config = cfg;
   /* Get path from configuration file */
   if (GNUNET_YES != GNUNET_CONFIGURATION_get_value_string(cfg, "paths", "servicehome", &test_directory))
     {
@@ -989,7 +1095,7 @@ run (void *cls,
   /**
    * Get DHT specific testing options.
    */
-  if ((GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht_testing", "mysql_logging"))||
+  if ((GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht_testing", "mysql_logging")) ||
       (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht_testing", "mysql_logging_extended")))
     {
       dhtlog_handle = GNUNET_DHTLOG_connect(cfg);

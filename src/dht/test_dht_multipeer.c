@@ -340,7 +340,8 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%d gets succeeded, %d gets failed!\n", gets_completed, gets_failed);
   if ((gets_completed == num_gets) && (outstanding_gets == 0))/* All gets successful */
     {
-      GNUNET_SCHEDULER_cancel(sched, die_task);
+      GNUNET_SCHEDULER_cancel (sched, die_task);
+      //GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5), &get_topology, NULL);
       GNUNET_SCHEDULER_add_now(sched, &finish_testing, NULL);
     }
   else if ((gets_completed + gets_failed == num_gets) && (outstanding_gets == 0)) /* Had some failures */
@@ -572,6 +573,8 @@ setup_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 
   GNUNET_SCHEDULER_add_now (sched, &do_put, all_puts);
 }
+
+
 /**
  * This function is called whenever a connection attempt is finished between two of
  * the started peers (started with GNUNET_TESTING_daemons_start).  The total
