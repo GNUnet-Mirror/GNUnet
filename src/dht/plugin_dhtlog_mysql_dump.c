@@ -200,7 +200,7 @@ add_topology (int num_connections)
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
-add_extended_topology (struct GNUNET_PeerIdentity *first, struct GNUNET_PeerIdentity *second)
+add_extended_topology (const struct GNUNET_PeerIdentity *first, const struct GNUNET_PeerIdentity *second)
 {
   int ret;
   if (outfile == NULL)

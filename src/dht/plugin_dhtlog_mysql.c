@@ -575,7 +575,7 @@ get_node_uid (unsigned long long *nodeuid, const GNUNET_HashCode * peerHash)
 
   int ret;
   memset (rbind, 0, sizeof (rbind));
-  rbind[0].buffer_type = MYSQL_TYPE_LONG;
+  rbind[0].buffer_type = MYSQL_TYPE_LONGLONG;
   rbind[0].buffer = nodeuid;
   rbind[0].is_unsigned = GNUNET_YES;
 
@@ -587,7 +587,7 @@ get_node_uid (unsigned long long *nodeuid, const GNUNET_HashCode * peerHash)
                                                               rbind,
                                                               return_ok,
                                                               NULL,
-                                                              MYSQL_TYPE_LONG,
+                                                              MYSQL_TYPE_LONGLONG,
                                                               &current_trial,
                                                               GNUNET_YES,
                                                               MYSQL_TYPE_VAR_STRING,
@@ -1287,7 +1287,7 @@ add_topology (int num_connections)
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
-add_extended_topology (struct GNUNET_PeerIdentity *first, struct GNUNET_PeerIdentity *second)
+add_extended_topology (const struct GNUNET_PeerIdentity *first, const struct GNUNET_PeerIdentity *second)
 {
   int ret;
   unsigned long long first_uid;

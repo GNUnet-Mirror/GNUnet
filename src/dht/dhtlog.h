@@ -156,7 +156,7 @@ struct GNUNET_DHTLOG_Handle
    *
    * @return GNUNET_OK on success, GNUNET_SYSERR on failure
    */
-  int (*insert_extended_topology) (struct GNUNET_PeerIdentity *first, struct GNUNET_PeerIdentity *second);
+  int (*insert_extended_topology) (const struct GNUNET_PeerIdentity *first, const struct GNUNET_PeerIdentity *second);
 
   /*
    * Update dhttests.trials table with total connections information

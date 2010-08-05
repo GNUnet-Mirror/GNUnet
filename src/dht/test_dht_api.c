@@ -34,7 +34,7 @@
 #include "gnunet_dht_service.h"
 #include "gnunet_hello_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define VERBOSE_ARM GNUNET_NO
 
@@ -306,7 +306,7 @@ test_find_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   retry_context.peer_ctx = peer;
 
   peer->find_peer_handle =
-    GNUNET_DHT_find_peer_start (peer->dht_handle, retry_context.next_timeout, 0, &hash,
+    GNUNET_DHT_find_peer_start (peer->dht_handle, retry_context.next_timeout, 1, &hash,
                                 &test_find_peer_processor, &retry_context, NULL, NULL);
 
   if (peer->find_peer_handle == NULL)
