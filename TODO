@@ -52,7 +52,6 @@
   - integration with transport service
 * MYSQL database backends: [CG]
   - datacache
-  - datastore
 * FS: [CG]
   - library:
     + reconstruct IBLOCKS from DBLOCKS if possible (during download; see FIXME in fs_download)

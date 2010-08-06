@@ -1233,7 +1233,8 @@ mysql_next_request_cont (void *next_cls,
     }
 #if DEBUG_MYSQL
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Calling iterator with value %llu of size %u with type %u, priority %u, anonymity %u and expiration %llu\n",
+	      "Calling iterator with value `%s' number %llu of size %u with type %u, priority %u, anonymity %u and expiration %llu\n",
+	      GNUNET_h2s (&key),
 	      vkey,
 	      size,
 	      type,
@@ -1445,7 +1446,8 @@ mysql_plugin_put (void *cls,
     }
 #if DEBUG_MYSQL
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Inserted value number %llu with size %u into gn080 table\n",
+	      "Inserted value `%s' number %llu with size %u into gn080 table\n",
+	      GNUNET_h2s (key),
 	      vkey,
 	      isize);
 #endif
@@ -1484,7 +1486,6 @@ struct GetContext
 
   unsigned int prio;
   unsigned int anonymity;
-  unsigned int limit_off;
   unsigned long long expiration;
   unsigned long long vkey;
   unsigned long long total;
@@ -1492,7 +1493,6 @@ struct GetContext
   int count;
   int have_vhash;
   unsigned long size; /* OBSOLETE! */
-  unsigned long hashSize;
 };
 
 
@@ -1503,6 +1503,8 @@ get_statement_prepare (void *cls,
   struct GetContext *gc = cls;
   struct Plugin *plugin;
   int ret;
+  unsigned int limit_off;
+  unsigned long hashSize;
 
   if (NULL == nrc)
     {
@@ -1512,12 +1514,22 @@ get_statement_prepare (void *cls,
   if (gc->count == gc->total)
     return GNUNET_NO;
   plugin = nrc->plugin;
-  gc->hashSize = sizeof (GNUNET_HashCode);
+  hashSize = sizeof (GNUNET_HashCode);
+  if (gc->count + gc->off == gc->total)
+    nrc->last_vkey = 0;          /* back to start */
   if (gc->count == 0)
-    gc->limit_off = gc->off;
+    limit_off = gc->off;
   else
-    gc->limit_off = 0;
-  
+    limit_off = 0;
+#if DEBUG_MYSQL
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Obtaining result number %d/%lld at offset %d with lvc %llu for GET `%s'\n",
+	      gc->count+1,
+	      gc->total,
+	      limit_off,
+	      nrc->last_vkey,
+	      GNUNET_h2s (&gc->key));  
+#endif
   if (nrc->type != 0)
     {
       if (gc->have_vhash)
@@ -1526,10 +1538,10 @@ get_statement_prepare (void *cls,
 	    prepared_statement_run_select
 	    (plugin,
 	     plugin->select_entry_by_hash_vhash_and_type, 7, nrc->rbind, &return_ok,
-	     NULL, MYSQL_TYPE_BLOB, &gc->key, gc->hashSize, &gc->hashSize,
-	     MYSQL_TYPE_BLOB, &gc->vhash, gc->hashSize, &gc->hashSize,
+	     NULL, MYSQL_TYPE_BLOB, &gc->key, hashSize, &hashSize,
+	     MYSQL_TYPE_BLOB, &gc->vhash, hashSize, &hashSize,
 	     MYSQL_TYPE_LONGLONG, &nrc->last_vkey, GNUNET_YES, MYSQL_TYPE_LONG,
-	     &nrc->type, GNUNET_YES, MYSQL_TYPE_LONG, &gc->limit_off, GNUNET_YES,
+	     &nrc->type, GNUNET_YES, MYSQL_TYPE_LONG, &limit_off, GNUNET_YES,
 	     -1);
 	}
       else
@@ -1538,9 +1550,9 @@ get_statement_prepare (void *cls,
 	    prepared_statement_run_select
 	    (plugin,
 	     plugin->select_entry_by_hash_and_type, 7, nrc->rbind, &return_ok, NULL,
-	     MYSQL_TYPE_BLOB, &gc->key, gc->hashSize, &gc->hashSize,
+	     MYSQL_TYPE_BLOB, &gc->key, hashSize, &hashSize,
 	     MYSQL_TYPE_LONGLONG, &nrc->last_vkey, GNUNET_YES, MYSQL_TYPE_LONG,
-	     &nrc->type, GNUNET_YES, MYSQL_TYPE_LONG, &gc->limit_off, GNUNET_YES,
+	     &nrc->type, GNUNET_YES, MYSQL_TYPE_LONG, &limit_off, GNUNET_YES,
 	     -1);
 	}
     }
@@ -1552,9 +1564,9 @@ get_statement_prepare (void *cls,
 	    prepared_statement_run_select
 	    (plugin,
 	     plugin->select_entry_by_hash_and_vhash, 7, nrc->rbind, &return_ok, NULL,
-	     MYSQL_TYPE_BLOB, &gc->key, gc->hashSize, &gc->hashSize, MYSQL_TYPE_BLOB,
-	     &gc->vhash, gc->hashSize, &gc->hashSize, MYSQL_TYPE_LONGLONG,
-	     &nrc->last_vkey, GNUNET_YES, MYSQL_TYPE_LONG, &gc->limit_off,
+	     MYSQL_TYPE_BLOB, &gc->key, hashSize, &hashSize, MYSQL_TYPE_BLOB,
+	     &gc->vhash, hashSize, &hashSize, MYSQL_TYPE_LONGLONG,
+	     &nrc->last_vkey, GNUNET_YES, MYSQL_TYPE_LONG, &limit_off,
 	     GNUNET_YES, -1);
 	}
       else
@@ -1563,13 +1575,12 @@ get_statement_prepare (void *cls,
 	    prepared_statement_run_select
 	    (plugin,
 	     plugin->select_entry_by_hash, 7, nrc->rbind, &return_ok, NULL,
-	     MYSQL_TYPE_BLOB, &gc->key, gc->hashSize, &gc->hashSize,
+	     MYSQL_TYPE_BLOB, &gc->key, hashSize, &hashSize,
 	     MYSQL_TYPE_LONGLONG, &nrc->last_vkey, GNUNET_YES, MYSQL_TYPE_LONG,
-	     &gc->limit_off, GNUNET_YES, -1);
+	     &limit_off, GNUNET_YES, -1);
 	}
     }
-  if (gc->count + gc->off == gc->total)
-    nrc->last_vkey = 0;          /* back to start */
+  gc->count++;
   return ret;
 }
 
@@ -1604,7 +1615,7 @@ mysql_plugin_get (void *cls,
   MYSQL_BIND cbind[1];
   struct GetContext *gc;
   struct NextRequestClosure *nrc;
-  unsigned long long total;
+  long long total;
   unsigned long hashSize;
 
   if (iter == NULL) 
@@ -1621,7 +1632,7 @@ mysql_plugin_get (void *cls,
   total = -1;
   cbind[0].buffer_type = MYSQL_TYPE_LONGLONG;
   cbind[0].buffer = &total;
-  cbind[0].is_unsigned = GNUNET_YES;
+  cbind[0].is_unsigned = GNUNET_NO;
   if (type != 0)
     {
       if (vhash != NULL)
@@ -1668,13 +1679,19 @@ mysql_plugin_get (void *cls,
 					   &hashSize, -1);
         }
     }
-  if ((ret != GNUNET_OK) || (-1 == total) || (0 == total))
+  if ((ret != GNUNET_OK) || (0 >= total))
     {
       iter (iter_cls, 
 	    NULL, NULL, 0, NULL, 0, 0, 0, 
 	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
+#if DEBUG_MYSQL
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Iterating over %lld results for GET `%s'\n",
+	      total,
+	      GNUNET_h2s (key));
+#endif
   gc = GNUNET_malloc (sizeof (struct GetContext));
   gc->key = *key;
   if (vhash != NULL)
@@ -1694,7 +1711,7 @@ mysql_plugin_get (void *cls,
   nrc->dviter_cls = iter_cls;
   nrc->prep = &get_statement_prepare;
   nrc->prep_cls = gc;
-  nrc->last_vkey = 0; // FIXME: used to be 'vkey', why? where did vkey come from?
+  nrc->last_vkey = 0;
   mysql_plugin_next_request (nrc, GNUNET_NO);
 }
 
