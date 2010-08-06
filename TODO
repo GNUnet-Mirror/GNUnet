@@ -34,6 +34,8 @@
     + handle 'lost parent' case for recursive downloads (need to move children!)
     + clean up TreeStores in main_window_file_publish on dialog close
     + clean up ListStores in main_window_adv_pseudonym 
+* DATASTORE:
+  - modify testcases to not fail if database is not configured (i.e. 'mysqlcheck' DB does not exist)
 
 0.9.0pre3:
 * Determine RC bugs and fix those!
