@@ -2014,6 +2014,9 @@ remove_session_validations (void *cls,
  * re-establish the connection or signal the disconnect
  * to the CORE.
  *
+ * Only signal CORE level disconnect if ALL addresses
+ * for the peer are exhausted.
+ *
  * @param p overall plugin context
  * @param nl neighbour that was disconnected
  */
@@ -2032,7 +2035,7 @@ try_fast_reconnect (struct TransportPlugin *p,
      So we should consider:
      1) ideally: our own willingness / need to connect
      2) prior failures to connect to this peer (by plugin)
-     3) ideally: reaons why other peer terminated (as far as knowable)
+     3) ideally: reasons why other peer terminated (as far as knowable)
      
      Most importantly, it must be POSSIBLE for another peer to terminate
      a connection for a while (without us instantly re-establishing it).
@@ -2045,8 +2048,20 @@ try_fast_reconnect (struct TransportPlugin *p,
 
      Finally, this needs to be tested throughly... */     							
 
+  /*
+   * GNUNET_NO in the call below makes transport disconnect the peer,
+   * even if only a single address (out of say, six) went away.  This
+   * function must be careful to ONLY disconnect if the peer is gone,
+   * not just a specifi address.
+   *
+   * More specifically, half the places it was used had it WRONG.
+   */
+
   /* No reconnect, signal disconnect instead! */
-  disconnect_neighbour (nl, GNUNET_NO);  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+            "Disconnecting peer `%4s', %s\n", GNUNET_i2s(&nl->id),
+            "try_fast_reconnect");
+  disconnect_neighbour (nl, GNUNET_YES);
 }
 
 
@@ -2130,7 +2145,18 @@ plugin_env_session_end  (void *cls,
       pos = pos->next;
     }
   /* no valid addresses left, signal disconnect! */
-  disconnect_neighbour (nl, GNUNET_NO);  
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+            "Disconnecting peer `%4s', %s\n", GNUNET_i2s(&nl->id),
+            "plugin_env_session_end");
+  /* FIXME: This doesn't mean there are no addresses left for this PEER,
+   * it means there aren't any left for this PLUGIN/PEER combination! So
+   * calling disconnect_neighbor here with GNUNET_NO forces disconnect
+   * when it isn't necessary. Using GNUNET_YES at least checks to see
+   * if there are any addresses that work first, so as not to overdo it.
+   * --NE
+   */
+  disconnect_neighbour (nl, GNUNET_YES);
 }
 
 
@@ -3021,7 +3047,12 @@ confirm_or_drop_neighbour (void *cls,
   struct NeighbourList * orig = cls;
 
   if (n == NULL)
-    disconnect_neighbour (orig, GNUNET_NO);
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Disconnecting peer `%4s', %s\n", GNUNET_i2s(&orig->id),
+              "confirm_or_drop_neighboUr");
+      disconnect_neighbour (orig, GNUNET_NO);
+    }
 }
 
 
@@ -4147,9 +4178,9 @@ process_hello (struct TransportPlugin *plugin,
  * gone.
  *
  * @param n the neighbour list entry for the peer
- * @param check should we just check if all plugins
- *        disconnected or must we ask all plugins to
- *        disconnect?
+ * @param check GNUNET_YES to check if ALL addresses for this peer
+ *              are gone, GNUNET_NO to force a disconnect of the peer
+ *              regardless of whether other addresses exist.
  */
 static void
 disconnect_neighbour (struct NeighbourList *n, int check)
@@ -4170,7 +4201,12 @@ disconnect_neighbour (struct NeighbourList *n, int check)
           while (peer_addresses != NULL)
             {
               if (GNUNET_YES == peer_addresses->connected)
-                return;             /* still connected */
+                {
+                  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                            "NOT Disconnecting from `%4s', still have live addresses!\n",
+                            GNUNET_i2s (&n->id));
+                  return;             /* still connected */
+                }
               peer_addresses = peer_addresses->next;
             }
           rpos = rpos->next;
@@ -4915,7 +4951,12 @@ handle_set_quota (void *cls,
   GNUNET_BANDWIDTH_tracker_update_quota (&n->in_tracker,
 					 qsm->quota);
   if (0 == ntohl (qsm->quota.value__)) 
-    disconnect_neighbour (n, GNUNET_NO);    
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Disconnecting peer `%4s', %s\n", GNUNET_i2s(&n->id),
+                "SET_QUOTA");
+      disconnect_neighbour (n, GNUNET_NO);
+    }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -5172,7 +5213,12 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct CheckHelloValidatedContext *chvc;
 
   while (neighbours != NULL)
-    disconnect_neighbour (neighbours, GNUNET_NO);
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Disconnecting peer `%4s', %s\n", GNUNET_i2s(&neighbours->id),
+              "SHUTDOWN_TASK");
+      disconnect_neighbour (neighbours, GNUNET_NO);
+    }
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transport service is unloading plugins...\n");
