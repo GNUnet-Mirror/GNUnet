@@ -191,7 +191,7 @@
                                   " ORDER BY expire DESC,vkey DESC LIMIT 1)"\
                                   "ORDER BY expire DESC,vkey DESC LIMIT 1"
 
-// #define SELECT_SIZE "SELECT sum(size) FROM gn090"
+// #define SELECT_SIZE "SELECT SUM(BIT_LENGTH(value) DIV 8) FROM gn072"
 
 
 struct GNUNET_MysqlStatementHandle
