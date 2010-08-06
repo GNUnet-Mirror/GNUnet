@@ -493,7 +493,7 @@ receiveFromService (void *cls,
 	    {
 	      GNUNET_SCHEDULER_cancel (scheduler,
 				       fc->client_to_service_task);
-	      fc->service_to_client_task = GNUNET_SCHEDULER_NO_TASK;
+	      fc->client_to_service_task = GNUNET_SCHEDULER_NO_TASK;
 	    }
 	  fc->back_off = GNUNET_TIME_relative_multiply (fc->back_off, 2);
 #if DEBUG_SERVICE_MANAGER
