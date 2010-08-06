@@ -33,7 +33,7 @@
 
 #define VERBOSE GNUNET_NO
 
-#define START_DATASTORE GNUNET_NO
+#define START_DATASTORE GNUNET_YES
 
 /**
  * How long until we give up on transmitting the message?
@@ -299,6 +299,9 @@ check_multiple (void *cls,
     {
       if (crc->phase != RP_GET_MULTIPLE_DONE)
 	{
+	  fprintf (stderr, 
+		   "Wrong phase: %d\n",
+		   crc->phase);
 	  GNUNET_break (0);
 	  crc->phase = RP_ERROR;
 	}
@@ -352,8 +355,15 @@ check_update (void *cls,
 
   if (key == NULL)
     {
-      GNUNET_assert (crc->phase == RP_UPDATE_DONE);
-      crc->phase = RP_DONE;
+      if (crc->phase != RP_UPDATE_DONE)
+	{
+	  GNUNET_break (0);
+	  crc->phase = RP_ERROR;
+	}
+      else
+	{
+	  crc->phase = RP_DONE;
+	}
       GNUNET_SCHEDULER_add_continuation (crc->sched,
 					 &run_continuation,
 					 crc,

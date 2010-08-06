@@ -904,13 +904,26 @@ do_delete_value (struct Plugin *plugin,
 {
   int ret;
 
+#if DEBUG_MYSQL
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Deleting value %llu from gn072 table\n",
+	      vkey);
+#endif
   ret = prepared_statement_run (plugin,
 				plugin->delete_value,
 				NULL,
 				MYSQL_TYPE_LONGLONG,
 				&vkey, GNUNET_YES, -1);
   if (ret > 0)
-    ret = GNUNET_OK;
+    {
+      ret = GNUNET_OK;
+    }
+  else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  "Deleting value %llu from gn072 table failed\n",
+		  vkey);
+    }
   return ret;
 }
 
@@ -928,12 +941,29 @@ do_insert_value (struct Plugin *plugin,
                  unsigned long long *vkey)
 {
   unsigned long length = size;
+  int ret;
 
-  return prepared_statement_run (plugin,
-				 plugin->insert_value,
-				 vkey,
-				 MYSQL_TYPE_BLOB,
-				 value, length, &length, -1);
+  ret = prepared_statement_run (plugin,
+				plugin->insert_value,
+				vkey,
+				MYSQL_TYPE_BLOB,
+				value, length, &length, -1);
+  if (ret == GNUNET_OK)
+    {
+#if DEBUG_MYSQL
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Inserted value number %llu with length %u into gn072 table\n",
+		  *vkey,
+		  size);
+#endif
+    }
+  else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  "Failed to insert %u byte value into gn072 table\n",
+		  size);
+    }
+  return ret;
 }
 
 /**
@@ -948,13 +978,26 @@ do_delete_entry_by_vkey (struct Plugin *plugin,
 {
   int ret;
 
+#if DEBUG_MYSQL
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Deleting value %llu from gn080 table\n",
+	      vkey);
+#endif
   ret = prepared_statement_run (plugin,
 				plugin->delete_entry_by_vkey,
 				NULL,
 				MYSQL_TYPE_LONGLONG,
 				&vkey, GNUNET_YES, -1);
   if (ret > 0)
-    ret = GNUNET_OK;
+    {
+      ret = GNUNET_OK;
+    }
+  else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  "Deleting value %llu from gn080 table failed\n",
+		  vkey);
+    }
   return ret;
 }
 
@@ -1053,13 +1096,13 @@ iterator_helper_prepare (void *cls,
 
 
 /**
- * Continuation of "sqlite_next_request".
+ * Continuation of "mysql_next_request".
  *
  * @param next_cls the next context
  * @param tc the task context (unused)
  */
 static void 
-sqlite_next_request_cont (void *next_cls,
+mysql_next_request_cont (void *next_cls,
 			  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct NextRequestClosure *nrc = next_cls;
@@ -1083,7 +1126,8 @@ sqlite_next_request_cont (void *next_cls,
   plugin->next_task = GNUNET_SCHEDULER_NO_TASK;
   plugin->next_task_nc = NULL;
 
- AGAIN:
+ AGAIN: 
+  GNUNET_assert (nrc->plugin->next_task == GNUNET_SCHEDULER_NO_TASK);
   nrc->now = GNUNET_TIME_absolute_get ();
   hashSize = sizeof (GNUNET_HashCode);
   memset (nrc->rbind, 0, sizeof (nrc->rbind));
@@ -1111,17 +1155,16 @@ sqlite_next_request_cont (void *next_cls,
   rbind[6].buffer = &vkey;
   rbind[6].is_unsigned = GNUNET_YES;
 
-  ret = nrc->prep (nrc->prep_cls,
-		   nrc);
-  if (ret != GNUNET_OK)
+  if ( (GNUNET_YES == nrc->end_it) ||
+       (GNUNET_OK != nrc->prep (nrc->prep_cls,
+				nrc)))
     goto END_SET;
+  GNUNET_assert (nrc->plugin->next_task == GNUNET_SCHEDULER_NO_TASK);
   if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
     {
       GNUNET_break (0); /* far too big */
       goto END_SET;
     }
-
-
   nrc->last_vkey = vkey;
   nrc->last_prio = priority;
   nrc->last_expire = exp;
@@ -1144,6 +1187,15 @@ sqlite_next_request_cont (void *next_cls,
       GNUNET_break (0);
       goto END_SET;
     }	  
+#if DEBUG_MYSQL
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Found value %llu with size %u, prio %u, anon %u, expire %llu selecting from gn080 table\n",
+	      vkey,
+	      size,
+	      priority,
+	      anonymity,
+	      exp);
+#endif
   /* now do query on gn072 */
   length = size;
   memset (dbind, 0, sizeof (dbind));
@@ -1166,14 +1218,30 @@ sqlite_next_request_cont (void *next_cls,
       (dbind[0].buffer_length != size) || (length != size))
     {
       GNUNET_break (ret != 0); /* should have one rbind! */
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
+		  "Failed to obtain %llu from gn072\n",
+		  vkey);
       GNUNET_break (length == size);    /* length should match! */
       GNUNET_break (dbind[0].buffer_length == size);    /* length should be internally consistent! */
-      do_delete_value (plugin, vkey);
       if (ret != 0)
-	do_delete_entry_by_vkey (plugin, vkey);
-      plugin->content_size -= size;
+	{
+	  do_delete_value (plugin, vkey);
+	  do_delete_entry_by_vkey (plugin, vkey);
+	  plugin->content_size -= size;
+	}
       goto AGAIN;
     }
+#if DEBUG_MYSQL
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Calling iterator with value %llu of size %u with type %u, priority %u, anonymity %u and expiration %llu\n",
+	      vkey,
+	      size,
+	      type,
+	      priority,
+	      anonymity,
+	      exp);
+#endif
+  GNUNET_assert (nrc->plugin->next_task == GNUNET_SCHEDULER_NO_TASK);
   expiration.value = exp;
   ret = nrc->dviter (nrc->dviter_cls,
 		     nrc,
@@ -1187,8 +1255,8 @@ sqlite_next_request_cont (void *next_cls,
 		     vkey);
   if (ret == GNUNET_SYSERR)
     {
-      /* is this correct, or should we not call iter again period?  */
-      goto END_SET;
+      nrc->end_it = GNUNET_YES;
+      return;
     }
   if (ret == GNUNET_NO)
     {
@@ -1199,10 +1267,13 @@ sqlite_next_request_cont (void *next_cls,
   return;
  END_SET:
   /* call dviter with "end of set" */
+  GNUNET_assert (nrc->plugin->next_task == GNUNET_SCHEDULER_NO_TASK);
   nrc->dviter (nrc->dviter_cls, 
 	       NULL, NULL, 0, NULL, 0, 0, 0, 
 	       GNUNET_TIME_UNIT_ZERO_ABS, 0);
+  GNUNET_assert (nrc->plugin->next_task == GNUNET_SCHEDULER_NO_TASK);
   nrc->prep (nrc->prep_cls, NULL);
+  GNUNET_assert (nrc->plugin->next_task == GNUNET_SCHEDULER_NO_TASK);
   GNUNET_free (nrc);
 }
 
@@ -1229,7 +1300,7 @@ mysql_plugin_next_request (void *next_cls,
     nrc->end_it = GNUNET_YES;
   nrc->plugin->next_task_nc = nrc;
   nrc->plugin->next_task = GNUNET_SCHEDULER_add_now (nrc->plugin->env->sched,
-						     &sqlite_next_request_cont,
+						     &mysql_next_request_cont,
 						     nrc);
 }  
 
@@ -1318,6 +1389,11 @@ mysql_plugin_put (void *cls,
 		     char **msg)
 {
   struct Plugin *plugin = cls;
+  unsigned int itype = type;
+  unsigned int isize = size;
+  unsigned int ipriority = priority;
+  unsigned int ianonymity = anonymity;
+  unsigned long long lexpiration = expiration.value;
   unsigned long hashSize;
   unsigned long hashSize2;
   unsigned long long vkey;
@@ -1339,19 +1415,19 @@ mysql_plugin_put (void *cls,
 			      plugin->insert_entry,
 			      NULL,
 			      MYSQL_TYPE_LONG,
-			      &size,
+			      &isize,
 			      GNUNET_YES,
 			      MYSQL_TYPE_LONG,
-			      &type,
+			      &itype,
 			      GNUNET_YES,
 			      MYSQL_TYPE_LONG,
-			      &priority,
+			      &ipriority,
 			      GNUNET_YES,
 			      MYSQL_TYPE_LONG,
-			      &anonymity,
+			      &ianonymity,
 			      GNUNET_YES,
 			      MYSQL_TYPE_LONGLONG,
-			      &expiration.value,
+			      &lexpiration,
 			      GNUNET_YES,
 			      MYSQL_TYPE_BLOB,
 			      key,
@@ -1367,6 +1443,12 @@ mysql_plugin_put (void *cls,
       do_delete_value (plugin, vkey);
       return GNUNET_SYSERR;
     }
+#if DEBUG_MYSQL
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Inserted value number %llu with size %u into gn080 table\n",
+	      vkey,
+	      isize);
+#endif
   plugin->content_size += size;
   return GNUNET_OK;
 }
@@ -1420,7 +1502,6 @@ get_statement_prepare (void *cls,
 {
   struct GetContext *gc = cls;
   struct Plugin *plugin;
-  MYSQL_BIND *rbind;
   int ret;
 
   if (NULL == nrc)
@@ -1431,31 +1512,7 @@ get_statement_prepare (void *cls,
   if (gc->count == gc->total)
     return GNUNET_NO;
   plugin = nrc->plugin;
-  memset (nrc->rbind, 0, sizeof (nrc->rbind));
   gc->hashSize = sizeof (GNUNET_HashCode);
-  rbind = nrc->rbind;
-  rbind[0].buffer_type = MYSQL_TYPE_LONG;
-  rbind[0].buffer = &gc->size;
-  rbind[0].is_unsigned = GNUNET_YES;
-  rbind[1].buffer_type = MYSQL_TYPE_LONG;
-  rbind[1].buffer = &nrc->type;
-  rbind[1].is_unsigned = GNUNET_YES;
-  rbind[2].buffer_type = MYSQL_TYPE_LONG;
-  rbind[2].buffer = &nrc->last_prio;
-  rbind[2].is_unsigned = GNUNET_YES;
-  rbind[3].buffer_type = MYSQL_TYPE_LONG;
-  rbind[3].buffer = &gc->anonymity;
-  rbind[3].is_unsigned = GNUNET_YES;
-  rbind[4].buffer_type = MYSQL_TYPE_LONGLONG;
-  rbind[4].buffer = &gc->expiration;
-  rbind[4].is_unsigned = GNUNET_YES;
-  rbind[5].buffer_type = MYSQL_TYPE_BLOB;
-  rbind[5].buffer = &gc->key;
-  rbind[5].buffer_length = gc->hashSize;
-  rbind[5].length = &gc->hashSize;
-  rbind[6].buffer_type = MYSQL_TYPE_LONGLONG;
-  rbind[6].buffer = &gc->vkey;
-  rbind[6].is_unsigned = GNUNET_YES;
   if (gc->count == 0)
     gc->limit_off = gc->off;
   else
@@ -1542,6 +1599,7 @@ mysql_plugin_get (void *cls,
 		  PluginIterator iter, void *iter_cls)
 {
   struct Plugin *plugin = cls;
+  unsigned int itype = type;
   int ret;
   MYSQL_BIND cbind[1];
   struct GetContext *gc;
@@ -1573,7 +1631,7 @@ mysql_plugin_get (void *cls,
             (plugin,
 	     plugin->count_entry_by_hash_vhash_and_type, 1, cbind, &return_ok, NULL,
              MYSQL_TYPE_BLOB, key, hashSize, &hashSize, MYSQL_TYPE_BLOB,
-             vhash, hashSize, &hashSize, MYSQL_TYPE_LONG, &type, GNUNET_YES,
+             vhash, hashSize, &hashSize, MYSQL_TYPE_LONG, &itype, GNUNET_YES,
              -1);
         }
       else
@@ -1583,7 +1641,7 @@ mysql_plugin_get (void *cls,
             (plugin,
 	     plugin->count_entry_by_hash_and_type, 1, cbind, &return_ok, NULL,
              MYSQL_TYPE_BLOB, key, hashSize, &hashSize, MYSQL_TYPE_LONG,
-             &type, GNUNET_YES, -1);
+             &itype, GNUNET_YES, -1);
 
         }
     }
@@ -1673,22 +1731,38 @@ mysql_plugin_update (void *cls,
 {
   struct Plugin *plugin = cls;
   unsigned long long vkey = uid;
+  unsigned long long lexpire = expire.value;
+  int ret;
 
-  return prepared_statement_run (plugin,
-				 plugin->update_entry,
-				 NULL,
-				 MYSQL_TYPE_LONG,
-				 &delta,
-				 GNUNET_NO,
-				 MYSQL_TYPE_LONGLONG,
-				 &expire.value,
-				 GNUNET_YES,
-				 MYSQL_TYPE_LONGLONG,
-				 &expire.value,
-				 GNUNET_YES,
-				 MYSQL_TYPE_LONGLONG,
-				 &vkey,
-				 GNUNET_YES, -1);
+#if DEBUG_MYSQL
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Updating value %llu adding %d to priority and maxing exp at %llu\n",
+	      vkey,
+	      delta,
+	      lexpire);
+#endif
+  ret = prepared_statement_run (plugin,
+				plugin->update_entry,
+				NULL,
+				MYSQL_TYPE_LONG,
+				&delta,
+				GNUNET_NO,
+				MYSQL_TYPE_LONGLONG,
+				&lexpire,
+				GNUNET_YES,
+				MYSQL_TYPE_LONGLONG,
+				&lexpire,
+				GNUNET_YES,
+				MYSQL_TYPE_LONGLONG,
+				&vkey,
+				GNUNET_YES, -1);
+  if (ret != GNUNET_OK)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  "Failed to update value %llu\n",
+		  vkey);
+    }
+  return ret;
 }
 
 
@@ -1727,8 +1801,8 @@ mysql_plugin_iter_zero_anonymity (void *cls,
  */
 static void
 mysql_plugin_iter_ascending_expiration (void *cls,
-					   enum GNUNET_BLOCK_Type type,
-					   PluginIterator iter,
+					enum GNUNET_BLOCK_Type type,
+					PluginIterator iter,
 					void *iter_cls)
 {
   struct Plugin *plugin = cls;
