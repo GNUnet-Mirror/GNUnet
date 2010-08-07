@@ -20,12 +20,7 @@
 * GNUNET-GTK: [CG]
   - namespaces:
     + namespace search
-      / fill namespace list in dialog, use if selected
-      / NS list in search dialog should use colors to offset our own namespaces from the others
       / double-clicking on NS list in search dialog should move 'root' to keyword line
-      / right-clicking on NS list in search dialog should open menu that allows 
-        \ viewing full meta data 
-        \ deletion of namespace info
   - bugs:
     + handle 'lost parent' case for recursive downloads (need to move children!)
     + clean up TreeStores in main_window_file_publish on dialog close
@@ -181,3 +176,8 @@ Minor features:
   - [./transport/gnunet-service-transport.c:173]: (style) struct or union member 'TransportPlugin::rebuild' is never used (related to TCP not refreshing external addresses?)
 * BLOCKS:
   - testcase would be nice...
+* GNUNET-GTK:
+  - NS list in search dialog should use colors to offset our own namespaces from the others
+  - right-clicking on NS list in search dialog should open menu that allows 
+    * viewing full meta data 
+    * deletion of namespace info
