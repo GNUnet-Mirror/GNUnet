@@ -18,9 +18,6 @@
 * PWNAT: [Nate/MW/Nils]
   - W32 port
 * GNUNET-GTK: [CG]
-  - namespaces:
-    + namespace search
-      / double-clicking on NS list in search dialog should move 'root' to keyword line
   - bugs:
     + handle 'lost parent' case for recursive downloads (need to move children!)
     + clean up TreeStores in main_window_file_publish on dialog close
