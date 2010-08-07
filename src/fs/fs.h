@@ -1839,13 +1839,70 @@ struct GNUNET_FS_DownloadContext
   int tried_full_data;
 };
 
+
+/**
+ * Information about an (updateable) node in the
+ * namespace.
+ */
+struct NamespaceUpdateNode
+{
+  /**
+   * Identifier for this node.
+   */
+  char *id;
+
+  /**
+   * Identifier of children of this node.
+   */
+  char *update;
+
+  /**
+   * Metadata for this entry.
+   */
+  struct GNUNET_CONTAINER_MetaData *md;
+
+  /**
+   * URI of this entry in the namespace.
+   */
+  struct GNUNET_FS_Uri *uri;
+
+  /**
+   * Namespace update generation ID.  Used to ensure
+   * freshness of the scc_id.
+   */
+  unsigned int nug;
+  
+  /**
+   * SCC this entry belongs to (if nug is current).
+   */
+  unsigned int scc_id;
+
+};
+
+
 struct GNUNET_FS_Namespace
 {
+
+  /**
+   * Handle to the FS service context.
+   */
+  struct GNUNET_FS_Handle *h;
+  
+  /**
+   * Array with information about nodes in the namespace.
+   */
+  struct NamespaceUpdateNode **update_nodes;
 
   /**
    * Private key for the namespace.
    */
   struct GNUNET_CRYPTO_RsaPrivateKey *key;
+
+  /**
+   * Hash map mapping identifiers of update nodes
+   * to the update nodes (initialized on-demand).
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *update_map;
 
   /**
    * Name of the file with the private key.
@@ -1858,9 +1915,19 @@ struct GNUNET_FS_Namespace
   char *name;
 
   /**
+   * Size of the update nodes array.
+   */
+  unsigned int update_node_count;
+
+  /**
    * Reference counter.
    */
   unsigned int rc;
+
+  /**
+   * Generator for unique nug numbers.
+   */
+  unsigned int nug_gen;
 };
 
 
