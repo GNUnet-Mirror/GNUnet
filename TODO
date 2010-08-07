@@ -19,8 +19,6 @@
   - W32 port
 * GNUNET-GTK: [CG]
   - namespaces:
-    + namespace publishing
-      / fill tree store with full implementation of 'list_updateable'
     + namespace search
       / fill namespace list in dialog, use if selected
       / NS list in search dialog should use colors to offset our own namespaces from the others
