@@ -682,14 +682,13 @@ process_status_message (void *cls,
   if (msg == NULL)
     {      
       free_queue_entry (qe);
+      rc.cont (rc.cont_cls, 
+	       GNUNET_SYSERR,
+	       _("Failed to receive response from database."));
       if (NULL == h->client)
 	return; /* forced disconnect */
       if (was_transmitted == GNUNET_YES)
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		      _("Failed to receive response from database.\n"));
-	  do_disconnect (h);
-	}
+	do_disconnect (h);
       return;
     }
   GNUNET_assert (GNUNET_YES == qe->was_transmitted);
@@ -1079,7 +1078,7 @@ process_result_message (void *cls,
 
   h->in_receive = GNUNET_NO;
   if (msg == NULL)
-    {
+   {
       was_transmitted = qe->was_transmitted;
       free_queue_entry (qe);
       if (was_transmitted == GNUNET_YES)

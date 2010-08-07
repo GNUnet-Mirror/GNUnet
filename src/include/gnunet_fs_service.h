@@ -2243,15 +2243,28 @@ typedef void
 
 
 /**
- * List all of the identifiers in the namespace for 
- * which we could produce an update.
+ * List all of the identifiers in the namespace for which we could
+ * produce an update.  Namespace updates form a graph where each node
+ * has a name.  Each node can have any number of URI/meta-data entries
+ * which can each be linked to other nodes.  Cycles are possible.
+ * 
+ * Calling this function with "next_id" NULL will cause the library to
+ * call "ip" with a root for each strongly connected component of the
+ * graph (a root being a node from which all other nodes in the Scc
+ * are reachable).
+ * 
+ * Calling this function with "next_id" being the name of a node will
+ * cause the library to call "ip" with all children of the node.  Note
+ * that cycles within an SCC are possible (including self-loops).
  *
  * @param namespace namespace to inspect for updateable content
+ * @param next_id ID to look for; use NULL to look for SCC roots
  * @param ip function to call on each updateable identifier
  * @param ip_cls closure for ip
  */
 void
 GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
+				     const char *next_id,
 				     GNUNET_FS_IdentifierProcessor ip, 
 				     void *ip_cls);
 

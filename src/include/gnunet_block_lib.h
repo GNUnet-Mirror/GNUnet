@@ -75,7 +75,9 @@ enum GNUNET_BLOCK_Type
     /**
      * Type of a block that is used to advertise a namespace.  
      */
-    GNUNET_BLOCK_TYPE_NBLOCK = 6
+    GNUNET_BLOCK_TYPE_NBLOCK = 6,
+
+    GNUNET_BLOCK_TYPE_TEST = 9999
 
   };
 

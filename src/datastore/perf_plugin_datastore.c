@@ -334,7 +334,13 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Loading `%s' datastore plugin\n"), name);
   GNUNET_asprintf (&libname, "libgnunet_plugin_datastore_%s", name);
-  GNUNET_assert (NULL != (ret = GNUNET_PLUGIN_load (libname, &env)));
+  if (NULL == (ret = GNUNET_PLUGIN_load (libname, &env)))
+    {
+      fprintf (stderr,
+	       "Failed to load plugin `%s'!\n",
+	       name);
+      return NULL;
+    }
   GNUNET_free (libname);
   GNUNET_free (name);
   return ret;
@@ -352,15 +358,19 @@ run (void *cls,
   struct CpsRunContext *crc;
 
   api = load_plugin (c, s);
-  GNUNET_assert (api != NULL);
+  if (api == NULL)
+    {
+      fprintf (stderr, 
+	       "Could not initialize plugin, assuming database not configured. Test not run!\n");
+      return;
+    }
   crc = GNUNET_malloc(sizeof(struct CpsRunContext));
   crc->api = api;
   crc->sched = s;
   crc->cfg = c;
   crc->phase = RP_PUT;
-  GNUNET_SCHEDULER_add_after (s,
-			      GNUNET_SCHEDULER_NO_TASK,
-			      &test, crc);
+  GNUNET_SCHEDULER_add_now (crc->sched,
+			    &test, crc);
 }
 
 

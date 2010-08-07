@@ -79,10 +79,16 @@ GNUNET_BIO_read_open (const char *fn)
 int
 GNUNET_BIO_read_close (struct GNUNET_BIO_ReadHandle *h, char **emsg)
 {
-  *emsg = h->emsg;
+  int err;
+
+  err = (NULL == h->emsg) ? GNUNET_OK : GNUNET_SYSERR;
+  if (emsg != NULL)
+    *emsg = h->emsg;
+  else
+    GNUNET_free_non_null (h->emsg);
   GNUNET_DISK_file_close (h->fd);
   GNUNET_free (h);
-  return (NULL == *emsg) ? GNUNET_OK : GNUNET_SYSERR;
+  return err;
 }
 
 

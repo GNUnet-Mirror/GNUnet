@@ -314,6 +314,29 @@ run_continuation (void *cls,
 }
 
 
+
+static void
+run_tests (void *cls,
+	   int success,
+	   const char *msg)
+{
+  struct CpsRunContext *crc = cls;
+
+  if (success != GNUNET_YES)
+    {
+      fprintf (stderr,
+	       "Test 'put' operation failed with error `%s' database likely not setup, skipping test.",
+	       msg);
+      GNUNET_free (crc);
+      return;
+    }
+  GNUNET_SCHEDULER_add_continuation (crc->sched,
+				     &run_continuation,
+				     crc,
+				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+}
+
+
 static void
 run (void *cls,
      struct GNUNET_SCHEDULER_Handle *sched,
@@ -322,6 +345,7 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct CpsRunContext *crc;
+  static GNUNET_HashCode zkey;
 
   datastore = GNUNET_DATASTORE_connect (cfg, sched);
   start_time = GNUNET_TIME_absolute_get ();
@@ -329,10 +353,19 @@ run (void *cls,
   crc->sched = sched;
   crc->cfg = cfg;
   crc->phase = RP_PUT;
-  GNUNET_SCHEDULER_add_continuation (crc->sched,
-				     &run_continuation,
-				     crc,
-				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  if (NULL ==
+      GNUNET_DATASTORE_put (datastore, 0,
+			    &zkey, 4, "TEST",
+			    GNUNET_BLOCK_TYPE_TEST,
+			    0, 0, GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_SECONDS),
+			    0, 1, GNUNET_TIME_UNIT_MINUTES,
+			    &run_tests, crc))
+    {
+      fprintf (stderr,
+	       "Test 'put' operation failed.\n");
+      ok = 1;
+      GNUNET_free (crc);
+    }
 }
 
 
