@@ -42,6 +42,9 @@ extern "C"
 /**
  * Iterator over all known pseudonyms.
  *
+ * @param cls closure
+ * @param pseudonym hash code of public key of pseudonym
+ * @param md meta data known about the pseudonym
  * @param rating the local rating of the pseudonym
  * @return GNUNET_OK to continue iteration, GNUNET_SYSERR to abort
  */

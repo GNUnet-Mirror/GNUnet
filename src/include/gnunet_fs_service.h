@@ -328,6 +328,18 @@ GNUNET_FS_uri_sks_create (struct GNUNET_FS_Namespace *ns,
 
 
 /**
+ * Create an SKS URI from a namespace ID and an identifier.
+ *
+ * @param nsid namespace ID
+ * @param id identifier
+ * @return an FS URI for the given namespace and identifier
+ */
+struct GNUNET_FS_Uri *
+GNUNET_FS_uri_sks_create_from_nsid (GNUNET_HashCode *nsid,
+				    const char *id);
+
+
+/**
  * Get the ID of a namespace from the given
  * namespace URI.
  *

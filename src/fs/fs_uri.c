@@ -910,6 +910,27 @@ GNUNET_FS_uri_sks_create (struct GNUNET_FS_Namespace *ns,
 
 
 /**
+ * Create an SKS URI from a namespace ID and an identifier.
+ *
+ * @param nsid namespace ID
+ * @param id identifier
+ * @return an FS URI for the given namespace and identifier
+ */
+struct GNUNET_FS_Uri *
+GNUNET_FS_uri_sks_create_from_nsid (GNUNET_HashCode *nsid,
+				    const char *id)
+{
+  struct GNUNET_FS_Uri *ns_uri;
+	      
+  ns_uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
+  ns_uri->type = sks;
+  ns_uri->data.sks.namespace = *nsid;
+  ns_uri->data.sks.identifier = GNUNET_strdup (id);
+  return ns_uri;
+}
+
+
+/**
  * Canonicalize a keyword.
  * 
  * @param in input string (the keyword)
@@ -1151,6 +1172,7 @@ GNUNET_FS_uri_ksk_create (const char *keywords,
 
   if (keywords == NULL)
     {
+      *emsg = GNUNET_strdup (_("No keywords specified!\n"));
       GNUNET_break (0);
       return NULL;
     }
