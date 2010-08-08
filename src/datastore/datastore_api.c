@@ -682,11 +682,11 @@ process_status_message (void *cls,
   if (msg == NULL)
     {      
       free_queue_entry (qe);
+      if (NULL == h->client)
+	return; /* forced disconnect */
       rc.cont (rc.cont_cls, 
 	       GNUNET_SYSERR,
 	       _("Failed to receive response from database."));
-      if (NULL == h->client)
-	return; /* forced disconnect */
       if (was_transmitted == GNUNET_YES)
 	do_disconnect (h);
       return;

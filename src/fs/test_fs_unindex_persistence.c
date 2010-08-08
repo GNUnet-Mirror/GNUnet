@@ -84,11 +84,17 @@ static void
 abort_unindex_task (void *cls,
 		    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_FS_unindex_stop (unindex);
-  unindex = NULL;
-  GNUNET_DISK_directory_remove (fn);
-  GNUNET_free (fn);
-  fn = NULL;
+  if (unindex != NULL)
+    {
+      GNUNET_FS_unindex_stop (unindex);
+      unindex = NULL;
+    }
+  if (fn != NULL)
+    {
+      GNUNET_DISK_directory_remove (fn);
+      GNUNET_free (fn);
+      fn = NULL;
+    }
 }
 
 
