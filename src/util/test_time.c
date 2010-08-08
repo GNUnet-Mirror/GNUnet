@@ -228,7 +228,6 @@ main (int argc, char *argv[])
 
   GNUNET_log_setup ("test-time", "WARNING", NULL);
   ret = check ();
-  printf("test_0309");
 
   return ret;
 }
