@@ -69,6 +69,7 @@ GNUNET_DHTLOG_connect (const struct GNUNET_CONFIGURATION_Handle *c)
     }
 
   api = plugin->dhtlog_api;
+  GNUNET_free (plugin_name);
   GNUNET_free(plugin);
   return api;
 }
@@ -87,6 +88,7 @@ GNUNET_DHTLOG_disconnect (struct GNUNET_DHTLOG_Handle *api)
     {
       GNUNET_PLUGIN_unload(libname, api);
     }
+  GNUNET_free_non_null(libname);
 }
 
 /* end of dhtlog.c */

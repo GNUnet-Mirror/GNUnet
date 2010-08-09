@@ -74,6 +74,13 @@ struct PendingMessage
    */
   uint64_t unique_id;
 
+  /**
+   * Free the saved message once sent, set
+   * to GNUNET_YES for messages that don't
+   * receive responses!
+   */
+  int free_on_send;
+
 };
 
 struct PendingMessageList
@@ -366,7 +373,7 @@ finish (struct GNUNET_DHT_Handle *handle, int code)
     }
 
   GNUNET_assert(handle->th == NULL);
-  if (pos->unique_id == 0)
+  if (pos->free_on_send == GNUNET_YES)
     GNUNET_free(pos->msg);
   GNUNET_free (pos);
   handle->current = NULL;
@@ -896,6 +903,8 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
   pending = GNUNET_malloc (sizeof (struct PendingMessage));
   pending->msg = &message->header;
   pending->timeout = timeout;
+  if (iter == NULL)
+    pending->free_on_send = GNUNET_YES;
   pending->cont = cont;
   pending->cont_cls = cont_cls;
   pending->unique_id = route_handle->uid;
@@ -1215,7 +1224,9 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
         }
     }
   else
-    GNUNET_free(put_route);
+    {
+      GNUNET_free(put_route);
+    }
 
   GNUNET_free (put_msg);
 }

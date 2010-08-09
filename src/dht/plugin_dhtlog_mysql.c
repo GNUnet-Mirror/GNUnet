@@ -86,16 +86,6 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static unsigned long long current_trial = 0;    /* I like to assign 0, just to remember */
 
-static char *user;
-
-static char *password;
-
-static char *server;
-
-static char *database;
-
-static unsigned long long port;
-
 /**
  * Connection to the MySQL Server.
  */
@@ -298,7 +288,7 @@ prepared_statement_create (const char *statement)
 }
 
 /**
- * Create a prepared statement.
+ * Close a prepared statement.
  *
  * @return NULL on error
  */
@@ -308,8 +298,7 @@ prepared_statement_close (struct StatementHandle *s)
   if (s == NULL)
     return;
 
-  if (s->query != NULL)
-    GNUNET_free(s->query);
+  GNUNET_free_non_null(s->query);
   if (s->valid == GNUNET_YES)
     mysql_stmt_close(s->statement);
   GNUNET_free(s);
@@ -319,19 +308,70 @@ prepared_statement_close (struct StatementHandle *s)
  * Initialize the prepared statements for use with dht test logging
  */
 static int
-iopen ()
+iopen (struct GNUNET_DHTLOG_Plugin *plugin)
 {
   int ret;
+  my_bool reconnect;
+  unsigned int timeout;
+  char *user;
+  char *password;
+  char *server;
+  char *database;
+  unsigned long long port;
 
   conn = mysql_init (NULL);
   if (conn == NULL)
     return GNUNET_SYSERR;
 
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (plugin->cfg,
+                                                         "MYSQL", "DATABASE",
+                                                         &database))
+    {
+      database = GNUNET_strdup("gnunet");
+    }
+
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (plugin->cfg,
+                                                          "MYSQL", "USER", &user))
+    {
+      user = GNUNET_strdup("dht");
+    }
+
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (plugin->cfg,
+                                                          "MYSQL", "PASSWORD", &password))
+    {
+      password = GNUNET_strdup("dhttest**");
+    }
+
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (plugin->cfg,
+                                                          "MYSQL", "SERVER", &server))
+    {
+      server = GNUNET_strdup("localhost");
+    }
+
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (plugin->cfg,
+                                                          "MYSQL", "MYSQL_PORT", &port))
+    {
+      port = 0;
+    }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to mysql with: user %s, pass %s, server %s, database %s, port %d\n",
               user, password, server, database, port);
 
+  reconnect = 0;
+  timeout = 60; /* in seconds */
+  mysql_options (conn, MYSQL_OPT_RECONNECT, &reconnect);
+  mysql_options (conn,
+                 MYSQL_OPT_CONNECT_TIMEOUT, (const void *) &timeout);
+  mysql_options(conn, MYSQL_SET_CHARSET_NAME, "UTF8");
+  mysql_options (conn, MYSQL_OPT_READ_TIMEOUT, (const void *) &timeout);
+  mysql_options (conn, MYSQL_OPT_WRITE_TIMEOUT, (const void *) &timeout);
   mysql_real_connect (conn, server, user, password,
-                      database, (unsigned int) port, NULL, 0);
+                      database, (unsigned int) port, NULL, CLIENT_IGNORE_SIGPIPE);
+
+  GNUNET_free_non_null(server);
+  GNUNET_free_non_null(password);
+  GNUNET_free_non_null(user);
+  GNUNET_free_non_null(database);
 
   if (mysql_error (conn)[0])
     {
@@ -707,12 +747,6 @@ prepared_statement_run (struct StatementHandle *s,
     return GNUNET_SYSERR;
 
   va_start (ap, insert_id);
-
-  if (mysql_stmt_prepare (s->statement, s->query, strlen (s->query)))
-      {
-        GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "mysql_stmt_prepare ERROR");
-        return GNUNET_SYSERR;
-      }
 
   if (GNUNET_OK != init_params (s, ap))
     {
@@ -1345,43 +1379,13 @@ libgnunet_plugin_dhtlog_mysql_init (void * cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MySQL DHT Logger: initializing database\n");
 #endif
 
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (plugin->cfg,
-                                                         "MYSQL", "DATABASE",
-                                                         &database))
-    {
-      database = GNUNET_strdup("gnunet");
-    }
-
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (plugin->cfg,
-                                                          "MYSQL", "USER", &user))
-    {
-      user = GNUNET_strdup("dht");
-    }
-
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (plugin->cfg,
-                                                          "MYSQL", "PASSWORD", &password))
-    {
-      password = GNUNET_strdup("dhttest**");
-    }
-
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (plugin->cfg,
-                                                          "MYSQL", "SERVER", &server))
-    {
-      server = GNUNET_strdup("localhost");
-    }
-
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (plugin->cfg,
-                                                          "MYSQL", "MYSQL_PORT", &port))
-    {
-      port = 0;
-    }
-
-  if (iopen () != GNUNET_OK)
+  if (iopen (plugin) != GNUNET_OK)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("Failed to initialize MySQL database connection for dhtlog.\n"));
       return NULL;
     }
+
   GNUNET_assert(plugin->dhtlog_api == NULL);
   plugin->dhtlog_api = GNUNET_malloc(sizeof(struct GNUNET_DHTLOG_Handle));
   plugin->dhtlog_api->insert_trial = &add_trial;
@@ -1428,7 +1432,8 @@ libgnunet_plugin_dhtlog_mysql_done (void * cls)
 
   if (conn != NULL)
     mysql_close (conn);
-
+  conn = NULL;
+  mysql_library_end();
   GNUNET_free(dhtlog_api);
   return NULL;
 }

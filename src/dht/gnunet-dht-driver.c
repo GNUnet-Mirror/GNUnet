@@ -489,7 +489,8 @@ void log_topology_cb (void *cls,
       GNUNET_assert(dhtlog_handle != NULL);
       fprintf(stderr, "topology iteration finished (%u connections), scheduling continuation\n", topo_ctx->total_connections);
       dhtlog_handle->update_topology(topo_ctx->total_connections);
-      GNUNET_SCHEDULER_add_now (sched, topo_ctx->cont, topo_ctx->cls);
+      if (topo_ctx->cont != NULL)
+        GNUNET_SCHEDULER_add_now (sched, topo_ctx->cont, topo_ctx->cls);
       GNUNET_free(topo_ctx);
     }
 }
@@ -812,6 +813,7 @@ setup_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   struct TestGetContext *test_get;
   int remember[num_puts][num_peers];
 
+  memset(&remember, 0, sizeof(int) * num_puts * num_peers);
   for (i = 0; i < num_puts; i++)
     {
       test_put = GNUNET_malloc(sizeof(struct TestPutContext));
@@ -849,9 +851,16 @@ setup_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 static void
 continue_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
+  int i;
   struct TopologyIteratorContext *topo_ctx;
   if (dhtlog_handle != NULL)
     {
+      for (i = 1; i < (settle_time / 60)  - 2; i++)
+        {
+          topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
+          fprintf(stderr, "scheduled topology iteration in %d minutes\n", i);
+          GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, i), &capture_current_topology, topo_ctx);
+        }
       topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
       topo_ctx->cont = &setup_puts_and_gets;
       GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time), &capture_current_topology, topo_ctx);
@@ -1008,6 +1017,7 @@ create_topology ()
       die_task = GNUNET_SCHEDULER_add_now (sched,
                                            &end_badly, "from create topology (bad return)");
     }
+  GNUNET_free_non_null(blacklist_transports);
   GNUNET_SCHEDULER_cancel (sched, die_task);
   die_task = GNUNET_SCHEDULER_add_delayed (sched,
                                            GNUNET_TIME_relative_multiply(seconds_per_peer_start, num_peers),
@@ -1146,6 +1156,8 @@ run (void *cls,
         return;
       }
 
+    GNUNET_free_non_null(hostfile);
+
     buf = data;
     count = 0;
     while (count < frstat.st_size)
@@ -1254,6 +1266,7 @@ run (void *cls,
   /**
    * Get testing related options.
    */
+  topology_str = NULL;
   if ((GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_string(cfg, "testing", "topology",
                                             &topology_str)) && (GNUNET_NO == GNUNET_TESTING_topology_get(&topology, topology_str)))
@@ -1270,6 +1283,7 @@ run (void *cls,
   else
     {
       topology_percentage = atof (topology_percentage_str);
+      GNUNET_free(topology_percentage_str);
     }
 
   if (GNUNET_OK !=
@@ -1279,6 +1293,7 @@ run (void *cls,
   else
     {
      topology_probability = atof (topology_probability_str);
+     GNUNET_free(topology_probability_str);
     }
 
   if ((GNUNET_YES ==
@@ -1289,6 +1304,7 @@ run (void *cls,
                   "Invalid connect topology `%s' given for section %s option %s\n", connect_topology_str, "TESTING", "CONNECT_TOPOLOGY");
     }
   GNUNET_free_non_null(connect_topology_str);
+
   if ((GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_string(cfg, "testing", "connect_topology_option",
                                             &connect_topology_option_str)) && (GNUNET_NO == GNUNET_TESTING_topology_option_get(&connect_topology_option, connect_topology_option_str)))
@@ -1298,6 +1314,7 @@ run (void *cls,
       connect_topology_option = GNUNET_TESTING_TOPOLOGY_OPTION_ALL; /* Defaults to NONE, set to ALL */
     }
   GNUNET_free_non_null(connect_topology_option_str);
+
   if (GNUNET_YES ==
         GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "connect_topology_option_modifier",
                                                &connect_topology_option_modifier_string))
@@ -1371,6 +1388,8 @@ run (void *cls,
                                     malicious_getters, malicious_putters,
                                     malicious_droppers, "");
     }
+
+  GNUNET_free_non_null(trialmessage);
 
   hostkey_meter = create_meter(peers_left, "Hostkeys created ", GNUNET_YES);
   peer_start_meter = create_meter(peers_left, "Peers started ", GNUNET_YES);
