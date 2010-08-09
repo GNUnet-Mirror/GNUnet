@@ -4,7 +4,7 @@ if MINGW
 endif
 
 plugindir = $(libdir)/gnunet
-HAVE_MYSQL=0
+
 if HAVE_MYSQL
  MYSQL_PLUGIN = libgnunet_plugin_dhtlog_mysql.la
 endif
