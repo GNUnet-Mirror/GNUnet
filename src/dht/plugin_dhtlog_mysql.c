@@ -114,6 +114,17 @@ static struct StatementHandle *insert_node;
 
 static struct StatementHandle *insert_trial;
 
+#define INSERT_STAT_STMT "INSERT INTO node_statistics"\
+                            "(trialuid, nodeuid, route_requests,"\
+                            "route_forwards, result_requests,"\
+                            "client_results, result_forwards, gets,"\
+                            "puts, data_inserts, find_peer_requests, "\
+                            "find_peers_started, gets_started, puts_started, find_peer_responses_received,"\
+                            "get_responses_received, find_peer_responses_sent, get_responses_sent) "\
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+
+static struct StatementHandle *insert_stat;
+
 #define INSERT_DHTKEY_STMT "INSERT INTO dhtkeys (dhtkey, trialuid, keybits) "\
                           "VALUES (?, ?, ?)"
 static struct StatementHandle *insert_dhtkey;
@@ -265,6 +276,30 @@ itable ()
              ") ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1"))
     return GNUNET_SYSERR;
 
+  if (MRUNS ("CREATE TABLE IF NOT EXISTS `node_statistics` ("
+              "`stat_uid` int(10) unsigned NOT NULL AUTO_INCREMENT,"
+              "`trialuid` int(10) unsigned NOT NULL,"
+              "`nodeuid` int(10) unsigned NOT NULL,"
+              "`route_requests` int(10) unsigned NOT NULL,"
+              "`route_forwards` int(10) unsigned NOT NULL,"
+              "`result_requests` int(10) unsigned NOT NULL,"
+              "`client_results` int(10) unsigned NOT NULL,"
+              "`result_forwards` int(10) unsigned NOT NULL,"
+              "`gets` int(10) unsigned NOT NULL,"
+              "`puts` int(10) unsigned NOT NULL,"
+              "`data_inserts` int(10) unsigned NOT NULL,"
+              "`find_peer_requests` int(10) unsigned NOT NULL,"
+              "`find_peers_started` int(10) unsigned NOT NULL,"
+              "`gets_started` int(10) unsigned NOT NULL,"
+              "`puts_started` int(10) unsigned NOT NULL,"
+              "`find_peer_responses_received` int(10) unsigned NOT NULL,"
+              "`get_responses_received` int(10) unsigned NOT NULL,"
+              "`find_peer_responses_sent` int(10) unsigned NOT NULL,"
+              "`get_responses_sent` int(10) unsigned NOT NULL,"
+             "PRIMARY KEY (`stat_uid`)"
+            ") ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;"))
+    return GNUNET_SYSERR;
+
   if (MRUNS ("SET AUTOCOMMIT = 1"))
     return GNUNET_SYSERR;
 
@@ -296,9 +331,12 @@ void
 prepared_statement_close (struct StatementHandle *s)
 {
   if (s == NULL)
-    return;
+    {
+      return;
+    }
 
   GNUNET_free_non_null(s->query);
+
   if (s->valid == GNUNET_YES)
     mysql_stmt_close(s->statement);
   GNUNET_free(s);
@@ -392,6 +430,7 @@ iopen (struct GNUNET_DHTLOG_Plugin *plugin)
   if (PINIT (insert_query, INSERT_QUERIES_STMT) ||
       PINIT (insert_route, INSERT_ROUTES_STMT) ||
       PINIT (insert_trial, INSERT_TRIALS_STMT) ||
+      PINIT (insert_stat, INSERT_STAT_STMT) ||
       PINIT (insert_node, INSERT_NODES_STMT) ||
       PINIT (insert_dhtkey, INSERT_DHTKEY_STMT) ||
       PINIT (update_trial, UPDATE_TRIALS_STMT) ||
@@ -864,9 +903,89 @@ add_trial (unsigned long long *trialuid, int num_nodes, int topology,
     }
 
   get_current_trial (&current_trial);
-#if DEBUG_DHTLOG
-  fprintf (stderr, "Current trial is %llu\n", current_trial);
-#endif
+
+  mysql_stmt_close(stmt);
+  return GNUNET_OK;
+}
+
+
+/*
+ * Inserts the specified stats into the dhttests.node_statistics table
+ *
+ * @param peer the peer inserting the statistic
+ * @param route_requests route requests seen
+ * @param route_forwards route requests forwarded
+ * @param result_requests route result requests seen
+ * @param client_requests client requests initiated
+ * @param result_forwards route results forwarded
+ * @param gets get requests handled
+ * @param puts put requests handle
+ * @param data_inserts data inserted at this node
+ * @param find_peer_requests find peer requests seen
+ * @param find_peers_started find peer requests initiated at this node
+ * @param gets_started get requests initiated at this node
+ * @param puts_started put requests initiated at this node
+ * @param find_peer_responses_received find peer responses received locally
+ * @param get_responses_received get responses received locally
+ * @param find_peer_responses_sent find peer responses sent from this node
+ * @param get_responses_sent get responses sent from this node
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int
+add_stat (const struct GNUNET_PeerIdentity *peer, unsigned int route_requests,
+          unsigned int route_forwards, unsigned int result_requests,
+          unsigned int client_requests, unsigned int result_forwards,
+          unsigned int gets, unsigned int puts,
+          unsigned int data_inserts, unsigned int find_peer_requests,
+          unsigned int find_peers_started, unsigned int gets_started,
+          unsigned int puts_started, unsigned int find_peer_responses_received,
+          unsigned int get_responses_received, unsigned int find_peer_responses_sent,
+          unsigned int get_responses_sent)
+{
+  MYSQL_STMT *stmt;
+  int ret;
+  unsigned long long peer_uid;
+  unsigned long long return_uid;
+  if (peer == NULL)
+    return GNUNET_SYSERR;
+
+  if (GNUNET_OK != get_node_uid (&peer_uid, &peer->hashPubKey))
+    {
+      return GNUNET_SYSERR;
+    }
+
+  stmt = mysql_stmt_init(conn);
+  if (GNUNET_OK !=
+      (ret = prepared_statement_run (insert_stat,
+                                     &return_uid,
+                                     MYSQL_TYPE_LONGLONG, &current_trial, GNUNET_YES,
+                                     MYSQL_TYPE_LONGLONG, &peer_uid, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &route_requests, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &route_forwards, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &result_requests, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &client_requests, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &result_forwards, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &gets, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &puts, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &data_inserts, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &find_peer_requests, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &find_peers_started, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &gets_started, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &puts_started, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &find_peer_responses_received, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &get_responses_received, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &find_peer_responses_sent, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &get_responses_sent, GNUNET_YES,
+                                     -1)))
+    {
+      if (ret == GNUNET_SYSERR)
+        {
+          mysql_stmt_close(stmt);
+          return GNUNET_SYSERR;
+        }
+    }
+
   mysql_stmt_close(stmt);
   return GNUNET_OK;
 }
@@ -989,13 +1108,7 @@ update_trials (unsigned long long trialuid,
                unsigned long long unknownPeers)
 {
   int ret;
-#if DEBUG_DHTLOG
-  if (trialuid != current_trial)
-    {
-      fprintf (stderr,
-               _("Trialuid to update is not equal to current_trial\n"));
-    }
-#endif
+
   if (GNUNET_OK !=
       (ret = prepared_statement_run (update_trial,
                                     NULL,
@@ -1035,13 +1148,7 @@ int
 add_connections (unsigned long long trialuid, unsigned int totalConnections)
 {
   int ret;
-#if DEBUG_DHTLOG
-  if (trialuid != current_trial)
-    {
-      fprintf (stderr,
-               _("Trialuid to update is not equal to current_trial(!)(?)\n"));
-    }
-#endif
+
   if (GNUNET_OK !=
       (ret = prepared_statement_run (update_connection,
                                                   NULL,
@@ -1389,6 +1496,7 @@ libgnunet_plugin_dhtlog_mysql_init (void * cls)
   GNUNET_assert(plugin->dhtlog_api == NULL);
   plugin->dhtlog_api = GNUNET_malloc(sizeof(struct GNUNET_DHTLOG_Handle));
   plugin->dhtlog_api->insert_trial = &add_trial;
+  plugin->dhtlog_api->insert_stat = &add_stat;
   plugin->dhtlog_api->insert_query = &add_query;
   plugin->dhtlog_api->update_trial = &update_trials;
   plugin->dhtlog_api->insert_route = &add_route;
@@ -1400,7 +1508,7 @@ libgnunet_plugin_dhtlog_mysql_init (void * cls)
   plugin->dhtlog_api->insert_extended_topology = &add_extended_topology;
   get_current_trial (&current_trial);
 
-  return NULL;
+  return plugin;
 }
 
 /**
@@ -1410,10 +1518,9 @@ void *
 libgnunet_plugin_dhtlog_mysql_done (void * cls)
 {
   struct GNUNET_DHTLOG_Handle *dhtlog_api = cls;
-#if DEBUG_DHTLOG
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MySQL DHT Logger: database shutdown\n");
-#endif
   GNUNET_assert(dhtlog_api != NULL);
   prepared_statement_close(insert_query);
   prepared_statement_close(insert_route);

@@ -125,6 +125,40 @@ struct GNUNET_DHTLOG_Handle
                        char *message);
 
   /*
+   * Inserts the specified stats into the dhttests.node_statistics table
+   *
+   * @param peer the peer inserting the statistic
+   * @param route_requests route requests seen
+   * @param route_forwards route requests forwarded
+   * @param result_requests route result requests seen
+   * @param client_requests client requests initiated
+   * @param result_forwards route results forwarded
+   * @param gets get requests handled
+   * @param puts put requests handle
+   * @param data_inserts data inserted at this node
+   * @param find_peer_requests find peer requests seen
+   * @param find_peers_started find peer requests initiated at this node
+   * @param gets_started get requests initiated at this node
+   * @param puts_started put requests initiated at this node
+   * @param find_peer_responses_received find peer responses received locally
+   * @param get_responses_received get responses received locally
+   * @param find_peer_responses_sent find peer responses sent from this node
+   * @param get_responses_sent get responses sent from this node
+   *
+   * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+   */
+  int (*insert_stat)
+     (const struct GNUNET_PeerIdentity *peer, unsigned int route_requests,
+      unsigned int route_forwards, unsigned int result_requests,
+      unsigned int client_requests, unsigned int result_forwards,
+      unsigned int gets, unsigned int puts,
+      unsigned int data_inserts, unsigned int find_peer_requests,
+      unsigned int find_peers_started, unsigned int gets_started,
+      unsigned int puts_started, unsigned int find_peer_responses_received,
+      unsigned int get_responses_received, unsigned int find_peer_responses_sent,
+      unsigned int get_responses_sent);
+
+  /*
    * Update dhttests.trials table with current server time as end time
    *
    * @param trialuid trial to update

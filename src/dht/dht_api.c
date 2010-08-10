@@ -1007,6 +1007,7 @@ GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle,
   pending->timeout = GNUNET_TIME_relative_get_forever();
   pending->cont = cont;
   pending->cont_cls = cont_cls;
+  pending->free_on_send = GNUNET_YES;
   pending->unique_id = 0; /* When finished is called, free pending->msg */
 
   if (route_handle->dht_handle->current == NULL)

@@ -41,6 +41,23 @@
 
 #define DHT_SEND_PRIORITY 4
 
+#define STAT_ROUTES "# DHT ROUTE Requests Seen"
+#define STAT_ROUTE_FORWARDS "# DHT ROUTE Requests Forwarded"
+#define STAT_RESULTS "# DHT ROUTE RESULT Requests Seen"
+#define STAT_RESULTS_TO_CLIENT "# DHT ROUTE RESULT Sent to Client"
+#define STAT_RESULT_FORWARDS "# DHT ROUTE RESULT Requests Forwarded"
+#define STAT_GETS "# DHT GET Requests Handled"
+#define STAT_PUTS "# DHT PUT Requests Handled"
+#define STAT_PUTS_INSERTED "# DHT PUT Data Inserts"
+#define STAT_FIND_PEER "# DHT FIND_PEER Requests Handled"
+#define STAT_FIND_PEER_START "# DHT FIND_PEER Requests Initiated"
+#define STAT_GET_START "# DHT GET Requests Initiated"
+#define STAT_PUT_START "# DHT PUT Requests Initiated"
+#define STAT_FIND_PEER_REPLY "# DHT FIND_PEER Responses Received"
+#define STAT_GET_REPLY "# DHT GET Responses Received"
+#define STAT_FIND_PEER_ANSWER "# DHT FIND_PEER Responses Initiated"
+#define STAT_GET_RESPONSE_START "# DHT GET Responses Initiated"
+
 typedef void (*GNUNET_DHT_MessageReceivedHandler) (void *cls,
                                                    const struct GNUNET_MessageHeader
                                                    *msg);

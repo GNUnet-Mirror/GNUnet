@@ -38,6 +38,7 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_dht_service.h"
+#include "gnunet_statistics_service.h"
 #include "dhtlog.h"
 #include "dht.h"
 
@@ -70,7 +71,18 @@
 
 #define DHT_DEFAULT_FIND_PEER_OPTIONS GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE
 
-#define DHT_DEFAULT_FIND_PEER_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 1)
+#define DHT_MINIMUM_FIND_PEER_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 1)
+#define DHT_MAXIMUM_FIND_PEER_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5)
+
+/*
+ * Default frequency for sending malicious get messages
+ */
+#define DEFAULT_MALICIOUS_GET_FREQUENCY 1 /* Number of seconds */
+
+/*
+ * Default frequency for sending malicious put messages
+ */
+#define DEFAULT_MALICIOUS_PUT_FREQUENCY 1 /* Default is seconds */
 
 #define DHT_DEFAULT_PING_DELAY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 1)
 
@@ -111,6 +123,7 @@ struct P2PPendingMessage
   const struct GNUNET_MessageHeader *msg; // msg = (cast) &pm[1]; // memcpy (&pm[1], data, len);
 
 };
+
 
 /**
  * Per-peer information.
@@ -437,6 +450,11 @@ static struct DHTResults forward_list;
 static struct GNUNET_DATACACHE_Handle *datacache;
 
 /**
+ * Handle for the statistics service.
+ */
+struct GNUNET_STATISTICS_Handle *stats;
+
+/**
  * The main scheduler to use for the DHT service
  */
 static struct GNUNET_SCHEDULER_Handle *sched;
@@ -519,6 +537,28 @@ static unsigned int debug_routes;
  */
 static unsigned int debug_routes_extended;
 
+/*
+ * GNUNET_YES or GNUNET_NO, whether or not to act as
+ * a malicious node which drops all messages
+ */
+static unsigned int malicious_dropper;
+
+/*
+ * GNUNET_YES or GNUNET_NO, whether or not to act as
+ * a malicious node which sends out lots of GETS
+ */
+static unsigned int malicious_getter;
+
+/*
+ * GNUNET_YES or GNUNET_NO, whether or not to act as
+ * a malicious node which sends out lots of PUTS
+ */
+static unsigned int malicious_putter;
+
+static unsigned long long malicious_get_frequency;
+
+static unsigned long long malicious_put_frequency;
+
 /**
  * Forward declaration.
  */
@@ -527,6 +567,15 @@ static size_t send_generic_reply (void *cls, size_t size, void *buf);
 /* Declare here so retry_core_send is aware of it */
 size_t core_transmit_notify (void *cls,
                              size_t size, void *buf);
+
+static void
+increment_stats(const char *value)
+{
+  if (stats != NULL)
+    {
+      GNUNET_STATISTICS_update (stats, value, 1, GNUNET_NO);
+    }
+}
 
 /**
  *  Try to send another message from our core send list
@@ -582,6 +631,7 @@ static void forward_result_message (void *cls,
   size_t msize;
   size_t psize;
 
+  increment_stats(STAT_RESULT_FORWARDS);
   msize = sizeof (struct GNUNET_DHT_P2PRouteResultMessage) + ntohs(msg->size);
   GNUNET_assert(msize <= GNUNET_SERVER_MAX_MESSAGE_SIZE);
   psize = sizeof(struct P2PPendingMessage) + msize;
@@ -1087,6 +1137,7 @@ static void forward_message (void *cls,
   size_t msize;
   size_t psize;
 
+  increment_stats(STAT_ROUTE_FORWARDS);
   msize = sizeof (struct GNUNET_DHT_P2PRouteMessage) + ntohs(msg->size);
   GNUNET_assert(msize <= GNUNET_SERVER_MAX_MESSAGE_SIZE);
   psize = sizeof(struct P2PPendingMessage) + msize;
@@ -1348,6 +1399,8 @@ static int consider_peer (struct GNUNET_PeerIdentity *peer)
 {
   int bucket;
 
+  if (GNUNET_CONTAINER_multihashmap_contains(all_known_peers, &peer->hashPubKey))
+    return GNUNET_NO; /* We already know this peer (are connected even!) */
   bucket = find_current_bucket(&peer->hashPubKey);
   if ((k_buckets[bucket].peers_size < bucket_size) || ((bucket == lowest_bucket) && (lowest_bucket > 0)))
     return GNUNET_YES;
@@ -1373,6 +1426,7 @@ static int route_result_message(void *cls,
   struct PeerInfo *peer_info;
   const struct GNUNET_MessageHeader *hello_msg;
 
+  increment_stats(STAT_RESULTS);
   /**
    * If a find peer result message is received and contains a valid
    * HELLO for another peer, offer it to the transport service.
@@ -1390,6 +1444,7 @@ static int route_result_message(void *cls,
       }
       else /* We have a valid hello, and peer id stored in new_peer */
       {
+        increment_stats(STAT_FIND_PEER_REPLY);
         if (GNUNET_YES == consider_peer(&new_peer))
         {
           GNUNET_TRANSPORT_offer_hello(transport_handle, hello_msg);
@@ -1449,6 +1504,10 @@ static int route_result_message(void *cls,
                                            message_context->peer, NULL);
             }
 #endif
+          increment_stats(STAT_RESULTS_TO_CLIENT);
+          if (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DHT_GET_RESULT)
+            increment_stats(STAT_GET_REPLY);
+
           send_reply_to_client(pos->client, msg, message_context->unique_id);
         }
       else /* Send to peer */
@@ -1537,6 +1596,7 @@ datacache_get_iterator (void *cls,
   new_msg_ctx->peer = &my_identity;
   new_msg_ctx->bloom = GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
   new_msg_ctx->hop_count = 0;
+  increment_stats(STAT_GET_RESPONSE_START);
   route_result_message(cls, &get_result->header, new_msg_ctx);
   GNUNET_free(new_msg_ctx);
   //send_reply_to_client (datacache_get_ctx->client, &get_result->header,
@@ -1575,11 +1635,11 @@ handle_dht_get (void *cls,
   get_type = ntohs (get_msg->type);
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s:%s': Received `%s' request from client, message type %u, key %s, uid %llu\n", my_short_id,
+              "`%s:%s': Received `%s' request, message type %u, key %s, uid %llu\n", my_short_id,
               "DHT", "GET", get_type, GNUNET_h2s (message_context->key),
               message_context->unique_id);
 #endif
-
+  increment_stats(STAT_GETS);
   results = 0;
   if (datacache != NULL)
     results =
@@ -1685,6 +1745,7 @@ handle_dht_find_peer (void *cls,
   new_msg_ctx->peer = &my_identity;
   new_msg_ctx->bloom = GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
   new_msg_ctx->hop_count = 0;
+  increment_stats(STAT_FIND_PEER_ANSWER);
   route_result_message(cls, find_peer_result, new_msg_ctx);
   GNUNET_free(new_msg_ctx);
 #if DEBUG_DHT_ROUTING
@@ -1726,8 +1787,8 @@ handle_dht_put (void *cls,
               "`%s:%s': Received `%s' request (inserting data!), message type %d, key %s, uid %llu\n",
               my_short_id, "DHT", "PUT", put_type, GNUNET_h2s (message_context->key), message_context->unique_id);
 #endif
+  increment_stats(STAT_PUTS_INSERTED);
 #if DEBUG_DHT_ROUTING
-
   if ((debug_routes) && (dhtlog_handle != NULL))
     {
       dhtlog_handle->insert_query (NULL, message_context->unique_id, DHTLOG_PUT,
@@ -2178,6 +2239,7 @@ static int route_message(void *cls,
   int ret;
 #endif
 
+  increment_stats(STAT_ROUTES);
   message_context->closest = am_closest_peer(message_context->key);
   forward_count = get_forward_count(message_context->hop_count, message_context->replication);
   nearest = find_closest_peer(message_context->key);
@@ -2212,6 +2274,7 @@ static int route_message(void *cls,
         forward_count = 0;
       break;
     case GNUNET_MESSAGE_TYPE_DHT_PUT: /* Check if closest, if so insert data. FIXME: thresholding to reduce complexity?*/
+      increment_stats(STAT_PUTS);
       if (message_context->closest == GNUNET_YES)
         {
 #if DEBUG_DHT_ROUTING
@@ -2238,6 +2301,7 @@ static int route_message(void *cls,
 #endif
       break;
     case GNUNET_MESSAGE_TYPE_DHT_FIND_PEER: /* Check if closest and not started by us, check options, add to requests seen */
+      increment_stats(STAT_FIND_PEER);
       if (((message_context->hop_count > 0) && (0 != memcmp(message_context->peer, &my_identity, sizeof(struct GNUNET_PeerIdentity)))) || (message_context->client != NULL))
       {
         cache_response (cls, message_context);
@@ -2356,6 +2420,8 @@ send_find_peer_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     return;
 
+  increment_stats(STAT_FIND_PEER_START);
+
   find_peer_msg = GNUNET_malloc(sizeof(struct GNUNET_MessageHeader));
   find_peer_msg->size = htons(sizeof(struct GNUNET_MessageHeader));
   find_peer_msg->type = htons(GNUNET_MESSAGE_TYPE_DHT_FIND_PEER);
@@ -2372,8 +2438,9 @@ send_find_peer_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "`%s:%s': Sent `%s' request to %d peers\n", my_short_id, "DHT",
               "FIND PEER", ret);
-  next_send_time = DHT_DEFAULT_FIND_PEER_INTERVAL;
-  next_send_time.value = GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_STRONG, next_send_time.value * 3);
+  next_send_time.value = DHT_MINIMUM_FIND_PEER_INTERVAL.value +
+                         GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_STRONG,
+                                                  DHT_MAXIMUM_FIND_PEER_INTERVAL.value - DHT_MINIMUM_FIND_PEER_INTERVAL.value);
   GNUNET_SCHEDULER_add_delayed (sched,
                                 next_send_time,
                                 &send_find_peer_message, NULL);
@@ -2418,6 +2485,13 @@ handle_dht_local_route_request (void *cls, struct GNUNET_SERVER_Client *client,
   message_context.msg_options = ntohl (dht_msg->options);
   message_context.network_size = estimate_diameter();
   message_context.peer = &my_identity;
+
+  if (ntohs(enc_msg->type) == GNUNET_MESSAGE_TYPE_DHT_GET)
+    increment_stats(STAT_GET_START);
+  else if (ntohs(enc_msg->type) == GNUNET_MESSAGE_TYPE_DHT_PUT)
+    increment_stats(STAT_PUT_START);
+  else if (ntohs(enc_msg->type) == GNUNET_MESSAGE_TYPE_DHT_FIND_PEER)
+    increment_stats(STAT_FIND_PEER_START);
 
   route_message(cls, enc_msg, &message_context);
 
@@ -2541,6 +2615,7 @@ handle_dht_p2p_route_result (void *cls,
       GNUNET_break_op(0);
       return GNUNET_YES;
     }
+
   memset(&message_context, 0, sizeof(struct DHT_MessageContext));
   message_context.bloom = GNUNET_CONTAINER_bloomfilter_init(incoming->bloomfilter, DHT_BLOOM_SIZE, DHT_BLOOM_K);
   GNUNET_assert(message_context.bloom != NULL);
@@ -2576,6 +2651,7 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
   memcpy(my_hello, message, ntohs(message->size));
 }
 
+
 /**
  * Task run during shutdown.
  *
@@ -2587,7 +2663,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   int bucket_count;
   struct PeerInfo *pos;
-
   if (transport_handle != NULL)
   {
     GNUNET_free_non_null(my_hello);
@@ -2622,6 +2697,11 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   "%s:%s Destroying datacache!\n", my_short_id, "DHT");
 #endif
       GNUNET_DATACACHE_destroy (datacache);
+    }
+
+  if (stats != NULL)
+    {
+      GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
     }
 
   if (dhtlog_handle != NULL)
@@ -2662,8 +2742,11 @@ core_init (void *cls,
               "%s: Core connection initialized, I am peer: %s\n", "dht",
               GNUNET_i2s (identity));
 #endif
+
   /* Copy our identity so we can use it */
   memcpy (&my_identity, identity, sizeof (struct GNUNET_PeerIdentity));
+  if (my_short_id != NULL)
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s Receive CORE INIT message but have already been initialized! Did CORE fail?\n", "DHT SERVICE");
   my_short_id = GNUNET_strdup(GNUNET_i2s(&my_identity));
   /* Set the server to local variable */
   coreAPI = server;
@@ -2705,6 +2788,13 @@ void handle_core_connect (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s:%s Receives core connect message for peer %s distance %d!\n", my_short_id, "dht", GNUNET_i2s(peer), distance);
 #endif
+
+  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(all_known_peers, &peer->hashPubKey))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%s:%s Received %s message for peer %s, but already have peer in RT!", my_short_id, "DHT", "CORE CONNECT", GNUNET_i2s(peer));
+      return;
+    }
+
   if (datacache != NULL)
     GNUNET_DATACACHE_put(datacache, &peer->hashPubKey, sizeof(struct GNUNET_PeerIdentity), (const char *)peer, 0, GNUNET_TIME_absolute_get_forever());
   ret = try_add_peer(peer,
@@ -2736,6 +2826,11 @@ void handle_core_disconnect (void *cls,
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s:%s: Received peer disconnect message for peer `%s' from %s\n", my_short_id, "DHT", GNUNET_i2s(peer), "CORE");
 
+  if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_contains(all_known_peers, &peer->hashPubKey))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s: do not have peer `%s' in RT, can't disconnect!\n", my_short_id, "DHT", GNUNET_i2s(peer));
+      return;
+    }
   GNUNET_assert(GNUNET_CONTAINER_multihashmap_contains(all_known_peers, &peer->hashPubKey));
   to_remove = GNUNET_CONTAINER_multihashmap_get(all_known_peers, &peer->hashPubKey);
   GNUNET_assert(0 == memcmp(peer, &to_remove->id, sizeof(struct GNUNET_PeerIdentity)));
@@ -2768,7 +2863,7 @@ run (void *cls,
                                  NULL,  /* Closure passed to DHT functionas around? */
                                  &core_init,    /* Call core_init once connected */
                                  &handle_core_connect,  /* Handle connects */
-                                 &handle_core_disconnect,  /* FIXME: remove peers on disconnects */
+                                 &handle_core_disconnect,  /* remove peers on disconnects */
                                  NULL,  /* Do we care about "status" updates? */
                                  NULL,  /* Don't want notified about all incoming messages */
                                  GNUNET_NO,     /* For header only inbound notification */
@@ -2810,6 +2905,35 @@ run (void *cls,
     }
 
   if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht",
+                                           "malicious_getter"))
+    {
+      malicious_getter = GNUNET_YES;
+      if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_number (cfg, "DHT",
+                                            "MALICIOUS_GET_FREQUENCY",
+                                            &malicious_get_frequency))
+        malicious_get_frequency = DEFAULT_MALICIOUS_GET_FREQUENCY;
+    }
+
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht",
+                                           "malicious_putter"))
+    {
+      malicious_putter = GNUNET_YES;
+      if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_number (cfg, "DHT",
+                                            "MALICIOUS_PUT_FREQUENCY",
+                                            &malicious_put_frequency))
+        malicious_put_frequency = DEFAULT_MALICIOUS_PUT_FREQUENCY;
+    }
+
+  if (GNUNET_YES ==
+          GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht",
+                                               "malicious_dropper"))
+    {
+      malicious_dropper = GNUNET_YES;
+    }
+
+  if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht_testing",
                                            "mysql_logging_extended"))
     {
@@ -2827,10 +2951,31 @@ run (void *cls,
         }
     }
 
+  stats = GNUNET_STATISTICS_create(sched, "dht", cfg);
+
+  if (stats != NULL)
+    {
+      GNUNET_STATISTICS_set(stats, STAT_ROUTES, 0, GNUNET_NO);
+      GNUNET_STATISTICS_set(stats, STAT_ROUTE_FORWARDS, 0, GNUNET_NO);
+      GNUNET_STATISTICS_set(stats, STAT_RESULTS, 0, GNUNET_NO);
+      GNUNET_STATISTICS_set(stats, STAT_RESULTS_TO_CLIENT, 0, GNUNET_NO);
+      GNUNET_STATISTICS_set(stats, STAT_RESULT_FORWARDS, 0, GNUNET_NO);
+      GNUNET_STATISTICS_set(stats, STAT_GETS, 0, GNUNET_NO);
+      GNUNET_STATISTICS_set(stats, STAT_PUTS, 0, GNUNET_NO);
+      GNUNET_STATISTICS_set(stats, STAT_PUTS_INSERTED, 0, GNUNET_NO);
+      GNUNET_STATISTICS_set(stats, STAT_FIND_PEER, 0, GNUNET_NO);
+      GNUNET_STATISTICS_set(stats, STAT_FIND_PEER_START, 0, GNUNET_NO);
+      GNUNET_STATISTICS_set(stats, STAT_GET_START, 0, GNUNET_NO);
+      GNUNET_STATISTICS_set(stats, STAT_PUT_START, 0, GNUNET_NO);
+      GNUNET_STATISTICS_set(stats, STAT_FIND_PEER_REPLY, 0, GNUNET_NO);
+      GNUNET_STATISTICS_set(stats, STAT_FIND_PEER_ANSWER, 0, GNUNET_NO);
+      GNUNET_STATISTICS_set(stats, STAT_GET_REPLY, 0, GNUNET_NO);
+      GNUNET_STATISTICS_set(stats, STAT_GET_RESPONSE_START, 0, GNUNET_NO);
+    }
 #if DO_FIND_PEER
   random_seconds = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 180);
   GNUNET_SCHEDULER_add_delayed (sched,
-                                GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30),
+                                GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, random_seconds),
                                 &send_find_peer_message, NULL);
 #endif
 

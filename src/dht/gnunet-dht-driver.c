@@ -29,6 +29,7 @@
 #include "gnunet_core_service.h"
 #include "gnunet_dht_service.h"
 #include "dhtlog.h"
+#include "dht.h"
 
 /* DEFINES */
 #define VERBOSE GNUNET_NO
@@ -143,12 +144,38 @@ struct ProgressMeter
 };
 
 /**
+ * Linked list of information for populating statistics
+ * before ending trial.
+ */
+struct StatisticsIteratorContext
+{
+  const struct GNUNET_PeerIdentity *peer;
+  unsigned int stat_routes;
+  unsigned int stat_route_forwards;
+  unsigned int stat_results;
+  unsigned int stat_results_to_client;
+  unsigned int stat_result_forwards;
+  unsigned int stat_gets;
+  unsigned int stat_puts;
+  unsigned int stat_puts_inserted;
+  unsigned int stat_find_peer;
+  unsigned int stat_find_peer_start;
+  unsigned int stat_get_start;
+  unsigned int stat_put_start;
+  unsigned int stat_find_peer_reply;
+  unsigned int stat_get_reply;
+  unsigned int stat_find_peer_answer;
+  unsigned int stat_get_response_start;
+};
+
+/**
  * Context for getting a topology, logging it, and continuing
  * on with some next operation.
  */
 struct TopologyIteratorContext
 {
   unsigned int total_connections;
+  struct GNUNET_PeerIdentity *peer;
   GNUNET_SCHEDULER_Task cont;
   void *cls;
   struct GNUNET_TIME_Relative timeout;
@@ -189,6 +216,11 @@ static unsigned long long settle_time;
 static struct GNUNET_DHTLOG_Handle *dhtlog_handle;
 
 static unsigned long long trialuid;
+
+/**
+ * Hash map of stats contexts.
+ */
+struct GNUNET_CONTAINER_MultiHashMap *stats_map;
 
 /**
  * List of GETS to perform
@@ -446,11 +478,12 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 
   GNUNET_TESTING_daemons_stop (pg, DEFAULT_TIMEOUT, &shutdown_callback, NULL);
 
-  /* FIXME: optionally get stats for dropped messages, etc. */
   if (dhtlog_handle != NULL)
     {
       fprintf(stderr, "Update trial endtime\n");
       dhtlog_handle->update_trial (trialuid, 0, 0, 0);
+      GNUNET_DHTLOG_disconnect(dhtlog_handle);
+      dhtlog_handle = NULL;
     }
 
   if (hostkey_meter != NULL)
@@ -494,6 +527,121 @@ void log_topology_cb (void *cls,
       GNUNET_free(topo_ctx);
     }
 }
+
+/**
+ * Iterator over hash map entries.
+ *
+ * @param cls closure - always NULL
+ * @param key current key code
+ * @param value value in the hash map, a stats context
+ * @return GNUNET_YES if we should continue to
+ *         iterate,
+ *         GNUNET_NO if not.
+ */
+static int stats_iterate (void *cls,
+                          const GNUNET_HashCode * key,
+                          void *value)
+{
+  struct StatisticsIteratorContext *stats_ctx;
+  if (value == NULL)
+    return GNUNET_NO;
+  stats_ctx = value;
+  dhtlog_handle->insert_stat(stats_ctx->peer, stats_ctx->stat_routes, stats_ctx->stat_route_forwards, stats_ctx->stat_results,
+                             stats_ctx->stat_results_to_client, stats_ctx->stat_result_forwards, stats_ctx->stat_gets,
+                             stats_ctx->stat_puts, stats_ctx->stat_puts_inserted, stats_ctx->stat_find_peer,
+                             stats_ctx->stat_find_peer_start, stats_ctx->stat_get_start, stats_ctx->stat_put_start,
+                             stats_ctx->stat_find_peer_reply, stats_ctx->stat_get_reply, stats_ctx->stat_find_peer_answer,
+                             stats_ctx->stat_get_response_start);
+  GNUNET_free(stats_ctx);
+  return GNUNET_YES;
+}
+
+static void stats_finished (void *cls, int result)
+{
+  fprintf(stderr, "Finished getting all peers statistics, iterating!\n");
+  GNUNET_CONTAINER_multihashmap_iterate(stats_map, &stats_iterate, NULL);
+  GNUNET_CONTAINER_multihashmap_destroy(stats_map);
+  GNUNET_SCHEDULER_add_now (sched, &finish_testing, NULL);
+}
+
+/**
+ * Callback function to process statistic values.
+ *
+ * @param cls closure
+ * @param peer the peer the statistics belong to
+ * @param subsystem name of subsystem that created the statistic
+ * @param name the name of the datum
+ * @param value the current value
+ * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
+ * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ */
+static int stats_handle  (void *cls,
+                          const struct GNUNET_PeerIdentity *peer,
+                          const char *subsystem,
+                          const char *name,
+                          uint64_t value,
+                          int is_persistent)
+{
+  struct StatisticsIteratorContext *stats_ctx;
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s:%s -- %llu\n", GNUNET_i2s(peer), subsystem, name, value);
+  if (GNUNET_CONTAINER_multihashmap_contains(stats_map, &peer->hashPubKey))
+    {
+      stats_ctx = GNUNET_CONTAINER_multihashmap_get(stats_map, &peer->hashPubKey);
+    }
+  else
+    {
+      stats_ctx = GNUNET_malloc(sizeof(struct StatisticsIteratorContext));
+      stats_ctx->peer = peer;
+      GNUNET_CONTAINER_multihashmap_put(stats_map, &peer->hashPubKey, stats_ctx, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    }
+
+  if (strcmp(name, STAT_ROUTES) == 0)
+    stats_ctx->stat_routes = value;
+  else if (strcmp(name, STAT_ROUTE_FORWARDS) == 0)
+    stats_ctx->stat_route_forwards = value;
+  else if (strcmp(name, STAT_RESULTS) == 0)
+    stats_ctx->stat_results = value;
+  else if (strcmp(name, STAT_RESULTS_TO_CLIENT) == 0)
+    stats_ctx->stat_results_to_client = value;
+  else if (strcmp(name, STAT_RESULT_FORWARDS) == 0)
+    stats_ctx->stat_result_forwards = value;
+  else if (strcmp(name, STAT_GETS) == 0)
+    stats_ctx->stat_gets = value;
+  else if (strcmp(name, STAT_PUTS) == 0)
+    stats_ctx->stat_puts = value;
+  else if (strcmp(name, STAT_PUTS_INSERTED) == 0)
+    stats_ctx->stat_puts_inserted = value;
+  else if (strcmp(name, STAT_FIND_PEER) == 0)
+    stats_ctx->stat_find_peer = value;
+  else if (strcmp(name, STAT_FIND_PEER_START) == 0)
+    stats_ctx->stat_find_peer_start = value;
+  else if (strcmp(name, STAT_GET_START) == 0)
+    stats_ctx->stat_get_start = value;
+  else if (strcmp(name, STAT_PUT_START) == 0)
+    stats_ctx->stat_put_start = value;
+  else if (strcmp(name, STAT_FIND_PEER_REPLY) == 0)
+    stats_ctx->stat_find_peer_reply = value;
+  else if (strcmp(name, STAT_GET_REPLY) == 0)
+    stats_ctx->stat_get_reply = value;
+  else if (strcmp(name, STAT_FIND_PEER_ANSWER) == 0)
+    stats_ctx->stat_find_peer_answer = value;
+  else if (strcmp(name, STAT_GET_RESPONSE_START) == 0)
+    stats_ctx->stat_get_response_start = value;
+
+  return GNUNET_OK;
+}
+
+/**
+ * Connect to statistics service for each peer and get the appropriate
+ * dht statistics for safe keeping.
+ */
+static void
+log_dht_statistics (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  stats_map = GNUNET_CONTAINER_multihashmap_create(num_peers);
+  GNUNET_TESTING_get_statistics(pg, &stats_finished, &stats_handle, NULL);
+}
+
 
 /**
  * Connect to all peers in the peer group and iterate over their
@@ -547,6 +695,8 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
     {
       fprintf(stderr, "Update trial endtime\n");
       dhtlog_handle->update_trial (trialuid, 0, 0, 0);
+      GNUNET_DHTLOG_disconnect(dhtlog_handle);
+      dhtlog_handle = NULL;
     }
 
   if (hostkey_meter != NULL)
@@ -586,7 +736,7 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
       if (dhtlog_handle != NULL)
         {
           topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
-          topo_ctx->cont = &finish_testing;
+          topo_ctx->cont = &log_dht_statistics;
           GNUNET_SCHEDULER_add_now(sched, &capture_current_topology, topo_ctx);
         }
       else
@@ -852,10 +1002,15 @@ static void
 continue_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   int i;
+  int max;
   struct TopologyIteratorContext *topo_ctx;
   if (dhtlog_handle != NULL)
     {
-      for (i = 1; i < (settle_time / 60)  - 2; i++)
+      if (settle_time >= 60 * 2)
+        max = (settle_time / 60) - 2;
+      else
+        max = 1;
+      for (i = 1; i < max; i++)
         {
           topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
           fprintf(stderr, "scheduled topology iteration in %d minutes\n", i);

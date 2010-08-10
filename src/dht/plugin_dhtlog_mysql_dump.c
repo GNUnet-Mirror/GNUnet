@@ -77,6 +77,15 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
                            "malicious_putters, malicious_droppers, message) "\
                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'"
 
+#define INSERT_STAT_STMT "prepare insert_stat from 'INSERT INTO node_statistics"\
+                            "(trialuid, nodeuid, route_requests,"\
+                            "route_forwards, result_requests,"\
+                            "client_results, result_forwards, gets,"\
+                            "puts, data_inserts, find_peer_requests, "\
+                            "find_peers_started, gets_started, puts_started, find_peer_responses_received,"\
+                            "get_responses_received, find_peer_responses_sent, get_responses_sent) "\
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'"
+
 #define INSERT_DHTKEY_STMT "prepare insert_dhtkey from 'INSERT ignore INTO dhtkeys (dhtkey, trialuid) "\
                            "VALUES (?, @temp_trial)'"
 
@@ -142,6 +151,7 @@ iopen ()
   if (PINIT (INSERT_QUERIES_STMT) ||
       PINIT (INSERT_ROUTES_STMT) ||
       PINIT (INSERT_TRIALS_STMT) ||
+      PINIT (INSERT_STAT_STMT) ||
       PINIT (INSERT_NODES_STMT) ||
       PINIT (INSERT_DHTKEY_STMT) ||
       PINIT (UPDATE_TRIALS_STMT) ||
@@ -300,7 +310,71 @@ add_trial (unsigned long long *trialuid, int num_nodes, int topology,
   return GNUNET_SYSERR;
 }
 
+/*
+ * Inserts the specified stats into the dhttests.node_statistics table
+ *
+ * @param peer the peer inserting the statistic
+ * @param route_requests route requests seen
+ * @param route_forwards route requests forwarded
+ * @param result_requests route result requests seen
+ * @param client_requests client requests initiated
+ * @param result_forwards route results forwarded
+ * @param gets get requests handled
+ * @param puts put requests handle
+ * @param data_inserts data inserted at this node
+ * @param find_peer_requests find peer requests seen
+ * @param find_peers_started find peer requests initiated at this node
+ * @param gets_started get requests initiated at this node
+ * @param puts_started put requests initiated at this node
+ * @param find_peer_responses_received find peer responses received locally
+ * @param get_responses_received get responses received locally
+ * @param find_peer_responses_sent find peer responses sent from this node
+ * @param get_responses_sent get responses sent from this node
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int
+add_stat (const struct GNUNET_PeerIdentity *peer, unsigned int route_requests,
+          unsigned int route_forwards, unsigned int result_requests,
+          unsigned int client_requests, unsigned int result_forwards,
+          unsigned int gets, unsigned int puts,
+          unsigned int data_inserts, unsigned int find_peer_requests,
+          unsigned int find_peers_started, unsigned int gets_started,
+          unsigned int puts_started, unsigned int find_peer_responses_received,
+          unsigned int get_responses_received, unsigned int find_peer_responses_sent,
+          unsigned int get_responses_sent)
+{
+  int ret;
+  if (outfile == NULL)
+    return GNUNET_SYSERR;
 
+  if (peer != NULL)
+    ret = fprintf(outfile, "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_node;\n", GNUNET_h2s_full(&peer->hashPubKey));
+  else
+    ret = fprintf(outfile, "set @temp_node = 0;\n");
+
+  ret = fprintf(outfile, "set @r_r = %u, @r_f = %u, @res_r = %u, @c_r = %u, "
+                         "@res_f = %u, @gets = %u, @puts = %u, @d_i = %u, "
+                         "@f_p_r = %u, @f_p_s = %u, @g_s = %u, @p_s = %u, "
+                         "@f_p_r_r = %u, @g_r_r = %u, @f_p_r_s = %u, @g_r_s = %u;\n",
+                         route_requests, route_forwards, result_requests,
+                         client_requests, result_forwards, gets, puts,
+                         data_inserts, find_peer_requests, find_peers_started,
+                         gets_started, puts_started, find_peer_responses_received,
+                         get_responses_received, find_peer_responses_sent,
+                         get_responses_sent);
+
+  if (ret < 0)
+    return GNUNET_SYSERR;
+
+  ret = fprintf(outfile, "execute insert_stat using "
+                         "@temp_trial, @temp_node, @r_r, @r_f, @res_r, @c_r, "
+                         "@res_f, @gets, @puts, @d_i, "
+                         "@f_p_r, @f_p_s, @g_s, @p_s, "
+                         "@f_p_r_r, @g_r_r, @f_p_r_s, @g_r_s;\n");
+
+  return GNUNET_OK;
+}
 /*
  * Inserts the specified dhtkey into the dhttests.dhtkeys table,
  * stores return value of dhttests.dhtkeys.dhtkeyuid into dhtkeyuid
@@ -604,9 +678,7 @@ libgnunet_plugin_dhtlog_mysql_dump_init (void * cls)
   cfg = plugin->cfg;
   max_varchar_len = 255;
 
-#if DEBUG_DHTLOG
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MySQL (DUMP) DHT Logger: initializing\n");
-#endif
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (plugin->cfg,
                                                          "MYSQLDUMP", "PATH",
@@ -652,6 +724,7 @@ libgnunet_plugin_dhtlog_mysql_dump_init (void * cls)
   GNUNET_assert(plugin->dhtlog_api == NULL);
   plugin->dhtlog_api = GNUNET_malloc(sizeof(struct GNUNET_DHTLOG_Handle));
   plugin->dhtlog_api->insert_trial = &add_trial;
+  plugin->dhtlog_api->insert_stat = &add_stat;
   plugin->dhtlog_api->insert_query = &add_query;
   plugin->dhtlog_api->update_trial = &update_trials;
   plugin->dhtlog_api->insert_route = &add_route;
@@ -662,7 +735,7 @@ libgnunet_plugin_dhtlog_mysql_dump_init (void * cls)
   plugin->dhtlog_api->insert_extended_topology = &add_extended_topology;
   plugin->dhtlog_api->update_topology = &update_topology;
 
-  return NULL;
+  return plugin;
 }
 
 /**
@@ -672,10 +745,8 @@ void *
 libgnunet_plugin_dhtlog_mysql_dump_done (void * cls)
 {
   struct GNUNET_DHTLOG_Handle *dhtlog_api = cls;
-#if DEBUG_DHTLOG
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MySQL DHT Logger: database shutdown\n");
-#endif
   GNUNET_assert(dhtlog_api != NULL);
 
   GNUNET_free(dhtlog_api);

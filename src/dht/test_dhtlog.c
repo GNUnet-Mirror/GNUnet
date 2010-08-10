@@ -69,20 +69,13 @@ test (struct GNUNET_DHTLOG_Handle * api)
                        5, 1, 12, 0, 0, 0,
                        "TEST INSERT TRIAL");
   CHECK(ret);
-
   ret = api->insert_topology(500);
-
   CHECK(ret);
-
-  fprintf (stderr, "Trial uid is %llu\n", trialuid);
-
   ret = api->insert_node (&nodeuid, &p1);
   ret = api->insert_node (&nodeuid, &p2);
   ret = api->insert_node (&nodeuid, &p3);
   ret = api->insert_node (&nodeuid, &p4);
-
   CHECK(ret);
-
   ret = api->insert_topology(0);
   ret = api->insert_extended_topology(&p1, &p2);
   ret = api->insert_extended_topology(&p3, &p4);
@@ -90,35 +83,26 @@ test (struct GNUNET_DHTLOG_Handle * api)
   CHECK(ret);
   ret = api->insert_dhtkey (&dhtkeyuid, &k1);
   ret = api->insert_dhtkey (&dhtkeyuid, &k2);
-
   CHECK(ret);
-
   ret = api->insert_query (&sqlqueryuid, internaluid, 2, 4, 0, &p2, &k1);
-
-  fprintf (stderr, "Sql uid for dht query is %llu\n", sqlqueryuid);
-
   ret =
     api->insert_route (&sqlrouteuid, sqlqueryuid, 1, 1, DHTLOG_GET, &p1, &k2,
                        &p4, &p3);
-  fprintf (stderr, "Sql uid for dht route is %llu\n", sqlrouteuid);
   ret =
     api->insert_route (&sqlrouteuid, sqlqueryuid, 2, 0, DHTLOG_PUT, &p3, &k1,
                        &p4, &p2);
-  fprintf (stderr, "Sql uid for dht route is %llu\n", sqlrouteuid);
   ret =
     api->insert_route (&sqlrouteuid, sqlqueryuid, 3, 1, DHTLOG_ROUTE, &p3, &k2,
                        &p2, NULL);
-  fprintf (stderr, "Sql uid for dht route is %llu\n", sqlrouteuid);
   ret =
     api->insert_route (&sqlrouteuid, sqlqueryuid, 4, 7, DHTLOG_ROUTE, &p3, &k2,
                        NULL, NULL);
-  fprintf (stderr, "Sql uid for dht route is %llu, ret %d\n", sqlrouteuid, ret);
   sleep (1);
-  fprintf (stderr, "Updating trial %llu with endtime of now\n", trialuid);
-  ret = api->update_trial (trialuid, 0, 0, 0);
-
+  ret = api->insert_stat(&p1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17);
+  ret = api->insert_stat(&p2, 12, 23, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27);
   CHECK(ret);
-
+  ret = api->update_trial (trialuid, 0, 0, 0);
+  CHECK(ret);
   return 0;
 }
 
@@ -143,7 +127,6 @@ run (void *cls,
   ok = test(api);
 
   GNUNET_DHTLOG_disconnect(api);
-  GNUNET_free(api);
 }
 
 
