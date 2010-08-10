@@ -87,7 +87,7 @@ typedef void (*GNUNET_CORE_PeerStatusEventHandler) (void *cls,
 
 
 /**
- * Method called whenever a given peer either disconnects.
+ * Method called whenever a peer disconnects.
  *
  * @param cls closure
  * @param peer peer identity this notification is about

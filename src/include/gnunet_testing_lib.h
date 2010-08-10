@@ -33,6 +33,7 @@
 #define GNUNET_TESTING_LIB_H
 
 #include "gnunet_util_lib.h"
+#include "gnunet_statistics_service.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -615,6 +616,32 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
                               GNUNET_TESTING_NotifyCompletion cb,
                               void *cb_cls);
 
+/**
+ * Callback function to process statistic values.
+ *
+ * @param cls closure
+ * @param peer the peer the statistics belong to
+ * @param subsystem name of subsystem that created the statistic
+ * @param name the name of the datum
+ * @param value the current value
+ * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
+ * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ */
+typedef int (*GNUNET_TESTING_STATISTICS_Iterator) (void *cls,
+                                                   const struct GNUNET_PeerIdentity *peer,
+                                                   const char *subsystem,
+                                                   const char *name,
+                                                   uint64_t value,
+                                                   int is_persistent);
+
+/**
+ * Iterate over all (running) peers in the peer group, retrieve
+ * all statistics from each.
+ */
+void
+GNUNET_TESTING_get_statistics (struct GNUNET_TESTING_PeerGroup *pg,
+                               GNUNET_STATISTICS_Callback cont,
+                               GNUNET_TESTING_STATISTICS_Iterator proc, void *cls);
 
 /**
  * Topologies supported for testbeds.
