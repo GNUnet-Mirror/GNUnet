@@ -571,6 +571,30 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_DHT_P2P_PING 152
 
 /**
+ * DHT Control message type, for telling the
+ * DHT to alter its current operation somehow.
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_CONTROL 153
+
+/**
+ * Local control message type, tells peer to start
+ * issuing malicious GET requests.
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_GET 154
+
+/**
+ * Local control message type, tells peer to start
+ * issuing malicious PUT requests.
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_PUT 155
+
+/**
+ * Local control message type, tells peer to start
+ * dropping all requests.
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_DROP  156
+
+/**
  * Hostlist advertisement message
  */
 #define GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT 160
