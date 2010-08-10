@@ -27,8 +27,8 @@ SUBDIRS = \
   transport \
   peerinfo-tool \
   core \
-  dv \
   testing \
+  dv \
   dht \
   hostlist \
   topology \
