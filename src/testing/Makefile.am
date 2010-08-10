@@ -16,6 +16,7 @@ libgnunettesting_la_SOURCES = \
   testing_group.c 
 libgnunettesting_la_LIBADD = $(XLIB) \
  $(top_builddir)/src/core/libgnunetcore.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/transport/libgnunettransport.la \
  -lm \
  $(top_builddir)/src/util/libgnunetutil.la 

@@ -333,9 +333,52 @@ struct TopologyIterateContext
   unsigned int total;
 };
 
-struct TopologyCoreContext
+struct StatsIterateContext
 {
-  struct TopologyIterateContext *topology_context;
+  /**
+   * Handle to the statistics service.
+   */
+  struct GNUNET_STATISTICS_Handle *stats_handle;
+
+  /**
+   * Handle for getting statistics.
+   */
+  struct GNUNET_STATISTICS_GetHandle *stats_get_handle;
+
+  /**
+   * Continuation to call once all stats information has been retrieved.
+   */
+  GNUNET_STATISTICS_Callback cont;
+
+  /**
+   * Proc function to call on each value received.
+   */
+  GNUNET_TESTING_STATISTICS_Iterator proc;
+
+  /**
+   * Closure for topology_cb
+   */
+  void *cls;
+
+  /**
+   * Number of peers currently connected to.
+   */
+  unsigned int connected;
+
+  /**
+   * Number of peers we have finished iterating.
+   */
+  unsigned int completed;
+
+  /**
+   * Number of peers total.
+   */
+  unsigned int total;
+};
+
+struct CoreContext
+{
+  void *iter_context;
   struct GNUNET_TESTING_Daemon *daemon;
 };
 
@@ -2755,13 +2798,15 @@ internal_topology_callback(void *cls,
                            const struct GNUNET_PeerIdentity *peer,
                            struct GNUNET_TIME_Relative latency, uint32_t distance)
 {
-  struct TopologyCoreContext *core_ctx = cls;
-  struct TopologyIterateContext *iter_ctx = core_ctx->topology_context;
+  struct CoreContext *core_ctx = cls;
+  struct TopologyIterateContext *iter_ctx = core_ctx->iter_context;
 
-  if (peer == NULL) /* Either finished, or something went wrongo */
+  if (peer == NULL) /* Either finished, or something went wrong */
     {
       iter_ctx->completed++;
       iter_ctx->connected--;
+      /* One core context allocated per iteration, must free! */
+      GNUNET_free(core_ctx);
     }
   else
     {
@@ -2771,8 +2816,8 @@ internal_topology_callback(void *cls,
   if (iter_ctx->completed == iter_ctx->total)
     {
       iter_ctx->topology_cb(iter_ctx->cls, NULL, NULL, GNUNET_TIME_relative_get_zero(), 0, NULL);
+      /* Once all are done, free the iteration context */
       GNUNET_free(iter_ctx);
-      GNUNET_free(core_ctx);
     }
 }
 
@@ -2784,12 +2829,12 @@ internal_topology_callback(void *cls,
 static void
 schedule_get_topology(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct TopologyCoreContext *core_context = cls;
-
+  struct CoreContext *core_context = cls;
+  struct TopologyIterateContext *topology_context = (struct TopologyIterateContext *)core_context->iter_context;
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     return;
 
-  if (core_context->topology_context->connected > MAX_OUTSTANDING_CONNECTIONS)
+  if (topology_context->connected > MAX_OUTSTANDING_CONNECTIONS)
     {
 #if VERBOSE_TESTING > 2
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2803,7 +2848,7 @@ schedule_get_topology(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Creating connection, outstanding_connections is %d\n"), outstanding_connects);
 #endif
-      core_context->topology_context->connected++;
+      topology_context->connected++;
       if (GNUNET_OK != GNUNET_CORE_iterate_peers (core_context->daemon->sched, core_context->daemon->cfg, &internal_topology_callback, core_context))
         internal_topology_callback(core_context, NULL, GNUNET_TIME_relative_get_zero(), 0);
 
@@ -2818,10 +2863,11 @@ void
 GNUNET_TESTING_get_topology (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_NotifyTopology cb, void *cls)
 {
   struct TopologyIterateContext *topology_context;
-  struct TopologyCoreContext *core_ctx;
+  struct CoreContext *core_ctx;
   unsigned int i;
   unsigned int total_count;
 
+  /* Allocate a single topology iteration context */
   topology_context = GNUNET_malloc(sizeof(struct TopologyIterateContext));
   topology_context->topology_cb = cb;
   topology_context->cls = cls;
@@ -2830,14 +2876,147 @@ GNUNET_TESTING_get_topology (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING
     {
       if (pg->peers[i].daemon->running == GNUNET_YES)
         {
-          core_ctx = GNUNET_malloc(sizeof(struct TopologyCoreContext));
+          /* Allocate one core context per core we need to connect to */
+          core_ctx = GNUNET_malloc(sizeof(struct CoreContext));
           core_ctx->daemon = pg->peers[i].daemon;
-          core_ctx->topology_context = topology_context;
+          /* Set back pointer to topology iteration context */
+          core_ctx->iter_context = topology_context;
           GNUNET_SCHEDULER_add_now(pg->sched, &schedule_get_topology, core_ctx);
           total_count++;
         }
     }
   topology_context->total = total_count;
+  return;
+}
+
+/**
+ * Callback function to process statistic values.
+ * This handler is here only really to insert a peer
+ * identity (or daemon) so the statistics can be uniquely
+ * tied to a single running peer.
+ *
+ * @param cls closure
+ * @param subsystem name of subsystem that created the statistic
+ * @param name the name of the datum
+ * @param value the current value
+ * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
+ * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ */
+static int internal_stats_callback (void *cls,
+                                    const char *subsystem,
+                                    const char *name,
+                                    uint64_t value,
+                                    int is_persistent)
+{
+  struct CoreContext *core_context = cls;
+  struct StatsIterateContext *stats_context = (struct StatsIterateContext *)core_context->iter_context;
+
+  return stats_context->proc(stats_context->cls, &core_context->daemon->id, subsystem, name, value, is_persistent);
+}
+
+/**
+ * Internal continuation call for statistics iteration.
+ *
+ * @param cls closure, the CoreContext for this iteration
+ * @param success whether or not the statistics iterations
+ *        was canceled or not (we don't care)
+ */
+static void internal_stats_cont (void *cls, int success)
+{
+  struct CoreContext *core_context = cls;
+  struct StatsIterateContext *stats_context = (struct StatsIterateContext *)core_context->iter_context;
+
+  stats_context->connected--;
+  stats_context->completed++;
+
+  if (stats_context->completed == stats_context->total)
+    {
+      stats_context->cont(stats_context->cls, GNUNET_YES);
+      if (stats_context->stats_handle != NULL)
+        GNUNET_STATISTICS_destroy(stats_context->stats_handle, GNUNET_NO);
+      GNUNET_free(stats_context);
+    }
+  GNUNET_free(core_context);
+}
+
+/**
+ * Check running topology iteration tasks, if below max start a new one, otherwise
+ * schedule for some time in the future.
+ */
+static void
+schedule_get_statistics(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct CoreContext *core_context = cls;
+  struct StatsIterateContext *stats_context = (struct StatsIterateContext *)core_context->iter_context;
+
+  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+    return;
+
+  if (stats_context->connected > MAX_OUTSTANDING_CONNECTIONS)
+    {
+#if VERBOSE_TESTING > 2
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      _("Delaying connect, we have too many outstanding connections!\n"));
+#endif
+      GNUNET_SCHEDULER_add_delayed(core_context->daemon->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &schedule_get_statistics, core_context);
+    }
+  else
+    {
+#if VERBOSE_TESTING > 2
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      _("Creating connection, outstanding_connections is %d\n"), outstanding_connects);
+#endif
+
+      stats_context->connected++;
+      stats_context->stats_handle = GNUNET_STATISTICS_create(core_context->daemon->sched, "testing", core_context->daemon->cfg);
+      if (stats_context->stats_handle == NULL)
+        {
+          internal_stats_cont (core_context, GNUNET_NO);
+          return;
+        }
+
+      stats_context->stats_get_handle = GNUNET_STATISTICS_get(stats_context->stats_handle, NULL, NULL, GNUNET_TIME_relative_get_forever(), &internal_stats_cont, &internal_stats_callback, core_context);
+      if (stats_context->stats_get_handle == NULL)
+         internal_stats_cont (core_context, GNUNET_NO);
+
+    }
+}
+
+
+/**
+ * Iterate over all (running) peers in the peer group, retrieve
+ * all statistics from each.
+ */
+void
+GNUNET_TESTING_get_statistics (struct GNUNET_TESTING_PeerGroup *pg,
+                               GNUNET_STATISTICS_Callback cont,
+                               GNUNET_TESTING_STATISTICS_Iterator proc, void *cls)
+{
+  struct StatsIterateContext *stats_context;
+  struct CoreContext *core_ctx;
+  unsigned int i;
+  unsigned int total_count;
+
+  /* Allocate a single stats iteration context */
+  stats_context = GNUNET_malloc(sizeof(struct StatsIterateContext));
+  stats_context->cont = cont;
+  stats_context->proc = proc;
+  stats_context->cls = cls;
+  total_count = 0;
+  for (i = 0; i < pg->total; i++)
+    {
+      if (pg->peers[i].daemon->running == GNUNET_YES)
+        {
+          /* Allocate one core context per core we need to connect to */
+          core_ctx = GNUNET_malloc(sizeof(struct CoreContext));
+          core_ctx->daemon = pg->peers[i].daemon;
+          /* Set back pointer to topology iteration context */
+          core_ctx->iter_context = stats_context;
+          GNUNET_SCHEDULER_add_now(pg->sched, &schedule_get_statistics, core_ctx);
+          total_count++;
+        }
+    }
+  stats_context->total = total_count;
   return;
 }
 

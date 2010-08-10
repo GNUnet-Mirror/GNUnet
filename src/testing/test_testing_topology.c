@@ -270,12 +270,40 @@ disconnect_cores (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   total_server_connections -= 2;
 }
 
-void topology_cb (void *cls,
-             const struct GNUNET_PeerIdentity *first,
-             const struct GNUNET_PeerIdentity *second,
-             struct GNUNET_TIME_Relative latency,
-             uint32_t distance,
-             const char *emsg)
+static void stats_finished (void *cls, int result)
+{
+  fprintf(stderr, "Finished getting all peers statistics!\n");
+  GNUNET_SCHEDULER_add_now (sched, &finish_testing, NULL);
+}
+
+/**
+ * Callback function to process statistic values.
+ *
+ * @param cls closure
+ * @param peer the peer the statistics belong to
+ * @param subsystem name of subsystem that created the statistic
+ * @param name the name of the datum
+ * @param value the current value
+ * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
+ * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ */
+static int stats_print  (void *cls,
+                         const struct GNUNET_PeerIdentity *peer,
+                         const char *subsystem,
+                         const char *name,
+                         uint64_t value,
+                         int is_persistent)
+{
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s:%s -- %llu\n", GNUNET_i2s(peer), subsystem, name, value);
+  return GNUNET_OK;
+}
+
+static void topology_cb (void *cls,
+                  const struct GNUNET_PeerIdentity *first,
+                  const struct GNUNET_PeerIdentity *second,
+                  struct GNUNET_TIME_Relative latency,
+                  uint32_t distance,
+                  const char *emsg)
 {
   FILE *outfile;
   outfile = cls;
@@ -295,7 +323,8 @@ void topology_cb (void *cls,
       {
         fprintf(outfile, "}\n");
         fclose(outfile);
-        GNUNET_SCHEDULER_add_now (sched, &finish_testing, NULL);
+        GNUNET_TESTING_get_statistics(pg, &stats_finished, &stats_print, NULL);
+        //GNUNET_SCHEDULER_add_now (sched, &finish_testing, NULL);
       }
     }
 }
