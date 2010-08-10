@@ -388,7 +388,7 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   ic->h->in_receive = GNUNET_NO;
   if (msg == NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Failed to receive response from `%s' service.\n"),
                   "PEERINFO");
       reconnect (ic->h);
@@ -528,7 +528,7 @@ signal_timeout (void *cls,
 {
   struct GNUNET_PEERINFO_IteratorContext *ic = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      _("Timeout transmitting iteration request to `%s' service.\n"),
 	      "PEERINFO");
   ic->timeout_task = GNUNET_SCHEDULER_NO_TASK;
