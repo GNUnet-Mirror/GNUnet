@@ -61,6 +61,23 @@
 typedef void (*GNUNET_DHT_MessageReceivedHandler) (void *cls,
                                                    const struct GNUNET_MessageHeader
                                                    *msg);
+struct GNUNET_DHT_ControlMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_DHT_CONTROL
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Command code of the message.
+   */
+  uint16_t command;
+
+  /**
+   * Variable parameter for the command.
+   */
+  uint16_t variable;
+};
 
 /**
  * Message which indicates the DHT should cancel outstanding

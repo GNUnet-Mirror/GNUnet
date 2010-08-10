@@ -2402,6 +2402,30 @@ find_active_client (struct GNUNET_SERVER_Client *client)
 }
 
 /**
+ * Task to send a malicious put message across the network.
+ *
+ * @param cls closure for this task
+ * @param tc the context under which the task is running
+ */
+static void
+malicious_put_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  return;
+}
+
+/**
+ * Task to send a malicious put message across the network.
+ *
+ * @param cls closure for this task
+ * @param tc the context under which the task is running
+ */
+static void
+malicious_get_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  return;
+}
+
+/**
  * Task to send a find peer message for our own peer identifier
  * so that we can find the closest peers in the network to ourselves
  * and attempt to connect to them.
@@ -2497,6 +2521,56 @@ handle_dht_local_route_request (void *cls, struct GNUNET_SERVER_Client *client,
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 
+}
+
+/**
+ * Handler for any locally received DHT control messages,
+ * sets malicious flags mostly for now.
+ *
+ * @param cls closure for the service
+ * @param client the client we received this message from
+ * @param message the actual message received
+ *
+ */
+static void
+handle_dht_control_message (void *cls, struct GNUNET_SERVER_Client *client,
+                            const struct GNUNET_MessageHeader *message)
+{
+  const struct GNUNET_DHT_ControlMessage *dht_control_msg =
+      (const struct GNUNET_DHT_ControlMessage *) message;
+#if DEBUG_DHT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "`%s:%s': Received `%s' request from client, command %d\n", my_short_id, "DHT",
+              "CONTROL", ntohs(dht_control_msg->command));
+#endif
+
+  switch (ntohs(dht_control_msg->command))
+  {
+  case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_GET:
+    if (ntohs(dht_control_msg->variable) > 0)
+      malicious_get_frequency = ntohs(dht_control_msg->variable);
+    if (malicious_getter != GNUNET_YES)
+      GNUNET_SCHEDULER_add_now(sched, &malicious_get_task, NULL);
+    malicious_getter = GNUNET_YES;
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s Initiating malicious GET behavior, frequency %d\n", my_short_id, "DHT", malicious_get_frequency);
+    break;
+  case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_PUT:
+    if (ntohs(dht_control_msg->variable) > 0)
+      malicious_put_frequency = ntohs(dht_control_msg->variable);
+    if (malicious_putter != GNUNET_YES)
+      GNUNET_SCHEDULER_add_now(sched, &malicious_put_task, NULL);
+    malicious_putter = GNUNET_YES;
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s Initiating malicious PUT behavior, frequency %d\n", my_short_id, "DHT", malicious_put_frequency);
+    break;
+  case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_DROP:
+    malicious_dropper = GNUNET_YES;
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s Initiating malicious DROP behavior\n", my_short_id, "DHT");
+    break;
+  default:
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s Unknown control command type `%d'!\n", ntohs(dht_control_msg->command));
+  }
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 /**
@@ -2759,6 +2833,7 @@ core_init (void *cls,
 static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
   {&handle_dht_local_route_request, NULL, GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE, 0},
   {&handle_dht_local_route_stop, NULL, GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE_STOP, 0},
+  {&handle_dht_control_message, NULL, GNUNET_MESSAGE_TYPE_DHT_CONTROL, 0},
   {NULL, NULL, 0, 0}
 };
 

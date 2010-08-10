@@ -110,10 +110,10 @@ static void
 end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   /* do work here */
+  sleep(2);
   GNUNET_SCHEDULER_cancel (sched, die_task);
 
   GNUNET_DHT_disconnect (p1.dht_handle);
-
   die_task = GNUNET_SCHEDULER_NO_TASK;
 
   if (tc->reason == GNUNET_SCHEDULER_REASON_TIMEOUT)
@@ -166,6 +166,63 @@ end_badly ()
  * @param cls closure
  * @param tc context information (why was this task triggered now)
  */
+void test_set_peer_malicious_drop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct PeerContext *peer = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Called test_set_peer_malicious_drop!\n");
+  if (tc->reason == GNUNET_SCHEDULER_REASON_TIMEOUT)
+    GNUNET_SCHEDULER_add_now (sched, &end_badly, NULL);
+
+  GNUNET_assert (peer->dht_handle != NULL);
+
+  GNUNET_DHT_set_malicious_dropper (peer->dht_handle, &end, &p1);
+}
+
+/**
+ * Signature of the main function of a task.
+ *
+ * @param cls closure
+ * @param tc context information (why was this task triggered now)
+ */
+void test_set_peer_malicious_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct PeerContext *peer = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Called test_set_peer_malicious_put!\n");
+  if (tc->reason == GNUNET_SCHEDULER_REASON_TIMEOUT)
+    GNUNET_SCHEDULER_add_now (sched, &end_badly, NULL);
+
+  GNUNET_assert (peer->dht_handle != NULL);
+
+  GNUNET_DHT_set_malicious_putter (peer->dht_handle, 750, &test_set_peer_malicious_drop, &p1);
+}
+
+/**
+ * Signature of the main function of a task.
+ *
+ * @param cls closure
+ * @param tc context information (why was this task triggered now)
+ */
+void test_set_peer_malicious_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct PeerContext *peer = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Called test_set_peer_malicious_get!\n");
+  if (tc->reason == GNUNET_SCHEDULER_REASON_TIMEOUT)
+    GNUNET_SCHEDULER_add_now (sched, &end_badly, NULL);
+
+  GNUNET_assert (peer->dht_handle != NULL);
+
+  GNUNET_DHT_set_malicious_getter (peer->dht_handle, 1500, &test_set_peer_malicious_put, &p1);
+}
+
+/**
+ * Signature of the main function of a task.
+ *
+ * @param cls closure
+ * @param tc context information (why was this task triggered now)
+ */
 void
 test_find_peer_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -177,7 +234,7 @@ test_find_peer_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_assert (peer->dht_handle != NULL);
 
-  GNUNET_DHT_find_peer_stop (peer->find_peer_handle, &end, &p1);
+  GNUNET_DHT_find_peer_stop (peer->find_peer_handle, &test_set_peer_malicious_get, &p1);
 
   //GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1), &end, &p1);
 

@@ -583,7 +583,7 @@ static int stats_handle  (void *cls,
                           int is_persistent)
 {
   struct StatisticsIteratorContext *stats_ctx;
-  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s:%s -- %llu\n", GNUNET_i2s(peer), subsystem, name, value);
+
   if (GNUNET_CONTAINER_multihashmap_contains(stats_map, &peer->hashPubKey))
     {
       stats_ctx = GNUNET_CONTAINER_multihashmap_get(stats_map, &peer->hashPubKey);
