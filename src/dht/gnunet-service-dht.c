@@ -2093,6 +2093,7 @@ if (strict_kademlia == GNUNET_YES)
     for (bc = lowest_bucket; bc < MAX_BUCKETS; bc++)
       {
         pos = k_buckets[bc].head;
+        count = 0;
         while ((pos != NULL) && (count < bucket_size))
           {
             if (GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey))
@@ -2104,6 +2105,7 @@ if (strict_kademlia == GNUNET_YES)
                     largest_distance = distance;
                   }
               }
+            count++;
             pos = pos->next;
           }
       }
@@ -2330,7 +2332,8 @@ static int route_message(void *cls,
     message_context->bloom = GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
   GNUNET_CONTAINER_bloomfilter_add (message_context->bloom, &my_identity.hashPubKey);
 
-  if ((stop_on_closest == GNUNET_YES) && (message_context->closest == GNUNET_YES) && (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DHT_PUT))
+  if (((stop_on_closest == GNUNET_YES) && (message_context->closest == GNUNET_YES) && (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DHT_PUT))
+      || ((strict_kademlia == GNUNET_YES) && (message_context->closest == GNUNET_YES)))
     forward_count = 0;
 
 #if DEBUG_DHT_ROUTING
@@ -2970,7 +2973,7 @@ void handle_core_connect (void *cls,
 
   if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(all_known_peers, &peer->hashPubKey))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%s:%s Received %s message for peer %s, but already have peer in RT!", my_short_id, "DHT", "CORE CONNECT", GNUNET_i2s(peer));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s:%s Received %s message for peer %s, but already have peer in RT!", my_short_id, "DHT", "CORE CONNECT", GNUNET_i2s(peer));
       return;
     }
 
@@ -3007,7 +3010,7 @@ void handle_core_disconnect (void *cls,
 
   if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_contains(all_known_peers, &peer->hashPubKey))
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s: do not have peer `%s' in RT, can't disconnect!\n", my_short_id, "DHT", GNUNET_i2s(peer));
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s:%s: do not have peer `%s' in RT, can't disconnect!\n", my_short_id, "DHT", GNUNET_i2s(peer));
       return;
     }
   GNUNET_assert(GNUNET_CONTAINER_multihashmap_contains(all_known_peers, &peer->hashPubKey));
