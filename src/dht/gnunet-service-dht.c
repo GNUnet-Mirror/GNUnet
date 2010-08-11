@@ -67,22 +67,31 @@
  */
 #define MINIMUM_PEER_THRESHOLD 20
 
-#define DHT_DEFAULT_FIND_PEER_REPLICATION 20
+#define DHT_DEFAULT_FIND_PEER_REPLICATION 10
 
 #define DHT_DEFAULT_FIND_PEER_OPTIONS GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE
 
 #define DHT_MINIMUM_FIND_PEER_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 1)
 #define DHT_MAXIMUM_FIND_PEER_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5)
 
+/**
+ * How many initial requests to send out (in true Kademlia fashion)
+ */
+#define DHT_KADEMLIA_REPLICATION 3
+
 /*
  * Default frequency for sending malicious get messages
  */
-#define DEFAULT_MALICIOUS_GET_FREQUENCY 1 /* Number of seconds */
+#define DEFAULT_MALICIOUS_GET_FREQUENCY 1000 /* Number of milliseconds */
 
+/**
+ * Type for a malicious request, so we can ignore it during testing
+ */
+#define DHT_MALICIOUS_MESSAGE_TYPE 42
 /*
  * Default frequency for sending malicious put messages
  */
-#define DEFAULT_MALICIOUS_PUT_FREQUENCY 1 /* Default is seconds */
+#define DEFAULT_MALICIOUS_PUT_FREQUENCY 1000 /* Default is in milliseconds */
 
 #define DHT_DEFAULT_PING_DELAY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 1)
 
@@ -428,6 +437,13 @@ struct DHTResults
   struct GNUNET_CONTAINER_MultiHashMap *hashmap;
 
 };
+
+/**
+ * Don't use our routing algorithm, always route
+ * to closest peer; initially send requests to 3
+ * peers.
+ */
+static int strict_kademlia;
 
 /**
  * Routing option to end routing when closest peer found.
@@ -1453,9 +1469,13 @@ static int route_result_message(void *cls,
           /* FIXME: Do we need this (peer_request_connect call)??? */
         }
       }
-
     }
-  record = GNUNET_CONTAINER_multihashmap_get(forward_list.hashmap, message_context->key);
+
+  if (malicious_dropper == GNUNET_YES)
+    record = NULL;
+  else
+    record = GNUNET_CONTAINER_multihashmap_get(forward_list.hashmap, message_context->key);
+
   if (record == NULL) /* No record of this message! */
     {
 #if DEBUG_DHT
@@ -1641,6 +1661,9 @@ handle_dht_get (void *cls,
 #endif
   increment_stats(STAT_GETS);
   results = 0;
+  if (get_type == DHT_MALICIOUS_MESSAGE_TYPE)
+    return results;
+
   if (datacache != NULL)
     results =
       GNUNET_DATACACHE_get (datacache, message_context->key, get_type,
@@ -1779,16 +1802,44 @@ handle_dht_put (void *cls,
 
   GNUNET_assert (ntohs (msg->size) >=
                  sizeof (struct GNUNET_DHT_PutMessage));
+
+
   put_msg = (struct GNUNET_DHT_PutMessage *)msg;
   put_type = ntohs (put_msg->type);
+
+  if (put_type == DHT_MALICIOUS_MESSAGE_TYPE)
+    return;
+
   data_size = ntohs (put_msg->header.size) - sizeof (struct GNUNET_DHT_PutMessage);
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "`%s:%s': Received `%s' request (inserting data!), message type %d, key %s, uid %llu\n",
               my_short_id, "DHT", "PUT", put_type, GNUNET_h2s (message_context->key), message_context->unique_id);
 #endif
-  increment_stats(STAT_PUTS_INSERTED);
 #if DEBUG_DHT_ROUTING
+  if (message_context->hop_count == 0) /* Locally initiated request */
+    {
+      if ((debug_routes) && (dhtlog_handle != NULL))
+        {
+          dhtlog_handle->insert_query (NULL, message_context->unique_id, DHTLOG_PUT,
+                                       message_context->hop_count, GNUNET_NO, &my_identity,
+                                       message_context->key);
+        }
+    }
+#endif
+
+  if (message_context->closest != GNUNET_YES)
+    return;
+
+#if DEBUG_DHT_ROUTING
+  if ((debug_routes_extended) && (dhtlog_handle != NULL))
+    {
+      dhtlog_handle->insert_route (NULL, message_context->unique_id, DHTLOG_ROUTE,
+                                   message_context->hop_count, GNUNET_YES,
+                                   &my_identity, message_context->key, message_context->peer,
+                                   NULL);
+    }
+
   if ((debug_routes) && (dhtlog_handle != NULL))
     {
       dhtlog_handle->insert_query (NULL, message_context->unique_id, DHTLOG_PUT,
@@ -1797,6 +1848,7 @@ handle_dht_put (void *cls,
     }
 #endif
 
+  increment_stats(STAT_PUTS_INSERTED);
   if (datacache != NULL)
     GNUNET_DATACACHE_put (datacache, message_context->key, data_size,
                           (char *) &put_msg[1], put_type,
@@ -1839,6 +1891,20 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
   double target_count;
   unsigned int target_value;
   unsigned int diameter;
+
+  /**
+   * If we are behaving in strict kademlia mode, send multiple initial requests,
+   * but then only send to 1 or 0 peers.
+   */
+  if (strict_kademlia == GNUNET_YES)
+    {
+      if (hop_count == 0)
+        return DHT_KADEMLIA_REPLICATION;
+      else if (hop_count < MAX_HOPS)
+        return 1;
+      else
+        return 0;
+    }
 
   /* FIXME: the smaller we think the network is the more lenient we should be for
    * routing right?  The estimation below only works if we think we have reasonably
@@ -2015,102 +2081,102 @@ select_peer (const GNUNET_HashCode * target,
   unsigned int bc;
   unsigned int count;
   struct PeerInfo *pos;
-#if USE_KADEMLIA
-  const struct PeerInfo *chosen;
+  struct PeerInfo *chosen;
   unsigned long long largest_distance;
-#else
   unsigned long long total_distance;
   unsigned long long selected;
-#endif
 
-#if USE_KADEMLIA
-  largest_distance = 0;
-  chosen = NULL;
-  for (bc = lowest_bucket; bc < MAX_BUCKETS; bc++)
-    {
-      pos = k_buckets[bc].head;
-      while (pos != NULL)
-        {
-          if (GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey))
-            {
-              distance = inverse_distance (target, &pos->id.hashPubKey);
-              if (distance > largest_distance)
-                {
-                  chosen = pos;
-                  largest_distance = distance;
-                }
-            }
-          pos = pos->next;
-        }
-    }
+if (strict_kademlia == GNUNET_YES)
+  {
+    largest_distance = 0;
+    chosen = NULL;
+    for (bc = lowest_bucket; bc < MAX_BUCKETS; bc++)
+      {
+        pos = k_buckets[bc].head;
+        while ((pos != NULL) && (count < bucket_size))
+          {
+            if (GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey))
+              {
+                distance = inverse_distance (target, &pos->id.hashPubKey);
+                if (distance > largest_distance)
+                  {
+                    chosen = pos;
+                    largest_distance = distance;
+                  }
+              }
+            pos = pos->next;
+          }
+      }
 
-  if ((largest_distance > 0) && (chosen != NULL))
-    {
-      GNUNET_CONTAINER_bloomfilter_add(bloom, &chosen->id.hashPubKey);
-      return chosen;
-    }
+    if ((largest_distance > 0) && (chosen != NULL))
+      {
+        GNUNET_CONTAINER_bloomfilter_add(bloom, &chosen->id.hashPubKey);
+        return chosen;
+      }
+    else
+      {
+        return NULL;
+      }
+  }
   else
-    {
-      return NULL;
-    }
-#else
-  /* GNUnet-style */
-  total_distance = 0;
-  for (bc = lowest_bucket; bc < MAX_BUCKETS; bc++)
-    {
-      pos = k_buckets[bc].head;
-      count = 0;
-      while ((pos != NULL) && (count < bucket_size))
-        {
-          if (GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey))
-            total_distance += (unsigned long long)inverse_distance (target, &pos->id.hashPubKey);
+  {
+    /* GNUnet-style */
+    total_distance = 0;
+    for (bc = lowest_bucket; bc < MAX_BUCKETS; bc++)
+      {
+        pos = k_buckets[bc].head;
+        count = 0;
+        while ((pos != NULL) && (count < bucket_size))
+          {
+            if (GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey))
+              total_distance += (unsigned long long)inverse_distance (target, &pos->id.hashPubKey);
 #if DEBUG_DHT > 1
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "`%s:%s': Total distance is %llu, distance from %s to %s is %u\n",
-                      my_short_id, "DHT", total_distance, GNUNET_i2s(&pos->id), GNUNET_h2s(target) , inverse_distance(target, &pos->id.hashPubKey));
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                        "`%s:%s': Total distance is %llu, distance from %s to %s is %u\n",
+                        my_short_id, "DHT", total_distance, GNUNET_i2s(&pos->id), GNUNET_h2s(target) , inverse_distance(target, &pos->id.hashPubKey));
 #endif
-          pos = pos->next;
-          count++;
-        }
-    }
-  if (total_distance == 0)
-    {
-      return NULL;
-    }
+            pos = pos->next;
+            count++;
+          }
+      }
+    if (total_distance == 0)
+      {
+        return NULL;
+      }
 
-  selected = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, total_distance);
-  for (bc = lowest_bucket; bc < MAX_BUCKETS; bc++)
-    {
-      pos = k_buckets[bc].head;
-      count = 0;
-      while ((pos != NULL) && (count < bucket_size))
-        {
-          if (GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey))
-            {
-              distance = inverse_distance (target, &pos->id.hashPubKey);
-              if (distance > selected)
-                return pos;
-              selected -= distance;
-            }
-          else
-            {
+    selected = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, total_distance);
+    for (bc = lowest_bucket; bc < MAX_BUCKETS; bc++)
+      {
+        pos = k_buckets[bc].head;
+        count = 0;
+        while ((pos != NULL) && (count < bucket_size))
+          {
+            if (GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey))
+              {
+                distance = inverse_distance (target, &pos->id.hashPubKey);
+                if (distance > selected)
+                  return pos;
+                selected -= distance;
+              }
+            else
+              {
 #if DEBUG_DHT
-              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                          "`%s:%s': peer %s matches bloomfilter.\n",
-                          my_short_id, "DHT", GNUNET_i2s(&pos->id));
+                GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                            "`%s:%s': peer %s matches bloomfilter.\n",
+                            my_short_id, "DHT", GNUNET_i2s(&pos->id));
 #endif
-            }
-          pos = pos->next;
-          count++;
-        }
-    }
+              }
+            pos = pos->next;
+            count++;
+          }
+      }
 #if DEBUG_DHT
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "`%s:%s': peer %s matches bloomfilter.\n",
-                my_short_id, "DHT", GNUNET_i2s(&pos->id));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "`%s:%s': peer %s matches bloomfilter.\n",
+                  my_short_id, "DHT", GNUNET_i2s(&pos->id));
 #endif
-  return NULL;
-#endif
+    return NULL;
+  }
 }
 
 
@@ -2239,6 +2305,22 @@ static int route_message(void *cls,
   int ret;
 #endif
 
+  if (malicious_dropper == GNUNET_YES)
+    {
+#if DEBUG_DHT_ROUTING
+      if ((debug_routes_extended) && (dhtlog_handle != NULL))
+        {
+          dhtlog_handle->insert_route (NULL, message_context->unique_id, DHTLOG_ROUTE,
+                                       message_context->hop_count, GNUNET_SYSERR,
+                                       &my_identity, message_context->key, message_context->peer,
+                                       NULL);
+        }
+#endif
+      if (message_context->bloom != NULL)
+        GNUNET_CONTAINER_bloomfilter_free(message_context->bloom);
+      return 0;
+    }
+
   increment_stats(STAT_ROUTES);
   message_context->closest = am_closest_peer(message_context->key);
   forward_count = get_forward_count(message_context->hop_count, message_context->replication);
@@ -2275,30 +2357,7 @@ static int route_message(void *cls,
       break;
     case GNUNET_MESSAGE_TYPE_DHT_PUT: /* Check if closest, if so insert data. FIXME: thresholding to reduce complexity?*/
       increment_stats(STAT_PUTS);
-      if (message_context->closest == GNUNET_YES)
-        {
-#if DEBUG_DHT_ROUTING
-          if ((debug_routes_extended) && (dhtlog_handle != NULL))
-            {
-              dhtlog_handle->insert_route (NULL, message_context->unique_id, DHTLOG_ROUTE,
-                                           message_context->hop_count, GNUNET_YES,
-                                           &my_identity, message_context->key, message_context->peer,
-                                           NULL);
-            }
-#endif
-          handle_dht_put (cls, msg, message_context);
-        }
-#if DEBUG_DHT_ROUTING
-        if (message_context->hop_count == 0) /* Locally initiated request */
-          {
-            if ((debug_routes) && (dhtlog_handle != NULL))
-              {
-                dhtlog_handle->insert_query (NULL, message_context->unique_id, DHTLOG_PUT,
-                                             message_context->hop_count, GNUNET_NO, &my_identity,
-                                             message_context->key);
-              }
-          }
-#endif
+      handle_dht_put (cls, msg, message_context);
       break;
     case GNUNET_MESSAGE_TYPE_DHT_FIND_PEER: /* Check if closest and not started by us, check options, add to requests seen */
       increment_stats(STAT_FIND_PEER);
@@ -2329,7 +2388,7 @@ static int route_message(void *cls,
   for (i = 0; i < forward_count; i++)
     {
       selected = select_peer(message_context->key, message_context->bloom);
-      /* FIXME: either log to sql or log to stats or both when selected is NULL at this point! */
+
       if (selected != NULL)
         {
           GNUNET_CONTAINER_bloomfilter_add(message_context->bloom, &selected->id.hashPubKey);
@@ -2340,7 +2399,6 @@ static int route_message(void *cls,
                       "DHT", GNUNET_h2s (message_context->key), message_context->unique_id, GNUNET_i2s(&selected->id), nearest_buf, matching_bits(&nearest->id.hashPubKey, message_context->key), distance(&nearest->id.hashPubKey, message_context->key));
           GNUNET_free(nearest_buf);
 #endif
-          /* FIXME: statistics */
           if ((debug_routes_extended) && (dhtlog_handle != NULL))
             {
               dhtlog_handle->insert_route (NULL, message_context->unique_id, DHTLOG_ROUTE,
@@ -2410,7 +2468,31 @@ find_active_client (struct GNUNET_SERVER_Client *client)
 static void
 malicious_put_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  return;
+  static struct GNUNET_DHT_PutMessage put_message;
+  static struct DHT_MessageContext message_context;
+  static GNUNET_HashCode key;
+  unsigned int mcsize;
+  uint32_t random_key;
+  put_message.header.size = htons(sizeof(struct GNUNET_DHT_GetMessage));
+  put_message.header.type = htons(GNUNET_MESSAGE_TYPE_DHT_PUT);
+  put_message.type = htons(DHT_MALICIOUS_MESSAGE_TYPE);
+  put_message.expiration = GNUNET_TIME_absolute_hton(GNUNET_TIME_absolute_get_forever());
+  mcsize = sizeof(struct DHT_MessageContext) + sizeof(GNUNET_HashCode);
+  memset(&message_context, 0, sizeof(struct DHT_MessageContext));
+  message_context.client = NULL;
+  random_key = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, (uint32_t)-1);
+  GNUNET_CRYPTO_hash(&random_key, sizeof(uint32_t), &key);
+  message_context.key = &key;
+  message_context.unique_id = GNUNET_ntohll (GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_WEAK, (uint64_t)-1));
+  message_context.replication = ntohl (DHT_DEFAULT_FIND_PEER_REPLICATION);
+  message_context.msg_options = ntohl (0);
+  message_context.network_size = estimate_diameter();
+  message_context.peer = &my_identity;
+  increment_stats(STAT_PUT_START);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s:%s Sending malicious PUT message with hash %s", my_short_id, "DHT", GNUNET_h2s(&key));
+  route_message(NULL, &put_message.header, &message_context);
+  GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, malicious_put_frequency), &malicious_put_task, NULL);
+
 }
 
 /**
@@ -2422,7 +2504,29 @@ malicious_put_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 malicious_get_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  return;
+  static struct GNUNET_DHT_GetMessage get_message;
+  static struct DHT_MessageContext message_context;
+  static GNUNET_HashCode key;
+  unsigned int mcsize;
+  uint32_t random_key;
+  get_message.header.size = htons(sizeof(struct GNUNET_DHT_GetMessage));
+  get_message.header.type = htons(GNUNET_MESSAGE_TYPE_DHT_GET);
+  get_message.type = htons(DHT_MALICIOUS_MESSAGE_TYPE);
+  mcsize = sizeof(struct DHT_MessageContext) + sizeof(GNUNET_HashCode);
+  memset(&message_context, 0, sizeof(struct DHT_MessageContext));
+  message_context.client = NULL;
+  random_key = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, (uint32_t)-1);
+  GNUNET_CRYPTO_hash(&random_key, sizeof(uint32_t), &key);
+  message_context.key = &key;
+  message_context.unique_id = GNUNET_ntohll (GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_WEAK, (uint64_t)-1));
+  message_context.replication = ntohl (DHT_DEFAULT_FIND_PEER_REPLICATION);
+  message_context.msg_options = ntohl (0);
+  message_context.network_size = estimate_diameter();
+  message_context.peer = &my_identity;
+  increment_stats(STAT_GET_START);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s:%s Sending malicious GET message with hash %s", my_short_id, "DHT", GNUNET_h2s(&key));
+  route_message(NULL, &get_message.header, &message_context);
+  GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, malicious_get_frequency), &malicious_get_task, NULL);
 }
 
 /**
@@ -2963,6 +3067,13 @@ run (void *cls,
   if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht_testing", "mysql_logging"))
     {
       debug_routes = GNUNET_YES;
+    }
+
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht",
+                                           "strict_kademlia"))
+    {
+      strict_kademlia = GNUNET_YES;
     }
 
   if (GNUNET_YES ==
