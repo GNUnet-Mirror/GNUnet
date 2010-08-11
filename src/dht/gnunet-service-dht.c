@@ -69,9 +69,12 @@
 
 #define DHT_DEFAULT_FIND_PEER_REPLICATION 10
 
+#define DHT_MAX_RECENT 100
+
 #define DHT_DEFAULT_FIND_PEER_OPTIONS GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE
 
 #define DHT_MINIMUM_FIND_PEER_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 1)
+
 #define DHT_MAXIMUM_FIND_PEER_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5)
 
 /**
@@ -351,7 +354,6 @@ struct DHT_MessageContext
  */
 struct DHTRouteSource
 {
-
   /**
    * This is a DLL.
    */
@@ -438,6 +440,35 @@ struct DHTResults
 
 };
 
+/**
+ * DHT structure for recent requests.
+ */
+struct RecentRequests
+{
+  /*
+   * Min heap for removal upon reaching limit
+   */
+  struct GNUNET_CONTAINER_Heap *minHeap;
+
+  /*
+   * Hashmap for key based lookup
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *hashmap;
+};
+
+struct RecentRequest
+{
+  GNUNET_HashCode key;
+  uint64_t uid;
+};
+
+
+#if 0
+/**
+ * Recent requests by hash/uid and by time inserted.
+ */
+static struct RecentRequests recent;
+#endif
 /**
  * Don't use our routing algorithm, always route
  * to closest peer; initially send requests to 3
@@ -2086,99 +2117,101 @@ select_peer (const GNUNET_HashCode * target,
   unsigned long long total_distance;
   unsigned long long selected;
 
-if (strict_kademlia == GNUNET_YES)
-  {
-    largest_distance = 0;
-    chosen = NULL;
-    for (bc = lowest_bucket; bc < MAX_BUCKETS; bc++)
-      {
-        pos = k_buckets[bc].head;
-        count = 0;
-        while ((pos != NULL) && (count < bucket_size))
-          {
-            if (GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey))
-              {
-                distance = inverse_distance (target, &pos->id.hashPubKey);
-                if (distance > largest_distance)
-                  {
-                    chosen = pos;
-                    largest_distance = distance;
-                  }
-              }
-            count++;
-            pos = pos->next;
-          }
-      }
+  if (strict_kademlia == GNUNET_YES)
+    {
+      largest_distance = 0;
+      chosen = NULL;
+      for (bc = lowest_bucket; bc < MAX_BUCKETS; bc++)
+        {
+          pos = k_buckets[bc].head;
+          count = 0;
+          while ((pos != NULL) && (count < bucket_size))
+            {
+            /* If we are doing strict Kademlia like routing, then checking the bloomfilter is basically cheating! */
 
-    if ((largest_distance > 0) && (chosen != NULL))
-      {
-        GNUNET_CONTAINER_bloomfilter_add(bloom, &chosen->id.hashPubKey);
-        return chosen;
-      }
-    else
-      {
-        return NULL;
-      }
-  }
+              if (GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey))
+                {
+                  distance = inverse_distance (target, &pos->id.hashPubKey);
+                  if (distance > largest_distance)
+                    {
+                      chosen = pos;
+                      largest_distance = distance;
+                    }
+                }
+              count++;
+              pos = pos->next;
+            }
+        }
+
+      if ((largest_distance > 0) && (chosen != NULL))
+        {
+          GNUNET_CONTAINER_bloomfilter_add(bloom, &chosen->id.hashPubKey);
+          return chosen;
+        }
+      else
+        {
+          return NULL;
+        }
+    }
   else
-  {
-    /* GNUnet-style */
-    total_distance = 0;
-    for (bc = lowest_bucket; bc < MAX_BUCKETS; bc++)
-      {
-        pos = k_buckets[bc].head;
-        count = 0;
-        while ((pos != NULL) && (count < bucket_size))
-          {
-            if (GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey))
-              total_distance += (unsigned long long)inverse_distance (target, &pos->id.hashPubKey);
-#if DEBUG_DHT > 1
-            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                        "`%s:%s': Total distance is %llu, distance from %s to %s is %u\n",
-                        my_short_id, "DHT", total_distance, GNUNET_i2s(&pos->id), GNUNET_h2s(target) , inverse_distance(target, &pos->id.hashPubKey));
-#endif
-            pos = pos->next;
-            count++;
-          }
-      }
-    if (total_distance == 0)
-      {
-        return NULL;
-      }
+    {
+      /* GNUnet-style */
+      total_distance = 0;
+      for (bc = lowest_bucket; bc < MAX_BUCKETS; bc++)
+        {
+          pos = k_buckets[bc].head;
+          count = 0;
+          while ((pos != NULL) && (count < bucket_size))
+            {
+              if (GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey))
+                total_distance += (unsigned long long)inverse_distance (target, &pos->id.hashPubKey);
+  #if DEBUG_DHT > 1
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          "`%s:%s': Total distance is %llu, distance from %s to %s is %u\n",
+                          my_short_id, "DHT", total_distance, GNUNET_i2s(&pos->id), GNUNET_h2s(target) , inverse_distance(target, &pos->id.hashPubKey));
+  #endif
+              pos = pos->next;
+              count++;
+            }
+        }
+      if (total_distance == 0)
+        {
+          return NULL;
+        }
 
-    selected = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, total_distance);
-    for (bc = lowest_bucket; bc < MAX_BUCKETS; bc++)
-      {
-        pos = k_buckets[bc].head;
-        count = 0;
-        while ((pos != NULL) && (count < bucket_size))
-          {
-            if (GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey))
-              {
-                distance = inverse_distance (target, &pos->id.hashPubKey);
-                if (distance > selected)
-                  return pos;
-                selected -= distance;
-              }
-            else
-              {
-#if DEBUG_DHT
-                GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                            "`%s:%s': peer %s matches bloomfilter.\n",
-                            my_short_id, "DHT", GNUNET_i2s(&pos->id));
-#endif
-              }
-            pos = pos->next;
-            count++;
-          }
-      }
-#if DEBUG_DHT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "`%s:%s': peer %s matches bloomfilter.\n",
-                  my_short_id, "DHT", GNUNET_i2s(&pos->id));
-#endif
-    return NULL;
-  }
+      selected = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, total_distance);
+      for (bc = lowest_bucket; bc < MAX_BUCKETS; bc++)
+        {
+          pos = k_buckets[bc].head;
+          count = 0;
+          while ((pos != NULL) && (count < bucket_size))
+            {
+              if (GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey))
+                {
+                  distance = inverse_distance (target, &pos->id.hashPubKey);
+                  if (distance > selected)
+                    return pos;
+                  selected -= distance;
+                }
+              else
+                {
+  #if DEBUG_DHT
+                  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                              "`%s:%s': peer %s matches bloomfilter.\n",
+                              my_short_id, "DHT", GNUNET_i2s(&pos->id));
+  #endif
+                }
+              pos = pos->next;
+              count++;
+            }
+        }
+  #if DEBUG_DHT
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "`%s:%s': peer %s matches bloomfilter.\n",
+                    my_short_id, "DHT", GNUNET_i2s(&pos->id));
+  #endif
+      return NULL;
+    }
 }
 
 
@@ -2323,6 +2356,8 @@ static int route_message(void *cls,
       return 0;
     }
 
+
+
   increment_stats(STAT_ROUTES);
   message_context->closest = am_closest_peer(message_context->key);
   forward_count = get_forward_count(message_context->hop_count, message_context->replication);
@@ -2387,7 +2422,33 @@ static int route_message(void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "`%s': Message type (%d) not handled\n", "DHT", ntohs(msg->type));
     }
+#if 0
+  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(recent->hashmap, message_context->key))
+    {
+      if (GNUNET_SYSERR = GNUNET_CONTAINER_multihashmap_get_multiple (recent->hashmap, message_context->key, &find_matching_recent, &message_context)) /* Have too recently seen this request! */
+        {
+          forward_count = 0;
+        }
+      else /* Exact match not found, but same key found */
+        {
+          recent_req = GNUNET_CONTAINER_multihashmap_get(recent->hashmap, message_context->key);
+        }
+    }
+  else
+    {
+      recent_req = GNUNET_malloc(sizeof(struct RecentRequest));
+      recent_req->uid = message_context->unique_id;
+      memcmp(&recent_req->key, message_context->key, sizeof(GNUNET_HashCode));
+      recent_req->remove_task = GNUNET_SCHEDULER_add_delayed(sched, DEFAULT_RECENT_REMOVAL, &remove_recent, recent_req);
+      GNUNET_CONTAINER_heap_insert(recent->minHeap, recent_req, GNUNET_TIME_absolute_get());
+      GNUNET_CONTAINER_multihashmap_put(recent->hashmap, message_context->key, recent_req, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    }
 
+  if (GNUNET_CONTAINER_multihashmap_size(recent->hashmap) > DHT_MAX_RECENT)
+    {
+      remove_oldest_recent();
+    }
+#endif
   for (i = 0; i < forward_count; i++)
     {
       selected = select_peer(message_context->key, message_context->bloom);
