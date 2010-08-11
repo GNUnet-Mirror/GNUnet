@@ -426,7 +426,7 @@ test_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (peer->dht_handle != NULL);
 
   peer->get_handle =
-    GNUNET_DHT_get_start (peer->dht_handle, TOTAL_TIMEOUT, 42, &hash,
+    GNUNET_DHT_get_start (peer->dht_handle, TOTAL_TIMEOUT, 49, &hash,
                           &test_get_iterator, NULL, NULL, NULL);
 
   if (peer->get_handle == NULL)
@@ -454,7 +454,7 @@ test_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_assert (peer->dht_handle != NULL);
 
-  GNUNET_DHT_put (peer->dht_handle, &hash, 42, data_size, data,
+  GNUNET_DHT_put (peer->dht_handle, &hash, 49, data_size, data,
                   GNUNET_TIME_relative_to_absolute (TOTAL_TIMEOUT), TOTAL_TIMEOUT,
                   &test_get, &p1);
   GNUNET_free(data);
