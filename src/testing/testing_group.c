@@ -51,9 +51,11 @@
 
 #define MAX_OUTSTANDING_CONNECTIONS 10
 
-#define MAX_CONCURRENT_HOSTKEYS 16
+#define MAX_CONCURRENT_HOSTKEYS 10
 
-#define MAX_CONCURRENT_STARTING 50
+#define MAX_CONCURRENT_STARTING 10
+
+#define MAX_CONCURRENT_SHUTDOWN 10
 
 #define CONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
 
@@ -139,17 +141,28 @@ struct ShutdownContext
   /**
    * Total peers to wait for
    */
-  int total_peers;
+  unsigned int total_peers;
 
   /**
    * Number of peers successfully shut down
    */
-  int peers_down;
+  unsigned int peers_down;
 
   /**
    * Number of peers failed to shut down
    */
-  int peers_failed;
+  unsigned int peers_failed;
+
+  /**
+   * Number of peers we have started shutting
+   * down.  If too many, wait on them.
+   */
+  unsigned int outstanding;
+
+  /**
+   * Timeout for shutdown.
+   */
+  struct GNUNET_TIME_Relative timeout;
 
   /**
    * Callback to call when all peers either
@@ -740,9 +753,15 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   if (GNUNET_CONFIGURATION_get_value_string(cfg, "testing", "control_host", &control_host) == GNUNET_OK)
     {
-      GNUNET_asprintf(&allowed_hosts, "%s; 127.0.0.1;", control_host);
+      if (hostname != NULL)
+        GNUNET_asprintf(&allowed_hosts, "%s; 127.0.0.1; %s;", control_host, hostname);
+      else
+        GNUNET_asprintf(&allowed_hosts, "%s; 127.0.0.1;", control_host);
+
       GNUNET_CONFIGURATION_set_value_string(uc.ret, "core", "ACCEPT_FROM", allowed_hosts);
       GNUNET_CONFIGURATION_set_value_string(uc.ret, "transport", "ACCEPT_FROM", allowed_hosts);
+      GNUNET_CONFIGURATION_set_value_string(uc.ret, "dht", "ACCEPT_FROM", allowed_hosts);
+      GNUNET_CONFIGURATION_set_value_string(uc.ret, "statistics", "ACCEPT_FROM", allowed_hosts);
       GNUNET_free_non_null(control_host);
       GNUNET_free(allowed_hosts);
     }
@@ -753,9 +772,12 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (hostname != NULL)
     {
       GNUNET_asprintf(&allowed_hosts, "%s; 127.0.0.1;", hostname);
+      GNUNET_CONFIGURATION_set_value_string(uc.ret, "transport-tcp", "BINDTO", hostname);
       GNUNET_CONFIGURATION_set_value_string(uc.ret, "arm", "ACCEPT_FROM", allowed_hosts);
       GNUNET_free(allowed_hosts);
     }
+  else
+    GNUNET_CONFIGURATION_set_value_string(uc.ret, "transport-tcp", "BINDTO", "127.0.0.1");
 
   *port = (uint16_t) uc.nport;
   *upnum = uc.upnum;
@@ -3799,7 +3821,9 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
  * @param callback_cls closure for the callback function
  */
 void
-GNUNET_TESTING_daemons_restart (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_NotifyCompletion callback, void *callback_cls)
+GNUNET_TESTING_daemons_restart (struct GNUNET_TESTING_PeerGroup *pg,
+                                GNUNET_TESTING_NotifyCompletion callback,
+                                void *callback_cls)
 {
   struct RestartContext *restart_context;
   unsigned int off;
@@ -3878,10 +3902,11 @@ GNUNET_TESTING_daemons_vary (struct GNUNET_TESTING_PeerGroup *pg,
  * @param emsg NULL on success
  */
 void internal_shutdown_callback (void *cls,
-                        const char *emsg)
+                                 const char *emsg)
 {
   struct ShutdownContext *shutdown_ctx = cls;
 
+  shutdown_ctx->outstanding--;
   if (emsg == NULL)
     {
       shutdown_ctx->peers_down++;
@@ -3902,6 +3927,47 @@ void internal_shutdown_callback (void *cls,
 }
 
 /**
+ * Individual shutdown context for a particular peer.
+ */
+struct PeerShutdownContext
+{
+  /**
+   * Pointer to the high level shutdown context.
+   */
+  struct ShutdownContext *shutdown_ctx;
+
+  /**
+   * The daemon handle for the peer to shut down.
+   */
+  struct GNUNET_TESTING_Daemon *daemon;
+};
+
+/**
+ * Task to rate limit the number of outstanding peer shutdown
+ * requests.  This is necessary for making sure we don't do
+ * too many ssh connections at once, but is generally nicer
+ * to any system as well (graduated task starts, as opposed
+ * to calling gnunet-arm N times all at once).
+ */
+static void
+schedule_shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct PeerShutdownContext *peer_shutdown_ctx = cls;
+  struct ShutdownContext *shutdown_ctx = peer_shutdown_ctx->shutdown_ctx;
+
+  GNUNET_assert(peer_shutdown_ctx != NULL);
+  GNUNET_assert(shutdown_ctx != NULL);
+
+  if (shutdown_ctx->outstanding > MAX_CONCURRENT_SHUTDOWN)
+    GNUNET_SCHEDULER_add_delayed(peer_shutdown_ctx->daemon->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &schedule_shutdown_task, peer_shutdown_ctx);
+  else
+    {
+      shutdown_ctx->outstanding++;
+      GNUNET_TESTING_daemon_stop (peer_shutdown_ctx->daemon, shutdown_ctx->timeout, &internal_shutdown_callback, shutdown_ctx, GNUNET_YES, GNUNET_NO);
+      GNUNET_free(peer_shutdown_ctx);
+    }
+}
+/**
  * Shutdown all peers started in the given group.
  *
  * @param pg handle to the peer group
@@ -3917,28 +3983,25 @@ GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg,
 {
   unsigned int off;
   struct ShutdownContext *shutdown_ctx;
-  GNUNET_TESTING_NotifyCompletion shutdown_cb;
-  void *shutdown_cb_cls;
+  struct PeerShutdownContext *peer_shutdown_ctx;
 
   GNUNET_assert(pg->total > 0);
 
-  shutdown_cb = NULL;
-  shutdown_ctx = NULL;
-
-  if (cb != NULL)
-    {
-      shutdown_ctx = GNUNET_malloc(sizeof(struct ShutdownContext));
-      shutdown_ctx->cb = cb;
-      shutdown_ctx->cb_cls = cb_cls;
-      shutdown_ctx->total_peers = pg->total;
-      shutdown_cb = &internal_shutdown_callback;
-      shutdown_cb_cls = cb_cls;
-    }
+  shutdown_ctx = GNUNET_malloc(sizeof(struct ShutdownContext));
+  shutdown_ctx->cb = cb;
+  shutdown_ctx->cb_cls = cb_cls;
+  shutdown_ctx->total_peers = pg->total;
+  shutdown_ctx->timeout = timeout;
+  /* shtudown_ctx->outstanding = 0; */
 
   for (off = 0; off < pg->total; off++)
     {
       GNUNET_assert(NULL != pg->peers[off].daemon);
-      GNUNET_TESTING_daemon_stop (pg->peers[off].daemon, timeout, shutdown_cb, shutdown_ctx, GNUNET_YES, GNUNET_NO);
+      peer_shutdown_ctx = GNUNET_malloc(sizeof(struct PeerShutdownContext));
+      peer_shutdown_ctx->daemon = pg->peers[off].daemon;
+      peer_shutdown_ctx->shutdown_ctx = shutdown_ctx;
+      GNUNET_SCHEDULER_add_now(pg->peers[off].daemon->sched, &schedule_shutdown_task, peer_shutdown_ctx);
+      //GNUNET_TESTING_daemon_stop (pg->peers[off].daemon, timeout, shutdown_cb, shutdown_ctx, GNUNET_YES, GNUNET_NO);
       if (NULL != pg->peers[off].cfg)
         GNUNET_CONFIGURATION_destroy (pg->peers[off].cfg);
       if (pg->peers[off].allowed_peers != NULL)

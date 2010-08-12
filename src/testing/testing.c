@@ -285,6 +285,9 @@ start_fsm (void *cls,
 #endif
           d->pid = GNUNET_OS_start_process (NULL, d->pipe_stdout, "ssh",
                                             "ssh",
+#if !DEBUG_TESTING
+                                            "-q",
+#endif
                                             dst,
                                             "gnunet-peerinfo",
                                             "-c", d->cfgfile, "-sq", NULL);
@@ -445,6 +448,9 @@ start_fsm (void *cls,
 #endif
           d->pid = GNUNET_OS_start_process (NULL, NULL, "ssh",
                                             "ssh",
+#if !DEBUG_TESTING
+                                            "-q",
+#endif
                                             dst,
                                             "gnunet-arm",
 #if DEBUG_TESTING
@@ -785,7 +791,11 @@ GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
       else
         GNUNET_asprintf (&arg, "%s:%s", hostname, ret->cfgfile);
       ret->pid = GNUNET_OS_start_process (NULL, NULL, "scp",
-                                          "scp", ret->cfgfile, arg, NULL);
+                                          "scp",
+#if !DEBUG_TESTING
+                                          "-q",
+#endif
+                                          ret->cfgfile, arg, NULL);
       GNUNET_free (arg);
       if (-1 == ret->pid)
         {
@@ -887,6 +897,9 @@ GNUNET_TESTING_daemon_restart (struct GNUNET_TESTING_Daemon *d,
         arg = GNUNET_strdup (d->hostname);
 
       d->pid = GNUNET_OS_start_process (NULL, NULL, "ssh", "ssh",
+#if !DEBUG_TESTING
+                                        "-q",
+#endif
                                         arg, "gnunet-arm",
 #if DEBUG_TESTING
                                         "-L", "DEBUG",
@@ -1018,11 +1031,16 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
         arg = GNUNET_strdup (d->hostname);
 
       d->pid = GNUNET_OS_start_process (NULL, NULL, "ssh", "ssh",
+#if !DEBUG_TESTING
+                                        "-q",
+#endif
                                         arg, "gnunet-arm",
 #if DEBUG_TESTING
                                         "-L", "DEBUG",
 #endif
                                         "-c", d->cfgfile, "-e", "-q", del_arg, NULL);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Stopping gnunet-arm with command ssh %s gnunet-arm -c %s -e -q %s\n", arg, "gnunet-arm", d->cfgfile, del_arg);
       /* Use -e to end arm, and -d to remove temp files */
       GNUNET_free (arg);
     }
@@ -1099,7 +1117,11 @@ GNUNET_TESTING_daemon_reconfigure (struct GNUNET_TESTING_Daemon *d,
     GNUNET_asprintf (&arg, "%s@%s:%s", d->username, d->hostname, d->cfgfile);
   else
     GNUNET_asprintf (&arg, "%s:%s", d->hostname, d->cfgfile);
-  d->pid = GNUNET_OS_start_process (NULL, NULL, "scp", "scp", d->cfgfile, arg, NULL);
+  d->pid = GNUNET_OS_start_process (NULL, NULL, "scp", "scp",
+#if !DEBUG_TESTING
+                                    "-q",
+#endif
+                                    d->cfgfile, arg, NULL);
   GNUNET_free (arg);
   if (-1 == d->pid)
     {
