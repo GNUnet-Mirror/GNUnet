@@ -74,8 +74,10 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
                            "blacklist_topology, connect_topology, connect_topology_option,"\
                            "connect_topology_option_modifier, puts, gets, "\
                            "concurrent, settle_time, num_rounds, malicious_getters,"\
-                           "malicious_putters, malicious_droppers, message) "\
-                           "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'"
+                           "malicious_putters, malicious_droppers, malicious_get_frequency,"\
+                           "malicious_put_frequency, stop_closest, stop_found, strict_kademlia, "\
+                           "gets_succeeded, message) "\
+                           "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'"
 
 #define INSERT_STAT_STMT "prepare insert_stat from 'INSERT INTO node_statistics"\
                             "(trialuid, nodeuid, route_requests,"\
@@ -89,7 +91,7 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 #define INSERT_DHTKEY_STMT "prepare insert_dhtkey from 'INSERT ignore INTO dhtkeys (dhtkey, trialuid) "\
                            "VALUES (?, @temp_trial)'"
 
-#define UPDATE_TRIALS_STMT "prepare update_trial from 'UPDATE trials set endtime= ?, total_messages_dropped = ?, total_bytes_dropped = ?, unknownPeers = ? where trialuid = @temp_trial'"
+#define UPDATE_TRIALS_STMT "prepare update_trial from 'UPDATE trials set endtime= ?, gets_succeeded = ? where trialuid = @temp_trial'"
 
 #define UPDATE_CONNECTIONS_STMT "prepare update_conn from 'UPDATE trials set totalConnections = ? where trialuid = @temp_trial'"
 
@@ -261,18 +263,26 @@ add_extended_topology (const struct GNUNET_PeerIdentity *first, const struct GNU
  * @param malicious_getters number of malicious GET peers in the trial
  * @param malicious_putters number of malicious PUT peers in the trial
  * @param malicious_droppers number of malicious DROP peers in the trial
+ * @param malicious_get_frequency how often malicious gets are sent
+ * @param malicious_put_frequency how often malicious puts are sent
+ * @param stop_closest stop forwarding PUTs if closest node found
+ * @param stop_found stop forwarding GETs if data found
+ * @param strict_kademlia test used kademlia routing algorithm
+ * @param gets_succeeded how many gets did the test driver report success on
  * @param message string to put into DB for this trial
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int
-add_trial (unsigned long long *trialuid, int num_nodes, int topology,
-           int blacklist_topology, int connect_topology,
-           int connect_topology_option, float connect_topology_option_modifier,
-           float topology_percentage, float topology_probability,
-           int puts, int gets, int concurrent, int settle_time,
-           int num_rounds, int malicious_getters, int malicious_putters,
-           int malicious_droppers, char *message)
+int add_trial (unsigned long long *trialuid, unsigned int num_nodes, unsigned int topology,
+               unsigned int blacklist_topology, unsigned int connect_topology,
+               unsigned int connect_topology_option, float connect_topology_option_modifier,
+               float topology_percentage, float topology_probability,
+               unsigned int puts, unsigned int gets, unsigned int concurrent, unsigned int settle_time,
+               unsigned int num_rounds, unsigned int malicious_getters, unsigned int malicious_putters,
+               unsigned int malicious_droppers, unsigned int malicious_get_frequency,
+               unsigned int malicious_put_frequency, unsigned int stop_closest, unsigned int stop_found,
+               unsigned int strict_kademlia, unsigned int gets_succeeded,
+               char *message)
 {
   int ret;
   if (trialuid != NULL)
@@ -280,18 +290,21 @@ add_trial (unsigned long long *trialuid, int num_nodes, int topology,
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "set @date = \"%s\", @num = %d, @topology = %d, @bl = %d, "
-                   "@connect = %d, @c_t_o = %d, @c_t_o_m = %f, @t_p = %f, "
-                   "@t_pr = %f, @puts = %d, @gets = %d, "
-                   "@concurrent = %d, @settle = %d, @rounds = %d, "
-                   "@m_gets = %d, @m_puts = %d, @m_drops = %d, "
-                   "@message = \"%s\";\n", get_sql_time(), num_nodes, topology,
+  ret = fprintf(outfile, "set @date = \"%s\", @num = %u, @topology = %u, @bl = %u, "
+                   "@connect = %u, @c_t_o = %u, @c_t_o_m = %f, @t_p = %f, "
+                   "@t_pr = %f, @puts = %u, @gets = %u, "
+                   "@concurrent = %u, @settle = %u, @rounds = %u, "
+                   "@m_gets = %u, @m_puts = %u, @m_drops = %u, "
+                   "@m_g_f = %u, @m_p_f = %u, @s_c = %u, @s_f = %u,"
+                   "@s_k = %u, @g_s = %u, @message = \"%s\";\n",
+                   get_sql_time(), num_nodes, topology,
                    blacklist_topology, connect_topology,
                    connect_topology_option, connect_topology_option_modifier,
                    topology_percentage, topology_probability,
                    puts, gets, concurrent, settle_time,
                    num_rounds, malicious_getters, malicious_putters,
-                   malicious_droppers, message);
+                   malicious_droppers, malicious_get_frequency, malicious_put_frequency,
+                   stop_closest, stop_found, strict_kademlia, gets_succeeded, message);
 
   if (ret < 0)
     return GNUNET_SYSERR;
@@ -301,7 +314,8 @@ add_trial (unsigned long long *trialuid, int num_nodes, int topology,
                          "@c_t_o_m, @puts, @gets,"
                          "@concurrent, @settle, @rounds,"
                          "@m_gets, @m_puts, @m_drops,"
-                         "@message;\n");
+                         "@m_g_f, @m_p_f, @s_c, @s_f,"
+                         "@s_k, @g_s, @message;\n");
 
   ret = fprintf(outfile, "execute select_trial;\n");
 
@@ -446,17 +460,13 @@ add_node (unsigned long long *nodeuid, struct GNUNET_PeerIdentity * node)
  * Update dhttests.trials table with current server time as end time
  *
  * @param trialuid trial to update
- * @param totalMessagesDropped stats value for messages dropped
- * @param totalBytesDropped stats value for total bytes dropped
- * @param unknownPeers stats value for unknown peers
+ * @param gets_succeeded how many gets did the testcase report as successful
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
  */
 int
 update_trials (unsigned long long trialuid,
-               unsigned long long totalMessagesDropped,
-               unsigned long long totalBytesDropped,
-               unsigned long long unknownPeers)
+               unsigned int gets_succeeded)
 {
   int ret;
 #if DEBUG_DHTLOG
@@ -470,12 +480,12 @@ update_trials (unsigned long long trialuid,
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "set @date = \"%s\", @m_dropped = %llu, @b_dropped = %llu, @unknown = %llu;\n", get_sql_time(), totalMessagesDropped, totalBytesDropped, unknownPeers);
+  ret = fprintf(outfile, "set @date = \"%s\", @g_s = %u;\n", get_sql_time(), gets_succeeded);
 
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "execute update_trial using @date, @m_dropped, @b_dropped, @unknown;\n");
+  ret = fprintf(outfile, "execute update_trial using @date, @g_s;\n");
 
   if (ret >= 0)
     return GNUNET_OK;

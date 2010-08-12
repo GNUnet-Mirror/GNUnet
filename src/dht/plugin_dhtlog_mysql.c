@@ -109,8 +109,10 @@ static struct StatementHandle *insert_node;
                             "blacklist_topology, connect_topology, connect_topology_option,"\
                             "connect_topology_option_modifier, puts, gets, "\
                             "concurrent, settle_time, num_rounds, malicious_getters,"\
-                            "malicious_putters, malicious_droppers, message) "\
-                            "VALUES (NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                            "malicious_putters, malicious_droppers, malicious_get_frequency,"\
+                            "malicious_put_frequency, stop_closest, stop_found, strict_kademlia, "\
+                            "gets_succeeded, message) "\
+                            "VALUES (NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
 static struct StatementHandle *insert_trial;
 
@@ -129,7 +131,7 @@ static struct StatementHandle *insert_stat;
                           "VALUES (?, ?, ?)"
 static struct StatementHandle *insert_dhtkey;
 
-#define UPDATE_TRIALS_STMT "UPDATE trials set endtime=NOW(), total_messages_dropped = ?, total_bytes_dropped = ?, unknownPeers = ? where trialuid = ?"
+#define UPDATE_TRIALS_STMT "UPDATE trials set endtime=NOW(), gets_succeeded = ? where trialuid = ?"
 static struct StatementHandle *update_trial;
 
 #define UPDATE_CONNECTIONS_STMT "UPDATE trials set totalConnections = ? where trialuid = ?"
@@ -822,18 +824,26 @@ prepared_statement_run (struct StatementHandle *s,
  * @param malicious_getters number of malicious GET peers in the trial
  * @param malicious_putters number of malicious PUT peers in the trial
  * @param malicious_droppers number of malicious DROP peers in the trial
+ * @param malicious_get_frequency how often malicious gets are sent
+ * @param malicious_put_frequency how often malicious puts are sent
+ * @param stop_closest stop forwarding PUTs if closest node found
+ * @param stop_found stop forwarding GETs if data found
+ * @param strict_kademlia test used kademlia routing algorithm
+ * @param gets_succeeded how many gets did the test driver report success on
  * @param message string to put into DB for this trial
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int
-add_trial (unsigned long long *trialuid, int num_nodes, int topology,
-           int blacklist_topology, int connect_topology,
-           int connect_topology_option, float connect_topology_option_modifier,
-           float topology_percentage, float topology_probability,
-           int puts, int gets, int concurrent, int settle_time,
-           int num_rounds, int malicious_getters, int malicious_putters,
-           int malicious_droppers, char *message)
+int add_trial (unsigned long long *trialuid, unsigned int num_nodes, unsigned int topology,
+               unsigned int blacklist_topology, unsigned int connect_topology,
+               unsigned int connect_topology_option, float connect_topology_option_modifier,
+               float topology_percentage, float topology_probability,
+               unsigned int puts, unsigned int gets, unsigned int concurrent, unsigned int settle_time,
+               unsigned int num_rounds, unsigned int malicious_getters, unsigned int malicious_putters,
+               unsigned int malicious_droppers, unsigned int malicious_get_frequency,
+               unsigned int malicious_put_frequency, unsigned int stop_closest, unsigned int stop_found,
+               unsigned int strict_kademlia, unsigned int gets_succeeded,
+               char *message)
 {
   MYSQL_STMT *stmt;
   int ret;
@@ -842,57 +852,31 @@ add_trial (unsigned long long *trialuid, int num_nodes, int topology,
 
   stmt = mysql_stmt_init(conn);
   if (GNUNET_OK !=
-      (ret = prepared_statement_run (insert_trial,
-                                      trialuid,
-                                      MYSQL_TYPE_LONG,
-                                      &num_nodes,
-                                      GNUNET_YES,
-                                      MYSQL_TYPE_LONG,
-                                      &topology,
-                                      GNUNET_YES,
-                                      MYSQL_TYPE_FLOAT,
-                                      &topology_percentage,
-                                      MYSQL_TYPE_FLOAT,
-                                      &topology_probability,
-                                      MYSQL_TYPE_LONG,
-                                      &blacklist_topology,
-                                      GNUNET_YES,
-                                      MYSQL_TYPE_LONG,
-                                      &connect_topology,
-                                      GNUNET_YES,
-                                      MYSQL_TYPE_LONG,
-                                      &connect_topology_option,
-                                      GNUNET_YES,
-                                      MYSQL_TYPE_FLOAT,
-                                      &connect_topology_option_modifier,
-                                      MYSQL_TYPE_LONG,
-                                      &puts,
-                                      GNUNET_YES,
-                                      MYSQL_TYPE_LONG,
-                                      &gets,
-                                      GNUNET_YES,
-                                      MYSQL_TYPE_LONG,
-                                      &concurrent,
-                                      GNUNET_YES,
-                                      MYSQL_TYPE_LONG,
-                                      &settle_time,
-                                      GNUNET_YES,
-                                      MYSQL_TYPE_LONG,
-                                      &num_rounds,
-                                      GNUNET_YES,
-                                      MYSQL_TYPE_LONG,
-                                      &malicious_getters,
-                                      GNUNET_YES,
-                                      MYSQL_TYPE_LONG,
-                                      &malicious_putters,
-                                      GNUNET_YES,
-                                      MYSQL_TYPE_LONG,
-                                      &malicious_droppers,
-                                      GNUNET_YES,
-                                      MYSQL_TYPE_BLOB,
-                                      message,
-                                      max_varchar_len +
-                                      max_varchar_len, &m_len,
+      (ret = prepared_statement_run (insert_trial, trialuid,
+                                     MYSQL_TYPE_LONG, &num_nodes, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &topology, GNUNET_YES,
+                                     MYSQL_TYPE_FLOAT, &topology_percentage,
+                                     MYSQL_TYPE_FLOAT, &topology_probability,
+                                     MYSQL_TYPE_LONG, &blacklist_topology, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &connect_topology, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &connect_topology_option, GNUNET_YES,
+                                     MYSQL_TYPE_FLOAT, &connect_topology_option_modifier,
+                                     MYSQL_TYPE_LONG, &puts, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &gets, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &concurrent, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &settle_time, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &num_rounds, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &malicious_getters, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &malicious_putters, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &malicious_droppers, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &malicious_get_frequency, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &malicious_put_frequency, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &stop_closest, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &stop_found, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &strict_kademlia, GNUNET_YES,
+                                     MYSQL_TYPE_LONG, &gets_succeeded, GNUNET_YES,
+                                     MYSQL_TYPE_BLOB, message, max_varchar_len +
+                                     max_varchar_len, &m_len,
                                       -1)))
     {
       if (ret == GNUNET_SYSERR)
@@ -1095,34 +1079,22 @@ add_node (unsigned long long *nodeuid, struct GNUNET_PeerIdentity * node)
  * Update dhttests.trials table with current server time as end time
  *
  * @param trialuid trial to update
- * @param totalMessagesDropped stats value for messages dropped
- * @param totalBytesDropped stats value for total bytes dropped
- * @param unknownPeers stats value for unknown peers
+ * @param gets_succeeded how many gets did the testcase report as successful
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
  */
 int
 update_trials (unsigned long long trialuid,
-               unsigned long long totalMessagesDropped,
-               unsigned long long totalBytesDropped,
-               unsigned long long unknownPeers)
+               unsigned int gets_succeeded)
 {
   int ret;
 
   if (GNUNET_OK !=
       (ret = prepared_statement_run (update_trial,
                                     NULL,
-                                    MYSQL_TYPE_LONGLONG,
-                                    &totalMessagesDropped,
-                                    GNUNET_YES,
-                                    MYSQL_TYPE_LONGLONG,
-                                    &totalBytesDropped,
-                                    GNUNET_YES,
-                                    MYSQL_TYPE_LONGLONG,
-                                    &unknownPeers,
-                                    GNUNET_YES,
-                                    MYSQL_TYPE_LONGLONG,
-                                    &trialuid, GNUNET_YES, -1)))
+                                    MYSQL_TYPE_LONG, &gets_succeeded, GNUNET_YES,
+                                    MYSQL_TYPE_LONGLONG, &trialuid, GNUNET_YES,
+                                    -1)))
     {
       if (ret == GNUNET_SYSERR)
         {

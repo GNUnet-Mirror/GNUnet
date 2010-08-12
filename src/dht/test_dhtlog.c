@@ -66,8 +66,8 @@ test (struct GNUNET_DHTLOG_Handle * api)
   ret =
     api->insert_trial (&trialuid, i, 5, 4, 3, 2,
                        .75, .25, .5, 42, 14,
-                       5, 1, 12, 0, 0, 0,
-                       "TEST INSERT TRIAL");
+                       5, 1, 12, 0, 0, 0, 1, 0, 1,
+                       0, 1, 0, "TEST INSERT TRIAL");
   CHECK(ret);
   ret = api->insert_topology(500);
   CHECK(ret);
@@ -101,7 +101,7 @@ test (struct GNUNET_DHTLOG_Handle * api)
   ret = api->insert_stat(&p1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17);
   ret = api->insert_stat(&p2, 12, 23, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27);
   CHECK(ret);
-  ret = api->update_trial (trialuid, 0, 0, 0);
+  ret = api->update_trial (trialuid, 787);
   CHECK(ret);
   return 0;
 }

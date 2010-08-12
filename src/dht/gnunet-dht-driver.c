@@ -23,6 +23,8 @@
  *        then issuing GETS and PUTS on the DHT.  Coarse results
  *        are reported, fine grained results (if requested) are
  *        logged to a (mysql) database, or to file.
+ *
+ * FIXME: Do churn, enable malicious peers!
  */
 #include "platform.h"
 #include "gnunet_testing_lib.h"
@@ -60,7 +62,40 @@
 
 #define DEFAULT_TOPOLOGY_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 8)
 
+/*
+ * Default frequency for sending malicious get messages
+ */
+#define DEFAULT_MALICIOUS_GET_FREQUENCY 1000 /* Number of milliseconds */
+
+/*
+ * Default frequency for sending malicious put messages
+ */
+#define DEFAULT_MALICIOUS_PUT_FREQUENCY 1000 /* Default is in milliseconds */
+
 /* Structs */
+
+struct MaliciousContext
+{
+  /**
+   * Handle to DHT service (via the API)
+   */
+  struct GNUNET_DHT_Handle *dht_handle;
+
+  /**
+   *  Handle to the peer daemon
+   */
+  struct GNUNET_TESTING_Daemon *daemon;
+
+  /**
+   * Task for disconnecting DHT handles
+   */
+  GNUNET_SCHEDULER_TaskIdentifier disconnect_task;
+
+  /**
+   * What type of malicious to set this peer to.
+   */
+  int malicious_type;
+};
 
 struct TestPutContext
 {
@@ -211,6 +246,10 @@ static unsigned long long malicious_putters;
 
 static unsigned long long malicious_droppers;
 
+static unsigned long long malicious_get_frequency;
+
+static unsigned long long malicious_put_frequency;
+
 static unsigned long long settle_time;
 
 static struct GNUNET_DHTLOG_Handle *dhtlog_handle;
@@ -221,6 +260,11 @@ static unsigned long long trialuid;
  * Hash map of stats contexts.
  */
 struct GNUNET_CONTAINER_MultiHashMap *stats_map;
+
+/**
+ * LL of malicious settings.
+ */
+struct MaliciousContext *all_malicious;
 
 /**
  * List of GETS to perform
@@ -273,11 +317,6 @@ static unsigned long long num_peers;
 static unsigned long long num_puts;
 
 /**
- * Total number of items to attempt to get.
- */
-static unsigned long long num_gets;
-
-/**
  * How many puts do we currently have in flight?
  */
 static unsigned long long outstanding_puts;
@@ -286,6 +325,11 @@ static unsigned long long outstanding_puts;
  * How many puts are done?
  */
 static unsigned long long puts_completed;
+
+/**
+ * Total number of items to attempt to get.
+ */
+static unsigned long long num_gets;
 
 /**
  * How many puts do we currently have in flight?
@@ -301,6 +345,17 @@ static unsigned long long gets_completed;
  * How many gets failed?
  */
 static unsigned long long gets_failed;
+
+/**
+ * How many malicious control messages do
+ * we currently have in flight?
+ */
+static unsigned long long outstanding_malicious;
+
+/**
+ * How many set malicious peers are done?
+ */
+static unsigned long long malicious_completed;
 
 /**
  * Global used to count how many connections we have currently
@@ -481,7 +536,7 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   if (dhtlog_handle != NULL)
     {
       fprintf(stderr, "Update trial endtime\n");
-      dhtlog_handle->update_trial (trialuid, 0, 0, 0);
+      dhtlog_handle->update_trial (trialuid, gets_completed);
       GNUNET_DHTLOG_disconnect(dhtlog_handle);
       dhtlog_handle = NULL;
     }
@@ -694,7 +749,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   if (dhtlog_handle != NULL)
     {
       fprintf(stderr, "Update trial endtime\n");
-      dhtlog_handle->update_trial (trialuid, 0, 0, 0);
+      dhtlog_handle->update_trial (trialuid, gets_completed);
       GNUNET_DHTLOG_disconnect(dhtlog_handle);
       dhtlog_handle = NULL;
     }
@@ -1025,6 +1080,156 @@ continue_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
 }
 
 /**
+ * Task to release DHT handles
+ */
+static void
+malicious_disconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct MaliciousContext *ctx = cls;
+  outstanding_malicious--;
+  malicious_completed++;
+  ctx->disconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_DHT_disconnect(ctx->dht_handle);
+  ctx->dht_handle = NULL;
+  GNUNET_free(ctx);
+
+  if (malicious_completed == malicious_getters + malicious_putters + malicious_droppers)
+    {
+      GNUNET_SCHEDULER_cancel(sched, die_task);
+      fprintf(stderr, "Finished setting all malicious peers up, calling continuation!\n");
+      if (dhtlog_handle != NULL)
+        GNUNET_SCHEDULER_add_now (sched,
+                                  &continue_puts_and_gets, NULL);
+      else
+        GNUNET_SCHEDULER_add_delayed (sched,
+                                    GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time),
+                                    &continue_puts_and_gets, NULL);
+    }
+
+}
+
+/**
+ * Task to release DHT handles
+ */
+static void
+malicious_done_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct MaliciousContext *ctx = cls;
+  GNUNET_SCHEDULER_cancel(sched, ctx->disconnect_task);
+  GNUNET_SCHEDULER_add_now(sched, &malicious_disconnect_task, ctx);
+}
+
+/**
+ * Set up some data, and call API PUT function
+ */
+static void
+set_malicious (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct MaliciousContext *ctx = cls;
+  int ret;
+
+  if (outstanding_malicious > DEFAULT_MAX_OUTSTANDING_GETS)
+    {
+      GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &set_malicious, ctx);
+      return;
+    }
+
+  if (ctx->dht_handle == NULL)
+    {
+      ctx->dht_handle = GNUNET_DHT_connect(sched, ctx->daemon->cfg, 1);
+      outstanding_malicious++;
+    }
+
+  GNUNET_assert(ctx->dht_handle != NULL);
+
+
+#if VERBOSE > 1
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting peer %s malicious type %d\n",
+                ctx->daemon->shortname, ctx->malicious_type);
+#endif
+
+  ret = GNUNET_YES;
+  switch (ctx->malicious_type)
+  {
+  case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_GET:
+    ret = GNUNET_DHT_set_malicious_getter(ctx->dht_handle, malicious_get_frequency, &malicious_done_task, ctx);
+    break;
+  case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_PUT:
+    ret = GNUNET_DHT_set_malicious_putter(ctx->dht_handle, malicious_put_frequency, &malicious_done_task, ctx);
+    break;
+  case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_DROP:
+    ret = GNUNET_DHT_set_malicious_dropper(ctx->dht_handle, &malicious_done_task, ctx);
+    break;
+  default:
+    break;
+  }
+
+  if (ret == GNUNET_NO)
+    {
+      GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &set_malicious, ctx);
+    }
+  else
+    ctx->disconnect_task = GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_get_forever(), &malicious_disconnect_task, ctx);
+}
+
+/**
+ * Select randomly from set of known peers,
+ * set the desired number of peers to the
+ * proper malicious types.
+ */
+static void
+setup_malicious_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct MaliciousContext *ctx;
+  int i;
+  uint32_t temp_daemon;
+
+  for (i = 0; i < malicious_getters; i++)
+    {
+      ctx = GNUNET_malloc(sizeof(struct MaliciousContext));
+      temp_daemon = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
+      ctx->daemon = GNUNET_TESTING_daemon_get(pg, temp_daemon);
+      ctx->malicious_type = GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_GET;
+      GNUNET_SCHEDULER_add_now (sched, &set_malicious, ctx);
+
+    }
+
+  for (i = 0; i < malicious_putters; i++)
+    {
+      ctx = GNUNET_malloc(sizeof(struct MaliciousContext));
+      temp_daemon = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
+      ctx->daemon = GNUNET_TESTING_daemon_get(pg, temp_daemon);
+      ctx->malicious_type = GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_PUT;
+      GNUNET_SCHEDULER_add_now (sched, &set_malicious, ctx);
+
+    }
+
+  for (i = 0; i < malicious_droppers; i++)
+    {
+      ctx = GNUNET_malloc(sizeof(struct MaliciousContext));
+      temp_daemon = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
+      ctx->daemon = GNUNET_TESTING_daemon_get(pg, temp_daemon);
+      ctx->malicious_type = GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_DROP;
+      GNUNET_SCHEDULER_add_now (sched, &set_malicious, ctx);
+    }
+
+  if (malicious_getters + malicious_putters + malicious_droppers > 0)
+    die_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, (malicious_getters + malicious_putters + malicious_droppers) * 2),
+                                             &end_badly, "from set malicious");
+  else
+    {
+      if (dhtlog_handle != NULL)
+        GNUNET_SCHEDULER_add_now (sched,
+                                  &continue_puts_and_gets, NULL);
+      else
+        GNUNET_SCHEDULER_add_delayed (sched,
+                                    GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time),
+                                    &continue_puts_and_gets, NULL);
+    }
+
+}
+
+/**
  * This function is called whenever a connection attempt is finished between two of
  * the started peers (started with GNUNET_TESTING_daemons_start).  The total
  * number of times this function is called should equal the number returned
@@ -1084,11 +1289,17 @@ topology_callback (void *cls,
       if ((dhtlog_handle != NULL) && (settle_time > 0))
         {
           topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
-          topo_ctx->cont = &continue_puts_and_gets;
+          topo_ctx->cont = &setup_malicious_peers;
+          //topo_ctx->cont = &continue_puts_and_gets;
           GNUNET_SCHEDULER_add_now(sched, &capture_current_topology, topo_ctx);
         }
       else
-        GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time), &continue_puts_and_gets, NULL);
+        {
+          GNUNET_SCHEDULER_add_now(sched, &setup_malicious_peers, NULL);
+          /*GNUNET_SCHEDULER_add_delayed (sched,
+                                        GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time),
+                                        &continue_puts_and_gets, NULL);*/
+        }
     }
   else if (total_connections + failed_connections == expected_connections)
     {
@@ -1244,6 +1455,9 @@ run (void *cls,
   char *hostfile;
   float topology_probability;
   unsigned long long temp_config_number;
+  int stop_closest;
+  int stop_found;
+  int strict_kademlia;
   char *buf;
   char *data;
   int count;
@@ -1272,6 +1486,18 @@ run (void *cls,
           return;
         }
     }
+
+  stop_closest = GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht", "stop_on_closest");
+  if (stop_closest == GNUNET_SYSERR)
+    stop_closest = GNUNET_NO;
+
+  stop_found = GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht", "stop_found");
+  if (stop_found == GNUNET_SYSERR)
+    stop_found = GNUNET_NO;
+
+  strict_kademlia = GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht", "strict_kademlia");
+  if (strict_kademlia == GNUNET_SYSERR)
+    strict_kademlia = GNUNET_NO;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "dht_testing", "comment",
@@ -1421,6 +1647,18 @@ run (void *cls,
   /**
    * Get testing related options.
    */
+
+  if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_number (cfg, "DHT_TESTING",
+                                                          "MALICIOUS_GET_FREQUENCY",
+                                                          &malicious_get_frequency))
+    malicious_get_frequency = DEFAULT_MALICIOUS_GET_FREQUENCY;
+
+
+  if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_number (cfg, "DHT_TESTING",
+                                                          "MALICIOUS_PUT_FREQUENCY",
+                                                          &malicious_put_frequency))
+    malicious_put_frequency = DEFAULT_MALICIOUS_PUT_FREQUENCY;
+
   topology_str = NULL;
   if ((GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_string(cfg, "testing", "topology",
@@ -1530,7 +1768,9 @@ run (void *cls,
                                     topology_probability, num_puts, num_gets,
                                     max_outstanding_gets, settle_time, 1,
                                     malicious_getters, malicious_putters,
-                                    malicious_droppers, trialmessage);
+                                    malicious_droppers, malicious_get_frequency,
+                                    malicious_put_frequency, stop_closest, stop_found,
+                                    strict_kademlia, 0, trialmessage);
     }
   else if (dhtlog_handle != NULL)
     {
@@ -1541,7 +1781,9 @@ run (void *cls,
                                     topology_probability, num_puts, num_gets,
                                     max_outstanding_gets, settle_time, 1,
                                     malicious_getters, malicious_putters,
-                                    malicious_droppers, "");
+                                    malicious_droppers, malicious_get_frequency,
+                                    malicious_put_frequency, stop_closest, stop_found,
+                                    strict_kademlia, 0, "");
     }
 
   GNUNET_free_non_null(trialmessage);

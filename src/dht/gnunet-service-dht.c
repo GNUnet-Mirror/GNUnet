@@ -87,14 +87,15 @@
  */
 #define DEFAULT_MALICIOUS_GET_FREQUENCY 1000 /* Number of milliseconds */
 
-/**
- * Type for a malicious request, so we can ignore it during testing
- */
-#define DHT_MALICIOUS_MESSAGE_TYPE 42
 /*
  * Default frequency for sending malicious put messages
  */
 #define DEFAULT_MALICIOUS_PUT_FREQUENCY 1000 /* Default is in milliseconds */
+
+/**
+ * Type for a malicious request, so we can ignore it during testing
+ */
+#define DHT_MALICIOUS_MESSAGE_TYPE 42
 
 #define DHT_DEFAULT_PING_DELAY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 1)
 
@@ -2537,6 +2538,10 @@ malicious_put_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   static GNUNET_HashCode key;
   unsigned int mcsize;
   uint32_t random_key;
+
+  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+    return;
+
   put_message.header.size = htons(sizeof(struct GNUNET_DHT_GetMessage));
   put_message.header.type = htons(GNUNET_MESSAGE_TYPE_DHT_PUT);
   put_message.type = htons(DHT_MALICIOUS_MESSAGE_TYPE);
@@ -2552,6 +2557,9 @@ malicious_put_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   message_context.msg_options = ntohl (0);
   message_context.network_size = estimate_diameter();
   message_context.peer = &my_identity;
+
+  if (dhtlog_handle != NULL)
+    dhtlog_handle->insert_dhtkey(NULL, &key);
   increment_stats(STAT_PUT_START);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s:%s Sending malicious PUT message with hash %s", my_short_id, "DHT", GNUNET_h2s(&key));
   route_message(NULL, &put_message.header, &message_context);
@@ -2573,6 +2581,10 @@ malicious_get_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   static GNUNET_HashCode key;
   unsigned int mcsize;
   uint32_t random_key;
+
+  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+    return;
+
   get_message.header.size = htons(sizeof(struct GNUNET_DHT_GetMessage));
   get_message.header.type = htons(GNUNET_MESSAGE_TYPE_DHT_GET);
   get_message.type = htons(DHT_MALICIOUS_MESSAGE_TYPE);
@@ -2587,6 +2599,9 @@ malicious_get_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   message_context.msg_options = ntohl (0);
   message_context.network_size = estimate_diameter();
   message_context.peer = &my_identity;
+
+  if (dhtlog_handle != NULL)
+    dhtlog_handle->insert_dhtkey(NULL, &key);
   increment_stats(STAT_GET_START);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s:%s Sending malicious GET message with hash %s", my_short_id, "DHT", GNUNET_h2s(&key));
   route_message(NULL, &get_message.header, &message_context);
@@ -2717,6 +2732,8 @@ handle_dht_control_message (void *cls, struct GNUNET_SERVER_Client *client,
   case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_GET:
     if (ntohs(dht_control_msg->variable) > 0)
       malicious_get_frequency = ntohs(dht_control_msg->variable);
+    if (malicious_get_frequency == 0)
+      malicious_get_frequency = DEFAULT_MALICIOUS_GET_FREQUENCY;
     if (malicious_getter != GNUNET_YES)
       GNUNET_SCHEDULER_add_now(sched, &malicious_get_task, NULL);
     malicious_getter = GNUNET_YES;
@@ -2725,6 +2742,8 @@ handle_dht_control_message (void *cls, struct GNUNET_SERVER_Client *client,
   case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_PUT:
     if (ntohs(dht_control_msg->variable) > 0)
       malicious_put_frequency = ntohs(dht_control_msg->variable);
+    if (malicious_put_frequency == 0)
+      malicious_put_frequency = DEFAULT_MALICIOUS_PUT_FREQUENCY;
     if (malicious_putter != GNUNET_YES)
       GNUNET_SCHEDULER_add_now(sched, &malicious_put_task, NULL);
     malicious_putter = GNUNET_YES;

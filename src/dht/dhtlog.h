@@ -111,17 +111,25 @@ struct GNUNET_DHTLOG_Handle
    * @param malicious_getters number of malicious GET peers in the trial
    * @param malicious_putters number of malicious PUT peers in the trial
    * @param malicious_droppers number of malicious DROP peers in the trial
+   * @param malicious_get_frequency how often malicious gets are sent
+   * @param malicious_put_frequency how often malicious puts are sent
+   * @param stop_closest stop forwarding PUTs if closest node found
+   * @param stop_found stop forwarding GETs if data found
+   * @param strict_kademlia test used kademlia routing algorithm
+   * @param gets_succeeded how many gets did the test driver report success on
    * @param message string to put into DB for this trial
    *
    * @return GNUNET_OK on success, GNUNET_SYSERR on failure
    */
-  int (*insert_trial) (unsigned long long *trialuid, int num_nodes, int topology,
-                       int blacklist_topology, int connect_topology,
-                       int connect_topology_option, float connect_topology_option_modifier,
+  int (*insert_trial) (unsigned long long *trialuid, unsigned int num_nodes, unsigned int topology,
+                       unsigned int blacklist_topology, unsigned int connect_topology,
+                       unsigned int connect_topology_option, float connect_topology_option_modifier,
                        float topology_percentage, float topology_probability,
-                       int puts, int gets, int concurrent, int settle_time,
-                       int num_rounds, int malicious_getters, int malicious_putters,
-                       int malicious_droppers,
+                       unsigned int puts, unsigned int gets, unsigned int concurrent, unsigned int settle_time,
+                       unsigned int num_rounds, unsigned int malicious_getters, unsigned int malicious_putters,
+                       unsigned int malicious_droppers, unsigned int malicious_get_frequency,
+                       unsigned int malicious_put_frequency, unsigned int stop_closest, unsigned int stop_found,
+                       unsigned int strict_kademlia, unsigned int gets_succeeded,
                        char *message);
 
   /*
@@ -162,16 +170,12 @@ struct GNUNET_DHTLOG_Handle
    * Update dhttests.trials table with current server time as end time
    *
    * @param trialuid trial to update
-   * @param totalMessagesDropped stats value for messages dropped
-   * @param totalBytesDropped stats value for total bytes dropped
-   * @param unknownPeers stats value for unknown peers
+   * @param gets_succeeded how many gets did the trial report successful
    *
    * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
    */
   int (*update_trial) (unsigned long long trialuid,
-                       unsigned long long totalMessagesDropped,
-                       unsigned long long totalBytesDropped,
-                       unsigned long long unknownPeers);
+                       unsigned int gets_succeeded);
 
   /*
    * Records the current topology (number of connections, time, trial)
