@@ -572,46 +572,6 @@ run_statement (struct Plugin *plugin,
 }
 
 
-#if 0
-/**
- * Run the given MySQL SELECT statement.  The statement
- * must have only a single result (one column, one row).
- *
- * @return result on success, NULL on error
- */
-static char *
-run_statement_select (struct Plugin *plugin,
-		      const char *statement)
-{
-  MYSQL_RES *sql_res;
-  MYSQL_ROW sql_row;
-  char *ret;
-  
-  if ((NULL == plugin->dbf) && (GNUNET_OK != iopen (plugin)))
-    return NULL;
-  mysql_query (plugin->dbf, statement);
-  if ((mysql_error (plugin->dbf)[0]) ||
-      (!(sql_res = mysql_use_result (plugin->dbf))) ||
-      (!(sql_row = mysql_fetch_row (sql_res))))
-    {
-      LOG_MYSQL (GNUNET_ERROR_TYPE_ERROR,
-                 "mysql_query", plugin);
-      return NULL;
-    }
-  if ((mysql_num_fields (sql_res) != 1) || (sql_row[0] == NULL))
-    {
-      GNUNET_break (mysql_num_fields (sql_res) == 1);
-      if (sql_res != NULL)
-        mysql_free_result (sql_res);
-      return NULL;
-    }
-  ret = GNUNET_strdup (sql_row[0]);
-  mysql_free_result (sql_res);
-  return ret;
-}
-#endif
-
-
 /**
  * Create a prepared statement.
  *

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2006, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2006, 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -35,6 +35,12 @@
 static int ok;
 
 static unsigned int found;
+
+/**
+ * Name of plugin under test.
+ */
+static const char *plugin_name;
+
 
 static int
 checkIt (void *cls,
@@ -119,12 +125,15 @@ FAILURE:
 }
 
 
-static int
-check ()
+int
+main (int argc, char *argv[])
 {
-  char *const argv[] = { "perf-datacache-api",
+  const char *pos;
+  char cfg_name[128];
+  char *const xargv[] = { 
+    "perf-datacache",
     "-c",
-    "perf_datacache_data.conf",
+    cfg_name,
 #if VERBOSE
     "-L", "DEBUG",
 #endif
@@ -133,31 +142,28 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "perf-datacache-api", "nohelp",
-                      options, &run, NULL);
-  if (ok != 0)
-    fprintf (stderr, "Missed some perfcases: %d\n", ok);
-  return ok;
-}
-
-
-int
-main (int argc, char *argv[])
-{
-  int ret;
   
-  GNUNET_DISK_directory_remove ("/tmp/perf-gnunetd-datacache");
-  GNUNET_log_setup ("perf-datacache-api",
+  GNUNET_log_setup ("perf-datacache",
 #if VERBOSE
                     "DEBUG",
 #else
                     "WARNING",
 #endif
                     NULL);
-  ret = check ();
-
-  return ret;
+  /* determine name of plugin to use */
+  plugin_name = argv[0];
+  while (NULL != (pos = strstr(plugin_name, "_")))
+    plugin_name = pos+1;
+  GNUNET_snprintf (cfg_name,
+		   sizeof (cfg_name),
+		   "perf_datacache_data_%s.conf",
+		   plugin_name);
+  GNUNET_PROGRAM_run ((sizeof (xargv) / sizeof (char *)) - 1,
+                      xargv, "perf-datacache", "nohelp",
+                      options, &run, NULL);
+  if (ok != 0)
+    fprintf (stderr, "Missed some perfcases: %d\n", ok);
+  return ok;
 }
 
 /* end of perf_datacache.c */
