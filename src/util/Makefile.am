@@ -72,6 +72,7 @@ libgnunetutil_la_SOURCES = \
 libgnunetutil_la_LIBADD = \
   $(GCLIBADD) $(WINLIB) \
   $(LIBGCRYPT_LIBS) \
+  $(LTLIBICONV) \
   -lgmp -lltdl -lz $(XLIB)
 
 libgnunetutil_la_LDFLAGS = \
