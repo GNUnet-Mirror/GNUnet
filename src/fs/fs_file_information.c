@@ -181,6 +181,8 @@ GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
 						       anonymity,
 						       priority,
 						       expirationTime);
+  if (ret == NULL)
+    return NULL;
   ret->h = h;
   ret->filename = GNUNET_strdup (filename);
   fn = filename;
