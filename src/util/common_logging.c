@@ -473,6 +473,7 @@ const char *
 GNUNET_h2s (const GNUNET_HashCode * hc)
 {
   static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
+
   GNUNET_CRYPTO_hash_to_enc (hc, &ret);
   ret.encoding[8] = '\0';
   return (const char *) ret.encoding;
@@ -490,8 +491,9 @@ const char *
 GNUNET_h2s_full (const GNUNET_HashCode * hc)
 {
   static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
+
   GNUNET_CRYPTO_hash_to_enc (hc, &ret);
-  ret.encoding[104] = '\0';
+  ret.encoding[sizeof(ret)-1] = '\0';
   return (const char *) ret.encoding;
 }
 
@@ -508,6 +510,7 @@ const char *
 GNUNET_i2s (const struct GNUNET_PeerIdentity *pid)
 {
   static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
+
   GNUNET_CRYPTO_hash_to_enc (&pid->hashPubKey, &ret);
   ret.encoding[4] = '\0';
   return (const char *) ret.encoding;
