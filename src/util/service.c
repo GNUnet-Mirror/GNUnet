@@ -1143,7 +1143,9 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
        (getpid () == (pid_t) pid) &&
        (NULL != (nfds = getenv ("LISTEN_FDS"))) &&
        (1 == sscanf (nfds, "%u", &cnt)) &&
-       (cnt > 0) )
+       (cnt > 0) &&
+       (cnt < FD_SETSIZE) &&
+       (cnt + 4 < FD_SETSIZE) )
     {
       sctx->lsocks = GNUNET_malloc (sizeof(struct GNUNET_NETWORK_Handle*) * (cnt+1));
       while (0 < cnt--)
