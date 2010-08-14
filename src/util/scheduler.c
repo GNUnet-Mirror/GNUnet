@@ -756,6 +756,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
           busy_wait_warning = 0;
         }
     }
+  GNUNET_SIGNAL_handler_uninstall (shc_pipe);
   GNUNET_SIGNAL_handler_uninstall (shc_int);
   GNUNET_SIGNAL_handler_uninstall (shc_term);
 #ifndef MINGW
