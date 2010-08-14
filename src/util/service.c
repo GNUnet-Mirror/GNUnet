@@ -1415,10 +1415,12 @@ detach_terminal (struct GNUNET_SERVICE_Context *sctx)
     return GNUNET_SYSERR;
   /* set stdin/stdout to /dev/null */
   if ((dup2 (nullfd, 0) < 0) || (dup2 (nullfd, 1) < 0))
-    {
+    {      
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "dup2");
+      (void) CLOSE (nullfd);
       return GNUNET_SYSERR;
     }
+  (void) CLOSE (nullfd);
   /* Detach from controlling terminal */
   pid = setsid ();
   if (pid == -1)
