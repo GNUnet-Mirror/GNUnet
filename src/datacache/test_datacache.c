@@ -77,8 +77,12 @@ run (void *cls,
   h = GNUNET_DATACACHE_create (sched,
 			       cfg,
 			       "testcache");
-
-  ASSERT (NULL != h);
+  if (h == NULL)
+    {
+      fprintf (stderr,
+	       "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
+      return;
+    }
   exp = GNUNET_TIME_absolute_get ();
   exp.value += 5 * 60 * 1000;
   memset (&k, 0, sizeof (GNUNET_HashCode));

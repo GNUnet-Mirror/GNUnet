@@ -76,7 +76,12 @@ run (void *cls,
 			       cfg,
 			       "perfcache");
 
-  ASSERT (NULL != h);
+  if (h == NULL)
+    {
+      fprintf (stderr,
+	       "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
+      return;
+    }
   exp = GNUNET_TIME_absolute_get ();
   start = exp;
   exp.value += 5 * 60 * 1000;

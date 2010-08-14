@@ -63,7 +63,12 @@ run (void *cls,
 			       cfg,
 			       "testcache");
 
-  ASSERT (NULL != h);
+  if (h == NULL)
+    {
+      fprintf (stderr,
+	       "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
+      return;
+    }
   exp = GNUNET_TIME_absolute_get ();
   exp.value += 20 * 60 * 1000;
   memset (buf, 1, sizeof (buf));
