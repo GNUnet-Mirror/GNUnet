@@ -917,6 +917,7 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
       saddrlens = GNUNET_malloc (2 * sizeof (socklen_t));
       add_unixpath (saddrs, saddrlens, unixpath);
       GNUNET_free_non_null (unixpath);
+      GNUNET_free_non_null(hostname);
       *addrs = saddrs;
       *addr_lens = saddrlens;
       return 1;

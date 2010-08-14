@@ -261,6 +261,8 @@ read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
 		  fn,
 		  emsg);
       GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_remove (fn));
+      GNUNET_CONTAINER_meta_data_destroy (*meta);
+      *meta = NULL;
       GNUNET_free_non_null (emsg);
       GNUNET_free (fn);
       return GNUNET_SYSERR;
