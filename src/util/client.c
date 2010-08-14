@@ -909,7 +909,7 @@ GNUNET_CLIENT_notify_transmit_ready_cancel (struct
     }
   else
     {
-      GNUNET_break (NULL != th->th);
+      GNUNET_assert (NULL != th->th);
       GNUNET_CONNECTION_notify_transmit_ready_cancel (th->th);
     }
   th->sock->th = NULL;
