@@ -938,9 +938,9 @@ process_interfaces (void *cls,
       else if (plugin->behind_nat == GNUNET_YES) /* We are behind NAT, but will advertise NAT and normal addresses */
         {
           addr_nat = GNUNET_malloc(sizeof(t4));
+          t4.u_port = htons (DEFAULT_NAT_PORT);
           memcpy(addr_nat, &t4, sizeof(t4));
           t4.u_port = plugin->port;
-          ((struct IPv4UdpAddress *)addr_nat)->u_port = htons(DEFAULT_NAT_PORT);
         }
       else
         {
@@ -962,14 +962,14 @@ process_interfaces (void *cls,
       add_to_address_list (plugin, &t6.ipv6_addr, sizeof (struct in6_addr));
       if ((plugin->behind_nat == GNUNET_YES) && (plugin->only_nat_addresses == GNUNET_YES))
         {
-          t6.u6_port = htons (0);
+          t6.u6_port = htons (DEFAULT_NAT_PORT);
         }
       else if (plugin->behind_nat == GNUNET_YES)
         {
           addr_nat = GNUNET_malloc(sizeof(t6));
+          t6.u6_port = htons (DEFAULT_NAT_PORT);
           memcpy(addr_nat, &t6, sizeof(t6));
           t6.u6_port = plugin->port;
-          ((struct IPv6UdpAddress *)addr_nat)->u6_port = htons(DEFAULT_NAT_PORT);
         }
       else
         {
