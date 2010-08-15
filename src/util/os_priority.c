@@ -391,6 +391,7 @@ GNUNET_OS_start_process_v (const int *lsocks,
           sleep (1);
 #endif
         }
+      GNUNET_array_grow (lscp, ls, 0);
       return ret;
     }
   if (lscp != NULL)
