@@ -244,12 +244,16 @@ read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
       return GNUNET_SYSERR;
     }
   emsg = NULL;
+  *ns_name = NULL;
   if ( (GNUNET_OK != GNUNET_BIO_read_int32 (fileR, ranking)) ||
        (GNUNET_OK != GNUNET_BIO_read_string(fileR, "Read string error!", ns_name, 200)) ||
+       (NULL == *ns_name) ||
        (GNUNET_OK != GNUNET_BIO_read_meta_data(fileR, "Read meta data error!", meta)) )
     {
       GNUNET_BIO_read_close(fileR, &emsg);
       GNUNET_free_non_null (emsg);
+      GNUNET_free_non_null (*ns_name);
+      *ns_name = NULL;
       GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_remove (fn));
       GNUNET_free (fn);
       return GNUNET_SYSERR;
@@ -263,6 +267,8 @@ read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
       GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_remove (fn));
       GNUNET_CONTAINER_meta_data_destroy (*meta);
       *meta = NULL;
+      GNUNET_free_non_null (*ns_name);
+      *ns_name = NULL;
       GNUNET_free_non_null (emsg);
       GNUNET_free (fn);
       return GNUNET_SYSERR;

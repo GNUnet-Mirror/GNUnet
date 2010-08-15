@@ -2279,7 +2279,7 @@ handle_client_send (void *cls,
   pos = n->messages;
   while (pos != NULL) 
     {
-      if (pos->priority < min_prio)
+      if (pos->priority <= min_prio)
 	{
 	  min_prio_entry = pos;
 	  min_prio_prev = prev;
@@ -2307,6 +2307,7 @@ handle_client_send (void *cls,
 	    GNUNET_SERVER_receive_done (client, GNUNET_OK);
 	  return;
 	}
+      GNUNET_assert (min_prio_entry != NULL);
       /* discard "min_prio_entry" */
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
