@@ -329,8 +329,7 @@ make_client_entry (struct GNUNET_SERVER_Client *client)
 {
   struct ClientEntry *ce;
 
-  if (client == NULL)
-    return NULL;
+  GNUNET_assert (client != NULL);
   ce = client_head;
   while (ce != NULL)
     {
