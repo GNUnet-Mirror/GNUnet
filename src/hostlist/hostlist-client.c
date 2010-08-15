@@ -1372,6 +1372,7 @@ load_hostlist_file ()
 
   counter = 0;
   while ( (GNUNET_OK == GNUNET_BIO_read_string (rh, "url" , &uri, MAX_URL_LEN)) &&
+	  (NULL != uri) &&
 	  (GNUNET_OK == GNUNET_BIO_read_int32 (rh, &times_used)) &&
 	  (GNUNET_OK == GNUNET_BIO_read_int64 (rh, &quality)) &&
 	  (GNUNET_OK == GNUNET_BIO_read_int64 (rh, &last_used)) &&
