@@ -214,7 +214,8 @@ read_index_list ()
 	   GNUNET_BIO_read_string (rh, 
 				   "Name of indexed file",
 				   &fname,
-				   1024 * 16)) )
+				   1024 * 16)) &&
+	  (fname != NULL) )
     {
       slen = strlen (fname) + 1;
       pos = GNUNET_malloc (sizeof (struct IndexInfo) + slen);

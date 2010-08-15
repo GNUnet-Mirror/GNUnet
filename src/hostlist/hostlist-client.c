@@ -149,7 +149,7 @@ static CURL *curl;
 static CURLM *multi;
 
 /**
- *
+ * How many bytes did we download from the current hostlist URL?
  */
 static uint32_t stat_bytes_downloaded;
 /**
@@ -574,39 +574,32 @@ linked_list_get_lowest_quality ( )
  * Method to insert a hostlist into the datastore. If datastore contains maximum number of elements, the elements with lowest quality is dismissed
  */
 static void
-insert_hostlist ( void )
+insert_hostlist ( )
 {
-  GNUNET_CONTAINER_DLL_insert(linked_list_head, linked_list_tail, hostlist_to_test);
+  struct Hostlist * lowest_quality;
+
+  if (MAX_NUMBER_HOSTLISTS <= linked_list_size)
+    {
+      /* No free entries available, replace existing entry  */
+      lowest_quality = linked_list_get_lowest_quality();
+      GNUNET_assert (lowest_quality != NULL);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Removing hostlist with URI `%s' which has the worst quality of all (%llu)\n",
+		  lowest_quality->hostlist_uri,
+		  (unsigned long long) lowest_quality->quality);
+      GNUNET_CONTAINER_DLL_remove (linked_list_head, linked_list_tail, lowest_quality);
+      linked_list_size--;
+      GNUNET_free (lowest_quality);
+    }
+  GNUNET_CONTAINER_DLL_insert(linked_list_head,
+			      linked_list_tail,
+			      hostlist_to_test);
   linked_list_size++;
-
   GNUNET_STATISTICS_set (stats,
                          gettext_noop("# advertised hostlist URIs"),
                          linked_list_size,
                          GNUNET_NO);
-
-  if (MAX_NUMBER_HOSTLISTS >= linked_list_size)
-    return;
-
-  /* No free entries available, replace existing entry  */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Removing lowest quality entry\n" );
-  struct Hostlist * lowest_quality = linked_list_get_lowest_quality();
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Hostlist with URI `%s' has the worst quality of all with value %llu\n",
-              lowest_quality->hostlist_uri,
-              (unsigned long long) lowest_quality->quality);
-  GNUNET_CONTAINER_DLL_remove (linked_list_head, linked_list_tail, lowest_quality);
-  linked_list_size--;
-
-  GNUNET_STATISTICS_set (stats,
-                         gettext_noop("# advertised hostlist URIs"),
-                         linked_list_size,
-                         GNUNET_NO);
-
-  GNUNET_free (lowest_quality);
-
   stat_testing_hostlist = GNUNET_NO;
-  return;
 }
 
 

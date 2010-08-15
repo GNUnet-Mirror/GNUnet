@@ -2217,6 +2217,7 @@ deserialize_search_result (void *cls,
   emsg = NULL;
   uris = NULL;
   download = NULL;
+  update_srch = NULL;
   sr = GNUNET_malloc (sizeof (struct GNUNET_FS_SearchResult));
   sr->serialization = ser;  
   if ( (GNUNET_OK !=
@@ -2288,7 +2289,7 @@ deserialize_search_result (void *cls,
 	      GNUNET_free (emsg);
 	    }
 	}
-      GNUNET_free (update_srch);      
+      GNUNET_free (update_srch);     
     }
   GNUNET_CONTAINER_multihashmap_put (sc->master_result_map,
 				     &sr->key,
@@ -2308,6 +2309,7 @@ deserialize_search_result (void *cls,
   GNUNET_free_non_null (download);
   GNUNET_free_non_null (emsg);
   GNUNET_free_non_null (uris);
+  GNUNET_free_non_null (update_srch);     
   if (sr->uri != NULL)
     GNUNET_FS_uri_destroy (sr->uri);
   if (sr->meta != NULL)

@@ -3456,6 +3456,7 @@ handle_p2p_get (void *cls,
   if (GNUNET_CONTAINER_heap_get_size (requests_by_expiration_heap) > max_pending_requests)
     {
       pr = GNUNET_CONTAINER_heap_peek (requests_by_expiration_heap);
+      GNUNET_assert (pr != NULL);
       destroy_pending_request (pr);
     }
   return GNUNET_OK;
