@@ -369,7 +369,8 @@ handle_get (void *cls,
   struct StatsEntry *pos;
   size_t size;
 
-  make_client_entry (client);
+  if (client != NULL)
+    make_client_entry (client);
   size = ntohs (message->size) - sizeof (struct GNUNET_MessageHeader);
   if (size != GNUNET_STRINGS_buffer_tokenize ((const char *) &message[1],
                                               size, 2, &service, &name))
@@ -452,7 +453,8 @@ handle_set (void *cls,
   int64_t delta;
   int changed;
 
-  make_client_entry (client);
+  if (client != NULL)
+    make_client_entry (client);
   msize = ntohs (message->size);
   if (msize < sizeof (struct GNUNET_STATISTICS_SetMessage))
     {
