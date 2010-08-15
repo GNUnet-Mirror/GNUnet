@@ -2433,6 +2433,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
           GNUNET_free_non_null(external_address);
           GNUNET_free_non_null(internal_address);
           GNUNET_SERVICE_stop (service);
+	  GNUNET_free (api);
           return NULL;
         }
     }

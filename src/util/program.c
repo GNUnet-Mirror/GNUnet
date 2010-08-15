@@ -214,6 +214,7 @@ GNUNET_PROGRAM_run (int argc,
        (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cc.cfgfile))))
 
     {
+      GNUNET_CONFIGURATION_destroy (cfg);
       GNUNET_free_non_null (cc.cfgfile);
       GNUNET_free (loglev);
       GNUNET_free (allopts);
