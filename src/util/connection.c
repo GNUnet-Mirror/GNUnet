@@ -721,6 +721,7 @@ connect_probe_continuation (void *cls,
   int error;
   unsigned int len;
 
+  GNUNET_assert (ap->sock != NULL);
   GNUNET_CONTAINER_DLL_remove (h->ap_head, h->ap_tail, ap);
   len = sizeof (error);
   errno = 0;
@@ -738,7 +739,6 @@ connect_probe_continuation (void *cls,
       return;
     }
   GNUNET_assert (h->sock == NULL);
-  GNUNET_assert (ap->sock != NULL);
   h->sock = ap->sock;
   GNUNET_assert (h->addr == NULL);
   h->addr = GNUNET_malloc (ap->addrlen);
