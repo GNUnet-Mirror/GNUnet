@@ -247,7 +247,6 @@ read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
   *ns_name = NULL;
   if ( (GNUNET_OK != GNUNET_BIO_read_int32 (fileR, ranking)) ||
        (GNUNET_OK != GNUNET_BIO_read_string(fileR, "Read string error!", ns_name, 200)) ||
-       (NULL == *ns_name) ||
        (GNUNET_OK != GNUNET_BIO_read_meta_data(fileR, "Read meta data error!", meta)) )
     {
       GNUNET_BIO_read_close(fileR, &emsg);
