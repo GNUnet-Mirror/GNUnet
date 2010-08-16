@@ -39,15 +39,15 @@ static void sigchld_handler(int val)
   int ret = 0;
   
   waitpid (child, &status, 0);
-  if (WIFEXITED(status) == 1)
+  if (WIFEXITED(status) != 0)
   {
     ret = WEXITSTATUS(status);
     printf("Test process exited with result %u\n", ret);
   }
-  if (WIFSIGNALED(status) == 1)
+  if (WIFSIGNALED(status) != 0)
   {
-    printf("Test process was signaled %u\n", WTERMSIG(status));
-    ret = WTERMSIG(status);
+	ret = WTERMSIG(status);
+	printf("Test process was signaled %u\n", ret);
   }   
   exit(ret);  
 }
