@@ -37,6 +37,7 @@ main (int argc, char *argv[])
   struct GNUNET_CONTAINER_SList *l;
   struct GNUNET_CONTAINER_SList_Iterator *it;
   unsigned int i;
+  int *ip;
   unsigned int j;
   size_t s;
   const void *p;
@@ -117,9 +118,13 @@ main (int argc, char *argv[])
   l = GNUNET_CONTAINER_slist_create ();
   
   for (i = 0; i < 100; i++)
-    GNUNET_CONTAINER_slist_add (l,
-				GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC,
-                                &i, sizeof (i));
+    {
+      ip = GNUNET_malloc (sizeof (int));
+      *ip = i;
+      GNUNET_CONTAINER_slist_add (l,
+				  GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC,
+				  ip, sizeof (int));
+    }
   //creat_add
   it = GNUNET_CONTAINER_slist_begin (l);
   p = GNUNET_CONTAINER_slist_get (it, &s);
@@ -127,11 +132,12 @@ main (int argc, char *argv[])
   //slist_erase
   CHECK (GNUNET_CONTAINER_slist_next (it) == GNUNET_YES); 
   GNUNET_CONTAINER_slist_erase (it);
+  GNUNET_CONTAINER_slist_iter_destroy (it);
   CHECK (GNUNET_CONTAINER_slist_count (l) == 99);
   //slist_clear
   GNUNET_CONTAINER_slist_clear(l);
   CHECK (GNUNET_CONTAINER_slist_count (l) == 0);
-  
+  GNUNET_CONTAINER_slist_destroy (l);
 
   return 0;
 }
