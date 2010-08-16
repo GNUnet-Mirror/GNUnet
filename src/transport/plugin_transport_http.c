@@ -608,12 +608,11 @@ process_interfaces (void *cls,
   else if ((af == AF_INET6) && (plugin->use_ipv6 == GNUNET_YES)  && (plugin->bind4_address == NULL))
     {
 	  struct in6_addr bnd_cmp6 = ((struct sockaddr_in6 *) addr)->sin6_addr;
-      t6 = GNUNET_malloc(sizeof(struct IPv6HttpAddress));
       if (IN6_IS_ADDR_LINKLOCAL (&((struct sockaddr_in6 *) addr)->sin6_addr))
         {
           return GNUNET_OK;
         }
-
+      t6 = GNUNET_malloc(sizeof(struct IPv6HttpAddress));
       if (plugin->bind6_address != NULL)
       {
     	  if (0 == memcmp(&plugin->bind6_address->sin6_addr, &bnd_cmp6, sizeof (struct in6_addr)))
