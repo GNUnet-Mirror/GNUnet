@@ -238,8 +238,6 @@ check()
   int q;
   int i = 100;
   char txt[128];
-  char *data;
-  unsigned long long size;
 
   meta = GNUNET_CONTAINER_meta_data_create ();
   meta2 = GNUNET_CONTAINER_meta_data_create ();
@@ -333,8 +331,9 @@ check()
     } 
 
   //check meta_data_get_thumbnail
-  unsigned char** thumb;
-  if (GNUNET_CONTAINER_meta_data_get_thumbnail(meta,thumb) !=0)
+  unsigned char* thumb;
+
+  if (GNUNET_CONTAINER_meta_data_get_thumbnail(meta, &thumb) != 0)
     {
       GNUNET_CONTAINER_meta_data_destroy(meta2);
       ABORT(meta);
