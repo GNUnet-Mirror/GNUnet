@@ -230,6 +230,126 @@ testMetaLink ()
   return 0;
 }
 
+int
+check()
+{
+  struct GNUNET_CONTAINER_MetaData *meta;
+  struct GNUNET_CONTAINER_MetaData *meta2;
+  int q;
+  int i = 100;
+  char txt[128];
+  char *data;
+  unsigned long long size;
+
+  meta = GNUNET_CONTAINER_meta_data_create ();
+  meta2 = GNUNET_CONTAINER_meta_data_create ();
+  for (q = 0; q <= i; q++)
+    {
+      GNUNET_snprintf (txt, 128, "%u -- %u\n", i, q);
+      GNUNET_CONTAINER_meta_data_insert (meta,
+					 "<test>",
+                                         EXTRACTOR_METATYPE_UNKNOWN, 
+					 EXTRACTOR_METAFORMAT_UTF8,
+					 "text/plain",
+					 "TestTitle",
+					 strlen ("TestTitle")+1);
+      GNUNET_CONTAINER_meta_data_insert (meta2,
+					 "<test>",
+                                         EXTRACTOR_METATYPE_UNKNOWN, 
+					 EXTRACTOR_METAFORMAT_UTF8,
+					 "text/plain",
+					 "TestTitle",
+					 strlen ("TestTitle")+1);
+    }
+  
+  //check meta_data_test_equal
+  if (GNUNET_YES != GNUNET_CONTAINER_meta_data_test_equal(meta,meta2))
+    {
+      GNUNET_CONTAINER_meta_data_destroy(meta2);
+      ABORT(meta);
+    } 
+
+  //check meta_data_clear
+  GNUNET_CONTAINER_meta_data_clear(meta2);
+  if (0 != GNUNET_CONTAINER_meta_data_iterate(meta2,NULL,NULL))
+    {
+      GNUNET_CONTAINER_meta_data_destroy(meta2);
+      ABORT(meta);
+    }
+  //check equal branch in meta_data_test_equal
+  if (GNUNET_YES != GNUNET_CONTAINER_meta_data_test_equal(meta,meta))
+    {
+      GNUNET_CONTAINER_meta_data_destroy(meta2);
+      ABORT(meta);
+    }  
+  //check "count" branch in meta_data_test_equal
+  if (GNUNET_NO != GNUNET_CONTAINER_meta_data_test_equal(meta,meta2))
+    {
+      GNUNET_CONTAINER_meta_data_destroy(meta2);
+      ABORT(meta);
+    }   
+
+  //check meta_data_add_publication_date
+  GNUNET_CONTAINER_meta_data_add_publication_date(meta2);
+  
+  //check meta_data_merge
+  GNUNET_CONTAINER_meta_data_clear(meta2);
+  GNUNET_CONTAINER_meta_data_merge(meta2,meta);
+  if (100 == GNUNET_CONTAINER_meta_data_iterate(meta2,NULL,NULL))
+    {
+      GNUNET_CONTAINER_meta_data_destroy(meta2);
+      ABORT(meta);
+    }  
+  
+  //check meta_data_get_by_type
+  GNUNET_CONTAINER_meta_data_clear(meta2);
+  if (GNUNET_CONTAINER_meta_data_get_by_type(meta2,EXTRACTOR_METATYPE_UNKNOWN) != NULL)
+    {
+      GNUNET_CONTAINER_meta_data_destroy(meta2);
+      ABORT(meta);      
+    } 
+  
+  char* str = GNUNET_CONTAINER_meta_data_get_by_type(meta,EXTRACTOR_METATYPE_UNKNOWN);
+  if (str[0] != 'T')
+    {
+      GNUNET_CONTAINER_meta_data_destroy(meta2);
+      ABORT(meta);      
+    } 
+  //check branch
+  if (GNUNET_CONTAINER_meta_data_get_by_type(meta,EXTRACTOR_METATYPE_PUBLICATION_DATE) != NULL)
+    {
+      GNUNET_CONTAINER_meta_data_destroy(meta2);
+      ABORT(meta);      
+    } 
+
+  //check meta_data_get_first_by_types
+  str = GNUNET_CONTAINER_meta_data_get_first_by_types(meta,
+						      EXTRACTOR_METATYPE_UNKNOWN,
+						      -1);
+  if (str[0] != 'T')
+    {
+      GNUNET_CONTAINER_meta_data_destroy(meta2);
+      ABORT(meta);      
+    } 
+
+  //check meta_data_get_thumbnail
+  unsigned char** thumb;
+  if (GNUNET_CONTAINER_meta_data_get_thumbnail(meta,thumb) !=0)
+    {
+      GNUNET_CONTAINER_meta_data_destroy(meta2);
+      ABORT(meta);
+    }
+
+  //check meta_data_duplicate
+  GNUNET_CONTAINER_meta_data_duplicate(meta);
+  if (200 == GNUNET_CONTAINER_meta_data_iterate(meta,NULL,NULL))
+    {
+      GNUNET_CONTAINER_meta_data_destroy(meta2);
+      ABORT(meta);
+    }
+  return 0; 
+}
+
 
 int
 main (int argc, char *argv[])
@@ -243,6 +363,10 @@ main (int argc, char *argv[])
   for (i = 1; i < 255; i++)
     failureCount += testMetaMore (i);
   failureCount += testMetaLink ();
+
+  int ret = check();
+  if ( ret == 1)
+    return 1;
 
   if (failureCount != 0)
     return 1;
