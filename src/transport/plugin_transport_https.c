@@ -494,8 +494,8 @@ static int remove_session (struct HTTP_PeerContext * pc, struct Session * ps,  i
     {
       msg->transmit_cont (msg->transmit_cont_cls,&pc->identity,call_msg_cont_result);
     }
-    GNUNET_free(msg);
     GNUNET_CONTAINER_DLL_remove(ps->pending_msgs_head,ps->pending_msgs_head,msg);
+    GNUNET_free(msg);
     msg = ps->pending_msgs_head;
   }
 
@@ -1142,9 +1142,9 @@ static size_t curl_get_header_cb( void *ptr, size_t size, size_t nmemb, void *st
   long http_result = 0;
   int res;
   /* Getting last http result code */
+  GNUNET_assert(NULL!=ps);
   if (ps->recv_connected==GNUNET_NO)
   {
-    GNUNET_assert(NULL!=ps);
     res = curl_easy_getinfo(ps->recv_endpoint, CURLINFO_RESPONSE_CODE, &http_result);
     if (CURLE_OK == res)
     {
@@ -1258,7 +1258,6 @@ static size_t curl_send_cb(void *stream, size_t size, size_t nmemb, void *ptr)
   if (ps->send_active == GNUNET_NO)
 	return CURL_READFUNC_PAUSE;
 
-
   if ((ps->pending_msgs_tail == NULL) && (ps->send_active == GNUNET_YES))
   {
 #if DEBUG_CONNECTIONS
@@ -1268,7 +1267,8 @@ static size_t curl_send_cb(void *stream, size_t size, size_t nmemb, void *ptr)
     return CURL_READFUNC_PAUSE;
   }
 
-  msg = ps->pending_msgs_tail;
+  GNUNET_assert (msg!=NULL);
+
   /* data to send */
   if (msg->pos < msg->size)
   {
@@ -1312,9 +1312,11 @@ static void curl_receive_mst_cb  (void *cls,
                                 const struct GNUNET_MessageHeader *message)
 {
   struct Session *ps  = cls;
-  struct HTTP_PeerContext *pc = ps->peercontext;
   GNUNET_assert(ps != NULL);
+
+  struct HTTP_PeerContext *pc = ps->peercontext;
   GNUNET_assert(pc != NULL);
+
 #if DEBUG_HTTPS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Connection %X: Forwarding message to transport service, type %u and size %u from `%s' (`%s')\n",
