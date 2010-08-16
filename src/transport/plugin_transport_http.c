@@ -613,6 +613,7 @@ process_interfaces (void *cls,
           return GNUNET_OK;
         }
       t6 = GNUNET_malloc(sizeof(struct IPv6HttpAddress));
+      GNUNET_assert(t6 != NULL);
       if (plugin->bind6_address != NULL)
       {
     	  if (0 == memcmp(&plugin->bind6_address->sin6_addr, &bnd_cmp6, sizeof (struct in6_addr)))
@@ -685,8 +686,9 @@ static void mhd_write_mst_cb (void *cls,
 {
 
   struct Session *ps  = cls;
-  struct HTTP_PeerContext *pc = ps->peercontext;
   GNUNET_assert(ps != NULL);
+
+  struct HTTP_PeerContext *pc = ps->peercontext;
   GNUNET_assert(pc != NULL);
 #if DEBUG_HTTP
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -798,7 +800,7 @@ mdh_access_cb (void *cls,
   int res = GNUNET_NO;
   int send_error_to_client;
   void * addr;
-  size_t addr_len;
+  size_t addr_len = 0 ;
 
   GNUNET_assert(cls !=NULL);
   send_error_to_client = GNUNET_NO;
@@ -1289,7 +1291,7 @@ static size_t curl_send_cb(void *stream, size_t size, size_t nmemb, void *ptr)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: Message with %u bytes sent, removing message from queue \n",ps, msg->pos);
 #endif
     /* Calling transmit continuation  */
-    if (( NULL != ps->pending_msgs_tail) && (NULL != ps->pending_msgs_tail->transmit_cont))
+    if (NULL != ps->pending_msgs_tail->transmit_cont)
       msg->transmit_cont (ps->pending_msgs_tail->transmit_cont_cls,&(ps->peercontext)->identity,GNUNET_OK);
     remove_http_message(ps, msg);
   }
@@ -2410,26 +2412,26 @@ libgnunet_plugin_transport_http_init (void *cls)
   if ((plugin->use_ipv6==GNUNET_YES) && (GNUNET_CONFIGURATION_have_value (env->cfg,
           	  	  	  	  	  	  	   "transport-http", "BINDTO6")))
   {
-	  GNUNET_break (GNUNET_OK ==
-					GNUNET_CONFIGURATION_get_value_string (env->cfg,
+	  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg,
 														   "transport-http",
 														   "BINDTO6",
-														   &plugin->bind_hostname));
-
-	  plugin->bind6_address = GNUNET_malloc(sizeof(struct sockaddr_in6));
-	  plugin->bind6_address->sin6_family = AF_INET6;
-	  plugin->bind6_address->sin6_port = htons (port);
-
-      if (inet_pton(AF_INET6,plugin->bind_hostname, &plugin->bind6_address->sin6_addr)<=0)
+														   &plugin->bind_hostname))
 	  {
-		  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-						   "http",
-						   _("Misconfigured address to bind to in configuration!\n"),
-						   "transport-http");
-		  GNUNET_free(plugin->bind6_address);
-		  GNUNET_free(plugin->bind_hostname);
-		  plugin->bind_hostname = NULL;
-		  plugin->bind6_address = NULL;
+		  plugin->bind6_address = GNUNET_malloc(sizeof(struct sockaddr_in6));
+		  plugin->bind6_address->sin6_family = AF_INET6;
+		  plugin->bind6_address->sin6_port = htons (port);
+
+		  if (inet_pton(AF_INET6,plugin->bind_hostname, &plugin->bind6_address->sin6_addr)<=0)
+		  {
+			  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+							   "http",
+							   _("Misconfigured address to bind to in configuration!\n"),
+							   "transport-http");
+			  GNUNET_free(plugin->bind6_address);
+			  GNUNET_free(plugin->bind_hostname);
+			  plugin->bind_hostname = NULL;
+			  plugin->bind6_address = NULL;
+		  }
 	  }
   }
 
@@ -2500,7 +2502,7 @@ libgnunet_plugin_transport_http_init (void *cls)
   }
   else
   {
-	char * tmp;
+	char * tmp = NULL;
 	if ((plugin->use_ipv6 == GNUNET_YES) && (plugin->use_ipv4 == GNUNET_YES))
 		GNUNET_asprintf(&tmp,"with IPv4 and IPv6 enabled");
 	if ((plugin->use_ipv6 == GNUNET_NO) && (plugin->use_ipv4 == GNUNET_YES))
