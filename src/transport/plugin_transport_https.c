@@ -892,6 +892,9 @@ mdh_access_cb (void *cls,
       addr_len = sizeof(struct IPv6HttpAddress);
     }
 
+    GNUNET_assert (addr != NULL);
+    GNUNET_assert (addr_len != 0);
+
     ps = NULL;
     /* only inbound sessions here */
 
@@ -2271,7 +2274,7 @@ load_certificate( const char * file )
 
   if (0!=STAT(file, &fstat))
 	  return NULL;
-  text = GNUNET_malloc (fstat.st_size);
+  text = GNUNET_malloc (fstat.st_size+1);
   gn_file = GNUNET_DISK_file_open(file,GNUNET_DISK_OPEN_READ, GNUNET_DISK_PERM_USER_READ);
   if (gn_file==NULL)
   {

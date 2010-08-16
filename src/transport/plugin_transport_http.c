@@ -799,7 +799,7 @@ mdh_access_cb (void *cls,
 
   int res = GNUNET_NO;
   int send_error_to_client;
-  void * addr;
+  void * addr = NULL;
   size_t addr_len = 0 ;
 
   GNUNET_assert(cls !=NULL);
@@ -882,6 +882,9 @@ mdh_access_cb (void *cls,
       addr = &ipv6addr;
       addr_len = sizeof(struct IPv6HttpAddress);
     }
+
+    GNUNET_assert (addr != NULL);
+    GNUNET_assert (addr_len != 0);
 
     ps = NULL;
     /* only inbound sessions here */
