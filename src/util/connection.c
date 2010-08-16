@@ -1328,7 +1328,7 @@ process_notify (struct GNUNET_CONNECTION_Handle *sock)
   used = sock->write_buffer_off - sock->write_buffer_pos;
   avail = sock->write_buffer_size - used;
   size = sock->nth.notify_size;
-  if (sock->nth.notify_size > avail)
+  if (size > avail)
     return GNUNET_NO;
   sock->nth.notify_ready = NULL;
   if (sock->write_buffer_size - sock->write_buffer_off < size)
@@ -1339,10 +1339,12 @@ process_notify (struct GNUNET_CONNECTION_Handle *sock)
       sock->write_buffer_off -= sock->write_buffer_pos;
       sock->write_buffer_pos = 0;
     }
-  GNUNET_assert (sock->write_buffer_size - sock->write_buffer_off >= size);
+  avail = sock->write_buffer_size - sock->write_buffer_off;
+  GNUNET_assert (avail >= size);
   size = notify (sock->nth.notify_ready_cls,
-                 sock->write_buffer_size - sock->write_buffer_off,
+                 avail,
                  &sock->write_buffer[sock->write_buffer_off]);
+  GNUNET_assert (size <= avail);
   sock->write_buffer_off += size;
   return GNUNET_YES;
 }
