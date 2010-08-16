@@ -107,8 +107,31 @@ main (int argc, char *argv[])
     GNUNET_CONTAINER_slist_add (l,
                                 GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
                                 &i, sizeof (i));
+  /*check slist_append*/
+  GNUNET_CONTAINER_slist_append(l,l);
+  CHECK (GNUNET_CONTAINER_slist_count (l) == 200);
 
   GNUNET_CONTAINER_slist_destroy (l);
+
+  /*check if disp = GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC*/
+  l = GNUNET_CONTAINER_slist_create ();
+  
+  for (i = 0; i < 100; i++)
+    GNUNET_CONTAINER_slist_add (l,
+				GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC,
+                                &i, sizeof (i));
+  //creat_add
+  it = GNUNET_CONTAINER_slist_begin (l);
+  p = GNUNET_CONTAINER_slist_get (it, &s);
+  CHECK (p != NULL);
+  //slist_erase
+  CHECK (GNUNET_CONTAINER_slist_next (it) == GNUNET_YES); 
+  GNUNET_CONTAINER_slist_erase (it);
+  CHECK (GNUNET_CONTAINER_slist_count (l) == 99);
+  //slist_clear
+  GNUNET_CONTAINER_slist_clear(l);
+  CHECK (GNUNET_CONTAINER_slist_count (l) == 0);
+  
 
   return 0;
 }
