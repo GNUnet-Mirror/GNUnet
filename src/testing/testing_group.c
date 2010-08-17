@@ -772,12 +772,16 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (hostname != NULL)
     {
       GNUNET_asprintf(&allowed_hosts, "%s; 127.0.0.1;", hostname);
+      GNUNET_CONFIGURATION_set_value_string(uc.ret, "transport-udp", "BINDTO", hostname);
       GNUNET_CONFIGURATION_set_value_string(uc.ret, "transport-tcp", "BINDTO", hostname);
       GNUNET_CONFIGURATION_set_value_string(uc.ret, "arm", "ACCEPT_FROM", allowed_hosts);
       GNUNET_free(allowed_hosts);
     }
   else
-    GNUNET_CONFIGURATION_set_value_string(uc.ret, "transport-tcp", "BINDTO", "127.0.0.1");
+    {
+      GNUNET_CONFIGURATION_set_value_string(uc.ret, "transport-tcp", "BINDTO", "127.0.0.1");
+      GNUNET_CONFIGURATION_set_value_string(uc.ret, "transport-udp", "BINDTO", "127.0.0.1");
+    }
 
   *port = (uint16_t) uc.nport;
   *upnum = uc.upnum;
