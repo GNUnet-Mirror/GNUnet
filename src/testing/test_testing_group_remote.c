@@ -48,7 +48,6 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 
 static unsigned long long num_peers;
 
-static char *hostnames;
 
 /**
  * Check whether peers successfully shut down.
@@ -106,6 +105,13 @@ run (void *cls,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  struct GNUNET_TESTING_Host *hosts;
+  struct GNUNET_TESTING_Host *temphost;
+  char *hostfile;
+  struct stat frstat;
+  char *buf;
+  char *data;
+  int count;
   sched = s;
   ok = 1;
 #if VERBOSE
@@ -117,12 +123,58 @@ run (void *cls,
                                              &num_peers))
     num_peers = DEFAULT_NUM_PEERS;
 
-  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "hosts",
-                                         &hostnames))
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "No hosts specified, running all tests on localhost\n");
-  }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "hostfile",
+                                             &hostfile))
+    hostfile = NULL;
 
+  hosts = NULL;
+  if (hostfile != NULL)
+    {
+      if (GNUNET_OK != GNUNET_DISK_file_test (hostfile))
+          GNUNET_DISK_fn_write (hostfile, NULL, 0, GNUNET_DISK_PERM_USER_READ
+            | GNUNET_DISK_PERM_USER_WRITE);
+      if ((0 != STAT (hostfile, &frstat)) || (frstat.st_size == 0))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      "Could not open file specified for host list, ending test!");
+          ok = 1119;
+          GNUNET_free(hostfile);
+          return;
+        }
+
+    data = GNUNET_malloc_large (frstat.st_size);
+    GNUNET_assert(data != NULL);
+    if (frstat.st_size !=
+        GNUNET_DISK_fn_read (hostfile, data, frstat.st_size))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Could not read file %s specified for host list, ending test!", hostfile);
+        GNUNET_free (hostfile);
+        GNUNET_free (data);
+        return;
+      }
+
+    GNUNET_free_non_null(hostfile);
+
+    buf = data;
+    count = 0;
+    while (count < frstat.st_size)
+      {
+        count++;
+        if (((data[count] == '\n') || (data[count] == '\0')) && (buf != &data[count]))
+          {
+            data[count] = '\0';
+            temphost = GNUNET_malloc(sizeof(struct GNUNET_TESTING_Host));
+            temphost->hostname = buf;
+            temphost->next = hosts;
+            hosts = temphost;
+            buf = &data[count + 1];
+          }
+        else if ((data[count] == '\n') || (data[count] == '\0'))
+          buf = &data[count + 1];
+      }
+    }
 
   peers_left = num_peers;
   pg = GNUNET_TESTING_daemons_start (sched,
@@ -135,7 +187,7 @@ run (void *cls,
                                      NULL,
                                      NULL,
                                      NULL,
-                                     hostnames);
+                                     hosts);
   GNUNET_assert (pg != NULL);
 }
 
