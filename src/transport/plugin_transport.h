@@ -184,7 +184,7 @@ struct GNUNET_TRANSPORT_PluginEnvironment
    * Pointer (!) to our HELLO message.  Note that the address
    * referred to "*our_hello" might change over time.
    */
-  const struct GNUNET_HELLO_Message **our_hello;
+  struct GNUNET_HELLO_Message *const*our_hello;
 
   /**
    * Closure for the various callbacks.
