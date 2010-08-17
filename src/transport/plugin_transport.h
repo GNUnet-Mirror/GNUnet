@@ -181,6 +181,12 @@ struct GNUNET_TRANSPORT_PluginEnvironment
   const struct GNUNET_PeerIdentity *my_identity;
 
   /**
+   * Pointer (!) to our HELLO message.  Note that the address
+   * referred to "*our_hello" might change over time.
+   */
+  const struct GNUNET_HELLO_Message **our_hello;
+
+  /**
    * Closure for the various callbacks.
    */
   void *cls;

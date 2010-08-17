@@ -1656,6 +1656,7 @@ transmit_to_peer (void *cls,
 		  GNUNET_PEER_change_rc (mb->target_list[i], -1);
 		  mb->target_list[i] = 0;
 		  mb->used_targets++;
+		  memset (&migm, 0, sizeof (migm));
 		  migm.header.size = htons (sizeof (migm) + mb->size);
 		  migm.header.type = htons (GNUNET_MESSAGE_TYPE_FS_PUT);
 		  migm.type = htonl (mb->type);

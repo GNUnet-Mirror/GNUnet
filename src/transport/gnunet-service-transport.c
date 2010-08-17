@@ -5063,6 +5063,7 @@ create_environment (struct TransportPlugin *plug)
   plug->env.cfg = cfg;
   plug->env.sched = sched;
   plug->env.my_identity = &my_identity;
+  plug->env.our_hello = &our_hello;
   plug->env.cls = plug;
   plug->env.receive = &plugin_env_receive;
   plug->env.notify_address = &plugin_env_notify_address;
