@@ -37,7 +37,7 @@
 #include "plugin_transport.h"
 #include "transport.h"
 
-#define DEBUG_TCP GNUNET_NO
+#define DEBUG_TCP GNUNET_YES
 #define DEBUG_TCP_NAT GNUNET_YES
 
 /**
@@ -385,6 +385,11 @@ struct Plugin
   char *internal_address;
 
   /**
+   * Address given for us to bind to (ONLY).
+   */
+  char *bind_address;
+
+  /**
    * List of our IP addresses.
    */
   struct LocalAddrList *lal_head;
@@ -580,8 +585,7 @@ create_session (struct Plugin *plugin,
     GNUNET_assert (client == NULL);
 
 #if DEBUG_TCP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		   "tcp",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		   "Creating new session for peer `%4s'\n",
 		   GNUNET_i2s (target));
 #endif
@@ -658,8 +662,7 @@ do_transmit (void *cls, size_t size, void *buf)
   if (buf == NULL)
     {
 #if DEBUG_TCP
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                       "tcp",
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                        "Timeout trying to transmit to peer `%4s', discarding message queue.\n",
                        GNUNET_i2s (&session->target));
 #endif
@@ -675,8 +678,7 @@ do_transmit (void *cls, size_t size, void *buf)
 				       session->pending_messages_tail,
 				       pos);
 #if DEBUG_TCP
-          GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                           "tcp",
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                            "Failed to transmit %u byte message to `%4s'.\n",
 			   pos->message_size,
                            GNUNET_i2s (&session->target));
@@ -748,8 +750,8 @@ do_transmit (void *cls, size_t size, void *buf)
   GNUNET_assert (hd == NULL);
   GNUNET_assert (tl == NULL);
 #if DEBUG_TCP > 1
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "tcp", "Transmitting %u bytes\n", ret);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Transmitting %u bytes\n", ret);
 #endif
   GNUNET_STATISTICS_update (plugin->env->stats,
 			    gettext_noop ("# bytes currently in TCP buffers"),
@@ -779,7 +781,7 @@ process_pending_messages (struct Session *session)
     return;
   if (NULL == (pm = session->pending_messages_head))
     return;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "processing a pending message\n");
+
   session->transmit_handle
     = GNUNET_SERVER_notify_transmit_ready (session->client,
                                            pm->message_size,
@@ -804,8 +806,7 @@ disconnect_session (struct Session *session)
   struct PendingMessage *pm;
 
 #if DEBUG_TCP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "tcp",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                    "Disconnecting from `%4s' at %s (session %p).\n",
                    GNUNET_i2s (&session->target),
                    (session->connect_addr != NULL) ?
@@ -839,8 +840,8 @@ disconnect_session (struct Session *session)
   while (NULL != (pm = session->pending_messages_head))
     {
 #if DEBUG_TCP
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                       "tcp",
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+
                        pm->transmit_cont != NULL
                        ? "Could not deliver message to `%4s'.\n"
                        :
@@ -1091,8 +1092,7 @@ tcp_plugin_send (void *cls,
        (addr == NULL) )
     {
 #if DEBUG_TCP
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                       "tcp",
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                        "Asked to transmit to `%4s' without address and I have no existing connection (failing).\n",
                        GNUNET_i2s (target));
 #endif
@@ -1200,8 +1200,7 @@ tcp_plugin_send (void *cls,
       if (sa == NULL)
 	{
 #if DEBUG_TCP
-	  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-			   "tcp",
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 			   "Failed to create connection to `%4s' at `%s'\n",
 			   GNUNET_i2s (target),
 			   GNUNET_a2s (sb, sbs));
@@ -1213,8 +1212,7 @@ tcp_plugin_send (void *cls,
 	  return -1;
 	}
 #if DEBUG_TCP
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                       "tcp",
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                        "Asked to transmit to `%4s', creating fresh session using address `%s'.\n",
 		       GNUNET_i2s (target),
 		       GNUNET_a2s (sb, sbs));
@@ -1250,8 +1248,7 @@ tcp_plugin_send (void *cls,
 				     session->pending_messages_tail,
 				     pm);
 #if DEBUG_TCP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "tcp",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		   "Asked to transmit %u bytes to `%s', added message to list.\n",
 		   msgbuf_size,
 		   GNUNET_i2s (target));
@@ -1287,8 +1284,7 @@ tcp_plugin_disconnect (void *cls,
   struct PendingMessage *pm;
 
 #if DEBUG_TCP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		   "tcp",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                    "Asked to cancel session with `%4s'\n",
                    GNUNET_i2s (target));
 #endif
@@ -1586,7 +1582,7 @@ handle_tcp_nat_probe (void *cls,
                            GNUNET_a2s (vaddr, alen),
                            client);
 #endif
-          if (alen == sizeof (struct sockaddr_in))
+          if (((const struct sockaddr *)vaddr)->sa_family == AF_INET)
             {
               s4 = vaddr;
               t4 = GNUNET_malloc (sizeof (struct IPv4TcpAddress));
@@ -1595,7 +1591,7 @@ handle_tcp_nat_probe (void *cls,
               session->connect_addr = t4;
               session->connect_alen = sizeof (struct IPv4TcpAddress);
             }
-          else if (alen == sizeof (struct sockaddr_in6))
+          else if (((const struct sockaddr *)vaddr)->sa_family == AF_INET6)
             {
               s6 = vaddr;
               t6 = GNUNET_malloc (sizeof (struct IPv6TcpAddress));
@@ -1606,12 +1602,13 @@ handle_tcp_nat_probe (void *cls,
               session->connect_addr = t6;
               session->connect_alen = sizeof (struct IPv6TcpAddress);
             }
-
-          session->connect_addr = GNUNET_malloc (alen);
-          memcpy (session->connect_addr,
-                  vaddr,
-                  alen);
-          session->connect_alen = alen;
+          else
+            {
+#if DEBUG_TCP_NAT
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          "Bad address for incoming connection!\n");
+#endif
+            }
           GNUNET_free (vaddr);
         }
 
@@ -1656,8 +1653,7 @@ handle_tcp_welcome (void *cls,
 
 
 #if DEBUG_TCP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "tcp",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                    "Received %s message from a `%4s/%p'.\n", 
 		   "WELCOME",
                    GNUNET_i2s (&wm->clientIdentity), client);
@@ -1677,8 +1673,7 @@ handle_tcp_welcome (void *cls,
 	  GNUNET_SERVER_client_get_address (client, &vaddr, &alen))
 	{
 #if DEBUG_TCP
-	  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-			   "tcp",
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 			   "Found address `%s' for incoming connection %p\n",
 			   GNUNET_a2s (vaddr, alen),
 			   client);
@@ -1708,14 +1703,12 @@ handle_tcp_welcome (void *cls,
       else
         {
 #if DEBUG_TCP
-	  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-			   "tcp",
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 			   "Did not obtain TCP socket address for incoming connection\n");
 #endif
         }
 #if DEBUG_TCP
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                       "tcp",
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                        "Creating new session %p for connection %p\n",
                        session, client);
 #endif
@@ -1792,8 +1785,7 @@ handle_tcp_data (void *cls,
     }
   session->last_activity = GNUNET_TIME_absolute_get ();
 #if DEBUG_TCP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "tcp", 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		   "Passing %u bytes of type %u from `%4s' to transport service.\n",
                    (unsigned int) ntohs (message->size), 
 		   (unsigned int) ntohs (message->type),
@@ -1836,8 +1828,7 @@ disconnect_notify (void *cls,
   if (session == NULL)
     return;                     /* unknown, nothing to do */
 #if DEBUG_TCP
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "tcp",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                    "Destroying session of `%4s' with %s (%p) due to network-level disconnect.\n",
                    GNUNET_i2s (&session->target),
                    (session->connect_addr != NULL) ?
@@ -1876,12 +1867,19 @@ process_interfaces (void *cls,
   void *arg;
   uint16_t args;
   void *arg_nat;
+  char buf[INET_ADDRSTRLEN];
 
   af = addr->sa_family;
   arg_nat = NULL;
   if (af == AF_INET)
     {
       t4.ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
+      GNUNET_assert(NULL != inet_ntop(AF_INET, &t4.ipv4_addr, &buf[0], INET_ADDRSTRLEN));
+      if ((plugin->bind_address != NULL) && (0 != strcmp(buf, plugin->bind_address)))
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: Not notifying transport of address %s\n", "TCP", GNUNET_a2s (addr, addrlen));
+          return GNUNET_OK;
+        }
       add_to_address_list (plugin, &t4.ipv4_addr, sizeof (uint32_t));
       if ((plugin->behind_nat == GNUNET_YES) && (plugin->only_nat_addresses == GNUNET_YES))
         t4.t_port = htons(0);
@@ -1898,7 +1896,7 @@ process_interfaces (void *cls,
     }
   else if (af == AF_INET6)
     {
-      if (IN6_IS_ADDR_LINKLOCAL (&((struct sockaddr_in6 *) addr)->sin6_addr))
+      if ((IN6_IS_ADDR_LINKLOCAL (&((struct sockaddr_in6 *) addr)->sin6_addr)) || (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(plugin->env->cfg, "transport-tcp", "disablev6")))
 	{
 	  /* skip link local addresses */
 	  return GNUNET_OK;
@@ -1927,9 +1925,8 @@ process_interfaces (void *cls,
       GNUNET_break (0);
       return GNUNET_OK;
     }
-  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO |
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO |
                    GNUNET_ERROR_TYPE_BULK,
-                   "tcp", 
 		   _("Found address `%s' (%s)\n"),
                    GNUNET_a2s (addr, addrlen), name);
 
@@ -1939,9 +1936,8 @@ process_interfaces (void *cls,
 
   if (arg_nat != NULL)
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO |
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO |
                        GNUNET_ERROR_TYPE_BULK,
-                      "tcp",
                       _("Found address `%s' (%s)\n"),
                       GNUNET_a2s (addr, addrlen), name);
       plugin->env->notify_address (plugin->env->cls,
@@ -2034,7 +2030,7 @@ tcp_plugin_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   if (bytes < 1)
     {
 #if DEBUG_TCP_NAT
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Finished reading from server stdout with code: %d\n"), bytes);
 #endif
       return;
@@ -2270,11 +2266,9 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   service = GNUNET_SERVICE_start ("transport-tcp", env->sched, env->cfg);
   if (service == NULL)
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
-                       "tcp",
-                       _
-                       ("Failed to start service for `%s' transport plugin.\n"),
-                       "tcp");
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                 _("Failed to start service for `%s' transport plugin.\n"),
+                 "tcp");
       return NULL;
     }
 
@@ -2290,7 +2284,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
       else
         {
           behind_nat = GNUNET_NO;
-          GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "tcp", "Configuration specified you are behind a NAT, but gnunet-nat-server is not installed properly (suid bit not set)!\n");
+          GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Configuration specified you are behind a NAT, but gnunet-nat-server is not installed properly (suid bit not set)!\n");
         }
     }
   else
@@ -2305,7 +2299,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
       else
       {
         allow_nat = GNUNET_NO;
-        GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "tcp", "Configuration specified you want to connect to NAT'd peers, but gnunet-nat-client is not installed properly (suid bit not set)!\n");
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Configuration specified you want to connect to NAT'd peers, but gnunet-nat-client is not installed properly (suid bit not set)!\n");
       }
     }
   else
@@ -2326,8 +2320,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
                                                 "EXTERNAL_ADDRESS",
                                                 &external_address)))
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-                       "tcp",
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                        _
                        ("Require EXTERNAL_ADDRESS for service `%s' in configuration (either BEHIND_NAT or ALLOW_NAT set to YES)!\n"),
                        "transport-tcp");
@@ -2337,7 +2330,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
 
   if ((external_address != NULL) && (inet_pton(AF_INET, external_address, &in_addr.sin_addr) != 1))
     {
-      GNUNET_log_from(GNUNET_ERROR_TYPE_WARNING, "udp", "Malformed EXTERNAL_ADDRESS %s given in configuration!\n", external_address);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Malformed EXTERNAL_ADDRESS %s given in configuration!\n", external_address);
     }
 
   internal_address = NULL;
@@ -2347,11 +2340,9 @@ libgnunet_plugin_transport_tcp_init (void *cls)
                                                 "INTERNAL_ADDRESS",
                                                 &internal_address)))
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-                       "tcp",
-                       _
-                       ("Require INTERNAL_ADDRESS for service `%s' in configuration!\n"),
-                       "transport-tcp");
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                 _("Require INTERNAL_ADDRESS for service `%s' in configuration!\n"),
+                 "transport-tcp");
       GNUNET_SERVICE_stop (service);
       GNUNET_free_non_null(external_address);
       return NULL;
@@ -2359,7 +2350,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
 
   if ((internal_address != NULL) && (inet_pton(AF_INET, internal_address, &in_addr.sin_addr) != 1))
     {
-      GNUNET_log_from(GNUNET_ERROR_TYPE_WARNING, "udp", "Malformed INTERNAL_ADDRESS %s given in configuration!\n", internal_address);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Malformed INTERNAL_ADDRESS %s given in configuration!\n", internal_address);
     }
 
   aport = 0;
@@ -2375,8 +2366,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
                                                "ADVERTISED-PORT",
                                                &aport)) && (aport > 65535)))
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-                       "tcp",
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                        _
                        ("Require valid port number for service `%s' in configuration!\n"),
                        "transport-tcp");
@@ -2416,12 +2406,12 @@ libgnunet_plugin_transport_tcp_init (void *cls)
     plugin->handlers[i].callback_cls = plugin;
   GNUNET_SERVER_add_handlers (plugin->server, plugin->handlers);
 
-  if (behind_nat == GNUNET_YES)
+  if (plugin->behind_nat == GNUNET_YES)
     {
       if (GNUNET_YES != tcp_transport_start_nat_server(plugin))
         {
-          GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-                           "tcp",
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+
                            _
                            ("Failed to start %s required for NAT in %s!\n"),
                            "gnunet-nat-server"
@@ -2440,16 +2430,16 @@ libgnunet_plugin_transport_tcp_init (void *cls)
       GNUNET_assert(plugin->nat_wait_conns != NULL);
     }
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
-                   "tcp", _("TCP transport listening on port %llu\n"), bport);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("TCP transport listening on port %llu\n"), bport);
   if (aport != bport)
-    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
-                     "tcp",
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                      _("TCP transport advertises itself as being on port %llu\n"),
                      aport);
   GNUNET_SERVER_disconnect_notify (plugin->server, 
 				   &disconnect_notify,
                                    plugin);
+  GNUNET_CONFIGURATION_get_value_string(env->cfg, "transport-tcp", "BINDTO", &plugin->bind_address);
+
   if (plugin->behind_nat == GNUNET_NO)
     {
       GNUNET_OS_network_interfaces_list (&process_interfaces, plugin);
@@ -2464,6 +2454,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
 
   if ((plugin->behind_nat == GNUNET_YES) && (inet_pton(AF_INET, plugin->external_address, &t4.ipv4_addr) == 1))
     {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Notifying transport of address %s:0\n", plugin->external_address);
       t4.t_port = htons(0);
       plugin->env->notify_address (plugin->env->cls,
                                   "tcp",
@@ -2515,7 +2506,7 @@ libgnunet_plugin_transport_tcp_done (void *cls)
         GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
       GNUNET_OS_process_wait (plugin->server_pid);
     }
-
+  GNUNET_free_non_null(plugin->bind_address);
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;
