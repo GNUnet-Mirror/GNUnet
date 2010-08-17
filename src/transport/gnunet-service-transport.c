@@ -2696,6 +2696,10 @@ add_hello_for_peer (void *cls,
 
   if (peer == NULL)
     {
+      GNUNET_STATISTICS_update (stats,
+                                gettext_noop ("# outstanding peerinfo iterate requests"),
+                                -1,
+                                GNUNET_NO);
       n->piter = NULL;
       return;
     } 
@@ -2777,6 +2781,14 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer,
                                                   &neighbour_timeout_task, n);
   if (do_hello)
     {
+      GNUNET_STATISTICS_update (stats,
+                                gettext_noop ("# peerinfo iterate requests"),
+                                1,
+                                GNUNET_NO);
+      GNUNET_STATISTICS_update (stats,
+                                gettext_noop ("# outstanding peerinfo iterate requests"),
+                                1,
+                                GNUNET_NO);
       n->piter = GNUNET_PEERINFO_iterate (peerinfo, peer,
 					  GNUNET_TIME_UNIT_FOREVER_REL,
 					  &add_hello_for_peer, n);
@@ -3370,13 +3382,19 @@ handle_payload_message (const struct GNUNET_MessageHeader *message,
   msize = ntohs (message->size);
   if (n->received_pong == GNUNET_NO)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Received message of type %u and size %u from `%4s', but no pong yet!!\n",
+                  ntohs (message->type),
+                  ntohs (message->size),
+                  GNUNET_i2s (&n->id));
       GNUNET_free_non_null (n->pre_connect_message_buffer);
       n->pre_connect_message_buffer = GNUNET_malloc (msize);
       memcpy (n->pre_connect_message_buffer, message, msize);
       return;
     }
+
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 	      "Received message of type %u and size %u from `%4s', sending to all clients.\n",
 	      ntohs (message->type), 
 	      ntohs (message->size), 
@@ -3468,7 +3486,7 @@ check_pending_validation (void *cls,
   addr = (const char*) &pong[1];
   slen = strlen (ve->transport_name) + 1;
   if ( (ps - sizeof (struct TransportPongMessage) != ve->addrlen + slen) ||
-       (ve->challenge != challenge) ||       
+       (ve->challenge != challenge) ||
        (addr[slen-1] != '\0') ||
        (0 != strcmp (addr, ve->transport_name)) || 
        (ntohl (pong->purpose.size) 
@@ -3476,7 +3494,10 @@ check_pending_validation (void *cls,
 	sizeof (uint32_t) +
 	sizeof (struct GNUNET_TIME_AbsoluteNBO) +
 	sizeof (struct GNUNET_PeerIdentity) + ve->addrlen + slen) )
-    return GNUNET_YES;
+    {
+      return GNUNET_YES;
+    }
+
   alen = ps - sizeof (struct TransportPongMessage) - slen;
   switch (ntohl (pong->purpose.purpose))
     {
@@ -3485,7 +3506,9 @@ check_pending_validation (void *cls,
 	   (0 != memcmp (&addr[slen],
 			 ve->addr,
 			 ve->addrlen)) )
-	return GNUNET_YES; /* different entry, keep trying! */
+        {
+          return GNUNET_YES; /* different entry, keep trying! */
+        }
       if (0 != memcmp (&pong->pid,
 		       key,
 		       sizeof (struct GNUNET_PeerIdentity))) 
@@ -3502,6 +3525,13 @@ check_pending_validation (void *cls,
 	  GNUNET_break_op (0);
 	  return GNUNET_NO;
 	}
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Confirmed validity of address, peer `%4s' has address `%s' (%s).\n",
+                  GNUNET_h2s (key),
+                  a2s (ve->transport_name,
+                       (const struct sockaddr *) ve->addr,
+                       ve->addrlen),
+                  ve->transport_name);
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Confirmed validity of address, peer `%4s' has address `%s' (%s).\n",
@@ -3514,7 +3544,9 @@ check_pending_validation (void *cls,
       break;
     case GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_USING:
       if (ve->addrlen != 0) 
-	return GNUNET_YES; /* different entry, keep trying */
+        {
+          return GNUNET_YES; /* different entry, keep trying */
+        }
       if ( (0 != memcmp (&pong->pid,
 			 &my_identity,
 			 sizeof (struct GNUNET_PeerIdentity))) ||
@@ -3541,7 +3573,7 @@ check_pending_validation (void *cls,
 	}
       if (oal == NULL)
 	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		      _("Not accepting PONG with address `%s' since I cannot confirm having this address.\n"),
 		      a2s (ve->transport_name,
 			   &addr[slen],
@@ -3557,6 +3589,7 @@ check_pending_validation (void *cls,
 	  GNUNET_break_op (0);
 	  return GNUNET_NO;
 	}
+
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Confirmed that peer `%4s' is talking to us using address `%s' (%s) for us.\n",
@@ -3961,6 +3994,10 @@ check_hello_validated (void *cls,
 
   if (peer == NULL)
     {
+      GNUNET_STATISTICS_update (stats,
+                                gettext_noop ("# outstanding peerinfo iterate requests"),
+                                -1,
+                                GNUNET_NO);
       chvc->piter = NULL;
       if (GNUNET_NO == chvc->hello_known)
 	{
@@ -4161,6 +4198,14 @@ process_hello (struct TransportPlugin *plugin,
 			       chvc);
   /* finally, check if HELLO was previously validated
      (continuation will then schedule actual validation) */
+  GNUNET_STATISTICS_update (stats,
+                            gettext_noop ("# peerinfo iterate requests"),
+                            1,
+                            GNUNET_NO);
+  GNUNET_STATISTICS_update (stats,
+                            gettext_noop ("# outstanding peerinfo iterate requests"),
+                            1,
+                            GNUNET_NO);
   chvc->piter = GNUNET_PEERINFO_iterate (peerinfo,
                                          &target,
                                          HELLO_VERIFICATION_TIMEOUT,
@@ -4297,6 +4342,10 @@ disconnect_neighbour (struct NeighbourList *n, int check)
   if (n->piter != NULL)
     {
       GNUNET_PEERINFO_iterate_cancel (n->piter);
+      GNUNET_STATISTICS_update (stats,
+                                gettext_noop ("# outstanding peerinfo iterate requests"),
+                                -1,
+                                GNUNET_NO);
       n->piter = NULL;
     }
   /* finally, free n itself */
@@ -4590,7 +4639,6 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   uint16_t msize;
   struct NeighbourList *n;
   struct GNUNET_TIME_Relative ret;
-
   if (is_blacklisted (peer, plugin))
     return GNUNET_TIME_UNIT_FOREVER_REL;
 
@@ -4653,6 +4701,7 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 				    GNUNET_NO);
 	  return GNUNET_CONSTANTS_QUOTA_VIOLATION_TIMEOUT;
 	}
+
 #if DEBUG_PING_PONG
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Received message of type %u and size %u from `%4s', sending to all clients.\n",
@@ -4683,7 +4732,7 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   ret = GNUNET_BANDWIDTH_tracker_get_delay (&n->in_tracker, 0);
   if (ret.value > 0)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Throttling read (%llu bytes excess at %u b/s), waiting %llums before reading more.\n",
 		  (unsigned long long) n->in_tracker.consumption_since_last_update__,
 		  (unsigned int) n->in_tracker.available_bytes_per_s__,
@@ -4952,7 +5001,7 @@ handle_set_quota (void *cls,
 					 qsm->quota);
   if (0 == ntohl (qsm->quota.value__)) 
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Disconnecting peer `%4s', %s\n", GNUNET_i2s(&n->id),
                 "SET_QUOTA");
       disconnect_neighbour (n, GNUNET_NO);
@@ -5258,7 +5307,13 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       chvc_head = chvc->next;
       if (chvc->piter != NULL)
-	GNUNET_PEERINFO_iterate_cancel (chvc->piter);      
+        {
+          GNUNET_PEERINFO_iterate_cancel (chvc->piter);
+          GNUNET_STATISTICS_update (stats,
+                                    gettext_noop ("# outstanding peerinfo iterate requests"),
+                                    -1,
+                                    GNUNET_NO);
+        }
       else
 	GNUNET_break (0);
       GNUNET_assert (chvc->ve_count == 0);
