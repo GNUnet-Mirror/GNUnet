@@ -80,7 +80,7 @@ typedef int Socket;
  */
 #define DUMMY_IP "192.0.2.86"
 
-#define VERBOSE 0
+#define VERBOSE 1
 
 /**
  * How often do we send our ICMP messages to receive replies?
@@ -251,7 +251,11 @@ process_icmp_response ()
       return; 
     }
   have_port = 0;
-
+#if VERBOSE
+  fprintf (stderr,
+           "Received message of %u bytes\n",
+           (unsigned int) have);
+#endif
   if (have == sizeof (struct ip_packet) *2 + sizeof (struct icmp_packet) * 2 + sizeof(uint32_t))
     {
       have_port = 1;
