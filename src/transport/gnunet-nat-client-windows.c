@@ -180,6 +180,18 @@ make_echo (const struct in_addr *src_ip,
 				       sizeof (struct icmp_echo_packet)));
 }
 
+static void
+make_echo2 (const struct in_addr *src_ip,
+           struct icmp_packet *echo)
+{
+  memset(echo, 0, sizeof(struct icmp_packet));
+  echo->type = ICMP_ECHO;
+  echo->code = 0;
+  echo->reserved = 0;
+  echo->checksum = 0;
+  echo->checksum = htons(calc_checksum((uint16_t*)echo, sizeof (struct icmp_packet)));
+}
+
 /**
  * Send an ICMP message to the dummy IP.
  *
@@ -211,7 +223,7 @@ send_icmp_echo (const struct in_addr *my_ip)
   ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt, sizeof (ip_pkt)));
   memcpy (packet, &ip_pkt, sizeof (ip_pkt));
   off += sizeof (ip_pkt);
-  make_echo (my_ip, &icmp_echo);
+  make_echo2 (my_ip, &icmp_echo);
   memcpy (&packet[off], &icmp_echo, sizeof (icmp_echo));
   off += sizeof (icmp_echo);
 
