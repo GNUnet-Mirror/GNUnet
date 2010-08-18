@@ -390,6 +390,19 @@ send_icmp (const struct in_addr *my_ip,
 
   memcpy (packet, &ip_pkt, sizeof (struct ip_packet));
   off += sizeof (ip_pkt);
+  memset (&dst, 0, sizeof (dst));
+  dst.sin_family = AF_INET;
+  //dst.sin_addr = *other;
+  dst.sin_addr = *other;
+
+  err = sendto(rawsock,
+         packet,
+         off, 0,
+         (struct sockaddr*)&dst,
+         sizeof(dst)); /* or sizeof 'struct sockaddr'? */
+
+  fprintf(stderr, "Sent %d bytes\n", err);
+
   /* icmp reply: time exceeded */
   icmp_pkt = (struct icmp_packet*) &packet[off];
   memset(icmp_pkt, 0, sizeof(struct icmp_packet));
@@ -423,10 +436,6 @@ send_icmp (const struct in_addr *my_ip,
   icmp_pkt->checksum = htons(calc_checksum((uint16_t*)icmp_pkt,
                                              sizeof (struct icmp_packet) + sizeof(struct ip_packet) + sizeof(struct icmp_echo_packet)));
 
-  memset (&dst, 0, sizeof (dst));
-  dst.sin_family = AF_INET;
-  //dst.sin_addr = *other;
-  dst.sin_addr = *other;
   err = sendto(rawsock, 
 	       packet, 
 	       off, 0, 
