@@ -223,7 +223,7 @@ send_icmp_echo (const struct in_addr *my_ip)
   ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt, sizeof (ip_pkt)));
   memcpy (packet, &ip_pkt, sizeof (ip_pkt));
   off += sizeof (ip_pkt);
-  make_echo2 (my_ip, &icmp_echo);
+  make_echo (my_ip, &icmp_echo, port);
   memcpy (&packet[off], &icmp_echo, sizeof (icmp_echo));
   off += sizeof (icmp_echo);
 
