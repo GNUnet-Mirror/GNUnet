@@ -4,6 +4,10 @@ plugindir = $(libdir)/gnunet
 
 if MINGW
   WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
+  NATBIN = gnunet-nat-server
+  NATSERVER = gnunet-nat-server-windows.c
+else
+  NATSERVER = gnunet-nat-server.c
 endif
 
 if HAVE_MHD
@@ -64,9 +68,10 @@ bin_PROGRAMS = \
 bin_SCRIPTS = \
  gnunet-transport-certificate-creation
 
-gnunet_nat_server_SOURCES = \
- gnunet-nat-server.c         
 
+gnunet_nat_server_SOURCES = \
+ $(NATSERVER)
+ 
 gnunet_transport_wlan_helper_SOURCES = \
  gnunet-transport-wlan-helper.c         
 gnunet_transport_wlan_helper_LDADD = \
