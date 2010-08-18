@@ -356,19 +356,25 @@ make_icmp_socket ()
 	       strerror (errno));
       return -1;
     }  
+#if WIN32
+  if (ret == INVALID_SOCKET)
+    {
+      fprintf (stderr,
+               "Invalid socket %d!\n",
+               ret)
+      closesocket (ret);
+    }
+#else
   if (ret >= FD_SETSIZE) 
     {
       fprintf (stderr,
 	       "Socket number too large (%d > %u)\n",
 	       ret,
 	       (unsigned int) FD_SETSIZE);
-#ifdef WIN32
-      closesocket (ret);
-#else
       close (ret);
-#endif
       return -1;
     }
+#endif
   return ret;
 }
 
