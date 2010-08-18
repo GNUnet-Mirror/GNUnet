@@ -64,6 +64,7 @@
 
 
 #ifdef WIN32
+typedef unsigned int uid_t;
 typedef SOCKET Socket;
 typedef unsigned short ushort;
 #define ICMP_ECHO 8
