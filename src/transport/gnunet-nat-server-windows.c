@@ -243,7 +243,6 @@ process_icmp_response ()
   int have_port;
   int have_udp;
   uint32_t port;
-  char addr_buf[13];
   have = read (icmpsock, buf, sizeof (buf));
   if (have == -1)
     {
@@ -315,7 +314,7 @@ process_icmp_response ()
 #ifdef WIN32
       DWORD ssize = sizeof(buf);
       WSAAddressToString((LPSOCKADDR)&sip, sizeof(sip), NULL, buf, &ssize);
-      fprintf (stdout, "%s:%d\n", buf, ntohl((u_long)udp_pkt.length));
+      fprintf (stdout, "%s:%d\n", buf, ntohs((int)udp_pkt.length));
 #else
       fprintf (stdout,
                "%s:%d\n",
