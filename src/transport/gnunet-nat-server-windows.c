@@ -149,7 +149,7 @@ static int inet_pton (int af, char *cp, struct in_addr *buf)
 {
   //ret = WSAStringToAddress (cp, af, NULL, (LPSOCKADDR)buf, &ssize);
   buf->s_addr = inet_addr(cp);
-  if (buf->s_addr != INADDR_NONE)
+  if (buf->s_addr == INADDR_NONE)
     {
       fprintf(stderr, "Error %d handling address %s", WSAGetLastError(), cp);
       return 0;
