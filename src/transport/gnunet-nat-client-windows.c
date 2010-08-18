@@ -401,7 +401,7 @@ send_icmp (const struct in_addr *my_ip,
          (struct sockaddr*)&dst,
          sizeof(dst)); /* or sizeof 'struct sockaddr'? */
 
-  fprintf(stderr, "Sent %d bytes\n", err);
+  fprintf(stderr, "Sent %d bytes (wanted %d)\n", err, off);
 
   /* icmp reply: time exceeded */
   icmp_pkt = (struct icmp_packet*) &packet[off];
