@@ -122,7 +122,7 @@ static Socket icmpsock;
 
 static Socket rawsock;
 
-static struct in_addr dummy;
+static struct sockaddr_storage dummy;
 
 static uint16_t 
 calc_checksum(const uint16_t *data, 
@@ -414,7 +414,7 @@ make_raw_socket ()
 int
 main (int argc, char *const *argv)
 {
-  struct in_addr external;
+  struct sockaddr_storage external;
   fd_set rs;
   struct timeval tv;
 #ifndef WIN32
