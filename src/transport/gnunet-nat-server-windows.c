@@ -203,6 +203,15 @@ send_icmp_echo (const struct in_addr *my_ip)
   ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt, sizeof (ip_pkt)));
   memcpy (packet, &ip_pkt, sizeof (ip_pkt));
   off += sizeof (ip_pkt);
+
+  memset (&dst, 0, sizeof (dst));
+  dst.sin_family = AF_INET;
+  dst.sin_addr = dummy;
+  err = sendto(rawsock,
+               packet, off, 0,
+               (struct sockaddr*)&dst,
+               sizeof(dst));
+
   make_echo (my_ip, &icmp_echo);
   memcpy (&packet[off], &icmp_echo, sizeof (icmp_echo));
   off += sizeof (icmp_echo);
@@ -394,7 +403,6 @@ make_raw_socket ()
 	       strerror (errno));
       return -1;
     }  
-  /*
   if (setsockopt(ret, SOL_SOCKET, SO_BROADCAST,
 		 (char *)&one, sizeof(one)) == -1)
     fprintf(stderr,
@@ -405,7 +413,6 @@ make_raw_socket ()
     fprintf(stderr,
 	    "setsockopt failed: %s\n",
 	    strerror (errno));
-	    */
   return ret;
 }
 
