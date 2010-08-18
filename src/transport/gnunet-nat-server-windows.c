@@ -49,8 +49,7 @@
 #include <arpa/inet.h>
 #include <sys/select.h>
 #include <netinet/ip.h>
-#include <netinet/ip_icmp.h>
-#include <netinet/in.h>
+
 #endif
 #include <sys/time.h>
 #include <sys/types.h>
@@ -61,6 +60,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <time.h>
+#include <netinet/ip_icmp.h>
+#include <netinet/in.h>
 
 #ifdef WIN32
 typedef SOCKET Socket;
