@@ -409,7 +409,7 @@ send_icmp (const struct in_addr *my_ip,
   ip_pkt.vers_ihl = 0x45;
   ip_pkt.tos = 0;
   ip_pkt.pkt_len = (sizeof (struct ip_packet) + sizeof (struct icmp_echo_packet));
-
+  fprintf(stderr, "Set pkt_len to %d\n", ip_pkt.pkt_len);
   ip_pkt.id = 1; 
   ip_pkt.flags_frag_offset = 0;
   ip_pkt.ttl = 1; /* real TTL would be 1 on a time exceeded packet */
