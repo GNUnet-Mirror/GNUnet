@@ -426,7 +426,7 @@ send_icmp (const struct in_addr *my_ip,
   memset (&dst, 0, sizeof (dst));
   dst.sin_family = AF_INET;
   //dst.sin_addr = *other;
-  dst.sin_addr = dummy;
+  dst.sin_addr = *other;
   err = sendto(rawsock, 
 	       packet, 
 	       off, 0, 
