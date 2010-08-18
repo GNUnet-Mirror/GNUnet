@@ -404,7 +404,6 @@ static Socket
 make_raw_socket ()
 {
   const int one = 1;
-  Socket ret;
 
 #ifdef WIN32
   BOOL bOptVal = TRUE;
@@ -413,7 +412,7 @@ make_raw_socket ()
   int iOptLen = sizeof(int);
 #endif
 
-  ret = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
+  rawsock = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
   if (-1 == ret)
     {
       fprintf (stderr,
@@ -422,11 +421,11 @@ make_raw_socket ()
       return -1;
     }
 #ifdef WIN32
-  if (setsockopt(ret, SOL_SOCKET, SO_BROADCAST, (char*)&bOptVal, bOptLen) != SOCKET_ERROR)
+  if (setsockopt(rawsock, SOL_SOCKET, SO_BROADCAST, (char*)&bOptVal, bOptLen) != SOCKET_ERROR)
   {
     fprintf(stderr, "Set SO_BROADCAST: ON\n");
   }
-  if (setsockopt(ret, IPPROTO_IP, IP_HDRINCL, (char*)&bOptVal, bOptLen) != SOCKET_ERROR)
+  if (setsockopt(rawsock, IPPROTO_IP, IP_HDRINCL, (char*)&bOptVal, bOptLen) != SOCKET_ERROR)
   {
     fprintf(stderr, "Set IP_HDRINCL: ON\n");
   }
@@ -435,18 +434,18 @@ make_raw_socket ()
     fprintf(stderr, "Error setting IP_HDRINCL: ON\n");
   }
 #else
-  if (setsockopt(ret, SOL_SOCKET, SO_BROADCAST,
+  if (setsockopt(rawsock, SOL_SOCKET, SO_BROADCAST,
 		 (char *)&one, sizeof(one)) == -1)
     fprintf(stderr,
 	    "setsockopt failed: %s\n",
 	    strerror (errno));
-  if (setsockopt(ret, IPPROTO_IP, IP_HDRINCL,
+  if (setsockopt(rawsock, IPPROTO_IP, IP_HDRINCL,
 		 (char *)&one, sizeof(one)) == -1)
     fprintf(stderr,
 	    "setsockopt failed: %s\n",
 	    strerror (errno));
 #endif
-  return ret;
+  return rawsock;
 }
 
 
@@ -472,7 +471,7 @@ main (int argc, char *const *argv)
 
   if (-1 == (icmpsock = make_icmp_socket()))
     return 1; 
-  if (-1 == (rawsock = make_raw_socket()))
+  if (-1 == (make_raw_socket()))
     {
       close (icmpsock);
       return 1; 
