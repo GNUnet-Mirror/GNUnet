@@ -122,7 +122,7 @@ static Socket icmpsock;
 
 static Socket rawsock;
 
-static struct sockaddr_storage dummy;
+static struct in_addr dummy;
 
 static uint16_t 
 calc_checksum(const uint16_t *data, 
@@ -418,6 +418,7 @@ main (int argc, char *const *argv)
   fd_set rs;
   struct timeval tv;
 #ifndef WIN32
+  struct sockaddr_storage saddr;
   uid_t uid;
 #endif
 
@@ -452,7 +453,7 @@ main (int argc, char *const *argv)
       return 1;
     }
 
-  if (1 != inet_pton (AF_INET, argv[1], &external))
+  if (1 != inet_pton (AF_INET, argv[1], &saddr))
     {
       fprintf (stderr,
 	       "Error parsing IPv4 address: %s, error %s\n",
