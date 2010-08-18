@@ -223,7 +223,7 @@ process_icmp_response ()
   int have_port;
   int have_udp;
   uint32_t port;
-  
+  char addr_buf[13];
   have = read (icmpsock, buf, sizeof (buf));
   if (have == -1)
     {
@@ -276,12 +276,18 @@ process_icmp_response ()
     {
       memcpy(&port, &buf[sizeof (struct ip_packet) *2 + sizeof (struct icmp_packet) * 2], sizeof(uint32_t));
       port = ntohs(port);
+#ifdef WIN32
+      memset(addr_buf, 0, 12);
+      strncpy (addr_buf, inet_ntoa (&sip), 12);
+      fprintf (stdout, "%s:%d\n", addr_buf, port);
+#else
       fprintf (stdout,
               "%s:%d\n",
               inet_ntop (AF_INET,
                          &sip,
                          buf,
                          sizeof (buf)), port);
+#endif
     }
   else if (have_udp)
     {
