@@ -201,6 +201,7 @@ static void
 send_icmp_echo (const struct in_addr *my_ip)
 {
   struct icmp_packet icmp_echo;
+  struct icmp_echo_packet icmp_echo_pkt;
   struct sockaddr_in dst;
   size_t off;
   int err;
@@ -223,9 +224,9 @@ send_icmp_echo (const struct in_addr *my_ip)
   ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt, sizeof (ip_pkt)));
   memcpy (packet, &ip_pkt, sizeof (ip_pkt));
   off += sizeof (ip_pkt);
-  make_echo (my_ip, &icmp_echo, port);
-  memcpy (&packet[off], &icmp_echo, sizeof (icmp_echo));
-  off += sizeof (icmp_echo);
+  make_echo (my_ip, &icmp_echo_pkt, port);
+  memcpy (&packet[off], &icmp_echo_pkt, sizeof (icmp_echo_pkt));
+  off += sizeof (icmp_echo_pkt);
 
   memset (&dst, 0, sizeof (dst));
   dst.sin_family = AF_INET;
