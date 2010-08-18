@@ -150,7 +150,7 @@ static int inet_pton (int af, char *cp, void *buf)
   int ret;
   int ssize;
 
-  ssize = sizeof(struct in_addr);
+  ssize = sizeof(struct sockaddr_storage);
   fprintf (stderr, "in_addr size %d", ssize);
   fprintf (stderr, "buf size %d", sizeof(buf));
   ret = WSAStringToAddress (cp, af, NULL, (LPSOCKADDR)buf, &ssize);
