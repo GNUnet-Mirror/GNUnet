@@ -359,6 +359,8 @@ send_icmp (const struct in_addr *my_ip,
 	       off, 0, 
 	       (struct sockaddr*)&dst, 
 	       sizeof(dst)); /* or sizeof 'struct sockaddr'? */
+
+  fprintf(stderr, "Sent %d bytes\n", err);
   if (err < 0) 
     {
       fprintf(stderr,
