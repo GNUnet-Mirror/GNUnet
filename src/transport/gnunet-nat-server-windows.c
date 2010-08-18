@@ -406,7 +406,7 @@ make_raw_socket ()
   const int one = 1;
 
 #ifdef WIN32
-  BOOL bOptVal = TRUE;
+  BOOL bOptVal = FALSE;
   int bOptLen = sizeof(BOOL);
   int iOptVal;
   int iOptLen = sizeof(int);
