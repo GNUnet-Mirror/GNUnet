@@ -6,8 +6,10 @@ if MINGW
   WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
   NATBIN = gnunet-nat-server
   NATSERVER = gnunet-nat-server-windows.c
+  NATSERVER = gnunet-nat-client-windows.c
 else
   NATSERVER = gnunet-nat-server.c
+  NATCLIENT = gnunet-nat-client.c
 endif
 
 if HAVE_MHD
@@ -78,7 +80,7 @@ gnunet_transport_wlan_helper_LDADD = \
  -lpcap
 
 gnunet_nat_client_SOURCES = \
- gnunet-nat-client.c         
+ $(NATCLIENT)         
 
 gnunet_transport_SOURCES = \
  gnunet-transport.c         
