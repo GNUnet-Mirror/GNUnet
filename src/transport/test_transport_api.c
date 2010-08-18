@@ -129,6 +129,7 @@ stop_arm (struct PeerContext *p)
 static void
 end_badly ()
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transports!\n");
   GNUNET_break (0);
   GNUNET_TRANSPORT_disconnect (p1.th);
   GNUNET_TRANSPORT_disconnect (p2.th);
@@ -166,10 +167,11 @@ notify_ready (void *cls, size_t size, void *buf)
   struct GNUNET_MessageHeader *hdr;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmitting message to peer (%p) - %u!\n", cls, size);
+              "Transmitting message to peer (%p) - %u!\n", cls, sizeof (struct GNUNET_MessageHeader));
   GNUNET_assert (size >= 256);
   GNUNET_assert (ok == 4);
   OKPP;
+
   if (buf != NULL)
   {
     hdr = buf;
