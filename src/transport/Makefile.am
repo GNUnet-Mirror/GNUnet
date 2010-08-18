@@ -38,6 +38,7 @@ else
 install-exec-hook:
 endif
 
+#noinst_PROGRAMS = ${check_PROGRAMS}
 
 lib_LTLIBRARIES = \
   libgnunettransport.la
