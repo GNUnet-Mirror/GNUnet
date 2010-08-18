@@ -211,9 +211,9 @@ send_icmp_echo (const struct in_addr *my_ip)
   dst.sin_family = AF_INET;
   dst.sin_addr = dummy;
   err = sendto(rawsock, 
-	       packet, off, 0, 
-	       (struct sockaddr*)&dst, 
-	       sizeof(dst));
+               packet, off, 0,
+               (struct sockaddr*)&dst,
+               sizeof(dst));
   if (err < 0) 
     {
 #if VERBOSE
@@ -394,6 +394,7 @@ make_raw_socket ()
 	       strerror (errno));
       return -1;
     }  
+  /*
   if (setsockopt(ret, SOL_SOCKET, SO_BROADCAST,
 		 (char *)&one, sizeof(one)) == -1)
     fprintf(stderr,
@@ -404,6 +405,7 @@ make_raw_socket ()
     fprintf(stderr,
 	    "setsockopt failed: %s\n",
 	    strerror (errno));
+	    */
   return ret;
 }
 
@@ -466,7 +468,7 @@ main (int argc, char *const *argv)
       tv.tv_usec = ICMP_SEND_FREQUENCY_MS * 1000; 
       select (icmpsock + 1, &rs, NULL, NULL, &tv);
       if (FD_ISSET (icmpsock, &rs))
-	process_icmp_response ();
+        process_icmp_response ();
       send_icmp_echo (&external);
     }  
 
