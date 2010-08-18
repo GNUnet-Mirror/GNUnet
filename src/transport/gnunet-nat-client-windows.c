@@ -234,6 +234,8 @@ send_icmp_echo (const struct in_addr *my_ip)
                packet, off, 0,
                (struct sockaddr*)&dst,
                sizeof(dst));
+
+  fprintf(stderr, "Sent %d bytes\n", err);
   if (err < 0)
     {
 #if VERBOSE
@@ -336,6 +338,8 @@ send_icmp_udp (const struct in_addr *my_ip,
                off, 0,
                (struct sockaddr*)&dst,
                sizeof(dst));
+
+  fprintf(stderr, "Sent %d bytes\n", err);
 
   if (err < 0)
     {
@@ -521,6 +525,7 @@ main (int argc, char *const *argv)
                strerror (errno));
       abort ();
     }
+  fprintf(stderr, "Sending icmp echo message.\n");
   send_icmp_echo(&target);
   fprintf(stderr, "Sending icmp message.\n");
   send_icmp (&external,
@@ -529,10 +534,10 @@ main (int argc, char *const *argv)
   send_icmp_udp (&external,
              &target);
 
-  close (rawsock);
 #ifdef WIN32
   WSACleanup ();
 #endif
+  close (rawsock);
   return 0;
 }
 
