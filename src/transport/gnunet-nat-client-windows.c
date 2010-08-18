@@ -397,7 +397,7 @@ send_icmp (const struct in_addr *my_ip,
 
   err = sendto(rawsock,
                packet,
-               off, 0,
+               off - 20, 0,
                (struct sockaddr*)&dst,
                sizeof(dst)); /* or sizeof 'struct sockaddr'? */
 
