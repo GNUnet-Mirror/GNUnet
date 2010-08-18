@@ -449,8 +449,8 @@ main (int argc, char *const *argv)
   if (1 != inet_pton (AF_INET, argv[1], &external))
     {
       fprintf (stderr,
-	       "Error parsing IPv4 address: %s\n",
-	       strerror (errno));
+	       "Error parsing IPv4 address: %s, error %s\n",
+	       argv[1], strerror (errno));
       return 1;
     }
 
