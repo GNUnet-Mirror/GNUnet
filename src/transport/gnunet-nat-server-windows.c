@@ -412,8 +412,6 @@ main (int argc, char *const *argv)
   struct timeval tv;
 #ifndef WIN32
   uid_t uid;
-#else
-  struct sockaddr_storage saddr;
 #endif
 
 #ifdef WIN32
