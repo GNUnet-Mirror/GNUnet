@@ -2277,6 +2277,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
       plugin->env->notify_address (plugin->env->cls,
                                   "udp",
                                   &v4_address, sizeof(v4_address), GNUNET_TIME_UNIT_FOREVER_REL);
+      add_to_address_list (plugin, &v4_address.ipv4_addr, sizeof (uint32_t));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Notifying plugin of address %s:0\n", plugin->external_address);
     }
   else if ((plugin->external_address != NULL) && (inet_pton(AF_INET, plugin->external_address, &v4_address.ipv4_addr) == 1))
     {
@@ -2284,6 +2286,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
       plugin->env->notify_address (plugin->env->cls,
                                   "udp",
                                   &v4_address, sizeof(v4_address), GNUNET_TIME_UNIT_FOREVER_REL);
+      add_to_address_list (plugin, &v4_address.ipv4_addr, sizeof (uint32_t));
     }
 
   sockets_created = udp_transport_server_start (plugin);
