@@ -203,15 +203,15 @@ send_icmp_echo (const struct in_addr *my_ip)
   memset(&ip_pkt, 0, sizeof(ip_pkt));
   ip_pkt.vers_ihl = 0x45;
   ip_pkt.tos = 0;
-  ip_pkt.pkt_len = sizeof (packet);
-  ip_pkt.id = 1;
-  ip_pkt.flags_frag_offset = 0;
-  ip_pkt.ttl = IPDEFTTL;
-  ip_pkt.proto = IPPROTO_ICMP;
-  ip_pkt.checksum = 0; 
-  ip_pkt.src_ip = my_ip->s_addr;
-  ip_pkt.dst_ip = dummy.s_addr;
-  ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt, sizeof (ip_pkt)));
+  //ip_pkt.pkt_len = sizeof (packet);
+  //ip_pkt.id = 1;
+  //ip_pkt.flags_frag_offset = 0;
+  //ip_pkt.ttl = IPDEFTTL;
+  //ip_pkt.proto = IPPROTO_ICMP;
+  //ip_pkt.checksum = 0;
+  //ip_pkt.src_ip = my_ip->s_addr;
+  //ip_pkt.dst_ip = dummy.s_addr;
+  //ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt, sizeof (ip_pkt)));
   memcpy (packet, &ip_pkt, sizeof (ip_pkt));
   off += sizeof (ip_pkt);
 
