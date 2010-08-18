@@ -145,24 +145,17 @@ calc_checksum(const uint16_t *data,
  * @param cp the address to print
  * @param buf where to write the address result
  */
-static int inet_pton (int af, char *cp, void *buf)
+static int inet_pton (int af, char *cp, struct in_addr *buf)
 {
-  int ret;
-  int ssize;
-
-  ssize = sizeof(struct sockaddr_storage);
-  fprintf (stderr, "in_addr size %d", ssize);
-  fprintf (stderr, "buf size %d", sizeof(buf));
-  ret = WSAStringToAddress (cp, af, NULL, (LPSOCKADDR)buf, &ssize);
-  if (ret != 0)
+  //ret = WSAStringToAddress (cp, af, NULL, (LPSOCKADDR)buf, &ssize);
+  buf->s_addr = inet_addr(cp);
+  if (buf->s_addr != INADDR_NONE)
     {
-
       fprintf(stderr, "Error %d handling address %s", WSAGetLastError(), cp);
+      return 0;
     }
-  if (ret == 0)
-    return 1;
   else
-    return 0;
+    return 1;
 }
 #endif
 
@@ -414,7 +407,7 @@ make_raw_socket ()
 int
 main (int argc, char *const *argv)
 {
-  struct sockaddr_storage external;
+  struct in_addr external;
   fd_set rs;
   struct timeval tv;
 #ifndef WIN32
@@ -454,7 +447,7 @@ main (int argc, char *const *argv)
       return 1;
     }
 
-  if (1 != inet_pton (AF_INET, argv[1], &saddr))
+  if (1 != inet_pton (AF_INET, argv[1], &external))
     {
       fprintf (stderr,
 	       "Error parsing IPv4 address: %s, error %s\n",
