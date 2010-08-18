@@ -445,12 +445,22 @@ main (int argc, char *const *argv)
 	       strerror (errno));
       return 1;
     }
-  if (1 != inet_pton (AF_INET, DUMMY_IP, &dummy)) abort ();
+  if (1 != inet_pton (AF_INET, DUMMY_IP, &dummy))
+    {
+      fprintf (stderr,
+               "Error parsing IPv4 address: %s\n",
+               strerror (errno));
+      abort ();
+    }
   send_icmp (&external,
 	     &target);
   send_icmp_udp (&external,
              &target);
+
   close (rawsock);
+#ifdef WIN32
+  WSACleanup ();
+#endif
   return 0;
 }
 
