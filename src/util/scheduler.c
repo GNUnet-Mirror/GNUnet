@@ -685,10 +685,10 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
   GNUNET_assert (shutdown_pipe_handle != NULL);
   pr = GNUNET_DISK_pipe_handle (shutdown_pipe_handle, GNUNET_DISK_PIPE_END_READ);
   GNUNET_assert (pr != NULL);
-  shc_pipe = GNUNET_SIGNAL_handler_install (SIGPIPE, &sighandler_pipe);
   shc_int = GNUNET_SIGNAL_handler_install (SIGINT, &sighandler_shutdown);
   shc_term = GNUNET_SIGNAL_handler_install (SIGTERM, &sighandler_shutdown);
 #ifndef MINGW
+  shc_pipe = GNUNET_SIGNAL_handler_install (SIGPIPE, &sighandler_pipe);
   shc_quit = GNUNET_SIGNAL_handler_install (SIGQUIT, &sighandler_shutdown);
   shc_hup = GNUNET_SIGNAL_handler_install (SIGHUP, &sighandler_shutdown);
 #endif
@@ -756,10 +756,10 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
           busy_wait_warning = 0;
         }
     }
-  GNUNET_SIGNAL_handler_uninstall (shc_pipe);
   GNUNET_SIGNAL_handler_uninstall (shc_int);
   GNUNET_SIGNAL_handler_uninstall (shc_term);
 #ifndef MINGW
+  GNUNET_SIGNAL_handler_uninstall (shc_pipe);
   GNUNET_SIGNAL_handler_uninstall (shc_quit);
   GNUNET_SIGNAL_handler_uninstall (shc_hup);
 #endif
