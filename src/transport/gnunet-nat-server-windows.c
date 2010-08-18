@@ -40,6 +40,7 @@
  * - Nathan Evans
  */
 #define _GNU_SOURCE
+
 #ifdef WIN32
 #include <winsock2.h>
 #else
@@ -366,13 +367,13 @@ main (int argc, char *const *argv)
   uid_t uid;
 
 #ifdef WIN32
-    // WSA startup
-    WSAData wsaData;
-    if (WSAStartup (MAKEWORD (2, 1), &wsaData) != 0)
-    {
-        fprintf (stderr, "Failed to find Winsock 2.1 or better.\n");
-        return 4;                       // ERROR
-    }
+  // WSA startup
+  WSADATA wsaData;
+  if (WSAStartup (MAKEWORD (2, 1), &wsaData) != 0)
+  {
+      fprintf (stderr, "Failed to find Winsock 2.1 or better.\n");
+      return 4;                       // ERROR
+  }
 #endif
 
   if (-1 == (icmpsock = make_icmp_socket()))
