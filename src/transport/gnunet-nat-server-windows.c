@@ -145,7 +145,7 @@ calc_checksum(const uint16_t *data,
  * @param cp the address to print
  * @param buf where to write the address result
  */
-static int inet_pton (int af, const char *cp, void *buf)
+static int inet_pton (int af, char *cp, void *buf)
 {
   int ret;
   int ssize;
@@ -153,7 +153,7 @@ static int inet_pton (int af, const char *cp, void *buf)
   ssize = sizeof(buf);
   ret = WSAStringToAddress (cp, af, NULL, (LPSOCKADDR)buf, &ssize);
 
-  if (retval == 0)
+  if (ret == 0)
     return 1;
   else
     return 0;
