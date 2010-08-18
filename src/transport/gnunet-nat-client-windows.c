@@ -452,8 +452,10 @@ main (int argc, char *const *argv)
                strerror (errno));
       abort ();
     }
+  fprintf(stderr, "Sending icmp message.\n");
   send_icmp (&external,
 	     &target);
+  fprintf(stderr, "Sending icmp udp message.\n");
   send_icmp_udp (&external,
              &target);
 
