@@ -422,11 +422,13 @@ main (int argc, char *const *argv)
       close (icmpsock);
       return 1; 
     }
+#ifndef WIN32
   uid = getuid ();
   if (0 != setresuid (uid, uid, uid))
     fprintf (stderr,
 	     "Failed to setresuid: %s\n",
-	     strerror (errno));    
+	     strerror (errno));
+#endif
   if (argc != 2)
     {
       fprintf (stderr,
