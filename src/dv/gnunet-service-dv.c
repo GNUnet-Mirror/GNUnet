@@ -2547,8 +2547,10 @@ static int handle_dv_disconnect_message (void *cls,
       if (distant->referrer_id == ntohl(enc_message->peer_id))
         {
           distant_neighbor_free(distant);
+          distant = referrer->referee_head;
         }
-      distant = referrer->referee_head;
+      else
+        distant = distant->next;
     }
 
   return GNUNET_OK;
