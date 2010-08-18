@@ -406,6 +406,13 @@ make_raw_socket ()
   const int one = 1;
   Socket ret;
 
+#ifdef WIN32
+  BOOL bOptVal = TRUE;
+  int bOptLen = sizeof(BOOL);
+  int iOptVal;
+  int iOptLen = sizeof(int);
+#endif
+
   ret = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
   if (-1 == ret)
     {
@@ -413,7 +420,21 @@ make_raw_socket ()
 	       "Error opening RAW socket: %s\n",
 	       strerror (errno));
       return -1;
-    }  
+    }
+#ifdef WIN32
+  if (setsockopt(ret, SOL_SOCKET, SO_BROADCAST, (char*)&bOptVal, bOptLen) != SOCKET_ERROR)
+  {
+    fprintf(stderr, "Set SO_BROADCAST: ON\n");
+  }
+  if (setsockopt(ret, IPPROTO_IP, IP_HDRINCL, (char*)&bOptVal, bOptLen) != SOCKET_ERROR)
+  {
+    fprintf(stderr, "Set IP_HDRINCL: ON\n");
+  }
+  else
+  {
+    fprintf(stderr, "Error setting IP_HDRINCL: ON\n");
+  }
+#else
   if (setsockopt(ret, SOL_SOCKET, SO_BROADCAST,
 		 (char *)&one, sizeof(one)) == -1)
     fprintf(stderr,
@@ -424,6 +445,7 @@ make_raw_socket ()
     fprintf(stderr,
 	    "setsockopt failed: %s\n",
 	    strerror (errno));
+#endif
   return ret;
 }
 
@@ -441,7 +463,7 @@ main (int argc, char *const *argv)
 #ifdef WIN32
   // WSA startup
   WSADATA wsaData;
-  if (WSAStartup (MAKEWORD (2, 1), &wsaData) != 0)
+  if (WSAStartup (MAKEWORD (2, 2), &wsaData) != 0)
   {
       fprintf (stderr, "Failed to find Winsock 2.1 or better.\n");
       return 4;                       // ERROR
