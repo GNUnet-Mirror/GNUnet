@@ -373,6 +373,9 @@ send_icmp (const struct in_addr *my_ip,
   size_t off;
   int err;
 
+  /* ip header: send to (known) ip address */
+  off = 0;
+
   dst.sin_family = AF_INET;
   //dst.sin_addr = *other;
   dst.sin_addr = dummy;
@@ -385,8 +388,6 @@ send_icmp (const struct in_addr *my_ip,
 
   fprintf(stderr, "Sent %d bytes (wanted %d)\n", err, off);
 
-  /* ip header: send to (known) ip address */
-  off = 0;
   memset(&ip_pkt, 0, sizeof(ip_pkt));
   ip_pkt.vers_ihl = 0x45;
   ip_pkt.tos = 0;
