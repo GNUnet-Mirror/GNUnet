@@ -413,7 +413,7 @@ make_raw_socket ()
 #endif
 
   rawsock = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
-  if (-1 == ret)
+  if (-1 == rawsock)
     {
       fprintf (stderr,
 	       "Error opening RAW socket: %s\n",
