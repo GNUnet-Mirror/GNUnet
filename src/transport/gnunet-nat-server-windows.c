@@ -309,6 +309,22 @@ process_icmp_response ()
                          sizeof (buf)), port);
 #endif
     }
+  else if (have_udp)
+    {
+      memcpy(&udp_pkt, &buf[off], sizeof(udp_pkt));
+#ifdef WIN32
+      DWORD ssize = sizeof(buf);
+      WSAAddressToString((LPSOCKADDR)&sip, sizeof(sip), NULL, buf, &ssize);
+      fprintf (stdout, "%s:%d\n", buf, ntohl((u_long)udp_pkt.length));
+#else
+      fprintf (stdout,
+               "%s:%d\n",
+               inet_ntop (AF_INET,
+                          &sip,
+                          buf,
+                          sizeof (buf)), ntohl(udp_pkt.length));
+#endif
+    }
   else
     {
 #ifdef WIN32
@@ -392,7 +408,9 @@ main (int argc, char *const *argv)
   struct in_addr external;
   fd_set rs;
   struct timeval tv;
+#ifndef WIN32
   uid_t uid;
+#endif
 
 #ifdef WIN32
   // WSA startup
