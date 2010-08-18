@@ -309,31 +309,20 @@ process_icmp_response ()
                          sizeof (buf)), port);
 #endif
     }
-  else if (have_udp)
+  else
     {
-      memcpy(&udp_pkt, &buf[off], sizeof(udp_pkt));
-
 #ifdef WIN32
       DWORD ssize = sizeof(buf);
       WSAAddressToString((LPSOCKADDR)&sip, sizeof(sip), NULL, buf, &ssize);
-      fprintf (stdout, "%s:%d\n", buf, ntohl(udp_pkt.length));
+      fprintf (stdout, "%s\n", buf);
 #else
-      fprintf (stdout,
-               "%s:%d\n",
-               inet_ntop (AF_INET,
-                          &sip,
-                          buf,
-                          sizeof (buf)), ntohl(udp_pkt.length));
-#endif
-    }
-  else
-    {
       fprintf (stdout,
               "%s\n",
               inet_ntop (AF_INET,
                          &sip,
                          buf,
                          sizeof (buf)));
+#endif
     }
   fflush (stdout);
 }
