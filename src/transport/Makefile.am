@@ -6,7 +6,7 @@ if MINGW
   WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
   NATBIN = gnunet-nat-server
   NATSERVER = gnunet-nat-server-windows.c
-  NATSERVER = gnunet-nat-client-windows.c
+  NATCLIENT = gnunet-nat-client-windows.c
 else
   NATSERVER = gnunet-nat-server.c
   NATCLIENT = gnunet-nat-client.c
