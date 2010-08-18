@@ -152,7 +152,11 @@ static int inet_pton (int af, char *cp, void *buf)
 
   ssize = sizeof(buf);
   ret = WSAStringToAddress (cp, af, NULL, (LPSOCKADDR)buf, &ssize);
+  if (ret != 0)
+    {
 
+      fprintf(stderr, "Error %d handling address %s", WSAGetLastError(), cp);
+    }
   if (ret == 0)
     return 1;
   else
