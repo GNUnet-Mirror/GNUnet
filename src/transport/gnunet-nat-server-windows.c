@@ -139,6 +139,26 @@ calc_checksum(const uint16_t *data,
   return sum;
 }
 
+#if WIN32
+/**
+ * @param af address family
+ * @param cp the address to print
+ * @param buf where to write the address result
+ */
+static int inet_pton (int af, const char *cp, void *buf)
+{
+  int ret;
+  int ssize;
+
+  ssize = sizeof(buf);
+  ret = WSAStringToAddress (cp, af, NULL, (LPSOCKADDR)buf, &ssize);
+
+  if (retval == 0)
+    return 1;
+  else
+    return 0;
+}
+#endif
 
 static void
 make_echo (const struct in_addr *src_ip,
@@ -292,12 +312,19 @@ process_icmp_response ()
   else if (have_udp)
     {
       memcpy(&udp_pkt, &buf[off], sizeof(udp_pkt));
+
+#ifdef WIN32
+      DWORD ssize = sizeof(buf);
+      WSAAddressToString((LPSOCKADDR)&sip, sizeof(sip), NULL, buf, &ssize);
+      fprintf (stdout, "%s:%d\n", buf, ntohl(udp_pkt.length));
+#else
       fprintf (stdout,
                "%s:%d\n",
                inet_ntop (AF_INET,
                           &sip,
                           buf,
                           sizeof (buf)), ntohl(udp_pkt.length));
+#endif
     }
   else
     {
@@ -406,6 +433,7 @@ main (int argc, char *const *argv)
 	       "This program must be started with our (internal NAT) IP as the only argument.\n");
       return 1;
     }
+
   if (1 != inet_pton (AF_INET, argv[1], &external))
     {
       fprintf (stderr,
@@ -413,6 +441,7 @@ main (int argc, char *const *argv)
 	       strerror (errno));
       return 1;
     }
+
   if (1 != inet_pton (AF_INET, DUMMY_IP, &dummy)) abort ();
   while (1)
     {
