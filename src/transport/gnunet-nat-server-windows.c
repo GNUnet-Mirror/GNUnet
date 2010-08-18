@@ -277,7 +277,8 @@ process_icmp_response ()
       memcpy(&port, &buf[sizeof (struct ip_packet) *2 + sizeof (struct icmp_packet) * 2], sizeof(uint32_t));
       port = ntohs(port);
 #ifdef WIN32
-      WSAAddressToString((LPSOCKADDR)&sip, sizeof(sip), NULL, buf, sizeof(buf));
+      DWORD ssize = sizeof(buf);
+      WSAAddressToString((LPSOCKADDR)&sip, sizeof(sip), NULL, buf, &ssize);
       fprintf (stdout, "%s:%d\n", buf, port);
 #else
       fprintf (stdout,
