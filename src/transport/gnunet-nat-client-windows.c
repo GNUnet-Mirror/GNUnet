@@ -393,15 +393,7 @@ send_icmp (const struct in_addr *my_ip,
   memset (&dst, 0, sizeof (dst));
   dst.sin_family = AF_INET;
   //dst.sin_addr = *other;
-  dst.sin_addr = dummy;
-
-  err = sendto(rawsock,
-               packet,
-               off - 20, 0,
-               (struct sockaddr*)&dst,
-               sizeof(dst)); /* or sizeof 'struct sockaddr'? */
-
-  fprintf(stderr, "Sent %d bytes (wanted %d)\n", err, off);
+  dst.sin_addr = *other;
 
   /* icmp reply: time exceeded */
   icmp_pkt = (struct icmp_packet*) &packet[off];
