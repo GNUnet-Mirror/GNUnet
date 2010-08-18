@@ -359,9 +359,7 @@ make_icmp_socket ()
 #if WIN32
   if (ret == INVALID_SOCKET)
     {
-      fprintf (stderr,
-               "Invalid socket %d!\n",
-               ret)
+      fprintf (stderr, "Invalid socket %d!\n", ret);
       closesocket (ret);
     }
 #else
