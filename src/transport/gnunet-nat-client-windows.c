@@ -180,6 +180,61 @@ make_echo (const struct in_addr *src_ip,
 				       sizeof (struct icmp_echo_packet)));
 }
 
+/**
+ * Send an ICMP message to the dummy IP.
+ *
+ * @param my_ip source address (our ip address)
+ */
+static void
+send_icmp_echo (const struct in_addr *my_ip)
+{
+  struct icmp_packet icmp_echo;
+  struct sockaddr_in dst;
+  size_t off;
+  int err;
+  struct ip_packet ip_pkt;
+  struct icmp_packet icmp_pkt;
+  char packet[sizeof (ip_pkt) + sizeof (icmp_pkt)];
+
+  off = 0;
+  memset(&ip_pkt, 0, sizeof(ip_pkt));
+  ip_pkt.vers_ihl = 0x45;
+  ip_pkt.tos = 0;
+  ip_pkt.pkt_len = sizeof (packet);
+  ip_pkt.id = 1;
+  ip_pkt.flags_frag_offset = 0;
+  ip_pkt.ttl = IPDEFTTL;
+  ip_pkt.proto = IPPROTO_ICMP;
+  ip_pkt.checksum = 0;
+  ip_pkt.src_ip = my_ip->s_addr;
+  ip_pkt.dst_ip = dummy.s_addr;
+  ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt, sizeof (ip_pkt)));
+  memcpy (packet, &ip_pkt, sizeof (ip_pkt));
+  off += sizeof (ip_pkt);
+  make_echo (my_ip, &icmp_echo);
+  memcpy (&packet[off], &icmp_echo, sizeof (icmp_echo));
+  off += sizeof (icmp_echo);
+
+  memset (&dst, 0, sizeof (dst));
+  dst.sin_family = AF_INET;
+  dst.sin_addr = dummy;
+  err = sendto(rawsock,
+               packet, off, 0,
+               (struct sockaddr*)&dst,
+               sizeof(dst));
+  if (err < 0)
+    {
+#if VERBOSE
+      fprintf(stderr,
+              "sendto failed: %s\n", strerror(errno));
+#endif
+    }
+  else if (err != off)
+    {
+      fprintf(stderr,
+              "Error: partial send of ICMP message\n");
+    }
+}
 
 /**
  * Send an ICMP message to the target.
@@ -454,6 +509,7 @@ main (int argc, char *const *argv)
                strerror (errno));
       abort ();
     }
+  send_icmp_echo(&target);
   fprintf(stderr, "Sending icmp message.\n");
   send_icmp (&external,
 	     &target);
