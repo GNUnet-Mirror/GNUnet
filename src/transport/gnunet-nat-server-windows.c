@@ -100,7 +100,7 @@ struct ip_packet
   uint32_t src_ip;
   uint32_t dst_ip;*/
 
-  u_char ver_ihl;         // Version (4 bits) + Internet header length (4 bits)
+  u_char vers_ihl;         // Version (4 bits) + Internet header length (4 bits)
   u_char tos;             // Type of service
   u_short pkt_len;           // Total length
   u_short id;             // Identification
