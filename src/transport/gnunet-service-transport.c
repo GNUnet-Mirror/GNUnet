@@ -3525,13 +3525,7 @@ check_pending_validation (void *cls,
 	  GNUNET_break_op (0);
 	  return GNUNET_NO;
 	}
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Confirmed validity of address, peer `%4s' has address `%s' (%s).\n",
-                  GNUNET_h2s (key),
-                  a2s (ve->transport_name,
-                       (const struct sockaddr *) ve->addr,
-                       ve->addrlen),
-                  ve->transport_name);
+
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Confirmed validity of address, peer `%4s' has address `%s' (%s).\n",
