@@ -373,6 +373,7 @@ send_icmp (const struct in_addr *my_ip,
   size_t off;
   int err;
 
+  memset(packet, 0, sizeof(packet));
   /* ip header: send to (known) ip address */
   off = 0;
   memset(&ip_pkt, 0, sizeof(ip_pkt));
