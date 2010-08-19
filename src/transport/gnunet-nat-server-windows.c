@@ -406,13 +406,13 @@ make_raw_socket ()
   const int one = 1;
 
 #ifdef WIN32
-  BOOL bOptVal = FALSE;
-  int bOptLen = sizeof(BOOL);
+  int bOptVal = TRUE;
+  int bOptLen = sizeof(bOptVal);
   int iOptVal;
-  int iOptLen = sizeof(int);
+  int iOptLen = sizeof(iOptLen);
 #endif
 
-  rawsock = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
+  rawsock = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
   if (-1 == rawsock)
     {
       fprintf (stderr,
@@ -424,6 +424,10 @@ make_raw_socket ()
   if (setsockopt(rawsock, SOL_SOCKET, SO_BROADCAST, (char*)&bOptVal, bOptLen) != SOCKET_ERROR)
   {
     fprintf(stderr, "Set SO_BROADCAST: ON\n");
+  }
+  else
+  {
+    fprintf(stderr, "Error setting IP_HDRINCL: ON\n");
   }
   if (setsockopt(rawsock, IPPROTO_IP, IP_HDRINCL, (char*)&bOptVal, bOptLen) != SOCKET_ERROR)
   {
