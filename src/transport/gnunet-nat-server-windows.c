@@ -70,9 +70,6 @@ typedef unsigned short ushort;
 #define ICMP_ECHO 8
 #define IPDEFTTL        64              /* default ttl, from RFC 1340 */
 #define ICMP_TIME_EXCEEDED      11      /* Time Exceeded                */
-#define IP_HDRINCL      3       /* int; Header is included with data.  */
-#else
-typedef int Socket;
 #endif
 
 /**
