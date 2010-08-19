@@ -60,8 +60,8 @@ typedef unsigned int uid_t;
 typedef SOCKET Socket;
 typedef unsigned short ushort;
 #define ICMP_ECHO 8
-#define IPDEFTTL        64              /* default ttl, from RFC 1340 */
-#define ICMP_TIME_EXCEEDED      11      /* Time Exceeded                */
+#define IPDEFTTL 64
+#define ICMP_TIME_EXCEEDED 11
 
 /**
  * Must match IP given in the server.
@@ -124,7 +124,6 @@ static uint32_t port;
  */
 static int inet_pton (int af, char *cp, struct in_addr *buf)
 {
-  //ret = WSAStringToAddress (cp, af, NULL, (LPSOCKADDR)buf, &ssize);
   buf->s_addr = inet_addr(cp);
   if (buf->s_addr == INADDR_NONE)
     {
@@ -306,7 +305,6 @@ send_icmp (const struct in_addr *my_ip,
   off += sizeof (ip_pkt);
   memset (&dst, 0, sizeof (dst));
   dst.sin_family = AF_INET;
-  //dst.sin_addr = *other;
   dst.sin_addr = *other;
 
   /* icmp reply: time exceeded */
@@ -391,12 +389,11 @@ main (int argc, char *const *argv)
   struct in_addr external;
   struct in_addr target;
 
-  // WSA startup
   WSADATA wsaData;
   if (WSAStartup (MAKEWORD (2, 1), &wsaData) != 0)
   {
       fprintf (stderr, "Failed to find Winsock 2.1 or better.\n");
-      return 4;                       // ERROR
+      return 4;
   }
 
   if (-1 == (rawsock = make_raw_socket()))
