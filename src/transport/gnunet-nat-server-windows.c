@@ -341,8 +341,6 @@ make_icmp_socket ()
 static Socket
 make_raw_socket ()
 {
-  const int one = 1;
-
   DWORD bOptVal = TRUE;
   int bOptLen = sizeof(bOptVal);
 
@@ -354,22 +352,12 @@ make_raw_socket ()
 	       strerror (errno));
       return -1;
     }
+
   if (setsockopt(rawsock, SOL_SOCKET, SO_BROADCAST, (char*)&bOptVal, bOptLen) == 0)
-  {
-    fprintf(stderr, "Set SO_BROADCAST: ON\n");
-  }
-  else
-  {
     fprintf(stderr, "Error setting SO_BROADCAST: ON\n");
-  }
-  if (setsockopt(rawsock, IPPROTO_IP, IP_HDRINCL, (char*)&bOptVal, bOptLen) == 0)
-  {
-    fprintf(stderr, "Set IP_HDRINCL: ON\n");
-  }
-  else
-  {
+
+  if (setsockopt(rawsock, IPPROTO_IP, IP_HDRINCL, (char*)&bOptVal, bOptLen) != 0)
     fprintf(stderr, "Error setting IP_HDRINCL: ON\n");
-  }
   return rawsock;
 }
 
@@ -383,7 +371,7 @@ main (int argc, char *const *argv)
 
   // WSA startup
   WSADATA wsaData;
-  if (WSAStartup (MAKEWORD (2, 2), &wsaData) != 0)
+  if (WSAStartup (MAKEWORD (2, 1), &wsaData) != 0)
   {
       fprintf (stderr, "Failed to find Winsock 2.1 or better.\n");
       return 4;                       // ERROR
