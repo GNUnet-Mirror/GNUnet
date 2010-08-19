@@ -1542,7 +1542,7 @@ handle_tcp_nat_probe (void *cls,
   struct IPv6TcpAddress *t6;
   const struct sockaddr_in *s4;
   const struct sockaddr_in6 *s6;
-  static struct GNUNET_MessageHeader fake_pong;
+
 #if DEBUG_TCP_NAT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "received tcp NAT probe\n");
 #endif
@@ -1577,8 +1577,8 @@ handle_tcp_nat_probe (void *cls,
        * I think it should be outbound because we technically
        * initiated it... But something goes wrong somewhere. */
       /* session->inbound = GNUNET_YES; */
-      //session->inbound = GNUNET_YES;
-      //session->expecting_welcome = GNUNET_NO;
+      session->inbound = GNUNET_YES;
+
       if (GNUNET_OK ==
           GNUNET_SERVER_client_get_address (client, &vaddr, &alen))
         {
@@ -1617,12 +1617,7 @@ handle_tcp_nat_probe (void *cls,
             }
           GNUNET_free (vaddr);
         }
-      fake_pong.size = sizeof(struct GNUNET_MessageHeader);
-      fake_pong.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_PONG);
-      plugin->env->receive(session->plugin->env->cls, &session->target, &fake_pong, 1, session, session->connect_addr, session->connect_alen);
-#if DEBUG_TCP_NAT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Giving fake pong to transport service so hopefully it will schedule validation of THIS address!\n");
-#endif
+
       session->next = plugin->sessions;
       plugin->sessions = session;
       GNUNET_STATISTICS_update (plugin->env->stats,
