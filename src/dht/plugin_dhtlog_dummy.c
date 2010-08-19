@@ -126,6 +126,24 @@ update_trials (unsigned long long trialuid,
 
 
 /*
+ * Inserts the specified stats into the dhttests.generic_stats table
+ *
+ * @param peer the peer inserting the statistic
+ * @param name the name of the statistic
+ * @param section the section of the statistic
+ * @param value the value of the statistic
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int
+add_generic_stat (const struct GNUNET_PeerIdentity *peer,
+                  const char *name,
+                  const char *section, uint64_t value)
+{
+  return GNUNET_OK;
+}
+
+/*
  * Update dhttests.trials table with total connections information
  *
  * @param trialuid the trialuid to update
@@ -245,6 +263,7 @@ libgnunet_plugin_dhtlog_dummy_init (void * cls)
 #endif
   GNUNET_assert(plugin->dhtlog_api == NULL);
   plugin->dhtlog_api = GNUNET_malloc(sizeof(struct GNUNET_DHTLOG_Handle));
+  plugin->dhtlog_api->add_generic_stat = &add_generic_stat;
   plugin->dhtlog_api->insert_trial = &add_trial;
   plugin->dhtlog_api->insert_query = &add_query;
   plugin->dhtlog_api->update_trial = &update_trials;

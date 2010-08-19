@@ -57,7 +57,7 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 #define INSERT_ROUTES_STMT "prepare insert_route from 'INSERT INTO routes (trialuid, querytype, hops, dhtkeyuid, dhtqueryid, succeeded, nodeuid, from_node, to_node) "\
                           "VALUES (@temp_trial, ?, ?, ?, ?, ?, ?, ?, ?)'"
 
-#define INSERT_NODES_STMT "prepare insert_node from 'INSERT INTO nodes (trialuid, nodeid) "\
+#define INSERT_NODES_STMT "prepare insert_node from 'INSERT ignore INTO nodes (trialuid, nodeid) "\
                           "VALUES (@temp_trial, ?)'"
 
 #define INSERT_TOPOLOGY_STMT "prepare insert_topology from 'INSERT INTO topology (trialuid, date, connections) "\
@@ -67,6 +67,8 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
                              "VALUES (@temp_topology, ?, ?)'"
 
 #define UPDATE_TOPOLOGY_STMT "prepare update_topology from 'update topology set connections = ?  where topology_uid = @temp_topology'"
+
+#define SET_MALICIOUS_STMT "prepare set_malicious from 'update nodes set malicious_dropper = 1  where trialuid = @temp_trial and nodeid = @temp_node'"
 
 #define INSERT_TRIALS_STMT "prepare insert_trial from 'INSERT INTO trials"\
                            "(starttime, numnodes, topology,"\
@@ -78,6 +80,10 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
                            "malicious_put_frequency, stop_closest, stop_found, strict_kademlia, "\
                            "gets_succeeded, message) "\
                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'"
+
+#define INSERT_GENERIC_STAT_STMT "prepare insert_generic_stat from 'INSERT INTO generic_stats" \
+                                 "(trialuid, nodeuid, section, name, value)"\
+                                 "VALUES (@temp_trial, @temp_node, @temp_section, @temp_stat, @temp_value)'"
 
 #define INSERT_STAT_STMT "prepare insert_stat from 'INSERT INTO node_statistics"\
                             "(trialuid, nodeuid, route_requests,"\
@@ -153,6 +159,8 @@ iopen ()
   if (PINIT (INSERT_QUERIES_STMT) ||
       PINIT (INSERT_ROUTES_STMT) ||
       PINIT (INSERT_TRIALS_STMT) ||
+      PINIT (SET_MALICIOUS_STMT) ||
+      PINIT (INSERT_GENERIC_STAT_STMT) ||
       PINIT (INSERT_STAT_STMT) ||
       PINIT (INSERT_NODES_STMT) ||
       PINIT (INSERT_DHTKEY_STMT) ||
@@ -324,6 +332,43 @@ int add_trial (unsigned long long *trialuid, unsigned int num_nodes, unsigned in
   return GNUNET_SYSERR;
 }
 
+
+/*
+ * Inserts the specified stats into the dhttests.generic_stats table
+ *
+ * @param peer the peer inserting the statistic
+ * @param name the name of the statistic
+ * @param section the section of the statistic
+ * @param value the value of the statistic
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int
+add_generic_stat (const struct GNUNET_PeerIdentity *peer,
+                  const char *name,
+                  const char *section, uint64_t value)
+{
+  int ret;
+  if (outfile == NULL)
+    return GNUNET_SYSERR;
+
+  if (peer != NULL)
+    ret = fprintf(outfile, "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_node;\n", GNUNET_h2s_full(&peer->hashPubKey));
+  else
+    ret = fprintf(outfile, "set @temp_node = 0;\n");
+
+  ret = fprintf(outfile, "set @temp_section = \"%s\", @temp_stat = \"%s\", @temp_value = %llu;\n",
+                         section, name, (unsigned long long)value);
+
+  if (ret < 0)
+    return GNUNET_SYSERR;
+
+  ret = fprintf(outfile, "execute insert_generic_stat;\n");
+
+  return GNUNET_OK;
+}
+
+
 /*
  * Inserts the specified stats into the dhttests.node_statistics table
  *
@@ -486,6 +531,36 @@ update_trials (unsigned long long trialuid,
     return GNUNET_SYSERR;
 
   ret = fprintf(outfile, "execute update_trial using @date, @g_s;\n");
+
+  if (ret >= 0)
+    return GNUNET_OK;
+  else
+    return GNUNET_SYSERR;
+}
+
+
+/*
+ * Update dhttests.nodes table setting the identified
+ * node as a malicious dropper.
+ *
+ * @param peer the peer that was set to be malicious
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
+ */
+int
+set_malicious (struct GNUNET_PeerIdentity *peer)
+{
+  int ret;
+
+  if (outfile == NULL)
+    return GNUNET_SYSERR;
+
+  ret = fprintf(outfile, "set @temp_node = \"%s\";\n", GNUNET_h2s_full(&peer->hashPubKey));
+
+  if (ret < 0)
+    return GNUNET_SYSERR;
+
+  ret = fprintf(outfile, "execute set_malicious;\n");
 
   if (ret >= 0)
     return GNUNET_OK;
@@ -744,6 +819,8 @@ libgnunet_plugin_dhtlog_mysql_dump_init (void * cls)
   plugin->dhtlog_api->insert_topology = &add_topology;
   plugin->dhtlog_api->insert_extended_topology = &add_extended_topology;
   plugin->dhtlog_api->update_topology = &update_topology;
+  plugin->dhtlog_api->set_malicious = &set_malicious;
+  plugin->dhtlog_api->add_generic_stat = &add_generic_stat;
 
   return plugin;
 }

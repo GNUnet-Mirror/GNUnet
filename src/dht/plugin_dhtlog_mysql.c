@@ -127,6 +127,11 @@ static struct StatementHandle *insert_trial;
 
 static struct StatementHandle *insert_stat;
 
+#define INSERT_GENERIC_STAT_STMT "INSERT INTO generic_stats" \
+                                 "(trialuid, nodeuid, section, name, value)"\
+                                 "VALUES (?, ?, ?, ?, ?)"
+static struct StatementHandle *insert_generic_stat;
+
 #define INSERT_DHTKEY_STMT "INSERT INTO dhtkeys (dhtkey, trialuid, keybits) "\
                           "VALUES (?, ?, ?)"
 static struct StatementHandle *insert_dhtkey;
@@ -156,6 +161,9 @@ static struct StatementHandle *insert_topology;
 #define EXTEND_TOPOLOGY_STMT "INSERT INTO extended_topology (topology_uid, uid_first, uid_second) "\
                              "VALUES (?, ?, ?)"
 static struct StatementHandle *extend_topology;
+
+#define SET_MALICIOUS_STMT "update nodes set malicious_dropper = 1  where trialuid = ? and nodeid = ?"
+static struct StatementHandle *update_node_malicious;
 
 #define UPDATE_TOPOLOGY_STMT "update topology set connections = ?  where topology_uid = ?"
 static struct StatementHandle *update_topology;
@@ -433,6 +441,7 @@ iopen (struct GNUNET_DHTLOG_Plugin *plugin)
       PINIT (insert_route, INSERT_ROUTES_STMT) ||
       PINIT (insert_trial, INSERT_TRIALS_STMT) ||
       PINIT (insert_stat, INSERT_STAT_STMT) ||
+      PINIT (insert_generic_stat, INSERT_GENERIC_STAT_STMT) ||
       PINIT (insert_node, INSERT_NODES_STMT) ||
       PINIT (insert_dhtkey, INSERT_DHTKEY_STMT) ||
       PINIT (update_trial, UPDATE_TRIALS_STMT) ||
@@ -441,9 +450,10 @@ iopen (struct GNUNET_DHTLOG_Plugin *plugin)
       PINIT (update_connection, UPDATE_CONNECTIONS_STMT) ||
       PINIT (get_trial, GET_TRIAL_STMT) ||
       PINIT (get_topology, GET_TOPOLOGY_STMT) ||
-      PINIT (insert_topology, INSERT_TOPOLOGY_STMT)||
-      PINIT (update_topology, UPDATE_TOPOLOGY_STMT)||
-      PINIT (extend_topology, EXTEND_TOPOLOGY_STMT))
+      PINIT (insert_topology, INSERT_TOPOLOGY_STMT) ||
+      PINIT (update_topology, UPDATE_TOPOLOGY_STMT) ||
+      PINIT (extend_topology, EXTEND_TOPOLOGY_STMT) ||
+      PINIT (update_node_malicious, SET_MALICIOUS_STMT) )
     {
       return GNUNET_SYSERR;
     }
@@ -975,6 +985,54 @@ add_stat (const struct GNUNET_PeerIdentity *peer, unsigned int route_requests,
 }
 
 /*
+ * Inserts the specified stats into the dhttests.generic_stats table
+ *
+ * @param peer the peer inserting the statistic
+ * @param name the name of the statistic
+ * @param section the section of the statistic
+ * @param value the value of the statistic
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int
+add_generic_stat (const struct GNUNET_PeerIdentity *peer,
+                  const char *name,
+                  const char *section, uint64_t value)
+{
+  unsigned long long peer_uid;
+  unsigned long long section_len;
+  unsigned long long name_len;
+  int ret;
+  if (peer == NULL)
+    return GNUNET_SYSERR;
+
+  if (GNUNET_OK != get_node_uid (&peer_uid, &peer->hashPubKey))
+    {
+      return GNUNET_SYSERR;
+    }
+
+  section_len = strlen(section);
+  name_len = strlen(name);
+
+  if (GNUNET_OK !=
+      (ret = prepared_statement_run (insert_generic_stat,
+                                     NULL,
+                                     MYSQL_TYPE_LONGLONG, &current_trial, GNUNET_YES,
+                                     MYSQL_TYPE_LONGLONG, &peer_uid, GNUNET_YES,
+                                     MYSQL_TYPE_VAR_STRING, &section, max_varchar_len, &section_len,
+                                     MYSQL_TYPE_VAR_STRING, &name, max_varchar_len, &name_len,
+                                     MYSQL_TYPE_LONGLONG, &value, GNUNET_YES,
+                                     -1)))
+    {
+      if (ret == GNUNET_SYSERR)
+        {
+          return GNUNET_SYSERR;
+        }
+    }
+  return GNUNET_OK;
+}
+
+/*
  * Inserts the specified dhtkey into the dhttests.dhtkeys table,
  * stores return value of dhttests.dhtkeys.dhtkeyuid into dhtkeyuid
  *
@@ -1054,18 +1112,11 @@ add_node (unsigned long long *nodeuid, struct GNUNET_PeerIdentity * node)
   h_len = sizeof (GNUNET_HashCode);
   if (GNUNET_OK !=
       (ret = prepared_statement_run (insert_node,
-                                                  nodeuid,
-                                                  MYSQL_TYPE_LONGLONG,
-                                                  &current_trial,
-                                                  GNUNET_YES,
-                                                  MYSQL_TYPE_VAR_STRING,
-                                                  &encPeer,
-                                                  max_varchar_len,
-                                                  &p_len,
-                                                  MYSQL_TYPE_BLOB,
-                                                  &node->hashPubKey,
-                                                  sizeof (GNUNET_HashCode),
-                                                  &h_len, -1)))
+                                     nodeuid,
+                                     MYSQL_TYPE_LONGLONG, &current_trial, GNUNET_YES,
+                                     MYSQL_TYPE_VAR_STRING, &encPeer, max_varchar_len, &p_len,
+                                     MYSQL_TYPE_BLOB, &node->hashPubKey, sizeof (GNUNET_HashCode),
+                                     &h_len, -1)))
     {
       if (ret == GNUNET_SYSERR)
         {
@@ -1105,6 +1156,39 @@ update_trials (unsigned long long trialuid,
     return GNUNET_OK;
   else
     return GNUNET_SYSERR;
+}
+
+
+/*
+ * Update dhttests.nodes table setting the identified
+ * node as a malicious dropper.
+ *
+ * @param peer the peer that was set to be malicious
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
+ */
+int set_malicious (struct GNUNET_PeerIdentity *peer)
+{
+  unsigned long long p_len;
+  int ret;
+  char *temp_str;
+
+  temp_str = GNUNET_strdup(GNUNET_h2s_full(&peer->hashPubKey));
+  p_len = strlen(temp_str);
+
+  if (GNUNET_OK !=
+      (ret = prepared_statement_run (update_node_malicious,
+                                    NULL,
+                                    MYSQL_TYPE_LONGLONG, &current_trial, GNUNET_YES,
+                                    MYSQL_TYPE_VAR_STRING, temp_str, max_varchar_len, &p_len,
+                                    -1)))
+    {
+      if (ret == GNUNET_SYSERR)
+        {
+          return GNUNET_SYSERR;
+        }
+    }
+  return GNUNET_OK;
 }
 
 
@@ -1469,6 +1553,7 @@ libgnunet_plugin_dhtlog_mysql_init (void * cls)
   plugin->dhtlog_api = GNUNET_malloc(sizeof(struct GNUNET_DHTLOG_Handle));
   plugin->dhtlog_api->insert_trial = &add_trial;
   plugin->dhtlog_api->insert_stat = &add_stat;
+  plugin->dhtlog_api->add_generic_stat = &add_generic_stat;
   plugin->dhtlog_api->insert_query = &add_query;
   plugin->dhtlog_api->update_trial = &update_trials;
   plugin->dhtlog_api->insert_route = &add_route;
@@ -1478,6 +1563,8 @@ libgnunet_plugin_dhtlog_mysql_init (void * cls)
   plugin->dhtlog_api->insert_topology = &add_topology;
   plugin->dhtlog_api->update_topology = &update_current_topology;
   plugin->dhtlog_api->insert_extended_topology = &add_extended_topology;
+  plugin->dhtlog_api->set_malicious = &set_malicious;
+  plugin->dhtlog_api->add_generic_stat = &add_generic_stat;
   get_current_trial (&current_trial);
 
   return plugin;
@@ -1508,6 +1595,7 @@ libgnunet_plugin_dhtlog_mysql_done (void * cls)
   prepared_statement_close(insert_topology);
   prepared_statement_close(update_topology);
   prepared_statement_close(extend_topology);
+  prepared_statement_close(update_node_malicious);
 
   if (conn != NULL)
     mysql_close (conn);

@@ -75,6 +75,7 @@ test (struct GNUNET_DHTLOG_Handle * api)
   ret = api->insert_node (&nodeuid, &p2);
   ret = api->insert_node (&nodeuid, &p3);
   ret = api->insert_node (&nodeuid, &p4);
+  ret = api->set_malicious(&p1);
   CHECK(ret);
   ret = api->insert_topology(0);
   ret = api->insert_extended_topology(&p1, &p2);
@@ -102,6 +103,7 @@ test (struct GNUNET_DHTLOG_Handle * api)
   ret = api->insert_stat(&p2, 12, 23, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27);
   CHECK(ret);
   ret = api->update_trial (trialuid, 787);
+  ret = api->add_generic_stat (&p2, "nonsense", "section", 77765);
   CHECK(ret);
   return 0;
 }

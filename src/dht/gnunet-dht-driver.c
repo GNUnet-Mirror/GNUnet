@@ -639,6 +639,8 @@ static int stats_handle  (void *cls,
 {
   struct StatisticsIteratorContext *stats_ctx;
 
+  if (dhtlog_handle != NULL)
+    dhtlog_handle->add_generic_stat(peer, name, subsystem, value);
   if (GNUNET_CONTAINER_multihashmap_contains(stats_map, &peer->hashPubKey))
     {
       stats_ctx = GNUNET_CONTAINER_multihashmap_get(stats_map, &peer->hashPubKey);
@@ -1345,10 +1347,7 @@ peers_started_callback (void *cls,
           expected_connections = GNUNET_TESTING_connect_topology (pg, connect_topology, connect_topology_option, connect_topology_option_modifier);
 
           peer_connect_meter = create_meter(expected_connections, "Peer connection ", GNUNET_YES);
-#if VERBOSE
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Have %d expected connections\n", expected_connections);
-#endif
+          fprintf(stderr, "Have %d expected connections\n", expected_connections);
         }
 
       if (expected_connections == GNUNET_SYSERR)

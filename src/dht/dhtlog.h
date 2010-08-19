@@ -178,6 +178,16 @@ struct GNUNET_DHTLOG_Handle
                        unsigned int gets_succeeded);
 
   /*
+   * Update dhttests.nodes table setting the identified
+   * node as a malicious dropper.
+   *
+   * @param peer the peer that was set to be malicious
+   *
+   * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
+   */
+  int (*set_malicious) (struct GNUNET_PeerIdentity *peer);
+
+  /*
    * Records the current topology (number of connections, time, trial)
    *
    * @param num_connections how many connections are in the topology
@@ -195,6 +205,21 @@ struct GNUNET_DHTLOG_Handle
    * @return GNUNET_OK on success, GNUNET_SYSERR on failure
    */
   int (*insert_extended_topology) (const struct GNUNET_PeerIdentity *first, const struct GNUNET_PeerIdentity *second);
+
+  /*
+   * Inserts the specified stats into the dhttests.generic_stats table
+   *
+   * @param peer the peer inserting the statistic
+   * @param name the name of the statistic
+   * @param section the section of the statistic
+   * @param value the value of the statistic
+   *
+   * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+   */
+  int
+  (*add_generic_stat) (const struct GNUNET_PeerIdentity *peer,
+                       const char *name,
+                       const char *section, uint64_t value);
 
   /*
    * Update dhttests.trials table with total connections information

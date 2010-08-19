@@ -43,6 +43,7 @@
 
 #define STAT_ROUTES "# DHT ROUTE Requests Seen"
 #define STAT_ROUTE_FORWARDS "# DHT ROUTE Requests Forwarded"
+#define STAT_ROUTE_FORWARDS_CLOSEST "# DHT ROUTE Requests Forwarded to Closest Known Peer"
 #define STAT_RESULTS "# DHT ROUTE RESULT Requests Seen"
 #define STAT_RESULTS_TO_CLIENT "# DHT ROUTE RESULT Sent to Client"
 #define STAT_RESULT_FORWARDS "# DHT ROUTE RESULT Requests Forwarded"
@@ -57,6 +58,8 @@
 #define STAT_GET_REPLY "# DHT GET Responses Received"
 #define STAT_FIND_PEER_ANSWER "# DHT FIND_PEER Responses Initiated"
 #define STAT_GET_RESPONSE_START "# DHT GET Responses Initiated"
+#define STAT_HELLOS_PROVIDED "# HELLO Messages given to transport"
+#define STAT_DISCONNECTS "# Disconnects received"
 
 typedef void (*GNUNET_DHT_MessageReceivedHandler) (void *cls,
                                                    const struct GNUNET_MessageHeader
