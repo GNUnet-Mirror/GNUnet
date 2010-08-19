@@ -203,25 +203,17 @@ send_icmp_echo (const struct in_addr *my_ip)
   memset(&ip_pkt, 0, sizeof(ip_pkt));
   ip_pkt.vers_ihl = 0x45;
   ip_pkt.tos = 0;
-  //ip_pkt.pkt_len = sizeof (packet);
-  //ip_pkt.id = 1;
-  //ip_pkt.flags_frag_offset = 0;
-  //ip_pkt.ttl = IPDEFTTL;
-  //ip_pkt.proto = IPPROTO_ICMP;
-  //ip_pkt.checksum = 0;
-  //ip_pkt.src_ip = my_ip->s_addr;
-  //ip_pkt.dst_ip = dummy.s_addr;
-  //ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt, sizeof (ip_pkt)));
+  ip_pkt.pkt_len = sizeof (packet);
+  ip_pkt.id = htons (256);
+  ip_pkt.flags_frag_offset = 0;
+  ip_pkt.ttl = IPDEFTTL;
+  ip_pkt.proto = IPPROTO_ICMP;
+  ip_pkt.checksum = 0;
+  ip_pkt.src_ip = my_ip->s_addr;
+  ip_pkt.dst_ip = dummy.s_addr;
+  ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt, sizeof (ip_pkt)));
   memcpy (packet, &ip_pkt, sizeof (ip_pkt));
   off += sizeof (ip_pkt);
-
-  memset (&dst, 0, sizeof (dst));
-  dst.sin_family = AF_INET;
-  dst.sin_addr = dummy;
-  err = sendto(rawsock,
-               packet, off, 0,
-               (struct sockaddr*)&dst,
-               sizeof(dst));
 
   make_echo (my_ip, &icmp_echo);
   memcpy (&packet[off], &icmp_echo, sizeof (icmp_echo));
@@ -379,23 +371,11 @@ make_icmp_socket ()
 	       strerror (errno));
       return -1;
     }  
-#if WIN32
   if (ret == INVALID_SOCKET)
     {
       fprintf (stderr, "Invalid socket %d!\n", ret);
       closesocket (ret);
     }
-#else
-  if (ret >= FD_SETSIZE) 
-    {
-      fprintf (stderr,
-	       "Socket number too large (%d > %u)\n",
-	       ret,
-	       (unsigned int) FD_SETSIZE);
-      close (ret);
-      return -1;
-    }
-#endif
   return ret;
 }
 
@@ -405,12 +385,8 @@ make_raw_socket ()
 {
   const int one = 1;
 
-#ifdef WIN32
-  int bOptVal = TRUE;
+  DWORD bOptVal = TRUE;
   int bOptLen = sizeof(bOptVal);
-  int iOptVal;
-  int iOptLen = sizeof(iOptLen);
-#endif
 
   rawsock = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
   if (-1 == rawsock)
@@ -420,8 +396,6 @@ make_raw_socket ()
 	       strerror (errno));
       return -1;
     }
-#ifdef WIN32
-#if 0
   if (setsockopt(rawsock, SOL_SOCKET, SO_BROADCAST, (char*)&bOptVal, bOptLen) == 0)
   {
     fprintf(stderr, "Set SO_BROADCAST: ON\n");
@@ -430,7 +404,6 @@ make_raw_socket ()
   {
     fprintf(stderr, "Error setting SO_BROADCAST: ON\n");
   }
-#endif
   if (setsockopt(rawsock, IPPROTO_IP, IP_HDRINCL, (char*)&bOptVal, bOptLen) == 0)
   {
     fprintf(stderr, "Set IP_HDRINCL: ON\n");
@@ -439,18 +412,6 @@ make_raw_socket ()
   {
     fprintf(stderr, "Error setting IP_HDRINCL: ON\n");
   }
-#else
-  if (setsockopt(rawsock, SOL_SOCKET, SO_BROADCAST,
-		 (char *)&one, sizeof(one)) == -1)
-    fprintf(stderr,
-	    "setsockopt failed: %s\n",
-	    strerror (errno));
-  if (setsockopt(rawsock, IPPROTO_IP, IP_HDRINCL,
-		 (char *)&one, sizeof(one)) == -1)
-    fprintf(stderr,
-	    "setsockopt failed: %s\n",
-	    strerror (errno));
-#endif
   return rawsock;
 }
 
