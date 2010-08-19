@@ -41,17 +41,9 @@
  */
 #define _GNU_SOURCE
 
-#ifdef WIN32
+
 #include <winsock2.h>
-#else
-#include <sys/types.h> 
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <sys/select.h>
-#include <netinet/ip.h>
-#include <netinet/ip_icmp.h>
-#include <netinet/in.h>
-#endif
+#include <ws2tcpip.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -62,15 +54,9 @@
 #include <stdint.h>
 #include <time.h>
 
-
-#ifdef WIN32
 typedef unsigned int uid_t;
 typedef SOCKET Socket;
 typedef unsigned short ushort;
-#define ICMP_ECHO 8
-#define IPDEFTTL        64              /* default ttl, from RFC 1340 */
-#define ICMP_TIME_EXCEEDED      11      /* Time Exceeded                */
-#endif
 
 /**
  * Must match IP given in the client.
@@ -147,7 +133,6 @@ calc_checksum(const uint16_t *data,
   return sum;
 }
 
-#if WIN32
 /**
  * @param af address family
  * @param cp the address to print
@@ -165,7 +150,6 @@ static int inet_pton (int af, char *cp, struct in_addr *buf)
   else
     return 1;
 }
-#endif
 
 static void
 make_echo (const struct in_addr *src_ip,
@@ -307,49 +291,23 @@ process_icmp_response ()
     {
       memcpy(&port, &buf[sizeof (struct ip_packet) *2 + sizeof (struct icmp_packet) * 2], sizeof(uint32_t));
       port = ntohs(port);
-#ifdef WIN32
       DWORD ssize = sizeof(buf);
       WSAAddressToString((LPSOCKADDR)&sip, sizeof(sip), NULL, buf, &ssize);
       fprintf (stdout, "%s:%d\n", buf, port);
-#else
-      fprintf (stdout,
-              "%s:%d\n",
-              inet_ntop (AF_INET,
-                         &sip,
-                         buf,
-                         sizeof (buf)), port);
-#endif
+
     }
   else if (have_udp)
     {
       memcpy(&udp_pkt, &buf[off], sizeof(udp_pkt));
-#ifdef WIN32
       DWORD ssize = sizeof(buf);
       WSAAddressToString((LPSOCKADDR)&sip, sizeof(sip), NULL, buf, &ssize);
       fprintf (stdout, "%s:%d\n", buf, ntohs((int)udp_pkt.length));
-#else
-      fprintf (stdout,
-               "%s:%d\n",
-               inet_ntop (AF_INET,
-                          &sip,
-                          buf,
-                          sizeof (buf)), ntohl(udp_pkt.length));
-#endif
     }
   else
     {
-#ifdef WIN32
       DWORD ssize = sizeof(buf);
       WSAAddressToString((LPSOCKADDR)&sip, sizeof(sip), NULL, buf, &ssize);
       fprintf (stdout, "%s\n", buf);
-#else
-      fprintf (stdout,
-              "%s\n",
-              inet_ntop (AF_INET,
-                         &sip,
-                         buf,
-                         sizeof (buf)));
-#endif
     }
   fflush (stdout);
 }
@@ -419,11 +377,7 @@ main (int argc, char *const *argv)
   struct in_addr external;
   fd_set rs;
   struct timeval tv;
-#ifndef WIN32
-  uid_t uid;
-#endif
 
-#ifdef WIN32
   // WSA startup
   WSADATA wsaData;
   if (WSAStartup (MAKEWORD (2, 2), &wsaData) != 0)
@@ -431,7 +385,6 @@ main (int argc, char *const *argv)
       fprintf (stderr, "Failed to find Winsock 2.1 or better.\n");
       return 4;                       // ERROR
   }
-#endif
 
   if (-1 == (icmpsock = make_icmp_socket()))
     return 1; 
@@ -440,13 +393,7 @@ main (int argc, char *const *argv)
       close (icmpsock);
       return 1; 
     }
-#ifndef WIN32
-  uid = getuid ();
-  if (0 != setresuid (uid, uid, uid))
-    fprintf (stderr,
-	     "Failed to setresuid: %s\n",
-	     strerror (errno));
-#endif
+
   if (argc != 2)
     {
       fprintf (stderr,
@@ -475,11 +422,9 @@ main (int argc, char *const *argv)
       send_icmp_echo (&external);
     }  
 
-#ifdef WIN32
   closesocket(icmpsock);
   closesocket(rawsock);
   WSACleanup ();
-#endif
   return 0;
 }
 
