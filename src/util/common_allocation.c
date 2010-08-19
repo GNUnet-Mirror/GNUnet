@@ -116,11 +116,7 @@ GNUNET_xmalloc_unchecked_ (size_t size, const char *filename, int linenumber)
  */
 void *
 GNUNET_xrealloc_ (void *ptr,
-#ifndef W32_MEM_LIMIT
-                  const size_t n,
-#else
                   size_t n,
-#endif
                   const char *filename, int linenumber)
 {
 #ifdef W32_MEM_LIMIT

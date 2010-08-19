@@ -1504,6 +1504,13 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       return;                   /* connect failed for good, we're finished */
     }
   GNUNET_assert (sock->write_buffer_off >= sock->write_buffer_pos);
+  if ( (sock->nth.notify_ready != NULL) &&
+       (sock->write_buffer_size < sock->nth.notify_size) )
+    {
+      sock->write_buffer = GNUNET_realloc(sock->write_buffer, 
+					  sock->nth.notify_size);
+      sock->write_buffer_size = sock->nth.notify_size;
+    }    
   process_notify (sock);
   have = sock->write_buffer_off - sock->write_buffer_pos;
   if (have == 0)
@@ -1592,12 +1599,6 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle
     return NULL;
   GNUNET_assert (notify != NULL);
   GNUNET_assert (size < GNUNET_SERVER_MAX_MESSAGE_SIZE);
-  if (sock->write_buffer_size < size)
-    {
-      sock->write_buffer = GNUNET_realloc(sock->write_buffer, size);
-      sock->write_buffer_size = size;
-    }
-  GNUNET_assert (sock->write_buffer_size >= size);
   GNUNET_assert (sock->write_buffer_off <= sock->write_buffer_size);
   GNUNET_assert (sock->write_buffer_pos <= sock->write_buffer_size);
   GNUNET_assert (sock->write_buffer_pos <= sock->write_buffer_off);
