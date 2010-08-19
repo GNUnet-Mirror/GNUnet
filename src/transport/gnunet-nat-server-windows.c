@@ -421,15 +421,17 @@ make_raw_socket ()
       return -1;
     }
 #ifdef WIN32
-  if (setsockopt(rawsock, SOL_SOCKET, SO_BROADCAST, (char*)&bOptVal, bOptLen) != SOCKET_ERROR)
+#if 0
+  if (setsockopt(rawsock, SOL_SOCKET, SO_BROADCAST, (char*)&bOptVal, bOptLen) == 0)
   {
     fprintf(stderr, "Set SO_BROADCAST: ON\n");
   }
   else
   {
-    fprintf(stderr, "Error setting IP_HDRINCL: ON\n");
+    fprintf(stderr, "Error setting SO_BROADCAST: ON\n");
   }
-  if (setsockopt(rawsock, IPPROTO_IP, IP_HDRINCL, (char*)&bOptVal, bOptLen) != SOCKET_ERROR)
+#endif
+  if (setsockopt(rawsock, IPPROTO_IP, IP_HDRINCL, (char*)&bOptVal, bOptLen) == 0)
   {
     fprintf(stderr, "Set IP_HDRINCL: ON\n");
   }
