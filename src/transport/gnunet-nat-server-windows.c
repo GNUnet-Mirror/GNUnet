@@ -353,7 +353,7 @@ make_raw_socket ()
       return -1;
     }
 
-  if (setsockopt(rawsock, SOL_SOCKET, SO_BROADCAST, (char*)&bOptVal, bOptLen) == 0)
+  if (setsockopt(rawsock, SOL_SOCKET, SO_BROADCAST, (char*)&bOptVal, bOptLen) != 0)
     fprintf(stderr, "Error setting SO_BROADCAST: ON\n");
 
   if (setsockopt(rawsock, IPPROTO_IP, IP_HDRINCL, (char*)&bOptVal, bOptLen) != 0)

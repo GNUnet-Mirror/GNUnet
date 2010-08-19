@@ -42,17 +42,9 @@
  * - Nathan Evans
  */
 #define _GNU_SOURCE
-#ifdef WIN32
+
+#include <ws2tcpip.h>
 #include <winsock2.h>
-#else
-#include <sys/types.h> 
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <sys/select.h>
-#include <netinet/ip.h>
-#include <netinet/ip_icmp.h>
-#include <netinet/in.h>
-#endif
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -64,17 +56,12 @@
 #include <time.h>
 
 
-#ifdef WIN32
 typedef unsigned int uid_t;
 typedef SOCKET Socket;
 typedef unsigned short ushort;
 #define ICMP_ECHO 8
 #define IPDEFTTL        64              /* default ttl, from RFC 1340 */
 #define ICMP_TIME_EXCEEDED      11      /* Time Exceeded                */
-#define IP_HDRINCL      3       /* int; Header is included with data.  */
-#else
-typedef int Socket;
-#endif
 
 /**
  * Must match IP given in the server.
@@ -130,7 +117,6 @@ static struct in_addr dummy;
  
 static uint32_t port;
 
-#if WIN32
 /**
  * @param af address family
  * @param cp the address to print
@@ -148,7 +134,6 @@ static int inet_pton (int af, char *cp, struct in_addr *buf)
   else
     return 1;
 }
-#endif
 
 static uint16_t 
 calc_checksum(const uint16_t *data, 
@@ -178,76 +163,6 @@ make_echo (const struct in_addr *src_ip,
   echo->data = htons(num);
   echo->checksum = htons(calc_checksum((uint16_t*)echo, 
 				       sizeof (struct icmp_echo_packet)));
-}
-
-static void
-make_echo2 (const struct in_addr *src_ip,
-           struct icmp_packet *echo)
-{
-  memset(echo, 0, sizeof(struct icmp_packet));
-  echo->type = ICMP_ECHO;
-  echo->code = 0;
-  echo->reserved = 0;
-  echo->checksum = 0;
-  echo->checksum = htons(calc_checksum((uint16_t*)echo, sizeof (struct icmp_packet)));
-}
-
-/**
- * Send an ICMP message to the dummy IP.
- *
- * @param my_ip source address (our ip address)
- */
-static void
-send_icmp_echo (const struct in_addr *my_ip)
-{
-  struct icmp_packet icmp_echo;
-  struct sockaddr_in dst;
-  size_t off;
-  int err;
-  struct ip_packet ip_pkt;
-  struct icmp_packet icmp_pkt;
-  char packet[sizeof (ip_pkt) + sizeof (icmp_pkt)];
-
-  off = 0;
-  memset(&ip_pkt, 0, sizeof(ip_pkt));
-  ip_pkt.vers_ihl = 0x45;
-  ip_pkt.tos = 0;
-  ip_pkt.pkt_len = sizeof (packet);
-  ip_pkt.id = 1;
-  ip_pkt.flags_frag_offset = 0;
-  ip_pkt.ttl = IPDEFTTL;
-  ip_pkt.proto = IPPROTO_ICMP;
-  ip_pkt.checksum = 0;
-  ip_pkt.src_ip = my_ip->s_addr;
-  ip_pkt.dst_ip = dummy.s_addr;
-  ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt, sizeof (ip_pkt)));
-  memcpy (packet, &ip_pkt, sizeof (ip_pkt));
-  off += sizeof (ip_pkt);
-  make_echo2 (my_ip, &icmp_echo);
-  memcpy (&packet[off], &icmp_echo, sizeof (icmp_echo));
-  off += sizeof (icmp_echo);
-
-  memset (&dst, 0, sizeof (dst));
-  dst.sin_family = AF_INET;
-  dst.sin_addr = dummy;
-  err = sendto(rawsock,
-               packet, off, 0,
-               (struct sockaddr*)&dst,
-               sizeof(dst));
-
-  fprintf(stderr, "Sent %d bytes\n", err);
-  if (err < 0)
-    {
-#if VERBOSE
-      fprintf(stderr,
-              "sendto failed: %s\n", strerror(errno));
-#endif
-    }
-  else if (err != off)
-    {
-      fprintf(stderr,
-              "Error: partial send of ICMP message\n");
-    }
 }
 
 /**
@@ -339,8 +254,6 @@ send_icmp_udp (const struct in_addr *my_ip,
                (struct sockaddr*)&dst,
                sizeof(dst));
 
-  fprintf(stderr, "Sent %d bytes\n", err);
-
   if (err < 0)
     {
       fprintf(stderr,
@@ -410,7 +323,6 @@ send_icmp (const struct in_addr *my_ip,
   ip_pkt.vers_ihl = 0x45;
   ip_pkt.tos = 0;
   ip_pkt.pkt_len = (sizeof (struct ip_packet) + sizeof (struct icmp_echo_packet));
-  fprintf(stderr, "Set pkt_len to %d\n", ip_pkt.pkt_len);
   ip_pkt.id = 1; 
   ip_pkt.flags_frag_offset = 0;
   ip_pkt.ttl = 1; /* real TTL would be 1 on a time exceeded packet */
@@ -435,7 +347,6 @@ send_icmp (const struct in_addr *my_ip,
 	       (struct sockaddr*)&dst, 
 	       sizeof(dst)); /* or sizeof 'struct sockaddr'? */
 
-  fprintf(stderr, "Sent %d bytes\n", err);
   if (err < 0) 
     {
       fprintf(stderr,
@@ -452,8 +363,9 @@ send_icmp (const struct in_addr *my_ip,
 static Socket
 make_raw_socket ()
 {
-  const int one = 1;
-  int ret;
+  DWORD bOptVal = TRUE;
+  int bOptLen = sizeof(bOptVal);
+  Socket ret;
 
   ret = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
   if (-1 == ret)
@@ -463,16 +375,12 @@ make_raw_socket ()
 	       strerror (errno));
       return -1;
     }  
-  if (setsockopt(ret, SOL_SOCKET, SO_BROADCAST,
-		 (char *)&one, sizeof(one)) == -1)
-    fprintf(stderr,
-	    "setsockopt failed: %s\n",
-	    strerror (errno));
-  if (setsockopt(ret, IPPROTO_IP, IP_HDRINCL,
-		 (char *)&one, sizeof(one)) == -1)
-    fprintf(stderr,
-	    "setsockopt failed: %s\n",
-	    strerror (errno));
+  if (setsockopt(rawsock, SOL_SOCKET, SO_BROADCAST, (char*)&bOptVal, bOptLen) != 0)
+    fprintf(stderr, "Error setting SO_BROADCAST: ON\n");
+
+  if (setsockopt(rawsock, IPPROTO_IP, IP_HDRINCL, (char*)&bOptVal, bOptLen) != 0)
+    fprintf(stderr, "Error setting IP_HDRINCL: ON\n");
+
   return ret;
 }
 
@@ -482,11 +390,7 @@ main (int argc, char *const *argv)
 {
   struct in_addr external;
   struct in_addr target;
-#ifndef WIN32
-  uid_t uid;
-#endif
 
-#ifdef WIN32
   // WSA startup
   WSADATA wsaData;
   if (WSAStartup (MAKEWORD (2, 1), &wsaData) != 0)
@@ -494,18 +398,10 @@ main (int argc, char *const *argv)
       fprintf (stderr, "Failed to find Winsock 2.1 or better.\n");
       return 4;                       // ERROR
   }
-#endif
 
   if (-1 == (rawsock = make_raw_socket()))
     return 1;
 
-#ifndef WIN32
-  uid = getuid ();
-  if (0 != setresuid (uid, uid, uid))
-    fprintf (stderr,
-	     "Failed to setresuid: %s\n",
-	     strerror (errno));
-#endif
   if (argc != 4)
     {
       fprintf (stderr,
@@ -529,20 +425,15 @@ main (int argc, char *const *argv)
                strerror (errno));
       abort ();
     }
-  fprintf(stderr, "Sending icmp message.\n");
-  send_icmp_echo(&target);
-  fprintf(stderr, "Sending icmp message.\n");
+
   send_icmp (&external,
 	     &target);
-  fprintf(stderr, "Sending icmp udp message.\n");
   send_icmp_udp (&external,
-             &target);
+                 &target);
 
-#ifdef WIN32
   WSACleanup ();
-#endif
-  close (rawsock);
+  closesocket (rawsock);
   return 0;
 }
 
-/* end of gnunet-nat-client.c */
+/* end of gnunet-nat-client-windows.c */
