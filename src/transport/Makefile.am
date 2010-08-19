@@ -4,7 +4,7 @@ plugindir = $(libdir)/gnunet
 
 if MINGW
   WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
-  NATBIN = gnunet-nat-server
+  NATBIN = gnunet-nat-server gnunet-nat-client
   NATSERVER = gnunet-nat-server-windows.c
   NATCLIENT = gnunet-nat-client-windows.c
 else
@@ -69,7 +69,6 @@ bin_PROGRAMS = \
 
 bin_SCRIPTS = \
  gnunet-transport-certificate-creation
-
 
 gnunet_nat_server_SOURCES = \
  $(NATSERVER)
