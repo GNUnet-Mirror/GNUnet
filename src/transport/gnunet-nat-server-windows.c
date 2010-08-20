@@ -87,52 +87,52 @@ struct ip_packet
   /**
    * Version (4 bits) + Internet header length (4 bits) 
    */
-  u_char vers_ihl; 
+  uint8_t vers_ihl; 
 
   /**
    * Type of service
    */
-  u_char tos;  
+  uint8_t tos;  
 
   /**
    * Total length
    */
-  u_short pkt_len;  
+  uint16_t pkt_len;  
 
   /**
    * Identification
    */
-  u_short id;    
+  uint16_t id;    
 
   /**
    * Flags (3 bits) + Fragment offset (13 bits)
    */
-  u_short flags_frag_offset; 
+  uint16_t flags_frag_offset; 
 
   /**
    * Time to live
    */
-  u_char  ttl;   
+  uint8_t  ttl;   
 
   /**
    * Protocol       
    */
-  u_char  proto; 
+  uint8_t  proto; 
 
   /**
    * Header checksum
    */
-  u_short checksum; 
+  uint16_t checksum; 
 
   /**
    * Source address
    */
-  u_long  src_ip;  
+  uint32_t  src_ip;  
 
   /**
    * Destination address 
    */
-  u_long  dst_ip;  
+  uint32_t  dst_ip;  
 };
 
 /**
