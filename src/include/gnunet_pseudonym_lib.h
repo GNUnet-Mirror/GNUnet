@@ -82,6 +82,11 @@ void GNUNET_PSEUDONYM_add (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 /**
  * List all known pseudonyms.
+ *
+ * @param cfg overall configuration 
+ * @param iterator function to call for each pseudonym
+ * @param closure closure for iterator
+ * @return number of pseudonyms found
  */
 int GNUNET_PSEUDONYM_list_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                GNUNET_PSEUDONYM_Iterator iterator,
