@@ -170,7 +170,10 @@ static SOCKET rawsock;
  * Target "dummy" address.
  */
 static struct in_addr dummy;
- 
+
+/**
+ * Port we are listening on (communicated to the server).
+ */ 
 static uint16_t port;
 
 
