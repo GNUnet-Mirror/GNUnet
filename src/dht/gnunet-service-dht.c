@@ -1934,10 +1934,12 @@ handle_dht_find_peer (void *cls,
                       struct DHT_MessageContext *message_context)
 {
   struct GNUNET_MessageHeader *find_peer_result;
+  struct GNUNET_DHT_FindPeerMessage *find_peer_message;
   struct DHT_MessageContext *new_msg_ctx;
+  struct GNUNET_CONTAINER_BloomFilter *incoming_bloom;
   size_t hello_size;
   size_t tsize;
-
+  find_peer_message = (struct GNUNET_DHT_FindPeerMessage *)find_msg;
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "`%s:%s': Received `%s' request from client, key %s (msg size %d, we expected %d)\n",
@@ -1955,9 +1957,14 @@ handle_dht_find_peer (void *cls,
     return;
   }
 
-
-  if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test(message_context->bloom, &my_identity.hashPubKey))
-    return; /* We match the bloomfilter, do not send a response to this peer (they likely already know us!)*/
+  incoming_bloom = GNUNET_CONTAINER_bloomfilter_init(find_peer_message->bloomfilter, DHT_BLOOM_SIZE, DHT_BLOOM_K);
+  if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test(incoming_bloom, &my_identity.hashPubKey))
+    {
+      increment_stats(STAT_BLOOM_FIND_PEER);
+      GNUNET_CONTAINER_bloomfilter_free(incoming_bloom);
+      return; /* We match the bloomfilter, do not send a response to this peer (they likely already know us!)*/
+    }
+  GNUNET_CONTAINER_bloomfilter_free(incoming_bloom);
 
   /* Simplistic find_peer functionality, always return our hello */
   hello_size = ntohs(my_hello->size);
@@ -1996,7 +2003,6 @@ handle_dht_find_peer (void *cls,
                                    message_context->key);
     }
 #endif
-  //send_reply_to_client(message_context->client, find_peer_result, message_context->unique_id);
   GNUNET_free(find_peer_result);
 }
 
@@ -2269,8 +2275,7 @@ select_peer (const GNUNET_HashCode * target,
           count = 0;
           while ((pos != NULL) && (count < bucket_size))
             {
-            /* If we are doing strict Kademlia like routing, then checking the bloomfilter is basically cheating! */
-
+              /* If we are doing strict Kademlia like routing, then checking the bloomfilter is basically cheating! */
               if (GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey))
                 {
                   distance = inverse_distance (target, &pos->id.hashPubKey);
@@ -2462,7 +2467,9 @@ static int cache_response(void *cls, struct DHT_MessageContext *msg_ctx)
  * Main function that handles whether or not to route a message to other
  * peers.
  *
+ * @param cls closure for dht service (NULL)
  * @param msg the message to be routed
+ * @param message_context the context containing all pertinent information about the message
  *
  * @return the number of peers the message was routed to,
  *         GNUNET_SYSERR on failure
@@ -2505,7 +2512,6 @@ static int route_message(void *cls,
 
   if (message_context->bloom == NULL)
     message_context->bloom = GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
-  GNUNET_CONTAINER_bloomfilter_add (message_context->bloom, &my_identity.hashPubKey);
 
   if ((stop_on_closest == GNUNET_YES) && (message_context->closest == GNUNET_YES) && (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DHT_PUT))
 /*      || ((strict_kademlia == GNUNET_YES) && (message_context->closest == GNUNET_YES))) */
@@ -2562,6 +2568,8 @@ static int route_message(void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "`%s': Message type (%d) not handled\n", "DHT", ntohs(msg->type));
     }
+
+  GNUNET_CONTAINER_bloomfilter_add (message_context->bloom, &my_identity.hashPubKey);
 #if 0
   if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(recent->hashmap, message_context->key))
     {
@@ -2589,6 +2597,7 @@ static int route_message(void *cls,
       remove_oldest_recent();
     }
 #endif
+
   for (i = 0; i < forward_count; i++)
     {
       selected = select_peer(message_context->key, message_context->bloom);
@@ -2783,19 +2792,23 @@ add_known_to_bloom (void *cls,
 static void
 send_find_peer_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_MessageHeader *find_peer_msg;
+  struct GNUNET_DHT_FindPeerMessage *find_peer_msg;
   struct DHT_MessageContext message_context;
   int ret;
   struct GNUNET_TIME_Relative next_send_time;
+  struct GNUNET_CONTAINER_BloomFilter *temp_bloom;
 
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     return;
 
   increment_stats(STAT_FIND_PEER_START);
 
-  find_peer_msg = GNUNET_malloc(sizeof(struct GNUNET_MessageHeader));
-  find_peer_msg->size = htons(sizeof(struct GNUNET_MessageHeader));
-  find_peer_msg->type = htons(GNUNET_MESSAGE_TYPE_DHT_FIND_PEER);
+  find_peer_msg = GNUNET_malloc(sizeof(struct GNUNET_DHT_FindPeerMessage));
+  find_peer_msg->header.size = htons(sizeof(struct GNUNET_DHT_FindPeerMessage));
+  find_peer_msg->header.type = htons(GNUNET_MESSAGE_TYPE_DHT_FIND_PEER);
+  temp_bloom = GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
+  GNUNET_CONTAINER_multihashmap_iterate(all_known_peers, &add_known_to_bloom, temp_bloom);
+  GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_bloomfilter_get_raw_data(temp_bloom, find_peer_msg->bloomfilter, DHT_BLOOM_SIZE));
   memset(&message_context, 0, sizeof(struct DHT_MessageContext));
   message_context.key = &my_identity.hashPubKey;
   message_context.unique_id = GNUNET_ntohll (GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_STRONG, (uint64_t)-1));
@@ -2806,11 +2819,7 @@ send_find_peer_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   message_context.importance = DHT_DEFAULT_FIND_PEER_IMPORTANCE;
   message_context.timeout = DHT_DEFAULT_FIND_PEER_TIMEOUT;
 
-  message_context.bloom = GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
-  GNUNET_CONTAINER_multihashmap_iterate(all_known_peers, &add_known_to_bloom, message_context.bloom);
-  /*GNUNET_CONTAINER_bloomfilter_add (message_context->bloom, &my_identity.hashPubKey);*/
-
-  ret = route_message(NULL, find_peer_msg, &message_context);
+  ret = route_message(NULL, &find_peer_msg->header, &message_context);
   GNUNET_free(find_peer_msg);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "`%s:%s': Sent `%s' request to %d peers\n", my_short_id, "DHT",
@@ -3021,7 +3030,6 @@ handle_dht_p2p_route_request (void *cls,
       GNUNET_break_op(0);
       return GNUNET_YES;
     }
-  //memset(&message_context, 0, sizeof(struct DHT_MessageContext));
   message_context = GNUNET_malloc(sizeof (struct DHT_MessageContext));
   message_context->bloom = GNUNET_CONTAINER_bloomfilter_init(incoming->bloomfilter, DHT_BLOOM_SIZE, DHT_BLOOM_K);
   GNUNET_assert(message_context->bloom != NULL);
@@ -3418,6 +3426,7 @@ run (void *cls,
     {
       GNUNET_STATISTICS_set(stats, STAT_ROUTES, 0, GNUNET_NO);
       GNUNET_STATISTICS_set(stats, STAT_ROUTE_FORWARDS, 0, GNUNET_NO);
+      GNUNET_STATISTICS_set(stats, STAT_ROUTE_FORWARDS_CLOSEST, 0, GNUNET_NO);
       GNUNET_STATISTICS_set(stats, STAT_RESULTS, 0, GNUNET_NO);
       GNUNET_STATISTICS_set(stats, STAT_RESULTS_TO_CLIENT, 0, GNUNET_NO);
       GNUNET_STATISTICS_set(stats, STAT_RESULT_FORWARDS, 0, GNUNET_NO);
@@ -3430,8 +3439,11 @@ run (void *cls,
       GNUNET_STATISTICS_set(stats, STAT_PUT_START, 0, GNUNET_NO);
       GNUNET_STATISTICS_set(stats, STAT_FIND_PEER_REPLY, 0, GNUNET_NO);
       GNUNET_STATISTICS_set(stats, STAT_FIND_PEER_ANSWER, 0, GNUNET_NO);
+      GNUNET_STATISTICS_set(stats, STAT_BLOOM_FIND_PEER, 0, GNUNET_NO);
       GNUNET_STATISTICS_set(stats, STAT_GET_REPLY, 0, GNUNET_NO);
       GNUNET_STATISTICS_set(stats, STAT_GET_RESPONSE_START, 0, GNUNET_NO);
+      GNUNET_STATISTICS_set(stats, STAT_HELLOS_PROVIDED, 0, GNUNET_NO);
+      GNUNET_STATISTICS_set(stats, STAT_DISCONNECTS, 0, GNUNET_NO);
     }
 #if DO_FIND_PEER
   next_send_time.value = DHT_MINIMUM_FIND_PEER_INTERVAL.value +

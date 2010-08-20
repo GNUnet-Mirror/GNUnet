@@ -19,7 +19,7 @@
 */
 
 /**
- * @file src/dht/plugin_dhtlog_mysql.c
+ * @file src/dht/plugin_dhtlog_mysql_dump.c
  * @brief MySQL logging plugin to record DHT operations to MySQL server,
  *        but write all queries to file instead of the actual server
  *        so that they can be imported later.  The idea is that connecting

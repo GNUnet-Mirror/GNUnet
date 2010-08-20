@@ -57,6 +57,7 @@
 #define STAT_FIND_PEER_REPLY "# DHT FIND_PEER Responses Received"
 #define STAT_GET_REPLY "# DHT GET Responses Received"
 #define STAT_FIND_PEER_ANSWER "# DHT FIND_PEER Responses Initiated"
+#define STAT_BLOOM_FIND_PEER "# DHT FIND_PEER Responses Ignored (bloom match)"
 #define STAT_GET_RESPONSE_START "# DHT GET Responses Initiated"
 #define STAT_HELLOS_PROVIDED "# HELLO Messages given to transport"
 #define STAT_DISCONNECTS "# Disconnects received"
@@ -344,6 +345,24 @@ struct GNUNET_DHT_GetMessage
    */
   uint32_t type;
 
+};
+
+/**
+ * Generic DHT message, indicates that a route request
+ * should be issued, if coming from a client.  Shared
+ * usage for api->server and P2P message passing.
+ */
+struct GNUNET_DHT_FindPeerMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_DHT_FIND_PEER
+   */
+  struct GNUNET_MessageHeader header;
+
+  /*
+   * Bloomfilter to reduce find peer responses
+   */
+  char bloomfilter[DHT_BLOOM_SIZE];
 };
 
 /**
