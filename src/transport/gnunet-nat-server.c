@@ -41,6 +41,10 @@
  * - Nathan Evans
  */
 #define _GNU_SOURCE
+#if HAVE_CONFIG_H
+/* Just needed for HAVE_SOCKADDR_IN_SIN_LEN test macro! */
+#include "gnunet_config.h"
+#endif
 #include <sys/types.h> 
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -130,6 +134,9 @@ struct ip_packet
   uint32_t dst_ip;
 };
 
+/**
+ * Format of ICMP packet.
+ */
 struct icmp_packet 
 {
   uint8_t type;
@@ -141,6 +148,9 @@ struct icmp_packet
   uint32_t reserved;
 };
 
+/**
+ * Beginning of UDP packet.
+ */
 struct udp_packet
 {
   uint16_t src_port;
@@ -235,6 +245,9 @@ send_icmp_echo (const struct in_addr *my_ip)
  
   memset (&dst, 0, sizeof (dst));
   dst.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  dst.sin_len = sizeof (struct sockaddr_in);
+#endif
   dst.sin_addr = dummy;
   err = sendto(rawsock, 
 	       packet, off, 0, 
