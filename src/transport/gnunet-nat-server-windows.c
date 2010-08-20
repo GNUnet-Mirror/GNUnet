@@ -59,11 +59,14 @@
  */
 #define VERBOSE 0
 
+/**
+ * TTL to use for our outgoing messages.
+ */
 #define IPDEFTTL 64
 
 #define ICMP_ECHO 8
 
-#define ICMP_TIME_EXCEEDED      11      /* Time Exceeded
+#define ICMP_TIME_EXCEEDED      11      /* Time Exceeded */
 
 /**
  * Must match IP given in the client.
