@@ -171,7 +171,7 @@ static SOCKET rawsock;
  */
 static struct in_addr dummy;
  
-static uint32_t port;
+static uint16_t port;
 
 
 
@@ -223,20 +223,6 @@ calc_checksum(const uint16_t *data,
   return sum;
 }
 
-
-static void
-make_echo (const struct in_addr *src_ip,
-	   struct icmp_echo_packet *echo, uint32_t num)
-{
-  memset(echo, 0, sizeof(struct icmp_echo_packet));
-  echo->type = ICMP_ECHO;
-  echo->code = 0;
-  echo->reserved = 0;
-  echo->checksum = 0;
-  echo->data = htons(num);
-  echo->checksum = htons(calc_checksum((uint16_t*)echo, 
-				       sizeof (struct icmp_echo_packet)));
-}
 
 /**
  * Send an ICMP message to the target.
@@ -304,11 +290,11 @@ send_icmp_udp (const struct in_addr *my_ip,
   off += sizeof(ip_pkt);
 
   /* build UDP header */
-  udp_pkt.src_port = htons(NAT_TRAV_PORT); /* FIXME: does this port matter? */
+  udp_pkt.src_port = htons(NAT_TRAV_PORT);
   udp_pkt.dst_port = htons(NAT_TRAV_PORT);
 
   memset(&udp_pkt.length, 0, sizeof(uint32_t));
-  udp_pkt.length = htonl(port);
+  udp_pkt.length = htons (port);
   memcpy(&packet[off], &udp_pkt, sizeof(udp_pkt));
   off += sizeof(udp_pkt);
 
@@ -406,7 +392,14 @@ send_icmp (const struct in_addr *my_ip,
   memcpy (&packet[off], &ip_pkt, sizeof (struct ip_packet));
   off += sizeof (struct ip_packet);
 
-  make_echo (other, &icmp_echo, port);
+  icmp_echo.type = ICMP_ECHO;
+  icmp_echo.code = 0;
+  icmp_echo.reserved = 0;
+  icmp_echo.checksum = 0;
+  icmp_echo.data = htons(port);
+  icmp_echo.checksum = htons(calc_checksum((uint16_t*) &icmp_echo, 
+					   sizeof (struct icmp_echo_packet)));
+
   memcpy (&packet[off], &icmp_echo, sizeof(struct icmp_echo_packet));
   off += sizeof (struct icmp_echo_packet);
 
