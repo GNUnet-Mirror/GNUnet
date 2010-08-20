@@ -255,7 +255,7 @@ send_icmp_echo (const struct in_addr *my_ip)
   ip_pkt.src_ip = my_ip->s_addr;
   ip_pkt.dst_ip = dummy.s_addr;
   ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt, sizeof (ip_pkt)));
-  memcpy (packet, &ip_pkt, sizeof (ip_pkt));
+  memcpy (&packet[off], &ip_pkt, sizeof (ip_pkt));
   off += sizeof (ip_pkt);
 
   icmp_echo.type = ICMP_ECHO;

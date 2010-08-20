@@ -40,10 +40,11 @@
  * - Christian Grothoff
  * - Nathan Evans
  */
-#define _GNU_SOURCE
 #if HAVE_CONFIG_H
 /* Just needed for HAVE_SOCKADDR_IN_SIN_LEN test macro! */
 #include "gnunet_config.h"
+#else
+#define _GNU_SOURCE
 #endif
 #include <sys/types.h> 
 #include <sys/socket.h>
@@ -375,7 +376,7 @@ send_icmp (const struct in_addr *my_ip,
 
   /* no go back to calculate ICMP packet checksum */
   off = sizeof (ip_pkt);
-  icmp_pkt.checksum = htons(calc_checksum(&packet[off],
+  icmp_pkt.checksum = htons(calc_checksum((uint16_t*) &packet[off],
 					  sizeof (struct icmp_packet) + sizeof(struct ip_packet) + sizeof(struct icmp_echo_packet)));
   memcpy (&packet[off],
 	  &icmp_pkt,

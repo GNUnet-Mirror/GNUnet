@@ -249,7 +249,6 @@ send_icmp_udp (const struct in_addr *my_ip,
 
   /* ip header: send to (known) ip address */
   off = 0;
-  memset(&ip_pkt, 0, sizeof(ip_pkt));
   ip_pkt.vers_ihl = 0x45;
   ip_pkt.tos = 0;
   ip_pkt.pkt_len = htons(sizeof (packet));
