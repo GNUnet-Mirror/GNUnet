@@ -141,8 +141,11 @@ struct ip_packet
 struct icmp_packet 
 {
   uint8_t type;
+
   uint8_t code;
+
   uint16_t checksum;
+
   uint32_t reserved;
 };
 
@@ -158,14 +161,28 @@ struct udp_packet
   uint32_t length;
 };
 
+/**
+ * Socket we use to receive "fake" ICMP replies.
+ */
 static SOCKET icmpsock;
 
+/**
+ * Socket we use to send our ICMP requests.
+ */
 static SOCKET rawsock;
 
+/**
+ * Target "dummy" address.
+ */
 static struct in_addr dummy;
+
 
 /**
  * CRC-16 for IP/ICMP headers.
+ *
+ * @param data what to calculate the CRC over
+ * @param bytes number of bytes in data (must be multiple of 2)
+ * @return the CRC 16.
  */
 static uint16_t 
 calc_checksum(const uint16_t *data, 
@@ -182,12 +199,14 @@ calc_checksum(const uint16_t *data,
   return sum;
 }
 
+
 /**
  * Convert IPv4 address from text to binary form.
  *
  * @param af address family
  * @param cp the address to print
  * @param buf where to write the address result
+ * @return 1 on success
  */
 static int 
 inet_pton (int af, 
@@ -270,6 +289,9 @@ send_icmp_echo (const struct in_addr *my_ip)
 }
 
 
+/**
+ * We've received an ICMP response.  Process it.
+ */
 static void
 process_icmp_response ()
 {
@@ -379,6 +401,9 @@ process_icmp_response ()
 }
 
 
+/**
+ * Create an ICMP raw socket for reading.
+ */
 static SOCKET
 make_icmp_socket ()
 {
@@ -396,6 +421,9 @@ make_icmp_socket ()
 }
 
 
+/**
+ * Create an ICMP raw socket for writing.
+ */
 static SOCKET
 make_raw_socket ()
 {
@@ -498,10 +526,11 @@ main (int argc,
         process_icmp_response ();
       send_icmp_echo (&external);
     }
+  /* select failed (internal error or OS out of resources) */
   closesocket(icmpsock);
   closesocket(rawsock);
   WSACleanup ();
-  return 4; /* select failed! */
+  return 4; 
 }
 
 
