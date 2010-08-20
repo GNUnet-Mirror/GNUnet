@@ -1236,7 +1236,7 @@ GNUNET_DHT_find_peer_start (struct GNUNET_DHT_Handle *handle,
                             void *cont_cls)
 {
   struct GNUNET_DHT_FindPeerHandle *find_peer_handle;
-  struct GNUNET_MessageHeader find_peer_msg;
+  struct GNUNET_DHT_FindPeerMessage find_peer_msg;
 
   if ((handle->current != NULL) && (handle->retransmit_stage != DHT_RETRANSMITTING))  /* Can't send right now, we have a pending message... */
     return NULL;
@@ -1252,10 +1252,10 @@ GNUNET_DHT_find_peer_start (struct GNUNET_DHT_Handle *handle,
               "FIND PEER", GNUNET_h2s (key));
 #endif
 
-  find_peer_msg.size = htons(sizeof(struct GNUNET_MessageHeader));
-  find_peer_msg.type = htons(GNUNET_MESSAGE_TYPE_DHT_FIND_PEER);
+  find_peer_msg.header.size = htons(sizeof(struct GNUNET_DHT_FindPeerMessage));
+  find_peer_msg.header.type = htons(GNUNET_MESSAGE_TYPE_DHT_FIND_PEER);
   find_peer_handle->route_handle =
-    GNUNET_DHT_route_start (handle, key, 0, options, &find_peer_msg,
+    GNUNET_DHT_route_start (handle, key, 0, options, &find_peer_msg.header,
                             timeout, &find_peer_reply_iterator,
                             find_peer_handle, cont, cont_cls);
   return find_peer_handle;
