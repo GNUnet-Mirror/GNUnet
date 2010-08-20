@@ -189,7 +189,15 @@ static void
 do_connect (void *cls,
 	    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE));
+  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
+    {
+      fprintf (stderr,
+	       "Daemons failed to start!\n");
+      GNUNET_break (0);
+      GNUNET_FS_TEST_daemons_stop (sched, 2, daemons);
+      ok = 1;
+      return;
+    }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Daemons started, will now try to connect them\n");
   GNUNET_FS_TEST_daemons_connect (sched,
