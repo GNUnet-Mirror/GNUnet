@@ -59,12 +59,10 @@
  */
 #define VERBOSE 0
 
-
-typedef unsigned int uid_t;
-typedef SOCKET Socket;
-typedef unsigned short ushort;
 #define IPDEFTTL 64
+
 #define ICMP_ECHO 8
+
 #define ICMP_TIME_EXCEEDED      11      /* Time Exceeded
 
 /**
@@ -157,9 +155,9 @@ struct udp_packet
   uint32_t length;
 };
 
-static Socket icmpsock;
+static SOCKET icmpsock;
 
-static Socket rawsock;
+static SOCKET rawsock;
 
 static struct in_addr dummy;
 
@@ -378,10 +376,10 @@ process_icmp_response ()
 }
 
 
-static Socket
+static SOCKET
 make_icmp_socket ()
 {
-  Socket ret;
+  SOCKET ret;
 
   ret = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
   if (INVALID_SOCKET == ret)
@@ -395,7 +393,7 @@ make_icmp_socket ()
 }
 
 
-static Socket
+static SOCKET
 make_raw_socket ()
 {
   DWORD bOptVal = TRUE;
