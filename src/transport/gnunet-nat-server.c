@@ -59,36 +59,85 @@
 #include <netinet/in.h> 
 
 /**
+ * Should we print some debug output?
+ */
+#define VERBOSE 0
+
+/**
  * Must match IP given in the client.
  */
 #define DUMMY_IP "192.0.2.86"
-
-#define VERBOSE 0
 
 /**
  * How often do we send our ICMP messages to receive replies?
  */
 #define ICMP_SEND_FREQUENCY_MS 500
 
+/**
+ * IPv4 header.
+ */
 struct ip_packet 
 {
+
+  /**
+   * Version (4 bits) + Internet header length (4 bits) 
+   */
   uint8_t vers_ihl;
+
+  /**
+   * Type of service
+   */
   uint8_t tos;
+
+  /**
+   * Total length
+   */
   uint16_t pkt_len;
+
+  /**
+   * Identification
+   */
   uint16_t id;
+
+  /**
+   * Flags (3 bits) + Fragment offset (13 bits)
+   */
   uint16_t flags_frag_offset;
+
+  /**
+   * Time to live
+   */
   uint8_t ttl;
+
+  /**
+   * Protocol       
+   */
   uint8_t proto;
+  
+  /**
+   * Header checksum
+   */
   uint16_t checksum;
+
+  /**
+   * Source address
+   */
   uint32_t src_ip;
+
+  /**
+   * Destination address 
+   */
   uint32_t dst_ip;
 };
 
 struct icmp_packet 
 {
   uint8_t type;
+
   uint8_t code;
+
   uint16_t checksum;
+
   uint32_t reserved;
 };
 
@@ -101,12 +150,29 @@ struct udp_packet
   uint32_t length;
 };
 
+/**
+ * Socket we use to receive "fake" ICMP replies.
+ */
 static int icmpsock;
 
+/**
+ * Socket we use to send our ICMP requests.
+ */
 static int rawsock;
 
+/**
+ * Target "dummy" address.
+ */
 static struct in_addr dummy;
 
+
+/**
+ * CRC-16 for IP/ICMP headers.
+ *
+ * @param data what to calculate the CRC over
+ * @param bytes number of bytes in data (must be multiple of 2)
+ * @return the CRC 16.
+ */
 static uint16_t 
 calc_checksum(const uint16_t *data, 
 	      unsigned int bytes)
@@ -120,19 +186,6 @@ calc_checksum(const uint16_t *data,
   sum = (sum & 0xffff) + (sum >> 16);
   sum = htons(0xffff - sum);
   return sum;
-}
-
-
-static void
-make_echo (const struct in_addr *src_ip,
-	   struct icmp_packet *echo)
-{
-  memset(echo, 0, sizeof(struct icmp_packet));
-  echo->type = ICMP_ECHO;
-  echo->code = 0;
-  echo->reserved = 0;
-  echo->checksum = 0;
-  echo->checksum = htons(calc_checksum((uint16_t*)echo, sizeof (struct icmp_packet)));
 }
 
 
@@ -167,7 +220,16 @@ send_icmp_echo (const struct in_addr *my_ip)
   ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt, sizeof (ip_pkt)));
   memcpy (packet, &ip_pkt, sizeof (ip_pkt));
   off += sizeof (ip_pkt);
+
+  icmp_echo.type = ICMP_ECHO;
+  icmp_echo.code = 0;
+  icmp_echo.reserved = 0;
+  icmp_echo.checksum = 0;
+  icmp_echo.checksum = htons(calc_checksum((uint16_t*)&icmp_echo, 
+					   sizeof (struct icmp_packet)));
+
   make_echo (my_ip, &icmp_echo);
+
   memcpy (&packet[off], &icmp_echo, sizeof (icmp_echo));
   off += sizeof (icmp_echo);
  
@@ -193,6 +255,9 @@ send_icmp_echo (const struct in_addr *my_ip)
 }
 
 
+/**
+ * We've received an ICMP response.  Process it.
+ */
 static void
 process_icmp_response ()
 {
@@ -204,7 +269,6 @@ process_icmp_response ()
   struct udp_packet udp_pkt;
   size_t off;
   int have_port;
-  int have_udp;
   uint32_t port;
   
   have = read (icmpsock, buf, sizeof (buf));
@@ -216,7 +280,11 @@ process_icmp_response ()
       return; 
     }
   have_port = 0;
-
+#if VERBOSE
+  fprintf (stderr,
+           "Received message of %u bytes\n",
+           (unsigned int) have);
+#endif
   if (have == sizeof (struct ip_packet) *2 + sizeof (struct icmp_packet) * 2 + sizeof(uint32_t))
     {
       have_port = 1;
@@ -245,50 +313,54 @@ process_icmp_response ()
   memcpy(&sip, 
 	 &ip_pkt.src_ip, 
 	 sizeof (sip));
-
   memcpy (&ip_pkt, &buf[off], sizeof (ip_pkt));
   off += sizeof (ip_pkt);
 
-  have_udp = 0;
-  if (ip_pkt.proto == IPPROTO_UDP)
-    {
-      have_udp = 1;
-    }
-
   if (have_port)
     {
-      memcpy(&port, &buf[sizeof (struct ip_packet) *2 + sizeof (struct icmp_packet) * 2], sizeof(uint32_t));
+      memcpy(&port, 
+	     &buf[sizeof (struct ip_packet) *2 + sizeof (struct icmp_packet) * 2],
+	     sizeof(uint32_t));
       port = ntohs(port);
       fprintf (stdout,
-              "%s:%d\n",
-              inet_ntop (AF_INET,
-                         &sip,
-                         buf,
-                         sizeof (buf)), port);
+	       "%s:%d\n",
+	       inet_ntop (AF_INET,
+			  &sip,
+			  buf,
+			  sizeof (buf)), 
+	       port);
     }
-  else if (have_udp)
+  else if (ip_pkt.proto == IPPROTO_UDP)
     {
-      memcpy(&udp_pkt, &buf[off], sizeof(udp_pkt));
+      memcpy(&udp_pkt, 
+	     &buf[off], 
+	     sizeof(udp_pkt));
       fprintf (stdout,
                "%s:%d\n",
                inet_ntop (AF_INET,
                           &sip,
                           buf,
-                          sizeof (buf)), ntohl(udp_pkt.length));
+                          sizeof (buf)), 
+	       ntohs((uint16_t) udp_pkt.length));
     }
   else
     {
       fprintf (stdout,
-              "%s\n",
-              inet_ntop (AF_INET,
-                         &sip,
-                         buf,
-                         sizeof (buf)));
+	       "%s\n",
+	       inet_ntop (AF_INET,
+			  &sip,
+			  buf,
+			  sizeof (buf)));
     }
   fflush (stdout);
 }
 
 
+/**
+ * Create an ICMP raw socket for reading.
+ *
+ * @return -1 on error
+ */
 static int
 make_icmp_socket ()
 {
@@ -315,6 +387,11 @@ make_icmp_socket ()
 }
 
 
+/**
+ * Create an ICMP raw socket for writing.
+ *
+ * @return -1 on error
+ */
 static int
 make_raw_socket ()
 {
@@ -329,40 +406,42 @@ make_raw_socket ()
 	       strerror (errno));
       return -1;
     }  
-  if (setsockopt(ret, SOL_SOCKET, SO_BROADCAST,
+  if (setsockopt(ret, 
+		 SOL_SOCKET, 
+		 SO_BROADCAST,
+		 (char *)&one, 
+		 sizeof(one)) == -1)
+    {
+      fprintf(stderr,
+	      "setsockopt failed: %s\n",
+	      strerror (errno));
+      close (ret);
+      return -1;
+    }
+  if (setsockopt(ret, 
+		 IPPROTO_IP, 
+		 IP_HDRINCL,
 		 (char *)&one, sizeof(one)) == -1)
-    fprintf(stderr,
-	    "setsockopt failed: %s\n",
-	    strerror (errno));
-  if (setsockopt(ret, IPPROTO_IP, IP_HDRINCL,
-		 (char *)&one, sizeof(one)) == -1)
-    fprintf(stderr,
-	    "setsockopt failed: %s\n",
-	    strerror (errno));
+    {
+      fprintf(stderr,
+	      "setsockopt failed: %s\n",
+	      strerror (errno));
+      close (ret);
+      return -1;
+    }
   return ret;
 }
 
 
 int
-main (int argc, char *const *argv)
+main (int argc, 
+      char *const *argv)
 {
   struct in_addr external;
   fd_set rs;
   struct timeval tv;
   uid_t uid;
 
-  if (-1 == (icmpsock = make_icmp_socket()))
-    return 1; 
-  if (-1 == (rawsock = make_raw_socket()))
-    {
-      close (icmpsock);
-      return 1; 
-    }
-  uid = getuid ();
-  if (0 != setresuid (uid, uid, uid))
-    fprintf (stderr,
-	     "Failed to setresuid: %s\n",
-	     strerror (errno));    
   if (argc != 2)
     {
       fprintf (stderr,
@@ -376,19 +455,52 @@ main (int argc, char *const *argv)
 	       strerror (errno));
       return 1;
     }
-  if (1 != inet_pton (AF_INET, DUMMY_IP, &dummy)) abort ();
+  if (1 != inet_pton (AF_INET, DUMMY_IP, &dummy)) 
+    {
+      fprintf (stderr,
+	       "Internal error converting dummy IP to binary.\n");
+      return 2;
+    }
+  if (-1 == (icmpsock = make_icmp_socket()))
+    {
+      return 3; 
+    }
+  if (-1 == (rawsock = make_raw_socket()))
+    {
+      close (icmpsock);
+      return 3; 
+    }
+  uid = getuid ();
+  if (0 != setresuid (uid, uid, uid))
+    {
+      fprintf (stderr,
+	       "Failed to setresuid: %s\n",
+	       strerror (errno));    
+      /* not critical, continue anyway */
+    }
   while (1)
     {
       FD_ZERO (&rs);
       FD_SET (icmpsock, &rs);
       tv.tv_sec = 0;
       tv.tv_usec = ICMP_SEND_FREQUENCY_MS * 1000; 
-      select (icmpsock + 1, &rs, NULL, NULL, &tv);
+      if (-1 == select (icmpsock + 1, &rs, NULL, NULL, &tv))
+	{
+	  if (errno == EINTR)
+	    continue;
+	  fprintf (stderr,
+		   "select failed: %s\n",
+		   strerror (errno));
+	  break;
+	}
       if (FD_ISSET (icmpsock, &rs))
 	process_icmp_response ();
       send_icmp_echo (&external);
     }  
-  return 0;
+  /* select failed (internal error or OS out of resources) */
+  close (icmpsock);
+  close (rawsock);
+  return 4;
 }
 
 

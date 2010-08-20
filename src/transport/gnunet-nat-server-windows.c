@@ -60,6 +60,11 @@
 #define VERBOSE 0
 
 /**
+ * Must match IP given in the client.
+ */
+#define DUMMY_IP "192.0.2.86"
+
+/**
  * TTL to use for our outgoing messages.
  */
 #define IPDEFTTL 64
@@ -67,11 +72,6 @@
 #define ICMP_ECHO 8
 
 #define ICMP_TIME_EXCEEDED      11      /* Time Exceeded */
-
-/**
- * Must match IP given in the client.
- */
-#define DUMMY_IP "192.0.2.86"
 
 /**
  * How often do we send our ICMP messages to receive replies?
@@ -303,7 +303,6 @@ process_icmp_response ()
   struct udp_packet udp_pkt;
   size_t off;
   int have_port;
-  int have_udp;
   uint32_t port;
 
   have = read (icmpsock, buf, sizeof (buf));
@@ -350,7 +349,6 @@ process_icmp_response ()
 	 sizeof (sip));
   memcpy (&ip_pkt, &buf[off], sizeof (ip_pkt));
   off += sizeof (ip_pkt);
-  have_udp = (ip_pkt.proto == IPPROTO_UDP);
 
   if (have_port)
     {
@@ -369,7 +367,7 @@ process_icmp_response ()
 	       buf, 
 	       port);
     }
-  else if (have_udp)
+  else if (ip_pkt.proto == IPPROTO_UDP)
     {
       memcpy(&udp_pkt,
 	     &buf[off],
@@ -383,7 +381,7 @@ process_icmp_response ()
       fprintf (stdout, 
 	       "%s:%d\n", 
 	       buf, 
-	       ntohs((int)udp_pkt.length));
+	       ntohs((uint16_t)udp_pkt.length));
     }
   else
     {
@@ -403,6 +401,8 @@ process_icmp_response ()
 
 /**
  * Create an ICMP raw socket for reading.
+ *
+ * @return INVALID_SOCKET on error
  */
 static SOCKET
 make_icmp_socket ()
@@ -415,7 +415,7 @@ make_icmp_socket ()
       fprintf (stderr,
 	       "Error opening RAW socket: %s\n",
 	       strerror (errno));
-      return -1;
+      return INVALID_SOCKET;
     }  
   return ret;
 }
@@ -423,6 +423,8 @@ make_icmp_socket ()
 
 /**
  * Create an ICMP raw socket for writing.
+ *
+ * @return INVALID_SOCKET on error
  */
 static SOCKET
 make_raw_socket ()
@@ -498,11 +500,11 @@ main (int argc,
       fprintf (stderr, "Failed to find Winsock 2.1 or better.\n");
       return 2;
     }
-  if (-1 == (icmpsock = make_icmp_socket()))
+  if (INVALID_SOCKET == (icmpsock = make_icmp_socket()))
     {
       return 3; 
     }
-  if (-1 == (make_raw_socket()))
+  if (INVALID_SOCKET == (make_raw_socket()))
     {
       closesocket (icmpsock);
       return 3; 
@@ -513,7 +515,7 @@ main (int argc,
       FD_SET (icmpsock, &rs);
       tv.tv_sec = 0;
       tv.tv_usec = ICMP_SEND_FREQUENCY_MS * 1000; 
-      if (0 != select (icmpsock + 1, &rs, NULL, NULL, &tv))
+      if (-1 == select (icmpsock + 1, &rs, NULL, NULL, &tv))
 	{
 	  if (errno == EINTR)
 	    continue;
