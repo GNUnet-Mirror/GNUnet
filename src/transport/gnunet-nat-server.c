@@ -401,7 +401,7 @@ process_icmp_response ()
       memcpy (&icmp_echo_pkt,
 	      &buf[off],
 	      sizeof (struct icmp_echo_header));
-      port = (uint16_t) htonl (icmp_echo_pkt.reserved);
+      port = (uint16_t)  ntohl (icmp_echo_pkt.reserved);
       break;
     case IPPROTO_UDP:
       if (have != (sizeof (struct ip_header) * 2 + 
