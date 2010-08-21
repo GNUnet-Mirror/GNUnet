@@ -38,6 +38,7 @@
  * to the list):
  *
  * - Nathan Evans
+ * - Christian Grothoff
  */
 #define _GNU_SOURCE
 
