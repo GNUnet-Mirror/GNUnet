@@ -74,6 +74,11 @@
 #define DUMMY_IP "192.0.2.86"
 
 /**
+ * Port for UDP
+ */ 
+#define NAT_TRAV_PORT 22225
+
+/**
  * How often do we send our ICMP messages to receive replies?
  */
 #define ICMP_SEND_FREQUENCY_MS 500
@@ -172,6 +177,11 @@ static int icmpsock;
 static int rawsock;
 
 /**
+ * Socket we use to send our UDP requests.
+ */
+static int udpsock;
+
+/**
  * Target "dummy" address.
  */
 static struct in_addr dummy;
@@ -258,12 +268,50 @@ send_icmp_echo (const struct in_addr *my_ip)
 	      "sendto failed: %s\n", strerror(errno));
 #endif
     }
-  else if (err != off) 
+  else if (err != sizeof (packet)) 
     {
       fprintf(stderr,
 	      "Error: partial send of ICMP message\n");
     }
 }
+
+
+/**
+ * Send a UDP message to the dummy IP.
+ *
+ * @param my_ip source address (our ip address)
+ */
+static void
+send_udp (const struct in_addr *my_ip)
+{
+  struct sockaddr_in dst;
+  ssize_t err;
+ 
+  memset (&dst, 0, sizeof (dst));
+  dst.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  dst.sin_len = sizeof (struct sockaddr_in);
+#endif
+  dst.sin_addr = dummy;
+  dst.sin_port = htons (NAT_TRAV_PORT);
+  err = sendto(udpsock, 
+	       NULL, 0, 0, 
+	       (struct sockaddr*)&dst, 
+	       sizeof(dst));
+  if (err < 0) 
+    {
+#if VERBOSE
+      fprintf(stderr,
+	      "sendto failed: %s\n", strerror(errno));
+#endif
+    }
+  else if (err != 0) 
+    {
+      fprintf(stderr,
+	      "Error: partial send of ICMP message\n");
+    }
+}
+
 
 
 /**
@@ -444,6 +492,47 @@ make_raw_socket ()
 }
 
 
+/**
+ * Create a UDP socket for writinging.
+ *
+ * @return -1 on error
+ */
+static int
+make_udp_socket ()
+{
+  int ret;
+  struct sockaddr_in addr;
+
+  ret = socket (AF_INET, SOCK_DGRAM, 0);
+  if (-1 == ret)
+    {
+      fprintf (stderr,
+	       "Error opening UDP socket: %s\n",
+	       strerror (errno));
+      return -1;
+    }
+  memset (&addr, 0, sizeof (addr));
+  addr.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  addr.sin_len = sizeof (struct sockaddr_in);
+#endif
+  /* addr.sin_addr zero == ours (hopefully...) */
+  addr.sin_port = htons (NAT_TRAV_PORT);
+
+  if (0 != bind (ret,
+		 &addr,
+		 sizeof(addr)))
+    {
+      fprintf (stderr,
+	       "Error binding UDP socket to port %u: %s\n",
+	       NAT_TRAV_PORT,
+	       strerror (errno));
+      /* likely problematic, but not certain, try to continue */
+    }
+  return ret;
+}
+
+
 int
 main (int argc, 
       char *const *argv)
@@ -452,6 +541,7 @@ main (int argc,
   fd_set rs;
   struct timeval tv;
   uid_t uid;
+  unsigned int alt;
 
   if (argc != 2)
     {
@@ -489,6 +579,13 @@ main (int argc,
 	       strerror (errno));    
       /* not critical, continue anyway */
     }
+  if (-1 == (udpsock = make_udp_socket()))
+    {
+      close (icmpsock);
+      close (rawsock);
+      return 3; 
+    }
+  alt = 0;
   while (1)
     {
       FD_ZERO (&rs);
@@ -506,11 +603,15 @@ main (int argc,
 	}
       if (FD_ISSET (icmpsock, &rs))
 	process_icmp_response ();
-      send_icmp_echo (&external);
+      if (0 == (++alt % 2))
+	send_icmp_echo (&external);
+      else
+	send_udp (&external);
     }  
   /* select failed (internal error or OS out of resources) */
   close (icmpsock);
   close (rawsock);
+  close (udpsock);
   return 4;
 }
 
