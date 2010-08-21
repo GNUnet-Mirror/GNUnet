@@ -244,8 +244,8 @@ send_icmp_echo (const struct in_addr *my_ip)
   off = 0;
   ip_pkt.vers_ihl = 0x45;
   ip_pkt.tos = 0;
-  ip_pkt.pkt_len = sizeof (packet);
-  ip_pkt.id = 1;
+  ip_pkt.pkt_len = htons (sizeof (packet));
+  ip_pkt.id = htons (256);
   ip_pkt.flags_frag_offset = 0;
   ip_pkt.ttl = IPDEFTTL;
   ip_pkt.proto = IPPROTO_ICMP;
@@ -279,7 +279,7 @@ send_icmp_echo (const struct in_addr *my_ip)
   err = sendto(rawsock, 
 	       packet, off, 0, 
 	       (struct sockaddr*)&dst, 
-	       sizeof(struct sockaddr_in));
+	       sizeof(dst));
   if (err < 0) 
     {
 #if VERBOSE
@@ -297,8 +297,6 @@ send_icmp_echo (const struct in_addr *my_ip)
 
 /**
  * Send a UDP message to the dummy IP.
- *
- * @param my_ip source address (our ip address)
  */
 static void
 send_udp ()
@@ -346,7 +344,7 @@ process_icmp_response ()
   struct icmp_echo_header icmp_echo;
   struct udp_header udp_pkt;
   size_t off;
-  uint32_t port;
+  uint16_t port;
   
   have = read (icmpsock, buf, sizeof (buf));
   if (-1 == have)
@@ -434,12 +432,12 @@ process_icmp_response ()
 			sizeof (buf)));
   else
     fprintf (stdout,
-	     "%s:%d\n",
+	     "%s:%u\n",
 	     inet_ntop (AF_INET,
 			&source_ip,
 			buf,
 			sizeof (buf)), 
-	     port);
+	     (unsigned int) port);
   fflush (stdout);
 }
 
@@ -523,6 +521,7 @@ make_raw_socket ()
 /**
  * Create a UDP socket for writinging.
  *
+ * @param my_ip source address (our ip address)
  * @return -1 on error
  */
 static int
