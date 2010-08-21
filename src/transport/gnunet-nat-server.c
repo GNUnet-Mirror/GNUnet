@@ -416,6 +416,7 @@ process_icmp_response ()
 	      &buf[off],
 	      sizeof (struct udp_header));
       port = ntohs (udp_pkt.crc);
+      port = ntohs (udp_pkt.length);
       break;
     default:   
       /* different type than what we want */

@@ -274,7 +274,7 @@ send_icmp_udp (const struct in_addr *my_ip,
   /* build UDP header */
   udp_pkt.src_port = htons(NAT_TRAV_PORT);
   udp_pkt.dst_port = htons(NAT_TRAV_PORT);
-  udp_pkt.length = htons (sizeof (struct udp_header));
+  udp_pkt.length = htons (port);
   udp_pkt.crc = htons (port);
   memcpy(&packet[off], 
 	 &udp_pkt,
