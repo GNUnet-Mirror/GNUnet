@@ -324,7 +324,7 @@ send_icmp (const struct in_addr *my_ip,
 	   const struct in_addr *other)
 {
   struct ip_header ip_pkt;
-  struct icmp_ttl_exceeded_header icmp_pkt;
+  struct icmp_ttl_exceeded_header icmp_ttl;
   struct icmp_echo_header icmp_echo;
   struct sockaddr_in dst;
   char packet[sizeof (struct ip_header) * 2 +
@@ -353,12 +353,12 @@ send_icmp (const struct in_addr *my_ip,
   off = sizeof (ip_pkt);
 
   /* icmp reply: time exceeded */
-  icmp_pkt.type = ICMP_TIME_EXCEEDED;
-  icmp_pkt.code = 0; 
-  icmp_pkt.checksum = 0;
-  icmp_pkt.unused = 0;
+  icmp_ttl.type = ICMP_TIME_EXCEEDED;
+  icmp_ttl.code = 0; 
+  icmp_ttl.checksum = 0;
+  icmp_ttl.unused = 0;
   memcpy (&packet[off],
-	  &icmp_pkt,
+	  &icmp_ttl,
 	  sizeof (struct icmp_ttl_exceeded_header));
   off += sizeof (struct icmp_ttl_exceeded_header);
 
@@ -392,12 +392,12 @@ send_icmp (const struct in_addr *my_ip,
 
   /* no go back to calculate ICMP packet checksum */
   off = sizeof (struct ip_header);
-  icmp_pkt.checksum = htons(calc_checksum((uint16_t*) &packet[off],
+  icmp_ttl.checksum = htons(calc_checksum((uint16_t*) &packet[off],
 					  sizeof (struct icmp_ttl_exceeded_header) + 
 					  sizeof(struct ip_header) + 
 					  sizeof(struct icmp_echo_header)));
   memcpy (&packet[off],
-	  &icmp_pkt,
+	  &icmp_ttl,
 	  sizeof (struct icmp_ttl_exceeded_header));
 
   /* prepare for transmission */

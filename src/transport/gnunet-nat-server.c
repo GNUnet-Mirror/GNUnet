@@ -342,8 +342,8 @@ process_icmp_response ()
   ssize_t have;
   struct in_addr source_ip;
   struct ip_header ip_pkt;
-  struct icmp_ttl_exceeded_header icmp_pkt;
-  struct icmp_echo_header icmp_echo_pkt;
+  struct icmp_ttl_exceeded_header icmp_ttl;
+  struct icmp_echo_header icmp_echo;
   struct udp_header udp_pkt;
   size_t off;
   uint32_t port;
@@ -361,7 +361,7 @@ process_icmp_response ()
            "Received message of %u bytes\n",
            (unsigned int) have);
 #endif
-  if (have < sizeof (struct ip_header) + sizeof (struct icmp_ttl_exceeded_header) + sizeof (struct ip_header) )
+  if (have < (ssize_t) (sizeof (struct ip_header) + sizeof (struct icmp_ttl_exceeded_header) + sizeof (struct ip_header)))
     {
       /* malformed */
       return;
@@ -374,12 +374,12 @@ process_icmp_response ()
   memcpy(&source_ip, 
 	 &ip_pkt.src_ip, 
 	 sizeof (source_ip));
-  memcpy (&icmp_pkt, 
+  memcpy (&icmp_ttl, 
 	  &buf[off], 
 	  sizeof (struct icmp_ttl_exceeded_header));
   off += sizeof (struct icmp_ttl_exceeded_header);
-  if ( (ICMP_TIME_EXCEEDED != icmp_pkt.type) || 
-       (0 != icmp_pkt.code) )
+  if ( (ICMP_TIME_EXCEEDED != icmp_ttl.type) || 
+       (0 != icmp_ttl.code) )
     {
       /* different type than what we want */
       return;
@@ -401,10 +401,10 @@ process_icmp_response ()
 	  return;
 	}
       /* grab ICMP ECHO content */
-      memcpy (&icmp_echo_pkt,
+      memcpy (&icmp_echo,
 	      &buf[off],
 	      sizeof (struct icmp_echo_header));
-      port = (uint16_t)  ntohl (icmp_echo_pkt.reserved);
+      port = (uint16_t)  ntohl (icmp_echo.reserved);
       break;
     case IPPROTO_UDP:
       if (have != (sizeof (struct ip_header) * 2 + 
