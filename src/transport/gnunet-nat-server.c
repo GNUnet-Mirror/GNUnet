@@ -385,6 +385,9 @@ process_icmp_response ()
       return;
     }
   /* skip 2nd IP header */
+  memcpy (&ip_pkt,
+	  &buf[off], 
+	  sizeof (struct ip_header));
   off += sizeof (struct ip_header);
 
   switch (ip_pkt.proto)
@@ -415,7 +418,6 @@ process_icmp_response ()
       memcpy (&udp_pkt,
 	      &buf[off],
 	      sizeof (struct udp_header));
-      port = ntohs (udp_pkt.crc);
       port = ntohs (udp_pkt.length);
       break;
     default:   
