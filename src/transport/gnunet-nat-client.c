@@ -324,6 +324,7 @@ send_icmp (const struct in_addr *my_ip,
   int err;
 
   /* ip header: send to (known) ip address */
+  off = 0;
   ip_pkt.vers_ihl = 0x45;
   ip_pkt.tos = 0;
   ip_pkt.pkt_len = sizeof (packet); /* huh? */
@@ -335,7 +336,7 @@ send_icmp (const struct in_addr *my_ip,
   ip_pkt.src_ip = my_ip->s_addr;
   ip_pkt.dst_ip = other->s_addr;
   ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt, sizeof (struct ip_packet)));
-  memcpy (packet, &ip_pkt, sizeof (struct ip_packet));
+  memcpy (&packet[off], &ip_pkt, sizeof (struct ip_packet));
   off = sizeof (ip_pkt);
 
   /* icmp reply: time exceeded */
@@ -391,7 +392,7 @@ send_icmp (const struct in_addr *my_ip,
   dst.sin_addr = *other;
   err = sendto(rawsock, 
 	       packet, 
-	       off, 0, 
+	       sizeof (packet), 0, 
 	       (struct sockaddr*)&dst, 
 	       sizeof(struct sockaddr_in));
   if (err < 0) 
@@ -399,7 +400,7 @@ send_icmp (const struct in_addr *my_ip,
       fprintf(stderr,
 	      "sendto failed: %s\n", strerror(errno));
     }
-  else if (err != off) 
+  else if (err != sizeof (packet)) 
     {
       fprintf(stderr,
 	      "Error: partial send of ICMP message\n");

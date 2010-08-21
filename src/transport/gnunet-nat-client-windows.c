@@ -300,18 +300,19 @@ send_icmp_udp (const struct in_addr *my_ip,
   memcpy(&packet[off], &udp_pkt, sizeof(udp_pkt));
   off += sizeof(udp_pkt);
 
-  /* set ICMP checksum */
-  icmp_pkt.checksum = htons(calc_checksum((uint16_t*)&packet[sizeof(ip_pkt)],
-                            sizeof (icmp_pkt) + sizeof(ip_pkt) + sizeof(udp_pkt)));
-  memcpy (&packet[sizeof(ip_pkt)], &icmp_pkt, sizeof (icmp_pkt));
+  /* no go back to calculate ICMP packet checksum */
+  off = sizeof (ip_pkt);
+  icmp_pkt.checksum = htons(calc_checksum((uint16_t*)&packet[off],
+					  sizeof (icmp_pkt) + sizeof(ip_pkt) + sizeof(udp_pkt)));
+  memcpy (&packet[off], &icmp_pkt, sizeof (icmp_pkt));
 
-
+  
   memset (&dst, 0, sizeof (dst));
   dst.sin_family = AF_INET;
   dst.sin_addr = *other;
   err = sendto(rawsock,
                packet,
-               off, 0,
+               sizeof (packet), 0,
                (struct sockaddr*)&dst,
                sizeof(dst));
 
@@ -320,7 +321,7 @@ send_icmp_udp (const struct in_addr *my_ip,
       fprintf(stderr,
               "sendto failed: %s\n", strerror(errno));
     }
-  else if (err != off)
+  else if (err != sizeof (packet))
     {
       fprintf(stderr,
               "Error: partial send of ICMP message\n");
