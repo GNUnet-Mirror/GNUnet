@@ -133,7 +133,7 @@ struct Plugin
  * @param priority how important is the message
  * @param msgbuf the message to transmit
  * @param msgbuf_size number of bytes in 'msgbuf'
- * @param timeout when should we time out 
+ * @param timeout when should we time out
  * @param session which session must be used (or NULL for "any")
  * @param addr the address to use (can be NULL if the plugin
  *                is "on its own" (i.e. re-use existing TCP connection))
@@ -245,16 +245,16 @@ template_plugin_address_suggested (void *cls,
 
 /**
  * Function called for a quick conversion of the binary address to
- * a numeric address.  Note that the caller must not free the 
+ * a numeric address.  Note that the caller must not free the
  * address and that the next call to this function is allowed
  * to override the address again.
  *
  * @param cls closure
  * @param addr binary address
  * @param addrlen length of the address
- * @return string representing the same address 
+ * @return string representing the same address
  */
-static const char* 
+static const char*
 template_plugin_address_to_string (void *cls,
 				   const void *addr,
 				   size_t addrlen)

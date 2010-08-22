@@ -193,7 +193,7 @@ notify_connect (void *cls,
     {
       GNUNET_SCHEDULER_cancel (sched, die_task);
       die_task = GNUNET_SCHEDULER_add_delayed (sched,
-					       TIMEOUT_TRANSMIT, 
+					       TIMEOUT_TRANSMIT,
 					       &end_badly, NULL);
 
       GNUNET_TRANSPORT_notify_transmit_ready (p1.th,
@@ -347,7 +347,7 @@ run (void *cls,
   OKPP;
   sched = s;
   die_task = GNUNET_SCHEDULER_add_delayed (sched,
-					   TIMEOUT, 
+					   TIMEOUT,
 					   &end_badly, NULL);
 
   if (is_udp)
@@ -490,7 +490,7 @@ get_path_from_PATH ()
 }
 
 
-static int 
+static int
 check_gnunet_nat_server()
 {
   struct stat statbuf;
@@ -505,8 +505,8 @@ check_gnunet_nat_server()
       return GNUNET_SYSERR;
     }
   GNUNET_free (p);
-  if ( (0 != (statbuf.st_mode & S_ISUID)) && 
-       (statbuf.st_uid == 0) )    
+  if ( (0 != (statbuf.st_mode & S_ISUID)) &&
+       (statbuf.st_uid == 0) )
     return GNUNET_YES;
   return GNUNET_NO;
 }

@@ -29,7 +29,7 @@
 
 /**
  * Context for the address lookup.
- */ 
+ */
 struct AddressLookupCtx
 {
   /**
@@ -62,7 +62,7 @@ struct AddressLookupCtx
  *        message with the human-readable address
  */
 static void
-address_response_processor (void *cls, 
+address_response_processor (void *cls,
 			    const struct GNUNET_MessageHeader *msg)
 {
   struct AddressLookupCtx *alucb = cls;
@@ -100,7 +100,7 @@ address_response_processor (void *cls,
   GNUNET_CLIENT_receive (alucb->client,
 			 &address_response_processor, alucb,
 			 GNUNET_TIME_absolute_get_remaining
-			 (alucb->timeout));    
+			 (alucb->timeout));
   alucb->cb (alucb->cb_cls, address);
 }
 
@@ -112,7 +112,7 @@ address_response_processor (void *cls,
  * @param cfg configuration to use
  * @param address address to convert (binary format)
  * @param addressLen number of bytes in address
- * @param numeric should (IP) addresses be displayed in numeric form 
+ * @param numeric should (IP) addresses be displayed in numeric form
  *                (otherwise do reverse DNS lookup)
  * @param nameTrans name of the transport to which the address belongs
  * @param timeout how long is the lookup allowed to take at most
@@ -121,8 +121,8 @@ address_response_processor (void *cls,
  */
 void
 GNUNET_TRANSPORT_address_lookup (struct GNUNET_SCHEDULER_Handle *sched,
-                                 const struct GNUNET_CONFIGURATION_Handle  *cfg, 
-				 const char *address, 
+                                 const struct GNUNET_CONFIGURATION_Handle  *cfg,
+				 const char *address,
 				 size_t addressLen,
 				 int numeric,
                                  const char *nameTrans,
@@ -168,8 +168,8 @@ GNUNET_TRANSPORT_address_lookup (struct GNUNET_SCHEDULER_Handle *sched,
   aluCB->timeout = abs_timeout;
   aluCB->client = client;
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CLIENT_transmit_and_get_response (client, 
-							  &msg->header, 
+		 GNUNET_CLIENT_transmit_and_get_response (client,
+							  &msg->header,
 							  timeout,
 							  GNUNET_YES,
 							  &address_response_processor,

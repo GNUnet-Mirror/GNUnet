@@ -21,13 +21,13 @@
 /**
  * @file src/transport/gnunet-wlan.c
  * @brief wlan layer two server; must run as root (SUID will do)
- *        This code will work under GNU/Linux only.  
+ *        This code will work under GNU/Linux only.
  * @author David Brodski
  *
  * This program serves as the mediator between the wlan interface and
- * gnunet 
+ * gnunet
  */
- 
+
 #include "gnunet-transport-wlan-helper.h"
 #include <pcap/pcap.h>
 

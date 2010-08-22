@@ -370,7 +370,7 @@ struct Plugin
 
   /* The private key MHD uses as an \0 terminated string */
   char * key;
-  
+
   char * crypto_init;
 };
 
@@ -2462,7 +2462,7 @@ libgnunet_plugin_transport_https_init (void *cls)
 		  plugin->bind4_address = NULL;
 	  }
   }
-  
+
     /* Get crypto init string from config */
   if (GNUNET_CONFIGURATION_have_value (env->cfg,
 		  	  	  	  	  	  	  	   "transport-https", "CRYPTO_INIT"))

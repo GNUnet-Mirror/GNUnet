@@ -119,7 +119,7 @@ end ()
   GNUNET_TRANSPORT_disconnect (p1.th);
   GNUNET_TRANSPORT_disconnect (p2.th);
 #if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Transports disconnected, returning success!\n");
 #endif
   delta = GNUNET_TIME_absolute_get_duration (start_time).value;
@@ -155,7 +155,7 @@ end_badly (void *cls,
 }
 
 
-struct TestMessage 
+struct TestMessage
 {
   struct GNUNET_MessageHeader header;
   uint32_t num;
@@ -241,7 +241,7 @@ notify_receive (void *cls,
       die_task = GNUNET_SCHEDULER_add_delayed (sched,
 					       TIMEOUT,
 					       &end_badly,
-					       NULL);    
+					       NULL);
     }
   if (n == TOTAL_MSGS)
     end ();
@@ -295,7 +295,7 @@ notify_ready (void *cls, size_t size, void *buf)
   if (n < TOTAL_MSGS)
     GNUNET_TRANSPORT_notify_transmit_ready (p1.th,
 					    &p2.id,
-					    s, 0, TIMEOUT, 
+					    s, 0, TIMEOUT,
 					    &notify_ready,
 					    NULL);
   if (n % 5000 == 0)
@@ -368,7 +368,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 {
   p->cfg = GNUNET_CONFIGURATION_create ();
 #if START_ARM
-  p->arm_pid = GNUNET_OS_start_process (NULL, NULL, 
+  p->arm_pid = GNUNET_OS_start_process (NULL, NULL,
 					"gnunet-service-arm",
                                         "gnunet-service-arm",
 #if VERBOSE_ARM
@@ -438,7 +438,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   p->th = GNUNET_TRANSPORT_connect (sched, p->cfg, NULL,
                                     p,
                                     &notify_receive,
-                                    &notify_connect, 
+                                    &notify_connect,
 				    &notify_disconnect);
   GNUNET_assert (p->th != NULL);
 }
@@ -487,7 +487,7 @@ exchange_hello (void *cls,
 
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received HELLO size %d\n", 
+              "Received HELLO size %d\n",
 	      GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message));
 #endif
   GNUNET_TRANSPORT_offer_hello (p2.th, message);

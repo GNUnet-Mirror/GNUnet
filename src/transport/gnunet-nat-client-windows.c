@@ -70,65 +70,65 @@
 /**
  * IPv4 header.
  */
-struct ip_header 
+struct ip_header
 {
 
   /**
-   * Version (4 bits) + Internet header length (4 bits) 
+   * Version (4 bits) + Internet header length (4 bits)
    */
-  uint8_t vers_ihl; 
+  uint8_t vers_ihl;
 
   /**
    * Type of service
    */
-  uint8_t tos;  
+  uint8_t tos;
 
   /**
    * Total length
    */
-  uint16_t pkt_len;  
+  uint16_t pkt_len;
 
   /**
    * Identification
    */
-  uint16_t id;    
+  uint16_t id;
 
   /**
    * Flags (3 bits) + Fragment offset (13 bits)
    */
-  uint16_t flags_frag_offset; 
+  uint16_t flags_frag_offset;
 
   /**
    * Time to live
    */
-  uint8_t ttl;   
+  uint8_t ttl;
 
   /**
-   * Protocol       
+   * Protocol
    */
-  uint8_t proto; 
+  uint8_t proto;
 
   /**
    * Header checksum
    */
-  uint16_t checksum; 
+  uint16_t checksum;
 
   /**
    * Source address
    */
-  uint32_t src_ip;  
+  uint32_t src_ip;
 
   /**
-   * Destination address 
+   * Destination address
    */
-  uint32_t dst_ip;  
+  uint32_t dst_ip;
 };
 
 
 /**
  * Format of ICMP packet.
  */
-struct icmp_ttl_exceeded_header 
+struct icmp_ttl_exceeded_header
 {
   uint8_t type;
 
@@ -179,7 +179,7 @@ static struct in_addr dummy;
 
 /**
  * Port we are listening on (communicated to the server).
- */ 
+ */
 static uint16_t port;
 
 
@@ -192,17 +192,17 @@ static uint16_t port;
  * @param buf where to write the address result
  * @return 1 on success
  */
-static int 
-inet_pton (int af, 
-	   const char *cp, 
+static int
+inet_pton (int af,
+	   const char *cp,
 	   struct in_addr *buf)
 {
   buf->s_addr = inet_addr(cp);
   if (buf->s_addr == INADDR_NONE)
     {
-      fprintf(stderr, 
-	      "Error %d handling address %s", 
-	      WSAGetLastError(), 
+      fprintf(stderr,
+	      "Error %d handling address %s",
+	      WSAGetLastError(),
 	      cp);
       return 0;
     }
@@ -217,16 +217,16 @@ inet_pton (int af,
  * @param bytes number of bytes in data (must be multiple of 2)
  * @return the CRC 16.
  */
-static uint16_t 
-calc_checksum(const uint16_t *data, 
+static uint16_t
+calc_checksum(const uint16_t *data,
 	      unsigned int bytes)
 {
   uint32_t sum;
   unsigned int i;
 
   sum = 0;
-  for (i=0;i<bytes/2;i++) 
-    sum += data[i];        
+  for (i=0;i<bytes/2;i++)
+    sum += data[i];
   sum = (sum & 0xffff) + (sum >> 16);
   sum = htons(0xffff - sum);
   return sum;
@@ -244,7 +244,7 @@ send_icmp_udp (const struct in_addr *my_ip,
                const struct in_addr *other)
 {
   char packet[sizeof(struct ip_header) * 2 +
-	      sizeof(struct icmp_ttl_exceeded_header) + 
+	      sizeof(struct icmp_ttl_exceeded_header) +
 	      sizeof(struct udp_header)];
   struct ip_header ip_pkt;
   struct icmp_ttl_exceeded_header icmp_pkt;
@@ -265,10 +265,10 @@ send_icmp_udp (const struct in_addr *my_ip,
   ip_pkt.checksum = 0;
   ip_pkt.src_ip = my_ip->s_addr;
   ip_pkt.dst_ip = other->s_addr;
-  ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt, 
+  ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt,
 					sizeof (struct ip_header)));
-  memcpy(&packet[off], 
-	 &ip_pkt, 
+  memcpy(&packet[off],
+	 &ip_pkt,
 	 sizeof(struct ip_header));
   off += sizeof(struct ip_header);
 
@@ -277,7 +277,7 @@ send_icmp_udp (const struct in_addr *my_ip,
   icmp_pkt.checksum = 0;
   icmp_pkt.unused = 0;
   memcpy(&packet[off],
-	 &icmp_pkt, 
+	 &icmp_pkt,
 	 sizeof(struct icmp_ttl_exceeded_header));
   off += sizeof(struct icmp_ttl_exceeded_header);
 
@@ -293,32 +293,32 @@ send_icmp_udp (const struct in_addr *my_ip,
   ip_pkt.checksum = 0;
   ip_pkt.src_ip = other->s_addr;
   ip_pkt.dst_ip = dummy.s_addr;
-  ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt, 
+  ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt,
 					sizeof (struct ip_header)));
-  memcpy(&packet[off], 
-	 &ip_pkt, 
+  memcpy(&packet[off],
+	 &ip_pkt,
 	 sizeof(struct ip_header));
   off += sizeof(struct ip_header);
 
   /* build UDP header */
   udp_pkt.src_port = htons(NAT_TRAV_PORT);
-  udp_pkt.dst_port = htons(NAT_TRAV_PORT); 
+  udp_pkt.dst_port = htons(NAT_TRAV_PORT);
   udp_pkt.length = htons (port);
   udp_pkt.crc = 0;
-  memcpy(&packet[off], 
-	 &udp_pkt, 
+  memcpy(&packet[off],
+	 &udp_pkt,
 	 sizeof(struct udp_header));
   off += sizeof(struct udp_header);
 
   /* no go back to calculate ICMP packet checksum */
   icmp_pkt.checksum = htons(calc_checksum((uint16_t*)&packet[off],
-					  sizeof (struct icmp_ttl_exceeded_header) + 
-					  sizeof (struct ip_header) + 
+					  sizeof (struct icmp_ttl_exceeded_header) +
+					  sizeof (struct ip_header) +
 					  sizeof (struct udp_header)));
-  memcpy (&packet[sizeof (struct ip_header)], 
-	  &icmp_pkt, 
+  memcpy (&packet[sizeof (struct ip_header)],
+	  &icmp_pkt,
 	  sizeof (struct icmp_ttl_exceeded_header));
-  
+
   memset (&dst, 0, sizeof (dst));
   dst.sin_family = AF_INET;
   dst.sin_addr = *other;
@@ -354,8 +354,8 @@ send_icmp (const struct in_addr *my_ip,
   struct icmp_ttl_exceeded_header icmp_ttl;
   struct icmp_echo_header icmp_echo;
   struct sockaddr_in dst;
-  char packet[sizeof (struct ip_header) * 2 + 
-	      sizeof (struct icmp_ttl_exceeded_header) + 
+  char packet[sizeof (struct ip_header) * 2 +
+	      sizeof (struct icmp_ttl_exceeded_header) +
 	      sizeof(struct icmp_echo_header)];
   size_t off;
   int err;
@@ -365,11 +365,11 @@ send_icmp (const struct in_addr *my_ip,
   ip_pkt.vers_ihl = 0x45;
   ip_pkt.tos = 0;
   ip_pkt.pkt_len = htons (sizeof (packet));
-  ip_pkt.id = htons(256); 
+  ip_pkt.id = htons(256);
   ip_pkt.flags_frag_offset = 0;
   ip_pkt.ttl = IPDEFTTL;
   ip_pkt.proto = IPPROTO_ICMP;
-  ip_pkt.checksum = 0; 
+  ip_pkt.checksum = 0;
   ip_pkt.src_ip = my_ip->s_addr;
   ip_pkt.dst_ip = other->s_addr;
   ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt,
@@ -381,7 +381,7 @@ send_icmp (const struct in_addr *my_ip,
 
   /* icmp reply: time exceeded */
   icmp_ttl.type = ICMP_TIME_EXCEEDED;
-  icmp_ttl.code = 0; 
+  icmp_ttl.code = 0;
   icmp_ttl.reserved = 0;
   icmp_ttl.checksum = 0;
   memcpy (&packet[off],
@@ -393,7 +393,7 @@ send_icmp (const struct in_addr *my_ip,
   ip_pkt.vers_ihl = 0x45;
   ip_pkt.tos = 0;
   ip_pkt.pkt_len = (sizeof (struct ip_header) + sizeof (struct icmp_echo_header));
-  ip_pkt.id = htons (256); 
+  ip_pkt.id = htons (256);
   ip_pkt.flags_frag_offset = 0;
   ip_pkt.ttl = 1; /* real TTL would be 1 on a time exceeded packet */
   ip_pkt.proto = IPPROTO_ICMP;
@@ -401,9 +401,9 @@ send_icmp (const struct in_addr *my_ip,
   ip_pkt.dst_ip = dummy.s_addr;
   ip_pkt.checksum = 0;
   ip_pkt.checksum = htons(calc_checksum((uint16_t*)&ip_pkt,
-					sizeof (struct ip_header)));  
-  memcpy (&packet[off], 
-	  &ip_pkt, 
+					sizeof (struct ip_header)));
+  memcpy (&packet[off],
+	  &ip_pkt,
 	  sizeof (struct ip_header));
   off += sizeof (struct ip_header);
 
@@ -412,17 +412,17 @@ send_icmp (const struct in_addr *my_ip,
   icmp_echo.reserved = 0;
   icmp_echo.checksum = 0;
   icmp_echo.data = htons(port);
-  icmp_echo.checksum = htons(calc_checksum((uint16_t*) &icmp_echo, 
+  icmp_echo.checksum = htons(calc_checksum((uint16_t*) &icmp_echo,
 					   sizeof (struct icmp_echo_header)));
   memcpy (&packet[off],
-	  &icmp_echo, 
+	  &icmp_echo,
 	  sizeof(struct icmp_echo_header));
 
   /* no go back to calculate ICMP packet checksum */
   off = sizeof (struct ip_header);
   icmp_ttl.checksum = htons(calc_checksum((uint16_t*) &packet[off],
-					  sizeof (struct icmp_ttl_exceeded_header) + 
-					  sizeof (struct ip_header) + 
+					  sizeof (struct icmp_ttl_exceeded_header) +
+					  sizeof (struct ip_header) +
 					  sizeof (struct icmp_echo_header)));
   memcpy (&packet[off],
 	  &icmp_ttl,
@@ -432,18 +432,18 @@ send_icmp (const struct in_addr *my_ip,
   dst.sin_family = AF_INET;
   dst.sin_addr = *other;
 
-  err = sendto(rawsock, 
+  err = sendto(rawsock,
 	       packet,
 	       sizeof (packet), 0,
-	       (struct sockaddr*)&dst, 
-	       sizeof(dst)); 
+	       (struct sockaddr*)&dst,
+	       sizeof(dst));
 
-  if (err < 0) 
+  if (err < 0)
     {
       fprintf(stderr,
 	      "sendto failed: %s\n", strerror(errno));
     }
-  else if (sizeof (packet) != (size_t) err) 
+  else if (sizeof (packet) != (size_t) err)
     {
       fprintf(stderr,
 	      "Error: partial send of ICMP message\n");
@@ -470,10 +470,10 @@ make_raw_socket ()
 	       "Error opening RAW socket: %s\n",
 	       strerror (errno));
       return INVALID_SOCKET;
-    }  
+    }
   if (0 != setsockopt(ret, SOL_SOCKET, SO_BROADCAST, (char*)&bOptVal, bOptLen))
     {
-      fprintf(stderr, 
+      fprintf(stderr,
 	      "Error setting SO_BROADCAST to ON: %s\n",
 	      strerror (errno));
       closesocket(rawsock);
@@ -482,7 +482,7 @@ make_raw_socket ()
 
   if (0 != setsockopt(ret, IPPROTO_IP, IP_HDRINCL, (char*)&bOptVal, bOptLen))
     {
-      fprintf(stderr, 
+      fprintf(stderr,
 	      "Error setting IP_HDRINCL to ON: %s\n",
 	      strerror (errno));
       closesocket(rawsock);
@@ -531,7 +531,7 @@ main (int argc, char *const *argv)
       fprintf (stderr, "Failed to find Winsock 2.1 or better.\n");
       return 2;
     }
-  if (1 != inet_pton (AF_INET, DUMMY_IP, &dummy)) 
+  if (1 != inet_pton (AF_INET, DUMMY_IP, &dummy))
     {
       fprintf (stderr,
 	       "Internal error converting dummy IP to binary.\n");

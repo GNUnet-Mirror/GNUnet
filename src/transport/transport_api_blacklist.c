@@ -56,7 +56,7 @@ struct GNUNET_TRANSPORT_Blacklist
 
   /**
    * Pending handle for the current request.
-   */ 
+   */
   struct GNUNET_CLIENT_TransmitHandle *th;
 
   /**
@@ -68,7 +68,7 @@ struct GNUNET_TRANSPORT_Blacklist
   /**
    * Closure for 'cb'.
    */
-  void *cb_cls;  
+  void *cb_cls;
 
   /**
    * Peer currently under consideration.
@@ -108,7 +108,7 @@ query_handler (void *cls,
 {
   struct GNUNET_TRANSPORT_Blacklist *br = cls;
   const struct BlacklistMessage *bm;
-  
+
   if ( (ntohs(msg->size) != sizeof (struct BlacklistMessage)) ||
        (ntohs(msg->type) != GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY) )
     {
@@ -118,7 +118,7 @@ query_handler (void *cls,
   bm = (const struct BlacklistMessage *)msg;
   GNUNET_break (0 == ntohl (bm->is_allowed));
   br->peer = bm->peer;
-  reply (br);  
+  reply (br);
 }
 
 
@@ -276,7 +276,7 @@ GNUNET_TRANSPORT_blacklist (struct GNUNET_SCHEDULER_Handle *sched,
 						 GNUNET_TIME_UNIT_FOREVER_REL,
 						 GNUNET_YES,
 						 &transmit_blacklist_init,
-						 ret);  
+						 ret);
   return ret;
 }
 

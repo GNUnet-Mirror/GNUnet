@@ -857,7 +857,7 @@ notify_address (void *cls,
                 addrlen);
       return;
     }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      _("Transport plugin notification for address: `%s':%u\n"),
 	      address,
 	      port);
