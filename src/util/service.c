@@ -1548,6 +1548,7 @@ GNUNET_SERVICE_run (int argc,
   sctx.ret = GNUNET_OK;
   sctx.timeout = GNUNET_TIME_UNIT_FOREVER_REL;
   sctx.task = task;
+  sctx.task_cls = task_cls;
   sctx.serviceName = serviceName;
   sctx.cfg = cfg = GNUNET_CONFIGURATION_create ();
   /* setup subsystems */
