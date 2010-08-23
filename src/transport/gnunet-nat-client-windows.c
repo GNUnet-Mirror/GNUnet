@@ -382,8 +382,8 @@ send_icmp (const struct in_addr *my_ip,
   /* icmp reply: time exceeded */
   icmp_ttl.type = ICMP_TIME_EXCEEDED;
   icmp_ttl.code = 0;
-  icmp_ttl.reserved = 0;
   icmp_ttl.checksum = 0;
+  icmp_ttl.unused = 0; 
   memcpy (&packet[off],
 	  &icmp_ttl,
 	  sizeof (struct icmp_ttl_exceeded_header));
@@ -392,7 +392,7 @@ send_icmp (const struct in_addr *my_ip,
   /* ip header of the presumably 'lost' udp packet */
   ip_pkt.vers_ihl = 0x45;
   ip_pkt.tos = 0;
-  ip_pkt.pkt_len = (sizeof (struct ip_header) + sizeof (struct icmp_echo_header));
+  ip_pkt.pkt_len = htons(sizeof (struct ip_header) + sizeof (struct icmp_echo_header));
   ip_pkt.id = htons (256);
   ip_pkt.flags_frag_offset = 0;
   ip_pkt.ttl = 1; /* real TTL would be 1 on a time exceeded packet */
@@ -409,9 +409,8 @@ send_icmp (const struct in_addr *my_ip,
 
   icmp_echo.type = ICMP_ECHO;
   icmp_echo.code = 0;
-  icmp_echo.reserved = 0;
+  icmp_echo.reserved = htonl(port);
   icmp_echo.checksum = 0;
-  icmp_echo.data = htons(port);
   icmp_echo.checksum = htons(calc_checksum((uint16_t*) &icmp_echo,
 					   sizeof (struct icmp_echo_header)));
   memcpy (&packet[off],
