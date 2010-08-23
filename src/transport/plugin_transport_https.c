@@ -42,7 +42,7 @@
 #include <curl/curl.h>
 
 #define DEBUG_HTTPS GNUNET_NO
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 #define DEBUG_CURL GNUNET_NO
 #define DEBUG_CONNECTIONS GNUNET_NO
 #define DEBUG_SESSION_SELECTION GNUNET_NO
@@ -372,6 +372,8 @@ struct Plugin
   char * key;
 
   char * crypto_init;
+
+  void * mhd_log;
 };
 
 
@@ -647,6 +649,13 @@ process_interfaces (void *cls,
   return GNUNET_OK;
 }
 
+void mhd_logger (void * arg, const char * fmt, va_list ap)
+{
+	char text[1024];
+	vsnprintf(text, 1024, fmt, ap);
+	va_end(ap);
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"MHD: %s \n", text);
+}
 
 /**
  * Callback called by MHD when a connection is terminated
@@ -1301,12 +1310,10 @@ static size_t curl_send_cb(void *stream, size_t size, size_t nmemb, void *ptr)
 
   if ( msg->pos == msg->size)
   {
-#if DEBUG_CONNECTIONS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: Message with %u bytes sent, removing message from queue \n",ps, msg->pos);
-#endif
     /* Calling transmit continuation  */
-    if (NULL != ps->pending_msgs_tail->transmit_cont)
-      msg->transmit_cont (ps->pending_msgs_tail->transmit_cont_cls,&(ps->peercontext)->identity,GNUNET_OK);
+    if (NULL != msg->transmit_cont)
+      msg->transmit_cont (msg->transmit_cont_cls,&(ps->peercontext)->identity,GNUNET_OK);
     remove_http_message(ps, msg);
   }
   return bytes_sent;
@@ -2606,9 +2613,10 @@ libgnunet_plugin_transport_https_init (void *cls)
   {
 	struct sockaddr * tmp = (struct sockaddr *) plugin->bind6_address;
     plugin->http_server_daemon_v6 = MHD_start_daemon (
-#if DEBUG_CONNECTIONS
+
     								   MHD_USE_DEBUG |
-#endif
+#if DEBUG_CONNECTIONS
+    								   #endif
     								   MHD_USE_IPv6 | MHD_USE_SSL,
                                        port,
                                        &mhd_accept_cb,
@@ -2626,13 +2634,15 @@ libgnunet_plugin_transport_https_init (void *cls)
                                        MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) timeout,
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
                                        MHD_OPTION_NOTIFY_COMPLETED, &mhd_termination_cb, NULL,
+                                       MHD_OPTION_EXTERNAL_LOGGER, mhd_logger, plugin->mhd_log,
                                        MHD_OPTION_END);
   }
   if ((plugin->http_server_daemon_v4 == NULL) && (plugin->use_ipv4 == GNUNET_YES) && (port != 0))
   {
   plugin->http_server_daemon_v4 = MHD_start_daemon (
-#if DEBUG_CONNECTIONS
+
     								   MHD_USE_DEBUG |
+#if DEBUG_CONNECTIONS
 #endif
     								   MHD_NO_FLAG | MHD_USE_SSL,
                                        port,
@@ -2651,6 +2661,7 @@ libgnunet_plugin_transport_https_init (void *cls)
                                        MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) timeout,
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
                                        MHD_OPTION_NOTIFY_COMPLETED, &mhd_termination_cb, NULL,
+                                       MHD_OPTION_EXTERNAL_LOGGER, mhd_logger, plugin->mhd_log,
                                        MHD_OPTION_END);
   }
   if (plugin->http_server_daemon_v4 != NULL)

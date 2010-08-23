@@ -363,6 +363,7 @@ struct Plugin
   char * bind_hostname;
   int use_ipv6;
   int use_ipv4;
+  void * mhd_log;
 };
 
 
@@ -638,6 +639,13 @@ process_interfaces (void *cls,
   return GNUNET_OK;
 }
 
+void mhd_logger (void * arg, const char * fmt, va_list ap)
+{
+	char text[1024];
+	vsnprintf(text, 1024, fmt, ap);
+	va_end(ap);
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"MHD: %s \n", text);
+}
 
 /**
  * Callback called by MHD when a connection is terminated
@@ -2459,6 +2467,7 @@ libgnunet_plugin_transport_http_init (void *cls)
                                        MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) timeout,
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
                                        MHD_OPTION_NOTIFY_COMPLETED, &mhd_termination_cb, NULL,
+                                       MHD_OPTION_EXTERNAL_LOGGER, mhd_logger, plugin->mhd_log,
                                        MHD_OPTION_END);
   }
   if ((plugin->http_server_daemon_v4 == NULL) && (plugin->use_ipv4 == GNUNET_YES) && (port != 0))
@@ -2477,6 +2486,7 @@ libgnunet_plugin_transport_http_init (void *cls)
                                        MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) timeout,
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
                                        MHD_OPTION_NOTIFY_COMPLETED, &mhd_termination_cb, NULL,
+                                       MHD_OPTION_EXTERNAL_LOGGER, mhd_logger, plugin->mhd_log,
                                        MHD_OPTION_END);
   }
   if (plugin->http_server_daemon_v4 != NULL)
