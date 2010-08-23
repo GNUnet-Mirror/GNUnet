@@ -528,7 +528,7 @@ make_raw_socket ()
 
 
 /**
- * Create a UDP socket for writinging.
+ * Create a UDP socket for writing.
  *
  * @param my_ip source address (our ip address)
  * @return INVALID_SOCKET on error
