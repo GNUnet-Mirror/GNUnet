@@ -66,6 +66,11 @@
 #define DUMMY_IP "192.0.2.86"
 
 /**
+ * Default Port
+ */
+#define NAT_TRAV_PORT 22225
+
+/**
  * TTL to use for our outgoing messages.
  */
 #define IPDEFTTL 64
@@ -256,7 +261,7 @@ static void
 send_icmp_echo (const struct in_addr *my_ip)
 {
   char packet[sizeof (struct ip_header) + sizeof (struct icmp_echo_header)];
-  struct icmp_ttl_exceeded_header icmp_echo;
+  struct icmp_echo_header icmp_echo;
   struct ip_header ip_pkt;
   struct sockaddr_in dst;
   size_t off;
@@ -355,7 +360,7 @@ process_icmp_response ()
   ssize_t have;
   struct in_addr source_ip;
   struct ip_header ip_pkt;
-  struct icmp_ttl_exceeded_header icmp_pkt;
+  struct icmp_ttl_exceeded_header icmp_ttl;
   struct icmp_echo_header icmp_echo;
   struct udp_header udp_pkt;
   size_t off;
@@ -370,7 +375,6 @@ process_icmp_response ()
 	       strerror (errno));
       return;
     }
-  have_port = 0;
 #if VERBOSE
   fprintf (stderr,
            "Received message of %u bytes\n",
@@ -552,7 +556,7 @@ make_udp_socket (const struct in_addr *my_ip)
   addr.sin_addr = *my_ip;
   addr.sin_port = htons (NAT_TRAV_PORT);
   if (0 != bind (ret,
-		 &addr,
+		 (struct sockaddr *)&addr,
 		 sizeof(addr)))
     {
       fprintf (stderr,
@@ -575,6 +579,7 @@ main (int argc,
   WSADATA wsaData;
   unsigned int alt;
 
+  alt = 0;
   if (2 != argc)
     {
       fprintf (stderr,
