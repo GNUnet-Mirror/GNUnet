@@ -42,7 +42,7 @@
 #include <curl/curl.h>
 
 #define DEBUG_HTTPS GNUNET_NO
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 #define DEBUG_CURL GNUNET_NO
 #define DEBUG_CONNECTIONS GNUNET_NO
 #define DEBUG_SESSION_SELECTION GNUNET_NO
@@ -1310,7 +1310,9 @@ static size_t curl_send_cb(void *stream, size_t size, size_t nmemb, void *ptr)
 
   if ( msg->pos == msg->size)
   {
+#if DEBUG_HTTPS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: Message with %u bytes sent, removing message from queue \n",ps, msg->pos);
+#endif
     /* Calling transmit continuation  */
     if (NULL != msg->transmit_cont)
       msg->transmit_cont (msg->transmit_cont_cls,&(ps->peercontext)->identity,GNUNET_OK);
