@@ -42,6 +42,7 @@
 
 #define DEBUG_HTTP GNUNET_NO
 #define DEBUG_CURL GNUNET_NO
+#define DEBUG_MHD GNUNET_YES
 #define DEBUG_CONNECTIONS GNUNET_NO
 #define DEBUG_SESSION_SELECTION GNUNET_NO
 
@@ -2454,7 +2455,7 @@ libgnunet_plugin_transport_http_init (void *cls)
   {
 	struct sockaddr * tmp = (struct sockaddr *) plugin->bind6_address;
     plugin->http_server_daemon_v6 = MHD_start_daemon (
-#if DEBUG_CONNECTIONS
+#if DEBUG_MHD
     								   MHD_USE_DEBUG |
 #endif
     								   MHD_USE_IPv6,
@@ -2473,7 +2474,7 @@ libgnunet_plugin_transport_http_init (void *cls)
   if ((plugin->http_server_daemon_v4 == NULL) && (plugin->use_ipv4 == GNUNET_YES) && (port != 0))
   {
   plugin->http_server_daemon_v4 = MHD_start_daemon (
-#if DEBUG_CONNECTIONS
+#if DEBUG_MHD
     								   MHD_USE_DEBUG |
 #endif
     								   MHD_NO_FLAG,
