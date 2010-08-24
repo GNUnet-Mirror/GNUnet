@@ -37,14 +37,14 @@ struct dns_cls {
 };
 
 void hijack(unsigned short port) {
-	char* port_s = "12345";
+	char port_s[5];
 
 	snprintf(port_s, 6, "%d", port);
 	GNUNET_OS_start_process(NULL, NULL, "gnunet-helper-hijack-dns", "gnunet-hijack-dns", port_s, NULL);
 }
 
 void unhijack(unsigned short port) {
-	char* port_s = "12345";
+	char port_s[5];
 
 	snprintf(port_s, 6, "%d", port);
 	GNUNET_OS_start_process(NULL, NULL, "gnunet-helper-hijack-dns", "gnunet-hijack-dns", "-d", port_s, NULL);
@@ -79,8 +79,6 @@ run (void *cls,
     {NULL, NULL, 0, 0}
   };
 
-	fprintf(stderr, "%x\n", cls);
-
   struct dns_cls* mycls = (struct dns_cls*)cls;
 
   mycls->sched = sched;
@@ -90,7 +88,7 @@ run (void *cls,
   struct sockaddr_in * addr = alloca(sizeof(struct sockaddr_in));
   memset(addr, 0, sizeof(struct sockaddr_in));
 
-  int err = GNUNET_NETWORK_socket_bind (mycls->dnsout, addr, sizeof(struct sockaddr_in));
+  int err = GNUNET_NETWORK_socket_bind (mycls->dnsout, (struct sockaddr*)addr, sizeof(struct sockaddr_in));
   err = getsockname(GNUNET_NETWORK_get_fd(mycls->dnsout), addr, (unsigned int[]){sizeof(struct sockaddr_in)});
 
   mycls->dnsoutport = htons(addr->sin_port);
@@ -101,7 +99,7 @@ run (void *cls,
   GNUNET_SCHEDULER_add_delayed (sched,
 		  GNUNET_TIME_UNIT_FOREVER_REL,
 		  &cleanup_task,
-		  NULL);
+		  cls);
 }
 
 /**
@@ -115,8 +113,6 @@ int
 main (int argc, char *const *argv)
 {
   struct dns_cls* cls = GNUNET_malloc(sizeof(struct dns_cls));
-
-  fprintf(stderr, "%x\n", cls);
 
   return (GNUNET_OK ==
           GNUNET_SERVICE_run (argc,
