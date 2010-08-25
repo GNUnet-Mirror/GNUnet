@@ -37,14 +37,14 @@ struct dns_cls {
 };
 
 void hijack(unsigned short port) {
-	char port_s[5];
+	char port_s[6];
 
 	snprintf(port_s, 6, "%d", port);
 	GNUNET_OS_start_process(NULL, NULL, "gnunet-helper-hijack-dns", "gnunet-hijack-dns", port_s, NULL);
 }
 
 void unhijack(unsigned short port) {
-	char port_s[5];
+	char port_s[6];
 
 	snprintf(port_s, 6, "%d", port);
 	GNUNET_OS_start_process(NULL, NULL, "gnunet-helper-hijack-dns", "gnunet-hijack-dns", "-d", port_s, NULL);
