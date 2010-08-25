@@ -1,0 +1,49 @@
+How to setup the Postgres database for GNUnet.
+
+NOTE: This db module was developed for Postgres 8.3.  I have no
+idea what the minimum version that we require is exactly.
+
+HIGHLIGHTS
+
+Pros
+ + Easier to setup than MySQL
+ + Real database
+Cons 
+ - Quite slow
+ - Still some setup
+
+MANUAL SETUP INSTRUCTIONS
+
+ 1) in /etc/gnunet.conf, set
+    sqstore = "sqstore_postgres"
+
+ 2) Then access postgres to create a user; I had to do this to get 
+    access and create a user:
+    # su - postgres
+    $ createuser
+    At this point, use the name of the user running gnunet
+    for the role, do not set it to superuser, allow the creation
+    of databases.
+
+ 3) As that user, create a database (or two):
+    $ createdb gnunet
+    $ createdb gnunetcheck # this way you can run "make check"
+
+ Thats it. 
+
+ 4) Still, perhaps you should briefly try if the DB connection 
+    works. First, login as the user who will run gnunetd. Then use,
+
+    $ psql gnunet # or gnunetcheck
+    gnunet=> \dt
+   
+    If, after you have started gnunetd at least once, you get a
+    gn090 table here, it probably works.
+ 
+PROBLEMS?
+
+If you have problems related to the postgres module, your best friend
+is probably the postgres manual. The first thing to check is that
+postgres is basically operational, that you can connect to it, create
+tables, issue queries etc. (see step 4 above for details).
+

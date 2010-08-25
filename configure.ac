@@ -330,8 +330,8 @@ AC_ARG_WITH(postgres,
     CPPFLAGS="-I$with_postgres/include $CPPFLAGS"
     AC_CHECK_HEADERS(postgresql/libpq-fe.h,
      EXT_LIB_PATH="-L$with_postgres/lib $EXT_LIB_PATH"
-     SQLITE_LDFLAGS="-L$with_postgres/lib"
-     SQLITE_CPPFLAGS="-I$with_postgres/include"
+     POSTGRES_LDFLAGS="-L$with_postgres/lib"
+     POSTGRES_CPPFLAGS="-I$with_postgres/include"
      postgres=true)
     LDFLAGS=$SAVE_LDFLAGS
     CPPFLAGS=$SAVE_CPPFLAGS
