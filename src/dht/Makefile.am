@@ -24,7 +24,8 @@ lib_LTLIBRARIES = libgnunetdht.la \
 plugin_LTLIBRARIES = \
  $(MYSQL_PLUGIN) \
  libgnunet_plugin_dhtlog_dummy.la \
- libgnunet_plugin_dhtlog_mysql_dump.la 
+ libgnunet_plugin_dhtlog_mysql_dump.la \
+ libgnunet_plugin_dhtlog_mysql_dump_load.la  
 
 
 libgnunet_plugin_dhtlog_mysql_la_SOURCES = \
@@ -50,6 +51,14 @@ libgnunet_plugin_dhtlog_mysql_dump_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(XLIB)
 libgnunet_plugin_dhtlog_mysql_dump_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+ 
+libgnunet_plugin_dhtlog_mysql_dump_load_la_SOURCES = \
+  plugin_dhtlog_mysql_dump_load.c
+libgnunet_plugin_dhtlog_mysql_dump_load_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(XLIB)
+libgnunet_plugin_dhtlog_mysql_dump_load_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 libgnunetdhtlog_la_SOURCES = \
