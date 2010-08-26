@@ -293,37 +293,39 @@ init_connection (struct Plugin *plugin)
 #if 1
   ret = PQexec (plugin->dbh,
                 "ALTER TABLE gn080 ALTER value SET STORAGE EXTERNAL");
-  if ( (ret == NULL) || 
-       ((PQresultStatus (ret) != PGRES_COMMAND_OK) ) )
-    {
+  if (GNUNET_OK != 
       check_result (plugin,
-		    ret, PGRES_COMMAND_OK, "ALTER TABLE", "gn080", __LINE__);
+		    ret, PGRES_COMMAND_OK,
+		    "ALTER TABLE", "gn080", __LINE__))
+    {
       PQfinish (plugin->dbh);
       plugin->dbh = NULL;
       return GNUNET_SYSERR;
     }
+  PQclear (ret);
   ret = PQexec (plugin->dbh,
                 "ALTER TABLE gn080 ALTER hash SET STORAGE PLAIN");
-  if ( (ret == NULL) ||
-       ((PQresultStatus (ret) != PGRES_COMMAND_OK) ) )
-    {
+  if (GNUNET_OK !=
       check_result (plugin,
-		    ret, PGRES_COMMAND_OK, "ALTER TABLE", "gn080", __LINE__);
+		    ret, PGRES_COMMAND_OK,
+		    "ALTER TABLE", "gn080", __LINE__))
+    {
       PQfinish (plugin->dbh);
       plugin->dbh = NULL;
       return GNUNET_SYSERR;
     }
+  PQclear (ret);
   ret = PQexec (plugin->dbh,
                 "ALTER TABLE gn080 ALTER vhash SET STORAGE PLAIN");
-  if ( (ret == NULL) || 
-       ((PQresultStatus (ret) != PGRES_COMMAND_OK) ) )
-    {
+  if (GNUNET_OK !=
       check_result (plugin,
-		    ret, PGRES_COMMAND_OK, "ALTER TABLE", "gn080", __LINE__);
+		    ret, PGRES_COMMAND_OK, "ALTER TABLE", "gn080", __LINE__))
+    {
       PQfinish (plugin->dbh);
       plugin->dbh = NULL;
       return GNUNET_SYSERR;
     }
+  PQclear (ret);
 #endif
   if ((GNUNET_OK !=
        pq_prepare (plugin,
@@ -587,6 +589,7 @@ postgres_next_request_cont (void *next_cls,
       nrc->iter (nrc->iter_cls, 
 		 NULL, NULL, 0, NULL, 0, 0, 0, 
 		 GNUNET_TIME_UNIT_ZERO_ABS, 0);
+      PQclear (res);
       GNUNET_free (nrc);
       return; 
     }
@@ -599,6 +602,7 @@ postgres_next_request_cont (void *next_cls,
       nrc->iter (nrc->iter_cls, 
 		 NULL, NULL, 0, NULL, 0, 0, 0, 
 		 GNUNET_TIME_UNIT_ZERO_ABS, 0);
+      PQclear (res);
       GNUNET_free (nrc);
       return;
     }
@@ -612,6 +616,7 @@ postgres_next_request_cont (void *next_cls,
       (size != PQgetlength (res, 0, 6)))
     {
       GNUNET_break (0);
+      PQclear (res);
       delete_by_rowid (plugin, rowid);
       nrc->iter (nrc->iter_cls, 
 		 NULL, NULL, 0, NULL, 0, 0, 0, 
@@ -641,6 +646,7 @@ postgres_next_request_cont (void *next_cls,
 		    anonymity,
 		    expiration_time,
 		    rowid);
+  PQclear (res);
   if (iret == GNUNET_SYSERR)
     return;
   if (iret == GNUNET_NO)
