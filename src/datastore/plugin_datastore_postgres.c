@@ -231,7 +231,7 @@ init_connection (struct Plugin *plugin)
   if (PQstatus (plugin->dbh) != CONNECTION_OK)
     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-		       "postgres",
+		       "datastore-postgres",
 		       _("Unable to initialize Postgres: %s"),
 		       PQerrorMessage (plugin->dbh));
       PQfinish (plugin->dbh);
@@ -521,7 +521,7 @@ postgres_plugin_put (void *cls,
   plugin->payload += size;
 #if DEBUG_POSTGRES
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		   "postgres",
+		   "datastore-postgres",
 		   "Stored %u bytes in database, new payload is %llu\n",
 		   (unsigned int) size,
 		   (unsigned long long) plugin->payload);
@@ -561,7 +561,7 @@ postgres_next_request_cont (void *next_cls,
     {
 #if DEBUG_POSTGRES
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		       "postgres",
+		       "datastore-postgres",
 		       "Ending iteration (%s)\n",
 		       (GNUNET_YES == nrc->end_it) ? "client requested it" : "completed result set");
 #endif
@@ -594,7 +594,7 @@ postgres_next_request_cont (void *next_cls,
     {
 #if DEBUG_POSTGRES
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		       "postgres",
+		       "datastore-postgres",
 		       "Ending iteration (postgres error)\n");
 #endif
       nrc->iter (nrc->iter_cls, 
@@ -609,7 +609,7 @@ postgres_next_request_cont (void *next_cls,
       /* no result */
 #if DEBUG_POSTGRES
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		       "postgres",
+		       "datastore-postgres",
 		       "Ending iteration (no more results)\n");
 #endif
       nrc->iter (nrc->iter_cls, 
@@ -663,7 +663,7 @@ postgres_next_request_cont (void *next_cls,
 
 #if DEBUG_POSTGRES
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		   "postgres",
+		   "datastore-postgres",
 		   "Found result of size %u bytes and type %u in database\n",
 		   (unsigned int) size,
 		   (unsigned int) type);
@@ -683,7 +683,7 @@ postgres_next_request_cont (void *next_cls,
     {
 #if DEBUG_POSTGRES
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		       "postgres",
+		       "datastore-postgres",
 		       "Ending iteration (client error)\n");
 #endif
       return;
@@ -694,7 +694,7 @@ postgres_next_request_cont (void *next_cls,
 	{
 #if DEBUG_POSTGRES
 	  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-			   "postgres",
+			   "datastore-postgres",
 			   "Deleting %u bytes from database, current payload is %llu\n",
 			   (unsigned int) size,
 			   (unsigned long long) plugin->payload);
@@ -703,7 +703,7 @@ postgres_next_request_cont (void *next_cls,
 	  plugin->payload -= size;
 #if DEBUG_POSTGRES
 	  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-			   "postgres",
+			   "datastore-postgres",
 			   "Deleted %u bytes from database, new payload is %llu\n",
 			   (unsigned int) size,
 			   (unsigned long long) plugin->payload);
@@ -1220,7 +1220,8 @@ libgnunet_plugin_datastore_postgres_init (void *cls)
   api->iter_all_now = &postgres_plugin_iter_all_now;
   api->drop = &postgres_plugin_drop;
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
-                   "postgres", _("Postgres database running\n"));
+                   "datastore-postgres",
+		   _("Postgres database running\n"));
   return api;
 }
 
