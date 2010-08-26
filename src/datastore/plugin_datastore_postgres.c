@@ -90,18 +90,18 @@ struct NextRequestClosure
   const char *paramValues[5];
   const char *pname;
   int paramLengths[5];
-  int nparams; // nparams
-  struct GNUNET_TIME_Absolute now;
+  int nparams; 
+  uint64_t bnow;
   GNUNET_HashCode key;
   GNUNET_HashCode vhash;
   long long count;
-  long long off;
-  long long limit_off;
+  uint64_t off;
+  uint64_t blimit_off;
   unsigned long long total;
-  unsigned long long last_expire;
-  unsigned int last_rowid; // last_rowid
-  unsigned int last_prio;
-  enum GNUNET_BLOCK_Type type;
+  uint64_t blast_expire;
+  uint32_t blast_rowid;
+  uint32_t blast_prio;
+  uint32_t btype;
   int end_it;
 };
 
@@ -487,22 +487,27 @@ postgres_plugin_put (void *cls,
   struct Plugin *plugin = cls;
   GNUNET_HashCode vhash;
   PGresult *ret;
+  uint32_t bsize = htonl (size);
+  uint32_t btype = htonl (type);
+  uint32_t bprio = htonl (priority);
+  uint32_t banon = htonl (anonymity);
+  uint64_t bexpi = GNUNET_TIME_absolute_hton (expiration).value__;
   const char *paramValues[] = {
-    (const char *) &size,
-    (const char *) &type,
-    (const char *) &priority,
-    (const char *) &anonymity,
-    (const char *) &expiration.value,
+    (const char *) &bsize,
+    (const char *) &btype,
+    (const char *) &bprio,
+    (const char *) &banon,
+    (const char *) &bexpi,
     (const char *) key,
     (const char *) &vhash,
     (const char *) data
   };
   int paramLengths[] = {
-    sizeof (size),
-    sizeof (type),
-    sizeof (priority),
-    sizeof (anonymity),
-    sizeof (expiration.value),
+    sizeof (bsize),
+    sizeof (btype),
+    sizeof (bprio),
+    sizeof (banon),
+    sizeof (bexpi),
     sizeof (GNUNET_HashCode),
     sizeof (GNUNET_HashCode),
     size
@@ -539,9 +544,9 @@ postgres_next_request_cont (void *next_cls,
   int iret;
   PGresult *res;
   enum GNUNET_BLOCK_Type type;
-  unsigned int anonymity;
-  unsigned int priority;
-  unsigned int size;
+  uint32_t anonymity;
+  uint32_t priority;
+  uint32_t size;
   unsigned int rowid;
   struct GNUNET_TIME_Absolute expiration_time;
   GNUNET_HashCode key;
@@ -559,9 +564,9 @@ postgres_next_request_cont (void *next_cls,
 
   
   if (nrc->count == 0)
-    nrc->limit_off = nrc->off;
+    nrc->blimit_off = GNUNET_htonll (nrc->off);
   else
-    nrc->limit_off = 0;
+    nrc->blimit_off = GNUNET_htonll (0);
   
   res = PQexecPrepared (plugin->dbh,
 			nrc->pname,
@@ -595,8 +600,8 @@ postgres_next_request_cont (void *next_cls,
     }
   if ((1 != PQntuples (res)) ||
       (8 != PQnfields (res)) ||
-      (sizeof (unsigned int) != PQfsize (res, 0)) ||
-      (sizeof (unsigned int) != PQfsize (res, 7)))
+      (sizeof (uint32_t) != PQfsize (res, 0)) ||
+      (sizeof (uint32_t) != PQfsize (res, 7)))
     {
       GNUNET_break (0);
       nrc->iter (nrc->iter_cls, 
@@ -606,12 +611,12 @@ postgres_next_request_cont (void *next_cls,
       GNUNET_free (nrc);
       return;
     }
-  rowid = *(unsigned int *) PQgetvalue (res, 0, 7);
-  size = *(unsigned int *) PQgetvalue (res, 0, 0);
-  if ((sizeof (unsigned int) != PQfsize (res, 1)) ||
-      (sizeof (unsigned int) != PQfsize (res, 2)) ||
-      (sizeof (unsigned int) != PQfsize (res, 3)) ||
-      (sizeof (unsigned long long) != PQfsize (res, 4)) ||
+  rowid = ntohl (*(uint32_t *) PQgetvalue (res, 0, 7));
+  size = ntohl (*(uint32_t *) PQgetvalue (res, 0, 0));
+  if ((sizeof (uint32_t) != PQfsize (res, 1)) ||
+      (sizeof (uint32_t) != PQfsize (res, 2)) ||
+      (sizeof (uint32_t) != PQfsize (res, 3)) ||
+      (sizeof (uint64_t) != PQfsize (res, 4)) ||
       (sizeof (GNUNET_HashCode) != PQgetlength (res, 0, 5)) ||
       (size != PQgetlength (res, 0, 6)))
     {
@@ -625,16 +630,16 @@ postgres_next_request_cont (void *next_cls,
       return;
     }
 
-  type = *(unsigned int *) PQgetvalue (res, 0, 1);
-  priority = *(unsigned int *) PQgetvalue (res, 0, 2);
-  anonymity = *(unsigned int *) PQgetvalue (res, 0, 3);
-  expiration_time.value = *(unsigned long long *) PQgetvalue (res, 0, 4);
+  type = ntohl (*(uint32_t *) PQgetvalue (res, 0, 1));
+  priority = ntohl (*(uint32_t *) PQgetvalue (res, 0, 2));
+  anonymity = ntohl ( *(uint32_t *) PQgetvalue (res, 0, 3));
+  expiration_time.value = GNUNET_ntohll (*(uint64_t *) PQgetvalue (res, 0, 4));
   size = PQgetlength (res, 0, 6);
   memcpy (&key, PQgetvalue (res, 0, 5), sizeof (GNUNET_HashCode));
 
-  nrc->last_prio = priority;
-  nrc->last_expire = expiration_time.value;
-  nrc->last_rowid = rowid + 1;
+  nrc->blast_prio = htonl (priority);
+  nrc->blast_expire = GNUNET_htonll (expiration_time.value);
+  nrc->blast_rowid = htonl (rowid + 1);
   nrc->count++;
   iret = nrc->iter (nrc->iter_cls,
 		    nrc,
@@ -655,7 +660,6 @@ postgres_next_request_cont (void *next_cls,
       delete_by_rowid (plugin, rowid);
     }
 }
-
 
 
 /**
@@ -715,18 +719,19 @@ postgres_plugin_update (void *cls,
 			char **msg)
 {
   struct Plugin *plugin = cls;
-  unsigned int oid = (unsigned int) uid; /* only 32 bit for postgres */
   PGresult *ret;
-
+  int32_t bdelta = (int32_t) htonl ((uint32_t) delta);
+  uint32_t boid = htonl ( (uint32_t) uid);
+  uint64_t bexpire = GNUNET_TIME_absolute_hton (expire).value__;
   const char *paramValues[] = {
-    (const char *) &delta,
-    (const char *) &expire.value,
-    (const char *) &oid,
+    (const char *) &bdelta,
+    (const char *) &bexpire,
+    (const char *) &boid,
   };
   int paramLengths[] = {
-    sizeof (delta),
-    sizeof (expire.value),
-    sizeof (oid),
+    sizeof (bdelta),
+    sizeof (bexpire),
+    sizeof (boid),
   };
   const int paramFormats[] = { 1, 1, 1 };
 
@@ -768,51 +773,51 @@ postgres_iterate (struct Plugin *plugin,
   nrc->iter_cls = iter_cls;
   if (is_asc)
     {
-      nrc->last_prio = 0;
-      nrc->last_rowid = 0;
-      nrc->last_expire = 0;
+      nrc->blast_prio = htonl (0);
+      nrc->blast_rowid = htonl (0);
+      nrc->blast_expire = htonl (0);
     }
   else
     {
-      nrc->last_prio = 0x7FFFFFFFL;
-      nrc->last_rowid = 0xFFFFFFFF;
-      nrc->last_expire = 0x7FFFFFFFFFFFFFFFLL;
+      nrc->blast_prio = htonl (0x7FFFFFFFL);
+      nrc->blast_rowid = htonl (0xFFFFFFFF);
+      nrc->blast_expire = GNUNET_htonll (0x7FFFFFFFFFFFFFFFLL);
     }
   switch (iter_select)
     {
     case 0:
       nrc->pname = "select_low_priority";
       nrc->nparams = 2;
-      nrc->paramValues[0] = (const char *) &nrc->last_prio;
-      nrc->paramValues[1] = (const char *) &nrc->last_rowid;
-      nrc->paramLengths[0] = sizeof (nrc->last_prio);
-      nrc->paramLengths[1] = sizeof (nrc->last_rowid);
+      nrc->paramValues[0] = (const char *) &nrc->blast_prio;
+      nrc->paramValues[1] = (const char *) &nrc->blast_rowid;
+      nrc->paramLengths[0] = sizeof (nrc->blast_prio);
+      nrc->paramLengths[1] = sizeof (nrc->blast_rowid);
       break;
     case 1:
       nrc->pname = "select_non_anonymous";
       nrc->nparams = 2;
-      nrc->paramValues[0] = (const char *) &nrc->last_prio;
-      nrc->paramValues[1] = (const char *) &nrc->last_rowid;
-      nrc->paramLengths[0] = sizeof (nrc->last_prio);
-      nrc->paramLengths[1] = sizeof (nrc->last_rowid);
+      nrc->paramValues[0] = (const char *) &nrc->blast_prio;
+      nrc->paramValues[1] = (const char *) &nrc->blast_rowid;
+      nrc->paramLengths[0] = sizeof (nrc->blast_prio);
+      nrc->paramLengths[1] = sizeof (nrc->blast_rowid);
       break;
     case 2:
       nrc->pname = "select_expiration_time";
       nrc->nparams = 2;
-      nrc->paramValues[0] = (const char *) &nrc->last_expire;
-      nrc->paramValues[1] = (const char *) &nrc->last_rowid;
-      nrc->paramLengths[0] = sizeof (nrc->last_expire);
-      nrc->paramLengths[1] = sizeof (nrc->last_rowid);
+      nrc->paramValues[0] = (const char *) &nrc->blast_expire;
+      nrc->paramValues[1] = (const char *) &nrc->blast_rowid;
+      nrc->paramLengths[0] = sizeof (nrc->blast_expire);
+      nrc->paramLengths[1] = sizeof (nrc->blast_rowid);
       break;
     case 3:
       nrc->pname = "select_migration_order";
       nrc->nparams = 3;
-      nrc->paramValues[0] = (const char *) &nrc->last_expire;
-      nrc->paramValues[1] = (const char *) &nrc->last_rowid;
-      nrc->paramValues[2] = (const char *) &nrc->now;
-      nrc->paramLengths[0] = sizeof (nrc->last_expire);
-      nrc->paramLengths[1] = sizeof (nrc->last_rowid);
-      nrc->paramLengths[2] = sizeof (nrc->now);
+      nrc->paramValues[0] = (const char *) &nrc->blast_expire;
+      nrc->paramValues[1] = (const char *) &nrc->blast_rowid;
+      nrc->paramValues[2] = (const char *) &nrc->bnow;
+      nrc->paramLengths[0] = sizeof (nrc->blast_expire);
+      nrc->paramLengths[1] = sizeof (nrc->blast_rowid);
+      nrc->paramLengths[2] = sizeof (nrc->bnow);
       break;
     default:
       GNUNET_break (0);
@@ -821,7 +826,7 @@ postgres_iterate (struct Plugin *plugin,
 	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
-  nrc->now = GNUNET_TIME_absolute_get ();
+  nrc->bnow = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ()).value__;
   postgres_plugin_next_request (nrc,
 				GNUNET_NO);
 }
@@ -899,19 +904,19 @@ postgres_plugin_get (void *cls,
     nrc->vhash = *vhash;
   nrc->paramValues[0] = (const char*) &nrc->key;
   nrc->paramLengths[0] = sizeof (GNUNET_HashCode);
-  nrc->type = type;
+  nrc->btype = htonl (type);
   if (type != 0)
     {
       if (vhash != NULL)
         {
           nrc->paramValues[1] = (const char *) &nrc->vhash;
           nrc->paramLengths[1] = sizeof (nrc->vhash);
-          nrc->paramValues[2] = (const char *) &nrc->type;
-          nrc->paramLengths[2] = sizeof (nrc->type);
-          nrc->paramValues[3] = (const char *) &nrc->last_rowid;
-          nrc->paramLengths[3] = sizeof (nrc->last_rowid);
-          nrc->paramValues[4] = (const char *) &nrc->limit_off;
-          nrc->paramLengths[4] = sizeof (nrc->limit_off);
+          nrc->paramValues[2] = (const char *) &nrc->btype;
+          nrc->paramLengths[2] = sizeof (nrc->btype);
+          nrc->paramValues[3] = (const char *) &nrc->blast_rowid;
+          nrc->paramLengths[3] = sizeof (nrc->blast_rowid);
+          nrc->paramValues[4] = (const char *) &nrc->blimit_off;
+          nrc->paramLengths[4] = sizeof (nrc->blimit_off);
           nrc->nparams = 5;
           nrc->pname = "getvt";
           ret = PQexecParams (plugin->dbh,
@@ -924,12 +929,12 @@ postgres_plugin_get (void *cls,
         }
       else
         {
-          nrc->paramValues[1] = (const char *) &nrc->type;
-          nrc->paramLengths[1] = sizeof (nrc->type);
-          nrc->paramValues[2] = (const char *) &nrc->last_rowid;
-          nrc->paramLengths[2] = sizeof (nrc->last_rowid);
-          nrc->paramValues[3] = (const char *) &nrc->limit_off;
-          nrc->paramLengths[3] = sizeof (nrc->limit_off);
+          nrc->paramValues[1] = (const char *) &nrc->btype;
+          nrc->paramLengths[1] = sizeof (nrc->btype);
+          nrc->paramValues[2] = (const char *) &nrc->blast_rowid;
+          nrc->paramLengths[2] = sizeof (nrc->blast_rowid);
+          nrc->paramValues[3] = (const char *) &nrc->blimit_off;
+          nrc->paramLengths[3] = sizeof (nrc->blimit_off);
           nrc->nparams = 4;
           nrc->pname = "gett";
           ret = PQexecParams (plugin->dbh,
@@ -947,10 +952,10 @@ postgres_plugin_get (void *cls,
         {
           nrc->paramValues[1] = (const char *) &nrc->vhash;
           nrc->paramLengths[1] = sizeof (nrc->vhash);
-          nrc->paramValues[2] = (const char *) &nrc->last_rowid;
-          nrc->paramLengths[2] = sizeof (nrc->last_rowid);
-          nrc->paramValues[3] = (const char *) &nrc->limit_off;
-          nrc->paramLengths[3] = sizeof (nrc->limit_off);
+          nrc->paramValues[2] = (const char *) &nrc->blast_rowid;
+          nrc->paramLengths[2] = sizeof (nrc->blast_rowid);
+          nrc->paramValues[3] = (const char *) &nrc->blimit_off;
+          nrc->paramLengths[3] = sizeof (nrc->blimit_off);
           nrc->nparams = 4;
           nrc->pname = "getv";
           ret = PQexecParams (plugin->dbh,
@@ -963,10 +968,10 @@ postgres_plugin_get (void *cls,
         }
       else
         {
-          nrc->paramValues[1] = (const char *) &nrc->last_rowid;
-          nrc->paramLengths[1] = sizeof (nrc->last_rowid);
-          nrc->paramValues[2] = (const char *) &nrc->limit_off;
-          nrc->paramLengths[2] = sizeof (nrc->limit_off);
+          nrc->paramValues[1] = (const char *) &nrc->blast_rowid;
+          nrc->paramLengths[1] = sizeof (nrc->blast_rowid);
+          nrc->paramValues[2] = (const char *) &nrc->blimit_off;
+          nrc->paramLengths[2] = sizeof (nrc->blimit_off);
           nrc->nparams = 3;
           nrc->pname = "get";
           ret = PQexecParams (plugin->dbh,
