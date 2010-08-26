@@ -523,11 +523,13 @@ postgres_plugin_put (void *cls,
     return GNUNET_SYSERR;
   PQclear (ret);
   plugin->payload += size;
+#if DEBUG_POSTGRES
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "postgres",
 		   "Stored %u bytes in database, new payload is %llu\n",
 		   (unsigned int) size,
 		   (unsigned long long) plugin->payload);
+#endif
   return GNUNET_OK;
 }
 
@@ -561,10 +563,12 @@ postgres_next_request_cont (void *next_cls,
   if ( (GNUNET_YES == nrc->end_it) ||
        (nrc->count == nrc->total) )
     {
+#if DEBUG_POSTGRES
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		       "postgres",
 		       "Ending iteration (%s)\n",
 		       (GNUNET_YES == nrc->end_it) ? "client requested it" : "completed result set");
+#endif
       nrc->iter (nrc->iter_cls, 
 		 NULL, NULL, 0, NULL, 0, 0, 0, 
 		 GNUNET_TIME_UNIT_ZERO_ABS, 0);
@@ -592,9 +596,11 @@ postgres_next_request_cont (void *next_cls,
 				 nrc->pname,
 				 __LINE__))
     {
+#if DEBUG_POSTGRES
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		       "postgres",
 		       "Ending iteration (postgres error)\n");
+#endif
       nrc->iter (nrc->iter_cls, 
 		 NULL, NULL, 0, NULL, 0, 0, 0, 
 		 GNUNET_TIME_UNIT_ZERO_ABS, 0);
@@ -605,9 +611,11 @@ postgres_next_request_cont (void *next_cls,
   if (0 == PQntuples (res))
     {
       /* no result */
+#if DEBUG_POSTGRES
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		       "postgres",
 		       "Ending iteration (no more results)\n");
+#endif
       nrc->iter (nrc->iter_cls, 
 		 NULL, NULL, 0, NULL, 0, 0, 0, 
 		 GNUNET_TIME_UNIT_ZERO_ABS, 0);
@@ -659,11 +667,13 @@ postgres_next_request_cont (void *next_cls,
   nrc->blast_rowid = htonl (rowid);
   nrc->count++;
 
+#if DEBUG_POSTGRES
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "postgres",
 		   "Found result of size %u bytes and type %u in database\n",
 		   (unsigned int) size,
 		   (unsigned int) type);
+#endif
   iret = nrc->iter (nrc->iter_cls,
 		    nrc,
 		    &key,
@@ -677,27 +687,33 @@ postgres_next_request_cont (void *next_cls,
   PQclear (res);
   if (iret == GNUNET_SYSERR)
     {
+#if DEBUG_POSTGRES
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		       "postgres",
 		       "Ending iteration (client error)\n");
+#endif
       return;
     }
   if (iret == GNUNET_NO)
     {
       if (GNUNET_OK == delete_by_rowid (plugin, rowid))
 	{
+#if DEBUG_POSTGRES
 	  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 			   "postgres",
 			   "Deleting %u bytes from database, current payload is %llu\n",
 			   (unsigned int) size,
 			   (unsigned long long) plugin->payload);
+#endif
 	  GNUNET_assert (plugin->payload >= size);
 	  plugin->payload -= size;
+#if DEBUG_POSTGRES
 	  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 			   "postgres",
 			   "Deleted %u bytes from database, new payload is %llu\n",
 			   (unsigned int) size,
 			   (unsigned long long) plugin->payload);
+#endif
 	}
     }
 }
@@ -1048,8 +1064,6 @@ postgres_plugin_get (void *cls,
       return;
     }
   nrc->total = GNUNET_ntohll (*(const unsigned long long *) PQgetvalue (ret, 0, 0));
-  fprintf (stderr, "Total number of results: %llu\n",
-	   (unsigned long long) nrc->total);
   PQclear (ret);
   if (nrc->total == 0)
     {
