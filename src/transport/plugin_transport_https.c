@@ -429,13 +429,13 @@ static char * create_url(void * cls, const void * addr, size_t addrlen, size_t i
 {
   struct Plugin *plugin = cls;
   char *url = NULL;
+  char *addr_str =  (char *) http_plugin_address_to_string(NULL, addr, addrlen);
 
   GNUNET_assert ((addr!=NULL) && (addrlen != 0));
   GNUNET_asprintf(&url,
-                  "%s://%s/%s;%u", PROTOCOL_PREFIX,
-                  http_plugin_address_to_string(NULL, addr, addrlen),
+                  "%s://%s/%s;%u", PROTOCOL_PREFIX, addr_str,
                   (char *) (&plugin->my_ascii_hash_ident),id);
-
+  GNUNET_free_non_null(addr_str);
   return url;
 }
 
@@ -818,7 +818,7 @@ mdh_access_cb (void *cls,
 
   int res = GNUNET_NO;
   int send_error_to_client;
-  void * addr;
+  void * addr = NULL;
   size_t addr_len = 0;
 
   GNUNET_assert(cls !=NULL);
@@ -2294,6 +2294,7 @@ load_certificate( const char * file )
   if (GNUNET_SYSERR == GNUNET_DISK_file_read(gn_file, text, fstat.st_size))
   {
 	  GNUNET_free(text);
+	  GNUNET_DISK_file_close(gn_file);
 	  return NULL;
   }
   text[fstat.st_size] = '\0';
@@ -2367,6 +2368,8 @@ libgnunet_plugin_transport_https_done (void *cls)
   GNUNET_free_non_null (plugin->bind6_address);
   GNUNET_free_non_null (plugin->bind_hostname);
   GNUNET_free_non_null (plugin->crypto_init);
+  GNUNET_free_non_null (plugin->cert);
+  GNUNET_free_non_null (plugin->key);
   GNUNET_free (plugin);
   GNUNET_free (api);
 #if DEBUG_HTTPS
@@ -2388,8 +2391,8 @@ libgnunet_plugin_transport_https_init (void *cls)
   struct GNUNET_TIME_Relative gn_timeout;
   long long unsigned int port;
 
-  char * key_file;
-  char * cert_file;
+  char * key_file = NULL;
+  char * cert_file = NULL;
 
   GNUNET_assert(cls !=NULL);
 #if DEBUG_HTTPS
@@ -2489,20 +2492,6 @@ libgnunet_plugin_transport_https_init (void *cls)
 
   /* Get private key file from config */
   if (GNUNET_CONFIGURATION_have_value (env->cfg,
-		  	  	  	  	  	  	  	   "transport-https", "CERT_FILE"))
-  {
-	  GNUNET_CONFIGURATION_get_value_string (env->cfg,
-										   	 "transport-https",
-										     "CERT_FILE",
-										     &cert_file);
-  }
-  else
-  {
-	  GNUNET_asprintf(&cert_file,"https.cert");
-  }
-
-  /* Get private key file from config */
-  if (GNUNET_CONFIGURATION_have_value (env->cfg,
 		  	  	  	  	  	  	  	   "transport-https", "KEY_FILE"))
   {
 		GNUNET_CONFIGURATION_get_value_string (env->cfg,
@@ -2510,24 +2499,19 @@ libgnunet_plugin_transport_https_init (void *cls)
 											   "KEY_FILE",
 											   &key_file);
   }
-  else
-  {
+  if (key_file==NULL)
 	  GNUNET_asprintf(&key_file,"https.key");
-  }
 
   /* Get private key file from config */
-  if (GNUNET_CONFIGURATION_have_value (env->cfg,
-		  	  	  	  	  	  	  	   "transport-https", "CERT_FILE"))
+  if (GNUNET_CONFIGURATION_have_value (env->cfg,"transport-https", "CERT_FILE"))
   {
 	  GNUNET_CONFIGURATION_get_value_string (env->cfg,
 										   	 "transport-https",
 										     "CERT_FILE",
 										     &cert_file);
   }
-  else
-  {
+  if (cert_file==NULL)
 	  GNUNET_asprintf(&cert_file,"https.cert");
-  }
 
   /* Should plugin use ipv6? */
   if ((plugin->use_ipv6==GNUNET_YES) && (GNUNET_CONFIGURATION_have_value (env->cfg,
@@ -2578,6 +2562,7 @@ libgnunet_plugin_transport_https_init (void *cls)
 						   "transport-https");
 		  GNUNET_free (key_file);
 		  GNUNET_free (cert_file);
+
 		  libgnunet_plugin_transport_https_done(api);
 		  GNUNET_free (cmd);
 		  return NULL;
@@ -2606,7 +2591,7 @@ libgnunet_plugin_transport_https_init (void *cls)
 
 
   GNUNET_assert((plugin->key!=NULL) && (plugin->cert!=NULL));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "TLS certificate loaded\n", key_file, cert_file);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "TLS certificate loaded\n");
 
   GNUNET_assert ((port > 0) && (port <= 65535));
   plugin->port_inbound = port;

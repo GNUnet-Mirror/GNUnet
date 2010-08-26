@@ -419,13 +419,13 @@ static char * create_url(void * cls, const void * addr, size_t addrlen, size_t i
 {
   struct Plugin *plugin = cls;
   char *url = NULL;
+  char *addr_str = (char *) http_plugin_address_to_string(NULL, addr, addrlen);
 
   GNUNET_assert ((addr!=NULL) && (addrlen != 0));
   GNUNET_asprintf(&url,
-                  "%s://%s/%s;%u", PROTOCOL_PREFIX,
-                  http_plugin_address_to_string(NULL, addr, addrlen),
+                  "%s://%s/%s;%u", PROTOCOL_PREFIX, addr_str,
                   (char *) (&plugin->my_ascii_hash_ident),id);
-
+  GNUNET_free_non_null(addr_str);
   return url;
 }
 
