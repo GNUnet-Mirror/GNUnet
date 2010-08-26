@@ -819,6 +819,7 @@ postgres_iterate (struct Plugin *plugin,
   struct NextRequestClosure *nrc;
 
   nrc = GNUNET_malloc (sizeof (struct NextRequestClosure));
+  nrc->count = UINT32_MAX;
   nrc->plugin = plugin;
   nrc->iter = iter;
   nrc->iter_cls = iter_cls;
