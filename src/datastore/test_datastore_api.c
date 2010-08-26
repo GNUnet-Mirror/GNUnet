@@ -31,7 +31,7 @@
 #include "gnunet_protocols.h"
 #include "gnunet_datastore_service.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define START_DATASTORE GNUNET_YES
 

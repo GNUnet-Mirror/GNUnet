@@ -332,7 +332,7 @@ init_connection (struct Plugin *plugin)
 		   "getvt",
                    "SELECT size, type, prio, anonLevel, expire, hash, value, oid FROM gn080 "
                    "WHERE hash=$1 AND vhash=$2 AND type=$3 "
-                   "AND oid >= $4 ORDER BY oid ASC LIMIT 1 OFFSET $5",
+                   "AND oid > $4 ORDER BY oid ASC LIMIT 1 OFFSET $5",
                    5,
                    __LINE__)) ||
       (GNUNET_OK !=
@@ -340,7 +340,7 @@ init_connection (struct Plugin *plugin)
 		   "gett",
                    "SELECT size, type, prio, anonLevel, expire, hash, value, oid FROM gn080 "
                    "WHERE hash=$1 AND type=$2"
-                   "AND oid >= $3 ORDER BY oid ASC LIMIT 1 OFFSET $4",
+                   "AND oid > $3 ORDER BY oid ASC LIMIT 1 OFFSET $4",
                    4,
                    __LINE__)) ||
       (GNUNET_OK !=
@@ -348,7 +348,7 @@ init_connection (struct Plugin *plugin)
 		   "getv",
                    "SELECT size, type, prio, anonLevel, expire, hash, value, oid FROM gn080 "
                    "WHERE hash=$1 AND vhash=$2"
-                   "AND oid >= $3 ORDER BY oid ASC LIMIT 1 OFFSET $4",
+                   "AND oid > $3 ORDER BY oid ASC LIMIT 1 OFFSET $4",
                    4,
                    __LINE__)) ||
       (GNUNET_OK !=
@@ -356,7 +356,7 @@ init_connection (struct Plugin *plugin)
 		   "get",
                    "SELECT size, type, prio, anonLevel, expire, hash, value, oid FROM gn080 "
                    "WHERE hash=$1"
-                   "AND oid >= $2 ORDER BY oid ASC LIMIT 1 OFFSET $3",
+                   "AND oid > $2 ORDER BY oid ASC LIMIT 1 OFFSET $3",
                    3,
                    __LINE__)) ||
       (GNUNET_OK !=
@@ -523,6 +523,11 @@ postgres_plugin_put (void *cls,
     return GNUNET_SYSERR;
   PQclear (ret);
   plugin->payload += size;
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		   "postgres",
+		   "Stored %u bytes in database, new payload is %llu\n",
+		   (unsigned int) size,
+		   (unsigned long long) plugin->payload);
   return GNUNET_OK;
 }
 
@@ -553,20 +558,26 @@ postgres_next_request_cont (void *next_cls,
 
   plugin->next_task = GNUNET_SCHEDULER_NO_TASK;
   plugin->next_task_nc = NULL;
-  if (GNUNET_YES == nrc->end_it) 
+  if ( (GNUNET_YES == nrc->end_it) ||
+       (nrc->count == nrc->total) )
     {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		       "postgres",
+		       "Ending iteration (%s)\n",
+		       (GNUNET_YES == nrc->end_it) ? "client requested it" : "completed result set");
       nrc->iter (nrc->iter_cls, 
 		 NULL, NULL, 0, NULL, 0, 0, 0, 
 		 GNUNET_TIME_UNIT_ZERO_ABS, 0);
       GNUNET_free (nrc);
       return;
     }
-
   
   if (nrc->count == 0)
     nrc->blimit_off = GNUNET_htonll (nrc->off);
   else
     nrc->blimit_off = GNUNET_htonll (0);
+  if (nrc->count + nrc->off == nrc->total)
+    nrc->blast_rowid = htonl (0); /* back to start */
   
   res = PQexecPrepared (plugin->dbh,
 			nrc->pname,
@@ -581,6 +592,9 @@ postgres_next_request_cont (void *next_cls,
 				 nrc->pname,
 				 __LINE__))
     {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		       "postgres",
+		       "Ending iteration (postgres error)\n");
       nrc->iter (nrc->iter_cls, 
 		 NULL, NULL, 0, NULL, 0, 0, 0, 
 		 GNUNET_TIME_UNIT_ZERO_ABS, 0);
@@ -591,6 +605,9 @@ postgres_next_request_cont (void *next_cls,
   if (0 == PQntuples (res))
     {
       /* no result */
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		       "postgres",
+		       "Ending iteration (no more results)\n");
       nrc->iter (nrc->iter_cls, 
 		 NULL, NULL, 0, NULL, 0, 0, 0, 
 		 GNUNET_TIME_UNIT_ZERO_ABS, 0);
@@ -639,8 +656,14 @@ postgres_next_request_cont (void *next_cls,
 
   nrc->blast_prio = htonl (priority);
   nrc->blast_expire = GNUNET_htonll (expiration_time.value);
-  nrc->blast_rowid = htonl (rowid + 1);
+  nrc->blast_rowid = htonl (rowid);
   nrc->count++;
+
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		   "postgres",
+		   "Found result of size %u bytes and type %u in database\n",
+		   (unsigned int) size,
+		   (unsigned int) type);
   iret = nrc->iter (nrc->iter_cls,
 		    nrc,
 		    &key,
@@ -653,11 +676,29 @@ postgres_next_request_cont (void *next_cls,
 		    rowid);
   PQclear (res);
   if (iret == GNUNET_SYSERR)
-    return;
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		       "postgres",
+		       "Ending iteration (client error)\n");
+      return;
+    }
   if (iret == GNUNET_NO)
     {
-      plugin->payload -= size;
-      delete_by_rowid (plugin, rowid);
+      if (GNUNET_OK == delete_by_rowid (plugin, rowid))
+	{
+	  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+			   "postgres",
+			   "Deleting %u bytes from database, current payload is %llu\n",
+			   (unsigned int) size,
+			   (unsigned long long) plugin->payload);
+	  GNUNET_assert (plugin->payload >= size);
+	  plugin->payload -= size;
+	  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+			   "postgres",
+			   "Deleted %u bytes from database, new payload is %llu\n",
+			   (unsigned int) size,
+			   (unsigned long long) plugin->payload);
+	}
     }
 }
 
@@ -1007,6 +1048,8 @@ postgres_plugin_get (void *cls,
       return;
     }
   nrc->total = GNUNET_ntohll (*(const unsigned long long *) PQgetvalue (ret, 0, 0));
+  fprintf (stderr, "Total number of results: %llu\n",
+	   (unsigned long long) nrc->total);
   PQclear (ret);
   if (nrc->total == 0)
     {
