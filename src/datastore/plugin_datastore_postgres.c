@@ -30,40 +30,40 @@
 
 #define DEBUG_POSTGRES GNUNET_NO
 
-#define SELECT_IT_LOW_PRIORITY "(SELECT size, type, prio, anonLevel, expire, hash, value, oid FROM gn080 "\
+#define SELECT_IT_LOW_PRIORITY "(SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "\
                                "WHERE (prio = $1 AND oid > $2) "			\
                                "ORDER BY prio ASC,oid ASC LIMIT 1) "\
                                "UNION "\
-                               "(SELECT size, type, prio, anonLevel, expire, hash, value, oid FROM gn080 "\
+                               "(SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "\
                                "WHERE (prio > $1 AND oid != $2)"\
                                "ORDER BY prio ASC,oid ASC LIMIT 1)"\
                                "ORDER BY prio ASC,oid ASC LIMIT 1"
 
-#define SELECT_IT_NON_ANONYMOUS "(SELECT size, type, prio, anonLevel, expire, hash, value, oid FROM gn080 "\
+#define SELECT_IT_NON_ANONYMOUS "(SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "\
                                 "WHERE (prio = $1 AND oid < $2)"\
                                 " AND anonLevel=0 ORDER BY prio DESC,oid DESC LIMIT 1) "\
                                 "UNION "\
-                                "(SELECT size, type, prio, anonLevel, expire, hash, value, oid FROM gn080 "\
+                                "(SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "\
                                 "WHERE (prio < $1 AND oid != $2)"\
                                 " AND anonLevel=0 ORDER BY prio DESC,oid DESC LIMIT 1) "\
                                 "ORDER BY prio DESC,oid DESC LIMIT 1"
 
-#define SELECT_IT_EXPIRATION_TIME "(SELECT size, type, prio, anonLevel, expire, hash, value, oid FROM gn080 "\
+#define SELECT_IT_EXPIRATION_TIME "(SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "\
                                   "WHERE (expire = $1 AND oid > $2) "\
                                   "ORDER BY expire ASC,oid ASC LIMIT 1) "\
                                   "UNION "\
-                                  "(SELECT size, type, prio, anonLevel, expire, hash, value, oid FROM gn080 "\
+                                  "(SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "\
                                   "WHERE (expire > $1 AND oid != $2) "		\
                                   "ORDER BY expire ASC,oid ASC LIMIT 1)"\
                                   "ORDER BY expire ASC,oid ASC LIMIT 1"
 
 
-#define SELECT_IT_MIGRATION_ORDER "(SELECT size, type, prio, anonLevel, expire, hash, value, oid FROM gn080 "\
+#define SELECT_IT_MIGRATION_ORDER "(SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "\
                                   "WHERE (expire = $1 AND oid < $2)"\
                                   " AND expire > $3 AND type!=3"\
                                   " ORDER BY expire DESC,oid DESC LIMIT 1) "\
                                   "UNION "\
-                                  "(SELECT size, type, prio, anonLevel, expire, hash, value, oid FROM gn080 "\
+                                  "(SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "\
                                   "WHERE (expire < $1 AND oid != $2)"		\
                                   " AND expire > $3 AND type!=3"\
                                   " ORDER BY expire DESC,oid DESC LIMIT 1)"\
@@ -239,8 +239,7 @@ init_connection (struct Plugin *plugin)
       return GNUNET_SYSERR;
     }
   ret = PQexec (plugin->dbh,
-                "CREATE TABLE gn080 ("
-                "  size INTEGER NOT NULL DEFAULT 0,"
+                "CREATE TABLE gn090 ("
                 "  type INTEGER NOT NULL DEFAULT 0,"
                 "  prio INTEGER NOT NULL DEFAULT 0,"
                 "  anonLevel INTEGER NOT NULL DEFAULT 0,"
@@ -256,7 +255,7 @@ init_connection (struct Plugin *plugin)
 			PG_DIAG_SQLSTATE)))))
     {
       check_result (plugin,
-		    ret, PGRES_COMMAND_OK, "CREATE TABLE", "gn080", __LINE__);
+		    ret, PGRES_COMMAND_OK, "CREATE TABLE", "gn090", __LINE__);
       PQfinish (plugin->dbh);
       plugin->dbh = NULL;
       return GNUNET_SYSERR;
@@ -264,23 +263,23 @@ init_connection (struct Plugin *plugin)
   if (PQresultStatus (ret) == PGRES_COMMAND_OK)
     {
       if ((GNUNET_OK !=
-           pq_exec (plugin, "CREATE INDEX idx_hash ON gn080 (hash)", __LINE__)) ||
+           pq_exec (plugin, "CREATE INDEX idx_hash ON gn090 (hash)", __LINE__)) ||
           (GNUNET_OK !=
-           pq_exec (plugin, "CREATE INDEX idx_hash_vhash ON gn080 (hash,vhash)",
+           pq_exec (plugin, "CREATE INDEX idx_hash_vhash ON gn090 (hash,vhash)",
                     __LINE__))
           || (GNUNET_OK !=
-              pq_exec (plugin, "CREATE INDEX idx_prio ON gn080 (prio)", __LINE__))
+              pq_exec (plugin, "CREATE INDEX idx_prio ON gn090 (prio)", __LINE__))
           || (GNUNET_OK !=
-              pq_exec (plugin, "CREATE INDEX idx_expire ON gn080 (expire)", __LINE__))
+              pq_exec (plugin, "CREATE INDEX idx_expire ON gn090 (expire)", __LINE__))
           || (GNUNET_OK !=
-              pq_exec (plugin, "CREATE INDEX idx_comb3 ON gn080 (prio,anonLevel)",
+              pq_exec (plugin, "CREATE INDEX idx_comb3 ON gn090 (prio,anonLevel)",
                        __LINE__))
           || (GNUNET_OK !=
               pq_exec
-              (plugin, "CREATE INDEX idx_comb4 ON gn080 (prio,hash,anonLevel)",
+              (plugin, "CREATE INDEX idx_comb4 ON gn090 (prio,hash,anonLevel)",
                __LINE__))
           || (GNUNET_OK !=
-              pq_exec (plugin, "CREATE INDEX idx_comb7 ON gn080 (expire,hash)",
+              pq_exec (plugin, "CREATE INDEX idx_comb7 ON gn090 (expire,hash)",
                        __LINE__)))
         {
           PQclear (ret);
@@ -292,11 +291,11 @@ init_connection (struct Plugin *plugin)
   PQclear (ret);
 #if 1
   ret = PQexec (plugin->dbh,
-                "ALTER TABLE gn080 ALTER value SET STORAGE EXTERNAL");
+                "ALTER TABLE gn090 ALTER value SET STORAGE EXTERNAL");
   if (GNUNET_OK != 
       check_result (plugin,
 		    ret, PGRES_COMMAND_OK,
-		    "ALTER TABLE", "gn080", __LINE__))
+		    "ALTER TABLE", "gn090", __LINE__))
     {
       PQfinish (plugin->dbh);
       plugin->dbh = NULL;
@@ -304,11 +303,11 @@ init_connection (struct Plugin *plugin)
     }
   PQclear (ret);
   ret = PQexec (plugin->dbh,
-                "ALTER TABLE gn080 ALTER hash SET STORAGE PLAIN");
+                "ALTER TABLE gn090 ALTER hash SET STORAGE PLAIN");
   if (GNUNET_OK !=
       check_result (plugin,
 		    ret, PGRES_COMMAND_OK,
-		    "ALTER TABLE", "gn080", __LINE__))
+		    "ALTER TABLE", "gn090", __LINE__))
     {
       PQfinish (plugin->dbh);
       plugin->dbh = NULL;
@@ -316,10 +315,10 @@ init_connection (struct Plugin *plugin)
     }
   PQclear (ret);
   ret = PQexec (plugin->dbh,
-                "ALTER TABLE gn080 ALTER vhash SET STORAGE PLAIN");
+                "ALTER TABLE gn090 ALTER vhash SET STORAGE PLAIN");
   if (GNUNET_OK !=
       check_result (plugin,
-		    ret, PGRES_COMMAND_OK, "ALTER TABLE", "gn080", __LINE__))
+		    ret, PGRES_COMMAND_OK, "ALTER TABLE", "gn090", __LINE__))
     {
       PQfinish (plugin->dbh);
       plugin->dbh = NULL;
@@ -330,7 +329,7 @@ init_connection (struct Plugin *plugin)
   if ((GNUNET_OK !=
        pq_prepare (plugin,
 		   "getvt",
-                   "SELECT size, type, prio, anonLevel, expire, hash, value, oid FROM gn080 "
+                   "SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "
                    "WHERE hash=$1 AND vhash=$2 AND type=$3 "
                    "AND oid > $4 ORDER BY oid ASC LIMIT 1 OFFSET $5",
                    5,
@@ -338,7 +337,7 @@ init_connection (struct Plugin *plugin)
       (GNUNET_OK !=
        pq_prepare (plugin,
 		   "gett",
-                   "SELECT size, type, prio, anonLevel, expire, hash, value, oid FROM gn080 "
+                   "SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "
                    "WHERE hash=$1 AND type=$2"
                    "AND oid > $3 ORDER BY oid ASC LIMIT 1 OFFSET $4",
                    4,
@@ -346,7 +345,7 @@ init_connection (struct Plugin *plugin)
       (GNUNET_OK !=
        pq_prepare (plugin,
 		   "getv",
-                   "SELECT size, type, prio, anonLevel, expire, hash, value, oid FROM gn080 "
+                   "SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "
                    "WHERE hash=$1 AND vhash=$2"
                    "AND oid > $3 ORDER BY oid ASC LIMIT 1 OFFSET $4",
                    4,
@@ -354,7 +353,7 @@ init_connection (struct Plugin *plugin)
       (GNUNET_OK !=
        pq_prepare (plugin,
 		   "get",
-                   "SELECT size, type, prio, anonLevel, expire, hash, value, oid FROM gn080 "
+                   "SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "
                    "WHERE hash=$1"
                    "AND oid > $2 ORDER BY oid ASC LIMIT 1 OFFSET $3",
                    3,
@@ -362,14 +361,14 @@ init_connection (struct Plugin *plugin)
       (GNUNET_OK !=
        pq_prepare (plugin,
 		   "put",
-                   "INSERT INTO gn080 (size, type, prio, anonLevel, expire, hash, vhash, value) "
-                   "VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+                   "INSERT INTO gn090 (type, prio, anonLevel, expire, hash, vhash, value) "
+                   "VALUES ($1, $2, $3, $4, $5, $6, $7)",
                    8,
                    __LINE__)) ||
       (GNUNET_OK !=
        pq_prepare (plugin,
 		   "update",
-                   "UPDATE gn080 SET prio = prio + $1, expire = CASE WHEN expire < $2 THEN $2 ELSE expire END "
+                   "UPDATE gn090 SET prio = prio + $1, expire = CASE WHEN expire < $2 THEN $2 ELSE expire END "
                    "WHERE oid = $3",
                    3,
                    __LINE__)) ||
@@ -400,7 +399,7 @@ init_connection (struct Plugin *plugin)
       (GNUNET_OK !=
        pq_prepare (plugin,
 		   "delrow",
-                   "DELETE FROM gn080 " "WHERE oid=$1", 1, __LINE__)))
+                   "DELETE FROM gn090 " "WHERE oid=$1", 1, __LINE__)))
     {
       PQfinish (plugin->dbh);
       plugin->dbh = NULL;
@@ -487,13 +486,11 @@ postgres_plugin_put (void *cls,
   struct Plugin *plugin = cls;
   GNUNET_HashCode vhash;
   PGresult *ret;
-  uint32_t bsize = htonl (size);
   uint32_t btype = htonl (type);
   uint32_t bprio = htonl (priority);
   uint32_t banon = htonl (anonymity);
   uint64_t bexpi = GNUNET_TIME_absolute_hton (expiration).value__;
   const char *paramValues[] = {
-    (const char *) &bsize,
     (const char *) &btype,
     (const char *) &bprio,
     (const char *) &banon,
@@ -503,7 +500,6 @@ postgres_plugin_put (void *cls,
     (const char *) data
   };
   int paramLengths[] = {
-    sizeof (bsize),
     sizeof (btype),
     sizeof (bprio),
     sizeof (banon),
@@ -512,11 +508,11 @@ postgres_plugin_put (void *cls,
     sizeof (GNUNET_HashCode),
     size
   };
-  const int paramFormats[] = { 1, 1, 1, 1, 1, 1, 1, 1 };
+  const int paramFormats[] = { 1, 1, 1, 1, 1, 1, 1 };
 
   GNUNET_CRYPTO_hash (data, size, &vhash);
   ret = PQexecPrepared (plugin->dbh,
-                        "put", 8, paramValues, paramLengths, paramFormats, 1);
+                        "put", 7, paramValues, paramLengths, paramFormats, 1);
   if (GNUNET_OK != check_result (plugin, ret,
                                  PGRES_COMMAND_OK,
                                  "PQexecPrepared", "put", __LINE__))
@@ -624,7 +620,7 @@ postgres_next_request_cont (void *next_cls,
       return; 
     }
   if ((1 != PQntuples (res)) ||
-      (8 != PQnfields (res)) ||
+      (7 != PQnfields (res)) ||
       (sizeof (uint32_t) != PQfsize (res, 0)) ||
       (sizeof (uint32_t) != PQfsize (res, 7)))
     {
@@ -636,14 +632,13 @@ postgres_next_request_cont (void *next_cls,
       GNUNET_free (nrc);
       return;
     }
-  rowid = ntohl (*(uint32_t *) PQgetvalue (res, 0, 7));
-  size = ntohl (*(uint32_t *) PQgetvalue (res, 0, 0));
-  if ((sizeof (uint32_t) != PQfsize (res, 1)) ||
+  rowid = ntohl (*(uint32_t *) PQgetvalue (res, 0, 6));
+  if ((sizeof (uint32_t) != PQfsize (res, 0)) ||
+      (sizeof (uint32_t) != PQfsize (res, 1)) ||
       (sizeof (uint32_t) != PQfsize (res, 2)) ||
-      (sizeof (uint32_t) != PQfsize (res, 3)) ||
-      (sizeof (uint64_t) != PQfsize (res, 4)) ||
-      (sizeof (GNUNET_HashCode) != PQgetlength (res, 0, 5)) ||
-      (size != PQgetlength (res, 0, 6)))
+      (sizeof (uint64_t) != PQfsize (res, 3)) ||
+      (sizeof (GNUNET_HashCode) != PQgetlength (res, 0, 4)) ||
+      (size != PQgetlength (res, 0, 5)))
     {
       GNUNET_break (0);
       PQclear (res);
@@ -655,12 +650,12 @@ postgres_next_request_cont (void *next_cls,
       return;
     }
 
-  type = ntohl (*(uint32_t *) PQgetvalue (res, 0, 1));
-  priority = ntohl (*(uint32_t *) PQgetvalue (res, 0, 2));
-  anonymity = ntohl ( *(uint32_t *) PQgetvalue (res, 0, 3));
-  expiration_time.value = GNUNET_ntohll (*(uint64_t *) PQgetvalue (res, 0, 4));
-  size = PQgetlength (res, 0, 6);
-  memcpy (&key, PQgetvalue (res, 0, 5), sizeof (GNUNET_HashCode));
+  type = ntohl (*(uint32_t *) PQgetvalue (res, 0, 0));
+  priority = ntohl (*(uint32_t *) PQgetvalue (res, 0, 1));
+  anonymity = ntohl ( *(uint32_t *) PQgetvalue (res, 0, 2));
+  expiration_time.value = GNUNET_ntohll (*(uint64_t *) PQgetvalue (res, 0, 3));
+  memcpy (&key, PQgetvalue (res, 0, 4), sizeof (GNUNET_HashCode));
+  size = PQgetlength (res, 0, 5);
 
   nrc->blast_prio = htonl (priority);
   nrc->blast_expire = GNUNET_htonll (expiration_time.value);
@@ -678,7 +673,7 @@ postgres_next_request_cont (void *next_cls,
 		    nrc,
 		    &key,
 		    size,
-		    PQgetvalue (res, 0, 6),
+		    PQgetvalue (res, 0, 5),
 		    (enum GNUNET_BLOCK_Type) type,
 		    priority,
 		    anonymity,
@@ -977,7 +972,7 @@ postgres_plugin_get (void *cls,
           nrc->nparams = 5;
           nrc->pname = "getvt";
           ret = PQexecParams (plugin->dbh,
-                              "SELECT count(*) FROM gn080 WHERE hash=$1 AND vhash=$2 AND type=$3",
+                              "SELECT count(*) FROM gn090 WHERE hash=$1 AND vhash=$2 AND type=$3",
                               3,
                               NULL,
                               nrc->paramValues, 
@@ -995,7 +990,7 @@ postgres_plugin_get (void *cls,
           nrc->nparams = 4;
           nrc->pname = "gett";
           ret = PQexecParams (plugin->dbh,
-                              "SELECT count(*) FROM gn080 WHERE hash=$1 AND type=$2",
+                              "SELECT count(*) FROM gn090 WHERE hash=$1 AND type=$2",
                               2,
                               NULL,
                               nrc->paramValues, 
@@ -1016,7 +1011,7 @@ postgres_plugin_get (void *cls,
           nrc->nparams = 4;
           nrc->pname = "getv";
           ret = PQexecParams (plugin->dbh,
-                              "SELECT count(*) FROM gn080 WHERE hash=$1 AND vhash=$2",
+                              "SELECT count(*) FROM gn090 WHERE hash=$1 AND vhash=$2",
                               2,
                               NULL,
                               nrc->paramValues, 
@@ -1032,7 +1027,7 @@ postgres_plugin_get (void *cls,
           nrc->nparams = 3;
           nrc->pname = "get";
           ret = PQexecParams (plugin->dbh,
-                              "SELECT count(*) FROM gn080 WHERE hash=$1",
+                              "SELECT count(*) FROM gn090 WHERE hash=$1",
                               1,
                               NULL,
                               nrc->paramValues, 
@@ -1187,7 +1182,7 @@ postgres_plugin_drop (void *cls)
 {
   struct Plugin *plugin = cls;
 
-  pq_exec (plugin, "DROP TABLE gn080", __LINE__);
+  pq_exec (plugin, "DROP TABLE gn090", __LINE__);
 }
 
 
