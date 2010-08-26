@@ -622,7 +622,7 @@ postgres_next_request_cont (void *next_cls,
   if ((1 != PQntuples (res)) ||
       (7 != PQnfields (res)) ||
       (sizeof (uint32_t) != PQfsize (res, 0)) ||
-      (sizeof (uint32_t) != PQfsize (res, 7)))
+      (sizeof (uint32_t) != PQfsize (res, 6)))
     {
       GNUNET_break (0);
       nrc->iter (nrc->iter_cls, 
@@ -637,8 +637,7 @@ postgres_next_request_cont (void *next_cls,
       (sizeof (uint32_t) != PQfsize (res, 1)) ||
       (sizeof (uint32_t) != PQfsize (res, 2)) ||
       (sizeof (uint64_t) != PQfsize (res, 3)) ||
-      (sizeof (GNUNET_HashCode) != PQgetlength (res, 0, 4)) ||
-      (size != PQgetlength (res, 0, 5)))
+      (sizeof (GNUNET_HashCode) != PQgetlength (res, 0, 4)) )
     {
       GNUNET_break (0);
       PQclear (res);
