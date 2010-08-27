@@ -514,7 +514,7 @@ postgres_plugin_del (void *cls)
     return GNUNET_SYSERR;
   plugin->env->delete_notify (plugin->env->cls,
 			      &key,
-			      size);  
+			      size + OVERHEAD);  
   return GNUNET_OK;
 }
 
