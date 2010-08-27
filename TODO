@@ -12,8 +12,6 @@
        likely good enough until we get ATS going; still should be tested...
     => "peers connected (transport)" now instantly goes to ZERO (core statistic),
        but "established sessions" stays up...
-* PWNAT: [Nate]
-  - UDP support
 
 0.9.0pre3:
 * Determine RC bugs and fix those (release should have no known real bugs)
@@ -63,9 +61,6 @@
     + search error
     + publish error
     + unindex error
-* POSTGRES database backends: [CG]
-  - datacache
-  - datastore
 * ARM: [CG/Safey]
   - better tracking of which config changes actually need to cause process restarts by ARM.
   - handle gnunet-arm -k in combination with auto-start magic (what is the right thing here?)
