@@ -88,7 +88,6 @@ run (void *cls,
 					buf,
 					1+i,
 					exp));
-	  fprintf (stderr, "G");
           ASSERT (0 < GNUNET_DATACACHE_get (h, 
 					    &k, 1+i, 
 					    NULL, NULL));

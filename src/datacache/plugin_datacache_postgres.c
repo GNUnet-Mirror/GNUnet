@@ -406,6 +406,8 @@ postgres_plugin_get (void *cls,
       PQclear (res);
       return 0; 
     }
+  if (iter == NULL)
+    return cnt;
   if ( (3 != PQnfields (res)) ||
        (sizeof (uint64_t) != PQfsize (res, 0)) ||
        (sizeof (uint32_t) != PQfsize (res, 1)))
@@ -494,9 +496,9 @@ postgres_plugin_del (void *cls)
       return GNUNET_SYSERR; 
     }
   if ( (3 != PQnfields (res)) ||
-       (sizeof (uint32_t) != PQfsize (res, 0)) ||
-       (sizeof (uint32_t) != PQfsize (res, 1)) ||
-       (sizeof (GNUNET_HashCode) != PQfsize (res, 2)) )
+       (sizeof (size) != PQfsize (res, 0)) ||
+       (sizeof (oid) != PQfsize (res, 1)) ||
+       (sizeof (GNUNET_HashCode) != PQgetlength (res, 0, 2)) )
     {
       GNUNET_break (0);
       PQclear (res);
