@@ -30,7 +30,10 @@
 
 #define DEBUG_POSTGRES GNUNET_NO
 
-
+/**
+ * Per-entry overhead estimate
+ */
+#define OVERHEAD (sizeof(GNUNET_HashCode) + 24)
 
 /**
  * Context for all functions in this plugin.
@@ -230,7 +233,7 @@ init_connection (struct Plugin *plugin)
       (GNUNET_OK !=
        pq_prepare (plugin,
 		   "getm",
-                   "SELECT length(value),oid FROM gn090dc "
+                   "SELECT length(value),oid,key FROM gn090dc "
                    "ORDER BY discard_time ASC LIMIT 1",
                    0,
                    __LINE__)) ||
@@ -330,7 +333,7 @@ postgres_plugin_put (void *cls,
                                  "PQexecPrepared", "put", __LINE__))
     return GNUNET_SYSERR;
   PQclear (ret);
-  return size;
+  return size + OVERHEAD;
 }
 
 
@@ -455,9 +458,62 @@ postgres_plugin_get (void *cls,
 static int 
 postgres_plugin_del (void *cls)
 {
-  
-  GNUNET_break (0);
-  return GNUNET_SYSERR;
+  struct Plugin *plugin = cls;
+  uint32_t size;
+  uint32_t oid;
+  GNUNET_HashCode key;
+  PGresult *res;
+
+  res = PQexecPrepared (plugin->dbh,
+			"getm",
+			0, NULL, NULL, NULL,
+			1);
+  if (GNUNET_OK != check_result (plugin,
+				 res,
+				 PGRES_TUPLES_OK,
+				 "PQexecPrepared",
+				 "getm",
+				 __LINE__))
+    {
+#if DEBUG_POSTGRES
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		       "datacache-postgres",
+		       "Ending iteration (postgres error)\n");
+#endif
+      return 0;
+    }
+  if (0 == PQntuples (res))
+    {
+      /* no result */
+#if DEBUG_POSTGRES
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		       "datacache-postgres",
+		       "Ending iteration (no more results)\n");
+#endif
+      PQclear (res);
+      return GNUNET_SYSERR; 
+    }
+  if ( (3 != PQnfields (res)) ||
+       (sizeof (uint32_t) != PQfsize (res, 0)) ||
+       (sizeof (uint32_t) != PQfsize (res, 1)) ||
+       (sizeof (GNUNET_HashCode) != PQfsize (res, 2)) )
+    {
+      GNUNET_break (0);
+      PQclear (res);
+      return 0;
+    }  
+  size = ntohl (*(uint32_t *) PQgetvalue (res, 0, 0));
+  oid = ntohl (*(uint32_t *) PQgetvalue (res, 0, 1));
+  memcpy (&key,
+	  PQgetvalue (res, 0, 2),
+	  sizeof (GNUNET_HashCode));
+  PQclear (res);
+  if (GNUNET_OK != delete_by_rowid (plugin, oid))
+    return GNUNET_SYSERR;
+  plugin->env->delete_notify (plugin->env->cls,
+			      &key,
+			      size);  
+  return GNUNET_OK;
 }
 
 
@@ -508,6 +564,9 @@ libgnunet_plugin_datacache_postgres_done (void *cls)
   struct GNUNET_DATACACHE_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
 
+  fprintf (stderr,
+	   "Unloading postgres plugin\n");
+  PQfinish (plugin->dbh);
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;

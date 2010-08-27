@@ -191,6 +191,7 @@ GNUNET_DATACACHE_create (struct GNUNET_SCHEDULER_Handle *sched,
       GNUNET_DATACACHE_destroy (ret);
       return NULL;
     }
+  GNUNET_assert (ret->api->get != NULL);
   return ret;
 }
 
@@ -244,6 +245,7 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
 {
   uint32_t used;
 
+  GNUNET_assert (h->api->get != NULL);
   used = h->api->put (h->api->cls,
 		      key,
 		      size,
@@ -251,7 +253,10 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
 		      type,
 		      discard_time);
   if (used == 0)
-    return GNUNET_SYSERR;
+    {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+    }
   GNUNET_STATISTICS_update (h->stats,
 			    gettext_noop ("# bytes stored"),
 			    size,
@@ -282,6 +287,7 @@ GNUNET_DATACACHE_get (struct GNUNET_DATACACHE_Handle *h,
 		      GNUNET_DATACACHE_Iterator iter,
 		      void *iter_cls)
 {
+  GNUNET_assert (h->api->get != NULL);
   GNUNET_STATISTICS_update (h->stats,
 			    gettext_noop ("# requests received"),
 			    1,
@@ -295,6 +301,7 @@ GNUNET_DATACACHE_get (struct GNUNET_DATACACHE_Handle *h,
 				GNUNET_NO);
       return 0; /* can not be present */
     } 
+  GNUNET_assert (h->api->get != NULL);
   return h->api->get (h->api->cls,
 		      key,
 		      type,
