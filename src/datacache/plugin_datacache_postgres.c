@@ -267,10 +267,11 @@ init_connection (struct Plugin *plugin)
  */
 static int
 delete_by_rowid (struct Plugin *plugin,
-		 unsigned int rowid)
+		 uint32_t rowid)
 {
-  const char *paramValues[] = { (const char *) &rowid };
-  int paramLengths[] = { sizeof (rowid) };
+  uint32_t brow = htonl (rowid);
+  const char *paramValues[] = { (const char *) &brow };
+  int paramLengths[] = { sizeof (brow) };
   const int paramFormats[] = { 1 };
   PGresult *ret;
 
@@ -566,8 +567,6 @@ libgnunet_plugin_datacache_postgres_done (void *cls)
   struct GNUNET_DATACACHE_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
 
-  fprintf (stderr,
-	   "Unloading postgres plugin\n");
   PQfinish (plugin->dbh);
   GNUNET_free (plugin);
   GNUNET_free (api);
