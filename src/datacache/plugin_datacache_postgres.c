@@ -154,7 +154,7 @@ init_connection (struct Plugin *plugin)
       return GNUNET_SYSERR;
     }
   ret = PQexec (plugin->dbh,
-                "CREATE TEMPORARY `TABLE gn090dc ("
+                "CREATE TEMPORARY TABLE gn090dc ("
                 "  type INTEGER NOT NULL DEFAULT 0,"
                 "  discard_time BIGINT NOT NULL DEFAULT 0,"
                 "  key BYTEA NOT NULL DEFAULT '',"
@@ -177,7 +177,7 @@ init_connection (struct Plugin *plugin)
       if ((GNUNET_OK !=
            pq_exec (plugin, "CREATE INDEX idx_key ON gn090dc (key)", __LINE__)) ||
           (GNUNET_OK !=
-           pq_exec (plugin, "CREATE INDEX idx_dt ON gn090 (discard_time)",
+           pq_exec (plugin, "CREATE INDEX idx_dt ON gn090dc (discard_time)",
                     __LINE__)) )
         {
           PQclear (ret);
@@ -217,20 +217,20 @@ init_connection (struct Plugin *plugin)
        pq_prepare (plugin,
 		   "getkt",
                    "SELECT discard_time,type,value FROM gn090dc "
-                   "WHERE hash=$1 type=$2 ",
+                   "WHERE key=$1 AND type=$2 ",
                    2,
                    __LINE__)) ||
       (GNUNET_OK !=
        pq_prepare (plugin,
 		   "getk",
                    "SELECT discard_time,type,value FROM gn090dc "
-                   "WHERE hash=$1",
+                   "WHERE key=$1",
                    1,
                    __LINE__)) ||
       (GNUNET_OK !=
        pq_prepare (plugin,
 		   "getm",
-                   "SELECT length(value),oid FROM gn090dc"
+                   "SELECT length(value),oid FROM gn090dc "
                    "ORDER BY discard_time ASC LIMIT 1",
                    0,
                    __LINE__)) ||
