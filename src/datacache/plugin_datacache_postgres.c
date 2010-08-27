@@ -408,7 +408,10 @@ postgres_plugin_get (void *cls,
       return 0; 
     }
   if (iter == NULL)
-    return cnt;
+    {
+      PQclear (res);
+      return cnt;
+    }
   if ( (3 != PQnfields (res)) ||
        (sizeof (uint64_t) != PQfsize (res, 0)) ||
        (sizeof (uint32_t) != PQfsize (res, 1)))
