@@ -483,7 +483,7 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_SCHEDULER_Handle *sched,
  * && (delay-ready
  *     || any-rs-ready
  *     || any-ws-ready
- *     || (shutdown-active && run-on-shutdown) )
+ *     || shutdown-active)
  * </code>
  *
  * @param sched scheduler to use

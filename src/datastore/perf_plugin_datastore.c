@@ -81,6 +81,20 @@ struct CpsRunContext
 };
 
 
+/**
+ * Function called by plugins to notify us about a
+ * change in their disk utilization.
+ *
+ * @param cls closure (NULL)
+ * @param delta change in disk utilization, 
+ *        0 for "reset to empty"
+ */
+static void
+disk_utilization_change_cb (void *cls,
+			    int delta)
+{
+}
+
 	     
 static void
 putValue (struct GNUNET_DATASTORE_PluginFunctions * api, int i, int k)
@@ -331,6 +345,8 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg,
     }
   env.cfg = cfg;
   env.sched = sched;  
+  env.duc = &disk_utilization_change_cb;
+  env.cls = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Loading `%s' datastore plugin\n"), name);
   GNUNET_asprintf (&libname, "libgnunet_plugin_datastore_%s", name);

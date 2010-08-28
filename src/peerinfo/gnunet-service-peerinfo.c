@@ -33,6 +33,7 @@
 
 #include "platform.h"
 #include "gnunet_crypto_lib.h"
+#include "gnunet_container_lib.h"
 #include "gnunet_disk_lib.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_protocols.h"
@@ -57,11 +58,6 @@ struct HostEntry
 {
 
   /**
-   * This is a linked list.
-   */
-  struct HostEntry *next;
-
-  /**
    * Identity of the peer.
    */
   struct GNUNET_PeerIdentity identity;
@@ -75,9 +71,10 @@ struct HostEntry
 
 
 /**
- * The in-memory list of known hosts.
+ * The in-memory list of known hosts, mapping of
+ * host IDs to 'struct HostEntry*' values.
  */
-static struct HostEntry *hosts;
+static struct GNUNET_CONTAINER_MultiHashMap *hostmap;
 
 /**
  * Clients to immediately notify about all changes.
@@ -163,24 +160,6 @@ get_host_filename (const struct GNUNET_PeerIdentity *id)
 
 
 /**
- * Find the host entry for the given peer.  FIXME: replace by hash map!
- * @return NULL if not found
- */
-static struct HostEntry *
-lookup_host_entry (const struct GNUNET_PeerIdentity *id)
-{
-  struct HostEntry *pos;
-
-  pos = hosts;
-  while ((pos != NULL) &&
-         (0 !=
-          memcmp (id, &pos->identity, sizeof (struct GNUNET_PeerIdentity))))
-    pos = pos->next;
-  return pos;
-}
-
-
-/**
  * Broadcast information about the given entry to all 
  * clients that care.
  *
@@ -215,7 +194,8 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
   struct GNUNET_TIME_Absolute now;
   char *fn;
 
-  entry = lookup_host_entry (identity);
+  entry = GNUNET_CONTAINER_multihashmap_get (hostmap,
+					     &identity->hashPubKey);
   if (entry != NULL)
     return;
   GNUNET_STATISTICS_update (stats,
@@ -250,8 +230,10 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
 	}
     }
   GNUNET_free (fn);
-  entry->next = hosts;
-  hosts = entry;
+  GNUNET_CONTAINER_multihashmap_put (hostmap,
+				     &identity->hashPubKey,
+				     entry,
+				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   notify_all (entry);
 }
 
@@ -275,7 +257,8 @@ remove_garbage (const char *fullname)
 
 
 static int
-hosts_directory_scan_callback (void *cls, const char *fullname)
+hosts_directory_scan_callback (void *cls,
+			       const char *fullname)
 {
   unsigned int *matched = cls;
   struct GNUNET_PeerIdentity identity;
@@ -350,7 +333,8 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_TIME_Absolute delta;
 
   add_host_to_known_hosts (peer);
-  host = lookup_host_entry (peer);
+  host = GNUNET_CONTAINER_multihashmap_get (hostmap,
+					    &peer->hashPubKey);
   GNUNET_assert (host != NULL);
   if (host->hello == NULL)
     {
@@ -383,63 +367,43 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
 }
 
 
+
 /**
- * Do transmit info either for only the host matching the given
- * argument or for all known hosts.
+ * Do transmit info about peer to given host.
  *
- * @param only NULL to hit all hosts, otherwise specifies a particular target
- * @param client who is making the request (and will thus receive our confirmation)
+ * @param cls NULL to hit all hosts, otherwise specifies a particular target
+ * @param key hostID
+ * @param value information to transmit
+ * @return GNUNET_YES (continue to iterate)
  */
-static void
-send_to_each_host (const struct GNUNET_PeerIdentity *only,
-                   struct GNUNET_SERVER_Client *client)
+static int
+add_to_tc (void *cls,
+	   const GNUNET_HashCode *key,
+	   void *value)
 {
-  struct HostEntry *pos;
+  struct GNUNET_SERVER_TransmitContext *tc = cls;
+  struct HostEntry *pos = value;
   struct InfoMessage *im;
   uint16_t hs;
   char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
-  struct GNUNET_SERVER_TransmitContext *tc;
-  int match;
 
-  tc = GNUNET_SERVER_transmit_context_create (client);
-  match = GNUNET_NO;
-  pos = hosts;  
-  while (pos != NULL)
+  hs = 0;
+  im = (struct InfoMessage *) buf;
+  if (pos->hello != NULL)
     {
-      if ((only == NULL) ||
-          (0 ==
-           memcmp (only, &pos->identity,
-                   sizeof (struct GNUNET_PeerIdentity))))
-        {
-          hs = 0;
-          im = (struct InfoMessage *) buf;
-          if (pos->hello != NULL)
-            {
-              hs = GNUNET_HELLO_size (pos->hello);
-              GNUNET_assert (hs <
-                             GNUNET_SERVER_MAX_MESSAGE_SIZE -
-                             sizeof (struct InfoMessage));
-              memcpy (&im[1], pos->hello, hs);
-	      match = GNUNET_YES;
-            }
-	  im->header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_INFO);
-	  im->header.size = htons (sizeof (struct InfoMessage) + hs);
-          im->reserved = htonl (0);
-          im->peer = pos->identity;
-          GNUNET_SERVER_transmit_context_append_message (tc,
-							 &im->header);
-        }
-      pos = pos->next;
+      hs = GNUNET_HELLO_size (pos->hello);
+      GNUNET_assert (hs <
+		     GNUNET_SERVER_MAX_MESSAGE_SIZE -
+		     sizeof (struct InfoMessage));
+      memcpy (&im[1], pos->hello, hs);
     }
-  if ( (only != NULL) &&
-       (match == GNUNET_NO) )
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		"No `%s' message was found for peer `%4s'\n",
-		"HELLO",
-		GNUNET_i2s (only));
-  GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
-					      GNUNET_MESSAGE_TYPE_PEERINFO_INFO_END);
-  GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
+  im->header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_INFO);
+  im->header.size = htons (sizeof (struct InfoMessage) + hs);
+  im->reserved = htonl (0);
+  im->peer = pos->identity;
+  GNUNET_SERVER_transmit_context_append_message (tc,
+						 &im->header);
+  return GNUNET_YES;
 }
 
 
@@ -500,7 +464,6 @@ cron_clean_data_hosts (void *cls,
   now = GNUNET_TIME_absolute_get ();
   GNUNET_DISK_directory_scan (networkIdDirectory,
                               &discard_hosts_helper, &now);
-
   GNUNET_SCHEDULER_add_delayed (tc->sched,
                                 DATA_HOST_CLEAN_FREQ,
                                 &cron_clean_data_hosts, NULL);
@@ -553,6 +516,7 @@ handle_get (void *cls,
             const struct GNUNET_MessageHeader *message)
 {
   const struct ListPeerMessage *lpm;
+  struct GNUNET_SERVER_TransmitContext *tc;
 
   lpm = (const struct ListPeerMessage *) message;
 #if DEBUG_PEERINFO
@@ -561,7 +525,14 @@ handle_get (void *cls,
 	      "GET",
 	      GNUNET_i2s (&lpm->peer));
 #endif
-  send_to_each_host (&lpm->peer, client);
+  tc = GNUNET_SERVER_transmit_context_create (client);
+  GNUNET_CONTAINER_multihashmap_get_multiple (hostmap,
+					      &lpm->peer.hashPubKey,
+					      &add_to_tc,
+					      tc);
+  GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
+					      GNUNET_MESSAGE_TYPE_PEERINFO_INFO_END);
+  GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 
@@ -577,12 +548,39 @@ handle_get_all (void *cls,
                 struct GNUNET_SERVER_Client *client,
                 const struct GNUNET_MessageHeader *message)
 {
+  struct GNUNET_SERVER_TransmitContext *tc;
+
 #if DEBUG_PEERINFO
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "`%s' message received\n",
 	      "GET_ALL");
 #endif
-  send_to_each_host (NULL, client);
+  tc = GNUNET_SERVER_transmit_context_create (client);
+  GNUNET_CONTAINER_multihashmap_iterate (hostmap,
+					 &add_to_tc,
+					 tc);
+  GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
+					      GNUNET_MESSAGE_TYPE_PEERINFO_INFO_END);
+  GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
+}
+
+
+static int
+do_notify_entry (void *cls,
+		 const GNUNET_HashCode *key,
+		 void *value)
+{
+  struct GNUNET_SERVER_Client *client = cls;
+  struct HostEntry *he = value;
+  struct InfoMessage *msg;
+
+  msg = make_info_message (he);
+  GNUNET_SERVER_notification_context_unicast (notify_list,
+					      client,
+					      &msg->header,
+					      GNUNET_NO);
+  GNUNET_free (msg);
+  return GNUNET_YES;
 }
 
 
@@ -595,12 +593,9 @@ handle_get_all (void *cls,
  */
 static void
 handle_notify (void *cls,
-            struct GNUNET_SERVER_Client *client,
-            const struct GNUNET_MessageHeader *message)
+	       struct GNUNET_SERVER_Client *client,
+	       const struct GNUNET_MessageHeader *message)
 {
-  struct InfoMessage *msg;
-  struct HostEntry *pos;
-
 #if DEBUG_PEERINFO
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "`%s' message received\n",
@@ -608,19 +603,21 @@ handle_notify (void *cls,
 #endif
   GNUNET_SERVER_notification_context_add (notify_list,
 					  client);
-  pos = hosts;
-  while (NULL != pos)
-    {
-      msg = make_info_message (pos);
-      GNUNET_SERVER_notification_context_unicast (notify_list,
-						  client,
-						  &msg->header,
-						  GNUNET_NO);
-      GNUNET_free (msg);
-      pos = pos->next;
-    }
+  GNUNET_CONTAINER_multihashmap_iterate (hostmap,
+					 &do_notify_entry,
+					 client);
 }
 
+
+static int
+free_host_entry (void *cls,
+		 const GNUNET_HashCode *key,
+		 void *value)
+{
+  struct HostEntry *he = value;
+  GNUNET_free (he);
+  return GNUNET_YES;
+}
 
 /**
  * Clean up our state.  Called during shutdown.
@@ -634,6 +631,10 @@ shutdown_task (void *cls,
 {
   GNUNET_SERVER_notification_context_destroy (notify_list);
   notify_list = NULL;
+  GNUNET_CONTAINER_multihashmap_iterate (hostmap,
+					 &free_host_entry,
+					 NULL);
+  GNUNET_CONTAINER_multihashmap_destroy (hostmap);
   if (stats != NULL)
     {
       GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
@@ -666,6 +667,8 @@ run (void *cls,
      sizeof (struct GNUNET_MessageHeader)},
     {NULL, NULL, 0, 0}
   };
+
+  hostmap = GNUNET_CONTAINER_multihashmap_create (1024);
   stats = GNUNET_STATISTICS_create (sched, "peerinfo", cfg);
   notify_list = GNUNET_SERVER_notification_context_create (server, 0);
   GNUNET_assert (GNUNET_OK ==

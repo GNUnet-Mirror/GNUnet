@@ -35,7 +35,8 @@ gnunet_service_peerinfo_LDADD = \
 
 
 check_PROGRAMS = \
- test_peerinfo_api
+ test_peerinfo_api \
+ perf_peerinfo_api
 
 if !DISABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
@@ -44,6 +45,13 @@ endif
 test_peerinfo_api_SOURCES = \
  test_peerinfo_api.c
 test_peerinfo_api_LDADD = \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+perf_peerinfo_api_SOURCES = \
+ perf_peerinfo_api.c
+perf_peerinfo_api_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
  $(top_builddir)/src/util/libgnunetutil.la  

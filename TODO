@@ -115,7 +115,7 @@
 * DV: [Nate]
   - proper bandwidth allocation
   - performance tests
-* PEERINFO:
+* PEERINFO:	
   - merge multiple HELLOs of the same peer in the transmission queue
     (theoretically reduces overhead; bounds message queue size)
   - merge multiple iteration requests over "all" peers in the queue

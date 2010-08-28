@@ -174,6 +174,21 @@ struct GNUNET_SCHEDULER_Handle
   struct Task *pending;
 
   /**
+   * List of tasks waiting ONLY for a timeout event.
+   * Sorted by timeout (earliest first).  Used so that
+   * we do not traverse the list of these tasks when
+   * building select sets (we just look at the head
+   * to determine the respective timeout ONCE).
+   */
+  struct Task *pending_timeout;
+
+  /**
+   * Last inserted task waiting ONLY for a timeout event.
+   * Used to (heuristically) speed up insertion.
+   */
+  struct Task *pending_timeout_last;
+
+  /**
    * ID of the task that is running right now.
    */
   struct Task *active_task;
@@ -274,6 +289,15 @@ is_pending (struct GNUNET_SCHEDULER_Handle *sched,
         min = pos->id;
       pos = pos->next;
     }
+  pos = sched->pending_timeout;
+  while (pos != NULL)
+    {
+      if (pos->id == id)
+        return GNUNET_YES;
+      if (pos->id < min)
+        min = pos->id;
+      pos = pos->next;
+    }
   for (p = 0; p < GNUNET_SCHEDULER_PRIORITY_COUNT; p++)
     {
       pos = sched->ready[p];
@@ -306,7 +330,19 @@ update_sets (struct GNUNET_SCHEDULER_Handle *sched,
              struct GNUNET_TIME_Relative *timeout)
 {
   struct Task *pos;
+  struct GNUNET_TIME_Absolute now;
+  struct GNUNET_TIME_Relative to;
 
+  now = GNUNET_TIME_absolute_get ();
+  pos = sched->pending_timeout;
+  if (pos != NULL) 
+    {
+      to = GNUNET_TIME_absolute_get_difference (now, pos->timeout);
+      if (timeout->value > to.value)
+	*timeout = to;
+      if (pos->reason != 0)
+        *timeout = GNUNET_TIME_UNIT_ZERO;
+    }
   pos = sched->pending;
   while (pos != NULL)
     {
@@ -316,12 +352,9 @@ update_sets (struct GNUNET_SCHEDULER_Handle *sched,
           pos = pos->next;
           continue;
         }
-
       if (pos->timeout.value != GNUNET_TIME_UNIT_FOREVER_ABS.value)
         {
-          struct GNUNET_TIME_Relative to;
-
-          to = GNUNET_TIME_absolute_get_remaining (pos->timeout);
+          to = GNUNET_TIME_absolute_get_difference (now, pos->timeout);
           if (timeout->value > to.value)
             *timeout = to;
         }
@@ -384,24 +417,33 @@ is_ready (struct GNUNET_SCHEDULER_Handle *sched,
           const struct GNUNET_NETWORK_FDSet *rs,
           const struct GNUNET_NETWORK_FDSet *ws)
 {
+  enum GNUNET_SCHEDULER_Reason reason;
+
+  reason = task->reason;
   if (now.value >= task->timeout.value)
-    task->reason |= GNUNET_SCHEDULER_REASON_TIMEOUT;
-  if ( (0 == (task->reason & GNUNET_SCHEDULER_REASON_READ_READY)) &&
-       ( (GNUNET_YES == GNUNET_NETWORK_fdset_test_native (rs, task->read_fd)) ||
+    reason |= GNUNET_SCHEDULER_REASON_TIMEOUT;
+  if ( (0 == (reason & GNUNET_SCHEDULER_REASON_READ_READY)) &&
+       ( ( (task->read_fd != -1) &&
+	   (GNUNET_YES == GNUNET_NETWORK_fdset_test_native (rs, task->read_fd)) ) ||
 	 (set_overlaps (rs, task->read_set) ) ) )
-    task->reason |= GNUNET_SCHEDULER_REASON_READ_READY;
-  if ((0 == (task->reason & GNUNET_SCHEDULER_REASON_WRITE_READY)) &&
-      ( (GNUNET_YES == GNUNET_NETWORK_fdset_test_native (ws, task->write_fd)) ||
+    reason |= GNUNET_SCHEDULER_REASON_READ_READY;
+  if ((0 == (reason & GNUNET_SCHEDULER_REASON_WRITE_READY)) &&
+      ( ( (task->write_fd != -1) &&
+	  (GNUNET_YES == GNUNET_NETWORK_fdset_test_native (ws, task->write_fd)) ) ||
 	(set_overlaps (ws, task->write_set) ) ) )
-    task->reason |= GNUNET_SCHEDULER_REASON_WRITE_READY;
-  if (task->reason == 0)
+    reason |= GNUNET_SCHEDULER_REASON_WRITE_READY;
+  if (reason == 0)
     return GNUNET_NO;           /* not ready */    
   if (task->prereq_id != GNUNET_SCHEDULER_NO_TASK)
     {
       if (GNUNET_YES == is_pending (sched, task->prereq_id))
-        return GNUNET_NO;       /* prereq waiting */
-      task->reason |= GNUNET_SCHEDULER_REASON_PREREQ_DONE;
+	{
+	  task->reason = reason;
+	  return GNUNET_NO;       /* prereq waiting */
+	}
+      reason |= GNUNET_SCHEDULER_REASON_PREREQ_DONE;
     }
+  task->reason = reason;
   return GNUNET_YES;
 }
 
@@ -413,7 +455,8 @@ is_ready (struct GNUNET_SCHEDULER_Handle *sched,
  * @param task task ready for execution
  */
 static void
-queue_ready_task (struct GNUNET_SCHEDULER_Handle *handle, struct Task *task)
+queue_ready_task (struct GNUNET_SCHEDULER_Handle *handle,
+		  struct Task *task)
 {
   enum GNUNET_SCHEDULER_Priority p = task->priority;
   if (0 != (task->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
@@ -444,6 +487,20 @@ check_ready (struct GNUNET_SCHEDULER_Handle *handle,
 
   now = GNUNET_TIME_absolute_get ();
   prev = NULL;
+  pos = handle->pending_timeout;
+  while (pos != NULL)
+    {
+      next = pos->next;
+      if (now.value >= pos->timeout.value)
+	pos->reason |= GNUNET_SCHEDULER_REASON_TIMEOUT;
+      if (0 == pos->reason)
+	break;
+      handle->pending_timeout = next;
+      if (handle->pending_timeout_last == pos)
+	handle->pending_timeout_last = NULL;
+      queue_ready_task (handle, pos);
+      pos = next;
+    }
   pos = handle->pending;
   while (pos != NULL)
     {
@@ -484,6 +541,15 @@ GNUNET_SCHEDULER_shutdown (struct GNUNET_SCHEDULER_Handle *sched)
   struct Task *pos;
   int i;
 
+  pos = sched->pending_timeout;
+  while (pos != NULL)
+    {
+      pos->reason |= GNUNET_SCHEDULER_REASON_SHUTDOWN;
+      /* we don't move the task into the ready queue yet; check_ready
+         will do that later, possibly adding additional
+         readiness-factors */
+      pos = pos->next;
+    }
   pos = sched->pending;
   while (pos != NULL)
     {
@@ -615,7 +681,7 @@ run_ready (struct GNUNET_SCHEDULER_Handle *sched,
       destroy_task (pos);
       sched->tasks_run++;
     }
-  while ((sched->pending == NULL) || (p >= sched->max_priority_added));
+  while ( (sched->pending == NULL) || (p >= sched->max_priority_added) );
 }
 
 /**
@@ -700,7 +766,9 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
                                      GNUNET_SCHEDULER_REASON_STARTUP);
   last_tr = 0;
   busy_wait_warning = 0;
-  while ((sched.pending != NULL) || (sched.ready_count > 0))
+  while ((sched.pending != NULL) || 
+	 (sched.pending_timeout != NULL) ||
+	 (sched.ready_count > 0))
     {
       GNUNET_NETWORK_fdset_zero (rs);
       GNUNET_NETWORK_fdset_zero (ws);
@@ -832,8 +900,10 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Handle *sched,
   struct Task *t;
   struct Task *prev;
   enum GNUNET_SCHEDULER_Priority p;
+  int to;
   void *ret;
 
+  to = 0;
   prev = NULL;
   t = sched->pending;
   while (t != NULL)
@@ -842,6 +912,21 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Handle *sched,
         break;
       prev = t;
       t = t->next;
+    }
+  if (t == NULL)
+    {
+      prev = NULL;
+      to = 1;
+      t = sched->pending_timeout;
+      while (t != NULL)
+	{
+	  if (t->id == task)
+	    break;
+	  prev = t;
+	  t = t->next;
+	}
+      if (sched->pending_timeout_last == t)
+	sched->pending_timeout_last = NULL;
     }
   p = 0;
   while (t == NULL)
@@ -864,12 +949,25 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Handle *sched,
   if (prev == NULL)
     {
       if (p == 0)
-        sched->pending = t->next;
+	{
+	  if (to == 0)
+	    {
+	      sched->pending = t->next;
+	    }
+	  else
+	    {
+	      sched->pending_timeout = t->next;
+	    }
+	}
       else
-        sched->ready[p] = t->next;
+	{
+	  sched->ready[p] = t->next;
+	}
     }
   else
-    prev->next = t->next;
+    {
+      prev->next = t->next;
+    }
   ret = t->callback_cls;
 #if DEBUG_TASKS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -998,10 +1096,84 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_SCHEDULER_Handle * sched,
                               struct GNUNET_TIME_Relative delay,
                               GNUNET_SCHEDULER_Task task, void *task_cls)
 {
+#if 1
+  /* new, optimized version */
+  struct Task *t;
+  struct Task *pos;
+  struct Task *prev;
+#if EXECINFO
+  void *backtrace_array[MAX_TRACE_DEPTH];
+#endif
+
+  GNUNET_assert (NULL != task);
+  t = GNUNET_malloc (sizeof (struct Task));
+  t->callback = task;
+  t->callback_cls = task_cls;
+#if EXECINFO
+  t->num_backtrace_strings = backtrace(backtrace_array, MAX_TRACE_DEPTH);
+  t->backtrace_strings = backtrace_symbols(backtrace_array, t->num_backtrace_strings);
+#endif
+  t->read_fd = -1;
+  t->write_fd = -1;
+  t->id = ++sched->last_id;
+#if PROFILE_DELAYS
+  t->start_time = GNUNET_TIME_absolute_get ();
+#endif
+  t->timeout = GNUNET_TIME_relative_to_absolute (delay);
+  t->priority = sched->current_priority;
+  /* try tail first (optimization in case we are
+     appending to a long list of tasks with timeouts) */
+  prev = sched->pending_timeout_last;
+  if (prev != NULL) 
+    {
+      if (prev->timeout.value > t->timeout.value)
+	prev = NULL;
+      else
+	pos = prev->next; /* heuristic success! */
+    }
+  if (prev == NULL)
+    {
+      /* heuristic failed, do traversal of timeout list */
+      pos = sched->pending_timeout;
+    }
+  while ( (pos != NULL) &&
+	  ( (pos->timeout.value <= t->timeout.value) ||
+	    (pos->reason != 0) ) )
+    {
+      prev = pos;
+      pos = pos->next;
+    }
+  if (prev == NULL)
+    sched->pending_timeout = t;
+  else
+    prev->next = t;
+  t->next = pos;
+  /* hyper-optimization... */
+  sched->pending_timeout_last = t;
+
+#if DEBUG_TASKS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Adding task: %llu / %p\n", t->id, t->callback_cls);
+#endif
+#if EXECINFO
+  int i;
+
+  for (i=0;i<t->num_backtrace_strings;i++)
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Task %u trace %d: %s\n",
+                  t->id,
+                  i,
+                  t->backtrace_strings[i]);
+#endif
+  return t->id;
+
+#else
+  /* unoptimized version */
   return GNUNET_SCHEDULER_add_select (sched,
                                       GNUNET_SCHEDULER_PRIORITY_KEEP,
                                       GNUNET_SCHEDULER_NO_TASK, delay,
                                       NULL, NULL, task, task_cls);
+#endif
 }
 
 
@@ -1045,7 +1217,7 @@ GNUNET_SCHEDULER_add_now (struct GNUNET_SCHEDULER_Handle *sched,
  * && (delay-ready
  *     || any-rs-ready
  *     || any-ws-ready
- *     || (shutdown-active && run-on-shutdown) )
+ *     || shutdown-active )
  * </code>
  *
  * @param sched scheduler to use

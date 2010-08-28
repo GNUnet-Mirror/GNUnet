@@ -22,10 +22,6 @@
  * @file datastore/plugin_datastore.h
  * @brief API for the database backend plugins.
  * @author Christian Grothoff
- *
- * TODO:
- * - consider defining enumeration or at least typedef
- *   for the type of "type" (instead of using uint32_t)
  */
 #ifndef PLUGIN_DATASTORE_H
 #define PLUGIN_DATASTORE_H
@@ -39,9 +35,21 @@
 
 /**
  * How many bytes of overhead will we assume per entry
- * in the SQlite DB?
+ * in any DB (for reservations)?
  */
 #define GNUNET_DATASTORE_ENTRY_OVERHEAD 256
+
+
+/**
+ * Function invoked to notify service of disk utilization
+ * changes.
+ *
+ * @param cls closure
+ * @param delta change in disk utilization, 
+ *        0 for "reset to empty"
+ */
+typedef void (*DiskUtilizationChange)(void *cls,
+				      int delta);
 
 
 /**
@@ -60,6 +68,16 @@ struct GNUNET_DATASTORE_PluginEnvironment
    * Scheduler to use.
    */
   struct GNUNET_SCHEDULER_Handle *sched;
+
+  /**
+   * Function to call on disk utilization change.
+   */
+  DiskUtilizationChange duc;
+
+  /**
+   * Closure.
+   */
+  void *cls;
 
 };
 

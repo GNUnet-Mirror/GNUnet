@@ -836,7 +836,6 @@ void
 GNUNET_NETWORK_fdset_handle_set (struct GNUNET_NETWORK_FDSet *fds,
                                  const struct GNUNET_DISK_FileHandle *h)
 {
-
 #ifdef MINGW
   HANDLE hw;
   GNUNET_DISK_internal_file_handle_ (h, &hw, sizeof (HANDLE));

@@ -191,7 +191,6 @@
                                   " ORDER BY expire DESC,vkey DESC LIMIT 1)"\
                                   "ORDER BY expire DESC,vkey DESC LIMIT 1"
 
-// #define SELECT_SIZE "SELECT SUM(BIT_LENGTH(value) DIV 8) FROM gn072"
 
 
 struct GNUNET_MysqlStatementHandle
@@ -344,12 +343,10 @@ struct Plugin
 #define UPDATE_ENTRY "UPDATE gn090 SET prio=prio+?,expire=IF(expire>=?,expire,?) WHERE vkey=?"
   struct GNUNET_MysqlStatementHandle *update_entry;
 
-  struct GNUNET_MysqlStatementHandle *iter[4];
+#define SELECT_SIZE "SELECT SUM(BIT_LENGTH(value) DIV 8) FROM gn072"
+  struct GNUNET_MysqlStatementHandle *get_size;
 
-  /**
-   * Size of the mysql database on disk.
-   */
-  unsigned long long content_size;
+  struct GNUNET_MysqlStatementHandle *iter[4];
 
 };
 
@@ -957,8 +954,11 @@ do_delete_entry_by_vkey (struct Plugin *plugin,
   return ret;
 }
 
+
 static int
-return_ok (void *cls, unsigned int num_values, MYSQL_BIND * values)
+return_ok (void *cls, 
+	   unsigned int num_values, 
+	   MYSQL_BIND * values)
 {
   return GNUNET_OK;
 }
@@ -1189,7 +1189,9 @@ mysql_next_request_cont (void *next_cls,
     {
       do_delete_value (plugin, vkey);
       do_delete_entry_by_vkey (plugin, vkey);
-      plugin->content_size -= length;
+      if (length != 0)
+	plugin->env->duc (plugin->env->cls,
+			  - length);
     }
   return;
  END_SET:
@@ -1279,14 +1281,29 @@ iterateHelper (struct Plugin *plugin,
  * Get an estimate of how much space the database is
  * currently using.
  *
- * @param cls our "struct Plugin*"
+ * @param cls our "struct Plugin *"
  * @return number of bytes used on disk
  */
 static unsigned long long
 mysql_plugin_get_size (void *cls)
 {
   struct Plugin *plugin = cls;
-  return plugin->content_size;
+  MYSQL_BIND cbind[1];
+  long long total;
+
+  memset (cbind, 0, sizeof (cbind));
+  total = 0;
+  cbind[0].buffer_type = MYSQL_TYPE_LONGLONG;
+  cbind[0].buffer = &total;
+  cbind[0].is_unsigned = GNUNET_NO;
+  if (GNUNET_OK != 
+      prepared_statement_run_select (plugin,
+				     plugin->get_size,
+				     1, cbind, 
+				     &return_ok, NULL,
+				     -1))
+    return 0;
+  return total;
 }
 
 
@@ -1373,7 +1390,9 @@ mysql_plugin_put (void *cls,
 	      vkey,
 	      (unsigned int) size);
 #endif
-  plugin->content_size += size;
+  if (size > 0)
+    plugin->env->duc (plugin->env->cls,
+		      size);
   return GNUNET_OK;
 }
 
@@ -1804,8 +1823,8 @@ mysql_plugin_drop (void *cls)
 				   "DROP TABLE gn090")) ||
       (GNUNET_OK != run_statement (plugin,
 				   "DROP TABLE gn072")))
-    return;                     /* error */
-  plugin->content_size = 0;
+    return;           /* error */
+  plugin->env->duc (plugin->env->cls, 0);
 }
 
 
@@ -1865,6 +1884,7 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
       || PINIT (plugin->select_entry_by_hash_vhash_and_type,
                 SELECT_ENTRY_BY_HASH_VHASH_AND_TYPE)
       || PINIT (plugin->count_entry_by_hash, COUNT_ENTRY_BY_HASH)
+      || PINIT (plugin->get_size, SELECT_SIZE)
       || PINIT (plugin->count_entry_by_hash_and_vhash, COUNT_ENTRY_BY_HASH_AND_VHASH)
       || PINIT (plugin->count_entry_by_hash_and_type, COUNT_ENTRY_BY_HASH_AND_TYPE)
       || PINIT (plugin->count_entry_by_hash_vhash_and_type,

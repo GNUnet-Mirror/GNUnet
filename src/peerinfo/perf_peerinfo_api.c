@@ -19,12 +19,9 @@
 */
 
 /**
- * @file peerinfo/test_peerinfo_api.c
- * @brief testcase for peerinfo_api.c
- * @author Christian Grothoff
- *
- * TODO:
- * - test merging of HELLOs (add same peer twice...)
+ * @file peerinfo/test_peerinfo_hammer.c
+ * @brief testcase for peerinfo_api.c, hopefully hammer the peerinfo service
+ * @author Nathan Evans
  */
 
 #include "platform.h"
@@ -36,15 +33,19 @@
 #include "gnunet_time_lib.h"
 #include "peerinfo.h"
 
+#define START_SERVICE 1
+
+#define NUM_REQUESTS 5000
+
 static struct GNUNET_SCHEDULER_Handle *sched;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-static struct GNUNET_PEERINFO_IteratorContext *ic;
+static struct GNUNET_PEERINFO_IteratorContext *ic[NUM_REQUESTS];
 
 static struct GNUNET_PEERINFO_Handle *h;
 
-static unsigned int retries;
+static unsigned int numpeers;
 
 static int
 check_it (void *cls,
@@ -52,13 +53,14 @@ check_it (void *cls,
           struct GNUNET_TIME_Absolute expiration,
           const void *addr, uint16_t addrlen)
 {
-  unsigned int *agc = cls;
-
   if (addrlen > 0)
     {
-      GNUNET_assert (0 == strcmp ("peerinfotest", tname));
-      GNUNET_assert (0 == strncmp ("Address", addr, addrlen));
-      (*agc) -= (1 << (addrlen - 1));
+#if DEBUG
+      fprintf (stderr,
+	       "name: %s, addr: %s\n", 
+	       tname, 
+	       (const char*) addr);
+#endif
     }
   return GNUNET_OK;
 }
@@ -69,20 +71,24 @@ address_generator (void *cls, size_t max, void *buf)
 {
   size_t *agc = cls;
   size_t ret;
+  char *address;
 
-  if (0 == *agc)
+  if (*agc == 0)
     return 0;
+
+  GNUNET_asprintf(&address, "Address%d", *agc);
+
   ret = GNUNET_HELLO_add_address ("peerinfotest",
                                   GNUNET_TIME_relative_to_absolute
-                                  (GNUNET_TIME_UNIT_HOURS), "Address", *agc,
+                                  (GNUNET_TIME_UNIT_HOURS), address, strlen(address) + 1,
                                   buf, max);
-  (*agc)--;
+  *agc = 0;
   return ret;
 }
 
 
 static void
-add_peer ()
+add_peer (size_t i)
 {
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
   struct GNUNET_PeerIdentity pid;
@@ -90,12 +96,11 @@ add_peer ()
   size_t agc;
 
   agc = 2;
-  memset (&pkey, 32, sizeof (pkey));
+  memset (&pkey, i, sizeof (pkey));
   GNUNET_CRYPTO_hash (&pkey, sizeof (pkey), &pid.hashPubKey);
-  h2 = GNUNET_HELLO_create (&pkey, &address_generator, &agc);
+  h2 = GNUNET_HELLO_create (&pkey, &address_generator, &i);
   GNUNET_PEERINFO_add_peer (h, h2);
   GNUNET_free (h2);
-
 }
 
 
@@ -104,39 +109,21 @@ process (void *cls,
          const struct GNUNET_PeerIdentity *peer,
          const struct GNUNET_HELLO_Message *hello)
 {
-  int *ok = cls;
-  unsigned int agc;
-
   if (peer == NULL)
     {
-      ic = NULL;
-      if ( (3 == *ok) &&
-	   (retries < 50) )
-	{
-	  /* try again */
-	  retries++;	  
-	  add_peer ();
-	  ic = GNUNET_PEERINFO_iterate (h,
-					NULL,
-					GNUNET_TIME_relative_multiply
-					(GNUNET_TIME_UNIT_SECONDS, 15), 
-					&process, cls);
-	  return;
-	}
-      GNUNET_assert (peer == NULL);
-      GNUNET_assert (2 == *ok);
-      GNUNET_PEERINFO_disconnect (h);
-      h = NULL;
-      *ok = 0;
-      return;
+#if DEBUG
+      fprintf(stderr, "Process received NULL response\n");
+#endif
     }
-  if (hello != NULL)
+  else
     {
-      GNUNET_assert (3 == *ok);
-      agc = 3;
-      GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &check_it, &agc);
-      GNUNET_assert (agc == 0);
-      *ok = 2;
+#if DEBUG
+      fprintf(stderr, "Processed a peer\n");
+#endif
+      numpeers++;
+      if (0 && (hello != NULL))
+        GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &check_it, NULL);
+
     }
 }
 
@@ -148,24 +135,30 @@ run (void *cls,
      const char *cfgfile, 
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  size_t i;
   sched = s;
   cfg = c;
   h = GNUNET_PEERINFO_connect (sched, cfg);
-  add_peer ();
-  ic = GNUNET_PEERINFO_iterate (h,
-				NULL,
-				GNUNET_TIME_relative_multiply
-				(GNUNET_TIME_UNIT_SECONDS, 15),
-				&process, cls);
-}
 
+  for (i = 0; i < NUM_REQUESTS; i++)
+    {
+      add_peer (i);
+      ic[i] = GNUNET_PEERINFO_iterate (h,
+				       NULL,
+				       GNUNET_TIME_relative_multiply
+				       (GNUNET_TIME_UNIT_SECONDS, 30),
+				       &process, cls);
+    }
+  fprintf (stderr,
+	   "Issued %u requests\n",
+	   NUM_REQUESTS);
+}
 
 static int
 check ()
 {
   int ok = 3;
-  pid_t pid;
-  char *const argv[] = { "test-peerinfo-api",
+  char *const argv[] = { "test-peerinfo-hammer",
     "-c",
     "test_peerinfo_api_data.conf",
 #if DEBUG_PEERINFO
@@ -173,6 +166,8 @@ check ()
 #endif
     NULL
   };
+#if START_SERVICE
+  pid_t pid;
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
@@ -182,15 +177,22 @@ check ()
                                  "-L", "DEBUG",
 #endif
                                  "-c", "test_peerinfo_api_data.conf", NULL);
+#endif
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "test-peerinfo-api", "nohelp",
                       options, &run, &ok);
+  fprintf (stderr,
+	   "Processed %u/%u peers\n",
+	   numpeers,
+	   NUM_REQUESTS);
+#if START_SERVICE
   if (0 != PLIBC_KILL (pid, SIGTERM))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
       ok = 1;
     }
   GNUNET_OS_process_wait(pid);
+#endif
   return ok;
 }
 
@@ -212,4 +214,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of test_peerinfo_api.c */
+/* end of test_peerinfo_hammer.c */

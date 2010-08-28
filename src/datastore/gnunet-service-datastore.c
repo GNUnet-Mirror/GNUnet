@@ -42,6 +42,13 @@
  */
 #define MAX_EXPIRE_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
 
+#define QUOTA_STAT_NAME gettext_noop ("# bytes used in file-sharing datastore")
+
+/**
+ * After how many payload-changing operations
+ * do we sync our statistics?
+ */
+#define MAX_STAT_SYNC_LAG 50
 
 
 /**
@@ -109,6 +116,7 @@ struct ReservationList
 };
 
 
+
 /**
  * Our datastore plugin (NULL if not available).
  */
@@ -141,6 +149,24 @@ static unsigned long long cache_size;
  * How much space have we currently reserved?
  */
 static unsigned long long reserved;
+  
+/**
+ * How much data are we currently storing
+ * in the database?
+ */
+static unsigned long long payload;
+
+/**
+ * Number of updates that were made to the
+ * payload value since we last synchronized
+ * it with the statistics service.
+ */
+static unsigned int lastSync;
+
+/**
+ * Did we get an answer from statistics?
+ */
+static int stats_worked;
 
 /**
  * Identity of the task that is used to delete
@@ -162,6 +188,23 @@ struct GNUNET_SCHEDULER_Handle *sched;
  * Handle for reporting statistics.
  */
 static struct GNUNET_STATISTICS_Handle *stats;
+
+
+/**
+ * Synchronize our utilization statistics with the 
+ * statistics service.
+ */
+static void 
+sync_stats ()
+{
+  GNUNET_STATISTICS_set (stats,
+			 QUOTA_STAT_NAME,
+			 payload,
+			 GNUNET_YES);
+  lastSync = 0;
+}
+
+
 
 
 /**
@@ -240,6 +283,12 @@ static struct TransmitCallbackContext *tcc_tail;
  * willing (or able) to transmit anything to anyone?
  */
 static int cleaning_done;
+
+/**
+ * Handle for pending get request.
+ */
+static struct GNUNET_STATISTICS_GetHandle *stat_get;
+
 
 /**
  * Task that is used to remove expired entries from
@@ -731,7 +780,7 @@ handle_reserve (void *cls,
 #endif
   amount = GNUNET_ntohll(msg->amount);
   entries = ntohl(msg->entries);
-  used = plugin->api->get_size (plugin->api->cls) + reserved;
+  used = payload + reserved;
   req = amount + ((unsigned long long) GNUNET_DATASTORE_ENTRY_OVERHEAD) * entries;
   if (used + req > quota)
     {
@@ -931,13 +980,13 @@ execute_put (struct GNUNET_SERVER_Client *client,
 		   (GNUNET_SYSERR == ret) ? GNUNET_SYSERR : GNUNET_OK, 
 		   msg);
   GNUNET_free_non_null (msg);
-  if (quota - reserved - cache_size < plugin->api->get_size (plugin->api->cls))
+  if (quota - reserved - cache_size < payload)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  _("Need %llu bytes more space (%llu allowed, using %llu)\n"),
 		  (unsigned long long) size + GNUNET_DATASTORE_ENTRY_OVERHEAD,
 		  (unsigned long long) (quota - reserved - cache_size),
-		  (unsigned long long) plugin->api->get_size (plugin->api->cls));
+		  (unsigned long long) payload);
       manage_space (size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
     }
 }
@@ -1351,6 +1400,78 @@ handle_drop (void *cls,
 
 
 /**
+ * Function called by plugins to notify us about a
+ * change in their disk utilization.
+ *
+ * @param cls closure (NULL)
+ * @param delta change in disk utilization, 
+ *        0 for "reset to empty"
+ */
+static void
+disk_utilization_change_cb (void *cls,
+			    int delta)
+{
+  if ( (delta < 0) &&
+       (payload < -delta) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Datastore payload inaccurate (%lld < %lld).  Trying to fix.\n"),
+		  (long long) payload,
+		  (long long) -delta);
+      payload = plugin->api->get_size (plugin->api->cls);
+      sync_stats ();
+      return;
+    }
+  payload += delta;
+  lastSync++;
+  if (lastSync >= MAX_STAT_SYNC_LAG)
+    sync_stats ();
+}
+
+
+/**
+ * Callback function to process statistic values.
+ *
+ * @param cls closure (struct Plugin*)
+ * @param subsystem name of subsystem that created the statistic
+ * @param name the name of the datum
+ * @param value the current value
+ * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
+ * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ */
+static int
+process_stat_in (void *cls,
+		 const char *subsystem,
+		 const char *name,
+		 uint64_t value,
+		 int is_persistent)
+{
+  GNUNET_assert (stats_worked == GNUNET_NO);
+  stats_worked = GNUNET_YES;
+  payload += value;
+#if DEBUG_SQLITE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Notification from statistics about existing payload (%llu), new payload is %llu\n",
+	      value,
+	      payload);
+#endif
+  return GNUNET_OK;
+}
+
+
+static void
+process_stat_done (void *cls,
+		   int success)
+{
+  struct DatastorePlugin *plugin = cls;
+
+  stat_get = NULL;
+  if (stats_worked == GNUNET_NO) 
+    payload = plugin->api->get_size (plugin->api->cls);
+}
+
+
+/**
  * Load the datastore plugin.
  */
 static struct DatastorePlugin *
@@ -1373,6 +1494,8 @@ load_plugin ()
   ret = GNUNET_malloc (sizeof(struct DatastorePlugin));
   ret->env.cfg = cfg;
   ret->env.sched = sched;  
+  ret->env.duc = &disk_utilization_change_cb;
+  ret->env.cls = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Loading `%s' datastore plugin\n"), name);
   GNUNET_asprintf (&libname, "libgnunet_plugin_datastore_%s", name);
@@ -1425,6 +1548,13 @@ unload_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       GNUNET_CONTAINER_bloomfilter_free (filter);
       filter = NULL;
+    }
+  if (lastSync > 0)
+    sync_stats ();
+  if (stat_get != NULL)
+    {
+      GNUNET_STATISTICS_get_cancel (stat_get);
+      stat_get = NULL;
     }
   if (stats != NULL)
     {
@@ -1614,6 +1744,13 @@ run (void *cls,
 	}
       return;
     }
+  stat_get = GNUNET_STATISTICS_get (stats,
+				    "datastore",
+				    QUOTA_STAT_NAME,
+				    GNUNET_TIME_UNIT_SECONDS,
+				    &process_stat_done,
+				    &process_stat_in,
+				    plugin);
   GNUNET_SERVER_disconnect_notify (server, &cleanup_reservations, NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
   expired_kill_task

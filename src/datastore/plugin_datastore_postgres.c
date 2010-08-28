@@ -82,26 +82,104 @@
 #define BUSY_TIMEOUT GNUNET_TIME_UNIT_SECONDS
 
 
+/**
+ * Closure for 'postgres_next_request_cont'.
+ */
 struct NextRequestClosure
 {
+  /**
+   * Global plugin data.
+   */
   struct Plugin *plugin;
+  
+  /**
+   * Function to call for each matching entry.
+   */
   PluginIterator iter;
+  
+  /**
+   * Closure for 'iter'.
+   */
   void *iter_cls;
+  
+  /**
+   * Parameters for the prepared statement.
+   */
   const char *paramValues[5];
+  
+  /**
+   * Name of the prepared statement to run.
+   */
   const char *pname;
+  
+  /**
+   * Size of values pointed to by paramValues.
+   */
   int paramLengths[5];
+  
+  /**
+   * Number of paramters in paramValues/paramLengths.
+   */
   int nparams; 
+  
+  /**
+   * Current time (possible parameter), big-endian.
+   */
   uint64_t bnow;
+  
+  /**
+   * Key (possible parameter)
+   */
   GNUNET_HashCode key;
+  
+  /**
+   * Hash of value (possible parameter)
+   */
   GNUNET_HashCode vhash;
+  
+  /**
+   * Number of entries found so far
+   */
   long long count;
+  
+  /**
+   * Offset this iteration starts at.
+   */
   uint64_t off;
+  
+  /**
+   * Current offset to use in query, big-endian.
+   */
   uint64_t blimit_off;
+  
+  /**
+   *  Overall number of matching entries.
+   */
   unsigned long long total;
+  
+  /**
+   * Expiration value of previous result (possible parameter), big-endian.
+   */
   uint64_t blast_expire;
+  
+  /**
+   * Row ID of last result (possible paramter), big-endian.
+   */
   uint32_t blast_rowid;
+  
+  /**
+   * Priority of last result (possible parameter), big-endian.
+   */
   uint32_t blast_prio;
+  
+  /**
+   * Type of block (possible paramter), big-endian.
+   */
   uint32_t btype;
+  
+  /**
+   * Flag set to GNUNET_YES to stop iteration.
+   */
   int end_it;
 };
 
@@ -131,10 +209,6 @@ struct Plugin
    */
   GNUNET_SCHEDULER_TaskIdentifier next_task;
 
-  unsigned long long payload;
-
-  unsigned int lastSync;
-  
 };
 
 
@@ -143,6 +217,12 @@ struct Plugin
  * the desired status code.  If not, log an error, clear the
  * result and return GNUNET_SYSERR.
  * 
+ * @param plugin global context
+ * @param ret result to check
+ * @param expected_status expected return value
+ * @param command name of SQL command that was run
+ * @param args arguments to SQL command
+ * @param line line number for error reporting
  * @return GNUNET_OK if the result is acceptable
  */
 static int
@@ -173,6 +253,10 @@ check_result (struct Plugin *plugin,
 
 /**
  * Run simple SQL statement (without results).
+ *
+ * @param plugin global context
+ * @param sql statement to run
+ * @param line code line for error reporting
  */
 static int
 pq_exec (struct Plugin *plugin,
@@ -190,6 +274,12 @@ pq_exec (struct Plugin *plugin,
 
 /**
  * Prepare SQL statement.
+ *
+ * @param plugin global context
+ * @param sql SQL code to prepare
+ * @param nparams number of parameters in sql
+ * @param line code line for error reporting
+ * @return GNUNET_OK on success
  */
 static int
 pq_prepare (struct Plugin *plugin,
@@ -207,6 +297,8 @@ pq_prepare (struct Plugin *plugin,
 
 /**
  * @brief Get a database handle
+ *
+ * @param plugin global context
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 static int
@@ -413,6 +505,8 @@ init_connection (struct Plugin *plugin)
  * Delete the row identified by the given rowid (qid
  * in postgres).
  *
+ * @param plugin global context
+ * @param rowid which row to delete
  * @return GNUNET_OK on success
  */
 static int
@@ -450,11 +544,32 @@ static unsigned long long
 postgres_plugin_get_size (void *cls)
 {
   struct Plugin *plugin = cls;
-  double ret;
+  unsigned long long total;
+  PGresult *ret;
 
-  ret = plugin->payload;
-  return (unsigned long long) (ret * 1.00);
-  /* benchmarking shows XX% overhead */
+  ret = PQexecParams (plugin->dbh,
+		      "SELECT SUM(LENGTH(value))+256*COUNT(*) FROM gn090",
+		      0, NULL, NULL, NULL, NULL, 1);
+  if (GNUNET_OK != check_result (plugin,
+				 ret,
+                                 PGRES_TUPLES_OK,
+                                 "PQexecParams",
+				 "get_size",
+				 __LINE__))
+    {
+      return 0;
+    }
+  if ((PQntuples (ret) != 1) ||
+      (PQnfields (ret) != 1) ||
+      (PQgetlength (ret, 0, 0) != sizeof (unsigned long long)))
+    {
+      GNUNET_break (0);
+      PQclear (ret);
+      return 0;
+    }
+  total = GNUNET_ntohll (*(const unsigned long long *) PQgetvalue (ret, 0, 0));
+  PQclear (ret);
+  return total;
 }
 
 
@@ -518,13 +633,12 @@ postgres_plugin_put (void *cls,
                                  "PQexecPrepared", "put", __LINE__))
     return GNUNET_SYSERR;
   PQclear (ret);
-  plugin->payload += size;
+  plugin->env->duc (plugin->env->cls, size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
 #if DEBUG_POSTGRES
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "datastore-postgres",
-		   "Stored %u bytes in database, new payload is %llu\n",
-		   (unsigned int) size,
-		   (unsigned long long) plugin->payload);
+		   "Stored %u bytes in database\n",
+		   (unsigned int) size);
 #endif
   return GNUNET_OK;
 }
@@ -695,18 +809,16 @@ postgres_next_request_cont (void *next_cls,
 #if DEBUG_POSTGRES
 	  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 			   "datastore-postgres",
-			   "Deleting %u bytes from database, current payload is %llu\n",
-			   (unsigned int) size,
-			   (unsigned long long) plugin->payload);
+			   "Deleting %u bytes from database\n",
+			   (unsigned int) size);
 #endif
-	  GNUNET_assert (plugin->payload >= size);
-	  plugin->payload -= size;
+	  plugin->env->duc (plugin->env->cls,
+			    - (size + GNUNET_DATASTORE_ENTRY_OVERHEAD));
 #if DEBUG_POSTGRES
 	  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 			   "datastore-postgres",
-			   "Deleted %u bytes from database, new payload is %llu\n",
-			   (unsigned int) size,
-			   (unsigned long long) plugin->payload);
+			   "Deleted %u bytes from database\n",
+			   (unsigned int) size);
 #endif
 	}
     }
@@ -803,11 +915,15 @@ postgres_plugin_update (void *cls,
  * Call a method for each key in the database and
  * call the callback method on it.
  *
+ * @param plugin global context
  * @param type entries of which type should be considered?
+ * @param is_asc ascending or descending iteration?
+ * @param iter_select which SELECT method should be used?
  * @param iter maybe NULL (to just count); iter
  *     should return GNUNET_SYSERR to abort the
  *     iteration, GNUNET_NO to delete the entry and
  *     continue and GNUNET_OK to continue iterating
+ * @param iter_cls closure for 'iter'
  */
 static void
 postgres_iterate (struct Plugin *plugin,
@@ -1123,7 +1239,6 @@ postgres_plugin_iter_ascending_expiration (void *cls,
 }
 
 
-
 /**
  * Select a subset of the items in the datastore and call
  * the given iterator for each of them.
@@ -1146,7 +1261,6 @@ postgres_plugin_iter_migration_order (void *cls,
   postgres_iterate (plugin, 0, GNUNET_NO, 3, 
 		    iter, iter_cls);
 }
-
 
 
 /**
