@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2004, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2004, 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -53,15 +53,15 @@ check_it (void *cls,
           struct GNUNET_TIME_Absolute expiration,
           const void *addr, uint16_t addrlen)
 {
+#if DEBUG
   if (addrlen > 0)
     {
-#if DEBUG
       fprintf (stderr,
 	       "name: %s, addr: %s\n", 
 	       tname, 
 	       (const char*) addr);
-#endif
     }
+#endif
   return GNUNET_OK;
 }
 
@@ -80,8 +80,10 @@ address_generator (void *cls, size_t max, void *buf)
 
   ret = GNUNET_HELLO_add_address ("peerinfotest",
                                   GNUNET_TIME_relative_to_absolute
-                                  (GNUNET_TIME_UNIT_HOURS), address, strlen(address) + 1,
+                                  (GNUNET_TIME_UNIT_HOURS), 
+				  address, strlen(address) + 1,
                                   buf, max);
+  GNUNET_free (address);
   *agc = 0;
   return ret;
 }
@@ -149,15 +151,12 @@ run (void *cls,
 				       (GNUNET_TIME_UNIT_SECONDS, 30),
 				       &process, cls);
     }
-  fprintf (stderr,
-	   "Issued %u requests\n",
-	   NUM_REQUESTS);
 }
 
 static int
 check ()
 {
-  int ok = 3;
+  int ok = 0;
   char *const argv[] = { "test-peerinfo-hammer",
     "-c",
     "test_peerinfo_api_data.conf",
@@ -182,9 +181,9 @@ check ()
                       argv, "test-peerinfo-api", "nohelp",
                       options, &run, &ok);
   fprintf (stderr,
-	   "Processed %u/%u peers\n",
+	   "Received %u/%u calls before timeout\n",
 	   numpeers,
-	   NUM_REQUESTS);
+	   NUM_REQUESTS * NUM_REQUESTS / 2);
 #if START_SERVICE
   if (0 != PLIBC_KILL (pid, SIGTERM))
     {
@@ -206,7 +205,7 @@ main (int argc, char *argv[])
 #if DEBUG_PEERINFO
                     "DEBUG",
 #else
-                    "WARNING",
+                    "ERROR",
 #endif
                     NULL);
   ret = check ();
