@@ -38,8 +38,11 @@ testKeyword ()
   struct GNUNET_FS_Uri *ret;
   char *emsg;
 
-  if (NULL != GNUNET_FS_uri_parse ("gnunet://fs/ksk/++", &emsg))
-    ABORT ();
+  if (NULL != (ret = GNUNET_FS_uri_parse ("gnunet://fs/ksk/++", &emsg)))
+    {
+      GNUNET_FS_uri_destroy (ret);
+      ABORT ();
+    }
   GNUNET_free (emsg);
   ret = GNUNET_FS_uri_parse ("gnunet://fs/ksk/foo+bar", &emsg);
   if (ret == NULL)

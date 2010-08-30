@@ -288,8 +288,7 @@ static int ad_arrive_handler (void *cls,
                              uint32_t distance)
 {
   char *hostname;
-  char *expected_uri = GNUNET_malloc (MAX_URL_LEN);
-
+  char *expected_uri;
   unsigned long long port;
   size_t size;
   const struct GNUNET_MessageHeader * incoming;
@@ -299,10 +298,9 @@ static int ad_arrive_handler (void *cls,
                                                    "HTTPPORT",
                                                    &port))
     {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Could not read advertising server's configuration\n" );
-    if ( NULL != expected_uri ) GNUNET_free ( expected_uri );
-    return GNUNET_SYSERR;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Could not read advertising server's configuration\n" );
+      return GNUNET_SYSERR;
     }
 
   if ( GNUNET_SYSERR  == GNUNET_CONFIGURATION_get_value_string (adv_peer.cfg,
@@ -311,35 +309,23 @@ static int ad_arrive_handler (void *cls,
                                                    &hostname))
     hostname = GNUNET_RESOLVER_local_fqdn_get ();
 
-  if (NULL != hostname)
-    {
-      size = strlen (hostname);
-      if (size + 15 > MAX_URL_LEN)
-        {
-          GNUNET_break (0);
-        }
-      else
-        {
-          GNUNET_asprintf (&expected_uri,
-                           "http://%s:%u/",
-                           hostname,
-                           (unsigned int) port);
-        }
-    }
-
+  GNUNET_asprintf (&expected_uri,
+		   "http://%s:%u/",
+		   hostname != NULL ? hostname : "localhost",
+		   (unsigned int) port);   
   incoming = (const struct GNUNET_MessageHeader *) message;
   current_adv_uri = strdup ((char*) &incoming[1]);
   if ( 0 == strcmp( expected_uri, current_adv_uri ) )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Recieved hostlist advertisement with URI `%s' as expected\n", current_adv_uri);
-    adv_arrived = GNUNET_YES;
-    adv_sent = GNUNET_YES;
-  }
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  "Recieved hostlist advertisement with URI `%s' as expected\n", current_adv_uri);
+      adv_arrived = GNUNET_YES;
+      adv_sent = GNUNET_YES;
+    }
   else
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Expected URI `%s' and recieved URI `%s' differ\n", expected_uri, current_adv_uri);
-  GNUNET_free_non_null (expected_uri);
+  GNUNET_free (expected_uri);
   GNUNET_free_non_null (hostname);
   return GNUNET_OK;
 }

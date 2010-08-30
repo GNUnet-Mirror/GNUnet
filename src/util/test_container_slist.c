@@ -58,11 +58,14 @@ main (int argc, char *argv[])
        GNUNET_CONTAINER_slist_next (it), i--)
     {
       p = GNUNET_CONTAINER_slist_get (it, &s);
-      CHECK (p != NULL);
-      j = *(int *) p;
-      CHECK (i == j);
-      CHECK (s == sizeof (i));
 
+      if ( (p == NULL) ||
+	   (i != (j = *(int *) p)) ||
+	   (s != sizeof (i)) )
+	{
+	  GNUNET_CONTAINER_slist_iter_destroy (it);
+	  CHECK (0);
+	}
       j *= 2;
       GNUNET_CONTAINER_slist_insert (it,
                                      GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,

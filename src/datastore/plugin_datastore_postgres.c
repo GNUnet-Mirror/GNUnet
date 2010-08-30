@@ -992,6 +992,7 @@ postgres_iterate (struct Plugin *plugin,
       iter (iter_cls, 
 	    NULL, NULL, 0, NULL, 0, 0, 0, 
 	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
+      GNUNET_free (nrc);
       return;
     }
   nrc->bnow = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ()).value__;
@@ -1161,6 +1162,7 @@ postgres_plugin_get (void *cls,
       iter (iter_cls, 
 	    NULL, NULL, 0, NULL, 0, 0, 0, 
 	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
+      GNUNET_free (nrc);
       return;
     }
   if ((PQntuples (ret) != 1) ||
@@ -1172,6 +1174,7 @@ postgres_plugin_get (void *cls,
       iter (iter_cls, 
 	    NULL, NULL, 0, NULL, 0, 0, 0, 
 	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
+      GNUNET_free (nrc);
       return;
     }
   nrc->total = GNUNET_ntohll (*(const unsigned long long *) PQgetvalue (ret, 0, 0));
@@ -1181,6 +1184,7 @@ postgres_plugin_get (void *cls,
       iter (iter_cls, 
 	    NULL, NULL, 0, NULL, 0, 0, 0, 
 	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
+      GNUNET_free (nrc);
       return;
     }
   nrc->off = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
