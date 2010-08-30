@@ -293,8 +293,8 @@ notify_ready (void *cls, size_t size, void *buf)
     }
   while (size - ret >= s);
   if (n < TOTAL_MSGS)
-    GNUNET_TRANSPORT_notify_transmit_ready (p1.th,
-					    &p2.id,
+    GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
+					    &p1.id,
 					    s, 0, TIMEOUT,
 					    &notify_ready,
 					    NULL);
@@ -339,8 +339,8 @@ notify_connect (void *cls,
 
   if (connected == 2)
     {
-      GNUNET_TRANSPORT_notify_transmit_ready (p1.th,
-                                              &p2.id,
+      GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
+                                              &p1.id,
                                               get_size (0), 0, TIMEOUT,
                                               &notify_ready,
                                               NULL);
