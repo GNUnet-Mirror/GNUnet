@@ -3026,7 +3026,7 @@ GNUNET_TESTING_get_statistics (struct GNUNET_TESTING_PeerGroup *pg,
                                GNUNET_TESTING_STATISTICS_Iterator proc, void *cls)
 {
   struct StatsIterateContext *stats_context;
-  struct CoreContext *core_ctx;
+  struct StatsCoreContext *core_ctx;
   unsigned int i;
   unsigned int total_count;
 
@@ -3041,7 +3041,7 @@ GNUNET_TESTING_get_statistics (struct GNUNET_TESTING_PeerGroup *pg,
       if (pg->peers[i].daemon->running == GNUNET_YES)
         {
           /* Allocate one core context per core we need to connect to */
-          core_ctx = GNUNET_malloc(sizeof(struct CoreContext));
+          core_ctx = GNUNET_malloc(sizeof(struct StatsCoreContext));
           core_ctx->daemon = pg->peers[i].daemon;
           /* Set back pointer to topology iteration context */
           core_ctx->iter_context = stats_context;
