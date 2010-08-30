@@ -104,9 +104,9 @@ GNUNET_FS_getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext*
           strcat (val, value);
         }
     }
-  GNUNET_array_grow (u->data.ksk.keywords,
-                     u->data.ksk.keywordCount, u->data.ksk.keywordCount + 1);
-  u->data.ksk.keywords[u->data.ksk.keywordCount - 1] = val;
+  GNUNET_array_append (u->data.ksk.keywords,
+		       u->data.ksk.keywordCount,
+		       val);
   return GNUNET_OK;
 }
 
