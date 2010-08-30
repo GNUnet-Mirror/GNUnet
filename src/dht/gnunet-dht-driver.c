@@ -63,7 +63,9 @@
 
 #define DEFAULT_MAX_OUTSTANDING_PUTS 10
 
-#define DEFAULT_MAX_OUTSTANDING_FIND_PEERS 1
+#define DEFAULT_MAX_OUTSTANDING_FIND_PEERS 10
+
+#define DEFAULT_FIND_PEER_OFFSET GNUNET_TIME_relative_divide (DEFAULT_SECONDS_PER_PEER_START, DEFAULT_MAX_OUTSTANDING_FIND_PEERS)
 
 #define DEFAULT_MAX_OUTSTANDING_GETS 10
 
@@ -1168,7 +1170,7 @@ send_find_peer_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
 
   if (test_find_peer->find_peer_context->outstanding > max_outstanding_find_peers)
   {
-    GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 300), &send_find_peer_request, test_find_peer);
+    GNUNET_SCHEDULER_add_delayed(sched, DEFAULT_FIND_PEER_OFFSET, &send_find_peer_request, test_find_peer);
     return;
   }
 
@@ -1206,7 +1208,7 @@ schedule_find_peer_requests (void *cls, const struct GNUNET_SCHEDULER_TaskContex
       test_find_peer->daemon  = GNUNET_TESTING_daemon_get(pg, random);
       test_find_peer->find_peer_context = find_peer_ctx;
       find_peer_ctx->total++;
-      GNUNET_SCHEDULER_add_now(sched, &send_find_peer_request, test_find_peer);
+      GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(DEFAULT_FIND_PEER_OFFSET, i), &send_find_peer_request, test_find_peer);
     }
 }
 
