@@ -875,7 +875,7 @@ GNUNET_SCHEDULER_get_load (struct GNUNET_SCHEDULER_Handle *sched,
   if (p == GNUNET_SCHEDULER_PRIORITY_KEEP)
     p = sched->current_priority;
   ret = 0;
-  pos = sched->ready[p];
+  pos = sched->ready[check_priority (p)];
   while (pos != NULL)
     {
       pos = pos->next;
