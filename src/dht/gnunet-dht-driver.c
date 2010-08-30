@@ -50,11 +50,20 @@
 /* Timeout for waiting for puts to be sent to the service */
 #define DEFAULT_PUT_DELAY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10)
 
+/* Timeout for waiting for puts to be sent to the service */
+#define DEFAULT_FIND_PEER_DELAY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 40)
+
 #define DEFAULT_SECONDS_PER_PEER_START GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 45)
 
 #define DEFAULT_TEST_DATA_SIZE 8
 
+#define DEFAULT_BUCKET_SIZE 4
+
+#define FIND_PEER_THRESHOLD DEFAULT_BUCKET_SIZE * 2
+
 #define DEFAULT_MAX_OUTSTANDING_PUTS 10
+
+#define DEFAULT_MAX_OUTSTANDING_FIND_PEERS 1
 
 #define DEFAULT_MAX_OUTSTANDING_GETS 10
 
@@ -95,6 +104,30 @@ struct MaliciousContext
    * What type of malicious to set this peer to.
    */
   int malicious_type;
+};
+
+struct TestFindPeer
+{
+  /* This is a linked list */
+  struct TestFindPeer *next;
+
+  /* Handle to the bigger context */
+  struct FindPeerContext *find_peer_context;
+
+  /**
+   * Handle to the peer's DHT service (via the API)
+   */
+  struct GNUNET_DHT_Handle *dht_handle;
+
+  /**
+   *  Handle to the peer daemon
+   */
+  struct GNUNET_TESTING_Daemon *daemon;
+
+  /**
+   * Task for disconnecting DHT handles
+   */
+  GNUNET_SCHEDULER_TaskIdentifier disconnect_task;
 };
 
 struct TestPutContext
@@ -232,7 +265,11 @@ static struct GNUNET_TIME_Relative get_delay;
 
 static struct GNUNET_TIME_Relative put_delay;
 
+static struct GNUNET_TIME_Relative find_peer_delay;
+
 static struct GNUNET_TIME_Relative seconds_per_peer_start;
+
+static int do_find_peer;
 
 static unsigned long long test_data_size = DEFAULT_TEST_DATA_SIZE;
 
@@ -241,6 +278,8 @@ static unsigned long long max_outstanding_puts = DEFAULT_MAX_OUTSTANDING_PUTS;
 static unsigned long long max_outstanding_gets = DEFAULT_MAX_OUTSTANDING_GETS;
 
 static unsigned long long malicious_getters;
+
+static unsigned long long max_outstanding_find_peers;
 
 static unsigned long long malicious_putters;
 
@@ -651,6 +690,7 @@ static int stats_handle  (void *cls,
       stats_ctx->peer = peer;
       GNUNET_CONTAINER_multihashmap_put(stats_map, &peer->hashPubKey, stats_ctx, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
     }
+  GNUNET_assert(stats_ctx != NULL);
 
   if (strcmp(name, STAT_ROUTES) == 0)
     stats_ctx->stat_routes = value;
@@ -696,6 +736,7 @@ static void
 log_dht_statistics (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   stats_map = GNUNET_CONTAINER_multihashmap_create(num_peers);
+  fprintf(stderr, "Starting statistics logging\n");
   GNUNET_TESTING_get_statistics(pg, &stats_finished, &stats_handle, NULL);
 }
 
@@ -1005,6 +1046,169 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, rand), &do_put, test_put->next);
 }
 
+/**
+ * Context for sending out find peer requests.
+ */
+struct FindPeerContext
+{
+  struct GNUNET_DHT_Handle *dht_handle;
+  struct GNUNET_TIME_Absolute endtime;
+  unsigned int current_peers;
+  unsigned int previous_peers;
+  unsigned int outstanding;
+  unsigned int total;
+};
+
+static void
+schedule_find_peer_requests (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc);
+
+/**
+ * Given a number of total peers and a bucket size, estimate the number of
+ * connections in a perfect kademlia topology.
+ */
+static unsigned int connection_estimate(unsigned int peer_count, unsigned int bucket_size)
+{
+  unsigned int i;
+  unsigned int filled;
+  i = num_peers;
+
+  filled = 0;
+  while (i > bucket_size)
+    {
+      filled++;
+      i = i/2;
+    }
+  return filled * bucket_size * peer_count;
+
+}
+
+/**
+ * Callback for iterating over all the peer connections of a peer group.
+ */
+void count_peers_cb (void *cls,
+                      const struct GNUNET_PeerIdentity *first,
+                      const struct GNUNET_PeerIdentity *second,
+                      struct GNUNET_TIME_Relative latency,
+                      uint32_t distance,
+                      const char *emsg)
+{
+  struct FindPeerContext *find_peer_context = cls;
+  if ((first != NULL) && (second != NULL))
+    {
+      find_peer_context->current_peers++;
+    }
+  else
+    {
+      GNUNET_assert(dhtlog_handle != NULL);
+      fprintf(stderr, "peer count finished (%u connections), %u new peers, connection estimate %u\n", find_peer_context->current_peers, find_peer_context->current_peers - find_peer_context->previous_peers, connection_estimate(num_peers, DEFAULT_BUCKET_SIZE));
+      if ((find_peer_context->current_peers - find_peer_context->previous_peers > FIND_PEER_THRESHOLD) &&
+          (find_peer_context->current_peers < connection_estimate(num_peers, DEFAULT_BUCKET_SIZE)) &&
+          (GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime).value > 0))
+        {
+          fprintf(stderr, "Scheduling another round of find peer requests.\n");
+          GNUNET_SCHEDULER_add_now(sched, schedule_find_peer_requests, find_peer_context);
+        }
+      else
+        {
+          fprintf(stderr, "Not sending any more find peer requests.\n");
+        }
+    }
+}
+
+/**
+ * Connect to all peers in the peer group and iterate over their
+ * connections.
+ */
+static void
+count_new_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct FindPeerContext *find_peer_context = cls;
+  find_peer_context->previous_peers = find_peer_context->current_peers;
+  find_peer_context->current_peers = 0;
+  GNUNET_TESTING_get_topology (pg, &count_peers_cb, find_peer_context);
+}
+
+
+static void
+decrement_find_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct TestFindPeer *test_find_peer = cls;
+  GNUNET_assert(test_find_peer->find_peer_context->outstanding > 0);
+  test_find_peer->find_peer_context->outstanding--;
+  test_find_peer->find_peer_context->total--;
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%d find_peers remaining\n", test_find_peer->find_peer_context->total);
+  if ((0 == test_find_peer->find_peer_context->total) &&
+      (GNUNET_TIME_absolute_get_remaining(test_find_peer->find_peer_context->endtime).value > 0))
+  {
+    GNUNET_SCHEDULER_add_now(sched, &count_new_peers, test_find_peer->find_peer_context);
+  }
+  GNUNET_free(test_find_peer);
+}
+
+/**
+ * A find peer request has been sent to the server, now we will schedule a task
+ * to wait the appropriate time to allow the request to go out and back.
+ *
+ * @param cls closure - a TestFindPeer struct
+ * @param tc context the task is being called with
+ */
+static void
+handle_find_peer_sent (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct TestFindPeer *test_find_peer = cls;
+
+  GNUNET_DHT_disconnect(test_find_peer->dht_handle);
+  GNUNET_SCHEDULER_add_delayed(sched, find_peer_delay, &decrement_find_peers, test_find_peer);
+}
+
+static void
+send_find_peer_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct TestFindPeer *test_find_peer = cls;
+
+  if (test_find_peer->find_peer_context->outstanding > max_outstanding_find_peers)
+  {
+    GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 300), &send_find_peer_request, test_find_peer);
+    return;
+  }
+
+  test_find_peer->find_peer_context->outstanding++;
+  if (GNUNET_TIME_absolute_get_remaining(test_find_peer->find_peer_context->endtime).value == 0)
+  {
+    GNUNET_SCHEDULER_add_now(sched, &decrement_find_peers, test_find_peer);
+    return;
+  }
+
+  test_find_peer->dht_handle = GNUNET_DHT_connect(sched, test_find_peer->daemon->cfg, 1);
+  GNUNET_assert(test_find_peer->dht_handle != NULL);
+  fprintf(stderr, "calling GNUNET_DHT_find_peers\n");
+  GNUNET_DHT_find_peers (test_find_peer->dht_handle,
+                         &handle_find_peer_sent, test_find_peer);
+}
+
+/**
+ * Set up a single find peer request for each peer in the topology.  Do this
+ * until the settle time is over, limited by the number of outstanding requests
+ * and the time allowed for each one!
+ */
+static void
+schedule_find_peer_requests (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct FindPeerContext *find_peer_ctx = cls;
+  struct TestFindPeer *test_find_peer;
+  uint32_t i;
+  uint32_t random;
+
+  for (i = 0; i < max_outstanding_find_peers; i++)
+    {
+      test_find_peer = GNUNET_malloc(sizeof(struct TestFindPeer));
+      random = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
+      test_find_peer->daemon  = GNUNET_TESTING_daemon_get(pg, random);
+      test_find_peer->find_peer_context = find_peer_ctx;
+      find_peer_ctx->total++;
+      GNUNET_SCHEDULER_add_now(sched, &send_find_peer_request, test_find_peer);
+    }
+}
 
 /**
  * Set up some all of the put and get operations we want
@@ -1061,6 +1265,7 @@ continue_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
   int i;
   int max;
   struct TopologyIteratorContext *topo_ctx;
+  struct FindPeerContext *find_peer_context;
   if (dhtlog_handle != NULL)
     {
       if (settle_time >= 60 * 2)
@@ -1078,7 +1283,14 @@ continue_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
       GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time), &capture_current_topology, topo_ctx);
     }
   else
-    GNUNET_SCHEDULER_add_now (sched, &setup_puts_and_gets, NULL);
+    GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time), &setup_puts_and_gets, NULL);
+
+  if (GNUNET_YES == do_find_peer)
+  {
+    find_peer_context = GNUNET_malloc(sizeof(struct FindPeerContext));
+    find_peer_context->endtime = GNUNET_TIME_relative_to_absolute(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time));
+    GNUNET_SCHEDULER_add_now(sched, &schedule_find_peer_requests, find_peer_context);
+  }
 }
 
 /**
@@ -1509,6 +1721,7 @@ run (void *cls,
     hostfile = NULL;
 
   hosts = NULL;
+  temphost = NULL;
   if (hostfile != NULL)
     {
       if (GNUNET_OK != GNUNET_DISK_file_test (hostfile))
@@ -1533,6 +1746,7 @@ run (void *cls,
                   "Could not read file %s specified for host list, ending test!", hostfile);
         GNUNET_free (hostfile);
         GNUNET_free (data);
+        GNUNET_free_non_null(trialmessage);
         return;
       }
 
@@ -1586,6 +1800,20 @@ run (void *cls,
       GNUNET_CONFIGURATION_get_value_number (cfg, "dht_testing", "num_gets",
                                              &num_gets))
     num_gets = num_peers;
+
+  if (GNUNET_OK ==
+        GNUNET_CONFIGURATION_get_value_number (cfg, "dht_testing", "find_peer_delay",
+                                               &temp_config_number))
+    find_peer_delay = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, temp_config_number);
+  else
+    find_peer_delay = DEFAULT_FIND_PEER_DELAY;
+
+  if (GNUNET_OK ==
+        GNUNET_CONFIGURATION_get_value_number (cfg, "dht_testing", "concurrent_find_peers",
+                                               &temp_config_number))
+    max_outstanding_find_peers = temp_config_number;
+  else
+    max_outstanding_find_peers = DEFAULT_MAX_OUTSTANDING_FIND_PEERS;
 
   if (GNUNET_OK ==
         GNUNET_CONFIGURATION_get_value_number (cfg, "dht_testing", "get_timeout",
@@ -1657,6 +1885,15 @@ run (void *cls,
                                                           "MALICIOUS_PUT_FREQUENCY",
                                                           &malicious_put_frequency))
     malicious_put_frequency = DEFAULT_MALICIOUS_PUT_FREQUENCY;
+
+  if (GNUNET_NO ==
+        GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht",
+                                             "find_peers"))
+    {
+      do_find_peer = GNUNET_NO;
+    }
+  else
+    do_find_peer = GNUNET_YES;
 
   topology_str = NULL;
   if ((GNUNET_YES ==
@@ -1745,7 +1982,7 @@ run (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Number of peers must be specified in section %s option %s\n", topology_str, "TESTING", "NUM_PEERS");
     }
-
+  GNUNET_assert(num_peers > 0 && num_peers < (unsigned long long)-1);
   /* Set peers_left so we know when all peers started */
   peers_left = num_peers;
 
@@ -1800,6 +2037,7 @@ run (void *cls,
                                      &topology_callback, NULL,
                                      hosts);
 
+  GNUNET_free_non_null(temphost);
 }
 
 

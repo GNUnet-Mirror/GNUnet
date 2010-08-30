@@ -61,6 +61,8 @@
 #define STAT_GET_RESPONSE_START "# DHT GET Responses Initiated"
 #define STAT_HELLOS_PROVIDED "# HELLO Messages given to transport"
 #define STAT_DISCONNECTS "# Disconnects received"
+#define STAT_DUPLICATE_UID "# Duplicate UID's encountered (bad if any!)"
+#define STAT_RECENT_SEEN "# recent requests seen again (routing loops, alternate paths)"
 
 typedef void (*GNUNET_DHT_MessageReceivedHandler) (void *cls,
                                                    const struct GNUNET_MessageHeader
