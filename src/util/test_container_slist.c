@@ -28,8 +28,7 @@
 #include "gnunet_common.h"
 #include "gnunet_container_lib.h"
 
-#define ABORT() { fprintf(stderr, "Error at %s:%d\n", __FILE__, __LINE__); return 1; }
-#define CHECK(c) { if (! (c)) ABORT(); }
+#define CHECK(c) do { if (! (c)) { fprintf(stderr, "Error at %s:%d\n", __FILE__, __LINE__); GNUNET_CONTAINER_slist_destroy (l); return 1; } } while (0)
 
 int
 main (int argc, char *argv[])

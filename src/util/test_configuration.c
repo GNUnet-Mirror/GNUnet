@@ -492,15 +492,22 @@ main (int argc, char *argv[])
       GNUNET_CONFIGURATION_destroy (cfg);
       return 1;
     }
-  if ((GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_string (cfg, "TESTING", "WEAKRANDOM",
-					      &c))
-      || (0 != strcmp (c, "YES")))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg, "TESTING", "WEAKRANDOM",
+					     &c))
     {
       GNUNET_break (0);
       GNUNET_CONFIGURATION_destroy (cfg);
       return 1;
     }
+  if (0 != strcmp (c, "YES"))
+    {
+      GNUNET_break (0);
+      GNUNET_free (c);
+      GNUNET_CONFIGURATION_destroy (cfg);
+      return 1;
+    }
+
   GNUNET_free (c);
   GNUNET_CONFIGURATION_destroy (cfg);
 
