@@ -90,6 +90,7 @@ testLocation ()
       GNUNET_CONFIGURATION_parse (cfg, "test_fs_uri_data.conf"))
     {
       fprintf (stderr, "Failed to parse configuration file\n");
+      GNUNET_FS_uri_destroy (baseURI);
       GNUNET_CONFIGURATION_destroy (cfg);
       return 1;
     }
