@@ -349,16 +349,6 @@ struct TopologyIterateContext
 struct StatsIterateContext
 {
   /**
-   * Handle to the statistics service.
-   */
-  struct GNUNET_STATISTICS_Handle *stats_handle;
-
-  /**
-   * Handle for getting statistics.
-   */
-  struct GNUNET_STATISTICS_GetHandle *stats_get_handle;
-
-  /**
    * Continuation to call once all stats information has been retrieved.
    */
   GNUNET_STATISTICS_Callback cont;
@@ -393,6 +383,21 @@ struct CoreContext
 {
   void *iter_context;
   struct GNUNET_TESTING_Daemon *daemon;
+};
+
+struct StatsCoreContext
+{
+  void *iter_context;
+  struct GNUNET_TESTING_Daemon *daemon;
+  /**
+   * Handle to the statistics service.
+   */
+  struct GNUNET_STATISTICS_Handle *stats_handle;
+
+  /**
+   * Handle for getting statistics.
+   */
+  struct GNUNET_STATISTICS_GetHandle *stats_get_handle;
 };
 
 /**
@@ -2934,7 +2939,7 @@ static int internal_stats_callback (void *cls,
                                     uint64_t value,
                                     int is_persistent)
 {
-  struct CoreContext *core_context = cls;
+  struct StatsCoreContext *core_context = cls;
   struct StatsIterateContext *stats_context = (struct StatsIterateContext *)core_context->iter_context;
 
   return stats_context->proc(stats_context->cls, &core_context->daemon->id, subsystem, name, value, is_persistent);
@@ -2949,7 +2954,7 @@ static int internal_stats_callback (void *cls,
  */
 static void internal_stats_cont (void *cls, int success)
 {
-  struct CoreContext *core_context = cls;
+  struct StatsCoreContext *core_context = cls;
   struct StatsIterateContext *stats_context = (struct StatsIterateContext *)core_context->iter_context;
 
   stats_context->connected--;
@@ -2958,10 +2963,12 @@ static void internal_stats_cont (void *cls, int success)
   if (stats_context->completed == stats_context->total)
     {
       stats_context->cont(stats_context->cls, GNUNET_YES);
-      if (stats_context->stats_handle != NULL)
-        GNUNET_STATISTICS_destroy(stats_context->stats_handle, GNUNET_NO);
       GNUNET_free(stats_context);
     }
+
+  if (core_context->stats_handle != NULL)
+    GNUNET_STATISTICS_destroy(core_context->stats_handle, GNUNET_NO);
+
   GNUNET_free(core_context);
 }
 
@@ -2972,7 +2979,7 @@ static void internal_stats_cont (void *cls, int success)
 static void
 schedule_get_statistics(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct CoreContext *core_context = cls;
+  struct StatsCoreContext *core_context = cls;
   struct StatsIterateContext *stats_context = (struct StatsIterateContext *)core_context->iter_context;
 
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
@@ -2994,16 +3001,16 @@ schedule_get_statistics(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
 #endif
 
       stats_context->connected++;
-      stats_context->stats_handle = GNUNET_STATISTICS_create(core_context->daemon->sched, "testing", core_context->daemon->cfg);
-      if (stats_context->stats_handle == NULL)
+      core_context->stats_handle = GNUNET_STATISTICS_create(core_context->daemon->sched, "testing", core_context->daemon->cfg);
+      if (core_context->stats_handle == NULL)
         {
           internal_stats_cont (core_context, GNUNET_NO);
           return;
         }
 
-      stats_context->stats_get_handle = GNUNET_STATISTICS_get(stats_context->stats_handle, NULL, NULL, GNUNET_TIME_relative_get_forever(), &internal_stats_cont, &internal_stats_callback, core_context);
-      if (stats_context->stats_get_handle == NULL)
-         internal_stats_cont (core_context, GNUNET_NO);
+      core_context->stats_get_handle = GNUNET_STATISTICS_get(core_context->stats_handle, NULL, NULL, GNUNET_TIME_relative_get_forever(), &internal_stats_cont, &internal_stats_callback, core_context);
+      if (core_context->stats_get_handle == NULL)
+        internal_stats_cont (core_context, GNUNET_NO);
 
     }
 }
