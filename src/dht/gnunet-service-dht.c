@@ -99,7 +99,7 @@
 /**
  * Default replication parameter for find peer messages sent by the dht service.
  */
-#define DHT_DEFAULT_FIND_PEER_REPLICATION 10
+#define DHT_DEFAULT_FIND_PEER_REPLICATION 1
 
 /**
  * Default options for find peer requests sent by the dht service.
@@ -469,6 +469,15 @@ struct DHTRouteSource
    * Task to remove this entry on timeout.
    */
   GNUNET_SCHEDULER_TaskIdentifier delete_task;
+
+  /**
+   * Bloomfilter of peers we have already sent back as
+   * replies to the initial request.  Allows us to not
+   * forward the same peer multiple times for a find peer
+   * request.
+   */
+  struct GNUNET_CONTAINER_BloomFilter *find_peers_responded;
+
 };
 
 /**
@@ -695,6 +704,11 @@ static struct PeerBucket k_buckets[MAX_BUCKETS]; /* From 0 to MAX_BUCKETS - 1 */
  * Hash map of all known peers, for easy removal from k_buckets on disconnect.
  */
 static struct GNUNET_CONTAINER_MultiHashMap *all_known_peers;
+
+/**
+ * Recently seen find peer requests.
+ */
+static struct GNUNET_CONTAINER_MultiHashMap *recent_find_peer_requests;
 
 /**
  * Maximum size for each bucket.
@@ -1832,6 +1846,7 @@ static int route_result_message(void *cls,
       {
         GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s Received non-HELLO message type in find peer result message!\n", my_short_id, "DHT");
         GNUNET_break_op(0);
+        return GNUNET_NO;
       }
       else /* We have a valid hello, and peer id stored in new_peer */
       {
@@ -1885,6 +1900,18 @@ static int route_result_message(void *cls,
   pos = record->head;
   while (pos != NULL)
     {
+      if (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_RESULT) /* If we have already forwarded this peer id, don't do it again! */
+        {
+          if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (pos->find_peers_responded, &new_peer.hashPubKey))
+          {
+            increment_stats("# find peer responses NOT forwarded (bloom match)");
+            pos = pos->next;
+            continue;
+          }
+          else
+            GNUNET_CONTAINER_bloomfilter_add(pos->find_peers_responded, &new_peer.hashPubKey);
+        }
+
       if (0 == memcmp(&pos->source, &my_identity, sizeof(struct GNUNET_PeerIdentity))) /* Local client (or DHT) initiated request! */
         {
 #if DEBUG_DHT
@@ -1919,7 +1946,7 @@ static int route_result_message(void *cls,
           if (message_context->bloom == NULL)
             message_context->bloom = GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
           GNUNET_CONTAINER_bloomfilter_add (message_context->bloom, &my_identity.hashPubKey);
-          if (GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (message_context->bloom, &peer_info->id.hashPubKey))
+          if ((GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (message_context->bloom, &peer_info->id.hashPubKey)))
             {
 #if DEBUG_DHT
               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2088,6 +2115,12 @@ handle_dht_get (void *cls,
   return results;
 }
 
+static void
+remove_recent_find_peer(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_HashCode *key = cls;
+  GNUNET_CONTAINER_multihashmap_remove(recent_find_peer_requests, key, key);
+}
 
 /**
  * Server handler for initiating local dht find peer requests
@@ -2099,7 +2132,7 @@ handle_dht_get (void *cls,
  */
 static void
 handle_dht_find_peer (void *cls, 
-		      const struct GNUNET_MessageHeader *find_msg,
+                      const struct GNUNET_MessageHeader *find_msg,
                       struct DHT_MessageContext *message_context)
 {
   struct GNUNET_MessageHeader *find_peer_result;
@@ -2108,6 +2141,8 @@ handle_dht_find_peer (void *cls,
   struct GNUNET_CONTAINER_BloomFilter *incoming_bloom;
   size_t hello_size;
   size_t tsize;
+  GNUNET_HashCode *recent_hash;
+
   find_peer_message = (struct GNUNET_DHT_FindPeerMessage *)find_msg;
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2134,6 +2169,16 @@ handle_dht_find_peer (void *cls,
       return; /* We match the bloomfilter, do not send a response to this peer (they likely already know us!)*/
     }
   GNUNET_CONTAINER_bloomfilter_free(incoming_bloom);
+
+  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(recent_find_peer_requests, &message_context->key)) /* We have recently responded to a find peer request for this peer! */
+  {
+    increment_stats("# dht find peer requests ignored (recently seen!)");
+    return;
+  }
+  recent_hash = GNUNET_malloc(sizeof(GNUNET_HashCode));
+  memcpy(recent_hash, &message_context->key, sizeof(GNUNET_HashCode));
+  GNUNET_CONTAINER_multihashmap_put (recent_find_peer_requests, &message_context->key, NULL, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30), &remove_recent_find_peer, &message_context->key);
 
   /* Simplistic find_peer functionality, always return our hello */
   hello_size = ntohs(my_hello->size);
@@ -2286,7 +2331,7 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
 
   /**
    * If we are behaving in strict kademlia mode, send multiple initial requests,
-   * but then only send to 1 or 0 peers.
+   * but then only send to 1 or 0 peers based strictly on the number of hops.
    */
   if (strict_kademlia == GNUNET_YES)
     {
@@ -2322,14 +2367,12 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
       return 0;
     }
   target_count = /* target_count is ALWAYS < 1 unless replication is < 1 */
-    target_replication / (target_replication * (hop_count + 1) + diameter);
-#if NONSENSE
+    (double)target_replication / ((double)target_replication * (hop_count + 1) + diameter);
+
   target_value = 0;
   while (target_value < target_count)
-    target_value++; /* target_value is ALWAYS 1 after this "loop" */
-#else
-  target_value = 1;
-#endif
+    target_value++; /* target_value is ALWAYS 1 after this "loop", right?  Because target_count is always > 0, right?  Or does it become 0.00000... at some point because the hop count is so high? */
+
   if ((target_count + 1 - target_value) >
       GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                 RAND_MAX) / RAND_MAX)
@@ -2589,6 +2632,8 @@ remove_forward_entry (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_assert(GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(forward_list.hashmap, &record->key, record));
       GNUNET_free(record);
     }
+  if (source_info->find_peers_responded != NULL)
+    GNUNET_CONTAINER_bloomfilter_free(source_info->find_peers_responded);
   GNUNET_free(source_info);
 }
 
@@ -2623,6 +2668,8 @@ static int cache_response(void *cls, struct DHT_MessageContext *msg_ctx)
           GNUNET_free(record);
         }
       GNUNET_SCHEDULER_cancel(sched, source_info->delete_task);
+      if (source_info->find_peers_responded != NULL)
+        GNUNET_CONTAINER_bloomfilter_free(source_info->find_peers_responded);
       GNUNET_free(source_info);
       current_size = GNUNET_CONTAINER_multihashmap_size(forward_list.hashmap);
     }
@@ -2653,6 +2700,7 @@ static int cache_response(void *cls, struct DHT_MessageContext *msg_ctx)
   source_info = GNUNET_malloc(sizeof(struct DHTRouteSource));
   source_info->record = record;
   source_info->delete_task = GNUNET_SCHEDULER_add_delayed(sched, DHT_FORWARD_TIMEOUT, &remove_forward_entry, source_info);
+  source_info->find_peers_responded = GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
   memcpy(&source_info->source, msg_ctx->peer, sizeof(struct GNUNET_PeerIdentity));
   GNUNET_CONTAINER_DLL_insert_after(record->head, record->tail, record->tail, source_info);
   if (msg_ctx->client != NULL) /* For local request, set timeout so high it effectively never gets pushed out */
@@ -2686,6 +2734,7 @@ static int route_message(void *cls,
                          struct DHT_MessageContext *message_context)
 {
   int i;
+  int global_closest;
   struct PeerInfo *selected;
 #if DEBUG_DHT_ROUTING > 1
   struct PeerInfo *nearest;
@@ -2693,6 +2742,7 @@ static int route_message(void *cls,
   unsigned int forward_count;
   struct RecentRequest *recent_req;
   GNUNET_HashCode unique_hash;
+  char *stat_forward_count;
 #if DEBUG_DHT_ROUTING
   int ret;
 #endif
@@ -2717,14 +2767,18 @@ static int route_message(void *cls,
   /* Semantics of this call means we find whether we are the closest peer out of those already
    * routed to on this messages path.
    */
+  global_closest = am_closest_peer(&message_context->key, NULL);
   message_context->closest = am_closest_peer(&message_context->key, message_context->bloom);
   forward_count = get_forward_count(message_context->hop_count, message_context->replication);
-  
+  GNUNET_asprintf(&stat_forward_count, "# forward counts of %d", forward_count);
+  increment_stats(stat_forward_count);
+  GNUNET_free(stat_forward_count);
   if (message_context->bloom == NULL)
     message_context->bloom = GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
 
   if ((stop_on_closest == GNUNET_YES) && (message_context->closest == GNUNET_YES) && (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DHT_PUT))
     forward_count = 0;
+
 
 #if DEBUG_DHT_ROUTING
   if (forward_count == 0)
@@ -3594,6 +3648,7 @@ run (void *cls,
   forward_list.hashmap = GNUNET_CONTAINER_multihashmap_create(MAX_OUTSTANDING_FORWARDS / 10);
   forward_list.minHeap = GNUNET_CONTAINER_heap_create(GNUNET_CONTAINER_HEAP_ORDER_MIN);
   all_known_peers = GNUNET_CONTAINER_multihashmap_create(MAX_BUCKETS / 8);
+  recent_find_peer_requests = GNUNET_CONTAINER_multihashmap_create(MAX_BUCKETS / 8);
   GNUNET_assert(all_known_peers != NULL);
   if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht_testing", "mysql_logging"))
     {

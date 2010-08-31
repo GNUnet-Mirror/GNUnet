@@ -1158,7 +1158,7 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
   get_msg.type = htons (type);
 
   get_handle->route_handle =
-    GNUNET_DHT_route_start (handle, key, 0, 0, &get_msg.header, timeout,
+    GNUNET_DHT_route_start (handle, key, DEFAULT_GET_REPLICATION, 0, &get_msg.header, timeout,
                             &get_reply_iterator, get_handle, cont, cont_cls);
 
   return get_handle;
@@ -1402,7 +1402,7 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
   put_msg->expiration = GNUNET_TIME_absolute_hton(exp);
   memcpy (&put_msg[1], data, size);
 
-  put_route = GNUNET_DHT_route_start (handle, key, 0, 0, &put_msg->header, timeout, NULL,
+  put_route = GNUNET_DHT_route_start (handle, key, DEFAULT_PUT_REPLICATION, 0, &put_msg->header, timeout, NULL,
                                       NULL, cont, cont_cls);
 
   if (put_route == NULL) /* Route start failed! */

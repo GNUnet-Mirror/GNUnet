@@ -41,6 +41,10 @@
 
 #define DHT_SEND_PRIORITY 4
 
+#define DEFAULT_GET_REPLICATION 5
+
+#define DEFAULT_PUT_REPLICATION 8
+
 #define STAT_ROUTES "# DHT ROUTE Requests Seen"
 #define STAT_ROUTE_FORWARDS "# DHT ROUTE Requests Forwarded"
 #define STAT_ROUTE_FORWARDS_CLOSEST "# DHT ROUTE Requests Forwarded to Closest Known Peer"

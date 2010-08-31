@@ -1911,7 +1911,7 @@ run (void *cls,
       max_outstanding_find_peers = DEFAULT_MAX_OUTSTANDING_FIND_PEERS;
 
   if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht", "strict_kademlia"))
-    max_outstanding_find_peers = max_outstanding_find_peers * 3;
+    max_outstanding_find_peers = max_outstanding_find_peers * 1;
 
   find_peer_offset = GNUNET_TIME_relative_divide (find_peer_delay, max_outstanding_find_peers);
 
