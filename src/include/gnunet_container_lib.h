@@ -172,6 +172,21 @@ int GNUNET_CONTAINER_bloomfilter_or (struct GNUNET_CONTAINER_BloomFilter *bf,
                                      const char *data, size_t size);
 
 /**
+ * Or the entries of the given raw data array with the
+ * data of the given bloom filter.  Assumes that
+ * the size of the data array and the current filter
+ * match.
+ *
+ * @param bf the filter
+ * @param to_or the bloomfilter to or-in
+ * @param size number of bytes in data
+ */
+int
+GNUNET_CONTAINER_bloomfilter_or2 (struct GNUNET_CONTAINER_BloomFilter *bf,
+                                  const struct GNUNET_CONTAINER_BloomFilter *to_or,
+                                  size_t size);
+
+/**
  * Resize a bloom filter.  Note that this operation
  * is pretty costly.  Essentially, the bloom filter
  * needs to be completely re-build.
@@ -498,7 +513,7 @@ enum GNUNET_CONTAINER_MultiHashMapOption
  *         GNUNET_NO if not.
  */
 typedef int (*GNUNET_CONTAINER_HashMapIterator) (void *cls,
-						 const GNUNET_HashCode * key,
+                                                 const GNUNET_HashCode * key,
                                                  void *value);
 
 
