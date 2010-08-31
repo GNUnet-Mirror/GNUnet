@@ -71,7 +71,8 @@ if !DISABLE_TEST_RUN
 endif
 
 check_SCRIPTS = \
-  test_gnunet_monkey.sh
+  test_gnunet_monkey.sh 
+#  test_monkey_npe.sh
 
 EXTRA_DIST = \
   test_gnunet_monkey_data.conf \
