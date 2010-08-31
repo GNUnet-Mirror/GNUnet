@@ -24,7 +24,7 @@
  *        are reported, fine grained results (if requested) are
  *        logged to a (mysql) database, or to file.
  *
- * FIXME: Do churn, enable malicious peers!
+ * FIXME: Do churn!
  */
 #include "platform.h"
 #include "gnunet_testing_lib.h"
@@ -65,7 +65,7 @@
 
 #define DEFAULT_MAX_OUTSTANDING_FIND_PEERS 10
 
-#define DEFAULT_FIND_PEER_OFFSET GNUNET_TIME_relative_divide (DEFAULT_SECONDS_PER_PEER_START, DEFAULT_MAX_OUTSTANDING_FIND_PEERS)
+#define DEFAULT_FIND_PEER_OFFSET GNUNET_TIME_relative_divide (DEFAULT_FIND_PEER_DELAY, DEFAULT_MAX_OUTSTANDING_FIND_PEERS)
 
 #define DEFAULT_MAX_OUTSTANDING_GETS 10
 
@@ -268,6 +268,8 @@ static struct GNUNET_TIME_Relative get_delay;
 static struct GNUNET_TIME_Relative put_delay;
 
 static struct GNUNET_TIME_Relative find_peer_delay;
+
+static struct GNUNET_TIME_Relative find_peer_offset;
 
 static struct GNUNET_TIME_Relative seconds_per_peer_start;
 
@@ -1107,7 +1109,6 @@ void count_peers_cb (void *cls,
           (find_peer_context->current_peers < connection_estimate(num_peers, DEFAULT_BUCKET_SIZE)) &&
           (GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime).value > 0))
         {
-          fprintf(stderr, "Scheduling another round of find peer requests.\n");
           GNUNET_SCHEDULER_add_now(sched, schedule_find_peer_requests, find_peer_context);
         }
       else
@@ -1138,7 +1139,6 @@ decrement_find_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   GNUNET_assert(test_find_peer->find_peer_context->outstanding > 0);
   test_find_peer->find_peer_context->outstanding--;
   test_find_peer->find_peer_context->total--;
-  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%d find_peers remaining\n", test_find_peer->find_peer_context->total);
   if ((0 == test_find_peer->find_peer_context->total) &&
       (GNUNET_TIME_absolute_get_remaining(test_find_peer->find_peer_context->endtime).value > 0))
   {
@@ -1183,7 +1183,6 @@ send_find_peer_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
 
   test_find_peer->dht_handle = GNUNET_DHT_connect(sched, test_find_peer->daemon->cfg, 1);
   GNUNET_assert(test_find_peer->dht_handle != NULL);
-  fprintf(stderr, "calling GNUNET_DHT_find_peers\n");
   GNUNET_DHT_find_peers (test_find_peer->dht_handle,
                          &handle_find_peer_sent, test_find_peer);
 }
@@ -1896,6 +1895,25 @@ run (void *cls,
     }
   else
     do_find_peer = GNUNET_YES;
+
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_number (cfg, "DHT_TESTING",
+                                                          "FIND_PEER_DELAY",
+                                                          &temp_config_number))
+    {
+      find_peer_delay = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, temp_config_number);
+    }
+  else
+    find_peer_delay = DEFAULT_FIND_PEER_DELAY;
+
+  if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_number (cfg, "DHT_TESTING",
+                                                            "OUTSTANDING_FIND_PEERS",
+                                                            &max_outstanding_find_peers))
+      max_outstanding_find_peers = DEFAULT_MAX_OUTSTANDING_FIND_PEERS;
+
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht", "strict_kademlia"))
+    max_outstanding_find_peers = max_outstanding_find_peers * 3;
+
+  find_peer_offset = GNUNET_TIME_relative_divide (find_peer_delay, max_outstanding_find_peers);
 
   topology_str = NULL;
   if ((GNUNET_YES ==
