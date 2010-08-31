@@ -16,7 +16,8 @@
 #include "platform.h"
 #include "gnunet_common.h"
 
-extern void sendMail(const char *messageContents);
+
+extern void sendMail (const char *messageContents);
 
 void cb_console(const char *str, void *data)
 {

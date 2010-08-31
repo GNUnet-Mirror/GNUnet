@@ -40,7 +40,12 @@
 - Works with JavaCC 4.0
 - Preprocessor directives are now simply SKIP'd, so no need to run C files through GCC first
 
-  */
+31/8/10: Modified heavily by Christian Grothoff
+- No more tracking of type names (so we can run without preprocessing)
+- Support certain gcc-isms (unsigned long long, 33LL, etc.)
+- No support for certain older C constructs
+- Support for magic "GNUNET_PACKED" construct (extra "IDENTIFIER" in struct)
+*/
 
 PARSER_BEGIN(CParser)
 
@@ -51,7 +56,6 @@ import java.util.*;
     // Run the parser
     public static void main ( String args [ ] ) {
       CParser parser ;
-
 
       if(args.length == 0){
         System.out.println("C Parser Version 0.1Alpha:  Reading from standard input . . .");
@@ -113,14 +117,14 @@ SKIP : {
 
 
 TOKEN : {
- <INTEGER_LITERAL: <DECIMAL_LITERAL> (["l","L"])? | <HEX_LITERAL> (["l","L"])? | <OCTAL_LITERAL> (["l","L"])?>
-|  <#DECIMAL_LITERAL: ["1"-"9"] (["0"-"9"])*>
+ <INTEGER_LITERAL: <DECIMAL_LITERAL> (["l","L"])? (["l","L"])? | <HEX_LITERAL> (["l","L"])? (["l","L"])? | <OCTAL_LITERAL> (["l","L"])? (["l","L"])?>
+|  <#DECIMAL_LITERAL: ["1"-"9"] (["0"-"9"])* >
 |  <#HEX_LITERAL: "0" ["x","X"] (["0"-"9","a"-"f","A"-"F"])+>
 |  <#OCTAL_LITERAL: "0" (["0"-"7"])*>
 |  <FLOATING_POINT_LITERAL: (["0"-"9"])+ "." (["0"-"9"])* (<EXPONENT>)? (["f","F","d","D"])? | "." (["0"-"9"])+ (<EXPONENT>)? (["f","F","d","D"])? | (["0"-"9"])+ <EXPONENT> (["f","F","d","D"])? | (["0"-"9"])+ (<EXPONENT>)? ["f","F","d","D"]>
 |  <#EXPONENT: ["e","E"] (["+","-"])? (["0"-"9"])+>
 |  <CHARACTER_LITERAL: "\'" (~["\'","\\","\n","\r"] | "\\" (["n","t","b","r","f","\\","\'","\""] | ["0"-"7"] (["0"-"7"])? | ["0"-"3"] ["0"-"7"] ["0"-"7"])) "\'">
-|  <STRING_LITERAL: "\"" ( ~["\"","\\","\n","\r"] | "\\" ( ["n","t","b","r","f","\\","\'","\""] | ["0"-"7"] (["0"-"7"])?  | ["0"-"3"] ["0"-"7"] ["0"-"7"] | ( ["\n","\r"] | "\r\n")))* "\"">
+|  <STRING_LITERAL: "\"" ( ~["\"","\\","\n","\r"] | "\\" ( ["n","t","b","r","f","\\","\'","\""] | ["0"-"7"] (["0"-"7"])?  | ["0"-"3"] ["0"-"7"] ["0"-"7"] | ( ["\n","\r"] | "\r\n")))* "\"" ( ( ["\r","\n"," "] )* "\"" ( ~["\"","\\","\n","\r"] | "\\" ( ["n","t","b","r","f","\\","\'","\""] | ["0"-"7"] (["0"-"7"])?  | ["0"-"3"] ["0"-"7"] ["0"-"7"] | ( ["\n","\r"] | "\r\n")))* "\"" )* >
 }
 
 TOKEN : {
@@ -171,56 +175,121 @@ void TranslationUnit() : {}
 
 void ExternalDeclaration() : {}
 {
-	( LOOKAHEAD( FunctionDefinition() ) FunctionDefinition() | Declaration())
+	(StorageClassSpecifier())*
+	(
+            LOOKAHEAD (FunctionDeclaration()) FunctionDeclaration() | 
+	    LOOKAHEAD (StructOrUnionSpecifier()) StructOrUnionSpecifier() |
+	    LOOKAHEAD (VariableDeclaration()) VariableDeclaration() |
+  	    LOOKAHEAD (TypeDeclaration()) TypeDeclaration () 
+        ) 
 }
 
-void FunctionDefinition() : {}
+void FunctionDeclaration() : {}
 {
-	[LOOKAHEAD(DeclarationSpecifiers()) DeclarationSpecifiers()] Declarator() [ DeclarationList() ]
-	CompoundStatement()
-}
-
-void Declaration() : {}
-{
-	DeclarationSpecifiers() [ InitDeclaratorList() ] ";"
-}
-
-void DeclarationList() : {}
-{
-	( LOOKAHEAD(Declaration()) Declaration() )+
-}
-
-void DeclarationSpecifiers() : {}
-{
-	  StorageClassSpecifier() [ LOOKAHEAD(DeclarationSpecifiers())
-	        DeclarationSpecifiers() ] |
-	  TypeSpecifier()  [ LOOKAHEAD(DeclarationSpecifiers())
-	        DeclarationSpecifiers() ] |
-	  TypeQualifier() [ LOOKAHEAD(DeclarationSpecifiers())
-	        DeclarationSpecifiers() ]
+        TypeSpecifier () 
+        <IDENTIFIER>
+        "(" [ ParameterList () ] ")"
+        ( ";" | CompoundStatement() )
 }
 
 void StorageClassSpecifier() : {}
 {
-	( <AUTO> | <REGISTER> | <STATIC> | <EXTERN> | <TYPEDEF>
-	 )
+	( <STATIC> | <EXTERN> )
+}
+
+void TypeDeclaration() : {}
+{
+        <TYPEDEF> 
+        ( LOOKAHEAD (DataType() ";") DataType () | FunctionType() ) ";"
+}
+
+void DataType() : {}
+{
+        StructOrUnionSpecifier () <IDENTIFIER>
+}
+
+void FunctionType() : {}
+{
+        TypeSpecifier () "(" "*" <IDENTIFIER> ")" "(" [ ParameterList() ] ")"
+}
+
+void ParameterList() : {}
+{
+	ParameterDeclaration() ( LOOKAHEAD (2) "," ParameterDeclaration() )* [ "," "..." ]
+}
+
+void ParameterDeclaration() : {}
+{
+	TypeSpecifier() <IDENTIFIER> [ Array () ]
+}
+
+void VariableDeclaration() : {}
+{
+	VariableClassSpecifier () 
+        TypeSpecifier () 
+        InitDeclaratorList() ";"
+}
+
+void LocalVariableDeclaration() : {}
+{
+	[ <STATIC> ] VariableDeclaration () 
+}
+
+void VariableClassSpecifier() : {}
+{
+	( <AUTO> | <REGISTER> )*
 }
 
 void TypeSpecifier() : {}
 {
-	( <VOID> | <CHAR> | <SHORT> | <INT> | <LONG> | <FLOAT> | <DOUBLE> | <SIGNED> |
-	  <UNSIGNED> | StructOrUnionSpecifier() | EnumSpecifier() | TypedefName() )
+	[ <CONST> ]
+	( <VOID> 
+          | <CHAR> 
+          | <SHORT> [ <INT> ]
+          | <INT> 
+          | <LONG> [ <LONG> ]  
+          | <FLOAT> | <DOUBLE> 
+          | (<SIGNED> | <UNSIGNED>) [ <CHAR> 
+                                    | <SHORT> [ <INT> ]
+                                    | <INT> 
+                                    | <LONG> [ <LONG> ] ]
+          | StructOrUnionSpecifier() 
+          | EnumSpecifier() 
+          | <IDENTIFIER> 
+        )
+        [ Pointer () ]
+        [ Array () ]
 }
 
-void TypeQualifier() : {}
+/* this is needed for 'va_arg' where a type is an argument
+   -- and we cannot disambiguate the use of 'FOO' 
+   after a 'typedef int FOO' from the variable 'FOO'; 
+   hence this hack */
+void NoIdentifierTypeSpecifier() : {}
 {
-	( <CONST> | <VOLATILE> )
+	[ <CONST> ]
+	( <VOID> 
+          | <CHAR> 
+          | <SHORT> [ <INT> ]
+          | <INT> 
+          | <LONG> [ <LONG> ]  
+          | <FLOAT> | <DOUBLE> 
+          | (<SIGNED> | <UNSIGNED>) [ <CHAR> 
+                                    | <SHORT> [ <INT> ]
+                                    | <INT> 
+                                    | <LONG> [ <LONG> ] ]
+          | StructOrUnionSpecifier() 
+          | EnumSpecifier() 
+        )
+        [ Pointer () ]
+        [ Array () ]
 }
 
 void StructOrUnionSpecifier() : {}
 {
-	StructOrUnion() ( LOOKAHEAD(3) [ <IDENTIFIER> ] "{" StructDeclarationList() "}" | <IDENTIFIER> )
-
+        LOOKAHEAD (3)
+	StructOrUnion() [ <IDENTIFIER> ] "{" StructDeclarationList() "}" |
+	StructOrUnion() <IDENTIFIER> 
 }
 
 void StructOrUnion() : {}
@@ -240,30 +309,12 @@ void InitDeclaratorList() : {}
 
 void InitDeclarator() : {}
 {
-	Declarator() [ "=" Initializer() ]
+	<IDENTIFIER> [ Array () ] [ "=" Initializer() ]
 }
 
 void StructDeclaration() : {}
 {
-	SpecifierQualifierList() StructDeclaratorList() ";"
-}
-
-void SpecifierQualifierList() : {}
-{
-	  TypeSpecifier() [ LOOKAHEAD(SpecifierQualifierList())
-	        SpecifierQualifierList() ]|
-	  TypeQualifier() [ LOOKAHEAD(SpecifierQualifierList())
-	        SpecifierQualifierList() ]
-}
-
-void StructDeclaratorList() : {}
-{
-	StructDeclarator() ( "," StructDeclarator() )*
-}
-
-void StructDeclarator() : {}
-{
-	( LOOKAHEAD(3) Declarator() | [ Declarator() ] ":" ConstantExpression() )
+	TypeSpecifier() <IDENTIFIER> [ Array() | ":" ConstantExpression() ] [ <IDENTIFIER> ] ";"
 }
 
 void EnumSpecifier() : {}
@@ -281,44 +332,9 @@ void Enumerator() : {}
 	<IDENTIFIER> [ "=" ConstantExpression() ]
 }
 
-void Declarator() : {}
-{
-	[ Pointer() ] DirectDeclarator()
-}
-
-void DirectDeclarator() : {}
-{
-	( <IDENTIFIER>
-	 | "(" Declarator() ")" )
-  
-	( "[" [ ConstantExpression() ] "]" |
-	    LOOKAHEAD(3) "(" ParameterTypeList() ")" |
-	    "(" [ IdentifierList() ] ")" )*
-}
-
 void Pointer() : {}
 {
-	"*" [ TypeQualifierList() ] [ Pointer() ]
-}
-
-void TypeQualifierList() : {}
-{
-	(TypeQualifier())+
-}
-
-void ParameterTypeList() : {}
-{
-	ParameterList() ["," "..." ]
-}
-
-void ParameterList() : {}
-{
-	ParameterDeclaration() (LOOKAHEAD(2) "," ParameterDeclaration())*
-}
-
-void ParameterDeclaration() : {}
-{
-	DeclarationSpecifiers() ( LOOKAHEAD(Declarator()) Declarator() | [ AbstractDeclarator() ] )
+	"*" [ <CONST> ] [ Pointer() ]
 }
 
 void IdentifierList() : {}
@@ -337,30 +353,10 @@ void InitializerList() : {}
 	Initializer() (LOOKAHEAD(2) "," Initializer())*
 }
 
-void TypeName() : {}
+
+void Array() : {}
 {
-	SpecifierQualifierList() [ AbstractDeclarator() ]
-
-}
-
-void AbstractDeclarator() : {}
-{
-	( LOOKAHEAD(3) Pointer() |
-	  [Pointer()] DirectAbstractDeclarator() )
-}
-
-void DirectAbstractDeclarator() : {}
-{
-	( LOOKAHEAD(2) "(" AbstractDeclarator() ")" |
-	               "[" [ConstantExpression()] "]" |
-	               "(" [ParameterTypeList()] ")" )
-
-	  ( "[" [ ConstantExpression() ] "]" | "(" [ ParameterTypeList() ] ")" )*
-}
-
-void TypedefName() : {}
-{
-	<IDENTIFIER>
+   "[" [ConstantExpression()] "]" 
 }
 
 void Statement() : {}
@@ -387,14 +383,9 @@ void ExpressionStatement() : {}
 
 void CompoundStatement() : {}
 {
-	"{" [ LOOKAHEAD(DeclarationList()) DeclarationList() ]
-	    [ StatementList() ]
+	"{"   ( LOOKAHEAD (LocalVariableDeclaration()) LocalVariableDeclaration () |
+	        Statement() )*
 	"}"
-}
-
-void StatementList() : {}
-{
-	(Statement())+
 }
 
 void SelectionStatement() : {}
@@ -420,7 +411,7 @@ void JumpStatement() : {}
 
 void Expression() : {}
 {
-	AssignmentExpression() ( "," AssignmentExpression() )*
+	 AssignmentExpression() ( "," AssignmentExpression() )*
 }
 
 void AssignmentExpression() : {}
@@ -496,7 +487,7 @@ void MultiplicativeExpression() : {}
 
 void CastExpression() : {}
 {
-	( LOOKAHEAD("(" TypeName() ")" CastExpression() ) "(" TypeName() ")" CastExpression() |
+	( LOOKAHEAD("(" TypeSpecifier() ")" CastExpression() ) "(" TypeSpecifier() ")" CastExpression() |
 	  UnaryExpression() )
 }
 
@@ -506,7 +497,7 @@ void UnaryExpression() : {}
 	  "++" UnaryExpression() |
 	  "--" UnaryExpression() |
 	  UnaryOperator() CastExpression() |
-	  <SIZEOF> ( LOOKAHEAD(UnaryExpression() ) UnaryExpression() | "(" TypeName() ")" ) )
+	  <SIZEOF> ( LOOKAHEAD(UnaryExpression() ) UnaryExpression() | "(" TypeSpecifier() ")" ) )
 }
 
 void UnaryOperator() : {}
@@ -526,14 +517,21 @@ void PostfixExpression() : {}
 
 void PrimaryExpression() : {}
 {
-	( <IDENTIFIER> |
+	 <IDENTIFIER> |
 	  Constant() |
-	  "(" Expression() ")" )
+	  "(" Expression() ")" 
 }
 
 void ArgumentExpressionList() : {}
 {
-	AssignmentExpression() ( "," AssignmentExpression() )*
+	AssignmentOrTypeExpression() ( "," AssignmentOrTypeExpression() )*
+}
+
+
+void AssignmentOrTypeExpression() : {}
+{
+	NoIdentifierTypeSpecifier() |
+	AssignmentExpression() 
 }
 
 void Constant() : {}
