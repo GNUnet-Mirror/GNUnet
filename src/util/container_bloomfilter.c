@@ -658,6 +658,41 @@ GNUNET_CONTAINER_bloomfilter_or (struct GNUNET_CONTAINER_BloomFilter *bf,
 }
 
 /**
+ * Or the entries of the given raw data array with the
+ * data of the given bloom filter.  Assumes that
+ * the size of the data array and the current filter
+ * match.
+ *
+ * @param bf the filter
+ * @param to_or the bloomfilter to or-in
+ * @param size number of bytes in data
+ */
+int
+GNUNET_CONTAINER_bloomfilter_or2 (struct GNUNET_CONTAINER_BloomFilter *bf,
+                                  const struct GNUNET_CONTAINER_BloomFilter *to_or,
+                                  size_t size)
+{
+  unsigned int i;
+  unsigned int n;
+  unsigned long long* fc;
+  const unsigned long long* dc;
+
+  if (NULL == bf)
+    return GNUNET_YES;
+  if (bf->bitArraySize != size)
+    return GNUNET_SYSERR;
+  fc = (unsigned long long*) bf->bitArray;
+  dc = (const unsigned long long*) to_or->bitArray;
+  n = size / sizeof (unsigned long long);
+
+  for (i = 0; i < n; i++)
+    fc[i] |= dc[i];
+  for (i = n * sizeof(unsigned long long); i < size; i++)
+    bf->bitArray[i] |= to_or->bitArray[i];
+  return GNUNET_OK;
+}
+
+/**
  * Remove an element from the filter.
  *
  * @param bf the filter
