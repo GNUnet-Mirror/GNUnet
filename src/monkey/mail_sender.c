@@ -145,18 +145,17 @@ print_recipient_status (smtp_recipient_t recipient,
 }
 
 
-void sendMail() 
+void sendMail(const char *messageContents) 
 {
 	smtp_session_t session;
 	smtp_message_t message;
 	smtp_recipient_t recipient;
-	// auth_context_t authctx;
 	const smtp_status_t *status;
 	struct sigaction sa;
 	char *host = "localhost:25";
 	char *from = "gnunet-monkey";
 	char *subject = "e-mail from Libesmtp!";
-	const char *recipient_address = "halims@in.tum.de";
+	const char *recipient_address = "safey.allah@gmail.com";
 	char tempFileName[1000];
 	int tempFd;
 	FILE *fp;
@@ -193,7 +192,7 @@ void sendMail()
 	sprintf(tempFileName, "/tmp/messageXXXXXX");
 	tempFd = mkstemp(tempFileName);
 	fp = fdopen(tempFd, "w");
-	fprintf(fp, "Hello! This is a test message!\r\n");
+	fprintf(fp, messageContents);
 	fclose(fp);	
 	fp = fopen(tempFileName, "r");
 	smtp_set_message_fp(message, fp);
@@ -222,14 +221,7 @@ void sendMail()
 	/* Free resources consumed by the program.
 	 */
 	smtp_destroy_session(session);
-	// auth_destroy_context(authctx);
 	fclose(fp);
 	auth_client_exit();
-	exit(0);
 }
 
-int main()
-{
-	sendMail();
-	return 0;
-}

@@ -16,8 +16,7 @@ if HAVE_OPENSSL
 
 bin_PROGRAMS = \
  gnunet-monkey \
- gnunet-service-monkey \
- mail_sender
+ gnunet-service-monkey 
 
 noinst_PROGRAMS = \
  bug_null_pointer_exception 
@@ -39,10 +38,12 @@ gnunet_monkey_SOURCES = \
  gdbmi_target_man.c \
  gdbmi_thread.c \
  gdbmi_var_obj.c \
- gnunet-monkey.c
+ gnunet-monkey.c \
+ mail_sender.c
 
 gnunet_monkey_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  -lesmtp \
   $(GN_LIBINTL)
 
 
@@ -53,23 +54,27 @@ gnunet_service_monkey_LDADD = \
   $(GN_LIBINTL)
 
 
-mail_sender_SOURCES = \
-	mail_sender.c
-mail_sender_LDADD = \
-	$(top_builddir)/src/util/libgnunetutil.la \
-        -lesmtp \
-	$(GN_LIBINTL)
-
 bug_null_pointer_exception_SOURCES = \
 	bug_null_pointer_exception.c
 bug_null_pointer_exception_LDADD = \
 	$(top_builddir)/src/util/libgnunetutil.la \
 	$(GN_LIBINTL)
+	
+check_PROGRAMS = \
+    bug_null_pointer_exception \
+    test_gnunet_monkey	
 
 if !DISABLE_TEST_RUN
-#TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
+# TESTS = $(check_SCRIPTS)
 endif
 
+test_gnunet_monkey_SOURCES = \
+ test_gnunet_monkey.c
+test_gnunet_monkey_LDADD = \
+  $(top_builddir)/src/arm/libgnunetarm.la \
+  $(top_builddir)/src/util/libgnunetutil.la  
+  
+  
 check_SCRIPTS = \
   test_gnunet_monkey.sh 
 #  test_monkey_npe.sh

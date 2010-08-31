@@ -13,6 +13,10 @@
 #include <unistd.h> //usleep
 #include <libesmtp.h>
 #include "gdbmi.h"
+#include "platform.h"
+#include "gnunet_common.h"
+
+extern void sendMail(const char *messageContents);
 
 void cb_console(const char *str, void *data)
 {
@@ -48,6 +52,16 @@ void cb_async(mi_output *o, void *data)
  async_c++;
 }
 
+
+void send_bug_mail(mi_stop* sr, mi_frames* f)
+{
+	char *message;
+	asprintf(&message, "Bug detected in file:%s\nfunction:%s\nline:%d\nreason:%s\nreceived signal:%s\n%s\n",
+		f->file, f->func, f->line, mi_reason_enum_to_str(sr->reason), sr->signal_name, sr->signal_meaning);
+	sendMail(message);
+}
+
+
 int wait_for_stop(mi_h *h)
 {
  int res=1;
@@ -60,13 +74,10 @@ int wait_for_stop(mi_h *h)
  sr=mi_res_stop(h);
  if (sr)
    {
-    printf("Stopped, reason: %s\n",mi_reason_enum_to_str(sr->reason));
-    printf("Received signal name: %s\n", sr->signal_name);
-    printf("Received signal meaning: %s\n", sr->signal_meaning);
-    //printf("In file: %s\n", sr->frame->file);
-    //printf("Line Number: %d\n", sr->frame->line);
     f = gmi_stack_info_frame(h);
+    send_bug_mail(sr, f);
     mi_free_stop(sr);
+    res = 0;
    }
  else
    {
@@ -80,6 +91,10 @@ int wait_for_stop(mi_h *h)
 int main(int argc, char *argv[])
 {
  mi_aux_term *xterm_tty=NULL;
+ const char* binaryName;
+ 
+ binaryName = argv[1];
+ GNUNET_assert(NULL != binaryName);
  
  /* This is like a file-handle for fopen.
     Here we have all the state of gdb "connection". */
@@ -103,7 +118,7 @@ int main(int argc, char *argv[])
  mi_set_from_gdb_cb(h,cb_from,NULL);
 
  /* Set the name of the child and the command line aguments. */
- if (!gmi_set_exec(h,"bug_null_pointer_exception", NULL))
+ if (!gmi_set_exec(h, binaryName, NULL))
    {
     printf("Error setting exec y args\n");
     mi_disconnect(h);
