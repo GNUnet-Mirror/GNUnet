@@ -254,7 +254,7 @@ run(void *cls, struct GNUNET_SCHEDULER_Handle *sched, char * const *args,
    * DNS rootserver to test: a.root-servers.net - 198.41.0.4
    */
 
-  char const * rootserver_name = ROOTSERVER_NAME;
+  const char * rootserver_name = ROOTSERVER_NAME;
   struct hostent *rootserver;
 
   rootserver = gethostbyname(rootserver_name);

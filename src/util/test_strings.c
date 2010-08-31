@@ -37,6 +37,7 @@ check ()
   char *r;
   char *b;
   struct GNUNET_TIME_Absolute at;
+  const char *hdir;
 
   sprintf (buf, "4 %s", _( /* size unit */ "b"));
   b = GNUNET_STRINGS_byte_size_fancy (4);
@@ -65,16 +66,15 @@ check ()
                                             (GNUNET_TIME_UNIT_MILLISECONDS,
                                              7 * 60 * 60 * 1000));
   WANT (buf, b);
+#ifndef MINGW
+  hdir = getenv ("HOME");
+#else
+  hdir = getenv ("USERPROFILE");
+#endif
   GNUNET_snprintf (buf, 
 		   sizeof (buf),
 		   "%s%s",
-		   getenv (
-#ifndef MINGW
-			   "HOME"
-#else
-			   "USERPROFILE"
-#endif
-			   ),
+		   hdir,
 		   DIR_SEPARATOR_STR);
   b = GNUNET_STRINGS_filename_expand ("~");
   WANT (buf, b);
