@@ -203,6 +203,8 @@ add_topology (int num_connections)
     return GNUNET_SYSERR;
   ret = fprintf(outfile, "execute insert_topology using "
                          "@date, @num;\n");
+  if (ret < 0)
+    return GNUNET_SYSERR;
 
   ret = fprintf(outfile, "execute select_topology;\n");
 
@@ -324,7 +326,8 @@ int add_trial (unsigned long long *trialuid, unsigned int num_nodes, unsigned in
                          "@m_gets, @m_puts, @m_drops,"
                          "@m_g_f, @m_p_f, @s_c, @s_f,"
                          "@s_k, @g_s, @message;\n");
-
+  if (ret < 0)
+    return GNUNET_SYSERR;
   ret = fprintf(outfile, "execute select_trial;\n");
 
   if (ret >= 0)
@@ -357,6 +360,9 @@ add_generic_stat (const struct GNUNET_PeerIdentity *peer,
   else
     ret = fprintf(outfile, "set @temp_node = 0;\n");
 
+  if (ret < 0)
+    return GNUNET_SYSERR;
+
   ret = fprintf(outfile, "set @temp_section = \"%s\", @temp_stat = \"%s\", @temp_value = %llu;\n",
                          section, name, (unsigned long long)value);
 
@@ -365,6 +371,8 @@ add_generic_stat (const struct GNUNET_PeerIdentity *peer,
 
   ret = fprintf(outfile, "execute insert_generic_stat;\n");
 
+  if (ret < 0)
+    return GNUNET_SYSERR;
   return GNUNET_OK;
 }
 
@@ -411,6 +419,8 @@ add_stat (const struct GNUNET_PeerIdentity *peer, unsigned int route_requests,
     ret = fprintf(outfile, "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_node;\n", GNUNET_h2s_full(&peer->hashPubKey));
   else
     ret = fprintf(outfile, "set @temp_node = 0;\n");
+  if (ret < 0)
+    return GNUNET_SYSERR;
 
   ret = fprintf(outfile, "set @r_r = %u, @r_f = %u, @res_r = %u, @c_r = %u, "
                          "@res_f = %u, @gets = %u, @puts = %u, @d_i = %u, "
@@ -431,7 +441,8 @@ add_stat (const struct GNUNET_PeerIdentity *peer, unsigned int route_requests,
                          "@res_f, @gets, @puts, @d_i, "
                          "@f_p_r, @f_p_s, @g_s, @p_s, "
                          "@f_p_r_r, @g_r_r, @f_p_r_s, @g_r_s;\n");
-
+  if (ret < 0)
+    return GNUNET_SYSERR;
   return GNUNET_OK;
 }
 /*
@@ -663,10 +674,16 @@ add_query (unsigned long long *sqlqueryuid, unsigned long long queryid,
   else
     ret = fprintf(outfile, "set @temp_dhtkey = 0;\n");
 
+  if (ret < 0)
+    return GNUNET_SYSERR;
+
   if (node != NULL)
     ret = fprintf(outfile, "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_node;\n", GNUNET_h2s_full(&node->hashPubKey));
   else
     ret = fprintf(outfile, "set @temp_node = 0;\n");
+
+  if (ret < 0)
+    return GNUNET_SYSERR;
 
   ret = fprintf(outfile, "set @qid = %llu, @type = %u, @hops = %u, @succ = %d;\n", queryid, type, hops, succeeded);
 
@@ -716,20 +733,32 @@ add_route (unsigned long long *sqlqueryuid, unsigned long long queryid,
   else
     ret = fprintf(outfile, "set @temp_dhtkey = 0;\n");
 
+  if (ret < 0)
+    return GNUNET_SYSERR;
+
   if (node != NULL)
     ret = fprintf(outfile, "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_node;\n", GNUNET_h2s_full(&node->hashPubKey));
   else
     ret = fprintf(outfile, "set @temp_node = 0;\n");
+
+  if (ret < 0)
+    return GNUNET_SYSERR;
 
   if (from_node != NULL)
     ret = fprintf(outfile, "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_from_node;\n", GNUNET_h2s_full(&from_node->hashPubKey));
   else
     ret = fprintf(outfile, "set @temp_from_node = 0;\n");
 
+  if (ret < 0)
+    return GNUNET_SYSERR;
+
   if (to_node != NULL)
     ret = fprintf(outfile, "select nodeuid from nodes where trialuid = @temp_trial and nodeid = \"%s\" into @temp_to_node;\n", GNUNET_h2s_full(&to_node->hashPubKey));
   else
     ret = fprintf(outfile, "set @temp_to_node = 0;\n");
+
+  if (ret < 0)
+    return GNUNET_SYSERR;
 
   ret = fprintf(outfile, "set @qid = %llu, @type = %u, @hops = %u, @succ = %d;\n", queryid, type, hops, succeeded);
 
@@ -779,6 +808,14 @@ libgnunet_plugin_dhtlog_mysql_dump_init (void * cls)
                    getpid());
 
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
+
+  if (fn == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to get full path for `%s'\n"), outfile_name);
+      GNUNET_free(outfile_path);
+      GNUNET_free(outfile_name);
+      return NULL;
+    }
 
   dirwarn = (GNUNET_OK !=  GNUNET_DISK_directory_create_for_file (fn));
   outfile = FOPEN (fn, "w");

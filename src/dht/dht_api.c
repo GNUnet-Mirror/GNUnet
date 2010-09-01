@@ -1087,7 +1087,7 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
   message->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE);
   memcpy (&message->key, key, sizeof (GNUNET_HashCode));
   message->options = htonl (options);
-  message->desired_replication_level = htonl (options);
+  message->desired_replication_level = htonl (desired_replication_level);
   message->unique_id = GNUNET_htonll (route_handle->uid);
   memcpy (&message[1], enc, ntohs (enc->size));
   pending = GNUNET_malloc (sizeof (struct PendingMessage));

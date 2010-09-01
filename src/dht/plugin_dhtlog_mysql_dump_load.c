@@ -101,6 +101,8 @@ add_topology (int num_connections)
     return GNUNET_SYSERR;
 
   ret = fprintf(outfile, "insert into topology (trialuid, date, connections) values (@temp_trial, \"%s\", %d);\n", get_sql_time(), num_connections);
+  if (ret < 0)
+    return GNUNET_SYSERR;
   ret = fprintf(outfile, "select max(topology_uid) from topology into @temp_topology;\n");
   if (ret >= 0)
     return GNUNET_OK;
@@ -123,6 +125,8 @@ add_extended_topology (const struct GNUNET_PeerIdentity *first, const struct GNU
     return GNUNET_SYSERR;
 
   ret = fprintf(extended_topology_outfile, "insert into extended_topology (topology_uid, uid_first, uid_second) values (%u, %s,", topology_count, GNUNET_h2s_full(&first->hashPubKey));
+  if (ret < 0)
+    return GNUNET_SYSERR;
   ret = fprintf(extended_topology_outfile, "%s);\n", GNUNET_h2s_full(&second->hashPubKey));
 
   if (ret >= 0)
@@ -197,11 +201,15 @@ int add_trial (unsigned long long *trialuid, unsigned int num_nodes, unsigned in
                            malicious_droppers, malicious_get_frequency, malicious_put_frequency,
                            stop_closest, stop_found, strict_kademlia, gets_succeeded, message);
 
+  if (ret < 0)
+    return GNUNET_SYSERR;
+
   ret = fprintf(outfile, "SELECT MAX( trialuid ) FROM trials into @temp_trial;\n");
 
   if (ret >= 0)
     return GNUNET_OK;
-  return GNUNET_SYSERR;
+  else
+    return GNUNET_SYSERR;
 }
 
 
@@ -278,10 +286,13 @@ add_stat (const struct GNUNET_PeerIdentity *peer, unsigned int route_requests,
                                 get_responses_received, find_peer_responses_sent,
                                 get_responses_sent);
 
-  if (ret < 0)
+  else
     return GNUNET_SYSERR;
 
-  return GNUNET_OK;
+  if (ret >= 0)
+    return GNUNET_OK;
+  else
+    return GNUNET_SYSERR;
 }
 /*
  * Inserts the specified dhtkey into the dhttests.dhtkeys table,
@@ -299,15 +310,15 @@ add_dhtkey (unsigned long long *dhtkeyuid, const GNUNET_HashCode * dhtkey)
   if (dhtkeyuid != NULL)
     *dhtkeyuid = 0;
 
-  if (dhtkey_outfile == NULL)
+  if ((dhtkey_outfile == NULL) || (dhtkey == NULL))
     return GNUNET_SYSERR;
 
-  if (dhtkey != NULL)
-    ret = fprintf(dhtkey_outfile, "TRIALUID\t%s\n", GNUNET_h2s_full(dhtkey));
+  ret = fprintf(dhtkey_outfile, "TRIALUID\t%s\n", GNUNET_h2s_full(dhtkey));
 
   if (ret >= 0)
     return GNUNET_OK;
-  return GNUNET_SYSERR;
+  else
+    return GNUNET_SYSERR;
 }
 
 /*
@@ -471,6 +482,10 @@ add_query (unsigned long long *sqlqueryuid, unsigned long long queryid,
     *sqlqueryuid = 0;
 
   ret = fprintf(query_outfile, "TRIALUID\t%s\t", GNUNET_h2s_full(key));
+
+  if (ret < 0)
+    return GNUNET_SYSERR;
+
   ret = fprintf(query_outfile, "%s\t%llu\t%u\t%u\t%u\n", GNUNET_h2s_full(&node->hashPubKey), queryid, type, hops, succeeded);
 
   if (ret >= 0)
@@ -510,11 +525,18 @@ add_route (unsigned long long *sqlqueryuid, unsigned long long queryid,
     *sqlqueryuid = 0;
 
   ret = fprintf(route_outfile, "TRIALUID\t%s\t", GNUNET_h2s_full(key));
+  if (ret < 0)
+    return GNUNET_SYSERR;
+
   ret = fprintf(route_outfile, "%s\t", GNUNET_h2s_full(&node->hashPubKey));
+  if (ret < 0)
+    return GNUNET_SYSERR;
   if (from_node == NULL)
     ret = fprintf(route_outfile, "0\t");
   else
     ret = fprintf(route_outfile, "%s\t", GNUNET_h2s_full(&from_node->hashPubKey));
+  if (ret < 0)
+    return GNUNET_SYSERR;
 
   if (to_node == NULL)
     ret = fprintf(route_outfile, "0\t%llu\t%u\t%u\t%d\n", queryid, type, hops, succeeded);
@@ -563,6 +585,14 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
 
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 
+  if (fn == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to get full path for `%s'\n"), outfile_name);
+      GNUNET_free(outfile_path);
+      GNUNET_free(outfile_name);
+      return NULL;
+    }
+
   dirwarn = (GNUNET_OK !=  GNUNET_DISK_directory_create_for_file (fn));
   outfile = FOPEN (fn, "w");
 
@@ -586,6 +616,14 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
                    getpid());
 
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
+
+  if (fn == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to get full path for `%s'\n"), outfile_name);
+      GNUNET_free(outfile_path);
+      GNUNET_free(outfile_name);
+      return NULL;
+    }
 
   dirwarn = (GNUNET_OK !=  GNUNET_DISK_directory_create_for_file (fn));
   node_outfile = FOPEN (fn, "w");
@@ -611,6 +649,14 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
 
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 
+  if (fn == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to get full path for `%s'\n"), outfile_name);
+      GNUNET_free(outfile_path);
+      GNUNET_free(outfile_name);
+      return NULL;
+    }
+
   dirwarn = (GNUNET_OK !=  GNUNET_DISK_directory_create_for_file (fn));
   route_outfile = FOPEN (fn, "w");
 
@@ -634,6 +680,14 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
                    getpid());
 
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
+
+  if (fn == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to get full path for `%s'\n"), outfile_name);
+      GNUNET_free(outfile_path);
+      GNUNET_free(outfile_name);
+      return NULL;
+    }
 
   dirwarn = (GNUNET_OK !=  GNUNET_DISK_directory_create_for_file (fn));
   query_outfile = FOPEN (fn, "w");
@@ -659,6 +713,14 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
 
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 
+  if (fn == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to get full path for `%s'\n"), outfile_name);
+      GNUNET_free(outfile_path);
+      GNUNET_free(outfile_name);
+      return NULL;
+    }
+
   dirwarn = (GNUNET_OK !=  GNUNET_DISK_directory_create_for_file (fn));
   stat_outfile = FOPEN (fn, "w");
 
@@ -682,6 +744,14 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
                    getpid());
 
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
+
+  if (fn == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to get full path for `%s'\n"), outfile_name);
+      GNUNET_free(outfile_path);
+      GNUNET_free(outfile_name);
+      return NULL;
+    }
 
   dirwarn = (GNUNET_OK !=  GNUNET_DISK_directory_create_for_file (fn));
   generic_stat_outfile = FOPEN (fn, "w");
@@ -707,6 +777,14 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
 
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 
+  if (fn == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to get full path for `%s'\n"), outfile_name);
+      GNUNET_free(outfile_path);
+      GNUNET_free(outfile_name);
+      return NULL;
+    }
+
   dirwarn = (GNUNET_OK !=  GNUNET_DISK_directory_create_for_file (fn));
   dhtkey_outfile = FOPEN (fn, "w");
 
@@ -730,6 +808,14 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
                    getpid());
 
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
+
+  if (fn == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to get full path for `%s'\n"), outfile_name);
+      GNUNET_free(outfile_path);
+      GNUNET_free(outfile_name);
+      return NULL;
+    }
 
   dirwarn = (GNUNET_OK !=  GNUNET_DISK_directory_create_for_file (fn));
   extended_topology_outfile = FOPEN (fn, "w");

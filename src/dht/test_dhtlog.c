@@ -72,37 +72,52 @@ test (struct GNUNET_DHTLOG_Handle * api)
   ret = api->insert_topology(500);
   CHECK(ret);
   ret = api->insert_node (&nodeuid, &p1);
+  CHECK(ret);
   ret = api->insert_node (&nodeuid, &p2);
+  CHECK(ret);
   ret = api->insert_node (&nodeuid, &p3);
+  CHECK(ret);
   ret = api->insert_node (&nodeuid, &p4);
+  CHECK(ret);
   ret = api->set_malicious(&p1);
   CHECK(ret);
   ret = api->insert_topology(0);
+  CHECK(ret);
   ret = api->insert_extended_topology(&p1, &p2);
+  CHECK(ret);
   ret = api->insert_extended_topology(&p3, &p4);
+  CHECK(ret);
   ret = api->update_topology(101);
   CHECK(ret);
   ret = api->insert_dhtkey (&dhtkeyuid, &k1);
+  CHECK(ret);
   ret = api->insert_dhtkey (&dhtkeyuid, &k2);
   CHECK(ret);
   ret = api->insert_query (&sqlqueryuid, internaluid, 2, 4, 0, &p2, &k1);
+  CHECK(ret);
   ret =
     api->insert_route (&sqlrouteuid, sqlqueryuid, 1, 1, DHTLOG_GET, &p1, &k2,
                        &p4, &p3);
+  CHECK(ret);
   ret =
     api->insert_route (&sqlrouteuid, sqlqueryuid, 2, 0, DHTLOG_PUT, &p3, &k1,
                        &p4, &p2);
+  CHECK(ret);
   ret =
     api->insert_route (&sqlrouteuid, sqlqueryuid, 3, 1, DHTLOG_ROUTE, &p3, &k2,
                        &p2, NULL);
+  CHECK(ret);
   ret =
     api->insert_route (&sqlrouteuid, sqlqueryuid, 4, 7, DHTLOG_ROUTE, &p3, &k2,
                        NULL, NULL);
+  CHECK(ret);
   sleep (1);
   ret = api->insert_stat(&p1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17);
+  CHECK(ret);
   ret = api->insert_stat(&p2, 12, 23, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27);
   CHECK(ret);
   ret = api->update_trial (trialuid, 787);
+  CHECK(ret);
   ret = api->add_generic_stat (&p2, "nonsense", "section", 77765);
   CHECK(ret);
   return 0;

@@ -99,7 +99,7 @@
 /**
  * Default replication parameter for find peer messages sent by the dht service.
  */
-#define DHT_DEFAULT_FIND_PEER_REPLICATION 1
+#define DHT_DEFAULT_FIND_PEER_REPLICATION 2
 
 /**
  * Default options for find peer requests sent by the dht service.
@@ -153,7 +153,7 @@
  * Real maximum number of hops, at which point we refuse
  * to forward the message.
  */
-#define MAX_HOPS 20
+#define MAX_HOPS 10
 
 /**
  * How many time differences between requesting a core send and
@@ -197,7 +197,6 @@ struct P2PPendingMessage
   const struct GNUNET_MessageHeader *msg; // msg = (cast) &pm[1]; // memcpy (&pm[1], data, len);
 
 };
-
 
 /**
  * Per-peer information.
@@ -2119,7 +2118,10 @@ static void
 remove_recent_find_peer(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_HashCode *key = cls;
-  GNUNET_CONTAINER_multihashmap_remove(recent_find_peer_requests, key, key);
+  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(recent_find_peer_requests, key, key))
+    {
+      GNUNET_free(key);
+    }
 }
 
 /**
@@ -2142,6 +2144,9 @@ handle_dht_find_peer (void *cls,
   size_t hello_size;
   size_t tsize;
   GNUNET_HashCode *recent_hash;
+#if RESTRICT_FIND_PEER
+  struct GNUNET_PeerIdentity peer_id;
+#endif
 
   find_peer_message = (struct GNUNET_DHT_FindPeerMessage *)find_msg;
 #if DEBUG_DHT
@@ -2175,10 +2180,28 @@ handle_dht_find_peer (void *cls,
     increment_stats("# dht find peer requests ignored (recently seen!)");
     return;
   }
+
+#if RESTRICT_FIND_PEER
+  /**
+   * Use this check to only allow the peer to respond to find peer requests if
+   * it would be beneficial to have the requesting peer in this peers routing
+   * table.  Can be used to thwart peers flooding the network with find peer
+   * requests that we don't care about.  However, if a new peer is joining
+   * the network and has no other peers this is a problem (assume all buckets
+   * full, no one will respond!).
+   */
+  memcpy(&peer_id.hashPubKey, &message_context->key, sizeof(GNUNET_HashCode));
+  if (GNUNET_NO == consider_peer(&peer_id))
+    {
+      increment_stats("# dht find peer requests ignored (do not need!)");
+      return;
+    }
+#endif
+
   recent_hash = GNUNET_malloc(sizeof(GNUNET_HashCode));
   memcpy(recent_hash, &message_context->key, sizeof(GNUNET_HashCode));
   GNUNET_CONTAINER_multihashmap_put (recent_find_peer_requests, &message_context->key, NULL, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-  GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30), &remove_recent_find_peer, &message_context->key);
+  GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 120), &remove_recent_find_peer, &recent_hash);
 
   /* Simplistic find_peer functionality, always return our hello */
   hello_size = ntohs(my_hello->size);
@@ -2325,7 +2348,12 @@ static unsigned int estimate_diameter()
 static unsigned int
 get_forward_count (unsigned int hop_count, size_t target_replication)
 {
+#if DOUBLE
   double target_count;
+  double random_probability;
+#else
+  uint32_t random_value;
+#endif
   unsigned int target_value;
   unsigned int diameter;
 
@@ -2366,17 +2394,35 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
 #endif
       return 0;
     }
+
+#if DOUBLE
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Replication %d, hop_count %u, diameter %u\n", target_replication, hop_count, diameter);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Numerator %f, denominator %f\n", (double)target_replication, ((double)target_replication * (hop_count + 1) + diameter));
   target_count = /* target_count is ALWAYS < 1 unless replication is < 1 */
     (double)target_replication / ((double)target_replication * (hop_count + 1) + diameter);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Target count is %f\n", target_count);
+  random_probability = ((double)GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+      RAND_MAX)) / RAND_MAX;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Random is %f\n", random_probability);
 
   target_value = 0;
-  while (target_value < target_count)
+  //while (target_value < target_count)
+  if (target_value < target_count)
     target_value++; /* target_value is ALWAYS 1 after this "loop", right?  Because target_count is always > 0, right?  Or does it become 0.00000... at some point because the hop count is so high? */
 
-  if ((target_count + 1 - target_value) >
-      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                RAND_MAX) / RAND_MAX)
+
+  //if ((target_count + 1 - (double)target_value) > random_probability)
+  if ((target_count) > random_probability)
     target_value++;
+#endif
+
+  random_value = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, target_replication * (hop_count + 1) + diameter) + 1;
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "replication %u, at hop %d, will split with probability %f\n", target_replication, hop_count, target_replication / (double)((target_replication * (hop_count + 1) + diameter) + 1));
+  target_value = 1;
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "random %u, target %u, max %u\n", random_value, target_replication, target_replication * (hop_count + 1) + diameter);
+  if (random_value < target_replication)
+    target_value++;
+
   return target_value;
 }
 
@@ -2776,9 +2822,8 @@ static int route_message(void *cls,
   if (message_context->bloom == NULL)
     message_context->bloom = GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
 
-  if ((stop_on_closest == GNUNET_YES) && (message_context->closest == GNUNET_YES) && (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DHT_PUT))
+  if ((stop_on_closest == GNUNET_YES) && (global_closest == GNUNET_YES) && (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DHT_PUT))
     forward_count = 0;
-
 
 #if DEBUG_DHT_ROUTING
   if (forward_count == 0)
@@ -2804,6 +2849,7 @@ static int route_message(void *cls,
       break;
     case GNUNET_MESSAGE_TYPE_DHT_PUT: /* Check if closest, if so insert data. FIXME: thresholding to reduce complexity?*/
       increment_stats(STAT_PUTS);
+      message_context->closest = global_closest;
       handle_dht_put (cls, msg, message_context);
       break;
     case GNUNET_MESSAGE_TYPE_DHT_FIND_PEER: /* Check if closest and not started by us, check options, add to requests seen */

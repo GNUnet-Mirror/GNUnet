@@ -1061,6 +1061,8 @@ add_dhtkey (unsigned long long *dhtkeyuid, const GNUNET_HashCode * dhtkey)
         *dhtkeyuid = curr_dhtkeyuid;
       return GNUNET_OK;
     }
+  else if (ret == GNUNET_SYSERR)
+    return GNUNET_SYSERR;
 
   if (GNUNET_OK !=
       (ret = prepared_statement_run (insert_dhtkey,
