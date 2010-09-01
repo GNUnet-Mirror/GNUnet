@@ -198,7 +198,6 @@ finish_testing ()
   struct PeerContext *free_peer_pos;
   struct TestMessageContext *pos;
   struct TestMessageContext *free_pos;
-  int count;
 
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -215,7 +214,6 @@ finish_testing ()
     }
   all_peers = NULL;
 
-  count = 0;
   pos = test_messages;
   while (pos != NULL)
     {
@@ -834,6 +832,7 @@ static void all_connect_handler (void *cls,
   if (second_daemon == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Couldn't find second peer!\n");
+      GNUNET_free(second_shortname);
       return;
     }
 #if !TEST_ALL
@@ -1059,6 +1058,7 @@ run (void *cls,
 
   main_cfg = cfg;
 
+  GNUNET_assert(num_peers > 0 && num_peers < (unsigned int)-1);
   peers_left = num_peers;
 
   /* Set up a task to end testing if peer start fails */

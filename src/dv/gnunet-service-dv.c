@@ -648,6 +648,11 @@ static struct GNUNET_CONTAINER_Heap *neighbor_min_heap;
 static struct GNUNET_CONTAINER_Heap *neighbor_max_heap;
 
 /**
+ * Handle for the statistics service.
+ */
+struct GNUNET_STATISTICS_Handle *stats;
+
+/**
  * How far out to keep peers we learn about.
  */
 static unsigned long long fisheye_depth;
@@ -2803,12 +2808,19 @@ process_peerinfo (void *cls,
         }
 
       sent = GNUNET_CONTAINER_multihashmap_iterate (extended_neighbors, &add_all_extended_peers, neighbor->send_context);
-
+      if (stats != NULL)
+        {
+          GNUNET_STATISTICS_update (stats, "# distant peers gossiped to direct neighbors", sent, GNUNET_NO);
+        }
 #if DEBUG_DV_PEER_NUMBERS
       neighbor_pid = GNUNET_strdup(GNUNET_i2s(&neighbor->identity));
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: Gossipped %d extended peers to %s\n", GNUNET_i2s(&my_identity), sent, neighbor_pid);
 #endif
       sent = GNUNET_CONTAINER_multihashmap_iterate (direct_neighbors, &add_all_direct_neighbors, neighbor);
+      if (stats != NULL)
+        {
+          GNUNET_STATISTICS_update (stats, "# direct peers gossiped to direct neighbors", sent, GNUNET_NO);
+        }
 #if DEBUG_DV_PEER_NUMBERS
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: Gossipped about %s to %d direct peers\n", GNUNET_i2s(&my_identity), neighbor_pid, sent);
       GNUNET_free(neighbor_pid);
@@ -2875,7 +2887,13 @@ void handle_core_connect (void *cls,
   {
     about = GNUNET_CONTAINER_multihashmap_get(extended_neighbors, &peer->hashPubKey);
     if ((GNUNET_CONTAINER_multihashmap_get(direct_neighbors, &peer->hashPubKey) == NULL) && (about != NULL))
-      sent = GNUNET_CONTAINER_multihashmap_iterate(direct_neighbors, &add_distant_all_direct_neighbors, about);
+      {
+        sent = GNUNET_CONTAINER_multihashmap_iterate(direct_neighbors, &add_distant_all_direct_neighbors, about);
+        if (stats != NULL)
+          {
+            GNUNET_STATISTICS_update (stats, "# direct peers gossiped to new direct neighbors", sent, GNUNET_NO);
+          }
+      }
 #if DEBUG_DV
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%s: Distance (%d) greater than %d or already know about peer (%s), not re-adding!\n", "dv", distance, DIRECT_NEIGHBOR_COST, GNUNET_i2s(peer));
