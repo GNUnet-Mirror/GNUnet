@@ -28,10 +28,13 @@ libgnunetdv_la_LDFLAGS = \
 
 bin_PROGRAMS = \
  gnunet-service-dv
+ 
+noinst_PROGRAMS = ${check_PROGRAMS}
 
 gnunet_service_dv_SOURCES = \
  gnunet-service-dv.c         
 gnunet_service_dv_LDADD = \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/dv/libgnunetdv.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \

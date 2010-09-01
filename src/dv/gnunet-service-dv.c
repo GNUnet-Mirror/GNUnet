@@ -43,6 +43,7 @@
 #include "gnunet_hello_lib.h"
 #include "gnunet_peerinfo_service.h"
 #include "gnunet_crypto_lib.h"
+#include "gnunet_statistics_service.h"
 #include "dv.h"
 
 /**
