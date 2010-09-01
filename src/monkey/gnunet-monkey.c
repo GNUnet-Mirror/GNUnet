@@ -57,9 +57,11 @@ void cb_async(mi_output *o, void *data)
 void send_bug_mail(mi_stop* sr, mi_frames* f)
 {
 	char *message;
-	asprintf(&message, "Bug detected in file:%s\nfunction:%s\nline:%d\nreason:%s\nreceived signal:%s\n%s\n",
-		f->file, f->func, f->line, mi_reason_enum_to_str(sr->reason), sr->signal_name, sr->signal_meaning);
+	GNUNET_asprintf(&message, 
+			"Bug detected in file:%s\nfunction:%s\nline:%d\nreason:%s\nreceived signal:%s\n%s\n",
+			f->file, f->func, f->line, mi_reason_enum_to_str(sr->reason), sr->signal_name, sr->signal_meaning);
 	sendMail(message);
+	GNUNET_free (message);
 }
 
 
