@@ -386,8 +386,8 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 		  if (GNUNET_CONFIGURATION_have_value (p->cfg,
 				  	  	  	  	  	  	  	   "transport-https", "KEY_FILE"))
 				GNUNET_CONFIGURATION_get_value_string (p->cfg, "transport-https", "KEY_FILE", &key_file_p1);
-		  else
-			  GNUNET_asprintf(&key_file_p1,"https.key");
+		  if (key_file_p1 == NULL)
+			  GNUNET_asprintf(&key_file_p1,"https_p1.key");
 		  if (0 == stat (key_file_p1, &sbuf ))
 		  {
 			  if (0 == remove(key_file_p1))
@@ -397,8 +397,8 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 		  }
 		  if (GNUNET_CONFIGURATION_have_value (p->cfg,"transport-https", "CERT_FILE"))
 			  GNUNET_CONFIGURATION_get_value_string (p->cfg, "transport-https", "CERT_FILE", &cert_file_p1);
-		  else
-			  GNUNET_asprintf(&cert_file_p1,"https.cert");
+		  if (cert_file_p1 == NULL)
+			  GNUNET_asprintf(&cert_file_p1,"https_p1.cert");
 		  if (0 == stat (cert_file_p1, &sbuf ))
 		  {
 			  if (0 == remove(cert_file_p1))
@@ -412,8 +412,8 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 		  if (GNUNET_CONFIGURATION_have_value (p->cfg,
 				  	  	  	  	  	  	  	   "transport-https", "KEY_FILE"))
 				GNUNET_CONFIGURATION_get_value_string (p->cfg, "transport-https", "KEY_FILE", &key_file_p2);
-		  else
-			  GNUNET_asprintf(&key_file_p2,"https.key");
+		  if (key_file_p2 == NULL)
+			  GNUNET_asprintf(&key_file_p2,"https_p2.key");
 		  if (0 == stat (key_file_p2, &sbuf ))
 		  {
 			  if (0 == remove(key_file_p2))
@@ -423,8 +423,8 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 		  }
 		  if (GNUNET_CONFIGURATION_have_value (p->cfg,"transport-https", "CERT_FILE"))
 			  GNUNET_CONFIGURATION_get_value_string (p->cfg, "transport-https", "CERT_FILE", &cert_file_p2);
-		  else
-			  GNUNET_asprintf(&cert_file_p2,"https.cert");
+		  if (cert_file_p2 == NULL)
+			  GNUNET_asprintf(&cert_file_p2,"https_p2.cert");
 		  if (0 == stat (cert_file_p2, &sbuf ))
 		  {
 			  if (0 == remove(cert_file_p2))
