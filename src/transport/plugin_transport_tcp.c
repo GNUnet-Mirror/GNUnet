@@ -2043,7 +2043,6 @@ tcp_plugin_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
       return;
     }
 
-  port = 0;
   port_start = NULL;
   for (i = 0; i < sizeof(mybuf); i++)
     {

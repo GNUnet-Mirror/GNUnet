@@ -2792,6 +2792,11 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer,
       n->piter = GNUNET_PEERINFO_iterate (peerinfo, peer,
 					  GNUNET_TIME_UNIT_FOREVER_REL,
 					  &add_hello_for_peer, n);
+
+      GNUNET_STATISTICS_update (stats,
+                                gettext_noop ("# HELLO's sent to new neighbors"),
+                                1,
+                                GNUNET_NO);
       transmit_to_peer (NULL, NULL, 0,
 			HELLO_ADDRESS_EXPIRATION,
 			(const char *) our_hello, GNUNET_HELLO_size(our_hello),
@@ -3258,8 +3263,14 @@ send_periodic_ping (void *cls,
                                      &neighbour->id.hashPubKey,
                                      va,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  hello_size = GNUNET_HELLO_size(our_hello);
+
+  if (peer_address->validated != GNUNET_YES)
+    hello_size = GNUNET_HELLO_size(our_hello);
+  else
+    hello_size = 0;
+
   tsize = sizeof(struct TransportPingMessage) + hello_size;
+
   if (peer_address->addr != NULL)
     {
       slen = strlen (tp->short_name) + 1;
@@ -3273,7 +3284,9 @@ send_periodic_ping (void *cls,
   ping.header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_PING);
   ping.challenge = htonl(va->challenge);
   memcpy(&ping.target, &neighbour->id, sizeof(struct GNUNET_PeerIdentity));
-  memcpy(message_buf, our_hello, hello_size);
+  if (peer_address->validated != GNUNET_YES)
+    memcpy(message_buf, our_hello, hello_size);
+
   if (peer_address->addr != NULL)
     {
       ping.header.size = htons(sizeof(struct TransportPingMessage) +
@@ -3307,6 +3320,13 @@ send_periodic_ping (void *cls,
               "HELLO", hello_size,
               "PING");
 #endif
+  if (peer_address->validated != GNUNET_YES)
+    GNUNET_STATISTICS_update (stats,
+                              gettext_noop ("# PING+HELLO messages sent"),
+                              1,
+                              GNUNET_NO);
+
+
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# PING messages sent for re-validation"),
 			    1,

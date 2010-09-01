@@ -978,7 +978,8 @@ process_interfaces (void *cls,
               &((struct sockaddr_in6 *) addr)->sin6_addr,
               sizeof (struct in6_addr));
       GNUNET_assert(NULL != inet_ntop(AF_INET6, &t6.ipv6_addr, &buf[0], INET6_ADDRSTRLEN));
-      if ((plugin->bind_address != NULL) || ((plugin->bind6_address != NULL) && (0 != strcmp(buf, plugin->bind_address))))
+      if (((plugin->bind_address != NULL) && (0 != strcmp(buf, plugin->bind_address)))
+          || ((plugin->bind6_address != NULL) && (0 != strcmp(buf, plugin->bind6_address))))
         {
           GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: Not notifying transport of address %s\n", "UDP", GNUNET_a2s (addr, addrlen));
           return GNUNET_OK;
@@ -1177,7 +1178,6 @@ udp_plugin_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
       return;
     }
 
-  port = 0;
   port_start = NULL;
   for (i = 0; i < sizeof(mybuf); i++)
     {
