@@ -1217,10 +1217,8 @@ run (void *cls,
 											   "KEY_FILE",
 											   &key_file);
   }
-  else
-  {
+  if (key_file == NULL)
 	  GNUNET_asprintf(&key_file,"https.key");
-  }
 
   if (0 == stat (key_file, &sbuf ))
   {
@@ -1239,10 +1237,8 @@ run (void *cls,
 										     "CERT_FILE",
 										     &cert_file);
   }
-  else
-  {
+  if (cert_file == NULL)
 	  GNUNET_asprintf(&cert_file,"https.cert");
-  }
 
   if (0 == stat (cert_file, &sbuf ))
   {
