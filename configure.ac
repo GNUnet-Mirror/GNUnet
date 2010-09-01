@@ -753,8 +753,6 @@ src/include/gnunet_directories.h
 src/hostlist/Makefile
 src/monkey/Makefile
 src/nat/Makefile
-src/nat/libnatpmp/Makefile
-src/nat/miniupnp/Makefile
 src/peerinfo/Makefile
 src/peerinfo-tool/Makefile
 src/statistics/Makefile

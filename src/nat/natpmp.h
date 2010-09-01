@@ -30,15 +30,18 @@
 
 #include "platform.h"
 
-typedef struct GNUNET_NAT_NATPMP_Handle GNUNET_NAT_NATPMP_Handle;
+struct GNUNET_NAT_NATPMP_Handle;
 
-GNUNET_NAT_NATPMP_Handle *GNUNET_NAT_NATPMP_init (const struct sockaddr *addr,
-                                                  socklen_t addrlen,
-                                                  unsigned short port);
+struct GNUNET_NAT_NATPMP_Handle *
+GNUNET_NAT_NATPMP_init (const struct sockaddr *addr,
+			socklen_t addrlen,
+			unsigned short port);
 
-void GNUNET_NAT_NATPMP_close (GNUNET_NAT_NATPMP_Handle * nat);
+void GNUNET_NAT_NATPMP_close (struct GNUNET_NAT_NATPMP_Handle * nat);
 
-int GNUNET_NAT_NATPMP_pulse (GNUNET_NAT_NATPMP_Handle * nat, int is_enabled,
+int GNUNET_NAT_NATPMP_pulse (struct GNUNET_NAT_NATPMP_Handle * nat, 
+			     int is_enabled,
                              struct sockaddr **ext_addr);
 
-#endif /* NATPMP_H */
+#endif 
+/* NATPMP_H */

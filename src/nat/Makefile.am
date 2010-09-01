@@ -1,4 +1,4 @@
-SUBDIRS = miniupnp libnatpmp
+SUBDIRS = .
 
 INCLUDES = -I$(top_srcdir)/src/include
 
@@ -12,7 +12,9 @@ endif
 
 if !MINGW
 
+if HAVE_EXPERIMENTAL
 lib_LTLIBRARIES = libgnunetnat.la
+endif
 
 libgnunetnat_la_SOURCES = \
   upnp.c upnp.h \
@@ -24,16 +26,16 @@ libgnunetnat_la_CFLAGS = \
 
 libgnunetnat_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/nat/miniupnp/libminiupnp.la \
-  $(top_builddir)/src/nat/libnatpmp/libnatpmp.la \
-  $(GN_LIBINTL) @EXT_LIBS@
+  $(GN_LIBINTL) @EXT_LIBS@ 
 
 libgnunetnat_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:0:0
 
+if HAVE_EXPERIMENTAL
 check_PROGRAMS = \
   test-nat
+endif
 
 if !DISABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)

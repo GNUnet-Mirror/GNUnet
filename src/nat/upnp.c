@@ -46,15 +46,14 @@
 /* Component name for logging */
 #define COMP_NAT_UPNP _("NAT (UPnP)")
 
-typedef enum
+enum UPNP_State
 {
   UPNP_IDLE,
   UPNP_ERR,
   UPNP_DISCOVER,
   UPNP_MAP,
   UPNP_UNMAP
-}
-UPNP_state;
+};
 
 struct GNUNET_NAT_UPNP_Handle
 {
@@ -65,7 +64,7 @@ struct GNUNET_NAT_UPNP_Handle
   const struct sockaddr *addr;
   socklen_t addrlen;
   unsigned int is_mapped;
-  UPNP_state state;
+  enum UPNP_State state;
   struct sockaddr *ext_addr;
   const char *iface;
 };
@@ -81,34 +80,36 @@ process_if (void *cls,
 
   if (addr && GNUNET_NAT_cmp_addr (upnp->addr, addr) == 0)
     {
-      upnp->iface = name;
+      upnp->iface = name; // BADNESS!
       return GNUNET_SYSERR;
     }
 
   return GNUNET_OK;
 }
 
+
 GNUNET_NAT_UPNP_Handle *
-GNUNET_NAT_UPNP_init (const struct sockaddr *addr, socklen_t addrlen,
+GNUNET_NAT_UPNP_init (const struct sockaddr *addr, 
+		      socklen_t addrlen,
                       u_short port)
 {
-  GNUNET_NAT_UPNP_Handle *upnp =
-    GNUNET_malloc (sizeof (GNUNET_NAT_UPNP_Handle));
+  GNUNET_NAT_UPNP_Handle *upnp;
 
+  upnp = GNUNET_malloc (sizeof (GNUNET_NAT_UPNP_Handle));
   upnp->state = UPNP_DISCOVER;
   upnp->addr = addr;
   upnp->addrlen = addrlen;
   upnp->port = port;
-
   /* Find the interface corresponding to the address,
    * on which we should broadcast call for routers */
-  upnp->iface = NULL;
-  GNUNET_OS_network_interfaces_list (process_if, upnp);
+  GNUNET_OS_network_interfaces_list (&process_if, upnp);
   if (!upnp->iface)
-      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, COMP_NAT_UPNP, "Could not find an interface matching the wanted address.\n");
-
+      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, 
+		       COMP_NAT_UPNP, 
+		       "Could not find an interface matching the wanted address.\n");
   return upnp;
 }
+
 
 void
 GNUNET_NAT_UPNP_close (GNUNET_NAT_UPNP_Handle * handle)

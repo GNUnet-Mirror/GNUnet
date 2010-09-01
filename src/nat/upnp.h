@@ -30,14 +30,19 @@
 
 #include "platform.h"
 
-typedef struct GNUNET_NAT_UPNP_Handle GNUNET_NAT_UPNP_Handle;
+struct GNUNET_NAT_UPNP_Handle;
 
-GNUNET_NAT_UPNP_Handle *GNUNET_NAT_UPNP_init (const struct sockaddr *addr,
-                                              socklen_t addrlen,
-                                              unsigned short port);
+struct GNUNET_NAT_UPNP_Handle *
+GNUNET_NAT_UPNP_init (const struct sockaddr *addr,
+		      socklen_t addrlen,
+		      unsigned short port);
 
-void GNUNET_NAT_UPNP_close (GNUNET_NAT_UPNP_Handle *);
+void GNUNET_NAT_UPNP_close (struct GNUNET_NAT_UPNP_Handle * h);
 
-int GNUNET_NAT_UPNP_pulse (GNUNET_NAT_UPNP_Handle *, int is_enabled,
-                           int do_port_check, struct sockaddr **ext_addr);
-#endif /* UPNP_H */
+int GNUNET_NAT_UPNP_pulse (struct GNUNET_NAT_UPNP_Handle *h, 
+			   int is_enabled,
+                           int do_port_check,
+			   struct sockaddr **ext_addr);
+
+#endif 
+/* UPNP_H */

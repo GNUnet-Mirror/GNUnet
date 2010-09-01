@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2007, 2008, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2007, 2008, 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -27,28 +27,9 @@
  */
 
 #ifndef GNUNET_NAT_LIB_H
-#define GNUNET_NAT_LIB_H 1
+#define GNUNET_NAT_LIB_H
 
-#include "platform.h"
 #include "gnunet_util_lib.h"
-#include "upnp.h"
-#include "natpmp.h"
-
-#include <inttypes.h>
-
-/**
- * Used to communicate with the UPnP and NAT-PMP plugins 
- * FIXME: move to src/nat/common.h
- */
-enum GNUNET_NAT_port_forwarding
-  {
-    GNUNET_NAT_PORT_ERROR,
-    GNUNET_NAT_PORT_UNMAPPED,
-    GNUNET_NAT_PORT_UNMAPPING,
-    GNUNET_NAT_PORT_MAPPING,
-    GNUNET_NAT_PORT_MAPPED
-  };
-
 
 /**
  * Signature of the callback passed to GNUNET_NAT_register.
@@ -59,9 +40,11 @@ enum GNUNET_NAT_port_forwarding
  * @param addr either the previous or the new public IP address
  * @param addrlen actual lenght of the address
  */
-typedef void (*GNUNET_NAT_AddressCallback) (void *cls, int add_remove,
+typedef void (*GNUNET_NAT_AddressCallback) (void *cls, 
+					    int add_remove,
                                             const struct sockaddr * addr,
                                             socklen_t addrlen);
+
 
 /**
  * Handle for active NAT registrations.
@@ -81,12 +64,13 @@ struct GNUNET_NAT_Handle;
  * @param callback_cls closure for callback
  * @return NULL on error, otherwise handle that can be used to unregister 
  */
-struct GNUNET_NAT_Handle *GNUNET_NAT_register (struct GNUNET_SCHEDULER_Handle
-                                               *sched,
-                                               const struct sockaddr *addr,
-                                               socklen_t addrlen,
-                                               GNUNET_NAT_AddressCallback
-                                               callback, void *callback_cls);
+struct GNUNET_NAT_Handle *
+GNUNET_NAT_register (struct GNUNET_SCHEDULER_Handle *sched,
+		     const struct sockaddr *addr,
+		     socklen_t addrlen,
+		     GNUNET_NAT_AddressCallback callback, 
+		     void *callback_cls);
+
 
 /**
  * Stop port redirection and public IP address detection for the given handle.
@@ -95,18 +79,6 @@ struct GNUNET_NAT_Handle *GNUNET_NAT_register (struct GNUNET_SCHEDULER_Handle
  * @param h the handle to stop
  */
 void GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h);
-
-/**
- * Compare the sin(6)_addr fields of AF_INET or AF_INET(6) sockaddr.
- * FIXME: move to src/nat/common.h or so.
- * 
- * @param a first sockaddr
- * @param b second sockaddr
- * @return 0 if addresses are equal, non-null value otherwise 
- */
-int GNUNET_NAT_cmp_addr (const struct sockaddr *a, 
-			 const struct sockaddr *b);
-
 
 #endif 
 
