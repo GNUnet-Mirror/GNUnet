@@ -1306,6 +1306,7 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_Connecti
   unsigned int distance;
   double probability, random, percentage;
   unsigned int smallWorldConnections;
+  unsigned int small_world_it;
   char *p_string;
   int connect_attempts;
   square = floor (sqrt (pg->total));
@@ -1325,6 +1326,13 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_Connecti
 		    "PERCENTAGE",
 		    "TESTING");
       GNUNET_free (p_string);
+    }
+  if (percentage < 0.0)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Invalid value `%s' for option `%s' in section `%s': got %f, needed value greater than 0\n"),
+                  "PERCENTAGE", "TESTING", percentage);
+      percentage = 0.5;
     }
   probability = 0.5; /* FIXME: default percentage? */
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(pg->cfg,
@@ -1392,7 +1400,9 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_Connecti
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Total connections added thus far: %u!\n"), connect_attempts);
 #endif
   smallWorldConnections = 0;
-  for (i = 0; i < (int) (natLog * percentage); i++)
+  small_world_it = (unsigned int)(natLog * percentage);
+  GNUNET_assert(small_world_it > 0 && small_world_it < (unsigned int)-1);
+  for (i = 0; i < small_world_it; i++)
     {
       for (j = 0; j < pg->total; j++)
         {
@@ -2247,7 +2257,6 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
   int unblacklisted_connections;
 
   GNUNET_assert (pg->notify_connection != NULL);
-  ret = GNUNET_OK;
 
   switch (topology)
     {
@@ -3797,22 +3806,26 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
     }
   }
 
+  GNUNET_assert(running >= voff);
   for (i = 0; i < voff; i++)
   {
 #if DEBUG_CHURN
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Stopping peer %d!\n", running_permute[i]);
 #endif
+    GNUNET_assert(running_arr != NULL);
     GNUNET_TESTING_daemon_stop (pg->peers[running_arr[running_permute[i]]].daemon,
 				timeout, 
 				&churn_stop_callback, churn_ctx, 
 				GNUNET_NO, GNUNET_YES);
   }
 
+  GNUNET_assert(stopped >= von);
   for (i = 0; i < von; i++)
     {
 #if DEBUG_CHURN
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Starting up peer %d!\n", stopped_permute[i]);
 #endif
+      GNUNET_assert(stopped_arr != NULL);
       GNUNET_TESTING_daemon_start_stopped(pg->peers[stopped_arr[stopped_permute[i]]].daemon, 
 					  timeout, &churn_start_callback, churn_ctx);
   }
@@ -3964,9 +3977,10 @@ static void
 schedule_shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   struct PeerShutdownContext *peer_shutdown_ctx = cls;
-  struct ShutdownContext *shutdown_ctx = peer_shutdown_ctx->shutdown_ctx;
+  struct ShutdownContext *shutdown_ctx;
 
   GNUNET_assert(peer_shutdown_ctx != NULL);
+  shutdown_ctx = peer_shutdown_ctx->shutdown_ctx;
   GNUNET_assert(shutdown_ctx != NULL);
 
   if (shutdown_ctx->outstanding > MAX_CONCURRENT_SHUTDOWN)

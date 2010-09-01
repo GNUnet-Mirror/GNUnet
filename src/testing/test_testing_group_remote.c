@@ -106,6 +106,7 @@ run (void *cls,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_TESTING_Host *hosts;
+  struct GNUNET_TESTING_Host *hostpos;
   struct GNUNET_TESTING_Host *temphost;
   char *hostfile;
   struct stat frstat;
@@ -123,12 +124,14 @@ run (void *cls,
                                              &num_peers))
     num_peers = DEFAULT_NUM_PEERS;
 
+  GNUNET_assert(num_peers > 0 && num_peers < (unsigned long long)-1);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "hostfile",
                                              &hostfile))
     hostfile = NULL;
 
   hosts = NULL;
+  data = NULL;
   if (hostfile != NULL)
     {
       if (GNUNET_OK != GNUNET_DISK_file_test (hostfile))
@@ -188,6 +191,14 @@ run (void *cls,
                                      NULL,
                                      NULL,
                                      hosts);
+  hostpos = hosts;
+  while (hostpos != NULL)
+    {
+      temphost = hostpos->next;
+      GNUNET_free(hostpos);
+      hostpos = temphost;
+    }
+  GNUNET_free_non_null(data);
   GNUNET_assert (pg != NULL);
 }
 

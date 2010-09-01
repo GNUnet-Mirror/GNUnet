@@ -470,6 +470,7 @@ run (void *cls,
 
   main_cfg = cfg;
 
+  GNUNET_assert(num_peers > 0 && num_peers < (unsigned int)-1);
   peers_left = num_peers;
 
   /* For this specific test we only really want a CLIQUE topology as the

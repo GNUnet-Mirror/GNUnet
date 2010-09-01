@@ -200,8 +200,6 @@ finish_testing ()
               "Called finish testing, stopping daemons.\n");
 #endif
 
-  int count;
-  count = 0;
   pos = test_messages;
   while (pos != NULL)
     {
@@ -377,6 +375,7 @@ process_mtype (void *cls,
       GNUNET_SCHEDULER_cancel (sched, die_task);
       GNUNET_asprintf(&dotOutFileNameFinished, "%s.dot", "final_topology");
       dotOutFileFinished = fopen (dotOutFileNameFinished, "w");
+      GNUNET_free(dotOutFileNameFinished);
       if (dotOutFileFinished != NULL)
       {
         fprintf(dotOutFileFinished, "strict graph G {\n");
@@ -1001,6 +1000,7 @@ run (void *cls,
                                            GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, SECONDS_PER_PEER_START * num_peers),
                                            &end_badly, "didn't generate all hostkeys within a reasonable amount of time!!!");
 
+  GNUNET_assert(num_peers > 0 && num_peers < (unsigned int)-1);
   pg = GNUNET_TESTING_daemons_start (sched, cfg,
                                      peers_left, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, SECONDS_PER_PEER_START * num_peers), &hostkey_callback, NULL, &peers_started_callback, NULL,
                                      &topology_callback, NULL, NULL);
@@ -1046,6 +1046,7 @@ main (int argc, char *argv[])
   char *our_binary_name;
 
   binary_start_pos = rindex(argv[0], '/');
+  GNUNET_assert(binary_start_pos != NULL);
   topology_string = strstr (binary_start_pos,
 			    "_topology");
   GNUNET_assert (topology_string != NULL);

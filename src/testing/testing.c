@@ -1338,13 +1338,15 @@ static void
 send_hello(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ConnectContext *ctx = cls;
-
+  struct GNUNET_MessageHeader *hello;
   ctx->hello_send_task = GNUNET_SCHEDULER_NO_TASK;
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     return;
-  if (ctx->d1->hello != NULL)
+  if ((ctx->d1->hello != NULL) && (NULL != GNUNET_HELLO_get_header(ctx->d1->hello)))
     {
-      GNUNET_TRANSPORT_offer_hello (ctx->d2th, GNUNET_HELLO_get_header(ctx->d1->hello));
+      hello = GNUNET_HELLO_get_header(ctx->d1->hello);
+      GNUNET_assert(hello != NULL);
+      GNUNET_TRANSPORT_offer_hello (ctx->d2th, hello);
       ctx->timeout_hello = GNUNET_TIME_relative_add(ctx->timeout_hello,
 						    GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS,
 										  500));

@@ -266,6 +266,7 @@ run (void *cls,
   main_cfg = cfg;
 
   peers_left = num_peers;
+  GNUNET_assert(num_peers > 0 && num_peers < (unsigned int)-1);
 
   /* For this specific test we only really want a CLIQUE topology as the
    * overlay allowed topology, and a RING topology as the underlying connection
