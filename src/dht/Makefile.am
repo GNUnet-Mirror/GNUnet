@@ -44,7 +44,7 @@ libgnunet_plugin_dhtlog_dummy_la_LIBADD = \
   $(XLIB)
 libgnunet_plugin_dhtlog_dummy_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
- 
+
 libgnunet_plugin_dhtlog_mysql_dump_la_SOURCES = \
   plugin_dhtlog_mysql_dump.c
 libgnunet_plugin_dhtlog_mysql_dump_la_LIBADD = \
@@ -83,6 +83,7 @@ STUD_PROGS =  gnunet-service-dht-can \
  gnunet-service-dht-freenet \
  gnunet-service-dht-kademlia \
  gnunet-service-dht-koorde 
+STUD_TESTS = test_kademlia_end2end
 endif
 
 bin_PROGRAMS = $(STUD_PROGS) \
@@ -189,7 +190,7 @@ gnunet_dht_driver_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/dht/libgnunetdhtlog.la
 
-check_PROGRAMS = \
+check_PROGRAMS = $(STUD_TESTS) \
  test_dht_api \
  test_dht_twopeer \
  test_dht_twopeer_put_get \
@@ -233,6 +234,14 @@ test_dht_twopeer_put_get_LDADD = \
 test_dhtlog_SOURCES = \
  test_dhtlog.c
 test_dhtlog_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/dht/libgnunetdht.la \
+ $(top_builddir)/src/dht/libgnunetdhtlog.la
+
+test_kademlia_end2end_SOURCES = \
+ test_kademlia_end2end.c
+test_kademlia_end2end_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/dht/libgnunetdht.la \

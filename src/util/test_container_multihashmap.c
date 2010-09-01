@@ -37,6 +37,7 @@ testMap (int i)
   struct GNUNET_CONTAINER_MultiHashMap *m;
   GNUNET_HashCode k1;
   GNUNET_HashCode k2;
+  const char *ret;
   int j;
 
   CHECK (NULL != (m = GNUNET_CONTAINER_multihashmap_create (i)));
@@ -59,7 +60,9 @@ testMap (int i)
                                                          "v1",
                                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE));
   CHECK (1 == GNUNET_CONTAINER_multihashmap_size (m));
-  CHECK (0 == strcmp ("v1", GNUNET_CONTAINER_multihashmap_get (m, &k1)));
+  ret = GNUNET_CONTAINER_multihashmap_get (m, &k1);
+  GNUNET_assert (ret != NULL);
+  CHECK (0 == strcmp ("v1", ret));
   CHECK (GNUNET_NO == GNUNET_CONTAINER_multihashmap_put (m,
                                                          &k1,
                                                          "v1",

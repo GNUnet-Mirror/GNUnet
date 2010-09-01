@@ -491,7 +491,7 @@ void *GNUNET_xmalloc_unchecked_ (size_t size,
  * memory is available.
  */
 void *GNUNET_xrealloc_ (void *ptr,
-                        const size_t n, const char *filename, int linenumber);
+                        size_t n, const char *filename, int linenumber);
 
 /**
  * Free memory. Merely a wrapper for the case that we

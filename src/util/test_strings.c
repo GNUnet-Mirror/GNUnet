@@ -77,6 +77,7 @@ check ()
 		   hdir,
 		   DIR_SEPARATOR_STR);
   b = GNUNET_STRINGS_filename_expand ("~");
+  GNUNET_assert (b != NULL);
   WANT (buf, b);
   GNUNET_STRINGS_buffer_fill (buf, sizeof (buf), 3, "a", "btx", "c");
   WANTB ("a\0btx\0c", buf, 8);
