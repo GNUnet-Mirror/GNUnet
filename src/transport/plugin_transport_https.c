@@ -48,6 +48,8 @@
 #define DEBUG_CONNECTIONS GNUNET_NO
 #define DEBUG_SESSION_SELECTION GNUNET_NO
 
+#define CURL_TCP_NODELAY GNUNET_YES
+
 #define INBOUND GNUNET_NO
 #define OUTBOUND GNUNET_YES
 
@@ -1688,6 +1690,9 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_PRIVATE, ps);
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_BUFFERSIZE, GNUNET_SERVER_MAX_MESSAGE_SIZE);
+#if CURL_TCP_NODELAY
+        curl_easy_setopt(ps->recv_endpoint, CURLOPT_TCP_NODELAY, 1);
+#endif
 
         if (fresh==GNUNET_YES)
         {
@@ -1779,6 +1784,9 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
 		curl_easy_setopt(ps->send_endpoint, CURLOPT_PRIVATE, ps);
 		curl_easy_setopt(ps->send_endpoint, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
 		curl_easy_setopt(ps->send_endpoint, CURLOPT_BUFFERSIZE, GNUNET_SERVER_MAX_MESSAGE_SIZE);
+#if CURL_TCP_NODELAY
+        curl_easy_setopt(ps->send_endpoint, CURLOPT_TCP_NODELAY, 1);
+#endif
 
 		if (fresh==GNUNET_YES)
 		{
@@ -2608,18 +2616,14 @@ libgnunet_plugin_transport_https_init (void *cls)
                                        port,
                                        &mhd_accept_cb,
                                        plugin , &mdh_access_cb, plugin,
-                                       /*MHD_OPTION_HTTPS_PRIORITIES,  "NORMAL:",*/
-                                       /*MHD_OPTION_HTTPS_PRIORITIES,  "PERFORMANCE:",*/
-                                       /* MHD_OPTION_HTTPS_PRIORITIES, "NONE:+VERS-TLS1.0:+ARCFOUR-128:+SHA1:+RSA:+COMP-NULL", */
-                                       /*MHD_OPTION_HTTPS_PRIORITIES,  "NONE:+VERS-TLS1.0:+ARCFOUR-128:+MD5:+RSA:+COMP-NULL",*/
-				       MHD_OPTION_HTTPS_PRIORITIES,  plugin->crypto_init,
+                                       MHD_OPTION_HTTPS_PRIORITIES,  plugin->crypto_init,
                                        MHD_OPTION_HTTPS_MEM_KEY, plugin->key,
                                        MHD_OPTION_HTTPS_MEM_CERT, plugin->cert,
                                        MHD_OPTION_SOCK_ADDR, tmp,
                                        MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 32,
                                        //MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 6,
                                        MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) timeout,
-                                       MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
+                                       MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) 2 * GNUNET_SERVER_MAX_MESSAGE_SIZE,
                                        MHD_OPTION_NOTIFY_COMPLETED, &mhd_termination_cb, NULL,
                                        MHD_OPTION_EXTERNAL_LOGGER, mhd_logger, plugin->mhd_log,
                                        MHD_OPTION_END);
@@ -2634,18 +2638,14 @@ libgnunet_plugin_transport_https_init (void *cls)
                                        port,
                                        &mhd_accept_cb,
                                        plugin , &mdh_access_cb, plugin,
-                                       /*MHD_OPTION_HTTPS_PRIORITIES,  "NORMAL:",*/
-                                       /*MHD_OPTION_HTTPS_PRIORITIES,  "PERFORMANCE:",*/
-                                       /* MHD_OPTION_HTTPS_PRIORITIES, "NONE:+VERS-TLS1.0:+ARCFOUR-128:+SHA1:+RSA:+COMP-NULL", */
-                                       /*MHD_OPTION_HTTPS_PRIORITIES,  "NONE:+VERS-TLS1.0:+ARCFOUR-128:+MD5:+RSA:+COMP-NULL",*/
-				       MHD_OPTION_HTTPS_PRIORITIES,  plugin->crypto_init,
+				                       MHD_OPTION_HTTPS_PRIORITIES,  plugin->crypto_init,
                                        MHD_OPTION_HTTPS_MEM_KEY, plugin->key,
                                        MHD_OPTION_HTTPS_MEM_CERT, plugin->cert,
                                        MHD_OPTION_SOCK_ADDR, (struct sockaddr_in *)plugin->bind4_address,
                                        MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 32,
                                        //MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 6,
                                        MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) timeout,
-                                       MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
+                                       MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) 2 * GNUNET_SERVER_MAX_MESSAGE_SIZE,
                                        MHD_OPTION_NOTIFY_COMPLETED, &mhd_termination_cb, NULL,
                                        MHD_OPTION_EXTERNAL_LOGGER, mhd_logger, plugin->mhd_log,
                                        MHD_OPTION_END);
