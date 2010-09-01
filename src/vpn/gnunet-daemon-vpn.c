@@ -156,20 +156,17 @@ static void message_token(void *cls, void *client, const struct GNUNET_MessageHe
  */
 static void
 run (void *cls,
-		struct GNUNET_SCHEDULER_Handle *sched,
-		char *const *args,
-		const char *cfgfile,
-		const struct GNUNET_CONFIGURATION_Handle *cfg) {
-
-	struct vpn_cls* mycls = (struct vpn_cls*) cls;
-
-	mycls->sched = sched;
-
-	mycls->mst = GNUNET_SERVER_mst_create(&message_token, mycls);
-
-	GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);
-
-	start_helper_and_schedule(mycls);
+     struct GNUNET_SCHEDULER_Handle *sched,
+     char *const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg) 
+{
+  struct vpn_cls* mycls = cls;
+  
+  mycls->sched = sched;
+  mycls->mst = GNUNET_SERVER_mst_create(&message_token, mycls);
+  GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls); 
+  start_helper_and_schedule(mycls);
 }
 
 
@@ -196,7 +193,7 @@ main (int argc, char *const *argv)
                               gettext_noop ("help text"),
                               options, &run, cls)) ? ret : 1;
 
-  GNUNET_free(cls); // Make clang happy
+  GNUNET_free(cls); /* Make clang happy */
 }
 
 /* end of gnunet-daemon-vpn.c */
