@@ -104,7 +104,8 @@
 /**
  * Default options for find peer requests sent by the dht service.
  */
-#define DHT_DEFAULT_FIND_PEER_OPTIONS GNUNET_DHT_RO_NONE
+#define DHT_DEFAULT_FIND_PEER_OPTIONS GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE
+/*#define DHT_DEFAULT_FIND_PEER_OPTIONS GNUNET_DHT_RO_NONE*/
 
 /**
  * How long at least to wait before sending another find peer request.
@@ -831,6 +832,24 @@ static struct GNUNET_TIME_Relative get_average_send_delay()
   return average_time;
 }
 #endif
+
+/**
+ * Given the largest send delay, artificially decrease it
+ * so the next time around we may have a chance at sending
+ * again.
+ */
+static void decrease_max_send_delay(struct GNUNET_TIME_Relative max_time)
+{
+  unsigned int i;
+  for (i = 0; i < MAX_REPLY_TIMES; i++)
+    {
+      if (reply_times[i].value == max_time.value)
+        {
+          reply_times[i].value = reply_times[i].value / 2;
+          return;
+        }
+    }
+}
 
 /**
  * Find the maximum send time of the recently sent values.
@@ -1899,6 +1918,7 @@ static int route_result_message(void *cls,
   pos = record->head;
   while (pos != NULL)
     {
+#if STRICT_FORWARDING
       if (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_RESULT) /* If we have already forwarded this peer id, don't do it again! */
         {
           if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (pos->find_peers_responded, &new_peer.hashPubKey))
@@ -1910,6 +1930,7 @@ static int route_result_message(void *cls,
           else
             GNUNET_CONTAINER_bloomfilter_add(pos->find_peers_responded, &new_peer.hashPubKey);
         }
+#endif
 
       if (0 == memcmp(&pos->source, &my_identity, sizeof(struct GNUNET_PeerIdentity))) /* Local client (or DHT) initiated request! */
         {
@@ -2175,13 +2196,17 @@ handle_dht_find_peer (void *cls,
     }
   GNUNET_CONTAINER_bloomfilter_free(incoming_bloom);
 
+#if RESTRICT_FIND_PEER
+
+  /**
+   * Ignore any find peer requests from a peer we have seen very recently.
+   */
   if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(recent_find_peer_requests, &message_context->key)) /* We have recently responded to a find peer request for this peer! */
   {
     increment_stats("# dht find peer requests ignored (recently seen!)");
     return;
   }
 
-#if RESTRICT_FIND_PEER
   /**
    * Use this check to only allow the peer to respond to find peer requests if
    * it would be beneficial to have the requesting peer in this peers routing
@@ -2201,7 +2226,7 @@ handle_dht_find_peer (void *cls,
   recent_hash = GNUNET_malloc(sizeof(GNUNET_HashCode));
   memcpy(recent_hash, &message_context->key, sizeof(GNUNET_HashCode));
   GNUNET_CONTAINER_multihashmap_put (recent_find_peer_requests, &message_context->key, NULL, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-  GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 120), &remove_recent_find_peer, &recent_hash);
+  GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30), &remove_recent_find_peer, &recent_hash);
 
   /* Simplistic find_peer functionality, always return our hello */
   hello_size = ntohs(my_hello->size);
@@ -2416,7 +2441,7 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
     target_value++;
 #endif
 
-  random_value = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, target_replication * (hop_count + 1) + diameter) + 1;
+  random_value = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_STRONG, target_replication * (hop_count + 1) + diameter) + 1;
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "replication %u, at hop %d, will split with probability %f\n", target_replication, hop_count, target_replication / (double)((target_replication * (hop_count + 1) + diameter) + 1));
   target_value = 1;
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "random %u, target %u, max %u\n", random_value, target_replication, target_replication * (hop_count + 1) + diameter);
@@ -3263,7 +3288,7 @@ handle_dht_control_message (void *cls, struct GNUNET_SERVER_Client *client,
   switch (ntohs(dht_control_msg->command))
   {
   case GNUNET_MESSAGE_TYPE_DHT_FIND_PEER:
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Sending self seeking find peer request!\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sending self seeking find peer request!\n");
     GNUNET_SCHEDULER_add_now(sched, &send_find_peer_message, NULL);
     break;
   case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_GET:
@@ -3361,7 +3386,8 @@ handle_dht_p2p_route_request (void *cls,
 
   if (get_max_send_delay().value > MAX_REQUEST_TIME.value)
   {
-    fprintf(stderr, "Sending of previous requests has taken far too long, backing off!\n");
+    fprintf(stderr, "Sending of previous replies took far too long, backing off!\n");
+    decrease_max_send_delay(get_max_send_delay());
     return GNUNET_YES;
   }
 
