@@ -1573,11 +1573,7 @@ handle_tcp_nat_probe (void *cls,
       GNUNET_SERVER_client_keep (client);
       session->client = client;
       session->last_activity = GNUNET_TIME_absolute_get ();
-      /* FIXME: Should this be inbound or outbound?
-       * I think it should be outbound because we technically
-       * initiated it... But something goes wrong somewhere. */
-      /* session->inbound = GNUNET_YES; */
-      session->inbound = GNUNET_YES;
+      session->inbound = GNUNET_NO;
 
       if (GNUNET_OK ==
           GNUNET_SERVER_client_get_address (client, &vaddr, &alen))
@@ -1932,10 +1928,9 @@ process_interfaces (void *cls,
       GNUNET_break (0);
       return GNUNET_OK;
     }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO |
-                   GNUNET_ERROR_TYPE_BULK,
-		   _("Found address `%s' (%s)\n"),
-                   GNUNET_a2s (addr, addrlen), name);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		   _("Found address `%s' (%s) len %d\n"),
+                   GNUNET_a2s (addr, addrlen), name, args);
 
   plugin->env->notify_address (plugin->env->cls,
                                "tcp",
@@ -1943,10 +1938,9 @@ process_interfaces (void *cls,
 
   if (arg_nat != NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO |
-                       GNUNET_ERROR_TYPE_BULK,
-                      _("Found address `%s' (%s)\n"),
-                      GNUNET_a2s (addr, addrlen), name);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      _("Found address `%s' (%s) len %d\n"),
+                      GNUNET_a2s (addr, addrlen), name, args);
       plugin->env->notify_address (plugin->env->cls,
                                    "tcp",
                                    arg_nat, args, GNUNET_TIME_UNIT_FOREVER_REL);
@@ -2468,11 +2462,12 @@ libgnunet_plugin_transport_tcp_init (void *cls)
       add_to_address_list (plugin, &t4.ipv4_addr, sizeof (uint32_t));
       plugin->env->notify_address (plugin->env->cls,
                                   "tcp",
-                                  &t4, sizeof(t4), GNUNET_TIME_UNIT_FOREVER_REL);
+                                   &t4, sizeof(t4), GNUNET_TIME_UNIT_FOREVER_REL);
     }
   else if ((plugin->external_address != NULL) && (inet_pton(AF_INET, plugin->external_address, &t4.ipv4_addr) == 1))
     {
       t4.t_port = htons(plugin->adv_port);
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Notifying transport of address %s:%d\n", plugin->external_address, plugin->adv_port);
       add_to_address_list (plugin, &t4.ipv4_addr, sizeof (uint32_t));
       plugin->env->notify_address (plugin->env->cls,
                                    "tcp",
