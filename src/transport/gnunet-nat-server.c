@@ -631,6 +631,8 @@ main (int argc,
 		   strerror (errno));
 	  break;
 	}
+      if (1 == getppid()) /* Check the parent process id, if 1 the parent has died, so we should die too */
+        break;
       if (FD_ISSET (icmpsock, &rs))
 	process_icmp_response ();
       if (0 == (++alt % 2))
