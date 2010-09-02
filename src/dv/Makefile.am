@@ -29,8 +29,6 @@ libgnunetdv_la_LDFLAGS = \
 bin_PROGRAMS = \
  gnunet-service-dv
  
-noinst_PROGRAMS = ${check_PROGRAMS}
-
 gnunet_service_dv_SOURCES = \
  gnunet-service-dv.c         
 gnunet_service_dv_LDADD = \
