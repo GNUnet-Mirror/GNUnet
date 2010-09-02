@@ -226,7 +226,7 @@ do_transmit (void *cls, size_t size, void *buf)
   h->th = NULL;
   if (buf == NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
                   _("Failed to transmit message to `%s' service.\n"),
 		  "PEERINFO");
       if (tqe != NULL)
@@ -528,7 +528,7 @@ signal_timeout (void *cls,
 {
   struct GNUNET_PEERINFO_IteratorContext *ic = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
 	      _("Timeout transmitting iteration request to `%s' service.\n"),
 	      "PEERINFO");
   ic->timeout_task = GNUNET_SCHEDULER_NO_TASK;
@@ -536,11 +536,10 @@ signal_timeout (void *cls,
     GNUNET_CONTAINER_DLL_remove (ic->h->tq_head,
 				 ic->h->tq_tail,
 				 ic->tqe);
+  reconnect (ic->h);
   ic->callback (ic->callback_cls, NULL, NULL);
   ic->callback = NULL;
-  if (ic->in_receive)
-    return;
-  GNUNET_free (ic->tqe);
+  GNUNET_free_non_null (ic->tqe);
   GNUNET_free (ic);
 }
 
