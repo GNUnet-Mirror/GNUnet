@@ -3540,6 +3540,29 @@ GNUNET_TESTING_daemon_get (struct GNUNET_TESTING_PeerGroup *pg, unsigned int pos
     return NULL;
 }
 
+/*
+ * Get a daemon by peer identity, so callers can
+ * retrieve the daemon without knowing it's offset.
+ *
+ * @param pg the peer group to retrieve the daemon from
+ * @param peer_id the peer identity of the daemon to retrieve
+ *
+ * @return the daemon on success, or NULL if no such peer identity is found
+ */
+struct GNUNET_TESTING_Daemon *
+GNUNET_TESTING_daemon_get_by_id (struct GNUNET_TESTING_PeerGroup *pg, struct GNUNET_PeerIdentity *peer_id)
+{
+  unsigned int i;
+
+  for (i = 0; i < pg->total; i ++)
+    {
+      if (0 == memcmp(&pg->peers[i].daemon->id, peer_id, sizeof(struct GNUNET_PeerIdentity)))
+        return pg->peers[i].daemon;
+    }
+
+  return NULL;
+}
+
 /**
  * Prototype of a function that will be called when a
  * particular operation was completed the testing library.
