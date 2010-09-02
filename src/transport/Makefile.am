@@ -196,7 +196,6 @@ TESTS = \
  $(HTTPS_PLUGIN_TEST) \
  $(HTTPS_API_TEST) \
  test_transport_api_reliability_tcp \
- test_transport_api_reliability_tcp_nat \
  $(HTTP_REL_TEST) \
  $(HTTPS_REL_TEST)
 endif
