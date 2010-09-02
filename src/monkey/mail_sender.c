@@ -192,7 +192,7 @@ void sendMail(const char *messageContents)
 	sprintf(tempFileName, "/tmp/messageXXXXXX");
 	tempFd = mkstemp(tempFileName);
 	fp = fdopen(tempFd, "w");
-	fprintf(fp, messageContents);
+	fprintf(fp, "%s", messageContents);
 	fclose(fp);	
 	fp = fopen(tempFileName, "r");
 	smtp_set_message_fp(message, fp);
