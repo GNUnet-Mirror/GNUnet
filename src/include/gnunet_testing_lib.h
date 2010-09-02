@@ -456,6 +456,18 @@ struct GNUNET_TESTING_Daemon *
 GNUNET_TESTING_daemon_get (struct GNUNET_TESTING_PeerGroup *pg, 
 			   unsigned int position);
 
+/*
+ * Get a daemon by peer identity, so callers can
+ * retrieve the daemon without knowing it's offset.
+ *
+ * @param pg the peer group to retrieve the daemon from
+ * @param peer_id the peer identity of the daemon to retrieve
+ *
+ * @return the daemon on success, or NULL if no such peer identity is found
+ */
+struct GNUNET_TESTING_Daemon *
+GNUNET_TESTING_daemon_get_by_id (struct GNUNET_TESTING_PeerGroup *pg,
+                                 struct GNUNET_PeerIdentity *peer_id);
 
 /**
  * Stops a GNUnet daemon.
