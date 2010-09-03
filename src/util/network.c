@@ -56,7 +56,7 @@ struct GNUNET_NETWORK_FDSet
 {
 
   /**
-   * Maximum number of any socket socket descriptor in the set
+   * Maximum number of any socket socket descriptor in the set (plus one)
    */
   int nsds;
 
@@ -1007,7 +1007,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
       GNUNET_break (0);
     }
 #ifndef MINGW
-  return select (nfds + 1,
+  return select (nfds,
                  (rfds != NULL) ? &rfds->sds : NULL,
                  (wfds != NULL) ? &wfds->sds : NULL,
                  (efds != NULL) ? &efds->sds : NULL,
