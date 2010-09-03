@@ -123,6 +123,7 @@ abort_sks_search_task (void *cls,
   sks_search = NULL;
   ns = GNUNET_FS_namespace_create (fs,
 				   "testNamespace");
+  GNUNET_assert (NULL != ns);
   GNUNET_assert (GNUNET_OK == GNUNET_FS_namespace_delete (ns, GNUNET_YES));
   if (ksk_search == NULL)
     {
@@ -305,6 +306,7 @@ adv_cont (void *cls,
   expiration = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
   ns = GNUNET_FS_namespace_create (fs,
 				   "testNamespace");
+  GNUNET_assert (NULL != ns);
   meta = GNUNET_CONTAINER_meta_data_create ();
   GNUNET_assert (NULL == emsg);
   sks_expect_uri = GNUNET_FS_uri_dup (uri);
@@ -350,6 +352,7 @@ testNamespace ()
 
   ns = GNUNET_FS_namespace_create (fs,
 				   "testNamespace");
+  GNUNET_assert (NULL != ns);
   ok = GNUNET_NO;
   GNUNET_FS_namespace_list (fs, &ns_iterator, &ok);
   if (GNUNET_NO == ok)

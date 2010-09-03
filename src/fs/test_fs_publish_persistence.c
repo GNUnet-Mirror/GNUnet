@@ -332,6 +332,7 @@ run (void *cls,
 						     1,
 						     42,
 						     GNUNET_TIME_relative_to_absolute (LIFETIME)); 
+  GNUNET_assert (NULL != fi1);
   fi2 = GNUNET_FS_file_information_create_from_file (fs,
 						     "publish-context2",
 						     fn2,
@@ -341,6 +342,7 @@ run (void *cls,
 						     2,
 						     42,
 						     GNUNET_TIME_relative_to_absolute (LIFETIME)); 
+  GNUNET_assert (NULL != fi2);
   fidir = GNUNET_FS_file_information_create_empty_directory (fs,
 							     "publish-context-dir",
 							     kuri,
