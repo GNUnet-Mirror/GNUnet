@@ -67,7 +67,7 @@
  */
 #define MINIMUM_PEER_THRESHOLD 20
 
-#define DHT_MAX_RECENT 100
+#define DHT_MAX_RECENT 1000
 
 #define FIND_PEER_CALC_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 
@@ -82,9 +82,9 @@
 #define DHT_DEFAULT_P2P_IMPORTANCE 0
 
 /**
- * How long to keep recent requests arounds by default.
+ * How long to keep recent requests around by default.
  */
-#define DEFAULT_RECENT_REMOVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60)
+#define DEFAULT_RECENT_REMOVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
 
 /**
  * Default time to wait to send find peer messages sent by the dht service.
@@ -1874,7 +1874,7 @@ static int route_result_message(void *cls,
         {
           increment_stats(STAT_HELLOS_PROVIDED);
           GNUNET_TRANSPORT_offer_hello(transport_handle, hello_msg);
-          /* GNUNET_CORE_peer_request_connect(sched, cfg, GNUNET_TIME_UNIT_FOREVER_REL, &new_peer, NULL, NULL); */
+          GNUNET_CORE_peer_request_connect(sched, cfg, GNUNET_TIME_UNIT_FOREVER_REL, &new_peer, NULL, NULL);
           /* peer_request_connect call causes service to segfault */
           /* FIXME: Do we need this (peer_request_connect call)??? */
         }

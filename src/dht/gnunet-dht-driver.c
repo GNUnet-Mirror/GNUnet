@@ -1335,7 +1335,7 @@ schedule_find_peer_requests (void *cls, const struct GNUNET_SCHEDULER_TaskContex
   if (find_peer_ctx->previous_peers == 0) /* First time, go slowly */
     find_peer_ctx->total = 1;
   else if (find_peer_ctx->current_peers - find_peer_ctx->previous_peers > MAX_FIND_PEER_CUTOFF) /* Found LOTS of peers, still go slowly */
-    find_peer_ctx->total = find_peer_ctx->last_sent / 2;
+    find_peer_ctx->total = find_peer_ctx->last_sent - (find_peer_ctx->last_sent / 8);
 #if USE_MIN
   else if (find_peer_ctx->current_peers - find_peer_ctx->previous_peers < MIN_FIND_PEER_CUTOFF)
     find_peer_ctx->total = find_peer_ctx->last_sent * 2; /* FIXME: always multiply by two (unless above max?) */
@@ -1464,8 +1464,8 @@ continue_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
   struct FindPeerContext *find_peer_context;
   if (dhtlog_handle != NULL)
     {
-      if (settle_time >= 60 * 2)
-        max = (settle_time / 60) - 2;
+      if (settle_time >= 180 * 2)
+        max = (settle_time / 180) - 2;
       else
         max = 1;
       for (i = 1; i < max; i++)
@@ -1474,7 +1474,7 @@ continue_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
           topo_ctx->current_iteration = i;
           topo_ctx->total_iterations = max;
           //fprintf(stderr, "scheduled topology iteration in %d minutes\n", i);
-          GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, i), &capture_current_topology, topo_ctx);
+          GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, i * 3), &capture_current_topology, topo_ctx);
         }
       topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
       topo_ctx->cont = &setup_puts_and_gets;
