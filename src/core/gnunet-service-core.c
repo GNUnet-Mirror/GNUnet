@@ -2243,7 +2243,7 @@ handle_client_send (void *cls,
   if (msize <
       sizeof (struct SendMessage) + sizeof (struct GNUNET_MessageHeader))
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "about to assert fail, msize is %d, should be less than %d\n", msize, sizeof (struct SendMessage) + sizeof (struct GNUNET_MessageHeader));
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "about to assert fail, msize is %d, should be at least %d\n", msize, sizeof (struct SendMessage) + sizeof (struct GNUNET_MessageHeader));
       GNUNET_break (0);
       if (client != NULL)
         GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -2367,6 +2367,13 @@ notify_transport_connect_done (void *cls, size_t size, void *buf)
 {
   struct Neighbour *n = cls;
 
+  if (GNUNET_YES != n->is_connected)
+    {
+      /* transport should only call us to transmit a message after
+       * telling us about a successful connection to the respective peer */
+      GNUNET_break (0);
+      return 0;
+    }
   n->th = NULL;
   if (buf == NULL)
     {
@@ -2416,14 +2423,20 @@ handle_client_request_connect (void *cls,
     n = create_neighbour (&cm->peer);
   if ( (GNUNET_YES == n->is_connected) ||
        (n->th != NULL) )
-    return; /* already connected, or at least trying */
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                 "Core received `%s' request for `%4s', already connected!\n",
+                 "REQUEST_CONNECT",
+                 GNUNET_i2s (&cm->peer));
+      return; /* already connected, or at least trying */
+    }
   GNUNET_STATISTICS_update (stats, gettext_noop ("# connection requests received"), 1, GNUNET_NO);
-#if DEBUG_CORE
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Core received `%s' request for `%4s', will try to establish connection\n",
 	      "REQUEST_CONNECT",
 	      GNUNET_i2s (&cm->peer));
-#endif
+
   timeout = GNUNET_TIME_relative_ntoh (cm->timeout);
   /* ask transport to connect to the peer */
   n->th = GNUNET_TRANSPORT_notify_transmit_ready (transport,
@@ -3067,7 +3080,7 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
 		   &my_identity,
 		   sizeof (struct GNUNET_PeerIdentity)))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  _("Received `%s' message that was for `%s', not for me.  Ignoring.\n"),
 		  "SET_KEY",
 		  GNUNET_i2s (&m->target));
@@ -3764,8 +3777,9 @@ handle_transport_notify_disconnect (void *cls,
 
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer `%4s' disconnected from us.\n", GNUNET_i2s (peer));
+              "Peer `%4s' disconnected from us; received notification from transport.\n", GNUNET_i2s (peer));
 #endif
+
   n = find_neighbour (peer);
   if (n == NULL)
     {
