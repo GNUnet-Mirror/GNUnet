@@ -470,6 +470,7 @@ struct GNUNET_TESTING_PeerGroup
 struct UpdateContext
 {
   struct GNUNET_CONFIGURATION_Handle *ret;
+  const struct GNUNET_CONFIGURATION_Handle *orig;
   const char *hostname;
   unsigned int nport;
   unsigned int upnum;
@@ -688,24 +689,34 @@ update_config (void *cls,
   unsigned int ival;
   char cval[12];
   char uval[128];
+  char *single_variable;
 
   if ((0 == strcmp (option, "PORT")) && (1 == sscanf (value, "%u", &ival)))
     {
-      if (ival != 0)
+      GNUNET_asprintf(&single_variable, "single_%s_per_host", section);
+      if ((ival != 0) && (GNUNET_YES != GNUNET_CONFIGURATION_get_value_yesno(ctx->orig, "testing", single_variable)))
 	{
 	  GNUNET_snprintf (cval, sizeof (cval), "%u", ctx->nport++);
 	  value = cval;
 	}
+
+      GNUNET_free(single_variable);
     }
 
   if (0 == strcmp (option, "UNIXPATH"))
     {
-      GNUNET_snprintf (uval, 
-		       sizeof (uval),
-		       "/tmp/test-service-%s-%u", 
-		       section,
-		       ctx->upnum++);
-      value = uval;
+      GNUNET_asprintf(&single_variable, "single_%s_per_host", section);
+      if (GNUNET_YES != GNUNET_CONFIGURATION_get_value_yesno(ctx->orig, "testing", single_variable))
+        {
+          GNUNET_snprintf (uval,
+                           sizeof (uval),
+                           "/tmp/test-service-%s-%u",
+                           section,
+                           ctx->upnum++);
+          value = uval;
+        }
+      GNUNET_free(single_variable);
+
     }
 
   if ((0 == strcmp (option, "HOSTNAME")) && (ctx->hostname != NULL))
@@ -747,6 +758,7 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg,
   uc.upnum = *upnum;
   uc.ret = GNUNET_CONFIGURATION_create ();
   uc.hostname = hostname;
+  uc.orig = cfg;
 
   GNUNET_CONFIGURATION_iterate (cfg, &update_config, &uc);
   if (uc.nport >= HIGH_PORT)
