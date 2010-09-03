@@ -106,10 +106,13 @@ send_request (void *cls,
   msg.timeout = GNUNET_TIME_relative_hton (GNUNET_TIME_absolute_get_remaining (prh->timeout));
   msg.peer = prh->peer;
   memcpy (buf, &msg, sizeof (msg));
-  GNUNET_SCHEDULER_add_continuation (prh->sched,
-				     prh->cont,
-				     prh->cont_cls,
-				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  if (prh->cont != NULL)
+    {
+      GNUNET_SCHEDULER_add_continuation (prh->sched,
+                                         prh->cont,
+                                         prh->cont_cls,
+                                         GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    }
   GNUNET_CLIENT_disconnect (prh->client, GNUNET_YES);
   GNUNET_free (prh);
   return sizeof (msg);
