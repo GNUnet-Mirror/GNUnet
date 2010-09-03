@@ -151,6 +151,7 @@ run (void *cls,
   sched = s;
   cfg = c;
   h = GNUNET_PEERINFO_connect (sched, cfg);
+  GNUNET_assert (h != NULL);
   add_peer ();
   ic = GNUNET_PEERINFO_iterate (h,
 				NULL,
