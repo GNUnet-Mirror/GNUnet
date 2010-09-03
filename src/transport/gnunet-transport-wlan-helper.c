@@ -29,7 +29,7 @@
  */
 
 #include "gnunet-transport-wlan-helper.h"
-#include <pcap/pcap.h>
+#include <pcap.h>
 
 //#include "radiotap.h"
 
