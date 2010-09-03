@@ -43,7 +43,7 @@
 
 #define DEBUG_PING_PONG GNUNET_NO
 
-#define DEBUG_TRANSPORT_HELLO GNUNET_NO
+#define DEBUG_TRANSPORT_HELLO GNUNET_YES
 
 /**
  * Should we do some additional checks (to validate behavior
@@ -2625,7 +2625,7 @@ add_to_foreign_address_list (void *cls,
   fal = find_peer_address (n, tname, NULL, addr, addrlen);
   if (fal == NULL)
     {
-#if DEBUG_TRANSPORT
+#if DEBUG_TRANSPORT_HELLO
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Adding address `%s' (%s) for peer `%4s' due to PEERINFO data for %llums.\n",
 		  a2s (tname, addr, addrlen),
@@ -2656,7 +2656,7 @@ add_to_foreign_address_list (void *cls,
     }
   if (fal == NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  "Failed to add new address for `%4s'\n",
 		  GNUNET_i2s (&n->id));
       return GNUNET_OK;
@@ -3028,13 +3028,16 @@ setup_peer_check_blacklist (const struct GNUNET_PeerIdentity *peer,
   n = find_neighbour(peer);
   if (n != NULL)
     {
-      cont (cont_cls, n);
+      if (cont != NULL)
+        cont (cont_cls, n);
       return;
     }
   if (bl_head == NULL)
     {
-      cont (cont_cls,
-	    setup_new_neighbour (peer, do_hello));
+      if (cont != NULL)
+        cont (cont_cls, setup_new_neighbour (peer, do_hello));
+      else
+        setup_new_neighbour(peer, do_hello);
       return;
     }
   bc = GNUNET_malloc (sizeof (struct BlacklistCheck));
@@ -3414,7 +3417,7 @@ handle_payload_message (const struct GNUNET_MessageHeader *message,
     }
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received message of type %u and size %u from `%4s', sending to all clients.\n",
 	      ntohs (message->type),
 	      ntohs (message->size),
@@ -4026,7 +4029,7 @@ check_hello_validated (void *cls,
 					     NULL);
 	  GNUNET_PEERINFO_add_peer (peerinfo, plain_hello);
 	  GNUNET_free (plain_hello);
-#if DEBUG_TRANSPORT
+#if DEBUG_TRANSPORT_HELLO
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "PEERINFO had no `%s' message for peer `%4s', full validation needed.\n",
 		      "HELLO",
@@ -4060,7 +4063,7 @@ check_hello_validated (void *cls,
     }
   if (h == NULL)
     return;
-#if DEBUG_TRANSPORT
+#if DEBUG_TRANSPORT_HELLO
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "PEERINFO had `%s' message for peer `%4s', validating only new addresses.\n",
 	      "HELLO",
@@ -4070,6 +4073,11 @@ check_hello_validated (void *cls,
   n = find_neighbour (peer);
   if (n != NULL)
     {
+#if DEBUG_TRANSPORT_HELLO
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Calling hello_iterate_addresses for %s!\n",
+                  GNUNET_i2s (peer));
+#endif
       GNUNET_HELLO_iterate_addresses (h,
 				      GNUNET_NO,
 				      &add_to_foreign_address_list,
@@ -4078,6 +4086,11 @@ check_hello_validated (void *cls,
     }
   else
     {
+#if DEBUG_TRANSPORT_HELLO
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "No existing neighbor record for %s!\n",
+                  GNUNET_i2s (peer));
+#endif
       GNUNET_STATISTICS_update (stats,
 				gettext_noop ("# no existing neighbour record (validating HELLO)"),
 				1,
@@ -4158,6 +4171,13 @@ process_hello (struct TransportPlugin *plugin,
   GNUNET_CRYPTO_hash (&publicKey,
                       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                       &target.hashPubKey);
+
+#if DEBUG_TRANSPORT_HELLO
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s' message for `%4s'\n",
+              "HELLO",
+              GNUNET_i2s (&target));
+#endif
 
   if (0 == memcmp (&my_identity,
 		   &target,
@@ -4952,13 +4972,13 @@ handle_send (void *cls,
   obm = (const struct OutboundMessage *) message;
   obmm = (const struct GNUNET_MessageHeader *) &obm[1];
   msize = size - sizeof (struct OutboundMessage);
-#if DEBUG_TRANSPORT
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' request from client with target `%4s' and message of type %u and size %u\n",
               "SEND", GNUNET_i2s (&obm->peer),
               ntohs (obmm->type),
               msize);
-#endif
+
   tcmc = GNUNET_malloc (sizeof (struct TransmitClientMessageContext) + msize);
   tcmc->client = client;
   tcmc->priority = ntohl (obm->priority);
@@ -4972,6 +4992,31 @@ handle_send (void *cls,
 			      tcmc);
 }
 
+
+/**
+ * Handle request connect message
+ *
+ * @param cls closure (always NULL)
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_request_connect (void *cls,
+                        struct GNUNET_SERVER_Client *client,
+                        const struct GNUNET_MessageHeader *message)
+{
+  const struct TransportRequestConnectMessage *trcm =
+    (const struct TransportRequestConnectMessage *) message;
+
+  GNUNET_STATISTICS_update (stats,
+                            gettext_noop ("# REQUEST CONNECT messages received"),
+                            1,
+                            GNUNET_NO);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received a request connect message for peer %s\n", GNUNET_i2s(&trcm->peer));
+  setup_peer_check_blacklist (&trcm->peer, GNUNET_YES,
+                              NULL, NULL);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
 
 /**
  * Handle SET_QUOTA-message.
@@ -5373,6 +5418,8 @@ run (void *cls,
      GNUNET_MESSAGE_TYPE_HELLO, 0},
     {&handle_send, NULL,
      GNUNET_MESSAGE_TYPE_TRANSPORT_SEND, 0},
+    {&handle_request_connect, NULL,
+     GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_CONNECT, sizeof(struct TransportRequestConnectMessage)},
     {&handle_set_quota, NULL,
      GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA, sizeof (struct QuotaSetMessage)},
     {&handle_address_lookup, NULL,

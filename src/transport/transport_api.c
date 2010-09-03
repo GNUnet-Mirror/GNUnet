@@ -456,6 +456,9 @@ schedule_peer_transmission (struct GNUNET_TRANSPORT_Handle *h)
       next = n->next;
       if (n->transmit_stage != TS_QUEUED)
 	continue; /* not eligible */
+      if (n->is_connected != GNUNET_YES)
+        continue;
+
       th = &n->transmit_handle;
       GNUNET_break (n == th->neighbour);
       /* check outgoing quota */
@@ -500,6 +503,7 @@ schedule_peer_transmission (struct GNUNET_TRANSPORT_Handle *h)
 		  th->notify_size - sizeof (struct OutboundMessage),
 		  GNUNET_i2s (&n->id));
 #endif	
+
       if ( (ret == NULL) ||
 	   (ret->priority < th->priority) )
 	ret = th;
@@ -664,7 +668,7 @@ schedule_transmission (struct GNUNET_TRANSPORT_Handle *h)
     return;
   if (h->client == NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Could not yet schedule transmission: we are not yet connected to the transport service!\n"));
       return;                   /* not yet connected */
     }
@@ -688,6 +692,10 @@ schedule_transmission (struct GNUNET_TRANSPORT_Handle *h)
       size = th->notify_size;
       timeout = GNUNET_TIME_absolute_get_remaining (th->timeout);
     }
+#if DEBUG_TRANSPORT
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Calling notify_transmit_ready\n");
+#endif
   h->network_handle =
     GNUNET_CLIENT_notify_transmit_ready (h->client,
 					 size,
@@ -979,7 +987,7 @@ send_hello (void *cls, size_t size, void *buf)
   if (buf == NULL)
     {
 #if DEBUG_TRANSPORT_TIMEOUT
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Timeout while trying to transmit `%s' request.\n",
                   "HELLO");
 #endif
@@ -1247,6 +1255,40 @@ schedule_reconnect (struct GNUNET_TRANSPORT_Handle *h)
 
 
 /**
+ * Send request connect message to the service.
+ *
+ * @param cls the TransportRequestConnectMessage
+ * @param size number of bytes available in buf
+ * @param buf where to copy the message
+ * @return number of bytes copied to buf
+ */
+static size_t
+send_transport_request_connect (void *cls, size_t size, void *buf)
+{
+  struct TransportRequestConnectMessage *trcm = cls;
+
+  if (buf == NULL)
+    {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Buffer null for %s\n",
+                  "REQUEST_CONNECT");
+#endif
+      GNUNET_free (trcm);
+      return 0;
+    }
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Transmitting `%s' request for `%4s'.\n",
+              "REQUEST_CONNECT",
+              GNUNET_i2s (&trcm->peer));
+#endif
+  GNUNET_assert (size >= sizeof (struct TransportRequestConnectMessage));
+  memcpy(buf, trcm, sizeof(struct TransportRequestConnectMessage));
+  return sizeof(struct TransportRequestConnectMessage);
+}
+
+/**
  * Add neighbour to our list
  *
  * @return NULL if this API is currently disconnecting from the service
@@ -1256,6 +1298,7 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
                const struct GNUNET_PeerIdentity *pid)
 {
   struct NeighbourList *n;
+  struct TransportRequestConnectMessage *trcm;
 
   if (GNUNET_YES == h->in_disconnect)
     return NULL;
@@ -1278,6 +1321,15 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
   n->next = h->neighbours;
   n->h = h;
   h->neighbours = n;
+
+  trcm = GNUNET_malloc(sizeof(struct TransportRequestConnectMessage));
+  trcm->header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_CONNECT);
+  trcm->header.size = htons(sizeof(struct TransportRequestConnectMessage));
+  memcpy(&trcm->peer, pid, sizeof(struct GNUNET_PeerIdentity));
+  schedule_control_transmit (h,
+                             sizeof (struct TransportRequestConnectMessage),
+                             GNUNET_NO,
+                             GNUNET_TIME_UNIT_FOREVER_REL, &send_transport_request_connect, trcm);
   return n;
 }
 
@@ -1655,7 +1707,7 @@ peer_transmit_timeout (void *cls,
   th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
   n = th->neighbour;
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 	      "Triggering timeout for request to transmit to `%4s' (%d)\n",
 	      GNUNET_i2s (&n->id),
 	      n->transmit_stage);
@@ -1729,18 +1781,24 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
       GNUNET_break (0);
       return NULL;
     }
-#if DEBUG_TRANSPORT
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking transport service for transmission of %u bytes to peer `%4s' within %llu ms.\n",
               size, GNUNET_i2s (target),
 	      (unsigned long long) timeout.value);
-#endif
+
   n = neighbour_find (handle, target);
   if (n == NULL)
-    n = neighbour_add (handle, target);
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Created neighbour entry for peer `%s'\n",
+                  GNUNET_i2s (target));
+      n = neighbour_add (handle, target);
+
+    }
   if (n == NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Could not create neighbour entry for peer `%s'\n",
 		  GNUNET_i2s (target));
       return NULL;

@@ -127,6 +127,24 @@ struct DisconnectInfoMessage
 
 };
 
+/**
+ * Message type for sending a request connect message
+ * to the transport service.  Must be done before transport
+ * api will allow messages to be queued/sent to transport
+ * service for transmission to a peer.
+ */
+struct TransportRequestConnectMessage
+{
+  /**
+   *  Message header
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Identity of the peer we would like to connect to.
+   */
+  struct GNUNET_PeerIdentity peer;
+};
 
 /**
  * Message used to set a particular bandwidth quota.  Send TO the

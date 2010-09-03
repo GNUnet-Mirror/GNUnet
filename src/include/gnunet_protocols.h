@@ -185,6 +185,12 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_PONG 33
 
 /**
+ * Message for TRANSPORT asking that a connection
+ * be initiated with a peer.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_CONNECT 34
+
+/**
  * Request update and listing of a peer.
  */
 #define GNUNET_MESSAGE_TYPE_PEERINFO_GET 37
