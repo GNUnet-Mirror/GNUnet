@@ -333,9 +333,11 @@ check()
   if (str[0] != 'T')
     {
       GNUNET_CONTAINER_meta_data_destroy(meta2);
+      GNUNET_free (str);
       ABORT(meta);      
     } 
-
+  GNUNET_free (str);
+      
   //check meta_data_get_thumbnail
 
   if (GNUNET_CONTAINER_meta_data_get_thumbnail(meta, &thumb) != 0)

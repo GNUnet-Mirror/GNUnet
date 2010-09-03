@@ -140,8 +140,10 @@ testLocation ()
       GNUNET_break (0);
       GNUNET_FS_uri_destroy (uri);
       GNUNET_CONFIGURATION_destroy (cfg);
+      GNUNET_free (emsg);
       return 1;
     }
+  GNUNET_assert (NULL == emsg);
   if (GNUNET_YES != GNUNET_FS_uri_test_equal (uri, uri2))
     {
       GNUNET_break (0);
