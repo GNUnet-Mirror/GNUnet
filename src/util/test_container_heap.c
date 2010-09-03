@@ -49,6 +49,7 @@ check ()
   struct GNUNET_CONTAINER_HeapNode *n6;
   struct GNUNET_CONTAINER_HeapNode *n7;
   struct GNUNET_CONTAINER_HeapNode *n8;
+  const char *r;
 
   myHeap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   
@@ -101,14 +102,19 @@ check ()
   n6 = GNUNET_CONTAINER_heap_insert (myHeap, "30/200", 30);
   GNUNET_assert (5 == GNUNET_CONTAINER_heap_get_size (myHeap));
   GNUNET_CONTAINER_heap_remove_node (myHeap, n5);
+  r = GNUNET_CONTAINER_heap_remove_root (myHeap); /* n1 */
+  GNUNET_assert (NULL != r);
   GNUNET_assert (0 == strcmp ("11",
-			      GNUNET_CONTAINER_heap_remove_root (myHeap))); /* n1 */
+			      r));
   GNUNET_CONTAINER_heap_update_cost (myHeap, n6, 200);
   GNUNET_CONTAINER_heap_remove_node (myHeap, n3); 
+  r = GNUNET_CONTAINER_heap_remove_root (myHeap); /* n4 */
+  GNUNET_assert (NULL != r);
   GNUNET_assert (0 == strcmp ("50",
-			      GNUNET_CONTAINER_heap_remove_root (myHeap))); /* n4 */
-  GNUNET_assert (0 == strcmp ("30/200",
-			      GNUNET_CONTAINER_heap_remove_root (myHeap))); /* n6 */
+			      r));
+  r = GNUNET_CONTAINER_heap_remove_root (myHeap); /* n6 */
+  GNUNET_assert (NULL != r);
+  GNUNET_assert (0 == strcmp ("30/200", r));
   GNUNET_assert (0 == GNUNET_CONTAINER_heap_get_size (myHeap));
   
   GNUNET_CONTAINER_heap_destroy (myHeap);

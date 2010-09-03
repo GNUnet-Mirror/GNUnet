@@ -58,6 +58,7 @@ test_normal_rw ()
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_BIO_read_string (fileR, "Read string error",
                                          &readResultString, 200));
+  GNUNET_assert (NULL != readResultString);
   GNUNET_assert (0 == strcmp (TESTSTRING, readResultString));
   GNUNET_free (readResultString);
   GNUNET_assert (GNUNET_OK ==
