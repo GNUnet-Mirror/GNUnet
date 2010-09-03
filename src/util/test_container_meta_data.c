@@ -238,6 +238,8 @@ check()
   int q;
   int i = 100;
   char txt[128];
+  char *str;
+  unsigned char* thumb;
 
   meta = GNUNET_CONTAINER_meta_data_create ();
   meta2 = GNUNET_CONTAINER_meta_data_create ();
@@ -301,21 +303,23 @@ check()
   
   //check meta_data_get_by_type
   GNUNET_CONTAINER_meta_data_clear(meta2);
-  if (GNUNET_CONTAINER_meta_data_get_by_type(meta2,EXTRACTOR_METATYPE_UNKNOWN) != NULL)
+  if (NULL != (str = GNUNET_CONTAINER_meta_data_get_by_type(meta2,EXTRACTOR_METATYPE_UNKNOWN)))
     {
       GNUNET_CONTAINER_meta_data_destroy(meta2);
+      GNUNET_free (str);
       ABORT(meta);      
     } 
   
-  char* str = GNUNET_CONTAINER_meta_data_get_by_type(meta,EXTRACTOR_METATYPE_UNKNOWN);
+  str = GNUNET_CONTAINER_meta_data_get_by_type(meta,EXTRACTOR_METATYPE_UNKNOWN);
   if (str[0] != 'T')
     {
       GNUNET_CONTAINER_meta_data_destroy(meta2);
       ABORT(meta);      
     } 
   //check branch
-  if (GNUNET_CONTAINER_meta_data_get_by_type(meta,EXTRACTOR_METATYPE_PUBLICATION_DATE) != NULL)
+  if (NULL != (str = GNUNET_CONTAINER_meta_data_get_by_type(meta,EXTRACTOR_METATYPE_PUBLICATION_DATE)))
     {
+      GNUNET_free (str);
       GNUNET_CONTAINER_meta_data_destroy(meta2);
       ABORT(meta);      
     } 
@@ -331,10 +335,10 @@ check()
     } 
 
   //check meta_data_get_thumbnail
-  unsigned char* thumb;
 
   if (GNUNET_CONTAINER_meta_data_get_thumbnail(meta, &thumb) != 0)
     {
+      GNUNET_free (thumb);
       GNUNET_CONTAINER_meta_data_destroy(meta2);
       ABORT(meta);
     }
