@@ -311,6 +311,7 @@ check()
     } 
   
   str = GNUNET_CONTAINER_meta_data_get_by_type(meta,EXTRACTOR_METATYPE_UNKNOWN);
+  GNUNET_assert (NULL != str);
   if (str[0] != 'T')
     {
       GNUNET_CONTAINER_meta_data_destroy(meta2);
@@ -328,6 +329,7 @@ check()
   str = GNUNET_CONTAINER_meta_data_get_first_by_types(meta,
 						      EXTRACTOR_METATYPE_UNKNOWN,
 						      -1);
+  GNUNET_assert (NULL != str);
   if (str[0] != 'T')
     {
       GNUNET_CONTAINER_meta_data_destroy(meta2);
