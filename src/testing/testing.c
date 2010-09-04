@@ -1419,7 +1419,8 @@ send_hello(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
       ctx->connect_request_handle = GNUNET_CORE_peer_request_connect (ctx->d1->sched,
                                                                       ctx->d2->cfg,
-                                                                      GNUNET_TIME_relative_get_forever(),
+                                                                      GNUNET_TIME_relative_divide(ctx->relative_timeout,
+                                                                                                  ctx->max_connect_attempts + 1),
                                                                       &ctx->d1->id,
                                                                       &core_connect_request_cont,
                                                                       ctx);
@@ -1539,7 +1540,7 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 
   ctx->timeout_task = GNUNET_SCHEDULER_add_delayed (d1->sched,
                                                     GNUNET_TIME_relative_divide(ctx->relative_timeout, 
-										max_connect_attempts), 
+                                                    ctx->max_connect_attempts),
                                                     &notify_connect_result, ctx);
 
   ctx->hello_send_task = GNUNET_SCHEDULER_add_now(ctx->d1->sched, &send_hello, ctx);
