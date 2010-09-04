@@ -2371,6 +2371,7 @@ notify_transport_connect_done (void *cls, size_t size, void *buf)
     {
       /* transport should only call us to transmit a message after
        * telling us about a successful connection to the respective peer */
+      n->th = NULL; /* If this happens because of a timeout, reset n-th so another message may be sent for this peer! */
       GNUNET_break (0);
       return 0;
     }
