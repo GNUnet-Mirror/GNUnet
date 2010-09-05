@@ -19,12 +19,9 @@
 */
 
 /**
- * @file fs/test_fs_namespace.c
- * @brief Test for fs_namespace.c
+ * @file fs/test_fs_namespace_list_updateable.c
+ * @brief Test for fs_namespace_list_updateable.c
  * @author Christian Grothoff
- *
- * TODO:
- * - add timeout task
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -112,11 +109,61 @@ stop_arm (struct PeerContext *p)
 
 
 static void
+check_next (void *cls,
+	    const char *last_id, 
+	    const struct GNUNET_FS_Uri *last_uri,
+	    const struct GNUNET_CONTAINER_MetaData *last_meta,
+	    const char *next_id)
+{
+  GNUNET_break (0 == strcmp (last_id, "next"));
+  GNUNET_break (0 == strcmp (next_id, "future"));
+  err -= 4;
+}
+
+
+static void
+check_this_next (void *cls,
+		 const char *last_id, 
+		 const struct GNUNET_FS_Uri *last_uri,
+		 const struct GNUNET_CONTAINER_MetaData *last_meta,
+		 const char *next_id)
+{
+  GNUNET_break (0 == strcmp (last_id, "this"));
+  GNUNET_break (0 == strcmp (next_id, "next"));
+  err -= 2;
+  err += 4;
+  GNUNET_FS_namespace_list_updateable (ns,
+				       next_id,
+				       &check_next,
+				       NULL);
+}
+
+
+static void
 sks_cont_next (void *cls,
 	       const struct GNUNET_FS_Uri *uri,
 	       const char *emsg)
 {
   GNUNET_assert (NULL == emsg);
+  err += 2;
+  GNUNET_FS_namespace_list_updateable (ns,
+				       NULL,
+				       &check_this_next,
+				       NULL);
+
+}
+
+
+static void
+check_this (void *cls,
+	    const char *last_id, 
+	    const struct GNUNET_FS_Uri *last_uri,
+	    const struct GNUNET_CONTAINER_MetaData *last_meta,
+	    const char *next_id)
+{
+  GNUNET_break (0 == strcmp (last_id, "this"));
+  GNUNET_break (0 == strcmp (next_id, "next"));
+  err -= 1;
 }
 
 
@@ -126,7 +173,11 @@ sks_cont_this (void *cls,
 	       const char *emsg)
 {
   GNUNET_assert (NULL == emsg);
-
+  err = 1;
+  GNUNET_FS_namespace_list_updateable (ns,
+				       NULL,
+				       &check_this,
+				       NULL);
   GNUNET_FS_publish_sks (fs,
 			 ns,
 			 "next",

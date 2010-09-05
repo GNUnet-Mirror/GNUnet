@@ -30,6 +30,8 @@
 #include "gnunet_fs_service.h"
 #include "fs.h"
 
+#define DEBUG_NAMESPACE GNUNET_NO
+
 /**
  * Return the name of the directory in which we store
  * our local namespaces (or rather, their public keys).
@@ -1095,6 +1097,8 @@ find_sccs (void *cls,
     {
       if (fc->scc_array[nsn->scc_id] != nsn)
 	return GNUNET_YES; /* part of another SCC, end trace */
+      if (nsn->scc_id == fc->id)
+	return GNUNET_YES; /* that's us */
       fc->scc_array[nsn->scc_id] = NULL;
       if (fc->id == UINT_MAX)
 	fc->id = nsn->scc_id; /* take over ID */
@@ -1151,7 +1155,14 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
   if (namespace->update_nodes == NULL)
     read_update_information_graph (namespace);
   if (namespace->update_nodes == NULL)
-    return; /* no nodes */
+    {
+#if DEBUG_NAMESPACE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "No updateable nodes found for ID `%s'\n",
+		  next_id);
+#endif
+      return; /* no nodes */
+    }
   if (namespace->update_map == NULL)
     {
       /* need to construct */
@@ -1181,6 +1192,10 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
 						  &pc);
       return;
     }
+#if DEBUG_NAMESPACE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Calculating SCCs to find roots of update trees\n");
+#endif
   /* Find heads of SCCs in update graph */
   nug = ++namespace->nug_gen;
   fc.scc_array = NULL;
@@ -1190,7 +1205,15 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
     {
       nsn = namespace->update_nodes[i];
       if (nsn->nug == nug)
-	continue; /* already placed in SCC */
+	{
+#if DEBUG_NAMESPACE
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "SCC of node `%s' is %u\n",
+		      nsn->id,
+		      nsn->nug);
+#endif
+	  continue; /* already placed in SCC */
+	}
       GNUNET_CRYPTO_hash (nsn->update,
 			  strlen (nsn->update),
 			  &hc);
@@ -1221,6 +1244,12 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
 				   nsn);
 	      nsn->scc_id = fc.id;
 	    }
+#if DEBUG_NAMESPACE
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Starting new SCC %u with node `%s'\n",
+		      nsn->scc_id,
+		      nsn->id);
+#endif
 	  /* put all nodes with same identifier into this SCC */
 	  GNUNET_CRYPTO_hash (nsn->id,
 			      strlen (nsn->id),
@@ -1239,20 +1268,39 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
 	  fc.scc_array[fc.id] = nsn;
 	  nsn->scc_id = fc.id;
 	}
+#if DEBUG_NAMESPACE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "SCC of node `%s' is %u\n",
+		  nsn->id,
+		  fc.id);
+#endif
     }
   for (i=0;i<fc.scc_array_size;i++)
     {
       nsn = fc.scc_array[i];
       if (NULL != nsn)
-	ip (ip_cls,
-	    nsn->id,
-	    nsn->uri,
-	    nsn->md,
-	    nsn->update);
+	{
+#if DEBUG_NAMESPACE
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Root of SCC %u is node `%s'\n",
+		      i,
+		      nsn->id);
+#endif
+
+	  ip (ip_cls,
+	      nsn->id,
+	      nsn->uri,
+	      nsn->md,
+	      nsn->update);
+	}
     }
   GNUNET_array_grow (fc.scc_array,
 		     fc.scc_array_size,
 		     0);
+#if DEBUG_NAMESPACE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Done processing SCCs\n");
+#endif
 }
 
 
