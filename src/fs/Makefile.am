@@ -122,6 +122,7 @@ check_PROGRAMS = \
  test_fs_getopt \
  test_fs_list_indexed \
  test_fs_namespace \
+ test_fs_namespace_list_updateable \
  test_fs_publish \
  test_fs_publish_persistence \
  test_fs_search \
@@ -152,6 +153,7 @@ TESTS = \
  test_fs_file_information \
  test_fs_list_indexed \
  test_fs_namespace \
+ test_fs_namespace_list_updateable \
  test_fs_publish \
  test_fs_publish_persistence \
  test_fs_search \
@@ -212,6 +214,12 @@ test_fs_list_indexed_LDADD = \
 test_fs_namespace_SOURCES = \
  test_fs_namespace.c
 test_fs_namespace_LDADD = \
+  $(top_builddir)/src/fs/libgnunetfs.la  \
+  $(top_builddir)/src/util/libgnunetutil.la  
+
+test_fs_namespace_list_updateable_SOURCES = \
+ test_fs_namespace_list_updateable.c
+test_fs_namespace_list_updateable_LDADD = \
   $(top_builddir)/src/fs/libgnunetfs.la  \
   $(top_builddir)/src/util/libgnunetutil.la  
 
