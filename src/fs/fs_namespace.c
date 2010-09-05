@@ -1243,11 +1243,12 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
   for (i=0;i<fc.scc_array_size;i++)
     {
       nsn = fc.scc_array[i];
-      ip (ip_cls,
-	  nsn->id,
-	  nsn->uri,
-	  nsn->md,
-	  nsn->update);
+      if (NULL != nsn)
+	ip (ip_cls,
+	    nsn->id,
+	    nsn->uri,
+	    nsn->md,
+	    nsn->update);
     }
   GNUNET_array_grow (fc.scc_array,
 		     fc.scc_array_size,
