@@ -32,6 +32,7 @@ endif
 if HAVE_PCAP
 if LINUX
 WANBIN = gnunet-transport-wlan-helper
+WLAN_PLUGIN_LA = libgnunet_plugin_transport_wlan.la
 endif
 endif
 
@@ -103,6 +104,7 @@ plugin_LTLIBRARIES = \
   libgnunet_plugin_transport_udp.la \
   $(HTTP_PLUGIN_LA) \
   $(HTTPS_PLUGIN_LA) \
+  $(WLAN_PLUGIN_LA) \
   libgnunet_plugin_transport_template.la
 # TODO: add nat, etc.
 
@@ -122,6 +124,20 @@ libgnunet_plugin_transport_template_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
 libgnunet_plugin_transport_template_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
+
+if HAVE_PCAP
+if LINUX
+libgnunet_plugin_transport_wlan_la_SOURCES = \
+	plugin_transport_wlan.c
+libgnunet_plugin_transport_wlan_la_LIBADD = \
+	$(top_builddir)/src/hello/libgnunethello.la \
+	$(top_builddir)/src/statistics/libgnunetstatistics.la \
+	$(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+	$(top_builddir)/src/util/libgnunetutil.la 
+libgnunet_plugin_transport_wlan_la_LDFLAGS = \
+	$(GN_PLUGIN_LDFLAGS)
+endif
+endif
 
 libgnunet_plugin_transport_udp_la_SOURCES = \
   plugin_transport_udp.c

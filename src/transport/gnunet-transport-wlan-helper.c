@@ -27,8 +27,9 @@
  * This program serves as the mediator between the wlan interface and
  * gnunet
  */
-
 #include "gnunet-transport-wlan-helper.h"
+#include "ieee80211_radiotap.h"
+
 #include <pcap.h>
 
 //#include "radiotap.h"
@@ -645,7 +646,7 @@ main(int argc, char *argv[])
 		memcpy(pu8, u8aIeeeHeader, sizeof (u8aIeeeHeader));
 		pu8 += sizeof (u8aIeeeHeader);
 
-		pu8 += sprintf((char *)pu8,
+		pu8 += sprintf((char *)u8aSendBuffer,
 		    "Packetspammer %02d"
 		    "broadcast packet"
 		    "#%05d -- :-D --%s ----",

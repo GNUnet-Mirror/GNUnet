@@ -643,6 +643,33 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_VPN_HELPER 185
 
+
+
+/**
+ * Type of messages between the gnunet-wlan-helper and the daemon
+ *
+ * data messages
+ */
+
+#define GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA 195
+
+/**
+ * Control messages between the gnunet-wlan-helper and the daemon
+ */
+
+#define GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL 196
+
+/**
+ * Type of messages for advertisement over wlan
+ */
+#define GNUNET_MESSAGE_TYPE_WLAN_HELPER_ADVERTISEMENT 196
+
+/**
+ * Type of messages for wlan
+ */
+
+
+
 /**
  * Type used to match 'all' message types.
  */
