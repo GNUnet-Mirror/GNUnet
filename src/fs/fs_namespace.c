@@ -164,6 +164,12 @@ read_update_information_graph (struct GNUNET_FS_Namespace *ns)
   char *emsg;
   
   fn = get_update_information_directory (ns);
+  if (GNUNET_YES !=
+      GNUNET_DISK_file_test (fn))
+    {
+      GNUNET_free (fn);
+      return;
+    }
   rh = GNUNET_BIO_read_open (fn);
   if (rh == NULL)
     {

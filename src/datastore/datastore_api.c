@@ -729,10 +729,10 @@ process_status_message (void *cls,
 	      (int) status,
 	      emsg);
 #endif
+  process_queue (h);
   rc.cont (rc.cont_cls, 
 	   status,
 	   emsg);
-  process_queue (h);
 }
 
 
