@@ -582,8 +582,8 @@ main (int argc,
   if (1 != inet_pton (AF_INET, argv[1], &external))
     {
       fprintf (stderr,
-	       "Error parsing IPv4 address: %s\n",
-	       strerror (errno));
+              "Error parsing IPv4 address: %s\n",
+              strerror (errno));
       return 1;
     }
   if (1 != inet_pton (AF_INET, DUMMY_IP, &dummy))
@@ -634,7 +634,7 @@ main (int argc,
       if (1 == getppid()) /* Check the parent process id, if 1 the parent has died, so we should die too */
         break;
       if (FD_ISSET (icmpsock, &rs))
-	process_icmp_response ();
+        process_icmp_response ();
       if (0 == (++alt % 2))
 	send_icmp_echo (&external);
       else

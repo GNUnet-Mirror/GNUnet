@@ -1289,6 +1289,28 @@ send_transport_request_connect (void *cls, size_t size, void *buf)
 }
 
 /**
+ * Create and send a request connect message to
+ * the transport service for a particular peer.
+ *
+ * @param h handle to the transport service
+ * @param n the neighbor to send the request connect message about
+ *
+ */
+static void send_request_connect_message(struct GNUNET_TRANSPORT_Handle *h, struct NeighbourList *n)
+{
+  struct TransportRequestConnectMessage *trcm;
+
+  trcm = GNUNET_malloc(sizeof(struct TransportRequestConnectMessage));
+  trcm->header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_CONNECT);
+  trcm->header.size = htons(sizeof(struct TransportRequestConnectMessage));
+  memcpy(&trcm->peer, &n->id, sizeof(struct GNUNET_PeerIdentity));
+  schedule_control_transmit (h,
+                             sizeof (struct TransportRequestConnectMessage),
+                             GNUNET_NO,
+                             GNUNET_TIME_UNIT_FOREVER_REL, &send_transport_request_connect, trcm);
+}
+
+/**
  * Add neighbour to our list
  *
  * @return NULL if this API is currently disconnecting from the service
@@ -1298,7 +1320,6 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
                const struct GNUNET_PeerIdentity *pid)
 {
   struct NeighbourList *n;
-  struct TransportRequestConnectMessage *trcm;
 
   if (GNUNET_YES == h->in_disconnect)
     return NULL;
@@ -1322,14 +1343,7 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
   n->h = h;
   h->neighbours = n;
 
-  trcm = GNUNET_malloc(sizeof(struct TransportRequestConnectMessage));
-  trcm->header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_CONNECT);
-  trcm->header.size = htons(sizeof(struct TransportRequestConnectMessage));
-  memcpy(&trcm->peer, pid, sizeof(struct GNUNET_PeerIdentity));
-  schedule_control_transmit (h,
-                             sizeof (struct TransportRequestConnectMessage),
-                             GNUNET_NO,
-                             GNUNET_TIME_UNIT_FOREVER_REL, &send_transport_request_connect, trcm);
+
   return n;
 }
 
@@ -1796,6 +1810,17 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
       n = neighbour_add (handle, target);
 
     }
+
+  /**
+   *  Send a request connect message if not connected,
+   *  otherwise we will never send anything to
+   *  transport service
+   */
+  if (n->is_connected == GNUNET_NO)
+    {
+      send_request_connect_message(handle, n);
+    }
+
   if (n == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1830,7 +1855,7 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
   th->priority = priority;
   th->notify_delay_task
     = GNUNET_SCHEDULER_add_delayed (handle->sched, timeout,
-				    &peer_transmit_timeout, th);
+                                    &peer_transmit_timeout, th);
   schedule_transmission (handle);
   return th;
 }

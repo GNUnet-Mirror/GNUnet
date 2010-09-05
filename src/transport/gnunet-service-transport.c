@@ -2782,7 +2782,7 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer,
   if (do_hello)
     {
       GNUNET_STATISTICS_update (stats,
-                                gettext_noop ("# peerinfo iterate requests"),
+                                gettext_noop ("# peerinfo new neighbor iterate requests"),
                                 1,
                                 GNUNET_NO);
       GNUNET_STATISTICS_update (stats,
@@ -4124,7 +4124,7 @@ process_hello (struct TransportPlugin *plugin,
   const struct GNUNET_HELLO_Message *hello;
   struct CheckHelloValidatedContext *chvc;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded publicKey;
-#if DEBUG_TRANSPORT_HELLO
+#if DEBUG_TRANSPORT_HELLO > 2
   char *my_id;
 #endif
   hsize = ntohs (message->size);
@@ -4196,7 +4196,7 @@ process_hello (struct TransportPlugin *plugin,
 			       chvc->hello,
 			       GNUNET_TIME_absolute_get ()).value > 0)
 	{
-#if DEBUG_TRANSPORT_HELLO
+#if DEBUG_TRANSPORT_HELLO > 2
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Received duplicate `%s' message for `%4s'; ignored\n",
 		      "HELLO",
@@ -4209,7 +4209,7 @@ process_hello (struct TransportPlugin *plugin,
 				   GNUNET_HELLO_size(hello)));
       chvc = chvc->next;
     }
-#if DEBUG_TRANSPORT_HELLO
+#if DEBUG_TRANSPORT_HELLO > 2
   if (plugin != NULL)
     {
       my_id = GNUNET_strdup(GNUNET_i2s(plugin->env.my_identity));
@@ -4233,7 +4233,7 @@ process_hello (struct TransportPlugin *plugin,
   /* finally, check if HELLO was previously validated
      (continuation will then schedule actual validation) */
   GNUNET_STATISTICS_update (stats,
-                            gettext_noop ("# peerinfo iterate requests"),
+                            gettext_noop ("# peerinfo process hello iterate requests"),
                             1,
                             GNUNET_NO);
   GNUNET_STATISTICS_update (stats,
