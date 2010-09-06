@@ -523,8 +523,10 @@ GNUNET_FS_TEST_daemons_stop (struct GNUNET_SCHEDULER_Handle *sched,
   pg = daemons[0]->group;
   for (i=0;i<total;i++)
     {
-      GNUNET_FS_stop (daemons[i]->fs);
-      GNUNET_CONFIGURATION_destroy (daemons[i]->cfg);
+      if (daemons[i]->fs != NULL)
+	GNUNET_FS_stop (daemons[i]->fs);
+      if (daemons[i]->cfg != NULL)
+	GNUNET_CONFIGURATION_destroy (daemons[i]->cfg);
       GNUNET_free (daemons[i]);
       daemons[i] = NULL;
     }  
