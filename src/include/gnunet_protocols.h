@@ -668,6 +668,14 @@ extern "C"
  * Type of messages for wlan
  */
 
+/**
+ * Type of messages to query the local service-dns
+ */
+#define GNUNET_MESSAGE_TYPE_LOCAL_QUERY_DNS 205
+/**
+ * Type of messages the local service-dns responds with
+ */
+#define GNUNET_MESSAGE_TYPE_LOCAL_RESPONSE_DNS 206
 
 
 /**

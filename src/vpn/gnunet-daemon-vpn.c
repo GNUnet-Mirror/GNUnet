@@ -33,6 +33,8 @@
 #include "gnunet_common.h"
 #include "gnunet_protocols.h"
 #include "gnunet_server_lib.h"
+#include "gnunet-service-dns-p.h"
+#include "gnunet_client_lib.h"
 
 /**
  * Final status code.
@@ -47,6 +49,8 @@ struct vpn_cls {
 	struct GNUNET_SERVER_MessageStreamTokenizer* mst;
 
 	struct GNUNET_SCHEDULER_Handle *sched;
+
+	struct GNUNET_CLIENT_Connection *dns_connection;
 
 	pid_t helper_pid;
 };
@@ -136,9 +140,16 @@ static void message_token(void *cls, void *client, const struct GNUNET_MessageHe
 	} else if (ntohs(pkt_tun->tun.type) == 0x0800) {
 		struct ip_pkt *pkt = (struct ip_pkt*) message;
 		struct ip_udp *udp = (struct ip_udp*) message;
-		fprintf(stderr, "IPv4\n");
+		GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "IPv4\n");
 		if (pkt->ip_hdr.proto == 0x11 && ntohl(udp->ip_hdr.dadr) == 0x0a0a0a02 && ntohs(udp->udp_hdr.dpt) == 53 ) {
 			pkt_printf_ipdns((struct ip_udp_dns*)udp);
+			struct query_packet* query = alloca((sizeof query) + ntohs(udp->udp_hdr.len) - 7); /* 7 = 8 for the udp-header - 1 for the unsigned char data[1]; */
+			query->hdr.type = htons(GNUNET_MESSAGE_TYPE_LOCAL_QUERY_DNS);
+			query->hdr.size = htons((sizeof query) + ntohs(udp->udp_hdr.len) - 7);
+			query->orig_to = pkt->ip_hdr.dadr;
+			query->orig_from = pkt->ip_hdr.sadr;
+			query->src_port = udp->udp_hdr.spt;
+			memcpy(query->data, udp->data, ntohs(udp->udp_hdr.len) - 8);
 		}
 	}
 
@@ -162,6 +173,10 @@ run (void *cls,
 {
   mycls.sched = sched;
   mycls.mst = GNUNET_SERVER_mst_create(&message_token, NULL);
+
+  mycls.dns_connection = GNUNET_CLIENT_connect (sched, "gnunet-service-dns", cfg);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connection: %x\n", mycls.dns_connection);
+
   GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls); 
   start_helper_and_schedule(mycls);
 }

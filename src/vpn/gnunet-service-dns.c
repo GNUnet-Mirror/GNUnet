@@ -27,6 +27,8 @@
 #include "gnunet_service_lib.h"
 #include "gnunet_network_lib.h"
 #include "gnunet_os_lib.h"
+#include "gnunet-service-dns-p.h"
+#include "gnunet_protocols.h"
 
 struct dns_cls {
 	struct GNUNET_SCHEDULER_Handle *sched;
@@ -50,6 +52,11 @@ void unhijack(unsigned short port) {
 
 	snprintf(port_s, 6, "%d", port);
 	GNUNET_OS_start_process(NULL, NULL, "gnunet-helper-hijack-dns", "gnunet-hijack-dns", "-d", port_s, NULL);
+}
+
+void receive_query(void *cls, struct GNUNET_SERVER_Client *client, const struct GNUNET_MessageHeader *message)
+{
+	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received query!\n");
 }
 
 /**
@@ -78,6 +85,8 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
+	  /* callback, cls, type, size */
+    {&receive_query, NULL, GNUNET_MESSAGE_TYPE_LOCAL_QUERY_DNS, 0},
     {NULL, NULL, 0, 0}
   };
 
