@@ -39,14 +39,14 @@
          ON gnunet.* TO $USER@localhost;
       SET PASSWORD FOR $USER@localhost=PASSWORD('$the_password_you_like');
       FLUSH PRIVILEGES;
- * @endverbatim
+   @endverbatim
  * 2) In the $HOME directory of $USER, create a ".my.cnf" file
  *    with the following lines
  * @verbatim
       [client]
       user=$USER
       password=$the_password_you_like
- * @endverbatim
+   @endverbatim
  *
  * Thats it -- now you can configure your datastores in GNUnet to
  * use MySQL. Note that .my.cnf file is a security risk unless its on
@@ -61,7 +61,7 @@
  * @verbatim
       $ mysql -u $USER -p $the_password_you_like
       mysql> use gnunet;
- * @endverbatim
+   @endverbatim
  *
  *    If you get the message &quot;Database changed&quot; it probably works.
  *

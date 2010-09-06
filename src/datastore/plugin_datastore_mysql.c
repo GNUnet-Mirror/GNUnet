@@ -49,13 +49,13 @@
  *
  * 1) in /etc/gnunet.conf, set
  * @verbatim
- *     [datastore]
- *     DATABASE = "mysql"
- * @endverbatim
+       [datastore]
+       DATABASE = "mysql"
+   @endverbatim
  * 2) Then access mysql as root,
  * @verbatim
      $ mysql -u root -p
- * @endverbatim
+   @endverbatim
  *    and do the following. [You should replace $USER with the username
  *    that will be running the gnunetd process].
  * @verbatim
@@ -64,14 +64,14 @@
          ON gnunet.* TO $USER@localhost;
       SET PASSWORD FOR $USER@localhost=PASSWORD('$the_password_you_like');
       FLUSH PRIVILEGES;
- * @endverbatim
+   @endverbatim
  * 3) In the $HOME directory of $USER, create a ".my.cnf" file
  *    with the following lines
  * @verbatim
       [client]
       user=$USER
       password=$the_password_you_like
- * @endverbatim
+   @endverbatim
  *
  * Thats it. Note that .my.cnf file is a security risk unless its on
  * a safe partition etc. The $HOME/.my.cnf can of course be a symbolic
@@ -86,7 +86,7 @@
  * @verbatim
      $ mysql -u $USER -p $the_password_you_like
      mysql> use gnunet;
- * @endverbatim
+   @endverbatim
  *
  *    If you get the message &quot;Database changed&quot; it probably works.
  *
@@ -107,7 +107,7 @@
  * @verbatim
      mysql> REPAIR TABLE gn090;
      mysql> REPAIR TABLE gn072;
- * @endverbatim
+   @endverbatim
  *
  * PROBLEMS?
  *
