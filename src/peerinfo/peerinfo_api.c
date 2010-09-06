@@ -202,6 +202,7 @@ static void
 reconnect (struct GNUNET_PEERINFO_Handle *h)
 {
   GNUNET_CLIENT_disconnect (h->client, GNUNET_SYSERR);
+  h->th = NULL;
   h->client = GNUNET_CLIENT_connect (h->sched, "peerinfo", h->cfg);
   GNUNET_assert (h->client != NULL);
 }
