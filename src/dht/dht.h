@@ -31,7 +31,7 @@
 
 #define DEBUG_DHT_ROUTING GNUNET_YES
 
-#define DHT_BLOOM_SIZE 32
+#define DHT_BLOOM_SIZE 16
 
 #define DHT_BLOOM_K 8
 
