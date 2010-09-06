@@ -276,6 +276,7 @@ pq_exec (struct Plugin *plugin,
  * Prepare SQL statement.
  *
  * @param plugin global context
+ * @param name name for the prepared SQL statement
  * @param sql SQL code to prepare
  * @param nparams number of parameters in sql
  * @param line code line for error reporting
@@ -283,10 +284,10 @@ pq_exec (struct Plugin *plugin,
  */
 static int
 pq_prepare (struct Plugin *plugin,
-	    const char *name, const char *sql, int nparms, int line)
+	    const char *name, const char *sql, int nparams, int line)
 {
   PGresult *ret;
-  ret = PQprepare (plugin->dbh, name, sql, nparms, NULL);
+  ret = PQprepare (plugin->dbh, name, sql, nparams, NULL);
   if (GNUNET_OK !=
       check_result (plugin, 
 		    ret, PGRES_COMMAND_OK, "PQprepare", sql, line))
@@ -648,7 +649,7 @@ postgres_plugin_put (void *cls,
  * asking the database plugin to call the iterator
  * with the next item.
  *
- * @param cls the 'struct NextRequestClosure'
+ * @param next_cls the 'struct NextRequestClosure'
  * @param tc scheduler context
  */
 static void 

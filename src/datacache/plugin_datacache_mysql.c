@@ -33,24 +33,20 @@
  *    </pre>
  *    and do the following. [You should replace $USER with the username
  *    that will be running the gnunetd process].
- *    <pre>
- *
+ * @verbatim
       CREATE DATABASE gnunet;
       GRANT select,insert,update,delete,create,alter,drop,create temporary tables
          ON gnunet.* TO $USER@localhost;
       SET PASSWORD FOR $USER@localhost=PASSWORD('$the_password_you_like');
       FLUSH PRIVILEGES;
- *
- *    </pre>
+ * @endverbatim
  * 2) In the $HOME directory of $USER, create a ".my.cnf" file
  *    with the following lines
- *    <pre>
-
+ * @verbatim
       [client]
       user=$USER
       password=$the_password_you_like
-
- *    </pre>
+ * @endverbatim
  *
  * Thats it -- now you can configure your datastores in GNUnet to
  * use MySQL. Note that .my.cnf file is a security risk unless its on
@@ -62,11 +58,10 @@
  *
  * 3) Still, perhaps you should briefly try if the DB connection
  *    works. First, login as $USER. Then use,
- *
- *    <pre>
- *    $ mysql -u $USER -p $the_password_you_like
- *    mysql> use gnunet;
- *    </pre>
+ * @verbatim
+      $ mysql -u $USER -p $the_password_you_like
+      mysql> use gnunet;
+ * @endverbatim
  *
  *    If you get the message &quot;Database changed&quot; it probably works.
  *
@@ -74,19 +69,6 @@
  *     through socket '/tmp/mysql.sock' (2)&quot; it may be resolvable by
  *     &quot;ln -s /var/run/mysqld/mysqld.sock /tmp/mysql.sock&quot;
  *     so there may be some additional trouble depending on your mysql setup.]
- *
- * REPAIRING TABLES:
- * - Its probably healthy to check your tables for inconsistencies
- *   every now and then.
- * - If you get odd SEGVs on gnunetd startup, it might be that the mysql
- *   databases have been corrupted.
- * - The tables can be verified/fixed in two ways;
- *   1) by running mysqlcheck -A, or
- *   2) by executing (inside of mysql using the GNUnet database):
- *   mysql> SHOW TABLES;
- *   mysql> REPAIR TABLE gnXXX;
- *
- * Make sure to replace XXX with the actual names of all tables.
  *
  * PROBLEMS?
  *
@@ -191,6 +173,8 @@ struct Plugin
 
 /**
  * Obtain the location of ".my.cnf".
+ *
+ * @param cfg our configuration
  * @return NULL on error
  */
 static char *
@@ -251,6 +235,9 @@ get_my_cnf_path (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
 /**
  * Free a prepared statement.
+ *
+ * @param plugin plugin context
+ * @param s prepared statement
  */
 static void
 prepared_statement_destroy (struct Plugin *plugin, 
@@ -467,6 +454,7 @@ prepare_statement (struct Plugin *plugin,
  * Bind the parameters for the given MySQL statement
  * and run it.
  *
+ * @param plugin plugin context
  * @param s statement to bind and run
  * @param ap arguments for the binding
  * @return GNUNET_SYSERR on error, GNUNET_OK on success
@@ -565,6 +553,8 @@ typedef int (*GNUNET_MysqlDataProcessor) (void *cls,
 /**
  * Run a prepared SELECT statement.
  *
+ * @param plugin plugin context
+ * @param s handle to SELECT statment
  * @param result_size number of elements in results array
  * @param results pointer to already initialized MYSQL_BIND
  *        array (of sufficient size) for passing results
@@ -649,6 +639,8 @@ prepared_statement_run_select (struct Plugin *plugin,
 /**
  * Run a prepared statement that does NOT produce results.
  *
+ * @param plugin plugin context
+ * @param s handle to SELECT statment
  * @param ... pairs and triplets of "MYSQL_TYPE_XXX" keys and their respective
  *        values (size + buffer-reference for pointers); terminated
  *        with "-1"
@@ -682,6 +674,12 @@ prepared_statement_run (struct Plugin *plugin,
 }
 
 
+/**
+ * Create temporary table and prepare statements.
+ *
+ * @param plugin plugin context
+ * @return GNUNET_OK on success
+ */
 static int
 itable (struct Plugin *plugin)
 {

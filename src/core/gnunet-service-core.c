@@ -833,7 +833,7 @@ send_to_all_clients (const struct GNUNET_MessageHeader *msg,
  * Function called by transport telling us that a peer
  * changed status.
  *
- * @param peer the peer that changed status
+ * @param n the peer that changed status
  */
 static void
 handle_peer_status_change (struct Neighbour *n)

@@ -727,6 +727,7 @@ transmit_start (void *cls, size_t size, void *buf)
  *        connected to the core service; note that timeout is only meaningful if init is not NULL
  * @param connects function to call on peer connect, can be NULL
  * @param disconnects function to call on peer disconnect / timeout, can be NULL
+ * @param status_events function to call on changes to peer connection status, can be NULL
  * @param inbound_notify function to call for all inbound messages, can be NULL
  * @param inbound_hdr_only set to GNUNET_YES if inbound_notify will only read the
  *                GNUNET_MessageHeader and hence we do not need to give it the full message;

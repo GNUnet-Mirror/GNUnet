@@ -48,36 +48,30 @@
  * MANUAL SETUP INSTRUCTIONS
  *
  * 1) in /etc/gnunet.conf, set
- *    <pre>
+ * @verbatim
  *     [datastore]
  *     DATABASE = "mysql"
- *    </pre>
+ * @endverbatim
  * 2) Then access mysql as root,
- *    <pre>
- *
- *    $ mysql -u root -p
- *
- *    </pre>
+ * @verbatim
+     $ mysql -u root -p
+ * @endverbatim
  *    and do the following. [You should replace $USER with the username
  *    that will be running the gnunetd process].
- *    <pre>
- *
+ * @verbatim
       CREATE DATABASE gnunet;
       GRANT select,insert,update,delete,create,alter,drop,create temporary tables
          ON gnunet.* TO $USER@localhost;
       SET PASSWORD FOR $USER@localhost=PASSWORD('$the_password_you_like');
       FLUSH PRIVILEGES;
- *
- *    </pre>
+ * @endverbatim
  * 3) In the $HOME directory of $USER, create a ".my.cnf" file
  *    with the following lines
- *    <pre>
-
+ * @verbatim
       [client]
       user=$USER
       password=$the_password_you_like
-
- *    </pre>
+ * @endverbatim
  *
  * Thats it. Note that .my.cnf file is a security risk unless its on
  * a safe partition etc. The $HOME/.my.cnf can of course be a symbolic
@@ -89,10 +83,10 @@
  * 4) Still, perhaps you should briefly try if the DB connection
  *    works. First, login as $USER. Then use,
  *
- *    <pre>
- *    $ mysql -u $USER -p $the_password_you_like
- *    mysql> use gnunet;
- *    </pre>
+ * @verbatim
+     $ mysql -u $USER -p $the_password_you_like
+     mysql> use gnunet;
+ * @endverbatim
  *
  *    If you get the message &quot;Database changed&quot; it probably works.
  *
@@ -110,8 +104,10 @@
  * - The tables can be verified/fixed in two ways;
  *   1) by running mysqlcheck -A, or
  *   2) by executing (inside of mysql using the GNUnet database):
- *   mysql> REPAIR TABLE gn090;
- *   mysql> REPAIR TABLE gn072;
+ * @verbatim
+     mysql> REPAIR TABLE gn090;
+     mysql> REPAIR TABLE gn072;
+ * @endverbatim
  *
  * PROBLEMS?
  *
@@ -353,6 +349,8 @@ struct Plugin
 
 /**
  * Obtain the location of ".my.cnf".
+ *
+ * @param cfg our configuration
  * @return NULL on error
  */
 static char *
@@ -414,6 +412,9 @@ get_my_cnf_path (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
 /**
  * Free a prepared statement.
+ *
+ * @param plugin plugin context
+ * @param s prepared statement
  */
 static void
 prepared_statement_destroy (struct Plugin *plugin, 
@@ -549,6 +550,8 @@ iopen (struct Plugin *ret)
 /**
  * Run the given MySQL statement.
  *
+ * @param plugin plugin context
+ * @param statement SQL statement to run
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 static int
@@ -572,6 +575,8 @@ run_statement (struct Plugin *plugin,
 /**
  * Create a prepared statement.
  *
+ * @param plugin plugin context
+ * @param statement SQL statement text to prepare
  * @return NULL on error
  */
 static struct GNUNET_MysqlStatementHandle *
@@ -592,6 +597,8 @@ prepared_statement_create (struct Plugin *plugin,
 /**
  * Prepare a statement for running.
  *
+ * @param plugin plugin context
+ * @param ret handle to prepared statement
  * @return GNUNET_OK on success
  */
 static int
@@ -631,6 +638,7 @@ prepare_statement (struct Plugin *plugin,
  * Bind the parameters for the given MySQL statement
  * and run it.
  *
+ * @param plugin plugin context
  * @param s statement to bind and run
  * @param ap arguments for the binding
  * @return GNUNET_SYSERR on error, GNUNET_OK on success
@@ -729,6 +737,8 @@ typedef int (*GNUNET_MysqlDataProcessor) (void *cls,
 /**
  * Run a prepared SELECT statement.
  *
+ * @param plugin plugin context
+ * @param s statement to run
  * @param result_size number of elements in results array
  * @param results pointer to already initialized MYSQL_BIND
  *        array (of sufficient size) for passing results
@@ -812,11 +822,13 @@ prepared_statement_run_select (struct Plugin *plugin,
 /**
  * Run a prepared statement that does NOT produce results.
  *
+ * @param plugin plugin context
+ * @param s statement to run
+ * @param insert_id NULL or address where to store the row ID of whatever
+ *        was inserted (only for INSERT statements!)
  * @param ... pairs and triplets of "MYSQL_TYPE_XXX" keys and their respective
  *        values (size + buffer-reference for pointers); terminated
  *        with "-1"
- * @param insert_id NULL or address where to store the row ID of whatever
- *        was inserted (only for INSERT statements!)
  * @return GNUNET_SYSERR on error, otherwise
  *         the number of successfully affected rows
  */
@@ -848,6 +860,7 @@ prepared_statement_run (struct Plugin *plugin,
 /**
  * Delete an value from the gn072 table.
  *
+ * @param plugin plugin context
  * @param vkey vkey identifying the value to delete
  * @return GNUNET_OK on success, GNUNET_NO if no such value exists, GNUNET_SYSERR on error
  */
@@ -883,6 +896,7 @@ do_delete_value (struct Plugin *plugin,
 /**
  * Insert a value into the gn072 table.
  *
+ * @param plugin plugin context
  * @param value the value to insert
  * @param size size of the value
  * @param vkey vkey identifying the value henceforth (set)
@@ -922,6 +936,7 @@ do_insert_value (struct Plugin *plugin,
 /**
  * Delete an entry from the gn090 table.
  *
+ * @param plugin plugin context
  * @param vkey vkey identifying the entry to delete
  * @return GNUNET_OK on success, GNUNET_NO if no such value exists, GNUNET_SYSERR on error
  */
@@ -955,6 +970,14 @@ do_delete_entry_by_vkey (struct Plugin *plugin,
 }
 
 
+/**
+ * Function that simply returns GNUNET_OK
+ *
+ * @param cls closure, not used
+ * @param num_values not used
+ * @param values not used
+ * @return GNUNET_OK
+ */
 static int
 return_ok (void *cls, 
 	   unsigned int num_values, 
@@ -964,6 +987,13 @@ return_ok (void *cls,
 }
 
 
+/**
+ * FIXME.
+ * 
+ * @param cls FIXME
+ * @param ncr FIXME
+ * @return FIXME
+ */
 static int
 iterator_helper_prepare (void *cls,
 			 struct NextRequestClosure *nrc)
@@ -1059,7 +1089,7 @@ iterator_helper_prepare (void *cls,
  */
 static void 
 mysql_next_request_cont (void *next_cls,
-			  const struct GNUNET_SCHEDULER_TaskContext *tc)
+			 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct NextRequestClosure *nrc = next_cls;
   struct Plugin *plugin;
@@ -1239,14 +1269,16 @@ mysql_plugin_next_request (void *next_cls,
  * using the given query to select and order
  * the items.
  *
+ * @param plugin plugin context
  * @param type entries of which type should be considered?
- *        Use 0 for any type.
- * @param iter never NULL
+ * @param iter_select which iterator statement are we using
  * @param is_asc are we using ascending order?
+ * @param dviter function to call on each matching item
+ * @param dviter_cls closure for dviter
  */
 static void
 iterateHelper (struct Plugin *plugin,
-	       unsigned int type,
+	       enum GNUNET_BLOCK_Type type,
                int is_asc,
                unsigned int iter_select, 
 	       PluginIterator dviter,
