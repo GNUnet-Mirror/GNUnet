@@ -51,38 +51,38 @@ struct vpn_cls {
 	pid_t helper_pid;
 };
 
+static struct vpn_cls mycls;
+
 static void cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
-	struct vpn_cls* mycls = (struct vpn_cls*) cls;
 	if (tskctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) {
-		PLIBC_KILL(mycls->helper_pid, SIGTERM);
-		GNUNET_OS_process_wait(mycls->helper_pid);
+		PLIBC_KILL(mycls.helper_pid, SIGTERM);
+		GNUNET_OS_process_wait(mycls.helper_pid);
 	}
 }
 
 static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx);
 
-static void start_helper_and_schedule(struct vpn_cls* mycls) {
-	mycls->helper_in = GNUNET_DISK_pipe(1);
-	mycls->helper_out = GNUNET_DISK_pipe(1);
+static void start_helper_and_schedule() {
+	mycls.helper_in = GNUNET_DISK_pipe(1);
+	mycls.helper_out = GNUNET_DISK_pipe(1);
 
-	mycls->helper_pid = GNUNET_OS_start_process(mycls->helper_in, mycls->helper_out, "gnunet-helper-vpn", "gnunet-helper-vpn", NULL);
+	mycls.helper_pid = GNUNET_OS_start_process(mycls.helper_in, mycls.helper_out, "gnunet-helper-vpn", "gnunet-helper-vpn", NULL);
 
-	mycls->fh_from_helper = GNUNET_DISK_pipe_handle (mycls->helper_out, GNUNET_DISK_PIPE_END_READ);
+	mycls.fh_from_helper = GNUNET_DISK_pipe_handle (mycls.helper_out, GNUNET_DISK_PIPE_END_READ);
 
-	GNUNET_DISK_pipe_close_end(mycls->helper_out, GNUNET_DISK_PIPE_END_WRITE);
-	GNUNET_DISK_pipe_close_end(mycls->helper_in, GNUNET_DISK_PIPE_END_READ);
+	GNUNET_DISK_pipe_close_end(mycls.helper_out, GNUNET_DISK_PIPE_END_WRITE);
+	GNUNET_DISK_pipe_close_end(mycls.helper_in, GNUNET_DISK_PIPE_END_READ);
 
-	GNUNET_SCHEDULER_add_read_file (mycls->sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls->fh_from_helper, &helper_read, mycls);
+	GNUNET_SCHEDULER_add_read_file (mycls.sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.fh_from_helper, &helper_read, NULL);
 }
 
 
 static void restart_helper(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
 	// FIXME: Ratelimit this!
-	struct vpn_cls* mycls = (struct vpn_cls*) cls;
 
 	// Kill the helper
-	PLIBC_KILL(mycls->helper_pid, SIGKILL);
-	GNUNET_OS_process_wait(mycls->helper_pid);
+	PLIBC_KILL(mycls.helper_pid, SIGKILL);
+	GNUNET_OS_process_wait(mycls.helper_pid);
 
 	// Restart the helper
 	start_helper_and_schedule(mycls);
@@ -90,22 +90,21 @@ static void restart_helper(void* cls, const struct GNUNET_SCHEDULER_TaskContext*
 }
 
 static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
-	struct vpn_cls* mycls = (struct vpn_cls*) cls;
 	char buf[65535];
 
 	if (tsdkctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)
 		return;
 
-	int t = GNUNET_DISK_file_read(mycls->fh_from_helper, &buf, 65535);
+	int t = GNUNET_DISK_file_read(mycls.fh_from_helper, &buf, 65535);
 	if (t<=0) {
 		fprintf(stderr, "Read error for header: %m\n");
-		GNUNET_SCHEDULER_add_now(mycls->sched, restart_helper, cls);
+		GNUNET_SCHEDULER_add_now(mycls.sched, restart_helper, cls);
 		return;
 	}
 
-	/* FIXME */ GNUNET_SERVER_mst_receive(mycls->mst, NULL, buf, t, 0, 0);
+	/* FIXME */ GNUNET_SERVER_mst_receive(mycls.mst, NULL, buf, t, 0, 0);
 
-	GNUNET_SCHEDULER_add_read_file (mycls->sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls->fh_from_helper, &helper_read, mycls);
+	GNUNET_SCHEDULER_add_read_file (mycls.sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.fh_from_helper, &helper_read, NULL);
 }
 
 static void message_token(void *cls, void *client, const struct GNUNET_MessageHeader *message) {
@@ -161,10 +160,8 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg) 
 {
-  struct vpn_cls* mycls = cls;
-  
-  mycls->sched = sched;
-  mycls->mst = GNUNET_SERVER_mst_create(&message_token, mycls);
+  mycls.sched = sched;
+  mycls.mst = GNUNET_SERVER_mst_create(&message_token, NULL);
   GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls); 
   start_helper_and_schedule(mycls);
 }
@@ -184,16 +181,12 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
 
-  struct vpn_cls* cls = GNUNET_malloc(sizeof(struct vpn_cls));
-
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc,
                               argv,
                               "gnunet-daemon-vpn",
                               gettext_noop ("help text"),
-                              options, &run, cls)) ? ret : 1;
-
-  GNUNET_free(cls); /* Make clang happy */
+                              options, &run, NULL)) ? ret : 1;
 }
 
 /* end of gnunet-daemon-vpn.c */

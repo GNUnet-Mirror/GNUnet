@@ -36,6 +36,8 @@ struct dns_cls {
 	unsigned short dnsoutport;
 };
 
+static struct dns_cls mycls;
+
 void hijack(unsigned short port) {
 	char port_s[6];
 
@@ -60,7 +62,7 @@ static void
 cleanup_task (void *cls,
 	      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-	unhijack(((struct dns_cls*)cls)->dnsoutport);
+	unhijack(mycls.dnsoutport);
 }
 
 /**
@@ -79,19 +81,17 @@ run (void *cls,
     {NULL, NULL, 0, 0}
   };
 
-  struct dns_cls* mycls = (struct dns_cls*)cls;
+  mycls.sched = sched;
 
-  mycls->sched = sched;
-
-  mycls->dnsout = GNUNET_NETWORK_socket_create (AF_INET, SOCK_DGRAM, 0);
+  mycls.dnsout = GNUNET_NETWORK_socket_create (AF_INET, SOCK_DGRAM, 0);
 
   struct sockaddr_in * addr = alloca(sizeof(struct sockaddr_in));
   memset(addr, 0, sizeof(struct sockaddr_in));
 
-  int err = GNUNET_NETWORK_socket_bind (mycls->dnsout, (struct sockaddr*)addr, sizeof(struct sockaddr_in));
-  err = getsockname(GNUNET_NETWORK_get_fd(mycls->dnsout), addr, (unsigned int[]){sizeof(struct sockaddr_in)});
+  int err = GNUNET_NETWORK_socket_bind (mycls.dnsout, (struct sockaddr*)addr, sizeof(struct sockaddr_in));
+  err = getsockname(GNUNET_NETWORK_get_fd(mycls.dnsout), addr, (unsigned int[]){sizeof(struct sockaddr_in)});
 
-  mycls->dnsoutport = htons(addr->sin_port);
+  mycls.dnsoutport = htons(addr->sin_port);
 
   hijack(htons(addr->sin_port));
 
@@ -112,14 +112,10 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  struct dns_cls* cls = GNUNET_malloc(sizeof(struct dns_cls));
-
   return (GNUNET_OK ==
           GNUNET_SERVICE_run (argc,
                               argv,
                               "gnunet-service-dns",
 			      GNUNET_SERVICE_OPTION_NONE,
-			      &run, cls)) ? 0 : 1;
-
-  GNUNET_free(cls); // Make clang happy
+			      &run, NULL)) ? 0 : 1;
 }
