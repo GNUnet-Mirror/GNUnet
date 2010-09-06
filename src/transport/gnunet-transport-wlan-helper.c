@@ -265,7 +265,7 @@ int ieee80211_radiotap_iterator_init(
  * ieee80211_radiotap_iterator_next - return next radiotap parser iterator arg
  * @param iterator: radiotap_iterator to move to next arg (if any)
  *
- * @eturn 0 if there is an argument to handle,
+ * @return 0 if there is an argument to handle,
  * -ENOENT if there are no more args or -EINVAL
  * if there is something else wrong.
  *
