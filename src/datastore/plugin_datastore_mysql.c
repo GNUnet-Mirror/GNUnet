@@ -988,11 +988,11 @@ return_ok (void *cls,
 
 
 /**
- * FIXME.
+ * Run the prepared statement to get the next data item ready.
  * 
- * @param cls FIXME
- * @param ncr FIXME
- * @return FIXME
+ * @param cls not used
+ * @param nrc closure for the next request iterator
+ * @return GNUNET_OK on success, GNUNET_NO if there is no additional item
  */
 static int
 iterator_helper_prepare (void *cls,
