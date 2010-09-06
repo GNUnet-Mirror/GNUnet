@@ -177,11 +177,11 @@ int flagVerbose = 0;
 
 /**
  * ieee80211_radiotap_iterator_init - radiotap parser iterator initialization
- * @iterator: radiotap_iterator to initialize
- * @radiotap_header: radiotap header to parse
- * @max_length: total length we can parse into (eg, whole packet length)
+ * @param iterator: radiotap_iterator to initialize
+ * @param radiotap_header: radiotap header to parse
+ * @param max_length: total length we can parse into (eg, whole packet length)
  *
- * Returns: 0 or a negative error code if there is a problem.
+ * @return 0 or a negative error code if there is a problem.
  *
  * This function initializes an opaque iterator struct which can then
  * be passed to ieee80211_radiotap_iterator_next() to visit every radiotap
@@ -194,9 +194,9 @@ int flagVerbose = 0;
  * checking for a good 0 return code.  Then loop calling
  * __ieee80211_radiotap_iterator_next()... it returns either 0,
  * -ENOENT if there are no more args to parse, or -EINVAL if there is a problem.
- * The iterator's @this_arg member points to the start of the argument
+ * The iterator's this_arg member points to the start of the argument
  * associated with the current argument index that is present, which can be
- * found in the iterator's @this_arg_index member.  This arg index corresponds
+ * found in the iterator's this_arg_index member.  This arg index corresponds
  * to the IEEE80211_RADIOTAP_... defines.
  *
  * Radiotap header length:
@@ -263,16 +263,16 @@ int ieee80211_radiotap_iterator_init(
 
 /**
  * ieee80211_radiotap_iterator_next - return next radiotap parser iterator arg
- * @iterator: radiotap_iterator to move to next arg (if any)
+ * @param iterator: radiotap_iterator to move to next arg (if any)
  *
- * Returns: 0 if there is an argument to handle,
+ * @eturn 0 if there is an argument to handle,
  * -ENOENT if there are no more args or -EINVAL
  * if there is something else wrong.
  *
  * This function provides the next radiotap arg index (IEEE80211_RADIOTAP_*)
- * in @this_arg_index and sets @this_arg to point to the
+ * in this_arg_index and sets this_arg to point to the
  * payload for the field.  It takes care of alignment handling and extended
- * present fields.  @this_arg can be changed by the caller (eg,
+ * present fields.  this_arg can be changed by the caller (eg,
  * incremented to move inside a compound argument like
  * IEEE80211_RADIOTAP_CHANNEL).  The args pointed to are in
  * little-endian format whatever the endianess of your CPU.

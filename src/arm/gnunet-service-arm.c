@@ -342,7 +342,7 @@ free_entry (struct ServiceList *pos)
  * Actually start the process for the given service.
  *
  * @param sl identifies service to start
- * @param  -1 terminated list of listen sockets to pass (systemd style), or NULL
+ * @param lsocks -1 terminated list of listen sockets to pass (systemd style), or NULL
  */
 static void
 start_process (struct ServiceList *sl,
