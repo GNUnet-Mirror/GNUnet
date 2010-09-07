@@ -705,10 +705,12 @@ static void
 sighandler_shutdown ()
 {
   static char c;
+  int old_errno = errno; /* backup errno */
 
   GNUNET_DISK_file_write (GNUNET_DISK_pipe_handle
                           (shutdown_pipe_handle, GNUNET_DISK_PIPE_END_WRITE), &c,
                           sizeof (c));
+  errno = old_errno;
 }
 
 

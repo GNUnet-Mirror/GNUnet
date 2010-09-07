@@ -1002,10 +1002,12 @@ static void
 sighandler_child_death ()
 {
   static char c;
+  int old_errno = errno; /* back-up errno */
   GNUNET_break (1 == 
 		GNUNET_DISK_file_write (GNUNET_DISK_pipe_handle
 					(sigpipe, GNUNET_DISK_PIPE_END_WRITE), &c,
 					sizeof (c)));
+  errno = old_errno; /* restore errno */
 }
 
 
