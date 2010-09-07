@@ -361,7 +361,8 @@ advertisement_cont (void *cls,
 					 &do_disconnect,
 					 ac->dsh,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-      ac->cont (ac->cont_cls, NULL, msg);
+      if (ac->cont != NULL)
+	ac->cont (ac->cont_cls, NULL, msg);
       GNUNET_FS_uri_destroy (ac->ksk_uri);
       GNUNET_free (ac->pt);
       GNUNET_free (ac->nb);
@@ -376,7 +377,8 @@ advertisement_cont (void *cls,
 					 &do_disconnect,
 					 ac->dsh,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-      ac->cont (ac->cont_cls, ac->ksk_uri, NULL);
+      if (ac->cont != NULL)
+	ac->cont (ac->cont_cls, ac->ksk_uri, NULL);
       GNUNET_FS_uri_destroy (ac->ksk_uri);
       GNUNET_free (ac->pt);
       GNUNET_free (ac->nb);
@@ -775,9 +777,10 @@ sb_put_cont (void *cls,
     }
   if (GNUNET_OK != success)
     {
-      psc->cont (psc->cont_cls,
-		 NULL,
-		 msg);
+      if (psc->cont != NULL)
+	psc->cont (psc->cont_cls,
+		   NULL,
+		   msg);
     }
   else
     {
@@ -804,9 +807,10 @@ sb_put_cont (void *cls,
 	  psc->nsn = NULL;
 	  write_update_information_graph (psc->namespace);
 	}
-      psc->cont (psc->cont_cls,
-		 psc->uri,
-		 NULL);
+      if (psc->cont != NULL)
+	psc->cont (psc->cont_cls,
+		   psc->uri,
+		   NULL);
     }
   GNUNET_FS_namespace_delete (psc->namespace,
 			      GNUNET_NO);
