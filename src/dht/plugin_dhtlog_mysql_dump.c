@@ -256,49 +256,14 @@ add_extended_topology (const struct GNUNET_PeerIdentity *first, const struct GNU
 /*
  * Inserts the specified trial into the dhttests.trials table
  *
- * @param trialuid return the trialuid of the newly inserted trial
- * @param other_identifier identifier for the trial from another source
- *        (for joining later)
- * @param num_nodes how many nodes are in the trial
- * @param topology integer representing topology for this trial
- * @param blacklist_topology integer representing blacklist topology for this trial
- * @param connect_topology integer representing connect topology for this trial
- * @param connect_topology_option integer representing connect topology option
- * @param connect_topology_option_modifier float to modify connect option
- * @param topology_percentage percentage modifier for certain topologies
- * @param topology_probability probability modifier for certain topologies
- * @param puts number of puts to perform
- * @param gets number of gets to perform
- * @param concurrent number of concurrent requests
- * @param settle_time time to wait between creating topology and starting testing
- * @param num_rounds number of times to repeat the trial
- * @param malicious_getters number of malicious GET peers in the trial
- * @param malicious_putters number of malicious PUT peers in the trial
- * @param malicious_droppers number of malicious DROP peers in the trial
- * @param malicious_get_frequency how often malicious gets are sent
- * @param malicious_put_frequency how often malicious puts are sent
- * @param stop_closest stop forwarding PUTs if closest node found
- * @param stop_found stop forwarding GETs if data found
- * @param strict_kademlia test used kademlia routing algorithm
- * @param gets_succeeded how many gets did the test driver report success on
- * @param message string to put into DB for this trial
+ * @param trial_info struct containing the data to insert about this trial
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int add_trial (unsigned long long *trialuid, unsigned int other_identifier, unsigned int num_nodes, unsigned int topology,
-               unsigned int blacklist_topology, unsigned int connect_topology,
-               unsigned int connect_topology_option, float connect_topology_option_modifier,
-               float topology_percentage, float topology_probability,
-               unsigned int puts, unsigned int gets, unsigned int concurrent, unsigned int settle_time,
-               unsigned int num_rounds, unsigned int malicious_getters, unsigned int malicious_putters,
-               unsigned int malicious_droppers, unsigned int malicious_get_frequency,
-               unsigned int malicious_put_frequency, unsigned int stop_closest, unsigned int stop_found,
-               unsigned int strict_kademlia, unsigned int gets_succeeded,
-               char *message)
+int add_trial (struct GNUNET_DHTLOG_TrialInfo *trial_info)
 {
   int ret;
-  if (trialuid != NULL)
-    *trialuid = 0;
+  trial_info->trialuid = 0;
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
@@ -309,14 +274,14 @@ int add_trial (unsigned long long *trialuid, unsigned int other_identifier, unsi
                    "@m_gets = %u, @m_puts = %u, @m_drops = %u, "
                    "@m_g_f = %u, @m_p_f = %u, @s_c = %u, @s_f = %u,"
                    "@s_k = %u, @g_s = %u, @message = \"%s\";\n",
-                   get_sql_time(), other_identifier, num_nodes, topology,
-                   blacklist_topology, connect_topology,
-                   connect_topology_option, connect_topology_option_modifier,
-                   topology_percentage, topology_probability,
-                   puts, gets, concurrent, settle_time,
-                   num_rounds, malicious_getters, malicious_putters,
-                   malicious_droppers, malicious_get_frequency, malicious_put_frequency,
-                   stop_closest, stop_found, strict_kademlia, gets_succeeded, message);
+                   get_sql_time(), trial_info->other_identifier, trial_info->num_nodes, trial_info->topology,
+                   trial_info->blacklist_topology, trial_info->connect_topology,
+                   trial_info->connect_topology_option, trial_info->connect_topology_option_modifier,
+                   trial_info->topology_percentage, trial_info->topology_probability,
+                   trial_info->puts, trial_info->gets, trial_info->concurrent, trial_info->settle_time,
+                   trial_info->num_rounds, trial_info->malicious_getters, trial_info->malicious_putters,
+                   trial_info->malicious_droppers, trial_info->malicious_get_frequency, trial_info->malicious_put_frequency,
+                   trial_info->stop_closest, trial_info->stop_found, trial_info->strict_kademlia, trial_info->gets_succeeded, trial_info->message);
 
   if (ret < 0)
     return GNUNET_SYSERR;

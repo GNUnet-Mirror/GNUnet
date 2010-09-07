@@ -68,6 +68,91 @@ typedef enum
 
 } DHTLOG_MESSAGE_TYPES;
 
+struct GNUNET_DHTLOG_TrialInfo
+{
+  /**
+   * Trialuid, possibly set by insert call.
+   */
+  unsigned long long trialuid;
+
+  /**
+   * Outside of database identifier for the trial.
+   */
+  unsigned int other_identifier;
+
+  /** Number of nodes in the trial */
+  unsigned int num_nodes;
+
+  /** Type of initial topology */
+  unsigned int topology;
+
+  /** Topology to blacklist peers to */
+  unsigned int blacklist_topology;
+
+  /** Initially connect peers in this topology */
+  unsigned int connect_topology;
+
+  /** Option to modify connect topology */
+  unsigned int connect_topology_option;
+
+  /** Modifier for the connect option */
+  float connect_topology_option_modifier;
+
+  /** Percentage parameter used for certain topologies */
+  float topology_percentage;
+
+  /** Probability parameter used for certain topologies */
+  float topology_probability;
+
+  /** Number of puts in the trial */
+  unsigned int puts;
+
+  /** Number of gets in the trial */
+  unsigned int gets;
+
+  /** Concurrent puts/gets in the trial (max allowed) */
+  unsigned int concurrent;
+
+  /** How long between initial connection and issuing puts/gets */
+  unsigned int settle_time;
+
+  /** How many times to do put/get loop */
+  unsigned int num_rounds;
+
+  /** Number of malicious getters */
+  unsigned int malicious_getters;
+
+  /** Number of malicious putters */
+  unsigned int malicious_putters;
+
+  /** Number of malicious droppers */
+  unsigned int malicious_droppers;
+
+  /** Frequency of malicious get requests */
+  unsigned int malicious_get_frequency;
+
+  /** Frequency of malicious put requests */
+  unsigned int malicious_put_frequency;
+
+  /** Stop forwarding put/find_peer requests when peer is closer than others */
+  unsigned int stop_closest;
+
+  /** Stop forwarding get requests when data found */
+  unsigned int stop_found;
+
+  /**
+   * Routing behaves as it would in Kademlia (modified to work recursively,
+   * and with our other GNUnet constraints.
+   */
+  unsigned int strict_kademlia;
+
+  /** Number of gets that were reported successful */
+  unsigned int gets_succeeded;
+
+  /** Message for this trial */
+  char *message;
+};
+
 struct GNUNET_DHTLOG_Handle
 {
 
@@ -94,45 +179,11 @@ struct GNUNET_DHTLOG_Handle
   /*
    * Inserts the specified trial into the dhttests.trials table
    *
-   * @param trialuid return the trialuid of the newly inserted trial
-   * @param other_identifier identifier for the trial from another source
-   *        (for joining later)
-   * @param num_nodes how many nodes are in the trial
-   * @param topology integer representing topology for this trial
-   * @param blacklist_topology integer representing blacklist topology for this trial
-   * @param connect_topology integer representing connect topology for this trial
-   * @param connect_topology_option integer representing connect topology option
-   * @param connect_topology_option_modifier float to modify connect option
-   * @param topology_percentage percentage modifier for certain topologies
-   * @param topology_probability probability modifier for certain topologies
-   * @param puts number of puts to perform
-   * @param gets number of gets to perform
-   * @param concurrent number of concurrent requests
-   * @param settle_time time to wait between creating topology and starting testing
-   * @param num_rounds number of times to repeat the trial
-   * @param malicious_getters number of malicious GET peers in the trial
-   * @param malicious_putters number of malicious PUT peers in the trial
-   * @param malicious_droppers number of malicious DROP peers in the trial
-   * @param malicious_get_frequency how often malicious gets are sent
-   * @param malicious_put_frequency how often malicious puts are sent
-   * @param stop_closest stop forwarding PUTs if closest node found
-   * @param stop_found stop forwarding GETs if data found
-   * @param strict_kademlia test used kademlia routing algorithm
-   * @param gets_succeeded how many gets did the test driver report success on
-   * @param message string to put into DB for this trial
+   * @param trial_info general information about this trial
    *
    * @return GNUNET_OK on success, GNUNET_SYSERR on failure
    */
-  int (*insert_trial) (unsigned long long *trialuid, unsigned int other_identifier, unsigned int num_nodes, unsigned int topology,
-                       unsigned int blacklist_topology, unsigned int connect_topology,
-                       unsigned int connect_topology_option, float connect_topology_option_modifier,
-                       float topology_percentage, float topology_probability,
-                       unsigned int puts, unsigned int gets, unsigned int concurrent, unsigned int settle_time,
-                       unsigned int num_rounds, unsigned int malicious_getters, unsigned int malicious_putters,
-                       unsigned int malicious_droppers, unsigned int malicious_get_frequency,
-                       unsigned int malicious_put_frequency, unsigned int stop_closest, unsigned int stop_found,
-                       unsigned int strict_kademlia, unsigned int gets_succeeded,
-                       char *message);
+  int (*insert_trial) (struct GNUNET_DHTLOG_TrialInfo *trial_info);
 
   /*
    * Inserts the specified stats into the dhttests.node_statistics table

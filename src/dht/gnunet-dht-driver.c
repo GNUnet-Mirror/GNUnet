@@ -1852,6 +1852,7 @@ run (void *cls,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct stat frstat;
+  struct GNUNET_DHTLOG_TrialInfo trial_info;
   struct GNUNET_TESTING_Host *hosts;
   struct GNUNET_TESTING_Host *temphost;
   char *topology_str;
@@ -1875,6 +1876,7 @@ run (void *cls,
 
   sched = s;
   config = cfg;
+  memset(&trial_info, 0, sizeof(struct GNUNET_DHTLOG_TrialInfo));
   /* Get path from configuration file */
   if (GNUNET_YES != GNUNET_CONFIGURATION_get_value_string(cfg, "paths", "servicehome", &test_directory))
     {
@@ -2221,32 +2223,36 @@ run (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "dhtlog_handle is NULL!");
 
-  if ((trialmessage != NULL) && (dhtlog_handle != NULL))
-    {
-      dhtlog_handle->insert_trial (&trialuid, (unsigned int)trial_to_run, peers_left, topology,
-                                    blacklist_topology, connect_topology,
-                                    connect_topology_option,
-                                    connect_topology_option_modifier, topology_percentage,
-                                    topology_probability, num_puts, num_gets,
-                                    max_outstanding_gets, settle_time, 1,
-                                    malicious_getters, malicious_putters,
-                                    malicious_droppers, malicious_get_frequency,
-                                    malicious_put_frequency, stop_closest, stop_found,
-                                    strict_kademlia, 0, trialmessage);
-    }
-  else if (dhtlog_handle != NULL)
-    {
-      dhtlog_handle->insert_trial (&trialuid, (unsigned int)trial_to_run, peers_left, topology,
-                                    blacklist_topology, connect_topology,
-                                    connect_topology_option,
-                                    connect_topology_option_modifier, topology_percentage,
-                                    topology_probability, num_puts, num_gets,
-                                    max_outstanding_gets, settle_time, 1,
-                                    malicious_getters, malicious_putters,
-                                    malicious_droppers, malicious_get_frequency,
-                                    malicious_put_frequency, stop_closest, stop_found,
-                                    strict_kademlia, 0, "");
-    }
+  trial_info.other_identifier = (unsigned int)trial_to_run;
+  trial_info.num_nodes = peers_left;
+  trial_info.topology = topology;
+  trial_info.blacklist_topology = blacklist_topology;
+  trial_info.connect_topology = connect_topology;
+  trial_info.connect_topology_option = connect_topology_option;
+  trial_info.connect_topology_option_modifier = connect_topology_option_modifier;
+  trial_info.topology_percentage = topology_percentage;
+  trial_info.topology_probability = topology_probability;
+  trial_info.puts = num_puts;
+  trial_info.gets = num_gets;
+  trial_info.concurrent = max_outstanding_gets;
+  trial_info.settle_time = settle_time;
+  trial_info.num_rounds = 1;
+  trial_info.malicious_getters = malicious_getters;
+  trial_info.malicious_putters = malicious_putters;
+  trial_info.malicious_droppers = malicious_droppers;
+  trial_info.malicious_get_frequency = malicious_get_frequency;
+  trial_info.malicious_put_frequency = malicious_put_frequency;
+  trial_info.stop_closest = stop_closest;
+  trial_info.stop_found = stop_found;
+  trial_info.strict_kademlia = strict_kademlia;
+
+  if (trialmessage != NULL)
+    trial_info.message = trialmessage;
+  else
+    trial_info.message = "";
+
+  if (dhtlog_handle != NULL)
+    dhtlog_handle->insert_trial(&trial_info);
 
   GNUNET_free_non_null(trialmessage);
 
