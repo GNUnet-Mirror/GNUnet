@@ -474,6 +474,7 @@ struct UpdateContext
   const char *hostname;
   unsigned int nport;
   unsigned int upnum;
+  unsigned int fdnum;
 };
 
 
@@ -690,6 +691,8 @@ update_config (void *cls,
   char cval[12];
   char uval[128];
   char *single_variable;
+  char *per_host_variable;
+  unsigned long long num_per_host;
 
   if ((0 == strcmp (option, "PORT")) && (1 == sscanf (value, "%u", &ival)))
     {
@@ -706,6 +709,7 @@ update_config (void *cls,
   if (0 == strcmp (option, "UNIXPATH"))
     {
       GNUNET_asprintf(&single_variable, "single_%s_per_host", section);
+      GNUNET_asprintf(&per_host_variable, "num_%s_per_host", section);
       if (GNUNET_YES != GNUNET_CONFIGURATION_get_value_yesno(ctx->orig, "testing", single_variable))
         {
           GNUNET_snprintf (uval,
@@ -713,6 +717,15 @@ update_config (void *cls,
                            "/tmp/test-service-%s-%u",
                            section,
                            ctx->upnum++);
+          value = uval;
+        }
+      else if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_number(ctx->orig, "testing", per_host_variable, &num_per_host))
+        {
+          GNUNET_snprintf (uval,
+                           sizeof (uval),
+                           "/tmp/test-service-%s-%u",
+                           section,
+                           ctx->fdnum % num_per_host);
           value = uval;
         }
       GNUNET_free(single_variable);
@@ -739,6 +752,8 @@ update_config (void *cls,
  *             port numbers that were used
  * @param upnum number to make unix domain socket names unique
  * @param hostname hostname of the controlling host, to allow control connections from
+ * @param fdnum number used to offset the unix domain socket for grouped processes
+ *              (such as statistics or peerinfo, which can be shared among others)
  *
  * @return new configuration, NULL on error
  */
@@ -746,7 +761,7 @@ static struct GNUNET_CONFIGURATION_Handle *
 make_config (const struct GNUNET_CONFIGURATION_Handle *cfg, 
 	     uint16_t * port,
 	     uint32_t * upnum,
-	     const char *hostname)
+	     const char *hostname, uint32_t * fdnum)
 {
   struct UpdateContext uc;
   uint16_t orig;
@@ -756,6 +771,7 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg,
   orig = *port;
   uc.nport = *port;
   uc.upnum = *upnum;
+  uc.fdnum = *fdnum;
   uc.ret = GNUNET_CONFIGURATION_create ();
   uc.hostname = hostname;
   uc.orig = cfg;
@@ -802,6 +818,8 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   *port = (uint16_t) uc.nport;
   *upnum = uc.upnum;
+  uc.fdnum++;
+  *fdnum = uc.fdnum;
   return uc.ret;
 }
 
@@ -3377,6 +3395,7 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
   unsigned int hostcnt;
   uint16_t minport;
   uint32_t upnum;
+  uint32_t fdnum;
 
   if (0 == total)
     {
@@ -3384,6 +3403,7 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
       return NULL;
     }
   upnum = 0;
+  fdnum = 0;
   pg = GNUNET_malloc (sizeof (struct GNUNET_TESTING_PeerGroup));
   pg->sched = sched;
   pg->cfg = cfg;
@@ -3478,7 +3498,7 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
           pcfg = make_config (cfg, 
 			      &pg->hosts[off % hostcnt].minport,
 			      &upnum,
-			      hostname);
+			      hostname, &fdnum);
         }
       else
         {
@@ -3486,7 +3506,7 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
           pcfg = make_config (cfg,
 			      &minport,
 			      &upnum,
-			      hostname);
+			      hostname, &fdnum);
         }
 
       if (NULL == pcfg)
