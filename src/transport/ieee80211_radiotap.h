@@ -37,7 +37,7 @@
 
 #include <linux/if_ether.h>
 #include <linux/kernel.h>
-//#include <asm/unaligned.h>
+// #include <asm/unaligned.h>
 
 /* Base version of the radiotap packet header data */
 #define PKTHDR_RADIOTAP_VERSION		0
@@ -254,12 +254,18 @@ enum ieee80211_radiotap_type {
 	((x) + 1000) * 5)
 
 /* helpers */
+static inline u16 get_unaligned_le16(const u8 *p)
+{
+  return p[0] | p[1] << 8;
+}
+
+
 static inline int ieee80211_get_radiotap_len(unsigned char *data)
 {
 	struct ieee80211_radiotap_header *hdr =
 		(struct ieee80211_radiotap_header *)data;
 
-	return get_unaligned_le16(&hdr->it_len);
+	return get_unaligned_le16( (const u8 *) &hdr->it_len);
 }
 
 #endif				/* IEEE80211_RADIOTAP_H */

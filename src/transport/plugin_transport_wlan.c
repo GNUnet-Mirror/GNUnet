@@ -26,9 +26,7 @@
 
 #include "platform.h"
 #include "gnunet_protocols.h"
-#include "gnunet_connection_lib.h"
-#include "gnunet_server_lib.h"
-#include "gnunet_service_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
 #include "plugin_transport.h"
@@ -36,9 +34,6 @@
 #define PROTOCOL_PREFIX "wlan"
 
 #define DEBUG_wlan GNUNET_NO
-
-static void
-wlan_plugin_helper_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * After how long do we expire an address that we
@@ -265,34 +260,32 @@ wlan_plugin_disconnect (void *cls,
  */
 static void
 wlan_plugin_address_pretty_printer (void *cls,
-                                        const char *type,
-                                        const void *addr,
-                                        size_t addrlen,
-                                        int numeric,
-                                        struct GNUNET_TIME_Relative timeout,
-                                        GNUNET_TRANSPORT_AddressStringCallback
-                                        asc, void *asc_cls)
+				    const char *type,
+				    const void *addr,
+				    size_t addrlen,
+				    int numeric,
+				    struct GNUNET_TIME_Relative timeout,
+				    GNUNET_TRANSPORT_AddressStringCallback
+				    asc, void *asc_cls)
 {
-  unsigned int res;
-  char * ret;
-  char * input;
-
+  char ret[92];
+  const unsigned char * input;
+  
   GNUNET_assert(cls !=NULL);
-  //Mac Adress has 6 bytes
-  if (addrlen == 6){
-    input = addr;
-    res = GNUNET_asprintf(&ret,"%s Mac-Adress %X:%X:%X:%X:%X:%X", PROTOCOL_PREFIX, input[0], input[1],input[2],input[3],input[4],input[5]);
-
-    GNUNET_assert(res != 0);
-    asc (asc_cls, ret);
-    GNUNET_free_non_null (ret);
-
-  } else {
-    /* invalid address */
-    GNUNET_break_op (0);
-    asc (asc_cls, NULL);
-    return;
-  }
+  if (addrlen != 6)
+    {
+      /* invalid address (MAC addresses have 6 bytes) */
+      GNUNET_break (0);
+      asc (asc_cls, NULL);
+      return;
+    }
+  input = (const unsigned char*) addr;
+  GNUNET_snprintf (ret, 
+		   sizeof (ret),
+		   "%s Mac-Adress %X:%X:%X:%X:%X:%X",
+		   PROTOCOL_PREFIX, 
+		   input[0], input[1], input[2], input[3], input[4], input[5]);  
+  asc (asc_cls, ret);
 }
 
 
@@ -345,30 +338,30 @@ wlan_plugin_address_suggested (void *cls,
  */
 static const char* 
 wlan_plugin_address_to_string (void *cls,
-				   const void *addr,
-				   size_t addrlen)
+			       const void *addr,
+			       size_t addrlen)
 {
-  unsigned int res;
-  char * ret;
-  char * input;
-
+  char ret[92];
+  const unsigned char * input;
+  
   GNUNET_assert(cls !=NULL);
-  //Mac Adress has 6 bytes
-  if (addrlen == 6){
-    input = addr;
-    res = GNUNET_asprintf(&ret,"%X:%X:%X:%X:%X:%X", input[0], input[1],input[2],input[3],input[4],input[5]);
-
-    GNUNET_assert(res != 0);
-    return ret;
-
-  } else {
-    /* invalid address */
-    GNUNET_break (0);
-    return NULL;
-  }
+  if (addrlen != 6)
+    {
+      /* invalid address (MAC addresses have 6 bytes) */
+      GNUNET_break (0);
+      return NULL;
+    }
+  input = (const unsigned char*) addr;
+  GNUNET_snprintf (ret, 
+		   sizeof (ret),
+		   "%s Mac-Adress %X:%X:%X:%X:%X:%X",
+		   PROTOCOL_PREFIX, 
+		   input[0], input[1], input[2], input[3], input[4], input[5]);  
+  return GNUNET_strdup (ret);
 }
 
 
+#if 0
 /**
  * Function for used to process the data from the suid process
  */
@@ -399,6 +392,35 @@ wlan_process_helper (void *cls,
 }
 
 
+static void
+wlan_plugin_helper_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Plugin *plugin = cls;
+  char mybuf[3000]; //max size of packet from helper
+  ssize_t bytes;
+  //memset(&mybuf, 0, sizeof(mybuf)); //?
+
+  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+    return;
+
+  bytes = GNUNET_DISK_file_read(plugin->server_stdout_handle, &mybuf, sizeof(mybuf));
+
+  if (bytes < 1)
+    {
+#if DEBUG_TCP_NAT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      _("Finished reading from wlan-helper stdout with code: %d\n"), bytes);
+#endif
+      return;
+    }
+
+  plugin->server_read_task =
+  GNUNET_SCHEDULER_add_read_file (plugin->env->sched,
+                                  GNUNET_TIME_UNIT_FOREVER_REL,
+                                  plugin->server_stdout_handle, &wlan_plugin_helper_read, plugin);
+
+}
+
 
 /**
  * Start the gnunet-wlan-helper process for users behind NAT.
@@ -407,7 +429,6 @@ wlan_process_helper (void *cls,
  *
  * @return GNUNET_YES if process was started, GNUNET_SYSERR on error
  */
-
 static int
 wlan_transport_start_wlan_helper(struct Plugin *plugin)
 {
@@ -452,37 +473,7 @@ wlan_transport_start_wlan_helper(struct Plugin *plugin)
 
 
 
-
-static void
-wlan_plugin_helper_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct Plugin *plugin = cls;
-  char mybuf[3000]; //max size of packet from helper
-  ssize_t bytes;
-  //memset(&mybuf, 0, sizeof(mybuf)); //?
-  int i;
-
-
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
-    return;
-
-  bytes = GNUNET_DISK_file_read(plugin->server_stdout_handle, &mybuf, sizeof(mybuf));
-
-  if (bytes < 1)
-    {
-#if DEBUG_TCP_NAT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      _("Finished reading from wlan-helper stdout with code: %d\n"), bytes);
 #endif
-      return;
-    }
-
-  plugin->server_read_task =
-  GNUNET_SCHEDULER_add_read_file (plugin->env->sched,
-                                  GNUNET_TIME_UNIT_FOREVER_REL,
-                                  plugin->server_stdout_handle, &wlan_plugin_helper_read, plugin);
-
-}
 
 
 /**
