@@ -104,7 +104,7 @@ gnunet_service_dht_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/datacache/libgnunetdatacache.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/dht/libgnunetdhtlog.la
+  $(top_builddir)/src/dht/libgnunetdhtlog.la -lm
 
 gnunet_service_dht_can_SOURCES = \
  dht_can.c dht_can_helper.c dht_can_helper.h
@@ -147,17 +147,6 @@ gnunet_service_dht_koorde_LDADD = \
   $(top_builddir)/src/datacache/libgnunetdatacache.la \
   $(top_builddir)/src/util/libgnunetutil.la 
 
-#gnunet_service_dht_new_SOURCES = \
-# gnunet-service-dht-new.c         
-#gnunet_service_dht_new_LDADD = \
-#  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-#  $(top_builddir)/src/core/libgnunetcore.la \
-#  $(top_builddir)/src/transport/libgnunettransport.la \
-#  $(top_builddir)/src/hello/libgnunethello.la \
-#  $(top_builddir)/src/datacache/libgnunetdatacache.la \
-#  $(top_builddir)/src/util/libgnunetutil.la \
-#  $(top_builddir)/src/dht/libgnunetdhtlog.la
-
 gnunet_dht_get_SOURCES = \
  gnunet-dht-get.c         
 gnunet_dht_get_LDADD = \
@@ -195,7 +184,8 @@ check_PROGRAMS = $(STUD_TESTS) \
  test_dht_twopeer \
  test_dht_twopeer_put_get \
  test_dht_multipeer \
- test_dhtlog
+ test_dhtlog 
+# test_hash_operations
 
 if !DISABLE_TEST_RUN
 TESTS = test_dht_api $(check_SCRIPTS) \
@@ -216,6 +206,13 @@ test_dht_multipeer_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/dht/libgnunetdht.la  
+ 
+#test_hash_operations_SOURCES = \
+# test_hash_operations.c
+#test_hash_operations_LDADD = \
+# $(top_builddir)/src/util/libgnunetutil.la \
+# $(top_builddir)/src/testing/libgnunettesting.la \
+# $(top_builddir)/src/dht/libgnunetdht.la 
 
 test_dht_twopeer_SOURCES = \
  test_dht_twopeer.c
