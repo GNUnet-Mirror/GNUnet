@@ -589,7 +589,8 @@ init_params (struct StatementHandle *s, va_list ap)
 /**
  * Run a prepared SELECT statement.
  *
- * @param result_size number of elements in results array
+ * @param s handle to the statement we should execute
+ * @param result_size number of results in set
  * @param results pointer to already initialized MYSQL_BIND
  *        array (of sufficient size) for passing results
  * @param processor function to call on each result
@@ -597,12 +598,13 @@ init_params (struct StatementHandle *s, va_list ap)
  * @param ... pairs and triplets of "MYSQL_TYPE_XXX" keys and their respective
  *        values (size + buffer-reference for pointers); terminated
  *        with "-1"
+ *
  * @return GNUNET_SYSERR on error, otherwise
  *         the number of successfully affected (or queried) rows
  */
 int
-prepared_statement_run_select (struct StatementHandle
-                               *s, unsigned int result_size,
+prepared_statement_run_select (struct StatementHandle *s,
+                               unsigned int result_size,
                                MYSQL_BIND * results,
                                GNUNET_MysqlDataProcessor
                                processor, void *processor_cls,
@@ -783,11 +785,13 @@ get_dhtkey_uid (unsigned long long *dhtkeyuid, const GNUNET_HashCode * key)
 /**
  * Run a prepared statement that does NOT produce results.
  *
+ * @param s handle to the statement we should execute
+ * @param insert_id NULL or address where to store the row ID of whatever
+ *        was inserted (only for INSERT statements!)
  * @param ... pairs and triplets of "MYSQL_TYPE_XXX" keys and their respective
  *        values (size + buffer-reference for pointers); terminated
  *        with "-1"
- * @param insert_id NULL or address where to store the row ID of whatever
- *        was inserted (only for INSERT statements!)
+ *
  * @return GNUNET_SYSERR on error, otherwise
  *         the number of successfully affected rows
  */
