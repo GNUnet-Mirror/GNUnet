@@ -57,6 +57,9 @@ void unhijack(unsigned short port) {
 void receive_query(void *cls, struct GNUNET_SERVER_Client *client, const struct GNUNET_MessageHeader *message)
 {
 	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received query!\n");
+	struct query_packet* pkt = (struct query_packet*)message;
+
+	GNUNET_SERVER_receive_done(client, GNUNET_OK);
 }
 
 /**

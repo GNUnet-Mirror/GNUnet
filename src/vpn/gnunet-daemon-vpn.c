@@ -111,6 +111,16 @@ static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* ts
 	GNUNET_SCHEDULER_add_read_file (mycls.sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.fh_from_helper, &helper_read, NULL);
 }
 
+size_t send_query(void* cls, size_t size, void* buf)
+{
+	struct query_packet* pkt = cls;
+	size_t len = ntohs(pkt->hdr.size);
+	memcpy(buf, cls, len);
+	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sent %d bytes.\n", len);
+	GNUNET_free(cls);
+	return len;
+}
+
 static void message_token(void *cls, void *client, const struct GNUNET_MessageHeader *message) {
 	if (ntohs(message->type) != GNUNET_MESSAGE_TYPE_VPN_HELPER) return;
 
@@ -139,13 +149,16 @@ static void message_token(void *cls, void *client, const struct GNUNET_MessageHe
 		struct ip_pkt *pkt = (struct ip_pkt*) message;
 		struct ip_udp *udp = (struct ip_udp*) message;
 		if (pkt->ip_hdr.proto == 0x11 && ntohl(udp->ip_hdr.dadr) == 0x0a0a0a02 && ntohs(udp->udp_hdr.dpt) == 53 ) {
-			struct query_packet* query = alloca((sizeof query) + ntohs(udp->udp_hdr.len) - 7); /* 7 = 8 for the udp-header - 1 for the unsigned char data[1]; */
+			size_t len = sizeof(struct query_packet*) + ntohs(udp->udp_hdr.len) - 7; /* 7 = 8 for the udp-header - 1 for the unsigned char data[1]; */
+			struct query_packet* query = GNUNET_malloc(len);
 			query->hdr.type = htons(GNUNET_MESSAGE_TYPE_LOCAL_QUERY_DNS);
-			query->hdr.size = htons((sizeof query) + ntohs(udp->udp_hdr.len) - 7);
+			query->hdr.size = htons(len);
 			query->orig_to = pkt->ip_hdr.dadr;
 			query->orig_from = pkt->ip_hdr.sadr;
 			query->src_port = udp->udp_hdr.spt;
 			memcpy(query->data, udp->data, ntohs(udp->udp_hdr.len) - 8);
+			GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Queued sending\n");
+			GNUNET_CLIENT_notify_transmit_ready(mycls.dns_connection, len, GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, query);
 		}
 	}
 
