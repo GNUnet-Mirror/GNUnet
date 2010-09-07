@@ -139,6 +139,8 @@ add_extended_topology (const struct GNUNET_PeerIdentity *first, const struct GNU
  * Inserts the specified trial into the dhttests.trials table
  *
  * @param trialuid return the trialuid of the newly inserted trial
+ * @param other_identifier identifier for the trial from another source
+ *        (for joining later)
  * @param num_nodes how many nodes are in the trial
  * @param topology integer representing topology for this trial
  * @param blacklist_topology integer representing blacklist topology for this trial
@@ -165,7 +167,7 @@ add_extended_topology (const struct GNUNET_PeerIdentity *first, const struct GNU
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int add_trial (unsigned long long *trialuid, unsigned int num_nodes, unsigned int topology,
+int add_trial (unsigned long long *trialuid, unsigned int other_identifier, unsigned int num_nodes, unsigned int topology,
                unsigned int blacklist_topology, unsigned int connect_topology,
                unsigned int connect_topology_option, float connect_topology_option_modifier,
                float topology_percentage, float topology_probability,
@@ -183,7 +185,7 @@ int add_trial (unsigned long long *trialuid, unsigned int num_nodes, unsigned in
     return GNUNET_SYSERR;
 
   ret = fprintf(outfile, "INSERT INTO trials "
-                         "(starttime, numnodes, topology,"
+                         "(starttime, other_trial_identifier, numnodes, topology,"
                            "blacklist_topology, connect_topology, connect_topology_option,"
                            "connect_topology_option_modifier, topology_percentage, topology_probability,"
                            "puts, gets, "
@@ -191,8 +193,8 @@ int add_trial (unsigned long long *trialuid, unsigned int num_nodes, unsigned in
                            "malicious_putters, malicious_droppers, malicious_get_frequency,"
                            "malicious_put_frequency, stop_closest, stop_found, strict_kademlia, "
                            "gets_succeeded, message) "
-                           "VALUES (\"%s\", %u, %u, %u, %u, %u, %f, %f, %f, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, \"%s\");\n",
-                           get_sql_time(), num_nodes, topology,
+                           "VALUES (\"%s\", %u, %u, %u, %u, %u, %u, %f, %f, %f, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, \"%s\");\n",
+                           get_sql_time(), other_identifier, num_nodes, topology,
                            blacklist_topology, connect_topology,
                            connect_topology_option, connect_topology_option_modifier,
                            topology_percentage, topology_probability,

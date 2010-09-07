@@ -71,7 +71,7 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 #define SET_MALICIOUS_STMT "prepare set_malicious from 'update nodes set malicious_dropper = 1  where trialuid = @temp_trial and nodeid = @temp_node'"
 
 #define INSERT_TRIALS_STMT "prepare insert_trial from 'INSERT INTO trials"\
-                           "(starttime, numnodes, topology,"\
+                           "(starttime, other_trial_identifier, numnodes, topology,"\
                            "topology_percentage, topology_probability,"\
                            "blacklist_topology, connect_topology, connect_topology_option,"\
                            "connect_topology_option_modifier, puts, gets, "\
@@ -79,7 +79,7 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
                            "malicious_putters, malicious_droppers, malicious_get_frequency,"\
                            "malicious_put_frequency, stop_closest, stop_found, strict_kademlia, "\
                            "gets_succeeded, message) "\
-                           "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'"
+                           "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'"
 
 #define INSERT_GENERIC_STAT_STMT "prepare insert_generic_stat from 'INSERT INTO generic_stats" \
                                  "(trialuid, nodeuid, section, name, value)"\
@@ -257,6 +257,8 @@ add_extended_topology (const struct GNUNET_PeerIdentity *first, const struct GNU
  * Inserts the specified trial into the dhttests.trials table
  *
  * @param trialuid return the trialuid of the newly inserted trial
+ * @param other_identifier identifier for the trial from another source
+ *        (for joining later)
  * @param num_nodes how many nodes are in the trial
  * @param topology integer representing topology for this trial
  * @param blacklist_topology integer representing blacklist topology for this trial
@@ -283,7 +285,7 @@ add_extended_topology (const struct GNUNET_PeerIdentity *first, const struct GNU
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int add_trial (unsigned long long *trialuid, unsigned int num_nodes, unsigned int topology,
+int add_trial (unsigned long long *trialuid, unsigned int other_identifier, unsigned int num_nodes, unsigned int topology,
                unsigned int blacklist_topology, unsigned int connect_topology,
                unsigned int connect_topology_option, float connect_topology_option_modifier,
                float topology_percentage, float topology_probability,
@@ -300,14 +302,14 @@ int add_trial (unsigned long long *trialuid, unsigned int num_nodes, unsigned in
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "set @date = \"%s\", @num = %u, @topology = %u, @bl = %u, "
+  ret = fprintf(outfile, "set @date = \"%s\", @oid = %u, @num = %u, @topology = %u, @bl = %u, "
                    "@connect = %u, @c_t_o = %u, @c_t_o_m = %f, @t_p = %f, "
                    "@t_pr = %f, @puts = %u, @gets = %u, "
                    "@concurrent = %u, @settle = %u, @rounds = %u, "
                    "@m_gets = %u, @m_puts = %u, @m_drops = %u, "
                    "@m_g_f = %u, @m_p_f = %u, @s_c = %u, @s_f = %u,"
                    "@s_k = %u, @g_s = %u, @message = \"%s\";\n",
-                   get_sql_time(), num_nodes, topology,
+                   get_sql_time(), other_identifier, num_nodes, topology,
                    blacklist_topology, connect_topology,
                    connect_topology_option, connect_topology_option_modifier,
                    topology_percentage, topology_probability,
@@ -319,7 +321,7 @@ int add_trial (unsigned long long *trialuid, unsigned int num_nodes, unsigned in
   if (ret < 0)
     return GNUNET_SYSERR;
   ret = fprintf(outfile, "execute insert_trial using "
-                         "@date, @num, @topology, @t_p, @t_pr,"
+                         "@date, @oid, @num, @topology, @t_p, @t_pr,"
                          " @bl, @connect, @c_t_o,"
                          "@c_t_o_m, @puts, @gets,"
                          "@concurrent, @settle, @rounds,"

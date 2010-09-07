@@ -32,7 +32,7 @@
 #include <mysql/mysql.h>
 
 
-#define DEBUG_DHTLOG GNUNET_NO
+#define DEBUG_DHTLOG GNUNET_YES
 
 /**
  * Maximum number of supported parameters for a prepared
@@ -104,7 +104,7 @@ static struct StatementHandle *insert_route;
 static struct StatementHandle *insert_node;
 
 #define INSERT_TRIALS_STMT "INSERT INTO trials"\
-                            "(starttime, numnodes, topology,"\
+                            "(starttime, other_trial_identifier, numnodes, topology,"\
                             "topology_percentage, topology_probability,"\
                             "blacklist_topology, connect_topology, connect_topology_option,"\
                             "connect_topology_option_modifier, puts, gets, "\
@@ -112,7 +112,7 @@ static struct StatementHandle *insert_node;
                             "malicious_putters, malicious_droppers, malicious_get_frequency,"\
                             "malicious_put_frequency, stop_closest, stop_found, strict_kademlia, "\
                             "gets_succeeded, message) "\
-                            "VALUES (NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                            "VALUES (NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
 static struct StatementHandle *insert_trial;
 
@@ -243,30 +243,38 @@ itable ()
     return GNUNET_SYSERR;
 
   if (MRUNS ("CREATE TABLE IF NOT EXISTS `trials` ("
-             "`trialuid` int(10) unsigned NOT NULL auto_increment,"
-             "`numnodes` int(10) unsigned NOT NULL,"
-             "`topology` int(10) NOT NULL,"
-             "`starttime` datetime NOT NULL,"
-             "`endtime` datetime NOT NULL,"
-             "`puts` int(10) unsigned NOT NULL,"
-             "`gets` int(10) unsigned NOT NULL,"
-             "`concurrent` int(10) unsigned NOT NULL,"
-             "`settle_time` int(10) unsigned NOT NULL,"
-             "`totalConnections` int(10) unsigned NOT NULL,"
-             "`message` text NOT NULL,"
-             "`num_rounds` int(10) unsigned NOT NULL,"
-             "`malicious_getters` int(10) unsigned NOT NULL,"
-             "`malicious_putters` int(10) unsigned NOT NULL,"
-             "`malicious_droppers` int(10) unsigned NOT NULL,"
-             "`totalMessagesDropped` int(10) unsigned NOT NULL,"
-             "`totalBytesDropped` int(10) unsigned NOT NULL,"
-             "`topology_modifier` double NOT NULL,"
-             "`logNMultiplier` double NOT NULL,"
-             "`maxnetbps` bigint(20) unsigned NOT NULL,"
-             "`unknownPeers` int(10) unsigned NOT NULL,"
-             "PRIMARY KEY  (`trialuid`),"
-             "UNIQUE KEY `trialuid` (`trialuid`)"
-             ") ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1"))
+              "`trialuid` int(10) unsigned NOT NULL auto_increment,"
+              "`other_trial_identifier` int(10) unsigned NOT NULL default '0',"
+              "`numnodes` int(10) unsigned NOT NULL,"
+              "`topology` int(10) NOT NULL,"
+              "`blacklist_topology` int(11) NOT NULL,"
+              "`connect_topology` int(11) NOT NULL,"
+              "`connect_topology_option` int(11) NOT NULL,"
+              "`topology_percentage` float NOT NULL,"
+              "`topology_probability` float NOT NULL,"
+              "`connect_topology_option_modifier` float NOT NULL,"
+              "`starttime` datetime NOT NULL,"
+              "`endtime` datetime NOT NULL,"
+              "`puts` int(10) unsigned NOT NULL,"
+              "`gets` int(10) unsigned NOT NULL,"
+              "`concurrent` int(10) unsigned NOT NULL,"
+              "`settle_time` int(10) unsigned NOT NULL,"
+              "`totalConnections` int(10) unsigned NOT NULL,"
+              "`message` text NOT NULL,"
+              "`num_rounds` int(10) unsigned NOT NULL,"
+              "`malicious_getters` int(10) unsigned NOT NULL,"
+              "`malicious_putters` int(10) unsigned NOT NULL,"
+              "`malicious_droppers` int(10) unsigned NOT NULL,"
+              "`topology_modifier` double NOT NULL,"
+              "`malicious_get_frequency` int(10) unsigned NOT NULL,"
+              "`malicious_put_frequency` int(10) unsigned NOT NULL,"
+              "`stop_closest` int(10) unsigned NOT NULL,"
+              "`stop_found` int(10) unsigned NOT NULL,"
+              "`strict_kademlia` int(10) unsigned NOT NULL,"
+              "`gets_succeeded` int(10) unsigned NOT NULL,"
+              "PRIMARY KEY  (`trialuid`),"
+              "UNIQUE KEY `trialuid` (`trialuid`)"
+              ") ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1"))
     return GNUNET_SYSERR;
 
   if (MRUNS ("CREATE TABLE IF NOT EXISTS `topology` ("
@@ -750,7 +758,9 @@ get_dhtkey_uid (unsigned long long *dhtkeyuid, const GNUNET_HashCode * key)
   rbind[0].buffer = dhtkeyuid;
   GNUNET_CRYPTO_hash_to_enc (key, &encKey);
   k_len = strlen ((char *) &encKey);
-
+#if DEBUG_DHTLOG
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Searching for dhtkey `%s' in trial %llu\n", GNUNET_h2s(key), current_trial);
+#endif
   if ((GNUNET_OK !=
        prepared_statement_run_select (get_dhtkeyuid,
                                       1,
@@ -818,6 +828,8 @@ prepared_statement_run (struct StatementHandle *s,
  * Inserts the specified trial into the dhttests.trials table
  *
  * @param trialuid return the trialuid of the newly inserted trial
+ * @param other_identifier identifier for the trial from another source
+ *        (for joining later)
  * @param num_nodes how many nodes are in the trial
  * @param topology integer representing topology for this trial
  * @param blacklist_topology integer representing blacklist topology for this trial
@@ -844,7 +856,7 @@ prepared_statement_run (struct StatementHandle *s,
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int add_trial (unsigned long long *trialuid, unsigned int num_nodes, unsigned int topology,
+int add_trial (unsigned long long *trialuid, unsigned int other_identifier, unsigned int num_nodes, unsigned int topology,
                unsigned int blacklist_topology, unsigned int connect_topology,
                unsigned int connect_topology_option, float connect_topology_option_modifier,
                float topology_percentage, float topology_probability,
@@ -863,6 +875,7 @@ int add_trial (unsigned long long *trialuid, unsigned int num_nodes, unsigned in
   stmt = mysql_stmt_init(conn);
   if (GNUNET_OK !=
       (ret = prepared_statement_run (insert_trial, trialuid,
+                                     MYSQL_TYPE_LONG, &other_identifier, GNUNET_YES,
                                      MYSQL_TYPE_LONG, &num_nodes, GNUNET_YES,
                                      MYSQL_TYPE_LONG, &topology, GNUNET_YES,
                                      MYSQL_TYPE_FLOAT, &topology_percentage,
@@ -1062,7 +1075,11 @@ add_dhtkey (unsigned long long *dhtkeyuid, const GNUNET_HashCode * dhtkey)
       return GNUNET_OK;
     }
   else if (ret == GNUNET_SYSERR)
-    return GNUNET_SYSERR;
+    {
+#if DEBUG_DHTLOG
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Failed to get dhtkeyuid!\n");
+#endif
+    }
 
   if (GNUNET_OK !=
       (ret = prepared_statement_run (insert_dhtkey,

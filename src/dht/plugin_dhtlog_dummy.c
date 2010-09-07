@@ -36,6 +36,8 @@
    * Inserts the specified trial into the dhttests.trials table
    *
    * @param trialuid return the trialuid of the newly inserted trial
+   * @param other_identifier identifier for the trial from another source
+   *        (for joining later)
    * @param num_nodes how many nodes are in the trial
    * @param topology integer representing topology for this trial
    * @param blacklist_topology integer representing blacklist topology for this trial
@@ -62,7 +64,7 @@
    *
    * @return GNUNET_OK on success, GNUNET_SYSERR on failure
    */
-int add_trial (unsigned long long *trialuid, unsigned int num_nodes, unsigned int topology,
+int add_trial (unsigned long long *trialuid, unsigned int other_identifier, unsigned int num_nodes, unsigned int topology,
                unsigned int blacklist_topology, unsigned int connect_topology,
                unsigned int connect_topology_option, float connect_topology_option_modifier,
                float topology_percentage, float topology_probability,
@@ -246,6 +248,56 @@ update_topology (unsigned int connections)
   return GNUNET_OK;
 }
 
+/*
+ * Update dhttests.nodes table setting the identified
+ * node as a malicious dropper.
+ *
+ * @param peer the peer that was set to be malicious
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
+ */
+int
+set_malicious (struct GNUNET_PeerIdentity *peer)
+{
+  return GNUNET_OK;
+}
+
+/*
+ * Inserts the specified stats into the dhttests.node_statistics table
+ *
+ * @param peer the peer inserting the statistic
+ * @param route_requests route requests seen
+ * @param route_forwards route requests forwarded
+ * @param result_requests route result requests seen
+ * @param client_requests client requests initiated
+ * @param result_forwards route results forwarded
+ * @param gets get requests handled
+ * @param puts put requests handle
+ * @param data_inserts data inserted at this node
+ * @param find_peer_requests find peer requests seen
+ * @param find_peers_started find peer requests initiated at this node
+ * @param gets_started get requests initiated at this node
+ * @param puts_started put requests initiated at this node
+ * @param find_peer_responses_received find peer responses received locally
+ * @param get_responses_received get responses received locally
+ * @param find_peer_responses_sent find peer responses sent from this node
+ * @param get_responses_sent get responses sent from this node
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int insert_stat
+   (const struct GNUNET_PeerIdentity *peer, unsigned int route_requests,
+    unsigned int route_forwards, unsigned int result_requests,
+    unsigned int client_requests, unsigned int result_forwards,
+    unsigned int gets, unsigned int puts,
+    unsigned int data_inserts, unsigned int find_peer_requests,
+    unsigned int find_peers_started, unsigned int gets_started,
+    unsigned int puts_started, unsigned int find_peer_responses_received,
+    unsigned int get_responses_received, unsigned int find_peer_responses_sent,
+    unsigned int get_responses_sent)
+{
+  return GNUNET_OK;
+}
 
 /*
  * Provides the dhtlog api
@@ -264,9 +316,11 @@ libgnunet_plugin_dhtlog_dummy_init (void * cls)
   GNUNET_assert(plugin->dhtlog_api == NULL);
   plugin->dhtlog_api = GNUNET_malloc(sizeof(struct GNUNET_DHTLOG_Handle));
   plugin->dhtlog_api->add_generic_stat = &add_generic_stat;
+  plugin->dhtlog_api->insert_stat = &insert_stat;
   plugin->dhtlog_api->insert_trial = &add_trial;
   plugin->dhtlog_api->insert_query = &add_query;
   plugin->dhtlog_api->update_trial = &update_trials;
+  plugin->dhtlog_api->set_malicious = &set_malicious;
   plugin->dhtlog_api->insert_route = &add_route;
   plugin->dhtlog_api->insert_node = &add_node;
   plugin->dhtlog_api->insert_dhtkey = &add_dhtkey;

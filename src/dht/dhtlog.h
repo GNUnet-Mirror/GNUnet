@@ -95,6 +95,8 @@ struct GNUNET_DHTLOG_Handle
    * Inserts the specified trial into the dhttests.trials table
    *
    * @param trialuid return the trialuid of the newly inserted trial
+   * @param other_identifier identifier for the trial from another source
+   *        (for joining later)
    * @param num_nodes how many nodes are in the trial
    * @param topology integer representing topology for this trial
    * @param blacklist_topology integer representing blacklist topology for this trial
@@ -121,7 +123,7 @@ struct GNUNET_DHTLOG_Handle
    *
    * @return GNUNET_OK on success, GNUNET_SYSERR on failure
    */
-  int (*insert_trial) (unsigned long long *trialuid, unsigned int num_nodes, unsigned int topology,
+  int (*insert_trial) (unsigned long long *trialuid, unsigned int other_identifier, unsigned int num_nodes, unsigned int topology,
                        unsigned int blacklist_topology, unsigned int connect_topology,
                        unsigned int connect_topology_option, float connect_topology_option_modifier,
                        float topology_percentage, float topology_probability,
