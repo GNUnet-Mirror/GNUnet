@@ -1,17 +1,5 @@
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <sys/stat.h>
-
-#include <linux/if.h>
+#include "platform.h"
 #include <linux/if_tun.h>
-
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
-#include <stdlib.h>
 
 /**
  * Creates a tun-interface called dev;
