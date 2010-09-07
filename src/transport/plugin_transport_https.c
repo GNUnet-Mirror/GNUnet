@@ -408,6 +408,7 @@ static void http_server_daemon_v4_run (void *cls, const struct GNUNET_SCHEDULER_
  */
 static void http_server_daemon_v6_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
+
 /**
  * Function setting up curl handle and selecting message to send
  * @param cls plugin
@@ -417,15 +418,13 @@ static void http_server_daemon_v6_run (void *cls, const struct GNUNET_SCHEDULER_
  */
 static ssize_t send_check_connections (void *cls, struct Session *ps);
 
+
 /**
  * Function setting up file descriptors and scheduling task to run
- * @param cls closure
- * @param ses session to send data to
- * @param
+ * @param cls plugin as closure
+ * @return GNUNET_SYSERR for hard failure, GNUNET_OK for ok
  */
 static int curl_schedule(void *cls );
-
-
 
 static char * create_url(void * cls, const void * addr, size_t addrlen, size_t id)
 {
@@ -443,7 +442,7 @@ static char * create_url(void * cls, const void * addr, size_t addrlen, size_t i
 
 /**
  * Removes a message from the linked list of messages
- * @param con connection to remove message from
+ * @param ps session
  * @param msg message to remove
  * @return GNUNET_SYSERR if msg not found, GNUNET_OK on success
  */
@@ -461,7 +460,7 @@ int remove_peer_context_Iterator (void *cls, const GNUNET_HashCode *key, void *v
  * @param pc peer context
  * @param ps session
  * @param call_msg_cont GNUNET_YES to call pending message continuations, otherwise no
- * @param call_msg_cont_result, result to call message continuations with
+ * @param call_msg_cont_result result to call message continuations with
  * @return GNUNET_SYSERR if msg not found, GNUNET_OK on success
  */
 static int remove_session (struct HTTP_PeerContext * pc, struct Session * ps,  int call_msg_cont, int call_msg_cont_result)
@@ -1525,7 +1524,8 @@ static void curl_perform (void *cls,
 
 /**
  * Function setting up file descriptors and scheduling task to run
- * @param ses session to send data to
+ * @param cls plugin as closure
+ * @param target peer to disconnect from
  * @return GNUNET_SYSERR for hard failure, GNUNET_OK for ok
  */
 static void
@@ -1583,6 +1583,12 @@ http_plugin_disconnect (void *cls,
 }
 
 
+
+/**
+ * Function setting up file descriptors and scheduling task to run
+ * @param cls plugin as closure
+ * @return GNUNET_SYSERR for hard failure, GNUNET_OK for ok
+ */
 static int curl_schedule(void *cls)
 {
   struct Plugin *plugin = cls;
@@ -1646,8 +1652,7 @@ static int curl_schedule(void *cls)
 /**
  * Function setting up curl handle and selecting message to send
  * @param cls plugin
- * @param ses session to send data to
- * @param con connection
+ * @param ps session
  * @return GNUNET_SYSERR on failure, GNUNET_NO if connecting, GNUNET_YES if ok
  */
 static ssize_t send_check_connections (void *cls, struct Session *ps)
@@ -1938,7 +1943,7 @@ static struct Session * send_select_session (void * cls, struct HTTP_PeerContext
  * @param msgbuf_size number of bytes in 'msgbuf'
  * @param priority how important is the message (most plugins will
  *                 ignore message priority and just FIFO)
- * @param timeout how long to wait at most for the transmission (does not
+ * @param to how long to wait at most for the transmission (does not
  *                require plugins to discard the message after the timeout,
  *                just advisory for the desired delay; most plugins will ignore
  *                this as well)
@@ -2096,15 +2101,6 @@ http_plugin_send (void *cls,
 }
 
 
-
-/**
- * Function that can be used to force the plugin to disconnect
- * from the given peer and cancel all previous transmissions
- * (and their continuationc).
- *
- * @param cls closure
- * @param target peer from which to disconnect
- */
 /**
  * Convert the transports address to a nice, human-readable
  * format.
