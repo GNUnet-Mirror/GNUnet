@@ -303,6 +303,8 @@ static unsigned long long malicious_put_frequency;
 
 static unsigned long long settle_time;
 
+static unsigned long long trial_to_run;
+
 static struct GNUNET_DHTLOG_Handle *dhtlog_handle;
 
 static unsigned long long trialuid;
@@ -2093,6 +2095,13 @@ run (void *cls,
   else
     do_find_peer = GNUNET_YES;
 
+  if (GNUNET_YES != GNUNET_CONFIGURATION_get_value_number (cfg, "DHT_TESTING",
+                                                          "TRIAL_TO_RUN",
+                                                          &trial_to_run))
+    {
+      trial_to_run = 0;
+    }
+
   if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_number (cfg, "DHT_TESTING",
                                                           "FIND_PEER_DELAY",
                                                           &temp_config_number))
@@ -2214,7 +2223,7 @@ run (void *cls,
 
   if ((trialmessage != NULL) && (dhtlog_handle != NULL))
     {
-      dhtlog_handle->insert_trial (&trialuid, peers_left, topology,
+      dhtlog_handle->insert_trial (&trialuid, (unsigned int)trial_to_run, peers_left, topology,
                                     blacklist_topology, connect_topology,
                                     connect_topology_option,
                                     connect_topology_option_modifier, topology_percentage,
@@ -2227,7 +2236,7 @@ run (void *cls,
     }
   else if (dhtlog_handle != NULL)
     {
-      dhtlog_handle->insert_trial (&trialuid, peers_left, topology,
+      dhtlog_handle->insert_trial (&trialuid, (unsigned int)trial_to_run, peers_left, topology,
                                     blacklist_topology, connect_topology,
                                     connect_topology_option,
                                     connect_topology_option_modifier, topology_percentage,
@@ -2286,4 +2295,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of test_dht_twopeer_put_get.c */
+/* end of gnunet-dht-driver.c */
