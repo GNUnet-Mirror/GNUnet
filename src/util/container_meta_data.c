@@ -283,7 +283,6 @@ GNUNET_CONTAINER_meta_data_insert (struct GNUNET_CONTAINER_MetaData *md,
       if (pos->data_size < data_len)
 	break;
       if ( (pos->type == type) &&
-	   (pos->format == format) &&
 	   (pos->data_size == data_len) &&
 	   (0 == memcmp (pos->data, 
 			 data,
@@ -294,6 +293,12 @@ GNUNET_CONTAINER_meta_data_insert (struct GNUNET_CONTAINER_MetaData *md,
 	    {
 	      pos->mime_type = GNUNET_strdup (data_mime_type);
 	      invalidate_sbuf (md);  
+	    }
+	  if ( (pos->format == EXTRACTOR_METAFORMAT_C_STRING) &&
+	       (format == EXTRACTOR_METAFORMAT_UTF8) )
+	    {
+	      pos->format = EXTRACTOR_METAFORMAT_UTF8;
+	      invalidate_sbuf (md);
 	    }
 	  return GNUNET_SYSERR;
 	}
