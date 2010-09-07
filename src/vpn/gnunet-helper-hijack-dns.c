@@ -30,7 +30,7 @@
 int fork_and_exec(char* file, char* cmd[]) {
 	pid_t pid = fork();
 	if (pid < 0) {
-		fprintf(stderr, "could not fork: %m\n");
+		fprintf(stderr, "could not fork: %s\n", strerror(errno));
 		return GNUNET_SYSERR;
 	}
 
@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
 
 	struct stat s;
 	if (stat("/sbin/iptables", &s) < 0) {
-		fprintf(stderr, "stat on /sbin/iptables failed: %m\n");
+		fprintf(stderr, "stat on /sbin/iptables failed: %s\n", strerror(errno));
 		return GNUNET_SYSERR;
 	}
 

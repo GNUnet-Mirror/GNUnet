@@ -29,7 +29,7 @@ int init_tun(char *dev) {{{
 	int fd, err;
 
 	if( (fd = open("/dev/net/tun", O_RDWR)) < 0 ) {
-		fprintf(stderr, "opening /dev/net/tun: %m\n");
+		fprintf(stderr, "opening /dev/net/tun: %s\n", strerror(errno));
 		return -1;
 	}
 

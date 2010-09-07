@@ -82,6 +82,7 @@ static void set_address6(char* dev, char* address, unsigned long prefix_len) { /
 	/* FIXME */ ioctl(fd, SIOCGIFFLAGS, &ifr);
 	ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
 	/* FIXME */ ioctl(fd, SIOCSIFFLAGS, &ifr);
+	close(fd);
 } /* }}} */
 
 static void set_address4(char* dev, char* address, char* mask) { /* {{{ */
@@ -123,6 +124,7 @@ static void set_address4(char* dev, char* address, char* mask) { /* {{{ */
 	/* FIXME */ ioctl(fd, SIOCGIFFLAGS, &ifr);
 	ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
 	/* FIXME */ ioctl(fd, SIOCSIFFLAGS, &ifr);
+	close(fd);
 } /* }}} */
 
 void setnonblocking(int fd) {/*{{{*/
@@ -150,7 +152,7 @@ int main(int argc, char** argv) {
 	int fd_tun = init_tun(dev);
 
 	if (fd_tun < 0) {
-		fprintf(stderr, "Could not initialize tun-interface: %m\n");
+		fprintf(stderr, "Could not initialize tun-interface: %s\n", strerror(errno));
 		exit(1);
 	}
 
@@ -270,7 +272,7 @@ outer:
 				while(r < ntohs(hdr.size)) {
 					int t = write(1, buf, ntohs(hdr.size) - r);
 					if (t < 0) {
-						fprintf(stderr, "write-error 1: %m, written %d/%d\n", r, ntohs(hdr.size));
+						fprintf(stderr, "write-error 1: %s, written %d/%d\n", strerror(errno), r, ntohs(hdr.size));
 						shutdown(fd_tun, SHUT_RD);
 						shutdown(1, SHUT_WR);
 						rea = 0;
@@ -282,6 +284,8 @@ outer:
 		}
 	}
 	fprintf(stderr, "Quitting!\n");
+
+	close(fd_tun);
 
 	return 0;
 }
