@@ -101,7 +101,7 @@ static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* ts
 
 	int t = GNUNET_DISK_file_read(mycls.fh_from_helper, &buf, 65535);
 	if (t<=0) {
-		fprintf(stderr, "Read error for header: %m\n");
+		GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Read error for header: %m\n");
 		GNUNET_SCHEDULER_add_now(mycls.sched, restart_helper, cls);
 		return;
 	}
@@ -115,8 +115,6 @@ static void message_token(void *cls, void *client, const struct GNUNET_MessageHe
 	if (ntohs(message->type) != GNUNET_MESSAGE_TYPE_VPN_HELPER) return;
 
 	struct tun_pkt *pkt_tun = (struct tun_pkt*) message;
-
-	fprintf(stderr, "Packet, Type: %x\n", ntohs(pkt_tun->tun.type));
 
 	if (ntohs(pkt_tun->tun.type) == 0x86dd) {
 		struct ip6_pkt *pkt6 = (struct ip6_pkt*) message;
@@ -140,9 +138,7 @@ static void message_token(void *cls, void *client, const struct GNUNET_MessageHe
 	} else if (ntohs(pkt_tun->tun.type) == 0x0800) {
 		struct ip_pkt *pkt = (struct ip_pkt*) message;
 		struct ip_udp *udp = (struct ip_udp*) message;
-		GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "IPv4\n");
 		if (pkt->ip_hdr.proto == 0x11 && ntohl(udp->ip_hdr.dadr) == 0x0a0a0a02 && ntohs(udp->udp_hdr.dpt) == 53 ) {
-			pkt_printf_ipdns((struct ip_udp_dns*)udp);
 			struct query_packet* query = alloca((sizeof query) + ntohs(udp->udp_hdr.len) - 7); /* 7 = 8 for the udp-header - 1 for the unsigned char data[1]; */
 			query->hdr.type = htons(GNUNET_MESSAGE_TYPE_LOCAL_QUERY_DNS);
 			query->hdr.size = htons((sizeof query) + ntohs(udp->udp_hdr.len) - 7);
