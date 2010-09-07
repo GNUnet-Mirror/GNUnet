@@ -615,6 +615,8 @@ free_host_entry (void *cls,
 		 void *value)
 {
   struct HostEntry *he = value;
+
+  GNUNET_free_non_null (he->hello);
   GNUNET_free (he);
   return GNUNET_YES;
 }
