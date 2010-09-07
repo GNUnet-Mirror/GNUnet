@@ -321,6 +321,9 @@ struct Plugin
    */
   struct GNUNET_STATISTICS_Handle *stats;
 
+  /**
+   * Plugin Port
+   */
   unsigned int port_inbound;
 
   struct GNUNET_CONTAINER_MultiHashMap *peers;
@@ -361,11 +364,34 @@ struct Plugin
    */
   struct GNUNET_CRYPTO_HashAsciiEncoded my_ascii_hash_ident;
 
+  /**
+   * IPv4 Address the plugin binds to
+   */
   struct sockaddr_in * bind4_address;
+
+  /**
+   * IPv6 Address the plugins binds to
+   */
   struct sockaddr_in6 * bind6_address;
+
+  /**
+   * Hostname to bind to
+   */
   char * bind_hostname;
+
+  /**
+   * Is IPv4 enabled?
+   */
   int use_ipv6;
+
+  /**
+   * Is IPv6 enabled?
+   */
   int use_ipv4;
+
+  /**
+   * Closure passed by MHD to the mhd_logger function
+   */
   void * mhd_log;
 };
 
@@ -416,7 +442,14 @@ static ssize_t send_check_connections (void *cls, struct Session *ps);
 static int curl_schedule(void *cls );
 
 
-
+/**
+ * Creates a valid url from passed address and id
+ * @param cls plugin as closure
+ * @param addr address to create url from
+ * @param addrlen address lenth
+ * @param id session id
+ * @return the created url
+ */
 static char * create_url(void * cls, const void * addr, size_t addrlen, size_t id)
 {
   struct Plugin *plugin = cls;
@@ -444,7 +477,61 @@ static int remove_http_message (struct Session * ps, struct HTTP_Message * msg)
   return GNUNET_OK;
 }
 
-int remove_peer_context_Iterator (void *cls, const GNUNET_HashCode *key, void *value);
+/**
+ * Iterator to remove peer context
+ * @param cls the plugin
+ * @key the peers public key hashcode
+ * @value the peer context
+ * @return GNUNET_YES on success
+ */
+int remove_peer_context_Iterator (void *cls, const GNUNET_HashCode *key, void *value)
+{
+  struct Plugin *plugin = cls;
+  struct HTTP_PeerContext * pc = value;
+  struct Session * ps = pc->head;
+  struct Session * tmp = NULL;
+  struct HTTP_Message * msg = NULL;
+  struct HTTP_Message * msg_tmp = NULL;
+#if DEBUG_HTTP
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Freeing context for peer `%s'\n",GNUNET_i2s(&pc->identity));
+#endif
+  GNUNET_CONTAINER_multihashmap_remove (plugin->peers, &pc->identity.hashPubKey, pc);
+  while (ps!=NULL)
+  {
+	plugin->env->session_end(plugin, &pc->identity, ps);
+	tmp = ps->next;
+
+    GNUNET_free_non_null (ps->addr);
+    GNUNET_free(ps->url);
+    if (ps->msgtok != NULL)
+      GNUNET_SERVER_mst_destroy (ps->msgtok);
+
+    msg = ps->pending_msgs_head;
+    while (msg!=NULL)
+    {
+      msg_tmp = msg->next;
+      GNUNET_free(msg);
+      msg = msg_tmp;
+    }
+    if (ps->direction==OUTBOUND)
+    {
+      if (ps->send_endpoint!=NULL)
+        curl_easy_cleanup(ps->send_endpoint);
+      if (ps->recv_endpoint!=NULL)
+        curl_easy_cleanup(ps->recv_endpoint);
+    }
+
+    GNUNET_free(ps);
+    ps=tmp;
+  }
+  GNUNET_free(pc);
+  GNUNET_STATISTICS_update (plugin->env->stats,
+			    gettext_noop ("# HTTP peers active"),
+			    -1,
+			    GNUNET_NO);
+  return GNUNET_YES;
+}
+
 
 /**
  * Removes a session from the linked list of sessions
@@ -510,53 +597,6 @@ static int remove_session (struct HTTP_PeerContext * pc, struct Session * ps,  i
   return GNUNET_OK;
 }
 
-int remove_peer_context_Iterator (void *cls, const GNUNET_HashCode *key, void *value)
-{
-  struct Plugin *plugin = cls;
-  struct HTTP_PeerContext * pc = value;
-  struct Session * ps = pc->head;
-  struct Session * tmp = NULL;
-  struct HTTP_Message * msg = NULL;
-  struct HTTP_Message * msg_tmp = NULL;
-#if DEBUG_HTTP
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Freeing context for peer `%s'\n",GNUNET_i2s(&pc->identity));
-#endif
-  GNUNET_CONTAINER_multihashmap_remove (plugin->peers, &pc->identity.hashPubKey, pc);
-  while (ps!=NULL)
-  {
-	plugin->env->session_end(plugin, &pc->identity, ps);
-	tmp = ps->next;
-
-    GNUNET_free_non_null (ps->addr);
-    GNUNET_free(ps->url);
-    if (ps->msgtok != NULL)
-      GNUNET_SERVER_mst_destroy (ps->msgtok);
-
-    msg = ps->pending_msgs_head;
-    while (msg!=NULL)
-    {
-      msg_tmp = msg->next;
-      GNUNET_free(msg);
-      msg = msg_tmp;
-    }
-    if (ps->direction==OUTBOUND)
-    {
-      if (ps->send_endpoint!=NULL)
-        curl_easy_cleanup(ps->send_endpoint);
-      if (ps->recv_endpoint!=NULL)
-        curl_easy_cleanup(ps->recv_endpoint);
-    }
-
-    GNUNET_free(ps);
-    ps=tmp;
-  }
-  GNUNET_free(pc);
-  GNUNET_STATISTICS_update (plugin->env->stats,
-			    gettext_noop ("# HTTP peers active"),
-			    -1,
-			    GNUNET_NO);
-  return GNUNET_YES;
-}
 
 /**
  * Add the IP of our network interface to the list of
@@ -642,6 +682,13 @@ process_interfaces (void *cls,
   return GNUNET_OK;
 }
 
+
+/**
+ * External logging function for MHD
+ * @param arg arguments
+ * @param fmt format string
+ * @param ap  list of arguments
+ */
 void mhd_logger (void * arg, const char * fmt, va_list ap)
 {
 	char text[1024];
@@ -652,6 +699,9 @@ void mhd_logger (void * arg, const char * fmt, va_list ap)
 
 /**
  * Callback called by MHD when a connection is terminated
+ * @param cls closure
+ * @param connection the terminated connection
+ * @httpSessionCache the mhd session reference
  */
 static void mhd_termination_cb (void *cls, struct MHD_Connection * connection, void **httpSessionCache)
 {
@@ -691,6 +741,13 @@ static void mhd_termination_cb (void *cls, struct MHD_Connection * connection, v
   }
 }
 
+/**
+ * Callback called by MessageStreamTokenizer when a message has arrived
+ * @param cls current session as closure
+ * @param client clien
+ * @param message the message to be forwarded to transport service
+ */
+
 static void mhd_write_mst_cb (void *cls,
                               void *client,
                               const struct GNUNET_MessageHeader *message)
@@ -717,7 +774,13 @@ static void mhd_write_mst_cb (void *cls,
 }
 
 /**
- * Check if ip is allowed to connect.
+ * Check if incoming connection is accepted.
+ * NOTE: Here every connection is accepted
+ * @param cls plugin as closure
+ * @param addr address of incoming connection
+ * @param addr_len address length of incoming connection
+ * @return MHD_YES if connection is accepted, MHD_NO if connection is rejected
+ *
  */
 static int
 mhd_accept_cb (void *cls,
@@ -730,6 +793,15 @@ mhd_accept_cb (void *cls,
   return MHD_YES;
 }
 
+
+/**
+ * Callback called by MHD when it needs data to send
+ * @param cls current session
+ * @param pos position in buffer
+ * @param buf the buffer to write data to
+ * @param max max number of bytes available in buffer
+ * @return bytes written to buffer
+ */
 int mhd_send_callback (void *cls, uint64_t pos, char *buf, int max)
 {
   int bytes_read = 0;
@@ -1019,6 +1091,9 @@ mdh_access_cb (void *cls,
 /**
  * Function that queries MHD's select sets and
  * starts the task waiting for them.
+ * @param cls plugin as closure
+ * @param daemon_handle the MHD daemon handle
+ * @return gnunet task identifier
  */
 static GNUNET_SCHEDULER_TaskIdentifier
 http_server_daemon_prepare (void * cls, struct MHD_Daemon *daemon_handle)
@@ -1100,8 +1175,10 @@ http_server_daemon_prepare (void * cls, struct MHD_Daemon *daemon_handle)
 }
 
 /**
- * Call MHD to process pending requests and then go back
+ * Call MHD IPv4 to process pending requests and then go back
  * and schedule the next run.
+ * @param cls plugin as closure
+ * @param tc task context
  */
 static void http_server_daemon_v4_run (void *cls,
                              const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -1121,8 +1198,10 @@ static void http_server_daemon_v4_run (void *cls,
 
 
 /**
- * Call MHD to process pending requests and then go back
+ * Call MHD IPv6 to process pending requests and then go back
  * and schedule the next run.
+ * @param cls plugin as closure
+ * @param tc task context
  */
 static void http_server_daemon_v6_run (void *cls,
                              const struct GNUNET_SCHEDULER_TaskContext *tc)
