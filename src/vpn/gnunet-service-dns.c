@@ -97,15 +97,15 @@ run (void *cls,
 
   mycls.dnsout = GNUNET_NETWORK_socket_create (AF_INET, SOCK_DGRAM, 0);
 
-  struct sockaddr_in * addr = alloca(sizeof(struct sockaddr_in));
-  memset(addr, 0, sizeof(struct sockaddr_in));
+  struct sockaddr_in addr;
+  memset(&addr, 0, sizeof(struct sockaddr_in));
 
-  int err = GNUNET_NETWORK_socket_bind (mycls.dnsout, (struct sockaddr*)addr, sizeof(struct sockaddr_in));
-  err = getsockname(GNUNET_NETWORK_get_fd(mycls.dnsout), addr, (unsigned int[]){sizeof(struct sockaddr_in)});
+  int err = GNUNET_NETWORK_socket_bind (mycls.dnsout, (struct sockaddr*)&addr, sizeof(struct sockaddr_in));
+  err = getsockname(GNUNET_NETWORK_get_fd(mycls.dnsout), &addr, (unsigned int[]){sizeof(struct sockaddr_in)});
 
-  mycls.dnsoutport = htons(addr->sin_port);
+  mycls.dnsoutport = htons(addr.sin_port);
 
-  hijack(htons(addr->sin_port));
+  hijack(htons(addr.sin_port));
 
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SCHEDULER_add_delayed (sched,
