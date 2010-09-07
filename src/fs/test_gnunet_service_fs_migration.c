@@ -196,7 +196,6 @@ do_connect (void *cls,
       fprintf (stderr,
 	       "Daemons failed to start!\n");
       GNUNET_break (0);
-      GNUNET_FS_TEST_daemons_stop (sched, 2, daemons);
       ok = 1;
       return;
     }

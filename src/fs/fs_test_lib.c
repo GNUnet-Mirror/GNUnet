@@ -328,12 +328,16 @@ start_timeout (void *cls,
   struct StartContext *sctx = cls;
   unsigned int i;
 
-  GNUNET_TESTING_daemons_stop (sctx->group, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30), &shutdown_callback, NULL);
+  GNUNET_TESTING_daemons_stop (sctx->group,
+			       GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30), 
+			       &shutdown_callback,
+			       NULL);
   for (i=0;i<sctx->total;i++)
     {
       if (i < sctx->have)
 	GNUNET_CONFIGURATION_destroy (sctx->daemons[i]->cfg);
       GNUNET_free (sctx->daemons[i]);
+      sctx->daemons[i] = NULL;
     }
   GNUNET_CONFIGURATION_destroy (sctx->cfg);
   GNUNET_SCHEDULER_add_continuation (sctx->sched,

@@ -48,7 +48,10 @@ struct GNUNET_FS_TestDaemon;
  * @param total number of daemons to start
  * @param daemons array of 'total' entries to be initialized
  *                (array must already be allocated, will be filled)
- * @param cont function to call when done
+ * @param cont function to call when done; note that if 'cont'
+ *             is called with reason "TIMEOUT", then starting the
+ *             daemons has failed and the client MUST NOT call
+ *             'GNUNET_FS_TEST_daemons_stop'!
  * @param cont_cls closure for cont
  */
 void
