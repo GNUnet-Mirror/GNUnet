@@ -1,9 +1,6 @@
 0.9.0pre2:
 * FS:
-  - namespace_list_updateable testcase [CG]
-    (currently, updateable content does NOT show in GTK)
-* GTK:
-  - local namespace not listed in fs-search dialog (?) [CG]
+  - "next" ID not set correctly in list_updateable callback
 * CORE:
   - derived key generation [Nils]
   - Jun 27 11:51:54 core-7670 ERROR Assertion failed at gnunet-service-core.c:3616.
