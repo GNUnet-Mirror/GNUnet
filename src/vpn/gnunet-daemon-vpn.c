@@ -149,7 +149,7 @@ static void message_token(void *cls, void *client, const struct GNUNET_MessageHe
 		struct ip_pkt *pkt = (struct ip_pkt*) message;
 		struct ip_udp *udp = (struct ip_udp*) message;
 		if (pkt->ip_hdr.proto == 0x11 && udp->ip_hdr.dadr == 0x020a0a0a && ntohs(udp->udp_hdr.dpt) == 53 ) {
-			size_t len = sizeof(struct query_packet*) + ntohs(udp->udp_hdr.len) - 7; /* 7 = 8 for the udp-header - 1 for the unsigned char data[1]; */
+			size_t len = sizeof(struct query_packet) + ntohs(udp->udp_hdr.len) - 9; /* 7 = 8 for the udp-header + 1 for the unsigned char data[1]; */
 			struct query_packet* query = GNUNET_malloc(len);
 			query->hdr.type = htons(GNUNET_MESSAGE_TYPE_LOCAL_QUERY_DNS);
 			query->hdr.size = htons(len);
@@ -157,8 +157,11 @@ static void message_token(void *cls, void *client, const struct GNUNET_MessageHe
 			query->orig_from = pkt->ip_hdr.sadr;
 			query->src_port = udp->udp_hdr.spt;
 			memcpy(query->data, udp->data, ntohs(udp->udp_hdr.len) - 8);
-			GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Queued sending\n");
-			GNUNET_CLIENT_notify_transmit_ready(mycls.dns_connection, len, GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, query);
+			struct GNUNET_CLIENT_TransmitHandle* th = GNUNET_CLIENT_notify_transmit_ready(mycls.dns_connection, len, GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, query);
+			if (th != NULL)
+				GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Queued sending of %d bytes.\n", len);
+			else
+				GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Already queued!\n");
 		}
 	}
 

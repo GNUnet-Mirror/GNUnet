@@ -29,6 +29,8 @@
 #include "gnunet_os_lib.h"
 #include "gnunet-service-dns-p.h"
 #include "gnunet_protocols.h"
+#include "gnunet-vpn-packet.h"
+#include "gnunet-vpn-pretty-print.h"
 
 struct dns_cls {
 	struct GNUNET_SCHEDULER_Handle *sched;
@@ -58,6 +60,9 @@ void receive_query(void *cls, struct GNUNET_SERVER_Client *client, const struct 
 {
 	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received query!\n");
 	struct query_packet* pkt = (struct query_packet*)message;
+	struct dns_pkt* dns = (struct dns_pkt*)pkt->data;
+
+	pkt_printf_dns(dns);
 
 	GNUNET_SERVER_receive_done(client, GNUNET_OK);
 }
