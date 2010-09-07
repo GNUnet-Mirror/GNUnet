@@ -80,7 +80,12 @@ enum GNUNET_OS_InstallationPathKind
    * the one of the overall GNUnet installation (in case they
    * are different).
    */
-  GNUNET_OS_IPK_SELF_PREFIX
+  GNUNET_OS_IPK_SELF_PREFIX,
+
+  /**
+   * Return the prefix of the path with application icons.
+   */
+  GNUNET_OS_IPK_ICONDIR
 };
 
 
