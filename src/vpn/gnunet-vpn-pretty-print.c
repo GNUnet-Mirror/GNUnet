@@ -254,17 +254,17 @@ static char* dns_classes(short class) {{{
 	return 0;
 }}}
 
-void pkt_printf_dns(struct udp_dns* pkt) {{{
+void pkt_printf_dns(struct dns_pkt* pkt) {{{
 	printf("DNS-Packet:\n");
-	printf("\tid: %d\n", ntohs(pkt->data.id));
-	printf("\t%d: %s\n", pkt->data.qr, pkt->data.qr == 0 ? "query" : "response");
-	printf("\top: %s\n", (char*[]){"query", "inverse q.", "status", "inval"}[pkt->data.op]);
-	printf("\trecursion is%s desired\n", pkt->data.rd == 0 ? " not" : "");
-	unsigned short qdcount = ntohs(pkt->data.qdcount);
+	printf("\tid: %d\n", ntohs(pkt->id));
+	printf("\t%d: %s\n", pkt->qr, pkt->qr == 0 ? "query" : "response");
+	printf("\top: %s\n", (char*[]){"query", "inverse q.", "status", "inval"}[pkt->op]);
+	printf("\trecursion is%s desired\n", pkt->rd == 0 ? " not" : "");
+	unsigned short qdcount = ntohs(pkt->qdcount);
 	printf("\t#qd: %d\n", qdcount);
-	printf("\t#an: %d\n", ntohs(pkt->data.ancount));
-	printf("\t#ns: %d\n", ntohs(pkt->data.nscount));
-	printf("\t#ar: %d\n", ntohs(pkt->data.arcount));
+	printf("\t#an: %d\n", ntohs(pkt->ancount));
+	printf("\t#ns: %d\n", ntohs(pkt->nscount));
+	printf("\t#ar: %d\n", ntohs(pkt->arcount));
 	
 	struct dns_query** queries = alloca(qdcount*sizeof(struct dns_query*));
 	unsigned int idx = 0;
@@ -274,29 +274,33 @@ void pkt_printf_dns(struct udp_dns* pkt) {{{
 		queries[i] = alloca(sizeof(struct dns_query));
 		queries[i]->name = alloca(255); // see RFC1035
 		unsigned char* name = queries[i]->name;
-		int len = pkt->data.data[idx++];
+		int len = pkt->data[idx++];
 		while (len != 0) {
-			memcpy(name, pkt->data.data+idx, len);
+			memcpy(name, pkt->data+idx, len);
 			idx += len;
 			name += len;
 			*name = '.';
 			name++;
-			len = pkt->data.data[idx++];
+			len = pkt->data[idx++];
 		};
 		printf("%d\n", idx);
 		*name = 0;
-		queries[i]->qtype = *((unsigned short*)(pkt->data.data+idx));
+		queries[i]->qtype = *((unsigned short*)(pkt->data+idx));
 		idx += 2;
-		queries[i]->qclass = *((unsigned short*)(pkt->data.data+idx));
+		queries[i]->qclass = *((unsigned short*)(pkt->data+idx));
 		idx += 2;
 		printf("query for %s type=%d (%s) class=%d (%s)\n", queries[i]->name, ntohs(queries[i]->qtype), dns_types(ntohs(queries[i]->qtype)), ntohs(queries[i]->qclass), dns_classes(ntohs(queries[i]->qclass)));
 	}
 }}}
 
+void pkt_printf_udp_dns(struct udp_dns* pkt) {{{
+	pkt_printf_dns(&pkt->data);
+}}}
+
 void pkt_printf_ip6dns(struct ip6_udp_dns* pkt) {{{
-	pkt_printf_dns(&pkt->udp_dns);
+	pkt_printf_udp_dns(&pkt->udp_dns);
 }}}
 
 void pkt_printf_ipdns(struct ip_udp_dns* pkt) {{{
-	pkt_printf_dns(&pkt->udp_dns);
+	pkt_printf_udp_dns(&pkt->udp_dns);
 }}}
