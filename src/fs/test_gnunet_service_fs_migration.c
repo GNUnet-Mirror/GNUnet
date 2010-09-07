@@ -101,6 +101,7 @@ do_download (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Failed to stop source daemon: %s\n",
 		  emsg);
+      GNUNET_FS_uri_destroy (uri);
       ok = 1;
       return;
     }
@@ -114,6 +115,7 @@ do_download (void *cls,
 			   1, SEED, uri, 
 			   VERBOSE, 
 			   &do_stop, NULL);
+  GNUNET_FS_uri_destroy (uri);
 }
 
 
@@ -152,10 +154,10 @@ do_wait (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Waiting to allow content to migrate\n"); 
   d = GNUNET_FS_uri_dup (uri);
-  GNUNET_SCHEDULER_add_delayed (sched,
-				MIGRATION_DELAY,
-				&stop_source_peer,
-				d);
+  (void) GNUNET_SCHEDULER_add_delayed (sched,
+				       MIGRATION_DELAY,
+				       &stop_source_peer,
+				       d);
 }
 
 
