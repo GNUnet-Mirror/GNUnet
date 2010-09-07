@@ -224,7 +224,7 @@ read_update_information_graph (struct GNUNET_FS_Namespace *ns)
 	  GNUNET_break (0);
 	  GNUNET_free (emsg);
 	  GNUNET_free (n->id);
-	  GNUNET_free (n->update);
+	  GNUNET_free_non_null (n->update);
 	  GNUNET_CONTAINER_meta_data_destroy (n->md);
 	  GNUNET_free (n);
 	  break;
