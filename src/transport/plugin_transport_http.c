@@ -1269,6 +1269,16 @@ static size_t curl_get_header_cb( void *ptr, size_t size, size_t nmemb, void *st
   return size * nmemb;
 }
 
+/**
+ * Callback called by libcurl when new headers arrive
+ * Used to get HTTP result for curl operations
+ * @param ptr stream to read from
+ * @param size size of one char element
+ * @param nmemb number of char elements
+ * @param stream closure set by user
+ * @return bytes read by function
+ */
+
 static size_t curl_put_header_cb( void *ptr, size_t size, size_t nmemb, void *stream)
 {
   struct Session * ps = stream;
@@ -1433,6 +1443,12 @@ static size_t curl_receive_cb( void *stream, size_t size, size_t nmemb, void *pt
 
 }
 
+/**
+ * Task performing curl operations
+ * @param cls plugin as closure
+ * @param tc gnunet scheduler task context
+ */
+
 static void curl_perform (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -1588,6 +1604,7 @@ static void curl_perform (void *cls,
 
 /**
  * Function setting up file descriptors and scheduling task to run
+ *
  * @param cls plugin as closure
  * @return GNUNET_SYSERR for hard failure, GNUNET_OK for ok
  */
@@ -1653,6 +1670,7 @@ static int curl_schedule(void *cls)
 
 /**
  * Function setting up curl handle and selecting message to send
+ *
  * @param cls plugin
  * @param ps session
  * @return GNUNET_SYSERR on failure, GNUNET_NO if connecting, GNUNET_YES if ok
@@ -1815,6 +1833,18 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
   return GNUNET_SYSERR;
 }
 
+/**
+ * select best session to transmit data to peer
+ *
+ * @param cls closure
+ * @param pc peer context of target peer
+ * @param addr address of target peer
+ * @param addrlen address length
+ * @param force_address does transport service enforce address?
+ * @param session session passed by transport service
+ * @return selected session
+ *
+ */
 static struct Session * send_select_session (void * cls, struct HTTP_PeerContext *pc, const void * addr, size_t addrlen, int force_address, struct Session * session)
 {
 	struct Session * tmp = NULL;
