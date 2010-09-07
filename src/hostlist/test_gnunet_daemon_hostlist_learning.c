@@ -290,7 +290,6 @@ static int ad_arrive_handler (void *cls,
   char *hostname;
   char *expected_uri;
   unsigned long long port;
-  size_t size;
   const struct GNUNET_MessageHeader * incoming;
 
   if (-1 == GNUNET_CONFIGURATION_get_value_number (adv_peer.cfg,
