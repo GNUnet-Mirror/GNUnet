@@ -70,6 +70,8 @@ static void start_helper_and_schedule() {
 	mycls.helper_in = GNUNET_DISK_pipe(1);
 	mycls.helper_out = GNUNET_DISK_pipe(1);
 
+	if (mycls.helper_in == NULL || mycls.helper_out == NULL) return;
+
 	mycls.helper_pid = GNUNET_OS_start_process(mycls.helper_in, mycls.helper_out, "gnunet-helper-vpn", "gnunet-helper-vpn", NULL);
 
 	mycls.fh_from_helper = GNUNET_DISK_pipe_handle (mycls.helper_out, GNUNET_DISK_PIPE_END_READ);

@@ -102,6 +102,8 @@ run (void *cls,
 
   mycls.dnsout = GNUNET_NETWORK_socket_create (AF_INET, SOCK_DGRAM, 0);
 
+  if (mycls.dnsout == NULL) return;
+
   struct sockaddr_in addr;
   memset(&addr, 0, sizeof(struct sockaddr_in));
 
