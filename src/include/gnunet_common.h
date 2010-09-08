@@ -39,7 +39,10 @@
 #ifdef MINGW
 #include "winproc.h"
 #endif
-
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
+ 
 /**
  * Version of the API (for entire gnunetutil.so library).
  */

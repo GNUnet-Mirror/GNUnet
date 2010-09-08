@@ -2,6 +2,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#ifndef _WIN32
+ #include <arpa/inet.h>
+#else
+#include <ws2tcpip.h>
+#endif
+ 
 #include <arpa/inet.h>
 
 #include "gnunet-vpn-packet.h"
