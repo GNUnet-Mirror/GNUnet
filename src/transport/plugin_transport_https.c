@@ -1369,21 +1369,153 @@ static size_t curl_receive_cb( void *stream, size_t size, size_t nmemb, void *pt
 
 }
 
+static void curl_handle_finished (struct Plugin *plugin)
+{
+	struct Session *ps = NULL;
+	struct HTTP_PeerContext *pc = NULL;
+	struct CURLMsg *msg;
+	struct HTTP_Message * cur_msg = NULL;
+
+	int msgs_in_queue;
+	char * tmp;
+	long http_result;
+
+	do
+	  {
+		msg = curl_multi_info_read (plugin->multi_handle, &msgs_in_queue);
+		if ((msgs_in_queue == 0) || (msg == NULL))
+		  break;
+		/* get session for affected curl handle */
+		GNUNET_assert ( msg->easy_handle != NULL );
+		curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &tmp);
+		ps = (struct Session *) tmp;
+		GNUNET_assert ( ps != NULL );
+		pc = ps->peercontext;
+		GNUNET_assert ( pc != NULL );
+		switch (msg->msg)
+		  {
+
+		  case CURLMSG_DONE:
+			if ( (msg->data.result != CURLE_OK) &&
+				 (msg->data.result != CURLE_GOT_NOTHING) )
+			{
+			  /* sending msg failed*/
+			  if (msg->easy_handle == ps->send_endpoint)
+			  {
+	#if DEBUG_CONNECTIONS
+				GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+						   _("Connection %X: HTTP PUT to peer `%s' (`%s') failed: `%s' `%s'\n"),
+						   ps,
+						   GNUNET_i2s(&pc->identity),
+						   http_plugin_address_to_string(NULL, ps->addr, ps->addrlen),
+						   "curl_multi_perform",
+						   curl_easy_strerror (msg->data.result));
+	#endif
+				ps->send_connected = GNUNET_NO;
+				ps->send_active = GNUNET_NO;
+				curl_multi_remove_handle(plugin->multi_handle,ps->send_endpoint);
+				//curl_easy_cleanup(ps->send_endpoint);
+				//ps->send_endpoint=NULL;
+				cur_msg = ps->pending_msgs_tail;
+				if (( NULL != cur_msg) && ( NULL != cur_msg->transmit_cont))
+				  cur_msg->transmit_cont (cur_msg->transmit_cont_cls,&pc->identity,GNUNET_SYSERR);
+			  }
+			  /* GET connection failed */
+			  if (msg->easy_handle == ps->recv_endpoint)
+			  {
+	#if DEBUG_CONNECTIONS
+				GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+					 _("Connection %X: HTTP GET to peer `%s' (`%s') failed: `%s' `%s'\n"),
+					 ps,
+					 GNUNET_i2s(&pc->identity),
+					 http_plugin_address_to_string(NULL, ps->addr, ps->addrlen),
+					 "curl_multi_perform",
+					 curl_easy_strerror (msg->data.result));
+	#endif
+				ps->recv_connected = GNUNET_NO;
+				ps->recv_active = GNUNET_NO;
+				curl_multi_remove_handle(plugin->multi_handle,ps->recv_endpoint);
+				//curl_easy_cleanup(ps->recv_endpoint);
+				//ps->recv_endpoint=NULL;
+			  }
+			}
+			else
+			{
+			  if (msg->easy_handle == ps->send_endpoint)
+			  {
+				GNUNET_assert (CURLE_OK == curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &http_result));
+	#if DEBUG_CONNECTIONS
+				GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+							"Connection %X: HTTP PUT connection to peer `%s' (`%s') was closed with HTTP code %u\n",
+							 ps,
+							 GNUNET_i2s(&pc->identity),
+							 http_plugin_address_to_string(NULL, ps->addr, ps->addrlen),
+							 http_result);
+	#endif
+				/* Calling transmit continuation  */
+				cur_msg = ps->pending_msgs_tail;
+				if (( NULL != cur_msg) && (NULL != cur_msg->transmit_cont))
+				{
+				  /* HTTP 1xx : Last message before here was informational */
+				  if ((http_result >=100) && (http_result < 200))
+					cur_msg->transmit_cont (cur_msg->transmit_cont_cls,&pc->identity,GNUNET_OK);
+				  /* HTTP 2xx: successful operations */
+				  if ((http_result >=200) && (http_result < 300))
+					cur_msg->transmit_cont (cur_msg->transmit_cont_cls,&pc->identity,GNUNET_OK);
+				  /* HTTP 3xx..5xx: error */
+				  if ((http_result >=300) && (http_result < 600))
+					cur_msg->transmit_cont (cur_msg->transmit_cont_cls,&pc->identity,GNUNET_SYSERR);
+				}
+				ps->send_connected = GNUNET_NO;
+				ps->send_active = GNUNET_NO;
+				curl_multi_remove_handle(plugin->multi_handle,ps->send_endpoint);
+				//curl_easy_cleanup(ps->send_endpoint);
+				//ps->send_endpoint =NULL;
+			  }
+			  if (msg->easy_handle == ps->recv_endpoint)
+			  {
+	#if DEBUG_CONNECTIONS
+				GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+							"Connection %X: HTTP GET connection to peer `%s' (`%s') was closed with HTTP code %u\n",
+							 ps,
+							 GNUNET_i2s(&pc->identity),
+							 http_plugin_address_to_string(NULL, ps->addr, ps->addrlen),
+							 http_result);
+	#endif
+				ps->recv_connected = GNUNET_NO;
+				ps->recv_active = GNUNET_NO;
+				curl_multi_remove_handle(plugin->multi_handle,ps->recv_endpoint);
+				//curl_easy_cleanup(ps->recv_endpoint);
+				//ps->recv_endpoint=NULL;
+			  }
+			}
+			if ((ps->recv_connected == GNUNET_NO) && (ps->send_connected == GNUNET_NO))
+			  remove_session (pc, ps, GNUNET_YES, GNUNET_SYSERR);
+			break;
+		  default:
+			break;
+		  }
+	  }
+	while ( (msgs_in_queue > 0) );
+}
+
+
+/**
+ * Task performing curl operations
+ * @param cls plugin as closure
+ * @param tc gnunet scheduler task context
+ */
 static void curl_perform (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Plugin *plugin = cls;
   static unsigned int handles_last_run;
   int running;
-  struct CURLMsg *msg;
   CURLMcode mret;
-  struct Session *ps = NULL;
-  struct HTTP_PeerContext *pc = NULL;
-  struct HTTP_Message * cur_msg = NULL;
-  long http_result;
-  char * tmp;
 
   GNUNET_assert(cls !=NULL);
+
+
 
   plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
@@ -1394,132 +1526,14 @@ static void curl_perform (void *cls,
       running = 0;
       mret = curl_multi_perform (plugin->multi_handle, &running);
       if ((running < handles_last_run) && (running>0))
-        {
-          do
-            {
-
-              msg = curl_multi_info_read (plugin->multi_handle, &running);
-              if (running == 0)
-            	  break;
-              /* get session for affected curl handle */
-              GNUNET_assert ( msg->easy_handle != NULL );
-              curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &tmp);
-              ps = (struct Session *) tmp;
-              GNUNET_assert ( ps != NULL );
-              pc = ps->peercontext;
-              GNUNET_assert ( pc != NULL );
-              switch (msg->msg)
-                {
-
-                case CURLMSG_DONE:
-                  if ( (msg->data.result != CURLE_OK) &&
-                       (msg->data.result != CURLE_GOT_NOTHING) )
-                  {
-                    /* sending msg failed*/
-                    if (msg->easy_handle == ps->send_endpoint)
-                    {
-#if DEBUG_CONNECTIONS
-                      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-                                 _("Connection %X: HTTPS PUT to peer `%s' (`%s') failed: `%s' `%s'\n"),
-                                 ps,
-                                 GNUNET_i2s(&pc->identity),
-                                 http_plugin_address_to_string(NULL, ps->addr, ps->addrlen),
-                                 "curl_multi_perform",
-                                 curl_easy_strerror (msg->data.result));
-#endif
-                      ps->send_connected = GNUNET_NO;
-                      ps->send_active = GNUNET_NO;
-                      curl_multi_remove_handle(plugin->multi_handle,ps->send_endpoint);
-                      //curl_easy_cleanup(ps->send_endpoint);
-                      //ps->send_endpoint=NULL;
-                      cur_msg = ps->pending_msgs_tail;
-                      if (( NULL != cur_msg) && ( NULL != cur_msg->transmit_cont))
-                        cur_msg->transmit_cont (cur_msg->transmit_cont_cls,&pc->identity,GNUNET_SYSERR);
-                    }
-                    /* GET connection failed */
-                    if (msg->easy_handle == ps->recv_endpoint)
-                    {
-#if DEBUG_CONNECTIONS
-                      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-                           _("Connection %X: HTTPS GET to peer `%s' (`%s') failed: `%s' `%s'\n"),
-                           ps,
-                           GNUNET_i2s(&pc->identity),
-                           http_plugin_address_to_string(NULL, ps->addr, ps->addrlen),
-                           "curl_multi_perform",
-                           curl_easy_strerror (msg->data.result));
-#endif
-                      ps->recv_connected = GNUNET_NO;
-                      ps->recv_active = GNUNET_NO;
-                      curl_multi_remove_handle(plugin->multi_handle,ps->recv_endpoint);
-                      //curl_easy_cleanup(ps->recv_endpoint);
-                      //ps->recv_endpoint=NULL;
-                    }
-                  }
-                  else
-                  {
-                    if (msg->easy_handle == ps->send_endpoint)
-                    {
-                      GNUNET_assert (CURLE_OK == curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &http_result));
-#if DEBUG_CONNECTIONS
-                      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                                  "Connection %X: HTTPS PUT connection to peer `%s' (`%s') was closed with HTTP code %u\n",
-                                   ps,
-                                   GNUNET_i2s(&pc->identity),
-                                   http_plugin_address_to_string(NULL, ps->addr, ps->addrlen),
-                                   http_result);
-#endif
-                      /* Calling transmit continuation  */
-                      cur_msg = ps->pending_msgs_tail;
-                      if (( NULL != cur_msg) && (NULL != cur_msg->transmit_cont))
-                      {
-                        /* HTTP 1xx : Last message before here was informational */
-                        if ((http_result >=100) && (http_result < 200))
-                          cur_msg->transmit_cont (cur_msg->transmit_cont_cls,&pc->identity,GNUNET_OK);
-                        /* HTTP 2xx: successful operations */
-                        if ((http_result >=200) && (http_result < 300))
-                          cur_msg->transmit_cont (cur_msg->transmit_cont_cls,&pc->identity,GNUNET_OK);
-                        /* HTTP 3xx..5xx: error */
-                        if ((http_result >=300) && (http_result < 600))
-                          cur_msg->transmit_cont (cur_msg->transmit_cont_cls,&pc->identity,GNUNET_SYSERR);
-                      }
-                      ps->send_connected = GNUNET_NO;
-                      ps->send_active = GNUNET_NO;
-                      curl_multi_remove_handle(plugin->multi_handle,ps->send_endpoint);
-                      //curl_easy_cleanup(ps->send_endpoint);
-                      //ps->send_endpoint =NULL;
-                    }
-                    if (msg->easy_handle == ps->recv_endpoint)
-                    {
-#if DEBUG_CONNECTIONS
-                      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                                  "Connection %X: HTTP GET connection to peer `%s' (`%s') was closed with HTTP code %u\n",
-                                   ps,
-                                   GNUNET_i2s(&pc->identity),
-                                   http_plugin_address_to_string(NULL, ps->addr, ps->addrlen),
-                                   http_result);
-#endif
-                      ps->recv_connected = GNUNET_NO;
-                      ps->recv_active = GNUNET_NO;
-                      curl_multi_remove_handle(plugin->multi_handle,ps->recv_endpoint);
-                      //curl_easy_cleanup(ps->recv_endpoint);
-                      //ps->recv_endpoint=NULL;
-                    }
-                  }
-                  if ((ps->recv_connected == GNUNET_NO) && (ps->send_connected == GNUNET_NO))
-                    remove_session (pc, ps, GNUNET_YES, GNUNET_SYSERR);
-                  break;
-                default:
-                  break;
-                }
-
-            }
-          while ( (running > 0) );
-        }
+    	  curl_handle_finished(plugin);
       handles_last_run = running;
     }
   while (mret == CURLM_CALL_MULTI_PERFORM);
+
   curl_schedule(plugin);
 }
+
 
 
 /**
@@ -1591,62 +1605,63 @@ http_plugin_disconnect (void *cls,
  */
 static int curl_schedule(void *cls)
 {
-  struct Plugin *plugin = cls;
-  fd_set rs;
-  fd_set ws;
-  fd_set es;
-  int max;
-  struct GNUNET_NETWORK_FDSet *grs;
-  struct GNUNET_NETWORK_FDSet *gws;
-  long to;
-  CURLMcode mret;
+	  struct Plugin *plugin = cls;
+	  fd_set rs;
+	  fd_set ws;
+	  fd_set es;
+	  int max;
+	  struct GNUNET_NETWORK_FDSet *grs;
+	  struct GNUNET_NETWORK_FDSet *gws;
+	  long to;
+	  CURLMcode mret;
 
-  GNUNET_assert(cls !=NULL);
+	  GNUNET_assert(cls !=NULL);
 
-  /* Cancel previous scheduled task */
-  if (plugin->http_curl_task !=  GNUNET_SCHEDULER_NO_TASK)
-  {
-	  GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_curl_task);
-	  plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  max = -1;
-  FD_ZERO (&rs);
-  FD_ZERO (&ws);
-  FD_ZERO (&es);
-  mret = curl_multi_fdset (plugin->multi_handle, &rs, &ws, &es, &max);
-  if (mret != CURLM_OK)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("%s failed at %s:%d: `%s'\n"),
-                  "curl_multi_fdset", __FILE__, __LINE__,
-                  curl_multi_strerror (mret));
-      return GNUNET_SYSERR;
-    }
-  mret = curl_multi_timeout (plugin->multi_handle, &to);
-  if (mret != CURLM_OK)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("%s failed at %s:%d: `%s'\n"),
-                  "curl_multi_timeout", __FILE__, __LINE__,
-                  curl_multi_strerror (mret));
-      return GNUNET_SYSERR;
-    }
+	  /* Cancel previous scheduled task */
+	  if (plugin->http_curl_task !=  GNUNET_SCHEDULER_NO_TASK)
+	  {
+		  GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_curl_task);
+		  plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
+	  }
 
-  grs = GNUNET_NETWORK_fdset_create ();
-  gws = GNUNET_NETWORK_fdset_create ();
-  GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
-  GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
-  plugin->http_curl_task = GNUNET_SCHEDULER_add_select (plugin->env->sched,
-                                   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   GNUNET_SCHEDULER_NO_TASK,
-                                   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 0),
-                                   grs,
-                                   gws,
-                                   &curl_perform,
-                                   plugin);
-  GNUNET_NETWORK_fdset_destroy (gws);
-  GNUNET_NETWORK_fdset_destroy (grs);
-  return GNUNET_OK;
+	  max = -1;
+	  FD_ZERO (&rs);
+	  FD_ZERO (&ws);
+	  FD_ZERO (&es);
+	  mret = curl_multi_fdset (plugin->multi_handle, &rs, &ws, &es, &max);
+	  if (mret != CURLM_OK)
+	    {
+	      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	                  _("%s failed at %s:%d: `%s'\n"),
+	                  "curl_multi_fdset", __FILE__, __LINE__,
+	                  curl_multi_strerror (mret));
+	      return GNUNET_SYSERR;
+	    }
+	  mret = curl_multi_timeout (plugin->multi_handle, &to);
+	  if (mret != CURLM_OK)
+	    {
+	      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	                  _("%s failed at %s:%d: `%s'\n"),
+	                  "curl_multi_timeout", __FILE__, __LINE__,
+	                  curl_multi_strerror (mret));
+	      return GNUNET_SYSERR;
+	    }
+
+	  grs = GNUNET_NETWORK_fdset_create ();
+	  gws = GNUNET_NETWORK_fdset_create ();
+	  GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
+	  GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
+	  plugin->http_curl_task = GNUNET_SCHEDULER_add_select (plugin->env->sched,
+	                                   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+	                                   GNUNET_SCHEDULER_NO_TASK,
+									    (to == -1) ? GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5) : GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, to),
+	                                   grs,
+	                                   gws,
+	                                   &curl_perform,
+	                                   plugin);
+	  GNUNET_NETWORK_fdset_destroy (gws);
+	  GNUNET_NETWORK_fdset_destroy (grs);
+	  return GNUNET_OK;
 }
 
 /**
@@ -1712,16 +1727,12 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
 			  return GNUNET_SYSERR;
 			}
         }
-        if (curl_schedule (plugin) == GNUNET_SYSERR)
-        {
-#if DEBUG_CONNECTIONS
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: could not schedule curl task\n",ps);
-#endif
-        	return GNUNET_SYSERR;
-        }
-#if DEBUG_CONNECTIONS
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound not connected, initiating connection\n",ps);
-#endif
+		if (plugin->http_curl_task !=  GNUNET_SCHEDULER_NO_TASK)
+		{
+		  GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_curl_task);
+		  plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
+		}
+		plugin->http_curl_task = GNUNET_SCHEDULER_add_now (plugin->env->sched, &curl_perform, plugin);
     }
 
     /* waiting for receive direction */
@@ -1737,6 +1748,7 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
 #if DEBUG_CONNECTIONS
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: outbound active, enqueueing message\n",ps);
 #endif
+
         return GNUNET_YES;
       }
       if (ps->send_active == GNUNET_NO)
@@ -1746,6 +1758,12 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
 #endif
         if (CURLE_OK == curl_easy_pause(ps->send_endpoint,CURLPAUSE_CONT))
         {
+    		if (plugin->http_curl_task !=  GNUNET_SCHEDULER_NO_TASK)
+    		{
+    		  GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_curl_task);
+    		  plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
+    		}
+    		plugin->http_curl_task = GNUNET_SCHEDULER_add_now (plugin->env->sched, &curl_perform, plugin);
 			ps->send_active=GNUNET_YES;
 			return GNUNET_YES;
         }
@@ -1807,8 +1825,12 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
 			}
 		}
     }
-    if (curl_schedule (plugin) == GNUNET_SYSERR)
-    	return GNUNET_SYSERR;
+	if (plugin->http_curl_task !=  GNUNET_SCHEDULER_NO_TASK)
+	{
+	  GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_curl_task);
+	  plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
+	}
+	plugin->http_curl_task = GNUNET_SCHEDULER_add_now (plugin->env->sched, &curl_perform, plugin);
     return GNUNET_YES;
   }
   if (ps->direction == INBOUND)
