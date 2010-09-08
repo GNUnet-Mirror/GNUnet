@@ -1455,6 +1455,7 @@ static void curl_perform (void *cls,
   struct Plugin *plugin = cls;
   static unsigned int handles_last_run;
   int running;
+  int msgs_in_queue;
   struct CURLMsg *msg;
   CURLMcode mret;
   struct Session *ps = NULL;
@@ -1478,7 +1479,7 @@ static void curl_perform (void *cls,
           do
             {
 
-              msg = curl_multi_info_read (plugin->multi_handle, &running);
+              msg = curl_multi_info_read (plugin->multi_handle, &msgs_in_queue);
               if (running == 0)
             	  break;
               /* get session for affected curl handle */
@@ -1593,7 +1594,7 @@ static void curl_perform (void *cls,
                 }
 
             }
-          while ( (running > 0) );
+          while ( (msgs_in_queue > 0) );
         }
       handles_last_run = running;
     }
