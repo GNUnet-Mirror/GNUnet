@@ -65,6 +65,11 @@ struct GNUNET_CONTAINER_SList
   struct GNUNET_CONTAINER_SList_Elem *head;
 
   /**
+   * Tail of the linked list.
+   */
+  struct GNUNET_CONTAINER_SList_Elem *tail;
+
+  /**
    * Number of elements in the list.
    */
   unsigned int length;
@@ -141,6 +146,30 @@ GNUNET_CONTAINER_slist_add (struct GNUNET_CONTAINER_SList *l,
   e = create_elem (disp, buf, len);
   e->next = l->head;
   l->head = e;
+  if (l->tail == NULL) l->tail = e;
+  l->length++;
+}
+
+/**
+ * Add a new element to the end of the list
+ * @param l list
+ * @param disp memory disposition
+ * @param buf payload buffer
+ * @param len length of the buffer
+ */
+void
+GNUNET_CONTAINER_slist_add_end (struct GNUNET_CONTAINER_SList *l,
+                            enum GNUNET_CONTAINER_SListDisposition disp,
+                            const void *buf, size_t len)
+{
+  struct GNUNET_CONTAINER_SList_Elem *e;
+
+  e = create_elem (disp, buf, len);
+  if (l->tail != NULL)
+    l->tail->next = e;
+  if (l->head == NULL)
+    l->head = e;
+  l->tail = e;
   l->length++;
 }
 
@@ -228,6 +257,7 @@ GNUNET_CONTAINER_slist_clear (struct GNUNET_CONTAINER_SList *l)
       e = n;
     }
   l->head = NULL;
+  l->tail = NULL;
   l->length = 0;
 }
 
@@ -279,6 +309,8 @@ GNUNET_CONTAINER_slist_erase (struct GNUNET_CONTAINER_SList_Iterator *i)
     i->last->next = next;
   else
     i->list->head = next;
+  if (next == NULL)
+    i->list->tail = i->last;
   if (i->elem->disp == GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC)
     GNUNET_free (i->elem->elem);
   GNUNET_free (i->elem);
@@ -307,6 +339,8 @@ GNUNET_CONTAINER_slist_insert (struct GNUNET_CONTAINER_SList_Iterator *before,
     before->last->next = e;
   else
     before->list->head = e;
+  if (e->next == NULL)
+    before->list->tail = e;
   before->list->length++;
 }
 

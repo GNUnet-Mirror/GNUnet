@@ -966,6 +966,18 @@ void GNUNET_CONTAINER_slist_add (struct GNUNET_CONTAINER_SList *l,
 
 
 /**
+ * Add a new element to the end of the list
+ * @param l list
+ * @param disp memory disposition
+ * @param buf payload buffer
+ * @param len length of the buffer
+ */
+void GNUNET_CONTAINER_slist_add_end (struct GNUNET_CONTAINER_SList *l,
+				 enum GNUNET_CONTAINER_SListDisposition disp,
+				 const void *buf, size_t len);
+
+
+/**
  * Append a singly linked list to another
  * @param dst list to append to
  * @param src source
