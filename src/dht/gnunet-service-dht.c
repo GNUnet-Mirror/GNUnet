@@ -671,6 +671,16 @@ static unsigned int stop_on_found;
  */
 static unsigned int do_find_peer;
 
+/**
+ * Once we have stored an item in the DHT, refresh it
+ * according to our republish interval.
+ */
+static unsigned int do_republish;
+
+/**
+ * Use the "real" distance metric when selecting the
+ * next routing hop.  Can be less accurate.
+ */
 static unsigned int use_real_distance;
 
 /**
@@ -2401,7 +2411,7 @@ handle_dht_put (void *cls,
                                   (char *) &put_msg[1], put_type,
                                   GNUNET_TIME_absolute_ntoh(put_msg->expiration));
 
-      if (ret == GNUNET_YES)
+      if ((ret == GNUNET_YES) && (do_republish == GNUNET_YES))
         {
           put_context = GNUNET_malloc(sizeof(struct RepublishContext));
           memcpy(&put_context->key, &message_context->key, sizeof(GNUNET_HashCode));
@@ -4094,6 +4104,11 @@ run (void *cls,
     {
       malicious_dropper = GNUNET_YES;
     }
+
+  if (GNUNET_YES ==
+        GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht",
+                                             "republish"))
+    do_republish = GNUNET_NO;
 
   if (GNUNET_NO ==
         GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht",
