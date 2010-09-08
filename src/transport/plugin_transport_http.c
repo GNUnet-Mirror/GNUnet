@@ -1443,7 +1443,6 @@ static size_t curl_receive_cb( void *stream, size_t size, size_t nmemb, void *pt
 
 }
 
-
 static void curl_handle_finished (struct Plugin *plugin)
 {
 	struct Session *ps = NULL;
@@ -1570,24 +1569,22 @@ static void curl_handle_finished (struct Plugin *plugin)
 		  default:
 			break;
 		  }
-
 	  }
 	while ( (msgs_in_queue > 0) );
 }
+
 
 /**
  * Task performing curl operations
  * @param cls plugin as closure
  * @param tc gnunet scheduler task context
  */
-
 static void curl_perform (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Plugin *plugin = cls;
   static unsigned int handles_last_run;
   int running;
-
   CURLMcode mret;
 
   GNUNET_assert(cls !=NULL);
@@ -1595,28 +1592,6 @@ static void curl_perform (void *cls,
   plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-  /*
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_STARTUP ))
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"SCHEDULE DUE TO: GNUNET_SCHEDULER_REASON_STARTUP \n");
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN ))
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"SCHEDULE DUE TO:  GNUNET_SCHEDULER_REASON_SHUTDOWN \n");
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT  ))
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"SCHEDULE DUE TO:  GNUNET_SCHEDULER_REASON_TIMEOUT  \n");
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY  ))
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"SCHEDULE DUE TO:  GNUNET_SCHEDULER_REASON_READ_READY  \n");
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY  ))
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"SCHEDULE DUE TO:  GNUNET_SCHEDULER_REASON_WRITE_READY  \n");
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE 	  ))
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"SCHEDULE DUE TO:  GNUNET_SCHEDULER_REASON_PREREQ_DONE 	  \n");
-
-
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
-  {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"TIMEOUT RESCHEDULE\n");
-	curl_schedule(plugin);
-    return;
-  }
-  */
 
   do
     {
@@ -1646,8 +1621,7 @@ static int curl_schedule(void *cls)
   int max;
   struct GNUNET_NETWORK_FDSet *grs;
   struct GNUNET_NETWORK_FDSet *gws;
-  struct GNUNET_TIME_Relative tv;
-  long curl_timeout;
+  long to;
   CURLMcode mret;
 
   GNUNET_assert(cls !=NULL);
@@ -1658,12 +1632,10 @@ static int curl_schedule(void *cls)
 	  GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_curl_task);
 	  plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
   max = -1;
   FD_ZERO (&rs);
   FD_ZERO (&ws);
   FD_ZERO (&es);
-
   mret = curl_multi_fdset (plugin->multi_handle, &rs, &ws, &es, &max);
   if (mret != CURLM_OK)
     {
@@ -1673,24 +1645,15 @@ static int curl_schedule(void *cls)
                   curl_multi_strerror (mret));
       return GNUNET_SYSERR;
     }
-  tv = GNUNET_TIME_UNIT_FOREVER_REL;
-  mret = curl_multi_timeout (plugin->multi_handle, &curl_timeout);
+  mret = curl_multi_timeout (plugin->multi_handle, &to);
   if (mret != CURLM_OK)
-  {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-	  	  _("%s failed at %s:%d: `%s'\n"),
-		  "curl_multi_timeout", __FILE__, __LINE__,
-		  curl_multi_strerror (mret));
-    return GNUNET_SYSERR;
-  }
-  if (curl_timeout >= 0)
-  {
-	tv = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, curl_timeout);
-  }
-  if (curl_timeout >= -1)
-  {
-	tv = GNUNET_TIME_relative_get_zero();
-  }
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("%s failed at %s:%d: `%s'\n"),
+                  "curl_multi_timeout", __FILE__, __LINE__,
+                  curl_multi_strerror (mret));
+      return GNUNET_SYSERR;
+    }
 
   grs = GNUNET_NETWORK_fdset_create ();
   gws = GNUNET_NETWORK_fdset_create ();
@@ -1699,7 +1662,7 @@ static int curl_schedule(void *cls)
   plugin->http_curl_task = GNUNET_SCHEDULER_add_select (plugin->env->sched,
                                    GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                    GNUNET_SCHEDULER_NO_TASK,
-                                   tv,
+                                   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 0),
                                    grs,
                                    gws,
                                    &curl_perform,
@@ -1769,10 +1732,6 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
 			  return GNUNET_SYSERR;
 			}
         }
-        /* TEST CODE */
-        GNUNET_SCHEDULER_add_now(plugin->env->sched, &curl_perform, plugin);
-        /* TEST CODE */
-#if 0
         if (curl_schedule (plugin) == GNUNET_SYSERR)
         {
 #if DEBUG_CONNECTIONS
@@ -1782,7 +1741,6 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
         }
 #if DEBUG_CONNECTIONS
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound not connected, initiating connection\n",ps);
-#endif
 #endif
     }
 
@@ -1865,14 +1823,8 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
 			}
 		}
     }
-
-    /* TEST CODE */
-    GNUNET_SCHEDULER_add_now(plugin->env->sched, &curl_perform, plugin);
-    /* TEST CODE */
-#if 0
     if (curl_schedule (plugin) == GNUNET_SYSERR)
     	return GNUNET_SYSERR;
-#endif
     return GNUNET_YES;
   }
   if (ps->direction == INBOUND)
