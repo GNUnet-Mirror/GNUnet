@@ -1193,8 +1193,7 @@ static void http_server_daemon_v4_run (void *cls,
 
   GNUNET_assert (MHD_YES == MHD_run (plugin->http_server_daemon_v4));
   plugin->http_server_task_v4 = http_server_daemon_prepare (plugin, plugin->http_server_daemon_v4);
-  return;
-}
+ }
 
 
 /**
@@ -1216,7 +1215,6 @@ static void http_server_daemon_v6_run (void *cls,
 
   GNUNET_assert (MHD_YES == MHD_run (plugin->http_server_daemon_v6));
   plugin->http_server_task_v6 = http_server_daemon_prepare (plugin, plugin->http_server_daemon_v6);
-  return;
 }
 
 static size_t curl_get_header_cb( void *ptr, size_t size, size_t nmemb, void *stream)
@@ -1262,8 +1260,7 @@ static size_t curl_get_header_cb( void *ptr, size_t size, size_t nmemb, void *st
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: Header: %s\n",ps,tmp);
   }
-  if (NULL != tmp)
-    GNUNET_free (tmp);
+  GNUNET_free_non_null (tmp);
 #endif
 
   return size * nmemb;
@@ -1324,8 +1321,8 @@ static size_t curl_put_header_cb( void *ptr, size_t size, size_t nmemb, void *st
         tmp[len-2]= '\0';
     }
   }
-  if (NULL != tmp)
-    GNUNET_free (tmp);
+
+  GNUNET_free_non_null (tmp);
 
   return size * nmemb;
 }
@@ -1347,7 +1344,9 @@ static size_t curl_send_cb(void *stream, size_t size, size_t nmemb, void *ptr)
   size_t len;
 
   if (ps->send_active == GNUNET_NO)
+  {
 	return CURL_READFUNC_PAUSE;
+  }
 
   if ((ps->pending_msgs_tail == NULL) && (ps->send_active == GNUNET_YES))
   {
@@ -1589,6 +1588,8 @@ static void curl_perform (void *cls,
 
   GNUNET_assert(cls !=NULL);
 
+
+
   plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
@@ -1602,6 +1603,7 @@ static void curl_perform (void *cls,
       handles_last_run = running;
     }
   while (mret == CURLM_CALL_MULTI_PERFORM);
+
   curl_schedule(plugin);
 }
 
@@ -1632,6 +1634,7 @@ static int curl_schedule(void *cls)
 	  GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_curl_task);
 	  plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
   }
+
   max = -1;
   FD_ZERO (&rs);
   FD_ZERO (&ws);
@@ -1662,7 +1665,7 @@ static int curl_schedule(void *cls)
   plugin->http_curl_task = GNUNET_SCHEDULER_add_select (plugin->env->sched,
                                    GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                    GNUNET_SCHEDULER_NO_TASK,
-                                   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 0),
+								    (to == -1) ? GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5) : GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, to),
                                    grs,
                                    gws,
                                    &curl_perform,
@@ -1732,16 +1735,12 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
 			  return GNUNET_SYSERR;
 			}
         }
-        if (curl_schedule (plugin) == GNUNET_SYSERR)
-        {
-#if DEBUG_CONNECTIONS
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: could not schedule curl task\n",ps);
-#endif
-        	return GNUNET_SYSERR;
-        }
-#if DEBUG_CONNECTIONS
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: inbound not connected, initiating connection\n",ps);
-#endif
+		if (plugin->http_curl_task !=  GNUNET_SCHEDULER_NO_TASK)
+		{
+		  GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_curl_task);
+		  plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
+		}
+		plugin->http_curl_task = GNUNET_SCHEDULER_add_now (plugin->env->sched, &curl_perform, plugin);
     }
 
     /* waiting for receive direction */
@@ -1767,6 +1766,12 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
         if (CURLE_OK == curl_easy_pause(ps->send_endpoint,CURLPAUSE_CONT))
         {
 			ps->send_active=GNUNET_YES;
+			if (plugin->http_curl_task !=  GNUNET_SCHEDULER_NO_TASK)
+			{
+			  GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_curl_task);
+			  plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
+			}
+			plugin->http_curl_task = GNUNET_SCHEDULER_add_now (plugin->env->sched, &curl_perform, plugin);
 			return GNUNET_YES;
         }
         else
@@ -1823,8 +1828,12 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
 			}
 		}
     }
-    if (curl_schedule (plugin) == GNUNET_SYSERR)
-    	return GNUNET_SYSERR;
+	if (plugin->http_curl_task !=  GNUNET_SCHEDULER_NO_TASK)
+	{
+	  GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_curl_task);
+	  plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
+	}
+	plugin->http_curl_task = GNUNET_SCHEDULER_add_now (plugin->env->sched, &curl_perform, plugin);
     return GNUNET_YES;
   }
   if (ps->direction == INBOUND)
@@ -2115,17 +2124,14 @@ http_plugin_send (void *cls,
   memcpy (msg->buf,msgbuf, msgbuf_size);
   GNUNET_CONTAINER_DLL_insert(ps->pending_msgs_head,ps->pending_msgs_tail,msg);
 
-  if (send_check_connections (plugin, ps) != GNUNET_SYSERR)
-  {
+  if (send_check_connections (plugin, ps) == GNUNET_SYSERR)
+	  return GNUNET_SYSERR;
 	  if (force_address != GNUNET_YES)
 		  pc->last_session = ps;
 
 	  if (pc->last_session==NULL)
 		  pc->last_session = ps;
 	  return msg->size;
-  }
-  else
-	  return GNUNET_SYSERR;
 }
 
 
