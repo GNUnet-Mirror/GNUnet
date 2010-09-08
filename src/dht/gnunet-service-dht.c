@@ -2846,8 +2846,16 @@ select_peer (const GNUNET_HashCode * target,
       fprintf(stdout, "Sum is %f\n", sum);
 #endif
 
-      real_selected = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, total_real_distance);
-      selected = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, total_distance);
+      if (use_real_distance)
+        {
+          GNUNET_assert(total_real_distance != 0);
+          real_selected = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, total_real_distance);
+        }
+      else
+        {
+          GNUNET_assert(total_distance != 0);
+          selected = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, total_distance);
+        }
 
       for (bc = lowest_bucket; bc < MAX_BUCKETS; bc++)
         {
@@ -2863,7 +2871,7 @@ select_peer (const GNUNET_HashCode * target,
                     distance = inverse_distance (target, &pos->id.hashPubKey);
                     if (distance > real_selected)
                       {
-                        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Selected peer with %u matching bits to route to\n", distance);
+                        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "(REAL) Selected peer with %u matching bits to route to\n", matching_bits(target, &pos->id.hashPubKey));
                         return pos;
                       }
                     real_selected -= distance;
@@ -2873,7 +2881,7 @@ select_peer (const GNUNET_HashCode * target,
                       distance = 1 + (matching_bits(target, &pos->id.hashPubKey) * matching_bits(target, &pos->id.hashPubKey));
                       if (distance > selected)
                         {
-                          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Selected peer with %u matching bits to route to\n", distance);
+                          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Selected peer with %u matching bits to route to\n", matching_bits(target, &pos->id.hashPubKey));
                           return pos;
                         }
                       selected -= distance;
