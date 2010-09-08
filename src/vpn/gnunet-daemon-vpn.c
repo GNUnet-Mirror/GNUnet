@@ -35,6 +35,7 @@
 #include "gnunet_server_lib.h"
 #include "gnunet-service-dns-p.h"
 #include "gnunet_client_lib.h"
+#include "gnunet_container_lib.h"
 
 /**
  * Final status code.
@@ -53,6 +54,8 @@ struct vpn_cls {
 	struct GNUNET_CLIENT_Connection *dns_connection;
 
 	pid_t helper_pid;
+
+	struct GNUNET_CONTAINER_SList *query_queue;
 };
 
 static struct vpn_cls mycls;
@@ -115,11 +118,31 @@ static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* ts
 
 size_t send_query(void* cls, size_t size, void* buf)
 {
-	struct query_packet* pkt = cls;
-	size_t len = ntohs(pkt->hdr.size);
-	memcpy(buf, cls, len);
+	struct GNUNET_CONTAINER_SList_Iterator *start = GNUNET_CONTAINER_slist_begin (mycls.query_queue);
+
+	GNUNET_assert(GNUNET_CONTAINER_slist_count(mycls.query_queue) > 0);
+
+	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "There are %d queries pending.\n", GNUNET_CONTAINER_slist_count(mycls.query_queue));
+
+	size_t len;
+	struct query_packet* pkt = (struct query_packet*)GNUNET_CONTAINER_slist_get(start, &len);
+
+	GNUNET_assert(ntohs(pkt->hdr.size) == len);
+	GNUNET_assert(len <= size);
+
+	memcpy(buf, pkt, len);
 	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sent %d bytes.\n", len);
-	GNUNET_free(cls);
+
+	GNUNET_CONTAINER_slist_erase(start);
+	GNUNET_CONTAINER_slist_iter_destroy(start);
+
+	if (GNUNET_CONTAINER_slist_count(mycls.query_queue) > 0) {
+		start = GNUNET_CONTAINER_slist_begin (mycls.query_queue);
+		GNUNET_assert(GNUNET_CONTAINER_slist_end(start) != GNUNET_YES);
+		pkt = (struct query_packet*)GNUNET_CONTAINER_slist_get(start, &len);
+		GNUNET_CLIENT_notify_transmit_ready(mycls.dns_connection, len, GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
+	}
+
 	return len;
 }
 
@@ -159,11 +182,14 @@ static void message_token(void *cls, void *client, const struct GNUNET_MessageHe
 			query->orig_from = pkt->ip_hdr.sadr;
 			query->src_port = udp->udp_hdr.spt;
 			memcpy(query->data, udp->data, ntohs(udp->udp_hdr.len) - 8);
-			struct GNUNET_CLIENT_TransmitHandle* th = GNUNET_CLIENT_notify_transmit_ready(mycls.dns_connection, len, GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, query);
+
+			GNUNET_CONTAINER_slist_add_end (mycls.query_queue, GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC, query, len);
+
+			struct GNUNET_CLIENT_TransmitHandle* th = GNUNET_CLIENT_notify_transmit_ready(mycls.dns_connection, len, GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
 			if (th != NULL)
 				GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Queued sending of %d bytes.\n", len);
 			else
-				GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Already queued!\n");
+				GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Already queued for %d bytes.\n", len);
 		}
 	}
 
@@ -187,6 +213,9 @@ run (void *cls,
 {
   mycls.sched = sched;
   mycls.mst = GNUNET_SERVER_mst_create(&message_token, NULL);
+
+  mycls.query_queue = GNUNET_CONTAINER_slist_create();
+  GNUNET_assert(GNUNET_CONTAINER_slist_count(mycls.query_queue) == 0);
 
   mycls.dns_connection = GNUNET_CLIENT_connect (sched, "gnunet-service-dns", cfg);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connection: %x\n", mycls.dns_connection);

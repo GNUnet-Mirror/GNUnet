@@ -60,6 +60,7 @@ void receive_query(void *cls, struct GNUNET_SERVER_Client *client, const struct 
 {
 	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received query!\n");
 	struct query_packet* pkt = (struct query_packet*)message;
+	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Of length %d\n", ntohs(pkt->hdr.size));
 	struct dns_pkt* dns = (struct dns_pkt*)pkt->data;
 
 	pkt_printf_dns(dns);
