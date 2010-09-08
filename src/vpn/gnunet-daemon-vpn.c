@@ -70,8 +70,8 @@ static void cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx
 static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx);
 
 static void start_helper_and_schedule() {
-	mycls.helper_in = GNUNET_DISK_pipe(1);
-	mycls.helper_out = GNUNET_DISK_pipe(1);
+	mycls.helper_in = GNUNET_DISK_pipe(GNUNET_YES);
+	mycls.helper_out = GNUNET_DISK_pipe(GNUNET_YES);
 
 	if (mycls.helper_in == NULL || mycls.helper_out == NULL) return;
 
@@ -174,7 +174,7 @@ static void message_token(void *cls, void *client, const struct GNUNET_MessageHe
 		struct ip_pkt *pkt = (struct ip_pkt*) message;
 		struct ip_udp *udp = (struct ip_udp*) message;
 		if (pkt->ip_hdr.proto == 0x11 && udp->ip_hdr.dadr == 0x020a0a0a && ntohs(udp->udp_hdr.dpt) == 53 ) {
-			size_t len = sizeof(struct query_packet) + ntohs(udp->udp_hdr.len) - 9; /* 7 = 8 for the udp-header + 1 for the unsigned char data[1]; */
+			size_t len = sizeof(struct query_packet) + ntohs(udp->udp_hdr.len) - 9; /* 9 = 8 for the udp-header + 1 for the unsigned char data[1]; */
 			struct query_packet* query = GNUNET_malloc(len);
 			query->hdr.type = htons(GNUNET_MESSAGE_TYPE_LOCAL_QUERY_DNS);
 			query->hdr.size = htons(len);
