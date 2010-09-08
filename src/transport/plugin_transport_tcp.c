@@ -304,6 +304,11 @@ struct Session
    */
   int inbound;
 
+  /**
+   * Was this session created using NAT traversal?
+   */
+  int is_nat;
+
 };
 
 
@@ -592,6 +597,7 @@ create_session (struct Plugin *plugin,
   ret = GNUNET_malloc (sizeof (struct Session));
   ret->last_activity = GNUNET_TIME_absolute_get ();
   ret->plugin = plugin;
+  ret->is_nat = is_nat;
   if (is_nat != GNUNET_YES) /* If not a NAT WAIT conn, add it to global list */
     {
       ret->next = plugin->sessions;
@@ -1078,11 +1084,11 @@ tcp_plugin_send (void *cls,
 	    }
 	  if (session->inbound == GNUNET_YES)
 	    continue;
-	  if (addrlen != session->connect_alen)
+	  if ((addrlen != session->connect_alen) && (session->is_nat == GNUNET_NO))
 	    continue;
-	  if (0 != memcmp (session->connect_addr,
+	  if ((0 != memcmp (session->connect_addr,
 			   addr,
-			   addrlen))
+			   addrlen)) && (session->is_nat == GNUNET_NO))
 	    continue;
 	  cand_session = select_better_session (cand_session,
 						session);	
@@ -1152,7 +1158,7 @@ tcp_plugin_send (void *cls,
         return -1; /* NAT client only works with IPv4 addresses */
 
 
-      if ( (plugin->allow_nat == GNUNET_YES) && (is_natd == GNUNET_YES) &&
+      if ((plugin->allow_nat == GNUNET_YES) && (is_natd == GNUNET_YES) &&
            (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(plugin->nat_wait_conns, &target->hashPubKey)))
         {
 #if DEBUG_TCP_NAT
