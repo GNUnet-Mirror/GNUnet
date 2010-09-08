@@ -3727,7 +3727,7 @@ handle_dht_p2p_route_request (void *cls,
       return GNUNET_YES;
     }
 
-  if (ntohs(enc_msg->size) > GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (ntohs(enc_msg->size) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
     {
       GNUNET_break_op(0);
       return GNUNET_YES;
@@ -3767,7 +3767,7 @@ handle_dht_p2p_route_result (void *cls,
   struct GNUNET_MessageHeader *enc_msg = (struct GNUNET_MessageHeader *)&incoming[1];
   struct DHT_MessageContext message_context;
 
-  if (ntohs(enc_msg->size) > GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (ntohs(enc_msg->size) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
     {
       GNUNET_break_op(0);
       return GNUNET_YES;
