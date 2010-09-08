@@ -175,7 +175,7 @@ int main(int argc, char** argv) {
 
 	uid_t uid = getuid ();
 	if (setresuid (uid, uid, uid) != 0 )
-		fprintf (stderr, "Failed to setresuid: %m\n");
+		fprintf (stderr, "Failed to setresuid: %s\n", strerror(errno));
 
 	setnonblocking(0);
 	setnonblocking(1);

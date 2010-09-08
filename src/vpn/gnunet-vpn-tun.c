@@ -30,7 +30,7 @@ int init_tun(char *dev) {{{
 
 	if ((err = ioctl(fd, TUNSETIFF, (void *) &ifr)) < 0 ){
 		close(fd);
-		fprintf(stderr, "ioctl'ing /dev/net/tun: %m\n");
+		fprintf(stderr, "ioctl'ing /dev/net/tun: %s\n", strerror(errno));
 		return err;
 	}
 
