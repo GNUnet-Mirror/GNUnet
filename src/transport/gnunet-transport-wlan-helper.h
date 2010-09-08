@@ -19,7 +19,7 @@
 */
 
 /**
- * @file transport/gnunet-wlan.h
+ * @file transport/gnunet-transport-wlan-helper.h
  * @brief common internal definitions for the wlan mediator
  * @author David Brodski
  */
@@ -65,15 +65,14 @@ typedef u32 __le32;
  */
 /**
  * struct ieee80211_radiotap_iterator - tracks walk thru present radiotap args
- * @rtheader: pointer to the radiotap header we are walking through
- * @max_length: length of radiotap header in cpu byte ordering
- * @this_arg_index: IEEE80211_RADIOTAP_... index of current arg
- * @this_arg: pointer to current radiotap arg
- * @arg_index: internal next argument index
- * @arg: internal next argument pointer
- * @next_bitmap: internal pointer to next present u32
- * @bitmap_shifter: internal shifter for curr u32 bitmap, 23344";
-b0 set == arg present
+ * rtheader: pointer to the radiotap header we are walking through
+ * max_length: length of radiotap header in cpu byte ordering
+ * this_arg_index: IEEE80211_RADIOTAP_... index of current arg
+ * this_arg: pointer to current radiotap arg
+ * arg_index: internal next argument index
+ * arg: internal next argument pointer
+ * next_bitmap: internal pointer to next present u32
+ * bitmap_shifter: internal shifter for curr u32 bitmap, b0 set == arg present
  */
 
 struct ieee80211_radiotap_iterator {
