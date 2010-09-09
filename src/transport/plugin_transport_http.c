@@ -2461,6 +2461,11 @@ libgnunet_plugin_transport_http_done (void *cls)
   GNUNET_free_non_null (plugin->bind4_address);
   GNUNET_free_non_null (plugin->bind6_address);
   GNUNET_free_non_null(plugin->bind_hostname);
+#if BUILD_HTTPS
+  GNUNET_free_non_null (plugin->crypto_init);
+  GNUNET_free_non_null (plugin->cert);
+  GNUNET_free_non_null (plugin->key);
+#endif
   GNUNET_free (plugin);
   GNUNET_free (api);
 #if DEBUG_HTTP
@@ -2543,7 +2548,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   /* Hashing our identity to use it in URLs */
   GNUNET_CRYPTO_hash_to_enc ( &(plugin->env->my_identity->hashPubKey), &plugin->my_ascii_hash_ident);
 
-  /* Reading port number from config file */
+  /* Use IPv6? */
   if (GNUNET_CONFIGURATION_have_value (env->cfg,
 									   component_name, "USE_IPv6"))
     {
@@ -2551,7 +2556,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 															   component_name,
 															   "USE_IPv6");
     }
-  /* Reading port number from config file */
+  /* Use IPv4? */
   if (GNUNET_CONFIGURATION_have_value (env->cfg,
 									   component_name, "USE_IPv4"))
     {
@@ -2707,6 +2712,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 						   "transport-https");
 		  GNUNET_free (key_file);
 		  GNUNET_free (cert_file);
+		  GNUNET_free (component_name);
+
 		  libgnunet_plugin_transport_http_done(api);
 		  return NULL;
 	  }
@@ -2718,7 +2725,6 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 
   GNUNET_assert((plugin->key!=NULL) && (plugin->cert!=NULL));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "TLS certificate loaded\n");
-
 #endif
 
   GNUNET_assert ((port > 0) && (port <= 65535));
@@ -2816,8 +2822,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 	if ((plugin->use_ipv6 == GNUNET_NO) && (plugin->use_ipv4 == GNUNET_NO))
 		GNUNET_asprintf(&tmp,"with NO IP PROTOCOL enabled");
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"HTTP Server with %s could not be started on port %u! %s plugin failed!\n",tmp, port, PROTOCOL_PREFIX);
-	GNUNET_free(tmp);
-    GNUNET_free(component_name);
+	GNUNET_free (tmp);
+    GNUNET_free (component_name);
     libgnunet_plugin_transport_http_done (api);
     return NULL;
   }
