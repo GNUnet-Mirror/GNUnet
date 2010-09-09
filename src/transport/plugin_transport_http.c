@@ -2448,12 +2448,17 @@ libgnunet_plugin_transport_http_done (void *cls)
   return NULL;
 }
 
+#if BUILD_HTTPS
+#define LIBGNUNET_PLUGIN_TRANSPORT_INIT libgnunet_plugin_transport_https_init
+#else
+#define LIBGNUNET_PLUGIN_TRANSPORT_INIT libgnunet_plugin_transport_http_init
+#endif
 
 /**
  * Entry point for the plugin.
  */
 void *
-libgnunet_plugin_transport_http_init (void *cls)
+LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct Plugin *plugin;
