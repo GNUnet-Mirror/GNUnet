@@ -52,7 +52,7 @@
 #define PROTOCOL_PREFIX "http"
 #endif
 
-#define DEBUG_HTTP GNUNET_YES
+#define DEBUG_HTTP GNUNET_NO
 #define DEBUG_CURL GNUNET_NO
 #define DEBUG_MHD GNUNET_NO
 #define DEBUG_CONNECTIONS GNUNET_NO
@@ -406,6 +406,7 @@ struct Plugin
    */
   void * mhd_log;
 
+  /* only needed for HTTPS plugin */
 #if BUILD_HTTPS
   /* The certificate MHD uses as an \0 terminated string */
   char * cert;
@@ -449,12 +450,12 @@ static void http_server_daemon_v6_run (void *cls, const struct GNUNET_SCHEDULER_
 
 /**
  * Function setting up curl handle and selecting message to send
- * @param cls plugin
+ * @param plugin plugin
  * @param ses session to send data to
  * @param con connection
  * @return bytes sent to peer
  */
-static ssize_t send_check_connections (void *cls, struct Session *ps);
+static int send_check_connections (struct Plugin *plugin, struct Session *ps);
 
 /**
  * Function setting up file descriptors and scheduling task to run
@@ -462,20 +463,19 @@ static ssize_t send_check_connections (void *cls, struct Session *ps);
  * @param ses session to send data to
  * @param
  */
-static int curl_schedule(void *cls );
+static int curl_schedule (struct Plugin *plugin);
 
 
 /**
  * Creates a valid url from passed address and id
- * @param cls plugin as closure
+ * @param plugin plugin
  * @param addr address to create url from
  * @param addrlen address lenth
  * @param id session id
  * @return the created url
  */
-static char * create_url(void * cls, const void * addr, size_t addrlen, size_t id)
+static char * create_url(struct Plugin *plugin, const void * addr, size_t addrlen, size_t id)
 {
-  struct Plugin *plugin = cls;
   char *url = NULL;
   char *addr_str = (char *) http_plugin_address_to_string(NULL, addr, addrlen);
 
@@ -806,8 +806,7 @@ static void mhd_write_mst_cb (void *cls,
  *
  */
 static int
-mhd_accept_cb (void *cls,
-                      const struct sockaddr *addr, socklen_t addr_len)
+mhd_accept_cb (void *cls, const struct sockaddr *addr, socklen_t addr_len)
 {
 #if 0
   struct Plugin *plugin = cls;
@@ -827,11 +826,13 @@ mhd_accept_cb (void *cls,
  */
 int mhd_send_callback (void *cls, uint64_t pos, char *buf, int max)
 {
-  int bytes_read = 0;
   struct Session * ps = cls;
   struct HTTP_PeerContext * pc;
   struct HTTP_Message * msg;
+  int bytes_read = 0;
+
   GNUNET_assert (ps!=NULL);
+
   pc = ps->peercontext;
   msg = ps->pending_msgs_tail;
   if (ps->send_force_disconnect==GNUNET_YES)
@@ -876,12 +877,12 @@ int mhd_send_callback (void *cls, uint64_t pos, char *buf, int max)
  */
 static int
 mdh_access_cb (void *cls,
-                       struct MHD_Connection *mhd_connection,
-                       const char *url,
-                       const char *method,
-                       const char *version,
-                       const char *upload_data,
-                       size_t * upload_data_size, void **httpSessionCache)
+			   struct MHD_Connection *mhd_connection,
+			   const char *url,
+			   const char *method,
+			   const char *version,
+			   const char *upload_data,
+			   size_t * upload_data_size, void **httpSessionCache)
 {
   struct Plugin *plugin = cls;
   struct MHD_Response *response;
@@ -1114,14 +1115,13 @@ mdh_access_cb (void *cls,
 /**
  * Function that queries MHD's select sets and
  * starts the task waiting for them.
- * @param cls plugin as closure
+ * @param plugin plugin
  * @param daemon_handle the MHD daemon handle
  * @return gnunet task identifier
  */
 static GNUNET_SCHEDULER_TaskIdentifier
-http_server_daemon_prepare (void * cls, struct MHD_Daemon *daemon_handle)
+http_server_daemon_prepare (struct Plugin *plugin , struct MHD_Daemon *daemon_handle)
 {
-  struct Plugin *plugin = cls;
   GNUNET_SCHEDULER_TaskIdentifier ret;
   fd_set rs;
   fd_set ws;
@@ -1134,7 +1134,6 @@ http_server_daemon_prepare (void * cls, struct MHD_Daemon *daemon_handle)
   int haveto;
   struct GNUNET_TIME_Relative tv;
 
-  GNUNET_assert(cls !=NULL);
   ret = GNUNET_SCHEDULER_NO_TASK;
   FD_ZERO(&rs);
   FD_ZERO(&ws);
@@ -1611,12 +1610,9 @@ static void curl_perform (void *cls,
 
   GNUNET_assert(cls !=NULL);
 
-
-
   plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-
   do
     {
       running = 0;
@@ -1626,7 +1622,6 @@ static void curl_perform (void *cls,
       handles_last_run = running;
     }
   while (mret == CURLM_CALL_MULTI_PERFORM);
-
   curl_schedule(plugin);
 }
 
@@ -1637,9 +1632,8 @@ static void curl_perform (void *cls,
  * @param cls plugin as closure
  * @return GNUNET_SYSERR for hard failure, GNUNET_OK for ok
  */
-static int curl_schedule(void *cls)
+static int curl_schedule(struct Plugin *plugin)
 {
-  struct Plugin *plugin = cls;
   fd_set rs;
   fd_set ws;
   fd_set es;
@@ -1648,8 +1642,6 @@ static int curl_schedule(void *cls)
   struct GNUNET_NETWORK_FDSet *gws;
   long to;
   CURLMcode mret;
-
-  GNUNET_assert(cls !=NULL);
 
   /* Cancel previous scheduled task */
   if (plugin->http_curl_task !=  GNUNET_SCHEDULER_NO_TASK)
@@ -1701,19 +1693,16 @@ static int curl_schedule(void *cls)
 /**
  * Function setting up curl handle and selecting message to send
  *
- * @param cls plugin
+ * @param plugin plugin
  * @param ps session
  * @return GNUNET_SYSERR on failure, GNUNET_NO if connecting, GNUNET_YES if ok
  */
-static ssize_t send_check_connections (void *cls, struct Session *ps)
+static int send_check_connections (struct Plugin *plugin, struct Session *ps)
 {
-  struct Plugin *plugin = cls;
   CURLMcode mret;
   struct HTTP_Message * msg;
 
   struct GNUNET_TIME_Relative timeout = GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT;
-
-  GNUNET_assert(cls !=NULL);
 
   if (ps->direction == OUTBOUND)
   {
@@ -1891,7 +1880,7 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
  * @return selected session
  *
  */
-static struct Session * send_select_session (void * cls, struct HTTP_PeerContext *pc, const void * addr, size_t addrlen, int force_address, struct Session * session)
+static struct Session * send_select_session (struct HTTP_PeerContext *pc, const void * addr, size_t addrlen, int force_address, struct Session * session)
 {
 	struct Session * tmp = NULL;
 	int addr_given = GNUNET_NO;
@@ -2091,59 +2080,44 @@ http_plugin_send (void *cls,
   			    GNUNET_NO);
   }
 
-  ps = send_select_session (plugin, pc, addr, addrlen, force_address, session);
+  ps = send_select_session (pc, addr, addrlen, force_address, session);
 
   /* session not existing, but address forced -> creating new session */
   if (ps==NULL)
   {
-    if ((addr!=NULL) && (addrlen!=0))
-    {
-      ps = GNUNET_malloc(sizeof (struct Session));
-#if DEBUG_SESSION_SELECTION
-      if (force_address == GNUNET_YES)
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing connection & forced address: creating new session %X to peer %s\n", ps, GNUNET_i2s(target));
-      if (force_address != GNUNET_YES)
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing connection: creating new session %X to peer %s\n", ps, GNUNET_i2s(target));
-#endif
-      if ((addrlen!=0) && (addr!=NULL))
-      {
-      ps->addr = GNUNET_malloc(addrlen);
-      memcpy(ps->addr,addr,addrlen);
-      ps->addrlen = addrlen;
-      }
-      else
-      {
-        ps->addr = NULL;
-        ps->addrlen = 0;
-      }
-      ps->direction=OUTBOUND;
-      ps->recv_connected = GNUNET_NO;
-      ps->recv_force_disconnect = GNUNET_NO;
-      ps->send_connected = GNUNET_NO;
-      ps->send_force_disconnect = GNUNET_NO;
-      ps->pending_msgs_head = NULL;
-      ps->pending_msgs_tail = NULL;
-      ps->peercontext=pc;
-      ps->session_id = pc->session_id_counter;
-      pc->session_id_counter++;
-      ps->url = create_url (plugin, ps->addr, ps->addrlen, ps->session_id);
-      if (ps->msgtok == NULL)
-        ps->msgtok = GNUNET_SERVER_mst_create (&curl_receive_mst_cb, ps);
-      GNUNET_CONTAINER_DLL_insert(pc->head,pc->tail,ps);
-/* FIXME */
-
-      GNUNET_STATISTICS_update (plugin->env->stats,
-    			    gettext_noop ("# HTTP outbound sessions for peers active"),
-    			    1,
-    			    GNUNET_NO);
-    }
-    else
+    if ((addr==NULL) && (addrlen==0))
     {
 #if DEBUG_HTTP
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing session found & and no address given: no way to send this message to peer `%s'!\n", GNUNET_i2s(target));
 #endif
       return GNUNET_SYSERR;
     }
+    ps = GNUNET_malloc(sizeof (struct Session));
+#if DEBUG_SESSION_SELECTION
+	if (force_address == GNUNET_YES)
+		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing connection & forced address: creating new session %X to peer %s\n", ps, GNUNET_i2s(target));
+	if (force_address != GNUNET_YES)
+		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing connection: creating new session %X to peer %s\n", ps, GNUNET_i2s(target));
+#endif
+	ps->direction=OUTBOUND;
+	ps->recv_connected = GNUNET_NO;
+	ps->recv_force_disconnect = GNUNET_NO;
+	ps->send_connected = GNUNET_NO;
+	ps->send_force_disconnect = GNUNET_NO;
+	ps->pending_msgs_head = NULL;
+	ps->pending_msgs_tail = NULL;
+	ps->peercontext=pc;
+	ps->session_id = pc->session_id_counter;
+	pc->session_id_counter++;
+	ps->url = create_url (plugin, ps->addr, ps->addrlen, ps->session_id);
+	if (ps->msgtok == NULL)
+	ps->msgtok = GNUNET_SERVER_mst_create (&curl_receive_mst_cb, ps);
+	GNUNET_CONTAINER_DLL_insert(pc->head,pc->tail,ps);
+
+	GNUNET_STATISTICS_update (plugin->env->stats,
+				gettext_noop ("# HTTP outbound sessions for peers active"),
+				1,
+				GNUNET_NO);
   }
 
   /* create msg */
@@ -2444,7 +2418,6 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
     plugin->http_server_task_v6 = GNUNET_SCHEDULER_NO_TASK;
   }
 
-
   /* free all peer information */
   if (plugin->peers!=NULL)
   {
@@ -2730,10 +2703,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 		  return NULL;
 	  }
   }
-
   GNUNET_free (key_file);
   GNUNET_free (cert_file);
-
 
   GNUNET_assert((plugin->key!=NULL) && (plugin->cert!=NULL));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "TLS certificate loaded\n");
