@@ -1038,10 +1038,12 @@ check_present (void *cls,
       GNUNET_free (pc);
       return GNUNET_SYSERR;
     }
-  if ( (size == ntohl(dm->size)) &&
-       (0 == memcmp (&dm[1],
-		     data,
-		     size)) )
+  if ( (GNUNET_BLOCK_TYPE_DBLOCK == type) ||
+       (GNUNET_BLOCK_TYPE_IBLOCK == type) ||
+       ( (size == ntohl(dm->size)) &&
+	 (0 == memcmp (&dm[1],
+		       data,
+		       size)) ) )
     {
       pc->is_present = GNUNET_YES;
       plugin->api->next_request (next_cls, GNUNET_YES);
