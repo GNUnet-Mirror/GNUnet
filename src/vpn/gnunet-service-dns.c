@@ -112,8 +112,11 @@ run (void *cls,
   int err = GNUNET_NETWORK_socket_bind (mycls.dnsout,
 					(struct sockaddr*)&addr, 
 					sizeof(struct sockaddr_in));
-  // FIXME: check err
-  fprintf (stderr, "FIXME: check err: %d\n", err);
+
+  if (err != GNUNET_YES) {
+	GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not bind a port, exiting\n");
+	return;
+  }
 #if WHY_ON_EARTH_DO_WE_DO_THIS
   socklen_t addrlen = sizeof(struct sockaddr_in);
   err = getsockname(GNUNET_NETWORK_get_fd(mycls.dnsout),
