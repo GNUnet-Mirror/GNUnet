@@ -48,6 +48,7 @@ static struct dns_cls mycls;
 void hijack(unsigned short port) {
 	char port_s[6];
 
+	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Hijacking, port is %d\n", port);
 	snprintf(port_s, 6, "%d", port);
 	GNUNET_OS_start_process(NULL, NULL, "gnunet-helper-hijack-dns", "gnunet-hijack-dns", port_s, NULL);
 }
@@ -55,6 +56,7 @@ void hijack(unsigned short port) {
 void unhijack(unsigned short port) {
 	char port_s[6];
 
+	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "unHijacking, port is %d\n", port);
 	snprintf(port_s, 6, "%d", port);
 	GNUNET_OS_start_process(NULL, NULL, "gnunet-helper-hijack-dns", "gnunet-hijack-dns", "-d", port_s, NULL);
 }
