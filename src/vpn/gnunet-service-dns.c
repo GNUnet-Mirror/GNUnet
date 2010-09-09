@@ -98,18 +98,25 @@ run (void *cls,
     {&receive_query, NULL, GNUNET_MESSAGE_TYPE_LOCAL_QUERY_DNS, 0},
     {NULL, NULL, 0, 0}
   };
+  struct sockaddr_in addr;
 
   mycls.sched = sched;
-
   mycls.dnsout = GNUNET_NETWORK_socket_create (AF_INET, SOCK_DGRAM, 0);
-
-  if (mycls.dnsout == NULL) return;
-
-  struct sockaddr_in addr;
+  if (mycls.dnsout == NULL) 
+    return;
   memset(&addr, 0, sizeof(struct sockaddr_in));
 
-  int err = GNUNET_NETWORK_socket_bind (mycls.dnsout, (struct sockaddr*)&addr, sizeof(struct sockaddr_in));
-  err = getsockname(GNUNET_NETWORK_get_fd(mycls.dnsout), &addr, (unsigned int[]){sizeof(struct sockaddr_in)});
+  int err = GNUNET_NETWORK_socket_bind (mycls.dnsout,
+					(struct sockaddr*)&addr, 
+					sizeof(struct sockaddr_in));
+  // FIXME: check err
+  fprintf (stderr, "FIXME: check err: %d\n", err);
+#if WHY_ON_EARTH_DO_WE_DO_THIS
+  socklen_t addrlen = sizeof(struct sockaddr_in);
+  err = getsockname(GNUNET_NETWORK_get_fd(mycls.dnsout),
+		    (struct sockaddr*) &addr, 
+		    &addrlen);
+#endif
 
   mycls.dnsoutport = htons(addr.sin_port);
 
