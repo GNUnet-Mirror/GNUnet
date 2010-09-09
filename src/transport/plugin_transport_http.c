@@ -40,7 +40,17 @@
 #include "microhttpd.h"
 #include <curl/curl.h>
 
-#define DEBUG_HTTP GNUNET_NO
+#if BUILD_HTTPS
+#define LIBGNUNET_PLUGIN_TRANSPORT_INIT libgnunet_plugin_transport_https_init
+#define LIBGNUNET_PLUGIN_TRANSPORT_COMPONENT transport_https
+#define PROTOCOL_PREFIX "https"
+#else
+#define LIBGNUNET_PLUGIN_TRANSPORT_INIT libgnunet_plugin_transport_http_init
+#define LIBGNUNET_PLUGIN_TRANSPORT_COMPONENT transport_http
+#define PROTOCOL_PREFIX "http"
+#endif
+
+#define DEBUG_HTTP GNUNET_YES
 #define DEBUG_CURL GNUNET_NO
 #define DEBUG_MHD GNUNET_NO
 #define DEBUG_CONNECTIONS GNUNET_NO
@@ -51,7 +61,7 @@
 #define INBOUND GNUNET_NO
 #define OUTBOUND GNUNET_YES
 
-#define PROTOCOL_PREFIX "http"
+
 
 /**
  * Text of the response sent back after the last bytes of a PUT
@@ -2443,16 +2453,10 @@ libgnunet_plugin_transport_http_done (void *cls)
   GNUNET_free (plugin);
   GNUNET_free (api);
 #if DEBUG_HTTP
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Unload http plugin complete...\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Unload %s plugin complete...\n", PROTOCOL_PREFIX);
 #endif
   return NULL;
 }
-
-#if BUILD_HTTPS
-#define LIBGNUNET_PLUGIN_TRANSPORT_INIT libgnunet_plugin_transport_https_init
-#else
-#define LIBGNUNET_PLUGIN_TRANSPORT_INIT libgnunet_plugin_transport_http_init
-#endif
 
 /**
  * Entry point for the plugin.
@@ -2465,10 +2469,11 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct GNUNET_TIME_Relative gn_timeout;
   long long unsigned int port;
+  char * component_name;
 
   GNUNET_assert(cls !=NULL);
 #if DEBUG_HTTP
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting http plugin...\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting %s plugin...\n", PROTOCOL_PREFIX);
 #endif
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
@@ -2487,48 +2492,49 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   api->check_address = &http_plugin_address_suggested;
   api->address_to_string = &http_plugin_address_to_string;
 
+  GNUNET_asprintf(&component_name,"transport-%s",PROTOCOL_PREFIX);
   /* Hashing our identity to use it in URLs */
   GNUNET_CRYPTO_hash_to_enc ( &(plugin->env->my_identity->hashPubKey), &plugin->my_ascii_hash_ident);
 
   /* Reading port number from config file */
   if (GNUNET_CONFIGURATION_have_value (env->cfg,
-          	  	  	  	  	  	  	   "transport-http", "USE_IPv6"))
+									   component_name, "USE_IPv6"))
     {
 	  plugin->use_ipv6 = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
-													   "transport-http",
-													   "USE_IPv6");
+															   component_name,
+															   "USE_IPv6");
     }
   /* Reading port number from config file */
   if (GNUNET_CONFIGURATION_have_value (env->cfg,
-          	  	  	  	  	  	  	   "transport-http", "USE_IPv4"))
+									   component_name, "USE_IPv4"))
     {
 	  plugin->use_ipv4 = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
-													   "transport-http",
-													   "USE_IPv4");
+							component_name,
+							"USE_IPv4");
     }
   /* Reading port number from config file */
   if ((GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_number (env->cfg,
-                                              "transport-http",
+											  component_name,
                                               "PORT",
                                               &port)) ||
       (port > 65535) )
     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-                       "http",
+    		  component_name,
                        _("Require valid port number for transport plugin `%s' in configuration!\n"),
-                       "transport-http");
+                       PROTOCOL_PREFIX);
       libgnunet_plugin_transport_http_done (api);
       return NULL;
     }
 
   /* Reading ipv4 addresse to bind to from config file */
   if ((plugin->use_ipv4==GNUNET_YES) && (GNUNET_CONFIGURATION_have_value (env->cfg,
-          	  	  	  	  	  	  	   "transport-http", "BINDTO4")))
+		  component_name, "BINDTO4")))
   {
 	  GNUNET_break (GNUNET_OK ==
 					GNUNET_CONFIGURATION_get_value_string (env->cfg,
-														   "transport-http",
+							component_name,
 														   "BINDTO4",
 														   &plugin->bind_hostname));
 	  plugin->bind4_address = GNUNET_malloc(sizeof(struct sockaddr_in));
@@ -2538,9 +2544,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 	  if (inet_pton(AF_INET,plugin->bind_hostname, &plugin->bind4_address->sin_addr)<=0)
 	  {
 		  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-						   "http",
-						   _("Misconfigured address to bind to in configuration!\n"),
-						   "transport-http");
+						   component_name,
+						   _("Misconfigured address to bind to in configuration!\n"));
 		  GNUNET_free(plugin->bind4_address);
 		  GNUNET_free(plugin->bind_hostname);
 		  plugin->bind_hostname = NULL;
@@ -2550,10 +2555,10 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 
   /* Reading ipv4 addresse to bind to from config file */
   if ((plugin->use_ipv6==GNUNET_YES) && (GNUNET_CONFIGURATION_have_value (env->cfg,
-          	  	  	  	  	  	  	   "transport-http", "BINDTO6")))
+		  component_name, "BINDTO6")))
   {
 	  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg,
-														   "transport-http",
+			  component_name,
 														   "BINDTO6",
 														   &plugin->bind_hostname))
 	  {
@@ -2564,9 +2569,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 		  if (inet_pton(AF_INET6,plugin->bind_hostname, &plugin->bind6_address->sin6_addr)<=0)
 		  {
 			  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-							   "http",
-							   _("Misconfigured address to bind to in configuration!\n"),
-							   "transport-http");
+					  component_name,
+							   _("Misconfigured address to bind to in configuration!\n"));
 			  GNUNET_free(plugin->bind6_address);
 			  GNUNET_free(plugin->bind_hostname);
 			  plugin->bind_hostname = NULL;
@@ -2666,9 +2670,9 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   if ( NULL == plugin->multi_handle )
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-				   "https",
-				   _("Could not initialize curl multi handle, failed to start http plugin!\n"),
-				   "transport-https");
+    		component_name,
+				   _("Could not initialize curl multi handle, failed to start %s plugin!\n"),
+				   PROTOCOL_PREFIX);
     libgnunet_plugin_transport_http_done (api);
     return NULL;
   }
