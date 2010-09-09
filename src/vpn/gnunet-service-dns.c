@@ -32,8 +32,6 @@
 #include "gnunet-vpn-packet.h"
 #include "gnunet-vpn-pretty-print.h"
 
-#define WE_DO_THIS_TO_GET_THE_PORT_WE_BOUND_TO_IN_ORDER_TO_HIJACK_EVERYTHING_BUT_THIS_PORT 1
-#define WHY_ON_EARTH_DO_WE_DO_THIS WE_DO_THIS_TO_GET_THE_PORT_WE_BOUND_TO_IN_ORDER_TO_HIJACK_EVERYTHING_BUT_THIS_PORT
 
 struct dns_cls {
 	struct GNUNET_SCHEDULER_Handle *sched;
@@ -119,12 +117,10 @@ run (void *cls,
 	GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not bind a port, exiting\n");
 	return;
   }
-#if WHY_ON_EARTH_DO_WE_DO_THIS
   socklen_t addrlen = sizeof(struct sockaddr_in);
   err = getsockname(GNUNET_NETWORK_get_fd(mycls.dnsout),
 		    (struct sockaddr*) &addr, 
 		    &addrlen);
-#endif
 
   mycls.dnsoutport = htons(addr.sin_port);
 
