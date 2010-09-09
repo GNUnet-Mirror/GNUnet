@@ -2085,39 +2085,52 @@ http_plugin_send (void *cls,
   /* session not existing, but address forced -> creating new session */
   if (ps==NULL)
   {
-    if ((addr==NULL) && (addrlen==0))
-    {
-#if DEBUG_HTTP
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing session found & and no address given: no way to send this message to peer `%s'!\n", GNUNET_i2s(target));
-#endif
-      return GNUNET_SYSERR;
-    }
-    ps = GNUNET_malloc(sizeof (struct Session));
+	if ((addr!=NULL) && (addrlen!=0))
+	{
+      ps = GNUNET_malloc(sizeof (struct Session));
 #if DEBUG_SESSION_SELECTION
-	if (force_address == GNUNET_YES)
-		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing connection & forced address: creating new session %X to peer %s\n", ps, GNUNET_i2s(target));
-	if (force_address != GNUNET_YES)
-		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing connection: creating new session %X to peer %s\n", ps, GNUNET_i2s(target));
+      if (force_address == GNUNET_YES)
+         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing connection & forced address: creating new session %X to peer %s\n", ps, GNUNET_i2s(target));
+      if (force_address != GNUNET_YES)
+         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing connection: creating new session %X to peer %s\n", ps, GNUNET_i2s(target));
 #endif
-	ps->direction=OUTBOUND;
-	ps->recv_connected = GNUNET_NO;
-	ps->recv_force_disconnect = GNUNET_NO;
-	ps->send_connected = GNUNET_NO;
-	ps->send_force_disconnect = GNUNET_NO;
-	ps->pending_msgs_head = NULL;
-	ps->pending_msgs_tail = NULL;
-	ps->peercontext=pc;
-	ps->session_id = pc->session_id_counter;
-	pc->session_id_counter++;
-	ps->url = create_url (plugin, ps->addr, ps->addrlen, ps->session_id);
-	if (ps->msgtok == NULL)
-	ps->msgtok = GNUNET_SERVER_mst_create (&curl_receive_mst_cb, ps);
-	GNUNET_CONTAINER_DLL_insert(pc->head,pc->tail,ps);
-
-	GNUNET_STATISTICS_update (plugin->env->stats,
-				gettext_noop ("# HTTP outbound sessions for peers active"),
-				1,
-				GNUNET_NO);
+      if ((addrlen!=0) && (addr!=NULL))
+      {
+         ps->addr = GNUNET_malloc(addrlen);
+         memcpy(ps->addr,addr,addrlen);
+         ps->addrlen = addrlen;
+      }
+	  else
+	  {
+		ps->addr = NULL;
+		ps->addrlen = 0;
+	  }
+  	  ps->direction=OUTBOUND;
+	  ps->recv_connected = GNUNET_NO;
+	  ps->recv_force_disconnect = GNUNET_NO;
+	  ps->send_connected = GNUNET_NO;
+	  ps->send_force_disconnect = GNUNET_NO;
+	  ps->pending_msgs_head = NULL;
+	  ps->pending_msgs_tail = NULL;
+	  ps->peercontext=pc;
+	  ps->session_id = pc->session_id_counter;
+	  pc->session_id_counter++;
+	  ps->url = create_url (plugin, ps->addr, ps->addrlen, ps->session_id);
+	  if (ps->msgtok == NULL)
+			ps->msgtok = GNUNET_SERVER_mst_create (&curl_receive_mst_cb, ps);
+	  GNUNET_CONTAINER_DLL_insert(pc->head,pc->tail,ps);
+	  GNUNET_STATISTICS_update (plugin->env->stats,
+								gettext_noop ("# HTTP outbound sessions for peers active"),
+								1,
+								GNUNET_NO);
+	}
+	else
+	{
+#if DEBUG_HTTP
+		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing session found & and no address given: no way to send this message to peer `%s'!\n", GNUNET_i2s(target));
+#endif
+		return GNUNET_SYSERR;
+    }
   }
 
   /* create msg */
