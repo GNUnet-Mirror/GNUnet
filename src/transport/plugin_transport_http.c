@@ -1728,6 +1728,11 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
 #if DEBUG_CURL
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_VERBOSE, 1L);
 #endif
+#if BUILD_HTTPS
+        curl_easy_setopt (ps->recv_endpoint, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
+		curl_easy_setopt(ps->recv_endpoint, CURLOPT_SSL_VERIFYPEER, 0);
+		curl_easy_setopt(ps->recv_endpoint, CURLOPT_SSL_VERIFYHOST, 0);
+#endif
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_URL, ps->url);
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_HEADERFUNCTION, &curl_get_header_cb);
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_WRITEHEADER, ps);
@@ -1818,6 +1823,11 @@ static ssize_t send_check_connections (void *cls, struct Session *ps)
 
 #if DEBUG_CURL
 		curl_easy_setopt(ps->send_endpoint, CURLOPT_VERBOSE, 1L);
+#endif
+#if BUILD_HTTPS
+        curl_easy_setopt (ps->send_endpoint, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_SSL_VERIFYPEER, 0);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_SSL_VERIFYHOST, 0);
 #endif
 		curl_easy_setopt(ps->send_endpoint, CURLOPT_URL, ps->url);
 		curl_easy_setopt(ps->send_endpoint, CURLOPT_PUT, 1L);
