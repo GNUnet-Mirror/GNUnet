@@ -64,4 +64,6 @@ main (int argc, char *argv[])
   ret = check ();
   return ret;
 }
+
 /* end of test_gnunet_monkey.c */
+
