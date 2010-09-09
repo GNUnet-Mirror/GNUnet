@@ -32,6 +32,9 @@
 #include "gnunet-vpn-packet.h"
 #include "gnunet-vpn-pretty-print.h"
 
+#define WE_DO_THIS_TO_GET_THE_PORT_WE_BOUND_TO_IN_ORDER_TO_HIJACK_EVERYTHING_BUT_THIS_PORT 1
+#define WHY_ON_EARTH_DO_WE_DO_THIS WE_DO_THIS_TO_GET_THE_PORT_WE_BOUND_TO_IN_ORDER_TO_HIJACK_EVERYTHING_BUT_THIS_PORT
+
 struct dns_cls {
 	struct GNUNET_SCHEDULER_Handle *sched;
 
