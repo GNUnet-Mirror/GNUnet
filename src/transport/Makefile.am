@@ -173,7 +173,7 @@ libgnunet_plugin_transport_http_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
  
 libgnunet_plugin_transport_https_la_SOURCES = \
-  plugin_transport_https.c
+  plugin_transport_http.c
 libgnunet_plugin_transport_https_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -182,7 +182,9 @@ libgnunet_plugin_transport_https_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
 libgnunet_plugin_transport_https_la_LDFLAGS = \
  $(GN_LIBMHD) \
- $(GN_PLUGIN_LDFLAGS) 
+ $(GN_PLUGIN_LDFLAGS)
+libgnunet_plugin_transport_https_la_CFLAGS = \
+ $(CFLAGS) -DBUILD_HTTPS  
 endif
 
 check_PROGRAMS = \
