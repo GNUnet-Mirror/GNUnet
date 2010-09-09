@@ -11,7 +11,12 @@ struct query_packet {
 	unsigned src_port:16 GNUNET_PACKED;
 
 	unsigned char data[1]; /* The DNS-Packet */
-	
+};
+
+struct query_packet_list {
+	struct query_packet_list* next GNUNET_PACKED;
+	struct query_packet_list* prev GNUNET_PACKED;
+	struct query_packet pkt;
 };
 
 #endif

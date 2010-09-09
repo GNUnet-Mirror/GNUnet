@@ -55,7 +55,8 @@ struct vpn_cls {
 
 	pid_t helper_pid;
 
-	struct GNUNET_CONTAINER_SList *query_queue;
+	struct query_packet_list *head;
+	struct query_packet_list *tail;
 };
 
 static struct vpn_cls mycls;
@@ -118,29 +119,21 @@ static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* ts
 
 size_t send_query(void* cls, size_t size, void* buf)
 {
-	struct GNUNET_CONTAINER_SList_Iterator *start = GNUNET_CONTAINER_slist_begin (mycls.query_queue);
+	struct query_packet_list* query = mycls.head;
+	size_t len = ntohs(query->pkt.hdr.size);
 
-	GNUNET_assert(GNUNET_CONTAINER_slist_count(mycls.query_queue) > 0);
-
-	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "There are %d queries pending.\n", GNUNET_CONTAINER_slist_count(mycls.query_queue));
-
-	size_t len;
-	struct query_packet* pkt = (struct query_packet*)GNUNET_CONTAINER_slist_get(start, &len);
-
-	GNUNET_assert(ntohs(pkt->hdr.size) == len);
 	GNUNET_assert(len <= size);
 
-	memcpy(buf, pkt, len);
+	memcpy(buf, &query->pkt.hdr, len);
+
 	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sent %d bytes.\n", len);
 
-	GNUNET_CONTAINER_slist_erase(start);
-	GNUNET_CONTAINER_slist_iter_destroy(start);
+	GNUNET_CONTAINER_DLL_remove (mycls.head, mycls.tail, query);
 
-	if (GNUNET_CONTAINER_slist_count(mycls.query_queue) > 0) {
-		start = GNUNET_CONTAINER_slist_begin (mycls.query_queue);
-		GNUNET_assert(GNUNET_CONTAINER_slist_end(start) != GNUNET_YES);
-		pkt = (struct query_packet*)GNUNET_CONTAINER_slist_get(start, &len);
-		GNUNET_CLIENT_notify_transmit_ready(mycls.dns_connection, len, GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
+	GNUNET_free(query);
+
+	if (mycls.head != NULL) {
+		GNUNET_CLIENT_notify_transmit_ready(mycls.dns_connection, ntohs(mycls.head->pkt.hdr.size), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
 	}
 
 	return len;
@@ -175,15 +168,15 @@ static void message_token(void *cls, void *client, const struct GNUNET_MessageHe
 		struct ip_udp *udp = (struct ip_udp*) message;
 		if (pkt->ip_hdr.proto == 0x11 && udp->ip_hdr.dadr == 0x020a0a0a && ntohs(udp->udp_hdr.dpt) == 53 ) {
 			size_t len = sizeof(struct query_packet) + ntohs(udp->udp_hdr.len) - 9; /* 9 = 8 for the udp-header + 1 for the unsigned char data[1]; */
-			struct query_packet* query = GNUNET_malloc(len);
-			query->hdr.type = htons(GNUNET_MESSAGE_TYPE_LOCAL_QUERY_DNS);
-			query->hdr.size = htons(len);
-			query->orig_to = pkt->ip_hdr.dadr;
-			query->orig_from = pkt->ip_hdr.sadr;
-			query->src_port = udp->udp_hdr.spt;
-			memcpy(query->data, udp->data, ntohs(udp->udp_hdr.len) - 8);
+			struct query_packet_list* query = GNUNET_malloc(len + 2*sizeof(struct query_packet_list*));
+			query->pkt.hdr.type = htons(GNUNET_MESSAGE_TYPE_LOCAL_QUERY_DNS);
+			query->pkt.hdr.size = htons(len);
+			query->pkt.orig_to = pkt->ip_hdr.dadr;
+			query->pkt.orig_from = pkt->ip_hdr.sadr;
+			query->pkt.src_port = udp->udp_hdr.spt;
+			memcpy(query->pkt.data, udp->data, ntohs(udp->udp_hdr.len) - 8);
 
-			GNUNET_CONTAINER_slist_add_end (mycls.query_queue, GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC, query, len);
+			GNUNET_CONTAINER_DLL_insert_after(mycls.head, mycls.tail, mycls.tail, query);
 
 			struct GNUNET_CLIENT_TransmitHandle* th = GNUNET_CLIENT_notify_transmit_ready(mycls.dns_connection, len, GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
 			if (th != NULL)
@@ -213,9 +206,6 @@ run (void *cls,
 {
   mycls.sched = sched;
   mycls.mst = GNUNET_SERVER_mst_create(&message_token, NULL);
-
-  mycls.query_queue = GNUNET_CONTAINER_slist_create();
-  GNUNET_assert(GNUNET_CONTAINER_slist_count(mycls.query_queue) == 0);
 
   mycls.dns_connection = GNUNET_CLIENT_connect (sched, "gnunet-service-dns", cfg);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connection: %x\n", mycls.dns_connection);
