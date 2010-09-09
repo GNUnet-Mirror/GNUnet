@@ -403,6 +403,17 @@ struct Plugin
    * Closure passed by MHD to the mhd_logger function
    */
   void * mhd_log;
+
+#if BUILD_HTTPS
+  /* The certificate MHD uses as an \0 terminated string */
+  char * cert;
+
+  /* The private key MHD uses as an \0 terminated string */
+  char * key;
+
+  /* crypto init string */
+  char * crypto_init;
+#endif
 };
 
 
@@ -2458,6 +2469,38 @@ libgnunet_plugin_transport_http_done (void *cls)
   return NULL;
 }
 
+#if BUILD_HTTPS
+static char *
+load_certificate( const char * file )
+{
+  struct GNUNET_DISK_FileHandle * gn_file;
+
+  struct stat fstat;
+  char * text = NULL;
+
+  if (0!=STAT(file, &fstat))
+	  return NULL;
+  text = GNUNET_malloc (fstat.st_size+1);
+  gn_file = GNUNET_DISK_file_open(file,GNUNET_DISK_OPEN_READ, GNUNET_DISK_PERM_USER_READ);
+  if (gn_file==NULL)
+  {
+	  GNUNET_free(text);
+	  return NULL;
+  }
+  if (GNUNET_SYSERR == GNUNET_DISK_file_read(gn_file, text, fstat.st_size))
+  {
+	  GNUNET_free(text);
+	  GNUNET_DISK_file_close(gn_file);
+	  return NULL;
+  }
+  text[fstat.st_size] = '\0';
+  GNUNET_DISK_file_close(gn_file);
+
+  return text;
+}
+#endif
+
+
 /**
  * Entry point for the plugin.
  */
@@ -2470,11 +2513,16 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   struct GNUNET_TIME_Relative gn_timeout;
   long long unsigned int port;
   char * component_name;
+#if BUILD_HTTPS
+  char * key_file = NULL;
+  char * cert_file = NULL;
+#endif
 
   GNUNET_assert(cls !=NULL);
 #if DEBUG_HTTP
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Starting %s plugin...\n", PROTOCOL_PREFIX);
 #endif
+  GNUNET_asprintf(&component_name,"transport-%s",PROTOCOL_PREFIX);
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->stats = env->stats;
@@ -2492,7 +2540,6 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   api->check_address = &http_plugin_address_suggested;
   api->address_to_string = &http_plugin_address_to_string;
 
-  GNUNET_asprintf(&component_name,"transport-%s",PROTOCOL_PREFIX);
   /* Hashing our identity to use it in URLs */
   GNUNET_CRYPTO_hash_to_enc ( &(plugin->env->my_identity->hashPubKey), &plugin->my_ascii_hash_ident);
 
@@ -2509,8 +2556,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 									   component_name, "USE_IPv4"))
     {
 	  plugin->use_ipv4 = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
-							component_name,
-							"USE_IPv4");
+							component_name,"USE_IPv4");
     }
   /* Reading port number from config file */
   if ((GNUNET_OK !=
@@ -2521,20 +2567,21 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
       (port > 65535) )
     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-    		  component_name,
+					   component_name,
                        _("Require valid port number for transport plugin `%s' in configuration!\n"),
                        PROTOCOL_PREFIX);
+      GNUNET_free(component_name);
       libgnunet_plugin_transport_http_done (api);
       return NULL;
     }
 
   /* Reading ipv4 addresse to bind to from config file */
   if ((plugin->use_ipv4==GNUNET_YES) && (GNUNET_CONFIGURATION_have_value (env->cfg,
-		  component_name, "BINDTO4")))
+													  component_name, "BINDTO4")))
   {
 	  GNUNET_break (GNUNET_OK ==
 					GNUNET_CONFIGURATION_get_value_string (env->cfg,
-							component_name,
+														   component_name,
 														   "BINDTO4",
 														   &plugin->bind_hostname));
 	  plugin->bind4_address = GNUNET_malloc(sizeof(struct sockaddr_in));
@@ -2558,9 +2605,9 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 		  component_name, "BINDTO6")))
   {
 	  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg,
-			  component_name,
-														   "BINDTO6",
-														   &plugin->bind_hostname))
+															  component_name,
+															  "BINDTO6",
+															  &plugin->bind_hostname))
 	  {
 		  plugin->bind6_address = GNUNET_malloc(sizeof(struct sockaddr_in6));
 		  plugin->bind6_address->sin6_family = AF_INET6;
@@ -2569,7 +2616,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 		  if (inet_pton(AF_INET6,plugin->bind_hostname, &plugin->bind6_address->sin6_addr)<=0)
 		  {
 			  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-					  component_name,
+							   component_name,
 							   _("Misconfigured address to bind to in configuration!\n"));
 			  GNUNET_free(plugin->bind6_address);
 			  GNUNET_free(plugin->bind_hostname);
@@ -2578,6 +2625,101 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 		  }
 	  }
   }
+
+#if BUILD_HTTPS
+  /* Reading HTTPS crypto related configuration */
+  /* Get crypto init string from config */
+  if (GNUNET_CONFIGURATION_have_value (env->cfg,
+									   "transport-https", "CRYPTO_INIT"))
+  {
+		GNUNET_CONFIGURATION_get_value_string (env->cfg,
+											   "transport-https",
+											   "CRYPTO_INIT",
+											   &plugin->crypto_init);
+  }
+  else
+  {
+	  GNUNET_asprintf(&plugin->crypto_init,"NORMAL");
+  }
+
+/* Get private key file from config */
+  if (GNUNET_CONFIGURATION_have_value (env->cfg,
+									   "transport-https", "KEY_FILE"))
+  {
+		GNUNET_CONFIGURATION_get_value_string (env->cfg,
+											   "transport-https",
+											   "KEY_FILE",
+											   &key_file);
+  }
+  if (key_file==NULL)
+	  GNUNET_asprintf(&key_file,"https.key");
+
+/* Get private key file from config */
+  if (GNUNET_CONFIGURATION_have_value (env->cfg,"transport-https", "CERT_FILE"))
+  {
+	  GNUNET_CONFIGURATION_get_value_string (env->cfg,
+											 "transport-https",
+											 "CERT_FILE",
+											 &cert_file);
+  }
+  if (cert_file==NULL)
+	  GNUNET_asprintf(&cert_file,"https.cert");
+
+  /* read key & certificates from file */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Loading TLS certificate `%s' `%s'\n", key_file, cert_file);
+
+  plugin->key = load_certificate( key_file );
+  plugin->cert = load_certificate( cert_file );
+
+  if ((plugin->key==NULL) || (plugin->cert==NULL))
+  {
+	  char * cmd;
+	  int ret = 0;
+	  GNUNET_asprintf(&cmd,"gnunet-transport-certificate-creation %s %s", key_file, cert_file);
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No usable TLS certificate found, creating certificate \n");
+	  ret = system(cmd);
+
+	  if (ret != 0)
+	  {
+		  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+			        	   "https",
+						   _("Could not create a new TLS certificate, shell script `%s' failed!\n"),cmd,
+						   "transport-https");
+		  GNUNET_free (key_file);
+		  GNUNET_free (cert_file);
+		  GNUNET_free (component_name);
+
+		  libgnunet_plugin_transport_http_done(api);
+		  GNUNET_free (cmd);
+		  return NULL;
+	  }
+
+	  GNUNET_free (cmd);
+
+	  plugin->key = load_certificate( key_file );
+	  plugin->cert = load_certificate( cert_file );
+
+	  if ((plugin->key==NULL) || (plugin->cert==NULL))
+	  {
+		  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+			        	   "https",
+						   _("No usable TLS certificate found and creating one failed! \n"),
+						   "transport-https");
+		  GNUNET_free (key_file);
+		  GNUNET_free (cert_file);
+		  libgnunet_plugin_transport_http_done(api);
+		  return NULL;
+	  }
+  }
+
+  GNUNET_free (key_file);
+  GNUNET_free (cert_file);
+
+
+  GNUNET_assert((plugin->key!=NULL) && (plugin->cert!=NULL));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "TLS certificate loaded\n");
+
+#endif
 
   GNUNET_assert ((port > 0) && (port <= 65535));
   plugin->port_inbound = port;
@@ -2590,6 +2732,9 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 #if DEBUG_MHD
     								   MHD_USE_DEBUG |
 #endif
+#if BUILD_HTTPS
+    								   MHD_USE_SSL |
+#endif
     								   MHD_USE_IPv6,
                                        port,
                                        &mhd_accept_cb,
@@ -2597,6 +2742,11 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
                                        MHD_OPTION_SOCK_ADDR, tmp,
                                        MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 32,
                                        //MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 6,
+#if BUILD_HTTPS
+                                       MHD_OPTION_HTTPS_PRIORITIES,  plugin->crypto_init,
+                                       MHD_OPTION_HTTPS_MEM_KEY, plugin->key,
+                                       MHD_OPTION_HTTPS_MEM_CERT, plugin->cert,
+#endif
                                        MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) timeout,
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (2 * GNUNET_SERVER_MAX_MESSAGE_SIZE),
                                        MHD_OPTION_NOTIFY_COMPLETED, &mhd_termination_cb, NULL,
@@ -2609,6 +2759,9 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 #if DEBUG_MHD
     								   MHD_USE_DEBUG |
 #endif
+#if BUILD_HTTPS
+    								   MHD_USE_SSL |
+#endif
     								   MHD_NO_FLAG,
                                        port,
                                        &mhd_accept_cb,
@@ -2616,6 +2769,11 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
                                        MHD_OPTION_SOCK_ADDR, (struct sockaddr_in *)plugin->bind4_address,
                                        MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 32,
                                        //MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 6,
+#if BUILD_HTTPS
+                                       MHD_OPTION_HTTPS_PRIORITIES,  plugin->crypto_init,
+                                       MHD_OPTION_HTTPS_MEM_KEY, plugin->key,
+                                       MHD_OPTION_HTTPS_MEM_CERT, plugin->cert,
+#endif
                                        MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) timeout,
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (2 * GNUNET_SERVER_MAX_MESSAGE_SIZE),
                                        MHD_OPTION_NOTIFY_COMPLETED, &mhd_termination_cb, NULL,
@@ -2657,8 +2815,9 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 		GNUNET_asprintf(&tmp,"with IPv6 enabled");
 	if ((plugin->use_ipv6 == GNUNET_NO) && (plugin->use_ipv4 == GNUNET_NO))
 		GNUNET_asprintf(&tmp,"with NO IP PROTOCOL enabled");
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"HTTP Server with %s could not be started on port %u! https plugin failed!\n",tmp, port);
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"HTTP Server with %s could not be started on port %u! %s plugin failed!\n",tmp, port, PROTOCOL_PREFIX);
 	GNUNET_free(tmp);
+    GNUNET_free(component_name);
     libgnunet_plugin_transport_http_done (api);
     return NULL;
   }
@@ -2670,9 +2829,10 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   if ( NULL == plugin->multi_handle )
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-    		component_name,
-				   _("Could not initialize curl multi handle, failed to start %s plugin!\n"),
-				   PROTOCOL_PREFIX);
+					 component_name,
+					 _("Could not initialize curl multi handle, failed to start %s plugin!\n"),
+					 PROTOCOL_PREFIX);
+    GNUNET_free(component_name);
     libgnunet_plugin_transport_http_done (api);
     return NULL;
   }
@@ -2680,6 +2840,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   plugin->peers = GNUNET_CONTAINER_multihashmap_create (10);
   GNUNET_OS_network_interfaces_list (&process_interfaces, plugin);
 
+  GNUNET_free(component_name);
   return api;
 }
 
