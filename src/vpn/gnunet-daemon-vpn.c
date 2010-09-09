@@ -94,6 +94,9 @@ static void restart_helper(void* cls, const struct GNUNET_SCHEDULER_TaskContext*
 	PLIBC_KILL(mycls.helper_pid, SIGKILL);
 	GNUNET_OS_process_wait(mycls.helper_pid);
 
+	GNUNET_DISK_pipe_close(mycls.helper_in);
+	GNUNET_DISK_pipe_close(mycls.helper_out);
+
 	// Restart the helper
 	start_helper_and_schedule(mycls);
 
