@@ -42,10 +42,12 @@
 
 #if BUILD_HTTPS
 #define LIBGNUNET_PLUGIN_TRANSPORT_INIT libgnunet_plugin_transport_https_init
+#define LIBGNUNET_PLUGIN_TRANSPORT_DONE libgnunet_plugin_transport_https_done
 #define LIBGNUNET_PLUGIN_TRANSPORT_COMPONENT transport_https
 #define PROTOCOL_PREFIX "https"
 #else
 #define LIBGNUNET_PLUGIN_TRANSPORT_INIT libgnunet_plugin_transport_http_init
+#define LIBGNUNET_PLUGIN_TRANSPORT_DONE libgnunet_plugin_transport_http_done
 #define LIBGNUNET_PLUGIN_TRANSPORT_COMPONENT transport_http
 #define PROTOCOL_PREFIX "http"
 #endif
@@ -661,12 +663,12 @@ process_interfaces (void *cls,
       {
     	  if (0 == memcmp(&plugin->bind4_address->sin_addr, &bnd_cmp, sizeof (struct in_addr)))
     	  {
-          	  plugin->env->notify_address(plugin->env->cls,"http",t4, sizeof (struct IPv4HttpAddress), GNUNET_TIME_UNIT_FOREVER_REL);
+          	  plugin->env->notify_address(plugin->env->cls,PROTOCOL_PREFIX,t4, sizeof (struct IPv4HttpAddress), GNUNET_TIME_UNIT_FOREVER_REL);
     	  }
       }
       else
       {
-    	  plugin->env->notify_address(plugin->env->cls,"http",t4, sizeof (struct IPv4HttpAddress), GNUNET_TIME_UNIT_FOREVER_REL);
+    	  plugin->env->notify_address(plugin->env->cls,PROTOCOL_PREFIX,t4, sizeof (struct IPv4HttpAddress), GNUNET_TIME_UNIT_FOREVER_REL);
       }
       GNUNET_free (t4);
     }
@@ -687,7 +689,7 @@ process_interfaces (void *cls,
     	              &((struct sockaddr_in6 *) addr)->sin6_addr,
     	              sizeof (struct in6_addr));
     	      t6->u6_port = htons (plugin->port_inbound);
-    	      plugin->env->notify_address(plugin->env->cls,"http",t6,sizeof (struct IPv6HttpAddress) , GNUNET_TIME_UNIT_FOREVER_REL);
+    	      plugin->env->notify_address(plugin->env->cls,PROTOCOL_PREFIX,t6,sizeof (struct IPv6HttpAddress) , GNUNET_TIME_UNIT_FOREVER_REL);
     	  }
       }
       else
@@ -696,7 +698,7 @@ process_interfaces (void *cls,
                   &((struct sockaddr_in6 *) addr)->sin6_addr,
                   sizeof (struct in6_addr));
           t6->u6_port = htons (plugin->port_inbound);
-          plugin->env->notify_address(plugin->env->cls,"http",t6,sizeof (struct IPv6HttpAddress) , GNUNET_TIME_UNIT_FOREVER_REL);
+          plugin->env->notify_address(plugin->env->cls,PROTOCOL_PREFIX,t6,sizeof (struct IPv6HttpAddress) , GNUNET_TIME_UNIT_FOREVER_REL);
       }
       GNUNET_free (t6);
     }
@@ -2412,7 +2414,7 @@ http_plugin_address_to_string (void *cls,
  * Exit point from the plugin.
  */
 void *
-libgnunet_plugin_transport_http_done (void *cls)
+LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
@@ -2586,7 +2588,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
                        _("Require valid port number for transport plugin `%s' in configuration!\n"),
                        PROTOCOL_PREFIX);
       GNUNET_free(component_name);
-      libgnunet_plugin_transport_http_done (api);
+      LIBGNUNET_PLUGIN_TRANSPORT_DONE (api);
       return NULL;
     }
 
@@ -2704,7 +2706,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 		  GNUNET_free (cert_file);
 		  GNUNET_free (component_name);
 
-		  libgnunet_plugin_transport_http_done(api);
+		  LIBGNUNET_PLUGIN_TRANSPORT_DONE(api);
 		  GNUNET_free (cmd);
 		  return NULL;
 	  }
@@ -2724,7 +2726,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 		  GNUNET_free (cert_file);
 		  GNUNET_free (component_name);
 
-		  libgnunet_plugin_transport_http_done(api);
+		  LIBGNUNET_PLUGIN_TRANSPORT_DONE(api);
 		  return NULL;
 	  }
   }
@@ -2834,7 +2836,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"HTTP Server with %s could not be started on port %u! %s plugin failed!\n",tmp, port, PROTOCOL_PREFIX);
 	GNUNET_free (tmp);
     GNUNET_free (component_name);
-    libgnunet_plugin_transport_http_done (api);
+    LIBGNUNET_PLUGIN_TRANSPORT_DONE (api);
     return NULL;
   }
 
@@ -2849,7 +2851,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 					 _("Could not initialize curl multi handle, failed to start %s plugin!\n"),
 					 PROTOCOL_PREFIX);
     GNUNET_free(component_name);
-    libgnunet_plugin_transport_http_done (api);
+    LIBGNUNET_PLUGIN_TRANSPORT_DONE (api);
     return NULL;
   }
 
