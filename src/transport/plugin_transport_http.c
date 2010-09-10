@@ -53,7 +53,7 @@
 #endif
 
 #define DEBUG_HTTP GNUNET_NO
-#define DEBUG_CURL GNUNET_NO
+#define DEBUG_CURL GNUNET_YES
 #define DEBUG_MHD GNUNET_NO
 #define DEBUG_CONNECTIONS GNUNET_NO
 #define DEBUG_SESSION_SELECTION GNUNET_NO
@@ -1691,6 +1691,34 @@ static int curl_schedule(struct Plugin *plugin)
 }
 
 /**
+ * Function to log curl debug messages with GNUNET_log
+ * @param curl handle
+ * @param type curl_infotype
+ * @param data data
+ * @param size size
+ * @param cls  closure
+ * @return 0
+ */
+int curl_logger (CURL * curl, curl_infotype type , char * data, size_t size , void * cls)
+{
+	char * text = GNUNET_malloc(size+2);
+	if (type == CURLINFO_TEXT)
+	{
+		memcpy(text,data,size);
+		if (text[size-1] == '\n')
+			text[size] = '\0';
+		else
+		{
+			text[size] = '\n';
+			text[size+1] = '\0';
+		}
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"CURL: Connection %X - %s", cls, text);
+		GNUNET_free(text);
+	}
+	return 0;
+}
+
+/**
  * Function setting up curl handle and selecting message to send
  *
  * @param plugin plugin
@@ -1718,6 +1746,8 @@ static int send_check_connections (struct Plugin *plugin, struct Session *ps)
         }
 #if DEBUG_CURL
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_VERBOSE, 1L);
+        curl_easy_setopt(ps->recv_endpoint, CURLOPT_DEBUGFUNCTION , &curl_logger);
+        curl_easy_setopt(ps->recv_endpoint, CURLOPT_DEBUGDATA , ps->recv_endpoint);
 #endif
 #if BUILD_HTTPS
         curl_easy_setopt (ps->recv_endpoint, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
@@ -1814,6 +1844,8 @@ static int send_check_connections (struct Plugin *plugin, struct Session *ps)
 
 #if DEBUG_CURL
 		curl_easy_setopt(ps->send_endpoint, CURLOPT_VERBOSE, 1L);
+        curl_easy_setopt(ps->send_endpoint, CURLOPT_DEBUGFUNCTION , &curl_logger);
+        curl_easy_setopt(ps->send_endpoint, CURLOPT_DEBUGDATA , ps->send_endpoint);
 #endif
 #if BUILD_HTTPS
         curl_easy_setopt (ps->send_endpoint, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
