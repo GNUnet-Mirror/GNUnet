@@ -1080,7 +1080,7 @@ task_check (void *cls,
     hostlist_delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS,
                                                     (1 + stat_connection_count));
   GNUNET_STATISTICS_set (stats,
-                         gettext_noop("# seconds between hostlist downloads"),
+                         gettext_noop("# milliseconds between hostlist downloads"),
                          hostlist_delay.value,
                          GNUNET_YES);
   if (0 == once)
@@ -1585,7 +1585,7 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   }
   GNUNET_STATISTICS_get (stats,
 			 "hostlist",
-			 gettext_noop("# seconds between hostlist downloads"),
+			 gettext_noop("# milliseconds between hostlist downloads"),
 			 GNUNET_TIME_UNIT_MINUTES,
 			 &primary_task,
 			 &process_stat,
