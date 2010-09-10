@@ -1954,7 +1954,6 @@ static int route_result_message(void *cls,
                 "DHT", GNUNET_h2s (message_context->key), message_context->unique_id);
 #endif
 #if DEBUG_DHT_ROUTING
-
       if ((debug_routes_extended) && (dhtlog_handle != NULL))
         {
           dhtlog_handle->insert_route (NULL,
@@ -2722,7 +2721,7 @@ select_peer (const GNUNET_HashCode * target,
   struct PeerInfo *pos;
   struct PeerInfo *chosen;
   char *temp_stat;
-#if DEBUG_DHT_ROUTING
+#if DEBUG_DHT_ROUTING > 1
   double sum;
 #endif
 
@@ -2743,7 +2742,7 @@ select_peer (const GNUNET_HashCode * target,
     }
 
   GNUNET_free(temp_stat);
-
+  total_real_distance = 0;
   if (strict_kademlia == GNUNET_YES)
     {
       largest_distance = 0;
@@ -2817,7 +2816,8 @@ select_peer (const GNUNET_HashCode * target,
           return NULL;
         }
 
-#if DEBUG_DHT_ROUTING
+#if DEBUG_DHT_ROUTING > 1
+      sum = 0.0;
       for (bc = lowest_bucket; bc < MAX_BUCKETS; bc++)
         {
           pos = k_buckets[bc].head;
@@ -2843,9 +2843,9 @@ select_peer (const GNUNET_HashCode * target,
               count++;
             }
         }
-      fprintf(stdout, "Sum is %f\n", sum);
 #endif
-
+      real_selected = 0;
+      selected = 0;
       if (use_real_distance)
         {
           GNUNET_assert(total_real_distance != 0);
@@ -3106,6 +3106,24 @@ static int route_message(void *cls,
   if ((stop_on_closest == GNUNET_YES) && (global_closest == GNUNET_YES) && (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DHT_PUT))
     forward_count = 0;
 
+  /**
+   * NOTICE:  In Kademlia, a find peer request goes no further if the peer doesn't return
+   * any closer peers (which is being checked for below).  Since we are doing recursive
+   * routing we have no choice but to stop forwarding in this case.  This means that at
+   * any given step the request may NOT be forwarded to alpha peers (because routes will
+   * stop and the parallel route will not be aware of it).  Of course, assuming that we
+   * have fulfilled the Kademlia requirements for routing table fullness this will never
+   * ever ever be a problem.
+   *
+   * However, is this fair?
+   *
+   * Since we use these requests to build our routing tables (and we build them in the
+   * testing driver) we will ignore this restriction for FIND_PEER messages so that
+   * routing tables still get constructed.
+   */
+  if ((GNUNET_YES == strict_kademlia) && (global_closest == GNUNET_YES) && (message_context->hop_count > 0) && (ntohs(msg->type) != GNUNET_MESSAGE_TYPE_DHT_FIND_PEER))
+    forward_count = 0;
+
 #if DEBUG_DHT_ROUTING
   if (forward_count == 0)
     ret = GNUNET_SYSERR;
@@ -3207,6 +3225,7 @@ static int route_message(void *cls,
                       "DHT", GNUNET_h2s (message_context->key), message_context->unique_id, GNUNET_i2s(&selected->id), nearest_buf, matching_bits(&nearest->id.hashPubKey, message_context->key), distance(&nearest->id.hashPubKey, message_context->key));
           GNUNET_free(nearest_buf);
 #endif
+#if DEBUG_DHT_ROUTING
           if ((debug_routes_extended) && (dhtlog_handle != NULL))
             {
               dhtlog_handle->insert_route (NULL, message_context->unique_id, DHTLOG_ROUTE,
@@ -3214,6 +3233,7 @@ static int route_message(void *cls,
                                            &my_identity, &message_context->key, message_context->peer,
                                            &selected->id);
             }
+#endif
           forward_message(cls, msg, selected, message_context);
         }
       else
@@ -3383,8 +3403,10 @@ malicious_put_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   message_context.peer = &my_identity;
   message_context.importance = DHT_DEFAULT_P2P_IMPORTANCE; /* Make result routing a higher priority */
   message_context.timeout = DHT_DEFAULT_P2P_TIMEOUT;
+#if DEBUG_DHT_ROUTING
   if (dhtlog_handle != NULL)
     dhtlog_handle->insert_dhtkey(NULL, &key);
+#endif
   increment_stats(STAT_PUT_START);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s:%s Sending malicious PUT message with hash %s", my_short_id, "DHT", GNUNET_h2s(&key));
   route_message(NULL, &put_message.header, &message_context);
@@ -3424,8 +3446,10 @@ malicious_get_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   message_context.peer = &my_identity;
   message_context.importance = DHT_DEFAULT_P2P_IMPORTANCE; /* Make result routing a higher priority */
   message_context.timeout = DHT_DEFAULT_P2P_TIMEOUT;
+#if DEBUG_DHT_ROUTING
   if (dhtlog_handle != NULL)
     dhtlog_handle->insert_dhtkey(NULL, &key);
+#endif
   increment_stats(STAT_GET_START);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s:%s Sending malicious GET message with hash %s", my_short_id, "DHT", GNUNET_h2s(&key));
   route_message (NULL, &get_message.header, &message_context);
@@ -3648,8 +3672,10 @@ handle_dht_control_message (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s Initiating malicious PUT behavior, frequency %d\n", my_short_id, "DHT", malicious_put_frequency);
     break;
   case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_DROP:
+#if DEBUG_DHT_ROUTING
     if ((malicious_dropper != GNUNET_YES) && (dhtlog_handle != NULL))
       dhtlog_handle->set_malicious(&my_identity);
+#endif
     malicious_dropper = GNUNET_YES;
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s Initiating malicious DROP behavior\n", my_short_id, "DHT");
     break;
@@ -4140,6 +4166,7 @@ run (void *cls,
       debug_routes_extended = GNUNET_YES;
     }
 
+#if DEBUG_DHT_ROUTING
   if (GNUNET_YES == debug_routes)
     {
       dhtlog_handle = GNUNET_DHTLOG_connect(cfg);
@@ -4149,6 +4176,7 @@ run (void *cls,
                       "Could not connect to mysql logging server, logging will not happen!");
         }
     }
+#endif
 
   converge_option = DHT_CONVERGE_SQUARE;
   if (GNUNET_YES ==
