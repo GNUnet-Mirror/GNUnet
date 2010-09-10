@@ -617,12 +617,14 @@ GNUNET_SERVER_inject (struct GNUNET_SERVER_Handle *server,
             {
               if ((mh->expected_size != 0) && (mh->expected_size != size))
                 {
+#if GNUNET8_NETWORK_IS_DEAD
 		  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 			      "Expected %u bytes for message of type %u, got %u\n",
 			      mh->expected_size,
 			      mh->type,
 			      size);
                   GNUNET_break_op (0);
+#endif
                   return GNUNET_SYSERR;
                 }
               if (sender != NULL)
