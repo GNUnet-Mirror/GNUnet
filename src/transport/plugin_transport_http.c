@@ -53,7 +53,7 @@
 #endif
 
 #define DEBUG_HTTP GNUNET_NO
-#define DEBUG_CURL GNUNET_YES
+#define DEBUG_CURL GNUNET_NO
 #define DEBUG_MHD GNUNET_NO
 #define DEBUG_CONNECTIONS GNUNET_NO
 #define DEBUG_SESSION_SELECTION GNUNET_NO
@@ -1712,7 +1712,7 @@ int curl_logger (CURL * curl, curl_infotype type , char * data, size_t size , vo
 			text[size] = '\n';
 			text[size+1] = '\0';
 		}
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"CURL: Connection %X - %s", cls, text);
+		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"CURL: Connection %X - %s", cls, text);
 		GNUNET_free(text);
 	}
 	return 0;
