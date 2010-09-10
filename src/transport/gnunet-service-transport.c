@@ -4427,13 +4427,14 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
                    sizeof (struct GNUNET_PeerIdentity)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("Received `%s' message from `%s' not destined for me!\n"),
+                  _("Received `%s' message from `%s' destined for `%s' which is not me!\n"),
 		  "PING",
 		  (sender_address != NULL)
 		  ? a2s (plugin->short_name,
 			 (const struct sockaddr *)sender_address,
 			 sender_address_len)
-		  : "<inbound>");
+		  : "<inbound>",
+		  GNUNET_i2s (&ping->target));
       return GNUNET_SYSERR;
     }
 #if DEBUG_PING_PONG
