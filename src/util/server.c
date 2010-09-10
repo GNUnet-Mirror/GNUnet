@@ -617,13 +617,11 @@ GNUNET_SERVER_inject (struct GNUNET_SERVER_Handle *server,
             {
               if ((mh->expected_size != 0) && (mh->expected_size != size))
                 {
-#if DEBUG_SERVER
-		  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 			      "Expected %u bytes for message of type %u, got %u\n",
 			      mh->expected_size,
 			      mh->type,
 			      size);
-#endif
                   GNUNET_break_op (0);
                   return GNUNET_SYSERR;
                 }
