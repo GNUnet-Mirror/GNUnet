@@ -38,7 +38,7 @@ extern "C"
 /**
  * Test if service is online.
  */
-#define GNUNET_MESSAGE_TYPE_TEST 0
+#define GNUNET_MESSAGE_TYPE_TEST 1
 
 
 /**
