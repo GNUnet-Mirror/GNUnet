@@ -73,7 +73,7 @@ bin_SCRIPTS = \
 
 gnunet_nat_server_SOURCES = \
  $(NATSERVER)
- 
+
 gnunet_transport_wlan_helper_SOURCES = \
  gnunet-transport-wlan-helper.c         
 gnunet_transport_wlan_helper_LDADD = \
@@ -296,13 +296,13 @@ test_transport_api_https_SOURCES = \
 test_transport_api_https_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la  
- 
+
 test_transport_api_reliability_https_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_https_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la
-     
+
 endif
 
 EXTRA_DIST = \

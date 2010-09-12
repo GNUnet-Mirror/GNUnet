@@ -1,4 +1,15 @@
 0.9.0pre2:
+* BLOCK:
+  - implement FS plugin
+  - design new block-lib API
+  - move FS serivce to new block API
+* FS:
+  - integrate with DHT
+  - measure latencies (core, datastore) => trust economy
+  - refuse content migration message (or solicit?)
+  - FS performance benchmarking
+* DHT:
+  - use new block lib
 * CORE:
   - derived key generation [Nils]
   - Jun 27 11:51:54 core-7670 ERROR Assertion failed at gnunet-service-core.c:3616.
@@ -23,7 +34,7 @@
   - needs more testing (especially F2F topology) & transport blacklisting
 * TRANSPORT-TCP [MW]:
   - should use hash map to look up sessions
-* NAT/UPNP: [MW]
+* NAT/UPNP: [Milan]
   - finalize API design
   - code clean up
   - testing
