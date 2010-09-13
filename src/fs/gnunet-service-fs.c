@@ -616,6 +616,15 @@ struct MigrationReadyBlock
  */
 static struct GNUNET_DATASTORE_Handle *dsh;
 
+/**
+ * Our block context.
+ */
+static struct GNUNET_BLOCK_Context *block_ctx;
+
+/**
+ * Our block configuration.
+ */
+static struct GNUNET_CONFIGURATION_Handle *block_cfg;
 
 /**
  * Our scheduler.
@@ -1569,12 +1578,19 @@ shutdown_task (void *cls,
       GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
       stats = NULL;
     }
-  GNUNET_DATASTORE_disconnect (dsh,
-			       GNUNET_NO);
+  if (dsh != NULL)
+    {
+      GNUNET_DATASTORE_disconnect (dsh,
+				   GNUNET_NO);
+      dsh = NULL;
+    }
   while (mig_head != NULL)
     delete_migration_block (mig_head);
   GNUNET_assert (0 == mig_size);
-  dsh = NULL;
+  GNUNET_BLOCK_context_destroy (block_ctx);
+  block_ctx = NULL;
+  GNUNET_CONFIGURATION_destroy (block_cfg);
+  block_cfg = NULL;
   sched = NULL;
   cfg = NULL;  
   GNUNET_free_non_null (trustDirectory);
@@ -2783,17 +2799,18 @@ handle_p2p_put (void *cls,
   type = ntohl (put->type);
   expiration = GNUNET_TIME_absolute_ntoh (put->expiration);
 
+  if (type == GNUNET_BLOCK_TYPE_ONDEMAND)
+    return GNUNET_SYSERR;
   if (GNUNET_OK !=
-      GNUNET_BLOCK_check_block (type,
-				&put[1],
-				dsize,
-				&query))
+      GNUNET_BLOCK_get_key (block_ctx,
+			    type,
+			    &put[1],
+			    dsize,
+			    &query))
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
-  if (type == GNUNET_BLOCK_TYPE_ONDEMAND)
-    return GNUNET_SYSERR;
   if (GNUNET_BLOCK_TYPE_SBLOCK == type)
     { 
       sb = (const struct SBlock*) &put[1];
@@ -3051,10 +3068,12 @@ process_local_reply (void *cls,
 			  sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
 			  &prq.namespace);
     }
-  if (GNUNET_OK != GNUNET_BLOCK_check_block (type,
-					     data,
-					     size,
-					     &query))
+  if (GNUNET_OK != 
+      GNUNET_BLOCK_get_key (block_ctx,
+			    type,
+			    data,
+			    size,
+			    &query))
     {
       GNUNET_break (0);
       GNUNET_DATASTORE_remove (dsh,
@@ -3786,12 +3805,23 @@ run (void *cls,
       GNUNET_SCHEDULER_shutdown (sched);
       return;
     }
+  block_cfg = GNUNET_CONFIGURATION_create ();
+  GNUNET_CONFIGURATION_set_value_string (block_cfg,
+					 "block",
+					 "PLUGINS",
+					 "fs");
+  block_ctx = GNUNET_BLOCK_context_create (block_cfg);
+  GNUNET_assert (NULL != block_ctx);
   if ( (GNUNET_OK != GNUNET_FS_indexing_init (sched, cfg, dsh)) ||
        (GNUNET_OK != main_init (sched, server, cfg)) )
     {    
       GNUNET_SCHEDULER_shutdown (sched);
       GNUNET_DATASTORE_disconnect (dsh, GNUNET_NO);
       dsh = NULL;
+      GNUNET_BLOCK_context_destroy (block_ctx);
+      block_ctx = NULL;
+      GNUNET_CONFIGURATION_destroy (block_cfg);
+      block_cfg = NULL;
       return;   
     }
 }

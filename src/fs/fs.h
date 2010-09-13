@@ -31,6 +31,7 @@
 #include "gnunet_datastore_service.h"
 #include "gnunet_fs_service.h"
 #include "gnunet_block_lib.h"
+#include "block_fs.h"
 
 /**
  * Maximum size of the datastore queue for P2P operations.

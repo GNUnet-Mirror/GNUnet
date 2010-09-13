@@ -64,8 +64,10 @@ check ()
   GNUNET_assert (GNUNET_TIME_relative_get_zero ().value == GNUNET_TIME_relative_multiply (rel,0).value);
 
   /* test infinity-check for relative to absolute */
+  GNUNET_log_skip (1, GNUNET_NO);
   last = GNUNET_TIME_relative_to_absolute (rel);
   GNUNET_assert (last.value == GNUNET_TIME_UNIT_FOREVER_ABS.value);
+  GNUNET_log_skip (0, GNUNET_YES);
 
   /*check relative to absolute*/
   rel.value = 0;
@@ -179,13 +181,15 @@ check ()
   forever = GNUNET_TIME_absolute_get_forever ();
   forever.value = forever.value - 1024;
   GNUNET_assert(GNUNET_TIME_absolute_get_zero ().value == 
-		GNUNET_TIME_calculate_eta (forever,50000,100000).value);
-  /*check zero*/
+		GNUNET_TIME_calculate_eta (forever, 50000, 100000).value);
+  /* check zero */
+  GNUNET_log_skip (1, GNUNET_NO);
   GNUNET_assert(GNUNET_TIME_UNIT_ZERO.value ==
-		(GNUNET_TIME_calculate_eta (last,60000,50000)).value);
+		(GNUNET_TIME_calculate_eta (last, 60000, 50000)).value);
+  GNUNET_log_skip (0, GNUNET_YES);
   /*check forever*/
   GNUNET_assert(GNUNET_TIME_UNIT_FOREVER_REL.value ==
-		(GNUNET_TIME_calculate_eta (last,0,50000)).value);
+		(GNUNET_TIME_calculate_eta (last, 0, 50000)).value);
 
   /*check relative subtract*/
   now = GNUNET_TIME_absolute_get ();

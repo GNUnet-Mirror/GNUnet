@@ -1,14 +1,11 @@
 0.9.0pre2:
-* BLOCK:
-  - implement FS plugin
-  - design new block-lib API
+ FS:
   - move FS serivce to new block API
-* FS:
   - integrate with DHT
   - measure latencies (core, datastore) => trust economy
   - refuse content migration message (or solicit?)
   - FS performance benchmarking
-* DHT:
+* DHT: [Nate]
   - use new block lib
 * CORE:
   - derived key generation [Nils]
@@ -101,6 +98,8 @@
   - good to have for DHT evaluation!
 * DHT: [Nate]
   - performance tests
+* BLOCK:
+  - more testing (KBlock, SBlock, NBlock)
 
 0.9.1:
 * TRANSPORT: [MW]

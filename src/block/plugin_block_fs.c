@@ -26,6 +26,7 @@
 
 #include "platform.h"
 #include "plugin_block.h"
+#include "block_fs.h"
 #include "gnunet_signatures.h"
 
 #define DEBUG_FS_BLOCK GNUNET_NO
@@ -97,6 +98,8 @@ block_plugin_fs_evaluate (void *cls,
 	  GNUNET_break_op (0);
 	  return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
 	}
+      if (reply_block == NULL)
+	return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
       return GNUNET_BLOCK_EVALUATION_OK_LAST;
     case GNUNET_BLOCK_TYPE_KBLOCK:
     case GNUNET_BLOCK_TYPE_NBLOCK:
@@ -310,7 +313,7 @@ block_plugin_fs_get_key (void *cls,
  * Entry point for the plugin.
  */
 void *
-gnunet_plugin_block_fs_init (void *cls)
+libgnunet_plugin_block_fs_init (void *cls)
 {
   static enum GNUNET_BLOCK_Type types[] = 
     {
@@ -335,7 +338,7 @@ gnunet_plugin_block_fs_init (void *cls)
  * Exit point from the plugin.
  */
 void *
-gnunet_plugin_block_fs_done (void *cls)
+libgnunet_plugin_block_fs_done (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
 
