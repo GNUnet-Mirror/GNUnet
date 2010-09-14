@@ -91,10 +91,11 @@ send_request (void *cls,
 
   if (buf == NULL)
     {
-      GNUNET_SCHEDULER_add_continuation (prh->sched,
-					 prh->cont,
-					 prh->cont_cls,
-					 GNUNET_SCHEDULER_REASON_TIMEOUT);
+      if (prh->cont != NULL)
+        GNUNET_SCHEDULER_add_continuation (prh->sched,
+                                           prh->cont,
+					   prh->cont_cls,
+					   GNUNET_SCHEDULER_REASON_TIMEOUT);
       GNUNET_CLIENT_disconnect (prh->client, GNUNET_NO);
       GNUNET_free (prh);
       return 0;
