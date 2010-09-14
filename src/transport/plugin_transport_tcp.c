@@ -39,7 +39,7 @@
 
 #define DEBUG_TCP GNUNET_NO
 #define DEBUG_TCP_NAT GNUNET_NO
-
+#define MULTIPLE_PEER_SESSIONS GNUNET_YES
 /**
  * How long until we give up on transmitting the welcome message?
  */
@@ -564,6 +564,25 @@ find_session_by_client (struct Plugin *plugin,
   return ret;
 }
 
+#if !MULTIPLE_PEER_SESSIONS
+/**
+ * Find the session handle for the given client.
+ *
+ * @return NULL if no matching session exists
+ */
+static struct Session *
+find_session_by_id (struct Plugin *plugin,
+                    const struct GNUNET_PeerIdentity *peer)
+{
+  struct Session *ret;
+
+  ret = plugin->sessions;
+  while ((ret != NULL) && (0 != memcmp(peer, &ret->target, sizeof(struct GNUNET_PeerIdentity))))
+    ret = ret->next;
+  return ret;
+}
+#endif
+
 /**
  * Create a new session.  Also queues a welcome message.
  *
@@ -1082,8 +1101,13 @@ tcp_plugin_send (void *cls,
 	      GNUNET_break (0);
 	      break;
 	    }
-	  if (session->inbound == GNUNET_YES)
-	    continue;
+#if IGNORE_INBOUND
+	  if (session->inbound == GNUNET_YES) /* FIXME: why do we ignore inbound sessions? */
+	    {
+              GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Ignoring inbound session\n");
+              continue;
+	    }
+#endif
 	  if ((addrlen != session->connect_alen) && (session->is_nat == GNUNET_NO))
 	    continue;
 	  if ((0 != memcmp (session->connect_addr,
@@ -1218,7 +1242,7 @@ tcp_plugin_send (void *cls,
 				    GNUNET_NO);
 	  return -1;
 	}
-#if DEBUG_TCP
+#if DEBUG_TCP_NAT
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                        "Asked to transmit to `%4s', creating fresh session using address `%s'.\n",
 		       GNUNET_i2s (target),
@@ -1586,7 +1610,7 @@ handle_tcp_nat_probe (void *cls,
         {
 #if DEBUG_TCP_NAT
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                           "Found address `%s' for incoming connection %p\n",
+                           "handle_tcp_nat_probe Found address `%s' for incoming connection %p\n",
                            GNUNET_a2s (vaddr, alen),
                            client);
 #endif
@@ -1671,7 +1695,12 @@ handle_tcp_welcome (void *cls,
 			    gettext_noop ("# TCP WELCOME messages received"),
 			    1,
 			    GNUNET_NO);
+#if MULTIPLE_PEER_SESSIONS
   session = find_session_by_client (plugin, client);
+#else
+  session = find_session_by_id(plugin, &wm->clientIdentity);
+#endif
+
   if (session == NULL)
     {
       GNUNET_SERVER_client_keep (client);
@@ -1687,8 +1716,8 @@ handle_tcp_welcome (void *cls,
       if (GNUNET_OK ==
 	  GNUNET_SERVER_client_get_address (client, &vaddr, &alen))
 	{
-#if DEBUG_TCP
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+#if DEBUG_TCP_NAT
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 			   "Found address `%s' for incoming connection %p\n",
 			   GNUNET_a2s (vaddr, alen),
 			   client);
@@ -1713,6 +1742,7 @@ handle_tcp_welcome (void *cls,
 	      session->connect_addr = t6;
 	      session->connect_alen = sizeof (struct IPv6TcpAddress);
 	    }
+
 	  GNUNET_free (vaddr);
 	}
       else
@@ -1729,12 +1759,28 @@ handle_tcp_welcome (void *cls,
 #endif
       process_pending_messages (session);
     }
+  else
+    {
+#if DEBUG_TCP_NAT
+    if (GNUNET_OK ==
+        GNUNET_SERVER_client_get_address (client, &vaddr, &alen))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                    "Found address `%s' (already have session) for incoming connection %p\n",
+                    GNUNET_a2s (vaddr, alen),
+                    client);
+      }
+#endif
+    }
+
+#if MULTIPLE_PEER_SESSIONS
   if (session->expecting_welcome != GNUNET_YES)
     {
       GNUNET_break_op (0);
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
+#endif
   session->last_activity = GNUNET_TIME_absolute_get ();
   session->expecting_welcome = GNUNET_NO;
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -1799,8 +1845,8 @@ handle_tcp_data (void *cls,
       return;
     }
   session->last_activity = GNUNET_TIME_absolute_get ();
-#if DEBUG_TCP
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+#if DEBUG_TCP > 1
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		   "Passing %u bytes of type %u from `%4s' to transport service.\n",
                    (unsigned int) ntohs (message->size),
 		   (unsigned int) ntohs (message->type),

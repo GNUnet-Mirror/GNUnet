@@ -3288,7 +3288,9 @@ send_periodic_ping (void *cls,
   ping.challenge = htonl(va->challenge);
   memcpy(&ping.target, &neighbour->id, sizeof(struct GNUNET_PeerIdentity));
   if (peer_address->validated != GNUNET_YES)
-    memcpy(message_buf, our_hello, hello_size);
+    {
+      memcpy(message_buf, our_hello, hello_size);
+    }
 
   if (peer_address->addr != NULL)
     {
@@ -3325,7 +3327,12 @@ send_periodic_ping (void *cls,
 #endif
   if (peer_address->validated != GNUNET_YES)
     GNUNET_STATISTICS_update (stats,
-                              gettext_noop ("# PING+HELLO messages sent"),
+                              gettext_noop ("# PING with HELLO messages sent"),
+                              1,
+                              GNUNET_NO);
+  else
+    GNUNET_STATISTICS_update (stats,
+                              gettext_noop ("# PING without HELLO messages sent"),
                               1,
                               GNUNET_NO);
 
@@ -4209,6 +4216,16 @@ process_hello (struct TransportPlugin *plugin,
 				   GNUNET_HELLO_size(hello)));
       chvc = chvc->next;
     }
+
+#if BREAK_TESTS
+  struct NeighbourList *temp_neighbor = find_neighbour(&target);
+  if ((NULL != temp_neighbor))
+    {
+      fprintf(stderr, "Already know peer, ignoring hello\n");
+      return GNUNET_OK;
+    }
+#endif
+
 #if DEBUG_TRANSPORT_HELLO > 2
   if (plugin != NULL)
     {
