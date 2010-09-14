@@ -98,6 +98,10 @@ static char * cert_file_p1;
 static char * key_file_p2;
 static char * cert_file_p2;
 
+static int msg_scheduled;
+static int msg_sent;
+static int msg_recv;
+
 
 #if VERBOSE
 #define OKPP do { ok++; fprintf (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
@@ -148,6 +152,8 @@ static void
 end_badly (void *cls,
 	   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Reliability failed: \nLast message scheduled %u of %u \nLast message sent %u \nLast message received %u \n ", msg_scheduled, TOTAL_MSGS, msg_sent, msg_recv);
   GNUNET_break (0);
   GNUNET_TRANSPORT_disconnect (p1.th);
   GNUNET_TRANSPORT_disconnect (p2.th);
@@ -190,6 +196,7 @@ notify_receive (void *cls,
   s = get_size (n);
   if (MTYPE != ntohs (message->type))
     return;
+  msg_recv++;
   if (ntohs (message->size) != s)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -273,6 +280,7 @@ notify_ready (void *cls, size_t size, void *buf)
       hdr.header.size = htons (s);
       hdr.header.type = htons (MTYPE);
       hdr.num = htonl (n);
+      msg_sent = n;
       memcpy (&cbuf[ret], &hdr, sizeof (struct TestMessage));
       ret += sizeof (struct TestMessage);
       memset (&cbuf[ret], n, s - sizeof (struct TestMessage));
@@ -293,11 +301,14 @@ notify_ready (void *cls, size_t size, void *buf)
     }
   while (size - ret >= s);
   if (n < TOTAL_MSGS)
+  {
     GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
 					    &p1.id,
 					    s, 0, TIMEOUT,
 					    &notify_ready,
 					    NULL);
+    msg_scheduled = n;
+  }
   if (n % 5000 == 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
