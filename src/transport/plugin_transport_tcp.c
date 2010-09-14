@@ -590,7 +590,7 @@ create_session (struct Plugin *plugin,
     GNUNET_assert (client == NULL);
 
 #if DEBUG_TCP
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		   "Creating new session for peer `%4s'\n",
 		   GNUNET_i2s (target));
 #endif
@@ -1162,8 +1162,8 @@ tcp_plugin_send (void *cls,
            (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(plugin->nat_wait_conns, &target->hashPubKey)))
         {
 #if DEBUG_TCP_NAT
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                           _("Found valid IPv4 NAT address!\n"));
+          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                           _("Found valid IPv4 NAT address (creating session)!\n"));
 #endif
           session = create_session (plugin,
                                     target,
@@ -1189,7 +1189,7 @@ tcp_plugin_send (void *cls,
 
           GNUNET_assert(GNUNET_CONTAINER_multihashmap_put(plugin->nat_wait_conns, &target->hashPubKey, session, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY) == GNUNET_OK);
 #if DEBUG_TCP_NAT
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                            "Created NAT WAIT connection to `%4s' at `%s'\n",
                            GNUNET_i2s (target),
                            GNUNET_a2s (sb, sbs));
@@ -1219,7 +1219,7 @@ tcp_plugin_send (void *cls,
 	  return -1;
 	}
 #if DEBUG_TCP
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                        "Asked to transmit to `%4s', creating fresh session using address `%s'.\n",
 		       GNUNET_i2s (target),
 		       GNUNET_a2s (sb, sbs));
@@ -1585,7 +1585,7 @@ handle_tcp_nat_probe (void *cls,
           GNUNET_SERVER_client_get_address (client, &vaddr, &alen))
         {
 #if DEBUG_TCP_NAT
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                            "Found address `%s' for incoming connection %p\n",
                            GNUNET_a2s (vaddr, alen),
                            client);
@@ -1675,6 +1675,12 @@ handle_tcp_welcome (void *cls,
   if (session == NULL)
     {
       GNUNET_SERVER_client_keep (client);
+#if DEBUG_TCP_NAT
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                       "Received %s message from a `%4s/%p', creating session\n",
+                       "WELCOME",
+                       GNUNET_i2s (&wm->clientIdentity), client);
+#endif
       session = create_session (plugin,
 				&wm->clientIdentity, client, GNUNET_NO);
       session->inbound = GNUNET_YES;
