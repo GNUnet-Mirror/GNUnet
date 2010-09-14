@@ -100,6 +100,7 @@ static char * cert_file_p2;
 
 static int msg_scheduled;
 static int msg_sent;
+static int msg_recv_expected;
 static int msg_recv;
 
 
@@ -153,7 +154,7 @@ end_badly (void *cls,
 	   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Reliability failed: \nLast message scheduled %u of %u \nLast message sent %u \nLast message received %u \n ", msg_scheduled, TOTAL_MSGS, msg_sent, msg_recv);
+		  "Reliability failed: \nLast message sent %u \nNext message scheduled %u\nLast message received %u\nMessage expected %u \n ", msg_sent, msg_scheduled, msg_recv, msg_recv_expected);
   GNUNET_break (0);
   GNUNET_TRANSPORT_disconnect (p1.th);
   GNUNET_TRANSPORT_disconnect (p2.th);
@@ -196,7 +197,8 @@ notify_receive (void *cls,
   s = get_size (n);
   if (MTYPE != ntohs (message->type))
     return;
-  msg_recv++;
+  msg_recv_expected = n;
+  msg_recv = ntohl(hdr->num);
   if (ntohs (message->size) != s)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
