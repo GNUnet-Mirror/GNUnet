@@ -51,12 +51,30 @@ extern "C"
 struct GNUNET_TESTING_Daemon;
 
 /**
- * Linked list of hostnames to use for starting daemons.
+ * Linked list of hostnames and ports to use for starting daemons.
  */
 struct GNUNET_TESTING_Host
 {
+  /**
+   * Pointer to next item in the list.
+   */
   struct GNUNET_TESTING_Host *next;
+
+  /**
+   * Hostname to connect to.
+   */
   char *hostname;
+
+  /**
+   * Username to use when connecting (may be null).
+   */
+  char *username;
+
+  /**
+   * Port to use for SSH connection (used for ssh
+   * connection forwarding, 0 to let ssh decide)
+   */
+  uint16_t port;
 };
 
 /**
@@ -205,6 +223,11 @@ struct GNUNET_TESTING_Daemon
    * Host to run GNUnet on.
    */
   char *hostname;
+
+  /**
+   * Port to use for ssh, NULL to let system choose default.
+   */
+  char *ssh_port_str;
 
   /**
    * Result of GNUNET_i2s of this peer,
@@ -392,11 +415,13 @@ typedef void (*GNUNET_TESTING_NotifyTopology)(void *cls,
  * @param timeout how long to wait starting up peers
  * @param hostname name of the machine where to run GNUnet
  *        (use NULL for localhost).
+ * @param ssh_username ssh username to use when connecting to hostname
+ * @param sshport port to pass to ssh process when connecting to hostname
  * @param hostkey_callback function to call once the hostkey has been
  *        generated for this peer, but it hasn't yet been started
  *        (NULL to start immediately, otherwise waits on GNUNET_TESTING_daemon_continue_start)
  * @param hostkey_cls closure for hostkey callback
- * @param cb function to call with the result
+ * @param cb function to call once peer is up, or failed to start
  * @param cb_cls closure for cb
  * @return handle to the daemon (actual start will be completed asynchronously)
  */
@@ -405,6 +430,8 @@ GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
                              const struct GNUNET_CONFIGURATION_Handle *cfg,
                              struct GNUNET_TIME_Relative timeout,
                              const char *hostname,
+                             const char *ssh_username,
+                             uint16_t sshport,
                              GNUNET_TESTING_NotifyHostkeyCreated hostkey_callback,
                              void *hostkey_cls,
                              GNUNET_TESTING_NotifyDaemonRunning cb,
@@ -597,6 +624,16 @@ GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg,
                              GNUNET_TESTING_NotifyCompletion cb,
                              void *cb_cls);
 
+
+/**
+ * Count the number of running peers.
+ *
+ * @param pg handle for the peer group
+ *
+ * @return the number of currently running peers in the peer group
+ */
+unsigned int
+GNUNET_TESTING_daemons_running (struct GNUNET_TESTING_PeerGroup *pg);
 
 /**
  * Simulate churn by stopping some peers (and possibly
