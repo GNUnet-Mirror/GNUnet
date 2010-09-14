@@ -130,7 +130,7 @@ my_cb1 (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Daemon `%s' started.\n", GNUNET_i2s (id));
 #endif
-  d2 = GNUNET_TESTING_daemon_start (sched, c2, TIMEOUT, NULL, NULL, NULL, &my_cb2, NULL);
+  d2 = GNUNET_TESTING_daemon_start (sched, c2, TIMEOUT, NULL, NULL, 0, NULL, NULL, &my_cb2, NULL);
   GNUNET_assert (d2 != NULL);
 
 }
@@ -151,7 +151,7 @@ run (void *cls,
   GNUNET_CONFIGURATION_parse (c1, "test_testing_connect_peer1.conf");
   c2 = GNUNET_CONFIGURATION_create ();
   GNUNET_CONFIGURATION_parse (c2, "test_testing_connect_peer2.conf");
-  d1 = GNUNET_TESTING_daemon_start (sched, c1, TIMEOUT, NULL, NULL, NULL, &my_cb1, NULL);
+  d1 = GNUNET_TESTING_daemon_start (sched, c1, TIMEOUT, NULL, NULL, 0, NULL, NULL, &my_cb1, NULL);
   GNUNET_assert (d1 != NULL);
 }
 
