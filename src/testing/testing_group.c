@@ -242,6 +242,18 @@ struct InternalStartContext
    * Hostname, where to start the peer
    */
   const char *hostname;
+
+  /**
+   * Username to use when connecting to the
+   * host via ssh.
+   */
+  const char *username;
+
+  /**
+   * Port to use for ssh.
+   */
+  uint16_t sshport;
+
 };
 
 /**
@@ -310,6 +322,16 @@ struct HostData
    * Name of the host.
    */
   char *hostname;
+
+  /**
+   * SSH username to use when connecting to this host.
+   */
+  char *username;
+
+  /**
+   * SSH port to use when connecting to this host.
+   */
+  uint16_t sshport;
 
   /**
    * Lowest port that we have not yet used
@@ -729,6 +751,7 @@ update_config (void *cls,
           value = uval;
         }
       GNUNET_free(single_variable);
+      GNUNET_free(per_host_variable);
 
     }
 
@@ -815,6 +838,7 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg,
       GNUNET_CONFIGURATION_set_value_string(uc.ret, "transport-tcp", "BINDTO", "127.0.0.1");
       GNUNET_CONFIGURATION_set_value_string(uc.ret, "transport-udp", "BINDTO", "127.0.0.1");
     }
+
 
   *port = (uint16_t) uc.nport;
   *upnum = uc.upnum;
@@ -3312,6 +3336,8 @@ internal_start (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
                                                                     internal_context->peer->cfg,
                                                                     internal_context->timeout,
                                                                     internal_context->hostname,
+                                                                    internal_context->username,
+                                                                    internal_context->sshport,
                                                                     &internal_hostkey_callback,
                                                                     internal_context,
                                                                     &internal_startup_callback,
@@ -3387,6 +3413,7 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
   char *start;
 #endif
   const char *hostname;
+  const char *username;
   char *baseservicehome;
   char *newservicehome;
   char *tmpdir;
@@ -3394,6 +3421,7 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
   unsigned int off;
   unsigned int hostcnt;
   uint16_t minport;
+  uint16_t sshport;
   uint32_t upnum;
   uint32_t fdnum;
 
@@ -3428,7 +3456,11 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
       while (hostpos != NULL)
         {
           pg->hosts[off].minport = LOW_PORT;
-          pg->hosts[off++].hostname = GNUNET_strdup(hostpos->hostname);
+          off++;
+          pg->hosts[off].hostname = GNUNET_strdup(hostpos->hostname);
+          if (hostpos->username != NULL)
+            pg->hosts[off].username = GNUNET_strdup(hostpos->username);
+          pg->hosts[off].sshport = hostpos->port;
           hostpos = hostpos->next;
         }
 
@@ -3495,6 +3527,8 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
       if (hostcnt > 0)
         {
           hostname = pg->hosts[off % hostcnt].hostname;
+          username = pg->hosts[off % hostcnt].username;
+          sshport = pg->hosts[off % hostcnt].sshport;
           pcfg = make_config (cfg, 
 			      &pg->hosts[off % hostcnt].minport,
 			      &upnum,
@@ -3503,6 +3537,8 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
       else
         {
           hostname = NULL;
+          username = NULL;
+          sshport = 0;
           pcfg = make_config (cfg,
 			      &minport,
 			      &upnum,
@@ -3548,6 +3584,8 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
       pg->peers[off].internal_context.peer = &pg->peers[off];
       pg->peers[off].internal_context.timeout = timeout;
       pg->peers[off].internal_context.hostname = hostname;
+      pg->peers[off].internal_context.username = username;
+      pg->peers[off].internal_context.sshport = sshport;
       pg->peers[off].internal_context.hostkey_callback = hostkey_callback;
       pg->peers[off].internal_context.hostkey_cls = hostkey_cls;
       pg->peers[off].internal_context.start_cb = cb;
@@ -3740,6 +3778,28 @@ churn_start_callback (void *cls,
   }
 }
 
+/**
+ * Count the number of running peers.
+ *
+ * @param pg handle for the peer group
+ *
+ * @return the number of currently running peers in the peer group
+ */
+unsigned int
+GNUNET_TESTING_daemons_running (struct GNUNET_TESTING_PeerGroup *pg)
+{
+  unsigned int i;
+  unsigned int running = 0;
+  for (i = 0; i < pg->total; i++)
+  {
+    if (pg->peers[i].daemon->running == GNUNET_YES)
+    {
+      GNUNET_assert(running != -1);
+      running++;
+    }
+  }
+  return running;
+}
 
 /**
  * Simulate churn by stopping some peers (and possibly

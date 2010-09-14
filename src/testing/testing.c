@@ -283,14 +283,28 @@ start_fsm (void *cls,
                       "gnunet-peerinfo", "ssh", dst, "gnunet-peerinfo", "-c", d->cfgfile,
                       "-sq");
 #endif
-          d->pid = GNUNET_OS_start_process (NULL, d->pipe_stdout, "ssh",
-                                            "ssh",
+          if (d->ssh_port_str == NULL)
+            {
+              d->pid = GNUNET_OS_start_process (NULL, d->pipe_stdout, "ssh",
+                                                "ssh",
 #if !DEBUG_TESTING
-                                            "-q",
+                                                "-q",
 #endif
-                                            dst,
-                                            "gnunet-peerinfo",
-                                            "-c", d->cfgfile, "-sq", NULL);
+                                                dst,
+                                                "gnunet-peerinfo",
+                                                "-c", d->cfgfile, "-sq", NULL);
+            }
+          else
+            {
+              d->pid = GNUNET_OS_start_process (NULL, d->pipe_stdout, "ssh",
+                                                "ssh", "-p", d->ssh_port_str,
+#if !DEBUG_TESTING
+                                                "-q",
+#endif
+                                                dst,
+                                                "gnunet-peerinfo",
+                                                "-c", d->cfgfile, "-sq", NULL);
+            }
           GNUNET_DISK_pipe_close_end(d->pipe_stdout, GNUNET_DISK_PIPE_END_WRITE);
           GNUNET_free (dst);
         }
@@ -446,17 +460,35 @@ start_fsm (void *cls,
                       "gnunet-arm", "ssh", dst, "gnunet-arm", "-c", d->cfgfile,
                       "-L", "DEBUG", "-s", "-q");
 #endif
-          d->pid = GNUNET_OS_start_process (NULL, NULL, "ssh",
-                                            "ssh",
+          if (d->ssh_port_str == NULL)
+            {
+              d->pid = GNUNET_OS_start_process (NULL, NULL, "ssh",
+                                                "ssh",
 #if !DEBUG_TESTING
-                                            "-q",
+                                                "-q",
 #endif
-                                            dst,
-                                            "gnunet-arm",
+                                                dst,
+                                                "gnunet-arm",
 #if DEBUG_TESTING
-                                            "-L", "DEBUG",
+                                                "-L", "DEBUG",
 #endif
-                                            "-c", d->cfgfile, "-s", "-q", NULL);
+                                                "-c", d->cfgfile, "-s", "-q", NULL);
+            }
+          else
+            {
+
+              d->pid = GNUNET_OS_start_process (NULL, NULL, "ssh",
+                                                "ssh", "-p", d->ssh_port_str,
+#if !DEBUG_TESTING
+                                                "-q",
+#endif
+                                                dst,
+                                                "gnunet-arm",
+#if DEBUG_TESTING
+                                                "-L", "DEBUG",
+#endif
+                                                "-c", d->cfgfile, "-s", "-q", NULL);
+            }
           GNUNET_free (dst);
         }
       if (-1 == d->pid)
@@ -708,6 +740,8 @@ GNUNET_TESTING_daemon_start_stopped (struct GNUNET_TESTING_Daemon *daemon,
  * @param timeout how long to wait starting up peers
  * @param hostname name of the machine where to run GNUnet
  *        (use NULL for localhost).
+ * @param ssh_username ssh username to use when connecting to hostname
+ * @param sshport port to pass to ssh process when connecting to hostname
  * @param hostkey_callback function to call once the hostkey has been
  *        generated for this peer, but it hasn't yet been started
  *        (NULL to start immediately, otherwise waits on GNUNET_TESTING_daemon_continue_start)
@@ -721,6 +755,8 @@ GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
                              const struct GNUNET_CONFIGURATION_Handle *cfg,
                              struct GNUNET_TIME_Relative timeout,
                              const char *hostname,
+                             const char *ssh_username,
+                             uint16_t sshport,
                              GNUNET_TESTING_NotifyHostkeyCreated hostkey_callback,
                              void *hostkey_cls,
                              GNUNET_TESTING_NotifyDaemonRunning cb,
@@ -733,6 +769,12 @@ GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
   ret = GNUNET_malloc (sizeof (struct GNUNET_TESTING_Daemon));
   ret->sched = sched;
   ret->hostname = (hostname == NULL) ? NULL : GNUNET_strdup (hostname);
+  if (sshport != 0)
+    {
+      GNUNET_asprintf(&ret->ssh_port_str, "%d", sshport);
+    }
+  else
+    ret->ssh_port_str = NULL;
   ret->cfgfile = GNUNET_DISK_mktemp ("gnunet-testing-config");
 #if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -766,10 +808,12 @@ GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
       GNUNET_free (ret);
       return NULL;
     }
-  if (GNUNET_OK !=
+  if (ssh_username != NULL)
+    username = GNUNET_strdup(ssh_username);
+  if ((ssh_username == NULL) && (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
                                              "TESTING",
-                                             "USERNAME", &username))
+                                             "USERNAME", &username)))
     {
       if (NULL != getenv ("USER"))
         username = GNUNET_strdup (getenv ("USER"));
@@ -790,12 +834,25 @@ GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
         GNUNET_asprintf (&arg, "%s@%s:%s", username, hostname, ret->cfgfile);
       else
         GNUNET_asprintf (&arg, "%s:%s", hostname, ret->cfgfile);
-      ret->pid = GNUNET_OS_start_process (NULL, NULL, "scp",
-                                          "scp",
+
+      if (ret->ssh_port_str == NULL)
+        {
+          ret->pid = GNUNET_OS_start_process (NULL, NULL, "scp",
+                                              "scp",
 #if !DEBUG_TESTING
-                                          "-q",
+                                              "-q",
 #endif
-                                          ret->cfgfile, arg, NULL);
+                                              ret->cfgfile, arg, NULL);
+        }
+      else
+        {
+          ret->pid = GNUNET_OS_start_process (NULL, NULL, "scp",
+                                              "scp", "-P", ret->ssh_port_str,
+#if !DEBUG_TESTING
+                                              "-q",
+#endif
+                                              ret->cfgfile, arg, NULL);
+        }
       GNUNET_free (arg);
       if (-1 == ret->pid)
         {
@@ -983,6 +1040,7 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
       GNUNET_free_non_null (d->username);
       if (NULL != d->dead_cb)
         d->dead_cb (d->dead_cb_cls, NULL);
+      GNUNET_free(d);
       return;
     }
 
