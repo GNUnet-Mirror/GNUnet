@@ -453,11 +453,11 @@ findSection (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * FIXME.
+ * Find an entry from a configuration.
  *
- * @param cfg FIXME
- * @param section FIXME
- * @param key FIXME
+ * @param cfg handle to the configuration
+ * @param section section the option is in
+ * @param key the option
  * @return matching entry, NULL if not found
  */
 static struct ConfigEntry *
