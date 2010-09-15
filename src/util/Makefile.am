@@ -14,8 +14,6 @@ libgnunetutilwin_la_LIBADD = \
   -lshell32 -liconv -lstdc++ \
   -lcomdlg32 -lgdi32
 WINLIB = libgnunetutilwin.la
-noinst_PROGRAMS = test_os_start_process_cat
- test_os_start_process_cat_SOURCES = test_os_start_process_cat.c
 endif
 
 if USE_COVERAGE
