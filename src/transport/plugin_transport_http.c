@@ -53,11 +53,11 @@
 #endif
 
 #define DEBUG_HTTP GNUNET_NO
-#define DEBUG_CURL GNUNET_NO
-#define DEBUG_MHD GNUNET_NO
+#define DEBUG_CURL GNUNET_YES
+#define DEBUG_MHD GNUNET_YES
 #define DEBUG_CONNECTIONS GNUNET_NO
 #define DEBUG_SESSION_SELECTION GNUNET_NO
-
+#define DEBUG_SCHEDULING GNUNET_NO
 #define CURL_TCP_NODELAY GNUNET_YES
 
 #define INBOUND GNUNET_NO
@@ -732,7 +732,7 @@ static void mhd_termination_cb (void *cls, struct MHD_Connection * connection, v
   if (ps == NULL)
     return;
   struct HTTP_PeerContext * pc = ps->peercontext;
-
+        
   if (connection==ps->recv_endpoint)
   {
 #if DEBUG_CONNECTIONS
@@ -1152,7 +1152,7 @@ http_server_daemon_prepare (struct Plugin *plugin , struct MHD_Daemon *daemon_ha
   if (haveto == MHD_YES)
     tv.value = (uint64_t) timeout;
   else
-    tv = GNUNET_TIME_UNIT_FOREVER_REL;
+    tv = GNUNET_TIME_UNIT_SECONDS;
   GNUNET_NETWORK_fdset_copy_native (wrs, &rs, max);
   GNUNET_NETWORK_fdset_copy_native (wws, &ws, max);
   GNUNET_NETWORK_fdset_copy_native (wes, &es, max);
@@ -1207,6 +1207,19 @@ static void http_server_daemon_v4_run (void *cls,
 {
   struct Plugin *plugin = cls;
 
+#ifdef DEBUG_SCHEDULING
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"http_server_daemon_v4_run: GNUNET_SCHEDULER_REASON_READ_READY\n");      
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY)) 
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"http_server_daemon_v4_run: GNUNET_SCHEDULER_REASON_WRITE_READY\n");  
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"http_server_daemon_v4_run: GNUNET_SCHEDULER_REASON_TIMEOUT\n");
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_STARTUP))
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"http_server_daemon_v4_run: GGNUNET_SCHEDULER_REASON_STARTUP\n");        
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"http_server_daemon_v4_run: GGNUNET_SCHEDULER_REASON_SHUTDOWN\n");                 
+#endif              
+      
   GNUNET_assert(cls !=NULL);
   plugin->http_server_task_v4 = GNUNET_SCHEDULER_NO_TASK;
 
@@ -1228,6 +1241,19 @@ static void http_server_daemon_v6_run (void *cls,
                              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Plugin *plugin = cls;
+  
+#ifdef DEBUG_SCHEDULING  
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"http_server_daemon_v6_run: GNUNET_SCHEDULER_REASON_READ_READY\n");
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY)) 
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"http_server_daemon_v6_run: GNUNET_SCHEDULER_REASON_WRITE_READY\n");
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"http_server_daemon_v6_run: GNUNET_SCHEDULER_REASON_TIMEOUT\n");
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_STARTUP))  
+     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"http_server_daemon_v6_run: GGNUNET_SCHEDULER_REASON_STARTUP\n");    
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))  
+     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"http_server_daemon_v6_run: GGNUNET_SCHEDULER_REASON_SHUTDOWN\n"); 
+#endif                                            
 
   GNUNET_assert(cls !=NULL);
   plugin->http_server_task_v6 = GNUNET_SCHEDULER_NO_TASK;
