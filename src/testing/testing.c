@@ -241,7 +241,7 @@ start_fsm (void *cls,
       /* fall-through */
     case SP_COPIED:
       /* Start create hostkey process */
-      d->pipe_stdout = GNUNET_DISK_pipe(GNUNET_NO);
+      d->pipe_stdout = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_YES);
       if (d->pipe_stdout == NULL)
         {
           cb = d->cb;
