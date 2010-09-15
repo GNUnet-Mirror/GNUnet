@@ -2192,7 +2192,7 @@ static int
 tcp_transport_start_nat_server(struct Plugin *plugin)
 {
 
-  plugin->server_stdout = GNUNET_DISK_pipe(GNUNET_YES);
+  plugin->server_stdout = GNUNET_DISK_pipe(GNUNET_YES, GNUNET_YES, GNUNET_YES);
   if (plugin->server_stdout == NULL)
     return GNUNET_SYSERR;
 

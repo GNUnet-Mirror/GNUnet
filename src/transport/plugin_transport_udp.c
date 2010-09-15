@@ -1627,7 +1627,7 @@ udp_transport_server_start (void *cls)
   if (plugin->behind_nat == GNUNET_YES)
     {
       /* Pipe to read from started processes stdout (on read end) */
-      plugin->server_stdout = GNUNET_DISK_pipe(GNUNET_YES);
+      plugin->server_stdout = GNUNET_DISK_pipe(GNUNET_YES, GNUNET_YES, GNUNET_YES);
       if (plugin->server_stdout == NULL)
         return sockets_created;
 #if DEBUG_UDP
