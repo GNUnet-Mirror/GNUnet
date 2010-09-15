@@ -105,11 +105,14 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char *fn;
   const struct GNUNET_DISK_FileHandle *stdout_read_handle;
   const struct GNUNET_DISK_FileHandle *wh;
-
+#ifndef WINDOWS
   GNUNET_asprintf(&fn, "cat");
+#else
+  GNUNET_asprintf(&fn, "./.libs/test_os_start_process_cat.exe");
+#endif
 
-  hello_pipe_stdin = GNUNET_DISK_pipe(GNUNET_YES);
-  hello_pipe_stdout = GNUNET_DISK_pipe(GNUNET_YES);
+  hello_pipe_stdin = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO);
+  hello_pipe_stdout = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_NO, GNUNET_YES);
 
   if ((hello_pipe_stdout == NULL) || (hello_pipe_stdin == NULL))
     {

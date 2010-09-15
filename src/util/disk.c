@@ -1649,7 +1649,7 @@ GNUNET_DISK_file_sync (const struct GNUNET_DISK_FileHandle *h)
  * @return handle to the new pipe, NULL on error
  */
 struct GNUNET_DISK_PipeHandle *
-GNUNET_DISK_pipe (int blocking)
+GNUNET_DISK_pipe (int blocking, int inherit_read, int inherit_write)
 {
   struct GNUNET_DISK_PipeHandle *p;
   struct GNUNET_DISK_FileHandle *fds;
@@ -1699,6 +1699,7 @@ GNUNET_DISK_pipe (int blocking)
     }
 #else
   BOOL ret;
+  HANDLE tmp_handle;
 
   ret = CreatePipe (&p->fd[0]->h, &p->fd[1]->h, NULL, 0);
   if (!ret)
@@ -1707,6 +1708,31 @@ GNUNET_DISK_pipe (int blocking)
       SetErrnoFromWinError (GetLastError ());
       return NULL;
     }
+  if (!DuplicateHandle (GetCurrentProcess (), p->fd[0]->h,
+		GetCurrentProcess (), &tmp_handle, 0, inherit_read == GNUNET_YES ? TRUE : FALSE,
+			DUPLICATE_SAME_ACCESS))
+	{
+	  SetErrnoFromWinError (GetLastError ());
+	  CloseHandle (p->fd[0]->h);
+	  CloseHandle (p->fd[1]->h);
+	  GNUNET_free (p);
+	  return NULL;
+	}
+	CloseHandle (p->fd[0]->h);
+	p->fd[0]->h = tmp_handle;
+
+	if (!DuplicateHandle (GetCurrentProcess (), p->fd[1]->h,
+			GetCurrentProcess (), &tmp_handle, 0, inherit_write == GNUNET_YES ? TRUE : FALSE,
+			DUPLICATE_SAME_ACCESS))
+	{
+	  SetErrnoFromWinError (GetLastError ());
+	  CloseHandle (p->fd[0]->h);
+	  CloseHandle (p->fd[1]->h);
+	  GNUNET_free (p);
+	  return NULL;
+	}
+  CloseHandle (p->fd[1]->h);
+  p->fd[1]->h = tmp_handle;
   if (!blocking)
     {
       DWORD mode;
