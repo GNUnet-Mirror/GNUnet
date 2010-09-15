@@ -1041,7 +1041,7 @@ run (void *cls,
   GNUNET_assert (serv != NULL);
   shc_chld = GNUNET_SIGNAL_handler_install (GNUNET_SIGCHLD, &sighandler_child_death);
   GNUNET_assert (sigpipe == NULL);
-  sigpipe = GNUNET_DISK_pipe (GNUNET_NO);
+  sigpipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_NO);
   GNUNET_assert (sigpipe != NULL);
   pr = GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ);
   GNUNET_assert (pr != NULL);
