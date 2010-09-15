@@ -1207,7 +1207,7 @@ static void http_server_daemon_v4_run (void *cls,
 {
   struct Plugin *plugin = cls;
 
-#ifdef DEBUG_SCHEDULING
+#if DEBUG_SCHEDULING
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"http_server_daemon_v4_run: GNUNET_SCHEDULER_REASON_READ_READY\n");      
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY)) 
@@ -1242,7 +1242,7 @@ static void http_server_daemon_v6_run (void *cls,
 {
   struct Plugin *plugin = cls;
   
-#ifdef DEBUG_SCHEDULING  
+#if DEBUG_SCHEDULING  
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"http_server_daemon_v6_run: GNUNET_SCHEDULER_REASON_READ_READY\n");
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY)) 
