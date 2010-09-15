@@ -326,9 +326,13 @@ struct GNUNET_DISK_FileHandle *GNUNET_DISK_file_open (const char *fn,
 /**
  * Creates an interprocess channel
  * @param blocking creates an asynchronous pipe if set to GNUNET_NO
+ * @param inherit_read 1 to make read handle inheritable, 0 otherwise (NT only)
+ * @param inherit_write 1 to make write handle inheritable, 0 otherwise (NT only)
  * @return handle to the new pipe, NULL on error
  */
-struct GNUNET_DISK_PipeHandle *GNUNET_DISK_pipe (int blocking);
+struct GNUNET_DISK_PipeHandle *GNUNET_DISK_pipe (int blocking,
+						 int inherit_read,
+						 int inherit_write);
 
 
 /**
