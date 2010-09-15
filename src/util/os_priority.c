@@ -255,13 +255,13 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
   char *arg;
   unsigned int cmdlen;
   char *cmd, *idx;
+  int findresult;
   STARTUPINFO start;
   PROCESS_INFORMATION proc;
-#if NILS
+
   HANDLE stdin_handle;
   HANDLE stdout_handle;
-#endif
-  char *fn = NULL;
+
   char path[MAX_PATH + 1];
 
   cmdlen = 0;
@@ -270,7 +270,7 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
       cmdlen = cmdlen + strlen (arg) + 3;
   va_end (ap);
 
-  cmd = idx = GNUNET_malloc (sizeof (char) * cmdlen);
+  cmd = idx = GNUNET_malloc (sizeof (char) * (cmdlen + 1));
   va_start (ap, filename);
   while (NULL != (arg = va_arg (ap, char *)))
       idx += sprintf (idx, "\"%s\" ", arg);
@@ -279,7 +279,6 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
   memset (&start, 0, sizeof (start));
   start.cb = sizeof (start);
 
-#if NILS
   if ((pipe_stdin != NULL) || (pipe_stdout != NULL))
     start.dwFlags |= STARTF_USESTDHANDLES;
 
@@ -294,27 +293,26 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
       GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle(pipe_stdout, GNUNET_DISK_PIPE_END_WRITE), &stdout_handle, sizeof (HANDLE));
       start.hStdOutput = stdout_handle;
     }
-#endif
-  if ((int) FindExecutable(filename, NULL, path) <= 32) 
+
+  findresult = (int) FindExecutableA (filename, NULL, path);
+  if (findresult <= 32) 
     {
       SetErrnoFromWinError (GetLastError ());
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "FindExecutable", fn);
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "FindExecutable", filename);
       return -1;
     }
 
-  if (!CreateProcess
-      (path, cmd, NULL, NULL, FALSE, DETACHED_PROCESS, NULL, NULL, &start,
+  if (!CreateProcessA
+      (path, cmd, NULL, NULL, TRUE, DETACHED_PROCESS, NULL, NULL, &start,
        &proc))
     {
       SetErrnoFromWinError (GetLastError ());
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "CreateProcess", fn);
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "CreateProcess", path);
       return -1;
     }
 
   CreateThread (NULL, 64000, ChildWaitThread, proc.hProcess, 0, NULL);
 
-  if (fn != filename)
-    GNUNET_free (fn);
   CloseHandle (proc.hThread);
 
   GNUNET_free (cmd);
