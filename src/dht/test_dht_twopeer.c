@@ -30,6 +30,8 @@
 /* DEFINES */
 #define VERBOSE GNUNET_YES
 
+#define MAX_GET_ATTEMPTS 10
+
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5)
 
 #define DEFAULT_NUM_PEERS 2
@@ -43,6 +45,10 @@ struct PeerGetContext
   struct GNUNET_DHT_Handle *dht_handle;
 
   struct GNUNET_DHT_GetHandle *get_handle;
+
+  unsigned int get_attempts;
+
+  GNUNET_SCHEDULER_TaskIdentifier retry_task;
 };
 
 /* Globals */
@@ -116,11 +122,17 @@ end_badly_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 
   if (pg != NULL)
     GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
+
+  if (curr_get_ctx.retry_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(sched, curr_get_ctx.retry_task);
 }
 
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
+  if (curr_get_ctx.retry_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(sched, curr_get_ctx.retry_task);
+
   if (curr_get_ctx.get_handle != NULL)
   {
     GNUNET_DHT_get_stop(curr_get_ctx.get_handle, &end_badly_cont, NULL);
@@ -152,6 +164,7 @@ void get_result_iterator (void *cls,
                           const void *data)
 {
   struct PeerGetContext *get_context = cls;
+
   if (0 != memcmp(&get_context->peer->hashPubKey, key, sizeof (GNUNET_HashCode)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Key returned is not the same key as was searched for!\n");
@@ -159,6 +172,12 @@ void get_result_iterator (void *cls,
     GNUNET_SCHEDULER_add_now(sched, &end_badly, "key mismatch in get response!\n");
     return;
   }
+
+  if (get_context->retry_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel(sched, get_context->retry_task);
+      get_context->retry_task = GNUNET_SCHEDULER_NO_TASK;
+    }
 
   if (get_context->peer == &peer2id)
   {
@@ -174,7 +193,43 @@ void get_result_iterator (void *cls,
     GNUNET_DHT_get_stop(get_context->get_handle, &finish_testing, NULL);
   }
 
+}
 
+static void
+stop_retry_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc);
+
+static void
+get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct PeerGetContext *get_context = cls;
+
+  if (get_context->get_attempts < MAX_GET_ATTEMPTS)
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Get attempt %u failed, retrying request!\n", get_context->get_attempts);
+  else
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Too many attempts failed, ending test!\n", get_context->get_attempts);
+      GNUNET_SCHEDULER_cancel(sched, die_task);
+      GNUNET_SCHEDULER_add_now(sched, &end_badly, "key mismatch in get response!\n");
+      return;
+    }
+  get_context->get_attempts++;
+  get_context->retry_task = GNUNET_SCHEDULER_add_delayed(sched,
+                                                         GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10),
+                                                          &stop_retry_get, get_context);
+  get_context->get_handle = GNUNET_DHT_get_start(get_context->dht_handle, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5),
+                                                 0, &get_context->peer->hashPubKey, &get_result_iterator, get_context, NULL, NULL);
+}
+
+static void
+stop_retry_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct PeerGetContext *get_context = cls;
+  get_context->retry_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Get attempt %u failed, canceling request!\n", get_context->get_attempts);
+  //if (get_context->get_sent == GNUNET_YES)
+  GNUNET_DHT_get_stop(get_context->get_handle, &get_stop_finished, get_context);
+  //else
+  //  GNUNET_SCHEDULER_add_now(sched, &get_stop_finished, get_context);
 }
 
 static void
@@ -182,7 +237,12 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   struct PeerGetContext *get_context = cls;
 
-  get_context->get_handle = GNUNET_DHT_get_start(get_context->dht_handle, GNUNET_TIME_relative_get_forever(), 0, &get_context->peer->hashPubKey, &get_result_iterator, get_context, NULL, NULL);
+  get_context->retry_task = GNUNET_SCHEDULER_add_delayed(sched,
+                                                         GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10),
+                                                          &stop_retry_get, get_context);
+
+  get_context->get_handle = GNUNET_DHT_get_start(get_context->dht_handle, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5),
+                                                 0, &get_context->peer->hashPubKey, &get_result_iterator, get_context, NULL, NULL);
 }
 
 
