@@ -1646,6 +1646,9 @@ GNUNET_DISK_file_sync (const struct GNUNET_DISK_FileHandle *h)
  * Creates an interprocess channel
  *
  * @param blocking creates an asynchronous pipe if set to GNUNET_NO
+ * @param inherit_read inherit the parent processes stdin (only for windows)
+ * @param inherit_write inherit the parent processes stdout (only for windows)
+ *
  * @return handle to the new pipe, NULL on error
  */
 struct GNUNET_DISK_PipeHandle *
