@@ -71,8 +71,8 @@ static void cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx
 static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx);
 
 static void start_helper_and_schedule() {
-	mycls.helper_in = GNUNET_DISK_pipe(GNUNET_YES);
-	mycls.helper_out = GNUNET_DISK_pipe(GNUNET_YES);
+	mycls.helper_in = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO);;
+	mycls.helper_out = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_NO, GNUNET_YES);
 
 	if (mycls.helper_in == NULL || mycls.helper_out == NULL) return;
 
