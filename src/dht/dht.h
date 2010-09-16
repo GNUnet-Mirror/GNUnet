@@ -38,11 +38,17 @@
 
 #define DHT_BLOOM_K 6
 
+/**
+ * How many requests to remember for forwarding responses.
+ */
 #define MAX_OUTSTANDING_FORWARDS 100
 
+/**
+ * How long to remember requests so we can forward responses.
+ */
 #define DHT_FORWARD_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5)
 
-#define DHT_REPUBLISH_FREQUENCY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 60)
+#define DEFAULT_DHT_REPUBLISH_FREQUENCY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 60)
 
 #define DHT_SEND_PRIORITY 4
 
@@ -229,22 +235,6 @@ struct GNUNET_DHT_P2PRouteMessage
    * Bloomfilter to stop circular routes
    */
   char bloomfilter[DHT_BLOOM_SIZE];
-
-  /**
-   * FIXME: add DHT logging for analysis!
-   */
-#if LOG_SQL
-  /*
-   * Unique query id for sql database interaction.
-   */
-  uint64_t queryuid;
-
-  /*
-   * Unique trial id for sql database interaction
-   */
-  uint64_t trialuid;
-
-#endif
 
   /**
    * The key to search for
