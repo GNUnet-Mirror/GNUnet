@@ -176,6 +176,39 @@ struct ShutdownContext
   void *cb_cls;
 };
 
+/**
+ * Individual shutdown context for a particular peer.
+ */
+struct PeerShutdownContext
+{
+  /**
+   * Pointer to the high level shutdown context.
+   */
+  struct ShutdownContext *shutdown_ctx;
+
+  /**
+   * The daemon handle for the peer to shut down.
+   */
+  struct GNUNET_TESTING_Daemon *daemon;
+};
+
+/**
+ * Individual shutdown context for a particular peer.
+ */
+struct PeerRestartContext
+{
+  /**
+   * Pointer to the high level restart context.
+   */
+  struct ChurnRestartContext *churn_restart_ctx;
+
+  /**
+   * The daemon handle for the peer to shut down.
+   */
+  struct GNUNET_TESTING_Daemon *daemon;
+};
+
+
 struct CreateTopologyContext
 {
 
@@ -254,6 +287,24 @@ struct InternalStartContext
    */
   uint16_t sshport;
 
+};
+
+struct ChurnRestartContext
+{
+  /**
+   * Number of restarts currently in flight.
+   */
+  unsigned int outstanding;
+
+  /**
+   * Handle to the underlying churn context.
+   */
+  struct ChurnContext *churn_ctx;
+
+  /**
+   * How long to allow the operation to take.
+   */
+  struct GNUNET_TIME_Relative timeout;
 };
 
 /**
@@ -3319,6 +3370,84 @@ internal_continue_startup (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
     }
 }
 
+
+/**
+ * Callback for informing us about a successful
+ * or unsuccessful churn start call.
+ *
+ * @param cls a ChurnContext
+ * @param id the peer identity of the started peer
+ * @param cfg the handle to the configuration of the peer
+ * @param d handle to the daemon for the peer
+ * @param emsg NULL on success, non-NULL on failure
+ *
+ */
+void
+churn_start_callback (void *cls,
+                      const struct GNUNET_PeerIdentity *id,
+                      const struct GNUNET_CONFIGURATION_Handle *cfg,
+                      struct GNUNET_TESTING_Daemon *d,
+                      const char *emsg)
+{
+  struct ChurnRestartContext *startup_ctx = cls;
+  struct ChurnContext *churn_ctx = startup_ctx->churn_ctx;
+
+  unsigned int total_left;
+  char *error_message;
+
+  error_message = NULL;
+  if (emsg != NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Churn stop callback failed with error `%s'\n",
+                  emsg);
+      churn_ctx->num_failed_start++;
+    }
+  else
+    {
+      churn_ctx->num_to_start--;
+    }
+
+#if DEBUG_CHURN
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+             "Started peer, %d left.\n",
+             churn_ctx->num_to_start);
+#endif
+
+  total_left = (churn_ctx->num_to_stop - churn_ctx->num_failed_stop) + (churn_ctx->num_to_start - churn_ctx->num_failed_start);
+
+  if (total_left == 0)
+  {
+    if ((churn_ctx->num_failed_stop > 0) || (churn_ctx->num_failed_start > 0))
+      GNUNET_asprintf(&error_message,
+                      "Churn didn't complete successfully, %u peers failed to start %u peers failed to be stopped!",
+                      churn_ctx->num_failed_start,
+                      churn_ctx->num_failed_stop);
+    churn_ctx->cb(churn_ctx->cb_cls, error_message);
+    GNUNET_free_non_null(error_message);
+    GNUNET_free(churn_ctx);
+    GNUNET_free(startup_ctx);
+  }
+}
+
+
+static void schedule_churn_restart(void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct PeerRestartContext *peer_restart_ctx = cls;
+  struct ChurnRestartContext *startup_ctx = peer_restart_ctx->churn_restart_ctx;
+
+  if (startup_ctx->outstanding > MAX_CONCURRENT_STARTING)
+    GNUNET_SCHEDULER_add_delayed(peer_restart_ctx->daemon->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &schedule_churn_restart, peer_restart_ctx);
+  else
+    {
+      GNUNET_TESTING_daemon_start_stopped(peer_restart_ctx->daemon,
+                                          startup_ctx->timeout,
+                                          &churn_start_callback,
+                                          startup_ctx);
+      GNUNET_free(peer_restart_ctx);
+    }
+}
+
 static void
 internal_start (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
@@ -3684,11 +3813,14 @@ void restart_callback (void *cls,
 void
 churn_stop_callback (void *cls, const char *emsg)
 {
-  struct ChurnContext *churn_ctx = cls;
+  struct ShutdownContext *shutdown_ctx = cls;
+  struct ChurnContext *churn_ctx = shutdown_ctx->cb_cls;
   unsigned int total_left;
   char *error_message;
 
   error_message = NULL;
+  shutdown_ctx->outstanding--;
+
   if (emsg != NULL)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, 
@@ -3719,62 +3851,7 @@ churn_stop_callback (void *cls, const char *emsg)
     churn_ctx->cb(churn_ctx->cb_cls, error_message);
     GNUNET_free_non_null(error_message);
     GNUNET_free(churn_ctx);
-  }
-}
-
-/**
- * Callback for informing us about a successful
- * or unsuccessful churn start call.
- *
- * @param cls a ChurnContext
- * @param id the peer identity of the started peer
- * @param cfg the handle to the configuration of the peer
- * @param d handle to the daemon for the peer
- * @param emsg NULL on success, non-NULL on failure
- *
- */
-void
-churn_start_callback (void *cls,
-                      const struct GNUNET_PeerIdentity *id,
-                      const struct GNUNET_CONFIGURATION_Handle *cfg,
-                      struct GNUNET_TESTING_Daemon *d,
-                      const char *emsg)
-{
-  struct ChurnContext *churn_ctx = cls;
-  unsigned int total_left;
-  char *error_message;
-
-  error_message = NULL;
-  if (emsg != NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
-		  "Churn stop callback failed with error `%s'\n",
-		  emsg);
-      churn_ctx->num_failed_start++;
-    }
-  else
-    {
-      churn_ctx->num_to_start--;
-    }
-  
-#if DEBUG_CHURN
-  GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-	     "Started peer, %d left.\n", 
-	     churn_ctx->num_to_start);
-#endif
-
-  total_left = (churn_ctx->num_to_stop - churn_ctx->num_failed_stop) + (churn_ctx->num_to_start - churn_ctx->num_failed_start);
-
-  if (total_left == 0)
-  {
-    if ((churn_ctx->num_failed_stop > 0) || (churn_ctx->num_failed_start > 0))
-      GNUNET_asprintf(&error_message, 
-		      "Churn didn't complete successfully, %u peers failed to start %u peers failed to be stopped!", 
-		      churn_ctx->num_failed_start,
-		      churn_ctx->num_failed_stop);
-    churn_ctx->cb(churn_ctx->cb_cls, error_message);
-    GNUNET_free_non_null(error_message);
-    GNUNET_free(churn_ctx);
+    GNUNET_free(shutdown_ctx);
   }
 }
 
@@ -3799,6 +3876,33 @@ GNUNET_TESTING_daemons_running (struct GNUNET_TESTING_PeerGroup *pg)
     }
   }
   return running;
+}
+
+/**
+ * Task to rate limit the number of outstanding peer shutdown
+ * requests.  This is necessary for making sure we don't do
+ * too many ssh connections at once, but is generally nicer
+ * to any system as well (graduated task starts, as opposed
+ * to calling gnunet-arm N times all at once).
+ */
+static void
+schedule_churn_shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct PeerShutdownContext *peer_shutdown_ctx = cls;
+  struct ShutdownContext *shutdown_ctx;
+
+  GNUNET_assert(peer_shutdown_ctx != NULL);
+  shutdown_ctx = peer_shutdown_ctx->shutdown_ctx;
+  GNUNET_assert(shutdown_ctx != NULL);
+
+  if (shutdown_ctx->outstanding > MAX_CONCURRENT_SHUTDOWN)
+    GNUNET_SCHEDULER_add_delayed(peer_shutdown_ctx->daemon->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &schedule_churn_shutdown_task, peer_shutdown_ctx);
+  else
+    {
+      shutdown_ctx->outstanding++;
+      GNUNET_TESTING_daemon_stop (peer_shutdown_ctx->daemon, shutdown_ctx->timeout, shutdown_ctx->cb, shutdown_ctx, GNUNET_NO, GNUNET_YES);
+      GNUNET_free(peer_shutdown_ctx);
+    }
 }
 
 /**
@@ -3830,6 +3934,11 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
                               void *cb_cls)
 {
   struct ChurnContext *churn_ctx;
+  struct ShutdownContext *shutdown_ctx;
+  struct PeerShutdownContext *peer_shutdown_ctx;
+  struct PeerRestartContext *peer_restart_ctx;
+  struct ChurnRestartContext *churn_startup_ctx;
+
   unsigned int running;
   unsigned int stopped;
   unsigned int total_running;
@@ -3922,27 +4031,53 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
   }
 
   GNUNET_assert(running >= voff);
+  if (voff > 0)
+    {
+      shutdown_ctx = GNUNET_malloc(sizeof(struct ShutdownContext));
+      shutdown_ctx->cb = &churn_stop_callback;
+      shutdown_ctx->cb_cls = churn_ctx;
+      shutdown_ctx->total_peers = voff;
+      shutdown_ctx->timeout = timeout;
+    }
+
   for (i = 0; i < voff; i++)
   {
 #if DEBUG_CHURN
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Stopping peer %d!\n", running_permute[i]);
 #endif
     GNUNET_assert(running_arr != NULL);
+    peer_shutdown_ctx = GNUNET_malloc(sizeof(struct PeerShutdownContext));
+    peer_shutdown_ctx->daemon = pg->peers[running_arr[running_permute[i]]].daemon;
+    peer_shutdown_ctx->shutdown_ctx = shutdown_ctx;
+    GNUNET_SCHEDULER_add_now(peer_shutdown_ctx->daemon->sched, &schedule_churn_shutdown_task, peer_shutdown_ctx);
+
+    /*
     GNUNET_TESTING_daemon_stop (pg->peers[running_arr[running_permute[i]]].daemon,
 				timeout, 
 				&churn_stop_callback, churn_ctx, 
-				GNUNET_NO, GNUNET_YES);
+				GNUNET_NO, GNUNET_YES); */
   }
 
   GNUNET_assert(stopped >= von);
+  if (von > 0)
+    {
+      churn_startup_ctx = GNUNET_malloc(sizeof(struct ChurnRestartContext));
+      churn_startup_ctx->churn_ctx = churn_ctx;
+      churn_startup_ctx->timeout = timeout;
+    }
   for (i = 0; i < von; i++)
     {
 #if DEBUG_CHURN
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Starting up peer %d!\n", stopped_permute[i]);
 #endif
       GNUNET_assert(stopped_arr != NULL);
+      peer_restart_ctx = GNUNET_malloc(sizeof(struct PeerRestartContext));
+      peer_restart_ctx->churn_restart_ctx = churn_startup_ctx;
+      peer_restart_ctx->daemon = pg->peers[stopped_arr[stopped_permute[i]]].daemon;
+      GNUNET_SCHEDULER_add_now(peer_restart_ctx->daemon->sched, &schedule_churn_restart, peer_restart_ctx);
+      /*
       GNUNET_TESTING_daemon_start_stopped(pg->peers[stopped_arr[stopped_permute[i]]].daemon, 
-					  timeout, &churn_start_callback, churn_ctx);
+					  timeout, &churn_start_callback, churn_ctx);*/
   }
 
   GNUNET_free_non_null(running_arr);
@@ -4065,21 +4200,6 @@ void internal_shutdown_callback (void *cls,
     }
 }
 
-/**
- * Individual shutdown context for a particular peer.
- */
-struct PeerShutdownContext
-{
-  /**
-   * Pointer to the high level shutdown context.
-   */
-  struct ShutdownContext *shutdown_ctx;
-
-  /**
-   * The daemon handle for the peer to shut down.
-   */
-  struct GNUNET_TESTING_Daemon *daemon;
-};
 
 /**
  * Task to rate limit the number of outstanding peer shutdown
@@ -4107,6 +4227,7 @@ schedule_shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
       GNUNET_free(peer_shutdown_ctx);
     }
 }
+
 /**
  * Shutdown all peers started in the given group.
  *
