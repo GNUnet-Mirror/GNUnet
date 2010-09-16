@@ -161,7 +161,7 @@
  * Real maximum number of hops, at which point we refuse
  * to forward the message.
  */
-#define MAX_HOPS 10
+#define DEFAULT_MAX_HOPS 10
 
 /**
  * How many time differences between requesting a core send and
@@ -639,6 +639,11 @@ struct RepublishContext
 enum ConvergenceOptions converge_option;
 
 /**
+ * Modifier for the convergence function
+ */
+float converge_modifier;
+
+/**
  * Recent requests by hash/uid and by time inserted.
  */
 static struct RecentRequests recent;
@@ -748,6 +753,21 @@ static GNUNET_SCHEDULER_TaskIdentifier cleanup_task;
  * The lowest currently used bucket.
  */
 static unsigned int lowest_bucket; /* Initially equal to MAX_BUCKETS - 1 */
+
+/**
+ * The maximum number of hops before we stop routing messages.
+ */
+static unsigned long long max_hops;
+
+/**
+ * How often to republish content we have previously stored.
+ */
+static struct GNUNET_TIME_Relative dht_republish_frequency;
+
+/**
+ * GNUNET_YES to stop at max_hops, GNUNET_NO to heuristically decide when to stop forwarding.
+ */
+static int use_max_hops;
 
 /**
  * The buckets (Kademlia routing table, complete with growth).
@@ -1409,7 +1429,9 @@ add_peer(const struct GNUNET_PeerIdentity *peer,
 
   if ((matching_bits(&my_identity.hashPubKey, &peer->hashPubKey) > 0) && (k_buckets[bucket].peers_size <= bucket_size))
     {
+#if DO_UPDATE_PREFERENCE
       new_peer->preference_task = GNUNET_SCHEDULER_add_now(sched, &update_core_preference, new_peer);
+#endif
     }
 
   return new_peer;
@@ -1936,7 +1958,7 @@ static int route_result_message(void *cls,
         {
           increment_stats(STAT_HELLOS_PROVIDED);
           GNUNET_TRANSPORT_offer_hello(transport_handle, hello_msg);
-          GNUNET_CORE_peer_request_connect(sched, cfg, GNUNET_TIME_UNIT_FOREVER_REL, &new_peer, NULL, NULL);
+          GNUNET_CORE_peer_request_connect(sched, cfg, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5), &new_peer, NULL, NULL);
         }
       }
     }
@@ -2415,7 +2437,7 @@ handle_dht_put (void *cls,
           put_context = GNUNET_malloc(sizeof(struct RepublishContext));
           memcpy(&put_context->key, &message_context->key, sizeof(GNUNET_HashCode));
           put_context->type = put_type;
-          GNUNET_SCHEDULER_add_delayed (sched, DHT_REPUBLISH_FREQUENCY, &republish_content, put_context);
+          GNUNET_SCHEDULER_add_delayed (sched, dht_republish_frequency, &republish_content, put_context);
         }
     }
   else
@@ -2470,7 +2492,7 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
     {
       if (hop_count == 0)
         return DHT_KADEMLIA_REPLICATION;
-      else if (hop_count < MAX_HOPS)
+      else if (hop_count < max_hops)
         return 1;
       else
         return 0;
@@ -2490,7 +2512,7 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
 #endif
       return 0;
     }
-  else if (hop_count > MAX_HOPS)
+  else if (hop_count > max_hops)
     {
 #if DEBUG_DHT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2633,8 +2655,14 @@ route_closer (const GNUNET_HashCode *target,
   struct PeerInfo *pos;
   int have_closer;
   int count;
+  int curr_max_hops;
+  double calc_value;
   my_matching_bits = matching_bits(target, &my_identity.hashPubKey);
 
+  if (GNUNET_YES == use_max_hops)
+    curr_max_hops = max_hops;
+  else
+    curr_max_hops = max_hops; /* FIXME: replace with heuristic! */
   /**
    * First check if we know any close (as close as us or closer) peers.
    */
@@ -2669,7 +2697,7 @@ route_closer (const GNUNET_HashCode *target,
          * Simple linear curve for choosing whether or not to converge.
          * Choose to route only closer with probability hops/MAX_HOPS.
          */
-        random_value = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, MAX_HOPS);
+        random_value = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, curr_max_hops);
         if (random_value < hops)
           return GNUNET_YES;
         else
@@ -2678,12 +2706,26 @@ route_closer (const GNUNET_HashCode *target,
         /**
          * Simple square based curve.
          */
-        if ((GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, (uint32_t)-1) / (double)(uint32_t)-1) < (sqrt(hops) / sqrt(MAX_HOPS)))
+        if ((GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, (uint32_t)-1) / (double)(uint32_t)-1) < (sqrt(hops) / sqrt(curr_max_hops)))
+          return GNUNET_YES;
+        else
+          return GNUNET_NO;
+      case DHT_CONVERGE_EXPONENTIAL:
+        /**
+         * Simple exponential curve.
+         */
+        if (converge_modifier > 0)
+          calc_value = ((converge_modifier * (hops * hops)) / (curr_max_hops * curr_max_hops)) / curr_max_hops;
+        else
+          calc_value = ((hops * hops) / (curr_max_hops * curr_max_hops)) / curr_max_hops;
+
+        if ((GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, (uint32_t)-1) / (double)(uint32_t)-1) < calc_value)
           return GNUNET_YES;
         else
           return GNUNET_NO;
       default:
         return GNUNET_NO;
+
     }
 }
 
@@ -3178,14 +3220,14 @@ static int route_message(void *cls,
     }
 
   GNUNET_CONTAINER_bloomfilter_add (message_context->bloom, &my_identity.hashPubKey);
-  hash_from_uid(message_context->unique_id, &unique_hash);
-  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(recent.hashmap, &unique_hash))
+  hash_from_uid (message_context->unique_id, &unique_hash);
+  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (recent.hashmap, &unique_hash))
   {
-      recent_req = GNUNET_CONTAINER_multihashmap_get(recent.hashmap, &unique_hash);
-      GNUNET_assert(recent_req != NULL);
-      if (0 != memcmp(&recent_req->key, &message_context->key, sizeof(GNUNET_HashCode)))
-        increment_stats(STAT_DUPLICATE_UID);
-      else
+    recent_req = GNUNET_CONTAINER_multihashmap_get(recent.hashmap, &unique_hash);
+    GNUNET_assert(recent_req != NULL);
+    if (0 != memcmp(&recent_req->key, &message_context->key, sizeof(GNUNET_HashCode)))
+      increment_stats(STAT_DUPLICATE_UID);
+    else
       {
         increment_stats(STAT_RECENT_SEEN);
         GNUNET_CONTAINER_bloomfilter_or2(message_context->bloom, recent_req->bloom, DHT_BLOOM_SIZE);
@@ -3339,7 +3381,7 @@ republish_content(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (results == 0) /* Data must have expired */
     GNUNET_free(put_context);
   else /* Reschedule task for next time period */
-    GNUNET_SCHEDULER_add_delayed(sched, DHT_REPUBLISH_FREQUENCY, &republish_content, put_context);
+    GNUNET_SCHEDULER_add_delayed(sched, dht_republish_frequency, &republish_content, put_context);
 
 }
 
@@ -4051,6 +4093,8 @@ run (void *cls,
 #if DO_FIND_PEER
   struct GNUNET_TIME_Relative next_send_time;
 #endif
+  unsigned long long temp_config_num;
+  char *converge_modifier_buf;
   sched = scheduler;
   cfg = c;
   datacache = GNUNET_DATACACHE_create (sched, cfg, "dhtcache");
@@ -4121,6 +4165,19 @@ run (void *cls,
         malicious_get_frequency = DEFAULT_MALICIOUS_GET_FREQUENCY;
     }
 
+  if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_number (cfg, "DHT",
+                                        "MAX_HOPS",
+                                        &max_hops))
+    {
+      max_hops = DEFAULT_MAX_HOPS;
+    }
+
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (cfg, "DHT",
+                                                          "USE_MAX_HOPS"))
+    {
+      use_max_hops = GNUNET_YES;
+    }
+
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht",
                                            "malicious_putter"))
@@ -4130,6 +4187,12 @@ run (void *cls,
                                             "MALICIOUS_PUT_FREQUENCY",
                                             &malicious_put_frequency))
         malicious_put_frequency = DEFAULT_MALICIOUS_PUT_FREQUENCY;
+    }
+
+  dht_republish_frequency = DEFAULT_DHT_REPUBLISH_FREQUENCY;
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number(cfg, "DHT", "REPLICATION_FREQUENCY", &temp_config_num))
+    {
+      dht_republish_frequency = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, temp_config_num);
     }
 
   if (GNUNET_YES ==
@@ -4184,6 +4247,22 @@ run (void *cls,
                                            "converge_linear"))
     {
       converge_option = DHT_CONVERGE_LINEAR;
+    }
+  else if (GNUNET_YES ==
+        GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht_testing",
+                                             "converge_exponential"))
+    {
+      converge_option = DHT_CONVERGE_EXPONENTIAL;
+    }
+
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "dht_testing", "converge_modifier", &converge_modifier_buf))
+    {
+      if (1 != sscanf(converge_modifier_buf, "%f", &converge_modifier))
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Failed to read decimal value for %s from `%s'\n", "CONVERGE_MODIFIER", converge_modifier_buf);
+          converge_modifier = 0.0;
+        }
+      GNUNET_free(converge_modifier_buf);
     }
 
   stats = GNUNET_STATISTICS_create(sched, "dht", cfg);
