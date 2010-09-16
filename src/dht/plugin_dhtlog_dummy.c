@@ -46,6 +46,19 @@ int add_trial (struct GNUNET_DHTLOG_TrialInfo *trial_info)
 }
 
 /*
+ * Inserts the specified round into the dhttests.rounds table
+ *
+ * @param round_type the type of round that is being started
+ * @param round_count counter for the round (if applicable)
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int add_round (unsigned int round_type, unsigned int round_count)
+{
+  return GNUNET_OK;
+}
+
+/*
  * Inserts the specified dhtkey into the dhttests.dhtkeys table,
  * stores return value of dhttests.dhtkeys.dhtkeyuid into dhtkeyuid
  *
@@ -282,6 +295,7 @@ libgnunet_plugin_dhtlog_dummy_init (void * cls)
   GNUNET_assert(plugin->dhtlog_api == NULL);
   plugin->dhtlog_api = GNUNET_malloc(sizeof(struct GNUNET_DHTLOG_Handle));
   plugin->dhtlog_api->add_generic_stat = &add_generic_stat;
+  plugin->dhtlog_api->insert_round = &add_round;
   plugin->dhtlog_api->insert_stat = &insert_stat;
   plugin->dhtlog_api->insert_trial = &add_trial;
   plugin->dhtlog_api->insert_query = &add_query;

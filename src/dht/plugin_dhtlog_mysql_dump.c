@@ -63,6 +63,8 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 #define INSERT_TOPOLOGY_STMT "prepare insert_topology from 'INSERT INTO topology (trialuid, date, connections) "\
                              "VALUES (@temp_trial, ?, ?)'"
 
+#define INSERT_ROUND_STMT "prepare insert_round from 'INSERT INTO rounds (trialuid, round_type, round_count, starttime) VALUES (@temp_trial, @rtype, @rcount, @curr_time)'"
+
 #define EXTEND_TOPOLOGY_STMT "prepare extend_topology from 'INSERT INTO extended_topology (topology_uid, uid_first, uid_second) "\
                              "VALUES (@temp_topology, ?, ?)'"
 
@@ -158,6 +160,7 @@ iopen ()
 #define PINIT(a) (GNUNET_OK != (prepared_statement_create(a)))
   if (PINIT (INSERT_QUERIES_STMT) ||
       PINIT (INSERT_ROUTES_STMT) ||
+      PINIT (INSERT_ROUND_STMT) ||
       PINIT (INSERT_TRIALS_STMT) ||
       PINIT (SET_MALICIOUS_STMT) ||
       PINIT (INSERT_GENERIC_STAT_STMT) ||
@@ -181,7 +184,30 @@ iopen ()
   return GNUNET_OK;
 }
 
+/*
+ * Inserts the specified round into the dhttests.rounds table
+ *
+ * @param round_type the type of round that is being started
+ * @param round_count counter for the round (if applicable)
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int add_round (unsigned int round_type, unsigned int round_count)
+{
+  int ret;
+  if (outfile == NULL)
+    return GNUNET_SYSERR;
 
+  ret = fprintf(outfile, "set @curr_time = \"%s\", @rtype = \"%u\", @rcount = \"%u\";\n", get_sql_time(), round_type, round_count);
+
+  if (ret < 0)
+    return GNUNET_SYSERR;
+  ret = fprintf(outfile, "execute insert_round;\n");
+
+  if (ret >= 0)
+    return GNUNET_OK;
+  return GNUNET_SYSERR;
+}
 
 /*
  * Records the current topology (number of connections, time, trial)
@@ -813,6 +839,7 @@ libgnunet_plugin_dhtlog_mysql_dump_init (void * cls)
   GNUNET_assert(plugin->dhtlog_api == NULL);
   plugin->dhtlog_api = GNUNET_malloc(sizeof(struct GNUNET_DHTLOG_Handle));
   plugin->dhtlog_api->insert_trial = &add_trial;
+  plugin->dhtlog_api->insert_round = &add_round;
   plugin->dhtlog_api->insert_stat = &add_stat;
   plugin->dhtlog_api->insert_query = &add_query;
   plugin->dhtlog_api->update_trial = &update_trials;
