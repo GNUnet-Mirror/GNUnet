@@ -28,7 +28,7 @@
 #include "gnunet_protocols.h"
 #include "dhtlog.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 static int ok;
 
@@ -177,6 +177,11 @@ test (struct GNUNET_DHTLOG_Handle * api)
   CHECK(ret);
 #if VERBOSE
   fprintf(stderr, "Insert generic stat succeeded!\n");
+#endif
+  ret = api->insert_round(401, 507);
+  CHECK(ret);
+#if VERBOSE
+  fprintf(stderr, "Insert round succeeded!\n");
 #endif
   return 0;
 }
