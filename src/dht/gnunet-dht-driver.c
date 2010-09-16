@@ -1305,7 +1305,7 @@ void count_peers_churn_cb (void *cls,
        */
       if ((peer_count->count == 0) && (GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime).value > 0))
         {
-          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Found peer with no connections, will choose some peers at random to connect to!\n");
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Found peer with no connections, will choose some peer(s) at random to connect to!\n");
           GNUNET_CONTAINER_heap_iterate (find_peer_context->peer_min_heap, &iterate_min_heap_peers, find_peer_context);
           GNUNET_SCHEDULER_add_now(sched, &schedule_churn_find_peer_requests, find_peer_context);
         }
@@ -1368,6 +1368,7 @@ static void churn_complete (void *cls, const char *emsg)
    */
   if (find_peer_context != NULL)
     {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "We have churned on some peers, so we must schedule find peer requests for them!\n");
       for (i = 0; i < num_peers; i ++)
         {
           temp_daemon = GNUNET_TESTING_daemon_get(pg, i);
@@ -1380,6 +1381,7 @@ static void churn_complete (void *cls, const char *emsg)
     }
   else
     {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Only churned off peers, no find peer requests, scheduling more gets...\n");
       if (dhtlog_handle != NULL)
         {
           topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
@@ -1988,12 +1990,17 @@ continue_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
     GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time), &setup_puts_and_gets, NULL);
 
   if (GNUNET_YES == do_find_peer)
-  {
-    find_peer_context = GNUNET_malloc(sizeof(struct FindPeerContext));
-    find_peer_context->count_peers_cb = &count_peers_cb;
-    find_peer_context->endtime = GNUNET_TIME_relative_to_absolute(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time));
-    GNUNET_SCHEDULER_add_now(sched, &schedule_find_peer_requests, find_peer_context);
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Scheduling find peer requests during \"settle\" time.\n");
+      find_peer_context = GNUNET_malloc(sizeof(struct FindPeerContext));
+      find_peer_context->count_peers_cb = &count_peers_cb;
+      find_peer_context->endtime = GNUNET_TIME_relative_to_absolute(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time));
+      GNUNET_SCHEDULER_add_now(sched, &schedule_find_peer_requests, find_peer_context);
+    }
+  else
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Assuming automatic DHT find peer requests.\n");
+    }
 }
 
 /**
@@ -2432,7 +2439,7 @@ run (void *cls,
   churn_data = NULL;
   /** Check for a churn file to do churny simulation */
   if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_string(cfg, "testing", "churn_file",
+      GNUNET_CONFIGURATION_get_value_string(cfg, "dht_testing", "churn_file",
                                             &churn_filename))
     {
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Reading churn data from %s\n", churn_filename);

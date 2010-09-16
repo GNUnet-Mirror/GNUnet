@@ -51,8 +51,8 @@ static unsigned long max_varchar_len;
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-#define INSERT_QUERIES_STMT "prepare insert_query from 'INSERT INTO queries (trialuid, querytype, hops, dhtkeyuid, dhtqueryid, succeeded, nodeuid) "\
-                          "VALUES (@temp_trial, ?, ?, ?, ?, ?, ?)'"
+#define INSERT_QUERIES_STMT "prepare insert_query from 'INSERT INTO queries (trialuid, querytype, hops, dhtkeyuid, dhtqueryid, succeeded, nodeuid, time) "\
+                          "VALUES (@temp_trial, ?, ?, ?, ?, ?, ?, ?)'"
 
 #define INSERT_ROUTES_STMT "prepare insert_route from 'INSERT INTO routes (trialuid, querytype, hops, dhtkeyuid, dhtqueryid, succeeded, nodeuid, from_node, to_node) "\
                           "VALUES (@temp_trial, ?, ?, ?, ?, ?, ?, ?, ?)'"
@@ -678,12 +678,12 @@ add_query (unsigned long long *sqlqueryuid, unsigned long long queryid,
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "set @qid = %llu, @type = %u, @hops = %u, @succ = %d;\n", queryid, type, hops, succeeded);
+  ret = fprintf(outfile, "set @qid = %llu, @type = %u, @hops = %u, @succ = %d, @time = \"%s\";\n", queryid, type, hops, succeeded, get_sql_time());
 
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf(outfile, "execute insert_query using @type, @hops, @temp_dhtkey, @qid, @succ, @temp_node;\n");
+  ret = fprintf(outfile, "execute insert_query using @type, @hops, @temp_dhtkey, @qid, @succ, @temp_node, @time;\n");
 
   if (ret >= 0)
     return GNUNET_OK;

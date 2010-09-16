@@ -91,8 +91,8 @@ static unsigned long long current_trial = 0;    /* I like to assign 0, just to r
  */
 static MYSQL *conn;
 
-#define INSERT_QUERIES_STMT "INSERT INTO queries (trialuid, querytype, hops, dhtkeyuid, dhtqueryid, succeeded, nodeuid) "\
-                          "VALUES (?, ?, ?, ?, ?, ?, ?)"
+#define INSERT_QUERIES_STMT "INSERT INTO queries (trialuid, querytype, hops, dhtkeyuid, dhtqueryid, succeeded, nodeuid, time) "\
+                          "VALUES (?, ?, ?, ?, ?, ?, ?, NOW())"
 static struct StatementHandle *insert_query;
 
 #define INSERT_ROUTES_STMT "INSERT INTO routes (trialuid, querytype, hops, dhtkeyuid, dhtqueryid, succeeded, nodeuid, from_node, to_node) "\

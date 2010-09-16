@@ -475,7 +475,7 @@ add_query (unsigned long long *sqlqueryuid, unsigned long long queryid,
   if (ret < 0)
     return GNUNET_SYSERR;
 
-  ret = fprintf(query_outfile, "%s\t%llu\t%u\t%u\t%u\n", GNUNET_h2s_full(&node->hashPubKey), queryid, type, hops, succeeded);
+  ret = fprintf(query_outfile, "%s\t%llu\t%u\t%u\t%u\t%s\n", GNUNET_h2s_full(&node->hashPubKey), queryid, type, hops, succeeded, get_sql_time());
 
   if (ret >= 0)
     return GNUNET_OK;
