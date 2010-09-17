@@ -1455,8 +1455,10 @@ static void remove_peer (struct PeerInfo *peer,
                               k_buckets[bucket].tail,
                               peer);
   k_buckets[bucket].peers_size--;
+#if CHANGE_LOWEST
   if ((bucket == lowest_bucket) && (k_buckets[lowest_bucket].peers_size == 0) && (lowest_bucket < MAX_BUCKETS - 1))
     lowest_bucket++;
+#endif
 }
 
 /**

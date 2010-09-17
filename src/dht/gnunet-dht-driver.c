@@ -53,6 +53,9 @@
 /* Time to allow a find peer request to take */
 #define DEFAULT_FIND_PEER_DELAY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 40)
 
+/* Time to wait for all peers disconnected due to to churn to actually be removed from system */
+#define DEFAULT_PEER_DISCONNECT_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5)
+
 #define DEFAULT_SECONDS_PER_PEER_START GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 45)
 
 #define DEFAULT_TEST_DATA_SIZE 8
@@ -255,6 +258,8 @@ struct TopologyIteratorContext
   unsigned int total_iterations;
   unsigned int current_iteration;
   unsigned int total_connections;
+  unsigned int total_peers;
+  struct GNUNET_CONTAINER_MultiHashMap *peers_seen;
   struct GNUNET_PeerIdentity *peer;
   GNUNET_SCHEDULER_Task cont;
   void *cls;
@@ -782,6 +787,11 @@ void log_topology_cb (void *cls,
   struct TopologyIteratorContext *topo_ctx = cls;
   if ((first != NULL) && (second != NULL))
     {
+      if ((topo_ctx->peers_seen != NULL) && (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(topo_ctx->peers_seen, &first->hashPubKey)))
+        {
+          GNUNET_CONTAINER_multihashmap_put(topo_ctx->peers_seen, &first->hashPubKey, NULL, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+          topo_ctx->total_peers++;
+        }
       topo_ctx->total_connections++;
       if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(config, "dht_testing", "mysql_logging_extended"))
         dhtlog_handle->insert_extended_topology(first, second);
@@ -789,10 +799,12 @@ void log_topology_cb (void *cls,
   else
     {
       GNUNET_assert(dhtlog_handle != NULL);
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Topology iteration (%u/%u) finished (%u connections)\n", topo_ctx->current_iteration, topo_ctx->total_iterations, topo_ctx->total_connections);
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Topology iteration (%u/%u) finished (%u connections, %u peers)\n", topo_ctx->current_iteration, topo_ctx->total_iterations, topo_ctx->total_connections, topo_ctx->total_peers);
       dhtlog_handle->update_topology(topo_ctx->total_connections);
       if (topo_ctx->cont != NULL)
         GNUNET_SCHEDULER_add_now (sched, topo_ctx->cont, topo_ctx->cls);
+      if (topo_ctx->peers_seen != NULL)
+        GNUNET_CONTAINER_multihashmap_destroy(topo_ctx->peers_seen);
       GNUNET_free(topo_ctx);
     }
 }
@@ -1089,60 +1101,6 @@ send_find_peer_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
                          &handle_find_peer_sent, test_find_peer);
 }
 
-/**
- * Set up a single find peer request for each peer in the topology.  Do this
- * until the settle time is over, limited by the number of outstanding requests
- * and the time allowed for each one!
- */
-static void
-schedule_churn_find_peer_requests (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
-{
-  struct FindPeerContext *find_peer_ctx = cls;
-  struct TestFindPeer *test_find_peer;
-  struct PeerCount *peer_count;
-  uint32_t i;
-
-  if (find_peer_ctx->previous_peers == 0) /* First time, go slowly */
-    find_peer_ctx->total = 1;
-  else if (find_peer_ctx->current_peers - find_peer_ctx->previous_peers > MAX_FIND_PEER_CUTOFF) /* Found LOTS of peers, still go slowly */
-    find_peer_ctx->total = find_peer_ctx->last_sent - (find_peer_ctx->last_sent / 8);
-  else
-    find_peer_ctx->total = find_peer_ctx->last_sent * 2;
-
-  if (find_peer_ctx->total > max_outstanding_find_peers)
-    find_peer_ctx->total = max_outstanding_find_peers;
-
-  find_peer_ctx->last_sent = find_peer_ctx->total;
-  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Sending %u find peer messages (after churn)\n", find_peer_ctx->total);
-
-  find_peer_offset = GNUNET_TIME_relative_divide(find_peer_delay, find_peer_ctx->total);
-  for (i = 0; i < find_peer_ctx->total; i++)
-    {
-      test_find_peer = GNUNET_malloc(sizeof(struct TestFindPeer));
-      /* If we have sent requests, choose peers with a low number of connections to send requests from */
-      peer_count = GNUNET_CONTAINER_heap_remove_root(find_peer_ctx->peer_min_heap);
-      GNUNET_CONTAINER_multihashmap_remove(find_peer_ctx->peer_hash, &peer_count->peer_id.hashPubKey, peer_count);
-      test_find_peer->daemon = GNUNET_TESTING_daemon_get_by_id(pg, &peer_count->peer_id);
-      GNUNET_assert(test_find_peer->daemon != NULL);
-      test_find_peer->find_peer_context = find_peer_ctx;
-      GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(find_peer_offset, i), &send_find_peer_request, test_find_peer);
-    }
-
-  if ((find_peer_ctx->peer_hash == NULL) && (find_peer_ctx->peer_min_heap == NULL))
-    {
-      find_peer_ctx->peer_hash = GNUNET_CONTAINER_multihashmap_create(num_peers);
-      find_peer_ctx->peer_min_heap = GNUNET_CONTAINER_heap_create(GNUNET_CONTAINER_HEAP_ORDER_MIN);
-    }
-  else
-    {
-      GNUNET_CONTAINER_multihashmap_iterate(find_peer_ctx->peer_hash, &remove_peer_count, find_peer_ctx);
-      GNUNET_CONTAINER_multihashmap_destroy(find_peer_ctx->peer_hash);
-      find_peer_ctx->peer_hash = GNUNET_CONTAINER_multihashmap_create(num_peers);
-    }
-
-  GNUNET_assert(0 == GNUNET_CONTAINER_multihashmap_size(find_peer_ctx->peer_hash));
-  GNUNET_assert(0 == GNUNET_CONTAINER_heap_get_size(find_peer_ctx->peer_min_heap));
-}
 
 /**
  * Add a connection to the find_peer_context given.  This may
@@ -1213,7 +1171,12 @@ static int iterate_min_heap_peers (void *cls,
   if (cost == 0)
     {
       d1 = GNUNET_TESTING_daemon_get_by_id (pg, &peer_count->peer_id);
-      d2 = GNUNET_TESTING_daemon_get(pg, GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers));
+      d2 = d1;
+      while ((d2 == d1) || (GNUNET_YES != GNUNET_TESTING_daemon_running(d2)))
+        {
+          d2 = GNUNET_TESTING_daemon_get(pg, GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers));
+        }
+
       /** Just try to connect the peers, don't worry about callbacks, etc. **/
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Peer %s has 0 connections.  Trying to connect to %s...\n", GNUNET_i2s(&peer_count->peer_id), d2->shortname);
       timeout = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, DEFAULT_CONNECT_TIMEOUT);
@@ -1228,6 +1191,12 @@ static int iterate_min_heap_peers (void *cls,
   else
     return GNUNET_NO;
 }
+
+/**
+ * Forward declaration.
+ */
+static void
+schedule_churn_find_peer_requests (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc);
 
 /**
  * Callback for iterating over all the peer connections of a peer group.
@@ -1303,13 +1272,14 @@ void count_peers_churn_cb (void *cls,
        *         into the general testing churn options seems like overkill because
        *         these are very specialized cases.
        */
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Out of %u peers, fewest connections is %d\n", GNUNET_CONTAINER_heap_get_size(find_peer_context->peer_min_heap), peer_count->count);
       if ((peer_count->count == 0) && (GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime).value > 0))
         {
           GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Found peer with no connections, will choose some peer(s) at random to connect to!\n");
           GNUNET_CONTAINER_heap_iterate (find_peer_context->peer_min_heap, &iterate_min_heap_peers, find_peer_context);
           GNUNET_SCHEDULER_add_now(sched, &schedule_churn_find_peer_requests, find_peer_context);
         }
-      else if (GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime).value > 0)
+      else if ((GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime).value > 0) && (find_peer_context->last_sent != 0))
         {
           GNUNET_SCHEDULER_add_now(sched, &schedule_churn_find_peer_requests, find_peer_context);
         }
@@ -1326,6 +1296,7 @@ void count_peers_churn_cb (void *cls,
               topo_ctx->cont = &do_get;
               topo_ctx->cls = all_gets;
               topo_ctx->timeout = DEFAULT_GET_TIMEOUT;
+              topo_ctx->peers_seen = GNUNET_CONTAINER_multihashmap_create(num_peers);
               die_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_add(GNUNET_TIME_relative_add(DEFAULT_GET_TIMEOUT, all_get_timeout), DEFAULT_TOPOLOGY_CAPTURE_TIMEOUT),
                                                        &end_badly, "from do gets (count_peers_churn_cb)");
               GNUNET_SCHEDULER_add_now(sched, &capture_current_topology, topo_ctx);
@@ -1341,6 +1312,79 @@ void count_peers_churn_cb (void *cls,
 }
 
 /**
+ * Set up a single find peer request for each peer in the topology.  Do this
+ * until the settle time is over, limited by the number of outstanding requests
+ * and the time allowed for each one!
+ */
+static void
+schedule_churn_find_peer_requests (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct FindPeerContext *find_peer_ctx = cls;
+  struct TestFindPeer *test_find_peer;
+  struct PeerCount *peer_count;
+  uint32_t i;
+
+  if (find_peer_ctx->previous_peers == 0) /* First time, go slowly */
+    find_peer_ctx->total = 1;
+  else if (find_peer_ctx->current_peers - find_peer_ctx->previous_peers < MIN_FIND_PEER_CUTOFF)
+    find_peer_ctx->total = find_peer_ctx->total / 2;
+  else if (find_peer_ctx->current_peers - find_peer_ctx->previous_peers > MAX_FIND_PEER_CUTOFF) /* Found LOTS of peers, still go slowly */
+    find_peer_ctx->total = find_peer_ctx->last_sent - (find_peer_ctx->last_sent / 8);
+  else
+    find_peer_ctx->total = find_peer_ctx->last_sent * 2;
+
+  if (find_peer_ctx->total > max_outstanding_find_peers)
+    find_peer_ctx->total = max_outstanding_find_peers;
+
+  find_peer_ctx->last_sent = find_peer_ctx->total;
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Sending %u find peer messages (after churn)\n", find_peer_ctx->total);
+
+  if (find_peer_ctx->total > 0)
+    find_peer_offset = GNUNET_TIME_relative_divide(find_peer_delay, find_peer_ctx->total);
+  else
+    {
+      find_peer_ctx->previous_peers = find_peer_ctx->current_peers;
+      find_peer_ctx->current_peers = 0;
+      GNUNET_TESTING_get_topology (pg, &count_peers_churn_cb, find_peer_ctx);
+    }
+
+
+  for (i = 0; i < find_peer_ctx->total; i++)
+    {
+      test_find_peer = GNUNET_malloc(sizeof(struct TestFindPeer));
+      /* If we have sent requests, choose peers with a low number of connections to send requests from */
+      peer_count = GNUNET_CONTAINER_heap_remove_root(find_peer_ctx->peer_min_heap);
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Sending find peer request from peer with %u connections\n", peer_count->count);
+      GNUNET_CONTAINER_multihashmap_remove(find_peer_ctx->peer_hash, &peer_count->peer_id.hashPubKey, peer_count);
+      test_find_peer->daemon = GNUNET_TESTING_daemon_get_by_id(pg, &peer_count->peer_id);
+      GNUNET_assert(test_find_peer->daemon != NULL);
+      test_find_peer->find_peer_context = find_peer_ctx;
+      GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(find_peer_offset, i), &send_find_peer_request, test_find_peer);
+    }
+
+  if ((find_peer_ctx->peer_hash == NULL) && (find_peer_ctx->peer_min_heap == NULL))
+    {
+      find_peer_ctx->peer_hash = GNUNET_CONTAINER_multihashmap_create(num_peers);
+      find_peer_ctx->peer_min_heap = GNUNET_CONTAINER_heap_create(GNUNET_CONTAINER_HEAP_ORDER_MIN);
+    }
+  else
+    {
+      GNUNET_CONTAINER_multihashmap_iterate(find_peer_ctx->peer_hash, &remove_peer_count, find_peer_ctx);
+      GNUNET_CONTAINER_multihashmap_destroy(find_peer_ctx->peer_hash);
+      find_peer_ctx->peer_hash = GNUNET_CONTAINER_multihashmap_create(num_peers);
+    }
+
+  GNUNET_assert(0 == GNUNET_CONTAINER_multihashmap_size(find_peer_ctx->peer_hash));
+  GNUNET_assert(0 == GNUNET_CONTAINER_heap_get_size(find_peer_ctx->peer_min_heap));
+}
+
+static void schedule_churn_get_topology (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct FindPeerContext *find_peer_context = cls;
+  GNUNET_TESTING_get_topology (pg, &count_peers_churn_cb, find_peer_context);
+}
+
+/**
  * Called when churning of the topology has finished.
  *
  * @param cls closure unused
@@ -1353,6 +1397,7 @@ static void churn_complete (void *cls, const char *emsg)
   unsigned int i;
   struct GNUNET_TESTING_Daemon *temp_daemon;
   struct TopologyIteratorContext *topo_ctx;
+  struct GNUNET_TIME_Relative calc_timeout;
 
   if (emsg != NULL)
     {
@@ -1368,37 +1413,51 @@ static void churn_complete (void *cls, const char *emsg)
    */
   if (find_peer_context != NULL)
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "We have churned on some peers, so we must schedule find peer requests for them!\n");
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "We have churned on some peers, so we must schedule find peer requests for them!\n");
+      count_added = 0;
       for (i = 0; i < num_peers; i ++)
         {
           temp_daemon = GNUNET_TESTING_daemon_get(pg, i);
-          peer_count = GNUNET_malloc(sizeof(struct PeerCount));
-          memcpy(&peer_count->peer_id, &temp_daemon->id, sizeof(struct GNUNET_PeerIdentity));
-          peer_count->heap_node = GNUNET_CONTAINER_heap_insert(find_peer_context->peer_min_heap, peer_count, peer_count->count);
-          GNUNET_CONTAINER_multihashmap_put(find_peer_context->peer_hash, &temp_daemon->id.hashPubKey, peer_count, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+          if (GNUNET_YES == GNUNET_TESTING_daemon_running(temp_daemon))
+            {
+              peer_count = GNUNET_malloc (sizeof(struct PeerCount));
+              memcpy(&peer_count->peer_id, &temp_daemon->id, sizeof(struct GNUNET_PeerIdentity));
+              GNUNET_assert(peer_count->count == 0);
+              peer_count->heap_node = GNUNET_CONTAINER_heap_insert(find_peer_context->peer_min_heap, peer_count, peer_count->count);
+              GNUNET_CONTAINER_multihashmap_put(find_peer_context->peer_hash, &temp_daemon->id.hashPubKey, peer_count, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+              count_added++;
+            }
         }
-      GNUNET_TESTING_get_topology (pg, &count_peers_churn_cb, find_peer_context);
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Added %d peers to heap, total size %d\n", count_added, GNUNET_CONTAINER_heap_get_size(find_peer_context->peer_min_heap));
+      GNUNET_SCHEDULER_add_delayed(sched, DEFAULT_PEER_DISCONNECT_TIMEOUT, &schedule_churn_get_topology, find_peer_context);
+      //GNUNET_TESTING_get_topology (pg, &count_peers_churn_cb, find_peer_context);
     }
   else
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Only churned off peers, no find peer requests, scheduling more gets...\n");
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Only churned off peers, no find peer requests, scheduling more gets (after allowing time for peers to disconnect properly!)...\n");
       if (dhtlog_handle != NULL)
         {
           topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
           topo_ctx->cont = &do_get;
           topo_ctx->cls = all_gets;
           topo_ctx->timeout = DEFAULT_GET_TIMEOUT;
-          die_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_add(GNUNET_TIME_relative_add(DEFAULT_GET_TIMEOUT, all_get_timeout), DEFAULT_TOPOLOGY_CAPTURE_TIMEOUT),
+          topo_ctx->peers_seen = GNUNET_CONTAINER_multihashmap_create(num_peers);
+          calc_timeout = GNUNET_TIME_relative_add(DEFAULT_GET_TIMEOUT, all_get_timeout);
+          calc_timeout = GNUNET_TIME_relative_add(calc_timeout, DEFAULT_TOPOLOGY_CAPTURE_TIMEOUT);
+          calc_timeout = GNUNET_TIME_relative_add(calc_timeout, DEFAULT_PEER_DISCONNECT_TIMEOUT);
+          die_task = GNUNET_SCHEDULER_add_delayed (sched, calc_timeout,
                                                    &end_badly, "from do gets (churn_complete)");
-          GNUNET_SCHEDULER_add_now(sched, &capture_current_topology, topo_ctx);
+          GNUNET_SCHEDULER_add_delayed(sched, DEFAULT_PEER_DISCONNECT_TIMEOUT, &capture_current_topology, topo_ctx);
         }
       else
         {
-          die_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_add(GNUNET_TIME_relative_add(DEFAULT_GET_TIMEOUT, all_get_timeout), DEFAULT_TOPOLOGY_CAPTURE_TIMEOUT),
+          calc_timeout = GNUNET_TIME_relative_add(DEFAULT_GET_TIMEOUT, all_get_timeout);
+          calc_timeout = GNUNET_TIME_relative_add(calc_timeout, DEFAULT_PEER_DISCONNECT_TIMEOUT);
+          die_task = GNUNET_SCHEDULER_add_delayed (sched, calc_timeout,
                                                    &end_badly, "from do gets (churn_complete)");
           if (dhtlog_handle != NULL)
             dhtlog_handle->insert_round(DHT_ROUND_GET, rounds_finished);
-          GNUNET_SCHEDULER_add_now(sched, &do_get, all_gets);
+          GNUNET_SCHEDULER_add_delayed(sched, DEFAULT_PEER_DISCONNECT_TIMEOUT, &do_get, all_gets);
         }
     }
 }
@@ -1441,8 +1500,9 @@ churn_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "This will leave NO peers running (mistake in churn configuration?)!");
       churn_down = count_running;
     }
-  timeout = GNUNET_TIME_relative_multiply(seconds_per_peer_start, churn_up > 0 ? churn_up : churn_down);
-
+  //timeout = GNUNET_TIME_relative_multiply(seconds_per_peer_start, churn_up > 0 ? churn_up : churn_down);
+  //timeout = GNUNET_TIME_relative_multiply (seconds_per_peer_start, churn_up > 0 ? churn_up : churn_down);
+  timeout = DEFAULT_TIMEOUT; /* FIXME: Lack of intelligent choice here */
   find_peer_context = NULL;
   if (churn_up > 0) /* Only need to do find peer requests if we turned new peers on */
     {
@@ -1451,10 +1511,13 @@ churn_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
       find_peer_context->previous_peers = 0;
       find_peer_context->current_peers = 0;
       find_peer_context->endtime = GNUNET_TIME_relative_to_absolute(timeout);
+      find_peer_context->peer_hash = GNUNET_CONTAINER_multihashmap_create(num_peers);
+      find_peer_context->peer_min_heap = GNUNET_CONTAINER_heap_create(GNUNET_CONTAINER_HEAP_ORDER_MIN);
     }
   GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "churn_peers: want %u total, %u running, starting %u, stopping %u\n",
              churn_array[current_churn_round], count_running, churn_up, churn_down);
-  GNUNET_TESTING_daemons_churn(pg, churn_down, churn_up, timeout, &churn_complete, find_peer_context);
+  GNUNET_TESTING_daemons_churn (pg, churn_down, churn_up, timeout, &churn_complete, find_peer_context);
+  current_churn_round++;
 }
 
 /**
@@ -1465,9 +1528,14 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   struct TestGetContext *test_get = cls;
   struct TopologyIteratorContext *topo_ctx;
-  outstanding_gets--; /* GET is really finished */
-  GNUNET_DHT_disconnect(test_get->dht_handle);
-  test_get->dht_handle = NULL;
+
+  /* The dht_handle may be null if this get was scheduled from a down peer */
+  if (test_get->dht_handle != NULL)
+    {
+      GNUNET_DHT_disconnect(test_get->dht_handle);
+      outstanding_gets--; /* GET is really finished */
+      test_get->dht_handle = NULL;
+    }
 
   /* Reset the uid (which item to search for) and the daemon (which peer to search from) for later get request iterations */
   test_get->uid = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_puts);
@@ -1495,6 +1563,7 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
             {
               topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
               topo_ctx->cont = &log_dht_statistics;
+              topo_ctx->peers_seen = GNUNET_CONTAINER_multihashmap_create(num_peers);
               GNUNET_SCHEDULER_add_now(sched, &capture_current_topology, topo_ctx);
             }
           else
@@ -1505,7 +1574,6 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
           GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Current churn round %u, real round %u, scheduling next round of churn.\n", current_churn_round, rounds_finished + 1);
           gets_completed = 0;
           gets_failed = 0;
-          current_churn_round++;
 
           if (dhtlog_handle != NULL)
             dhtlog_handle->insert_round(DHT_ROUND_CHURN, rounds_finished);
@@ -1518,9 +1586,6 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
           gets_completed = 0;
           gets_failed = 0;
           GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Round %u of %llu finished, scheduling next round.\n", rounds_finished, total_rounds);
-          /** Make sure we only get here after churning appropriately */
-          GNUNET_assert(current_churn_round == churn_rounds);
-          current_churn_round = 0;
 
           /** We reset the peer daemon for puts and gets on each disconnect, so all we need to do is start another round! */
           if (GNUNET_YES == in_dht_replication) /* Replication done in DHT, don't redo puts! */
@@ -1623,11 +1688,21 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
       GNUNET_SCHEDULER_cancel(sched, die_task);
       GNUNET_SCHEDULER_add_now(sched, &finish_testing, NULL);
     }
+
   if (test_get == NULL)
     return; /* End of the list */
 
   /* Set this here in case we are re-running gets */
   test_get->succeeded = GNUNET_NO;
+
+  if (GNUNET_YES != GNUNET_TESTING_daemon_running(test_get->daemon)) /* If the peer has been churned off, don't try issuing request from it! */
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Peer we should issue get request from is down, skipping.\n");
+      gets_failed++;
+      GNUNET_SCHEDULER_add_now (sched, &get_stop_finished, test_get);
+      GNUNET_SCHEDULER_add_now (sched, &do_get, test_get->next);
+      return;
+    }
 
   /* Check if more gets are outstanding than should be */
   if (outstanding_gets > max_outstanding_gets)
@@ -1692,6 +1767,7 @@ put_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
           topo_ctx->cont = &do_get;
           topo_ctx->cls = all_gets;
           topo_ctx->timeout = DEFAULT_GET_TIMEOUT;
+          topo_ctx->peers_seen = GNUNET_CONTAINER_multihashmap_create(num_peers);
           die_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_add(GNUNET_TIME_relative_add(DEFAULT_GET_TIMEOUT, all_get_timeout), DEFAULT_TOPOLOGY_CAPTURE_TIMEOUT),
                                                    &end_badly, "from do gets (put finished)");
           GNUNET_SCHEDULER_add_now(sched, &capture_current_topology, topo_ctx);
@@ -1720,6 +1796,14 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 
   if (test_put == NULL)
     return; /* End of list */
+
+  if (GNUNET_YES != GNUNET_TESTING_daemon_running(test_put->daemon)) /* If the peer has been churned off, don't try issuing request from it! */
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Peer we should issue put request at is down, skipping.\n");
+      update_meter(put_meter);
+      GNUNET_SCHEDULER_add_now (sched, &do_put, test_put->next);
+      return;
+    }
 
   for (i = 0; i < sizeof(data); i++)
     {
@@ -1979,11 +2063,13 @@ continue_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
           topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
           topo_ctx->current_iteration = i;
           topo_ctx->total_iterations = max;
+          topo_ctx->peers_seen = GNUNET_CONTAINER_multihashmap_create(num_peers);
           //fprintf(stderr, "scheduled topology iteration in %d minutes\n", i);
           GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, i * 3), &capture_current_topology, topo_ctx);
         }
       topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
       topo_ctx->cont = &setup_puts_and_gets;
+      topo_ctx->peers_seen = GNUNET_CONTAINER_multihashmap_create(num_peers);
       GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time), &capture_current_topology, topo_ctx);
     }
   else
@@ -2217,6 +2303,7 @@ topology_callback (void *cls,
         {
           topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
           topo_ctx->cont = &setup_malicious_peers;
+          topo_ctx->peers_seen = GNUNET_CONTAINER_multihashmap_create(num_peers);
           //topo_ctx->cont = &continue_puts_and_gets;
           GNUNET_SCHEDULER_add_now(sched, &capture_current_topology, topo_ctx);
         }
@@ -2493,6 +2580,7 @@ run (void *cls,
               GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Read %u rounds from churn file\n", churn_rounds);
               buf = &churn_data[count + 1];
               churn_array = GNUNET_malloc(sizeof(unsigned int) * churn_rounds);
+              break; /* Done with this part */
             }
         }
 

@@ -392,6 +392,8 @@ transmit_pending (void *cls, size_t size, void *buf)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "`%s': In transmit_pending\n", "DHT API");
 #endif
+  handle->th = NULL;
+
   if (buf == NULL)
     {
 #if DEBUG_DHT_API
@@ -401,8 +403,6 @@ transmit_pending (void *cls, size_t size, void *buf)
       finish (handle, GNUNET_SYSERR);
       return 0;
     }
-
-  handle->th = NULL;
 
   if (handle->current != NULL)
     {
@@ -437,6 +437,7 @@ process_pending_message (struct GNUNET_DHT_Handle *handle)
     return;                     /* action already pending */
   if (GNUNET_YES != try_connect (handle))
     {
+      handle->th = NULL;
       finish (handle, GNUNET_SYSERR);
       return;
     }
