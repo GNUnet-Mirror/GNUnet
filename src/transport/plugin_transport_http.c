@@ -720,12 +720,7 @@ void mhd_logger (void * arg, const char * fmt, va_list ap)
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"MHD: %s \n", text);
 }
 
-/**
- * Callback called by MHD when a connection is terminated
- * @param cls closure
- * @param connection the terminated connection
- * @httpSessionCache the mhd session reference
- */
+
 static void mhd_termination_cb (void *cls, struct MHD_Connection * connection, void **httpSessionCache)
 {
   struct Session * ps = *httpSessionCache;
@@ -1435,7 +1430,7 @@ static size_t curl_send_cb(void *stream, size_t size, size_t nmemb, void *ptr)
   if ( msg->pos == msg->size)
   {
 #if DEBUG_CONNECTIONS
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: Message with %u bytes sent, removing message from queue \n",ps, msg->pos);
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"Connection %X: Message with %u bytes sent, removing message from queue \n",ps, msg->pos);
 #endif
     /* Calling transmit continuation  */
     if (NULL != ps->pending_msgs_tail->transmit_cont)
@@ -1727,9 +1722,9 @@ static int curl_schedule(struct Plugin *plugin)
  */
 int curl_logger (CURL * curl, curl_infotype type , char * data, size_t size , void * cls)
 {
-	char * text = GNUNET_malloc(size+2);
 	if (type == CURLINFO_TEXT)
 	{
+		char * text = GNUNET_malloc(size+2);
 		memcpy(text,data,size);
 		if (text[size-1] == '\n')
 			text[size] = '\0';
@@ -2649,15 +2644,18 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 	  plugin->bind4_address->sin_family = AF_INET;
 	  plugin->bind4_address->sin_port = htons (port);
 
-	  if (inet_pton(AF_INET,plugin->bind_hostname, &plugin->bind4_address->sin_addr)<=0)
+	  if (plugin->bind_hostname!=NULL)
 	  {
-		  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-						   component_name,
-						   _("Misconfigured address to bind to in configuration!\n"));
-		  GNUNET_free(plugin->bind4_address);
-		  GNUNET_free(plugin->bind_hostname);
-		  plugin->bind_hostname = NULL;
-		  plugin->bind4_address = NULL;
+		  if (inet_pton(AF_INET,plugin->bind_hostname, &plugin->bind4_address->sin_addr)<=0)
+		  {
+			  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+							   component_name,
+							   _("Misconfigured address to bind to in configuration!\n"));
+			  GNUNET_free(plugin->bind4_address);
+			  GNUNET_free(plugin->bind_hostname);
+			  plugin->bind_hostname = NULL;
+			  plugin->bind4_address = NULL;
+		  }
 	  }
   }
 
@@ -2673,16 +2671,18 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 		  plugin->bind6_address = GNUNET_malloc(sizeof(struct sockaddr_in6));
 		  plugin->bind6_address->sin6_family = AF_INET6;
 		  plugin->bind6_address->sin6_port = htons (port);
-
-		  if (inet_pton(AF_INET6,plugin->bind_hostname, &plugin->bind6_address->sin6_addr)<=0)
+		  if (plugin->bind_hostname!=NULL)
 		  {
-			  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-							   component_name,
-							   _("Misconfigured address to bind to in configuration!\n"));
-			  GNUNET_free(plugin->bind6_address);
-			  GNUNET_free(plugin->bind_hostname);
-			  plugin->bind_hostname = NULL;
-			  plugin->bind6_address = NULL;
+			  if (inet_pton(AF_INET6,plugin->bind_hostname, &plugin->bind6_address->sin6_addr)<=0)
+			  {
+				  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+								   component_name,
+								   _("Misconfigured address to bind to in configuration!\n"));
+				  GNUNET_free(plugin->bind6_address);
+				  GNUNET_free(plugin->bind_hostname);
+				  plugin->bind_hostname = NULL;
+				  plugin->bind6_address = NULL;
+			  }
 		  }
 	  }
   }
