@@ -1398,6 +1398,7 @@ static void churn_complete (void *cls, const char *emsg)
   struct GNUNET_TESTING_Daemon *temp_daemon;
   struct TopologyIteratorContext *topo_ctx;
   struct GNUNET_TIME_Relative calc_timeout;
+  int count_added;
 
   if (emsg != NULL)
     {
