@@ -696,6 +696,25 @@ GNUNET_TESTING_daemon_continue_startup(struct GNUNET_TESTING_Daemon *daemon)
   daemon->phase = SP_TOPOLOGY_SETUP;
 }
 
+/**
+ * Check whether the given daemon is running.
+ *
+ * @param daemon the daemon to check
+ *
+ * @return GNUNET_YES if the daemon is up, GNUNET_NO if the
+ *         daemon is down, GNUNET_SYSERR on error.
+ */
+int
+GNUNET_TESTING_daemon_running (struct GNUNET_TESTING_Daemon *daemon)
+{
+  if (daemon == NULL)
+    return GNUNET_SYSERR;
+
+  if (daemon->running == GNUNET_YES)
+    return GNUNET_YES;
+  return GNUNET_NO;
+}
+
 
 /**
  * Start a peer that has previously been stopped using the daemon_stop

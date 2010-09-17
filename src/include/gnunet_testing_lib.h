@@ -448,6 +448,17 @@ void
 GNUNET_TESTING_daemon_continue_startup(struct GNUNET_TESTING_Daemon *daemon);
 
 /**
+ * Check whether the given daemon is running.
+ *
+ * @param daemon the daemon to check
+ *
+ * @return GNUNET_YES if the daemon is up, GNUNET_NO if the
+ *         daemon is down, GNUNET_SYSERR on error.
+ */
+int
+GNUNET_TESTING_daemon_running (struct GNUNET_TESTING_Daemon *daemon);
+
+/**
  * Restart (stop and start) a GNUnet daemon.
  *
  * @param d the daemon that should be restarted
