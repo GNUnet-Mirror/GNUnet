@@ -38,23 +38,6 @@
 #define BLOOMFILTER_K 16
 
 /**
- * Mingle hash with the mingle_number to produce different bits.
- */
-static void
-mingle_hash (const GNUNET_HashCode * in,
-	     int32_t mingle_number, 
-	     GNUNET_HashCode * hc)
-{
-  GNUNET_HashCode m;
-
-  GNUNET_CRYPTO_hash (&mingle_number, 
-		      sizeof (int32_t), 
-		      &m);
-  GNUNET_CRYPTO_hash_xor (&m, in, hc);
-}
-
-
-/**
  * Function called to validate a reply or a request.  For
  * request evaluation, simply pass "NULL" for the reply_block.
  * Note that it is assumed that the reply has already been 
@@ -113,7 +96,7 @@ block_plugin_fs_evaluate (void *cls,
       GNUNET_CRYPTO_hash (reply_block,
 			  reply_block_size,
 			  &chash);
-      mingle_hash (&chash, bf_mutator, &mhash);
+      GNUNET_BLOCK_mingle_hash (&chash, bf_mutator, &mhash);
       if (NULL != *bf)
 	{
 	  if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (*bf,
@@ -154,7 +137,7 @@ block_plugin_fs_evaluate (void *cls,
       GNUNET_CRYPTO_hash (reply_block,
 			  reply_block_size,
 			  &chash);
-      mingle_hash (&chash, bf_mutator, &mhash);
+      GNUNET_BLOCK_mingle_hash (&chash, bf_mutator, &mhash);
       if (NULL != *bf)
 	{
 	  if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (*bf,

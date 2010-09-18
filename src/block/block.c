@@ -46,6 +46,7 @@ struct Plugin
   struct GNUNET_BLOCK_PluginFunctions *api;
 };
 
+
 /**
  * Handle to an initialized block library.
  */
@@ -61,6 +62,27 @@ struct GNUNET_BLOCK_Context
    */ 
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 };
+
+
+/**
+ * Mingle hash with the mingle_number to produce different bits.
+ * 
+ * @param in original hash code
+ * @param mingle_number number for hash permutation
+ * @param hc where to store the result.
+ */
+void
+GNUNET_BLOCK_mingle_hash (const GNUNET_HashCode * in,
+			  int32_t mingle_number, 
+			  GNUNET_HashCode * hc)
+{
+  GNUNET_HashCode m;
+
+  GNUNET_CRYPTO_hash (&mingle_number, 
+		      sizeof (int32_t), 
+		      &m);
+  GNUNET_CRYPTO_hash_xor (&m, in, hc);
+}
 
 
 /**
