@@ -120,8 +120,11 @@ block_plugin_fs_evaluate (void *cls,
       if (reply_block == NULL)
 	return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
       nsid = xquery;
-      if (reply_block_size < sizeof (struct NBlock))
-	return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+      if (reply_block_size < sizeof (struct SBlock))
+	{
+	  GNUNET_break_op (0);
+	  return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+	}
       sb = reply_block;
       GNUNET_CRYPTO_hash (&sb->subspace,
 			  sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
