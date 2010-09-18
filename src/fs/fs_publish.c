@@ -1639,6 +1639,7 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
   char *kbe;
   char *sptr;
 
+  GNUNET_assert (NULL != uri);
   pkc = GNUNET_malloc (sizeof (struct PublishKskContext));
   pkc->h = h;
   pkc->expirationTime = expirationTime;

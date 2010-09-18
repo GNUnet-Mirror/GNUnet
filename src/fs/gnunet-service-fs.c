@@ -1787,23 +1787,6 @@ add_to_pending_messages_for_peer (struct ConnectedPeer *cp,
 
 
 /**
- * Mingle hash with the mingle_number to produce different bits.
- */
-static void
-mingle_hash (const GNUNET_HashCode * in,
-	     int32_t mingle_number, 
-	     GNUNET_HashCode * hc)
-{
-  GNUNET_HashCode m;
-
-  GNUNET_CRYPTO_hash (&mingle_number, 
-		      sizeof (int32_t), 
-		      &m);
-  GNUNET_CRYPTO_hash_xor (&m, in, hc);
-}
-
-
-/**
  * Test if the load on this peer is too high
  * to even consider processing the query at
  * all.
@@ -1965,7 +1948,9 @@ refresh_bloomfilter (struct PendingRequest *pr)
 					      BLOOMFILTER_K);
   for (i=0;i<pr->replies_seen_off;i++)
     {
-      mingle_hash (&pr->replies_seen[i], pr->mingle, &mhash);
+      GNUNET_BLOCK_mingle_hash (&pr->replies_seen[i],
+				pr->mingle,
+				&mhash);
       GNUNET_CONTAINER_bloomfilter_add (pr->bf, &mhash);
     }
 }
@@ -2534,8 +2519,7 @@ process_reply (void *cls,
   struct PutMessage *pm;
   struct ConnectedPeer *cp;
   struct GNUNET_TIME_Relative cur_delay;
-  GNUNET_HashCode chash;
-  GNUNET_HashCode mhash;
+  enum GNUNET_BLOCK_EvaluationResult eval;
   size_t msize;
 
 #if DEBUG_FS
@@ -2581,9 +2565,6 @@ process_reply (void *cls,
 	  GNUNET_SERVER_client_keep (pr->client_request_list->client_list->client);
 	}
     }
-  GNUNET_CRYPTO_hash (prq->data,
-		      prq->size,
-		      &chash);
   switch (prq->type)
     {
     case GNUNET_BLOCK_TYPE_DBLOCK:
@@ -2617,39 +2598,43 @@ process_reply (void *cls,
 	  GNUNET_break (0);
 	  return GNUNET_YES;
 	}
-      if (0 != memcmp (pr->namespace,
-		       &prq->namespace,
-		       sizeof (GNUNET_HashCode)))
+      eval = GNUNET_BLOCK_evaluate (block_ctx,
+				    prq->type,
+				    key,
+				    &pr->bf,
+				    pr->mingle,
+				    pr->namespace, sizeof (GNUNET_HashCode),
+				    prq->data,
+				    prq->size);
+      switch (eval)
 	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		      _("Reply mismatched in terms of namespace.  Discarded.\n"));
-	  return GNUNET_YES; /* wrong namespace */	
-	}
-      /* then: fall-through! */
-    case GNUNET_BLOCK_TYPE_KBLOCK:
-    case GNUNET_BLOCK_TYPE_NBLOCK:
-      if (pr->bf != NULL) 
-	{
-	  mingle_hash (&chash, pr->mingle, &mhash);
-	  if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (pr->bf,
-							       &mhash))
-	    {
-	      GNUNET_STATISTICS_update (stats,
-					gettext_noop ("# duplicate replies discarded (bloomfilter)"),
-					1,
-					GNUNET_NO);
-#if DEBUG_FS
-	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-			  "Duplicate response `%s', discarding.\n",
-			  GNUNET_h2s (&mhash));
-#endif
-	      return GNUNET_YES; /* duplicate */
-	    }
+	case GNUNET_BLOCK_EVALUATION_OK_MORE:
+	  break;
+	case GNUNET_BLOCK_EVALUATION_OK_LAST:
+	  break;
+	case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# duplicate replies discarded (bloomfilter)"),
+				    1,
+				    GNUNET_NO);
 #if DEBUG_FS
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "New response `%s', adding to filter.\n",
+		      "Duplicate response `%s', discarding.\n",
 		      GNUNET_h2s (&mhash));
 #endif
+	  return GNUNET_YES; /* duplicate */
+	case GNUNET_BLOCK_EVALUATION_RESULT_INVALID:
+	  return GNUNET_YES; /* wrong namespace */	
+	case GNUNET_BLOCK_EVALUATION_REQUEST_VALID:
+	  GNUNET_break (0);
+	  return GNUNET_YES;
+        case GNUNET_BLOCK_EVALUATION_REQUEST_INVALID:
+          GNUNET_break (0);
+          return GNUNET_YES;
+	case GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED:
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      _("Block library does not support FS blocks\n"));
+	  return GNUNET_NO;
 	}
       if (pr->client_request_list != NULL)
 	{
@@ -2657,13 +2642,64 @@ process_reply (void *cls,
 	    GNUNET_array_grow (pr->replies_seen,
 			       pr->replies_seen_size,
 			       pr->replies_seen_size * 2 + 4);	
-  	    pr->replies_seen[pr->replies_seen_off++] = chash;	      
+  	    GNUNET_CRYPTO_hash (prq->data,
+				prq->size,
+		                &pr->replies_seen[pr->replies_seen_off++]);	      
+	    refresh_bloomfilter (pr);
 	}
-      if ( (pr->bf == NULL) ||
-	   (pr->client_request_list != NULL) )
-	refresh_bloomfilter (pr);
-      GNUNET_CONTAINER_bloomfilter_add (pr->bf,
-					&mhash);
+      break;
+    case GNUNET_BLOCK_TYPE_KBLOCK:
+    case GNUNET_BLOCK_TYPE_NBLOCK:
+      eval = GNUNET_BLOCK_evaluate (block_ctx,
+				    prq->type,
+				    key,
+				    &pr->bf,
+				    pr->mingle,
+				    NULL, 0,
+				    prq->data,
+				    prq->size);
+      switch (eval)
+	{
+	case GNUNET_BLOCK_EVALUATION_OK_MORE:
+	  break;
+	case GNUNET_BLOCK_EVALUATION_OK_LAST:
+	  break;
+	case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# duplicate replies discarded (bloomfilter)"),
+				    1,
+				    GNUNET_NO);
+#if DEBUG_FS
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Duplicate response `%s', discarding.\n",
+		      GNUNET_h2s (&mhash));
+#endif
+	  return GNUNET_YES; /* duplicate */
+	case GNUNET_BLOCK_EVALUATION_RESULT_INVALID:
+	  GNUNET_break_op (0);
+	  return GNUNET_YES;
+	case GNUNET_BLOCK_EVALUATION_REQUEST_VALID:
+	  GNUNET_break (0);
+	  return GNUNET_YES;
+        case GNUNET_BLOCK_EVALUATION_REQUEST_INVALID:
+          GNUNET_break (0);
+          return GNUNET_YES;
+	case GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED:
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      _("Block library does not support FS blocks\n"));
+	  return GNUNET_NO;
+	}
+      if (pr->client_request_list != NULL)
+	{
+	  if (pr->replies_seen_size == pr->replies_seen_off)
+	    GNUNET_array_grow (pr->replies_seen,
+			       pr->replies_seen_size,
+			       pr->replies_seen_size * 2 + 4);	
+  	    GNUNET_CRYPTO_hash (prq->data,
+				prq->size,
+		                &pr->replies_seen[pr->replies_seen_off++]);	      
+	    refresh_bloomfilter (pr);
+	}
       break;
     default:
       GNUNET_break (0);
@@ -3027,9 +3063,9 @@ process_local_reply (void *cls,
     }
   /* check for duplicates */
   GNUNET_CRYPTO_hash (data, size, &dhash);
-  mingle_hash (&dhash, 
-	       pr->mingle,
-	       &mhash);
+  GNUNET_BLOCK_mingle_hash (&dhash, 
+			    pr->mingle,
+			    &mhash);
   if ( (pr->bf != NULL) &&
        (GNUNET_YES ==
 	GNUNET_CONTAINER_bloomfilter_test (pr->bf,
