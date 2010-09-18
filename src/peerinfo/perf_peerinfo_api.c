@@ -178,7 +178,7 @@ check ()
                                  "-c", "test_peerinfo_api_data.conf", NULL);
 #endif
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-peerinfo-api", "nohelp",
+                      argv, "perf-peerinfo-api", "nohelp",
                       options, &run, &ok);
   fprintf (stderr,
 	   "Received %u/%u calls before timeout\n",
@@ -201,7 +201,7 @@ main (int argc, char *argv[])
 {
   int ret = 0;
 
-  GNUNET_log_setup ("test_peerinfo_api",
+  GNUNET_log_setup ("perf_peerinfo_api",
 #if DEBUG_PEERINFO
                     "DEBUG",
 #else
@@ -213,4 +213,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of test_peerinfo_hammer.c */
+/* end of perf_peerinfo_api.c */
