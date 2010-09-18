@@ -179,13 +179,13 @@ create_indices (sqlite3 * dbh)
 
 
 
-#if 1
+#if 0
 #define CHECK(a) GNUNET_break(a)
 #define ENULL NULL
 #else
 #define ENULL &e
 #define ENULL_DEFINED 1
-#define CHECK(a) if (! a) { GNUNET_log(GNUNET_ERROR_TYPE_ERRROR, "%s\n", e); sqlite3_free(e); }
+#define CHECK(a) if (! a) { GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "%s\n", e); sqlite3_free(e); }
 #endif
 
 
@@ -1498,6 +1498,9 @@ sqlite_plugin_get_size (void *cls)
   sqlite3_stmt *stmt;
   uint64_t pages;
   uint64_t page_size;
+#if ENULL_DEFINED
+  char *e;
+#endif
 
   if (SQLITE_VERSION_NUMBER < 3006000)
     {
