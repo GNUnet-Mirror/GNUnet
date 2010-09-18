@@ -2992,6 +2992,8 @@ process_local_reply (void *cls,
 	GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
       return;
     }
+
+  /* FIXME: use block lib here! */
   /* check for duplicates */
   GNUNET_CRYPTO_hash (data, size, &dhash);
   GNUNET_BLOCK_mingle_hash (&dhash, 
