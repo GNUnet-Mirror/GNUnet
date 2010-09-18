@@ -136,6 +136,19 @@ struct GNUNET_BLOCK_Context;
 
 
 /**
+ * Mingle hash with the mingle_number to produce different bits.
+ * 
+ * @param in original hash code
+ * @param mingle_number number for hash permutation
+ * @param hc where to store the result.
+ */
+void
+GNUNET_BLOCK_mingle_hash (const GNUNET_HashCode * in,
+			  int32_t mingle_number, 
+			  GNUNET_HashCode * hc);
+
+
+/**
  * Create a block context.  Loads the block plugins.
  *
  * @param cfg configuration to use
