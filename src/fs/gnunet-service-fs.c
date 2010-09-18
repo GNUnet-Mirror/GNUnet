@@ -2565,11 +2565,19 @@ process_reply (void *cls,
 	  GNUNET_SERVER_client_keep (pr->client_request_list->client_list->client);
 	}
     }
-  switch (prq->type)
+  eval = GNUNET_BLOCK_evaluate (block_ctx,
+				prq->type,
+				key,
+				&pr->bf,
+				pr->mingle,
+				pr->namespace, (pr->namespace != NULL) ? sizeof (GNUNET_HashCode) : 0,
+				prq->data,
+				prq->size);
+  switch (eval)
     {
-    case GNUNET_BLOCK_TYPE_DBLOCK:
-    case GNUNET_BLOCK_TYPE_IBLOCK:
-      /* only possible reply, stop requesting! */
+    case GNUNET_BLOCK_EVALUATION_OK_MORE:
+      break;
+    case GNUNET_BLOCK_EVALUATION_OK_LAST:
       while (NULL != pr->pending_head)
 	destroy_pending_message_list_entry (pr->pending_head);
       if (pr->qe != NULL)
@@ -2577,7 +2585,7 @@ process_reply (void *cls,
 	  if (pr->client_request_list != NULL)
 	    GNUNET_SERVER_receive_done (pr->client_request_list->client_list->client, 
 					GNUNET_YES);
- 	  GNUNET_DATASTORE_cancel (pr->qe);
+	  GNUNET_DATASTORE_cancel (pr->qe);
 	  pr->qe = NULL;
 	}
       pr->do_remove = GNUNET_YES;
@@ -2592,118 +2600,41 @@ process_reply (void *cls,
 							  key,
 							  pr));
       break;
-    case GNUNET_BLOCK_TYPE_SBLOCK:
-      if (pr->namespace == NULL)
-	{
-	  GNUNET_break (0);
-	  return GNUNET_YES;
-	}
-      eval = GNUNET_BLOCK_evaluate (block_ctx,
-				    prq->type,
-				    key,
-				    &pr->bf,
-				    pr->mingle,
-				    pr->namespace, sizeof (GNUNET_HashCode),
-				    prq->data,
-				    prq->size);
-      switch (eval)
-	{
-	case GNUNET_BLOCK_EVALUATION_OK_MORE:
-	  break;
-	case GNUNET_BLOCK_EVALUATION_OK_LAST:
-	  break;
-	case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
-	  GNUNET_STATISTICS_update (stats,
-				    gettext_noop ("# duplicate replies discarded (bloomfilter)"),
-				    1,
-				    GNUNET_NO);
+    case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# duplicate replies discarded (bloomfilter)"),
+				1,
+				GNUNET_NO);
 #if DEBUG_FS
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Duplicate response `%s', discarding.\n",
-		      GNUNET_h2s (&mhash));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Duplicate response `%s', discarding.\n",
+		  GNUNET_h2s (&mhash));
 #endif
-	  return GNUNET_YES; /* duplicate */
-	case GNUNET_BLOCK_EVALUATION_RESULT_INVALID:
-	  return GNUNET_YES; /* wrong namespace */	
-	case GNUNET_BLOCK_EVALUATION_REQUEST_VALID:
-	  GNUNET_break (0);
-	  return GNUNET_YES;
-        case GNUNET_BLOCK_EVALUATION_REQUEST_INVALID:
-          GNUNET_break (0);
-          return GNUNET_YES;
-	case GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED:
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		      _("Block library does not support FS blocks\n"));
-	  return GNUNET_NO;
-	}
-      if (pr->client_request_list != NULL)
-	{
-	  if (pr->replies_seen_size == pr->replies_seen_off)
-	    GNUNET_array_grow (pr->replies_seen,
-			       pr->replies_seen_size,
-			       pr->replies_seen_size * 2 + 4);	
-  	    GNUNET_CRYPTO_hash (prq->data,
-				prq->size,
-		                &pr->replies_seen[pr->replies_seen_off++]);	      
-	    refresh_bloomfilter (pr);
-	}
-      break;
-    case GNUNET_BLOCK_TYPE_KBLOCK:
-    case GNUNET_BLOCK_TYPE_NBLOCK:
-      eval = GNUNET_BLOCK_evaluate (block_ctx,
-				    prq->type,
-				    key,
-				    &pr->bf,
-				    pr->mingle,
-				    NULL, 0,
-				    prq->data,
-				    prq->size);
-      switch (eval)
-	{
-	case GNUNET_BLOCK_EVALUATION_OK_MORE:
-	  break;
-	case GNUNET_BLOCK_EVALUATION_OK_LAST:
-	  break;
-	case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
-	  GNUNET_STATISTICS_update (stats,
-				    gettext_noop ("# duplicate replies discarded (bloomfilter)"),
-				    1,
-				    GNUNET_NO);
-#if DEBUG_FS
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Duplicate response `%s', discarding.\n",
-		      GNUNET_h2s (&mhash));
-#endif
-	  return GNUNET_YES; /* duplicate */
-	case GNUNET_BLOCK_EVALUATION_RESULT_INVALID:
-	  GNUNET_break_op (0);
-	  return GNUNET_YES;
-	case GNUNET_BLOCK_EVALUATION_REQUEST_VALID:
-	  GNUNET_break (0);
-	  return GNUNET_YES;
-        case GNUNET_BLOCK_EVALUATION_REQUEST_INVALID:
-          GNUNET_break (0);
-          return GNUNET_YES;
-	case GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED:
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		      _("Block library does not support FS blocks\n"));
-	  return GNUNET_NO;
-	}
-      if (pr->client_request_list != NULL)
-	{
-	  if (pr->replies_seen_size == pr->replies_seen_off)
-	    GNUNET_array_grow (pr->replies_seen,
-			       pr->replies_seen_size,
-			       pr->replies_seen_size * 2 + 4);	
-  	    GNUNET_CRYPTO_hash (prq->data,
-				prq->size,
-		                &pr->replies_seen[pr->replies_seen_off++]);	      
-	    refresh_bloomfilter (pr);
-	}
-      break;
-    default:
+      return GNUNET_YES; /* duplicate */
+    case GNUNET_BLOCK_EVALUATION_RESULT_INVALID:
+      return GNUNET_YES; /* wrong namespace */	
+    case GNUNET_BLOCK_EVALUATION_REQUEST_VALID:
       GNUNET_break (0);
       return GNUNET_YES;
+    case GNUNET_BLOCK_EVALUATION_REQUEST_INVALID:
+      GNUNET_break (0);
+      return GNUNET_YES;
+    case GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED:
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Unsupported block type %u\n"),
+		  prq->type);
+      return GNUNET_NO;
+    }
+  if (pr->client_request_list != NULL)
+    {
+      if (pr->replies_seen_size == pr->replies_seen_off)
+	GNUNET_array_grow (pr->replies_seen,
+			   pr->replies_seen_size,
+			   pr->replies_seen_size * 2 + 4);	
+      GNUNET_CRYPTO_hash (prq->data,
+			  prq->size,
+			  &pr->replies_seen[pr->replies_seen_off++]);	      
+      refresh_bloomfilter (pr);
     }
   prq->priority += pr->remaining_priority;
   pr->remaining_priority = 0;
@@ -3262,18 +3193,6 @@ handle_p2p_get (void *cls,
     }
   gm = (const struct GetMessage*) message;
   type = ntohl (gm->type);
-  switch (type)
-    {
-    case GNUNET_BLOCK_TYPE_ANY:
-    case GNUNET_BLOCK_TYPE_DBLOCK:
-    case GNUNET_BLOCK_TYPE_IBLOCK:
-    case GNUNET_BLOCK_TYPE_KBLOCK:
-    case GNUNET_BLOCK_TYPE_SBLOCK:
-      break;
-    default:
-      GNUNET_break_op (0);
-      return GNUNET_SYSERR;
-    }
   bm = ntohl (gm->hash_bitmap);
   bits = 0;
   while (bm > 0)
@@ -3565,22 +3484,6 @@ handle_start_search (void *cls,
 	      GNUNET_h2s (&sm->query),
 	      (unsigned int) type);
 #endif
-  switch (type)
-    {
-    case GNUNET_BLOCK_TYPE_ANY:
-    case GNUNET_BLOCK_TYPE_DBLOCK:
-    case GNUNET_BLOCK_TYPE_IBLOCK:
-    case GNUNET_BLOCK_TYPE_KBLOCK:
-    case GNUNET_BLOCK_TYPE_SBLOCK:
-    case GNUNET_BLOCK_TYPE_NBLOCK:
-      break;
-    default:
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client,
-				  GNUNET_SYSERR);
-      return;
-    }  
-
   cl = client_list;
   while ( (cl != NULL) &&
 	  (cl->client != client) )
