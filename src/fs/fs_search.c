@@ -814,7 +814,7 @@ process_result (struct GNUNET_FS_SearchContext *sc,
     }
   switch (type)
     {
-    case GNUNET_BLOCK_TYPE_KBLOCK:
+    case GNUNET_BLOCK_TYPE_FS_KBLOCK:
       if (! GNUNET_FS_uri_test_ksk (sc->uri))
 	{
 	  GNUNET_break (0);
@@ -827,7 +827,7 @@ process_result (struct GNUNET_FS_SearchContext *sc,
 	}
       process_kblock (sc, data, size);
       break;
-    case GNUNET_BLOCK_TYPE_SBLOCK:
+    case GNUNET_BLOCK_TYPE_FS_SBLOCK:
       if (! GNUNET_FS_uri_test_sks (sc->uri))
 	{
 	  GNUNET_break (0);
@@ -840,7 +840,7 @@ process_result (struct GNUNET_FS_SearchContext *sc,
 	}
       process_sblock (sc, data, size);
       break;
-    case GNUNET_BLOCK_TYPE_NBLOCK:
+    case GNUNET_BLOCK_TYPE_FS_NBLOCK:
       if (! GNUNET_FS_uri_test_ksk (sc->uri))
 	{
 	  GNUNET_break (0);
@@ -854,9 +854,9 @@ process_result (struct GNUNET_FS_SearchContext *sc,
       process_nblock (sc, data, size);
       break;
     case GNUNET_BLOCK_TYPE_ANY:
-    case GNUNET_BLOCK_TYPE_DBLOCK:
-    case GNUNET_BLOCK_TYPE_ONDEMAND:
-    case GNUNET_BLOCK_TYPE_IBLOCK:
+    case GNUNET_BLOCK_TYPE_FS_DBLOCK:
+    case GNUNET_BLOCK_TYPE_FS_ONDEMAND:
+    case GNUNET_BLOCK_TYPE_FS_IBLOCK:
       GNUNET_break (0);
       break;
     default:
@@ -981,7 +981,7 @@ transmit_search_request (void *cls,
 	sm->options = htonl (1);
       else
 	sm->options = htonl (0);      
-      sm->type = htonl (GNUNET_BLOCK_TYPE_SBLOCK);
+      sm->type = htonl (GNUNET_BLOCK_TYPE_FS_SBLOCK);
       sm->anonymity_level = htonl (sc->anonymity);
       sm->target = sc->uri->data.sks.namespace;
       identifier = sc->uri->data.sks.identifier;

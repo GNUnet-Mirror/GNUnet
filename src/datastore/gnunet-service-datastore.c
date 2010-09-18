@@ -1038,8 +1038,8 @@ check_present (void *cls,
       GNUNET_free (pc);
       return GNUNET_SYSERR;
     }
-  if ( (GNUNET_BLOCK_TYPE_DBLOCK == type) ||
-       (GNUNET_BLOCK_TYPE_IBLOCK == type) ||
+  if ( (GNUNET_BLOCK_TYPE_FS_DBLOCK == type) ||
+       (GNUNET_BLOCK_TYPE_FS_IBLOCK == type) ||
        ( (size == ntohl(dm->size)) &&
 	 (0 == memcmp (&dm[1],
 		       data,

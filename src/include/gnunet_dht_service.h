@@ -28,6 +28,7 @@
 #define GNUNET_DHT_SERVICE_H
 
 #include "gnunet_util_lib.h"
+#include "gnunet_block_lib.h"
 #include "gnunet_hello_lib.h"
 
 #ifdef __cplusplus
@@ -112,7 +113,7 @@ GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle);
 void
 GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
                 const GNUNET_HashCode * key,
-                uint32_t type,
+                enum GNUNET_BLOCK_Type type,
                 uint32_t size,
                 const char *data,
                 struct GNUNET_TIME_Absolute exp,
@@ -133,11 +134,11 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
  * @param data pointer to the result data
  */
 typedef void (*GNUNET_DHT_GetIterator)(void *cls,
-				    struct GNUNET_TIME_Absolute exp,
-				    const GNUNET_HashCode * key,
-				    uint32_t type,
-				    uint32_t size,
-				    const void *data);
+				       struct GNUNET_TIME_Absolute exp,
+				       const GNUNET_HashCode * key,
+				       enum GNUNET_BLOCK_Type type,
+				       uint32_t size,
+				       const void *data);
 
 
 
@@ -147,7 +148,7 @@ typedef void (*GNUNET_DHT_GetIterator)(void *cls,
  * @param handle handle to the DHT service
  * @param timeout timeout for this request to be sent to the
  *        service (this is NOT a timeout for receiving responses)
- * @param type expected type of the response object (GNUNET_BLOCK_TYPE_*)
+ * @param type expected type of the response object (GNUNET_BLOCK_TYPE_FS_*)
  * @param key the key to look up
  * @param iter function to call on each result
  * @param iter_cls closure for iter
@@ -160,7 +161,7 @@ typedef void (*GNUNET_DHT_GetIterator)(void *cls,
 struct GNUNET_DHT_GetHandle *
 GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
                       struct GNUNET_TIME_Relative timeout,
-                      uint32_t type,
+                      enum GNUNET_BLOCK_Type type,
                       const GNUNET_HashCode * key,
                       GNUNET_DHT_GetIterator iter,
                       void *iter_cls,

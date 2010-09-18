@@ -207,7 +207,7 @@ unindex_process (void *cls,
   const void *data;
   struct OnDemandBlock odb;
 
-  if (type != GNUNET_BLOCK_TYPE_DBLOCK)
+  if (type != GNUNET_BLOCK_TYPE_FS_DBLOCK)
     {
       size = block_size;
       data = block;

@@ -385,8 +385,8 @@ void GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder * te)
 	      &mychk->query,
 	      te->publish_offset,
 	      (te->current_depth == te->chk_tree_depth) 
-	      ? GNUNET_BLOCK_TYPE_DBLOCK 
-	      : GNUNET_BLOCK_TYPE_IBLOCK,
+	      ? GNUNET_BLOCK_TYPE_FS_DBLOCK 
+	      : GNUNET_BLOCK_TYPE_FS_IBLOCK,
 	      enc,
 	      pt_size);
   if (NULL != te->progress)

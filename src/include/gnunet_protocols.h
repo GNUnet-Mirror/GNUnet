@@ -514,6 +514,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_FS_PUT 138
 
+/**
+ * Peer asks us to stop migrating content towards it for a while.
+ */
+#define GNUNET_MESSAGE_TYPE_FS_MIGRATION_STOP 139
+
 
 /**
  * DHT Message Types

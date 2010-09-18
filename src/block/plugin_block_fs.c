@@ -74,8 +74,8 @@ block_plugin_fs_evaluate (void *cls,
 
   switch (type)
     {
-    case GNUNET_BLOCK_TYPE_DBLOCK:
-    case GNUNET_BLOCK_TYPE_IBLOCK:
+    case GNUNET_BLOCK_TYPE_FS_DBLOCK:
+    case GNUNET_BLOCK_TYPE_FS_IBLOCK:
       if (xquery_size != 0) 
 	{
 	  GNUNET_break_op (0);
@@ -84,8 +84,8 @@ block_plugin_fs_evaluate (void *cls,
       if (reply_block == NULL)
 	return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
       return GNUNET_BLOCK_EVALUATION_OK_LAST;
-    case GNUNET_BLOCK_TYPE_KBLOCK:
-    case GNUNET_BLOCK_TYPE_NBLOCK:
+    case GNUNET_BLOCK_TYPE_FS_KBLOCK:
+    case GNUNET_BLOCK_TYPE_FS_NBLOCK:
       if (xquery_size != 0) 
 	{
 	  GNUNET_break_op (0);
@@ -111,7 +111,7 @@ block_plugin_fs_evaluate (void *cls,
 	}
       GNUNET_CONTAINER_bloomfilter_add (*bf, &mhash);
       return GNUNET_BLOCK_EVALUATION_OK_MORE;
-    case GNUNET_BLOCK_TYPE_SBLOCK:
+    case GNUNET_BLOCK_TYPE_FS_SBLOCK:
       if (xquery_size != sizeof (GNUNET_HashCode)) 
 	{
 	  GNUNET_break_op (0);
@@ -133,8 +133,9 @@ block_plugin_fs_evaluate (void *cls,
 		       &sh,
 		       sizeof (GNUNET_HashCode)))
 	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		      _("Reply mismatched in terms of namespace.  Discarded.\n"));
+	  GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
+			   "block-fs",
+			   _("Reply mismatched in terms of namespace.  Discarded.\n"));
 	  return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
 	}
       GNUNET_CRYPTO_hash (reply_block,
@@ -185,11 +186,11 @@ block_plugin_fs_get_key (void *cls,
 
   switch (type)
     {
-    case GNUNET_BLOCK_TYPE_DBLOCK:
-    case GNUNET_BLOCK_TYPE_IBLOCK:
+    case GNUNET_BLOCK_TYPE_FS_DBLOCK:
+    case GNUNET_BLOCK_TYPE_FS_IBLOCK:
       GNUNET_CRYPTO_hash (block, block_size, key);
       return GNUNET_OK;
-    case GNUNET_BLOCK_TYPE_KBLOCK:
+    case GNUNET_BLOCK_TYPE_FS_KBLOCK:
       if (block_size < sizeof (struct KBlock))
 	{
 	  GNUNET_break_op (0);
@@ -218,7 +219,7 @@ block_plugin_fs_get_key (void *cls,
 			    sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
 			    key);
       return GNUNET_OK;
-    case GNUNET_BLOCK_TYPE_SBLOCK:
+    case GNUNET_BLOCK_TYPE_FS_SBLOCK:
       if (block_size < sizeof (struct SBlock))
 	{
 	  GNUNET_break_op (0);
@@ -243,7 +244,7 @@ block_plugin_fs_get_key (void *cls,
       if (key != NULL)
 	*key = sb->identifier;
       return GNUNET_OK;
-    case GNUNET_BLOCK_TYPE_NBLOCK:
+    case GNUNET_BLOCK_TYPE_FS_NBLOCK:
       if (block_size < sizeof (struct NBlock))
 	{
 	  GNUNET_break_op (0);
@@ -303,11 +304,11 @@ libgnunet_plugin_block_fs_init (void *cls)
 {
   static enum GNUNET_BLOCK_Type types[] = 
     {
-      GNUNET_BLOCK_TYPE_DBLOCK,
-      GNUNET_BLOCK_TYPE_IBLOCK,
-      GNUNET_BLOCK_TYPE_KBLOCK,
-      GNUNET_BLOCK_TYPE_SBLOCK,
-      GNUNET_BLOCK_TYPE_NBLOCK,
+      GNUNET_BLOCK_TYPE_FS_DBLOCK,
+      GNUNET_BLOCK_TYPE_FS_IBLOCK,
+      GNUNET_BLOCK_TYPE_FS_KBLOCK,
+      GNUNET_BLOCK_TYPE_FS_SBLOCK,
+      GNUNET_BLOCK_TYPE_FS_NBLOCK,
       GNUNET_BLOCK_TYPE_ANY /* end of list */
     };
   struct GNUNET_BLOCK_PluginFunctions *api;

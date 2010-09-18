@@ -2222,6 +2222,32 @@ struct PutMessage
 };
 
 
+/**
+ * Message send by a peer that wants to be excluded
+ * from migration for a while.
+ */
+struct MigrationStopMessage
+{
+  /**
+   * Message type will be 
+   * GNUNET_MESSAGE_TYPE_FS_MIGRATION_STOP.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Always zero.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * How long should the block last?
+   */
+  struct GNUNET_TIME_RelativeNBO duration;
+
+};
+
+
+
 #endif
 
 /* end of fs.h */

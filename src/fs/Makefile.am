@@ -96,6 +96,7 @@ gnunet_service_fs_SOURCES =  \
  gnunet-service-fs_indexing.c gnunet-service-fs_indexing.h 
 gnunet_service_fs_LDADD =  \
  $(top_builddir)/src/fs/libgnunetfs.la \
+ $(top_builddir)/src/dht/libgnunetdht.la \
  $(top_builddir)/src/block/libgnunetblock.la \
  $(top_builddir)/src/datastore/libgnunetdatastore.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \

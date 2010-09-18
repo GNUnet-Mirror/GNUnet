@@ -1132,7 +1132,7 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
 struct GNUNET_DHT_GetHandle *
 GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
                       struct GNUNET_TIME_Relative timeout,
-                      uint32_t type,
+                      enum GNUNET_BLOCK_Type type,
                       const GNUNET_HashCode * key,
                       GNUNET_DHT_GetIterator iter,
                       void *iter_cls,
@@ -1366,7 +1366,7 @@ GNUNET_DHT_find_peer_stop (struct GNUNET_DHT_FindPeerHandle *find_peer_handle,
 void
 GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
                 const GNUNET_HashCode * key,
-                uint32_t type,
+                enum GNUNET_BLOCK_Type type,
                 uint32_t size,
                 const char *data,
                 struct GNUNET_TIME_Absolute exp,
@@ -1422,3 +1422,5 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
 
   GNUNET_free (put_msg);
 }
+
+/* end of dht_api.c */

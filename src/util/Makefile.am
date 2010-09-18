@@ -48,6 +48,7 @@ libgnunetutil_la_SOURCES = \
   disk.h \
   getopt.c \
   getopt_helpers.c \
+  load.c \
   network.c \
   os_installation.c \
   os_load.c \

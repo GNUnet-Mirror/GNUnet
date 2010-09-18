@@ -13,8 +13,19 @@ endif
 lib_LTLIBRARIES = libgnunetblock.la
 
 plugin_LTLIBRARIES = \
+  libgnunet_plugin_block_dht.la \
   libgnunet_plugin_block_fs.la \
-  libgnunet_plugin_block_template.la 
+  libgnunet_plugin_block_template.la \
+  libgnunet_plugin_block_test.la 
+
+libgnunet_plugin_block_dht_la_SOURCES = \
+  plugin_block_dht.c
+libgnunet_plugin_block_dht_la_LIBADD = \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/block/libgnunetblock.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
+libgnunet_plugin_block_dht_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
 
 libgnunet_plugin_block_fs_la_SOURCES = \
   plugin_block_fs.c
@@ -29,6 +40,14 @@ libgnunet_plugin_block_template_la_SOURCES = \
 libgnunet_plugin_block_template_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
 libgnunet_plugin_block_template_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
+libgnunet_plugin_block_test_la_SOURCES = \
+  plugin_block_test.c
+libgnunet_plugin_block_test_la_LIBADD = \
+  $(top_builddir)/src/block/libgnunetblock.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
+libgnunet_plugin_block_test_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 

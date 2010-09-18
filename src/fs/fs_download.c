@@ -304,8 +304,8 @@ encrypt_existing_match (struct GNUNET_FS_DownloadContext *dc,
   prc.data = enc;
   prc.size = len;
   prc.type = (dc->treedepth == depth) 
-    ? GNUNET_BLOCK_TYPE_DBLOCK 
-    : GNUNET_BLOCK_TYPE_IBLOCK;
+    ? GNUNET_BLOCK_TYPE_FS_DBLOCK 
+    : GNUNET_BLOCK_TYPE_FS_IBLOCK;
   prc.query = chk->query;
   prc.do_store = do_store;
   process_result_with_request (&prc,
@@ -1423,9 +1423,9 @@ transmit_download_request (void *cls,
       else
 	sm->options = htonl (0);      
       if (dc->pending->depth == dc->treedepth)
-	sm->type = htonl (GNUNET_BLOCK_TYPE_DBLOCK);
+	sm->type = htonl (GNUNET_BLOCK_TYPE_FS_DBLOCK);
       else
-	sm->type = htonl (GNUNET_BLOCK_TYPE_IBLOCK);
+	sm->type = htonl (GNUNET_BLOCK_TYPE_FS_IBLOCK);
       sm->anonymity_level = htonl (dc->anonymity);
       sm->target = dc->target.hashPubKey;
       sm->query = dc->pending->chk.query;

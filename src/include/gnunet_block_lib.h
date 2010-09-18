@@ -50,39 +50,46 @@ enum GNUNET_BLOCK_Type
     /**
      * Data block (leaf) in the CHK tree.
      */
-    GNUNET_BLOCK_TYPE_DBLOCK = 1,
+    GNUNET_BLOCK_TYPE_FS_DBLOCK = 1,
 
     /**
      * Inner block in the CHK tree.
      */
-    GNUNET_BLOCK_TYPE_IBLOCK = 2,
+    GNUNET_BLOCK_TYPE_FS_IBLOCK = 2,
 
     /**
      * Type of a block representing a keyword search result.
      */
-    GNUNET_BLOCK_TYPE_KBLOCK = 3,
+    GNUNET_BLOCK_TYPE_FS_KBLOCK = 3,
 
     /**
      * Type of a block that is used to advertise content in a namespace.
      */
-    GNUNET_BLOCK_TYPE_SBLOCK = 4,
+    GNUNET_BLOCK_TYPE_FS_SBLOCK = 4,
 
     /**
      * Type of a block representing a block to be encoded on demand from disk.
      * Should never appear on the network directly.
      */
-    GNUNET_BLOCK_TYPE_ONDEMAND = 5,
+    GNUNET_BLOCK_TYPE_FS_ONDEMAND = 5,
 
     /**
      * Type of a block that is used to advertise a namespace.  
      */
-    GNUNET_BLOCK_TYPE_NBLOCK = 6,
+    GNUNET_BLOCK_TYPE_FS_NBLOCK = 6,
 
-    GNUNET_BLOCK_TYPE_TEST = 9999
+    /**
+     * Type of a block that contains a HELLO for a peer (for
+     * DHT find-peer operations).
+     */
+    GNUNET_BLOCK_TYPE_DHT_HELLO = 7,
+
+    /**
+     * Block for testing.
+     */
+    GNUNET_BLOCK_TYPE_TEST = 8
 
   };
-
-
 
 
 /**
