@@ -53,8 +53,8 @@
 #endif
 
 #define DEBUG_HTTP GNUNET_NO
-#define DEBUG_CURL GNUNET_YES
-#define DEBUG_MHD GNUNET_YES
+#define DEBUG_CURL GNUNET_NO
+#define DEBUG_MHD GNUNET_NO
 #define DEBUG_CONNECTIONS GNUNET_NO
 #define DEBUG_SESSION_SELECTION GNUNET_NO
 #define DEBUG_SCHEDULING GNUNET_NO
@@ -1722,9 +1722,10 @@ static int curl_schedule(struct Plugin *plugin)
  */
 int curl_logger (CURL * curl, curl_infotype type , char * data, size_t size , void * cls)
 {
+
 	if (type == CURLINFO_TEXT)
 	{
-		char * text = GNUNET_malloc(size+2);
+		char text[size+2];
 		memcpy(text,data,size);
 		if (text[size-1] == '\n')
 			text[size] = '\0';
@@ -1734,7 +1735,6 @@ int curl_logger (CURL * curl, curl_infotype type , char * data, size_t size , vo
 			text[size+1] = '\0';
 		}
 		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"CURL: Connection %X - %s", cls, text);
-		GNUNET_free(text);
 	}
 	return 0;
 }
