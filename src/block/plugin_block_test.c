@@ -69,9 +69,9 @@ block_plugin_test_evaluate (void *cls,
   if (type != GNUNET_BLOCK_TYPE_TEST)  
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
   if (xquery_size != 0)
-    GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
+    return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
   if (reply_block_size == 0)
-    GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
+    return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
 
   GNUNET_CRYPTO_hash (reply_block,
 		      reply_block_size,
