@@ -108,7 +108,6 @@ double
 GNUNET_LOAD_get_average (const struct GNUNET_LOAD_Value *load)
 {
   double n;
-  double avg;
   double sum_val_i;
 
   if (load->cummulative_request_count == 0)
