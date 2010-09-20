@@ -4135,19 +4135,23 @@ GNUNET_TESTING_daemons_vary (struct GNUNET_TESTING_PeerGroup *pg,
 			     GNUNET_TESTING_NotifyCompletion cb,
 			     void *cb_cls)
 {
+  struct ShutdownContext *shutdown_ctx;
+  struct ChurnRestartContext *startup_ctx;
   struct ChurnContext *churn_ctx;
 
   if (GNUNET_NO == desired_status)
     {
       if (NULL != pg->peers[offset].daemon)
 	{
+          shutdown_ctx = GNUNET_malloc(sizeof(struct ShutdownContext));
 	  churn_ctx = GNUNET_malloc(sizeof(struct ChurnContext));
 	  churn_ctx->num_to_start = 0;
 	  churn_ctx->num_to_stop = 1;
 	  churn_ctx->cb = cb;
-	  churn_ctx->cb_cls = cb_cls;  
+	  churn_ctx->cb_cls = cb_cls;
+	  shutdown_ctx->cb_cls = churn_ctx;
 	  GNUNET_TESTING_daemon_stop(pg->peers[offset].daemon, 
-				     timeout, &churn_stop_callback, churn_ctx, 
+				     timeout, &churn_stop_callback, shutdown_ctx,
 				     GNUNET_NO, GNUNET_YES);	 
 	}
     }
@@ -4155,13 +4159,15 @@ GNUNET_TESTING_daemons_vary (struct GNUNET_TESTING_PeerGroup *pg,
     {
       if (NULL == pg->peers[offset].daemon)
 	{
+          startup_ctx = GNUNET_malloc(sizeof(struct ChurnRestartContext));
 	  churn_ctx = GNUNET_malloc(sizeof(struct ChurnContext));
 	  churn_ctx->num_to_start = 1;
 	  churn_ctx->num_to_stop = 0;
 	  churn_ctx->cb = cb;
 	  churn_ctx->cb_cls = cb_cls;  
+	  startup_ctx->churn_ctx = churn_ctx;
 	  GNUNET_TESTING_daemon_start_stopped(pg->peers[offset].daemon, 
-					      timeout, &churn_start_callback, churn_ctx);
+					      timeout, &churn_start_callback, startup_ctx);
 	}
     }
   else
