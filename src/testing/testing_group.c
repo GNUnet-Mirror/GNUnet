@@ -365,7 +365,7 @@ struct PeerData
 
 
 /**
- * Data we keep per host.
+ * Linked list of per-host data.
  */
 struct HostData
 {
@@ -509,10 +509,14 @@ struct GNUNET_TESTING_PeerGroup
   void *notify_connection_cls;
 
   /**
-   * NULL-terminated array of information about
-   * hosts.
+   * Array of information about hosts.
    */
   struct HostData *hosts;
+
+  /**
+   * Number of hosts (size of HostData)
+   */
+  unsigned int num_hosts;
 
   /**
    * Array of "total" peers.
@@ -3571,7 +3575,7 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
   pg->peers = GNUNET_malloc (total * sizeof (struct PeerData));
   if (NULL != hostnames)
     {
-      off = 2;
+      off = 0;
       hostpos = hostnames;
       while (hostpos != NULL)
         {
@@ -3585,21 +3589,21 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
       while (hostpos != NULL)
         {
           pg->hosts[off].minport = LOW_PORT;
-          off++;
           pg->hosts[off].hostname = GNUNET_strdup(hostpos->hostname);
           if (hostpos->username != NULL)
             pg->hosts[off].username = GNUNET_strdup(hostpos->username);
           pg->hosts[off].sshport = hostpos->port;
           hostpos = hostpos->next;
+          off++;
         }
 
       if (off == 0)
         {
-          GNUNET_free (pg->hosts);
           pg->hosts = NULL;
         }
       hostcnt = off;
       minport = 0;
+      pg->num_hosts = off;
 
 #if NO_LL
       off = 2;
@@ -4279,11 +4283,12 @@ GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg,
         GNUNET_CONTAINER_multihashmap_destroy(pg->peers[off].blacklisted_peers);
     }
   GNUNET_free (pg->peers);
-  if (NULL != pg->hosts)
+  for (off = 0; off < pg->num_hosts; off++)
     {
-      GNUNET_free (pg->hosts[0].hostname);
-      GNUNET_free (pg->hosts);
+      GNUNET_free (pg->hosts[off].hostname);
+      GNUNET_free_non_null (pg->hosts[off].username);
     }
+  GNUNET_free_non_null (pg->hosts);
   GNUNET_free (pg);
 }
 
