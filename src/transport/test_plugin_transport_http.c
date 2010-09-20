@@ -41,8 +41,6 @@
 #include "gnunet_statistics_service.h"
 #include "transport.h"
 #include <curl/curl.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
 #define VERBOSE GNUNET_NO
 #define DEBUG_CURL GNUNET_NO
