@@ -2926,6 +2926,7 @@ handle_p2p_migration_stop (void *cls,
 			   uint32_t distance)
 {
   // FIXME!
+  return GNUNET_OK;
 }
 
 
