@@ -15,11 +15,11 @@ endif
 SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
   util \
+  hello \
   block \
   statistics \
   arm \
   $(MONKEY_DIR) \
-  hello \
   peerinfo \
   datacache \
   datastore \
