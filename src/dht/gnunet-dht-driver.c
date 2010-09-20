@@ -1503,7 +1503,7 @@ churn_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
     }
   //timeout = GNUNET_TIME_relative_multiply(seconds_per_peer_start, churn_up > 0 ? churn_up : churn_down);
   //timeout = GNUNET_TIME_relative_multiply (seconds_per_peer_start, churn_up > 0 ? churn_up : churn_down);
-  timeout = DEFAULT_TIMEOUT; /* FIXME: Lack of intelligent choice here */
+  timeout = GNUNET_TIME_relative_multiply(DEFAULT_TIMEOUT, 2); /* FIXME: Lack of intelligent choice here */
   find_peer_context = NULL;
   if (churn_up > 0) /* Only need to do find peer requests if we turned new peers on */
     {
@@ -2039,6 +2039,8 @@ setup_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   die_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, num_puts * 2),
                                            &end_badly, "from do puts");
   GNUNET_SCHEDULER_add_now (sched, &do_put, all_puts);
+  if (dhtlog_handle != NULL)
+    dhtlog_handle->insert_round(DHT_ROUND_NORMAL, rounds_finished);
 }
 
 /**
