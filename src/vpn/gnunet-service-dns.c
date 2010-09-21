@@ -61,12 +61,20 @@ void unhijack(unsigned short port) {
 
 void receive_query(void *cls, struct GNUNET_SERVER_Client *client, const struct GNUNET_MessageHeader *message)
 {
-	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received query!\n");
 	struct query_packet* pkt = (struct query_packet*)message;
-	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Of length %d\n", ntohs(pkt->hdr.size));
+	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received query of length %d\n", ntohs(pkt->hdr.size));
 	struct dns_pkt* dns = (struct dns_pkt*)pkt->data;
 
-	pkt_printf_dns(dns);
+	struct sockaddr_in dest;
+	memset(&dest, 0, sizeof dest);
+	dest.sin_port = htons(53);
+	dest.sin_addr.s_addr = pkt->orig_to;
+	/* TODO:
+ 	 * State merken, damit die Antwort korrekt zurückgeschickt werden kann
+ 	 */
+
+	int r = GNUNET_NETWORK_socket_sendto(mycls.dnsout, dns, ntohs(pkt->hdr.size) - sizeof(struct query_packet) + 1, (struct sockaddr*) &dest, sizeof dest);
+	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "send %d bytes to socket\n", r);
 
 	GNUNET_SERVER_receive_done(client, GNUNET_OK);
 }
