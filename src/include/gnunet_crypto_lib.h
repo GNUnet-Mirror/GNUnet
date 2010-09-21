@@ -484,6 +484,20 @@ void GNUNET_CRYPTO_hash_to_aes_key (const GNUNET_HashCode * hc,
 int GNUNET_CRYPTO_hash_get_bit (const GNUNET_HashCode * code,
                                 unsigned int bit);
 
+/**
+ * Determine how many low order bits match in two
+ * GNUNET_HashCodes.  i.e. - 010011 and 011111 share
+ * the first two lowest order bits, and therefore the
+ * return value is two (NOT XOR distance, nor how many
+ * bits match absolutely!).
+ *
+ * @param first the first hashcode
+ * @param second the hashcode to compare first to
+ *
+ * @return the number of bits that match
+ */
+unsigned int GNUNET_CRYPTO_hash_matching_bits(const GNUNET_HashCode *first, const GNUNET_HashCode *second);
+
 
 /**
  * Compare function for HashCodes, producing a total ordering
