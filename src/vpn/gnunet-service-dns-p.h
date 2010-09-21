@@ -19,4 +19,19 @@ struct query_packet_list {
 	struct query_packet pkt;
 };
 
+struct answer_packet {
+	struct GNUNET_MessageHeader hdr;
+
+	unsigned from:32 GNUNET_PACKED;
+	unsigned to:32 GNUNET_PACKED;
+	unsigned dst_port:16 GNUNET_PACKED;
+
+	unsigned char data[1];
+};
+struct answer_packet_list {
+	struct answer_packet_list* next GNUNET_PACKED;
+	struct answer_packet_list* prev GNUNET_PACKED;
+	struct answer_packet pkt;
+};
+
 #endif

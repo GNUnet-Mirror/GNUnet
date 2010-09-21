@@ -31,6 +31,7 @@
 #include "gnunet_protocols.h"
 #include "gnunet-vpn-packet.h"
 #include "gnunet-vpn-pretty-print.h"
+#include "gnunet_container_lib.h"
 
 struct dns_cls {
 	struct GNUNET_SCHEDULER_Handle *sched;
@@ -38,6 +39,9 @@ struct dns_cls {
 	struct GNUNET_NETWORK_Handle *dnsout;
 
 	unsigned short dnsoutport;
+
+	struct answer_packet_list *head;
+	struct answer_packet_list *tail;
 };
 static struct dns_cls mycls;
 
@@ -87,6 +91,27 @@ void receive_query(void *cls, struct GNUNET_SERVER_Client *client, const struct 
 	GNUNET_SERVER_receive_done(client, GNUNET_OK);
 }
 
+size_t send_answer(void* cls, size_t size, void* buf) {
+	struct answer_packet_list* query = mycls.head;
+	size_t len = ntohs(query->pkt.hdr.size);
+
+	GNUNET_assert(len <= size);
+
+	memcpy(buf, &query->pkt.hdr, len);
+
+	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sent %d bytes.\n", len);
+
+	GNUNET_CONTAINER_DLL_remove (mycls.head, mycls.tail, query);
+
+	GNUNET_free(query);
+
+	if (mycls.head != NULL) {
+		GNUNET_SERVER_notify_transmit_ready(cls, ntohs(mycls.head->pkt.hdr.size), GNUNET_TIME_UNIT_FOREVER_REL, &send_answer, cls);
+	}
+
+	return len;
+}
+
 static void read_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
 	unsigned char buf[65536];
 	struct dns_pkt* dns = (struct dns_pkt*)buf;
@@ -94,13 +119,34 @@ static void read_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
 	if (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)
 		return;
 
+	struct sockaddr_in addr;
+	memset(&addr, 0, sizeof addr);
+	unsigned int addrlen = sizeof addr;
+
 	int r;
-	r = GNUNET_NETWORK_socket_recv(mycls.dnsout, buf, 65536);
+	r = GNUNET_NETWORK_socket_recvfrom(mycls.dnsout, buf, 65536, (struct sockaddr*)&addr, &addrlen);
+
+	/* if (r < 0) TODO */
 
 	if (query_states[dns->id].valid == 1) {
 		query_states[dns->id].valid = 0;
 
-		GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Would send answer to Client %x, to IP %x:%d\n", query_states[dns->id].client, ntohl(query_states[dns->id].local_ip), ntohs(query_states[dns->id].local_port));
+		size_t len = sizeof(struct answer_packet) + r - 1; /* 1 for the unsigned char data[1]; */
+		struct answer_packet_list* answer = GNUNET_malloc(len + 2*sizeof(struct answer_packet_list*));
+		answer->pkt.hdr.type = htons(GNUNET_MESSAGE_TYPE_LOCAL_RESPONSE_DNS);
+		answer->pkt.hdr.size = htons(len);
+		answer->pkt.from = addr.sin_addr.s_addr;
+		answer->pkt.to = query_states[dns->id].local_ip;
+		answer->pkt.dst_port = query_states[dns->id].local_port;
+		memcpy(answer->pkt.data, buf, r);
+
+		GNUNET_CONTAINER_DLL_insert_after(mycls.head, mycls.tail, mycls.tail, answer);
+
+		struct GNUNET_CONNECTION_TransmitHandle* th = GNUNET_SERVER_notify_transmit_ready(query_states[dns->id].client, len, GNUNET_TIME_UNIT_FOREVER_REL, &send_answer, query_states[dns->id].client);
+		if (th != NULL)
+			GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Queued sending of %d bytes.\n", len);
+		else
+			GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Already queued for %d bytes.\n", len);
 	}
 
 	GNUNET_SCHEDULER_add_read_net(mycls.sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.dnsout, &read_response, NULL);
