@@ -210,7 +210,7 @@ run (void *cls,
   mycls.sched = sched;
   mycls.mst = GNUNET_SERVER_mst_create(&message_token, NULL);
 
-  mycls.dns_connection = GNUNET_CLIENT_connect (sched, "gnunet-service-dns", cfg);
+  mycls.dns_connection = GNUNET_CLIENT_connect (sched, "dns", cfg);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connection: %x\n", mycls.dns_connection);
 
   GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls); 
