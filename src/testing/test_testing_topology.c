@@ -26,7 +26,7 @@
 #include "gnunet_core_service.h"
 #include "gnunet_os_lib.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define DELAY_FOR_LOGGING GNUNET_NO
 
@@ -270,7 +270,6 @@ disconnect_cores (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 
 static void stats_finished (void *cls, int result)
 {
-  fprintf(stderr, "Finished getting all peers statistics!\n");
   GNUNET_SCHEDULER_add_now (sched, &finish_testing, NULL);
 }
 
@@ -292,7 +291,7 @@ static int stats_print  (void *cls,
                          uint64_t value,
                          int is_persistent)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s:%s -- %llu\n", GNUNET_i2s(peer), subsystem, name, value);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s:%s:%s -- %llu\n", GNUNET_i2s(peer), subsystem, name, value);
   return GNUNET_OK;
 }
 

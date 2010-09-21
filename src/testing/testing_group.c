@@ -32,6 +32,8 @@
 
 #define VERBOSE_TESTING GNUNET_NO
 
+#define VERBOSE_TOPOLOGY GNUNET_YES
+
 #define DEBUG_CHURN GNUNET_NO
 
 /**
@@ -725,6 +727,13 @@ GNUNET_TESTING_topology_option_get (enum GNUNET_TESTING_TopologyOption *topology
        */
       "CONNECT_DFS",
       
+      /**
+       * Find the N closest peers to each allowed peer in the
+       * topology and make sure a connection to those peers
+       * exists in the connect topology.
+       */
+      "CONNECT_CLOSEST",
+
       /**
        * No options specified.
        */
@@ -1609,7 +1618,9 @@ create_erdos_renyi (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_Connecti
 
 /**
  * Create a topology given a peer group (set of running peers)
- * and a connection processor.
+ * and a connection processor.  This particular function creates
+ * the connections for a 2d-torus, plus additional "closest"
+ * connections per peer.
  *
  * @param pg the peergroup to create the topology on
  * @param proc the connection processor to call to actually set
@@ -2669,8 +2680,8 @@ struct DFSContext
  */
 static int
 random_connect_iterator (void *cls,
-                  const GNUNET_HashCode * key,
-                  void *value)
+                         const GNUNET_HashCode * key,
+                         void *value)
 {
   struct RandomContext *random_ctx = cls;
   double random_number;
@@ -2868,6 +2879,96 @@ static unsigned int count_allowed_connections(struct GNUNET_TESTING_PeerGroup *p
     }
 
   return count;
+}
+
+
+struct FindClosestContext
+{
+  /**
+   * The currently known closest peer.
+   */
+  struct GNUNET_TESTING_Daemon *closest;
+
+  /**
+   * The info for the peer we are adding connections for.
+   */
+  struct PeerData *curr_peer;
+
+  /**
+   * The distance (bits) between the current
+   * peer and the currently known closest.
+   */
+  unsigned int closest_dist;
+
+  /**
+   * The offset of the closest known peer in
+   * the peer group.
+   */
+  unsigned int closest_num;
+};
+
+/**
+ * Iterator over hash map entries of the allowed
+ * peer connections.  Find the closest, not already
+ * connected peer and return it.
+ *
+ * @param cls closure (struct FindClosestContext)
+ * @param key current key code (hash of offset in pg)
+ * @param value value in the hash map - a GNUNET_TESTING_Daemon
+ * @return GNUNET_YES if we should continue to
+ *         iterate,
+ *         GNUNET_NO if not.
+ */
+static
+int find_closest_peers (void *cls, const GNUNET_HashCode * key, void *value)
+{
+  struct FindClosestContext *closest_ctx = cls;
+  struct GNUNET_TESTING_Daemon *daemon = value;
+
+  if (((closest_ctx->closest == NULL) ||
+       (GNUNET_CRYPTO_hash_matching_bits(&daemon->id.hashPubKey, &closest_ctx->curr_peer->daemon->id.hashPubKey) > closest_ctx->closest_dist))
+      && (GNUNET_YES != GNUNET_CONTAINER_multihashmap_contains(closest_ctx->curr_peer->connect_peers, key)))
+    {
+      closest_ctx->closest_dist = GNUNET_CRYPTO_hash_matching_bits(&daemon->id.hashPubKey, &closest_ctx->curr_peer->daemon->id.hashPubKey);
+      closest_ctx->closest = daemon;
+      uid_from_hash(key, &closest_ctx->closest_num);
+    }
+  return GNUNET_YES;
+}
+
+/**
+ * From the set of connections possible, choose at num connections per
+ * peer based on depth which are closest out of those allowed.  Guaranteed
+ * to add num peers to connect to, provided there are that many peers
+ * in the underlay topology to connect to.
+ *
+ * @param pg the peergroup we are dealing with
+ * @param num how many connections at least should each peer have (if possible)?
+ * @param proc processor to actually add the connections
+ */
+void
+add_closest (struct GNUNET_TESTING_PeerGroup *pg, unsigned int num, GNUNET_TESTING_ConnectionProcessor proc)
+{
+  struct FindClosestContext closest_ctx;
+  uint32_t pg_iter;
+  uint32_t i;
+
+  for (i = 0; i < num; i++) /* Each time find a closest peer (from those available) */
+    {
+      for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
+        {
+          closest_ctx.curr_peer = &pg->peers[pg_iter];
+          closest_ctx.closest = NULL;
+          closest_ctx.closest_dist = 0;
+          closest_ctx.closest_num = 0;
+          GNUNET_CONTAINER_multihashmap_iterate(pg->peers[pg_iter].allowed_peers, &find_closest_peers, &closest_ctx);
+          if (closest_ctx.closest != NULL)
+            {
+              GNUNET_assert((0 <= closest_ctx.closest_num) && (closest_ctx.closest_num < pg->total));
+              proc(pg, pg_iter, closest_ctx.closest_num);
+            }
+        }
+    }
 }
 
 /**
@@ -3292,6 +3393,13 @@ GNUNET_TESTING_connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
                   _("Using DFS to connect a minimum of %u peers each (if possible)\n"), (unsigned int)option_modifier);
 #endif
       perform_dfs(pg, (int)option_modifier);
+      break;
+    case GNUNET_TESTING_TOPOLOGY_OPTION_ADD_CLOSEST:
+#if VERBOSE_TOPOLOGY
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Finding additional %u closest peers each (if possible)\n"), (unsigned int)option_modifier);
+#endif
+      add_closest(pg, (unsigned int)option_modifier, &add_actual_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_OPTION_NONE:
       break;
