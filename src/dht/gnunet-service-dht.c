@@ -2282,6 +2282,7 @@ handle_dht_find_peer (void *cls,
           increment_stats(STAT_HELLOS_PROVIDED);
           GNUNET_TRANSPORT_offer_hello(transport_handle, other_hello);
           GNUNET_CORE_peer_request_connect(sched, cfg, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5), &peer_id, NULL, NULL);
+          return;
         }
       else /* We don't want this peer! */ /* Alternatively, just continue normally */
         return;
