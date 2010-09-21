@@ -789,6 +789,13 @@ enum GNUNET_TESTING_TopologyOption
   GNUNET_TESTING_TOPOLOGY_OPTION_DFS,
 
   /**
+   * Find the N closest peers to each allowed peer in the
+   * topology and make sure a connection to those peers
+   * exists in the connect topology.
+   */
+  GNUNET_TESTING_TOPOLOGY_OPTION_ADD_CLOSEST,
+
+  /**
    * No options specified.
    */
   GNUNET_TESTING_TOPOLOGY_OPTION_NONE
