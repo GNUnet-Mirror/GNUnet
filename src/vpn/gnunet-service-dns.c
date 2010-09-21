@@ -32,7 +32,6 @@
 #include "gnunet-vpn-packet.h"
 #include "gnunet-vpn-pretty-print.h"
 
-
 struct dns_cls {
 	struct GNUNET_SCHEDULER_Handle *sched;
 
@@ -40,8 +39,15 @@ struct dns_cls {
 
 	unsigned short dnsoutport;
 };
-
 static struct dns_cls mycls;
+
+struct dns_query_id_state {
+	unsigned valid:1;
+	struct GNUNET_SERVER_Client* client;
+	unsigned local_ip:32;
+	unsigned local_port:16;
+};
+static struct dns_query_id_state query_states[65536]; /* This is < 1MiB */
 
 void hijack(unsigned short port) {
 	char port_s[6];
@@ -69,9 +75,11 @@ void receive_query(void *cls, struct GNUNET_SERVER_Client *client, const struct 
 	memset(&dest, 0, sizeof dest);
 	dest.sin_port = htons(53);
 	dest.sin_addr.s_addr = pkt->orig_to;
-	/* TODO:
- 	 * State merken, damit die Antwort korrekt zurückgeschickt werden kann
- 	 */
+
+	query_states[dns->id].valid = 1;
+	query_states[dns->id].client = client;
+	query_states[dns->id].local_ip = pkt->orig_from;
+	query_states[dns->id].local_port = pkt->src_port;
 
 	int r = GNUNET_NETWORK_socket_sendto(mycls.dnsout, dns, ntohs(pkt->hdr.size) - sizeof(struct query_packet) + 1, (struct sockaddr*) &dest, sizeof dest);
 	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "send %d bytes to socket\n", r);
@@ -89,7 +97,11 @@ static void read_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
 	int r;
 	r = GNUNET_NETWORK_socket_recv(mycls.dnsout, buf, 65536);
 
-	pkt_printf_dns(dns);
+	if (query_states[dns->id].valid == 1) {
+		query_states[dns->id].valid = 0;
+
+		GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Would send answer to Client %x, to IP %x:%d\n", query_states[dns->id].client, ntohl(query_states[dns->id].local_ip), ntohs(query_states[dns->id].local_port));
+	}
 
 	GNUNET_SCHEDULER_add_read_net(mycls.sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.dnsout, &read_response, NULL);
 }
@@ -125,6 +137,14 @@ run (void *cls,
     {&receive_query, NULL, GNUNET_MESSAGE_TYPE_LOCAL_QUERY_DNS, 0},
     {NULL, NULL, 0, 0}
   };
+
+  {
+  int i;
+  for (i = 0; i < 65536; i++) {
+    query_states[i].valid = 0;
+  }
+  }
+
   struct sockaddr_in addr;
 
   mycls.sched = sched;
