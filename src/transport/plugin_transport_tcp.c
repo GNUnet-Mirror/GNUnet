@@ -2277,6 +2277,9 @@ check_gnunet_nat_binary(char *binary)
 {
   struct stat statbuf;
   char *p;
+#ifdef MINGW
+  SOCKET rawsock;
+#endif
 
   p = get_path_from_PATH (binary);
   if (p == NULL)
@@ -2287,10 +2290,18 @@ check_gnunet_nat_binary(char *binary)
       return GNUNET_SYSERR;
     }
   GNUNET_free (p);
+#ifndef MINGW
   if ( (0 != (statbuf.st_mode & S_ISUID)) &&
        (statbuf.st_uid == 0) )
     return GNUNET_YES;
   return GNUNET_NO;
+#else
+  rawsock = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
+  if (INVALID_SOCKET == rawsock)
+    return GNUNET_NO; /* not running as administrator */
+  closesocket (rawsock);
+  return GNUNET_YES;
+#endif
 }
 
 /**
