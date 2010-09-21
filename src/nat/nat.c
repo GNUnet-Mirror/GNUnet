@@ -369,24 +369,24 @@ GNUNET_NAT_register (struct GNUNET_SCHEDULER_Handle *sched,
  * @param h the handle to stop
  */
 void
-GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *nat)
+GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
 {
   struct sockaddr *addr;
 
-  GNUNET_SCHEDULER_cancel (nat->sched, 
-			   nat->pulse_timer);
-  nat->upnp_status =
-    GNUNET_NAT_UPNP_pulse (nat->upnp, 
+  GNUNET_SCHEDULER_cancel (h->sched, 
+			   h->pulse_timer);
+  h->upnp_status =
+    GNUNET_NAT_UPNP_pulse (h->upnp, 
 			   GNUNET_NO, GNUNET_NO,
                            &addr);
-  nat->natpmp_status =
-    GNUNET_NAT_NATPMP_pulse (nat->natpmp, GNUNET_NO,
+  h->natpmp_status =
+    GNUNET_NAT_NATPMP_pulse (h->natpmp, GNUNET_NO,
                              &addr);
-  GNUNET_NAT_NATPMP_close (nat->natpmp);
-  GNUNET_NAT_UPNP_close (nat->upnp);
-  GNUNET_free_non_null (nat->local_addr);
-  GNUNET_free_non_null (nat->ext_addr);
-  GNUNET_free (nat);
+  GNUNET_NAT_NATPMP_close (h->natpmp);
+  GNUNET_NAT_UPNP_close (h->upnp);
+  GNUNET_free_non_null (h->local_addr);
+  GNUNET_free_non_null (h->ext_addr);
+  GNUNET_free (h);
 }
 
 /* end of nat.c */
