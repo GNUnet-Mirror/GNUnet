@@ -55,7 +55,13 @@
 /**
  * Should the DHT issue FIND_PEER requests to get better routing tables?
  */
-#define DO_FIND_PEER GNUNET_YES
+#define DEFAULT_DO_FIND_PEER GNUNET_YES
+
+/**
+ * Defines whether find peer requests send their HELLO's outgoing,
+ * or expect replies to contain hellos.
+ */
+#define FIND_PEER_WITH_HELLO GNUNET_YES
 
 /**
  * What is the maximum number of peers in a given bucket.
@@ -2248,11 +2254,42 @@ handle_dht_find_peer (void *cls,
   size_t hello_size;
   size_t tsize;
   GNUNET_HashCode *recent_hash;
-#if RESTRICT_FIND_PEER
+  struct GNUNET_MessageHeader *other_hello;
+  size_t other_hello_size;
   struct GNUNET_PeerIdentity peer_id;
-#endif
 
   find_peer_message = (struct GNUNET_DHT_FindPeerMessage *)find_msg;
+  GNUNET_break_op(ntohs(find_msg->size) >= (sizeof(struct GNUNET_DHT_FindPeerMessage)));
+  if (ntohs(find_msg->size) < sizeof(struct GNUNET_DHT_FindPeerMessage))
+    return;
+  other_hello = NULL;
+  other_hello_size = 0;
+  if (ntohs(find_msg->size) > sizeof(struct GNUNET_DHT_FindPeerMessage))
+    {
+      other_hello_size = ntohs(find_msg->size) - sizeof(struct GNUNET_DHT_FindPeerMessage);
+      other_hello = GNUNET_malloc(other_hello_size);
+      memcpy(other_hello, &find_peer_message[1], other_hello_size);
+      if ((GNUNET_HELLO_size((struct GNUNET_HELLO_Message *)other_hello) == 0) || (GNUNET_OK != GNUNET_HELLO_get_id((struct GNUNET_HELLO_Message *)other_hello, &peer_id)))
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Received invalid HELLO message in find peer request!\n");
+          GNUNET_free(other_hello);
+          return;
+        }
+#if FIND_PEER_WITH_HELLO
+
+      if (GNUNET_YES == consider_peer(&peer_id))
+        {
+          increment_stats(STAT_HELLOS_PROVIDED);
+          GNUNET_TRANSPORT_offer_hello(transport_handle, other_hello);
+          GNUNET_CORE_peer_request_connect(sched, cfg, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5), &peer_id, NULL, NULL);
+        }
+      else /* We don't want this peer! */ /* Alternatively, just continue normally */
+        return;
+#endif
+    }
+
+
+
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "`%s:%s': Received `%s' request from client, key %s (msg size %d, we expected %d)\n",
@@ -2267,6 +2304,7 @@ handle_dht_find_peer (void *cls,
                 "`%s': Our HELLO is null, can't return.\n",
                 "DHT");
 #endif
+    GNUNET_free_non_null(other_hello);
     return;
   }
 
@@ -2275,6 +2313,7 @@ handle_dht_find_peer (void *cls,
     {
       increment_stats(STAT_BLOOM_FIND_PEER);
       GNUNET_CONTAINER_bloomfilter_free(incoming_bloom);
+      GNUNET_free_non_null(other_hello);
       return; /* We match the bloomfilter, do not send a response to this peer (they likely already know us!)*/
     }
   GNUNET_CONTAINER_bloomfilter_free(incoming_bloom);
@@ -2287,6 +2326,7 @@ handle_dht_find_peer (void *cls,
   if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(recent_find_peer_requests, &message_context->key)) /* We have recently responded to a find peer request for this peer! */
   {
     increment_stats("# dht find peer requests ignored (recently seen!)");
+    GNUNET_free_non_null(other_hello);
     return;
   }
 
@@ -2302,6 +2342,7 @@ handle_dht_find_peer (void *cls,
   if (GNUNET_NO == consider_peer(&peer_id))
     {
       increment_stats("# dht find peer requests ignored (do not need!)");
+      GNUNET_free_non_null(other_hello);
       return;
     }
 #endif
@@ -2318,6 +2359,7 @@ handle_dht_find_peer (void *cls,
   if (tsize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
     {
       GNUNET_break_op (0);
+      GNUNET_free_non_null(other_hello);
       return;
     }
 
@@ -2348,6 +2390,7 @@ handle_dht_find_peer (void *cls,
                                    &message_context->key);
     }
 #endif
+  GNUNET_free_non_null(other_hello);
   GNUNET_free(find_peer_result);
 }
 
@@ -3572,8 +3615,14 @@ send_find_peer_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
     }
 #endif
 
+#if FIND_PEER_WITH_HELLO
+  find_peer_msg = GNUNET_malloc(sizeof(struct GNUNET_DHT_FindPeerMessage) + GNUNET_HELLO_size((struct GNUNET_HELLO_Message *)my_hello));
+  find_peer_msg->header.size = htons(sizeof(struct GNUNET_DHT_FindPeerMessage) + GNUNET_HELLO_size((struct GNUNET_HELLO_Message *)my_hello));
+  memcpy(&find_peer_msg[1], my_hello, GNUNET_HELLO_size((struct GNUNET_HELLO_Message *)my_hello));
+#else
   find_peer_msg = GNUNET_malloc(sizeof(struct GNUNET_DHT_FindPeerMessage));
   find_peer_msg->header.size = htons(sizeof(struct GNUNET_DHT_FindPeerMessage));
+#endif
   find_peer_msg->header.type = htons(GNUNET_MESSAGE_TYPE_DHT_FIND_PEER);
   temp_bloom = GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
   GNUNET_CONTAINER_multihashmap_iterate(all_known_peers, &add_known_to_bloom, temp_bloom);
@@ -4092,9 +4141,7 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-#if DO_FIND_PEER
   struct GNUNET_TIME_Relative next_send_time;
-#endif
   unsigned long long temp_config_num;
   char *converge_modifier_buf;
   sched = scheduler;
@@ -4167,7 +4214,7 @@ run (void *cls,
         malicious_get_frequency = DEFAULT_MALICIOUS_GET_FREQUENCY;
     }
 
-  if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_number (cfg, "DHT",
+  if (GNUNET_YES != GNUNET_CONFIGURATION_get_value_number (cfg, "DHT",
                                         "MAX_HOPS",
                                         &max_hops))
     {
