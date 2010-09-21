@@ -2039,8 +2039,7 @@ setup_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   die_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, num_puts * 2),
                                            &end_badly, "from do puts");
   GNUNET_SCHEDULER_add_now (sched, &do_put, all_puts);
-  if (dhtlog_handle != NULL)
-    dhtlog_handle->insert_round(DHT_ROUND_NORMAL, rounds_finished);
+
 }
 
 /**
@@ -2077,6 +2076,9 @@ continue_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
     }
   else
     GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time), &setup_puts_and_gets, NULL);
+
+  if (dhtlog_handle != NULL)
+    dhtlog_handle->insert_round(DHT_ROUND_NORMAL, rounds_finished);
 
   if (GNUNET_YES == do_find_peer)
     {
