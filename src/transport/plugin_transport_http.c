@@ -819,7 +819,8 @@ mhd_accept_cb (void *cls, const struct sockaddr *addr, socklen_t addr_len)
  * @param max max number of bytes available in buffer
  * @return bytes written to buffer
  */
-int mhd_send_callback (void *cls, uint64_t pos, char *buf, int max)
+static ssize_t
+mhd_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
 {
   struct Session * ps = cls;
   struct HTTP_PeerContext * pc;

@@ -44,7 +44,7 @@
 
 #define DEBUG_HANDSHAKE GNUNET_NO
 
-#define DEBUG_CORE_QUOTA GNUNET_NO
+#define DEBUG_CORE_QUOTA GNUNET_YES
 
 /**
  * Receive and send buffer windows grow over time.  For
