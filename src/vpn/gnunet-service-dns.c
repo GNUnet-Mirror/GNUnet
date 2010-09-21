@@ -79,6 +79,22 @@ void receive_query(void *cls, struct GNUNET_SERVER_Client *client, const struct 
 	GNUNET_SERVER_receive_done(client, GNUNET_OK);
 }
 
+static void read_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
+	unsigned char buf[65536];
+	struct dns_pkt* dns = (struct dns_pkt*)buf;
+
+	if (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)
+		return;
+
+	int r;
+	r = GNUNET_NETWORK_socket_recv(mycls.dnsout, buf, 65536);
+
+	pkt_printf_dns(dns);
+
+	GNUNET_SCHEDULER_add_read_net(mycls.sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.dnsout, &read_response, NULL);
+}
+
+
 /**
  * Task run during shutdown.
  *
@@ -133,6 +149,8 @@ run (void *cls,
   mycls.dnsoutport = htons(addr.sin_port);
 
   hijack(htons(addr.sin_port));
+
+	GNUNET_SCHEDULER_add_read_net(sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.dnsout, &read_response, NULL);
 
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SCHEDULER_add_delayed (sched,
