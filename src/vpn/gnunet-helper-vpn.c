@@ -156,8 +156,6 @@ int main(int argc, char** argv) {
 		exit(1);
 	}
 
-	fprintf(stderr, "Initialized the interface %s as %d.\n", dev, fd_tun);
-
 	{
 	// TODO: get this out of argv
 	char address[] = "1234::1";
@@ -283,7 +281,6 @@ outer:
 			}
 		}
 	}
-	fprintf(stderr, "Quitting!\n");
 
 	close(fd_tun);
 
