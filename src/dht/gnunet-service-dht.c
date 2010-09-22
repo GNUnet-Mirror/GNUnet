@@ -1118,27 +1118,6 @@ size_t core_transmit_notify (void *cls,
   return off;
 }
 
-/**
- * Determine how many low order bits match in two
- * GNUNET_HashCodes.  i.e. - 010011 and 011111 share
- * the first two lowest order bits, and therefore the
- * return value is two (NOT XOR distance, nor how many
- * bits match absolutely!).
- *
- * @param first the first hashcode
- * @param second the hashcode to compare first to
- *
- * @return the number of bits that match
- */
-static unsigned int matching_bits(const GNUNET_HashCode *first, const GNUNET_HashCode *second)
-{
-  unsigned int i;
-
-  for (i = 0; i < sizeof (GNUNET_HashCode) * 8; i++)
-    if (GNUNET_CRYPTO_hash_get_bit (first, i) != GNUNET_CRYPTO_hash_get_bit (second, i))
-      return i;
-  return sizeof (GNUNET_HashCode) * 8;
-}
 
 /**
  * Compute the distance between have and target as a 32-bit value.
@@ -1172,7 +1151,7 @@ distance (const GNUNET_HashCode * target, const GNUNET_HashCode * have)
 
   /* first, calculate the most significant 9 bits of our
      result, aka the number of LSBs */
-  bucket = matching_bits (target, have);
+  bucket = GNUNET_CRYPTO_hash_matching_bits (target, have);
   /* bucket is now a value between 0 and 512 */
   if (bucket == 512)
     return 0;                   /* perfect match */
@@ -1208,7 +1187,7 @@ static unsigned int
 inverse_distance (const GNUNET_HashCode * target,
                   const GNUNET_HashCode * have)
 {
-  if (matching_bits(target, have) == 0)
+  if (GNUNET_CRYPTO_hash_matching_bits(target, have) == 0)
     return 1; /* Never return 0! */
   return ((unsigned int) -1) - distance (target, have);
 }
@@ -1226,7 +1205,7 @@ static int find_bucket(const GNUNET_HashCode *hc)
 {
   unsigned int bits;
 
-  bits = matching_bits(&my_identity.hashPubKey, hc);
+  bits = GNUNET_CRYPTO_hash_matching_bits(&my_identity.hashPubKey, hc);
   if (bits == MAX_BUCKETS)
     return GNUNET_SYSERR;
   return MAX_BUCKETS - bits - 1;
@@ -1308,8 +1287,8 @@ print_routing_table ()
       //fprintf(stderr, "Bucket %d:\n", bucket);
       while (pos != NULL)
         {
-          //fprintf(stderr, "\tPeer %s, best bucket %d, %d bits match\n", GNUNET_i2s(&pos->id), find_bucket(&pos->id.hashPubKey), matching_bits(&pos->id.hashPubKey, &my_identity.hashPubKey));
-          char_pos += sprintf(&char_buf[char_pos], "\tPeer %s, best bucket %d, %d bits match\n", GNUNET_i2s(&pos->id), find_bucket(&pos->id.hashPubKey), matching_bits(&pos->id.hashPubKey, &my_identity.hashPubKey));
+          //fprintf(stderr, "\tPeer %s, best bucket %d, %d bits match\n", GNUNET_i2s(&pos->id), find_bucket(&pos->id.hashPubKey), GNUNET_CRYPTO_hash_matching_bits(&pos->id.hashPubKey, &my_identity.hashPubKey));
+          char_pos += sprintf(&char_buf[char_pos], "\tPeer %s, best bucket %d, %d bits match\n", GNUNET_i2s(&pos->id), find_bucket(&pos->id.hashPubKey), GNUNET_CRYPTO_hash_matching_bits(&pos->id.hashPubKey, &my_identity.hashPubKey));
           pos = pos->next;
         }
     }
@@ -1383,10 +1362,10 @@ update_core_preference (void *cls,
     {
       return;
     }
-  matching = matching_bits(&my_identity.hashPubKey, &peer->id.hashPubKey);
+  matching = GNUNET_CRYPTO_hash_matching_bits(&my_identity.hashPubKey, &peer->id.hashPubKey);
   if (matching >= 64)
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Peer identifier matches by %u bits, only shifting as much as we can!\n", matching_bits);
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Peer identifier matches by %u bits, only shifting as much as we can!\n", matching);
       matching = 63;
     }
   preference = 1LL << matching;
@@ -1433,7 +1412,7 @@ add_peer(const struct GNUNET_PeerIdentity *peer,
                                     new_peer);
   k_buckets[bucket].peers_size++;
 
-  if ((matching_bits(&my_identity.hashPubKey, &peer->hashPubKey) > 0) && (k_buckets[bucket].peers_size <= bucket_size))
+  if ((GNUNET_CRYPTO_hash_matching_bits(&my_identity.hashPubKey, &peer->hashPubKey) > 0) && (k_buckets[bucket].peers_size <= bucket_size))
     {
 #if DO_UPDATE_PREFERENCE
       new_peer->preference_task = GNUNET_SCHEDULER_add_now(sched, &update_core_preference, new_peer);
@@ -2624,7 +2603,7 @@ am_closest_peer (const GNUNET_HashCode * target, struct GNUNET_CONTAINER_BloomFi
   if (bucket_num == GNUNET_SYSERR) /* Same key! */
     return GNUNET_YES;
 
-  bits = matching_bits(&my_identity.hashPubKey, target);
+  bits = GNUNET_CRYPTO_hash_matching_bits(&my_identity.hashPubKey, target);
   my_distance = distance(&my_identity.hashPubKey, target);
   pos = k_buckets[bucket_num].head;
   count = 0;
@@ -2636,7 +2615,7 @@ am_closest_peer (const GNUNET_HashCode * target, struct GNUNET_CONTAINER_BloomFi
           continue; /* Skip already checked entries */
         }
 
-      other_bits = matching_bits(&pos->id.hashPubKey, target);
+      other_bits = GNUNET_CRYPTO_hash_matching_bits(&pos->id.hashPubKey, target);
       if (other_bits > bits)
         return GNUNET_NO;
       else if (other_bits == bits) /* We match the same number of bits, do distance comparison */
@@ -2703,7 +2682,7 @@ route_closer (const GNUNET_HashCode *target,
   int count;
   int curr_max_hops;
   double calc_value;
-  my_matching_bits = matching_bits(target, &my_identity.hashPubKey);
+  my_matching_bits = GNUNET_CRYPTO_hash_matching_bits(target, &my_identity.hashPubKey);
 
   if (GNUNET_YES == use_max_hops)
     curr_max_hops = max_hops;
@@ -2720,7 +2699,7 @@ route_closer (const GNUNET_HashCode *target,
       count = 0;
       while ((pos != NULL) && (count < bucket_size))
         {
-          if ((matching_bits(target, &pos->id.hashPubKey) > my_matching_bits) &&
+          if ((GNUNET_CRYPTO_hash_matching_bits(target, &pos->id.hashPubKey) > my_matching_bits) &&
               (GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey)))
             {
               have_closer = GNUNET_YES;
@@ -2813,7 +2792,7 @@ select_peer (const GNUNET_HashCode * target,
   double sum;
 #endif
 
-  my_matching_bits = matching_bits(target, &my_identity.hashPubKey);
+  my_matching_bits = GNUNET_CRYPTO_hash_matching_bits(target, &my_identity.hashPubKey);
   only_closer = route_closer(target, bloom, hops);
 
   if (GNUNET_YES == only_closer)
@@ -2877,14 +2856,14 @@ select_peer (const GNUNET_HashCode * target,
           while ((pos != NULL) && (count < bucket_size))
             {
               if ((GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey)) &&
-                  ((only_closer == GNUNET_NO) || (matching_bits(target, &pos->id.hashPubKey) >= my_matching_bits)))
+                  ((only_closer == GNUNET_NO) || (GNUNET_CRYPTO_hash_matching_bits(target, &pos->id.hashPubKey) >= my_matching_bits)))
                 {
                   if (GNUNET_YES == use_real_distance)
                     total_real_distance += (unsigned long long)inverse_distance (target, &pos->id.hashPubKey);
                   else
                     {
                       /* Always add 1, in case 0 bits match! */
-                      match_num = 1 + (matching_bits(target, &pos->id.hashPubKey) * matching_bits(target ,&pos->id.hashPubKey));
+                      match_num = 1 + (GNUNET_CRYPTO_hash_matching_bits(target, &pos->id.hashPubKey) * GNUNET_CRYPTO_hash_matching_bits(target ,&pos->id.hashPubKey));
                       total_distance += match_num;
                     }
                 }
@@ -2913,17 +2892,17 @@ select_peer (const GNUNET_HashCode * target,
           while ((pos != NULL) && (count < bucket_size))
             {
               if ((GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey)) &&
-                  ((only_closer == GNUNET_NO) || (matching_bits(target, &pos->id.hashPubKey) >= my_matching_bits)))
+                  ((only_closer == GNUNET_NO) || (GNUNET_CRYPTO_hash_matching_bits(target, &pos->id.hashPubKey) >= my_matching_bits)))
                 {
                   if (GNUNET_YES == use_real_distance)
                     {
-                      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "REAL: Choose peer with %d matching bits (%.2f percent)\n", matching_bits(&pos->id.hashPubKey, target),  (inverse_distance (target, &pos->id.hashPubKey) / (double)total_real_distance) * 100);
+                      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "REAL: Choose peer with %d matching bits (%.2f percent)\n", GNUNET_CRYPTO_hash_matching_bits(&pos->id.hashPubKey, target),  (inverse_distance (target, &pos->id.hashPubKey) / (double)total_real_distance) * 100);
                       sum += inverse_distance (target, &pos->id.hashPubKey) / (double)total_real_distance;
                     }
                   else
                     {
-                      match_num = 1 + (matching_bits(&pos->id.hashPubKey, target) * matching_bits(&pos->id.hashPubKey, target));
-                      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Choose peer with %d matching bits (%.2f percent)\n", matching_bits(&pos->id.hashPubKey, target),  (match_num / (double)total_distance) * 100);
+                      match_num = 1 + (GNUNET_CRYPTO_hash_matching_bits(&pos->id.hashPubKey, target) * GNUNET_CRYPTO_hash_matching_bits(&pos->id.hashPubKey, target));
+                      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Choose peer with %d matching bits (%.2f percent)\n", GNUNET_CRYPTO_hash_matching_bits(&pos->id.hashPubKey, target),  (match_num / (double)total_distance) * 100);
                       sum += match_num / (double)total_distance;
                     }
                 }
@@ -2952,24 +2931,24 @@ select_peer (const GNUNET_HashCode * target,
           while ((pos != NULL) && (count < bucket_size))
             {
               if ((GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (bloom, &pos->id.hashPubKey)) &&
-                  ((only_closer == GNUNET_NO) || (matching_bits(target, &pos->id.hashPubKey) >= my_matching_bits)))
+                  ((only_closer == GNUNET_NO) || (GNUNET_CRYPTO_hash_matching_bits(target, &pos->id.hashPubKey) >= my_matching_bits)))
                 {
                  if (GNUNET_YES == use_real_distance)
                    {
                     distance = inverse_distance (target, &pos->id.hashPubKey);
                     if (distance > real_selected)
                       {
-                        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "(REAL) Selected peer with %u matching bits to route to\n", matching_bits(target, &pos->id.hashPubKey));
+                        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "(REAL) Selected peer with %u matching bits to route to\n", GNUNET_CRYPTO_hash_matching_bits(target, &pos->id.hashPubKey));
                         return pos;
                       }
                     real_selected -= distance;
                    }
                   else
                     {
-                      distance = 1 + (matching_bits(target, &pos->id.hashPubKey) * matching_bits(target, &pos->id.hashPubKey));
+                      distance = 1 + (GNUNET_CRYPTO_hash_matching_bits(target, &pos->id.hashPubKey) * GNUNET_CRYPTO_hash_matching_bits(target, &pos->id.hashPubKey));
                       if (distance > selected)
                         {
-                          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Selected peer with %u matching bits to route to\n", matching_bits(target, &pos->id.hashPubKey));
+                          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Selected peer with %u matching bits to route to\n", GNUNET_CRYPTO_hash_matching_bits(target, &pos->id.hashPubKey));
                           return pos;
                         }
                       selected -= distance;
@@ -3310,7 +3289,7 @@ static int route_message(void *cls,
           nearest_buf = GNUNET_strdup(GNUNET_i2s(&nearest->id));
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "`%s:%s': Forwarding request key %s uid %llu to peer %s (closest %s, bits %d, distance %u)\n", my_short_id,
-                      "DHT", GNUNET_h2s (message_context->key), message_context->unique_id, GNUNET_i2s(&selected->id), nearest_buf, matching_bits(&nearest->id.hashPubKey, message_context->key), distance(&nearest->id.hashPubKey, message_context->key));
+                      "DHT", GNUNET_h2s (message_context->key), message_context->unique_id, GNUNET_i2s(&selected->id), nearest_buf, GNUNET_CRYPTO_hash_matching_bits(&nearest->id.hashPubKey, message_context->key), distance(&nearest->id.hashPubKey, message_context->key));
           GNUNET_free(nearest_buf);
 #endif
 #if DEBUG_DHT_ROUTING
