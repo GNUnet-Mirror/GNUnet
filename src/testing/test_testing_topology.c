@@ -26,7 +26,7 @@
 #include "gnunet_core_service.h"
 #include "gnunet_os_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define DELAY_FOR_LOGGING GNUNET_NO
 
@@ -40,7 +40,7 @@
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 500)
 
-#define SECONDS_PER_PEER_START 45
+#define SECONDS_PER_PEER_START 120
 
 #define DEFAULT_NUM_PEERS 4
 
