@@ -65,14 +65,14 @@
 #define FIND_PEER_THRESHOLD 1
 
 /* If more than this many peers are added, slow down sending */
-#define MAX_FIND_PEER_CUTOFF 2500
+#define MAX_FIND_PEER_CUTOFF 4000
 
 /* If less than this many peers are added, speed up sending */
 #define MIN_FIND_PEER_CUTOFF 500
 
 #define DEFAULT_MAX_OUTSTANDING_PUTS 10
 
-#define DEFAULT_MAX_OUTSTANDING_FIND_PEERS 64
+#define DEFAULT_MAX_OUTSTANDING_FIND_PEERS 256
 
 #define DEFAULT_FIND_PEER_OFFSET GNUNET_TIME_relative_divide (DEFAULT_FIND_PEER_DELAY, DEFAULT_MAX_OUTSTANDING_FIND_PEERS)
 
@@ -1053,7 +1053,7 @@ decrement_find_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   test_find_peer->find_peer_context->outstanding--;
   test_find_peer->find_peer_context->total--;
   if ((0 == test_find_peer->find_peer_context->total) &&
-      (GNUNET_TIME_absolute_get_remaining(test_find_peer->find_peer_context->endtime).value > 0))
+      (GNUNET_TIME_absolute_get_remaining(test_find_peer->find_peer_context->endtime).value > 60))
   {
     GNUNET_SCHEDULER_add_now(sched, &count_new_peers, test_find_peer->find_peer_context);
   }
@@ -1329,9 +1329,9 @@ schedule_churn_find_peer_requests (void *cls, const struct GNUNET_SCHEDULER_Task
   else if (find_peer_ctx->current_peers - find_peer_ctx->previous_peers < MIN_FIND_PEER_CUTOFF)
     find_peer_ctx->total = find_peer_ctx->total / 2;
   else if (find_peer_ctx->current_peers - find_peer_ctx->previous_peers > MAX_FIND_PEER_CUTOFF) /* Found LOTS of peers, still go slowly */
-    find_peer_ctx->total = find_peer_ctx->last_sent - (find_peer_ctx->last_sent / 8);
+    find_peer_ctx->total = find_peer_ctx->last_sent - (find_peer_ctx->last_sent / 4);
   else
-    find_peer_ctx->total = find_peer_ctx->last_sent * 2;
+    find_peer_ctx->total = find_peer_ctx->last_sent * 4;
 
   if (find_peer_ctx->total > max_outstanding_find_peers)
     find_peer_ctx->total = max_outstanding_find_peers;
@@ -2072,10 +2072,10 @@ continue_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
       topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
       topo_ctx->cont = &setup_puts_and_gets;
       topo_ctx->peers_seen = GNUNET_CONTAINER_multihashmap_create(num_peers);
-      GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time), &capture_current_topology, topo_ctx);
+      GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, (settle_time + 90)), &capture_current_topology, topo_ctx);
     }
   else
-    GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time), &setup_puts_and_gets, NULL);
+    GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, (settle_time + 90)), &setup_puts_and_gets, NULL);
 
   if (dhtlog_handle != NULL)
     dhtlog_handle->insert_round(DHT_ROUND_NORMAL, rounds_finished);
