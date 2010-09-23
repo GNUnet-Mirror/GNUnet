@@ -653,7 +653,6 @@ extern "C"
 /**
  * Type of messages between the gnunet-wlan-helper and the daemon
  *
- * data messages
  */
 
 #define GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA 195
@@ -667,11 +666,8 @@ extern "C"
 /**
  * Type of messages for advertisement over wlan
  */
-#define GNUNET_MESSAGE_TYPE_WLAN_HELPER_ADVERTISEMENT 196
+#define GNUNET_MESSAGE_TYPE_WLAN_ADVERTISEMENT 197
 
-/**
- * Type of messages for wlan
- */
 
 /**
  * Type of messages to query the local service-dns
