@@ -1,7 +1,6 @@
 0.9.0pre2:
  FS:
   - measure latencies (core, datastore) => trust economy
-  - refuse content migration message (or solicit?)
   - FS performance benchmarking
   - integrate with DHT (need DHT API to fit block API better first; also, get rid of the continuation!)
 * DHT: [Nate]
