@@ -2238,28 +2238,36 @@ get_path_from_PATH (char *binary)
 
   p = getenv ("PATH");
   if (p == NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "PATH is NULL, returning.\n");
     return NULL;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "PATH is `%s', PATH_SEPARATOR is '%c'\n", p, PATH_SEPARATOR);
   path = GNUNET_strdup (p);     /* because we write on it */
   buf = GNUNET_malloc (strlen (path) + 20);
   pos = path;
 
-  while (NULL != (end = strchr (pos, ':')))
+  while (NULL != (end = strchr (pos, PATH_SEPARATOR)))
     {
       *end = '\0';
       sprintf (buf, "%s/%s", pos, binary);
       if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
         {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Check for `%s' have succeeded.\n", buf);
           GNUNET_free (path);
           return buf;
         }
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Check for `%s' have failed.\n", buf);
       pos = end + 1;
     }
   sprintf (buf, "%s/%s", pos, binary);
   if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Check for `%s' have succeeded.\n", buf);
       GNUNET_free (path);
       return buf;
     }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Check for `%s' have failed.\n", buf);
   GNUNET_free (buf);
   GNUNET_free (path);
   return NULL;
@@ -2281,11 +2289,22 @@ check_gnunet_nat_binary(char *binary)
   SOCKET rawsock;
 #endif
 
+#ifdef MINGW
+  char *binaryexe;
+  GNUNET_asprintf (&binaryexe, "%s.exe", binary);
+  p = get_path_from_PATH (binaryexe);
+  free (binaryexe);
+#else
   p = get_path_from_PATH (binary);
+#endif
   if (p == NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "get_path_from_PATH (%s) have failed!\n", binary);
     return GNUNET_NO;
+  }
   if (0 != STAT (p, &statbuf))
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "STAT (%s, &statbuf) have failed!\n", p);
       GNUNET_free (p);
       return GNUNET_SYSERR;
     }
@@ -2298,7 +2317,11 @@ check_gnunet_nat_binary(char *binary)
 #else
   rawsock = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
   if (INVALID_SOCKET == rawsock)
+  {
+    DWORD err = GetLastError ();
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "socket (AF_INET, SOCK_RAW, IPPROTO_ICMP) have failed! GLE = %d\n", err);
     return GNUNET_NO; /* not running as administrator */
+  }
   closesocket (rawsock);
   return GNUNET_YES;
 #endif

@@ -1999,7 +1999,7 @@ get_path_from_PATH (char *binary)
   buf = GNUNET_malloc (strlen (path) + 20);
   pos = path;
 
-  while (NULL != (end = strchr (pos, ':')))
+  while (NULL != (end = strchr (pos, PATH_SEPARATOR)))
     {
       *end = '\0';
       sprintf (buf, "%s/%s", pos, binary);
@@ -2033,8 +2033,18 @@ check_gnunet_nat_binary(char *binary)
 {
   struct stat statbuf;
   char *p;
+#ifdef MINGW
+  SOCKET rawsock;
+#endif
 
+#ifdef MINGW
+  char *binaryexe;
+  GNUNET_asprintf (&binaryexe, "%s.exe", binary);
+  p = get_path_from_PATH (binaryexe);
+  free (binaryexe);
+#else
   p = get_path_from_PATH (binary);
+#endif
   if (p == NULL)
     return GNUNET_NO;
   if (0 != STAT (p, &statbuf))
@@ -2043,10 +2053,22 @@ check_gnunet_nat_binary(char *binary)
       return GNUNET_SYSERR;
     }
   GNUNET_free (p);
+#ifndef MINGW
   if ( (0 != (statbuf.st_mode & S_ISUID)) &&
        (statbuf.st_uid == 0) )
     return GNUNET_YES;
   return GNUNET_NO;
+#else
+  rawsock = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
+  if (INVALID_SOCKET == rawsock)
+  {
+    DWORD err = GetLastError ();
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "socket (AF_INET, SOCK_RAW, IPPROTO_ICMP) have failed! GLE = %d\n", err);
+    return GNUNET_NO; /* not running as administrator */
+  }
+  closesocket (rawsock);
+  return GNUNET_YES;
+#endif
 }
 
 /**

@@ -4,7 +4,7 @@
 #include <ctype.h>
 #include <malloc.h>
 #ifndef _WIN32
- #include <arpa/inet.h>
+#include <arpa/inet.h>
 #else
 #include <ws2tcpip.h>
 #endif

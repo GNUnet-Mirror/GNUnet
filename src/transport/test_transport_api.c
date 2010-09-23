@@ -470,7 +470,7 @@ get_path_from_PATH ()
   buf = GNUNET_malloc (strlen (path) + 20);
   pos = path;
 
-  while (NULL != (end = strchr (pos, ':')))
+  while (NULL != (end = strchr (pos, PATH_SEPARATOR)))
     {
       *end = '\0';
       sprintf (buf, "%s/%s", pos, "gnunet-nat-server");

@@ -626,7 +626,7 @@ char *mi_search_in_path(const char *file)
  if (!path)
     return NULL;
  pt=strdup(path);
- r=strtok(pt,":");
+ r=strtok(pt,PATH_SEPARATOR_STR);
  while (r)
    {
     strcpy(test,r);
@@ -637,7 +637,7 @@ char *mi_search_in_path(const char *file)
        free(pt);
        return strdup(test);
       }
-    r=strtok(NULL,":");
+    r=strtok(NULL,PATH_SEPARATOR_STR);
    }
  free(pt);
  return NULL;
