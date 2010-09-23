@@ -136,6 +136,7 @@ release it.
 
 mi_aux_term *gmi_look_for_free_vt()
 {
+ int ret;
  int vt=mi_look_for_free_vt();
  mi_aux_term *res;
 
@@ -145,7 +146,7 @@ mi_aux_term *gmi_look_for_free_vt()
  if (!res)
     return NULL;
  res->pid=-1;
- asprintf(&res->tty,"/dev/tty%d",vt);
+ ret = asprintf(&res->tty,"/dev/tty%d",vt);
  return res;
 }
 

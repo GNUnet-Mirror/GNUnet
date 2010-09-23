@@ -17,7 +17,7 @@ in a row.
 
 ***************************************************************************/
 
-#define _GNU_SOURCE
+#include "platform.h"
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -31,7 +31,11 @@ in a row.
 #include <signal.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+
 #include "gdbmi.h"
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 
 #ifndef TEMP_FAILURE_RETRY
  #define TEMP_FAILURE_RETRY(a) (a)
