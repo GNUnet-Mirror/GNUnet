@@ -43,7 +43,7 @@
 /**
  * How long until we really give up on a particular testcase portion?
  */
-#define TOTAL_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
+#define TOTAL_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 360)
 
 /**
  * How long until we give up on any particular operation (and retry)?
