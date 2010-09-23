@@ -668,6 +668,12 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_WLAN_ADVERTISEMENT 197
 
+/**
+ * Type of messages for data over the wlan
+ *
+ */
+
+#define GNUNET_MESSAGE_TYPE_WLAN_DATA 198
 
 /**
  * Type of messages to query the local service-dns
