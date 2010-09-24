@@ -192,15 +192,12 @@ struct Session
   /**
    * encapsulation of the data
    */
-
   struct GNUNET_SERVER_MessageStreamTokenizer * datatoken;
 
   /**
    * peer mac address
    */
-
   char addr[6];
-
 
   /**
    * Address of the other peer (either based on our 'connect'
@@ -217,13 +214,11 @@ struct Session
   /**
    * number of message, to distinguish between the messages
    */
-
   uint16_t message_num_in;
 
   /**
    * number of message, to distinguish between the messages
    */
-
   uint16_t message_num_out;
 
 
@@ -261,7 +256,6 @@ struct PendingMessage
   /**
    * Cls for transmit_cont
    */
-
   void * transmit_cont_cls;
 
   /**
@@ -324,9 +318,9 @@ struct FragmentationHeader
   uint32_t message_id GNUNET_PACKED;
 
   /**
-   * number of this fragment, for fragmentation/segmentation
+   * Offset or number of this fragment, for fragmentation/segmentation (design choice, TBD)
    */
-  uint16_t fragment_num GNUNET_PACKED;
+  uint16_t fragment_off_or_num GNUNET_PACKED;
 
   /**
    * CRC of fragment (for error checking)
@@ -885,7 +879,7 @@ wlan_plugin_helper_read (void *cls,
  * @return GNUNET_YES if process was started, GNUNET_SYSERR on error
  */
 static int
-wlan_transport_start_wlan_helper(struct Plugin *plugin)
+wlan_transport_start_wlan_helper (struct Plugin *plugin)
 {
 
   plugin->server_stdout = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_NO, GNUNET_YES);
