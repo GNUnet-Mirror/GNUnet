@@ -93,6 +93,8 @@ static void dump(char *src, void *p, unsigned int l)
 
 /**
  * @brief Derive key
+ * @param result buffer for the derived key, allocated by caller
+ * @param out_len desired length of the derived key
  * @param xtr_algo hash algorithm for the extraction phase, GCRY_MD_...
  * @param prf_algo hash algorithm for the expansion phase, GCRY_MD_...
  * @param xts salt
@@ -101,15 +103,12 @@ static void dump(char *src, void *p, unsigned int l)
  * @param skm_len length of skm
  * @param ctx context info
  * @param ctx_len length of ctx
- * @param out_len desired length of the derived key
- * @param result buffer for the derived key, allocated by caller
  * @return GNUNET_YES on success
  */
 int
-GNUNET_CRYPTO_hkdf (int xtr_algo, int prf_algo, const void *xts,
-    const size_t xts_len, const void *skm, const size_t skm_len,
-    const void *ctx, const size_t ctx_len, const unsigned long long out_len,
-    void *result)
+GNUNET_CRYPTO_hkdf (void *result, const unsigned long long out_len,
+    int xtr_algo, int prf_algo, const void *xts, const size_t xts_len,
+    const void *skm, const size_t skm_len, ...)
 {
   void *prk, *hc, *plain;
   unsigned long long plain_len;
@@ -117,6 +116,8 @@ GNUNET_CRYPTO_hkdf (int xtr_algo, int prf_algo, const void *xts,
   unsigned int k, xtr_len;
   int ret;
   gcry_md_hd_t xtr, prf;
+  size_t ctx_len;
+  va_list argp;
 
   prk = plain = NULL;
   xtr_len = gcry_md_get_algo_dlen (xtr_algo);
@@ -126,6 +127,11 @@ GNUNET_CRYPTO_hkdf (int xtr_algo, int prf_algo, const void *xts,
 
   if (out_len > (2 ^ 32 * k) || !xtr_algo || !prf_algo)
     return GNUNET_SYSERR;
+
+  va_start(argp, skm_len);
+  for (ctx_len = 0; va_arg (argp, void *);)
+    ctx_len += va_arg (argp, size_t);
+  va_end(argp);
 
   prk = GNUNET_malloc (xtr_len);
 
@@ -146,8 +152,21 @@ GNUNET_CRYPTO_hkdf (int xtr_algo, int prf_algo, const void *xts,
   plain = GNUNET_malloc (plain_len);
   if (t > 0)
     {
-      memcpy (plain, ctx, ctx_len);
-      memset (plain + ctx_len, 1, 1);
+      void *ctx, *dst;
+
+      dst = plain;
+      va_start (argp, skm_len);
+      while ((ctx = va_arg (argp, void *)))
+        {
+          size_t len;
+
+          len = va_arg (argp, size_t);
+          memcpy (dst, ctx, len);
+          dst += len;
+        }
+      va_end (argp);
+
+      memset (dst, 1, 1);
       gcry_md_reset (prf);
 #if DEBUG_HKDF
       dump("K(1)", plain, plain_len);
@@ -160,7 +179,15 @@ GNUNET_CRYPTO_hkdf (int xtr_algo, int prf_algo, const void *xts,
     }
 
   if (t > 1 || d > 0)
-    memcpy (plain + k, ctx, ctx_len);
+    {
+      void *ctx, *dst;
+
+      dst = plain + k;
+      va_start(argp, skm_len);
+      while ((ctx = va_arg (argp, void *)))
+        memcpy (dst, ctx, va_arg (argp, size_t));
+      va_end (argp);
+    }
 
   /* K(i+1) */
   for (i = 1; i < t; i++)

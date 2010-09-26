@@ -527,6 +527,8 @@ int GNUNET_CRYPTO_hash_xorcmp (const GNUNET_HashCode * h1,
 
 /**
  * @brief Derive key
+ * @param result buffer for the derived key, allocated by caller
+ * @param out_len desired length of the derived key
  * @param xtr_algo hash algorithm for the extraction phase, GCRY_MD_...
  * @param prf_algo hash algorithm for the expansion phase, GCRY_MD_...
  * @param xts salt
@@ -535,15 +537,12 @@ int GNUNET_CRYPTO_hash_xorcmp (const GNUNET_HashCode * h1,
  * @param skm_len length of skm
  * @param ctx context info
  * @param ctx_len length of ctx
- * @param out_len desired length of the derived key
- * @param result buffer for the derived key, allocated by caller
  * @return GNUNET_YES on success
  */
 int
-GNUNET_CRYPTO_hkdf (int xtr_algo, int prf_algo, const void *xts,
-    const size_t xts_len, const void *skm, const size_t skm_len,
-    const void *ctx, const size_t ctx_len, const unsigned long long out_len,
-    void *result);
+GNUNET_CRYPTO_hkdf (void *result, const unsigned long long out_len,
+    int xtr_algo, int prf_algo, const void *xts, const size_t xts_len,
+    const void *skm, const size_t skm_len, ...);
 
 
 /**
