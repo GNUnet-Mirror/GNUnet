@@ -32,6 +32,8 @@
 #include "platform.h"
 #include "gnunet_crypto_lib.h"
 
+#define DEBUG_HKDF GNUNET_NO
+
 /**
  * @brief Compute the HMAC
  * @param mac gcrypt MAC handle
@@ -74,6 +76,20 @@ getPRK (gcry_md_hd_t mac, const void *xts, const unsigned long long xts_len,
 
   return GNUNET_YES;
 }
+
+#if DEBUG_HKDF
+static void dump(char *src, void *p, unsigned int l)
+{
+  unsigned int i;
+
+  printf("\n%s: ", src);
+  for (i = 0; i < l; i++)
+    {
+      printf("%2x", (int) ((unsigned char *) p)[i]);
+    }
+  printf("\n");
+}
+#endif
 
 /**
  * @brief Derive key
@@ -118,6 +134,9 @@ GNUNET_CRYPTO_hkdf (int xtr_algo, int prf_algo, const void *xts,
   if (getPRK (xtr, xts, xts_len, skm, skm_len, prk)
       != GNUNET_YES)
     goto hkdf_error;
+#if DEBUG_HKDF
+  dump("PRK", prk, xtr_len);
+#endif
 
   t = out_len / k;
   d = out_len % k;
@@ -130,6 +149,9 @@ GNUNET_CRYPTO_hkdf (int xtr_algo, int prf_algo, const void *xts,
       memcpy (plain, ctx, ctx_len);
       memset (plain + ctx_len, 1, 1);
       gcry_md_reset (prf);
+#if DEBUG_HKDF
+      dump("K(1)", plain, plain_len);
+#endif
       hc = doHMAC (prf, prk, xtr_len, plain, ctx_len + 1);
       if (hc == NULL)
         goto hkdf_error;
@@ -146,6 +168,9 @@ GNUNET_CRYPTO_hkdf (int xtr_algo, int prf_algo, const void *xts,
       memcpy (plain, result - k, k);
       memset (plain + k + ctx_len, i + 1, 1);
       gcry_md_reset (prf);
+#if DEBUG_HKDF
+      dump("K(i+1)", plain, plain_len);
+#endif
       hc = doHMAC (prf, prk, xtr_len, plain, plain_len);
       if (hc == NULL)
         goto hkdf_error;
@@ -160,11 +185,17 @@ GNUNET_CRYPTO_hkdf (int xtr_algo, int prf_algo, const void *xts,
         memcpy (plain, result - k, k);
       memset (plain + k + ctx_len, i + 1, 1);
       gcry_md_reset (prf);
+#if DEBUG_HKDF
+      dump("K(t):d", plain, plain_len);
+#endif
       hc = doHMAC (prf, prk, xtr_len, plain, plain_len);
       if (hc == NULL)
         goto hkdf_error;
       memcpy (result, hc, d);
     }
+#if DEBUG_HKDF
+  dump("result", result - k, out_len);
+#endif
 
   ret = GNUNET_YES;
   goto hkdf_ok;
