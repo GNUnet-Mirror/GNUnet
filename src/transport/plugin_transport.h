@@ -35,6 +35,8 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
+#include "transport_selection.h"
+
 
 /**
  * Opaque pointer that plugins can use to distinguish specific
@@ -159,6 +161,23 @@ typedef struct GNUNET_TIME_Relative (*GNUNET_TRANSPORT_TrafficReport) (void *cls
 
 
 /**
+ * Function called whenever the plugin has to notify ATS about costs for using this transport
+ *
+ * The cost will be passed as struct GNUNET_ATS_Cost_Information[]
+ * This array is 0-terminated, so the last element will be a pair:
+ * ((cost->cost_type==GNUNET_ATS_ARRAY_TERMINATOR) && cost->cost_value==0))
+ *
+ * @param cls closure
+ * @param peer peer
+ * @param cost pointer to the first element of struct GNUNET_ATS_Cost_Information[]
+ */
+typedef void (*GNUNET_TRANSPORT_CostReport) (void *cls,
+											 const struct GNUNET_PeerIdentity *peer,
+                                             const void *addr,
+                                             uint16_t addrlen,
+											 struct GNUNET_ATS_Cost_Information * cost);
+
+/**
  * The transport service will pass a pointer to a struct
  * of this type as the first and only argument to the
  * entry point of each transport plugin.
@@ -220,6 +239,11 @@ struct GNUNET_TRANSPORT_PluginEnvironment
    * session handle stops being valid (is destroyed).
    */
   GNUNET_TRANSPORT_SessionEnd session_end;
+
+  /**
+   * Inform service about costs for using this transport plugin
+   */
+  GNUNET_TRANSPORT_CostReport cost_report;
 
   /**
    * What is the maximum number of connections that this transport
