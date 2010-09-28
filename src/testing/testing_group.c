@@ -903,7 +903,6 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg,
       GNUNET_CONFIGURATION_set_value_string(uc.ret, "transport-udp", "BINDTO", "127.0.0.1");
     }
 
-
   *port = (uint16_t) uc.nport;
   *upnum = uc.upnum;
   uc.fdnum++;
@@ -3234,6 +3233,66 @@ schedule_get_statistics(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
     }
 }
 
+struct DuplicateStats
+{
+  /**
+   * Next item in the list
+   */
+  struct DuplicateStats *next;
+
+  /**
+   * Nasty string, concatenation of relevant information.
+   */
+  char *unique_string;
+};
+
+/**
+ * Check whether the combination of port/host/unix domain socket
+ * already exists in the list of peers being checked for statistics.
+ *
+ * @param pg the peergroup in question
+ * @param specific_peer the peer we're concerned with
+ * @param stats_list the list to return to the caller
+ *
+ * @return GNUNET_YES if the statistics instance has been seen already,
+ *         GNUNET_NO if not (and we may have added it to the list)
+ */
+static int
+stats_check_existing(struct GNUNET_TESTING_PeerGroup *pg, struct PeerData *specific_peer, struct DuplicateStats **stats_list)
+{
+  struct DuplicateStats *pos;
+  char *unix_domain_socket;
+  unsigned long long port;
+  char *to_match;
+  if (GNUNET_YES != GNUNET_CONFIGURATION_get_value_yesno(pg->cfg, "testing", "single_statistics_per_host"))
+    return GNUNET_NO; /* Each peer has its own statistics instance, do nothing! */
+
+  pos = *stats_list;
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string(specific_peer->cfg, "statistics", "unixpath", &unix_domain_socket))
+    return GNUNET_NO;
+
+  GNUNET_CONFIGURATION_get_value_number(specific_peer->cfg, "statistics", "port", &port);
+
+  if (specific_peer->daemon->hostname != NULL)
+    GNUNET_asprintf(&to_match, "%s%s%llu", specific_peer->daemon->hostname, unix_domain_socket, port);
+  else
+    GNUNET_asprintf(&to_match, "%s%llu", unix_domain_socket, port);
+
+  while (pos != NULL)
+    {
+      if (0 == strcmp(to_match, pos->unique_string))
+        {
+          GNUNET_free(to_match);
+          return GNUNET_YES;
+        }
+      pos = pos->next;
+    }
+  pos = GNUNET_malloc(sizeof(struct DuplicateStats));
+  pos->unique_string = to_match;
+  pos->next = *stats_list;
+  *stats_list = pos;
+  return GNUNET_NO;
+}
 
 /**
  * Iterate over all (running) peers in the peer group, retrieve
@@ -3248,6 +3307,9 @@ GNUNET_TESTING_get_statistics (struct GNUNET_TESTING_PeerGroup *pg,
   struct StatsCoreContext *core_ctx;
   unsigned int i;
   unsigned int total_count;
+  struct DuplicateStats *stats_list;
+  struct DuplicateStats *pos;
+  stats_list = NULL;
 
   /* Allocate a single stats iteration context */
   stats_context = GNUNET_malloc(sizeof(struct StatsIterateContext));
@@ -3255,9 +3317,10 @@ GNUNET_TESTING_get_statistics (struct GNUNET_TESTING_PeerGroup *pg,
   stats_context->proc = proc;
   stats_context->cls = cls;
   total_count = 0;
+
   for (i = 0; i < pg->total; i++)
     {
-      if (pg->peers[i].daemon->running == GNUNET_YES)
+      if ((pg->peers[i].daemon->running == GNUNET_YES) && (GNUNET_NO == stats_check_existing(pg, &pg->peers[i], &stats_list)))
         {
           /* Allocate one core context per core we need to connect to */
           core_ctx = GNUNET_malloc(sizeof(struct StatsCoreContext));
@@ -3268,7 +3331,20 @@ GNUNET_TESTING_get_statistics (struct GNUNET_TESTING_PeerGroup *pg,
           total_count++;
         }
     }
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Retrieving stats from %u total instances.\n", total_count);
   stats_context->total = total_count;
+  if (stats_list != NULL)
+    {
+      pos = stats_list;
+      while(pos != NULL)
+        {
+          GNUNET_free(pos->unique_string);
+          stats_list = pos->next;
+          GNUNET_free(pos);
+          pos = stats_list->next;
+        }
+    }
   return;
 }
 
