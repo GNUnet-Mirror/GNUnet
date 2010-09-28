@@ -2754,6 +2754,66 @@ route_closer (const GNUNET_HashCode *target,
     }
 }
 
+
+/**
+ * Return this peers adjusted value based on the convergence
+ * function chosen.  This is the key function for randomized
+ * routing decisions.
+ *
+ * @param target the key of the request
+ * @param peer the peer we would like the value of
+ * @param hops number of hops this message has already traveled
+ *
+ * @return GNUNET_YES if we should try to route to a closer peer
+ *         than ourselves (and one exists), GNUNET_NO if we should
+ *         choose from the set of all known peers
+ *
+ */
+unsigned long long
+route_value (const GNUNET_HashCode *target,
+             struct PeerInfo *peer,
+             unsigned int hops)
+{
+  unsigned int other_matching_bits;
+  double calc_value;
+  int curr_max_hops;
+
+  if (GNUNET_YES == use_max_hops)
+    curr_max_hops = max_hops;
+  else
+    curr_max_hops = max_hops;
+  other_matching_bits = GNUNET_CRYPTO_hash_matching_bits(target, &peer->id.hashPubKey);
+
+  switch (converge_option)
+    {
+      case DHT_CONVERGE_RANDOM:
+        return 1; /* Always return 1, choose equally among all peers */
+//      case DHT_CONVERGE_SIMPLE:
+//        return (unsigned long long)other_matching_bits * other_matching_bits; /* Always return the bit distance squared */
+      case DHT_CONVERGE_LINEAR:
+        return (unsigned long long)pow(other_matching_bits, hops * converge_modifier);
+      case DHT_CONVERGE_SQUARE:
+        /**
+         * Simple square based curve.
+         */
+        calc_value = (sqrt(hops) / sqrt(curr_max_hops)) * converge_modifier;
+        return (unsigned long long)pow(other_matching_bits, calc_value);
+      case DHT_CONVERGE_EXPONENTIAL:
+        /**
+         * Simple exponential curve.
+         */
+        if (converge_modifier > 0)
+          calc_value = ((converge_modifier * (hops * hops)) / (curr_max_hops * curr_max_hops)) / curr_max_hops;
+        else
+          calc_value = ((hops * hops) / (curr_max_hops * curr_max_hops)) / curr_max_hops;
+
+        return (unsigned long long)pow(other_matching_bits, calc_value);
+      default:
+        return 1;
+
+    }
+}
+
 /**
  * Select a peer from the routing table that would be a good routing
  * destination for sending a message for "target".  The resulting peer
@@ -3821,7 +3881,8 @@ handle_dht_p2p_route_request (void *cls,
 
   if (get_max_send_delay().value > MAX_REQUEST_TIME.value)
   {
-    fprintf(stderr, "Sending of previous replies took far too long, backing off!\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Sending of previous replies took too long, backing off!\n");
+    increment_stats("# route requests dropped due to high load");
     decrease_max_send_delay(get_max_send_delay());
     return GNUNET_YES;
   }
