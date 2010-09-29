@@ -139,6 +139,26 @@ typedef void (*GNUNET_TRANSPORT_AddressNotification) (void *cls,
                                                       expires);
 
 /**
+ * Function that will be called whenever the plugin receives data over
+ * the network and wants to determine how long it should wait until
+ * the next time it reads from the given peer.  Note that some plugins
+ * (such as UDP) may not be able to wait (for a particular peer), so
+ * the waiting part is optional.  Plugins that can wait should call
+ * this function, sleep the given amount of time, and call it again
+ * (with zero bytes read) UNTIL it returns zero and only then read.
+ *
+ * @param cls closure
+ * @param peer which peer did we read data from
+ * @param amount_recved number of bytes read (can be zero)
+ * @return how long to wait until reading more from this peer
+ *         (to enforce inbound quotas)
+ */
+typedef struct GNUNET_TIME_Relative (*GNUNET_TRANSPORT_TrafficReport) (void *cls,
+                                                                      const struct
+                                                                      GNUNET_PeerIdentity *peer,
+                                                                      size_t amount_recved);
+
+/**
  * Function called whenever the plugin has to notify ATS about costs for using this transport
  *
  * The cost will be passed as struct GNUNET_ATS_Cost_Information[]
@@ -152,10 +172,10 @@ typedef void (*GNUNET_TRANSPORT_AddressNotification) (void *cls,
  * @param cost pointer to the first element of struct GNUNET_ATS_Cost_Information[]
  */
 typedef void (*GNUNET_TRANSPORT_CostReport) (void *cls,
-                                             const struct GNUNET_PeerIdentity *peer,
+											 const struct GNUNET_PeerIdentity *peer,
                                              const void *addr,
                                              uint16_t addrlen,
-					     struct GNUNET_ATS_Cost_Information * cost);
+											 struct GNUNET_ATS_Cost_Information * cost);
 
 /**
  * The transport service will pass a pointer to a struct
@@ -212,7 +232,7 @@ struct GNUNET_TRANSPORT_PluginEnvironment
    * Inform service about traffic received, get information
    * about when we might be willing to receive more.
    */
-  /* FIXME: this wasn't defined anywhere... GNUNET_TRANSPORT_TrafficReport traffic_report;*/
+  GNUNET_TRANSPORT_TrafficReport traffic_report;
 
   /**
    * Function that must be called by the plugin when a non-NULL
