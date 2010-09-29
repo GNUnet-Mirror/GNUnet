@@ -25,11 +25,24 @@
  */
 
 /**
+ *  The structs defined here are used by the transport plugin to tell ATS about the transport's properties like cost and quality
+ *  and on the other side the structs are used by highlevel components to communicate the constraints they have for a transprot to ATS
+ *
+ *                             +---+
+ *  +-----------+ Constraints  |   |  Plugin properties +---------+
+ *  | Highlevel |------------> |ATS| <------------------|Transport|
+ *  | Component | ATS struct   |   |    ATS struct      | Plugin  |
+ *  +-----------+              |   |                    +---------+
+ *                             +---+
+ *
+ */
+
+
+/**
  * Enum defining all known cost types for ATS
  * Enum values are used in the GNUNET_ATS_Cost_Information struct as (key,value)-pair
  * Cost are always stored in uint32_t, so all units used to define costs have to be normalized to fit in uint32_t [0 .. 4.294.967.295]
  */
-
 enum GNUNET_ATS_Cost_Type
 {
 	/*
@@ -161,7 +174,7 @@ enum GNUNET_ATS_Cost_Type
 };
 
 /**
- * This structure will be used by plugins to communicate costs to ATS
+ * This structure will be used by plugins to communicate costs to ATS or by higher level components to tell ATS their constraints
  * Always a pair of (GNUNET_ATS_Cost_Types, uint32_t value)
  * Value is always uint32_t, so all units used to define costs have to be normalized to fit uint32_t
  */
@@ -177,3 +190,62 @@ struct GNUNET_ATS_Cost_Information
 	 */
 	uint32_t cost_value;
 };
+
+/**
+ * Enum defining all known quality types for ATS
+ * Enum values are used in the GNUNET_ATS_Cost_Information struct as (key,value)-pair
+ * Cost are always stored in uint32_t, so all units used to define costs have to be normalized to fit in uint32_t [0 .. 4.294.967.295]
+ */
+
+enum GNUNET_ATS_Quality_Type
+{
+	/*
+	 * Quality will be passed as struct GNUNET_ATS_Quality_Information[]
+	 * array is 0-terminated:
+	 * the last element in the array is the pair (GNUNET_ATS_ARRAY_TERMINATOR, 0)
+	 */
+	GNUNET_ATS_ARRAY_TERMINATOR = 0,
+
+    /* Physical layer quality properties */
+
+	GNUNET_ATS_PHY_SIGNAL_STRENGTH = 1,
+
+	GNUNET_ATS_PHY_COLLISION_RATE = 2,
+
+	GNUNET_ATS_PHY_ERROR_RATE = 3,
+
+    /* Network layer quality properties */
+
+	GNUNET_ATS_NET_DELAY = 4,
+
+	GNUNET_ATS_NET_LOSSRATE = 5,
+
+	GNUNET_ATS_NET_ERRORRATE = 6,
+
+	GNUNET_ATS_NET_DROPRATE = 6,
+
+	GNUNET_ATS_NET_JITTER = 6,
+
+	GNUNET_ATS_NET_THROUGHPUT = 7,
+};
+
+/**
+ * This structure will be used by plugins to communicate quality to ATS or by higher level components to tell ATS their
+ * quality constraints
+ *
+ * Always a pair of (GNUNET_ATS_Quality_Type, uint32_t value)
+ * Value is always uint32_t, so all units used to define quality values have to be normalized to fit uint32_t
+ */
+struct GNUNET_ATS_Quality_Information
+{
+	/**
+	 * ATS Quality Type
+	 */
+	uint32_t quality_type;
+
+	/**
+	 * ATS Quality value
+	 */
+	uint32_t quality_value;
+};
+
