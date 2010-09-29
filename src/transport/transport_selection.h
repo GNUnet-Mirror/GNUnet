@@ -92,7 +92,7 @@ enum GNUNET_ATS_Cost_Type
 	 * Power P in Watt (J/s)
 	 * Datarate D in MBit/s
 	 *
-	 * Conversion of dBm to Power P used by WLAN:
+	 * Conversion between power P and dBm used by WLAN in radiotap's dBm TX power:
 	 *
 	 * Lp(dbm) = 10 log10 (P/ 1mW)
 	 *
