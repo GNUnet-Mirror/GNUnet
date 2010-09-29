@@ -92,6 +92,12 @@ enum GNUNET_ATS_Cost_Type
 	 * Power P in Watt (J/s)
 	 * Datarate D in MBit/s
 	 *
+	 * Conversion of dBm to Power P used by WLAN:
+	 *
+	 * Lp(dbm) = 10 log10 (P/ 1mW)
+	 *
+	 * => P = 1 mW  * 10^(Lp(dbm)/10)
+	 *
 	 * Unit: [mJ/MB]
 	 *
 	 * Interpretation: less is better
