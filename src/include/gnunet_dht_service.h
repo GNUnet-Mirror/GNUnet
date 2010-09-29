@@ -163,6 +163,7 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
                       struct GNUNET_TIME_Relative timeout,
                       enum GNUNET_BLOCK_Type type,
                       const GNUNET_HashCode * key,
+		      // bf, bf_mutator, xquery, xquery_size
                       GNUNET_DHT_GetIterator iter,
                       void *iter_cls,
                       GNUNET_SCHEDULER_Task cont,

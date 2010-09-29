@@ -3942,6 +3942,7 @@ handle_dht_p2p_route_result (void *cls,
     }
 
   memset(&message_context, 0, sizeof(struct DHT_MessageContext));
+  // FIXME: call GNUNET_BLOCK_evaluate (...) -- instead of doing your own bloomfilter!
   message_context.bloom = GNUNET_CONTAINER_bloomfilter_init(incoming->bloomfilter, DHT_BLOOM_SIZE, DHT_BLOOM_K);
   GNUNET_assert(message_context.bloom != NULL);
   memcpy(&message_context.key, &incoming->key, sizeof(GNUNET_HashCode));
