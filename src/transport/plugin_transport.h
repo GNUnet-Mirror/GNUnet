@@ -152,10 +152,10 @@ typedef void (*GNUNET_TRANSPORT_AddressNotification) (void *cls,
  * @param cost pointer to the first element of struct GNUNET_ATS_Cost_Information[]
  */
 typedef void (*GNUNET_TRANSPORT_CostReport) (void *cls,
-											 const struct GNUNET_PeerIdentity *peer,
+                                             const struct GNUNET_PeerIdentity *peer,
                                              const void *addr,
                                              uint16_t addrlen,
-											 struct GNUNET_ATS_Cost_Information * cost);
+					     struct GNUNET_ATS_Cost_Information * cost);
 
 /**
  * The transport service will pass a pointer to a struct
@@ -212,7 +212,7 @@ struct GNUNET_TRANSPORT_PluginEnvironment
    * Inform service about traffic received, get information
    * about when we might be willing to receive more.
    */
-  GNUNET_TRANSPORT_TrafficReport traffic_report;
+  /* FIXME: this wasn't defined anywhere... GNUNET_TRANSPORT_TrafficReport traffic_report;*/
 
   /**
    * Function that must be called by the plugin when a non-NULL
