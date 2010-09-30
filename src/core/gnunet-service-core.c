@@ -228,7 +228,7 @@ struct PingMessage
   /**
    * Seed for the IV
    */
-  uint32_t iv_seed;
+  uint32_t iv_seed GNUNET_PACKED;
 
   /**
    * Random number chosen to make reply harder.
@@ -258,7 +258,7 @@ struct PongMessage
   /**
    * Seed for the IV
    */
-  uint32_t iv_seed;
+  uint32_t iv_seed GNUNET_PACKED;
 
   /**
    * Random number proochosen to make reply harder.  Must be
