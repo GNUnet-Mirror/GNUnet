@@ -37,7 +37,7 @@
  *
  */
 
-
+#define GNUNET_ATS_ARRAY_TERMINATOR 0
 /**
  * Enum defining all known cost types for ATS
  * Enum values are used in the GNUNET_ATS_Cost_Information struct as (key,value)-pair
@@ -50,7 +50,7 @@ enum GNUNET_ATS_Cost_Type
 	 * array is 0-terminated:
 	 * the last element in the array is the pair (GNUNET_ATS_ARRAY_TERMINATOR, 0)
 	 */
-	GNUNET_ATS_ARRAY_TERMINATOR= 0,
+	//GNUNET_ATS_ARRAY_TERMINATOR= 0,
 
 	/* Volume based cost in financial units to transmit data
 	 * Note: this value is not bound to a specific currency or unit and only used locally
@@ -199,12 +199,12 @@ struct GNUNET_ATS_Cost_Information
 
 enum GNUNET_ATS_Quality_Type
 {
-	/*
-	 * Quality will be passed as struct GNUNET_ATS_Quality_Information[]
-	 * array is 0-terminated:
-	 * the last element in the array is the pair (GNUNET_ATS_ARRAY_TERMINATOR, 0)
-	 */
-	GNUNET_ATS_ARRAY_TERMINATOR = 0,
+    /*
+     * Quality will be passed as struct GNUNET_ATS_Quality_Information[]
+     * array is 0-terminated:
+     * the last element in the array is the pair (GNUNET_ATS_ARRAY_TERMINATOR, 0)
+     */
+    //GNUNET_ATS_ARRAY_TERMINATOR = 0,
 
     /* Physical layer quality properties */
 
