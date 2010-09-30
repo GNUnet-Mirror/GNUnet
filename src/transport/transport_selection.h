@@ -135,7 +135,8 @@ enum GNUNET_ATS_Property
 	 */
 	GNUNET_ATS_COST_ENERGY_CONSUMPTION = 4,
 
-	/* Connect cost
+	/**
+	 * Connect cost
 	 * How many bytes are transmitted to initiate a new connection using this transport?
 	 *
 	 * Unit: [bytes]
@@ -152,7 +153,9 @@ enum GNUNET_ATS_Property
 	 * */
 	GNUNET_ATS_COST_CONNECT = 5,
 
-	/* Bandwidth cost
+	/**
+	 * Bandwidth cost
+	 *
 	 * How many bandwidth is available to consume?
 	 * Used to calculate which impact sending data with this transport has
 	 *
@@ -168,7 +171,9 @@ enum GNUNET_ATS_Property
 	 */
 	GNUNET_ATS_COST_BANDWITH_AVAILABLE = 6,
 
-	/* Network overhead
+	/**
+	 *  Network overhead
+	 *
 	 * How many bytes are sent over the wire when 1 kilobyte (1024 bytes) of application data is transmitted?
 	 * A factor used with connect cost, bandwidth cost and energy cost to describe the overhead produced by the transport protocol
 	 *
@@ -191,25 +196,111 @@ enum GNUNET_ATS_Property
 
     /* Physical layer quality properties */
 
-	GNUNET_ATS_PHY_SIGNAL_STRENGTH = 1025,
+	/**
+	 * Signal strength on physical layer
+	 *
+	 * Unit: [dBm]
+	 */
+	GNUNET_ATS_QUALITY_PHY_SIGNAL_STRENGTH = 1025,
 
-	GNUNET_ATS_PHY_COLLISION_RATE = 1026,
+	/**
+	 * Collision rate on physical layer
+	 *
+	 * Unit: [B/s]
+	 */
+	GNUNET_ATS_QUALITY_PHY_COLLISION_RATE = 1026,
 
-	GNUNET_ATS_PHY_ERROR_RATE = 1027,
+	/**
+	 * Error rate on physical layer
+	 *
+	 * Unit: [B/s]
+	 */
+	GNUNET_ATS_QUALITY_PHY_ERROR_RATE = 1027,
 
     /* Network layer quality properties */
 
-	GNUNET_ATS_NET_DELAY = 1028,
+	/**
+	 * Delay
+	 * Time between when the time packet is sent and the packet arrives
+	 *
+	 * Unit: [μs]
+	 *
+	 * Examples:
+	 *
+	 * LAN   :  180
+	 * Dialup: 4000
+	 * WLAN  : 7000
+	 */
+	GNUNET_ATS_QUALITY_NET_DELAY = 1028,
 
-	GNUNET_ATS_NET_LOSSRATE = 1029,
+	/**
+	 * Jitter
+	 * Time variations of the delay
+	 * 1st derivative of a delay function
+	 *
+	 * Unit: [μs]
+	 */
+	GNUNET_ATS_QUALITY_NET_JITTER = 1029,
 
-	GNUNET_ATS_NET_ERRORRATE = 1030,
+	/**
+	 * Error rate on network layer
+	 *
+	 * Unit: [B/s]
+	 *
+	 * Examples:
+	 *
+	 * LAN       :    0
+	 * WLAN      :  400
+	 * Bluetooth :  100
+	 * Note: This numbers are just assumptions as an example, not measured or somehow determined
+	 */
+	GNUNET_ATS_QUALITY_NET_ERRORRATE = 1030,
 
-	GNUNET_ATS_NET_DROPRATE = 1031,
+	/**
+	 * Drop rate on network layer
+     * Bytes actively dismissed by a network component during transmission
+     * Reasons for dropped data can be full queues, congestion, quota violations...
+	 *
+	 * Unit: [B/s]
+	 *
+	 * Examples:
+	 *
+	 * LAN       :    0
+	 * WLAN      :  400
+	 * Bluetooth :  100
+	 * Note: This numbers are just assumptions as an example, not measured or somehow determined
+	 */
+	GNUNET_ATS_QUALITY_NET_DROPRATE = 1031,
 
-	GNUNET_ATS_NET_JITTER = 1032,
+	/**
+	 * Loss rate on network layer
+	 * Bytes lost during transmission
+	 * Reasons can be collisions, ...
+	 *
+	 * Unit: [B/s]
+	 *
+	 * Examples:
+	 *
+	 * LAN       :    0
+	 * WLAN      :   40
+	 * Bluetooth :   10
+	 * Note: This numbers are just assumptions as an example, not measured or somehow determined
+	 */
+	GNUNET_ATS_QUALITY_NET_LOSSRATE = 1032,
 
-	GNUNET_ATS_NET_THROUGHPUT = 1033
+	/**
+	 * Throughput on network layer
+	 *
+	 * Unit: [kB/s]
+	 *
+	 * Examples:
+	 *
+	 * LAN   : 3400
+	 * WLAN  : 1200
+	 * Dialup: 	  4
+	 *
+	 */
+	GNUNET_ATS_QUALITY_NET_THROUGHPUT = 1033
 };
 
 /**
