@@ -175,7 +175,7 @@ typedef void (*GNUNET_TRANSPORT_CostReport) (void *cls,
 											 const struct GNUNET_PeerIdentity *peer,
                                              const void *addr,
                                              uint16_t addrlen,
-											 struct GNUNET_ATS_Cost_Information * cost);
+											 struct GNUNET_ATS_Information * cost);
 
 /**
  * The transport service will pass a pointer to a struct

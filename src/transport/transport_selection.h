@@ -26,7 +26,7 @@
 
 /**
  *  The structs defined here are used by the transport plugin to tell ATS about the transport's properties like cost and quality
- *  and on the other side the structs are used by highlevel components to communicate the constraints they have for a transprot to ATS
+ *  and on the other side the structs are used by highlevel components to communicate the constraints they have for a transport to ATS
  *
  *                             +---+
  *  +-----------+ Constraints  |   |  Plugin properties +---------+
@@ -38,51 +38,61 @@
  */
 
 #define GNUNET_ATS_ARRAY_TERMINATOR 0
+
 /**
- * Enum defining all known cost types for ATS
- * Enum values are used in the GNUNET_ATS_Cost_Information struct as (key,value)-pair
+ * Enum defining all known property types for ATS
+ * Enum values are used in the GNUNET_ATS_Information struct as (key,value)-pair
  * Cost are always stored in uint32_t, so all units used to define costs have to be normalized to fit in uint32_t [0 .. 4.294.967.295]
+ * To keep the elements ordered
+ *    1..1024 : Values with a relation to cost
+ * 1025..2048 : Values with a relation to quality
+ *
  */
-enum GNUNET_ATS_Cost_Type
+enum GNUNET_ATS_Property
 {
-	/*
-	 * Cost will be passed as struct GNUNET_ATS_Cost_Information[]
-	 * array is 0-terminated:
-	 * the last element in the array is the pair (GNUNET_ATS_ARRAY_TERMINATOR, 0)
-	 */
-	//GNUNET_ATS_ARRAY_TERMINATOR= 0,
 
-	/* Volume based cost in financial units to transmit data
-	 * Note: this value is not bound to a specific currency or unit and only used locally
+	/* Cost related values */
+	/* =================== */
+
+	/**
+	 * Volume based cost in financial units to transmit data
 	 *
-	 * Unit: [1/MB]
+	 * Note: This value is not bound to a specific currency or unit and only used locally
+	 * "cent" just refers the smallest amount of money in the respective currency
+	 *
+	 * Unit: [cent/MB]
 	 *
 	 * Interpretation: less is better
 	 *
 	 * Examples:
-	 * LAN: 0
-	 * 2G:  10
+	 * LAN:  0 [cent/MB]
+	 * 2G : 10 [cent/MB]
 	 */
-	GNUNET_ATS_FINANCIAL_PER_VOLUME_COST = 1,
+	GNUNET_ATS_COST_FINANCIAL_PER_VOLUME = 1,
 
-	/* Time based cost in financial units to transmit data
-	 * Note: this value is not bound to a specific currency or unit
+	/**
+	 * Time based cost in financial units to transmit data
 	 *
-	 * Unit: [1/h]
+	 * Note: This value is not bound to a specific currency or unit and only used locally
+	 * "cent" just refers the smallest amount of money in the respective currency
+	 *
+	 * Unit: [cent/h]
 	 *
 	 * Interpretation: less is better
 	 *
 	 * Examples:
-	 * LAN: 0
-	 * Dialup: 10
+	 * LAN   :  0 [cent/h]
+	 * Dialup: 10 [cent/h]
 	 */
-	GNUNET_ATS_FINANCIAL_PER_TIME_COST = 2,
+	GNUNET_ATS_COST_FINANCIAL_PER_TIME = 2,
 
-	/* Computational costs
-	 * Effort of preparing data to send with this transport
+	/**
+	 * Computational costs
+	 *
+	 * Effort of preparing data to be sent with this transport
 	 * Includes encoding, encryption and conversion of data
-	 * Partial values can be summed: c_sum = c_enc + c_conv + c_enc
-	 * Resulting value depends on local system properties, e.g. CPU
+	 * Partial values can be summed up: c_sum = c_enc + c_enc + c_conv
+	 * Resulting values depend on local system properties, e.g. CPU
 	 *
 	 * Unit: [ms/GB]
 	 *
@@ -94,9 +104,11 @@ enum GNUNET_ATS_Cost_Type
 	 * HTTPS with AES CBC-128: 	5,279
 	 * HTTPS with RC4-1024: 	2,652
 	 */
-	GNUNET_ATS_COMPUTATIONAL_COST = 3,
+	GNUNET_ATS_COST_COMPUTATIONAL = 3,
 
-	/* Energy consumption
+	/**
+	 * Energy consumption
+	 *
 	 * Energy consumption using this transport when sending with a certain power at a certain bitrate
 	 * This is only an approximation based on:
 	 * Energy consumption E = P / D
@@ -121,10 +133,10 @@ enum GNUNET_ATS_Cost_Type
 	 * WLAN:      89 (600 mW @ 802.11g /w 54 MBit/s)
 	 * Bluetooth: 267 (100 mW @ BT2.0 EDR /w 3 MBit/s)
 	 */
-	GNUNET_ATS_ENERGY_CONSUMPTION = 4,
+	GNUNET_ATS_COST_ENERGY_CONSUMPTION = 4,
 
 	/* Connect cost
-	 * How expensive is it to initiate a new connection using this transport
+	 * How many bytes are transmitted to initiate a new connection using this transport?
 	 *
 	 * Unit: [bytes]
 	 *
@@ -138,10 +150,10 @@ enum GNUNET_ATS_Cost_Type
 	 * HTTPS  HTTP+TLS Handshake: 2129 bytes Ethernet, 1975 bytes TCP/IP, 1755 bytes TCP, 1403 bytes HTTPS
 	 *
 	 * */
-	GNUNET_ATS_CONNECT_COST = 5,
+	GNUNET_ATS_COST_CONNECT = 5,
 
 	/* Bandwidth cost
-	 * How many bandwidth is available to consume
+	 * How many bandwidth is available to consume?
 	 * Used to calculate which impact sending data with this transport has
 	 *
 	 * Unit: [kB/s]
@@ -154,98 +166,68 @@ enum GNUNET_ATS_Cost_Type
 	 * Dial-up: 8       (64 Kbit/s)
 	 *
 	 */
-	GNUNET_ATS_BANDWITH_COST = 6,
+	GNUNET_ATS_COST_BANDWITH_AVAILABLE = 6,
 
 	/* Network overhead
-	 * a factor used with connect cost, bandwidth cost and energy cost to describe the overhead produced by the transport protocol
+	 * How many bytes are sent over the wire when 1 kilobyte (1024 bytes) of application data is transmitted?
+	 * A factor used with connect cost, bandwidth cost and energy cost to describe the overhead produced by the transport protocol
 	 *
-	 * Unit: [10,000 - (Efficiency in Percent * 100)]
+	 * Unit: [bytes/kb]
 	 *
 	 * Interpretation: less is better
 	 *
 	 * Examples:
 	 *
-	 * TCP/IPv4 over Ethernet: 507 (Efficiency: 94,93 %)
-	 * TCP/IPv6 over Ethernet: 646 (Efficiency: 93,64 %)
-	 * UDP/IPv4 over Ethernet: 429 (Efficiency: 95,71 %)
-	 * UDP/IPv6 over Ethernet: 559 (Efficiency: 94,41 %)
+	 * TCP/IPv4 over Ethernet: 1024 + 38 + 20 + 20 = 1102 [bytes/kb]
+	 * TCP/IPv6 over Ethernet: 1024 + 38 + 20 + 40 = 1122 [bytes/kb]
+	 * UDP/IPv4 over Ethernet: 1024 + 38 + 20 + 8  = 1090 [bytes/kb]
+	 * UDP/IPv6 over Ethernet: 1024 + 38 + 40 + 8  = 1110 [bytes/kb]
 	 */
-	GNUNET_ATS_NETWORK_OVERHEAD_COST = 7,
+	GNUNET_ATS_COST_NETWORK_OVERHEAD = 7,
+
+
+	/* Quality related values */
+	/* ====================== */
+
+    /* Physical layer quality properties */
+
+	GNUNET_ATS_PHY_SIGNAL_STRENGTH = 1025,
+
+	GNUNET_ATS_PHY_COLLISION_RATE = 1026,
+
+	GNUNET_ATS_PHY_ERROR_RATE = 1027,
+
+    /* Network layer quality properties */
+
+	GNUNET_ATS_NET_DELAY = 1028,
+
+	GNUNET_ATS_NET_LOSSRATE = 1029,
+
+	GNUNET_ATS_NET_ERRORRATE = 1030,
+
+	GNUNET_ATS_NET_DROPRATE = 1031,
+
+	GNUNET_ATS_NET_JITTER = 1032,
+
+	GNUNET_ATS_NET_THROUGHPUT = 1033
 };
 
 /**
  * This structure will be used by plugins to communicate costs to ATS or by higher level components to tell ATS their constraints
- * Always a pair of (GNUNET_ATS_Cost_Types, uint32_t value)
+ * Always a pair of (GNUNET_ATS_Property, uint32_t value)
  * Value is always uint32_t, so all units used to define costs have to be normalized to fit uint32_t
  */
-struct GNUNET_ATS_Cost_Information
+struct GNUNET_ATS_Information
 {
 	/**
-	 * ATS Cost Type
+	 * ATS property type
 	 */
-	uint32_t cost_type;
+	uint32_t type;
 
 	/**
-	 * ATS Cost value
+	 * ATS property value
 	 */
-	uint32_t cost_value;
+	uint32_t value;
 };
 
-/**
- * Enum defining all known quality types for ATS
- * Enum values are used in the GNUNET_ATS_Cost_Information struct as (key,value)-pair
- * Cost are always stored in uint32_t, so all units used to define costs have to be normalized to fit in uint32_t [0 .. 4.294.967.295]
- */
-
-enum GNUNET_ATS_Quality_Type
-{
-    /*
-     * Quality will be passed as struct GNUNET_ATS_Quality_Information[]
-     * array is 0-terminated:
-     * the last element in the array is the pair (GNUNET_ATS_ARRAY_TERMINATOR, 0)
-     */
-    //GNUNET_ATS_ARRAY_TERMINATOR = 0,
-
-    /* Physical layer quality properties */
-
-	GNUNET_ATS_PHY_SIGNAL_STRENGTH = 1,
-
-	GNUNET_ATS_PHY_COLLISION_RATE = 2,
-
-	GNUNET_ATS_PHY_ERROR_RATE = 3,
-
-    /* Network layer quality properties */
-
-	GNUNET_ATS_NET_DELAY = 4,
-
-	GNUNET_ATS_NET_LOSSRATE = 5,
-
-	GNUNET_ATS_NET_ERRORRATE = 6,
-
-	GNUNET_ATS_NET_DROPRATE = 6,
-
-	GNUNET_ATS_NET_JITTER = 6,
-
-	GNUNET_ATS_NET_THROUGHPUT = 7,
-};
-
-/**
- * This structure will be used by plugins to communicate quality to ATS or by higher level components to tell ATS their
- * quality constraints
- *
- * Always a pair of (GNUNET_ATS_Quality_Type, uint32_t value)
- * Value is always uint32_t, so all units used to define quality values have to be normalized to fit uint32_t
- */
-struct GNUNET_ATS_Quality_Information
-{
-	/**
-	 * ATS Quality Type
-	 */
-	uint32_t quality_type;
-
-	/**
-	 * ATS Quality value
-	 */
-	uint32_t quality_value;
-};
 
