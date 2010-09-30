@@ -1810,6 +1810,13 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
       n = neighbour_add (handle, target);
 
     }
+  if (n == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Could not create neighbour entry for peer `%s'\n",
+		  GNUNET_i2s (target));
+      return NULL;
+    }
 
   /**
    *  Send a request connect message if not connected,
@@ -1821,13 +1828,6 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
       send_request_connect_message(handle, n);
     }
 
-  if (n == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Could not create neighbour entry for peer `%s'\n",
-		  GNUNET_i2s (target));
-      return NULL;
-    }
   switch (n->transmit_stage)
     {
     case TS_NEW:
