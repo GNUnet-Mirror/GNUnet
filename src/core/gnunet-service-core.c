@@ -224,6 +224,11 @@ struct PingMessage
    * Message type is CORE_PING.
    */
   struct GNUNET_MessageHeader header;
+  
+  /**
+   * Seed for the IV
+   */
+  uint32_t iv_seed;
 
   /**
    * Random number chosen to make reply harder.
@@ -249,6 +254,11 @@ struct PongMessage
    * Message type is CORE_PONG.
    */
   struct GNUNET_MessageHeader header;
+    
+  /**
+   * Seed for the IV
+   */
+  uint32_t iv_seed;
 
   /**
    * Random number proochosen to make reply harder.  Must be
