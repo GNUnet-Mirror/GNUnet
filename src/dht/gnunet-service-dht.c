@@ -4380,21 +4380,21 @@ run (void *cls,
 
   converge_option = DHT_CONVERGE_SQUARE;
   if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht_testing",
+      GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht",
                                            "converge_linear"))
     {
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Setting converge linear.\n");
       converge_option = DHT_CONVERGE_LINEAR;
     }
   else if (GNUNET_YES ==
-        GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht_testing",
+        GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht",
                                              "converge_exponential"))
     {
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Setting converge exponential.\n");
       converge_option = DHT_CONVERGE_EXPONENTIAL;
     }
   else if (GNUNET_YES ==
-        GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht_testing",
+        GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht",
                                              "converge_random"))
     {
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Setting converge random.\n");
