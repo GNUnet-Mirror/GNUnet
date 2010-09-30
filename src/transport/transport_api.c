@@ -1135,7 +1135,7 @@ neighbour_disconnect (struct NeighbourList *n)
 #endif
   GNUNET_break (n->is_connected == GNUNET_YES);
   n->is_connected = GNUNET_NO;
-  if (h->nc_cb != NULL)
+  if (h->nd_cb != NULL)
     h->nd_cb (h->cls, &n->id);
   if (n->transmit_stage == TS_NEW)
     neighbour_free (n);
