@@ -46,6 +46,7 @@
  * To keep the elements ordered
  *    1..1024 : Values with a relation to cost
  * 1025..2048 : Values with a relation to quality
+ * 2049..3072 : Values with a relation to availability
  *
  */
 enum GNUNET_ATS_Property
@@ -300,7 +301,20 @@ enum GNUNET_ATS_Property
 	 * Dialup: 	  4
 	 *
 	 */
-	GNUNET_ATS_QUALITY_NET_THROUGHPUT = 1033
+	GNUNET_ATS_QUALITY_NET_THROUGHPUT = 1033,
+
+	/* Availability related values */
+	/* =========================== */
+
+	/**
+	 * Is a peer reachable?
+	 */
+	GNUNET_ATS_AVAILABILITY_REACHABLE = 2048,
+
+	/**
+	 * Is there a connection established to a peer using this transport
+	 */
+	GNUNET_ATS_AVAILABILITY_CONNECTED = 2049
 };
 
 /**
@@ -321,4 +335,4 @@ struct GNUNET_ATS_Information
 	uint32_t value;
 };
 
-
+/* end of transport_selection.h */
