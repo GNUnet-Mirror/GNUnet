@@ -2731,11 +2731,11 @@ converge_distance (const GNUNET_HashCode *target,
         return 1;
     }
 
-  /* Take the log (base 2) of the number of bits matching the other peer */
-  exponent = log2(other_matching_bits);
+  /* Take the log (base e) of the number of bits matching the other peer */
+  exponent = log(other_matching_bits);
 
-  /* Check if we would overflow; our largest possible value is 2^64 */
-  if (exponent * calc_value >= 64)
+  /* Check if we would overflow; our largest possible value is 2^64 = e^44.361419555836498 */
+  if (exponent * calc_value >= 44.361419555836498)
     return ULLONG_MAX;
 
   /* Clear errno and all math exceptions */
