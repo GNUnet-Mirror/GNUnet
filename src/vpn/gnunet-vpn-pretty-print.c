@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include <malloc.h>
 #ifndef _WIN32
 #include <arpa/inet.h>
 #else
