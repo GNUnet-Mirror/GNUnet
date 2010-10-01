@@ -1770,6 +1770,7 @@ process_pending_messages (struct ClientList *client)
     return;    
   if (client->transmit_handle != NULL) 
     return;
+
   client->transmit_handle =
     GNUNET_SERVER_notify_transmit_ready (client->client_handle,
 					 ntohs (client->pending_head->msg->
@@ -3516,6 +3517,94 @@ republish_content(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 }
 
+
+/**
+ * Iterator over hash map entries.
+ *
+ * @param cls client to search for in source routes
+ * @param key current key code (ignored)
+ * @param value value in the hash map, a DHTQueryRecord
+ * @return GNUNET_YES if we should continue to
+ *         iterate,
+ *         GNUNET_NO if not.
+ */
+static int find_client_records (void *cls,
+                                const GNUNET_HashCode * key, void *value)
+{
+  struct ClientList *client = cls;
+  struct DHTQueryRecord *record = value;
+  struct DHTRouteSource *pos;
+  pos = record->head;
+  while (pos != NULL)
+    {
+      if (pos->client == client)
+        break;
+      pos = pos->next;
+    }
+  if (pos != NULL)
+    {
+      GNUNET_CONTAINER_DLL_remove(record->head, record->tail, pos);
+      GNUNET_CONTAINER_heap_remove_node(forward_list.minHeap, pos->hnode);
+      if (pos->delete_task != GNUNET_SCHEDULER_NO_TASK)
+        GNUNET_SCHEDULER_cancel(sched, pos->delete_task);
+
+      if (pos->find_peers_responded != NULL)
+        GNUNET_CONTAINER_bloomfilter_free(pos->find_peers_responded);
+      GNUNET_free(pos);
+    }
+  if (record->head == NULL) /* No more entries in DLL */
+    {
+      GNUNET_assert(GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(forward_list.hashmap, &record->key, record));
+      GNUNET_free(record);
+    }
+  return GNUNET_YES;
+}
+
+/**
+ * Functions with this signature are called whenever a client
+ * is disconnected on the network level.
+ *
+ * @param cls closure (NULL for dht)
+ * @param client identification of the client; NULL
+ *        for the last call when the server is destroyed
+ */
+static void handle_client_disconnect (void *cls,
+                                      struct GNUNET_SERVER_Client* client)
+{
+  struct ClientList *pos = client_list;
+  struct ClientList *prev;
+  struct ClientList *found;
+  struct PendingMessage *reply;
+
+  prev = NULL;
+  found = NULL;
+  while (pos != NULL)
+    {
+      if (pos->client_handle == client)
+        {
+          if (prev != NULL)
+            prev->next = pos->next;
+          else
+            client_list = pos->next;
+          found = pos;
+          break;
+        }
+      prev = pos;
+      pos = pos->next;
+    }
+
+  if (found != NULL)
+    {
+      while(NULL != (reply = found->pending_head))
+        {
+          GNUNET_CONTAINER_DLL_remove(found->pending_head, found->pending_tail, reply);
+          GNUNET_free(reply);
+        }
+      GNUNET_CONTAINER_multihashmap_iterate(forward_list.hashmap, &find_client_records, found);
+      GNUNET_free(found);
+    }
+}
+
 /**
  * Find a client if it exists, add it otherwise.
  *
@@ -3540,6 +3629,7 @@ find_active_client (struct GNUNET_SERVER_Client *client)
   ret->client_handle = client;
   ret->next = client_list;
   client_list = ret;
+
   return ret;
 }
 
@@ -4236,6 +4326,7 @@ run (void *cls,
   cfg = c;
   datacache = GNUNET_DATACACHE_create (sched, cfg, "dhtcache");
   GNUNET_SERVER_add_handlers (server, plugin_handlers);
+  GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
   coreAPI = GNUNET_CORE_connect (sched, /* Main scheduler */
                                  cfg,   /* Main configuration */
                                  GNUNET_TIME_UNIT_FOREVER_REL,
