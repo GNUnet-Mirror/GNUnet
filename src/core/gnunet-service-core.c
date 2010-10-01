@@ -228,8 +228,7 @@ struct PingMessage
   /**
    * Seed for the IV
    */
-  /* FIXME: Does adding this member break things (why?) */
-  /*uint32_t iv_seed GNUNET_PACKED;*/
+  uint32_t iv_seed GNUNET_PACKED;
 
   /**
    * Random number chosen to make reply harder.
@@ -259,8 +258,7 @@ struct PongMessage
   /**
    * Seed for the IV
    */
-  /* FIXME: Does adding this member break things (why?) */
-  /*uint32_t iv_seed GNUNET_PACKED;*/
+  uint32_t iv_seed GNUNET_PACKED;
 
   /**
    * Random number proochosen to make reply harder.  Must be
@@ -1324,7 +1322,7 @@ send_keep_alive (void *cls,
               &pp.challenge,
               &pm->challenge,
               sizeof (struct PingMessage) -
-              sizeof (struct GNUNET_MessageHeader));
+              ((void *) &pm->challenge - (void *) pm));
   process_encrypted_neighbour_queue (n);
   /* reschedule PING job */
   left = GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_add (n->last_activity,
@@ -2733,7 +2731,7 @@ send_key (struct Neighbour *n)
               &pp.challenge,
               &pm->challenge,
               sizeof (struct PingMessage) -
-              sizeof (struct GNUNET_MessageHeader));
+              ((void *) &pm->challenge - (void *) pm));
   GNUNET_STATISTICS_update (stats, 
 			    gettext_noop ("# SET_KEY and PING messages created"), 
 			    1, 
@@ -2849,7 +2847,7 @@ handle_ping (struct Neighbour *n, const struct PingMessage *m)
                   &m->challenge,
                   &t.challenge,
                   sizeof (struct PingMessage) -
-                  sizeof (struct GNUNET_MessageHeader)))
+                  ((void *) &m->challenge - (void *) m)))
     return;
 #if DEBUG_HANDSHAKE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2890,7 +2888,7 @@ handle_ping (struct Neighbour *n, const struct PingMessage *m)
               &tx.challenge,
               &tp->challenge,
               sizeof (struct PongMessage) -
-              sizeof (struct GNUNET_MessageHeader));
+              ((void *) &tp->challenge - (void *) tp));
   GNUNET_STATISTICS_update (stats, 
 			    gettext_noop ("# PONG messages created"), 
 			    1, 
@@ -2933,7 +2931,7 @@ handle_pong (struct Neighbour *n,
                   &m->challenge,
                   &t.challenge,
                   sizeof (struct PongMessage) -
-                  sizeof (struct GNUNET_MessageHeader)))
+                  ((void *) &m->challenge - (void *) m)))
     {
       GNUNET_break_op (0);
       return;
