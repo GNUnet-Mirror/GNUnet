@@ -187,6 +187,7 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
   struct GNUNET_DHT_GetHandle *get_handle;
   struct GNUNET_DHT_GetMessage get_msg;
 
+  /* FIXME: transmit bf, mutator, xquery & xquery_size as well... */
   get_handle = GNUNET_malloc (sizeof (struct GNUNET_DHT_GetHandle));
   get_handle->iter = iter;
   get_handle->iter_cls = iter_cls;
