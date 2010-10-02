@@ -78,22 +78,30 @@ static unsigned int result_count;
 static int ret;
 
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-
   if (dht_handle != NULL)
-    GNUNET_DHT_disconnect (dht_handle);
-
-  dht_handle = NULL;
+    {
+      GNUNET_DHT_disconnect (dht_handle);
+      dht_handle = NULL;
+    }
+  fprintf (stderr,
+	   _("Found %u peers\n"),
+	   result_count);
 }
 
+
 static void
-cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleanup_task (void *cls, 
+	      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (find_peer_handle != NULL)
-    GNUNET_DHT_find_peer_stop (find_peer_handle, &shutdown_task, NULL);
-  else
-    GNUNET_SCHEDULER_add_now (sched, &shutdown_task, NULL);
+    {
+      GNUNET_DHT_find_peer_stop (find_peer_handle);
+      find_peer_handle = NULL;
+    }
+  GNUNET_SCHEDULER_add_now (sched, &shutdown_task, NULL);
 }
 
 /**
@@ -103,45 +111,22 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls closure (NULL)
  * @param hello the response message, a HELLO
  */
-void find_peer_processor (void *cls,
-                          const struct GNUNET_HELLO_Message *hello)
+static void 
+find_peer_processor (void *cls,
+		     const struct GNUNET_HELLO_Message *hello)
 {
   struct GNUNET_PeerIdentity peer;
+
   if (GNUNET_OK == GNUNET_HELLO_get_id(hello, &peer))
     {
       result_count++;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "test_find_peer_processor called (peer `%s'), total results %d!\n", GNUNET_i2s(&peer), result_count);
+      if (verbose)
+	fprintf (stderr,
+		 _("Found peer `%s'\n"),
+		 GNUNET_i2s (&peer));
     }
 }
 
-
-/**
- * Signature of the main function of a task.
- *
- * @param cls closure
- * @param tc context information (why was this task triggered now)
- */
-void
-message_sent_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  if (tc->reason == GNUNET_SCHEDULER_REASON_TIMEOUT)
-    {
-      if (verbose)
-        fprintf (stderr,
-                 "Failed to send FIND PEER request to service, quitting.\n");
-      ret = 1;
-      GNUNET_SCHEDULER_add_now (sched, &shutdown_task, NULL);
-    }
-  else
-    {
-      if (verbose)
-        fprintf (stderr, "FIND PEER request sent, awaiting results!\n");
-      GNUNET_SCHEDULER_add_delayed (sched,
-                                    GNUNET_TIME_absolute_get_remaining
-                                    (absolute_timeout), &cleanup_task, NULL);
-    }
-}
 
 /**
  * Main function that will be run by the scheduler.
@@ -194,13 +179,19 @@ run (void *cls,
 
   find_peer_handle = GNUNET_DHT_find_peer_start (dht_handle,
                                                  timeout,
-                                                 0,
                                                  &key,
+						 GNUNET_DHT_RO_NONE,
                                                  &find_peer_processor,
-                                                 NULL,
-                                                 &message_sent_cont,
                                                  NULL);
-
+  if (NULL == find_peer_handle)
+    {
+      GNUNET_SCHEDULER_add_now (sched, &shutdown_task, NULL);
+      return;
+    }
+  GNUNET_SCHEDULER_add_delayed (sched,
+				GNUNET_TIME_absolute_get_remaining
+				(absolute_timeout),
+				&cleanup_task, NULL);
 }
 
 
@@ -234,8 +225,10 @@ main (int argc, char *const *argv)
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc,
                               argv,
-                              "gnunet-dht-get",
+                              "gnunet-dht-get-peer",
                               gettext_noop
-                              ("Issue a GET request to the GNUnet DHT, prints results."),
+                              ("Issue a GET PEER request to the GNUnet DHT, print results."),
                               options, &run, NULL)) ? ret : 1;
 }
+
+/* end of gnunet-dht-get-peer */

@@ -52,7 +52,7 @@ libgnunet_plugin_dhtlog_mysql_dump_la_LIBADD = \
   $(XLIB)
 libgnunet_plugin_dhtlog_mysql_dump_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
- 
+
 libgnunet_plugin_dhtlog_mysql_dump_load_la_SOURCES = \
   plugin_dhtlog_mysql_dump_load.c
 libgnunet_plugin_dhtlog_mysql_dump_load_la_LIBADD = \
@@ -70,7 +70,9 @@ libgnunetdhtlog_la_LDFLAGS = \
   -version-info 0:0:0
 
 libgnunetdht_la_SOURCES = \
-  dht_api.c dht.h
+  dht_api.c dht.h \
+  dht_api_get_put.c \
+  dht_api_find_peer.c 
 libgnunetdht_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(XLIB)
@@ -92,8 +94,10 @@ bin_PROGRAMS = $(STUD_PROGS) \
  gnunet-dht-get-peer \
  gnunet-dht-put 
 
+if HAVE_MALICIOUS
 noinst_PROGRAMS = \
  gnunet-dht-driver 
+endif
 
 gnunet_service_dht_SOURCES = \
  gnunet-service-dht.c         

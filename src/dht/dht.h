@@ -320,11 +320,6 @@ struct GNUNET_DHT_PutMessage
    */
   struct GNUNET_TIME_AbsoluteNBO expiration;
 
-  /**
-   * The size of the data, appended to the end of this message.
-   */
-  size_t data_size GNUNET_PACKED;
-
 };
 
 

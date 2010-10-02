@@ -81,23 +81,27 @@ static unsigned int result_count;
  */
 static int ret;
 
+
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-
   if (dht_handle != NULL)
-    GNUNET_DHT_disconnect (dht_handle);
-
-  dht_handle = NULL;
+    {
+      GNUNET_DHT_disconnect (dht_handle);
+      dht_handle = NULL;
+    }
 }
+
 
 static void
 cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (get_handle != NULL)
-    GNUNET_DHT_get_stop (get_handle, &shutdown_task, NULL);
-  else
-    GNUNET_SCHEDULER_add_now (sched, &shutdown_task, NULL);
+    {
+      GNUNET_DHT_get_stop (get_handle);
+      get_handle = NULL;
+    }
+  GNUNET_SCHEDULER_add_now (sched, &shutdown_task, NULL);
 }
 
 
@@ -108,6 +112,10 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls closure
  * @param exp when will this value expire
  * @param key key of the result
+ * @param get_path NULL-terminated array of pointers
+ *                 to the peers on reverse GET path (or NULL if not recorded)
+ * @param put_path NULL-terminated array of pointers
+ *                 to the peers on the PUT path (or NULL if not recorded)
  * @param type type of the result
  * @param size number of bytes in data
  * @param data pointer to the result data
@@ -116,39 +124,17 @@ void
 get_result_iterator (void *cls,
                      struct GNUNET_TIME_Absolute exp,
                      const GNUNET_HashCode * key,
-                     uint32_t type, uint32_t size, const void *data)
+		     const struct GNUNET_PeerIdentity * const *get_path,
+		     const struct GNUNET_PeerIdentity * const *put_path,
+                     enum GNUNET_BLOCK_Type type,
+		     size_t size, 
+		     const void *data)
 {
   fprintf (stdout, "Result %d, type %d:\n%.*s\n", result_count, type, size,
            (char *) data);
   result_count++;
 }
 
-/**
- * Signature of the main function of a task.
- *
- * @param cls closure
- * @param tc context information (why was this task triggered now)
- */
-void
-message_sent_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  if (tc->reason == GNUNET_SCHEDULER_REASON_TIMEOUT)
-    {
-      if (verbose)
-        fprintf (stderr,
-                 "Failed to send GET request to service, quitting.\n");
-      ret = 1;
-      GNUNET_SCHEDULER_add_now (sched, &shutdown_task, NULL);
-    }
-  else
-    {
-      if (verbose)
-        fprintf (stderr, "GET request sent, awaiting results!\n");
-      GNUNET_SCHEDULER_add_delayed (sched,
-                                    GNUNET_TIME_absolute_get_remaining
-                                    (absolute_timeout), &cleanup_task, NULL);
-    }
-}
 
 /**
  * Main function that will be run by the scheduler.
@@ -198,8 +184,17 @@ run (void *cls,
 
   if (verbose)
     fprintf (stderr, "Issuing GET request for %s!\n", query_key);
-  get_handle = GNUNET_DHT_get_start (dht_handle, timeout, query_type, &key,
-                        &get_result_iterator, NULL, &message_sent_cont, NULL);
+  GNUNET_SCHEDULER_add_delayed (sched,
+				GNUNET_TIME_absolute_get_remaining
+				(absolute_timeout), &cleanup_task, NULL);
+  get_handle = GNUNET_DHT_get_start (dht_handle,
+				     timeout, 
+				     query_type, 
+				     &key,
+				     GNUNET_DHT_RO_NONE,
+				     NULL, 0,
+				     NULL, 0,
+				     &get_result_iterator, NULL);
 
 }
 
@@ -242,3 +237,5 @@ main (int argc, char *const *argv)
                               ("Issue a GET request to the GNUnet DHT, prints results."),
                               options, &run, NULL)) ? ret : 1;
 }
+
+/* end of gnunet-dht-get.c */

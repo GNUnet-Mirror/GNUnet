@@ -23,12 +23,6 @@
  * @brief library to access the DHT service
  * @author Christian Grothoff
  * @author Nathan Evans
- *
- * TODO: retransmission of pending requests maybe happens now, at least
- *       the code is in place to do so.  Need to add checks when api calls
- *       happen to check if retransmission is in progress, and if so set
- *       the single pending message for transmission once the list of
- *       retries are done.
  */
 
 #include "platform.h"
@@ -46,28 +40,47 @@
 
 #define DEBUG_DHT_API GNUNET_NO
 
+/**
+ * Entry in our list of messages to be (re-)transmitted.
+ */
 struct PendingMessage
 {
   /**
-   * Message that is pending
+   * This is a doubly-linked list.
    */
-  struct GNUNET_MessageHeader *msg;
+  struct PendingMessage *prev;
 
   /**
-   * Timeout for this message
+   * This is a doubly-linked list.
    */
-  struct GNUNET_TIME_Relative timeout;
+  struct PendingMessage *next;
 
   /**
-   * Continuation to call on message send
-   * or message receipt confirmation
+   * Message that is pending, allocated at the end
+   * of this struct.
+   */
+  const struct GNUNET_MessageHeader *msg;
+  
+  /**
+   * Handle to the DHT API context.
+   */
+  struct GNUNET_DHT_Handle *handle;
+                       
+  /**
+   * Continuation to call when the request has been
+   * transmitted (for the first time) to the service; can be NULL.
    */
   GNUNET_SCHEDULER_Task cont;
 
   /**
-   * Continuation closure
+   * Closure for 'cont'.
    */
   void *cont_cls;
+
+  /**
+   * Timeout task for this message
+   */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
   /**
    * Unique ID for this request
@@ -75,70 +88,26 @@ struct PendingMessage
   uint64_t unique_id;
 
   /**
-   * Free the saved message once sent, set
-   * to GNUNET_YES for messages that don't
-   * receive responses!
+   * Free the saved message once sent, set to GNUNET_YES for messages
+   * that do not receive responses; GNUNET_NO if this pending message
+   * is aliased from a 'struct GNUNET_DHT_RouteHandle' and will be freed
+   * from there.
    */
   int free_on_send;
 
-};
-
-struct PendingMessageList
-{
   /**
-   * This is a singly linked list.
+   * GNUNET_YES if this message is in our pending queue right now.
    */
-  struct PendingMessageList *next;
-
-  /**
-   * The pending message.
-   */
-  struct PendingMessage *message;
-};
-
-struct GNUNET_DHT_GetContext
-{
-  /**
-   * Iterator to call on data receipt
-   */
-  GNUNET_DHT_GetIterator iter;
-
-  /**
-   * Closure for the iterator callback
-   */
-  void *iter_cls;
+  int in_pending_queue;
 
 };
 
-struct GNUNET_DHT_FindPeerContext
-{
-  /**
-   * Iterator to call on data receipt
-   */
-  GNUNET_DHT_FindPeerProcessor proc;
-
-  /**
-   * Closure for the iterator callback
-   */
-  void *proc_cls;
-
-};
 
 /**
  * Handle to a route request
  */
 struct GNUNET_DHT_RouteHandle
 {
-
-  /**
-   * Unique identifier for this request (for key collisions)
-   */
-  uint64_t uid;
-
-  /**
-   * Key that this get request is for
-   */
-  GNUNET_HashCode key;
 
   /**
    * Iterator to call on data receipt
@@ -160,62 +129,18 @@ struct GNUNET_DHT_RouteHandle
    * used for retransmitting requests on service
    * failure/reconnect.  Freed on route_stop.
    */
-  struct GNUNET_DHT_RouteMessage *message;
-};
+  struct PendingMessage *message;
 
-
-/**
- * Handle to control a get operation.
- */
-struct GNUNET_DHT_GetHandle
-{
   /**
-   * Handle to the actual route operation for the get
+   * Key that this get request is for
    */
-  struct GNUNET_DHT_RouteHandle *route_handle;
+  GNUNET_HashCode key;
 
   /**
-   * The context of the get request
+   * Unique identifier for this request (for key collisions)
    */
-  struct GNUNET_DHT_GetContext get_context;
-};
+  uint64_t uid;
 
-
-/**
- * Handle to control a find peer operation.
- */
-struct GNUNET_DHT_FindPeerHandle
-{
-  /**
-     * Handle to the actual route operation for the request
-     */
-  struct GNUNET_DHT_RouteHandle *route_handle;
-
-    /**
-     * The context of the find peer request
-     */
-  struct GNUNET_DHT_FindPeerContext find_peer_context;
-};
-
-
-enum DHT_Retransmit_Stage
-{
-  /**
-   * The API is not retransmitting anything at this time.
-   */
-  DHT_NOT_RETRANSMITTING,
-
-  /**
-   * The API is retransmitting, and nothing has been single
-   * queued for sending.
-   */
-  DHT_RETRANSMITTING,
-
-  /**
-   * The API is retransmitting, and a single message has been
-   * queued for transmission once finished.
-   */
-  DHT_RETRANSMITTING_MESSAGE_QUEUED
 };
 
 
@@ -240,95 +165,57 @@ struct GNUNET_DHT_Handle
   struct GNUNET_CLIENT_Connection *client;
 
   /**
-   * Currently pending transmission request.
+   * Currently pending transmission request (or NULL).
    */
   struct GNUNET_CLIENT_TransmitHandle *th;
 
   /**
-   * Message we are currently sending, only allow
-   * a single message to be queued.  If not unique
-   * (typically a put request), await a confirmation
-   * from the service that the message was received.
-   * If unique, just fire and forget.
+   * Head of linked list of messages we would like to transmit.
    */
-  struct PendingMessage *current;
+  struct PendingMessage *pending_head;
+
+  /**
+   * Tail of linked list of messages we would like to transmit.
+   */
+  struct PendingMessage *pending_tail;
 
   /**
    * Hash map containing the current outstanding unique requests
+   * (values are of type 'struct GNUNET_DHT_RouteHandle').
    */
-  struct GNUNET_CONTAINER_MultiHashMap *outstanding_requests;
+  struct GNUNET_CONTAINER_MultiHashMap *active_requests;
 
   /**
    * Generator for unique ids.
    */
   uint64_t uid_gen;
 
-  /**
-   * Are we currently retransmitting requests?  If so queue a _single_
-   * new request when received.
-   */
-  enum DHT_Retransmit_Stage retransmit_stage;
-
-  /**
-   * Linked list of retranmissions, to be used in the event
-   * of a dht service disconnect/reconnect.
-   */
-  struct PendingMessageList *retransmissions;
-
-  /**
-   * A single pending message allowed to be scheduled
-   * during retransmission phase.
-   */
-  struct PendingMessage *retransmission_buffer;
 };
 
 
 /**
- * Convert unique ID to hash code.
+ * Transmit the next pending message, called by notify_transmit_ready
+ */
+static size_t
+transmit_pending (void *cls,
+		  size_t size, 
+		  void *buf);
+
+
+/**
+ * Handler for messages received from the DHT service
+ * a demultiplexer which handles numerous message types
  *
- * @param uid unique ID to convert
- * @param hash set to uid (extended with zeros)
  */
 static void
-hash_from_uid (uint64_t uid,
-	       GNUNET_HashCode *hash)
-{
-  memset (hash, 0, sizeof(GNUNET_HashCode));
-  *((uint64_t*)hash) = uid;
-}
+service_message_handler (void *cls,
+                         const struct GNUNET_MessageHeader *msg);
 
-#if RETRANSMIT
-/**
- * Iterator callback to retransmit each outstanding request
- * because the connection to the DHT service went down (and
- * came back).
- *
- *
- */
-static int retransmit_iterator (void *cls,
-                                const GNUNET_HashCode * key,
-                                void *value)
-{
-  struct GNUNET_DHT_RouteHandle *route_handle = value;
-  struct PendingMessageList *pending_message_list;
 
-  pending_message_list = GNUNET_malloc(sizeof(struct PendingMessageList) + sizeof(struct PendingMessage));
-  pending_message_list->message = (struct PendingMessage *)&pending_message_list[1];
-  pending_message_list->message->msg = &route_handle->message->header;
-  pending_message_list->message->timeout = GNUNET_TIME_relative_get_forever();
-  pending_message_list->message->cont = NULL;
-  pending_message_list->message->cont_cls = NULL;
-  pending_message_list->message->unique_id = route_handle->uid;
-  /* Add the new pending message to the front of the retransmission list */
-  pending_message_list->next = route_handle->dht_handle->retransmissions;
-  route_handle->dht_handle->retransmissions = pending_message_list;
 
-  return GNUNET_OK;
-}
-#endif
 
 /**
- * Try to (re)connect to the dht service.
+ * Try to (re)connect to the DHT service.
  *
  * @return GNUNET_YES on success, GNUNET_NO on failure.
  */
@@ -338,304 +225,233 @@ try_connect (struct GNUNET_DHT_Handle *handle)
   if (handle->client != NULL)
     return GNUNET_OK;
   handle->client = GNUNET_CLIENT_connect (handle->sched, "dht", handle->cfg);
-  if (handle->client != NULL)
-    return GNUNET_YES;
-#if DEBUG_STATISTICS
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("Failed to connect to the dht service!\n"));
-#endif
-  return GNUNET_NO;
+  if (handle->client == NULL)
+    { 
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Failed to connect to the DHT service!\n"));
+      return GNUNET_NO;
+    }
+  GNUNET_CLIENT_receive (handle->client,
+                         &service_message_handler,
+                         handle, 
+			 GNUNET_TIME_UNIT_FOREVER_REL);
+  return GNUNET_YES;
 }
+
 
 /**
- * Send complete (or failed), call continuation if we have one.
+ * Add the request corresponding to the given route handle
+ * to the pending queue (if it is not already in there).
+ *
+ * @param cls the 'struct GNUNET_DHT_Handle*'
+ * @param key key for the request (not used)
+ * @param value the 'struct GNUNET_DHT_RouteHandle*'
+ * @return GNUNET_YES (always)
+ */
+static int
+add_request_to_pending (void *cls,
+			const GNUNET_HashCode *key,
+			void *value)
+{
+  struct GNUNET_DHT_Handle *handle = cls;
+  struct GNUNET_DHT_RouteHandle *rh = value;
+
+  if (GNUNET_NO == rh->message->in_pending_queue)
+    {
+      GNUNET_CONTAINER_DLL_insert (handle->pending_head,
+				   handle->pending_tail,
+				   rh->message);
+      rh->message->in_pending_queue = GNUNET_YES;
+    }
+  return GNUNET_YES;
+}
+
+
+/**
+ * Re-connect to the DHT, re-issue all pending requests if needed.
  */
 static void
-finish (struct GNUNET_DHT_Handle *handle, int code)
+reconnect (struct GNUNET_DHT_Handle *handle)
 {
-  struct PendingMessage *pos = handle->current;
-  GNUNET_HashCode uid_hash;
-#if DEBUG_DHT_API
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s': Finish called!\n", "DHT API");
-#endif
-  GNUNET_assert (pos != NULL);
-  hash_from_uid (pos->unique_id, &uid_hash);
-  if (pos->cont != NULL)
+  if (handle->client != NULL)
     {
-      if (code == GNUNET_SYSERR)
-        GNUNET_SCHEDULER_add_continuation (handle->sched, pos->cont,
-                                           pos->cont_cls,
-                                           GNUNET_SCHEDULER_REASON_TIMEOUT);
-      else
-        GNUNET_SCHEDULER_add_continuation (handle->sched, pos->cont,
-                                           pos->cont_cls,
-                                           GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      GNUNET_CLIENT_disconnect (handle->client, 
+				GNUNET_NO);
+      handle->client = NULL;
     }
-
-  GNUNET_assert(handle->th == NULL);
-  if (pos->free_on_send == GNUNET_YES)
-    GNUNET_free(pos->msg);
-  GNUNET_free (pos);
-  handle->current = NULL;
+  if (GNUNET_YES != try_connect (handle))
+    return;
+  GNUNET_CONTAINER_multihashmap_iterate (handle->active_requests,
+					 &add_request_to_pending,
+					 handle);
+  if (handle->pending_head == NULL)
+    return;
+  GNUNET_CLIENT_notify_transmit_ready (handle->client,
+				       ntohs(handle->pending_head->msg->size),
+				       GNUNET_TIME_UNIT_FOREVER_REL,
+				       GNUNET_NO,
+				       &transmit_pending,
+				       handle);
+				       
 }
+
+
+/**
+ * Try to send messages from list of messages to send
+ */
+static void
+process_pending_messages (struct GNUNET_DHT_Handle *handle)
+{
+  struct PendingMessage *head;
+
+  if (GNUNET_YES != try_connect (handle))
+    return;      
+  if (handle->th != NULL)
+    return;
+  if (NULL == (head = handle->pending_head))
+    return;
+  handle->th = GNUNET_CLIENT_notify_transmit_ready (handle->client,
+						    ntohs (head->msg->size),
+						    GNUNET_TIME_UNIT_FOREVER_REL, 
+						    GNUNET_YES,
+						    &transmit_pending,
+						    handle);
+  if (NULL == handle->th)    
+    {
+      reconnect (handle);
+      return;
+    }
+}
+
 
 /**
  * Transmit the next pending message, called by notify_transmit_ready
  */
 static size_t
-transmit_pending (void *cls, size_t size, void *buf)
+transmit_pending (void *cls,
+		  size_t size, 
+		  void *buf)
 {
   struct GNUNET_DHT_Handle *handle = cls;
+  struct PendingMessage *head;
   size_t tsize;
 
-#if DEBUG_DHT_API
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s': In transmit_pending\n", "DHT API");
-#endif
   handle->th = NULL;
-
   if (buf == NULL)
     {
-#if DEBUG_DHT_API
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "`%s': In transmit_pending buf is NULL\n", "DHT API");
-#endif
-      finish (handle, GNUNET_SYSERR);
+      reconnect (handle);
       return 0;
     }
-
-  if (handle->current != NULL)
+  if (NULL == (head = handle->pending_head))
+    return 0;
+  
+  tsize = ntohs (head->msg->size);
+  if (size < tsize)
     {
-      tsize = ntohs (handle->current->msg->size);
-      if (size >= tsize)
-        {
-#if DEBUG_DHT_API
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "`%s': Sending message size %d\n", "DHT API", tsize);
-#endif
-          memcpy (buf, handle->current->msg, tsize);
-          finish (handle, GNUNET_OK);
-          return tsize;
-        }
-      else
-        {
-          return 0;
-        }
+      process_pending_messages (handle);
+      return 0;
     }
-  /* Have no pending request */
-  return 0;
+  memcpy (buf, head->msg, tsize);
+  GNUNET_CONTAINER_DLL_remove (handle->pending_head,
+			       handle->pending_tail,
+			       head);
+  if (head->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (handle->sched,
+			       head->timeout_task);
+      head->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  if (NULL != head->cont)
+    {
+      GNUNET_SCHEDULER_add_now (handle->sched,
+				head->cont,
+				head->cont_cls);			     
+      head->cont = NULL;
+      head->cont_cls = NULL;
+    }
+  head->in_pending_queue = GNUNET_NO;
+  if (GNUNET_YES == head->free_on_send)
+    GNUNET_free (head);
+  process_pending_messages (handle);
+  return tsize;
 }
 
+
+
+
 /**
- * Try to send messages from list of messages to send
+ * Process a given reply that might match the given
+ * request.
  */
-static void
-process_pending_message (struct GNUNET_DHT_Handle *handle)
+static int
+process_reply (void *cls,
+	       const GNUNET_HashCode *key,
+	       void *value)
 {
+  const struct GNUNET_DHT_RouteResultMessage *dht_msg = cls;
+  struct GNUNET_DHT_RouteHandle *rh = value;
+  const struct GNUNET_MessageHeader *enc_msg;
+  size_t enc_size;
+  uint64_t uid;
 
-  if (handle->current == NULL)
-    return;                     /* action already pending */
-  if (GNUNET_YES != try_connect (handle))
+  uid = GNUNET_ntohll (dht_msg->unique_id);
+  if (uid != rh->uid)
+    return GNUNET_YES;
+  enc_size = ntohs (dht_msg->header.size) - sizeof (struct GNUNET_DHT_RouteResultMessage);
+  if (enc_size < sizeof (struct GNUNET_MessageHeader))
     {
-      handle->th = NULL;
-      finish (handle, GNUNET_SYSERR);
-      return;
+      GNUNET_break (0);
+      return GNUNET_NO;
     }
-
-  if (NULL ==
-      (handle->th = GNUNET_CLIENT_notify_transmit_ready (handle->client,
-                                                         ntohs (handle->
-                                                                current->msg->
-                                                                size),
-                                                         handle->current->
-                                                         timeout, GNUNET_YES,
-                                                         &transmit_pending,
-                                                         handle)))
+  enc_msg = (const struct GNUNET_MessageHeader *) &dht_msg[1];
+  if (enc_size != ntohs (enc_msg->size))
     {
-#if DEBUG_DHT_API
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Failed to transmit request to dht service.\n");
-#endif
-      finish (handle, GNUNET_SYSERR);
-      return;
+      GNUNET_break (0);
+      return GNUNET_NO;
     }
-#if DEBUG_DHT_API
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s': Scheduled sending message of size %d to service\n",
-              "DHT API", ntohs (handle->current->msg->size));
-#endif
+  rh->iter (rh->iter_cls, 
+	    &rh->key,
+	    enc_msg);
+  return GNUNET_YES;
 }
 
-/**
- * Send complete (or failed), call continuation if we have one.
- * Forward declaration.
- */
-static void
-finish_retransmission (struct GNUNET_DHT_Handle *handle, int code);
-
-/* Forward declaration */
-static size_t
-transmit_pending_retransmission (void *cls, size_t size, void *buf);
-
-/**
- * Try to send messages from list of messages to send
- */
-static void
-process_pending_retransmissions (struct GNUNET_DHT_Handle *handle)
-{
-
-  if (handle->current == NULL)
-    return;                     /* action already pending */
-  if (GNUNET_YES != try_connect (handle))
-    {
-      finish_retransmission (handle, GNUNET_SYSERR);
-      return;
-    }
-
-  if (NULL ==
-      (handle->th = GNUNET_CLIENT_notify_transmit_ready (handle->client,
-                                                         ntohs (handle->
-                                                                current->msg->
-                                                                size),
-                                                         handle->current->
-                                                         timeout, GNUNET_YES,
-                                                         &transmit_pending_retransmission,
-                                                         handle)))
-    {
-#if DEBUG_DHT_API
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Failed to transmit request to dht service.\n");
-#endif
-      finish_retransmission (handle, GNUNET_SYSERR);
-      return;
-    }
-#if DEBUG_DHT_API
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s': Scheduled sending message of size %d to service\n",
-              "DHT API", ntohs (handle->current->msg->size));
-#endif
-}
-
-/**
- * Send complete (or failed), call continuation if we have one.
- */
-static void
-finish_retransmission (struct GNUNET_DHT_Handle *handle, int code)
-{
-  struct PendingMessage *pos = handle->current;
-  struct PendingMessageList *pending_list;
-#if DEBUG_DHT_API
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s': Finish (retransmission) called!\n", "DHT API");
-#endif
-  GNUNET_assert (pos == handle->retransmissions->message);
-  pending_list = handle->retransmissions;
-  handle->retransmissions = handle->retransmissions->next;
-  GNUNET_free (pending_list);
-
-  if (handle->retransmissions == NULL)
-    {
-      handle->retransmit_stage = DHT_NOT_RETRANSMITTING;
-    }
-
-  if (handle->retransmissions != NULL)
-    {
-      handle->current = handle->retransmissions->message;
-      process_pending_retransmissions(handle);
-    }
-  else if (handle->retransmission_buffer != NULL)
-    {
-      handle->current = handle->retransmission_buffer;
-      process_pending_message(handle);
-    }
-}
 
 /**
  * Handler for messages received from the DHT service
  * a demultiplexer which handles numerous message types
  *
+ * @param cls the 'struct GNUNET_DHT_Handle'
+ * @param msg the incoming message
  */
-void
+static void
 service_message_handler (void *cls,
                          const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_DHT_Handle *handle = cls;
-  struct GNUNET_DHT_RouteResultMessage *dht_msg;
-  struct GNUNET_MessageHeader *enc_msg;
-  struct GNUNET_DHT_RouteHandle *route_handle;
-  uint64_t uid;
-  GNUNET_HashCode uid_hash;
-  size_t enc_size;
-
+  const struct GNUNET_DHT_RouteResultMessage *dht_msg;
+  
   if (msg == NULL)
     {
-#if DEBUG_DHT_API
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "`%s': Received NULL from server, connection down!\n",
-                  "DHT API");
-#endif
-      GNUNET_CLIENT_disconnect (handle->client, GNUNET_YES);
-      handle->client = GNUNET_CLIENT_connect (handle->sched, 
-                                              "dht",
-                                              handle->cfg);
-      if (handle->current != NULL)
-        {
-          handle->th = NULL;
-          finish(handle, GNUNET_SYSERR); /* If there was a current message, kill it! */
-        }
-#if RETRANSMIT
-      if ((handle->retransmit_stage != DHT_RETRANSMITTING) && (GNUNET_CONTAINER_multihashmap_iterate(handle->outstanding_requests, &retransmit_iterator, handle) > 0))
-        {
-          handle->retransmit_stage = DHT_RETRANSMITTING;
-          handle->current = handle->retransmissions->message;
-          process_pending_retransmissions(handle);
-        }
-#endif
+      reconnect (handle);
       return;
     }
-
-  switch (ntohs (msg->type))
+  if (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE_RESULT)
     {
-    case GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE_RESULT:
-      {
-        dht_msg = (struct GNUNET_DHT_RouteResultMessage *) msg;
-        uid = GNUNET_ntohll (dht_msg->unique_id);
-#if DEBUG_DHT_API
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "`%s': Received response to message (uid %llu)\n",
-                    "DHT API", uid);
-#endif
-
-        hash_from_uid (uid, &uid_hash);
-        route_handle =
-          GNUNET_CONTAINER_multihashmap_get (handle->outstanding_requests,
-                                             &uid_hash);
-        if (route_handle == NULL)   /* We have no recollection of this request */
-          {
-#if DEBUG_DHT_API
-            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                        "`%s': Received response to message (uid %llu), but have no recollection of it!\n",
-                        "DHT API", uid);
-#endif
-          }
-        else
-          {
-            enc_size =
-              ntohs (dht_msg->header.size) -
-              sizeof (struct GNUNET_DHT_RouteResultMessage);
-            GNUNET_assert (enc_size > 0);
-            enc_msg = (struct GNUNET_MessageHeader *) &dht_msg[1];
-            route_handle->iter (route_handle->iter_cls, enc_msg);
-          }
-
-        break;
-      }
-    default:
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    "`%s': Received unknown message type %d\n", "DHT API",
-                    ntohs (msg->type));
-      }
+      GNUNET_break (0);
+      reconnect (handle);
+      return;
     }
+  if (ntohs (msg->size) < sizeof (struct GNUNET_DHT_RouteResultMessage))
+    {
+      GNUNET_break (0);
+      reconnect (handle);
+      return;
+    }
+  dht_msg = (const struct GNUNET_DHT_RouteResultMessage *) msg;
+  GNUNET_CONTAINER_multihashmap_get_multiple (handle->active_requests,
+					      &dht_msg->key,
+					      &process_reply,
+					      (void*) dht_msg);
   GNUNET_CLIENT_receive (handle->client,
                          &service_message_handler,
                          handle, GNUNET_TIME_UNIT_FOREVER_REL);
@@ -663,22 +479,13 @@ GNUNET_DHT_connect (struct GNUNET_SCHEDULER_Handle *sched,
   handle = GNUNET_malloc (sizeof (struct GNUNET_DHT_Handle));
   handle->cfg = cfg;
   handle->sched = sched;
-  handle->client = GNUNET_CLIENT_connect (sched, "dht", cfg);
-  handle->uid_gen = GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_WEAK, -1);
-  if (handle->client == NULL)
+  handle->uid_gen = GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
+  handle->active_requests = GNUNET_CONTAINER_multihashmap_create (ht_len);
+  if (GNUNET_NO == try_connect (handle))
     {
-      GNUNET_free (handle);
+      GNUNET_DHT_disconnect (handle);
       return NULL;
     }
-  handle->outstanding_requests =
-    GNUNET_CONTAINER_multihashmap_create (ht_len);
-#if DEBUG_DHT_API
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s': Connection to service in progress\n", "DHT API");
-#endif
-  GNUNET_CLIENT_receive (handle->client,
-                         &service_message_handler,
-                         handle, GNUNET_TIME_UNIT_FOREVER_REL);
   return handle;
 }
 
@@ -691,327 +498,73 @@ GNUNET_DHT_connect (struct GNUNET_SCHEDULER_Handle *sched,
 void
 GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle)
 {
-#if DEBUG_DHT_API
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s': Called GNUNET_DHT_disconnect\n", "DHT API");
-#endif
-  GNUNET_assert (handle != NULL);
-  if (handle->th != NULL)       /* We have a live transmit request */
+  struct PendingMessage *pm;
+
+  GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size(handle->active_requests));
+  if (handle->th != NULL)
     {
       GNUNET_CLIENT_notify_transmit_ready_cancel (handle->th);
       handle->th = NULL;
     }
-  if (handle->current != NULL)  /* We are trying to send something now, clean it up */
-    GNUNET_free (handle->current);
-
-  if (handle->client != NULL)   /* Finally, disconnect from the service */
+  while (NULL != (pm = handle->pending_head))
     {
-      GNUNET_CLIENT_disconnect (handle->client, GNUNET_NO);
-      handle->client = NULL;
+      GNUNET_CONTAINER_DLL_remove (handle->pending_head,
+				   handle->pending_tail,
+				   pm);
+      GNUNET_assert (GNUNET_YES == pm->free_on_send);
+      if (GNUNET_SCHEDULER_NO_TASK != pm->timeout_task)
+	GNUNET_SCHEDULER_cancel (handle->sched,
+				 pm->timeout_task);
+      if (NULL != pm->cont)
+	GNUNET_SCHEDULER_add_continuation (handle->sched,
+					   pm->cont,
+					   pm->cont_cls,
+					   GNUNET_SCHEDULER_REASON_TIMEOUT);
+      pm->in_pending_queue = GNUNET_NO;
+      GNUNET_free (pm);
     }
-
-  GNUNET_assert(GNUNET_CONTAINER_multihashmap_size(handle->outstanding_requests) == 0);
-  GNUNET_CONTAINER_multihashmap_destroy(handle->outstanding_requests);
+  if (handle->client != NULL)
+    {
+      GNUNET_CLIENT_disconnect (handle->client, GNUNET_YES);
+      handle->client = NULL;
+    }  
+  GNUNET_CONTAINER_multihashmap_destroy(handle->active_requests);
   GNUNET_free (handle);
 }
 
 
-/**
- * Transmit the next pending message, called by notify_transmit_ready
- */
-static size_t
-transmit_pending_retransmission (void *cls, size_t size, void *buf)
-{
-  struct GNUNET_DHT_Handle *handle = cls;
-  size_t tsize;
 
-#if DEBUG_DHT_API
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s': In transmit_pending\n", "DHT API");
-#endif
-  if (buf == NULL)
-    {
-#if DEBUG_DHT_API
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "`%s': In transmit_pending buf is NULL\n", "DHT API");
-#endif
-      finish_retransmission (handle, GNUNET_SYSERR);
-      return 0;
-    }
 
-  handle->th = NULL;
-
-  if (handle->current != NULL)
-    {
-      tsize = ntohs (handle->current->msg->size);
-      if (size >= tsize)
-        {
-#if DEBUG_DHT_API
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "`%s': Sending message size %d\n", "DHT API", tsize);
-#endif
-          memcpy (buf, handle->current->msg, tsize);
-          finish_retransmission (handle, GNUNET_OK);
-          return tsize;
-        }
-      else
-        {
-          return 0;
-        }
-    }
-  /* Have no pending request */
-  return 0;
-}
+/* ***** Special low-level API providing generic routeing abstraction ***** */
 
 
 /**
- * Iterator called on each result obtained from a generic route
- * operation
+ * Timeout for the transmission of a fire&forget-request.  Clean it up.
+ *
+ * @param cls the 'struct PendingMessage'
+ * @param tc scheduler context
  */
-void
-get_reply_iterator (void *cls, const struct GNUNET_MessageHeader *reply)
+static void
+timeout_route_request (void *cls,
+		       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_DHT_GetHandle *get_handle = cls;
-  struct GNUNET_DHT_GetResultMessage *result;
-  size_t data_size;
-  char *result_data;
+  struct PendingMessage *pending = cls;
+  struct GNUNET_DHT_Handle *handle;
 
-  if (ntohs (reply->type) != GNUNET_MESSAGE_TYPE_DHT_GET_RESULT)
-    return;
-
-  GNUNET_assert (ntohs (reply->size) >=
-                 sizeof (struct GNUNET_DHT_GetResultMessage));
-  result = (struct GNUNET_DHT_GetResultMessage *) reply;
-  data_size = ntohs (reply->size) - sizeof(struct GNUNET_DHT_GetResultMessage);
-
-  result_data = (char *) &result[1];    /* Set data pointer to end of message */
-
-  get_handle->get_context.iter (get_handle->get_context.iter_cls,
-                                GNUNET_TIME_absolute_ntoh (result->expiration), &get_handle->route_handle->key,
-                                ntohs (result->type), data_size, result_data);
-}
-
-
-/**
- * Iterator called on each result obtained from a generic route
- * operation
- */
-void
-find_peer_reply_iterator (void *cls, const struct GNUNET_MessageHeader *reply)
-{
-  struct GNUNET_DHT_FindPeerHandle *find_peer_handle = cls;
-  struct GNUNET_MessageHeader *hello;
-
-  if (ntohs (reply->type) != GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_RESULT)
+  if (pending->free_on_send != GNUNET_YES)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Received wrong type of response to a find peer request...\n");
+      /* timeouts should only apply to fire & forget requests! */
+      GNUNET_break (0);
       return;
     }
-
-
-  GNUNET_assert (ntohs (reply->size) >=
-                 sizeof (struct GNUNET_MessageHeader));
-  hello = (struct GNUNET_MessageHeader *)&reply[1];
-
-  if (ntohs(hello->type) != GNUNET_MESSAGE_TYPE_HELLO)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Encapsulated message of type %d, is not a `%s' message!\n", ntohs(hello->type), "HELLO");
-      return;
-    }
-  find_peer_handle->find_peer_context.proc (find_peer_handle->
-                                            find_peer_context.proc_cls,
-                                            (struct GNUNET_HELLO_Message *)hello);
-}
-
-/**
- * Send a message to the DHT telling it to start issuing random GET
- * requests every 'frequency' milliseconds.
- *
- * @param handle handle to the DHT service
- * @param frequency delay (in milliseconds) between sending malicious messages
- * @param cont continuation to call once the message is sent
- * @param cont_cls closure for continuation
- *
- * @return GNUNET_YES if the control message was sent, GNUNET_NO if not
- */
-int GNUNET_DHT_set_malicious_getter (struct GNUNET_DHT_Handle *handle, int frequency, GNUNET_SCHEDULER_Task cont, void *cont_cls)
-{
-  struct GNUNET_DHT_ControlMessage *msg;
-  struct PendingMessage *pending;
-
-  if ((handle->current != NULL) && (handle->retransmit_stage != DHT_RETRANSMITTING))
-    return GNUNET_NO;
-
-  msg = GNUNET_malloc(sizeof(struct GNUNET_DHT_ControlMessage));
-  msg->header.size = htons(sizeof(struct GNUNET_DHT_ControlMessage));
-  msg->header.type = htons(GNUNET_MESSAGE_TYPE_DHT_CONTROL);
-  msg->command = htons(GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_GET);
-  msg->variable = htons(frequency);
-
-  pending = GNUNET_malloc (sizeof (struct PendingMessage));
-  pending->msg = &msg->header;
-  pending->timeout = GNUNET_TIME_relative_get_forever();
-  pending->free_on_send = GNUNET_YES;
-  pending->cont = cont;
-  pending->cont_cls = cont_cls;
-  pending->unique_id = 0;
-
-  if (handle->current == NULL)
-    {
-      handle->current = pending;
-      process_pending_message (handle);
-    }
-  else
-  {
-    handle->retransmit_stage = DHT_RETRANSMITTING_MESSAGE_QUEUED;
-    handle->retransmission_buffer = pending;
-  }
-
-  return GNUNET_YES;
-}
-
-/**
- * Send a message to the DHT telling it to issue a single find
- * peer request using the peers unique identifier as key.  This
- * is used to fill the routing table, and is normally controlled
- * by the DHT itself.  However, for testing and perhaps more
- * close control over the DHT, this can be explicitly managed.
- *
- * @param handle handle to the DHT service
- * @param cont continuation to call once the message is sent
- * @param cont_cls closure for continuation
- *
- * @return GNUNET_YES if the control message was sent, GNUNET_NO if not
- */
-int GNUNET_DHT_find_peers (struct GNUNET_DHT_Handle *handle,
-                           GNUNET_SCHEDULER_Task cont, void *cont_cls)
-{
-  struct GNUNET_DHT_ControlMessage *msg;
-  struct PendingMessage *pending;
-
-  if ((handle->current != NULL) && (handle->retransmit_stage != DHT_RETRANSMITTING))
-    return GNUNET_NO;
-
-  msg = GNUNET_malloc(sizeof(struct GNUNET_DHT_ControlMessage));
-  msg->header.size = htons(sizeof(struct GNUNET_DHT_ControlMessage));
-  msg->header.type = htons(GNUNET_MESSAGE_TYPE_DHT_CONTROL);
-  msg->command = htons(GNUNET_MESSAGE_TYPE_DHT_FIND_PEER);
-
-  pending = GNUNET_malloc (sizeof (struct PendingMessage));
-  pending->msg = &msg->header;
-  pending->timeout = GNUNET_TIME_relative_get_forever();
-  pending->free_on_send = GNUNET_YES;
-  pending->cont = cont;
-  pending->cont_cls = cont_cls;
-  pending->unique_id = 0;
-
-  if (handle->current == NULL)
-    {
-      handle->current = pending;
-      process_pending_message (handle);
-    }
-  else
-  {
-    handle->retransmit_stage = DHT_RETRANSMITTING_MESSAGE_QUEUED;
-    handle->retransmission_buffer = pending;
-  }
-
-  return GNUNET_YES;
-}
-
-/**
- * Send a message to the DHT telling it to start issuing random PUT
- * requests every 'frequency' milliseconds.
- *
- * @param handle handle to the DHT service
- * @param frequency delay (in milliseconds) between sending malicious messages
- * @param cont continuation to call once the message is sent
- * @param cont_cls closure for continuation
- *
- * @return GNUNET_YES if the control message was sent, GNUNET_NO if not
- */
-int GNUNET_DHT_set_malicious_putter (struct GNUNET_DHT_Handle *handle, int frequency, GNUNET_SCHEDULER_Task cont, void *cont_cls)
-{
-  struct GNUNET_DHT_ControlMessage *msg;
-  struct PendingMessage *pending;
-
-  if ((handle->current != NULL) && (handle->retransmit_stage != DHT_RETRANSMITTING))
-    return GNUNET_NO;
-
-  msg = GNUNET_malloc(sizeof(struct GNUNET_DHT_ControlMessage));
-  msg->header.size = htons(sizeof(struct GNUNET_DHT_ControlMessage));
-  msg->header.type = htons(GNUNET_MESSAGE_TYPE_DHT_CONTROL);
-  msg->command = htons(GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_PUT);
-  msg->variable = htons(frequency);
-
-  pending = GNUNET_malloc (sizeof (struct PendingMessage));
-  pending->msg = &msg->header;
-  pending->timeout = GNUNET_TIME_relative_get_forever();
-  pending->free_on_send = GNUNET_YES;
-  pending->cont = cont;
-  pending->cont_cls = cont_cls;
-  pending->unique_id = 0;
-
-  if (handle->current == NULL)
-    {
-      handle->current = pending;
-      process_pending_message (handle);
-    }
-  else
-  {
-    handle->retransmit_stage = DHT_RETRANSMITTING_MESSAGE_QUEUED;
-    handle->retransmission_buffer = pending;
-  }
-
-  return GNUNET_YES;
-}
-
-/**
- * Send a message to the DHT telling it to start dropping
- * all requests received.
- *
- * @param handle handle to the DHT service
- * @param cont continuation to call once the message is sent
- * @param cont_cls closure for continuation
- *
- * @return GNUNET_YES if the control message was sent, GNUNET_NO if not
- */
-int GNUNET_DHT_set_malicious_dropper (struct GNUNET_DHT_Handle *handle, GNUNET_SCHEDULER_Task cont, void *cont_cls)
-{
-  struct GNUNET_DHT_ControlMessage *msg;
-  struct PendingMessage *pending;
-
-  if ((handle->current != NULL) && (handle->retransmit_stage != DHT_RETRANSMITTING))
-    return GNUNET_NO;
-
-  msg = GNUNET_malloc(sizeof(struct GNUNET_DHT_ControlMessage));
-  msg->header.size = htons(sizeof(struct GNUNET_DHT_ControlMessage));
-  msg->header.type = htons(GNUNET_MESSAGE_TYPE_DHT_CONTROL);
-  msg->command = htons(GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_DROP);
-  msg->variable = htons(0);
-
-  pending = GNUNET_malloc (sizeof (struct PendingMessage));
-  pending->msg = &msg->header;
-  pending->timeout = GNUNET_TIME_relative_get_forever();
-  pending->free_on_send = GNUNET_YES;
-  pending->cont = cont;
-  pending->cont_cls = cont_cls;
-  pending->unique_id = 0;
-
-  if (handle->current == NULL)
-    {
-      handle->current = pending;
-      process_pending_message (handle);
-    }
-  else
-  {
-    handle->retransmit_stage = DHT_RETRANSMITTING_MESSAGE_QUEUED;
-    handle->retransmission_buffer = pending;
-  }
-
-  return GNUNET_YES;
+  handle = pending->handle;
+  GNUNET_CONTAINER_DLL_remove (handle->pending_head,
+			       handle->pending_tail,
+			       pending);
+  if (pending->cont != NULL)
+    pending->cont (pending->cont_cls,
+		   tc);
+  GNUNET_free (pending);
 }
 
 
@@ -1029,140 +582,81 @@ int GNUNET_DHT_set_malicious_dropper (struct GNUNET_DHT_Handle *handle, GNUNET_S
  * @param iter_cls closure for iter
  * @param timeout when to abort with an error if we fail to get
  *                a confirmation for the request (when necessary) or how long
- *                to wait for tramission to the service
- * @param cont continuation to call when done;
- *             reason will be TIMEOUT on error,
- *             reason will be PREREQ_DONE on success
+ *                to wait for tramission to the service; only applies
+ *                if 'iter' is NULL
+ * @param cont continuation to call when the request has been transmitted
+ *             the first time to the service
  * @param cont_cls closure for cont
- *
  * @return handle to stop the request, NULL if the request is "fire and forget"
  */
 struct GNUNET_DHT_RouteHandle *
 GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
                         const GNUNET_HashCode * key,
-                        unsigned int desired_replication_level,
+                        uint32_t desired_replication_level,
                         enum GNUNET_DHT_RouteOption options,
                         const struct GNUNET_MessageHeader *enc,
                         struct GNUNET_TIME_Relative timeout,
                         GNUNET_DHT_ReplyProcessor iter,
                         void *iter_cls,
-                        GNUNET_SCHEDULER_Task cont, void *cont_cls)
+			GNUNET_SCHEDULER_Task cont,
+			void *cont_cls)
 {
-  struct GNUNET_DHT_RouteHandle *route_handle;
   struct PendingMessage *pending;
   struct GNUNET_DHT_RouteMessage *message;
+  struct GNUNET_DHT_RouteHandle *route_handle;
   uint16_t msize;
-  GNUNET_HashCode uid_key;
+  uint16_t esize;
 
-  if ((handle->current != NULL) && (handle->retransmit_stage != DHT_RETRANSMITTING))
-    return NULL;
-
-  if (sizeof (struct GNUNET_DHT_RouteMessage) + ntohs (enc->size) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  esize = ntohs (enc->size);
+  if (sizeof (struct GNUNET_DHT_RouteMessage) + esize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
     {
       GNUNET_break (0);
       return NULL;
     }
-
-  route_handle = GNUNET_malloc (sizeof (struct GNUNET_DHT_RouteHandle));
-  memcpy (&route_handle->key, key, sizeof (GNUNET_HashCode));
-  route_handle->iter = iter;
-  route_handle->iter_cls = iter_cls;
-  route_handle->dht_handle = handle;
-  route_handle->uid = handle->uid_gen++;
-  if (iter != NULL)
-    {
-      hash_from_uid (route_handle->uid, &uid_key);
-      GNUNET_CONTAINER_multihashmap_put (handle->outstanding_requests,
-                                         &uid_key, route_handle,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-    }
-
-#if DEBUG_DHT_API
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "`%s': Unique ID is %llu\n", "DHT API", route_handle->uid);
-#endif
-
-  msize = sizeof (struct GNUNET_DHT_RouteMessage) + ntohs (enc->size);
-  message = GNUNET_malloc (msize);
-  message->header.size = htons (msize);
-  message->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE);
-  memcpy (&message->key, key, sizeof (GNUNET_HashCode));
-  message->options = htonl (options);
-  message->desired_replication_level = htonl (desired_replication_level);
-  message->unique_id = GNUNET_htonll (route_handle->uid);
-  memcpy (&message[1], enc, ntohs (enc->size));
-  pending = GNUNET_malloc (sizeof (struct PendingMessage));
+  msize = sizeof (struct GNUNET_DHT_RouteMessage) + esize;
+  pending = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
+  message = (struct GNUNET_DHT_RouteMessage*) &pending[1];
   pending->msg = &message->header;
-  pending->timeout = timeout;
-  if (iter == NULL)
-    pending->free_on_send = GNUNET_YES;
+  pending->handle = handle;
   pending->cont = cont;
   pending->cont_cls = cont_cls;
-  pending->unique_id = route_handle->uid;
-  if (handle->current == NULL)
+  
+  message->header.size = htons (msize);
+  message->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE);
+  message->key = *key;
+  message->options = htonl ((uint32_t) options);
+  message->desired_replication_level = htonl (desired_replication_level);
+  memcpy (&message[1], enc, esize);
+  if (iter != NULL)
     {
-      handle->current = pending;
-      process_pending_message (handle);
+      route_handle = GNUNET_malloc (sizeof (struct GNUNET_DHT_RouteHandle));
+      route_handle->key = *key;
+      route_handle->iter = iter;
+      route_handle->iter_cls = iter_cls;
+      route_handle->dht_handle = handle;
+      route_handle->uid = handle->uid_gen++;
+      route_handle->message = pending;
+      message->unique_id = GNUNET_htonll (route_handle->uid);
+      GNUNET_CONTAINER_multihashmap_put (handle->active_requests,
+                                         key,
+					 route_handle,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     }
   else
-  {
-    handle->retransmit_stage = DHT_RETRANSMITTING_MESSAGE_QUEUED;
-    handle->retransmission_buffer = pending;
-  }
-
-  route_handle->message = message;
+    {
+      route_handle = NULL;
+      pending->free_on_send = GNUNET_YES;
+      pending->timeout_task = GNUNET_SCHEDULER_add_delayed (handle->sched,
+							    timeout,
+							    &timeout_route_request,
+							    pending);
+    }
+  GNUNET_CONTAINER_DLL_insert (handle->pending_head,
+			       handle->pending_tail,
+			       pending);
+  pending->in_pending_queue = GNUNET_YES;
+  process_pending_messages (handle);
   return route_handle;
-}
-
-
-/**
- * Perform an asynchronous GET operation on the DHT identified.
- *
- * @param handle handle to the DHT service
- * @param timeout how long to wait for transmission of this request to the service
- * @param type expected type of the response object
- * @param key the key to look up
- * @param iter function to call on each result
- * @param iter_cls closure for iter
- * @param cont continuation to call once message sent
- * @param cont_cls closure for continuation
- *
- * @return handle to stop the async get
- */
-struct GNUNET_DHT_GetHandle *
-GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
-                      struct GNUNET_TIME_Relative timeout,
-                      enum GNUNET_BLOCK_Type type,
-                      const GNUNET_HashCode * key,
-                      GNUNET_DHT_GetIterator iter,
-                      void *iter_cls,
-                      GNUNET_SCHEDULER_Task cont, void *cont_cls)
-{
-  struct GNUNET_DHT_GetHandle *get_handle;
-  struct GNUNET_DHT_GetMessage get_msg;
-
-  if ((handle->current != NULL) && (handle->retransmit_stage != DHT_RETRANSMITTING)) /* Can't send right now, we have a pending message... */
-    return NULL;
-
-  get_handle = GNUNET_malloc (sizeof (struct GNUNET_DHT_GetHandle));
-  get_handle->get_context.iter = iter;
-  get_handle->get_context.iter_cls = iter_cls;
-
-#if DEBUG_DHT_API
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s': Inserting pending get request with key %s\n", "DHT API",
-              GNUNET_h2s (key));
-#endif
-
-  get_msg.header.type = htons (GNUNET_MESSAGE_TYPE_DHT_GET);
-  get_msg.header.size = htons (sizeof (struct GNUNET_DHT_GetMessage));
-  get_msg.type = htons (type);
-
-  get_handle->route_handle =
-    GNUNET_DHT_route_start (handle, key, DEFAULT_GET_REPLICATION, 0, &get_msg.header, timeout,
-                            &get_reply_iterator, get_handle, cont, cont_cls);
-
-  return get_handle;
 }
 
 
@@ -1170,257 +664,177 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
  * Stop a previously issued routing request
  *
  * @param route_handle handle to the request to stop
- * @param cont continuation to call once this message is sent to the service or times out
- * @param cont_cls closure for the continuation
  */
 void
-GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle,
-                       GNUNET_SCHEDULER_Task cont, void *cont_cls)
+GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle)
 {
+  struct GNUNET_DHT_Handle *handle;
   struct PendingMessage *pending;
   struct GNUNET_DHT_StopMessage *message;
   size_t msize;
-  GNUNET_HashCode uid_key;
 
-  msize = sizeof (struct GNUNET_DHT_StopMessage);
-  message = GNUNET_malloc (msize);
-  message->header.size = htons (msize);
-  message->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE_STOP);
-#if DEBUG_DHT_API
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s': Remove outstanding request for uid %llu\n", "DHT API",
-              route_handle->uid);
-#endif
-  message->unique_id = GNUNET_htonll (route_handle->uid);
-  memcpy(&message->key, &route_handle->key, sizeof(GNUNET_HashCode));
-  pending = GNUNET_malloc (sizeof (struct PendingMessage));
-  pending->msg = (struct GNUNET_MessageHeader *) message;
-  pending->timeout = GNUNET_TIME_relative_get_forever();
-  pending->cont = cont;
-  pending->cont_cls = cont_cls;
-  pending->free_on_send = GNUNET_YES;
-  pending->unique_id = 0; /* When finished is called, free pending->msg */
-
-  if (route_handle->dht_handle->current == NULL)
+  handle = route_handle->dht_handle;
+  if (GNUNET_NO == route_handle->message->in_pending_queue)
     {
-      route_handle->dht_handle->current = pending;
-      process_pending_message (route_handle->dht_handle);
-    }
-  else if (route_handle->dht_handle->retransmit_stage == DHT_RETRANSMITTING)
-    {
-      route_handle->dht_handle->retransmit_stage = DHT_RETRANSMITTING_MESSAGE_QUEUED;
-      route_handle->dht_handle->retransmission_buffer = pending;
+      /* need to send stop message */
+      msize = sizeof (struct GNUNET_DHT_StopMessage);
+      pending = GNUNET_malloc (sizeof (struct PendingMessage) + 
+			       msize);
+      message = (struct GNUNET_DHT_StopMessage*) &pending[1];
+      pending->msg = &message->header;
+      message->header.size = htons (msize);
+      message->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE_STOP);
+      message->unique_id = GNUNET_htonll (route_handle->uid);
+      message->key = route_handle->key;
+      pending->handle = handle;
+      pending->free_on_send = GNUNET_YES;
+      pending->in_pending_queue = GNUNET_YES;      
+      GNUNET_CONTAINER_DLL_insert (handle->pending_head,
+				   handle->pending_tail,
+				   pending);
+      process_pending_messages (handle);
     }
   else
     {
-      GNUNET_free(pending);
-      GNUNET_break(0);
+      /* simply remove pending request from message queue before
+	 transmission, no need to transmit STOP request! */
+      GNUNET_CONTAINER_DLL_remove (handle->pending_head,
+				   handle->pending_tail,
+				   route_handle->message);
     }
-
-  hash_from_uid (route_handle->uid, &uid_key);
-  GNUNET_assert (GNUNET_CONTAINER_multihashmap_remove
-		 (route_handle->dht_handle->outstanding_requests, &uid_key,
-		  route_handle) == GNUNET_YES);
-
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_remove (route_handle->dht_handle->active_requests,
+						       &route_handle->key,
+						       route_handle));
   GNUNET_free(route_handle->message);
   GNUNET_free(route_handle);
 }
 
 
-/**
- * Stop async DHT-get.
- *
- * @param get_handle handle to the GET operation to stop
- * @param cont continuation to call once this message is sent to the service or times out
- * @param cont_cls closure for the continuation
- */
-void
-GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *get_handle,
-                     GNUNET_SCHEDULER_Task cont, void *cont_cls)
-{
-  if ((get_handle->route_handle->dht_handle->current != NULL) &&
-      (get_handle->route_handle->dht_handle->retransmit_stage != DHT_RETRANSMITTING))
-    {
-      if (cont != NULL)
-        {
-          GNUNET_SCHEDULER_add_continuation (get_handle->route_handle->dht_handle->sched, cont, cont_cls,
-                                             GNUNET_SCHEDULER_REASON_TIMEOUT);
-        }
-      return;
-    }
 
-#if DEBUG_DHT_API
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s': Removing pending get request with key %s, uid %llu\n",
-              "DHT API", GNUNET_h2s (&get_handle->route_handle->key),
-              get_handle->route_handle->uid);
-#endif
-  GNUNET_DHT_route_stop (get_handle->route_handle, cont, cont_cls);
-  GNUNET_free (get_handle);
-}
+/* ***** Special API for controlling DHT routing maintenance ******* */
 
 
 /**
- * Perform an asynchronous FIND PEER operation on the DHT.
+ * Send a control message to the DHT.
  *
  * @param handle handle to the DHT service
- * @param timeout timeout for this request to be sent to the
- *        service
- * @param options routing options for this message
- * @param key the key to look up
- * @param proc function to call on each result
- * @param proc_cls closure for proc
- * @param cont continuation to call once message sent
- * @param cont_cls closure for continuation
- *
- * @return handle to stop the async get, NULL on error
- */
-struct GNUNET_DHT_FindPeerHandle *
-GNUNET_DHT_find_peer_start (struct GNUNET_DHT_Handle *handle,
-                            struct GNUNET_TIME_Relative timeout,
-                            enum GNUNET_DHT_RouteOption options,
-                            const GNUNET_HashCode * key,
-                            GNUNET_DHT_FindPeerProcessor proc,
-                            void *proc_cls,
-                            GNUNET_SCHEDULER_Task cont,
-                            void *cont_cls)
-{
-  struct GNUNET_DHT_FindPeerHandle *find_peer_handle;
-  struct GNUNET_DHT_FindPeerMessage find_peer_msg;
-
-  if ((handle->current != NULL) && (handle->retransmit_stage != DHT_RETRANSMITTING))  /* Can't send right now, we have a pending message... */
-    return NULL;
-
-  find_peer_handle =
-    GNUNET_malloc (sizeof (struct GNUNET_DHT_FindPeerHandle));
-  find_peer_handle->find_peer_context.proc = proc;
-  find_peer_handle->find_peer_context.proc_cls = proc_cls;
-
-#if DEBUG_DHT_API
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s': Inserting pending `%s' request with key %s\n", "DHT API",
-              "FIND PEER", GNUNET_h2s (key));
-#endif
-
-  find_peer_msg.header.size = htons(sizeof(struct GNUNET_DHT_FindPeerMessage));
-  find_peer_msg.header.type = htons(GNUNET_MESSAGE_TYPE_DHT_FIND_PEER);
-  find_peer_handle->route_handle =
-    GNUNET_DHT_route_start (handle, key, 0, options, &find_peer_msg.header,
-                            timeout, &find_peer_reply_iterator,
-                            find_peer_handle, cont, cont_cls);
-  return find_peer_handle;
-}
-
-/**
- * Stop async find peer.  Frees associated resources.
- *
- * @param find_peer_handle GET operation to stop.
- * @param cont continuation to call once this message is sent to the service or times out
- * @param cont_cls closure for the continuation
- */
-void
-GNUNET_DHT_find_peer_stop (struct GNUNET_DHT_FindPeerHandle *find_peer_handle,
-                           GNUNET_SCHEDULER_Task cont, void *cont_cls)
-{
-  if ((find_peer_handle->route_handle->dht_handle->current != NULL) &&
-      (find_peer_handle->route_handle->dht_handle->retransmit_stage != DHT_RETRANSMITTING))
-    {
-      if (cont != NULL)
-        {
-          GNUNET_SCHEDULER_add_continuation (find_peer_handle->route_handle->dht_handle->sched, cont, cont_cls,
-                                             GNUNET_SCHEDULER_REASON_TIMEOUT);
-        }
-      return;
-    }
-
-#if DEBUG_DHT_API
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s': Removing pending `%s' request with key %s, uid %llu\n",
-              "DHT API", "FIND PEER",
-              GNUNET_h2s (&find_peer_handle->route_handle->key),
-              find_peer_handle->route_handle->uid);
-#endif
-  GNUNET_DHT_route_stop (find_peer_handle->route_handle, cont, cont_cls);
-  GNUNET_free (find_peer_handle);
-
-}
-
-
-/**
- * Perform a PUT operation storing data in the DHT.
- *
- * @param handle handle to DHT service
- * @param key the key to store under
- * @param type type of the value
- * @param size number of bytes in data; must be less than 64k
- * @param data the data to store
- * @param exp desired expiration time for the value
- * @param timeout how long to wait for transmission of this request
- * @param cont continuation to call when done;
- *             reason will be TIMEOUT on error,
- *             reason will be PREREQ_DONE on success
+ * @param command command
+ * @param variable variable to the command
+ * @param cont continuation to call when done (transmitting request to service)
  * @param cont_cls closure for cont
+ */
+static void
+send_control_message (struct GNUNET_DHT_Handle *handle,
+		      uint16_t command,
+		      uint16_t variable,
+		      GNUNET_SCHEDULER_Task cont,
+		      void *cont_cls)
+{
+  struct GNUNET_DHT_ControlMessage *msg;
+  struct PendingMessage *pending;
+
+  pending = GNUNET_malloc (sizeof (struct PendingMessage) + 
+			   sizeof(struct GNUNET_DHT_ControlMessage)); 
+  msg = (struct GNUNET_DHT_ControlMessage*) &pending[1];
+  pending->msg = &msg->header;
+  msg->header.size = htons (sizeof(struct GNUNET_DHT_ControlMessage));
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_CONTROL);
+  msg->command = htons (command);
+  msg->variable = htons (variable);
+  pending->free_on_send = GNUNET_YES;
+  pending->cont = cont;
+  pending->cont_cls = cont_cls;
+  pending->in_pending_queue = GNUNET_YES;      
+  GNUNET_CONTAINER_DLL_insert (handle->pending_head,
+			       handle->pending_tail,
+			       pending);
+  process_pending_messages (handle);
+}
+
+
+/**
+ * Send a message to the DHT telling it to issue a single find
+ * peer request using the peers unique identifier as key.  This
+ * is used to fill the routing table, and is normally controlled
+ * by the DHT itself.  However, for testing and perhaps more
+ * close control over the DHT, this can be explicitly managed.
  *
- * @return GNUNET_YES if put message is queued for transmission
+ * @param handle handle to the DHT service
+ * @param cont continuation to call when done (transmitting request to service)
+ * @param cont_cls closure for cont
  */
 void
-GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
-                const GNUNET_HashCode * key,
-                enum GNUNET_BLOCK_Type type,
-                uint32_t size,
-                const char *data,
-                struct GNUNET_TIME_Absolute exp,
-                struct GNUNET_TIME_Relative timeout,
-                GNUNET_SCHEDULER_Task cont, void *cont_cls)
+GNUNET_DHT_find_peers (struct GNUNET_DHT_Handle *handle,
+		       GNUNET_SCHEDULER_Task cont,
+		       void *cont_cls)
 {
-  struct GNUNET_DHT_PutMessage *put_msg;
-  struct GNUNET_DHT_RouteHandle *put_route;
-  size_t msize;
+  send_control_message (handle,
+			GNUNET_MESSAGE_TYPE_DHT_FIND_PEER, 0,
+			cont, cont_cls);
+}
 
-  if ((handle->current != NULL) && (handle->retransmit_stage != DHT_RETRANSMITTING))
+
+
+#if HAVE_MALICIOUS
+
+/**
+ * Send a message to the DHT telling it to start issuing random GET
+ * requests every 'frequency' milliseconds.
+ *
+ * @param handle handle to the DHT service
+ * @param frequency delay between sending malicious messages
+ */
+void
+GNUNET_DHT_set_malicious_getter (struct GNUNET_DHT_Handle *handle,
+				 struct GNUNET_TIME_Relative frequency)
+{
+  if (frequency.value > UINT16_MAX)
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "handle->current is not null!\n");
-      if (cont != NULL)
-        {
-          GNUNET_SCHEDULER_add_continuation (handle->sched, cont, cont_cls,
-                                             GNUNET_SCHEDULER_REASON_TIMEOUT);
-        }
+      GNUNET_break (0);
       return;
     }
-
-#if DEBUG_DHT_API
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s': Inserting pending put request with key %s\n", "DHT API",
-              GNUNET_h2s (key));
-#endif
-
-  msize = sizeof (struct GNUNET_DHT_PutMessage) + size;
-  put_msg = GNUNET_malloc (msize);
-  put_msg->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_PUT);
-  put_msg->header.size = htons (msize);
-  put_msg->type = htons (type);
-  put_msg->data_size = htons (size);
-  put_msg->expiration = GNUNET_TIME_absolute_hton(exp);
-  memcpy (&put_msg[1], data, size);
-
-  put_route = GNUNET_DHT_route_start (handle, key, DEFAULT_PUT_REPLICATION, 0, &put_msg->header, timeout, NULL,
-                                      NULL, cont, cont_cls);
-
-  if (put_route == NULL) /* Route start failed! */
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "route start for PUT failed!\n");
-      if (cont != NULL)
-        {
-          GNUNET_SCHEDULER_add_continuation (handle->sched, cont, cont_cls,
-                                             GNUNET_SCHEDULER_REASON_TIMEOUT);
-        }
-    }
-  else
-    {
-      GNUNET_free(put_route);
-    }
-
-  GNUNET_free (put_msg);
+  send_control_message (handle,
+			GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_GET, frequency.value,
+			NULL, NULL);
 }
+
+/**
+ * Send a message to the DHT telling it to start issuing random PUT
+ * requests every 'frequency' milliseconds.
+ *
+ * @param handle handle to the DHT service
+ * @param frequency delay between sending malicious messages
+ */
+void 
+GNUNET_DHT_set_malicious_putter (struct GNUNET_DHT_Handle *handle, 
+				 struct GNUNET_TIME_Relative frequency)
+{
+  if (frequency.value > UINT16_MAX)
+    {
+      GNUNET_break (0);
+      return;
+    }
+  send_control_message (handle,
+			GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_PUT, frequency.value,
+			NULL, NULL);
+}
+
+
+/**
+ * Send a message to the DHT telling it to start dropping
+ * all requests received.
+ *
+ * @param handle handle to the DHT service
+ */
+void 
+GNUNET_DHT_set_malicious_dropper (struct GNUNET_DHT_Handle *handle)
+{
+  send_control_message (handle,
+			GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_DROP, 0,
+			NULL, NULL);
+}
+
+#endif
 
 /* end of dht_api.c */

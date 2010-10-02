@@ -79,11 +79,11 @@ static char *data;
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-
   if (dht_handle != NULL)
-    GNUNET_DHT_disconnect (dht_handle);
-
-  dht_handle = NULL;
+    {
+      GNUNET_DHT_disconnect (dht_handle);
+      dht_handle = NULL;
+    }
 }
 
 /**
@@ -165,8 +165,14 @@ run (void *cls,
     fprintf (stderr, "Issuing put request for `%s' with data `%s'!\n",
              query_key, data);
 
-  GNUNET_DHT_put (dht_handle, &key, query_type, strlen (data), data,
-                  expiration, timeout, &message_sent_cont, NULL);
+  GNUNET_DHT_put (dht_handle,
+		  &key, 
+		  GNUNET_DHT_RO_NONE,
+		  query_type, 
+		  strlen (data), data,
+                  expiration, 
+		  timeout,
+		  &message_sent_cont, NULL);
 
 }
 
@@ -215,3 +221,5 @@ main (int argc, char *const *argv)
                               ("Issue a PUT request to the GNUnet DHT insert DATA under KEY."),
                               options, &run, NULL)) ? ret : 1;
 }
+
+/* end of gnunet-dht-put.c */
