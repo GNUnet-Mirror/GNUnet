@@ -135,7 +135,8 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 
   if (curr_get_ctx.get_handle != NULL)
   {
-    GNUNET_DHT_get_stop(curr_get_ctx.get_handle, &end_badly_cont, NULL);
+    GNUNET_DHT_get_stop(curr_get_ctx.get_handle);
+    GNUNET_SCHEDULER_add_now (sched, &end_badly_cont, NULL);
   }
 
   ok = 1;
@@ -159,8 +160,10 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc);
 void get_result_iterator (void *cls,
                           struct GNUNET_TIME_Absolute exp,
                           const GNUNET_HashCode * key,
-                          uint32_t type,
-                          uint32_t size,
+                          const struct GNUNET_PeerIdentity * const *get_path,
+			  const struct GNUNET_PeerIdentity * const *put_path,
+			  enum GNUNET_BLOCK_Type type,				      
+                          size_t size,
                           const void *data)
 {
   struct PeerGetContext *get_context = cls;
@@ -184,13 +187,15 @@ void get_result_iterator (void *cls,
     get_context->peer = &peer1id;
     get_context->dht_handle = peer2dht;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received first correct GET request response!\n");
-    GNUNET_DHT_get_stop(get_context->get_handle, &do_get, get_context);
+    GNUNET_DHT_get_stop(get_context->get_handle);
+    GNUNET_SCHEDULER_add_now (sched, &do_get, get_context);
   }
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received second correct GET request response!\n");
     GNUNET_SCHEDULER_cancel(sched, die_task);
-    GNUNET_DHT_get_stop(get_context->get_handle, &finish_testing, NULL);
+    GNUNET_DHT_get_stop(get_context->get_handle);
+    GNUNET_SCHEDULER_add_now (sched, &finish_testing, NULL);
   }
 
 }
@@ -216,8 +221,13 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   get_context->retry_task = GNUNET_SCHEDULER_add_delayed(sched,
                                                          GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10),
                                                           &stop_retry_get, get_context);
-  get_context->get_handle = GNUNET_DHT_get_start(get_context->dht_handle, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5),
-                                                 0, &get_context->peer->hashPubKey, &get_result_iterator, get_context, NULL, NULL);
+  get_context->get_handle = GNUNET_DHT_get_start(get_context->dht_handle,
+						 GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5),
+                                                 0 /* fixme: use real type */, &get_context->peer->hashPubKey,
+						 GNUNET_DHT_RO_NONE,
+						 NULL, 0,
+						 NULL, 0,
+						 &get_result_iterator, get_context);
 }
 
 static void
@@ -226,10 +236,8 @@ stop_retry_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   struct PeerGetContext *get_context = cls;
   get_context->retry_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Get attempt %u failed, canceling request!\n", get_context->get_attempts);
-  //if (get_context->get_sent == GNUNET_YES)
-  GNUNET_DHT_get_stop(get_context->get_handle, &get_stop_finished, get_context);
-  //else
-  //  GNUNET_SCHEDULER_add_now(sched, &get_stop_finished, get_context);
+  GNUNET_DHT_get_stop(get_context->get_handle);
+  GNUNET_SCHEDULER_add_now(sched, &get_stop_finished, get_context);
 }
 
 static void
@@ -241,8 +249,14 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
                                                          GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10),
                                                           &stop_retry_get, get_context);
 
-  get_context->get_handle = GNUNET_DHT_get_start(get_context->dht_handle, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5),
-                                                 0, &get_context->peer->hashPubKey, &get_result_iterator, get_context, NULL, NULL);
+  get_context->get_handle = GNUNET_DHT_get_start(get_context->dht_handle, 
+						 GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5),
+                                                 0 /* fixme: real type */, 
+						 &get_context->peer->hashPubKey,
+						 GNUNET_DHT_RO_NONE,
+						 NULL, 0,
+						 NULL, 0,
+						 &get_result_iterator, get_context);
 }
 
 
