@@ -25,6 +25,14 @@
  * @author Nathan Evans
  */
 
+#include "platform.h"
+#include "gnunet_constants.h"
+#include "gnunet_arm_service.h"
+#include "gnunet_protocols.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_dht_service.h"
+#include "dht.h"
+
 
 /**
  * Handle to control a find peer operation.
@@ -56,32 +64,27 @@ struct GNUNET_DHT_FindPeerHandle
  * operation
  */
 static void
-find_peer_reply_iterator (void *cls, const struct GNUNET_MessageHeader *reply)
+find_peer_reply_iterator (void *cls, 
+			  const GNUNET_HashCode *key,
+			  const struct GNUNET_MessageHeader *reply)
 {
   struct GNUNET_DHT_FindPeerHandle *find_peer_handle = cls;
-  struct GNUNET_MessageHeader *hello;
+  const struct GNUNET_MessageHeader *hello;
 
   if (ntohs (reply->type) != GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_RESULT)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Received wrong type of response to a find peer request...\n");
+      GNUNET_break (0);
       return;
     }
-
-
-  GNUNET_assert (ntohs (reply->size) >=
-                 sizeof (struct GNUNET_MessageHeader));
-  hello = (struct GNUNET_MessageHeader *)&reply[1];
-
+  GNUNET_assert (ntohs (reply->size) >= sizeof (struct GNUNET_MessageHeader));
+  hello = (const struct GNUNET_MessageHeader *)&reply[1];
   if (ntohs(hello->type) != GNUNET_MESSAGE_TYPE_HELLO)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Encapsulated message of type %d, is not a `%s' message!\n", ntohs(hello->type), "HELLO");
+      GNUNET_break (0);
       return;
     }
-  find_peer_handle->find_peer_context.proc (find_peer_handle->
-                                            find_peer_context.proc_cls,
-                                            (struct GNUNET_HELLO_Message *)hello);
+  find_peer_handle->proc (find_peer_handle->proc_cls,
+			  (const struct GNUNET_HELLO_Message *)hello);
 }
 
 
@@ -101,8 +104,8 @@ find_peer_reply_iterator (void *cls, const struct GNUNET_MessageHeader *reply)
 struct GNUNET_DHT_FindPeerHandle *
 GNUNET_DHT_find_peer_start (struct GNUNET_DHT_Handle *handle,
                             struct GNUNET_TIME_Relative timeout,
-                            enum GNUNET_DHT_RouteOption options,
                             const GNUNET_HashCode *key,
+                            enum GNUNET_DHT_RouteOption options,
                             GNUNET_DHT_FindPeerProcessor proc,
                             void *proc_cls)
 {
