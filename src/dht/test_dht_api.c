@@ -151,7 +151,7 @@ end_badly ()
 #endif
 
   if ((retry_context.peer_ctx != NULL) && (retry_context.peer_ctx->find_peer_handle != NULL))
-    GNUNET_DHT_find_peer_stop(retry_context.peer_ctx->find_peer_handle, NULL, NULL);
+    GNUNET_DHT_find_peer_stop(retry_context.peer_ctx->find_peer_handle);
   if (retry_context.retry_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel(sched, retry_context.retry_task);
   GNUNET_DHT_disconnect (p1.dht_handle);
@@ -159,6 +159,8 @@ end_badly ()
   ok = 1;
   return;
 }
+
+#if HAVE_MALICIOUS
 
 /**
  * Signature of the main function of a task.
@@ -204,7 +206,8 @@ void test_set_peer_malicious_put (void *cls, const struct GNUNET_SCHEDULER_TaskC
  * @param cls closure
  * @param tc context information (why was this task triggered now)
  */
-void test_set_peer_malicious_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+static void
+test_set_peer_malicious_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerContext *peer = cls;
 
@@ -216,6 +219,8 @@ void test_set_peer_malicious_get (void *cls, const struct GNUNET_SCHEDULER_TaskC
 
   GNUNET_DHT_set_malicious_getter (peer->dht_handle, 1500, &test_set_peer_malicious_put, &p1);
 }
+#endif
+
 
 /**
  * Signature of the main function of a task.
@@ -234,9 +239,15 @@ test_find_peer_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_assert (peer->dht_handle != NULL);
 
-  GNUNET_DHT_find_peer_stop (peer->find_peer_handle, &test_set_peer_malicious_get, &p1);
+  GNUNET_DHT_find_peer_stop (peer->find_peer_handle);
 
-  //GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1), &end, &p1);
+#if HAVE_MALICIOUS
+  GNUNET_SCHEDULER_add_now (sched,
+			    &test_set_peer_malicious_get, &p1);
+#else
+  GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1), 
+			       &end, &p1);
+#endif
 
 }
 
@@ -304,9 +315,11 @@ retry_find_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "test_find_peer timed out, retrying!\n");
       retry_ctx->next_timeout = GNUNET_TIME_relative_multiply(retry_ctx->next_timeout, 2);
-      retry_ctx->peer_ctx->find_peer_handle =
-          GNUNET_DHT_find_peer_start (retry_ctx->peer_ctx->dht_handle, retry_ctx->next_timeout, 0, &hash,
-                                      &test_find_peer_processor, retry_ctx, NULL, NULL);
+      retry_ctx->peer_ctx->find_peer_handle 
+	= GNUNET_DHT_find_peer_start (retry_ctx->peer_ctx->dht_handle, 
+				      retry_ctx->next_timeout, &hash,
+				      GNUNET_DHT_RO_NONE,
+                                      &test_find_peer_processor, retry_ctx);
     }
   else
     {
@@ -336,10 +349,11 @@ retry_find_peer_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   memset (&hash, 42, sizeof (GNUNET_HashCode));
 
   if (retry_ctx->peer_ctx->find_peer_handle != NULL)
-    GNUNET_DHT_find_peer_stop(retry_ctx->peer_ctx->find_peer_handle, &retry_find_peer, retry_ctx);
-  else
-    GNUNET_SCHEDULER_add_now (sched, &retry_find_peer, retry_ctx);
-
+    {
+      GNUNET_DHT_find_peer_stop(retry_ctx->peer_ctx->find_peer_handle);
+      retry_ctx->peer_ctx->find_peer_handle = NULL;
+    }  
+  GNUNET_SCHEDULER_add_now (sched, &retry_find_peer, retry_ctx);
 }
 
 /**
@@ -362,9 +376,11 @@ test_find_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   retry_context.next_timeout = BASE_TIMEOUT;
   retry_context.peer_ctx = peer;
 
-  peer->find_peer_handle =
-    GNUNET_DHT_find_peer_start (peer->dht_handle, retry_context.next_timeout, 1, &hash,
-                                &test_find_peer_processor, &retry_context, NULL, NULL);
+  peer->find_peer_handle
+    = GNUNET_DHT_find_peer_start (peer->dht_handle, retry_context.next_timeout, 
+				  &hash,
+				  GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+				  &test_find_peer_processor, &retry_context);
 
   if (peer->find_peer_handle == NULL)
     GNUNET_SCHEDULER_add_now (sched, &end_badly, &p1);
@@ -386,20 +402,21 @@ test_get_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Called test_get_stop!\n");
   if (tc->reason == GNUNET_SCHEDULER_REASON_TIMEOUT)
     GNUNET_SCHEDULER_add_now (sched, &end_badly, NULL);
-
   GNUNET_assert (peer->dht_handle != NULL);
-
-  GNUNET_DHT_get_stop (peer->get_handle, &test_find_peer, &p1);
-
-  //GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1), &test_put, &p1);
-
+  GNUNET_DHT_get_stop (peer->get_handle);
+  GNUNET_SCHEDULER_add_now(sched, 
+			   &test_find_peer, 
+			   &p1);
 }
 
 void
 test_get_iterator (void *cls,
                    struct GNUNET_TIME_Absolute exp,
                    const GNUNET_HashCode * key,
-                   uint32_t type, uint32_t size, const void *data)
+		   const struct GNUNET_PeerIdentity * const *get_path,
+		   const struct GNUNET_PeerIdentity * const *put_path,
+		   enum GNUNET_BLOCK_Type type, 
+		   uint32_t size, const void *data)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "test_get_iterator called (we got a result), stopping get request!\n");
@@ -426,8 +443,14 @@ test_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (peer->dht_handle != NULL);
 
   peer->get_handle =
-    GNUNET_DHT_get_start (peer->dht_handle, TOTAL_TIMEOUT, 49, &hash,
-                          &test_get_iterator, NULL, NULL, NULL);
+    GNUNET_DHT_get_start (peer->dht_handle, 
+			  TOTAL_TIMEOUT,
+			  49 /* fixme: use test type */, 
+			  &hash,
+			  GNUNET_DHT_RO_NONE,
+			  NULL, 0,
+			  NULL, 0,
+                          &test_get_iterator, NULL);
 
   if (peer->get_handle == NULL)
     GNUNET_SCHEDULER_add_now (sched, &end_badly, &p1);
@@ -454,8 +477,12 @@ test_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_assert (peer->dht_handle != NULL);
 
-  GNUNET_DHT_put (peer->dht_handle, &hash, 49, data_size, data,
-                  GNUNET_TIME_relative_to_absolute (TOTAL_TIMEOUT), TOTAL_TIMEOUT,
+  GNUNET_DHT_put (peer->dht_handle, &hash, 
+		  GNUNET_DHT_RO_NONE,
+		  49 /* fixme: use test type */,
+		  data_size, data,
+                  GNUNET_TIME_relative_to_absolute (TOTAL_TIMEOUT),
+		  TOTAL_TIMEOUT,
                   &test_get, &p1);
   GNUNET_free(data);
 }
