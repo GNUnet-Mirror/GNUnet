@@ -391,7 +391,9 @@ get_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 void get_result_iterator (void *cls,
                           struct GNUNET_TIME_Absolute exp,
                           const GNUNET_HashCode * key,
-                          uint32_t type,
+                          const struct GNUNET_PeerIdentity * const *get_path,
+			  const struct GNUNET_PeerIdentity * const *put_path,
+			  enum GNUNET_BLOCK_Type type,
                           uint32_t size,
                           const void *data)
 {
@@ -420,16 +422,6 @@ void get_result_iterator (void *cls,
   GNUNET_SCHEDULER_add_continuation(sched, &get_stop_task, test_get, GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
-/**
- * Continuation telling us GET request was sent.
- */
-static void
-get_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
-{
-  // Is there something to be done here?
-  if (tc->reason != GNUNET_SCHEDULER_REASON_PREREQ_DONE)
-    return;
-}
 
 /**
  * Set up some data, and call API PUT function
@@ -457,12 +449,13 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   GNUNET_assert(test_get->dht_handle != NULL);
   outstanding_gets++;
   test_get->get_handle = GNUNET_DHT_get_start(test_get->dht_handle,
-                                              GNUNET_TIME_relative_get_forever(),
-                                              1,
+                                              GNUNET_TIME_UNIT_FOREVER_REL,
+                                              1 /* FIXME: use real type */,
                                               &key,
+					      GNUNET_DHT_RO_NONE,
+					      NULL, 0,
+					      NULL, 0,
                                               &get_result_iterator,
-                                              test_get,
-                                              &get_continuation,
                                               test_get);
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting get for uid %u from peer %s\n",
@@ -527,10 +520,11 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   outstanding_puts++;
   GNUNET_DHT_put(test_put->dht_handle,
                  &key,
-                 1,
+		 GNUNET_DHT_RO_NONE,
+                 1 /* FIXME: use real type */,
                  sizeof(data), data,
-                 GNUNET_TIME_absolute_get_forever(),
-                 GNUNET_TIME_relative_get_forever(),
+                 GNUNET_TIME_UNIT_FOREVER_ABS,
+                 GNUNET_TIME_UNIT_FOREVER_REL,
                  &put_finished, test_put);
   test_put->disconnect_task = GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_get_forever(), &put_disconnect_task, test_put);
   GNUNET_SCHEDULER_add_now(sched, &do_put, test_put->next);
