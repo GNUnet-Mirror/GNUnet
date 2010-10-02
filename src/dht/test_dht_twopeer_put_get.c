@@ -186,14 +186,11 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failing test with error: `%s'!\n", (char *)cls);
   if (global_get_handle != NULL)
-  {
-    GNUNET_DHT_get_stop(global_get_handle, &end_badly_cont, NULL);
-  }
-  else
-  {
-    GNUNET_SCHEDULER_add_now(sched, &end_badly_cont, NULL);
-  }
-
+    {
+      GNUNET_DHT_get_stop(global_get_handle);
+      global_get_handle = NULL;
+    }
+  GNUNET_SCHEDULER_add_now(sched, &end_badly_cont, NULL);
   ok = 1;
 }
 
@@ -210,7 +207,9 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 void get_result_iterator (void *cls,
                           struct GNUNET_TIME_Absolute exp,
                           const GNUNET_HashCode * key,
-                          uint32_t type,
+			  const struct GNUNET_PeerIdentity * const *get_path,
+			  const struct GNUNET_PeerIdentity * const *put_path,
+			  enum GNUNET_BLOCK_Type type,
                           uint32_t size,
                           const void *data)
 {
@@ -229,7 +228,8 @@ void get_result_iterator (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received correct GET response!\n");
   GNUNET_SCHEDULER_cancel(sched, die_task);
-  GNUNET_DHT_get_stop(global_get_handle, &finish_testing, NULL);
+  GNUNET_DHT_get_stop(global_get_handle);
+  GNUNET_SCHEDULER_add_now (sched, &finish_testing, NULL);
 }
 
 /**
@@ -240,7 +240,12 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   GNUNET_HashCode key; /* Key for data lookup */
   memset(&key, 42, sizeof(GNUNET_HashCode)); /* Set the key to the same thing as when data was inserted */
-  global_get_handle = GNUNET_DHT_get_start(peer2dht, GNUNET_TIME_relative_get_forever(), 1, &key, &get_result_iterator, NULL, NULL, NULL);
+  global_get_handle = GNUNET_DHT_get_start(peer2dht, GNUNET_TIME_relative_get_forever(),
+					   1 /* FIXME: use real type */, &key,
+					   GNUNET_DHT_RO_NONE,
+					   NULL, 0,
+					   NULL, 0,
+					   &get_result_iterator, NULL);
 }
 
 /**
@@ -270,10 +275,11 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   /* Insert the data at the first peer */
   GNUNET_DHT_put(peer1dht,
                  &key,
-                 1,
+		 GNUNET_DHT_RO_NONE,
+                 1 /* FIXME: use real type */,
                  sizeof(data), data,
-                 GNUNET_TIME_absolute_get_forever(),
-                 GNUNET_TIME_relative_get_forever(),
+                 GNUNET_TIME_UNIT_FOREVER_ABS,
+                 GNUNET_TIME_UNIT_FOREVER_REL,
                  &put_finished, NULL);
 }
 
