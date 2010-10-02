@@ -109,30 +109,19 @@ GNUNET_DHT_find_peer_start (struct GNUNET_DHT_Handle *handle,
   struct GNUNET_DHT_FindPeerHandle *find_peer_handle;
   struct GNUNET_DHT_FindPeerMessage find_peer_msg;
 
-  /* FIXME: remove this limitation */
-  if ((handle->current != NULL) && (handle->retransmit_stage != DHT_RETRANSMITTING)) 
-    {
-      /* Can't send right now, we have a pending message... */
-      return NULL;
-    }
-
   find_peer_handle =
     GNUNET_malloc (sizeof (struct GNUNET_DHT_FindPeerHandle));
-  find_peer_handle->find_peer_context.proc = proc;
-  find_peer_handle->find_peer_context.proc_cls = proc_cls;
-
-#if DEBUG_DHT_API
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s': Inserting pending `%s' request with key %s\n", "DHT API",
-              "FIND PEER", GNUNET_h2s (key));
-#endif
-
+  find_peer_handle->proc = proc;
+  find_peer_handle->proc_cls = proc_cls;
   find_peer_msg.header.size = htons(sizeof(struct GNUNET_DHT_FindPeerMessage));
   find_peer_msg.header.type = htons(GNUNET_MESSAGE_TYPE_DHT_FIND_PEER);
   find_peer_handle->route_handle =
-    GNUNET_DHT_route_start (handle, key, 0, options, &find_peer_msg.header,
+    GNUNET_DHT_route_start (handle, key, 
+			    0, options,
+			    &find_peer_msg.header,
                             timeout, 
-			    &find_peer_reply_iterator, find_peer_handle);
+			    &find_peer_reply_iterator, find_peer_handle,
+			    NULL, NULL);
   GNUNET_break (find_peer_handle->route_handle != NULL);
   return find_peer_handle;
 }
