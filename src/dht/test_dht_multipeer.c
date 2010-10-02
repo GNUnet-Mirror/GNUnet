@@ -57,7 +57,9 @@
 
 struct TestPutContext
 {
-  /* This is a linked list */
+  /**
+   * This is a linked list 
+   */
   struct TestPutContext *next;
 
   /**
@@ -278,7 +280,7 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
       if (test_get->disconnect_task != GNUNET_SCHEDULER_NO_TASK)
         GNUNET_SCHEDULER_cancel(sched, test_get->disconnect_task);
       if (test_get->get_handle != NULL)
-        GNUNET_DHT_get_stop(test_get->get_handle, NULL, NULL);
+        GNUNET_DHT_get_stop(test_get->get_handle);
       if (test_get->dht_handle != NULL)
         GNUNET_DHT_disconnect(test_get->dht_handle);
       test_get = test_get->next;
@@ -316,7 +318,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
       if (test_get->disconnect_task != GNUNET_SCHEDULER_NO_TASK)
         GNUNET_SCHEDULER_cancel(sched, test_get->disconnect_task);
       if (test_get->get_handle != NULL)
-        GNUNET_DHT_get_stop(test_get->get_handle, NULL, NULL);
+        GNUNET_DHT_get_stop(test_get->get_handle);
       if (test_get->dht_handle != NULL)
         GNUNET_DHT_disconnect(test_get->dht_handle);
       test_get = test_get->next;
@@ -370,7 +372,8 @@ get_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Get from peer %s for key %s failed!\n", test_get->daemon->shortname, GNUNET_h2s(&search_key));
     }
   GNUNET_assert(test_get->get_handle != NULL);
-  GNUNET_DHT_get_stop(test_get->get_handle, &get_stop_finished, test_get);
+  GNUNET_DHT_get_stop(test_get->get_handle);
+  GNUNET_SCHEDULER_add_now (sched, &get_stop_finished, test_get);
   test_get->get_handle = NULL;
   test_get->disconnect_task = GNUNET_SCHEDULER_NO_TASK;
 }
