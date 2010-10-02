@@ -27,6 +27,9 @@
  * FIXME: Do churn!
  */
 #include "platform.h"
+#ifndef HAVE_MALICIOUS
+#error foo
+#endif
 #include "gnunet_testing_lib.h"
 #include "gnunet_core_service.h"
 #include "gnunet_dht_service.h"
@@ -87,12 +90,12 @@
 /*
  * Default frequency for sending malicious get messages
  */
-#define DEFAULT_MALICIOUS_GET_FREQUENCY 1000 /* Number of milliseconds */
+#define DEFAULT_MALICIOUS_GET_FREQUENCY GNUNET_TIME_UNIT_SECONDS
 
 /*
  * Default frequency for sending malicious put messages
  */
-#define DEFAULT_MALICIOUS_PUT_FREQUENCY 1000 /* Default is in milliseconds */
+#define DEFAULT_MALICIOUS_PUT_FREQUENCY GNUNET_TIME_UNIT_SECONDS
 
 /* Structs */
 
@@ -406,9 +409,9 @@ static unsigned long long round_delay;
 
 static unsigned long long malicious_droppers;
 
-static unsigned long long malicious_get_frequency;
+static struct GNUNET_TIME_Relative malicious_get_frequency;
 
-static unsigned long long malicious_put_frequency;
+static struct GNUNET_TIME_Relative malicious_put_frequency;
 
 static unsigned long long settle_time;
 
@@ -744,7 +747,7 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
       if (test_get->disconnect_task != GNUNET_SCHEDULER_NO_TASK)
         GNUNET_SCHEDULER_cancel(sched, test_get->disconnect_task);
       if (test_get->get_handle != NULL)
-        GNUNET_DHT_get_stop(test_get->get_handle, NULL, NULL);
+        GNUNET_DHT_get_stop(test_get->get_handle);
       if (test_get->dht_handle != NULL)
         GNUNET_DHT_disconnect(test_get->dht_handle);
       test_get = test_get->next;
@@ -968,7 +971,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
       if (test_get->disconnect_task != GNUNET_SCHEDULER_NO_TASK)
         GNUNET_SCHEDULER_cancel(sched, test_get->disconnect_task);
       if (test_get->get_handle != NULL)
-        GNUNET_DHT_get_stop(test_get->get_handle, NULL, NULL);
+        GNUNET_DHT_get_stop(test_get->get_handle);
       if (test_get->dht_handle != NULL)
         GNUNET_DHT_disconnect(test_get->dht_handle);
       test_get = test_get->next;
@@ -1621,9 +1624,10 @@ get_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   if (tc->reason == GNUNET_SCHEDULER_REASON_TIMEOUT)
     gets_failed++;
   GNUNET_assert(test_get->get_handle != NULL);
-  GNUNET_DHT_get_stop(test_get->get_handle, &get_stop_finished, test_get);
+  GNUNET_DHT_get_stop(test_get->get_handle);
   test_get->get_handle = NULL;
   test_get->disconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_SCHEDULER_add_now (sched, &get_stop_finished, test_get);
 }
 
 /**
@@ -1632,6 +1636,10 @@ get_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
  * @param cls closure
  * @param exp when will this value expire
  * @param key key of the result
+ * @param get_path NULL-terminated array of pointers
+ *                 to the peers on reverse GET path (or NULL if not recorded)
+ * @param put_path NULL-terminated array of pointers
+ *                 to the peers on the PUT path (or NULL if not recorded)
  * @param type type of the result
  * @param size number of bytes in data
  * @param data pointer to the result data
@@ -1639,7 +1647,9 @@ get_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 void get_result_iterator (void *cls,
                           struct GNUNET_TIME_Absolute exp,
                           const GNUNET_HashCode * key,
-                          uint32_t type,
+                          const struct GNUNET_PeerIdentity * const *get_path,
+			  const struct GNUNET_PeerIdentity * const *put_path,
+			  enum GNUNET_BLOCK_Type type,
                           uint32_t size,
                           const void *data)
 {
@@ -1665,16 +1675,7 @@ void get_result_iterator (void *cls,
   GNUNET_SCHEDULER_add_continuation(sched, &get_stop_task, test_get, GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
-/**
- * Continuation telling us GET request was sent.
- */
-static void
-get_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
-{
-  // Is there something to be done here?
-  if (tc->reason != GNUNET_SCHEDULER_REASON_PREREQ_DONE)
-    return;
-}
+
 
 /**
  * Set up some data, and call API PUT function
@@ -1720,12 +1721,14 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   /* Insert the data at the first peer */
   test_get->get_handle = GNUNET_DHT_get_start(test_get->dht_handle,
                                               get_delay,
-                                              1,
+                                              1 /* FIXME: use real type */,
                                               &known_keys[test_get->uid],
+					      GNUNET_DHT_RO_NONE,
+					      NULL, 0,
+					      NULL, 0,
                                               &get_result_iterator,
-                                              test_get,
-                                              &get_continuation,
                                               test_get);
+
 #if VERBOSE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting get for uid %u from peer %s\n",
              test_get->uid,
@@ -1828,9 +1831,10 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   outstanding_puts++;
   GNUNET_DHT_put(test_put->dht_handle,
                  &known_keys[test_put->uid],
-                 1,
+		 GNUNET_DHT_RO_NONE,
+                 1 /* FIXME: use real type */,
                  sizeof(data), data,
-                 GNUNET_TIME_absolute_get_forever(),
+                 GNUNET_TIME_UNIT_FOREVER_ABS,
                  put_delay,
                  &put_finished, test_put);
   test_put->disconnect_task = GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_get_forever(), &put_disconnect_task, test_put);
@@ -2141,7 +2145,6 @@ static void
 set_malicious (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   struct MaliciousContext *ctx = cls;
-  int ret;
 
   if (outstanding_malicious > DEFAULT_MAX_OUTSTANDING_GETS)
     {
@@ -2163,28 +2166,29 @@ set_malicious (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
                 ctx->daemon->shortname, ctx->malicious_type);
 #endif
 
-  ret = GNUNET_YES;
   switch (ctx->malicious_type)
   {
   case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_GET:
-    ret = GNUNET_DHT_set_malicious_getter(ctx->dht_handle, malicious_get_frequency, &malicious_done_task, ctx);
+    GNUNET_DHT_set_malicious_getter(ctx->dht_handle, malicious_get_frequency);
+    GNUNET_SCHEDULER_add_now (sched,
+			      &malicious_done_task, ctx);
     break;
   case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_PUT:
-    ret = GNUNET_DHT_set_malicious_putter(ctx->dht_handle, malicious_put_frequency, &malicious_done_task, ctx);
+    GNUNET_DHT_set_malicious_putter(ctx->dht_handle, malicious_put_frequency);
+    GNUNET_SCHEDULER_add_now (sched,
+			      &malicious_done_task, ctx);
     break;
   case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_DROP:
-    ret = GNUNET_DHT_set_malicious_dropper(ctx->dht_handle, &malicious_done_task, ctx);
+    GNUNET_DHT_set_malicious_dropper(ctx->dht_handle);
+    GNUNET_SCHEDULER_add_now (sched, &malicious_done_task, ctx);
     break;
   default:
     break;
   }
 
-  if (ret == GNUNET_NO)
-    {
-      GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &set_malicious, ctx);
-    }
-  else
-    ctx->disconnect_task = GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_get_forever(), &malicious_disconnect_task, ctx);
+  ctx->disconnect_task = GNUNET_SCHEDULER_add_delayed(sched, 
+						      GNUNET_TIME_UNIT_FOREVER_REL,
+						      &malicious_disconnect_task, ctx);
 }
 
 /**
@@ -2800,15 +2804,15 @@ run (void *cls,
       replicate_same = GNUNET_YES;
     }
 
-  if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_number (cfg, "DHT_TESTING",
-                                                          "MALICIOUS_GET_FREQUENCY",
-                                                          &malicious_get_frequency))
+  if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_time (cfg, "DHT_TESTING",
+							"MALICIOUS_GET_FREQUENCY",
+							&malicious_get_frequency))
     malicious_get_frequency = DEFAULT_MALICIOUS_GET_FREQUENCY;
 
 
-  if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_number (cfg, "DHT_TESTING",
-                                                          "MALICIOUS_PUT_FREQUENCY",
-                                                          &malicious_put_frequency))
+  if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_time (cfg, "DHT_TESTING",
+							"MALICIOUS_PUT_FREQUENCY",
+							&malicious_put_frequency))
     malicious_put_frequency = DEFAULT_MALICIOUS_PUT_FREQUENCY;
 
 
@@ -2985,8 +2989,8 @@ run (void *cls,
   trial_info.malicious_getters = malicious_getters;
   trial_info.malicious_putters = malicious_putters;
   trial_info.malicious_droppers = malicious_droppers;
-  trial_info.malicious_get_frequency = malicious_get_frequency;
-  trial_info.malicious_put_frequency = malicious_put_frequency;
+  trial_info.malicious_get_frequency = malicious_get_frequency.value;
+  trial_info.malicious_put_frequency = malicious_put_frequency.value;
   trial_info.stop_closest = stop_closest;
   trial_info.stop_found = stop_found;
   trial_info.strict_kademlia = strict_kademlia;

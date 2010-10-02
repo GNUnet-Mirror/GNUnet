@@ -726,15 +726,15 @@ AC_MSG_RESULT($enable_experimental)
 AM_CONDITIONAL([HAVE_EXPERIMENTAL], [test "x$enable_experimental" = "xyes"])
 
 # should malicious code be compiled (code used for testing with malicious peers)
-disable_malicious=yes
+enable_malicious=0
 AC_MSG_CHECKING(whether to compile malicious code)
 AC_ARG_ENABLE(malicious,
    [AS_HELP_STRING([--enable-malicious],
                [enable compiling malicious code (only for developers for testing)])],
-   [enable_malicious=$enableval],
-   [enable_malicious="no"])
+   [enable_malicious=1],
+   [enable_malicious=0])
 AC_MSG_RESULT($enable_malicious)
-AM_CONDITIONAL([HAVE_MALICIOUS], [test "x$enable_malicious" = "xyes"])
+AM_CONDITIONAL([HAVE_MALICIOUS], [test "x$enable_malicious" = "x1"])
 AC_DEFINE_UNQUOTED([HAVE_MALICIOUS], $enable_malicious, [Compile malicious code])
 
 # gcov compilation
