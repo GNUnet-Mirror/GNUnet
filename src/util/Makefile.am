@@ -41,6 +41,7 @@ libgnunetutil_la_SOURCES = \
   crypto_crc.c \
   crypto_hash.c \
   crypto_hkdf.c \
+  crypto_kdf.c \
   crypto_ksk.c \
   crypto_random.c \
   crypto_rsa.c \

@@ -2122,10 +2122,11 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
   em->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE);
   em->iv_seed = ph->iv_seed;
   esize = used - ENCRYPTED_HEADER_SIZE;
-  GNUNET_CRYPTO_hmac (&n->encrypt_key,
-		      &ph->sequence_number,
-		      esize - sizeof (GNUNET_HashCode), 
-		      &ph->hmac);
+// FIXME NILS
+//  GNUNET_CRYPTO_hmac (&n->encrypt_key,
+//		      &ph->sequence_number,
+//		      esize - sizeof (GNUNET_HashCode),
+//		      &ph->hmac);
   GNUNET_CRYPTO_hash (&ph->iv_seed, sizeof (uint32_t), &iv);
 #if DEBUG_HANDSHAKE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -3356,24 +3357,25 @@ handle_encrypted_message (struct Neighbour *n,
     return;
   pt = (struct EncryptedMessage *) buf;
   /* validate hash */
-  GNUNET_CRYPTO_hmac (&n->decrypt_key,
-		      &pt->sequence_number,
-                      size - ENCRYPTED_HEADER_SIZE - sizeof (GNUNET_HashCode), &ph);
-#if DEBUG_HANDSHAKE 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "V-Hashed %u bytes of plaintext (`%s') using IV `%d'\n",
-	      (unsigned int) (size - ENCRYPTED_HEADER_SIZE - sizeof (GNUNET_HashCode)),
-	      GNUNET_h2s (&ph),
-	      (int) m->iv_seed);
-#endif
-  if (0 != memcmp (&ph, 
-		   &pt->hmac, 
-		   sizeof (GNUNET_HashCode)))
-    {
-      /* checksum failed */
-      GNUNET_break_op (0);
-      return;
-    }
+// FIXME NILS
+//  GNUNET_CRYPTO_hmac (&n->decrypt_key,
+//		      &pt->sequence_number,
+//                      size - ENCRYPTED_HEADER_SIZE - sizeof (GNUNET_HashCode), &ph);
+//#if DEBUG_HANDSHAKE
+//  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+//              "V-Hashed %u bytes of plaintext (`%s') using IV `%d'\n",
+//	      (unsigned int) (size - ENCRYPTED_HEADER_SIZE - sizeof (GNUNET_HashCode)),
+//	      GNUNET_h2s (&ph),
+//	      (int) m->iv_seed);
+//#endif
+//  if (0 != memcmp (&ph,
+//		   &pt->hmac,
+//		   sizeof (GNUNET_HashCode)))
+//    {
+//      /* checksum failed */
+//      GNUNET_break_op (0);
+//      return;
+//    }
 
   /* validate sequence number */
   snum = ntohl (pt->sequence_number);

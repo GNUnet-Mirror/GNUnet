@@ -57,7 +57,12 @@ enum GNUNET_CRYPTO_Quality
   /**
    * High-quality operations are desired.
    */
-  GNUNET_CRYPTO_QUALITY_STRONG
+  GNUNET_CRYPTO_QUALITY_STRONG,
+
+  /**
+   * Randomness for IVs etc. is required.
+   */
+  GNUNET_CRYPTO_QUALITY_NONCE
 };
 
 
@@ -85,6 +90,11 @@ enum GNUNET_CRYPTO_Quality
  */
 #define GNUNET_CRYPTO_RSA_KEY_LENGTH 258
 
+
+/**
+ * Length of a hash value
+ */
+#define GNUNET_CRYPTO_HASH_LENGTH 512/8
 
 /**
  * The private information of an RSA key pair.
@@ -201,6 +211,15 @@ struct GNUNET_CRYPTO_AesInitializationVector
 };
 
 
+/**
+ * @brief type for (message) authentication keys
+ */
+struct GNUNET_CRYPTO_AuthKey
+{
+  unsigned char key[GNUNET_CRYPTO_HASH_LENGTH];
+};
+
+
 /* **************** Functions and Macros ************* */
 
 
@@ -257,7 +276,6 @@ unsigned int *GNUNET_CRYPTO_random_permute (enum GNUNET_CRYPTO_Quality mode,
 void GNUNET_CRYPTO_aes_create_session_key (struct GNUNET_CRYPTO_AesSessionKey
                                            *key);
 
-
 /**
  * Check that a new session key is well-formed.
  *
@@ -303,6 +321,34 @@ ssize_t GNUNET_CRYPTO_aes_decrypt (const void *block,
 				   const struct GNUNET_CRYPTO_AesSessionKey *sessionkey, 
 				   const struct GNUNET_CRYPTO_AesInitializationVector *iv,
 				   void *result);
+
+
+/**
+ * @brief Derive an IV
+ * @param iv initialization vector
+ * @param skey session key
+ * @param salt salt for the derivation
+ * @param salt_len size of the salt
+ * @param ... pairs of void * & size_t for context chunks, terminated by NULL
+ */
+void
+GNUNET_CRYPTO_aes_derive_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
+    const struct GNUNET_CRYPTO_AesSessionKey *skey, void *salt,
+    size_t salt_len, ...);
+
+
+/**
+ * @brief Derive an IV
+ * @param iv initialization vector
+ * @param skey session key
+ * @param salt salt for the derivation
+ * @param salt_len size of the salt
+ * @param argp pairs of void * & size_t for context chunks, terminated by NULL
+ */
+void
+GNUNET_CRYPTO_aes_derive_iv_v (struct GNUNET_CRYPTO_AesInitializationVector *iv,
+    const struct GNUNET_CRYPTO_AesSessionKey *skey, void *salt,
+    size_t salt_len, va_list argp);
 
 
 /**
@@ -362,7 +408,7 @@ void GNUNET_CRYPTO_hash (const void *block,
  * @param hmac where to store the hmac
  */
 void 
-GNUNET_CRYPTO_hmac (const struct GNUNET_CRYPTO_AesSessionKey *key,
+GNUNET_CRYPTO_hmac (const struct GNUNET_CRYPTO_AuthKey *key,
 		    const void *plaintext,
 		    size_t plaintext_len,
 		    GNUNET_HashCode *hmac);
@@ -526,6 +572,37 @@ int GNUNET_CRYPTO_hash_xorcmp (const GNUNET_HashCode * h1,
 
 
 /**
+ * @brief Derive an authentication key
+ * @param key authentication key
+ * @param rkey root key
+ * @param salt salt
+ * @param salt_len size of the salt
+ * @param argp pair of void * & size_t for context chunks, terminated by NULL
+ */
+void
+GNUNET_CRYPTO_hmac_derive_key_v(struct GNUNET_CRYPTO_AuthKey *key,
+                                const struct GNUNET_CRYPTO_AesSessionKey *rkey,
+                                const void *salt,
+                                const size_t salt_len,
+                                const va_list argp);
+
+
+/**
+ * @brief Derive an authentication key
+ * @param key authentication key
+ * @param rkey root key
+ * @param salt salt
+ * @param salt_len size of the salt
+ * @param ... pair of void * & size_t for context chunks, terminated by NULL
+ */
+void
+GNUNET_CRYPTO_hmac_derive_key(struct GNUNET_CRYPTO_AuthKey *key,
+                              const struct GNUNET_CRYPTO_AesSessionKey *rkey,
+                              const void *salt,
+                              const size_t salt_len,
+                              ...);
+
+/**
  * @brief Derive key
  * @param result buffer for the derived key, allocated by caller
  * @param out_len desired length of the derived key
@@ -543,6 +620,59 @@ int
 GNUNET_CRYPTO_hkdf (void *result, const unsigned long long out_len,
     int xtr_algo, int prf_algo, const void *xts, const size_t xts_len,
     const void *skm, const size_t skm_len, ...);
+
+
+/**
+ * @brief Derive key
+ * @param result buffer for the derived key, allocated by caller
+ * @param out_len desired length of the derived key
+ * @param xtr_algo hash algorithm for the extraction phase, GCRY_MD_...
+ * @param prf_algo hash algorithm for the expansion phase, GCRY_MD_...
+ * @param xts salt
+ * @param xts_len length of xts
+ * @param skm source key material
+ * @param skm_len length of skm
+ * @param argp va_list of void * & size_t pairs for context chunks
+ * @return GNUNET_YES on success
+ */
+int
+GNUNET_CRYPTO_hkdf_v (void *result, const unsigned long long out_len,
+    int xtr_algo, int prf_algo, const void *xts, const size_t xts_len,
+    const void *skm, const size_t skm_len, va_list argp);
+
+
+/**
+ * @brief Derive key
+ * @param result buffer for the derived key, allocated by caller
+ * @param out_len desired length of the derived key
+ * @param xts salt
+ * @param xts_len length of xts
+ * @param skm source key material
+ * @param skm_len length of skm
+ * @param argp va_list of void * & size_t pairs for context chunks
+ * @return GNUNET_YES on success
+ */
+int
+GNUNET_CRYPTO_kdf_v (void *result, const unsigned long long out_len,
+    const void *xts, const size_t xts_len, const void *skm,
+    const size_t skm_len, va_list argp);
+
+
+/**
+ * @brief Derive key
+ * @param result buffer for the derived key, allocated by caller
+ * @param out_len desired length of the derived key
+ * @param xts salt
+ * @param xts_len length of xts
+ * @param skm source key material
+ * @param skm_len length of skm
+ * @param ... void * & size_t pairs for context chunks
+ * @return GNUNET_YES on success
+ */
+int
+GNUNET_CRYPTO_kdf (void *result, const unsigned long long out_len,
+    const void *xts, const size_t xts_len, const void *skm,
+    const size_t skm_len, ...);
 
 
 /**

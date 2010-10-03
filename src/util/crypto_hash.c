@@ -832,6 +832,48 @@ GNUNET_CRYPTO_hash_xorcmp (const GNUNET_HashCode * h1,
 
 
 /**
+ * @brief Derive an authentication key
+ * @param key authentication key
+ * @param rkey root key
+ * @param salt salt
+ * @param salt_len size of the salt
+ * @param ... pair of void * & size_t for context chunks, terminated by NULL
+ */
+void
+GNUNET_CRYPTO_hmac_derive_key(struct GNUNET_CRYPTO_AuthKey *key,
+                              const struct GNUNET_CRYPTO_AesSessionKey *rkey,
+                              const void *salt,
+                              const size_t salt_len,
+                              ...)
+{
+  va_list argp;
+
+  va_start (argp, salt_len);
+  GNUNET_CRYPTO_hmac_derive_key_v (key, rkey, salt, salt_len, argp);
+  va_end (argp);
+}
+
+
+/**
+ * @brief Derive an authentication key
+ * @param key authentication key
+ * @param rkey root key
+ * @param salt salt
+ * @param salt_len size of the salt
+ * @param argp pair of void * & size_t for context chunks, terminated by NULL
+ */
+void
+GNUNET_CRYPTO_hmac_derive_key_v(struct GNUNET_CRYPTO_AuthKey *key,
+                                const struct GNUNET_CRYPTO_AesSessionKey *rkey,
+                                const void *salt,
+                                const size_t salt_len,
+                                const va_list argp)
+{
+  GNUNET_CRYPTO_kdf_v (key->key, sizeof(key->key), salt, salt_len, rkey->key,
+      sizeof(rkey->key), argp);
+}
+
+/**
  * Calculate HMAC of a message (RFC 2104)
  *
  * @param key secret key
@@ -840,7 +882,7 @@ GNUNET_CRYPTO_hash_xorcmp (const GNUNET_HashCode * h1,
  * @param hmac where to store the hmac
  */
 void 
-GNUNET_CRYPTO_hmac (const struct GNUNET_CRYPTO_AesSessionKey *key,
+GNUNET_CRYPTO_hmac (const struct GNUNET_CRYPTO_AuthKey *key,
 		    const void *plaintext,
 		    size_t plaintext_len,
 		    GNUNET_HashCode *hmac)
@@ -852,8 +894,7 @@ GNUNET_CRYPTO_hmac (const struct GNUNET_CRYPTO_AesSessionKey *key,
   struct sha512_ctx sctx;
 
   memset (&kh, 0, sizeof (kh));
-  GNUNET_assert (sizeof (GNUNET_HashCode) > sizeof (struct GNUNET_CRYPTO_AesSessionKey));
-  memcpy (&kh, key, sizeof (struct GNUNET_CRYPTO_AesSessionKey));				
+  memcpy (&kh, key->key, sizeof (struct GNUNET_CRYPTO_AuthKey));
   memset (&ipad, 0x5c, sizeof (ipad));
   memset (&opad, 0x36, sizeof (opad));
   GNUNET_CRYPTO_hash_xor (&ipad, &kh, &ipad);

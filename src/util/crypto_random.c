@@ -76,6 +76,17 @@ GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, uint32_t i)
       while (ret >= ul);
       return ret % i;
     }
+  else if (mode == GNUNET_CRYPTO_QUALITY_NONCE)
+    {
+      ul = UINT32_MAX - (UINT32_MAX % i);
+      do
+        {
+          gcry_create_nonce(&ret, sizeof(ret));
+        }
+      while (ret >= ul);
+
+      return ret % i;
+    }
   else
     {
       ret = i * weak_random ();
@@ -140,6 +151,17 @@ GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode, uint64_t max)
 			  sizeof (uint64_t), GCRY_STRONG_RANDOM);
 	}
       while (ret >= ul);
+      return ret % max;
+    }
+  else if (mode == GNUNET_CRYPTO_QUALITY_NONCE)
+    {
+      ul = UINT64_MAX - (UINT64_MAX % max);
+      do
+        {
+          gcry_create_nonce(&ret, sizeof(ret));
+        }
+      while (ret >= ul);
+
       return ret % max;
     }
   else

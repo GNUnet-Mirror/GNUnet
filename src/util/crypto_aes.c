@@ -148,4 +148,41 @@ GNUNET_CRYPTO_aes_decrypt (const void *block,
   return size;
 }
 
+/**
+ * @brief Derive an IV
+ * @param iv initialization vector
+ * @param skey session key
+ * @param salt salt for the derivation
+ * @param salt_len size of the salt
+ * @param ... pairs of void * & size_t for context chunks, terminated by NULL
+ */
+void
+GNUNET_CRYPTO_aes_derive_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
+    const struct GNUNET_CRYPTO_AesSessionKey *skey, void *salt,
+    size_t salt_len, ...)
+{
+  va_list argp;
+
+  va_start (argp, salt_len);
+  GNUNET_CRYPTO_aes_derive_iv_v (iv, skey, salt, salt_len, argp);
+  va_end (argp);
+}
+
+/**
+ * @brief Derive an IV
+ * @param iv initialization vector
+ * @param skey session key
+ * @param salt salt for the derivation
+ * @param salt_len size of the salt
+ * @param argp pairs of void * & size_t for context chunks, terminated by NULL
+ */
+void
+GNUNET_CRYPTO_aes_derive_iv_v (struct GNUNET_CRYPTO_AesInitializationVector *iv,
+    const struct GNUNET_CRYPTO_AesSessionKey *skey, void *salt,
+    size_t salt_len, va_list argp)
+{
+  GNUNET_CRYPTO_kdf_v (iv->iv, sizeof(iv->iv), salt, salt_len, skey->key,
+      sizeof(skey->key), argp);
+}
+
 /* end of crypto_aes.c */
