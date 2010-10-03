@@ -48,6 +48,7 @@
 #define REAL_DISTANCE GNUNET_NO
 
 #define EXTRA_CHECKS GNUNET_NO
+
 /**
  * How many buckets will we allow total.
  */
@@ -1818,6 +1819,11 @@ send_generic_reply (void *cls, size_t size, void *buf)
       off += msize;
     }
   process_pending_messages (client);
+#if DEBUG_DHT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmitted %u bytes of replies to client\n",
+	      (unsigned int) off);
+#endif
   return off;
 }
 
@@ -1853,7 +1859,8 @@ add_pending_message (struct ClientList *client,
 static void
 send_reply_to_client (struct ClientList *client,
                       const struct GNUNET_MessageHeader *message,
-                      unsigned long long uid)
+                      unsigned long long uid,
+		      const GNUNET_HashCode *key)
 {
   struct GNUNET_DHT_RouteResultMessage *reply;
   struct PendingMessage *pending_message;
@@ -1877,6 +1884,7 @@ send_reply_to_client (struct ClientList *client,
   reply->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE_RESULT);
   reply->header.size = htons (tsize);
   reply->unique_id = GNUNET_htonll (uid);
+  reply->key = *key;
   memcpy (&reply[1], message, msize);
 
   add_pending_message (client, pending_message);
@@ -1969,7 +1977,7 @@ static int route_result_message(void *cls,
 #if DEBUG_DHT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "`%s:%s': Have no record of response key %s uid %llu\n", my_short_id,
-                "DHT", GNUNET_h2s (message_context->key), message_context->unique_id);
+                "DHT", GNUNET_h2s (&message_context->key), message_context->unique_id);
 #endif
 #if DEBUG_DHT_ROUTING
       if ((debug_routes_extended) && (dhtlog_handle != NULL))
@@ -2014,7 +2022,7 @@ static int route_result_message(void *cls,
 #if DEBUG_DHT
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "`%s:%s': Sending response key %s uid %llu to client\n", my_short_id,
-                      "DHT", GNUNET_h2s (message_context->key), message_context->unique_id);
+                      "DHT", GNUNET_h2s (&message_context->key), message_context->unique_id);
 #endif
 #if DEBUG_DHT_ROUTING
           if ((debug_routes_extended) && (dhtlog_handle != NULL))
@@ -2029,7 +2037,9 @@ static int route_result_message(void *cls,
           if (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DHT_GET_RESULT)
             increment_stats(STAT_GET_REPLY);
 
-          send_reply_to_client(pos->client, msg, message_context->unique_id);
+          send_reply_to_client(pos->client, msg, 
+			       message_context->unique_id,
+			       &message_context->key);
         }
       else /* Send to peer */
         {
@@ -2048,7 +2058,7 @@ static int route_result_message(void *cls,
 #if DEBUG_DHT
               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                           "`%s:%s': Forwarding response key %s uid %llu to peer %s\n", my_short_id,
-                          "DHT", GNUNET_h2s (message_context->key), message_context->unique_id, GNUNET_i2s(&peer_info->id));
+                          "DHT", GNUNET_h2s (&message_context->key), message_context->unique_id, GNUNET_i2s(&peer_info->id));
 #endif
 #if DEBUG_DHT_ROUTING
               if ((debug_routes_extended) && (dhtlog_handle != NULL))
@@ -2067,7 +2077,7 @@ static int route_result_message(void *cls,
 #if DEBUG_DHT
               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                           "`%s:%s': NOT Forwarding response (bloom match) key %s uid %llu to peer %s\n", my_short_id,
-                          "DHT", GNUNET_h2s (message_context->key), message_context->unique_id, GNUNET_i2s(&peer_info->id));
+                          "DHT", GNUNET_h2s (&message_context->key), message_context->unique_id, GNUNET_i2s(&peer_info->id));
 #endif
             }
         }
@@ -2159,7 +2169,7 @@ handle_dht_get (void *cls,
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "`%s:%s': Received `%s' request, message type %u, key %s, uid %llu\n", my_short_id,
-              "DHT", "GET", get_type, GNUNET_h2s (message_context->key),
+              "DHT", "GET", get_type, GNUNET_h2s (&message_context->key),
               message_context->unique_id);
 #endif
   increment_stats(STAT_GETS);
@@ -2279,7 +2289,7 @@ handle_dht_find_peer (void *cls,
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "`%s:%s': Received `%s' request from client, key %s (msg size %d, we expected %d)\n",
-              my_short_id, "DHT", "FIND PEER", GNUNET_h2s (message_context->key),
+              my_short_id, "DHT", "FIND PEER", GNUNET_h2s (&message_context->key),
               ntohs (find_msg->size),
               sizeof (struct GNUNET_MessageHeader));
 #endif
@@ -2422,7 +2432,7 @@ handle_dht_put (void *cls,
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "`%s:%s': Received `%s' request (inserting data!), message type %d, key %s, uid %llu\n",
-              my_short_id, "DHT", "PUT", put_type, GNUNET_h2s (message_context->key), message_context->unique_id);
+              my_short_id, "DHT", "PUT", put_type, GNUNET_h2s (&message_context->key), message_context->unique_id);
 #endif
 #if DEBUG_DHT_ROUTING
   if (message_context->hop_count == 0) /* Locally initiated request */
@@ -3219,7 +3229,7 @@ static int cache_response(void *cls, struct DHT_MessageContext *msg_ctx)
 #if DEBUG_DHT > 1
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "`%s:%s': Created new forward source info for %s uid %llu\n", my_short_id,
-                  "DHT", GNUNET_h2s (msg_ctx->key), msg_ctx->unique_id);
+                  "DHT", GNUNET_h2s (&msg_ctx->key), msg_ctx->unique_id);
 #endif
   return GNUNET_YES;
 }
@@ -3412,7 +3422,7 @@ static int route_message(void *cls,
           nearest_buf = GNUNET_strdup(GNUNET_i2s(&nearest->id));
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "`%s:%s': Forwarding request key %s uid %llu to peer %s (closest %s, bits %d, distance %u)\n", my_short_id,
-                      "DHT", GNUNET_h2s (message_context->key), message_context->unique_id, GNUNET_i2s(&selected->id), nearest_buf, GNUNET_CRYPTO_hash_matching_bits(&nearest->id.hashPubKey, message_context->key), distance(&nearest->id.hashPubKey, message_context->key));
+                      "DHT", GNUNET_h2s (&message_context->key), message_context->unique_id, GNUNET_i2s(&selected->id), nearest_buf, GNUNET_CRYPTO_hash_matching_bits(&nearest->id.hashPubKey, message_context->key), distance(&nearest->id.hashPubKey, message_context->key));
           GNUNET_free(nearest_buf);
 #endif
 #if DEBUG_DHT_ROUTING
@@ -3859,11 +3869,16 @@ handle_dht_local_route_request (void *cls, struct GNUNET_SERVER_Client *client,
   const struct GNUNET_DHT_RouteMessage *dht_msg = (const struct GNUNET_DHT_RouteMessage *) message;
   const struct GNUNET_MessageHeader *enc_msg;
   struct DHT_MessageContext message_context;
+
   enc_msg = (const struct GNUNET_MessageHeader *) &dht_msg[1];
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "`%s:%s': Received `%s' request from client, message type %d, key %s, uid %llu\n",
-              my_short_id, "DHT", "GENERIC", enc_type, GNUNET_h2s (&dht_msg->key),
+              my_short_id, 
+	      "DHT",
+	      "GENERIC",
+	      ntohs (message->type), 
+	      GNUNET_h2s (&dht_msg->key),
               GNUNET_ntohll (dht_msg->unique_id));
 #endif
 #if DEBUG_DHT_ROUTING
@@ -3928,7 +3943,8 @@ handle_dht_control_message (void *cls, struct GNUNET_SERVER_Client *client,
     if (malicious_getter != GNUNET_YES)
       GNUNET_SCHEDULER_add_now(sched, &malicious_get_task, NULL);
     malicious_getter = GNUNET_YES;
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s Initiating malicious GET behavior, frequency %d\n", my_short_id, "DHT", malicious_get_frequency);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
+	       "%s:%s Initiating malicious GET behavior, frequency %d\n", my_short_id, "DHT", malicious_get_frequency);
     break;
   case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_PUT:
     if (ntohs(dht_control_msg->variable) > 0)
@@ -3938,7 +3954,8 @@ handle_dht_control_message (void *cls, struct GNUNET_SERVER_Client *client,
     if (malicious_putter != GNUNET_YES)
       GNUNET_SCHEDULER_add_now(sched, &malicious_put_task, NULL);
     malicious_putter = GNUNET_YES;
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s Initiating malicious PUT behavior, frequency %d\n", my_short_id, "DHT", malicious_put_frequency);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+	       "%s:%s Initiating malicious PUT behavior, frequency %d\n", my_short_id, "DHT", malicious_put_frequency);
     break;
   case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_DROP:
 #if DEBUG_DHT_ROUTING
@@ -3946,10 +3963,15 @@ handle_dht_control_message (void *cls, struct GNUNET_SERVER_Client *client,
       dhtlog_handle->set_malicious(&my_identity);
 #endif
     malicious_dropper = GNUNET_YES;
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s Initiating malicious DROP behavior\n", my_short_id, "DHT");
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+	       "%s:%s Initiating malicious DROP behavior\n", my_short_id, "DHT");
     break;
   default:
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s Unknown control command type `%d'!\n", ntohs(dht_control_msg->command));
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, 
+	       "%s:%s Unknown control command type `%d'!\n", 
+	       my_short_id, "DHT",
+	       ntohs(dht_control_msg->command));
+    break;
   }
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);

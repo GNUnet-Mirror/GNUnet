@@ -75,7 +75,10 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
   put_msg->type = htons (type);
   put_msg->expiration = GNUNET_TIME_absolute_hton (exp);
   memcpy (&put_msg[1], data, size);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Starting route for %u byte `%s' message\n",
+	      (unsigned int) (sizeof (struct GNUNET_DHT_PutMessage) + size),
+	      "PUT");
   GNUNET_break (NULL ==
 		GNUNET_DHT_route_start (handle, 
 					key, 
@@ -132,7 +135,10 @@ get_reply_iterator (void *cls,
   size_t payload;
 
   if (ntohs (reply->type) != GNUNET_MESSAGE_TYPE_DHT_GET_RESULT)
-    return;
+    {
+      GNUNET_break (0);
+      return;
+    }
 
   GNUNET_assert (ntohs (reply->size) >=
                  sizeof (struct GNUNET_DHT_GetResultMessage));
@@ -194,6 +200,10 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
   get_msg.header.type = htons (GNUNET_MESSAGE_TYPE_DHT_GET);
   get_msg.header.size = htons (sizeof (struct GNUNET_DHT_GetMessage));
   get_msg.type = htons (type);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Starting route for %u byte `%s' message\n",
+	      (unsigned int) sizeof (struct GNUNET_DHT_GetMessage),
+	      "GET");
   get_handle->route_handle =
     GNUNET_DHT_route_start (handle,
 			    key, 

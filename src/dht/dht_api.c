@@ -231,6 +231,8 @@ try_connect (struct GNUNET_DHT_Handle *handle)
 		  _("Failed to connect to the DHT service!\n"));
       return GNUNET_NO;
     }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Starting to process replies from DHT\n");
   GNUNET_CLIENT_receive (handle->client,
                          &service_message_handler,
                          handle, 
@@ -373,6 +375,9 @@ transmit_pending (void *cls,
   if (GNUNET_YES == head->free_on_send)
     GNUNET_free (head);
   process_pending_messages (handle);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Forwarded request of %u bytes to DHT service\n",
+	      (unsigned int) tsize);
   return tsize;
 }
 
@@ -396,7 +401,11 @@ process_reply (void *cls,
 
   uid = GNUNET_ntohll (dht_msg->unique_id);
   if (uid != rh->uid)
-    return GNUNET_YES;
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Reply UID did not match request UID\n");
+      return GNUNET_YES;
+    }
   enc_size = ntohs (dht_msg->header.size) - sizeof (struct GNUNET_DHT_RouteResultMessage);
   if (enc_size < sizeof (struct GNUNET_MessageHeader))
     {
@@ -409,6 +418,8 @@ process_reply (void *cls,
       GNUNET_break (0);
       return GNUNET_NO;
     }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Processing reply.\n");
   rh->iter (rh->iter_cls, 
 	    &rh->key,
 	    enc_msg);
@@ -429,9 +440,14 @@ service_message_handler (void *cls,
 {
   struct GNUNET_DHT_Handle *handle = cls;
   const struct GNUNET_DHT_RouteResultMessage *dht_msg;
-  
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "%s called\n",
+	      __FUNCTION__);  
   if (msg == NULL)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Error receiving data from DHT service, reconnecting\n");
       reconnect (handle);
       return;
     }
@@ -448,10 +464,16 @@ service_message_handler (void *cls,
       return;
     }
   dht_msg = (const struct GNUNET_DHT_RouteResultMessage *) msg;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Comparing reply `%s' against %u pending requests.\n",
+	      GNUNET_h2s (&dht_msg->key),
+	      GNUNET_CONTAINER_multihashmap_size (handle->active_requests));
   GNUNET_CONTAINER_multihashmap_get_multiple (handle->active_requests,
 					      &dht_msg->key,
 					      &process_reply,
 					      (void*) dht_msg);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Continuing to process replies from DHT\n");
   GNUNET_CLIENT_receive (handle->client,
                          &service_message_handler,
                          handle, GNUNET_TIME_UNIT_FOREVER_REL);
@@ -656,6 +678,9 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
 			       pending);
   pending->in_pending_queue = GNUNET_YES;
   process_pending_messages (handle);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "DHT route start request processed, returning %p\n",
+	      route_handle);
   return route_handle;
 }
 
@@ -708,6 +733,8 @@ GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle)
 						       route_handle));
   GNUNET_free(route_handle->message);
   GNUNET_free(route_handle);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "DHT route stop request processed\n");
 }
 
 
