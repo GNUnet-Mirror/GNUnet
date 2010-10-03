@@ -127,9 +127,72 @@ static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* ts
 	GNUNET_SCHEDULER_add_read_file (mycls.sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.fh_from_helper, &helper_read, NULL);
 }
 
+static uint16_t calculate_ip_checksum(uint16_t* hdr, short len) {
+	uint32_t sum = 0;
+	for(; len >= 2; len -= 2)
+		sum += *(hdr++);
+	if (len == 1)
+		sum += *((unsigned char*)hdr);
+
+	sum = (sum >> 16) + (sum & 0xFFFF);
+
+	return ~sum;
+}
+
 static void helper_write(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
 	if (tsdkctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)
 		return;
+	struct answer_packet_list* ans = mycls.answer_head;
+	size_t len = ntohs(ans->pkt.hdr.size);
+
+	size_t data_len = len - sizeof(struct answer_packet) + 1;
+	size_t net_len = sizeof(struct ip_hdr) + sizeof(struct udp_dns) + data_len;
+	size_t pkt_len = sizeof(struct GNUNET_MessageHeader) + sizeof(struct pkt_tun) + net_len;
+
+	struct ip_udp_dns* pkt = alloca(pkt_len);
+
+	pkt->shdr.size = htons(pkt_len);
+	pkt->shdr.type = htons(GNUNET_MESSAGE_TYPE_VPN_HELPER);
+
+	pkt->tun.flags = 0;
+	pkt->tun.type = htons(0x0800);
+
+	pkt->ip_hdr.version = 4;
+	pkt->ip_hdr.hdr_lngth = 5;
+	pkt->ip_hdr.diff_serv = 0;
+	pkt->ip_hdr.tot_lngth = htons(net_len);
+	pkt->ip_hdr.ident = 0;
+	pkt->ip_hdr.flags = 0;
+	pkt->ip_hdr.frag_off = 0;
+	pkt->ip_hdr.ttl = 255;
+	pkt->ip_hdr.proto = 0x11; /* UDP */
+	pkt->ip_hdr.chks = 0; /* Will be calculated later*/
+	pkt->ip_hdr.sadr = ans->pkt.from;
+	pkt->ip_hdr.dadr = ans->pkt.to;
+
+	pkt->ip_hdr.chks = calculate_ip_checksum((uint16_t*)&pkt->ip_hdr, 5*4);
+
+	pkt->udp_dns.udp_hdr.spt = htons(53);
+	pkt->udp_dns.udp_hdr.dpt = ans->pkt.dst_port;
+	pkt->udp_dns.udp_hdr.len = htons(net_len - sizeof(struct ip_hdr));
+	pkt->udp_dns.udp_hdr.crc = 0; /* Optional for IPv4 */
+
+	memcpy(&pkt->udp_dns.data, ans->pkt.data, data_len);
+
+	/* GNUNET_MessageHeader
+	 * pkt_tun
+	 * ip_hdr
+	 * udp_dns
+	 *     udp_pkt
+	      !!data!!
+	 */
+	
+	GNUNET_CONTAINER_DLL_remove (mycls.answer_head, mycls.answer_tail, ans);
+	GNUNET_free(ans);
+
+	/* FIXME */ GNUNET_DISK_file_write(mycls.fh_to_helper, pkt, pkt_len);
+
+	/* TODO: if still in dll, reschedule */
 }
 
 size_t send_query(void* cls, size_t size, void* buf)
