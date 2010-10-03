@@ -8,7 +8,8 @@
   - provide block-lib compatible API in gnunet_dht_service.h
   - eliminate continuations in DHT API (not needed, we have auto-retransmit!)
 * CORE:
-  - derived key generation [Nils]
+  - dynamic IVs [Nils]
+  	- use QUALITY_NONCE
   - authentication of ciphertexts [Nils]
   - Jun 27 11:51:54 core-7670 ERROR Assertion failed at gnunet-service-core.c:3616.
     (transport notified us that we connected to ourselves!!!)
