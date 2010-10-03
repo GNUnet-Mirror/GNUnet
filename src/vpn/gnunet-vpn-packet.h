@@ -22,8 +22,9 @@ struct ip6_hdr {
 };
 
 struct ip_hdr {
-	unsigned version:4 GNUNET_PACKED;
 	unsigned hdr_lngth:4 GNUNET_PACKED;
+	unsigned version:4 GNUNET_PACKED;
+
 	unsigned diff_serv:8 GNUNET_PACKED;
 	unsigned tot_lngth:16 GNUNET_PACKED;
 

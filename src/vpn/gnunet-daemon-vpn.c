@@ -181,6 +181,7 @@ static void message_token(void *cls, void *client, const struct GNUNET_MessageHe
 	} else if (ntohs(pkt_tun->tun.type) == 0x0800) {
 		struct ip_pkt *pkt = (struct ip_pkt*) message;
 		struct ip_udp *udp = (struct ip_udp*) message;
+		GNUNET_assert(pkt->ip_hdr.version == 4);
 		if (pkt->ip_hdr.proto == 0x11 && ntohs(udp->udp_hdr.dpt) == 53 ) {
 			size_t len = sizeof(struct query_packet) + ntohs(udp->udp_hdr.len) - 9; /* 9 = 8 for the udp-header + 1 for the unsigned char data[1]; */
 			struct query_packet_list* query = GNUNET_malloc(len + 2*sizeof(struct query_packet_list*));
