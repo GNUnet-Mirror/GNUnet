@@ -46,6 +46,7 @@ struct vpn_cls {
 	struct GNUNET_DISK_PipeHandle* helper_in; // From the helper
 	struct GNUNET_DISK_PipeHandle* helper_out; // To the helper
 	const struct GNUNET_DISK_FileHandle* fh_from_helper;
+	const struct GNUNET_DISK_FileHandle* fh_to_helper;
 
 	struct GNUNET_SERVER_MessageStreamTokenizer* mst;
 
@@ -57,6 +58,9 @@ struct vpn_cls {
 
 	struct query_packet_list *head;
 	struct query_packet_list *tail;
+
+	struct answer_packet_list *answer_head;
+	struct answer_packet_list *answer_tail;
 };
 
 static struct vpn_cls mycls;
@@ -79,6 +83,7 @@ static void start_helper_and_schedule() {
 	mycls.helper_pid = GNUNET_OS_start_process(mycls.helper_in, mycls.helper_out, "gnunet-helper-vpn", "gnunet-helper-vpn", NULL);
 
 	mycls.fh_from_helper = GNUNET_DISK_pipe_handle (mycls.helper_out, GNUNET_DISK_PIPE_END_READ);
+	mycls.fh_to_helper = GNUNET_DISK_pipe_handle (mycls.helper_in, GNUNET_DISK_PIPE_END_WRITE);
 
 	GNUNET_DISK_pipe_close_end(mycls.helper_out, GNUNET_DISK_PIPE_END_WRITE);
 	GNUNET_DISK_pipe_close_end(mycls.helper_in, GNUNET_DISK_PIPE_END_READ);
@@ -118,6 +123,11 @@ static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* ts
 	/* FIXME */ GNUNET_SERVER_mst_receive(mycls.mst, NULL, buf, t, 0, 0);
 
 	GNUNET_SCHEDULER_add_read_file (mycls.sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.fh_from_helper, &helper_read, NULL);
+}
+
+static void helper_write(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
+	if (tsdkctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)
+		return;
 }
 
 size_t send_query(void* cls, size_t size, void* buf)
@@ -191,6 +201,24 @@ static void message_token(void *cls, void *client, const struct GNUNET_MessageHe
 
 }
 
+void dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg) {
+	if (msg == NULL) return;
+	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Got an answer!\n");
+
+	if (msg->type != htons(GNUNET_MESSAGE_TYPE_LOCAL_RESPONSE_DNS)) goto out;
+
+	struct answer_packet_list* pkt = GNUNET_malloc(ntohs(msg->size) + 2*sizeof(struct answer_packet_list*));
+
+	memcpy(&pkt->pkt, msg, ntohs(msg->size));
+
+	GNUNET_CONTAINER_DLL_insert_after(mycls.answer_head, mycls.answer_tail, mycls.answer_tail, pkt);
+
+	GNUNET_SCHEDULER_add_write_file (mycls.sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.fh_to_helper, &helper_write, NULL);
+
+out:
+	GNUNET_CLIENT_receive(mycls.dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
+}
+
 /**
  * Main function that will be run by the scheduler.
  *
@@ -212,6 +240,8 @@ run (void *cls,
 
   mycls.dns_connection = GNUNET_CLIENT_connect (sched, "dns", cfg);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connection: %x\n", mycls.dns_connection);
+
+  GNUNET_CLIENT_receive(mycls.dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
 
   GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls); 
   start_helper_and_schedule(mycls);
