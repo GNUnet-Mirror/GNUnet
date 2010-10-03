@@ -99,6 +99,8 @@ static void restart_helper(void* cls, const struct GNUNET_SCHEDULER_TaskContext*
 	PLIBC_KILL(mycls.helper_pid, SIGKILL);
 	GNUNET_OS_process_wait(mycls.helper_pid);
 
+	// FIXME: send msg to service-dns -- the hijacker has to be started again, too, the routing table is flushed if it depends on one interface
+
 	GNUNET_DISK_pipe_close(mycls.helper_in);
 	GNUNET_DISK_pipe_close(mycls.helper_out);
 

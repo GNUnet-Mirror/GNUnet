@@ -221,6 +221,7 @@ outer:
 					wri=0;
 					goto outer;
 				}
+				if(pkt->hdr.type != ntohs(GNUNET_MESSAGE_TYPE_VPN_HELPER)) abort();
 				while (r < ntohs(pkt->hdr.size)) {
 					int t = read(0, buf + r, ntohs(pkt->hdr.size) - r);
 					if (r < 0) {
