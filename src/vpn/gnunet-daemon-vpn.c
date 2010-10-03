@@ -192,7 +192,8 @@ static void helper_write(void* cls, const struct GNUNET_SCHEDULER_TaskContext* t
 
 	/* FIXME */ GNUNET_DISK_file_write(mycls.fh_to_helper, pkt, pkt_len);
 
-	/* TODO: if still in dll, reschedule */
+	if (mycls.answer_head != NULL)
+		GNUNET_SCHEDULER_add_write_file (mycls.sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.fh_to_helper, &helper_write, NULL);
 }
 
 size_t send_query(void* cls, size_t size, void* buf)
