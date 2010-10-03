@@ -476,6 +476,18 @@ struct Neighbour
   struct GNUNET_CRYPTO_AesSessionKey decrypt_key;
 
   /**
+   * Key we use to authenticate messages sent to the other peer
+   * (derived from the encrypt_key during the handshake)
+   */
+  struct GNUNET_CRYPTO_AuthKey encrypt_auth_key;
+
+  /**
+   * Key we use to authenticate messages sent from the other peer
+   * (derived from the decrypt_key during the handshake)
+   */
+  struct GNUNET_CRYPTO_AuthKey decrypt_auth_key;
+
+  /**
    * ID of task used for re-trying plaintext scheduling.
    */
   GNUNET_SCHEDULER_TaskIdentifier retry_plaintext_task;
@@ -729,6 +741,28 @@ static unsigned long long bandwidth_target_in_bps;
  */
 static unsigned long long bandwidth_target_out_bps;
 
+/**
+ * Derive an authentication key from "set key" information
+ */
+static void
+derive_auth_key (struct GNUNET_CRYPTO_AuthKey *akey,
+    const struct GNUNET_CRYPTO_AesSessionKey *skey,
+    const struct GNUNET_TIME_Absolute creation_time,
+    const struct GNUNET_PeerIdentity *identity)
+{
+  static char ctx[] = "authentication key";
+
+  GNUNET_CRYPTO_hmac_derive_key (akey,
+                                 skey,
+                                 &skey->key,
+                                 sizeof(skey->key),
+                                 &identity->hashPubKey.bits,
+                                 sizeof(identity->hashPubKey.bits),
+                                 &creation_time,
+                                 sizeof(creation_time),
+                                 ctx,
+                                 sizeof(ctx), NULL);
+}
 
 
 /**
@@ -2122,11 +2156,10 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
   em->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE);
   em->iv_seed = ph->iv_seed;
   esize = used - ENCRYPTED_HEADER_SIZE;
-// FIXME NILS
-//  GNUNET_CRYPTO_hmac (&n->encrypt_key,
-//		      &ph->sequence_number,
-//		      esize - sizeof (GNUNET_HashCode),
-//		      &ph->hmac);
+  GNUNET_CRYPTO_hmac (&n->encrypt_auth_key,
+		      &ph->sequence_number,
+		      esize - sizeof (GNUNET_HashCode),
+		      &ph->hmac);
   GNUNET_CRYPTO_hash (&ph->iv_seed, sizeof (uint32_t), &iv);
 #if DEBUG_HANDSHAKE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2221,6 +2254,7 @@ create_neighbour (const struct GNUNET_PeerIdentity *pid)
   n->bw_out_external_limit = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT;
   n->ping_challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                                 UINT32_MAX);
+  derive_auth_key (&n->encrypt_auth_key, &n->encrypt_key, now, &n->peer);
   neighbour_quota_update (n, NULL);
   consider_free_neighbour (n);
   return n;
@@ -3151,6 +3185,7 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
       n->last_packets_bitmap = 0;
       n->decrypt_key_created = t;
     }
+  derive_auth_key(&n->decrypt_auth_key, &k, n->decrypt_key_created, &my_identity);
   sender_status = (enum PeerStateMachine) ntohl (m->sender_status);
   switch (n->status)
     {
@@ -3357,25 +3392,24 @@ handle_encrypted_message (struct Neighbour *n,
     return;
   pt = (struct EncryptedMessage *) buf;
   /* validate hash */
-// FIXME NILS
-//  GNUNET_CRYPTO_hmac (&n->decrypt_key,
-//		      &pt->sequence_number,
-//                      size - ENCRYPTED_HEADER_SIZE - sizeof (GNUNET_HashCode), &ph);
-//#if DEBUG_HANDSHAKE
-//  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-//              "V-Hashed %u bytes of plaintext (`%s') using IV `%d'\n",
-//	      (unsigned int) (size - ENCRYPTED_HEADER_SIZE - sizeof (GNUNET_HashCode)),
-//	      GNUNET_h2s (&ph),
-//	      (int) m->iv_seed);
-//#endif
-//  if (0 != memcmp (&ph,
-//		   &pt->hmac,
-//		   sizeof (GNUNET_HashCode)))
-//    {
-//      /* checksum failed */
-//      GNUNET_break_op (0);
-//      return;
-//    }
+  GNUNET_CRYPTO_hmac (&n->decrypt_auth_key,
+		      &pt->sequence_number,
+                      size - ENCRYPTED_HEADER_SIZE - sizeof (GNUNET_HashCode), &ph);
+#if DEBUG_HANDSHAKE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "V-Hashed %u bytes of plaintext (`%s') using IV `%d'\n",
+	      (unsigned int) (size - ENCRYPTED_HEADER_SIZE - sizeof (GNUNET_HashCode)),
+	      GNUNET_h2s (&ph),
+	      (int) m->iv_seed);
+#endif
+  if (0 != memcmp (&ph,
+		   &pt->hmac,
+		   sizeof (GNUNET_HashCode)))
+    {
+      /* checksum failed */
+      GNUNET_break_op (0);
+      return;
+    }
 
   /* validate sequence number */
   snum = ntohl (pt->sequence_number);
