@@ -162,6 +162,10 @@ struct HTTP_Transfer
  */
 struct IPv4HttpAddress
 {
+  struct IPv4HttpAddress * next;
+
+  struct IPv4HttpAddress * prev;
+
   /**
    * IPv4 address, in network byte order.
    */
@@ -180,6 +184,10 @@ struct IPv4HttpAddress
  */
 struct IPv6HttpAddress
 {
+  struct IPv6HttpAddress * next;
+
+  struct IPv6HttpAddress * prev;
+
   /**
    * IPv6 address.
    */
@@ -458,8 +466,8 @@ shutdown_clean ()
   }
 
   GNUNET_free(test_addr);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Unloading http plugin\n");
-  GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_http", api));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Unloading https plugin\n");
+  GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_https", api));
 
   GNUNET_SCHEDULER_shutdown(sched);
   GNUNET_DISK_directory_remove ("/tmp/test_plugin_transport_http");

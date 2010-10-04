@@ -162,6 +162,10 @@ struct HTTP_Transfer
  */
 struct IPv4HttpAddress
 {
+  struct IPv4HttpAddress * next;
+
+  struct IPv4HttpAddress * prev;
+
   /**
    * IPv4 address, in network byte order.
    */
@@ -180,6 +184,10 @@ struct IPv4HttpAddress
  */
 struct IPv6HttpAddress
 {
+  struct IPv6HttpAddress * next;
+
+  struct IPv6HttpAddress * prev;
+
   /**
    * IPv6 address.
    */
@@ -191,6 +199,7 @@ struct IPv6HttpAddress
   uint16_t u6_port GNUNET_PACKED;
 
 };
+
 
 /**
  * Our public key.

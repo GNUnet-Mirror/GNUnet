@@ -96,6 +96,16 @@
 struct IPv4HttpAddress
 {
   /**
+   * Linked list next
+   */
+  struct IPv4HttpAddress * next;
+
+  /**
+   * Linked list previous
+   */
+  struct IPv4HttpAddress * prev;
+
+  /**
    * IPv4 address, in network byte order.
    */
   uint32_t ipv4_addr GNUNET_PACKED;
@@ -113,6 +123,16 @@ struct IPv4HttpAddress
  */
 struct IPv6HttpAddress
 {
+  /**
+   * Linked list next
+   */
+  struct IPv6HttpAddress * next;
+
+  /**
+   * Linked list previous
+   */
+  struct IPv6HttpAddress * prev;
+
   /**
    * IPv6 address.
    */
@@ -380,6 +400,26 @@ struct Plugin
    * cURL Multihandle
    */
   CURLM * multi_handle;
+
+  /**
+   * ipv4 DLL head
+   */
+  struct IPv4HttpAddress * ipv4_addr_head;
+
+  /**
+   * ipv4 DLL tail
+   */
+  struct IPv4HttpAddress * ipv4_addr_tail;
+
+  /**
+   * ipv6 DLL head
+   */
+  struct IPv6HttpAddress * ipv6_addr_head;
+
+  /**
+   * ipv6 DLL tail
+   */
+  struct IPv6HttpAddress * ipv6_addr_tail;
 
   /**
    * Our ASCII encoded, hashed peer identity
@@ -674,14 +714,16 @@ process_interfaces (void *cls,
       {
     	  if (0 == memcmp(&plugin->bind4_address->sin_addr, &bnd_cmp, sizeof (struct in_addr)))
     	  {
+    	      GNUNET_CONTAINER_DLL_insert(plugin->ipv4_addr_head,plugin->ipv4_addr_tail,t4);
           	  plugin->env->notify_address(plugin->env->cls,PROTOCOL_PREFIX,t4, sizeof (struct IPv4HttpAddress), GNUNET_TIME_UNIT_FOREVER_REL);
     	  }
       }
       else
       {
+          GNUNET_CONTAINER_DLL_insert(plugin->ipv4_addr_head,plugin->ipv4_addr_tail,t4);
     	  plugin->env->notify_address(plugin->env->cls,PROTOCOL_PREFIX,t4, sizeof (struct IPv4HttpAddress), GNUNET_TIME_UNIT_FOREVER_REL);
       }
-      GNUNET_free (t4);
+
     }
   else if ((af == AF_INET6) && (plugin->use_ipv6 == GNUNET_YES)  && (plugin->bind4_address == NULL))
     {
@@ -701,6 +743,7 @@ process_interfaces (void *cls,
     	              sizeof (struct in6_addr));
     	      t6->u6_port = htons (plugin->port_inbound);
     	      plugin->env->notify_address(plugin->env->cls,PROTOCOL_PREFIX,t6,sizeof (struct IPv6HttpAddress) , GNUNET_TIME_UNIT_FOREVER_REL);
+    	      GNUNET_CONTAINER_DLL_insert(plugin->ipv6_addr_head,plugin->ipv6_addr_tail,t6);
     	  }
       }
       else
@@ -709,9 +752,9 @@ process_interfaces (void *cls,
                   &((struct sockaddr_in6 *) addr)->sin6_addr,
                   sizeof (struct in6_addr));
           t6->u6_port = htons (plugin->port_inbound);
+          GNUNET_CONTAINER_DLL_insert(plugin->ipv6_addr_head,plugin->ipv6_addr_tail,t6);
           plugin->env->notify_address(plugin->env->cls,PROTOCOL_PREFIX,t6,sizeof (struct IPv6HttpAddress) , GNUNET_TIME_UNIT_FOREVER_REL);
       }
-      GNUNET_free (t6);
     }
   return GNUNET_OK;
 }
@@ -2393,6 +2436,10 @@ http_plugin_address_suggested (void *cls,
   struct Plugin *plugin = cls;
   struct IPv4HttpAddress *v4;
   struct IPv6HttpAddress *v6;
+
+  struct IPv4HttpAddress *tv4 = plugin->ipv4_addr_head;
+  struct IPv6HttpAddress *tv6 = plugin->ipv6_addr_head;
+  int res;
   unsigned int port;
 
   GNUNET_assert(cls !=NULL);
@@ -2409,6 +2456,23 @@ http_plugin_address_suggested (void *cls,
       {
         return GNUNET_SYSERR;
       } */
+
+      if (plugin->bind4_address!=NULL)
+      {
+    	  res = memcmp (&plugin->bind4_address->sin_addr, &v4->ipv4_addr, sizeof(uint32_t));
+    	  if ((res==0) && (ntohs (v4->u_port) == plugin->port_inbound))
+    		  return GNUNET_OK;
+    	  else
+    		  return GNUNET_SYSERR;
+      }
+
+      while (tv4!=NULL)
+      {
+    	  res = memcmp (&tv4->ipv4_addr, &v4->ipv4_addr, sizeof(uint32_t));
+    	  if ((res==0) && (v4->u_port == tv4->u_port) && (ntohs (v4->u_port) == plugin->port_inbound))
+    		  return GNUNET_OK;
+    	  tv4 = tv4->next;
+      }
       port = ntohs (v4->u_port);
       if (port != plugin->port_inbound)
       {
@@ -2422,14 +2486,26 @@ http_plugin_address_suggested (void *cls,
         {
           return GNUNET_SYSERR;
         }
-      port = ntohs (v6->u6_port);
-      if (port != plugin->port_inbound)
+
+      if (plugin->bind6_address!=NULL)
       {
-        return GNUNET_SYSERR;
+    	  res = memcmp (&plugin->bind6_address->sin6_addr, &v6->ipv6_addr, sizeof(struct in6_addr));
+    	  if ((res==0) && (ntohs (v6->u6_port) == plugin->port_inbound))
+    		  return GNUNET_OK;
+    	  else
+    		  return GNUNET_SYSERR;
+      }
+
+      while (tv6!=NULL)
+      {
+    	  res = memcmp (&tv6->ipv6_addr, &v6->ipv6_addr, sizeof(struct in6_addr));
+    	  if ((res==0) && (v6->u6_port == tv6->u6_port) && (ntohs (v6->u6_port) == plugin->port_inbound))
+    		  return GNUNET_OK;
+    	  tv6 = tv6->next;
       }
     }
 
-  return GNUNET_OK;
+  return GNUNET_SYSERR;
 }
 
 
@@ -2495,6 +2571,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
   CURLMcode mret;
+  struct IPv4HttpAddress * ipv4addr;
+  struct IPv6HttpAddress * ipv6addr;
   GNUNET_assert(cls !=NULL);
 
   if (plugin->http_server_daemon_v4 != NULL)
@@ -2518,6 +2596,20 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   {
     GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_server_task_v6);
     plugin->http_server_task_v6 = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  while (plugin->ipv4_addr_head!=NULL)
+  {
+	  ipv4addr = plugin->ipv4_addr_head;
+	  GNUNET_CONTAINER_DLL_remove(plugin->ipv4_addr_head,plugin->ipv4_addr_tail,ipv4addr);
+	  GNUNET_free(ipv4addr);
+  }
+
+  while (plugin->ipv6_addr_head!=NULL)
+  {
+	  ipv6addr = plugin->ipv6_addr_head;
+	  GNUNET_CONTAINER_DLL_remove(plugin->ipv6_addr_head,plugin->ipv6_addr_tail,ipv6addr);
+	  GNUNET_free(ipv6addr);
   }
 
   /* free all peer information */
