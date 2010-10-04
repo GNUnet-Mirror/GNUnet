@@ -3244,7 +3244,7 @@ send_periodic_ping (void *cls,
     }
   va = GNUNET_malloc (sizeof (struct ValidationEntry) + peer_address->addrlen);
   va->transport_name = GNUNET_strdup (tp->short_name);
-  va->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+  va->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
                                             UINT_MAX);
   va->send_time = GNUNET_TIME_absolute_get();
   va->session = peer_address->session;
@@ -3974,7 +3974,7 @@ run_validation (void *cls,
   va->chvc = chvc;
   chvc->ve_count++;
   va->transport_name = GNUNET_strdup (tname);
-  va->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+  va->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
                                             UINT_MAX);
   va->send_time = GNUNET_TIME_absolute_get();
   va->addr = (const void*) &va[1];
