@@ -111,7 +111,7 @@ GNUNET_CONTAINER_bloomfilter_init (const
  * @param size the size of the given data array
  * @return GNUNET_SYSERR if the data array of the wrong size
  */
-int GNUNET_CONTAINER_bloomfilter_get_raw_data (struct
+int GNUNET_CONTAINER_bloomfilter_get_raw_data (const struct
                                                GNUNET_CONTAINER_BloomFilter
                                                *bf, char *data,
                                                size_t size);
@@ -122,7 +122,7 @@ int GNUNET_CONTAINER_bloomfilter_get_raw_data (struct
  * @param bf the filter
  * @return GNUNET_YES if the element is in the filter, GNUNET_NO if not
  */
-int GNUNET_CONTAINER_bloomfilter_test (struct GNUNET_CONTAINER_BloomFilter
+int GNUNET_CONTAINER_bloomfilter_test (const struct GNUNET_CONTAINER_BloomFilter
                                        *bf, const GNUNET_HashCode * e);
 
 /**
@@ -149,6 +149,18 @@ void GNUNET_CONTAINER_bloomfilter_remove (struct GNUNET_CONTAINER_BloomFilter
  */
 void GNUNET_CONTAINER_bloomfilter_free (struct GNUNET_CONTAINER_BloomFilter
                                         *bf);
+
+
+/**
+ * Get size of the bloom filter.
+ *
+ * @param bf the filter
+ * @return number of bytes used for the data of the bloom filter
+ */
+size_t 
+GNUNET_CONTAINER_bloomfilter_get_size (const struct GNUNET_CONTAINER_BloomFilter
+				       *bf);
+
 
 /**
  * Reset a bloom filter to empty.

@@ -75,6 +75,23 @@ struct GNUNET_CONTAINER_BloomFilter
 };
 
 
+
+/**
+ * Get size of the bloom filter.
+ *
+ * @param bf the filter
+ * @return number of bytes used for the data of the bloom filter
+ */
+size_t 
+GNUNET_CONTAINER_bloomfilter_get_size (const struct GNUNET_CONTAINER_BloomFilter
+				       *bf)
+{
+  if (bf == NULL)
+    return 0;
+  return bf->bitArraySize;
+}
+
+
 /**
  * Sets a bit active in the bitArray. Increment bit-specific
  * usage counter on disk only if below 4bit max (==15).
@@ -287,7 +304,7 @@ makeEmptyFile (const struct GNUNET_DISK_FileHandle *fh, size_t size)
  * @param bit the current bit
  */
 typedef void (*BitIterator) (void *cls,
-                             struct GNUNET_CONTAINER_BloomFilter * bf,
+                             const struct GNUNET_CONTAINER_BloomFilter * bf,
                              unsigned int bit);
 
 /**
@@ -300,7 +317,7 @@ typedef void (*BitIterator) (void *cls,
  * @param key the key for which we iterate over the BF bits
  */
 static void
-iterateBits (struct GNUNET_CONTAINER_BloomFilter *bf,
+iterateBits (const struct GNUNET_CONTAINER_BloomFilter *bf,
              BitIterator callback, void *arg, const GNUNET_HashCode * key)
 {
   GNUNET_HashCode tmp[2];
@@ -337,31 +354,33 @@ iterateBits (struct GNUNET_CONTAINER_BloomFilter *bf,
 /**
  * Callback: increment bit
  *
- * @param cls not used
+ * @param cls pointer to writeable form of bf
  * @param bf the filter to manipulate
  * @param bit the bit to increment
  */
 static void
 incrementBitCallback (void *cls,
-                      struct GNUNET_CONTAINER_BloomFilter *bf,
+                      const struct GNUNET_CONTAINER_BloomFilter *bf,
                       unsigned int bit)
 {
-  incrementBit (bf->bitArray, bit, bf->fh);
+  struct GNUNET_CONTAINER_BloomFilter *b = cls;
+  incrementBit (b->bitArray, bit, bf->fh);
 }
 
 /**
  * Callback: decrement bit
  *
- * @param cls not used
+ * @param cls pointer to writeable form of bf
  * @param bf the filter to manipulate
  * @param bit the bit to decrement
  */
 static void
 decrementBitCallback (void *cls,
-                      struct GNUNET_CONTAINER_BloomFilter *bf,
+                      const struct GNUNET_CONTAINER_BloomFilter *bf,
                       unsigned int bit)
 {
-  decrementBit (bf->bitArray, bit, bf->fh);
+  struct GNUNET_CONTAINER_BloomFilter *b = cls;
+  decrementBit (b->bitArray, bit, bf->fh);
 }
 
 /**
@@ -373,7 +392,8 @@ decrementBitCallback (void *cls,
  */
 static void
 testBitCallback (void *cls,
-                 struct GNUNET_CONTAINER_BloomFilter *bf, unsigned int bit)
+                 const struct GNUNET_CONTAINER_BloomFilter *bf,
+		 unsigned int bit)
 {
   int *arg = cls;
   if (GNUNET_NO == testBit (bf->bitArray, bit))
@@ -538,12 +558,11 @@ GNUNET_CONTAINER_bloomfilter_init (const char *data,
  * @return GNUNET_SYSERR if the data array is not big enough
  */
 int
-GNUNET_CONTAINER_bloomfilter_get_raw_data (struct GNUNET_CONTAINER_BloomFilter
+GNUNET_CONTAINER_bloomfilter_get_raw_data (const struct GNUNET_CONTAINER_BloomFilter
                                            *bf, char *data, size_t size)
 {
   if (NULL == bf)
     return GNUNET_SYSERR;
-
   if (bf->bitArraySize != size)
     return GNUNET_SYSERR;
   memcpy (data, bf->bitArray, size);
@@ -594,7 +613,7 @@ GNUNET_CONTAINER_bloomfilter_clear (struct GNUNET_CONTAINER_BloomFilter *bf)
  * @return GNUNET_YES if the element is in the filter, GNUNET_NO if not
  */
 int
-GNUNET_CONTAINER_bloomfilter_test (struct GNUNET_CONTAINER_BloomFilter *bf,
+GNUNET_CONTAINER_bloomfilter_test (const struct GNUNET_CONTAINER_BloomFilter *bf,
                                    const GNUNET_HashCode * e)
 {
   int res;
@@ -619,7 +638,7 @@ GNUNET_CONTAINER_bloomfilter_add (struct GNUNET_CONTAINER_BloomFilter *bf,
 
   if (NULL == bf)
     return;
-  iterateBits (bf, &incrementBitCallback, NULL, e);
+  iterateBits (bf, &incrementBitCallback, bf, e);
 }
 
 
@@ -706,7 +725,7 @@ GNUNET_CONTAINER_bloomfilter_remove (struct GNUNET_CONTAINER_BloomFilter *bf,
     return;
   if (bf->filename == NULL)
     return;
-  iterateBits (bf, &decrementBitCallback, NULL, e);
+  iterateBits (bf, &decrementBitCallback, bf, e);
 }
 
 /**
