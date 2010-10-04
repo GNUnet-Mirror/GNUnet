@@ -2189,7 +2189,7 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
 	      (unsigned int) ntohl (n->bw_in.value__),
 	      GNUNET_i2s (&n->peer));
 #endif
-  ph->iv_seed = htonl (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX));
+  ph->iv_seed = htonl (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX));
   ph->sequence_number = htonl (++n->last_sequence_number_sent);
   ph->inbound_bw_limit = n->bw_in;
   ph->timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
@@ -2300,7 +2300,7 @@ create_neighbour (const struct GNUNET_PeerIdentity *pid)
   n->bw_out = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT;
   n->bw_out_internal_limit = GNUNET_BANDWIDTH_value_init (UINT32_MAX);
   n->bw_out_external_limit = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT;
-  n->ping_challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+  n->ping_challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
                                                 UINT32_MAX);
   derive_auth_key (&n->encrypt_auth_key, &n->encrypt_key, now, &n->peer);
   neighbour_quota_update (n, NULL);
