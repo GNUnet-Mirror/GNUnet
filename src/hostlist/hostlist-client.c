@@ -1338,10 +1338,10 @@ load_hostlist_file ()
   uint32_t counter;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             "HOSTLIST",
-                                             "HOSTLISTFILE",
-                                             &filename))
+		  GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                   "HOSTLIST",
+                                                   "HOSTLISTFILE",
+                                                   &filename))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("No `%s' specified in `%s' configuration, cannot load hostlists from file.\n"),
@@ -1429,7 +1429,7 @@ static void save_hostlist_file ( int shutdown )
   uint32_t counter;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg,
+      GNUNET_CONFIGURATION_get_value_filename (cfg,
                                              "HOSTLIST",
                                              "HOSTLISTFILE",
                                              &filename))
@@ -1565,7 +1565,7 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Learning is not enabled on this peer\n"));
     *msgh = NULL;
-    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg,
+    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_filename (cfg,
                                                             "HOSTLIST",
                                                             "HOSTLISTFILE",
                                                             &filename))
