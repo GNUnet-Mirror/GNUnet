@@ -212,9 +212,18 @@ struct GNUNET_DHT_RouteResultMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * For alignment, always zero.
+   * Number of peers recorded in the "PUT" path.
+   * (original path message took during "PUT").  These
+   * peer identities follow this message.
    */
-  uint32_t reserved GNUNET_PACKED;
+  uint16_t put_path_length GNUNET_PACKED;
+
+  /**
+   * Number of peers recorded in the "GET" path
+   * (inverse of the path the GET message took).  These
+   * peer identities follow this message.
+   */
+  uint16_t get_path_length GNUNET_PACKED;
 
   /**
    * Unique ID identifying this request (necessary for
@@ -226,6 +235,10 @@ struct GNUNET_DHT_RouteResultMessage
    * The key that was searched for
    */
   GNUNET_HashCode key;
+
+  /* PUT path */
+
+  /* GET path */
 
   /* GNUNET_MessageHeader *enc actual DHT message, copied to end of this dealy do */
 };
@@ -242,6 +255,11 @@ struct GNUNET_DHT_P2PRouteMessage
   struct GNUNET_MessageHeader header;
 
   /**
+   * Always zero.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
    * Message options
    */
   uint32_t options GNUNET_PACKED;
@@ -252,14 +270,14 @@ struct GNUNET_DHT_P2PRouteMessage
   uint32_t hop_count GNUNET_PACKED;
 
   /**
-   * Network size estimate
-   */
-  uint32_t network_size GNUNET_PACKED;
-
-  /**
    * Replication level for this message
    */
   uint32_t desired_replication_level GNUNET_PACKED;
+
+  /**
+   * Network size estimate
+   */
+  uint32_t network_size GNUNET_PACKED;
 
   /**
    * Unique ID identifying this request
@@ -298,6 +316,20 @@ struct GNUNET_DHT_P2PRouteResultMessage
   struct GNUNET_MessageHeader header;
 
   /**
+   * Number of peers recorded in the "PUT" path.
+   * (original path message took during "PUT").  These
+   * peer identities follow this message.
+   */
+  uint16_t put_path_length GNUNET_PACKED;
+
+  /**
+   * Number of peers recorded in the "GET" path
+   * (inverse of the path the GET message took).  These
+   * peer identities follow this message.
+   */
+  uint16_t get_path_length GNUNET_PACKED;
+
+  /**
    * Message options
    */
   uint32_t options GNUNET_PACKED;
@@ -328,6 +360,11 @@ struct GNUNET_DHT_P2PRouteResultMessage
    */
   uint32_t network_size GNUNET_PACKED;
 #endif
+
+
+  /* PUT path */
+
+  /* GET path */
 
   /* GNUNET_MessageHeader *enc actual DHT message, copied to end of this dealy do */
 };

@@ -398,8 +398,12 @@ process_reply (void *cls,
   const struct GNUNET_MessageHeader *enc_msg;
   size_t enc_size;
   uint64_t uid;
-  const struct GNUNET_PeerIdentity *const*get_path;
-  const struct GNUNET_PeerIdentity *const*put_path;
+  const struct GNUNET_PeerIdentity **get_path;
+  const struct GNUNET_PeerIdentity **put_path;
+  const struct GNUNET_PeerIdentity *pos;
+  uint16_t gpl;
+  uint16_t ppl;
+  unsigned int i;
 
   uid = GNUNET_ntohll (dht_msg->unique_id);
   if (uid != rh->uid)
@@ -414,21 +418,56 @@ process_reply (void *cls,
       GNUNET_break (0);
       return GNUNET_NO;
     }
-  enc_msg = (const struct GNUNET_MessageHeader *) &dht_msg[1];
-  if (enc_size != ntohs (enc_msg->size))
+  pos = (const struct GNUNET_PeerIdentity *) &dht_msg[1];
+  ppl = ntohs (dht_msg->put_path_length);
+  gpl = ntohs (dht_msg->get_path_length);
+  if ( (ppl + gpl) * sizeof (struct GNUNET_PeerIdentity) > enc_size)
     {
       GNUNET_break (0);
       return GNUNET_NO;
     }
+  if (ppl > 0)
+    {
+      put_path = GNUNET_malloc ((ppl+1) * sizeof (struct GNUNET_PeerIdentity*));
+      for (i=0;i<ppl;i++)
+	{
+	  put_path[i] = pos;
+	  pos++;
+	}
+      put_path[ppl] = NULL;
+    }
+  else
+    put_path = NULL;
+  if (gpl > 0)
+    {
+      get_path = GNUNET_malloc ((gpl+1) * sizeof (struct GNUNET_PeerIdentity*));
+      for (i=0;i<gpl;i++)
+	{
+	  get_path[i] = pos;
+	  pos++;
+	}
+      get_path[gpl] = NULL;
+    }
+  else
+    get_path = NULL;
+  enc_size -= (ppl + gpl) * sizeof (struct GNUNET_PeerIdentity);
+  enc_msg = (const struct GNUNET_MessageHeader *) pos;
+  if (enc_size != ntohs (enc_msg->size))
+    {
+      GNUNET_break (0);
+      GNUNET_free_non_null (get_path);
+      GNUNET_free_non_null (put_path);
+      return GNUNET_NO;
+    }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Processing reply.\n");
-  get_path = NULL; // FIXME: parse path info!
-  put_path = NULL; // FIXME: parse path info!
   rh->iter (rh->iter_cls, 
 	    &rh->key,
 	    get_path,
 	    put_path,
 	    enc_msg);
+  GNUNET_free_non_null (get_path);
+  GNUNET_free_non_null (put_path);
   return GNUNET_YES;
 }
 

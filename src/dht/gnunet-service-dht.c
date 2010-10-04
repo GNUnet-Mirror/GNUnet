@@ -1024,10 +1024,11 @@ try_core_send (void *cls,
  * @param peer the peer to forward the message to
  * @param msg_ctx the context of the message (hop count, bloom, etc.)
  */
-static void forward_result_message (void *cls,
-                                    const struct GNUNET_MessageHeader *msg,
-                                    struct PeerInfo *peer,
-                                    struct DHT_MessageContext *msg_ctx)
+static void 
+forward_result_message (void *cls,
+			const struct GNUNET_MessageHeader *msg,
+			struct PeerInfo *peer,
+			struct DHT_MessageContext *msg_ctx)
 {
   struct GNUNET_DHT_P2PRouteResultMessage *result_message;
   struct P2PPendingMessage *pending;
@@ -1045,6 +1046,8 @@ static void forward_result_message (void *cls,
   result_message = (struct GNUNET_DHT_P2PRouteResultMessage *)pending->msg;
   result_message->header.size = htons(msize);
   result_message->header.type = htons(GNUNET_MESSAGE_TYPE_DHT_P2P_ROUTE_RESULT);
+  result_message->put_path_length = htons(0); /* FIXME: implement */
+  result_message->get_path_length = htons(0); /* FIXME: implement */
   result_message->options = htonl(msg_ctx->msg_options);
   result_message->hop_count = htonl(msg_ctx->hop_count + 1);
   GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_bloomfilter_get_raw_data(msg_ctx->bloom, result_message->bloomfilter, DHT_BLOOM_SIZE));
@@ -1882,7 +1885,8 @@ send_reply_to_client (struct ClientList *client,
   reply = (struct GNUNET_DHT_RouteResultMessage *)&pending_message[1];
   reply->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE_RESULT);
   reply->header.size = htons (tsize);
-  reply->reserved = 0;
+  reply->put_path_length = htons(0); /* FIXME: implement */
+  reply->get_path_length = htons(0); /* FIXME: implement */
   reply->unique_id = GNUNET_htonll (uid);
   reply->key = *key;
   memcpy (&reply[1], message, msize);
