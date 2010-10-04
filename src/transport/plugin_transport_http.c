@@ -2259,7 +2259,7 @@ http_plugin_send (void *cls,
 
   if (msgbuf_size >= (ps->queue_length_max - ps->queue_length_cur))
   {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"Queue %X full: (%u) bytes in queue, would discard message (%u)\n", ps, (ps->queue_length_max - ps->queue_length_cur), msgbuf_size);
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Queue %X full: %u bytes in queue available, message with %u is too big\n", ps, (ps->queue_length_max - ps->queue_length_cur), msgbuf_size);
 	//return GNUNET_SYSERR;
   }
 
