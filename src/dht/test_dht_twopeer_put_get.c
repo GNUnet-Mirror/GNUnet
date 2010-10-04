@@ -241,7 +241,8 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   GNUNET_HashCode key; /* Key for data lookup */
   memset(&key, 42, sizeof(GNUNET_HashCode)); /* Set the key to the same thing as when data was inserted */
   global_get_handle = GNUNET_DHT_get_start(peer2dht, GNUNET_TIME_relative_get_forever(),
-					   1 /* FIXME: use real type */, &key,
+					   GNUNET_BLOCK_TYPE_TEST,
+					   &key,
 					   GNUNET_DHT_RO_NONE,
 					   NULL, 0,
 					   NULL, 0,
@@ -276,7 +277,7 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   GNUNET_DHT_put(peer1dht,
                  &key,
 		 GNUNET_DHT_RO_NONE,
-                 1 /* FIXME: use real type */,
+                 GNUNET_BLOCK_TYPE_TEST,
                  sizeof(data), data,
                  GNUNET_TIME_UNIT_FOREVER_ABS,
                  GNUNET_TIME_UNIT_FOREVER_REL,

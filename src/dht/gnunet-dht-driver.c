@@ -1721,7 +1721,7 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   /* Insert the data at the first peer */
   test_get->get_handle = GNUNET_DHT_get_start(test_get->dht_handle,
                                               get_delay,
-                                              1 /* FIXME: use real type */,
+                                              GNUNET_BLOCK_TYPE_TEST,
                                               &known_keys[test_get->uid],
 					      GNUNET_DHT_RO_NONE,
 					      NULL, 0,
@@ -1832,7 +1832,7 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   GNUNET_DHT_put(test_put->dht_handle,
                  &known_keys[test_put->uid],
 		 GNUNET_DHT_RO_NONE,
-                 1 /* FIXME: use real type */,
+                 GNUNET_BLOCK_TYPE_TEST,
                  sizeof(data), data,
                  GNUNET_TIME_UNIT_FOREVER_ABS,
                  put_delay,

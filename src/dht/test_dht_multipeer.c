@@ -450,7 +450,7 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   outstanding_gets++;
   test_get->get_handle = GNUNET_DHT_get_start(test_get->dht_handle,
                                               GNUNET_TIME_UNIT_FOREVER_REL,
-                                              1 /* FIXME: use real type */,
+                                              GNUNET_BLOCK_TYPE_TEST,
                                               &key,
 					      GNUNET_DHT_RO_NONE,
 					      NULL, 0,
@@ -521,7 +521,7 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   GNUNET_DHT_put(test_put->dht_handle,
                  &key,
 		 GNUNET_DHT_RO_NONE,
-                 1 /* FIXME: use real type */,
+                 GNUNET_BLOCK_TYPE_TEST,
                  sizeof(data), data,
                  GNUNET_TIME_UNIT_FOREVER_ABS,
                  GNUNET_TIME_UNIT_FOREVER_REL,
