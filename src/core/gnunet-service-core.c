@@ -766,6 +766,49 @@ derive_auth_key (struct GNUNET_CRYPTO_AuthKey *akey,
 
 
 /**
+ * Derive an IV from packet information
+ */
+static void
+derive_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
+    const struct GNUNET_CRYPTO_AesSessionKey *skey, uint32_t seed,
+    const struct GNUNET_PeerIdentity *identity)
+{
+  static char ctx[] = "initialization vector";
+
+  GNUNET_CRYPTO_aes_derive_iv (iv,
+                               skey,
+                               &seed,
+                               sizeof(seed),
+                               &identity->hashPubKey.bits,
+                               sizeof(identity->hashPubKey.bits),
+                               ctx,
+                               sizeof(ctx), NULL);
+}
+
+/**
+ * Derive an IV from pong packet information
+ */
+static void
+derive_pong_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
+    const struct GNUNET_CRYPTO_AesSessionKey *skey, uint32_t seed,
+    uint32_t challenge, const struct GNUNET_PeerIdentity *identity)
+{
+  static char ctx[] = "pong initialization vector";
+
+  GNUNET_CRYPTO_aes_derive_iv (iv,
+                               skey,
+                               &seed,
+                               sizeof(seed),
+                               &identity->hashPubKey.bits,
+                               sizeof(identity->hashPubKey.bits),
+                               &challenge,
+                               sizeof(challenge),
+                               ctx,
+                               sizeof(ctx), NULL);
+}
+
+
+/**
  * A preference value for a neighbour was update.  Update
  * the preference sum accordingly.
  *
@@ -1272,7 +1315,7 @@ static void process_encrypted_neighbour_queue (struct Neighbour *n);
  */
 static int
 do_encrypt (struct Neighbour *n,
-            const GNUNET_HashCode * iv,
+            const struct GNUNET_CRYPTO_AesInitializationVector * iv,
             const void *in, void *out, size_t size)
 {
   if (size != (uint16_t) size)
@@ -1284,16 +1327,15 @@ do_encrypt (struct Neighbour *n,
                  GNUNET_CRYPTO_aes_encrypt (in,
                                             (uint16_t) size,
                                             &n->encrypt_key,
-                                            (const struct
-                                             GNUNET_CRYPTO_AesInitializationVector
-                                             *) iv, out));
+                                            iv, out));
   GNUNET_STATISTICS_update (stats, gettext_noop ("# bytes encrypted"), size, GNUNET_NO);
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Encrypted %u bytes for `%4s' using key %u\n", 
+              "Encrypted %u bytes for `%4s' using key %u, IV %u\n",
 	      (unsigned int) size,
               GNUNET_i2s (&n->peer),
-	      (unsigned int) n->encrypt_key.crc32);
+	      (unsigned int) n->encrypt_key.crc32,
+	      GNUNET_CRYPTO_crc32_n (iv, sizeof(iv)));
 #endif
   return GNUNET_OK;
 }
@@ -1326,6 +1368,7 @@ send_keep_alive (void *cls,
   struct MessageEntry *me;
   struct PingMessage pp;
   struct PingMessage *pm;
+  struct GNUNET_CRYPTO_AesInitializationVector iv;
 
   n->keep_alive_task = GNUNET_SCHEDULER_NO_TASK;
   /* send PING */
@@ -1341,18 +1384,23 @@ send_keep_alive (void *cls,
   pm = (struct PingMessage *) &me[1];
   pm->header.size = htons (sizeof (struct PingMessage));
   pm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_PING);
+  pm->iv_seed = htonl (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
+      UINT32_MAX));
+  derive_iv (&iv, &n->encrypt_key, pm->iv_seed, &n->peer);
   pp.challenge = htonl (n->ping_challenge);
   pp.target = n->peer;
 #if DEBUG_HANDSHAKE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Encrypting `%s' message with challenge %u for `%4s' using key %u.\n",
+              "Encrypting `%s' message with challenge %u for `%4s' using key %u, IV %u (salt %u).\n",
               "PING", 
 	      (unsigned int) n->ping_challenge,
 	      GNUNET_i2s (&n->peer),
-	      (unsigned int) n->encrypt_key.crc32);
+	      (unsigned int) n->encrypt_key.crc32,
+	      GNUNET_CRYPTO_crc32_n (&iv, sizeof(iv)),
+	      pm->iv_seed);
 #endif
   do_encrypt (n,
-              &n->peer.hashPubKey,
+              &iv,
               &pp.challenge,
               &pm->challenge,
               sizeof (struct PingMessage) -
@@ -1580,7 +1628,7 @@ process_encrypted_neighbour_queue (struct Neighbour *n)
  */
 static int
 do_decrypt (struct Neighbour *n,
-            const GNUNET_HashCode * iv,
+            const struct GNUNET_CRYPTO_AesInitializationVector * iv,
             const void *in, void *out, size_t size)
 {
   if (size != (uint16_t) size)
@@ -1598,8 +1646,7 @@ do_decrypt (struct Neighbour *n,
       GNUNET_CRYPTO_aes_decrypt (in,
                                  (uint16_t) size,
                                  &n->decrypt_key,
-				 (const struct
-                                  GNUNET_CRYPTO_AesInitializationVector *) iv,
+				 iv,
                                  out))
     {
       GNUNET_break (0);
@@ -1608,10 +1655,11 @@ do_decrypt (struct Neighbour *n,
   GNUNET_STATISTICS_update (stats, gettext_noop ("# bytes decrypted"), size, GNUNET_NO);
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Decrypted %u bytes from `%4s' using key %u\n",
+              "Decrypted %u bytes from `%4s' using key %u, IV %u\n",
               (unsigned int) size, 
 	      GNUNET_i2s (&n->peer),
-	      (unsigned int) n->decrypt_key.crc32);
+	      (unsigned int) n->decrypt_key.crc32,
+	      GNUNET_CRYPTO_crc32_n (iv, sizeof(*iv)));
 #endif
   return GNUNET_OK;
 }
@@ -2048,7 +2096,7 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
   unsigned int priority;
   struct GNUNET_TIME_Absolute deadline;
   struct GNUNET_TIME_Relative retry_time;
-  GNUNET_HashCode iv;
+  struct GNUNET_CRYPTO_AesInitializationVector iv;
 
   if (n->retry_plaintext_task != GNUNET_SCHEDULER_NO_TASK)
     {
@@ -2160,7 +2208,7 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
 		      &ph->sequence_number,
 		      esize - sizeof (GNUNET_HashCode),
 		      &ph->hmac);
-  GNUNET_CRYPTO_hash (&ph->iv_seed, sizeof (uint32_t), &iv);
+  derive_iv (&iv, &n->encrypt_key, ph->iv_seed, &n->peer);
 #if DEBUG_HANDSHAKE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Hashed %u bytes of plaintext (`%s') using IV `%d'\n",
@@ -2606,6 +2654,7 @@ send_key (struct Neighbour *n)
   struct MessageEntry *me;
   struct PingMessage pp;
   struct PingMessage *pm;
+  struct GNUNET_CRYPTO_AesInitializationVector iv;
 
   if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
     {
@@ -2751,18 +2800,22 @@ send_key (struct Neighbour *n)
   pm = (struct PingMessage *) &sm[1];
   pm->header.size = htons (sizeof (struct PingMessage));
   pm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_PING);
+  pm->iv_seed = htonl (GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX));
+  derive_iv (&iv, &n->encrypt_key, pm->iv_seed, &n->peer);
   pp.challenge = htonl (n->ping_challenge);
   pp.target = n->peer;
 #if DEBUG_HANDSHAKE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Encrypting `%s' and `%s' messages with challenge %u for `%4s' using key %u.\n",
+              "Encrypting `%s' and `%s' messages with challenge %u for `%4s' using key %u, IV %u (salt %u).\n",
               "SET_KEY", "PING",
 	      (unsigned int) n->ping_challenge,
 	      GNUNET_i2s (&n->peer),
-	      (unsigned int) n->encrypt_key.crc32);
+	      (unsigned int) n->encrypt_key.crc32,
+	      GNUNET_CRYPTO_crc32_n (&iv, sizeof(iv)),
+	      pm->iv_seed);
 #endif
   do_encrypt (n,
-              &n->peer.hashPubKey,
+              &iv,
               &pp.challenge,
               &pm->challenge,
               sizeof (struct PingMessage) -
@@ -2870,15 +2923,17 @@ handle_ping (struct Neighbour *n, const struct PingMessage *m)
   struct PongMessage tx;
   struct PongMessage *tp;
   struct MessageEntry *me;
+  struct GNUNET_CRYPTO_AesInitializationVector iv;
 
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core service receives `%s' request from `%4s'.\n",
               "PING", GNUNET_i2s (&n->peer));
 #endif
+  derive_iv (&iv, &n->decrypt_key, m->iv_seed, &my_identity);
   if (GNUNET_OK !=
       do_decrypt (n,
-                  &my_identity.hashPubKey,
+                  &iv,
                   &m->challenge,
                   &t.challenge,
                   sizeof (struct PingMessage) -
@@ -2886,11 +2941,13 @@ handle_ping (struct Neighbour *n, const struct PingMessage *m)
     return;
 #if DEBUG_HANDSHAKE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Decrypted `%s' to `%4s' with challenge %u decrypted using key %u\n",
+              "Decrypted `%s' to `%4s' with challenge %u decrypted using key %u, IV %u (salt %u)\n",
               "PING",
               GNUNET_i2s (&t.target),
               (unsigned int) ntohl (t.challenge), 
-	      (unsigned int) n->decrypt_key.crc32);
+	      (unsigned int) n->decrypt_key.crc32,
+	      GNUNET_CRYPTO_crc32_n (&iv, sizeof(iv)),
+	      m->iv_seed);
 #endif
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# PING messages decrypted"), 
@@ -2918,8 +2975,10 @@ handle_ping (struct Neighbour *n, const struct PingMessage *m)
   tp = (struct PongMessage *) &me[1];
   tp->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_PONG);
   tp->header.size = htons (sizeof (struct PongMessage));
+  tp->iv_seed = htonl (GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX));
+  derive_pong_iv (&iv, &n->encrypt_key, tp->iv_seed, t.challenge, &n->peer);
   do_encrypt (n,
-              &my_identity.hashPubKey,
+              &iv,
               &tx.challenge,
               &tp->challenge,
               sizeof (struct PongMessage) -
@@ -2930,10 +2989,12 @@ handle_ping (struct Neighbour *n, const struct PingMessage *m)
 			    GNUNET_NO);
 #if DEBUG_HANDSHAKE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Encrypting `%s' with challenge %u using key %u\n",
+              "Encrypting `%s' with challenge %u using key %u, IV %u (salt %u)\n",
 	      "PONG",
               (unsigned int) ntohl (t.challenge),
-	      (unsigned int) n->encrypt_key.crc32);
+	      (unsigned int) n->encrypt_key.crc32,
+	      GNUNET_CRYPTO_crc32_n (&iv, sizeof(iv)),
+	      tp->iv_seed);
 #endif
   /* trigger queue processing */
   process_encrypted_neighbour_queue (n);
@@ -2952,6 +3013,7 @@ handle_pong (struct Neighbour *n,
 {
   struct PongMessage t;
   struct ConnectNotifyMessage cnm;
+  struct GNUNET_CRYPTO_AesInitializationVector iv;
 
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2960,9 +3022,11 @@ handle_pong (struct Neighbour *n,
 #endif
   /* mark as garbage, just to be sure */
   memset (&t, 255, sizeof (t));
+  derive_pong_iv (&iv, &n->decrypt_key, m->iv_seed, htonl (n->ping_challenge),
+      &my_identity);
   if (GNUNET_OK !=
       do_decrypt (n,
-                  &n->peer.hashPubKey,
+                  &iv,
                   &m->challenge,
                   &t.challenge,
                   sizeof (struct PongMessage) -
@@ -2975,19 +3039,21 @@ handle_pong (struct Neighbour *n,
 			    gettext_noop ("# PONG messages decrypted"), 
 			    1, 
 			    GNUNET_NO);
+#if DEBUG_HANDSHAKE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Decrypted `%s' from `%4s' with challenge %u using key %u, IV %u (salt %u)\n",
+              "PONG",
+              GNUNET_i2s (&t.target),
+              (unsigned int) ntohl (t.challenge),
+              (unsigned int) n->decrypt_key.crc32,
+              GNUNET_CRYPTO_crc32_n (&iv, sizeof(iv)),
+              m->iv_seed);
+#endif
   if (0 != ntohl (t.reserved))
     {
       GNUNET_break_op (0);
       return;
     }
-#if DEBUG_HANDSHAKE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Decrypted `%s' from `%4s' with challenge %u using key %u\n",
-              "PONG",
-              GNUNET_i2s (&t.target),
-              (unsigned int) ntohl (t.challenge),
-	      (unsigned int) n->decrypt_key.crc32);
-#endif
   if ((0 != memcmp (&t.target,
                     &n->peer,
                     sizeof (struct GNUNET_PeerIdentity))) ||
@@ -3178,6 +3244,7 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
 			    1, 
 			    GNUNET_NO);
   n->decrypt_key = k;
+  derive_auth_key(&n->decrypt_auth_key, &n->decrypt_key, t, &my_identity);
   if (n->decrypt_key_created.value != t.value)
     {
       /* fresh key, reset sequence numbers */
@@ -3374,14 +3441,14 @@ handle_encrypted_message (struct Neighbour *n,
   GNUNET_HashCode ph;
   uint32_t snum;
   struct GNUNET_TIME_Absolute t;
-  GNUNET_HashCode iv;
+  struct GNUNET_CRYPTO_AesInitializationVector iv;
 
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core service receives `%s' request from `%4s'.\n",
               "ENCRYPTED_MESSAGE", GNUNET_i2s (&n->peer));
 #endif  
-  GNUNET_CRYPTO_hash (&m->iv_seed, sizeof (uint32_t), &iv);
+  derive_iv (&iv, &n->decrypt_key, m->iv_seed, &my_identity);
   /* decrypt */
   if (GNUNET_OK !=
       do_decrypt (n,
