@@ -29,6 +29,7 @@
 
 #include "gnunet_constants.h"
 #include "gnunet_datastore_service.h"
+#include "gnunet_dht_service.h"
 #include "gnunet_fs_service.h"
 #include "gnunet_block_lib.h"
 #include "block_fs.h"
@@ -114,7 +115,7 @@
  * Number of bits we set per entry in the bloomfilter.
  * Do not change!
  */
-#define BLOOMFILTER_K 16
+#define BLOOMFILTER_K GNUNET_DHT_GET_BLOOMFILTER_K
 
 /**
  * Number of availability trials we perform per search result.

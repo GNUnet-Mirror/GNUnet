@@ -62,10 +62,20 @@ struct GNUNET_DHT_FindPeerHandle
 /**
  * Iterator called on each result obtained from a generic route
  * operation
+ *
+ * @param cls closure
+ * @param key key that was used
+ * @param get_path NULL-terminated array of pointers
+ *                 to the peers on reverse GET path (or NULL if not recorded)
+ * @param put_path NULL-terminated array of pointers
+ *                 to the peers on the PUT path (or NULL if not recorded)
+ * @param reply response
  */
 static void
 find_peer_reply_iterator (void *cls, 
 			  const GNUNET_HashCode *key,
+			  const struct GNUNET_PeerIdentity * const *get_path,
+			  const struct GNUNET_PeerIdentity * const *put_path,
 			  const struct GNUNET_MessageHeader *reply)
 {
   struct GNUNET_DHT_FindPeerHandle *find_peer_handle = cls;

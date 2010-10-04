@@ -398,6 +398,8 @@ process_reply (void *cls,
   const struct GNUNET_MessageHeader *enc_msg;
   size_t enc_size;
   uint64_t uid;
+  const struct GNUNET_PeerIdentity *const*get_path;
+  const struct GNUNET_PeerIdentity *const*put_path;
 
   uid = GNUNET_ntohll (dht_msg->unique_id);
   if (uid != rh->uid)
@@ -420,8 +422,12 @@ process_reply (void *cls,
     }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Processing reply.\n");
+  get_path = NULL; // FIXME: parse path info!
+  put_path = NULL; // FIXME: parse path info!
   rh->iter (rh->iter_cls, 
 	    &rh->key,
+	    get_path,
+	    put_path,
 	    enc_msg);
   return GNUNET_YES;
 }
@@ -613,7 +619,7 @@ timeout_route_request (void *cls,
  */
 struct GNUNET_DHT_RouteHandle *
 GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
-                        const GNUNET_HashCode * key,
+                        const GNUNET_HashCode *key,
                         uint32_t desired_replication_level,
                         enum GNUNET_DHT_RouteOption options,
                         const struct GNUNET_MessageHeader *enc,

@@ -34,8 +34,14 @@
  */
 #define DEBUG_DHT_ROUTING GNUNET_YES
 
+/**
+ * FIXME: document.
+ */
 #define DHT_BLOOM_SIZE 128
 
+/**
+ * FIXME: document.
+ */
 #define DHT_BLOOM_K 6
 
 /**
@@ -48,12 +54,24 @@
  */
 #define DHT_FORWARD_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5)
 
+/**
+ * FIXME: document.
+ */
 #define DEFAULT_DHT_REPUBLISH_FREQUENCY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 60)
 
+/**
+ * FIXME: document.
+ */
 #define DHT_SEND_PRIORITY 4
 
+/**
+ * FIXME: document.
+ */
 #define DEFAULT_GET_REPLICATION 5
 
+/**
+ * FIXME: document.
+ */
 #define DEFAULT_PUT_REPLICATION 8
 
 #define STAT_ROUTES "# DHT ROUTE Requests Seen"
@@ -79,9 +97,18 @@
 #define STAT_DUPLICATE_UID "# Duplicate UID's encountered (bad if any!)"
 #define STAT_RECENT_SEEN "# recent requests seen again (routing loops, alternate paths)"
 
+
+/**
+ * FIXME: document.
+ */
 typedef void (*GNUNET_DHT_MessageReceivedHandler) (void *cls,
                                                    const struct GNUNET_MessageHeader
                                                    *msg);
+
+
+/**
+ * FIXME: document.
+ */
 struct GNUNET_DHT_ControlMessage
 {
   /**
@@ -99,6 +126,7 @@ struct GNUNET_DHT_ControlMessage
    */
   uint16_t variable;
 };
+
 
 /**
  * Message which indicates the DHT should cancel outstanding
@@ -142,9 +170,19 @@ struct GNUNET_DHT_RouteMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Message options
+   * Message options, actually an 'enum GNUNET_DHT_RouteOption' value.
    */
   uint32_t options GNUNET_PACKED;
+
+  /**
+   * Replication level for this message
+   */
+  uint32_t desired_replication_level GNUNET_PACKED;
+
+  /**
+   * For alignment, always zero.
+   */
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * The key to search for
@@ -157,15 +195,11 @@ struct GNUNET_DHT_RouteMessage
    */
   uint64_t unique_id GNUNET_PACKED;
 
-  /**
-   * Replication level for this message
-   */
-  uint32_t desired_replication_level GNUNET_PACKED;
-
 
   /* GNUNET_MessageHeader *enc actual DHT message, copied to end of this dealy do */
 
 };
+
 
 /**
  * Generic local route result message
@@ -178,9 +212,9 @@ struct GNUNET_DHT_RouteResultMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Message options
+   * For alignment, always zero.
    */
-  uint32_t options GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * Unique ID identifying this request (necessary for
@@ -195,6 +229,7 @@ struct GNUNET_DHT_RouteResultMessage
 
   /* GNUNET_MessageHeader *enc actual DHT message, copied to end of this dealy do */
 };
+
 
 /**
  * Generic P2P DHT route message
@@ -231,7 +266,7 @@ struct GNUNET_DHT_P2PRouteMessage
    */
   uint64_t unique_id GNUNET_PACKED;
 
-  /*
+  /**
    * Bloomfilter to stop circular routes
    */
   char bloomfilter[DHT_BLOOM_SIZE];
@@ -277,7 +312,7 @@ struct GNUNET_DHT_P2PRouteResultMessage
    */
   uint64_t unique_id GNUNET_PACKED;
 
-  /*
+  /**
    * Bloomfilter to stop circular routes
    */
   char bloomfilter[DHT_BLOOM_SIZE];
@@ -313,7 +348,7 @@ struct GNUNET_DHT_PutMessage
   /**
    * The type of data to insert.
    */
-  size_t type GNUNET_PACKED;
+  uint32_t type GNUNET_PACKED;
 
   /**
    * How long should this data persist?
@@ -337,11 +372,31 @@ struct GNUNET_DHT_GetMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * The type for the data for the GET request
+   * The type for the data for the GET request; actually an 'enum
+   * GNUNET_BLOCK_Type'.
    */
   uint32_t type;
 
+  /**
+   * Mutator used for the bloom filter (0 if no bf is used).
+   */
+  uint32_t bf_mutator;
+
+  /**
+   * Size of the eXtended query (xquery).
+   */
+  uint16_t xquery_size;
+
+  /**
+   * Size of the bloom filter.
+   */
+  uint16_t bf_size;
+
+  /* Followed by the xquery which has 'xquery_size' bytes */
+
+  /* Followed by the bloom filter (after xquery) with 'bf_size' bytes */
 };
+
 
 /**
  * Generic DHT message, indicates that a route request
@@ -361,6 +416,7 @@ struct GNUNET_DHT_FindPeerMessage
   char bloomfilter[DHT_BLOOM_SIZE];
 };
 
+
 /**
  * Message to return data either to the client API
  * or to respond to a request received from another
@@ -377,11 +433,6 @@ struct GNUNET_DHT_GetResultMessage
    * The type for the data for the GET request
    */
   uint32_t type;
-
-  /**
-   * The key that was searched for
-   */
-  //GNUNET_HashCode key;
 
   /**
    * When does this entry expire?

@@ -1877,16 +1877,15 @@ send_reply_to_client (struct ClientList *client,
       GNUNET_break_op (0);
       return;
     }
-
   pending_message = GNUNET_malloc (sizeof (struct PendingMessage) + tsize);
   pending_message->msg = (struct GNUNET_MessageHeader *)&pending_message[1];
   reply = (struct GNUNET_DHT_RouteResultMessage *)&pending_message[1];
   reply->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE_RESULT);
   reply->header.size = htons (tsize);
+  reply->reserved = 0;
   reply->unique_id = GNUNET_htonll (uid);
   reply->key = *key;
   memcpy (&reply[1], message, msize);
-
   add_pending_message (client, pending_message);
 }
 
@@ -2156,31 +2155,76 @@ handle_dht_get (void *cls,
 {
   const struct GNUNET_DHT_GetMessage *get_msg;
   uint16_t get_type;
+  uint16_t bf_size;
+  uint16_t msize;
+  uint16_t xquery_size;
   unsigned int results;
+  struct GNUNET_CONTAINER_BloomFilter *bf;
+  const void *xquery;
+  const char *end;
 
-  get_msg = (const struct GNUNET_DHT_GetMessage *) msg;
-  if (ntohs (get_msg->header.size) != sizeof (struct GNUNET_DHT_GetMessage))
+  msize = ntohs (msg->size);
+  if (msize < sizeof (struct GNUNET_DHT_GetMessage))
     {
       GNUNET_break (0);
       return 0;
+    }
+  get_msg = (const struct GNUNET_DHT_GetMessage *) msg;
+  bf_size = ntohs (get_msg->bf_size);
+  xquery_size = ntohs (get_msg->xquery_size);
+  if (msize != sizeof (struct GNUNET_DHT_GetMessage) + bf_size + xquery_size)
+    {
+      GNUNET_break (0);
+      return 0;
+    }
+  end = (const char*) &get_msg[1];
+  if (xquery_size == 0)
+    {
+      xquery = NULL;
+    }
+  else
+    {
+      xquery = (const void*) end;
+      end += xquery_size;
+    }
+  if (bf_size == 0)
+    {
+      bf = NULL;
+    }
+  else
+    {
+      bf = GNUNET_CONTAINER_bloomfilter_init (end,
+					      bf_size,
+					      GNUNET_DHT_GET_BLOOMFILTER_K);
     }
 
   get_type = ntohs (get_msg->type);
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s:%s': Received `%s' request, message type %u, key %s, uid %llu\n", my_short_id,
-              "DHT", "GET", get_type, GNUNET_h2s (&message_context->key),
+              "`%s:%s': Received `%s' request, message type %u, key %s, uid %llu\n",
+	      my_short_id,
+              "DHT", "GET", 
+	      get_type,
+	      GNUNET_h2s (&message_context->key),
               message_context->unique_id);
 #endif
   increment_stats(STAT_GETS);
   results = 0;
+#if HAVE_MALICIOUS
   if (get_type == DHT_MALICIOUS_MESSAGE_TYPE)
-    return results;
-
+    {
+      GNUNET_CONTAINER_bloomfilter_free (bf);
+      return results;
+    }
+#endif
+  /* FIXME: put xquery / bf into message_context and use
+     them for processing! */
   if (datacache != NULL)
-    results =
-      GNUNET_DATACACHE_get (datacache, &message_context->key, get_type,
-                            &datacache_get_iterator, message_context);
+    results
+      = GNUNET_DATACACHE_get (datacache,
+			      &message_context->key, get_type,
+			      &datacache_get_iterator,
+			      message_context);
 
   if (results >= 1)
     {
@@ -2218,7 +2262,7 @@ handle_dht_get (void *cls,
       }
 #endif
     }
-
+  GNUNET_CONTAINER_bloomfilter_free (bf);
   return results;
 }
 

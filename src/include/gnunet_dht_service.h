@@ -41,6 +41,12 @@ extern "C"
 
 
 /**
+ * K-value that must be used for the bloom filter 'GET'
+ * queries.
+ */
+#define GNUNET_DHT_GET_BLOOMFILTER_K 16
+
+/**
  * Connection to the DHT service.
  */
 struct GNUNET_DHT_Handle;
@@ -260,10 +266,16 @@ GNUNET_DHT_find_peer_stop (struct GNUNET_DHT_FindPeerHandle *find_peer_handle);
  *
  * @param cls closure
  * @param key key that was used
+ * @param get_path NULL-terminated array of pointers
+ *                 to the peers on reverse GET path (or NULL if not recorded)
+ * @param put_path NULL-terminated array of pointers
+ *                 to the peers on the PUT path (or NULL if not recorded)
  * @param reply response
  */
 typedef void (*GNUNET_DHT_ReplyProcessor)(void *cls,
 					  const GNUNET_HashCode *key,
+					  const struct GNUNET_PeerIdentity * const *get_path,
+					  const struct GNUNET_PeerIdentity * const *put_path,
                                           const struct GNUNET_MessageHeader *reply);
 
 
