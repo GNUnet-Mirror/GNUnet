@@ -26,6 +26,7 @@
  */
 
 #include "platform.h"
+#include "gnunet_block_lib.h"
 #include "gnunet_client_lib.h"
 #include "gnunet_getopt_lib.h"
 #include "gnunet_os_lib.h"
@@ -654,12 +655,12 @@ struct RepublishContext
 /**
  * Which kind of convergence will we be using?
  */
-enum ConvergenceOptions converge_option;
+static enum ConvergenceOptions converge_option;
 
 /**
  * Modifier for the convergence function
  */
-float converge_modifier;
+static float converge_modifier;
 
 /**
  * Recent requests by hash/uid and by time inserted.
@@ -870,13 +871,22 @@ static struct GNUNET_TIME_Relative reply_times[MAX_REPLY_TIMES];
 static unsigned int reply_counter;
 
 /**
+ * Our handle to the BLOCK library.
+ */
+static struct GNUNET_BLOCK_Context *block_context;
+
+
+/**
  * Forward declaration.
  */
-static size_t send_generic_reply (void *cls, size_t size, void *buf);
+static size_t 
+send_generic_reply (void *cls, size_t size, void *buf);
+
 
 /** Declare here so retry_core_send is aware of it */
-size_t core_transmit_notify (void *cls,
-                             size_t size, void *buf);
+static size_t 
+core_transmit_notify (void *cls,
+		      size_t size, void *buf);
 
 /**
  * Convert unique ID to hash code.
@@ -1061,6 +1071,8 @@ forward_result_message (void *cls,
   if (peer->send_task == GNUNET_SCHEDULER_NO_TASK)
     peer->send_task = GNUNET_SCHEDULER_add_now(sched, &try_core_send, peer);
 }
+
+
 /**
  * Called when core is ready to send a message we asked for
  * out to the destination.
@@ -1070,8 +1082,9 @@ forward_result_message (void *cls,
  * @param buf where the callee should write the message
  * @return number of bytes written to buf
  */
-size_t core_transmit_notify (void *cls,
-                             size_t size, void *buf)
+static size_t 
+core_transmit_notify (void *cls,
+		      size_t size, void *buf)
 {
   struct PeerInfo *peer = cls;
   char *cbuf = buf;
@@ -4197,13 +4210,13 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   int bucket_count;
   struct PeerInfo *pos;
-  if (transport_handle != NULL)
-  {
-    GNUNET_free_non_null(my_hello);
-    GNUNET_TRANSPORT_get_hello_cancel(transport_handle, &process_hello, NULL);
-    GNUNET_TRANSPORT_disconnect(transport_handle);
-  }
 
+  if (transport_handle != NULL)
+    {
+      GNUNET_free_non_null(my_hello);
+      GNUNET_TRANSPORT_get_hello_cancel(transport_handle, &process_hello, NULL);
+      GNUNET_TRANSPORT_disconnect(transport_handle);
+    }
   for (bucket_count = lowest_bucket; bucket_count < MAX_BUCKETS; bucket_count++)
     {
       while (k_buckets[bucket_count].head != NULL)
@@ -4223,6 +4236,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   "%s:%s Disconnecting core!\n", my_short_id, "DHT");
 #endif
       GNUNET_CORE_disconnect (coreAPI);
+      coreAPI = NULL;
     }
   if (datacache != NULL)
     {
@@ -4231,17 +4245,25 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   "%s:%s Destroying datacache!\n", my_short_id, "DHT");
 #endif
       GNUNET_DATACACHE_destroy (datacache);
+      datacache = NULL;
     }
-
   if (stats != NULL)
     {
       GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
+      stats = NULL;
     }
-
   if (dhtlog_handle != NULL)
-    GNUNET_DHTLOG_disconnect(dhtlog_handle);
-
+    {
+      GNUNET_DHTLOG_disconnect(dhtlog_handle);
+      dhtlog_handle = NULL;
+    }
+  if (block_context != NULL)
+    {
+      GNUNET_BLOCK_context_destroy (block_context);
+      block_context = NULL;
+    }
   GNUNET_free_non_null(my_short_id);
+  my_short_id = NULL;
 }
 
 
@@ -4304,6 +4326,7 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
   {NULL, 0, 0}
 };
 
+
 /**
  * Method called whenever a peer connects.
  *
@@ -4347,6 +4370,7 @@ void handle_core_connect (void *cls,
 #endif
 }
 
+
 /**
  * Method called whenever a peer disconnects.
  *
@@ -4375,6 +4399,7 @@ void handle_core_disconnect (void *cls,
   delete_peer(to_remove, current_bucket);
 }
 
+
 /**
  * Process dht requests.
  *
@@ -4392,6 +4417,7 @@ run (void *cls,
   struct GNUNET_TIME_Relative next_send_time;
   unsigned long long temp_config_num;
   char *converge_modifier_buf;
+
   sched = scheduler;
   cfg = c;
   datacache = GNUNET_DATACACHE_create (sched, cfg, "dhtcache");
@@ -4418,8 +4444,9 @@ run (void *cls,
   if (transport_handle != NULL)
     GNUNET_TRANSPORT_get_hello (transport_handle, &process_hello, NULL);
   else
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Failed to connect to transport service!\n");
-
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, 
+	       "Failed to connect to transport service!\n");
+  block_context = GNUNET_BLOCK_context_create (cfg);
   lowest_bucket = MAX_BUCKETS - 1;
   forward_list.hashmap = GNUNET_CONTAINER_multihashmap_create(MAX_OUTSTANDING_FORWARDS / 10);
   forward_list.minHeap = GNUNET_CONTAINER_heap_create(GNUNET_CONTAINER_HEAP_ORDER_MIN);
