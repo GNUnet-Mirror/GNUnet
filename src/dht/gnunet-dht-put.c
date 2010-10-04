@@ -95,19 +95,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 void
 message_sent_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (tc->reason == GNUNET_SCHEDULER_REASON_TIMEOUT)
-    {
-      if (verbose)
-        fprintf (stderr,
-                 "Failed to send put request to service, quitting.\n");
-      ret = 1;
-    }
-  else
-    {
-      if (verbose)
-        fprintf (stderr, "PUT request sent!\n");
-    }
-
+  if (verbose)
+    fprintf (stderr, 
+	     _("PUT request sent!\n"));    
   GNUNET_SCHEDULER_add_now (sched, &shutdown_task, NULL);
 }
 
@@ -132,25 +122,26 @@ run (void *cls,
   sched = s;
   cfg = c;
 
-  if ((query_key == NULL) || (data == NULL))
+  if ( (query_key == NULL) || (data == NULL) )
     {
-      if (verbose)
-        fprintf (stderr, "Must provide KEY and DATA for DHT put!\n");
+      fprintf (stderr,
+	       _("Must provide KEY and DATA for DHT put!\n"));
       ret = 1;
       return;
     }
 
   dht_handle = GNUNET_DHT_connect (sched, cfg, 1);
-
   if (dht_handle == NULL)
     {
-      if (verbose)
-        fprintf (stderr, "Couldn't connect to DHT service!\n");
+      fprintf (stderr, 
+	       _("Could not connect to %s service!\n"),
+	       "DHT");
       ret = 1;
       return;
     }
   else if (verbose)
-    fprintf (stderr, "Connected to DHT service!\n");
+    fprintf (stderr,
+	     _("Connected to %s service!\n"), "DHT");
 
   GNUNET_CRYPTO_hash (query_key, strlen (query_key), &key);
 
@@ -162,9 +153,9 @@ run (void *cls,
                                        expiration_seconds));
 
   if (verbose)
-    fprintf (stderr, "Issuing put request for `%s' with data `%s'!\n",
+    fprintf (stderr,
+	     _("Issuing put request for `%s' with data `%s'!\n"),
              query_key, data);
-
   GNUNET_DHT_put (dht_handle,
 		  &key, 
 		  GNUNET_DHT_RO_NONE,
