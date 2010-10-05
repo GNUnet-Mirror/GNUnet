@@ -161,13 +161,6 @@ enum PeerStateMachine
 
 
 /**
- * Number of bytes (at the beginning) of "struct EncryptedMessage"
- * that are NOT encrypted.
- */
-#define ENCRYPTED_HEADER_SIZE (sizeof(struct GNUNET_MessageHeader) + sizeof(uint32_t))
-
-
-/**
  * Encapsulation for encrypted messages exchanged between
  * peers.  Followed by the actual encrypted data.
  */
@@ -179,22 +172,23 @@ struct EncryptedMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Random value used for IV generation.  ENCRYPTED_HEADER_SIZE must
-   * be set to the offset of the *next* field.
-   */
-  uint32_t iv_seed GNUNET_PACKED;
-
-  /**
-   * Hash of the plaintext (starting at 'sequence_number'), used to
-   * verify message integrity.  Everything after this hash (including
-   * this hash itself) will be encrypted.  
+   * MAC of the (partially) encrypted message (starting at 'iv_seed'),
+   * used to verify message integrity. Everything after this value
+   * will be authenticated. AUTHENTICATED_HEADER_SIZE must be set to
+   * the offset of the *next* field.
    */
   GNUNET_HashCode hmac;
 
   /**
+   * Random value used for IV generation. Everything after this value
+   * (excluding this value itself) will be encrypted.
+   * ENCRYPTED_HEADER_SIZE must be set to the offset of the *next* field.
+   */
+  uint32_t iv_seed GNUNET_PACKED;
+
+  /**
    * Sequence number, in network byte order.  This field
-   * must be the first encrypted/decrypted field and the
-   * first byte that is hashed for the plaintext hash.
+   * must be the first encrypted/decrypted field
    */
   uint32_t sequence_number GNUNET_PACKED;
 
@@ -211,6 +205,20 @@ struct EncryptedMessage
   struct GNUNET_TIME_AbsoluteNBO timestamp;
 
 };
+
+
+/**
+ * Number of bytes (at the beginning) of "struct EncryptedMessage"
+ * that are NOT encrypted.
+ */
+#define ENCRYPTED_HEADER_SIZE (offsetof(struct EncryptedMessage, sequence_number))
+
+
+/**
+ * Number of bytes (at the beginning) of "struct EncryptedMessage"
+ * that are NOT authenticated.
+ */
+#define AUTHENTICATED_HEADER_SIZE (offsetof(struct EncryptedMessage, iv_seed))
 
 
 /**
@@ -2089,7 +2097,6 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
 {
   char pbuf[GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE + sizeof (struct EncryptedMessage)];        /* plaintext */
   size_t used;
-  size_t esize;
   struct EncryptedMessage *em;  /* encrypted message */
   struct EncryptedMessage *ph;  /* plaintext header */
   struct MessageEntry *me;
@@ -2203,32 +2210,32 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
   em->header.size = htons (used);
   em->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE);
   em->iv_seed = ph->iv_seed;
-  esize = used - ENCRYPTED_HEADER_SIZE;
-  GNUNET_CRYPTO_hmac (&n->encrypt_auth_key,
-		      &ph->sequence_number,
-		      esize - sizeof (GNUNET_HashCode),
-		      &ph->hmac);
   derive_iv (&iv, &n->encrypt_key, ph->iv_seed, &n->peer);
-#if DEBUG_HANDSHAKE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Hashed %u bytes of plaintext (`%s') using IV `%d'\n",
-	      (unsigned int) (esize - sizeof (GNUNET_HashCode)),
-	      GNUNET_h2s (&ph->hmac),
-	      (int) ph->iv_seed);
-#endif
   /* encrypt */
 #if DEBUG_HANDSHAKE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Encrypting %u bytes of plaintext messages for `%4s' for transmission in %llums.\n",
-	      (unsigned int) esize,
+	      (unsigned int) used - ENCRYPTED_HEADER_SIZE,
 	      GNUNET_i2s(&n->peer),
 	      (unsigned long long) GNUNET_TIME_absolute_get_remaining (deadline).value);
 #endif
   GNUNET_assert (GNUNET_OK ==
                  do_encrypt (n,
                              &iv,
-                             &ph->hmac,
-                             &em->hmac, esize));
+                             &ph->sequence_number,
+                             &em->sequence_number, used - ENCRYPTED_HEADER_SIZE));
+  GNUNET_CRYPTO_hmac (&n->encrypt_auth_key,
+                      &em->iv_seed,
+                      used - AUTHENTICATED_HEADER_SIZE,
+                      &em->hmac);
+#if DEBUG_HANDSHAKE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Authenticated %u bytes of ciphertext %u: `%s'\n",
+              used - AUTHENTICATED_HEADER_SIZE,
+              GNUNET_CRYPTO_crc32_n (&em->iv_seed,
+                  used - AUTHENTICATED_HEADER_SIZE),
+              GNUNET_h2s (&em->hmac));
+#endif
   /* append to transmission list */
   GNUNET_CONTAINER_DLL_insert_after (n->encrypted_head,
 				     n->encrypted_tail,
@@ -3453,24 +3460,25 @@ handle_encrypted_message (struct Neighbour *n,
   if (GNUNET_OK !=
       do_decrypt (n,
                   &iv,
-                  &m->hmac,
+                  &m->sequence_number,
                   &buf[ENCRYPTED_HEADER_SIZE], 
 		  size - ENCRYPTED_HEADER_SIZE))
     return;
   pt = (struct EncryptedMessage *) buf;
   /* validate hash */
   GNUNET_CRYPTO_hmac (&n->decrypt_auth_key,
-		      &pt->sequence_number,
-                      size - ENCRYPTED_HEADER_SIZE - sizeof (GNUNET_HashCode), &ph);
+                      &m->iv_seed,
+                      size - AUTHENTICATED_HEADER_SIZE, &ph);
 #if DEBUG_HANDSHAKE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "V-Hashed %u bytes of plaintext (`%s') using IV `%d'\n",
-	      (unsigned int) (size - ENCRYPTED_HEADER_SIZE - sizeof (GNUNET_HashCode)),
-	      GNUNET_h2s (&ph),
-	      (int) m->iv_seed);
+              "Re-Authenticated %u bytes of ciphertext (`%u'): `%s'\n",
+	      (unsigned int) size - AUTHENTICATED_HEADER_SIZE,
+              GNUNET_CRYPTO_crc32_n (&m->iv_seed,
+                  size - AUTHENTICATED_HEADER_SIZE),
+	      GNUNET_h2s (&ph));
 #endif
   if (0 != memcmp (&ph,
-		   &pt->hmac,
+		   &m->hmac,
 		   sizeof (GNUNET_HashCode)))
     {
       /* checksum failed */

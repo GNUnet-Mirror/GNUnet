@@ -8,7 +8,6 @@
   - track paths content travels (PUT, reply-to-get) in messages,
     pass to client (client API & protocol already support this!)
 * CORE:
-  - authentication of ciphertexts [Nils]
   - Jun 27 11:51:54 core-7670 ERROR Assertion failed at gnunet-service-core.c:3616.
     (transport notified us that we connected to ourselves!!!)
   - transport-level disconnect (i.e. TCP) does not cause core-level
