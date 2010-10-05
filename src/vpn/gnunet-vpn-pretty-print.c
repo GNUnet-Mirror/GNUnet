@@ -263,19 +263,22 @@ static char* dns_classes(short class) { /* {{{ */
 void pkt_printf_dns(struct dns_pkt* upkt) {{{
 	struct dns_pkt_parsed* pkt = parse_dns_packet(upkt);
 
-	printf("DNS-Packet:\n");
-	printf("\tid: %d\n", ntohs(pkt->s.id));
-	printf("\t%d: %s\n", pkt->s.qr, pkt->s.qr == 0 ? "query" : "response");
-	printf("\top: %s\n", (char*[]){"query", "inverse q.", "status", "inval"}[pkt->s.op]);
-	printf("\trecursion is%s desired\n", pkt->s.rd == 0 ? " not" : "");
+	printf("\nDNS-Packet: ");
+	printf("\tid: %5d ", ntohs(pkt->s.id));
+	printf("\t%d: %s ", pkt->s.qr, pkt->s.qr == 0 ? "query   " : "response");
+	printf("\top: %s ", (char*[]){	"query     ",
+									"inverse q.",
+									"status    ",
+									"inval     "}[pkt->s.op]);
+	printf("\trecursion is%s desired ", pkt->s.rd == 0 ? " not" : "    ");
 	unsigned short qdcount = ntohs(pkt->s.qdcount);
 	unsigned short ancount = ntohs(pkt->s.ancount);
 	unsigned short nscount = ntohs(pkt->s.nscount);
 	unsigned short arcount = ntohs(pkt->s.arcount);
-	printf("\t#qd: %d\n", qdcount);
-	printf("\t#an: %d\n", ancount);
-	printf("\t#ns: %d\n", nscount);
-	printf("\t#ar: %d\n", arcount);
+	printf("\t#qd: %5d ", qdcount);
+	printf("\t#an: %5d ", ancount);
+	printf("\t#ns: %5d ", nscount);
+	printf("\t#ar: %5d\n", arcount);
 	
 	int i;
 	for (i = 0; i < qdcount; i++) { /*{{{*/

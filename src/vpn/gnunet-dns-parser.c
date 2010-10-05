@@ -52,7 +52,7 @@ unsigned short parse_dns_record(unsigned char* data, struct dns_record** dst, un
 	return idx;
 }/*}}}*/
 
-struct dns_pkt_parsed* parse_dns_packet(struct dns_pkt* pkt) {
+struct dns_pkt_parsed* parse_dns_packet(struct dns_pkt* pkt) {/*{{{*/
 	struct dns_pkt_parsed* ppkt = GNUNET_malloc(sizeof(struct dns_pkt_parsed));
 	memcpy(&ppkt->s, &pkt->s, sizeof pkt->s);
 
@@ -90,4 +90,4 @@ struct dns_pkt_parsed* parse_dns_packet(struct dns_pkt* pkt) {
 	idx = parse_dns_record(pkt->data, ppkt->nameservers, nscount, idx);
 	idx = parse_dns_record(pkt->data, ppkt->additional, arcount, idx);
 	return ppkt;
-}
+}/*}}}*/
