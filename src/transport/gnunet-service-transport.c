@@ -4679,7 +4679,7 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
  * @param session identifier used for this session (can be NULL)
  * @param sender_address binary address of the sender (if observed)
  * @param sender_address_len number of bytes in sender_address
- * @return how long the plugin should wait until receiving more data
+ * @return how long in ms the plugin should wait until receiving more data
  *         (plugins that do not support this, can ignore the return value)
  */
 static struct GNUNET_TIME_Relative
