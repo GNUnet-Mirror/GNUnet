@@ -87,8 +87,14 @@ enum GNUNET_BLOCK_Type
     /**
      * Block for testing.
      */
-    GNUNET_BLOCK_TYPE_TEST = 8
+    GNUNET_BLOCK_TYPE_TEST = 8,
 
+#if HAVE_MALICIOUS    
+    /**
+     * Block for simulating malicious peers.
+     */
+    GNUNET_BLOCK_DHT_MALICIOUS_MESSAGE_TYPE = 9
+#endif
   };
 
 
@@ -212,7 +218,9 @@ GNUNET_BLOCK_evaluate (struct GNUNET_BLOCK_Context *ctx,
  * @param block block to get the key for
  * @param block_size number of bytes in block
  * @param key set to the key (query) for the given block
- * @return GNUNET_OK on success, GNUNET_SYSERR if type not supported
+ * @return GNUNET_OK on success, 
+ *         GNUNET_NO if the block is malformed, FIXME: cg!
+ *         GNUNET_SYSERR if type not supported
  *         (or if extracting a key from a block of this type does not work)
  */
 int

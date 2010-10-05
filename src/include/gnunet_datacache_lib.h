@@ -85,7 +85,7 @@ void GNUNET_DATACACHE_destroy (struct GNUNET_DATACACHE_Handle *h);
 typedef int (*GNUNET_DATACACHE_Iterator) (void *cls,
 					  struct GNUNET_TIME_Absolute exp,
 					  const GNUNET_HashCode * key,
-					  uint32_t size,
+					  uint32_t size, /* FIXME: use size_t? */
 					  const char *data,
 					  enum GNUNET_BLOCK_Type type);
 
