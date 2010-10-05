@@ -255,7 +255,7 @@ GNUNET_BANDWIDTH_tracker_consume (struct GNUNET_BANDWIDTH_Tracker *av,
  *
  * @param av tracker to query
  * @param size number of bytes we would like to consume
- * @return time to wait for consumption to be OK
+ * @return time in ms to wait for consumption to be OK
  */
 struct GNUNET_TIME_Relative
 GNUNET_BANDWIDTH_tracker_get_delay (struct GNUNET_BANDWIDTH_Tracker *av,
