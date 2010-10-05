@@ -867,7 +867,7 @@ GNUNET_CRYPTO_hmac_derive_key_v(struct GNUNET_CRYPTO_AuthKey *key,
                                 const struct GNUNET_CRYPTO_AesSessionKey *rkey,
                                 const void *salt,
                                 const size_t salt_len,
-                                const va_list argp)
+				va_list argp)
 {
   GNUNET_CRYPTO_kdf_v (key->key, sizeof(key->key), salt, salt_len, rkey->key,
       sizeof(rkey->key), argp);

@@ -107,7 +107,7 @@ static void dump(char *src, void *p, unsigned int l)
 int
 GNUNET_CRYPTO_hkdf_v (void *result, const unsigned long long out_len,
     int xtr_algo, int prf_algo, const void *xts, const size_t xts_len,
-    const void *skm, const size_t skm_len, const va_list argp)
+    const void *skm, const size_t skm_len, va_list argp)
 {
   void *prk, *hc, *plain;
   unsigned long long plain_len;

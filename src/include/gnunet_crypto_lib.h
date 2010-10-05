@@ -348,7 +348,7 @@ GNUNET_CRYPTO_aes_derive_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
 void
 GNUNET_CRYPTO_aes_derive_iv_v (struct GNUNET_CRYPTO_AesInitializationVector *iv,
     const struct GNUNET_CRYPTO_AesSessionKey *skey, void *salt,
-    size_t salt_len, const va_list argp);
+    size_t salt_len, va_list argp);
 
 
 /**
@@ -584,7 +584,7 @@ GNUNET_CRYPTO_hmac_derive_key_v(struct GNUNET_CRYPTO_AuthKey *key,
                                 const struct GNUNET_CRYPTO_AesSessionKey *rkey,
                                 const void *salt,
                                 const size_t salt_len,
-                                const va_list argp);
+				va_list argp);
 
 
 /**
@@ -638,7 +638,7 @@ GNUNET_CRYPTO_hkdf (void *result, const unsigned long long out_len,
 int
 GNUNET_CRYPTO_hkdf_v (void *result, const unsigned long long out_len,
     int xtr_algo, int prf_algo, const void *xts, const size_t xts_len,
-    const void *skm, const size_t skm_len, const va_list argp);
+    const void *skm, const size_t skm_len, va_list argp);
 
 
 /**
@@ -654,8 +654,8 @@ GNUNET_CRYPTO_hkdf_v (void *result, const unsigned long long out_len,
  */
 int
 GNUNET_CRYPTO_kdf_v (void *result, const unsigned long long out_len,
-    const void *xts, const size_t xts_len, const void *skm,
-    const size_t skm_len, const va_list argp);
+		     const void *xts, const size_t xts_len, const void *skm,
+		     const size_t skm_len, va_list argp);
 
 
 /**

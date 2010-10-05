@@ -43,7 +43,7 @@
 int
 GNUNET_CRYPTO_kdf_v (void *result, const unsigned long long out_len,
     const void *xts, const size_t xts_len, const void *skm,
-    const size_t skm_len, const va_list argp)
+    const size_t skm_len, va_list argp)
 {
   /*
    "Finally, we point out to a particularly advantageous instantiation using
