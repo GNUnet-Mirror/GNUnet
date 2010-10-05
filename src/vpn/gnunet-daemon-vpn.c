@@ -117,7 +117,7 @@ static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* ts
 
 	int t = GNUNET_DISK_file_read(mycls.fh_from_helper, &buf, 65535);
 	if (t<=0) {
-		GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Read error for header: %m\n");
+		GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Read error for header from vpn-helper: %m\n");
 		GNUNET_SCHEDULER_add_now(mycls.sched, restart_helper, cls);
 		return;
 	}
@@ -205,8 +205,6 @@ size_t send_query(void* cls, size_t size, void* buf)
 
 	memcpy(buf, &query->pkt.hdr, len);
 
-	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sent %d bytes.\n", len);
-
 	GNUNET_CONTAINER_DLL_remove (mycls.head, mycls.tail, query);
 
 	GNUNET_free(query);
@@ -258,11 +256,7 @@ static void message_token(void *cls, void *client, const struct GNUNET_MessageHe
 
 			GNUNET_CONTAINER_DLL_insert_after(mycls.head, mycls.tail, mycls.tail, query);
 
-			struct GNUNET_CLIENT_TransmitHandle* th = GNUNET_CLIENT_notify_transmit_ready(mycls.dns_connection, len, GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
-			if (th != NULL)
-				GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Queued sending of %d bytes.\n", len);
-			else
-				GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Already queued for %d bytes.\n", len);
+			/* struct GNUNET_CLIENT_TransmitHandle* th = */ GNUNET_CLIENT_notify_transmit_ready(mycls.dns_connection, len, GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
 		}
 	}
 
@@ -270,7 +264,6 @@ static void message_token(void *cls, void *client, const struct GNUNET_MessageHe
 
 void dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg) {
 	if (msg == NULL) return;
-	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Got an answer!\n");
 
 	if (msg->type != htons(GNUNET_MESSAGE_TYPE_LOCAL_RESPONSE_DNS)) goto out;
 
@@ -306,7 +299,6 @@ run (void *cls,
   mycls.mst = GNUNET_SERVER_mst_create(&message_token, NULL);
 
   mycls.dns_connection = GNUNET_CLIENT_connect (sched, "dns", cfg);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connection: %x\n", mycls.dns_connection);
 
   GNUNET_CLIENT_receive(mycls.dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
 

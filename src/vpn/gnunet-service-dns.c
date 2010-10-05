@@ -72,7 +72,6 @@ void unhijack(unsigned short port) {
 void receive_query(void *cls, struct GNUNET_SERVER_Client *client, const struct GNUNET_MessageHeader *message)
 {
 	struct query_packet* pkt = (struct query_packet*)message;
-	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received query of length %d\n", ntohs(pkt->hdr.size));
 	struct dns_pkt* dns = (struct dns_pkt*)pkt->data;
 
 	struct sockaddr_in dest;
@@ -85,8 +84,7 @@ void receive_query(void *cls, struct GNUNET_SERVER_Client *client, const struct 
 	query_states[dns->id].local_ip = pkt->orig_from;
 	query_states[dns->id].local_port = pkt->src_port;
 
-	int r = GNUNET_NETWORK_socket_sendto(mycls.dnsout, dns, ntohs(pkt->hdr.size) - sizeof(struct query_packet) + 1, (struct sockaddr*) &dest, sizeof dest);
-	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "send %d bytes to socket\n", r);
+	/* int r = */ GNUNET_NETWORK_socket_sendto(mycls.dnsout, dns, ntohs(pkt->hdr.size) - sizeof(struct query_packet) + 1, (struct sockaddr*) &dest, sizeof dest);
 
 	GNUNET_SERVER_receive_done(client, GNUNET_OK);
 }
@@ -98,8 +96,6 @@ size_t send_answer(void* cls, size_t size, void* buf) {
 	GNUNET_assert(len <= size);
 
 	memcpy(buf, &query->pkt.hdr, len);
-
-	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sent %d bytes.\n", len);
 
 	GNUNET_CONTAINER_DLL_remove (mycls.head, mycls.tail, query);
 
@@ -142,11 +138,7 @@ static void read_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
 
 		GNUNET_CONTAINER_DLL_insert_after(mycls.head, mycls.tail, mycls.tail, answer);
 
-		struct GNUNET_CONNECTION_TransmitHandle* th = GNUNET_SERVER_notify_transmit_ready(query_states[dns->id].client, len, GNUNET_TIME_UNIT_FOREVER_REL, &send_answer, query_states[dns->id].client);
-		if (th != NULL)
-			GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Queued sending of %d bytes.\n", len);
-		else
-			GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Already queued for %d bytes.\n", len);
+		/* struct GNUNET_CONNECTION_TransmitHandle* th = */ GNUNET_SERVER_notify_transmit_ready(query_states[dns->id].client, len, GNUNET_TIME_UNIT_FOREVER_REL, &send_answer, query_states[dns->id].client);
 	}
 
 	GNUNET_SCHEDULER_add_read_net(mycls.sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.dnsout, &read_response, NULL);
