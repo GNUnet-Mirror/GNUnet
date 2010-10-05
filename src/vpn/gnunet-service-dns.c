@@ -136,6 +136,8 @@ static void read_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
 		answer->pkt.dst_port = query_states[dns->s.id].local_port;
 		memcpy(answer->pkt.data, buf, r);
 
+		pkt_printf_dns((struct dns_pkt*)buf);
+
 		GNUNET_CONTAINER_DLL_insert_after(mycls.head, mycls.tail, mycls.tail, answer);
 
 		/* struct GNUNET_CONNECTION_TransmitHandle* th = */ GNUNET_SERVER_notify_transmit_ready(query_states[dns->s.id].client, len, GNUNET_TIME_UNIT_FOREVER_REL, &send_answer, query_states[dns->s.id].client);
