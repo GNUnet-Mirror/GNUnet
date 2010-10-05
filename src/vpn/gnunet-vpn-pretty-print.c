@@ -9,6 +9,7 @@
 #endif
 
 #include "gnunet-vpn-packet.h"
+#include "gnunet-dns-parser.h"
 
 static char* pretty = /*{{{*/
 /*     0       1         2         3         4        5          6
@@ -245,7 +246,7 @@ static char* dns_types(unsigned short type) {{{
 
 }}}
 
-static char* dns_classes(short class) {{{
+static char* dns_classes(short class) { /* {{{ */
 	static char* classes[] = { /*{{{*/
 		"",
 		"IN", // 1 the Internet
@@ -256,28 +257,6 @@ static char* dns_classes(short class) {{{
 
 	if (class <= 4) return classes[class];
 	return 0;
-}}}
-
-unsigned int parse_dns_name(unsigned char* d, const unsigned char* src, unsigned short idx) {/*{{{*/
-	unsigned char* dest = d;
-
-	int len = src[idx++];
-	while (len != 0) {
-		if (len & 0xC0) { /* Compressed name, offset in this and the next octet */
-			unsigned short offset = ((len & 0x3F) << 8) | src[idx++];
-			parse_dns_name(dest, src, offset - 12); /* 12 for the Header of the DNS-Packet, idx starts at 0 which is 12 bytes from the start of the packet */
-			return idx;
-		}
-		memcpy(dest, src+idx, len);
-		idx += len;
-		dest += len;
-		*dest = '.';
-		dest++;
-		len = src[idx++];
-	};
-	*dest = 0;
-
-	return idx;
 }
 /*}}}*/
 
