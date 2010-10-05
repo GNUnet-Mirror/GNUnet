@@ -210,7 +210,7 @@ void get_result_iterator (void *cls,
 			  const struct GNUNET_PeerIdentity * const *get_path,
 			  const struct GNUNET_PeerIdentity * const *put_path,
 			  enum GNUNET_BLOCK_Type type,
-                          uint32_t size,
+                          size_t size,
                           const void *data)
 {
   GNUNET_HashCode original_key; /* Key data was stored data under */

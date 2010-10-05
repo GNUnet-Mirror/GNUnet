@@ -362,7 +362,7 @@ test_get_iterator (void *cls,
 		   const struct GNUNET_PeerIdentity * const *get_path,
 		   const struct GNUNET_PeerIdentity * const *put_path,
 		   enum GNUNET_BLOCK_Type type, 
-		   uint32_t size, const void *data)
+		   size_t size, const void *data)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "test_get_iterator called (we got a result), stopping get request!\n");
