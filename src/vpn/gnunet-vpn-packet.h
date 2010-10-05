@@ -92,20 +92,22 @@ struct dns_pkt {
 
 struct dns_pkt_parsed {
 	struct dns_static s;
-	struct dns_query* queries;
-	struct dns_record* answers;
-	struct dns_record* nameservers;
-	struct dns_record* additional;
+	struct dns_query** queries;
+	struct dns_record** answers;
+	struct dns_record** nameservers;
+	struct dns_record** additional;
 };
 
 struct dns_query {
 	unsigned char* name;
+	unsigned char namelen;
 	unsigned short qtype;
 	unsigned short qclass;
 };
 
 struct dns_record {
 	unsigned char* name;
+	unsigned char namelen;
 	unsigned short type;
 	unsigned short class;
 	unsigned int ttl;

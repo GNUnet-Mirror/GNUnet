@@ -260,7 +260,9 @@ static char* dns_classes(short class) { /* {{{ */
 }
 /*}}}*/
 
-void pkt_printf_dns(struct dns_pkt* pkt) {{{
+void pkt_printf_dns(struct dns_pkt* upkt) {{{
+	struct dns_pkt_parsed* pkt = parse_dns_packet(upkt);
+
 	printf("DNS-Packet:\n");
 	printf("\tid: %d\n", ntohs(pkt->s.id));
 	printf("\t%d: %s\n", pkt->s.qr, pkt->s.qr == 0 ? "query" : "response");
@@ -275,97 +277,24 @@ void pkt_printf_dns(struct dns_pkt* pkt) {{{
 	printf("\t#ns: %d\n", nscount);
 	printf("\t#ar: %d\n", arcount);
 	
-	struct dns_query** queries = alloca(qdcount*sizeof(struct dns_query*));
-	struct dns_record** answers = alloca(ancount*sizeof(struct dns_record*));
-	struct dns_record** nameserver = alloca(nscount*sizeof(struct dns_record*));
-	struct dns_record** additional = alloca(arcount*sizeof(struct dns_record*));
-	unsigned short idx = 0;
-
 	int i;
 	for (i = 0; i < qdcount; i++) { /*{{{*/
-		queries[i] = alloca(sizeof(struct dns_query));
-		queries[i]->name = alloca(255); // see RFC1035
-		unsigned char* name = queries[i]->name;
-
-		idx = parse_dns_name(name, pkt->data, idx);
-
-		printf("%d\n", idx);
-		queries[i]->qtype = *((unsigned short*)(pkt->data+idx));
-		idx += 2;
-		queries[i]->qclass = *((unsigned short*)(pkt->data+idx));
-		idx += 2;
-		printf("query for %s type=%d (%s) class=%d (%s)\n", queries[i]->name, ntohs(queries[i]->qtype), dns_types(ntohs(queries[i]->qtype)), ntohs(queries[i]->qclass), dns_classes(ntohs(queries[i]->qclass)));
+		printf("query for %s type=%d (%s) class=%d (%s)\n", pkt->queries[i]->name, ntohs(pkt->queries[i]->qtype), dns_types(ntohs(pkt->queries[i]->qtype)), ntohs(pkt->queries[i]->qclass), dns_classes(ntohs(pkt->queries[i]->qclass)));
 	}
 	/*}}}*/
 	for (i = 0; i < ancount; i++) { /*{{{*/
-		answers[i] = alloca(sizeof(struct dns_record));
-		answers[i]->name = alloca(255); // see RFC1035
-		unsigned char* name = answers[i]->name;
-
-		idx = parse_dns_name(name, pkt->data, idx);
-
-		printf("%d\n", idx);
-		answers[i]->type = *((unsigned short*)(pkt->data+idx));
-		idx += 2;
-		answers[i]->class = *((unsigned short*)(pkt->data+idx));
-		idx += 2;
-		answers[i]->ttl = *((unsigned int*)(pkt->data+idx));
-		idx += 4;
-		answers[i]->data_len = *((unsigned short*)(pkt->data+idx));
-		idx += 2;
-		answers[i]->data = alloca(ntohs(answers[i]->data_len));
-		memcpy(answers[i]->data, pkt->data+idx, ntohs(answers[i]->data_len));
-		idx += ntohs(answers[i]->data_len);
-
-		printf("answer for %s type=%d (%s) class=%d (%s) ttl=%d data_len=%d\n", answers[i]->name, ntohs(answers[i]->type), dns_types(ntohs(answers[i]->type)), ntohs(answers[i]->class), dns_classes(ntohs(answers[i]->class)), ntohl(answers[i]->ttl), ntohs(answers[i]->data_len));
+		printf("answer for %s type=%d (%s) class=%d (%s) ttl=%d data_len=%d\n", pkt->answers[i]->name, ntohs(pkt->answers[i]->type), dns_types(ntohs(pkt->answers[i]->type)), ntohs(pkt->answers[i]->class), dns_classes(ntohs(pkt->answers[i]->class)), ntohl(pkt->answers[i]->ttl), ntohs(pkt->answers[i]->data_len));
 	}
 	/*}}}*/
 	for (i = 0; i < nscount; i++) { /*{{{*/
-		nameserver[i] = alloca(sizeof(struct dns_record));
-		nameserver[i]->name = alloca(255); // see RFC1035
-		unsigned char* name = nameserver[i]->name;
-
-		idx = parse_dns_name(name, pkt->data, idx);
-
-		printf("%d\n", idx);
-		nameserver[i]->type = *((unsigned short*)(pkt->data+idx));
-		idx += 2;
-		nameserver[i]->class = *((unsigned short*)(pkt->data+idx));
-		idx += 2;
-		nameserver[i]->ttl = *((unsigned int*)(pkt->data+idx));
-		idx += 4;
-		nameserver[i]->data_len = *((unsigned short*)(pkt->data+idx));
-		idx += 2;
-		nameserver[i]->data = alloca(ntohs(nameserver[i]->data_len));
-		memcpy(nameserver[i]->data, pkt->data+idx, ntohs(nameserver[i]->data_len));
-		idx += ntohs(nameserver[i]->data_len);
-
-		printf("nameserver for %s type=%d (%s) class=%d (%s) ttl=%d data_len=%d\n", nameserver[i]->name, ntohs(nameserver[i]->type), dns_types(ntohs(nameserver[i]->type)), ntohs(nameserver[i]->class), dns_classes(ntohs(nameserver[i]->class)), ntohl(nameserver[i]->ttl), ntohs(nameserver[i]->data_len));
+		printf("nameservers for %s type=%d (%s) class=%d (%s) ttl=%d data_len=%d\n", pkt->nameservers[i]->name, ntohs(pkt->nameservers[i]->type), dns_types(ntohs(pkt->nameservers[i]->type)), ntohs(pkt->nameservers[i]->class), dns_classes(ntohs(pkt->nameservers[i]->class)), ntohl(pkt->nameservers[i]->ttl), ntohs(pkt->nameservers[i]->data_len));
 	}
 	/*}}}*/
 	for (i = 0; i < arcount; i++) { /*{{{*/
-		additional[i] = alloca(sizeof(struct dns_query));
-		additional[i]->name = alloca(255); // see RFC1035
-		unsigned char* name = additional[i]->name;
-
-		idx = parse_dns_name(name, pkt->data, idx);
-
-		printf("%d\n", idx);
-		additional[i]->type = *((unsigned short*)(pkt->data+idx));
-		idx += 2;
-		additional[i]->class = *((unsigned short*)(pkt->data+idx));
-		idx += 2;
-		additional[i]->ttl = *((unsigned int*)(pkt->data+idx));
-		idx += 4;
-		additional[i]->data_len = *((unsigned short*)(pkt->data+idx));
-		idx += 2;
-		additional[i]->data = alloca(ntohs(additional[i]->data_len));
-		memcpy(additional[i]->data, pkt->data+idx, ntohs(additional[i]->data_len));
-		idx += ntohs(additional[i]->data_len);
-
-		printf("additional record for %s type=%d (%s) class=%d (%s) ttl=%d data_len=%d\n", additional[i]->name, ntohs(additional[i]->type), dns_types(ntohs(additional[i]->type)), ntohs(additional[i]->class), dns_classes(ntohs(additional[i]->class)), ntohl(additional[i]->ttl), ntohs(additional[i]->data_len));
+		printf("additional record for %s type=%d (%s) class=%d (%s) ttl=%d data_len=%d\n", pkt->additional[i]->name, ntohs(pkt->additional[i]->type), dns_types(ntohs(pkt->additional[i]->type)), ntohs(pkt->additional[i]->class), dns_classes(ntohs(pkt->additional[i]->class)), ntohl(pkt->additional[i]->ttl), ntohs(pkt->additional[i]->data_len));
 	}
 	/*}}}*/
+	GNUNET_free(pkt);
 }}}
 
 void pkt_printf_udp_dns(struct udp_dns* pkt) {{{
