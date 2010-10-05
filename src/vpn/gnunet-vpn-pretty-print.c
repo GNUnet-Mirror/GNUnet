@@ -262,14 +262,14 @@ static char* dns_classes(short class) { /* {{{ */
 
 void pkt_printf_dns(struct dns_pkt* pkt) {{{
 	printf("DNS-Packet:\n");
-	printf("\tid: %d\n", ntohs(pkt->id));
-	printf("\t%d: %s\n", pkt->qr, pkt->qr == 0 ? "query" : "response");
-	printf("\top: %s\n", (char*[]){"query", "inverse q.", "status", "inval"}[pkt->op]);
-	printf("\trecursion is%s desired\n", pkt->rd == 0 ? " not" : "");
-	unsigned short qdcount = ntohs(pkt->qdcount);
-	unsigned short ancount = ntohs(pkt->ancount);
-	unsigned short nscount = ntohs(pkt->nscount);
-	unsigned short arcount = ntohs(pkt->arcount);
+	printf("\tid: %d\n", ntohs(pkt->s.id));
+	printf("\t%d: %s\n", pkt->s.qr, pkt->s.qr == 0 ? "query" : "response");
+	printf("\top: %s\n", (char*[]){"query", "inverse q.", "status", "inval"}[pkt->s.op]);
+	printf("\trecursion is%s desired\n", pkt->s.rd == 0 ? " not" : "");
+	unsigned short qdcount = ntohs(pkt->s.qdcount);
+	unsigned short ancount = ntohs(pkt->s.ancount);
+	unsigned short nscount = ntohs(pkt->s.nscount);
+	unsigned short arcount = ntohs(pkt->s.arcount);
 	printf("\t#qd: %d\n", qdcount);
 	printf("\t#an: %d\n", ancount);
 	printf("\t#ns: %d\n", nscount);

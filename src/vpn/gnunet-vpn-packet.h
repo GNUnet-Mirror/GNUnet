@@ -61,7 +61,7 @@ struct udp_pkt {
 };
 
 // DNS-Stuff
-struct dns_pkt {
+struct dns_static {
 	unsigned short id GNUNET_PACKED;
 
 	unsigned rd:1 GNUNET_PACKED; // recursion desired (client -> server)
@@ -83,7 +83,19 @@ struct dns_pkt {
 	unsigned short ancount GNUNET_PACKED; // number of answers
 	unsigned short nscount GNUNET_PACKED; // number of authority-records
 	unsigned short arcount GNUNET_PACKED; // number of additional records
+};
+
+struct dns_pkt {
+	struct dns_static s;
 	unsigned char data[1];
+};
+
+struct dns_pkt_parsed {
+	struct dns_static s;
+	struct dns_query* queries;
+	struct dns_record* answers;
+	struct dns_record* nameservers;
+	struct dns_record* additional;
 };
 
 struct dns_query {
