@@ -670,10 +670,15 @@ extern "C"
 
 /**
  * Type of messages for data over the wlan
- *
  */
 
 #define GNUNET_MESSAGE_TYPE_WLAN_DATA 198
+
+/**
+ * Fragment of a message
+ */
+
+#define GNUNET_MESSAGE_TYPE_WLAN_FRAGMENT 199
 
 /**
  * Type of messages to query the local service-dns
