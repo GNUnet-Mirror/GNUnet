@@ -991,7 +991,7 @@ mdh_access_cb (void *cls,
   struct IPv4HttpAddress ipv4addr;
   struct IPv6HttpAddress ipv6addr;
 
-  struct HTTP_PeerContext *pc;
+  struct HTTP_PeerContext *pc = NULL;
   struct Session *ps = NULL;
   struct Session *ps_tmp = NULL;
 
