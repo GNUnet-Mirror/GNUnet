@@ -178,14 +178,6 @@ static void helper_write(void* cls, const struct GNUNET_SCHEDULER_TaskContext* t
 	pkt->udp_dns.udp_hdr.crc = 0; /* Optional for IPv4 */
 
 	memcpy(&pkt->udp_dns.data, ans->pkt.data, data_len);
-
-	/* GNUNET_MessageHeader
-	 * pkt_tun
-	 * ip_hdr
-	 * udp_dns
-	 *     udp_pkt
-	      !!data!!
-	 */
 	
 	GNUNET_CONTAINER_DLL_remove (mycls.answer_head, mycls.answer_tail, ans);
 	GNUNET_free(ans);
