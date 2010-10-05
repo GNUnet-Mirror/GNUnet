@@ -414,9 +414,19 @@ struct DHT_MessageContext
   const struct GNUNET_PeerIdentity *peer;
 
   /**
+   * Bloomfilter for this routing request.
+   */
+  struct GNUNET_CONTAINER_BloomFilter *bloom;
+
+  /**
    * The key this request was about
    */
   GNUNET_HashCode key;
+
+  /**
+   * How long should we wait to transmit this request?
+   */
+  struct GNUNET_TIME_Relative timeout;
 
   /**
    * The unique identifier of this request
@@ -449,16 +459,6 @@ struct DHT_MessageContext
    * How important is this message?
    */
   unsigned int importance;
-
-  /**
-   * How long should we wait to transmit this request?
-   */
-  struct GNUNET_TIME_Relative timeout;
-
-  /**
-   * Bloomfilter for this routing request.
-   */
-  struct GNUNET_CONTAINER_BloomFilter *bloom;
 
   /**
    * Did we forward this message? (may need to remember it!)
@@ -1633,13 +1633,11 @@ find_closest_peer (const GNUNET_HashCode *hc)
  * Called both for locally initiated requests and those
  * received from other peers.
  *
- * @param cls DHT service closure argument (unused)
  * @param msg the encapsulated message
  * @param peer the peer to forward the message to
  * @param msg_ctx the context of the message (hop count, bloom, etc.)
  */
-static void forward_message (void *cls,
-                             const struct GNUNET_MessageHeader *msg,
+static void forward_message (const struct GNUNET_MessageHeader *msg,
                              struct PeerInfo *peer,
                              struct DHT_MessageContext *msg_ctx)
 {
@@ -1705,7 +1703,7 @@ periodic_ping_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #if DEBUG_PING
   GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s Sending periodic ping to %s\n", my_short_id, "DHT", GNUNET_i2s(&peer->id));
 #endif
-  forward_message(NULL, &ping_message, peer, &message_context);
+  forward_message(&ping_message, peer, &message_context);
   peer->ping_task = GNUNET_SCHEDULER_add_delayed(sched, DHT_DEFAULT_PING_DELAY, &periodic_ping_task, peer);
 }
 
@@ -2156,6 +2154,18 @@ datacache_get_iterator (void *cls,
 
 
 /**
+ * Main function that handles whether or not to route a message to other
+ * peers.
+ *
+ * @param msg the message to be routed
+ * @param message_context the context containing all pertinent information about the message
+ */
+static void
+route_message2(const struct GNUNET_MessageHeader *msg,
+	       struct DHT_MessageContext *message_context);
+
+
+/**
  * Server handler for all dht get requests, look for data,
  * if found, send response either to clients or other peers.
  *
@@ -2279,6 +2289,7 @@ handle_dht_get (void *cls,
       }
 #endif
     }
+  route_message2 (msg, message_context);
   GNUNET_CONTAINER_bloomfilter_free (bf);
   return results;
 }
@@ -2287,10 +2298,9 @@ static void
 remove_recent_find_peer(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_HashCode *key = cls;
-  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(recent_find_peer_requests, key, key))
-    {
-      GNUNET_free(key);
-    }
+  
+  GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(recent_find_peer_requests, key, key));
+  GNUNET_free (key);
 }
 
 /**
@@ -2340,10 +2350,14 @@ handle_dht_find_peer (void *cls,
           increment_stats(STAT_HELLOS_PROVIDED);
           GNUNET_TRANSPORT_offer_hello(transport_handle, other_hello);
           GNUNET_CORE_peer_request_connect(sched, cfg, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5), &peer_id, NULL, NULL);
+	  route_message2 (find_msg, message_context);
           return;
         }
       else /* We don't want this peer! */
-        return;
+	{
+	  route_message2 (find_msg, message_context);
+	  return;
+	}
 #endif
     }
 
@@ -2361,7 +2375,8 @@ handle_dht_find_peer (void *cls,
                 "`%s': Our HELLO is null, can't return.\n",
                 "DHT");
 #endif
-    GNUNET_free_non_null(other_hello);
+    GNUNET_free_non_null (other_hello);
+    route_message2 (find_msg, message_context);
     return;
   }
 
@@ -2371,6 +2386,7 @@ handle_dht_find_peer (void *cls,
       increment_stats(STAT_BLOOM_FIND_PEER);
       GNUNET_CONTAINER_bloomfilter_free(incoming_bloom);
       GNUNET_free_non_null(other_hello);
+      route_message2 (find_msg, message_context);
       return; /* We match the bloomfilter, do not send a response to this peer (they likely already know us!)*/
     }
   GNUNET_CONTAINER_bloomfilter_free(incoming_bloom);
@@ -2400,14 +2416,18 @@ handle_dht_find_peer (void *cls,
     {
       increment_stats("# dht find peer requests ignored (do not need!)");
       GNUNET_free_non_null(other_hello);
+      route_message2 (find_msg, message_context);
       return;
     }
 #endif
 
   recent_hash = GNUNET_malloc(sizeof(GNUNET_HashCode));
   memcpy(recent_hash, &message_context->key, sizeof(GNUNET_HashCode));
-  GNUNET_CONTAINER_multihashmap_put (recent_find_peer_requests, &message_context->key, NULL, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-  GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30), &remove_recent_find_peer, &recent_hash);
+  GNUNET_CONTAINER_multihashmap_put (recent_find_peer_requests, 
+				     &message_context->key, NULL, 
+				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30), 
+				&remove_recent_find_peer, recent_hash);
 
   /* Simplistic find_peer functionality, always return our hello */
   hello_size = ntohs(my_hello->size);
@@ -2449,6 +2469,7 @@ handle_dht_find_peer (void *cls,
 #endif
   GNUNET_free_non_null(other_hello);
   GNUNET_free(find_peer_result);
+  route_message2 (find_msg, message_context);
 }
 
 /**
@@ -2546,6 +2567,7 @@ handle_dht_put (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "`%s:%s': %s request received, but have no datacache!\n",
                 my_short_id, "DHT", "PUT");
+  route_message2 (msg, message_context);
 }
 
 /**
@@ -3300,19 +3322,14 @@ static int cache_response(void *cls, struct DHT_MessageContext *msg_ctx)
  * Main function that handles whether or not to route a message to other
  * peers.
  *
- * @param cls closure for dht service (NULL)
  * @param msg the message to be routed
  * @param message_context the context containing all pertinent information about the message
- *
- * @return the number of peers the message was routed to,
- *         GNUNET_SYSERR on failure
  */
-static int route_message(void *cls,
-                         const struct GNUNET_MessageHeader *msg,
-                         struct DHT_MessageContext *message_context)
+static void
+route_message2(const struct GNUNET_MessageHeader *msg,
+	       struct DHT_MessageContext *message_context)
 {
   int i;
-  int global_closest;
   struct PeerInfo *selected;
 #if DEBUG_DHT_ROUTING > 1
   struct PeerInfo *nearest;
@@ -3339,15 +3356,13 @@ static int route_message(void *cls,
 #endif
       if (message_context->bloom != NULL)
         GNUNET_CONTAINER_bloomfilter_free(message_context->bloom);
-      return 0;
+      return;
     }
 
   increment_stats(STAT_ROUTES);
   /* Semantics of this call means we find whether we are the closest peer out of those already
    * routed to on this messages path.
    */
-  global_closest = am_closest_peer(&message_context->key, NULL);
-  message_context->closest = am_closest_peer(&message_context->key, message_context->bloom);
   forward_count = get_forward_count(message_context->hop_count, message_context->replication);
   GNUNET_asprintf(&stat_forward_count, "# forward counts of %d", forward_count);
   increment_stats(stat_forward_count);
@@ -3355,7 +3370,7 @@ static int route_message(void *cls,
   if (message_context->bloom == NULL)
     message_context->bloom = GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
 
-  if ((stop_on_closest == GNUNET_YES) && (global_closest == GNUNET_YES) && (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DHT_PUT))
+  if ((stop_on_closest == GNUNET_YES) && (message_context->closest == GNUNET_YES) && (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DHT_PUT))
     forward_count = 0;
 
   /**
@@ -3373,7 +3388,7 @@ static int route_message(void *cls,
    * testing driver) we will ignore this restriction for FIND_PEER messages so that
    * routing tables still get constructed.
    */
-  if ((GNUNET_YES == strict_kademlia) && (global_closest == GNUNET_YES) && (message_context->hop_count > 0) && (ntohs(msg->type) != GNUNET_MESSAGE_TYPE_DHT_FIND_PEER))
+  if ((GNUNET_YES == strict_kademlia) && (message_context->closest == GNUNET_YES) && (message_context->hop_count > 0) && (ntohs(msg->type) != GNUNET_MESSAGE_TYPE_DHT_FIND_PEER))
     forward_count = 0;
 
 #if DEBUG_DHT_ROUTING
@@ -3391,43 +3406,6 @@ static int route_message(void *cls,
     }
 #endif
 
-  switch (ntohs(msg->type))
-    {
-    case GNUNET_MESSAGE_TYPE_DHT_GET: /* Add to hashmap of requests seen, search for data (always) */
-      cache_response (cls, message_context);
-      if ((handle_dht_get (cls, msg, message_context) > 0) && (stop_on_found == GNUNET_YES))
-        forward_count = 0;
-      break;
-    case GNUNET_MESSAGE_TYPE_DHT_PUT: /* Check if closest, if so insert data. FIXME: thresholding to reduce complexity?*/
-      increment_stats(STAT_PUTS);
-      message_context->closest = global_closest;
-      handle_dht_put (cls, msg, message_context);
-      break;
-    case GNUNET_MESSAGE_TYPE_DHT_FIND_PEER: /* Check if closest and not started by us, check options, add to requests seen */
-      increment_stats(STAT_FIND_PEER);
-      if (((message_context->hop_count > 0) && (0 != memcmp(message_context->peer, &my_identity, sizeof(struct GNUNET_PeerIdentity)))) || (message_context->client != NULL))
-      {
-        cache_response (cls, message_context);
-        if ((message_context->closest == GNUNET_YES) || (message_context->msg_options == GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE))
-          handle_dht_find_peer (cls, msg, message_context);
-      }
-#if DEBUG_DHT_ROUTING
-      if (message_context->hop_count == 0) /* Locally initiated request */
-        {
-          if ((debug_routes) && (dhtlog_handle != NULL))
-            {
-              dhtlog_handle->insert_dhtkey(NULL, &message_context->key);
-              dhtlog_handle->insert_query (NULL, message_context->unique_id, DHTLOG_FIND_PEER,
-                                           message_context->hop_count, GNUNET_NO, &my_identity,
-                                           &message_context->key);
-            }
-        }
-#endif
-      break;
-    default:
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "`%s': Message type (%d) not handled\n", "DHT", ntohs(msg->type));
-    }
 
   GNUNET_CONTAINER_bloomfilter_add (message_context->bloom, &my_identity.hashPubKey);
   hash_from_uid (message_context->unique_id, &unique_hash);
@@ -3495,7 +3473,7 @@ static int route_message(void *cls,
                                            &selected->id);
             }
 #endif
-          forward_message(cls, msg, selected, message_context);
+          forward_message(msg, selected, message_context);
         }
     }
 
@@ -3504,9 +3482,64 @@ static int route_message(void *cls,
       GNUNET_CONTAINER_bloomfilter_or2(recent_req->bloom, message_context->bloom, DHT_BLOOM_SIZE);
       GNUNET_CONTAINER_bloomfilter_free(message_context->bloom);
     }
-
-  return forward_count;
 }
+
+
+
+/**
+ * Main function that handles whether or not to route a message to other
+ * peers.
+ *
+ * @param cls closure for dht service (NULL)
+ * @param msg the message to be routed
+ * @param message_context the context containing all pertinent information about the message
+ */
+static void
+route_message(void *cls,
+	      const struct GNUNET_MessageHeader *msg,
+	      struct DHT_MessageContext *message_context)
+{
+  message_context->closest = am_closest_peer(&message_context->key, NULL); 
+  switch (ntohs(msg->type))
+    {
+    case GNUNET_MESSAGE_TYPE_DHT_GET: /* Add to hashmap of requests seen, search for data (always) */
+      cache_response (cls, message_context);
+      handle_dht_get (cls, msg, message_context);
+      break;
+    case GNUNET_MESSAGE_TYPE_DHT_PUT: /* Check if closest, if so insert data. FIXME: thresholding to reduce complexity?*/
+      increment_stats(STAT_PUTS);
+      handle_dht_put (cls, msg, message_context);
+      break;
+    case GNUNET_MESSAGE_TYPE_DHT_FIND_PEER: /* Check if closest and not started by us, check options, add to requests seen */
+      increment_stats(STAT_FIND_PEER);
+      if (((message_context->hop_count > 0) && (0 != memcmp(message_context->peer, &my_identity, sizeof(struct GNUNET_PeerIdentity)))) || (message_context->client != NULL))
+      {
+        cache_response (cls, message_context);
+        if ((message_context->closest == GNUNET_YES) || (message_context->msg_options == GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE))
+          handle_dht_find_peer (cls, msg, message_context);
+      }
+#if DEBUG_DHT_ROUTING
+      if (message_context->hop_count == 0) /* Locally initiated request */
+        {
+          if ((debug_routes) && (dhtlog_handle != NULL))
+            {
+              dhtlog_handle->insert_dhtkey(NULL, &message_context->key);
+              dhtlog_handle->insert_query (NULL, message_context->unique_id, DHTLOG_FIND_PEER,
+                                           message_context->hop_count, GNUNET_NO, &my_identity,
+                                           &message_context->key);
+            }
+        }
+#endif
+      break;
+    default:
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "`%s': Message type (%d) not handled\n", "DHT", ntohs(msg->type));
+      route_message (cls, msg, message_context);
+    }
+}
+
+
+
 
 /**
  * Iterator for local get request results,
@@ -3823,7 +3856,6 @@ send_find_peer_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
 {
   struct GNUNET_DHT_FindPeerMessage *find_peer_msg;
   struct DHT_MessageContext message_context;
-  int ret;
   struct GNUNET_TIME_Relative next_send_time;
   struct GNUNET_CONTAINER_BloomFilter *temp_bloom;
 #if COUNT_INTERVAL
@@ -3884,11 +3916,11 @@ send_find_peer_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   message_context.importance = DHT_DEFAULT_FIND_PEER_IMPORTANCE;
   message_context.timeout = DHT_DEFAULT_FIND_PEER_TIMEOUT;
 
-  ret = route_message(NULL, &find_peer_msg->header, &message_context);
+  route_message(NULL, &find_peer_msg->header, &message_context);
   GNUNET_free(find_peer_msg);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s:%s': Sent `%s' request to %d peers\n", my_short_id, "DHT",
-              "FIND PEER", ret);
+              "`%s:%s': Sent `%s' request to some (?) peers\n", my_short_id, "DHT",
+              "FIND PEER");
   if (newly_found_peers < bucket_size)
     {
       next_send_time.value = (DHT_MAXIMUM_FIND_PEER_INTERVAL.value / 2) +
@@ -4651,10 +4683,14 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc,
-                              argv,
-                              "dht",
-                              GNUNET_SERVICE_OPTION_NONE,
-                              &run, NULL)) ? 0 : 1;
+  int ret;
+
+  ret = (GNUNET_OK ==
+	 GNUNET_SERVICE_run (argc,
+			     argv,
+			     "dht",
+			     GNUNET_SERVICE_OPTION_NONE,
+			     &run, NULL)) ? 0 : 1;
+  GNUNET_CONTAINER_multihashmap_destroy (recent_find_peer_requests);
+  return ret;
 }

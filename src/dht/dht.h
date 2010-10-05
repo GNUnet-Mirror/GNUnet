@@ -447,7 +447,7 @@ struct GNUNET_DHT_FindPeerMessage
    */
   struct GNUNET_MessageHeader header;
 
-  /*
+  /**
    * Bloomfilter to reduce find peer responses
    */
   char bloomfilter[DHT_BLOOM_SIZE];

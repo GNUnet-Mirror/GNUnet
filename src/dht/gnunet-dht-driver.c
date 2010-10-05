@@ -1644,14 +1644,15 @@ get_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
  * @param size number of bytes in data
  * @param data pointer to the result data
  */
-void get_result_iterator (void *cls,
-                          struct GNUNET_TIME_Absolute exp,
-                          const GNUNET_HashCode * key,
-                          const struct GNUNET_PeerIdentity * const *get_path,
-			  const struct GNUNET_PeerIdentity * const *put_path,
-			  enum GNUNET_BLOCK_Type type,
-                          uint32_t size,
-                          const void *data)
+static void 
+get_result_iterator (void *cls,
+		     struct GNUNET_TIME_Absolute exp,
+		     const GNUNET_HashCode * key,
+		     const struct GNUNET_PeerIdentity * const *get_path,
+		     const struct GNUNET_PeerIdentity * const *put_path,
+		     enum GNUNET_BLOCK_Type type,
+		     size_t size,
+		     const void *data)
 {
   struct TestGetContext *test_get = cls;
 

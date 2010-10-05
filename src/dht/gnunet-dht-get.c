@@ -130,7 +130,9 @@ get_result_iterator (void *cls,
 		     size_t size, 
 		     const void *data)
 {
-  fprintf (stdout, "Result %d, type %d:\n%.*s\n", result_count, type, size,
+  fprintf (stdout, "Result %d, type %d:\n%.*s\n",
+	   result_count, type, 
+	   (unsigned int) size,
            (char *) data);
   result_count++;
 }
