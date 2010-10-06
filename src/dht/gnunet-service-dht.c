@@ -2505,11 +2505,18 @@ handle_dht_find_peer (void *cls,
 
   recent_hash = GNUNET_malloc(sizeof(GNUNET_HashCode));
   memcpy(recent_hash, &message_context->key, sizeof(GNUNET_HashCode));
-  GNUNET_CONTAINER_multihashmap_put (recent_find_peer_requests, 
+  if (GNUNET_SYSERR != GNUNET_CONTAINER_multihashmap_put (recent_find_peer_requests,
 				     &message_context->key, NULL, 
-				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-  GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30), 
-				&remove_recent_find_peer, recent_hash);
+				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+    {
+      /* Only add a task if there wasn't one for this key already! */
+      GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30),
+                                    &remove_recent_find_peer, recent_hash);
+    }
+  else
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received duplicate find peer request too soon!\n");
+    }
 
   /* Simplistic find_peer functionality, always return our hello */
   hello_size = ntohs(my_hello->size);
