@@ -104,7 +104,7 @@ block_plugin_dht_get_key (void *cls,
 		       "block-dht",
 		       _("Block not of type %u\n"),
 		       GNUNET_BLOCK_TYPE_DHT_HELLO);
-      return GNUNET_SYSERR;
+      return GNUNET_NO;
     }
   msg = block;
   if (block_size != ntohs (msg->size))
@@ -113,7 +113,7 @@ block_plugin_dht_get_key (void *cls,
 		       "block-dht",
 		       _("Size mismatch for block\n"),
 		       GNUNET_BLOCK_TYPE_DHT_HELLO);
-      return GNUNET_SYSERR;
+      return GNUNET_NO;
     }
   hello = block;
   pid = (struct GNUNET_PeerIdentity*) key;
@@ -125,7 +125,7 @@ block_plugin_dht_get_key (void *cls,
 		       "block-dht",
 		       _("Block of type %u is malformed\n"),
 		       GNUNET_BLOCK_TYPE_DHT_HELLO);
-      return GNUNET_SYSERR;
+      return GNUNET_NO;
     }
   return GNUNET_OK;
 }

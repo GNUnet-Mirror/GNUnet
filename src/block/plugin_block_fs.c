@@ -194,7 +194,7 @@ block_plugin_fs_get_key (void *cls,
       if (block_size < sizeof (struct KBlock))
 	{
 	  GNUNET_break_op (0);
-	  return GNUNET_SYSERR;
+	  return GNUNET_NO;
 	}
       kb = block;
       if (block_size - sizeof (struct KBlock) !=
@@ -203,7 +203,7 @@ block_plugin_fs_get_key (void *cls,
 	  - sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) ) 
 	{
 	  GNUNET_break_op (0);
-	  return GNUNET_SYSERR;
+	  return GNUNET_NO;
 	}
       if (GNUNET_OK !=
 	  GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_FS_KBLOCK,
@@ -212,7 +212,7 @@ block_plugin_fs_get_key (void *cls,
 				    &kb->keyspace)) 
 	{
 	  GNUNET_break_op (0);
-	  return GNUNET_SYSERR;
+	  return GNUNET_NO;
 	}
       if (key != NULL)
 	GNUNET_CRYPTO_hash (&kb->keyspace,
@@ -223,14 +223,14 @@ block_plugin_fs_get_key (void *cls,
       if (block_size < sizeof (struct SBlock))
 	{
 	  GNUNET_break_op (0);
-	  return GNUNET_SYSERR;
+	  return GNUNET_NO;
 	}
       sb = block;
       if (block_size !=
 	  ntohl (sb->purpose.size) + sizeof (struct GNUNET_CRYPTO_RsaSignature))
 	{
 	  GNUNET_break_op (0);
-	  return GNUNET_SYSERR;
+	  return GNUNET_NO;
 	}
       if (GNUNET_OK !=
 	  GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_FS_SBLOCK,
@@ -239,7 +239,7 @@ block_plugin_fs_get_key (void *cls,
 				    &sb->subspace)) 
 	{
 	  GNUNET_break_op (0);
-	  return GNUNET_SYSERR;
+	  return GNUNET_NO;
 	}
       if (key != NULL)
 	*key = sb->identifier;
@@ -248,7 +248,7 @@ block_plugin_fs_get_key (void *cls,
       if (block_size < sizeof (struct NBlock))
 	{
 	  GNUNET_break_op (0);
-	  return GNUNET_SYSERR;
+	  return GNUNET_NO;
 	}
       nb = block;
       if (block_size - sizeof (struct NBlock) !=
@@ -257,13 +257,13 @@ block_plugin_fs_get_key (void *cls,
 	  - sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) ) 
 	{
 	  GNUNET_break_op (0);
-	  return GNUNET_SYSERR;
+	  return GNUNET_NO;
 	}
       if (block_size !=
 	  ntohl (nb->ksk_purpose.size) + sizeof (struct GNUNET_CRYPTO_RsaSignature))
 	{
 	  GNUNET_break_op (0);
-	  return GNUNET_SYSERR;
+	  return GNUNET_NO;
 	}
       if (GNUNET_OK !=
 	  GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_FS_NBLOCK_KSIG,
@@ -272,7 +272,7 @@ block_plugin_fs_get_key (void *cls,
 				    &nb->keyspace)) 
 	{
 	  GNUNET_break_op (0);
-	  return GNUNET_SYSERR;
+	  return GNUNET_NO;
 	}
       if (GNUNET_OK !=
 	  GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_FS_NBLOCK,
@@ -281,7 +281,7 @@ block_plugin_fs_get_key (void *cls,
 				    &nb->subspace)) 
 	{
 	  GNUNET_break_op (0);
-	  return GNUNET_SYSERR;
+	  return GNUNET_NO;
 	}
       /* FIXME: we used to xor ID with NSID,
 	 why not here? */
