@@ -2187,10 +2187,22 @@ datacache_get_iterator (void *cls,
       GNUNET_free (get_result);
       break;
     case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
+#if DEBUG_DHT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "`%s:%s': Duplicate block error\n", my_short_id, "DHT");
+#endif
       break;
     case GNUNET_BLOCK_EVALUATION_RESULT_INVALID:
+#if DEBUG_DHT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "`%s:%s': Invalid request error\n", my_short_id, "DHT");
+#endif
       break;
     case GNUNET_BLOCK_EVALUATION_REQUEST_VALID:
+#if DEBUG_DHT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "`%s:%s': Valid request, no results.\n", my_short_id, "DHT");
+#endif
       GNUNET_break (0);
       break;
     case GNUNET_BLOCK_EVALUATION_REQUEST_INVALID:
@@ -2198,6 +2210,10 @@ datacache_get_iterator (void *cls,
       msg_ctx->do_forward = GNUNET_NO;
       break;
     case GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED:
+#if DEBUG_DHT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "`%s:%s': Unsupported block type (%u) in response!\n", my_short_id, "DHT", type);
+#endif
       /* msg_ctx->do_forward = GNUNET_NO;  // not sure... */
       break;
     }  
@@ -2280,7 +2296,7 @@ handle_dht_get (void *cls,
               "`%s:%s': Received `%s' request, message type %u, key %s, uid %llu\n",
 	      my_short_id,
               "DHT", "GET", 
-	      get_type,
+	      type,
 	      GNUNET_h2s (&message_context->key),
               message_context->unique_id);
 #endif
@@ -3841,7 +3857,7 @@ malicious_put_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     dhtlog_handle->insert_dhtkey(NULL, &key);
 #endif
   increment_stats(STAT_PUT_START);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s:%s Sending malicious PUT message with hash %s", my_short_id, "DHT", GNUNET_h2s(&key));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s:%s Sending malicious PUT message with hash %s\n", my_short_id, "DHT", GNUNET_h2s(&key));
   route_message(NULL, &put_message.header, &message_context);
   GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, malicious_put_frequency), &malicious_put_task, NULL);
 
@@ -3884,7 +3900,7 @@ malicious_get_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     dhtlog_handle->insert_dhtkey(NULL, &key);
 #endif
   increment_stats(STAT_GET_START);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s:%s Sending malicious GET message with hash %s", my_short_id, "DHT", GNUNET_h2s(&key));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s:%s Sending malicious GET message with hash %s\n", my_short_id, "DHT", GNUNET_h2s(&key));
   route_message (NULL, &get_message.header, &message_context);
   GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, malicious_get_frequency), &malicious_get_task, NULL);
 }

@@ -27,7 +27,7 @@
 #ifndef DHT_H_
 #define DHT_H_
 
-#define DEBUG_DHT GNUNET_NO
+#define DEBUG_DHT GNUNET_YES
 
 /**
  * Needs to be GNUNET_YES for logging to dhtlog to work!
