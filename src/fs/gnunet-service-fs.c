@@ -445,6 +445,11 @@ struct PendingRequest
   struct GNUNET_CORE_InformationRequestContext *irc;
 
   /**
+   * Reference to DHT get operation for this request (or NULL).
+   */
+  struct GNUNET_DHT_GetHandle *dht_get;
+
+  /**
    * Hash code of all replies that we have seen so far (only valid
    * if client is not NULL since we only track replies like this for
    * our own clients).
@@ -1023,7 +1028,7 @@ consider_migration_gathering ()
 static void
 process_migration_content (void *cls,
 			   const GNUNET_HashCode * key,
-			   uint32_t size,
+			   size_t size,
 			   const void *data,
 			   enum GNUNET_BLOCK_Type type,
 			   uint32_t priority,
@@ -1193,6 +1198,11 @@ destroy_pending_request (struct PendingRequest *pr)
      {
       GNUNET_DATASTORE_cancel (pr->qe);
       pr->qe = NULL;
+    }
+  if (pr->dht_get != NULL)
+    {
+      GNUNET_DHT_get_stop (pr->dht_get);
+      pr->dht_get = NULL;
     }
   if (pr->client_request_list != NULL)
     {
@@ -2338,6 +2348,32 @@ bound_ttl (int32_t ttl_in, uint32_t prio)
 
 
 /**
+ * Iterator called on each result obtained for a DHT
+ * operation that expects a reply
+ *
+ * @param cls closure
+ * @param exp when will this value expire
+ * @param key key of the result
+ * @param get_path NULL-terminated array of pointers
+ *                 to the peers on reverse GET path (or NULL if not recorded)
+ * @param put_path NULL-terminated array of pointers
+ *                 to the peers on the PUT path (or NULL if not recorded)
+ * @param type type of the result
+ * @param size number of bytes in data
+ * @param data pointer to the result data
+ */
+static void
+process_dht_reply (void *cls,
+		   struct GNUNET_TIME_Absolute exp,
+		   const GNUNET_HashCode * key,
+		   const struct GNUNET_PeerIdentity * const *get_path,
+		   const struct GNUNET_PeerIdentity * const *put_path,
+		   enum GNUNET_BLOCK_Type type,
+		   size_t size,
+		   const void *data);
+
+
+/**
  * We're processing a GET request and have decided
  * to forward it to other peers.  This function is called periodically
  * and should forward the request to other peers until we have all
@@ -2371,19 +2407,21 @@ forward_request_task (void *cls,
   if (GNUNET_YES == pr->local_only)
     return; /* configured to not do P2P search */
   /* (0) try DHT */
-  if (0 == pr->anonymity_level)
+  if ( (0 == pr->anonymity_level) &&
+       (pr->type != GNUNET_BLOCK_TYPE_FS_DBLOCK) &&
+       (pr->type != GNUNET_BLOCK_TYPE_FS_IBLOCK) )
     {
-#if 0      
-      /* DHT API needs fixing... */
       pr->dht_get = GNUNET_DHT_get_start (dht_handle,
 					  GNUNET_TIME_UNIT_FOREVER_REL,
 					  pr->type,
 					  &pr->query,
+					  GNUNET_DHT_RO_NONE,
+					  pr->bf,
+					  pr->mingle,
+					  pr->namespace,
+					  (pr->namespace != NULL) ? sizeof (GNUNET_HashCode) : 0,
 					  &process_dht_reply,
-					  pr,
-					  FIXME,
-					  FIXME);
-#endif					  
+					  pr);
     }
   /* (1) select target */
   psc.pr = pr;
@@ -2549,7 +2587,7 @@ struct ProcessReplyClosure
   const void *data;
 
   /**
-   * Who gave us this reply? NULL for local host.
+   * Who gave us this reply? NULL for local host (or DHT)
    */
   struct ConnectedPeer *sender;
 
@@ -2813,6 +2851,44 @@ process_reply (void *cls,
     }
   return GNUNET_YES;
 }
+
+
+/**
+ * Iterator called on each result obtained for a DHT
+ * operation that expects a reply
+ *
+ * @param cls closure
+ * @param exp when will this value expire
+ * @param key key of the result
+ * @param get_path NULL-terminated array of pointers
+ *                 to the peers on reverse GET path (or NULL if not recorded)
+ * @param put_path NULL-terminated array of pointers
+ *                 to the peers on the PUT path (or NULL if not recorded)
+ * @param type type of the result
+ * @param size number of bytes in data
+ * @param data pointer to the result data
+ */
+static void
+process_dht_reply (void *cls,
+		   struct GNUNET_TIME_Absolute exp,
+		   const GNUNET_HashCode * key,
+		   const struct GNUNET_PeerIdentity * const *get_path,
+		   const struct GNUNET_PeerIdentity * const *put_path,
+		   enum GNUNET_BLOCK_Type type,
+		   size_t size,
+		   const void *data)
+{
+  struct PendingRequest *pr = cls;
+  struct ProcessReplyClosure prq;
+
+  memset (&prq, 0, sizeof (prq));
+  prq.data = data;
+  prq.expiration = exp;
+  prq.size = size;  
+  prq.type = type;
+  process_reply (&prq, key, pr);
+}
+
 
 
 /**
@@ -3093,7 +3169,7 @@ check_duplicate_request_client (void *cls,
 static void
 process_local_reply (void *cls,
 		     const GNUNET_HashCode * key,
-		     uint32_t size,
+		     size_t size,
 		     const void *data,
 		     enum GNUNET_BLOCK_Type type,
 		     uint32_t priority,
