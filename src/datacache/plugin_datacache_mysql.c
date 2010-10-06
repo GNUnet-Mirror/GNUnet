@@ -479,7 +479,7 @@ init_params (struct Plugin *plugin,
   memset (qbind, 0, sizeof (qbind));
   off = 0;
   ft = 0;
-  while ((pc > 0) && (-1 != (ft = va_arg (ap, enum enum_field_types))))
+  while ( (pc > 0) && (-1 != (int) (ft = va_arg (ap, enum enum_field_types))) )
     {
       qbind[off].buffer_type = ft;
       switch (ft)
@@ -510,7 +510,7 @@ init_params (struct Plugin *plugin,
       pc--;
       off++;
     }
-  if (!((pc == 0) && (ft != -1) && (va_arg (ap, int) == -1)))
+  if (! ( (pc == 0) && (-1 != (int) ft) && (va_arg (ap, int) == -1)) )
     {
       GNUNET_break (0);
       return GNUNET_SYSERR;

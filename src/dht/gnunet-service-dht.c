@@ -3849,7 +3849,6 @@ malicious_put_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   put_message.type = htonl(GNUNET_BLOCK_DHT_MALICIOUS_MESSAGE_TYPE);
   put_message.expiration = GNUNET_TIME_absolute_hton(GNUNET_TIME_absolute_get_forever());
   memset(&message_context, 0, sizeof(struct DHT_MessageContext));
-  message_context.client = NULL;
   random_key = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, (uint32_t)-1);
   GNUNET_CRYPTO_hash(&random_key, sizeof(uint32_t), &key);
   memcpy(&message_context.key, &key, sizeof(GNUNET_HashCode));
