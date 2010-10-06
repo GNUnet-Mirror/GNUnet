@@ -698,8 +698,9 @@ free_meter(struct ProgressMeter *meter)
 /**
  * Check whether peers successfully shut down.
  */
-void shutdown_callback (void *cls,
-                        const char *emsg)
+static void 
+shutdown_callback (void *cls,
+		   const char *emsg)
 {
   if (emsg != NULL)
     {
@@ -780,12 +781,13 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 /**
  * Callback for iterating over all the peer connections of a peer group.
  */
-void log_topology_cb (void *cls,
-                      const struct GNUNET_PeerIdentity *first,
-                      const struct GNUNET_PeerIdentity *second,
-                      struct GNUNET_TIME_Relative latency,
-                      uint32_t distance,
-                      const char *emsg)
+static void 
+log_topology_cb (void *cls,
+		 const struct GNUNET_PeerIdentity *first,
+		 const struct GNUNET_PeerIdentity *second,
+		 struct GNUNET_TIME_Relative latency,
+		 uint32_t distance,
+		 const char *emsg)
 {
   struct TopologyIteratorContext *topo_ctx = cls;
   if ((first != NULL) && (second != NULL))
@@ -840,7 +842,8 @@ static int stats_iterate (void *cls,
   return GNUNET_YES;
 }
 
-static void stats_finished (void *cls, int result)
+static void 
+stats_finished (void *cls, int result)
 {
   fprintf(stderr, "Finished getting all peers statistics, iterating!\n");
   GNUNET_CONTAINER_multihashmap_iterate(stats_map, &stats_iterate, NULL);
@@ -1206,12 +1209,13 @@ schedule_churn_find_peer_requests (void *cls, const struct GNUNET_SCHEDULER_Task
  * Used after we have churned on some peers to find which ones have zero
  * connections so we can make them issue find peer requests.
  */
-void count_peers_churn_cb (void *cls,
-                           const struct GNUNET_PeerIdentity *first,
-                           const struct GNUNET_PeerIdentity *second,
-                           struct GNUNET_TIME_Relative latency,
-                           uint32_t distance,
-                           const char *emsg)
+static void 
+count_peers_churn_cb (void *cls,
+		      const struct GNUNET_PeerIdentity *first,
+		      const struct GNUNET_PeerIdentity *second,
+		      struct GNUNET_TIME_Relative latency,
+		      uint32_t distance,
+		      const char *emsg)
 {
   struct FindPeerContext *find_peer_context = cls;
   struct TopologyIteratorContext *topo_ctx;
@@ -1812,7 +1816,7 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 
   for (i = 0; i < sizeof(data); i++)
     {
-      memset(&data[i], GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, (uint32_t)-1), 1);
+      memset(&data[i], GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX), 1);
     }
 
   if (outstanding_puts > max_outstanding_puts)
@@ -1871,12 +1875,13 @@ static unsigned int connection_estimate(unsigned int peer_count, unsigned int bu
 /**
  * Callback for iterating over all the peer connections of a peer group.
  */
-void count_peers_cb (void *cls,
-                      const struct GNUNET_PeerIdentity *first,
-                      const struct GNUNET_PeerIdentity *second,
-                      struct GNUNET_TIME_Relative latency,
-                      uint32_t distance,
-                      const char *emsg)
+static void 
+count_peers_cb (void *cls,
+		const struct GNUNET_PeerIdentity *first,
+		const struct GNUNET_PeerIdentity *second,
+		struct GNUNET_TIME_Relative latency,
+		uint32_t distance,
+		const char *emsg)
 {
   struct FindPeerContext *find_peer_context = cls;
   if ((first != NULL) && (second != NULL))
@@ -2260,7 +2265,7 @@ setup_malicious_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc
  * The emsg variable is NULL on success (peers connected), and non-NULL on
  * failure (peers failed to connect).
  */
-void
+static void
 topology_callback (void *cls,
                    const struct GNUNET_PeerIdentity *first,
                    const struct GNUNET_PeerIdentity *second,
@@ -2363,7 +2368,7 @@ peers_started_callback (void *cls,
 #endif
       GNUNET_SCHEDULER_cancel (sched, die_task);
 
-      expected_connections = -1;
+      expected_connections = UINT_MAX;
       if ((pg != NULL) && (peers_left == 0))
         {
           expected_connections = GNUNET_TESTING_connect_topology (pg, connect_topology, connect_topology_option, connect_topology_option_modifier);
@@ -2419,10 +2424,11 @@ create_topology ()
  * @param d the daemon handle (pretty useless at this point, remove?)
  * @param emsg non-null on failure
  */
-void hostkey_callback (void *cls,
-                       const struct GNUNET_PeerIdentity *id,
-                       struct GNUNET_TESTING_Daemon *d,
-                       const char *emsg)
+static void 
+hostkey_callback (void *cls,
+		  const struct GNUNET_PeerIdentity *id,
+		  struct GNUNET_TESTING_Daemon *d,
+		  const char *emsg)
 {
   if (emsg != NULL)
     {
@@ -2959,7 +2965,7 @@ run (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Number of peers must be specified in section %s option %s\n", topology_str, "TESTING", "NUM_PEERS");
     }
-  GNUNET_assert(num_peers > 0 && num_peers < (unsigned long long)-1);
+  GNUNET_assert(num_peers > 0 && num_peers < ULONG_MAX);
   /* Set peers_left so we know when all peers started */
   peers_left = num_peers;
 
