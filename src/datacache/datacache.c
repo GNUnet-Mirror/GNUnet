@@ -100,7 +100,7 @@ struct GNUNET_DATACACHE_Handle
 static void 
 env_delete_notify (void *cls,
 		   const GNUNET_HashCode *key,
-		   uint32_t size)
+		   size_t size)
 {
   struct GNUNET_DATACACHE_Handle * h = cls;
   GNUNET_assert (h->utilization >= size);
@@ -237,7 +237,7 @@ void GNUNET_DATACACHE_destroy (struct GNUNET_DATACACHE_Handle *h)
 int 
 GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
 		      const GNUNET_HashCode * key,
-		      uint32_t size,
+		      size_t size,
 		      const char *data,
 		      enum GNUNET_BLOCK_Type type,
 		      struct GNUNET_TIME_Absolute discard_time)

@@ -765,7 +765,7 @@ struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
 		      int rid,
                       const GNUNET_HashCode * key,
-                      uint32_t size,
+                      size_t size,
                       const void *data,
                       enum GNUNET_BLOCK_Type type,
                       uint32_t priority,
@@ -801,7 +801,7 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
   dm->header.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_PUT);
   dm->header.size = htons(msize);
   dm->rid = htonl(rid);
-  dm->size = htonl(size);
+  dm->size = htonl( (uint32_t) size);
   dm->type = htonl(type);
   dm->priority = htonl(priority);
   dm->anonymity = htonl(anonymity);
@@ -1012,7 +1012,7 @@ GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h,
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
                          const GNUNET_HashCode *key,
-                         uint32_t size, 
+                         size_t size, 
 			 const void *data,
 			 unsigned int queue_priority,
 			 unsigned int max_queue_size,

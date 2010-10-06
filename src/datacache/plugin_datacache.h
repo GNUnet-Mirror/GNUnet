@@ -47,7 +47,7 @@ extern "C"
  */
 typedef void (*GNUNET_DATACACHE_DeleteNotifyCallback)(void *cls,
 						      const GNUNET_HashCode *key,
-						      uint32_t size);
+						      size_t size);
 
 
 /**
@@ -112,12 +112,12 @@ struct GNUNET_DATACACHE_PluginFunctions {
    * @param discard_time when to discard the value in any case
    * @return 0 on error, number of bytes used otherwise
    */
-  uint32_t (*put) (void *cls,
-		   const GNUNET_HashCode * key,
-		   uint32_t size,
-		   const char *data,
-		   enum GNUNET_BLOCK_Type type,
-		   struct GNUNET_TIME_Absolute discard_time);
+  size_t (*put) (void *cls,
+		 const GNUNET_HashCode * key,
+		 size_t size,
+		 const char *data,
+		 enum GNUNET_BLOCK_Type type,
+		 struct GNUNET_TIME_Absolute discard_time);
 
 
   /**

@@ -101,7 +101,7 @@ struct CpsRunContext
   int i;
 
   GNUNET_HashCode key;
-  uint32_t esize;
+  size_t esize;
   char data[65536];
 };
 
@@ -197,7 +197,7 @@ do_delete (void *cls,
 static void 
 delete_value (void *cls,
 	      const GNUNET_HashCode * key,
-	      uint32_t size,
+	      size_t size,
 	      const void *data,
 	      enum GNUNET_BLOCK_Type type,
 	      uint32_t priority,

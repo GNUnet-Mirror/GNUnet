@@ -153,7 +153,7 @@ struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
 		      int rid,
                       const GNUNET_HashCode * key,
-                      uint32_t size,
+                      size_t size,
                       const void *data,
                       enum GNUNET_BLOCK_Type type,
                       uint32_t priority,
@@ -250,7 +250,7 @@ GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h,
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
                          const GNUNET_HashCode *key,
-                         uint32_t size, 
+                         size_t size, 
 			 const void *data,
 			 unsigned int queue_priority,
 			 unsigned int max_queue_size,
@@ -275,7 +275,7 @@ GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
  */
 typedef void (*GNUNET_DATASTORE_Iterator) (void *cls,
 					   const GNUNET_HashCode * key,
-					   uint32_t size,
+					   size_t size,
 					   const void *data,
 					   enum GNUNET_BLOCK_Type type,
 					   uint32_t priority,
@@ -352,6 +352,7 @@ GNUNET_DATASTORE_get_random (struct GNUNET_DATASTORE_Handle *h,
 			     struct GNUNET_TIME_Relative timeout,
                              GNUNET_DATASTORE_Iterator iter, 
 			     void *iter_cls);
+
 
 /**
  * Cancel a datastore operation.  The final callback from the

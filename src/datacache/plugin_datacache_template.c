@@ -51,10 +51,10 @@ struct Plugin
  * @param discard_time when to discard the value in any case
  * @return 0 on error, number of bytes used otherwise
  */
-static uint32_t 
+static size_t 
 template_plugin_put (void *cls,
 		     const GNUNET_HashCode * key,
-		     uint32_t size,
+		     size_t size,
 		     const char *data,
 		     enum GNUNET_BLOCK_Type type,
 		     struct GNUNET_TIME_Absolute discard_time)

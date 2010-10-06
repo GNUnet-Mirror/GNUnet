@@ -2140,7 +2140,7 @@ static int
 datacache_get_iterator (void *cls,
                         struct GNUNET_TIME_Absolute exp,
                         const GNUNET_HashCode * key,
-                        uint32_t size, const char *data, 
+                        size_t size, const char *data, 
 			enum GNUNET_BLOCK_Type type)
 {
   struct DHT_MessageContext *msg_ctx = cls;
@@ -2584,24 +2584,50 @@ handle_dht_put (void *cls,
 		const struct GNUNET_MessageHeader *msg,
                 struct DHT_MessageContext *message_context)
 {
-  struct GNUNET_DHT_PutMessage *put_msg;
+  const struct GNUNET_DHT_PutMessage *put_msg;
   enum GNUNET_BLOCK_Type put_type;
   size_t data_size;
   int ret;
   struct RepublishContext *put_context;
+  GNUNET_HashCode key;
 
   GNUNET_assert (ntohs (msg->size) >=
                  sizeof (struct GNUNET_DHT_PutMessage));
 
 
-  put_msg = (struct GNUNET_DHT_PutMessage *)msg;
+  put_msg = (const struct GNUNET_DHT_PutMessage *)msg;
   put_type = (enum GNUNET_BLOCK_Type) ntohl (put_msg->type);
 
   if (put_type == GNUNET_BLOCK_DHT_MALICIOUS_MESSAGE_TYPE)
     return;
-
   data_size = ntohs (put_msg->header.size) - sizeof (struct GNUNET_DHT_PutMessage);
-
+  ret = GNUNET_BLOCK_get_key (block_context,
+			      put_type,
+			      &put_msg[1],
+			      data_size,
+			      &key);
+  if (GNUNET_NO == ret)
+    {
+      /* invalid reply */
+      GNUNET_break_op (0);
+      return;
+    }
+  if ( (GNUNET_YES == ret) &&
+       (0 != memcmp (&key,
+		     &message_context->key,
+		     sizeof (GNUNET_HashCode))) )
+    {
+      /* invalid wrapper: key mismatch! */
+      GNUNET_break_op (0);
+      return;
+    }
+  /* ret == GNUNET_SYSERR means that there is no known relationship between
+     data and the key, so we cannot check it */
+#if DEBUG_DHT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "`%s:%s': Received `%s' request (inserting data!), message type %d, key %s, uid %llu\n",
+              my_short_id, "DHT", "PUT", put_type, GNUNET_h2s (&message_context->key), message_context->unique_id);
+#endif
 #if DEBUG_DHT_ROUTING
   if (message_context->hop_count == 0) /* Locally initiated request */
     {
@@ -3655,7 +3681,7 @@ static int
 republish_content_iterator (void *cls,
                             struct GNUNET_TIME_Absolute exp,
                             const GNUNET_HashCode * key,
-                            uint32_t size, const char *data, uint32_t type)
+                            size_t size, const char *data, uint32_t type)
 {
 
   struct DHT_MessageContext *new_msg_ctx;
