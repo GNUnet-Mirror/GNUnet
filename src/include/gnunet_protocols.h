@@ -434,27 +434,32 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_DATASTORE_GET_RANDOM 98
 
 /**
+ * Message sent by datastore client to get random data.
+ */
+#define GNUNET_MESSAGE_TYPE_DATASTORE_GET_ZERO_ANONYMITY 99
+
+/**
  * Message sent by datastore to client providing requested data
  * (in response to GET or GET_RANDOM request).
  */
-#define GNUNET_MESSAGE_TYPE_DATASTORE_DATA 99
+#define GNUNET_MESSAGE_TYPE_DATASTORE_DATA 100
 
 /**
  * Message sent by datastore to client signaling end of matching data.
  * This message will also be sent for "GET_RANDOM", even though
  * "GET_RANDOM" returns at most one data item.
  */
-#define GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END 100
+#define GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END 101
 
 /**
  * Message sent by datastore client to remove data.
  */
-#define GNUNET_MESSAGE_TYPE_DATASTORE_REMOVE 101
+#define GNUNET_MESSAGE_TYPE_DATASTORE_REMOVE 102
 
 /**
  * Message sent by datastore client to drop the database.
  */
-#define GNUNET_MESSAGE_TYPE_DATASTORE_DROP 102
+#define GNUNET_MESSAGE_TYPE_DATASTORE_DROP 103
 
 
 /**

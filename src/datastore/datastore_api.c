@@ -1205,6 +1205,57 @@ GNUNET_DATASTORE_get_random (struct GNUNET_DATASTORE_Handle *h,
 }
 
 
+/**
+ * Get a zero-anonymity value from the datastore.
+ *
+ * @param h handle to the datastore
+ * @param queue_priority ranking of this request in the priority queue
+ * @param max_queue_size at what queue size should this request be dropped
+ *        (if other requests of higher priority are in the queue)
+ * @param timeout how long to wait at most for a response
+ * @param type allowed type for the operation
+ * @param iter function to call on a random value; it
+ *        will be called once with a value (if available)
+ *        and always once with a value of NULL.
+ * @param iter_cls closure for iter
+ * @return NULL if the entry was not queued, otherwise a handle that can be used to
+ *         cancel; note that even if NULL is returned, the callback will be invoked
+ *         (or rather, will already have been invoked)
+ */
+struct GNUNET_DATASTORE_QueueEntry *
+GNUNET_DATASTORE_get_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
+				     unsigned int queue_priority,
+				     unsigned int max_queue_size,
+				     struct GNUNET_TIME_Relative timeout,
+				     enum GNUNET_BLOCK_Type type,
+				     GNUNET_DATASTORE_Iterator iter, 
+				     void *iter_cls)
+{
+  struct GNUNET_DATASTORE_QueueEntry *qe;
+  struct GetZeroAnonymityMessage *m;
+  union QueueContext qc;
+
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Asked to get zero-anonymity entry in %llu ms\n",
+	      (unsigned long long) timeout.value);
+#endif
+  qc.rc.iter = iter;
+  qc.rc.iter_cls = iter_cls;
+  qe = make_queue_entry (h, sizeof(struct GetZeroAnonymityMessage),
+			 queue_priority, max_queue_size, timeout,
+			 &process_result_message, &qc);
+  if (qe == NULL)
+    return NULL;    
+  m = (struct GetZeroAnonymityMessage*) &qe[1];
+  m->header.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_GET_RANDOM);
+  m->header.size = htons(sizeof (struct GetZeroAnonymityMessage));
+  m->type = htonl ((uint32_t) type);
+  process_queue (h);
+  return qe;
+}
+
+
 
 /**
  * Iterate over the results for a particular key

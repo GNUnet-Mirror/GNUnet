@@ -1255,9 +1255,41 @@ handle_get_random (void *cls,
 			    GNUNET_NO);
   GNUNET_SERVER_client_keep (client);
   plugin->api->iter_migration_order (plugin->api->cls,
-				     0,
+				     GNUNET_BLOCK_TYPE_ANY,
 				     &transmit_item,
 				     client);  
+}
+
+/**
+ * Handle GET_ZERO_ANONYMITY-message.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_get_zero_anonymity (void *cls,
+			   struct GNUNET_SERVER_Client *client,
+			   const struct GNUNET_MessageHeader *message)
+{
+  const struct GetZeroAnonymityMessage * msg = (const struct GetZeroAnonymityMessage*) message;
+  enum GNUNET_BLOCK_Type type;
+
+  type = (enum GNUNET_BLOCK_Type) ntohl (msg->type);
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Processing `%s' request\n",
+	      "GET_ZERO_ANONYMITY");
+#endif
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# GET ZERO ANONYMITY requests received"),
+			    1,
+			    GNUNET_NO);
+  GNUNET_SERVER_client_keep (client);
+  plugin->api->iter_zero_anonymity (plugin->api->cls,
+				    type,
+				    &transmit_item,
+				    client);  
 }
 
 
@@ -1373,7 +1405,7 @@ handle_remove (void *cls,
   plugin->api->get (plugin->api->cls,
 		    &dm->key,
 		    &vhash,
-		    ntohl(dm->type),
+		    (enum GNUNET_BLOCK_Type) ntohl(dm->type),
 		    &remove_callback,
 		    rc);
 }
@@ -1675,6 +1707,8 @@ run (void *cls,
     {&handle_get, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_GET, 0 }, 
     {&handle_get_random, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_GET_RANDOM, 
      sizeof(struct GNUNET_MessageHeader) }, 
+    {&handle_get_zero_anonymity, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_GET_ZERO_ANONYMITY, 
+     sizeof(struct GetZeroAnonymityMessage) }, 
     {&handle_remove, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_REMOVE, 0 }, 
     {&handle_drop, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_DROP, 
      sizeof(struct GNUNET_MessageHeader) }, 

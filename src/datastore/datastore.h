@@ -109,7 +109,7 @@ struct GetMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Desired content type.
+   * Desired content type.  (actually an enum GNUNET_BLOCK_Type)
    */
   uint32_t type GNUNET_PACKED;
 
@@ -118,6 +118,25 @@ struct GetMessage
    * header to see if the key is actually present.
    */
   GNUNET_HashCode key GNUNET_PACKED;
+
+};
+
+
+/**
+ * Message to the datastore service asking about zero
+ * anonymity content.
+ */
+struct GetZeroAnonymityMessage
+{
+  /**
+   * Type is GNUNET_MESSAGE_TYPE_DATASTORE_GET_ZERO_ANONYMITY.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Desired content type (actually an enum GNUNET_BLOCK_Type)
+   */
+  uint32_t type GNUNET_PACKED;
 
 };
 
@@ -176,7 +195,7 @@ struct DataMessage
   uint32_t size GNUNET_PACKED;
 
   /**
-   * Type of the item (NBO), zero for remove.
+   * Type of the item (NBO), zero for remove,  (actually an enum GNUNET_BLOCK_Type)
    */
   uint32_t type GNUNET_PACKED;
 

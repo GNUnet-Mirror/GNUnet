@@ -4668,7 +4668,7 @@ run (void *cls,
         malicious_put_frequency = DEFAULT_MALICIOUS_PUT_FREQUENCY;
     }
 
-  dht_republish_frequency = DEFAULT_DHT_REPUBLISH_FREQUENCY;
+  dht_republish_frequency = GNUNET_DHT_DEFAULT_REPUBLISH_FREQUENCY;
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number(cfg, "DHT", "REPLICATION_FREQUENCY", &temp_config_num))
     {
       dht_republish_frequency = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, temp_config_num);

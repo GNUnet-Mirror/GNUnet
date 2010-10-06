@@ -65,6 +65,11 @@
 #define TRUST_FLUSH_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 /**
+ * How often do we at most PUT content into the DHT?
+ */
+#define MAX_DHT_PUT_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+
+/**
  * Inverse of the probability that we will submit the same query
  * to the same peer again.  If the same peer already got the query
  * repeatedly recently, the probability is multiplied by the inverse
@@ -718,6 +723,16 @@ static struct MigrationReadyBlock *mig_tail;
 static struct GNUNET_DATASTORE_QueueEntry *mig_qe;
 
 /**
+ * Request to datastore for DHT PUTs (or NULL).
+ */
+static struct GNUNET_DATASTORE_QueueEntry *dht_qe;
+
+/**
+ * Type we will request for the next DHT PUT round from the datastore.
+ */
+static enum GNUNET_BLOCK_Type dht_put_type = GNUNET_BLOCK_TYPE_FS_KBLOCK;
+
+/**
  * Where do we store trust information?
  */
 static char *trustDirectory;
@@ -726,6 +741,11 @@ static char *trustDirectory;
  * ID of task that collects blocks for migration.
  */
 static GNUNET_SCHEDULER_TaskIdentifier mig_task;
+
+/**
+ * ID of task that collects blocks for DHT PUTs.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier dht_task;
 
 /**
  * What is the maximum frequency at which we are allowed to
@@ -747,6 +767,12 @@ static unsigned int mig_size;
  * Are we allowed to migrate content to this peer.
  */
 static int active_migration;
+
+/**
+ * How many entires with zero anonymity do we currently estimate
+ * to have in the database?
+ */
+static unsigned int zero_anonymity_count_estimate;
 
 /**
  * Typical priorities we're seeing from other peers right now.  Since
@@ -983,6 +1009,19 @@ gather_migration_blocks (void *cls,
 			 const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
+
+
+/**
+ * Task that is run periodically to obtain blocks for DHT PUTs.
+ * 
+ * @param cls type of blocks to gather
+ * @param tc scheduler context (unused)
+ */
+static void
+gather_dht_put_blocks (void *cls,
+		       const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
 /**
  * If the migration task is not currently running, consider
  * (re)scheduling it with the appropriate delay.
@@ -1008,6 +1047,41 @@ consider_migration_gathering ()
 					   delay,
 					   &gather_migration_blocks,
 					   NULL);
+}
+
+
+/**
+ * If the DHT PUT gathering task is not currently running, consider
+ * (re)scheduling it with the appropriate delay.
+ */
+static void
+consider_dht_put_gathering (void *cls)
+{
+  struct GNUNET_TIME_Relative delay;
+
+  if (dsh == NULL)
+    return;
+  if (dht_qe != NULL)
+    return;
+  if (dht_task != GNUNET_SCHEDULER_NO_TASK)
+    return;
+  if (zero_anonymity_count_estimate > 0)
+    {
+      delay = GNUNET_TIME_relative_divide (GNUNET_DHT_DEFAULT_REPUBLISH_FREQUENCY,
+					   zero_anonymity_count_estimate);
+      delay = GNUNET_TIME_relative_min (delay,
+					MAX_DHT_PUT_FREQ);
+    }
+  else
+    {
+      /* if we have NO zero-anonymity content yet, wait 5 minutes for some to
+	 (hopefully) appear */
+      delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5);
+    }
+  dht_task = GNUNET_SCHEDULER_add_delayed (sched,
+					   delay,
+					   &gather_dht_put_blocks,
+					   cls);
 }
 
 
@@ -1083,6 +1157,86 @@ process_migration_content (void *cls,
 
 
 /**
+ * Function called upon completion of the DHT PUT operation.
+ */
+static void
+dht_put_continuation (void *cls,
+		      const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
+}
+
+
+/**
+ * Store content in DHT.
+ *
+ * @param cls closure
+ * @param key key for the content
+ * @param size number of bytes in data
+ * @param data content stored
+ * @param type type of the content
+ * @param priority priority of the content
+ * @param anonymity anonymity-level for the content
+ * @param expiration expiration time for the content
+ * @param uid unique identifier for the datum;
+ *        maybe 0 if no unique identifier is available
+ */
+static void
+process_dht_put_content (void *cls,
+			 const GNUNET_HashCode * key,
+			 size_t size,
+			 const void *data,
+			 enum GNUNET_BLOCK_Type type,
+			 uint32_t priority,
+			 uint32_t anonymity,
+			 struct GNUNET_TIME_Absolute
+			 expiration, uint64_t uid)
+{ 
+  static unsigned int counter;
+  static GNUNET_HashCode last_vhash;
+  static GNUNET_HashCode vhash;
+
+  if (key == NULL)
+    {
+      dht_qe = NULL;
+      consider_dht_put_gathering (cls);
+      return;
+    }
+  /* slightly funky code to estimate the total number of values with zero
+     anonymity from the maximum observed length of a monotonically increasing 
+     sequence of hashes over the contents */
+  GNUNET_CRYPTO_hash (data, size, &vhash);
+  if (GNUNET_CRYPTO_hash_cmp (&vhash, &last_vhash) <= 0)
+    {
+      if (zero_anonymity_count_estimate > 0)
+	zero_anonymity_count_estimate /= 2;
+      counter = 0;
+    }
+  last_vhash = vhash;
+  if (counter < 31)
+    counter++;
+  if (zero_anonymity_count_estimate < (1 << counter))
+    zero_anonymity_count_estimate = (1 << counter);
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Retrieved block `%s' of type %u for DHT PUT\n",
+	      GNUNET_h2s (key),
+	      type);
+#endif
+  GNUNET_DHT_put (dht_handle,
+		  key,
+		  GNUNET_DHT_RO_NONE,
+		  type,
+		  size,
+		  data,
+		  expiration,
+		  GNUNET_TIME_UNIT_FOREVER_REL,
+		  &dht_put_continuation,
+		  cls);
+}
+
+
+/**
  * Task that is run periodically to obtain blocks for content
  * migration
  * 
@@ -1096,10 +1250,34 @@ gather_migration_blocks (void *cls,
   mig_task = GNUNET_SCHEDULER_NO_TASK;
   if (dsh != NULL)
     {
-      mig_qe = GNUNET_DATASTORE_get_random (dsh, 0, -1,
+      mig_qe = GNUNET_DATASTORE_get_random (dsh, 0, UINT_MAX,
 					    GNUNET_TIME_UNIT_FOREVER_REL,
 					    &process_migration_content, NULL);
       GNUNET_assert (mig_qe != NULL);
+    }
+}
+
+
+/**
+ * Task that is run periodically to obtain blocks for DHT PUTs.
+ * 
+ * @param cls type of blocks to gather
+ * @param tc scheduler context (unused)
+ */
+static void
+gather_dht_put_blocks (void *cls,
+		       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  dht_task = GNUNET_SCHEDULER_NO_TASK;
+  if (dsh != NULL)
+    {
+      if (dht_put_type == GNUNET_BLOCK_TYPE_FS_ONDEMAND)
+	dht_put_type = GNUNET_BLOCK_TYPE_FS_KBLOCK;
+      dht_qe = GNUNET_DATASTORE_get_zero_anonymity (dsh, 0, UINT_MAX,
+						    GNUNET_TIME_UNIT_FOREVER_REL,
+						    dht_put_type++,
+						    &process_dht_put_content, NULL);
+      GNUNET_assert (dht_qe != NULL);
     }
 }
 
@@ -1621,10 +1799,20 @@ shutdown_task (void *cls,
       GNUNET_DATASTORE_cancel (mig_qe);
       mig_qe = NULL;
     }
+  if (dht_qe != NULL)
+    {
+      GNUNET_DATASTORE_cancel (dht_qe);
+      dht_qe = NULL;
+    }
   if (GNUNET_SCHEDULER_NO_TASK != mig_task)
     {
       GNUNET_SCHEDULER_cancel (sched, mig_task);
       mig_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  if (GNUNET_SCHEDULER_NO_TASK != dht_task)
+    {
+      GNUNET_SCHEDULER_cancel (sched, dht_task);
+      dht_task = GNUNET_SCHEDULER_NO_TASK;
     }
   while (client_list != NULL)
     handle_client_disconnect (NULL,
@@ -3917,6 +4105,7 @@ main_init (struct GNUNET_SCHEDULER_Handle *s,
 		  _("Content migration is enabled, will start to gather data\n"));
       consider_migration_gathering ();
     }
+  consider_dht_put_gathering (NULL);
   GNUNET_SERVER_disconnect_notify (server, 
 				   &handle_client_disconnect,
 				   NULL);

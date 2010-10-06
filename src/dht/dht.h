@@ -57,11 +57,6 @@
 /**
  * FIXME: document.
  */
-#define DEFAULT_DHT_REPUBLISH_FREQUENCY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 60)
-
-/**
- * FIXME: document.
- */
 #define DHT_SEND_PRIORITY 4
 
 /**

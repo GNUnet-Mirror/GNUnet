@@ -41,6 +41,11 @@ extern "C"
 
 
 /**
+ * FIXME: document.
+ */
+#define GNUNET_DHT_DEFAULT_REPUBLISH_FREQUENCY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 60)
+
+/**
  * K-value that must be used for the bloom filter 'GET'
  * queries.
  */

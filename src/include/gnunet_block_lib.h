@@ -58,7 +58,8 @@ enum GNUNET_BLOCK_Type
     GNUNET_BLOCK_TYPE_FS_IBLOCK = 2,
 
     /**
-     * Type of a block representing a keyword search result.
+     * Type of a block representing a keyword search result.  Note that
+     * the values for KBLOCK, SBLOCK and NBLOCK must be consecutive.
      */
     GNUNET_BLOCK_TYPE_FS_KBLOCK = 3,
 
@@ -68,15 +69,15 @@ enum GNUNET_BLOCK_Type
     GNUNET_BLOCK_TYPE_FS_SBLOCK = 4,
 
     /**
+     * Type of a block that is used to advertise a namespace.  
+     */
+    GNUNET_BLOCK_TYPE_FS_NBLOCK = 5,
+
+    /**
      * Type of a block representing a block to be encoded on demand from disk.
      * Should never appear on the network directly.
      */
-    GNUNET_BLOCK_TYPE_FS_ONDEMAND = 5,
-
-    /**
-     * Type of a block that is used to advertise a namespace.  
-     */
-    GNUNET_BLOCK_TYPE_FS_NBLOCK = 6,
+    GNUNET_BLOCK_TYPE_FS_ONDEMAND = 6,
 
     /**
      * Type of a block that contains a HELLO for a peer (for
