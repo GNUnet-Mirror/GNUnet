@@ -34,7 +34,7 @@
 #include "gnunet_dht_service.h"
 #include "gnunet_hello_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define VERBOSE_ARM GNUNET_NO
 
@@ -139,10 +139,16 @@ end_badly ()
 
   if ( (retry_context.peer_ctx != NULL) && 
        (retry_context.peer_ctx->find_peer_handle != NULL) )
-    GNUNET_DHT_find_peer_stop(retry_context.peer_ctx->find_peer_handle);
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Stopping find peer request!\n");
+      GNUNET_DHT_find_peer_stop(retry_context.peer_ctx->find_peer_handle);
+    }
   if ( (retry_context.peer_ctx != NULL) && 
        (retry_context.peer_ctx->get_handle != NULL) )
-    GNUNET_DHT_get_stop (retry_context.peer_ctx->get_handle);
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Stopping get request!\n");
+      GNUNET_DHT_get_stop (retry_context.peer_ctx->get_handle);
+    }
   if (retry_context.retry_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel(sched, retry_context.retry_task);
   GNUNET_DHT_disconnect (p1.dht_handle);
@@ -387,6 +393,8 @@ test_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Called test_get!\n");
 
   GNUNET_assert (peer->dht_handle != NULL);
+  retry_context.real_timeout = GNUNET_TIME_relative_to_absolute(TOTAL_TIMEOUT);
+  retry_context.next_timeout = BASE_TIMEOUT;
 
   peer->get_handle =
     GNUNET_DHT_get_start (peer->dht_handle, 
@@ -405,6 +413,8 @@ test_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_SCHEDULER_add_now (sched, &end_badly, &p1);
       return;
     }
+
+  retry_context.peer_ctx = peer;
 }
 
 /**
