@@ -2416,6 +2416,7 @@ handle_dht_find_peer (void *cls,
           GNUNET_TRANSPORT_offer_hello(transport_handle, other_hello);
           GNUNET_CORE_peer_request_connect(sched, cfg, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5), &peer_id, NULL, NULL);
 	  route_message2 (find_msg, message_context);
+	  GNUNET_free (other_hello);
           return;
         }
       else /* We don't want this peer! */
