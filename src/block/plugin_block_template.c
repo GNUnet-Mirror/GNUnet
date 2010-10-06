@@ -86,7 +86,7 @@ block_plugin_template_get_key (void *cls,
  * Entry point for the plugin.
  */
 void *
-gnunet_plugin_block_template_init (void *cls)
+libgnunet_plugin_block_template_init (void *cls)
 {
   static enum GNUNET_BLOCK_Type types[] = 
     {
@@ -107,7 +107,7 @@ gnunet_plugin_block_template_init (void *cls)
  * Exit point from the plugin.
  */
 void *
-gnunet_plugin_block_template_done (void *cls)
+libgnunet_plugin_block_template_done (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
 
