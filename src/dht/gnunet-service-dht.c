@@ -4468,7 +4468,7 @@ void handle_core_connect (void *cls,
     }
 
   if (datacache != NULL)
-    GNUNET_DATACACHE_put(datacache, &peer->hashPubKey, sizeof(struct GNUNET_PeerIdentity), (const char *)peer, 0, GNUNET_TIME_absolute_get_forever());
+    GNUNET_DATACACHE_put(datacache, &peer->hashPubKey, sizeof(struct GNUNET_PeerIdentity), (const char *)peer, GNUNET_BLOCK_TYPE_DHT_HELLO, GNUNET_TIME_absolute_get_forever());
   ret = try_add_peer(peer,
                      find_current_bucket(&peer->hashPubKey),
                      latency,

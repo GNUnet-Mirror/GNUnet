@@ -42,7 +42,7 @@ echo "PASS"
 sleep 1
 
 echo -n "TEST: Testing put..."
-if ! $putexe -k testkey -d testdata > $out ; then
+if ! $putexe -k testkey -d testdata -T 8 > $out ; then
   echo "FAIL: error running $putexe"
   echo "Command output was:"
   cat $out
@@ -56,7 +56,7 @@ echo -n "TEST: Testing get..."
 echo "Result 0, type 0:" > $checkout
 echo "testdata" >> $checkout
 
-if ! $getexe -k testkey -T 1 > $out ; then
+if ! $getexe -k testkey -T 8 > $out ; then
   echo "FAIL: error running $putexe"
   echo "Command output was:"
   cat $out
