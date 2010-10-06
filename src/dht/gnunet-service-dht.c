@@ -2380,7 +2380,7 @@ remove_recent_find_peer(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
 {
   GNUNET_HashCode *key = cls;
   
-  GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(recent_find_peer_requests, key, key));
+  GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(recent_find_peer_requests, key, NULL));
   GNUNET_free (key);
 }
 
@@ -2509,6 +2509,7 @@ handle_dht_find_peer (void *cls,
 				     &message_context->key, NULL, 
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
     {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Adding recent remove task for key `%s`!\n", GNUNET_h2s(&message_context->key));
       /* Only add a task if there wasn't one for this key already! */
       GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30),
                                     &remove_recent_find_peer, recent_hash);
