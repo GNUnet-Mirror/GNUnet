@@ -207,10 +207,8 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
   struct GNUNET_NETWORK_Handle *ret;
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle));
-  ret->af = address->sa_family;
-  /* NOTE: if sa_family does not exist on some platform,
-     using AF_UNSPEC should be safe */
   ret->fd = accept (desc->fd, address, address_len);
+  ret->af = address->sa_family;
   if (ret->fd == INVALID_SOCKET)
     {
 #ifdef MINGW
