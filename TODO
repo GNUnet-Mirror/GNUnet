@@ -2,9 +2,7 @@
  FS:
   - measure latencies (core, datastore) => trust economy
   - FS performance benchmarking
-  - integrate with DHT (need DHT API to fit block API better first; also, get rid of the continuation!)
 * DHT: [Nate]
-  - use new block lib in service
   - track paths content travels (PUT, reply-to-get) in messages,
     pass to client (client API & protocol already support this!)
 * CORE:
