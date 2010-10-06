@@ -2316,13 +2316,13 @@ handle_dht_get (void *cls,
 			      &message_context->key, type,
 			      &datacache_get_iterator,
 			      message_context);
-  if (results >= 1)
-    {
 #if DEBUG_DHT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "`%s:%s': Found %d results for `%s' request uid %llu\n", my_short_id, "DHT",
                   results, "GET", message_context->unique_id);
 #endif
+  if (results >= 1)
+    {
 #if DEBUG_DHT_ROUTING
       if ((debug_routes) && (dhtlog_handle != NULL))
         {
@@ -2342,6 +2342,7 @@ handle_dht_get (void *cls,
     }
   else
     {
+
       /* check query valid */
       if (GNUNET_BLOCK_EVALUATION_REQUEST_INVALID
 	  == GNUNET_BLOCK_evaluate (block_context,
@@ -2601,11 +2602,7 @@ handle_dht_put (void *cls,
     return;
 
   data_size = ntohs (put_msg->header.size) - sizeof (struct GNUNET_DHT_PutMessage);
-#if DEBUG_DHT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s:%s': Received `%s' request (inserting data!), message type %d, key %s, uid %llu\n",
-              my_short_id, "DHT", "PUT", put_type, GNUNET_h2s (&message_context->key), message_context->unique_id);
-#endif
+
 #if DEBUG_DHT_ROUTING
   if (message_context->hop_count == 0) /* Locally initiated request */
     {
@@ -2619,7 +2616,16 @@ handle_dht_put (void *cls,
 #endif
 
   if (message_context->closest != GNUNET_YES)
-    return;
+    {
+      route_message2 (msg, message_context);
+      return;
+    }
+
+#if DEBUG_DHT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "`%s:%s': Received `%s' request (inserting data!), message type %d, key %s, uid %llu\n",
+              my_short_id, "DHT", "PUT", put_type, GNUNET_h2s (&message_context->key), message_context->unique_id);
+#endif
 
 #if DEBUG_DHT_ROUTING
   if ((debug_routes_extended) && (dhtlog_handle != NULL))
@@ -2657,7 +2663,9 @@ handle_dht_put (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "`%s:%s': %s request received, but have no datacache!\n",
                 my_short_id, "DHT", "PUT");
-  route_message2 (msg, message_context);
+
+  if (stop_on_closest == GNUNET_NO)
+    route_message2 (msg, message_context);
 }
 
 /**
