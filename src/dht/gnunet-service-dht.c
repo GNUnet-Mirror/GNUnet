@@ -2342,7 +2342,6 @@ handle_dht_get (void *cls,
     }
   else
     {
-
       /* check query valid */
       if (GNUNET_BLOCK_EVALUATION_REQUEST_INVALID
 	  == GNUNET_BLOCK_evaluate (block_context,
@@ -2725,7 +2724,7 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
    * full routing tables, which for our RR topologies may not be the case!
    */
   diameter = estimate_diameter ();
-  if ((hop_count > (diameter + 1) * 2) && (MINIMUM_PEER_THRESHOLD < estimate_diameter() * bucket_size))
+  if ((hop_count > (diameter + 1) * 2) && (MINIMUM_PEER_THRESHOLD < estimate_diameter() * bucket_size) && (use_max_hops == GNUNET_NO))
     {
 #if DEBUG_DHT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -3604,7 +3603,7 @@ route_message(void *cls,
       cache_response (cls, message_context);
       handle_dht_get (cls, msg, message_context);
       break;
-    case GNUNET_MESSAGE_TYPE_DHT_PUT: /* Check if closest, if so insert data. FIXME: thresholding to reduce complexity?*/
+    case GNUNET_MESSAGE_TYPE_DHT_PUT: /* Check if closest, if so insert data. */
       increment_stats(STAT_PUTS);
       handle_dht_put (cls, msg, message_context);
       break;
