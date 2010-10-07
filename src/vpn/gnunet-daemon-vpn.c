@@ -259,13 +259,17 @@ static void message_token(void *cls, void *client, const struct GNUNET_MessageHe
 void dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg);
 
 void reconnect_to_service_dns() {
-  mycls.dns_connection = GNUNET_CLIENT_connect (mycls.sched, "dns", mycls.cfg);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connecting\n");
+    if (mycls.dns_connection != NULL) {
+      GNUNET_CLIENT_disconnect(mycls.dns_connection, 1);
+    }
+    mycls.dns_connection = GNUNET_CLIENT_connect (mycls.sched, "dns", mycls.cfg);
 
-  GNUNET_CLIENT_receive(mycls.dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
+    GNUNET_CLIENT_receive(mycls.dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 void dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg) {
-	if (msg == NULL) reconnect_to_service_dns();
+	if (msg == NULL) return reconnect_to_service_dns();
 
 	if (msg->type != htons(GNUNET_MESSAGE_TYPE_LOCAL_RESPONSE_DNS)) goto out;
 
