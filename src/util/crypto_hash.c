@@ -161,7 +161,7 @@ file_hash_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (fhc->offset == fhc->fsize)
     {
       res = (GNUNET_HashCode *) gcry_md_read (fhc->md, GCRY_MD_SHA512);
-      file_hash_finish (fhc, &res);
+      file_hash_finish (fhc, res);
       gcry_md_close (fhc->md);
       return;
     }
@@ -200,7 +200,12 @@ GNUNET_CRYPTO_hash_file (struct GNUNET_SCHEDULER_Handle *sched,
   fhc->sched = sched;
   fhc->buffer = (unsigned char *) &fhc[1];
   fhc->filename = GNUNET_strdup (filename);
-  fhc->md = gcry_md_open (&fhc->md, GCRY_MD_SHA512, 0);
+  if (GPG_ERR_NO_ERROR != gcry_md_open (&fhc->md, GCRY_MD_SHA512, 0))
+    {
+      GNUNET_break (0);
+      GNUNET_free (fhc);
+      return NULL;
+    }
   fhc->bsize = blocksize;
   if (GNUNET_OK != GNUNET_DISK_file_size (filename, &fhc->fsize, GNUNET_NO))
     {
@@ -572,7 +577,7 @@ GNUNET_CRYPTO_hmac (const struct GNUNET_CRYPTO_AuthKey *key,
   gcry_md_hd_t md;
   unsigned char *mc;
 
-  md = gcry_md_open (&md, GCRY_MD_SHA512, GCRY_MD_FLAG_HMAC);
+  GNUNET_assert (GPG_ERR_NO_ERROR == gcry_md_open (&md, GCRY_MD_SHA512, GCRY_MD_FLAG_HMAC));
   gcry_md_setkey (md, key->key, sizeof(key->key));
   gcry_md_write (md, plaintext, plaintext_len);
   mc = gcry_md_read (md, GCRY_MD_SHA512);
