@@ -1917,6 +1917,8 @@ transmit_to_peer (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Dropping message, core too busy.\n");
 #endif
+      GNUNET_LOAD_update (cp->transmission_delay,
+			  UINT64_MAX);
       return 0;
     }
   GNUNET_LOAD_update (cp->transmission_delay,
