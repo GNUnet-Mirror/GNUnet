@@ -56,6 +56,8 @@ struct vpn_cls {
 
 	pid_t helper_pid;
 
+	const struct GNUNET_CONFIGURATION_Handle *cfg;
+
 	struct query_packet_list *head;
 	struct query_packet_list *tail;
 
@@ -254,8 +256,16 @@ static void message_token(void *cls, void *client, const struct GNUNET_MessageHe
 
 }
 
+void dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg);
+
+void reconnect_to_service_dns() {
+  mycls.dns_connection = GNUNET_CLIENT_connect (mycls.sched, "dns", mycls.cfg);
+
+  GNUNET_CLIENT_receive(mycls.dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
+}
+
 void dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg) {
-	if (msg == NULL) return;
+	if (msg == NULL) reconnect_to_service_dns();
 
 	if (msg->type != htons(GNUNET_MESSAGE_TYPE_LOCAL_RESPONSE_DNS)) goto out;
 
@@ -290,9 +300,9 @@ run (void *cls,
   mycls.sched = sched;
   mycls.mst = GNUNET_SERVER_mst_create(&message_token, NULL);
 
-  mycls.dns_connection = GNUNET_CLIENT_connect (sched, "dns", cfg);
+  mycls.cfg = cfg;
 
-  GNUNET_CLIENT_receive(mycls.dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
+  reconnect_to_service_dns();
 
   GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls); 
   start_helper_and_schedule(mycls);
