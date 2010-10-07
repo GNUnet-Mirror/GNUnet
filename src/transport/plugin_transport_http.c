@@ -377,7 +377,7 @@ struct Plugin
   /**
    * Plugin Port
    */
-  unsigned int port_inbound;
+  uint16_t port_inbound;
 
   struct GNUNET_CONTAINER_MultiHashMap *peers;
 
@@ -2512,8 +2512,6 @@ http_plugin_address_suggested (void *cls,
 
   struct IPv4HttpAddress *tv4 = plugin->ipv4_addr_head;
   struct IPv6HttpAddress *tv6 = plugin->ipv6_addr_head;
-  int res;
-  unsigned int port;
 
   GNUNET_assert(cls !=NULL);
   if ((addrlen != sizeof (struct IPv4HttpAddress)) &&
@@ -2532,25 +2530,21 @@ http_plugin_address_suggested (void *cls,
 
       if (plugin->bind4_address!=NULL)
       {
-    	  res = memcmp (&plugin->bind4_address->sin_addr, &v4->ipv4_addr, sizeof(uint32_t));
-    	  if ((res==0) && (ntohs (v4->u_port) == plugin->port_inbound))
+    	  if (0 == memcmp (&plugin->bind4_address->sin_addr, &v4->ipv4_addr, sizeof(uint32_t)) && (ntohs (v4->u_port) == plugin->port_inbound))
     		  return GNUNET_OK;
     	  else
     		  return GNUNET_SYSERR;
       }
-
       while (tv4!=NULL)
       {
-    	  res = memcmp (&tv4->ipv4_addr, &v4->ipv4_addr, sizeof(uint32_t));
-    	  if ((res==0) && (v4->u_port == tv4->u_port) && (ntohs (v4->u_port) == plugin->port_inbound))
-    		  return GNUNET_OK;
+    	  if (0==memcmp (&tv4->ipv4_addr, &v4->ipv4_addr, sizeof(uint32_t)))
+    		  break;
     	  tv4 = tv4->next;
       }
-      port = ntohs (v4->u_port);
-      if (port != plugin->port_inbound)
-      {
-        return GNUNET_SYSERR;
-      }
+      if ((tv4 !=NULL) && (ntohs (v4->u_port) == plugin->port_inbound))
+        return GNUNET_OK;
+	  else
+		  return GNUNET_SYSERR;
     }
   if (addrlen == sizeof (struct IPv6HttpAddress))
     {
@@ -2558,8 +2552,7 @@ http_plugin_address_suggested (void *cls,
 
       if (plugin->bind6_address!=NULL)
       {
-    	  res = memcmp (&plugin->bind6_address->sin6_addr, &v6->ipv6_addr, sizeof(struct in6_addr));
-    	  if ((res==0) && (ntohs (v6->u6_port) == plugin->port_inbound))
+    	  if (0 == memcmp (&plugin->bind6_address->sin6_addr, &v6->ipv6_addr, sizeof(struct in6_addr)))
     		  return GNUNET_OK;
     	  else
     		  return GNUNET_SYSERR;
@@ -2567,11 +2560,14 @@ http_plugin_address_suggested (void *cls,
 
       while (tv6!=NULL)
       {
-    	  res = memcmp (&tv6->ipv6_addr, &v6->ipv6_addr, sizeof(struct in6_addr));
-    	  if ((res==0) && (v6->u6_port == tv6->u6_port) && (ntohs (v6->u6_port) == plugin->port_inbound))
-    		  return GNUNET_OK;
+    	  if (0 == memcmp (&tv6->ipv6_addr, &v6->ipv6_addr, sizeof(struct in6_addr)))
+    		  break;
     	  tv6 = tv6->next;
       }
+      if ((tv6 !=NULL) && (ntohs (v6->u6_port) == plugin->port_inbound))
+        return GNUNET_OK;
+	  else
+		  return GNUNET_SYSERR;
     }
 
   return GNUNET_SYSERR;
