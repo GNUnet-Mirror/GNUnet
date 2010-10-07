@@ -36,8 +36,8 @@
 #include "gnunet_common.h"
 #include "gnunet_crypto_lib.h"
 #include "gnunet_os_lib.h"
-#include <gmp.h>
 #include <gcrypt.h>
+#include <limits.h>
 
 /**
  * Log an error message at log-level 'level' that indicates
@@ -49,12 +49,12 @@
 
 typedef struct
 {
-  mpz_t n;                      /* public modulus */
-  mpz_t e;                      /* public exponent */
-  mpz_t d;                      /* exponent */
-  mpz_t p;                      /* prime  p. */
-  mpz_t q;                      /* prime  q. */
-  mpz_t u;                      /* inverse of p mod q. */
+  gcry_mpi_t n;                      /* public modulus */
+  gcry_mpi_t e;                      /* public exponent */
+  gcry_mpi_t d;                      /* exponent */
+  gcry_mpi_t p;                      /* prime  p. */
+  gcry_mpi_t q;                      /* prime  q. */
+  gcry_mpi_t u;                      /* inverse of p mod q. */
 } KBlock_secret_key;
 
 /**
@@ -67,107 +67,139 @@ struct GNUNET_CRYPTO_RsaPrivateKey
 };
 
 
-static unsigned int
-get_nbits (mpz_t a)
-{
-  return mpz_sizeinbase (a, 2);
-}
-
-
 static void
-mpz_randomize (mpz_t n, unsigned int nbits, GNUNET_HashCode * rnd)
+mpz_randomize (gcry_mpi_t n, unsigned int nbits, GNUNET_HashCode * rnd)
 {
-  GNUNET_HashCode *tmp;
+  GNUNET_HashCode hc;
+  GNUNET_HashCode tmp;
   int bits_per_hc = sizeof (GNUNET_HashCode) * 8;
   int cnt;
   int i;
 
   GNUNET_assert (nbits > 0);
   cnt = (nbits + bits_per_hc - 1) / bits_per_hc;
-  tmp = GNUNET_malloc (sizeof (GNUNET_HashCode) * cnt);
+  gcry_mpi_set_ui (n, 0);
 
-  tmp[0] = *rnd;
-  for (i = 0; i < cnt - 1; i++)
+  tmp = *rnd;
+  for (i = 0; i < cnt; i++)
     {
-      GNUNET_CRYPTO_hash (&tmp[i], sizeof (GNUNET_HashCode), &tmp[i + 1]);
+      int j;
+
+      if (i > 0)
+      	GNUNET_CRYPTO_hash (&hc, sizeof (GNUNET_HashCode), &tmp);
+      for (j = sizeof(GNUNET_HashCode) / sizeof(unsigned int); j > 0; j--)
+        {
+#if HAVE_GCRY_MPI_LSHIFT
+          gcry_mpi_lshift (n, n, sizeof(unsigned int));
+#else
+          gcry_mpi_mul_ui(n, n, pow (2, sizeof(unsigned int)));
+#endif
+          gcry_mpi_add_ui(n, n, ((unsigned int *) &tmp)[j]);
+        }
+      hc = tmp;
     }
-  GNUNET_CRYPTO_hash (&tmp[i], sizeof (GNUNET_HashCode), rnd);
-  mpz_import (n, cnt * sizeof (GNUNET_HashCode) / sizeof (unsigned int),
-              1, sizeof (unsigned int), 1, 0, tmp);
-  GNUNET_free (tmp);
-  i = get_nbits (n);
+  GNUNET_CRYPTO_hash (&hc, sizeof (GNUNET_HashCode), rnd);
+  i = gcry_mpi_get_nbits (n);
   while (i > nbits)
-    mpz_clrbit (n, --i);
+    gcry_mpi_clear_bit (n, --i);
+}
+
+static unsigned int
+mpz_trailing_zeroes (gcry_mpi_t n)
+{
+  unsigned int idx, cnt;
+
+  cnt = gcry_mpi_get_nbits(n);
+  for (idx = 0; idx < cnt; idx++)
+    {
+      if (gcry_mpi_test_bit(n, idx) == 0)
+        return idx;
+    }
+
+  return ULONG_MAX;
+}
+
+static void
+mpz_tdiv_q_2exp (gcry_mpi_t q, gcry_mpi_t n, unsigned int b)
+{
+  gcry_mpi_t u, d;
+
+  u = gcry_mpi_set_ui (NULL, 1);
+  d = gcry_mpi_new (0);
+  gcry_mpi_mul_2exp (d, u, b);
+  gcry_mpi_div (q, NULL, n, d, 0);
 }
 
 /**
  * Return true if n is probably a prime
  */
 static int
-is_prime (mpz_t n, int steps, GNUNET_HashCode * hc)
+is_prime (gcry_mpi_t n, int steps, GNUNET_HashCode * hc)
 {
-  mpz_t x;
-  mpz_t y;
-  mpz_t z;
-  mpz_t nminus1;
-  mpz_t a2;
-  mpz_t q;
+  gcry_mpi_t x;
+  gcry_mpi_t y;
+  gcry_mpi_t z;
+  gcry_mpi_t nminus1;
+  gcry_mpi_t a2;
+  gcry_mpi_t q;
   unsigned int i, j, k;
   int rc = 0;
   unsigned int nbits;
 
-  mpz_init (x);
-  mpz_init (y);
-  mpz_init (z);
-  mpz_init (nminus1);
-  mpz_init_set_ui (a2, 2);
-  nbits = get_nbits (n);
-  mpz_sub_ui (nminus1, n, 1);
+  x = gcry_mpi_new (0);
+  y = gcry_mpi_new (0);
+  z = gcry_mpi_new (0);
+  nminus1 = gcry_mpi_new (0);
+  a2 = gcry_mpi_set_ui (NULL, 2);
+
+  nbits = gcry_mpi_get_nbits (n);
+  gcry_mpi_sub_ui(nminus1, n, 1);
 
   /* Find q and k, so that n = 1 + 2^k * q . */
-  mpz_init_set (q, nminus1);
-  k = mpz_scan1 (q, 0);
+  q = gcry_mpi_set (NULL, nminus1);
+  k = mpz_trailing_zeroes (q);
   mpz_tdiv_q_2exp (q, q, k);
 
   for (i = 0; i < steps; i++)
     {
       if (!i)
         {
-          mpz_set_ui (x, 2);
+          gcry_mpi_set_ui (x, 2);
         }
       else
         {
           mpz_randomize (x, nbits - 1, hc);
-          GNUNET_assert (mpz_cmp (x, nminus1) < 0 && mpz_cmp_ui (x, 1) > 0);
+          GNUNET_assert (gcry_mpi_cmp (x, nminus1) < 0);
+          GNUNET_assert (gcry_mpi_cmp_ui (x, 1) > 0);
         }
-      mpz_powm (y, x, q, n);
-      if (mpz_cmp_ui (y, 1) && mpz_cmp (y, nminus1))
+      gcry_mpi_powm (y, x, q, n);
+      if (gcry_mpi_cmp_ui (y, 1) && gcry_mpi_cmp (y, nminus1))
         {
-          for (j = 1; j < k && mpz_cmp (y, nminus1); j++)
+          for (j = 1; j < k && gcry_mpi_cmp (y, nminus1); j++)
             {
-              mpz_powm (y, y, a2, n);
-              if (!mpz_cmp_ui (y, 1))
+            gcry_mpi_powm (y, y, a2, n);
+              if (!gcry_mpi_cmp_ui (y, 1))
                 goto leave;     /* Not a prime. */
             }
-          if (mpz_cmp (y, nminus1))
+          if (gcry_mpi_cmp (y, nminus1))
             goto leave;         /* Not a prime. */
         }
     }
   rc = 1;                       /* May be a prime. */
 
 leave:
-  mpz_clear (x);
-  mpz_clear (y);
-  mpz_clear (z);
-  mpz_clear (nminus1);
-  mpz_clear (q);
-  mpz_clear (a2);
+  gcry_mpi_release (x);
+  gcry_mpi_release (y);
+  gcry_mpi_release (z);
+  gcry_mpi_release (nminus1);
+  gcry_mpi_release (q);
+  gcry_mpi_release (a2);
 
   return rc;
 }
 
 static void
-gen_prime (mpz_t ptest, unsigned int nbits, GNUNET_HashCode * hc)
+gen_prime (gcry_mpi_t *ptest, unsigned int nbits, GNUNET_HashCode * hc)
 {
   /* Note: 2 is not included because it can be tested more easily by
      looking at bit 0. The last entry in this list is marked by a zero */
@@ -256,22 +288,23 @@ gen_prime (mpz_t ptest, unsigned int nbits, GNUNET_HashCode * hc)
 #define DIM(v) (sizeof(v)/sizeof((v)[0]))
   static int no_of_small_prime_numbers = DIM (small_prime_numbers) - 1;
 
-  mpz_t prime, pminus1, val_2, val_3, result;
+  gcry_mpi_t prime, pminus1, val_2, val_3, result;
   int i;
   unsigned x, step;
-  int *mods;
-  mpz_t tmp;
+  unsigned int *mods;
+  gcry_mpi_t tmp;
+  gcry_mpi_t sp;
 
   GNUNET_assert (nbits >= 16);
 
   mods = GNUNET_malloc (no_of_small_prime_numbers * sizeof (*mods));
   /* Make nbits fit into mpz_t implementation. */
-  mpz_init_set_ui (val_2, 2);
-  mpz_init_set_ui (val_3, 3);
-  mpz_init (prime);
-  mpz_init (result);
-  mpz_init (pminus1);
-  mpz_init (ptest);
+  val_2 = gcry_mpi_set_ui (NULL, 2);
+  val_3 = gcry_mpi_set_ui (NULL, 3);
+  prime = gcry_mpi_new(0);
+  result = gcry_mpi_new(0);
+  pminus1 = gcry_mpi_new(0);
+  *ptest = gcry_mpi_new(0);
   while (1)
     {
       /* generate a random number */
@@ -280,15 +313,23 @@ gen_prime (mpz_t ptest, unsigned int nbits, GNUNET_HashCode * hc)
          generating a secret prime we are most probably doing that
          for RSA, to make sure that the modulus does have the
          requested key size we set the 2 high order bits. */
-      mpz_setbit (prime, nbits - 1);
-      mpz_setbit (prime, nbits - 2);
-      mpz_setbit (prime, 0);
+      gcry_mpi_set_bit (prime, nbits - 1);
+      gcry_mpi_set_bit (prime, nbits - 2);
+      gcry_mpi_set_bit (prime, 0);
 
       /* Calculate all remainders. */
-      mpz_init (tmp);
+      tmp = gcry_mpi_new (0);
+      sp = gcry_mpi_new (0);
       for (i = 0; (x = small_prime_numbers[i]); i++)
-        mods[i] = mpz_fdiv_r_ui (tmp, prime, x);
-      mpz_clear (tmp);
+        {
+          size_t written;
+
+          gcry_mpi_set_ui(sp, x);
+          gcry_mpi_div (NULL, tmp, prime, sp, -1 /* TODO CG: is this correct? */);
+          gcry_mpi_print (GCRYMPI_FMT_USG, (unsigned char *) &mods[i], sizeof(*mods), &written, tmp);
+        }
+      gcry_mpi_release (sp);
+      gcry_mpi_release (tmp);
       /* Now try some primes starting with prime. */
       for (step = 0; step < 20000; step += 2)
         {
@@ -303,52 +344,26 @@ gen_prime (mpz_t ptest, unsigned int nbits, GNUNET_HashCode * hc)
           if (x)
             continue;           /* Found a multiple of an already known prime. */
 
-          mpz_add_ui (ptest, prime, step);
-          if (!mpz_tstbit (ptest, nbits - 2))
+          gcry_mpi_add_ui (*ptest, prime, step);
+          if (!gcry_mpi_test_bit (*ptest, nbits - 2))
             break;
 
           /* Do a fast Fermat test now. */
-          mpz_sub_ui (pminus1, ptest, 1);
-          mpz_powm (result, val_2, pminus1, ptest);
-          if ((!mpz_cmp_ui (result, 1)) && (is_prime (ptest, 5, hc)))
+          gcry_mpi_sub_ui (pminus1, *ptest, 1);
+          gcry_mpi_powm (result, val_2, pminus1, *ptest);
+          if ((!gcry_mpi_cmp_ui (result, 1)) && (is_prime (*ptest, 5, hc)))
             {
               /* Got it. */
-              mpz_clear (val_2);
-              mpz_clear (val_3);
-              mpz_clear (result);
-              mpz_clear (pminus1);
-              mpz_clear (prime);
+              gcry_mpi_release (val_2);
+              gcry_mpi_release (val_3);
+              gcry_mpi_release (result);
+              gcry_mpi_release (pminus1);
+              gcry_mpi_release (prime);
               GNUNET_free (mods);
               return;
             }
         }
     }
-}
-
-/**
- * Find the greatest common divisor G of A and B.
- * Return: 1 if this 1, 0 in all other cases
- */
-static int
-test_gcd (mpz_t g, mpz_t xa, mpz_t xb)
-{
-  mpz_t a, b;
-
-  mpz_init_set (a, xa);
-  mpz_init_set (b, xb);
-
-  /* TAOCP Vol II, 4.5.2, Algorithm A */
-  while (mpz_cmp_ui (b, 0))
-    {
-      mpz_fdiv_r (g, a, b);     /* g used as temorary variable */
-      mpz_set (a, b);
-      mpz_set (b, g);
-    }
-  mpz_set (g, a);
-
-  mpz_clear (a);
-  mpz_clear (b);
-  return (0 == mpz_cmp_ui (g, 1));
 }
 
 /**
@@ -361,66 +376,66 @@ static void
 generate_kblock_key (KBlock_secret_key * sk,
                      unsigned int nbits, GNUNET_HashCode * hc)
 {
-  mpz_t t1, t2;
-  mpz_t phi;                    /* helper: (p-1)(q-1) */
-  mpz_t g;
-  mpz_t f;
+  gcry_mpi_t t1, t2;
+  gcry_mpi_t phi;                    /* helper: (p-1)(q-1) */
+  gcry_mpi_t g;
+  gcry_mpi_t f;
 
   /* make sure that nbits is even so that we generate p, q of equal size */
   if ((nbits & 1))
     nbits++;
 
-  mpz_init_set_ui (sk->e, 257);
-  mpz_init (sk->n);
-  mpz_init (sk->p);
-  mpz_init (sk->q);
-  mpz_init (sk->d);
-  mpz_init (sk->u);
+  sk->e = gcry_mpi_set_ui (NULL, 257);
+  sk->n = gcry_mpi_new(0);
+  sk->p = gcry_mpi_new(0);
+  sk->q = gcry_mpi_new(0);
+  sk->d = gcry_mpi_new(0);
+  sk->u = gcry_mpi_new(0);
 
-  mpz_init (t1);
-  mpz_init (t2);
-  mpz_init (phi);
-  mpz_init (g);
-  mpz_init (f);
+  t1 = gcry_mpi_new(0);
+  t2 = gcry_mpi_new(0);
+  phi = gcry_mpi_new(0);
+  g = gcry_mpi_new(0);
+  f = gcry_mpi_new(0);
 
   do
     {
       do
         {
-          mpz_clear (sk->p);
-          mpz_clear (sk->q);
-          gen_prime (sk->p, nbits / 2, hc);
-          gen_prime (sk->q, nbits / 2, hc);
+          gcry_mpi_release (sk->p);
+          gcry_mpi_release (sk->q);
+          gen_prime (&sk->p, nbits / 2, hc);
+          gen_prime (&sk->q, nbits / 2, hc);
 
-          if (mpz_cmp (sk->p, sk->q) > 0)       /* p shall be smaller than q (for calc of u) */
-            mpz_swap (sk->p, sk->q);
+          if (gcry_mpi_cmp (sk->p, sk->q) > 0)       /* p shall be smaller than q (for calc of u) */
+            gcry_mpi_swap (sk->p, sk->q);
           /* calculate the modulus */
-          mpz_mul (sk->n, sk->p, sk->q);
+          gcry_mpi_mul (sk->n, sk->p, sk->q);
         }
-      while (get_nbits (sk->n) != nbits);
+      while (gcry_mpi_get_nbits (sk->n) != nbits);
 
       /* calculate Euler totient: phi = (p-1)(q-1) */
-      mpz_sub_ui (t1, sk->p, 1);
-      mpz_sub_ui (t2, sk->q, 1);
-      mpz_mul (phi, t1, t2);
-      mpz_gcd (g, t1, t2);
-      mpz_fdiv_q (f, phi, g);
+      gcry_mpi_sub_ui (t1, sk->p, 1);
+      gcry_mpi_sub_ui (t2, sk->q, 1);
+      gcry_mpi_mul (phi, t1, t2);
+      gcry_mpi_gcd (g, t1, t2);
+      gcry_mpi_div (f, NULL, phi, g, -1 /* TODO CG: is this correct? */);
 
-      while (0 == test_gcd (t1, sk->e, phi))
+      while (0 == gcry_mpi_gcd (t1, sk->e, phi))
         {                       /* (while gcd is not 1) */
-          mpz_add_ui (sk->e, sk->e, 2);
+          gcry_mpi_add_ui (sk->e, sk->e, 2);
         }
 
       /* calculate the secret key d = e^1 mod phi */
     }
-  while ((0 == mpz_invert (sk->d, sk->e, f)) ||
-         (0 == mpz_invert (sk->u, sk->p, sk->q)));
+  while ((0 == gcry_mpi_invm (sk->d, sk->e, f)) ||
+         (0 == gcry_mpi_invm (sk->u, sk->p, sk->q)));
 
-  mpz_clear (t1);
-  mpz_clear (t2);
-  mpz_clear (phi);
-  mpz_clear (f);
-  mpz_clear (g);
+  gcry_mpi_release (t1);
+  gcry_mpi_release (t2);
+  gcry_mpi_release (phi);
+  gcry_mpi_release (f);
+  gcry_mpi_release (g);
 }
 
 
@@ -453,8 +468,8 @@ makeKblockKeyInternal (const GNUNET_HashCode * hc)
 {
   KBlock_secret_key sk;
   GNUNET_HashCode hx;
-  void *pbu[6];
-  mpz_t *pkv[6];
+  unsigned char *pbu[6];
+  gcry_mpi_t *pkv[6];
   size_t sizes[6];
   struct KskRsaPrivateKeyBinaryEncoded *retval;
   int i;
@@ -480,11 +495,7 @@ makeKblockKeyInternal (const GNUNET_HashCode * hc)
   size = sizeof (struct KskRsaPrivateKeyBinaryEncoded);
   for (i = 0; i < 6; i++)
     {
-      pbu[i] = mpz_export (NULL, &sizes[i], 1,  /* most significant word first */
-                           1,   /* unit is bytes */
-                           1,   /* big endian */
-                           0,   /* nails */
-                           *pkv[i]);
+      gcry_mpi_aprint(GCRYMPI_FMT_STD, &pbu[i], &sizes[i], *pkv[i]);
       size += sizes[i];
     }
   GNUNET_assert (size < 65536);
@@ -512,7 +523,7 @@ makeKblockKeyInternal (const GNUNET_HashCode * hc)
   memcpy (&((char *) &retval[1])[i], pbu[5], sizes[5]);
   for (i = 0; i < 6; i++)
     {
-      mpz_clear (*pkv[i]);
+      gcry_mpi_release (*pkv[i]);
       free (pbu[i]);
     }
   return retval;

@@ -17,8 +17,6 @@
        likely good enough until we get ATS going; still should be tested...
     => "peers connected (transport)" now instantly goes to ZERO (core statistic),
        but "established sessions" stays up...
-* UTIL:
-  - drop dependency on GMP? [Nils]
 
 0.9.0pre3:
 * Determine RC bugs and fix those (release should have no known real bugs)

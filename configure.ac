@@ -182,6 +182,7 @@ SAVE_LIBS=$LIBS
 # libgcrypt
 gcrypt=0
 AM_PATH_LIBGCRYPT(1.2.0, gcrypt=1)
+AC_CHECK_DECLS([gcry_mpi_lshift], [], [], [[#include <gcrypt.h>]])
 
 if test $gcrypt = 0
 then
@@ -243,39 +244,6 @@ AC_CHECK_HEADERS([fcntl.h math.h errno.h ctype.h limits.h stdio.h stdlib.h strin
 
 # Checks for headers that are only required on some systems or opional (and where we do NOT abort if they are not there)
 AC_CHECK_HEADERS([langinfo.h sys/param.h sys/mount.h sys/statvfs.h sys/select.h sockLib.h sys/mman.h sys/msg.h sys/vfs.h arpa/inet.h fcntl.h libintl.h netdb.h netinet/in.h netinet/in_systm.h sys/ioctl.h sys/socket.h sys/time.h unistd.h kstat.h sys/sysinfo.h kvm.h sys/file.h sys/resource.h ifaddrs.h mach/mach.h stddef.h sys/timeb.h terminos.h argz.h])
-
-# test for libgmp
-gmp=0
-AC_MSG_CHECKING(for libgmp)
-AC_ARG_WITH(gmp,
-   [  --with-gmp=PFX          base of libgmp installation],
-   [AC_MSG_RESULT([$with_gmp])
-    case $with_gmp in
-      no)
-        ;;
-      yes)
-        AC_CHECK_HEADERS(gmp.h,
-          AC_CHECK_LIB([gmp], [__gmpz_add],
-            gmp=1))
-        ;;
-      *)
-        LDFLAGS="-L$with_gmp/lib $LDFLAGS"
-        CPPFLAGS="-I$with_gmp/include $CPPFLAGS"
-        AC_CHECK_HEADERS(gmp.h,
-          AC_CHECK_LIB([gmp], [__gmpz_add],
-            EXT_LIB_PATH="-L$with_gmp/lib $EXT_LIB_PATH"
-            gmp=1))
-        ;;
-    esac
-   ],
-   [AC_MSG_RESULT([--with-gmp not specified])
-    AC_CHECK_HEADERS(gmp.h,
-     AC_CHECK_LIB([gmp], [__gmpz_add],
-      gmp=1))])
-if test "$gmp" != 1
-then
- AC_MSG_ERROR([GNUnet requires libgmp])
-fi
 
 SAVE_LDFLAGS=$LDFLAGS
 SAVE_CPPFLAGS=$CPPFLAGS
