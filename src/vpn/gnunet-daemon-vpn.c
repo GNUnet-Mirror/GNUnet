@@ -73,7 +73,7 @@ static void cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx
   GNUNET_OS_process_wait(mycls.helper_pid);
   if (mycls.dns_connection != NULL)
     {
-      GNUNET_CLIENT_disconnect (mycls.dns_connection);
+      GNUNET_CLIENT_disconnect (mycls.dns_connection, GNUNET_NO);
       mycls.dns_connection = NULL;
     }
 }
@@ -266,7 +266,7 @@ dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg);
 static void 
 reconnect_to_service_dns (void *cls,
 			  const struct GNUNET_SCHEDULER_TaskContext *tc) {
-  if (0 != (tskctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connecting\n");
   GNUNET_assert (mycls.dns_connection == NULL);
