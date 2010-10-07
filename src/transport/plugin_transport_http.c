@@ -2555,10 +2555,6 @@ http_plugin_address_suggested (void *cls,
   if (addrlen == sizeof (struct IPv6HttpAddress))
     {
       v6 = (struct IPv6HttpAddress *) addr;
-      if (IN6_IS_ADDR_LINKLOCAL (&v6->ipv6_addr))
-        {
-          return GNUNET_SYSERR;
-        }
 
       if (plugin->bind6_address!=NULL)
       {
