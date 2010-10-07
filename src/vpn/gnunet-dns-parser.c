@@ -2,8 +2,8 @@
 #include "gnunet-dns-parser.h"
 #include "gnunet-vpn-packet.h"
 
-unsigned int parse_dns_name(unsigned char* d, const unsigned char* src, unsigned short idx) {/*{{{*/
-	unsigned char* dest = d;
+unsigned int parse_dns_name(char* d, const unsigned char* src, unsigned short idx) {/*{{{*/
+	char* dest = d;
 
 	int len = src[idx++];
 	while (len != 0) {
@@ -31,7 +31,7 @@ unsigned short parse_dns_record(unsigned char* data, struct dns_record** dst, un
 	for (i = 0; i < count; i++) {
 		dst[i] = GNUNET_malloc(sizeof(struct dns_record));
 		dst[i]->name = alloca(255); // see RFC1035
-		unsigned char* name = dst[i]->name;
+		char* name = dst[i]->name;
 
 		_idx = parse_dns_name(name, data, idx);
 		dst[i]->namelen = _idx - idx;
@@ -71,7 +71,7 @@ struct dns_pkt_parsed* parse_dns_packet(struct dns_pkt* pkt) {/*{{{*/
 	int i;
 	for (i = 0; i < qdcount; i++) { /*{{{*/
 		ppkt->queries[i] = GNUNET_malloc(sizeof(struct dns_query));
-		unsigned char* name = alloca(255); /* see RFC1035, it can't be more than this. */
+		char* name = alloca(255); /* see RFC1035, it can't be more than this. */
 
 		_idx = parse_dns_name(name, pkt->data, idx);
 		ppkt->queries[i]->namelen = _idx - idx;
