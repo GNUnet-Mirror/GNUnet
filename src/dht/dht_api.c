@@ -694,7 +694,10 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
   message->key = *key;
   message->options = htonl ((uint32_t) options);
   message->desired_replication_level = htonl (desired_replication_level);
+  handle->uid_gen++;
+  message->unique_id = GNUNET_htonll (handle->uid_gen);
   memcpy (&message[1], enc, esize);
+
   if (iter != NULL)
     {
       route_handle = GNUNET_malloc (sizeof (struct GNUNET_DHT_RouteHandle));
@@ -702,9 +705,8 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
       route_handle->iter = iter;
       route_handle->iter_cls = iter_cls;
       route_handle->dht_handle = handle;
-      route_handle->uid = handle->uid_gen++;
+      route_handle->uid = handle->uid_gen;
       route_handle->message = pending;
-      message->unique_id = GNUNET_htonll (route_handle->uid);
       GNUNET_CONTAINER_multihashmap_put (handle->active_requests,
                                          key,
 					 route_handle,
