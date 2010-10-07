@@ -217,6 +217,18 @@ struct ConnectedPeer
   struct PendingMessage *pending_messages_tail;
 
   /**
+   * How long does it typically take for us to transmit a message
+   * to this peer?  (delay between the request being issued and
+   * the callback being invoked).
+   */
+  struct GNUNET_LOAD_Value *transmission_delay;
+
+  /**
+   * Time when the last transmission request was issued.
+   */
+  struct GNUNET_TIME_Absolute last_transmission_request_start;
+
+  /**
    * Average priority of successful replies.  Calculated
    * as a moving average: new_avg = ((n-1)*last_avg+curr_prio) / n
    */
@@ -1456,6 +1468,7 @@ peer_connect_handler (void *cls,
   uint32_t trust;
   
   cp = GNUNET_malloc (sizeof (struct ConnectedPeer));
+  cp->transmission_delay = GNUNET_LOAD_value_init ();
   cp->pid = GNUNET_PEER_intern (peer);
 
   fn = get_trust_filename (peer);
@@ -1671,6 +1684,7 @@ peer_disconnect_handler (void *cls,
     GNUNET_CORE_notify_transmit_ready_cancel (cp->cth);
   while (NULL != (pm = cp->pending_messages_head))
     destroy_pending_message (pm, 0 /* delivery failed */);
+  GNUNET_LOAD_value_free (cp->transmission_delay);
   GNUNET_break (0 == cp->pending_requests);
   GNUNET_free (cp);
 }
@@ -1905,6 +1919,8 @@ transmit_to_peer (void *cls,
 #endif
       return 0;
     }
+  GNUNET_LOAD_update (cp->transmission_delay,
+		      GNUNET_TIME_absolute_get_duration (cp->last_transmission_request_start).value);
   msize = 0;
   while ( (NULL != (pm = cp->pending_messages_head) ) &&
 	  (pm->msize <= size) )
@@ -1918,6 +1934,7 @@ transmit_to_peer (void *cls,
     {
       GNUNET_PEER_resolve (cp->pid,
 			   &pid);
+      cp->last_transmission_request_start = GNUNET_TIME_absolute_get ();
       cp->cth = GNUNET_CORE_notify_transmit_ready (core,
 						   pm->priority,
 						   GNUNET_CONSTANTS_SERVICE_TIMEOUT,
@@ -2036,6 +2053,7 @@ add_to_pending_messages_for_peer (struct ConnectedPeer *cp,
   if (NULL != cp->cth)
     GNUNET_CORE_notify_transmit_ready_cancel (cp->cth);
   /* need to schedule transmission */
+  cp->last_transmission_request_start = GNUNET_TIME_absolute_get ();
   cp->cth = GNUNET_CORE_notify_transmit_ready (core,
 					       cp->pending_messages_head->priority,
 					       MAX_TRANSMIT_DELAY,
