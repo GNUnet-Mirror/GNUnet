@@ -1050,14 +1050,12 @@ try_core_send (void *cls,
  * Called both for locally initiated requests and those
  * received from other peers.
  *
- * @param cls DHT service closure argument
  * @param msg the encapsulated message
  * @param peer the peer to forward the message to
  * @param msg_ctx the context of the message (hop count, bloom, etc.)
  */
 static void 
-forward_result_message (void *cls,
-			const struct GNUNET_MessageHeader *msg,
+forward_result_message (const struct GNUNET_MessageHeader *msg,
 			struct PeerInfo *peer,
 			struct DHT_MessageContext *msg_ctx)
 {
@@ -1881,8 +1879,6 @@ add_pending_message (struct ClientList *client,
 }
 
 
-
-
 /**
  * Called when a reply needs to be sent to a client, as
  * a result it found to a GET or FIND PEER request.
@@ -1955,15 +1951,13 @@ static int consider_peer (struct GNUNET_PeerIdentity *peer)
  * Main function that handles whether or not to route a result
  * message to other peers, or to send to our local client.
  *
- * @param cls closure (unused, always should be NULL)
  * @param msg the result message to be routed
  * @param message_context context of the message we are routing
  *
  * @return the number of peers the message was routed to,
  *         GNUNET_SYSERR on failure
  */
-static int route_result_message(void *cls,
-                                struct GNUNET_MessageHeader *msg,
+static int route_result_message(struct GNUNET_MessageHeader *msg,
                                 struct DHT_MessageContext *message_context)
 {
   struct GNUNET_PeerIdentity new_peer;
@@ -2105,7 +2099,7 @@ static int route_result_message(void *cls,
                                                message_context->peer, &pos->source);
                 }
 #endif
-              forward_result_message(cls, msg, peer_info, message_context);
+              forward_result_message(msg, peer_info, message_context);
             }
           else
             {
@@ -2182,7 +2176,7 @@ datacache_get_iterator (void *cls,
       new_msg_ctx->importance = DHT_DEFAULT_P2P_IMPORTANCE * 2; /* Make result routing a higher priority */
       new_msg_ctx->timeout = DHT_DEFAULT_P2P_TIMEOUT;
       increment_stats(STAT_GET_RESPONSE_START);
-      route_result_message(cls, &get_result->header, new_msg_ctx);
+      route_result_message(&get_result->header, new_msg_ctx);
       GNUNET_free(new_msg_ctx);
       GNUNET_free (get_result);
       break;
@@ -2229,7 +2223,7 @@ datacache_get_iterator (void *cls,
  * @param message_context the context containing all pertinent information about the message
  */
 static void
-route_message2(const struct GNUNET_MessageHeader *msg,
+route_message(const struct GNUNET_MessageHeader *msg,
 	       struct DHT_MessageContext *message_context);
 
 
@@ -2237,15 +2231,13 @@ route_message2(const struct GNUNET_MessageHeader *msg,
  * Server handler for all dht get requests, look for data,
  * if found, send response either to clients or other peers.
  *
- * @param cls closure for service
  * @param msg the actual get message
  * @param message_context struct containing pertinent information about the get request
  *
  * @return number of items found for GET request
  */
 static unsigned int
-handle_dht_get (void *cls, 
-		const struct GNUNET_MessageHeader *msg,
+handle_dht_get (const struct GNUNET_MessageHeader *msg,
                 struct DHT_MessageContext *message_context)
 {
   const struct GNUNET_DHT_GetMessage *get_msg;
@@ -2370,7 +2362,7 @@ handle_dht_get (void *cls,
 #endif
     }
   if (message_context->do_forward == GNUNET_YES)
-    route_message2 (msg, message_context);
+    route_message (msg, message_context);
   GNUNET_CONTAINER_bloomfilter_free (message_context->reply_bf);
   return results;
 }
@@ -2387,14 +2379,12 @@ remove_recent_find_peer(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
 /**
  * Server handler for initiating local dht find peer requests
  *
- * @param cls closure for service
  * @param find_msg the actual find peer message
  * @param message_context struct containing pertinent information about the request
  *
  */
 static void
-handle_dht_find_peer (void *cls,
-                      const struct GNUNET_MessageHeader *find_msg,
+handle_dht_find_peer (const struct GNUNET_MessageHeader *find_msg,
                       struct DHT_MessageContext *message_context)
 {
   struct GNUNET_MessageHeader *find_peer_result;
@@ -2431,13 +2421,13 @@ handle_dht_find_peer (void *cls,
           increment_stats(STAT_HELLOS_PROVIDED);
           GNUNET_TRANSPORT_offer_hello(transport_handle, other_hello);
           GNUNET_CORE_peer_request_connect(sched, cfg, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5), &peer_id, NULL, NULL);
-	  route_message2 (find_msg, message_context);
+	  route_message (find_msg, message_context);
 	  GNUNET_free (other_hello);
           return;
         }
       else /* We don't want this peer! */
 	{
-	  route_message2 (find_msg, message_context);
+	  route_message (find_msg, message_context);
 	  return;
 	}
 #endif
@@ -2458,7 +2448,7 @@ handle_dht_find_peer (void *cls,
                 "DHT");
 #endif
     GNUNET_free_non_null (other_hello);
-    route_message2 (find_msg, message_context);
+    route_message (find_msg, message_context);
     return;
   }
 
@@ -2468,7 +2458,7 @@ handle_dht_find_peer (void *cls,
       increment_stats(STAT_BLOOM_FIND_PEER);
       GNUNET_CONTAINER_bloomfilter_free(incoming_bloom);
       GNUNET_free_non_null(other_hello);
-      route_message2 (find_msg, message_context);
+      route_message (find_msg, message_context);
       return; /* We match the bloomfilter, do not send a response to this peer (they likely already know us!)*/
     }
   GNUNET_CONTAINER_bloomfilter_free(incoming_bloom);
@@ -2498,7 +2488,7 @@ handle_dht_find_peer (void *cls,
     {
       increment_stats("# dht find peer requests ignored (do not need!)");
       GNUNET_free_non_null(other_hello);
-      route_message2 (find_msg, message_context);
+      route_message (find_msg, message_context);
       return;
     }
 #endif
@@ -2547,7 +2537,7 @@ handle_dht_find_peer (void *cls,
   new_msg_ctx->importance = DHT_DEFAULT_P2P_IMPORTANCE * 2; /* Make find peer requests a higher priority */
   new_msg_ctx->timeout = DHT_DEFAULT_P2P_TIMEOUT;
   increment_stats(STAT_FIND_PEER_ANSWER);
-  route_result_message(cls, find_peer_result, new_msg_ctx);
+  route_result_message(find_peer_result, new_msg_ctx);
   GNUNET_free(new_msg_ctx);
 #if DEBUG_DHT_ROUTING
   if ((debug_routes) && (dhtlog_handle != NULL))
@@ -2559,7 +2549,7 @@ handle_dht_find_peer (void *cls,
 #endif
   GNUNET_free_non_null(other_hello);
   GNUNET_free(find_peer_result);
-  route_message2 (find_msg, message_context);
+  route_message (find_msg, message_context);
 }
 
 /**
@@ -2575,13 +2565,11 @@ republish_content(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 /**
  * Server handler for initiating local dht put requests
  *
- * @param cls closure for service
  * @param msg the actual put message
  * @param message_context struct containing pertinent information about the request
  */
 static void
-handle_dht_put (void *cls,
-		const struct GNUNET_MessageHeader *msg,
+handle_dht_put (const struct GNUNET_MessageHeader *msg,
                 struct DHT_MessageContext *message_context)
 {
   const struct GNUNET_DHT_PutMessage *put_msg;
@@ -2642,7 +2630,7 @@ handle_dht_put (void *cls,
 
   if (message_context->closest != GNUNET_YES)
     {
-      route_message2 (msg, message_context);
+      route_message (msg, message_context);
       return;
     }
 
@@ -2690,7 +2678,7 @@ handle_dht_put (void *cls,
                 my_short_id, "DHT", "PUT");
 
   if (stop_on_closest == GNUNET_NO)
-    route_message2 (msg, message_context);
+    route_message (msg, message_context);
 }
 
 /**
@@ -3365,12 +3353,11 @@ remove_forward_entry (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * received we can either forward it to the correct peer
  * or return the result locally.
  *
- * @param cls DHT service closure
  * @param msg_ctx Context of the route request
  *
  * @return GNUNET_YES if this response was cached, GNUNET_NO if not
  */
-static int cache_response(void *cls, struct DHT_MessageContext *msg_ctx)
+static int cache_response(struct DHT_MessageContext *msg_ctx)
 {
   struct DHTQueryRecord *record;
   struct DHTRouteSource *source_info;
@@ -3449,7 +3436,7 @@ static int cache_response(void *cls, struct DHT_MessageContext *msg_ctx)
  * @param message_context the context containing all pertinent information about the message
  */
 static void
-route_message2(const struct GNUNET_MessageHeader *msg,
+route_message(const struct GNUNET_MessageHeader *msg,
 	       struct DHT_MessageContext *message_context)
 {
   int i;
@@ -3613,34 +3600,34 @@ route_message2(const struct GNUNET_MessageHeader *msg,
  * Main function that handles whether or not to route a message to other
  * peers.
  *
- * @param cls closure for dht service (NULL)
  * @param msg the message to be routed
  * @param message_context the context containing all pertinent information about the message
  */
 static void
-route_message(void *cls,
-	      const struct GNUNET_MessageHeader *msg,
-	      struct DHT_MessageContext *message_context)
+demultiplex_message(const struct GNUNET_MessageHeader *msg,
+                    struct DHT_MessageContext *message_context)
 {
   message_context->closest = am_closest_peer(&message_context->key, NULL); 
   switch (ntohs(msg->type))
     {
     case GNUNET_MESSAGE_TYPE_DHT_GET: /* Add to hashmap of requests seen, search for data (always) */
-      cache_response (cls, message_context);
-      handle_dht_get (cls, msg, message_context);
+      cache_response (message_context);
+      handle_dht_get (msg, message_context);
       break;
     case GNUNET_MESSAGE_TYPE_DHT_PUT: /* Check if closest, if so insert data. */
       increment_stats(STAT_PUTS);
-      handle_dht_put (cls, msg, message_context);
+      handle_dht_put (msg, message_context);
       break;
     case GNUNET_MESSAGE_TYPE_DHT_FIND_PEER: /* Check if closest and not started by us, check options, add to requests seen */
       increment_stats(STAT_FIND_PEER);
       if (((message_context->hop_count > 0) && (0 != memcmp(message_context->peer, &my_identity, sizeof(struct GNUNET_PeerIdentity)))) || (message_context->client != NULL))
       {
-        cache_response (cls, message_context);
+        cache_response (message_context);
         if ((message_context->closest == GNUNET_YES) || (message_context->msg_options == GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE))
-          handle_dht_find_peer (cls, msg, message_context);
+          handle_dht_find_peer (msg, message_context);
       }
+      else
+        route_message (msg, message_context);
 #if DEBUG_DHT_ROUTING
       if (message_context->hop_count == 0) /* Locally initiated request */
         {
@@ -3656,8 +3643,8 @@ route_message(void *cls,
       break;
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "`%s': Message type (%d) not handled\n", "DHT", ntohs(msg->type));
-      route_message (cls, msg, message_context);
+                  "`%s': Message type (%d) not handled, forwarding anyway!\n", "DHT", ntohs(msg->type));
+      route_message (msg, message_context);
     }
 }
 
@@ -3709,7 +3696,7 @@ republish_content_iterator (void *cls,
   new_msg_ctx->importance = DHT_DEFAULT_P2P_IMPORTANCE;
   new_msg_ctx->timeout = DHT_DEFAULT_P2P_TIMEOUT;
   increment_stats(STAT_PUT_START);
-  route_message(cls, &put_msg->header, new_msg_ctx);
+  demultiplex_message(&put_msg->header, new_msg_ctx);
 
   GNUNET_free(new_msg_ctx);
   GNUNET_free (put_msg);
@@ -3898,7 +3885,7 @@ malicious_put_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
   increment_stats(STAT_PUT_START);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s:%s Sending malicious PUT message with hash %s\n", my_short_id, "DHT", GNUNET_h2s(&key));
-  route_message(NULL, &put_message.header, &message_context);
+  demultiplex_message(&put_message.header, &message_context);
   GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, malicious_put_frequency), &malicious_put_task, NULL);
 
 }
@@ -3941,7 +3928,7 @@ malicious_get_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
   increment_stats(STAT_GET_START);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s:%s Sending malicious GET message with hash %s\n", my_short_id, "DHT", GNUNET_h2s(&key));
-  route_message (NULL, &get_message.header, &message_context);
+  demultiplex_message (&get_message.header, &message_context);
   GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, malicious_get_frequency), &malicious_get_task, NULL);
 }
 
@@ -4038,7 +4025,7 @@ send_find_peer_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   message_context.importance = DHT_DEFAULT_FIND_PEER_IMPORTANCE;
   message_context.timeout = DHT_DEFAULT_FIND_PEER_TIMEOUT;
 
-  route_message(NULL, &find_peer_msg->header, &message_context);
+  demultiplex_message(&find_peer_msg->header, &message_context);
   GNUNET_free(find_peer_msg);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "`%s:%s': Sent `%s' request to some (?) peers\n", my_short_id, "DHT",
@@ -4117,7 +4104,7 @@ handle_dht_local_route_request (void *cls, struct GNUNET_SERVER_Client *client,
   else if (ntohs(enc_msg->type) == GNUNET_MESSAGE_TYPE_DHT_FIND_PEER)
     increment_stats(STAT_FIND_PEER_START);
 
-  route_message(cls, enc_msg, &message_context);
+  demultiplex_message(enc_msg, &message_context);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 
@@ -4285,7 +4272,7 @@ handle_dht_p2p_route_request (void *cls,
   message_context->peer = peer;
   message_context->importance = DHT_DEFAULT_P2P_IMPORTANCE;
   message_context->timeout = DHT_DEFAULT_P2P_TIMEOUT;
-  route_message(cls, enc_msg, message_context);
+  demultiplex_message(enc_msg, message_context);
   GNUNET_free(message_context);
   return GNUNET_YES;
 }
@@ -4325,7 +4312,7 @@ handle_dht_p2p_route_result (void *cls,
   message_context.peer = peer;
   message_context.importance = DHT_DEFAULT_P2P_IMPORTANCE * 2; /* Make result routing a higher priority */
   message_context.timeout = DHT_DEFAULT_P2P_TIMEOUT;
-  route_result_message(cls, enc_msg, &message_context);
+  route_result_message(enc_msg, &message_context);
   return GNUNET_YES;
 }
 
