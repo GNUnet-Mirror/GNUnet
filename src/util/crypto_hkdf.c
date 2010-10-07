@@ -44,8 +44,9 @@
  * @return HMAC, freed by caller via gcry_md_close/_reset
  */
 static void *
-doHMAC (gcry_md_hd_t mac, const void *key, const size_t key_len,
-    const void *buf, const size_t buf_len)
+doHMAC (gcry_md_hd_t mac, 
+	const void *key, size_t key_len,
+	const void *buf, size_t buf_len)
 {
   gcry_md_setkey (mac, key, key_len);
   gcry_md_write (mac, buf, buf_len);
@@ -64,8 +65,10 @@ doHMAC (gcry_md_hd_t mac, const void *key, const size_t key_len,
  * @return GNUNET_YES on success
  */
 static int
-getPRK (gcry_md_hd_t mac, const void *xts, const unsigned long long xts_len,
-    const void *skm, const unsigned long long skm_len, void *prk)
+getPRK (gcry_md_hd_t mac, 
+	const void *xts, unsigned long long xts_len, /* FIXME: size_t? */
+	const void *skm, unsigned long long skm_len, 
+	void *prk)
 {
   void *ret;
 
@@ -77,19 +80,24 @@ getPRK (gcry_md_hd_t mac, const void *xts, const unsigned long long xts_len,
   return GNUNET_YES;
 }
 
+
 #if DEBUG_HKDF
-static void dump(char *src, void *p, unsigned int l)
+static void 
+dump(const char *src, 
+     const void *p, 
+     unsigned int l)
 {
   unsigned int i;
 
   printf("\n%s: ", src);
   for (i = 0; i < l; i++)
     {
-      printf("%2x", (int) ((unsigned char *) p)[i]);
+      printf("%2x", (int) ((const unsigned char *) p)[i]);
     }
   printf("\n");
 }
 #endif
+
 
 /**
  * @brief Derive key
@@ -105,9 +113,11 @@ static void dump(char *src, void *p, unsigned int l)
  * @return GNUNET_YES on success
  */
 int
-GNUNET_CRYPTO_hkdf_v (void *result, const unsigned long long out_len,
-    int xtr_algo, int prf_algo, const void *xts, const size_t xts_len,
-    const void *skm, const size_t skm_len, va_list argp)
+GNUNET_CRYPTO_hkdf_v (void *result, unsigned long long out_len,
+		      int xtr_algo, int prf_algo, 
+		      const void *xts, size_t xts_len,
+		      const void *skm, size_t skm_len,
+		      va_list argp)
 {
   void *prk, *hc, *plain;
   unsigned long long plain_len;
@@ -243,6 +253,7 @@ hkdf_ok:
   return ret;
 }
 
+
 /**
  * @brief Derive key
  * @param result buffer for the derived key, allocated by caller
@@ -258,9 +269,11 @@ hkdf_ok:
  * @return GNUNET_YES on success
  */
 int
-GNUNET_CRYPTO_hkdf (void *result, const unsigned long long out_len,
-    int xtr_algo, int prf_algo, const void *xts, const size_t xts_len,
-    const void *skm, const size_t skm_len, ...)
+GNUNET_CRYPTO_hkdf (void *result, unsigned long long out_len,
+		    int xtr_algo, int prf_algo, 
+		    const void *xts, size_t xts_len,
+		    const void *skm, size_t skm_len, 
+		    ...)
 {
   va_list argp;
   int ret;

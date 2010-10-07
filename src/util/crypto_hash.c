@@ -401,15 +401,18 @@ GNUNET_CRYPTO_hash_sum (const GNUNET_HashCode * a,
     result->bits[i] = delta->bits[i] + a->bits[i];
 }
 
+
 void
 GNUNET_CRYPTO_hash_xor (const GNUNET_HashCode * a,
-                        const GNUNET_HashCode * b, GNUNET_HashCode * result)
+                        const GNUNET_HashCode * b,
+			GNUNET_HashCode * result)
 {
   int i;
   for (i = (sizeof (GNUNET_HashCode) / sizeof (unsigned int)) - 1; i >= 0;
        i--)
     result->bits[i] = a->bits[i] ^ b->bits[i];
 }
+
 
 /**
  * Convert a hashcode into a key.
@@ -430,6 +433,7 @@ GNUNET_CRYPTO_hash_to_aes_key (const GNUNET_HashCode * hc,
           sizeof (struct GNUNET_CRYPTO_AesInitializationVector));
 }
 
+
 /**
  * Obtain a bit from a hashcode.
  * @param code the GNUNET_CRYPTO_hash to index bit-wise
@@ -437,7 +441,8 @@ GNUNET_CRYPTO_hash_to_aes_key (const GNUNET_HashCode * hc,
  * @return Bit \a bit from hashcode \a code, -1 for invalid index
  */
 int
-GNUNET_CRYPTO_hash_get_bit (const GNUNET_HashCode * code, unsigned int bit)
+GNUNET_CRYPTO_hash_get_bit (const GNUNET_HashCode * code, 
+			    unsigned int bit)
 {
   GNUNET_assert (bit < 8 * sizeof (GNUNET_HashCode));
   return (((unsigned char *) code)[bit >> 3] & (1 << (bit & 7))) > 0;
@@ -455,7 +460,9 @@ GNUNET_CRYPTO_hash_get_bit (const GNUNET_HashCode * code, unsigned int bit)
  *
  * @return the number of bits that match
  */
-unsigned int GNUNET_CRYPTO_hash_matching_bits(const GNUNET_HashCode *first, const GNUNET_HashCode *second)
+unsigned int 
+GNUNET_CRYPTO_hash_matching_bits(const GNUNET_HashCode *first,
+				 const GNUNET_HashCode *second)
 {
   unsigned int i;
 
@@ -464,6 +471,7 @@ unsigned int GNUNET_CRYPTO_hash_matching_bits(const GNUNET_HashCode *first, cons
       return i;
   return sizeof (GNUNET_HashCode) * 8;
 }
+
 
 /**
  * Compare function for HashCodes, producing a total ordering
@@ -490,6 +498,7 @@ GNUNET_CRYPTO_hash_cmp (const GNUNET_HashCode * h1,
     }
   return 0;
 }
+
 
 /**
  * Find out which of the two GNUNET_CRYPTO_hash codes is closer to target
@@ -556,9 +565,14 @@ GNUNET_CRYPTO_hmac_derive_key_v(struct GNUNET_CRYPTO_AuthKey *key,
                                 const size_t salt_len,
 				va_list argp)
 {
-  GNUNET_CRYPTO_kdf_v (key->key, sizeof(key->key), salt, salt_len, rkey->key,
-      sizeof(rkey->key), argp);
+  GNUNET_CRYPTO_kdf_v (key->key,
+		       sizeof(key->key), 
+		       salt, salt_len, 
+		       rkey->key,
+		       sizeof(rkey->key),  /* FIXME: this is likely wrong! */
+		       argp);
 }
+
 
 /**
  * Calculate HMAC of a message (RFC 2104)
@@ -577,7 +591,9 @@ GNUNET_CRYPTO_hmac (const struct GNUNET_CRYPTO_AuthKey *key,
   gcry_md_hd_t md;
   unsigned char *mc;
 
-  GNUNET_assert (GPG_ERR_NO_ERROR == gcry_md_open (&md, GCRY_MD_SHA512, GCRY_MD_FLAG_HMAC));
+  GNUNET_assert (GPG_ERR_NO_ERROR == gcry_md_open (&md,
+						   GCRY_MD_SHA512, 
+						   GCRY_MD_FLAG_HMAC));
   gcry_md_setkey (md, key->key, sizeof(key->key));
   gcry_md_write (md, plaintext, plaintext_len);
   mc = gcry_md_read (md, GCRY_MD_SHA512);
