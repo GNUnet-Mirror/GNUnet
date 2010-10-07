@@ -365,9 +365,10 @@ transmit_pending (void *cls,
     }
   if (NULL != head->cont)
     {
-      GNUNET_SCHEDULER_add_now (handle->sched,
-				head->cont,
-				head->cont_cls);			     
+      GNUNET_SCHEDULER_add_continuation (handle->sched,
+                                         head->cont,
+                                         head->cont_cls,
+                                         GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       head->cont = NULL;
       head->cont_cls = NULL;
     }
@@ -602,7 +603,7 @@ GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle)
 
 
 
-/* ***** Special low-level API providing generic routeing abstraction ***** */
+/* ***** Special low-level API providing generic routing abstraction ***** */
 
 
 /**

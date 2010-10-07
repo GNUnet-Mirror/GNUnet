@@ -2702,7 +2702,7 @@ handle_dht_put (void *cls,
  * at each hop we expect to get one bit closer, and
  * we have one bit per bucket, the number of buckets
  * in use should be the largest number of hops for
- * a sucessful message. (of course, this assumes we
+ * a successful message. (of course, this assumes we
  * know all peers in the network!)
  *
  * @return ballpark diameter figure
