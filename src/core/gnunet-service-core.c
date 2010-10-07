@@ -172,16 +172,14 @@ struct EncryptedMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * MAC of the (partially) encrypted message (starting at 'iv_seed'),
-   * used to verify message integrity. Everything after this value
-   * will be authenticated. AUTHENTICATED_HEADER_SIZE must be set to
-   * the offset of the *next* field.
+   * MAC of the encrypted message (starting at 'sequence_number'),
+   * used to verify message integrity.
    */
   GNUNET_HashCode hmac;
 
   /**
    * Random value used for IV generation. Everything after this value
-   * (excluding this value itself) will be encrypted.
+   * (excluding this value itself) will be encrypted and authenticated.
    * ENCRYPTED_HEADER_SIZE must be set to the offset of the *next* field.
    */
   uint32_t iv_seed GNUNET_PACKED;
@@ -212,13 +210,6 @@ struct EncryptedMessage
  * that are NOT encrypted.
  */
 #define ENCRYPTED_HEADER_SIZE (offsetof(struct EncryptedMessage, sequence_number))
-
-
-/**
- * Number of bytes (at the beginning) of "struct EncryptedMessage"
- * that are NOT authenticated.
- */
-#define AUTHENTICATED_HEADER_SIZE (offsetof(struct EncryptedMessage, iv_seed))
 
 
 /**
@@ -484,18 +475,6 @@ struct Neighbour
   struct GNUNET_CRYPTO_AesSessionKey decrypt_key;
 
   /**
-   * Key we use to authenticate messages sent to the other peer
-   * (derived from the encrypt_key during the handshake)
-   */
-  struct GNUNET_CRYPTO_AuthKey encrypt_auth_key;
-
-  /**
-   * Key we use to authenticate messages sent from the other peer
-   * (derived from the decrypt_key during the handshake)
-   */
-  struct GNUNET_CRYPTO_AuthKey decrypt_auth_key;
-
-  /**
    * ID of task used for re-trying plaintext scheduling.
    */
   GNUNET_SCHEDULER_TaskIdentifier retry_plaintext_task;
@@ -755,17 +734,17 @@ static unsigned long long bandwidth_target_out_bps;
 static void
 derive_auth_key (struct GNUNET_CRYPTO_AuthKey *akey,
     const struct GNUNET_CRYPTO_AesSessionKey *skey,
-    const struct GNUNET_TIME_Absolute creation_time,
-    const struct GNUNET_PeerIdentity *identity)
+    const unsigned int seed,
+    const struct GNUNET_TIME_Absolute creation_time)
 {
   static char ctx[] = "authentication key";
 
   GNUNET_CRYPTO_hmac_derive_key (akey,
                                  skey,
+                                 &seed,
+                                 sizeof(seed),
                                  &skey->key,
                                  sizeof(skey->key),
-                                 &identity->hashPubKey.bits,
-                                 sizeof(identity->hashPubKey.bits),
                                  &creation_time,
                                  sizeof(creation_time),
                                  ctx,
@@ -2104,6 +2083,7 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
   struct GNUNET_TIME_Absolute deadline;
   struct GNUNET_TIME_Relative retry_time;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
+  struct GNUNET_CRYPTO_AuthKey auth_key;
 
   if (n->retry_plaintext_task != GNUNET_SCHEDULER_NO_TASK)
     {
@@ -2224,16 +2204,20 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
                              &iv,
                              &ph->sequence_number,
                              &em->sequence_number, used - ENCRYPTED_HEADER_SIZE));
-  GNUNET_CRYPTO_hmac (&n->encrypt_auth_key,
-                      &em->iv_seed,
-                      used - AUTHENTICATED_HEADER_SIZE,
+  derive_auth_key (&auth_key,
+                   &n->encrypt_key,
+                   ph->iv_seed,
+                   n->encrypt_key_created);
+  GNUNET_CRYPTO_hmac (&auth_key,
+                      &em->sequence_number,
+                      used - ENCRYPTED_HEADER_SIZE,
                       &em->hmac);
 #if DEBUG_HANDSHAKE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Authenticated %u bytes of ciphertext %u: `%s'\n",
-              used - AUTHENTICATED_HEADER_SIZE,
-              GNUNET_CRYPTO_crc32_n (&em->iv_seed,
-                  used - AUTHENTICATED_HEADER_SIZE),
+              used - ENCRYPTED_HEADER_SIZE,
+              GNUNET_CRYPTO_crc32_n (&em->sequence_number,
+                  used - ENCRYPTED_HEADER_SIZE),
               GNUNET_h2s (&em->hmac));
 #endif
   /* append to transmission list */
@@ -2309,7 +2293,6 @@ create_neighbour (const struct GNUNET_PeerIdentity *pid)
   n->bw_out_external_limit = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT;
   n->ping_challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
                                                 UINT32_MAX);
-  derive_auth_key (&n->encrypt_auth_key, &n->encrypt_key, now, &n->peer);
   neighbour_quota_update (n, NULL);
   consider_free_neighbour (n);
   return n;
@@ -3251,7 +3234,6 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
 			    1, 
 			    GNUNET_NO);
   n->decrypt_key = k;
-  derive_auth_key(&n->decrypt_auth_key, &n->decrypt_key, t, &my_identity);
   if (n->decrypt_key_created.value != t.value)
     {
       /* fresh key, reset sequence numbers */
@@ -3259,7 +3241,6 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
       n->last_packets_bitmap = 0;
       n->decrypt_key_created = t;
     }
-  derive_auth_key(&n->decrypt_auth_key, &k, n->decrypt_key_created, &my_identity);
   sender_status = (enum PeerStateMachine) ntohl (m->sender_status);
   switch (n->status)
     {
@@ -3449,6 +3430,7 @@ handle_encrypted_message (struct Neighbour *n,
   uint32_t snum;
   struct GNUNET_TIME_Absolute t;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
+  struct GNUNET_CRYPTO_AuthKey auth_key;
 
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -3466,15 +3448,19 @@ handle_encrypted_message (struct Neighbour *n,
     return;
   pt = (struct EncryptedMessage *) buf;
   /* validate hash */
-  GNUNET_CRYPTO_hmac (&n->decrypt_auth_key,
-                      &m->iv_seed,
-                      size - AUTHENTICATED_HEADER_SIZE, &ph);
+  derive_auth_key (&auth_key,
+                   &n->decrypt_key,
+                   m->iv_seed,
+                   n->decrypt_key_created);
+  GNUNET_CRYPTO_hmac (&auth_key,
+                      &m->sequence_number,
+                      size - ENCRYPTED_HEADER_SIZE, &ph);
 #if DEBUG_HANDSHAKE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Re-Authenticated %u bytes of ciphertext (`%u'): `%s'\n",
-	      (unsigned int) size - AUTHENTICATED_HEADER_SIZE,
-              GNUNET_CRYPTO_crc32_n (&m->iv_seed,
-                  size - AUTHENTICATED_HEADER_SIZE),
+	      (unsigned int) size - ENCRYPTED_HEADER_SIZE,
+              GNUNET_CRYPTO_crc32_n (&m->sequence_number,
+                  size - ENCRYPTED_HEADER_SIZE),
 	      GNUNET_h2s (&ph));
 #endif
   if (0 != memcmp (&ph,
