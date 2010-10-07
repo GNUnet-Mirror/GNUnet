@@ -43,7 +43,7 @@
  * @param buf_len length of buf
  * @return HMAC, freed by caller via gcry_md_close/_reset
  */
-static void *
+static const void *
 doHMAC (gcry_md_hd_t mac, 
 	const void *key, size_t key_len,
 	const void *buf, size_t buf_len)
@@ -51,7 +51,7 @@ doHMAC (gcry_md_hd_t mac,
   gcry_md_setkey (mac, key, key_len);
   gcry_md_write (mac, buf, buf_len);
 
-  return (void *) gcry_md_read (mac, 0);
+  return (const void *) gcry_md_read (mac, 0);
 }
 
 /**
@@ -70,12 +70,14 @@ getPRK (gcry_md_hd_t mac,
 	const void *skm, unsigned long long skm_len, 
 	void *prk)
 {
-  void *ret;
+  const void *ret;
 
   ret = doHMAC (mac, xts, xts_len, skm, skm_len);
   if (ret == NULL)
     return GNUNET_SYSERR;
-  memcpy (prk, ret, gcry_md_get_algo_dlen (gcry_md_get_algo (mac)));
+  memcpy (prk,
+	  ret,
+	  gcry_md_get_algo_dlen (gcry_md_get_algo (mac)));
 
   return GNUNET_YES;
 }
@@ -119,7 +121,8 @@ GNUNET_CRYPTO_hkdf_v (void *result, unsigned long long out_len,
 		      const void *skm, size_t skm_len,
 		      va_list argp)
 {
-  void *prk, *hc, *plain;
+  void *prk, *plain;
+  const void *hc;
   unsigned long long plain_len;
   unsigned long i, t, d;
   unsigned int k, xtr_len;
@@ -180,7 +183,9 @@ GNUNET_CRYPTO_hkdf_v (void *result, unsigned long long out_len,
 #if DEBUG_HKDF
       dump("K(1)", plain, plain_len);
 #endif
-      hc = doHMAC (prf, prk, xtr_len, plain, ctx_len + 1);
+      hc = doHMAC (prf, 
+		   prk,
+		   xtr_len, plain, ctx_len + 1);
       if (hc == NULL)
         goto hkdf_error;
       memcpy (result, hc, k);
