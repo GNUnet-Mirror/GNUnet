@@ -31,7 +31,6 @@ These are the direct dependencies for running GNUnet:
 - libextractor  >= 0.6.1
 - libmicrohttpd >= 0.9.2
 - libgcrypt     >= 1.2
-- libgmp        >= 4.0
 - libcurl       >= 7.21.0
 - libltdl       >= 2.2 (part of GNU libtool)
 - sqlite        >= 3.0 (alternative to MySQL)
