@@ -1250,12 +1250,7 @@ run (void *cls,
   fail_pretty_printer=GNUNET_NO;
   fail_addr_to_str=GNUNET_NO;
 
-  /* Suggesting addresses with wrong port*/
   struct IPv4HttpAddress failing_addr;
-  failing_addr.ipv4_addr = htonl(INADDR_LOOPBACK);
-  failing_addr.u_port = htons(0);
-  suggest_res = api->check_address (api->cls,&failing_addr,sizeof (struct IPv4HttpAddress));
-  GNUNET_assert (GNUNET_SYSERR == suggest_res);
 
   /* Suggesting addresses with wrong size*/
   failing_addr.ipv4_addr = htonl(INADDR_LOOPBACK);

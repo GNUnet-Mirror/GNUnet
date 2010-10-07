@@ -2522,15 +2522,10 @@ http_plugin_address_suggested (void *cls,
   if (addrlen == sizeof (struct IPv4HttpAddress))
     {
       v4 = (struct IPv4HttpAddress *) addr;
-      /* Not skipping loopback
-      if (INADDR_LOOPBACK == ntohl(v4->ipv4_addr))
-      {
-        return GNUNET_SYSERR;
-      } */
 
       if (plugin->bind4_address!=NULL)
       {
-    	  if (0 == memcmp (&plugin->bind4_address->sin_addr, &v4->ipv4_addr, sizeof(uint32_t)) && (ntohs (v4->u_port) == plugin->port_inbound))
+    	  if (0 == memcmp (&plugin->bind4_address->sin_addr, &v4->ipv4_addr, sizeof(uint32_t)))
     		  return GNUNET_OK;
     	  else
     		  return GNUNET_SYSERR;
@@ -2541,7 +2536,7 @@ http_plugin_address_suggested (void *cls,
     		  break;
     	  tv4 = tv4->next;
       }
-      if ((tv4 !=NULL) && (ntohs (v4->u_port) == plugin->port_inbound))
+      if (tv4 != NULL)
         return GNUNET_OK;
 	  else
 		  return GNUNET_SYSERR;
@@ -2564,7 +2559,7 @@ http_plugin_address_suggested (void *cls,
     		  break;
     	  tv6 = tv6->next;
       }
-      if ((tv6 !=NULL) && (ntohs (v6->u6_port) == plugin->port_inbound))
+      if (tv6 !=NULL)
         return GNUNET_OK;
 	  else
 		  return GNUNET_SYSERR;
