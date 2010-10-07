@@ -219,7 +219,7 @@ GNUNET_BLOCK_evaluate (struct GNUNET_BLOCK_Context *ctx,
  * @param block block to get the key for
  * @param block_size number of bytes in block
  * @param key set to the key (query) for the given block
- * @return GNUNET_OK on success, 
+ * @return GNUNET_YES on success, 
  *         GNUNET_NO if the block is malformed
  *         GNUNET_SYSERR if type not supported
  *         (or if extracting a key from a block of this type does not work)

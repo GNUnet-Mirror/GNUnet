@@ -68,10 +68,14 @@ struct vpn_cls {
 static struct vpn_cls mycls;
 
 static void cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
-	if (tskctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) {
-		PLIBC_KILL(mycls.helper_pid, SIGTERM);
-		GNUNET_OS_process_wait(mycls.helper_pid);
-	}
+  GNUNET_assert (0 != (tskctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN));
+  PLIBC_KILL(mycls.helper_pid, SIGTERM);
+  GNUNET_OS_process_wait(mycls.helper_pid);
+  if (mycls.dns_connection != NULL)
+    {
+      GNUNET_CLIENT_disconnect (mycls.dns_connection);
+      mycls.dns_connection = NULL;
+    }
 }
 
 static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx);
@@ -256,33 +260,50 @@ static void message_token(void *cls, void *client, const struct GNUNET_MessageHe
 
 }
 
-void dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg);
+static void 
+dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg);
 
-void reconnect_to_service_dns() {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connecting\n");
-    if (mycls.dns_connection != NULL) {
-      GNUNET_CLIENT_disconnect(mycls.dns_connection, 1);
-    }
-    mycls.dns_connection = GNUNET_CLIENT_connect (mycls.sched, "dns", mycls.cfg);
-
-    GNUNET_CLIENT_receive(mycls.dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
+static void 
+reconnect_to_service_dns (void *cls,
+			  const struct GNUNET_SCHEDULER_TaskContext *tc) {
+  if (0 != (tskctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connecting\n");
+  GNUNET_assert (mycls.dns_connection == NULL);
+  mycls.dns_connection = GNUNET_CLIENT_connect (mycls.sched, "dns", mycls.cfg); 
+  GNUNET_CLIENT_receive(mycls.dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
-void dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg) {
-	if (msg == NULL) return reconnect_to_service_dns();
+static void 
+dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg) 
+{
+  if (msg == NULL) 
+    {
+      GNUNET_CLIENT_disconnect(mycls.dns_connection, GNUNET_NO);
+      mycls.dns_connection = NULL;
+      GNUNET_SCHEDULER_add_delayed (mycls.sched,
+				    GNUNET_TIME_UNIT_SECONDS,
+				    &reconnect_to_service_dns,
+				    NULL);
+      return;
+    }
 
-	if (msg->type != htons(GNUNET_MESSAGE_TYPE_LOCAL_RESPONSE_DNS)) goto out;
-
-	struct answer_packet_list* pkt = GNUNET_malloc(ntohs(msg->size) + 2*sizeof(struct answer_packet_list*));
-
-	memcpy(&pkt->pkt, msg, ntohs(msg->size));
-
-	GNUNET_CONTAINER_DLL_insert_after(mycls.answer_head, mycls.answer_tail, mycls.answer_tail, pkt);
-
-	GNUNET_SCHEDULER_add_write_file (mycls.sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.fh_to_helper, &helper_write, NULL);
-
-out:
-	GNUNET_CLIENT_receive(mycls.dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
+  if (msg->type != htons(GNUNET_MESSAGE_TYPE_LOCAL_RESPONSE_DNS)) 
+    {
+      GNUNET_break (0);
+      GNUNET_CLIENT_disconnect(mycls.dns_connection, GNUNET_NO);
+      mycls.dns_connection = NULL;
+      GNUNET_SCHEDULER_add_now (mycls.sched,
+				&reconnect_to_service_dns,
+				NULL);
+      return;
+    }  
+  struct answer_packet_list* pkt = GNUNET_malloc(ntohs(msg->size) + 2*sizeof(struct answer_packet_list*));
+  
+  memcpy(&pkt->pkt, msg, ntohs(msg->size));
+  GNUNET_CONTAINER_DLL_insert_after(mycls.answer_head, mycls.answer_tail, mycls.answer_tail, pkt);  
+  GNUNET_SCHEDULER_add_write_file (mycls.sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.fh_to_helper, &helper_write, NULL);
+  GNUNET_CLIENT_receive(mycls.dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 /**
@@ -303,11 +324,8 @@ run (void *cls,
 {
   mycls.sched = sched;
   mycls.mst = GNUNET_SERVER_mst_create(&message_token, NULL);
-
   mycls.cfg = cfg;
-
-  reconnect_to_service_dns();
-
+  GNUNET_SCHEDULER_add_now (sched, &reconnect_to_service_dns, NULL);
   GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls); 
   start_helper_and_schedule(mycls);
 }

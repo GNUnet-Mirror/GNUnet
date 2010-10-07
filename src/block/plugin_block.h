@@ -32,7 +32,6 @@
 #include "gnunet_block_lib.h"
 
 
-
 /**
  * Function called to validate a reply or a request.  For
  * request evaluation, simply pass "NULL" for the reply_block.
@@ -71,7 +70,9 @@ typedef enum GNUNET_BLOCK_EvaluationResult
  * @param block block to get the key for
  * @param block_size number of bytes in block
  * @param key set to the key (query) for the given block
- * @return GNUNET_OK on success, GNUNET_SYSERR if type not supported
+ * @return GNUNET_YES on success, 
+ *         GNUNET_NO if the block is malformed
+ *         GNUNET_SYSERR if type not supported
  *         (or if extracting a key from a block of this type does not work)
  */
 typedef int

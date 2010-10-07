@@ -99,6 +99,14 @@
   - performance tests
 * BLOCK:
   - more testing (KBlock, SBlock, NBlock)
+* FS migration:
+  - exclude content that will "soon" expire from migration?
+  - exclude content with zero-anonymity from gap migration?
+  - make migration data rate & datastore IO-rate configurable
+  - exclude certain peers as targets (based on hash values) in each
+    iteration => same peer can only be picked every n-th iteration 
+    for the same content => fewer duplicate sending!
+
 
 0.9.1:
 * TRANSPORT: [MW]
