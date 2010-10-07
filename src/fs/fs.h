@@ -123,12 +123,6 @@
 #define AVAILABILITY_TRIALS_MAX 8
 
 /**
- * By how much (in ms) do we decrement the TTL
- * at each hop?
- */
-#define TTL_DECREMENT 5000
-
-/**
  * Length of the P2P success tracker.  Note that
  * having a very long list can also hurt performance.
  */
