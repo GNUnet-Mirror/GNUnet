@@ -32,6 +32,7 @@
 #include "gnunet-vpn-packet.h"
 #include "gnunet-vpn-pretty-print.h"
 #include "gnunet_container_lib.h"
+#include "gnunet-dns-parser.h"
 
 struct dns_cls {
 	struct GNUNET_SCHEDULER_Handle *sched;
@@ -69,10 +70,21 @@ void unhijack(unsigned short port) {
 	GNUNET_OS_start_process(NULL, NULL, "gnunet-helper-hijack-dns", "gnunet-hijack-dns", "-d", port_s, NULL);
 }
 
+/**
+ * This receives the dns-payload from the daemon-vpn and sends it on over the udp-socket
+ */
 void receive_query(void *cls, struct GNUNET_SERVER_Client *client, const struct GNUNET_MessageHeader *message)
 {
 	struct query_packet* pkt = (struct query_packet*)message;
 	struct dns_pkt* dns = (struct dns_pkt*)pkt->data;
+	struct dns_pkt_parsed* pdns = parse_dns_packet(dns);
+
+	if (pdns->queries[0]->namelen > 9 &&
+	    0 == strncmp(pdns->queries[0]->name+(pdns->queries[0]->namelen - 9), ".gnunet.", 9)) {
+	    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Query for .gnunet!\n");
+	}
+
+	GNUNET_free(pdns);
 
 	struct sockaddr_in dest;
 	memset(&dest, 0, sizeof dest);
@@ -135,8 +147,6 @@ static void read_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
 		answer->pkt.to = query_states[dns->s.id].local_ip;
 		answer->pkt.dst_port = query_states[dns->s.id].local_port;
 		memcpy(answer->pkt.data, buf, r);
-
-		pkt_printf_dns((struct dns_pkt*)buf);
 
 		GNUNET_CONTAINER_DLL_insert_after(mycls.head, mycls.tail, mycls.tail, answer);
 
