@@ -156,6 +156,7 @@ static void helper_write(void* cls, const struct GNUNET_SCHEDULER_TaskContext* t
 	size_t pkt_len = sizeof(struct GNUNET_MessageHeader) + sizeof(struct pkt_tun) + net_len;
 
 	struct ip_udp_dns* pkt = alloca(pkt_len);
+	memset(pkt, 0, pkt_len);
 
 	pkt->shdr.size = htons(pkt_len);
 	pkt->shdr.type = htons(GNUNET_MESSAGE_TYPE_VPN_HELPER);
