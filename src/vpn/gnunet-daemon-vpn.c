@@ -255,7 +255,8 @@ static void message_token(void *cls, void *client, const struct GNUNET_MessageHe
 
 			GNUNET_CONTAINER_DLL_insert_after(mycls.head, mycls.tail, mycls.tail, query);
 
-			/* struct GNUNET_CLIENT_TransmitHandle* th = */ GNUNET_CLIENT_notify_transmit_ready(mycls.dns_connection, len, GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
+			if (mycls.dns_connection != NULL)
+			  /* struct GNUNET_CLIENT_TransmitHandle* th = */ GNUNET_CLIENT_notify_transmit_ready(mycls.dns_connection, len, GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
 		}
 	}
 
@@ -273,6 +274,8 @@ reconnect_to_service_dns (void *cls,
   GNUNET_assert (mycls.dns_connection == NULL);
   mycls.dns_connection = GNUNET_CLIENT_connect (mycls.sched, "dns", mycls.cfg); 
   GNUNET_CLIENT_receive(mycls.dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
+  if (mycls.head != NULL)
+    /* struct GNUNET_CLIENT_TransmitHandle* th = */ GNUNET_CLIENT_notify_transmit_ready(mycls.dns_connection, ntohs(mycls.head->pkt.hdr.size), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
 }
 
 static void 
