@@ -321,7 +321,7 @@ gen_prime (gcry_mpi_t *ptest, unsigned int nbits, GNUNET_HashCode * hc)
       /* Calculate all remainders. */
       tmp = gcry_mpi_new (0);
       sp = gcry_mpi_new (0);
-      for (i = 0; i <= no_of_small_prime_numbers; i++)
+      for (i = 0; i < no_of_small_prime_numbers; i++)
         {
           size_t written;
 
@@ -337,7 +337,7 @@ gen_prime (gcry_mpi_t *ptest, unsigned int nbits, GNUNET_HashCode * hc)
       for (step = 0; step < 20000; step += 2)
         {
           /* Check against all the small primes we have in mods. */
-          for (i = 0; i <= no_of_small_prime_numbers; i++)
+          for (i = 0; i < no_of_small_prime_numbers; i++)
             {
 	      uint16_t x = small_prime_numbers[i];
               while (mods[i] + step >= x)
@@ -345,7 +345,7 @@ gen_prime (gcry_mpi_t *ptest, unsigned int nbits, GNUNET_HashCode * hc)
               if (!(mods[i] + step))
                 break;
             }
-          if (i <= no_of_small_prime_numbers)
+          if (i < no_of_small_prime_numbers)
             continue;           /* Found a multiple of an already known prime. */
 
           gcry_mpi_add_ui (*ptest, prime, step);
