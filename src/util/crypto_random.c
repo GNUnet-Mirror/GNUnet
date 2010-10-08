@@ -60,8 +60,9 @@ GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, uint32_t i)
 
   GNUNET_assert (i > 0);
 
-  if (mode == GNUNET_CRYPTO_QUALITY_STRONG)
+  switch (mode)
     {
+    case GNUNET_CRYPTO_QUALITY_STRONG:
       /* see http://lists.gnupg.org/pipermail/gcrypt-devel/2004-May/000613.html */
 #ifdef gcry_fast_random_poll
       if ((invokeCount++ % 256) == 0)
@@ -75,25 +76,23 @@ GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, uint32_t i)
 	}
       while (ret >= ul);
       return ret % i;
-    }
-  else if (mode == GNUNET_CRYPTO_QUALITY_NONCE)
-    {
+    case GNUNET_CRYPTO_QUALITY_NONCE:
       ul = UINT32_MAX - (UINT32_MAX % i);
       do
         {
           gcry_create_nonce(&ret, sizeof(ret));
         }
       while (ret >= ul);
-
       return ret % i;
-    }
-  else
-    {
+    case GNUNET_CRYPTO_QUALITY_WEAK:
       ret = i * weak_random ();
       if (ret >= i)
         ret = i - 1;
       return ret;
+    default:
+      GNUNET_assert (0);
     }
+  return 0;
 }
 
 
@@ -142,8 +141,9 @@ GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode, uint64_t max)
   uint64_t ul;
 
   GNUNET_assert (max > 0);
-  if (mode == GNUNET_CRYPTO_QUALITY_STRONG)
+  switch (mode)
     {
+    case GNUNET_CRYPTO_QUALITY_STRONG:    
       ul = UINT64_MAX - (UINT64_MAX % max);
       do
 	{
@@ -152,9 +152,7 @@ GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode, uint64_t max)
 	}
       while (ret >= ul);
       return ret % max;
-    }
-  else if (mode == GNUNET_CRYPTO_QUALITY_NONCE)
-    {
+    case GNUNET_CRYPTO_QUALITY_NONCE:
       ul = UINT64_MAX - (UINT64_MAX % max);
       do
         {
@@ -163,14 +161,15 @@ GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode, uint64_t max)
       while (ret >= ul);
 
       return ret % max;
-    }
-  else
-    {
+    case GNUNET_CRYPTO_QUALITY_WEAK:
       ret = max * weak_random ();
       if (ret >= max)
         ret = max - 1;
       return ret;
+    default:
+      GNUNET_assert (0);
     }
+  return 0;
 }
 
 /**
