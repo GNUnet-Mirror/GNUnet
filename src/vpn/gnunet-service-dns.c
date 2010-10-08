@@ -33,11 +33,16 @@
 #include "gnunet-vpn-pretty-print.h"
 #include "gnunet_container_lib.h"
 #include "gnunet-dns-parser.h"
+#include "gnunet_dht_service.h"
+#include "gnunet_block_lib.h"
+#include "gnunet_block_dns.h"
 
 struct dns_cls {
 	struct GNUNET_SCHEDULER_Handle *sched;
 
 	struct GNUNET_NETWORK_Handle *dnsout;
+
+	struct GNUNET_DHT_Handle *dht;
 
 	unsigned short dnsoutport;
 
@@ -70,6 +75,20 @@ void unhijack(unsigned short port) {
 	GNUNET_OS_start_process(NULL, NULL, "gnunet-helper-hijack-dns", "gnunet-hijack-dns", "-d", port_s, NULL);
 }
 
+void receive_dht(void *cls,
+		 struct GNUNET_TIME_Absolute exp,
+		 const GNUNET_HashCode *key,
+		 const struct GNUNET_PeerIdentity *const *get_path,
+		 const struct GNUNET_PeerIdentity *const *put_path,
+		 enum GNUNET_BLOCK_Type type,
+		 size_t size,
+		 const void *data)
+{
+  GNUNET_assert(type == GNUNET_BLOCK_TYPE_DNS);
+  const struct GNUNET_DNS_Record* rec = data;
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Got block of size %s, peer: %08x, desc: %08x\n", size, *((unsigned int*)&rec->peer), *((unsigned int*)&rec->service_descriptor));
+}
+
 /**
  * This receives the dns-payload from the daemon-vpn and sends it on over the udp-socket
  */
@@ -82,6 +101,20 @@ void receive_query(void *cls, struct GNUNET_SERVER_Client *client, const struct 
 	if (pdns->queries[0]->namelen > 9 &&
 	    0 == strncmp(pdns->queries[0]->name+(pdns->queries[0]->namelen - 9), ".gnunet.", 9)) {
 	    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Query for .gnunet!\n");
+	    GNUNET_HashCode key;
+	    GNUNET_CRYPTO_hash(pdns->queries[0]->name, pdns->queries[0]->namelen, &key);
+	    GNUNET_DHT_get_start(mycls.dht,
+				 GNUNET_TIME_UNIT_MINUTES,
+				 GNUNET_BLOCK_TYPE_DNS,
+				 &key,
+				 GNUNET_DHT_RO_NONE,
+				 NULL,
+				 0,
+				 NULL,
+				 0,
+				 receive_dht,
+				 NULL);
+	    goto out;
 	}
 
 	GNUNET_free(pdns);
@@ -98,6 +131,7 @@ void receive_query(void *cls, struct GNUNET_SERVER_Client *client, const struct 
 
 	/* int r = */ GNUNET_NETWORK_socket_sendto(mycls.dnsout, dns, ntohs(pkt->hdr.size) - sizeof(struct query_packet) + 1, (struct sockaddr*) &dest, sizeof dest);
 
+out:
 	GNUNET_SERVER_receive_done(client, GNUNET_OK);
 }
 
@@ -168,6 +202,7 @@ cleanup_task (void *cls,
 	      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 	unhijack(mycls.dnsoutport);
+	GNUNET_DHT_disconnect(mycls.dht);
 }
 
 /**
@@ -194,6 +229,8 @@ run (void *cls,
     query_states[i].valid = 0;
   }
   }
+
+  mycls.dht = GNUNET_DHT_connect(sched, cfg, 1024);
 
   struct sockaddr_in addr;
 
