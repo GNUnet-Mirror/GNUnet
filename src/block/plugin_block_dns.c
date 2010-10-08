@@ -46,7 +46,7 @@
  * @return characterization of result
  */
 static enum GNUNET_BLOCK_EvaluationResult
-block_plugin_dht_evaluate (void *cls,
+block_plugin_dns_evaluate (void *cls,
 			   enum GNUNET_BLOCK_Type type,
 			   const GNUNET_HashCode *query,
 			   struct GNUNET_CONTAINER_BloomFilter **bf,
@@ -92,7 +92,7 @@ block_plugin_dht_evaluate (void *cls,
  *         (or if extracting a key from a block of this type does not work)
  */
 static int
-block_plugin_dht_get_key (void *cls,
+block_plugin_dns_get_key (void *cls,
 			  enum GNUNET_BLOCK_Type type,
 			  const void *block,
 			  size_t block_size,
@@ -109,7 +109,7 @@ block_plugin_dht_get_key (void *cls,
  * Entry point for the plugin.
  */
 void *
-libgnunet_plugin_block_dht_init (void *cls)
+libgnunet_plugin_block_dns_init (void *cls)
 {
   static enum GNUNET_BLOCK_Type types[] = 
     {
@@ -119,8 +119,8 @@ libgnunet_plugin_block_dht_init (void *cls)
   struct GNUNET_BLOCK_PluginFunctions *api;
 
   api = GNUNET_malloc (sizeof (struct GNUNET_BLOCK_PluginFunctions));
-  api->evaluate = &block_plugin_dht_evaluate;
-  api->get_key = &block_plugin_dht_get_key;
+  api->evaluate = &block_plugin_dns_evaluate;
+  api->get_key = &block_plugin_dns_get_key;
   api->types = types;
   return api;
 }
@@ -130,7 +130,7 @@ libgnunet_plugin_block_dht_init (void *cls)
  * Exit point from the plugin.
  */
 void *
-libgnunet_plugin_block_dht_done (void *cls)
+libgnunet_plugin_block_dns_done (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
 
