@@ -100,7 +100,8 @@ block_plugin_dht_get_key (void *cls,
 {
   if (type != GNUNET_BLOCK_TYPE_DNS)
     return GNUNET_SYSERR;
-  GNUNET_CRYPTO_hash(block, block_size, key);
+  const struct GNUNET_DNS_Record* rec = block;
+  GNUNET_CRYPTO_hash(rec->name, rec->namelen, key);
   return GNUNET_OK;
 }
 
