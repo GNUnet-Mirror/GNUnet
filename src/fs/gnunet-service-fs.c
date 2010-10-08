@@ -24,7 +24,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - introduce random latency in processing
  * - more statistics
  */
 #include "platform.h"
@@ -2235,7 +2234,7 @@ test_put_load_too_high (uint32_t priority)
   if (GNUNET_LOAD_get_average (datastore_put_load) < 50)
     return GNUNET_NO; /* very fast */
   ld = GNUNET_LOAD_get_load (datastore_put_load);
-  if ( (ld < 1) || (ld < priority) )
+  if (ld < 2.0 * (1 + priority))
     return GNUNET_NO;
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# storage requests dropped due to high load"),
@@ -3408,7 +3407,7 @@ handle_p2p_put (void *cls,
   putl = GNUNET_LOAD_get_load (datastore_put_load);
   if ( (GNUNET_NO == prq.request_found) &&
        ( (GNUNET_YES != active_migration) ||
-       	 (putl > 2.0) ) )
+       	 (putl > 2.5 * (1 + prq.priority)) ) )
     {
       cp = GNUNET_CONTAINER_multihashmap_get (connected_peers,
 					      &other->hashPubKey);
@@ -3892,7 +3891,7 @@ handle_p2p_get (void *cls,
       pr->namespace = (GNUNET_HashCode*) &pr[1];
       memcpy (&pr[1], &opt[bits++], sizeof (GNUNET_HashCode));
     }
-  if ( (GNUNET_LOAD_get_load (cp->transmission_delay) > 3) ||
+  if ( (GNUNET_LOAD_get_load (cp->transmission_delay) > 3 * (1 + priority)) ||
        (GNUNET_LOAD_get_average (cp->transmission_delay) > 
 	GNUNET_CONSTANTS_MAX_CORK_DELAY.value * 2 + GNUNET_LOAD_get_average (rt_entry_lifetime)) )
     {

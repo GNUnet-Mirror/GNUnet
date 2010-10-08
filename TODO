@@ -1,6 +1,5 @@
 0.9.0pre2:
  FS:
-  - measure latencies (core, datastore) => trust economy
   - FS performance benchmarking
 * DHT: [Nate]
   - track paths content travels (PUT, reply-to-get) in messages,
