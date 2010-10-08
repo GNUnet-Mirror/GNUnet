@@ -36,12 +36,29 @@
  * - Matthias Wachs (08.10.2010)
  */
 
-#include <gcrypt.h>
+/**
+ * Set this to 0 if you compile this code outside of GNUnet.
+ */
+#define GNUNET_BUILD 1
 
+/**
+ * Enable debugging.
+ */
+#define DEBUG_HKDF 0
+
+
+#if GNUNET_BUILD
 #include "platform.h"
 #include "gnunet_crypto_lib.h"
+#else
+#define GNUNET_NO 0
+#define GNUNET_YES 1
+#define GNUNET_SYSERR -1
+#include <stdlib.h>
+#endif
 
-#define DEBUG_HKDF GNUNET_NO
+#include <gcrypt.h>
+
 
 /**
  * @brief Compute the HMAC
