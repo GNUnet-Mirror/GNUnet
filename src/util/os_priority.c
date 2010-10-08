@@ -299,7 +299,7 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
     {
       SetErrnoFromWinError (GetLastError ());
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "FindExecutable", filename);
-      return -1;
+      return (pid_t) -1;
     }
 
   if (!CreateProcessA
@@ -308,7 +308,7 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
     {
       SetErrnoFromWinError (GetLastError ());
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "CreateProcess", path);
-      return -1;
+      return (pid_t) -1;
     }
 
   CreateThread (NULL, 64000, ChildWaitThread, proc.hProcess, 0, NULL);
@@ -598,7 +598,7 @@ GNUNET_OS_process_status (pid_t proc, enum GNUNET_OS_ProcessStatusType *type,
       return GNUNET_SYSERR;
     }
 
-  c = GetExitCodeProcess ((HANDLE) proc, &c);
+  c = GetExitCodeProcess (h, &c);
   if (STILL_ACTIVE == c)
     {
       *type = GNUNET_OS_PROCESS_RUNNING;
