@@ -1,9 +1,4 @@
 0.9.0pre2:
- FS:
-  - FS performance benchmarking
-* DHT: [Nate]
-  - track paths content travels (PUT, reply-to-get) in messages,
-    pass to client (client API & protocol already support this!)
 * CORE:
   - Jun 27 11:51:54 core-7670 ERROR Assertion failed at gnunet-service-core.c:3616.
     (transport notified us that we connected to ourselves!!!)
@@ -19,8 +14,11 @@
 
 0.9.0pre3:
 * Determine RC bugs and fix those (release should have no known real bugs)
-* DATASTORE: [LT]
-  - GNUNET_DATASTORE_cancel method not tested [LT]
+* DHT: [Nate]
+  - track paths content travels (PUT, reply-to-get) in messages,
+    pass to client (client API & protocol already support this!)
+* DATASTORE: 
+  - GNUNET_DATASTORE_cancel method not tested
 * TESTING: [Nate]
   - test basic peer re-configure 
 * TOPOLOGY: [Nate]
@@ -39,14 +37,6 @@
     + reconstruct IBLOCKS from DBLOCKS if possible (during download; see FIXME in fs_download)
     + add support for pushing "already seen" search results to FS service for bloomfilter
     + use different 'priority' for probe downloads vs. normal downloads
-  - service:
-    + trust: do not charge when "idle" / load considerations (migration, routing)
-    + artificial delays
-    + active reply route caching design & implementation; gap extension!
-  - non-anonymous FS service (needs DHT)
-    + DHT integration for search
-    + CS-DHT-functions (DHT-put of LOC)
-    + P2P-functions (DHT-get)
   - implement FS performance tests
     + insert
     + download
