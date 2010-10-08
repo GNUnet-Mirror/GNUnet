@@ -461,7 +461,7 @@ GNUNET_OS_start_process_v (const int *lsocks,
 
   /* Copy all argv strings */
   argcount = 0;
-  arg = argv;
+  arg = (char **) argv;
   while (*arg)
     {
       non_const_argv[argcount] = GNUNET_strdup (*arg);
@@ -598,7 +598,7 @@ GNUNET_OS_process_status (pid_t proc, enum GNUNET_OS_ProcessStatusType *type,
       return GNUNET_SYSERR;
     }
 
-  c = GetExitCodeProcess (proc, &c);
+  c = GetExitCodeProcess ((HANDLE) proc, &c);
   if (STILL_ACTIVE == c)
     {
       *type = GNUNET_OS_PROCESS_RUNNING;
