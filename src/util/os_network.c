@@ -64,7 +64,6 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
         {
           char szEntry[1001];
           DWORD dwIP = 0;
-          int iItm;
           PIP_ADAPTER_INFO pAdapterInfo;
           PIP_ADAPTER_INFO pAdapter = NULL;
           DWORD dwRetVal = 0;
@@ -155,7 +154,7 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
                   proc (proc_cls,
                         szEntry,
                         pAddrTable->table[dwIfIdx].dwIndex == dwExternalNIC,
-                        &sa,
+                        (const struct sockaddr *) &sa,
                         0))
                 break;
             }
@@ -164,7 +163,7 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
       GlobalFree (pTable);
     }
 
-  return GNUNET_YES;
+  return;
 
 #elif HAVE_GETIFADDRS && HAVE_FREEIFADDRS
 
