@@ -52,7 +52,6 @@ libgnunetutil_la_SOURCES = \
   load.c \
   network.c \
   os_installation.c \
-  os_load.c \
   os_network.c \
   os_priority.c \
   peer.c \
@@ -128,7 +127,6 @@ check_PROGRAMS = \
  test_connection_timeout \
  test_connection_timeout_no_connect \
  test_connection_transmit_cancel \
- test_os_load \
  test_os_network \
  test_os_priority \
  test_peer \
@@ -290,11 +288,6 @@ test_connection_timeout_no_connect_LDADD = \
 test_connection_transmit_cancel_SOURCES = \
  test_connection_transmit_cancel.c
 test_connection_transmit_cancel_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la  
-
-test_os_load_SOURCES = \
- test_os_load.c
-test_os_load_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_os_network_SOURCES = \

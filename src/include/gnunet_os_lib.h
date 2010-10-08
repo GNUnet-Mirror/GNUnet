@@ -172,27 +172,6 @@ void GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor
 
 
 /**
- * Get the current CPU load.
- *
- * @param cfg to determine acceptable load level (LOAD::MAXCPULOAD)
- * @return -1 on error, otherwise load value (between 0 and 100,
- *        (100 is equivalent to full load for one CPU)
- */
-int GNUNET_OS_load_cpu_get (const struct GNUNET_CONFIGURATION_Handle *cfg);
-
-
-/**
- * Get the current IO load.
- *
- * @param cfg to determine acceptable load level (LOAD::MAXIOLOAD)
- * @return -1 on error, otherwise load value (between 0 and 100,
- *       100 means that we spend all of our cycles waiting for
- *       the disk)
- */
-int GNUNET_OS_load_disk_get (const struct GNUNET_CONFIGURATION_Handle *cfg);
-
-
-/**
  * Set process priority
  *
  * @param proc id of the process
