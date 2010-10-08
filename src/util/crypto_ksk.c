@@ -695,13 +695,13 @@ ksk_decode_key (const struct KskRsaPrivateKeyBinaryEncoded *encoding)
 }
 
 
-typedef struct
+struct KBlockKeyCacheLine
 {
   GNUNET_HashCode hc;
   struct KskRsaPrivateKeyBinaryEncoded *pke;
-} KBlockKeyCacheLine;
+};
 
-static KBlockKeyCacheLine **cache;
+static struct KBlockKeyCacheLine **cache;
 
 static unsigned int cacheSize;
 
@@ -713,7 +713,7 @@ struct GNUNET_CRYPTO_RsaPrivateKey *
 GNUNET_CRYPTO_rsa_key_create_from_hash (const GNUNET_HashCode * hc)
 {
   struct GNUNET_CRYPTO_RsaPrivateKey *ret;
-  KBlockKeyCacheLine *line;
+  struct KBlockKeyCacheLine *line;
   int i;
 
   for (i = 0; i < cacheSize; i++)
@@ -725,7 +725,7 @@ GNUNET_CRYPTO_rsa_key_create_from_hash (const GNUNET_HashCode * hc)
         }
     }
 
-  line = GNUNET_malloc (sizeof (KBlockKeyCacheLine));
+  line = GNUNET_malloc (sizeof (struct KBlockKeyCacheLine));
   line->hc = *hc;
   line->pke = makeKblockKeyInternal (hc);
   GNUNET_array_grow (cache, cacheSize, cacheSize + 1);
