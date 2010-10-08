@@ -852,6 +852,23 @@ GNUNET_NETWORK_fdset_handle_set (struct GNUNET_NETWORK_FDSet *fds,
 }
 
 
+#if MINGW
+/**
+ * Add a W32 file handle to the fd set
+ * @param fds fd set
+ * @param h the file handle to add
+ */
+void
+GNUNET_NETWORK_fdset_handle_set_native_w32_handle (struct GNUNET_NETWORK_FDSet *fds,
+						   HANDLE h)
+{
+  GNUNET_CONTAINER_slist_add (fds->handles,
+                              GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
+                              &h, sizeof (HANDLE));
+}
+#endif
+
+
 /**
  * Check if a file handle is part of an fd set
  * @param fds fd set

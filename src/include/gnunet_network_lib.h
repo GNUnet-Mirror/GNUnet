@@ -271,6 +271,19 @@ void GNUNET_NETWORK_fdset_set (struct GNUNET_NETWORK_FDSet *fds,
                                const struct GNUNET_NETWORK_Handle *desc);
 
 
+#ifdef __MINGW32__
+/* TODO: maybe #ifdef WINDOWS? -ndurner */
+/**
+ * Add a W32 file handle to the fd set
+ * @param fds fd set
+ * @param h the file handle to add
+ */
+void
+GNUNET_NETWORK_fdset_handle_set_native_w32_handle (struct GNUNET_NETWORK_FDSet *fds,
+						   HANDLE h);
+#endif
+
+
 /**
  * Check whether a socket is part of the fd set
  * @param fds fd set
