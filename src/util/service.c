@@ -1094,11 +1094,13 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
 {
   struct GNUNET_TIME_Relative idleout;
   int tolerant;
+#ifndef MINGW
   const char *lpid;
   unsigned int pid;
   const char *nfds;
   unsigned int cnt;
   int flags;
+#endif
 
   if (GNUNET_CONFIGURATION_have_value (sctx->cfg,
                                        sctx->serviceName, "TIMEOUT"))

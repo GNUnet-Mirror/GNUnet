@@ -449,7 +449,7 @@ GNUNET_OS_start_process_v (const int *lsocks,
 
   GNUNET_assert (lsocks == NULL);
   /* Count the number of arguments */
-  arg = argv;
+  arg = (char **) argv;
   while (*arg)
     {
       arg++;

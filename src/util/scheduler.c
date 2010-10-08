@@ -738,9 +738,11 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
   int ret;
   struct GNUNET_SIGNAL_Context *shc_int;
   struct GNUNET_SIGNAL_Context *shc_term;
+#ifndef MINGW
   struct GNUNET_SIGNAL_Context *shc_quit;
   struct GNUNET_SIGNAL_Context *shc_hup;
   struct GNUNET_SIGNAL_Context *shc_pipe;
+#endif
   unsigned long long last_tr;
   unsigned int busy_wait_warning;
   const struct GNUNET_DISK_FileHandle *pr;
