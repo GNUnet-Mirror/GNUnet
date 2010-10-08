@@ -87,14 +87,15 @@ mpz_randomize (gcry_mpi_t n, unsigned int nbits, GNUNET_HashCode * rnd)
 
       if (i > 0)
       	GNUNET_CRYPTO_hash (&hc, sizeof (GNUNET_HashCode), &tmp);
-      for (j = sizeof(GNUNET_HashCode) / sizeof(unsigned int); j > 0; j--)
+      for (j=0;j<sizeof(GNUNET_HashCode) / sizeof(uint32_t); j++)
         {
-#if HAVE_GCRY_MPI_LSHIFT
-          gcry_mpi_lshift (n, n, sizeof(unsigned int));
+#if HAVE_GCRY_MPI_LSHIFT 
+          gcry_mpi_lshift (n, n, sizeof(uint32_t)*8);
 #else
-          gcry_mpi_mul_ui(n, n, pow (2, sizeof(unsigned int)));
+	  gcry_mpi_mul_ui(n, n, 1 << (sizeof(uint32_t)*4));
+	  gcry_mpi_mul_ui(n, n, 1 << (sizeof(uint32_t)*4));
 #endif
-          gcry_mpi_add_ui(n, n, ((unsigned int *) &tmp)[j]);
+          gcry_mpi_add_ui(n, n, ((uint32_t *) &tmp)[j]);
         }
       hc = tmp;
     }
@@ -301,7 +302,7 @@ gen_prime (gcry_mpi_t *ptest, unsigned int nbits, GNUNET_HashCode * hc)
   /* Make nbits fit into mpz_t implementation. */
   val_2 = gcry_mpi_set_ui (NULL, 2);
   val_3 = gcry_mpi_set_ui (NULL, 3);
-  prime = gcry_mpi_new(0);
+  prime = gcry_mpi_snew(0);
   result = gcry_mpi_new(0);
   pminus1 = gcry_mpi_new(0);
   *ptest = gcry_mpi_new(0);

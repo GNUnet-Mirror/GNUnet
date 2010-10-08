@@ -127,6 +127,7 @@ file_hash_finish (struct GNUNET_CRYPTO_FileHashContext *fhc,
   GNUNET_free (fhc->filename);
   if (!GNUNET_DISK_handle_invalid (fhc->fh))
     GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fhc->fh));
+  gcry_md_close (fhc->md);
   GNUNET_free (fhc);            /* also frees fhc->buffer */
 }
 
@@ -162,7 +163,6 @@ file_hash_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       res = (GNUNET_HashCode *) gcry_md_read (fhc->md, GCRY_MD_SHA512);
       file_hash_finish (fhc, res);
-      gcry_md_close (fhc->md);
       return;
     }
   fhc->task 
