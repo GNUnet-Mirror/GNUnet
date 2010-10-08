@@ -20,7 +20,7 @@
 
 /**
  * @file vpn/gnunet-service-dns.c
- * @author Philipp Tölke
+ * @author Philipp Toelke
  */
 #include "platform.h"
 #include "gnunet_getopt_lib.h"
@@ -214,11 +214,11 @@ publish_name (void *cls,
     return;
 
   char* name = "philipptoelke.gnunet.";
-  size_t size = sizeof(struct GNUNET_DNS_Record) + strlen(name) - 1;
+  size_t size = sizeof(struct GNUNET_DNS_Record) + strlen(name);
   struct GNUNET_DNS_Record *data = alloca(size);
   memset(data, 0, size);
-  memcpy(data->name, name, strlen(name));
-  data->namelen = strlen(name);
+  memcpy(data->name, name, strlen(name) + 1);
+  data->namelen = strlen(name) + 1;
   *((unsigned int*)&data->service_descriptor) = 0x11223344;
   *((unsigned int*)&data->peer) = 0x55667788;
 
