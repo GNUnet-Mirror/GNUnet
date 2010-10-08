@@ -714,7 +714,7 @@ GNUNET_CRYPTO_rsa_key_create_from_hash (const GNUNET_HashCode * hc)
 {
   struct GNUNET_CRYPTO_RsaPrivateKey *ret;
   struct KBlockKeyCacheLine *line;
-  int i;
+  unsigned int i;
 
   for (i = 0; i < cacheSize; i++)
     {
@@ -736,7 +736,7 @@ GNUNET_CRYPTO_rsa_key_create_from_hash (const GNUNET_HashCode * hc)
 
 void __attribute__ ((destructor)) GNUNET_CRYPTO_ksk_fini ()
 {
-  int i;
+  unsigned int i;
 
   for (i = 0; i < cacheSize; i++)
     {
