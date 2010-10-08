@@ -204,7 +204,7 @@ extern "C"
   BOOL AddPathAccessRights (char *lpszFileName, char *lpszAccountName,
                             DWORD dwAccessMask);
   char *winErrorStr (const char *prefix, int dwErr);
-
+  void EnumNICs(PMIB_IFTABLE *pIfTable, PMIB_IPADDRTABLE *pAddrTable);
   int GNInitWinEnv ();
   void GNShutdownWinEnv ();
 
