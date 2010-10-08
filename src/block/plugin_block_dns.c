@@ -26,6 +26,7 @@
 
 #include "platform.h"
 #include "plugin_block.h"
+#include "gnunet_block_dns.h"
 
 #define DEBUG_DHT GNUNET_NO
 
@@ -60,9 +61,19 @@ block_plugin_dht_evaluate (void *cls,
   case GNUNET_BLOCK_TYPE_DNS:
     if (xquery_size != 0)
       return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
+
     if (reply_block_size == 0)
       return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
-    return GNUNET_BLOCK_EVALUATION_OK_LAST;
+
+    if (reply_block_size < sizeof(struct GNUNET_DNS_Record))
+      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+
+    const struct GNUNET_DNS_Record* rec = reply_block;
+    if(reply_block_size != (sizeof(struct GNUNET_DNS_Record) + rec->namelen - 1))
+      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+
+    /* How to decide whether there are no more? */
+    return GNUNET_BLOCK_EVALUATION_OK_MORE;
   default:
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
   }
@@ -89,7 +100,8 @@ block_plugin_dht_get_key (void *cls,
 {
   if (type != GNUNET_BLOCK_TYPE_DNS)
     return GNUNET_SYSERR;
-  return GNUNET_SYSERR;
+  GNUNET_CRYPTO_hash(block, block_size, key);
+  return GNUNET_OK;
 }
 
 /**
