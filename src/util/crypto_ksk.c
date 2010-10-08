@@ -290,8 +290,8 @@ gen_prime (gcry_mpi_t *ptest, unsigned int nbits, GNUNET_HashCode * hc)
   static int no_of_small_prime_numbers = DIM (small_prime_numbers) - 1;
 
   gcry_mpi_t prime, pminus1, val_2, val_3, result;
-  int i;
-  unsigned x, step;
+  unsigned int i;
+  unsigned int step;
   unsigned int *mods;
   gcry_mpi_t tmp;
   gcry_mpi_t sp;
@@ -321,13 +321,14 @@ gen_prime (gcry_mpi_t *ptest, unsigned int nbits, GNUNET_HashCode * hc)
       /* Calculate all remainders. */
       tmp = gcry_mpi_new (0);
       sp = gcry_mpi_new (0);
-      for (i = 0; (x = small_prime_numbers[i]); i++)
+      for (i = 0; i <= no_of_small_primer_numbers; i++)
         {
           size_t written;
 
-          gcry_mpi_set_ui(sp, x);
+          gcry_mpi_set_ui(sp, small_prime_numbers[i]);
           gcry_mpi_div (NULL, tmp, prime, sp, -1);
 	  mods[i] = 0;
+	  written = sizeof (*mods);
           gcry_mpi_print (GCRYMPI_FMT_USG, (unsigned char *) &mods[i], sizeof(*mods), &written, tmp);
         }
       gcry_mpi_release (sp);
