@@ -94,8 +94,13 @@ enum GNUNET_BLOCK_Type
     /**
      * Block for simulating malicious peers.
      */
-    GNUNET_BLOCK_DHT_MALICIOUS_MESSAGE_TYPE = 9
+    GNUNET_BLOCK_DHT_MALICIOUS_MESSAGE_TYPE = 9,
 #endif
+
+    /**
+     * Block for storing .gnunet-domains
+     */
+    GNUNET_BLOCK_TYPE_DNS = 10
   };
 
 
