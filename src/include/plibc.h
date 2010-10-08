@@ -22,7 +22,7 @@
  * @brief PlibC header
  * @attention This file is usually not installed under Unix,
  *            so ship it with your application
- * @version $Revision: 66 $
+ * @version $Revision: 67 $
  */
 
 #ifndef _PLIBC_H_
@@ -94,7 +94,7 @@ struct sockaddr_un {
 };
 
 #ifndef pid_t
-	#define pid_t HANDLE
+  #define pid_t DWORD
 #endif
 
 #ifndef error_t
