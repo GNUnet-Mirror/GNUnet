@@ -22,7 +22,7 @@
  * @brief PlibC header
  * @attention This file is usually not installed under Unix,
  *            so ship it with your application
- * @version $Revision: 65 $
+ * @version $Revision: 55 $
  */
 
 #ifndef _PLIBC_H_
@@ -51,8 +51,7 @@ extern "C" {
 #endif
 
 #include <windows.h>
-#include <ws2tcpip.h>
-#include <sys/types.h>
+#include <Ws2tcpip.h>
 #include <time.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -71,6 +70,12 @@ extern "C" {
 #define Li2Double(x) ((double)((x).HighPart) * 4.294967296E9 + \
   (double)((x).LowPart))
 
+#define socklen_t int
+#define ssize_t int
+#define off_t int
+#define int64_t long long
+#define int32_t long
+
 struct stat64
 {
     _dev_t st_dev;
@@ -86,15 +91,8 @@ struct stat64
     __time64_t st_ctime;
 };
 
-typedef unsigned int sa_family_t;
-
-struct sockaddr_un {
-  short sun_family; /*AF_UNIX*/
-  char sun_path[108]; /*path name */
-};
-
 #ifndef pid_t
-	#define pid_t int
+	#define pid_t HANDLE
 #endif
 
 #ifndef error_t
@@ -108,12 +106,6 @@ struct sockaddr_un {
 #ifndef MSG_DONTWAIT
   #define MSG_DONTWAIT 0
 #endif
-
-enum
-{
-  _SC_PAGESIZE = 30,
-  _SC_PAGE_SIZE = 30
-};
 
 /* Thanks to the Cygwin project */
 #define ENOCSI 43	/* No CSI structure available */
@@ -396,7 +388,6 @@ int _win_remove(const char *path);
 int _win_rename(const char *oldname, const char *newname);
 int _win_stat(const char *path, struct stat *buffer);
 int _win_stat64(const char *path, struct stat64 *buffer);
-long _win_sysconf(int name);
 int _win_unlink(const char *filename);
 int _win_write(int fildes, const void *buf, size_t nbyte);
 int _win_read(int fildes, void *buf, size_t nbyte);
@@ -471,7 +462,7 @@ char *strcasestr(const char *haystack_start, const char *needle_start);
  #define DIR_SEPARATOR '/'
  #define DIR_SEPARATOR_STR "/"
  #define PATH_SEPARATOR ';'
- #define PATH_SEPARATOR_STR ":"
+ #define PATH_SEPARATOR_STR ";"
  #define NEWLINE "\n"
 
 #ifdef ENABLE_NLS
@@ -498,7 +489,6 @@ char *strcasestr(const char *haystack_start, const char *needle_start);
  #define RENAME(o, n) rename(o, n)
  #define STAT(p, b) stat(p, b)
  #define STAT64(p, b) stat64(p, b)
- #define SYSCONF(n) sysconf(n)
  #define UNLINK(f) unlink(f)
  #define WRITE(f, b, n) write(f, b, n)
  #define READ(f, b, n) read(f, b, n)
@@ -565,7 +555,7 @@ char *strcasestr(const char *haystack_start, const char *needle_start);
  #define DIR_SEPARATOR '\\'
  #define DIR_SEPARATOR_STR "\\"
  #define PATH_SEPARATOR ':'
- #define PATH_SEPARATOR_STR ";"
+ #define PATH_SEPARATOR_STR ":"
  #define NEWLINE "\r\n"
 
 #ifdef ENABLE_NLS
@@ -593,7 +583,6 @@ char *strcasestr(const char *haystack_start, const char *needle_start);
  #define RENAME(o, n) _win_rename(o, n)
  #define STAT(p, b) _win_stat(p, b)
  #define STAT64(p, b) _win_stat64(p, b)
- #define SYSCONF(n) _win_sysconf(n)
  #define UNLINK(f) _win_unlink(f)
  #define WRITE(f, b, n) _win_write(f, b, n)
  #define READ(f, b, n) _win_read(f, b, n)
