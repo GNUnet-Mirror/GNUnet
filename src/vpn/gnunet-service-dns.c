@@ -205,6 +205,38 @@ cleanup_task (void *cls,
 	GNUNET_DHT_disconnect(mycls.dht);
 }
 
+static void
+publish_name (void *cls,
+	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+
+  char* name = "philipptoelke.gnunet";
+  size_t size = sizeof(struct GNUNET_DNS_Record) + strlen(name) - 1;
+  struct GNUNET_DNS_Record *data = alloca(size);
+  memset(data, 0, size);
+  memcpy(data->name, name, strlen(name));
+  data->namelen = strlen(name);
+  *((unsigned int*)&data->service_descriptor) = 0x11223344;
+  *((unsigned int*)&data->peer) = 0x55667788;
+
+  GNUNET_HashCode key;
+  GNUNET_CRYPTO_hash(name, strlen(name), &key);
+  GNUNET_DHT_put(mycls.dht,
+		      &key,
+		      GNUNET_DHT_RO_NONE,
+		      GNUNET_BLOCK_TYPE_DNS,
+		      size,
+		      (char*)data,
+		      GNUNET_TIME_relative_to_absolute(GNUNET_TIME_UNIT_HOURS),
+		      GNUNET_TIME_UNIT_MINUTES,
+		      NULL,
+		      NULL);
+
+  GNUNET_SCHEDULER_add_delayed (mycls.sched, GNUNET_TIME_UNIT_MINUTES, publish_name, NULL);
+}
+
 /**
  * @param cls closure
  * @param sched scheduler to use
@@ -256,6 +288,8 @@ run (void *cls,
   mycls.dnsoutport = htons(addr.sin_port);
 
   hijack(htons(addr.sin_port));
+
+  GNUNET_SCHEDULER_add_now (mycls.sched, publish_name, NULL);
 
 	GNUNET_SCHEDULER_add_read_net(sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.dnsout, &read_response, NULL);
 
