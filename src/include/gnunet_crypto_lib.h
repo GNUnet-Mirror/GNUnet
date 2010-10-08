@@ -333,8 +333,9 @@ ssize_t GNUNET_CRYPTO_aes_decrypt (const void *block,
  */
 void
 GNUNET_CRYPTO_aes_derive_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
-    const struct GNUNET_CRYPTO_AesSessionKey *skey, void *salt,
-    size_t salt_len, ...);
+    const struct GNUNET_CRYPTO_AesSessionKey *skey,
+    const void *salt, size_t salt_len,
+    ...);
 
 
 /**
@@ -347,8 +348,9 @@ GNUNET_CRYPTO_aes_derive_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
  */
 void
 GNUNET_CRYPTO_aes_derive_iv_v (struct GNUNET_CRYPTO_AesInitializationVector *iv,
-    const struct GNUNET_CRYPTO_AesSessionKey *skey, void *salt,
-    size_t salt_len, va_list argp);
+    const struct GNUNET_CRYPTO_AesSessionKey *skey,
+    const void *salt, size_t salt_len,
+    va_list argp);
 
 
 /**
@@ -583,7 +585,7 @@ void
 GNUNET_CRYPTO_hmac_derive_key_v(struct GNUNET_CRYPTO_AuthKey *key,
                                 const struct GNUNET_CRYPTO_AesSessionKey *rkey,
                                 const void *salt,
-                                const size_t salt_len,
+                                size_t salt_len,
 				va_list argp);
 
 
@@ -599,7 +601,7 @@ void
 GNUNET_CRYPTO_hmac_derive_key(struct GNUNET_CRYPTO_AuthKey *key,
                               const struct GNUNET_CRYPTO_AesSessionKey *rkey,
                               const void *salt,
-                              const size_t salt_len,
+                              size_t salt_len,
                               ...);
 
 /**

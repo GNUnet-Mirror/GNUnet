@@ -539,7 +539,7 @@ void
 GNUNET_CRYPTO_hmac_derive_key(struct GNUNET_CRYPTO_AuthKey *key,
                               const struct GNUNET_CRYPTO_AesSessionKey *rkey,
                               const void *salt,
-                              const size_t salt_len,
+                              size_t salt_len,
                               ...)
 {
   va_list argp;
@@ -562,14 +562,14 @@ void
 GNUNET_CRYPTO_hmac_derive_key_v(struct GNUNET_CRYPTO_AuthKey *key,
                                 const struct GNUNET_CRYPTO_AesSessionKey *rkey,
                                 const void *salt,
-                                const size_t salt_len,
+                                size_t salt_len,
 				va_list argp)
 {
   GNUNET_CRYPTO_kdf_v (key->key,
 		       sizeof(key->key), 
 		       salt, salt_len, 
 		       rkey->key,
-		       sizeof(rkey->key),  /* FIXME: this is likely wrong! */
+		       sizeof(rkey->key),
 		       argp);
 }
 
@@ -589,7 +589,7 @@ GNUNET_CRYPTO_hmac (const struct GNUNET_CRYPTO_AuthKey *key,
 		    GNUNET_HashCode *hmac)
 {
   gcry_md_hd_t md;
-  unsigned char *mc;
+  const unsigned char *mc;
 
   GNUNET_assert (GPG_ERR_NO_ERROR == gcry_md_open (&md,
 						   GCRY_MD_SHA512, 
