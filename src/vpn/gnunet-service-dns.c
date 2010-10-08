@@ -103,6 +103,7 @@ void receive_query(void *cls, struct GNUNET_SERVER_Client *client, const struct 
 	    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Query for .gnunet!\n");
 	    GNUNET_HashCode key;
 	    GNUNET_CRYPTO_hash(pdns->queries[0]->name, pdns->queries[0]->namelen, &key);
+	    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Getting with key %08x, len is %d\n", *((unsigned int*)&key), pdns->queries[0]->namelen);
 	    GNUNET_DHT_get_start(mycls.dht,
 				 GNUNET_TIME_UNIT_MINUTES,
 				 GNUNET_BLOCK_TYPE_DNS,
@@ -212,7 +213,7 @@ publish_name (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  char* name = "philipptoelke.gnunet";
+  char* name = "philipptoelke.gnunet.";
   size_t size = sizeof(struct GNUNET_DNS_Record) + strlen(name) - 1;
   struct GNUNET_DNS_Record *data = alloca(size);
   memset(data, 0, size);
@@ -222,7 +223,9 @@ publish_name (void *cls,
   *((unsigned int*)&data->peer) = 0x55667788;
 
   GNUNET_HashCode key;
-  GNUNET_CRYPTO_hash(name, strlen(name), &key);
+  GNUNET_CRYPTO_hash(name, strlen(name)+1, &key);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Putting with key %08x, len is %d\n", *((unsigned int*)&key), strlen(name));
+
   GNUNET_DHT_put(mycls.dht,
 		      &key,
 		      GNUNET_DHT_RO_NONE,
