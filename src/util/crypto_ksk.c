@@ -104,7 +104,7 @@ mpz_randomize (gcry_mpi_t n, unsigned int nbits, GNUNET_HashCode * rnd)
     gcry_mpi_clear_bit (n, --i);
 }
 
-static unsigned int
+static unsigned long
 mpz_trailing_zeroes (gcry_mpi_t n)
 {
   unsigned int idx, cnt;
