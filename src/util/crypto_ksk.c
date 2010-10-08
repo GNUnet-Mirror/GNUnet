@@ -325,7 +325,8 @@ gen_prime (gcry_mpi_t *ptest, unsigned int nbits, GNUNET_HashCode * hc)
           size_t written;
 
           gcry_mpi_set_ui(sp, x);
-          gcry_mpi_div (NULL, tmp, prime, sp, -1 /* TODO CG: is this correct? */);
+          gcry_mpi_div (NULL, tmp, prime, sp, -1);
+	  mods[i] = 0;
           gcry_mpi_print (GCRYMPI_FMT_USG, (unsigned char *) &mods[i], sizeof(*mods), &written, tmp);
         }
       gcry_mpi_release (sp);
@@ -419,8 +420,7 @@ generate_kblock_key (KBlock_secret_key * sk,
       gcry_mpi_sub_ui (t2, sk->q, 1);
       gcry_mpi_mul (phi, t1, t2);
       gcry_mpi_gcd (g, t1, t2);
-      gcry_mpi_div (f, NULL, phi, g, -1 /* TODO CG: is this correct? */);
-
+      gcry_mpi_div (f, NULL, phi, g, 0);
       while (0 == gcry_mpi_gcd (t1, sk->e, phi))
         {                       /* (while gcd is not 1) */
           gcry_mpi_add_ui (sk->e, sk->e, 2);
