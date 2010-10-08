@@ -26,6 +26,14 @@
  * @see http://www.rfc-editor.org/rfc/rfc5869.txt
  * @todo remove GNUNET references
  * @author Nils Durner
+ *
+ * The following list of people have reviewed this code and considered
+ * it correct on the date given (if you reviewed it, please
+ * have your name added to the list):
+ *
+ * - Christian Grothoff (08.10.2010)
+ * - Nathan Evans (08.10.2010)
+ * - Matthias Wachs (08.10.2010)
  */
 
 #include <gcrypt.h>
