@@ -292,13 +292,12 @@ gen_prime (gcry_mpi_t *ptest, unsigned int nbits, GNUNET_HashCode * hc)
   gcry_mpi_t prime, pminus1, val_2, val_3, result;
   unsigned int i;
   unsigned int step;
-  unsigned int *mods;
+  unsigned int mods[no_of_small_prime_numbers];
   gcry_mpi_t tmp;
   gcry_mpi_t sp;
 
   GNUNET_assert (nbits >= 16);
 
-  mods = GNUNET_malloc (no_of_small_prime_numbers * sizeof (*mods));
   /* Make nbits fit into mpz_t implementation. */
   val_2 = gcry_mpi_set_ui (NULL, 2);
   val_3 = gcry_mpi_set_ui (NULL, 3);
@@ -306,6 +305,8 @@ gen_prime (gcry_mpi_t *ptest, unsigned int nbits, GNUNET_HashCode * hc)
   result = gcry_mpi_new(0);
   pminus1 = gcry_mpi_new(0);
   *ptest = gcry_mpi_new(0);
+  tmp = gcry_mpi_new (0);
+  sp = gcry_mpi_new (0);
   while (1)
     {
       /* generate a random number */
@@ -319,8 +320,6 @@ gen_prime (gcry_mpi_t *ptest, unsigned int nbits, GNUNET_HashCode * hc)
       gcry_mpi_set_bit (prime, 0);
 
       /* Calculate all remainders. */
-      tmp = gcry_mpi_new (0);
-      sp = gcry_mpi_new (0);
       for (i = 0; i < no_of_small_prime_numbers; i++)
         {
           size_t written;
@@ -328,11 +327,12 @@ gen_prime (gcry_mpi_t *ptest, unsigned int nbits, GNUNET_HashCode * hc)
           gcry_mpi_set_ui(sp, small_prime_numbers[i]);
           gcry_mpi_div (NULL, tmp, prime, sp, -1);
 	  mods[i] = 0;
-	  written = sizeof (*mods);
-          gcry_mpi_print (GCRYMPI_FMT_USG, (unsigned char *) &mods[i], sizeof(*mods), &written, tmp);
-        }
-      gcry_mpi_release (sp);
-      gcry_mpi_release (tmp);
+	  written = sizeof (unsigned int);
+          GNUNET_assert (0 ==
+			 gcry_mpi_print (GCRYMPI_FMT_USG, 
+					 (unsigned char*) &mods[i], written, &written, 
+					 tmp));
+	}
       /* Now try some primes starting with prime. */
       for (step = 0; step < 20000; step += 2)
         {
@@ -358,12 +358,13 @@ gen_prime (gcry_mpi_t *ptest, unsigned int nbits, GNUNET_HashCode * hc)
           if ((!gcry_mpi_cmp_ui (result, 1)) && (is_prime (*ptest, 5, hc)))
             {
               /* Got it. */
+	      gcry_mpi_release (sp);
+	      gcry_mpi_release (tmp);
               gcry_mpi_release (val_2);
               gcry_mpi_release (val_3);
               gcry_mpi_release (result);
               gcry_mpi_release (pminus1);
               gcry_mpi_release (prime);
-              GNUNET_free (mods);
               return;
             }
         }
