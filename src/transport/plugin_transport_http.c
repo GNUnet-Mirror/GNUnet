@@ -747,14 +747,17 @@ process_interfaces (void *cls,
     	  {
     	      GNUNET_CONTAINER_DLL_insert(plugin->ipv4_addr_head,plugin->ipv4_addr_tail,t4);
           	  plugin->env->notify_address(plugin->env->cls,PROTOCOL_PREFIX,t4, sizeof (struct IPv4HttpAddress), GNUNET_TIME_UNIT_FOREVER_REL);
+          	  return GNUNET_OK;
     	  }
+		  GNUNET_free (t4);
+		  return GNUNET_OK;
       }
       else
       {
           GNUNET_CONTAINER_DLL_insert(plugin->ipv4_addr_head,plugin->ipv4_addr_tail,t4);
     	  plugin->env->notify_address(plugin->env->cls,PROTOCOL_PREFIX,t4, sizeof (struct IPv4HttpAddress), GNUNET_TIME_UNIT_FOREVER_REL);
+      	  return GNUNET_OK;
       }
-
     }
   else if ((af == AF_INET6) && (plugin->use_ipv6 == GNUNET_YES)  && (plugin->bind4_address == NULL))
     {
@@ -775,17 +778,17 @@ process_interfaces (void *cls,
     	      t6->u6_port = htons (plugin->port_inbound);
     	      plugin->env->notify_address(plugin->env->cls,PROTOCOL_PREFIX,t6,sizeof (struct IPv6HttpAddress) , GNUNET_TIME_UNIT_FOREVER_REL);
     	      GNUNET_CONTAINER_DLL_insert(plugin->ipv6_addr_head,plugin->ipv6_addr_tail,t6);
+          	  return GNUNET_OK;
     	  }
+		  GNUNET_free (t6);
+		  return GNUNET_OK;
       }
-      else
-      {
-          memcpy (&t6->ipv6_addr,
-                  &((struct sockaddr_in6 *) addr)->sin6_addr,
-                  sizeof (struct in6_addr));
-          t6->u6_port = htons (plugin->port_inbound);
-          GNUNET_CONTAINER_DLL_insert(plugin->ipv6_addr_head,plugin->ipv6_addr_tail,t6);
-          plugin->env->notify_address(plugin->env->cls,PROTOCOL_PREFIX,t6,sizeof (struct IPv6HttpAddress) , GNUNET_TIME_UNIT_FOREVER_REL);
-      }
+	  memcpy (&t6->ipv6_addr,
+			  &((struct sockaddr_in6 *) addr)->sin6_addr,
+			  sizeof (struct in6_addr));
+	  t6->u6_port = htons (plugin->port_inbound);
+	  GNUNET_CONTAINER_DLL_insert(plugin->ipv6_addr_head,plugin->ipv6_addr_tail,t6);
+	  plugin->env->notify_address(plugin->env->cls,PROTOCOL_PREFIX,t6,sizeof (struct IPv6HttpAddress) , GNUNET_TIME_UNIT_FOREVER_REL);
     }
   return GNUNET_OK;
 }
