@@ -83,7 +83,7 @@ plibc_panic (int err, char *msg)
  * @return Error code from winerror.h, ERROR_SUCCESS on success
 */
 int
-InitWinEnv ()
+GNInitWinEnv ()
 {
   int ret;
 
@@ -231,7 +231,7 @@ InitWinEnv ()
  * Clean up Windows environment
  */
 void
-ShutdownWinEnv ()
+GNShutdownWinEnv ()
 {
   plibc_shutdown ();
 

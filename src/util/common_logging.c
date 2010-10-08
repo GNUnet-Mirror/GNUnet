@@ -591,7 +591,7 @@ void __attribute__ ((constructor)) GNUNET_util_cl_init ()
 {
   GNUNET_stderr = stderr;
 #ifdef MINGW
-  InitWinEnv (NULL);
+  GNInitWinEnv (NULL);
 #endif
 }
 
@@ -602,7 +602,7 @@ void __attribute__ ((constructor)) GNUNET_util_cl_init ()
 void __attribute__ ((destructor)) GNUNET_util_cl_fini ()
 {
 #ifdef MINGW
-  ShutdownWinEnv ();
+  GNShutdownWinEnv ();
 #endif
 }
 

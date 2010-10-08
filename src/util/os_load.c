@@ -655,7 +655,7 @@ void __attribute__ ((constructor)) GNUNET_cpustats_ltdl_init ()
   initMachCpuStats ();
   updateUsage ();               /* initialize */
 #elif MINGW
-  InitWinEnv (NULL);
+  GNInitWinEnv (NULL);
   updateUsage ();               /* initialize */
 #else
   updateUsage ();               /* initialize */
@@ -676,7 +676,7 @@ void __attribute__ ((destructor)) GNUNET_cpustats_ltdl_fini ()
 #elif defined(DARWIN)
   GNUNET_free_non_null (prev_cpu_load);
 #elif MINGW
-  ShutdownWinEnv ();
+  GNShutdownWinEnv ();
 #endif
 }
 

@@ -205,7 +205,7 @@ extern "C"
                             DWORD dwAccessMask);
   char *winErrorStr (const char *prefix, int dwErr);
 
-  void GNInitWinEnv ();
+  int GNInitWinEnv ();
   void GNShutdownWinEnv ();
 
 #ifdef __cplusplus
