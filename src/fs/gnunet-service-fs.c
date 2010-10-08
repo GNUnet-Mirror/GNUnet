@@ -2016,11 +2016,13 @@ transmit_to_peer (void *cls,
       memcpy (&cbuf[msize], &pm[1], pm->msize);
       msize += pm->msize;
       size -= pm->msize;
-      GNUNET_CONTAINER_DLL_remove (cp->pending_messages_head,
-				   cp->pending_messages_tail,
-				   pm);
       if (NULL == pm->pml)
-	cp->pending_requests--;
+	{
+	  GNUNET_CONTAINER_DLL_remove (cp->pending_messages_head,
+				       cp->pending_messages_tail,
+				       pm);
+	  cp->pending_requests--;
+	}
       destroy_pending_message (pm, cp->pid);
     }
   if (pm != NULL)
