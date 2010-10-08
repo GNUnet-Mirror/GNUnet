@@ -734,8 +734,8 @@ static unsigned long long bandwidth_target_out_bps;
 static void
 derive_auth_key (struct GNUNET_CRYPTO_AuthKey *akey,
     const struct GNUNET_CRYPTO_AesSessionKey *skey,
-    const unsigned int seed,
-    const struct GNUNET_TIME_Absolute creation_time)
+    uint32_t seed,
+    struct GNUNET_TIME_Absolute creation_time)
 {
   static char ctx[] = "authentication key";
 

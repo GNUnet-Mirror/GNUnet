@@ -618,7 +618,7 @@ GNUNET_CRYPTO_hmac_derive_key(struct GNUNET_CRYPTO_AuthKey *key,
  */
 int
 GNUNET_CRYPTO_hkdf (void *result, 
-		    unsigned long long out_len,
+		    size_t out_len,
 		    int xtr_algo, int prf_algo, 
 		    const void *xts, size_t xts_len,
 		    const void *skm, size_t skm_len, 
@@ -640,7 +640,7 @@ GNUNET_CRYPTO_hkdf (void *result,
  */
 int
 GNUNET_CRYPTO_hkdf_v (void *result, 
-		      const unsigned long long out_len, /* FIXME: size_t? */
+		      size_t out_len,
 		      int xtr_algo, 
 		      int prf_algo, 
 		      const void *xts, size_t xts_len,
@@ -661,7 +661,7 @@ GNUNET_CRYPTO_hkdf_v (void *result,
  */
 int
 GNUNET_CRYPTO_kdf_v (void *result, 
-		     unsigned long long out_len,
+		     size_t out_len,
 		     const void *xts, size_t xts_len, 
 		     const void *skm, size_t skm_len, 
 		     va_list argp);
@@ -679,9 +679,9 @@ GNUNET_CRYPTO_kdf_v (void *result,
  * @return GNUNET_YES on success
  */
 int
-GNUNET_CRYPTO_kdf (void *result, const unsigned long long out_len,
-    const void *xts, const size_t xts_len, const void *skm,
-    const size_t skm_len, ...);
+GNUNET_CRYPTO_kdf (void *result, size_t out_len,
+    const void *xts, size_t xts_len, const void *skm,
+    size_t skm_len, ...);
 
 
 /**

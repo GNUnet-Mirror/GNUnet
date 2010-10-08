@@ -23,6 +23,7 @@
 /**
  * @file src/util/test_crypt_hkdf.c
  * @brief Testcases for HKDF
+ * @todo: test for out_len < hash_len
  * @author Nils Durner
  */
 
