@@ -41,6 +41,7 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_nat_lib.h"
+#include "nat.h"
 #include "natpmp.h"
 
 #define LIFETIME_SECS 3600
@@ -48,7 +49,7 @@
 /* Component name for logging */
 #define COMP_NAT_NATPMP _("NAT (NAT-PMP))")
 
-typedef enum
+enum NATPMP_state
 {
   NATPMP_IDLE,
   NATPMP_ERR,
@@ -59,20 +60,21 @@ typedef enum
   NATPMP_SEND_UNMAP,
   NATPMP_RECV_UNMAP
 }
-NATPMP_state;
+ ;
 
 struct GNUNET_NAT_NATPMP_Handle
 {
   const struct sockaddr *addr;
   socklen_t addrlen;
-  struct sockaddr*ext_addr;
+  struct sockaddr *ext_addr;
   int is_mapped;
   int has_discovered;
   int port;
   time_t renew_time;
   time_t command_time;
-  NATPMP_state state;
-  natpmp_t natpmp;
+  enum NATPMP_state state;
+  struct natpmp_t natpmp;
+  struct GNUNET_SCHEDULER_Handle *sched;
 };
 
 
@@ -82,28 +84,27 @@ log_val (const char *func, int ret)
 #ifdef DEBUG
   if (ret == NATPMP_TRYAGAIN)
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		     COMP_NAT_NATPMP, _("%s retry (%d)\n"), 
-		     func, ret);
+                     COMP_NAT_NATPMP, _("%s retry (%d)\n"), func, ret);
   if (ret >= 0)
     GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
-		     COMP_NAT_NATPMP, _("%s succeeded (%d)\n"), 
-		     func, ret);
+                     COMP_NAT_NATPMP, _("%s succeeded (%d)\n"), func, ret);
   else
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, 
-		     COMP_NAT_NATPMP,
-		     "%s failed.  natpmp returned %d (%s); errno is %d (%s)\n",
-		     func, ret, 
-		     strnatpmperr (ret), errno, strerror (errno));
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                     COMP_NAT_NATPMP,
+                     "%s failed.  natpmp returned %d (%s); errno is %d (%s)\n",
+                     func, ret, strnatpmperr (ret), errno, strerror (errno));
 #endif
 }
 
 struct GNUNET_NAT_NATPMP_Handle *
-GNUNET_NAT_NATPMP_init (const struct sockaddr *addr, socklen_t addrlen,
+GNUNET_NAT_NATPMP_init (struct GNUNET_SCHEDULER_Handle *sched,
+                        const struct sockaddr *addr, socklen_t addrlen,
                         u_short port)
 {
   struct GNUNET_NAT_NATPMP_Handle *nat;
 
   nat = GNUNET_malloc (sizeof (struct GNUNET_NAT_NATPMP_Handle));
+  nat->sched = sched;
   nat->state = NATPMP_DISCOVER;
   nat->port = port;
   nat->addr = addr;
@@ -112,7 +113,7 @@ GNUNET_NAT_NATPMP_init (const struct sockaddr *addr, socklen_t addrlen,
 }
 
 void
-GNUNET_NAT_NATPMP_close (GNUNET_NAT_NATPMP_Handle * nat)
+GNUNET_NAT_NATPMP_close (struct GNUNET_NAT_NATPMP_Handle *nat)
 {
   if (nat)
     {
@@ -160,7 +161,7 @@ GNUNET_NAT_NATPMP_pulse (struct GNUNET_NAT_NATPMP_Handle *nat, int is_enabled,
 
   if ((nat->state == NATPMP_RECV_PUB) && can_send_command (nat))
     {
-      natpmpresp_t response;
+      struct natpmpresp_t response;
       const int val = readnatpmpresponseorretry (&nat->natpmp,
                                                  &response);
       log_val ("readnatpmpresponseorretry", val);
@@ -174,40 +175,38 @@ GNUNET_NAT_NATPMP_pulse (struct GNUNET_NAT_NATPMP_Handle *nat, int is_enabled,
 
           if (response.pnu.publicaddress.family == AF_INET)
             {
-	      v4 = GNUNET_malloc (sizeof (struct sockaddr_in));
-              nat->ext_addr = (struct sockaddr*) v4;
-	      v4->sin_family = AF_INET;
-	      v4->sin_port = response.pnu.newportmapping.mappedpublicport;
+              v4 = GNUNET_malloc (sizeof (struct sockaddr_in));
+              nat->ext_addr = (struct sockaddr *) v4;
+              v4->sin_family = AF_INET;
+              v4->sin_port = response.pnu.newportmapping.mappedpublicport;
               memcpy (&v4->sin_addr, &response.pnu.publicaddress.addr,
                       sizeof (struct in_addr));
 #ifdef DEBUG
-	      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, COMP_NAT_NATPMP,
-			       _("Found public IP address %s\n"),
-			       inet_ntop (AF_INET,
-					  &response.pnu.publicaddress.addr,
-					  buf,
-					  sizeof(buf)));
+              GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, COMP_NAT_NATPMP,
+                               _("Found public IP address %s\n"),
+                               inet_ntop (AF_INET,
+                                          &response.pnu.publicaddress.addr,
+                                          buf, sizeof (buf)));
 #endif
             }
           else
             {
               v6 = GNUNET_malloc (sizeof (struct sockaddr_in6));
-	      nat->ext_addr = (struct sockaddr*) v6;	      
-	      v6->sin6_family = AF_INET6;
-	      v6->sin6_port = response.pnu.newportmapping.mappedpublicport;
-              memcpy (&v6->sin6_addr, 
-		      &response.pnu.publicaddress.addr6,
+              nat->ext_addr = (struct sockaddr *) v6;
+              v6->sin6_family = AF_INET6;
+              v6->sin6_port = response.pnu.newportmapping.mappedpublicport;
+              memcpy (&v6->sin6_addr,
+                      &response.pnu.publicaddress.addr6,
                       (sizeof (struct in6_addr)));
 #ifdef DEBUG
-	      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, COMP_NAT_NATPMP,
-			       _("Found public IP address %s\n"),
-			       inet_ntop (AF_INET6,
-					  &response.pnu.publicaddress.addr6,
-					  buf,
-					  sizeof(buf)));
+              GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, COMP_NAT_NATPMP,
+                               _("Found public IP address %s\n"),
+                               inet_ntop (AF_INET6,
+                                          &response.pnu.publicaddress.addr6,
+                                          buf, sizeof (buf)));
 #endif
-            }	  
-            *ext_addr = nat->ext_addr;
+            }
+          *ext_addr = nat->ext_addr;
           nat->state = NATPMP_IDLE;
         }
       else if (val != NATPMP_TRYAGAIN)
@@ -235,14 +234,14 @@ GNUNET_NAT_NATPMP_pulse (struct GNUNET_NAT_NATPMP_Handle *nat, int is_enabled,
 
   if (nat->state == NATPMP_RECV_UNMAP)
     {
-      natpmpresp_t resp;
+      struct natpmpresp_t resp;
       const int val = readnatpmpresponseorretry (&nat->natpmp, &resp);
       log_val ("readnatpmpresponseorretry", val);
       if (val >= 0)
         {
           const int p = resp.pnu.newportmapping.privateport;
           GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, COMP_NAT_NATPMP,
-                      _("No longer forwarding port %d\n"), p);
+                           _("No longer forwarding port %d\n"), p);
           if (nat->port == p)
             {
               nat->port = -1;
@@ -279,7 +278,7 @@ GNUNET_NAT_NATPMP_pulse (struct GNUNET_NAT_NATPMP_Handle *nat, int is_enabled,
 
   if (nat->state == NATPMP_RECV_MAP)
     {
-      natpmpresp_t resp;
+      struct natpmpresp_t resp;
       const int val = readnatpmpresponseorretry (&nat->natpmp, &resp);
       log_val ("readnatpmpresponseorretry", val);
       if (val >= 0)
@@ -289,7 +288,7 @@ GNUNET_NAT_NATPMP_pulse (struct GNUNET_NAT_NATPMP_Handle *nat, int is_enabled,
           nat->renew_time = time (NULL) + LIFETIME_SECS;
           nat->port = resp.pnu.newportmapping.privateport;
           GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, COMP_NAT_NATPMP,
-                      _("Port %d forwarded successfully\n"), nat->port);
+                           _("Port %d forwarded successfully\n"), nat->port);
         }
       else if (val != NATPMP_TRYAGAIN)
         {

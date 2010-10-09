@@ -34,29 +34,29 @@
  * Used to communicate with the UPnP and NAT-PMP plugins 
  */
 enum GNUNET_NAT_PortState
-  {
-    GNUNET_NAT_PORT_ERROR,
+{
+  GNUNET_NAT_PORT_ERROR,
 
     /**
      * the port isn't forwarded 
      */
-    GNUNET_NAT_PORT_UNMAPPED,
+  GNUNET_NAT_PORT_UNMAPPED,
 
     /**
      * we're cancelling the port forwarding 
      */
-    GNUNET_NAT_PORT_UNMAPPING,
+  GNUNET_NAT_PORT_UNMAPPING,
 
     /**
      * we're in the process of trying to set up port forwarding 
      */
-    GNUNET_NAT_PORT_MAPPING,
+  GNUNET_NAT_PORT_MAPPING,
 
     /**
      * we've successfully forwarded the port 
      */
-    GNUNET_NAT_PORT_MAPPED
-  };
+  GNUNET_NAT_PORT_MAPPED
+};
 
 
 /**
@@ -66,8 +66,7 @@ enum GNUNET_NAT_PortState
  * @param b second sockaddr
  * @return 0 if addresses are equal, non-null value otherwise 
  */
-int GNUNET_NAT_cmp_addr (const struct sockaddr *a, 
-			 const struct sockaddr *b);
+int GNUNET_NAT_cmp_addr (const struct sockaddr *a, const struct sockaddr *b);
 
 
 #endif

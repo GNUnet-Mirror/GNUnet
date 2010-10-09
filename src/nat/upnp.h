@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -32,17 +32,24 @@
 
 struct GNUNET_NAT_UPNP_Handle;
 
-struct GNUNET_NAT_UPNP_Handle *
-GNUNET_NAT_UPNP_init (const struct sockaddr *addr,
-		      socklen_t addrlen,
-		      unsigned short port);
+typedef void (*GNUNET_NAT_UPNP_pulse_cb) (int status,
+                                          struct sockaddr * ext_addr,
+                                          void *cls);
 
-void GNUNET_NAT_UPNP_close (struct GNUNET_NAT_UPNP_Handle * h);
+struct GNUNET_NAT_UPNP_Handle *GNUNET_NAT_UPNP_init (struct
+                                                     GNUNET_SCHEDULER_Handle
+                                                     *sched,
+                                                     const struct sockaddr
+                                                     *addr, socklen_t addrlen,
+                                                     unsigned short port,
+                                                     GNUNET_NAT_UPNP_pulse_cb
+                                                     pulse_cb,
+                                                     void *pulse_cls);
 
-int GNUNET_NAT_UPNP_pulse (struct GNUNET_NAT_UPNP_Handle *h, 
-			   int is_enabled,
-                           int do_port_check,
-			   struct sockaddr **ext_addr);
+void GNUNET_NAT_UPNP_close (struct GNUNET_NAT_UPNP_Handle *h);
 
-#endif 
+void GNUNET_NAT_UPNP_pulse (struct GNUNET_NAT_UPNP_Handle *h,
+                            int is_enabled, int do_port_check);
+
+#endif
 /* UPNP_H */

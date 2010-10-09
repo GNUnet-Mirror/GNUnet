@@ -46,12 +46,12 @@ struct GNUNET_NAT_Handle
   /**
    * Handle for UPnP operations.
    */
-  GNUNET_NAT_UPNP_Handle *upnp;
+  struct GNUNET_NAT_UPNP_Handle *upnp;
 
   /**
    * Handle for NAT PMP operations.
    */
-  GNUNET_NAT_NATPMP_Handle *natpmp;
+  struct GNUNET_NAT_NATPMP_Handle *natpmp;
 
   /**
    * Scheduler.
@@ -61,17 +61,23 @@ struct GNUNET_NAT_Handle
   /**
    * LAN address as passed by the caller 
    */
-  struct sockaddr *local_addr; 
+  struct sockaddr *local_addr;
 
   /**
-   * External address as reported by NAT box 
+   * External address as reported by found NAT box 
    */
-  struct sockaddr *ext_addr; 
+  struct sockaddr *ext_addr;
+
+  /**
+   * External address as reported by each type of NAT box 
+   */
+  struct sockaddr *ext_addr_upnp;
+  struct sockaddr *ext_addr_natpmp;
 
   /**
    * External address and port where packets are redirected
    */
-  struct sockaddr *contact_addr; 
+  struct sockaddr *contact_addr;
 
   GNUNET_NAT_AddressCallback callback;
 
@@ -92,7 +98,13 @@ struct GNUNET_NAT_Handle
 
   int port_mapped;
 
+  int old_status;
+
+  int new_status;
+
   int did_warn;
+
+  int processing;
 
   uint16_t public_port;
 
@@ -122,9 +134,9 @@ get_nat_state_str (enum GNUNET_NAT_PortState state)
 
 
 static int
-get_traversal_status (const struct GNUNET_NAT_Handle * s)
+get_traversal_status (const struct GNUNET_NAT_Handle *h)
 {
-  return MAX (s->natpmp_status, s->upnp_status);
+  return MAX (h->natpmp_status, h->upnp_status);
 }
 
 
@@ -134,16 +146,15 @@ get_traversal_status (const struct GNUNET_NAT_Handle * s)
  * @param b second sockaddr
  * @return 0 if addresses are equal, non-null value otherwise */
 int
-GNUNET_NAT_cmp_addr (const struct sockaddr *a, 
-		     const struct sockaddr *b)
+GNUNET_NAT_cmp_addr (const struct sockaddr *a, const struct sockaddr *b)
 {
   if (!(a && b))
     return -1;
-  if ( (a->sa_family == AF_INET) && (b->sa_family == AF_INET) )
+  if ((a->sa_family == AF_INET) && (b->sa_family == AF_INET))
     return memcmp (&(((struct sockaddr_in *) a)->sin_addr),
                    &(((struct sockaddr_in *) b)->sin_addr),
                    sizeof (struct in_addr));
-  if ( (a->sa_family == AF_INET6) && (b->sa_family == AF_INET6) )
+  if ((a->sa_family == AF_INET6) && (b->sa_family == AF_INET6))
     return memcmp (&(((struct sockaddr_in6 *) a)->sin6_addr),
                    &(((struct sockaddr_in6 *) b)->sin6_addr),
                    sizeof (struct in6_addr));
@@ -157,50 +168,45 @@ GNUNET_NAT_cmp_addr (const struct sockaddr *a,
  * or nullify the previous sockaddr. Change the port if needed.
  */
 static void
-notify_change (struct GNUNET_NAT_Handle *nat,
-	       struct sockaddr *addr, 
-	       size_t addrlen,
-	       int new_port_mapped)
+notify_change (struct GNUNET_NAT_Handle *h,
+               struct sockaddr *addr, size_t addrlen, int new_port_mapped)
 {
-  if (new_port_mapped == nat->port_mapped)
+  if (new_port_mapped == h->port_mapped)
     return;
-  nat->port_mapped = new_port_mapped;
+  h->port_mapped = new_port_mapped;
 
-  if ( (NULL != nat->contact_addr) &&
-       (NULL != nat->callback) )
-    nat->callback (nat->callback_cls, 
-		   GNUNET_NO, 
-		   nat->contact_addr,
-		   sizeof (nat->contact_addr));
-  GNUNET_free_non_null (nat->contact_addr);
-  nat->contact_addr = NULL;
-  GNUNET_free_non_null (nat->ext_addr);
-  nat->ext_addr = NULL;
+  if ((NULL != h->contact_addr) && (NULL != h->callback))
+    h->callback (h->callback_cls,
+                 GNUNET_NO, h->contact_addr, sizeof (h->contact_addr));
+  GNUNET_free_non_null (h->contact_addr);
+  h->contact_addr = NULL;
+  GNUNET_free_non_null (h->ext_addr);
+  h->ext_addr = NULL;
   if (NULL == addr)
-    return;    
-  nat->ext_addr = GNUNET_malloc (addrlen);
-  memcpy (nat->ext_addr, addr, addrlen);
+    return;
+  h->ext_addr = GNUNET_malloc (addrlen);
+  memcpy (h->ext_addr, addr, addrlen);
 
   /* Recreate the ext_addr:public_port bogus address to pass to the callback */
-  if (nat->ext_addr->sa_family == AF_INET)
+  if (h->ext_addr->sa_family == AF_INET)
     {
-      struct sockaddr_in tmp_addr;
+      struct sockaddr_in *tmp_addr;
 
       tmp_addr = GNUNET_malloc (sizeof (struct sockaddr_in));
       tmp_addr->sin_family = AF_INET;
 #ifdef HAVE_SOCKADDR_IN_SIN_LEN
       tmp_addr->sin_len = sizeof (struct sockaddr_in);
 #endif
-      tmp_addr->sin_port = port_mapped ? htons (nat->public_port) : 0;
-      tmp_addr->sin_addr = ((struct sockaddr_in *) nat->ext_addr)->sin_addr;
-      nat->contact_addr = (struct sockaddr *) tmp_addr;
-      if (NULL != nat->callback)
-        nat->callback (nat->callback_cls, 
-		       GNUNET_YES, 
-		       nat->contact_addr,
-		       sizeof (struct sockaddr_in));
+      tmp_addr->sin_port = h->port_mapped ? htons (h->public_port) : 0;
+      tmp_addr->sin_addr = ((struct sockaddr_in *) h->ext_addr)->sin_addr;
+      h->contact_addr = (struct sockaddr *) tmp_addr;
+
+      if (NULL != h->callback)
+        h->callback (h->callback_cls,
+                     GNUNET_YES,
+                     h->contact_addr, sizeof (struct sockaddr_in));
     }
-  else if (nat->ext_addr->sa_family == AF_INET6)
+  else if (h->ext_addr->sa_family == AF_INET6)
     {
       struct sockaddr_in6 *tmp_addr;
 
@@ -209,14 +215,14 @@ notify_change (struct GNUNET_NAT_Handle *nat,
 #ifdef HAVE_SOCKADDR_IN_SIN_LEN
       tmp_addr->sin6_len = sizeof (struct sockaddr_in6);
 #endif
-      tmp_addr->sin6_port = port_mapped ? htons (nat->public_port) : 0;
-      tmp_addr->sin6_addr = ((struct sockaddr_in6 *) nat->ext_addr)->sin6_addr;
-      nat->contact_addr = (struct sockaddr *) tmp_addr;
-      if (NULL != nat->callback)
-        nat->callback (nat->callback_cls,
-		       GNUNET_YES, 
-		       nat->contact_addr,
-		       sizeof (struct sockaddr_in6));
+      tmp_addr->sin6_port = h->port_mapped ? htons (h->public_port) : 0;
+      tmp_addr->sin6_addr = ((struct sockaddr_in6 *) h->ext_addr)->sin6_addr;
+      h->contact_addr = (struct sockaddr *) tmp_addr;
+
+      if (NULL != h->callback)
+        h->callback (h->callback_cls,
+                     GNUNET_YES,
+                     h->contact_addr, sizeof (struct sockaddr_in6));
     }
   else
     {
@@ -224,87 +230,140 @@ notify_change (struct GNUNET_NAT_Handle *nat,
     }
 }
 
+static void nat_pulse (void *cls,
+                       const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 static void
-nat_pulse (void *cls,
-	   const struct GNUNET_SCHEDULER_TaskContext *tc)
+pulse_cb (struct GNUNET_NAT_Handle *h)
 {
-  struct GNUNET_NAT_Handle *nat = cls;
-  int old_status;
-  int new_status;
+  socklen_t addrlen;
   int port_mapped;
-  struct sockaddr *ext_addr_upnp = NULL;
-  struct sockaddr *ext_addr_natpmp = NULL;
 
-  nat->pulse_timer = GNUNET_SCHEDULER_NO_TASK;
-  old_status = get_traversal_status (nat);
+  /* One of the protocols is still working, wait for it to complete */
+  if (h->processing)
+    return;
 
-  /* Only update the protocol that has been successful until now */
-  if (nat->upnp_status >= GNUNET_NAT_PORT_UNMAPPED)
-    nat->upnp_status =
-      GNUNET_NAT_UPNP_pulse (nat->upnp, nat->is_enabled, GNUNET_YES,
-                             &ext_addr_upnp);
-  else if (nat->natpmp_status >= GNUNET_NAT_PORT_UNMAPPED)
-    nat->natpmp_status =
-      GNUNET_NAT_NATPMP_pulse (nat->natpmp, nat->is_enabled,
-                               &ext_addr_natpmp);
-  else
-    {
-      /* try both */
-      nat->upnp_status =
-        GNUNET_NAT_UPNP_pulse (nat->upnp, nat->is_enabled, GNUNET_YES,
-                               &ext_addr_upnp);
-      nat->natpmp_status =
-        GNUNET_NAT_NATPMP_pulse (nat->natpmp, nat->is_enabled,
-                                 &ext_addr_natpmp);
-    }
-  new_status = get_traversal_status (nat);
-  if ( (old_status != new_status) &&
-       ( (new_status == GNUNET_NAT_PORT_UNMAPPED) || 
-	 (new_status == GNUNET_NAT_PORT_ERROR) ) )
+  h->new_status = get_traversal_status (h);
+  if ((h->old_status != h->new_status) &&
+      ((h->new_status == GNUNET_NAT_PORT_UNMAPPED) ||
+       (h->new_status == GNUNET_NAT_PORT_ERROR)))
     GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
-		     "NAT",
-                     _("Port redirection failed: no UPnP or NAT-PMP routers supporting this feature found\n"));
+                     "NAT",
+                     _
+                     ("Port redirection failed: no UPnP or NAT-PMP routers supporting this feature found\n"));
 #ifdef DEBUG
-  if (new_status != old_status)
+  if (h->new_status != h->old_status)
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "NAT",
                      _("State changed from `%s' to `%s'\n"),
-                     get_nat_state_str (old_status),
-                     get_nat_state_str (new_status));
+                     get_nat_state_str (h->old_status),
+                     get_nat_state_str (h->new_status));
 #endif
 
-  port_mapped = (new_status == GNUNET_NAT_PORT_MAPPED);
-  if (!(ext_addr_upnp || ext_addr_natpmp))
+  port_mapped = (h->new_status == GNUNET_NAT_PORT_MAPPED);
+  if (!(h->ext_addr_upnp || h->ext_addr_natpmp))
     {
-      /* Address has just changed and we could not get it, or it's the first try */
-      if ( (NULL != nat->ext_addr) || 
-	   (GNUNET_NO == nat->did_warn) )
+      /* Address has just changed and we could not get it, or it's the first try,
+       * and we're not waiting for a reply from UPnP or NAT-PMP */
+      if (((NULL != h->ext_addr) ||
+           (GNUNET_NO == h->did_warn)) && h->processing != 0)
         {
-          GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, 
-			   "NAT",
-			   _("Could not determine external IP address\n"));
-          nat->did_warn = GNUNET_YES;
+          GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
+                           "NAT",
+                           _("Could not determine external IP address\n"));
+          h->did_warn = GNUNET_YES;
         }
-      notify_change (nat, NULL, port_mapped);
+      notify_change (h, NULL, 0, port_mapped);
     }
-  else if (ext_addr_upnp && GNUNET_NAT_cmp_addr (nat->ext_addr, ext_addr_upnp) != 0)
+  else if (h->ext_addr_upnp
+           && GNUNET_NAT_cmp_addr (h->ext_addr, h->ext_addr_upnp) != 0)
     {
+      addrlen = h->ext_addr_upnp->sa_family == AF_INET ?
+        sizeof (struct sockaddr_in) : sizeof (struct sockaddr_in6);
       GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
-		       "NAT",
-		       _("External IP address changed to %s\n"),
-		       GNUNET_a2s (ext_addr_upnp, sizeof (ext_addr_upnp)));
-      notify_change (nat, ext_addr_upnp, port_mapped);
+                       "NAT",
+                       _("External IP address changed to %s\n"),
+                       GNUNET_a2s (h->ext_addr_upnp, addrlen));
+      notify_change (h, h->ext_addr_upnp, addrlen, port_mapped);
     }
-  else if (ext_addr_natpmp && GNUNET_NAT_cmp_addr (nat->ext_addr, ext_addr_natpmp) != 0)
+  else if (h->ext_addr_natpmp
+           && GNUNET_NAT_cmp_addr (h->ext_addr, h->ext_addr_natpmp) != 0)
     {
+      addrlen = h->ext_addr_natpmp->sa_family == AF_INET ?
+        sizeof (struct sockaddr_in) : sizeof (struct sockaddr_in6);
       GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "NAT",
-		       _("External IP address changed to `%s'\n"),
-		       GNUNET_a2s (ext_addr_natpmp, sizeof (ext_addr_natpmp)));      
-      notify_change (nat, ext_addr_natpmp, port_mapped);
+                       _("External IP address changed to `%s'\n"),
+                       GNUNET_a2s (h->ext_addr_natpmp, addrlen));
+      notify_change (h, h->ext_addr_natpmp, addrlen, port_mapped);
     }
-  nat->pulse_timer = GNUNET_SCHEDULER_add_delayed (nat->sched, 
-                                                   GNUNET_TIME_UNIT_SECONDS,
-                                                   &nat_pulse, nat);
+
+  h->pulse_timer = GNUNET_SCHEDULER_add_delayed (h->sched,
+                                                 GNUNET_TIME_UNIT_SECONDS,
+                                                 &nat_pulse, h);
+}
+
+static void
+upnp_pulse_cb (int status, struct sockaddr *ext_addr, void *cls)
+{
+  struct GNUNET_NAT_Handle *h = cls;
+
+  h->upnp_status = status;
+  h->ext_addr_upnp = ext_addr;
+
+  h->processing--;
+  pulse_cb (h);
+}
+
+#if 0
+static void
+natpmp_pulse_cb (int status, struct sockaddr *ext_addr, void *cls)
+{
+  struct GNUNET_NAT_Handle *h = cls;
+
+  h->natpmp_status = status;
+  h->ext_addr_natpmp = ext_addr;
+
+  h->processing--;
+  pulse_cb (h);
+}
+#endif
+
+static void
+nat_pulse (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_NAT_Handle *h = cls;
+
+  /* Stop if we're already waiting for an action to complete */
+  if (h->processing)
+    return;
+
+  h->pulse_timer = GNUNET_SCHEDULER_NO_TASK;
+  h->old_status = get_traversal_status (h);
+
+  /* Only update the protocol that has been successful until now */
+  if (h->upnp_status >= GNUNET_NAT_PORT_UNMAPPED)
+    {
+      h->processing = 1;
+      GNUNET_NAT_UPNP_pulse (h->upnp, h->is_enabled, GNUNET_YES);
+
+      /* Wait for the callback to call pulse_cb() to handle changes */
+      return;
+    }
+  else if (h->natpmp_status >= GNUNET_NAT_PORT_UNMAPPED)
+    {
+      h->processing = 1;
+#if 0
+      GNUNET_NAT_NATPMP_pulse (h->natpmp, h->is_enabled);
+#endif
+    }
+  else                          /* try both */
+    {
+      h->processing = 2;
+
+      GNUNET_NAT_UPNP_pulse (h->upnp, h->is_enabled, GNUNET_YES);
+#if 0
+      GNUNET_NAT_NATPMP_pulse (h->natpmp, h->is_enabled, natpmp_pulse_cb, h);
+#endif
+    }
 }
 
 
@@ -322,43 +381,52 @@ nat_pulse (void *cls,
  * @return NULL on error, otherwise handle that can be used to unregister 
  */
 struct GNUNET_NAT_Handle *
-GNUNET_NAT_register (struct GNUNET_SCHEDULER_Handle *sched,
-                     const struct sockaddr *addr, socklen_t addrlen,
+GNUNET_NAT_register (struct GNUNET_SCHEDULER_Handle
+                     *sched,
+                     const struct sockaddr *addr,
+                     socklen_t addrlen,
                      GNUNET_NAT_AddressCallback callback, void *callback_cls)
 {
-  struct GNUNET_NAT_Handle *nat;
+  struct GNUNET_NAT_Handle *h;
 
-  nat = GNUNET_malloc (sizeof (struct GNUNET_NAT_Handle));
+  h = GNUNET_malloc (sizeof (struct GNUNET_NAT_Handle));
+
   if (addr)
     {
-      GNUNET_assert ( (addr->sa_family == AF_INET) ||
-		      (addr->sa_family == AF_INET6) );
-      nat->local_addr = GNUNET_malloc (addrlen);
-      memcpy (nat->local_addr, addr, addrlen);
+      GNUNET_assert ((addr->sa_family == AF_INET) ||
+                     (addr->sa_family == AF_INET6));
+      h->local_addr = GNUNET_malloc (addrlen);
+      memcpy (h->local_addr, addr, addrlen);
       if (addr->sa_family == AF_INET)
         {
-          nat->public_port = ntohs (((struct sockaddr_in *) addr)->sin_port);
-          ((struct sockaddr_in *) nat->local_addr)->sin_port = 0;
+          h->public_port = ntohs (((struct sockaddr_in *) addr)->sin_port);
+          ((struct sockaddr_in *) h->local_addr)->sin_port = 0;
         }
       else if (addr->sa_family == AF_INET6)
         {
-          nat->public_port = ntohs (((struct sockaddr_in6 *) addr)->sin6_port);
-          ((struct sockaddr_in6 *) nat->local_addr)->sin6_port = 0;
+          h->public_port = ntohs (((struct sockaddr_in6 *) addr)->sin6_port);
+          ((struct sockaddr_in6 *) h->local_addr)->sin6_port = 0;
         }
     }
-  nat->should_change = GNUNET_YES;
-  nat->sched = sched;
-  nat->is_enabled = GNUNET_YES;
-  nat->upnp_status = GNUNET_NAT_PORT_UNMAPPED;
-  nat->natpmp_status = GNUNET_NAT_PORT_UNMAPPED;
-  nat->callback = callback;
-  nat->callback_cls = callback_cls;
-  nat->natpmp = GNUNET_NAT_NATPMP_init (nat->local_addr, addrlen, nat->public_port);
-  nat->upnp = GNUNET_NAT_UPNP_init (nat->local_addr, addrlen, nat->public_port);
-  nat->pulse_timer = GNUNET_SCHEDULER_add_delayed (sched, 
-                                                   GNUNET_TIME_UNIT_SECONDS,
-                                                   &nat_pulse, nat);
-  return nat;
+  h->should_change = GNUNET_YES;
+  h->sched = sched;
+  h->is_enabled = GNUNET_YES;
+  h->upnp_status = GNUNET_NAT_PORT_UNMAPPED;
+  h->natpmp_status = GNUNET_NAT_PORT_UNMAPPED;
+  h->callback = callback;
+  h->callback_cls = callback_cls;
+  h->upnp =
+    GNUNET_NAT_UPNP_init (h->sched, h->local_addr, addrlen, h->public_port,
+                          upnp_pulse_cb, h);
+#if 0
+  h->natpmp =
+    GNUNET_NAT_NATPMP_init (h->sched, h->local_addr, addrlen, h->public_port,
+                            natpmp_pulse_cb, h);
+#endif
+  h->pulse_timer = GNUNET_SCHEDULER_add_delayed (sched,
+                                                 GNUNET_TIME_UNIT_SECONDS,
+                                                 &nat_pulse, h);
+  return h;
 }
 
 
@@ -371,23 +439,21 @@ GNUNET_NAT_register (struct GNUNET_SCHEDULER_Handle *sched,
 void
 GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
 {
-  struct sockaddr *addr;
-
-  GNUNET_SCHEDULER_cancel (h->sched, 
-			   h->pulse_timer);
-  h->upnp_status =
-    GNUNET_NAT_UPNP_pulse (h->upnp, 
-			   GNUNET_NO, GNUNET_NO,
-                           &addr);
-  h->natpmp_status =
-    GNUNET_NAT_NATPMP_pulse (h->natpmp, GNUNET_NO,
-                             &addr);
-  GNUNET_NAT_NATPMP_close (h->natpmp);
+  GNUNET_NAT_UPNP_pulse (h->upnp, GNUNET_NO, GNUNET_NO);
   GNUNET_NAT_UPNP_close (h->upnp);
+
+#if 0
+  GNUNET_NAT_NATPMP_pulse (h->natpmp, GNUNET_NO);
+  GNUNET_NAT_NATPMP_close (h->natpmp);
+#endif
+
+  GNUNET_SCHEDULER_cancel (h->sched, h->pulse_timer);
+
   GNUNET_free_non_null (h->local_addr);
   GNUNET_free_non_null (h->ext_addr);
+  GNUNET_free_non_null (h->ext_addr_upnp);
+  GNUNET_free_non_null (h->ext_addr_natpmp);
   GNUNET_free (h);
 }
 
 /* end of nat.c */
-

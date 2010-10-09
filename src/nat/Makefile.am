@@ -1,5 +1,3 @@
-SUBDIRS = .
-
 INCLUDES = -I$(top_srcdir)/src/include
 
 if MINGW
@@ -18,11 +16,16 @@ endif
 
 libgnunetnat_la_SOURCES = \
   upnp.c upnp.h \
-  natpmp.c natpmp.h \
+  upnp-commands.c upnp-commands.h \
+  upnp-discover.c upnp-discover.h \
+  upnp-igd-parse.c upnp-igd-parse.h \
+  upnp-minixml.c upnp-minixml.h \
+  upnp-reply-parse.c upnp-reply-parse.h bsdqueue.h \
   nat.c 
 
 libgnunetnat_la_CFLAGS = \
- -I$(top_scrdir)/include
+ -I$(top_scrdir)/include \
+ -DDEBUG_UPNP -g -O0
 
 libgnunetnat_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -46,6 +49,6 @@ test_nat_SOURCES = \
 
 test_nat_LDADD = \
  $(top_builddir)/src/nat/libgnunetnat.la \
- $(top_builddir)/src/util/libgnunetutil.la
-
+ $(top_builddir)/src/util/libgnunetutil.la \
+ @LIBCURL@
 endif

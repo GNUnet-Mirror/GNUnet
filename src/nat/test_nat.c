@@ -41,14 +41,13 @@
 #include "gnunet_nat_lib.h"
 
 /* Time to wait before stopping NAT, in seconds */
-#define TIMEOUT 30
+#define TIMEOUT 60
 
 struct addr_cls
 {
   const struct sockaddr *addr;
   socklen_t addrlen;
 };
-//typedef addr_cls addr_cls;
 
 static void
 addr_callback (void *cls, int add_remove,
@@ -73,9 +72,7 @@ stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static int
 process_if (void *cls,
             const char *name,
-            int isDefault,
-            const struct sockaddr *addr,
-            socklen_t addrlen)
+            int isDefault, const struct sockaddr *addr, socklen_t addrlen)
 {
   struct addr_cls *data = cls;
 
@@ -84,6 +81,12 @@ process_if (void *cls,
       data->addr = addr;
       data->addrlen = addrlen;
     }
+
+  if (strcmp (name, "eth1") == 0 && addr->sa_family == AF_INET)
+    return GNUNET_SYSERR;
+
+  return GNUNET_OK;
+
 
   if (isDefault && addr)
     return GNUNET_SYSERR;
@@ -107,7 +110,8 @@ run (void *cls,
   GNUNET_OS_network_interfaces_list (process_if, &data);
   if (!data.addr)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not find a valid interface address!\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Could not find a valid interface address!\n");
       exit (GNUNET_SYSERR);
     }
 
@@ -120,14 +124,17 @@ run (void *cls,
   else
     ((struct sockaddr_in6 *) addr)->sin6_port = htons (2086);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Requesting NAT redirection from address %s...\n", GNUNET_a2s (addr, data.addrlen));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Requesting NAT redirection from address %s...\n",
+              GNUNET_a2s (addr, data.addrlen));
 
   nat = GNUNET_NAT_register (sched, addr, data.addrlen, addr_callback, NULL);
   GNUNET_free (addr);
 
-  GNUNET_SCHEDULER_add_delayed (sched, 
-                                GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, TIMEOUT),
-                                stop, nat);
+  GNUNET_SCHEDULER_add_delayed (sched,
+                                GNUNET_TIME_relative_multiply
+                                (GNUNET_TIME_UNIT_SECONDS, TIMEOUT), stop,
+                                nat);
 }
 
 int
