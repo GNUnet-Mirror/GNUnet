@@ -333,10 +333,9 @@ nat_pulse (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_NAT_Handle *h = cls;
 
   /* Stop if we're already waiting for an action to complete */
+  h->pulse_timer = GNUNET_SCHEDULER_NO_TASK;
   if (h->processing)
     return;
-
-  h->pulse_timer = GNUNET_SCHEDULER_NO_TASK;
   h->old_status = get_traversal_status (h);
 
   /* Only update the protocol that has been successful until now */
@@ -361,7 +360,7 @@ nat_pulse (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
       GNUNET_NAT_UPNP_pulse (h->upnp, h->is_enabled, GNUNET_YES);
 #if 0
-      GNUNET_NAT_NATPMP_pulse (h->natpmp, h->is_enabled, natpmp_pulse_cb, h);
+      GNUNET_NAT_NATPMP_pulse (h->natpmp, h->is_enabled, &natpmp_pulse_cb, h);
 #endif
     }
 }
@@ -417,11 +416,11 @@ GNUNET_NAT_register (struct GNUNET_SCHEDULER_Handle
   h->callback_cls = callback_cls;
   h->upnp =
     GNUNET_NAT_UPNP_init (h->sched, h->local_addr, addrlen, h->public_port,
-                          upnp_pulse_cb, h);
+                          &upnp_pulse_cb, h);
 #if 0
   h->natpmp =
     GNUNET_NAT_NATPMP_init (h->sched, h->local_addr, addrlen, h->public_port,
-                            natpmp_pulse_cb, h);
+                            &natpmp_pulse_cb, h);
 #endif
   h->pulse_timer = GNUNET_SCHEDULER_add_delayed (sched,
                                                  GNUNET_TIME_UNIT_SECONDS,
@@ -447,7 +446,8 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
   GNUNET_NAT_NATPMP_close (h->natpmp);
 #endif
 
-  GNUNET_SCHEDULER_cancel (h->sched, h->pulse_timer);
+  if (GNUNET_SCHEDULER_NO_TASK != h->pulse_timer)
+    GNUNET_SCHEDULER_cancel (h->sched, h->pulse_timer);
 
   GNUNET_free_non_null (h->local_addr);
   GNUNET_free_non_null (h->ext_addr);

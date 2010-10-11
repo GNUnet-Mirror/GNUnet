@@ -256,7 +256,7 @@ UPNP_command_receiver (void *data,
 
   GNUNET_CONNECTION_destroy (cls->s, GNUNET_NO);
 
-  (*cls->caller_cb) (cls->buffer, cls->buf_size, cls->caller_cls);
+  cls->caller_cb (cls->buffer, cls->buf_size, cls->caller_cls);
 
   GNUNET_free (cls->content);
   GNUNET_free (cls);
@@ -415,7 +415,7 @@ UPNP_command_ (struct GNUNET_SCHEDULER_Handle *sched,
           if (soap_body + sizeof (soap_body) <= p + 100)
             {
               GNUNET_assert (GNUNET_NO);
-              (*caller_cb) (buffer, 0, caller_cls);
+              caller_cb (buffer, 0, caller_cls);
               return;
             }
           *(p++) = '<';
@@ -453,6 +453,7 @@ UPNP_command_ (struct GNUNET_SCHEDULER_Handle *sched,
     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "UPnP",
                        "Invalid URL passed to UPNP_command(): %s\n", url);
+      caller_cb (buffer, 0, caller_cls);
       return;
     }
 
@@ -490,7 +491,7 @@ UPNP_command_ (struct GNUNET_SCHEDULER_Handle *sched,
       GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, _("%s failed at %s:%d\n"),
                        "UPnP", "inet_pton", __FILE__, __LINE__);
 
-      (*caller_cb) (buffer, 0, caller_cls);
+      caller_cb (buffer, 0, caller_cls);
       return;
     }
 
@@ -541,7 +542,7 @@ UPNP_command_ (struct GNUNET_SCHEDULER_Handle *sched,
                        __LINE__);
 #endif
 
-      (*caller_cb) (buffer, 0, caller_cls);
+      caller_cb (buffer, 0, caller_cls);
 
       GNUNET_free (content_buf);
       GNUNET_free (cls);

@@ -955,7 +955,8 @@ discover_recv (void *data, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                     &addrlen);
   if (received == GNUNET_SYSERR)
     {
-      PRINT_SOCKET_ERROR ("GNUNET_NETWORK_socket_recvfrom");
+      if (errno != EAGAIN)
+	PRINT_SOCKET_ERROR ("GNUNET_NETWORK_socket_recvfrom");
     }
 #if DEBUG_UPNP
   else
