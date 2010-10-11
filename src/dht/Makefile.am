@@ -80,14 +80,6 @@ libgnunetdht_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:0:0
 
-if HAVE_EXPERIMENTAL
-STUD_PROGS =  gnunet-service-dht-can \
- gnunet-service-dht-freenet \
- gnunet-service-dht-kademlia \
- gnunet-service-dht-koorde 
-STUD_TESTS = test_kademlia_end2end
-endif
-
 bin_PROGRAMS = $(STUD_PROGS) \
  gnunet-service-dht \
  gnunet-dht-get \
@@ -110,47 +102,6 @@ gnunet_service_dht_LDADD = \
   $(top_builddir)/src/datacache/libgnunetdatacache.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/dht/libgnunetdhtlog.la -lm
-
-gnunet_service_dht_can_SOURCES = \
- dht_can.c dht_can_helper.c dht_can_helper.h
-gnunet_service_dht_can_LDADD = \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/transport/libgnunettransport.la \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  $(top_builddir)/src/datacache/libgnunetdatacache.la \
-  $(top_builddir)/src/util/libgnunetutil.la 
-
-gnunet_service_dht_freenet_SOURCES = \
- dht_freenet.c 
-gnunet_service_dht_freenet_LDADD = \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/transport/libgnunettransport.la \
-  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  $(top_builddir)/src/datacache/libgnunetdatacache.la \
-  $(top_builddir)/src/util/libgnunetutil.la 
-
-gnunet_service_dht_kademlia_SOURCES = \
- dht_kademlia.c dht_kademlia.h
-gnunet_service_dht_kademlia_LDADD = \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/transport/libgnunettransport.la \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  $(top_builddir)/src/datacache/libgnunetdatacache.la \
-  $(top_builddir)/src/util/libgnunetutil.la 
-
-gnunet_service_dht_koorde_SOURCES = \
- dht_koorde.c dht_koorde.h
-gnunet_service_dht_koorde_LDADD = \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/transport/libgnunettransport.la \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  $(top_builddir)/src/datacache/libgnunetdatacache.la \
-  $(top_builddir)/src/util/libgnunetutil.la 
 
 gnunet_dht_get_SOURCES = \
  gnunet-dht-get.c         
