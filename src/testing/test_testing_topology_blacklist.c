@@ -250,7 +250,7 @@ connect_topology ()
   expected_connections = -1;
   if ((pg != NULL) && (peers_left == 0))
     {
-      expected_connections = GNUNET_TESTING_connect_topology (pg, connection_topology, connect_topology_option, connect_topology_option_modifier);
+      expected_connections = GNUNET_TESTING_connect_topology (pg, connection_topology, connect_topology_option, connect_topology_option_modifier, NULL, NULL);
 #if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Have %d expected connections\n", expected_connections);

@@ -67,7 +67,7 @@
  * Prototype of a function called whenever two peers would be connected
  * in a certain topology.
  */
-typedef int (*GNUNET_TESTING_ConnectionProcessor)(struct GNUNET_TESTING_PeerGroup *pg, 
+typedef unsigned int (*GNUNET_TESTING_ConnectionProcessor)(struct GNUNET_TESTING_PeerGroup *pg,
 						  unsigned int first,
 						  unsigned int second);
 
@@ -556,14 +556,50 @@ struct UpdateContext
   unsigned int fdnum;
 };
 
+struct ConnectTopologyContext
+{
+  /**
+   * How many connections are left to create.
+   */
+  unsigned int remaining_connections;
+
+  /**
+   * Handle to group of peers.
+   */
+  struct GNUNET_TESTING_PeerGroup *pg;
+
+  /**
+   * Temp value set for each iteration.
+   */
+  struct PeerData *first;
+
+  /**
+   * Notification that all peers are connected.
+   */
+  GNUNET_TESTING_NotifyCompletion notify_connections_done;
+
+  /**
+   * Closure for notify.
+   */
+  void *notify_cls;
+};
 
 struct ConnectContext
 {
+  /**
+   * Peer to connect second to.
+   */
   struct GNUNET_TESTING_Daemon *first;
 
+  /**
+   * Peer to connect first to.
+   */
   struct GNUNET_TESTING_Daemon *second;
 
-  struct GNUNET_TESTING_PeerGroup *pg;
+  /**
+   * Higher level topology connection context.
+   */
+  struct ConnectTopologyContext *ct_ctx;
 };
 
 /**
@@ -608,7 +644,7 @@ static int outstanding_connects;
  *         known topology, GNUNET_NO if not
  */
 int
-GNUNET_TESTING_topology_get(enum GNUNET_TESTING_Topology *topology, char * topology_string)
+GNUNET_TESTING_topology_get(enum GNUNET_TESTING_Topology *topology, const char * topology_string)
 {
   /**
    * Strings representing topologies in enum
@@ -697,7 +733,7 @@ GNUNET_TESTING_topology_get(enum GNUNET_TESTING_Topology *topology, char * topol
  */
 int
 GNUNET_TESTING_topology_option_get (enum GNUNET_TESTING_TopologyOption *topology_option,
-				    char * topology_string)
+				    const char * topology_string)
 {
   /**
    * Options for connecting a topology as strings.
@@ -922,7 +958,7 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *         technically should only be 0 or 2
  *
  */
-static int
+static unsigned int
 add_actual_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first, unsigned int second)
 {
   int added;
@@ -979,7 +1015,7 @@ add_actual_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first, 
  *         for being sure doesn't bother me!
  *
  */
-static int
+static unsigned int
 add_allowed_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first, unsigned int second)
 {
   int added;
@@ -1069,7 +1105,7 @@ add_allowed_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first,
  * @return the number of connections added (can be 0, 1 or 2)
  *
  */
-static int
+static unsigned int
 blacklist_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first, unsigned int second)
 {
   int added;
@@ -1121,7 +1157,7 @@ blacklist_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first, u
  * @return the number of connections removed (can be 0, 1 or 2)
  *
  */
-static int
+static unsigned int
 unblacklist_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first, unsigned int second)
 {
   int removed;
@@ -1167,7 +1203,7 @@ unblacklist_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first,
  *
  * @return the number of connections created
  */
-static int
+static unsigned int
 create_scale_free (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
 {
 
@@ -1222,7 +1258,7 @@ create_scale_free (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_Connectio
  * @return the number of connections that were set up
  *
  */
-int
+static unsigned int
 create_small_world_ring(struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
 {
   unsigned int i, j;
@@ -1344,7 +1380,7 @@ create_small_world_ring(struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_Conn
  * @return the number of connections that were set up
  *
  */
-static int
+static unsigned int
 create_nated_internet (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
 {
   unsigned int outer_count, inner_count;
@@ -1406,7 +1442,7 @@ create_nated_internet (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_Conne
  * @return the number of connections that were set up
  *
  */
-static int
+static unsigned int
 create_small_world (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
 {
   unsigned int i, j, k;
@@ -1568,7 +1604,7 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_Connecti
  * @return the number of connections that were set up
  *
  */
-static int
+static unsigned int
 create_erdos_renyi (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
 {
   double temp_rand;
@@ -1628,7 +1664,7 @@ create_erdos_renyi (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_Connecti
  * @return the number of connections that were set up
  *
  */
-static int
+static unsigned int
 create_2d_torus (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
 {
   unsigned int i;
@@ -1716,7 +1752,7 @@ create_2d_torus (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionP
  * @return the number of connections that were set up
  *
  */
-static int
+static unsigned int
 create_clique (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
 {
   unsigned int outer_count;
@@ -1753,7 +1789,7 @@ create_clique (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionPro
  * @return the number of connections that were set up
  *
  */
-static int
+static unsigned int
 create_line (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
 {
   unsigned int count;
@@ -1786,7 +1822,7 @@ create_line (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProce
  * @return the number of connections that were set up
  *
  */
-static int
+static unsigned int
 create_ring (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_ConnectionProcessor proc)
 {
   unsigned int count;
@@ -2019,7 +2055,7 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
  * @param transports space delimited list of transports to blacklist
  */
 static int
-create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg, char *transports)
+create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg, const char *transports)
 {
   FILE *temp_file_handle;
   static struct BlacklistContext blacklist_ctx;
@@ -2176,10 +2212,19 @@ static void internal_connect_notify (void *cls,
                                      struct GNUNET_TESTING_Daemon *second_daemon,
                                      const char *emsg)
 {
-  struct GNUNET_TESTING_PeerGroup *pg = cls;
+  struct ConnectTopologyContext *ct_ctx = cls;
+  struct GNUNET_TESTING_PeerGroup *pg = ct_ctx->pg;
   outstanding_connects--;
+  ct_ctx->remaining_connections--;
+  if (ct_ctx->remaining_connections == 0)
+    {
+      if (ct_ctx->notify_connections_done != NULL)
+        ct_ctx->notify_connections_done(ct_ctx->notify_cls, NULL);
+      GNUNET_free(ct_ctx);
+    }
 
-  pg->notify_connection(pg->notify_connection_cls, first, second, distance, first_cfg, second_cfg, first_daemon, second_daemon, emsg);
+  if (pg->notify_connection != NULL)
+    pg->notify_connection (pg->notify_connection_cls, first, second, distance, first_cfg, second_cfg, first_daemon, second_daemon, emsg);
 }
 
 
@@ -2203,7 +2248,7 @@ static void schedule_connect(void *cls, const struct GNUNET_SCHEDULER_TaskContex
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Delaying connect, we have too many outstanding connections!\n"));
 #endif
-      GNUNET_SCHEDULER_add_delayed(connect_context->pg->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &schedule_connect, connect_context);
+      GNUNET_SCHEDULER_add_delayed(connect_context->ct_ctx->pg->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &schedule_connect, connect_context);
     }
   else
     {
@@ -2217,7 +2262,7 @@ static void schedule_connect(void *cls, const struct GNUNET_SCHEDULER_TaskContex
                                       CONNECT_TIMEOUT,
                                       CONNECT_ATTEMPTS,
                                       &internal_connect_notify,
-                                      connect_context->pg);
+                                      connect_context->ct_ctx);
       GNUNET_free(connect_context);
     }
 }
@@ -2238,14 +2283,15 @@ connect_iterator (void *cls,
                   const GNUNET_HashCode * key,
                   void *value)
 {
-  struct PeerData *first = cls;
+  struct ConnectTopologyContext *ct_ctx = cls;
+  struct PeerData *first = ct_ctx->first;
   struct GNUNET_TESTING_Daemon *second = value;
   struct ConnectContext *connect_context;
 
   connect_context = GNUNET_malloc(sizeof(struct ConnectContext));
-  connect_context->pg = first->pg;
   connect_context->first = first->daemon;
   connect_context->second = second;
+  connect_context->ct_ctx = ct_ctx;
   GNUNET_SCHEDULER_add_now(first->pg->sched, &schedule_connect, connect_context);
 
   return GNUNET_YES;
@@ -2309,23 +2355,41 @@ copy_allowed_topology (struct GNUNET_TESTING_PeerGroup *pg)
  * @return the number of connections that will be attempted
  */
 static int
-connect_topology (struct GNUNET_TESTING_PeerGroup *pg)
+connect_topology (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_NotifyCompletion notify_callback, void *notify_cls)
 {
   unsigned int pg_iter;
   int ret;
-  int total;
+  unsigned int total;
+  struct ConnectTopologyContext *ct_ctx;
 #if OLD
   struct PeerConnection *connection_iter;
   struct ConnectContext *connect_context;
 #endif
 
   total = 0;
+  ct_ctx = GNUNET_malloc(sizeof(struct ConnectTopologyContext));
+  ct_ctx->notify_connections_done = notify_callback;
+  ct_ctx->notify_cls = notify_cls;
+  ct_ctx->pg = pg;
+
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
     {
-      ret = GNUNET_CONTAINER_multihashmap_iterate(pg->peers[pg_iter].connect_peers, &connect_iterator, &pg->peers[pg_iter]);
-      if (GNUNET_SYSERR == ret)
-        return GNUNET_SYSERR;
+      total += GNUNET_CONTAINER_multihashmap_size(pg->peers[pg_iter].connect_peers);
+    }
 
+  if (total == 0)
+    {
+      GNUNET_free(ct_ctx);
+      return total;
+    }
+  ct_ctx->remaining_connections = total;
+  total = 0;
+
+  for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
+    {
+      ct_ctx->first = &pg->peers[pg_iter];
+      ret = GNUNET_CONTAINER_multihashmap_iterate(pg->peers[pg_iter].connect_peers, &connect_iterator, ct_ctx);
+      GNUNET_assert(GNUNET_SYSERR != ret && ret >= 0);
       total = total + ret;
 
 #if OLD
@@ -2365,14 +2429,14 @@ connect_topology (struct GNUNET_TESTING_PeerGroup *pg)
  * @return the maximum number of connections were all allowed peers
  *         connected to each other
  */
-int
+unsigned int
 GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
                                 enum GNUNET_TESTING_Topology topology,
                                 enum GNUNET_TESTING_Topology restrict_topology,
-                                char *restrict_transports)
+                                const char *restrict_transports)
 {
   int ret;
-  int num_connections;
+  unsigned int num_connections;
   int unblacklisted_connections;
 
   GNUNET_assert (pg->notify_connection != NULL);
@@ -2480,6 +2544,7 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
   /* Use the create clique method to initially set all connections as blacklisted. */
   if (restrict_topology != GNUNET_TESTING_TOPOLOGY_NONE)
     create_clique (pg, &blacklist_connections);
+
   unblacklisted_connections = 0;
   /* Un-blacklist connections as per the topology specified */
   switch (restrict_topology)
@@ -2565,7 +2630,7 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     _("Failed during blacklist file copying!\n"));
 #endif
-        return GNUNET_SYSERR;
+        return 0;
       }
     else
       {
@@ -3361,13 +3426,18 @@ GNUNET_TESTING_get_statistics (struct GNUNET_TESTING_PeerGroup *pg,
  * @param topology which topology to connect the peers in
  * @param options options for connecting the topology
  * @param option_modifier modifier for options that take a parameter
+ * @param notify_callback notification to be called once all connections completed
+ * @param notify_cls closure for notification callback
+ *
  * @return the number of connections that will be attempted, GNUNET_SYSERR on error
  */
 int
 GNUNET_TESTING_connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
                                  enum GNUNET_TESTING_Topology topology,
                                  enum GNUNET_TESTING_TopologyOption options,
-                                 double option_modifier)
+                                 double option_modifier,
+                                 GNUNET_TESTING_NotifyCompletion notify_callback,
+                                 void *notify_cls)
 {
   switch (topology)
       {
@@ -3485,7 +3555,7 @@ GNUNET_TESTING_connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
       break;
     }
 
-  return connect_topology(pg);
+  return connect_topology(pg, notify_callback, notify_cls);
 }
 
 /**

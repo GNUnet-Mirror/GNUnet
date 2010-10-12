@@ -706,13 +706,20 @@ topology_callback (void *cls,
     }
 }
 
+static void topology_creation_finished (void *cls,
+                                        const char *emsg)
+{
+  if (emsg == NULL)
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "All topology connections created successfully!\n");
+}
+
 static void
 connect_topology ()
 {
   expected_connections = -1;
   if ((pg != NULL) && (peers_left == 0))
     {
-      expected_connections = GNUNET_TESTING_connect_topology (pg, connection_topology, connect_topology_option, connect_topology_option_modifier);
+      expected_connections = GNUNET_TESTING_connect_topology (pg, connection_topology, connect_topology_option, connect_topology_option_modifier, &topology_creation_finished, NULL);
 #if VERBOSE > 1
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Have %d expected connections\n", expected_connections);

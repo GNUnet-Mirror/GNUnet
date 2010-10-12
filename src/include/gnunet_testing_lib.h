@@ -879,13 +879,18 @@ GNUNET_TESTING_get_topology (struct GNUNET_TESTING_PeerGroup *pg,
  * @param topology which topology to connect the peers in
  * @param options options for connecting the topology
  * @param option_modifier modifier for options that take a parameter
+ * @param notify_callback notification to be called once all connections completed
+ * @param notify_cls closure for notification callback
+ *
  * @return the number of connections that will be attempted, GNUNET_SYSERR on error
  */
 int
 GNUNET_TESTING_connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
                                  enum GNUNET_TESTING_Topology topology,
                                  enum GNUNET_TESTING_TopologyOption options,
-                                 double option_modifier);
+                                 double option_modifier,
+                                 GNUNET_TESTING_NotifyCompletion notify_callback,
+                                 void *notify_cls);
 
 /**
  * Start or stop an individual peer from the given group.

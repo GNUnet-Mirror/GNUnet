@@ -2380,7 +2380,7 @@ peers_started_callback (void *cls,
       expected_connections = UINT_MAX;
       if ((pg != NULL) && (peers_left == 0))
         {
-          expected_connections = GNUNET_TESTING_connect_topology (pg, connect_topology, connect_topology_option, connect_topology_option_modifier);
+          expected_connections = GNUNET_TESTING_connect_topology (pg, connect_topology, connect_topology_option, connect_topology_option_modifier, NULL, NULL);
 
           peer_connect_meter = create_meter(expected_connections, "Peer connection ", GNUNET_YES);
           fprintf(stderr, "Have %d expected connections\n", expected_connections);

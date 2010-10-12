@@ -320,7 +320,7 @@ connect_topology (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   expected_connections = -1;
   if ((pg != NULL) && (peers_left == 0))
-    expected_connections = GNUNET_TESTING_connect_topology (pg, GNUNET_TESTING_TOPOLOGY_CLIQUE, GNUNET_TESTING_TOPOLOGY_OPTION_ALL, 0.0);
+    expected_connections = GNUNET_TESTING_connect_topology (pg, GNUNET_TESTING_TOPOLOGY_CLIQUE, GNUNET_TESTING_TOPOLOGY_OPTION_ALL, 0.0, NULL, NULL);
 
   GNUNET_SCHEDULER_cancel (sched, die_task);
   if (expected_connections == GNUNET_SYSERR)
