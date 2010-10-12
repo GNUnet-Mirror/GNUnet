@@ -1180,7 +1180,7 @@ mdh_access_cb (void *cls,
     {
       if (pc->delay.value == 0)
       {
-		  res = GNUNET_SERVER_mst_receive(ps->msgtok, ps, upload_data,*upload_data_size, GNUNET_NO, GNUNET_NO);
+		  res = GNUNET_SERVER_mst_receive(ps->msgtok, ps, upload_data, *upload_data_size, GNUNET_NO, GNUNET_NO);
 		  (*upload_data_size) = 0;
       }
       else
