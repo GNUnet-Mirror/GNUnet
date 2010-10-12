@@ -31,8 +31,8 @@ endif
 
 if HAVE_PCAP
 if LINUX
-WANBIN = gnunet-transport-wlan-helper
-WLAN_PLUGIN_LA = libgnunet_plugin_transport_wlan.la
+ WANBIN = gnunet-transport-wlan-helper
+ WLAN_PLUGIN_LA = libgnunet_plugin_transport_wlan.la
 endif
 endif
 

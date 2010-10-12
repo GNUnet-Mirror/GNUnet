@@ -33,6 +33,7 @@
 #include "plugin_transport.h"
 #include "plugin_transport_wlan.h"
 #include "gnunet_common.h"
+#include "gnunet_crypto_lib.h"
 
 #define PROTOCOL_PREFIX "wlan"
 
@@ -409,12 +410,7 @@ uint16_t getcrc16 (const char *msgbuf, size_t msgbuf_size);
 uint32_t
 get_next_message_id()
 {
-	// FIXME find good random generator
-	if (RAND_MAX < UINT32_MAX){
-		return (random() * random()) % UINT32_MAX;
-	} else {
-		return random() % UINT32_MAX;
-	}
+	return GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
 }
 
 /**
@@ -424,8 +420,7 @@ get_next_message_id()
 void
 start_next_message_id()
 {
-	//FIXME not good
-	srand(GNUNET_TIME_absolute_get().value);
+	//GNUNET_CRYPTO_random_init;
 }
 
 
