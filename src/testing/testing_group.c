@@ -2439,8 +2439,6 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
   unsigned int num_connections;
   int unblacklisted_connections;
 
-  GNUNET_assert (pg->notify_connection != NULL);
-
   switch (topology)
     {
     case GNUNET_TESTING_TOPOLOGY_CLIQUE:
