@@ -812,7 +812,8 @@ enum GNUNET_TESTING_TopologyOption
  *         known topology, GNUNET_NO if not
  */
 int
-GNUNET_TESTING_topology_get(enum GNUNET_TESTING_Topology *topology, char * topology_string);
+GNUNET_TESTING_topology_get(enum GNUNET_TESTING_Topology *topology, 
+			    const char * topology_string);
 
 /**
  * Get connect topology option from string input.
@@ -825,7 +826,7 @@ GNUNET_TESTING_topology_get(enum GNUNET_TESTING_Topology *topology, char * topol
  */
 int
 GNUNET_TESTING_topology_option_get(enum GNUNET_TESTING_TopologyOption *topology_option,
-				   char * topology_string);
+				   const char * topology_string);
 
 
 /**
@@ -847,11 +848,11 @@ GNUNET_TESTING_topology_option_get(enum GNUNET_TESTING_TopologyOption *topology_
  * @return the maximum number of connections were all allowed peers
  *         connected to each other
  */
-int
+unsigned int
 GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
                                 enum GNUNET_TESTING_Topology topology,
                                 enum GNUNET_TESTING_Topology restrict_topology,
-                                char *restrict_transports);
+                                const char *restrict_transports);
 
 /**
  * Iterate over all (running) peers in the peer group, retrieve
@@ -862,7 +863,8 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
  * @param cls closure for callback
  */
 void
-GNUNET_TESTING_get_topology (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_NotifyTopology cb, void *cls);
+GNUNET_TESTING_get_topology (struct GNUNET_TESTING_PeerGroup *pg,
+			     GNUNET_TESTING_NotifyTopology cb, void *cls);
 
 /**
  * There are many ways to connect peers that are supported by this function.
