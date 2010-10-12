@@ -96,6 +96,17 @@ GNUNET_FS_TEST_get_group (struct GNUNET_FS_TestDaemon **daemons);
 
 
 /**
+ * Obtain peer configuration used for testing.
+ *
+ * @param daemons array with the daemons
+ * @param off which configuration to get
+ * @return peer configuration
+ */
+const struct GNUNET_CONFIGURATION_Handle *
+GNUNET_FS_TEST_get_configuration (struct GNUNET_FS_TestDaemon **daemons,
+				  unsigned int off);
+
+/**
  * Stop daemons used for testing.
  *
  * @param sched scheduler to use

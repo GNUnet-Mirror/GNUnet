@@ -48,7 +48,7 @@
  * implementation of GAP, but can be disabled for performance evaluation of
  * the basic routing algorithm.
  */
-#define SUPPORT_DELAYS GNUNET_NO
+#define SUPPORT_DELAYS GNUNET_YES
 
 /**
  * Maximum number of outgoing messages we queue per peer.

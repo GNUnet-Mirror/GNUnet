@@ -496,6 +496,20 @@ GNUNET_FS_TEST_daemons_connect (struct GNUNET_SCHEDULER_Handle *sched,
 
 
 /**
+ * Obtain peer configuration used for testing.
+ *
+ * @param daemons array with the daemons
+ * @param off which configuration to get
+ * @return peer configuration
+ */
+const struct GNUNET_CONFIGURATION_Handle *
+GNUNET_FS_TEST_get_configuration (struct GNUNET_FS_TestDaemon **daemons,
+				  unsigned int off)
+{
+  return daemons[off]->cfg;  
+}
+
+/**
  * Obtain peer group used for testing.
  *
  * @param daemons array with the daemons (must contain at least one)
