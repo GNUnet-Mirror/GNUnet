@@ -85,9 +85,14 @@ struct Plugin
   struct GNUNET_TRANSPORT_PluginEnvironment *env;
 
   /**
-   * List of open sessions.
+   * List of open sessions. head
    */
-  struct Session *sessions;
+  struct Sessionqueue *sessions;
+
+  /**
+   * List of open sessions. tail
+   */
+  struct Sessionqueue *sessions_tail;
 
   /**
    * encapsulation to the local wlan server prog
@@ -148,10 +153,15 @@ struct Plugin
   struct Sessionqueue * pending_Sessions;
 
   /**
-   * Sessions currently pending for transmission
-   * to this peer, if any.
+    * Sessions currently pending for transmission
+    * to this peer (tail), if any.
+    */
+  struct Sessionqueue * pending_Sessions_tail;
+
+  /**
+   * number of pending sessions
    */
-  struct Sessionqueue * all_Sessions;
+  uint pendingsessions;
 
 };
 
@@ -210,7 +220,7 @@ struct Session
   /**
    * encapsulation of the data
    */
-  struct GNUNET_SERVER_MessageStreamTokenizer * datatoken;
+  //struct GNUNET_SERVER_MessageStreamTokenizer * datatoken;
 
   /**
    * peer mac address
@@ -395,7 +405,7 @@ uint16_t getcrc16 (const char *msgbuf, size_t msgbuf_size);
  * get the next message number, at the moment just a random one
  *
  */
-
+//TODO doxigen
 uint32_t
 get_next_message_id()
 {
@@ -410,7 +420,7 @@ get_next_message_id()
 /**
  * start next message number generator
  */
-
+//TODO doxigen
 void
 start_next_message_id()
 {
@@ -429,7 +439,7 @@ static struct Session *
 get_Session (struct Plugin *plugin,
 	     const char * addr)
 {
-	struct Sessionqueue * queue = plugin->all_Sessions;
+	struct Sessionqueue * queue = plugin->sessions;
 	struct Sessionqueue * lastitem = NULL;
 
 
@@ -450,13 +460,7 @@ get_Session (struct Plugin *plugin,
 	// new session
 	queue = GNUNET_malloc (sizeof (struct Sessionqueue));
 
-	if (plugin->all_Sessions == NULL){
-		//is first session
-		plugin->all_Sessions = queue;
-	} else {
-		lastitem->next = queue;
-		queue->prev = lastitem;
-	}
+	GNUNET_CONTAINER_DLL_insert(plugin->sessions, plugin->sessions_tail, queue);
 
 	queue->content = GNUNET_malloc (sizeof (struct Session));
 	queue->content->plugin = plugin;
@@ -477,7 +481,8 @@ get_Session (struct Plugin *plugin,
 	GNUNET_CONTAINER_DLL_insert ((queue->content)->pending_messages_head,
 					   (queue->content)->pending_messages_tail,
 				       pm);
-
+	plugin->pendingsessions ++;
+	GNUNET_CONTAINER_DLL_insert_after(plugin->pending_Sessions, plugin->pending_Sessions_tail, plugin->pending_Sessions_tail, queue);
 	return queue->content;
 
 }
@@ -508,16 +513,25 @@ queue_Session (struct Plugin *plugin,
 	// Session is not in the queue
 
 	queue = GNUNET_malloc (sizeof (struct Sessionqueue));
-	if (plugin->pending_Sessions == NULL){
-			//is first session
-			plugin->pending_Sessions = queue;
-		} else {
-			lastitem->next = queue;
-			queue->prev = lastitem;
-		}
-
 	queue->content = session;
 
+	//insert at the tail
+	GNUNET_CONTAINER_DLL_insert_after (plugin->pending_Sessions,
+			plugin->pending_Sessions_tail,
+			plugin->pending_Sessions_tail, queue);
+	plugin->pendingsessions ++;
+
+}
+
+//TODO doxigen
+static void
+free_acks (struct PendingMessage * pm){
+	struct FragmentQueue * fq;
+	while (pm->head != NULL){
+		fq = pm->head;
+		GNUNET_CONTAINER_DLL_remove(pm->head, pm->tail, fq);
+		GNUNET_free(fq);
+	}
 }
 
 /**
@@ -550,9 +564,18 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct FragmentQueue * akt = NULL;
   int exit = 0;
 
+  int i = 0;
+
+  struct GNUNET_TIME_Absolute nextsend;
+  struct GNUNET_TIME_Relative timeout;
+  struct Sessionqueue * nextsession = NULL;
+
+  timeout.value = FRAGMENT_TIMEOUT;
+  nextsend = GNUNET_TIME_absolute_get_forever();
+
   queue = plugin->pending_Sessions;
 
-  //check if the are some pending sessions/messages ...
+  // check if the are some pending sessions/messages ...
   GNUNET_assert(queue != NULL);
 
   session = queue->content;
@@ -561,132 +584,220 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   pm = session->pending_messages_head;
   GNUNET_assert(pm != NULL);
 
-  //check if msg is valid to send
-  if (GNUNET_TIME_absolute_get_remaining(pm->timeout).value > 0){
-	// split msg if to large
+  // get next valid session
+  // check if this session is only waiting to receive the acks for an already send fragments to finish it
+  // timeout is not reached
+  for (i = 0; i < plugin->pendingsessions; i++){
 
-	if (pm->message_size > WLAN_MTU) {
-		size += sizeof(struct FragmentationHeader);
-		// check for retransmission
-		if (GNUNET_TIME_absolute_get_duration(pm->last_ack).value > FRAGMENT_TIMEOUT) {
-			// TODO retransmit
-			// be positive and try again later :-D
-			pm->last_ack = GNUNET_TIME_absolute_get();
-			// find first missing fragment
-			exit = 0;
-			akt = pm->head;
-			pm->message_pos = 0;
+	  // check if the are some pending sessions/messages ...
+	  GNUNET_assert(queue != NULL);
 
-			//test if ack was already received
-			if (akt != NULL) {
-				while (exit == 0){
-					//if fragment is present, take next
-					if (akt->fragment_num == pm->message_pos) {
-						pm->message_pos ++;
-					}
-					//next ack is bigger then the fragment number
-					//in case there is something like this: (acks) 1, 2, 5, 6, ...
-					//and we send 3 again, the next number should be 4
-					if (akt->fragment_num > pm->message_pos) {
-										exit = 1;
-									}
+	  session = queue->content;
+	  GNUNET_assert(session != NULL);
 
-					akt = akt->next;
-					//test if this was the last ack
-					if (akt == NULL){
-						exit = 1;
-					}
+	  pm = session->pending_messages_head;
+	  GNUNET_assert(pm != NULL);
 
-				}
-			}
+	  //save next session
+	  nextsession = queue->next;
+	  // test if message timed out
+	  while (GNUNET_TIME_absolute_get_remaining(pm->timeout).value == 0){
+		  //remove message
+		  //free the acks
+		  free_acks (pm);
+		  //call the cont func that it did not work
+		  if (pm->transmit_cont != NULL)
+			  pm->transmit_cont (pm->transmit_cont_cls,
+		  				&(session->target), GNUNET_SYSERR);
+		  //remove the message
+		  GNUNET_CONTAINER_DLL_remove (session->pending_messages_head,
+									  session->pending_messages_tail,
+									  pm);
+		  GNUNET_free(pm);
 
-		}
+		  //test if there are no more messages pending for this session
+		  if (session->pending_messages_head == NULL){
 
-		copyoffset = (WLAN_MTU - sizeof(struct FragmentationHeader)) * pm->message_pos;
-		fragheader.fragment_off_or_num = pm->message_pos;
-		fragheader.message_id = session->message_id_out;
+			  //test if tail is null too
+			  GNUNET_assert(session->pending_messages_tail == NULL);
 
-		// start should be smaller then the packet size
-		//TODO send some other data if everything was send but not all acks are present
-		GNUNET_assert(copyoffset < pm->message_size);
-		copystart = pm->msg + copyoffset;
+			  plugin->pendingsessions --;
+			  GNUNET_CONTAINER_DLL_remove (plugin->pending_Sessions, plugin->pending_Sessions_tail, queue);
+			  GNUNET_free(queue);
+			  queue = NULL;
+			  break;
 
-		//size of the fragment is either the MTU - overhead
-		//or the missing part of the message in case this is the last fragment
-		copysize = GNUNET_MIN(pm->message_size - copyoffset,
-				WLAN_MTU - sizeof(struct FragmentationHeader));
-		fragheader.header.size = copysize;
-		fragheader.header.type = GNUNET_MESSAGE_TYPE_WLAN_FRAGMENT;
+		  } else {
+			  pm = session->pending_messages_head;
+		  }
 
-		//get the next missing fragment
-		exit = 0;
-		akt = pm->head;
-		pm->message_pos ++;
+	  }
+	  // restore next session if necessary
+	  if (queue == NULL){
+		  queue = nextsession;
+		  nextsession = NULL;
+		  //there are no more messages in this session
+		  continue;
+	  }
+	  nextsession = NULL;
 
-		//test if ack was already received
-		if (akt != NULL) {
-			while (exit == 0){
-				//if fragment is present, take next
-				if (akt->fragment_num == pm->message_pos) {
-					pm->message_pos ++;
-				}
-				//next ack is bigger then the fragment number
-				//in case there is something like this: (acks) 1, 2, 5, 6, ...
-				//and we send 3 again, the next number should be 4
-				if (akt->fragment_num > pm->message_pos) {
-									exit = 1;
-								}
+	  // test if retransmit is needed
+	  if (GNUNET_TIME_absolute_get_duration(pm->last_ack).value < FRAGMENT_TIMEOUT) {
+		  // get last offset for this message
+		  copyoffset = pm->message_size /(WLAN_MTU - sizeof(struct FragmentationHeader));
+		  // one more is the end
+		  copyoffset ++;
+		  // test if it is not the end
+		  if (copyoffset > pm->message_pos){
+			  nextsession = queue;
+			  break;
+		  }
 
-				akt = akt->next;
-				//test if this was the last ack
-				if (akt == NULL){
-					exit = 1;
-				}
+		  nextsend = GNUNET_TIME_absolute_min(GNUNET_TIME_absolute_add(pm->last_ack, timeout), nextsend);
 
-			}
-		}
+		  GNUNET_CONTAINER_DLL_remove (plugin->pending_Sessions, plugin->pending_Sessions_tail, queue);
+		  //insert at the tail
+		  GNUNET_CONTAINER_DLL_insert_after (plugin->pending_Sessions,
+				  plugin->pending_Sessions_tail,
+				  plugin->pending_Sessions_tail, queue);
 
-	} else {
-		// there is no need to split
-		copystart = pm->msg;
-		copysize = pm->message_size;
-	}
-	size += copysize;
-	size += sizeof(struct RadiotapHeader) + sizeof(struct IeeeHeader)
-			+ sizeof(struct GNUNET_MessageHeader);
-	msgheader = GNUNET_malloc(size);
-	msgheader->size = htons(size - sizeof(struct GNUNET_MessageHeader));
-	msgheader->type = GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA;
+		  //get next pending session
+		  queue = queue->next;
 
-	radioHeader = (struct RadiotapHeader*) &msgheader[1];
-	getRadiotapHeader(radioHeader);
-
-	wlanheader = (struct IeeeHeader *) &radioHeader[1];
-	getWlanHeader(wlanheader);
+	  } else {
+		  // retransmit
+		  nextsession = queue;
+		  break;
+	  }
+  }
 
 
-	//could be faster if content is just send and not copyed before
-	//fragmentheader is needed
-	if (pm->message_size > WLAN_MTU){
-		fragheader.message_crc = getcrc16(copystart, copysize);
-		memcpy(&wlanheader[1],&fragheader, sizeof(struct FragmentationHeader));
-		memcpy(&wlanheader[1] + sizeof(struct FragmentationHeader),copystart,copysize);
-	} else {
-		memcpy(&wlanheader[1],copystart,copysize);
-	}
+  //test if there is one session to send something
+  if (nextsession != NULL){
+	  queue = nextsession;
 
-	bytes = GNUNET_DISK_file_write(plugin->server_stdin_handle, msgheader, size);
+	    // check if the are some pending sessions/messages ...
+	    GNUNET_assert(queue != NULL);
 
+	    session = queue->content;
+	    GNUNET_assert(session != NULL);
 
+	    pm = session->pending_messages_head;
+	    GNUNET_assert(pm != NULL);
   } else {
-	  //remove message
-	  //TODO free the queues (acks)
-	  GNUNET_CONTAINER_DLL_remove (session->pending_messages_head,
-								  session->pending_messages_tail,
-								  pm);
-	  GNUNET_free(pm);
+	  //nothing to send at the moment
+	  plugin->server_read_task =
+			  GNUNET_SCHEDULER_add_delayed (plugin->env->sched,
+					  GNUNET_TIME_absolute_get_remaining(nextsend),
+					  &do_transmit, plugin);
 
   }
+
+
+
+  if (pm->message_size > WLAN_MTU) {
+	size += sizeof(struct FragmentationHeader);
+	// check for retransmission
+	if (GNUNET_TIME_absolute_get_duration(pm->last_ack).value > FRAGMENT_TIMEOUT) {
+		// TODO retransmit
+		// be positive and try again later :-D
+		pm->last_ack = GNUNET_TIME_absolute_get();
+		// find first missing fragment
+		exit = 0;
+		akt = pm->head;
+		pm->message_pos = 0;
+
+		//test if ack 0 was already received
+		while (akt != NULL){
+			//if fragment is present, take next
+			if (akt->fragment_num == pm->message_pos) {
+				pm->message_pos ++;
+			}
+			//next ack is bigger then the fragment number
+			//in case there is something like this: (acks) 1, 2, 5, 6, ...
+			//and we send 3 again, the next number should be 4
+			if (akt->fragment_num > pm->message_pos) {
+								break;
+							}
+
+			akt = akt->next;
+
+		}
+
+
+	}
+
+	copyoffset = (WLAN_MTU - sizeof(struct FragmentationHeader)) * pm->message_pos;
+	fragheader.fragment_off_or_num = pm->message_pos;
+	fragheader.message_id = session->message_id_out;
+
+	// start should be smaller then the packet size
+	//TODO send some other data if everything was send but not all acks are present
+	GNUNET_assert(copyoffset < pm->message_size);
+	copystart = pm->msg + copyoffset;
+
+	//size of the fragment is either the MTU - overhead
+	//or the missing part of the message in case this is the last fragment
+	copysize = GNUNET_MIN(pm->message_size - copyoffset,
+			WLAN_MTU - sizeof(struct FragmentationHeader));
+	fragheader.header.size = copysize;
+	fragheader.header.type = GNUNET_MESSAGE_TYPE_WLAN_FRAGMENT;
+
+	//get the next missing fragment
+	exit = 0;
+	akt = pm->head;
+	pm->message_pos ++;
+
+	//test if ack was already received
+	while (akt != NULL){
+		//if fragment is present, take next
+		if (akt->fragment_num == pm->message_pos) {
+			pm->message_pos ++;
+		}
+		//next ack is bigger then the fragment number
+		//in case there is something like this: (acks) 1, 2, 5, 6, ...
+		//and we send 3 again, the next number should be 4
+		if (akt->fragment_num > pm->message_pos) {
+							break;
+						}
+
+		akt = akt->next;
+	}
+
+
+	} else {
+	// there is no need to split
+	copystart = pm->msg;
+	copysize = pm->message_size;
+	}
+  size += copysize;
+  size += sizeof(struct RadiotapHeader) + sizeof(struct IeeeHeader)
+			+ sizeof(struct GNUNET_MessageHeader);
+  msgheader = GNUNET_malloc(size);
+  msgheader->size = htons(size - sizeof(struct GNUNET_MessageHeader));
+  msgheader->type = GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA;
+
+  radioHeader = (struct RadiotapHeader*) &msgheader[1];
+  getRadiotapHeader(radioHeader);
+
+  wlanheader = (struct IeeeHeader *) &radioHeader[1];
+  getWlanHeader(wlanheader);
+
+
+  //could be faster if content is just send and not copyed before
+  //fragmentheader is needed
+  if (pm->message_size > WLAN_MTU){
+  fragheader.message_crc = getcrc16(copystart, copysize);
+  memcpy(&wlanheader[1],&fragheader, sizeof(struct FragmentationHeader));
+  memcpy(&wlanheader[1] + sizeof(struct FragmentationHeader),copystart,copysize);
+  } else {
+  memcpy(&wlanheader[1],copystart,copysize);
+  }
+
+  bytes = GNUNET_DISK_file_write(plugin->server_stdin_handle, msgheader, size);
+
+
+
 
 
 
@@ -898,8 +1009,37 @@ static void
 wlan_plugin_disconnect (void *cls,
                             const struct GNUNET_PeerIdentity *target)
 {
-  // struct Plugin *plugin = cls;
-  // FIXME make something usefull :-D
+	struct Plugin *plugin = cls;
+	struct Sessionqueue * queue = plugin->sessions;
+	struct Sessionqueue * lastitem = NULL;
+	struct PendingMessage * pm;
+
+	// just look at all the session for the needed one
+	while (queue != NULL){
+		// content is never NULL
+		GNUNET_assert (queue->content == NULL);
+		if (memcmp(target, &(queue->content->target), sizeof(struct GNUNET_PeerIdentity)) == 0)
+		  {
+			// sesion found
+			// remove PendingMessage
+			while (queue->content->pending_messages_head != NULL){
+				pm = queue->content->pending_messages_head;
+				free_acks(pm);
+				GNUNET_CONTAINER_DLL_remove(queue->content->pending_messages_head,queue->content->pending_messages_tail, pm);
+				GNUNET_free(pm);
+
+			}
+
+			GNUNET_free(queue->content);
+			GNUNET_CONTAINER_DLL_remove(plugin->sessions, plugin->sessions_tail, queue);
+			GNUNET_free(queue);
+
+			return;
+		  }
+		// try next
+		lastitem = queue;
+		queue = queue->next;
+	}
 }
 
 
@@ -968,13 +1108,13 @@ wlan_plugin_address_suggested (void *cls,
 				   const void *addr,
 				   size_t addrlen)
 {
-  /* struct Plugin *plugin = cls; */
+  //struct Plugin *plugin = cls;
 
   /* check if the address is plausible; if so,
      add it to our list! */
 
   GNUNET_assert(cls !=NULL);
-
+  //FIXME mitm is not checked
   //Mac Adress has 6 bytes
   if (addrlen == 6){
     /* TODO check for bad addresses like milticast, broadcast, etc */
@@ -1163,11 +1303,12 @@ gnunet_plugin_transport_wlan_init (void *cls)
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
+  plugin->pendingsessions = 0;
 
   wlan_transport_start_wlan_helper(plugin);
   plugin->consoltoken = GNUNET_SERVER_mst_create(&wlan_process_helper,plugin);
 
-  //plugin->all_Sessions = GNUNET_malloc (sizeof (struct Sessionqueue));
+  //plugin->sessions = GNUNET_malloc (sizeof (struct Sessionqueue));
   //plugin->pending_Sessions = GNUNET_malloc (sizeof (struct Sessionqueue));
 
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));

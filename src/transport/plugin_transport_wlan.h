@@ -30,13 +30,16 @@ typedef unsigned int uint32_t;
 typedef unsigned short uint16_t;
 
 /* Wlan IEEE80211 header default */
+//Informations (in German) http://www.umtslink.at/content/WLAN_macheader-196.html
 static const uint8_t u8aIeeeHeader[] = 
   {
-    0x08, 0x01, 0x00, 0x00,
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0x13, 0x22, 0x33, 0x44, 0x55, 0x66,
-    0x13, 0x22, 0x33, 0x44, 0x55, 0x66,
-    0x10, 0x86,
+    0x08, 0x01, // Frame Control 0x08= 00001000 -> | b1,2 = 0 -> Version 0; b3,4 = 10 -> Data; b5-8 = 0 -> Normal Data
+				//	0x01 = 00000001 -> | b1 = 1 to DS; b2 = 0 not from DS;
+    0x00, 0x00, // Duration/ID
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // mac1
+    0x13, 0x22, 0x33, 0x44, 0x55, 0x66, // mac2
+    0x13, 0x22, 0x33, 0x44, 0x55, 0x66, // mac3
+    0x10, 0x86, //Sequence Control
   };
 
 /**
@@ -48,12 +51,19 @@ struct IeeeHeader
   /**
    * Wlan flags
    */
-  uint32_t flags;
+  uint16_t frame_control GNUNET_PACKED;
+
+  /**
+   * Duration / ID
+   */
+
+  uint16_t duration_id GNUNET_PACKED;
   
   /**
-   * first mac
+   * first mac byte 1
    */
   uint8_t mac1[6];
+
   
   /**
    * second mac
@@ -66,9 +76,9 @@ struct IeeeHeader
   uint8_t mac3[6];
   
   /**
-   * Wlan flags2
+   * Wlan Sequence Control
    */
-  uint16_t flags2;
+  uint16_t sequence_control GNUNET_PACKED;
 };
 
 /* this is the template radiotap header we send packets out with */
