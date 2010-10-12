@@ -835,15 +835,32 @@ GNUNET_TESTING_topology_option_get(enum GNUNET_TESTING_TopologyOption *topology_
  * files for the peers so they can only connect to those allowed
  * by the topology.  This will only have an effect once peers
  * are started if the FRIENDS_ONLY option is set in the base
- * config.  Also takes an optional restrict topology which
- * disallows direct TCP connections UNLESS they are specified in
+ * config.
+ *
+ * Also takes an optional restrict topology which
+ * disallows direct connections UNLESS they are specified in
  * the restricted topology.
+ *
+ * A simple example; if the topology option is set to LINE
+ * peers can ONLY connect in a LINE.  However, if the topology
+ * option is set to 2D-torus and the restrict option is set to
+ * line with restrict_transports equal to "tcp udp", then peers
+ * may connect in a 2D-torus, but will be restricted to tcp and
+ * udp connections only in a LINE.  Generally it only makes
+ * sense to do this if restrict_topology is a subset of topology.
+ *
+ * For testing peer discovery, etc. it is generally better to
+ * leave restrict_topology as "0" or ALL and then use the
+ * connect_topology function to restrict the initial connection
+ * set.
  *
  * @param pg the peer group struct representing the running peers
  * @param topology which topology to connect the peers in
- * @param restrict_topology allow only direct TCP connections in this topology
+ * @param restrict_topology allow only direct connections in this topology,
+ *        based on those listed in restrict_transports, set to
+ *        GNUNET_TESTING_TOPOLOGY_NONE for no restrictions
  * @param restrict_transports space delimited list of transports to blacklist
- *                            to create restricted topology
+ *                            to create restricted topology, NULL for none
  *
  * @return the maximum number of connections were all allowed peers
  *         connected to each other
@@ -882,7 +899,9 @@ GNUNET_TESTING_get_topology (struct GNUNET_TESTING_PeerGroup *pg,
  * @param notify_callback notification to be called once all connections completed
  * @param notify_cls closure for notification callback
  *
- * @return the number of connections that will be attempted, GNUNET_SYSERR on error
+ * @return the number of connections that will be attempted (multiple of two,
+ *         each bidirectional connection counts twice!), GNUNET_SYSERR on error
+ *
  */
 int
 GNUNET_TESTING_connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
