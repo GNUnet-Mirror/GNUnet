@@ -26,7 +26,7 @@
 #include "gnunet_core_service.h"
 #include "gnunet_os_lib.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define DELAY_FOR_LOGGING GNUNET_NO
 
@@ -709,8 +709,10 @@ topology_callback (void *cls,
 static void topology_creation_finished (void *cls,
                                         const char *emsg)
 {
+#if VERBOSE
   if (emsg == NULL)
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "All topology connections created successfully!\n");
+#endif
 }
 
 static void

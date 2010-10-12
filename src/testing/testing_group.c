@@ -1554,6 +1554,8 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_Connecti
 #endif
   smallWorldConnections = 0;
   small_world_it = (unsigned int)(natLog * percentage);
+  if (small_world_it < 1)
+    small_world_it = 1;
   GNUNET_assert(small_world_it > 0 && small_world_it < (unsigned int)-1);
   for (i = 0; i < small_world_it; i++)
     {
