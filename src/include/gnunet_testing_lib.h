@@ -850,9 +850,9 @@ GNUNET_TESTING_topology_option_get(enum GNUNET_TESTING_TopologyOption *topology_
  * sense to do this if restrict_topology is a subset of topology.
  *
  * For testing peer discovery, etc. it is generally better to
- * leave restrict_topology as "0" or ALL and then use the
- * connect_topology function to restrict the initial connection
- * set.
+ * leave restrict_topology as GNUNET_TESTING_TOPOLOGY_NONE and
+ * then use the connect_topology function to restrict the initial
+ * connection set.
  *
  * @param pg the peer group struct representing the running peers
  * @param topology which topology to connect the peers in
