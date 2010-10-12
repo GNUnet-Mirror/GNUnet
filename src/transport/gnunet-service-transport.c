@@ -3308,6 +3308,7 @@ send_periodic_ping (void *cls,
     {
       ping.header.size = htons(sizeof(struct TransportPingMessage));
     }
+
   memcpy(&message_buf[hello_size],
          &ping,
          sizeof(struct TransportPingMessage));
@@ -3335,8 +3336,6 @@ send_periodic_ping (void *cls,
                               gettext_noop ("# PING without HELLO messages sent"),
                               1,
                               GNUNET_NO);
-
-
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# PING messages sent for re-validation"),
 			    1,
@@ -3515,7 +3514,7 @@ check_pending_validation (void *cls,
     }
   addr = (const char*) &pong[1];
   slen = strlen (ve->transport_name) + 1;
-  if ( (ps - sizeof (struct TransportPongMessage) != ve->addrlen + slen) ||
+  if ( (ps - sizeof (struct TransportPongMessage) < slen) ||
        (ve->challenge != challenge) ||
        (addr[slen-1] != '\0') ||
        (0 != strcmp (addr, ve->transport_name)) ||
@@ -3523,7 +3522,7 @@ check_pending_validation (void *cls,
 	!= sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) +
 	sizeof (uint32_t) +
 	sizeof (struct GNUNET_TIME_AbsoluteNBO) +
-	sizeof (struct GNUNET_PeerIdentity) + ve->addrlen + slen) )
+	sizeof (struct GNUNET_PeerIdentity) + ps - sizeof (struct TransportPongMessage)) )
     {
       return GNUNET_YES;
     }
@@ -3567,18 +3566,18 @@ check_pending_validation (void *cls,
 #endif
       break;
     case GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_USING:
-      if (ve->addrlen != 0)
-        {
-          return GNUNET_YES; /* different entry, keep trying */
-        }
-      if ( (0 != memcmp (&pong->pid,
+      if (0 != memcmp (&pong->pid,
 			 &my_identity,
-			 sizeof (struct GNUNET_PeerIdentity))) ||
-	   (ve->addrlen != 0) )
+			 sizeof (struct GNUNET_PeerIdentity)))
 	{
 	  GNUNET_break_op (0);
 	  return GNUNET_NO;
 	}
+      if (ve->addrlen != 0)
+        {
+          /* must have been for a different validation entry */
+          return GNUNET_YES;
+        }
       tp = find_transport (ve->transport_name);
       if (tp == NULL)
 	{
