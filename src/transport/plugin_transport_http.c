@@ -327,6 +327,7 @@ struct Session
    */
   unsigned int recv_force_disconnect;
 
+
   /**
    * id for next session
    * NOTE: 0 is not an ID, zero is not defined. A correct ID is always > 0
@@ -884,7 +885,7 @@ static void mhd_write_mst_cb (void *cls,
   if (delay.value > 0)
   {
 #if DEBUG_HTTP
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"Connection %X: Inbound quota management: delay next read for %llu ms \n", ps, delay.value);
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: Inbound quota management: delay next read for %llu ms \n", ps, delay.value);
 #endif
 	pc->reset_task = GNUNET_SCHEDULER_add_delayed (pc->plugin->env->sched, delay, &reset_inbound_quota_delay, pc);
   }
@@ -961,6 +962,9 @@ mhd_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
       remove_http_message(ps,msg);
     }
   }
+#if DEBUG_CONNECTIONS
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: MHD has sent %u bytes\n", ps, bytes_read);
+#endif
   return bytes_read;
 }
 
@@ -972,7 +976,7 @@ mhd_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
  * already exists and create a new one if not.
  */
 static int
-mdh_access_cb (void *cls,
+mhd_access_cb (void *cls,
 			   struct MHD_Connection *mhd_connection,
 			   const char *url,
 			   const char *method,
@@ -1180,6 +1184,9 @@ mdh_access_cb (void *cls,
     {
       if (pc->delay.value == 0)
       {
+#if DEBUG_HTTP
+    	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: PUT with %u bytes forwarded to MST\n", ps, *upload_data_size);
+#endif
 		  res = GNUNET_SERVER_mst_receive(ps->msgtok, ps, upload_data, *upload_data_size, GNUNET_NO, GNUNET_NO);
 		  (*upload_data_size) = 0;
       }
@@ -1316,15 +1323,15 @@ static void http_server_daemon_v4_run (void *cls,
 
 #if DEBUG_SCHEDULING
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"http_server_daemon_v4_run: GNUNET_SCHEDULER_REASON_READ_READY\n");      
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"http_server_daemon_v4_run: GNUNET_SCHEDULER_REASON_READ_READY\n");
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY)) 
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"http_server_daemon_v4_run: GNUNET_SCHEDULER_REASON_WRITE_READY\n");  
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"http_server_daemon_v4_run: GNUNET_SCHEDULER_REASON_WRITE_READY\n");
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"http_server_daemon_v4_run: GNUNET_SCHEDULER_REASON_TIMEOUT\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"http_server_daemon_v4_run: GNUNET_SCHEDULER_REASON_TIMEOUT\n");
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_STARTUP))
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"http_server_daemon_v4_run: GGNUNET_SCHEDULER_REASON_STARTUP\n");        
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"http_server_daemon_v4_run: GGNUNET_SCHEDULER_REASON_STARTUP\n");
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"http_server_daemon_v4_run: GGNUNET_SCHEDULER_REASON_SHUTDOWN\n");                 
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"http_server_daemon_v4_run: GGNUNET_SCHEDULER_REASON_SHUTDOWN\n");
 #endif              
       
   GNUNET_assert(cls !=NULL);
@@ -1351,15 +1358,15 @@ static void http_server_daemon_v6_run (void *cls,
   
 #if DEBUG_SCHEDULING  
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"http_server_daemon_v6_run: GNUNET_SCHEDULER_REASON_READ_READY\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"http_server_daemon_v6_run: GNUNET_SCHEDULER_REASON_READ_READY\n");
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY)) 
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"http_server_daemon_v6_run: GNUNET_SCHEDULER_REASON_WRITE_READY\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"http_server_daemon_v6_run: GNUNET_SCHEDULER_REASON_WRITE_READY\n");
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"http_server_daemon_v6_run: GNUNET_SCHEDULER_REASON_TIMEOUT\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"http_server_daemon_v6_run: GNUNET_SCHEDULER_REASON_TIMEOUT\n");
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_STARTUP))  
-     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"http_server_daemon_v6_run: GGNUNET_SCHEDULER_REASON_STARTUP\n");    
+     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"http_server_daemon_v6_run: GGNUNET_SCHEDULER_REASON_STARTUP\n");
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))  
-     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"http_server_daemon_v6_run: GGNUNET_SCHEDULER_REASON_SHUTDOWN\n"); 
+     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"http_server_daemon_v6_run: GGNUNET_SCHEDULER_REASON_SHUTDOWN\n");
 #endif                                            
 
   GNUNET_assert(cls !=NULL);
@@ -1542,7 +1549,7 @@ static size_t curl_send_cb(void *stream, size_t size, size_t nmemb, void *ptr)
   if ( msg->pos == msg->size)
   {
 #if DEBUG_CONNECTIONS
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"Connection %X: Message with %u bytes sent, removing message from queue \n",ps, msg->pos);
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: Message with %u bytes sent, removing message from queue \n",ps, msg->pos);
 #endif
     /* Calling transmit continuation  */
     if (NULL != ps->pending_msgs_tail->transmit_cont)
@@ -1584,7 +1591,7 @@ static void curl_receive_mst_cb  (void *cls,
   if (delay.value > 0)
   {
 #if DEBUG_HTTP
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"Connection %X: Inbound quota management: delay next read for %llu ms \n", ps, delay.value);
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: Inbound quota management: delay next read for %llu ms \n", ps, delay.value);
 #endif
 	pc->reset_task = GNUNET_SCHEDULER_add_delayed (pc->plugin->env->sched, delay, &reset_inbound_quota_delay, pc);
   }
@@ -2989,7 +2996,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
     								   MHD_USE_IPv6,
                                        port,
                                        &mhd_accept_cb,
-                                       plugin , &mdh_access_cb, plugin,
+                                       plugin , &mhd_access_cb, plugin,
                                        MHD_OPTION_SOCK_ADDR, tmp,
                                        MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 32,
                                        //MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 6,
@@ -3016,7 +3023,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
     								   MHD_NO_FLAG,
                                        port,
                                        &mhd_accept_cb,
-                                       plugin , &mdh_access_cb, plugin,
+                                       plugin , &mhd_access_cb, plugin,
                                        MHD_OPTION_SOCK_ADDR, (struct sockaddr_in *)plugin->bind4_address,
                                        MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 32,
                                        //MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 6,
@@ -3066,7 +3073,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 		GNUNET_asprintf(&tmp,"with IPv6 enabled");
 	if ((plugin->use_ipv6 == GNUNET_NO) && (plugin->use_ipv4 == GNUNET_NO))
 		GNUNET_asprintf(&tmp,"with NO IP PROTOCOL enabled");
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"HTTP Server with %s could not be started on port %u! %s plugin failed!\n",tmp, port, PROTOCOL_PREFIX);
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,_("HTTP Server with %s could not be started on port %u! %s plugin failed!\n"),tmp, port, PROTOCOL_PREFIX);
 	GNUNET_free (tmp);
     GNUNET_free (component_name);
     LIBGNUNET_PLUGIN_TRANSPORT_DONE (api);
