@@ -23,8 +23,7 @@
  *        then issuing GETS and PUTS on the DHT.  Coarse results
  *        are reported, fine grained results (if requested) are
  *        logged to a (mysql) database, or to file.
- *
- * FIXME: Do churn!
+ * @author Nathan Evans (who to blame)
  */
 #include "platform.h"
 #ifndef HAVE_MALICIOUS
@@ -426,6 +425,13 @@ static unsigned long long trialuid;
  * Otherwise, choose a new random peer to insert at each time.
  */
 static unsigned int replicate_same;
+
+/**
+ * If GNUNET_YES, issue GET requests at the same peers every time.
+ * Otherwise, choose a new random peer/data combination to search
+ * each time.
+ */
+static unsigned int get_from_same;
 
 /**
  * Number of rounds for testing (PUTS + GETS)
@@ -1546,8 +1552,11 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
     }
 
   /* Reset the uid (which item to search for) and the daemon (which peer to search from) for later get request iterations */
-  test_get->uid = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_puts);
-  test_get->daemon = GNUNET_TESTING_daemon_get(pg, GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers));
+  if (get_from_same == GNUNET_NO)
+    {
+      test_get->uid = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_puts);
+      test_get->daemon = GNUNET_TESTING_daemon_get(pg, GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers));
+    }
 
 #if VERBOSE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%d gets succeeded, %d gets failed!\n", gets_completed, gets_failed);
@@ -2807,9 +2816,14 @@ run (void *cls,
    * Get testing related options.
    */
   if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(cfg, "DHT_TESTING", "REPLICATE_SAME"))
-    {
-      replicate_same = GNUNET_YES;
-    }
+    replicate_same = GNUNET_YES;
+
+  /**
+   * Get testing related options.
+   */
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(cfg, "DHT_TESTING", "GET_FROM_SAME"))
+    get_from_same = GNUNET_YES;
+
 
   if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_time (cfg, "DHT_TESTING",
 							"MALICIOUS_GET_FREQUENCY",
@@ -3034,7 +3048,6 @@ run (void *cls,
       temphost = tempnext;
     }
 }
-
 
 int
 main (int argc, char *argv[])
