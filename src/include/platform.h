@@ -148,7 +148,7 @@
 #endif
 #ifdef SOLARIS
 #include <sys/sockio.h>
-#include <sys/filio.h> >
+#include <sys/filio.h>
 #include <sys/loadavg.h>
 #include <semaphore.h>
 #endif
