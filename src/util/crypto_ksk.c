@@ -201,6 +201,22 @@ leave:
   return rc;
 }
 
+/**
+ * If target != size, move target bytes to the
+ * end of the size-sized buffer and zero out the
+ * first target-size bytes.
+ */
+static void
+adjust (unsigned char *buf, size_t size, size_t target)
+{
+  if (size < target)
+    {
+      memmove (&buf[target - size], buf, size);
+      memset (buf, 0, target - size);
+    }
+}
+
+
 static void
 gen_prime (gcry_mpi_t *ptest, unsigned int nbits, GNUNET_HashCode * hc)
 {
@@ -334,6 +350,8 @@ gen_prime (gcry_mpi_t *ptest, unsigned int nbits, GNUNET_HashCode * hc)
 			 gcry_mpi_print (GCRYMPI_FMT_USG, 
 					 (unsigned char*) &mods[i], written, &written, 
 					 tmp));
+	  adjust ( (unsigned char*) &mods[i], written, sizeof (unsigned int));
+	  mods[i] = ntohl (mods[i]);
 	}
       /* Now try some primes starting with prime. */
       for (step = 0; step < 20000; step += 2)
