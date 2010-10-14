@@ -87,8 +87,6 @@ mpz_randomize (gcry_mpi_t n, unsigned int nbits, GNUNET_HashCode * rnd)
 
       if (i > 0)
       	GNUNET_CRYPTO_hash (&hc, sizeof (GNUNET_HashCode), &tmp);
-      fprintf (stderr, "H: %s\n", GNUNET_h2s (&tmp));
-
       for (j=0;j<sizeof(GNUNET_HashCode) / sizeof(uint32_t); j++)
         {
 #if HAVE_GCRY_MPI_LSHIFT 

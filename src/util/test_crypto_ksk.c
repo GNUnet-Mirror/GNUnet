@@ -55,7 +55,7 @@ testCorrectKey ()
     }
   GNUNET_CRYPTO_rsa_key_get_public (hostkey, &pkey);
   GNUNET_CRYPTO_rsa_key_free (hostkey);
-#if 1
+#if 0
   for (i=0;i<sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded);i++)
     printf("%02x", ((unsigned char*) &pkey)[i]);
   printf ("\n");
