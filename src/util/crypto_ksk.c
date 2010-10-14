@@ -95,7 +95,7 @@ mpz_randomize (gcry_mpi_t n, unsigned int nbits, GNUNET_HashCode * rnd)
 	  gcry_mpi_mul_ui(n, n, 1 << (sizeof(uint32_t)*4));
 	  gcry_mpi_mul_ui(n, n, 1 << (sizeof(uint32_t)*4));
 #endif
-          gcry_mpi_add_ui(n, n, ((uint32_t *) &tmp)[j]);
+          gcry_mpi_add_ui(n, n, ntohl (((uint32_t *) &tmp)[j]));
         }
       hc = tmp;
     }

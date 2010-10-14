@@ -36,6 +36,43 @@
 
 
 static int
+testCorrectKey ()
+{
+  const char *want = "010601000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b73c215f7a5e6b09bec55713c901786c09324a150980e014bdb0d04426934929c3b4971a9711af5455536cd6eeb8bfa004ee904972a737455f53c752987d8e5e1396e5e5a4ed694fb1d45e15ae68d8756e525cbaf6ab6ed0269ac402f2a6b8a73627e3797496b43a851271cb7d7b60b6acf4324ba72be5cafcef98dca8d71d1b01010000";
+  GNUNET_HashCode in;
+  struct GNUNET_CRYPTO_RsaPrivateKey *hostkey;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
+  int i;
+  char out[3];
+
+  fprintf (stderr, "Testing KBlock key correctness");
+  GNUNET_CRYPTO_hash ("X", strlen ("X"), &in);
+  hostkey = GNUNET_CRYPTO_rsa_key_create_from_hash (&in);
+  if (hostkey == NULL)
+    {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+    }
+  GNUNET_CRYPTO_rsa_key_get_public (hostkey, &pkey);
+  GNUNET_CRYPTO_rsa_key_free (hostkey);
+  for (i=0;i<sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded);i++)
+    {
+      snprintf(out, sizeof (out), "%02x", ((unsigned char*) &pkey)[i]);
+      if (0 != strncmp (out, &want[i*2], 2))
+	{
+	  fprintf (stderr,
+		   "Wanted %.2s but got %2s\n",
+		   &want[i*2],
+		   out);
+	  return GNUNET_SYSERR;
+	}
+    }
+  fprintf (stderr, " OK\n");
+  return GNUNET_OK;
+}
+
+
+static int
 testMultiKey (const char *word)
 {
   GNUNET_HashCode in;
@@ -201,6 +238,8 @@ main (int argc, char *argv[])
       return 1;
     }
 
+  if (GNUNET_OK != testCorrectKey ())
+    failureCount++;
   if (GNUNET_OK != testMultiKey ("foo"))
     failureCount++;
   if (GNUNET_OK != testMultiKey ("bar"))
