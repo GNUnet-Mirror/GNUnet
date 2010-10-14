@@ -531,6 +531,11 @@ main(int argc, char *argv[])
 		struct pcap_pkthdr * ppcapPacketHeader = NULL;
 		struct ieee80211_radiotap_iterator rti;
 		PENUMBRA_RADIOTAP_DATA prd;
+		//init of the values
+		prd.m_nRate = 255;
+		prd.m_nChannel = 255;
+		prd.m_nAntenna = 255;
+		prd.m_nRadiotapFlags = 255;
 		u8 * pu8Payload = u8aSendBuffer;
 		int n, nRate;
 
