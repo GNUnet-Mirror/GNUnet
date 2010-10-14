@@ -66,9 +66,9 @@ testCorrectKey ()
       if (0 != strncmp (out, &want[i*2], 2))
 	{
 	  fprintf (stderr,
-		   " Failed! Wanted %.2s but got %2s\n",
+		   " Failed! Wanted %.2s but got %2s at %d\n",
 		   &want[i*2],
-		   out);
+		   out, i);
 	  return GNUNET_SYSERR;
 	}
     }
