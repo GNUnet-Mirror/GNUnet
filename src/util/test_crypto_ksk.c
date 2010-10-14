@@ -55,13 +55,18 @@ testCorrectKey ()
     }
   GNUNET_CRYPTO_rsa_key_get_public (hostkey, &pkey);
   GNUNET_CRYPTO_rsa_key_free (hostkey);
+#if 1
+  for (i=0;i<sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded);i++)
+    printf(out, sizeof (out), "%02x", ((unsigned char*) &pkey)[i]);
+  printf ("\n");
+#endif
   for (i=0;i<sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded);i++)
     {
       snprintf(out, sizeof (out), "%02x", ((unsigned char*) &pkey)[i]);
       if (0 != strncmp (out, &want[i*2], 2))
 	{
 	  fprintf (stderr,
-		   "Wanted %.2s but got %2s\n",
+		   " Failed! Wanted %.2s but got %2s\n",
 		   &want[i*2],
 		   out);
 	  return GNUNET_SYSERR;
@@ -230,6 +235,8 @@ main (int argc, char *argv[])
   struct GNUNET_CRYPTO_RsaPrivateKey *hostkey;
 
   GNUNET_log_setup ("test-crypto-ksk", "WARNING", NULL);
+  if (GNUNET_OK != testCorrectKey ())
+    failureCount++;
   GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &in);
   hostkey = GNUNET_CRYPTO_rsa_key_create_from_hash (&in);
   if (hostkey == NULL)
@@ -237,9 +244,6 @@ main (int argc, char *argv[])
       printf ("\nGNUNET_CRYPTO_rsa_key_create_from_hash failed!\n");
       return 1;
     }
-
-  if (GNUNET_OK != testCorrectKey ())
-    failureCount++;
   if (GNUNET_OK != testMultiKey ("foo"))
     failureCount++;
   if (GNUNET_OK != testMultiKey ("bar"))
