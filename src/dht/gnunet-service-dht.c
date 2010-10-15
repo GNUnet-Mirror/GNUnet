@@ -3377,7 +3377,8 @@ static int cache_response(struct DHT_MessageContext *msg_ctx)
           GNUNET_assert(GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(forward_list.hashmap, &record->key, record));
           GNUNET_free(record);
         }
-      GNUNET_SCHEDULER_cancel(sched, source_info->delete_task);
+      if (source_info->delete_task != GNUNET_SCHEDULER_NO_TASK)
+        GNUNET_SCHEDULER_cancel(sched, source_info->delete_task);
       if (source_info->find_peers_responded != NULL)
         GNUNET_CONTAINER_bloomfilter_free(source_info->find_peers_responded);
       GNUNET_free(source_info);
@@ -4212,6 +4213,7 @@ handle_dht_local_route_stop(void *cls, struct GNUNET_SERVER_Client *client,
           if ((pos->client != NULL) && (pos->client->client_handle == client))
             {
               GNUNET_SCHEDULER_cancel(sched, pos->delete_task);
+              pos->delete_task = GNUNET_SCHEDULER_NO_TASK;
               GNUNET_SCHEDULER_add_now(sched, &remove_forward_entry, pos);
             }
           pos = pos->next;
