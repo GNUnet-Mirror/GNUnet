@@ -292,6 +292,9 @@ timeout_request (void *cls,
 {
   struct GNUNET_CORE_TransmitHandle *th = cls;
 
+  GNUNET_CONTAINER_DLL_remove (th->ch->pending_head,
+                               th->ch->pending_tail,
+                               th);
   th->timeout_task = GNUNET_SCHEDULER_NO_TASK;
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -323,6 +326,8 @@ request_start (void *cls, size_t size, void *buf)
     return 0;
   if (buf == NULL)
     {
+      if (th->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+        GNUNET_SCHEDULER_cancel(h->sched, th->timeout_task);
       timeout_request (th, NULL);
       return 0;
     }
@@ -844,7 +849,13 @@ produce_send (void *cls, size_t size, void *buf)
 #endif
       GNUNET_assert (0 == th->notify (th->notify_cls, 0, NULL));
       GNUNET_CORE_notify_transmit_ready_cancel (th);
-      trigger_next_request (h);
+      if ((h->pending_head == th) && (h->cth != NULL)) /* Request hasn't been canceled yet! */
+        {
+          GNUNET_CLIENT_notify_transmit_ready_cancel (h->cth);
+          h->cth = NULL;
+          trigger_next_request (h);
+        }
+      /* Otherwise this request timed out, but another is actually queued for sending, so don't try to send another! */
       return 0;
     }
   sm = (struct SendMessage *) buf;
