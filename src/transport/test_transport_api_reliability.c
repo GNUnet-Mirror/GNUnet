@@ -47,7 +47,7 @@
  * 'MAX_PENDING' in 'gnunet-service-transport.c', otherwise
  * messages may be dropped even for a reliable transport.
  */
-#define TOTAL_MSGS (10000)
+#define TOTAL_MSGS (10000 * 2)
 
 /**
  * How long until we give up on transmitting the message?
@@ -507,6 +507,116 @@ exchange_hello (void *cls,
   GNUNET_TRANSPORT_get_hello (p2.th, &exchange_hello_last, &p2);
 }
 
+/**
+ * Return the actual path to a file found in the current
+ * PATH environment variable.
+ *
+ * @param binary the name of the file to find
+ */
+static char *
+get_path_from_PATH (char *binary)
+{
+  char *path;
+  char *pos;
+  char *end;
+  char *buf;
+  const char *p;
+
+  p = getenv ("PATH");
+  if (p == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("PATH environment variable is unset.\n"));
+      return NULL;
+    }
+  path = GNUNET_strdup (p);     /* because we write on it */
+  buf = GNUNET_malloc (strlen (path) + 20);
+  pos = path;
+
+  while (NULL != (end = strchr (pos, PATH_SEPARATOR)))
+    {
+      *end = '\0';
+      sprintf (buf, "%s/%s", pos, binary);
+      if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
+        {
+          GNUNET_free (path);
+          return buf;
+        }
+      pos = end + 1;
+    }
+  sprintf (buf, "%s/%s", pos, binary);
+  if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
+    {
+      GNUNET_free (path);
+      return buf;
+    }
+  GNUNET_free (buf);
+  GNUNET_free (path);
+  return NULL;
+}
+
+/**
+ * Check whether the suid bit is set on a file.
+ * Attempts to find the file using the current
+ * PATH environment variable as a search path.
+ *
+ * @param binary the name of the file to check
+ *
+ * @return GNUNET_YES if the binary is found and
+ *         can be run properly, GNUNET_NO otherwise
+ */
+static int
+check_gnunet_nat_binary(char *binary)
+{
+  struct stat statbuf;
+  char *p;
+#ifdef MINGW
+  SOCKET rawsock;
+#endif
+
+#ifdef MINGW
+  char *binaryexe;
+  GNUNET_asprintf (&binaryexe, "%s.exe", binary);
+  p = get_path_from_PATH (binaryexe);
+  free (binaryexe);
+#else
+  p = get_path_from_PATH (binary);
+#endif
+  if (p == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Could not find binary `%s' in PATH!\n"),
+                  binary);
+      return GNUNET_NO;
+    }
+  if (0 != STAT (p, &statbuf))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("stat (%s) failed: %s\n"),
+                  p,
+                  STRERROR (errno));
+      GNUNET_free (p);
+      return GNUNET_SYSERR;
+    }
+  GNUNET_free (p);
+#ifndef MINGW
+  if ( (0 != (statbuf.st_mode & S_ISUID)) &&
+       (statbuf.st_uid == 0) )
+    return GNUNET_YES;
+  return GNUNET_NO;
+#else
+  rawsock = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
+  if (INVALID_SOCKET == rawsock)
+    {
+      DWORD err = GetLastError ();
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "socket (AF_INET, SOCK_RAW, IPPROTO_ICMP) have failed! GLE = %d\n", err);
+      return GNUNET_NO; /* not running as administrator */
+    }
+  closesocket (rawsock);
+  return GNUNET_YES;
+#endif
+}
 
 static void
 run (void *cls,
@@ -573,6 +683,13 @@ check ()
   setTransportOptions("test_transport_api_data.conf");
 #endif
   ok = 1;
+
+  if ((GNUNET_YES == is_tcp_nat) && (check_gnunet_nat_binary("gnunet-nat-server") != GNUNET_YES))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Not running NAT test case, binaries not properly installed.\n");
+      return 0;
+    }
+
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "test-transport-api-reliability", "nohelp",
                       options, &run, &ok);
@@ -581,42 +698,42 @@ check ()
 
   if (is_https)
   {
-	  struct stat sbuf;
-	  if (0 == stat (cert_file_p1, &sbuf ))
-	  {
-		  if (0 == remove(cert_file_p1))
-			  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Successfully removed existing certificate file `%s'\n",cert_file_p1);
-		  else
-			  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to remove certfile `%s'\n",cert_file_p1);
-	  }
+    struct stat sbuf;
+    if (0 == stat (cert_file_p1, &sbuf ))
+    {
+      if (0 == remove(cert_file_p1))
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Successfully removed existing certificate file `%s'\n",cert_file_p1);
+      else
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to remove certfile `%s'\n",cert_file_p1);
+    }
 
-	  if (0 == stat (key_file_p1, &sbuf ))
-	  {
-		  if (0 == remove(key_file_p1))
-			  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Successfully removed private key file `%s'\n",key_file_p1);
-		  else
-			  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to private key file `%s'\n",key_file_p1);
-	  }
+    if (0 == stat (key_file_p1, &sbuf ))
+    {
+      if (0 == remove(key_file_p1))
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Successfully removed private key file `%s'\n",key_file_p1);
+      else
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to private key file `%s'\n",key_file_p1);
+    }
 
-	  if (0 == stat (cert_file_p2, &sbuf ))
-	  {
-		  if (0 == remove(cert_file_p2))
-			  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Successfully removed existing certificate file `%s'\n",cert_file_p2);
-		  else
-			  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to remove certfile `%s'\n",cert_file_p2);
-	  }
+    if (0 == stat (cert_file_p2, &sbuf ))
+    {
+      if (0 == remove(cert_file_p2))
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Successfully removed existing certificate file `%s'\n",cert_file_p2);
+      else
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to remove certfile `%s'\n",cert_file_p2);
+    }
 
-	  if (0 == stat (key_file_p2, &sbuf ))
-	  {
-		  if (0 == remove(key_file_p2))
-			  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Successfully removed private key file `%s'\n",key_file_p2);
-		  else
-			  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to private key file `%s'\n",key_file_p2);
-	  }
-	  GNUNET_free(key_file_p1);
-	  GNUNET_free(key_file_p2);
-	  GNUNET_free(cert_file_p1);
-	  GNUNET_free(cert_file_p2);
+    if (0 == stat (key_file_p2, &sbuf ))
+    {
+      if (0 == remove(key_file_p2))
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Successfully removed private key file `%s'\n",key_file_p2);
+      else
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to private key file `%s'\n",key_file_p2);
+    }
+    GNUNET_free(key_file_p1);
+    GNUNET_free(key_file_p2);
+    GNUNET_free(cert_file_p1);
+    GNUNET_free(cert_file_p2);
   }
 
   return ok;

@@ -518,6 +518,15 @@ main (int argc, char *argv[])
 #ifdef MINGW
   return GNUNET_SYSERR;
 #endif
+
+  GNUNET_log_setup ("test-transport-api",
+#if VERBOSE
+                    "DEBUG",
+#else
+                    "WARNING",
+#endif
+                    NULL);
+
   if (strstr(argv[0], "tcp_nat") != NULL)
     {
       is_tcp_nat = GNUNET_YES;
@@ -557,13 +566,6 @@ main (int argc, char *argv[])
       is_http = GNUNET_YES;
     }
 
-  GNUNET_log_setup ("test-transport-api",
-#if VERBOSE
-                    "DEBUG",
-#else
-                    "WARNING",
-#endif
-                    NULL);
   ret = check ();
   GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-1");
   GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-2");
