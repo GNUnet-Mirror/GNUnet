@@ -292,10 +292,10 @@ timeout_request (void *cls,
 {
   struct GNUNET_CORE_TransmitHandle *th = cls;
 
+  th->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_CONTAINER_DLL_remove (th->ch->pending_head,
                                th->ch->pending_tail,
                                th);
-  th->timeout_task = GNUNET_SCHEDULER_NO_TASK;
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Signalling timeout of request for transmission to CORE service\n");
@@ -327,7 +327,10 @@ request_start (void *cls, size_t size, void *buf)
   if (buf == NULL)
     {
       if (th->timeout_task != GNUNET_SCHEDULER_NO_TASK)
-        GNUNET_SCHEDULER_cancel(h->sched, th->timeout_task);
+	{
+	  GNUNET_SCHEDULER_cancel(h->sched, th->timeout_task);
+	  th->timeout_task = GNUNET_SCHEDULER_NO_TASK;  
+	}
       timeout_request (th, NULL);
       return 0;
     }
