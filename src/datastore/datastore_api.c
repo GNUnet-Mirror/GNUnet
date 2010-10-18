@@ -159,7 +159,7 @@ struct GNUNET_DATASTORE_QueueEntry
    * multiple of 64 bits.
    */
   int32_t was_transmitted;
-
+  
 };
 
 /**
@@ -684,9 +684,10 @@ process_status_message (void *cls,
       free_queue_entry (qe);
       if (NULL == h->client)
 	return; /* forced disconnect */
-      rc.cont (rc.cont_cls, 
-	       GNUNET_SYSERR,
-	       _("Failed to receive response from database."));
+      if (rc.cont != NULL)
+	rc.cont (rc.cont_cls, 
+		 GNUNET_SYSERR,
+		 _("Failed to receive status response from database."));
       if (was_transmitted == GNUNET_YES)
 	do_disconnect (h);
       return;
@@ -700,9 +701,10 @@ process_status_message (void *cls,
       GNUNET_break (0);
       h->retry_time = GNUNET_TIME_UNIT_ZERO;
       do_disconnect (h);
-      rc.cont (rc.cont_cls, 
-	       GNUNET_SYSERR,
-	       _("Error reading response from datastore service"));
+      if (rc.cont != NULL)
+	rc.cont (rc.cont_cls, 
+		 GNUNET_SYSERR,
+		 _("Error reading response from datastore service"));
       return;
     }
   sm = (const struct StatusMessage*) msg;
@@ -730,9 +732,10 @@ process_status_message (void *cls,
 	      emsg);
 #endif
   process_queue (h);
-  rc.cont (rc.cont_cls, 
-	   status,
-	   emsg);
+  if (rc.cont != NULL)
+    rc.cont (rc.cont_cls, 
+	     status,
+	     emsg);
 }
 
 
@@ -1384,20 +1387,15 @@ GNUNET_DATASTORE_cancel (struct GNUNET_DATASTORE_QueueEntry *qe)
 	  qe->qc.rc.iter = NULL;    
 	  if (GNUNET_YES != h->in_receive)
 	    GNUNET_DATASTORE_get_next (h, GNUNET_YES);
-	  return;
 	}
-      reconnect = GNUNET_YES;
+      else
+	{
+	  qe->qc.sc.cont = NULL;
+	}
+      return;
     }
   free_queue_entry (qe);
-  if (reconnect)
-    {
-      h->retry_time = GNUNET_TIME_UNIT_ZERO;
-      do_disconnect (h);
-    }
-  else
-    {
-      process_queue (h);
-    }
+  process_queue (h);
 }
 
 
