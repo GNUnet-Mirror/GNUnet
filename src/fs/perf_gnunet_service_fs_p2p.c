@@ -32,7 +32,7 @@
 /**
  * File-size we use for testing.
  */
-#define FILESIZE (1024 * 1024 * 1)
+#define FILESIZE (1024 * 1024 * 10)
 
 /**
  * How long until we give up on transmitting the message?
@@ -82,15 +82,21 @@ struct StatValues
  */
 static struct StatValues stats[] =
   {
-    { "fs", "queries forwarded"},
-    { "fs", "replies received and matched"},
-    { "core", "bytes decrypted"},
-    { "core", "bytes encrypted"},
-    { "transport", "bytes received via TCP"},
-    { "transport", "bytes transmitted via TCP"},
-    { "datacache", "bytes stored"},
-    { "dht", "DHT ROUTE Requests Seen"},
-    { "dht", "DHT ROUTE Requests Forwarded"},
+    { "fs", "# queries forwarded"},
+    { "fs", "# replies received and matched"},
+    { "fs", "# results found locally"},
+    { "fs", "# requests forwarded due to high load"},
+    { "fs", "# requests done for free (low load)"},
+    { "fs", "# P2P searches received"},
+    { "fs", "# replies received for local clients"},
+    { "fs", "cummulative artificial delay introduced (ms)"},
+    { "core", "# bytes decrypted"},
+    { "core", "# bytes encrypted"},
+    { "transport", "# bytes received via TCP"},
+    { "transport", "# bytes transmitted via TCP"},
+    { "datacache", "# bytes stored"},
+    { "dht", "# DHT ROUTE Requests Seen"},
+    { "dht", "# DHT ROUTE Requests Forwarded"},
     { NULL, NULL}
   };
 
@@ -114,7 +120,7 @@ print_stat (void *cls,
 {
   struct StatMaster *sm = cls;
   fprintf (stderr,
-	   "Peer %3u: %8s/%40s = %llu\n",
+	   "Peer %2u: %12s/%50s = %4llu\n",
 	   sm->daemon,
 	   subsystem,
 	   name,
@@ -154,8 +160,12 @@ stat_run (void *cls,
   if (stats[sm->value].name != NULL)
     {
       GNUNET_STATISTICS_get (sm->stat,
+#if 0
+			     NULL, NULL, 
+#else
 			     stats[sm->value].subsystem,
 			     stats[sm->value].name,
+#endif
 			     GNUNET_TIME_UNIT_FOREVER_REL,
 			     &get_done,
 			     &print_stat, sm);
@@ -326,7 +336,7 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
-  GNUNET_DISK_directory_remove ("/tmp/gnunet-perf-fs-lib/");
+  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
   GNUNET_log_setup ("perf_gnunet_service_fs_p2p", 
 #if VERBOSE
 		    "DEBUG",
@@ -337,7 +347,7 @@ main (int argc, char *argv[])
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1,
                       argvx, "perf-gnunet-service-fs-p2p",
 		      "nohelp", options, &run, NULL);
-  GNUNET_DISK_directory_remove ("/tmp/gnunet-perf-fs-lib/");
+  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
   return ok;
 }
 

@@ -3019,6 +3019,9 @@ process_reply (void *cls,
   struct PutMessage *pm;
   struct ConnectedPeer *cp;
   struct GNUNET_TIME_Relative cur_delay;
+#if SUPPORT_DELAYS  
+struct GNUNET_TIME_Relative art_delay;
+#endif
   size_t msize;
 
 #if DEBUG_FS
@@ -3210,10 +3213,15 @@ process_reply (void *cls,
       reply->cont = &transmit_reply_continuation;
       reply->cont_cls = pr;
 #if SUPPORT_DELAYS
+      art_delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+						 GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+									   TTL_DECREMENT));
       reply->delay_until 
-	= GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
-									   GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-												     TTL_DECREMENT)));
+	= GNUNET_TIME_relative_to_absolute (art_delay);
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("cummulative artificial delay introduced (ms)"),
+				art_delay.value,
+				GNUNET_NO);
 #endif
       reply->msize = msize;
       reply->priority = UINT32_MAX; /* send replies first! */
