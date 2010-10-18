@@ -246,8 +246,12 @@ GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len,
   if (d > 0)
     {
       if (t > 0)
-        memcpy (plain, result - k, k);
-      memset (plain + k + ctx_len, i + 1, 1);
+        {
+          memcpy (plain, result - k, k);
+          memset (plain + k + ctx_len, i + 1, 1);
+        }
+      else
+        memset (plain + k + ctx_len, 1, 1);
       gcry_md_reset (prf);
 #if DEBUG_HKDF
       dump("K(t):d", plain, plain_len);
