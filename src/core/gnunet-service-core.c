@@ -1808,6 +1808,9 @@ select_messages (struct Neighbour *n,
           pos->do_transmit = GNUNET_NO;	  
           pos = pos->next;
         }
+      GNUNET_STATISTICS_update (stats, 
+				gettext_noop ("# transmissions delayed due to corking"), 
+				1, GNUNET_NO);
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Deferring transmission for %llums due to underfull message buffer size (%u/%u)\n",
