@@ -80,8 +80,13 @@ static void cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx
 
 static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx);
 
-static void start_helper_and_schedule() {
-	mycls.helper_in = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO);;
+static void start_helper_and_schedule(void *cls,
+				      const struct GNUNET_SCHEDULER_TaskContext *tc) {
+
+	if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+	  return;
+
+	mycls.helper_in = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO);
 	mycls.helper_out = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_NO, GNUNET_YES);
 
 	if (mycls.helper_in == NULL || mycls.helper_out == NULL) return;
@@ -99,8 +104,6 @@ static void start_helper_and_schedule() {
 
 
 static void restart_helper(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
-	// FIXME: Ratelimit this!
-
 	// Kill the helper
 	PLIBC_KILL(mycls.helper_pid, SIGKILL);
 	GNUNET_OS_process_wait(mycls.helper_pid);
@@ -111,7 +114,7 @@ static void restart_helper(void* cls, const struct GNUNET_SCHEDULER_TaskContext*
 	GNUNET_DISK_pipe_close(mycls.helper_out);
 
 	// Restart the helper
-	start_helper_and_schedule(mycls);
+	GNUNET_SCHEDULER_add_delayed (mycls.sched, GNUNET_TIME_UNIT_SECONDS, start_helper_and_schedule, NULL);
 
 }
 
@@ -333,7 +336,7 @@ run (void *cls,
   mycls.cfg = cfg;
   GNUNET_SCHEDULER_add_now (sched, &reconnect_to_service_dns, NULL);
   GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls); 
-  start_helper_and_schedule(mycls);
+  GNUNET_SCHEDULER_add_now (sched, start_helper_and_schedule, NULL);
 }
 
 
