@@ -1090,6 +1090,13 @@ process_result_message (void *cls,
 		      _("Failed to receive response from database.\n"));
 	  do_disconnect (h);
 	}
+      else
+	{
+#if DEBUG_DATASTORE
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Request dropped due to finite datastore queue length.\n");
+#endif
+	}
       if (rc.iter != NULL)
 	rc.iter (rc.iter_cls,
 		 NULL, 0, NULL, 0, 0, 0, 
@@ -1307,7 +1314,14 @@ GNUNET_DATASTORE_get (struct GNUNET_DATASTORE_Handle *h,
 			 queue_priority, max_queue_size, timeout,
 			 &process_result_message, &qc);
   if (qe == NULL)
-    return NULL;
+    {
+#if DEBUG_DATASTORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Could not queue request for `%s'\n",
+		  GNUNET_h2s (key));
+#endif
+      return NULL;
+    }
   gm = (struct GetMessage*) &qe[1];
   gm->header.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_GET);
   gm->type = htonl(type);
