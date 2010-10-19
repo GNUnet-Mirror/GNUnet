@@ -39,6 +39,8 @@ struct answer_packet {
     unsigned to:32 GNUNET_PACKED;
     unsigned dst_port:16 GNUNET_PACKED;
 
+    unsigned short id GNUNET_PACKED;
+
     unsigned char data[1];
 };
 

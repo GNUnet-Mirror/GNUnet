@@ -58,7 +58,7 @@ struct dns_query_id_state {
 	unsigned remote_ip:32;
 	unsigned local_port:16;
 };
-static struct dns_query_id_state query_states[65536]; /* This is < 1MiB */
+static struct dns_query_id_state query_states[65536]; /* This is < 1.5MiB */
 
 void hijack(unsigned short port) {
 	char port_s[6];
@@ -78,6 +78,11 @@ void unhijack(unsigned short port) {
 
 size_t send_answer(void* cls, size_t size, void* buf);
 
+struct receive_dht_cls {
+  unsigned short id;
+  struct GNUNET_DHT_GetHandle* handle;
+};
+
 void receive_dht(void *cls,
 		 struct GNUNET_TIME_Absolute exp,
 		 const GNUNET_HashCode *key,
@@ -87,7 +92,8 @@ void receive_dht(void *cls,
 		 size_t size,
 		 const void *data)
 {
-  unsigned short id = *((unsigned short*)cls);
+  unsigned short id = ((struct receive_dht_cls*)cls)->id;
+  struct GNUNET_DHT_GetHandle* handle = ((struct receive_dht_cls*)cls)->handle;
   GNUNET_free(cls);
 
   GNUNET_assert(type == GNUNET_BLOCK_TYPE_DNS);
@@ -109,11 +115,19 @@ void receive_dht(void *cls,
   answer->pkt.to = query_states[id].local_ip;
   answer->pkt.dst_port = query_states[id].local_port;
 
+  answer->pkt.id = id;
+
   memcpy(answer->pkt.data, data, size);
 
   GNUNET_CONTAINER_DLL_insert_after(mycls.head, mycls.tail, mycls.tail, answer);
 
-  /* struct GNUNET_CONNECTION_TransmitHandle* th = */ GNUNET_SERVER_notify_transmit_ready(query_states[id].client, len, GNUNET_TIME_UNIT_FOREVER_REL, &send_answer, query_states[id].client);
+  GNUNET_SERVER_notify_transmit_ready(query_states[id].client,
+				      len,
+				      GNUNET_TIME_UNIT_FOREVER_REL,
+				      &send_answer,
+				      query_states[id].client);
+
+  GNUNET_DHT_get_stop(handle);
 }
 
 /**
@@ -134,14 +148,16 @@ void receive_query(void *cls, struct GNUNET_SERVER_Client *client, const struct 
 	if (pdns->queries[0]->namelen > 9 &&
 	    0 == strncmp(pdns->queries[0]->name+(pdns->queries[0]->namelen - 9), ".gnunet.", 9)) {
 
-	    unsigned short* id = GNUNET_malloc(sizeof(unsigned short));
-	    *id = dns->s.id;
-
 	    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Query for .gnunet!\n");
 	    GNUNET_HashCode key;
 	    GNUNET_CRYPTO_hash(pdns->queries[0]->name, pdns->queries[0]->namelen, &key);
+
 	    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Getting with key %08x, len is %d\n", *((unsigned int*)&key), pdns->queries[0]->namelen);
-	    GNUNET_DHT_get_start(mycls.dht,
+
+	    struct receive_dht_cls* cls = GNUNET_malloc(sizeof(struct receive_dht_cls));
+	    cls->id = dns->s.id;
+
+	    cls->handle = GNUNET_DHT_get_start(mycls.dht,
 				 GNUNET_TIME_UNIT_MINUTES,
 				 GNUNET_BLOCK_TYPE_DNS,
 				 &key,
@@ -151,7 +167,8 @@ void receive_query(void *cls, struct GNUNET_SERVER_Client *client, const struct 
 				 NULL,
 				 0,
 				 receive_dht,
-				 id);
+				 cls);
+
 	    goto out;
 	}
 

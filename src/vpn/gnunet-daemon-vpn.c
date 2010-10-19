@@ -61,8 +61,8 @@ struct vpn_cls {
 	struct query_packet_list *head;
 	struct query_packet_list *tail;
 
-	struct answer_packet_list *answer_head;
-	struct answer_packet_list *answer_tail;
+	struct answer_packet_list *answer_proc_head;
+	struct answer_packet_list *answer_proc_tail;
 };
 
 static struct vpn_cls mycls;
@@ -151,7 +151,7 @@ static uint16_t calculate_ip_checksum(uint16_t* hdr, short len) {
 static void helper_write(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
 	if (tsdkctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)
 		return;
-	struct answer_packet_list* ans = mycls.answer_head;
+	struct answer_packet_list* ans = mycls.answer_proc_head;
 	size_t len = ntohs(ans->pkt.hdr.size);
 
 	GNUNET_assert(ans->pkt.subtype == GNUNET_DNS_ANSWER_TYPE_IP);
@@ -191,12 +191,12 @@ static void helper_write(void* cls, const struct GNUNET_SCHEDULER_TaskContext* t
 
 	memcpy(&pkt->udp_dns.data, ans->pkt.data, data_len);
 	
-	GNUNET_CONTAINER_DLL_remove (mycls.answer_head, mycls.answer_tail, ans);
+	GNUNET_CONTAINER_DLL_remove (mycls.answer_proc_head, mycls.answer_proc_tail, ans);
 	GNUNET_free(ans);
 
 	/* FIXME */ GNUNET_DISK_file_write(mycls.fh_to_helper, pkt, pkt_len);
 
-	if (mycls.answer_head != NULL)
+	if (mycls.answer_proc_head != NULL)
 		GNUNET_SCHEDULER_add_write_file (mycls.sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.fh_to_helper, &helper_write, NULL);
 }
 
@@ -283,10 +283,36 @@ reconnect_to_service_dns (void *cls,
     /* struct GNUNET_CLIENT_TransmitHandle* th = */ GNUNET_CLIENT_notify_transmit_ready(mycls.dns_connection, ntohs(mycls.head->pkt.hdr.size), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
 }
 
-static void 
-dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg) 
+static void
+process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
+    struct answer_packet* pkt = cls;
+
+    if (pkt->subtype == GNUNET_DNS_ANSWER_TYPE_IP)
+      {
+	struct answer_packet_list* list = GNUNET_malloc(htons(pkt->hdr.size) + 2*sizeof(struct answer_packet_list*));
+
+	memcpy(&list->pkt, pkt, htons(pkt->hdr.size));
+
+	GNUNET_CONTAINER_DLL_insert_after(mycls.answer_proc_head, mycls.answer_proc_tail, mycls.answer_proc_tail, list);
+
+	GNUNET_SCHEDULER_add_write_file (mycls.sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.fh_to_helper, &helper_write, NULL);
+
+	return;
+      }
+
+    if (pkt->subtype == GNUNET_DNS_ANSWER_TYPE_SERVICE)
+      {
+	/*FIXME:
+ 	 * -find new IP-address for this service
+	 * -create a DNS-Answer
+ 	 */
+      }
+}
+
+static void
+dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg)
 {
-  if (msg == NULL) 
+  if (msg == NULL)
     {
       GNUNET_CLIENT_disconnect(mycls.dns_connection, GNUNET_NO);
       mycls.dns_connection = NULL;
@@ -306,12 +332,12 @@ dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg)
 				&reconnect_to_service_dns,
 				NULL);
       return;
-    }  
-  struct answer_packet_list* pkt = GNUNET_malloc(ntohs(msg->size) + 2*sizeof(struct answer_packet_list*));
-  
-  memcpy(&pkt->pkt, msg, ntohs(msg->size));
-  GNUNET_CONTAINER_DLL_insert_after(mycls.answer_head, mycls.answer_tail, mycls.answer_tail, pkt);  
-  GNUNET_SCHEDULER_add_write_file (mycls.sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.fh_to_helper, &helper_write, NULL);
+    }
+  void *pkt = GNUNET_malloc(ntohs(msg->size));
+
+  memcpy(pkt, msg, ntohs(msg->size));
+
+  GNUNET_SCHEDULER_add_now(mycls.sched, process_answer, pkt);
   GNUNET_CLIENT_receive(mycls.dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
