@@ -581,7 +581,9 @@ file_generator (void *cls,
   uint8_t *cbuf = buf;
   int mod;
 
-  for (pos=0;pos<max;pos++)
+  for (pos=0;pos<8;pos++)
+    cbuf[pos] = (uint8_t) (offset >> pos*8);
+  for (pos=8;pos<max;pos++)
     {
       mod = (255 - (offset / 1024 / 32));
       if (mod == 0)

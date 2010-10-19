@@ -37,7 +37,7 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 3)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 300)
 
 #define NUM_DAEMONS 2
 
@@ -92,6 +92,7 @@ static struct StatValues stats[] =
     { "fs", "cummulative artificial delay introduced (ms)"},
     { "core", "# bytes decrypted"},
     { "core", "# bytes encrypted"},
+    { "core", "# transmissions delayed due to corking"},
     { "transport", "# bytes received via TCP"},
     { "transport", "# bytes transmitted via TCP"},
     { "datacache", "# bytes stored"},
@@ -120,7 +121,7 @@ print_stat (void *cls,
 {
   struct StatMaster *sm = cls;
   fprintf (stderr,
-	   "Peer %2u: %12s/%50s = %4llu\n",
+	   "Peer %2u: %12s/%50s = %12llu\n",
 	   sm->daemon,
 	   subsystem,
 	   name,
