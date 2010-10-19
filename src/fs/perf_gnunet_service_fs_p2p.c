@@ -27,17 +27,17 @@
 #include "fs_test_lib.h"
 #include "gnunet_testing_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 /**
  * File-size we use for testing.
  */
-#define FILESIZE (1024 * 1024 * 10)
+#define FILESIZE (1024 * 1024 * 1)
 
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 300)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 3)
 
 #define NUM_DAEMONS 2
 
@@ -89,6 +89,10 @@ static struct StatValues stats[] =
     { "fs", "# requests done for free (low load)"},
     { "fs", "# P2P searches received"},
     { "fs", "# replies received for local clients"},
+    { "fs", "# P2P searches discarded (queue length bound)"},
+    { "fs", "# requests dropped due to high load"},
+    { "fs", "# requests dropped by datastore (queue length limit)"},
+    { "fs", "# queries retransmitted to same target"},
     { "fs", "cummulative artificial delay introduced (ms)"},
     { "core", "# bytes decrypted"},
     { "core", "# bytes encrypted"},
@@ -129,12 +133,14 @@ print_stat (void *cls,
   return GNUNET_OK;
 }
 
+
 /**
  * Function that gathers stats from all daemons.
  */
 static void
 stat_run (void *cls,
 	  const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 
 /**
  * Function called when GET operation on stats is done.
@@ -148,6 +154,7 @@ get_done (void *cls,
   sm->value++;
   GNUNET_SCHEDULER_add_now (sched, &stat_run, sm);
 }
+
 
 /**
  * Function that gathers stats from all daemons.
@@ -217,7 +224,7 @@ do_report (void *cls,
     }
   else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  "Timeout during download, shutting down with error\n");
       ok = 1;
       GNUNET_SCHEDULER_add_now (sched, &do_stop, NULL);
@@ -234,7 +241,7 @@ do_download (void *cls,
       GNUNET_FS_TEST_daemons_stop (sched,
 				   NUM_DAEMONS,
 				   daemons);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  "Timeout during upload attempt, shutting down with error\n");
       ok = 1;
       return;
@@ -261,7 +268,7 @@ do_publish (void *cls,
       GNUNET_FS_TEST_daemons_stop (sched,
 				   NUM_DAEMONS,
 				   daemons);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  "Error trying to connect: %s\n",
 		  emsg);
       ok = 1;

@@ -34,10 +34,19 @@
 #include "gnunet_block_lib.h"
 #include "block_fs.h"
 
+
+/**
+ * Maximum number of outgoing messages we queue per peer.
+ */
+#define MAX_QUEUE_PER_PEER 16
+
 /**
  * Maximum size of the datastore queue for P2P operations.
+ * Needs to be large enough to queue MAX_QUEUE_PER_PEER
+ * operations for roughly the number of active (connected)
+ * peers.
  */
-#define MAX_DATASTORE_QUEUE 16
+#define MAX_DATASTORE_QUEUE (16 * MAX_QUEUE_PER_PEER)
 
 /**
  * Maximum number of blocks we keep in memory for migration.

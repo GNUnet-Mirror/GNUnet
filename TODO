@@ -33,6 +33,11 @@
   - also do UPnP-based (external) IP detection
     (Note: build library always, build UPnP service when dependencies like libxml2 are available)
 * FS: [CG]
+  - service:
+    + 2-peer perf test does NOT terminate for large (500 MB) files because
+      somehow blocks are not found (suspect: load-based no DB lookup + forward first, no clean up of routing table?)
+    + 2-peer perf test goes WAY over bandwidth limit (i.e. 300 kbps/set, 2 MB/s transfer rate); clearly core does
+      not properly enforce the limit
   - library:
     + reconstruct IBLOCKS from DBLOCKS if possible (during download; see FIXME in fs_download)
     + add support for pushing "already seen" search results to FS service for bloomfilter
