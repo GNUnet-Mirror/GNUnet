@@ -39,6 +39,12 @@ struct GNUNET_FS_TestDaemon
 {
 
   /**
+   * Global configuration, only stored in first test daemon,
+   * otherwise NULL.
+   */
+  struct GNUNET_CONFIGURATION_Handle *gcfg;
+
+  /**
    * Handle to the file sharing context using this daemon.
    */
   struct GNUNET_FS_Handle *fs;
@@ -140,15 +146,17 @@ struct GNUNET_FS_TestDaemon
 /**
  * Check whether peers successfully shut down.
  */
-void shutdown_callback (void *cls,
-                        const char *emsg)
+static void 
+shutdown_callback (void *cls,
+		   const char *emsg)
 {
+  struct GNUNET_CONFIGURATION_Handle *gcfg = cls;
+
   if (emsg != NULL)
     {
-#if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Shutdown of peers failed!\n");
-#endif
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Shutdown of peers failed: %s\n",
+		  emsg);
     }
   else
     {
@@ -157,7 +165,10 @@ void shutdown_callback (void *cls,
                   "All peers successfully shut down!\n");
 #endif
     }
+  if (gcfg != NULL)
+    GNUNET_CONFIGURATION_destroy (gcfg);
 }
+
 
 static void
 report_uri (void *cls,
@@ -194,6 +205,7 @@ report_success (void *cls,
   daemon->download_cont = NULL;
   daemon->download_sched = NULL;
 }
+
 
 static void*
 progress_cb (void *cls,
@@ -303,7 +315,7 @@ notify_running (void *cls,
 					 sctx->cont,
 					 sctx->cont_cls,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-      GNUNET_CONFIGURATION_destroy (sctx->cfg);
+      sctx->daemons[0]->gcfg = sctx->cfg;
       GNUNET_SCHEDULER_cancel (sctx->sched,
 			       sctx->timeout_task);
       for (i=0;i<sctx->total;i++)
@@ -328,6 +340,8 @@ start_timeout (void *cls,
   struct StartContext *sctx = cls;
   unsigned int i;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "Timeout while trying to start daemons\n");
   GNUNET_TESTING_daemons_stop (sctx->group,
 			       GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30), 
 			       &shutdown_callback,
@@ -420,6 +434,7 @@ struct ConnectContext
   void *cont_cls;
 };
 
+
 /**
  * Prototype of a function that will be called whenever
  * two daemons are connected by the testing library.
@@ -449,7 +464,7 @@ notify_connection (void *cls,
   
   if (emsg != NULL)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("Failed to connect peers: %s\n"),
+		"Failed to connect peers: %s\n",
 		emsg);
   GNUNET_SCHEDULER_add_continuation (cc->sched,
 				     cc->cont,
@@ -536,9 +551,11 @@ GNUNET_FS_TEST_daemons_stop (struct GNUNET_SCHEDULER_Handle *sched,
 {
   unsigned int i;
   struct GNUNET_TESTING_PeerGroup *pg;
+  struct GNUNET_CONFIGURATION_Handle *gcfg;
 
   GNUNET_assert (total > 0);
   pg = daemons[0]->group;
+  gcfg = daemons[0]->gcfg;
   for (i=0;i<total;i++)
     {
       if (daemons[i]->fs != NULL)
@@ -548,7 +565,10 @@ GNUNET_FS_TEST_daemons_stop (struct GNUNET_SCHEDULER_Handle *sched,
       GNUNET_free (daemons[i]);
       daemons[i] = NULL;
     }  
-  GNUNET_TESTING_daemons_stop (pg, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30), &shutdown_callback, NULL);
+  GNUNET_TESTING_daemons_stop (pg, 
+			       GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30), 
+			       &shutdown_callback, 
+			       gcfg);
 }
 
 
@@ -558,7 +578,9 @@ publish_timeout (void *cls,
 {
   struct GNUNET_FS_TestDaemon *daemon = cls;
   GNUNET_FS_TEST_UriContinuation cont;
-  
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "Timeout while trying to publish data\n");
   cont = daemon->publish_cont;
   daemon->publish_timeout_task = GNUNET_SCHEDULER_NO_TASK;
   daemon->publish_cont = NULL;
@@ -581,6 +603,8 @@ file_generator (void *cls,
   uint8_t *cbuf = buf;
   int mod;
 
+  if (buf == NULL)
+    return 0;
   for (pos=0;pos<8;pos++)
     cbuf[pos] = (uint8_t) (offset >> pos*8);
   for (pos=8;pos<max;pos++)
@@ -659,6 +683,8 @@ download_timeout (void *cls,
 {
   struct GNUNET_FS_TestDaemon *daemon = cls;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "Timeout while trying to download file\n");
   daemon->download_timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_FS_download_stop (daemon->download_context, GNUNET_YES);
   daemon->download_context = NULL;
