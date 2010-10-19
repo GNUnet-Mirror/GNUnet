@@ -23,7 +23,12 @@ enum GNUNET_DNS_ANSWER_Subtype {
     /**
      * Answers of this type contain a dns-packet that just has to be transmitted
      */
-    GNUNET_DNS_ANSWER_TYPE_IP
+    GNUNET_DNS_ANSWER_TYPE_IP,
+
+    /**
+     * Answers of this type contain an struct GNUNET_DNS_Record
+     */
+    GNUNET_DNS_ANSWER_TYPE_SERVICE
 };
 
 struct answer_packet {
