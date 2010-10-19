@@ -86,7 +86,7 @@ void receive_dht(void *cls,
 {
   GNUNET_assert(type == GNUNET_BLOCK_TYPE_DNS);
   const struct GNUNET_DNS_Record* rec = data;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Got block of size %s, peer: %08x, desc: %08x\n", size, *((unsigned int*)&rec->peer), *((unsigned int*)&rec->service_descriptor));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Got block of size %d, peer: %08x, desc: %08x\n", size, *((unsigned int*)&rec->peer), *((unsigned int*)&rec->service_descriptor));
 }
 
 /**
