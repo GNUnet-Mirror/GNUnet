@@ -151,6 +151,8 @@ static void helper_write(void* cls, const struct GNUNET_SCHEDULER_TaskContext* t
 	struct answer_packet_list* ans = mycls.answer_head;
 	size_t len = ntohs(ans->pkt.hdr.size);
 
+	GNUNET_assert(ans->pkt.subtype == GNUNET_DNS_ANSWER_TYPE_IP);
+
 	size_t data_len = len - sizeof(struct answer_packet) + 1;
 	size_t net_len = sizeof(struct ip_hdr) + sizeof(struct udp_dns) + data_len;
 	size_t pkt_len = sizeof(struct GNUNET_MessageHeader) + sizeof(struct pkt_tun) + net_len;

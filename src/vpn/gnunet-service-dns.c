@@ -178,6 +178,7 @@ static void read_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
 		struct answer_packet_list* answer = GNUNET_malloc(len + 2*sizeof(struct answer_packet_list*));
 		answer->pkt.hdr.type = htons(GNUNET_MESSAGE_TYPE_LOCAL_RESPONSE_DNS);
 		answer->pkt.hdr.size = htons(len);
+		answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_IP;
 		answer->pkt.from = addr.sin_addr.s_addr;
 		answer->pkt.to = query_states[dns->s.id].local_ip;
 		answer->pkt.dst_port = query_states[dns->s.id].local_port;

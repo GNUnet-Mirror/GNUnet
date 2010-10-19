@@ -19,15 +19,24 @@ struct query_packet_list {
 	struct query_packet pkt;
 };
 
-struct answer_packet {
-	struct GNUNET_MessageHeader hdr;
-
-	unsigned from:32 GNUNET_PACKED;
-	unsigned to:32 GNUNET_PACKED;
-	unsigned dst_port:16 GNUNET_PACKED;
-
-	unsigned char data[1];
+enum GNUNET_DNS_ANSWER_Subtype {
+    /**
+     * Answers of this type contain a dns-packet that just has to be transmitted
+     */
+    GNUNET_DNS_ANSWER_TYPE_IP
 };
+
+struct answer_packet {
+    struct GNUNET_MessageHeader hdr;
+    enum GNUNET_DNS_ANSWER_Subtype subtype GNUNET_PACKED;
+
+    unsigned from:32 GNUNET_PACKED;
+    unsigned to:32 GNUNET_PACKED;
+    unsigned dst_port:16 GNUNET_PACKED;
+
+    unsigned char data[1];
+};
+
 struct answer_packet_list {
 	struct answer_packet_list* next GNUNET_PACKED;
 	struct answer_packet_list* prev GNUNET_PACKED;
