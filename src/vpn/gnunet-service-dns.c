@@ -237,7 +237,7 @@ publish_name (void *cls,
 		      NULL,
 		      NULL);
 
-  GNUNET_SCHEDULER_add_delayed (mycls.sched, GNUNET_TIME_UNIT_MINUTES, publish_name, NULL);
+  GNUNET_SCHEDULER_add_delayed (mycls.sched, GNUNET_TIME_UNIT_HOURS, publish_name, NULL);
 }
 
 /**
