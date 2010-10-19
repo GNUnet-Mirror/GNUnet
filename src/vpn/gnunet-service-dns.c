@@ -125,7 +125,7 @@ void receive_query(void *cls, struct GNUNET_SERVER_Client *client, const struct 
 	struct dns_pkt* dns = (struct dns_pkt*)pkt->data;
 	struct dns_pkt_parsed* pdns = parse_dns_packet(dns);
 
-	query_states[dns->s.id].valid = 1;
+	query_states[dns->s.id].valid = GNUNET_YES;
 	query_states[dns->s.id].client = client;
 	query_states[dns->s.id].local_ip = pkt->orig_from;
 	query_states[dns->s.id].local_port = pkt->src_port;
@@ -204,8 +204,8 @@ static void read_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
 
 	/* if (r < 0) TODO */
 
-	if (query_states[dns->s.id].valid == 1) {
-		query_states[dns->s.id].valid = 0;
+	if (query_states[dns->s.id].valid == GNUNET_YES) {
+		query_states[dns->s.id].valid = GNUNET_NO;
 
 		size_t len = sizeof(struct answer_packet) + r - 1; /* 1 for the unsigned char data[1]; */
 		struct answer_packet_list* answer = GNUNET_malloc(len + 2*sizeof(struct answer_packet_list*));
@@ -295,7 +295,7 @@ run (void *cls,
   {
   int i;
   for (i = 0; i < 65536; i++) {
-    query_states[i].valid = 0;
+    query_states[i].valid = GNUNET_NO;
   }
   }
 
