@@ -799,7 +799,13 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
 			 queue_priority, max_queue_size, timeout,
 			 &process_status_message, &qc);
   if (qe == NULL)
-    return NULL;
+    {
+#if DEBUG_DATASTORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Could not create queue entry for PUT\n");
+#endif
+      return NULL;
+    }
   dm = (struct DataMessage* ) &qe[1];
   dm->header.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_PUT);
   dm->header.size = htons(msize);
@@ -864,7 +870,13 @@ GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h,
 			 queue_priority, max_queue_size, timeout,
 			 &process_status_message, &qc);
   if (qe == NULL)
-    return NULL;
+    {
+#if DEBUG_DATASTORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Could not create queue entry to reserve\n");
+#endif
+      return NULL;
+    }
   rm = (struct ReserveMessage*) &qe[1];
   rm->header.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_RESERVE);
   rm->header.size = htons(sizeof (struct ReserveMessage));
@@ -922,7 +934,13 @@ GNUNET_DATASTORE_release_reserve (struct GNUNET_DATASTORE_Handle *h,
 			 queue_priority, max_queue_size, timeout,
 			 &process_status_message, &qc);
   if (qe == NULL)
-    return NULL;
+    {
+#if DEBUG_DATASTORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Could not create queue entry to release reserve\n");
+#endif
+      return NULL;
+    }
   rrm = (struct ReleaseReserveMessage*) &qe[1];
   rrm->header.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_RELEASE_RESERVE);
   rrm->header.size = htons(sizeof (struct ReleaseReserveMessage));
@@ -979,7 +997,13 @@ GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h,
 			 queue_priority, max_queue_size, timeout,
 			 &process_status_message, &qc);
   if (qe == NULL)
-    return NULL;
+    {
+#if DEBUG_DATASTORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Could not create queue entry for UPDATE\n");
+#endif
+      return NULL;
+    }
   um = (struct UpdateMessage*) &qe[1];
   um->header.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_UPDATE);
   um->header.size = htons(sizeof (struct UpdateMessage));
@@ -1256,7 +1280,13 @@ GNUNET_DATASTORE_get_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
 			 queue_priority, max_queue_size, timeout,
 			 &process_result_message, &qc);
   if (qe == NULL)
-    return NULL;    
+    {
+#if DEBUG_DATASTORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Could not create queue entry for zero-anonymity iteration\n");
+#endif
+      return NULL;    
+    }
   m = (struct GetZeroAnonymityMessage*) &qe[1];
   m->header.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_GET_RANDOM);
   m->header.size = htons(sizeof (struct GetZeroAnonymityMessage));
