@@ -607,6 +607,7 @@ init_reply_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       return;
     }
   m = (const struct InitReplyMessage *) msg;
+  GNUNET_break (0 == ntohl (m->reserved));
   /* start our message processing loop */
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

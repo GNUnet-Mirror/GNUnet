@@ -1045,6 +1045,7 @@ handle_client_init (void *cls,
   /* send init reply message */
   irm.header.size = htons (sizeof (struct InitReplyMessage));
   irm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_INIT_REPLY);
+  irm.reserved = htonl (0);
   memcpy (&irm.publicKey,
           &my_public_key,
           sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
