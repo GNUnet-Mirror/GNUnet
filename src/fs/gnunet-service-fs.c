@@ -55,7 +55,7 @@
  * a rather wasteful mode of operation (that might still get the highest
  * throughput overall).
  */
-#define SUPPORT_DELAYS GNUNET_YES
+#define SUPPORT_DELAYS GNUNET_NO
 
 /**
  * Size for the hash map for DHT requests from the FS
@@ -90,7 +90,7 @@
  * rather inefficient in larger networks, hence picking 1 is in 
  * general not the best choice.
  */
-#define RETRY_PROBABILITY_INV 3
+#define RETRY_PROBABILITY_INV 1
 
 /**
  * What is the maximum delay for a P2P FS message (in our interaction
