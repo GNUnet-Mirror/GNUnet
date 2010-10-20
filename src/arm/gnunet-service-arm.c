@@ -695,8 +695,6 @@ do_shutdown ()
 {
   GNUNET_SERVER_destroy (server);
   server = NULL;
-  GNUNET_SIGNAL_handler_uninstall (shc_chld);
-  shc_chld = NULL;
   GNUNET_SCHEDULER_cancel (sched, child_death_task);
   child_death_task = GNUNET_SCHEDULER_NO_TASK;
 }
@@ -1039,10 +1037,6 @@ run (void *cls,
   sched = s;
   server = serv;
   GNUNET_assert (serv != NULL);
-  shc_chld = GNUNET_SIGNAL_handler_install (GNUNET_SIGCHLD, &sighandler_child_death);
-  GNUNET_assert (sigpipe == NULL);
-  sigpipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_NO);
-  GNUNET_assert (sigpipe != NULL);
   pr = GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ);
   GNUNET_assert (pr != NULL);
   GNUNET_SERVER_ignore_shutdown (serv, GNUNET_YES);
@@ -1119,9 +1113,19 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  return (GNUNET_OK ==
-	  GNUNET_SERVICE_run (argc,
-			      argv, "arm", GNUNET_YES, &run, NULL)) ? 0 : 1;
+  int ret;
+
+  sigpipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_NO);
+  GNUNET_assert (sigpipe != NULL);
+  shc_chld = GNUNET_SIGNAL_handler_install (GNUNET_SIGCHLD, &sighandler_child_death);
+  ret = (GNUNET_OK ==
+	 GNUNET_SERVICE_run (argc,
+			     argv, "arm", GNUNET_YES, &run, NULL)) ? 0 : 1;
+  GNUNET_SIGNAL_handler_uninstall (shc_chld);
+  shc_chld = NULL;
+  GNUNET_DISK_pipe_close (sigpipe);
+  sigpipe = NULL;
+  return ret;
 }
 
 /* end of gnunet-service-arm.c */
