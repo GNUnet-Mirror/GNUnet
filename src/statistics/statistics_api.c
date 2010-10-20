@@ -441,6 +441,7 @@ process_watch_value (struct GNUNET_STATISTICS_Handle *h,
       return GNUNET_SYSERR;
     }
   wvm = (const struct GNUNET_STATISTICS_WatchValueMessage *)msg;
+  GNUNET_break (0 == ntohl (wvm->reserved));
   wid = ntohl (wvm->wid);
   if (wid >= h->watches_size)
     {
