@@ -1606,6 +1606,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
           break;
         }
       dim = (const struct DisconnectInfoMessage *) msg;
+      GNUNET_break (ntohl (dim->reserved) == 0);
 #if DEBUG_TRANSPORT_DISCONNECT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Receiving `%s' message for `%4s'.\n",
@@ -1663,6 +1664,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
           break;
         }
       im = (const struct InboundMessage *) msg;
+      GNUNET_break (0 == ntohl (im->reserved));
       imm = (const struct GNUNET_MessageHeader *) &im[1];
       if (ntohs (imm->size) + sizeof (struct InboundMessage) != size)
         {
