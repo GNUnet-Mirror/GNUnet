@@ -118,7 +118,7 @@
  * be more efficient but will be more disruptive
  * as far as the scheduler is concerned.
  */
-#define HASHING_BLOCKSIZE (1024 * 1024)
+#define HASHING_BLOCKSIZE (1024 * 128)
 
 /**
  * Number of bits we set per entry in the bloomfilter.
