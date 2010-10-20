@@ -82,11 +82,19 @@ libgnunetutil_la_LDFLAGS = \
 
 
 bin_PROGRAMS = \
- gnunet-service-resolver
+ gnunet-service-resolver \
+ gnunet-resolver
 
 gnunet_service_resolver_SOURCES = \
  gnunet-service-resolver.c         
 gnunet_service_resolver_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+
+
+gnunet_resolver_SOURCES = \
+ gnunet-resolver.c         
+gnunet_resolver_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 
