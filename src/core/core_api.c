@@ -879,7 +879,7 @@ produce_send (void *cls, size_t size, void *buf)
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Size of clients message to peer %s is 0!\n",
-              GNUNET_i2s(&th->peer));
+              GNUNET_i2s(&sm->peer));
 #endif
       /* client decided to send nothing! */
       return 0;
@@ -899,7 +899,7 @@ produce_send (void *cls, size_t size, void *buf)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Preparing for P2P transmission of %u bytes to `%4s'.\n",
 	      dt,
-	      GNUNET_i2s(&th->peer));
+	      GNUNET_i2s(&sm->peer));
 #endif
   sm->header.size = htons (dt + sizeof (struct SendMessage));
   GNUNET_assert (dt + sizeof (struct SendMessage) <= size);
