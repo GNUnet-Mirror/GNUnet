@@ -2275,7 +2275,7 @@ test_get_load_too_high (uint32_t priority)
       return GNUNET_NO;
     }
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# requests dropped due to high load"),
+			    gettext_noop ("# priority determined to be high"),
 			    1,
 			    GNUNET_NO);
   return GNUNET_YES;
@@ -4016,7 +4016,10 @@ handle_p2p_get (void *cls,
 				gettext_noop ("# requests dropped due to high load"),
 				1,
 				GNUNET_NO);
+#if 0
+      /* FIXME: this causes problems... */
       return GNUNET_OK;
+#endif
     }
 #if DEBUG_FS 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
