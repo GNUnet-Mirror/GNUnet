@@ -282,8 +282,8 @@ getaddrinfo_resolve (struct GNUNET_SERVER_TransmitContext *tc,
   while (pos != NULL)
     {
       GNUNET_SERVER_transmit_context_append_data (tc,
-						  result->ai_addr,
-						  result->ai_addrlen,
+						  pos->ai_addr,
+						  pos->ai_addrlen,
 						  GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
       pos = pos->ai_next;
     }
