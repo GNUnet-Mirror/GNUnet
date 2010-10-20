@@ -536,9 +536,9 @@ prepare_daemon (struct MHD_Daemon *daemon_handle)
     tv.value = (uint64_t) timeout;
   else
     tv = GNUNET_TIME_UNIT_FOREVER_REL;
-  GNUNET_NETWORK_fdset_copy_native (wrs, &rs, max);
-  GNUNET_NETWORK_fdset_copy_native (wws, &ws, max);
-  GNUNET_NETWORK_fdset_copy_native (wes, &es, max);
+  GNUNET_NETWORK_fdset_copy_native (wrs, &rs, max + 1);
+  GNUNET_NETWORK_fdset_copy_native (wws, &ws, max + 1);
+  GNUNET_NETWORK_fdset_copy_native (wes, &es, max + 1);
   ret = GNUNET_SCHEDULER_add_select (sched,
 				     GNUNET_SCHEDULER_PRIORITY_HIGH,
 				     GNUNET_SCHEDULER_NO_TASK,

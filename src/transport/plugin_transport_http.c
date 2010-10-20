@@ -1267,9 +1267,9 @@ http_server_daemon_prepare (struct Plugin *plugin , struct MHD_Daemon *daemon_ha
     tv.value = (uint64_t) timeout;
   else
     tv = GNUNET_TIME_UNIT_SECONDS;
-  GNUNET_NETWORK_fdset_copy_native (wrs, &rs, max);
-  GNUNET_NETWORK_fdset_copy_native (wws, &ws, max);
-  GNUNET_NETWORK_fdset_copy_native (wes, &es, max);
+  GNUNET_NETWORK_fdset_copy_native (wrs, &rs, max + 1);
+  GNUNET_NETWORK_fdset_copy_native (wws, &ws, max + 1);
+  GNUNET_NETWORK_fdset_copy_native (wes, &es, max + 1);
   if (daemon_handle == plugin->http_server_daemon_v4)
   {
 	if (plugin->http_server_task_v4 != GNUNET_SCHEDULER_NO_TASK)
