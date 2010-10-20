@@ -1642,6 +1642,7 @@ GNUNET_DISK_file_sync (const struct GNUNET_DISK_FileHandle *h)
 #endif
 }
 
+
 /**
  * Creates an interprocess channel
  *
@@ -1672,23 +1673,33 @@ GNUNET_DISK_pipe (int blocking, int inherit_read, int inherit_write)
   ret = pipe (fd);
   if (ret == -1)
     {
+      eno = errno;
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "pipe");
       GNUNET_free (p);
+      errno = eno;
       return NULL;
     }
   p->fd[0]->fd = fd[0];
   p->fd[1]->fd = fd[1];
   ret = 0;
   flags = fcntl (fd[0], F_GETFL);
-  flags |= FD_CLOEXEC;
   if (!blocking)
     flags |= O_NONBLOCK;
   if (0 > fcntl (fd[0], F_SETFL, flags))
     ret = -1;
-  flags = fcntl (fd[1], F_GETFL);
+  flags = fcntl (fd[0], F_GETFD);
   flags |= FD_CLOEXEC;
+  if (0 > fcntl (fd[0], F_SETFD, flags))
+    ret = -1;
+
+  flags = fcntl (fd[1], F_GETFL);
   if (!blocking)
     flags |= O_NONBLOCK;
   if (0 > fcntl (fd[1], F_SETFL, flags))
+    ret = -1;
+  flags = fcntl (fd[1], F_GETFD);
+  flags |= FD_CLOEXEC;
+  if (0 > fcntl (fd[1], F_SETFD, flags))
     ret = -1;
   if (ret == -1)
     {
