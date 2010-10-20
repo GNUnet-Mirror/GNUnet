@@ -58,11 +58,18 @@
 #define SUPPORT_DELAYS GNUNET_NO
 
 /**
+ * Currently experimental code...
+ */
+#define ENABLE_LOAD_MGMT GNUNET_YES
+
+/**
  * Size for the hash map for DHT requests from the FS
  * service.  Should be about the number of concurrent
  * DHT requests we plan to make.
  */
 #define FS_DHT_HT_SIZE 1024
+
+#define DATASTORE_LOAD_AUTODECLINE GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250)
 
 /**
  * How often do we flush trust values to disk?
@@ -1553,7 +1560,7 @@ peer_connect_handler (void *cls,
   uint32_t trust;
   
   cp = GNUNET_malloc (sizeof (struct ConnectedPeer));
-  cp->transmission_delay = GNUNET_LOAD_value_init ();
+  cp->transmission_delay = GNUNET_LOAD_value_init (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
   cp->pid = GNUNET_PEER_intern (peer);
 
   fn = get_trust_filename (peer);
@@ -3810,7 +3817,7 @@ process_local_reply (void *cls,
 				GNUNET_NO);
       /* FIXME: if this is activated, we might stall large downloads
 	 indefinitely since (presumably) the load can never go down again! */
-#if 0
+#if ENABLE_LOAD_MGMT
       GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
       return;
 #endif
@@ -4012,7 +4019,7 @@ handle_p2p_get (void *cls,
 				gettext_noop ("# requests dropped due to high load"),
 				1,
 				GNUNET_NO);
-#if 0
+#if ENABLE_LOAD_MGMT
       /* FIXME: this causes problems... */
       return GNUNET_OK;
 #endif
@@ -4040,10 +4047,12 @@ handle_p2p_get (void *cls,
       /* don't have BW to send to peer, or would likely take longer than we have for it,
 	 so at best indirect the query */
       priority = 0;
+#if ENABLE_LOAD_MGMT
       /* FIXME: if this line is enabled, the 'perf' test for larger files simply "hangs";
 	 the cause seems to be that the load goes up (to the point where we do this)
 	 and then never goes down again... (outch) */
-      // pr->forward_only = GNUNET_YES;
+      pr->forward_only = GNUNET_YES;
+#endif
     }
   pr->type = type;
   pr->mingle = ntohl (gm->filter_mutator);
@@ -4442,7 +4451,7 @@ main_init (struct GNUNET_SCHEDULER_Handle *s,
     }
   connected_peers = GNUNET_CONTAINER_multihashmap_create (enc); 
   query_request_map = GNUNET_CONTAINER_multihashmap_create (max_pending_requests);
-  rt_entry_lifetime = GNUNET_LOAD_value_init ();
+  rt_entry_lifetime = GNUNET_LOAD_value_init (GNUNET_TIME_UNIT_FOREVER_REL);
   peer_request_map = GNUNET_CONTAINER_multihashmap_create (enc);
   requests_by_expiration_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN); 
   core = GNUNET_CORE_connect (sched,
@@ -4533,8 +4542,8 @@ run (void *cls,
       GNUNET_SCHEDULER_shutdown (sched);
       return;
     }
-  datastore_get_load = GNUNET_LOAD_value_init ();
-  datastore_put_load = GNUNET_LOAD_value_init ();
+  datastore_get_load = GNUNET_LOAD_value_init (DATASTORE_LOAD_AUTODECLINE);
+  datastore_put_load = GNUNET_LOAD_value_init (DATASTORE_LOAD_AUTODECLINE);
   block_cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_CONFIGURATION_set_value_string (block_cfg,
 					 "block",

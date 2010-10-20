@@ -46,10 +46,13 @@ struct GNUNET_LOAD_Value;
 /**
  * Create a new load value.
  *
+ * @param autodecline speed at which this value should automatically
+ *        decline in the absence of external events; at the given
+ *        frequency, 0-load values will be added to the load
  * @return the new load value
  */
 struct GNUNET_LOAD_Value *
-GNUNET_LOAD_value_init (void);
+GNUNET_LOAD_value_init (struct GNUNET_TIME_Relative autodecline);
 
 
 /**
@@ -70,7 +73,7 @@ GNUNET_LOAD_value_init (void);
  *         that we could not do proper calculations
  */
 double
-GNUNET_LOAD_get_load (const struct GNUNET_LOAD_Value *load);
+GNUNET_LOAD_get_load (struct GNUNET_LOAD_Value *load);
 
 
 /**
@@ -80,7 +83,7 @@ GNUNET_LOAD_get_load (const struct GNUNET_LOAD_Value *load);
  * @return zero if update was never called
  */
 double
-GNUNET_LOAD_get_average (const struct GNUNET_LOAD_Value *load);
+GNUNET_LOAD_get_average (struct GNUNET_LOAD_Value *load);
 
 
 /**
