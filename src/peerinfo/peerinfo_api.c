@@ -434,6 +434,7 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       return;
     }
   im = (const struct InfoMessage *) msg;
+  GNUNET_break (0 == ntohl (im->reserved));
   hello = NULL;
   if (ms > sizeof (struct InfoMessage) + sizeof (struct GNUNET_MessageHeader))
     {

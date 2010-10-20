@@ -519,6 +519,7 @@ handle_get (void *cls,
   struct GNUNET_SERVER_TransmitContext *tc;
 
   lpm = (const struct ListPeerMessage *) message;
+  GNUNET_break (0 == ntohl (lpm->reserved));
 #if DEBUG_PEERINFO
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "`%s' message received for peer `%4s'\n",
