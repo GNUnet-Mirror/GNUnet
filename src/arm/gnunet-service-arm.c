@@ -149,10 +149,7 @@ static GNUNET_SCHEDULER_TaskIdentifier child_death_task;
  */
 static GNUNET_SCHEDULER_TaskIdentifier child_restart_task;
 
-/**
- * Context for our SIGCHILD handler.
- */
-static struct GNUNET_SIGNAL_Context *shc_chld;
+
 
 /**
  * Pipe used to communicate shutdown via signal.
@@ -930,8 +927,6 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
        (in_shutdown) )
     {
       GNUNET_SERVER_destroy (server);
-      GNUNET_SIGNAL_handler_uninstall (shc_chld);
-      shc_chld = NULL;
     }
   else
     {
@@ -1114,6 +1109,7 @@ int
 main (int argc, char *const *argv)
 {
   int ret;
+  struct GNUNET_SIGNAL_Context *shc_chld;
 
   sigpipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_NO);
   GNUNET_assert (sigpipe != NULL);
