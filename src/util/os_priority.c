@@ -355,13 +355,7 @@ GNUNET_OS_start_process_v (const int *lsocks,
     {
       i = 0;
       while (-1 != (k = lsocks[i++]))
-	{
-	  flags = fcntl (k, F_GETFD);
-	  GNUNET_assert (flags >= 0);
-	  flags &= ~FD_CLOEXEC;
-	  (void) fcntl (k, F_SETFD, flags);
-	  GNUNET_array_append (lscp, ls, k);
-	}
+	GNUNET_array_append (lscp, ls, k);	
       GNUNET_array_append (lscp, ls, -1);
     }
 #if HAVE_WORKING_VFORK
@@ -422,10 +416,11 @@ GNUNET_OS_start_process_v (const int *lsocks,
 	      (void) close (tgt);	      
 	      GNUNET_assert (-1 != dup2 (lscp[i], tgt));
 	    }
-	  /* set close-on-exec flag */
+	  /* unset close-on-exec flag */
 	  flags = fcntl (tgt, F_GETFD);
 	  GNUNET_assert (flags >= 0);
 	  flags &= ~FD_CLOEXEC;
+	  fflush (stderr);
 	  (void) fcntl (tgt, F_SETFD, flags);
 	  tgt++;
 	  i++;
