@@ -47,8 +47,15 @@
  * Should we introduce random latency in processing?  Required for proper
  * implementation of GAP, but can be disabled for performance evaluation of
  * the basic routing algorithm.
+ *
+ * Note that with delays enabled, performance can be significantly lower
+ * (several orders of magnitude in 2-peer test runs); if you want to
+ * measure throughput of other components, set this to NO.  Also, you
+ * might want to consider changing 'RETRY_PROBABILITY_INV' to 1 for
+ * a rather wasteful mode of operation (that might still get the highest
+ * throughput overall).
  */
-#define SUPPORT_DELAYS GNUNET_NO
+#define SUPPORT_DELAYS GNUNET_YES
 
 /**
  * Size for the hash map for DHT requests from the FS
@@ -73,6 +80,15 @@
  * repeatedly recently, the probability is multiplied by the inverse
  * of this number each time.  Note that we only try about every TTL_DECREMENT/2
  * plus MAX_CORK_DELAY (so roughly every 3.5s).
+ *
+ * Note that this factor is a key influence to performance in small
+ * networks (especially test networks of 2 peers) because if there is
+ * only a single peer with the data, this value will determine how
+ * soon we might re-try.  For example, a value of 3 can result in 
+ * 1.7 MB/s transfer rates for a 10 MB file when a value of 1 would
+ * give us 5 MB/s.  OTOH, obviously re-trying the same peer can be
+ * rather inefficient in larger networks, hence picking 1 is in 
+ * general not the best choice.
  */
 #define RETRY_PROBABILITY_INV 3
 
@@ -86,8 +102,9 @@
 #define MAX_TRANSMIT_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 45)
 
 /**
- * Maximum number of requests (from other peers) that we're
- * willing to have pending at any given point in time.
+ * Maximum number of requests (from other peers, overall) that we're
+ * willing to have pending at any given point in time.  Can be changed
+ * via the configuration file (32k is just the default).
  */
 static unsigned long long max_pending_requests = (32 * 1024);
 
@@ -3704,7 +3721,11 @@ process_local_reply (void *cls,
 	      return;
 	    }
 	}
-
+      if (pr->local_only == GNUNET_YES)
+	{
+	  destroy_pending_request (pr);
+	  return;
+	}
       /* no more results */
       if (pr->task == GNUNET_SCHEDULER_NO_TASK)
 	pr->task = GNUNET_SCHEDULER_add_now (sched,
@@ -3775,6 +3796,7 @@ process_local_reply (void *cls,
     return; /* done here */
   if (prq.eval == GNUNET_BLOCK_EVALUATION_OK_LAST)
     {
+      pr->local_only = GNUNET_YES; /* do not forward */
       GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
       return;
     }
@@ -3790,8 +3812,12 @@ process_local_reply (void *cls,
 				gettext_noop ("# processing result set cut short due to load"),
 				1,
 				GNUNET_NO);
+      /* FIXME: if this is activated, we might stall large downloads
+	 indefinitely since (presumably) the load can never go down again! */
+#if 0
       GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
       return;
+#endif
     }
   GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
 }
@@ -4015,7 +4041,10 @@ handle_p2p_get (void *cls,
       /* don't have BW to send to peer, or would likely take longer than we have for it,
 	 so at best indirect the query */
       priority = 0;
-      pr->forward_only = GNUNET_YES;
+      /* FIXME: if this line is enabled, the 'perf' test for larger files simply "hangs";
+	 the cause seems to be that the load goes up (to the point where we do this)
+	 and then never goes down again... (outch) */
+      // pr->forward_only = GNUNET_YES;
     }
   pr->type = type;
   pr->mingle = ntohl (gm->filter_mutator);
@@ -4166,7 +4195,13 @@ handle_p2p_get (void *cls,
     case GNUNET_BLOCK_TYPE_FS_IBLOCK:
       /* only one result, wait for datastore */
       if (GNUNET_YES != pr->forward_only)
-	break;
+	{
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# requests not instantly forwarded (waiting for datastore)"),
+				    1,
+				    GNUNET_NO);
+ 	  break;
+	}
     default:
       if (pr->task == GNUNET_SCHEDULER_NO_TASK)
 	pr->task = GNUNET_SCHEDULER_add_now (sched,
