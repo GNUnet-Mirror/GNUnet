@@ -900,12 +900,16 @@ GNUNET_NETWORK_fdset_overlap (const struct GNUNET_NETWORK_FDSet *fds1,
                               const struct GNUNET_NETWORK_FDSet *fds2)
 {
   int nfds;
+
   nfds = fds1->nsds;
-  if (nfds < fds2->nsds)
+  if (nfds > fds2->nsds)
     nfds = fds2->nsds;
-  for (; nfds >= 0; nfds--)
-    if (FD_ISSET (nfds, &fds1->sds) && FD_ISSET (nfds, &fds2->sds))
-      return GNUNET_YES;
+  while (nfds > 0)
+    {
+      nfds--;
+      if (FD_ISSET (nfds, &fds1->sds) && FD_ISSET (nfds, &fds2->sds))
+	return GNUNET_YES;
+    }
 #ifdef MINGW
   {
     struct GNUNET_CONTAINER_SList_Iterator *it;
