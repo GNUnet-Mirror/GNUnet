@@ -203,10 +203,6 @@ struct ConnectedPeer
    * getting a reply (only calculated over the requests for
    * which we actually got a reply).   Calculated
    * as a moving average: new_delay = ((n-1)*last_delay+curr_delay) / n
-   *
-   * FIXME: actually, this is currently the delay between us originally
-   * receiving (not forwarding!) a request and us receiving a reply from
-   * this peer (regardless of when we transmitted this request to this peer!)
    */ 
   struct GNUNET_TIME_Relative avg_delay;
 
