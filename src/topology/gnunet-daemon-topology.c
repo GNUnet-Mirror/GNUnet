@@ -652,7 +652,6 @@ schedule_next_hello (void *cls,
 							 next_want,
 							 &hello_advertising_ready,
 							 pl);
-      return;
     }
 }
 
@@ -746,7 +745,7 @@ connect_notify (void *cls,
       friend_count++;
       GNUNET_STATISTICS_set (stats,
 			     gettext_noop ("# friends connected"),
-			     connection_count,
+			     friend_count,
 			     GNUNET_NO);
     }
   reschedule_hellos (NULL, &peer->hashPubKey, pos);
@@ -813,7 +812,7 @@ disconnect_notify (void *cls,
       friend_count--; 
       GNUNET_STATISTICS_set (stats,
 			     gettext_noop ("# friends connected"),
-			     connection_count,
+			     friend_count,
 			     GNUNET_NO);
     }
   if ( (connection_count < target_connection_count) ||
