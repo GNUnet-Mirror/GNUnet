@@ -514,14 +514,16 @@ transmit_callback (void *cls,
   msize = ntohs(tcc->msg->size);
   if (size == 0)
     {
-#if DEBUG_DATASTORE
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  "Transmission failed.\n");
-#endif
+		  _("Transmission to client failed!\n"));
       if (tcc->tc != NULL)
 	tcc->tc (tcc->tc_cls, GNUNET_SYSERR);
       if (GNUNET_YES == tcc->end)
-	GNUNET_SERVER_receive_done (tcc->client, GNUNET_SYSERR);       
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		      _("Disconnecting client due to transmission failure!\n"));
+	  GNUNET_SERVER_receive_done (tcc->client, GNUNET_SYSERR);       
+	}
       GNUNET_SERVER_client_drop (tcc->client);
       GNUNET_free (tcc->msg);
       GNUNET_free (tcc);
@@ -596,10 +598,8 @@ transmit (struct GNUNET_SERVER_Client *client,
       GNUNET_break (0);
       if (GNUNET_YES == end)
 	{
-#if DEBUG_DATASTORE
 	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		      "Disconnecting client.\n");
-#endif	  
+		      _("Forcefully disconnecting client.\n"));
 	  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
 	}
       if (NULL != tc)
