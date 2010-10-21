@@ -165,6 +165,12 @@ get_size (unsigned int iter)
   return sizeof (struct TestMessage) + (ret % 60000);
 }
 
+static unsigned int
+get_size_new (unsigned int iter)
+{
+  unsigned int ret = 1024;
+  return ret;
+}
 
 static void
 notify_receive (void *cls,
@@ -322,8 +328,8 @@ notify_connect (void *cls,
     {
       GNUNET_TRANSPORT_set_quota (p1.th,
 				  &p2.id,
-				  GNUNET_BANDWIDTH_value_init (1024 * 1024 * 1024),
-				  GNUNET_BANDWIDTH_value_init (1024 * 1024 * 1024),
+				  GNUNET_BANDWIDTH_value_init (1024 * 10 ),
+				  GNUNET_BANDWIDTH_value_init (1024 * 10 ),
 				  GNUNET_TIME_UNIT_FOREVER_REL,
 				  NULL, NULL);
       start_time = GNUNET_TIME_absolute_get ();
@@ -333,8 +339,8 @@ notify_connect (void *cls,
     {
       GNUNET_TRANSPORT_set_quota (p2.th,
 				  &p1.id,
-				  GNUNET_BANDWIDTH_value_init (1024 * 1024 * 1024),
-				  GNUNET_BANDWIDTH_value_init (1024 * 1024 * 1024),
+				  GNUNET_BANDWIDTH_value_init (1024 * 10 ),
+				  GNUNET_BANDWIDTH_value_init (1024 * 10 ),
 				  GNUNET_TIME_UNIT_FOREVER_REL,
 				  NULL, NULL);
       connected++;
@@ -495,7 +501,6 @@ main (int argc, char *argv[])
 
   stop_arm (&p1);
   stop_arm (&p2);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Removin DIRS\n");
   GNUNET_DISK_directory_remove ("/tmp/test_quota_compliance_peer1");
   GNUNET_DISK_directory_remove ("/tmp/test_quota_compliance_peer2");
   return ret;
