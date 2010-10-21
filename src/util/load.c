@@ -91,6 +91,12 @@ internal_update (struct GNUNET_LOAD_Value *load)
   delta = GNUNET_TIME_absolute_get_duration (load->last_update);
   if (delta.value < load->autodecline.value)
     return;
+  if (load->autodecline.value == 0)
+    {
+      load->runavg_delay = 0.0;
+      load->load = 0;
+      return;
+    }
   n = delta.value / load->autodecline.value;
   if (n > 16)
     {
@@ -121,8 +127,6 @@ GNUNET_LOAD_value_init (struct GNUNET_TIME_Relative autodecline)
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_LOAD_Value));
   ret->autodecline = autodecline;
-  if (ret->autodecline.value == 0)
-    ret->autodecline.value = 1;
   ret->last_update = GNUNET_TIME_absolute_get ();
   return ret;
 }
@@ -140,8 +144,6 @@ GNUNET_LOAD_value_set_decline (struct GNUNET_LOAD_Value *load,
 {
   internal_update (load);
   load->autodecline = autodecline;  
-  if (load->autodecline.value == 0)
-    load->autodecline.value = 1;
 }
 
 
