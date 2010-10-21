@@ -32,12 +32,12 @@
 /**
  * File-size we use for testing.
  */
-#define FILESIZE (1024 * 1024 * 50)
+#define FILESIZE (1024 * 1024 * 1)
 
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 300)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 30)
 
 #define NUM_DAEMONS 2
 
