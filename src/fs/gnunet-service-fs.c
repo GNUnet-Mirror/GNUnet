@@ -69,6 +69,11 @@
  */
 #define FS_DHT_HT_SIZE 1024
 
+/**
+ * At what frequency should our datastore load decrease
+ * automatically (since if we don't use it, clearly the
+ * load must be going down).
+ */
 #define DATASTORE_LOAD_AUTODECLINE GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250)
 
 /**
@@ -2262,25 +2267,9 @@ test_get_load_too_high (uint32_t priority)
 
   ld = GNUNET_LOAD_get_load (datastore_get_load);
   if (ld < 1)
-    {
-      GNUNET_STATISTICS_update (stats,
-				gettext_noop ("# requests done for free (low load)"),
-				1,
-				GNUNET_NO);
-      return GNUNET_SYSERR;
-    }
-  if (ld <= priority)
-    {
-      GNUNET_STATISTICS_update (stats,
-				gettext_noop ("# requests done for a price (normal load)"),
-				1,
-				GNUNET_NO);
-      return GNUNET_NO;
-    }
-  GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# priority determined to be high"),
-			    1,
-			    GNUNET_NO);
+    return GNUNET_SYSERR;    
+  if (ld <= priority)    
+    return GNUNET_NO;    
   return GNUNET_YES;
 }
 
@@ -3845,7 +3834,13 @@ bound_priority (uint32_t prio_in,
 
   ld = test_get_load_too_high (0);
   if (ld == GNUNET_SYSERR)
-    return 0; /* excess resources */
+    {
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# requests done for free (low load)"),
+				1,
+				GNUNET_NO);
+      return 0; /* excess resources */
+    }
   ret = change_host_trust (cp, prio_in);
   if (ret > 0)
     {
@@ -3863,10 +3858,21 @@ bound_priority (uint32_t prio_in,
     }
   if (ld == GNUNET_YES)
     {
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# request dropped, priority insufficient"),
+				1,
+				GNUNET_NO);
       /* undo charge */
       if (ret != 0)
 	change_host_trust (cp, -ret);
       return -1; /* not enough resources */
+    }
+  else
+    {
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# requests done for a price (normal load)"),
+				1,
+				GNUNET_NO);
     }
 #undef N
   return ret;
