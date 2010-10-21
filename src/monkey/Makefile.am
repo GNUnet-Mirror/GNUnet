@@ -54,33 +54,30 @@ gnunet_service_monkey_LDADD = \
   $(GN_LIBINTL)
 
 
-bug_null_pointer_exception_SOURCES = \
-	bug_null_pointer_exception.c
-bug_null_pointer_exception_LDADD = \
-	$(top_builddir)/src/util/libgnunetutil.la \
-	$(GN_LIBINTL)
+bug_null_pointer_exception:
+	gcc -g -O0 -o bug_null_pointer_exception bug_null_pointer_exception.c
 	
 check_PROGRAMS = \
-    bug_null_pointer_exception \
-    test_gnunet_monkey	
+    bug_null_pointer_exception
+    #test_gnunet_monkey	
 
 if !DISABLE_TEST_RUN
 # TESTS = $(check_SCRIPTS)
 endif
 
-test_gnunet_monkey_SOURCES = \
- test_gnunet_monkey.c
-test_gnunet_monkey_LDADD = \
-  $(top_builddir)/src/arm/libgnunetarm.la \
-  $(top_builddir)/src/util/libgnunetutil.la  
+#test_gnunet_monkey_SOURCES = \
+ #test_gnunet_monkey.c
+#test_gnunet_monkey_LDADD = \
+  #$(top_builddir)/src/arm/libgnunetarm.la \
+  #$(top_builddir)/src/util/libgnunetutil.la  
   
   
 check_SCRIPTS = \
-  test_gnunet_monkey.sh 
-#  test_monkey_npe.sh
+  #test_gnunet_monkey.sh \ 
+  test_monkey_npe.sh
 
 EXTRA_DIST = \
-  test_gnunet_monkey_data.conf \
+  #test_gnunet_monkey_data.conf \
   $(check_SCRIPTS) 
 
 endif

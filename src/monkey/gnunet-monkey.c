@@ -16,8 +16,9 @@
 #include "platform.h"
 #include "gnunet_common.h"
 
-
 extern void sendMail (const char *messageContents);
+static const char* mode;
+static const char* dumpFileName;
 
 void cb_console(const char *str, void *data)
 {
@@ -54,13 +55,26 @@ void cb_async(mi_output *o, void *data)
 }
 
 
+static void dumpText(const char* message)
+{
+	FILE* file = fopen(dumpFileName, "w");
+	GNUNET_assert(NULL != file);
+	fprintf(file, message);
+	fclose(file);
+}
+
+
 void send_bug_mail(mi_stop* sr, mi_frames* f)
 {
 	char *message;
 	GNUNET_asprintf(&message, 
 			"Bug detected in file:%s\nfunction:%s\nline:%d\nreason:%s\nreceived signal:%s\n%s\n",
 			f->file, f->func, f->line, mi_reason_enum_to_str(sr->reason), sr->signal_name, sr->signal_meaning);
-	sendMail(message);
+	if (strcasecmp(mode, "mail") == 0)
+		sendMail(message);
+	else
+		dumpText(message);
+	
 	GNUNET_free (message);
 }
 
@@ -95,9 +109,33 @@ int main(int argc, char *argv[])
 {
  mi_aux_term *xterm_tty=NULL;
  const char* binaryName;
+ const char* argument;
+ int i = 1;
  
- binaryName = argv[1];
- GNUNET_assert(NULL != binaryName);
+ argument = argv[i];
+ GNUNET_assert(NULL != argument);
+ do {
+	 if (strcasecmp(argument, "--mode") == 0) {
+		 argument = argv[++i];
+		 GNUNET_assert(NULL != argument);
+		 mode = argument;
+	 }
+	 else if (strcasecmp(argument, "--binary") == 0) {
+		 argument = argv[++i];
+		 GNUNET_assert(NULL != argument);
+		 binaryName = argument;
+	 }
+	 else if (strcasecmp(argument, "--output") == 0) {
+		 argument = argv[++i];
+		 GNUNET_assert(NULL != argument);
+		 dumpFileName = argument;
+	 }
+	 else 
+		 GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Monkey: Error: Unexpected argument\n"));
+ } while (NULL != (argument = argv[++i]));
+ GNUNET_assert((NULL != binaryName) || (NULL != mode));
+ GNUNET_assert(!((strcasecmp(mode, "text") == 0) && (NULL == dumpFileName)));
+ 
  
  /* This is like a file-handle for fopen.
     Here we have all the state of gdb "connection". */
