@@ -119,9 +119,10 @@ GNUNET_LOAD_value_init (struct GNUNET_TIME_Relative autodecline)
 {
   struct GNUNET_LOAD_Value *ret;
 
-  GNUNET_assert (autodecline.value != 0);
   ret = GNUNET_malloc (sizeof (struct GNUNET_LOAD_Value));
   ret->autodecline = autodecline;
+  if (ret->autodecline.value == 0)
+    ret->autodecline.value = 1;
   ret->last_update = GNUNET_TIME_absolute_get ();
   return ret;
 }
@@ -139,6 +140,8 @@ GNUNET_LOAD_value_set_decline (struct GNUNET_LOAD_Value *load,
 {
   internal_update (load);
   load->autodecline = autodecline;  
+  if (load->autodecline.value == 0)
+    load->autodecline.value = 1;
 }
 
 
