@@ -509,8 +509,8 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 					  GNUNET_TIME_relative_ntoh (ntm->latency),
 					  ntohl (ntm->distance)))
             {
-              /* error in processing, disconnect ! */
-              return;
+              /* error in processing, do not process other messages! */
+              break;
             }
         }
       if (NULL != h->inbound_notify)
