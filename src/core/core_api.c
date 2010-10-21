@@ -510,7 +510,6 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 					  ntohl (ntm->distance)))
             {
               /* error in processing, disconnect ! */
-              reconnect (h);
               return;
             }
         }
