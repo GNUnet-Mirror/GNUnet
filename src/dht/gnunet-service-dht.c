@@ -2879,14 +2879,13 @@ am_closest_peer (const GNUNET_HashCode * target, struct GNUNET_CONTAINER_BloomFi
  *         adjusted based on the current routing convergence algorithm
  *
  */
-unsigned long long
+static unsigned long long
 converge_distance (const GNUNET_HashCode *target,
                    struct PeerInfo *peer,
                    unsigned int hops)
 {
   unsigned long long ret;
   unsigned int other_matching_bits;
-  double converge_modifier = 0.0;
   double base_converge_modifier = .1;
   double calc_value;
   double exponent;
@@ -2938,7 +2937,7 @@ converge_distance (const GNUNET_HashCode *target,
   /* Take the log (base e) of the number of bits matching the other peer */
   exponent = log(other_matching_bits);
 
-  /* Check if we would overflow; our largest possible value is 2^64 = e^44.361419555836498 */
+  /* Check if we would overflow; our largest possible value is 2^64 approx. e^44.361419555836498 */
   if (exponent * calc_value >= 44.361419555836498)
     return ULLONG_MAX;
 
