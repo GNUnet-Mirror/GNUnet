@@ -128,6 +128,21 @@ GNUNET_LOAD_value_init (struct GNUNET_TIME_Relative autodecline)
 
 
 /**
+ * Change the value by which the load automatically declines.
+ *
+ * @param load load to update
+ * @param autodecline frequency of load decline
+ */
+void
+GNUNET_LOAD_value_set_decline (struct GNUNET_LOAD_Value *load,
+			       struct GNUNET_TIME_Relative autodecline)
+{
+  internal_update (load);
+  load->autodecline = autodecline;  
+}
+
+
+/**
  * Recalculate our load value.
  *
  * @param load load to update
