@@ -1,19 +1,9 @@
 0.9.0pre2:
 * CORE:
-  - Jun 27 11:51:54 core-7670 ERROR Assertion failed at gnunet-service-core.c:3616.
-    (transport notified us that we connected to ourselves!!!)
-  - transport-level disconnect (i.e. TCP) does not cause core-level
-    disconnect in a timely fashion (waits for connection timeout);
-    need to figure a way to make it near-instant in those cases 
-    (i.e. rapid reduction in timeout on transport-level disconnect) [CG]
-    => may have been fixed with instant-notification of disconnect
-       to core on session-oriented connection hick-up; not perfect but
-       likely good enough until we get ATS going; still should be tested...
-    => "peers connected (transport)" now instantly goes to ZERO (core statistic),
-       but "established sessions" stays up...
-  - service:
-    + 2-peer perf test goes WAY over bandwidth limit (i.e. 300 kbps/set, 2 MB/s transfer rate); clearly core does
-      not properly enforce the limit [MW]
+  - 2-peer perf test goes WAY over bandwidth limit (i.e. 300 kbps/set, 2 MB/s transfer rate); 
+    clearly CORE does not properly enforce the limit [MW]
+* Integration test:
+  - test bootstrapping via hostlist + transport/core/dht connect
 
 0.9.0pre3:
 * Determine RC bugs and fix those (release should have no known real bugs)
@@ -28,9 +18,19 @@
   - needs more testing (especially F2F topology) & transport blacklisting
 * TRANSPORT-TCP [MW]:
   - should use hash map to look up sessions
+* TRANSPORT: 
+  - [#1585, #1583, #1582] transport-level disconnect (i.e. TCP) does not cause core-level
+    disconnect in a timely fashion (waits for connection timeout);
+    need to figure a way to make it near-instant in those cases 
+    (i.e. rapid reduction in timeout on transport-level disconnect) [CG]
+    => may have been fixed with instant-notification of disconnect
+       to core on session-oriented connection hick-up; not perfect but
+       likely good enough until we get ATS going; still should be tested...
+    => "peers connected (transport)" now instantly goes to ZERO (core statistic),
+       but "established sessions" stays up...
 * NAT/UPNP: [Milan]
   - finalize API design
-  - code clean up
+  - [#1609] code clean up
   - testing
   - integration with transport service
   - also do UPnP-based (external) IP detection
@@ -58,6 +58,9 @@
     + search error
     + publish error
     + unindex error
+* CORE: [anyone who can reproduce?]
+  - Jun 27 11:51:54 core-7670 ERROR Assertion failed at gnunet-service-core.c:3616.
+    (transport notified us that we connected to ourselves!!!)
 * ARM: [CG/Safey]
   - better tracking of which config changes actually need to cause process restarts by ARM.
   - handle gnunet-arm -k in combination with auto-start magic (what is the right thing here?)
