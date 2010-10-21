@@ -487,9 +487,6 @@ service_message_handler (void *cls,
   struct GNUNET_DHT_Handle *handle = cls;
   const struct GNUNET_DHT_RouteResultMessage *dht_msg;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "%s called\n",
-	      __FUNCTION__);  
   if (msg == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
