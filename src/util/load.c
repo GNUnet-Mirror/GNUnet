@@ -141,7 +141,7 @@ calculate_load (struct GNUNET_LOAD_Value *load)
   double n;
   double nm1;
 
-  if (load->cummulative_request_count == 0)
+  if (load->cummulative_request_count <= 1)
     return;
   /* calcuate std dev of latency; we have for n values of "i" that:
      
