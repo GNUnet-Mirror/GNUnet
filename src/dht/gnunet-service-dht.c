@@ -2887,6 +2887,7 @@ converge_distance (const GNUNET_HashCode *target,
   unsigned long long ret;
   unsigned int other_matching_bits;
   double base_converge_modifier = .1;
+  double temp_modifier;
   double calc_value;
   double exponent;
   int curr_max_hops;
@@ -2897,14 +2898,14 @@ converge_distance (const GNUNET_HashCode *target,
     curr_max_hops = (estimate_diameter() + 1) * 2;
 
   if (converge_modifier > 0)
-    converge_modifier = converge_modifier * base_converge_modifier;
+    temp_modifier = converge_modifier * base_converge_modifier;
   else
     {
-      converge_modifier = base_converge_modifier;
+      temp_modifier = base_converge_modifier;
       base_converge_modifier = 0.0;
     }
 
-  GNUNET_assert(converge_modifier > 0);
+  GNUNET_assert(temp_modifier > 0);
 
   other_matching_bits = GNUNET_CRYPTO_hash_matching_bits(target, &peer->id.hashPubKey);
 
@@ -2913,20 +2914,20 @@ converge_distance (const GNUNET_HashCode *target,
       case DHT_CONVERGE_RANDOM:
         return 1; /* Always return 1, choose equally among all peers */
       case DHT_CONVERGE_LINEAR:
-        calc_value = hops * curr_max_hops * converge_modifier;
+        calc_value = hops * curr_max_hops * temp_modifier;
         break;
       case DHT_CONVERGE_SQUARE:
         /**
          * Simple square based curve.
          */
-        calc_value = (sqrt(hops) / sqrt(curr_max_hops)) * (curr_max_hops / (curr_max_hops * converge_modifier));
+        calc_value = (sqrt(hops) / sqrt(curr_max_hops)) * (curr_max_hops / (curr_max_hops * temp_modifier));
         break;
       case DHT_CONVERGE_EXPONENTIAL:
         /**
          * Simple exponential curve.
          */
         if (base_converge_modifier > 0)
-          calc_value = (converge_modifier * hops * hops) / curr_max_hops;
+          calc_value = (temp_modifier * hops * hops) / curr_max_hops;
         else
           calc_value = (hops * hops) / curr_max_hops;
         break;
@@ -3230,7 +3231,7 @@ select_peer (const GNUNET_HashCode * target,
   /* Now actually choose a peer */
   selected = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, total_distance);
 
-  /* Put the sorted closest peers into the possible bins first, in case of overflow. */
+  /* Go over closest sorted peers. */
   for (i = 0; i < offset; i++)
     {
       if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (bloom, &sorted_closest[i]->id.hashPubKey))
