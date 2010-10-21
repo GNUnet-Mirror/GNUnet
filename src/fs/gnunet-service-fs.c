@@ -1581,7 +1581,14 @@ peer_connect_handler (void *cls,
   struct MigrationReadyBlock *pos;
   char *fn;
   uint32_t trust;
-  
+
+  cp = GNUNET_CONTAINER_multihashmap_get (connected_peers,
+					  &peer->hashPubKey);
+  if (NULL != cp)
+    {
+      GNUNET_break (0);
+      return;
+    }
   cp = GNUNET_malloc (sizeof (struct ConnectedPeer));
   cp->transmission_delay = GNUNET_LOAD_value_init (latency);
   cp->pid = GNUNET_PEER_intern (peer);
@@ -4018,7 +4025,13 @@ handle_p2p_get (void *cls,
       return GNUNET_SYSERR;
     }  
   opt = (const GNUNET_HashCode*) &gm[1];
-  bfsize = msize - sizeof (struct GetMessage) + bits * sizeof (GNUNET_HashCode);
+  bfsize = msize - sizeof (struct GetMessage) - bits * sizeof (GNUNET_HashCode);
+  /* bfsize must be power of 2, check! */
+  if (0 != ( (bfsize - 1) & bfsize))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
   bm = ntohl (gm->hash_bitmap);
   bits = 0;
   cps = GNUNET_CONTAINER_multihashmap_get (connected_peers,
