@@ -11,6 +11,9 @@
        likely good enough until we get ATS going; still should be tested...
     => "peers connected (transport)" now instantly goes to ZERO (core statistic),
        but "established sessions" stays up...
+  - service:
+    + 2-peer perf test goes WAY over bandwidth limit (i.e. 300 kbps/set, 2 MB/s transfer rate); clearly core does
+      not properly enforce the limit [MW]
 
 0.9.0pre3:
 * Determine RC bugs and fix those (release should have no known real bugs)
@@ -33,16 +36,11 @@
   - also do UPnP-based (external) IP detection
     (Note: build library always, build UPnP service when dependencies like libxml2 are available)
 * FS: [CG]
-  - service:
-    + 2-peer perf test does NOT terminate for large (500 MB) files because
-      somehow blocks are not found (suspect: load-based no DB lookup + forward first, no clean up of routing table?)
-    + 2-peer perf test goes WAY over bandwidth limit (i.e. 300 kbps/set, 2 MB/s transfer rate); clearly core does
-      not properly enforce the limit
   - library:
     + reconstruct IBLOCKS from DBLOCKS if possible (during download; see FIXME in fs_download)
     + add support for pushing "already seen" search results to FS service for bloomfilter
     + use different 'priority' for probe downloads vs. normal downloads
-  - implement FS performance tests
+  - implement multi-peer FS performance tests
     + insert
     + download
     + search
