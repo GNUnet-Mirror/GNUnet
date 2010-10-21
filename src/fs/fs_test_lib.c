@@ -27,6 +27,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#include "fs.h"
 #include "fs_test_lib.h"
 #include "gnunet_testing_lib.h"
 
@@ -104,6 +105,11 @@ struct GNUNET_FS_TestDaemon
    * Result URI.
    */
   struct GNUNET_FS_Uri *publish_uri;
+
+  /**
+   * Name of the temporary file used, or NULL for none.
+   */ 
+  char *publish_tmp_file;
 
   /**
    * Scheduler to use (for download_cont).
@@ -562,6 +568,11 @@ GNUNET_FS_TEST_daemons_stop (struct GNUNET_SCHEDULER_Handle *sched,
 	GNUNET_FS_stop (daemons[i]->fs);
       if (daemons[i]->cfg != NULL)
 	GNUNET_CONFIGURATION_destroy (daemons[i]->cfg);
+      if (NULL != daemons[i]->publish_tmp_file)
+	{
+	  GNUNET_DISK_directory_remove (daemons[i]->publish_tmp_file);
+	  GNUNET_free (daemons[i]->publish_tmp_file);
+	}
       GNUNET_free (daemons[i]);
       daemons[i] = NULL;
     }  
@@ -647,25 +658,71 @@ GNUNET_FS_TEST_publish (struct GNUNET_SCHEDULER_Handle *sched,
 			GNUNET_FS_TEST_UriContinuation cont,
 			void *cont_cls)
 {
-  GNUNET_assert (daemon->publish_cont == NULL);
   struct GNUNET_FS_FileInformation *fi;
+  struct GNUNET_DISK_FileHandle *fh;
+  char *emsg;
+  uint64_t off;
+  char buf[DBLOCK_SIZE];
+  size_t bsize;
 
+  GNUNET_assert (daemon->publish_cont == NULL);
   daemon->publish_cont = cont;
   daemon->publish_cont_cls = cont_cls;
   daemon->publish_seed = seed;
   daemon->verbose = verbose;
   daemon->publish_sched = sched;
-  fi = GNUNET_FS_file_information_create_from_reader (daemon->fs,
-						      daemon,						      
-						      size,
-						      &file_generator,
-						      daemon,
-						      NULL,
-						      NULL,
-						      do_index,
-						      anonymity,
-						      42 /* priority */,
-						      GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS));
+  if (GNUNET_YES == do_index)
+    {
+      GNUNET_assert (daemon->publish_tmp_file == NULL);
+      daemon->publish_tmp_file = GNUNET_DISK_mktemp ("fs-test-publish-index");
+      GNUNET_assert (daemon->publish_tmp_file != NULL);
+      fh = GNUNET_DISK_file_open (daemon->publish_tmp_file,
+				  GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
+				  GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
+      GNUNET_assert (NULL != fh);
+      off = 0;      
+      while (off < size)
+	{
+	  bsize = GNUNET_MIN (sizeof (buf),
+			      size - off);
+	  GNUNET_assert (bsize ==
+			 file_generator (daemon,
+					 off,
+					 bsize,
+					 buf,
+					 &emsg));
+	  GNUNET_assert (emsg == NULL);
+	  GNUNET_assert (bsize ==
+			 GNUNET_DISK_file_write (fh,
+						 buf,
+						 bsize));
+	  off += bsize;
+	}
+      GNUNET_assert (GNUNET_OK ==
+		     GNUNET_DISK_file_close (fh));
+      fi = GNUNET_FS_file_information_create_from_file (daemon->fs,
+							daemon,						      
+							daemon->publish_tmp_file,
+							NULL, NULL,
+							do_index,
+							anonymity,
+							42 /* priority */,
+							GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS));
+    }
+  else
+    {
+      fi = GNUNET_FS_file_information_create_from_reader (daemon->fs,
+							  daemon,						      
+							  size,
+							  &file_generator,
+							  daemon,
+							  NULL,
+							  NULL,
+							  do_index,
+							  anonymity,
+							  42 /* priority */,
+							  GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS));
+    }
   daemon->publish_context = GNUNET_FS_publish_start (daemon->fs,
 						     fi,
 						     NULL, NULL, NULL,

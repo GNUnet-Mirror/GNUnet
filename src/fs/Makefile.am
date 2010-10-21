@@ -135,7 +135,9 @@ check_PROGRAMS = \
  test_fs_uri \
  test_gnunet_service_fs_migration \
  test_gnunet_service_fs_p2p \
- perf_gnunet_service_fs_p2p
+ perf_gnunet_service_fs_p2p \
+ perf_gnunet_service_fs_p2p_dht \
+ perf_gnunet_service_fs_p2p_index
 
 
 if HAVE_PYTHON_PEXPECT
@@ -298,6 +300,22 @@ test_gnunet_service_fs_migration_LDADD = \
 perf_gnunet_service_fs_p2p_SOURCES = \
  perf_gnunet_service_fs_p2p.c
 perf_gnunet_service_fs_p2p_LDADD = \
+  $(top_builddir)/src/fs/libgnunetfstest.a \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/fs/libgnunetfs.la  \
+  $(top_builddir)/src/util/libgnunetutil.la  
+
+perf_gnunet_service_fs_p2p_index_SOURCES = \
+ perf_gnunet_service_fs_p2p.c
+perf_gnunet_service_fs_p2p_index_LDADD = \
+  $(top_builddir)/src/fs/libgnunetfstest.a \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/fs/libgnunetfs.la  \
+  $(top_builddir)/src/util/libgnunetutil.la  
+
+perf_gnunet_service_fs_p2p_dht_SOURCES = \
+ perf_gnunet_service_fs_p2p.c
+perf_gnunet_service_fs_p2p_dht_LDADD = \
   $(top_builddir)/src/fs/libgnunetfstest.a \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/fs/libgnunetfs.la  \

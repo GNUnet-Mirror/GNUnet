@@ -54,13 +54,13 @@
  * might want to consider changing 'RETRY_PROBABILITY_INV' to 1 for
  * a rather wasteful mode of operation (that might still get the highest
  * throughput overall).
+ *
+ * Performance measurements (for 50 MB file, 2 peers):
+ *
+ * - Without delays: 3300 kb/s
+ * - With    delays:  101 kb/s
  */
 #define SUPPORT_DELAYS GNUNET_NO
-
-/**
- * Currently experimental code...
- */
-#define ENABLE_LOAD_MGMT GNUNET_YES
 
 /**
  * Size for the hash map for DHT requests from the FS
@@ -101,6 +101,24 @@
  * give us 5 MB/s.  OTOH, obviously re-trying the same peer can be
  * rather inefficient in larger networks, hence picking 1 is in 
  * general not the best choice.
+ *
+ * Performance measurements (for 50 MB file, 2 peers, no delays):
+ *
+ * - 1: 3300 kb/s (consistently)
+ * - 3: 2046 kb/s, 754 kb/s, 3490 kb/s
+ * - 5:  759 kb/s, 968 kb/s, 1160 kb/s
+ *
+ * Note that this does NOT mean that the value should be 1 since
+ * a 2-peer network is far from representative here (and this fails
+ * to take into consideration bandwidth wasted by repeatedly 
+ * sending queries to peers that don't have the content).  Also,
+ * it is expected that higher values lead to more inconsistent
+ * measurements since this only affects lost messages towards the
+ * end of the download.
+ *
+ * Finally, we should probably consider changing this and making
+ * it dependent on the number of connected peers or a related
+ * metric (bad magic constants...).
  */
 #define RETRY_PROBABILITY_INV 1
 
@@ -1565,7 +1583,7 @@ peer_connect_handler (void *cls,
   uint32_t trust;
   
   cp = GNUNET_malloc (sizeof (struct ConnectedPeer));
-  cp->transmission_delay = GNUNET_LOAD_value_init (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+  cp->transmission_delay = GNUNET_LOAD_value_init (latency);
   cp->pid = GNUNET_PEER_intern (peer);
 
   fn = get_trust_filename (peer);
@@ -1587,6 +1605,39 @@ peer_connect_handler (void *cls,
       pos = pos->next;
     }
 }
+
+
+/**
+ * Method called whenever a given peer has a status change.
+ *
+ * @param cls closure
+ * @param peer peer identity this notification is about
+ * @param latency reported latency of the connection with 'other'
+ * @param distance reported distance (DV) to 'other' 
+ * @param bandwidth_in available amount of inbound bandwidth
+ * @param bandwidth_out available amount of outbound bandwidth
+ * @param timeout absolute time when this peer will time out
+ *        unless we see some further activity from it
+ */
+static void
+peer_status_handler (void *cls,
+		     const struct
+		     GNUNET_PeerIdentity * peer,
+		     struct GNUNET_TIME_Relative latency,
+		     uint32_t distance,
+		     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+		     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+		     struct GNUNET_TIME_Absolute timeout)
+{
+  struct ConnectedPeer *cp;
+
+  cp = GNUNET_CONTAINER_multihashmap_get (connected_peers,
+					  &peer->hashPubKey);
+  GNUNET_assert (cp != NULL);
+  GNUNET_LOAD_value_set_decline (cp->transmission_delay,
+				 latency);  
+}
+
 
 
 /**
@@ -3804,12 +3855,8 @@ process_local_reply (void *cls,
 				gettext_noop ("# processing result set cut short due to load"),
 				1,
 				GNUNET_NO);
-      /* FIXME: if this is activated, we might stall large downloads
-	 indefinitely since (presumably) the load can never go down again! */
-#if ENABLE_LOAD_MGMT
       GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
       return;
-#endif
     }
   GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
 }
@@ -4021,14 +4068,7 @@ handle_p2p_get (void *cls,
 		  "Dropping query from `%s', this peer is too busy.\n",
 		  GNUNET_i2s (other));
 #endif
-      GNUNET_STATISTICS_update (stats,
-				gettext_noop ("# requests dropped due to high load"),
-				1,
-				GNUNET_NO);
-#if ENABLE_LOAD_MGMT
-      /* FIXME: this causes problems... */
       return GNUNET_OK;
-#endif
     }
 #if DEBUG_FS 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -4053,12 +4093,7 @@ handle_p2p_get (void *cls,
       /* don't have BW to send to peer, or would likely take longer than we have for it,
 	 so at best indirect the query */
       priority = 0;
-#if ENABLE_LOAD_MGMT
-      /* FIXME: if this line is enabled, the 'perf' test for larger files simply "hangs";
-	 the cause seems to be that the load goes up (to the point where we do this)
-	 and then never goes down again... (outch) */
       pr->forward_only = GNUNET_YES;
-#endif
     }
   pr->type = type;
   pr->mingle = ntohl (gm->filter_mutator);
@@ -4457,7 +4492,7 @@ main_init (struct GNUNET_SCHEDULER_Handle *s,
     }
   connected_peers = GNUNET_CONTAINER_multihashmap_create (enc); 
   query_request_map = GNUNET_CONTAINER_multihashmap_create (max_pending_requests);
-  rt_entry_lifetime = GNUNET_LOAD_value_init (GNUNET_TIME_UNIT_SECONDS);
+  rt_entry_lifetime = GNUNET_LOAD_value_init (GNUNET_TIME_UNIT_FOREVER_REL);
   peer_request_map = GNUNET_CONTAINER_multihashmap_create (enc);
   requests_by_expiration_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN); 
   core = GNUNET_CORE_connect (sched,
@@ -4467,7 +4502,7 @@ main_init (struct GNUNET_SCHEDULER_Handle *s,
 			      NULL,
 			      &peer_connect_handler,
 			      &peer_disconnect_handler,
-			      NULL,
+			      &peer_status_handler,
 			      NULL, GNUNET_NO,
 			      NULL, GNUNET_NO,
 			      p2p_handlers);

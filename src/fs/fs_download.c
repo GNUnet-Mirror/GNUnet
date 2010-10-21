@@ -32,7 +32,7 @@
 #include "fs.h"
 #include "fs_tree.h"
 
-#define DEBUG_DOWNLOAD GNUNET_YES
+#define DEBUG_DOWNLOAD GNUNET_NO
 
 /**
  * Determine if the given download (options and meta data) should cause
@@ -1719,9 +1719,11 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
   struct GNUNET_FS_ProgressInfo pi;
   struct GNUNET_FS_DownloadContext *dc;
 
-  GNUNET_assert (GNUNET_FS_uri_test_chk (uri));
+  GNUNET_assert (GNUNET_FS_uri_test_chk (uri) ||
+		 GNUNET_FS_uri_test_loc (uri) );
+		 
   if ( (offset + length < offset) ||
-       (offset + length > uri->data.chk.file_length) )
+       (offset + length > GNUNET_FS_uri_chk_get_file_size (uri)) )
     {      
       GNUNET_break (0);
       return NULL;
@@ -1762,7 +1764,7 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
   dc->anonymity = anonymity;
   dc->options = options;
   dc->active = GNUNET_CONTAINER_multihashmap_create (1 + 2 * (length / DBLOCK_SIZE));
-  dc->treedepth = GNUNET_FS_compute_depth (GNUNET_ntohll(dc->uri->data.chk.file_length));
+  dc->treedepth = GNUNET_FS_compute_depth (GNUNET_FS_uri_chk_get_file_size(dc->uri));
   if ( (filename == NULL) &&
        (is_recursive_download (dc) ) )
     {
@@ -1787,7 +1789,9 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
   pi.value.download.specifics.start.meta = meta;
   GNUNET_FS_download_make_status_ (&pi, dc);
   schedule_block_download (dc, 
-			   &dc->uri->data.chk.chk,
+			   (dc->uri->type == chk) 
+			   ? &dc->uri->data.chk.chk
+			   : &dc->uri->data.loc.fi.chk,
 			   0, 
 			   1 /* 0 == CHK, 1 == top */); 
   GNUNET_FS_download_sync_ (dc);

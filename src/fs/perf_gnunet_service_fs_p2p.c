@@ -27,12 +27,12 @@
 #include "fs_test_lib.h"
 #include "gnunet_testing_lib.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 /**
  * File-size we use for testing.
  */
-#define FILESIZE (1024 * 1024 * 1)
+#define FILESIZE (1024 * 1024 * 50)
 
 /**
  * How long until we give up on transmitting the message?
@@ -50,6 +50,8 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 static int ok;
 
 static struct GNUNET_TIME_Absolute start_time;
+
+static const char *progname;
 
 static void
 do_stop (void *cls,
@@ -87,21 +89,19 @@ static struct StatValues stats[] =
     { "fs", "# results found locally"},
     { "fs", "# requests forwarded due to high load"},
     { "fs", "# requests done for free (low load)"},
-    { "fs", "# P2P searches received"},
-    { "fs", "# replies received for local clients"},
-    { "fs", "# P2P searches discarded (queue length bound)"},
-    { "fs", "# requests dropped due to high load"},
+    { "fs", "# requests dropped, priority insufficient"},
+    { "fs", "# requests done for a price (normal load)"},
     { "fs", "# requests dropped by datastore (queue length limit)"},
+    { "fs", "# P2P searches received"},
+    { "fs", "# P2P searches discarded (queue length bound)"},
+    { "fs", "# replies received for local clients"},
     { "fs", "# queries retransmitted to same target"},
     { "fs", "cummulative artificial delay introduced (ms)"},
     { "core", "# bytes decrypted"},
     { "core", "# bytes encrypted"},
-    { "core", "# transmissions delayed due to corking"},
     { "transport", "# bytes received via TCP"},
     { "transport", "# bytes transmitted via TCP"},
     { "datacache", "# bytes stored"},
-    { "dht", "# DHT ROUTE Requests Seen"},
-    { "dht", "# DHT ROUTE Requests Forwarded"},
     { NULL, NULL}
   };
 
@@ -236,6 +236,8 @@ static void
 do_download (void *cls,
 	     const struct GNUNET_FS_Uri *uri)
 {
+  int anonymity;
+
   if (NULL == uri)
     {
       GNUNET_FS_TEST_daemons_stop (sched,
@@ -250,10 +252,14 @@ do_download (void *cls,
 	      "Downloading %llu bytes\n",
 	      (unsigned long long) FILESIZE);
   start_time = GNUNET_TIME_absolute_get ();
+  if (NULL != strstr (progname, "dht"))
+    anonymity = 0;
+  else
+    anonymity = 1;
   GNUNET_FS_TEST_download (sched,
 			   daemons[0],
 			   TIMEOUT,
-			   1, SEED, uri, 
+			   anonymity, SEED, uri, 
 			   VERBOSE, 
 			   &do_report, NULL);
 }
@@ -263,6 +269,9 @@ static void
 do_publish (void *cls,
 	    const char *emsg)
 {
+  int do_index;
+  int anonymity;
+
   if (NULL != emsg)
     {
       GNUNET_FS_TEST_daemons_stop (sched,
@@ -277,10 +286,20 @@ do_publish (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Publishing %llu bytes\n",
 	      (unsigned long long) FILESIZE);
+  if (NULL != strstr (progname, "index"))
+    do_index = GNUNET_YES;
+  else
+    do_index = GNUNET_NO;
+  if (NULL != strstr (progname, "dht"))
+    anonymity = 0;
+  else
+    anonymity = 1;
+  
   GNUNET_FS_TEST_publish (sched,
 			  daemons[NUM_DAEMONS-1],
 			  TIMEOUT,
-			  1, GNUNET_NO, FILESIZE, SEED, 
+			  anonymity, 
+			  do_index, FILESIZE, SEED, 
 			  VERBOSE, 
 			  &do_download, NULL);
 }
@@ -343,9 +362,9 @@ main (int argc, char *argv[])
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-
+  progname = argv[0];
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
-  GNUNET_log_setup ("perf_gnunet_service_fs_p2p", 
+  GNUNET_log_setup ("perf_gnunet_service_fs_p2p_index", 
 #if VERBOSE
 		    "DEBUG",
 #else
@@ -353,10 +372,10 @@ main (int argc, char *argv[])
 #endif
 		    NULL);
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1,
-                      argvx, "perf-gnunet-service-fs-p2p",
+                      argvx, "perf-gnunet-service-fs-p2p-index",
 		      "nohelp", options, &run, NULL);
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
   return ok;
 }
 
-/* end of perf_gnunet_service_fs_p2p.c */
+/* end of perf_gnunet_service_fs_p2p_index.c */

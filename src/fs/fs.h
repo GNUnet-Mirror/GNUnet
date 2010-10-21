@@ -37,6 +37,18 @@
 
 /**
  * Maximum number of outgoing messages we queue per peer.
+ *
+ * Performance measurements for 2 peer setup for 50 MB file
+ * (with MAX_DATASTORE_QUEUE = 1 and RETRY_PROBABILITY_INV = 1):
+ *
+ *   2: 1700 kb/s, 1372 kb/s
+ *   8: 2117 kb/s, 1284 kb/s, 1112 kb/s
+ *  16: 3500 kb/s, 3200 kb/s, 3388 kb/s
+ *  32: 3441 kb/s, 3163 kb/s, 3277 kb/s
+ * 128: 1700 kb/s; 2010 kb/s, 3383 kb/s, 1156 kb/s
+ *
+ * Conclusion: 16 seems to be a pretty good value (stable
+ * and high performance, no excessive memory use).
  */
 #define MAX_QUEUE_PER_PEER 16
 
