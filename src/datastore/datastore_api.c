@@ -1398,7 +1398,7 @@ GNUNET_DATASTORE_get_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
 			    1,
 			    GNUNET_NO);
   m = (struct GetZeroAnonymityMessage*) &qe[1];
-  m->header.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_GET_RANDOM);
+  m->header.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_GET_ZERO_ANONYMITY);
   m->header.size = htons(sizeof (struct GetZeroAnonymityMessage));
   m->type = htonl ((uint32_t) type);
   process_queue (h);
