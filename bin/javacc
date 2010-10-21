@@ -1,0 +1,14 @@
+#!/bin/sh
+
+cd "$@"/org/gnunet/seaspider/parser
+javacc -STATIC=false C.out.jj
+echo 'package org.gnunet.monkey.parser;' > PACKAGE
+for n in *.java
+do
+ cat $n >> PACKAGE
+ mv PACKAGE $n
+ echo 'package org.gnunet.monkey.parser;' > PACKAGE
+done
+
+rm -f PACKAGE
+               

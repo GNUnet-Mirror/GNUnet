@@ -1,6 +1,0 @@
-#!/bin/sh
-# gtb: gnunet tree builder
-# Script for automating the generation of GNUnet syntax tree
-# MAINDIR: GNUnet workspace
-
-$MAINDIR/contrib/gnunet-tree-builder/regenerate
