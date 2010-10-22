@@ -1,7 +1,7 @@
 #!/bin/sh
-
-cd "$@"/org/gnunet/seaspider/parser
-javacc -STATIC=false C.out.jj
+MYDIR=`dirname $0` 
+JAVACC_JAR=`echo ${MYDIR}/../contrib/javacc.jar`
+java -jar $JAVACC_JAR -STATIC=false $1
 echo 'package org.gnunet.monkey.parser;' > PACKAGE
 for n in *.java
 do
@@ -9,6 +9,7 @@ do
  mv PACKAGE $n
  echo 'package org.gnunet.monkey.parser;' > PACKAGE
 done
-
+mkdir -p org/gnunet/monkey/parser/
+mv *.java org/gnunet/monkey/parser
 rm -f PACKAGE
                
