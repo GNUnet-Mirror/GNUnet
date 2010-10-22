@@ -161,10 +161,6 @@ GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len,
   if (k == 0)
     return GNUNET_SYSERR;
 
-  // FIXME: what is the check for?
-  if (out_len > (2 ^ 32 * k))
-    return GNUNET_SYSERR;
-
   if (gcry_md_open(&xtr, xtr_algo, GCRY_MD_FLAG_HMAC) != GPG_ERR_NO_ERROR)
     return GNUNET_SYSERR;
 
@@ -248,10 +244,9 @@ GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len,
       if (t > 0)
         {
           memcpy (plain, result - k, k);
-          memset (plain + k + ctx_len, i + 1, 1);
+          i++;
         }
-      else
-        memset (plain + k + ctx_len, 1, 1);
+      memset (plain + k + ctx_len, i, 1);
       gcry_md_reset (prf);
 #if DEBUG_HKDF
       dump("K(t):d", plain, plain_len);
