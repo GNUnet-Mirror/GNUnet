@@ -34,7 +34,7 @@
 #include "gnunet_transport_service.h"
 #include "transport.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define VERBOSE_ARM GNUNET_NO
 
@@ -304,14 +304,16 @@ measurement_end (void *cls,
 	  transmit_handle = NULL;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "\n Measurement finished: \n Quota allowed: %llu kb/s\n Throughput: %llu kb/s\n", (current_quota_p1 / (1024)) , (total_bytes/(duration.value / 1000)/1024));
+		  "\nQuota compliance ok: \n"\
+		  "Quota allowed: %10llu kb/s\n"\
+		  "Throughput   : %10llu kb/s\n", (current_quota_p1 / (1024)) , (total_bytes/(duration.value / 1000)/1024));
 
   if (current_quota_p1 < total_bytes/(duration.value / 1000))
   {
 	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 			  "\nQuota compliance failed: \n"\
-			  "Quota allowed: %llu kb/s\n"\
-			  "Throughput   : %llu kb/s\n", (current_quota_p1 / (1024)) , (total_bytes/(duration.value / 1000)/1024));
+			  "Quota allowed: %10llu kb/s\n"\
+			  "Throughput   : %10llu kb/s\n", (current_quota_p1 / (1024)) , (total_bytes/(duration.value / 1000)/1024));
 	  ok = 1;
 	  end();
 	  return;
