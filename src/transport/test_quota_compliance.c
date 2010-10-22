@@ -91,12 +91,9 @@ static struct GNUNET_TIME_Absolute start_time;
 
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 static GNUNET_SCHEDULER_TaskIdentifier measurement_task;
+static GNUNET_SCHEDULER_TaskIdentifier measurement_counter_task;
 
-static int msg_scheduled;
-static int msg_sent;
-static int msg_recv_expected;
-static int msg_recv;
-
+struct GNUNET_TRANSPORT_TransmitHandle * transmit_handle;
 
 #if VERBOSE
 #define OKPP do { ok++; fprintf (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
@@ -108,10 +105,20 @@ static int msg_recv;
 static void
 end ()
 {
-  unsigned long long delta;
-
   GNUNET_SCHEDULER_cancel (sched, die_task);
   die_task = GNUNET_SCHEDULER_NO_TASK;
+
+  if (measurement_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+	    GNUNET_SCHEDULER_cancel (sched, measurement_task);
+	    measurement_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (measurement_counter_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+	    GNUNET_SCHEDULER_cancel (sched, measurement_counter_task);
+	    measurement_counter_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transports!\n");
 #endif
@@ -121,10 +128,6 @@ end ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Transports disconnected, returning success!\n");
 #endif
-  delta = GNUNET_TIME_absolute_get_duration (start_time).value;
-  fprintf (stderr,
-	   "\nThroughput was %llu kb/s\n",
-	   total_bytes * 1000 / 1024 / delta);
   ok = 0;
 
 }
@@ -147,9 +150,16 @@ static void
 end_badly (void *cls,
 	   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "end_badly \n ");
+  if (measurement_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+	    GNUNET_SCHEDULER_cancel (sched, measurement_task);
+	    measurement_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (measurement_counter_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+	    GNUNET_SCHEDULER_cancel (sched, measurement_counter_task);
+	    measurement_counter_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   GNUNET_break (0);
   if (p1.th != NULL)
 	  GNUNET_TRANSPORT_disconnect (p1.th);
@@ -163,18 +173,6 @@ struct TestMessage
   struct GNUNET_MessageHeader header;
   uint32_t num;
 };
-
-
-static unsigned int
-get_size (unsigned int iter)
-{
-  unsigned int ret;
-
-  if (iter < 60000)
-    return iter + sizeof (struct TestMessage);
-  ret = (iter * iter * iter);
-  return sizeof (struct TestMessage) + (ret % 60000);
-}
 
 static unsigned int
 get_size_new (unsigned int iter)
@@ -191,54 +189,12 @@ notify_receive_new (void *cls,
 {
   static int n;
   unsigned int s;
-  char cbuf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
   const struct TestMessage *hdr;
 
   hdr = (const struct TestMessage*) message;
   s = get_size_new (n);
   if (MTYPE != ntohs (message->type))
     return;
-  msg_recv_expected = n;
-  msg_recv = ntohl(hdr->num);
-  /*
-  if (ntohs (message->size) != s)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Expected message %u of size %u, got %u bytes of message %u\n",
-		  n, s,
-		  ntohs (message->size),
-		  ntohl (hdr->num));
-      GNUNET_SCHEDULER_cancel (sched, die_task);
-      die_task = GNUNET_SCHEDULER_add_now (sched, &end_badly, NULL);
-      return;
-    }
-
-  if (ntohl (hdr->num) != n)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Expected message %u of size %u, got %u bytes of message %u\n",
-		  n, s,
-		  ntohs (message->size),
-		  ntohl (hdr->num));
-      GNUNET_SCHEDULER_cancel (sched, die_task);
-      die_task = GNUNET_SCHEDULER_add_now (sched, &end_badly, NULL);
-      return;
-    }
-    */
-  /*
-  memset (cbuf, n, s - sizeof (struct TestMessage));
-  if (0 != memcmp (cbuf,
-		   &hdr[1],
-		   s - sizeof (struct TestMessage)))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Expected message %u with bits %u, but body did not match\n",
-		  n, (unsigned char) n);
-      GNUNET_SCHEDULER_cancel (sched, die_task);
-      die_task = GNUNET_SCHEDULER_add_now (sched, &end_badly, NULL);
-      return;
-    }
-    */
 #if DEBUG_MEASUREMENT
   if (ntohl(hdr->num) % 5000 == 0)
     {
@@ -249,12 +205,6 @@ notify_receive_new (void *cls,
     }
 #endif
   n++;
-
-
-  if (0 == (n % (TOTAL_MSGS/10)))
-    {
-      fprintf (stderr, ".");
-    }
 }
 
 static size_t
@@ -265,6 +215,8 @@ notify_ready_new (void *cls, size_t size, void *buf)
   struct TestMessage hdr;
   unsigned int s;
   unsigned int ret;
+
+  transmit_handle = NULL;
 
   if (buf == NULL)
     {
@@ -282,7 +234,6 @@ notify_ready_new (void *cls, size_t size, void *buf)
       hdr.header.size = htons (s);
       hdr.header.type = htons (MTYPE);
       hdr.num = htonl (n);
-      msg_sent = n;
       memcpy (&cbuf[ret], &hdr, sizeof (struct TestMessage));
       ret += sizeof (struct TestMessage);
       memset (&cbuf[ret], n, s - sizeof (struct TestMessage));
@@ -300,23 +251,53 @@ notify_ready_new (void *cls, size_t size, void *buf)
 	break; /* sometimes pack buffer full, sometimes not */
     }
   while (size - ret >= s);
-    GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
+  transmit_handle = GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
 					    &p1.id,
 					    s, 0, TIMEOUT,
 					    &notify_ready_new,
 					    NULL);
-  msg_scheduled = n;
   total_bytes += s;
   return ret;
 }
 
 static void measure (unsigned long long quota_p1, unsigned long long quota_p2 );
 
-static void
-stop_measurement (void *cls,
+static void measurement_counter
+ (void *cls,
 	   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  measurement_counter_task = GNUNET_SCHEDULER_NO_TASK;
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+	return;
+#if VERBOSE
+  fprintf(stderr,".");
+#endif
+  measurement_counter_task = GNUNET_SCHEDULER_add_delayed (sched,
+							   GNUNET_TIME_UNIT_SECONDS,
+							   &measurement_counter,
+							   NULL);
+}
+
+static void
+measurement_end (void *cls,
+	   const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  measurement_task  = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+	return;
+
   struct GNUNET_TIME_Relative duration = GNUNET_TIME_absolute_get_difference(start_time, GNUNET_TIME_absolute_get());
+
+  if (measurement_counter_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (sched, measurement_counter_task);
+    measurement_counter_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+/*
+  if (transmit_handle != NULL)
+	  GNUNET_TRANSPORT_notify_transmit_ready_cancel(transmit_handle);
+*/
   fprintf (stderr, "\n");
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  "Measurement finished: \n Quota allowed: %llu kb/s\n Throughput: %llu kb/s\n", (current_quota_p1 / (1024)) , (total_bytes/(duration.value / 1000)/1024));
@@ -326,7 +307,6 @@ stop_measurement (void *cls,
 	measure (current_quota_p1/100, current_quota_p2/100);
 }
 
-
 static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
 {
 	  current_quota_p1 = quota_p1;
@@ -335,36 +315,41 @@ static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Starting measurement: Duration: %u Quota: %u\n", MEASUREMENT_INTERVALL, current_quota_p1);
 #endif
-
-	  GNUNET_TRANSPORT_set_quota (p1.th,
+		GNUNET_TRANSPORT_set_quota (p1.th,
 			  &p2.id,
 			  GNUNET_BANDWIDTH_value_init (current_quota_p1 ),
 			  GNUNET_BANDWIDTH_value_init (current_quota_p1 ),
 			  GNUNET_TIME_UNIT_FOREVER_REL,
 			  NULL, NULL);
-	  GNUNET_TRANSPORT_set_quota (p2.th,
+		GNUNET_TRANSPORT_set_quota (p2.th,
 			  &p1.id,
 			  GNUNET_BANDWIDTH_value_init (current_quota_p2),
 			  GNUNET_BANDWIDTH_value_init (current_quota_p2),
 			  GNUNET_TIME_UNIT_FOREVER_REL,
 			  NULL, NULL);
-      GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
-                                              &p1.id,
-                                              get_size_new (0), 0, TIMEOUT,
-                                              &notify_ready_new,
-                                              NULL);
+		transmit_handle =GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
+											  &p1.id,
+											  get_size_new (0), 0, TIMEOUT,
+											  &notify_ready_new,
+											  NULL);
 
-      GNUNET_SCHEDULER_cancel (sched, die_task);
-      die_task = GNUNET_SCHEDULER_add_delayed (sched,
-					       TIMEOUT,
-					       &end_badly,
-					       NULL);
-      measurement_task = GNUNET_SCHEDULER_add_delayed (sched,
-    					   MEASUREMENT_INTERVALL,
-    					   &stop_measurement,
-    					   NULL);
-      total_bytes = 0;
-      start_time = GNUNET_TIME_absolute_get ();
+		GNUNET_SCHEDULER_cancel (sched, die_task);
+		die_task = GNUNET_SCHEDULER_add_delayed (sched,
+						   TIMEOUT,
+						   &end_badly,
+						   NULL);
+		if (measurement_counter_task != GNUNET_SCHEDULER_NO_TASK)
+		  GNUNET_SCHEDULER_cancel (sched, measurement_counter_task);
+		measurement_counter_task = GNUNET_SCHEDULER_add_delayed (sched,
+								   GNUNET_TIME_UNIT_SECONDS,
+								   &measurement_counter,
+								   NULL);
+		measurement_task = GNUNET_SCHEDULER_add_delayed (sched,
+						   MEASUREMENT_INTERVALL,
+						   &measurement_end,
+						   NULL);
+		total_bytes = 0;
+		start_time = GNUNET_TIME_absolute_get ();
 }
 
 static void
@@ -482,8 +467,8 @@ run (void *cls,
 					   NULL);
 
   /* Setting initial quota for both peers */
-  current_quota_p1 = 1024 * 1024 * 1024;
-  current_quota_p2 = 1024 * 1024 * 1024;
+//  current_quota_p1 = 1024 * 1024 * 1024;
+//  current_quota_p2 = 1024 * 1024 * 1024;
 
   setup_peer (&p1, "test_quota_compliance_peer1.conf");
   setup_peer (&p2, "test_quota_compliance_peer2.conf");
