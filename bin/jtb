@@ -8,3 +8,4 @@ if [ -d "org/gnunet/seaspider/parser" ]; then
 fi	
 cd org/gnunet/seaspider/parser 
 java -jar $JTB_JAR -printer -jd -np org.gnunet.seaspider.parser.nodes -vp org.gnunet.seaspider.parser.visitors -o C.out.jj "$@/C.jj"
+
