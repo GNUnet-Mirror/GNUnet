@@ -189,6 +189,53 @@ then
   AC_MSG_ERROR([GNUnet needs libgcrypt])
 fi
 
+AC_MSG_CHECKING([for working HMAC])
+AC_LANG_PUSH(C)
+LIBS="$LIBS -lgcrypt"
+AC_RUN_IFELSE(
+  [AC_LANG_PROGRAM([#include <gcrypt.h>], [[
+        gcry_md_hd_t mac;
+      
+        unsigned char data[] = { 0xbf, 0x16, 0x6e, 0x46, 0x3a, 0x6c, 0xf3, 0x93, 0xa7, 0x72,
+            0x11, 0xa1, 0xdc, 0x0b, 0x07, 0xdb, 0x1a, 0x5e, 0xd9, 0xb9, 0x81, 0xbe,
+            0xea, 0xe4, 0x31, 0x5f, 0x24, 0xff, 0xfe, 0x50, 0x8a, 0xde };
+        unsigned char key[] = { 0xfc, 0x62, 0x76, 0x35 };
+        unsigned char result[] = {0xa2, 0xb, 0x1, 0xd9, 0xc0, 0x8b, 0x5a, 0x12, 0x80,
+            0xd5, 0x50, 0x12, 0x8e, 0xd0, 0x5b, 0xb6, 0x5c, 0x87, 0x24, 0xe2, 0xd0,
+            0xd2, 0xaf, 0x63, 0xae, 0xd1, 0xd6, 0x64, 0x14, 0xe3, 0x6e, 0x61, 0x5b,
+            0xd, 0xba, 0x17, 0x7d, 0xd3, 0x10, 0xb1, 0x37, 0x41, 0x91, 0x7d, 0xeb,
+            0x1, 0x4d, 0x71, 0xe8, 0x59, 0x71, 0x42, 0x8e, 0xd6, 0xf3, 0x29, 0x3b,
+            0x90, 0xf2, 0xd1, 0xaf, 0x65, 0x1e, 0xb3};
+      
+        if (!gcry_check_version (GCRYPT_VERSION))
+          return 1;
+  
+        gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
+        gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+  
+        if (gcry_md_open(&mac, GCRY_MD_SHA512, GCRY_MD_FLAG_HMAC) != GPG_ERR_NO_ERROR)
+          return 2;
+  
+        gcry_md_setkey (mac, key, sizeof (key));
+        gcry_md_write (mac, data, sizeof (data));
+  
+        if (memcmp(gcry_md_read (mac, 0), result, gcry_md_get_algo_dlen (gcry_md_get_algo (mac))) != 0)
+          return 3;
+  
+        gcry_md_close (mac);
+  
+        return 0;
+    ]])],
+  [AC_MSG_RESULT([yes])],
+  [
+   if test $? = 3
+   then
+     AC_MSG_FAILURE([HMAC test vector does not match. This is a known problem with libgcrypt 1.2.2 on Windows and fixed in 1.4.6.])
+   else
+     AC_MSG_FAILURE([HMAC test failed])
+   fi
+  ])
+AC_LANG_POP(C)
 
 # libcurl
 LIBCURL_CHECK_CONFIG(,7.20.1,,AC_MSG_ERROR([GNUnet requires libcurl >= 7.20.1]))
