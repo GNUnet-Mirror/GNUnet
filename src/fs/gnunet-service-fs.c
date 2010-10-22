@@ -1640,7 +1640,11 @@ peer_status_handler (void *cls,
 
   cp = GNUNET_CONTAINER_multihashmap_get (connected_peers,
 					  &peer->hashPubKey);
-  GNUNET_assert (cp != NULL);
+  if (cp == NULL)
+    {
+      GNUNET_break (0);
+      return;
+    }
   GNUNET_LOAD_value_set_decline (cp->transmission_delay,
 				 latency);  
 }
