@@ -200,7 +200,8 @@ check_PROGRAMS = \
  test_transport_api_reliability_tcp_nat \
  test_transport_api_reliability_udp \
  $(HTTP_REL_TEST) \
- $(HTTPS_REL_TEST)
+ $(HTTPS_REL_TEST) \
+  test_quota_compliance
 # TODO: add tests for nat, etc.
 
 if !DISABLE_TEST_RUN
@@ -216,7 +217,8 @@ TESTS = \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
  $(HTTP_REL_TEST) \
- $(HTTPS_REL_TEST)
+ $(HTTPS_REL_TEST) \
+ test_quota_compliance
 endif
 
 test_transport_api_tcp_SOURCES = \
@@ -303,6 +305,12 @@ test_transport_api_reliability_https_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
+test_quota_compliance_SOURCES = \
+ test_quota_compliance.c
+test_quota_compliance_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+
 endif
 
 EXTRA_DIST = \
@@ -324,4 +332,8 @@ EXTRA_DIST = \
   test_transport_api_rel_http_peer2.conf \
   test_transport_api_rel_https_peer1.conf \
   test_transport_api_rel_https_peer2.conf \
-  test_plugin_transport_data_http.conf
+  test_plugin_transport_data_http.conf \
+  test_plugin_transport_data.conf \
+  test_quota_compliance_data.conf \
+  test_quota_compliance_peer1.conf \
+  test_quota_compliance_peer2.conf

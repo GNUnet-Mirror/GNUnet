@@ -119,12 +119,12 @@ end ()
 	    measurement_counter_task = GNUNET_SCHEDULER_NO_TASK;
   }
   GNUNET_SCHEDULER_shutdown (sched);
-#if VERBOSE
+#if DEBUG_CONNECTIONS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transports!\n");
 #endif
   GNUNET_TRANSPORT_disconnect (p1.th);
   GNUNET_TRANSPORT_disconnect (p2.th);
-#if VERBOSE
+#if DEBUG_CONNECTIONS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Transports disconnected, returning success!\n");
 #endif
@@ -334,7 +334,7 @@ static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
 	  current_quota_p2 = quota_p2;
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Starting measurement: Duration: %u Quota: %u\n", MEASUREMENT_INTERVALL, current_quota_p1);
+              "Starting transport level measurement: Duration: %u Quota: %u\n", MEASUREMENT_INTERVALL, current_quota_p1);
 #endif
 		GNUNET_TRANSPORT_set_quota (p1.th,
 			  &p2.id,
