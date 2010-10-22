@@ -1,4 +1,4 @@
-package org.gnunet.seaspider.parser;
+package org.grothoff;
 
 import java.lang.reflect.Field;
 import java.util.Enumeration;

@@ -171,6 +171,7 @@ TOKEN : {
 void TranslationUnit() : {}
 {
 	(ExternalDeclaration())+
+	<EOF>
 }
 
 void ExternalDeclaration() : {}
@@ -178,7 +179,7 @@ void ExternalDeclaration() : {}
 	(StorageClassSpecifier())*
 	(
             LOOKAHEAD (FunctionDeclaration()) FunctionDeclaration() | 
-	    LOOKAHEAD (StructOrUnionSpecifier()) StructOrUnionSpecifier() |
+	    LOOKAHEAD (StructOrUnionSpecifier()) StructOrUnionSpecifier() ";" |
 	    LOOKAHEAD (VariableDeclaration()) VariableDeclaration() |
   	    LOOKAHEAD (TypeDeclaration()) TypeDeclaration () 
         ) 
@@ -288,8 +289,8 @@ void NoIdentifierTypeSpecifier() : {}
 void StructOrUnionSpecifier() : {}
 {
         LOOKAHEAD (3)
-	StructOrUnion() [ <IDENTIFIER> ] "{" StructDeclarationList() "}" |
-	StructOrUnion() <IDENTIFIER> 
+	StructOrUnion() [ <IDENTIFIER> ] "{" StructDeclarationList() "}"  |
+	StructOrUnion() <IDENTIFIER>  
 }
 
 void StructOrUnion() : {}
@@ -299,7 +300,7 @@ void StructOrUnion() : {}
 
 void StructDeclarationList() : {}
 {
-	(StructDeclaration())+
+	(StructDeclaration())*
 }
 
 void InitDeclaratorList() : {}
@@ -335,11 +336,6 @@ void Enumerator() : {}
 void Pointer() : {}
 {
 	"*" [ <CONST> ] [ Pointer() ]
-}
-
-void IdentifierList() : {}
-{
-	<IDENTIFIER> ("," <IDENTIFIER>)*
 }
 
 void Initializer() : {}
@@ -390,15 +386,34 @@ void CompoundStatement() : {}
 
 void SelectionStatement() : {}
 {
-	( <IF> "(" Expression() ")" Statement() [ LOOKAHEAD(2) <ELSE> Statement() ] |
-	  <SWITCH> "(" Expression() ")" Statement() )
+	( IfStatement() | SwitchStatement() )
+}
+
+void IfStatement() : {}
+{
+	 <IF> "(" Expression() ")" Statement() [ LOOKAHEAD(2) <ELSE> Statement() ] 
+}
+
+void SwitchStatement() : {}
+{
+	  <SWITCH> "(" Expression() ")" Statement() 
 }
 
 void IterationStatement() : {}
 {
-	( <WHILE> "(" Expression() ")" Statement() |
-	  <DO> Statement() <WHILE> "(" Expression() ")" ";" |
-	  <FOR> "(" [ Expression() ] ";" [ Expression() ] ";" [ Expression() ] ")" Statement() )
+	( WhileStatement() | DoWhileStatement() | ForStatement() )
+}
+void WhileStatement() : {}
+{
+	<WHILE> "(" Expression() ")" Statement() 
+}
+void DoWhileStatement() : {}
+{
+	  <DO> Statement() <WHILE> "(" Expression() ")" ";" 
+}
+void ForStatement() : {}
+{
+	  <FOR> "(" [ Expression() ] ";" [ Expression() ] ";" [ Expression() ] ")" Statement() 
 }
 
 void JumpStatement() : {}

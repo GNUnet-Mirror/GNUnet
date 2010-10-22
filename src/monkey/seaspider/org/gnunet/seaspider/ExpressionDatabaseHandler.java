@@ -1,4 +1,4 @@
-package org.gnunet.seaspider.parser;
+package org.gnunet.seaspider;
 
 import java.io.File;
 
@@ -14,8 +14,7 @@ public class ExpressionDatabaseHandler {
 	public static void createExpressionDatabase(String databasePath) {
 		String createTableQuery = "CREATE TABLE Expression ( expr_ID INT NOT NULL PRIMARY KEY , " +
 		"file_name TEXT NOT NULL , expr_syntax TEXT NOT NULL ," +
-		" start_lineno INT NOT NULL , end_lineno INT NOT NULL , " +
-		"scope_start_lineno INT NOT NULL , scope_end_lineno INT NOT NULL)";
+		" start_lineno INT, end_lineno INT)";
 		
 		File dbFile = new File(databasePath + "/GNUnetExpressions.db");
 		dbFile.delete();/* Delete it if already existent */        
@@ -50,9 +49,13 @@ public class ExpressionDatabaseHandler {
 	
 	
 	public static void insertIntoExpressionTable(String fileName, String expressionSyntax, 
-												int startLineNo, int endLineNo, int scopeStartLineNo,
-												int scopeEndLineNo)
+												int startLineNo, int endLineNo)
 	{
+		if (expressionSyntax.matches("[0-9]*"))
+			return;
+		if (expressionSyntax.startsWith("\""))
+			return;
+		System.out.println (fileName  + ":[" + startLineNo + "-" + endLineNo + "]: " + expressionSyntax);
 		if (db == null) {
 			System.out.println("Error:Database handle is not initialized. Program will exit now!");
 			System.exit(1);
@@ -63,7 +66,7 @@ public class ExpressionDatabaseHandler {
 			table = db.getTable("Expression");
 			db.beginTransaction(SqlJetTransactionMode.WRITE);
 			try {
-				table.insert(fileName, expressionSyntax, startLineNo, endLineNo, scopeStartLineNo, scopeEndLineNo);
+				table.insert(fileName, expressionSyntax, startLineNo, endLineNo);
 			} finally {
 				db.commit();
 			}
