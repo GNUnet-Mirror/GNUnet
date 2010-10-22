@@ -34,7 +34,7 @@
 #include "gnunet_transport_service.h"
 #include "transport.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define VERBOSE_ARM GNUNET_NO
 
@@ -118,7 +118,7 @@ end ()
 	    GNUNET_SCHEDULER_cancel (sched, measurement_counter_task);
 	    measurement_counter_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
+  GNUNET_SCHEDULER_shutdown (sched);
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transports!\n");
 #endif
@@ -128,8 +128,7 @@ end ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Transports disconnected, returning success!\n");
 #endif
-  ok = 0;
-
+  GNUNET_SCHEDULER_shutdown (sched);
 }
 
 
@@ -218,6 +217,9 @@ notify_ready_new (void *cls, size_t size, void *buf)
 
   transmit_handle = NULL;
 
+  if (measurement_task == GNUNET_SCHEDULER_NO_TASK)
+	  return 0;
+
   if (buf == NULL)
     {
       GNUNET_break (0);
@@ -270,6 +272,7 @@ static void measurement_counter
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
 	return;
+
 #if VERBOSE
   fprintf(stderr,".");
 #endif
@@ -294,13 +297,29 @@ measurement_end (void *cls,
     GNUNET_SCHEDULER_cancel (sched, measurement_counter_task);
     measurement_counter_task = GNUNET_SCHEDULER_NO_TASK;
   }
-/*
+
   if (transmit_handle != NULL)
+  {
 	  GNUNET_TRANSPORT_notify_transmit_ready_cancel(transmit_handle);
-*/
-  fprintf (stderr, "\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Measurement finished: \n Quota allowed: %llu kb/s\n Throughput: %llu kb/s\n", (current_quota_p1 / (1024)) , (total_bytes/(duration.value / 1000)/1024));
+	  transmit_handle = NULL;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "\n Measurement finished: \n Quota allowed: %llu kb/s\n Throughput: %llu kb/s\n", (current_quota_p1 / (1024)) , (total_bytes/(duration.value / 1000)/1024));
+
+  if (current_quota_p1 < total_bytes/(duration.value / 1000))
+  {
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+			  "\nQuota compliance failed: \n"\
+			  "Quota allowed: %llu kb/s\n"\
+			  "Throughput   : %llu kb/s\n", (current_quota_p1 / (1024)) , (total_bytes/(duration.value / 1000)/1024));
+	  ok = 1;
+	  end();
+	  return;
+  }
+  else
+  {
+	  ok = 0;
+  }
   if (current_quota_p1 < (MEASUREMENT_MIN_QUOTA))
 	  end();
   else
@@ -327,7 +346,11 @@ static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
 			  GNUNET_BANDWIDTH_value_init (current_quota_p2),
 			  GNUNET_TIME_UNIT_FOREVER_REL,
 			  NULL, NULL);
-		transmit_handle =GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
+
+		if (transmit_handle != NULL)
+			  GNUNET_TRANSPORT_notify_transmit_ready_cancel(transmit_handle);
+
+		transmit_handle = GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
 											  &p1.id,
 											  get_size_new (0), 0, TIMEOUT,
 											  &notify_ready_new,
@@ -509,7 +532,6 @@ main (int argc, char *argv[])
                       argv1, "test-quota-compliance", "nohelp",
                       options, &run, &ok);
   ret = ok;
-
   stop_arm (&p1);
   stop_arm (&p2);
   GNUNET_DISK_directory_remove ("/tmp/test_quota_compliance_peer1");
