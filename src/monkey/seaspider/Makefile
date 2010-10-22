@@ -1,7 +1,5 @@
-# Script that generates syntax tree and launches SeaSpider for creating GNUnet expression database
-JTB_COMMAND=$(../../../bin/jtb .)
-JAVACC_COMMAND=$(../../../bin/javacc .)
-
-$(JTB_COMMAND)
-$(JAVACC_COMMAND)
- 
+all:
+	jtb C.jj
+	javacc C.jj.out
+	javac `find * -name "*.java"`
+	jar -cvf seaspider.jar `find * -name "*.class"` 
