@@ -73,7 +73,7 @@ endif
   
   
 check_SCRIPTS = \
-  #test_gnunet_monkey.sh \ 
+  #test_gnunet_monkey.sh \
   test_monkey_npe.sh
 
 EXTRA_DIST = \
