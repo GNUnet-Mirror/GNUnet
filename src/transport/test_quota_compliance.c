@@ -47,10 +47,15 @@
  */
 #define TOTAL_MSGS (10000 * 2)
 
+#define MEASUREMENT_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20)
+#define MEASUREMENT_MSG_SIZE 1024
+#define MEASUREMENT_MSG_SIZE_BIG 32768
+
 /**
- * How long until we give up on transmitting the message?
+ * Testcase timeout
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 200)
+
 
 #define MTYPE 12345
 
@@ -75,6 +80,8 @@ static int ok;
 static int connected;
 
 static unsigned long long total_bytes;
+static unsigned long long current_quota_p1;
+static unsigned long long current_quota_p2;
 
 static struct GNUNET_TIME_Absolute start_time;
 
@@ -312,6 +319,32 @@ notify_ready (void *cls, size_t size, void *buf)
   return ret;
 }
 
+static void measure ()
+{
+#if VERBOSE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Both peers are connected, starting measurement...\n");
+#endif
+	  GNUNET_TRANSPORT_set_quota (p1.th,
+			  &p2.id,
+			  GNUNET_BANDWIDTH_value_init (current_quota_p1 ),
+			  GNUNET_BANDWIDTH_value_init (current_quota_p1  ),
+			  GNUNET_TIME_UNIT_FOREVER_REL,
+			  NULL, NULL);
+	  GNUNET_TRANSPORT_set_quota (p2.th,
+			  &p1.id,
+			  GNUNET_BANDWIDTH_value_init (current_quota_p2),
+			  GNUNET_BANDWIDTH_value_init (current_quota_p2),
+			  GNUNET_TIME_UNIT_FOREVER_REL,
+			  NULL, NULL);
+      GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
+                                              &p1.id,
+                                              get_size (0), 0, TIMEOUT,
+                                              &notify_ready,
+                                              NULL);
+      start_time = GNUNET_TIME_absolute_get ();
+
+}
 
 static void
 notify_connect (void *cls,
@@ -323,38 +356,18 @@ notify_connect (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer `%4s' connected to us (%p)!\n", GNUNET_i2s (peer), cls);
 #endif
-
   if (cls == &p1)
     {
-      GNUNET_TRANSPORT_set_quota (p1.th,
-				  &p2.id,
-				  GNUNET_BANDWIDTH_value_init (1024 * 10 ),
-				  GNUNET_BANDWIDTH_value_init (1024 * 10 ),
-				  GNUNET_TIME_UNIT_FOREVER_REL,
-				  NULL, NULL);
-      start_time = GNUNET_TIME_absolute_get ();
       connected++;
     }
   else
     {
-      GNUNET_TRANSPORT_set_quota (p2.th,
-				  &p1.id,
-				  GNUNET_BANDWIDTH_value_init (1024 * 10 ),
-				  GNUNET_BANDWIDTH_value_init (1024 * 10 ),
-				  GNUNET_TIME_UNIT_FOREVER_REL,
-				  NULL, NULL);
       connected++;
     }
-
   if (connected == 2)
     {
-      GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
-                                              &p1.id,
-                                              get_size (0), 0, TIMEOUT,
-                                              &notify_ready,
-                                              NULL);
+	  measure();
     }
-
 }
 
 
@@ -400,10 +413,7 @@ exchange_hello_last (void *cls,
   struct PeerContext *me = cls;
 
   GNUNET_TRANSPORT_get_hello_cancel (p2.th, &exchange_hello_last, me);
-#if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Exchanging HELLO with peer (%p)!\n", cls);
-#endif
+
   GNUNET_assert (ok >= 3);
   OKPP;
   GNUNET_assert (message != NULL);
@@ -412,7 +422,7 @@ exchange_hello_last (void *cls,
                                       message, &me->id));
   /* both HELLOs exchanged, get ready to test transmission! */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Finished exchanging HELLOs, now waiting for transmission!\n");
+              "Finished exchanging HELLOs, now waiting for peers to connect!\n");
 }
 
 
@@ -423,22 +433,12 @@ exchange_hello (void *cls,
   struct PeerContext *me = cls;
 
   GNUNET_TRANSPORT_get_hello_cancel (p1.th, &exchange_hello, me);
-#if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Exchanging HELLO with peer (%p)!\n", cls);
-#endif
   GNUNET_assert (ok >= 2);
   OKPP;
   GNUNET_assert (message != NULL);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
                                       message, &me->id));
-
-#if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received HELLO size %d\n",
-	      GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message));
-#endif
   GNUNET_TRANSPORT_offer_hello (p2.th, message);
   GNUNET_TRANSPORT_get_hello (p2.th, &exchange_hello_last, &p2);
 }
@@ -458,6 +458,9 @@ run (void *cls,
 					   &end_badly,
 					   NULL);
 
+  /* Setting initial quota for both peers */
+  current_quota_p1 = 1024 * 1024 * 1024;
+  current_quota_p2 = 1024 * 1024 * 1024;
 
   setup_peer (&p1, "test_quota_compliance_peer1.conf");
   setup_peer (&p2, "test_quota_compliance_peer2.conf");
