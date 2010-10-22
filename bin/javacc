@@ -1,15 +1,15 @@
 #!/bin/sh
 MYDIR=`dirname $0` 
 JAVACC_JAR=`echo ${MYDIR}/../contrib/javacc.jar`
-java -jar $JAVACC_JAR -STATIC=false $1
-echo 'package org.gnunet.monkey.parser;' > PACKAGE
+java -classpath $JAVACC_JAR javacc -STATIC=false $1
+echo 'package org.gnunet.seaspider.parser;' > PACKAGE
 for n in *.java
 do
  cat $n >> PACKAGE
  mv PACKAGE $n
- echo 'package org.gnunet.monkey.parser;' > PACKAGE
+ echo 'package org.gnunet.seaspider.parser;' > PACKAGE
 done
-mkdir -p org/gnunet/monkey/parser/
-mv *.java org/gnunet/monkey/parser
+mkdir -p org/gnunet/seaspider/parser/
+mv *.java org/gnunet/seaspider/parser/
 rm -f PACKAGE
                
