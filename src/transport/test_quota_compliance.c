@@ -39,6 +39,7 @@
 #define VERBOSE_ARM GNUNET_NO
 
 #define START_ARM GNUNET_YES
+#define DEBUG_MEASUREMENT GNUNET_NO
 
 /**
  * Note that this value must not significantly exceed
@@ -179,81 +180,6 @@ get_size_new (unsigned int iter)
 }
 
 static void
-notify_receive (void *cls,
-                const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_MessageHeader *message,
-                struct GNUNET_TIME_Relative latency,
-		uint32_t distance)
-{
-  static int n;
-  unsigned int s;
-  char cbuf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
-  const struct TestMessage *hdr;
-
-  hdr = (const struct TestMessage*) message;
-  s = get_size (n);
-  if (MTYPE != ntohs (message->type))
-    return;
-  msg_recv_expected = n;
-  msg_recv = ntohl(hdr->num);
-  if (ntohs (message->size) != s)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Expected message %u of size %u, got %u bytes of message %u\n",
-		  n, s,
-		  ntohs (message->size),
-		  ntohl (hdr->num));
-      GNUNET_SCHEDULER_cancel (sched, die_task);
-      die_task = GNUNET_SCHEDULER_add_now (sched, &end_badly, NULL);
-      return;
-    }
-  if (ntohl (hdr->num) != n)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Expected message %u of size %u, got %u bytes of message %u\n",
-		  n, s,
-		  ntohs (message->size),
-		  ntohl (hdr->num));
-      GNUNET_SCHEDULER_cancel (sched, die_task);
-      die_task = GNUNET_SCHEDULER_add_now (sched, &end_badly, NULL);
-      return;
-    }
-  memset (cbuf, n, s - sizeof (struct TestMessage));
-  if (0 != memcmp (cbuf,
-		   &hdr[1],
-		   s - sizeof (struct TestMessage)))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Expected message %u with bits %u, but body did not match\n",
-		  n, (unsigned char) n);
-      GNUNET_SCHEDULER_cancel (sched, die_task);
-      die_task = GNUNET_SCHEDULER_add_now (sched, &end_badly, NULL);
-      return;
-    }
-#if VERBOSE
-  if (ntohl(hdr->num) % 5000 == 0)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Got message %u of size %u\n",
-                  ntohl (hdr->num),
-                  ntohs (message->size));
-    }
-#endif
-  n++;
-  if (0 == (n % (TOTAL_MSGS/100)))
-    {
-      fprintf (stderr, ".");
-      GNUNET_SCHEDULER_cancel (sched, die_task);
-      die_task = GNUNET_SCHEDULER_add_delayed (sched,
-					       TIMEOUT,
-					       &end_badly,
-					       NULL);
-    }
-  if (n == TOTAL_MSGS)
-    end ();
-}
-
-static void
 notify_receive_new (void *cls,
                 const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message,
@@ -310,7 +236,7 @@ notify_receive_new (void *cls,
       return;
     }
     */
-#if VERBOSE
+#if DEBUG_MEASUREMENT
   if (ntohl(hdr->num) % 5000 == 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -320,7 +246,9 @@ notify_receive_new (void *cls,
     }
 #endif
   n++;
-  if (0 == (n % (TOTAL_MSGS/100)))
+
+
+  if (0 == (n % (TOTAL_MSGS/1000)))
     {
       fprintf (stderr, ".");
       GNUNET_SCHEDULER_cancel (sched, die_task);
@@ -329,73 +257,6 @@ notify_receive_new (void *cls,
 					       &end_badly,
 					       NULL);
     }
-/*
-  if (n == TOTAL_MSGS)
-    end ();*/
-}
-
-static size_t
-notify_ready (void *cls, size_t size, void *buf)
-{
-  static int n;
-  char *cbuf = buf;
-  struct TestMessage hdr;
-  unsigned int s;
-  unsigned int ret;
-
-  if (buf == NULL)
-    {
-      GNUNET_break (0);
-      ok = 42;
-      return 0;
-    }
-  ret = 0;
-  s = get_size (n);
-  GNUNET_assert (size >= s);
-  GNUNET_assert (buf != NULL);
-  cbuf = buf;
-  do
-    {
-      hdr.header.size = htons (s);
-      hdr.header.type = htons (MTYPE);
-      hdr.num = htonl (n);
-      msg_sent = n;
-      memcpy (&cbuf[ret], &hdr, sizeof (struct TestMessage));
-      ret += sizeof (struct TestMessage);
-      memset (&cbuf[ret], n, s - sizeof (struct TestMessage));
-      ret += s - sizeof (struct TestMessage);
-#if VERBOSE
-      if (n % 5000 == 0)
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Sending message %u of size %u\n",
-                      n,
-                      s);
-        }
-#endif
-      n++;
-      s = get_size (n);
-      if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16))
-	break; /* sometimes pack buffer full, sometimes not */
-    }
-  while (size - ret >= s);
-  if (n < TOTAL_MSGS)
-  {
-    GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
-					    &p1.id,
-					    s, 0, TIMEOUT,
-					    &notify_ready,
-					    NULL);
-    msg_scheduled = n;
-  }
-  if (n % 5000 == 0)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Returning total message block of size %u\n",
-                  ret);
-    }
-  total_bytes += ret;
-  return ret;
 }
 
 static size_t
@@ -428,7 +289,7 @@ notify_ready_new (void *cls, size_t size, void *buf)
       ret += sizeof (struct TestMessage);
       memset (&cbuf[ret], n, s - sizeof (struct TestMessage));
       ret += s - sizeof (struct TestMessage);
-#if VERBOSE
+#if DEBUG_MEASUREMENT
       if (n % 5000 == 0)
        {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -446,8 +307,8 @@ notify_ready_new (void *cls, size_t size, void *buf)
 					    s, 0, TIMEOUT,
 					    &notify_ready_new,
 					    NULL);
-    msg_scheduled = n;
-  total_bytes += ret;
+  msg_scheduled = n;
+  total_bytes += s;
   return ret;
 }
 
@@ -455,9 +316,10 @@ static void
 stop_measurement (void *cls,
 	   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct GNUNET_TIME_Relative duration = GNUNET_TIME_absolute_get_difference(start_time, GNUNET_TIME_absolute_get());
 
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "END OF MEASUREMENT %u bytes sent \n ", total_bytes);
+		  "Measurement: %u bytes sent in %llu sec. : %llu\n kb/s", total_bytes, (duration.value/1000) ,(total_bytes/(duration.value / 1000)/1024));
 
   end();
 }
