@@ -3,6 +3,8 @@
 MYDIR=`dirname $0`
 JTB_JAR=`echo ${MYDIR}/../contrib/jtb.jar`
 cd "$@"
-mkdir -p org/gnunet/seaspider/parser
+if [ -d "org/gnunet/seaspider/parser" ]; then
+	mkdir -p org/gnunet/seaspider/parser
+fi	
 cd org/gnunet/seaspider/parser 
 java -jar $JTB_JAR -printer -jd -np org.gnunet.seaspider.parser.nodes -vp org.gnunet.seaspider.parser.visitors -o C.out.jj "$@/C.jj"
