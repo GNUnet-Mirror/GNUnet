@@ -25,8 +25,10 @@
  */
 
 /**
- *  The structs defined here are used by the transport plugin to tell ATS about the transport's properties like cost and quality
- *  and on the other side the structs are used by highlevel components to communicate the constraints they have for a transport to ATS
+ *  The structs defined here are used by the transport plugin to tell ATS about
+ *  the transport's properties like cost and quality and on the other side
+ *  the structs are used by highlevel components to communicate the constraints
+ *  they have for a transport to ATS
  *
  *                             +---+
  *  +-----------+ Constraints  |   |  Plugin properties +---------+
@@ -42,7 +44,10 @@
 /**
  * Enum defining all known property types for ATS
  * Enum values are used in the GNUNET_ATS_Information struct as (key,value)-pair
- * Cost are always stored in uint32_t, so all units used to define costs have to be normalized to fit in uint32_t [0 .. 4.294.967.295]
+ *
+ * Cost are always stored in uint32_t, so all units used to define costs
+ * have to be normalized to fit in uint32_t [0 .. 4.294.967.295]
+ *
  * To keep the elements ordered
  *    1..1024 : Values with a relation to cost
  * 1025..2048 : Values with a relation to quality
@@ -58,8 +63,10 @@ enum GNUNET_ATS_Property
 	/**
 	 * Volume based cost in financial units to transmit data
 	 *
-	 * Note: This value is not bound to a specific currency or unit and only used locally
-	 * "cent" just refers the smallest amount of money in the respective currency
+	 * Note: This value is not bound to a specific currency or unit and only
+	 * used locally.
+	 * "cent" just refers the smallest amount of money in the respective
+	 * currency.
 	 *
 	 * Unit: [cent/MB]
 	 *
@@ -74,8 +81,10 @@ enum GNUNET_ATS_Property
 	/**
 	 * Time based cost in financial units to transmit data
 	 *
-	 * Note: This value is not bound to a specific currency or unit and only used locally
-	 * "cent" just refers the smallest amount of money in the respective currency
+	 * Note: This value is not bound to a specific currency or unit and only
+	 * used locally.
+	 * "cent" just refers the smallest amount of money in the respective
+	 * currency.
 	 *
 	 * Unit: [cent/h]
 	 *
@@ -110,8 +119,8 @@ enum GNUNET_ATS_Property
 	/**
 	 * Energy consumption
 	 *
-	 * Energy consumption using this transport when sending with a certain power at a certain bitrate
-	 * This is only an approximation based on:
+	 * Energy consumption using this transport when sending with a certain
+	 * power at a certain bitrate. This is only an approximation based on:
 	 * Energy consumption E = P / D
 	 *
 	 * with:
@@ -138,7 +147,8 @@ enum GNUNET_ATS_Property
 
 	/**
 	 * Connect cost
-	 * How many bytes are transmitted to initiate a new connection using this transport?
+	 * How many bytes are transmitted to initiate a new connection using
+	 * this transport?
 	 *
 	 * Unit: [bytes]
 	 *
@@ -146,10 +156,14 @@ enum GNUNET_ATS_Property
 	 *
 	 * Examples:
 	 *
-	 * UDP (No connection)      :    0 bytes
-	 * TCP (TCP 3-Way handshake):  220 bytes Ethernet,  172 bytes TCP/IP,  122 bytes TCP
-	 * HTTP (TCP + Header)      :  477 bytes Ethernet,  429 bytes TCP/IP,  374 bytes TCP,  278 bytes HTTP
-	 * HTTPS  HTTP+TLS Handshake: 2129 bytes Ethernet, 1975 bytes TCP/IP, 1755 bytes TCP, 1403 bytes HTTPS
+	 * UDP (No connection)      :
+	 *     0 bytes
+	 * TCP (TCP 3-Way handshake):
+	 *   220 bytes Ethernet,  172 bytes TCP/IP,  122 bytes TCP
+	 * HTTP (TCP + Header)      :
+	 *   477 bytes Ethernet,  429 bytes TCP/IP,  374 bytes TCP,  278 bytes HTTP
+	 * HTTPS  HTTP+TLS Handshake:
+	 *  2129 bytes Ethernet, 1975 bytes TCP/IP, 1755 bytes TCP, 1403 bytes HTTPS
 	 *
 	 * */
 	GNUNET_ATS_COST_CONNECT = 5,
@@ -175,8 +189,10 @@ enum GNUNET_ATS_Property
 	/**
 	 *  Network overhead
 	 *
-	 * How many bytes are sent over the wire when 1 kilobyte (1024 bytes) of application data is transmitted?
-	 * A factor used with connect cost, bandwidth cost and energy cost to describe the overhead produced by the transport protocol
+	 * How many bytes are sent over the wire when 1 kilobyte (1024 bytes)
+	 * of application data is transmitted?
+	 * A factor used with connect cost, bandwidth cost and energy cost
+	 * to describe the overhead produced by the transport protocol
 	 *
 	 * Unit: [bytes/kb]
 	 *
@@ -253,7 +269,8 @@ enum GNUNET_ATS_Property
 	 * LAN       :    0
 	 * WLAN      :  400
 	 * Bluetooth :  100
-	 * Note: This numbers are just assumptions as an example, not measured or somehow determined
+	 * Note: This numbers are just assumptions as an example, not
+	 * measured or somehow determined
 	 */
 	GNUNET_ATS_QUALITY_NET_ERRORRATE = 1030,
 
@@ -269,7 +286,8 @@ enum GNUNET_ATS_Property
 	 * LAN       :    0
 	 * WLAN      :  400
 	 * Bluetooth :  100
-	 * Note: This numbers are just assumptions as an example, not measured or somehow determined
+	 * Note: This numbers are just assumptions as an example, not
+	 * measured or somehow determined
 	 */
 	GNUNET_ATS_QUALITY_NET_DROPRATE = 1031,
 
@@ -285,7 +303,8 @@ enum GNUNET_ATS_Property
 	 * LAN       :    0
 	 * WLAN      :   40
 	 * Bluetooth :   10
-	 * Note: This numbers are just assumptions as an example, not measured or somehow determined
+	 * Note: This numbers are just assumptions as an example, not measured
+	 * or somehow determined
 	 */
 	GNUNET_ATS_QUALITY_NET_LOSSRATE = 1032,
 
@@ -318,9 +337,11 @@ enum GNUNET_ATS_Property
 };
 
 /**
- * This structure will be used by plugins to communicate costs to ATS or by higher level components to tell ATS their constraints
- * Always a pair of (GNUNET_ATS_Property, uint32_t value)
- * Value is always uint32_t, so all units used to define costs have to be normalized to fit uint32_t
+ * This structure will be used by plugins to communicate costs to ATS or by
+ * higher level components to tell ATS their constraints.
+ * Always a pair of (GNUNET_ATS_Property, uint32_t value).
+ * Value is always uint32_t, so all units used to define costs have to
+ * be normalized to fit uint32_t.
  */
 struct GNUNET_ATS_Information
 {
