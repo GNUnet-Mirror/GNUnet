@@ -303,7 +303,7 @@ measurement_end (void *cls,
 	  GNUNET_TRANSPORT_notify_transmit_ready_cancel(transmit_handle);
 	  transmit_handle = NULL;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  "\nQuota compliance ok: \n"\
 		  "Quota allowed: %10llu kb/s\n"\
 		  "Throughput   : %10llu kb/s\n", (current_quota_p1 / (1024)) , (total_bytes/(duration.value / 1000)/1024));
