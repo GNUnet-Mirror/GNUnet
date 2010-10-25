@@ -82,6 +82,9 @@ static struct GNUNET_SCHEDULER_Handle *sched;
 static int ok;
 
 static int connected;
+static int measurement_running;
+static int send_running;
+static int recv_running;
 
 static unsigned long long total_bytes;
 static unsigned long long current_quota_p1;
@@ -226,6 +229,10 @@ notify_ready_new (void *cls, size_t size, void *buf)
       ok = 42;
       return 0;
     }
+
+  if (measurement_running != GNUNET_YES)
+	  return 0;
+
   ret = 0;
   s = get_size_new (n);
   GNUNET_assert (size >= s);
@@ -290,6 +297,7 @@ measurement_end (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
 	return;
 
+  measurement_running = GNUNET_NO;
   struct GNUNET_TIME_Relative duration = GNUNET_TIME_absolute_get_difference(start_time, GNUNET_TIME_absolute_get());
 
   if (measurement_counter_task != GNUNET_SCHEDULER_NO_TASK)
@@ -297,17 +305,14 @@ measurement_end (void *cls,
     GNUNET_SCHEDULER_cancel (sched, measurement_counter_task);
     measurement_counter_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
+#if VERBOSE
+  fprintf(stderr,"\n");
+#endif
   if (transmit_handle != NULL)
   {
 	  GNUNET_TRANSPORT_notify_transmit_ready_cancel(transmit_handle);
 	  transmit_handle = NULL;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  "\nQuota compliance ok: \n"\
-		  "Quota allowed: %10llu kb/s\n"\
-		  "Throughput   : %10llu kb/s\n", (current_quota_p1 / (1024)) , (total_bytes/(duration.value / 1000)/1024));
-
   if (current_quota_p1 < total_bytes/(duration.value / 1000))
   {
 	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -320,6 +325,11 @@ measurement_end (void *cls,
   }
   else
   {
+
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+			  "\nQuota compliance ok: \n"\
+			  "Quota allowed: %10llu kb/s\n"\
+			  "Throughput   : %10llu kb/s\n", (current_quota_p1 / (1024)) , (total_bytes/(duration.value / 1000)/1024));
 	  ok = 0;
   }
   if (current_quota_p1 < (MEASUREMENT_MIN_QUOTA))
@@ -349,15 +359,6 @@ static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
 			  GNUNET_TIME_UNIT_FOREVER_REL,
 			  NULL, NULL);
 
-		if (transmit_handle != NULL)
-			  GNUNET_TRANSPORT_notify_transmit_ready_cancel(transmit_handle);
-
-		transmit_handle = GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
-											  &p1.id,
-											  get_size_new (0), 0, TIMEOUT,
-											  &notify_ready_new,
-											  NULL);
-
 		GNUNET_SCHEDULER_cancel (sched, die_task);
 		die_task = GNUNET_SCHEDULER_add_delayed (sched,
 						   TIMEOUT,
@@ -374,7 +375,17 @@ static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
 						   &measurement_end,
 						   NULL);
 		total_bytes = 0;
+		measurement_running = GNUNET_YES;
 		start_time = GNUNET_TIME_absolute_get ();
+
+		if (transmit_handle != NULL)
+			  GNUNET_TRANSPORT_notify_transmit_ready_cancel(transmit_handle);
+
+		transmit_handle = GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
+											  &p1.id,
+											  get_size_new (0), 0, TIMEOUT,
+											  &notify_ready_new,
+											  NULL);
 }
 
 static void
@@ -490,10 +501,9 @@ run (void *cls,
 					   TIMEOUT,
 					   &end_badly,
 					   NULL);
-
-  /* Setting initial quota for both peers */
-//  current_quota_p1 = 1024 * 1024 * 1024;
-//  current_quota_p2 = 1024 * 1024 * 1024;
+  measurement_running = GNUNET_NO;
+  send_running = GNUNET_NO;
+  recv_running = GNUNET_NO;
 
   setup_peer (&p1, "test_quota_compliance_peer1.conf");
   setup_peer (&p2, "test_quota_compliance_peer2.conf");
