@@ -191,7 +191,8 @@ fi
 
 AC_MSG_CHECKING([for working HMAC])
 AC_LANG_PUSH(C)
-LIBS="$LIBS -lgcrypt"
+LIBS="$LIBS $LIBGCRYPT_LIBS"
+CFLAGS="$CFLAGS $LIBGCRYPT_CFLAGS"
 AC_RUN_IFELSE(
   [AC_LANG_PROGRAM([#include <gcrypt.h>], [[
         gcry_md_hd_t mac;

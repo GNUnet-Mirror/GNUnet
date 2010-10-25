@@ -1944,12 +1944,40 @@ udp_plugin_address_pretty_printer (void *cls,
                                    void *asc_cls)
 {
   struct Plugin *plugin = cls;
-  const struct sockaddr_in *v4;
-  const struct sockaddr_in6 *v6;
   struct PrettyPrinterContext *ppc;
+  const void *sb;
+  size_t sbs;
+  struct sockaddr_in a4;
+  struct sockaddr_in6 a6;
+  const struct IPv4UdpAddress *u4;
+  const struct IPv6UdpAddress *u6;
+  uint16_t port;
 
-  if ((addrlen != sizeof (struct sockaddr_in)) &&
-      (addrlen != sizeof (struct sockaddr_in6)))
+  if (addrlen == sizeof (struct IPv6UdpAddress))
+    {
+      u6 = addr;
+      memset (&a6, 0, sizeof (a6));
+      a6.sin6_family = AF_INET6;
+      a6.sin6_port = u6->u6_port;
+      memcpy (&a6.sin6_addr,
+              &u6->ipv6_addr,
+              sizeof (struct in6_addr));
+      port = ntohs (u6->u6_port);
+      sb = &a6;
+      sbs = sizeof (a6);
+    }
+  else if (addrlen == sizeof (struct IPv4UdpAddress))
+    {
+      u4 = addr;
+      memset (&a4, 0, sizeof (a4));
+      a4.sin_family = AF_INET;
+      a4.sin_port = u4->u_port;
+      a4.sin_addr.s_addr = u4->ipv4_addr;
+      port = ntohs (u4->u_port);
+      sb = &a4;
+      sbs = sizeof (a4);
+    }
+  else
     {
       /* invalid address */
       GNUNET_break_op (0);
@@ -1959,21 +1987,11 @@ udp_plugin_address_pretty_printer (void *cls,
   ppc = GNUNET_malloc (sizeof (struct PrettyPrinterContext));
   ppc->asc = asc;
   ppc->asc_cls = asc_cls;
-  if (addrlen == sizeof (struct sockaddr_in))
-    {
-      v4 = (const struct sockaddr_in *) addr;
-      ppc->port = ntohs (v4->sin_port);
-    }
-  else
-    {
-      v6 = (const struct sockaddr_in6 *) addr;
-      ppc->port = ntohs (v6->sin6_port);
-
-    }
+  ppc->port = port;
   GNUNET_RESOLVER_hostname_get (plugin->env->sched,
                                 plugin->env->cfg,
-                                addr,
-                                addrlen,
+                                sb,
+                                sbs,
                                 !numeric, timeout, &append_port, ppc);
 }
 
