@@ -36,6 +36,8 @@
 #include "gnunet_dht_service.h"
 #include "gnunet_block_lib.h"
 #include "block_dns.h"
+#include "gnunet_crypto_lib.h"
+#include "gnunet_signatures.h"
 
 struct dns_cls {
 	struct GNUNET_SCHEDULER_Handle *sched;
@@ -45,6 +47,8 @@ struct dns_cls {
 	struct GNUNET_DHT_Handle *dht;
 
 	unsigned short dnsoutport;
+
+	const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 	struct answer_packet_list *head;
 	struct answer_packet_list *tail;
@@ -265,28 +269,55 @@ publish_name (void *cls,
     return;
 
   char* name = "philipptoelke.gnunet.";
-  size_t size = sizeof(struct GNUNET_DNS_Record) + strlen(name);
-  struct GNUNET_DNS_Record *data = alloca(size);
-  memset(data, 0, size);
-  memcpy(data->name, name, strlen(name) + 1);
-  data->namelen = strlen(name) + 1;
-  *((unsigned int*)&data->service_descriptor) = 0x11223344;
-  *((unsigned int*)&data->peer) = 0x55667788;
+  size_t size = sizeof(struct GNUNET_DNS_Record);
+  struct GNUNET_DNS_Record data;
+  memset(&data, 0, size);
 
-  GNUNET_HashCode key;
-  GNUNET_CRYPTO_hash(name, strlen(name)+1, &key);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Putting with key %08x, len is %d\n", *((unsigned int*)&key), strlen(name));
+  data.purpose.size = htonl(size - sizeof(struct GNUNET_CRYPTO_RsaSignature));
+  data.purpose.purpose = GNUNET_SIGNATURE_PURPOSE_DNS_RECORD;
+
+  GNUNET_CRYPTO_hash(name, strlen(name)+1, &data.service_descriptor);
+
+  char* keyfile;
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename(mycls.cfg, "GNUNETD",
+							   "HOSTKEY", &keyfile))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "could not read keyfile-value\n");
+      if (keyfile != NULL) GNUNET_free(keyfile);
+      return;
+    }
+
+  struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file(keyfile);
+  GNUNET_free(keyfile);
+
+  GNUNET_CRYPTO_rsa_key_get_public(my_private_key, &data.peer);
+
+  data.expiration_time = GNUNET_TIME_relative_to_absolute(GNUNET_TIME_UNIT_HOURS);
+
+  /* Sign the block
+   */
+
+  if (GNUNET_OK != GNUNET_CRYPTO_rsa_sign(my_private_key,
+					  &data.purpose,
+					  &data.signature))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "could not sign DNS_Record\n");
+      return;
+    }
+  GNUNET_free(my_private_key);
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Putting with key %08x\n", *((unsigned int*)&data.service_descriptor));
 
   GNUNET_DHT_put(mycls.dht,
-		      &key,
-		      GNUNET_DHT_RO_NONE,
-		      GNUNET_BLOCK_TYPE_DNS,
-		      size,
-		      (char*)data,
-		      GNUNET_TIME_relative_to_absolute(GNUNET_TIME_UNIT_HOURS),
-		      GNUNET_TIME_UNIT_MINUTES,
-		      NULL,
-		      NULL);
+		 &data.service_descriptor,
+		 GNUNET_DHT_RO_NONE,
+		 GNUNET_BLOCK_TYPE_DNS,
+		 size,
+		 (char*)&data,
+		 GNUNET_TIME_relative_to_absolute(GNUNET_TIME_UNIT_HOURS),
+		 GNUNET_TIME_UNIT_MINUTES,
+		 NULL,
+		 NULL);
 
   GNUNET_SCHEDULER_add_delayed (mycls.sched, GNUNET_TIME_UNIT_HOURS, publish_name, NULL);
 }
@@ -308,6 +339,8 @@ run (void *cls,
     {&receive_query, NULL, GNUNET_MESSAGE_TYPE_LOCAL_QUERY_DNS, 0},
     {NULL, NULL, 0, 0}
   };
+
+  mycls.cfg = cfg;
 
   {
   int i;

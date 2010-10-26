@@ -97,6 +97,11 @@ extern "C"
  */
 #define GNUNET_SIGNATURE_PURPOSE_RESOLVER_RESPONSE 10
 
+/**
+ * Signature of an GNUNET_DNS_Record
+ */
+#define GNUNET_SIGNATURE_PURPOSE_DNS_RECORD 11
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

@@ -27,6 +27,7 @@
 #include "platform.h"
 #include "plugin_block.h"
 #include "block_dns.h"
+#include "gnunet_signatures.h"
 
 #define DEBUG_DHT GNUNET_NO
 
@@ -65,11 +66,21 @@ block_plugin_dns_evaluate (void *cls,
     if (reply_block_size == 0)
       return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
 
-    if (reply_block_size < sizeof(struct GNUNET_DNS_Record))
+    if (reply_block_size != sizeof(struct GNUNET_DNS_Record))
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
 
     const struct GNUNET_DNS_Record* rec = reply_block;
-    if(reply_block_size != (sizeof(struct GNUNET_DNS_Record) + rec->namelen - 1))
+
+    if (ntohl(rec->purpose.size) != sizeof(struct GNUNET_DNS_Record) - sizeof(struct GNUNET_CRYPTO_RsaSignature))
+      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+
+    if (GNUNET_TIME_relative_get_zero().value == GNUNET_TIME_absolute_get_remaining(rec->expiration_time).value)
+      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+
+    if (GNUNET_OK != GNUNET_CRYPTO_rsa_verify (htonl(GNUNET_SIGNATURE_PURPOSE_DNS_RECORD),
+					       &rec->purpose,
+					       &rec->signature,
+					       &rec->peer))
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
 
     /* How to decide whether there are no more? */
@@ -101,7 +112,7 @@ block_plugin_dns_get_key (void *cls,
   if (type != GNUNET_BLOCK_TYPE_DNS)
     return GNUNET_SYSERR;
   const struct GNUNET_DNS_Record* rec = block;
-  GNUNET_CRYPTO_hash(rec->name, rec->namelen, key);
+  memcpy(key, &rec->service_descriptor, sizeof(GNUNET_HashCode));
   return GNUNET_OK;
 }
 
