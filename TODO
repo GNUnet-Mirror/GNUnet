@@ -47,7 +47,6 @@
     + unindex
   - re-implement gnunet-auto-share
 * GNUNET-GTK:
-  - optimize meta-data for directories in 'add_dir_at_iter'
   - finish publish dialog details:
     + normalize keywords (edit subdialog)
     + set/view previews (edit subdialog)
