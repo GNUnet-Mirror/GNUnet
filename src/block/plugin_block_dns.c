@@ -26,7 +26,7 @@
 
 #include "platform.h"
 #include "plugin_block.h"
-#include "gnunet_block_dns.h"
+#include "block_dns.h"
 
 #define DEBUG_DHT GNUNET_NO
 

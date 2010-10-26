@@ -35,7 +35,7 @@
 #include "gnunet-dns-parser.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_block_lib.h"
-#include "gnunet_block_dns.h"
+#include "block_dns.h"
 
 struct dns_cls {
 	struct GNUNET_SCHEDULER_Handle *sched;
