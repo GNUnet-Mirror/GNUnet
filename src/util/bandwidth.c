@@ -42,7 +42,7 @@ GNUNET_BANDWIDTH_value_init (uint32_t bytes_per_second)
 
 #if DEBUG_BANDWIDTH
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Initializing bandwidth of %u bps\n",
+	      "Initializing bandwidth of %u Bps\n",
 	      (unsigned int) bytes_per_second);
 #endif
   ret.value__ = htonl (bytes_per_second);
@@ -151,7 +151,7 @@ GNUNET_BANDWIDTH_tracker_init (struct GNUNET_BANDWIDTH_Tracker *av,
   av->max_carry_s__ = max_carry_s;
 #if DEBUG_BANDWIDTH
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Tracker %p initialized with %u bps and max carry %u\n",
+	      "Tracker %p initialized with %u Bps and max carry %u\n",
 	      av,
 	      (unsigned int) av->available_bytes_per_s__,
 	      (unsigned int) max_carry_s);
@@ -188,7 +188,7 @@ update_tracker (struct GNUNET_BANDWIDTH_Tracker *av)
     }
 #if DEBUG_BANDWIDTH
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Tracker %p  updated, have %u bps last update was %llu ms ago\n",
+	      "Tracker %p  updated, have %u Bps, last update was %llu ms ago\n",
 	      av,
 	      (unsigned int) av->available_bytes_per_s__,
 	      (unsigned long long) (now.value - av->last_update__.value));
@@ -342,7 +342,7 @@ GNUNET_BANDWIDTH_tracker_update_quota (struct GNUNET_BANDWIDTH_Tracker *av,
   new_limit = ntohl (bytes_per_second_limit.value__);
 #if DEBUG_BANDWIDTH
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Tracker %p bandwith changed to %u bps\n",
+	      "Tracker %p bandwith changed to %u Bps\n",
 	      av,	      
 	      (unsigned int) new_limit);
 #endif
