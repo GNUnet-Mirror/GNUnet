@@ -464,7 +464,8 @@ schedule_peer_transmission (struct GNUNET_TRANSPORT_Handle *h)
       /* check outgoing quota */
       duration = GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker,
 						     th->notify_size - sizeof (struct OutboundMessage));
-      if (th->timeout.value < duration.value)
+      struct GNUNET_TIME_Absolute duration_abs = GNUNET_TIME_relative_to_absolute (duration);
+      if (th->timeout.value < duration_abs.value)
 	{
 	  /* signal timeout! */
 #if DEBUG_TRANSPORT
