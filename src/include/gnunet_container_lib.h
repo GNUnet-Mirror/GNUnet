@@ -440,13 +440,14 @@ enum GNUNET_CONTAINER_MetaDataSerializationOptions
  *         -1 on error (typically: not enough
  *         space)
  */
-ssize_t GNUNET_CONTAINER_meta_data_serialize (const struct
-					      GNUNET_CONTAINER_MetaData *md,
-					      char **target, 
-					      size_t max,
-					      enum
-                                          GNUNET_CONTAINER_MetaDataSerializationOptions
-                                          opt);
+ssize_t 
+GNUNET_CONTAINER_meta_data_serialize (const struct
+				      GNUNET_CONTAINER_MetaData *md,
+				      char **target, 
+				      size_t max,
+				      enum
+				      GNUNET_CONTAINER_MetaDataSerializationOptions
+				      opt);
 
 
 /**
@@ -455,9 +456,10 @@ ssize_t GNUNET_CONTAINER_meta_data_serialize (const struct
  * @param md metadata to inspect
  * @return number of bytes needed for serialization, -1 on error
  */
-ssize_t GNUNET_CONTAINER_meta_data_get_serialized_size (const struct
-							GNUNET_CONTAINER_MetaData
-							*md);
+ssize_t 
+GNUNET_CONTAINER_meta_data_get_serialized_size (const struct
+						GNUNET_CONTAINER_MetaData
+						*md);
 
 
 /**
@@ -468,9 +470,9 @@ ssize_t GNUNET_CONTAINER_meta_data_get_serialized_size (const struct
  * @return MD on success, NULL on error (i.e.
  *         bad format)
  */
-struct GNUNET_CONTAINER_MetaData
-  *GNUNET_CONTAINER_meta_data_deserialize (const char *input,
-                                           size_t size);
+struct GNUNET_CONTAINER_MetaData *
+GNUNET_CONTAINER_meta_data_deserialize (const char *input,
+					size_t size);
 
 
 /* ******************************* HashMap **************************** */
