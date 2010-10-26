@@ -53,6 +53,7 @@ struct vpn_cls {
 	struct GNUNET_SCHEDULER_Handle *sched;
 
 	struct GNUNET_CLIENT_Connection *dns_connection;
+	unsigned char restart_hijack;
 
 	pid_t helper_pid;
 
@@ -66,6 +67,8 @@ struct vpn_cls {
 };
 
 static struct vpn_cls mycls;
+
+size_t send_query(void* cls, size_t size, void* buf);
 
 static void cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
   GNUNET_assert (0 != (tskctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN));
@@ -108,7 +111,11 @@ static void restart_helper(void* cls, const struct GNUNET_SCHEDULER_TaskContext*
 	PLIBC_KILL(mycls.helper_pid, SIGKILL);
 	GNUNET_OS_process_wait(mycls.helper_pid);
 
-	// FIXME: send msg to service-dns -- the hijacker has to be started again, too, the routing table is flushed if it depends on one interface
+	/* Tell the dns-service to rehijack the dns-port
+	 * The routing-table gets flushed if an interface disappears.
+	 */
+	mycls.restart_hijack = 1;
+	GNUNET_CLIENT_notify_transmit_ready(mycls.dns_connection, sizeof(struct GNUNET_MessageHeader), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
 
 	GNUNET_DISK_pipe_close(mycls.helper_in);
 	GNUNET_DISK_pipe_close(mycls.helper_out);
@@ -202,8 +209,20 @@ static void helper_write(void* cls, const struct GNUNET_SCHEDULER_TaskContext* t
 
 size_t send_query(void* cls, size_t size, void* buf)
 {
+  size_t len;
+  if (mycls.restart_hijack == 1)
+    {
+      mycls.restart_hijack = 0;
+      GNUNET_assert(sizeof(struct GNUNET_MessageHeader) >= size);
+      struct GNUNET_MessageHeader* hdr = buf;
+      len = sizeof(struct GNUNET_MessageHeader);
+      hdr->size = htons(len);
+      hdr->type = htons(GNUNET_MESSAGE_TYPE_REHIJACK);
+    }
+  else
+    {
 	struct query_packet_list* query = mycls.head;
-	size_t len = ntohs(query->pkt.hdr.size);
+	len = ntohs(query->pkt.hdr.size);
 
 	GNUNET_assert(len <= size);
 
@@ -212,8 +231,9 @@ size_t send_query(void* cls, size_t size, void* buf)
 	GNUNET_CONTAINER_DLL_remove (mycls.head, mycls.tail, query);
 
 	GNUNET_free(query);
+    }
 
-	if (mycls.head != NULL) {
+	if (mycls.head != NULL || mycls.restart_hijack == 1) {
 		GNUNET_CLIENT_notify_transmit_ready(mycls.dns_connection, ntohs(mycls.head->pkt.hdr.size), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
 	}
 
@@ -360,6 +380,7 @@ run (void *cls,
   mycls.sched = sched;
   mycls.mst = GNUNET_SERVER_mst_create(&message_token, NULL);
   mycls.cfg = cfg;
+  mycls.restart_hijack = 0;
   GNUNET_SCHEDULER_add_now (sched, &reconnect_to_service_dns, NULL);
   GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls); 
   GNUNET_SCHEDULER_add_now (sched, start_helper_and_schedule, NULL);

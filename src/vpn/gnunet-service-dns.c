@@ -135,6 +135,14 @@ void receive_dht(void *cls,
 }
 
 /**
+ * This receives a GNUNET_MESSAGE_TYPE_REHIJACK and rehijacks the DNS
+ */
+void rehijack(void *cls, struct GNUNET_SERVER_Client *client, const struct GNUNET_MessageHeader *message) {
+    unhijack(mycls.dnsoutport);
+    hijack(mycls.dnsoutport);
+}
+
+/**
  * This receives the dns-payload from the daemon-vpn and sends it on over the udp-socket
  */
 void receive_query(void *cls, struct GNUNET_SERVER_Client *client, const struct GNUNET_MessageHeader *message)
@@ -337,6 +345,7 @@ run (void *cls,
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
 	  /* callback, cls, type, size */
     {&receive_query, NULL, GNUNET_MESSAGE_TYPE_LOCAL_QUERY_DNS, 0},
+    {&rehijack, NULL, GNUNET_MESSAGE_TYPE_REHIJACK, sizeof(struct GNUNET_MessageHeader)},
     {NULL, NULL, 0, 0}
   };
 

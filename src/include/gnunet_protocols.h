@@ -693,6 +693,10 @@ extern "C"
  * Type of messages the local service-dns responds with
  */
 #define GNUNET_MESSAGE_TYPE_LOCAL_RESPONSE_DNS 206
+/**
+ * Type of messages to instruct the local service-dns to rehijack the dns
+ */
+#define GNUNET_MESSAGE_TYPE_REHIJACK 207
 
 
 /**
