@@ -799,6 +799,37 @@ GNUNET_FS_uri_ksk_add_keyword (struct GNUNET_FS_Uri *uri,
 
 
 /**
+ * Remove the given keyword from the set of keywords represented by the URI.
+ * Does nothing if the keyword is not present.
+ *
+ * @param uri ksk uri to modify
+ * @param keyword keyword to add
+ */
+void
+GNUNET_FS_uri_ksk_remove_keyword (struct GNUNET_FS_Uri *uri,
+				  const char *keyword)
+{
+  unsigned int i;
+  char *old;
+
+  GNUNET_assert (uri->type == ksk);
+  for (i = 0; i < uri->data.ksk.keywordCount; i++)
+    {
+      old = uri->data.ksk.keywords[i];
+      if (0 == strcmp (&old[1], keyword))
+	{
+	  uri->data.ksk.keywords[i] = uri->data.ksk.keywords[uri->data.ksk.keywordCount-1];
+	  GNUNET_array_grow (uri->data.ksk.keywords,
+			     uri->data.ksk.keywordCount,
+			     uri->data.ksk.keywordCount - 1);
+	  GNUNET_free (old);
+	  return;
+	}
+    }
+}
+
+
+/**
  * Obtain the identity of the peer offering the data
  *
  * @param uri the location URI to inspect

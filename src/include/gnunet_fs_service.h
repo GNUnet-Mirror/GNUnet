@@ -129,6 +129,18 @@ GNUNET_FS_uri_ksk_add_keyword (struct GNUNET_FS_Uri *uri,
 
 
 /**
+ * Remove the given keyword from the set of keywords represented by the URI.
+ * Does nothing if the keyword is not present.
+ *
+ * @param uri ksk uri to modify
+ * @param keyword keyword to add
+ */
+void
+GNUNET_FS_uri_ksk_remove_keyword (struct GNUNET_FS_Uri *uri,
+				  const char *keyword);
+
+
+/**
  * Convert a UTF-8 String to a URI.
  *
  * @param uri string to parse
