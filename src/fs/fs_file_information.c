@@ -24,7 +24,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - serialization/deserialization (& deserialization API)
  * - metadata filename clean up code
  * - metadata/ksk generation for directories from contained files
  */

@@ -960,7 +960,6 @@ canonicalize_keyword (const char *in)
 	case '\n':
 	case '\r':
 	  /* skip characters listed above */
-	  rpos++;
 	  break;
 	case 'b':
 	case 'c':
@@ -985,6 +984,7 @@ canonicalize_keyword (const char *in)
 	  /* convert characters listed above to lower case */
 	  *wpos = tolower( (unsigned char)*rpos);
 	  wpos++;
+	  break;
 	case '!':
 	case '.':
 	case '?':
@@ -997,6 +997,7 @@ canonicalize_keyword (const char *in)
 	  /* replace characters listed above with '_' */
 	  *wpos = '_';
 	  wpos++;
+	  break;
 	}
       rpos++;
     }
@@ -1564,9 +1565,9 @@ gather_uri_data (void *cls,
   for (j = uri->data.ksk.keywordCount - 1; j >= 0; j--)
     if (0 == strcmp (&uri->data.ksk.keywords[j][1], data))
       return GNUNET_OK;
-  nkword = GNUNET_malloc (strlen (data) + 2);
-  strcpy (nkword, " ");         /* not mandatory */
-  strcat (nkword, data);
+  GNUNET_asprintf (&nkword,
+		   " %s", /* space to mark as 'non mandatory' */
+		   data);
   uri->data.ksk.keywords[uri->data.ksk.keywordCount++] = nkword;
   return 0;
 }
@@ -1584,19 +1585,20 @@ struct GNUNET_FS_Uri *
 GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_CONTAINER_MetaData *md)
 {
   struct GNUNET_FS_Uri *ret;
+  int ent;
 
   if (md == NULL)
     return NULL;
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
   ret->type = ksk;
-  ret->data.ksk.keywordCount = 0;
-  ret->data.ksk.keywords = NULL;
-  ret->data.ksk.keywords
-    = GNUNET_malloc (sizeof (char *) *
-                     GNUNET_CONTAINER_meta_data_iterate (md, NULL, NULL));
-  GNUNET_CONTAINER_meta_data_iterate (md, &gather_uri_data, ret);
+  ent = GNUNET_CONTAINER_meta_data_iterate (md, NULL, NULL);
+  if (ent > 0)
+    {
+      ret->data.ksk.keywords
+	= GNUNET_malloc (sizeof (char *) * ent);                     
+      GNUNET_CONTAINER_meta_data_iterate (md, &gather_uri_data, ret);
+    }
   return ret;
-
 }
 
 
