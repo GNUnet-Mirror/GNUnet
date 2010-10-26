@@ -1906,7 +1906,8 @@ count_peers_cb (void *cls,
                                             connection_estimate(num_peers, DEFAULT_BUCKET_SIZE),
                                             2 * connection_estimate(num_peers, DEFAULT_BUCKET_SIZE));
 
-      if ((find_peer_context->current_peers - find_peer_context->previous_peers > FIND_PEER_THRESHOLD) &&
+      if ((find_peer_context->last_sent > 8) &&
+          (find_peer_context->current_peers - find_peer_context->previous_peers > FIND_PEER_THRESHOLD) &&
           (find_peer_context->current_peers < 2 * connection_estimate(num_peers, DEFAULT_BUCKET_SIZE)) &&
           (GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime).value > 0))
         {

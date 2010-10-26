@@ -198,7 +198,13 @@ enum ConvergenceOptions
     * the algorithm to hopefully route to closer
     * peers more often.
     */
-   DHT_CONVERGE_RANDOM
+   DHT_CONVERGE_RANDOM,
+
+   /**
+    * Binary convergence, start routing to closest
+    * only after set number of hops.
+    */
+   DHT_CONVERGE_BINARY
 };
 
 /**
@@ -2886,7 +2892,7 @@ converge_distance (const GNUNET_HashCode *target,
 {
   unsigned long long ret;
   unsigned int other_matching_bits;
-  double base_converge_modifier = .1;
+  double base_converge_modifier = .1; /* Value that "looks" good (when plotted), have to start somewhere */
   double temp_modifier;
   double calc_value;
   double exponent;
@@ -2931,6 +2937,16 @@ converge_distance (const GNUNET_HashCode *target,
         else
           calc_value = (hops * hops) / curr_max_hops;
         break;
+      case DHT_CONVERGE_BINARY:
+        /**
+         * If below the cutoff, route randomly (return 1),
+         * If above the cutoff, return the maximum possible
+         * value first (always route to closest, because
+         * they are sorted.)
+         */
+        if (hops > converge_modifier) /* Past cutoff */
+          return ULLONG_MAX;
+        /* Fall through */
       default:
         return 1;
     }
@@ -4727,6 +4743,12 @@ run (void *cls,
                                              "converge_random"))
     {
       converge_option = DHT_CONVERGE_RANDOM;
+    }
+  else if (GNUNET_YES ==
+        GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht",
+                                             "converge_binary"))
+    {
+      converge_option = DHT_CONVERGE_BINARY;
     }
 
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "dht_testing", "converge_modifier", &converge_modifier_buf))
