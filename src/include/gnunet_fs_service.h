@@ -115,6 +115,20 @@ GNUNET_FS_uri_ksk_to_string_fancy (const struct GNUNET_FS_Uri *uri);
 
 
 /**
+ * Add the given keyword to the set of keywords represented by the URI.
+ * Does nothing if the keyword is already present.
+ *
+ * @param uri ksk uri to modify
+ * @param keyword keyword to add
+ * @param is_mandatory is this keyword mandatory?
+ */
+void
+GNUNET_FS_uri_ksk_add_keyword (struct GNUNET_FS_Uri *uri,
+			       const char *keyword,
+			       int is_mandatory);
+
+
+/**
  * Convert a UTF-8 String to a URI.
  *
  * @param uri string to parse

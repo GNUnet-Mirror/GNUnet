@@ -766,6 +766,39 @@ GNUNET_FS_uri_ksk_get_keywords (const struct GNUNET_FS_Uri *uri,
 
 
 /**
+ * Add the given keyword to the set of keywords represented by the URI.
+ * Does nothing if the keyword is already present.
+ *
+ * @param uri ksk uri to modify
+ * @param keyword keyword to add
+ * @param is_mandatory is this keyword mandatory?
+ */
+void
+GNUNET_FS_uri_ksk_add_keyword (struct GNUNET_FS_Uri *uri,
+			       const char *keyword,
+			       int is_mandatory)
+{
+  unsigned int i;
+  const char *old;
+  char *n;
+
+  GNUNET_assert (uri->type == ksk);
+  for (i = 0; i < uri->data.ksk.keywordCount; i++)
+    {
+      old = uri->data.ksk.keywords[i];
+      if (0 == strcmp (&old[1], keyword))
+	return;
+    }
+  GNUNET_asprintf (&n,
+		   is_mandatory ? "+%s" : " %s",
+		   keyword);
+  GNUNET_array_append (uri->data.ksk.keywords,
+		       uri->data.ksk.keywordCount,
+		       n);
+}
+
+
+/**
  * Obtain the identity of the peer offering the data
  *
  * @param uri the location URI to inspect
