@@ -98,11 +98,24 @@ struct dns_pkt_parsed {
 	struct dns_record** additional;
 };
 
+struct dns_query_line {
+    unsigned short type;
+    unsigned short class;
+};
+
 struct dns_query {
 	char* name;
 	unsigned char namelen;
 	unsigned short qtype;
 	unsigned short qclass;
+};
+
+struct dns_record_line {
+    unsigned short type;
+    unsigned short class;
+    unsigned int ttl;
+    unsigned short data_len;
+    unsigned char data;
 };
 
 struct dns_record {

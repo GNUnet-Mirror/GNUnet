@@ -61,6 +61,8 @@ struct dns_query_id_state {
 	unsigned local_ip:32;
 	unsigned remote_ip:32;
 	unsigned local_port:16;
+	char* name;
+	unsigned namelen:8;
 };
 static struct dns_query_id_state query_states[65536]; /* This is < 1.5MiB */
 
@@ -108,20 +110,58 @@ void receive_dht(void *cls,
   const struct GNUNET_DNS_Record* rec = data;
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Got block of size %d, peer: %08x, desc: %08x\n", size, *((unsigned int*)&rec->peer), *((unsigned int*)&rec->service_descriptor));
 
-  size_t len = sizeof(struct answer_packet) + size - 1; /* 1 for the unsigned char data[1]; */
+  size_t len = sizeof(struct answer_packet) - 1 \
+	       + sizeof(struct dns_static) \
+	       + query_states[id].namelen \
+	       + sizeof(struct dns_query_line) \
+	       + 2 /* To hold the pointer to the name */ \
+	       + sizeof(struct dns_record_line) - 1 \
+	       + 16;
+	       ;
   struct answer_packet_list* answer = GNUNET_malloc(len + 2*sizeof(struct answer_packet_list*));
+  memset(answer, 0, len + 2*sizeof(struct answer_packet_list*));
+
   answer->pkt.hdr.type = htons(GNUNET_MESSAGE_TYPE_LOCAL_RESPONSE_DNS);
   answer->pkt.hdr.size = htons(len);
   answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_SERVICE;
+
+  GNUNET_CRYPTO_hash(&rec->peer, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &answer->pkt.peer);
+  memcpy(&answer->pkt.service_descriptor, &rec->service_descriptor, sizeof(GNUNET_HashCode));
+  memcpy(&answer->pkt.service_type, &rec->service_type, sizeof(answer->pkt.service_type));
+  memcpy(&answer->pkt.ports, &rec->ports, sizeof(answer->pkt.ports));
 
   answer->pkt.from = query_states[id].remote_ip;
 
   answer->pkt.to = query_states[id].local_ip;
   answer->pkt.dst_port = query_states[id].local_port;
 
-  answer->pkt.id = id;
+  struct dns_pkt *dpkt = (struct dns_pkt*)answer->pkt.data;
 
-  memcpy(answer->pkt.data, data, size);
+  dpkt->s.id = id;
+  dpkt->s.aa = 1;
+  dpkt->s.qr = 1;
+  dpkt->s.ra = 1;
+  dpkt->s.qdcount = htons(1);
+  dpkt->s.ancount = htons(1);
+
+  memcpy(dpkt->data, query_states[id].name, query_states[id].namelen);
+  GNUNET_free(query_states[id].name);
+
+
+  struct dns_query_line* dque = (struct dns_query_line*)(dpkt->data+(query_states[id].namelen));
+  dque->type = htons(28);
+  dque->class = htons(1);
+
+  char* anname = (char*)(dpkt->data+(query_states[id].namelen)+sizeof(struct dns_query_line));
+  memcpy(anname, (char[]){0xc0, 0x0c}, 2);
+
+  struct dns_record_line *drec_data = (struct dns_record_line*)(dpkt->data+(query_states[id].namelen)+sizeof(struct dns_query_line)+2);
+  drec_data->type = htons(28); /* AAAA */
+  drec_data->class = htons(1); /* IN */
+  drec_data->ttl = htonl(3600); /* FIXME: read from block */
+  drec_data->data_len = htons(16);
+
+  answer->pkt.addroffset = htons((unsigned short)((unsigned long)(&drec_data->data)-(unsigned long)(&answer->pkt)));
 
   GNUNET_CONTAINER_DLL_insert_after(mycls.head, mycls.tail, mycls.tail, answer);
 
@@ -156,6 +196,9 @@ void receive_query(void *cls, struct GNUNET_SERVER_Client *client, const struct 
 	query_states[dns->s.id].local_ip = pkt->orig_from;
 	query_states[dns->s.id].local_port = pkt->src_port;
 	query_states[dns->s.id].remote_ip = pkt->orig_to;
+	query_states[dns->s.id].namelen = strlen((char*)dns->data) + 1;
+	query_states[dns->s.id].name = GNUNET_malloc(query_states[dns->s.id].namelen);
+	memcpy(query_states[dns->s.id].name, dns->data, query_states[dns->s.id].namelen);
 
 	if (pdns->queries[0]->namelen > 9 &&
 	    0 == strncmp(pdns->queries[0]->name+(pdns->queries[0]->namelen - 9), ".gnunet.", 9)) {

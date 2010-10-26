@@ -36,6 +36,7 @@
 #include "gnunet-service-dns-p.h"
 #include "gnunet_client_lib.h"
 #include "gnunet_container_lib.h"
+#include "block_dns.h"
 
 /**
  * Final status code.
@@ -307,8 +308,25 @@ static void
 process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
     struct answer_packet* pkt = cls;
 
-    if (pkt->subtype == GNUNET_DNS_ANSWER_TYPE_IP)
+    if (pkt->subtype == GNUNET_DNS_ANSWER_TYPE_SERVICE)
       {
+      pkt->subtype = GNUNET_DNS_ANSWER_TYPE_IP;
+	unsigned char ip6addr[16];
+	memcpy(ip6addr, (int[]){htons(0x1234)}, 2);
+	memcpy(ip6addr+2, &pkt->peer, 7);
+	memcpy(ip6addr+9, &pkt->service_descriptor, 7);
+
+	memcpy(((char*)pkt)+ntohs(pkt->addroffset), ip6addr, 16);
+
+	  /*FIXME:
+	   * -save DNS_Record into hashmap, pointed to by ip
+	   * -regularily walk through hashmap, deleting old entries
+	   *  when is an entry old?
+	   *  have a last-used field
+	   *  don't remove if last-used "recent", ask dht again if record expired
+	   */
+      }
+
 	struct answer_packet_list* list = GNUNET_malloc(htons(pkt->hdr.size) + 2*sizeof(struct answer_packet_list*));
 
 	memcpy(&list->pkt, pkt, htons(pkt->hdr.size));
@@ -318,15 +336,6 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 	GNUNET_SCHEDULER_add_write_file (mycls.sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.fh_to_helper, &helper_write, NULL);
 
 	return;
-      }
-
-    if (pkt->subtype == GNUNET_DNS_ANSWER_TYPE_SERVICE)
-      {
-	/*FIXME:
- 	 * -find new IP-address for this service
-	 * -create a DNS-Answer
- 	 */
-      }
 }
 
 static void

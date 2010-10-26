@@ -40,6 +40,12 @@ struct answer_packet {
     unsigned dst_port:16 GNUNET_PACKED;
 
     unsigned short id GNUNET_PACKED;
+    GNUNET_HashCode peer;
+    GNUNET_HashCode service_descriptor;
+    uint64_t ports;
+    uint32_t service_type;
+
+    unsigned addroffset:16 GNUNET_PACKED;
 
     unsigned char data[1];
 };
