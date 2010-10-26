@@ -318,7 +318,7 @@ GNUNET_BANDWIDTH_tracker_get_available (struct GNUNET_BANDWIDTH_Tracker *av)
   used = av->consumption_since_last_update__;
 #if DEBUG_BANDWIDTH
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Tracker %p  available bandwith is %lld ms\n",
+	      "Tracker %p  available bandwidth is %lld bytes\n",
 	      av,	      
 	      (long long) (int64_t) (avail - used));
 #endif
@@ -342,7 +342,7 @@ GNUNET_BANDWIDTH_tracker_update_quota (struct GNUNET_BANDWIDTH_Tracker *av,
   new_limit = ntohl (bytes_per_second_limit.value__);
 #if DEBUG_BANDWIDTH
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Tracker %p bandwith changed to %u Bps\n",
+	      "Tracker %p bandwidth changed to %u Bps\n",
 	      av,	      
 	      (unsigned int) new_limit);
 #endif
