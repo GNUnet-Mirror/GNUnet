@@ -178,21 +178,27 @@ update_tracker (struct GNUNET_BANDWIDTH_Tracker *av)
   delta_time = now.value - av->last_update__.value;
   delta_avail = (delta_time * ((unsigned long long) av->available_bytes_per_s__) + 500LL) / 1000LL;
   av->consumption_since_last_update__ -= delta_avail;
+  av->last_update__ = now;
   if (av->consumption_since_last_update__ < 0)
     {
       left_bytes = - av->consumption_since_last_update__;
       max_carry = av->available_bytes_per_s__ * av->max_carry_s__;
+      if (max_carry < GNUNET_SERVER_MAX_MESSAGE_SIZE)
+    	  max_carry = GNUNET_SERVER_MAX_MESSAGE_SIZE;
+      av->consumption_since_last_update__ = -left_bytes;
       if (max_carry > left_bytes)
-	av->consumption_since_last_update__ = -max_carry;
+    	 av->consumption_since_last_update__ = -left_bytes;
+      else
+     	 av->consumption_since_last_update__ = -max_carry;
     }
 #if DEBUG_BANDWIDTH
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Tracker %p  updated, have %u Bps, last update was %llu ms ago\n",
 	      av,
 	      (unsigned int) av->available_bytes_per_s__,
-	      (unsigned long long) (now.value - av->last_update__.value));
+	      (unsigned long long) delta_time);
 #endif
-  av->last_update__ = now;
+
 }
 
 
