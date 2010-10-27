@@ -280,7 +280,7 @@ task_download (struct download_cls *cls,
       download_clean_up (cls);
       return;
     }
-  if (GNUNET_TIME_absolute_get_remaining (cls->end_time).value == 0)
+  if (GNUNET_TIME_absolute_get_remaining (cls->end_time).rel_value == 0)
     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "UPnP",
                        _
