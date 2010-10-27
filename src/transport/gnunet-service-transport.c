@@ -5074,7 +5074,7 @@ handle_set_quota (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' request (new quota %u, old quota %u) from client for peer `%4s'\n",
               "SET_QUOTA",
-	      (unsigned int) ntohl (qsm->quota.value__),
+	      (unsigned int) ntohl (qsm->quota.rel_value__),
 	      (unsigned int) n->in_tracker.available_bytes_per_s__,
 	      GNUNET_i2s (&qsm->peer));
 #endif

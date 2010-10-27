@@ -426,7 +426,7 @@ struct GNUNET_TIME_RelativeNBO
 GNUNET_TIME_relative_hton (struct GNUNET_TIME_Relative a)
 {
   struct GNUNET_TIME_RelativeNBO ret;
-  ret.value__ = GNUNET_htonll (a.rel_value);
+  ret.rel_value__ = GNUNET_htonll (a.rel_value);
   return ret;
 }
 
@@ -440,7 +440,7 @@ struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_ntoh (struct GNUNET_TIME_RelativeNBO a)
 {
   struct GNUNET_TIME_Relative ret;
-  ret.rel_value = GNUNET_ntohll (a.value__);
+  ret.rel_value = GNUNET_ntohll (a.rel_value__);
   return ret;
 
 }

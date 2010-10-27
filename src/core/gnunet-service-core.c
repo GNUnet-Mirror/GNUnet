@@ -2173,7 +2173,7 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
 #if DEBUG_CORE_QUOTA
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending %u b/s as new limit to peer `%4s'\n",
-	      (unsigned int) ntohl (n->bw_in.value__),
+	      (unsigned int) ntohl (n->bw_in.rel_value__),
 	      GNUNET_i2s (&n->peer));
 #endif
   ph->iv_seed = htonl (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX));
@@ -3536,7 +3536,7 @@ handle_encrypted_message (struct Neighbour *n,
 #if DEBUG_CORE_SET_QUOTA
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Received %u b/s as new inbound limit for peer `%4s'\n",
-		  (unsigned int) ntohl (pt->inbound_bw_limit.value__),
+		  (unsigned int) ntohl (pt->inbound_bw_limit.rel_value__),
 		  GNUNET_i2s (&n->peer));
 #endif
       n->bw_out_external_limit = pt->inbound_bw_limit;
@@ -3779,11 +3779,11 @@ neighbour_quota_update (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Current quota for `%4s' is %u/%llu b/s in (old: %u b/s) / %u out (%u internal)\n",
 	      GNUNET_i2s (&n->peer),
-	      (unsigned int) ntohl (q_in.value__),
+	      (unsigned int) ntohl (q_in.rel_value__),
 	      bandwidth_target_out_bps,
-	      (unsigned int) ntohl (n->bw_in.value__),
-	      (unsigned int) ntohl (n->bw_out.value__),
-	      (unsigned int) ntohl (n->bw_out_internal_limit.value__));
+	      (unsigned int) ntohl (n->bw_in.rel_value__),
+	      (unsigned int) ntohl (n->bw_out.rel_value__),
+	      (unsigned int) ntohl (n->bw_out_internal_limit.rel_value__));
 #endif
   if (n->bw_in.value__ != q_in.value__) 
     {

@@ -70,7 +70,7 @@ struct GNUNET_TIME_RelativeNBO
   /**
    * The actual value (in network byte order).
    */
-  uint64_t value__ GNUNET_PACKED;
+  uint64_t rel_value__ GNUNET_PACKED;
 };
 
 

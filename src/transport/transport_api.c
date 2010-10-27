@@ -868,11 +868,11 @@ GNUNET_TRANSPORT_set_quota (struct GNUNET_TRANSPORT_Handle *handle,
   if (n != NULL)
     {
 #if DEBUG_TRANSPORT
-      if (ntohl (quota_out.value__) != n->out_tracker.available_bytes_per_s__)
+      if (ntohl (quota_out.rel_value__) != n->out_tracker.available_bytes_per_s__)
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		    "Quota changed from %u to %u for peer `%s'\n",
 		    (unsigned int) n->out_tracker.available_bytes_per_s__,
-		    (unsigned int) ntohl (quota_out.value__),
+		    (unsigned int) ntohl (quota_out.rel_value__),
 		    GNUNET_i2s (target));
       else
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -888,7 +888,7 @@ GNUNET_TRANSPORT_set_quota (struct GNUNET_TRANSPORT_Handle *handle,
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Quota changed to %u for peer `%s', but I have no such neighbour!\n",
-		  (unsigned int) ntohl (quota_out.value__),
+		  (unsigned int) ntohl (quota_out.rel_value__),
 		  GNUNET_i2s (target));
 #endif
     }
