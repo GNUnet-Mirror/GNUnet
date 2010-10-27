@@ -58,7 +58,7 @@ main (int argc, char *argv[])
   perfHash ();
   printf ("Hash perf took %llu ms\n",
           (unsigned long long)
-          GNUNET_TIME_absolute_get_duration (start).value);
+          GNUNET_TIME_absolute_get_duration (start).rel_value);
   return 0;
 }
 

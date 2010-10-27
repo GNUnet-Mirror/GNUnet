@@ -492,7 +492,7 @@ receive_helper (void *cls,
   check_complete (conn);
   /* check for timeout */
   remaining = GNUNET_TIME_absolute_get_remaining (conn->receive_timeout);
-  if (remaining.value == 0)
+  if (remaining.rel_value == 0)
     {
       /* signal timeout! */
       conn->receiver_handler (conn->receiver_handler_cls, NULL);
@@ -790,11 +790,11 @@ client_notify (void *cls, size_t size, void *buf)
   if (buf == NULL)
     {
       delay = GNUNET_TIME_absolute_get_remaining (th->timeout);
-      delay.value /= 2;
+      delay.rel_value /= 2;
       if ( (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & GNUNET_SCHEDULER_get_reason (th->sock->sched))) ||
 	   (GNUNET_YES != th->auto_retry) ||
 	   (0 == --th->attempts_left) || 
-	   (delay.value < 1) )
+	   (delay.rel_value < 1) )
         {
 #if DEBUG_CLIENT
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -822,7 +822,7 @@ client_notify (void *cls, size_t size, void *buf)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Transmission failed %u times, trying again in %llums.\n",
                   MAX_ATTEMPTS - th->attempts_left,
-                  (unsigned long long) delay.value);
+                  (unsigned long long) delay.abs_value);
 #endif
       th->reconnect_task = GNUNET_SCHEDULER_add_delayed (th->sock->sched,
                                                          delay,

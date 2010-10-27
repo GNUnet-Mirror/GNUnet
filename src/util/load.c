@@ -86,18 +86,18 @@ internal_update (struct GNUNET_LOAD_Value *load)
   struct GNUNET_TIME_Relative delta;
   unsigned int n;
 
-  if (load->autodecline.value == GNUNET_TIME_UNIT_FOREVER_REL.value)
+  if (load->autodecline.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
     return;
   delta = GNUNET_TIME_absolute_get_duration (load->last_update);
-  if (delta.value < load->autodecline.value)
+  if (delta.rel_value < load->autodecline.rel_value)
     return;
-  if (load->autodecline.value == 0)
+  if (load->autodecline.rel_value == 0)
     {
       load->runavg_delay = 0.0;
       load->load = 0;
       return;
     }
-  n = delta.value / load->autodecline.value;
+  n = delta.rel_value / load->autodecline.rel_value;
   if (n > 16)
     {
       load->runavg_delay = 0.0;

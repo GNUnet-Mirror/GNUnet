@@ -338,7 +338,7 @@ update_sets (struct GNUNET_SCHEDULER_Handle *sched,
   if (pos != NULL) 
     {
       to = GNUNET_TIME_absolute_get_difference (now, pos->timeout);
-      if (timeout->value > to.value)
+      if (timeout->rel_value > to.rel_value)
 	*timeout = to;
       if (pos->reason != 0)
         *timeout = GNUNET_TIME_UNIT_ZERO;
@@ -352,10 +352,10 @@ update_sets (struct GNUNET_SCHEDULER_Handle *sched,
           pos = pos->next;
           continue;
         }
-      if (pos->timeout.value != GNUNET_TIME_UNIT_FOREVER_ABS.value)
+      if (pos->timeout.abs_value != GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
         {
           to = GNUNET_TIME_absolute_get_difference (now, pos->timeout);
-          if (timeout->value > to.value)
+          if (timeout->rel_value > to.rel_value)
             *timeout = to;
         }
       if (pos->read_fd != -1)
@@ -420,7 +420,7 @@ is_ready (struct GNUNET_SCHEDULER_Handle *sched,
   enum GNUNET_SCHEDULER_Reason reason;
 
   reason = task->reason;
-  if (now.value >= task->timeout.value)
+  if (now.abs_value >= task->timeout.abs_value)
     reason |= GNUNET_SCHEDULER_REASON_TIMEOUT;
   if ( (0 == (reason & GNUNET_SCHEDULER_REASON_READ_READY)) &&
        ( ( (task->read_fd != -1) &&
@@ -491,7 +491,7 @@ check_ready (struct GNUNET_SCHEDULER_Handle *handle,
   while (pos != NULL)
     {
       next = pos->next;
-      if (now.value >= pos->timeout.value)
+      if (now.abs_value >= pos->timeout.abs_value)
 	pos->reason |= GNUNET_SCHEDULER_REASON_TIMEOUT;
       if (0 == pos->reason)
 	break;
@@ -637,13 +637,13 @@ run_ready (struct GNUNET_SCHEDULER_Handle *sched,
 	}
       sched->active_task = pos;
 #if PROFILE_DELAYS
-      if (GNUNET_TIME_absolute_get_duration (pos->start_time).value >
-	  DELAY_THRESHOLD.value)
+      if (GNUNET_TIME_absolute_get_duration (pos->start_time).abs_value >
+	  DELAY_THRESHOLD.abs_value)
 	{
 	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		      "Task %u took %llums to be scheduled\n",
 		      pos->id,
-		      (unsigned long long) GNUNET_TIME_absolute_get_duration (pos->start_time).value);
+		      (unsigned long long) GNUNET_TIME_absolute_get_duration (pos->start_time).abs_value);
 	}
 #endif
       tc.sched = sched;
@@ -803,7 +803,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
           abort ();
 	  break;
         }
-      if ((ret == 0) && (timeout.value == 0) && (busy_wait_warning > 16))
+      if ((ret == 0) && (timeout.rel_value == 0) && (busy_wait_warning > 16))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                       _("Looks like we're busy waiting...\n"));
@@ -1130,7 +1130,7 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_SCHEDULER_Handle * sched,
   prev = sched->pending_timeout_last;
   if (prev != NULL) 
     {
-      if (prev->timeout.value > t->timeout.value)
+      if (prev->timeout.abs_value > t->timeout.abs_value)
 	prev = NULL;
       else
 	pos = prev->next; /* heuristic success! */
@@ -1141,7 +1141,7 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_SCHEDULER_Handle * sched,
       pos = sched->pending_timeout;
     }
   while ( (pos != NULL) &&
-	  ( (pos->timeout.value <= t->timeout.value) ||
+	  ( (pos->timeout.abs_value <= t->timeout.abs_value) ||
 	    (pos->reason != 0) ) )
     {
       prev = pos;

@@ -52,10 +52,10 @@ test_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_TIME_Absolute now;
 
   now = GNUNET_TIME_absolute_get ();
-  if (now.value > target.value)
-    cumDelta += (now.value - target.value);
+  if (now.abs_value > target.abs_value)
+    cumDelta += (now.abs_value - target.abs_value);
   else
-    cumDelta += (target.value - now.value);
+    cumDelta += (target.abs_value - now.abs_value);
   target =
     GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_multiply
                                       (GNUNET_TIME_UNIT_MILLISECONDS, i));

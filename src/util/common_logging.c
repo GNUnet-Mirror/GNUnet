@@ -289,7 +289,7 @@ flush_bulk (const char *datestr)
   char *last;
   char *ft;
 
-  if ((last_bulk_time.value == 0) || (last_bulk_repeat == 0))
+  if ((last_bulk_time.abs_value == 0) || (last_bulk_repeat == 0))
     return;
   rev = 0;
   last = memchr (last_bulk, '\0', BULK_TRACK_SIZE);
@@ -381,11 +381,11 @@ mylog (enum GNUNET_ErrorType kind,
   else
     strcpy (date, "localtime error");
   if ((0 != (kind & GNUNET_ERROR_TYPE_BULK)) &&
-      (last_bulk_time.value != 0) &&
+      (last_bulk_time.abs_value != 0) &&
       (0 == strncmp (buf, last_bulk, sizeof (last_bulk))))
     {
       last_bulk_repeat++;
-      if ((GNUNET_TIME_absolute_get_duration (last_bulk_time).value >
+      if ((GNUNET_TIME_absolute_get_duration (last_bulk_time).rel_value >
            BULK_DELAY_THRESHOLD)
           || (last_bulk_repeat > BULK_REPEAT_THRESHOLD))
         flush_bulk (date);

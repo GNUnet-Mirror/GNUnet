@@ -171,7 +171,7 @@ testEncryptDecrypt (struct GNUNET_CRYPTO_RsaPrivateKey *hostkey)
   printf ("%d RSA encrypt/decrypt operations %llums (%d failures)\n",
           ITER,
           (unsigned long long)
-          GNUNET_TIME_absolute_get_duration (start).value, ok);
+          GNUNET_TIME_absolute_get_duration (start).rel_value, ok);
   if (ok == 0)
     return GNUNET_OK;
   else
@@ -222,7 +222,7 @@ testSignVerify (struct GNUNET_CRYPTO_RsaPrivateKey *hostkey)
   printf ("%d RSA sign/verify operations %llums\n",
           ITER,
           (unsigned long long)
-          GNUNET_TIME_absolute_get_duration (start).value);
+          GNUNET_TIME_absolute_get_duration (start).rel_value);
   return ok;
 }
 

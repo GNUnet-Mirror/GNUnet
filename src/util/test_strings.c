@@ -89,7 +89,7 @@ check ()
   WANT ("btx", b);
   if (0 != GNUNET_STRINGS_buffer_tokenize (buf, 2, 2, &r, &b))
     return 1;
-  at.value = 5000;
+  at.abs_value = 5000;
   r = GNUNET_STRINGS_absolute_time_to_string (at);
   /* r should be something like "Wed Dec 31 17:00:05 1969"
      where the details of the day and hour depend on the timezone;

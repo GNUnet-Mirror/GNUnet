@@ -1121,7 +1121,7 @@ receive_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       return;
     }
   now = GNUNET_TIME_absolute_get ();
-  if ((now.value > sh->receive_timeout.value) ||
+  if ((now.abs_value > sh->receive_timeout.abs_value) ||
       (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT)) ||
       (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)))
     {
@@ -1131,7 +1131,7 @@ receive_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                     "Receive from `%s' encounters error: time out by %llums... (%p)\n",
                     GNUNET_a2s (sh->addr, sh->addrlen),
                     GNUNET_TIME_absolute_get_duration (sh->receive_timeout).
-                    value, sh);
+                    abs_value, sh);
 #endif
       signal_timeout (sh);
       return;
@@ -1200,7 +1200,7 @@ receive_again (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       return;
     }
   now = GNUNET_TIME_absolute_get ();
-  if ((now.value > sh->receive_timeout.value) ||
+  if ((now.abs_value > sh->receive_timeout.abs_value) ||
       (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)))
     {
 #if DEBUG_CONNECTION

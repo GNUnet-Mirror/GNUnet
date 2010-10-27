@@ -40,7 +40,7 @@ GNUNET_TIME_absolute_get ()
   struct timeval tv;
 
   GETTIMEOFDAY (&tv, NULL);
-  ret.value =
+  ret.abs_value =
     (uint64_t) (((uint64_t) tv.tv_sec * 1000LL) +
                 ((uint64_t) tv.tv_usec / 1000LL));
   return ret;
@@ -108,15 +108,15 @@ struct GNUNET_TIME_Absolute
 GNUNET_TIME_relative_to_absolute (struct GNUNET_TIME_Relative rel)
 {
   struct GNUNET_TIME_Absolute ret;
-  if (rel.value == UINT64_MAX)
+  if (rel.rel_value == UINT64_MAX)
     return GNUNET_TIME_absolute_get_forever ();
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
-  if (rel.value + now.value < rel.value)
+  if (rel.rel_value + now.abs_value < rel.rel_value)
     {
       GNUNET_break (0);         /* overflow... */
       return GNUNET_TIME_absolute_get_forever ();
     }
-  ret.value = rel.value + now.value;
+  ret.abs_value = rel.rel_value + now.abs_value;
   return ret;
 }
 
@@ -133,7 +133,7 @@ GNUNET_TIME_relative_min (struct
                           GNUNET_TIME_Relative
                           t1, struct GNUNET_TIME_Relative t2)
 {
-  return (t1.value < t2.value) ? t1 : t2;
+  return (t1.rel_value < t2.rel_value) ? t1 : t2;
 }
 
 
@@ -149,7 +149,7 @@ GNUNET_TIME_relative_max (struct
                           GNUNET_TIME_Relative
                           t1, struct GNUNET_TIME_Relative t2)
 {
-  return (t1.value > t2.value) ? t1 : t2;
+  return (t1.rel_value > t2.rel_value) ? t1 : t2;
 }
 
 
@@ -166,7 +166,7 @@ GNUNET_TIME_absolute_min (struct
                           GNUNET_TIME_Absolute
                           t1, struct GNUNET_TIME_Absolute t2)
 {
-  return (t1.value < t2.value) ? t1 : t2;
+  return (t1.abs_value < t2.abs_value) ? t1 : t2;
 }
 
 
@@ -182,7 +182,7 @@ GNUNET_TIME_absolute_max (struct
                           GNUNET_TIME_Absolute
                           t1, struct GNUNET_TIME_Absolute t2)
 {
-  return (t1.value > t2.value) ? t1 : t2;
+  return (t1.abs_value > t2.abs_value) ? t1 : t2;
 }
 
 
@@ -196,12 +196,12 @@ struct GNUNET_TIME_Relative
 GNUNET_TIME_absolute_get_remaining (struct GNUNET_TIME_Absolute future)
 {
   struct GNUNET_TIME_Relative ret;
-  if (future.value == UINT64_MAX)
+  if (future.abs_value == UINT64_MAX)
     return GNUNET_TIME_relative_get_forever ();
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
-  if (now.value > future.value)
+  if (now.abs_value > future.abs_value)
     return GNUNET_TIME_relative_get_zero ();
-  ret.value = future.value - now.value;
+  ret.rel_value = future.abs_value - now.abs_value;
   return ret;
 }
 
@@ -217,11 +217,11 @@ GNUNET_TIME_absolute_get_difference (struct GNUNET_TIME_Absolute start,
                                      struct GNUNET_TIME_Absolute end)
 {
   struct GNUNET_TIME_Relative ret;
-  if (end.value == UINT64_MAX)
+  if (end.abs_value == UINT64_MAX)
     return GNUNET_TIME_relative_get_forever ();
-  if (end.value < start.value)
+  if (end.abs_value < start.abs_value)
     return GNUNET_TIME_relative_get_zero ();
-  ret.value = end.value - start.value;
+  ret.rel_value = end.abs_value - start.abs_value;
   return ret;
 }
 
@@ -238,10 +238,10 @@ GNUNET_TIME_absolute_get_duration (struct GNUNET_TIME_Absolute hence)
   struct GNUNET_TIME_Relative ret;
 
   now = GNUNET_TIME_absolute_get ();
-  GNUNET_assert (hence.value != UINT64_MAX);
-  if (hence.value > now.value)
+  GNUNET_assert (hence.abs_value != UINT64_MAX);
+  if (hence.abs_value > now.abs_value)
     return GNUNET_TIME_relative_get_zero ();
-  ret.value = now.value - hence.value;
+  ret.rel_value = now.abs_value - hence.abs_value;
   return ret;
 }
 
@@ -258,15 +258,15 @@ GNUNET_TIME_absolute_add (struct GNUNET_TIME_Absolute start,
 {
   struct GNUNET_TIME_Absolute ret;
 
-  if ((start.value == UINT64_MAX) ||
-      (duration.value == UINT64_MAX))
+  if ((start.abs_value == UINT64_MAX) ||
+      (duration.rel_value == UINT64_MAX))
     return GNUNET_TIME_absolute_get_forever ();
-  if (start.value + duration.value < start.value)
+  if (start.abs_value + duration.rel_value < start.abs_value)
     {
       GNUNET_break (0);
       return GNUNET_TIME_absolute_get_forever ();
     }
-  ret.value = start.value + duration.value;
+  ret.abs_value = start.abs_value + duration.rel_value;
   return ret;
 }
 
@@ -288,11 +288,11 @@ GNUNET_TIME_absolute_subtract (struct
 			       duration)
 {
   struct GNUNET_TIME_Absolute ret;
-  if (start.value <= duration.value)
+  if (start.abs_value <= duration.rel_value)
     return GNUNET_TIME_UNIT_ZERO_ABS;
-  if (start.value == GNUNET_TIME_UNIT_FOREVER_ABS.value)
+  if (start.abs_value == GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
     return GNUNET_TIME_UNIT_FOREVER_ABS;
-  ret.value = start.value - duration.value;
+  ret.abs_value = start.abs_value - duration.rel_value;
   return ret;
 }
 
@@ -309,8 +309,8 @@ GNUNET_TIME_relative_multiply (struct GNUNET_TIME_Relative rel,
   struct GNUNET_TIME_Relative ret;
   if (factor == 0)
     return GNUNET_TIME_relative_get_zero ();
-  ret.value = rel.value * (unsigned long long) factor;
-  if (ret.value / factor != rel.value)
+  ret.rel_value = rel.rel_value * (unsigned long long) factor;
+  if (ret.rel_value / factor != rel.rel_value)
     {
       GNUNET_break (0);
       return GNUNET_TIME_relative_get_forever ();
@@ -332,9 +332,9 @@ GNUNET_TIME_relative_divide (struct GNUNET_TIME_Relative rel,
 {
   struct GNUNET_TIME_Relative ret;
   if ( (factor == 0) ||
-       (rel.value == GNUNET_TIME_UNIT_FOREVER_REL.value) )
+       (rel.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value) )
     return GNUNET_TIME_UNIT_FOREVER_REL;
-  ret.value = rel.value / (unsigned long long) factor;
+  ret.rel_value = rel.rel_value / (unsigned long long) factor;
   return ret;
 }
 
@@ -363,8 +363,8 @@ GNUNET_TIME_calculate_eta (struct GNUNET_TIME_Absolute start,
   if (finished == 0)
     return GNUNET_TIME_UNIT_FOREVER_REL;
   dur = GNUNET_TIME_absolute_get_duration (start);
-  exp = ((double) dur.value) * ((double) total) / ((double) finished);
-  ret.value = ((uint64_t) exp) - dur.value;
+  exp = ((double) dur.rel_value) * ((double) total) / ((double) finished);
+  ret.rel_value = ((uint64_t) exp) - dur.rel_value;
   return ret;
 }
 
@@ -382,14 +382,14 @@ GNUNET_TIME_relative_add (struct GNUNET_TIME_Relative a1,
 {
   struct GNUNET_TIME_Relative ret;
 
-  if ((a1.value == UINT64_MAX) || (a2.value == UINT64_MAX))
+  if ((a1.rel_value == UINT64_MAX) || (a2.rel_value == UINT64_MAX))
     return GNUNET_TIME_relative_get_forever ();
-  if (a1.value + a2.value < a1.value)
+  if (a1.rel_value + a2.rel_value < a1.rel_value)
     {
       GNUNET_break (0);
       return GNUNET_TIME_relative_get_forever ();
     }
-  ret.value = a1.value + a2.value;
+  ret.rel_value = a1.rel_value + a2.rel_value;
   return ret;
 }
 
@@ -407,11 +407,11 @@ GNUNET_TIME_relative_subtract (struct GNUNET_TIME_Relative a1,
 {
   struct GNUNET_TIME_Relative ret;
 
-  if (a2.value >= a1.value)
+  if (a2.rel_value >= a1.rel_value)
     return GNUNET_TIME_relative_get_zero ();
-  if (a1.value == UINT64_MAX) 
+  if (a1.rel_value == UINT64_MAX) 
     return GNUNET_TIME_relative_get_forever ();
-  ret.value = a1.value - a2.value;
+  ret.rel_value = a1.rel_value - a2.rel_value;
   return ret;
 }
 
@@ -426,7 +426,7 @@ struct GNUNET_TIME_RelativeNBO
 GNUNET_TIME_relative_hton (struct GNUNET_TIME_Relative a)
 {
   struct GNUNET_TIME_RelativeNBO ret;
-  ret.value__ = GNUNET_htonll (a.value);
+  ret.value__ = GNUNET_htonll (a.rel_value);
   return ret;
 }
 
@@ -440,7 +440,7 @@ struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_ntoh (struct GNUNET_TIME_RelativeNBO a)
 {
   struct GNUNET_TIME_Relative ret;
-  ret.value = GNUNET_ntohll (a.value__);
+  ret.rel_value = GNUNET_ntohll (a.value__);
   return ret;
 
 }
@@ -455,7 +455,7 @@ struct GNUNET_TIME_AbsoluteNBO
 GNUNET_TIME_absolute_hton (struct GNUNET_TIME_Absolute a)
 {
   struct GNUNET_TIME_AbsoluteNBO ret;
-  ret.value__ = GNUNET_htonll (a.value);
+  ret.value__ = GNUNET_htonll (a.abs_value);
   return ret;
 }
 
@@ -469,7 +469,7 @@ struct GNUNET_TIME_Absolute
 GNUNET_TIME_absolute_ntoh (struct GNUNET_TIME_AbsoluteNBO a)
 {
   struct GNUNET_TIME_Absolute ret;
-  ret.value = GNUNET_ntohll (a.value__);
+  ret.abs_value = GNUNET_ntohll (a.value__);
   return ret;
 
 }

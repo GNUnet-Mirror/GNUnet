@@ -161,9 +161,9 @@ socket_set_inheritable (const struct GNUNET_NETWORK_Handle *h)
 static void
 socket_set_nosigpipe (const struct GNUNET_NETWORK_Handle *h)
 {
-  int value = 1;
+  int abs_value = 1;
   if (0 !=
-      setsockopt (h->fd, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof (value)))
+      setsockopt (h->fd, SOL_SOCKET, SO_NOSIGPIPE, &abs_value, sizeof (abs_value)))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
 }
 #endif
@@ -184,8 +184,8 @@ socket_set_nodelay (const struct GNUNET_NETWORK_Handle *h)
   if (0 != setsockopt (h->fd, IPPROTO_TCP, TCP_NODELAY, &value, sizeof (value)))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
 #else
-  const char * value = "1";
-  if (0 != setsockopt (h->fd, IPPROTO_TCP, TCP_NODELAY, value, sizeof (value)))
+  const char * abs_value = "1";
+  if (0 != setsockopt (h->fd, IPPROTO_TCP, TCP_NODELAY, abs_value, sizeof (abs_value)))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
 #endif	
 }
@@ -1010,10 +1010,10 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
     }
 
   struct timeval tv;
-  tv.tv_sec = timeout.value / GNUNET_TIME_UNIT_SECONDS.value;
+  tv.tv_sec = timeout.rel_value / GNUNET_TIME_UNIT_SECONDS.rel_value;
   tv.tv_usec =
-    1000 * (timeout.value - (tv.tv_sec * GNUNET_TIME_UNIT_SECONDS.value));
-  if ((nfds == 0) && (timeout.value == GNUNET_TIME_UNIT_FOREVER_REL.value)
+    1000 * (timeout.rel_value - (tv.tv_sec * GNUNET_TIME_UNIT_SECONDS.rel_value));
+  if ((nfds == 0) && (timeout.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
 #ifdef MINGW
       && handles == 0
 #endif
@@ -1030,7 +1030,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
                  (rfds != NULL) ? &rfds->sds : NULL,
                  (wfds != NULL) ? &wfds->sds : NULL,
                  (efds != NULL) ? &efds->sds : NULL,
-                 (timeout.value == GNUNET_TIME_UNIT_FOREVER_REL.value)
+                 (timeout.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
                  ? NULL : &tv);
 
 #else
@@ -1048,11 +1048,11 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 #define SAFE_FD_ISSET(fd, set)  (set != NULL && FD_ISSET(fd, set))
 
   /* calculate how long we need to wait in milliseconds */
-  if (timeout.value == GNUNET_TIME_UNIT_FOREVER_REL.value)
+  if (timeout.abs_value == GNUNET_TIME_UNIT_FOREVER_REL.abs_value)
     ms_total = INFINITE;
 
   else
-    ms_total = timeout.value / GNUNET_TIME_UNIT_MILLISECONDS.value;
+    ms_total = timeout.abs_value / GNUNET_TIME_UNIT_MILLISECONDS.abs_value;
 
   /* select() may be used as a portable way to sleep */
   if (!(rfds || wfds || efds))

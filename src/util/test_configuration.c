@@ -144,7 +144,7 @@ diffsCallBack (void *cls,
 	  cbData->section = section;
 	  printf ("\nSection: %s\n", section);
 	}
-      printf ("%s = %s\n", option, value);
+      printf ("%s = %s\n", option, abs_value);
 #endif
     default:
       break;

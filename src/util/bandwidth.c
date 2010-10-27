@@ -84,10 +84,10 @@ GNUNET_BANDWIDTH_value_get_available_until (struct GNUNET_BANDWIDTH_Value32NBO b
 #if DEBUG_BANDWIDTH
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Bandwidth has %llu bytes available until deadline in %llums\n",
-	      (unsigned long long) ((b * deadline.value + 500LL) / 1000LL),
-	      deadline.value);
+	      (unsigned long long) ((b * deadline.abs_value + 500LL) / 1000LL),
+	      deadline.abs_value);
 #endif
-  return (b * deadline.value + 500LL) / 1000LL;
+  return (b * deadline.rel_value + 500LL) / 1000LL;
 }
 
 
@@ -115,11 +115,11 @@ GNUNET_BANDWIDTH_value_get_delay_for (struct GNUNET_BANDWIDTH_Value32NBO bps,
 #endif
       return GNUNET_TIME_UNIT_FOREVER_REL;
     }
-  ret.value = size * 1000LL / b;
+  ret.rel_value = size * 1000LL / b;
 #if DEBUG_BANDWIDTH
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Bandwidth suggests delay of %llu ms for %llu bytes of traffic\n",
-	      (unsigned long long) ret.value,
+	      (unsigned long long) ret.abs_value,
 	      (unsigned long long) size);
 #endif
   return ret;
@@ -175,7 +175,7 @@ update_tracker (struct GNUNET_BANDWIDTH_Tracker *av)
   uint64_t max_carry;
 
   now = GNUNET_TIME_absolute_get ();
-  delta_time = now.value - av->last_update__.value;
+  delta_time = now.abs_value - av->last_update__.abs_value;
   delta_avail = (delta_time * ((unsigned long long) av->available_bytes_per_s__) + 500LL) / 1000LL;
   av->consumption_since_last_update__ -= delta_avail;
   av->last_update__ = now;
@@ -291,13 +291,13 @@ GNUNET_BANDWIDTH_tracker_get_delay (struct GNUNET_BANDWIDTH_Tracker *av,
 #endif
       return GNUNET_TIME_UNIT_ZERO;
     }
-  ret.value = 1000LL * bytes_needed / (unsigned long long) av->available_bytes_per_s__;
+  ret.rel_value = 1000LL * bytes_needed / (unsigned long long) av->available_bytes_per_s__;
 #if DEBUG_BANDWIDTH
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Tracker %p delay for %u bytes is %llu ms\n",
 	      av,
 	      (unsigned int) size,
-	      (unsigned long long) ret.value);
+	      (unsigned long long) ret.abs_value);
 #endif
   return ret;
 }

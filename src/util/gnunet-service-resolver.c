@@ -177,7 +177,7 @@ get_ip_as_string (struct GNUNET_SERVER_Client *client,
   while ((cache != NULL) &&
          ((cache->salen != salen) || (0 != memcmp (cache->sa, sa, salen))))
     {
-      if (GNUNET_TIME_absolute_get_duration (cache->last_request).value <
+      if (GNUNET_TIME_absolute_get_duration (cache->last_request).rel_value <
           60 * 60 * 1000)
         {
           if (prev != NULL)
@@ -204,7 +204,7 @@ get_ip_as_string (struct GNUNET_SERVER_Client *client,
   if (cache != NULL)
     {
       cache->last_request = now;
-      if (GNUNET_TIME_absolute_get_duration (cache->last_request).value <
+      if (GNUNET_TIME_absolute_get_duration (cache->last_request).rel_value <
           60 * 60 * 1000)
         {
           GNUNET_free_non_null (cache->addr);

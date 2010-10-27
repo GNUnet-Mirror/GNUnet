@@ -637,7 +637,7 @@ GNUNET_CONFIGURATION_get_value_time (const struct GNUNET_CONFIGURATION_Handle
 
   ret = GNUNET_CONFIGURATION_get_value_number (cfg, section, option, &num);
   if (ret == GNUNET_OK)
-    time->value = (uint64_t) num;
+    time->rel_value = (uint64_t) num;
   return ret;
 }
 

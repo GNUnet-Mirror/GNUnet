@@ -361,9 +361,9 @@ GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative delta)
 {
   const char *unit = _( /* time unit */ "ms");
   char *ret;
-  uint64_t dval = delta.value;
+  uint64_t dval = delta.rel_value;
 
-  if (delta.value == GNUNET_TIME_UNIT_FOREVER_REL.value)
+  if (delta.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
     return GNUNET_strdup (_("eternity"));
   if (dval > 5 * 1000)
     {
@@ -403,9 +403,9 @@ GNUNET_STRINGS_absolute_time_to_string (struct GNUNET_TIME_Absolute t)
   time_t tt;
   char *ret;
 
-  if (t.value == GNUNET_TIME_UNIT_FOREVER_ABS.value)
+  if (t.abs_value == GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
     return GNUNET_strdup (_("end of time"));
-  tt = t.value / 1000;
+  tt = t.abs_value / 1000;
 #ifdef ctime_r
   ret = ctime_r (&tt, GNUNET_malloc (32));
 #else
