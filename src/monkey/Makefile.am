@@ -77,8 +77,8 @@ check_SCRIPTS = \
   #test_monkey_npe.sh
 
 #EXTRA_DIST = \
-  #$(check_SCRIPTS) 
-  #test_gnunet_monkey_data.conf \ 
+#$(check_SCRIPTS) 
+#test_gnunet_monkey_data.conf 
 
 endif
 endif
