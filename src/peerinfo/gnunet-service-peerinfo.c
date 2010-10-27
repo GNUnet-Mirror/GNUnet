@@ -130,7 +130,7 @@ discard_expired (void *cls,
                  const void *addr, uint16_t addrlen)
 {
   const struct GNUNET_TIME_Absolute *now = cls;
-  if (now->value > expiration.value)
+  if (now->abs_value > expiration.abs_value)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  _("Removing expired address of transport `%s'\n"),
@@ -347,7 +347,7 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
       delta = GNUNET_HELLO_equals (mrg,
 				   host->hello,
 				   GNUNET_TIME_absolute_get ());
-      if (delta.value == GNUNET_TIME_UNIT_FOREVER_ABS.value)
+      if (delta.abs_value == GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
 	{
 	  GNUNET_free (mrg);
 	  return;
