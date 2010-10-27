@@ -74,7 +74,7 @@ block_plugin_dns_evaluate (void *cls,
     if (ntohl(rec->purpose.size) != sizeof(struct GNUNET_DNS_Record) - sizeof(struct GNUNET_CRYPTO_RsaSignature))
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
 
-    if (GNUNET_TIME_relative_get_zero().value == GNUNET_TIME_absolute_get_remaining(rec->expiration_time).value)
+    if (GNUNET_TIME_relative_get_zero().rel_value == GNUNET_TIME_absolute_get_remaining(rec->expiration_time).rel_value)
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
 
     if (GNUNET_OK != GNUNET_CRYPTO_rsa_verify (htonl(GNUNET_SIGNATURE_PURPOSE_DNS_RECORD),
