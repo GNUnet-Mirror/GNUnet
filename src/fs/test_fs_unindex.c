@@ -102,15 +102,15 @@ progress_cb (void *cls,
     case GNUNET_FS_STATUS_PUBLISH_PROGRESS:
 #if VERBOSE
       printf ("Publish is progressing (%llu/%llu at level %u off %llu)...\n",
-              (unsigned long long) event->value.publish.completed,
-              (unsigned long long) event->value.publish.size,
-	      event->value.publish.specifics.progress.depth,
-	      (unsigned long long) event->value.publish.specifics.progress.offset);
+              (unsigned long long) event->abs_value.publish.completed,
+              (unsigned long long) event->abs_value.publish.size,
+	      event->abs_value.publish.specifics.progress.depth,
+	      (unsigned long long) event->abs_value.publish.specifics.progress.offset);
 #endif      
       break;
     case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
       printf ("Publishing complete, %llu kbps.\n",
-	      (unsigned long long) (FILESIZE * 1000 / (1+GNUNET_TIME_absolute_get_duration (start).value) / 1024));
+	      (unsigned long long) (FILESIZE * 1000 / (1+GNUNET_TIME_absolute_get_duration (start).rel_value) / 1024));
       start = GNUNET_TIME_absolute_get ();
       unindex = GNUNET_FS_unindex_start (fs,
 					 fn,
@@ -119,7 +119,7 @@ progress_cb (void *cls,
       break;
     case GNUNET_FS_STATUS_UNINDEX_COMPLETED:
       printf ("Unindex complete,  %llu kbps.\n",
-	      (unsigned long long) (FILESIZE * 1000 / (1+GNUNET_TIME_absolute_get_duration (start).value) / 1024));
+	      (unsigned long long) (FILESIZE * 1000 / (1+GNUNET_TIME_absolute_get_duration (start).rel_value) / 1024));
       GNUNET_SCHEDULER_add_continuation (sched,
 					 &abort_unindex_task,
 					 NULL,
@@ -129,10 +129,10 @@ progress_cb (void *cls,
       GNUNET_assert (unindex == event->value.unindex.uc);
 #if VERBOSE
       printf ("Unindex is progressing (%llu/%llu at level %u off %llu)...\n",
-              (unsigned long long) event->value.unindex.completed,
-              (unsigned long long) event->value.unindex.size,
-	      event->value.unindex.specifics.progress.depth,
-	      (unsigned long long) event->value.unindex.specifics.progress.offset);
+              (unsigned long long) event->abs_value.unindex.completed,
+              (unsigned long long) event->abs_value.unindex.size,
+	      event->abs_value.unindex.specifics.progress.depth,
+	      (unsigned long long) event->abs_value.unindex.specifics.progress.offset);
 #endif
       break;
     case GNUNET_FS_STATUS_PUBLISH_ERROR:

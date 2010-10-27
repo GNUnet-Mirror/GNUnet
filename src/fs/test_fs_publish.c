@@ -100,7 +100,7 @@ progress_cb (void *cls,
     case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
       ret = event->value.publish.cctx;
       printf ("Publish complete,  %llu kbps.\n",
-	      (unsigned long long) (FILESIZE * 1000 / (1+GNUNET_TIME_absolute_get_duration (start).value) / 1024));
+	      (unsigned long long) (FILESIZE * 1000 / (1+GNUNET_TIME_absolute_get_duration (start).rel_value) / 1024));
       if (0 == strcmp ("publish-context-dir", 
 		       event->value.publish.cctx))	
 	GNUNET_SCHEDULER_add_continuation (sched,
@@ -113,10 +113,10 @@ progress_cb (void *cls,
       GNUNET_assert (publish == event->value.publish.pc);
 #if VERBOSE
       printf ("Publish is progressing (%llu/%llu at level %u off %llu)...\n",
-              (unsigned long long) event->value.publish.completed,
-              (unsigned long long) event->value.publish.size,
-	      event->value.publish.specifics.progress.depth,
-	      (unsigned long long) event->value.publish.specifics.progress.offset);
+              (unsigned long long) event->abs_value.publish.completed,
+              (unsigned long long) event->abs_value.publish.size,
+	      event->abs_value.publish.specifics.progress.depth,
+	      (unsigned long long) event->abs_value.publish.specifics.progress.offset);
 #endif
       break;
     case GNUNET_FS_STATUS_PUBLISH_ERROR:

@@ -106,7 +106,7 @@ progress_cb (void *cls,
       if (verbose)
 	{	  
 	  s = GNUNET_STRINGS_relative_time_to_string(info->value.download.eta);
-	  t = GNUNET_STRINGS_byte_size_fancy(info->value.download.completed * 1000LL / (info->value.download.duration.value + 1));
+	  t = GNUNET_STRINGS_byte_size_fancy(info->value.download.completed * 1000LL / (info->value.download.duration.rel_value + 1));
 	  fprintf (stdout,
 		   _("Downloading `%s' at %llu/%llu (%s remaining, %s/s)\n"),
 		   info->value.download.filename,
@@ -125,7 +125,7 @@ progress_cb (void *cls,
       GNUNET_SCHEDULER_shutdown (sched);
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
-      s = GNUNET_STRINGS_byte_size_fancy(info->value.download.completed * 1000 / (info->value.download.duration.value + 1));
+      s = GNUNET_STRINGS_byte_size_fancy(info->value.download.completed * 1000 / (info->value.download.duration.rel_value + 1));
       fprintf (stdout,
 	       _("Downloading `%s' done (%s/s).\n"),
 	       info->value.download.filename,

@@ -144,15 +144,15 @@ progress_cb (void *cls,
     case GNUNET_FS_STATUS_PUBLISH_PROGRESS:
 #if VERBOSE
       printf ("Publish is progressing (%llu/%llu at level %u off %llu)...\n",
-              (unsigned long long) event->value.publish.completed,
-              (unsigned long long) event->value.publish.size,
-	      event->value.publish.specifics.progress.depth,
-	      (unsigned long long) event->value.publish.specifics.progress.offset);
+              (unsigned long long) event->abs_value.publish.completed,
+              (unsigned long long) event->abs_value.publish.size,
+	      event->abs_value.publish.specifics.progress.depth,
+	      (unsigned long long) event->abs_value.publish.specifics.progress.offset);
 #endif      
       break;
     case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
       printf ("Publishing complete, %llu kbps.\n",
-	      (unsigned long long) (FILESIZE * 1000LL / (1+GNUNET_TIME_absolute_get_duration (start).value) / 1024LL));
+	      (unsigned long long) (FILESIZE * 1000LL / (1+GNUNET_TIME_absolute_get_duration (start).rel_value) / 1024LL));
       fn = GNUNET_DISK_mktemp ("gnunet-download-test-dst");
       start = GNUNET_TIME_absolute_get ();
       download = GNUNET_FS_download_start (fs,
@@ -169,7 +169,7 @@ progress_cb (void *cls,
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
       printf ("Download complete,  %llu kbps.\n",
-	      (unsigned long long) (FILESIZE * 1000LL / (1+GNUNET_TIME_absolute_get_duration (start).value) / 1024LL));
+	      (unsigned long long) (FILESIZE * 1000LL / (1+GNUNET_TIME_absolute_get_duration (start).rel_value) / 1024LL));
       GNUNET_SCHEDULER_add_now (sched,
 				&abort_download_task,
 				NULL);
@@ -178,10 +178,10 @@ progress_cb (void *cls,
       GNUNET_assert (download == event->value.download.dc);
 #if VERBOSE
       printf ("Download is progressing (%llu/%llu at level %u off %llu)...\n",
-              (unsigned long long) event->value.download.completed,
-              (unsigned long long) event->value.download.size,
-	      event->value.download.specifics.progress.depth,
-	      (unsigned long long) event->value.download.specifics.progress.offset);
+              (unsigned long long) event->abs_value.download.completed,
+              (unsigned long long) event->abs_value.download.size,
+	      event->abs_value.download.specifics.progress.depth,
+	      (unsigned long long) event->abs_value.download.specifics.progress.offset);
 #endif
       break;
     case GNUNET_FS_STATUS_PUBLISH_ERROR:

@@ -928,7 +928,7 @@ update_datastore_delays (struct GNUNET_TIME_Absolute start)
 
   delay = GNUNET_TIME_absolute_get_duration (start);
   GNUNET_LOAD_update (datastore_get_load,
-		      delay.value);
+		      delay.rel_value);
 }
 
 
@@ -1032,7 +1032,7 @@ consider_migration (void *cls,
   unsigned int repl;
   
   /* consider 'cp' as a migration target for mb */
-  if (GNUNET_TIME_absolute_get_remaining (cp->migration_blocked).value > 0)
+  if (GNUNET_TIME_absolute_get_remaining (cp->migration_blocked).rel_value > 0)
     return GNUNET_YES; /* peer has requested no migration! */
   if (mb != NULL)
     {
@@ -1496,7 +1496,7 @@ destroy_pending_request (struct PendingRequest *pr)
 					    pr))
     {
       GNUNET_LOAD_update (rt_entry_lifetime,
-			  GNUNET_TIME_absolute_get_duration (pr->start_time).value);
+			  GNUNET_TIME_absolute_get_duration (pr->start_time).rel_value);
     }
   if (pr->qe != NULL)
      {
@@ -2127,7 +2127,7 @@ transmit_to_peer (void *cls,
       return 0;
     }  
   GNUNET_LOAD_update (cp->transmission_delay,
-		      GNUNET_TIME_absolute_get_duration (cp->last_transmission_request_start).value);
+		      GNUNET_TIME_absolute_get_duration (cp->last_transmission_request_start).rel_value);
   now = GNUNET_TIME_absolute_get ();
   msize = 0;
   min_delay = GNUNET_TIME_UNIT_FOREVER_REL;
@@ -2136,7 +2136,7 @@ transmit_to_peer (void *cls,
 	  (pm->msize <= size) )
     {
       next_pm = pm->next;
-      if (pm->delay_until.value > now.value)
+      if (pm->delay_until.abs_value > now.abs_value)
 	{
 	  min_delay = GNUNET_TIME_relative_min (min_delay,
 						GNUNET_TIME_absolute_get_remaining (pm->delay_until));
@@ -2783,13 +2783,13 @@ target_peer_select_cb (void *cls,
 #endif
   /* 2b) many other requests to this peer */
   delay = GNUNET_TIME_absolute_get_duration (cp->last_request_times[cp->last_request_times_off % MAX_QUEUE_PER_PEER]);
-  if (delay.value <= cp->avg_delay.value)
+  if (delay.rel_value <= cp->avg_delay.rel_value)
     {
 #if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  "NOT sending query since we send %u others to this peer in the last %llums\n",
 		  MAX_QUEUE_PER_PEER,
-		  cp->avg_delay.value);
+		  cp->avg_delay.abs_value);
 #endif
       return GNUNET_YES; /* skip */      
     }
@@ -2816,7 +2816,7 @@ target_peer_select_cb (void *cls,
 	  score += 1.0; /* likely successful based on hot path */
     }
   /* 3b) include latency */
-  if (cp->avg_delay.value < 4 * TTL_DECREMENT)
+  if (cp->avg_delay.rel_value < 4 * TTL_DECREMENT)
     score += 1.0; /* likely fast based on latency */
   /* 3c) include priorities */
   if (cp->avg_priority <= pr->remaining_priority / 2.0)
@@ -2964,7 +2964,7 @@ forward_request_task (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "No peer selected for forwarding of query `%s', will try again in %llu ms!\n",
 		  GNUNET_h2s (&pr->query),
-		  delay.value);
+		  delay.abs_value);
 #endif
       pr->task = GNUNET_SCHEDULER_add_delayed (sched,
 					       delay,
@@ -3211,9 +3211,9 @@ struct GNUNET_TIME_Relative art_delay;
       if (i < pr->used_targets_off)
 	{
 	  cur_delay = GNUNET_TIME_absolute_get_duration (pr->used_targets[i].last_request_time);      
-	  prq->sender->avg_delay.value
-	    = (prq->sender->avg_delay.value * 
-	       (RUNAVG_DELAY_N - 1) + cur_delay.value) / RUNAVG_DELAY_N; 
+	  prq->sender->avg_delay.rel_value
+	    = (prq->sender->avg_delay.rel_value * 
+	       (RUNAVG_DELAY_N - 1) + cur_delay.rel_value) / RUNAVG_DELAY_N; 
 	  prq->sender->avg_priority
 	    = (prq->sender->avg_priority * 
 	       (RUNAVG_DELAY_N - 1) + pr->priority) / (double) RUNAVG_DELAY_N;
@@ -3275,7 +3275,7 @@ struct GNUNET_TIME_Relative art_delay;
 							  key,
 							  pr));
       GNUNET_LOAD_update (rt_entry_lifetime,
-			  GNUNET_TIME_absolute_get_duration (pr->start_time).value);
+			  GNUNET_TIME_absolute_get_duration (pr->start_time).rel_value);
       break;
     case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
       GNUNET_STATISTICS_update (stats,
@@ -3395,7 +3395,7 @@ struct GNUNET_TIME_Relative art_delay;
 	= GNUNET_TIME_relative_to_absolute (art_delay);
       GNUNET_STATISTICS_update (stats,
 				gettext_noop ("cummulative artificial delay introduced (ms)"),
-				art_delay.value,
+				art_delay.abs_value,
 				GNUNET_NO);
 #endif
       reply->msize = msize;
@@ -3469,7 +3469,7 @@ put_migration_continuation (void *cls,
   delay = GNUNET_TIME_absolute_get_duration (*start);
   GNUNET_free (start);
   GNUNET_LOAD_update (datastore_put_load,
-		      delay.value);
+		      delay.rel_value);
   if (GNUNET_OK == success)
     return;
   GNUNET_STATISTICS_update (stats,
@@ -3594,7 +3594,7 @@ handle_p2p_put (void *cls,
     {
       cp = GNUNET_CONTAINER_multihashmap_get (connected_peers,
 					      &other->hashPubKey);
-      if (GNUNET_TIME_absolute_get_duration (cp->last_migration_block).value < 5000)
+      if (GNUNET_TIME_absolute_get_duration (cp->last_migration_block).rel_value < 5000)
 	return GNUNET_OK; /* already blocked */
       /* We're too busy; send MigrationStop message! */
       if (GNUNET_YES != active_migration) 
@@ -4105,7 +4105,7 @@ handle_p2p_get (void *cls,
     }
   if ( (GNUNET_LOAD_get_load (cp->transmission_delay) > 3 * (1 + priority)) ||
        (GNUNET_LOAD_get_average (cp->transmission_delay) > 
-	GNUNET_CONSTANTS_MAX_CORK_DELAY.value * 2 + GNUNET_LOAD_get_average (rt_entry_lifetime)) )
+	GNUNET_CONSTANTS_MAX_CORK_DELAY.rel_value * 2 + GNUNET_LOAD_get_average (rt_entry_lifetime)) )
     {
       /* don't have BW to send to peer, or would likely take longer than we have for it,
 	 so at best indirect the query */
@@ -4161,8 +4161,8 @@ handle_p2p_get (void *cls,
 					      &cdc);
   if (cdc.have != NULL)
     {
-      if (cdc.have->start_time.value + cdc.have->ttl >=
-	  pr->start_time.value + pr->ttl)
+      if (cdc.have->start_time.abs_value + cdc.have->ttl >=
+	  pr->start_time.abs_value + pr->ttl)
 	{
 	  /* existing request has higher TTL, drop new one! */
 	  cdc.have->priority += pr->priority;
@@ -4205,7 +4205,7 @@ handle_p2p_get (void *cls,
   
   pr->hnode = GNUNET_CONTAINER_heap_insert (requests_by_expiration_heap,
 					    pr,
-					    pr->start_time.value + pr->ttl);
+					    pr->start_time.abs_value + pr->ttl);
 
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# P2P searches received"),

@@ -806,7 +806,7 @@ process_result (struct GNUNET_FS_SearchContext *sc,
 		const void *data,
 		size_t size)
 {
-  if (GNUNET_TIME_absolute_get_duration (expiration).value > 0)
+  if (GNUNET_TIME_absolute_get_duration (expiration).rel_value > 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Result received has already expired.\n");

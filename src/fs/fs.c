@@ -134,7 +134,7 @@ process_job_queue (void *cls,
 					   run_time);
       rst = GNUNET_TIME_absolute_get_remaining (end_time);
       restart_at = GNUNET_TIME_relative_min (rst, restart_at);
-      if (rst.value > 0)
+      if (rst.rel_value > 0)
 	continue;	
       stop_job (qe);
     }
@@ -677,7 +677,7 @@ write_start_time (struct GNUNET_BIO_WriteHandle *wh,
   struct GNUNET_TIME_Relative dur;
 
   dur = GNUNET_TIME_absolute_get_duration (timestamp);
-  return GNUNET_BIO_write_int64 (wh, dur.value);
+  return GNUNET_BIO_write_int64 (wh, dur.rel_value);
 }
 
 
@@ -701,7 +701,7 @@ read_start_time (struct GNUNET_BIO_ReadHandle *rh,
 {
   struct GNUNET_TIME_Relative dur;
   if (GNUNET_OK !=
-      GNUNET_BIO_read_int64 (rh, &dur.value))
+      GNUNET_BIO_read_int64 (rh, &dur.rel_value))
     return GNUNET_SYSERR;
   *timestamp = GNUNET_TIME_absolute_subtract (GNUNET_TIME_absolute_get (),
 					      dur);
@@ -774,7 +774,7 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
 	   (GNUNET_YES !=
 	    GNUNET_FS_uri_test_chk (ret->chk_uri)) ) ) ||
        (GNUNET_OK !=
-	GNUNET_BIO_read_int64 (rh, &ret->expirationTime.value)) ||
+	GNUNET_BIO_read_int64 (rh, &ret->expirationTime.abs_value)) ||
        (GNUNET_OK !=
 	read_start_time (rh, &ret->start_time)) ||
        (GNUNET_OK !=
@@ -1186,7 +1186,7 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation * fi)
        (GNUNET_OK !=
 	GNUNET_BIO_write_string (wh, chks)) ||
        (GNUNET_OK != 
-	GNUNET_BIO_write_int64 (wh, fi->expirationTime.value)) ||
+	GNUNET_BIO_write_int64 (wh, fi->expirationTime.abs_value)) ||
        (GNUNET_OK != 
 	write_start_time (wh, fi->start_time)) ||
        (GNUNET_OK !=

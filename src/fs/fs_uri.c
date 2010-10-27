@@ -630,7 +630,7 @@ uri_loc_parse (const char *s, char **emsg)
     }
   ass.purpose.size = htonl(sizeof(struct LocUriAssembly));
   ass.purpose.purpose = htonl(GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT);
-  et.value = exptime;
+  et.abs_value = exptime;
   ass.exptime = GNUNET_TIME_absolute_hton (et);
   if (GNUNET_OK != 
       GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT,
@@ -1885,7 +1885,7 @@ uri_loc_to_string (const struct GNUNET_FS_Uri *uri)
                    (unsigned long long) GNUNET_ntohll (uri->data.loc.fi.file_length),
                    peerId,
 		   peerSig,
-		   (unsigned long long) uri->data.loc.expirationTime.value);
+		   (unsigned long long) uri->data.loc.expirationTime.abs_value);
   GNUNET_free (peerSig);
   GNUNET_free (peerId);
   return ret;

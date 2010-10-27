@@ -67,9 +67,9 @@ do_stop (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
     {
       del = GNUNET_TIME_absolute_get_duration (start_time);
-      if (del.value == 0)
-	del.value = 1;
-      fancy = GNUNET_STRINGS_byte_size_fancy (((unsigned long long)FILESIZE) * 1000LL / del.value);
+      if (del.rel_value == 0)
+	del.rel_value = 1;
+      fancy = GNUNET_STRINGS_byte_size_fancy (((unsigned long long)FILESIZE) * 1000LL / del.rel_value);
       fprintf (stdout,
 	       "Download speed was %s/s\n",
 	       fancy);
