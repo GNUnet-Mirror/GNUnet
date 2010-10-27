@@ -16,7 +16,6 @@
 #if !defined (__GNUC__) || __GNUC__ < 2
 # define __attribute__(x)
 #endif
-#define unused      __attribute__((unused))
 
 
 int
@@ -136,7 +135,7 @@ void event_cb (smtp_session_t session, int event_no, void *arg,...)
 /* Callback to prnt the recipient status */
 void
 print_recipient_status (smtp_recipient_t recipient,
-			const char *mailbox, void *arg unused)
+			const char *mailbox, void *arg)
 {
   const smtp_status_t *status;
 
