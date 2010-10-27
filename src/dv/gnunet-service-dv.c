@@ -1505,7 +1505,7 @@ static int handle_dv_data_message (void *cls,
 #endif
 
 #if DELAY_FORWARDS
-  if (GNUNET_TIME_absolute_get_duration(pos->last_gossip).value < GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 2).value)
+  if (GNUNET_TIME_absolute_get_duration(pos->last_gossip).abs_value < GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 2).abs_value)
     {
       delayed_context = GNUNET_malloc(sizeof(struct DelayedMessageContext));
       memcpy(&delayed_context->dest, destination, sizeof(struct GNUNET_PeerIdentity));
@@ -1555,9 +1555,9 @@ static int handle_dv_data_message (void *cls,
  */
 int print_neighbors (void *cls,
                      const GNUNET_HashCode * key,
-                     void *value)
+                     void *abs_value)
 {
-  struct DistantNeighbor *distant_neighbor = value;
+  struct DistantNeighbor *distant_neighbor = abs_value;
   char my_shortname[5];
   char referrer_shortname[5];
   memcpy(&my_shortname, GNUNET_i2s(&my_identity), 4);
@@ -1732,10 +1732,10 @@ handle_start (void *cls,
  */
 int send_iterator (void *cls,
                    const GNUNET_HashCode * key,
-                   void *value)
+                   void *abs_value)
 {
   struct DV_SendContext *send_context = cls;
-  struct DistantNeighbor *distant_neighbor = value;
+  struct DistantNeighbor *distant_neighbor = abs_value;
 
   if (memcmp(distant_neighbor->referrer, send_context->direct_peer, sizeof(struct GNUNET_PeerIdentity)) == 0) /* They match, send and free */
     {
@@ -2159,10 +2159,10 @@ void core_init (void *cls,
  */
 static int add_pkey_to_extended (void *cls,
                                  const GNUNET_HashCode * key,
-                                 void *value)
+                                 void *abs_value)
 {
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pkey = cls;
-  struct DistantNeighbor *distant_neighbor = value;
+  struct DistantNeighbor *distant_neighbor = abs_value;
 
   if (distant_neighbor->pkey == NULL)
   {
@@ -2665,9 +2665,9 @@ static int add_all_extended_peers (void *cls,
  */
 static int gossip_all_to_all_iterator (void *cls,
                                       const GNUNET_HashCode * key,
-                                      void *value)
+                                      void *abs_value)
 {
-  struct DirectNeighbor *direct = value;
+  struct DirectNeighbor *direct = abs_value;
 
   GNUNET_CONTAINER_multihashmap_iterate (extended_neighbors, &add_all_extended_peers, direct->send_context);
 
