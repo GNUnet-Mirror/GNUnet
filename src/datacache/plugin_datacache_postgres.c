@@ -312,7 +312,7 @@ postgres_plugin_put (void *cls,
   struct Plugin *plugin = cls;
   PGresult *ret;
   uint32_t btype = htonl (type);
-  uint64_t bexpi = GNUNET_TIME_absolute_hton (discard_time).value__;
+  uint64_t bexpi = GNUNET_TIME_absolute_hton (discard_time).abs_value__;
   const char *paramValues[] = {
     (const char *) &btype,
     (const char *) &bexpi,

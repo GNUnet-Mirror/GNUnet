@@ -2173,7 +2173,7 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
 #if DEBUG_CORE_QUOTA
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending %u b/s as new limit to peer `%4s'\n",
-	      (unsigned int) ntohl (n->bw_in.rel_value__),
+	      (unsigned int) ntohl (n->bw_in.value__),
 	      GNUNET_i2s (&n->peer));
 #endif
   ph->iv_seed = htonl (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX));

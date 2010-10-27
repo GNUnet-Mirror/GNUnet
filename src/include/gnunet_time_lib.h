@@ -82,7 +82,7 @@ struct GNUNET_TIME_AbsoluteNBO
   /**
    * The actual value (in network byte order).
    */
-  uint64_t value__ GNUNET_PACKED;
+  uint64_t abs_value__ GNUNET_PACKED;
 };
 
 

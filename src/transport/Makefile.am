@@ -200,8 +200,8 @@ check_PROGRAMS = \
  test_transport_api_reliability_tcp_nat \
  test_transport_api_reliability_udp \
  $(HTTP_REL_TEST) \
- $(HTTPS_REL_TEST)
-#  test_quota_compliance
+ $(HTTPS_REL_TEST) \
+ test_quota_compliance
 # TODO: add tests for nat, etc.
 
 if !DISABLE_TEST_RUN

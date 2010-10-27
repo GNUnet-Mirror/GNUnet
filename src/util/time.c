@@ -455,7 +455,7 @@ struct GNUNET_TIME_AbsoluteNBO
 GNUNET_TIME_absolute_hton (struct GNUNET_TIME_Absolute a)
 {
   struct GNUNET_TIME_AbsoluteNBO ret;
-  ret.value__ = GNUNET_htonll (a.abs_value);
+  ret.abs_value__ = GNUNET_htonll (a.abs_value);
   return ret;
 }
 
@@ -469,7 +469,7 @@ struct GNUNET_TIME_Absolute
 GNUNET_TIME_absolute_ntoh (struct GNUNET_TIME_AbsoluteNBO a)
 {
   struct GNUNET_TIME_Absolute ret;
-  ret.abs_value = GNUNET_ntohll (a.value__);
+  ret.abs_value = GNUNET_ntohll (a.abs_value__);
   return ret;
 
 }

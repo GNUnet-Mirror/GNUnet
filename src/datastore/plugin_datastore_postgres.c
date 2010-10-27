@@ -605,7 +605,7 @@ postgres_plugin_put (void *cls,
   uint32_t btype = htonl (type);
   uint32_t bprio = htonl (priority);
   uint32_t banon = htonl (anonymity);
-  uint64_t bexpi = GNUNET_TIME_absolute_hton (expiration).value__;
+  uint64_t bexpi = GNUNET_TIME_absolute_hton (expiration).abs_value__;
   const char *paramValues[] = {
     (const char *) &btype,
     (const char *) &bprio,
@@ -886,7 +886,7 @@ postgres_plugin_update (void *cls,
   PGresult *ret;
   int32_t bdelta = (int32_t) htonl ((uint32_t) delta);
   uint32_t boid = htonl ( (uint32_t) uid);
-  uint64_t bexpire = GNUNET_TIME_absolute_hton (expire).value__;
+  uint64_t bexpire = GNUNET_TIME_absolute_hton (expire).abs_value__;
   const char *paramValues[] = {
     (const char *) &bdelta,
     (const char *) &bexpire,
@@ -996,7 +996,7 @@ postgres_iterate (struct Plugin *plugin,
       GNUNET_free (nrc);
       return;
     }
-  nrc->bnow = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ()).value__;
+  nrc->bnow = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ()).abs_value__;
   postgres_plugin_next_request (nrc,
 				GNUNET_NO);
 }
