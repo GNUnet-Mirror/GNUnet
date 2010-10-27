@@ -123,7 +123,7 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   p1.th = NULL;
   GNUNET_TRANSPORT_disconnect (p2.th);
   p2.th = NULL;
-  delta = GNUNET_TIME_absolute_get_duration (start_time).value;
+  delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
   fprintf (stderr,
 	   "\nThroughput was %llu kb/s\n",
 	   total_bytes * 1000 / 1024 / delta);

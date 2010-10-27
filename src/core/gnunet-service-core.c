@@ -1171,7 +1171,7 @@ handle_client_request_info (void *cls,
       else if (want_reserv > 0)
         {
 	  if (GNUNET_BANDWIDTH_tracker_get_delay (&n->available_recv_window,
-						  want_reserv).value == 0)
+						  want_reserv).rel_value == 0)
 	    got_reserv = want_reserv;
 	  else
             got_reserv = 0; /* all or nothing */
@@ -1442,7 +1442,7 @@ consider_free_neighbour (struct Neighbour *n)
     
   left = GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_add (n->last_activity,
 								       GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT));
-  if (left.value > 0)
+  if (left.rel_value > 0)
     {
       if (n->dead_clean_task != GNUNET_SCHEDULER_NO_TASK)
 	GNUNET_SCHEDULER_cancel (sched, n->dead_clean_task);
@@ -1574,8 +1574,7 @@ process_encrypted_neighbour_queue (struct Neighbour *n)
               "Asking transport for transmission of %u bytes to `%4s' in next %llu ms\n",
               (unsigned int) m->size,
               GNUNET_i2s (&n->peer),
-              (unsigned long long) GNUNET_TIME_absolute_get_remaining (m->deadline).
-              value);
+              (unsigned long long) GNUNET_TIME_absolute_get_remaining (m->deadline).rel_value);
 #endif
   n->th =
     GNUNET_TRANSPORT_notify_transmit_ready (transport, &n->peer,
@@ -1731,7 +1730,7 @@ select_messages (struct Neighbour *n,
           if (discard_low_prio == GNUNET_NO)
             {
 	      delta = GNUNET_TIME_absolute_get_difference (t, pos->deadline);
-	      if (delta.value > 0)
+	      if (delta.rel_value > 0)
 		{
 		  // FIXME: HUH? Check!
 		  t = pos->deadline;
@@ -1752,7 +1751,7 @@ select_messages (struct Neighbour *n,
                   slack = GNUNET_TIME_relative_min (slack,
 						    GNUNET_BANDWIDTH_value_get_delay_for (n->bw_out,
 											  avail));
-                  if (pos->deadline.value <= now.value) 
+                  if (pos->deadline.abs_value <= now.abs_value) 
 		    {
 		      /* now or never */
 		      slack = GNUNET_TIME_UNIT_ZERO;
@@ -1794,7 +1793,7 @@ select_messages (struct Neighbour *n,
     }
   /* guard against sending "tiny" messages with large headers without
      urgent deadlines */
-  if ( (slack.value > GNUNET_CONSTANTS_MAX_CORK_DELAY.value) && 
+  if ( (slack.rel_value > GNUNET_CONSTANTS_MAX_CORK_DELAY.rel_value) && 
        (size > 4 * off) &&
        (queue_size <= MAX_PEER_QUEUE_SIZE - 2) )
     {
@@ -1815,7 +1814,7 @@ select_messages (struct Neighbour *n,
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Deferring transmission for %llums due to underfull message buffer size (%u/%u)\n",
-		  (unsigned long long) retry_time->value,
+		  (unsigned long long) retry_time->rel_value,
 		  (unsigned int) off,
 		  (unsigned int) size);
 #endif
@@ -1896,7 +1895,7 @@ batch_message (struct Neighbour *n,
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "No messages selected, will try again in %llu ms\n",
-                  retry_time->value);
+                  retry_time->rel_value);
 #endif
       return 0;
     }
@@ -1954,9 +1953,9 @@ batch_message (struct Neighbour *n,
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Adding plaintext message of size %u with deadline %llu ms to batch\n",
 		      (unsigned int) pos->size,
-		      (unsigned long long) GNUNET_TIME_absolute_get_remaining (pos->deadline).value);
+		      (unsigned long long) GNUNET_TIME_absolute_get_remaining (pos->deadline).rel_value);
 #endif
-          deadline->value = GNUNET_MIN (deadline->value, pos->deadline.value);
+          deadline->abs_value = GNUNET_MIN (deadline->abs_value, pos->deadline.abs_value);
           GNUNET_free (pos);
           if (prev == NULL)
             n->messages = next;
@@ -1972,7 +1971,7 @@ batch_message (struct Neighbour *n,
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Deadline for message batch is %llu ms\n",
-	      GNUNET_TIME_absolute_get_remaining (*deadline).value);
+	      GNUNET_TIME_absolute_get_remaining (*deadline).rel_value);
 #endif
   return ret;
 }
@@ -2000,12 +1999,12 @@ discard_expired_messages (struct Neighbour *n)
     {
       next = pos->next;
       delta = GNUNET_TIME_absolute_get_difference (pos->deadline, now);
-      if (delta.value > PAST_EXPIRATION_DISCARD_TIME.value)
+      if (delta.rel_value > PAST_EXPIRATION_DISCARD_TIME.rel_value)
 	{
 #if DEBUG_CORE
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		      "Message is %llu ms past due, discarding.\n",
-		      delta.value);
+		      delta.rel_value);
 #endif
 	  if (prev == NULL)
 	    n->messages = next;
@@ -2198,7 +2197,7 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
               "Encrypting %u bytes of plaintext messages for `%4s' for transmission in %llums.\n",
 	      (unsigned int) used - ENCRYPTED_HEADER_SIZE,
 	      GNUNET_i2s(&n->peer),
-	      (unsigned long long) GNUNET_TIME_absolute_get_remaining (deadline).value);
+	      (unsigned long long) GNUNET_TIME_absolute_get_remaining (deadline).abs_value);
 #endif
   GNUNET_assert (GNUNET_OK ==
                  do_encrypt (n,
@@ -2419,7 +2418,7 @@ handle_client_send (void *cls,
   /* insert, keep list sorted by deadline */
   prev = NULL;
   pos = n->messages;
-  while ((pos != NULL) && (pos->deadline.value < e->deadline.value))
+  while ((pos != NULL) && (pos->deadline.abs_value < e->deadline.abs_value))
     {
       prev = pos;
       pos = pos->next;
@@ -2818,7 +2817,7 @@ send_key (struct Neighbour *n)
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Have %llu ms left for `%s' transmission.\n",
-	      (unsigned long long) GNUNET_TIME_absolute_get_remaining (me->deadline).value,
+	      (unsigned long long) GNUNET_TIME_absolute_get_remaining (me->deadline).rel_value,
 	      "SET_KEY");
 #endif
  trigger_processing:
@@ -3201,7 +3200,7 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
   t = GNUNET_TIME_absolute_ntoh (m->creation_time);
   if (((n->status == PEER_STATE_KEY_RECEIVED) ||
        (n->status == PEER_STATE_KEY_CONFIRMED)) &&
-      (t.value < n->decrypt_key_created.value))
+      (t.abs_value < n->decrypt_key_created.abs_value))
     {
       /* this could rarely happen due to massive re-ordering of
          messages on the network level, but is most likely either
@@ -3229,7 +3228,7 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
 			    1, 
 			    GNUNET_NO);
   n->decrypt_key = k;
-  if (n->decrypt_key_created.value != t.value)
+  if (n->decrypt_key_created.abs_value != t.abs_value)
     {
       /* fresh key, reset sequence numbers */
       n->last_sequence_number_received = 0;
@@ -3518,12 +3517,12 @@ handle_encrypted_message (struct Neighbour *n,
 
   /* check timestamp */
   t = GNUNET_TIME_absolute_ntoh (pt->timestamp);
-  if (GNUNET_TIME_absolute_get_duration (t).value > MAX_MESSAGE_AGE.value)
+  if (GNUNET_TIME_absolute_get_duration (t).rel_value > MAX_MESSAGE_AGE.rel_value)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   _
                   ("Message received far too old (%llu ms). Content ignored.\n"),
-                  GNUNET_TIME_absolute_get_duration (t).value);
+                  GNUNET_TIME_absolute_get_duration (t).rel_value);
       GNUNET_STATISTICS_set (stats,
 			     gettext_noop ("# bytes dropped (ancient message)"),
 			     size,
@@ -3612,7 +3611,7 @@ handle_transport_receive (void *cls,
   n = find_neighbour (peer);
   if (n == NULL)
     n = create_neighbour (peer);
-  changed = (latency.value != n->last_latency.value) || (distance != n->last_distance);
+  changed = (latency.rel_value != n->last_latency.rel_value) || (distance != n->last_distance);
   n->last_latency = latency;
   n->last_distance = distance;
   up = (n->status == PEER_STATE_KEY_CONFIRMED);
@@ -3766,8 +3765,8 @@ neighbour_quota_update (void *cls,
   else
     q_in = GNUNET_BANDWIDTH_value_init (need_per_peer + (uint32_t) share);
   /* check if we want to disconnect for good due to inactivity */
-  if ( (GNUNET_TIME_absolute_get_duration (n->last_activity).value > GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.value) &&
-       (GNUNET_TIME_absolute_get_duration (n->time_established).value > GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.value) )
+  if ( (GNUNET_TIME_absolute_get_duration (n->last_activity).rel_value > GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value) &&
+       (GNUNET_TIME_absolute_get_duration (n->time_established).rel_value > GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value) )
     {
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

@@ -662,12 +662,12 @@ transmit_start (void *cls, size_t size, void *buf)
   if (size == 0)
     {
       if ((h->init == NULL) ||
-          (GNUNET_TIME_absolute_get ().value < h->startup_timeout.value))
+          (GNUNET_TIME_absolute_get ().abs_value < h->startup_timeout.abs_value))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                       _("Failed to connect to core service, retrying.\n"));
           delay = GNUNET_TIME_absolute_get_remaining (h->startup_timeout);
-          if ((h->init == NULL) || (delay.value > 1000))
+          if ((h->init == NULL) || (delay.rel_value > 1000))
             delay = GNUNET_TIME_UNIT_SECONDS;
           if (h->init == NULL)
             h->startup_timeout =
@@ -794,7 +794,7 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Trying to connect to core service in next %llu ms.\n",
-              timeout.value);
+              timeout.rel_value);
 #endif
   h->cth =
     GNUNET_CLIENT_notify_transmit_ready (h->client_notifications,
