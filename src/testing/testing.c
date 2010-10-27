@@ -207,7 +207,7 @@ start_fsm (void *cls,
       /* confirm copying complete */
       if (GNUNET_OK != GNUNET_OS_process_status (d->pid, &type, &code))
         {
-          if (GNUNET_TIME_absolute_get_remaining(d->max_timeout).value == 0)
+          if (GNUNET_TIME_absolute_get_remaining(d->max_timeout).rel_value == 0)
             {
               cb = d->cb;
               d->cb = NULL;
@@ -410,7 +410,7 @@ start_fsm (void *cls,
       /* Fall through */
     case SP_HOSTKEY_CREATED:
       /* wait for topology finished */
-      if ((GNUNET_YES == d->dead) || (GNUNET_TIME_absolute_get_remaining(d->max_timeout).value == 0))
+      if ((GNUNET_YES == d->dead) || (GNUNET_TIME_absolute_get_remaining(d->max_timeout).rel_value == 0))
         {
           cb = d->cb;
           d->cb = NULL;
@@ -522,7 +522,7 @@ start_fsm (void *cls,
     case SP_START_ARMING:
       if (GNUNET_OK != GNUNET_OS_process_status (d->pid, &type, &code))
         {
-          if (GNUNET_TIME_absolute_get_remaining(d->max_timeout).value == 0)
+          if (GNUNET_TIME_absolute_get_remaining(d->max_timeout).rel_value == 0)
             {
               cb = d->cb;
               d->cb = NULL;
@@ -567,7 +567,7 @@ start_fsm (void *cls,
       /* confirm copying complete */
       if (GNUNET_OK != GNUNET_OS_process_status (d->pid, &type, &code))
         {
-          if (GNUNET_TIME_absolute_get_remaining(d->max_timeout).value == 0)
+          if (GNUNET_TIME_absolute_get_remaining(d->max_timeout).rel_value == 0)
             {
               if (NULL != d->dead_cb)
                 d->dead_cb (d->dead_cb_cls,
@@ -647,7 +647,7 @@ start_fsm (void *cls,
       /* confirm copying complete */
       if (GNUNET_OK != GNUNET_OS_process_status (d->pid, &type, &code))
         {
-          if (GNUNET_TIME_absolute_get_remaining(d->max_timeout).value == 0) /* FIXME: config update should take timeout parameter! */
+          if (GNUNET_TIME_absolute_get_remaining(d->max_timeout).rel_value == 0) /* FIXME: config update should take timeout parameter! */
             {
               cb = d->cb;
               d->cb = NULL;
@@ -1366,7 +1366,7 @@ notify_connect_result (void *cls,
                    ctx->d2->cfg, ctx->d1, ctx->d2, NULL);
         }
     }
-  else if (remaining.value > 0)
+  else if (remaining.rel_value > 0)
     {
       if (ctx->d1core != NULL)
         {

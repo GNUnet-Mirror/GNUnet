@@ -539,7 +539,7 @@ send_test_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   struct TestMessageContext *pos = cls;
 
-  if ((pos == test_messages) && (settle_time.value > 0))
+  if ((pos == test_messages) && (settle_time.rel_value > 0))
     {
       topology_connections = 0;
       GNUNET_TESTING_get_topology (pg, &topology_cb, NULL);
@@ -670,7 +670,7 @@ topology_callback (void *cls,
                                     &send_test_messages, test_messages);
       gather_log_data();
 #else
-      if (settle_time.value > 0)
+      if (settle_time.rel_value > 0)
         {
           GNUNET_TESTING_get_topology (pg, &topology_cb, NULL);
         }
