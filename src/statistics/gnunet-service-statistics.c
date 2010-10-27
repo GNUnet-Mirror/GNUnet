@@ -305,7 +305,7 @@ transmit (struct GNUNET_SERVER_Client *client,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transmitting value for `%s:%s' (%d): %llu\n",
               e->service, e->name,
-	      e->persistent, e->value);
+	      e->persistent, e->abs_value);
 #endif
   GNUNET_SERVER_notification_context_unicast (nc, client, &m->header, GNUNET_NO);
   GNUNET_free (m);
@@ -479,7 +479,7 @@ handle_set (void *cls,
               "Received request to update statistic on `%s:%s' (%u) to/by %llu\n",
               service, name,
 	      (unsigned int) flags,
-	      (unsigned long long) value);
+	      (unsigned long long) abs_value);
 #endif
   pos = start;
   prev = NULL;
@@ -522,7 +522,7 @@ handle_set (void *cls,
 #if DEBUG_STATISTICS
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Statistic `%s:%s' updated to value %llu.\n",
-                      service, name, pos->value);
+                      service, name, pos->abs_value);
 #endif
 	  if (changed) 
 	    notify_change (pos);
@@ -548,7 +548,7 @@ handle_set (void *cls,
 #if DEBUG_STATISTICS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "New statistic on `%s:%s' with value %llu created.\n",
-              service, name, pos->value);
+              service, name, pos->abs_value);
 #endif
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
