@@ -565,7 +565,7 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_TIME_Relative timeout;
   struct Sessionqueue * nextsession = NULL;
 
-  timeout.value = FRAGMENT_TIMEOUT;
+  timeout.rel_value = FRAGMENT_TIMEOUT;
   nextsend = GNUNET_TIME_absolute_get_forever();
 
   queue = plugin->pending_Sessions;
@@ -596,7 +596,7 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	  //save next session
 	  nextsession = queue->next;
 	  // test if message timed out
-	  while (GNUNET_TIME_absolute_get_remaining(pm->timeout).value == 0){
+	  while (GNUNET_TIME_absolute_get_remaining(pm->timeout).rel_value == 0){
 		  //remove message
 		  //free the acks
 		  free_acks (pm);
@@ -637,7 +637,7 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	  nextsession = NULL;
 
 	  // test if retransmit is needed
-	  if (GNUNET_TIME_absolute_get_duration(pm->last_ack).value < FRAGMENT_TIMEOUT) {
+	  if (GNUNET_TIME_absolute_get_duration(pm->last_ack).rel_value < FRAGMENT_TIMEOUT) {
 		  // get last offset for this message
 		  copyoffset = pm->message_size /(WLAN_MTU - sizeof(struct FragmentationHeader));
 		  // one more is the end
@@ -693,7 +693,7 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (pm->message_size > WLAN_MTU) {
 	size += sizeof(struct FragmentationHeader);
 	// check for retransmission
-	if (GNUNET_TIME_absolute_get_duration(pm->last_ack).value > FRAGMENT_TIMEOUT) {
+	if (GNUNET_TIME_absolute_get_duration(pm->last_ack).rel_value > FRAGMENT_TIMEOUT) {
 		// TODO retransmit
 		// be positive and try again later :-D
 		pm->last_ack = GNUNET_TIME_absolute_get();

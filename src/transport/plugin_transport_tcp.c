@@ -697,7 +697,7 @@ do_transmit (void *cls, size_t size, void *buf)
       ret = 0;
       now = GNUNET_TIME_absolute_get ();
       while ( (NULL != (pos = session->pending_messages_head)) &&
-	      (pos->timeout.value <= now.value) )
+	      (pos->timeout.abs_value <= now.abs_value) )
 	{
 	  GNUNET_CONTAINER_DLL_remove (session->pending_messages_head,
 				       session->pending_messages_tail,
@@ -930,9 +930,9 @@ select_better_session (struct Session *s1,
   if ( (s1->expecting_welcome == GNUNET_YES) &&
        (s2->expecting_welcome == GNUNET_NO) )
     return s2;
-  if (s1->last_activity.value < s2->last_activity.value)
+  if (s1->last_activity.abs_value < s2->last_activity.abs_value)
     return s2;
-  if (s1->last_activity.value > s2->last_activity.value)
+  if (s1->last_activity.abs_value > s2->last_activity.abs_value)
     return s1;
   if ( (GNUNET_YES == s1->inbound) &&
        (GNUNET_NO  == s2->inbound) )
@@ -1806,7 +1806,7 @@ delayed_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 					 NULL, 0,
 					 session,
 					 NULL, 0);
-  if (delay.value == 0)
+  if (delay.rel_value == 0)
     GNUNET_SERVER_receive_done (session->client, GNUNET_OK);
   else
     session->receive_delay_task =
@@ -1860,7 +1860,7 @@ handle_tcp_data (void *cls,
 				session,
 				(GNUNET_YES == session->inbound) ? NULL : session->connect_addr,
 				(GNUNET_YES == session->inbound) ? 0 : session->connect_alen);
-  if (delay.value == 0)
+  if (delay.rel_value == 0)
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
   else
     session->receive_delay_task =

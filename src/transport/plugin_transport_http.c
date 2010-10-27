@@ -882,10 +882,10 @@ static void mhd_write_mst_cb (void *cls,
   if (pc->reset_task != GNUNET_SCHEDULER_NO_TASK)
 	GNUNET_SCHEDULER_cancel (pc->plugin->env->sched, pc->reset_task);
 
-  if (delay.value > 0)
+  if (delay.rel_value > 0)
   {
 #if DEBUG_HTTP
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: Inbound quota management: delay next read for %llu ms \n", ps, delay.value);
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: Inbound quota management: delay next read for %llu ms \n", ps, delay.rel_value);
 #endif
 	pc->reset_task = GNUNET_SCHEDULER_add_delayed (pc->plugin->env->sched, delay, &reset_inbound_quota_delay, pc);
   }
@@ -1182,7 +1182,7 @@ mhd_access_cb (void *cls,
     /* Recieving data */
     if ((*upload_data_size > 0) && (ps->recv_active == GNUNET_YES))
     {
-      if (pc->delay.value == 0)
+      if (pc->delay.rel_value == 0)
       {
 #if DEBUG_HTTP
     	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: PUT with %u bytes forwarded to MST\n", ps, *upload_data_size);
@@ -1193,7 +1193,7 @@ mhd_access_cb (void *cls,
       else
       {
 #if DEBUG_HTTP
-    	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: no inbound bandwidth available! Next read was delayed for  %llu ms\n", ps, ps->peercontext->delay.value);
+    	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: no inbound bandwidth available! Next read was delayed for  %llu ms\n", ps, ps->peercontext->delay.rel_value);
 #endif
       }
       return MHD_YES;
@@ -1264,7 +1264,7 @@ http_server_daemon_prepare (struct Plugin *plugin , struct MHD_Daemon *daemon_ha
                                 &max));
   haveto = MHD_get_timeout (daemon_handle, &timeout);
   if (haveto == MHD_YES)
-    tv.value = (uint64_t) timeout;
+    tv.rel_value = (uint64_t) timeout;
   else
     tv = GNUNET_TIME_UNIT_SECONDS;
   GNUNET_NETWORK_fdset_copy_native (wrs, &rs, max + 1);
@@ -1588,10 +1588,10 @@ static void curl_receive_mst_cb  (void *cls,
   if (pc->reset_task != GNUNET_SCHEDULER_NO_TASK)
 	GNUNET_SCHEDULER_cancel (pc->plugin->env->sched, pc->reset_task);
 
-  if (delay.value > 0)
+  if (delay.rel_value > 0)
   {
 #if DEBUG_HTTP
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: Inbound quota management: delay next read for %llu ms \n", ps, delay.value);
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: Inbound quota management: delay next read for %llu ms \n", ps, delay.abs_value);
 #endif
 	pc->reset_task = GNUNET_SCHEDULER_add_delayed (pc->plugin->env->sched, delay, &reset_inbound_quota_delay, pc);
   }
@@ -1611,10 +1611,10 @@ static size_t curl_receive_cb( void *stream, size_t size, size_t nmemb, void *pt
 {
   struct Session * ps = ptr;
 
-  if (ps->peercontext->delay.value > 0)
+  if (ps->peercontext->delay.rel_value > 0)
   {
 #if DEBUG_HTTP
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: no inbound bandwidth available! Next read was delayed for  %llu ms\n", ps, ps->peercontext->delay.value);
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: no inbound bandwidth available! Next read was delayed for  %llu ms\n", ps, ps->peercontext->delay.rel_value);
 #endif
 	  return (0);
   }
@@ -1935,7 +1935,7 @@ static int send_check_connections (struct Plugin *plugin, struct Session *ps)
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_READDATA, ps);
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_WRITEFUNCTION, curl_receive_cb);
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_WRITEDATA, ps);
-        curl_easy_setopt(ps->recv_endpoint, CURLOPT_TIMEOUT, (long) timeout.value);
+        curl_easy_setopt(ps->recv_endpoint, CURLOPT_TIMEOUT, (long) timeout.rel_value);
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_PRIVATE, ps);
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
         curl_easy_setopt(ps->recv_endpoint, CURLOPT_BUFFERSIZE, 2*GNUNET_SERVER_MAX_MESSAGE_SIZE);
@@ -2034,7 +2034,7 @@ static int send_check_connections (struct Plugin *plugin, struct Session *ps)
 		curl_easy_setopt(ps->send_endpoint, CURLOPT_READDATA, ps);
 		curl_easy_setopt(ps->send_endpoint, CURLOPT_WRITEFUNCTION, curl_receive_cb);
 		curl_easy_setopt(ps->send_endpoint, CURLOPT_READDATA, ps);
-		curl_easy_setopt(ps->send_endpoint, CURLOPT_TIMEOUT, (long) timeout.value);
+		curl_easy_setopt(ps->send_endpoint, CURLOPT_TIMEOUT, (long) timeout.rel_value);
 		curl_easy_setopt(ps->send_endpoint, CURLOPT_PRIVATE, ps);
 		curl_easy_setopt(ps->send_endpoint, CURLOPT_CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT);
 		curl_easy_setopt(ps->send_endpoint, CURLOPT_BUFFERSIZE, 2 * GNUNET_SERVER_MAX_MESSAGE_SIZE);
@@ -2982,7 +2982,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   GNUNET_assert ((port > 0) && (port <= 65535));
   plugin->port_inbound = port;
   gn_timeout = GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT;
-  unsigned int timeout = (gn_timeout.value) / 1000;
+  unsigned int timeout = (gn_timeout.rel_value) / 1000;
   if ((plugin->http_server_daemon_v6 == NULL) && (plugin->use_ipv6 == GNUNET_YES) && (port != 0))
   {
 	struct sockaddr * tmp = (struct sockaddr *) plugin->bind6_address;

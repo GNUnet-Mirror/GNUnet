@@ -389,7 +389,7 @@ attempt_connect (struct Peer *pos)
     return;
   if (GNUNET_OK != is_connection_allowed (pos))
     return;
-  if (GNUNET_TIME_absolute_get_remaining (pos->greylisted_until).value > 0)
+  if (GNUNET_TIME_absolute_get_remaining (pos->greylisted_until).rel_value > 0)
     return;
   if (GNUNET_YES == pos->is_friend)
     rem = GREYLIST_AFTER_ATTEMPT_FRIEND;
@@ -446,7 +446,7 @@ remove_from_greylist (void *cls,
 
   pos->greylist_clean_task = GNUNET_SCHEDULER_NO_TASK;
   rem = GNUNET_TIME_absolute_get_remaining (pos->greylisted_until);
-  if (rem.value == 0)
+  if (rem.rel_value == 0)
     {
       attempt_connect (pos);
     }
@@ -586,7 +586,7 @@ find_advertisable_hello (void *cls,
   if (pos->hello == NULL)
     return GNUNET_YES;
   rst_time = GNUNET_TIME_absolute_get_remaining (pos->filter_expiration);
-  if (0 == rst_time.value)
+  if (0 == rst_time.rel_value)
     {
       /* time to discard... */
       GNUNET_CONTAINER_bloomfilter_free (pos->filter);
@@ -643,7 +643,7 @@ schedule_next_hello (void *cls,
     return;   
   next_want = GNUNET_HELLO_size (fah.result->hello);
   delay = GNUNET_TIME_absolute_get_remaining (pl->next_hello_allowed);
-  if (delay.value == 0)
+  if (delay.rel_value == 0)
     {
       /* now! */
       pl->hello_req = GNUNET_CORE_notify_transmit_ready (handle, 0,
@@ -733,7 +733,7 @@ connect_notify (void *cls,
   else
     {
       GNUNET_assert (GNUNET_NO == pos->is_connected);
-      pos->greylisted_until.value = 0; /* remove greylisting */
+      pos->greylisted_until.abs_value = 0; /* remove greylisting */
     }
   pos->is_connected = GNUNET_YES;
   pos->connect_attempts = 0; /* re-set back-off factor */
@@ -893,7 +893,7 @@ consider_for_advertising (const struct GNUNET_HELLO_Message *hello)
       dt = GNUNET_HELLO_equals (peer->hello,
 				hello,
 				GNUNET_TIME_absolute_get());
-      if (dt.value == GNUNET_TIME_UNIT_FOREVER_ABS.value)
+      if (dt.abs_value == GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
 	return; /* nothing new here */
     }
 #if DEBUG_TOPOLOGY
@@ -961,7 +961,7 @@ process_peer (void *cls,
 	    }
 	  if ( (! pos->is_connected) &&
 	       (! pos->is_friend) &&
-	       (0 == GNUNET_TIME_absolute_get_remaining (pos->greylisted_until).value) )
+	       (0 == GNUNET_TIME_absolute_get_remaining (pos->greylisted_until).rel_value) )
 	    free_peer (NULL, &pos->pid.hashPubKey, pos);
 	}
       return;
@@ -981,7 +981,7 @@ process_peer (void *cls,
 #endif 
       return;
     }
-  if (GNUNET_TIME_absolute_get_remaining (pos->greylisted_until).value > 0)
+  if (GNUNET_TIME_absolute_get_remaining (pos->greylisted_until).rel_value > 0)
     {
 #if DEBUG_TOPOLOGY
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

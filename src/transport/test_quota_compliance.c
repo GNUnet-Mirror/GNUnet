@@ -49,16 +49,18 @@
  */
 #define TOTAL_MSGS (10000 * 2)
 
-#define MEASUREMENT_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
-#define MEASUREMENT_MSG_SIZE 1024
+#define MEASUREMENT_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define MEASUREMENT_MSG_SIZE 10000
 #define MEASUREMENT_MSG_SIZE_BIG 32768
-#define MEASUREMENT_MAX_QUOTA 1024*1024*1024
-#define MEASUREMENT_MIN_QUOTA 1024
-
+#define MEASUREMENT_MAX_QUOTA 50000
+/*#define MEASUREMENT_MAX_QUOTA 1000000*/
+#define MEASUREMENT_MIN_QUOTA 1000
+#define SEND_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 /**
  * Testcase timeout
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 200)
+
 
 
 #define MTYPE 11111
@@ -71,6 +73,54 @@ struct PeerContext
 #if START_ARM
   pid_t arm_pid;
 #endif
+};
+
+/**
+ * Handle for a transmission-ready request.
+ */
+struct GNUNET_TRANSPORT_TransmitHandle
+{
+
+  /**
+   * Neighbour for this handle, NULL for control-traffic.
+   */
+  struct NeighbourList *neighbour;
+
+  /**
+   * Function to call when notify_size bytes are available
+   * for transmission.
+   */
+  GNUNET_CONNECTION_TransmitReadyNotify notify;
+
+  /**
+   * Closure for notify.
+   */
+  void *notify_cls;
+
+  /**
+   * transmit_ready task Id.  The task is used to introduce the
+   * artificial delay that may be required to maintain the bandwidth
+   * limits.  Later, this will be the ID of the "transmit_timeout"
+   * task which is used to signal a timeout if the transmission could
+   * not be done in a timely fashion.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier notify_delay_task;
+
+  /**
+   * Timeout for this request.
+   */
+  struct GNUNET_TIME_Absolute timeout;
+
+  /**
+   * How many bytes is our notify callback waiting for?
+   */
+  size_t notify_size;
+
+  /**
+   * How important is this message?
+   */
+  unsigned int priority;
+
 };
 
 static struct PeerContext p1;
@@ -177,7 +227,7 @@ struct TestMessage
 };
 
 static unsigned int
-get_size_new (unsigned int iter)
+get_size (unsigned int iter)
 {
   return MEASUREMENT_MSG_SIZE + sizeof (struct TestMessage);
 }
@@ -194,7 +244,7 @@ notify_receive_new (void *cls,
   const struct TestMessage *hdr;
 
   hdr = (const struct TestMessage*) message;
-  s = get_size_new (n);
+  s = get_size (n);
   if (MTYPE != ntohs (message->type))
     return;
 #if DEBUG_MEASUREMENT
@@ -234,7 +284,7 @@ notify_ready_new (void *cls, size_t size, void *buf)
 	  return 0;
 
   ret = 0;
-  s = get_size_new (n);
+  s = get_size (n);
   GNUNET_assert (size >= s);
   GNUNET_assert (buf != NULL);
   cbuf = buf;
@@ -255,14 +305,14 @@ notify_ready_new (void *cls, size_t size, void *buf)
        }
 #endif
       n++;
-      s = get_size_new (n);
+      s = get_size (n);
       if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16))
 	break; /* sometimes pack buffer full, sometimes not */
     }
   while (size - ret >= s);
   transmit_handle = GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
 					    &p1.id,
-					    s, 0, TIMEOUT,
+					    s, 0, SEND_TIMEOUT,
 					    &notify_ready_new,
 					    NULL);
   total_bytes += s;
@@ -313,14 +363,14 @@ measurement_end (void *cls,
 	  GNUNET_TRANSPORT_notify_transmit_ready_cancel(transmit_handle);
 	  transmit_handle = NULL;
   }
-  if (current_quota_p1 < total_bytes/(duration.value / 1000))
+  if ((total_bytes/(duration.rel_value / 1000)) > (current_quota_p1 + (current_quota_p1 / 10)))
   {
 	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 			  "\nQuota compliance failed: \n"\
-			  "Quota allowed: %10llu kb/s\n"\
-			  "Throughput   : %10llu kb/s\n", (current_quota_p1 / (1024)) , (total_bytes/(duration.value / 1000)/1024));
+			  "Quota allowed: %10llu kB/s\n"\
+			  "Throughput   : %10llu kB/s\n", (current_quota_p1 / (1024)) , (total_bytes/(duration.rel_value / 1000)/1024));
 	  ok = 1;
-	  end();
+	  //end();
 	  return;
   }
   else
@@ -328,14 +378,15 @@ measurement_end (void *cls,
 
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 			  "\nQuota compliance ok: \n"\
-			  "Quota allowed: %10llu kb/s\n"\
-			  "Throughput   : %10llu kb/s\n", (current_quota_p1 / (1024)) , (total_bytes/(duration.value / 1000)/1024));
+			  "Quota allowed: %10llu kB/s\n"\
+			  "Throughput   : %10llu kB/s\n", (current_quota_p1 / (1024)) , (total_bytes/(duration.rel_value / 1000)/1024));
 	  ok = 0;
   }
-  if (current_quota_p1 < (MEASUREMENT_MIN_QUOTA))
+  if (current_quota_p1 < MEASUREMENT_MIN_QUOTA)
 	  end();
   else
-	measure (current_quota_p1/100, current_quota_p2/100);
+
+	measure (current_quota_p1- 1000, current_quota_p2- 1000);
 }
 
 static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
@@ -344,7 +395,7 @@ static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
 	  current_quota_p2 = quota_p2;
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Starting transport level measurement: Duration: %u Quota: %u\n", MEASUREMENT_INTERVALL, current_quota_p1);
+              "Starting transport level measurement: Duration: %u Quota: %llu\n", MEASUREMENT_INTERVALL, current_quota_p1);
 #endif
 		GNUNET_TRANSPORT_set_quota (p1.th,
 			  &p2.id,
@@ -383,7 +434,7 @@ static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
 
 		transmit_handle = GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
 											  &p1.id,
-											  get_size_new (0), 0, TIMEOUT,
+											  get_size (0), 0, SEND_TIMEOUT,
 											  &notify_ready_new,
 											  NULL);
 }

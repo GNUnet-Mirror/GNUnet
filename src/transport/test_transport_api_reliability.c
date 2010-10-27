@@ -127,7 +127,7 @@ end ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Transports disconnected, returning success!\n");
 #endif
-  delta = GNUNET_TIME_absolute_get_duration (start_time).value;
+  delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
   fprintf (stderr,
 	   "\nThroughput was %llu kb/s\n",
 	   total_bytes * 1000 / 1024 / delta);

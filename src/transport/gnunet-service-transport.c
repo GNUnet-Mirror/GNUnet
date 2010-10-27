@@ -1496,7 +1496,7 @@ find_ready_address(struct NeighbourList *neighbour)
       addresses = head->addresses;
       while (addresses != NULL)
         {
-          if ( (addresses->timeout.value < now.value) &&
+          if ( (addresses->timeout.abs_value < now.abs_value) &&
 	       (addresses->connected == GNUNET_YES) )
             {
 #if DEBUG_TRANSPORT
@@ -1528,7 +1528,7 @@ find_ready_address(struct NeighbourList *neighbour)
 			addresses->in_transmit,
 			addresses->validated,
 			addresses->connect_attempts,
-			(unsigned long long) addresses->timeout.value,
+			(unsigned long long) addresses->timeout.abs_value,
 			(unsigned int) addresses->distance);
 #endif
           if ( ( (best_address == NULL) ||
@@ -1536,7 +1536,7 @@ find_ready_address(struct NeighbourList *neighbour)
 		 (best_address->connected == GNUNET_NO) ) &&
 	       (addresses->in_transmit == GNUNET_NO) &&
 	       ( (best_address == NULL) ||
-		 (addresses->latency.value < best_address->latency.value)) )
+		 (addresses->latency.rel_value < best_address->latency.rel_value)) )
 	    best_address = addresses;
 	  /* FIXME: also give lower-latency addresses that are not
 	     connected a chance some times... */
@@ -1554,7 +1554,7 @@ find_ready_address(struct NeighbourList *neighbour)
 		       best_address->addr,
 		       best_address->addrlen)
 		  : "<inbound>",
-                  best_address->latency.value);
+                  best_address->latency.abs_value);
 #endif
     }
   else
@@ -1627,7 +1627,7 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 				1,
 				GNUNET_NO);
       timeout = GNUNET_TIME_absolute_get_remaining (mq->timeout);
-      if (timeout.value == 0)
+      if (timeout.rel_value == 0)
 	{
 #if DEBUG_TRANSPORT
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1667,7 +1667,7 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 		  "No validated destination address available to transmit message of size %u to peer `%4s', will wait %llums to find an address.\n",
 		  mq->message_buf_size,
 		  GNUNET_i2s (&mq->neighbour_id),
-		  timeout.value);
+		  timeout.abs_value);
 #endif
       /* FIXME: might want to trigger peerinfo lookup here
 	 (unless that's already pending...) */
@@ -1928,13 +1928,13 @@ update_addresses (struct TransportPlugin *plugin, int fresh)
   plugin->address_update_task = GNUNET_SCHEDULER_NO_TASK;
   now = GNUNET_TIME_absolute_get ();
   min_remaining = GNUNET_TIME_UNIT_FOREVER_REL;
-  expired = (GNUNET_TIME_absolute_get_duration (last_update).value > (HELLO_ADDRESS_EXPIRATION.value / 4));
+  expired = (GNUNET_TIME_absolute_get_duration (last_update).rel_value > (HELLO_ADDRESS_EXPIRATION.rel_value / 4));
   prev = NULL;
   pos = plugin->addresses;
   while (pos != NULL)
     {
       next = pos->next;
-      if (pos->expires.value < now.value)
+      if (pos->expires.abs_value < now.abs_value)
         {
           expired = GNUNET_YES;
           if (prev == NULL)
@@ -1946,7 +1946,7 @@ update_addresses (struct TransportPlugin *plugin, int fresh)
       else
         {
           remaining = GNUNET_TIME_absolute_get_remaining (pos->expires);
-          if (remaining.value < min_remaining.value)
+          if (remaining.rel_value < min_remaining.rel_value)
             min_remaining = remaining;
           prev = pos;
         }
@@ -2191,7 +2191,7 @@ plugin_env_notify_address (void *cls,
     {
       if ((addrlen == al->addrlen) && (0 == memcmp (addr, &al[1], addrlen)))
         {
-          if (al->expires.value < abex.value)
+          if (al->expires.abs_value < abex.abs_value)
             al->expires = abex;
           return;
         }
@@ -2631,7 +2631,7 @@ add_to_foreign_address_list (void *cls,
 		  a2s (tname, addr, addrlen),
 		  tname,
 		  GNUNET_i2s (&n->id),
-		  expiration.value);
+		  expiration.abs_value);
 #endif
       fal = add_peer_address (n, tname, NULL, addr, addrlen);
       if (fal == NULL)
@@ -3364,7 +3364,7 @@ schedule_next_ping (struct ForeignAddressList *fal)
   if (fal->revalidate_task != GNUNET_SCHEDULER_NO_TASK)
     return;
   delay = GNUNET_TIME_absolute_get_remaining (fal->expires);
-  delay.value /= 2; /* do before expiration */
+  delay.rel_value /= 2; /* do before expiration */
   delay = GNUNET_TIME_relative_min (delay,
 				    LATENCY_EVALUATION_MAX_DELAY);
   if (GNUNET_YES != fal->estimated)
@@ -3383,7 +3383,7 @@ schedule_next_ping (struct ForeignAddressList *fal)
   delay = GNUNET_TIME_relative_max (delay,
 				    GNUNET_TIME_UNIT_SECONDS);
   /* randomize a bit (to avoid doing all at the same time) */
-  delay.value += GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 1000);
+  delay.rel_value += GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 1000);
   fal->revalidate_task = GNUNET_SCHEDULER_add_delayed(sched,
 						      delay,
 						      &send_periodic_ping,
@@ -3627,7 +3627,7 @@ check_pending_validation (void *cls,
       GNUNET_break_op (0);
       return GNUNET_NO;
     }
-  if (GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh (pong->expiration)).value == 0)
+  if (GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh (pong->expiration)).rel_value == 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  _("Received expired signature.  Check system time.\n"));
@@ -3672,10 +3672,10 @@ check_pending_validation (void *cls,
 				GNUNET_NO);
       fal->latency = GNUNET_TIME_absolute_get_duration (ve->send_time);
       schedule_next_ping (fal);
-      if (n->latency.value == GNUNET_TIME_UNIT_FOREVER_REL.value)
+      if (n->latency.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
 	n->latency = fal->latency;
       else
-	n->latency.value = (fal->latency.value + n->latency.value) / 2;
+	n->latency.rel_value = (fal->latency.rel_value + n->latency.rel_value) / 2;
 
       n->distance = fal->distance;
       if (GNUNET_NO == n->received_pong)
@@ -4200,7 +4200,7 @@ process_hello (struct TransportPlugin *plugin,
     {
       if (GNUNET_HELLO_equals (hello,
 			       chvc->hello,
-			       GNUNET_TIME_absolute_get ()).value > 0)
+			       GNUNET_TIME_absolute_get ()).abs_value > 0)
 	{
 #if DEBUG_TRANSPORT_HELLO > 2
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -4500,7 +4500,7 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
       memcpy (&((char*)&pong[1])[slen],
 	      sender_address,
 	      sender_address_len);
-      if (GNUNET_TIME_absolute_get_remaining (session_header->pong_sig_expires).value < PONG_SIGNATURE_LIFETIME.value / 4)
+      if (GNUNET_TIME_absolute_get_remaining (session_header->pong_sig_expires).rel_value < PONG_SIGNATURE_LIFETIME.rel_value / 4)
 	{
 	  /* create / update cached sig */
 #if DEBUG_TRANSPORT
@@ -4568,7 +4568,7 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
       memcpy (&pong[1], plugin->short_name, slen);
       memcpy (&((char*)&pong[1])[slen], addr, alen);
       if ( (oal != NULL) &&
-	   (GNUNET_TIME_absolute_get_remaining (oal->pong_sig_expires).value < PONG_SIGNATURE_LIFETIME.value / 4) )
+	   (GNUNET_TIME_absolute_get_remaining (oal->pong_sig_expires).rel_value < PONG_SIGNATURE_LIFETIME.rel_value / 4) )
 	{
 	  /* create / update cached sig */
 #if DEBUG_TRANSPORT
@@ -4786,16 +4786,16 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 	}
     }
   ret = GNUNET_BANDWIDTH_tracker_get_delay (&n->in_tracker, 0);
-  if (ret.value > 0)
+  if (ret.rel_value > 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Throttling read (%llu bytes excess at %u b/s), waiting %llums before reading more.\n",
 		  (unsigned long long) n->in_tracker.consumption_since_last_update__,
 		  (unsigned int) n->in_tracker.available_bytes_per_s__,
-		  (unsigned long long) ret.value);
+		  (unsigned long long) ret.rel_value);
       GNUNET_STATISTICS_update (stats,
 				gettext_noop ("# ms throttling suggested"),
-				(int64_t) ret.value,
+				(int64_t) ret.rel_value,
 				GNUNET_NO);
     }
   return ret;

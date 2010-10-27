@@ -465,13 +465,13 @@ schedule_peer_transmission (struct GNUNET_TRANSPORT_Handle *h)
       duration = GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker,
 						     th->notify_size - sizeof (struct OutboundMessage));
       struct GNUNET_TIME_Absolute duration_abs = GNUNET_TIME_relative_to_absolute (duration);
-      if (th->timeout.value < duration_abs.value)
+      if (th->timeout.abs_value < duration_abs.abs_value)
 	{
 	  /* signal timeout! */
 #if DEBUG_TRANSPORT
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Would need %llu ms before bandwidth is available for delivery to `%4s', that is too long.  Signaling timeout.\n",
-		      duration.value,
+		      duration.abs_value,
 		      GNUNET_i2s (&n->id));
 #endif
 	  if (th->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
@@ -484,7 +484,7 @@ schedule_peer_transmission (struct GNUNET_TRANSPORT_Handle *h)
 	    GNUNET_assert (0 == th->notify (th->notify_cls, 0, NULL));
 	  continue;
 	}
-      if (duration.value > 0)
+      if (duration.rel_value > 0)
 	{
 #if DEBUG_TRANSPORT
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -492,7 +492,7 @@ schedule_peer_transmission (struct GNUNET_TRANSPORT_Handle *h)
 		      (unsigned int) n->out_tracker.available_bytes_per_s__,
 		      (unsigned int) th->notify_size - sizeof (struct OutboundMessage),
 		      GNUNET_i2s (&n->id),
-		      duration.value);
+		      duration.abs_value);
 #endif
 	  retry_time = GNUNET_TIME_relative_min (retry_time,
 						 duration);
@@ -608,7 +608,7 @@ transport_notify_ready (void *cls, size_t size, void *buf)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Message of %u bytes with timeout %llums constructed for `%4s'\n",
 		  (unsigned int) mret,
-		  (unsigned long long) GNUNET_TIME_absolute_get_remaining (th->timeout).value,
+		  (unsigned long long) GNUNET_TIME_absolute_get_remaining (th->timeout).abs_value,
 		  GNUNET_i2s (&n->id));
 #endif
       if (mret != 0)	
@@ -755,7 +755,7 @@ schedule_control_transmit (struct GNUNET_TRANSPORT_Handle *h,
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Control transmit of %u bytes within %llums requested\n",
-              size, (unsigned long long) timeout.value);
+              size, (unsigned long long) timeout.abs_value);
 #endif
   th = GNUNET_malloc (sizeof (struct ControlMessage));
   th->h = h;
@@ -1235,14 +1235,14 @@ schedule_reconnect (struct GNUNET_TRANSPORT_Handle *h)
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Scheduling task to reconnect to transport service in %llu ms.\n",
-              h->reconnect_delay.value);
+              h->reconnect_delay.abs_value);
 #endif
   GNUNET_assert (h->client == NULL);
   GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
   h->reconnect_task
     = GNUNET_SCHEDULER_add_delayed (h->sched,
                                     h->reconnect_delay, &reconnect, h);
-  if (h->reconnect_delay.value == 0)
+  if (h->reconnect_delay.rel_value == 0)
     {
       h->reconnect_delay = GNUNET_TIME_UNIT_MILLISECONDS;
     }
@@ -1798,12 +1798,12 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
       GNUNET_break (0);
       return NULL;
     }
-
+#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking transport service for transmission of %u bytes to peer `%4s' within %llu ms.\n",
               size, GNUNET_i2s (target),
-	      (unsigned long long) timeout.value);
-
+	      (unsigned long long) timeout.abs_value);
+#endif
   n = neighbour_find (handle, target);
   if (n == NULL)
     {
