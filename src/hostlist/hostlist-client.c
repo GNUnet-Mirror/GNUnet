@@ -810,7 +810,7 @@ task_download (void *cls,
       clean_up ();
       return;
     }
-  if (GNUNET_TIME_absolute_get_remaining (end_time).value == 0)
+  if (GNUNET_TIME_absolute_get_remaining (end_time).rel_value == 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Timeout trying to download hostlist from `%s'\n"),
@@ -1072,16 +1072,16 @@ task_check (void *cls,
     return; /* in shutdown */
   }
   delay = hostlist_delay;
-  if (hostlist_delay.value == 0)
+  if (hostlist_delay.rel_value == 0)
     hostlist_delay = GNUNET_TIME_UNIT_SECONDS;
   else
     hostlist_delay = GNUNET_TIME_relative_multiply (hostlist_delay, 2);
-  if (hostlist_delay.value > GNUNET_TIME_UNIT_HOURS.value * (1 + stat_connection_count))
+  if (hostlist_delay.rel_value > GNUNET_TIME_UNIT_HOURS.rel_value * (1 + stat_connection_count))
     hostlist_delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS,
                                                     (1 + stat_connection_count));
   GNUNET_STATISTICS_set (stats,
                          gettext_noop("# milliseconds between hostlist downloads"),
-                         hostlist_delay.value,
+                         hostlist_delay.rel_value,
                          GNUNET_YES);
   if (0 == once)
     {
@@ -1092,7 +1092,7 @@ task_check (void *cls,
               _("Have %u/%u connections.  Will consider downloading hostlist in %llums\n"),
               stat_connection_count,
               MIN_CONNECTIONS,
-              (unsigned long long) delay.value);
+              (unsigned long long) delay.rel_value);
   ti_check_download = GNUNET_SCHEDULER_add_delayed (sched,
                                                delay,
                                                &task_check,
@@ -1135,7 +1135,7 @@ task_hostlist_saving (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Hostlists will be saved to file again in %llums\n"),
-              (unsigned long long) SAVING_INTERVALL.value);
+              (unsigned long long) SAVING_INTERVALL.rel_value);
   ti_saving_task = GNUNET_SCHEDULER_add_delayed (sched,
                                                SAVING_INTERVALL,
                                                &task_hostlist_saving,
@@ -1271,7 +1271,7 @@ handler_advertisement (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
             "Testing new hostlist advertisements is locked for the next %u ms\n",
-            TESTING_INTERVAL.value);
+            TESTING_INTERVAL.rel_value);
 
   ti_download_dispatcher_task = GNUNET_SCHEDULER_add_now (sched,
                                                      &task_download_dispatcher,
@@ -1315,7 +1315,7 @@ process_stat (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("Initial time between hostlist downloads is %llums\n"),
 	      (unsigned long long) value);
-  hostlist_delay.value = value;
+  hostlist_delay.rel_value = value;
   return GNUNET_OK;
 }
 
@@ -1384,8 +1384,8 @@ load_hostlist_file ()
       hostlist->hostlist_uri = (const char *) &hostlist[1];
       memcpy (&hostlist[1], uri, strlen(uri)+1);
       hostlist->quality = quality;
-      hostlist->time_creation.value = created;
-      hostlist->time_last_usage.value = last_used;
+      hostlist->time_creation.abs_value = created;
+      hostlist->time_last_usage.abs_value = last_used;
       GNUNET_CONTAINER_DLL_insert(linked_list_head, linked_list_tail, hostlist);
       linked_list_size++;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1472,9 +1472,9 @@ static void save_hostlist_file ( int shutdown )
 	       (GNUNET_OK !=
 		GNUNET_BIO_write_int64 (wh, pos->quality)) ||
                (GNUNET_OK !=
-                GNUNET_BIO_write_int64 (wh, pos->time_last_usage.value)) ||
+                GNUNET_BIO_write_int64 (wh, pos->time_last_usage.abs_value)) ||
                (GNUNET_OK !=
-                GNUNET_BIO_write_int64 (wh, pos->time_creation.value)) ||
+                GNUNET_BIO_write_int64 (wh, pos->time_creation.abs_value)) ||
 	       (GNUNET_OK !=
 	        GNUNET_BIO_write_int32 (wh, pos->hello_count)))
 	    {
@@ -1554,7 +1554,7 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
     load_hostlist_file ();
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Hostlists will be saved to file again in  %llums\n"),
-              (unsigned long long) SAVING_INTERVALL.value);
+              (unsigned long long) SAVING_INTERVALL.rel_value);
     ti_saving_task = GNUNET_SCHEDULER_add_delayed (sched,
                                                SAVING_INTERVALL,
                                                &task_hostlist_saving,

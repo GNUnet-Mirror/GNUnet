@@ -329,8 +329,8 @@ copy_latest (void *cls,
   ec.tname = tname;
   GNUNET_HELLO_iterate_addresses (mc->other, GNUNET_NO, &get_match_exp, &ec);
   if ( (ec.found == GNUNET_NO) ||
-       (ec.expiration.value < expiration.value) ||
-       ( (ec.expiration.value == expiration.value) &&
+       (ec.expiration.abs_value < expiration.abs_value) ||
+       ( (ec.expiration.abs_value == expiration.abs_value) &&
 	 (mc->take_equal == GNUNET_YES) ) )
     {
       mc->ret += GNUNET_HELLO_add_address (tname,
@@ -413,8 +413,8 @@ delta_match (void *cls,
   GNUNET_HELLO_iterate_addresses (dc->old_hello,
                                   GNUNET_NO, &get_match_exp, &ec);
   if ((ec.found == GNUNET_YES) &&
-      ((ec.expiration.value > expiration.value) ||
-       (ec.expiration.value >= dc->expiration_limit.value)))
+      ((ec.expiration.abs_value > expiration.abs_value) ||
+       (ec.expiration.abs_value >= dc->expiration_limit.abs_value)))
     return GNUNET_YES;          /* skip */
   ret = dc->it (dc->it_cls, tname, expiration, addr, addrlen);
   return ret;
@@ -560,7 +560,7 @@ find_other_matching (void *cls,
 {
   struct EqualsContext *ec = cls;
 
-  if (expiration.value < ec->expiration_limit.value)
+  if (expiration.abs_value < ec->expiration_limit.abs_value)
     return GNUNET_YES;
   if ( (addrlen == ec->addrlen) && 
        (0 == strcmp (tname,
@@ -570,7 +570,7 @@ find_other_matching (void *cls,
 		     addrlen)) )
     {
       ec->found = GNUNET_YES;
-      if (expiration.value < ec->expiration.value)	
+      if (expiration.abs_value < ec->expiration.abs_value)	
 	ec->result = GNUNET_TIME_absolute_min (expiration,
 					       ec->result);		
       return GNUNET_SYSERR;
@@ -587,7 +587,7 @@ find_matching (void *cls,
 {
   struct EqualsContext *ec = cls;
 
-  if (expiration.value < ec->expiration_limit.value)
+  if (expiration.abs_value < ec->expiration_limit.abs_value)
     return GNUNET_YES;
   ec->tname = tname;
   ec->expiration = expiration;
@@ -642,8 +642,8 @@ GNUNET_HELLO_equals (const struct
 				   GNUNET_NO,
 				   &find_matching,
 				   &ec);
-  if (ec.result.value ==
-      GNUNET_TIME_UNIT_ZERO.value)
+  if (ec.result.abs_value ==
+      GNUNET_TIME_UNIT_ZERO.rel_value)
     return ec.result; 
   ec.h2 = h1;
   GNUNET_HELLO_iterate_addresses (h2,

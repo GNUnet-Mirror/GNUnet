@@ -163,7 +163,7 @@ check_has_addr (void *cls,
 {
   int *arg = cls;
 
-  if (GNUNET_TIME_absolute_get_remaining (expiration).value == 0)
+  if (GNUNET_TIME_absolute_get_remaining (expiration).rel_value == 0)
     {
       GNUNET_STATISTICS_update (stats,
 				gettext_noop("expired addresses encountered"),
@@ -533,7 +533,7 @@ prepare_daemon (struct MHD_Daemon *daemon_handle)
 				&max));
   haveto = MHD_get_timeout (daemon_handle, &timeout);
   if (haveto == MHD_YES)
-    tv.value = (uint64_t) timeout;
+    tv.rel_value = (uint64_t) timeout;
   else
     tv = GNUNET_TIME_UNIT_FOREVER_REL;
   GNUNET_NETWORK_fdset_copy_native (wrs, &rs, max + 1);
