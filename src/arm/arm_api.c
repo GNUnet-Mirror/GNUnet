@@ -636,7 +636,7 @@ GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h,
 #if DEBUG_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               _("Asked to start service `%s' within %llu ms\n"), service_name,
-	      (unsigned long long) timeout.value);
+	      (unsigned long long) timeout.rel_value);
 #endif
   if (0 == strcasecmp ("arm", service_name))
     {
@@ -706,7 +706,7 @@ GNUNET_ARM_stop_service (struct GNUNET_ARM_Handle *h,
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Stopping service `%s' within %llu ms\n"), service_name,
-	      (unsigned long long) timeout.value);
+	      (unsigned long long) timeout.rel_value);
   if (h->client == NULL)
     {
       client = GNUNET_CLIENT_connect (h->sched, "arm", h->cfg);

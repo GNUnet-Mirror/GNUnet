@@ -776,7 +776,7 @@ delayed_restart_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       if ( (pos->pid == 0) && 
 	   (GNUNET_YES != in_shutdown) )
 	{
-	  if (GNUNET_TIME_absolute_get_remaining (pos->restartAt).value == 0)
+	  if (GNUNET_TIME_absolute_get_remaining (pos->restartAt).rel_value == 0)
 	    {
 	      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 			  _("Restarting service `%s'.\n"), pos->name);
@@ -792,12 +792,12 @@ delayed_restart_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	}
       pos = pos->next;
     }  
-  if (lowestRestartDelay.value != GNUNET_TIME_UNIT_FOREVER_REL.value)
+  if (lowestRestartDelay.rel_value != GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
     {
 #if DEBUG_ARM
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Will restart process in %llums\n",
-		  (unsigned long long) lowestRestartDelay.value);
+		  (unsigned long long) lowestRestartDelay.rel_value);
 #endif
       child_restart_task
 	= GNUNET_SCHEDULER_add_delayed (sched,
@@ -902,7 +902,7 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	  /* schedule restart */
 	  pos->restartAt
 	    = GNUNET_TIME_relative_to_absolute (pos->backoff);
-	  if (pos->backoff.value < EXPONENTIAL_BACKOFF_THRESHOLD)
+	  if (pos->backoff.rel_value < EXPONENTIAL_BACKOFF_THRESHOLD)
 	    pos->backoff 
 	      = GNUNET_TIME_relative_multiply (pos->backoff, 2);
 	  if (GNUNET_SCHEDULER_NO_TASK != child_restart_task)

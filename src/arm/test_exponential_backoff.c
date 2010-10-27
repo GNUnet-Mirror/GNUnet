@@ -361,12 +361,12 @@ kill_task (void *cbData,
 #if LOG_BACKOFF
       fprintf(killLogFilePtr, 
 	      "Waited for: %llu ms\n", 
-	      (unsigned long long) waitedFor.value);
+	      (unsigned long long) waitedFor.abs_value);
 #endif
     }
   else
     {
-      waitedFor.value = 0;
+      waitedFor.rel_value = 0;
     }
   /* Connect to the doNothing task */
   doNothingConnection = GNUNET_CLIENT_connect (sched, "do-nothing", cfg);
