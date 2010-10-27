@@ -861,14 +861,16 @@ void
 GNUNET_DHT_set_malicious_getter (struct GNUNET_DHT_Handle *handle,
 				 struct GNUNET_TIME_Relative frequency)
 {
-  if (frequency.value > UINT16_MAX)
+	/*
+  if (frequency.abs_value > UINT16_MAX)
     {
       GNUNET_break (0);
       return;
     }
   send_control_message (handle,
-			GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_GET, frequency.value,
+			GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_GET, frequency.abs_value,
 			NULL, NULL);
+			*/
 }
 
 /**
@@ -882,14 +884,17 @@ void
 GNUNET_DHT_set_malicious_putter (struct GNUNET_DHT_Handle *handle, 
 				 struct GNUNET_TIME_Relative frequency)
 {
-  if (frequency.value > UINT16_MAX)
+	/*
+  if (frequency.abs_value > UINT16_MAX)
     {
       GNUNET_break (0);
       return;
     }
+
   send_control_message (handle,
-			GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_PUT, frequency.value,
+			GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_PUT, frequency.abs_value,
 			NULL, NULL);
+			*/
 }
 
 

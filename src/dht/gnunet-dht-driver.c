@@ -1065,7 +1065,7 @@ decrement_find_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   test_find_peer->find_peer_context->outstanding--;
   test_find_peer->find_peer_context->total--;
   if ((0 == test_find_peer->find_peer_context->total) &&
-      (GNUNET_TIME_absolute_get_remaining(test_find_peer->find_peer_context->endtime).value > 60))
+      (GNUNET_TIME_absolute_get_remaining(test_find_peer->find_peer_context->endtime).rel_value > 60))
   {
     GNUNET_SCHEDULER_add_now(sched, &count_new_peers, test_find_peer->find_peer_context);
   }
@@ -1101,7 +1101,7 @@ send_find_peer_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
   }
 
   test_find_peer->find_peer_context->outstanding++;
-  if (GNUNET_TIME_absolute_get_remaining(test_find_peer->find_peer_context->endtime).value == 0)
+  if (GNUNET_TIME_absolute_get_remaining(test_find_peer->find_peer_context->endtime).rel_value == 0)
   {
     GNUNET_SCHEDULER_add_now(sched, &decrement_find_peers, test_find_peer);
     return;
@@ -1192,13 +1192,13 @@ static int iterate_min_heap_peers (void *cls,
       /** Just try to connect the peers, don't worry about callbacks, etc. **/
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Peer %s has 0 connections.  Trying to connect to %s...\n", GNUNET_i2s(&peer_count->peer_id), d2->shortname);
       timeout = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, DEFAULT_CONNECT_TIMEOUT);
-      if (GNUNET_TIME_relative_to_absolute(timeout).value > find_peer_context->endtime.value)
+      if (GNUNET_TIME_relative_to_absolute(timeout).abs_value > find_peer_context->endtime.abs_value)
         {
           timeout = GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime);
         }
       GNUNET_TESTING_daemons_connect(d1, d2, timeout, DEFAULT_RECONNECT_ATTEMPTS, NULL, NULL);
     }
-  if (GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime).value > 0)
+  if (GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime).rel_value > 0)
     return GNUNET_YES;
   else
     return GNUNET_NO;
@@ -1286,13 +1286,13 @@ count_peers_churn_cb (void *cls,
        *         these are very specialized cases.
        */
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Out of %u peers, fewest connections is %d\n", GNUNET_CONTAINER_heap_get_size(find_peer_context->peer_min_heap), peer_count->count);
-      if ((peer_count->count == 0) && (GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime).value > 0))
+      if ((peer_count->count == 0) && (GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime).rel_value > 0))
         {
           GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Found peer with no connections, will choose some peer(s) at random to connect to!\n");
           GNUNET_CONTAINER_heap_iterate (find_peer_context->peer_min_heap, &iterate_min_heap_peers, find_peer_context);
           GNUNET_SCHEDULER_add_now(sched, &schedule_churn_find_peer_requests, find_peer_context);
         }
-      else if ((GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime).value > 0) && (find_peer_context->last_sent != 0))
+      else if ((GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime).rel_value > 0) && (find_peer_context->last_sent != 0))
         {
           GNUNET_SCHEDULER_add_now(sched, &schedule_churn_find_peer_requests, find_peer_context);
         }
@@ -1909,7 +1909,7 @@ count_peers_cb (void *cls,
       if ((find_peer_context->last_sent > 8) &&
           (find_peer_context->current_peers - find_peer_context->previous_peers > FIND_PEER_THRESHOLD) &&
           (find_peer_context->current_peers < 2 * connection_estimate(num_peers, DEFAULT_BUCKET_SIZE)) &&
-          (GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime).value > 0))
+          (GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime).rel_value > 0))
         {
           GNUNET_SCHEDULER_add_now(sched, &schedule_find_peer_requests, find_peer_context);
         }
@@ -2783,7 +2783,7 @@ run (void *cls,
                                                &temp_config_number))
     all_get_timeout = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, temp_config_number);
   else
-    all_get_timeout.value = get_timeout.value * num_gets;
+    all_get_timeout.rel_value = get_timeout.rel_value * num_gets;
 
   if (GNUNET_OK ==
         GNUNET_CONFIGURATION_get_value_number (cfg, "dht_testing", "get_delay",
@@ -3011,8 +3011,8 @@ run (void *cls,
   trial_info.malicious_getters = malicious_getters;
   trial_info.malicious_putters = malicious_putters;
   trial_info.malicious_droppers = malicious_droppers;
-  trial_info.malicious_get_frequency = malicious_get_frequency.value;
-  trial_info.malicious_put_frequency = malicious_put_frequency.value;
+  trial_info.malicious_get_frequency = malicious_get_frequency.rel_value;
+  trial_info.malicious_put_frequency = malicious_put_frequency.rel_value;
   trial_info.stop_closest = stop_closest;
   trial_info.stop_found = stop_found;
   trial_info.strict_kademlia = strict_kademlia;

@@ -947,7 +947,7 @@ static struct GNUNET_TIME_Relative get_average_send_delay()
   for (i = 0; i < MAX_REPLY_TIMES; i++)
   {
     average_time = GNUNET_TIME_relative_add(average_time, reply_times[i]);
-    if (reply_times[i].value == (uint64_t)0)
+    if (reply_times[i].abs_value == (uint64_t)0)
       continue;
     else
       divisor++;
@@ -958,7 +958,7 @@ static struct GNUNET_TIME_Relative get_average_send_delay()
   }
 
   average_time = GNUNET_TIME_relative_divide(average_time, divisor);
-  fprintf(stderr, "Avg send delay: %u sends is %llu\n", divisor, (long long unsigned int)average_time.value);
+  fprintf(stderr, "Avg send delay: %u sends is %llu\n", divisor, (long long unsigned int)average_time.abs_value);
   return average_time;
 }
 #endif
@@ -973,9 +973,9 @@ static void decrease_max_send_delay(struct GNUNET_TIME_Relative max_time)
   unsigned int i;
   for (i = 0; i < MAX_REPLY_TIMES; i++)
     {
-      if (reply_times[i].value == max_time.value)
+      if (reply_times[i].rel_value == max_time.rel_value)
         {
-          reply_times[i].value = reply_times[i].value / 2;
+          reply_times[i].rel_value = reply_times[i].rel_value / 2;
           return;
         }
     }
@@ -995,12 +995,12 @@ static struct GNUNET_TIME_Relative get_max_send_delay()
 
   for (i = 0; i < MAX_REPLY_TIMES; i++)
   {
-    if (reply_times[i].value > max_time.value)
-      max_time.value = reply_times[i].value;
+    if (reply_times[i].rel_value > max_time.rel_value)
+      max_time.rel_value = reply_times[i].rel_value;
   }
 
-  if (max_time.value > MAX_REQUEST_TIME.value)
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Max send delay was %llu\n", (long long unsigned int)max_time.value);
+  if (max_time.rel_value > MAX_REQUEST_TIME.rel_value)
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Max send delay was %llu\n", (long long unsigned int)max_time.rel_value);
   return max_time;
 }
 
@@ -3413,7 +3413,7 @@ static int cache_response(struct DHT_MessageContext *msg_ctx)
         }
       if ((pos != NULL) && (pos->client == msg_ctx->client)) /* Seen this already */
         {
-          GNUNET_CONTAINER_heap_update_cost(forward_list.minHeap, pos->hnode, now.value);
+          GNUNET_CONTAINER_heap_update_cost(forward_list.minHeap, pos->hnode, now.abs_value);
           return GNUNET_NO;
         }
     }
@@ -3435,7 +3435,7 @@ static int cache_response(struct DHT_MessageContext *msg_ctx)
       source_info->client = msg_ctx->client;
       now = GNUNET_TIME_absolute_get_forever();
     }
-  source_info->hnode = GNUNET_CONTAINER_heap_insert(forward_list.minHeap, source_info, now.value);
+  source_info->hnode = GNUNET_CONTAINER_heap_insert(forward_list.minHeap, source_info, now.abs_value);
 #if DEBUG_DHT > 1
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "`%s:%s': Created new forward source info for %s uid %llu\n", my_short_id,
@@ -3554,7 +3554,7 @@ route_message(const struct GNUNET_MessageHeader *msg,
       recent_req->uid = message_context->unique_id;
       memcpy(&recent_req->key, &message_context->key, sizeof(GNUNET_HashCode));
       recent_req->remove_task = GNUNET_SCHEDULER_add_delayed(sched, DEFAULT_RECENT_REMOVAL, &remove_recent, recent_req);
-      recent_req->heap_node = GNUNET_CONTAINER_heap_insert(recent.minHeap, recent_req, GNUNET_TIME_absolute_get().value);
+      recent_req->heap_node = GNUNET_CONTAINER_heap_insert(recent.minHeap, recent_req, GNUNET_TIME_absolute_get().abs_value);
       recent_req->bloom = GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
       GNUNET_CONTAINER_multihashmap_put(recent.hashmap, &unique_hash, recent_req, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
     }
@@ -4008,14 +4008,14 @@ send_find_peer_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   end = GNUNET_TIME_absolute_get();
   time_diff = GNUNET_TIME_absolute_get_difference(find_peer_context.start, end);
 
-  if (time_diff.value > FIND_PEER_CALC_INTERVAL.value)
+  if (time_diff.abs_value > FIND_PEER_CALC_INTERVAL.abs_value)
     {
-      multiplier = time_diff.value / FIND_PEER_CALC_INTERVAL.value;
+      multiplier = time_diff.abs_value / FIND_PEER_CALC_INTERVAL.abs_value;
       count_per_interval = find_peer_context.count / multiplier;
     }
   else
     {
-      multiplier = FIND_PEER_CALC_INTERVAL.value / time_diff.value;
+      multiplier = FIND_PEER_CALC_INTERVAL.abs_value / time_diff.abs_value;
       count_per_interval = find_peer_context.count * multiplier;
     }
 #endif
@@ -4049,18 +4049,18 @@ send_find_peer_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
               "FIND PEER");
   if (newly_found_peers < bucket_size)
     {
-      next_send_time.value = (DHT_MAXIMUM_FIND_PEER_INTERVAL.value / 2) +
+      next_send_time.rel_value = (DHT_MAXIMUM_FIND_PEER_INTERVAL.rel_value / 2) +
                               GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_STRONG,
-                                                       DHT_MAXIMUM_FIND_PEER_INTERVAL.value / 2);
+                                                       DHT_MAXIMUM_FIND_PEER_INTERVAL.rel_value / 2);
     }
   else
     {
-      next_send_time.value = DHT_MINIMUM_FIND_PEER_INTERVAL.value +
+      next_send_time.rel_value = DHT_MINIMUM_FIND_PEER_INTERVAL.rel_value +
                              GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_STRONG,
-                                                      DHT_MAXIMUM_FIND_PEER_INTERVAL.value - DHT_MINIMUM_FIND_PEER_INTERVAL.value);
+                                                      DHT_MAXIMUM_FIND_PEER_INTERVAL.rel_value - DHT_MINIMUM_FIND_PEER_INTERVAL.rel_value);
     }
 
-  GNUNET_assert (next_send_time.value != 0);
+  GNUNET_assert (next_send_time.rel_value != 0);
   find_peer_context.count = 0;
   newly_found_peers = 0;
   find_peer_context.start = GNUNET_TIME_absolute_get();
@@ -4257,7 +4257,7 @@ handle_dht_p2p_route_request (void *cls,
   struct GNUNET_MessageHeader *enc_msg = (struct GNUNET_MessageHeader *)&incoming[1];
   struct DHT_MessageContext *message_context;
 
-  if (get_max_send_delay().value > MAX_REQUEST_TIME.value)
+  if (get_max_send_delay().rel_value > MAX_REQUEST_TIME.rel_value)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Sending of previous replies took too long, backing off!\n");
     increment_stats("# route requests dropped due to high load");
@@ -4791,9 +4791,9 @@ run (void *cls,
   recent.minHeap = GNUNET_CONTAINER_heap_create(GNUNET_CONTAINER_HEAP_ORDER_MIN);
   if (GNUNET_YES == do_find_peer)
   {
-    next_send_time.value = DHT_MINIMUM_FIND_PEER_INTERVAL.value +
+    next_send_time.rel_value = DHT_MINIMUM_FIND_PEER_INTERVAL.rel_value +
                            GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_STRONG,
-                                                    (DHT_MAXIMUM_FIND_PEER_INTERVAL.value / 2) - DHT_MINIMUM_FIND_PEER_INTERVAL.value);
+                                                    (DHT_MAXIMUM_FIND_PEER_INTERVAL.rel_value / 2) - DHT_MINIMUM_FIND_PEER_INTERVAL.rel_value);
     find_peer_context.start = GNUNET_TIME_absolute_get();
     GNUNET_SCHEDULER_add_delayed (sched,
                                   next_send_time,

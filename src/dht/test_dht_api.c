@@ -249,7 +249,7 @@ retry_find_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_HashCode hash;
   memset (&hash, 42, sizeof (GNUNET_HashCode));
 
-  if (GNUNET_TIME_absolute_get_remaining(retry_ctx->real_timeout).value > 0)
+  if (GNUNET_TIME_absolute_get_remaining(retry_ctx->real_timeout).rel_value > 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "test_find_peer timed out, retrying!\n");
