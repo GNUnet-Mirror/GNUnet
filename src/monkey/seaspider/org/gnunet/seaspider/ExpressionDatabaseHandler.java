@@ -8,8 +8,13 @@ import org.tmatesoft.sqljet.core.table.ISqlJetTable;
 import org.tmatesoft.sqljet.core.table.SqlJetDb;
 
 public class ExpressionDatabaseHandler {
-	
-	private static SqlJetDb db = null;
+
+	private static final boolean DEBUG = false;
+		
+	private static SqlJetDb db;
+
+	private static ISqlJetTable table;
+
 	
 	public static void createExpressionDatabase(String databasePath) {
 		String createTableQuery = "CREATE TABLE Expression ( expr_ID INT NOT NULL PRIMARY KEY , " +
@@ -31,6 +36,8 @@ public class ExpressionDatabaseHandler {
 			}
 			/* Create table Expression */
 			db.createTable(createTableQuery);
+			db.beginTransaction(SqlJetTransactionMode.WRITE);
+			table = db.getTable("Expression");
 		}
 		catch (SqlJetException e) {
 			e.printStackTrace();
@@ -41,6 +48,7 @@ public class ExpressionDatabaseHandler {
 	public static void closeDatabase()
 	{
 		try {
+			db.commit();
 			db.close();
 		} catch (SqlJetException e) {
 			e.printStackTrace();
@@ -55,24 +63,15 @@ public class ExpressionDatabaseHandler {
 			return;
 		if (expressionSyntax.startsWith("\""))
 			return;
-		if (false)
+		if (DEBUG)
 			System.out.println (fileName  + ":[" + startLineNo + "-" + endLineNo + "]: " + expressionSyntax);
-		if (true)
-			return;
 		if (db == null) {
 			System.out.println("Error:Database handle is not initialized. Program will exit now!");
 			System.exit(1);
 		}
 		
-		ISqlJetTable table;
 		try {
-			table = db.getTable("Expression");
-			db.beginTransaction(SqlJetTransactionMode.WRITE);
-			try {
-				table.insert(fileName, expressionSyntax, startLineNo, endLineNo);
-			} finally {
-				db.commit();
-			}
+			table.insert(fileName, expressionSyntax, startLineNo, endLineNo);
 		}
 		catch (SqlJetException e) {
 			e.printStackTrace();

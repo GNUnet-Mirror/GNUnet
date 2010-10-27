@@ -38,11 +38,11 @@ public class Seaspider {
          }
      };
      
-     /* File filter to get only source and header files */
+     /* File filter to get only source files and no test cases */
      FileFilter sourceFilter = new FileFilter() {
     	public boolean accept(File file) {
     		String fileName = file.getName();
-    		return fileName.endsWith(".c");
+    		return fileName.endsWith(".c") && ! fileName.startsWith("test_");
     	}
      };
      
