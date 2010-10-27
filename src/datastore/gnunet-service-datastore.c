@@ -350,7 +350,7 @@ expired_processor (void *cls,
       return GNUNET_SYSERR;
     }
   now = GNUNET_TIME_absolute_get ();
-  if (expiration.value > now.value)
+  if (expiration.abs_value > now.abs_value)
     {
       /* finished processing */
       plugin->api->next_request (next_cls, GNUNET_YES);
@@ -362,7 +362,7 @@ expired_processor (void *cls,
 	      "Deleting content `%s' of type %u that expired %llu ms ago\n",
 	      GNUNET_h2s (key),
 	      type,
-	      (unsigned long long) (now.value - expiration.value));
+	      (unsigned long long) (now.abs_value - expiration.abs_value));
 #endif
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# bytes expired"),
@@ -1486,7 +1486,7 @@ process_stat_in (void *cls,
 #if DEBUG_SQLITE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Notification from statistics about existing payload (%llu), new payload is %llu\n",
-	      value,
+	      abs_value,
 	      payload);
 #endif
   return GNUNET_OK;

@@ -767,12 +767,12 @@ postgres_next_request_cont (void *next_cls,
   type = ntohl (*(uint32_t *) PQgetvalue (res, 0, 0));
   priority = ntohl (*(uint32_t *) PQgetvalue (res, 0, 1));
   anonymity = ntohl ( *(uint32_t *) PQgetvalue (res, 0, 2));
-  expiration_time.value = GNUNET_ntohll (*(uint64_t *) PQgetvalue (res, 0, 3));
+  expiration_time.abs_value = GNUNET_ntohll (*(uint64_t *) PQgetvalue (res, 0, 3));
   memcpy (&key, PQgetvalue (res, 0, 4), sizeof (GNUNET_HashCode));
   size = PQgetlength (res, 0, 5);
 
   nrc->blast_prio = htonl (priority);
-  nrc->blast_expire = GNUNET_htonll (expiration_time.value);
+  nrc->blast_expire = GNUNET_htonll (expiration_time.abs_value);
   nrc->blast_rowid = htonl (rowid);
   nrc->count++;
 

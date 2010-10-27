@@ -556,7 +556,7 @@ sqlite_next_request_cont (void *cls,
 
   priority = sqlite3_column_int (nc->stmt, 2);
   anonymity = sqlite3_column_int (nc->stmt, 3);
-  expiration.value = sqlite3_column_int64 (nc->stmt, 4);
+  expiration.abs_value = sqlite3_column_int64 (nc->stmt, 4);
   key = sqlite3_column_blob (nc->stmt, 5);
   nc->lastPriority = priority;
   nc->lastExpiration = expiration;
@@ -667,8 +667,8 @@ sqlite_plugin_put (void *cls,
 		   type, 
 		   GNUNET_h2s(key),
 		   priority,
-		   (unsigned long long) GNUNET_TIME_absolute_get_remaining (expiration).value,
-		   (long long) expiration.value);
+		   (unsigned long long) GNUNET_TIME_absolute_get_remaining (expiration).abs_value,
+		   (long long) expiration.abs_value);
 #endif
   GNUNET_CRYPTO_hash (data, size, &vhash);
   stmt = plugin->insertContent;
@@ -676,7 +676,7 @@ sqlite_plugin_put (void *cls,
       (SQLITE_OK != sqlite3_bind_int (stmt, 2, type)) ||
       (SQLITE_OK != sqlite3_bind_int (stmt, 3, priority)) ||
       (SQLITE_OK != sqlite3_bind_int (stmt, 4, anonymity)) ||
-      (SQLITE_OK != sqlite3_bind_int64 (stmt, 5, expiration.value)) ||
+      (SQLITE_OK != sqlite3_bind_int64 (stmt, 5, expiration.abs_value)) ||
       (SQLITE_OK !=
        sqlite3_bind_blob (stmt, 6, key, sizeof (GNUNET_HashCode),
                           SQLITE_TRANSIENT)) ||
@@ -763,7 +763,7 @@ sqlite_plugin_update (void *cls,
   int n;
 
   sqlite3_bind_int (plugin->updPrio, 1, delta);
-  sqlite3_bind_int64 (plugin->updPrio, 2, expire.value);
+  sqlite3_bind_int64 (plugin->updPrio, 2, expire.abs_value);
   sqlite3_bind_int64 (plugin->updPrio, 3, uid);
   n = sqlite3_step (plugin->updPrio);
   if (n != SQLITE_DONE)
@@ -871,10 +871,10 @@ iter_next_prepare (void *cls,
 #if DEBUG_SQLITE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Restricting to results larger than the last expiration %llu\n",
-		  (unsigned long long) nc->lastExpiration.value);
+		  (unsigned long long) nc->lastExpiration.abs_value);
 #endif
-      sqlite3_bind_int64 (ic->stmt_1, 1, nc->lastExpiration.value);
-      sqlite3_bind_int64 (ic->stmt_2, 1, nc->lastExpiration.value);
+      sqlite3_bind_int64 (ic->stmt_1, 1, nc->lastExpiration.abs_value);
+      sqlite3_bind_int64 (ic->stmt_2, 1, nc->lastExpiration.abs_value);
     }
 #if DEBUG_SQLITE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -974,7 +974,7 @@ basic_iter (struct Plugin *plugin,
 #if DEBUG_SQLITE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "At %llu, using queries `%s' and `%s'\n",
-	      (unsigned long long) GNUNET_TIME_absolute_get ().value,
+	      (unsigned long long) GNUNET_TIME_absolute_get ().abs_value,
 	      stmt_str_1,
 	      stmt_str_2);
 #endif
@@ -1014,13 +1014,13 @@ basic_iter (struct Plugin *plugin,
   if (is_asc)
     {
       nc->lastPriority = 0;
-      nc->lastExpiration.value = 0;
+      nc->lastExpiration.abs_value = 0;
       memset (&nc->lastKey, 0, sizeof (GNUNET_HashCode));
     }
   else
     {
       nc->lastPriority = 0x7FFFFFFF;
-      nc->lastExpiration.value = 0x7FFFFFFFFFFFFFFFLL;
+      nc->lastExpiration.abs_value = 0x7FFFFFFFFFFFFFFFLL;
       memset (&nc->lastKey, 255, sizeof (GNUNET_HashCode));
     }
   sqlite_next_request (nc, GNUNET_NO);
@@ -1077,9 +1077,9 @@ sqlite_plugin_iter_zero_anonymity (void *cls,
 
   now = GNUNET_TIME_absolute_get ();
   GNUNET_asprintf (&q1, SELECT_IT_NON_ANONYMOUS_1,
-		   (unsigned long long) now.value);
+		   (unsigned long long) now.abs_value);
   GNUNET_asprintf (&q2, SELECT_IT_NON_ANONYMOUS_2,
-		   (unsigned long long) now.value);
+		   (unsigned long long) now.abs_value);
   basic_iter (cls,
 	      type, 
 	      GNUNET_NO, GNUNET_YES, 
@@ -1116,9 +1116,9 @@ sqlite_plugin_iter_ascending_expiration (void *cls,
 
   now = GNUNET_TIME_absolute_get ();
   GNUNET_asprintf (&q1, SELECT_IT_EXPIRATION_TIME_1,
-		   (unsigned long long) 0*now.value);
+		   (unsigned long long) 0*now.abs_value);
   GNUNET_asprintf (&q2, SELECT_IT_EXPIRATION_TIME_2,
-		   (unsigned long long) 0*now.value);
+		   (unsigned long long) 0*now.abs_value);
   basic_iter (cls,
 	      type, 
 	      GNUNET_YES, GNUNET_NO, 
@@ -1152,7 +1152,7 @@ sqlite_plugin_iter_migration_order (void *cls,
 
   now = GNUNET_TIME_absolute_get ();
   GNUNET_asprintf (&q, SELECT_IT_MIGRATION_ORDER_2,
-		   (unsigned long long) now.value);
+		   (unsigned long long) now.abs_value);
   basic_iter (cls,
 	      type, 
 	      GNUNET_NO, GNUNET_NO, 

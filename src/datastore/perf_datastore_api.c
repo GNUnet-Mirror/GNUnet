@@ -295,7 +295,7 @@ run_continuation (void *cls,
                "Stored %llu kB / %lluk ops / %llu ops/s\n", 
 	       stored_bytes / 1024,     /* used size in k */
                stored_ops / 1024,        /* total operations (in k) */
-               1000 * stored_ops / (1 + GNUNET_TIME_absolute_get_duration(start_time).value));
+               1000 * stored_ops / (1 + GNUNET_TIME_absolute_get_duration(start_time).rel_value));
       crc->phase = RP_PUT;
       crc->j = 0;
       GNUNET_SCHEDULER_add_continuation (crc->sched,

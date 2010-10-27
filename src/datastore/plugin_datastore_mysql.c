@@ -1062,7 +1062,7 @@ iterator_helper_prepare (void *cls,
 					   &nrc->last_vkey,
 					   GNUNET_YES,
 					   MYSQL_TYPE_LONGLONG,
-					   &nrc->now.value,
+					   &nrc->now.abs_value,
 					   GNUNET_YES,
 					   MYSQL_TYPE_LONGLONG,
 					   &nrc->last_expire,
@@ -1071,7 +1071,7 @@ iterator_helper_prepare (void *cls,
 					   &nrc->last_vkey,
 					   GNUNET_YES,
 					   MYSQL_TYPE_LONGLONG,
-					   &nrc->now.value,
+					   &nrc->now.abs_value,
 					   GNUNET_YES, -1);
       break;
     default:
@@ -1199,7 +1199,7 @@ mysql_next_request_cont (void *next_cls,
 	      exp);
 #endif
   GNUNET_assert (nrc->plugin->next_task == GNUNET_SCHEDULER_NO_TASK);
-  expiration.value = exp;
+  expiration.abs_value = exp;
   ret = nrc->dviter (nrc->dviter_cls,
 		     nrc,
 		     &key,
@@ -1368,7 +1368,7 @@ mysql_plugin_put (void *cls,
   unsigned int itype = type;
   unsigned int ipriority = priority;
   unsigned int ianonymity = anonymity;
-  unsigned long long lexpiration = expiration.value;
+  unsigned long long lexpiration = expiration.abs_value;
   unsigned long hashSize;
   unsigned long hashSize2;
   unsigned long long vkey;
@@ -1720,7 +1720,7 @@ mysql_plugin_update (void *cls,
 {
   struct Plugin *plugin = cls;
   unsigned long long vkey = uid;
-  unsigned long long lexpire = expire.value;
+  unsigned long long lexpire = expire.abs_value;
   int ret;
 
 #if DEBUG_MYSQL

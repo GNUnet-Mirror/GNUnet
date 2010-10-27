@@ -114,7 +114,7 @@ putValue (struct GNUNET_DATASTORE_PluginFunctions * api, int i, int k)
   size = size - (size & 7);     /* always multiple of 8 */
 
   /* generate random key */
-  key.bits[0] = (unsigned int) GNUNET_TIME_absolute_get ().value;
+  key.bits[0] = (unsigned int) GNUNET_TIME_absolute_get ().abs_value;
   GNUNET_CRYPTO_hash (&key, sizeof (GNUNET_HashCode), &key);
   memset (value, i, size);
   if (i > 255)
@@ -170,7 +170,7 @@ iterateDummy (void *cls,
       crc->end = GNUNET_TIME_absolute_get();
       printf (crc->msg,
 	      crc->i,
-	      (unsigned long long) (crc->end.value - crc->start.value),
+	      (unsigned long long) (crc->end.abs_value - crc->start.abs_value),
 	      crc->cnt);
       if (crc->phase != RP_AN_GET)
 	{
@@ -191,7 +191,7 @@ iterateDummy (void *cls,
 #if VERBOSE
   fprintf (stderr, "Found result type=%u, priority=%u, size=%u, expire=%llu\n",
 	   type, priority, size,
-	   (unsigned long long) expiration.value);
+	   (unsigned long long) expiration.abs_value);
 #endif
   crc->cnt++;
   crc->api->next_request (next_cls,
@@ -263,7 +263,7 @@ test (void *cls,
       crc->end = GNUNET_TIME_absolute_get ();
       printf ("%3u insertion took                      %20llums for %u\n",
 	      crc->i,
-	      (unsigned long long) (crc->end.value - crc->start.value),
+	      (unsigned long long) (crc->end.abs_value - crc->start.abs_value),
 	      (unsigned int) PUT_10);
       crc->i++;
       crc->phase = RP_LP_GET;

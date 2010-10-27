@@ -500,11 +500,11 @@ try_reconnect (void *cls,
 {
   struct GNUNET_DATASTORE_Handle *h = cls;
 
-  if (h->retry_time.value < GNUNET_CONSTANTS_SERVICE_RETRY.value)
+  if (h->retry_time.rel_value < GNUNET_CONSTANTS_SERVICE_RETRY.rel_value)
     h->retry_time = GNUNET_CONSTANTS_SERVICE_RETRY;
   else
     h->retry_time = GNUNET_TIME_relative_multiply (h->retry_time, 2);
-  if (h->retry_time.value > GNUNET_CONSTANTS_SERVICE_TIMEOUT.value)
+  if (h->retry_time.rel_value > GNUNET_CONSTANTS_SERVICE_TIMEOUT.rel_value)
     h->retry_time = GNUNET_CONSTANTS_SERVICE_TIMEOUT;
   h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   h->client = GNUNET_CLIENT_connect (h->sched, "datastore", h->cfg);
@@ -784,7 +784,7 @@ process_status_message (void *cls,
 			    gettext_noop ("# status messages received"),
 			    1,
 			    GNUNET_NO);
-  h->retry_time.value = 0;
+  h->retry_time.rel_value = 0;
   process_queue (h);
   if (rc.cont != NULL)
     rc.cont (rc.cont_cls, 
@@ -1055,7 +1055,7 @@ GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h,
 	      "Asked to update entry %llu raising priority by %u and expiration to %llu\n",
 	      uid,
 	      (unsigned int) priority,
-	      (unsigned long long) expiration.value);
+	      (unsigned long long) expiration.abs_value);
 #endif
   qc.sc.cont = cont;
   qc.sc.cont_cls = cont_cls;
@@ -1221,7 +1221,7 @@ process_result_message (void *cls,
 	rc.iter (rc.iter_cls,
 		 NULL, 0, NULL, 0, 0, 0, 
 		 GNUNET_TIME_UNIT_ZERO_ABS, 0);	
-      h->retry_time.value = 0;
+      h->retry_time.rel_value = 0;
       h->result_count = 0;
       process_queue (h);
       return;
@@ -1274,7 +1274,7 @@ process_result_message (void *cls,
 	      ntohl(dm->size),
 	      GNUNET_h2s(&dm->key));
 #endif
-  h->retry_time.value = 0;
+  h->retry_time.rel_value = 0;
   rc.iter (rc.iter_cls,
 	   &dm->key,
 	   ntohl(dm->size),
@@ -1318,7 +1318,7 @@ GNUNET_DATASTORE_get_random (struct GNUNET_DATASTORE_Handle *h,
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Asked to get random entry in %llu ms\n",
-	      (unsigned long long) timeout.value);
+	      (unsigned long long) timeout.abs_value);
 #endif
   qc.rc.iter = iter;
   qc.rc.iter_cls = iter_cls;
@@ -1378,7 +1378,7 @@ GNUNET_DATASTORE_get_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Asked to get zero-anonymity entry in %llu ms\n",
-	      (unsigned long long) timeout.value);
+	      (unsigned long long) timeout.abs_value);
 #endif
   qc.rc.iter = iter;
   qc.rc.iter_cls = iter_cls;
