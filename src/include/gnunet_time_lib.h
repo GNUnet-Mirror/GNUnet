@@ -46,7 +46,7 @@ struct GNUNET_TIME_Absolute
   /**
    * The actual value.
    */
-  uint64_t value;
+  uint64_t abs_value;
 };
 
 /**
@@ -58,7 +58,7 @@ struct GNUNET_TIME_Relative
   /**
    * The actual value.
    */
-  uint64_t value;
+  uint64_t rel_value;
 };
 
 
