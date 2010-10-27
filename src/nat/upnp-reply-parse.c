@@ -158,7 +158,7 @@ UPNP_REPLY_print_ (char *buffer, int buf_size)
   for (nv = pdata.head.lh_first; nv != NULL; nv = nv->entries.le_next)
     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "UPnP",
-                       "%s = %s", nv->name, nv->abs_value);
+                       "%s = %s", nv->name, nv->value);
     }
 
   UPNP_REPLY_free_ (&pdata);
