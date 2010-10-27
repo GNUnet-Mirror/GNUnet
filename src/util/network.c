@@ -1048,7 +1048,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 #define SAFE_FD_ISSET(fd, set)  (set != NULL && FD_ISSET(fd, set))
 
   /* calculate how long we need to wait in milliseconds */
-  if (timeout.abs_value == GNUNET_TIME_UNIT_FOREVER_REL.abs_value)
+  if (timeout.abs_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
     ms_total = INFINITE;
 
   else

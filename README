@@ -33,9 +33,9 @@ These are the direct dependencies for running GNUnet:
 - libgcrypt     >= 1.2
 - libcurl       >= 7.21.0
 - libltdl       >= 2.2 (part of GNU libtool)
-- sqlite        >= 3.0 (alternative to MySQL)
+- sqlite        >= 3.0 (default database)
 - mysql         >= 5.1 (alternative to sqLite)
-- postgres      >= ??? (not yet supported)
+- postgres      >= 8.3 (alternative to sqLite)
 
 Recommended autotools for compiling the SVN version are:
 - autoconf >= 2.59
@@ -59,8 +59,8 @@ traversal).
 GNUnet requires the GNU MP library (http://www.gnu.org/software/gmp/)
 and libgcrypt (http://www.gnupg.org/).  You can specify the path to
 libgcrypt by passing "--with-gcrypt=PATH" to configure.  You will also
-need either sqlite (http://www.sqlite.org/) or MySQL
-(http://www.mysql.org/).
+need either sqlite (http://www.sqlite.org/), MySQL
+(http://www.mysql.org/) or PostGres (http://www.postgres.org/).
 
 If you install from source, you need to install GNU libextractor first
 (download from http://www.gnu.org/software/libextractor/).  We also

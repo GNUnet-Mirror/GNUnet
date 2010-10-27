@@ -289,6 +289,8 @@ SUMMARY:
   - bandwidth and time APIs
   - buffered IO API
   - HKDF implementation (crypto)
+  - load calculation API
+  - bandwidth calculation API
 * Major changes in util:
   - more expressive server (replaces selector)
   - DNS lookup replaced by async service
