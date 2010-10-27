@@ -56,6 +56,8 @@ public class ExpressionDatabaseHandler {
 		if (expressionSyntax.startsWith("\""))
 			return;
 		System.out.println (fileName  + ":[" + startLineNo + "-" + endLineNo + "]: " + expressionSyntax);
+		if (true)
+			return;
 		if (db == null) {
 			System.out.println("Error:Database handle is not initialized. Program will exit now!");
 			System.exit(1);

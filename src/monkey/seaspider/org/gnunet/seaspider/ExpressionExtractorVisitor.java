@@ -19,6 +19,9 @@ import org.gnunet.seaspider.parser.nodes.FunctionDeclaration;
 import org.gnunet.seaspider.parser.nodes.IfStatement;
 import org.gnunet.seaspider.parser.nodes.InclusiveORExpression;
 import org.gnunet.seaspider.parser.nodes.InitDeclarator;
+import org.gnunet.seaspider.parser.nodes.InitDeclaratorList;
+import org.gnunet.seaspider.parser.nodes.Initializer;
+import org.gnunet.seaspider.parser.nodes.InitializerList;
 import org.gnunet.seaspider.parser.nodes.JumpStatement;
 import org.gnunet.seaspider.parser.nodes.LogicalANDExpression;
 import org.gnunet.seaspider.parser.nodes.LogicalORExpression;
@@ -37,6 +40,7 @@ import org.gnunet.seaspider.parser.nodes.TranslationUnit;
 import org.gnunet.seaspider.parser.nodes.TypeDeclaration;
 import org.gnunet.seaspider.parser.nodes.UnaryExpression;
 import org.gnunet.seaspider.parser.nodes.UnaryOperator;
+import org.gnunet.seaspider.parser.nodes.VariableDeclaration;
 import org.gnunet.seaspider.parser.nodes.WhileStatement;
 import org.gnunet.seaspider.parser.visitors.DepthFirstVisitor;
 import org.grothoff.LineNumberInfo;
@@ -99,6 +103,29 @@ public class ExpressionExtractorVisitor extends DepthFirstVisitor {
 		// do nothing -- skip!
 	}
 
+	public void visit(InitDeclaratorList n) {
+		assert skip_mode == true;
+		super.visit (n);		
+		assert skip_mode == true;
+	}
+	
+	public void visit(Initializer n) {
+		assert skip_mode == true;
+		super.visit (n);		
+		assert skip_mode == true;
+	}
+
+	public void visit(InitializerList n) {
+		assert skip_mode == true;
+		super.visit (n);		
+		assert skip_mode == true;
+	}
+	
+	public void visit(VariableDeclaration n) {
+		assert skip_mode == true;
+		super.visit (n);
+	}
+
 	public void visit(FunctionDeclaration n) {
 		if (n.f5.which == 0)
 			return; // no body
@@ -146,6 +173,8 @@ public class ExpressionExtractorVisitor extends DepthFirstVisitor {
 	}
 
 	public void visit(CompoundStatement n) {
+		assert current_expression == null;
+		assert skip_mode == true;
 		int old_end = scope_end_line;
 		scope_end_line = n.f2.endLine;
 		n.f1.accept(this);
@@ -252,8 +281,8 @@ public class ExpressionExtractorVisitor extends DepthFirstVisitor {
 	}
 
 	public void visit(AssignmentExpression n) {
+		boolean old_mode = skip_mode;
 		skip_mode = false;
-		assert current_expression == null;
 		ExpressionBuilder old = current_expression;
 		current_expression = new ExpressionBuilder();
 		n.f0.accept(this);
@@ -263,6 +292,7 @@ public class ExpressionExtractorVisitor extends DepthFirstVisitor {
 			old.commit(lin.lineEnd);
 		}
 		current_expression = old;
+		skip_mode = old_mode;
 	}
 
 	public void visit(AssignmentOperator n) {
