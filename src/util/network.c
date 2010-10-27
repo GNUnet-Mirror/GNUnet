@@ -1048,11 +1048,11 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 #define SAFE_FD_ISSET(fd, set)  (set != NULL && FD_ISSET(fd, set))
 
   /* calculate how long we need to wait in milliseconds */
-  if (timeout.abs_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
+  if (timeout.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
     ms_total = INFINITE;
 
   else
-    ms_total = timeout.abs_value / GNUNET_TIME_UNIT_MILLISECONDS.abs_value;
+    ms_total = timeout.rel_value / GNUNET_TIME_UNIT_MILLISECONDS.rel_value;
 
   /* select() may be used as a portable way to sleep */
   if (!(rfds || wfds || efds))
