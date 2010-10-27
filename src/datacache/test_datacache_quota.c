@@ -70,7 +70,7 @@ run (void *cls,
       return;
     }
   exp = GNUNET_TIME_absolute_get ();
-  exp.value += 20 * 60 * 1000;
+  exp.abs_value += 20 * 60 * 1000;
   memset (buf, 1, sizeof (buf));
   memset (&k, 0, sizeof (GNUNET_HashCode));
   for (i = 0; i < 10; i++)
@@ -79,7 +79,7 @@ run (void *cls,
       GNUNET_CRYPTO_hash (&k, sizeof (GNUNET_HashCode), &n);
       for (j = i; j < sizeof (buf); j += 10)
         {
-	  exp.value++;
+	  exp.abs_value++;
           buf[j] = i;
           ASSERT (GNUNET_OK == 
 		  GNUNET_DATACACHE_put (h,

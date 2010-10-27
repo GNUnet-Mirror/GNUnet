@@ -112,9 +112,9 @@ sqlite_plugin_put (void *cls,
 	      "PUT",
 	      (unsigned int) size,
 	      GNUNET_h2s (key),
-	      (unsigned long long) GNUNET_TIME_absolute_get_remaining (discard_time).value);
+	      (unsigned long long) GNUNET_TIME_absolute_get_remaining (discard_time).rel_value);
 #endif
-  dval = (int64_t) discard_time.value;
+  dval = (int64_t) discard_time.abs_value;
   if (dval < 0)    
     dval = INT64_MAX;    
   if (sq_prepare (plugin->dbh,
@@ -206,9 +206,9 @@ sqlite_plugin_get (void *cls,
   sqlite3_bind_blob (stmt, 1, key, sizeof (GNUNET_HashCode),
                      SQLITE_TRANSIENT);
   sqlite3_bind_int (stmt, 2, type);
-  ntime = (int64_t) now.value;
+  ntime = (int64_t) now.abs_value;
   GNUNET_assert (ntime >= 0);
-  sqlite3_bind_int64 (stmt, 3, now.value);
+  sqlite3_bind_int64 (stmt, 3, now.abs_value);
   if (SQLITE_ROW != sqlite3_step (stmt))
     {
       LOG_SQLITE (plugin->dbh,
@@ -242,13 +242,13 @@ sqlite_plugin_get (void *cls,
       sqlite3_bind_blob (stmt, 1, key, sizeof (GNUNET_HashCode),
                          SQLITE_TRANSIENT);
       sqlite3_bind_int (stmt, 2, type);
-      sqlite3_bind_int64 (stmt, 3, now.value);
+      sqlite3_bind_int64 (stmt, 3, now.abs_value);
       if (sqlite3_step (stmt) != SQLITE_ROW)
         break;
       size = sqlite3_column_bytes (stmt, 0);
       dat = sqlite3_column_blob (stmt, 0);
-      exp.value = sqlite3_column_int64 (stmt, 1);
-      ntime = (int64_t) exp.value;
+      exp.abs_value = sqlite3_column_int64 (stmt, 1);
+      ntime = (int64_t) exp.abs_value;
       if (ntime == INT64_MAX)
 	exp = GNUNET_TIME_UNIT_FOREVER_ABS;
       cnt++;

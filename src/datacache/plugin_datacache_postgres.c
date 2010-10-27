@@ -422,7 +422,7 @@ postgres_plugin_get (void *cls,
     }
   for (i=0;i<cnt;i++)
     {
-      expiration_time.value = GNUNET_ntohll (*(uint64_t *) PQgetvalue (res, i, 0));
+      expiration_time.abs_value = GNUNET_ntohll (*(uint64_t *) PQgetvalue (res, i, 0));
       type = ntohl (*(uint32_t *) PQgetvalue (res, i, 1));
       size = PQgetlength (res, i, 2);
 #if DEBUG_POSTGRES

@@ -750,8 +750,8 @@ mysql_plugin_put (void *cls,
   k_length = sizeof (GNUNET_HashCode);
   v_length = size;
   v_type = type;
-  v_now = (unsigned long long) now.value;
-  v_discard_time = (unsigned long long) discard_time.value;
+  v_now = (unsigned long long) now.abs_value;
+  v_discard_time = (unsigned long long) discard_time.abs_value;
   if (GNUNET_OK ==
       prepared_statement_run (plugin,
 			      plugin->update_value,
@@ -862,7 +862,7 @@ mysql_plugin_get (void *cls,
   rbind[0].buffer = &total;
   rbind[0].is_unsigned = GNUNET_YES;
   v_type = type;
-  v_now = (unsigned long long) now.value;
+  v_now = (unsigned long long) now.abs_value;
   if ((GNUNET_OK !=
        (ret = prepared_statement_run_select (plugin,
 					     plugin->count_value,
@@ -930,7 +930,7 @@ mysql_plugin_get (void *cls,
           return GNUNET_SYSERR;
         }
       cnt++;
-      expire.value = v_expire;
+      expire.abs_value = v_expire;
       if (GNUNET_OK != iter (iter_cls, 
 			     expire,
 			     key, 

@@ -84,7 +84,7 @@ run (void *cls,
     }
   exp = GNUNET_TIME_absolute_get ();
   start = exp;
-  exp.value += 5 * 60 * 1000;
+  exp.abs_value += 5 * 60 * 1000;
   memset (&k, 0, sizeof (GNUNET_HashCode));
   for (i = 0; i < ITERATIONS; i++)
     {
@@ -102,7 +102,7 @@ run (void *cls,
   fprintf (stderr, "\n");
   fprintf (stdout, "Stored %u items in %llums\n",
 	   ITERATIONS,
-	   (unsigned long long) GNUNET_TIME_absolute_get_duration(start).value);
+	   (unsigned long long) GNUNET_TIME_absolute_get_duration(start).rel_value);
   start = GNUNET_TIME_absolute_get ();
   memset (&k, 0, sizeof (GNUNET_HashCode));
   for (i = 0; i < ITERATIONS; i++)
@@ -117,7 +117,7 @@ run (void *cls,
   fprintf (stderr, "\n");
   fprintf (stdout, "Found %u/%u items in %llums (%u were deleted during storage processing)\n",
 	   found, ITERATIONS,
-	   (unsigned long long) GNUNET_TIME_absolute_get_duration(start).value,
+	   (unsigned long long) GNUNET_TIME_absolute_get_duration(start).rel_value,
 	   ITERATIONS - found);
 	   
   GNUNET_DATACACHE_destroy (h);

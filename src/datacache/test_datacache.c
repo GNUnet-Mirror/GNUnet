@@ -84,7 +84,7 @@ run (void *cls,
       return;
     }
   exp = GNUNET_TIME_absolute_get ();
-  exp.value += 5 * 60 * 1000;
+  exp.abs_value += 5 * 60 * 1000;
   memset (&k, 0, sizeof (GNUNET_HashCode));
   for (i = 0; i < 100; i++)
     {
