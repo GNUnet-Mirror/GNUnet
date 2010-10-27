@@ -310,8 +310,9 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 
     if (pkt->subtype == GNUNET_DNS_ANSWER_TYPE_SERVICE)
       {
-      pkt->subtype = GNUNET_DNS_ANSWER_TYPE_IP;
 	unsigned char ip6addr[16];
+
+	pkt->subtype = GNUNET_DNS_ANSWER_TYPE_IP;
 	memcpy(ip6addr, (int[]){htons(0x1234)}, 2);
 	memcpy(ip6addr+2, &pkt->peer, 7);
 	memcpy(ip6addr+9, &pkt->service_descriptor, 7);

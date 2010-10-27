@@ -179,7 +179,8 @@ void ExternalDeclaration() : {}
 	(StorageClassSpecifier())*
 	(
             LOOKAHEAD (FunctionDeclaration()) FunctionDeclaration() | 
-	    LOOKAHEAD (StructOrUnionSpecifier()) StructOrUnionSpecifier() ";" |
+	    LOOKAHEAD (StructOrUnionSpecifier() ";") StructOrUnionSpecifier() ";" |
+	    LOOKAHEAD (EnumSpecifier() ";") EnumSpecifier() ";" |
 	    LOOKAHEAD (VariableDeclaration()) VariableDeclaration() |
   	    LOOKAHEAD (TypeDeclaration()) TypeDeclaration () 
         ) 

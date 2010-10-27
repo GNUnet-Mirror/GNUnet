@@ -7,11 +7,12 @@ import java.io.FileNotFoundException;
 
 import org.gnunet.seaspider.parser.CParser;
 import org.gnunet.seaspider.parser.ParseException;
+import org.gnunet.seaspider.parser.TokenMgrError;
 import org.gnunet.seaspider.parser.nodes.Node;
 
 public class Seaspider {
 	
-	static final boolean DEBUG = true;
+	static final boolean DEBUG = false;
    
    public static void main(String args[])
    {
@@ -41,8 +42,7 @@ public class Seaspider {
      FileFilter sourceFilter = new FileFilter() {
     	public boolean accept(File file) {
     		String fileName = file.getName();
-    		System.out.println ("Found file " + fileName);
-    		return (fileName.endsWith(".c") || fileName.endsWith(".h"));
+    		return fileName.endsWith(".c");
     	}
      };
      
@@ -67,17 +67,22 @@ public class Seaspider {
     			 e.printStackTrace();
     		 }
     		 try {
-    			 System.out.println("Parsing file: " + dir + "/" + fileArr[j].getName());
     	         Node root = parser.TranslationUnit();
     	         root.accept(new ExpressionExtractorVisitor(fileArr[j].getName()));
     	         System.out.println("File " + dir + "/" + fileArr[j].getName() + " parsed successfully.");
     	         successCount++;
     	     }
     	     catch (ParseException e) {
-    	         System.out.println("Encountered errors during parsing file " + fileArr[j].getName());
+    	         System.err.println("Encountered errors during parsing file " + fileArr[j].getName() + ":" + e.getMessage());
     	         failureCount++;
     	         if (DEBUG)
     	        	 e.printStackTrace();
+    	     } catch (TokenMgrError e)
+    	     {
+    	    	 System.err.println("Encountered errors during parsing file " + fileArr[j].getName() + ":" + e.getMessage());
+    	         failureCount++;
+    	         if (DEBUG)
+    	        	 e.printStackTrace();    	    	 
     	     }
     	 }
      }

@@ -372,13 +372,12 @@ libgnunet_plugin_datacache_sqlite_init (void *cls)
       GNUNET_break (0);
       return NULL;
     }
-  fn_utf8 = GNUNET_STRINGS_to_utf8 (fn, strlen (fn),
 #ifdef ENABLE_NLS
-				    nl_langinfo (CODESET)
+  fn_utf8 = GNUNET_STRINGS_to_utf8 (fn, strlen (fn), nl_langinfo (CODESET));
 #else
-				    "UTF-8"      /* good luck */
+  /* good luck */
+  fn_utf8 = GNUNET_STRINGS_to_utf8 (fn, strlen (fn), "UTF-8");
 #endif
-    );
   if (SQLITE_OK != sqlite3_open (fn_utf8, &dbh))
     {
       GNUNET_free (fn);

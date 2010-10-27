@@ -47,7 +47,7 @@ makeName (unsigned int i)
   return fn;
 }
 
-static volatile enum GNUNET_FSUI_EventType lastEvent;
+static enum GNUNET_FSUI_EventType lastEvent;
 
 static struct GNUNET_MetaData *search_meta;
 

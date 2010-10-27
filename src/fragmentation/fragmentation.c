@@ -333,7 +333,7 @@ static int stat_discarded;
 /**
  * Hashtable *with* collision management!
  */
-static FC *defragmentationCache[DEFRAG_BUCKET_COUNT];
+static struct FC *defragmentationCache[DEFRAG_BUCKET_COUNT];
 
 /**
  * Lock for the defragmentation cache.

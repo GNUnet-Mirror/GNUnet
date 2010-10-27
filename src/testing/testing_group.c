@@ -2395,12 +2395,12 @@ connect_topology (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_NotifyComp
       total = total + ret;
 
 #if OLD
-      connection_iter = ;
+      connection_iter = FIXME;
       while (connection_iter != NULL)
         {
           connect_context = GNUNET_malloc(sizeof(struct ConnectContext));
           connect_context->pg = pg;
-          connect_context->first = ;
+          connect_context->first = FIXME;
           connect_context->second = connection_iter->daemon;
           GNUNET_SCHEDULER_add_now(pg->sched, &schedule_connect, connect_context);
           connection_iter = connection_iter->next;

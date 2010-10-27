@@ -48,15 +48,15 @@ makeName (unsigned int i)
 
 static struct GNUNET_FSUI_SearchList *search;
 
-static volatile enum GNUNET_FSUI_EventType lastEvent;
+static enum GNUNET_FSUI_EventType lastEvent;
 
-static volatile struct GNUNET_ECRS_URI *uri;
+static struct GNUNET_ECRS_URI *uri;
 
-static volatile int availability;
+static int availability;
 
-static volatile unsigned int rank;
+static unsigned int rank;
 
-static volatile enum GNUNET_FSUI_EventType waitForEvent;
+static enum GNUNET_FSUI_EventType waitForEvent;
 
 static void *
 eventCallback (void *cls, const GNUNET_FSUI_Event * event)

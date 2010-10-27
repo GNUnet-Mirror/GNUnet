@@ -39,7 +39,7 @@
 
 static struct GNUNET_GE_Context *ectx;
 
-volatile int download_done;
+static int download_done;
 
 static char *
 makeName (unsigned int i)
@@ -150,8 +150,8 @@ checkHierarchy (unsigned int i, const char *tree)
 }
 
 
-static volatile enum GNUNET_FSUI_EventType lastEvent;
-static volatile enum GNUNET_FSUI_EventType waitForEvent;
+static enum GNUNET_FSUI_EventType lastEvent;
+static enum GNUNET_FSUI_EventType waitForEvent;
 static struct GNUNET_FSUI_Context *ctx;
 static struct GNUNET_ECRS_URI *upURI;
 static struct GNUNET_FSUI_DownloadList *download;

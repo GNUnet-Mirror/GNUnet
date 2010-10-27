@@ -31,7 +31,7 @@
 #include "gnunet_disk_lib.h"
 #include "gnunet_pseudonym_lib.h"
 
-#define CHECK(a) if (!(a)) { ok = GNUNET_NO; GNUNET_break(0); goto FAILURE; }
+#define CHECK(a) do { if (!(a)) { ok = GNUNET_NO; GNUNET_break(0); goto FAILURE; } } while (0)
 
 static struct GNUNET_CONTAINER_MetaData *meta;
 
@@ -79,12 +79,12 @@ fake_noti_callback (void *cls,
 
 static int
 false_callback (void *cls,
-        const GNUNET_HashCode *
-        pseudonym,
-        const struct GNUNET_CONTAINER_MetaData *md, int rating)
+		const GNUNET_HashCode *pseudonym,
+		const struct GNUNET_CONTAINER_MetaData *md, int rating)
 {
-	  return GNUNET_OK;
+  return GNUNET_OK;
 }
+
 int
 main (int argc, char *argv[])
 {
@@ -167,7 +167,7 @@ main (int argc, char *argv[])
   name1 = GNUNET_PSEUDONYM_id_to_name (cfg, &id1);
   CHECK (name1 != NULL);
   CHECK (0 != strcmp (name1, name2));
-  CHECK	(GNUNET_SYSERR == GNUNET_PSEUDONYM_name_to_id (cfg, "fake", &rid2))
+  CHECK	(GNUNET_SYSERR == GNUNET_PSEUDONYM_name_to_id (cfg, "fake", &rid2));
   CHECK (GNUNET_OK == GNUNET_PSEUDONYM_name_to_id (cfg, name2, &rid2));
   CHECK (GNUNET_OK == GNUNET_PSEUDONYM_name_to_id (cfg, name1, &rid1));
   CHECK (0 == memcmp (&id1, &rid1, sizeof (GNUNET_HashCode)));

@@ -46,7 +46,7 @@ void cb_from(const char *str, void *data)
  printf("<< %s\n",str);
 }
 
-volatile int async_c=0;
+static int async_c=0;
 
 void cb_async(mi_output *o, void *data)
 {

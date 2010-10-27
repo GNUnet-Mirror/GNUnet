@@ -1001,7 +1001,7 @@ run (void *cls,
   modnum = num_peers / 4;
   dotnum = (num_peers / 50) + 1;
 #if VERBOSE
-  fprintf (stdout, "Hostkey generation progress: \[");
+  fprintf (stdout, "Hostkey generation progress: [");
 #endif
   /* Set up a task to end testing if peer start fails */
   die_task = GNUNET_SCHEDULER_add_delayed (sched,

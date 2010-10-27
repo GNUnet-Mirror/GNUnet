@@ -55,7 +55,8 @@ public class ExpressionDatabaseHandler {
 			return;
 		if (expressionSyntax.startsWith("\""))
 			return;
-		System.out.println (fileName  + ":[" + startLineNo + "-" + endLineNo + "]: " + expressionSyntax);
+		if (false)
+			System.out.println (fileName  + ":[" + startLineNo + "-" + endLineNo + "]: " + expressionSyntax);
 		if (true)
 			return;
 		if (db == null) {
