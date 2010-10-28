@@ -65,28 +65,24 @@ public class Seaspider {
 	}
 	
 	
-	private static void parseRecursively(String dirPath)
+	private static void parseRecursively(String path)
 	{
-		File dir = new File(dirPath);
+		File file = new File(path);
 		
-		if (!dir.isDirectory()) {
-			if (dirPath.endsWith(".c")) {
-				doParseFile(dirPath);
+		if (!file.isDirectory()) {
+			if (path.endsWith(".db"))
 				return;
-			} else /* Probably the Database file */
-				return;
+			/* A source file */
+			doParseFile(path);
+			return;
 		}
 		
-		System.out.println("Reading from: " + dirPath + " source directory...");
-		String[] dirContents = dir.list(filter);/* Only directories and .c files */
+		/* A source directory */
+		System.out.println("Reading from: " + path + " source directory...");
+		String[] dirContents = file.list(filter);/* Only directories and .c files */
 		for (int i = 0; i < dirContents.length; i++) {
-			String fullPath = dirPath + "/" + dirContents[i];
-			File file = new File(fullPath);
-			
-			if (file.isDirectory())
-				parseRecursively(fullPath);
-			else 
-				doParseFile(fullPath); /* Path is for a file */
+			String fullPath = path + "/" + dirContents[i];
+			parseRecursively(fullPath);
 		}
 	}
 	
@@ -109,8 +105,10 @@ public class Seaspider {
     		 /* Should be a valid path for a file or a directory */
     		 File file = new File(args[i]);
     		 if (!file.exists()) {
-    			 System.err.println("\"" + args[i]+ "\" is an invalid file or directory location");
+    			 System.err.println("\"" + args[i] + "\" is an invalid file or directory location");
     			 System.exit(1);
+    		 } else if (!file.isDirectory() && !args[i].endsWith(".c")) {
+    			 System.err.println("\"" + args[i] + "\" only source files can be parsed");
     		 }
     	 }
      }
