@@ -42,14 +42,7 @@
 #define DEBUG_MEASUREMENT GNUNET_NO
 #define DEBUG_CONNECTIONS GNUNET_NO
 
-/**
- * Note that this value must not significantly exceed
- * 'MAX_PENDING' in 'gnunet-service-transport.c', otherwise
- * messages may be dropped even for a reliable transport.
- */
-#define TOTAL_MSGS (10000 * 2)
-
-#define MEASUREMENT_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define MEASUREMENT_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
 #define MEASUREMENT_MSG_SIZE 10000
 #define MEASUREMENT_MSG_SIZE_BIG 32768
 #define MEASUREMENT_MAX_QUOTA 1024 * 1024 * 1024
@@ -154,6 +147,13 @@ struct GNUNET_TRANSPORT_TransmitHandle * transmit_handle;
 #endif
 
 
+
+static void
+end_send ()
+{
+
+}
+
 static void
 end ()
 {
@@ -244,6 +244,8 @@ notify_receive_new (void *cls,
 
   hdr = (const struct TestMessage*) message;
   s = get_size (n);
+  if (measurement_running == GNUNET_NO)
+	  return;
   if (MTYPE != ntohs (message->type))
     return;
 #if DEBUG_MEASUREMENT
@@ -274,14 +276,18 @@ notify_ready_new (void *cls, size_t size, void *buf)
 
   if (buf == NULL)
     {
-      GNUNET_break (0);
       ok = 42;
       return 0;
     }
 
   if (measurement_running != GNUNET_YES)
+  {
+	  send_running = GNUNET_NO;
+	  end_send();
 	  return 0;
+  }
 
+  send_running = GNUNET_YES;
   ret = 0;
   s = get_size (n);
   GNUNET_assert (size >= s);
@@ -349,6 +355,7 @@ measurement_end (void *cls,
   measurement_running = GNUNET_NO;
   struct GNUNET_TIME_Relative duration = GNUNET_TIME_absolute_get_difference(start_time, GNUNET_TIME_absolute_get());
 
+
   if (measurement_counter_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (sched, measurement_counter_task);
@@ -357,11 +364,13 @@ measurement_end (void *cls,
 #if VERBOSE
   fprintf(stderr,"\n");
 #endif
+  /*
   if (transmit_handle != NULL)
   {
 	  GNUNET_TRANSPORT_notify_transmit_ready_cancel(transmit_handle);
 	  transmit_handle = NULL;
   }
+  */
   if ((total_bytes/(duration.rel_value / 1000)) > (current_quota_p1 + (current_quota_p1 / 10)))
   {
 	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -369,8 +378,8 @@ measurement_end (void *cls,
 			  "Quota allowed: %10llu kB/s\n"\
 			  "Throughput   : %10llu kB/s\n", (current_quota_p1 / (1024)) , (total_bytes/(duration.rel_value / 1000)/1024));
 	  ok = 1;
-	  end();
-	  return;
+/*	  end();
+	  return;*/
   }
   else
   {
@@ -381,11 +390,20 @@ measurement_end (void *cls,
 			  "Throughput   : %10llu kB/s\n", (current_quota_p1 / (1024)) , (total_bytes/(duration.rel_value / 1000)/1024));
 	  ok = 0;
   }
-  if (current_quota_p1 < MEASUREMENT_MIN_QUOTA)
-	  end();
-  else
 
-	measure (current_quota_p1 / 1024, current_quota_p2 / 1024);
+  if (current_quota_p1 < MEASUREMENT_MIN_QUOTA)
+  {
+	  end();
+	  return;
+  }
+  else
+  {
+#if VERBOSE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Scheduling next measurement\n");
+#endif
+	measure (current_quota_p1 / 10, current_quota_p2 / 10);
+  }
 }
 
 static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
@@ -394,7 +412,7 @@ static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
 	  current_quota_p2 = quota_p2;
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Starting transport level measurement for %u and quota %llu kB/s\n", MEASUREMENT_INTERVALL.rel_value / 1000 , current_quota_p1 / 1024);
+              "Starting transport level measurement for %u seconds and quota %llu kB/s\n", MEASUREMENT_INTERVALL.rel_value / 1000 , current_quota_p1 / 1024);
 #endif
 		GNUNET_TRANSPORT_set_quota (p1.th,
 			  &p2.id,
@@ -430,7 +448,6 @@ static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
 
 		if (transmit_handle != NULL)
 			  GNUNET_TRANSPORT_notify_transmit_ready_cancel(transmit_handle);
-
 		transmit_handle = GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
 											  &p1.id,
 											  get_size (0), 0, SEND_TIMEOUT,
