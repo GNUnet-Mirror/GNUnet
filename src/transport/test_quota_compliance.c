@@ -52,9 +52,8 @@
 #define MEASUREMENT_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 #define MEASUREMENT_MSG_SIZE 10000
 #define MEASUREMENT_MSG_SIZE_BIG 32768
-#define MEASUREMENT_MAX_QUOTA 50000
-/*#define MEASUREMENT_MAX_QUOTA 1000000*/
-#define MEASUREMENT_MIN_QUOTA 1000
+#define MEASUREMENT_MAX_QUOTA 1024 * 1024 * 1024
+#define MEASUREMENT_MIN_QUOTA 1024 * 10
 #define SEND_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 /**
  * Testcase timeout
@@ -370,7 +369,7 @@ measurement_end (void *cls,
 			  "Quota allowed: %10llu kB/s\n"\
 			  "Throughput   : %10llu kB/s\n", (current_quota_p1 / (1024)) , (total_bytes/(duration.rel_value / 1000)/1024));
 	  ok = 1;
-	  //end();
+	  end();
 	  return;
   }
   else
@@ -386,7 +385,7 @@ measurement_end (void *cls,
 	  end();
   else
 
-	measure (current_quota_p1- 1000, current_quota_p2- 1000);
+	measure (current_quota_p1 / 1024, current_quota_p2 / 1024);
 }
 
 static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
@@ -395,7 +394,7 @@ static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
 	  current_quota_p2 = quota_p2;
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Starting transport level measurement: Duration: %u Quota: %llu\n", MEASUREMENT_INTERVALL, current_quota_p1);
+              "Starting transport level measurement for %u and quota %llu kB/s\n", MEASUREMENT_INTERVALL.rel_value / 1000 , current_quota_p1 / 1024);
 #endif
 		GNUNET_TRANSPORT_set_quota (p1.th,
 			  &p2.id,
