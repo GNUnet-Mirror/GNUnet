@@ -21,7 +21,7 @@ public class ExpressionDatabaseHandler {
 		"file_name TEXT NOT NULL , expr_syntax TEXT NOT NULL ," +
 		" start_lineno INT, end_lineno INT)";
 		
-		File dbFile = new File(databasePath + "/GNUnetExpressions.db");
+		File dbFile = new File(databasePath);
 		dbFile.delete();/* Delete it if already existent */        
 		
 		/* Create Expressions database */
