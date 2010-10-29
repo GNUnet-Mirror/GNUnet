@@ -578,31 +578,33 @@ run (void *cls,
   send_running = GNUNET_NO;
   recv_running = GNUNET_NO;
 
-
   if (is_tcp)
     {
-      setup_peer (&p1, "test_quota_compliance_peer1.conf");
-      setup_peer (&p2, "test_quota_compliance_peer2.conf");
+      setup_peer (&p1, "test_quota_compliance_tcp_peer1.conf");
+      setup_peer (&p2, "test_quota_compliance_tcp_peer2.conf");
     }
   else if (is_http)
     {
-      setup_peer (&p1, "test_quota_compliance_peer1.conf");
-      setup_peer (&p2, "test_quota_compliance_peer2.conf");
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	              "is_http: %u \n",
+	              is_http);
+      setup_peer (&p1, "test_quota_compliance_http_peer1.conf");
+      setup_peer (&p2, "test_quota_compliance_http_peer2.conf");
     }
   else if (is_https)
     {
-      setup_peer (&p1, "test_quota_compliance_peer1.conf");
-      setup_peer (&p2, "test_quota_compliance_peer2.conf");
+      setup_peer (&p1, "test_quota_compliance_tcp_peer1.conf");
+      setup_peer (&p2, "test_quota_compliance_tcp_peer2.conf");
     }
   else if (is_udp)
     {
-      setup_peer (&p1, "test_quota_compliance_peer1.conf");
-      setup_peer (&p2, "test_quota_compliance_peer2.conf");
+      setup_peer (&p1, "test_quota_compliance_tcp_peer1.conf");
+      setup_peer (&p2, "test_quota_compliance_tcp_peer2.conf");
     }
   else if (is_tcp_nat)
     {
-      setup_peer (&p1, "test_quota_compliance_peer1.conf");
-      setup_peer (&p2, "test_quota_compliance_peer2.conf");
+      setup_peer (&p1, "test_quota_compliance_tcp_peer1.conf");
+      setup_peer (&p2, "test_quota_compliance_tcp_peer2.conf");
     }
   else
     GNUNET_assert (0);
