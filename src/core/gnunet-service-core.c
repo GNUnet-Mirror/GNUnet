@@ -2197,7 +2197,7 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
               "Encrypting %u bytes of plaintext messages for `%4s' for transmission in %llums.\n",
 	      (unsigned int) used - ENCRYPTED_HEADER_SIZE,
 	      GNUNET_i2s(&n->peer),
-	      (unsigned long long) GNUNET_TIME_absolute_get_remaining (deadline).abs_value);
+	      (unsigned long long) GNUNET_TIME_absolute_get_remaining (deadline).rel_value);
 #endif
   GNUNET_assert (GNUNET_OK ==
                  do_encrypt (n,
@@ -3779,11 +3779,11 @@ neighbour_quota_update (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Current quota for `%4s' is %u/%llu b/s in (old: %u b/s) / %u out (%u internal)\n",
 	      GNUNET_i2s (&n->peer),
-	      (unsigned int) ntohl (q_in.rel_value__),
+	      (unsigned int) ntohl (q_in.value__),
 	      bandwidth_target_out_bps,
-	      (unsigned int) ntohl (n->bw_in.rel_value__),
-	      (unsigned int) ntohl (n->bw_out.rel_value__),
-	      (unsigned int) ntohl (n->bw_out_internal_limit.rel_value__));
+	      (unsigned int) ntohl (n->bw_in.value__),
+	      (unsigned int) ntohl (n->bw_out.value__),
+	      (unsigned int) ntohl (n->bw_out_internal_limit.value__));
 #endif
   if (n->bw_in.value__ != q_in.value__) 
     {
