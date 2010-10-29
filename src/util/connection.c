@@ -1131,7 +1131,7 @@ receive_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                     "Receive from `%s' encounters error: time out by %llums... (%p)\n",
                     GNUNET_a2s (sh->addr, sh->addrlen),
                     GNUNET_TIME_absolute_get_duration (sh->receive_timeout).
-                    abs_value, sh);
+                    rel_value, sh);
 #endif
       signal_timeout (sh);
       return;

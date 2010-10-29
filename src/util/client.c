@@ -822,7 +822,7 @@ client_notify (void *cls, size_t size, void *buf)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Transmission failed %u times, trying again in %llums.\n",
                   MAX_ATTEMPTS - th->attempts_left,
-                  (unsigned long long) delay.abs_value);
+                  (unsigned long long) delay.rel_value);
 #endif
       th->reconnect_task = GNUNET_SCHEDULER_add_delayed (th->sock->sched,
                                                          delay,
