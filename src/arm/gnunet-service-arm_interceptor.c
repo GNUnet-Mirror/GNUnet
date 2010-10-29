@@ -503,7 +503,7 @@ receiveFromService (void *cls,
 		      GNUNET_a2s (fc->listen_info->service_addr,
 				  fc->listen_info->service_addr_len),
 		      (unsigned long long) GNUNET_TIME_relative_min (fc->back_off,
-								     rem).abs_value);
+								     rem).rel_value);
 #endif
 	  rem = GNUNET_TIME_absolute_get_remaining (fc->timeout);
 	  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == fc->start_task);
@@ -597,7 +597,7 @@ forwardToService (void *cls,
 		      GNUNET_a2s (fc->listen_info->service_addr,
 				  fc->listen_info->service_addr_len),
 		      (unsigned long long) GNUNET_TIME_relative_min (fc->back_off,
-								     rem).abs_value);
+								     rem).rel_value);
 #endif
 	  rem = GNUNET_TIME_absolute_get_remaining (fc->timeout);
 	  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == fc->start_task);
@@ -765,7 +765,7 @@ start_forwarding (void *cls,
 		  GNUNET_a2s (fc->listen_info->service_addr,
 			      fc->listen_info->service_addr_len),
 		  (unsigned long long) GNUNET_TIME_relative_min (fc->back_off,
-								 rem).abs_value);
+								 rem).rel_value);
 #endif
       GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == fc->start_task);
       fc->start_task
