@@ -47,7 +47,7 @@
 #define MEASUREMENT_MSG_SIZE_BIG 32768
 #define MEASUREMENT_MAX_QUOTA 1024 * 1024 * 1024
 #define MEASUREMENT_MIN_QUOTA 1024 * 10
-#define SEND_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define SEND_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 35)
 /**
  * Testcase timeout
  */
@@ -131,6 +131,12 @@ static int recv_running;
 static unsigned long long total_bytes;
 static unsigned long long current_quota_p1;
 static unsigned long long current_quota_p2;
+
+static int is_tcp;
+static int is_tcp_nat;
+static int is_http;
+static int is_https;
+static int is_udp;
 
 static struct GNUNET_TIME_Absolute start_time;
 
@@ -587,6 +593,26 @@ main (int argc, char *argv[])
 #ifdef MINGW
   return GNUNET_SYSERR;
 #endif
+  if (strstr(argv[0], "tcp_nat") != NULL)
+    {
+      is_tcp_nat = GNUNET_YES;
+    }
+  else if (strstr(argv[0], "tcp") != NULL)
+    {
+      is_tcp = GNUNET_YES;
+    }
+  else if (strstr(argv[0], "https") != NULL)
+    {
+      is_https = GNUNET_YES;
+    }
+  else if (strstr(argv[0], "http") != NULL)
+    {
+      is_http = GNUNET_YES;
+    }
+  else if (strstr(argv[0], "udp") != NULL)
+    {
+      is_udp = GNUNET_YES;
+    }
   GNUNET_log_setup ("test-quota-compliance",
 #if VERBOSE
                     "DEBUG",
