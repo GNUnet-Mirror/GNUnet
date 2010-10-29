@@ -637,13 +637,13 @@ run_ready (struct GNUNET_SCHEDULER_Handle *sched,
 	}
       sched->active_task = pos;
 #if PROFILE_DELAYS
-      if (GNUNET_TIME_absolute_get_duration (pos->start_time).abs_value >
-	  DELAY_THRESHOLD.abs_value)
+      if (GNUNET_TIME_absolute_get_duration (pos->start_time).rel_value >
+	  DELAY_THRESHOLD.rel_value)
 	{
 	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		      "Task %u took %llums to be scheduled\n",
 		      pos->id,
-		      (unsigned long long) GNUNET_TIME_absolute_get_duration (pos->start_time).abs_value);
+		      (unsigned long long) GNUNET_TIME_absolute_get_duration (pos->start_time).rel_value);
 	}
 #endif
       tc.sched = sched;
