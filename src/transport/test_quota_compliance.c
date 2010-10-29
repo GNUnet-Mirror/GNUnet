@@ -585,17 +585,11 @@ run (void *cls,
     }
   else if (is_http)
     {
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	              "is_http: %u \n",
-	              is_http);
       setup_peer (&p1, "test_quota_compliance_http_peer1.conf");
       setup_peer (&p2, "test_quota_compliance_http_peer2.conf");
     }
   else if (is_https)
     {
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	              "is_https: %u \n",
-	              is_https);
       setup_peer (&p1, "test_quota_compliance_https_peer1.conf");
       setup_peer (&p2, "test_quota_compliance_https_peer2.conf");
     }
