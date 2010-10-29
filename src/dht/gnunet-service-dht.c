@@ -2845,28 +2845,6 @@ am_closest_peer (const GNUNET_HashCode * target, struct GNUNET_CONTAINER_BloomFi
       pos = pos->next;
     }
 
-#if DEBUG_TABLE
-  GNUNET_GE_LOG (coreAPI->ectx,
-                 GNUNET_GE_WARNING | GNUNET_GE_ADMIN | GNUNET_GE_USER |
-                 GNUNET_GE_BULK, "closest peer\n");
-  printPeerBits (&closest);
-  GNUNET_GE_LOG (coreAPI->ectx,
-                 GNUNET_GE_WARNING | GNUNET_GE_ADMIN | GNUNET_GE_USER |
-                 GNUNET_GE_BULK, "me\n");
-  printPeerBits (coreAPI->my_identity);
-  GNUNET_GE_LOG (coreAPI->ectx,
-                 GNUNET_GE_WARNING | GNUNET_GE_ADMIN | GNUNET_GE_USER |
-                 GNUNET_GE_BULK, "key\n");
-  printKeyBits (target);
-  GNUNET_GE_LOG (coreAPI->ectx,
-                 GNUNET_GE_WARNING | GNUNET_GE_ADMIN | GNUNET_GE_USER |
-                 GNUNET_GE_BULK,
-                 "closest peer inverse distance is %u, mine is %u\n",
-                 inverse_distance (target, &closest.hashPubKey),
-                 inverse_distance (target,
-                                   &coreAPI->my_identity->hashPubKey));
-#endif
-
   /* No peers closer, we are the closest! */
   return GNUNET_YES;
 }
