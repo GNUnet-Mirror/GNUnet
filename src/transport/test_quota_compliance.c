@@ -595,8 +595,8 @@ run (void *cls,
     }
   else if (is_udp)
     {
-      setup_peer (&p1, "test_quota_compliance_tcp_peer1.conf");
-      setup_peer (&p2, "test_quota_compliance_tcp_peer2.conf");
+      setup_peer (&p1, "test_quota_compliance_udp_peer1.conf");
+      setup_peer (&p2, "test_quota_compliance_udp_peer2.conf");
     }
   else if (is_tcp_nat)
     {

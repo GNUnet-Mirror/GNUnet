@@ -203,7 +203,8 @@ check_PROGRAMS = \
  $(HTTPS_REL_TEST) \
  test_quota_compliance_tcp \
  test_quota_compliance_http \
- test_quota_compliance_https
+ test_quota_compliance_https \
+ test_quota_compliance_udp
 # TODO: add tests for nat, etc.
 
 if !DISABLE_TEST_RUN
@@ -222,7 +223,8 @@ TESTS = \
  $(HTTPS_REL_TEST) \
  test_quota_compliance_tcp \
  test_quota_compliance_http \
- test_quota_compliance_https
+ test_quota_compliance_https \
+ test_quota_compliance_udp
 endif
 
 test_transport_api_tcp_SOURCES = \
@@ -324,6 +326,12 @@ test_quota_compliance_http_LDADD = \
 test_quota_compliance_https_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_https_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+
+test_quota_compliance_udp_SOURCES = \
+ test_quota_compliance.c
+test_quota_compliance_udp_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
