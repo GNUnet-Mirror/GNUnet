@@ -42,6 +42,9 @@
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
 #endif
+#ifdef HAVE_STDARG_H
+#include <stdarg.h>
+#endif
  
 /**
  * Version of the API (for entire gnunetutil.so library).
