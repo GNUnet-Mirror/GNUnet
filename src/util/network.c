@@ -899,6 +899,7 @@ int
 GNUNET_NETWORK_fdset_overlap (const struct GNUNET_NETWORK_FDSet *fds1,
                               const struct GNUNET_NETWORK_FDSet *fds2)
 {
+#ifndef MINGW
   int nfds;
 
   nfds = fds1->nsds;
@@ -910,26 +911,36 @@ GNUNET_NETWORK_fdset_overlap (const struct GNUNET_NETWORK_FDSet *fds1,
       if (FD_ISSET (nfds, &fds1->sds) && FD_ISSET (nfds, &fds2->sds))
 	return GNUNET_YES;
     }
-#ifdef MINGW
+#else
+  struct GNUNET_CONTAINER_SList_Iterator *it;
+  HANDLE *h;
+  int i;
+  int j;
+
+  /*This code is somewhat hacky, we are not supposed to know what's
+    inside of fd_set; also the O(n^2) is really bad... */
+
+  for (i = 0; i < fds1->sds.fd_count; i++)
   {
-    struct GNUNET_CONTAINER_SList_Iterator *it;
-
-    for (it = GNUNET_CONTAINER_slist_begin (fds1->handles);
-         GNUNET_CONTAINER_slist_end (it) != GNUNET_YES;
-         GNUNET_CONTAINER_slist_next (it))
-      {
-        HANDLE *h;
-
-        h = (HANDLE *) GNUNET_CONTAINER_slist_get ((const struct GNUNET_CONTAINER_SList_Iterator *)it, NULL);
-        if (GNUNET_CONTAINER_slist_contains
-            (fds2->handles, h, sizeof (HANDLE)))
-          {
-            GNUNET_CONTAINER_slist_iter_destroy (it);
-            return GNUNET_YES;
-          }
-      }
-    GNUNET_CONTAINER_slist_iter_destroy (it);
+    for (j = 0; j < fds2->sds.fd_count; j++)
+    {
+      if (fds1->sds.fd_array[i] == fds2->sds.fd_array[j])
+        return GNUNET_YES;
+    }
   }
+  it = GNUNET_CONTAINER_slist_begin (fds1->handles);
+  while (GNUNET_CONTAINER_slist_end (it) != GNUNET_YES)
+    {
+      h = (HANDLE *) GNUNET_CONTAINER_slist_get (it, NULL);
+      if (GNUNET_CONTAINER_slist_contains
+          (fds2->handles, h, sizeof (HANDLE)))
+        {
+          GNUNET_CONTAINER_slist_iter_destroy (it);
+          return GNUNET_YES;
+        }
+      GNUNET_CONTAINER_slist_next (it);
+    }
+  GNUNET_CONTAINER_slist_iter_destroy (it);
 #endif
   return GNUNET_NO;
 }
