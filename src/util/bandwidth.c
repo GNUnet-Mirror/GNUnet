@@ -84,8 +84,8 @@ GNUNET_BANDWIDTH_value_get_available_until (struct GNUNET_BANDWIDTH_Value32NBO b
 #if DEBUG_BANDWIDTH
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Bandwidth has %llu bytes available until deadline in %llums\n",
-	      (unsigned long long) ((b * deadline.abs_value + 500LL) / 1000LL),
-	      deadline.abs_value);
+	      (unsigned long long) ((b * deadline.rel_value + 500LL) / 1000LL),
+	      deadline.rel_value);
 #endif
   return (b * deadline.rel_value + 500LL) / 1000LL;
 }
@@ -119,7 +119,7 @@ GNUNET_BANDWIDTH_value_get_delay_for (struct GNUNET_BANDWIDTH_Value32NBO bps,
 #if DEBUG_BANDWIDTH
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Bandwidth suggests delay of %llu ms for %llu bytes of traffic\n",
-	      (unsigned long long) ret.abs_value,
+	      (unsigned long long) ret.rel_value,
 	      (unsigned long long) size);
 #endif
   return ret;
@@ -297,7 +297,7 @@ GNUNET_BANDWIDTH_tracker_get_delay (struct GNUNET_BANDWIDTH_Tracker *av,
 	      "Tracker %p delay for %u bytes is %llu ms\n",
 	      av,
 	      (unsigned int) size,
-	      (unsigned long long) ret.abs_value);
+	      (unsigned long long) ret.rel_value);
 #endif
   return ret;
 }
