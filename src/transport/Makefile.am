@@ -202,7 +202,8 @@ check_PROGRAMS = \
  $(HTTP_REL_TEST) \
  $(HTTPS_REL_TEST) \
  test_quota_compliance_tcp \
- test_quota_compliance_http
+ test_quota_compliance_http \
+ test_quota_compliance_https
 # TODO: add tests for nat, etc.
 
 if !DISABLE_TEST_RUN
@@ -220,7 +221,8 @@ TESTS = \
  $(HTTP_REL_TEST) \
  $(HTTPS_REL_TEST) \
  test_quota_compliance_tcp \
- test_quota_compliance_http
+ test_quota_compliance_http \
+ test_quota_compliance_https
 endif
 
 test_transport_api_tcp_SOURCES = \
@@ -319,6 +321,12 @@ test_quota_compliance_http_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
+test_quota_compliance_https_SOURCES = \
+ test_quota_compliance.c
+test_quota_compliance_https_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+
 endif
 
 EXTRA_DIST = \
@@ -346,4 +354,6 @@ EXTRA_DIST = \
   test_quota_compliance_tcp_peer1.conf \
   test_quota_compliance_tcp_peer2.conf \
   test_quota_compliance_http_peer1.conf \
-  test_quota_compliance_http_peer2.conf
+  test_quota_compliance_http_peer2.conf \
+  test_quota_compliance_https_peer1.conf \
+  test_quota_compliance_https_peer2.conf  
