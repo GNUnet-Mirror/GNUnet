@@ -49,7 +49,6 @@
 * GNUNET-GTK:
   - finish publish dialog details:
     + normalize keywords (edit subdialog)
-    + set/view previews (edit subdialog)
   - implement download by URI dialog; figure out where to display those downloads!
   - figure out where in the GUI we should show active uploads/unindex operations and allow aborts
   - implement unindex operation (use dialog with all indexed files for selection)
