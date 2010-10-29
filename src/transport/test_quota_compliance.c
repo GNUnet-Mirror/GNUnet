@@ -137,6 +137,8 @@ static int is_tcp_nat;
 static int is_http;
 static int is_https;
 static int is_udp;
+static int is_asymmetric_send_constant;
+static int is_asymmetric_recv_constant;
 
 static struct GNUNET_TIME_Absolute start_time;
 
@@ -397,7 +399,7 @@ measurement_end (void *cls,
 	  ok = 0;
   }
 
-  if (current_quota_p1 < MEASUREMENT_MIN_QUOTA)
+  if ((current_quota_p1 < MEASUREMENT_MIN_QUOTA) || (current_quota_p2 < MEASUREMENT_MIN_QUOTA))
   {
 	  end();
 	  return;
@@ -408,7 +410,12 @@ measurement_end (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Scheduling next measurement\n");
 #endif
-	measure (current_quota_p1 / 10, current_quota_p2 / 10);
+   if (is_asymmetric_send_constant == GNUNET_YES)
+	   measure (current_quota_p1 / 10, MEASUREMENT_MAX_QUOTA);
+   else if (is_asymmetric_recv_constant == GNUNET_YES)
+	   measure (MEASUREMENT_MAX_QUOTA, current_quota_p2 / 10);
+   else
+	   measure (current_quota_p1 / 10, current_quota_p2 / 10);
   }
 }
 
@@ -418,7 +425,7 @@ static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
 	  current_quota_p2 = quota_p2;
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Starting transport level measurement for %u seconds and quota %llu kB/s\n", MEASUREMENT_INTERVALL.rel_value / 1000 , current_quota_p1 / 1024);
+              "Starting transport level measurement for %u seconds and p1 quota %llu kB/s p2 quota %llu\n", MEASUREMENT_INTERVALL.rel_value / 1000 , current_quota_p1 / 1024, current_quota_p2 / 1024);
 #endif
 		GNUNET_TRANSPORT_set_quota (p1.th,
 			  &p2.id,
@@ -580,21 +587,25 @@ run (void *cls,
 
   if (is_tcp)
     {
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing quota compliance for TCP transport plugin\n");
       setup_peer (&p1, "test_quota_compliance_tcp_peer1.conf");
       setup_peer (&p2, "test_quota_compliance_tcp_peer2.conf");
     }
   else if (is_http)
     {
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing quota compliance for HTTP transport plugin\n");
       setup_peer (&p1, "test_quota_compliance_http_peer1.conf");
       setup_peer (&p2, "test_quota_compliance_http_peer2.conf");
     }
   else if (is_https)
     {
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing quota compliance for HTTPS transport plugin\n");
       setup_peer (&p1, "test_quota_compliance_https_peer1.conf");
       setup_peer (&p2, "test_quota_compliance_https_peer2.conf");
     }
   else if (is_udp)
     {
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing quota compliance for UDP transport plugin\n");
       setup_peer (&p1, "test_quota_compliance_udp_peer1.conf");
       setup_peer (&p2, "test_quota_compliance_udp_peer2.conf");
     }
@@ -638,6 +649,7 @@ main (int argc, char *argv[])
     {
       is_udp = GNUNET_YES;
     }
+
   GNUNET_log_setup ("test-quota-compliance",
 #if VERBOSE
                     "DEBUG",
@@ -657,6 +669,18 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
+  if (strstr(argv[0], "asymmetric_recv") != NULL)
+  {
+      is_asymmetric_recv_constant = GNUNET_YES;
+  }
+  else
+	  is_asymmetric_recv_constant = GNUNET_NO;
+  if (strstr(argv[0], "asymmetric_send") != NULL)
+  {
+      is_asymmetric_send_constant = GNUNET_YES;
+  }
+  else
+	  is_asymmetric_send_constant = GNUNET_NO;
   ok = 1;
   GNUNET_PROGRAM_run ((sizeof (argv1) / sizeof (char *)) - 1,
                       argv1, "test-quota-compliance", "nohelp",

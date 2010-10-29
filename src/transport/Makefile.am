@@ -18,11 +18,13 @@ if HAVE_MHD
  HTTP_PLUGIN_TEST = test_plugin_transport_http
  HTTP_API_TEST = test_transport_api_http
  HTTP_REL_TEST = test_transport_api_reliability_http
+ HTTP_QUOTA_TEST = test_quota_compliance_http
 
  HTTPS_PLUGIN_LA = libgnunet_plugin_transport_https.la
  HTTPS_PLUGIN_TEST = test_plugin_transport_https
  HTTPS_API_TEST = test_transport_api_https
- HTTPS_REL_TEST = test_transport_api_reliability_https                     
+ HTTPS_REL_TEST = test_transport_api_reliability_https
+ HTTPS_QUOTA_TEST = test_quota_compliance_https                      
 endif
 
 if USE_COVERAGE
@@ -202,9 +204,11 @@ check_PROGRAMS = \
  $(HTTP_REL_TEST) \
  $(HTTPS_REL_TEST) \
  test_quota_compliance_tcp \
- test_quota_compliance_http \
- test_quota_compliance_https \
- test_quota_compliance_udp
+ test_quota_compliance_tcp_asymmetric_recv_constant \
+ test_quota_compliance_tcp_asymmetric_send_constant \
+ test_quota_compliance_udp \
+ $(HTTP_QUOTA_TEST) \
+ $(HTTPS_QUOTA_TEST)
 # TODO: add tests for nat, etc.
 
 if !DISABLE_TEST_RUN
@@ -222,9 +226,11 @@ TESTS = \
  $(HTTP_REL_TEST) \
  $(HTTPS_REL_TEST) \
  test_quota_compliance_tcp \
- test_quota_compliance_http \
- test_quota_compliance_https \
- test_quota_compliance_udp
+ test_quota_compliance_tcp_asymmetric_recv_constant \
+ test_quota_compliance_tcp_asymmetric_send_constant \
+ test_quota_compliance_udp \
+ $(HTTP_QUOTA_TEST) \
+ $(HTTPS_QUOTA_TEST)
 endif
 
 test_transport_api_tcp_SOURCES = \
@@ -317,6 +323,18 @@ test_quota_compliance_tcp_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
+test_quota_compliance_tcp_asymmetric_recv_constant_SOURCES = \
+ test_quota_compliance.c
+test_quota_compliance_tcp_asymmetric_recv_constant_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+ 
+ test_quota_compliance_tcp_asymmetric_send_constant_SOURCES = \
+ test_quota_compliance.c
+test_quota_compliance_tcp_asymmetric_send_constant_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+
 test_quota_compliance_http_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_http_LDADD = \
@@ -336,6 +354,7 @@ test_quota_compliance_udp_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 
 endif
+
 
 EXTRA_DIST = \
   test_transport_api_data.conf \
@@ -364,4 +383,6 @@ EXTRA_DIST = \
   test_quota_compliance_http_peer1.conf \
   test_quota_compliance_http_peer2.conf \
   test_quota_compliance_https_peer1.conf \
-  test_quota_compliance_https_peer2.conf  
+  test_quota_compliance_https_peer2.conf \
+  test_quota_compliance_udp_peer1.conf \
+  test_quota_compliance_udp_peer2.conf
