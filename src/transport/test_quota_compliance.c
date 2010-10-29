@@ -578,8 +578,34 @@ run (void *cls,
   send_running = GNUNET_NO;
   recv_running = GNUNET_NO;
 
-  setup_peer (&p1, "test_quota_compliance_peer1.conf");
-  setup_peer (&p2, "test_quota_compliance_peer2.conf");
+
+  if (is_tcp)
+    {
+      setup_peer (&p1, "test_quota_compliance_peer1.conf");
+      setup_peer (&p2, "test_quota_compliance_peer2.conf");
+    }
+  else if (is_http)
+    {
+      setup_peer (&p1, "test_quota_compliance_peer1.conf");
+      setup_peer (&p2, "test_quota_compliance_peer2.conf");
+    }
+  else if (is_https)
+    {
+      setup_peer (&p1, "test_quota_compliance_peer1.conf");
+      setup_peer (&p2, "test_quota_compliance_peer2.conf");
+    }
+  else if (is_udp)
+    {
+      setup_peer (&p1, "test_quota_compliance_peer1.conf");
+      setup_peer (&p2, "test_quota_compliance_peer2.conf");
+    }
+  else if (is_tcp_nat)
+    {
+      setup_peer (&p1, "test_quota_compliance_peer1.conf");
+      setup_peer (&p2, "test_quota_compliance_peer2.conf");
+    }
+  else
+    GNUNET_assert (0);
 
   GNUNET_assert(p1.th != NULL);
   GNUNET_assert(p2.th != NULL);
