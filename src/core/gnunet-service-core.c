@@ -3511,7 +3511,11 @@ handle_encrypted_message (struct Neighbour *n,
     }
   if (n->last_sequence_number_received < snum)
     {
-      n->last_packets_bitmap <<= (snum - n->last_sequence_number_received);
+      int shift = (snum - n->last_sequence_number_received);
+      if (shift >= 8 * sizeof(n->last_packets_bitmap))
+        n->last_packets_bitmap = 0;
+      else
+        n->last_packets_bitmap <<= shift;
       n->last_sequence_number_received = snum;
     }
 
