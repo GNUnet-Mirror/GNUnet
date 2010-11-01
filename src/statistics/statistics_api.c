@@ -402,7 +402,7 @@ process_message (struct GNUNET_STATISTICS_Handle *h,
 #if DEBUG_STATISTICS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received valid statistic on `%s:%s': %llu\n",
-              service, name, GNUNET_ntohll (smsg->abs_value));
+              service, name, GNUNET_ntohll (smsg->value));
 #endif
   if (GNUNET_OK !=
       h->current->proc (h->current->cls,
