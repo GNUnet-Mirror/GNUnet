@@ -186,10 +186,11 @@ run (void *cls,
       ret = 1;
       return;
     }
-  if (! GNUNET_FS_uri_test_chk (uri))
+  if ( (! GNUNET_FS_uri_test_chk (uri)) &&
+       (! GNUNET_FS_uri_test_loc (uri)) )
     {
       fprintf (stderr,
-	       "Only CHK URIs supported right now.\n");
+	       "Only CHK or LOC URIs supported.\n");
       ret = 1;
       GNUNET_FS_uri_destroy (uri);
       return;		 
