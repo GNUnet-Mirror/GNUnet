@@ -36,7 +36,7 @@
 #include "dhtlog.h"
 
 
-#define DEBUG_DHTLOG GNUNET_NO
+#define DEBUG_DHTLOG GNUNET_YES
 
 /**
  * Maximum number of supported parameters for a prepared
@@ -347,11 +347,11 @@ update_trials (unsigned long long trialuid,
 {
   int ret;
 #if DEBUG_DHTLOG
-  if (trialuid != current_trial)
+/*  if (trialuid != current_trial)
     {
       fprintf (stderr,
                _("Trialuid to update is not equal to current_trial\n"));
-    }
+    }*/
 #endif
 
   if (outfile == NULL)
@@ -404,11 +404,11 @@ add_connections (unsigned long long trialuid, unsigned int totalConnections)
 {
   int ret;
 #if DEBUG_DHTLOG
-  if (trialuid != current_trial)
+/*  if (trialuid != current_trial)
     {
       fprintf (stderr,
                _("Trialuid to update is not equal to current_trial(!)(?)\n"));
-    }
+    }*/
 #endif
   if (outfile == NULL)
     return GNUNET_SYSERR;

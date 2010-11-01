@@ -39,9 +39,9 @@
 #include "plugin_transport.h"
 #include "transport.h"
 
-#define DEBUG_BLACKLIST GNUNET_NO
+#define DEBUG_BLACKLIST GNUNET_YES
 
-#define DEBUG_PING_PONG GNUNET_NO
+#define DEBUG_PING_PONG GNUNET_YES
 
 #define DEBUG_TRANSPORT_HELLO GNUNET_YES
 
@@ -1554,7 +1554,7 @@ find_ready_address(struct NeighbourList *neighbour)
 		       best_address->addr,
 		       best_address->addrlen)
 		  : "<inbound>",
-                  best_address->latency.abs_value);
+                  best_address->latency.rel_value);
 #endif
     }
   else
@@ -1667,7 +1667,7 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 		  "No validated destination address available to transmit message of size %u to peer `%4s', will wait %llums to find an address.\n",
 		  mq->message_buf_size,
 		  GNUNET_i2s (&mq->neighbour_id),
-		  timeout.abs_value);
+		  timeout.rel_value);
 #endif
       /* FIXME: might want to trigger peerinfo lookup here
 	 (unless that's already pending...) */

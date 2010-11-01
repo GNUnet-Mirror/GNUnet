@@ -1318,7 +1318,7 @@ GNUNET_DATASTORE_get_random (struct GNUNET_DATASTORE_Handle *h,
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Asked to get random entry in %llu ms\n",
-	      (unsigned long long) timeout.abs_value);
+	      (unsigned long long) timeout.rel_value);
 #endif
   qc.rc.iter = iter;
   qc.rc.iter_cls = iter_cls;
@@ -1378,7 +1378,7 @@ GNUNET_DATASTORE_get_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Asked to get zero-anonymity entry in %llu ms\n",
-	      (unsigned long long) timeout.abs_value);
+	      (unsigned long long) timeout.rel_value);
 #endif
   qc.rc.iter = iter;
   qc.rc.iter_cls = iter_cls;

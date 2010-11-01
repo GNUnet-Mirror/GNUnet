@@ -35,7 +35,7 @@
 #include "gnunet_util_lib.h"
 
 
-#define DEBUG_TOPOLOGY GNUNET_NO
+#define DEBUG_TOPOLOGY GNUNET_YES
 
 /**
  * For how long do we blacklist a peer after a failed connection
@@ -1275,7 +1275,7 @@ hello_advertising_ready (void *cls,
 #if DEBUG_TOPOLOGY
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Sending `%s' with %u bytes",
-		  "HELLO"
+		  "HELLO",
 		  (unsigned int) want);
 #endif 	
       GNUNET_STATISTICS_update (stats,

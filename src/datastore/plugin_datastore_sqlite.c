@@ -28,7 +28,7 @@
 #include "plugin_datastore.h"
 #include <sqlite3.h>
 
-#define DEBUG_SQLITE GNUNET_NO
+#define DEBUG_SQLITE GNUNET_YES
 
 
 /**
@@ -667,7 +667,7 @@ sqlite_plugin_put (void *cls,
 		   type, 
 		   GNUNET_h2s(key),
 		   priority,
-		   (unsigned long long) GNUNET_TIME_absolute_get_remaining (expiration).abs_value,
+		   (unsigned long long) GNUNET_TIME_absolute_get_remaining (expiration).rel_value,
 		   (long long) expiration.abs_value);
 #endif
   GNUNET_CRYPTO_hash (data, size, &vhash);

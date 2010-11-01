@@ -42,9 +42,9 @@
 #include "core.h"
 
 
-#define DEBUG_HANDSHAKE GNUNET_NO
+#define DEBUG_HANDSHAKE GNUNET_YES
 
-#define DEBUG_CORE_QUOTA GNUNET_NO
+#define DEBUG_CORE_QUOTA GNUNET_YES
 
 /**
  * Receive and send buffer windows grow over time.  For
@@ -3540,7 +3540,7 @@ handle_encrypted_message (struct Neighbour *n,
 #if DEBUG_CORE_SET_QUOTA
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Received %u b/s as new inbound limit for peer `%4s'\n",
-		  (unsigned int) ntohl (pt->inbound_bw_limit.rel_value__),
+		  (unsigned int) ntohl (pt->inbound_bw_limit.value__),
 		  GNUNET_i2s (&n->peer));
 #endif
       n->bw_out_external_limit = pt->inbound_bw_limit;

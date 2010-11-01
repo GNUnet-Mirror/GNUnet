@@ -1534,9 +1534,10 @@ static int handle_dv_data_message (void *cls,
   else
     {
 #if DEBUG_MESSAGE_DROP
-      direct_id = GNUNET_strdup(GNUNET_i2s(&dn->identity));
+      char *direct_id = GNUNET_strdup(GNUNET_i2s(&dn->identity));
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "%s: DROPPING MESSAGE type %d, forwarding failed! Message immediately from %s!\n", GNUNET_i2s(&my_identity), ntohs(((struct GNUNET_MessageHeader *)&incoming[1])->type), direct_id);
+      GNUNET_free (direct_id);
 #endif
       return GNUNET_SYSERR;
     }

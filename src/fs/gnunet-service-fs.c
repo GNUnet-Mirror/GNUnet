@@ -41,7 +41,7 @@
 #include "gnunet-service-fs_indexing.h"
 #include "fs.h"
 
-#define DEBUG_FS GNUNET_NO
+#define DEBUG_FS GNUNET_YES
 
 /**
  * Should we introduce random latency in processing?  Required for proper
@@ -2789,7 +2789,7 @@ target_peer_select_cb (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  "NOT sending query since we send %u others to this peer in the last %llums\n",
 		  MAX_QUEUE_PER_PEER,
-		  cp->avg_delay.abs_value);
+		  cp->avg_delay.rel_value);
 #endif
       return GNUNET_YES; /* skip */      
     }
@@ -2964,7 +2964,7 @@ forward_request_task (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "No peer selected for forwarding of query `%s', will try again in %llu ms!\n",
 		  GNUNET_h2s (&pr->query),
-		  delay.abs_value);
+		  delay.rel_value);
 #endif
       pr->task = GNUNET_SCHEDULER_add_delayed (sched,
 					       delay,
@@ -3283,9 +3283,9 @@ struct GNUNET_TIME_Relative art_delay;
 				1,
 				GNUNET_NO);
 #if DEBUG_FS
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+/*      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Duplicate response `%s', discarding.\n",
-		  GNUNET_h2s (&mhash));
+		  GNUNET_h2s (&mhash));*/
 #endif
       return GNUNET_YES; /* duplicate */
     case GNUNET_BLOCK_EVALUATION_RESULT_INVALID:
