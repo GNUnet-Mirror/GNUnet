@@ -6,4 +6,6 @@
 
 struct dns_pkt_parsed* parse_dns_packet(struct dns_pkt* pkt);
 
+void free_parsed_dns_packet(struct dns_pkt_parsed* ppkt);
+
 #endif

@@ -331,7 +331,6 @@ receive_query(void *cls,
       }
 
     /* The query should be sent to the network */
-    GNUNET_free(pdns);
 
     struct sockaddr_in dest;
     memset(&dest, 0, sizeof dest);
@@ -345,6 +344,8 @@ receive_query(void *cls,
 				 sizeof dest);
 
 out:
+    free_parsed_dns_packet(pdns);
+    pdns = NULL;
     GNUNET_SERVER_receive_done(client, GNUNET_OK);
 }
 
@@ -459,7 +460,7 @@ publish_name (void *cls,
 	GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "could not sign DNS_Record\n");
 	return;
       }
-    GNUNET_free(my_private_key);
+    GNUNET_CRYPTO_rsa_key_free(my_private_key);
 
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
 	       "Putting with key %08x\n",

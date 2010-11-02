@@ -5,9 +5,18 @@
 
 struct query_packet {
 	struct GNUNET_MessageHeader hdr;
-	
-	unsigned orig_to:32 GNUNET_PACKED; /* The IP-Address, this query was originally sent to */
+
+	/**
+	 * The IP-Address this query was originally sent to
+	 */
+	unsigned orig_to:32 GNUNET_PACKED;
+	/**
+	 * The IP-Address this query was originally sent from
+	 */
 	unsigned orig_from:32 GNUNET_PACKED;
+	/**
+	 * The UDP-Portthis query was originally sent from
+	 */
 	unsigned src_port:16 GNUNET_PACKED;
 
 	unsigned char data[1]; /* The DNS-Packet */
@@ -26,7 +35,8 @@ enum GNUNET_DNS_ANSWER_Subtype {
     GNUNET_DNS_ANSWER_TYPE_IP,
 
     /**
-     * Answers of this type contain an struct GNUNET_DNS_Record
+     * Answers of this type contain an incomplete dns-packet. The IP-Address
+     * is all 0s. The addroffset points to it.
      */
     GNUNET_DNS_ANSWER_TYPE_SERVICE
 };
@@ -39,11 +49,14 @@ struct answer_packet {
     unsigned to:32 GNUNET_PACKED;
     unsigned dst_port:16 GNUNET_PACKED;
 
+    /* Only sensible when subtype == GNUNET_DNS_ANSWER_TYPE_SERVICE */
     GNUNET_HashCode peer;
     GNUNET_HashCode service_descriptor;
     uint64_t ports;
     uint32_t service_type;
 
+    /* The offsett in octets from the beginning of the struct to the field
+     * in data where the IP-Address has to go. */
     unsigned addroffset:16 GNUNET_PACKED;
 
     unsigned char data[1];
