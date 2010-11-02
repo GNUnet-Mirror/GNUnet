@@ -43,42 +43,92 @@
  */
 static int ret;
 
-struct vpn_cls {
-	struct GNUNET_DISK_PipeHandle* helper_in; // From the helper
-	struct GNUNET_DISK_PipeHandle* helper_out; // To the helper
-	const struct GNUNET_DISK_FileHandle* fh_from_helper;
-	const struct GNUNET_DISK_FileHandle* fh_to_helper;
+/**
+ * The scheduler to use throughout the daemon
+ */
+static struct GNUNET_SCHEDULER_Handle *sched;
 
-	struct GNUNET_SERVER_MessageStreamTokenizer* mst;
+/**
+ * The configuration to use
+ */
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-	struct GNUNET_SCHEDULER_Handle *sched;
+/**
+ * PipeHandle to receive data from the helper
+ */
+static struct GNUNET_DISK_PipeHandle* helper_in;
 
-	struct GNUNET_CLIENT_Connection *dns_connection;
-	unsigned char restart_hijack;
+/**
+ * PipeHandle to send data to the helper
+ */
+static struct GNUNET_DISK_PipeHandle* helper_out;
 
-	pid_t helper_pid;
+/**
+ * FileHandle to receive data from the helper
+ */
+static const struct GNUNET_DISK_FileHandle* fh_from_helper;
 
-	const struct GNUNET_CONFIGURATION_Handle *cfg;
+/**
+ * FileHandle to send data to the helper
+ */
+static const struct GNUNET_DISK_FileHandle* fh_to_helper;
 
-	struct query_packet_list *head;
-	struct query_packet_list *tail;
+/**
+ * The Message-Tokenizer that tokenizes the messages comming from the helper
+ */
+static struct GNUNET_SERVER_MessageStreamTokenizer* mst;
 
-	struct answer_packet_list *answer_proc_head;
-	struct answer_packet_list *answer_proc_tail;
-};
+/**
+ * The connection to the service-dns
+ */
+static struct GNUNET_CLIENT_Connection *dns_connection;
 
-static struct vpn_cls mycls;
+/**
+ * A flag to show that the service-dns has to rehijack the outbound dns-packets
+ *
+ * This gets set when the helper restarts as the routing-tables are flushed when
+ * the interface vanishes.
+ */
+static unsigned char restart_hijack;
+
+/**
+ * The process id of the helper
+ */
+static pid_t helper_pid;
+
+/**
+ * a list of outgoing dns-query-packets
+ */
+static struct query_packet_list *head;
+
+/**
+ * The last element of the list of outgoing dns-query-packets
+ */
+static struct query_packet_list *tail;
+
+/**
+ * A list of processed dns-responses.
+ *
+ * "processed" means that the packet is complete and can be sent out via udp
+ * directly
+ */
+static struct answer_packet_list *answer_proc_head;
+
+/**
+ * The last element of the list of processed dns-responses.
+ */
+static struct answer_packet_list *answer_proc_tail;
 
 size_t send_query(void* cls, size_t size, void* buf);
 
 static void cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
   GNUNET_assert (0 != (tskctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN));
-  PLIBC_KILL(mycls.helper_pid, SIGTERM);
-  GNUNET_OS_process_wait(mycls.helper_pid);
-  if (mycls.dns_connection != NULL)
+  PLIBC_KILL(helper_pid, SIGTERM);
+  GNUNET_OS_process_wait(helper_pid);
+  if (dns_connection != NULL)
     {
-      GNUNET_CLIENT_disconnect (mycls.dns_connection, GNUNET_NO);
-      mycls.dns_connection = NULL;
+      GNUNET_CLIENT_disconnect (dns_connection, GNUNET_NO);
+      dns_connection = NULL;
     }
 }
 
@@ -90,39 +140,39 @@ static void start_helper_and_schedule(void *cls,
 	if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
 	  return;
 
-	mycls.helper_in = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO);
-	mycls.helper_out = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_NO, GNUNET_YES);
+	helper_in = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO);
+	helper_out = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_NO, GNUNET_YES);
 
-	if (mycls.helper_in == NULL || mycls.helper_out == NULL) return;
+	if (helper_in == NULL || helper_out == NULL) return;
 
-	mycls.helper_pid = GNUNET_OS_start_process(mycls.helper_in, mycls.helper_out, "gnunet-helper-vpn", "gnunet-helper-vpn", NULL);
+	helper_pid = GNUNET_OS_start_process(helper_in, helper_out, "gnunet-helper-vpn", "gnunet-helper-vpn", NULL);
 
-	mycls.fh_from_helper = GNUNET_DISK_pipe_handle (mycls.helper_out, GNUNET_DISK_PIPE_END_READ);
-	mycls.fh_to_helper = GNUNET_DISK_pipe_handle (mycls.helper_in, GNUNET_DISK_PIPE_END_WRITE);
+	fh_from_helper = GNUNET_DISK_pipe_handle (helper_out, GNUNET_DISK_PIPE_END_READ);
+	fh_to_helper = GNUNET_DISK_pipe_handle (helper_in, GNUNET_DISK_PIPE_END_WRITE);
 
-	GNUNET_DISK_pipe_close_end(mycls.helper_out, GNUNET_DISK_PIPE_END_WRITE);
-	GNUNET_DISK_pipe_close_end(mycls.helper_in, GNUNET_DISK_PIPE_END_READ);
+	GNUNET_DISK_pipe_close_end(helper_out, GNUNET_DISK_PIPE_END_WRITE);
+	GNUNET_DISK_pipe_close_end(helper_in, GNUNET_DISK_PIPE_END_READ);
 
-	GNUNET_SCHEDULER_add_read_file (mycls.sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.fh_from_helper, &helper_read, NULL);
+	GNUNET_SCHEDULER_add_read_file (sched, GNUNET_TIME_UNIT_FOREVER_REL, fh_from_helper, &helper_read, NULL);
 }
 
 
 static void restart_helper(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
 	// Kill the helper
-	PLIBC_KILL(mycls.helper_pid, SIGKILL);
-	GNUNET_OS_process_wait(mycls.helper_pid);
+	PLIBC_KILL(helper_pid, SIGKILL);
+	GNUNET_OS_process_wait(helper_pid);
 
 	/* Tell the dns-service to rehijack the dns-port
 	 * The routing-table gets flushed if an interface disappears.
 	 */
-	mycls.restart_hijack = 1;
-	GNUNET_CLIENT_notify_transmit_ready(mycls.dns_connection, sizeof(struct GNUNET_MessageHeader), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
+	restart_hijack = 1;
+	GNUNET_CLIENT_notify_transmit_ready(dns_connection, sizeof(struct GNUNET_MessageHeader), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
 
-	GNUNET_DISK_pipe_close(mycls.helper_in);
-	GNUNET_DISK_pipe_close(mycls.helper_out);
+	GNUNET_DISK_pipe_close(helper_in);
+	GNUNET_DISK_pipe_close(helper_out);
 
 	// Restart the helper
-	GNUNET_SCHEDULER_add_delayed (mycls.sched, GNUNET_TIME_UNIT_SECONDS, start_helper_and_schedule, NULL);
+	GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_UNIT_SECONDS, start_helper_and_schedule, NULL);
 
 }
 
@@ -132,16 +182,16 @@ static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* ts
 	if (tsdkctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)
 		return;
 
-	int t = GNUNET_DISK_file_read(mycls.fh_from_helper, &buf, 65535);
+	int t = GNUNET_DISK_file_read(fh_from_helper, &buf, 65535);
 	if (t<=0) {
 		GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Read error for header from vpn-helper: %m\n");
-		GNUNET_SCHEDULER_add_now(mycls.sched, restart_helper, cls);
+		GNUNET_SCHEDULER_add_now(sched, restart_helper, cls);
 		return;
 	}
 
-	/* FIXME */ GNUNET_SERVER_mst_receive(mycls.mst, NULL, buf, t, 0, 0);
+	/* FIXME */ GNUNET_SERVER_mst_receive(mst, NULL, buf, t, 0, 0);
 
-	GNUNET_SCHEDULER_add_read_file (mycls.sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.fh_from_helper, &helper_read, NULL);
+	GNUNET_SCHEDULER_add_read_file (sched, GNUNET_TIME_UNIT_FOREVER_REL, fh_from_helper, &helper_read, NULL);
 }
 
 static uint16_t calculate_ip_checksum(uint16_t* hdr, short len) {
@@ -159,7 +209,7 @@ static uint16_t calculate_ip_checksum(uint16_t* hdr, short len) {
 static void helper_write(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
 	if (tsdkctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)
 		return;
-	struct answer_packet_list* ans = mycls.answer_proc_head;
+	struct answer_packet_list* ans = answer_proc_head;
 	size_t len = ntohs(ans->pkt.hdr.size);
 
 	GNUNET_assert(ans->pkt.subtype == GNUNET_DNS_ANSWER_TYPE_IP);
@@ -199,21 +249,21 @@ static void helper_write(void* cls, const struct GNUNET_SCHEDULER_TaskContext* t
 
 	memcpy(&pkt->udp_dns.data, ans->pkt.data, data_len);
 	
-	GNUNET_CONTAINER_DLL_remove (mycls.answer_proc_head, mycls.answer_proc_tail, ans);
+	GNUNET_CONTAINER_DLL_remove (answer_proc_head, answer_proc_tail, ans);
 	GNUNET_free(ans);
 
-	/* FIXME */ GNUNET_DISK_file_write(mycls.fh_to_helper, pkt, pkt_len);
+	/* FIXME */ GNUNET_DISK_file_write(fh_to_helper, pkt, pkt_len);
 
-	if (mycls.answer_proc_head != NULL)
-		GNUNET_SCHEDULER_add_write_file (mycls.sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.fh_to_helper, &helper_write, NULL);
+	if (answer_proc_head != NULL)
+		GNUNET_SCHEDULER_add_write_file (sched, GNUNET_TIME_UNIT_FOREVER_REL, fh_to_helper, &helper_write, NULL);
 }
 
 size_t send_query(void* cls, size_t size, void* buf)
 {
   size_t len;
-  if (mycls.restart_hijack == 1)
+  if (restart_hijack == 1)
     {
-      mycls.restart_hijack = 0;
+      restart_hijack = 0;
       GNUNET_assert(sizeof(struct GNUNET_MessageHeader) >= size);
       struct GNUNET_MessageHeader* hdr = buf;
       len = sizeof(struct GNUNET_MessageHeader);
@@ -222,20 +272,20 @@ size_t send_query(void* cls, size_t size, void* buf)
     }
   else
     {
-	struct query_packet_list* query = mycls.head;
+	struct query_packet_list* query = head;
 	len = ntohs(query->pkt.hdr.size);
 
 	GNUNET_assert(len <= size);
 
 	memcpy(buf, &query->pkt.hdr, len);
 
-	GNUNET_CONTAINER_DLL_remove (mycls.head, mycls.tail, query);
+	GNUNET_CONTAINER_DLL_remove (head, tail, query);
 
 	GNUNET_free(query);
     }
 
-	if (mycls.head != NULL || mycls.restart_hijack == 1) {
-		GNUNET_CLIENT_notify_transmit_ready(mycls.dns_connection, ntohs(mycls.head->pkt.hdr.size), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
+	if (head != NULL || restart_hijack == 1) {
+		GNUNET_CLIENT_notify_transmit_ready(dns_connection, ntohs(head->pkt.hdr.size), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
 	}
 
 	return len;
@@ -279,10 +329,10 @@ static void message_token(void *cls, void *client, const struct GNUNET_MessageHe
 			query->pkt.src_port = udp->udp_hdr.spt;
 			memcpy(query->pkt.data, udp->data, ntohs(udp->udp_hdr.len) - 8);
 
-			GNUNET_CONTAINER_DLL_insert_after(mycls.head, mycls.tail, mycls.tail, query);
+			GNUNET_CONTAINER_DLL_insert_after(head, tail, tail, query);
 
-			if (mycls.dns_connection != NULL)
-			  /* struct GNUNET_CLIENT_TransmitHandle* th = */ GNUNET_CLIENT_notify_transmit_ready(mycls.dns_connection, len, GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
+			if (dns_connection != NULL)
+			  /* struct GNUNET_CLIENT_TransmitHandle* th = */ GNUNET_CLIENT_notify_transmit_ready(dns_connection, len, GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
 		}
 	}
 
@@ -297,11 +347,11 @@ reconnect_to_service_dns (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connecting\n");
-  GNUNET_assert (mycls.dns_connection == NULL);
-  mycls.dns_connection = GNUNET_CLIENT_connect (mycls.sched, "dns", mycls.cfg); 
-  GNUNET_CLIENT_receive(mycls.dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
-  if (mycls.head != NULL)
-    /* struct GNUNET_CLIENT_TransmitHandle* th = */ GNUNET_CLIENT_notify_transmit_ready(mycls.dns_connection, ntohs(mycls.head->pkt.hdr.size), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
+  GNUNET_assert (dns_connection == NULL);
+  dns_connection = GNUNET_CLIENT_connect (sched, "dns", cfg);
+  GNUNET_CLIENT_receive(dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
+  if (head != NULL)
+    /* struct GNUNET_CLIENT_TransmitHandle* th = */ GNUNET_CLIENT_notify_transmit_ready(dns_connection, ntohs(head->pkt.hdr.size), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
 }
 
 static void
@@ -332,9 +382,9 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 
 	memcpy(&list->pkt, pkt, htons(pkt->hdr.size));
 
-	GNUNET_CONTAINER_DLL_insert_after(mycls.answer_proc_head, mycls.answer_proc_tail, mycls.answer_proc_tail, list);
+	GNUNET_CONTAINER_DLL_insert_after(answer_proc_head, answer_proc_tail, answer_proc_tail, list);
 
-	GNUNET_SCHEDULER_add_write_file (mycls.sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.fh_to_helper, &helper_write, NULL);
+	GNUNET_SCHEDULER_add_write_file (sched, GNUNET_TIME_UNIT_FOREVER_REL, fh_to_helper, &helper_write, NULL);
 
 	return;
 }
@@ -344,9 +394,9 @@ dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg)
 {
   if (msg == NULL)
     {
-      GNUNET_CLIENT_disconnect(mycls.dns_connection, GNUNET_NO);
-      mycls.dns_connection = NULL;
-      GNUNET_SCHEDULER_add_delayed (mycls.sched,
+      GNUNET_CLIENT_disconnect(dns_connection, GNUNET_NO);
+      dns_connection = NULL;
+      GNUNET_SCHEDULER_add_delayed (sched,
 				    GNUNET_TIME_UNIT_SECONDS,
 				    &reconnect_to_service_dns,
 				    NULL);
@@ -356,9 +406,9 @@ dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg)
   if (msg->type != htons(GNUNET_MESSAGE_TYPE_LOCAL_RESPONSE_DNS)) 
     {
       GNUNET_break (0);
-      GNUNET_CLIENT_disconnect(mycls.dns_connection, GNUNET_NO);
-      mycls.dns_connection = NULL;
-      GNUNET_SCHEDULER_add_now (mycls.sched,
+      GNUNET_CLIENT_disconnect(dns_connection, GNUNET_NO);
+      dns_connection = NULL;
+      GNUNET_SCHEDULER_add_now (sched,
 				&reconnect_to_service_dns,
 				NULL);
       return;
@@ -367,8 +417,8 @@ dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg)
 
   memcpy(pkt, msg, ntohs(msg->size));
 
-  GNUNET_SCHEDULER_add_now(mycls.sched, process_answer, pkt);
-  GNUNET_CLIENT_receive(mycls.dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
+  GNUNET_SCHEDULER_add_now(sched, process_answer, pkt);
+  GNUNET_CLIENT_receive(dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 /**
@@ -382,15 +432,15 @@ dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg)
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *sched,
+     struct GNUNET_SCHEDULER_Handle *sched_,
      char *const *args,
      const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg) 
+     const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
-  mycls.sched = sched;
-  mycls.mst = GNUNET_SERVER_mst_create(&message_token, NULL);
-  mycls.cfg = cfg;
-  mycls.restart_hijack = 0;
+  sched = sched_;
+  mst = GNUNET_SERVER_mst_create(&message_token, NULL);
+  cfg = cfg_;
+  restart_hijack = 0;
   GNUNET_SCHEDULER_add_now (sched, &reconnect_to_service_dns, NULL);
   GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls); 
   GNUNET_SCHEDULER_add_now (sched, start_helper_and_schedule, NULL);

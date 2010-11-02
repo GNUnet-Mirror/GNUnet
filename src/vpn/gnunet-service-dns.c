@@ -39,21 +39,18 @@
 #include "gnunet_crypto_lib.h"
 #include "gnunet_signatures.h"
 
-struct dns_cls {
-	struct GNUNET_SCHEDULER_Handle *sched;
+static struct GNUNET_SCHEDULER_Handle *sched;
 
-	struct GNUNET_NETWORK_Handle *dnsout;
+static struct GNUNET_NETWORK_Handle *dnsout;
 
-	struct GNUNET_DHT_Handle *dht;
+static struct GNUNET_DHT_Handle *dht;
 
-	unsigned short dnsoutport;
+static unsigned short dnsoutport;
 
-	const struct GNUNET_CONFIGURATION_Handle *cfg;
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-	struct answer_packet_list *head;
-	struct answer_packet_list *tail;
-};
-static struct dns_cls mycls;
+static struct answer_packet_list *head;
+static struct answer_packet_list *tail;
 
 struct dns_query_id_state {
 	unsigned valid:1;
@@ -163,7 +160,7 @@ void receive_dht(void *cls,
 
   answer->pkt.addroffset = htons((unsigned short)((unsigned long)(&drec_data->data)-(unsigned long)(&answer->pkt)));
 
-  GNUNET_CONTAINER_DLL_insert_after(mycls.head, mycls.tail, mycls.tail, answer);
+  GNUNET_CONTAINER_DLL_insert_after(head, tail, tail, answer);
 
   GNUNET_SERVER_notify_transmit_ready(query_states[id].client,
 				      len,
@@ -178,8 +175,8 @@ void receive_dht(void *cls,
  * This receives a GNUNET_MESSAGE_TYPE_REHIJACK and rehijacks the DNS
  */
 void rehijack(void *cls, struct GNUNET_SERVER_Client *client, const struct GNUNET_MessageHeader *message) {
-    unhijack(mycls.dnsoutport);
-    hijack(mycls.dnsoutport);
+    unhijack(dnsoutport);
+    hijack(dnsoutport);
 }
 
 /**
@@ -212,7 +209,7 @@ void receive_query(void *cls, struct GNUNET_SERVER_Client *client, const struct 
 	    struct receive_dht_cls* cls = GNUNET_malloc(sizeof(struct receive_dht_cls));
 	    cls->id = dns->s.id;
 
-	    cls->handle = GNUNET_DHT_get_start(mycls.dht,
+	    cls->handle = GNUNET_DHT_get_start(dht,
 				 GNUNET_TIME_UNIT_MINUTES,
 				 GNUNET_BLOCK_TYPE_DNS,
 				 &key,
@@ -235,26 +232,26 @@ void receive_query(void *cls, struct GNUNET_SERVER_Client *client, const struct 
 	dest.sin_port = htons(53);
 	dest.sin_addr.s_addr = pkt->orig_to;
 
-	/* int r = */ GNUNET_NETWORK_socket_sendto(mycls.dnsout, dns, ntohs(pkt->hdr.size) - sizeof(struct query_packet) + 1, (struct sockaddr*) &dest, sizeof dest);
+	/* int r = */ GNUNET_NETWORK_socket_sendto(dnsout, dns, ntohs(pkt->hdr.size) - sizeof(struct query_packet) + 1, (struct sockaddr*) &dest, sizeof dest);
 
 out:
 	GNUNET_SERVER_receive_done(client, GNUNET_OK);
 }
 
 size_t send_answer(void* cls, size_t size, void* buf) {
-	struct answer_packet_list* query = mycls.head;
+	struct answer_packet_list* query = head;
 	size_t len = ntohs(query->pkt.hdr.size);
 
 	GNUNET_assert(len <= size);
 
 	memcpy(buf, &query->pkt.hdr, len);
 
-	GNUNET_CONTAINER_DLL_remove (mycls.head, mycls.tail, query);
+	GNUNET_CONTAINER_DLL_remove (head, tail, query);
 
 	GNUNET_free(query);
 
-	if (mycls.head != NULL) {
-		GNUNET_SERVER_notify_transmit_ready(cls, ntohs(mycls.head->pkt.hdr.size), GNUNET_TIME_UNIT_FOREVER_REL, &send_answer, cls);
+	if (head != NULL) {
+		GNUNET_SERVER_notify_transmit_ready(cls, ntohs(head->pkt.hdr.size), GNUNET_TIME_UNIT_FOREVER_REL, &send_answer, cls);
 	}
 
 	return len;
@@ -272,7 +269,7 @@ static void read_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
 	unsigned int addrlen = sizeof addr;
 
 	int r;
-	r = GNUNET_NETWORK_socket_recvfrom(mycls.dnsout, buf, 65536, (struct sockaddr*)&addr, &addrlen);
+	r = GNUNET_NETWORK_socket_recvfrom(dnsout, buf, 65536, (struct sockaddr*)&addr, &addrlen);
 
 	/* if (r < 0) TODO */
 
@@ -289,12 +286,12 @@ static void read_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
 		answer->pkt.dst_port = query_states[dns->s.id].local_port;
 		memcpy(answer->pkt.data, buf, r);
 
-		GNUNET_CONTAINER_DLL_insert_after(mycls.head, mycls.tail, mycls.tail, answer);
+		GNUNET_CONTAINER_DLL_insert_after(head, tail, tail, answer);
 
 		/* struct GNUNET_CONNECTION_TransmitHandle* th = */ GNUNET_SERVER_notify_transmit_ready(query_states[dns->s.id].client, len, GNUNET_TIME_UNIT_FOREVER_REL, &send_answer, query_states[dns->s.id].client);
 	}
 
-	GNUNET_SCHEDULER_add_read_net(mycls.sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.dnsout, &read_response, NULL);
+	GNUNET_SCHEDULER_add_read_net(sched, GNUNET_TIME_UNIT_FOREVER_REL, dnsout, &read_response, NULL);
 }
 
 
@@ -308,8 +305,8 @@ static void
 cleanup_task (void *cls,
 	      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-	unhijack(mycls.dnsoutport);
-	GNUNET_DHT_disconnect(mycls.dht);
+	unhijack(dnsoutport);
+	GNUNET_DHT_disconnect(dht);
 }
 
 static void
@@ -330,7 +327,7 @@ publish_name (void *cls,
   GNUNET_CRYPTO_hash(name, strlen(name)+1, &data.service_descriptor);
 
   char* keyfile;
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename(mycls.cfg, "GNUNETD",
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename(cfg, "GNUNETD",
 							   "HOSTKEY", &keyfile))
     {
       GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "could not read keyfile-value\n");
@@ -359,7 +356,7 @@ publish_name (void *cls,
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Putting with key %08x\n", *((unsigned int*)&data.service_descriptor));
 
-  GNUNET_DHT_put(mycls.dht,
+  GNUNET_DHT_put(dht,
 		 &data.service_descriptor,
 		 GNUNET_DHT_RO_NONE,
 		 GNUNET_BLOCK_TYPE_DNS,
@@ -370,7 +367,7 @@ publish_name (void *cls,
 		 NULL,
 		 NULL);
 
-  GNUNET_SCHEDULER_add_delayed (mycls.sched, GNUNET_TIME_UNIT_HOURS, publish_name, NULL);
+  GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_UNIT_HOURS, publish_name, NULL);
 }
 
 /**
@@ -381,9 +378,9 @@ publish_name (void *cls,
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *sched,
+     struct GNUNET_SCHEDULER_Handle *sched_,
      struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
 	  /* callback, cls, type, size */
@@ -392,7 +389,8 @@ run (void *cls,
     {NULL, NULL, 0, 0}
   };
 
-  mycls.cfg = cfg;
+  cfg = cfg_;
+  sched = sched_;
 
   {
   int i;
@@ -401,18 +399,17 @@ run (void *cls,
   }
   }
 
-  mycls.dht = GNUNET_DHT_connect(sched, cfg, 1024);
+  dht = GNUNET_DHT_connect(sched, cfg, 1024);
 
   struct sockaddr_in addr;
 
-  mycls.sched = sched;
-  mycls.dnsout = GNUNET_NETWORK_socket_create (AF_INET, SOCK_DGRAM, 0);
-  if (mycls.dnsout == NULL) 
+  dnsout = GNUNET_NETWORK_socket_create (AF_INET, SOCK_DGRAM, 0);
+  if (dnsout == NULL)
     return;
   memset(&addr, 0, sizeof(struct sockaddr_in));
 
-  int err = GNUNET_NETWORK_socket_bind (mycls.dnsout,
-					(struct sockaddr*)&addr, 
+  int err = GNUNET_NETWORK_socket_bind (dnsout,
+					(struct sockaddr*)&addr,
 					sizeof(struct sockaddr_in));
 
   if (err != GNUNET_YES) {
@@ -420,17 +417,17 @@ run (void *cls,
 	return;
   }
   socklen_t addrlen = sizeof(struct sockaddr_in);
-  err = getsockname(GNUNET_NETWORK_get_fd(mycls.dnsout),
-		    (struct sockaddr*) &addr, 
+  err = getsockname(GNUNET_NETWORK_get_fd(dnsout),
+		    (struct sockaddr*) &addr,
 		    &addrlen);
 
-  mycls.dnsoutport = htons(addr.sin_port);
+  dnsoutport = htons(addr.sin_port);
 
   hijack(htons(addr.sin_port));
 
-  GNUNET_SCHEDULER_add_now (mycls.sched, publish_name, NULL);
+  GNUNET_SCHEDULER_add_now (sched, publish_name, NULL);
 
-	GNUNET_SCHEDULER_add_read_net(sched, GNUNET_TIME_UNIT_FOREVER_REL, mycls.dnsout, &read_response, NULL);
+  GNUNET_SCHEDULER_add_read_net(sched, GNUNET_TIME_UNIT_FOREVER_REL, dnsout, &read_response, NULL);
 
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SCHEDULER_add_delayed (sched,
