@@ -42,12 +42,12 @@
 #define DEBUG_MEASUREMENT GNUNET_NO
 #define DEBUG_CONNECTIONS GNUNET_NO
 
-#define MEASUREMENT_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
+#define MEASUREMENT_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2)
 #define MEASUREMENT_MSG_SIZE 1024
 #define MEASUREMENT_MSG_SIZE_BIG 32768
 #define MEASUREMENT_MAX_QUOTA 1024 * 1024 * 1024
-#define MEASUREMENT_MIN_QUOTA 1024 * 1024
-#define SEND_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 35)
+#define MEASUREMENT_MIN_QUOTA 1024
+#define SEND_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 /**
  * Testcase timeout
  */
@@ -128,7 +128,9 @@ static int measurement_running;
 static int send_running;
 static int recv_running;
 
-static unsigned long long total_bytes;
+static unsigned long long total_bytes_sent;
+static unsigned long long last_msg_sent;
+static unsigned long long last_msg_recv;
 static unsigned long long current_quota_p1;
 static unsigned long long current_quota_p2;
 
@@ -230,7 +232,7 @@ struct TestMessage
 };
 
 static unsigned int
-get_size (unsigned int iter)
+get_size (void)
 {
   return MEASUREMENT_MSG_SIZE + sizeof (struct TestMessage);
 }
@@ -242,16 +244,16 @@ notify_receive_new (void *cls,
                 struct GNUNET_TIME_Relative latency,
 		uint32_t distance)
 {
-  static int n;
   unsigned int s;
   const struct TestMessage *hdr;
 
   hdr = (const struct TestMessage*) message;
-  s = get_size (n);
+  s = get_size ();
   if (measurement_running == GNUNET_NO)
 	  return;
   if (MTYPE != ntohs (message->type))
     return;
+
 #if DEBUG_MEASUREMENT
   if (ntohl(hdr->num) % 5000 == 0)
     {
@@ -261,13 +263,16 @@ notify_receive_new (void *cls,
                   ntohs (message->size));
     }
 #endif
-  n++;
+  /*
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Got message %u\n",
+              ntohl (hdr->num));*/
+  last_msg_recv = ntohl (hdr->num);
 }
 
 static size_t
-notify_ready_new (void *cls, size_t size, void *buf)
+notify_ready (void *cls, size_t size, void *buf)
 {
-  static int n;
   char *cbuf = buf;
   struct TestMessage hdr;
   unsigned int s;
@@ -293,18 +298,19 @@ notify_ready_new (void *cls, size_t size, void *buf)
 
   send_running = GNUNET_YES;
   ret = 0;
-  s = get_size (n);
+  s = get_size ();
   GNUNET_assert (size >= s);
   GNUNET_assert (buf != NULL);
+  last_msg_sent++;
   cbuf = buf;
   do
     {
       hdr.header.size = htons (s);
       hdr.header.type = htons (MTYPE);
-      hdr.num = htonl (n);
+      hdr.num = htonl (last_msg_sent);
       memcpy (&cbuf[ret], &hdr, sizeof (struct TestMessage));
       ret += sizeof (struct TestMessage);
-      memset (&cbuf[ret], n, s - sizeof (struct TestMessage));
+      memset (&cbuf[ret], last_msg_sent, s - sizeof (struct TestMessage));
       ret += s - sizeof (struct TestMessage);
 #if DEBUG_MEASUREMENT
       if (n % 5000 == 0)
@@ -313,8 +319,11 @@ notify_ready_new (void *cls, size_t size, void *buf)
                       "Sending message %u\n",n);
        }
 #endif
-      n++;
-      s = get_size (n);
+
+    /*      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Sending message %u\n",last_msg_sent);*/
+
+      s = get_size ();
       if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16))
 	break; /* sometimes pack buffer full, sometimes not */
     }
@@ -322,9 +331,9 @@ notify_ready_new (void *cls, size_t size, void *buf)
   transmit_handle = GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
 					    &p1.id,
 					    s, 0, SEND_TIMEOUT,
-					    &notify_ready_new,
+					    &notify_ready,
 					    NULL);
-  total_bytes += s;
+  total_bytes_sent += s;
   return ret;
 }
 
@@ -370,39 +379,38 @@ measurement_end (void *cls,
 #if VERBOSE
   fprintf(stderr,"\n");
 #endif
-  /*
+
   if (transmit_handle != NULL)
   {
 	  GNUNET_TRANSPORT_notify_transmit_ready_cancel(transmit_handle);
 	  transmit_handle = NULL;
   }
-  */
 
   if (current_quota_p1 < current_quota_p2)
 	  quota_allowed = current_quota_p1;
   else
 	  quota_allowed = current_quota_p2;
 
-  if ((total_bytes/(duration.rel_value / 1000)) > (quota_allowed + (quota_allowed / 10)))
+  if ((total_bytes_sent/(duration.rel_value / 1000)) > (quota_allowed + (quota_allowed / 10)))
   {
 	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 			  "\nQuota compliance failed: \n"\
 			  "Quota allowed: %10llu kB/s\n"\
-			  "Throughput   : %10llu kB/s\n", (quota_allowed / (1024)), (total_bytes/(duration.rel_value / 1000)/1024));
+			  "Throughput   : %10llu kB/s\n", (quota_allowed / (1024)), (total_bytes_sent/(duration.rel_value / 1000)/1024));
 	  ok = 1;
-	  /*end();
-	  return;*/
+	  end();
+	  return;
   }
   else
   {
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 			  "\nQuota compliance ok: \n"\
 			  "Quota allowed: %10llu kB/s\n"\
-			  "Throughput   : %10llu kB/s\n", (quota_allowed / (1024)) , (total_bytes/(duration.rel_value / 1000)/1024));
+			  "Throughput   : %10llu kB/s\n", (quota_allowed / (1024)) , (total_bytes_sent/(duration.rel_value / 1000)/1024));
 	  ok = 0;
   }
 
-  if ((quota_allowed) > (2 *(total_bytes/(duration.rel_value / 1000))))
+  if ((quota_allowed) > (2 *(total_bytes_sent/(duration.rel_value / 1000))))
   {
 	  strike_counter++;
 	  if (strike_counter == 2)
@@ -488,7 +496,9 @@ static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
 						   MEASUREMENT_INTERVALL,
 						   &measurement_end,
 						   NULL);
-		total_bytes = 0;
+		total_bytes_sent = 0;
+		last_msg_sent = 0;
+		last_msg_recv = 0;
 		measurement_running = GNUNET_YES;
 		start_time = GNUNET_TIME_absolute_get ();
 
@@ -496,8 +506,8 @@ static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
 			  GNUNET_TRANSPORT_notify_transmit_ready_cancel(transmit_handle);
 		transmit_handle = GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
 											  &p1.id,
-											  get_size (0), 0, SEND_TIMEOUT,
-											  &notify_ready_new,
+											  get_size (), 0, SEND_TIMEOUT,
+											  &notify_ready,
 											  NULL);
 }
 
