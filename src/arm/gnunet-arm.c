@@ -37,6 +37,11 @@
 #define STOP_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 /**
+ * Timeout for stopping ARM.  Extra-long since ARM needs to stop everyone else.
+ */
+#define STOP_TIMEOUT_ARM GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+
+/**
  * Timeout for starting services, very short because of the strange way start works
  * (by checking if running before starting, so really this time is always waited on
  * startup (annoying)).
@@ -304,7 +309,7 @@ cps_loop (void *cls,
 	case 1:
 	  if ((end) || (restart))
 	    {
-	      GNUNET_ARM_stop_service (h, "arm", STOP_TIMEOUT, &confirm_cb, "arm");
+	      GNUNET_ARM_stop_service (h, "arm", STOP_TIMEOUT_ARM, &confirm_cb, "arm");
 	      return;
 	    }
 	  break;
