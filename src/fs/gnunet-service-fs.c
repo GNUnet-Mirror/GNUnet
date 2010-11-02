@@ -41,7 +41,7 @@
 #include "gnunet-service-fs_indexing.h"
 #include "fs.h"
 
-#define DEBUG_FS GNUNET_YES
+#define DEBUG_FS GNUNET_NO
 
 /**
  * Should we introduce random latency in processing?  Required for proper
@@ -2786,7 +2786,7 @@ target_peer_select_cb (void *cls,
   if (delay.rel_value <= cp->avg_delay.rel_value)
     {
 #if DEBUG_FS
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "NOT sending query since we send %u others to this peer in the last %llums\n",
 		  MAX_QUEUE_PER_PEER,
 		  cp->avg_delay.rel_value);

@@ -1900,6 +1900,12 @@ GNUNET_TRANSPORT_notify_transmit_ready_cancel (struct
     default:
       GNUNET_break (0);
     }
+  if (th->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (n->h->sched,
+			       th->notify_delay_task);
+      th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
+    }
 }
 
 
