@@ -1157,17 +1157,12 @@ handler_connect (void *cls,
 		 struct GNUNET_TIME_Relative latency,
 		 uint32_t distance)
 {
-  unsigned int max = 0 ;
-  max --;
-
-  if (stat_connection_count < max)
-  {
+  GNUNET_assert (stat_connection_count < UINT_MAX);
   stat_connection_count++;
   GNUNET_STATISTICS_update (stats, 
 			    gettext_noop ("# active connections"), 
 			    1, 
 			    GNUNET_NO);
-  }
 }
 
 
