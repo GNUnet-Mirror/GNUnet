@@ -30,30 +30,37 @@
 #include "gnunet_resolver_service.h"
 #include "gnunet_statistics_service.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define START_ARM GNUNET_YES
+
 #define MAX_URL_LEN 1000
 
 /**
  * How long until wait until testcases fails
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 180)
+
 #define CHECK_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 static int timeout;
+
 static int adv_sent;
+
 static int adv_arrived;
 
 static int learned_hostlist_saved;
+
 static int learned_hostlist_downloaded;
 
 static char * current_adv_uri;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
 static struct GNUNET_SCHEDULER_Handle *sched;
 
 static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
 static GNUNET_SCHEDULER_TaskIdentifier check_task;
     
 struct PeerContext
@@ -73,8 +80,11 @@ static struct PeerContext adv_peer;
 static struct PeerContext learn_peer;
 
 static struct GNUNET_STATISTICS_GetHandle * download_stats;
+
 static struct GNUNET_STATISTICS_GetHandle * urisrecv_stat;
+
 static struct GNUNET_STATISTICS_GetHandle * advsent_stat;
+
 
 static void shutdown_testcase()
 {
@@ -517,4 +527,4 @@ main (int argc, char *argv[])
   return ret; 
 }
 
-/* end of test_gnunet_daemon_hostlist.c */
+/* end of test_gnunet_daemon_hostlist_learning.c */
