@@ -76,7 +76,7 @@ void GNUNET_CONFIGURATION_destroy (struct GNUNET_CONFIGURATION_Handle *cfg);
  * to overwrite the defaults.
  *
  * @param cfg configuration to update
- * @param filename name of the configuration file
+ * @param filename name of the configuration file, NULL to load defaults
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int GNUNET_CONFIGURATION_load (struct GNUNET_CONFIGURATION_Handle *cfg,
