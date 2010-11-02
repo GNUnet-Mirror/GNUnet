@@ -1017,7 +1017,8 @@ GNUNET_CONFIGURATION_append_value_filename (struct GNUNET_CONFIGURATION_Handle
   escaped = escape_name (value);
   nw = GNUNET_malloc (strlen (old) + strlen (escaped) + 2);
   strcpy (nw, old);
-  strcat (nw, " ");
+  if (strlen (old) > 0)
+    strcat (nw, " ");
   strcat (nw, escaped);
   GNUNET_CONFIGURATION_set_value_string (cfg, section, option, nw);
   GNUNET_free (old);
@@ -1086,23 +1087,26 @@ GNUNET_CONFIGURATION_remove_value_filename (struct GNUNET_CONFIGURATION_Handle
         }
       old = end[0];
       end[0] = '\0';
-      if (strlen (pos) > 0)
-        {
-          if (0 == strcmp (pos, match))
-            {
-              memmove (pos, &end[1], strlen (&end[1]) + 1);
-
-              if (pos != list)
-                pos[-1] = ' ';  /* previously changed to "\0" */
-              GNUNET_CONFIGURATION_set_value_string (cfg,
-                                                     section, option, list);
-              GNUNET_free (list);
-              GNUNET_free (match);
-              return GNUNET_OK;
-            }
-        }
+      if (0 == strcmp (pos, match))
+	{
+	  if (old != '\0')
+	    memmove (pos, &end[1], strlen (&end[1]) + 1);
+	  else
+	    {
+	      if (pos != list) 
+		pos[-1] = '\0';
+	      else
+		pos[0] = '\0';
+	    }
+	  GNUNET_CONFIGURATION_set_value_string (cfg,
+						 section, option, list);
+	  GNUNET_free (list);
+	  GNUNET_free (match);
+	  return GNUNET_OK;
+	}        
       if (old == '\0')
         break;
+      end[0] = old;
       pos = end + 1;
     }
   GNUNET_free (list);
@@ -1116,7 +1120,7 @@ GNUNET_CONFIGURATION_remove_value_filename (struct GNUNET_CONFIGURATION_Handle
  * system-specific configuration).
  *
  * @param cfg configuration to update
- * @param filename name of the configuration file
+ * @param filename name of the configuration file, NULL to load defaults
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
@@ -1139,7 +1143,7 @@ GNUNET_CONFIGURATION_load (struct GNUNET_CONFIGURATION_Handle *cfg,
          (GNUNET_OK == GNUNET_CONFIGURATION_parse (cfg, filename)))))
     {
       GNUNET_free (baseconfig);
-      return GNUNET_SYSERR;
+      return (filename == NULL) ? GNUNET_OK : GNUNET_SYSERR;
     }
   GNUNET_free (baseconfig);
   if ( ((GNUNET_YES != GNUNET_CONFIGURATION_have_value (cfg,
