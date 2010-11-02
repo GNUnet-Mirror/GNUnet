@@ -43,10 +43,10 @@
 #define DEBUG_CONNECTIONS GNUNET_NO
 
 #define MEASUREMENT_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
-#define MEASUREMENT_MSG_SIZE 10000
+#define MEASUREMENT_MSG_SIZE 1024
 #define MEASUREMENT_MSG_SIZE_BIG 32768
-#define MEASUREMENT_MAX_QUOTA 10000
-#define MEASUREMENT_MIN_QUOTA 1024
+#define MEASUREMENT_MAX_QUOTA 1024 * 1024 * 1024
+#define MEASUREMENT_MIN_QUOTA 1024 * 1024
 #define SEND_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 35)
 /**
  * Testcase timeout
@@ -352,7 +352,8 @@ static void
 measurement_end (void *cls,
 	   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  int quota_allowed = 0;
+  static int strike_counter;
+  unsigned long long  quota_allowed = 0;
   measurement_task  = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
 	return;
@@ -387,9 +388,9 @@ measurement_end (void *cls,
 	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 			  "\nQuota compliance failed: \n"\
 			  "Quota allowed: %10llu kB/s\n"\
-			  "Throughput   : %10llu kB/s\n", (quota_allowed / (1024)) , (total_bytes/(duration.rel_value / 1000)/1024));
+			  "Throughput   : %10llu kB/s\n", (quota_allowed / (1024)), (total_bytes/(duration.rel_value / 1000)/1024));
 	  ok = 1;
-/*	  end();
+	  /*end();
 	  return;*/
   }
   else
@@ -401,11 +402,28 @@ measurement_end (void *cls,
 	  ok = 0;
   }
 
+  if ((quota_allowed) > (2 *(total_bytes/(duration.rel_value / 1000))))
+  {
+	  strike_counter++;
+	  if (strike_counter == 2)
+	  {
+		  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+				  "Maximum transmission rate reached, stopping test\n");
+		  end();
+		  return;
+	  }
+  }
+  else
+  {
+	  strike_counter = 0;
+  }
+
   if (quota_allowed == MEASUREMENT_MAX_QUOTA)
   {
 	  end();
 	  return;
   }
+
   if (is_asymmetric_send_constant == GNUNET_YES)
   {
    if ((quota_allowed * 2) < MEASUREMENT_MAX_QUOTA)
