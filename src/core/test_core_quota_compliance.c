@@ -38,6 +38,7 @@
 #define VERBOSE GNUNET_YES
 
 #define START_ARM GNUNET_YES
+#define DEBUG_CONNECTIONS GNUNET_YES
 
 /**
  * Note that this value must not significantly exceed
@@ -49,7 +50,7 @@
 #define MEASUREMENT_MSG_SIZE 1024
 #define MEASUREMENT_MAX_QUOTA 1024 * 1024 * 1024
 #define MEASUREMENT_MIN_QUOTA 1024
-#define MEASUREMENT_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define MEASUREMENT_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 8)
 
 /**
  * How long until we give up on transmitting the message?
@@ -236,21 +237,36 @@ transmit_ready (void *cls, size_t size, void *buf);
 
 static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
 {
+
+ current_quota_p1 = quota_p1;
+ current_quota_p2 = quota_p2;
 #if VERBOSE
   if ((is_asymmetric_send_constant == GNUNET_YES) || (is_asymmetric_recv_constant == GNUNET_YES))
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Starting transport level measurement for %u seconds, receiving peer quota %llu kB/s, sending peer quota %llu kB/s\n", MEASUREMENT_INTERVALL.rel_value / 1000 , current_quota_p1 / 1024, current_quota_p2 / 1024);
+              "Starting core level measurement for %u seconds, receiving peer quota %llu kB/s, sending peer quota %llu kB/s\n", MEASUREMENT_INTERVALL.rel_value / 1000 , current_quota_p1 / 1024, current_quota_p2 / 1024);
   else
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Starting transport level measurement for %u seconds, symmetric quota %llu kB/s\n", MEASUREMENT_INTERVALL.rel_value / 1000 , current_quota_p2 / 1024);
+              "Starting core level measurement for %u seconds, symmetric quota %llu kB/s\n", MEASUREMENT_INTERVALL.rel_value / 1000 , current_quota_p2 / 1024);
 
 #endif
+
+	GNUNET_TRANSPORT_set_quota (p1.th,
+		  &p2.id,
+		  GNUNET_BANDWIDTH_value_init (current_quota_p1 ),
+		  GNUNET_BANDWIDTH_value_init (current_quota_p1 ),
+		  GNUNET_TIME_UNIT_FOREVER_REL,
+		  NULL, NULL);
+	GNUNET_TRANSPORT_set_quota (p2.th,
+		  &p1.id,
+		  GNUNET_BANDWIDTH_value_init (current_quota_p2),
+		  GNUNET_BANDWIDTH_value_init (current_quota_p2),
+		  GNUNET_TIME_UNIT_FOREVER_REL,
+		  NULL, NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking core (1) for transmission to peer `%4s'\n",
               GNUNET_i2s (&p2.id));
-  err_task =
-  GNUNET_SCHEDULER_add_delayed (sched,
+  err_task = GNUNET_SCHEDULER_add_delayed (sched,
 			      TIMEOUT,
 			      &terminate_task_error,
 			      NULL);
@@ -260,14 +276,14 @@ static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
 			      NULL);
   start_time = GNUNET_TIME_absolute_get ();
   measurement_running = GNUNET_YES;
-  GNUNET_break (NULL !=
-	    GNUNET_CORE_notify_transmit_ready (p1.ch,
+  total_bytes = 0;
+  total_bytes_sent = 0;
+  ch = GNUNET_CORE_notify_transmit_ready (p1.ch,
 					       0,
 					       TIMEOUT,
 					       &p2.id,
 					       sizeof (struct TestMessage) + MEASUREMENT_MSG_SIZE,
-					       &transmit_ready, &p1));
-
+					       &transmit_ready, &p1);
 }
 
 static int tr_n;
