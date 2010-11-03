@@ -1,0 +1,12 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: GNUnet testing
+Description: Provides convenience API for writing testcases for GNUnet
+URL: http://gnunet.org
+Version: @VERSION@
+Requires:
+Libs: -L${libdir} -lgnunettesting
+Cflags: -I${includedir}

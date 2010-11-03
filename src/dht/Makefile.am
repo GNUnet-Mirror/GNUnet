@@ -192,14 +192,6 @@ test_dhtlog_LDADD = \
  $(top_builddir)/src/dht/libgnunetdht.la \
  $(top_builddir)/src/dht/libgnunetdhtlog.la
 
-test_kademlia_end2end_SOURCES = \
- test_kademlia_end2end.c
-test_kademlia_end2end_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testing/libgnunettesting.la \
- $(top_builddir)/src/dht/libgnunetdht.la \
- $(top_builddir)/src/dht/libgnunetdhtlog.la
-
 EXTRA_DIST = \
   $(check_SCRIPTS) \
   test_dht_api_data.conf \

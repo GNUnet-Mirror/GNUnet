@@ -790,6 +790,23 @@ src/topology/Makefile
 src/transport/Makefile
 src/util/Makefile
 src/vpn/Makefile
+pkgconfig/Makefile
+pkgconfig/gnunetarm.pc
+pkgconfig/gnunetblock.pc
+pkgconfig/gnunetcore.pc
+pkgconfig/gnunetdatacache.pc
+pkgconfig/gnunetdatastore.pc
+pkgconfig/gnunetdht.pc
+pkgconfig/gnunetdhtlog.pc
+pkgconfig/gnunetdv.pc
+pkgconfig/gnunetfragmentation.pc
+pkgconfig/gnunetfs.pc
+pkgconfig/gnunethello.pc
+pkgconfig/gnunetpeerinfo.pc
+pkgconfig/gnunetstatistics.pc
+pkgconfig/gnunettesting.pc
+pkgconfig/gnunettransport.pc
+pkgconfig/gnunetutil.pc
 ])
 AC_OUTPUT
 

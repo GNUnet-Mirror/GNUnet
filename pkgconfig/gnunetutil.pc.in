@@ -1,0 +1,12 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: GNUnet util
+Description: Provides miscellaneous utility functions and API for GNUnet
+URL: http://gnunet.org
+Version: @VERSION@
+Requires:
+Libs: -L${libdir} -lgnunetutil
+Cflags: -I${includedir}
