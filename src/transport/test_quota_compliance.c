@@ -407,7 +407,11 @@ measurement_end (void *cls,
 			  "\nQuota compliance failed: \n"\
 			  "Hard quota limit allowed: %10llu kB/s (%llu B/s)\n"\
 			  "Soft quota limit allowed: %10llu kB/s (%llu B/s)\n"\
-			  "Throughput   : %10llu kB/s (%llu B/s)\n", (quota_allowed / (1024)), quota_allowed, ((quota_allowed+delta) / (1024)), quota_allowed+delta, (total_bytes_sent/(duration.rel_value / 1000)/1024), total_bytes_sent/(duration.rel_value / 1000));
+			  "Throughput              : %10llu kB/s (%llu B/s)\n", 
+			  (quota_allowed / (1024)), quota_allowed, 
+			  ((quota_allowed+delta) / (1024)),  quota_allowed+delta, 
+			  (total_bytes_sent/(duration.rel_value / 1000)/1024), 
+			  total_bytes_sent/(duration.rel_value / 1000));
 	  ok = 1;
 	  end();
 	  return;
