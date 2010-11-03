@@ -38,7 +38,7 @@
 #define VERBOSE GNUNET_YES
 
 #define START_ARM GNUNET_YES
-#define DEBUG_CONNECTIONS GNUNET_YES
+#define DEBUG_CONNECTIONS GNUNET_NO
 
 /**
  * Note that this value must not significantly exceed
@@ -68,8 +68,10 @@
 
 static int is_asymmetric_send_constant;
 static int is_asymmetric_recv_constant;
-static unsigned long long current_quota_p1;
-static unsigned long long current_quota_p2;
+static unsigned long long current_quota_p1_in;
+static unsigned long long current_quota_p1_out;
+static unsigned long long current_quota_p2_in;
+static unsigned long long current_quota_p2_out;
 
 static unsigned long long total_bytes;
 static unsigned long long total_bytes_sent;
@@ -154,9 +156,11 @@ connect_notify (void *cls,
   struct PeerContext *pc = cls;
   GNUNET_assert (pc->connect_status == 0);
   pc->connect_status = 1;
+#if DEBUG_CONNECTIONS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Encrypted connection established to peer `%4s'\n",
               GNUNET_i2s (peer));
+#endif
 }
 
 
@@ -166,8 +170,10 @@ disconnect_notify (void *cls,
 {
   struct PeerContext *pc = cls;
   pc->connect_status = 0;
+#if DEBUG_CONNECTIONS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Encrypted connection to `%4s' cut\n", GNUNET_i2s (peer));
+#endif
 }
 
 
@@ -219,13 +225,10 @@ measurement_end (void *cls,
 	  measurement_running = GNUNET_NO;
 
 	  duration = GNUNET_TIME_absolute_get_difference(start_time, GNUNET_TIME_absolute_get());
-
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	              "TIMEOUT\n");
-
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 			  "\nQuota compliance: \n"\
-			  "Throughput   : %10llu kB/s\n", (total_bytes_sent/(duration.rel_value / 1000)/1024));
+			  "Throughput   : %10llu kB/s\n"\
+			  "Quota		: %10llu kB/s\n", (total_bytes_sent/(duration.rel_value / 1000)/1024),current_quota_p1_in/1024);
 
 	  if (err_task != GNUNET_SCHEDULER_NO_TASK)
 		  GNUNET_SCHEDULER_cancel (sched, err_task);
@@ -237,35 +240,20 @@ transmit_ready (void *cls, size_t size, void *buf);
 
 static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
 {
-
- current_quota_p1 = quota_p1;
- current_quota_p2 = quota_p2;
 #if VERBOSE
   if ((is_asymmetric_send_constant == GNUNET_YES) || (is_asymmetric_recv_constant == GNUNET_YES))
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Starting core level measurement for %u seconds, receiving peer quota %llu kB/s, sending peer quota %llu kB/s\n", MEASUREMENT_INTERVALL.rel_value / 1000 , current_quota_p1 / 1024, current_quota_p2 / 1024);
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Starting core level measurement for %u seconds, receiving peer quota %llu kB/s, sending peer quota %llu kB/s\n", MEASUREMENT_INTERVALL.rel_value / 1000 , current_quota_p1_in / 1024, current_quota_p2_out / 1024);
   else
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Starting core level measurement for %u seconds, symmetric quota %llu kB/s\n", MEASUREMENT_INTERVALL.rel_value / 1000 , current_quota_p2 / 1024);
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Starting core level measurement for %u seconds, symmetric quota %llu kB/s\n", MEASUREMENT_INTERVALL.rel_value / 1000 , current_quota_p2_out / 1024);
 
 #endif
-
-	GNUNET_TRANSPORT_set_quota (p1.th,
-		  &p2.id,
-		  GNUNET_BANDWIDTH_value_init (current_quota_p1 ),
-		  GNUNET_BANDWIDTH_value_init (current_quota_p1 ),
-		  GNUNET_TIME_UNIT_FOREVER_REL,
-		  NULL, NULL);
-	GNUNET_TRANSPORT_set_quota (p2.th,
-		  &p1.id,
-		  GNUNET_BANDWIDTH_value_init (current_quota_p2),
-		  GNUNET_BANDWIDTH_value_init (current_quota_p2),
-		  GNUNET_TIME_UNIT_FOREVER_REL,
-		  NULL, NULL);
-
+#if DEBUG_CONNECTIONS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking core (1) for transmission to peer `%4s'\n",
               GNUNET_i2s (&p2.id));
+#endif
   err_task = GNUNET_SCHEDULER_add_delayed (sched,
 			      TIMEOUT,
 			      &terminate_task_error,
@@ -392,7 +380,7 @@ transmit_ready (void *cls, size_t size, void *buf)
   							 0,
   							 FAST_TIMEOUT,
   							 &p2.id,
-  							sizeof (struct TestMessage) + MEASUREMENT_MSG_SIZE,
+  							 sizeof (struct TestMessage) + MEASUREMENT_MSG_SIZE,
   							 &transmit_ready, &p1);
   return ret;
 }
@@ -406,10 +394,11 @@ init_notify (void *cls,
              const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
 {
   struct PeerContext *p = cls;
-
+#if DEBUG_CONNECTIONS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Connection to CORE service of `%4s' established\n",
               GNUNET_i2s (my_identity));
+#endif
   GNUNET_assert (server != NULL);
   p->id = *my_identity;
   p->ch = server;
@@ -448,9 +437,11 @@ process_hello (void *cls,
   struct PeerContext *p = cls;
 
   GNUNET_TRANSPORT_get_hello_cancel (p->th, &process_hello, p);
+#if DEBUG_CONNECTIONS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received (my) `%s' from transport service\n",
               "HELLO");
+#endif
   GNUNET_assert (message != NULL);
   p->hello = GNUNET_malloc (ntohs (message->size));
   memcpy (p->hello, message, ntohs (message->size));
@@ -496,18 +487,35 @@ run (void *cls,
   GNUNET_assert (ok == 1);
   OKPP;
   sched = s;
-  setup_peer (&p1, "test_core_api_peer1.conf");
-  setup_peer (&p2, "test_core_api_peer2.conf");
+  setup_peer (&p1, "test_core_quota_peer1.conf");
+  setup_peer (&p2, "test_core_quota_peer2.conf");
   GNUNET_CORE_connect (sched,
                        p1.cfg,
                        TIMEOUT,
                        &p1,
                        &init_notify,
-		       &connect_notify,
+                       &connect_notify,
                        &disconnect_notify,
-		       NULL,
+                       NULL,
                        &inbound_notify,
                        GNUNET_YES, &outbound_notify, GNUNET_YES, handlers);
+
+  GNUNET_assert (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_number (p1.cfg,
+                                         "CORE",
+                                         "TOTAL_QUOTA_IN",
+                                         &current_quota_p1_in));
+  GNUNET_assert (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_number (p2.cfg,
+                                         "CORE",
+                                         "TOTAL_QUOTA_IN",
+                                         &current_quota_p2_in));
+  GNUNET_assert (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_number (p1.cfg,
+                                         "CORE",
+                                         "TOTAL_QUOTA_OUT",
+                                         &current_quota_p1_out));
+  GNUNET_assert (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_number (p2.cfg,
+                                         "CORE",
+                                         "TOTAL_QUOTA_OUT",
+                                         &current_quota_p2_out));
 }
 
 
@@ -528,7 +536,7 @@ stop_arm (struct PeerContext *p)
 static int
 check ()
 {
-  char *const argv[] = { "test-core-api-reliability",
+  char *const argv[] = { "test-core-quota-compliance",
     "-c",
     "test_core_api_data.conf",
 #if VERBOSE
@@ -560,8 +568,8 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-peer-1");
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-peer-2");
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-peer-2");
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-peer-2");
 
   return ret;
 }
