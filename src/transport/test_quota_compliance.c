@@ -48,6 +48,8 @@
 #define MEASUREMENT_MAX_QUOTA 1024 * 1024 * 1024
 #define MEASUREMENT_MIN_QUOTA 1024
 #define SEND_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define MEASUREMENT_SOFT_LIMIT 1024
+
 /**
  * Testcase timeout
  */
@@ -363,6 +365,8 @@ measurement_end (void *cls,
 {
   static int strike_counter;
   unsigned long long  quota_allowed = 0;
+  int delta = 0;
+
   measurement_task  = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
 	return;
@@ -391,7 +395,13 @@ measurement_end (void *cls,
   else
 	  quota_allowed = current_quota_p2;
 
-  if ((total_bytes_sent/(duration.rel_value / 1000)) > (quota_allowed + (quota_allowed / 10)))
+
+  if (MEASUREMENT_SOFT_LIMIT > (quota_allowed/10))
+	  delta = MEASUREMENT_SOFT_LIMIT;
+  else
+	  delta = (quota_allowed/10);
+
+  if ((total_bytes_sent/(duration.rel_value / 1000)) > (quota_allowed + delta))
   {
 	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 			  "\nQuota compliance failed: \n"\
