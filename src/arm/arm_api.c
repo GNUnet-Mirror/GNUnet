@@ -375,7 +375,7 @@ arm_service_report (void *cls,
 		    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RequestContext *pos = cls;
-  GNUNET_OS_Process *proc;
+  struct GNUNET_OS_Process *proc;
   char *binary;
   char *config;
   char *loprefix;

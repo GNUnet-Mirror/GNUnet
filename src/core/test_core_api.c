@@ -54,7 +54,7 @@ struct PeerContext
   struct GNUNET_MessageHeader *hello;
   int connect_status;
 #if START_ARM
-  GNUNET_OS_Process *arm_proc;
+  struct GNUNET_OS_Process *arm_proc;
 #endif
 };
 

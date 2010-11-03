@@ -93,7 +93,7 @@ struct ServiceList
   /**
    * Process structure pointer of the child.
    */
-  GNUNET_OS_Process *proc;
+  struct GNUNET_OS_Process *proc;
 
   /**
    * Last time the config of this service was
@@ -434,12 +434,10 @@ start_process (struct ServiceList *sl,
 	        sl->name);
   else
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-	        _("Starting service `%s' (PID: %d)\n"), 
-	        sl->name,
-	        (int) GNUNET_OS_process_get_pid (sl->proc));
+	        _("Starting service `%s'\n"), 
+	        sl->name);
   GNUNET_free (loprefix);
   GNUNET_free (options);
-  /* FIXME: should check sl->proc */
 }
 
 
@@ -735,9 +733,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       if (pos->proc != NULL)
 	{
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		      "Stopping service `%s' (PID: %d)\n",
-		      pos->name,
-		      GNUNET_OS_process_get_pid (pos->proc));
+		      "Stopping service `%s'\n",
+		      pos->name);
 	  if (0 != GNUNET_OS_process_kill (pos->proc, SIGTERM))
 	    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
 	}

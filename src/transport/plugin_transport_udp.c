@@ -471,7 +471,7 @@ struct Plugin
   /**
    * The process id of the server process (if behind NAT)
    */
-  GNUNET_OS_Process *server_proc;
+  struct GNUNET_OS_Process *server_proc;
 
 };
 
@@ -702,7 +702,7 @@ run_gnunet_nat_client (struct Plugin *plugin, const char *addr, size_t addrlen)
   char addr_buf[INET_ADDRSTRLEN];
   char *address_as_string;
   char *port_as_string;
-  GNUNET_OS_Process *proc;
+  struct GNUNET_OS_Process *proc;
   const struct IPv4UdpAddress *t4;
 
   GNUNET_assert(addrlen == sizeof(struct IPv4UdpAddress));

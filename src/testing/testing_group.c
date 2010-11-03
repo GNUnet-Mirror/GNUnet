@@ -1937,7 +1937,7 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
   FILE *temp_friend_handle;
   unsigned int pg_iter;
   char *temp_service_path;
-  GNUNET_OS_Process **procarr;
+  struct GNUNET_OS_Process **procarr;
   char *arg;
   char * mytemp;
   enum GNUNET_OS_ProcessStatusType type;
@@ -1946,7 +1946,7 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
   int ret;
   int max_wait = 10;
 
-  procarr = GNUNET_malloc(sizeof(GNUNET_OS_Process *) * pg->total);
+  procarr = GNUNET_malloc(sizeof(struct GNUNET_OS_Process *) * pg->total);
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
     {
       mytemp = GNUNET_DISK_mktemp("friends");
@@ -2064,7 +2064,7 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg, const char
   static struct BlacklistContext blacklist_ctx;
   unsigned int pg_iter;
   char *temp_service_path;
-  GNUNET_OS_Process **procarr;
+  struct GNUNET_OS_Process **procarr;
   char *arg;
   char *mytemp;
   enum GNUNET_OS_ProcessStatusType type;
@@ -2077,7 +2077,7 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg, const char
   char *pos;
   char *temp_transports;
 
-  procarr = GNUNET_malloc(sizeof(GNUNET_OS_Process *) * pg->total);
+  procarr = GNUNET_malloc(sizeof(struct GNUNET_OS_Process *) * pg->total);
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
     {
       mytemp = GNUNET_DISK_mktemp("blacklist");

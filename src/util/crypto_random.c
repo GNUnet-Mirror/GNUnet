@@ -188,7 +188,7 @@ GNUNET_CRYPTO_random_disable_entropy_gathering ()
  * Process ID of the "find" process that we use for
  * entropy gathering.
  */
-static GNUNET_OS_Process *genproc;
+static struct GNUNET_OS_Process *genproc;
 
 /**
  * Function called by libgcrypt whenever we are

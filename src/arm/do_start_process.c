@@ -12,7 +12,7 @@
  * @param ... more arguments, NULL terminated
  * @return PID of the started process, -1 on error
  */
-static GNUNET_OS_Process *
+static struct GNUNET_OS_Process *
 do_start_process (const int *lsocks,
 		  const char *first_arg, ...)
 {
@@ -24,7 +24,7 @@ do_start_process (const int *lsocks,
   char *pos;
   char *cp;
   const char *last;
-  GNUNET_OS_Process *proc;
+  struct GNUNET_OS_Process *proc;
 
   argv_size = 1;
   va_start (ap, first_arg);

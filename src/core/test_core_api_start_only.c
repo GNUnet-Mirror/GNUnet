@@ -49,7 +49,7 @@ struct PeerContext
   struct GNUNET_CORE_Handle *ch;
   struct GNUNET_PeerIdentity id;
 #if START_ARM
-  GNUNET_OS_Process *arm_proc;
+  struct GNUNET_OS_Process *arm_proc;
 #endif
 };
 

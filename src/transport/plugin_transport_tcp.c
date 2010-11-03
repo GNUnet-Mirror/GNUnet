@@ -345,7 +345,7 @@ struct Plugin
   /**
    * The process id of the server process (if behind NAT)
    */
-  GNUNET_OS_Process *server_proc;
+  struct GNUNET_OS_Process *server_proc;
 
   /**
    * List of open TCP sessions.
@@ -958,7 +958,7 @@ run_gnunet_nat_client (struct Plugin *plugin, const char *addr, size_t addrlen)
   char inet4[INET_ADDRSTRLEN];
   char *address_as_string;
   char *port_as_string;
-  GNUNET_OS_Process *proc;
+  struct GNUNET_OS_Process *proc;
   const struct sockaddr *sa = (const struct sockaddr *)addr;
 
 #if DEBUG_TCP_NAT

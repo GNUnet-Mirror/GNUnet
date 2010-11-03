@@ -38,7 +38,7 @@
 static char *test_phrase = "HELLO WORLD";
 static int ok;
 
-static GNUNET_OS_Process *proc;
+static struct GNUNET_OS_Process *proc;
 /* Pipe to write to started processes stdin (on write end) */
 static struct GNUNET_DISK_PipeHandle *hello_pipe_stdin;
 /* Pipe to read from started processes stdout (on read end) */

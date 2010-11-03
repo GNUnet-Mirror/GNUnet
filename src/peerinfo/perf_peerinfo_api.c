@@ -166,7 +166,7 @@ check ()
     NULL
   };
 #if START_SERVICE
-  GNUNET_OS_Process *proc;
+  struct GNUNET_OS_Process *proc;
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };

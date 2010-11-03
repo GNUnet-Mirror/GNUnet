@@ -157,7 +157,7 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
 #if START_SERVICE
-  GNUNET_OS_Process *proc;
+  struct GNUNET_OS_Process *proc;
   proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
                                  "gnunet-service-statistics",
 #if DEBUG_STATISTICS

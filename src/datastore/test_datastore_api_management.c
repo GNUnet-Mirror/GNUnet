@@ -350,7 +350,7 @@ run (void *cls,
 static int
 check ()
 {
-  GNUNET_OS_Process *proc;
+  struct GNUNET_OS_Process *proc;
   char cfg_name[128];
   char *const argv[] = { 
     "test-datastore-api-management",

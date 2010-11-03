@@ -256,7 +256,7 @@ int
 main (int argc, char *argv[])
 {
 #if START_DAEMON
-  GNUNET_OS_Process *daemon;
+  struct GNUNET_OS_Process *daemon;
 #endif
   int ok;
   char *fn = NULL;

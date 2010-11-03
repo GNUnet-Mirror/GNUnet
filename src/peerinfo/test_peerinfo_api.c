@@ -165,7 +165,7 @@ static int
 check ()
 {
   int ok = 3;
-  GNUNET_OS_Process *proc;
+  struct GNUNET_OS_Process *proc;
   char *const argv[] = { "test-peerinfo-api",
     "-c",
     "test_peerinfo_api_data.conf",

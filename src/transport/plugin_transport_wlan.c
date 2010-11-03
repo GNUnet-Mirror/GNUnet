@@ -135,7 +135,7 @@ struct Plugin
   /**
    * The process id of the server process (if behind NAT)
    */
-  GNUNET_OS_Process *server_proc;
+  struct GNUNET_OS_Process *server_proc;
 
   /**
    * The interface of the wlan card given to us by the user.

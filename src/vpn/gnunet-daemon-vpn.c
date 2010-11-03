@@ -94,7 +94,7 @@ static unsigned char restart_hijack;
 /**
  * The process id of the helper
  */
-static GNUNET_OS_Process *helper_proc;
+static struct GNUNET_OS_Process *helper_proc;
 
 /**
  * a list of outgoing dns-query-packets

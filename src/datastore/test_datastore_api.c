@@ -641,7 +641,7 @@ check ()
 {
   char cfg_name[128];
 #if START_DATASTORE
-  GNUNET_OS_Process *proc;
+  struct GNUNET_OS_Process *proc;
 #endif
   char *const argv[] = {
     "test-datastore-api",

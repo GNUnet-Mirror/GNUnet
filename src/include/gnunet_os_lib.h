@@ -47,7 +47,7 @@ extern "C"
 /**
  * Process information (OS-dependent)
  */
-typedef struct _GNUNET_OS_Process GNUNET_OS_Process;
+struct GNUNET_OS_Process;
 
 
 /**
@@ -175,15 +175,6 @@ void GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor
 #define GNUNET_OS_get_hostname_max_length() 255
 #endif
 
-/**
- * Allocates new process structure
- *
- * Should be made internal?
- *
- * @return pointer to allocated structure
- */
-GNUNET_OS_Process *GNUNET_OS_process_alloc ();
-
 
 /**
  * Get process structure for current process
@@ -193,7 +184,7 @@ GNUNET_OS_Process *GNUNET_OS_process_alloc ();
  *
  * @return pointer to the process sturcutre for this process
  */
-GNUNET_OS_Process *GNUNET_OS_process_current ();
+struct GNUNET_OS_Process *GNUNET_OS_process_current (void);
 
 
 /**
@@ -203,56 +194,16 @@ GNUNET_OS_Process *GNUNET_OS_process_current ();
  * @param sig signal
  * @return 0 on success, -1 on error
  */
-int GNUNET_OS_process_kill (GNUNET_OS_Process *proc, int sig);
+int GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig);
 
-/**
- * Get process ID
- *
- * Should be made internal?
- *
- * @param proc pointer to process structure
- * @return process ID
- */
-pid_t GNUNET_OS_process_get_pid (GNUNET_OS_Process *proc);
-
-/**
- * Set process ID
- *
- * Should be made internal?
- *
- * @param proc pointer to process structure
- * @param pid process ID
- */
-void GNUNET_OS_process_set_pid (GNUNET_OS_Process *proc, pid_t pid);
-
-#if WINDOWS
-/**
- * Get process handle
- *
- * Should be made internal?
- *
- * @param proc pointer to process structure
- * @return process handle
- */
-HANDLE GNUNET_OS_process_get_handle (GNUNET_OS_Process *proc);
-
-/**
- * Set process handle
- *
- * Should be made internal?
- *
- * @param proc pointer to process structure
- * @param handle process handle
- */
-void GNUNET_OS_process_set_handle(GNUNET_OS_Process *proc, HANDLE handle);
-#endif
 
 /**
  * Cleans up process structure contents (OS-dependent) and deallocates it
  *
  * @param proc pointer to process structure
  */
-void GNUNET_OS_process_close (GNUNET_OS_Process *proc);
+void GNUNET_OS_process_close (struct GNUNET_OS_Process *proc);
+
 
 /**
  * Set process priority
@@ -261,7 +212,7 @@ void GNUNET_OS_process_close (GNUNET_OS_Process *proc);
  * @param prio priority value
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
-int GNUNET_OS_set_process_priority (GNUNET_OS_Process *proc,
+int GNUNET_OS_set_process_priority (struct GNUNET_OS_Process *proc,
                                     enum GNUNET_SCHEDULER_Priority prio);
 
 
@@ -274,7 +225,7 @@ int GNUNET_OS_set_process_priority (GNUNET_OS_Process *proc,
  * @param ... NULL-terminated list of arguments to the process
  * @return pointer to process structure of the new process, NULL on error
  */
-GNUNET_OS_Process *
+struct GNUNET_OS_Process *
 GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin, 
 			 struct GNUNET_DISK_PipeHandle *pipe_stdout, 
 			 const char *filename, ...);
@@ -290,7 +241,7 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
  *             including the process name as the first argument
  * @return pointer to process structure of the new process, NULL on error
  */
-GNUNET_OS_Process *
+struct GNUNET_OS_Process *
 GNUNET_OS_start_process_v (const int *lsocks, const char *filename,
 			   char *const argv[]);
 
@@ -302,8 +253,8 @@ GNUNET_OS_start_process_v (const int *lsocks, const char *filename,
  * @param code return code/signal number
  * @return GNUNET_OK on success, GNUNET_NO if the process is still running, GNUNET_SYSERR otherwise
  */
-int GNUNET_OS_process_status (GNUNET_OS_Process *proc,
-    enum GNUNET_OS_ProcessStatusType *type, unsigned long *code);
+int GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
+			      enum GNUNET_OS_ProcessStatusType *type, unsigned long *code);
 
 
 /**
@@ -311,7 +262,7 @@ int GNUNET_OS_process_status (GNUNET_OS_Process *proc,
  * @param proc pointer to process structure of the process to wait for
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
-int GNUNET_OS_process_wait (GNUNET_OS_Process *proc);
+int GNUNET_OS_process_wait (struct GNUNET_OS_Process *proc);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

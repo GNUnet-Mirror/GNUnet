@@ -360,7 +360,7 @@ check()
   int ok = 1 + 2 + 4 + 8;
   char *fn;
   char *pfx;
-  GNUNET_OS_Process *proc;
+  struct GNUNET_OS_Process *proc;
   char * const argv[] =
     { "test-resolver-api", "-c", "test_resolver_api_data.conf",
 #if VERBOSE

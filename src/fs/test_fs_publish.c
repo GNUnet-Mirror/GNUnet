@@ -53,7 +53,7 @@ struct PeerContext
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
 #if START_ARM
-  GNUNET_OS_Process *arm_proc;
+  struct GNUNET_OS_Process *arm_proc;
 #endif
 };
 
