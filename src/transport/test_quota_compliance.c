@@ -395,8 +395,8 @@ measurement_end (void *cls,
   {
 	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 			  "\nQuota compliance failed: \n"\
-			  "Quota allowed: %10llu kB/s\n"\
-			  "Throughput   : %10llu kB/s\n", (quota_allowed / (1024)), (total_bytes_sent/(duration.rel_value / 1000)/1024));
+			  "Quota allowed: %10llu kB/s (%llu B/s)\n"\
+			  "Throughput   : %10llu kB/s (%llu B/s)\n", (quota_allowed / (1024)), quota_allowed, (total_bytes_sent/(duration.rel_value / 1000)/1024), total_bytes_sent/(duration.rel_value / 1000));
 	  ok = 1;
 	  end();
 	  return;
@@ -774,7 +774,7 @@ main (int argc, char *argv[])
 	  else
 		  GNUNET_asprintf(&logger, "test-quota-compliance-%s-%s","https","symmetric");
   }
-
+  fprintf(stderr,  "Running `%s'\n", logger);
   GNUNET_log_setup ("test-quota-compliance",
 #if VERBOSE
                     "DEBUG",
