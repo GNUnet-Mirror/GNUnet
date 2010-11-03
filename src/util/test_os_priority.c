@@ -30,7 +30,6 @@
 static int
 testprio ()
 {
-  pid_t child;
   if (GNUNET_OK !=
       GNUNET_OS_set_process_priority (GNUNET_OS_process_current (),
                                       GNUNET_SCHEDULER_PRIORITY_DEFAULT))
@@ -55,17 +54,6 @@ testprio ()
       GNUNET_OS_set_process_priority (GNUNET_OS_process_current (),
                                       GNUNET_SCHEDULER_PRIORITY_HIGH))
     return 1;
-#ifndef MINGW
-  child = fork ();
-  if (child == 0)
-    {
-      sleep (10);
-      exit (0);
-    }
-  if (GNUNET_OK !=
-      GNUNET_OS_set_process_priority (child, GNUNET_SCHEDULER_PRIORITY_IDLE))
-    return 1;
-#endif
   return 0;
 }
 
