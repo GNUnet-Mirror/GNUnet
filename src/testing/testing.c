@@ -205,7 +205,7 @@ start_fsm (void *cls,
     {
     case SP_COPYING:
       /* confirm copying complete */
-      if (GNUNET_OK != GNUNET_OS_process_status (d->pid, &type, &code))
+      if (GNUNET_OK != GNUNET_OS_process_status (d->proc, &type, &code))
         {
           if (GNUNET_TIME_absolute_get_remaining(d->max_timeout).rel_value == 0)
             {
@@ -264,7 +264,7 @@ start_fsm (void *cls,
                       "gnunet-peerinfo", "gnunet-peerinfo", "-c", d->cfgfile,
                       "-sq");
 #endif
-          d->pid = GNUNET_OS_start_process (NULL, d->pipe_stdout, "gnunet-peerinfo",
+          d->proc = GNUNET_OS_start_process (NULL, d->pipe_stdout, "gnunet-peerinfo",
                                             "gnunet-peerinfo",
                                             "-c", d->cfgfile,
                                             "-sq", NULL);
@@ -285,7 +285,7 @@ start_fsm (void *cls,
 #endif
           if (d->ssh_port_str == NULL)
             {
-              d->pid = GNUNET_OS_start_process (NULL, d->pipe_stdout, "ssh",
+              d->proc = GNUNET_OS_start_process (NULL, d->pipe_stdout, "ssh",
                                                 "ssh",
 #if !DEBUG_TESTING
                                                 "-q",
@@ -296,7 +296,7 @@ start_fsm (void *cls,
             }
           else
             {
-              d->pid = GNUNET_OS_start_process (NULL, d->pipe_stdout, "ssh",
+              d->proc = GNUNET_OS_start_process (NULL, d->pipe_stdout, "ssh",
                                                 "ssh", "-p", d->ssh_port_str,
 #if !DEBUG_TESTING
                                                 "-q",
@@ -308,7 +308,7 @@ start_fsm (void *cls,
           GNUNET_DISK_pipe_close_end(d->pipe_stdout, GNUNET_DISK_PIPE_END_WRITE);
           GNUNET_free (dst);
         }
-      if (-1 == d->pid)
+      if (NULL == d->proc)
         {
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                       _("Could not start `%s' process to create hostkey.\n"),
@@ -378,9 +378,10 @@ start_fsm (void *cls,
           d->cb = NULL;
           GNUNET_DISK_pipe_close(d->pipe_stdout);
 	  d->pipe_stdout = NULL;
-	  (void) PLIBC_KILL (d->pid, SIGKILL);
-	  GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (d->pid));
-	  d->pid = 0;
+	  (void) GNUNET_OS_process_kill (d->proc, SIGKILL);
+	  GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (d->proc));
+	  GNUNET_OS_process_close (d->proc);
+	  d->proc = NULL;
           if (NULL != cb)
             cb (d->cb_cls,
                 NULL,
@@ -391,9 +392,10 @@ start_fsm (void *cls,
 	} 
       GNUNET_DISK_pipe_close(d->pipe_stdout);
       d->pipe_stdout = NULL;
-      (void) PLIBC_KILL (d->pid, SIGKILL);
-      GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (d->pid));
-      d->pid = 0;
+      (void) GNUNET_OS_process_kill (d->proc, SIGKILL);
+      GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (d->proc));
+      GNUNET_OS_process_close (d->proc);
+      d->proc = NULL;
 #if DEBUG_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Successfully got hostkey!\n");
@@ -439,7 +441,7 @@ start_fsm (void *cls,
                       "-L", "DEBUG",
                       "-s");
 #endif
-          d->pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-arm",
+          d->proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-arm",
                                             "gnunet-arm",
                                             "-c", d->cfgfile,
 #if DEBUG_TESTING
@@ -462,7 +464,7 @@ start_fsm (void *cls,
 #endif
           if (d->ssh_port_str == NULL)
             {
-              d->pid = GNUNET_OS_start_process (NULL, NULL, "ssh",
+              d->proc = GNUNET_OS_start_process (NULL, NULL, "ssh",
                                                 "ssh",
 #if !DEBUG_TESTING
                                                 "-q",
@@ -477,7 +479,7 @@ start_fsm (void *cls,
           else
             {
 
-              d->pid = GNUNET_OS_start_process (NULL, NULL, "ssh",
+              d->proc = GNUNET_OS_start_process (NULL, NULL, "ssh",
                                                 "ssh", "-p", d->ssh_port_str,
 #if !DEBUG_TESTING
                                                 "-q",
@@ -491,7 +493,7 @@ start_fsm (void *cls,
             }
           GNUNET_free (dst);
         }
-      if (-1 == d->pid)
+      if (NULL == d->proc)
         {
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                       _("Could not start `%s' process to start GNUnet.\n"),
@@ -520,7 +522,7 @@ start_fsm (void *cls,
                                         &start_fsm, d);
       break;
     case SP_START_ARMING:
-      if (GNUNET_OK != GNUNET_OS_process_status (d->pid, &type, &code))
+      if (GNUNET_OK != GNUNET_OS_process_status (d->proc, &type, &code))
         {
           if (GNUNET_TIME_absolute_get_remaining(d->max_timeout).rel_value == 0)
             {
@@ -565,7 +567,7 @@ start_fsm (void *cls,
       break;
     case SP_SHUTDOWN_START:
       /* confirm copying complete */
-      if (GNUNET_OK != GNUNET_OS_process_status (d->pid, &type, &code))
+      if (GNUNET_OK != GNUNET_OS_process_status (d->proc, &type, &code))
         {
           if (GNUNET_TIME_absolute_get_remaining(d->max_timeout).rel_value == 0)
             {
@@ -645,7 +647,7 @@ start_fsm (void *cls,
       break;
     case SP_CONFIG_UPDATE:
       /* confirm copying complete */
-      if (GNUNET_OK != GNUNET_OS_process_status (d->pid, &type, &code))
+      if (GNUNET_OK != GNUNET_OS_process_status (d->proc, &type, &code))
         {
           if (GNUNET_TIME_absolute_get_remaining(d->max_timeout).rel_value == 0) /* FIXME: config update should take timeout parameter! */
             {
@@ -856,7 +858,7 @@ GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
 
       if (ret->ssh_port_str == NULL)
         {
-          ret->pid = GNUNET_OS_start_process (NULL, NULL, "scp",
+          ret->proc = GNUNET_OS_start_process (NULL, NULL, "scp",
                                               "scp",
 #if !DEBUG_TESTING
                                               "-q",
@@ -865,7 +867,7 @@ GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
         }
       else
         {
-          ret->pid = GNUNET_OS_start_process (NULL, NULL, "scp",
+          ret->proc = GNUNET_OS_start_process (NULL, NULL, "scp",
                                               "scp", "-P", ret->ssh_port_str,
 #if !DEBUG_TESTING
                                               "-q",
@@ -873,7 +875,7 @@ GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
                                               ret->cfgfile, arg, NULL);
         }
       GNUNET_free (arg);
-      if (-1 == ret->pid)
+      if (NULL == ret->proc)
         {
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                       _
@@ -972,7 +974,7 @@ GNUNET_TESTING_daemon_restart (struct GNUNET_TESTING_Daemon *d,
       else
         arg = GNUNET_strdup (d->hostname);
 
-      d->pid = GNUNET_OS_start_process (NULL, NULL, "ssh", "ssh",
+      d->proc = GNUNET_OS_start_process (NULL, NULL, "ssh", "ssh",
 #if !DEBUG_TESTING
                                         "-q",
 #endif
@@ -991,7 +993,7 @@ GNUNET_TESTING_daemon_restart (struct GNUNET_TESTING_Daemon *d,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Stopping gnunet-arm with config `%s' locally.\n", d->cfgfile);
 #endif
-      d->pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-arm",
+      d->proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-arm",
                                         "gnunet-arm",
 #if DEBUG_TESTING
                                         "-L", "DEBUG",
@@ -1107,7 +1109,7 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
       else
         arg = GNUNET_strdup (d->hostname);
 
-      d->pid = GNUNET_OS_start_process (NULL, NULL, "ssh", "ssh",
+      d->proc = GNUNET_OS_start_process (NULL, NULL, "ssh", "ssh",
 #if !DEBUG_TESTING
                                         "-q",
 #endif
@@ -1127,7 +1129,7 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Stopping gnunet-arm with config `%s' locally.\n", d->cfgfile);
 #endif
-      d->pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-arm",
+      d->proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-arm",
                                         "gnunet-arm",
 #if DEBUG_TESTING
                                         "-L", "DEBUG",
@@ -1194,13 +1196,13 @@ GNUNET_TESTING_daemon_reconfigure (struct GNUNET_TESTING_Daemon *d,
     GNUNET_asprintf (&arg, "%s@%s:%s", d->username, d->hostname, d->cfgfile);
   else
     GNUNET_asprintf (&arg, "%s:%s", d->hostname, d->cfgfile);
-  d->pid = GNUNET_OS_start_process (NULL, NULL, "scp", "scp",
+  d->proc = GNUNET_OS_start_process (NULL, NULL, "scp", "scp",
 #if !DEBUG_TESTING
                                     "-q",
 #endif
                                     d->cfgfile, arg, NULL);
   GNUNET_free (arg);
-  if (-1 == d->pid)
+  if (NULL == d->proc)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _

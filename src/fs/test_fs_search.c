@@ -53,7 +53,7 @@ struct PeerContext
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_PeerIdentity id;   
 #if START_ARM
-  pid_t arm_pid;
+  GNUNET_OS_Process *arm_proc;
 #endif
 };
 
@@ -191,7 +191,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 {
   p->cfg = GNUNET_CONFIGURATION_create ();
 #if START_ARM
-  p->arm_pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+  p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
                                         "gnunet-service-arm",
 #if VERBOSE
                                         "-L", "DEBUG",
@@ -206,12 +206,14 @@ static void
 stop_arm (struct PeerContext *p)
 {
 #if START_ARM
-  if (0 != PLIBC_KILL (p->arm_pid, SIGTERM))
+  if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  if (GNUNET_OS_process_wait(p->arm_pid) != GNUNET_OK)
+  if (GNUNET_OS_process_wait(p->arm_proc) != GNUNET_OK)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "ARM process %u stopped\n", p->arm_pid);
+              "ARM process %u stopped\n", GNUNET_OS_process_get_pid (p->arm_proc));
+  GNUNET_OS_process_close (p->arm_proc);
+  p->arm_proc = NULL;
 #endif
   GNUNET_CONFIGURATION_destroy (p->cfg);
 }

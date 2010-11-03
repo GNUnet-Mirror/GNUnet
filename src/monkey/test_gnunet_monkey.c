@@ -42,9 +42,12 @@
 static int
 check ()
 {
-    GNUNET_OS_start_process (NULL, NULL, "gnunet-monkey",
-	                                     "gnunet-monkey",
-	                                     "./bug_null_pointer_exception", NULL);
+    GNUNET_OS_process_close (GNUNET_OS_start_process (NULL, NULL,
+    			                              "gnunet-monkey",
+	                                              "gnunet-monkey",
+	                                        "./bug_null_pointer_exception",
+                                                      NULL));
+    
 	return 0;
 }
 

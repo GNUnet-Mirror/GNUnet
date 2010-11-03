@@ -91,9 +91,9 @@ struct ServiceList
   struct GNUNET_SERVER_Client *killing_client;
 
   /**
-   * Process ID of the child.
+   * Process structure pointer of the child.
    */
-  pid_t pid;
+  GNUNET_OS_Process *proc;
 
   /**
    * Last time the config of this service was
@@ -199,11 +199,11 @@ config_change_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       /* FIXME: this test for config change is a bit too coarse grained */
       if ( (0 == STAT (pos->config, &sbuf)) && 
 	   (pos->mtime < sbuf.st_mtime) &&
-	   (pos->pid != 0) )
+	   (pos->proc != NULL) )
 	{
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		      _("Restarting service `%s' due to configuration file change.\n"));
-	  if (0 != PLIBC_KILL (pos->pid, SIGTERM))
+	  if (0 != GNUNET_OS_process_kill (pos->proc, SIGTERM))
 	    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
 	  else
 	    pos->backoff = GNUNET_TIME_UNIT_MILLISECONDS;
@@ -414,7 +414,7 @@ start_process (struct ServiceList *sl,
 	      sl->name, sl->binary, sl->config);
 #endif
   if (GNUNET_YES == use_debug)
-    sl->pid = do_start_process (lsocks,
+    sl->proc = do_start_process (lsocks,
 				loprefix,				
 				sl->binary,
 				"-c", sl->config,
@@ -422,19 +422,24 @@ start_process (struct ServiceList *sl,
 				options,
 				NULL);
   else
-    sl->pid = do_start_process (lsocks,
+    sl->proc = do_start_process (lsocks,
 				loprefix,
 				sl->binary,
 				"-c", sl->config,
 				options,
 				NULL);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-	      _("Starting service `%s' (PID: %d)\n"), 
-	      sl->name,
-	      (int) sl->pid);
+  if (sl->proc == NULL)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+	        _("Failed to start service `%s'\n"), 
+	        sl->name);
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+	        _("Starting service `%s' (PID: %d)\n"), 
+	        sl->name,
+	        (int) GNUNET_OS_process_get_pid (sl->proc));
   GNUNET_free (loprefix);
   GNUNET_free (options);
-  /* FIXME: should check sl->pid */
+  /* FIXME: should check sl->proc */
 }
 
 
@@ -568,7 +573,7 @@ stop_service (struct GNUNET_SERVER_Client *client,
       running = pos;
       return;
     }
-  if (pos->pid == 0)
+  if (pos->proc == NULL)
     {
       /* process is in delayed restart, simply remove it! */
       free_entry (pos);
@@ -581,7 +586,7 @@ stop_service (struct GNUNET_SERVER_Client *client,
 	      "Sending kill signal to service `%s', waiting for process to die.\n",
 	      servicename);
 #endif
-  if (0 != PLIBC_KILL (pos->pid, SIGTERM))
+  if (0 != GNUNET_OS_process_kill (pos->proc, SIGTERM))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   pos->next = running;
   running = pos;
@@ -653,7 +658,7 @@ handle_stop (void *cls,
 
 /**
  * Remove all entries for tasks that are not running
- * (pid = 0) from the running list (they will no longer
+ * (proc = NULL) from the running list (they will no longer
  * be restarted since we are shutting down).
  */
 static void
@@ -668,7 +673,7 @@ clean_up_running ()
   while (NULL != pos)
     {
       next = pos->next;
-      if (pos->pid == 0)
+      if (pos->proc == NULL)
 	{
 	  if (prev == NULL)
 	    running = next;
@@ -727,13 +732,13 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   pos = running;
   while (NULL != pos)
     {
-      if (pos->pid != 0)
+      if (pos->proc != NULL)
 	{
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		      "Stopping service `%s' (PID: %d)\n",
 		      pos->name,
-		      pos->pid);
-	  if (0 != PLIBC_KILL (pos->pid, SIGTERM))
+		      GNUNET_OS_process_get_pid (pos->proc));
+	  if (0 != GNUNET_OS_process_kill (pos->proc, SIGTERM))
 	    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
 	}
       pos = pos->next;
@@ -773,7 +778,7 @@ delayed_restart_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   pos = running;
   while (pos != NULL)
     {
-      if ( (pos->pid == 0) && 
+      if ( (pos->proc == NULL) && 
 	   (GNUNET_YES != in_shutdown) )
 	{
 	  if (GNUNET_TIME_absolute_get_remaining (pos->restartAt).rel_value == 0)
@@ -845,12 +850,12 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   while (NULL != (pos = next))
     {
       next = pos->next;
-      if (pos->pid == 0) 
+      if (pos->proc == NULL) 
 	{
 	  prev = pos;
 	  continue;
 	}
-      if ((GNUNET_SYSERR == (ret = GNUNET_OS_process_status (pos->pid,
+      if ((GNUNET_SYSERR == (ret = GNUNET_OS_process_status (pos->proc,
 							     &statusType,
 							     &statusCode))) ||
 	  ( (ret == GNUNET_NO) ||
@@ -876,7 +881,8 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	  statstr = _( /* process termination method */ "unknown");
 	  statcode = 0;
 	}
-      pos->pid = 0;
+      GNUNET_OS_process_close (pos->proc);
+      pos->proc = NULL;
       if (NULL != pos->killing_client) 
 	{
 	  if (prev == NULL)

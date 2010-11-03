@@ -104,7 +104,7 @@ int
 main (int argc, char *argv[])
 {
 #if START_DAEMON
-  pid_t daemon;
+  GNUNET_OS_Process *daemon;
 #endif
   int ok;
   struct GNUNET_ECRS_URI *uri;
@@ -132,7 +132,7 @@ main (int argc, char *argv[])
     }
 #if START_DAEMON
   daemon = GNUNET_daemon_start (NULL, cfg, "peer.conf", GNUNET_NO);
-  GNUNET_GE_ASSERT (NULL, daemon > 0);
+  GNUNET_GE_ASSERT (NULL, daemon != NULL);
   CHECK (GNUNET_OK ==
          GNUNET_wait_for_daemon_running (NULL, cfg,
                                          60 * GNUNET_CRON_SECONDS));
@@ -250,6 +250,7 @@ FAILURE:
 
 #if START_DAEMON
   GNUNET_GE_ASSERT (NULL, GNUNET_OK == GNUNET_daemon_stop (NULL, daemon));
+  GNUNET_OS_process_close (daemon);
 #endif
   GNUNET_GC_free (cfg);
 

@@ -135,7 +135,7 @@ struct Plugin
   /**
    * The process id of the server process (if behind NAT)
    */
-  pid_t server_pid;
+  GNUNET_OS_Process *server_proc;
 
   /**
    * The interface of the wlan card given to us by the user.
@@ -1245,8 +1245,8 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
                    "Starting gnunet-wlan-helper process cmd: %s %s\n", "gnunet-wlan-helper", plugin->interface);
 #endif
   /* Start the server process */
-  plugin->server_pid = GNUNET_OS_start_process(plugin->server_stdin, plugin->server_stdout, "gnunet-transport-wlan-helper", "gnunet-transport-wlan-helper", plugin->interface, NULL);
-  if (plugin->server_pid == GNUNET_SYSERR)
+  plugin->server_proc = GNUNET_OS_start_process(plugin->server_stdin, plugin->server_stdout, "gnunet-transport-wlan-helper", "gnunet-transport-wlan-helper", plugin->interface, NULL);
+  if (plugin->server_proc == NULL)
     {
 #if DEBUG_TCP_NAT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

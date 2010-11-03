@@ -29,7 +29,7 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_statistics_service.h"
 
-#define DEBUG_STATISTICS GNUNET_NO
+#define DEBUG_STATISTICS GNUNET_YES
 
 #define START_SERVICE GNUNET_YES
 
@@ -157,8 +157,8 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
 #if START_SERVICE
-  pid_t pid;
-  pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
+  GNUNET_OS_Process *proc;
+  proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
                                  "gnunet-service-statistics",
 #if DEBUG_STATISTICS
                                  "-L", "DEBUG",
@@ -168,19 +168,21 @@ check ()
   GNUNET_PROGRAM_run (5, argv, "test-statistics-api", "nohelp",
                       options, &run, &ok);
 #if START_SERVICE
-  if (0 != PLIBC_KILL (pid, SIGTERM))
+  if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
       ok = 1;
     }
-  GNUNET_OS_process_wait(pid);
+  GNUNET_OS_process_wait (proc);
+  GNUNET_OS_process_close (proc);
+  proc = NULL;
 #endif
   if (ok != 0)
     return ok;
   ok = 1;
 #if START_SERVICE
   /* restart to check persistence! */
-  pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
+  proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
                                  "gnunet-service-statistics",
 #if DEBUG_STATISTICS
                                  "-L", "DEBUG",
@@ -190,12 +192,14 @@ check ()
   GNUNET_PROGRAM_run (5, argv, "test-statistics-api", "nohelp",
                       options, &run_more, &ok);
 #if START_SERVICE
-  if (0 != PLIBC_KILL (pid, SIGTERM))
+  if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
       ok = 1;
     }
-  GNUNET_OS_process_wait(pid);
+  GNUNET_OS_process_wait (proc);
+  GNUNET_OS_process_close (proc);
+  proc = NULL;
 #endif
   return ok;
 }

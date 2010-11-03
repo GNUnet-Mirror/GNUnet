@@ -96,8 +96,8 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
 #if START_SERVICE
-  pid_t pid;
-  pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
+  GNUNET_OS_Process *proc;
+  proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-statistics",
                                  "gnunet-service-statistics",
 #if DEBUG_STATISTICS
                                  "-L", "DEBUG",
@@ -107,12 +107,14 @@ check ()
   GNUNET_PROGRAM_run (3, argv, "test-statistics-api", "nohelp",
                       options, &run, &ok);
 #if START_SERVICE
-  if (0 != PLIBC_KILL (pid, SIGTERM))
+  if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
       ok = 1;
     }
-  GNUNET_OS_process_wait(pid);
+  GNUNET_OS_process_wait (proc);
+  GNUNET_OS_process_close (proc);
+  proc = NULL;
 #endif
   return ok;
 }

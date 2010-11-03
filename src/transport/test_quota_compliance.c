@@ -65,7 +65,7 @@ struct PeerContext
   struct GNUNET_TRANSPORT_Handle *th;
   struct GNUNET_PeerIdentity id;
 #if START_ARM
-  pid_t arm_pid;
+  GNUNET_OS_Process *arm_proc;
 #endif
 };
 
@@ -197,9 +197,11 @@ static void
 stop_arm (struct PeerContext *p)
 {
 #if START_ARM
-  if (0 != PLIBC_KILL (p->arm_pid, SIGTERM))
+  if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  GNUNET_OS_process_wait (p->arm_pid);
+  GNUNET_OS_process_wait (p->arm_proc);
+  GNUNET_OS_process_close (p->arm_proc);
+  p->arm_proc = NULL;
 #endif
   GNUNET_CONFIGURATION_destroy (p->cfg);
 }
@@ -576,7 +578,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 {
   p->cfg = GNUNET_CONFIGURATION_create ();
 #if START_ARM
-  p->arm_pid = GNUNET_OS_start_process (NULL, NULL,
+  p->arm_proc = GNUNET_OS_start_process (NULL, NULL,
 					"gnunet-service-arm",
                                         "gnunet-service-arm",
 #if VERBOSE_ARM

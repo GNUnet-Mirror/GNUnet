@@ -112,12 +112,12 @@ hijack(unsigned short port) {
 
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Hijacking, port is %d\n", port);
     snprintf(port_s, 6, "%d", port);
-    GNUNET_OS_start_process(NULL,
+    GNUNET_OS_process_close (GNUNET_OS_start_process(NULL,
 			    NULL,
 			    "gnunet-helper-hijack-dns",
 			    "gnunet-hijack-dns",
 			    port_s,
-			    NULL);
+			    NULL));
 }
 
 /**

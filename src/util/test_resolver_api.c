@@ -360,7 +360,7 @@ check()
   int ok = 1 + 2 + 4 + 8;
   char *fn;
   char *pfx;
-  pid_t pid;
+  GNUNET_OS_Process *proc;
   char * const argv[] =
     { "test-resolver-api", "-c", "test_resolver_api_data.conf",
 #if VERBOSE
@@ -372,7 +372,7 @@ check()
   pfx = GNUNET_OS_installation_get_path(GNUNET_OS_IPK_BINDIR);
   GNUNET_asprintf(&fn, "%s%cgnunet-service-resolver", pfx, DIR_SEPARATOR);
   GNUNET_free(pfx);
-  pid = GNUNET_OS_start_process(NULL, NULL, fn, "gnunet-service-resolver",
+  proc = GNUNET_OS_start_process(NULL, NULL, fn, "gnunet-service-resolver",
 #if VERBOSE
       "-L", "DEBUG",
 #endif
@@ -380,12 +380,14 @@ check()
   GNUNET_free(fn);
   GNUNET_assert(GNUNET_OK == GNUNET_PROGRAM_run((sizeof(argv) / sizeof(char *))
       - 1, argv, "test-resolver-api", "nohelp", options, &run, &ok));
-  if (0 != PLIBC_KILL(pid, SIGTERM))
+  if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
     {
       GNUNET_log_strerror(GNUNET_ERROR_TYPE_WARNING, "kill");
       ok = 1;
     }
-  GNUNET_OS_process_wait(pid);
+  GNUNET_OS_process_wait (proc);
+  GNUNET_OS_process_close (proc);
+  proc = NULL;
   if (ok != 0)
     fprintf(stderr, "Missed some resolutions: %u\n", ok);
   return ok;

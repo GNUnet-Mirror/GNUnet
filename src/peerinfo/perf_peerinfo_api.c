@@ -166,11 +166,11 @@ check ()
     NULL
   };
 #if START_SERVICE
-  pid_t pid;
+  GNUNET_OS_Process *proc;
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-peerinfo",
+  proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-peerinfo",
                                  "gnunet-service-peerinfo",
 #if DEBUG_PEERINFO
                                  "-L", "DEBUG",
@@ -185,12 +185,15 @@ check ()
 	   numpeers,
 	   NUM_REQUESTS * NUM_REQUESTS / 2);
 #if START_SERVICE
-  if (0 != PLIBC_KILL (pid, SIGTERM))
+  if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
       ok = 1;
     }
-  GNUNET_OS_process_wait(pid);
+  GNUNET_OS_process_wait (proc);
+  GNUNET_OS_process_close (proc);
+  proc = NULL;
+
 #endif
   return ok;
 }

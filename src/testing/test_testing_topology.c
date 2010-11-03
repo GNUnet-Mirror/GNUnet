@@ -179,12 +179,14 @@ static void gather_log_data ()
 {
   char *peer_number;
   char *connect_number;
-  pid_t mem_process;
+  GNUNET_OS_Process *mem_process;
   GNUNET_asprintf(&peer_number, "%llu", num_peers);
   GNUNET_asprintf(&connect_number, "%llu", expected_connections);
   mem_process = GNUNET_OS_start_process (NULL, NULL, "./memsize.pl",
                            "memsize.pl", "totals.txt", peer_number, connect_number, NULL);
-  GNUNET_OS_process_wait(mem_process);
+  GNUNET_OS_process_wait (mem_process);
+  GNUNET_OS_process_close (mem_process);
+  mem_process = NULL;
 }
 
 #endif

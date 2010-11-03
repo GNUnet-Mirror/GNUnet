@@ -471,7 +471,7 @@ struct Plugin
   /**
    * The process id of the server process (if behind NAT)
    */
-  pid_t server_pid;
+  GNUNET_OS_Process *server_proc;
 
 };
 
@@ -528,9 +528,11 @@ udp_transport_server_stop (void *cls)
     }
   if (plugin->behind_nat == GNUNET_YES)
     {
-      if (0 != PLIBC_KILL (plugin->server_pid, SIGTERM))
+      if (0 != GNUNET_OS_process_kill (plugin->server_proc, SIGTERM))
 	GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-      GNUNET_OS_process_wait (plugin->server_pid);
+      GNUNET_OS_process_wait (plugin->server_proc);
+      GNUNET_OS_process_close (plugin->server_proc);
+      plugin->server_proc = NULL;
     }
   return GNUNET_OK;
 }
@@ -700,7 +702,7 @@ run_gnunet_nat_client (struct Plugin *plugin, const char *addr, size_t addrlen)
   char addr_buf[INET_ADDRSTRLEN];
   char *address_as_string;
   char *port_as_string;
-  pid_t pid;
+  GNUNET_OS_Process *proc;
   const struct IPv4UdpAddress *t4;
 
   GNUNET_assert(addrlen == sizeof(struct IPv4UdpAddress));
@@ -721,10 +723,12 @@ run_gnunet_nat_client (struct Plugin *plugin, const char *addr, size_t addrlen)
 #endif
 
   /* Start the server process */
-  pid = GNUNET_OS_start_process(NULL, NULL, "gnunet-nat-client", "gnunet-nat-client", plugin->external_address, address_as_string, port_as_string, NULL);
+  proc = GNUNET_OS_start_process(NULL, NULL, "gnunet-nat-client", "gnunet-nat-client", plugin->external_address, address_as_string, port_as_string, NULL);
   GNUNET_free(address_as_string);
   GNUNET_free(port_as_string);
-  GNUNET_OS_process_wait (pid);
+  GNUNET_OS_process_wait (proc);
+  GNUNET_OS_process_close (proc);
+  proc = NULL;
 }
 
 /**
@@ -1637,12 +1641,12 @@ udp_transport_server_start (void *cls)
                   plugin->internal_address);
 #endif
       /* Start the server process */
-      plugin->server_pid = GNUNET_OS_start_process(NULL,
+      plugin->server_proc = GNUNET_OS_start_process(NULL,
 						   plugin->server_stdout,
 						   "gnunet-nat-server",
 						   "gnunet-nat-server",
 						   plugin->internal_address, NULL);
-      if (plugin->server_pid == GNUNET_SYSERR)
+      if (plugin->server_proc == NULL)
         {
 #if DEBUG_UDP
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

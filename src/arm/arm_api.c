@@ -375,7 +375,7 @@ arm_service_report (void *cls,
 		    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RequestContext *pos = cls;
-  pid_t pid;
+  GNUNET_OS_Process *proc;
   char *binary;
   char *config;
   char *loprefix;
@@ -454,7 +454,7 @@ arm_service_report (void *cls,
                                                            )
     {
       /* we're clearly running a test, don't daemonize */
-      pid = do_start_process (NULL,
+      proc = do_start_process (NULL,
 			      loprefix,
 			      binary,
 			      "-c", config,
@@ -467,7 +467,7 @@ arm_service_report (void *cls,
     }
   else
     {
-      pid = do_start_process (NULL,
+      proc = do_start_process (NULL,
 			      loprefix,
 			      binary,
 			      "-c", config,
@@ -482,7 +482,7 @@ arm_service_report (void *cls,
   GNUNET_free (config);
   GNUNET_free (loprefix);
   GNUNET_free (lopostfix);
-  if (pid == -1)
+  if (proc == NULL)
     {
       if (pos->callback != NULL)
         pos->callback (pos->cls, GNUNET_SYSERR);

@@ -71,7 +71,7 @@ struct PeerContext
   struct GNUNET_CORE_Handle *core;
   struct GNUNET_STATISTICS_Handle *stats;
 #if START_ARM
-  pid_t arm_pid;
+  GNUNET_OS_Process *arm_proc;
 #endif
 };
 
@@ -144,24 +144,28 @@ static void shutdown_testcase()
 #if START_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Killing hostlist server ARM process.\n");
-  if (0 != PLIBC_KILL (adv_peer.arm_pid, SIGTERM))
+  if (0 != GNUNET_OS_process_kill (adv_peer.arm_proc, SIGTERM))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  if (GNUNET_OS_process_wait(adv_peer.arm_pid) != GNUNET_OK)
+  if (GNUNET_OS_process_wait(adv_peer.arm_proc) != GNUNET_OK)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Hostlist server ARM process %u stopped\n", adv_peer.arm_pid);
+              "Hostlist server ARM process %u stopped\n", GNUNET_OS_process_get_pid (adv_peer.arm_proc));
+  GNUNET_OS_process_close (adv_peer->arm_proc);
+  adv_peer->arm_proc = NULL;
 #endif
   
 
 #if START_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Killing hostlist client ARM process.\n");
-  if (0 != PLIBC_KILL (learn_peer.arm_pid, SIGTERM))
+  if (0 != GNUNET_OS_process_kill (learn_peer.arm_proc, SIGTERM))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  if (GNUNET_OS_process_wait(learn_peer.arm_pid) != GNUNET_OK)
+  if (GNUNET_OS_process_wait(learn_peer.arm_proc) != GNUNET_OK)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Hostlist client ARM process %u stopped\n", learn_peer.arm_pid);
+              "Hostlist client ARM process %u stopped\n", GNUNET_OS_process_get_pid (learn_peer.arm_proc));
+  GNUNET_OS_process_close (learn_peer->arm_proc);
+  learn_peer->arm_proc = NULL;
 #endif
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down scheduler\n");
@@ -354,7 +358,7 @@ setup_learn_peer (struct PeerContext *p, const char *cfgname)
   unsigned int result;
   p->cfg = GNUNET_CONFIGURATION_create ();
 #if START_ARM
-  p->arm_pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+  p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
                                         "gnunet-service-arm",
 #if VERBOSE
                                         "-L", "DEBUG",
@@ -397,7 +401,7 @@ setup_adv_peer (struct PeerContext *p, const char *cfgname)
 
   p->cfg = GNUNET_CONFIGURATION_create ();
 #if START_ARM
-  p->arm_pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+  p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
                                         "gnunet-service-arm",
 #if VERBOSE
                                         "-L", "DEBUG",

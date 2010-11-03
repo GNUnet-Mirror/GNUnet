@@ -641,7 +641,7 @@ check ()
 {
   char cfg_name[128];
 #if START_DATASTORE
-  pid_t pid;
+  GNUNET_OS_Process *proc;
 #endif
   char *const argv[] = {
     "test-datastore-api",
@@ -660,7 +660,7 @@ check ()
 		   "test_datastore_api_data_%s.conf",
 		   plugin_name);
 #if START_DATASTORE
-  pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+  proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
                                  "gnunet-service-arm",
 #if VERBOSE
                                  "-L", "DEBUG",
@@ -671,12 +671,14 @@ check ()
                       argv, "test-datastore-api", "nohelp",
                       options, &run, NULL);
 #if START_DATASTORE
-  if (0 != PLIBC_KILL (pid, SIGTERM))
+  if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
       ok = 1;
     }
-  GNUNET_OS_process_wait(pid);
+  GNUNET_OS_process_wait (proc);
+  GNUNET_OS_process_close (proc);
+  proc = NULL;
 #endif
   if (ok != 0)
     fprintf (stderr, "Missed some testcases: %u\n", ok);

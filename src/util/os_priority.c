@@ -29,6 +29,112 @@
 #include "gnunet_os_lib.h"
 #include "disk.h"
 
+struct _GNUNET_OS_Process
+{
+  pid_t pid;
+#if WINDOWS
+  HANDLE handle;
+#endif
+};
+
+static GNUNET_OS_Process current_process;
+
+GNUNET_OS_Process *
+GNUNET_OS_process_alloc ()
+{
+  GNUNET_OS_Process *ret = GNUNET_malloc (sizeof (GNUNET_OS_Process));
+  ret->pid = 0;
+#if WINDOWS
+  ret->handle = NULL;
+#endif
+  return ret;
+}
+
+/**
+ * Get process structure for current process
+ *
+ * The pointer it returns points to static memory location and must not be
+ * deallocated/closed
+ *
+ * @return pointer to the process sturcutre for this process
+ */
+GNUNET_OS_Process *
+GNUNET_OS_process_current ()
+{
+#if WINDOWS
+  current_process.pid = GetCurrentProcessId ();
+  current_process.handle = GetCurrentProcess ();
+#else
+  current_process.pid = 0;
+#endif
+  return &current_process;
+}
+
+int
+GNUNET_OS_process_kill (GNUNET_OS_Process *proc, int sig)
+{
+#if WINDOWS
+  if (sig == SIGKILL || sig == SIGTERM)
+  {
+    HANDLE h = GNUNET_OS_process_get_handle (proc);
+    if (NULL == h)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Invalid process information {%d, %08X}\n", GNUNET_OS_process_get_pid (proc), h);
+      return -1;
+    }
+    if (!TerminateProcess (h, 0))
+    {
+      SetErrnoFromWinError (GetLastError ());
+      return -1;
+    }
+    else
+      return 0;
+  }
+  errno = EINVAL;
+  return -1;
+#else
+  return kill (GNUNET_OS_process_get_pid (proc), sig);
+#endif
+}
+
+pid_t
+GNUNET_OS_process_get_pid (GNUNET_OS_Process *proc)
+{
+  return proc->pid;
+}
+
+void
+GNUNET_OS_process_set_pid (GNUNET_OS_Process *proc, pid_t pid)
+{
+  proc->pid = pid;
+}
+
+#if WINDOWS
+HANDLE
+GNUNET_OS_process_get_handle (GNUNET_OS_Process *proc)
+{
+  return proc->handle;
+}
+
+void
+GNUNET_OS_process_set_handle(GNUNET_OS_Process *proc, HANDLE handle)
+{
+  if (proc->handle != NULL)
+    CloseHandle (proc->handle);
+  proc->handle = handle;
+}
+#endif
+
+void
+GNUNET_OS_process_close (GNUNET_OS_Process *proc)
+{
+#if WINDOWS
+  if (proc->handle != NULL)
+    CloseHandle (proc->handle);
+#endif  
+  GNUNET_free (proc);
+}
+
 #if WINDOWS
 #include "gnunet_signal_lib.h"
 
@@ -36,17 +142,17 @@ extern GNUNET_SIGNAL_Handler w32_sigchld_handler;
 
 /**
  * @brief Waits for a process to terminate and invokes the SIGCHLD handler
- * @param h handle to the process
+ * @param proc pointer to process structure
  */
 static DWORD WINAPI
-ChildWaitThread (HANDLE h)
+ChildWaitThread (void *arg)
 {
-  WaitForSingleObject (h, INFINITE);
+  GNUNET_OS_Process *proc = (GNUNET_OS_Process *) arg;
+  WaitForSingleObject (proc->handle, INFINITE);
 
   if (w32_sigchld_handler)
     w32_sigchld_handler ();
 
-  CloseHandle (h);
   return 0;
 }
 #endif
@@ -54,19 +160,21 @@ ChildWaitThread (HANDLE h)
 /**
  * Set process priority
  *
- * @param proc id of the process
+ * @param proc pointer to process structure
  * @param prio priority value
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
-GNUNET_OS_set_process_priority (pid_t proc,
+GNUNET_OS_set_process_priority (GNUNET_OS_Process *proc,
                                 enum GNUNET_SCHEDULER_Priority prio)
 {
   int rprio;
+  pid_t pid;
 
   GNUNET_assert (prio < GNUNET_SCHEDULER_PRIORITY_COUNT);
   if (prio == GNUNET_SCHEDULER_PRIORITY_KEEP)
     return GNUNET_OK;
+
   /* convert to MINGW/Unix values */
   switch (prio)
     {
@@ -114,12 +222,19 @@ GNUNET_OS_set_process_priority (pid_t proc,
       GNUNET_assert (0);
       return GNUNET_SYSERR;
     }
+
+  pid = GNUNET_OS_process_get_pid (proc);
+
   /* Set process priority */
 #ifdef MINGW
-  SetPriorityClass (GetCurrentProcess (), rprio);
+  {
+    HANDLE h = GNUNET_OS_process_get_handle (proc);
+    GNUNET_assert (h != NULL);
+    SetPriorityClass (h, rprio);
+  }
 #elif LINUX 
-  if ( (0 == proc) ||
-       (proc == getpid () ) )
+  if ( (0 == pid) ||
+       (pid == getpid () ) )
     {
       int have = nice (0);
       int delta = rprio - have;
@@ -135,7 +250,7 @@ GNUNET_OS_set_process_priority (pid_t proc,
     }
   else
     {
-      if (0 != setpriority (PRIO_PROCESS, proc, rprio))
+      if (0 != setpriority (PRIO_PROCESS, pid, rprio))
 
         {
           GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING |
@@ -157,18 +272,18 @@ GNUNET_OS_set_process_priority (pid_t proc,
  * @param pipe_stdout pipe to use to get output from child process (or NULL)
  * @param filename name of the binary
  * @param ... NULL-terminated list of arguments to the process
- * @return process ID of the new process, -1 on error
+ * @return pointer to process structure of the new process, NULL on error
  */
-pid_t
+GNUNET_OS_Process *
 GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin, 
 			 struct GNUNET_DISK_PipeHandle *pipe_stdout,
 			 const char *filename, ...)
 {
-  /* FIXME:  Make this work on windows!!! */
   va_list ap;
 
 #ifndef MINGW
   pid_t ret;
+  GNUNET_OS_Process *gnunet_proc = NULL;
   char **argv;
   int argc;
   int fd_stdout_write;
@@ -227,9 +342,11 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
             GNUNET_DISK_pipe_close_end(pipe_stdin, GNUNET_DISK_PIPE_END_READ);
           sleep (1);
 #endif
+          gnunet_proc = GNUNET_OS_process_alloc ();
+          GNUNET_OS_process_set_pid (gnunet_proc, ret);
         }
       GNUNET_free (argv);
-      return ret;
+      return gnunet_proc;
     }
 
   if (pipe_stdout != NULL)
@@ -258,6 +375,7 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
   int findresult;
   STARTUPINFO start;
   PROCESS_INFORMATION proc;
+  GNUNET_OS_Process *gnunet_proc = NULL;
 
   HANDLE stdin_handle;
   HANDLE stdout_handle;
@@ -299,7 +417,7 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
     {
       SetErrnoFromWinError (GetLastError ());
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "FindExecutable", filename);
-      return (pid_t) -1;
+      return NULL;
     }
 
   if (!CreateProcessA
@@ -308,16 +426,20 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
     {
       SetErrnoFromWinError (GetLastError ());
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "CreateProcess", path);
-      return (pid_t) -1;
+      return NULL;
     }
 
-  CreateThread (NULL, 64000, ChildWaitThread, proc.hProcess, 0, NULL);
+  gnunet_proc = GNUNET_OS_process_alloc ();
+  GNUNET_OS_process_set_pid (gnunet_proc, proc.dwProcessId);
+  GNUNET_OS_process_set_handle (gnunet_proc, proc.hProcess);
+
+  CreateThread (NULL, 64000, ChildWaitThread, (void *) gnunet_proc, 0, NULL);
 
   CloseHandle (proc.hThread);
 
   GNUNET_free (cmd);
 
-  return proc.dwProcessId;
+  return gnunet_proc;
 #endif
 
 }
@@ -333,7 +455,7 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
  * @param argv NULL-terminated list of arguments to the process
  * @return process ID of the new process, -1 on error
  */
-pid_t
+GNUNET_OS_Process *
 GNUNET_OS_start_process_v (const int *lsocks,
 			   const char *filename, char *const argv[])
 {
@@ -341,6 +463,7 @@ GNUNET_OS_start_process_v (const int *lsocks,
   pid_t ret;
   char lpid[16];
   char fds[16];
+  GNUNET_OS_Process *gnunet_proc = NULL;
   int i;
   int j;
   int k;
@@ -382,9 +505,11 @@ GNUNET_OS_start_process_v (const int *lsocks,
              be plenty in practice */
           sleep (1);
 #endif
+          gnunet_proc = GNUNET_OS_process_alloc ();
+          GNUNET_OS_process_set_pid (gnunet_proc, ret);
         }
       GNUNET_array_grow (lscp, ls, 0);
-      return ret;
+      return gnunet_proc;
     }
   if (lscp != NULL)
     {
@@ -441,6 +566,7 @@ GNUNET_OS_start_process_v (const int *lsocks,
   int argcount = 0;
   char *non_const_filename = NULL;
   int filenamelen = 0;
+  GNUNET_OS_Process *gnunet_proc = NULL;
 
   GNUNET_assert (lsocks == NULL);
   /* Count the number of arguments */
@@ -504,11 +630,15 @@ GNUNET_OS_start_process_v (const int *lsocks,
        &proc))
     {
       SetErrnoFromWinError (GetLastError ());
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "fork");
-      return -1;
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "CreateProcess");
+      return NULL;
     }
 
-  CreateThread (NULL, 64000, ChildWaitThread, proc.hProcess, 0, NULL);
+  gnunet_proc = GNUNET_OS_process_alloc ();
+  GNUNET_OS_process_set_pid (gnunet_proc, proc.dwProcessId);
+  GNUNET_OS_process_set_handle (gnunet_proc, proc.hProcess);
+
+  CreateThread (NULL, 64000, ChildWaitThread, (void *) gnunet_proc, 0, NULL);
 
   CloseHandle (proc.hThread);
   GNUNET_free (cmd);
@@ -517,7 +647,7 @@ GNUNET_OS_start_process_v (const int *lsocks,
     GNUNET_free (non_const_argv[--argcount]);
   GNUNET_free (non_const_argv);
 
-  return proc.dwProcessId;
+  return gnunet_proc;
 #endif
 }
 
@@ -529,7 +659,7 @@ GNUNET_OS_start_process_v (const int *lsocks,
  * @return GNUNET_OK on success, GNUNET_NO if the process is still running, GNUNET_SYSERR otherwise
  */
 int
-GNUNET_OS_process_status (pid_t proc, enum GNUNET_OS_ProcessStatusType *type,
+GNUNET_OS_process_status (GNUNET_OS_Process *proc, enum GNUNET_OS_ProcessStatusType *type,
                           unsigned long *code)
 {
 #ifndef MINGW
@@ -537,7 +667,7 @@ GNUNET_OS_process_status (pid_t proc, enum GNUNET_OS_ProcessStatusType *type,
   int ret;
 
   GNUNET_assert (0 != proc);
-  ret = waitpid (proc, &status, WNOHANG);
+  ret = waitpid (GNUNET_OS_process_get_pid (proc), &status, WNOHANG);
   if (ret < 0)
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
@@ -549,7 +679,7 @@ GNUNET_OS_process_status (pid_t proc, enum GNUNET_OS_ProcessStatusType *type,
       *code = 0;
       return GNUNET_NO;
     }
-  if (proc != ret)
+  if (GNUNET_OS_process_get_pid (proc) != ret)
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
       return GNUNET_SYSERR;
@@ -583,27 +713,35 @@ GNUNET_OS_process_status (pid_t proc, enum GNUNET_OS_ProcessStatusType *type,
     }
 #else
   HANDLE h;
-  DWORD c;
+  DWORD c, error_code, ret;
 
-  h = OpenProcess (PROCESS_QUERY_INFORMATION, FALSE, proc);
-  if (INVALID_HANDLE_VALUE == h)
+  h = GNUNET_OS_process_get_handle (proc);
+  ret = GNUNET_OS_process_get_pid (proc);
+  if (h == NULL || ret == 0)
     {
-      SetErrnoFromWinError (GetLastError ());
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "OpenProcess");
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Invalid process information {%d, %08X}\n", ret, h);
       return GNUNET_SYSERR;
     }
+  if (h == NULL)
+    h = GetCurrentProcess ();
 
-  c = GetExitCodeProcess (h, &c);
+  SetLastError (0);
+  ret = GetExitCodeProcess (h, &c);
+  error_code = GetLastError ();
+  if (ret == 0 || error_code != NO_ERROR)
+  {
+      SetErrnoFromWinError (error_code);
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "GetExitCodeProcess");
+      return GNUNET_SYSERR;
+  }
   if (STILL_ACTIVE == c)
     {
       *type = GNUNET_OS_PROCESS_RUNNING;
       *code = 0;
-      CloseHandle (h);
       return GNUNET_NO;
     }
   *type = GNUNET_OS_PROCESS_EXITED;
   *code = c;
-  CloseHandle (h);
 #endif
 
   return GNUNET_OK;
@@ -611,14 +749,15 @@ GNUNET_OS_process_status (pid_t proc, enum GNUNET_OS_ProcessStatusType *type,
 
 /**
  * Wait for a process
- * @param proc process ID to wait for
+ * @param proc pointer to process structure
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
 int
-GNUNET_OS_process_wait (pid_t proc)
+GNUNET_OS_process_wait (GNUNET_OS_Process *proc)
 {
+  pid_t pid = GNUNET_OS_process_get_pid (proc);
 #ifndef MINGW
-  if (proc != waitpid (proc, NULL, 0))
+  if (pid != waitpid (pid, NULL, 0))
     return GNUNET_SYSERR;
 
   return GNUNET_OK;
@@ -626,12 +765,14 @@ GNUNET_OS_process_wait (pid_t proc)
   HANDLE h;
   int ret;
 
-  h = OpenProcess (PROCESS_QUERY_INFORMATION, FALSE, proc);
-  if (INVALID_HANDLE_VALUE == h)
+  h = GNUNET_OS_process_get_handle (proc);
+  if (NULL == h)
     {
-      SetErrnoFromWinError (GetLastError ());
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Invalid process information {%d, %08X}\n", pid, h);
       return GNUNET_SYSERR;
     }
+  if (h == NULL)
+    h = GetCurrentProcess ();
 
   if (WAIT_OBJECT_0 != WaitForSingleObject (h, INFINITE))
     {
@@ -640,8 +781,6 @@ GNUNET_OS_process_wait (pid_t proc)
     }
   else
     ret = GNUNET_OK;
-
-  CloseHandle (h);
 
   return ret;
 #endif

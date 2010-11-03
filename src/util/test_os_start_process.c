@@ -38,7 +38,7 @@
 static char *test_phrase = "HELLO WORLD";
 static int ok;
 
-static pid_t pid;
+static GNUNET_OS_Process *proc;
 /* Pipe to write to started processes stdin (on write end) */
 static struct GNUNET_DISK_PipeHandle *hello_pipe_stdin;
 /* Pipe to read from started processes stdout (on read end) */
@@ -50,11 +50,13 @@ static void
 end_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 
-  if (0 != PLIBC_KILL (pid, SIGTERM))
+  if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
     }
-  GNUNET_OS_process_wait (pid);
+  GNUNET_OS_process_wait (proc);
+  GNUNET_OS_process_close (proc);
+  proc = NULL;
   GNUNET_DISK_pipe_close(hello_pipe_stdout);
   GNUNET_DISK_pipe_close(hello_pipe_stdin);
 }
@@ -119,7 +121,7 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       return;
     }
 
-  pid = GNUNET_OS_start_process (hello_pipe_stdin, hello_pipe_stdout, fn,
+  proc = GNUNET_OS_start_process (hello_pipe_stdin, hello_pipe_stdout, fn,
                                  "test_gnunet_echo_hello", "-", NULL);
   GNUNET_free (fn);
 

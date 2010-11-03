@@ -1937,7 +1937,7 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
   FILE *temp_friend_handle;
   unsigned int pg_iter;
   char *temp_service_path;
-  pid_t *pidarr;
+  GNUNET_OS_Process **procarr;
   char *arg;
   char * mytemp;
   enum GNUNET_OS_ProcessStatusType type;
@@ -1946,7 +1946,7 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
   int ret;
   int max_wait = 10;
 
-  pidarr = GNUNET_malloc(sizeof(pid_t) * pg->total);
+  procarr = GNUNET_malloc(sizeof(GNUNET_OS_Process *) * pg->total);
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
     {
       mytemp = GNUNET_DISK_mktemp("friends");
@@ -1972,7 +1972,7 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
       if (pg->peers[pg_iter].daemon->hostname == NULL) /* Local, just copy the file */
         {
           GNUNET_asprintf (&arg, "%s/friends", temp_service_path);
-          pidarr[pg_iter] = GNUNET_OS_start_process (NULL, NULL, "mv",
+          procarr[pg_iter] = GNUNET_OS_start_process (NULL, NULL, "mv",
                                          "mv", mytemp, arg, NULL);
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1987,7 +1987,7 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
             GNUNET_asprintf (&arg, "%s@%s:%s/friends", pg->peers[pg_iter].daemon->username, pg->peers[pg_iter].daemon->hostname, temp_service_path);
           else
             GNUNET_asprintf (&arg, "%s:%s/friends", pg->peers[pg_iter].daemon->hostname, temp_service_path);
-          pidarr[pg_iter] = GNUNET_OS_start_process (NULL, NULL, "scp",
+          procarr[pg_iter] = GNUNET_OS_start_process (NULL, NULL, "scp",
                                          "scp", mytemp, arg, NULL);
 
 #if VERBOSE_TESTING
@@ -2011,9 +2011,9 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Checking copy status of file %d\n"), pg_iter);
 #endif
-          if (pidarr[pg_iter] != 0) /* Check for already completed! */
+          if (procarr[pg_iter] != NULL) /* Check for already completed! */
             {
-              if (GNUNET_OS_process_status(pidarr[pg_iter], &type, &return_code) != GNUNET_OK)
+              if (GNUNET_OS_process_status(procarr[pg_iter], &type, &return_code) != GNUNET_OK)
                 {
                   ret = GNUNET_SYSERR;
                 }
@@ -2023,7 +2023,8 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
                 }
               else
                 {
-                  pidarr[pg_iter] = 0;
+                  GNUNET_OS_process_close (procarr[pg_iter]);
+                  procarr[pg_iter] = NULL;
 #if VERBOSE_TESTING
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("File %d copied\n"), pg_iter);
@@ -2043,7 +2044,7 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 _("Finished copying all friend files!\n"));
 #endif
-  GNUNET_free(pidarr);
+  GNUNET_free(procarr);
   return ret;
 }
 
@@ -2063,7 +2064,7 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg, const char
   static struct BlacklistContext blacklist_ctx;
   unsigned int pg_iter;
   char *temp_service_path;
-  pid_t *pidarr;
+  GNUNET_OS_Process **procarr;
   char *arg;
   char *mytemp;
   enum GNUNET_OS_ProcessStatusType type;
@@ -2076,7 +2077,7 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg, const char
   char *pos;
   char *temp_transports;
 
-  pidarr = GNUNET_malloc(sizeof(pid_t) * pg->total);
+  procarr = GNUNET_malloc(sizeof(GNUNET_OS_Process *) * pg->total);
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
     {
       mytemp = GNUNET_DISK_mktemp("blacklist");
@@ -2124,7 +2125,7 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg, const char
       if (pg->peers[pg_iter].daemon->hostname == NULL) /* Local, just copy the file */
         {
           GNUNET_asprintf (&arg, "%s/blacklist", temp_service_path);
-          pidarr[pg_iter] = GNUNET_OS_start_process (NULL, NULL, "mv",
+          procarr[pg_iter] = GNUNET_OS_start_process (NULL, NULL, "mv",
                                          "mv", mytemp, arg, NULL);
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2139,7 +2140,7 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg, const char
             GNUNET_asprintf (&arg, "%s@%s:%s/blacklist", pg->peers[pg_iter].daemon->username, pg->peers[pg_iter].daemon->hostname, temp_service_path);
           else
             GNUNET_asprintf (&arg, "%s:%s/blacklist", pg->peers[pg_iter].daemon->hostname, temp_service_path);
-          pidarr[pg_iter] = GNUNET_OS_start_process (NULL, NULL, "scp",
+          procarr[pg_iter] = GNUNET_OS_start_process (NULL, NULL, "scp",
                                          "scp", mytemp, arg, NULL);
 
 #if VERBOSE_TESTING
@@ -2163,9 +2164,9 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg, const char
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Checking copy status of file %d\n"), pg_iter);
 #endif
-          if (pidarr[pg_iter] != 0) /* Check for already completed! */
+          if (procarr[pg_iter] != NULL) /* Check for already completed! */
             {
-              if (GNUNET_OS_process_status(pidarr[pg_iter], &type, &return_code) != GNUNET_OK)
+              if (GNUNET_OS_process_status(procarr[pg_iter], &type, &return_code) != GNUNET_OK)
                 {
                   ret = GNUNET_SYSERR;
                 }
@@ -2175,7 +2176,8 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg, const char
                 }
               else
                 {
-                  pidarr[pg_iter] = 0;
+                  GNUNET_OS_process_close (procarr[pg_iter]);
+                  procarr[pg_iter] = NULL;
 #if VERBOSE_TESTING
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("File %d copied\n"), pg_iter);
@@ -2195,7 +2197,7 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg, const char
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 _("Finished copying all blacklist files!\n"));
 #endif
-  GNUNET_free(pidarr);
+  GNUNET_free(procarr);
   return ret;
 }
 

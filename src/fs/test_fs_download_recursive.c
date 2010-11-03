@@ -29,7 +29,7 @@
 #include "gnunet_util.h"
 #include "gnunet_fsui_lib.h"
 
-#define DEBUG_VERBOSE GNUNET_NO
+#define DEBUG_VERBOSE GNUNET_YES
 
 #define CHECK(a) if (!(a)) { ok = GNUNET_NO; GNUNET_GE_BREAK(ectx, 0); goto FAILURE; }
 
@@ -256,7 +256,7 @@ int
 main (int argc, char *argv[])
 {
 #if START_DAEMON
-  pid_t daemon;
+  GNUNET_OS_Process *daemon;
 #endif
   int ok;
   char *fn = NULL;
@@ -284,7 +284,7 @@ main (int argc, char *argv[])
   GNUNET_disk_directory_remove (NULL,
                                 "/tmp/gnunet-fsui-recursive_download_test/");
   daemon = GNUNET_daemon_start (NULL, cfg, "peer.conf", GNUNET_NO);
-  GNUNET_GE_ASSERT (NULL, daemon > 0);
+  GNUNET_GE_ASSERT (NULL, daemon != NULL);
   CHECK (GNUNET_OK ==
          GNUNET_wait_for_daemon_running (NULL, cfg,
                                          30 * GNUNET_CRON_SECONDS));
@@ -372,6 +372,8 @@ FAILURE:
 
 #if START_DAEMON
   GNUNET_GE_BREAK (NULL, GNUNET_OK == GNUNET_daemon_stop (NULL, daemon));
+  GNUNET_OS_process_close (daemon);
+  daemon = NULL;
 #endif
   GNUNET_GC_free (cfg);
   return (ok == GNUNET_YES) ? 0 : 1;

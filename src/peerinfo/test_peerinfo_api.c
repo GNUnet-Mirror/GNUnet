@@ -165,7 +165,7 @@ static int
 check ()
 {
   int ok = 3;
-  pid_t pid;
+  GNUNET_OS_Process *proc;
   char *const argv[] = { "test-peerinfo-api",
     "-c",
     "test_peerinfo_api_data.conf",
@@ -177,7 +177,7 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-peerinfo",
+  proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-peerinfo",
                                  "gnunet-service-peerinfo",
 #if DEBUG_PEERINFO
                                  "-L", "DEBUG",
@@ -186,12 +186,14 @@ check ()
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "test-peerinfo-api", "nohelp",
                       options, &run, &ok);
-  if (0 != PLIBC_KILL (pid, SIGTERM))
+  if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
       ok = 1;
     }
-  GNUNET_OS_process_wait(pid);
+  GNUNET_OS_process_wait (proc);
+  GNUNET_OS_process_close (proc);
+  proc = NULL;
   return ok;
 }
 

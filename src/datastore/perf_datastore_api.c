@@ -372,7 +372,7 @@ run (void *cls,
 static int
 check ()
 {
-  pid_t pid;
+  GNUNET_OS_Process *proc;
   char cfg_name[128];
   char *const argv[] = { 
     "perf-datastore-api",
@@ -391,7 +391,7 @@ check ()
 		   sizeof (cfg_name),
 		   "test_datastore_api_data_%s.conf",
 		   plugin_name);
-  pid = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+  proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
                                  "gnunet-service-arm",
 #if VERBOSE
                                  "-L", "DEBUG",
@@ -400,12 +400,14 @@ check ()
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "perf-datastore-api", "nohelp",
                       options, &run, NULL);
-  if (0 != PLIBC_KILL (pid, SIGTERM))
+  if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
       ok = 1;
     }
-  GNUNET_OS_process_wait(pid);
+  GNUNET_OS_process_wait (proc);
+  GNUNET_OS_process_close (proc);
+  proc = NULL;
   return ok;
 }
 

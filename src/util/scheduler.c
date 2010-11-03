@@ -633,7 +633,7 @@ run_ready (struct GNUNET_SCHEDULER_Handle *sched,
       if (sched->current_priority != pos->priority)
 	{
 	  sched->current_priority = pos->priority;
-	  (void) GNUNET_OS_set_process_priority (0, pos->priority);
+	  (void) GNUNET_OS_set_process_priority (GNUNET_OS_process_current (), pos->priority);
 	}
       sched->active_task = pos;
 #if PROFILE_DELAYS

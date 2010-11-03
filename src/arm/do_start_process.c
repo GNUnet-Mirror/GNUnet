@@ -12,7 +12,7 @@
  * @param ... more arguments, NULL terminated
  * @return PID of the started process, -1 on error
  */
-static pid_t
+static GNUNET_OS_Process *
 do_start_process (const int *lsocks,
 		  const char *first_arg, ...)
 {
@@ -24,7 +24,7 @@ do_start_process (const int *lsocks,
   char *pos;
   char *cp;
   const char *last;
-  pid_t pid;
+  GNUNET_OS_Process *proc;
 
   argv_size = 1;
   va_start (ap, first_arg);
@@ -88,9 +88,9 @@ do_start_process (const int *lsocks,
   while (NULL != (arg = (va_arg (ap, const char*))));
   va_end (ap);
   argv[argv_size] = NULL;
-  pid = GNUNET_OS_start_process_v (lsocks, argv[0], argv);
+  proc = GNUNET_OS_start_process_v (lsocks, argv[0], argv);
   while (argv_size > 0)
     GNUNET_free (argv[--argv_size]);
   GNUNET_free (argv);
-  return pid;
+  return proc;
 }

@@ -301,7 +301,7 @@ struct GNUNET_TESTING_Daemon
   /**
    * PID of the process that we started last.
    */
-  pid_t pid;
+  GNUNET_OS_Process *proc;
 
   /**
    * In which phase are we during the start of

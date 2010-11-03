@@ -94,7 +94,7 @@ static unsigned char restart_hijack;
 /**
  * The process id of the helper
  */
-static pid_t helper_pid;
+static GNUNET_OS_Process *helper_proc;
 
 /**
  * a list of outgoing dns-query-packets
@@ -177,8 +177,10 @@ cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
     GNUNET_assert (0 != (tskctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN));
 
     /* stop the helper */
-    PLIBC_KILL(helper_pid, SIGTERM);
-    GNUNET_OS_process_wait(helper_pid);
+    GNUNET_OS_process_kill (helper_proc, SIGTERM);
+    GNUNET_OS_process_wait (helper_proc);
+    GNUNET_OS_process_close (helper_proc);
+    helper_proc = NULL;
 
     /* close the connection to the service-dns */
     if (dns_connection != NULL)
@@ -202,7 +204,7 @@ start_helper_and_schedule(void *cls,
 
     if (helper_in == NULL || helper_out == NULL) return;
 
-    helper_pid = GNUNET_OS_start_process(helper_in, helper_out, "gnunet-helper-vpn", "gnunet-helper-vpn", NULL);
+    helper_proc = GNUNET_OS_start_process(helper_in, helper_out, "gnunet-helper-vpn", "gnunet-helper-vpn", NULL);
 
     fh_from_helper = GNUNET_DISK_pipe_handle (helper_out, GNUNET_DISK_PIPE_END_READ);
     fh_to_helper = GNUNET_DISK_pipe_handle (helper_in, GNUNET_DISK_PIPE_END_WRITE);
@@ -219,8 +221,10 @@ start_helper_and_schedule(void *cls,
 static void
 restart_helper(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
     // Kill the helper
-    PLIBC_KILL(helper_pid, SIGKILL);
-    GNUNET_OS_process_wait(helper_pid);
+    GNUNET_OS_process_kill (helper_proc, SIGKILL);
+    GNUNET_OS_process_wait (helper_proc);
+    GNUNET_OS_process_close (helper_proc);
+    helper_proc = NULL;
 
     /* Tell the dns-service to rehijack the dns-port
      * The routing-table gets flushed if an interface disappears.

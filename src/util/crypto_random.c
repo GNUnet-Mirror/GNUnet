@@ -188,7 +188,7 @@ GNUNET_CRYPTO_random_disable_entropy_gathering ()
  * Process ID of the "find" process that we use for
  * entropy gathering.
  */
-static pid_t genproc;
+static GNUNET_OS_Process *genproc;
 
 /**
  * Function called by libgcrypt whenever we are
@@ -206,16 +206,17 @@ entropy_generator (void *cls,
     return;
   if (current == total)
     {
-      if (genproc != 0)
+      if (genproc != NULL)
         {
-          if (0 != PLIBC_KILL (genproc, SIGTERM))
+          if (0 != GNUNET_OS_process_kill (genproc, SIGTERM))
             GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "kill");
           GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (genproc));
-          genproc = 0;
+          GNUNET_OS_process_close (genproc);
+          genproc = NULL;
         }
       return;
     }
-  if (genproc != 0)
+  if (genproc != NULL)
     {
       ret = GNUNET_OS_process_status (genproc, &type, &code);
       if (ret == GNUNET_NO)
@@ -225,10 +226,11 @@ entropy_generator (void *cls,
           GNUNET_break (0);
           return;
         }
-      if (0 != PLIBC_KILL (genproc, SIGTERM))
+      if (0 != GNUNET_OS_process_kill (genproc, SIGTERM))
         GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "kill");
       GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (genproc));
-      genproc = 0;
+      GNUNET_OS_process_close (genproc);
+      genproc = NULL;
     }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Starting `%s' process to generate entropy\n"), "find");
@@ -243,10 +245,11 @@ entropy_generator (void *cls,
 static void
 killfind ()
 {
-  if (genproc != 0)
+  if (genproc != NULL)
     {
-      PLIBC_KILL (genproc, SIGKILL);
-      genproc = 0;
+      GNUNET_OS_process_kill (genproc, SIGKILL);
+      GNUNET_OS_process_close (genproc);
+      genproc = NULL;
     }
 }
 
@@ -279,3 +282,4 @@ void __attribute__ ((destructor)) GNUNET_CRYPTO_random_fini ()
 
 
 /* end of crypto_random.c */
+
