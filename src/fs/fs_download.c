@@ -1854,7 +1854,8 @@ GNUNET_FS_download_start_from_search (struct GNUNET_FS_Handle *h,
       GNUNET_break (0);
       return NULL;
     }
-  GNUNET_assert (GNUNET_FS_uri_test_chk (sr->uri));
+  GNUNET_assert (GNUNET_FS_uri_test_chk (sr->uri) ||
+		 GNUNET_FS_uri_test_loc (sr->uri) );		 
   if ( (offset + length < offset) ||
        (offset + length > sr->uri->data.chk.file_length) )
     {      
