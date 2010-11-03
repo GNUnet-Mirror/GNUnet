@@ -1177,12 +1177,18 @@ handler_disconnect (void *cls,
 		    const struct
 		    GNUNET_PeerIdentity * peer)
 {
-  GNUNET_assert (stat_connection_count > 0);
+  /* GNUNET_assert (stat_connection_count > 0); */
+  if (stat_connection_count == 0)
+  {
+      GNUNET_break_op (0);
+      return;
+  }
+
   stat_connection_count--;
   GNUNET_STATISTICS_update (stats,
-                            gettext_noop ("# active connections"),
-                            -1,
-                            GNUNET_NO);
+							gettext_noop ("# active connections"),
+							-1,
+							GNUNET_NO);
 }
 
 /**
