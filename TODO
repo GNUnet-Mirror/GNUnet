@@ -80,8 +80,6 @@
   - make a NICE download page and figure out how to enable developers to publish TGZs nicely
   - port "contact" page
   - add content type for "todo" items
-* SETUP: [CG]
-  - design & implement new setup tool
 * TBENCH: [MW]
   - good to have for transport/DV evaluation! 
 * TRACEKIT: [MW]
