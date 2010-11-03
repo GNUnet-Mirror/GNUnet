@@ -50,7 +50,7 @@
 #define MEASUREMENT_MSG_SIZE 1024
 #define MEASUREMENT_MAX_QUOTA 1024 * 1024 * 1024
 #define MEASUREMENT_MIN_QUOTA 1024
-#define MEASUREMENT_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 8)
+#define MEASUREMENT_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 /**
  * How long until we give up on transmitting the message?
@@ -75,8 +75,15 @@ static unsigned long long current_quota_p2_out;
 
 static unsigned long long total_bytes;
 static unsigned long long total_bytes_sent;
+static unsigned long long total_bytes_recv;
 
 static struct GNUNET_TIME_Absolute start_time;
+
+static GNUNET_SCHEDULER_TaskIdentifier err_task;
+
+static GNUNET_SCHEDULER_TaskIdentifier send_task;
+
+static GNUNET_SCHEDULER_TaskIdentifier measure_task;
 
 struct PeerContext
 {
@@ -136,6 +143,8 @@ static void
 terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_break (0);
+  if (send_task != GNUNET_SCHEDULER_NO_TASK)
+	  GNUNET_SCHEDULER_cancel (sched,send_task);
   GNUNET_CORE_disconnect (p1.ch);
   p1.ch = NULL;
   GNUNET_CORE_disconnect (p2.ch);
@@ -184,10 +193,11 @@ inbound_notify (void *cls,
 		struct GNUNET_TIME_Relative latency,
 		uint32_t distance)
 {
-#if DEBUG_CONNECTIONS
+  total_bytes_recv += ntohs (message->size);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core provides inbound data from `%4s'.\n", GNUNET_i2s (other));
-#endif
+              "Core provides inbound data from `%4s' size %u.\n", GNUNET_i2s (other), ntohs (message->size));
+#if DEBUG_CONNECTIONS
+  #endif
   return GNUNET_OK;
 }
 
@@ -207,12 +217,6 @@ outbound_notify (void *cls,
   return GNUNET_OK;
 }
 
-
-static GNUNET_SCHEDULER_TaskIdentifier err_task;
-
-static GNUNET_SCHEDULER_TaskIdentifier measure_task;
-
-
 static void
 measurement_end (void *cls,
 	   const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -227,23 +231,40 @@ measurement_end (void *cls,
 	  duration = GNUNET_TIME_absolute_get_difference(start_time, GNUNET_TIME_absolute_get());
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 			  "\nQuota compliance: \n"\
-			  "Throughput   : %10llu kB/s\n"\
-			  "Quota		: %10llu kB/s\n", (total_bytes_sent/(duration.rel_value / 1000)/1024),current_quota_p1_in/1024);
+			  "Received %llu \n"
+			  "Throughput: %10llu kB/s\n"\
+			  "Quota     : %10llu kB/s\n",
+			  total_bytes_recv,
+			  (total_bytes_sent/(duration.rel_value / 1000)/1024),current_quota_p1_in/1024);
 
 	  if (err_task != GNUNET_SCHEDULER_NO_TASK)
 		  GNUNET_SCHEDULER_cancel (sched, err_task);
+	  if (send_task != GNUNET_SCHEDULER_NO_TASK)
+		  GNUNET_SCHEDULER_cancel (sched,send_task);
       GNUNET_SCHEDULER_add_now (sched, &terminate_task, NULL);
 }
 
 static size_t
 transmit_ready (void *cls, size_t size, void *buf);
 
+static void
+send_tsk (void *cls,
+	   const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+	  ch = GNUNET_CORE_notify_transmit_ready (p1.ch,
+	  							 0,
+	  							 FAST_TIMEOUT,
+	  							 &p2.id,
+	  							 sizeof (struct TestMessage) + MEASUREMENT_MSG_SIZE,
+	  							 &transmit_ready, &p1);
+}
+
 static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
 {
 #if VERBOSE
   if ((is_asymmetric_send_constant == GNUNET_YES) || (is_asymmetric_recv_constant == GNUNET_YES))
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Starting core level measurement for %u seconds, receiving peer quota %llu kB/s, sending peer quota %llu kB/s\n", MEASUREMENT_INTERVALL.rel_value / 1000 , current_quota_p1_in / 1024, current_quota_p2_out / 1024);
+              "Starting core level measurement for %u seconds receiving peer quota %llu kB/s, sending peer quota %llu kB/s\n", MEASUREMENT_INTERVALL.rel_value / 1000 , current_quota_p1_in / 1024, current_quota_p2_out / 1024);
   else
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Starting core level measurement for %u seconds, symmetric quota %llu kB/s\n", MEASUREMENT_INTERVALL.rel_value / 1000 , current_quota_p2_out / 1024);
@@ -375,13 +396,8 @@ transmit_ready (void *cls, size_t size, void *buf)
 
   total_bytes += ret;
   total_bytes_sent += ret;
+  send_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500), &send_tsk, NULL);
 
-  ch = GNUNET_CORE_notify_transmit_ready (p1.ch,
-  							 0,
-  							 FAST_TIMEOUT,
-  							 &p2.id,
-  							 sizeof (struct TestMessage) + MEASUREMENT_MSG_SIZE,
-  							 &transmit_ready, &p1);
   return ret;
 }
 
