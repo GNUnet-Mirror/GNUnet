@@ -47,7 +47,7 @@
  */
 #define TOTAL_MSGS (600 * 10)
 
-#define MEASUREMENT_MSG_SIZE 1024
+#define MEASUREMENT_MSG_SIZE 10240
 #define MEASUREMENT_MAX_QUOTA 1024 * 1024 * 1024
 #define MEASUREMENT_MIN_QUOTA 1024
 #define MEASUREMENT_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
@@ -231,10 +231,10 @@ measurement_end (void *cls,
 	  duration = GNUNET_TIME_absolute_get_difference(start_time, GNUNET_TIME_absolute_get());
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 			  "\nQuota compliance: \n"\
-			  "Received %llu \n"
-			  "Throughput: %10llu kB/s\n"\
-			  "Quota     : %10llu kB/s\n",
-			  total_bytes_recv,
+			  "Receive rate: %10llu kB/s\n"
+			  "Send rate   : %10llu kB/s\n"\
+			  "Quota       : %10llu kB/s\n",
+			  (total_bytes_recv/(duration.rel_value / 1000)/1024),
 			  (total_bytes_sent/(duration.rel_value / 1000)/1024),current_quota_p1_in/1024);
 
 	  if (err_task != GNUNET_SCHEDULER_NO_TASK)
@@ -396,7 +396,7 @@ transmit_ready (void *cls, size_t size, void *buf)
 
   total_bytes += ret;
   total_bytes_sent += ret;
-  send_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500), &send_tsk, NULL);
+  send_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 100), &send_tsk, NULL);
 
   return ret;
 }
