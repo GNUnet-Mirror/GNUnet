@@ -34,6 +34,7 @@
 #include "gnunet_program_lib.h"
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_statistics_service.h"
 
 #define VERBOSE GNUNET_YES
 
@@ -50,7 +51,7 @@
 #define MEASUREMENT_MSG_SIZE 10240
 #define MEASUREMENT_MAX_QUOTA 1024 * 1024 * 1024
 #define MEASUREMENT_MIN_QUOTA 1024
-#define MEASUREMENT_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define MEASUREMENT_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
  * How long until we give up on transmitting the message?
@@ -88,13 +89,15 @@ static GNUNET_SCHEDULER_TaskIdentifier measure_task;
 struct PeerContext
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
+  struct GNUNET_STATISTICS_Handle *stats;
   struct GNUNET_CORE_Handle *ch;
   struct GNUNET_PeerIdentity id;   
   struct GNUNET_TRANSPORT_Handle *th;
   struct GNUNET_MessageHeader *hello;
+
   int connect_status;
 #if START_ARM
-  pid_t arm_pid;
+  struct GNUNET_OS_Process *arm_proc;
 #endif
 };
 
@@ -218,6 +221,22 @@ outbound_notify (void *cls,
 }
 
 static void
+next_fin (void *cls, int success)
+{
+
+}
+
+
+static int
+check_2 (void *cls,
+         const char *subsystem,
+         const char *name, uint64_t value, int is_persistent)
+{
+ fprintf(stderr, "%s %s %llu\n", subsystem, name, (long long unsigned int) value);
+ return GNUNET_OK;
+}
+
+static void
 measurement_end (void *cls,
 	   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -226,8 +245,22 @@ measurement_end (void *cls,
 	  measure_task  = GNUNET_SCHEDULER_NO_TASK;
 	  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
 		return;
-	  measurement_running = GNUNET_NO;
 
+	  if (err_task != GNUNET_SCHEDULER_NO_TASK)
+		  GNUNET_SCHEDULER_cancel (sched, err_task);
+	  if (send_task != GNUNET_SCHEDULER_NO_TASK)
+		  GNUNET_SCHEDULER_cancel (sched,send_task);
+
+	  GNUNET_STATISTICS_get(p1.stats,"core","# discarded CORE_SEND requests",GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, &p1);
+	  GNUNET_STATISTICS_get(p1.stats,"core","# discarded CORE_SEND requests",GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, &p2);
+	  GNUNET_STATISTICS_get(p1.stats,"core","# discarded lower priority CORE_SEND requests",GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, &p1);
+	  GNUNET_STATISTICS_get(p1.stats,"core","# discarded lower priority CORE_SEND requests",GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, &p2);
+
+	  GNUNET_STATISTICS_get(p1.stats,"core","# discarded CORE_SEND request bytes",GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, &p1);
+	  GNUNET_STATISTICS_get(p1.stats,"core","# discarded CORE_SEND request bytes",GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, &p2);
+	  GNUNET_STATISTICS_get(p1.stats,"core","# discarded lower priority CORE_SEND request bytes",GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, &p1);
+	  GNUNET_STATISTICS_get(p1.stats,"core","# discarded lower priority CORE_SEND request bytes",GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, &p2);
+	  measurement_running = GNUNET_NO;
 	  duration = GNUNET_TIME_absolute_get_difference(start_time, GNUNET_TIME_absolute_get());
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 			  "\nQuota compliance: \n"\
@@ -237,10 +270,7 @@ measurement_end (void *cls,
 			  (total_bytes_recv/(duration.rel_value / 1000)/1024),
 			  (total_bytes_sent/(duration.rel_value / 1000)/1024),current_quota_p1_in/1024);
 
-	  if (err_task != GNUNET_SCHEDULER_NO_TASK)
-		  GNUNET_SCHEDULER_cancel (sched, err_task);
-	  if (send_task != GNUNET_SCHEDULER_NO_TASK)
-		  GNUNET_SCHEDULER_cancel (sched,send_task);
+
       GNUNET_SCHEDULER_add_now (sched, &terminate_task, NULL);
 }
 
@@ -251,6 +281,8 @@ static void
 send_tsk (void *cls,
 	   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+	 send_task = GNUNET_SCHEDULER_NO_TASK;
+
 	  ch = GNUNET_CORE_notify_transmit_ready (p1.ch,
 	  							 0,
 	  							 FAST_TIMEOUT,
@@ -396,7 +428,9 @@ transmit_ready (void *cls, size_t size, void *buf)
 
   total_bytes += ret;
   total_bytes_sent += ret;
-  send_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 100), &send_tsk, NULL);
+  if (send_task != GNUNET_SCHEDULER_NO_TASK)
+	  GNUNET_SCHEDULER_cancel(sched, send_task);
+  send_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 20), &send_tsk, NULL);
 
   return ret;
 }
@@ -487,6 +521,8 @@ setup_peer (struct PeerContext *p, const char *cfgname)
                                         "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
+  p->stats = GNUNET_STATISTICS_create (sched, "core", p->cfg);
+  GNUNET_assert (p->stats != NULL);
   p->th = GNUNET_TRANSPORT_connect (sched, p->cfg, NULL, p, NULL, NULL, NULL);
   GNUNET_assert (p->th != NULL);
   GNUNET_TRANSPORT_get_hello (p->th, &process_hello, p);
@@ -540,14 +576,15 @@ stop_arm (struct PeerContext *p)
 {
 #if START_ARM
   if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  if (GNUNET_OS_process_wait(p->arm_pid) != GNUNET_OK)
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
+	GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+  if (GNUNET_OS_process_wait(p->arm_proc) != GNUNET_OK)
+	GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"ARM process stopped\n");
   GNUNET_OS_process_close (p->arm_proc);
   p->arm_proc = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "ARM process %u stopped\n", p->arm_pid);
 #endif
+  GNUNET_STATISTICS_destroy (p->stats, 0);
   GNUNET_CONFIGURATION_destroy (p->cfg);
 }
 
