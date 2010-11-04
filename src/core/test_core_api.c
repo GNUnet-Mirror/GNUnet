@@ -337,7 +337,7 @@ stop_arm (struct PeerContext *p)
   if (GNUNET_OS_process_wait(p->arm_proc) != GNUNET_OK)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "ARM process %u stopped\n", GNUNET_OS_process_get_pid (p->arm_pid));
+              "ARM process %u stopped\n", GNUNET_OS_process_get_pid (p->arm_proc));
   GNUNET_OS_process_close (p->arm_proc);
   p->arm_proc = NULL;
 #endif
