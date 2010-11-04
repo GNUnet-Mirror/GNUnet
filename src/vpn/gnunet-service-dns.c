@@ -107,17 +107,17 @@ struct receive_dht_cls {
  * Hijack all outgoing DNS-Traffic but for traffic leaving "our" port.
  */
 static void
-hijack(unsigned short port) {
+hijack(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
     char port_s[6];
 
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Hijacking, port is %d\n", port);
-    snprintf(port_s, 6, "%d", port);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Hijacking, port is %d\n", dnsoutport);
+    snprintf(port_s, 6, "%d", dnsoutport);
     GNUNET_OS_process_close (GNUNET_OS_start_process(NULL,
-			    NULL,
-			    "gnunet-helper-hijack-dns",
-			    "gnunet-hijack-dns",
-			    port_s,
-			    NULL));
+						     NULL,
+						     "gnunet-helper-hijack-dns",
+						     "gnunet-hijack-dns",
+						     port_s,
+						     NULL));
 }
 
 /**
@@ -277,7 +277,9 @@ rehijack(void *cls,
 	 struct GNUNET_SERVER_Client *client,
 	 const struct GNUNET_MessageHeader *message) {
     unhijack(dnsoutport);
-    hijack(dnsoutport);
+    GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_UNIT_SECONDS, hijack, NULL);
+
+    GNUNET_SERVER_receive_done(client, GNUNET_OK);
 }
 
 /**
@@ -535,8 +537,6 @@ run (void *cls,
 		    &addrlen);
 
   dnsoutport = htons(addr.sin_port);
-
-  hijack(htons(addr.sin_port));
 
   GNUNET_SCHEDULER_add_now (sched, publish_name, NULL);
 

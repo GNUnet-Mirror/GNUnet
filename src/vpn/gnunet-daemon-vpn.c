@@ -136,9 +136,9 @@ send_query(void* cls, size_t size, void* buf) {
       {
 	restart_hijack = 0;
 	/*
- 	 * The message is just a header
+	 * The message is just a header
 	 */
-	GNUNET_assert(sizeof(struct GNUNET_MessageHeader) >= size);
+	GNUNET_assert(sizeof(struct GNUNET_MessageHeader) <= size);
 	struct GNUNET_MessageHeader* hdr = buf;
 	len = sizeof(struct GNUNET_MessageHeader);
 	hdr->size = htons(len);
@@ -161,9 +161,13 @@ send_query(void* cls, size_t size, void* buf) {
     /*
      * Check whether more data is to be sent
      */
-    if (head != NULL || restart_hijack == 1)
+    if (head != NULL)
       {
 	GNUNET_CLIENT_notify_transmit_ready(dns_connection, ntohs(head->pkt.hdr.size), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
+      }
+    else if (restart_hijack == 1)
+      {
+	GNUNET_CLIENT_notify_transmit_ready(dns_connection, sizeof(struct GNUNET_MessageHeader), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
       }
 
     return len;
@@ -212,6 +216,12 @@ start_helper_and_schedule(void *cls,
     GNUNET_DISK_pipe_close_end(helper_out, GNUNET_DISK_PIPE_END_WRITE);
     GNUNET_DISK_pipe_close_end(helper_in, GNUNET_DISK_PIPE_END_READ);
 
+    /* Tell the dns-service to rehijack the dns-port
+     * The routing-table gets flushed if an interface disappears.
+     */
+    restart_hijack = 1;
+    GNUNET_CLIENT_notify_transmit_ready(dns_connection, sizeof(struct GNUNET_MessageHeader), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
+
     GNUNET_SCHEDULER_add_read_file (sched, GNUNET_TIME_UNIT_FOREVER_REL, fh_from_helper, &helper_read, NULL);
 }
 
@@ -225,12 +235,6 @@ restart_helper(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
     GNUNET_OS_process_wait (helper_proc);
     GNUNET_OS_process_close (helper_proc);
     helper_proc = NULL;
-
-    /* Tell the dns-service to rehijack the dns-port
-     * The routing-table gets flushed if an interface disappears.
-     */
-    restart_hijack = 1;
-    GNUNET_CLIENT_notify_transmit_ready(dns_connection, sizeof(struct GNUNET_MessageHeader), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
 
     GNUNET_DISK_pipe_close(helper_in);
     GNUNET_DISK_pipe_close(helper_out);
@@ -435,6 +439,10 @@ connect_to_service_dns (void *cls,
 					  GNUNET_YES,
 					  &send_query,
 					  NULL);
+    else if (restart_hijack == 1)
+      {
+	GNUNET_CLIENT_notify_transmit_ready(dns_connection, sizeof(struct GNUNET_MessageHeader), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
+      }
 }
 
 /**
