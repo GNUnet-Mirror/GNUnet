@@ -150,8 +150,8 @@ static void shutdown_testcase()
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Hostlist server ARM process %u stopped\n", GNUNET_OS_process_get_pid (adv_peer.arm_proc));
-  GNUNET_OS_process_close (adv_peer->arm_proc);
-  adv_peer->arm_proc = NULL;
+  GNUNET_OS_process_close (adv_peer.arm_proc);
+  adv_peer.arm_proc = NULL;
 #endif
   
 
@@ -164,8 +164,8 @@ static void shutdown_testcase()
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Hostlist client ARM process %u stopped\n", GNUNET_OS_process_get_pid (learn_peer.arm_proc));
-  GNUNET_OS_process_close (learn_peer->arm_proc);
-  learn_peer->arm_proc = NULL;
+  GNUNET_OS_process_close (learn_peer.arm_proc);
+  learn_peer.arm_proc = NULL;
 #endif
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down scheduler\n");
