@@ -151,6 +151,7 @@ void pkt_printf(struct ip6_pkt* pkt) {{{
 	}
 
 	printf("%s", buf);
+	printf("version: %d\n", pkt->ip6_hdr.version);
 }}}
 
 void pkt_printf_ip6tcp(struct ip6_tcp* pkt) {{{

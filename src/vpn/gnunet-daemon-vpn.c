@@ -365,6 +365,7 @@ message_token(void *cls,
     if (ntohs(pkt_tun->tun.type) == 0x86dd)
       {
 	struct ip6_pkt *pkt6 = (struct ip6_pkt*) message;
+	GNUNET_assert(pkt6->ip6_hdr.version == 6);
 	struct ip6_tcp *pkt6_tcp;
 	struct ip6_udp *pkt6_udp;
 

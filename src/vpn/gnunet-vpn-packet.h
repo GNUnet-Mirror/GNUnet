@@ -11,8 +11,9 @@ struct pkt_tun {
 };
 
 struct ip6_hdr {
+	unsigned tclass_h:4 GNUNET_PACKED;
 	unsigned version:4 GNUNET_PACKED;
-	unsigned tclass:8 GNUNET_PACKED;
+	unsigned tclass_l:4 GNUNET_PACKED;
 	unsigned flowlbl:20 GNUNET_PACKED;
 	unsigned paylgth:16 GNUNET_PACKED;
 	unsigned nxthdr:8 GNUNET_PACKED;
