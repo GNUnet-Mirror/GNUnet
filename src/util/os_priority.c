@@ -101,6 +101,18 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
 #endif
 }
 
+/**
+ * Get the pid of the process in question
+ *
+ * @param proc the process to get the pid of
+ *
+ * @return the current process id
+ */
+pid_t
+GNUNET_OS_process_get_pid (struct GNUNET_OS_Process *proc)
+{
+  return proc->pid;
+}
 
 void
 GNUNET_OS_process_close (struct GNUNET_OS_Process *proc)
