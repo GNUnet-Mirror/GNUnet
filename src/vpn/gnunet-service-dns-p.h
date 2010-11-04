@@ -38,7 +38,13 @@ enum GNUNET_DNS_ANSWER_Subtype {
      * Answers of this type contain an incomplete dns-packet. The IP-Address
      * is all 0s. The addroffset points to it.
      */
-    GNUNET_DNS_ANSWER_TYPE_SERVICE
+    GNUNET_DNS_ANSWER_TYPE_SERVICE,
+
+    /**
+     * Answers of this type contain an incomplete dns-packet as answer to a
+     * PTR-Query. The resolved name is not allocated. The addroffset points to it.
+     */
+    GNUNET_DNS_ANSWER_TYPE_REV
 };
 
 struct answer_packet {

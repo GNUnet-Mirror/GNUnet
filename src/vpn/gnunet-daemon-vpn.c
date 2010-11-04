@@ -455,12 +455,14 @@ connect_to_service_dns (void *cls,
 static void
 process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
     struct answer_packet* pkt = cls;
+    struct answer_packet_list* list;
 
     /* This answer is about a .gnunet-service
      *
      * It contains an almost complete DNS-Response, we have to fill in the ip
      * at the offset pkt->addroffset
      */
+    //FIXME htons?
     if (pkt->subtype == GNUNET_DNS_ANSWER_TYPE_SERVICE)
       {
 	unsigned char ip6addr[16];
@@ -479,11 +481,36 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 	   *  have a last-used field
 	   *  don't remove if last-used "recent", ask dht again if record expired
 	   */
+
+	list = GNUNET_malloc(htons(pkt->hdr.size) + 2*sizeof(struct answer_packet_list*));
+
+	memcpy(&list->pkt, pkt, htons(pkt->hdr.size));
       }
+    else if (pkt->subtype == GNUNET_DNS_ANSWER_TYPE_REV)
+      {
+	unsigned short offset = ntohs(pkt->addroffset);
 
-    struct answer_packet_list* list = GNUNET_malloc(htons(pkt->hdr.size) + 2*sizeof(struct answer_packet_list*));
+        unsigned short namelen = htons(22); /* calculate the length of the answer */
+	char name[22] = {13, 'p', 'h', 'i', 'l', 'i', 'p', 'p', 't', 'o', 'e', 'l', 'k', 'e', 6, 'g', 'n', 'u', 'n', 'e', 't', 0};
 
-    memcpy(&list->pkt, pkt, htons(pkt->hdr.size));
+	list = GNUNET_malloc(2*sizeof(struct answer_packet_list*) + offset + 2 + ntohs(namelen));
+
+	struct answer_packet* rpkt = &list->pkt;
+
+	memcpy(rpkt, pkt, offset);
+
+	rpkt->subtype = GNUNET_DNS_ANSWER_TYPE_IP;
+	rpkt->hdr.size = ntohs(offset + 2 + ntohs(namelen));
+
+	memcpy(((char*)rpkt)+offset, &namelen, 2);
+	memcpy(((char*)rpkt)+offset+2, name, ntohs(namelen));
+
+      }
+    else if (pkt->subtype == GNUNET_DNS_ANSWER_TYPE_IP)
+      {
+	list = GNUNET_malloc(htons(pkt->hdr.size) + 2*sizeof(struct answer_packet_list*));
+	memcpy(&list->pkt, pkt, htons(pkt->hdr.size));
+      }
 
     GNUNET_CONTAINER_DLL_insert_after(answer_proc_head, answer_proc_tail, answer_proc_tail, list);
 
