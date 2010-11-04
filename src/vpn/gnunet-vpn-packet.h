@@ -61,6 +61,12 @@ struct udp_pkt {
 	unsigned crc:16 GNUNET_PACKED;
 };
 
+struct icmp_hdr {
+    unsigned type:8 GNUNET_PACKED;
+    unsigned code:8 GNUNET_PACKED;
+    unsigned chks:16 GNUNET_PACKED;
+};
+
 // DNS-Stuff
 struct dns_static {
 	unsigned short id GNUNET_PACKED;
@@ -153,6 +159,13 @@ struct ip6_tcp {
 	struct ip6_hdr ip6_hdr;
 	struct tcp_pkt tcp_hdr;
 	unsigned char data[1];
+};
+
+struct ip6_icmp {
+    struct GNUNET_MessageHeader shdr;
+    struct pkt_tun tun;
+    struct ip6_hdr ip6_hdr;
+    struct icmp_hdr icmp_hdr;
 };
 
 struct ip6_udp {

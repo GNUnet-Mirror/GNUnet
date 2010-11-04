@@ -350,6 +350,45 @@ helper_write(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
 				       NULL);
 }
 
+static int
+address_mapping_exists(unsigned char addr[]) {
+    return 1;
+}
+
+static void
+send_icmp_response(void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
+    struct ip6_icmp* request = cls;
+
+    struct ip6_icmp* response = alloca(ntohs(request->shdr.size));
+    memset(response, 0, ntohs(request->shdr.size));
+
+    response->shdr.size = request->shdr.size;
+    response->shdr.type = htons(GNUNET_MESSAGE_TYPE_VPN_HELPER);
+
+    response->tun.flags = 0;
+    response->tun.type = htons(0x86dd);
+
+    response->ip6_hdr.hoplmt = 255;
+    response->ip6_hdr.paylgth = request->ip6_hdr.paylgth;
+    response->ip6_hdr.nxthdr = 0x3a;
+    response->ip6_hdr.version = 6;
+    memcpy(&response->ip6_hdr.sadr, &request->ip6_hdr.dadr, 16);
+    memcpy(&response->ip6_hdr.dadr, &request->ip6_hdr.sadr, 16);
+
+    response->icmp_hdr.code = 0;
+    response->icmp_hdr.type = 0x81;
+
+    /* Magic, more Magic! */
+    response->icmp_hdr.chks = request->icmp_hdr.chks - 0x1;
+
+    /* Copy the rest of the packet */
+    memcpy(response+1, request+1, ntohs(request->shdr.size) - sizeof(struct ip6_icmp));
+
+    /* FIXME */ GNUNET_DISK_file_write(fh_to_helper, response, ntohs(response->shdr.size));
+
+    GNUNET_free(request);
+}
+
 /**
  * Receive packets from the helper-process
  */
@@ -368,6 +407,7 @@ message_token(void *cls,
 	GNUNET_assert(pkt6->ip6_hdr.version == 6);
 	struct ip6_tcp *pkt6_tcp;
 	struct ip6_udp *pkt6_udp;
+	struct ip6_icmp *pkt6_icmp;
 
 	pkt_printf(pkt6);
 	switch(pkt6->ip6_hdr.nxthdr)
@@ -382,6 +422,14 @@ message_token(void *cls,
 	    if (ntohs(pkt6_udp->udp_hdr.dpt) == 53) {
 		pkt_printf_ip6dns((struct ip6_udp_dns*)pkt6_udp);
 	    }
+	    break;
+	  case 0x3a:
+	    /* ICMPv6 */
+	    pkt6_icmp = GNUNET_malloc(ntohs(pkt6->shdr.size));
+	    memcpy(pkt6_icmp, pkt6, ntohs(pkt6->shdr.size));
+	    /* If this packet is an icmp-echo-request and a mapping exists, answer */
+	    if (pkt6_icmp->icmp_hdr.type == 0x80 && address_mapping_exists(pkt6->ip6_hdr.sadr))
+		GNUNET_SCHEDULER_add_now(sched, &send_icmp_response, pkt6_icmp);
 	    break;
 	  }
       }
