@@ -512,6 +512,8 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 	memcpy(&list->pkt, pkt, htons(pkt->hdr.size));
       }
 
+    GNUNET_free(pkt);
+
     GNUNET_CONTAINER_DLL_insert_after(answer_proc_head, answer_proc_tail, answer_proc_tail, list);
 
     GNUNET_SCHEDULER_add_write_file (sched, GNUNET_TIME_UNIT_FOREVER_REL, fh_to_helper, &helper_write, NULL);
