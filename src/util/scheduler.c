@@ -641,7 +641,7 @@ run_ready (struct GNUNET_SCHEDULER_Handle *sched,
 	  DELAY_THRESHOLD.rel_value)
 	{
 	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		      "Task %u took %llums to be scheduled\n",
+		      "Task %llu took %llums to be scheduled\n",
 		      pos->id,
 		      (unsigned long long) GNUNET_TIME_absolute_get_duration (pos->start_time).rel_value);
 	}
@@ -672,7 +672,7 @@ run_ready (struct GNUNET_SCHEDULER_Handle *sched,
       int i;
       for (i=0;i<pos->num_backtrace_strings;i++)
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "Task %u trace %d: %s\n",
+                    "Task %llu trace %d: %s\n",
                     pos->id,
                     i,
                     pos->backtrace_strings[i]);
@@ -1164,7 +1164,7 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_SCHEDULER_Handle * sched,
 
   for (i=0;i<t->num_backtrace_strings;i++)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Task %u trace %d: %s\n",
+                  "Task %llu trace %d: %s\n",
                   t->id,
                   i,
                   t->backtrace_strings[i]);
@@ -1276,7 +1276,7 @@ add_without_sets (struct GNUNET_SCHEDULER_Handle * sched,
 
   for (i=0;i<t->num_backtrace_strings;i++)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Task %u trace %d: %s\n",
+                  "Task %llu trace %d: %s\n",
                   t->id,
                   i,
                   t->backtrace_strings[i]);
@@ -1544,7 +1544,7 @@ GNUNET_SCHEDULER_add_select (struct GNUNET_SCHEDULER_Handle * sched,
 
   for (i=0;i<t->num_backtrace_strings;i++)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Task %u trace %d: %s\n",
+                  "Task %llu trace %d: %s\n",
                   t->id,
                   i,
                   t->backtrace_strings[i]);
