@@ -42,7 +42,7 @@
 #include "core.h"
 
 
-#define DEBUG_HANDSHAKE GNUNET_YES
+#define DEBUG_HANDSHAKE GNUNET_NO
 
 #define DEBUG_CORE_QUOTA GNUNET_YES
 
@@ -2386,6 +2386,8 @@ handle_client_send (void *cls,
 		      (unsigned int) msize,
 		      (unsigned int) ntohs (message->type));
 #endif
+	  GNUNET_STATISTICS_update (stats, gettext_noop ("# discarded CORE_SEND requests"), 1, GNUNET_NO);
+
 	  if (client != NULL)
 	    GNUNET_SERVER_receive_done (client, GNUNET_OK);
 	  return;
@@ -2396,6 +2398,7 @@ handle_client_send (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Queue full, discarding existing older request\n");
 #endif
+	  GNUNET_STATISTICS_update (stats, gettext_noop ("# discarded lower priority CORE_SEND requests"), 1, GNUNET_NO);
       if (min_prio_prev == NULL)
 	n->messages = min_prio_entry->next;
       else
@@ -4055,6 +4058,10 @@ run (void *cls,
                                         &handle_transport_notify_disconnect);
   GNUNET_assert (NULL != transport);
   stats = GNUNET_STATISTICS_create (sched, "core", cfg);
+
+  GNUNET_STATISTICS_set (stats, gettext_noop ("# discarded CORE_SEND requests"), 0, GNUNET_NO);
+  GNUNET_STATISTICS_set (stats, gettext_noop ("# discarded lower priority CORE_SEND requests"), 0, GNUNET_NO);
+
   mst = GNUNET_SERVER_mst_create (&deliver_message,
 				  NULL);
   GNUNET_SCHEDULER_add_delayed (sched,
