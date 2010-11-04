@@ -77,7 +77,7 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
 #if WINDOWS
   if (sig == SIGKILL || sig == SIGTERM)
   {
-    HANDLE h = GNUNET_OS_process_get_handle (proc);
+    HANDLE h = proc->handle;
     if (NULL == h)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -360,7 +360,6 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
   char *arg;
   unsigned int cmdlen;
   char *cmd, *idx;
-  int findresult;
   STARTUPINFO start;
   PROCESS_INFORMATION proc;
   struct GNUNET_OS_Process *gnunet_proc = NULL;
@@ -400,8 +399,7 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
       start.hStdOutput = stdout_handle;
     }
 
-  findresult = (int) FindExecutableA (filename, NULL, path);
-  if (findresult <= 32) 
+  if (32 >= FindExecutableA (filename, NULL, path)) 
     {
       SetErrnoFromWinError (GetLastError ());
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "FindExecutable", filename);
@@ -552,11 +550,19 @@ GNUNET_OS_start_process_v (const int *lsocks,
   STARTUPINFO start;
   PROCESS_INFORMATION proc;
   int argcount = 0;
-  char *non_const_filename = NULL;
+  char non_const_filename[MAX_PATH +1];
   int filenamelen = 0;
   struct GNUNET_OS_Process *gnunet_proc = NULL;
 
   GNUNET_assert (lsocks == NULL);
+
+  if (32 >= FindExecutableA (filename, NULL, non_const_filename)) 
+    {
+      SetErrnoFromWinError (GetLastError ());
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "FindExecutable", filename);
+      return NULL;
+    }
+
   /* Count the number of arguments */
   arg = (char **) argv;
   while (*arg)
@@ -578,19 +584,6 @@ GNUNET_OS_start_process_v (const int *lsocks,
       argcount++;
     }
   non_const_argv[argcount] = NULL;
-
-  /* Fix .exe extension */
-  filenamelen = strlen (filename);
-  if (filenamelen <= 4 || stricmp (&filename[filenamelen - 4], ".exe") != 0)
-  {
-    non_const_filename = GNUNET_malloc (sizeof (char) * (filenamelen + 4 + 1));
-    non_const_filename = strcpy (non_const_filename, non_const_argv[0]);
-    strcat (non_const_filename, ".exe");
-    GNUNET_free (non_const_argv[0]);
-    non_const_argv[0] = non_const_filename;
-  }
-  else
-    non_const_filename = non_const_argv[0];
 
   /* Count cmd len */
   cmdlen = 1;
@@ -704,7 +697,7 @@ GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
   HANDLE h;
   DWORD c, error_code, ret;
 
-  h = GNUNET_OS_process_get_handle (proc);
+  h = proc->handle;
   ret = proc->pid;
   if (h == NULL || ret == 0)
     {
