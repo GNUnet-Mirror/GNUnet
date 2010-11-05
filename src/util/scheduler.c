@@ -523,7 +523,6 @@ GNUNET_SCHEDULER_shutdown ()
   struct Task *pos;
   int i;
 
-  GNUNET_assert (active_task != NULL);
   pos = pending_timeout;
   while (pos != NULL)
     {
