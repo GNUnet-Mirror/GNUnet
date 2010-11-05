@@ -36,7 +36,7 @@
 #include "gnunet_time_lib.h"
 #include "gnunet_dv_service.h"
 #include "dv.h"
-#include "../transport/gnunet_transport_plugin.h"
+#include "gnunet_transport_plugin.h"
 
 /**
  * Store ready to send messages
