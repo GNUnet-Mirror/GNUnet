@@ -115,7 +115,7 @@ static void
 end_badly_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   if (peer1dht != NULL)
-      GNUNET_DHT_disconnect(peer1dht);
+    GNUNET_DHT_disconnect(peer1dht);
 
   if (peer2dht != NULL)
     GNUNET_DHT_disconnect(peer2dht);
@@ -136,9 +136,9 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   if (curr_get_ctx.get_handle != NULL)
   {
     GNUNET_DHT_get_stop(curr_get_ctx.get_handle);
-    GNUNET_SCHEDULER_add_now (sched, &end_badly_cont, NULL);
   }
 
+  GNUNET_SCHEDULER_add_now (sched, &end_badly_cont, NULL);
   ok = 1;
 }
 
@@ -237,6 +237,7 @@ stop_retry_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   get_context->retry_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Get attempt %u failed, canceling request!\n", get_context->get_attempts);
   GNUNET_DHT_get_stop(get_context->get_handle);
+  get_context->get_handle = NULL;
   GNUNET_SCHEDULER_add_now(sched, &get_stop_finished, get_context);
 }
 
