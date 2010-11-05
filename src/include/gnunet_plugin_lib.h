@@ -51,6 +51,17 @@ typedef void *(*GNUNET_PLUGIN_Callback) (void *arg);
 
 
 /**
+ * Test if a plugin exists.
+ *
+ * Note that the library must export a symbol called
+ * "library_name_init" for the test to succeed. 
+ *
+ * @param library_name name of the plugin to test if it is installed
+ * @return GNUNET_YES if the plugin exists, GNUNET_NO if not
+ */
+int GNUNET_PLUGIN_test (const char *library_name);
+
+/**
  * Setup plugin (runs the "init" callback and returns whatever "init"
  * returned).  If "init" returns NULL, the plugin is unloaded.
  *

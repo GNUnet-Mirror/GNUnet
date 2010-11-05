@@ -151,6 +151,43 @@ resolve_function (struct PluginList *plug, const char *name)
   return mptr;
 }
 
+/**
+ * Test if a plugin exists.
+ *
+ * Note that the library must export a symbol called
+ * "library_name_init" for the test to succeed. 
+ *
+ * @param library_name name of the plugin to test if it is installed
+ * @return GNUNET_YES if the plugin exists, GNUNET_NO if not
+ */
+int
+GNUNET_PLUGIN_test (const char *library_name)
+{
+  void *libhandle;
+  GNUNET_PLUGIN_Callback init;
+  struct PluginList plug;
+
+  if (! initialized)
+    {
+      initialized = GNUNET_YES;
+      plugin_init ();
+    }
+  libhandle = lt_dlopenext (library_name);
+  if (libhandle == NULL)
+    return GNUNET_NO;
+  plug.handle = libhandle;
+  plug.name = (char*) library_name;
+  init = resolve_function (&plug, "init");
+  if (init == NULL)
+    {
+      GNUNET_break (0);
+      lt_dlclose (libhandle);
+      return GNUNET_NO;
+    }
+  lt_dlclose (libhandle);
+  return GNUNET_YES;
+}
+
 
 /**
  * Setup plugin (runs the "init" callback and returns whatever "init"
@@ -193,6 +230,7 @@ GNUNET_PLUGIN_load (const char *library_name, void *arg)
   init = resolve_function (plug, "init");
   if ((init == NULL) || (NULL == (ret = init (arg))))
     {
+      lt_dlclose (libhandle);
       GNUNET_free (plug->name);
       plugins = plug->next;
       GNUNET_free (plug);
