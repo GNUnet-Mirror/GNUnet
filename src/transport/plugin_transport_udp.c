@@ -513,7 +513,7 @@ udp_transport_server_stop (void *cls)
 
   if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (plugin->env->sched, plugin->select_task);
+      GNUNET_SCHEDULER_cancel (plugin->select_task);
       plugin->select_task = GNUNET_SCHEDULER_NO_TASK;
     }
   if (plugin->udp_sockv4.desc != NULL)
@@ -1107,7 +1107,7 @@ void
 udp_probe_continuation (void *cls, const struct GNUNET_PeerIdentity *target, int result)
 {
   struct UDP_NAT_Probes *probe = cls;
-  struct Plugin *plugin = probe->plugin;
+  /*struct Plugin *plugin = probe->plugin;*/
 
   if ((result == GNUNET_OK) && (probe->count < MAX_PROBES))
     {
@@ -1115,7 +1115,7 @@ udp_probe_continuation (void *cls, const struct GNUNET_PeerIdentity *target, int
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                        _("Scheduling next probe for 10000 milliseconds\n"));
 #endif
-      probe->task = GNUNET_SCHEDULER_add_delayed(plugin->env->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 10000), &send_udp_probe_message, probe);
+      probe->task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 10000), &send_udp_probe_message, probe);
     }
   else /* Destroy the probe context. */
     {
@@ -1200,8 +1200,7 @@ udp_plugin_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   else
     {
       plugin->server_read_task =
-           GNUNET_SCHEDULER_add_read_file (plugin->env->sched,
-                                           GNUNET_TIME_UNIT_FOREVER_REL,
+           GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                            plugin->server_stdout_handle, &udp_plugin_server_read, plugin);
       return;
     }
@@ -1222,8 +1221,7 @@ udp_plugin_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
                   _("nat-server-read malformed address\n"), &mybuf, port);
 
       plugin->server_read_task =
-          GNUNET_SCHEDULER_add_read_file (plugin->env->sched,
-                                          GNUNET_TIME_UNIT_FOREVER_REL,
+          GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                           plugin->server_stdout_handle, &udp_plugin_server_read, plugin);
       return;
     }
@@ -1238,13 +1236,12 @@ udp_plugin_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
       temp_probe->addr.u_port = htons(port);
       temp_probe->next = plugin->probes;
       temp_probe->plugin = plugin;
-      temp_probe->task = GNUNET_SCHEDULER_add_delayed(plugin->env->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 500), &send_udp_probe_message, temp_probe);
+      temp_probe->task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 500), &send_udp_probe_message, temp_probe);
       plugin->probes = temp_probe;
     }
 
   plugin->server_read_task =
-       GNUNET_SCHEDULER_add_read_file (plugin->env->sched,
-                                       GNUNET_TIME_UNIT_FOREVER_REL,
+       GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                        plugin->server_stdout_handle, &udp_plugin_server_read, plugin);
 
 }
@@ -1358,7 +1355,7 @@ udp_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
 
               if (outgoing_probe->task != GNUNET_SCHEDULER_NO_TASK)
                 {
-                  GNUNET_SCHEDULER_cancel(plugin->env->sched, outgoing_probe->task);
+                  GNUNET_SCHEDULER_cancel(outgoing_probe->task);
                   outgoing_probe->task = GNUNET_SCHEDULER_NO_TASK;
                   /* Schedule task to timeout and remove probe if confirmation not received */
                 }
@@ -1569,8 +1566,7 @@ udp_plugin_select (void *cls,
     {
       GNUNET_break_op (0);
       plugin->select_task =
-	GNUNET_SCHEDULER_add_select (plugin->env->sched,
-				     GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+	GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
 				     GNUNET_SCHEDULER_NO_TASK,
 				     GNUNET_TIME_UNIT_FOREVER_REL, plugin->rs,
 				     NULL, &udp_plugin_select, plugin);
@@ -1581,8 +1577,7 @@ udp_plugin_select (void *cls,
     {
       GNUNET_break_op (0);
       plugin->select_task =
-	GNUNET_SCHEDULER_add_select (plugin->env->sched,
-				     GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+	GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
 				     GNUNET_SCHEDULER_NO_TASK,
 				     GNUNET_TIME_UNIT_FOREVER_REL, plugin->rs,
 				     NULL, &udp_plugin_select, plugin);
@@ -1601,8 +1596,7 @@ udp_plugin_select (void *cls,
       count++;
     }
   plugin->select_task =
-    GNUNET_SCHEDULER_add_select (plugin->env->sched,
-                                 GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+    GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                  GNUNET_SCHEDULER_NO_TASK,
                                  GNUNET_TIME_UNIT_FOREVER_REL, plugin->rs,
                                  NULL, &udp_plugin_select, plugin);
@@ -1659,8 +1653,7 @@ udp_transport_server_start (void *cls)
 
       plugin->server_stdout_handle = GNUNET_DISK_pipe_handle(plugin->server_stdout, GNUNET_DISK_PIPE_END_READ);
       plugin->server_read_task =
-	GNUNET_SCHEDULER_add_read_file (plugin->env->sched,
-					GNUNET_TIME_UNIT_FOREVER_REL,
+	GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
 					plugin->server_stdout_handle, &udp_plugin_server_read, plugin);
     }
 
@@ -1783,8 +1776,7 @@ udp_transport_server_start (void *cls)
 			      plugin->udp_sockv6.desc);
 
   plugin->select_task =
-    GNUNET_SCHEDULER_add_select (plugin->env->sched,
-                                 GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+    GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                  GNUNET_SCHEDULER_NO_TASK,
                                  GNUNET_TIME_UNIT_FOREVER_REL, plugin->rs,
                                  NULL, &udp_plugin_select, plugin);
@@ -1992,8 +1984,7 @@ udp_plugin_address_pretty_printer (void *cls,
   ppc->asc = asc;
   ppc->asc_cls = asc_cls;
   ppc->port = port;
-  GNUNET_RESOLVER_hostname_get (plugin->env->sched,
-                                plugin->env->cfg,
+  GNUNET_RESOLVER_hostname_get (plugin->env->cfg,
                                 sb,
                                 sbs,
                                 !numeric, timeout, &append_port, ppc);
@@ -2167,7 +2158,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   char *external_address;
   struct IPv4UdpAddress v4_address;
 
-  service = GNUNET_SERVICE_start ("transport-udp", env->sched, env->cfg);
+  service = GNUNET_SERVICE_start ("transport-udp", env->cfg);
   if (service == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _
@@ -2308,8 +2299,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
       GNUNET_OS_network_interfaces_list (&process_interfaces, plugin);
     }
 
-  plugin->hostname_dns = GNUNET_RESOLVER_hostname_resolve (env->sched,
-                                                           env->cfg,
+  plugin->hostname_dns = GNUNET_RESOLVER_hostname_resolve (env->cfg,
                                                            AF_UNSPEC,
                                                            HOSTNAME_RESOLVE_TIMEOUT,
                                                            &process_hostname_ips,

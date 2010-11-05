@@ -329,8 +329,7 @@ void GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder * te)
 		      iob,
 		      &te->emsg))
 	{
-	  GNUNET_SCHEDULER_add_continuation (te->h->sched,
-					     te->cont,
+	  GNUNET_SCHEDULER_add_continuation (te->cont,
 					     te->cls,
 					     GNUNET_SCHEDULER_REASON_TIMEOUT);
 	  return;
@@ -350,8 +349,7 @@ void GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder * te)
       te->uri->type = chk;
       te->uri->data.chk.chk = te->chk_tree[0];
       te->uri->data.chk.file_length = GNUNET_htonll (te->size);
-      GNUNET_SCHEDULER_add_continuation (te->h->sched,
-					 te->cont,
+      GNUNET_SCHEDULER_add_continuation (te->cont,
 					 te->cls,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       return;

@@ -115,7 +115,6 @@ struct GNUNET_SERVER_MessageHandler
 /**
  * Create a new server.
  *
- * @param sched scheduler to use
  * @param access function for access control
  * @param access_cls closure for access
  * @param lsocks NULL-terminated array of listen sockets
@@ -126,8 +125,7 @@ struct GNUNET_SERVER_MessageHandler
  *         (typically, "port" already in use)
  */
 struct GNUNET_SERVER_Handle *
-GNUNET_SERVER_create_with_sockets (struct GNUNET_SCHEDULER_Handle *sched,
-				   GNUNET_CONNECTION_AccessCheck access, void *access_cls,
+GNUNET_SERVER_create_with_sockets (GNUNET_CONNECTION_AccessCheck access, void *access_cls,
 				   struct GNUNET_NETWORK_Handle **lsocks,
 				   struct GNUNET_TIME_Relative
 				   idle_timeout,
@@ -136,7 +134,6 @@ GNUNET_SERVER_create_with_sockets (struct GNUNET_SCHEDULER_Handle *sched,
 /**
  * Create a new server.
  *
- * @param sched scheduler to use
  * @param access function for access control
  * @param access_cls closure for access
  * @param serverAddr address toes listen on (including port), NULL terminated array
@@ -147,10 +144,7 @@ GNUNET_SERVER_create_with_sockets (struct GNUNET_SCHEDULER_Handle *sched,
  * @return handle for the new server, NULL on error
  *         (typically, "port" already in use)
  */
-struct GNUNET_SERVER_Handle *GNUNET_SERVER_create (struct
-                                                   GNUNET_SCHEDULER_Handle
-                                                   *sched,
-                                                   GNUNET_CONNECTION_AccessCheck
+struct GNUNET_SERVER_Handle *GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck
                                                    access, void *access_cls,
 						   struct sockaddr *const*serverAddr,
                                                    const socklen_t *socklen,

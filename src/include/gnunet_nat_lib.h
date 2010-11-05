@@ -57,7 +57,6 @@ struct GNUNET_NAT_Handle;
  * of the local host's addresses should the external port be mapped. The port
  * is taken from the corresponding sockaddr_in[6] field.
  *
- * @param sched the sheduler used in the program
  * @param addr the local address packets should be redirected to
  * @param addrlen actual lenght of the address
  * @param callback function to call everytime the public IP address changes
@@ -65,8 +64,7 @@ struct GNUNET_NAT_Handle;
  * @return NULL on error, otherwise handle that can be used to unregister 
  */
 struct GNUNET_NAT_Handle *
-GNUNET_NAT_register (struct GNUNET_SCHEDULER_Handle *sched,
-		     const struct sockaddr *addr,
+GNUNET_NAT_register (const struct sockaddr *addr,
 		     socklen_t addrlen,
 		     GNUNET_NAT_AddressCallback callback, 
 		     void *callback_cls);

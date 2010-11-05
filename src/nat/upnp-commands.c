@@ -344,7 +344,6 @@ parse_url (const char *url, char *hostname, unsigned short *port, char **path)
 /**
  * Send UPnP command to the device identified by url and service.
  * 
- * @param sched scheduler to use for network tasks
  * @param url control URL of the device
  * @param service type of the service corresponding to the command
  * @param action action to send
@@ -353,8 +352,7 @@ parse_url (const char *url, char *hostname, unsigned short *port, char **path)
  * @param caller_cls closure to pass to caller_cb
  */
 void
-UPNP_command_ (struct GNUNET_SCHEDULER_Handle *sched,
-               const char *url, const char *service,
+UPNP_command_ (const char *url, const char *service,
                const char *action, struct UPNP_Arg_ *args,
                char *buffer, size_t buf_size,
                UPNP_command_cb_ caller_cb, void *caller_cls)
@@ -470,7 +468,7 @@ UPNP_command_ (struct GNUNET_SCHEDULER_Handle *sched,
       dest.sin_len = sizeof (dest);
 #endif
 
-      s = GNUNET_CONNECTION_create_from_sockaddr (sched, PF_INET,
+      s = GNUNET_CONNECTION_create_from_sockaddr (PF_INET,
                                                   (struct sockaddr *) &dest,
                                                   sizeof (dest));
     }
@@ -482,7 +480,7 @@ UPNP_command_ (struct GNUNET_SCHEDULER_Handle *sched,
       dest6.sin6_len = sizeof (dest6);
 #endif
 
-      s = GNUNET_CONNECTION_create_from_sockaddr (sched, PF_INET6,
+      s = GNUNET_CONNECTION_create_from_sockaddr (PF_INET6,
                                                   (struct sockaddr *) &dest6,
                                                   sizeof (dest6));
     }
@@ -602,8 +600,7 @@ get_external_ip_address_receiver (char *response, size_t received, void *data)
  * 501 Action Failed - See UPnP Device Architecture section on Control.
  */
 void
-UPNP_get_external_ip_address_ (struct GNUNET_SCHEDULER_Handle *sched,
-                               const char *control_url,
+UPNP_get_external_ip_address_ (const char *control_url,
                                const char *service_type,
                                UPNP_get_external_ip_address_cb_ caller_cb,
                                void *caller_cls)
@@ -620,7 +617,7 @@ UPNP_get_external_ip_address_ (struct GNUNET_SCHEDULER_Handle *sched,
 
   buffer = GNUNET_malloc (UPNP_COMMAND_BUFSIZE);
 
-  UPNP_command_ (sched, control_url, service_type, "GetExternalIPAddress",
+  UPNP_command_ (control_url, service_type, "GetExternalIPAddress",
                  NULL, buffer, UPNP_COMMAND_BUFSIZE,
                  (UPNP_command_cb_) get_external_ip_address_receiver, cls);
 }
@@ -667,8 +664,7 @@ add_delete_port_mapping_receiver (char *response, size_t received, void *data)
 }
 
 void
-UPNP_add_port_mapping_ (struct GNUNET_SCHEDULER_Handle *sched,
-                        const char *control_url, const char *service_type,
+UPNP_add_port_mapping_ (const char *control_url, const char *service_type,
                         const char *ext_port,
                         const char *in_port,
                         const char *inClient,
@@ -718,14 +714,13 @@ UPNP_add_port_mapping_ (struct GNUNET_SCHEDULER_Handle *sched,
 
   buffer = GNUNET_malloc (UPNP_COMMAND_BUFSIZE);
 
-  UPNP_command_ (sched, control_url, service_type, "AddPortMapping",
+  UPNP_command_ (control_url, service_type, "AddPortMapping",
                  args, buffer, UPNP_COMMAND_BUFSIZE,
                  add_delete_port_mapping_receiver, cls);
 }
 
 void
-UPNP_delete_port_mapping_ (struct GNUNET_SCHEDULER_Handle *sched,
-                           const char *control_url, const char *service_type,
+UPNP_delete_port_mapping_ (const char *control_url, const char *service_type,
                            const char *ext_port, const char *proto,
                            const char *remoteHost,
                            UPNP_port_mapping_cb_ caller_cb, void *caller_cls)
@@ -762,7 +757,7 @@ UPNP_delete_port_mapping_ (struct GNUNET_SCHEDULER_Handle *sched,
 
   buffer = GNUNET_malloc (UPNP_COMMAND_BUFSIZE);
 
-  UPNP_command_ (sched, control_url, service_type,
+  UPNP_command_ (control_url, service_type,
                  "DeletePortMapping",
                  args, buffer, UPNP_COMMAND_BUFSIZE,
                  add_delete_port_mapping_receiver, cls);
@@ -836,8 +831,7 @@ get_specific_port_mapping_entry_receiver (char *response, size_t received,
  * the result is returned in the in_client and in_port strings
  * please provide 128 and 6 bytes of data */
 void
-UPNP_get_specific_port_mapping_entry_ (struct GNUNET_SCHEDULER_Handle *sched,
-                                       const char *control_url,
+UPNP_get_specific_port_mapping_entry_ (const char *control_url,
                                        const char *service_type,
                                        const char *ext_port,
                                        const char *proto,
@@ -874,7 +868,7 @@ UPNP_get_specific_port_mapping_entry_ (struct GNUNET_SCHEDULER_Handle *sched,
 
   buffer = GNUNET_malloc (UPNP_COMMAND_BUFSIZE);
 
-  UPNP_command_ (sched, control_url, service_type,
+  UPNP_command_ (control_url, service_type,
                  "GetSpecificPortMappingEntry",
                  args, buffer, UPNP_COMMAND_BUFSIZE,
                  get_specific_port_mapping_entry_receiver, cls);

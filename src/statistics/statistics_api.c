@@ -167,11 +167,6 @@ struct GNUNET_STATISTICS_GetHandle
 struct GNUNET_STATISTICS_Handle
 {
   /**
-   * Our scheduler.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
-
-  /**
    * Name of our subsystem.
    */
   char *subsystem;
@@ -318,7 +313,7 @@ try_connect (struct GNUNET_STATISTICS_Handle *ret)
   unsigned int i;
   if (ret->client != NULL)
     return GNUNET_YES;
-  ret->client = GNUNET_CLIENT_connect (ret->sched, "statistics", ret->cfg);
+  ret->client = GNUNET_CLIENT_connect ("statistics", ret->cfg);
   if (ret->client != NULL)
     {
       for (i=0;i<ret->watches_size;i++)
@@ -727,23 +722,19 @@ transmit_action (void *cls, size_t size, void *buf)
 /**
  * Get handle for the statistics service.
  *
- * @param sched scheduler to use
  * @param subsystem name of subsystem using the service
  * @param cfg services configuration in use
  * @return handle to use
  */
 struct GNUNET_STATISTICS_Handle *
-GNUNET_STATISTICS_create (struct GNUNET_SCHEDULER_Handle *sched,
-                          const char *subsystem,
+GNUNET_STATISTICS_create (const char *subsystem,
                           const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_STATISTICS_Handle *ret;
 
   GNUNET_assert (subsystem != NULL);
-  GNUNET_assert (sched != NULL);
   GNUNET_assert (cfg != NULL);
   ret = GNUNET_malloc (sizeof (struct GNUNET_STATISTICS_Handle));
-  ret->sched = sched;
   ret->cfg = cfg;
   ret->subsystem = GNUNET_strdup (subsystem);
   ret->backoff = GNUNET_TIME_UNIT_MILLISECONDS;
@@ -771,8 +762,7 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
   int i;
 
   if (GNUNET_SCHEDULER_NO_TASK != h->backoff_task)
-    GNUNET_SCHEDULER_cancel (h->sched,
-			     h->backoff_task);
+    GNUNET_SCHEDULER_cancel (h->backoff_task);
   if (sync_first)
     {
       if (h->current != NULL)
@@ -884,8 +874,7 @@ schedule_action (struct GNUNET_STATISTICS_Handle *h)
     return;                     /* action already pending */
   if (GNUNET_YES != try_connect (h))
     {
-      h->backoff_task = GNUNET_SCHEDULER_add_delayed (h->sched,
-						      h->backoff,
+      h->backoff_task = GNUNET_SCHEDULER_add_delayed (h->backoff,
 						      &finish_task,
 						      h);
       h->backoff = GNUNET_TIME_relative_multiply (h->backoff, 2);

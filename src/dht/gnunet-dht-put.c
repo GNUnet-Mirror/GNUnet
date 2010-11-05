@@ -56,10 +56,6 @@ static int verbose;
  */
 static struct GNUNET_DHT_Handle *dht_handle;
 
-/**
- * Global handle of the scheduler
- */
-static struct GNUNET_SCHEDULER_Handle *sched;
 
 /**
  * Global handle of the configuration
@@ -98,28 +94,25 @@ message_sent_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (verbose)
     fprintf (stderr, 
 	     _("PUT request sent!\n"));    
-  GNUNET_SCHEDULER_add_now (sched, &shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 
 /**
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
- * @param s the scheduler to use
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param c configuration
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_TIME_Relative timeout;
   struct GNUNET_TIME_Absolute expiration;
   GNUNET_HashCode key;
-  sched = s;
   cfg = c;
 
   if ( (query_key == NULL) || (data == NULL) )
@@ -130,7 +123,7 @@ run (void *cls,
       return;
     }
 
-  dht_handle = GNUNET_DHT_connect (sched, cfg, 1);
+  dht_handle = GNUNET_DHT_connect (cfg, 1);
   if (dht_handle == NULL)
     {
       fprintf (stderr, 

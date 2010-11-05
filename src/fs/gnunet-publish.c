@@ -38,8 +38,6 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static struct GNUNET_FS_Handle *ctx;
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static struct GNUNET_FS_PublishContext *pc;
 
 static struct GNUNET_CONTAINER_MetaData *meta;
@@ -135,12 +133,10 @@ progress_cb (void *cls,
 	       info->value.publish.specifics.error.message);
       if (kill_task != GNUNET_SCHEDULER_NO_TASK)
 	{
-	  GNUNET_SCHEDULER_cancel (sched,
-				   kill_task);
+	  GNUNET_SCHEDULER_cancel (kill_task);
 	  kill_task = GNUNET_SCHEDULER_NO_TASK;
 	}
-      GNUNET_SCHEDULER_add_continuation (sched,
-					 &do_stop_task,
+      GNUNET_SCHEDULER_add_continuation (&do_stop_task,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
@@ -157,12 +153,10 @@ progress_cb (void *cls,
 	{
 	  if (kill_task != GNUNET_SCHEDULER_NO_TASK)
 	    {
-	      GNUNET_SCHEDULER_cancel (sched,
-				       kill_task);
+	      GNUNET_SCHEDULER_cancel (kill_task);
 	      kill_task = GNUNET_SCHEDULER_NO_TASK;
 	    }
-	  GNUNET_SCHEDULER_add_continuation (sched,
-					     &do_stop_task,
+	  GNUNET_SCHEDULER_add_continuation (&do_stop_task,
 					     NULL,
 					     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 	}
@@ -374,14 +368,12 @@ uri_ksk_continuation (void *cls,
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
- * @param s the scheduler to use
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param c configuration
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
@@ -393,7 +385,6 @@ run (void *cls,
   char *ex;
   char *emsg;
   
-  sched = s;
   /* check arguments */
   if ((uri_string != NULL) && (extract_only))
     {
@@ -446,8 +437,7 @@ run (void *cls,
         }
     }
   cfg = c;
-  ctx = GNUNET_FS_start (sched,
-			 cfg,
+  ctx = GNUNET_FS_start (cfg,
 			 "gnunet-publish",
 			 &progress_cb,
 			 NULL,
@@ -600,8 +590,7 @@ run (void *cls,
       ret = 1;
       return;
     }
-  kill_task = GNUNET_SCHEDULER_add_delayed (sched,
-					    GNUNET_TIME_UNIT_FOREVER_REL,
+  kill_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 					    &do_stop_task,
 					    NULL);
 }

@@ -892,8 +892,7 @@ disconnect_session (struct Session *session)
   GNUNET_break (session->client != NULL);
   if (session->receive_delay_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (session->plugin->env->sched,
-			       session->receive_delay_task);
+      GNUNET_SCHEDULER_cancel (session->receive_delay_task);
       if (session->client != NULL)
 	GNUNET_SERVER_receive_done (session->client,
 				    GNUNET_SYSERR);	
@@ -1228,8 +1227,7 @@ tcp_plugin_send (void *cls,
           /* Only do one NAT punch attempt per peer identity */
           return -1;
         }
-      sa = GNUNET_CONNECTION_create_from_sockaddr (plugin->env->sched,
-						   af, sb, sbs);
+      sa = GNUNET_CONNECTION_create_from_sockaddr (af, sb, sbs);
       if (sa == NULL)
 	{
 #if DEBUG_TCP
@@ -1456,8 +1454,7 @@ tcp_plugin_address_pretty_printer (void *cls,
   ppc->asc = asc;
   ppc->asc_cls = asc_cls;
   ppc->port = port;
-  GNUNET_RESOLVER_hostname_get (plugin->env->sched,
-                                plugin->env->cfg,
+  GNUNET_RESOLVER_hostname_get (plugin->env->cfg,
                                 sb,
                                 sbs,
                                 !numeric, timeout, &append_port, ppc);
@@ -1812,8 +1809,7 @@ delayed_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SERVER_receive_done (session->client, GNUNET_OK);
   else
     session->receive_delay_task =
-      GNUNET_SCHEDULER_add_delayed (session->plugin->env->sched,
-				    delay, &delayed_done, session);
+      GNUNET_SCHEDULER_add_delayed (delay, &delayed_done, session);
 }
 
 
@@ -1866,8 +1862,7 @@ handle_tcp_data (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
   else
     session->receive_delay_task =
-      GNUNET_SCHEDULER_add_delayed (session->plugin->env->sched,
-				    delay, &delayed_done, session);
+      GNUNET_SCHEDULER_add_delayed (delay, &delayed_done, session);
 }
 
 
@@ -2115,8 +2110,7 @@ tcp_plugin_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   else
     {
       plugin->server_read_task =
-           GNUNET_SCHEDULER_add_read_file (plugin->env->sched,
-                                           GNUNET_TIME_UNIT_FOREVER_REL,
+           GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                            plugin->server_stdout_handle, &tcp_plugin_server_read, plugin);
       return;
     }
@@ -2134,8 +2128,7 @@ tcp_plugin_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
                   _("nat-server-read malformed address\n"), &mybuf, port);
 
       plugin->server_read_task =
-          GNUNET_SCHEDULER_add_read_file (plugin->env->sched,
-                                          GNUNET_TIME_UNIT_FOREVER_REL,
+          GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                           plugin->server_stdout_handle, &tcp_plugin_server_read, plugin);
       return;
     }
@@ -2146,15 +2139,14 @@ tcp_plugin_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
    * We have received an ICMP response, ostensibly from a non-NAT'd peer
    *  that wants to connect to us! Send a message to establish a connection.
    */
-  sock = GNUNET_CONNECTION_create_from_sockaddr (plugin->env->sched, AF_INET, (struct sockaddr *)&in_addr,
+  sock = GNUNET_CONNECTION_create_from_sockaddr (AF_INET, (struct sockaddr *)&in_addr,
                                                  sizeof(in_addr));
 
 
   if (sock == NULL)
     {
       plugin->server_read_task =
-          GNUNET_SCHEDULER_add_read_file (plugin->env->sched,
-                                          GNUNET_TIME_UNIT_FOREVER_REL,
+          GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                           plugin->server_stdout_handle, &tcp_plugin_server_read, plugin);
       return;
     }
@@ -2178,8 +2170,7 @@ tcp_plugin_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
 
   /*GNUNET_SERVER_connect_socket(plugin->server, sock);*/
   plugin->server_read_task =
-      GNUNET_SCHEDULER_add_read_file (plugin->env->sched,
-                                      GNUNET_TIME_UNIT_FOREVER_REL,
+      GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                       plugin->server_stdout_handle, &tcp_plugin_server_read, plugin);
 }
 
@@ -2217,8 +2208,7 @@ tcp_transport_start_nat_server(struct Plugin *plugin)
 
   plugin->server_stdout_handle = GNUNET_DISK_pipe_handle(plugin->server_stdout, GNUNET_DISK_PIPE_END_READ);
   plugin->server_read_task =
-      GNUNET_SCHEDULER_add_read_file (plugin->env->sched,
-                                      GNUNET_TIME_UNIT_FOREVER_REL,
+      GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                       plugin->server_stdout_handle, &tcp_plugin_server_read, plugin);
   return GNUNET_YES;
 }
@@ -2363,7 +2353,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   struct sockaddr_in in_addr;
   struct IPv4TcpAddress t4;
 
-  service = GNUNET_SERVICE_start ("transport-tcp", env->sched, env->cfg);
+  service = GNUNET_SERVICE_start ("transport-tcp", env->cfg);
   if (service == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -2545,8 +2535,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
       GNUNET_OS_network_interfaces_list (&process_interfaces, plugin);
     }
 
-  plugin->hostname_dns = GNUNET_RESOLVER_hostname_resolve (env->sched,
-                                                           env->cfg,
+  plugin->hostname_dns = GNUNET_RESOLVER_hostname_resolve (env->cfg,
                                                            AF_UNSPEC,
                                                            HOSTNAME_RESOLVE_TIMEOUT,
                                                            &process_hostname_ips,

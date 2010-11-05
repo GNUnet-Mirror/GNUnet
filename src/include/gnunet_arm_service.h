@@ -70,13 +70,11 @@ struct GNUNET_ARM_Handle;
  * @param cfg configuration to use (needed to contact ARM;
  *        the ARM service may internally use a different
  *        configuration to determine how to start the service).
- * @param sched scheduler to use
  * @param service service that *this* process is implementing/providing, can be NULL
  * @return context to use for further ARM operations, NULL on error
  */
 struct GNUNET_ARM_Handle *
 GNUNET_ARM_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-		    struct GNUNET_SCHEDULER_Handle *sched,
 		    const char *service);
 
 

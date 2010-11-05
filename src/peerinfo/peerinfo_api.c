@@ -91,11 +91,6 @@ struct GNUNET_PEERINFO_Handle
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
-   * Our scheduler.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
-
-  /**
    * Connection to the service.
    */
   struct GNUNET_CLIENT_Connection *client;
@@ -127,25 +122,22 @@ struct GNUNET_PEERINFO_Handle
 /**
  * Connect to the peerinfo service.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @return NULL on error (configuration related, actual connection
  *         establishment may happen asynchronously).
  */
 struct GNUNET_PEERINFO_Handle *
-GNUNET_PEERINFO_connect (struct GNUNET_SCHEDULER_Handle *sched,
-			 const struct GNUNET_CONFIGURATION_Handle *cfg)			 
+GNUNET_PEERINFO_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_CLIENT_Connection *client;
   struct GNUNET_PEERINFO_Handle *ret;
 
-  client = GNUNET_CLIENT_connect (sched, "peerinfo", cfg);
+  client = GNUNET_CLIENT_connect ("peerinfo", cfg);
   if (client == NULL)
     return NULL;
   ret = GNUNET_malloc (sizeof (struct GNUNET_PEERINFO_Handle));
   ret->client = client;
   ret->cfg = cfg;
-  ret->sched = sched;
   return ret;
 }
 
@@ -203,7 +195,7 @@ reconnect (struct GNUNET_PEERINFO_Handle *h)
 {
   GNUNET_CLIENT_disconnect (h->client, GNUNET_SYSERR);
   h->th = NULL;
-  h->client = GNUNET_CLIENT_connect (h->sched, "peerinfo", h->cfg);
+  h->client = GNUNET_CLIENT_connect ("peerinfo", h->cfg);
   GNUNET_assert (h->client != NULL);
 }
 
@@ -395,8 +387,7 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       reconnect (ic->h);
       trigger_transmit (ic->h);
       if (ic->timeout_task != GNUNET_SCHEDULER_NO_TASK)
-	GNUNET_SCHEDULER_cancel (ic->h->sched, 
-				 ic->timeout_task);
+	GNUNET_SCHEDULER_cancel (ic->timeout_task);
       if (ic->callback != NULL)
 	ic->callback (ic->callback_cls, NULL, NULL);
       GNUNET_free (ic);
@@ -411,8 +402,7 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 #endif
       trigger_transmit (ic->h);
       if (ic->timeout_task != GNUNET_SCHEDULER_NO_TASK)
-	GNUNET_SCHEDULER_cancel (ic->h->sched, 
-				 ic->timeout_task);
+	GNUNET_SCHEDULER_cancel (ic->timeout_task);
       if (ic->callback != NULL)
 	ic->callback (ic->callback_cls, NULL, NULL);
       GNUNET_free (ic);
@@ -426,8 +416,7 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       reconnect (ic->h);
       trigger_transmit (ic->h);
       if (ic->timeout_task != GNUNET_SCHEDULER_NO_TASK)
-	GNUNET_SCHEDULER_cancel (ic->h->sched, 
-				 ic->timeout_task);
+	GNUNET_SCHEDULER_cancel (ic->timeout_task);
       if (ic->callback != NULL)
 	ic->callback (ic->callback_cls, NULL, NULL);
       GNUNET_free (ic);
@@ -445,8 +434,7 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 	  reconnect (ic->h);
 	  trigger_transmit (ic->h);
 	  if (ic->timeout_task != GNUNET_SCHEDULER_NO_TASK)
-	    GNUNET_SCHEDULER_cancel (ic->h->sched, 
-				     ic->timeout_task);
+	    GNUNET_SCHEDULER_cancel (ic->timeout_task);
 	  if (ic->callback != NULL)
 	    ic->callback (ic->callback_cls, NULL, NULL);
 	  GNUNET_free (ic);
@@ -492,8 +480,7 @@ iterator_start_receive (void *cls,
 		  transmit_success);
       if (ic->timeout_task != GNUNET_SCHEDULER_NO_TASK)
 	{
-	  GNUNET_SCHEDULER_cancel (ic->h->sched,
-				   ic->timeout_task);
+	  GNUNET_SCHEDULER_cancel (ic->timeout_task);
 	  ic->timeout_task = GNUNET_SCHEDULER_NO_TASK;
 	}
       reconnect (ic->h);
@@ -609,8 +596,7 @@ GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
   ic->callback = callback;
   ic->callback_cls = callback_cls;
   ic->timeout = GNUNET_TIME_relative_to_absolute (timeout);
-  ic->timeout_task = GNUNET_SCHEDULER_add_delayed (h->sched, 
-						   timeout,
+  ic->timeout_task = GNUNET_SCHEDULER_add_delayed (timeout,
 						   &signal_timeout,
 						   ic);
   tqe->timeout = ic->timeout;
@@ -637,8 +623,7 @@ GNUNET_PEERINFO_iterate_cancel (struct GNUNET_PEERINFO_IteratorContext *ic)
 {
   if (ic->timeout_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (ic->h->sched,
-			       ic->timeout_task);
+      GNUNET_SCHEDULER_cancel (ic->timeout_task);
       ic->timeout_task = GNUNET_SCHEDULER_NO_TASK;
     }
   ic->callback = NULL;

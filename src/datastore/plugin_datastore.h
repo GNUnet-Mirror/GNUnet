@@ -64,10 +64,6 @@ struct GNUNET_DATASTORE_PluginEnvironment
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-  /**
-   * Scheduler to use.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
 
   /**
    * Function to call on disk utilization change.

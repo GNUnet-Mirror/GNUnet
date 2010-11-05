@@ -57,15 +57,11 @@ struct GNUNET_DATASTORE_Handle;
  * Connect to the datastore service.
  *
  * @param cfg configuration to use
- * @param sched scheduler to use
  * @return handle to use to access the service
  */
 struct GNUNET_DATASTORE_Handle *GNUNET_DATASTORE_connect (const struct
                                                           GNUNET_CONFIGURATION_Handle
-                                                          *cfg,
-                                                          struct
-                                                          GNUNET_SCHEDULER_Handle
-                                                          *sched);
+                                                          *cfg);
 
 
 /**

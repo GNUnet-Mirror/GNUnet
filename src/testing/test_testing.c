@@ -64,7 +64,6 @@ my_cb (void *cls,
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *sched,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
@@ -74,7 +73,7 @@ run (void *cls,
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemon.\n");
 #endif
-  d = GNUNET_TESTING_daemon_start (sched, cfg, TIMEOUT, NULL, NULL, 0, NULL, NULL, &my_cb, NULL);
+  d = GNUNET_TESTING_daemon_start (cfg, TIMEOUT, NULL, NULL, 0, NULL, NULL, &my_cb, NULL);
   GNUNET_assert (d != NULL);
 }
 

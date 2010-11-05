@@ -38,8 +38,6 @@
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static struct GNUNET_ARM_Handle *arm;
@@ -95,8 +93,7 @@ resolver_notify (void *cls, int success)
 #endif
       return;
     }
-  GNUNET_RESOLVER_ip_get (sched,
-                          cfg,
+  GNUNET_RESOLVER_ip_get (cfg,
                           "localhost", AF_INET, TIMEOUT, &dns_notify, NULL);
 }
 
@@ -118,14 +115,12 @@ arm_notify (void *cls, int success)
 
 static void
 task (void *cls,
-      struct GNUNET_SCHEDULER_Handle *s,
       char *const *args,
       const char *cfgfile,
       const struct GNUNET_CONFIGURATION_Handle *c)
 {
   cfg = c;
-  sched = s;
-  arm = GNUNET_ARM_connect (cfg, sched, NULL);
+  arm = GNUNET_ARM_connect (cfg, NULL);
 #if START_ARM
   GNUNET_ARM_start_service (arm, "arm", START_TIMEOUT, &arm_notify, NULL);
 #else

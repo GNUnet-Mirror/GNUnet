@@ -208,11 +208,6 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 /**
  *
  */
-static struct GNUNET_SCHEDULER_Handle *scheduler;
-
-/**
- *
- */
 static struct ServiceListeningInfo *serviceListeningInfoList_head;
 
 /**
@@ -293,7 +288,7 @@ closeClientAndServiceSockets (struct ForwardedConnection *fc,
 #endif
       if (fc->service_to_client_task != GNUNET_SCHEDULER_NO_TASK)
 	{
-	  GNUNET_SCHEDULER_cancel (scheduler, fc->service_to_client_task);    
+	  GNUNET_SCHEDULER_cancel (fc->service_to_client_task);
 	  fc->service_to_client_task = GNUNET_SCHEDULER_NO_TASK;
 	}
       if (fc->armClientSocket != NULL)
@@ -312,8 +307,7 @@ closeClientAndServiceSockets (struct ForwardedConnection *fc,
 #endif
       if (fc->client_to_service_task != GNUNET_SCHEDULER_NO_TASK) 
 	{
-	  GNUNET_SCHEDULER_cancel (scheduler,
-				   fc->client_to_service_task);
+	  GNUNET_SCHEDULER_cancel (				   fc->client_to_service_task);
 	  fc->client_to_service_task = GNUNET_SCHEDULER_NO_TASK;
 	}
       if (fc->armClientSocket != NULL)
@@ -331,8 +325,7 @@ closeClientAndServiceSockets (struct ForwardedConnection *fc,
 	      "Closing forwarding connection (done with both directions)\n");
 #endif
   if (fc->start_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (scheduler,
-			     fc->start_task);
+    GNUNET_SCHEDULER_cancel (			     fc->start_task);
   if ( (NULL != fc->armClientSocket) &&
        (GNUNET_SYSERR ==
 	GNUNET_NETWORK_socket_close (fc->armClientSocket)) )
@@ -388,7 +381,7 @@ forwardToClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 						fc->armClientSocket))
     {
       fc->service_to_client_task = 
-	GNUNET_SCHEDULER_add_write_net (scheduler,
+	GNUNET_SCHEDULER_add_write_net (
 					GNUNET_TIME_UNIT_FOREVER_REL,
 					fc->armClientSocket,
 					&forwardToClient, fc);
@@ -421,7 +414,7 @@ forwardToClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       fc->service_to_client_bufferPos += numberOfBytesSent;
       fc->service_to_client_bufferDataLength -= numberOfBytesSent;
       fc->service_to_client_task = 
-	GNUNET_SCHEDULER_add_write_net (scheduler, 
+	GNUNET_SCHEDULER_add_write_net (
 					GNUNET_TIME_UNIT_FOREVER_REL,
 					fc->armClientSocket,
 					&forwardToClient, 
@@ -429,8 +422,7 @@ forwardToClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       return;
     }
   fc->service_to_client_task =
-    GNUNET_SCHEDULER_add_read_net (scheduler, 
-				   GNUNET_TIME_UNIT_FOREVER_REL,
+    GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
 				   fc->armServiceSocket,
 				   &receiveFromService, 
 				   fc);
@@ -461,7 +453,7 @@ receiveFromService (void *cls,
 						fc->armServiceSocket))
     {
       fc->service_to_client_task =
-	GNUNET_SCHEDULER_add_read_net (scheduler,
+	GNUNET_SCHEDULER_add_read_net (
 				       GNUNET_TIME_UNIT_FOREVER_REL,
 				       fc->armServiceSocket,
 				       &receiveFromService, fc);
@@ -491,8 +483,7 @@ receiveFromService (void *cls,
 	  if ( (fc->client_to_service_bufferDataLength > 0) &&
 	       (fc->client_to_service_task != GNUNET_SCHEDULER_NO_TASK) )
 	    {
-	      GNUNET_SCHEDULER_cancel (scheduler,
-				       fc->client_to_service_task);
+	      GNUNET_SCHEDULER_cancel (fc->client_to_service_task);
 	      fc->client_to_service_task = GNUNET_SCHEDULER_NO_TASK;
 	    }
 	  fc->back_off = GNUNET_TIME_relative_multiply (fc->back_off, 2);
@@ -508,7 +499,7 @@ receiveFromService (void *cls,
 	  rem = GNUNET_TIME_absolute_get_remaining (fc->timeout);
 	  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == fc->start_task);
 	  fc->start_task
-	    = GNUNET_SCHEDULER_add_delayed (scheduler,
+	    = GNUNET_SCHEDULER_add_delayed (
 					    GNUNET_TIME_relative_min (fc->back_off,
 								      rem),
 					    &start_forwarding,
@@ -533,7 +524,7 @@ receiveFromService (void *cls,
 	      fc->service_to_client_bufferDataLength);
 #endif
   fc->service_to_client_task = 
-    GNUNET_SCHEDULER_add_write_net (scheduler, 
+    GNUNET_SCHEDULER_add_write_net (
 				    GNUNET_TIME_UNIT_FOREVER_REL,
 				    fc->armClientSocket,
 				    &forwardToClient, fc);
@@ -565,7 +556,7 @@ forwardToService (void *cls,
 						fc->armServiceSocket))
     {
       fc->client_to_service_task = 
-	GNUNET_SCHEDULER_add_write_net (scheduler,
+	GNUNET_SCHEDULER_add_write_net (
 					GNUNET_TIME_UNIT_FOREVER_REL,
 					fc->armServiceSocket,
 					&forwardToService, fc);
@@ -585,8 +576,7 @@ forwardToService (void *cls,
 	  if ( (fc->service_to_client_bufferDataLength == 0) &&
 	       (fc->service_to_client_task != GNUNET_SCHEDULER_NO_TASK) )
 	    {
-	      GNUNET_SCHEDULER_cancel (scheduler,
-				       fc->service_to_client_task);
+	      GNUNET_SCHEDULER_cancel (fc->service_to_client_task);
 	      fc->service_to_client_task = GNUNET_SCHEDULER_NO_TASK;
 	    }
 	  fc->back_off = GNUNET_TIME_relative_multiply (fc->back_off, 2);
@@ -602,8 +592,7 @@ forwardToService (void *cls,
 	  rem = GNUNET_TIME_absolute_get_remaining (fc->timeout);
 	  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == fc->start_task);
 	  fc->start_task 
-	    = GNUNET_SCHEDULER_add_delayed (scheduler,
-					    GNUNET_TIME_relative_min (fc->back_off,
+	    = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_min (fc->back_off,
 								      rem),
 					    &start_forwarding,
 					    fc);
@@ -631,15 +620,14 @@ forwardToService (void *cls,
       fc->client_to_service_bufferPos += numberOfBytesSent;
       fc->client_to_service_bufferDataLength -= numberOfBytesSent;
       fc->client_to_service_task = 
-	GNUNET_SCHEDULER_add_write_net (scheduler, 
+	GNUNET_SCHEDULER_add_write_net (
 					GNUNET_TIME_UNIT_FOREVER_REL,
 					fc->armServiceSocket,
 					&forwardToService, fc);
       return;
     }
   fc->client_to_service_task =
-    GNUNET_SCHEDULER_add_read_net (scheduler, 
-				   GNUNET_TIME_UNIT_FOREVER_REL,
+    GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
 				   fc->armClientSocket,
 				   &receiveFromClient, fc);
 }
@@ -661,7 +649,7 @@ receiveFromClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 						fc->armClientSocket))
     {
       fc->client_to_service_task =
-	GNUNET_SCHEDULER_add_read_net (scheduler,
+	GNUNET_SCHEDULER_add_read_net (
 				       GNUNET_TIME_UNIT_FOREVER_REL,
 				       fc->armClientSocket,
 				       &receiveFromClient, fc);
@@ -700,7 +688,7 @@ receiveFromClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
   if (fc->armServiceSocket != NULL)        
     fc->client_to_service_task = 
-      GNUNET_SCHEDULER_add_write_net (scheduler,
+      GNUNET_SCHEDULER_add_write_net (
 				      GNUNET_TIME_UNIT_FOREVER_REL,
 				      fc->armServiceSocket,
 				      &forwardToService, fc);
@@ -769,8 +757,7 @@ start_forwarding (void *cls,
 #endif
       GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == fc->start_task);
       fc->start_task
-	= GNUNET_SCHEDULER_add_delayed (scheduler,
-					GNUNET_TIME_relative_min (fc->back_off,
+	= GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_min (fc->back_off,
 								  rem),
 					&start_forwarding,
 					fc);
@@ -784,13 +771,13 @@ start_forwarding (void *cls,
     {
       if (fc->client_to_service_bufferDataLength == 0) 
 	fc->client_to_service_task =
-	  GNUNET_SCHEDULER_add_read_net (scheduler,
+	  GNUNET_SCHEDULER_add_read_net (
 					 GNUNET_TIME_UNIT_FOREVER_REL,
 					 fc->armClientSocket,
 					 &receiveFromClient, fc);
       else
 	fc->client_to_service_task = 
-	  GNUNET_SCHEDULER_add_write_net (scheduler, 
+	  GNUNET_SCHEDULER_add_write_net (
 					  GNUNET_TIME_UNIT_FOREVER_REL,
 					  fc->armServiceSocket,
 					  &forwardToService, fc);
@@ -799,13 +786,13 @@ start_forwarding (void *cls,
     {
       if (fc->service_to_client_bufferDataLength == 0) 
 	fc->service_to_client_task =
-	  GNUNET_SCHEDULER_add_read_net (scheduler,
+	  GNUNET_SCHEDULER_add_read_net (
 					 GNUNET_TIME_UNIT_FOREVER_REL,
 					 fc->armServiceSocket,
 					 &receiveFromService, fc);
       else
 	fc->service_to_client_task = 
-	  GNUNET_SCHEDULER_add_write_net (scheduler, 
+	  GNUNET_SCHEDULER_add_write_net (
 					  GNUNET_TIME_UNIT_FOREVER_REL,
 					  fc->armClientSocket,
 					  &forwardToClient, fc);
@@ -833,7 +820,7 @@ stop_listening (const char *serviceName)
 	   (strcmp (pos->serviceName, serviceName) != 0) )
 	continue;
       if (pos->acceptTask != GNUNET_SCHEDULER_NO_TASK)
-	GNUNET_SCHEDULER_cancel (scheduler, pos->acceptTask);
+	GNUNET_SCHEDULER_cancel (pos->acceptTask);
       GNUNET_break (GNUNET_OK ==
 		    GNUNET_NETWORK_socket_close (pos->listeningSocket));
       GNUNET_CONTAINER_DLL_remove (serviceListeningInfoList_head,
@@ -882,7 +869,7 @@ accept_and_forward (struct ServiceListeningInfo *serviceListeningInfo)
 				   serviceListeningInfoList_tail, 
 				   serviceListeningInfo); 
       serviceListeningInfo->acceptTask =
-	GNUNET_SCHEDULER_add_read_net (scheduler,
+	GNUNET_SCHEDULER_add_read_net (
 				       GNUNET_TIME_UNIT_FOREVER_REL, 
 				       serviceListeningInfo->listeningSocket,
 				       &acceptConnection,
@@ -898,14 +885,13 @@ accept_and_forward (struct ServiceListeningInfo *serviceListeningInfo)
   fc->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_SERVICE_TIMEOUT);
   fc->back_off = GNUNET_TIME_UNIT_MILLISECONDS;
   fc->client_to_service_task =
-    GNUNET_SCHEDULER_add_read_net (scheduler,
+    GNUNET_SCHEDULER_add_read_net (
 				   GNUNET_TIME_UNIT_FOREVER_REL,
 				   fc->armClientSocket,
 				   &receiveFromClient, fc);
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == fc->start_task);
   fc->start_task 
-    = GNUNET_SCHEDULER_add_now (scheduler,
-				&start_forwarding,
+    = GNUNET_SCHEDULER_add_now (&start_forwarding,
 				fc);
 }
 
@@ -963,8 +949,7 @@ acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	  GNUNET_free (pos->listeningSocket); /* deliberately no closing! */
 	  GNUNET_free (pos->service_addr);
 	  GNUNET_free (pos->serviceName);
-	  GNUNET_SCHEDULER_cancel (scheduler,
-				   pos->acceptTask);
+	  GNUNET_SCHEDULER_cancel (				   pos->acceptTask);
 	  GNUNET_CONTAINER_DLL_remove (serviceListeningInfoList_head,
 				       serviceListeningInfoList_tail, 
 				       pos);
@@ -1073,7 +1058,7 @@ createListeningSocket (struct sockaddr *sa,
   serviceListeningInfo->service_addr_len = addr_len;
   serviceListeningInfo->listeningSocket = sock;
   serviceListeningInfo->acceptTask =
-    GNUNET_SCHEDULER_add_read_net (scheduler,
+    GNUNET_SCHEDULER_add_read_net (
 				   GNUNET_TIME_UNIT_FOREVER_REL, sock,
 				   &acceptConnection,
 				   serviceListeningInfo);
@@ -1123,15 +1108,13 @@ checkPortNumberCB (void *cls,
  * Entry point to the Service Manager
  *
  * @param configurationHandle configuration to use to get services
- * @param sched scheduler to handle clients and services communications
  */
 void
 prepareServices (const struct GNUNET_CONFIGURATION_Handle
-		 *configurationHandle, struct GNUNET_SCHEDULER_Handle *sched)
+		 *configurationHandle)
 {
   char *defaultServicesString;
 
-  scheduler = sched;
   cfg = configurationHandle;
   /* Split the default services into a list */
   if (GNUNET_OK ==

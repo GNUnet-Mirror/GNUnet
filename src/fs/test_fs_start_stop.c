@@ -33,8 +33,6 @@
 
 #define START_ARM GNUNET_YES
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static struct PeerContext p1;
 
 struct PeerContext
@@ -89,17 +87,14 @@ stop_arm (struct PeerContext *p)
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_FS_Handle *fs;
 
-  sched = s;
   setup_peer (&p1, "test_fs_data.conf");
-  fs = GNUNET_FS_start (sched,
-			cfg,
+  fs = GNUNET_FS_start (cfg,
 			"test-fs-start-stop",
 			&progress_cb,
 			NULL,

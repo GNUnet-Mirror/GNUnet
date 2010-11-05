@@ -59,7 +59,6 @@ checkIt (void *cls,
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *sched,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -72,8 +71,7 @@ run (void *cls,
   unsigned int i;
   
   ok = 0;
-  h = GNUNET_DATACACHE_create (sched,
-			       cfg,
+  h = GNUNET_DATACACHE_create (cfg,
 			       "perfcache");
 
   if (h == NULL)

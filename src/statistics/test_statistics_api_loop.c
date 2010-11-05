@@ -60,7 +60,6 @@ next (void *cls, int success)
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *sched,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -68,7 +67,7 @@ run (void *cls,
   int i;
   char name[128];
 
-  h = GNUNET_STATISTICS_create (sched, "test-statistics-api-loop", cfg);
+  h = GNUNET_STATISTICS_create ("test-statistics-api-loop", cfg);
   for (i=0;i<ROUNDS;i++)
     {
       GNUNET_snprintf (name, sizeof (name), "test-%d", i % 256);

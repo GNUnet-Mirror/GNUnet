@@ -57,7 +57,6 @@ static struct PeerContext p1;
 
 static struct PeerContext p2;
 
-static struct GNUNET_SCHEDULER_Handle *sched;
 
 static int ok;
 
@@ -126,8 +125,7 @@ init_notify (void *cls,
   if (cls == &p1)
     {
       /* connect p2 */
-      GNUNET_CORE_connect (sched,
-                           p2.cfg,
+      GNUNET_CORE_connect (p2.cfg,
                            TIMEOUT,
                            &p2,
                            &init_notify,			 
@@ -166,18 +164,15 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile, 
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (ok == 1);
   OKPP;
-  sched = s;
   setup_peer (&p1, "test_core_api_peer1.conf");
   setup_peer (&p2, "test_core_api_peer2.conf");
-  GNUNET_CORE_connect (sched,
-                       p1.cfg,
+  GNUNET_CORE_connect (p1.cfg,
                        TIMEOUT,
                        &p1,
                        &init_notify,

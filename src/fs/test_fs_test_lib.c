@@ -44,8 +44,6 @@
 
 static struct GNUNET_FS_TestDaemon *daemons[NUM_DAEMONS];
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static int ret;
 
 static void
@@ -63,8 +61,7 @@ do_stop (void *cls,
 		  "Finished download, shutting down\n",
 		  (unsigned long long) FILESIZE);
     }
-  GNUNET_FS_TEST_daemons_stop (sched,
-			       NUM_DAEMONS,
+  GNUNET_FS_TEST_daemons_stop (NUM_DAEMONS,
 			       daemons);
 }
 
@@ -76,8 +73,7 @@ do_download (void *cls,
   if (NULL == uri)
     {
       GNUNET_break (0);
-      GNUNET_SCHEDULER_add_now (sched,
-				&do_stop,
+      GNUNET_SCHEDULER_add_now (&do_stop,
 				NULL);
       ret = 1;
       return;
@@ -85,8 +81,7 @@ do_download (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Downloading %llu bytes\n",
 	      (unsigned long long) FILESIZE);
-  GNUNET_FS_TEST_download (sched,
-			   daemons[0],
+  GNUNET_FS_TEST_download (daemons[0],
 			   TIMEOUT,
 			   1, SEED, uri, 
 			   VERBOSE, 
@@ -102,16 +97,14 @@ do_publish (void *cls,
     {
       GNUNET_break (0);
       ret = 1;
-      GNUNET_SCHEDULER_add_now (sched,
-				&do_stop,
+      GNUNET_SCHEDULER_add_now (&do_stop,
 				NULL);
       return;
     }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Publishing %llu bytes\n",
 	      (unsigned long long) FILESIZE);
-  GNUNET_FS_TEST_publish (sched,
-			  daemons[0],
+  GNUNET_FS_TEST_publish (daemons[0],
 			  TIMEOUT,
 			  1, GNUNET_NO, FILESIZE, SEED, 
 			  VERBOSE, 
@@ -127,15 +120,13 @@ do_connect (void *cls,
     {
       GNUNET_break (0);
       ret = 1;
-      GNUNET_SCHEDULER_add_now (sched,
-				&do_stop,
+      GNUNET_SCHEDULER_add_now (&do_stop,
 				NULL);
       return;
     }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Daemons started, will now try to connect them\n");
-  GNUNET_FS_TEST_daemons_connect (sched,
-				  daemons[0],
+  GNUNET_FS_TEST_daemons_connect (daemons[0],
 				  daemons[1],
 				  TIMEOUT,
 				  &do_publish,
@@ -145,14 +136,11 @@ do_connect (void *cls,
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  sched = s;
-  GNUNET_FS_TEST_daemons_start (sched,
-				"fs_test_lib_data.conf",
+  GNUNET_FS_TEST_daemons_start ("fs_test_lib_data.conf",
 				TIMEOUT,
 				NUM_DAEMONS,
 				daemons,

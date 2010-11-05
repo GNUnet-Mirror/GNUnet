@@ -28,8 +28,6 @@
 #include "gnunet_strings_lib.h"
 #include "gnunet_time_lib.h"
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 
 static size_t
 transmit_shutdown_ack (void *cls, size_t size, void *buf)
@@ -77,13 +75,12 @@ handle_shutdown (void *cls,
                                        GNUNET_TIME_UNIT_FOREVER_REL,
                                        &transmit_shutdown_ack, client);
   GNUNET_SERVER_client_persist_ (client);
-  GNUNET_SCHEDULER_shutdown (sched);
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
@@ -92,7 +89,6 @@ run (void *cls,
      sizeof (struct GNUNET_MessageHeader)},
     {NULL, NULL, 0, 0}
   };
-  sched = s;
   /* process client requests */
   GNUNET_SERVER_ignore_shutdown (server, GNUNET_YES);
   GNUNET_SERVER_add_handlers (server, handlers);

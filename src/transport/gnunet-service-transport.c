@@ -843,11 +843,6 @@ static struct GNUNET_PeerIdentity my_identity;
 static struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
 
 /**
- * Our scheduler.
- */
-struct GNUNET_SCHEDULER_Handle *sched;
-
-/**
  * Our configuration.
  */
 const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -1656,10 +1651,8 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 				1,
 				GNUNET_NO);
       if (neighbour->retry_task != GNUNET_SCHEDULER_NO_TASK)
-	GNUNET_SCHEDULER_cancel (sched,
-				 neighbour->retry_task);
-      neighbour->retry_task = GNUNET_SCHEDULER_add_delayed (sched,
-							    timeout,
+	GNUNET_SCHEDULER_cancel (neighbour->retry_task);
+      neighbour->retry_task = GNUNET_SCHEDULER_add_delayed (timeout,
 							    &retry_transmission_task,
 							    neighbour);
 #if DEBUG_TRANSPORT
@@ -1924,7 +1917,7 @@ update_addresses (struct TransportPlugin *plugin, int fresh)
   int expired;
 
   if (plugin->address_update_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (plugin->env.sched, plugin->address_update_task);
+    GNUNET_SCHEDULER_cancel (plugin->address_update_task);
   plugin->address_update_task = GNUNET_SCHEDULER_NO_TASK;
   now = GNUNET_TIME_absolute_get ();
   min_remaining = GNUNET_TIME_UNIT_FOREVER_REL;
@@ -1962,8 +1955,7 @@ update_addresses (struct TransportPlugin *plugin, int fresh)
 					    GNUNET_TIME_relative_divide (HELLO_ADDRESS_EXPIRATION,
 									 2));
   plugin->address_update_task
-    = GNUNET_SCHEDULER_add_delayed (plugin->env.sched,
-				    min_remaining,
+    = GNUNET_SCHEDULER_add_delayed (min_remaining,
 				    &expire_address_task, plugin);
 }
 
@@ -2126,8 +2118,7 @@ plugin_env_session_end  (void *cls,
     prev->next = pos->next;
   if (GNUNET_SCHEDULER_NO_TASK != pos->revalidate_task)
     {
-      GNUNET_SCHEDULER_cancel (sched,
-			       pos->revalidate_task);
+      GNUNET_SCHEDULER_cancel (pos->revalidate_task);
       pos->revalidate_task = GNUNET_SCHEDULER_NO_TASK;
     }
   GNUNET_free (pos);
@@ -2518,7 +2509,7 @@ abort_validation (void *cls,
   struct ValidationEntry *va = value;
 
   if (GNUNET_SCHEDULER_NO_TASK != va->timeout_task)
-    GNUNET_SCHEDULER_cancel (sched, va->timeout_task);
+    GNUNET_SCHEDULER_cancel (va->timeout_task);
   GNUNET_free (va->transport_name);
   if (va->chvc != NULL)
     {
@@ -2776,8 +2767,7 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer,
     }
   n->latency = GNUNET_TIME_UNIT_FOREVER_REL;
   n->distance = -1;
-  n->timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                                  GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+  n->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                                   &neighbour_timeout_task, n);
   if (do_hello)
     {
@@ -2954,8 +2944,7 @@ transmit_blacklist_message (void *cls,
   if (size == 0)
     {
       GNUNET_assert (bc->task == GNUNET_SCHEDULER_NO_TASK);
-      bc->task = GNUNET_SCHEDULER_add_now (sched,
-					   &do_blacklist_check,
+      bc->task = GNUNET_SCHEDULER_add_now (&do_blacklist_check,
 					   bc);
       return 0;
     }
@@ -3047,8 +3036,7 @@ setup_peer_check_blacklist (const struct GNUNET_PeerIdentity *peer,
   bc->cont = cont;
   bc->cont_cls = cont_cls;
   bc->bl_pos = bl_head;
-  bc->task = GNUNET_SCHEDULER_add_now (sched,
-				       &do_blacklist_check,
+  bc->task = GNUNET_SCHEDULER_add_now (&do_blacklist_check,
 				       bc);
 }
 
@@ -3120,8 +3108,7 @@ handle_blacklist_init (void *cls,
       bc->bl_pos = bl;
       if (n == neighbours) /* all would wait for the same client, no need to
 			      create more than just the first task right now */
-	bc->task = GNUNET_SCHEDULER_add_now (sched,
-					     &do_blacklist_check,
+	bc->task = GNUNET_SCHEDULER_add_now (&do_blacklist_check,
 					     bc);
       n = n->next;
     }
@@ -3164,8 +3151,7 @@ handle_blacklist_reply (void *cls,
   else
     {
       bc->bl_pos = bc->bl_pos->next;
-      bc->task = GNUNET_SCHEDULER_add_now (sched,
-					   &do_blacklist_check,
+      bc->task = GNUNET_SCHEDULER_add_now (&do_blacklist_check,
 					   bc);
     }
   /* check if any other bc's are waiting for this blacklister */
@@ -3174,8 +3160,7 @@ handle_blacklist_reply (void *cls,
     {
       if ( (bc->bl_pos == bl) &&
 	   (GNUNET_SCHEDULER_NO_TASK == bc->task) )
-	bc->task = GNUNET_SCHEDULER_add_now (sched,
-					     &do_blacklist_check,
+	bc->task = GNUNET_SCHEDULER_add_now (&do_blacklist_check,
 					     bc);
       bc = bc->next;
     }
@@ -3258,8 +3243,7 @@ send_periodic_ping (void *cls,
 	 &neighbour->publicKey,
 	 sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
 
-  va->timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                                   HELLO_VERIFICATION_TIMEOUT,
+  va->timeout_task = GNUNET_SCHEDULER_add_delayed (HELLO_VERIFICATION_TIMEOUT,
                                                    &timeout_hello_validation,
                                                    va);
   GNUNET_CONTAINER_multihashmap_put (validation_map,
@@ -3384,8 +3368,7 @@ schedule_next_ping (struct ForeignAddressList *fal)
 				    GNUNET_TIME_UNIT_SECONDS);
   /* randomize a bit (to avoid doing all at the same time) */
   delay.rel_value += GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 1000);
-  fal->revalidate_task = GNUNET_SCHEDULER_add_delayed(sched,
-						      delay,
+  fal->revalidate_task = GNUNET_SCHEDULER_add_delayed(delay,
 						      &send_periodic_ping,
 						      fal);
 }
@@ -3691,8 +3674,7 @@ check_pending_validation (void *cls,
 	}
       if (n->retry_task != GNUNET_SCHEDULER_NO_TASK)
 	{
-	  GNUNET_SCHEDULER_cancel (sched,
-				   n->retry_task);
+	  GNUNET_SCHEDULER_cancel (n->retry_task);
 	  n->retry_task = GNUNET_SCHEDULER_NO_TASK;
 	  try_transmission_to_peer (n);
 	}
@@ -3981,8 +3963,7 @@ run_validation (void *cls,
   va->addrlen = addrlen;
   GNUNET_HELLO_get_key (chvc->hello,
 			&va->publicKey);
-  va->timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
-						   HELLO_VERIFICATION_TIMEOUT,
+  va->timeout_task = GNUNET_SCHEDULER_add_delayed (HELLO_VERIFICATION_TIMEOUT,
 						   &timeout_hello_validation,
 						   va);
   GNUNET_CONTAINER_multihashmap_put (validation_map,
@@ -4146,8 +4127,7 @@ process_hello (struct TransportPlugin *plugin,
 			    GNUNET_NO);
 
   /* first, check if load is too high */
-  if (GNUNET_SCHEDULER_get_load (sched,
-				 GNUNET_SCHEDULER_PRIORITY_BACKGROUND) > MAX_HELLO_LOAD)
+  if (GNUNET_SCHEDULER_get_load (GNUNET_SCHEDULER_PRIORITY_BACKGROUND) > MAX_HELLO_LOAD)
     {
       GNUNET_STATISTICS_update (stats,
 				gettext_noop ("# HELLOs ignored due to high load"),
@@ -4351,8 +4331,7 @@ disconnect_neighbour (struct NeighbourList *n, int check)
 				      GNUNET_NO);
 	  if (GNUNET_SCHEDULER_NO_TASK != peer_pos->revalidate_task)
 	    {
-	      GNUNET_SCHEDULER_cancel (sched,
-				       peer_pos->revalidate_task);
+	      GNUNET_SCHEDULER_cancel (peer_pos->revalidate_task);
 	      peer_pos->revalidate_task = GNUNET_SCHEDULER_NO_TASK;
 	    }
           GNUNET_free(peer_pos);
@@ -4381,12 +4360,12 @@ disconnect_neighbour (struct NeighbourList *n, int check)
     }
   if (n->timeout_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (sched, n->timeout_task);
+      GNUNET_SCHEDULER_cancel (n->timeout_task);
       n->timeout_task = GNUNET_SCHEDULER_NO_TASK;
     }
   if (n->retry_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (sched, n->retry_task);
+      GNUNET_SCHEDULER_cancel (n->retry_task);
       n->retry_task = GNUNET_SCHEDULER_NO_TASK;
     }
   if (n->piter != NULL)
@@ -4736,11 +4715,9 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
       n->peer_timeout =
 	GNUNET_TIME_relative_to_absolute
 	(GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-      GNUNET_SCHEDULER_cancel (sched,
-			       n->timeout_task);
+      GNUNET_SCHEDULER_cancel (n->timeout_task);
       n->timeout_task =
-	GNUNET_SCHEDULER_add_delayed (sched,
-				      GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+	GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
 				      &neighbour_timeout_task, n);
       if (n->quota_violation_count > QUOTA_VIOLATION_DROP_THRESHOLD)
 	{
@@ -5191,7 +5168,6 @@ static void
 create_environment (struct TransportPlugin *plug)
 {
   plug->env.cfg = cfg;
-  plug->env.sched = sched;
   plug->env.my_identity = &my_identity;
   plug->env.our_hello = &our_hello;
   plug->env.cls = plug;
@@ -5276,8 +5252,7 @@ client_disconnect_notification (void *cls,
 		      bc->th = NULL;		
 		    }
 		  if (bc->task == GNUNET_SCHEDULER_NO_TASK)
-		    bc->task = GNUNET_SCHEDULER_add_now (sched,
-							 &do_blacklist_check,
+		    bc->task = GNUNET_SCHEDULER_add_now (&do_blacklist_check,
 							 bc);
 		  break;
 		}
@@ -5359,8 +5334,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       plugins = plug->next;
       if (plug->address_update_task != GNUNET_SCHEDULER_NO_TASK)
 	{
-	  GNUNET_SCHEDULER_cancel (plug->env.sched,
-				   plug->address_update_task);
+	  GNUNET_SCHEDULER_cancel (plug->address_update_task);
 	  plug->address_update_task = GNUNET_SCHEDULER_NO_TASK;
 	}
       GNUNET_break (NULL == GNUNET_PLUGIN_unload (plug->lib_name, plug->api));
@@ -5423,13 +5397,11 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Initiate transport service.
  *
  * @param cls closure
- * @param s scheduler to use
  * @param server the initialized server
  * @param c configuration to use
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
@@ -5459,9 +5431,8 @@ run (void *cls,
   unsigned long long tneigh;
   char *keyfile;
 
-  sched = s;
   cfg = c;
-  stats = GNUNET_STATISTICS_create (sched, "transport", cfg);
+  stats = GNUNET_STATISTICS_create ("transport", cfg);
   validation_map = GNUNET_CONTAINER_multihashmap_create (64);
   /* parse configuration */
   if ((GNUNET_OK !=
@@ -5477,7 +5448,7 @@ run (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _
                   ("Transport service is lacking key configuration settings.  Exiting.\n"));
-      GNUNET_SCHEDULER_shutdown (s);
+      GNUNET_SCHEDULER_shutdown ();
       if (stats != NULL)
 	{
 	  GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
@@ -5488,12 +5459,12 @@ run (void *cls,
       return;
     }
   max_connect_per_transport = (uint32_t) tneigh;
-  peerinfo = GNUNET_PEERINFO_connect (sched, cfg);
+  peerinfo = GNUNET_PEERINFO_connect (cfg);
   if (peerinfo == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Could not access PEERINFO service.  Exiting.\n"));	
-      GNUNET_SCHEDULER_shutdown (s);
+      GNUNET_SCHEDULER_shutdown ();
       if (stats != NULL)
 	{
 	  GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
@@ -5511,7 +5482,7 @@ run (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _
                   ("Transport service could not access hostkey.  Exiting.\n"));
-      GNUNET_SCHEDULER_shutdown (s);
+      GNUNET_SCHEDULER_shutdown ();
       if (stats != NULL)
 	{
 	  GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
@@ -5544,8 +5515,7 @@ run (void *cls,
         }
       GNUNET_free (plugs);
     }
-  GNUNET_SCHEDULER_add_delayed (sched,
-                                GNUNET_TIME_UNIT_FOREVER_REL,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &shutdown_task, NULL);
   if (no_transports)
     refresh_hello ();

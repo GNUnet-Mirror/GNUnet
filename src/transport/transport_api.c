@@ -327,11 +327,6 @@ struct GNUNET_TRANSPORT_Handle
   struct HelloWaitList *hwl_head;
 
   /**
-   * My scheduler.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
-
-  /**
    * My configuration.
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -444,8 +439,7 @@ schedule_peer_transmission (struct GNUNET_TRANSPORT_Handle *h)
 
   if (h->quota_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (h->sched,
-			       h->quota_task);
+      GNUNET_SCHEDULER_cancel (h->quota_task);
       h->quota_task = GNUNET_SCHEDULER_NO_TASK;
     }
   retry_time = GNUNET_TIME_UNIT_FOREVER_REL;
@@ -476,7 +470,7 @@ schedule_peer_transmission (struct GNUNET_TRANSPORT_Handle *h)
 #endif
 	  if (th->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
 	    {
-	      GNUNET_SCHEDULER_cancel (h->sched, th->notify_delay_task);
+	      GNUNET_SCHEDULER_cancel (th->notify_delay_task);
 	      th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
 	    }	
 	  n->transmit_stage = TS_NEW;
@@ -510,8 +504,7 @@ schedule_peer_transmission (struct GNUNET_TRANSPORT_Handle *h)
 	ret = th;
     }
   if (ret == NULL)
-    h->quota_task = GNUNET_SCHEDULER_add_delayed (h->sched,
-						  retry_time,
+    h->quota_task = GNUNET_SCHEDULER_add_delayed (retry_time,
 						  &quota_transmit_ready,
 						  h);
   return ret;
@@ -556,7 +549,7 @@ transport_notify_ready (void *cls, size_t size, void *buf)
     {
       if (cm->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
         {
-          GNUNET_SCHEDULER_cancel (h->sched, cm->notify_delay_task);
+          GNUNET_SCHEDULER_cancel (cm->notify_delay_task);
           cm->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
         }
       GNUNET_CONTAINER_DLL_remove (h->control_head,
@@ -578,7 +571,7 @@ transport_notify_ready (void *cls, size_t size, void *buf)
     {
       if (th->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
         {
-          GNUNET_SCHEDULER_cancel (h->sched, th->notify_delay_task);
+          GNUNET_SCHEDULER_cancel (th->notify_delay_task);
           th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
         }
       n = th->neighbour;
@@ -763,8 +756,7 @@ schedule_control_transmit (struct GNUNET_TRANSPORT_Handle *h,
   th->notify_cls = notify_cls;
   th->notify_size = size;
   th->notify_delay_task
-    = GNUNET_SCHEDULER_add_delayed (h->sched,
-                                    timeout, &control_transmit_timeout, th);
+    = GNUNET_SCHEDULER_add_delayed (timeout, &control_transmit_timeout, th);
   if (at_head)
     GNUNET_CONTAINER_DLL_insert (h->control_head,
 				 h->control_tail,
@@ -810,8 +802,7 @@ send_set_quota (void *cls, size_t size, void *buf)
 
   if (buf == NULL)
     {
-      GNUNET_SCHEDULER_add_continuation (sqc->handle->sched,
-                                         sqc->cont,
+      GNUNET_SCHEDULER_add_continuation (sqc->cont,
                                          sqc->cont_cls,
                                          GNUNET_SCHEDULER_REASON_TIMEOUT);
       GNUNET_free (sqc);
@@ -830,8 +821,7 @@ send_set_quota (void *cls, size_t size, void *buf)
   msg->quota = sqc->quota_in;
   memcpy (&msg->peer, &sqc->target, sizeof (struct GNUNET_PeerIdentity));
   if (sqc->cont != NULL)
-    GNUNET_SCHEDULER_add_continuation (sqc->handle->sched,
-                                       sqc->cont,
+    GNUNET_SCHEDULER_add_continuation (sqc->cont,
                                        sqc->cont_cls,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
   GNUNET_free (sqc);
@@ -1192,7 +1182,7 @@ reconnect (void *cls,
 	      "Connecting to transport service.\n");
 #endif
   GNUNET_assert (h->client == NULL);
-  h->client = GNUNET_CLIENT_connect (h->sched, "transport", h->cfg);
+  h->client = GNUNET_CLIENT_connect ("transport", h->cfg);
   GNUNET_assert (h->client != NULL);
   /* make sure we don't send "START" twice, remove existing entry from
      queue (if present) */
@@ -1206,7 +1196,7 @@ reconnect (void *cls,
 				       pos);
           if (GNUNET_SCHEDULER_NO_TASK != pos->notify_delay_task)
             {
-              GNUNET_SCHEDULER_cancel (h->sched, pos->notify_delay_task);
+              GNUNET_SCHEDULER_cancel (pos->notify_delay_task);
               pos->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
             }
           GNUNET_free (pos);
@@ -1240,8 +1230,7 @@ schedule_reconnect (struct GNUNET_TRANSPORT_Handle *h)
   GNUNET_assert (h->client == NULL);
   GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
   h->reconnect_task
-    = GNUNET_SCHEDULER_add_delayed (h->sched,
-                                    h->reconnect_delay, &reconnect, h);
+    = GNUNET_SCHEDULER_add_delayed (h->reconnect_delay, &reconnect, h);
   if (h->reconnect_delay.rel_value == 0)
     {
       h->reconnect_delay = GNUNET_TIME_UNIT_MILLISECONDS;
@@ -1353,7 +1342,6 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
  * Connect to the transport service.  Note that the connection may
  * complete (or fail) asynchronously.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param self our own identity (API should check that it matches
  *             the identity found by transport), or NULL (no check)
@@ -1363,8 +1351,7 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
  * @param nd function to call on disconnect events
  */
 struct GNUNET_TRANSPORT_Handle *
-GNUNET_TRANSPORT_connect (struct GNUNET_SCHEDULER_Handle *sched,
-                          const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_TRANSPORT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			  const struct GNUNET_PeerIdentity *self,
                           void *cls,
                           GNUNET_TRANSPORT_ReceiveCallback rec,
@@ -1379,7 +1366,6 @@ GNUNET_TRANSPORT_connect (struct GNUNET_SCHEDULER_Handle *sched,
       ret->self = *self;
       ret->check_self = GNUNET_YES;
     }
-  ret->sched = sched;
   ret->cfg = cfg;
   ret->cls = cls;
   ret->rec = rec;
@@ -1421,8 +1407,7 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
 	  th = &n->transmit_handle;
 	  if (th->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
 	    {
-	      GNUNET_SCHEDULER_cancel (handle->sched,
-				       th->notify_delay_task);
+	      GNUNET_SCHEDULER_cancel (th->notify_delay_task);
 	      th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
 	    }
 	  GNUNET_assert (0 == th->notify (th->notify_cls, 0, NULL));
@@ -1454,7 +1439,7 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
 #endif
       if (cm->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
         {
-          GNUNET_SCHEDULER_cancel (handle->sched, cm->notify_delay_task);
+          GNUNET_SCHEDULER_cancel (cm->notify_delay_task);
           cm->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
         }
       GNUNET_CONTAINER_DLL_remove (handle->control_head,
@@ -1466,12 +1451,12 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
 
   if (handle->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (handle->sched, handle->reconnect_task);
+      GNUNET_SCHEDULER_cancel (handle->reconnect_task);
       handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
     }
   if (handle->quota_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (handle->sched, handle->quota_task);
+      GNUNET_SCHEDULER_cancel (handle->quota_task);
       handle->quota_task = GNUNET_SCHEDULER_NO_TASK;
     }
   GNUNET_free_non_null (handle->my_hello);
@@ -1857,7 +1842,7 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
   th->notify_size = size + sizeof (struct OutboundMessage);
   th->priority = priority;
   th->notify_delay_task
-    = GNUNET_SCHEDULER_add_delayed (handle->sched, timeout,
+    = GNUNET_SCHEDULER_add_delayed (timeout,
                                     &peer_transmit_timeout, th);
   schedule_transmission (handle);
   return th;
@@ -1902,8 +1887,7 @@ GNUNET_TRANSPORT_notify_transmit_ready_cancel (struct
     }
   if (th->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (n->h->sched,
-			       th->notify_delay_task);
+      GNUNET_SCHEDULER_cancel (th->notify_delay_task);
       th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
     }
 }

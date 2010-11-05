@@ -48,8 +48,6 @@ static struct GNUNET_TESTING_Daemon *first;
 
 static struct GNUNET_TESTING_Daemon *last;
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 /**
  * Check whether peers successfully shut down.
  */
@@ -108,8 +106,7 @@ notify_connect_complete(void *cls,
     {
       /* FIXME: check that topology adds a few more links
 	 in addition to those that were seeded */
-      GNUNET_SCHEDULER_add_now (sched,
-				&clean_up_task,
+      GNUNET_SCHEDULER_add_now (&clean_up_task,
 				NULL);
     }
 }
@@ -145,19 +142,17 @@ static void my_cb(void *cls,
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  sched = s;
   ok = 1;
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Starting daemons.\n");
 #endif
   peers_left = NUM_PEERS;
-  pg = GNUNET_TESTING_daemons_start (sched, cfg, 
+  pg = GNUNET_TESTING_daemons_start (cfg,
 				     peers_left,
 				     TIMEOUT,
 				     NULL, NULL,

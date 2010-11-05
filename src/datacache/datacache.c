@@ -116,14 +116,12 @@ env_delete_notify (void *cls,
 /**
  * Create a data cache.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param section section in the configuration that contains our options
  * @return handle to use to access the service
  */
 struct GNUNET_DATACACHE_Handle *
-GNUNET_DATACACHE_create (struct GNUNET_SCHEDULER_Handle *sched,
-			 const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_DATACACHE_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			 const char *section)
 {
   unsigned int bf_size;
@@ -167,11 +165,9 @@ GNUNET_DATACACHE_create (struct GNUNET_SCHEDULER_Handle *sched,
     {
       ret->filter = GNUNET_CONTAINER_bloomfilter_load (NULL, bf_size, 5);  /* approx. 3% false positives at max use */  
     }
-  ret->stats = GNUNET_STATISTICS_create (sched,
-					 "datacache",
+  ret->stats = GNUNET_STATISTICS_create ("datacache",
 					 cfg);
   ret->section = GNUNET_strdup (section);
-  ret->env.sched = sched;
   ret->env.cfg = cfg;
   ret->env.delete_notify = &env_delete_notify;  
   ret->env.section = ret->section;

@@ -50,11 +50,6 @@ static struct MHD_Daemon *daemon_handle_v4;
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
- * Our scheduler.
- */
-static struct GNUNET_SCHEDULER_Handle *sched;
-
-/**
  * For keeping statistics.
  */ 
 static struct GNUNET_STATISTICS_Handle *stats;
@@ -539,8 +534,7 @@ prepare_daemon (struct MHD_Daemon *daemon_handle)
   GNUNET_NETWORK_fdset_copy_native (wrs, &rs, max + 1);
   GNUNET_NETWORK_fdset_copy_native (wws, &ws, max + 1);
   GNUNET_NETWORK_fdset_copy_native (wes, &es, max + 1);
-  ret = GNUNET_SCHEDULER_add_select (sched,
-				     GNUNET_SCHEDULER_PRIORITY_HIGH,
+  ret = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
 				     GNUNET_SCHEDULER_NO_TASK,
 				     tv,
 				     wrs,
@@ -562,7 +556,6 @@ prepare_daemon (struct MHD_Daemon *daemon_handle)
  */
 int
 GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
-			      struct GNUNET_SCHEDULER_Handle *s,
 			      struct GNUNET_STATISTICS_Handle *st,
 			      struct GNUNET_CORE_Handle *co,
 	                      GNUNET_CORE_ConnectEventHandler *server_ch,
@@ -580,10 +573,9 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
   else
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Advertising enabled on this hostlist server\n");
-  sched = s;
   cfg = c;
   stats = st;
-  peerinfo = GNUNET_PEERINFO_connect (sched, cfg);
+  peerinfo = GNUNET_PEERINFO_connect (cfg);
   if (peerinfo == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -682,7 +674,7 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
   if (daemon_handle_v6 != NULL)
     hostlist_task_v6 = prepare_daemon (daemon_handle_v6);
 
-  notify = GNUNET_PEERINFO_notify ( cfg, sched, process_notify, NULL);
+  notify = GNUNET_PEERINFO_notify ( cfg, process_notify, NULL);
 
   return GNUNET_OK;
 }
@@ -704,12 +696,12 @@ GNUNET_HOSTLIST_server_stop ()
     }
   if (GNUNET_SCHEDULER_NO_TASK != hostlist_task_v6)
     {
-      GNUNET_SCHEDULER_cancel (sched, hostlist_task_v6);
+      GNUNET_SCHEDULER_cancel (hostlist_task_v6);
       hostlist_task_v6 = GNUNET_SCHEDULER_NO_TASK;
     }
   if (GNUNET_SCHEDULER_NO_TASK != hostlist_task_v4)
     {
-      GNUNET_SCHEDULER_cancel (sched, hostlist_task_v4);
+      GNUNET_SCHEDULER_cancel (hostlist_task_v4);
       hostlist_task_v4 = GNUNET_SCHEDULER_NO_TASK;
     }
   if (pitr != NULL)
@@ -738,7 +730,6 @@ GNUNET_HOSTLIST_server_stop ()
       peerinfo = NULL;
     }
   cfg = NULL;
-  sched = NULL;
   stats = NULL;
   core = NULL;
 }

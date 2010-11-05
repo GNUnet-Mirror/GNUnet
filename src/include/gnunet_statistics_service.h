@@ -70,14 +70,12 @@ typedef int (*GNUNET_STATISTICS_Iterator) (void *cls,
 /**
  * Get handle for the statistics service.
  *
- * @param sched scheduler to use
  * @param subsystem name of subsystem using the service
  * @param cfg services configuration in use
  * @return handle to use
  */
 struct GNUNET_STATISTICS_Handle
-  *GNUNET_STATISTICS_create (struct GNUNET_SCHEDULER_Handle *sched,
-                             const char *subsystem,
+  *GNUNET_STATISTICS_create (const char *subsystem,
                              const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 

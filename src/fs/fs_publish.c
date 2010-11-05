@@ -154,8 +154,7 @@ ds_put_cont (void *cls,
   if (GNUNET_SYSERR == pcc->sc->in_network_wait)
     {
       /* we were aborted in the meantime, finish shutdown! */
-      GNUNET_SCHEDULER_add_continuation (pcc->sc->h->sched,					 
-					 &publish_cleanup,
+      GNUNET_SCHEDULER_add_continuation (&publish_cleanup,
 					 pcc->sc,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       GNUNET_free (pcc);
@@ -184,8 +183,7 @@ ds_put_cont (void *cls,
     }
   if (NULL != pcc->cont)
     pcc->sc->upload_task 
-      = GNUNET_SCHEDULER_add_with_priority (pcc->sc->h->sched,
-					    GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+      = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
 					    pcc->cont,
 					    pcc->cont_cls);
   GNUNET_free (pcc);
@@ -365,8 +363,7 @@ publish_kblocks_cont (void *cls,
       GNUNET_FS_file_information_sync_ (p);
       GNUNET_FS_publish_sync_ (pc);
       pc->upload_task 
-	= GNUNET_SCHEDULER_add_with_priority (pc->h->sched,
-					      GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+	= GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
 					      &GNUNET_FS_publish_main_,
 					      pc);
       return;
@@ -384,8 +381,7 @@ publish_kblocks_cont (void *cls,
     pc->fi_pos = p->dir;
   GNUNET_FS_publish_sync_ (pc);
   pc->upload_task 
-    = GNUNET_SCHEDULER_add_with_priority (pc->h->sched,
-					  GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+    = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
 					  &GNUNET_FS_publish_main_,
 					  pc);
 }
@@ -498,8 +494,7 @@ encode_cont (void *cls,
 
   /* continue with main */
   sc->upload_task 
-    = GNUNET_SCHEDULER_add_with_priority (sc->h->sched,
-					  GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+    = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
 					  &GNUNET_FS_publish_main_,
 					  sc);
 }
@@ -539,8 +534,7 @@ block_proc (void *cls,
 		  "Waiting for datastore connection\n");
 #endif
       sc->upload_task
-	= GNUNET_SCHEDULER_add_with_priority (sc->h->sched,
-					      GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+	= GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
 					      &GNUNET_FS_publish_main_,
 					      sc);
       return;
@@ -841,8 +835,7 @@ hash_for_index_cb (void *cls,
 	      p->filename,
 	      GNUNET_h2s (res));
 #endif
-  client = GNUNET_CLIENT_connect (sc->h->sched,
-				  "fs",
+  client = GNUNET_CLIENT_connect ("fs",
 				  sc->h->cfg);
   if (NULL == client)
     {
@@ -1038,8 +1031,7 @@ GNUNET_FS_publish_main_ (void *cls,
       else
 	{
 	  p->start_time = GNUNET_TIME_absolute_get ();
-	  pc->fhc = GNUNET_CRYPTO_hash_file (pc->h->sched,
-					     GNUNET_SCHEDULER_PRIORITY_IDLE,
+	  pc->fhc = GNUNET_CRYPTO_hash_file (GNUNET_SCHEDULER_PRIORITY_IDLE,
 					     p->filename,
 					     HASHING_BLOCKSIZE,
 					     &hash_for_index_cb,
@@ -1180,7 +1172,7 @@ GNUNET_FS_publish_signal_suspend_ (void *cls)
 
   if (GNUNET_SCHEDULER_NO_TASK != pc->upload_task)
     {
-      GNUNET_SCHEDULER_cancel (pc->h->sched, pc->upload_task);
+      GNUNET_SCHEDULER_cancel (pc->upload_task);
       pc->upload_task = GNUNET_SCHEDULER_NO_TASK;
     }
   GNUNET_FS_file_information_inspect (pc->fi,
@@ -1220,8 +1212,7 @@ finish_reserve (void *cls,
     }
   pc->rid = success;
   pc->upload_task 
-    = GNUNET_SCHEDULER_add_with_priority (pc->h->sched,
-					  GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+    = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
 					  &GNUNET_FS_publish_main_,
 					  pc);
 }
@@ -1254,8 +1245,7 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
   GNUNET_assert (NULL != h);
   if (0 == (options & GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY))
     {
-      dsh = GNUNET_DATASTORE_connect (h->cfg,
-				      h->sched);
+      dsh = GNUNET_DATASTORE_connect (h->cfg);
       if (NULL == dsh)
 	return NULL;
     }
@@ -1301,8 +1291,7 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
   else
     {
       ret->upload_task 
-	= GNUNET_SCHEDULER_add_with_priority (h->sched,
-					      GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+	= GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
 					      &GNUNET_FS_publish_main_,
 					      ret);
     }
@@ -1382,7 +1371,7 @@ GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *pc)
     }
   if (GNUNET_SCHEDULER_NO_TASK != pc->upload_task)
     {
-      GNUNET_SCHEDULER_cancel (pc->h->sched, pc->upload_task);
+      GNUNET_SCHEDULER_cancel (pc->upload_task);
       pc->upload_task = GNUNET_SCHEDULER_NO_TASK;
     }
   if (pc->serialization != NULL) 
@@ -1524,8 +1513,7 @@ kb_put_cont (void *cls,
       GNUNET_free (pkc);
       return;
     }
-  GNUNET_SCHEDULER_add_continuation (pkc->h->sched,
-				     &publish_ksk_cont,
+  GNUNET_SCHEDULER_add_continuation (&publish_ksk_cont,
 				     pkc,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
@@ -1649,8 +1637,7 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
   pkc->cont_cls = cont_cls;
   if (0 == (options & GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY))
     {
-      pkc->dsh = GNUNET_DATASTORE_connect (h->cfg,
-					   h->sched);
+      pkc->dsh = GNUNET_DATASTORE_connect (h->cfg);
       if (pkc->dsh == NULL)
 	{
 	  cont (cont_cls, NULL, _("Could not connect to datastore."));
@@ -1703,8 +1690,7 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
 				  pkc->slen);
   pkc->cpy->purpose.purpose = htonl(GNUNET_SIGNATURE_PURPOSE_FS_KBLOCK);
   pkc->ksk_uri = GNUNET_FS_uri_dup (ksk_uri);
-  GNUNET_SCHEDULER_add_continuation (h->sched,
-				     &publish_ksk_cont,
+  GNUNET_SCHEDULER_add_continuation (&publish_ksk_cont,
 				     pkc,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }

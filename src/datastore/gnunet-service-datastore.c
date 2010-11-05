@@ -179,10 +179,6 @@ static GNUNET_SCHEDULER_TaskIdentifier expired_kill_task;
  */
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-/**
- * Our scheduler.
- */
-struct GNUNET_SCHEDULER_Handle *sched; 
 
 /**
  * Handle for reporting statistics.
@@ -343,8 +339,7 @@ expired_processor (void *cls,
   if (key == NULL) 
     {
       expired_kill_task 
-	= GNUNET_SCHEDULER_add_delayed (sched,
-					MAX_EXPIRE_DELAY,
+	= GNUNET_SCHEDULER_add_delayed (MAX_EXPIRE_DELAY,
 					&delete_expired,
 					NULL);
       return GNUNET_SYSERR;
@@ -1527,7 +1522,6 @@ load_plugin ()
     }
   ret = GNUNET_malloc (sizeof(struct DatastorePlugin));
   ret->env.cfg = cfg;
-  ret->env.sched = sched;  
   ret->env.duc = &disk_utilization_change_cb;
   ret->env.cls = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -1625,12 +1619,10 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
   if (expired_kill_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (sched,
-			       expired_kill_task);
+      GNUNET_SCHEDULER_cancel (expired_kill_task);
       expired_kill_task = GNUNET_SCHEDULER_NO_TASK;
     }
-  GNUNET_SCHEDULER_add_continuation (sched,
-				     &unload_task,
+  GNUNET_SCHEDULER_add_continuation (&unload_task,
 				     NULL,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
@@ -1686,13 +1678,11 @@ cleanup_reservations (void *cls,
  * Process datastore requests.
  *
  * @param cls closure
- * @param s scheduler to use
  * @param server the initialized server
  * @param c configuration to use
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
@@ -1717,7 +1707,6 @@ run (void *cls,
   char *fn;
   unsigned int bf_size;
 
-  sched = s;
   cfg = c;
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg,
@@ -1729,7 +1718,7 @@ run (void *cls,
 		  "DATASTORE");
       return;
     }
-  stats = GNUNET_STATISTICS_create (sched, "datastore", cfg);
+  stats = GNUNET_STATISTICS_create ("datastore", cfg);
   GNUNET_STATISTICS_set (stats,
 			 gettext_noop ("# quota"),
 			 quota,
@@ -1790,11 +1779,9 @@ run (void *cls,
   GNUNET_SERVER_disconnect_notify (server, &cleanup_reservations, NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
   expired_kill_task
-    = GNUNET_SCHEDULER_add_with_priority (sched,
-					  GNUNET_SCHEDULER_PRIORITY_IDLE,
+    = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
 					  &delete_expired, NULL);
-  GNUNET_SCHEDULER_add_delayed (sched,
-                                GNUNET_TIME_UNIT_FOREVER_REL,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &cleaning_task, NULL);
 }
 

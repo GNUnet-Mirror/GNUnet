@@ -219,7 +219,7 @@ check_rootserver_name(void *cls, const char *hostname)
 }
 
 static void
-run(void *cls, struct GNUNET_SCHEDULER_Handle *sched, char * const *args,
+run(void *cls, char * const *args,
     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   int *ok = cls;
@@ -232,13 +232,13 @@ run(void *cls, struct GNUNET_SCHEDULER_Handle *sched, char * const *args,
   memset(&sa, 0, sizeof(sa));
   sa.sin_family = AF_INET;
   sa.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-  GNUNET_RESOLVER_ip_get(sched, cfg, "localhost", AF_INET, timeout, &check_127,
+  GNUNET_RESOLVER_ip_get(cfg, "localhost", AF_INET, timeout, &check_127,
       cls);
-  GNUNET_RESOLVER_hostname_get(sched, cfg, (const struct sockaddr *) &sa,
+  GNUNET_RESOLVER_hostname_get(cfg, (const struct sockaddr *) &sa,
       sizeof(struct sockaddr), GNUNET_YES, timeout, &check_localhost, cls);
-  GNUNET_RESOLVER_hostname_get(sched, cfg, (const struct sockaddr *) &sa,
+  GNUNET_RESOLVER_hostname_get(cfg, (const struct sockaddr *) &sa,
       sizeof(struct sockaddr), GNUNET_NO, timeout, &check_localhost_num, cls);
-  GNUNET_RESOLVER_hostname_resolve(sched, cfg, AF_UNSPEC, timeout,
+  GNUNET_RESOLVER_hostname_resolve(cfg, AF_UNSPEC, timeout,
       &check_hostname, cls);
 
 
@@ -297,7 +297,7 @@ run(void *cls, struct GNUNET_SCHEDULER_Handle *sched, char * const *args,
 #endif
 
   /* Resolve the same using GNUNET */
-  GNUNET_RESOLVER_ip_get(sched, cfg, ROOTSERVER_NAME, AF_INET, timeout,
+  GNUNET_RESOLVER_ip_get(cfg, ROOTSERVER_NAME, AF_INET, timeout,
       &check_rootserver_ip, cls);
 
   /*
@@ -350,7 +350,7 @@ run(void *cls, struct GNUNET_SCHEDULER_Handle *sched, char * const *args,
 #else
   sa.sin_addr.S_un.S_addr = inet_addr(ROOTSERVER_IP);
 #endif
-  GNUNET_RESOLVER_hostname_get(sched, cfg, (const struct sockaddr *) &sa,
+  GNUNET_RESOLVER_hostname_get(cfg, (const struct sockaddr *) &sa,
       sizeof(struct sockaddr), GNUNET_YES, timeout, &check_rootserver_name, cls);
 }
 

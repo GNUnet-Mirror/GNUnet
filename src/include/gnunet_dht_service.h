@@ -99,15 +99,13 @@ enum GNUNET_DHT_RouteOption
 /**
  * Initialize the connection with the DHT service.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param ht_len size of the internal hash table to use for
  *               processing multiple GET/FIND requests in parallel
  * @return NULL on error
  */
 struct GNUNET_DHT_Handle *
-GNUNET_DHT_connect (struct GNUNET_SCHEDULER_Handle *sched,
-                    const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_DHT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                     unsigned int ht_len);
 
 

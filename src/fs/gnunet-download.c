@@ -38,8 +38,6 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static struct GNUNET_FS_Handle *ctx;
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static struct GNUNET_FS_DownloadContext *dc;
 
 static unsigned int anonymity = 1;
@@ -122,7 +120,7 @@ progress_cb (void *cls,
       fprintf (stderr,
 	       _("Error downloading: %s.\n"),
 	       info->value.download.specifics.error.message);
-      GNUNET_SCHEDULER_shutdown (sched);
+      GNUNET_SCHEDULER_shutdown ();
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
       s = GNUNET_STRINGS_byte_size_fancy(info->value.download.completed * 1000 / (info->value.download.duration.rel_value + 1));
@@ -132,12 +130,11 @@ progress_cb (void *cls,
 	       s);
       GNUNET_free (s);
       if (info->value.download.dc == dc)
-	GNUNET_SCHEDULER_shutdown (sched);
+	GNUNET_SCHEDULER_shutdown ();
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_STOPPED: 
       if (info->value.download.dc == dc)
-	GNUNET_SCHEDULER_add_continuation (sched,
-					   &cleanup_task,
+	GNUNET_SCHEDULER_add_continuation (&cleanup_task,
 					   NULL,
 					   GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;      
@@ -158,14 +155,12 @@ progress_cb (void *cls,
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
- * @param s the scheduler to use
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param c configuration
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
@@ -174,7 +169,6 @@ run (void *cls,
   char *emsg;
   enum GNUNET_FS_DownloadOptions options;
 
-  sched = s;
   uri = GNUNET_FS_uri_parse (args[0],
 			     &emsg);
   if (NULL == uri)
@@ -204,8 +198,7 @@ run (void *cls,
       return;		 
     }
   cfg = c;
-  ctx = GNUNET_FS_start (sched,
-			 cfg,
+  ctx = GNUNET_FS_start (cfg,
 			 "gnunet-download",
 			 &progress_cb,
 			 NULL,
@@ -246,8 +239,7 @@ run (void *cls,
       ctx = NULL;
       return;
     }
-  GNUNET_SCHEDULER_add_delayed (sched,
-				GNUNET_TIME_UNIT_FOREVER_REL,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&shutdown_task,
 				NULL);
 }

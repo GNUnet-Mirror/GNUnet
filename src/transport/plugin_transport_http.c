@@ -880,14 +880,14 @@ static void mhd_write_mst_cb (void *cls,
 								        					  0);
   pc->delay = delay;
   if (pc->reset_task != GNUNET_SCHEDULER_NO_TASK)
-	GNUNET_SCHEDULER_cancel (pc->plugin->env->sched, pc->reset_task);
+	GNUNET_SCHEDULER_cancel (pc->reset_task);
 
   if (delay.rel_value > 0)
   {
 #if DEBUG_HTTP
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: Inbound quota management: delay next read for %llu ms \n", ps, delay.rel_value);
 #endif
-	pc->reset_task = GNUNET_SCHEDULER_add_delayed (pc->plugin->env->sched, delay, &reset_inbound_quota_delay, pc);
+	pc->reset_task = GNUNET_SCHEDULER_add_delayed (delay, &reset_inbound_quota_delay, pc);
   }
 }
 
@@ -1274,12 +1274,11 @@ http_server_daemon_prepare (struct Plugin *plugin , struct MHD_Daemon *daemon_ha
   {
 	if (plugin->http_server_task_v4 != GNUNET_SCHEDULER_NO_TASK)
 	{
-		GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_server_task_v4);
+		GNUNET_SCHEDULER_cancel(plugin->http_server_task_v4);
 		plugin->http_server_daemon_v4 = GNUNET_SCHEDULER_NO_TASK;
 	}
 
-    ret = GNUNET_SCHEDULER_add_select (plugin->env->sched,
-                                       GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+    ret = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                        GNUNET_SCHEDULER_NO_TASK,
                                        tv,
                                        wrs,
@@ -1291,12 +1290,11 @@ http_server_daemon_prepare (struct Plugin *plugin , struct MHD_Daemon *daemon_ha
   {
 	if (plugin->http_server_task_v6 != GNUNET_SCHEDULER_NO_TASK)
 	{
-		GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_server_task_v6);
+		GNUNET_SCHEDULER_cancel(plugin->http_server_task_v6);
 		plugin->http_server_task_v6 = GNUNET_SCHEDULER_NO_TASK;
 	}
 
-    ret = GNUNET_SCHEDULER_add_select (plugin->env->sched,
-                                       GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+    ret = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                        GNUNET_SCHEDULER_NO_TASK,
                                        tv,
                                        wrs,
@@ -1586,14 +1584,14 @@ static void curl_receive_mst_cb  (void *cls,
 
   pc->delay = delay;
   if (pc->reset_task != GNUNET_SCHEDULER_NO_TASK)
-	GNUNET_SCHEDULER_cancel (pc->plugin->env->sched, pc->reset_task);
+	GNUNET_SCHEDULER_cancel (pc->reset_task);
 
   if (delay.rel_value > 0)
   {
 #if DEBUG_HTTP
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: Inbound quota management: delay next read for %llu ms \n", ps, delay.abs_value);
 #endif
-	pc->reset_task = GNUNET_SCHEDULER_add_delayed (pc->plugin->env->sched, delay, &reset_inbound_quota_delay, pc);
+	pc->reset_task = GNUNET_SCHEDULER_add_delayed (delay, &reset_inbound_quota_delay, pc);
   }
 }
 
@@ -1820,7 +1818,7 @@ static int curl_schedule(struct Plugin *plugin)
   /* Cancel previous scheduled task */
   if (plugin->http_curl_task !=  GNUNET_SCHEDULER_NO_TASK)
   {
-	  GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_curl_task);
+	  GNUNET_SCHEDULER_cancel(plugin->http_curl_task);
 	  plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
@@ -1851,8 +1849,7 @@ static int curl_schedule(struct Plugin *plugin)
   gws = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
   GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
-  plugin->http_curl_task = GNUNET_SCHEDULER_add_select (plugin->env->sched,
-                                   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+  plugin->http_curl_task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                    GNUNET_SCHEDULER_NO_TASK,
 								    (to == -1) ? GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5) : GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, to),
                                    grs,
@@ -1958,10 +1955,10 @@ static int send_check_connections (struct Plugin *plugin, struct Session *ps)
         }
 		if (plugin->http_curl_task !=  GNUNET_SCHEDULER_NO_TASK)
 		{
-		  GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_curl_task);
+		  GNUNET_SCHEDULER_cancel(plugin->http_curl_task);
 		  plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
 		}
-		plugin->http_curl_task = GNUNET_SCHEDULER_add_now (plugin->env->sched, &curl_perform, plugin);
+		plugin->http_curl_task = GNUNET_SCHEDULER_add_now (&curl_perform, plugin);
     }
 
     /* waiting for receive direction */
@@ -1989,10 +1986,10 @@ static int send_check_connections (struct Plugin *plugin, struct Session *ps)
 			ps->send_active=GNUNET_YES;
 			if (plugin->http_curl_task !=  GNUNET_SCHEDULER_NO_TASK)
 			{
-			  GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_curl_task);
+			  GNUNET_SCHEDULER_cancel(plugin->http_curl_task);
 			  plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
 			}
-			plugin->http_curl_task = GNUNET_SCHEDULER_add_now (plugin->env->sched, &curl_perform, plugin);
+			plugin->http_curl_task = GNUNET_SCHEDULER_add_now (&curl_perform, plugin);
 			return GNUNET_YES;
         }
         else
@@ -2058,10 +2055,10 @@ static int send_check_connections (struct Plugin *plugin, struct Session *ps)
     }
 	if (plugin->http_curl_task !=  GNUNET_SCHEDULER_NO_TASK)
 	{
-	  GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_curl_task);
+	  GNUNET_SCHEDULER_cancel(plugin->http_curl_task);
 	  plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
 	}
-	plugin->http_curl_task = GNUNET_SCHEDULER_add_now (plugin->env->sched, &curl_perform, plugin);
+	plugin->http_curl_task = GNUNET_SCHEDULER_add_now (&curl_perform, plugin);
     return GNUNET_YES;
   }
   if (ps->direction == INBOUND)
@@ -2658,13 +2655,13 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
 
   if ( plugin->http_server_task_v4 != GNUNET_SCHEDULER_NO_TASK)
   {
-    GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_server_task_v4);
+    GNUNET_SCHEDULER_cancel(plugin->http_server_task_v4);
     plugin->http_server_task_v4 = GNUNET_SCHEDULER_NO_TASK;
   }
 
   if ( plugin->http_server_task_v6 != GNUNET_SCHEDULER_NO_TASK)
   {
-    GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_server_task_v6);
+    GNUNET_SCHEDULER_cancel(plugin->http_server_task_v6);
     plugin->http_server_task_v6 = GNUNET_SCHEDULER_NO_TASK;
   }
 
@@ -2703,7 +2700,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
 
   if ( plugin->http_curl_task != GNUNET_SCHEDULER_NO_TASK)
   {
-    GNUNET_SCHEDULER_cancel(plugin->env->sched, plugin->http_curl_task);
+    GNUNET_SCHEDULER_cancel(plugin->http_curl_task);
     plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
   }
 

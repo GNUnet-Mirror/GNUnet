@@ -94,7 +94,6 @@ typedef void (*UPNP_command_cb_) (char *response, size_t received, void *cls);
 /**
  * Send UPnP command to the device identified by url and service.
  * 
- * @param sched scheduler to use for network tasks
  * @param url control URL of the device
  * @param service type of the service corresponding to the command
  * @param action action to send
@@ -102,8 +101,7 @@ typedef void (*UPNP_command_cb_) (char *response, size_t received, void *cls);
  * @param caller_cb user callback to trigger when done
  * @param caller_cls closure to pass to caller_cb
  */
-void UPNP_command_ (struct GNUNET_SCHEDULER_Handle *sched,
-                    const char *url, const char *service,
+void UPNP_command_ (const char *url, const char *service,
                     const char *action, struct UPNP_Arg_ *args,
                     char *buffer, size_t buf_size,
                     UPNP_command_cb_ caller_cb, void *caller_cls);
@@ -127,15 +125,13 @@ typedef void (*UPNP_get_external_ip_address_cb_) (int error,
  * Get the IP address associated with the WAN connection of the device.
  * See UPNP_get_external_ip_address_cb_.
  *
- * @param sched the scheduler to use for networking
  * @param control_url the control URL corresponding to service_type on the device
  * @param service_type service type to call the command on
  * @param caller_cb function to call when done
  * @param cls closure passed to caller_cb
  */
 void
-UPNP_get_external_ip_address_ (struct GNUNET_SCHEDULER_Handle *sched,
-                               const char *control_url,
+UPNP_get_external_ip_address_ (const char *control_url,
                                const char *service_type,
                                UPNP_get_external_ip_address_cb_ caller_cb,
                                void *caller_cls);
@@ -185,7 +181,6 @@ typedef void (*UPNP_port_mapping_cb_) (int error,
  * Request opening a port on the IGD device.
  * (remote_host is usually NULL because IGDs don't support it.)
  *
- * @param sched the scheduler to use for networking
  * @param control_url the control URL corresponding to service_type on the device
  * @param service_type service type to call the command on
  * @param ext_port port that should be opened on the WAN side
@@ -197,8 +192,7 @@ typedef void (*UPNP_port_mapping_cb_) (int error,
  * @param cls closure passed to caller_cb
  */
 void
-UPNP_add_port_mapping_ (struct GNUNET_SCHEDULER_Handle *sched,
-                        const char *control_url, const char *service_type,
+UPNP_add_port_mapping_ (const char *control_url, const char *service_type,
                         const char *ext_port,
                         const char *in_port,
                         const char *in_client,
@@ -212,7 +206,6 @@ UPNP_add_port_mapping_ (struct GNUNET_SCHEDULER_Handle *sched,
  * used when opening the port.
  * (remote_host is usually NULL because IGDs don't support it.)
  *
- * @param sched the scheduler to use for networking
  * @param control_url the control URL the command was called on
  * @param service_type service the command was called on
  * @param in_port port on the gateway on the LAN side which was requested
@@ -223,8 +216,7 @@ UPNP_add_port_mapping_ (struct GNUNET_SCHEDULER_Handle *sched,
  * @param cls closure passed to caller_cb
  */
 void
-UPNP_delete_port_mapping_ (struct GNUNET_SCHEDULER_Handle *sched,
-                           const char *control_url, const char *service_type,
+UPNP_delete_port_mapping_ (const char *control_url, const char *service_type,
                            const char *ext_port, const char *proto,
                            const char *remote_host,
                            UPNP_port_mapping_cb_ caller_cb, void *caller_cls);
@@ -259,7 +251,6 @@ typedef void (*UPNP_get_specific_port_mapping_entry_cb_) (int error,
  * Check that a port mapping set up with UPNP_add_port_mapping_()
  * is alive.
  *
- * @param sched the scheduler to use for networking
  * @param control_url the control URL the command was called on
  * @param service_type service the command was called on
  * @param in_port port on the gateway on the LAN side which was requested
@@ -270,8 +261,7 @@ typedef void (*UPNP_get_specific_port_mapping_entry_cb_) (int error,
  * @param cls closure passed to caller_cb
  */
 void
-UPNP_get_specific_port_mapping_entry_ (struct GNUNET_SCHEDULER_Handle *sched,
-                                       const char *control_url,
+UPNP_get_specific_port_mapping_entry_ (const char *control_url,
                                        const char *service_type,
                                        const char *ext_port,
                                        const char *proto,

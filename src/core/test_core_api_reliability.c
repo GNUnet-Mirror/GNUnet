@@ -82,8 +82,6 @@ static struct PeerContext p1;
 
 static struct PeerContext p2;
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static int ok;
 
 #if VERBOSE
@@ -235,8 +233,8 @@ process_mtype (void *cls,
 		  n, s,
 		  ntohs (message->size),
 		  ntohl (hdr->num));
-      GNUNET_SCHEDULER_cancel (sched, err_task);
-      err_task = GNUNET_SCHEDULER_add_now (sched, &terminate_task_error, NULL);
+      GNUNET_SCHEDULER_cancel (err_task);
+      err_task = GNUNET_SCHEDULER_add_now (&terminate_task_error, NULL);
       return GNUNET_SYSERR;
     }
   if (ntohl (hdr->num) != n)
@@ -246,8 +244,8 @@ process_mtype (void *cls,
 		  n, s,
 		  ntohs (message->size),
 		  ntohl (hdr->num));
-      GNUNET_SCHEDULER_cancel (sched, err_task);
-      err_task = GNUNET_SCHEDULER_add_now (sched, &terminate_task_error, NULL);
+      GNUNET_SCHEDULER_cancel (err_task);
+      err_task = GNUNET_SCHEDULER_add_now (&terminate_task_error, NULL);
       return GNUNET_SYSERR;
     }
 #if VERBOSE
@@ -261,8 +259,8 @@ process_mtype (void *cls,
     fprintf (stderr, ".");
   if (n == TOTAL_MSGS)
     {
-      GNUNET_SCHEDULER_cancel (sched, err_task);
-      GNUNET_SCHEDULER_add_now (sched, &terminate_task, NULL);
+      GNUNET_SCHEDULER_cancel (err_task);
+      GNUNET_SCHEDULER_add_now (&terminate_task, NULL);
     }
   else
     {
@@ -334,10 +332,9 @@ transmit_ready (void *cls, size_t size, void *buf)
 	break; /* sometimes pack buffer full, sometimes not */
     }
   while (size - ret >= s);
-  GNUNET_SCHEDULER_cancel (sched, err_task);
+  GNUNET_SCHEDULER_cancel (err_task);
   err_task = 
-    GNUNET_SCHEDULER_add_delayed (sched,
-				  TIMEOUT,
+    GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 				  &terminate_task_error, 
 				  NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -368,8 +365,7 @@ init_notify (void *cls,
       GNUNET_assert (ok == 2);
       OKPP;
       /* connect p2 */
-      GNUNET_CORE_connect (sched,
-                           p2.cfg,
+      GNUNET_CORE_connect (p2.cfg,
                            TIMEOUT,
                            &p2,
                            &init_notify,			 
@@ -389,8 +385,7 @@ init_notify (void *cls,
                   "Asking core (1) for transmission to peer `%4s'\n",
                   GNUNET_i2s (&p2.id));
       err_task = 
-	GNUNET_SCHEDULER_add_delayed (sched,
-				      TIMEOUT,
+	GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 				      &terminate_task_error, 
 				      NULL);
       start_time = GNUNET_TIME_absolute_get ();
@@ -444,7 +439,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
                                         "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
-  p->th = GNUNET_TRANSPORT_connect (sched, p->cfg, NULL, p, NULL, NULL, NULL);
+  p->th = GNUNET_TRANSPORT_connect (p->cfg, NULL, p, NULL, NULL, NULL);
   GNUNET_assert (p->th != NULL);
   GNUNET_TRANSPORT_get_hello (p->th, &process_hello, p);
 }
@@ -452,18 +447,15 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (ok == 1);
   OKPP;
-  sched = s;
   setup_peer (&p1, "test_core_api_peer1.conf");
   setup_peer (&p2, "test_core_api_peer2.conf");
-  GNUNET_CORE_connect (sched,
-                       p1.cfg,
+  GNUNET_CORE_connect (p1.cfg,
                        TIMEOUT,
                        &p1,
                        &init_notify,

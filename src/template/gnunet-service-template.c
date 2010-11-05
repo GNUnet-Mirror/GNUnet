@@ -46,13 +46,11 @@ cleanup_task (void *cls,
  * Process template requests.
  *
  * @param cls closure
- * @param sched scheduler to use
  * @param server the initialized server
  * @param cfg configuration to use
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *sched,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
@@ -62,8 +60,7 @@ run (void *cls,
   };
   /* FIXME: do setup here */
   GNUNET_SERVER_add_handlers (server, handlers);
-  GNUNET_SCHEDULER_add_delayed (sched,
-				GNUNET_TIME_UNIT_FOREVER_REL,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&cleanup_task,
 				NULL);
 }

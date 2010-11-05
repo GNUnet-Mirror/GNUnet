@@ -61,8 +61,6 @@ static struct PeerContext p1;
 
 static struct GNUNET_TIME_Absolute start;
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static struct GNUNET_FS_Handle *fs;
 
 static struct GNUNET_FS_SearchContext *search;
@@ -124,8 +122,7 @@ progress_cb (void *cls,
 #if VERBOSE
       printf ("Search complete.\n");
 #endif
-      GNUNET_SCHEDULER_add_continuation (sched,
-					 &abort_search_task,
+      GNUNET_SCHEDULER_add_continuation (&abort_search_task,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
@@ -134,8 +131,7 @@ progress_cb (void *cls,
 	       "Error publishing file: %s\n",
 	       event->value.publish.specifics.error.message);
       GNUNET_break (0);
-      GNUNET_SCHEDULER_add_continuation (sched,
-					 &abort_publish_task,
+      GNUNET_SCHEDULER_add_continuation (&abort_publish_task,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
@@ -143,8 +139,7 @@ progress_cb (void *cls,
       fprintf (stderr,
 	       "Error searching file: %s\n",
 	       event->value.search.specifics.error.message);
-      GNUNET_SCHEDULER_add_continuation (sched,
-					 &abort_search_task,
+      GNUNET_SCHEDULER_add_continuation (&abort_search_task,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
@@ -171,8 +166,7 @@ progress_cb (void *cls,
       break;
     case GNUNET_FS_STATUS_SEARCH_STOPPED:
       GNUNET_assert (search == event->value.search.sc);
-      GNUNET_SCHEDULER_add_continuation (sched,
-					 &abort_publish_task,
+      GNUNET_SCHEDULER_add_continuation (&abort_publish_task,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
@@ -221,7 +215,6 @@ stop_arm (struct PeerContext *p)
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -236,10 +229,8 @@ run (void *cls,
   struct GNUNET_FS_FileInformation *fi;
   size_t i;
 
-  sched = s;
   setup_peer (&p1, "test_fs_search_data.conf");
-  fs = GNUNET_FS_start (sched,
-			cfg,
+  fs = GNUNET_FS_start (cfg,
 			"test-fs-search",
 			&progress_cb,
 			NULL,

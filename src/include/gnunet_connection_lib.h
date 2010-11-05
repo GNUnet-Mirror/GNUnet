@@ -99,15 +99,11 @@ GNUNET_CONNECTION_persist_(struct GNUNET_CONNECTION_Handle *sock);
  * socket should henceforth be no longer used directly.
  * GNUNET_socket_destroy will close it.
  *
- * @param sched scheduler to use
  * @param osSocket existing socket to box
  * @return the boxed socket handle
  */
 struct GNUNET_CONNECTION_Handle
   *GNUNET_CONNECTION_create_from_existing (struct
-                                                   GNUNET_SCHEDULER_Handle
-                                                   *sched,
-                                                   struct
                                                    GNUNET_NETWORK_Handle
                                                    *osSocket);
 
@@ -116,17 +112,13 @@ struct GNUNET_CONNECTION_Handle
  * Create a socket handle by accepting on a listen socket.  This
  * function may block if the listen socket has no connection ready.
  *
- * @param sched scheduler to use
  * @param access function to use to check if access is allowed
  * @param access_cls closure for access
  * @param lsock listen socket
  * @return the socket handle, NULL on error (for example, access refused)
  */
 struct GNUNET_CONNECTION_Handle
-  *GNUNET_CONNECTION_create_from_accept (struct
-                                                 GNUNET_SCHEDULER_Handle
-                                                 *sched,
-                                                 GNUNET_CONNECTION_AccessCheck
+  *GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck
                                                  access, void *access_cls,
                                                  struct
                                                  GNUNET_NETWORK_Handle
@@ -138,15 +130,13 @@ struct GNUNET_CONNECTION_Handle
  * This function returns immediately, even if the connection has not
  * yet been established.  This function only creates TCP connections.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param hostname name of the host to connect to
  * @param port port to connect to
  * @return the socket handle
  */
 struct GNUNET_CONNECTION_Handle
-  *GNUNET_CONNECTION_create_from_connect (struct GNUNET_SCHEDULER_Handle *sched,
-					  const struct GNUNET_CONFIGURATION_Handle *cfg,
+  *GNUNET_CONNECTION_create_from_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 					  const char *hostname,
 					  uint16_t port);
 
@@ -156,14 +146,12 @@ struct GNUNET_CONNECTION_Handle
  * This function returns immediately, even if the connection has not
  * yet been established.  This function only creates UNIX connections.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param unixpath path to connect to)
  * @return the socket handle, NULL on systems without UNIX support
  */
 struct GNUNET_CONNECTION_Handle *
-GNUNET_CONNECTION_create_from_connect_to_unixpath (struct GNUNET_SCHEDULER_Handle *sched,
-						   const struct
+GNUNET_CONNECTION_create_from_connect_to_unixpath (const struct
 						   GNUNET_CONFIGURATION_Handle *cfg,
 						   const char *unixpath);
 
@@ -175,16 +163,13 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (struct GNUNET_SCHEDULER_Handl
  * This function returns immediately, even if the connection has not
  * yet been established.  This function only creates TCP connections.
  *
- * @param sched scheduler to use
  * @param af_family address family to use
  * @param serv_addr server address
  * @param addrlen length of server address
  * @return the socket handle
  */
 struct GNUNET_CONNECTION_Handle
-  *GNUNET_CONNECTION_create_from_sockaddr (struct
-                                                   GNUNET_SCHEDULER_Handle
-                                                   *sched, int af_family,
+  *GNUNET_CONNECTION_create_from_sockaddr (int af_family,
                                                    const struct sockaddr
                                                    *serv_addr,
                                                    socklen_t addrlen);

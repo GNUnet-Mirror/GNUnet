@@ -60,8 +60,6 @@ static struct PeerContext p1;
 
 static struct GNUNET_TIME_Absolute start;
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static struct GNUNET_FS_Handle *fs;
 
 static struct GNUNET_FS_UnindexContext *unindex;
@@ -120,8 +118,7 @@ progress_cb (void *cls,
     case GNUNET_FS_STATUS_UNINDEX_COMPLETED:
       printf ("Unindex complete,  %llu kbps.\n",
 	      (unsigned long long) (FILESIZE * 1000 / (1+GNUNET_TIME_absolute_get_duration (start).rel_value) / 1024));
-      GNUNET_SCHEDULER_add_continuation (sched,
-					 &abort_unindex_task,
+      GNUNET_SCHEDULER_add_continuation (&abort_unindex_task,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
@@ -140,8 +137,7 @@ progress_cb (void *cls,
 	       "Error publishing file: %s\n",
 	       event->value.publish.specifics.error.message);
       GNUNET_break (0);
-      GNUNET_SCHEDULER_add_continuation (sched,
-					 &abort_publish_task,
+      GNUNET_SCHEDULER_add_continuation (&abort_publish_task,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
@@ -149,8 +145,7 @@ progress_cb (void *cls,
       fprintf (stderr,
 	       "Error unindexing file: %s\n",
 	       event->value.unindex.specifics.error.message);
-      GNUNET_SCHEDULER_add_continuation (sched,
-					 &abort_unindex_task,
+      GNUNET_SCHEDULER_add_continuation (&abort_unindex_task,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
@@ -177,8 +172,7 @@ progress_cb (void *cls,
       break;
     case GNUNET_FS_STATUS_UNINDEX_STOPPED:
       GNUNET_assert (unindex == event->value.unindex.uc);
-      GNUNET_SCHEDULER_add_continuation (sched,
-					 &abort_publish_task,
+      GNUNET_SCHEDULER_add_continuation (&abort_publish_task,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
@@ -226,7 +220,6 @@ stop_arm (struct PeerContext *p)
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -241,11 +234,9 @@ run (void *cls,
   struct GNUNET_FS_FileInformation *fi;
   size_t i;
 
-  sched = s;
   setup_peer (&p1, "test_fs_unindex_data.conf");
   fn = GNUNET_DISK_mktemp ("gnunet-unindex-test-dst");
-  fs = GNUNET_FS_start (sched,
-			cfg,
+  fs = GNUNET_FS_start (cfg,
 			"test-fs-unindex",
 			&progress_cb,
 			NULL,

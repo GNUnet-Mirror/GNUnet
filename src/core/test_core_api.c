@@ -62,7 +62,6 @@ static struct PeerContext p1;
 
 static struct PeerContext p2;
 
-static struct GNUNET_SCHEDULER_Handle *sched;
 
 static int ok;
 
@@ -168,8 +167,8 @@ process_mtype (void *cls,
               "Receiving message from `%4s'.\n", GNUNET_i2s (peer));
   GNUNET_assert (ok == 5);
   OKPP;
-  GNUNET_SCHEDULER_cancel (sched, err_task);
-  GNUNET_SCHEDULER_add_now (sched, &terminate_task, NULL);
+  GNUNET_SCHEDULER_cancel (err_task);
+  GNUNET_SCHEDULER_add_now (&terminate_task, NULL);
   return GNUNET_OK;
 }
 
@@ -194,8 +193,7 @@ transmit_ready (void *cls, size_t size, void *buf)
   m->type = htons (MTYPE);
   m->size = htons (sizeof (struct GNUNET_MessageHeader));
   err_task = 
-    GNUNET_SCHEDULER_add_delayed (sched,
-        GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 120), &terminate_task_error, NULL);
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 120), &terminate_task_error, NULL);
 
   return sizeof (struct GNUNET_MessageHeader);
 }
@@ -221,8 +219,7 @@ init_notify (void *cls,
       GNUNET_assert (ok == 2);
       OKPP;
       /* connect p2 */
-      GNUNET_CORE_connect (sched,
-                           p2.cfg,
+      GNUNET_CORE_connect (p2.cfg,
                            TIMEOUT,
                            &p2,
                            &init_notify,			 
@@ -297,7 +294,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
                                         "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
-  p->th = GNUNET_TRANSPORT_connect (sched, p->cfg, NULL, p, NULL, NULL, NULL);
+  p->th = GNUNET_TRANSPORT_connect (p->cfg, NULL, p, NULL, NULL, NULL);
   GNUNET_assert (p->th != NULL);
   GNUNET_TRANSPORT_get_hello (p->th, &process_hello, p);
 }
@@ -305,18 +302,15 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (ok == 1);
   OKPP;
-  sched = s;
   setup_peer (&p1, "test_core_api_peer1.conf");
   setup_peer (&p2, "test_core_api_peer2.conf");
-  GNUNET_CORE_connect (sched,
-                       p1.cfg,
+  GNUNET_CORE_connect (p1.cfg,
                        TIMEOUT,
                        &p1,
                        &init_notify,

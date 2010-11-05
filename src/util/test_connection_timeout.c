@@ -107,9 +107,9 @@ task_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 
   ls = open_listen_socket ();
-  lsock = GNUNET_CONNECTION_create_from_existing (tc->sched, ls);
+  lsock = GNUNET_CONNECTION_create_from_existing (ls);
   GNUNET_assert (lsock != NULL);
-  csock = GNUNET_CONNECTION_create_from_connect (tc->sched, cfg,
+  csock = GNUNET_CONNECTION_create_from_connect (cfg,
                                                  "localhost", PORT);
   GNUNET_assert (csock != NULL);
   GNUNET_assert (NULL !=

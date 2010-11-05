@@ -71,12 +71,10 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
  * method to run service-specific setup code.
  *
  * @param cls closure
- * @param sched scheduler to use
  * @param server the initialized server
  * @param cfg configuration to use
  */
 typedef void (*GNUNET_SERVICE_Main) (void *cls,
-                                     struct GNUNET_SCHEDULER_Handle * sched,
                                      struct GNUNET_SERVER_Handle * server,
                                      const struct GNUNET_CONFIGURATION_Handle *
                                      cfg);
@@ -128,14 +126,10 @@ struct GNUNET_SERVICE_Context;
  * initialized system.
  *
  * @param serviceName our service name
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @return NULL on error, service handle
  */
 struct GNUNET_SERVICE_Context *GNUNET_SERVICE_start (const char *serviceName,
-                                                     struct
-                                                     GNUNET_SCHEDULER_Handle
-                                                     *sched,
                                                      const struct
                                                      GNUNET_CONFIGURATION_Handle
                                                      *cfg);

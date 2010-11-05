@@ -163,84 +163,76 @@ struct Task
 
 
 /**
- * Handle for the scheduling service.
- */
-struct GNUNET_SCHEDULER_Handle
-{
+* List of tasks waiting for an event.
+*/
+struct Task *pending;
 
-  /**
-   * List of tasks waiting for an event.
-   */
-  struct Task *pending;
+/**
+* List of tasks waiting ONLY for a timeout event.
+* Sorted by timeout (earliest first).  Used so that
+* we do not traverse the list of these tasks when
+* building select sets (we just look at the head
+* to determine the respective timeout ONCE).
+*/
+struct Task *pending_timeout;
 
-  /**
-   * List of tasks waiting ONLY for a timeout event.
-   * Sorted by timeout (earliest first).  Used so that
-   * we do not traverse the list of these tasks when
-   * building select sets (we just look at the head
-   * to determine the respective timeout ONCE).
-   */
-  struct Task *pending_timeout;
+/**
+* Last inserted task waiting ONLY for a timeout event.
+* Used to (heuristically) speed up insertion.
+*/
+struct Task *pending_timeout_last;
 
-  /**
-   * Last inserted task waiting ONLY for a timeout event.
-   * Used to (heuristically) speed up insertion.
-   */
-  struct Task *pending_timeout_last;
+/**
+* ID of the task that is running right now.
+*/
+struct Task *active_task;
 
-  /**
-   * ID of the task that is running right now.
-   */
-  struct Task *active_task;
+/**
+* List of tasks ready to run right now,
+* grouped by importance.
+*/
+struct Task *ready[GNUNET_SCHEDULER_PRIORITY_COUNT];
 
-  /**
-   * List of tasks ready to run right now,
-   * grouped by importance.
-   */
-  struct Task *ready[GNUNET_SCHEDULER_PRIORITY_COUNT];
+/**
+* Identity of the last task queued.  Incremented for each task to
+* generate a unique task ID (it is virtually impossible to start
+* more than 2^64 tasks during the lifetime of a process).
+*/
+GNUNET_SCHEDULER_TaskIdentifier last_id;
 
-  /**
-   * Identity of the last task queued.  Incremented for each task to
-   * generate a unique task ID (it is virtually impossible to start
-   * more than 2^64 tasks during the lifetime of a process).
-   */
-  GNUNET_SCHEDULER_TaskIdentifier last_id;
+/**
+* Highest number so that all tasks with smaller identifiers
+* have already completed.  Also the lowest number of a task
+* still waiting to be executed.
+*/
+GNUNET_SCHEDULER_TaskIdentifier lowest_pending_id;
 
-  /**
-   * Highest number so that all tasks with smaller identifiers
-   * have already completed.  Also the lowest number of a task
-   * still waiting to be executed.
-   */
-  GNUNET_SCHEDULER_TaskIdentifier lowest_pending_id;
+/**
+* Number of tasks on the ready list.
+*/
+unsigned int ready_count;
 
-  /**
-   * Number of tasks on the ready list.
-   */
-  unsigned int ready_count;
+/**
+* How many tasks have we run so far?
+*/
+unsigned long long tasks_run;
 
-  /**
-   * How many tasks have we run so far?
-   */
-  unsigned long long tasks_run;
+/**
+* Priority of the task running right now.  Only
+* valid while a task is running.
+*/
+enum GNUNET_SCHEDULER_Priority current_priority;
 
-  /**
-   * Priority of the task running right now.  Only
-   * valid while a task is running.
-   */
-  enum GNUNET_SCHEDULER_Priority current_priority;
+/**
+* Priority of the highest task added in the current select
+* iteration.
+*/
+enum GNUNET_SCHEDULER_Priority max_priority_added;
 
-  /**
-   * Priority of the highest task added in the current select
-   * iteration.
-   */
-  enum GNUNET_SCHEDULER_Priority max_priority_added;
-
-  /**
-   * How 'nice' are we right now?
-   */
-  int nice_level;
-
-};
+/**
+* How 'nice' are we right now?
+*/
+int nice_level;
 
 
 /**
@@ -270,17 +262,16 @@ check_priority (enum GNUNET_SCHEDULER_Priority p)
  * @return GNUNET_YES if so, GNUNET_NO if not
  */
 static int
-is_pending (struct GNUNET_SCHEDULER_Handle *sched,
-            GNUNET_SCHEDULER_TaskIdentifier id)
+is_pending (GNUNET_SCHEDULER_TaskIdentifier id)
 {
   struct Task *pos;
   enum GNUNET_SCHEDULER_Priority p;
   GNUNET_SCHEDULER_TaskIdentifier min;
 
-  if (id < sched->lowest_pending_id)
+  if (id < lowest_pending_id)
     return GNUNET_NO;
   min = -1;                     /* maximum value */
-  pos = sched->pending;
+  pos = pending;
   while (pos != NULL)
     {
       if (pos->id == id)
@@ -289,7 +280,7 @@ is_pending (struct GNUNET_SCHEDULER_Handle *sched,
         min = pos->id;
       pos = pos->next;
     }
-  pos = sched->pending_timeout;
+  pos = pending_timeout;
   while (pos != NULL)
     {
       if (pos->id == id)
@@ -300,7 +291,7 @@ is_pending (struct GNUNET_SCHEDULER_Handle *sched,
     }
   for (p = 0; p < GNUNET_SCHEDULER_PRIORITY_COUNT; p++)
     {
-      pos = sched->ready[p];
+      pos = ready[p];
       while (pos != NULL)
         {
           if (pos->id == id)
@@ -310,7 +301,7 @@ is_pending (struct GNUNET_SCHEDULER_Handle *sched,
           pos = pos->next;
         }
     }
-  sched->lowest_pending_id = min;
+  lowest_pending_id = min;
   return GNUNET_NO;
 }
 
@@ -324,8 +315,7 @@ is_pending (struct GNUNET_SCHEDULER_Handle *sched,
  * @param timeout next timeout (updated)
  */
 static void
-update_sets (struct GNUNET_SCHEDULER_Handle *sched,
-             struct GNUNET_NETWORK_FDSet *rs,
+update_sets (struct GNUNET_NETWORK_FDSet *rs,
              struct GNUNET_NETWORK_FDSet *ws,
              struct GNUNET_TIME_Relative *timeout)
 {
@@ -334,7 +324,7 @@ update_sets (struct GNUNET_SCHEDULER_Handle *sched,
   struct GNUNET_TIME_Relative to;
 
   now = GNUNET_TIME_absolute_get ();
-  pos = sched->pending_timeout;
+  pos = pending_timeout;
   if (pos != NULL) 
     {
       to = GNUNET_TIME_absolute_get_difference (now, pos->timeout);
@@ -343,11 +333,11 @@ update_sets (struct GNUNET_SCHEDULER_Handle *sched,
       if (pos->reason != 0)
         *timeout = GNUNET_TIME_UNIT_ZERO;
     }
-  pos = sched->pending;
+  pos = pending;
   while (pos != NULL)
     {
       if ((pos->prereq_id != GNUNET_SCHEDULER_NO_TASK) &&
-          (GNUNET_YES == is_pending (sched, pos->prereq_id)))
+          (GNUNET_YES == is_pending (pos->prereq_id)))
         {
           pos = pos->next;
           continue;
@@ -411,8 +401,7 @@ set_overlaps (const struct GNUNET_NETWORK_FDSet *ready,
  * @return GNUNET_YES if we can run it, GNUNET_NO if not.
  */
 static int
-is_ready (struct GNUNET_SCHEDULER_Handle *sched,
-          struct Task *task,
+is_ready (struct Task *task,
           struct GNUNET_TIME_Absolute now,
           const struct GNUNET_NETWORK_FDSet *rs,
           const struct GNUNET_NETWORK_FDSet *ws)
@@ -436,7 +425,7 @@ is_ready (struct GNUNET_SCHEDULER_Handle *sched,
     return GNUNET_NO;           /* not ready */    
   if (task->prereq_id != GNUNET_SCHEDULER_NO_TASK)
     {
-      if (GNUNET_YES == is_pending (sched, task->prereq_id))
+      if (GNUNET_YES == is_pending (task->prereq_id))
 	{
 	  task->reason = reason;
 	  return GNUNET_NO;       /* prereq waiting */
@@ -455,15 +444,14 @@ is_ready (struct GNUNET_SCHEDULER_Handle *sched,
  * @param task task ready for execution
  */
 static void
-queue_ready_task (struct GNUNET_SCHEDULER_Handle *handle,
-		  struct Task *task)
+queue_ready_task (struct Task *task)
 {
   enum GNUNET_SCHEDULER_Priority p = task->priority;
   if (0 != (task->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     p = GNUNET_SCHEDULER_PRIORITY_SHUTDOWN;
-  task->next = handle->ready[check_priority (p)];
-  handle->ready[check_priority (p)] = task;
-  handle->ready_count++;
+  task->next = ready[check_priority (p)];
+  ready[check_priority (p)] = task;
+  ready_count++;
 }
 
 
@@ -476,8 +464,7 @@ queue_ready_task (struct GNUNET_SCHEDULER_Handle *handle,
  * @param ws FDs ready for writing
  */
 static void
-check_ready (struct GNUNET_SCHEDULER_Handle *handle,
-             const struct GNUNET_NETWORK_FDSet *rs,
+check_ready (const struct GNUNET_NETWORK_FDSet *rs,
              const struct GNUNET_NETWORK_FDSet *ws)
 {
   struct Task *pos;
@@ -487,7 +474,7 @@ check_ready (struct GNUNET_SCHEDULER_Handle *handle,
 
   now = GNUNET_TIME_absolute_get ();
   prev = NULL;
-  pos = handle->pending_timeout;
+  pos = pending_timeout;
   while (pos != NULL)
     {
       next = pos->next;
@@ -495,13 +482,13 @@ check_ready (struct GNUNET_SCHEDULER_Handle *handle,
 	pos->reason |= GNUNET_SCHEDULER_REASON_TIMEOUT;
       if (0 == pos->reason)
 	break;
-      handle->pending_timeout = next;
-      if (handle->pending_timeout_last == pos)
-	handle->pending_timeout_last = NULL;
-      queue_ready_task (handle, pos);
+      pending_timeout = next;
+      if (pending_timeout_last == pos)
+	pending_timeout_last = NULL;
+      queue_ready_task (pos);
       pos = next;
     }
-  pos = handle->pending;
+  pos = pending;
   while (pos != NULL)
     {
 #if DEBUG_TASKS
@@ -510,13 +497,13 @@ check_ready (struct GNUNET_SCHEDULER_Handle *handle,
                   pos->id, pos->callback_cls);
 #endif
       next = pos->next;
-      if (GNUNET_YES == is_ready (handle, pos, now, rs, ws))
+      if (GNUNET_YES == is_ready (pos, now, rs, ws))
         {
           if (prev == NULL)
-            handle->pending = next;
+            pending = next;
           else
             prev->next = next;
-          queue_ready_task (handle, pos);
+          queue_ready_task (pos);
           pos = next;
           continue;
         }
@@ -536,12 +523,12 @@ check_ready (struct GNUNET_SCHEDULER_Handle *handle,
  * @param sched the scheduler
  */
 void
-GNUNET_SCHEDULER_shutdown (struct GNUNET_SCHEDULER_Handle *sched)
+GNUNET_SCHEDULER_shutdown ()
 {
   struct Task *pos;
   int i;
 
-  pos = sched->pending_timeout;
+  pos = pending_timeout;
   while (pos != NULL)
     {
       pos->reason |= GNUNET_SCHEDULER_REASON_SHUTDOWN;
@@ -550,7 +537,7 @@ GNUNET_SCHEDULER_shutdown (struct GNUNET_SCHEDULER_Handle *sched)
          readiness-factors */
       pos = pos->next;
     }
-  pos = sched->pending;
+  pos = pending;
   while (pos != NULL)
     {
       pos->reason |= GNUNET_SCHEDULER_REASON_SHUTDOWN;
@@ -561,7 +548,7 @@ GNUNET_SCHEDULER_shutdown (struct GNUNET_SCHEDULER_Handle *sched)
     }
   for (i=0;i<GNUNET_SCHEDULER_PRIORITY_COUNT;i++)
     {
-      pos = sched->ready[i];
+      pos = ready[i];
       while (pos != NULL)
 	{
 	  pos->reason |= GNUNET_SCHEDULER_REASON_SHUTDOWN;
@@ -605,37 +592,36 @@ destroy_task (struct Task *t)
  * @param ws FDs ready for writing
  */
 static void
-run_ready (struct GNUNET_SCHEDULER_Handle *sched,
-	   struct GNUNET_NETWORK_FDSet *rs,
+run_ready (struct GNUNET_NETWORK_FDSet *rs,
 	   struct GNUNET_NETWORK_FDSet *ws)
 {
   enum GNUNET_SCHEDULER_Priority p;
   struct Task *pos;
   struct GNUNET_SCHEDULER_TaskContext tc;
 
-  sched->max_priority_added = GNUNET_SCHEDULER_PRIORITY_KEEP;
+  max_priority_added = GNUNET_SCHEDULER_PRIORITY_KEEP;
   do
     {
-      if (sched->ready_count == 0)
+      if (ready_count == 0)
         return;
-      GNUNET_assert (sched->ready[GNUNET_SCHEDULER_PRIORITY_KEEP] == NULL);
+      GNUNET_assert (ready[GNUNET_SCHEDULER_PRIORITY_KEEP] == NULL);
       /* yes, p>0 is correct, 0 is "KEEP" which should
          always be an empty queue (see assertion)! */
       for (p = GNUNET_SCHEDULER_PRIORITY_COUNT - 1; p > 0; p--)
         {
-          pos = sched->ready[p];
+          pos = ready[p];
           if (pos != NULL)
             break;
         }
       GNUNET_assert (pos != NULL);      /* ready_count wrong? */
-      sched->ready[p] = pos->next;
-      sched->ready_count--;
-      if (sched->current_priority != pos->priority)
+      ready[p] = pos->next;
+      ready_count--;
+      if (current_priority != pos->priority)
 	{
-	  sched->current_priority = pos->priority;
+	  current_priority = pos->priority;
 	  (void) GNUNET_OS_set_process_priority (GNUNET_OS_process_current (), pos->priority);
 	}
-      sched->active_task = pos;
+      active_task = pos;
 #if PROFILE_DELAYS
       if (GNUNET_TIME_absolute_get_duration (pos->start_time).rel_value >
 	  DELAY_THRESHOLD.rel_value)
@@ -646,7 +632,6 @@ run_ready (struct GNUNET_SCHEDULER_Handle *sched,
 		      (unsigned long long) GNUNET_TIME_absolute_get_duration (pos->start_time).rel_value);
 	}
 #endif
-      tc.sched = sched;
       tc.reason = pos->reason;
       tc.read_ready = (pos->read_set == NULL) ? rs : pos->read_set; 
       if ( (pos->read_fd != -1) &&
@@ -677,11 +662,11 @@ run_ready (struct GNUNET_SCHEDULER_Handle *sched,
                     i,
                     pos->backtrace_strings[i]);
 #endif
-      sched->active_task = NULL;
+      active_task = NULL;
       destroy_task (pos);
-      sched->tasks_run++;
+      tasks_run++;
     }
-  while ( (sched->pending == NULL) || (p >= sched->max_priority_added) );
+  while ( (pending == NULL) || (p >= max_priority_added) );
 }
 
 /**
@@ -732,7 +717,6 @@ sighandler_shutdown ()
 void
 GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
 {
-  struct GNUNET_SCHEDULER_Handle sched;
   struct GNUNET_NETWORK_FDSet *rs;
   struct GNUNET_NETWORK_FDSet *ws;
   struct GNUNET_TIME_Relative timeout;
@@ -763,24 +747,22 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
   shc_quit = GNUNET_SIGNAL_handler_install (SIGQUIT, &sighandler_shutdown);
   shc_hup = GNUNET_SIGNAL_handler_install (SIGHUP, &sighandler_shutdown);
 #endif
-  memset (&sched, 0, sizeof (sched));
-  sched.current_priority = GNUNET_SCHEDULER_PRIORITY_DEFAULT;
-  GNUNET_SCHEDULER_add_continuation (&sched,
-                                     task,
+  current_priority = GNUNET_SCHEDULER_PRIORITY_DEFAULT;
+  GNUNET_SCHEDULER_add_continuation (task,
                                      task_cls,
                                      GNUNET_SCHEDULER_REASON_STARTUP);
   last_tr = 0;
   busy_wait_warning = 0;
-  while ((sched.pending != NULL) || 
-	 (sched.pending_timeout != NULL) ||
-	 (sched.ready_count > 0))
+  while ((pending != NULL) ||
+	 (pending_timeout != NULL) ||
+	 (ready_count > 0))
     {
       GNUNET_NETWORK_fdset_zero (rs);
       GNUNET_NETWORK_fdset_zero (ws);
       timeout = GNUNET_TIME_UNIT_FOREVER_REL;
-      update_sets (&sched, rs, ws, &timeout);
+      update_sets (rs, ws, &timeout);
       GNUNET_NETWORK_fdset_handle_set (rs, pr);
-      if (sched.ready_count > 0)
+      if (ready_count > 0)
         {
           /* no blocking, more work already ready! */
           timeout = GNUNET_TIME_UNIT_ZERO;
@@ -810,22 +792,22 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
                       _("Looks like we're busy waiting...\n"));
           sleep (1);            /* mitigate */
         }
-      check_ready (&sched, rs, ws);
-      run_ready (&sched, rs, ws);
+      check_ready (rs, ws);
+      run_ready (rs, ws);
       if (GNUNET_NETWORK_fdset_handle_isset (rs, pr))
         {
           /* consume the signal */
           GNUNET_DISK_file_read (pr, &c, sizeof (c));
           /* mark all active tasks as ready due to shutdown */
-          GNUNET_SCHEDULER_shutdown (&sched);
+          GNUNET_SCHEDULER_shutdown ();
         }
-      if (last_tr == sched.tasks_run)
+      if (last_tr == tasks_run)
         {
           busy_wait_warning++;
         }
       else
         {
-          last_tr = sched.tasks_run;
+          last_tr = tasks_run;
           busy_wait_warning = 0;
         }
     }
@@ -852,9 +834,9 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
  * @return reason(s) why the current task is run
  */
 enum GNUNET_SCHEDULER_Reason
-GNUNET_SCHEDULER_get_reason (struct GNUNET_SCHEDULER_Handle *sched)
+GNUNET_SCHEDULER_get_reason ()
 {
-  return sched->active_task->reason;
+  return active_task->reason;
 }
 
 
@@ -869,18 +851,17 @@ GNUNET_SCHEDULER_get_reason (struct GNUNET_SCHEDULER_Handle *sched)
  * @return number of tasks pending right now
  */
 unsigned int
-GNUNET_SCHEDULER_get_load (struct GNUNET_SCHEDULER_Handle *sched,
-                           enum GNUNET_SCHEDULER_Priority p)
+GNUNET_SCHEDULER_get_load (enum GNUNET_SCHEDULER_Priority p)
 {
   struct Task *pos;
   unsigned int ret;
 
   if (p == GNUNET_SCHEDULER_PRIORITY_COUNT)
-    return sched->ready_count;
+    return ready_count;
   if (p == GNUNET_SCHEDULER_PRIORITY_KEEP)
-    p = sched->current_priority;
+    p = current_priority;
   ret = 0;
-  pos = sched->ready[check_priority (p)];
+  pos = ready[check_priority (p)];
   while (pos != NULL)
     {
       pos = pos->next;
@@ -899,8 +880,7 @@ GNUNET_SCHEDULER_get_load (struct GNUNET_SCHEDULER_Handle *sched,
  * @return original closure of the task
  */
 void *
-GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Handle *sched,
-                         GNUNET_SCHEDULER_TaskIdentifier task)
+GNUNET_SCHEDULER_cancel (GNUNET_SCHEDULER_TaskIdentifier task)
 {
   struct Task *t;
   struct Task *prev;
@@ -910,7 +890,7 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Handle *sched,
 
   to = 0;
   prev = NULL;
-  t = sched->pending;
+  t = pending;
   while (t != NULL)
     {
       if (t->id == task)
@@ -922,7 +902,7 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Handle *sched,
     {
       prev = NULL;
       to = 1;
-      t = sched->pending_timeout;
+      t = pending_timeout;
       while (t != NULL)
 	{
 	  if (t->id == task)
@@ -930,8 +910,8 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Handle *sched,
 	  prev = t;
 	  t = t->next;
 	}
-      if (sched->pending_timeout_last == t)
-	sched->pending_timeout_last = NULL;
+      if (pending_timeout_last == t)
+	pending_timeout_last = NULL;
     }
   p = 0;
   while (t == NULL)
@@ -939,12 +919,12 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Handle *sched,
       p++;
       GNUNET_assert (p < GNUNET_SCHEDULER_PRIORITY_COUNT);
       prev = NULL;
-      t = sched->ready[p];
+      t = ready[p];
       while (t != NULL)
         {
           if (t->id == task)
             {
-              sched->ready_count--;
+              ready_count--;
               break;
             }
           prev = t;
@@ -957,16 +937,16 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Handle *sched,
 	{
 	  if (to == 0)
 	    {
-	      sched->pending = t->next;
+	      pending = t->next;
 	    }
 	  else
 	    {
-	      sched->pending_timeout = t->next;
+	      pending_timeout = t->next;
 	    }
 	}
       else
 	{
-	  sched->ready[p] = t->next;
+	  ready[p] = t->next;
 	}
     }
   else
@@ -994,8 +974,7 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Handle *sched,
  * @param reason reason for task invocation
  */
 void
-GNUNET_SCHEDULER_add_continuation (struct GNUNET_SCHEDULER_Handle *sched,
-                                   GNUNET_SCHEDULER_Task task,
+GNUNET_SCHEDULER_add_continuation (GNUNET_SCHEDULER_Task task,
                                    void *task_cls,
                                    enum GNUNET_SCHEDULER_Reason reason)
 {
@@ -1012,18 +991,18 @@ GNUNET_SCHEDULER_add_continuation (struct GNUNET_SCHEDULER_Handle *sched,
   t->write_fd = -1;
   t->callback = task;
   t->callback_cls = task_cls;
-  t->id = ++sched->last_id;
+  t->id = ++last_id;
 #if PROFILE_DELAYS
   t->start_time = GNUNET_TIME_absolute_get ();
 #endif
   t->reason = reason;
-  t->priority = sched->current_priority;
+  t->priority = current_priority;
 #if DEBUG_TASKS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Adding continuation task: %llu / %p\n",
               t->id, t->callback_cls);
 #endif
-  queue_ready_task (sched, t);
+  queue_ready_task (t);
 }
 
 
@@ -1046,12 +1025,10 @@ GNUNET_SCHEDULER_add_continuation (struct GNUNET_SCHEDULER_Handle *sched,
  *         only valid until "task" is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_after (struct GNUNET_SCHEDULER_Handle *sched,
-                            GNUNET_SCHEDULER_TaskIdentifier prerequisite_task,
+GNUNET_SCHEDULER_add_after (GNUNET_SCHEDULER_TaskIdentifier prerequisite_task,
                             GNUNET_SCHEDULER_Task task, void *task_cls)
 {
-  return GNUNET_SCHEDULER_add_select (sched,
-                                      GNUNET_SCHEDULER_PRIORITY_KEEP,
+  return GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_KEEP,
                                       prerequisite_task,
                                       GNUNET_TIME_UNIT_ZERO,
                                       NULL, NULL, task, task_cls);
@@ -1069,13 +1046,11 @@ GNUNET_SCHEDULER_add_after (struct GNUNET_SCHEDULER_Handle *sched,
  *         only valid until "task" is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_with_priority (struct GNUNET_SCHEDULER_Handle * sched,
-                                    enum GNUNET_SCHEDULER_Priority prio,
+GNUNET_SCHEDULER_add_with_priority (enum GNUNET_SCHEDULER_Priority prio,
                                     GNUNET_SCHEDULER_Task task,
                                     void *task_cls)
 {
-  return GNUNET_SCHEDULER_add_select (sched,
-                                      prio,
+  return GNUNET_SCHEDULER_add_select (prio,
                                       GNUNET_SCHEDULER_NO_TASK,
                                       GNUNET_TIME_UNIT_ZERO,
                                       NULL, NULL, task, task_cls);
@@ -1097,8 +1072,7 @@ GNUNET_SCHEDULER_add_with_priority (struct GNUNET_SCHEDULER_Handle * sched,
  *         only valid until "task" is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_delayed (struct GNUNET_SCHEDULER_Handle * sched,
-                              struct GNUNET_TIME_Relative delay,
+GNUNET_SCHEDULER_add_delayed (struct GNUNET_TIME_Relative delay,
                               GNUNET_SCHEDULER_Task task, void *task_cls)
 {
 #if 1
@@ -1120,15 +1094,15 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_SCHEDULER_Handle * sched,
 #endif
   t->read_fd = -1;
   t->write_fd = -1;
-  t->id = ++sched->last_id;
+  t->id = ++last_id;
 #if PROFILE_DELAYS
   t->start_time = GNUNET_TIME_absolute_get ();
 #endif
   t->timeout = GNUNET_TIME_relative_to_absolute (delay);
-  t->priority = sched->current_priority;
+  t->priority = current_priority;
   /* try tail first (optimization in case we are
      appending to a long list of tasks with timeouts) */
-  prev = sched->pending_timeout_last;
+  prev = pending_timeout_last;
   if (prev != NULL) 
     {
       if (prev->timeout.abs_value > t->timeout.abs_value)
@@ -1139,7 +1113,7 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_SCHEDULER_Handle * sched,
   if (prev == NULL)
     {
       /* heuristic failed, do traversal of timeout list */
-      pos = sched->pending_timeout;
+      pos = pending_timeout;
     }
   while ( (pos != NULL) &&
 	  ( (pos->timeout.abs_value <= t->timeout.abs_value) ||
@@ -1149,12 +1123,12 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_SCHEDULER_Handle * sched,
       pos = pos->next;
     }
   if (prev == NULL)
-    sched->pending_timeout = t;
+    pending_timeout = t;
   else
     prev->next = t;
   t->next = pos;
   /* hyper-optimization... */
-  sched->pending_timeout_last = t;
+  pending_timeout_last = t;
 
 #if DEBUG_TASKS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1194,12 +1168,10 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_SCHEDULER_Handle * sched,
  *         only valid until "task" is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_now (struct GNUNET_SCHEDULER_Handle *sched,
-			  GNUNET_SCHEDULER_Task task,
-			  void *task_cls)
+GNUNET_SCHEDULER_add_now (GNUNET_SCHEDULER_Task task,
+						  void *task_cls)
 {
-  return GNUNET_SCHEDULER_add_select (sched,
-                                      GNUNET_SCHEDULER_PRIORITY_KEEP,
+  return GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_KEEP,
                                       GNUNET_SCHEDULER_NO_TASK,
 				      GNUNET_TIME_UNIT_ZERO,
                                       NULL, NULL, task, task_cls);
@@ -1236,8 +1208,7 @@ GNUNET_SCHEDULER_add_now (struct GNUNET_SCHEDULER_Handle *sched,
  *         only valid until "task" is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
-add_without_sets (struct GNUNET_SCHEDULER_Handle * sched,
-		  struct GNUNET_TIME_Relative delay,
+add_without_sets (struct GNUNET_TIME_Relative delay,
 		  int rfd,
 		  int wfd,
 		  GNUNET_SCHEDULER_Task task, void *task_cls)
@@ -1257,16 +1228,16 @@ add_without_sets (struct GNUNET_SCHEDULER_Handle * sched,
 #endif
   t->read_fd = rfd;
   t->write_fd = wfd;
-  t->id = ++sched->last_id;
+  t->id = ++last_id;
 #if PROFILE_DELAYS
   t->start_time = GNUNET_TIME_absolute_get ();
 #endif
   t->prereq_id = GNUNET_SCHEDULER_NO_TASK;
   t->timeout = GNUNET_TIME_relative_to_absolute (delay);
-  t->priority = check_priority (sched->current_priority);
-  t->next = sched->pending;
-  sched->pending = t;
-  sched->max_priority_added = GNUNET_MAX (sched->max_priority_added,
+  t->priority = check_priority (current_priority);
+  t->next = pending;
+  pending = t;
+  max_priority_added = GNUNET_MAX (max_priority_added,
 					  t->priority);
 #if DEBUG_TASKS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1305,13 +1276,11 @@ add_without_sets (struct GNUNET_SCHEDULER_Handle * sched,
  *         only valid until "task" is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_read_net (struct GNUNET_SCHEDULER_Handle * sched,
-                               struct GNUNET_TIME_Relative delay,
+GNUNET_SCHEDULER_add_read_net (struct GNUNET_TIME_Relative delay,
                                struct GNUNET_NETWORK_Handle * rfd,
                                GNUNET_SCHEDULER_Task task, void *task_cls)
 {
-  return add_without_sets (sched,
-			   delay,
+  return add_without_sets (delay,
 			   GNUNET_NETWORK_get_fd (rfd),
 			   -1,
 			   task,
@@ -1337,13 +1306,11 @@ GNUNET_SCHEDULER_add_read_net (struct GNUNET_SCHEDULER_Handle * sched,
  *         only valid until "task" is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_write_net (struct GNUNET_SCHEDULER_Handle * sched,
-                                struct GNUNET_TIME_Relative delay,
+GNUNET_SCHEDULER_add_write_net (struct GNUNET_TIME_Relative delay,
                                 struct GNUNET_NETWORK_Handle * wfd,
                                 GNUNET_SCHEDULER_Task task, void *task_cls)
 {
-  return add_without_sets (sched,
-			   delay,
+  return add_without_sets (delay,
 			   -1,
 			   GNUNET_NETWORK_get_fd (wfd),
 			   task,
@@ -1369,8 +1336,7 @@ GNUNET_SCHEDULER_add_write_net (struct GNUNET_SCHEDULER_Handle * sched,
  *         only valid until "task" is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_read_file (struct GNUNET_SCHEDULER_Handle * sched,
-                                struct GNUNET_TIME_Relative delay,
+GNUNET_SCHEDULER_add_read_file (struct GNUNET_TIME_Relative delay,
                                 const struct GNUNET_DISK_FileHandle * rfd,
                                 GNUNET_SCHEDULER_Task task, void *task_cls)
 {
@@ -1391,8 +1357,7 @@ GNUNET_SCHEDULER_add_read_file (struct GNUNET_SCHEDULER_Handle * sched,
   int fd;
 
   GNUNET_DISK_internal_file_handle_ (rfd, &fd, sizeof (int));
-  return add_without_sets (sched,
-			   delay,
+  return add_without_sets (delay,
 			   fd,
 			   -1,
 			   task,
@@ -1420,8 +1385,7 @@ GNUNET_SCHEDULER_add_read_file (struct GNUNET_SCHEDULER_Handle * sched,
  *         only valid until "task" is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_write_file (struct GNUNET_SCHEDULER_Handle * sched,
-                                 struct GNUNET_TIME_Relative delay,
+GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
                                  const struct GNUNET_DISK_FileHandle * wfd,
                                  GNUNET_SCHEDULER_Task task, void *task_cls)
 {
@@ -1442,8 +1406,7 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_SCHEDULER_Handle * sched,
   int fd;
 
   GNUNET_DISK_internal_file_handle_ (wfd, &fd, sizeof (int));
-  return add_without_sets (sched,
-			   delay,
+  return add_without_sets (delay,
 			   -1,
 			   fd,
 			   task,
@@ -1488,8 +1451,7 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_SCHEDULER_Handle * sched,
  *         only valid until "task" is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_select (struct GNUNET_SCHEDULER_Handle * sched,
-                             enum GNUNET_SCHEDULER_Priority prio,
+GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
                              GNUNET_SCHEDULER_TaskIdentifier
                              prerequisite_task,
                              struct GNUNET_TIME_Relative delay,
@@ -1522,7 +1484,7 @@ GNUNET_SCHEDULER_add_select (struct GNUNET_SCHEDULER_Handle * sched,
       t->write_set = GNUNET_NETWORK_fdset_create ();
       GNUNET_NETWORK_fdset_copy (t->write_set, ws);
     }
-  t->id = ++sched->last_id;
+  t->id = ++last_id;
 #if PROFILE_DELAYS
   t->start_time = GNUNET_TIME_absolute_get ();
 #endif
@@ -1530,11 +1492,11 @@ GNUNET_SCHEDULER_add_select (struct GNUNET_SCHEDULER_Handle * sched,
   t->timeout = GNUNET_TIME_relative_to_absolute (delay);
   t->priority =
     check_priority ((prio ==
-                     GNUNET_SCHEDULER_PRIORITY_KEEP) ? sched->current_priority
+                     GNUNET_SCHEDULER_PRIORITY_KEEP) ? current_priority
                     : prio);
-  t->next = sched->pending; 
-  sched->pending = t;
-  sched->max_priority_added = GNUNET_MAX (sched->max_priority_added,
+  t->next = pending;
+  pending = t;
+  max_priority_added = GNUNET_MAX (max_priority_added,
 					  t->priority);
 #if DEBUG_TASKS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

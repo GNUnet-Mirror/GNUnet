@@ -36,10 +36,6 @@
 struct GNUNET_CORE_Handle
 {
 
-  /**
-   * Our scheduler.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
 
   /**
    * Configuration we're using.
@@ -263,10 +259,9 @@ reconnect (struct GNUNET_CORE_Handle *h)
   if (h->client_notifications != NULL)
     GNUNET_CLIENT_disconnect (h->client_notifications, GNUNET_NO);
   h->currently_down = GNUNET_YES;
-  h->client_notifications = GNUNET_CLIENT_connect (h->sched, "core", h->cfg);
+  h->client_notifications = GNUNET_CLIENT_connect ("core", h->cfg);
   if (h->client_notifications == NULL)
-    h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->sched,
-						      GNUNET_TIME_UNIT_SECONDS,
+    h->reconnect_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
 						      &reconnect_task,
 						      h);
   else
@@ -328,7 +323,7 @@ request_start (void *cls, size_t size, void *buf)
     {
       if (th->timeout_task != GNUNET_SCHEDULER_NO_TASK)
 	{
-	  GNUNET_SCHEDULER_cancel(h->sched, th->timeout_task);
+	  GNUNET_SCHEDULER_cancel(th->timeout_task);
 	  th->timeout_task = GNUNET_SCHEDULER_NO_TASK;  
 	}
       timeout_request (th, NULL);
@@ -673,8 +668,7 @@ transmit_start (void *cls, size_t size, void *buf)
             h->startup_timeout =
               GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
           h->reconnect_task =
-            GNUNET_SCHEDULER_add_delayed (h->sched, 
-                                          delay, &reconnect_task, h);
+            GNUNET_SCHEDULER_add_delayed (delay, &reconnect_task, h);
           return 0;
         }
       /* timeout on initial connect */
@@ -727,7 +721,6 @@ transmit_start (void *cls, size_t size, void *buf)
  * Connect to the core service.  Note that the connection may
  * complete (or fail) asynchronously.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param timeout after how long should we give up trying to connect to the core service?
  * @param cls closure for the various callbacks that follow (including handlers in the handlers array)
@@ -749,8 +742,7 @@ transmit_start (void *cls, size_t size, void *buf)
  *                NULL on error (in this case, init is never called)
  */
 struct GNUNET_CORE_Handle *
-GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
-                     const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      struct GNUNET_TIME_Relative timeout,
                      void *cls,
                      GNUNET_CORE_StartupCallback init,
@@ -766,7 +758,6 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
   struct GNUNET_CORE_Handle *h;
 
   h = GNUNET_malloc (sizeof (struct GNUNET_CORE_Handle));
-  h->sched = sched;
   h->cfg = cfg;
   h->cls = cls;
   h->init = init;
@@ -778,7 +769,7 @@ GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
   h->inbound_hdr_only = inbound_hdr_only;
   h->outbound_hdr_only = outbound_hdr_only;
   h->handlers = handlers;
-  h->client_notifications = GNUNET_CLIENT_connect (sched, "core", cfg);
+  h->client_notifications = GNUNET_CLIENT_connect ("core", cfg);
   if (h->client_notifications == NULL)
     {
       GNUNET_free (h);
@@ -819,7 +810,7 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
   if (handle->solicit_transmit_req != NULL)
     GNUNET_CORE_notify_transmit_ready_cancel (handle->solicit_transmit_req);
   if (handle->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (handle->sched, handle->reconnect_task);
+    GNUNET_SCHEDULER_cancel (handle->reconnect_task);
   if (handle->client_notifications != NULL)
     GNUNET_CLIENT_disconnect (handle->client_notifications, GNUNET_NO);
   GNUNET_break (handle->pending_head == NULL);
@@ -950,8 +941,7 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
   th->notify_cls = notify_cls;
   th->peer = *target;
   th->timeout = GNUNET_TIME_relative_to_absolute (maxdelay);
-  th->timeout_task = GNUNET_SCHEDULER_add_delayed (handle->sched,
-                                                   maxdelay,
+  th->timeout_task = GNUNET_SCHEDULER_add_delayed (maxdelay,
                                                    &timeout_request, th);
   th->priority = priority;
   th->msize = sizeof (struct SendMessage) + notify_size;
@@ -965,7 +955,7 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
 
 /**
  * Cancel the specified transmission-ready notification.
- *
+ *s
  * @param th handle that was returned by "notify_transmit_ready".
  */
 void
@@ -981,7 +971,7 @@ GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle
 				 h->pending_tail,
 				 th);    
   if (th->timeout_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (h->sched, th->timeout_task);
+    GNUNET_SCHEDULER_cancel (th->timeout_task);
   GNUNET_free (th);
 }
 

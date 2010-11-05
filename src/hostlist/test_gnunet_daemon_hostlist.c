@@ -39,8 +39,6 @@
 
 static int ok;
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
     
 struct PeerContext
@@ -71,7 +69,7 @@ clean_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_TRANSPORT_disconnect (p2.th);
       p2.th = NULL;
     }
-  GNUNET_SCHEDULER_shutdown (sched);
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 /**
@@ -109,12 +107,10 @@ notify_connect (void *cls,
   ok = 0;
   if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (sched,
-			       timeout_task);
+      GNUNET_SCHEDULER_cancel (timeout_task);
       timeout_task = GNUNET_SCHEDULER_NO_TASK;
     }
-  GNUNET_SCHEDULER_add_now (sched,
-			    &clean_up, NULL);
+  GNUNET_SCHEDULER_add_now (&clean_up, NULL);
 }
 
 
@@ -143,7 +139,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
                                         "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
-  p->th = GNUNET_TRANSPORT_connect (sched, p->cfg, NULL, p, NULL, 
+  p->th = GNUNET_TRANSPORT_connect (p->cfg, NULL, p, NULL,
 				    &notify_connect, NULL);
   GNUNET_assert (p->th != NULL);
   GNUNET_TRANSPORT_get_hello (p->th, &process_hello, p);
@@ -177,8 +173,7 @@ stop_arm (struct PeerContext *p)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Asking ARM to stop core service\n");
-  GNUNET_SCHEDULER_add_delayed (sched,
-				GNUNET_TIME_UNIT_SECONDS,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
 				&waitpid_task, p);
 }
 
@@ -196,20 +191,16 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile, 
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (ok == 1);
   ok++;
-  sched = s;
-  timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
-					       TIMEOUT,
+  timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 					       &timeout_error,
 					       NULL);
-  GNUNET_SCHEDULER_add_delayed (sched,
-				GNUNET_TIME_UNIT_FOREVER_REL,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&shutdown_task,
 				NULL);
   setup_peer (&p1, "test_gnunet_daemon_hostlist_peer1.conf");

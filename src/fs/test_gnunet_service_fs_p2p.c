@@ -44,8 +44,6 @@
 
 static struct GNUNET_FS_TestDaemon *daemons[NUM_DAEMONS];
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static int ok;
 
 static struct GNUNET_TIME_Absolute start_time;
@@ -57,8 +55,7 @@ do_stop (void *cls,
   struct GNUNET_TIME_Relative del;
   char *fancy;
 
-  GNUNET_FS_TEST_daemons_stop (sched,
-			       NUM_DAEMONS,
+  GNUNET_FS_TEST_daemons_stop (NUM_DAEMONS,
 			       daemons);
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
     {
@@ -89,8 +86,7 @@ do_download (void *cls,
 {
   if (NULL == uri)
     {
-      GNUNET_FS_TEST_daemons_stop (sched,
-				   NUM_DAEMONS,
+      GNUNET_FS_TEST_daemons_stop (NUM_DAEMONS,
 				   daemons);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Timeout during upload attempt, shutting down with error\n");
@@ -101,8 +97,7 @@ do_download (void *cls,
 	      "Downloading %llu bytes\n",
 	      (unsigned long long) FILESIZE);
   start_time = GNUNET_TIME_absolute_get ();
-  GNUNET_FS_TEST_download (sched,
-			   daemons[0],
+  GNUNET_FS_TEST_download (daemons[0],
 			   TIMEOUT,
 			   1, SEED, uri, 
 			   VERBOSE, 
@@ -116,8 +111,7 @@ do_publish (void *cls,
 {
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
     {
-      GNUNET_FS_TEST_daemons_stop (sched,
-				   NUM_DAEMONS,
+      GNUNET_FS_TEST_daemons_stop (NUM_DAEMONS,
 				   daemons);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Timeout during connect attempt, shutting down with error\n");
@@ -127,8 +121,7 @@ do_publish (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Publishing %llu bytes\n",
 	      (unsigned long long) FILESIZE);
-  GNUNET_FS_TEST_publish (sched,
-			  daemons[1],
+  GNUNET_FS_TEST_publish (daemons[1],
 			  TIMEOUT,
 			  1, GNUNET_NO, FILESIZE, SEED, 
 			  VERBOSE, 
@@ -143,8 +136,7 @@ do_connect (void *cls,
   GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Daemons started, will now try to connect them\n");
-  GNUNET_FS_TEST_daemons_connect (sched,
-				  daemons[0],
+  GNUNET_FS_TEST_daemons_connect (daemons[0],
 				  daemons[1],
 				  TIMEOUT,
 				  &do_publish,
@@ -154,14 +146,11 @@ do_connect (void *cls,
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  sched = s;
-  GNUNET_FS_TEST_daemons_start (sched,
-				"fs_test_lib_data.conf",
+  GNUNET_FS_TEST_daemons_start ("fs_test_lib_data.conf",
 				TIMEOUT,
 				NUM_DAEMONS,
 				daemons,

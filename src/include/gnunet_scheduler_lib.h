@@ -35,12 +35,6 @@ extern "C"
 #endif
 #endif
 
-
-/**
- * Opaque handle for the scheduling service.
- */
-struct GNUNET_SCHEDULER_Handle;
-
 /**
  * Opaque reference to a task.
  */
@@ -167,12 +161,6 @@ enum GNUNET_SCHEDULER_Priority
  */
 struct GNUNET_SCHEDULER_TaskContext
 {
-
-  /**
-   * Scheduler running the task
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
-
   /**
    * Reason why the task is run now
    */
@@ -229,10 +217,8 @@ void GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls);
  * cause all tasks to run (as soon as possible, respecting
  * priorities and prerequisite tasks).  Note that tasks
  * scheduled AFTER this call may still be delayed arbitrarily.
- *
- * @param sched the scheduler
  */
-void GNUNET_SCHEDULER_shutdown (struct GNUNET_SCHEDULER_Handle *sched);
+void GNUNET_SCHEDULER_shutdown ();
 
 
 /**
@@ -241,14 +227,12 @@ void GNUNET_SCHEDULER_shutdown (struct GNUNET_SCHEDULER_Handle *sched);
  * dropped (if the decision should be made based on the number of
  * tasks ready to run).
  *
- * @param sched scheduler to query
- * @param p priority-level to query, use KEEP to query the level
+ * * @param p priority-level to query, use KEEP to query the level
  *          of the current task, use COUNT to get the sum over
  *          all priority levels
  * @return number of tasks pending right now
  */
-unsigned int GNUNET_SCHEDULER_get_load (struct GNUNET_SCHEDULER_Handle *sched,
-                                        enum GNUNET_SCHEDULER_Priority p);
+unsigned int GNUNET_SCHEDULER_get_load (enum GNUNET_SCHEDULER_Priority p);
 
 
 /**
@@ -256,23 +240,20 @@ unsigned int GNUNET_SCHEDULER_get_load (struct GNUNET_SCHEDULER_Handle *sched,
  * started.  Will return the same value as 
  * the GNUNET_SCHEDULER_TaskContext's reason field.
  *
- * @param sched scheduler to query
- * @return reason(s) why the current task is run
+ * * @return reason(s) why the current task is run
  */
 enum GNUNET_SCHEDULER_Reason
-GNUNET_SCHEDULER_get_reason (struct GNUNET_SCHEDULER_Handle *sched);
+GNUNET_SCHEDULER_get_reason ();
 
 
 /**
  * Cancel the task with the specified identifier.
  * The task must not yet have run.
  *
- * @param sched scheduler to use
- * @param task id of the task to cancel
+ * * @param task id of the task to cancel
  * @return the closure of the callback of the cancelled task
  */
-void *GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Handle *sched,
-                               GNUNET_SCHEDULER_TaskIdentifier task);
+void *GNUNET_SCHEDULER_cancel (GNUNET_SCHEDULER_TaskIdentifier task);
 
 
 /**
@@ -280,14 +261,12 @@ void *GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Handle *sched,
  * similar to the other "add" functions except that there is no delay
  * and the reason code can be specified.
  *
- * @param sched scheduler to use
- * @param task main function of the task
+ * * @param task main function of the task
  * @param task_cls closure of task
  * @param reason reason for task invocation
  */
 void
-GNUNET_SCHEDULER_add_continuation (struct GNUNET_SCHEDULER_Handle *sched,
-                                   GNUNET_SCHEDULER_Task task,
+GNUNET_SCHEDULER_add_continuation (GNUNET_SCHEDULER_Task task,
                                    void *task_cls,
                                    enum GNUNET_SCHEDULER_Reason reason);
 
@@ -297,8 +276,7 @@ GNUNET_SCHEDULER_add_continuation (struct GNUNET_SCHEDULER_Handle *sched,
  * has completed. It will be run with the priority of the calling
  * task.
  *
- * @param sched scheduler to use
- * @param prerequisite_task run this task after the task with the given
+ * * @param prerequisite_task run this task after the task with the given
  *        task identifier completes (and any of our other
  *        conditions, such as delay, read or write-readiness
  *        are satisfied).  Use  GNUNET_SCHEDULER_NO_TASK to not have any dependency
@@ -310,8 +288,7 @@ GNUNET_SCHEDULER_add_continuation (struct GNUNET_SCHEDULER_Handle *sched,
  *         only valid until "task" is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_after (struct GNUNET_SCHEDULER_Handle *sched,
-                            GNUNET_SCHEDULER_TaskIdentifier prerequisite_task,
+GNUNET_SCHEDULER_add_after (GNUNET_SCHEDULER_TaskIdentifier prerequisite_task,
                             GNUNET_SCHEDULER_Task task,
 			    void *task_cls);
 
@@ -319,16 +296,14 @@ GNUNET_SCHEDULER_add_after (struct GNUNET_SCHEDULER_Handle *sched,
 /**
  * Schedule a new task to be run with a specified priority.
  *
- * @param sched scheduler to use
- * @param prio how important is the new task?
+ * * @param prio how important is the new task?
  * @param task main function of the task
  * @param task_cls closure of task
  * @return unique task identifier for the job
  *         only valid until "task" is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_with_priority (struct GNUNET_SCHEDULER_Handle *sched,
-				    enum GNUNET_SCHEDULER_Priority prio,
+GNUNET_SCHEDULER_add_with_priority (enum GNUNET_SCHEDULER_Priority prio,
 				    GNUNET_SCHEDULER_Task task,
 				    void *task_cls);
 
@@ -337,15 +312,13 @@ GNUNET_SCHEDULER_add_with_priority (struct GNUNET_SCHEDULER_Handle *sched,
  * Schedule a new task to be run as soon as possible. The task
  * will be run with the priority of the calling task.
  *
- * @param sched scheduler to use
- * @param task main function of the task
+ * * @param task main function of the task
  * @param task_cls closure of task
  * @return unique task identifier for the job
  *         only valid until "task" is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_now (struct GNUNET_SCHEDULER_Handle *sched,
-			  GNUNET_SCHEDULER_Task task,
+GNUNET_SCHEDULER_add_now (GNUNET_SCHEDULER_Task task,
 			  void *task_cls);
 
 
@@ -354,8 +327,7 @@ GNUNET_SCHEDULER_add_now (struct GNUNET_SCHEDULER_Handle *sched,
  * will be scheduled for execution once the delay has expired. It
  * will be run with the priority of the calling task.
  *
- * @param sched scheduler to use
- * @param delay when should this operation time out? Use 
+ * * @param delay when should this operation time out? Use
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
  * @param task main function of the task
  * @param task_cls closure of task
@@ -363,8 +335,7 @@ GNUNET_SCHEDULER_add_now (struct GNUNET_SCHEDULER_Handle *sched,
  *         only valid until "task" is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_delayed (struct GNUNET_SCHEDULER_Handle *sched,
-                              struct GNUNET_TIME_Relative delay,
+GNUNET_SCHEDULER_add_delayed (struct GNUNET_TIME_Relative delay,
                               GNUNET_SCHEDULER_Task task,
 			      void *task_cls);
 
@@ -377,8 +348,7 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_SCHEDULER_Handle *sched,
  * socket operation is ready.  It will be run with the priority of
  * the calling task.
  *
- * @param sched scheduler to use
- * @param delay when should this operation time out? Use 
+ * * @param delay when should this operation time out? Use
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
  * @param rfd read file-descriptor
  * @param task main function of the task
@@ -387,8 +357,7 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_SCHEDULER_Handle *sched,
  *         only valid until "task" is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_read_net (struct GNUNET_SCHEDULER_Handle *sched,
-			       struct GNUNET_TIME_Relative delay,
+GNUNET_SCHEDULER_add_read_net (struct GNUNET_TIME_Relative delay,
 			       struct GNUNET_NETWORK_Handle *rfd,
 			       GNUNET_SCHEDULER_Task task,
 			       void *task_cls);
@@ -402,8 +371,7 @@ GNUNET_SCHEDULER_add_read_net (struct GNUNET_SCHEDULER_Handle *sched,
  * socket operation is ready.  It will be run with the priority of
  * the calling task.
  *
- * @param sched scheduler to use
- * @param delay when should this operation time out? Use 
+ * * @param delay when should this operation time out? Use
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
  * @param wfd write file-descriptor
  * @param task main function of the task
@@ -412,8 +380,7 @@ GNUNET_SCHEDULER_add_read_net (struct GNUNET_SCHEDULER_Handle *sched,
  *         only valid until "task" is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_write_net (struct GNUNET_SCHEDULER_Handle *sched,
-				struct GNUNET_TIME_Relative delay,
+GNUNET_SCHEDULER_add_write_net (struct GNUNET_TIME_Relative delay,
 				struct GNUNET_NETWORK_Handle *wfd, 
 				GNUNET_SCHEDULER_Task task, 
 				void *task_cls);
@@ -427,8 +394,7 @@ GNUNET_SCHEDULER_add_write_net (struct GNUNET_SCHEDULER_Handle *sched,
  * socket operation is ready. It will be run with the priority of
  * the calling task.
  *
- * @param sched scheduler to use
- * @param delay when should this operation time out? Use 
+ * * @param delay when should this operation time out? Use
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
  * @param rfd read file-descriptor
  * @param task main function of the task
@@ -437,8 +403,7 @@ GNUNET_SCHEDULER_add_write_net (struct GNUNET_SCHEDULER_Handle *sched,
  *         only valid until "task" is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_read_file (struct GNUNET_SCHEDULER_Handle *sched,
-				struct GNUNET_TIME_Relative delay,
+GNUNET_SCHEDULER_add_read_file (struct GNUNET_TIME_Relative delay,
 				const struct GNUNET_DISK_FileHandle *rfd, 
 				GNUNET_SCHEDULER_Task task,
 				void *task_cls);
@@ -452,8 +417,7 @@ GNUNET_SCHEDULER_add_read_file (struct GNUNET_SCHEDULER_Handle *sched,
  * socket operation is ready. It will be run with the priority of
  * the calling task.
  *
- * @param sched scheduler to use
- * @param delay when should this operation time out? Use 
+ * * @param delay when should this operation time out? Use
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
  * @param wfd write file-descriptor
  * @param task main function of the task
@@ -462,8 +426,7 @@ GNUNET_SCHEDULER_add_read_file (struct GNUNET_SCHEDULER_Handle *sched,
  *         only valid until "task" is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_write_file (struct GNUNET_SCHEDULER_Handle *sched,
-				 struct GNUNET_TIME_Relative delay,
+GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
 				 const struct GNUNET_DISK_FileHandle *wfd,
 				 GNUNET_SCHEDULER_Task task, 
 				 void *task_cls);
@@ -486,8 +449,7 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_SCHEDULER_Handle *sched,
  *     || shutdown-active)
  * </code>
  *
- * @param sched scheduler to use
- * @param prio how important is this task?
+ * * @param prio how important is this task?
  * @param prerequisite_task run this task after the task with the given
  *        task identifier completes (and any of our other
  *        conditions, such as delay, read or write-readiness
@@ -503,8 +465,7 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_SCHEDULER_Handle *sched,
  *         only valid until "task" is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_select (struct GNUNET_SCHEDULER_Handle *sched,
-                             enum GNUNET_SCHEDULER_Priority prio,
+GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
                              GNUNET_SCHEDULER_TaskIdentifier
                              prerequisite_task,
                              struct GNUNET_TIME_Relative delay,

@@ -110,14 +110,12 @@ GNUNET_FS_handle_unindex (void *cls,
 /**
  * Initialize the indexing submodule.
  *
- * @param s scheduler to use
  * @param c configuration to use
  * @param d datastore to use
  * @return GNUNET_OK on success
  */
 int
-GNUNET_FS_indexing_init (struct GNUNET_SCHEDULER_Handle *s,
-			 const struct GNUNET_CONFIGURATION_Handle *c,
+GNUNET_FS_indexing_init (const struct GNUNET_CONFIGURATION_Handle *c,
 			 struct GNUNET_DATASTORE_Handle *d);
 
 

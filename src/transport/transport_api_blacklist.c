@@ -45,11 +45,6 @@ struct GNUNET_TRANSPORT_Blacklist
   struct GNUNET_CLIENT_Connection * client;
 
   /**
-   * Scheduler to use.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
-
-  /**
    * Configuration to use.
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -175,8 +170,7 @@ reconnect (struct GNUNET_TRANSPORT_Blacklist *br)
 {
   if (br->client != NULL)
     GNUNET_CLIENT_disconnect (br->client, GNUNET_NO);
-  br->client = GNUNET_CLIENT_connect (br->sched,
-				      "transport",
+  br->client = GNUNET_CLIENT_connect ("transport",
 				      br->cfg);
   GNUNET_assert (br->client != NULL);
   br->th = GNUNET_CLIENT_notify_transmit_ready (br->client,
@@ -249,27 +243,24 @@ reply (struct GNUNET_TRANSPORT_Blacklist *br)
  * only way to re-enable connections from peers that were previously
  * blacklisted.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param cb callback to invoke to check if connections are allowed
  * @param cb_cls closure for cb
  * @return NULL on error, otherwise handle for cancellation
  */
 struct GNUNET_TRANSPORT_Blacklist *
-GNUNET_TRANSPORT_blacklist (struct GNUNET_SCHEDULER_Handle *sched,
-			    const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_TRANSPORT_blacklist (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			    GNUNET_TRANSPORT_BlacklistCallback cb,
 			    void *cb_cls)
 {
   struct GNUNET_CLIENT_Connection * client;
   struct GNUNET_TRANSPORT_Blacklist *ret;
 
-  client = GNUNET_CLIENT_connect (sched, "transport", cfg);
+  client = GNUNET_CLIENT_connect ("transport", cfg);
   if (NULL == client)
     return NULL;
   ret = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_Blacklist));
   ret->client = client;
-  ret->sched = sched;
   ret->cfg = cfg;
   ret->th = GNUNET_CLIENT_notify_transmit_ready (client,
 						 sizeof (struct GNUNET_MessageHeader),

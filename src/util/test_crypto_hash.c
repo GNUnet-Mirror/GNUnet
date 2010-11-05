@@ -123,8 +123,7 @@ static void
 file_hasher (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_assert (NULL !=
-		 GNUNET_CRYPTO_hash_file (tc->sched,
-					  GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+		 GNUNET_CRYPTO_hash_file (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
 					  FILENAME, 1024,
 					  &finished_task, cls));
 }

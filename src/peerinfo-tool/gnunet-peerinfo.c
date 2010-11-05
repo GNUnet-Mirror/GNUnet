@@ -37,8 +37,6 @@ static int be_quiet;
 
 static int get_self;
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static struct GNUNET_PEERINFO_Handle *peerinfo;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -139,8 +137,7 @@ print_address (void *cls,
 	       const void *addr, uint16_t addrlen)
 {
   struct PrintContext *pc = cls;
-  GNUNET_TRANSPORT_address_lookup (sched,
-				   cfg,
+  GNUNET_TRANSPORT_address_lookup (cfg,
 				   addr,
 				   addrlen,
 				   no_resolve,
@@ -194,14 +191,12 @@ print_peer_info (void *cls,
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
- * @param s the scheduler to use
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param c configuration
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile, 
      const struct GNUNET_CONFIGURATION_Handle *c)
@@ -212,7 +207,6 @@ run (void *cls,
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
   char *fn;
 
-  sched = s;
   cfg = c;
   if (args[0] != NULL)
     {
@@ -223,7 +217,7 @@ run (void *cls,
     }
   if (get_self != GNUNET_YES)
     {
-      peerinfo = GNUNET_PEERINFO_connect (sched, cfg);
+      peerinfo = GNUNET_PEERINFO_connect (cfg);
       if (peerinfo == NULL)
 	{
 	  fprintf (stderr,

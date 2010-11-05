@@ -682,8 +682,7 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   } else {
 	  //nothing to send at the moment
 	  plugin->server_read_task =
-			  GNUNET_SCHEDULER_add_delayed (plugin->env->sched,
-					  GNUNET_TIME_absolute_get_remaining(nextsend),
+			  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining(nextsend),
 					  &do_transmit, plugin);
 
   }
@@ -804,8 +803,7 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
 
   //plugin->server_read_task =
-  //GNUNET_SCHEDULER_add_read_file (plugin->env->sched,
-  //                                GNUNET_TIME_UNIT_FOREVER_REL,
+  //GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
   //                                plugin->server_stdout_handle, &wlan_plugin_helper_read, plugin);
 
 }
@@ -837,8 +835,7 @@ process_pending_messages (struct Plugin * plugin)
 
   // GNUNET_TIME_UNIT_FOREVER_REL is needed to clean up old msg
   plugin->server_write_task
-    = GNUNET_SCHEDULER_add_write_file(plugin->env->sched,
-											GNUNET_TIME_UNIT_FOREVER_REL,
+    = GNUNET_SCHEDULER_add_write_file(GNUNET_TIME_UNIT_FOREVER_REL,
 											plugin->server_stdin_handle,
                                            &do_transmit,
                                            plugin);
@@ -1264,8 +1261,7 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
   plugin->server_stdin_handle = GNUNET_DISK_pipe_handle(plugin->server_stdin, GNUNET_DISK_PIPE_END_WRITE);
 
   plugin->server_read_task =
-  GNUNET_SCHEDULER_add_read_file (plugin->env->sched,
-                                  GNUNET_TIME_UNIT_FOREVER_REL,
+  GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                   plugin->server_stdout_handle, &wlan_plugin_helper_read, plugin);
   return GNUNET_YES;
 }
@@ -1288,7 +1284,7 @@ gnunet_plugin_transport_wlan_init (void *cls)
 
   GNUNET_assert(cls !=NULL);
 
-  service = GNUNET_SERVICE_start ("transport-wlan", env->sched, env->cfg);
+  service = GNUNET_SERVICE_start ("transport-wlan", env->cfg);
 	if (service == NULL){
 		GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 			   _("Failed to start service for `%s' transport plugin.\n"),

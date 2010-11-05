@@ -847,8 +847,7 @@ postgres_plugin_next_request (void *next_cls,
   if (GNUNET_YES == end_it)
     nrc->end_it = GNUNET_YES;
   nrc->plugin->next_task_nc = nrc;
-  nrc->plugin->next_task = GNUNET_SCHEDULER_add_now (nrc->plugin->env->sched,
-						     &postgres_next_request_cont,
+  nrc->plugin->next_task = GNUNET_SCHEDULER_add_now (&postgres_next_request_cont,
 						     nrc);
 }
 
@@ -1358,8 +1357,7 @@ libgnunet_plugin_datastore_postgres_done (void *cls)
   
   if (plugin->next_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (plugin->env->sched,
-			       plugin->next_task);
+      GNUNET_SCHEDULER_cancel (plugin->next_task);
       plugin->next_task = GNUNET_SCHEDULER_NO_TASK;
       GNUNET_free (plugin->next_task_nc);
       plugin->next_task_nc = NULL;

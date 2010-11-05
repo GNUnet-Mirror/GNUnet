@@ -181,10 +181,6 @@ struct GNUNET_DATASTORE_Handle
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-  /**
-   * Our scheduler.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
 
   /**
    * Current connection to the datastore service.
@@ -247,30 +243,24 @@ struct GNUNET_DATASTORE_Handle
  * Connect to the datastore service.
  *
  * @param cfg configuration to use
- * @param sched scheduler to use
  * @return handle to use to access the service
  */
 struct GNUNET_DATASTORE_Handle *
 GNUNET_DATASTORE_connect (const struct
 			  GNUNET_CONFIGURATION_Handle
-			  *cfg,
-			  struct
-			  GNUNET_SCHEDULER_Handle
-			  *sched)
+			  *cfg)
 {
   struct GNUNET_CLIENT_Connection *c;
   struct GNUNET_DATASTORE_Handle *h;
   
-  c = GNUNET_CLIENT_connect (sched, "datastore", cfg);
+  c = GNUNET_CLIENT_connect ("datastore", cfg);
   if (c == NULL)
     return NULL; /* oops */
   h = GNUNET_malloc (sizeof(struct GNUNET_DATASTORE_Handle) + 
 		     GNUNET_SERVER_MAX_MESSAGE_SIZE - 1);
   h->client = c;
   h->cfg = cfg;
-  h->sched = sched;
-  h->stats = GNUNET_STATISTICS_create (sched,
-				       "datastore-api", 
+  h->stats = GNUNET_STATISTICS_create ("datastore-api",
 				       cfg);
   return h;
 }
@@ -327,8 +317,7 @@ void GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
     }
   if (h->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (h->sched,
-			       h->reconnect_task);
+      GNUNET_SCHEDULER_cancel (h->reconnect_task);
       h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
     }
   while (NULL != (qe = h->queue_head))
@@ -338,7 +327,7 @@ void GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
     }
   if (GNUNET_YES == drop) 
     {
-      h->client = GNUNET_CLIENT_connect (h->sched, "datastore", h->cfg);
+      h->client = GNUNET_CLIENT_connect ("datastore", h->cfg);
       if (h->client != NULL)
 	{
 	  if (NULL != 
@@ -459,8 +448,7 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h,
       response_proc (ret, NULL);
       return NULL;
     }
-  ret->task = GNUNET_SCHEDULER_add_delayed (h->sched,
-					    timeout,
+  ret->task = GNUNET_SCHEDULER_add_delayed (timeout,
 					    &timeout_queue_entry,
 					    ret);
   pos = ret->next;
@@ -507,7 +495,7 @@ try_reconnect (void *cls,
   if (h->retry_time.rel_value > GNUNET_CONSTANTS_SERVICE_TIMEOUT.rel_value)
     h->retry_time = GNUNET_CONSTANTS_SERVICE_TIMEOUT;
   h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
-  h->client = GNUNET_CLIENT_connect (h->sched, "datastore", h->cfg);
+  h->client = GNUNET_CLIENT_connect ("datastore", h->cfg);
   if (h->client == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -551,8 +539,7 @@ do_disconnect (struct GNUNET_DATASTORE_Handle *h)
 #endif
   GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
   h->client = NULL;
-  h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->sched,
-						    h->retry_time,
+  h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->retry_time,
 						    &try_reconnect,
 						    h);      
 }
@@ -601,8 +588,7 @@ transmit_request (void *cls,
 #endif
   memcpy (buf, &qe[1], msize);
   qe->was_transmitted = GNUNET_YES;
-  GNUNET_SCHEDULER_cancel (h->sched,
-			   qe->task);
+  GNUNET_SCHEDULER_cancel (qe->task);
   qe->task = GNUNET_SCHEDULER_NO_TASK;
   h->in_receive = GNUNET_YES;
   GNUNET_CLIENT_receive (h->client,
@@ -698,8 +684,7 @@ free_queue_entry (struct GNUNET_DATASTORE_QueueEntry *qe)
 			       qe);
   if (qe->task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (h->sched,
-			       qe->task);
+      GNUNET_SCHEDULER_cancel (qe->task);
       qe->task = GNUNET_SCHEDULER_NO_TASK;
     }
   h->queue_size--;

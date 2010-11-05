@@ -149,10 +149,6 @@ struct GNUNET_DHT_RouteHandle
  */
 struct GNUNET_DHT_Handle
 {
-  /**
-   * Our scheduler.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
 
   /**
    * Configuration to use.
@@ -224,7 +220,7 @@ try_connect (struct GNUNET_DHT_Handle *handle)
 {
   if (handle->client != NULL)
     return GNUNET_OK;
-  handle->client = GNUNET_CLIENT_connect (handle->sched, "dht", handle->cfg);
+  handle->client = GNUNET_CLIENT_connect ("dht", handle->cfg);
   if (handle->client == NULL)
     { 
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -359,14 +355,12 @@ transmit_pending (void *cls,
 			       head);
   if (head->timeout_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (handle->sched,
-			       head->timeout_task);
+      GNUNET_SCHEDULER_cancel (head->timeout_task);
       head->timeout_task = GNUNET_SCHEDULER_NO_TASK;
     }
   if (NULL != head->cont)
     {
-      GNUNET_SCHEDULER_add_continuation (handle->sched,
-                                         head->cont,
+      GNUNET_SCHEDULER_add_continuation (head->cont,
                                          head->cont_cls,
                                          GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       head->cont = NULL;
@@ -527,7 +521,6 @@ service_message_handler (void *cls,
 /**
  * Initialize the connection with the DHT service.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param ht_len size of the internal hash table to use for
  *               processing multiple GET/FIND requests in parallel
@@ -535,15 +528,13 @@ service_message_handler (void *cls,
  * @return handle to the DHT service, or NULL on error
  */
 struct GNUNET_DHT_Handle *
-GNUNET_DHT_connect (struct GNUNET_SCHEDULER_Handle *sched,
-                    const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_DHT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                     unsigned int ht_len)
 {
   struct GNUNET_DHT_Handle *handle;
 
   handle = GNUNET_malloc (sizeof (struct GNUNET_DHT_Handle));
   handle->cfg = cfg;
-  handle->sched = sched;
   handle->uid_gen = GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
   handle->active_requests = GNUNET_CONTAINER_multihashmap_create (ht_len);
   if (GNUNET_NO == try_connect (handle))
@@ -578,11 +569,9 @@ GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle)
 				   pm);
       GNUNET_assert (GNUNET_YES == pm->free_on_send);
       if (GNUNET_SCHEDULER_NO_TASK != pm->timeout_task)
-	GNUNET_SCHEDULER_cancel (handle->sched,
-				 pm->timeout_task);
+	GNUNET_SCHEDULER_cancel (pm->timeout_task);
       if (NULL != pm->cont)
-	GNUNET_SCHEDULER_add_continuation (handle->sched,
-					   pm->cont,
+	GNUNET_SCHEDULER_add_continuation (pm->cont,
 					   pm->cont_cls,
 					   GNUNET_SCHEDULER_REASON_TIMEOUT);
       pm->in_pending_queue = GNUNET_NO;
@@ -713,8 +702,7 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
     {
       route_handle = NULL;
       pending->free_on_send = GNUNET_YES;
-      pending->timeout_task = GNUNET_SCHEDULER_add_delayed (handle->sched,
-							    timeout,
+      pending->timeout_task = GNUNET_SCHEDULER_add_delayed (timeout,
 							    &timeout_route_request,
 							    pending);
     }

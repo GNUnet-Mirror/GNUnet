@@ -190,11 +190,6 @@ struct GNUNET_TRANSPORT_PluginEnvironment
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
-   * Scheduler to use.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
-
-  /**
    * Identity of this peer.
    */
   const struct GNUNET_PeerIdentity *my_identity;

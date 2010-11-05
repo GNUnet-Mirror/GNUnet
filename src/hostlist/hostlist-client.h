@@ -82,7 +82,6 @@
  * Start downloading hostlists from hostlist servers as necessary.
  *
  * @param c the configuration to use
- * @param s the scheduler to use
  * @param st hande for publishing statistics
  * @param ch set to handler for connect notifications
  * @param dh set to handler for disconnect notifications
@@ -92,7 +91,6 @@
  */
 int
 GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
-			      struct GNUNET_SCHEDULER_Handle *s,
 			      struct GNUNET_STATISTICS_Handle *st,
 			      GNUNET_CORE_ConnectEventHandler *ch,
 			      GNUNET_CORE_DisconnectEventHandler *dh,

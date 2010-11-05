@@ -65,10 +65,6 @@ struct PendingMessages
  */
 struct GNUNET_DV_Handle
 {
-  /**
-   * Our scheduler.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
 
   /**
    * Configuration to use.
@@ -175,7 +171,7 @@ try_connect (struct GNUNET_DV_Handle *ret)
 {
   if (ret->client != NULL)
     return GNUNET_OK;
-  ret->client = GNUNET_CLIENT_connect (ret->sched, "dv", ret->cfg);
+  ret->client = GNUNET_CLIENT_connect ("dv", ret->cfg);
   if (ret->client != NULL)
     return GNUNET_YES;
 #if DEBUG_DV_MESSAGES
@@ -529,7 +525,6 @@ transmit_start (void *cls, size_t size, void *buf)
 /**
  * Connect to the DV service
  *
- * @param sched the scheduler to use
  * @param cfg the configuration to use
  * @param receive_handler method call when on receipt from the service
  * @param receive_handler_cls closure for receive_handler
@@ -537,8 +532,7 @@ transmit_start (void *cls, size_t size, void *buf)
  * @return handle to the DV service
  */
 struct GNUNET_DV_Handle *
-GNUNET_DV_connect (struct GNUNET_SCHEDULER_Handle *sched,
-                  const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_DV_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                   GNUNET_DV_MessageReceivedHandler receive_handler,
                   void *receive_handler_cls)
 {
@@ -548,11 +542,10 @@ GNUNET_DV_connect (struct GNUNET_SCHEDULER_Handle *sched,
   handle = GNUNET_malloc(sizeof(struct GNUNET_DV_Handle));
 
   handle->cfg = cfg;
-  handle->sched = sched;
   handle->pending_list = NULL;
   handle->current = NULL;
   handle->th = NULL;
-  handle->client = GNUNET_CLIENT_connect(sched, "dv", cfg);
+  handle->client = GNUNET_CLIENT_connect("dv", cfg);
   handle->receive_handler = receive_handler;
   handle->receive_cls = receive_handler_cls;
 

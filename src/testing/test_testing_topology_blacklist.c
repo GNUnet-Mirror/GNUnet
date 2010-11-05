@@ -57,8 +57,6 @@ static unsigned long long peers_left;
 
 static struct GNUNET_TESTING_PeerGroup *pg;
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 const struct GNUNET_CONFIGURATION_Handle *main_cfg;
 
 GNUNET_SCHEDULER_TaskIdentifier die_task;
@@ -213,25 +211,22 @@ topology_callback (void *cls,
                   total_connections);
 #endif
 
-      GNUNET_SCHEDULER_cancel (sched, die_task);
+      GNUNET_SCHEDULER_cancel (die_task);
       die_task = GNUNET_SCHEDULER_NO_TASK;
-      die_task = GNUNET_SCHEDULER_add_now (sched,
-                                           &end_badly, "from topology_callback (too many successful connections)");
+      die_task = GNUNET_SCHEDULER_add_now (&end_badly, "from topology_callback (too many successful connections)");
     }
   else if (total_connections + failed_connections == expected_connections)
     {
       if ((failed_connections == expected_failed_connections) && (total_connections == expected_connections - expected_failed_connections))
         {
-          GNUNET_SCHEDULER_cancel (sched, die_task);
+          GNUNET_SCHEDULER_cancel (die_task);
           die_task = GNUNET_SCHEDULER_NO_TASK;
-          die_task = GNUNET_SCHEDULER_add_now (sched,
-                                               &finish_testing, NULL);
+          die_task = GNUNET_SCHEDULER_add_now (&finish_testing, NULL);
         }
       else
         {
-          GNUNET_SCHEDULER_cancel (sched, die_task);
-          die_task = GNUNET_SCHEDULER_add_now (sched,
-                                               &end_badly, "from topology_callback (wrong number of failed connections)");
+          GNUNET_SCHEDULER_cancel (die_task);
+          die_task = GNUNET_SCHEDULER_add_now (&end_badly, "from topology_callback (wrong number of failed connections)");
         }
     }
   else
@@ -257,15 +252,13 @@ connect_topology ()
 #endif
     }
 
-  GNUNET_SCHEDULER_cancel (sched, die_task);
+  GNUNET_SCHEDULER_cancel (die_task);
   if (expected_connections == GNUNET_SYSERR)
     {
-      die_task = GNUNET_SCHEDULER_add_now (sched,
-                                           &end_badly, "from connect topology (bad return)");
+      die_task = GNUNET_SCHEDULER_add_now (&end_badly, "from connect topology (bad return)");
     }
 
-  die_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                           TEST_TIMEOUT,
+  die_task = GNUNET_SCHEDULER_add_delayed (TEST_TIMEOUT,
                                            &end_badly, "from connect topology (timeout)");
 }
 
@@ -283,13 +276,11 @@ create_topology ()
     }
   else
     {
-      GNUNET_SCHEDULER_cancel (sched, die_task);
-      die_task = GNUNET_SCHEDULER_add_now (sched,
-                                           &end_badly, "from create topology (bad return)");
+      GNUNET_SCHEDULER_cancel (die_task);
+      die_task = GNUNET_SCHEDULER_add_now (&end_badly, "from create topology (bad return)");
     }
-  GNUNET_SCHEDULER_cancel (sched, die_task);
-  die_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                           TEST_TIMEOUT,
+  GNUNET_SCHEDULER_cancel (die_task);
+  die_task = GNUNET_SCHEDULER_add_delayed (TEST_TIMEOUT,
                                            &end_badly, "from continue startup (timeout)");
 }
 
@@ -319,11 +310,10 @@ peers_started_callback (void *cls,
                   "All %d daemons started, now creating topology!\n",
                   num_peers);
 #endif
-      GNUNET_SCHEDULER_cancel (sched, die_task);
+      GNUNET_SCHEDULER_cancel (die_task);
       /* Set up task in case topology creation doesn't finish
        * within a reasonable amount of time */
-      die_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                               GNUNET_TIME_relative_multiply
+      die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                                (GNUNET_TIME_UNIT_MINUTES, 5),
                                                &end_badly, "from peers_started_callback");
       connect_topology ();
@@ -362,21 +352,19 @@ void hostkey_callback (void *cls,
                     "All %d hostkeys created, now creating topology!\n",
                     num_peers);
 #endif
-        GNUNET_SCHEDULER_cancel (sched, die_task);
+        GNUNET_SCHEDULER_cancel (die_task);
         /* Set up task in case topology creation doesn't finish
          * within a reasonable amount of time */
-        die_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                                 GNUNET_TIME_relative_multiply
+        die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                                  (GNUNET_TIME_UNIT_MINUTES, 5),
                                                  &end_badly, "from hostkey_callback");
-        GNUNET_SCHEDULER_add_now(sched, &create_topology, NULL);
+        GNUNET_SCHEDULER_add_now(&create_topology, NULL);
         ok = 0;
       }
 }
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
@@ -385,7 +373,6 @@ run (void *cls,
   unsigned long long blacklist_topology_num;
   unsigned long long connect_topology_option_num;
   char *connect_topology_option_modifier_string;
-  sched = s;
   ok = 1;
 
   dotOutFile = fopen (dotOutFileName, "w");
@@ -483,12 +470,11 @@ run (void *cls,
 
 
   /* Set up a task to end testing if peer start fails */
-  die_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                           GNUNET_TIME_relative_multiply
+  die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                            (GNUNET_TIME_UNIT_MINUTES, 5),
                                            &end_badly, "didn't start all daemons in reasonable amount of time!!!");
 
-  pg = GNUNET_TESTING_daemons_start (sched, cfg,
+  pg = GNUNET_TESTING_daemons_start (cfg,
                                      peers_left, TIMEOUT, &hostkey_callback, NULL, &peers_started_callback, NULL,
                                      &topology_callback, NULL, NULL);
 

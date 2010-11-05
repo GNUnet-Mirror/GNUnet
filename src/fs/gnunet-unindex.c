@@ -38,8 +38,6 @@ static struct GNUNET_FS_Handle *ctx;
 
 static struct GNUNET_FS_UnindexContext *uc;
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 
 static void
 cleanup_task (void *cls,
@@ -103,16 +101,15 @@ progress_cb (void *cls,
       fprintf (stderr,
 	       _("Error unindexing: %s.\n"),
 	       info->value.unindex.specifics.error.message);
-      GNUNET_SCHEDULER_shutdown (sched);
+      GNUNET_SCHEDULER_shutdown ();
       break;
     case GNUNET_FS_STATUS_UNINDEX_COMPLETED:
       fprintf (stdout,
 	       _("Unindexing done.\n"));
-      GNUNET_SCHEDULER_shutdown (sched);
+      GNUNET_SCHEDULER_shutdown ();
       break;
     case GNUNET_FS_STATUS_UNINDEX_STOPPED:
-      GNUNET_SCHEDULER_add_continuation (sched,
-					 &cleanup_task,
+      GNUNET_SCHEDULER_add_continuation (&cleanup_task,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;      
@@ -130,14 +127,12 @@ progress_cb (void *cls,
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
- * @param s the scheduler to use
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param c configuration
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
@@ -150,10 +145,8 @@ run (void *cls,
       ret = -1;
       return;
     }
-  sched = s;
   cfg = c;
-  ctx = GNUNET_FS_start (sched,
-			 cfg,
+  ctx = GNUNET_FS_start (cfg,
 			 "gnunet-unindex",
 			 &progress_cb,
 			 NULL,
@@ -177,8 +170,7 @@ run (void *cls,
       GNUNET_FS_stop (ctx);
       return;
     }
-  GNUNET_SCHEDULER_add_delayed (sched,
-				GNUNET_TIME_UNIT_FOREVER_REL,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&shutdown_task,
 				NULL);
 }

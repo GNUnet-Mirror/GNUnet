@@ -1459,8 +1459,7 @@ do_reconnect (void *cls,
   struct GNUNET_CLIENT_Connection *client;
   
   dc->task = GNUNET_SCHEDULER_NO_TASK;
-  client = GNUNET_CLIENT_connect (dc->h->sched,
-				  "fs",
+  client = GNUNET_CLIENT_connect ("fs",
 				  dc->h->cfg);
   if (NULL == client)
     {
@@ -1543,8 +1542,7 @@ try_reconnect (struct GNUNET_FS_DownloadContext *dc)
 	      "Will try to reconnect in 1s\n");
 #endif
   dc->task
-    = GNUNET_SCHEDULER_add_delayed (dc->h->sched,
-				    GNUNET_TIME_UNIT_SECONDS,
+    = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
 				    &do_reconnect,
 				    dc);
 }
@@ -1658,8 +1656,7 @@ GNUNET_FS_download_signal_suspend_ (void *cls)
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_SUSPEND;
   GNUNET_FS_download_make_status_ (&pi, dc);
   if (GNUNET_SCHEDULER_NO_TASK != dc->task)
-    GNUNET_SCHEDULER_cancel (dc->h->sched,
-			     dc->task);
+    GNUNET_SCHEDULER_cancel (dc->task);
   GNUNET_CONTAINER_multihashmap_iterate (dc->active,
 					 &free_entry,
 					 NULL);
@@ -1992,8 +1989,7 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_STOPPED;
   GNUNET_FS_download_make_status_ (&pi, dc);
   if (GNUNET_SCHEDULER_NO_TASK != dc->task)
-    GNUNET_SCHEDULER_cancel (dc->h->sched,
-			     dc->task);
+    GNUNET_SCHEDULER_cancel (dc->task);
   GNUNET_CONTAINER_multihashmap_iterate (dc->active,
 					 &free_entry,
 					 NULL);

@@ -54,11 +54,6 @@ struct GNUNET_NAT_Handle
   struct GNUNET_NAT_NATPMP_Handle *natpmp;
 
   /**
-   * Scheduler.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
-
-  /**
    * LAN address as passed by the caller 
    */
   struct sockaddr *local_addr;
@@ -296,8 +291,7 @@ pulse_cb (struct GNUNET_NAT_Handle *h)
       notify_change (h, h->ext_addr_natpmp, addrlen, port_mapped);
     }
 
-  h->pulse_timer = GNUNET_SCHEDULER_add_delayed (h->sched,
-                                                 GNUNET_TIME_UNIT_SECONDS,
+  h->pulse_timer = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                                  &nat_pulse, h);
 }
 
@@ -372,7 +366,6 @@ nat_pulse (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * of the local host's addresses should the external port be mapped. The port
  * is taken from the corresponding sockaddr_in[6] field.
  *
- * @param sched the sheduler used in the program
  * @param addr the local address packets should be redirected to
  * @param addrlen actual lenght of the address
  * @param callback function to call everytime the public IP address changes
@@ -380,9 +373,7 @@ nat_pulse (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return NULL on error, otherwise handle that can be used to unregister 
  */
 struct GNUNET_NAT_Handle *
-GNUNET_NAT_register (struct GNUNET_SCHEDULER_Handle
-                     *sched,
-                     const struct sockaddr *addr,
+GNUNET_NAT_register (const struct sockaddr *addr,
                      socklen_t addrlen,
                      GNUNET_NAT_AddressCallback callback, void *callback_cls)
 {
@@ -408,22 +399,20 @@ GNUNET_NAT_register (struct GNUNET_SCHEDULER_Handle
         }
     }
   h->should_change = GNUNET_YES;
-  h->sched = sched;
   h->is_enabled = GNUNET_YES;
   h->upnp_status = GNUNET_NAT_PORT_UNMAPPED;
   h->natpmp_status = GNUNET_NAT_PORT_UNMAPPED;
   h->callback = callback;
   h->callback_cls = callback_cls;
   h->upnp =
-    GNUNET_NAT_UPNP_init (h->sched, h->local_addr, addrlen, h->public_port,
+    GNUNET_NAT_UPNP_init (h->local_addr, addrlen, h->public_port,
                           &upnp_pulse_cb, h);
 #if 0
   h->natpmp =
-    GNUNET_NAT_NATPMP_init (h->sched, h->local_addr, addrlen, h->public_port,
+    GNUNET_NAT_NATPMP_init (h->local_addr, addrlen, h->public_port,
                             &natpmp_pulse_cb, h);
 #endif
-  h->pulse_timer = GNUNET_SCHEDULER_add_delayed (sched,
-                                                 GNUNET_TIME_UNIT_SECONDS,
+  h->pulse_timer = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                                  &nat_pulse, h);
   return h;
 }
@@ -447,7 +436,7 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
 #endif
 
   if (GNUNET_SCHEDULER_NO_TASK != h->pulse_timer)
-    GNUNET_SCHEDULER_cancel (h->sched, h->pulse_timer);
+    GNUNET_SCHEDULER_cancel (h->pulse_timer);
 
   GNUNET_free_non_null (h->local_addr);
   GNUNET_free_non_null (h->ext_addr);

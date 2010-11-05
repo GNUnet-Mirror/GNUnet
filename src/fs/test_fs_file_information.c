@@ -67,7 +67,6 @@ mycleaner(void *cls,
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -87,7 +86,7 @@ run (void *cls,
   struct GNUNET_FS_Handle *fs;
   size_t i;
 
-  fs = GNUNET_FS_start (s, cfg, "test-fs-file-information", NULL, NULL, 
+  fs = GNUNET_FS_start (cfg, "test-fs-file-information", NULL, NULL,
 			GNUNET_FS_FLAGS_NONE,
 			GNUNET_FS_OPTIONS_END);
   fn1 = GNUNET_DISK_mktemp ("gnunet-file_information-test-dst");

@@ -430,11 +430,6 @@ struct GNUNET_SERVICE_Context
   struct GNUNET_SERVER_Handle *server;
 
   /**
-   * Scheduler for the server.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
-
-  /**
    * NULL-terminated array of addresses to bind to, NULL if we got pre-bound
    * listen sockets.
    */
@@ -1290,16 +1285,13 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_SERVICE_Context *sctx = cls;
   unsigned int i;
 
-  sctx->sched = tc->sched;
   if (sctx->lsocks != NULL)
-    sctx->server = GNUNET_SERVER_create_with_sockets (tc->sched,
-						      &check_access,
+    sctx->server = GNUNET_SERVER_create_with_sockets (&check_access,
 						      sctx,
 						      sctx->lsocks,
 						      sctx->timeout, sctx->require_found);
   else
-    sctx->server = GNUNET_SERVER_create (tc->sched,
-					 &check_access,
+    sctx->server = GNUNET_SERVER_create (&check_access,
 					 sctx,
 					 sctx->addrs,
 					 sctx->addrlens,
@@ -1325,8 +1317,7 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       /* install a task that will kill the server
          process if the scheduler ever gets a shutdown signal */
-      GNUNET_SCHEDULER_add_delayed (tc->sched,
-                                    GNUNET_TIME_UNIT_FOREVER_REL,
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                     &shutdown_task, sctx->server);
     }
   sctx->my_handlers = GNUNET_malloc (sizeof (defhandlers));
@@ -1354,7 +1345,7 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	  i++;
 	}
     }
-  sctx->task (sctx->task_cls, tc->sched, sctx->server, sctx->cfg);
+  sctx->task (sctx->task_cls, sctx->server, sctx->cfg);
 }
 
 
@@ -1612,13 +1603,11 @@ shutdown:
  * initialized system.
  *
  * @param serviceName our service name
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @return NULL on error, service handle
  */
 struct GNUNET_SERVICE_Context *
 GNUNET_SERVICE_start (const char *serviceName,
-                      struct GNUNET_SCHEDULER_Handle *sched,
                       const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   int i;
@@ -1630,7 +1619,6 @@ GNUNET_SERVICE_start (const char *serviceName,
   sctx->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
   sctx->serviceName = serviceName;
   sctx->cfg = cfg;
-  sctx->sched = sched;
 
   /* setup subsystems */
   if (GNUNET_OK != setup_service (sctx))
@@ -1639,14 +1627,12 @@ GNUNET_SERVICE_start (const char *serviceName,
       return NULL;
     }
   if (sctx->lsocks != NULL)
-    sctx->server = GNUNET_SERVER_create_with_sockets (sched,
-						      &check_access,
+    sctx->server = GNUNET_SERVER_create_with_sockets (&check_access,
 						      sctx,
 						      sctx->lsocks,
 						      sctx->timeout, sctx->require_found);
   else
-    sctx->server = GNUNET_SERVER_create (sched,
-					 &check_access,
+    sctx->server = GNUNET_SERVER_create (&check_access,
 					 sctx,
 					 sctx->addrs,
 					 sctx->addrlens,

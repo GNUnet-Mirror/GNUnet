@@ -160,8 +160,7 @@ testing_init (void *cls,
 #endif
 
 
-  d->th = GNUNET_TRANSPORT_connect (d->sched,
-                                    d->cfg, 
+  d->th = GNUNET_TRANSPORT_connect (d->cfg,
 				    &d->id,
 				    d, NULL, NULL, NULL);
   if (d->th == NULL)
@@ -219,8 +218,7 @@ start_fsm (void *cls,
             }
           /* wait some more */
           d->task
-            = GNUNET_SCHEDULER_add_delayed (d->sched,
-                                            GNUNET_CONSTANTS_EXEC_WAIT,
+            = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_EXEC_WAIT,
                                             &start_fsm, d);
           return;
         }
@@ -333,8 +331,7 @@ start_fsm (void *cls,
 #endif
       d->phase = SP_HOSTKEY_CREATE;
       d->task
-	= GNUNET_SCHEDULER_add_read_file (d->sched,
-					  GNUNET_TIME_absolute_get_remaining(d->max_timeout),
+	= GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_absolute_get_remaining(d->max_timeout),
 					  GNUNET_DISK_pipe_handle(d->pipe_stdout, 
 								  GNUNET_DISK_PIPE_END_READ),
 					  &start_fsm, 
@@ -353,8 +350,7 @@ start_fsm (void *cls,
 	{
 	  /* keep reading */
           d->task
-            = GNUNET_SCHEDULER_add_read_file (d->sched,
-					      GNUNET_TIME_absolute_get_remaining(d->max_timeout),
+            = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_absolute_get_remaining(d->max_timeout),
 					      GNUNET_DISK_pipe_handle(d->pipe_stdout, 
 								      GNUNET_DISK_PIPE_END_READ),
 					      &start_fsm, 
@@ -426,8 +422,7 @@ start_fsm (void *cls,
         }
 
       d->task
-        = GNUNET_SCHEDULER_add_delayed (d->sched,
-                                        GNUNET_CONSTANTS_EXEC_WAIT,
+        = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_EXEC_WAIT,
                                         &start_fsm, d);
       break;
     case SP_TOPOLOGY_SETUP:
@@ -517,8 +512,7 @@ start_fsm (void *cls,
 #endif
       d->phase = SP_START_ARMING;
       d->task
-        = GNUNET_SCHEDULER_add_delayed (d->sched,
-                                        GNUNET_CONSTANTS_EXEC_WAIT,
+        = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_EXEC_WAIT,
                                         &start_fsm, d);
       break;
     case SP_START_ARMING:
@@ -540,8 +534,7 @@ start_fsm (void *cls,
             }
           /* wait some more */
           d->task
-            = GNUNET_SCHEDULER_add_delayed (d->sched,
-                                            GNUNET_CONSTANTS_EXEC_WAIT,
+            = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_EXEC_WAIT,
                                             &start_fsm, d);
           return;
         }
@@ -550,8 +543,7 @@ start_fsm (void *cls,
                   "Successfully started `%s'.\n", "gnunet-arm");
 #endif
       d->phase = SP_START_CORE;
-      d->server = GNUNET_CORE_connect (d->sched,
-                                       d->cfg,
+      d->server = GNUNET_CORE_connect (d->cfg,
                                        ARM_START_WAIT,
                                        d,
                                        &testing_init,
@@ -591,8 +583,7 @@ start_fsm (void *cls,
             }
           /* wait some more */
           d->task
-            = GNUNET_SCHEDULER_add_delayed (d->sched,
-                                            GNUNET_CONSTANTS_EXEC_WAIT,
+            = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_EXEC_WAIT,
                                             &start_fsm, d);
           return;
         }
@@ -661,8 +652,7 @@ start_fsm (void *cls,
             }
           /* wait some more */
           d->task
-            = GNUNET_SCHEDULER_add_delayed (d->sched,
-                                            GNUNET_CONSTANTS_EXEC_WAIT,
+            = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_EXEC_WAIT,
                                             &start_fsm, d);
           return;
         }
@@ -744,8 +734,7 @@ GNUNET_TESTING_daemon_start_stopped (struct GNUNET_TESTING_Daemon *daemon,
   daemon->phase = SP_TOPOLOGY_SETUP;
   daemon->max_timeout = GNUNET_TIME_relative_to_absolute(timeout);
 
-  GNUNET_SCHEDULER_add_continuation (daemon->sched,
-                                     &start_fsm,
+  GNUNET_SCHEDULER_add_continuation (&start_fsm,
                                      daemon,
                                      GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
@@ -756,7 +745,6 @@ GNUNET_TESTING_daemon_start_stopped (struct GNUNET_TESTING_Daemon *daemon,
  * reachable via "ssh" (unless the hostname is "NULL") without the
  * need to enter a password.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param timeout how long to wait starting up peers
  * @param hostname name of the machine where to run GNUnet
@@ -772,8 +760,7 @@ GNUNET_TESTING_daemon_start_stopped (struct GNUNET_TESTING_Daemon *daemon,
  * @return handle to the daemon (actual start will be completed asynchronously)
  */
 struct GNUNET_TESTING_Daemon *
-GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
-                             const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                              struct GNUNET_TIME_Relative timeout,
                              const char *hostname,
                              const char *ssh_username,
@@ -788,7 +775,6 @@ GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
   char *username;
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_TESTING_Daemon));
-  ret->sched = sched;
   ret->hostname = (hostname == NULL) ? NULL : GNUNET_strdup (hostname);
   if (sshport != 0)
     {
@@ -892,8 +878,7 @@ GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
           return NULL;
         }
       ret->task
-        = GNUNET_SCHEDULER_add_delayed (sched,
-                                        GNUNET_CONSTANTS_EXEC_WAIT,
+        = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_EXEC_WAIT,
                                         &start_fsm, ret);
       return ret;
     }
@@ -902,8 +887,7 @@ GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
               "No need to copy configuration file since we are running locally.\n");
 #endif
   ret->phase = SP_COPIED;
-  GNUNET_SCHEDULER_add_continuation (sched,
-                                     &start_fsm,
+  GNUNET_SCHEDULER_add_continuation (&start_fsm,
                                      ret,
                                      GNUNET_SCHEDULER_REASON_PREREQ_DONE);
   return ret;
@@ -936,7 +920,7 @@ GNUNET_TESTING_daemon_restart (struct GNUNET_TESTING_Daemon *d,
 
   if (d->phase == SP_CONFIG_UPDATE)
     {
-      GNUNET_SCHEDULER_cancel (d->sched, d->task);
+      GNUNET_SCHEDULER_cancel (d->task);
       d->phase = SP_START_DONE;
     }
   if (d->server != NULL)
@@ -1003,8 +987,7 @@ GNUNET_TESTING_daemon_restart (struct GNUNET_TESTING_Daemon *d,
 
     GNUNET_free_non_null(del_arg);
     d->task
-      = GNUNET_SCHEDULER_add_delayed (d->sched,
-                                      GNUNET_CONSTANTS_EXEC_WAIT,
+      = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_EXEC_WAIT,
                                       &start_fsm, d);
 
 }
@@ -1073,7 +1056,7 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
 
   if (d->phase == SP_CONFIG_UPDATE)
     {
-      GNUNET_SCHEDULER_cancel (d->sched, d->task);
+      GNUNET_SCHEDULER_cancel (d->task);
       d->phase = SP_START_DONE;
     }
   if (d->server != NULL)
@@ -1140,8 +1123,7 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
   GNUNET_free_non_null(del_arg);
   d->max_timeout = GNUNET_TIME_relative_to_absolute(timeout);
   d->task
-    = GNUNET_SCHEDULER_add_now (d->sched,
-                                &start_fsm, d);
+    = GNUNET_SCHEDULER_add_now (&start_fsm, d);
 }
 
 
@@ -1216,8 +1198,7 @@ GNUNET_TESTING_daemon_reconfigure (struct GNUNET_TESTING_Daemon *d,
   d->update_cb = cb;
   d->update_cb_cls = cb_cls;
   d->task
-    = GNUNET_SCHEDULER_add_delayed (d->sched,
-                                    GNUNET_CONSTANTS_EXEC_WAIT,
+    = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_EXEC_WAIT,
                                     &start_fsm, d);
 }
 
@@ -1331,7 +1312,7 @@ notify_connect_result (void *cls,
   ctx->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   if (ctx->hello_send_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel(ctx->d1->sched, ctx->hello_send_task);
+      GNUNET_SCHEDULER_cancel(ctx->hello_send_task);
       ctx->hello_send_task = GNUNET_SCHEDULER_NO_TASK;
     }
 
@@ -1388,7 +1369,7 @@ notify_connect_result (void *cls,
           GNUNET_TRANSPORT_disconnect(ctx->d2th);
           ctx->d2th = NULL;
         }
-      GNUNET_SCHEDULER_add_now(ctx->d1->sched, &reattempt_daemons_connect, ctx);
+      GNUNET_SCHEDULER_add_now(&reattempt_daemons_connect, ctx);
       return;
     }
   else
@@ -1428,9 +1409,8 @@ connect_notify (void *cls, const struct GNUNET_PeerIdentity * peer, struct GNUNE
     {
       ctx->connected = GNUNET_YES;
       ctx->distance = distance;
-      GNUNET_SCHEDULER_cancel(ctx->d1->sched, ctx->timeout_task);
-      ctx->timeout_task = GNUNET_SCHEDULER_add_now (ctx->d1->sched,
-						    &notify_connect_result,
+      GNUNET_SCHEDULER_cancel(ctx->timeout_task);
+      ctx->timeout_task = GNUNET_SCHEDULER_add_now (&notify_connect_result,
 						    ctx);
     }
 
@@ -1456,9 +1436,8 @@ connect_notify_core2 (void *cls, const struct GNUNET_PeerIdentity * peer, struct
     {
       ctx->connected = GNUNET_YES;
       ctx->distance = distance;
-      GNUNET_SCHEDULER_cancel(ctx->d1->sched, ctx->timeout_task);
-      ctx->timeout_task = GNUNET_SCHEDULER_add_now (ctx->d1->sched,
-                                                    &notify_connect_result,
+      GNUNET_SCHEDULER_cancel(ctx->timeout_task);
+      ctx->timeout_task = GNUNET_SCHEDULER_add_now (&notify_connect_result,
                                                     ctx);
     }
 
@@ -1496,8 +1475,7 @@ send_hello(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_assert(hello != NULL);
       GNUNET_TRANSPORT_offer_hello (ctx->d2th, hello);
 
-      ctx->connect_request_handle = GNUNET_CORE_peer_request_connect (ctx->d1->sched,
-                                                                      ctx->d2->cfg,
+      ctx->connect_request_handle = GNUNET_CORE_peer_request_connect (ctx->d2->cfg,
                                                                       GNUNET_TIME_relative_divide(ctx->relative_timeout,
                                                                                                   ctx->max_connect_attempts + 1),
                                                                       &ctx->d1->id,
@@ -1508,8 +1486,7 @@ send_hello(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 						    GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS,
 										  500));
     }
-  ctx->hello_send_task = GNUNET_SCHEDULER_add_delayed(ctx->d1->sched,
-						      ctx->timeout_hello,
+  ctx->hello_send_task = GNUNET_SCHEDULER_add_delayed(ctx->timeout_hello,
 						      &send_hello, ctx);
 }
 
@@ -1558,8 +1535,7 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
               d1->shortname, d2->shortname);
 #endif
 
-  ctx->d1core = GNUNET_CORE_connect (d1->sched,
-                                     d1->cfg,
+  ctx->d1core = GNUNET_CORE_connect (d1->cfg,
                                      timeout,
                                      ctx,
                                      NULL,
@@ -1576,8 +1552,7 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
     }
 
 #if CONNECT_CORE2
-  ctx->d2core = GNUNET_CORE_connect (d2->sched,
-                                     d2->cfg,
+  ctx->d2core = GNUNET_CORE_connect (d2->cfg,
                                      timeout,
                                      ctx,
                                      NULL,
@@ -1603,8 +1578,7 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 
 #endif
 
-  ctx->d2th = GNUNET_TRANSPORT_connect (d2->sched,
-                                        d2->cfg, 
+  ctx->d2th = GNUNET_TRANSPORT_connect (d2->cfg,
 					&d2->id,
 					d2, NULL, NULL, NULL);
   if (ctx->d2th == NULL)
@@ -1617,12 +1591,11 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
       return;
     }
 
-  ctx->timeout_task = GNUNET_SCHEDULER_add_delayed (d1->sched,
-                                                    GNUNET_TIME_relative_divide(ctx->relative_timeout, 
+  ctx->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide(ctx->relative_timeout,
                                                     ctx->max_connect_attempts),
                                                     &notify_connect_result, ctx);
 
-  ctx->hello_send_task = GNUNET_SCHEDULER_add_now(ctx->d1->sched, &send_hello, ctx);
+  ctx->hello_send_task = GNUNET_SCHEDULER_add_now(&send_hello, ctx);
 }
 
 static void
@@ -1641,8 +1614,7 @@ reattempt_daemons_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
 
   GNUNET_assert(ctx->d1core == NULL);
 
-  ctx->d1core = GNUNET_CORE_connect (ctx->d1->sched,
-                                     ctx->d1->cfg,
+  ctx->d1core = GNUNET_CORE_connect (ctx->d1->cfg,
                                      GNUNET_TIME_absolute_get_remaining(ctx->timeout),
                                      ctx,
                                      NULL,
@@ -1658,8 +1630,7 @@ reattempt_daemons_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
       return;
     }
 
-  ctx->d2th = GNUNET_TRANSPORT_connect (ctx->d2->sched,
-                                        ctx->d2->cfg, 
+  ctx->d2th = GNUNET_TRANSPORT_connect (ctx->d2->cfg,
 					&ctx->d2->id,
 					ctx->d2, NULL, NULL, NULL);
   if (ctx->d2th == NULL)
@@ -1672,11 +1643,10 @@ reattempt_daemons_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
       return;
     }
 
-  ctx->timeout_task = GNUNET_SCHEDULER_add_delayed (ctx->d1->sched,
-                                                    GNUNET_TIME_relative_divide(ctx->relative_timeout, ctx->max_connect_attempts),
+  ctx->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide(ctx->relative_timeout, ctx->max_connect_attempts),
                                                     &notify_connect_result, ctx);
 
-  ctx->hello_send_task = GNUNET_SCHEDULER_add_now(ctx->d1->sched, &send_hello, ctx);
+  ctx->hello_send_task = GNUNET_SCHEDULER_add_now(&send_hello, ctx);
 }
 
 /* end of testing.c */

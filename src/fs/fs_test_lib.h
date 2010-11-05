@@ -41,7 +41,6 @@ struct GNUNET_FS_TestDaemon;
 /**
  * Start daemons for testing.
  *
- * @param sched scheduler to use
  * @param template_cfg_file configuration template to use
  * @param timeout if this operation cannot be completed within the
  *                given period, call the continuation with an error code
@@ -55,8 +54,7 @@ struct GNUNET_FS_TestDaemon;
  * @param cont_cls closure for cont
  */
 void
-GNUNET_FS_TEST_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
-			      const char *template_cfg_file,
+GNUNET_FS_TEST_daemons_start (const char *template_cfg_file,
 			      struct GNUNET_TIME_Relative timeout,
 			      unsigned int total,
 			      struct GNUNET_FS_TestDaemon **daemons,
@@ -67,7 +65,6 @@ GNUNET_FS_TEST_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
 /**
  * Connect two daemons for testing.
  *
- * @param sched scheduler to use
  * @param daemon1 first daemon to connect
  * @param daemon2 second first daemon to connect
  * @param timeout if this operation cannot be completed within the
@@ -76,8 +73,7 @@ GNUNET_FS_TEST_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
  * @param cont_cls closure for cont
  */
 void
-GNUNET_FS_TEST_daemons_connect (struct GNUNET_SCHEDULER_Handle *sched,
-				struct GNUNET_FS_TestDaemon *daemon1,
+GNUNET_FS_TEST_daemons_connect (struct GNUNET_FS_TestDaemon *daemon1,
 				struct GNUNET_FS_TestDaemon *daemon2,
 				struct GNUNET_TIME_Relative timeout,
 				GNUNET_SCHEDULER_Task cont,
@@ -109,13 +105,11 @@ GNUNET_FS_TEST_get_configuration (struct GNUNET_FS_TestDaemon **daemons,
 /**
  * Stop daemons used for testing.
  *
- * @param sched scheduler to use
  * @param total number of daemons to stop
  * @param daemons array with the daemons (values will be clobbered)
  */
 void
-GNUNET_FS_TEST_daemons_stop (struct GNUNET_SCHEDULER_Handle *sched,
-			     unsigned int total,
+GNUNET_FS_TEST_daemons_stop (unsigned int total,
 			     struct GNUNET_FS_TestDaemon **daemons);
 
 
@@ -133,7 +127,6 @@ typedef void
 /**
  * Publish a file at the given daemon.
  *
- * @param sched scheduler to use
  * @param daemon where to publish
  * @param timeout if this operation cannot be completed within the
  *                given period, call the continuation with an error code
@@ -147,8 +140,7 @@ typedef void
  * @param cont_cls closure for cont
  */
 void
-GNUNET_FS_TEST_publish (struct GNUNET_SCHEDULER_Handle *sched,
-			struct GNUNET_FS_TestDaemon *daemon,
+GNUNET_FS_TEST_publish (struct GNUNET_FS_TestDaemon *daemon,
 			struct GNUNET_TIME_Relative timeout,
 			uint32_t anonymity,
 			int do_index,
@@ -162,7 +154,6 @@ GNUNET_FS_TEST_publish (struct GNUNET_SCHEDULER_Handle *sched,
 /**
  * Perform test download.
  *
- * @param sched scheduler to use
  * @param daemon which peer to download from
  * @param timeout if this operation cannot be completed within the
  *                given period, call the continuation with an error code
@@ -174,8 +165,7 @@ GNUNET_FS_TEST_publish (struct GNUNET_SCHEDULER_Handle *sched,
  * @param cont_cls closure for cont
  */
 void
-GNUNET_FS_TEST_download (struct GNUNET_SCHEDULER_Handle *sched,
-			 struct GNUNET_FS_TestDaemon *daemon,
+GNUNET_FS_TEST_download (struct GNUNET_FS_TestDaemon *daemon,
 			 struct GNUNET_TIME_Relative timeout,
 			 uint32_t anonymity,
 			 uint32_t seed,

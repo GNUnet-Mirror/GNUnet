@@ -58,13 +58,11 @@ static struct GNUNET_GETOPT_CommandLineOption options4[] = {
 
 static void
 runner (void *cls,
-        struct GNUNET_SCHEDULER_Handle *sched,
         char *const *args,
         const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   int *ok = cls;
   GNUNET_assert (setme1 == 1);
-  GNUNET_assert (sched != NULL);
   GNUNET_assert (0 == strcmp (args[0], "extra"));
   GNUNET_assert (args[1] == NULL);
   GNUNET_assert (0 == strcmp (cfgfile, "test_program_data.conf"));

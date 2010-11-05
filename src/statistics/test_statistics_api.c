@@ -109,12 +109,11 @@ next (void *cls, int success)
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *sched,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  h = GNUNET_STATISTICS_create (sched, "test-statistics-api", cfg);
+  h = GNUNET_STATISTICS_create ("test-statistics-api", cfg);
   GNUNET_STATISTICS_set (h, "test-1", 1, GNUNET_NO);
   GNUNET_STATISTICS_set (h, "test-2", 2, GNUNET_NO);
   GNUNET_STATISTICS_set (h, "test-3", 2, GNUNET_NO);
@@ -128,12 +127,11 @@ run (void *cls,
 
 static void
 run_more (void *cls,
-          struct GNUNET_SCHEDULER_Handle *sched,
           char *const *args,
           const char *cfgfile,
 	  const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  h = GNUNET_STATISTICS_create (sched, "test-statistics-api", cfg);
+  h = GNUNET_STATISTICS_create ("test-statistics-api", cfg);
   GNUNET_break (NULL !=
 		GNUNET_STATISTICS_get (h, NULL, "test-3",
 				       GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_3, cls));

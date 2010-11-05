@@ -36,10 +36,7 @@ typedef void (*GNUNET_NAT_UPNP_pulse_cb) (int status,
                                           struct sockaddr * ext_addr,
                                           void *cls);
 
-struct GNUNET_NAT_UPNP_Handle *GNUNET_NAT_UPNP_init (struct
-                                                     GNUNET_SCHEDULER_Handle
-                                                     *sched,
-                                                     const struct sockaddr
+struct GNUNET_NAT_UPNP_Handle *GNUNET_NAT_UPNP_init (const struct sockaddr
                                                      *addr, socklen_t addrlen,
                                                      unsigned short port,
                                                      GNUNET_NAT_UPNP_pulse_cb

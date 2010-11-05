@@ -730,13 +730,11 @@ handle_client_disconnect (void *cls,
  * Process statistics requests.
  *
  * @param cls closure
- * @param sched scheduler to use
  * @param server the initialized server
  * @param c configuration to use
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *sched,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
@@ -753,8 +751,7 @@ run (void *cls,
 				   &handle_client_disconnect,
 				   NULL);
   load (server);
-  GNUNET_SCHEDULER_add_delayed (sched,
-				GNUNET_TIME_UNIT_FOREVER_REL,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&shutdown_task,
 				NULL);
 }

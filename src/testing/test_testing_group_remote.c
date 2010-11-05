@@ -44,8 +44,6 @@ static int peers_failed;
 
 static struct GNUNET_TESTING_PeerGroup *pg;
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static unsigned long long num_peers;
 
 
@@ -101,7 +99,6 @@ my_cb (void *cls,
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
@@ -114,7 +111,6 @@ run (void *cls,
   char *data;
   int count;
   int ret;
-  sched = s;
   ok = 1;
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemons.\n");
@@ -197,8 +193,7 @@ run (void *cls,
     }
 
   peers_left = num_peers;
-  pg = GNUNET_TESTING_daemons_start (sched,
-                                     cfg,
+  pg = GNUNET_TESTING_daemons_start (cfg,
                                      peers_left,
                                      TIMEOUT,
                                      NULL,

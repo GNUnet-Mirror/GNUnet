@@ -41,10 +41,6 @@ struct GNUNET_CORE_PeerRequestHandle
    */
   struct GNUNET_CLIENT_Connection *client;
 
-  /**
-   * Scheduler.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
 
   /**
    * Function to call once done.
@@ -92,8 +88,7 @@ send_request (void *cls,
   if (buf == NULL)
     {
       if (prh->cont != NULL)
-        GNUNET_SCHEDULER_add_continuation (prh->sched,
-                                           prh->cont,
+        GNUNET_SCHEDULER_add_continuation (prh->cont,
 					   prh->cont_cls,
 					   GNUNET_SCHEDULER_REASON_TIMEOUT);
       GNUNET_CLIENT_disconnect (prh->client, GNUNET_NO);
@@ -109,8 +104,7 @@ send_request (void *cls,
   memcpy (buf, &msg, sizeof (msg));
   if (prh->cont != NULL)
     {
-      GNUNET_SCHEDULER_add_continuation (prh->sched,
-                                         prh->cont,
+      GNUNET_SCHEDULER_add_continuation (prh->cont,
                                          prh->cont_cls,
                                          GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     }
@@ -131,7 +125,6 @@ send_request (void *cls,
  * to our connection attempt within the given time frame, 'cont' will
  * be called with the TIMEOUT reason code.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param timeout how long to try to talk to core
  * @param peer who should we connect to
@@ -140,8 +133,7 @@ send_request (void *cls,
  * @return NULL on error (cont will not be called), otherwise handle for cancellation
  */
 struct GNUNET_CORE_PeerRequestHandle *
-GNUNET_CORE_peer_request_connect (struct GNUNET_SCHEDULER_Handle *sched,
-				  const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_CORE_peer_request_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 				  struct GNUNET_TIME_Relative timeout,
 				  const struct GNUNET_PeerIdentity * peer,
 				  GNUNET_SCHEDULER_Task cont,
@@ -150,12 +142,11 @@ GNUNET_CORE_peer_request_connect (struct GNUNET_SCHEDULER_Handle *sched,
   struct GNUNET_CORE_PeerRequestHandle *ret;
   struct GNUNET_CLIENT_Connection *client;
   
-  client = GNUNET_CLIENT_connect (sched, "core", cfg);
+  client = GNUNET_CLIENT_connect ("core", cfg);
   if (client == NULL)
     return NULL;
   ret = GNUNET_malloc (sizeof (struct GNUNET_CORE_PeerRequestHandle));
   ret->client = client;
-  ret->sched = sched;
   ret->cont = cont;
   ret->cont_cls = cont_cls;
   ret->peer = *peer;

@@ -68,8 +68,6 @@ static struct PeerContext p1;
 
 static struct PeerContext p2;
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static int ok;
 
 static int is_tcp;
@@ -104,7 +102,7 @@ end ()
 {
   /* do work here */
   GNUNET_assert (ok == 6);
-  GNUNET_SCHEDULER_cancel (sched, die_task);
+  GNUNET_SCHEDULER_cancel (die_task);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transports!\n");
   GNUNET_TRANSPORT_disconnect (p1.th);
   GNUNET_TRANSPORT_disconnect (p2.th);
@@ -193,9 +191,8 @@ notify_connect (void *cls,
 {
   if (cls == &p1)
     {
-      GNUNET_SCHEDULER_cancel (sched, die_task);
-      die_task = GNUNET_SCHEDULER_add_delayed (sched,
-					       TIMEOUT_TRANSMIT,
+      GNUNET_SCHEDULER_cancel (die_task);
+      die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT_TRANSMIT,
 					       &end_badly, NULL);
 
       GNUNET_TRANSPORT_notify_transmit_ready (p1.th,
@@ -288,7 +285,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 	  }
   }
 
-  p->th = GNUNET_TRANSPORT_connect (sched, p->cfg,
+  p->th = GNUNET_TRANSPORT_connect (p->cfg,
                                     NULL, p,
                                     &notify_receive,
                                     &notify_connect, &notify_disconnect);
@@ -341,15 +338,12 @@ exchange_hello (void *cls,
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (ok == 1);
   OKPP;
-  sched = s;
-  die_task = GNUNET_SCHEDULER_add_delayed (sched,
-					   TIMEOUT,
+  die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 					   &end_badly, NULL);
 
   if (is_udp)

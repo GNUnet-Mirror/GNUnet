@@ -109,7 +109,6 @@ struct CpsRunContext
   GNUNET_HashCode key;
   int i;
   int found;
-  struct GNUNET_SCHEDULER_Handle *sched;
   const struct GNUNET_CONFIGURATION_Handle *cfg;
   void *data;
   enum RunPhase phase;
@@ -133,8 +132,7 @@ check_success (void *cls,
   GNUNET_assert (GNUNET_OK == success);
   GNUNET_free_non_null (crc->data);
   crc->data = NULL;
-  GNUNET_SCHEDULER_add_continuation (crc->sched,
-				     &run_continuation,
+  GNUNET_SCHEDULER_add_continuation (&run_continuation,
 				     crc,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
@@ -170,8 +168,7 @@ check_value (void *cls,
 	}
       if (0 == crc->i)
 	crc->phase = RP_DONE;
-      GNUNET_SCHEDULER_add_continuation (crc->sched,
-					 &run_continuation,
+      GNUNET_SCHEDULER_add_continuation (&run_continuation,
 					 crc,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       return;
@@ -204,8 +201,7 @@ check_nothing (void *cls,
   GNUNET_assert (key == NULL);
   if (0 == --crc->i)
     crc->phase = RP_DONE;
-  GNUNET_SCHEDULER_add_continuation (crc->sched,
-				     &run_continuation,
+  GNUNET_SCHEDULER_add_continuation (&run_continuation,
 				     crc,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
@@ -307,8 +303,7 @@ run_tests (void *cls,
       GNUNET_free (crc);
       return;
     }
-  GNUNET_SCHEDULER_add_continuation (crc->sched,
-				     &run_continuation,
+  GNUNET_SCHEDULER_add_continuation (&run_continuation,
 				     crc,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
@@ -316,7 +311,6 @@ run_tests (void *cls,
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *sched,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -325,11 +319,10 @@ run (void *cls,
   static GNUNET_HashCode zkey;
 
   crc = GNUNET_malloc(sizeof(struct CpsRunContext));
-  crc->sched = sched;
   crc->cfg = cfg;
   crc->phase = RP_PUT;
   now = GNUNET_TIME_absolute_get ();
-  datastore = GNUNET_DATASTORE_connect (cfg, sched);
+  datastore = GNUNET_DATASTORE_connect (cfg);
   if (NULL ==
       GNUNET_DATASTORE_put (datastore, 0,
 			    &zkey, 4, "TEST",

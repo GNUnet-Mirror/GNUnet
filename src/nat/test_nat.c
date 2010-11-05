@@ -96,7 +96,6 @@ process_if (void *cls,
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *sched,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
@@ -128,11 +127,10 @@ run (void *cls,
               "Requesting NAT redirection from address %s...\n",
               GNUNET_a2s (addr, data.addrlen));
 
-  nat = GNUNET_NAT_register (sched, addr, data.addrlen, addr_callback, NULL);
+  nat = GNUNET_NAT_register (addr, data.addrlen, addr_callback, NULL);
   GNUNET_free (addr);
 
-  GNUNET_SCHEDULER_add_delayed (sched,
-                                GNUNET_TIME_relative_multiply
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                 (GNUNET_TIME_UNIT_SECONDS, TIMEOUT), stop,
                                 nat);
 }

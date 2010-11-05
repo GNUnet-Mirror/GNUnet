@@ -80,11 +80,6 @@ struct GNUNET_RESOLVER_RequestHandle
   struct GNUNET_CLIENT_Connection *client;
 
   /**
-   * Our scheduler.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
-
-  /**
    * Name of the host that we are resolving.
    */
   const char *hostname;
@@ -401,7 +396,6 @@ loopback_resolution (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Convert a string to one or more IP addresses.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param hostname the hostname to resolve
  * @param domain AF_INET or AF_INET6; use AF_UNSPEC for "any"
@@ -411,8 +405,7 @@ loopback_resolution (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return handle that can be used to cancel the request, NULL on error
  */
 struct GNUNET_RESOLVER_RequestHandle *
-GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
-                        const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_RESOLVER_ip_get (const struct GNUNET_CONFIGURATION_Handle *cfg,
                         const char *hostname,
                         int domain,
                         struct GNUNET_TIME_Relative timeout,
@@ -436,7 +429,6 @@ GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
       return NULL;
     }
   rh = GNUNET_malloc (sizeof (struct GNUNET_RESOLVER_RequestHandle) + slen);
-  rh->sched = sched;
   rh->domain = domain;
   rh->addr_callback = callback;
   rh->cls = callback_cls;
@@ -454,8 +446,7 @@ GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
                         &v6)) &&
        ((domain == AF_INET6) || (domain == AF_UNSPEC))))
     {
-      rh->task = GNUNET_SCHEDULER_add_now (sched,
-					   &numeric_resolution, rh);
+      rh->task = GNUNET_SCHEDULER_add_now (&numeric_resolution, rh);
       return rh;
     }
   /* then, check if this is a loopback address */
@@ -463,12 +454,11 @@ GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
   while (loopback[i] != NULL)
     if (0 == strcasecmp (loopback[i++], hostname))
       {
-        rh->task = GNUNET_SCHEDULER_add_now (sched,
-					     &loopback_resolution, rh);
+        rh->task = GNUNET_SCHEDULER_add_now (&loopback_resolution, rh);
         return rh;
       }
 
-  client = GNUNET_CLIENT_connect (sched, "resolver", cfg);
+  client = GNUNET_CLIENT_connect ("resolver", cfg);
   if (client == NULL)
     {
       GNUNET_free (rh);
@@ -595,7 +585,6 @@ numeric_reverse (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Get an IP address as a string.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param sa host address
  * @param salen length of host address
@@ -606,8 +595,7 @@ numeric_reverse (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return handle that can be used to cancel the request
  */
 struct GNUNET_RESOLVER_RequestHandle *
-GNUNET_RESOLVER_hostname_get (struct GNUNET_SCHEDULER_Handle *sched,
-                              const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_RESOLVER_hostname_get (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               const struct sockaddr *sa,
                               socklen_t salen,
                               int do_resolve,
@@ -625,14 +613,12 @@ GNUNET_RESOLVER_hostname_get (struct GNUNET_SCHEDULER_Handle *sched,
   rh->name_callback = callback;
   rh->cls = cls;
   rh->timeout = GNUNET_TIME_relative_to_absolute (timeout);
-  rh->sched = sched;
   rh->salen = salen;
   memcpy (&rh[1], sa, salen);
 
   if (GNUNET_NO == do_resolve)
     {
-      rh->task = GNUNET_SCHEDULER_add_now (sched,
-					   &numeric_reverse, rh);
+      rh->task = GNUNET_SCHEDULER_add_now (&numeric_reverse, rh);
       return rh;
     }
   if (salen + sizeof (struct GNUNET_RESOLVER_GetMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
@@ -641,7 +627,7 @@ GNUNET_RESOLVER_hostname_get (struct GNUNET_SCHEDULER_Handle *sched,
       GNUNET_free (rh);
       return NULL;
     }
-  client = GNUNET_CLIENT_connect (sched, "resolver", cfg);
+  client = GNUNET_CLIENT_connect ("resolver", cfg);
   if (client == NULL)
     {
       GNUNET_free (rh);
@@ -710,7 +696,6 @@ GNUNET_RESOLVER_local_fqdn_get ( void )
 /**
  * Looking our own hostname.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param domain AF_INET or AF_INET6; use AF_UNSPEC for "any"
  * @param callback function to call with addresses
@@ -719,8 +704,7 @@ GNUNET_RESOLVER_local_fqdn_get ( void )
  * @return handle that can be used to cancel the request, NULL on error
  */
 struct GNUNET_RESOLVER_RequestHandle *
-GNUNET_RESOLVER_hostname_resolve (struct GNUNET_SCHEDULER_Handle *sched,
-                                  const struct GNUNET_CONFIGURATION_Handle
+GNUNET_RESOLVER_hostname_resolve (const struct GNUNET_CONFIGURATION_Handle
                                   *cfg, int domain,
                                   struct GNUNET_TIME_Relative timeout,
                                   GNUNET_RESOLVER_AddressCallback callback,
@@ -739,8 +723,7 @@ GNUNET_RESOLVER_hostname_resolve (struct GNUNET_SCHEDULER_Handle *sched,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               _("Resolving our hostname `%s'\n"), hostname);
 #endif
-  return GNUNET_RESOLVER_ip_get (sched,
-                                 cfg, hostname, domain, timeout, callback,
+  return GNUNET_RESOLVER_ip_get (cfg, hostname, domain, timeout, callback,
                                  cls);
 }
 
@@ -759,7 +742,7 @@ GNUNET_RESOLVER_request_cancel (struct GNUNET_RESOLVER_RequestHandle *h)
   if (h->client != NULL)
     GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
   if (h->task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (h->sched, h->task);
+    GNUNET_SCHEDULER_cancel (h->task);
   GNUNET_free (h);
 }
 

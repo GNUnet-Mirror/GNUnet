@@ -93,7 +93,6 @@ enum RunPhase
 
 struct CpsRunContext
 {
-  struct GNUNET_SCHEDULER_Handle *sched;
   const struct GNUNET_CONFIGURATION_Handle *cfg;
   enum RunPhase phase;
   int j;
@@ -140,8 +139,7 @@ check_success (void *cls,
       else
 	crc->phase = RP_CUT;
     }
-  GNUNET_SCHEDULER_add_continuation (crc->sched,
-				     &run_continuation,
+  GNUNET_SCHEDULER_add_continuation (&run_continuation,
 				     crc,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
@@ -166,8 +164,7 @@ remove_next(void *cls,
   fprintf (stderr, "D");
 #endif
   GNUNET_assert (GNUNET_OK == success);
-  GNUNET_SCHEDULER_add_continuation (crc->sched,
-				     &run_continuation,
+  GNUNET_SCHEDULER_add_continuation (&run_continuation,
 				     crc,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
@@ -212,14 +209,12 @@ delete_value (void *cls,
       if (stored_bytes < MAX_SIZE)
 	{
 	  crc->phase = RP_REPORT;
-	  GNUNET_SCHEDULER_add_continuation (crc->sched,
-					     &run_continuation,
+	  GNUNET_SCHEDULER_add_continuation (&run_continuation,
 					     crc,
 					     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 	  return;     
 	}
-      GNUNET_SCHEDULER_add_with_priority (crc->sched,
-					  GNUNET_SCHEDULER_PRIORITY_HIGH,
+      GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_HIGH,
 					  &do_delete,
 					  crc);
       return;
@@ -298,8 +293,7 @@ run_continuation (void *cls,
                1000 * stored_ops / (1 + GNUNET_TIME_absolute_get_duration(start_time).rel_value));
       crc->phase = RP_PUT;
       crc->j = 0;
-      GNUNET_SCHEDULER_add_continuation (crc->sched,
-					 &run_continuation,
+      GNUNET_SCHEDULER_add_continuation (&run_continuation,
 					 crc,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
@@ -330,8 +324,7 @@ run_tests (void *cls,
       GNUNET_free (crc);
       return;
     }
-  GNUNET_SCHEDULER_add_continuation (crc->sched,
-				     &run_continuation,
+  GNUNET_SCHEDULER_add_continuation (&run_continuation,
 				     crc,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
@@ -339,7 +332,6 @@ run_tests (void *cls,
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *sched,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -347,10 +339,9 @@ run (void *cls,
   struct CpsRunContext *crc;
   static GNUNET_HashCode zkey;
 
-  datastore = GNUNET_DATASTORE_connect (cfg, sched);
+  datastore = GNUNET_DATASTORE_connect (cfg);
   start_time = GNUNET_TIME_absolute_get ();
   crc = GNUNET_malloc(sizeof(struct CpsRunContext));
-  crc->sched = sched;
   crc->cfg = cfg;
   crc->phase = RP_PUT;
   if (NULL ==

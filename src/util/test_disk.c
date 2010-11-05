@@ -169,8 +169,7 @@ iter_callback (void *cls,
 static void
 iter_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_DISK_directory_iterator_start (tc->sched,
-                                        GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+  GNUNET_DISK_directory_iterator_start (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                         "test", &iter_callback, cls);
 }
 

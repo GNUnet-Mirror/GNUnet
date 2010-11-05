@@ -235,14 +235,12 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Main function that will be run.
  *
  * @param cls closure
- * @param sched the scheduler to use
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param cfg configuration
  */
 static void 
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle * sched,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle * cfg)
@@ -268,9 +266,9 @@ run (void *cls,
 
 
 
-  stats = GNUNET_STATISTICS_create (sched, "hostlist", cfg);
+  stats = GNUNET_STATISTICS_create ("hostlist", cfg);
 
-  core = GNUNET_CORE_connect (sched, cfg,
+  core = GNUNET_CORE_connect (cfg,
 			      GNUNET_TIME_UNIT_FOREVER_REL,
 			      NULL,
 			      &core_init,
@@ -281,18 +279,17 @@ run (void *cls,
 
   if (bootstrapping)
     {
-      GNUNET_HOSTLIST_client_start (cfg, sched, stats,
+      GNUNET_HOSTLIST_client_start (cfg, stats,
 				    &client_ch, &client_dh, &client_adv_handler, learning);
     }
 
   #if HAVE_MHD
   if (provide_hostlist)
     {      
-      GNUNET_HOSTLIST_server_start (cfg, sched, stats, core, &server_ch, &server_dh, advertising );
+      GNUNET_HOSTLIST_server_start (cfg, stats, core, &server_ch, &server_dh, advertising );
     }
 #endif
-  GNUNET_SCHEDULER_add_delayed (sched,
-                                GNUNET_TIME_UNIT_FOREVER_REL,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &cleaning_task, NULL);
 
   if (NULL == core)
@@ -300,7 +297,7 @@ run (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Failed to connect to `%s' service.\n"),
 		  "core");
-      GNUNET_SCHEDULER_shutdown (sched);
+      GNUNET_SCHEDULER_shutdown ();
       return;     
     }
 }

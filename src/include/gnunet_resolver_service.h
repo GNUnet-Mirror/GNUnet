@@ -62,7 +62,6 @@ struct GNUNET_RESOLVER_RequestHandle;
 /**
  * Convert a string to one or more IP addresses.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param hostname the hostname to resolve
  * @param domain AF_INET or AF_INET6; use AF_UNSPEC for "any"
@@ -72,8 +71,7 @@ struct GNUNET_RESOLVER_RequestHandle;
  * @return handle that can be used to cancel the request, NULL on error
  */
 struct GNUNET_RESOLVER_RequestHandle *
-GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
-                        const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_RESOLVER_ip_get (const struct GNUNET_CONFIGURATION_Handle *cfg,
                         const char *hostname,
                         int domain,
                         struct GNUNET_TIME_Relative timeout,
@@ -84,7 +82,6 @@ GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
 /**
  * Resolve our hostname to an IP address.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param domain AF_INET or AF_INET6; use AF_UNSPEC for "any"
  * @param callback function to call with addresses
@@ -93,8 +90,7 @@ GNUNET_RESOLVER_ip_get (struct GNUNET_SCHEDULER_Handle *sched,
  * @return handle that can be used to cancel the request, NULL on error
  */
 struct GNUNET_RESOLVER_RequestHandle *
-GNUNET_RESOLVER_hostname_resolve (struct GNUNET_SCHEDULER_Handle *sched,
-                                  const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_RESOLVER_hostname_resolve (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                   int domain,
                                   struct GNUNET_TIME_Relative timeout,
                                   GNUNET_RESOLVER_AddressCallback callback,
@@ -123,7 +119,6 @@ GNUNET_RESOLVER_local_fqdn_get ( void );
 /**
  * Perform a reverse DNS lookup.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param sa host address
  * @param salen length of host address
@@ -134,8 +129,7 @@ GNUNET_RESOLVER_local_fqdn_get ( void );
  * @return handle that can be used to cancel the request, NULL on error
  */
 struct GNUNET_RESOLVER_RequestHandle * 
-GNUNET_RESOLVER_hostname_get (struct GNUNET_SCHEDULER_Handle *sched,
-			      const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_RESOLVER_hostname_get (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			      const struct sockaddr *sa,
 			      socklen_t salen,
 			      int do_resolve,

@@ -389,7 +389,7 @@ libgnunet_plugin_transport_dv_init (void *cls)
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
 
-  plugin->dv_handle = GNUNET_DV_connect(env->sched, env->cfg, &handle_dv_message_received, plugin);
+  plugin->dv_handle = GNUNET_DV_connect(env->cfg, &handle_dv_message_received, plugin);
 
   if (plugin->dv_handle == NULL)
   {

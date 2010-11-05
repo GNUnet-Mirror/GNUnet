@@ -477,13 +477,11 @@ handle_get (void *cls,
  * Process resolver requests.
  *
  * @param cls closure
- * @param sched scheduler to use
  * @param server the initialized server
  * @param cfg configuration to use
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *sched,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {

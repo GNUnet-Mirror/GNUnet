@@ -50,7 +50,7 @@ task_transmit_cancel (void *cls,
   struct GNUNET_CONNECTION_TransmitHandle *th;
   struct GNUNET_CONNECTION_Handle *csock;
 
-  csock = GNUNET_CONNECTION_create_from_connect (tc->sched, cfg,
+  csock = GNUNET_CONNECTION_create_from_connect (cfg,
                                                  "localhost", PORT);
   GNUNET_assert (csock != NULL);
   th = GNUNET_CONNECTION_notify_transmit_ready (csock,

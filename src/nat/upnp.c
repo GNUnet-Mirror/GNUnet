@@ -57,7 +57,6 @@ enum UPNP_State
 
 struct GNUNET_NAT_UPNP_Handle
 {
-  struct GNUNET_SCHEDULER_Handle *sched;
   int hasDiscovered;
   char *control_url;
   char *service_type;
@@ -91,8 +90,7 @@ process_if (void *cls,
 
 
 struct GNUNET_NAT_UPNP_Handle *
-GNUNET_NAT_UPNP_init (struct GNUNET_SCHEDULER_Handle *sched,
-                      const struct sockaddr *addr,
+GNUNET_NAT_UPNP_init (const struct sockaddr *addr,
                       socklen_t addrlen,
                       u_short port,
                       GNUNET_NAT_UPNP_pulse_cb pulse_cb, void *pulse_cls)
@@ -100,7 +98,6 @@ GNUNET_NAT_UPNP_init (struct GNUNET_SCHEDULER_Handle *sched,
   struct GNUNET_NAT_UPNP_Handle *handle;
 
   handle = GNUNET_malloc (sizeof (struct GNUNET_NAT_UPNP_Handle));
-  handle->sched = sched;
   handle->processing = GNUNET_NO;
   handle->state = UPNP_DISCOVER;
   handle->addr = addr;
@@ -350,7 +347,7 @@ GNUNET_NAT_UPNP_pulse (struct GNUNET_NAT_UPNP_Handle *handle,
   if (is_enabled && (handle->state == UPNP_DISCOVER))
     {
       handle->processing = GNUNET_YES;
-      UPNP_discover_ (handle->sched, handle->iface, handle->addr, discover_cb,
+      UPNP_discover_ (handle->iface, handle->addr, discover_cb,
                       handle);
     }
 
@@ -367,8 +364,7 @@ GNUNET_NAT_UPNP_pulse (struct GNUNET_NAT_UPNP_Handle *handle,
       GNUNET_snprintf (portStr, sizeof (portStr), "%d", handle->port);
 
       handle->processing = GNUNET_YES;
-      UPNP_get_specific_port_mapping_entry_ (handle->sched,
-                                             handle->control_url,
+      UPNP_get_specific_port_mapping_entry_ (handle->control_url,
                                              handle->service_type, portStr,
                                              "TCP", check_port_mapping_cb,
                                              handle);
@@ -380,7 +376,7 @@ GNUNET_NAT_UPNP_pulse (struct GNUNET_NAT_UPNP_Handle *handle,
       GNUNET_snprintf (portStr, sizeof (portStr), "%d", handle->port);
 
       handle->processing = GNUNET_YES;
-      UPNP_delete_port_mapping_ (handle->sched, handle->control_url,
+      UPNP_delete_port_mapping_ (handle->control_url,
                                  handle->service_type, portStr, "TCP", NULL,
                                  delete_port_mapping_cb, handle);
     }
@@ -403,7 +399,7 @@ GNUNET_NAT_UPNP_pulse (struct GNUNET_NAT_UPNP_Handle *handle,
           GNUNET_snprintf (desc, sizeof (desc), "GNUnet at %d", handle->port);
 
           handle->processing = GNUNET_YES;
-          UPNP_add_port_mapping_ (handle->sched, handle->control_url,
+          UPNP_add_port_mapping_ (handle->control_url,
                                   handle->service_type,
                                   portStr, portStr, GNUNET_a2s (handle->addr,
                                                                 handle->addrlen),
@@ -415,7 +411,7 @@ GNUNET_NAT_UPNP_pulse (struct GNUNET_NAT_UPNP_Handle *handle,
   if (handle->state != UPNP_DISCOVER)
     {
       handle->processing = GNUNET_YES;
-      UPNP_get_external_ip_address_ (handle->sched, handle->control_url,
+      UPNP_get_external_ip_address_ (handle->control_url,
                                      handle->service_type,
                                      get_ip_address_cb, handle);
     }

@@ -72,7 +72,6 @@ struct CpsRunContext
   unsigned int i;
   struct GNUNET_TIME_Absolute start;
   struct GNUNET_TIME_Absolute end;
-  struct GNUNET_SCHEDULER_Handle *sched;
   const struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_DATASTORE_PluginFunctions * api;
   const char *msg;
@@ -183,8 +182,7 @@ iterateDummy (void *cls,
 	  else
 	    crc->phase = RP_PUT;
 	}
-      GNUNET_SCHEDULER_add_after (crc->sched,
-				  GNUNET_SCHEDULER_NO_TASK,
+      GNUNET_SCHEDULER_add_after (GNUNET_SCHEDULER_NO_TASK,
 				  &test, crc);
       return GNUNET_OK;
     }
@@ -267,8 +265,7 @@ test (void *cls,
 	      (unsigned int) PUT_10);
       crc->i++;
       crc->phase = RP_LP_GET;
-      GNUNET_SCHEDULER_add_after (crc->sched,
-				  GNUNET_SCHEDULER_NO_TASK,
+      GNUNET_SCHEDULER_add_after (GNUNET_SCHEDULER_NO_TASK,
 				  &test, crc);
       break;
     case RP_LP_GET:
@@ -313,8 +310,7 @@ test (void *cls,
       break;
     case RP_DONE:
       crc->api->drop (crc->api->cls);
-      GNUNET_SCHEDULER_add_with_priority (crc->sched,
-				    GNUNET_SCHEDULER_PRIORITY_IDLE,
+      GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
 				    &cleaning_task, crc);
       break;
     }
@@ -325,8 +321,7 @@ test (void *cls,
  * Load the datastore plugin.
  */
 static struct GNUNET_DATASTORE_PluginFunctions *
-load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg,
-	     struct GNUNET_SCHEDULER_Handle *sched)
+load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static struct GNUNET_DATASTORE_PluginEnvironment env;
   struct GNUNET_DATASTORE_PluginFunctions * ret; 
@@ -344,7 +339,6 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg,
       return NULL;
     }
   env.cfg = cfg;
-  env.sched = sched;  
   env.duc = &disk_utilization_change_cb;
   env.cls = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -365,7 +359,6 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
@@ -373,7 +366,7 @@ run (void *cls,
   struct GNUNET_DATASTORE_PluginFunctions *api;
   struct CpsRunContext *crc;
 
-  api = load_plugin (c, s);
+  api = load_plugin (c);
   if (api == NULL)
     {
       fprintf (stderr, 
@@ -382,11 +375,9 @@ run (void *cls,
     }
   crc = GNUNET_malloc(sizeof(struct CpsRunContext));
   crc->api = api;
-  crc->sched = s;
   crc->cfg = c;
   crc->phase = RP_PUT;
-  GNUNET_SCHEDULER_add_now (crc->sched,
-			    &test, crc);
+  GNUNET_SCHEDULER_add_now (&test, crc);
 }
 
 

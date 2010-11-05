@@ -99,7 +99,6 @@ receive_info (void *cls,
 /**
  * Obtain statistics and/or change preferences for the given peer.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param peer identifies the peer
  * @param timeout after how long should we give up (and call "info" with NULL
@@ -122,8 +121,7 @@ receive_info (void *cls,
  * @return NULL on error
  */
 struct GNUNET_CORE_InformationRequestContext *
-GNUNET_CORE_peer_change_preference (struct GNUNET_SCHEDULER_Handle *sched,
-				    const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_CORE_peer_change_preference (const struct GNUNET_CONFIGURATION_Handle *cfg,
 				    const struct GNUNET_PeerIdentity *peer,
 				    struct GNUNET_TIME_Relative timeout,
 				    struct GNUNET_BANDWIDTH_Value32NBO bw_out,
@@ -137,7 +135,7 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_SCHEDULER_Handle *sched,
   struct GNUNET_CLIENT_Connection *client;
   int retry;
 
-  client = GNUNET_CLIENT_connect (sched, "core", cfg);
+  client = GNUNET_CLIENT_connect ("core", cfg);
   if (client == NULL)
     return NULL;
   irc = GNUNET_malloc (sizeof (struct GNUNET_CORE_InformationRequestContext));

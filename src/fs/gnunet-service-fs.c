@@ -771,11 +771,6 @@ static struct GNUNET_BLOCK_Context *block_ctx;
 static struct GNUNET_CONFIGURATION_Handle *block_cfg;
 
 /**
- * Our scheduler.
- */
-static struct GNUNET_SCHEDULER_Handle *sched;
-
-/**
  * Our configuration.
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -1106,7 +1101,7 @@ consider_migration (void *cls,
 #endif
   if (cp->delayed_transmission_request_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (sched, cp->delayed_transmission_request_task);
+      GNUNET_SCHEDULER_cancel (cp->delayed_transmission_request_task);
       cp->delayed_transmission_request_task = GNUNET_SCHEDULER_NO_TASK;
     }
   cp->cth 
@@ -1166,8 +1161,7 @@ consider_migration_gathering ()
 				       MAX_MIGRATION_QUEUE);
   delay = GNUNET_TIME_relative_max (delay,
 				    min_migration_delay);
-  mig_task = GNUNET_SCHEDULER_add_delayed (sched,
-					   delay,
+  mig_task = GNUNET_SCHEDULER_add_delayed (delay,
 					   &gather_migration_blocks,
 					   NULL);
 }
@@ -1201,8 +1195,7 @@ consider_dht_put_gathering (void *cls)
 	 (hopefully) appear */
       delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5);
     }
-  dht_task = GNUNET_SCHEDULER_add_delayed (sched,
-					   delay,
+  dht_task = GNUNET_SCHEDULER_add_delayed (delay,
 					   &gather_dht_put_blocks,
 					   cls);
 }
@@ -1542,8 +1535,7 @@ destroy_pending_request (struct PendingRequest *pr)
     }
   if (pr->task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (sched,
-			       pr->task);
+      GNUNET_SCHEDULER_cancel (pr->task);
       pr->task = GNUNET_SCHEDULER_NO_TASK;
     }
   while (NULL != pr->pending_head)    
@@ -1743,8 +1735,7 @@ cron_flush_trust (void *cls,
     return;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-  GNUNET_SCHEDULER_add_delayed (tc->sched,
-				TRUST_FLUSH_FREQ, &cron_flush_trust, NULL);
+  GNUNET_SCHEDULER_add_delayed (TRUST_FLUSH_FREQ, &cron_flush_trust, NULL);
 }
 
 
@@ -1843,7 +1834,7 @@ peer_disconnect_handler (void *cls,
     }
   if (cp->delayed_transmission_request_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (sched, cp->delayed_transmission_request_task);
+      GNUNET_SCHEDULER_cancel (cp->delayed_transmission_request_task);
       cp->delayed_transmission_request_task = GNUNET_SCHEDULER_NO_TASK;
     }
   while (NULL != (pm = cp->pending_messages_head))
@@ -1984,12 +1975,12 @@ shutdown_task (void *cls,
     }
   if (GNUNET_SCHEDULER_NO_TASK != mig_task)
     {
-      GNUNET_SCHEDULER_cancel (sched, mig_task);
+      GNUNET_SCHEDULER_cancel (mig_task);
       mig_task = GNUNET_SCHEDULER_NO_TASK;
     }
   if (GNUNET_SCHEDULER_NO_TASK != dht_task)
     {
-      GNUNET_SCHEDULER_cancel (sched, dht_task);
+      GNUNET_SCHEDULER_cancel (dht_task);
       dht_task = GNUNET_SCHEDULER_NO_TASK;
     }
   while (client_list != NULL)
@@ -2039,7 +2030,6 @@ shutdown_task (void *cls,
   block_ctx = NULL;
   GNUNET_CONFIGURATION_destroy (block_cfg);
   block_cfg = NULL;
-  sched = NULL;
   cfg = NULL;  
   GNUNET_free_non_null (trustDirectory);
   trustDirectory = NULL;
@@ -2157,8 +2147,7 @@ transmit_to_peer (void *cls,
     {     
       GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == cp->delayed_transmission_request_task);
       cp->delayed_transmission_request_task
-	= GNUNET_SCHEDULER_add_delayed (sched,
-					min_delay,
+	= GNUNET_SCHEDULER_add_delayed (min_delay,
 					&delayed_transmission_request,
 					cp);
     }
@@ -2284,7 +2273,7 @@ add_to_pending_messages_for_peer (struct ConnectedPeer *cp,
     }
   if (cp->delayed_transmission_request_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (sched, cp->delayed_transmission_request_task);
+      GNUNET_SCHEDULER_cancel (cp->delayed_transmission_request_task);
       cp->delayed_transmission_request_task = GNUNET_SCHEDULER_NO_TASK;
     }
   /* need to schedule transmission */
@@ -2428,8 +2417,7 @@ transmit_query_continuation (void *cls,
 		  "Transmission of request failed, will try again later.\n");
 #endif
       if (pr->task == GNUNET_SCHEDULER_NO_TASK)
-	pr->task = GNUNET_SCHEDULER_add_delayed (sched,
-						 get_processing_delay (),
+	pr->task = GNUNET_SCHEDULER_add_delayed (get_processing_delay (),
 						 &forward_request_task,
 						 pr); 
       return;    
@@ -2461,8 +2449,7 @@ transmit_query_continuation (void *cls,
   pr->used_targets[i].last_request_time = GNUNET_TIME_absolute_get ();
   pr->used_targets[i].num_requests++;
   if (pr->task == GNUNET_SCHEDULER_NO_TASK)
-    pr->task = GNUNET_SCHEDULER_add_delayed (sched,
-					     get_processing_delay (),
+    pr->task = GNUNET_SCHEDULER_add_delayed (get_processing_delay (),
 					     &forward_request_task,
 					     pr);
 }
@@ -2572,8 +2559,7 @@ target_reservation_cb (void *cls,
     {
       /* error in communication with core, try again later */
       if (pr->task == GNUNET_SCHEDULER_NO_TASK)
-	pr->task = GNUNET_SCHEDULER_add_delayed (sched,
-						 get_processing_delay (),
+	pr->task = GNUNET_SCHEDULER_add_delayed (get_processing_delay (),
 						 &forward_request_task,
 						 pr);
       return;
@@ -2589,8 +2575,7 @@ target_reservation_cb (void *cls,
 		  "Selected peer disconnected!\n");
 #endif
       if (pr->task == GNUNET_SCHEDULER_NO_TASK)
-	pr->task = GNUNET_SCHEDULER_add_delayed (sched,
-						 get_processing_delay (),
+	pr->task = GNUNET_SCHEDULER_add_delayed (get_processing_delay (),
 						 &forward_request_task,
 						 pr);
       return;
@@ -2611,8 +2596,7 @@ target_reservation_cb (void *cls,
 				    1,
 				    GNUNET_NO);
 	  if (pr->task == GNUNET_SCHEDULER_NO_TASK)
-	    pr->task = GNUNET_SCHEDULER_add_delayed (sched,
-						     get_processing_delay (),
+	    pr->task = GNUNET_SCHEDULER_add_delayed (get_processing_delay (),
 						     &forward_request_task,
 						     pr);
 	  return;  /* this target round failed */
@@ -2963,8 +2947,7 @@ forward_request_task (void *cls,
 		  GNUNET_h2s (&pr->query),
 		  delay.rel_value);
 #endif
-      pr->task = GNUNET_SCHEDULER_add_delayed (sched,
-					       delay,
+      pr->task = GNUNET_SCHEDULER_add_delayed (delay,
 					       &forward_request_task,
 					       pr);
       return; /* nobody selected */
@@ -2999,7 +2982,7 @@ forward_request_task (void *cls,
       cp = GNUNET_CONTAINER_multihashmap_get (connected_peers,
 					      &psc.target.hashPubKey);
       GNUNET_assert (NULL != cp);
-      pr->irc = GNUNET_CORE_peer_change_preference (sched, cfg,
+      pr->irc = GNUNET_CORE_peer_change_preference (cfg,
 						    &psc.target,
 						    GNUNET_CONSTANTS_SERVICE_TIMEOUT, 
 						    GNUNET_BANDWIDTH_value_init (UINT32_MAX),
@@ -3263,8 +3246,7 @@ struct GNUNET_TIME_Relative art_delay;
       pr->do_remove = GNUNET_YES;
       if (pr->task != GNUNET_SCHEDULER_NO_TASK)
 	{
-	  GNUNET_SCHEDULER_cancel (sched,
-				   pr->task);
+	  GNUNET_SCHEDULER_cancel (pr->task);
 	  pr->task = GNUNET_SCHEDULER_NO_TASK;
 	}
       GNUNET_break (GNUNET_YES ==
@@ -3779,8 +3761,7 @@ process_local_reply (void *cls,
 	}
       /* no more results */
       if (pr->task == GNUNET_SCHEDULER_NO_TASK)
-	pr->task = GNUNET_SCHEDULER_add_now (sched,
-					     &forward_request_task,
+	pr->task = GNUNET_SCHEDULER_add_now (&forward_request_task,
 					     pr);      
       return;
     }
@@ -4267,8 +4248,7 @@ handle_p2p_get (void *cls,
 	}
     default:
       if (pr->task == GNUNET_SCHEDULER_NO_TASK)
-	pr->task = GNUNET_SCHEDULER_add_now (sched,
-					     &forward_request_task,
+	pr->task = GNUNET_SCHEDULER_add_now (&forward_request_task,
 					     pr);
     }
 
@@ -4448,13 +4428,11 @@ handle_start_search (void *cls,
 /**
  * Process fs requests.
  *
- * @param s scheduler to use
  * @param server the initialized server
  * @param c configuration to use
  */
 static int
-main_init (struct GNUNET_SCHEDULER_Handle *s,
-	   struct GNUNET_SERVER_Handle *server,
+main_init (struct GNUNET_SERVER_Handle *server,
 	   const struct GNUNET_CONFIGURATION_Handle *c)
 {
   static const struct GNUNET_CORE_MessageHandler p2p_handlers[] =
@@ -4481,9 +4459,8 @@ main_init (struct GNUNET_SCHEDULER_Handle *s,
   };
   unsigned long long enc = 128;
 
-  sched = s;
   cfg = c;
-  stats = GNUNET_STATISTICS_create (sched, "fs", cfg);
+  stats = GNUNET_STATISTICS_create ("fs", cfg);
   min_migration_delay = GNUNET_TIME_UNIT_SECONDS;
   if ( (GNUNET_OK !=
 	GNUNET_CONFIGURATION_get_value_number (cfg,
@@ -4509,8 +4486,7 @@ main_init (struct GNUNET_SCHEDULER_Handle *s,
   rt_entry_lifetime = GNUNET_LOAD_value_init (GNUNET_TIME_UNIT_FOREVER_REL);
   peer_request_map = GNUNET_CONTAINER_multihashmap_create (enc);
   requests_by_expiration_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN); 
-  core = GNUNET_CORE_connect (sched,
-			      cfg,
+  core = GNUNET_CORE_connect (cfg,
 			      GNUNET_TIME_UNIT_FOREVER_REL,
 			      NULL,
 			      NULL,
@@ -4559,14 +4535,12 @@ main_init (struct GNUNET_SCHEDULER_Handle *s,
                                                           "TRUST",
                                                           &trustDirectory));
   GNUNET_DISK_directory_create (trustDirectory);
-  GNUNET_SCHEDULER_add_with_priority (sched,
-				      GNUNET_SCHEDULER_PRIORITY_HIGH,
+  GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_HIGH,
 				      &cron_flush_trust, NULL);
 
 
   GNUNET_SERVER_add_handlers (server, handlers);
-  GNUNET_SCHEDULER_add_delayed (sched,
-				GNUNET_TIME_UNIT_FOREVER_REL,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&shutdown_task,
 				NULL);
   return GNUNET_OK;
@@ -4577,24 +4551,21 @@ main_init (struct GNUNET_SCHEDULER_Handle *s,
  * Process fs requests.
  *
  * @param cls closure
- * @param sched scheduler to use
  * @param server the initialized server
  * @param cfg configuration to use
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *sched,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   active_migration = GNUNET_CONFIGURATION_get_value_yesno (cfg,
 							   "FS",
 							   "ACTIVEMIGRATION");
-  dsh = GNUNET_DATASTORE_connect (cfg,
-				  sched);
+  dsh = GNUNET_DATASTORE_connect (cfg);
   if (dsh == NULL)
     {
-      GNUNET_SCHEDULER_shutdown (sched);
+      GNUNET_SCHEDULER_shutdown ();
       return;
     }
   datastore_get_load = GNUNET_LOAD_value_init (DATASTORE_LOAD_AUTODECLINE);
@@ -4606,13 +4577,12 @@ run (void *cls,
 					 "fs");
   block_ctx = GNUNET_BLOCK_context_create (block_cfg);
   GNUNET_assert (NULL != block_ctx);
-  dht_handle = GNUNET_DHT_connect (sched,
-				   cfg,
+  dht_handle = GNUNET_DHT_connect (cfg,
 				   FS_DHT_HT_SIZE);
-  if ( (GNUNET_OK != GNUNET_FS_indexing_init (sched, cfg, dsh)) ||
-       (GNUNET_OK != main_init (sched, server, cfg)) )
+  if ( (GNUNET_OK != GNUNET_FS_indexing_init (cfg, dsh)) ||
+       (GNUNET_OK != main_init (server, cfg)) )
     {    
-      GNUNET_SCHEDULER_shutdown (sched);
+      GNUNET_SCHEDULER_shutdown ();
       GNUNET_DATASTORE_disconnect (dsh, GNUNET_NO);
       dsh = NULL;
       GNUNET_DHT_disconnect (dht_handle);

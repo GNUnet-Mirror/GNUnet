@@ -124,11 +124,6 @@ static struct ServiceList *running;
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
- * Our scheduler.
- */
-static struct GNUNET_SCHEDULER_Handle *sched;
-
-/**
  * Command to prepend to each actual command.
  */
 static char *prefix_command;
@@ -695,7 +690,7 @@ do_shutdown ()
 {
   GNUNET_SERVER_destroy (server);
   server = NULL;
-  GNUNET_SCHEDULER_cancel (sched, child_death_task);
+  GNUNET_SCHEDULER_cancel (child_death_task);
   child_death_task = GNUNET_SCHEDULER_NO_TASK;
 }
 
@@ -741,7 +736,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       pos = pos->next;
     }
 #if DELAY_SHUTDOWN
-  GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 2), &dummy_task, NULL);
+  GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 2), &dummy_task, NULL);
 #endif
   if (running == NULL)
     do_shutdown ();
@@ -802,8 +797,7 @@ delayed_restart_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 		  (unsigned long long) lowestRestartDelay.rel_value);
 #endif
       child_restart_task
-	= GNUNET_SCHEDULER_add_delayed (sched,
-					lowestRestartDelay,
+	= GNUNET_SCHEDULER_add_delayed (lowestRestartDelay,
 					&delayed_restart_task,
 					NULL);
     }
@@ -834,7 +828,7 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
     {
       child_death_task =
-	GNUNET_SCHEDULER_add_read_file (sched, GNUNET_TIME_UNIT_FOREVER_REL, pr,
+	GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, pr,
 					&maint_child_death, NULL);
       return;    
     }
@@ -909,10 +903,9 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	    pos->backoff 
 	      = GNUNET_TIME_relative_multiply (pos->backoff, 2);
 	  if (GNUNET_SCHEDULER_NO_TASK != child_restart_task)
-	    GNUNET_SCHEDULER_cancel (sched, child_restart_task);
+	    GNUNET_SCHEDULER_cancel (child_restart_task);
 	  child_restart_task 
-	    = GNUNET_SCHEDULER_add_with_priority (sched,
-						  GNUNET_SCHEDULER_PRIORITY_IDLE,
+	    = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
 						  &delayed_restart_task,
 						  NULL);
 	}
@@ -934,7 +927,7 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   else
     {
       child_death_task =
-	GNUNET_SCHEDULER_add_read_file (sched, GNUNET_TIME_UNIT_FOREVER_REL, pr,
+	GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, pr,
 					&maint_child_death, NULL);
     }
 }
@@ -986,7 +979,7 @@ handle_shutdown (void *cls,
                                        GNUNET_TIME_UNIT_FOREVER_REL,
                                        &transmit_shutdown_ack, client);
   GNUNET_SERVER_client_persist_ (client);
-  GNUNET_SCHEDULER_shutdown (sched);
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -1011,13 +1004,11 @@ sighandler_child_death ()
  * Process arm requests.
  *
  * @param cls closure
- * @param s scheduler to use
  * @param serv the initialized server
  * @param c configuration to use
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      struct GNUNET_SERVER_Handle *serv,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
@@ -1032,18 +1023,16 @@ run (void *cls,
   char *pos;
 
   cfg = c;
-  sched = s;
   server = serv;
   GNUNET_assert (serv != NULL);
   pr = GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ);
   GNUNET_assert (pr != NULL);
   GNUNET_SERVER_ignore_shutdown (serv, GNUNET_YES);
-  GNUNET_SCHEDULER_add_delayed (sched,
-				GNUNET_TIME_UNIT_FOREVER_REL,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&shutdown_task,
 				NULL);
   child_death_task =
-    GNUNET_SCHEDULER_add_read_file (sched, GNUNET_TIME_UNIT_FOREVER_REL, pr,
+    GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, pr,
 				    &maint_child_death, NULL);
 
   if (GNUNET_OK !=
@@ -1089,14 +1078,13 @@ run (void *cls,
     }
 
   /* create listening sockets for future services*/
-  prepareServices (cfg, sched);
+  prepareServices (cfg);
   
   /* process client requests */
   GNUNET_SERVER_add_handlers (server, handlers);
 
   /* manage services */
-  GNUNET_SCHEDULER_add_with_priority (sched,
-				      GNUNET_SCHEDULER_PRIORITY_IDLE,
+  GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
 				      &config_change_task, NULL);
 }
 

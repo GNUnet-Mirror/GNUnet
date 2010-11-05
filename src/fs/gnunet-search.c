@@ -32,8 +32,6 @@ static int ret;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static struct GNUNET_FS_Handle *ctx;
 
 static struct GNUNET_FS_SearchContext *sc;
@@ -185,11 +183,10 @@ progress_cb (void *cls,
       fprintf (stderr,
 	       _("Error searching: %s.\n"),
 	       info->value.search.specifics.error.message);
-      GNUNET_SCHEDULER_shutdown (sched);
+      GNUNET_SCHEDULER_shutdown ();
       break;
     case GNUNET_FS_STATUS_SEARCH_STOPPED: 
-      GNUNET_SCHEDULER_add_continuation (sched,
-					 &clean_task, 
+      GNUNET_SCHEDULER_add_continuation (&clean_task,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;      
@@ -219,14 +216,12 @@ shutdown_task (void *cls,
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
- * @param s the scheduler to use
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param c configuration
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
@@ -235,7 +230,6 @@ run (void *cls,
   unsigned int argc;
   enum GNUNET_FS_SearchOptions options;
 
-  sched = s;
   argc = 0;
   while (NULL != args[argc])
     argc++;
@@ -250,8 +244,7 @@ run (void *cls,
       return;
     }
   cfg = c;
-  ctx = GNUNET_FS_start (sched,
-			 cfg,
+  ctx = GNUNET_FS_start (cfg,
 			 "gnunet-search",
 			 &progress_cb,
 			 NULL,
@@ -285,8 +278,7 @@ run (void *cls,
       ret = 1;
       return;
     }
-  GNUNET_SCHEDULER_add_delayed (sched,
-				GNUNET_TIME_UNIT_FOREVER_REL,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&shutdown_task,
 				NULL);
 }

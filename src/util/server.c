@@ -80,11 +80,6 @@ struct NotifyList
 struct GNUNET_SERVER_Handle
 {
   /**
-   * My scheduler.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
-
-  /**
    * List of handlers for incoming messages.
    */
   struct HandlerList *handlers;
@@ -249,8 +244,7 @@ process_listen_socket (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     {
       /* ignore shutdown, someone else will take care of it! */
-      server->listen_task = GNUNET_SCHEDULER_add_select (server->sched,
-                                                         GNUNET_SCHEDULER_PRIORITY_HIGH,
+      server->listen_task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
                                                          GNUNET_SCHEDULER_NO_TASK,
                                                          GNUNET_TIME_UNIT_FOREVER_REL,
                                                          r, NULL,
@@ -266,7 +260,7 @@ process_listen_socket (void *cls,
           (tc->read_ready, server->listen_sockets[i]))
         {
           sock =
-            GNUNET_CONNECTION_create_from_accept (tc->sched, server->access,
+            GNUNET_CONNECTION_create_from_accept (server->access,
                                                   server->access_cls,
                                                   server->listen_sockets[i]);
           if (sock != NULL)
@@ -285,8 +279,7 @@ process_listen_socket (void *cls,
       i++;
     }
   /* listen for more! */
-  server->listen_task = GNUNET_SCHEDULER_add_select (server->sched,
-                                                     GNUNET_SCHEDULER_PRIORITY_HIGH,
+  server->listen_task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
                                                      GNUNET_SCHEDULER_NO_TASK,
                                                      GNUNET_TIME_UNIT_FOREVER_REL,
                                                      r, NULL,
@@ -386,7 +379,6 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
 /**
  * Create a new server.
  *
- * @param sched scheduler to use
  * @param access function for access control
  * @param access_cls closure for access
  * @param lsocks NULL-terminated array of listen sockets
@@ -397,8 +389,7 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
  *         (typically, "port" already in use)
  */
 struct GNUNET_SERVER_Handle *
-GNUNET_SERVER_create_with_sockets (struct GNUNET_SCHEDULER_Handle *sched,
-				   GNUNET_CONNECTION_AccessCheck access, void *access_cls,
+GNUNET_SERVER_create_with_sockets (GNUNET_CONNECTION_AccessCheck access, void *access_cls,
 				   struct GNUNET_NETWORK_Handle **lsocks,
 				   struct GNUNET_TIME_Relative
 				   idle_timeout,
@@ -409,7 +400,6 @@ GNUNET_SERVER_create_with_sockets (struct GNUNET_SCHEDULER_Handle *sched,
   int i;
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_SERVER_Handle));
-  ret->sched = sched;
   ret->idle_timeout = idle_timeout;
   ret->listen_sockets = lsocks;
   ret->access = access;
@@ -421,8 +411,7 @@ GNUNET_SERVER_create_with_sockets (struct GNUNET_SCHEDULER_Handle *sched,
       i = 0;
       while (NULL != ret->listen_sockets[i])
         GNUNET_NETWORK_fdset_set (r, ret->listen_sockets[i++]);
-      ret->listen_task = GNUNET_SCHEDULER_add_select (sched,
-                                                      GNUNET_SCHEDULER_PRIORITY_HIGH,
+      ret->listen_task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
                                                       GNUNET_SCHEDULER_NO_TASK,
                                                       GNUNET_TIME_UNIT_FOREVER_REL,
                                                       r, NULL,
@@ -437,7 +426,6 @@ GNUNET_SERVER_create_with_sockets (struct GNUNET_SCHEDULER_Handle *sched,
 /**
  * Create a new server.
  *
- * @param sched scheduler to use
  * @param access function for access control
  * @param access_cls closure for access
  * @param serverAddr address to listen on (including port), NULL terminated array
@@ -449,8 +437,7 @@ GNUNET_SERVER_create_with_sockets (struct GNUNET_SCHEDULER_Handle *sched,
  *         (typically, "port" already in use)
  */
 struct GNUNET_SERVER_Handle *
-GNUNET_SERVER_create (struct GNUNET_SCHEDULER_Handle *sched,
-                      GNUNET_CONNECTION_AccessCheck access,
+GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck access,
                       void *access_cls,
                       struct sockaddr *const *serverAddr,
                       const socklen_t * socklen,
@@ -489,8 +476,7 @@ GNUNET_SERVER_create (struct GNUNET_SCHEDULER_Handle *sched,
     {
       lsocks = NULL;
     }
-  return GNUNET_SERVER_create_with_sockets (sched,
-					    access, access_cls,
+  return GNUNET_SERVER_create_with_sockets (access, access_cls,
 					    lsocks,
 					    idle_timeout,
 					    require_found);
@@ -514,7 +500,7 @@ GNUNET_SERVER_destroy (struct GNUNET_SERVER_Handle *s)
 #endif
   if (GNUNET_SCHEDULER_NO_TASK != s->listen_task)
     {
-      GNUNET_SCHEDULER_cancel (s->sched, s->listen_task);
+      GNUNET_SCHEDULER_cancel (s->listen_task);
       s->listen_task = GNUNET_SCHEDULER_NO_TASK;
     }
   if (s->listen_sockets != NULL)
@@ -1023,8 +1009,7 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
 #endif
   if (client->restart_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (client->server->sched,
-			       client->restart_task);
+      GNUNET_SCHEDULER_cancel (client->restart_task);
       client->restart_task = GNUNET_SCHEDULER_NO_TASK;
     }
   if (GNUNET_YES == client->receive_pending)
@@ -1053,8 +1038,7 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
         prev->next = pos->next;
       if (client->restart_task != GNUNET_SCHEDULER_NO_TASK)
 	{
-	  GNUNET_SCHEDULER_cancel (server->sched,
-				   client->restart_task);
+	  GNUNET_SCHEDULER_cancel (client->restart_task);
 	  client->restart_task = GNUNET_SCHEDULER_NO_TASK;
 	}
       n = server->disconnect_notify_list;
@@ -1182,8 +1166,7 @@ GNUNET_SERVER_receive_done (struct GNUNET_SERVER_Client *client, int success)
 	      "GNUNET_SERVER_receive_done causes restart in reading from the socket\n");
 #endif
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == client->restart_task);
-  client->restart_task = GNUNET_SCHEDULER_add_now (client->server->sched,
-						   &restart_processing,
+  client->restart_task = GNUNET_SCHEDULER_add_now (&restart_processing,
 						   client);
 }
 

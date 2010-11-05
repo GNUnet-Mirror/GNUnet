@@ -35,7 +35,6 @@
 #define SERVICE_TEST_TIMEOUT GNUNET_TIME_UNIT_FOREVER_REL
 #define FIVE_MILLISECONDS GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 5)
 
-static struct GNUNET_SCHEDULER_Handle *sched;
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 static struct GNUNET_ARM_Handle *arm;
 static int ok = 1;
@@ -55,10 +54,6 @@ static char *killLogFileName;
  */
 struct ShutdownContext
 {
-  /**
-   * Scheduler to be used to call continuation
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
   /**
    * Connection to the service that is being shutdown.
    */
@@ -114,7 +109,7 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 		  "Service handle shutdown before ACK!\n");
       if (shutdown_ctx->cont != NULL)
         shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_SYSERR);      
-      GNUNET_SCHEDULER_cancel(shutdown_ctx->sched, shutdown_ctx->cancel_task);
+      GNUNET_SCHEDULER_cancel(shutdown_ctx->cancel_task);
       GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
       GNUNET_free(shutdown_ctx);
     }
@@ -127,7 +122,7 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       if (shutdown_ctx->cont != NULL)
         shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_NO);
 
-      GNUNET_SCHEDULER_cancel(shutdown_ctx->sched, shutdown_ctx->cancel_task);
+      GNUNET_SCHEDULER_cancel(shutdown_ctx->cancel_task);
       GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
       GNUNET_free(shutdown_ctx);
     }
@@ -153,7 +148,7 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 	  if (shutdown_ctx->cont != NULL)
 	    shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_YES);
 	  
-	  GNUNET_SCHEDULER_cancel(shutdown_ctx->sched, shutdown_ctx->cancel_task);
+	  GNUNET_SCHEDULER_cancel(shutdown_ctx->cancel_task);
 	  GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
 	  GNUNET_free(shutdown_ctx);
 	  break;
@@ -206,8 +201,7 @@ write_shutdown (void *cls, size_t size, void *buf)
   GNUNET_CLIENT_receive (shutdown_ctx->sock,
 			 &service_shutdown_handler, shutdown_ctx, 
 			 GNUNET_TIME_UNIT_FOREVER_REL);
-  shutdown_ctx->cancel_task = GNUNET_SCHEDULER_add_delayed (shutdown_ctx->sched, 
-							    GNUNET_TIME_absolute_get_remaining(shutdown_ctx->timeout), 
+  shutdown_ctx->cancel_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining(shutdown_ctx->timeout),
 							    &service_shutdown_cancel, 
 							    shutdown_ctx);
   msg = (struct GNUNET_MessageHeader *) buf;
@@ -224,7 +218,6 @@ write_shutdown (void *cls, size_t size, void *buf)
  * be used by the caller after this call
  * (calling this function frees "sock" after a while).
  *
- * @param sched the scheduler to use for calling shutdown continuation
  * @param sock the socket connected to the service
  * @param timeout how long to wait before giving up on transmission
  * @param cont continuation to call once the service is really down
@@ -232,15 +225,13 @@ write_shutdown (void *cls, size_t size, void *buf)
  *
  */
 static void
-arm_service_shutdown (struct GNUNET_SCHEDULER_Handle *sched,
-		      struct GNUNET_CLIENT_Connection *sock,
+arm_service_shutdown (struct GNUNET_CLIENT_Connection *sock,
 		      struct GNUNET_TIME_Relative timeout,
 		      GNUNET_CLIENT_ShutdownTask cont,
 		      void *cont_cls)
 {
   struct ShutdownContext *shutdown_ctx;
   shutdown_ctx = GNUNET_malloc(sizeof(struct ShutdownContext));
-  shutdown_ctx->sched = sched;
   shutdown_ctx->cont = cont;
   shutdown_ctx->cont_cls = cont_cls;
   shutdown_ctx->sock = sock;
@@ -274,7 +265,7 @@ do_nothing_notify (void *cls, int success)
 {
   GNUNET_assert (success == GNUNET_YES);
   ok = 1;
-  GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_UNIT_SECONDS, 
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
 				&kill_task, NULL);
 }
 
@@ -322,7 +313,7 @@ do_nothing_restarted_notify_task (void *cls,
 	      trialCount);
     }  
 #endif
-  GNUNET_SCHEDULER_add_now (sched, &kill_task, &a);
+  GNUNET_SCHEDULER_add_now (&kill_task, &a);
 }
 
 
@@ -330,7 +321,7 @@ static void
 do_test (void *cbData,
 	 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {				      
-  GNUNET_CLIENT_service_test(sched, "do-nothing", 
+  GNUNET_CLIENT_service_test("do-nothing",
 			     cfg, TIMEOUT,
 			     &do_nothing_restarted_notify_task, NULL);
 }
@@ -341,8 +332,7 @@ shutdown_cont (void *cls, int reason)
 {
   trialCount++;
   startedWaitingAt = GNUNET_TIME_absolute_get();
-  GNUNET_SCHEDULER_add_delayed (sched,
-                                waitedFor,
+  GNUNET_SCHEDULER_add_delayed (waitedFor,
                                 &do_test,
                                 NULL);
 }
@@ -369,7 +359,7 @@ kill_task (void *cbData,
       waitedFor.rel_value = 0;
     }
   /* Connect to the doNothing task */
-  doNothingConnection = GNUNET_CLIENT_connect (sched, "do-nothing", cfg);
+  doNothingConnection = GNUNET_CLIENT_connect ("do-nothing", cfg);
 #if LOG_BACKOFF
   if (NULL == doNothingConnection)
     fprintf(killLogFilePtr, 
@@ -385,8 +375,7 @@ kill_task (void *cbData,
   }
   
   /* Use the created connection to kill the doNothingTask */
-  arm_service_shutdown(sched,
-		       doNothingConnection, 
+  arm_service_shutdown(doNothingConnection,
 		       TIMEOUT, 
 		       &shutdown_cont, NULL);
 }
@@ -394,15 +383,13 @@ kill_task (void *cbData,
        
 static void
 task (void *cls,
-      struct GNUNET_SCHEDULER_Handle *s,
       char *const *args,
       const char *cfgfile,
       const struct GNUNET_CONFIGURATION_Handle *c)
 {
   cfg = c;
-  sched = s;
   
-  arm = GNUNET_ARM_connect (cfg, sched, NULL);
+  arm = GNUNET_ARM_connect (cfg,NULL);
 #if START_ARM
   GNUNET_ARM_start_service (arm, "arm", GNUNET_TIME_UNIT_ZERO, &arm_notify, NULL);
 #else

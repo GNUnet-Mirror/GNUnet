@@ -657,10 +657,6 @@ static struct GNUNET_PeerIdentity my_identity;
  */
 static struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
 
-/**
- * Our scheduler.
- */
-struct GNUNET_SCHEDULER_Handle *sched;
 
 /**
  * Handle to peerinfo service.
@@ -1259,15 +1255,15 @@ free_neighbour (struct Neighbour *n)
       n->th = NULL;
     }
   if (n->retry_plaintext_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (sched, n->retry_plaintext_task);
+    GNUNET_SCHEDULER_cancel (n->retry_plaintext_task);
   if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (sched, n->retry_set_key_task);
+    GNUNET_SCHEDULER_cancel (n->retry_set_key_task);
   if (n->quota_update_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (sched, n->quota_update_task);
+    GNUNET_SCHEDULER_cancel (n->quota_update_task);
   if (n->dead_clean_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (sched, n->dead_clean_task);
+    GNUNET_SCHEDULER_cancel (n->dead_clean_task);
   if (n->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)    
-      GNUNET_SCHEDULER_cancel (sched, n->keep_alive_task);
+      GNUNET_SCHEDULER_cancel (n->keep_alive_task);
   if (n->status == PEER_STATE_KEY_CONFIRMED)
     GNUNET_STATISTICS_update (stats, gettext_noop ("# established sessions"), -1, GNUNET_NO);
   GNUNET_free_non_null (n->public_key);
@@ -1397,8 +1393,7 @@ send_keep_alive (void *cls,
   retry = GNUNET_TIME_relative_max (GNUNET_TIME_relative_divide (left, 2),
 				    MIN_PING_FREQUENCY);
   n->keep_alive_task 
-    = GNUNET_SCHEDULER_add_delayed (sched, 
-				    retry,
+    = GNUNET_SCHEDULER_add_delayed (retry,
 				    &send_keep_alive,
 				    n);
 
@@ -1445,9 +1440,8 @@ consider_free_neighbour (struct Neighbour *n)
   if (left.rel_value > 0)
     {
       if (n->dead_clean_task != GNUNET_SCHEDULER_NO_TASK)
-	GNUNET_SCHEDULER_cancel (sched, n->dead_clean_task);
-      n->dead_clean_task = GNUNET_SCHEDULER_add_delayed (sched,
-							 left,
+	GNUNET_SCHEDULER_cancel (n->dead_clean_task);
+      n->dead_clean_task = GNUNET_SCHEDULER_add_delayed (left,
 							 &consider_free_task,
 							 n);
       return;
@@ -2087,7 +2081,7 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
 
   if (n->retry_plaintext_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (sched, n->retry_plaintext_task);
+      GNUNET_SCHEDULER_cancel (n->retry_plaintext_task);
       n->retry_plaintext_task = GNUNET_SCHEDULER_NO_TASK;
     }
   switch (n->status)
@@ -2103,8 +2097,7 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
     case PEER_STATE_KEY_SENT:
       if (n->retry_set_key_task == GNUNET_SCHEDULER_NO_TASK)
 	n->retry_set_key_task
-	  = GNUNET_SCHEDULER_add_delayed (sched,
-					  n->set_key_retry_frequency,
+	  = GNUNET_SCHEDULER_add_delayed (n->set_key_retry_frequency,
 					  &set_key_retry_task, n);    
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2115,8 +2108,7 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
     case PEER_STATE_KEY_RECEIVED:
       if (n->retry_set_key_task == GNUNET_SCHEDULER_NO_TASK)        
 	n->retry_set_key_task
-	  = GNUNET_SCHEDULER_add_delayed (sched,
-					  n->set_key_retry_frequency,
+	  = GNUNET_SCHEDULER_add_delayed (n->set_key_retry_frequency,
 					  &set_key_retry_task, n);        
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2165,8 +2157,7 @@ process_plaintext_neighbour_queue (struct Neighbour *n)
 #endif
       /* no messages selected for sending, try again later... */
       n->retry_plaintext_task =
-        GNUNET_SCHEDULER_add_delayed (sched,
-                                      retry_time,
+        GNUNET_SCHEDULER_add_delayed (retry_time,
                                       &retry_plaintext_processing, n);
       return;
     }
@@ -2252,8 +2243,7 @@ schedule_quota_update (struct Neighbour *n)
   GNUNET_assert (n->quota_update_task ==
 		 GNUNET_SCHEDULER_NO_TASK);
   n->quota_update_task
-    = GNUNET_SCHEDULER_add_delayed (sched,
-				    QUOTA_UPDATE_FREQUENCY,
+    = GNUNET_SCHEDULER_add_delayed (QUOTA_UPDATE_FREQUENCY,
 				    &neighbour_quota_update,
 				    n);
 }
@@ -2475,10 +2465,8 @@ notify_transport_connect_done (void *cls, size_t size, void *buf)
 	      _("TRANSPORT connection to peer `%4s' is up, trying to establish CORE connection\n"),
 	      GNUNET_i2s (&n->peer));
   if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (sched,
-			     n->retry_set_key_task);
-  n->retry_set_key_task = GNUNET_SCHEDULER_add_now (sched, 
-						    &set_key_retry_task,
+    GNUNET_SCHEDULER_cancel (n->retry_set_key_task);
+  n->retry_set_key_task = GNUNET_SCHEDULER_add_now (&set_key_retry_task,
 						    n);
   return 0;
 }
@@ -2567,7 +2555,7 @@ process_hello_retry_send_key (void *cls,
 	{
 	  if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
 	    {
-	      GNUNET_SCHEDULER_cancel (sched, n->retry_set_key_task);
+	      GNUNET_SCHEDULER_cancel (n->retry_set_key_task);
 	      n->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
 	    }      
 	  GNUNET_STATISTICS_update (stats,
@@ -2589,8 +2577,7 @@ process_hello_retry_send_key (void *cls,
 				    GNUNET_NO);      
 	  if (GNUNET_SCHEDULER_NO_TASK == n->retry_set_key_task)
 	    n->retry_set_key_task
-	      = GNUNET_SCHEDULER_add_delayed (sched,
-					      n->set_key_retry_frequency,
+	      = GNUNET_SCHEDULER_add_delayed (n->set_key_retry_frequency,
 					      &set_key_retry_task, n);
 	}
       return;
@@ -2651,7 +2638,7 @@ send_key (struct Neighbour *n)
 
   if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (sched, n->retry_set_key_task);
+      GNUNET_SCHEDULER_cancel (n->retry_set_key_task);
       n->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
     }        
   if (n->pitr != NULL)
@@ -2829,8 +2816,7 @@ send_key (struct Neighbour *n)
   if ( (n->status != PEER_STATE_KEY_CONFIRMED) &&
        (GNUNET_SCHEDULER_NO_TASK == n->retry_set_key_task) )
     n->retry_set_key_task
-      = GNUNET_SCHEDULER_add_delayed (sched,
-				      n->set_key_retry_frequency,
+      = GNUNET_SCHEDULER_add_delayed (n->set_key_retry_frequency,
 				      &set_key_retry_task, n);    
 }
 
@@ -3096,7 +3082,7 @@ handle_pong (struct Neighbour *n,
 #endif      
       if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
         {
-          GNUNET_SCHEDULER_cancel (sched, n->retry_set_key_task);
+          GNUNET_SCHEDULER_cancel (n->retry_set_key_task);
           n->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
         }      
       cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
@@ -3110,10 +3096,9 @@ handle_pong (struct Neighbour *n,
     case PEER_STATE_KEY_CONFIRMED:
       n->last_activity = GNUNET_TIME_absolute_get ();
       if (n->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)
-	GNUNET_SCHEDULER_cancel (sched, n->keep_alive_task);
+	GNUNET_SCHEDULER_cancel (n->keep_alive_task);
       n->keep_alive_task 
-	= GNUNET_SCHEDULER_add_delayed (sched, 
-					GNUNET_TIME_relative_divide (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT, 2),
+	= GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT, 2),
 					&send_keep_alive,
 					n);
       handle_peer_status_change (n);
@@ -3560,10 +3545,9 @@ handle_encrypted_message (struct Neighbour *n,
     }
   n->last_activity = GNUNET_TIME_absolute_get ();
   if (n->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (sched, n->keep_alive_task);
+    GNUNET_SCHEDULER_cancel (n->keep_alive_task);
   n->keep_alive_task 
-    = GNUNET_SCHEDULER_add_delayed (sched, 
-				    GNUNET_TIME_relative_divide (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT, 2),
+    = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT, 2),
 				    &send_keep_alive,
 				    n);
   GNUNET_STATISTICS_set (stats,
@@ -3711,10 +3695,9 @@ handle_transport_receive (void *cls,
 	  n->time_established = now;
 	}
       if (n->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)
-	GNUNET_SCHEDULER_cancel (sched, n->keep_alive_task);
+	GNUNET_SCHEDULER_cancel (n->keep_alive_task);
       n->keep_alive_task 
-	= GNUNET_SCHEDULER_add_delayed (sched, 
-					GNUNET_TIME_relative_divide (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT, 2),
+	= GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT, 2),
 					&send_keep_alive,
 					n);
     }
@@ -3912,14 +3895,12 @@ handle_transport_notify_disconnect (void *cls,
 			    -1, 
 			    GNUNET_NO);
   if (n->dead_clean_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (sched,
-			     n->dead_clean_task);
+    GNUNET_SCHEDULER_cancel (n->dead_clean_task);
   left = GNUNET_TIME_relative_subtract (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
 					GNUNET_CONSTANTS_DISCONNECT_SESSION_TIMEOUT);
   n->last_activity = GNUNET_TIME_absolute_subtract (GNUNET_TIME_absolute_get (), 
 						    left);
-  n->dead_clean_task = GNUNET_SCHEDULER_add_delayed (sched,
-						     GNUNET_CONSTANTS_DISCONNECT_SESSION_TIMEOUT,
+  n->dead_clean_task = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_DISCONNECT_SESSION_TIMEOUT,
 						     &consider_free_task,
 						     n);
 }
@@ -3969,13 +3950,11 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Initiate core service.
  *
  * @param cls closure
- * @param s scheduler to use
  * @param server the initialized server
  * @param c configuration to use
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
@@ -3997,7 +3976,6 @@ run (void *cls,
   };
   char *keyfile;
 
-  sched = s;
   cfg = c;  
   /* parse configuration */
   if (
@@ -4019,15 +3997,15 @@ run (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _
                   ("Core service is lacking key configuration settings.  Exiting.\n"));
-      GNUNET_SCHEDULER_shutdown (s);
+      GNUNET_SCHEDULER_shutdown ();
       return;
     }
-  peerinfo = GNUNET_PEERINFO_connect (sched, cfg);
+  peerinfo = GNUNET_PEERINFO_connect (cfg);
   if (NULL == peerinfo)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Could not access PEERINFO service.  Exiting.\n"));
-      GNUNET_SCHEDULER_shutdown (s);
+      GNUNET_SCHEDULER_shutdown ();
       GNUNET_free (keyfile);
       return;
     }
@@ -4038,7 +4016,7 @@ run (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Core service could not access hostkey.  Exiting.\n"));
       GNUNET_PEERINFO_disconnect (peerinfo);
-      GNUNET_SCHEDULER_shutdown (s);
+      GNUNET_SCHEDULER_shutdown ();
       return;
     }
   GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
@@ -4049,23 +4027,21 @@ run (void *cls,
 							MAX_NOTIFY_QUEUE);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
   /* setup transport connection */
-  transport = GNUNET_TRANSPORT_connect (sched,
-                                        cfg,
+  transport = GNUNET_TRANSPORT_connect (cfg,
 					&my_identity,
                                         NULL,
                                         &handle_transport_receive,
                                         &handle_transport_notify_connect,
                                         &handle_transport_notify_disconnect);
   GNUNET_assert (NULL != transport);
-  stats = GNUNET_STATISTICS_create (sched, "core", cfg);
+  stats = GNUNET_STATISTICS_create ("core", cfg);
 
   GNUNET_STATISTICS_set (stats, gettext_noop ("# discarded CORE_SEND requests"), 0, GNUNET_NO);
   GNUNET_STATISTICS_set (stats, gettext_noop ("# discarded lower priority CORE_SEND requests"), 0, GNUNET_NO);
 
   mst = GNUNET_SERVER_mst_create (&deliver_message,
 				  NULL);
-  GNUNET_SCHEDULER_add_delayed (sched,
-                                GNUNET_TIME_UNIT_FOREVER_REL,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &cleaning_task, NULL);
   /* process client requests */
   GNUNET_SERVER_add_handlers (server, handlers);

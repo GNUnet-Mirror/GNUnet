@@ -78,8 +78,8 @@ read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       GNUNET_break (0);
       ok = 1;
-      GNUNET_SCHEDULER_cancel(tc->sched, die_task);
-      GNUNET_SCHEDULER_add_now(tc->sched, &end_task, NULL);
+      GNUNET_SCHEDULER_cancel(die_task);
+      GNUNET_SCHEDULER_add_now(&end_task, NULL);
       return;
     }
 
@@ -89,13 +89,12 @@ read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
   if (ok == 0)
     {
-      GNUNET_SCHEDULER_cancel(tc->sched, die_task);
-      GNUNET_SCHEDULER_add_now(tc->sched, &end_task, NULL);
+      GNUNET_SCHEDULER_cancel(die_task);
+      GNUNET_SCHEDULER_add_now(&end_task, NULL);
       return;
     }
 
-  GNUNET_SCHEDULER_add_read_file (tc->sched,
-                                       GNUNET_TIME_UNIT_FOREVER_REL,
+  GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                        stdout_read_handle, &read_call, stdout_read_handle);
 
 }
@@ -145,10 +144,9 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   stdout_read_handle = GNUNET_DISK_pipe_handle(hello_pipe_stdout, GNUNET_DISK_PIPE_END_READ);
 
-  die_task = GNUNET_SCHEDULER_add_delayed(tc->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 1), &end_task, NULL);
+  die_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 1), &end_task, NULL);
 
-  GNUNET_SCHEDULER_add_read_file (tc->sched,
-                                  GNUNET_TIME_UNIT_FOREVER_REL,
+  GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                   stdout_read_handle, &read_call, (void *)stdout_read_handle);
 
 }

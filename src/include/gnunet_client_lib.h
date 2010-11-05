@@ -49,15 +49,11 @@ struct GNUNET_CLIENT_Connection;
 /**
  * Get a connection with a service.
  *
- * @param sched scheduler to use
  * @param service_name name of the service
  * @param cfg configuration to use
  * @return NULL on error (service unknown to configuration)
  */
-struct GNUNET_CLIENT_Connection *GNUNET_CLIENT_connect (struct
-                                                        GNUNET_SCHEDULER_Handle
-                                                        *sched,
-                                                        const char
+struct GNUNET_CLIENT_Connection *GNUNET_CLIENT_connect (const char
                                                         *service_name,
                                                         const struct
                                                         GNUNET_CONFIGURATION_Handle
@@ -210,7 +206,6 @@ GNUNET_CLIENT_transmit_and_get_response (struct GNUNET_CLIENT_Connection *sock,
 /**
  * Wait until the service is running.
  *
- * @param sched scheduler to use
  * @param service name of the service to wait for
  * @param cfg configuration to use
  * @param timeout how long to wait at most in ms
@@ -219,8 +214,7 @@ GNUNET_CLIENT_transmit_and_get_response (struct GNUNET_CLIENT_Connection *sock,
  *         or "TIMEOUT" (service not known to be running))
  * @param task_cls closure for task
  */
-void GNUNET_CLIENT_service_test (struct GNUNET_SCHEDULER_Handle *sched,
-                                 const char *service,
+void GNUNET_CLIENT_service_test (const char *service,
                                  const struct GNUNET_CONFIGURATION_Handle *cfg,
                                  struct GNUNET_TIME_Relative timeout,
                                  GNUNET_SCHEDULER_Task task, void *task_cls);

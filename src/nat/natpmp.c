@@ -74,7 +74,6 @@ struct GNUNET_NAT_NATPMP_Handle
   time_t command_time;
   enum NATPMP_state state;
   struct natpmp_t natpmp;
-  struct GNUNET_SCHEDULER_Handle *sched;
 };
 
 
@@ -97,14 +96,12 @@ log_val (const char *func, int ret)
 }
 
 struct GNUNET_NAT_NATPMP_Handle *
-GNUNET_NAT_NATPMP_init (struct GNUNET_SCHEDULER_Handle *sched,
-                        const struct sockaddr *addr, socklen_t addrlen,
+GNUNET_NAT_NATPMP_init (const struct sockaddr *addr, socklen_t addrlen,
                         u_short port)
 {
   struct GNUNET_NAT_NATPMP_Handle *nat;
 
   nat = GNUNET_malloc (sizeof (struct GNUNET_NAT_NATPMP_Handle));
-  nat->sched = sched;
   nat->state = NATPMP_DISCOVER;
   nat->port = port;
   nat->addr = addr;

@@ -70,8 +70,6 @@ static struct PeerContext p1;
 
 static struct PeerContext p2;
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static int ok;
 
 static int is_tcp;
@@ -116,7 +114,7 @@ end ()
 {
   unsigned long long delta;
 
-  GNUNET_SCHEDULER_cancel (sched, die_task);
+  GNUNET_SCHEDULER_cancel (die_task);
   die_task = GNUNET_SCHEDULER_NO_TASK;
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transports!\n");
@@ -208,8 +206,8 @@ notify_receive (void *cls,
 		  n, s,
 		  ntohs (message->size),
 		  ntohl (hdr->num));
-      GNUNET_SCHEDULER_cancel (sched, die_task);
-      die_task = GNUNET_SCHEDULER_add_now (sched, &end_badly, NULL);
+      GNUNET_SCHEDULER_cancel (die_task);
+      die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
       return;
     }
   if (ntohl (hdr->num) != n)
@@ -219,8 +217,8 @@ notify_receive (void *cls,
 		  n, s,
 		  ntohs (message->size),
 		  ntohl (hdr->num));
-      GNUNET_SCHEDULER_cancel (sched, die_task);
-      die_task = GNUNET_SCHEDULER_add_now (sched, &end_badly, NULL);
+      GNUNET_SCHEDULER_cancel (die_task);
+      die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
       return;
     }
   memset (cbuf, n, s - sizeof (struct TestMessage));
@@ -231,8 +229,8 @@ notify_receive (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  "Expected message %u with bits %u, but body did not match\n",
 		  n, (unsigned char) n);
-      GNUNET_SCHEDULER_cancel (sched, die_task);
-      die_task = GNUNET_SCHEDULER_add_now (sched, &end_badly, NULL);
+      GNUNET_SCHEDULER_cancel (die_task);
+      die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
       return;
     }
 #if VERBOSE
@@ -248,9 +246,8 @@ notify_receive (void *cls,
   if (0 == (n % (TOTAL_MSGS/100)))
     {
       fprintf (stderr, ".");
-      GNUNET_SCHEDULER_cancel (sched, die_task);
-      die_task = GNUNET_SCHEDULER_add_delayed (sched,
-					       TIMEOUT,
+      GNUNET_SCHEDULER_cancel (die_task);
+      die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 					       &end_badly,
 					       NULL);
     }
@@ -450,7 +447,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 	  }
   }
 
-  p->th = GNUNET_TRANSPORT_connect (sched, p->cfg, NULL,
+  p->th = GNUNET_TRANSPORT_connect (p->cfg, NULL,
                                     p,
                                     &notify_receive,
                                     &notify_connect,
@@ -622,15 +619,12 @@ check_gnunet_nat_binary(char *binary)
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (ok == 1);
   OKPP;
-  sched = s;
-  die_task = GNUNET_SCHEDULER_add_delayed (sched,
-					   TIMEOUT,
+  die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 					   &end_badly,
 					   NULL);
   if (is_tcp)

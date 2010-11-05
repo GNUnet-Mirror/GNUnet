@@ -43,13 +43,11 @@ extern "C"
  * Main function that will be run.
  *
  * @param cls closure
- * @param sched the scheduler to use
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param cfg configuration
  */
 typedef void (*GNUNET_PROGRAM_Main) (void *cls,
-                                     struct GNUNET_SCHEDULER_Handle * sched,
                                      char *const *args,
                                      const char *cfgfile,
                                      const struct GNUNET_CONFIGURATION_Handle *

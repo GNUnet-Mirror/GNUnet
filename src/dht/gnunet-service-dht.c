@@ -755,10 +755,6 @@ static struct GNUNET_DATACACHE_Handle *datacache;
  */
 struct GNUNET_STATISTICS_Handle *stats;
 
-/**
- * The main scheduler to use for the DHT service
- */
-static struct GNUNET_SCHEDULER_Handle *sched;
 
 /**
  * The configuration the DHT service is running with
@@ -1094,7 +1090,7 @@ forward_result_message (const struct GNUNET_MessageHeader *msg,
 #endif
   GNUNET_CONTAINER_DLL_insert_after(peer->head, peer->tail, peer->tail, pending);
   if (peer->send_task == GNUNET_SCHEDULER_NO_TASK)
-    peer->send_task = GNUNET_SCHEDULER_add_now(sched, &try_core_send, peer);
+    peer->send_task = GNUNET_SCHEDULER_add_now(&try_core_send, peer);
 }
 
 
@@ -1164,7 +1160,7 @@ core_transmit_notify (void *cls,
     }
 #endif
   if ((peer->head != NULL) && (peer->send_task == GNUNET_SCHEDULER_NO_TASK))
-    peer->send_task = GNUNET_SCHEDULER_add_now(sched, &try_core_send, peer);
+    peer->send_task = GNUNET_SCHEDULER_add_now(&try_core_send, peer);
 #if DEBUG_DHT > 1
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "`%s:%s' : transmit_notify (core) called with size %d, available %d, returning %d\n", my_short_id, "dht service", msize, size, off);
 #endif
@@ -1401,7 +1397,7 @@ update_core_preference_finish (void *cls,
 {
   struct PeerInfo *peer_info = cls;
   peer_info->info_ctx = NULL;
-  GNUNET_SCHEDULER_add_delayed(sched, DHT_DEFAULT_PREFERENCE_INTERVAL, &update_core_preference, peer_info);
+  GNUNET_SCHEDULER_add_delayed(DHT_DEFAULT_PREFERENCE_INTERVAL, &update_core_preference, peer_info);
 }
 
 static void
@@ -1422,7 +1418,7 @@ update_core_preference (void *cls,
       matching = 63;
     }
   preference = 1LL << matching;
-  peer->info_ctx = GNUNET_CORE_peer_change_preference (sched, cfg,
+  peer->info_ctx = GNUNET_CORE_peer_change_preference (cfg,
                                                        &peer->id,
                                                        GNUNET_TIME_relative_get_forever(),
                                                        GNUNET_BANDWIDTH_value_init (UINT32_MAX),
@@ -1468,7 +1464,7 @@ add_peer(const struct GNUNET_PeerIdentity *peer,
   if ((GNUNET_CRYPTO_hash_matching_bits(&my_identity.hashPubKey, &peer->hashPubKey) > 0) && (k_buckets[bucket].peers_size <= bucket_size))
     {
 #if DO_UPDATE_PREFERENCE
-      new_peer->preference_task = GNUNET_SCHEDULER_add_now(sched, &update_core_preference, new_peer);
+      new_peer->preference_task = GNUNET_SCHEDULER_add_now(&update_core_preference, new_peer);
 #endif
     }
 
@@ -1527,7 +1523,7 @@ static void delete_peer (struct PeerInfo *peer,
   remove_peer(peer, bucket); /* First remove the peer from its bucket */
 
   if (peer->send_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel(sched, peer->send_task);
+    GNUNET_SCHEDULER_cancel(peer->send_task);
   if (peer->th != NULL)
     GNUNET_CORE_notify_transmit_ready_cancel(peer->th);
 
@@ -1700,7 +1696,7 @@ static void forward_message (const struct GNUNET_MessageHeader *msg,
 #endif
   GNUNET_CONTAINER_DLL_insert_after(peer->head, peer->tail, peer->tail, pending);
   if (peer->send_task == GNUNET_SCHEDULER_NO_TASK)
-    peer->send_task = GNUNET_SCHEDULER_add_now(sched, &try_core_send, peer);
+    peer->send_task = GNUNET_SCHEDULER_add_now(&try_core_send, peer);
 }
 
 #if DO_PING
@@ -1729,7 +1725,7 @@ periodic_ping_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s:%s Sending periodic ping to %s\n", my_short_id, "DHT", GNUNET_i2s(&peer->id));
 #endif
   forward_message(&ping_message, peer, &message_context);
-  peer->ping_task = GNUNET_SCHEDULER_add_delayed(sched, DHT_DEFAULT_PING_DELAY, &periodic_ping_task, peer);
+  peer->ping_task = GNUNET_SCHEDULER_add_delayed(DHT_DEFAULT_PING_DELAY, &periodic_ping_task, peer);
 }
 
 /**
@@ -1748,10 +1744,10 @@ void schedule_ping_messages()
       while (pos != NULL)
         {
           if ((count < bucket_size) && (pos->ping_task == GNUNET_SCHEDULER_NO_TASK))
-            GNUNET_SCHEDULER_add_now(sched, &periodic_ping_task, pos);
+            GNUNET_SCHEDULER_add_now(&periodic_ping_task, pos);
           else if ((count >= bucket_size) && (pos->ping_task != GNUNET_SCHEDULER_NO_TASK))
             {
-              GNUNET_SCHEDULER_cancel(sched, pos->ping_task);
+              GNUNET_SCHEDULER_cancel(pos->ping_task);
               pos->ping_task = GNUNET_SCHEDULER_NO_TASK;
             }
           pos = pos->next;
@@ -1997,7 +1993,7 @@ static int route_result_message(struct GNUNET_MessageHeader *msg,
         {
           increment_stats(STAT_HELLOS_PROVIDED);
           GNUNET_TRANSPORT_offer_hello(transport_handle, hello_msg);
-          GNUNET_CORE_peer_request_connect(sched, cfg, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5), &new_peer, NULL, NULL);
+          GNUNET_CORE_peer_request_connect(cfg, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5), &new_peer, NULL, NULL);
         }
       }
     }
@@ -2426,7 +2422,7 @@ handle_dht_find_peer (const struct GNUNET_MessageHeader *find_msg,
         {
           increment_stats(STAT_HELLOS_PROVIDED);
           GNUNET_TRANSPORT_offer_hello(transport_handle, other_hello);
-          GNUNET_CORE_peer_request_connect(sched, cfg, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5), &peer_id, NULL, NULL);
+          GNUNET_CORE_peer_request_connect(cfg, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5), &peer_id, NULL, NULL);
 	  route_message (find_msg, message_context);
 	  GNUNET_free (other_hello);
           return;
@@ -2507,7 +2503,7 @@ handle_dht_find_peer (const struct GNUNET_MessageHeader *find_msg,
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Adding recent remove task for key `%s`!\n", GNUNET_h2s(&message_context->key));
       /* Only add a task if there wasn't one for this key already! */
-      GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30),
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30),
                                     &remove_recent_find_peer, recent_hash);
     }
   else
@@ -2675,7 +2671,7 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
           put_context = GNUNET_malloc(sizeof(struct RepublishContext));
           memcpy(&put_context->key, &message_context->key, sizeof(GNUNET_HashCode));
           put_context->type = put_type;
-          GNUNET_SCHEDULER_add_delayed (sched, dht_republish_frequency, &republish_content, put_context);
+          GNUNET_SCHEDULER_add_delayed (dht_republish_frequency, &republish_content, put_context);
         }
     }
   else
@@ -3377,7 +3373,7 @@ static int cache_response(struct DHT_MessageContext *msg_ctx)
           GNUNET_free(record);
         }
       if (source_info->delete_task != GNUNET_SCHEDULER_NO_TASK)
-        GNUNET_SCHEDULER_cancel(sched, source_info->delete_task);
+        GNUNET_SCHEDULER_cancel(source_info->delete_task);
       if (source_info->find_peers_responded != NULL)
         GNUNET_CONTAINER_bloomfilter_free(source_info->find_peers_responded);
       GNUNET_free(source_info);
@@ -3409,7 +3405,7 @@ static int cache_response(struct DHT_MessageContext *msg_ctx)
 
   source_info = GNUNET_malloc(sizeof(struct DHTRouteSource));
   source_info->record = record;
-  source_info->delete_task = GNUNET_SCHEDULER_add_delayed(sched, DHT_FORWARD_TIMEOUT, &remove_forward_entry, source_info);
+  source_info->delete_task = GNUNET_SCHEDULER_add_delayed(DHT_FORWARD_TIMEOUT, &remove_forward_entry, source_info);
   source_info->find_peers_responded = GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
   memcpy(&source_info->source, msg_ctx->peer, sizeof(struct GNUNET_PeerIdentity));
   GNUNET_CONTAINER_DLL_insert_after(record->head, record->tail, record->tail, source_info);
@@ -3536,7 +3532,7 @@ route_message(const struct GNUNET_MessageHeader *msg,
       recent_req = GNUNET_malloc(sizeof(struct RecentRequest));
       recent_req->uid = message_context->unique_id;
       memcpy(&recent_req->key, &message_context->key, sizeof(GNUNET_HashCode));
-      recent_req->remove_task = GNUNET_SCHEDULER_add_delayed(sched, DEFAULT_RECENT_REMOVAL, &remove_recent, recent_req);
+      recent_req->remove_task = GNUNET_SCHEDULER_add_delayed(DEFAULT_RECENT_REMOVAL, &remove_recent, recent_req);
       recent_req->heap_node = GNUNET_CONTAINER_heap_insert(recent.minHeap, recent_req, GNUNET_TIME_absolute_get().abs_value);
       recent_req->bloom = GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
       GNUNET_CONTAINER_multihashmap_put(recent.hashmap, &unique_hash, recent_req, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
@@ -3546,8 +3542,8 @@ route_message(const struct GNUNET_MessageHeader *msg,
     {
       recent_req = GNUNET_CONTAINER_heap_peek(recent.minHeap);
       GNUNET_assert(recent_req != NULL);
-      GNUNET_SCHEDULER_cancel(sched, recent_req->remove_task);
-      GNUNET_SCHEDULER_add_now(sched, &remove_recent, recent_req);
+      GNUNET_SCHEDULER_cancel(recent_req->remove_task);
+      GNUNET_SCHEDULER_add_now(&remove_recent, recent_req);
     }
 
   for (i = 0; i < forward_count; i++)
@@ -3727,7 +3723,7 @@ republish_content(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (results == 0) /* Data must have expired */
     GNUNET_free(put_context);
   else /* Reschedule task for next time period */
-    GNUNET_SCHEDULER_add_delayed(sched, dht_republish_frequency, &republish_content, put_context);
+    GNUNET_SCHEDULER_add_delayed(dht_republish_frequency, &republish_content, put_context);
 
 }
 
@@ -3760,7 +3756,7 @@ static int find_client_records (void *cls,
       GNUNET_CONTAINER_DLL_remove(record->head, record->tail, pos);
       GNUNET_CONTAINER_heap_remove_node(forward_list.minHeap, pos->hnode);
       if (pos->delete_task != GNUNET_SCHEDULER_NO_TASK)
-        GNUNET_SCHEDULER_cancel(sched, pos->delete_task);
+        GNUNET_SCHEDULER_cancel(pos->delete_task);
 
       if (pos->find_peers_responded != NULL)
         GNUNET_CONTAINER_bloomfilter_free(pos->find_peers_responded);
@@ -3886,7 +3882,7 @@ malicious_put_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   increment_stats(STAT_PUT_START);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s:%s Sending malicious PUT message with hash %s\n", my_short_id, "DHT", GNUNET_h2s(&key));
   demultiplex_message(&put_message.header, &message_context);
-  GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, malicious_put_frequency), &malicious_put_task, NULL);
+  GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, malicious_put_frequency), &malicious_put_task, NULL);
 
 }
 
@@ -3929,7 +3925,7 @@ malicious_get_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   increment_stats(STAT_GET_START);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s:%s Sending malicious GET message with hash %s\n", my_short_id, "DHT", GNUNET_h2s(&key));
   demultiplex_message (&get_message.header, &message_context);
-  GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, malicious_get_frequency), &malicious_get_task, NULL);
+  GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, malicious_get_frequency), &malicious_get_task, NULL);
 }
 
 /**
@@ -3979,8 +3975,7 @@ send_find_peer_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   if ((newly_found_peers > bucket_size) && (GNUNET_YES == do_find_peer)) /* If we are finding peers already, no need to send out our request right now! */
     {
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Have %d newly found peers since last find peer message sent!\n", newly_found_peers);
-      GNUNET_SCHEDULER_add_delayed (sched,
-                                    GNUNET_TIME_UNIT_MINUTES,
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
                                     &send_find_peer_message, NULL);
       newly_found_peers = 0;
       return;
@@ -4049,8 +4044,7 @@ send_find_peer_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   find_peer_context.start = GNUNET_TIME_absolute_get();
   if (GNUNET_YES == do_find_peer)
   {
-    GNUNET_SCHEDULER_add_delayed (sched,
-                                  next_send_time,
+    GNUNET_SCHEDULER_add_delayed (next_send_time,
        	                          &send_find_peer_message, NULL);
   }
 }
@@ -4135,7 +4129,7 @@ handle_dht_control_message (void *cls, struct GNUNET_SERVER_Client *client,
   {
   case GNUNET_MESSAGE_TYPE_DHT_FIND_PEER:
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sending self seeking find peer request!\n");
-    GNUNET_SCHEDULER_add_now(sched, &send_find_peer_message, NULL);
+    GNUNET_SCHEDULER_add_now(&send_find_peer_message, NULL);
     break;
   case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_GET:
     if (ntohs(dht_control_msg->variable) > 0)
@@ -4143,7 +4137,7 @@ handle_dht_control_message (void *cls, struct GNUNET_SERVER_Client *client,
     if (malicious_get_frequency == 0)
       malicious_get_frequency = DEFAULT_MALICIOUS_GET_FREQUENCY;
     if (malicious_getter != GNUNET_YES)
-      GNUNET_SCHEDULER_add_now(sched, &malicious_get_task, NULL);
+      GNUNET_SCHEDULER_add_now(&malicious_get_task, NULL);
     malicious_getter = GNUNET_YES;
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
 	       "%s:%s Initiating malicious GET behavior, frequency %d\n", my_short_id, "DHT", malicious_get_frequency);
@@ -4154,7 +4148,7 @@ handle_dht_control_message (void *cls, struct GNUNET_SERVER_Client *client,
     if (malicious_put_frequency == 0)
       malicious_put_frequency = DEFAULT_MALICIOUS_PUT_FREQUENCY;
     if (malicious_putter != GNUNET_YES)
-      GNUNET_SCHEDULER_add_now(sched, &malicious_put_task, NULL);
+      GNUNET_SCHEDULER_add_now(&malicious_put_task, NULL);
     malicious_putter = GNUNET_YES;
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
 	       "%s:%s Initiating malicious PUT behavior, frequency %d\n", my_short_id, "DHT", malicious_put_frequency);
@@ -4211,9 +4205,9 @@ handle_dht_local_route_stop(void *cls, struct GNUNET_SERVER_Client *client,
         {
           if ((pos->client != NULL) && (pos->client->client_handle == client))
             {
-              GNUNET_SCHEDULER_cancel(sched, pos->delete_task);
+              GNUNET_SCHEDULER_cancel(pos->delete_task);
               pos->delete_task = GNUNET_SCHEDULER_NO_TASK;
-              GNUNET_SCHEDULER_add_now(sched, &remove_forward_entry, pos);
+              GNUNET_SCHEDULER_add_now(&remove_forward_entry, pos);
             }
           pos = pos->next;
         }
@@ -4431,8 +4425,8 @@ core_init (void *cls,
               "%s: Connection to core FAILED!\n", "dht",
               GNUNET_i2s (identity));
 #endif
-      GNUNET_SCHEDULER_cancel (sched, cleanup_task);
-      GNUNET_SCHEDULER_add_now (sched, &shutdown_task, NULL);
+      GNUNET_SCHEDULER_cancel (cleanup_task);
+      GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
       return;
     }
 #if DEBUG_DHT
@@ -4546,13 +4540,11 @@ void handle_core_disconnect (void *cls,
  * Process dht requests.
  *
  * @param cls closure
- * @param scheduler scheduler to use
  * @param server the initialized server
  * @param c configuration to use
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *scheduler,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
@@ -4560,13 +4552,11 @@ run (void *cls,
   unsigned long long temp_config_num;
   char *converge_modifier_buf;
 
-  sched = scheduler;
   cfg = c;
-  datacache = GNUNET_DATACACHE_create (sched, cfg, "dhtcache");
+  datacache = GNUNET_DATACACHE_create (cfg, "dhtcache");
   GNUNET_SERVER_add_handlers (server, plugin_handlers);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
-  coreAPI = GNUNET_CORE_connect (sched, /* Main scheduler */
-                                 cfg,   /* Main configuration */
+  coreAPI = GNUNET_CORE_connect (cfg,   /* Main configuration */
                                  GNUNET_TIME_UNIT_FOREVER_REL,
                                  NULL,  /* Closure passed to DHT functions */
                                  &core_init,    /* Call core_init once connected */
@@ -4581,7 +4571,7 @@ run (void *cls,
 
   if (coreAPI == NULL)
     return;
-  transport_handle = GNUNET_TRANSPORT_connect(sched, cfg, 
+  transport_handle = GNUNET_TRANSPORT_connect(cfg,
 					      NULL, NULL, NULL, NULL, NULL);
   if (transport_handle != NULL)
     GNUNET_TRANSPORT_get_hello (transport_handle, &process_hello, NULL);
@@ -4744,7 +4734,7 @@ run (void *cls,
       GNUNET_free(converge_modifier_buf);
     }
 
-  stats = GNUNET_STATISTICS_create(sched, "dht", cfg);
+  stats = GNUNET_STATISTICS_create("dht", cfg);
 
   if (stats != NULL)
     {
@@ -4778,14 +4768,12 @@ run (void *cls,
                            GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_STRONG,
                                                     (DHT_MAXIMUM_FIND_PEER_INTERVAL.rel_value / 2) - DHT_MINIMUM_FIND_PEER_INTERVAL.rel_value);
     find_peer_context.start = GNUNET_TIME_absolute_get();
-    GNUNET_SCHEDULER_add_delayed (sched,
-                                  next_send_time,
+    GNUNET_SCHEDULER_add_delayed (next_send_time,
                                   &send_find_peer_message, &find_peer_context);
   }
 
   /* Scheduled the task to clean up when shutdown is called */
-  cleanup_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                               GNUNET_TIME_UNIT_FOREVER_REL,
+  cleanup_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                                &shutdown_task, NULL);
 }
 

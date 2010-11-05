@@ -83,11 +83,6 @@ struct GNUNET_CRYPTO_FileHashContext
   struct GNUNET_DISK_FileHandle *fh;
 
   /**
-   * Our scheduler.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
-
-  /**
    * Cummulated hash.
    */
   gcry_md_hd_t md;
@@ -166,8 +161,7 @@ file_hash_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       return;
     }
   fhc->task 
-    = GNUNET_SCHEDULER_add_after (tc->sched,
-				  GNUNET_SCHEDULER_NO_TASK, 
+    = GNUNET_SCHEDULER_add_after (GNUNET_SCHEDULER_NO_TASK,
 				  &file_hash_task, fhc);
 }
 
@@ -175,7 +169,6 @@ file_hash_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Compute the hash of an entire file.
  *
- * @param sched scheduler to use
  * @param priority scheduling priority to use
  * @param filename name of file to hash
  * @param blocksize number of bytes to process in one task
@@ -184,8 +177,7 @@ file_hash_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return NULL on (immediate) errror
  */
 struct GNUNET_CRYPTO_FileHashContext *
-GNUNET_CRYPTO_hash_file (struct GNUNET_SCHEDULER_Handle *sched,
-                         enum GNUNET_SCHEDULER_Priority priority,
+GNUNET_CRYPTO_hash_file (enum GNUNET_SCHEDULER_Priority priority,
                          const char *filename,
                          size_t blocksize,
                          GNUNET_CRYPTO_HashCompletedCallback callback,
@@ -197,7 +189,6 @@ GNUNET_CRYPTO_hash_file (struct GNUNET_SCHEDULER_Handle *sched,
   fhc = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_FileHashContext) + blocksize);
   fhc->callback = callback;
   fhc->callback_cls = callback_cls;
-  fhc->sched = sched;
   fhc->buffer = (unsigned char *) &fhc[1];
   fhc->filename = GNUNET_strdup (filename);
   if (GPG_ERR_NO_ERROR != gcry_md_open (&fhc->md, GCRY_MD_SHA512, 0))
@@ -223,7 +214,7 @@ GNUNET_CRYPTO_hash_file (struct GNUNET_SCHEDULER_Handle *sched,
       return NULL;
     }
   fhc->task 
-    = GNUNET_SCHEDULER_add_with_priority (sched, priority, 
+    = GNUNET_SCHEDULER_add_with_priority (priority,
 					  &file_hash_task, fhc);
   return fhc;
 }
@@ -237,8 +228,7 @@ GNUNET_CRYPTO_hash_file (struct GNUNET_SCHEDULER_Handle *sched,
 void
 GNUNET_CRYPTO_hash_file_cancel (struct GNUNET_CRYPTO_FileHashContext *fhc)
 {
-  GNUNET_SCHEDULER_cancel (fhc->sched,
-			   fhc->task);
+  GNUNET_SCHEDULER_cancel (fhc->task);
   GNUNET_free (fhc->filename);
   GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fhc->fh));
   GNUNET_free (fhc);

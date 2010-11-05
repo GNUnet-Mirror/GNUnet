@@ -311,8 +311,7 @@ cron_scan_directory_data_hosts (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING |
                 GNUNET_ERROR_TYPE_BULK,
                 _("Still no peers found in `%s'!\n"), networkIdDirectory);
-  GNUNET_SCHEDULER_add_delayed (tc->sched,
-                                DATA_HOST_FREQ,
+  GNUNET_SCHEDULER_add_delayed (DATA_HOST_FREQ,
                                 &cron_scan_directory_data_hosts, NULL);
 }
 
@@ -464,8 +463,7 @@ cron_clean_data_hosts (void *cls,
   now = GNUNET_TIME_absolute_get ();
   GNUNET_DISK_directory_scan (networkIdDirectory,
                               &discard_hosts_helper, &now);
-  GNUNET_SCHEDULER_add_delayed (tc->sched,
-                                DATA_HOST_CLEAN_FREQ,
+  GNUNET_SCHEDULER_add_delayed (DATA_HOST_CLEAN_FREQ,
                                 &cron_clean_data_hosts, NULL);
 }
 
@@ -650,13 +648,11 @@ shutdown_task (void *cls,
  * Process statistics requests.
  *
  * @param cls closure
- * @param sched scheduler to use
  * @param server the initialized server
  * @param cfg configuration to use
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *sched,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
@@ -672,7 +668,7 @@ run (void *cls,
   };
 
   hostmap = GNUNET_CONTAINER_multihashmap_create (1024);
-  stats = GNUNET_STATISTICS_create (sched, "peerinfo", cfg);
+  stats = GNUNET_STATISTICS_create ("peerinfo", cfg);
   notify_list = GNUNET_SERVER_notification_context_create (server, 0);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_filename (cfg,
@@ -680,14 +676,11 @@ run (void *cls,
                                                           "HOSTS",
                                                           &networkIdDirectory));
   GNUNET_DISK_directory_create (networkIdDirectory);
-  GNUNET_SCHEDULER_add_with_priority (sched,
-				      GNUNET_SCHEDULER_PRIORITY_IDLE,
+  GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
 				      &cron_scan_directory_data_hosts, NULL);
-  GNUNET_SCHEDULER_add_with_priority (sched,
-				      GNUNET_SCHEDULER_PRIORITY_IDLE,
+  GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
 				      &cron_clean_data_hosts, NULL);
-  GNUNET_SCHEDULER_add_delayed (sched,
-				GNUNET_TIME_UNIT_FOREVER_REL,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&shutdown_task, NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
 }

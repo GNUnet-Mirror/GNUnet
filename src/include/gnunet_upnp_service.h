@@ -43,7 +43,6 @@ extern "C"
  * install a port mapping if possible.  The external port
  * will be returned as part of the address.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param domain communication domain (i.e. PF_INET or PF_INET6)
  * @param type communication semantics (SOCK_STREAM, SOCK_DGRAM)
@@ -55,8 +54,7 @@ extern "C"
  *        function will be called with NULL on error
  * @param cls closure for callback
  */
-int GNUNET_UPNP_get_ip (struct GNUNET_SCHEDULER_Handle *sched,
-                        struct GNUNET_CONFIGURATION_Handle *cfg,
+int GNUNET_UPNP_get_ip (struct GNUNET_CONFIGURATION_Handle *cfg,
                         int domain,
                         int type,
                         int protocol,

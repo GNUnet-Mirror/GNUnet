@@ -265,11 +265,6 @@ struct AdvertisementContext
   struct GNUNET_DATASTORE_Handle *dsh;
 
   /**
-   * Our scheduler.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
-
-  /**
    * Our KSK URI.
    */ 
   struct GNUNET_FS_Uri *ksk_uri;
@@ -357,8 +352,7 @@ advertisement_cont (void *cls,
   if (GNUNET_OK != success)
     {
       /* error! */
-      GNUNET_SCHEDULER_add_continuation (ac->sched,
-					 &do_disconnect,
+      GNUNET_SCHEDULER_add_continuation (&do_disconnect,
 					 ac->dsh,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       if (ac->cont != NULL)
@@ -373,8 +367,7 @@ advertisement_cont (void *cls,
   if (ac->pos == ac->ksk_uri->data.ksk.keywordCount)
     {
       /* done! */
-      GNUNET_SCHEDULER_add_continuation (ac->sched,
-					 &do_disconnect,
+      GNUNET_SCHEDULER_add_continuation (&do_disconnect,
 					 ac->dsh,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       if (ac->cont != NULL)
@@ -501,7 +494,7 @@ GNUNET_FS_namespace_advertise (struct GNUNET_FS_Handle *h,
   nb->ns_purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_FS_NBLOCK);
   nb->ksk_purpose.size = htonl (size - sizeof (struct GNUNET_CRYPTO_RsaSignature));
   nb->ksk_purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_FS_NBLOCK_KSIG);
-  dsh = GNUNET_DATASTORE_connect (h->cfg, h->sched);
+  dsh = GNUNET_DATASTORE_connect (h->cfg);
   if (NULL == dsh)
     {
       GNUNET_free (nb);
@@ -513,7 +506,6 @@ GNUNET_FS_namespace_advertise (struct GNUNET_FS_Handle *h,
   ctx->cont = cont;
   ctx->cont_cls = cont_cls;
   ctx->dsh = dsh;
-  ctx->sched = h->sched;
   ctx->ksk_uri = GNUNET_FS_uri_dup (ksk_uri);
   ctx->nb = nb;
   ctx->pt = pt;
@@ -956,7 +948,7 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
 		   NULL);
       return;
     }
-  psc->dsh = GNUNET_DATASTORE_connect (h->cfg, h->sched);
+  psc->dsh = GNUNET_DATASTORE_connect (h->cfg);
   if (NULL == psc->dsh)
     {
       GNUNET_free (sb_enc);

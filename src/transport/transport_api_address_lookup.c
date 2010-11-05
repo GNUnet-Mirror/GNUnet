@@ -108,7 +108,6 @@ address_response_processor (void *cls,
 /**
  * Convert a binary address into a human readable address.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param address address to convert (binary format)
  * @param addressLen number of bytes in address
@@ -120,8 +119,7 @@ address_response_processor (void *cls,
  * @param aluc_cls closure for aluc
  */
 void
-GNUNET_TRANSPORT_address_lookup (struct GNUNET_SCHEDULER_Handle *sched,
-                                 const struct GNUNET_CONFIGURATION_Handle  *cfg,
+GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle  *cfg,
 				 const char *address,
 				 size_t addressLen,
 				 int numeric,
@@ -146,7 +144,7 @@ GNUNET_TRANSPORT_address_lookup (struct GNUNET_SCHEDULER_Handle *sched,
       aluc (aluc_cls, NULL);
       return;
     }
-  client = GNUNET_CLIENT_connect (sched, "transport", cfg);
+  client = GNUNET_CLIENT_connect ("transport", cfg);
   if (client == NULL)
     {
       aluc (aluc_cls, NULL);

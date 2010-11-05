@@ -86,11 +86,6 @@ typedef void (*download_cb) (char *data, void *cls);
 struct download_cls
 {
   /**
-   * Scheduler used for the download task.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
-
-  /**
    * curl_easy handle.
    */
   CURL *curl;
@@ -243,8 +238,7 @@ download_prepare (struct download_cls *cls)
   GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
   GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
 
-  GNUNET_SCHEDULER_add_select (cls->sched,
-                               GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+  GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                GNUNET_SCHEDULER_NO_TASK,
                                rtime,
                                grs,
@@ -352,14 +346,12 @@ task_download (struct download_cls *cls,
 /**
  * Download description from devices.
  *
- * @param sched the scheduler to use for the download task
  * @param url URL of the file to download
  * @param caller_cb user function to call when done
  * @caller_cls closure to pass to caller_cb
  */
 void
-download_device_description (struct GNUNET_SCHEDULER_Handle *sched,
-                             char *url, download_cb caller_cb,
+download_device_description (char *url, download_cb caller_cb,
                              void *caller_cls)
 {
   CURL *curl;
@@ -425,7 +417,6 @@ download_device_description (struct GNUNET_SCHEDULER_Handle *sched,
                    url);
 #endif
 
-  cls->sched = sched;
   cls->curl = curl;
   cls->multi = multi;
   cls->url = url;
@@ -587,11 +578,6 @@ struct UPNP_Dev_
  */
 struct UPNP_discover_cls
 {
-  /**
-   * Scheduler to use for networking tasks.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
-
   /**
    * Remote address used for multicast emission and reception.
    */
@@ -818,8 +804,7 @@ get_valid_igd_receive (char *desc, void *data)
 
   /* Check whether device is connected */
   buffer = GNUNET_malloc (UPNP_COMMAND_BUFSIZE);
-  UPNP_command_ (cls->sched,
-                 cls->current_dev->control_url,
+  UPNP_command_ (cls->current_dev->control_url,
                  cls->current_dev->data->service_type,
                  "GetStatusInfo", NULL, buffer, UPNP_COMMAND_BUFSIZE,
                  get_valid_igd_connected_cb, cls);
@@ -900,7 +885,7 @@ get_valid_igd (struct UPNP_discover_cls *cls)
     }
 
   /* There are still devices to ask, go on */
-  download_device_description (cls->sched, cls->current_dev->desc_url,
+  download_device_description (cls->current_dev->desc_url,
                                get_valid_igd_receive, cls);
 }
 
@@ -999,16 +984,14 @@ discover_recv (void *data, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_NETWORK_fdset_zero (cls->fdset);
       GNUNET_NETWORK_fdset_set (cls->fdset, cls->sudp);
 
-      task_w = GNUNET_SCHEDULER_add_select (cls->sched,
-                                            GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+      task_w = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                             GNUNET_SCHEDULER_NO_TASK,
                                             GNUNET_TIME_relative_multiply
                                             (GNUNET_TIME_UNIT_SECONDS, 15),
                                             NULL, cls->fdset, &discover_send,
                                             cls);
 
-      GNUNET_SCHEDULER_add_select (cls->sched,
-                                   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                    task_w,
                                    GNUNET_TIME_relative_multiply
                                    (GNUNET_TIME_UNIT_SECONDS, 5), cls->fdset,
@@ -1079,15 +1062,13 @@ discover_send (void *data, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * If several devices are found, a device that is connected to the WAN
  * is returned first (if any).
  *
- * @param sched scheduler to use for network tasks
  * @param multicastif network interface to send discovery messages, or NULL
  * @param addr address used to send messages on multicastif, or NULL
  * @param caller_cb user function to call when done
  * @param caller_cls closure to pass to caller_cb
  */
 void
-UPNP_discover_ (struct GNUNET_SCHEDULER_Handle *sched,
-                const char *multicastif,
+UPNP_discover_ (const char *multicastif,
                 const struct sockaddr *addr,
                 UPNP_discover_cb_ caller_cb, void *caller_cls)
 {
@@ -1129,7 +1110,6 @@ UPNP_discover_ (struct GNUNET_SCHEDULER_Handle *sched,
 
 
   cls = GNUNET_malloc (sizeof (struct UPNP_discover_cls));
-  cls->sched = sched;
   cls->sudp = sudp;
   cls->type_index = 0;
   cls->dev_list = NULL;
@@ -1270,15 +1250,13 @@ UPNP_discover_ (struct GNUNET_SCHEDULER_Handle *sched,
   GNUNET_NETWORK_fdset_zero (cls->fdset);
   GNUNET_NETWORK_fdset_set (cls->fdset, sudp);
 
-  task_w = GNUNET_SCHEDULER_add_select (sched,
-                                        GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+  task_w = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                         GNUNET_SCHEDULER_NO_TASK,
                                         GNUNET_TIME_relative_multiply
                                         (GNUNET_TIME_UNIT_SECONDS, 15), NULL,
                                         cls->fdset, &discover_send, cls);
 
-  GNUNET_SCHEDULER_add_select (sched,
-                               GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+  GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                task_w,
                                GNUNET_TIME_relative_multiply
                                (GNUNET_TIME_UNIT_SECONDS, 15), cls->fdset,

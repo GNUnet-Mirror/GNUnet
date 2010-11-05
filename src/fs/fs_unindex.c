@@ -318,8 +318,7 @@ unindex_finish (void *cls,
   uc->dsh = NULL;
   uc->state = UNINDEX_STATE_FS_NOTIFY;
   GNUNET_FS_unindex_sync_ (uc);
-  uc->client = GNUNET_CLIENT_connect (uc->h->sched,
-				      "fs",
+  uc->client = GNUNET_CLIENT_connect ("fs",
 				      uc->h->cfg);
   if (uc->client == NULL)
     {
@@ -355,8 +354,7 @@ unindex_finish (void *cls,
 void 
 GNUNET_FS_unindex_do_remove_ (struct GNUNET_FS_UnindexContext *uc)
 {
-  uc->dsh = GNUNET_DATASTORE_connect (uc->h->cfg,
-				      uc->h->sched);
+  uc->dsh = GNUNET_DATASTORE_connect (uc->h->cfg);
   if (NULL == uc->dsh)
     {
       uc->state = UNINDEX_STATE_ERROR;
@@ -506,8 +504,7 @@ GNUNET_FS_unindex_start (struct GNUNET_FS_Handle *h,
   pi.status = GNUNET_FS_STATUS_UNINDEX_START;
   pi.value.unindex.eta = GNUNET_TIME_UNIT_FOREVER_REL;
   GNUNET_FS_unindex_make_status_ (&pi, ret, 0);
-  ret->fhc = GNUNET_CRYPTO_hash_file (h->sched,
-				      GNUNET_SCHEDULER_PRIORITY_IDLE,
+  ret->fhc = GNUNET_CRYPTO_hash_file (GNUNET_SCHEDULER_PRIORITY_IDLE,
 				      filename,
 				      HASHING_BLOCKSIZE,
 				      &GNUNET_FS_unindex_process_hash_,

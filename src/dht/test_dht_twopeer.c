@@ -62,8 +62,6 @@ static unsigned long long peers_left;
 
 static struct GNUNET_TESTING_PeerGroup *pg;
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static unsigned long long num_peers;
 
 static unsigned int total_gets;
@@ -124,21 +122,21 @@ end_badly_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
     GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
 
   if (curr_get_ctx.retry_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel(sched, curr_get_ctx.retry_task);
+    GNUNET_SCHEDULER_cancel(curr_get_ctx.retry_task);
 }
 
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   if (curr_get_ctx.retry_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel(sched, curr_get_ctx.retry_task);
+    GNUNET_SCHEDULER_cancel(curr_get_ctx.retry_task);
 
   if (curr_get_ctx.get_handle != NULL)
   {
     GNUNET_DHT_get_stop(curr_get_ctx.get_handle);
   }
 
-  GNUNET_SCHEDULER_add_now (sched, &end_badly_cont, NULL);
+  GNUNET_SCHEDULER_add_now (&end_badly_cont, NULL);
   ok = 1;
 }
 
@@ -171,14 +169,14 @@ void get_result_iterator (void *cls,
   if (0 != memcmp(&get_context->peer->hashPubKey, key, sizeof (GNUNET_HashCode)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Key returned is not the same key as was searched for!\n");
-    GNUNET_SCHEDULER_cancel(sched, die_task);
-    GNUNET_SCHEDULER_add_now(sched, &end_badly, "key mismatch in get response!\n");
+    GNUNET_SCHEDULER_cancel(die_task);
+    GNUNET_SCHEDULER_add_now(&end_badly, "key mismatch in get response!\n");
     return;
   }
 
   if (get_context->retry_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel(sched, get_context->retry_task);
+      GNUNET_SCHEDULER_cancel(get_context->retry_task);
       get_context->retry_task = GNUNET_SCHEDULER_NO_TASK;
     }
 
@@ -188,14 +186,14 @@ void get_result_iterator (void *cls,
     get_context->dht_handle = peer2dht;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received first correct GET request response!\n");
     GNUNET_DHT_get_stop(get_context->get_handle);
-    GNUNET_SCHEDULER_add_now (sched, &do_get, get_context);
+    GNUNET_SCHEDULER_add_now (&do_get, get_context);
   }
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received second correct GET request response!\n");
-    GNUNET_SCHEDULER_cancel(sched, die_task);
+    GNUNET_SCHEDULER_cancel(die_task);
     GNUNET_DHT_get_stop(get_context->get_handle);
-    GNUNET_SCHEDULER_add_now (sched, &finish_testing, NULL);
+    GNUNET_SCHEDULER_add_now (&finish_testing, NULL);
   }
 
 }
@@ -213,14 +211,13 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   else
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Too many attempts failed, ending test!\n", get_context->get_attempts);
-      GNUNET_SCHEDULER_cancel(sched, die_task);
-      GNUNET_SCHEDULER_add_now(sched, &end_badly, "key mismatch in get response!\n");
+      GNUNET_SCHEDULER_cancel(die_task);
+      GNUNET_SCHEDULER_add_now(&end_badly, "key mismatch in get response!\n");
       return;
     }
   get_context->get_attempts++;
-  get_context->retry_task = GNUNET_SCHEDULER_add_delayed(sched,
-                                                         GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10),
-                                                          &stop_retry_get, get_context);
+  get_context->retry_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10),
+                                                         &stop_retry_get, get_context);
   get_context->get_handle = GNUNET_DHT_get_start(get_context->dht_handle,
 						 GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5),
                                                  0 /* fixme: use real type */, &get_context->peer->hashPubKey,
@@ -238,7 +235,7 @@ stop_retry_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Get attempt %u failed, canceling request!\n", get_context->get_attempts);
   GNUNET_DHT_get_stop(get_context->get_handle);
   get_context->get_handle = NULL;
-  GNUNET_SCHEDULER_add_now(sched, &get_stop_finished, get_context);
+  GNUNET_SCHEDULER_add_now(&get_stop_finished, get_context);
 }
 
 static void
@@ -246,8 +243,7 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   struct PeerGetContext *get_context = cls;
 
-  get_context->retry_task = GNUNET_SCHEDULER_add_delayed(sched,
-                                                         GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10),
+  get_context->retry_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10),
                                                           &stop_retry_get, get_context);
 
   get_context->get_handle = GNUNET_DHT_get_start(get_context->dht_handle, 
@@ -299,20 +295,19 @@ topology_callback (void *cls,
                   "Created %d total connections, which is our target number!  Starting next phase of testing.\n",
                   total_connections);
 #endif
-      GNUNET_SCHEDULER_cancel (sched, die_task);
-      die_task = GNUNET_SCHEDULER_add_delayed (sched, TIMEOUT,
+      GNUNET_SCHEDULER_cancel (die_task);
+      die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                                &end_badly, "from test gets");
 
       curr_get_ctx.dht_handle = peer1dht;
       curr_get_ctx.peer = &peer2id;
-      //GNUNET_SCHEDULER_add_now (sched, &do_get, &curr_get_ctx);
-      GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 2), &do_get, &curr_get_ctx);
+      //GNUNET_SCHEDULER_add_now (&do_get, &curr_get_ctx);
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 2), &do_get, &curr_get_ctx);
     }
   else if (total_connections + failed_connections == expected_connections)
     {
-      GNUNET_SCHEDULER_cancel (sched, die_task);
-      die_task = GNUNET_SCHEDULER_add_now (sched,
-                                           &end_badly, "from topology_callback (too many failed connections)");
+      GNUNET_SCHEDULER_cancel (die_task);
+      die_task = GNUNET_SCHEDULER_add_now (&end_badly, "from topology_callback (too many failed connections)");
     }
 }
 
@@ -323,14 +318,12 @@ connect_topology (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   if ((pg != NULL) && (peers_left == 0))
     expected_connections = GNUNET_TESTING_connect_topology (pg, GNUNET_TESTING_TOPOLOGY_CLIQUE, GNUNET_TESTING_TOPOLOGY_OPTION_ALL, 0.0, NULL, NULL);
 
-  GNUNET_SCHEDULER_cancel (sched, die_task);
+  GNUNET_SCHEDULER_cancel (die_task);
   if (expected_connections == GNUNET_SYSERR)
-    die_task = GNUNET_SCHEDULER_add_now (sched,
-                                         &end_badly, "from connect topology (bad return)");
+    die_task = GNUNET_SCHEDULER_add_now (&end_badly, "from connect topology (bad return)");
 
 
-  die_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                           TIMEOUT,
+  die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                            &end_badly, "from connect topology (timeout)");
 }
 
@@ -350,21 +343,21 @@ peers_started_callback (void *cls,
   if (peers_left == num_peers)
   {
     memcpy(&peer1id, id, sizeof(struct GNUNET_PeerIdentity));
-    peer1dht = GNUNET_DHT_connect(sched, cfg, 100);
+    peer1dht = GNUNET_DHT_connect(cfg, 100);
     if (peer1dht == NULL)
     {
-      GNUNET_SCHEDULER_cancel (sched, die_task);
-      GNUNET_SCHEDULER_add_now(sched, &end_badly, "Failed to get dht handle!\n");
+      GNUNET_SCHEDULER_cancel (die_task);
+      GNUNET_SCHEDULER_add_now(&end_badly, "Failed to get dht handle!\n");
     }
   }
   else
   {
     memcpy(&peer2id, id, sizeof(struct GNUNET_PeerIdentity));
-    peer2dht = GNUNET_DHT_connect(sched, cfg, 100);
+    peer2dht = GNUNET_DHT_connect(cfg, 100);
     if (peer2dht == NULL)
     {
-      GNUNET_SCHEDULER_cancel (sched, die_task);
-      GNUNET_SCHEDULER_add_now(sched, &end_badly, "Failed to get dht handle!\n");
+      GNUNET_SCHEDULER_cancel (die_task);
+      GNUNET_SCHEDULER_add_now(&end_badly, "Failed to get dht handle!\n");
     }
   }
 
@@ -378,25 +371,22 @@ peers_started_callback (void *cls,
                   "All %d daemons started, now connecting peers!\n",
                   num_peers);
 #endif
-      GNUNET_SCHEDULER_cancel (sched, die_task);
+      GNUNET_SCHEDULER_cancel (die_task);
       /* Set up task in case topology creation doesn't finish
        * within a reasonable amount of time */
-      die_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                               TIMEOUT,
+      die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                                &end_badly, "from peers_started_callback");
 
-      GNUNET_SCHEDULER_add_now(sched, &connect_topology, NULL);
+      GNUNET_SCHEDULER_add_now(&connect_topology, NULL);
       ok = 0;
     }
 }
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  sched = s;
 
   if (GNUNET_YES != GNUNET_CONFIGURATION_get_value_string(cfg, "paths", "servicehome", &test_directory))
     {
@@ -413,11 +403,10 @@ run (void *cls,
   total_gets = num_peers;
   gets_succeeded = 0;
   /* Set up a task to end testing if peer start fails */
-  die_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                           TIMEOUT,
+  die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                            &end_badly, "didn't start all daemons in reasonable amount of time!!!");
 
-  pg = GNUNET_TESTING_daemons_start (sched, cfg,
+  pg = GNUNET_TESTING_daemons_start (cfg,
                                      num_peers, TIMEOUT, NULL, NULL, &peers_started_callback, NULL,
                                      &topology_callback, NULL, NULL);
 

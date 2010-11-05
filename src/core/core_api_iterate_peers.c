@@ -134,22 +134,20 @@ transmit_request(void *cls,
 /**
  * Obtain statistics and/or change preferences for the given peer.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param peer_cb function to call with the peer information
  * @param cb_cls closure for peer_cb
  * @return GNUNET_OK if iterating, GNUNET_SYSERR on error
  */
 int
-GNUNET_CORE_iterate_peers (struct GNUNET_SCHEDULER_Handle *sched,
-                           const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_CORE_iterate_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
                            GNUNET_CORE_ConnectEventHandler peer_cb,
                            void *cb_cls)
 {
   struct GNUNET_CORE_RequestContext *request_context;
   struct GNUNET_CLIENT_Connection *client;
 
-  client = GNUNET_CLIENT_connect (sched, "core", cfg);
+  client = GNUNET_CLIENT_connect ("core", cfg);
   if (client == NULL)
     return GNUNET_SYSERR;
   request_context = GNUNET_malloc (sizeof (struct GNUNET_CORE_RequestContext));

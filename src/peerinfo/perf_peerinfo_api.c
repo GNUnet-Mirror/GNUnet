@@ -37,8 +37,6 @@
 
 #define NUM_REQUESTS 5000
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static struct GNUNET_PEERINFO_IteratorContext *ic[NUM_REQUESTS];
@@ -132,15 +130,13 @@ process (void *cls,
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile, 
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   size_t i;
-  sched = s;
   cfg = c;
-  h = GNUNET_PEERINFO_connect (sched, cfg);
+  h = GNUNET_PEERINFO_connect (cfg);
   GNUNET_assert (h != NULL);
   for (i = 0; i < NUM_REQUESTS; i++)
     {

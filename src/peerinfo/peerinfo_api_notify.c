@@ -62,10 +62,6 @@ struct GNUNET_PEERINFO_NotifyContext
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-  /**
-   * Scheduler.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
 };
 
 
@@ -109,7 +105,7 @@ process_notification (void *cls,
   if (msg == NULL)
     {
       GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
-      nc->client = GNUNET_CLIENT_connect (nc->sched, "peerinfo", nc->cfg);
+      nc->client = GNUNET_CLIENT_connect ("peerinfo", nc->cfg);
       request_notifications (nc);
       return;
     }
@@ -119,7 +115,7 @@ process_notification (void *cls,
     {
       GNUNET_break (0);
       GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
-      nc->client = GNUNET_CLIENT_connect (nc->sched, "peerinfo", nc->cfg);
+      nc->client = GNUNET_CLIENT_connect ("peerinfo", nc->cfg);
       request_notifications (nc);
       return;
     }
@@ -132,7 +128,7 @@ process_notification (void *cls,
         {
           GNUNET_break (0);
 	  GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
-	  nc->client = GNUNET_CLIENT_connect (nc->sched, "peerinfo", nc->cfg);
+	  nc->client = GNUNET_CLIENT_connect ("peerinfo", nc->cfg);
 	  request_notifications (nc);
           return;
         }
@@ -183,7 +179,7 @@ transmit_notify_request (void *cls,
   if (buf == NULL)
     {
       GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
-      nc->client = GNUNET_CLIENT_connect (nc->sched, "peerinfo", nc->cfg);
+      nc->client = GNUNET_CLIENT_connect ("peerinfo", nc->cfg);
       request_notifications (nc);
       return 0;
     }
@@ -221,21 +217,19 @@ request_notifications (struct GNUNET_PEERINFO_NotifyContext *nc)
  * peers and then only signals changes.
  *
  * @param cfg configuration to use
- * @param sched scheduler to use
  * @param callback the method to call for each peer
  * @param callback_cls closure for callback
  * @return NULL on error
  */
 struct GNUNET_PEERINFO_NotifyContext *
 GNUNET_PEERINFO_notify (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			struct GNUNET_SCHEDULER_Handle *sched,
 			GNUNET_PEERINFO_Processor callback,
 			void *callback_cls)
 {
   struct GNUNET_PEERINFO_NotifyContext *nc;
   struct GNUNET_CLIENT_Connection *client;
 
-  client = GNUNET_CLIENT_connect (sched, "peerinfo", cfg);
+  client = GNUNET_CLIENT_connect ("peerinfo", cfg);
   if (client == NULL)
     {      
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -243,7 +237,6 @@ GNUNET_PEERINFO_notify (const struct GNUNET_CONFIGURATION_Handle *cfg,
       return NULL;
     }
   nc = GNUNET_malloc (sizeof (struct GNUNET_PEERINFO_NotifyContext));
-  nc->sched = sched;
   nc->cfg = cfg;
   nc->client = client;
   nc->callback = callback;

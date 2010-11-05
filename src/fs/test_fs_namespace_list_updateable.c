@@ -32,8 +32,6 @@
 
 #define START_ARM GNUNET_YES
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static struct PeerContext p1;
 
 static struct GNUNET_FS_Handle *fs;
@@ -226,15 +224,12 @@ testNamespace ()
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  sched = s;
   setup_peer (&p1, "test_fs_namespace_data.conf");
-  fs = GNUNET_FS_start (sched,
-			cfg,
+  fs = GNUNET_FS_start (cfg,
 			"test-fs-namespace",
 			&progress_cb,
 			NULL,

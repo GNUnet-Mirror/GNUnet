@@ -161,11 +161,6 @@ struct GNUNET_CONNECTION_Handle
 {
 
   /**
-   * Scheduler that was used for the connect task.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
-
-  /**
    * Configuration to use.
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -312,14 +307,11 @@ void GNUNET_CONNECTION_persist_(struct GNUNET_CONNECTION_Handle *sock)
  * socket should henceforth be no longer used directly.
  * GNUNET_socket_destroy will close it.
  *
- * @param sched scheduler to use
  * @param osSocket existing socket to box
  * @return the boxed socket handle
  */
 struct GNUNET_CONNECTION_Handle *
-GNUNET_CONNECTION_create_from_existing (struct GNUNET_SCHEDULER_Handle
-                                        *sched,
-                                        struct GNUNET_NETWORK_Handle
+GNUNET_CONNECTION_create_from_existing (struct GNUNET_NETWORK_Handle
                                         *osSocket)
 {
   struct GNUNET_CONNECTION_Handle *ret;
@@ -327,7 +319,6 @@ GNUNET_CONNECTION_create_from_existing (struct GNUNET_SCHEDULER_Handle
   ret->write_buffer_size = GNUNET_SERVER_MIN_BUFFER_SIZE;
   ret->write_buffer = GNUNET_malloc(ret->write_buffer_size);
   ret->sock = osSocket;
-  ret->sched = sched;
   return ret;
 }
 
@@ -336,16 +327,13 @@ GNUNET_CONNECTION_create_from_existing (struct GNUNET_SCHEDULER_Handle
  * Create a socket handle by accepting on a listen socket.  This
  * function may block if the listen socket has no connection ready.
  *
- * @param sched scheduler to use
  * @param access function to use to check if access is allowed
  * @param access_cls closure for access
  * @param lsock listen socket
  * @return the socket handle, NULL on error
  */
 struct GNUNET_CONNECTION_Handle *
-GNUNET_CONNECTION_create_from_accept (struct GNUNET_SCHEDULER_Handle
-                                      *sched,
-                                      GNUNET_CONNECTION_AccessCheck access,
+GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck access,
                                       void *access_cls,
                                       struct GNUNET_NETWORK_Handle *lsock)
 {
@@ -416,7 +404,6 @@ GNUNET_CONNECTION_create_from_accept (struct GNUNET_SCHEDULER_Handle
   ret->addr = uaddr;
   ret->addrlen = addrlen;
   ret->sock = sock;
-  ret->sched = sched;
 #if DEBUG_CONNECTION
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Accepting connection from `%s': %p\n"),
@@ -494,8 +481,7 @@ destroy_continuation (void *cls,
 #endif
       GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == sock->destroy_task);
       sock->destroy_task 
-	= GNUNET_SCHEDULER_add_after (sock->sched,
-				      sock->write_task,
+	= GNUNET_SCHEDULER_add_after (sock->write_task,
 				      &destroy_continuation, sock);
       return;
     }
@@ -517,8 +503,7 @@ destroy_continuation (void *cls,
     {
       GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == sock->destroy_task);
       sock->destroy_task 
-	= GNUNET_SCHEDULER_add_after (sock->sched,
-				      sock->read_task,
+	= GNUNET_SCHEDULER_add_after (sock->read_task,
 				      &destroy_continuation, sock);
       return;
     }
@@ -529,7 +514,7 @@ destroy_continuation (void *cls,
   while (NULL != (pos = sock->ap_head))
     {
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (pos->sock));
-      GNUNET_SCHEDULER_cancel (sock->sched, pos->task);
+      GNUNET_SCHEDULER_cancel (pos->task);
       GNUNET_CONTAINER_DLL_remove (sock->ap_head, sock->ap_tail, pos);
       GNUNET_free (pos);
     }
@@ -606,8 +591,7 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
                   h);
 #endif
       h->ccs -= COCO_RECEIVE_AGAIN;
-      h->read_task = GNUNET_SCHEDULER_add_after (h->sched,
-                                                 GNUNET_SCHEDULER_NO_TASK,
+      h->read_task = GNUNET_SCHEDULER_add_after (GNUNET_SCHEDULER_NO_TASK,
                                                  &receive_again, h);
     }
   if (0 != (h->ccs & COCO_TRANSMIT_READY))
@@ -618,12 +602,11 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
                   h);
 #endif
       GNUNET_assert (h->nth.timeout_task != GNUNET_SCHEDULER_NO_TASK);
-      GNUNET_SCHEDULER_cancel (h->sched, h->nth.timeout_task);
+      GNUNET_SCHEDULER_cancel (h->nth.timeout_task);
       h->nth.timeout_task = GNUNET_SCHEDULER_NO_TASK;
       h->ccs -= COCO_TRANSMIT_READY;
       GNUNET_assert (h->write_task == GNUNET_SCHEDULER_NO_TASK);
-      h->write_task = GNUNET_SCHEDULER_add_after (h->sched,
-                                                  GNUNET_SCHEDULER_NO_TASK,
+      h->write_task = GNUNET_SCHEDULER_add_after (GNUNET_SCHEDULER_NO_TASK,
                                                   &transmit_ready, h);
     }
   if (0 != (h->ccs & COCO_DESTROY_CONTINUATION))
@@ -636,8 +619,7 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
       h->ccs -= COCO_DESTROY_CONTINUATION;
       GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == h->destroy_task);
       h->destroy_task
-	= GNUNET_SCHEDULER_add_now (h->sched,
-				    &destroy_continuation,
+	= GNUNET_SCHEDULER_add_now (&destroy_continuation,
 				    h);
     }
 }
@@ -665,8 +647,7 @@ connect_success_continuation (struct GNUNET_CONNECTION_Handle *h)
                   h);
 #endif
       h->ccs -= COCO_RECEIVE_AGAIN;
-      h->read_task = GNUNET_SCHEDULER_add_after (h->sched,
-                                                 GNUNET_SCHEDULER_NO_TASK,
+      h->read_task = GNUNET_SCHEDULER_add_after (GNUNET_SCHEDULER_NO_TASK,
                                                  &receive_again, h);
     }
   if (0 != (h->ccs & COCO_TRANSMIT_READY))
@@ -677,13 +658,12 @@ connect_success_continuation (struct GNUNET_CONNECTION_Handle *h)
                   h);
 #endif
       GNUNET_assert (h->nth.timeout_task != GNUNET_SCHEDULER_NO_TASK);
-      GNUNET_SCHEDULER_cancel (h->sched, h->nth.timeout_task);
+      GNUNET_SCHEDULER_cancel (h->nth.timeout_task);
       h->nth.timeout_task = GNUNET_SCHEDULER_NO_TASK;
       h->ccs -= COCO_TRANSMIT_READY;
       GNUNET_assert (h->write_task == GNUNET_SCHEDULER_NO_TASK);
       h->write_task =
-        GNUNET_SCHEDULER_add_write_net (h->sched,
-                                        GNUNET_TIME_absolute_get_remaining
+        GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_absolute_get_remaining
                                         (h->nth.transmit_timeout), h->sock,
                                         &transmit_ready, h);
     }
@@ -697,9 +677,8 @@ connect_success_continuation (struct GNUNET_CONNECTION_Handle *h)
       h->ccs -= COCO_DESTROY_CONTINUATION;
       GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == h->destroy_task);
       h->destroy_task
-	= GNUNET_SCHEDULER_add_now (h->sched,
-				    &destroy_continuation,
-				    h);
+	= GNUNET_SCHEDULER_add_now (&destroy_continuation,
+				                h);
     }
 }
 
@@ -749,7 +728,7 @@ connect_probe_continuation (void *cls,
   while (NULL != (pos = h->ap_head))
     {
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (pos->sock));
-      GNUNET_SCHEDULER_cancel (h->sched, pos->task);
+      GNUNET_SCHEDULER_cancel (pos->task);
       GNUNET_CONTAINER_DLL_remove (h->ap_head, h->ap_tail, pos);
       GNUNET_free (pos);
     }
@@ -842,7 +821,7 @@ try_connect_using_address (void *cls,
                                       GNUNET_TIME_absolute_get_remaining
                                       (h->receive_timeout));
   ap->task =
-    GNUNET_SCHEDULER_add_write_net (h->sched, delay, ap->sock,
+    GNUNET_SCHEDULER_add_write_net (delay, ap->sock,
                                     &connect_probe_continuation, ap);
 }
 
@@ -852,15 +831,13 @@ try_connect_using_address (void *cls,
  * This function returns immediately, even if the connection has not
  * yet been established.  This function only creates TCP connections.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param hostname name of the host to connect to
  * @param port port to connect to
  * @return the socket handle
  */
 struct GNUNET_CONNECTION_Handle *
-GNUNET_CONNECTION_create_from_connect (struct GNUNET_SCHEDULER_Handle *sched,
-                                       const struct
+GNUNET_CONNECTION_create_from_connect (const struct
                                        GNUNET_CONFIGURATION_Handle *cfg,
                                        const char *hostname, uint16_t port)
 {
@@ -869,13 +846,11 @@ GNUNET_CONNECTION_create_from_connect (struct GNUNET_SCHEDULER_Handle *sched,
   GNUNET_assert (0 < strlen (hostname));        /* sanity check */
   ret = GNUNET_malloc (sizeof (struct GNUNET_CONNECTION_Handle));
   ret->cfg = cfg;
-  ret->sched = sched;
   ret->write_buffer_size = GNUNET_SERVER_MIN_BUFFER_SIZE;
   ret->write_buffer = GNUNET_malloc(ret->write_buffer_size);
   ret->port = port;
   ret->hostname = GNUNET_strdup (hostname);
-  ret->dns_active = GNUNET_RESOLVER_ip_get (sched,
-                                            cfg,
+  ret->dns_active = GNUNET_RESOLVER_ip_get (cfg,
                                             ret->hostname,
                                             AF_UNSPEC,
                                             GNUNET_CONNECTION_CONNECT_RETRY_TIMEOUT,
@@ -889,14 +864,12 @@ GNUNET_CONNECTION_create_from_connect (struct GNUNET_SCHEDULER_Handle *sched,
  * This function returns immediately, even if the connection has not
  * yet been established.  This function only creates UNIX connections.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param unixpath path to connect to
  * @return the socket handle, NULL on systems without UNIX support
  */
 struct GNUNET_CONNECTION_Handle *
-GNUNET_CONNECTION_create_from_connect_to_unixpath (struct GNUNET_SCHEDULER_Handle *sched,
-						   const struct
+GNUNET_CONNECTION_create_from_connect_to_unixpath (const struct
 						   GNUNET_CONFIGURATION_Handle *cfg,
 						   const char *unixpath)
 {
@@ -922,7 +895,6 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (struct GNUNET_SCHEDULER_Handl
 #endif
   ret = GNUNET_malloc (sizeof (struct GNUNET_CONNECTION_Handle));
   ret->cfg = cfg;
-  ret->sched = sched;
   ret->write_buffer_size = GNUNET_SERVER_MIN_BUFFER_SIZE;
   ret->write_buffer = GNUNET_malloc(ret->write_buffer_size);
   ret->port = 0;
@@ -960,15 +932,13 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (struct GNUNET_SCHEDULER_Handl
  * This function returns immediately, even if the connection has not
  * yet been established.  This function only creates TCP connections.
  *
- * @param sched scheduler to use
  * @param af_family address family to use
  * @param serv_addr server address
  * @param addrlen length of server address
  * @return the socket handle
  */
 struct GNUNET_CONNECTION_Handle *
-GNUNET_CONNECTION_create_from_sockaddr (struct GNUNET_SCHEDULER_Handle
-                                        *sched, int af_family,
+GNUNET_CONNECTION_create_from_sockaddr (int af_family,
                                         const struct sockaddr *serv_addr,
                                         socklen_t addrlen)
 {
@@ -990,7 +960,7 @@ GNUNET_CONNECTION_create_from_sockaddr (struct GNUNET_SCHEDULER_Handle
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (s));
       return NULL;
     }
-  ret = GNUNET_CONNECTION_create_from_existing (sched, s);
+  ret = GNUNET_CONNECTION_create_from_existing (s);
   ret->addr = GNUNET_malloc (addrlen);
   memcpy (ret->addr, serv_addr, addrlen);
   ret->addrlen = addrlen;
@@ -1041,8 +1011,7 @@ GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *sock,
     {
       if (sock->write_task != GNUNET_SCHEDULER_NO_TASK)
 	{
-	  GNUNET_SCHEDULER_cancel (sock->sched,
-				   sock->write_task);
+	  GNUNET_SCHEDULER_cancel (sock->write_task);
 	  sock->write_task = GNUNET_SCHEDULER_NO_TASK;
 	  sock->write_buffer_off = 0;
 	}
@@ -1052,11 +1021,10 @@ GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *sock,
       GNUNET_RESOLVER_request_cancel (sock->dns_active);
       sock->dns_active = NULL;
     }
-  GNUNET_assert (sock->sched != NULL);
+
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == sock->destroy_task);
   sock->destroy_task 
-    = GNUNET_SCHEDULER_add_now (sock->sched,
-				&destroy_continuation, sock);
+    = GNUNET_SCHEDULER_add_now (&destroy_continuation, sock);
 }
 
 
@@ -1113,8 +1081,7 @@ receive_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Ignoring shutdown signal per configuration\n");
 #endif
-      sh->read_task = GNUNET_SCHEDULER_add_read_net (tc->sched,
-						     GNUNET_TIME_absolute_get_remaining
+      sh->read_task = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_absolute_get_remaining
 						     (sh->receive_timeout),
 						     sh->sock,
 						     &receive_ready, sh);
@@ -1212,8 +1179,7 @@ receive_again (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
   GNUNET_assert (sh->sock != NULL);
   /* connect succeeded, wait for data! */
-  sh->read_task = GNUNET_SCHEDULER_add_read_net (tc->sched,
-                                                 GNUNET_TIME_absolute_get_remaining
+  sh->read_task = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_absolute_get_remaining
                                                  (sh->receive_timeout),
                                                  sh->sock,
                                                  &receive_ready, sh);
@@ -1252,7 +1218,6 @@ GNUNET_CONNECTION_receive (struct GNUNET_CONNECTION_Handle *sock,
   if (sock->sock != NULL)
     {
       memset (&tc, 0, sizeof (tc));
-      tc.sched = sock->sched;
       tc.reason = GNUNET_SCHEDULER_REASON_PREREQ_DONE;
       receive_again (sock, &tc);
       return;
@@ -1293,8 +1258,7 @@ GNUNET_CONNECTION_receive_cancel (struct GNUNET_CONNECTION_Handle *sock)
 {
   if (sock->read_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_assert (sock == GNUNET_SCHEDULER_cancel (sock->sched,
-                                                      sock->read_task));
+      GNUNET_assert (sock == GNUNET_SCHEDULER_cancel (sock->read_task));
       sock->read_task = GNUNET_SCHEDULER_NO_TASK;
     }
   else
@@ -1421,8 +1385,7 @@ transmit_error (struct GNUNET_CONNECTION_Handle *sock)
     }
   if (sock->read_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (sock->sched,
-			       sock->read_task);
+      GNUNET_SCHEDULER_cancel (sock->read_task);
       sock->read_task = GNUNET_SCHEDULER_NO_TASK;
       signal_timeout (sock);
       return;
@@ -1567,8 +1530,7 @@ SCHEDULE_WRITE:
 #endif
   if (sock->write_task == GNUNET_SCHEDULER_NO_TASK)
     sock->write_task =
-      GNUNET_SCHEDULER_add_write_net (tc->sched,
-                                      GNUNET_TIME_absolute_get_remaining
+      GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_absolute_get_remaining
                                       (sock->nth.transmit_timeout),
                                       sock->sock, &transmit_ready, sock);
 }
@@ -1612,10 +1574,8 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle
       (sock->ap_head == NULL) && (sock->dns_active == NULL))
     {
       if (sock->write_task != GNUNET_SCHEDULER_NO_TASK)
-	GNUNET_SCHEDULER_cancel (sock->sched,
-				 sock->write_task);
-      sock->write_task = GNUNET_SCHEDULER_add_now (sock->sched,
-						   &connect_error, sock);
+	GNUNET_SCHEDULER_cancel (sock->write_task);
+      sock->write_task = GNUNET_SCHEDULER_add_now (&connect_error, sock);
       return &sock->nth;
     }
   if (GNUNET_SCHEDULER_NO_TASK != sock->write_task)
@@ -1626,8 +1586,7 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Scheduling transmit_ready (%p).\n", sock);
 #endif
-      sock->write_task = GNUNET_SCHEDULER_add_write_net (sock->sched,
-                                                         GNUNET_TIME_absolute_get_remaining
+      sock->write_task = GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_absolute_get_remaining
                                                          (sock->nth.
                                                           transmit_timeout),
                                                          sock->sock,
@@ -1642,8 +1601,7 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle
                   sock);
 #endif
       sock->ccs |= COCO_TRANSMIT_READY;
-      sock->nth.timeout_task = GNUNET_SCHEDULER_add_delayed (sock->sched,
-                                                             timeout,
+      sock->nth.timeout_task = GNUNET_SCHEDULER_add_delayed (timeout,
                                                              &transmit_timeout,
                                                              sock);
     }
@@ -1668,7 +1626,7 @@ GNUNET_CONNECTION_notify_transmit_ready_cancel (struct
                   "notify_transmit_ready_cancel cancels timeout_task (%p)\n",
                   h);
 #endif
-      GNUNET_SCHEDULER_cancel (h->sh->sched, h->timeout_task);
+      GNUNET_SCHEDULER_cancel (h->timeout_task);
       h->timeout_task = GNUNET_SCHEDULER_NO_TASK;
       h->sh->ccs -= COCO_TRANSMIT_READY;
     }
@@ -1676,7 +1634,7 @@ GNUNET_CONNECTION_notify_transmit_ready_cancel (struct
     {
       if (h->sh->write_task != GNUNET_SCHEDULER_NO_TASK)
 	{
-	  GNUNET_SCHEDULER_cancel (h->sh->sched, h->sh->write_task);
+	  GNUNET_SCHEDULER_cancel (h->sh->write_task);
 	  h->sh->write_task = GNUNET_SCHEDULER_NO_TASK;
 	}
     }

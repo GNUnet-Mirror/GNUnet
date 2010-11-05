@@ -150,8 +150,7 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
   sa.sin_family = AF_INET;
   sa.sin_port = htons (PORT);
-  server = GNUNET_SERVER_create (tc->sched,
-                                 NULL,
+  server = GNUNET_SERVER_create (NULL,
                                  NULL,
                                  sap,
 				 slens,
@@ -162,7 +161,7 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   handlers[0].callback_cls = cls;
   handlers[1].callback_cls = cls;
   GNUNET_SERVER_add_handlers (server, handlers);
-  client = GNUNET_CLIENT_connect (tc->sched, MYNAME, cfg);
+  client = GNUNET_CLIENT_connect (MYNAME, cfg);
   GNUNET_assert (client != NULL);
   GNUNET_assert (NULL !=
                  GNUNET_CLIENT_notify_transmit_ready (client,

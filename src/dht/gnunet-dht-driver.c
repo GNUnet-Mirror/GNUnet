@@ -503,10 +503,6 @@ static unsigned long long peers_left;
  */
 static struct GNUNET_TESTING_PeerGroup *pg;
 
-/**
- * Global scheduler, used for all GNUNET_SCHEDULER_* functions.
- */
-static struct GNUNET_SCHEDULER_Handle *sched;
 
 /**
  * Global config handle.
@@ -743,7 +739,7 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   while (test_put != NULL)
     {
       if (test_put->disconnect_task != GNUNET_SCHEDULER_NO_TASK)
-        GNUNET_SCHEDULER_cancel(sched, test_put->disconnect_task);
+        GNUNET_SCHEDULER_cancel(test_put->disconnect_task);
       if (test_put->dht_handle != NULL)
         GNUNET_DHT_disconnect(test_put->dht_handle);
       test_put = test_put->next;
@@ -752,7 +748,7 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   while (test_get != NULL)
     {
       if (test_get->disconnect_task != GNUNET_SCHEDULER_NO_TASK)
-        GNUNET_SCHEDULER_cancel(sched, test_get->disconnect_task);
+        GNUNET_SCHEDULER_cancel(test_get->disconnect_task);
       if (test_get->get_handle != NULL)
         GNUNET_DHT_get_stop(test_get->get_handle);
       if (test_get->dht_handle != NULL)
@@ -813,7 +809,7 @@ log_topology_cb (void *cls,
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Topology iteration (%u/%u) finished (%u connections, %u peers)\n", topo_ctx->current_iteration, topo_ctx->total_iterations, topo_ctx->total_connections, topo_ctx->total_peers);
       dhtlog_handle->update_topology(topo_ctx->total_connections);
       if (topo_ctx->cont != NULL)
-        GNUNET_SCHEDULER_add_now (sched, topo_ctx->cont, topo_ctx->cls);
+        GNUNET_SCHEDULER_add_now (topo_ctx->cont, topo_ctx->cls);
       if (topo_ctx->peers_seen != NULL)
         GNUNET_CONTAINER_multihashmap_destroy(topo_ctx->peers_seen);
       GNUNET_free(topo_ctx);
@@ -854,7 +850,7 @@ stats_finished (void *cls, int result)
   fprintf(stderr, "Finished getting all peers statistics, iterating!\n");
   GNUNET_CONTAINER_multihashmap_iterate(stats_map, &stats_iterate, NULL);
   GNUNET_CONTAINER_multihashmap_destroy(stats_map);
-  GNUNET_SCHEDULER_add_now (sched, &finish_testing, NULL);
+  GNUNET_SCHEDULER_add_now (&finish_testing, NULL);
 }
 
 /**
@@ -969,7 +965,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   while (test_put != NULL)
     {
       if (test_put->disconnect_task != GNUNET_SCHEDULER_NO_TASK)
-        GNUNET_SCHEDULER_cancel(sched, test_put->disconnect_task);
+        GNUNET_SCHEDULER_cancel(test_put->disconnect_task);
       if (test_put->dht_handle != NULL)
         GNUNET_DHT_disconnect(test_put->dht_handle);
       test_put = test_put->next;
@@ -978,7 +974,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   while (test_get != NULL)
     {
       if (test_get->disconnect_task != GNUNET_SCHEDULER_NO_TASK)
-        GNUNET_SCHEDULER_cancel(sched, test_get->disconnect_task);
+        GNUNET_SCHEDULER_cancel(test_get->disconnect_task);
       if (test_get->get_handle != NULL)
         GNUNET_DHT_get_stop(test_get->get_handle);
       if (test_get->dht_handle != NULL)
@@ -1067,7 +1063,7 @@ decrement_find_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   if ((0 == test_find_peer->find_peer_context->total) &&
       (GNUNET_TIME_absolute_get_remaining(test_find_peer->find_peer_context->endtime).rel_value > 60))
   {
-    GNUNET_SCHEDULER_add_now(sched, &count_new_peers, test_find_peer->find_peer_context);
+    GNUNET_SCHEDULER_add_now(&count_new_peers, test_find_peer->find_peer_context);
   }
   GNUNET_free(test_find_peer);
 }
@@ -1085,7 +1081,7 @@ handle_find_peer_sent (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc
   struct TestFindPeer *test_find_peer = cls;
 
   GNUNET_DHT_disconnect(test_find_peer->dht_handle);
-  GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_divide(find_peer_delay, 2), &decrement_find_peers, test_find_peer);
+  GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_divide(find_peer_delay, 2), &decrement_find_peers, test_find_peer);
 }
 
 
@@ -1096,18 +1092,18 @@ send_find_peer_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
 
   if (test_find_peer->find_peer_context->outstanding > max_outstanding_find_peers)
   {
-    GNUNET_SCHEDULER_add_delayed(sched, find_peer_offset, &send_find_peer_request, test_find_peer);
+    GNUNET_SCHEDULER_add_delayed(find_peer_offset, &send_find_peer_request, test_find_peer);
     return;
   }
 
   test_find_peer->find_peer_context->outstanding++;
   if (GNUNET_TIME_absolute_get_remaining(test_find_peer->find_peer_context->endtime).rel_value == 0)
   {
-    GNUNET_SCHEDULER_add_now(sched, &decrement_find_peers, test_find_peer);
+    GNUNET_SCHEDULER_add_now(&decrement_find_peers, test_find_peer);
     return;
   }
 
-  test_find_peer->dht_handle = GNUNET_DHT_connect(sched, test_find_peer->daemon->cfg, 1);
+  test_find_peer->dht_handle = GNUNET_DHT_connect(test_find_peer->daemon->cfg, 1);
   GNUNET_assert(test_find_peer->dht_handle != NULL);
   GNUNET_DHT_find_peers (test_find_peer->dht_handle,
                          &handle_find_peer_sent, test_find_peer);
@@ -1290,11 +1286,11 @@ count_peers_churn_cb (void *cls,
         {
           GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Found peer with no connections, will choose some peer(s) at random to connect to!\n");
           GNUNET_CONTAINER_heap_iterate (find_peer_context->peer_min_heap, &iterate_min_heap_peers, find_peer_context);
-          GNUNET_SCHEDULER_add_now(sched, &schedule_churn_find_peer_requests, find_peer_context);
+          GNUNET_SCHEDULER_add_now(&schedule_churn_find_peer_requests, find_peer_context);
         }
       else if ((GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime).rel_value > 0) && (find_peer_context->last_sent != 0))
         {
-          GNUNET_SCHEDULER_add_now(sched, &schedule_churn_find_peer_requests, find_peer_context);
+          GNUNET_SCHEDULER_add_now(&schedule_churn_find_peer_requests, find_peer_context);
         }
       else
         {
@@ -1310,15 +1306,15 @@ count_peers_churn_cb (void *cls,
               topo_ctx->cls = all_gets;
               topo_ctx->timeout = DEFAULT_GET_TIMEOUT;
               topo_ctx->peers_seen = GNUNET_CONTAINER_multihashmap_create(num_peers);
-              die_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_add(GNUNET_TIME_relative_add(DEFAULT_GET_TIMEOUT, all_get_timeout), DEFAULT_TOPOLOGY_CAPTURE_TIMEOUT),
+              die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_add(GNUNET_TIME_relative_add(DEFAULT_GET_TIMEOUT, all_get_timeout), DEFAULT_TOPOLOGY_CAPTURE_TIMEOUT),
                                                        &end_badly, "from do gets (count_peers_churn_cb)");
-              GNUNET_SCHEDULER_add_now(sched, &capture_current_topology, topo_ctx);
+              GNUNET_SCHEDULER_add_now(&capture_current_topology, topo_ctx);
             }
           else
             {
-              die_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_add(GNUNET_TIME_relative_add(DEFAULT_GET_TIMEOUT, all_get_timeout), DEFAULT_TOPOLOGY_CAPTURE_TIMEOUT),
+              die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_add(GNUNET_TIME_relative_add(DEFAULT_GET_TIMEOUT, all_get_timeout), DEFAULT_TOPOLOGY_CAPTURE_TIMEOUT),
                                                        &end_badly, "from do gets (count_peers_churn_cb)");
-              GNUNET_SCHEDULER_add_now(sched, &do_get, all_gets);
+              GNUNET_SCHEDULER_add_now(&do_get, all_gets);
             }
         }
     }
@@ -1372,7 +1368,7 @@ schedule_churn_find_peer_requests (void *cls, const struct GNUNET_SCHEDULER_Task
       test_find_peer->daemon = GNUNET_TESTING_daemon_get_by_id(pg, &peer_count->peer_id);
       GNUNET_assert(test_find_peer->daemon != NULL);
       test_find_peer->find_peer_context = find_peer_ctx;
-      GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(find_peer_offset, i), &send_find_peer_request, test_find_peer);
+      GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(find_peer_offset, i), &send_find_peer_request, test_find_peer);
     }
 
   if ((find_peer_ctx->peer_hash == NULL) && (find_peer_ctx->peer_min_heap == NULL))
@@ -1416,7 +1412,7 @@ static void churn_complete (void *cls, const char *emsg)
   if (emsg != NULL)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Ending test, churning of peers failed with error `%s'", emsg);
-      GNUNET_SCHEDULER_add_now(sched, &end_badly, (void *)emsg);
+      GNUNET_SCHEDULER_add_now(&end_badly, (void *)emsg);
       return;
     }
 
@@ -1443,7 +1439,7 @@ static void churn_complete (void *cls, const char *emsg)
             }
         }
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Added %d peers to heap, total size %d\n", count_added, GNUNET_CONTAINER_heap_get_size(find_peer_context->peer_min_heap));
-      GNUNET_SCHEDULER_add_delayed(sched, DEFAULT_PEER_DISCONNECT_TIMEOUT, &schedule_churn_get_topology, find_peer_context);
+      GNUNET_SCHEDULER_add_delayed(DEFAULT_PEER_DISCONNECT_TIMEOUT, &schedule_churn_get_topology, find_peer_context);
       //GNUNET_TESTING_get_topology (pg, &count_peers_churn_cb, find_peer_context);
     }
   else
@@ -1459,19 +1455,19 @@ static void churn_complete (void *cls, const char *emsg)
           calc_timeout = GNUNET_TIME_relative_add(DEFAULT_GET_TIMEOUT, all_get_timeout);
           calc_timeout = GNUNET_TIME_relative_add(calc_timeout, DEFAULT_TOPOLOGY_CAPTURE_TIMEOUT);
           calc_timeout = GNUNET_TIME_relative_add(calc_timeout, DEFAULT_PEER_DISCONNECT_TIMEOUT);
-          die_task = GNUNET_SCHEDULER_add_delayed (sched, calc_timeout,
+          die_task = GNUNET_SCHEDULER_add_delayed (calc_timeout,
                                                    &end_badly, "from do gets (churn_complete)");
-          GNUNET_SCHEDULER_add_delayed(sched, DEFAULT_PEER_DISCONNECT_TIMEOUT, &capture_current_topology, topo_ctx);
+          GNUNET_SCHEDULER_add_delayed(DEFAULT_PEER_DISCONNECT_TIMEOUT, &capture_current_topology, topo_ctx);
         }
       else
         {
           calc_timeout = GNUNET_TIME_relative_add(DEFAULT_GET_TIMEOUT, all_get_timeout);
           calc_timeout = GNUNET_TIME_relative_add(calc_timeout, DEFAULT_PEER_DISCONNECT_TIMEOUT);
-          die_task = GNUNET_SCHEDULER_add_delayed (sched, calc_timeout,
+          die_task = GNUNET_SCHEDULER_add_delayed (calc_timeout,
                                                    &end_badly, "from do gets (churn_complete)");
           if (dhtlog_handle != NULL)
             dhtlog_handle->insert_round(DHT_ROUND_GET, rounds_finished);
-          GNUNET_SCHEDULER_add_delayed(sched, DEFAULT_PEER_DISCONNECT_TIMEOUT, &do_get, all_gets);
+          GNUNET_SCHEDULER_add_delayed(DEFAULT_PEER_DISCONNECT_TIMEOUT, &do_get, all_gets);
         }
     }
 }
@@ -1565,7 +1561,7 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   if ((gets_completed + gets_failed == num_gets) && (outstanding_gets == 0))
     {
       fprintf(stderr, "Canceling die task (get_stop_finished) %llu gets completed, %llu gets failed\n", gets_completed, gets_failed);
-      GNUNET_SCHEDULER_cancel(sched, die_task);
+      GNUNET_SCHEDULER_cancel(die_task);
       reset_meter(put_meter);
       reset_meter(get_meter);
       /**
@@ -1581,10 +1577,10 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
               topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
               topo_ctx->cont = &log_dht_statistics;
               topo_ctx->peers_seen = GNUNET_CONTAINER_multihashmap_create(num_peers);
-              GNUNET_SCHEDULER_add_now(sched, &capture_current_topology, topo_ctx);
+              GNUNET_SCHEDULER_add_now(&capture_current_topology, topo_ctx);
             }
           else
-            GNUNET_SCHEDULER_add_now (sched, &finish_testing, NULL);
+            GNUNET_SCHEDULER_add_now (&finish_testing, NULL);
         }
       else if (current_churn_round < churns_per_round * (rounds_finished + 1)) /* Do next round of churn */
         {
@@ -1595,7 +1591,7 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
           if (dhtlog_handle != NULL)
             dhtlog_handle->insert_round(DHT_ROUND_CHURN, rounds_finished);
 
-          GNUNET_SCHEDULER_add_now(sched, &churn_peers, NULL);
+          GNUNET_SCHEDULER_add_now(&churn_peers, NULL);
         }
       else if (rounds_finished < total_rounds - 1) /* Start a new complete round */
         {
@@ -1610,17 +1606,17 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
               if (dhtlog_handle != NULL)
                 dhtlog_handle->insert_round(DHT_ROUND_GET, rounds_finished);
 
-              die_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_add(GNUNET_TIME_relative_add(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, round_delay), all_get_timeout), DEFAULT_TOPOLOGY_CAPTURE_TIMEOUT),
+              die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_add(GNUNET_TIME_relative_add(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, round_delay), all_get_timeout), DEFAULT_TOPOLOGY_CAPTURE_TIMEOUT),
                                                        &end_badly, "from do gets (next round)");
-              GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, round_delay), &do_get, all_gets);
+              GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, round_delay), &do_get, all_gets);
             }
           else
             {
               if (dhtlog_handle != NULL)
                 dhtlog_handle->insert_round(DHT_ROUND_NORMAL, rounds_finished);
-              die_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_add(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, round_delay), GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, num_puts * 2)),
+              die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_add(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, round_delay), GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, num_puts * 2)),
                                                        &end_badly, "from do puts");
-              GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, round_delay), &do_put, all_puts);
+              GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, round_delay), &do_put, all_puts);
             }
         }
     }
@@ -1640,7 +1636,7 @@ get_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   GNUNET_DHT_get_stop(test_get->get_handle);
   test_get->get_handle = NULL;
   test_get->disconnect_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_SCHEDULER_add_now (sched, &get_stop_finished, test_get);
+  GNUNET_SCHEDULER_add_now (&get_stop_finished, test_get);
 }
 
 /**
@@ -1685,8 +1681,8 @@ get_result_iterator (void *cls,
 #if VERBOSE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received correct GET response!\n");
 #endif
-  GNUNET_SCHEDULER_cancel(sched, test_get->disconnect_task);
-  GNUNET_SCHEDULER_add_continuation(sched, &get_stop_task, test_get, GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_SCHEDULER_cancel(test_get->disconnect_task);
+  GNUNET_SCHEDULER_add_continuation(&get_stop_task, test_get, GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
@@ -1701,8 +1697,8 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 
   if (num_gets == 0)
     {
-      GNUNET_SCHEDULER_cancel(sched, die_task);
-      GNUNET_SCHEDULER_add_now(sched, &finish_testing, NULL);
+      GNUNET_SCHEDULER_cancel(die_task);
+      GNUNET_SCHEDULER_add_now(&finish_testing, NULL);
     }
 
   if (test_get == NULL)
@@ -1715,20 +1711,20 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Peer we should issue get request from is down, skipping.\n");
       gets_failed++;
-      GNUNET_SCHEDULER_add_now (sched, &get_stop_finished, test_get);
-      GNUNET_SCHEDULER_add_now (sched, &do_get, test_get->next);
+      GNUNET_SCHEDULER_add_now (&get_stop_finished, test_get);
+      GNUNET_SCHEDULER_add_now (&do_get, test_get->next);
       return;
     }
 
   /* Check if more gets are outstanding than should be */
   if (outstanding_gets > max_outstanding_gets)
     {
-      GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 200), &do_get, test_get);
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 200), &do_get, test_get);
       return;
     }
 
   /* Connect to the first peer's DHT */
-  test_get->dht_handle = GNUNET_DHT_connect(sched, test_get->daemon->cfg, 10);
+  test_get->dht_handle = GNUNET_DHT_connect(test_get->daemon->cfg, 10);
   GNUNET_assert(test_get->dht_handle != NULL);
   outstanding_gets++;
 
@@ -1748,10 +1744,10 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
              test_get->uid,
              test_get->daemon->shortname);
 #endif
-  test_get->disconnect_task = GNUNET_SCHEDULER_add_delayed(sched, get_timeout, &get_stop_task, test_get);
+  test_get->disconnect_task = GNUNET_SCHEDULER_add_delayed(get_timeout, &get_stop_task, test_get);
 
   /* Schedule the next request in the linked list of get requests */
-  GNUNET_SCHEDULER_add_now (sched, &do_get, test_get->next);
+  GNUNET_SCHEDULER_add_now (&do_get, test_get->next);
 }
 
 /**
@@ -1773,12 +1769,12 @@ put_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   if (replicate_same == GNUNET_NO)
     test_put->daemon = GNUNET_TESTING_daemon_get(pg, GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers));
 
-  GNUNET_SCHEDULER_cancel(sched, test_put->disconnect_task);
-  test_put->disconnect_task = GNUNET_SCHEDULER_add_now(sched, &put_disconnect_task, test_put);
+  GNUNET_SCHEDULER_cancel(test_put->disconnect_task);
+  test_put->disconnect_task = GNUNET_SCHEDULER_add_now(&put_disconnect_task, test_put);
   if (GNUNET_YES == update_meter(put_meter))
     {
       GNUNET_assert(outstanding_puts == 0);
-      GNUNET_SCHEDULER_cancel (sched, die_task);
+      GNUNET_SCHEDULER_cancel (die_task);
       if (dhtlog_handle != NULL)
         {
           topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
@@ -1786,16 +1782,16 @@ put_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
           topo_ctx->cls = all_gets;
           topo_ctx->timeout = DEFAULT_GET_TIMEOUT;
           topo_ctx->peers_seen = GNUNET_CONTAINER_multihashmap_create(num_peers);
-          die_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_add(GNUNET_TIME_relative_add(DEFAULT_GET_TIMEOUT, all_get_timeout), DEFAULT_TOPOLOGY_CAPTURE_TIMEOUT),
+          die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_add(GNUNET_TIME_relative_add(DEFAULT_GET_TIMEOUT, all_get_timeout), DEFAULT_TOPOLOGY_CAPTURE_TIMEOUT),
                                                    &end_badly, "from do gets (put finished)");
-          GNUNET_SCHEDULER_add_now(sched, &capture_current_topology, topo_ctx);
+          GNUNET_SCHEDULER_add_now(&capture_current_topology, topo_ctx);
         }
       else
         {
           fprintf(stderr, "Scheduling die task (put finished)\n");
-          die_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_add(DEFAULT_GET_TIMEOUT, all_get_timeout),
+          die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_add(DEFAULT_GET_TIMEOUT, all_get_timeout),
                                                    &end_badly, "from do gets (put finished)");
-          GNUNET_SCHEDULER_add_delayed(sched, DEFAULT_GET_TIMEOUT, &do_get, all_gets);
+          GNUNET_SCHEDULER_add_delayed(DEFAULT_GET_TIMEOUT, &do_get, all_gets);
         }
       return;
     }
@@ -1819,7 +1815,7 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Peer we should issue put request at is down, skipping.\n");
       update_meter(put_meter);
-      GNUNET_SCHEDULER_add_now (sched, &do_put, test_put->next);
+      GNUNET_SCHEDULER_add_now (&do_put, test_put->next);
       return;
     }
 
@@ -1830,7 +1826,7 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 
   if (outstanding_puts > max_outstanding_puts)
     {
-      GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 200), &do_put, test_put);
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 200), &do_put, test_put);
       return;
     }
 
@@ -1839,7 +1835,7 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
                 test_put->uid,
                 test_put->daemon->shortname);
 #endif
-  test_put->dht_handle = GNUNET_DHT_connect(sched, test_put->daemon->cfg, 10);
+  test_put->dht_handle = GNUNET_DHT_connect(test_put->daemon->cfg, 10);
 
   GNUNET_assert(test_put->dht_handle != NULL);
   outstanding_puts++;
@@ -1851,9 +1847,9 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
                  GNUNET_TIME_UNIT_FOREVER_ABS,
                  put_delay,
                  &put_finished, test_put);
-  test_put->disconnect_task = GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_get_forever(), &put_disconnect_task, test_put);
+  test_put->disconnect_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_get_forever(), &put_disconnect_task, test_put);
   rand = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 2);
-  GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, rand), &do_put, test_put->next);
+  GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, rand), &do_put, test_put->next);
 }
 
 static void
@@ -1911,7 +1907,7 @@ count_peers_cb (void *cls,
           (find_peer_context->current_peers < 2 * connection_estimate(num_peers, DEFAULT_BUCKET_SIZE)) &&
           (GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime).rel_value > 0))
         {
-          GNUNET_SCHEDULER_add_now(sched, &schedule_find_peer_requests, find_peer_context);
+          GNUNET_SCHEDULER_add_now(&schedule_find_peer_requests, find_peer_context);
         }
       else
         {
@@ -1993,7 +1989,7 @@ schedule_find_peer_requests (void *cls, const struct GNUNET_SCHEDULER_TaskContex
         }
 
       test_find_peer->find_peer_context = find_peer_ctx;
-      GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(find_peer_offset, i), &send_find_peer_request, test_find_peer);
+      GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(find_peer_offset, i), &send_find_peer_request, test_find_peer);
     }
 
   if ((find_peer_ctx->peer_hash == NULL) && (find_peer_ctx->peer_min_heap == NULL))
@@ -2055,10 +2051,10 @@ setup_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
       all_gets = test_get;
     }
 
-  /*GNUNET_SCHEDULER_cancel (sched, die_task);*/
-  die_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, num_puts * 2),
+  /*GNUNET_SCHEDULER_cancel (die_task);*/
+  die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, num_puts * 2),
                                            &end_badly, "from do puts");
-  GNUNET_SCHEDULER_add_now (sched, &do_put, all_puts);
+  GNUNET_SCHEDULER_add_now (&do_put, all_puts);
 
 }
 
@@ -2087,15 +2083,15 @@ continue_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
           topo_ctx->total_iterations = max;
           topo_ctx->peers_seen = GNUNET_CONTAINER_multihashmap_create(num_peers);
           //fprintf(stderr, "scheduled topology iteration in %d minutes\n", i);
-          GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, i * 3), &capture_current_topology, topo_ctx);
+          GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, i * 3), &capture_current_topology, topo_ctx);
         }
       topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
       topo_ctx->cont = &setup_puts_and_gets;
       topo_ctx->peers_seen = GNUNET_CONTAINER_multihashmap_create(num_peers);
-      GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, (settle_time + 90)), &capture_current_topology, topo_ctx);
+      GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, (settle_time + 90)), &capture_current_topology, topo_ctx);
     }
   else
-    GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, (settle_time + 90)), &setup_puts_and_gets, NULL);
+    GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, (settle_time + 90)), &setup_puts_and_gets, NULL);
 
   if (dhtlog_handle != NULL)
     dhtlog_handle->insert_round(DHT_ROUND_NORMAL, rounds_finished);
@@ -2106,7 +2102,7 @@ continue_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
       find_peer_context = GNUNET_malloc(sizeof(struct FindPeerContext));
       find_peer_context->count_peers_cb = &count_peers_cb;
       find_peer_context->endtime = GNUNET_TIME_relative_to_absolute(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time));
-      GNUNET_SCHEDULER_add_now(sched, &schedule_find_peer_requests, find_peer_context);
+      GNUNET_SCHEDULER_add_now(&schedule_find_peer_requests, find_peer_context);
     }
   else
     {
@@ -2130,14 +2126,12 @@ malicious_disconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
 
   if (malicious_completed == malicious_getters + malicious_putters + malicious_droppers)
     {
-      GNUNET_SCHEDULER_cancel(sched, die_task);
+      GNUNET_SCHEDULER_cancel(die_task);
       fprintf(stderr, "Finished setting all malicious peers up, calling continuation!\n");
       if (dhtlog_handle != NULL)
-        GNUNET_SCHEDULER_add_now (sched,
-                                  &continue_puts_and_gets, NULL);
+        GNUNET_SCHEDULER_add_now (&continue_puts_and_gets, NULL);
       else
-        GNUNET_SCHEDULER_add_delayed (sched,
-                                    GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time),
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time),
                                     &continue_puts_and_gets, NULL);
     }
 
@@ -2150,8 +2144,8 @@ static void
 malicious_done_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   struct MaliciousContext *ctx = cls;
-  GNUNET_SCHEDULER_cancel(sched, ctx->disconnect_task);
-  GNUNET_SCHEDULER_add_now(sched, &malicious_disconnect_task, ctx);
+  GNUNET_SCHEDULER_cancel(ctx->disconnect_task);
+  GNUNET_SCHEDULER_add_now(&malicious_disconnect_task, ctx);
 }
 
 /**
@@ -2164,13 +2158,13 @@ set_malicious (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 
   if (outstanding_malicious > DEFAULT_MAX_OUTSTANDING_GETS)
     {
-      GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &set_malicious, ctx);
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &set_malicious, ctx);
       return;
     }
 
   if (ctx->dht_handle == NULL)
     {
-      ctx->dht_handle = GNUNET_DHT_connect(sched, ctx->daemon->cfg, 1);
+      ctx->dht_handle = GNUNET_DHT_connect(ctx->daemon->cfg, 1);
       outstanding_malicious++;
     }
 
@@ -2186,24 +2180,21 @@ set_malicious (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   {
   case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_GET:
     GNUNET_DHT_set_malicious_getter(ctx->dht_handle, malicious_get_frequency);
-    GNUNET_SCHEDULER_add_now (sched,
-			      &malicious_done_task, ctx);
+    GNUNET_SCHEDULER_add_now (&malicious_done_task, ctx);
     break;
   case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_PUT:
     GNUNET_DHT_set_malicious_putter(ctx->dht_handle, malicious_put_frequency);
-    GNUNET_SCHEDULER_add_now (sched,
-			      &malicious_done_task, ctx);
+    GNUNET_SCHEDULER_add_now (&malicious_done_task, ctx);
     break;
   case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_DROP:
     GNUNET_DHT_set_malicious_dropper(ctx->dht_handle);
-    GNUNET_SCHEDULER_add_now (sched, &malicious_done_task, ctx);
+    GNUNET_SCHEDULER_add_now (&malicious_done_task, ctx);
     break;
   default:
     break;
   }
 
-  ctx->disconnect_task = GNUNET_SCHEDULER_add_delayed(sched, 
-						      GNUNET_TIME_UNIT_FOREVER_REL,
+  ctx->disconnect_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL,
 						      &malicious_disconnect_task, ctx);
 }
 
@@ -2225,7 +2216,7 @@ setup_malicious_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc
       temp_daemon = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
       ctx->daemon = GNUNET_TESTING_daemon_get(pg, temp_daemon);
       ctx->malicious_type = GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_GET;
-      GNUNET_SCHEDULER_add_now (sched, &set_malicious, ctx);
+      GNUNET_SCHEDULER_add_now (&set_malicious, ctx);
 
     }
 
@@ -2235,7 +2226,7 @@ setup_malicious_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc
       temp_daemon = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
       ctx->daemon = GNUNET_TESTING_daemon_get(pg, temp_daemon);
       ctx->malicious_type = GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_PUT;
-      GNUNET_SCHEDULER_add_now (sched, &set_malicious, ctx);
+      GNUNET_SCHEDULER_add_now (&set_malicious, ctx);
 
     }
 
@@ -2245,7 +2236,7 @@ setup_malicious_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc
       temp_daemon = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
       ctx->daemon = GNUNET_TESTING_daemon_get(pg, temp_daemon);
       ctx->malicious_type = GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_DROP;
-      GNUNET_SCHEDULER_add_now (sched, &set_malicious, ctx);
+      GNUNET_SCHEDULER_add_now (&set_malicious, ctx);
     }
 
   /**
@@ -2255,14 +2246,13 @@ setup_malicious_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc
   if (malicious_getters + malicious_putters + malicious_droppers > 0)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Giving malicious set tasks some time before starting testing!\n");
-      die_task = GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, (malicious_getters + malicious_putters + malicious_droppers) * 2),
+      die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, (malicious_getters + malicious_putters + malicious_droppers) * 2),
                                                &end_badly, "from set malicious");
     }
   else /* Otherwise, continue testing */
     {
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Scheduling continue_puts_and_gets now!\n");
-      GNUNET_SCHEDULER_add_now (sched,
-                                &continue_puts_and_gets, NULL);
+      GNUNET_SCHEDULER_add_now (&continue_puts_and_gets, NULL);
     }
 }
 
@@ -2321,8 +2311,8 @@ topology_callback (void *cls,
           dhtlog_handle->insert_topology(expected_connections);
         }
 
-      GNUNET_SCHEDULER_cancel (sched, die_task);
-      /*die_task = GNUNET_SCHEDULER_add_delayed (sched, DEFAULT_TIMEOUT,
+      GNUNET_SCHEDULER_cancel (die_task);
+      /*die_task = GNUNET_SCHEDULER_add_delayed (DEFAULT_TIMEOUT,
                                                &end_badly, "from setup puts/gets");*/
       if ((dhtlog_handle != NULL) && (settle_time > 0))
         {
@@ -2330,21 +2320,19 @@ topology_callback (void *cls,
           topo_ctx->cont = &setup_malicious_peers;
           topo_ctx->peers_seen = GNUNET_CONTAINER_multihashmap_create(num_peers);
           //topo_ctx->cont = &continue_puts_and_gets;
-          GNUNET_SCHEDULER_add_now(sched, &capture_current_topology, topo_ctx);
+          GNUNET_SCHEDULER_add_now(&capture_current_topology, topo_ctx);
         }
       else
         {
-          GNUNET_SCHEDULER_add_now(sched, &setup_malicious_peers, NULL);
-          /*GNUNET_SCHEDULER_add_delayed (sched,
-                                        GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time),
+          GNUNET_SCHEDULER_add_now(&setup_malicious_peers, NULL);
+          /*GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time),
                                         &continue_puts_and_gets, NULL);*/
         }
     }
   else if (total_connections + failed_connections == expected_connections)
     {
-      GNUNET_SCHEDULER_cancel (sched, die_task);
-      die_task = GNUNET_SCHEDULER_add_now (sched,
-                                           &end_badly, "from topology_callback (too many failed connections)");
+      GNUNET_SCHEDULER_cancel (die_task);
+      die_task = GNUNET_SCHEDULER_add_now (&end_badly, "from topology_callback (too many failed connections)");
     }
 }
 
@@ -2376,7 +2364,7 @@ peers_started_callback (void *cls,
                   "All %d daemons started, now connecting peers!\n",
                   num_peers);
 #endif
-      GNUNET_SCHEDULER_cancel (sched, die_task);
+      GNUNET_SCHEDULER_cancel (die_task);
 
       expected_connections = UINT_MAX;
       if ((pg != NULL) && (peers_left == 0))
@@ -2389,12 +2377,10 @@ peers_started_callback (void *cls,
 
       if (expected_connections == GNUNET_SYSERR)
         {
-          die_task = GNUNET_SCHEDULER_add_now (sched,
-                                               &end_badly, "from connect topology (bad return)");
+          die_task = GNUNET_SCHEDULER_add_now (&end_badly, "from connect topology (bad return)");
         }
 
-      die_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                               GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, DEFAULT_CONNECT_TIMEOUT * expected_connections),
+      die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, DEFAULT_CONNECT_TIMEOUT * expected_connections),
                                                &end_badly, "from connect topology (timeout)");
 
       ok = 0;
@@ -2415,14 +2401,12 @@ create_topology ()
     }
   else
     {
-      GNUNET_SCHEDULER_cancel (sched, die_task);
-      die_task = GNUNET_SCHEDULER_add_now (sched,
-                                           &end_badly, "from create topology (bad return)");
+      GNUNET_SCHEDULER_cancel (die_task);
+      die_task = GNUNET_SCHEDULER_add_now (&end_badly, "from create topology (bad return)");
     }
   GNUNET_free_non_null(blacklist_transports);
-  GNUNET_SCHEDULER_cancel (sched, die_task);
-  die_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                           GNUNET_TIME_relative_multiply(seconds_per_peer_start, num_peers),
+  GNUNET_SCHEDULER_cancel (die_task);
+  die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(seconds_per_peer_start, num_peers),
                                            &end_badly, "from continue startup (timeout)");
 }
 
@@ -2459,13 +2443,12 @@ hostkey_callback (void *cls,
                     "All %d hostkeys created, now creating topology!\n",
                     num_peers);
 #endif
-        GNUNET_SCHEDULER_cancel (sched, die_task);
+        GNUNET_SCHEDULER_cancel (die_task);
         /* Set up task in case topology creation doesn't finish
          * within a reasonable amount of time */
-        die_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                                 DEFAULT_TOPOLOGY_TIMEOUT,
+        die_task = GNUNET_SCHEDULER_add_delayed (DEFAULT_TOPOLOGY_TIMEOUT,
                                                  &end_badly, "from create_topology");
-        GNUNET_SCHEDULER_add_now(sched, &create_topology, NULL);
+        GNUNET_SCHEDULER_add_now(&create_topology, NULL);
         ok = 0;
       }
 }
@@ -2473,7 +2456,6 @@ hostkey_callback (void *cls,
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
@@ -2503,9 +2485,8 @@ run (void *cls,
   char *churn_filename;
   int count;
   int ret;
-  unsigned int line_number;
+  int line_number;
 
-  sched = s;
   config = cfg;
   rounds_finished = 0;
   memset(&trial_info, 0, sizeof(struct GNUNET_DHTLOG_TrialInfo));
@@ -2986,8 +2967,7 @@ run (void *cls,
 
 
   /* Set up a task to end testing if peer start fails */
-  die_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                           GNUNET_TIME_relative_multiply(seconds_per_peer_start, num_peers),
+  die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(seconds_per_peer_start, num_peers),
                                            &end_badly, "didn't generate all hostkeys within allowed startup time!");
 
   if (dhtlog_handle == NULL)
@@ -3032,7 +3012,7 @@ run (void *cls,
 
   put_meter = create_meter(num_puts, "Puts completed ", GNUNET_YES);
   get_meter = create_meter(num_gets, "Gets completed ", GNUNET_YES);
-  pg = GNUNET_TESTING_daemons_start (sched, cfg,
+  pg = GNUNET_TESTING_daemons_start (cfg,
                                      peers_left,
                                      GNUNET_TIME_relative_multiply(seconds_per_peer_start, num_peers),
                                      &hostkey_callback, NULL,

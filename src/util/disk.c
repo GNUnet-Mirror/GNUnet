@@ -810,10 +810,6 @@ GNUNET_DISK_directory_scan (const char *dirName,
  */
 struct GNUNET_DISK_DirectoryIterator
 {
-  /**
-   * Our scheduler.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
 
   /**
    * Function to call on directory entries.
@@ -906,8 +902,7 @@ GNUNET_DISK_directory_iterator_next (struct GNUNET_DISK_DirectoryIterator
       GNUNET_DISK_directory_iterator_next (iter, GNUNET_YES);
       return GNUNET_NO;
     }
-  GNUNET_SCHEDULER_add_with_priority (iter->sched,
-                                      iter->priority,
+  GNUNET_SCHEDULER_add_with_priority (iter->priority,
                                       &directory_iterator_task, iter);
   return GNUNET_YES;
 }
@@ -919,15 +914,13 @@ GNUNET_DISK_directory_iterator_next (struct GNUNET_DISK_DirectoryIterator
  * If a scheduler does not need to be used, GNUNET_DISK_directory_scan
  * may provide a simpler API.
  *
- * @param sched scheduler to use
  * @param prio priority to use
  * @param dirName the name of the directory
  * @param callback the method to call for each file
  * @param callback_cls closure for callback
  */
 void
-GNUNET_DISK_directory_iterator_start (struct GNUNET_SCHEDULER_Handle *sched,
-                                      enum GNUNET_SCHEDULER_Priority prio,
+GNUNET_DISK_directory_iterator_start (enum GNUNET_SCHEDULER_Priority prio,
                                       const char *dirName,
                                       GNUNET_DISK_DirectoryIteratorCallback
                                       callback, void *callback_cls)
@@ -935,7 +928,6 @@ GNUNET_DISK_directory_iterator_start (struct GNUNET_SCHEDULER_Handle *sched,
   struct GNUNET_DISK_DirectoryIterator *di;
 
   di = GNUNET_malloc (sizeof (struct GNUNET_DISK_DirectoryIterator));
-  di->sched = sched;
   di->callback = callback;
   di->callback_cls = callback_cls;
   di->directory = OPENDIR (dirName);

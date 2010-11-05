@@ -37,8 +37,6 @@
 
 #define MY_TYPE 256
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static struct GNUNET_SERVICE_Context *sctx;
 
 static int ok = 1;
@@ -67,8 +65,7 @@ ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Service confirmed running\n");
-  sched = tc->sched;
-  client = GNUNET_CLIENT_connect (tc->sched, "test_service", cfg);
+  client = GNUNET_CLIENT_connect ("test_service", cfg);
   GNUNET_assert (client != NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client connecting, waiting to transmit\n");
@@ -94,9 +91,9 @@ recv_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receiving client message...\n");
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   if (sctx != NULL)
-    GNUNET_SCHEDULER_add_now (sched, &do_stop, NULL);
+    GNUNET_SCHEDULER_add_now (&do_stop, NULL);
   else
-    GNUNET_SCHEDULER_shutdown (sched);
+    GNUNET_SCHEDULER_shutdown ();
   ok = 0;
 }
 
@@ -110,14 +107,12 @@ static struct GNUNET_SERVER_MessageHandler myhandlers[] = {
 
 static void
 runner (void *cls,
-        struct GNUNET_SCHEDULER_Handle *sched,
         struct GNUNET_SERVER_Handle *server,
         const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Service initializing\n");
   GNUNET_SERVER_add_handlers (server, myhandlers);
-  GNUNET_CLIENT_service_test (sched,
-                              "test_service",
+  GNUNET_CLIENT_service_test ("test_service",
                               cfg, GNUNET_TIME_UNIT_SECONDS, &ready,
                               (void *) cfg);
 }
@@ -161,9 +156,8 @@ ready6 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_CLIENT_Connection *client;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "V6 ready\n");
-  sched = tc->sched;
   GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE));
-  client = GNUNET_CLIENT_connect (tc->sched, "test_service6", cfg);
+  client = GNUNET_CLIENT_connect ("test_service6", cfg);
   GNUNET_assert (client != NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "V6 client connected\n");
   GNUNET_CLIENT_notify_transmit_ready (client,
@@ -174,14 +168,12 @@ ready6 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 runner6 (void *cls,
-         struct GNUNET_SCHEDULER_Handle *sched,
          struct GNUNET_SERVER_Handle *server,
          const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Initializing v6 service\n");
   GNUNET_SERVER_add_handlers (server, myhandlers);
-  GNUNET_CLIENT_service_test (sched,
-                              "test_service6",
+  GNUNET_CLIENT_service_test ("test_service6",
                               cfg, GNUNET_TIME_UNIT_SECONDS, &ready6,
                               (void *) cfg);
 }
@@ -220,7 +212,6 @@ check6 ()
 
 static void
 start_stop_main (void *cls,
-                 struct GNUNET_SCHEDULER_Handle *sched,
                  char *const *args,
                  const char *cfgfile,
                  const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -228,9 +219,9 @@ start_stop_main (void *cls,
   int *ret = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Starting service using start method\n");
-  sctx = GNUNET_SERVICE_start ("test_service", sched, cfg);
+  sctx = GNUNET_SERVICE_start ("test_service", cfg);
   GNUNET_assert (NULL != sctx);
-  runner (cls, sched, GNUNET_SERVICE_get_server (sctx), cfg);
+  runner (cls, GNUNET_SERVICE_get_server (sctx), cfg);
   *ret = 0;
 }
 

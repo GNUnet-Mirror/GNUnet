@@ -90,8 +90,7 @@ handle_index_info (void *cls,
 		  _("Failed to receive response for `%s' request from `%s' service.\n"),
 		  "GET_INDEXED",
 		  "fs");
-      GNUNET_SCHEDULER_add_continuation (gic->h->sched,
-					 gic->cont,
+      GNUNET_SCHEDULER_add_continuation (gic->cont,
 					 gic->cont_cls,
 					 GNUNET_SCHEDULER_REASON_TIMEOUT);
       GNUNET_CLIENT_disconnect (gic->client, GNUNET_NO);
@@ -101,8 +100,7 @@ handle_index_info (void *cls,
   if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_END)
     {
       /* normal end-of-list */
-      GNUNET_SCHEDULER_add_continuation (gic->h->sched,
-					 gic->cont,
+      GNUNET_SCHEDULER_add_continuation (gic->cont,
 					 gic->cont_cls,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       GNUNET_CLIENT_disconnect (gic->client, GNUNET_NO);
@@ -121,8 +119,7 @@ handle_index_info (void *cls,
 		  _("Failed to receive valid response for `%s' request from `%s' service.\n"),
 		  "GET_INDEXED",
 		  "fs");
-      GNUNET_SCHEDULER_add_continuation (gic->h->sched,
-					 gic->cont,
+      GNUNET_SCHEDULER_add_continuation (gic->cont,
 					 gic->cont_cls,
 					 GNUNET_SCHEDULER_REASON_TIMEOUT);
       GNUNET_CLIENT_disconnect (gic->client, GNUNET_NO);
@@ -134,8 +131,7 @@ handle_index_info (void *cls,
 		     filename,
 		     &iim->file_id))
     {
-      GNUNET_SCHEDULER_add_continuation (gic->h->sched,
-					 gic->cont,
+      GNUNET_SCHEDULER_add_continuation (gic->cont,
 					 gic->cont_cls,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       GNUNET_CLIENT_disconnect (gic->client, GNUNET_NO);
@@ -172,16 +168,14 @@ GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
   struct GetIndexedContext *gic;
   struct GNUNET_MessageHeader msg;
 
-  client = GNUNET_CLIENT_connect (h->sched,
-				  "fs",
+  client = GNUNET_CLIENT_connect ("fs",
 				  h->cfg);
   if (NULL == client)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Failed to not connect to `%s' service.\n"),
 		  "fs");
-      GNUNET_SCHEDULER_add_continuation (h->sched,
-					 cont,
+      GNUNET_SCHEDULER_add_continuation (cont,
 					 cont_cls,
 					 GNUNET_SCHEDULER_REASON_TIMEOUT);
       return;

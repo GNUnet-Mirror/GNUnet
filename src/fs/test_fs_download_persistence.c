@@ -60,8 +60,6 @@ static struct PeerContext p1;
 
 static struct GNUNET_TIME_Absolute start;
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static struct GNUNET_FS_Handle *fs;
@@ -122,7 +120,7 @@ abort_download_task (void *cls,
   GNUNET_DISK_directory_remove (fn);
   GNUNET_free (fn);
   fn = NULL;
-  GNUNET_SCHEDULER_cancel (sched, timeout_kill);
+  GNUNET_SCHEDULER_cancel (timeout_kill);
   timeout_kill = GNUNET_SCHEDULER_NO_TASK;
 }
 
@@ -137,8 +135,7 @@ restart_fs_task (void *cls,
 		 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_FS_stop (fs);
-  fs = GNUNET_FS_start (sched,
-			cfg,
+  fs = GNUNET_FS_start (cfg,
 			"test-fs-download-persistence",
 			&progress_cb,
 			NULL,
@@ -164,8 +161,7 @@ consider_restart (int ev)
     if (prev[i] == ev)
       return;
   prev[off++] = ev;
-  GNUNET_SCHEDULER_add_with_priority (sched,
-				      GNUNET_SCHEDULER_PRIORITY_URGENT,
+  GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_URGENT,
 				      &restart_fs_task,
 				      NULL);
 }
@@ -207,8 +203,7 @@ progress_cb (void *cls,
       consider_restart (event->status);
       printf ("Download complete,  %llu kbps.\n",
 	      (unsigned long long) (FILESIZE * 1000LL / (1+GNUNET_TIME_absolute_get_duration (start).rel_value) / 1024LL));
-      GNUNET_SCHEDULER_add_now (sched,
-				&abort_download_task,
+      GNUNET_SCHEDULER_add_now (&abort_download_task,
 				NULL);
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_PROGRESS:
@@ -227,8 +222,7 @@ progress_cb (void *cls,
 	       "Error publishing file: %s\n",
 	       event->value.publish.specifics.error.message);
       GNUNET_break (0);
-      GNUNET_SCHEDULER_add_continuation (sched,
-					 &abort_publish_task,
+      GNUNET_SCHEDULER_add_continuation (&abort_publish_task,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
@@ -236,8 +230,7 @@ progress_cb (void *cls,
       fprintf (stderr,
 	       "Error downloading file: %s\n",
 	       event->value.download.specifics.error.message);
-      GNUNET_SCHEDULER_add_now (sched,
-				&abort_download_task,
+      GNUNET_SCHEDULER_add_now (&abort_download_task,
 				NULL);
       break;
     case GNUNET_FS_STATUS_PUBLISH_SUSPEND:
@@ -290,8 +283,7 @@ progress_cb (void *cls,
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_STOPPED:
       GNUNET_assert (download == event->value.download.dc);
-      GNUNET_SCHEDULER_add_continuation (sched,
-					 &abort_publish_task,
+      GNUNET_SCHEDULER_add_continuation (&abort_publish_task,
 					 NULL,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       download = NULL;
@@ -340,7 +332,6 @@ stop_arm (struct PeerContext *p)
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
@@ -355,11 +346,9 @@ run (void *cls,
   struct GNUNET_FS_FileInformation *fi;
   size_t i;
 
-  sched = s;
   cfg = c;
   setup_peer (&p1, "test_fs_download_data.conf");
-  fs = GNUNET_FS_start (sched,
-			cfg,
+  fs = GNUNET_FS_start (cfg,
 			"test-fs-download-persistence",
 			&progress_cb,
 			NULL,
@@ -384,8 +373,7 @@ run (void *cls,
   GNUNET_FS_uri_destroy (kuri);
   GNUNET_CONTAINER_meta_data_destroy (meta);
   GNUNET_assert (NULL != fi);
-  timeout_kill = GNUNET_SCHEDULER_add_delayed (sched,
-					       TIMEOUT,
+  timeout_kill = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 					       &timeout_kill_task,
 					       NULL);
   start = GNUNET_TIME_absolute_get ();

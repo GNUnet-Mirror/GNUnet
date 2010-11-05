@@ -30,37 +30,29 @@
 #include "gnunet_resolver_service.h"
 #include "gnunet_statistics_service.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define START_ARM GNUNET_YES
-
 #define MAX_URL_LEN 1000
 
 /**
  * How long until wait until testcases fails
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 180)
-
 #define CHECK_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 static int timeout;
-
 static int adv_sent;
-
 static int adv_arrived;
 
 static int learned_hostlist_saved;
-
 static int learned_hostlist_downloaded;
 
 static char * current_adv_uri;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
-
 static GNUNET_SCHEDULER_TaskIdentifier check_task;
     
 struct PeerContext
@@ -80,11 +72,8 @@ static struct PeerContext adv_peer;
 static struct PeerContext learn_peer;
 
 static struct GNUNET_STATISTICS_GetHandle * download_stats;
-
 static struct GNUNET_STATISTICS_GetHandle * urisrecv_stat;
-
 static struct GNUNET_STATISTICS_GetHandle * advsent_stat;
-
 
 static void shutdown_testcase()
 {
@@ -92,7 +81,7 @@ static void shutdown_testcase()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping Timeout Task.\n");
   if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
   {
-    GNUNET_SCHEDULER_cancel (sched, timeout_task);
+    GNUNET_SCHEDULER_cancel (timeout_task);
     timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
@@ -106,9 +95,9 @@ static void shutdown_testcase()
     GNUNET_STATISTICS_get_cancel (advsent_stat);
 */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping Statistics Check Task.\n");
-  if ((check_task != GNUNET_SCHEDULER_NO_TASK) && (sched !=NULL))
+  if (check_task != GNUNET_SCHEDULER_NO_TASK)
   {
-    GNUNET_SCHEDULER_cancel (sched, check_task);
+    GNUNET_SCHEDULER_cancel (check_task);
     check_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
@@ -169,7 +158,7 @@ static void shutdown_testcase()
 #endif
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down scheduler\n");
-  GNUNET_SCHEDULER_shutdown (sched);
+  GNUNET_SCHEDULER_shutdown ();
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown complete....\n");
 
 }
@@ -286,8 +275,7 @@ check_statistics (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                            &process_adv_sent,
                            NULL);
   }
-  check_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                CHECK_INTERVALL,
+  check_task = GNUNET_SCHEDULER_add_delayed (CHECK_INTERVALL,
                                 &check_statistics,
                                 NULL);
 }
@@ -381,7 +369,7 @@ setup_learn_peer (struct PeerContext *p, const char *cfgname)
   }
   if ( NULL != filename)  GNUNET_free ( filename );
 
-  p->core = GNUNET_CORE_connect (sched, p->cfg,
+  p->core = GNUNET_CORE_connect (p->cfg,
 				 GNUNET_TIME_UNIT_FOREVER_REL,
 				 NULL,
 				 NULL,
@@ -390,7 +378,7 @@ setup_learn_peer (struct PeerContext *p, const char *cfgname)
 				 NULL, GNUNET_NO,
 				 learn_handlers );
   GNUNET_assert ( NULL != p->core );
-  p->stats = GNUNET_STATISTICS_create (sched, "hostlist", p->cfg);
+  p->stats = GNUNET_STATISTICS_create ("hostlist", p->cfg);
   GNUNET_assert ( NULL != p->stats );
 }
 
@@ -409,14 +397,13 @@ setup_adv_peer (struct PeerContext *p, const char *cfgname)
                                         "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
-  p->stats = GNUNET_STATISTICS_create (sched, "hostlist", p->cfg);
+  p->stats = GNUNET_STATISTICS_create ("hostlist", p->cfg);
   GNUNET_assert ( NULL != p->stats );
 
 }
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile, 
      const struct GNUNET_CONFIGURATION_Handle *c)
@@ -429,17 +416,14 @@ run (void *cls,
   learned_hostlist_downloaded = GNUNET_NO;
 
   cfg = c;
-  sched = s;
 
   setup_adv_peer (&adv_peer, "test_learning_adv_peer.conf");
   setup_learn_peer (&learn_peer, "test_learning_learn_peer.conf");
-  timeout_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                               TIMEOUT,
+  timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                                &timeout_error,
                                                NULL);
 
-  check_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                CHECK_INTERVALL,
+  check_task = GNUNET_SCHEDULER_add_delayed (CHECK_INTERVALL,
                                 &check_statistics,
                                 NULL);
 }
@@ -531,4 +515,4 @@ main (int argc, char *argv[])
   return ret; 
 }
 
-/* end of test_gnunet_daemon_hostlist_learning.c */
+/* end of test_gnunet_daemon_hostlist.c */

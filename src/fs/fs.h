@@ -1172,11 +1172,6 @@ GNUNET_FS_end_top (struct GNUNET_FS_Handle *h,
 struct GNUNET_FS_Handle
 {
   /**
-   * Scheduler.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
-
-  /**
    * Configuration to use.
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;

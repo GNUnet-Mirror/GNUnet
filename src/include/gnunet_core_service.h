@@ -178,7 +178,6 @@ typedef void
  * Certain events (such as connect/disconnect notifications) are not
  * subject to queue size limitations.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param timeout after how long should we give up trying to connect to the core service?
  * @param cls closure for the various callbacks that follow (including handlers in the handlers array)
@@ -215,8 +214,7 @@ typedef void
  *           NULL on error (in this case, init is never called)
  */
 struct GNUNET_CORE_Handle *
-GNUNET_CORE_connect (struct GNUNET_SCHEDULER_Handle *sched,
-                     const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      struct GNUNET_TIME_Relative timeout,
                      void *cls,
                      GNUNET_CORE_StartupCallback init,
@@ -257,7 +255,6 @@ struct GNUNET_CORE_PeerRequestHandle;
  * to our connection attempt within the given time frame, 'cont' will
  * be called with the TIMEOUT reason code.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param timeout how long to try to talk to core
  * @param peer who should we connect to
@@ -266,8 +263,7 @@ struct GNUNET_CORE_PeerRequestHandle;
  * @return NULL on error (cont will not be called), otherwise handle for cancellation
  */
 struct GNUNET_CORE_PeerRequestHandle *
-GNUNET_CORE_peer_request_connect (struct GNUNET_SCHEDULER_Handle *sched,
-				  const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_CORE_peer_request_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 				  struct GNUNET_TIME_Relative timeout,
 				  const struct GNUNET_PeerIdentity * peer,
 				  GNUNET_SCHEDULER_Task cont,
@@ -317,7 +313,6 @@ struct GNUNET_CORE_InformationRequestContext;
 /**
  * Obtain statistics and/or change preferences for the given peer.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param peer identifies the peer
  * @param timeout after how long should we give up (and call "info" with NULL
@@ -340,8 +335,7 @@ struct GNUNET_CORE_InformationRequestContext;
  * @return NULL on error
  */
 struct GNUNET_CORE_InformationRequestContext *
-GNUNET_CORE_peer_change_preference (struct GNUNET_SCHEDULER_Handle *sched,
-				    const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_CORE_peer_change_preference (const struct GNUNET_CONFIGURATION_Handle *cfg,
 				    const struct GNUNET_PeerIdentity *peer,
 				    struct GNUNET_TIME_Relative timeout,
 				    struct GNUNET_BANDWIDTH_Value32NBO bw_out,
@@ -362,15 +356,13 @@ GNUNET_CORE_peer_change_preference_cancel (struct GNUNET_CORE_InformationRequest
 /**
  * Obtain statistics and/or change preferences for the given peer.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param peer_cb function to call with the peer information
  * @param cb_cls closure for peer_cb
  * @return GNUNET_OK if iterating, GNUNET_SYSERR on error
  */
 int
-GNUNET_CORE_iterate_peers (struct GNUNET_SCHEDULER_Handle *sched,
-                           const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_CORE_iterate_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
                            GNUNET_CORE_ConnectEventHandler peer_cb,
                            void *cb_cls);
 

@@ -1585,7 +1585,6 @@ struct GNUNET_FS_Handle;
 /**
  * Setup a connection to the file-sharing service.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param client_name unique identifier for this client 
  * @param upcb function to call to notify about FS actions
@@ -1595,8 +1594,7 @@ struct GNUNET_FS_Handle;
  * @return NULL on error
  */
 struct GNUNET_FS_Handle *
-GNUNET_FS_start (struct GNUNET_SCHEDULER_Handle *sched,
-		 const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_FS_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 		 const char *client_name,
 		 GNUNET_FS_ProgressCallback upcb,
 		 void *upcb_cls,

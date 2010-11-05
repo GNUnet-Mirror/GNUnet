@@ -43,7 +43,6 @@
 
 static int ret = 1;
 
-static struct GNUNET_SCHEDULER_Handle *sched;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
@@ -108,8 +107,7 @@ arm_notify (void *cls, int success)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Trying to resolve our own hostname!\n");
   /* connect to the resolver service */
-  if (NULL == GNUNET_RESOLVER_hostname_resolve (sched,
-						cfg, AF_UNSPEC,
+  if (NULL == GNUNET_RESOLVER_hostname_resolve (cfg, AF_UNSPEC,
 						TIMEOUT,
 						&hostNameResolveCB,
 						NULL))
@@ -125,16 +123,14 @@ arm_notify (void *cls, int success)
 
 
 static void
-run(void *cls, 
-    struct GNUNET_SCHEDULER_Handle *s, 
+run(void *cls,
     char * const *args,
     const char *cfgfile, 
     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   cfg = c;
-  sched = s;	
 #if START_ARM
-  arm = GNUNET_ARM_connect (cfg, sched, NULL);
+  arm = GNUNET_ARM_connect (cfg, NULL);
   GNUNET_ARM_start_service (arm, "arm", START_TIMEOUT, &arm_notify, NULL);
 #else
   arm_notify (NULL, GNUNET_YES);

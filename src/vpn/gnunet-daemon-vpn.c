@@ -21,7 +21,7 @@
 /**
  * @file vpn/gnunet-daemon-vpn.c
  * @brief 
- * @author Philipp Tölke
+ * @author Philipp Toelke
  */
 #include "platform.h"
 #include "gnunet_getopt_lib.h"
@@ -42,11 +42,6 @@
  * Final status code.
  */
 static int ret;
-
-/**
- * The scheduler to use throughout the daemon
- */
-static struct GNUNET_SCHEDULER_Handle *sched;
 
 /**
  * The configuration to use
@@ -222,7 +217,7 @@ start_helper_and_schedule(void *cls,
     restart_hijack = 1;
     GNUNET_CLIENT_notify_transmit_ready(dns_connection, sizeof(struct GNUNET_MessageHeader), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
 
-    GNUNET_SCHEDULER_add_read_file (sched, GNUNET_TIME_UNIT_FOREVER_REL, fh_from_helper, &helper_read, NULL);
+    GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, fh_from_helper, &helper_read, NULL);
 }
 
 /**
@@ -240,7 +235,7 @@ restart_helper(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
     GNUNET_DISK_pipe_close(helper_out);
 
     /* Restart the helper */
-    GNUNET_SCHEDULER_add_delayed (sched, GNUNET_TIME_UNIT_SECONDS, start_helper_and_schedule, NULL);
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, start_helper_and_schedule, NULL);
 }
 
 /**
@@ -259,13 +254,13 @@ helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
     /* On read-error, restart the helper */
     if (t<=0) {
 	GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Read error for header from vpn-helper: %m\n");
-	GNUNET_SCHEDULER_add_now(sched, restart_helper, cls);
+	GNUNET_SCHEDULER_add_now(restart_helper, cls);
 	return;
     }
 
     /* FIXME */ GNUNET_SERVER_mst_receive(mst, NULL, buf, t, 0, 0);
 
-    GNUNET_SCHEDULER_add_read_file (sched, GNUNET_TIME_UNIT_FOREVER_REL, fh_from_helper, &helper_read, NULL);
+    GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, fh_from_helper, &helper_read, NULL);
 }
 
 /**
@@ -343,8 +338,7 @@ helper_write(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
 
     /* if more packets are available, reschedule */
     if (answer_proc_head != NULL)
-      GNUNET_SCHEDULER_add_write_file (sched,
-				       GNUNET_TIME_UNIT_FOREVER_REL,
+      GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL,
 				       fh_to_helper,
 				       &helper_write,
 				       NULL);
@@ -429,7 +423,7 @@ message_token(void *cls,
 	    memcpy(pkt6_icmp, pkt6, ntohs(pkt6->shdr.size));
 	    /* If this packet is an icmp-echo-request and a mapping exists, answer */
 	    if (pkt6_icmp->icmp_hdr.type == 0x80 && address_mapping_exists(pkt6->ip6_hdr.sadr))
-		GNUNET_SCHEDULER_add_now(sched, &send_icmp_response, pkt6_icmp);
+		GNUNET_SCHEDULER_add_now(&send_icmp_response, pkt6_icmp);
 	    break;
 	  }
       }
@@ -477,7 +471,7 @@ connect_to_service_dns (void *cls,
       return;
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connecting to service-dns\n");
     GNUNET_assert (dns_connection == NULL);
-    dns_connection = GNUNET_CLIENT_connect (sched, "dns", cfg);
+    dns_connection = GNUNET_CLIENT_connect ("dns", cfg);
     GNUNET_CLIENT_receive(dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
 
     /* If a packet is already in the list, schedule to send it */
@@ -565,7 +559,7 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 
     GNUNET_CONTAINER_DLL_insert_after(answer_proc_head, answer_proc_tail, answer_proc_tail, list);
 
-    GNUNET_SCHEDULER_add_write_file (sched, GNUNET_TIME_UNIT_FOREVER_REL, fh_to_helper, &helper_write, NULL);
+    GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL, fh_to_helper, &helper_write, NULL);
 
     return;
 }
@@ -581,8 +575,7 @@ dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg) {
       {
 	GNUNET_CLIENT_disconnect(dns_connection, GNUNET_NO);
 	dns_connection = NULL;
-	GNUNET_SCHEDULER_add_delayed (sched,
-				      GNUNET_TIME_UNIT_SECONDS,
+	GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
 				      &connect_to_service_dns,
 				      NULL);
 	return;
@@ -594,8 +587,7 @@ dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg) {
 	GNUNET_break (0);
 	GNUNET_CLIENT_disconnect(dns_connection, GNUNET_NO);
 	dns_connection = NULL;
-	GNUNET_SCHEDULER_add_now (sched,
-				  &connect_to_service_dns,
+	GNUNET_SCHEDULER_add_now (&connect_to_service_dns,
 				  NULL);
 	return;
       }
@@ -603,7 +595,7 @@ dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg) {
 
     memcpy(pkt, msg, ntohs(msg->size));
 
-    GNUNET_SCHEDULER_add_now(sched, process_answer, pkt);
+    GNUNET_SCHEDULER_add_now(process_answer, pkt);
     GNUNET_CLIENT_receive(dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
@@ -611,24 +603,21 @@ dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg) {
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
- * @param sched the scheduler to use
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param cfg configuration
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *sched_,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg_) {
-    sched = sched_;
     mst = GNUNET_SERVER_mst_create(&message_token, NULL);
     cfg = cfg_;
     restart_hijack = 0;
-    GNUNET_SCHEDULER_add_now (sched, connect_to_service_dns, NULL);
-    GNUNET_SCHEDULER_add_now (sched, start_helper_and_schedule, NULL);
-    GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls); 
+    GNUNET_SCHEDULER_add_now (connect_to_service_dns, NULL);
+    GNUNET_SCHEDULER_add_now (start_helper_and_schedule, NULL);
+    GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);
 }
 
 /**

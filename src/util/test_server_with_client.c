@@ -41,8 +41,6 @@ static struct GNUNET_SERVER_Handle *server;
 
 static struct GNUNET_CLIENT_Connection *client;
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static int ok;
@@ -86,8 +84,7 @@ recv_cb (void *cls,
     {
     case 2:
       ok++;
-      GNUNET_SCHEDULER_add_delayed (sched,
-                                    GNUNET_TIME_relative_multiply
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_MILLISECONDS, 50),
                                     &send_done, argclient);
       break;
@@ -127,8 +124,7 @@ notify_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     return;
   GNUNET_assert (ok == 5);
   ok = 0;
-  GNUNET_SCHEDULER_add_now (sched,
-			    &clean_up, NULL);
+  GNUNET_SCHEDULER_add_now (&clean_up, NULL);
 }
 
 
@@ -167,15 +163,13 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   slens[0] = sizeof (sa);
   sap[1] = NULL;
   slens[1] = 0;
-  sched = tc->sched;
   memset (&sa, 0, sizeof (sa));
 #if HAVE_SOCKADDR_IN_SIN_LEN
   sa.sin_len = sizeof (sa);
 #endif
   sa.sin_family = AF_INET;
   sa.sin_port = htons (PORT);
-  server = GNUNET_SERVER_create (tc->sched,
-                                 NULL,
+  server = GNUNET_SERVER_create (NULL,
                                  NULL,
                                  sap,
 				 slens,
@@ -192,7 +186,7 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                          "localhost");
   GNUNET_CONFIGURATION_set_value_string (cfg, "resolver", "HOSTNAME",
                                          "localhost");
-  client = GNUNET_CLIENT_connect (tc->sched, "test", cfg);
+  client = GNUNET_CLIENT_connect ("test", cfg);
   GNUNET_assert (client != NULL);
   GNUNET_CLIENT_notify_transmit_ready (client,
                                        256,

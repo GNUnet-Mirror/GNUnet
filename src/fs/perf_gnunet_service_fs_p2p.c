@@ -45,8 +45,6 @@
 
 static struct GNUNET_FS_TestDaemon *daemons[NUM_DAEMONS];
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static int ok;
 
 static struct GNUNET_TIME_Absolute start_time;
@@ -57,8 +55,7 @@ static void
 do_stop (void *cls,
 	 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_FS_TEST_daemons_stop (sched,
-			       NUM_DAEMONS,
+  GNUNET_FS_TEST_daemons_stop (NUM_DAEMONS,
 			       daemons);
 }
 
@@ -152,7 +149,7 @@ get_done (void *cls,
   struct StatMaster *sm = cls;
   GNUNET_break (GNUNET_OK ==  success);
   sm->value++;
-  GNUNET_SCHEDULER_add_now (sched, &stat_run, sm);
+  GNUNET_SCHEDULER_add_now (&stat_run, sm);
 }
 
 
@@ -185,13 +182,13 @@ stat_run (void *cls,
   if (sm->daemon == NUM_DAEMONS)
     {
       GNUNET_free (sm);
-      GNUNET_SCHEDULER_add_now (sched, &do_stop, NULL);
+      GNUNET_SCHEDULER_add_now (&do_stop, NULL);
       return;
     }
-  sm->stat = GNUNET_STATISTICS_create (sched, "<driver>", 
+  sm->stat = GNUNET_STATISTICS_create ("<driver>",
 				       GNUNET_FS_TEST_get_configuration (daemons,
 									 sm->daemon));
-  GNUNET_SCHEDULER_add_now (sched, &stat_run, sm);
+  GNUNET_SCHEDULER_add_now (&stat_run, sm);
 }
 
 
@@ -217,17 +214,17 @@ do_report (void *cls,
 		  "Finished download, shutting down\n",
 		  (unsigned long long) FILESIZE);
       sm = GNUNET_malloc (sizeof (struct StatMaster));
-      sm->stat = GNUNET_STATISTICS_create (sched, "<driver>", 
+      sm->stat = GNUNET_STATISTICS_create ("<driver>",
 					   GNUNET_FS_TEST_get_configuration (daemons,
 									     sm->daemon));
-      GNUNET_SCHEDULER_add_now (sched, &stat_run, sm);
+      GNUNET_SCHEDULER_add_now (&stat_run, sm);
     }
   else
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  "Timeout during download, shutting down with error\n");
       ok = 1;
-      GNUNET_SCHEDULER_add_now (sched, &do_stop, NULL);
+      GNUNET_SCHEDULER_add_now (&do_stop, NULL);
     }
 }
 
@@ -240,8 +237,7 @@ do_download (void *cls,
 
   if (NULL == uri)
     {
-      GNUNET_FS_TEST_daemons_stop (sched,
-				   NUM_DAEMONS,
+      GNUNET_FS_TEST_daemons_stop (NUM_DAEMONS,
 				   daemons);
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  "Timeout during upload attempt, shutting down with error\n");
@@ -256,8 +252,7 @@ do_download (void *cls,
     anonymity = 0;
   else
     anonymity = 1;
-  GNUNET_FS_TEST_download (sched,
-			   daemons[0],
+  GNUNET_FS_TEST_download (daemons[0],
 			   TIMEOUT,
 			   anonymity, SEED, uri, 
 			   VERBOSE, 
@@ -274,8 +269,7 @@ do_publish (void *cls,
 
   if (NULL != emsg)
     {
-      GNUNET_FS_TEST_daemons_stop (sched,
-				   NUM_DAEMONS,
+      GNUNET_FS_TEST_daemons_stop (NUM_DAEMONS,
 				   daemons);
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  "Error trying to connect: %s\n",
@@ -295,8 +289,7 @@ do_publish (void *cls,
   else
     anonymity = 1;
   
-  GNUNET_FS_TEST_publish (sched,
-			  daemons[NUM_DAEMONS-1],
+  GNUNET_FS_TEST_publish (daemons[NUM_DAEMONS-1],
 			  TIMEOUT,
 			  anonymity, 
 			  do_index, FILESIZE, SEED, 
@@ -331,14 +324,11 @@ do_connect (void *cls,
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  sched = s;
-  GNUNET_FS_TEST_daemons_start (sched,
-				"fs_test_lib_data.conf",
+  GNUNET_FS_TEST_daemons_start ("fs_test_lib_data.conf",
 				TIMEOUT,
 				NUM_DAEMONS,
 				daemons,

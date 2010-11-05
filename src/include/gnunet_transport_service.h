@@ -118,7 +118,6 @@ typedef void
  * Connect to the transport service.  Note that the connection may
  * complete (or fail) asynchronously.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param self our own identity (API should check that it matches
  *             the identity found by transport), or NULL (no check)
@@ -128,10 +127,7 @@ typedef void
  * @param nd function to call on disconnect events
  * @return NULL on error
  */
-struct GNUNET_TRANSPORT_Handle *GNUNET_TRANSPORT_connect (struct
-                                                          GNUNET_SCHEDULER_Handle
-                                                          *sched,
-                                                          const struct
+struct GNUNET_TRANSPORT_Handle *GNUNET_TRANSPORT_connect (const struct
                                                           GNUNET_CONFIGURATION_Handle
                                                           *cfg, 
 							  const struct GNUNET_PeerIdentity *self,
@@ -278,7 +274,6 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
 /**
  * Convert a binary address into a human readable address.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param address address to convert (binary format)
  * @param addressLen number of bytes in address
@@ -290,8 +285,7 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
  * @param aluc_cls closure for aluc
  */
 void
-GNUNET_TRANSPORT_address_lookup (struct GNUNET_SCHEDULER_Handle *sched,
-                                 const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                  const char * address,
                                  size_t addressLen,
 				 int numeric,
@@ -328,15 +322,13 @@ typedef int (*GNUNET_TRANSPORT_BlacklistCallback)(void *cls,
  * only way to re-enable connections from peers that were previously
  * blacklisted.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param cb callback to invoke to check if connections are allowed
  * @param cb_cls closure for cb
  * @return NULL on error, otherwise handle for cancellation
  */
 struct GNUNET_TRANSPORT_Blacklist *
-GNUNET_TRANSPORT_blacklist (struct GNUNET_SCHEDULER_Handle *sched,
-			    const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_TRANSPORT_blacklist (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			    GNUNET_TRANSPORT_BlacklistCallback cb,
 			    void *cb_cls);
 

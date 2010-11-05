@@ -118,8 +118,7 @@ run_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test accepts connection\n");
 #endif
-  asock = GNUNET_CONNECTION_create_from_accept (tc->sched,
-                                                NULL, NULL, ls);
+  asock = GNUNET_CONNECTION_create_from_accept (NULL, NULL, ls);
   GNUNET_assert (asock != NULL);
   GNUNET_assert (GNUNET_YES == GNUNET_CONNECTION_check (asock));
 #if VERBOSE
@@ -157,10 +156,9 @@ static void
 task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   ls = open_listen_socket ();
-  lsock = GNUNET_CONNECTION_create_from_existing (tc->sched, ls);
+  lsock = GNUNET_CONNECTION_create_from_existing (ls);
   GNUNET_assert (lsock != NULL);
-  csock = GNUNET_CONNECTION_create_from_connect (tc->sched,
-                                                 cfg,
+  csock = GNUNET_CONNECTION_create_from_connect (cfg,
                                                  "localhost", PORT);
   GNUNET_assert (csock != NULL);
 #if VERBOSE
@@ -174,8 +172,7 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test prepares to accept\n");
 #endif
-  GNUNET_SCHEDULER_add_read_net (tc->sched,
-                                 GNUNET_TIME_UNIT_FOREVER_REL,
+  GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                  ls, &run_accept, cls);
 }
 

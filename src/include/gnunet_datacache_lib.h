@@ -52,14 +52,12 @@ struct GNUNET_DATACACHE_Handle;
 /**
  * Create a data cache.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param section section in the configuration that contains our options
  * @return handle to use to access the service
  */
 struct GNUNET_DATACACHE_Handle *
-GNUNET_DATACACHE_create (struct GNUNET_SCHEDULER_Handle *sched,
-			 const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_DATACACHE_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			 const char *section);
 
 

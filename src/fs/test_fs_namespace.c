@@ -35,8 +35,6 @@
 
 #define START_ARM GNUNET_YES
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static struct PeerContext p1;
 
 static GNUNET_HashCode nsid;
@@ -151,8 +149,7 @@ progress_cb (void *cls,
 	      err = 1;
 	    }
 	  /* give system 1ms to initiate update search! */
-	  GNUNET_SCHEDULER_add_delayed (sched,
-					GNUNET_TIME_UNIT_MILLISECONDS,
+	  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
 					&abort_sks_search_task,
 					NULL);
 	}
@@ -165,8 +162,7 @@ progress_cb (void *cls,
 		       "Wrong result for ksk search!\n");
 	      err = 1;
 	    }
-	  GNUNET_SCHEDULER_add_continuation (sched,
-					     &abort_ksk_search_task,
+	  GNUNET_SCHEDULER_add_continuation (&abort_ksk_search_task,
 					     NULL,
 					     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 	}
@@ -182,13 +178,11 @@ progress_cb (void *cls,
 	       "Error searching file: %s\n",
 	       event->value.search.specifics.error.message);
       if (sks_search == event->value.search.sc)
-	GNUNET_SCHEDULER_add_continuation (sched,
-					   &abort_sks_search_task,
+	GNUNET_SCHEDULER_add_continuation (&abort_sks_search_task,
 					   NULL,
 					   GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       else if (ksk_search == event->value.search.sc)
-	GNUNET_SCHEDULER_add_continuation (sched,
-					   &abort_ksk_search_task,
+	GNUNET_SCHEDULER_add_continuation (&abort_ksk_search_task,
 					   NULL,
 					   GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       else
@@ -384,15 +378,12 @@ testNamespace ()
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  sched = s;
   setup_peer (&p1, "test_fs_namespace_data.conf");
-  fs = GNUNET_FS_start (sched,
-			cfg,
+  fs = GNUNET_FS_start (cfg,
 			"test-fs-namespace",
 			&progress_cb,
 			NULL,

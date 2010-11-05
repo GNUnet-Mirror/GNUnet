@@ -436,7 +436,6 @@ struct GNUNET_CRYPTO_FileHashContext;
 /**
  * Compute the hash of an entire file.
  *
- * @param sched scheduler to use
  * @param priority scheduling priority to use
  * @param filename name of file to hash
  * @param blocksize number of bytes to process in one task
@@ -445,8 +444,7 @@ struct GNUNET_CRYPTO_FileHashContext;
  * @return NULL on (immediate) errror
  */
 struct GNUNET_CRYPTO_FileHashContext *
-GNUNET_CRYPTO_hash_file (struct GNUNET_SCHEDULER_Handle *sched,
-			 enum GNUNET_SCHEDULER_Priority priority,
+GNUNET_CRYPTO_hash_file (enum GNUNET_SCHEDULER_Priority priority,
 			 const char *filename,
 			 size_t blocksize,
 			 GNUNET_CRYPTO_HashCompletedCallback callback,

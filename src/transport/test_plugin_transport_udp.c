@@ -61,11 +61,6 @@ static struct GNUNET_PeerIdentity my_identity;
 static struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
 
 /**
- * Our scheduler.
- */
-struct GNUNET_SCHEDULER_Handle *sched;
-
-/**
  * Our configuration.
  */
 const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -162,7 +157,6 @@ static void
 setup_plugin_environment ()
 {
   env.cfg = cfg;
-  env.sched = sched;
   env.my_identity = &my_identity;
   env.cls = &env;
   env.receive = &receive;
@@ -174,12 +168,10 @@ setup_plugin_environment ()
  * Runs the test.
  *
  * @param cls closure
- * @param s scheduler to use
  * @param c configuration to use
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
 {
@@ -187,7 +179,6 @@ run (void *cls,
   char *keyfile;
   char *libname;
 
-  sched = s;
   cfg = c;
   /* parse configuration */
   if ((GNUNET_OK !=

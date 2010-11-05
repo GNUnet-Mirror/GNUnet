@@ -151,11 +151,6 @@ struct GNUNET_CLIENT_Connection
   struct GNUNET_CONNECTION_Handle *sock;
 
   /**
-   * Our scheduler.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
-
-  /**
    * Our configuration.
    * FIXME: why do we DUP the configuration? Avoid this!
    */
@@ -262,15 +257,13 @@ struct GNUNET_CLIENT_Connection
 /**
  * Try to connect to the service.
  *
- * @param sched scheduler to use
  * @param service_name name of service to connect to
  * @param cfg configuration to use
  * @param attempt counter used to alternate between IP and UNIX domain sockets
  * @return NULL on error
  */
 static struct GNUNET_CONNECTION_Handle *
-do_connect (struct GNUNET_SCHEDULER_Handle *sched,
-            const char *service_name,
+do_connect (const char *service_name,
             const struct GNUNET_CONFIGURATION_Handle *cfg,
 	    unsigned int attempt)
 {
@@ -288,8 +281,7 @@ do_connect (struct GNUNET_SCHEDULER_Handle *sched,
 						 service_name,
 						 "UNIXPATH", &unixpath))
 	{
-	  sock = GNUNET_CONNECTION_create_from_connect_to_unixpath (sched,
-								    cfg,
+	  sock = GNUNET_CONNECTION_create_from_connect_to_unixpath (cfg,
 								    unixpath);
 	  GNUNET_free (unixpath);
 	  if (sock != NULL)
@@ -323,8 +315,7 @@ do_connect (struct GNUNET_SCHEDULER_Handle *sched,
                   service_name);
       return NULL;
     }
-  sock = GNUNET_CONNECTION_create_from_connect (sched,
-                                                cfg,
+  sock = GNUNET_CONNECTION_create_from_connect (cfg,
                                                 hostname,
                                                 port);
   GNUNET_free (hostname);
@@ -335,28 +326,24 @@ do_connect (struct GNUNET_SCHEDULER_Handle *sched,
 /**
  * Get a connection with a service.
  *
- * @param sched scheduler to use
  * @param service_name name of the service
  * @param cfg configuration to use
  * @return NULL on error (service unknown to configuration)
  */
 struct GNUNET_CLIENT_Connection *
-GNUNET_CLIENT_connect (struct GNUNET_SCHEDULER_Handle *sched,
-                       const char *service_name,
+GNUNET_CLIENT_connect (const char *service_name,
                        const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_CLIENT_Connection *ret;
   struct GNUNET_CONNECTION_Handle *sock;
 
-  sock = do_connect (sched, 
-		     service_name, 
+  sock = do_connect (service_name,
 		     cfg, 0);
   if (sock == NULL)
     return NULL;
   ret = GNUNET_malloc (sizeof (struct GNUNET_CLIENT_Connection));
   ret->attempts = 1;
   ret->sock = sock;
-  ret->sched = sched;
   ret->service_name = GNUNET_strdup (service_name);
   ret->cfg = GNUNET_CONFIGURATION_dup (cfg);
   ret->back_off = GNUNET_TIME_UNIT_MILLISECONDS;
@@ -418,7 +405,7 @@ GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock,
     GNUNET_CLIENT_notify_transmit_ready_cancel (sock->th);
   if (sock->receive_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (sock->sched, sock->receive_task);
+      GNUNET_SCHEDULER_cancel (sock->receive_task);
       sock->receive_task = GNUNET_SCHEDULER_NO_TASK;
     }
   GNUNET_array_grow (sock->received_buf, sock->received_size, 0);
@@ -569,8 +556,7 @@ GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
   sock->receive_timeout = GNUNET_TIME_relative_to_absolute (timeout);
   if (GNUNET_YES == sock->msg_complete)
     {
-      sock->receive_task = GNUNET_SCHEDULER_add_after (sock->sched,
-                                                       GNUNET_SCHEDULER_NO_TASK,
+      sock->receive_task = GNUNET_SCHEDULER_add_after (GNUNET_SCHEDULER_NO_TASK,
                                                        &receive_task, sock);
     }
   else
@@ -588,11 +574,9 @@ GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
  * Report service unavailable.
  */
 static void
-service_test_error (struct GNUNET_SCHEDULER_Handle *s,
-                    GNUNET_SCHEDULER_Task task, void *task_cls)
+service_test_error (GNUNET_SCHEDULER_Task task, void *task_cls)
 {
-  GNUNET_SCHEDULER_add_continuation (s,
-                                     task,
+  GNUNET_SCHEDULER_add_continuation (task,
                                      task_cls,
                                      GNUNET_SCHEDULER_REASON_TIMEOUT);
 }
@@ -617,14 +601,13 @@ confirm_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Received confirmation that service is running.\n");
 #endif
-      GNUNET_SCHEDULER_add_continuation (conn->sched,
-                                         conn->test_cb,
+      GNUNET_SCHEDULER_add_continuation (conn->test_cb,
                                          conn->test_cb_cls,
                                          GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     }
   else
     {
-      service_test_error (conn->sched, conn->test_cb, conn->test_cb_cls);
+      service_test_error (conn->test_cb, conn->test_cb_cls);
     }
   GNUNET_CLIENT_disconnect (conn, GNUNET_NO);
 }
@@ -642,7 +625,7 @@ write_test (void *cls, size_t size, void *buf)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Failure to transmit TEST request.\n"));
 #endif
-      service_test_error (conn->sched, conn->test_cb, conn->test_cb_cls);
+      service_test_error (conn->test_cb, conn->test_cb_cls);
       GNUNET_CLIENT_disconnect (conn, GNUNET_NO);
       return 0;                 /* client disconnected */
     }
@@ -664,7 +647,6 @@ write_test (void *cls, size_t size, void *buf)
 /**
  * Wait until the service is running.
  *
- * @param sched scheduler to use
  * @param service name of the service to wait for
  * @param cfg configuration to use
  * @param timeout how long to wait at most in ms
@@ -674,8 +656,7 @@ write_test (void *cls, size_t size, void *buf)
  * @param task_cls closure for task
  */
 void
-GNUNET_CLIENT_service_test (struct GNUNET_SCHEDULER_Handle *sched,
-                            const char *service,
+GNUNET_CLIENT_service_test (const char *service,
                             const struct GNUNET_CONFIGURATION_Handle *cfg,
                             struct GNUNET_TIME_Relative timeout,
                             GNUNET_SCHEDULER_Task task, void *task_cls)
@@ -686,14 +667,14 @@ GNUNET_CLIENT_service_test (struct GNUNET_SCHEDULER_Handle *sched,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Testing if service `%s' is running.\n", service);
 #endif
-  conn = GNUNET_CLIENT_connect (sched, service, cfg);
+  conn = GNUNET_CLIENT_connect (service, cfg);
   if (conn == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   _
                   ("Could not connect to service `%s', must not be running.\n"),
                   service);
-      service_test_error (sched, task, task_cls);
+      service_test_error (task, task_cls);
       return;
     }
   conn->test_cb = task;
@@ -709,7 +690,7 @@ GNUNET_CLIENT_service_test (struct GNUNET_SCHEDULER_Handle *sched,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("Failure to transmit request to service `%s'\n"),
                   service);
-      service_test_error (sched, task, task_cls);
+      service_test_error (task, task_cls);
       GNUNET_CLIENT_disconnect (conn, GNUNET_NO);
       return;
     }
@@ -791,7 +772,7 @@ client_notify (void *cls, size_t size, void *buf)
     {
       delay = GNUNET_TIME_absolute_get_remaining (th->timeout);
       delay.rel_value /= 2;
-      if ( (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & GNUNET_SCHEDULER_get_reason (th->sock->sched))) ||
+      if ( (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & GNUNET_SCHEDULER_get_reason ())) ||
 	   (GNUNET_YES != th->auto_retry) ||
 	   (0 == --th->attempts_left) || 
 	   (delay.rel_value < 1) )
@@ -807,8 +788,7 @@ client_notify (void *cls, size_t size, void *buf)
         }
       /* auto-retry */
       GNUNET_CONNECTION_destroy (th->sock->sock, GNUNET_NO);
-      th->sock->sock = do_connect (th->sock->sched,
-                                   th->sock->service_name, 
+      th->sock->sock = do_connect (th->sock->service_name,
 				   th->sock->cfg,
 				   th->sock->attempts++);
       GNUNET_assert (NULL != th->sock->sock);
@@ -824,8 +804,7 @@ client_notify (void *cls, size_t size, void *buf)
                   MAX_ATTEMPTS - th->attempts_left,
                   (unsigned long long) delay.rel_value);
 #endif
-      th->reconnect_task = GNUNET_SCHEDULER_add_delayed (th->sock->sched,
-                                                         delay,
+      th->reconnect_task = GNUNET_SCHEDULER_add_delayed (delay,
                                                          &client_delayed_retry,
                                                          th);
       th->sock->th = th;
@@ -904,7 +883,7 @@ GNUNET_CLIENT_notify_transmit_ready_cancel (struct
   if (th->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_break (NULL == th->th);
-      GNUNET_SCHEDULER_cancel (th->sock->sched, th->reconnect_task);
+      GNUNET_SCHEDULER_cancel (th->reconnect_task);
       th->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
     }
   else

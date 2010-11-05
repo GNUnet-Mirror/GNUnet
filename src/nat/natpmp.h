@@ -32,10 +32,7 @@
 
 struct GNUNET_NAT_NATPMP_Handle;
 
-struct GNUNET_NAT_NATPMP_Handle *GNUNET_NAT_NATPMP_init (struct
-                                                         GNUNET_SCHEDULER_Handle
-                                                         *sched,
-                                                         const struct sockaddr
+struct GNUNET_NAT_NATPMP_Handle *GNUNET_NAT_NATPMP_init (const struct sockaddr
                                                          *addr,
                                                          socklen_t addrlen,
                                                          unsigned short port);

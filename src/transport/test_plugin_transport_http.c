@@ -232,11 +232,6 @@ static long long unsigned int port;
 static char * test_addr;
 
 /**
- * Our scheduler.
- */
-struct GNUNET_SCHEDULER_Handle *sched;
-
-/**
  * Our statistics handle.
  */
 struct GNUNET_STATISTICS_Handle *stats;
@@ -446,19 +441,19 @@ shutdown_clean ()
 
   if (ti_send != GNUNET_SCHEDULER_NO_TASK)
   {
-    GNUNET_SCHEDULER_cancel(sched,ti_send);
+    GNUNET_SCHEDULER_cancel(ti_send);
     ti_send = GNUNET_SCHEDULER_NO_TASK;
   }
 
   if (http_task_send != GNUNET_SCHEDULER_NO_TASK)
   {
-    GNUNET_SCHEDULER_cancel(sched,http_task_send);
+    GNUNET_SCHEDULER_cancel(http_task_send);
     http_task_send = GNUNET_SCHEDULER_NO_TASK;
   }
 
   if (ti_timeout != GNUNET_SCHEDULER_NO_TASK)
   {
-    GNUNET_SCHEDULER_cancel(sched,ti_timeout);
+    GNUNET_SCHEDULER_cancel(ti_timeout);
     ti_timeout = GNUNET_SCHEDULER_NO_TASK;
   }
 
@@ -466,7 +461,7 @@ shutdown_clean ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Unloading http plugin\n");
   GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_http", api));
 
-  GNUNET_SCHEDULER_shutdown(sched);
+  GNUNET_SCHEDULER_shutdown();
   GNUNET_DISK_directory_remove ("/tmp/test_plugin_transport_http");
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Exiting testcase\n");
@@ -781,8 +776,7 @@ static size_t send_prepare( struct HTTP_Transfer * result)
   gws = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
   GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
-  http_task_send = GNUNET_SCHEDULER_add_select (sched,
-                                   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+  http_task_send = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                    GNUNET_SCHEDULER_NO_TASK,
                                    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 0),
                                    grs,
@@ -907,7 +901,6 @@ static void
 setup_plugin_environment ()
 {
   env.cfg = cfg;
-  env.sched = sched;
   env.stats = stats;
   env.my_identity = &my_identity;
   env.cls = &env;
@@ -1123,17 +1116,14 @@ static void run_connection_tests( int phase , void * cls)
  * Runs the test.
  *
  * @param cls closure
- * @param s scheduler to use
  * @param c configuration to use
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char * libname;
-  sched = s;
   cfg = c;
   char *keyfile;
   unsigned long long tneigh;
@@ -1223,7 +1213,7 @@ run (void *cls,
   }
 
 
-  ti_timeout = GNUNET_SCHEDULER_add_delayed (sched, TEST_TIMEOUT, &task_timeout, NULL);
+  ti_timeout = GNUNET_SCHEDULER_add_delayed (TEST_TIMEOUT, &task_timeout, NULL);
 
   /* testing plugin functionality */
   GNUNET_assert (0!=fail_notify_address_count);

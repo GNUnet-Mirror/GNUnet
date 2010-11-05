@@ -157,11 +157,6 @@ struct Peer
 static struct GNUNET_PEERINFO_NotifyContext *peerinfo_notify;
 
 /**
- * Our scheduler.
- */
-static struct GNUNET_SCHEDULER_Handle *sched;
-
-/**
  * Our configuration.
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -347,11 +342,9 @@ free_peer (void *cls,
   if (pos->connect_req != NULL)
     GNUNET_CORE_peer_request_connect_cancel (pos->connect_req);	      
   if (pos->hello_delay_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (sched,
-			     pos->hello_delay_task);
+    GNUNET_SCHEDULER_cancel (pos->hello_delay_task);
   if (pos->greylist_clean_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (sched,
-			     pos->greylist_clean_task);
+    GNUNET_SCHEDULER_cancel (pos->greylist_clean_task);
   GNUNET_free_non_null (pos->hello);   
   if (pos->filter != NULL)
     GNUNET_CONTAINER_bloomfilter_free (pos->filter);
@@ -406,11 +399,9 @@ attempt_connect (struct Peer *pos)
 				  GREYLIST_AFTER_ATTEMPT_MAX);
   pos->greylisted_until = GNUNET_TIME_relative_to_absolute (rem);
   if (pos->greylist_clean_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (sched,
-			     pos->greylist_clean_task);
+    GNUNET_SCHEDULER_cancel (pos->greylist_clean_task);
   pos->greylist_clean_task 
-    = GNUNET_SCHEDULER_add_delayed (sched,
-				    rem,
+    = GNUNET_SCHEDULER_add_delayed (rem,
 				    &remove_from_greylist,
 				    pos);
 #if DEBUG_TOPOLOGY
@@ -422,7 +413,7 @@ attempt_connect (struct Peer *pos)
 			    gettext_noop ("# connect requests issued to core"),
 			    1,
 			    GNUNET_NO);
-  pos->connect_req = GNUNET_CORE_peer_request_connect (sched, cfg,
+  pos->connect_req = GNUNET_CORE_peer_request_connect (cfg,
 						       GNUNET_TIME_UNIT_MINUTES,
 						       &pos->pid,
 						       &connect_completed_callback,
@@ -453,8 +444,7 @@ remove_from_greylist (void *cls,
   else
     {
       pos->greylist_clean_task 
-	= GNUNET_SCHEDULER_add_delayed (sched,
-					rem,
+	= GNUNET_SCHEDULER_add_delayed (rem,
 					&remove_from_greylist,
 					pos);
     }
@@ -635,8 +625,7 @@ schedule_next_hello (void *cls,
 					 &find_advertisable_hello,
 					 &fah);
   pl->hello_delay_task 
-    = GNUNET_SCHEDULER_add_delayed (sched,
-				    fah.next_adv,
+    = GNUNET_SCHEDULER_add_delayed (fah.next_adv,
 				    &schedule_next_hello,
 				    pl);
   if (fah.result == NULL)
@@ -685,13 +674,11 @@ reschedule_hellos (void *cls,
     }
   if (peer->hello_delay_task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (sched,
-			       peer->hello_delay_task);
+      GNUNET_SCHEDULER_cancel (peer->hello_delay_task);
       peer->hello_delay_task = GNUNET_SCHEDULER_NO_TASK;
     }
   peer->hello_delay_task 
-    = GNUNET_SCHEDULER_add_now (sched,
-				&schedule_next_hello,
+    = GNUNET_SCHEDULER_add_now (&schedule_next_hello,
 				peer);
   return GNUNET_YES;
 }
@@ -822,7 +809,7 @@ disconnect_notify (void *cls,
 					   NULL);
   if ( (friend_count < minimum_friend_count) &&
        (blacklist == NULL) )
-    blacklist = GNUNET_TRANSPORT_blacklist (sched, cfg,
+    blacklist = GNUNET_TRANSPORT_blacklist (cfg,
 					    &blacklist_check, NULL);
 }
 
@@ -1021,7 +1008,7 @@ core_init (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Failed to connect to core service, can not manage topology!\n"));
-      GNUNET_SCHEDULER_shutdown (sched);
+      GNUNET_SCHEDULER_shutdown ();
       return;
     }
   handle = server;
@@ -1031,8 +1018,7 @@ core_init (void *cls,
 	      "I am peer `%s'\n",
 	      GNUNET_i2s (my_id));
 #endif 	
-  peerinfo_notify = GNUNET_PEERINFO_notify (cfg, sched,
-					    &process_peer,
+  peerinfo_notify = GNUNET_PEERINFO_notify (cfg, &process_peer,
 					    NULL);
 }
 
@@ -1285,8 +1271,7 @@ hello_advertising_ready (void *cls,
     }
   pl->next_hello_allowed = GNUNET_TIME_relative_to_absolute (HELLO_ADVERTISEMENT_MIN_FREQUENCY);
   pl->hello_delay_task 
-    = GNUNET_SCHEDULER_add_now (sched,
-				&schedule_next_hello,
+    = GNUNET_SCHEDULER_add_now (&schedule_next_hello,
 				pl);
   return want;
 }
@@ -1332,14 +1317,12 @@ cleaning_task (void *cls,
  * Main function that will be run.
  *
  * @param cls closure
- * @param s the scheduler to use
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param c configuration
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle * s,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle * c)
@@ -1351,9 +1334,8 @@ run (void *cls,
     };
   unsigned long long opt;
 
-  sched = s;
   cfg = c;
-  stats = GNUNET_STATISTICS_create (sched, "topology", cfg);
+  stats = GNUNET_STATISTICS_create ("topology", cfg);
   autoconnect = GNUNET_CONFIGURATION_get_value_yesno (cfg,
 						      "TOPOLOGY",
 						      "AUTOCONNECT");
@@ -1387,17 +1369,15 @@ run (void *cls,
 	      autoconnect ? "autoconnect enabled" : "autoconnect disabled");
 #endif       
   if (friend_count < minimum_friend_count) 
-    blacklist = GNUNET_TRANSPORT_blacklist (sched, cfg,
+    blacklist = GNUNET_TRANSPORT_blacklist (cfg,
 					    &blacklist_check, NULL);
-  transport = GNUNET_TRANSPORT_connect (sched,
-					cfg,
+  transport = GNUNET_TRANSPORT_connect (cfg,
 					NULL,
 					NULL,
 					NULL,
 					NULL,
 					NULL);
-  handle = GNUNET_CORE_connect (sched,
-				cfg,
+  handle = GNUNET_CORE_connect (cfg,
 				GNUNET_TIME_UNIT_FOREVER_REL,
 				NULL,
 				&core_init,
@@ -1407,15 +1387,14 @@ run (void *cls,
 				NULL, GNUNET_NO,
 				NULL, GNUNET_NO,
 				handlers);
-  GNUNET_SCHEDULER_add_delayed (sched,
-                                GNUNET_TIME_UNIT_FOREVER_REL,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &cleaning_task, NULL);
   if (NULL == transport)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Failed to connect to `%s' service.\n"),
 		  "transport");
-      GNUNET_SCHEDULER_shutdown (sched);
+      GNUNET_SCHEDULER_shutdown ();
       return;
     }
   if (NULL == handle)
@@ -1423,7 +1402,7 @@ run (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Failed to connect to `%s' service.\n"),
 		  "core");
-      GNUNET_SCHEDULER_shutdown (sched);
+      GNUNET_SCHEDULER_shutdown ();
       return;
     }
 }

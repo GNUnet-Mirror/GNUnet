@@ -481,11 +481,6 @@ struct StatsCoreContext
 struct GNUNET_TESTING_PeerGroup
 {
   /**
-   * Our scheduler.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
-
-  /**
    * Configuration template.
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -2252,7 +2247,7 @@ static void schedule_connect(void *cls, const struct GNUNET_SCHEDULER_TaskContex
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Delaying connect, we have too many outstanding connections!\n"));
 #endif
-      GNUNET_SCHEDULER_add_delayed(connect_context->ct_ctx->pg->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &schedule_connect, connect_context);
+      GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &schedule_connect, connect_context);
     }
   else
     {
@@ -2296,7 +2291,7 @@ connect_iterator (void *cls,
   connect_context->first = first->daemon;
   connect_context->second = second;
   connect_context->ct_ctx = ct_ctx;
-  GNUNET_SCHEDULER_add_now(first->pg->sched, &schedule_connect, connect_context);
+  GNUNET_SCHEDULER_add_now(&schedule_connect, connect_context);
 
   return GNUNET_YES;
 }
@@ -2404,7 +2399,7 @@ connect_topology (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING_NotifyComp
           connect_context->pg = pg;
           connect_context->first = FIXME;
           connect_context->second = connection_iter->daemon;
-          GNUNET_SCHEDULER_add_now(pg->sched, &schedule_connect, connect_context);
+          GNUNET_SCHEDULER_add_now(&schedule_connect, connect_context);
           connection_iter = connection_iter->next;
         }
 #endif
@@ -3156,7 +3151,7 @@ schedule_get_topology(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Delaying connect, we have too many outstanding connections!\n"));
 #endif
-      GNUNET_SCHEDULER_add_delayed(core_context->daemon->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &schedule_get_topology, core_context);
+      GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &schedule_get_topology, core_context);
     }
   else
     {
@@ -3165,7 +3160,7 @@ schedule_get_topology(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                       _("Creating connection, outstanding_connections is %d\n"), outstanding_connects);
 #endif
       topology_context->connected++;
-      if (GNUNET_OK != GNUNET_CORE_iterate_peers (core_context->daemon->sched, core_context->daemon->cfg, &internal_topology_callback, core_context))
+      if (GNUNET_OK != GNUNET_CORE_iterate_peers (core_context->daemon->cfg, &internal_topology_callback, core_context))
         internal_topology_callback(core_context, NULL, GNUNET_TIME_relative_get_zero(), 0);
 
     }
@@ -3197,7 +3192,7 @@ GNUNET_TESTING_get_topology (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING
           core_ctx->daemon = pg->peers[i].daemon;
           /* Set back pointer to topology iteration context */
           core_ctx->iter_context = topology_context;
-          GNUNET_SCHEDULER_add_now(pg->sched, &schedule_get_topology, core_ctx);
+          GNUNET_SCHEDULER_add_now(&schedule_get_topology, core_ctx);
           total_count++;
         }
     }
@@ -3276,7 +3271,7 @@ schedule_get_statistics(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Delaying connect, we have too many outstanding connections!\n"));
 #endif
-      GNUNET_SCHEDULER_add_delayed(core_context->daemon->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &schedule_get_statistics, core_context);
+      GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &schedule_get_statistics, core_context);
     }
   else
     {
@@ -3286,7 +3281,7 @@ schedule_get_statistics(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
 #endif
 
       stats_context->connected++;
-      core_context->stats_handle = GNUNET_STATISTICS_create(core_context->daemon->sched, "testing", core_context->daemon->cfg);
+      core_context->stats_handle = GNUNET_STATISTICS_create("testing", core_context->daemon->cfg);
       if (core_context->stats_handle == NULL)
         {
           internal_stats_cont (core_context, GNUNET_NO);
@@ -3394,7 +3389,7 @@ GNUNET_TESTING_get_statistics (struct GNUNET_TESTING_PeerGroup *pg,
           core_ctx->daemon = pg->peers[i].daemon;
           /* Set back pointer to topology iteration context */
           core_ctx->iter_context = stats_context;
-          GNUNET_SCHEDULER_add_now(pg->sched, &schedule_get_statistics, core_ctx);
+          GNUNET_SCHEDULER_add_now(&schedule_get_statistics, core_ctx);
           total_count++;
         }
     }
@@ -3626,7 +3621,7 @@ internal_continue_startup (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
     }
   else
     {
-      GNUNET_SCHEDULER_add_delayed(internal_context->peer->pg->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &internal_continue_startup, internal_context);
+      GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &internal_continue_startup, internal_context);
     }
 }
 
@@ -3697,7 +3692,7 @@ static void schedule_churn_restart(void *cls, const struct GNUNET_SCHEDULER_Task
   struct ChurnRestartContext *startup_ctx = peer_restart_ctx->churn_restart_ctx;
 
   if (startup_ctx->outstanding > MAX_CONCURRENT_STARTING)
-    GNUNET_SCHEDULER_add_delayed(peer_restart_ctx->daemon->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &schedule_churn_restart, peer_restart_ctx);
+    GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &schedule_churn_restart, peer_restart_ctx);
   else
     {
       GNUNET_TESTING_daemon_start_stopped(peer_restart_ctx->daemon,
@@ -3721,8 +3716,7 @@ internal_start (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   if (internal_context->peer->pg->starting < MAX_CONCURRENT_HOSTKEYS)
     {
       internal_context->peer->pg->starting++;
-      internal_context->peer->daemon = GNUNET_TESTING_daemon_start (internal_context->peer->pg->sched,
-                                                                    internal_context->peer->cfg,
+      internal_context->peer->daemon = GNUNET_TESTING_daemon_start (internal_context->peer->cfg,
                                                                     internal_context->timeout,
                                                                     internal_context->hostname,
                                                                     internal_context->username,
@@ -3734,7 +3728,7 @@ internal_start (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
     }
   else
     {
-      GNUNET_SCHEDULER_add_delayed(internal_context->peer->pg->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &internal_start, internal_context);
+      GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &internal_start, internal_context);
     }
 }
 
@@ -3753,7 +3747,7 @@ GNUNET_TESTING_daemons_continue_startup(struct GNUNET_TESTING_PeerGroup *pg)
   pg->starting = 0;
   for (i = 0; i < pg->total; i++)
     {
-      GNUNET_SCHEDULER_add_now (pg->sched, &internal_continue_startup, &pg->peers[i].internal_context);
+      GNUNET_SCHEDULER_add_now (&internal_continue_startup, &pg->peers[i].internal_context);
       //GNUNET_TESTING_daemon_continue_startup(pg->peers[i].daemon);
     }
 }
@@ -3764,7 +3758,6 @@ GNUNET_TESTING_daemons_continue_startup(struct GNUNET_TESTING_PeerGroup *pg)
  * adjusted to ensure that no two peers running on the same system
  * have the same port(s) in their respective configurations.
  *
- * @param sched scheduler to use
  * @param cfg configuration template to use
  * @param total number of daemons to start
  * @param timeout total time allowed for peers to start
@@ -3782,8 +3775,7 @@ GNUNET_TESTING_daemons_continue_startup(struct GNUNET_TESTING_PeerGroup *pg)
  * @return NULL on error, otherwise handle to control peer group
  */
 struct GNUNET_TESTING_PeerGroup *
-GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
-                              const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               unsigned int total,
                               struct GNUNET_TIME_Relative timeout,
                               GNUNET_TESTING_NotifyHostkeyCreated hostkey_callback,
@@ -3822,7 +3814,6 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
   upnum = 0;
   fdnum = 0;
   pg = GNUNET_malloc (sizeof (struct GNUNET_TESTING_PeerGroup));
-  pg->sched = sched;
   pg->cfg = cfg;
   pg->notify_connection = connect_callback;
   pg->notify_connection_cls = connect_callback_cls;
@@ -3980,7 +3971,7 @@ GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
       pg->peers[off].internal_context.start_cb = cb;
       pg->peers[off].internal_context.start_cb_cls = cb_cls;
 
-      GNUNET_SCHEDULER_add_now (sched, &internal_start, &pg->peers[off].internal_context);
+      GNUNET_SCHEDULER_add_now (&internal_start, &pg->peers[off].internal_context);
 
     }
   return pg;
@@ -4156,7 +4147,7 @@ schedule_churn_shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskConte
   GNUNET_assert(shutdown_ctx != NULL);
 
   if (shutdown_ctx->outstanding > MAX_CONCURRENT_SHUTDOWN)
-    GNUNET_SCHEDULER_add_delayed(peer_shutdown_ctx->daemon->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &schedule_churn_shutdown_task, peer_shutdown_ctx);
+    GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &schedule_churn_shutdown_task, peer_shutdown_ctx);
   else
     {
       shutdown_ctx->outstanding++;
@@ -4309,7 +4300,7 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
     peer_shutdown_ctx = GNUNET_malloc(sizeof(struct PeerShutdownContext));
     peer_shutdown_ctx->daemon = pg->peers[running_arr[running_permute[i]]].daemon;
     peer_shutdown_ctx->shutdown_ctx = shutdown_ctx;
-    GNUNET_SCHEDULER_add_now(peer_shutdown_ctx->daemon->sched, &schedule_churn_shutdown_task, peer_shutdown_ctx);
+    GNUNET_SCHEDULER_add_now(&schedule_churn_shutdown_task, peer_shutdown_ctx);
 
     /*
     GNUNET_TESTING_daemon_stop (pg->peers[running_arr[running_permute[i]]].daemon,
@@ -4334,7 +4325,7 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
       peer_restart_ctx = GNUNET_malloc(sizeof(struct PeerRestartContext));
       peer_restart_ctx->churn_restart_ctx = churn_startup_ctx;
       peer_restart_ctx->daemon = pg->peers[stopped_arr[stopped_permute[i]]].daemon;
-      GNUNET_SCHEDULER_add_now(peer_restart_ctx->daemon->sched, &schedule_churn_restart, peer_restart_ctx);
+      GNUNET_SCHEDULER_add_now(&schedule_churn_restart, peer_restart_ctx);
       /*
       GNUNET_TESTING_daemon_start_stopped(pg->peers[stopped_arr[stopped_permute[i]]].daemon, 
 					  timeout, &churn_start_callback, churn_ctx);*/
@@ -4485,7 +4476,7 @@ schedule_shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
   GNUNET_assert(shutdown_ctx != NULL);
 
   if (shutdown_ctx->outstanding > MAX_CONCURRENT_SHUTDOWN)
-    GNUNET_SCHEDULER_add_delayed(peer_shutdown_ctx->daemon->sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &schedule_shutdown_task, peer_shutdown_ctx);
+    GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100), &schedule_shutdown_task, peer_shutdown_ctx);
   else
     {
       shutdown_ctx->outstanding++;
@@ -4527,7 +4518,7 @@ GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg,
       peer_shutdown_ctx = GNUNET_malloc(sizeof(struct PeerShutdownContext));
       peer_shutdown_ctx->daemon = pg->peers[off].daemon;
       peer_shutdown_ctx->shutdown_ctx = shutdown_ctx;
-      GNUNET_SCHEDULER_add_now(pg->peers[off].daemon->sched, &schedule_shutdown_task, peer_shutdown_ctx);
+      GNUNET_SCHEDULER_add_now(&schedule_shutdown_task, peer_shutdown_ctx);
       //GNUNET_TESTING_daemon_stop (pg->peers[off].daemon, timeout, shutdown_cb, shutdown_ctx, GNUNET_YES, GNUNET_NO);
       if (NULL != pg->peers[off].cfg)
         GNUNET_CONFIGURATION_destroy (pg->peers[off].cfg);

@@ -121,8 +121,6 @@ static struct PeerContext p1;
 
 static struct PeerContext p2;
 
-static struct GNUNET_SCHEDULER_Handle *sched;
-
 static int ok;
 
 static int connected;
@@ -165,20 +163,20 @@ end_send ()
 static void
 end ()
 {
-  GNUNET_SCHEDULER_cancel (sched, die_task);
+  GNUNET_SCHEDULER_cancel (die_task);
   die_task = GNUNET_SCHEDULER_NO_TASK;
 
   if (measurement_task != GNUNET_SCHEDULER_NO_TASK)
   {
-	    GNUNET_SCHEDULER_cancel (sched, measurement_task);
+	    GNUNET_SCHEDULER_cancel (measurement_task);
 	    measurement_task = GNUNET_SCHEDULER_NO_TASK;
   }
   if (measurement_counter_task != GNUNET_SCHEDULER_NO_TASK)
   {
-	    GNUNET_SCHEDULER_cancel (sched, measurement_counter_task);
+	    GNUNET_SCHEDULER_cancel (measurement_counter_task);
 	    measurement_counter_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_SCHEDULER_shutdown (sched);
+  GNUNET_SCHEDULER_shutdown ();
 #if DEBUG_CONNECTIONS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transports!\n");
 #endif
@@ -188,7 +186,7 @@ end ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Transports disconnected, returning success!\n");
 #endif
-  GNUNET_SCHEDULER_shutdown (sched);
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -213,12 +211,12 @@ end_badly (void *cls,
 {
   if (measurement_task != GNUNET_SCHEDULER_NO_TASK)
   {
-	    GNUNET_SCHEDULER_cancel (sched, measurement_task);
+	    GNUNET_SCHEDULER_cancel (measurement_task);
 	    measurement_task = GNUNET_SCHEDULER_NO_TASK;
   }
   if (measurement_counter_task != GNUNET_SCHEDULER_NO_TASK)
   {
-	    GNUNET_SCHEDULER_cancel (sched, measurement_counter_task);
+	    GNUNET_SCHEDULER_cancel (measurement_counter_task);
 	    measurement_counter_task = GNUNET_SCHEDULER_NO_TASK;
   }
   GNUNET_break (0);
@@ -355,8 +353,7 @@ static void measurement_counter
 #if VERBOSE
   fprintf(stderr,".");
 #endif
-  measurement_counter_task = GNUNET_SCHEDULER_add_delayed (sched,
-							   GNUNET_TIME_UNIT_SECONDS,
+  measurement_counter_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
 							   &measurement_counter,
 							   NULL);
 }
@@ -379,7 +376,7 @@ measurement_end (void *cls,
 
   if (measurement_counter_task != GNUNET_SCHEDULER_NO_TASK)
   {
-    GNUNET_SCHEDULER_cancel (sched, measurement_counter_task);
+    GNUNET_SCHEDULER_cancel (measurement_counter_task);
     measurement_counter_task = GNUNET_SCHEDULER_NO_TASK;
   }
 #if VERBOSE
@@ -498,19 +495,16 @@ static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
 			  GNUNET_TIME_UNIT_FOREVER_REL,
 			  NULL, NULL);
 
-		GNUNET_SCHEDULER_cancel (sched, die_task);
-		die_task = GNUNET_SCHEDULER_add_delayed (sched,
-						   TIMEOUT,
+		GNUNET_SCHEDULER_cancel (die_task);
+		die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 						   &end_badly,
 						   NULL);
 		if (measurement_counter_task != GNUNET_SCHEDULER_NO_TASK)
-		  GNUNET_SCHEDULER_cancel (sched, measurement_counter_task);
-		measurement_counter_task = GNUNET_SCHEDULER_add_delayed (sched,
-								   GNUNET_TIME_UNIT_SECONDS,
+		  GNUNET_SCHEDULER_cancel (measurement_counter_task);
+		measurement_counter_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
 								   &measurement_counter,
 								   NULL);
-		measurement_task = GNUNET_SCHEDULER_add_delayed (sched,
-						   MEASUREMENT_INTERVALL,
+		measurement_task = GNUNET_SCHEDULER_add_delayed (MEASUREMENT_INTERVALL,
 						   &measurement_end,
 						   NULL);
 		total_bytes_sent = 0;
@@ -588,7 +582,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 #endif
 
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
-  p->th = GNUNET_TRANSPORT_connect (sched, p->cfg, NULL,
+  p->th = GNUNET_TRANSPORT_connect (p->cfg, NULL,
                                     p,
                                     &notify_receive_new,
                                     &notify_connect,
@@ -634,16 +628,13 @@ exchange_hello (void *cls,
 
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (ok == 1);
   OKPP;
-  sched = s;
 
-  die_task = GNUNET_SCHEDULER_add_delayed (sched,
-					   TIMEOUT,
+  die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 					   &end_badly,
 					   NULL);
   measurement_running = GNUNET_NO;

@@ -70,14 +70,12 @@ typedef void (*UPNP_discover_cb_) (const char *control_urls,
  * If several devices are found, a device that is connected to the WAN
  * is returned first (if any).
  *
- * @param sched scheduler to use for network tasks
  * @param multicastif network interface to send discovery messages, or NULL
  * @param addr address used to send messages on multicastif, or NULL
  * @param caller_cb user function to call when done
  * @param caller_cls closure to pass to caller_cb
  */
-void UPNP_discover_ (struct GNUNET_SCHEDULER_Handle *sched,
-                     const char *multicastif,
+void UPNP_discover_ (const char *multicastif,
                      const struct sockaddr *addr,
                      UPNP_discover_cb_ caller_cb, void *caller_cls);
 

@@ -50,14 +50,12 @@ struct GNUNET_PEERINFO_Handle;
 /**
  * Connect to the peerinfo service.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @return NULL on error (configuration related, actual connection
  *         etablishment may happen asynchronously).
  */
 struct GNUNET_PEERINFO_Handle *
-GNUNET_PEERINFO_connect (struct GNUNET_SCHEDULER_Handle *sched,
-			 const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_PEERINFO_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 			 
 
 
@@ -164,14 +162,12 @@ struct GNUNET_PEERINFO_NotifyContext;
  * twice with the same peer information.
  *
  * @param cfg configuration to use
- * @param sched scheduler to use
  * @param callback the method to call for each peer
  * @param callback_cls closure for callback
  * @return NULL on error
  */
 struct GNUNET_PEERINFO_NotifyContext *
 GNUNET_PEERINFO_notify (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			struct GNUNET_SCHEDULER_Handle *sched,
 			GNUNET_PEERINFO_Processor callback,
 			void *callback_cls);
 

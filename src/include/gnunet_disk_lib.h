@@ -496,15 +496,12 @@ int GNUNET_DISK_directory_iterator_next (struct GNUNET_DISK_DirectoryIterator
  * If a scheduler does not need to be used, GNUNET_DISK_directory_scan
  * may provide a simpler API.
  *
- * @param sched scheduler to use
  * @param prio priority to use
  * @param dirName the name of the directory
  * @param callback the method to call for each file
  * @param callback_cls closure for callback
  */
-void GNUNET_DISK_directory_iterator_start (struct GNUNET_SCHEDULER_Handle
-                                           *sched,
-                                           enum GNUNET_SCHEDULER_Priority
+void GNUNET_DISK_directory_iterator_start (enum GNUNET_SCHEDULER_Priority
                                            prio, const char *dirName,
                                            GNUNET_DISK_DirectoryIteratorCallback
                                            callback, void *callback_cls);

@@ -40,7 +40,7 @@
 static void
 start_job (struct GNUNET_FS_QueueEntry *qe)
 {
-  qe->client = GNUNET_CLIENT_connect (qe->h->sched, "fs", qe->h->cfg);
+  qe->client = GNUNET_CLIENT_connect ("fs", qe->h->cfg);
   if (qe->client == NULL)
     {
       GNUNET_break (0);
@@ -138,8 +138,7 @@ process_job_queue (void *cls,
 	continue;	
       stop_job (qe);
     }
-  h->queue_job = GNUNET_SCHEDULER_add_delayed (h->sched,
-					       restart_at,
+  h->queue_job = GNUNET_SCHEDULER_add_delayed (restart_at,
 					       &process_job_queue,
 					       h);
 }
@@ -176,11 +175,9 @@ GNUNET_FS_queue_ (struct GNUNET_FS_Handle *h,
 				     h->pending_tail,
 				     qe);
   if (h->queue_job != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (h->sched,
-			     h->queue_job);
+    GNUNET_SCHEDULER_cancel (h->queue_job);
   h->queue_job 
-    = GNUNET_SCHEDULER_add_now (h->sched,
-				&process_job_queue,
+    = GNUNET_SCHEDULER_add_now (&process_job_queue,
 				h);
   return qe;
 }
@@ -203,11 +200,9 @@ GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qh)
 			       qh);
   GNUNET_free (qh);
   if (h->queue_job != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (h->sched,
-			     h->queue_job);
+    GNUNET_SCHEDULER_cancel (h->queue_job);
   h->queue_job 
-    = GNUNET_SCHEDULER_add_now (h->sched,
-				&process_job_queue,
+    = GNUNET_SCHEDULER_add_now (&process_job_queue,
 				h);
 }
 
@@ -1449,8 +1444,7 @@ deserialize_publish_file (void *cls,
   if ( (0 == (pc->options & GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY)) &&
        (GNUNET_YES != pc->all_done) )
     {
-      pc->dsh = GNUNET_DATASTORE_connect (h->cfg,
-					  h->sched);
+      pc->dsh = GNUNET_DATASTORE_connect (h->cfg);
       if (NULL == pc->dsh)
 	goto cleanup;
     } 
@@ -1478,8 +1472,7 @@ deserialize_publish_file (void *cls,
   /* re-start publishing (if needed)... */
   if (pc->all_done != GNUNET_YES)
     pc->upload_task 
-      = GNUNET_SCHEDULER_add_with_priority (h->sched,
-					    GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+      = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
 					    &GNUNET_FS_publish_main_,
 					    pc);       
   if (GNUNET_OK !=
@@ -2092,8 +2085,7 @@ deserialize_unindex_file (void *cls,
   switch (uc->state)
     {
     case UNINDEX_STATE_HASHING:
-      uc->fhc = GNUNET_CRYPTO_hash_file (uc->h->sched,
-					 GNUNET_SCHEDULER_PRIORITY_IDLE,
+      uc->fhc = GNUNET_CRYPTO_hash_file (GNUNET_SCHEDULER_PRIORITY_IDLE,
 					 uc->filename,
 					 HASHING_BLOCKSIZE,
 					 &GNUNET_FS_unindex_process_hash_,
@@ -2937,7 +2929,6 @@ deserialization_master (const char *master_path,
 /**
  * Setup a connection to the file-sharing service.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param client_name unique identifier for this client 
  * @param upcb function to call to notify about FS actions
@@ -2947,8 +2938,7 @@ deserialization_master (const char *master_path,
  * @return NULL on error
  */
 struct GNUNET_FS_Handle *
-GNUNET_FS_start (struct GNUNET_SCHEDULER_Handle *sched,
-		 const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_FS_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 		 const char *client_name,
 		 GNUNET_FS_ProgressCallback upcb,
 		 void *upcb_cls,
@@ -2960,7 +2950,6 @@ GNUNET_FS_start (struct GNUNET_SCHEDULER_Handle *sched,
   va_list ap;
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Handle));
-  ret->sched = sched;
   ret->cfg = cfg;
   ret->client_name = GNUNET_strdup (client_name);
   ret->upcb = upcb;
@@ -3021,8 +3010,7 @@ GNUNET_FS_stop (struct GNUNET_FS_Handle *h)
   while (h->top_head != NULL)
     h->top_head->ssf (h->top_head->ssf_cls);
   if (h->queue_job != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (h->sched,
-			     h->queue_job);
+    GNUNET_SCHEDULER_cancel (h->queue_job);
   GNUNET_free (h->client_name);
   GNUNET_free (h);
 }

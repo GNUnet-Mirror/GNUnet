@@ -77,7 +77,7 @@ program_main (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct CommandContext *cc = cls;
 
-  cc->task (cc->task_cls, tc->sched, cc->args, cc->cfgfile, cc->cfg);
+  cc->task (cc->task_cls, cc->args, cc->cfgfile, cc->cfg);
 }
 
 

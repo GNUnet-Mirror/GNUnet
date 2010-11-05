@@ -58,10 +58,6 @@ typedef void (*GNUNET_DATACACHE_DeleteNotifyCallback)(void *cls,
 struct GNUNET_DATACACHE_PluginEnvironment
 {
   
-  /**
-   * Scheduler to use.
-   */ 
-  struct GNUNET_SCHEDULER_Handle *sched;
 
   /**
    * Configuration to use.

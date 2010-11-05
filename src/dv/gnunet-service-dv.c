@@ -565,10 +565,6 @@ static struct GNUNET_PeerIdentity my_identity;
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-/**
- * The scheduler for this service.
- */
-static struct GNUNET_SCHEDULER_Handle *sched;
 
 /**
  * The client, the DV plugin connected to us.  Hopefully
@@ -944,7 +940,7 @@ size_t core_transmit_notify (void *cls,
     }
   /*reply = core_pending_head;*/
 
-  GNUNET_SCHEDULER_add_now(sched, &try_core_send, NULL);
+  GNUNET_SCHEDULER_add_now(&try_core_send, NULL);
   /*if (reply != NULL)
     core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, reply->importance, reply->timeout, &reply->recipient, reply->msg_size, &core_transmit_notify, NULL);*/
 
@@ -1043,7 +1039,7 @@ send_message_via (const struct GNUNET_PeerIdentity *sender,
                                      core_pending_tail,
                                      pending_message);
 
-  GNUNET_SCHEDULER_add_now(sched, try_core_send, NULL);
+  GNUNET_SCHEDULER_add_now(try_core_send, NULL);
 
   return GNUNET_YES;
 }
@@ -1199,7 +1195,7 @@ send_message (const struct GNUNET_PeerIdentity * recipient,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: Notifying core of send size %d to destination `%s'\n", "DV SEND MESSAGE", msg_size, GNUNET_i2s(recipient));
 #endif
 
-  GNUNET_SCHEDULER_add_now(sched, try_core_send, NULL);
+  GNUNET_SCHEDULER_add_now(try_core_send, NULL);
   return (int) cost;
 }
 
@@ -1514,7 +1510,7 @@ static int handle_dv_data_message (void *cls,
       memcpy(delayed_context->message, packed_message, packed_message_size);
       delayed_context->message_size = packed_message_size;
       delayed_context->uid = ntohl(incoming->uid);
-      GNUNET_SCHEDULER_add_delayed(sched, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 2500), &send_message_delayed, delayed_context);
+      GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 2500), &send_message_delayed, delayed_context);
       return GNUNET_OK;
     }
   else
@@ -1669,7 +1665,7 @@ neighbor_send_task (void *cls,
                                          core_pending_tail,
                                          pending_message);
 
-      GNUNET_SCHEDULER_add_now(sched, try_core_send, NULL);
+      GNUNET_SCHEDULER_add_now(try_core_send, NULL);
       /*if (core_transmit_handle == NULL)
         core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, default_dv_priority, GNUNET_TIME_relative_get_forever(), &to->identity, sizeof(p2p_dv_MESSAGE_NeighborInfo), &core_transmit_notify, NULL);*/
 
@@ -1680,14 +1676,14 @@ neighbor_send_task (void *cls,
 #if DEBUG_DV_PEER_NUMBERS
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "DV SERVICE: still in fast send mode\n");
 #endif
-      send_context->task = GNUNET_SCHEDULER_add_now(sched, &neighbor_send_task, send_context);
+      send_context->task = GNUNET_SCHEDULER_add_now(&neighbor_send_task, send_context);
     }
   else
     {
 #if DEBUG_DV_PEER_NUMBERS
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "DV SERVICE: entering slow send mode\n");
 #endif
-      send_context->task = GNUNET_SCHEDULER_add_delayed(sched, GNUNET_DV_DEFAULT_SEND_INTERVAL, &neighbor_send_task, send_context);
+      send_context->task = GNUNET_SCHEDULER_add_delayed(GNUNET_DV_DEFAULT_SEND_INTERVAL, &neighbor_send_task, send_context);
     }
 
   return;
@@ -1994,7 +1990,7 @@ direct_neighbor_free (struct DirectNeighbor *direct)
   send_context = direct->send_context;
 
   if (send_context->task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel(sched, send_context->task);
+    GNUNET_SCHEDULER_cancel(send_context->task);
 
   about_list = send_context->fast_gossip_list_head;
   while (about_list != NULL)
@@ -2047,7 +2043,7 @@ static int schedule_disconnect_messages (void *cls,
                                      core_pending_tail,
                                      pending_message);
 
-  GNUNET_SCHEDULER_add_now(sched, try_core_send, NULL);
+  GNUNET_SCHEDULER_add_now(try_core_send, NULL);
   /*if (core_transmit_handle == NULL)
     core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, default_dv_priority, GNUNET_TIME_relative_get_forever(), &notify->identity, sizeof(p2p_dv_MESSAGE_Disconnect), &core_transmit_notify, NULL);*/
 
@@ -2133,8 +2129,8 @@ void core_init (void *cls,
 
   if (server == NULL)
     {
-      GNUNET_SCHEDULER_cancel(sched, cleanup_task);
-      GNUNET_SCHEDULER_add_now(sched, &shutdown_task, NULL);
+      GNUNET_SCHEDULER_cancel(cleanup_task);
+      GNUNET_SCHEDULER_add_now(&shutdown_task, NULL);
       return;
     }
 #if DEBUG_DV
@@ -2265,9 +2261,9 @@ static int add_distant_all_direct_neighbors (void *cls,
   GNUNET_free(encPeerTo);
 #endif
   /*if (send_context->task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel(sched, send_context->task);*/
+    GNUNET_SCHEDULER_cancel(send_context->task);*/
 
-  send_context->task = GNUNET_SCHEDULER_add_now(sched, &neighbor_send_task, send_context);
+  send_context->task = GNUNET_SCHEDULER_add_now(&neighbor_send_task, send_context);
   return GNUNET_YES;
 }
 
@@ -2673,9 +2669,9 @@ static int gossip_all_to_all_iterator (void *cls,
   GNUNET_CONTAINER_multihashmap_iterate (extended_neighbors, &add_all_extended_peers, direct->send_context);
 
   if (direct->send_context->task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel(sched, direct->send_context->task);
+    GNUNET_SCHEDULER_cancel(direct->send_context->task);
 
-  direct->send_context->task = GNUNET_SCHEDULER_add_now(sched, &neighbor_send_task, direct->send_context);
+  direct->send_context->task = GNUNET_SCHEDULER_add_now(&neighbor_send_task, direct->send_context);
   return GNUNET_YES;
 }
 
@@ -2691,8 +2687,7 @@ gossip_all_to_all (void *cls,
 {
   GNUNET_CONTAINER_multihashmap_iterate (direct_neighbors, &gossip_all_to_all_iterator, NULL);
 
-  GNUNET_SCHEDULER_add_delayed (sched,
-                                GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5),
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5),
                                 &gossip_all_to_all,
                                 NULL);
 
@@ -2749,9 +2744,9 @@ static int add_all_direct_neighbors (void *cls,
                                     send_context->fast_gossip_list_tail,
                                     gossip_entry);
   if (send_context->task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel(sched, send_context->task);
+    GNUNET_SCHEDULER_cancel(send_context->task);
 
-  send_context->task = GNUNET_SCHEDULER_add_now(sched, &neighbor_send_task, send_context);
+  send_context->task = GNUNET_SCHEDULER_add_now(&neighbor_send_task, send_context);
   //tc.reason = GNUNET_SCHEDULER_REASON_TIMEOUT;
   //neighbor_send_task(send_context, &tc);
   return GNUNET_YES;
@@ -2827,7 +2822,7 @@ process_peerinfo (void *cls,
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: Gossipped about %s to %d direct peers\n", GNUNET_i2s(&my_identity), neighbor_pid, sent);
       GNUNET_free(neighbor_pid);
 #endif
-      neighbor->send_context->task = GNUNET_SCHEDULER_add_now(sched, &neighbor_send_task, neighbor->send_context);
+      neighbor->send_context->task = GNUNET_SCHEDULER_add_now(&neighbor_send_task, neighbor->send_context);
     }
 }
 
@@ -2951,7 +2946,7 @@ void handle_core_disconnect (void *cls,
       GNUNET_break(0);
     }
   if ((neighbor->send_context != NULL) && (neighbor->send_context->task != GNUNET_SCHEDULER_NO_TASK))
-    GNUNET_SCHEDULER_cancel(sched, neighbor->send_context->task);
+    GNUNET_SCHEDULER_cancel(neighbor->send_context->task);
   GNUNET_free (neighbor);
 }
 
@@ -2960,18 +2955,15 @@ void handle_core_disconnect (void *cls,
  * Process dv requests.
  *
  * @param cls closure
- * @param scheduler scheduler to use
  * @param server the initialized server
  * @param c configuration to use
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *scheduler,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   unsigned long long max_hosts;
-  sched = scheduler;
   cfg = c;
 
   /* FIXME: Read from config, or calculate, or something other than this! */
@@ -3000,8 +2992,7 @@ run (void *cls,
 
   GNUNET_SERVER_add_handlers (server, plugin_handlers);
   coreAPI =
-  GNUNET_CORE_connect (sched,
-                       cfg,
+  GNUNET_CORE_connect (cfg,
                        GNUNET_TIME_relative_get_forever(),
                        NULL, /* FIXME: anything we want to pass around? */
                        &core_init,
@@ -3020,7 +3011,7 @@ run (void *cls,
   coreMST = GNUNET_SERVER_mst_create (&tokenized_message_handler,
                                       NULL);
 
-   peerinfo_handle = GNUNET_PEERINFO_connect(sched, cfg);
+   peerinfo_handle = GNUNET_PEERINFO_connect(cfg);
 
    if (peerinfo_handle == NULL)
      {
@@ -3029,8 +3020,7 @@ run (void *cls,
      }
 
   /* Scheduled the task to clean up when shutdown is called */
-  cleanup_task = GNUNET_SCHEDULER_add_delayed (sched,
-                                GNUNET_TIME_UNIT_FOREVER_REL,
+  cleanup_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &shutdown_task,
                                 NULL);
 }

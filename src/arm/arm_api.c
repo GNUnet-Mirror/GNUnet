@@ -49,11 +49,6 @@ struct GNUNET_ARM_Handle
    */
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
-  /**
-   * Scheduler to use.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
-
 };
 
 
@@ -62,11 +57,6 @@ struct GNUNET_ARM_Handle
  */
 struct ShutdownContext
 {
-  /**
-   * Scheduler to be used to call continuation
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
-
   /**
    * Connection to the service that is being shutdown.
    */
@@ -80,7 +70,7 @@ struct ShutdownContext
   /**
    * Task set up to cancel the shutdown request on timeout.
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  GNUNET_SCHEDULER_TaskIdentifier cancel_task;
 
   /**
    * Task to call once shutdown complete
@@ -99,7 +89,6 @@ struct ShutdownContext
 
 };
 
-
 /**
  * Handler receiving response to service shutdown requests.
  * First call with NULL: service misbehaving, or something.
@@ -112,8 +101,7 @@ struct ShutdownContext
  * @param msg NULL, indicating socket closure.
  */
 static void
-service_shutdown_handler (void *cls, 
-			  const struct GNUNET_MessageHeader *msg)
+service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct ShutdownContext *shutdown_ctx = cls;
 
@@ -124,7 +112,7 @@ service_shutdown_handler (void *cls,
 		  "Service handle shutdown before ACK!\n");
       if (shutdown_ctx->cont != NULL)
         shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_SYSERR);
-      GNUNET_SCHEDULER_cancel(shutdown_ctx->sched, shutdown_ctx->timeout_task);
+      GNUNET_SCHEDULER_cancel(shutdown_ctx->cancel_task);
       GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
       GNUNET_free(shutdown_ctx);
     }
@@ -137,7 +125,7 @@ service_shutdown_handler (void *cls,
       if (shutdown_ctx->cont != NULL)
         shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_NO);
 
-      GNUNET_SCHEDULER_cancel(shutdown_ctx->sched, shutdown_ctx->timeout_task);
+      GNUNET_SCHEDULER_cancel(shutdown_ctx->cancel_task);
       GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
       GNUNET_free(shutdown_ctx);
     }
@@ -165,7 +153,7 @@ service_shutdown_handler (void *cls,
 	  if (shutdown_ctx->cont != NULL)
 	    shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_YES);
 
-	  GNUNET_SCHEDULER_cancel(shutdown_ctx->sched, shutdown_ctx->timeout_task);
+	  GNUNET_SCHEDULER_cancel(shutdown_ctx->cancel_task);
 	  GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
 	  GNUNET_free(shutdown_ctx);
 	  break;
@@ -173,21 +161,17 @@ service_shutdown_handler (void *cls,
     }
 }
 
-
 /**
  * Shutting down took too long, cancel receive and return error.
  *
  * @param cls closure
  * @param tc context information (why was this task triggered now)
  */
-static void 
-service_shutdown_timeout (void *cls,
-			 const struct GNUNET_SCHEDULER_TaskContext * tc)
+void service_shutdown_cancel (void *cls,
+                              const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   struct ShutdownContext *shutdown_ctx = cls;
-
-  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, 
-	     _("Timeout during attempt to shutdown service.  Hoping it is simply down already.\n"));
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "service_shutdown_cancel called!\n");
   shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_SYSERR);
   GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
   GNUNET_free(shutdown_ctx);
@@ -222,10 +206,9 @@ write_shutdown (void *cls, size_t size, void *buf)
   GNUNET_CLIENT_receive (shutdown_ctx->sock,
 			 &service_shutdown_handler, shutdown_ctx,
 			 GNUNET_TIME_UNIT_FOREVER_REL);
-  shutdown_ctx->timeout_task = GNUNET_SCHEDULER_add_delayed (shutdown_ctx->sched,
-							     GNUNET_TIME_absolute_get_remaining(shutdown_ctx->timeout),
-							     &service_shutdown_timeout,
-							     shutdown_ctx);
+  shutdown_ctx->cancel_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining(shutdown_ctx->timeout),
+							    &service_shutdown_cancel,
+							    shutdown_ctx);
   msg = (struct GNUNET_MessageHeader *) buf;
   msg->type = htons (GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN);
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
@@ -240,7 +223,6 @@ write_shutdown (void *cls, size_t size, void *buf)
  * be used by the caller after this call
  * (calling this function frees "sock" after a while).
  *
- * @param sched the scheduler to use for calling shutdown continuation
  * @param sock the socket connected to the service
  * @param timeout how long to wait before giving up on transmission
  * @param cont continuation to call once the service is really down
@@ -248,16 +230,13 @@ write_shutdown (void *cls, size_t size, void *buf)
  *
  */
 static void
-arm_service_shutdown (struct GNUNET_SCHEDULER_Handle *sched,
-		      struct GNUNET_CLIENT_Connection *sock,
+arm_service_shutdown (struct GNUNET_CLIENT_Connection *sock,
 		      struct GNUNET_TIME_Relative timeout,
 		      GNUNET_CLIENT_ShutdownTask cont,
 		      void *cont_cls)
 {
   struct ShutdownContext *shutdown_ctx;
-
   shutdown_ctx = GNUNET_malloc(sizeof(struct ShutdownContext));
-  shutdown_ctx->sched = sched;
   shutdown_ctx->cont = cont;
   shutdown_ctx->cont_cls = cont_cls;
   shutdown_ctx->sock = sock;
@@ -278,20 +257,17 @@ arm_service_shutdown (struct GNUNET_SCHEDULER_Handle *sched,
  * @param cfg configuration to use (needed to contact ARM;
  *        the ARM service may internally use a different
  *        configuration to determine how to start the service).
- * @param sched scheduler to use
  * @param service service that *this* process is implementing/providing, can be NULL
  * @return context to use for further ARM operations, NULL on error
  */
 struct GNUNET_ARM_Handle *
 GNUNET_ARM_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-		    struct GNUNET_SCHEDULER_Handle *sched,
 		    const char *service)
 {
   struct GNUNET_ARM_Handle *ret;
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_ARM_Handle));
   ret->cfg = GNUNET_CONFIGURATION_dup (cfg);
-  ret->sched = sched;
   return ret;
 }
 
@@ -517,8 +493,7 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
 		  : "STOP",
 		  (const char*) &sc[1]);
       GNUNET_CLIENT_disconnect (sc->h->client, GNUNET_NO);
-      sc->h->client = GNUNET_CLIENT_connect (sc->h->sched,
-					     "arm",
+      sc->h->client = GNUNET_CLIENT_connect ("arm",
 					     sc->h->cfg);
       GNUNET_assert (NULL != sc->h->client);
       GNUNET_CLIENT_ignore_shutdown (sc->h->client, GNUNET_YES);
@@ -641,7 +616,6 @@ GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h,
   struct RequestContext *sctx;
   struct GNUNET_CLIENT_Connection *client;
   size_t slen;
-
 #if DEBUG_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               _("Asked to start service `%s' within %llu ms\n"), service_name,
@@ -656,14 +630,13 @@ GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h,
       sctx->cls = cb_cls;
       sctx->timeout = GNUNET_TIME_relative_to_absolute (timeout);
       memcpy (&sctx[1], service_name, slen);
-      GNUNET_CLIENT_service_test (h->sched,
-                                  "arm",
+      GNUNET_CLIENT_service_test ("arm",
                                   h->cfg, timeout, &arm_service_report, sctx);
       return;
     }
   if (h->client == NULL)
     {
-      client = GNUNET_CLIENT_connect (h->sched, "arm", h->cfg);
+      client = GNUNET_CLIENT_connect ("arm", h->cfg);
       if (client == NULL)
 	{
 	  cb (cb_cls, GNUNET_SYSERR);
@@ -718,7 +691,7 @@ GNUNET_ARM_stop_service (struct GNUNET_ARM_Handle *h,
 	      (unsigned long long) timeout.rel_value);
   if (h->client == NULL)
     {
-      client = GNUNET_CLIENT_connect (h->sched, "arm", h->cfg);
+      client = GNUNET_CLIENT_connect ("arm", h->cfg);
       if (client == NULL)
 	{
 	  cb (cb_cls, GNUNET_SYSERR);
@@ -732,7 +705,7 @@ GNUNET_ARM_stop_service (struct GNUNET_ARM_Handle *h,
       arm_shutdown_ctx = GNUNET_malloc(sizeof(struct ARM_ShutdownContext));
       arm_shutdown_ctx->cb = cb;
       arm_shutdown_ctx->cb_cls = cb_cls;
-      arm_service_shutdown (h->sched, h->client, timeout, &arm_shutdown_callback, arm_shutdown_ctx);
+      arm_service_shutdown (h->client, timeout, &arm_shutdown_callback, arm_shutdown_ctx);
       h->client = NULL;
       return;
     }

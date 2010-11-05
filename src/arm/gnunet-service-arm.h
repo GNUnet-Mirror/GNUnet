@@ -49,7 +49,6 @@ int start_service (struct GNUNET_SERVER_Client *client,
 int stop_listening (const char *serviceName);
 
 void prepareServices (const struct GNUNET_CONFIGURATION_Handle
-		      *configurationHandle,
-		      struct GNUNET_SCHEDULER_Handle *sched);
+		      *configurationHandle);
 
 #endif

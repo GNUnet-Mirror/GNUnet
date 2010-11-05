@@ -91,11 +91,6 @@ static struct IndexInfo *indexed_files;
 static struct GNUNET_CONTAINER_MultiHashMap *ifm;
 
 /**
- * Our scheduler.
- */
-static struct GNUNET_SCHEDULER_Handle *sched;
-
-/**
  * Our configuration.
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -404,8 +399,7 @@ GNUNET_FS_handle_index_start (void *cls,
 	      (unsigned int) mydev);
 #endif
   /* slow validation, need to hash full file (again) */
-  ii->fhc = GNUNET_CRYPTO_hash_file (sched,
-				     GNUNET_SCHEDULER_PRIORITY_IDLE,
+  ii->fhc = GNUNET_CRYPTO_hash_file (GNUNET_SCHEDULER_PRIORITY_IDLE,
 				     fn,
 				     HASHING_BLOCKSIZE,
 				     &hash_for_index_val,
@@ -710,7 +704,6 @@ shutdown_task (void *cls,
       indexed_files = pos->next;
       GNUNET_free (pos);
     }
-  sched = NULL;
   cfg = NULL;
 }
 
@@ -718,21 +711,17 @@ shutdown_task (void *cls,
 /**
  * Initialize the indexing submodule.
  *
- * @param s scheduler to use
  * @param c configuration to use
  * @param d datastore to use
  */
 int
-GNUNET_FS_indexing_init (struct GNUNET_SCHEDULER_Handle *s,
-			 const struct GNUNET_CONFIGURATION_Handle *c,
+GNUNET_FS_indexing_init (const struct GNUNET_CONFIGURATION_Handle *c,
 			 struct GNUNET_DATASTORE_Handle *d)
 {
-  sched = s;
   cfg = c;
   dsh = d;
   ifm = GNUNET_CONTAINER_multihashmap_create (128);
-  GNUNET_SCHEDULER_add_delayed (sched,
-				GNUNET_TIME_UNIT_FOREVER_REL,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&shutdown_task,
 				NULL);
   read_index_list ();

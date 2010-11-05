@@ -116,11 +116,6 @@ static int ret;
 static struct GNUNET_ARM_Handle *h;
 
 /**
- * Our scheduler.
- */
-static struct GNUNET_SCHEDULER_Handle *sched;
-
-/**
  * Our configuration.
  */
 const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -184,8 +179,7 @@ confirm_cb (void *cls, int success)
       break;
     }
 
-  GNUNET_SCHEDULER_add_continuation (sched,
-				     &cps_loop,
+  GNUNET_SCHEDULER_add_continuation (&cps_loop,
 				     NULL,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
@@ -213,8 +207,7 @@ confirm_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       if (quiet != GNUNET_YES)
         fprintf(stdout, _("Service `%s' is not running.\n"), service);
     }
-  GNUNET_SCHEDULER_add_continuation (sched,
-				     &cps_loop,
+  GNUNET_SCHEDULER_add_continuation (&cps_loop,
 				     NULL,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
@@ -224,19 +217,16 @@ confirm_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
- * @param s the scheduler to use
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param c configuration
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  sched = s;
   cfg = c;
   config_file = cfgfile;
   if (GNUNET_CONFIGURATION_get_value_string(cfg, "PATHS", "SERVICEHOME", &dir) != GNUNET_OK)
@@ -247,7 +237,7 @@ run (void *cls,
 		  "PATHS");
       return;
     }
-  h = GNUNET_ARM_connect (cfg, sched, NULL);
+  h = GNUNET_ARM_connect (cfg, NULL);
   if (h == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -255,8 +245,7 @@ run (void *cls,
       ret = 1;
       return;
     }
-  GNUNET_SCHEDULER_add_continuation (sched,
-				     &cps_loop,
+  GNUNET_SCHEDULER_add_continuation (&cps_loop,
 				     NULL,
 				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
@@ -330,7 +319,7 @@ cps_loop (void *cls,
 	case 4:
 	  if (test != NULL)
 	    {
-	      GNUNET_CLIENT_service_test (sched, test, cfg, TEST_TIMEOUT, &confirm_task, test);
+	      GNUNET_CLIENT_service_test (test, cfg, TEST_TIMEOUT, &confirm_task, test);
 	      return;
 	    }
 	  break;
@@ -342,7 +331,7 @@ cps_loop (void *cls,
               end = 0;
               start = 1;
               restart = 0;
-              h = GNUNET_ARM_connect (cfg, sched, NULL);
+              h = GNUNET_ARM_connect (cfg, NULL);
               if (h == NULL)
                 {
                   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -350,7 +339,7 @@ cps_loop (void *cls,
                   ret = 1;
                   return;
                 }
-              GNUNET_SCHEDULER_add_now(sched, &cps_loop, NULL);
+              GNUNET_SCHEDULER_add_now(&cps_loop, NULL);
               return;
 	    }
 	  /* Fall through */

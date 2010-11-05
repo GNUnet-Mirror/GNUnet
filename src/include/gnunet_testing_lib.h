@@ -205,11 +205,6 @@ typedef void (*GNUNET_TESTING_NotifyConnections)(void *cls,
 struct GNUNET_TESTING_Daemon
 {
   /**
-   * Our scheduler.
-   */
-  struct GNUNET_SCHEDULER_Handle *sched;
-
-  /**
    * Our configuration.
    */
   struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -410,7 +405,6 @@ typedef void (*GNUNET_TESTING_NotifyTopology)(void *cls,
  * reachable via "ssh" (unless the hostname is "NULL") without the
  * need to enter a password.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param timeout how long to wait starting up peers
  * @param hostname name of the machine where to run GNUnet
@@ -426,8 +420,7 @@ typedef void (*GNUNET_TESTING_NotifyTopology)(void *cls,
  * @return handle to the daemon (actual start will be completed asynchronously)
  */
 struct GNUNET_TESTING_Daemon *
-GNUNET_TESTING_daemon_start (struct GNUNET_SCHEDULER_Handle *sched,
-                             const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                              struct GNUNET_TIME_Relative timeout,
                              const char *hostname,
                              const char *ssh_username,
@@ -569,7 +562,6 @@ void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
  * adjusted to ensure that no two peers running on the same system
  * have the same port(s) in their respective configurations.
  *
- * @param sched scheduler to use
  * @param cfg configuration template to use
  * @param total number of daemons to start
  * @param timeout total time allowed for peers to start
@@ -587,8 +579,7 @@ void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
  * @return NULL on error, otherwise handle to control peer group
  */
 struct GNUNET_TESTING_PeerGroup *
-GNUNET_TESTING_daemons_start (struct GNUNET_SCHEDULER_Handle *sched,
-                              const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               unsigned int total,
                               struct GNUNET_TIME_Relative timeout,
                               GNUNET_TESTING_NotifyHostkeyCreated hostkey_callback,

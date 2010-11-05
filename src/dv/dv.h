@@ -258,8 +258,7 @@ typedef struct
 
 
 struct GNUNET_DV_Handle *
-GNUNET_DV_connect (struct GNUNET_SCHEDULER_Handle *sched,
-                  const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_DV_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                   GNUNET_DV_MessageReceivedHandler receive_handler,
                   void *receive_handler_cls);
 

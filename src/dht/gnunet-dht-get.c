@@ -56,10 +56,6 @@ static int verbose;
  */
 static struct GNUNET_DHT_Handle *dht_handle;
 
-/**
- * Global handle of the scheduler
- */
-static struct GNUNET_SCHEDULER_Handle *sched;
 
 /**
  * Global handle of the configuration
@@ -101,7 +97,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_DHT_get_stop (get_handle);
       get_handle = NULL;
     }
-  GNUNET_SCHEDULER_add_now (sched, &shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 
 
@@ -142,20 +138,17 @@ get_result_iterator (void *cls,
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
- * @param s the scheduler to use
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param c configuration
  */
 static void
 run (void *cls,
-     struct GNUNET_SCHEDULER_Handle *s,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_TIME_Relative timeout;
   GNUNET_HashCode key;
-  sched = s;
   cfg = c;
 
   if (query_key == NULL)
@@ -166,7 +159,7 @@ run (void *cls,
       return;
     }
 
-  dht_handle = GNUNET_DHT_connect (sched, cfg, 1);
+  dht_handle = GNUNET_DHT_connect (cfg, 1);
 
   if (dht_handle == NULL)
     {
@@ -186,8 +179,7 @@ run (void *cls,
 
   if (verbose)
     fprintf (stderr, "Issuing GET request for %s!\n", query_key);
-  GNUNET_SCHEDULER_add_delayed (sched,
-				GNUNET_TIME_absolute_get_remaining
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
 				(absolute_timeout), &cleanup_task, NULL);
   get_handle = GNUNET_DHT_get_start (dht_handle,
 				     timeout, 
