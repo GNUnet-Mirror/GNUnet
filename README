@@ -86,8 +86,10 @@ location of the configuration file in this case.
 
 Note that additional, per-user configuration files
 (~/.gnunet/gnunet.conf) need to be created by each user (for example,
-by running gnunet-setup). For more general information about the GNU
-build process read the INSTALL file.
+by running gnunet-setup).  Note that gnunet-setup is a separate
+download and requires GTK+; you can also edit the configuration file
+by hand, but this is not recommended.  For more general information
+about the GNU build process read the INSTALL file.
 
 If you are compiling the code from subversion, you have to run
 ". bootstrap" before ./configure.  If you receive an error during the
