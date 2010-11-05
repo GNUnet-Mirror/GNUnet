@@ -63,7 +63,7 @@ static void dumpText(const char* message)
 {
 	FILE* file = fopen(dumpFileName, "w");
 	GNUNET_assert(NULL != file);
-	fprintf(file, message);
+	fprintf(file,"%s", message);
 	fclose(file);
 }
 
