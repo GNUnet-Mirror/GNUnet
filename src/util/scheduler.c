@@ -163,76 +163,76 @@ struct Task
 
 
 /**
-* List of tasks waiting for an event.
-*/
-struct Task *pending;
+ * List of tasks waiting for an event.
+ */
+static struct Task *pending;
 
 /**
-* List of tasks waiting ONLY for a timeout event.
-* Sorted by timeout (earliest first).  Used so that
-* we do not traverse the list of these tasks when
-* building select sets (we just look at the head
-* to determine the respective timeout ONCE).
-*/
-struct Task *pending_timeout;
+ * List of tasks waiting ONLY for a timeout event.
+ * Sorted by timeout (earliest first).  Used so that
+ * we do not traverse the list of these tasks when
+ * building select sets (we just look at the head
+ * to determine the respective timeout ONCE).
+ */
+static struct Task *pending_timeout;
 
 /**
-* Last inserted task waiting ONLY for a timeout event.
-* Used to (heuristically) speed up insertion.
-*/
-struct Task *pending_timeout_last;
+ * Last inserted task waiting ONLY for a timeout event.
+ * Used to (heuristically) speed up insertion.
+ */
+static struct Task *pending_timeout_last;
 
 /**
-* ID of the task that is running right now.
-*/
-struct Task *active_task;
+ * ID of the task that is running right now.
+ */
+static struct Task *active_task;
 
 /**
-* List of tasks ready to run right now,
-* grouped by importance.
-*/
-struct Task *ready[GNUNET_SCHEDULER_PRIORITY_COUNT];
+ * List of tasks ready to run right now,
+ * grouped by importance.
+ */
+static struct Task *ready[GNUNET_SCHEDULER_PRIORITY_COUNT];
 
 /**
-* Identity of the last task queued.  Incremented for each task to
-* generate a unique task ID (it is virtually impossible to start
-* more than 2^64 tasks during the lifetime of a process).
-*/
-GNUNET_SCHEDULER_TaskIdentifier last_id;
+ * Identity of the last task queued.  Incremented for each task to
+ * generate a unique task ID (it is virtually impossible to start
+ * more than 2^64 tasks during the lifetime of a process).
+ */
+static GNUNET_SCHEDULER_TaskIdentifier last_id;
 
 /**
-* Highest number so that all tasks with smaller identifiers
-* have already completed.  Also the lowest number of a task
-* still waiting to be executed.
-*/
-GNUNET_SCHEDULER_TaskIdentifier lowest_pending_id;
+ * Highest number so that all tasks with smaller identifiers
+ * have already completed.  Also the lowest number of a task
+ * still waiting to be executed.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier lowest_pending_id;
 
 /**
-* Number of tasks on the ready list.
-*/
-unsigned int ready_count;
+ * Number of tasks on the ready list.
+ */
+static unsigned int ready_count;
 
 /**
-* How many tasks have we run so far?
-*/
-unsigned long long tasks_run;
+ * How many tasks have we run so far?
+ */
+static unsigned long long tasks_run;
 
 /**
-* Priority of the task running right now.  Only
-* valid while a task is running.
-*/
-enum GNUNET_SCHEDULER_Priority current_priority;
+ * Priority of the task running right now.  Only
+ * valid while a task is running.
+ */
+static enum GNUNET_SCHEDULER_Priority current_priority;
 
 /**
-* Priority of the highest task added in the current select
-* iteration.
-*/
-enum GNUNET_SCHEDULER_Priority max_priority_added;
+ * Priority of the highest task added in the current select
+ * iteration.
+ */
+static enum GNUNET_SCHEDULER_Priority max_priority_added;
 
 /**
-* How 'nice' are we right now?
-*/
-int nice_level;
+ * How 'nice' are we right now?
+ */
+static int nice_level;
 
 
 /**
@@ -528,6 +528,7 @@ GNUNET_SCHEDULER_shutdown ()
   struct Task *pos;
   int i;
 
+  GNUNET_assert (active_task != NULL);
   pos = pending_timeout;
   while (pos != NULL)
     {
@@ -733,6 +734,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
   const struct GNUNET_DISK_FileHandle *pr;
   char c;
 
+  GNUNET_assert (active_task == NULL);
   rs = GNUNET_NETWORK_fdset_create ();
   ws = GNUNET_NETWORK_fdset_create ();
   GNUNET_assert (shutdown_pipe_handle == NULL);
@@ -836,6 +838,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
 enum GNUNET_SCHEDULER_Reason
 GNUNET_SCHEDULER_get_reason ()
 {
+  GNUNET_assert (active_task != NULL);
   return active_task->reason;
 }
 
@@ -856,6 +859,7 @@ GNUNET_SCHEDULER_get_load (enum GNUNET_SCHEDULER_Priority p)
   struct Task *pos;
   unsigned int ret;
 
+  GNUNET_assert (active_task != NULL);
   if (p == GNUNET_SCHEDULER_PRIORITY_COUNT)
     return ready_count;
   if (p == GNUNET_SCHEDULER_PRIORITY_KEEP)
@@ -888,6 +892,7 @@ GNUNET_SCHEDULER_cancel (GNUNET_SCHEDULER_TaskIdentifier task)
   int to;
   void *ret;
 
+  GNUNET_assert (active_task != NULL);
   to = 0;
   prev = NULL;
   t = pending;
@@ -982,6 +987,8 @@ GNUNET_SCHEDULER_add_continuation (GNUNET_SCHEDULER_Task task,
 #if EXECINFO
   void *backtrace_array[50];
 #endif
+
+  GNUNET_assert (active_task != NULL);
   t = GNUNET_malloc (sizeof (struct Task));
 #if EXECINFO
   t->num_backtrace_strings = backtrace(backtrace_array, 50);
@@ -1084,6 +1091,7 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_TIME_Relative delay,
   void *backtrace_array[MAX_TRACE_DEPTH];
 #endif
 
+  GNUNET_assert (active_task != NULL);
   GNUNET_assert (NULL != task);
   t = GNUNET_malloc (sizeof (struct Task));
   t->callback = task;
@@ -1218,6 +1226,7 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
   void *backtrace_array[MAX_TRACE_DEPTH];
 #endif
 
+  GNUNET_assert (active_task != NULL);
   GNUNET_assert (NULL != task);
   t = GNUNET_malloc (sizeof (struct Task));
   t->callback = task;
@@ -1464,6 +1473,7 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
   void *backtrace_array[MAX_TRACE_DEPTH];
 #endif
 
+  GNUNET_assert (active_task != NULL);
   GNUNET_assert (NULL != task);
   t = GNUNET_malloc (sizeof (struct Task));
   t->callback = task;
