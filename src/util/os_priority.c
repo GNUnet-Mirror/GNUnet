@@ -399,7 +399,7 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
       start.hStdOutput = stdout_handle;
     }
 
-  if (32 >= FindExecutableA (filename, NULL, path)) 
+  if (32 >= (int) FindExecutableA (filename, NULL, path)) 
     {
       SetErrnoFromWinError (GetLastError ());
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "FindExecutable", filename);
@@ -555,7 +555,7 @@ GNUNET_OS_start_process_v (const int *lsocks,
 
   GNUNET_assert (lsocks == NULL);
 
-  if (32 >= FindExecutableA (filename, NULL, non_const_filename)) 
+  if (32 >= (int) FindExecutableA (filename, NULL, non_const_filename)) 
     {
       SetErrnoFromWinError (GetLastError ());
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "FindExecutable", filename);
