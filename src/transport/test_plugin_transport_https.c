@@ -1185,7 +1185,7 @@ run (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _
                   ("Transport service is lacking key configuration settings.  Exiting.\n"));
-      GNUNET_SCHEDULER_shutdown (s);
+      GNUNET_SCHEDULER_shutdown ();
       fail = 1;
       return;
     }
@@ -1251,7 +1251,7 @@ run (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Transport service could not access hostkey.  Exiting.\n"));
-      GNUNET_SCHEDULER_shutdown (s);
+      GNUNET_SCHEDULER_shutdown ();
       fail = 1;
       return;
     }
