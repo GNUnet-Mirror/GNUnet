@@ -692,12 +692,13 @@ static struct GNUNET_DISK_PipeHandle *shutdown_pipe_handle;
 /**
  * Signal handler called for SIGPIPE.
  */
+#ifndef MINGW
 static void
 sighandler_pipe ()
 {
   return;
 }
-
+#endif
 /**
  * Signal handler called for signals that should cause us to shutdown.
  */

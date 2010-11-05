@@ -152,6 +152,8 @@ get_type (const char *log)
     return GNUNET_ERROR_TYPE_WARNING;
   if (0 == strcasecmp (log, _("ERROR")))
     return GNUNET_ERROR_TYPE_ERROR;
+  if (0 == strcasecmp (log, _("NONE")))
+    return GNUNET_ERROR_TYPE_NONE;
   return GNUNET_ERROR_TYPE_INVALID;
 }
 

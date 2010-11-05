@@ -50,8 +50,9 @@ extern "C" {
   #include "langinfo.h"
 #endif
 
-#include <windows.h>
+#include <winsock2.h>
 #include <ws2tcpip.h>
+#include <windows.h>
 #include <sys/types.h>
 #include <time.h>
 #include <stdio.h>
@@ -334,7 +335,7 @@ BOOL _plibc_CreateShortcut(const char *pszSrc, const char *pszDest);
 BOOL _plibc_DereferenceShortcut(char *pszShortcut);
 char *plibc_ChooseDir(char *pszTitle, unsigned long ulFlags);
 char *plibc_ChooseFile(char *pszTitle, unsigned long ulFlags);
-long QueryRegistry(HKEY hMainKey, char *pszKey, char *pszSubKey,
+long QueryRegistry(HKEY hMainKey, const char *pszKey, const char *pszSubKey,
               char *pszBuffer, long *pdLength);
 
 BOOL __win_IsHandleMarkedAsBlocking(int hHandle);

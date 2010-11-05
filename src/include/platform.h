@@ -78,6 +78,7 @@
 
 #ifdef _MSC_VER
 #include <Winsock2.h>
+#include <ws2tcpip.h>
 #else
 #ifndef MINGW
 #include <netdb.h>
@@ -108,6 +109,9 @@
 #include <stdarg.h>
 #include <errno.h>
 #include <signal.h>
+#ifdef WINDOWS
+#include <malloc.h> /* for alloca(), on other OSes it's in stdlib.h */
+#endif
 #ifndef _MSC_VER
 #include <unistd.h>             /* KLB_FIX */
 #endif

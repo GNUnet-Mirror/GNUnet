@@ -34,8 +34,9 @@
 #include <sys/timeb.h>
 #include <time.h>
 #include <dirent.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
 #include <windows.h>
-#include <winsock.h>
 #include <winerror.h>
 #include <iphlpapi.h>
 #include <shlobj.h>
@@ -198,7 +199,7 @@ extern "C"
 
   BOOL CreateShortcut (const char *pszSrc, const char *pszDest);
   BOOL DereferenceShortcut (char *pszShortcut);
-  long QueryRegistry (HKEY hMainKey, char *pszKey, char *pszSubKey,
+  long QueryRegistry (HKEY hMainKey, const char *pszKey, const char *pszSubKey,
                       char *pszBuffer, long *pdLength);
   int ListNICs (void (*callback) (void *, const char *, int), void *cls);
   BOOL AddPathAccessRights (char *lpszFileName, char *lpszAccountName,

@@ -43,8 +43,8 @@
  */
 #define _GNU_SOURCE
 
-#include <ws2tcpip.h>
 #include <winsock2.h>
+#include <ws2tcpip.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>

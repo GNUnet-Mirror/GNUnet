@@ -551,7 +551,6 @@ GNUNET_OS_start_process_v (const int *lsocks,
   PROCESS_INFORMATION proc;
   int argcount = 0;
   char non_const_filename[MAX_PATH +1];
-  int filenamelen = 0;
   struct GNUNET_OS_Process *gnunet_proc = NULL;
 
   GNUNET_assert (lsocks == NULL);

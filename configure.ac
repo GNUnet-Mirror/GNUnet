@@ -23,6 +23,7 @@
 AC_PREREQ(2.61)
 AC_INIT([gnunet], [0.9.0pre1],[bug-gnunet@gnu.org])
 AM_INIT_AUTOMAKE([gnunet], [0.9.0pre1])
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_CONFIG_HEADERS([gnunet_config.h])
 
 AH_TOP([#define _GNU_SOURCE  1])
@@ -141,6 +142,7 @@ netbsd*)
      LDFLAGS="$LDFLAGS -no-undefined -Wl,--export-all-symbols"
      LIBS="$LIBS -lws2_32 -lplibc"
      CFLAGS="-mms-bitfields $CFLAGS"
+     CPPFLAGS="-D_WIN32_WINNT=0x0501 $CPPFLAGS"
      build_target="mingw"
      AC_PROG_CXX
      LIBPREFIX=lib

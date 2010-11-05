@@ -719,7 +719,7 @@ connect_probe_continuation (void *cls,
   struct GNUNET_CONNECTION_Handle *h = ap->h;
   struct AddressProbe *pos;
   int error;
-  unsigned int len;
+  socklen_t len;
 
   GNUNET_assert (ap->sock != NULL);
   GNUNET_CONTAINER_DLL_remove (h->ap_head, h->ap_tail, ap);

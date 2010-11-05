@@ -346,7 +346,7 @@ NTSTATUS _OpenPolicy(LPWSTR ServerName, DWORD DesiredAccess, PLSA_HANDLE PolicyH
  * @remarks Call GetLastError() to obtain extended error information.
  * @see http://support.microsoft.com/?scid=kb;en-us;132958
  */
-BOOL _GetAccountSid(LPTSTR SystemName, LPTSTR AccountName, PSID * Sid)
+BOOL _GetAccountSid(LPCTSTR SystemName, LPCTSTR AccountName, PSID * Sid)
 {
   LPTSTR ReferencedDomain = NULL;
   DWORD cbSid = 128;  							/* initial allocation attempt */
@@ -452,7 +452,7 @@ NTSTATUS _SetPrivilegeOnAccount(LSA_HANDLE PolicyHandle,/* open policy handle */
  * @param pszName the name of the account
  * @param pszDesc description of the account
  */
-int CreateServiceAccount(char *pszName, char *pszDesc)
+int CreateServiceAccount(const char *pszName, const char *pszDesc)
 {
   USER_INFO_1 ui;
   USER_INFO_1008 ui2;
@@ -486,14 +486,14 @@ int CreateServiceAccount(char *pszName, char *pszDesc)
   										STATUS_SUCCESS)
   	return 3;
 
-  _GetAccountSid(NULL, (LPTSTR) pszName, &pSID);
+  _GetAccountSid(NULL, (LPCTSTR) pszName, &pSID);
 
-  if (_SetPrivilegeOnAccount(hPolicy, pSID, L"SeServiceLogonRight", TRUE) != STATUS_SUCCESS)
+  if (_SetPrivilegeOnAccount(hPolicy, pSID, (LPWSTR) L"SeServiceLogonRight", TRUE) != STATUS_SUCCESS)
   	return 4;
 
-  _SetPrivilegeOnAccount(hPolicy, pSID, L"SeDenyInteractiveLogonRight", TRUE);
-  _SetPrivilegeOnAccount(hPolicy, pSID, L"SeDenyBatchLogonRight", TRUE);
-  _SetPrivilegeOnAccount(hPolicy, pSID, L"SeDenyNetworkLogonRight", TRUE);
+  _SetPrivilegeOnAccount(hPolicy, pSID, (LPWSTR) L"SeDenyInteractiveLogonRight", TRUE);
+  _SetPrivilegeOnAccount(hPolicy, pSID, (LPWSTR) L"SeDenyBatchLogonRight", TRUE);
+  _SetPrivilegeOnAccount(hPolicy, pSID, (LPWSTR) L"SeDenyNetworkLogonRight", TRUE);
 
   GNLsaClose(hPolicy);
 
@@ -801,7 +801,7 @@ char *winErrorStr(const char *prefix, int dwErr)
     NULL, (DWORD) dwErr, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &err,
     0, NULL ))
   {
-    err = "";
+    err = (char *) LocalAlloc (LMEM_FIXED | LMEM_ZEROINIT, 1);
   }
 
   mem = strlen(err) + strlen(prefix) + 20;

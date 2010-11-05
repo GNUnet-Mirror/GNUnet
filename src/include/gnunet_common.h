@@ -138,6 +138,7 @@ typedef int (*GNUNET_FileNameCallback) (void *cls, const char *filename);
  */
 enum GNUNET_ErrorType
 {
+  GNUNET_ERROR_TYPE_NONE = 0,
   GNUNET_ERROR_TYPE_ERROR = 1,
   GNUNET_ERROR_TYPE_WARNING = 2,
   GNUNET_ERROR_TYPE_INFO = 4,

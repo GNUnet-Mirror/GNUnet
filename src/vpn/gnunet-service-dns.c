@@ -452,7 +452,7 @@ read_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
 
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof addr);
-    unsigned int addrlen = sizeof addr;
+    socklen_t addrlen = sizeof addr;
 
     int r;
     r = GNUNET_NETWORK_socket_recvfrom(dnsout,
