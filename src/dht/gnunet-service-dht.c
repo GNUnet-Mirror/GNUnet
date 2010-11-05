@@ -2922,8 +2922,11 @@ converge_distance (const GNUNET_HashCode *target,
          * value first (always route to closest, because
          * they are sorted.)
          */
+
         if (hops > converge_modifier) /* Past cutoff */
-          return ULLONG_MAX;
+          {
+            return ULLONG_MAX;
+          }
         /* Fall through */
       default:
         return 1;
@@ -3308,11 +3311,13 @@ remove_recent (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CONTAINER_bloomfilter_free(req->bloom);
   GNUNET_free(req);
 
+  /*
   if ((tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN) && (0 == GNUNET_CONTAINER_multihashmap_size(recent.hashmap)) && (0 == GNUNET_CONTAINER_heap_get_size(recent.minHeap)))
   {
     GNUNET_CONTAINER_multihashmap_destroy(recent.hashmap);
     GNUNET_CONTAINER_heap_destroy(recent.minHeap);
   }
+  */
 }
 
 
@@ -4802,6 +4807,10 @@ main (int argc, char *const *argv)
 			     "dht",
 			     GNUNET_SERVICE_OPTION_NONE,
 			     &run, NULL)) ? 0 : 1;
+  GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size(recent.hashmap));
+  GNUNET_assert (0 == GNUNET_CONTAINER_heap_get_size(recent.minHeap));
   GNUNET_CONTAINER_multihashmap_destroy (recent_find_peer_requests);
+  GNUNET_CONTAINER_multihashmap_destroy (recent.hashmap);
+  GNUNET_CONTAINER_heap_destroy (recent.minHeap);
   return ret;
 }
