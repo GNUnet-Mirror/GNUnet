@@ -983,7 +983,8 @@ GNUNET_SCHEDULER_add_continuation (GNUNET_SCHEDULER_Task task,
   void *backtrace_array[50];
 #endif
 
-  GNUNET_assert (active_task != NULL);
+  GNUNET_assert ( (active_task != NULL) ||
+		  (reason == GNUNET_SCHEDULER_REASON_STARTUP) );
   t = GNUNET_malloc (sizeof (struct Task));
 #if EXECINFO
   t->num_backtrace_strings = backtrace(backtrace_array, 50);
