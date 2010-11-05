@@ -52,11 +52,11 @@
  *
  */
 
-#define GNUNET_ATS_ARRAY_TERMINATOR 0
+#define GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR 0
 
 /**
  * Enum defining all known property types for ATS
- * Enum values are used in the GNUNET_ATS_Information struct as (key,value)-pair
+ * Enum values are used in the GNUNET_TRANSPORT_ATS_Information struct as (key,value)-pair
  *
  * Cost are always stored in uint32_t, so all units used to define costs
  * have to be normalized to fit in uint32_t [0 .. 4.294.967.295]
@@ -67,7 +67,7 @@
  * 2049..3072 : Values with a relation to availability
  *
  */
-enum GNUNET_ATS_Property
+enum GNUNET_TRANSPORT_ATS_Property
 {
 
 	/* Cost related values */
@@ -89,7 +89,7 @@ enum GNUNET_ATS_Property
 	 * LAN:  0 [cent/MB]
 	 * 2G : 10 [cent/MB]
 	 */
-	GNUNET_ATS_COST_FINANCIAL_PER_VOLUME = 1,
+	GNUNET_TRANSPORT_ATS_COST_FINANCIAL_PER_VOLUME = 1,
 
 	/**
 	 * Time based cost in financial units to transmit data
@@ -107,7 +107,7 @@ enum GNUNET_ATS_Property
 	 * LAN   :  0 [cent/h]
 	 * Dialup: 10 [cent/h]
 	 */
-	GNUNET_ATS_COST_FINANCIAL_PER_TIME = 2,
+	GNUNET_TRANSPORT_ATS_COST_FINANCIAL_PER_TIME = 2,
 
 	/**
 	 * Computational costs
@@ -127,7 +127,7 @@ enum GNUNET_ATS_Property
 	 * HTTPS with AES CBC-128: 	5,279
 	 * HTTPS with RC4-1024: 	2,652
 	 */
-	GNUNET_ATS_COST_COMPUTATIONAL = 3,
+	GNUNET_TRANSPORT_ATS_COST_COMPUTATIONAL = 3,
 
 	/**
 	 * Energy consumption
@@ -156,7 +156,7 @@ enum GNUNET_ATS_Property
 	 * WLAN:      89 (600 mW @ 802.11g /w 54 MBit/s)
 	 * Bluetooth: 267 (100 mW @ BT2.0 EDR /w 3 MBit/s)
 	 */
-	GNUNET_ATS_COST_ENERGY_CONSUMPTION = 4,
+	GNUNET_TRANSPORT_ATS_COST_ENERGY_CONSUMPTION = 4,
 
 	/**
 	 * Connect cost
@@ -179,7 +179,7 @@ enum GNUNET_ATS_Property
 	 *  2129 bytes Ethernet, 1975 bytes TCP/IP, 1755 bytes TCP, 1403 bytes HTTPS
 	 *
 	 * */
-	GNUNET_ATS_COST_CONNECT = 5,
+	GNUNET_TRANSPORT_ATS_COST_CONNECT = 5,
 
 	/**
 	 * Bandwidth cost
@@ -197,7 +197,7 @@ enum GNUNET_ATS_Property
 	 * Dial-up: 8       (64 Kbit/s)
 	 *
 	 */
-	GNUNET_ATS_COST_BANDWITH_AVAILABLE = 6,
+	GNUNET_TRANSPORT_ATS_COST_BANDWITH_AVAILABLE = 6,
 
 	/**
 	 *  Network overhead
@@ -218,7 +218,7 @@ enum GNUNET_ATS_Property
 	 * UDP/IPv4 over Ethernet: 1024 + 38 + 20 + 8  = 1090 [bytes/kb]
 	 * UDP/IPv6 over Ethernet: 1024 + 38 + 40 + 8  = 1110 [bytes/kb]
 	 */
-	GNUNET_ATS_COST_NETWORK_OVERHEAD = 7,
+	GNUNET_TRANSPORT_ATS_COST_NETWORK_OVERHEAD = 7,
 
 
 	/* Quality related values */
@@ -231,21 +231,21 @@ enum GNUNET_ATS_Property
 	 *
 	 * Unit: [dBm]
 	 */
-	GNUNET_ATS_QUALITY_PHY_SIGNAL_STRENGTH = 1025,
+	GNUNET_TRANSPORT_ATS_QUALITY_PHY_SIGNAL_STRENGTH = 1025,
 
 	/**
 	 * Collision rate on physical layer
 	 *
 	 * Unit: [B/s]
 	 */
-	GNUNET_ATS_QUALITY_PHY_COLLISION_RATE = 1026,
+	GNUNET_TRANSPORT_ATS_QUALITY_PHY_COLLISION_RATE = 1026,
 
 	/**
 	 * Error rate on physical layer
 	 *
 	 * Unit: [B/s]
 	 */
-	GNUNET_ATS_QUALITY_PHY_ERROR_RATE = 1027,
+	GNUNET_TRANSPORT_ATS_QUALITY_PHY_ERROR_RATE = 1027,
 
     /* Network layer quality properties */
 
@@ -261,7 +261,7 @@ enum GNUNET_ATS_Property
 	 * Dialup: 4000
 	 * WLAN  : 7000
 	 */
-	GNUNET_ATS_QUALITY_NET_DELAY = 1028,
+	GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY = 1028,
 
 	/**
 	 * Jitter
@@ -270,7 +270,7 @@ enum GNUNET_ATS_Property
 	 *
 	 * Unit: [μs]
 	 */
-	GNUNET_ATS_QUALITY_NET_JITTER = 1029,
+	GNUNET_TRANSPORT_ATS_QUALITY_NET_JITTER = 1029,
 
 	/**
 	 * Error rate on network layer
@@ -285,7 +285,7 @@ enum GNUNET_ATS_Property
 	 * Note: This numbers are just assumptions as an example, not
 	 * measured or somehow determined
 	 */
-	GNUNET_ATS_QUALITY_NET_ERRORRATE = 1030,
+	GNUNET_TRANSPORT_ATS_QUALITY_NET_ERRORRATE = 1030,
 
 	/**
 	 * Drop rate on network layer
@@ -302,7 +302,7 @@ enum GNUNET_ATS_Property
 	 * Note: This numbers are just assumptions as an example, not
 	 * measured or somehow determined
 	 */
-	GNUNET_ATS_QUALITY_NET_DROPRATE = 1031,
+	GNUNET_TRANSPORT_ATS_QUALITY_NET_DROPRATE = 1031,
 
 	/**
 	 * Loss rate on network layer
@@ -319,7 +319,7 @@ enum GNUNET_ATS_Property
 	 * Note: This numbers are just assumptions as an example, not measured
 	 * or somehow determined
 	 */
-	GNUNET_ATS_QUALITY_NET_LOSSRATE = 1032,
+	GNUNET_TRANSPORT_ATS_QUALITY_NET_LOSSRATE = 1032,
 
 	/**
 	 * Throughput on network layer
@@ -333,7 +333,7 @@ enum GNUNET_ATS_Property
 	 * Dialup: 	  4
 	 *
 	 */
-	GNUNET_ATS_QUALITY_NET_THROUGHPUT = 1033,
+	GNUNET_TRANSPORT_ATS_QUALITY_NET_THROUGHPUT = 1033,
 
 	/* Availability related values */
 	/* =========================== */
@@ -341,22 +341,22 @@ enum GNUNET_ATS_Property
 	/**
 	 * Is a peer reachable?
 	 */
-	GNUNET_ATS_AVAILABILITY_REACHABLE = 2048,
+	GNUNET_TRANSPORT_ATS_AVAILABILITY_REACHABLE = 2048,
 
 	/**
 	 * Is there a connection established to a peer using this transport
 	 */
-	GNUNET_ATS_AVAILABILITY_CONNECTED = 2049
+	GNUNET_TRANSPORT_ATS_AVAILABILITY_CONNECTED = 2049
 };
 
 /**
  * This structure will be used by plugins to communicate costs to ATS or by
  * higher level components to tell ATS their constraints.
- * Always a pair of (GNUNET_ATS_Property, uint32_t value).
+ * Always a pair of (GNUNET_TRANSPORT_ATS_Property, uint32_t value).
  * Value is always uint32_t, so all units used to define costs have to
  * be normalized to fit uint32_t.
  */
-struct GNUNET_ATS_Information
+struct GNUNET_TRANSPORT_ATS_Information
 {
 	/**
 	 * ATS property type
@@ -494,21 +494,21 @@ typedef struct GNUNET_TIME_Relative (*GNUNET_TRANSPORT_TrafficReport) (void *cls
 /**
  * Function called whenever the plugin has to notify ATS about costs for using this transport
  *
- * The cost will be passed as struct GNUNET_ATS_Cost_Information[]
+ * The cost will be passed as struct GNUNET_TRANSPORT_ATS_Cost_Information[]
  * This array is 0-terminated, so the last element will be a pair:
- * ((cost->cost_type==GNUNET_ATS_ARRAY_TERMINATOR) && cost->cost_value==0))
+ * ((cost->cost_type==GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR) && cost->cost_value==0))
  *
  * @param cls closure
  * @param peer peer
  * @param addr peer address
  * @param addrlen address length
- * @param cost pointer to the first element of struct GNUNET_ATS_Cost_Information[]
+ * @param cost pointer to the first element of struct GNUNET_TRANSPORT_ATS_Cost_Information[]
  */
 typedef void (*GNUNET_TRANSPORT_CostReport) (void *cls,
 											 const struct GNUNET_PeerIdentity *peer,
                                              const void *addr,
                                              uint16_t addrlen,
-											 struct GNUNET_ATS_Information * cost);
+											 struct GNUNET_TRANSPORT_ATS_Information * cost);
 
 /**
  * The transport service will pass a pointer to a struct
