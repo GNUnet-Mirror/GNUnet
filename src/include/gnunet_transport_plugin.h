@@ -19,7 +19,7 @@
 */
 
 /**
- * @file transport/plugin_transport.h
+ * @file transport/gnunet_transport_plugin.h
  * @brief API for the transport services.  This header
  *        specifies the struct that is given to the plugin's entry
  *        method and the other struct that must be returned.

@@ -19,6 +19,7 @@ gnunetinclude_HEADERS = \
   gnunet_bandwidth_lib.h \
   gnunet_bio_lib.h \
   gnunet_block_lib.h \
+  gnunet_block_plugin.h \
   gnunet_client_lib.h \
   gnunet_common.h \
   gnunet_constants.h \
@@ -28,7 +29,9 @@ gnunetinclude_HEADERS = \
   gnunet_core_service.h \
   gnunet_crypto_lib.h \
   gnunet_datacache_lib.h \
+  gnunet_datacache_plugin.h \
   gnunet_datastore_service.h \
+  gnunet_datastore_plugin.h \
   gnunet_dht_service.h \
   gnunet_disk_lib.h \
   gnunet_dv_service.h \
@@ -57,5 +60,6 @@ gnunetinclude_HEADERS = \
   gnunet_testing_lib.h \
   gnunet_time_lib.h \
   gnunet_transport_service.h \
+  gnunet_transport_plugin.h \
   gnunet_upnp_service.h \
   gnunet_util_lib.h

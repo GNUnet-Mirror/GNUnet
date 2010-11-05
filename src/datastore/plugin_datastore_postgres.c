@@ -25,7 +25,7 @@
  */
 
 #include "platform.h"
-#include "plugin_datastore.h"
+#include "gnunet_datastore_plugin.h"
 #include <postgresql/libpq-fe.h>
 
 #define DEBUG_POSTGRES GNUNET_NO

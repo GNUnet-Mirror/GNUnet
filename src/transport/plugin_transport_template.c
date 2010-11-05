@@ -31,7 +31,7 @@
 #include "gnunet_service_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
-#include "plugin_transport.h"
+#include "gnunet_transport_plugin.h"
 
 #define DEBUG_TEMPLATE GNUNET_NO
 

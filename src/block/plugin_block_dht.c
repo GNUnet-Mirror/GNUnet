@@ -28,7 +28,7 @@
 
 #include "platform.h"
 #include "gnunet_hello_lib.h"
-#include "plugin_block.h"
+#include "gnunet_block_plugin.h"
 
 #define DEBUG_DHT GNUNET_NO
 

@@ -25,7 +25,7 @@
  */
 
 #include "platform.h"
-#include "plugin_datastore.h"
+#include "gnunet_datastore_plugin.h"
 #include <sqlite3.h>
 
 #define DEBUG_SQLITE GNUNET_YES

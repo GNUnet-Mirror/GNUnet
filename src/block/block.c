@@ -27,7 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_signatures.h"
 #include "gnunet_block_lib.h"
-#include "plugin_block.h"
+#include "gnunet_block_plugin.h"
 
 
 /**

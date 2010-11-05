@@ -34,7 +34,7 @@
 #include "gnunet_signatures.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
-#include "plugin_transport.h"
+#include "gnunet_transport_plugin.h"
 #include "transport.h"
 
 #define DEBUG_TCP GNUNET_NO

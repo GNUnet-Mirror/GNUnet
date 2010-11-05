@@ -27,7 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_datacache_lib.h"
 #include "gnunet_statistics_service.h"
-#include "plugin_datacache.h"
+#include "gnunet_datacache_plugin.h"
 
 /**
  * Internal state of the datacache library.

@@ -25,7 +25,7 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "plugin_datacache.h"
+#include "gnunet_datacache_plugin.h"
 #include <postgresql/libpq-fe.h>
 
 #define DEBUG_POSTGRES GNUNET_NO

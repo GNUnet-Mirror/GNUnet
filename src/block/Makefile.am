@@ -60,7 +60,7 @@ libgnunet_plugin_block_test_la_LDFLAGS = \
 
 
 libgnunetblock_la_SOURCES = \
-  block.c plugin_block.h
+  block.c 
 libgnunetblock_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 

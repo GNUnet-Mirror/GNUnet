@@ -19,7 +19,7 @@
 */
 
 /**
- * @file datacache/plugin_datacache.h
+ * @file datacache/gnunet_datacache_plugin.h
  * @brief API for database backends for the datacache
  * @author Christian Grothoff
  */
@@ -154,5 +154,5 @@ struct GNUNET_DATACACHE_PluginFunctions {
 }
 #endif
 
-/* end of plugin_datacache.h */
+/* end of gnunet_datacache_plugin.h */
 #endif

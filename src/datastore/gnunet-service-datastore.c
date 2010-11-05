@@ -28,7 +28,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_statistics_service.h"
-#include "plugin_datastore.h"
+#include "gnunet_datastore_plugin.h"
 #include "datastore.h"
 
 /**

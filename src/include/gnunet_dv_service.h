@@ -40,7 +40,7 @@ extern "C"
 #include "gnunet_common.h"
 #include "gnunet_configuration_lib.h"
 #include "gnunet_scheduler_lib.h"
-#include "../transport/plugin_transport.h"
+#include "../transport/gnunet_transport_plugin.h"
 
 /**
  * Version of the dv API.

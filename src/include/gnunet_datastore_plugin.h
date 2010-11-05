@@ -19,7 +19,7 @@
 */
 
 /**
- * @file datastore/plugin_datastore.h
+ * @file datastore/gnunet_datastore_plugin.h
  * @brief API for the database backend plugins.
  * @author Christian Grothoff
  */
@@ -63,7 +63,6 @@ struct GNUNET_DATASTORE_PluginEnvironment
    * Configuration to use.
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
-
 
   /**
    * Function to call on disk utilization change.

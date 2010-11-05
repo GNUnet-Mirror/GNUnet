@@ -25,7 +25,7 @@
  */
 
 #include "platform.h"
-#include "plugin_block.h"
+#include "gnunet_block_plugin.h"
 #include "block_dns.h"
 #include "gnunet_signatures.h"
 

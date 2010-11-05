@@ -122,7 +122,7 @@
  */
 
 #include "platform.h"
-#include "plugin_datastore.h"
+#include "gnunet_datastore_plugin.h"
 #include "gnunet_util_lib.h"
 #include <mysql/mysql.h>
 

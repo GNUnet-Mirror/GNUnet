@@ -19,7 +19,7 @@
 */
 
 /**
- * @file block/plugin_block.h
+ * @file block/gnunet_block_plugin.h
  * @brief API for block plugins.  Each block plugin must conform to 
  *        the API specified by this header.
  * @author Christian Grothoff

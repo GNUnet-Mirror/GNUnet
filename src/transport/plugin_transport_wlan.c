@@ -30,7 +30,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
-#include "plugin_transport.h"
+#include "gnunet_transport_plugin.h"
 #include "plugin_transport_wlan.h"
 #include "gnunet_common.h"
 #include "gnunet_crypto_lib.h"

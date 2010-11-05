@@ -19,7 +19,7 @@
 */
 
 /**
- * @file transport/plugin_transport_http.c
+ * @file transport/gnunet_transport_plugin.http.c
  * @brief http transport service plugin
  * @author Matthias Wachs
  */
@@ -35,19 +35,19 @@
 #include "gnunet_resolver_service.h"
 #include "gnunet_server_lib.h"
 #include "gnunet_container_lib.h"
-#include "plugin_transport.h"
+#include "gnunet_transport_plugin.h"
 #include "gnunet_os_lib.h"
 #include "microhttpd.h"
 #include <curl/curl.h>
 
 #if BUILD_HTTPS
-#define LIBGNUNET_PLUGIN_TRANSPORT_INIT libgnunet_plugin_transport_https_init
-#define LIBGNUNET_PLUGIN_TRANSPORT_DONE libgnunet_plugin_transport_https_done
+#define LIBGNUNET_PLUGIN_TRANSPORT_INIT libgnunet_gnunet_transport_plugin.https_init
+#define LIBGNUNET_PLUGIN_TRANSPORT_DONE libgnunet_gnunet_transport_plugin.https_done
 #define LIBGNUNET_PLUGIN_TRANSPORT_COMPONENT transport_https
 #define PROTOCOL_PREFIX "https"
 #else
-#define LIBGNUNET_PLUGIN_TRANSPORT_INIT libgnunet_plugin_transport_http_init
-#define LIBGNUNET_PLUGIN_TRANSPORT_DONE libgnunet_plugin_transport_http_done
+#define LIBGNUNET_PLUGIN_TRANSPORT_INIT libgnunet_gnunet_transport_plugin.http_init
+#define LIBGNUNET_PLUGIN_TRANSPORT_DONE libgnunet_gnunet_transport_plugin.http_done
 #define LIBGNUNET_PLUGIN_TRANSPORT_COMPONENT transport_http
 #define PROTOCOL_PREFIX "http"
 #endif
@@ -3099,4 +3099,4 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   return api;
 }
 
-/* end of plugin_transport_http.c */
+/* end of gnunet_transport_plugin.http.c */

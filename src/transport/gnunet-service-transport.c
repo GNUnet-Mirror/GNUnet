@@ -36,7 +36,7 @@
 #include "gnunet_protocols.h"
 #include "gnunet_service_lib.h"
 #include "gnunet_signatures.h"
-#include "plugin_transport.h"
+#include "gnunet_transport_plugin.h"
 #include "transport.h"
 
 #define DEBUG_BLACKLIST GNUNET_YES

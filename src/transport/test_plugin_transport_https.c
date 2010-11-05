@@ -18,8 +18,8 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file transport/test_plugin_transport_https.c
- * @brief testcase for plugin_transport_https.c
+ * @file transport/test_gnunet_transport_plugin.https.c
+ * @brief testcase for gnunet_transport_plugin.https.c
  * @author Matthias Wachs
  */
 
@@ -37,7 +37,7 @@
 #include "gnunet_service_lib.h"
 #include "gnunet_crypto_lib.h"
 
-#include "plugin_transport.h"
+#include "gnunet_transport_plugin.h"
 #include "gnunet_statistics_service.h"
 #include "transport.h"
 #include <curl/curl.h>
@@ -462,10 +462,10 @@ shutdown_clean ()
 
   GNUNET_free(test_addr);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Unloading https plugin\n");
-  GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_https", api));
+  GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_gnunet_transport_plugin.https", api));
 
   GNUNET_SCHEDULER_shutdown();
-  GNUNET_DISK_directory_remove ("/tmp/test_plugin_transport_http");
+  GNUNET_DISK_directory_remove ("/tmp/test_gnunet_transport_plugin.http");
 
   struct stat sbuf;
   if (0 == stat (cert_file, &sbuf ))
@@ -1266,7 +1266,7 @@ run (void *cls,
 
   /* load plugins... */
   setup_plugin_environment ();
-  GNUNET_asprintf (&libname, "libgnunet_plugin_transport_https");
+  GNUNET_asprintf (&libname, "libgnunet_gnunet_transport_plugin.https");
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading HTTPS transport plugin `%s'\n"),libname);
   api = GNUNET_PLUGIN_load (libname, &env);
   GNUNET_free (libname);
@@ -1376,7 +1376,7 @@ main (int argc, char *const *argv)
   };
   int ret;
   char *const argv_prog[] = {
-    "test_plugin_transport_https",
+    "test_gnunet_transport_plugin.https",
     "-c",
     "test_plugin_transport_data_http.conf",
     "-L",
@@ -1387,7 +1387,7 @@ main (int argc, char *const *argv)
 #endif
     NULL
   };
-  GNUNET_log_setup ("test_plugin_transport_https",
+  GNUNET_log_setup ("test_gnunet_transport_plugin.https",
 #if VERBOSE
                     "DEBUG",
 #else
@@ -1398,12 +1398,12 @@ main (int argc, char *const *argv)
   ret = (GNUNET_OK ==
          GNUNET_PROGRAM_run (5,
                              argv_prog,
-                             "test_plugin_transport_https",
+                             "test_gnunet_transport_plugin.https",
                              "testcase", options, &run, NULL)) ? GNUNET_NO : GNUNET_YES;
 
-    GNUNET_DISK_directory_remove ("/tmp/test_plugin_transport_https");
+    GNUNET_DISK_directory_remove ("/tmp/test_gnunet_transport_plugin.https");
 
   return fail;
 }
 
-/* end of test_plugin_transport_http.c */
+/* end of test_gnunet_transport_plugin.http.c */
