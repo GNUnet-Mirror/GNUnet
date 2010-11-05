@@ -229,11 +229,6 @@ static enum GNUNET_SCHEDULER_Priority current_priority;
  */
 static enum GNUNET_SCHEDULER_Priority max_priority_added;
 
-/**
- * How 'nice' are we right now?
- */
-static int nice_level;
-
 
 /**
  * Check that the given priority is legal (and return it).
