@@ -1662,12 +1662,9 @@ peer_status_handler (void *cls,
 static int
 change_host_trust (struct ConnectedPeer *host, int value)
 {
-  unsigned int old_trust;
-
   if (value == 0)
     return 0;
   GNUNET_assert (host != NULL);
-  old_trust = host->trust;
   if (value > 0)
     {
       if (host->trust + value < host->trust)
