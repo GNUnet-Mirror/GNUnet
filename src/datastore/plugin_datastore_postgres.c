@@ -315,22 +315,25 @@ init_connection (struct Plugin *plugin)
 					 "CONFIG",
 					 &conninfo);
   plugin->dbh = PQconnectdb (conninfo == NULL ? "" : conninfo);
-  GNUNET_free_non_null (conninfo);
   if (NULL == plugin->dbh)
     {
       /* FIXME: warn about out-of-memory? */
+      GNUNET_free_non_null (conninfo);
       return GNUNET_SYSERR;
     }
   if (PQstatus (plugin->dbh) != CONNECTION_OK)
     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
 		       "datastore-postgres",
-		       _("Unable to initialize Postgres: %s"),
+		       _("Unable to initialize Postgres with configuration `%s': %s"),
+		       conninfo,
 		       PQerrorMessage (plugin->dbh));
       PQfinish (plugin->dbh);
       plugin->dbh = NULL;
+      GNUNET_free_non_null (conninfo);
       return GNUNET_SYSERR;
     }
+  GNUNET_free_non_null (conninfo);
   ret = PQexec (plugin->dbh,
                 "CREATE TABLE gn090 ("
                 "  type INTEGER NOT NULL DEFAULT 0,"
