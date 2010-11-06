@@ -15,7 +15,7 @@ Cons
 MANUAL SETUP INSTRUCTIONS
 
  1) in /etc/gnunet.conf, set
-    sqstore = "sqstore_postgres"
+    DATABASE = postgres
 
  2) Then access postgres to create a user; I had to do this to get 
     access and create a user:

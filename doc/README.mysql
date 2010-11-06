@@ -25,7 +25,7 @@ Cons
 MANUAL SETUP INSTRUCTIONS
 
  1) in /etc/gnunet.conf, set
-    sqstore = "sqstore_mysql"
+    DATABASE = mysql
 
  2) Then access mysql as root,
     $ mysql -u root -p 
