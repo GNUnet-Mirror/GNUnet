@@ -1148,7 +1148,7 @@ GNUNET_FS_uri_ksk_merge (const struct GNUNET_FS_Uri *u1,
 	    break;
 	  }
       if (0 == found)
-	kl[kc++] = GNUNET_strdup (kp - 1);
+	kl[kc++] = GNUNET_strdup (kp);
     }
   ret = GNUNET_malloc (sizeof(struct GNUNET_FS_Uri));
   ret->type = ksk;
