@@ -39,7 +39,6 @@
 #include "gnunet_crypto_lib.h"
 #include "gnunet_signatures.h"
 
-
 /**
  * The UDP-Socket through which DNS-Resolves will be sent if they are not to be
  * sent through gnunet. The port of this socket will not be hijacked.
@@ -103,17 +102,17 @@ struct receive_dht_cls {
  * Hijack all outgoing DNS-Traffic but for traffic leaving "our" port.
  */
 static void
-hijack(unsigned short port) {
+hijack(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
     char port_s[6];
 
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Hijacking, port is %d\n", port);
-    snprintf(port_s, 6, "%d", port);
-    GNUNET_OS_start_process(NULL,
-			    NULL,
-			    "gnunet-helper-hijack-dns",
-			    "gnunet-hijack-dns",
-			    port_s,
-			    NULL);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Hijacking, port is %d\n", dnsoutport);
+    snprintf(port_s, 6, "%d", dnsoutport);
+    GNUNET_OS_process_close (GNUNET_OS_start_process(NULL,
+						     NULL,
+						     "gnunet-helper-hijack-dns",
+						     "gnunet-hijack-dns",
+						     port_s,
+						     NULL));
 }
 
 /**
@@ -160,6 +159,81 @@ send_answer(void* cls, size_t size, void* buf) {
 					  cls);
 
     return len;
+}
+
+static void
+send_rev_query(void * cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
+    struct dns_pkt_parsed* pdns = (struct dns_pkt_parsed*) cls;
+
+    unsigned short id = pdns->s.id;
+
+    if (query_states[id].valid != GNUNET_YES) return;
+    query_states[id].valid = GNUNET_NO;
+
+    GNUNET_assert(query_states[id].namelen == 74);
+
+    size_t len = sizeof(struct answer_packet) - 1 \
+		 + sizeof(struct dns_static) \
+		 + 74 /* this is the length of a reverse ipv6-lookup */ \
+		 + sizeof(struct dns_query_line) \
+		 + 2 /* To hold the pointer (as defined in RFC1035) to the name */ \
+		 + sizeof(struct dns_record_line) - 1 \
+		 - 2 /* We do not know the lenght of the answer yet*/ \
+		 - 2 /* No idea why... */ ;
+
+    struct answer_packet_list* answer = GNUNET_malloc(len + 2*sizeof(struct answer_packet_list*));
+    memset(answer, 0, len + 2*sizeof(struct answer_packet_list*));
+
+    answer->pkt.hdr.type = htons(GNUNET_MESSAGE_TYPE_LOCAL_RESPONSE_DNS);
+    answer->pkt.hdr.size = htons(len);
+    answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_REV;
+
+    answer->pkt.from = query_states[id].remote_ip;
+
+    answer->pkt.to = query_states[id].local_ip;
+    answer->pkt.dst_port = query_states[id].local_port;
+
+    struct dns_pkt *dpkt = (struct dns_pkt*)answer->pkt.data;
+
+    dpkt->s.id = id;
+    dpkt->s.aa = 1;
+    dpkt->s.qr = 1;
+    dpkt->s.ra = 1;
+    dpkt->s.qdcount = htons(1);
+    dpkt->s.ancount = htons(1);
+
+    memcpy(dpkt->data, query_states[id].name, query_states[id].namelen);
+    GNUNET_free(query_states[id].name);
+
+    struct dns_query_line* dque = (struct dns_query_line*)(dpkt->data+(query_states[id].namelen));
+    dque->type = htons(12); /* PTR */
+    dque->class = htons(1); /* IN */
+
+    char* anname = (char*)(dpkt->data+(query_states[id].namelen)+sizeof(struct dns_query_line));
+    memcpy(anname, (char[]){0xc0, 0x0c}, 2);
+
+    struct dns_record_line *drec_data = (struct dns_record_line*)(dpkt->data+(query_states[id].namelen)+sizeof(struct dns_query_line)+2);
+    drec_data->type = htons(12); /* AAAA */
+    drec_data->class = htons(1); /* IN */
+    drec_data->ttl = htonl(3600); /* FIXME: read from block */
+
+    /* Calculate at which offset in the packet the length of the name and the
+     * name, it is filled in by the daemon-vpn */
+    answer->pkt.addroffset = htons((unsigned short)((unsigned long)(&drec_data->data_len)-(unsigned long)(&answer->pkt)));
+
+    GNUNET_CONTAINER_DLL_insert_after(head, tail, tail, answer);
+
+    GNUNET_SERVER_notify_transmit_ready(query_states[id].client,
+					len,
+					GNUNET_TIME_UNIT_FOREVER_REL,
+					&send_answer,
+					query_states[id].client);
+
+    /*
+     * build
+     * complete dns-packet with empty name in the answer
+     * provide offsett of the name
+     */
 }
 
 /**
@@ -236,7 +310,6 @@ receive_dht(void *cls,
     memcpy(dpkt->data, query_states[id].name, query_states[id].namelen);
     GNUNET_free(query_states[id].name);
 
-
     struct dns_query_line* dque = (struct dns_query_line*)(dpkt->data+(query_states[id].namelen));
     dque->type = htons(28); /* AAAA */
     dque->class = htons(1); /* IN */
@@ -273,7 +346,9 @@ rehijack(void *cls,
 	 struct GNUNET_SERVER_Client *client,
 	 const struct GNUNET_MessageHeader *message) {
     unhijack(dnsoutport);
-    hijack(dnsoutport);
+    GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS, hijack, NULL);
+
+    GNUNET_SERVER_receive_done(client, GNUNET_OK);
 }
 
 /**
@@ -296,6 +371,7 @@ receive_query(void *cls,
     query_states[dns->s.id].name = GNUNET_malloc(query_states[dns->s.id].namelen);
     memcpy(query_states[dns->s.id].name, dns->data, query_states[dns->s.id].namelen);
 
+    /* The query is for a .gnunet-address */
     if (pdns->queries[0]->namelen > 9 &&
 	0 == strncmp(pdns->queries[0]->name+(pdns->queries[0]->namelen - 9), ".gnunet.", 9))
       {
@@ -323,6 +399,18 @@ receive_query(void *cls,
 					   receive_dht,
 					   cls);
 
+	goto outfree;
+      }
+
+    /* The query is for a PTR of a previosly resolved virtual IP */
+    if (htons(pdns->queries[0]->qtype) == 12 &&
+	pdns->queries[0]->namelen > 19 &&
+	0 == strncmp(pdns->queries[0]->name+(pdns->queries[0]->namelen - 19), ".4.3.2.1.ip6.arpa.", 19))
+      {
+	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Reverse-Query for .gnunet!\n");
+
+	GNUNET_SCHEDULER_add_now(send_rev_query, pdns);
+
 	goto out;
       }
 
@@ -339,9 +427,10 @@ receive_query(void *cls,
 				 (struct sockaddr*) &dest,
 				 sizeof dest);
 
-out:
+outfree:
     free_parsed_dns_packet(pdns);
     pdns = NULL;
+out:
     GNUNET_SERVER_receive_done(client, GNUNET_OK);
 }
 
@@ -479,6 +568,7 @@ publish_name (void *cls,
 
 /**
  * @param cls closure
+ * @param sched scheduler to use
  * @param server the initialized server
  * @param cfg configuration to use
  */
@@ -526,8 +616,6 @@ run (void *cls,
 		    &addrlen);
 
   dnsoutport = htons(addr.sin_port);
-
-  hijack(htons(addr.sin_port));
 
   GNUNET_SCHEDULER_add_now (publish_name, NULL);
 
