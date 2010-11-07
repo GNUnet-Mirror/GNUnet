@@ -3544,7 +3544,7 @@ handle_p2p_put (void *cls,
   if (prq.sender != NULL)
     {
       prq.sender->inc_preference += CONTENT_BANDWIDTH_VALUE + 1000 * prq.priority;
-      prq.sender->trust += prq.priority;
+      change_host_trust (prq.sender, prq.priority);
     }
   if ( (GNUNET_YES == active_migration) &&
        (GNUNET_NO == test_put_load_too_high (prq.priority)) )
@@ -3877,7 +3877,7 @@ bound_priority (uint32_t prio_in,
 				GNUNET_NO);
       return 0; /* excess resources */
     }
-  ret = change_host_trust (cp, prio_in);
+  ret = -change_host_trust (cp, -prio_in);
   if (ret > 0)
     {
       if (ret > current_priorities + N)
@@ -3900,7 +3900,7 @@ bound_priority (uint32_t prio_in,
 				GNUNET_NO);
       /* undo charge */
       if (ret != 0)
-	change_host_trust (cp, -ret);
+	change_host_trust (cp, ret);
       return -1; /* not enough resources */
     }
   else
