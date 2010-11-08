@@ -234,13 +234,13 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
       /* database is new or got deleted, reset payload to zero! */
       plugin->env->duc (plugin->env->cls, 0);
     }
-  plugin->fn = GNUNET_STRINGS_to_utf8 (afsdir, strlen (afsdir),
 #ifdef ENABLE_NLS
-					      nl_langinfo (CODESET)
+  plugin->fn = GNUNET_STRINGS_to_utf8 (afsdir, strlen (afsdir),
+				       nl_langinfo (CODESET));
 #else
-					      "UTF-8"   /* good luck */
+  plugin->fn = GNUNET_STRINGS_to_utf8 (afsdir, strlen (afsdir),
+				       "UTF-8");   /* good luck */
 #endif
-					      );
   GNUNET_free (afsdir);
   
   /* Open database and precompile statements */
