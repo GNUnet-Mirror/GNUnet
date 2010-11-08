@@ -821,6 +821,8 @@ check_completed (struct GNUNET_FS_DownloadContext *dc)
 }
 
 
+#define GNUNET_FS_URI_CHK_PREFIX GNUNET_FS_URI_PREFIX GNUNET_FS_URI_CHK_INFIX
+
 /**
  * We found an entry in a directory.  Check if the respective child
  * already exists and if not create the respective child download.
@@ -874,8 +876,7 @@ trigger_recursive_download (void *cls,
       if (fn == NULL)
 	{
 	  us = GNUNET_FS_uri_to_string (uri);
-	  fn = GNUNET_strdup (&us [strlen (GNUNET_FS_URI_PREFIX 
-					   GNUNET_FS_URI_CHK_INFIX)]);
+	  fn = GNUNET_strdup (&us [strlen (GNUNET_FS_URI_CHK_PREFIX)]);
 	  GNUNET_free (us);
 	}
       else if (fn[0] == '.')
@@ -884,8 +885,7 @@ trigger_recursive_download (void *cls,
 	  us = GNUNET_FS_uri_to_string (uri);
 	  GNUNET_asprintf (&fn,
 			   "%s%s",
-			   &us[strlen (GNUNET_FS_URI_PREFIX 
-				       GNUNET_FS_URI_CHK_INFIX)], ext);
+			   &us[strlen (GNUNET_FS_URI_CHK_PREFIX)], ext);
 	  GNUNET_free (ext);
 	  GNUNET_free (us);
 	}
