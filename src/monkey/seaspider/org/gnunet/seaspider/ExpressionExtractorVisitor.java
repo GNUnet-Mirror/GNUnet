@@ -26,6 +26,7 @@ import org.gnunet.seaspider.parser.nodes.JumpStatement;
 import org.gnunet.seaspider.parser.nodes.LogicalANDExpression;
 import org.gnunet.seaspider.parser.nodes.LogicalORExpression;
 import org.gnunet.seaspider.parser.nodes.MultiplicativeExpression;
+import org.gnunet.seaspider.parser.nodes.Node;
 import org.gnunet.seaspider.parser.nodes.NodeChoice;
 import org.gnunet.seaspider.parser.nodes.NodeSequence;
 import org.gnunet.seaspider.parser.nodes.NodeToken;
@@ -141,10 +142,15 @@ public class ExpressionExtractorVisitor extends DepthFirstVisitor {
 	public void visit(ParameterDeclaration n) {
 		skip_mode = false;
 		assert current_expression == null;
-		current_expression = new ExpressionBuilder();
-		n.f1.accept(this);
-		LineNumberInfo lin = LineNumberInfo.get(n);
-		current_expression.commit(lin.lineEnd);
+		if (n.f1.present())
+		{
+			NodeSequence ns = (NodeSequence) n.f1.node;
+			Node var = ns.elementAt(0);
+			current_expression = new ExpressionBuilder();
+			var.accept(this);
+			LineNumberInfo lin = LineNumberInfo.get(var);
+			current_expression.commit(lin.lineEnd);
+		}
 		current_expression = null;
 		skip_mode = true;
 	}
