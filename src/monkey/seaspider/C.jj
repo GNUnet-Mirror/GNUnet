@@ -380,7 +380,7 @@ void InitializerList() : {}
 
 void Array() : {}
 {
-   "[" [ConstantExpression()] "]" 
+   ("[" [ConstantExpression()] "]" )+
 }
 
 void Statement() : {}
