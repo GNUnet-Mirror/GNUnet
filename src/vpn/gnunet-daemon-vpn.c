@@ -554,6 +554,12 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 	list = GNUNET_malloc(htons(pkt->hdr.size) + 2*sizeof(struct answer_packet_list*));
 	memcpy(&list->pkt, pkt, htons(pkt->hdr.size));
       }
+    else
+      {
+	GNUNET_abort(0);
+	GNUNET_free(pkt);
+	return;
+      }
 
     GNUNET_free(pkt);
 
