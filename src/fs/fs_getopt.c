@@ -144,13 +144,13 @@ GNUNET_FS_getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext*
       *mm = meta;
     }
 
-  tmp = GNUNET_STRINGS_to_utf8 (value, strlen (value),
 #if ENABLE_NLS
-				nl_langinfo (CODESET)
+  tmp = GNUNET_STRINGS_to_utf8 (value, strlen (value),
+				nl_langinfo (CODESET));
 #else
-				"utf-8"
+  tmp = GNUNET_STRINGS_to_utf8 (value, strlen (value),
+				"utf-8");
 #endif
-    );
   type = EXTRACTOR_metatype_get_max ();
   while (type > 0)
     {

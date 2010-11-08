@@ -240,6 +240,7 @@ percent_decode_keyword (const char *in, char **emsg)
   return ret;
 }
 
+#define GNUNET_FS_URI_KSK_PREFIX GNUNET_FS_URI_PREFIX GNUNET_FS_URI_KSK_INFIX
 
 /**
  * Parse a KSK URI.
@@ -263,9 +264,9 @@ uri_ksk_parse (const char *s, char **emsg)
 
   GNUNET_assert (s != NULL);
   slen = strlen (s);
-  pos = strlen (GNUNET_FS_URI_PREFIX GNUNET_FS_URI_KSK_INFIX);
+  pos = strlen (GNUNET_FS_URI_KSK_PREFIX);
   if ( (slen <= pos) ||
-       (0 != strncmp (s, GNUNET_FS_URI_PREFIX GNUNET_FS_URI_KSK_INFIX, 
+       (0 != strncmp (s, GNUNET_FS_URI_KSK_PREFIX,
 		      pos) ) )
     return NULL;       /* not KSK URI */
   if ( (s[slen - 1] == '+') ||
@@ -337,6 +338,8 @@ CLEANUP:
 }
 
 
+#define GNUNET_FS_URI_SKS_PREFIX GNUNET_FS_URI_PREFIX GNUNET_FS_URI_SKS_INFIX
+
 /**
  * Parse an SKS URI.
  *
@@ -356,9 +359,9 @@ uri_sks_parse (const char *s, char **emsg)
 
   GNUNET_assert (s != NULL);
   slen = strlen (s);
-  pos = strlen (GNUNET_FS_URI_PREFIX GNUNET_FS_URI_SKS_INFIX);
+  pos = strlen ( GNUNET_FS_URI_SKS_PREFIX);
   if ( (slen <= pos) ||
-       (0 != strncmp (s, GNUNET_FS_URI_PREFIX GNUNET_FS_URI_SKS_INFIX, 
+       (0 != strncmp (s, GNUNET_FS_URI_SKS_PREFIX,
 		      pos) ) )
     return NULL; /* not an SKS URI */
   if ( (slen < pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)) ||
@@ -382,6 +385,8 @@ uri_sks_parse (const char *s, char **emsg)
   return ret;
 }
 
+#define GNUNET_FS_URI_CHK_PREFIX GNUNET_FS_URI_PREFIX GNUNET_FS_URI_CHK_INFIX
+
 
 /**
  * Parse a CHK URI.
@@ -404,9 +409,9 @@ uri_chk_parse (const char *s, char **emsg)
   GNUNET_assert (s != NULL);
 
   slen = strlen (s);
-  pos = strlen (GNUNET_FS_URI_PREFIX GNUNET_FS_URI_CHK_INFIX);
+  pos = strlen (GNUNET_FS_URI_CHK_PREFIX);
   if ( (slen < pos + 2 * sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) + 1) ||
-       (0 != strncmp (s, GNUNET_FS_URI_PREFIX GNUNET_FS_URI_CHK_INFIX, 
+       (0 != strncmp (s,  GNUNET_FS_URI_CHK_PREFIX, 
 		      pos) ) )
     return NULL; /* not a CHK URI */
   if ( (s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1] != '.') ||
@@ -527,6 +532,8 @@ struct LocUriAssembly
 };
 
 
+#define GNUNET_FS_URI_LOC_PREFIX GNUNET_FS_URI_PREFIX GNUNET_FS_URI_LOC_INFIX
+
 /**
  * Parse a LOC URI.
  * Also verifies validity of the location URI.
@@ -553,9 +560,9 @@ uri_loc_parse (const char *s, char **emsg)
 
   GNUNET_assert (s != NULL);
   slen = strlen (s);
-  pos = strlen (GNUNET_FS_URI_PREFIX GNUNET_FS_URI_LOC_INFIX);
+  pos = strlen ( GNUNET_FS_URI_LOC_PREFIX);
   if ( (slen < pos + 2 * sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) + 1) ||
-       (0 != strncmp (s, GNUNET_FS_URI_PREFIX GNUNET_FS_URI_LOC_INFIX, 
+       (0 != strncmp (s,  GNUNET_FS_URI_LOC_PREFIX,
 		      pos) ) )
     return NULL; /* not an SKS URI */
   if ( (s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1] != '.') ||

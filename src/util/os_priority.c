@@ -130,10 +130,15 @@ GNUNET_OS_process_close (struct GNUNET_OS_Process *proc)
 extern GNUNET_SIGNAL_Handler w32_sigchld_handler;
 
 /**
+ * Make seaspider happy.
+ */
+#define DWORD_WINAPI DWORD WINAPI
+
+/**
  * @brief Waits for a process to terminate and invokes the SIGCHLD handler
  * @param proc pointer to process structure
  */
-static DWORD WINAPI
+static DWORD_WINAPI
 ChildWaitThread (void *arg)
 {
   struct GNUNET_OS_Process *proc = (struct GNUNET_OS_Process *) arg;

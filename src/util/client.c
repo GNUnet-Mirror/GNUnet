@@ -253,7 +253,6 @@ struct GNUNET_CLIENT_Connection
 
 };
 
-
 /**
  * Try to connect to the service.
  *
