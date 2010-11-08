@@ -2587,9 +2587,10 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
 
   put_msg = (const struct GNUNET_DHT_PutMessage *)msg;
   put_type = (enum GNUNET_BLOCK_Type) ntohl (put_msg->type);
-
+#if HAVE_MALICIOUS
   if (put_type == GNUNET_BLOCK_DHT_MALICIOUS_MESSAGE_TYPE)
     return;
+#endif
   data_size = ntohs (put_msg->header.size) - sizeof (struct GNUNET_DHT_PutMessage);
   ret = GNUNET_BLOCK_get_key (block_context,
 			      put_type,
@@ -3843,6 +3844,7 @@ find_active_client (struct GNUNET_SERVER_Client *client)
   return ret;
 }
 
+#if HAVE_MALICIOUS
 /**
  * Task to send a malicious put message across the network.
  *
@@ -3859,7 +3861,6 @@ malicious_put_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     return;
-
   put_message.header.size = htons(sizeof(struct GNUNET_DHT_PutMessage));
   put_message.header.type = htons(GNUNET_MESSAGE_TYPE_DHT_PUT);
   put_message.type = htonl(GNUNET_BLOCK_DHT_MALICIOUS_MESSAGE_TYPE);
@@ -3883,8 +3884,8 @@ malicious_put_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s:%s Sending malicious PUT message with hash %s\n", my_short_id, "DHT", GNUNET_h2s(&key));
   demultiplex_message(&put_message.header, &message_context);
   GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, malicious_put_frequency), &malicious_put_task, NULL);
-
 }
+
 
 /**
  * Task to send a malicious put message across the network.
@@ -3927,6 +3928,8 @@ malicious_get_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   demultiplex_message (&get_message.header, &message_context);
   GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, malicious_get_frequency), &malicious_get_task, NULL);
 }
+#endif
+
 
 /**
  * Iterator over hash map entries.
@@ -4131,6 +4134,7 @@ handle_dht_control_message (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sending self seeking find peer request!\n");
     GNUNET_SCHEDULER_add_now(&send_find_peer_message, NULL);
     break;
+#if HAVE_MALICIOUS
   case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_GET:
     if (ntohs(dht_control_msg->variable) > 0)
       malicious_get_frequency = ntohs(dht_control_msg->variable);
@@ -4162,6 +4166,7 @@ handle_dht_control_message (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
 	       "%s:%s Initiating malicious DROP behavior\n", my_short_id, "DHT");
     break;
+#endif
   default:
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, 
 	       "%s:%s Unknown control command type `%d'!\n", 
