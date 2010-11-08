@@ -954,7 +954,10 @@ static struct GNUNET_TIME_Relative get_average_send_delay()
   }
 
   average_time = GNUNET_TIME_relative_divide(average_time, divisor);
-  fprintf(stderr, "Avg send delay: %u sends is %llu\n", divisor, (long long unsigned int)average_time.abs_value);
+  fprintf(stderr, 
+	  "Avg send delay: %u sends is %llu\n",
+	  divisor, 
+	  (unsigned long long) average_time.abs_value);
   return average_time;
 }
 #endif
@@ -996,7 +999,8 @@ static struct GNUNET_TIME_Relative get_max_send_delay()
   }
 
   if (max_time.rel_value > MAX_REQUEST_TIME.rel_value)
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Max send delay was %llu\n", (long long unsigned int)max_time.rel_value);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Max send delay was %llu\n", 
+	       (unsigned long long) max_time.rel_value);
   return max_time;
 }
 

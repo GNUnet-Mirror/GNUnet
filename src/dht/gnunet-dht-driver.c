@@ -2035,8 +2035,8 @@ setup_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
       test_get = GNUNET_malloc(sizeof(struct TestGetContext));
       test_get->uid = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_puts);
 #if REMEMBER
-      while (remember[test_get->uid][temp_daemon] == 1)
-        temp_daemon = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
+      while (remember[test_get->uid][temp_daemon] == 1)	
+        temp_daemon = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);	
       remember[test_get->uid][temp_daemon] = 1;
 #endif
       test_get->daemon = GNUNET_TESTING_daemon_get(pg, GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers));
