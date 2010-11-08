@@ -3877,7 +3877,9 @@ bound_priority (uint32_t prio_in,
 				GNUNET_NO);
       return 0; /* excess resources */
     }
-  ret = -change_host_trust (cp, -prio_in);
+  if (prio_in > INT32_MAX)
+    prio_in = INT32_MAX;
+  ret = - change_host_trust (cp, - (int) prio_in);
   if (ret > 0)
     {
       if (ret > current_priorities + N)
@@ -3899,8 +3901,7 @@ bound_priority (uint32_t prio_in,
 				1,
 				GNUNET_NO);
       /* undo charge */
-      if (ret != 0)
-	change_host_trust (cp, ret);
+      change_host_trust (cp, (int) ret);
       return -1; /* not enough resources */
     }
   else
