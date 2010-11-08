@@ -1,12 +1,19 @@
 0.9.0pre2:
-* CORE:
-  - 2-peer perf test goes WAY over bandwidth limit (i.e. 300 kbps/set, 2 MB/s transfer rate); 
-    clearly CORE does not properly enforce the limit [MW]
 * Integration test:
   - test bootstrapping via hostlist + transport/core/dht connect
 
 0.9.0pre3:
 * Determine RC bugs and fix those (release should have no known real bugs)
+* ARM: [CG/Safey]
+  - start_forwarding should not use 'listen_info->service_addr' for connecting since that one can be 0.0.0.0;
+    if it is, we need to use (IPv4 & IPv6) loopback [LRN]
+  - better tracking of which config changes actually need to cause process restarts by ARM.
+  - handle gnunet-arm -k in combination with auto-start magic (what is the right thing here?)
+  - discover dependencies between services
+* CORE:
+  - provide 'reliable' P2P transmission API and queueing infrastructure
+  - Jun 27 11:51:54 core-7670 ERROR Assertion failed at gnunet-service-core.c:3616.
+    (transport notified us that we connected to ourselves!!!; can we still reproduce this?)
 * DHT: [Nate]
   - track paths content travels (PUT, reply-to-get) in messages,
     pass to client (client API & protocol already support this!)
@@ -56,13 +63,6 @@
     + search error
     + publish error
     + unindex error
-* CORE: [anyone who can reproduce?]
-  - Jun 27 11:51:54 core-7670 ERROR Assertion failed at gnunet-service-core.c:3616.
-    (transport notified us that we connected to ourselves!!!)
-* ARM: [CG/Safey]
-  - better tracking of which config changes actually need to cause process restarts by ARM.
-  - handle gnunet-arm -k in combination with auto-start magic (what is the right thing here?)
-  - discover dependencies between services
 * MONKEY: [Safey]
   - better crash management (attach debugging support, capture and analyze
     debug output, detect random vs. deterministic crashes)
