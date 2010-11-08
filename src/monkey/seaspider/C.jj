@@ -45,6 +45,10 @@
 - Support certain gcc-isms (unsigned long long, 33LL, etc.)
 - No support for certain older C constructs
 - Support for magic "GNUNET_PACKED" construct (extra "IDENTIFIER" in struct)
+
+8/11/10: Modified some more by Christian Grothoff
+- support for arguments without variable names (in particular, just 'void')
+- support for string concatenations
 */
 
 PARSER_BEGIN(CParser)
@@ -137,7 +141,7 @@ TOKEN : {
       "'"
   >
 |   < STRING_LITERAL:
-      "\""
+      ("\""
       (   (~["\"","\\","\n","\r"])
         | ("\\"
             ( ["n","t","b","r","f","\\","'","\""]
@@ -146,7 +150,7 @@ TOKEN : {
             )
           )
       )*
-      "\""
+      "\"")+
   >
 }
 
@@ -575,6 +579,9 @@ void AssignmentOrTypeExpression() : {}
 
 void Constant() : {}
 {
- <INTEGER_LITERAL> | <FLOATING_POINT_LITERAL> | <CHARACTER_LITERAL> | <STRING_LITERAL>
+  <INTEGER_LITERAL> |
+  <FLOATING_POINT_LITERAL> | 
+  <CHARACTER_LITERAL> | 
+  (<STRING_LITERAL>)+
 }
 
