@@ -400,6 +400,23 @@ measurement_end (void *cls,
   else
 	  delta = (quota_allowed/10);
 
+  /* Throughput is far too slow. This is to prevent the test to exit with success when throughput is 0 */
+  if ((total_bytes_sent/(duration.rel_value / 1000)) < 100)
+  {
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+			  "\nQuota compliance failed: \n"\
+			  "Hard quota limit allowed: %10llu kB/s (%llu B/s)\n"\
+			  "Soft quota limit allowed: %10llu kB/s (%llu B/s)\n"\
+			  "Throughput              : %10llu kB/s (%llu B/s)\n",
+			  (quota_allowed / (1024)), quota_allowed,
+			  ((quota_allowed+delta) / (1024)),  quota_allowed+delta,
+			  (total_bytes_sent/(duration.rel_value / 1000)/1024),
+			  total_bytes_sent/(duration.rel_value / 1000));
+	  ok = 1;
+	  end();
+  }
+
+  /* Throughput is bigger than allowed quota + some extra*/
   if ((total_bytes_sent/(duration.rel_value / 1000)) > (quota_allowed + delta))
   {
 	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
