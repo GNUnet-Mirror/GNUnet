@@ -261,7 +261,7 @@ void VariableDeclaration() : {}
 
 void LocalVariableDeclaration() : {}
 {
-	[ <STATIC> ] VariableDeclaration () 
+	[ <CONST> ] [ <STATIC> ] VariableDeclaration () 
 }
 
 void VariableClassSpecifier() : {}
