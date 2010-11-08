@@ -556,7 +556,7 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
       }
     else
       {
-	GNUNET_abort(0);
+	GNUNET_break(0);
 	GNUNET_free(pkt);
 	return;
       }
