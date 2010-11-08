@@ -1939,15 +1939,8 @@ schedule_find_peer_requests (void *cls, const struct GNUNET_SCHEDULER_TaskContex
     find_peer_ctx->total = 1;
   else if (find_peer_ctx->current_peers - find_peer_ctx->previous_peers > MAX_FIND_PEER_CUTOFF) /* Found LOTS of peers, still go slowly */
     find_peer_ctx->total = find_peer_ctx->last_sent - (find_peer_ctx->last_sent / 8);
-#if USE_MIN
-  else if (find_peer_ctx->current_peers - find_peer_ctx->previous_peers < MIN_FIND_PEER_CUTOFF)
-    find_peer_ctx->total = find_peer_ctx->last_sent * 2; /* FIXME: always multiply by two (unless above max?) */
-  else
-    find_peer_ctx->total = find_peer_ctx->last_sent;
-#else
   else
     find_peer_ctx->total = find_peer_ctx->last_sent * 2;
-#endif
 
   if (find_peer_ctx->total > max_outstanding_find_peers)
     find_peer_ctx->total = max_outstanding_find_peers;
@@ -1975,9 +1968,9 @@ schedule_find_peer_requests (void *cls, const struct GNUNET_SCHEDULER_TaskContex
             {
               random = random - num_peers;
             }
-    #if REAL_RANDOM
+#if REAL_RANDOM
           random = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
-    #endif
+#endif
           test_find_peer->daemon = GNUNET_TESTING_daemon_get(pg, random);
         }
       else /* If we have sent requests, choose peers with a low number of connections to send requests from */
