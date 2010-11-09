@@ -498,7 +498,8 @@ destroy_continuation (void *cls,
 #endif
       if (sock->persist != GNUNET_YES)
       {
-        if (GNUNET_YES != GNUNET_NETWORK_socket_shutdown (sock->sock, SHUT_RDWR))
+        if ( (GNUNET_YES != GNUNET_NETWORK_socket_shutdown (sock->sock, SHUT_RDWR)) &&
+	     (errno != ENOTCON) )
           GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "shutdown");
       }
     }
