@@ -1589,7 +1589,7 @@ static void curl_receive_mst_cb  (void *cls,
   if (delay.rel_value > 0)
   {
 #if DEBUG_HTTP
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: Inbound quota management: delay next read for %llu ms \n", ps, delay.abs_value);
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Connection %X: Inbound quota management: delay next read for %llu ms \n", ps, delay.rel_value);
 #endif
 	pc->reset_task = GNUNET_SCHEDULER_add_delayed (delay, &reset_inbound_quota_delay, pc);
   }
