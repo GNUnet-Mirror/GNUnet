@@ -461,7 +461,7 @@ destroy_continuation (void *cls,
   struct GNUNET_CONNECTION_Handle *sock = cls;
   GNUNET_CONNECTION_TransmitReadyNotify notify;
   struct AddressProbe *pos;
-  
+
   sock->destroy_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (sock->dns_active == NULL);
   if (0 != (sock->ccs & COCO_TRANSMIT_READY))
@@ -497,7 +497,10 @@ destroy_continuation (void *cls,
                   "Shutting down socket (%p)\n", sock);
 #endif
       if (sock->persist != GNUNET_YES)
-        GNUNET_NETWORK_socket_shutdown (sock->sock, SHUT_RDWR);
+      {
+        if (GNUNET_YES != GNUNET_NETWORK_socket_shutdown (sock->sock, SHUT_RDWR))
+          GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "shutdown");
+      }
     }
   if (sock->read_task != GNUNET_SCHEDULER_NO_TASK)
     {
@@ -944,6 +947,7 @@ GNUNET_CONNECTION_create_from_sockaddr (int af_family,
 {
   struct GNUNET_NETWORK_Handle *s;
   struct GNUNET_CONNECTION_Handle *ret;
+
 
   s = GNUNET_NETWORK_socket_create (af_family, SOCK_STREAM, 0);
   if (s == NULL)
