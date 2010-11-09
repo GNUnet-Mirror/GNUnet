@@ -694,6 +694,23 @@ int GNUNET_CONTAINER_multihashmap_get_multiple (const struct
   (head) = (element); } while (0)
 
 /**
+ * Insert an element at the tail of a DLL. Assumes that head, tail and
+ * element are structs with prev and next fields.
+ *
+ * @param head pointer to the head of the DLL
+ * @param tail pointer to the tail of the DLL
+ * @param element element to insert
+ */
+#define GNUNET_CONTAINER_DLL_insert_tail(head,tail,element) do { \
+  (element)->prev = (tail); \
+  (element)->next = NULL; \
+  if ((head) == NULL) \
+    (head) = element; \
+  else \
+    (tail)->next = element; \
+  (tail) = (element); } while (0)
+
+/**
  * Insert an element into a DLL after the given other element.  Insert
  * at the head if the other element is NULL.
  *
@@ -719,7 +736,31 @@ int GNUNET_CONTAINER_multihashmap_get_multiple (const struct
   else \
     (element)->next->prev = (element); } while (0)
 
-
+/**
+ * Insert an element into a DLL before the given other element.  Insert
+ * at the tail if the other element is NULL.
+ *
+ * @param head pointer to the head of the DLL
+ * @param tail pointer to the tail of the DLL
+ * @param other prior element, NULL for insertion at head of DLL
+ * @param element element to insert
+ */
+#define GNUNET_CONTAINER_DLL_insert_before(head,tail,other,element) do { \
+  (element)->next = (other); \
+  if (NULL == other) \
+    { \
+      (element)->prev = (tail); \
+      (tail) = (element); \
+    } \
+  else \
+    { \
+      (element)->prev = (other)->prev; \
+      (other)->prev = (element); \
+    } \
+  if (NULL == (element)->prev) \
+    (head) = (element); \
+  else \
+    (element)->prev->next = (element); } while (0)
 
 
 /**
