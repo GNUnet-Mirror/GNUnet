@@ -163,7 +163,7 @@ struct Plugin
   /**
    * number of pending sessions
    */
-  uint pendingsessions;
+  unsigned int pendingsessions;
 
   /**
    * Messages in the fragmentation queue, head
@@ -181,7 +181,7 @@ struct Plugin
      * number of pending fragment message
      */
 
-  uint pending_fragment_messages;
+  unsigned int pending_fragment_messages;
 
 };
 
