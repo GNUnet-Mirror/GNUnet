@@ -1328,7 +1328,7 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
  * @return the 'struct GNUNET_TRANSPORT_PluginFunctions*' or NULL on error
  */
 void *
-gnunet_plugin_transport_wlan_init (void *cls)
+libgnunet_plugin_transport_wlan_init (void *cls)
 {
   struct GNUNET_SERVICE_Context *service;
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
@@ -1377,7 +1377,7 @@ gnunet_plugin_transport_wlan_init (void *cls)
  */
 //TODO doxigen
 void *
-gnunet_plugin_transport_wlan_done (void *cls)
+libgnunet_plugin_transport_wlan_done (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
