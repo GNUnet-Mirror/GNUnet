@@ -723,12 +723,15 @@ run_gnunet_nat_client (struct Plugin *plugin, const char *addr, size_t addrlen)
 #endif
 
   /* Start the server process */
-  proc = GNUNET_OS_start_process(NULL, NULL, "gnunet-nat-client", "gnunet-nat-client", plugin->external_address, address_as_string, port_as_string, NULL);
+  proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-nat-client", "gnunet-nat-client", plugin->external_address, address_as_string, port_as_string, NULL);
   GNUNET_free(address_as_string);
   GNUNET_free(port_as_string);
-  GNUNET_OS_process_wait (proc);
-  GNUNET_OS_process_close (proc);
-  proc = NULL;
+  if (proc != NULL)
+    {
+      GNUNET_OS_process_wait (proc);
+      GNUNET_OS_process_close (proc);
+      proc = NULL;
+    }
 }
 
 /**
