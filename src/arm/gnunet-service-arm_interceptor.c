@@ -832,6 +832,10 @@ start_forwarding (void *cls,
     }
   switch (fc->listen_info->service_addr->sa_family)
     {
+    case AF_UNSPEC:
+      GNUNET_break (0);
+      closeClientAndServiceSockets (fc, REASON_ERROR);
+      return;      
     case AF_INET:
       v4 = (const struct sockaddr_in *) fc->listen_info->service_addr;
       inet_ntop (fc->listen_info->service_addr->sa_family, 
