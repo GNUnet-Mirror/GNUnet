@@ -45,8 +45,7 @@
 /**
  * Time until retransmission of a fragment in ms
  */
-
-#define FRAGMENT_TIMEOUT 1000
+#define FRAGMENT_TIMEOUT GNUNET_TIME_UNIT_SECONDS 
 
 #define FRAGMENT_QUEUE_SIZE 10
 
@@ -611,9 +610,7 @@ get_next_frag_timeout (struct FragmentMessage * fm)
 
 struct GNUNET_TIME_Relative
 get_ack_timeout (struct FragmentMessage * fm){
-	struct GNUNET_TIME_Relative timeout;
-	timeout.rel_value = FRAGMENT_TIMEOUT;
-	return timeout;
+	return FRAGMENT_TIMEOUT;
 }
 
 //TODO doxigen
