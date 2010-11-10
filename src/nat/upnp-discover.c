@@ -893,7 +893,6 @@ static const char *const discover_type_list[] = {
   "urn:schemas-upnp-org:device:InternetGatewayDevice:1",
   "urn:schemas-upnp-org:service:WANIPConnection:1",
   "urn:schemas-upnp-org:service:WANPPPConnection:1",
-  "upnp:rootdevice",
   NULL
 };
 
