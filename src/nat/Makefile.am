@@ -10,9 +10,7 @@ endif
 
 if !MINGW
 
-if HAVE_EXPERIMENTAL
 lib_LTLIBRARIES = libgnunetnat.la
-endif
 
 libgnunetnat_la_SOURCES = \
   upnp.c upnp.h \
@@ -35,10 +33,8 @@ libgnunetnat_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:0:0
 
-if HAVE_EXPERIMENTAL
 check_PROGRAMS = \
   test-nat
-endif
 
 if !DISABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
