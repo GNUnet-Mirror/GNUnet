@@ -188,11 +188,14 @@ struct ForwardedConnection
    */
   int first_write_done;
 
-
   /**
-   * Service connection attempts
+   * Service connection attempts for IPv4
    */
   struct ServiceListeningInfo *service_connect_ipv4;
+
+  /**
+   * Service connection attempts for IPv6
+   */
   struct ServiceListeningInfo *service_connect_ipv6;
 };
 
@@ -348,14 +351,20 @@ closeClientAndServiceSockets (struct ForwardedConnection *fc,
 
 
 /**
- *
+ * Read data from the client and then forward it to the service.
+ * 
+ * @param cls callback data,   struct ForwardedConnection for the communication between client and service
+ * @param tc context 
  */
 static void
 receiveFromClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
- *
+ * Receive service messages sent by the service and forward it to client
+ * 
+ * @param cls callback data, struct ForwardedConnection for the communication between client and service
+ * @param tc scheduler context
  */
 static void
 receiveFromService (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
@@ -700,10 +709,163 @@ receiveFromClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 				      &forwardToService, fc);
 }
 
-static void fc_acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc, int is_ipv4, int is_ipv6);
-static void fc_acceptConnection_ipv4 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
-static void fc_acceptConnection_ipv6 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
-static int service_try_to_connect (struct sockaddr *addr, socklen_t addrlen, struct ForwardedConnection *fc);
+
+static void
+fc_acceptConnection_ipv4 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+static void
+fc_acceptConnection_ipv6 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+static void
+fc_acceptConnection (void *cls, 
+		     const struct GNUNET_SCHEDULER_TaskContext *tc, 
+		     int is_ipv4)
+{
+  struct ForwardedConnection *fc = cls;
+  struct ServiceListeningInfo *sli;
+
+  if (is_ipv4)
+    sli = fc->service_connect_ipv4;
+  else 
+    sli = fc->service_connect_ipv6;
+
+  if ( (tc->reason & (GNUNET_SCHEDULER_REASON_SHUTDOWN | GNUNET_SCHEDULER_REASON_TIMEOUT | GNUNET_SCHEDULER_REASON_PREREQ_DONE)) || 
+       ((tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY) && fc->armServiceSocket) )
+    {
+      GNUNET_NETWORK_socket_close (sli->listeningSocket);
+      if (is_ipv4)
+	fc->service_connect_ipv4 = NULL;
+      else
+	fc->service_connect_ipv6 = NULL;
+    }
+  else if (tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY)
+    {
+#if DEBUG_SERVICE_MANAGER
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Connected to service, now starting forwarding\n");
+#endif
+      fc->armServiceSocket = sli->listeningSocket;
+      if ( (GNUNET_YES == is_ipv4) && (fc->service_connect_ipv6 != NULL) )
+	{
+	  GNUNET_SCHEDULER_cancel (fc->service_connect_ipv6->acceptTask);
+	  fc->service_connect_ipv6->acceptTask = GNUNET_SCHEDULER_add_now (fc_acceptConnection_ipv6, fc);
+	}
+      else if ( (GNUNET_NO == is_ipv4) && (fc->service_connect_ipv4 != NULL) )
+	{
+	  GNUNET_SCHEDULER_cancel (fc->service_connect_ipv4->acceptTask);
+	  fc->service_connect_ipv4->acceptTask = GNUNET_SCHEDULER_add_now (fc_acceptConnection_ipv4, fc);
+	}
+      GNUNET_free (fc->listen_info->service_addr);
+      fc->listen_info->service_addr = sli->service_addr;
+      fc->listen_info->service_addr_len = sli->service_addr_len;
+      /* fc->listen_info->listeningSocket is it closed already ?*/
+      if (fc->client_to_service_task == GNUNET_SCHEDULER_NO_TASK)
+	{
+	  if (fc->client_to_service_bufferDataLength == 0) 
+	    fc->client_to_service_task =
+	      GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
+					     fc->armClientSocket,
+					     &receiveFromClient, fc);
+	  else
+	    fc->client_to_service_task = 
+	      GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
+					      fc->armServiceSocket,
+					      &forwardToService, fc);
+	}
+      if (fc->service_to_client_task == GNUNET_SCHEDULER_NO_TASK)
+	{
+	  if (fc->service_to_client_bufferDataLength == 0) 
+	    fc->service_to_client_task =
+	      GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
+					     fc->armServiceSocket,
+					     &receiveFromService, fc);
+	  else
+	    fc->service_to_client_task = 
+	      GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
+					      fc->armClientSocket,
+					      &forwardToClient, fc);
+	}
+    }
+  else
+    {
+      GNUNET_break (0);
+    }
+  GNUNET_free (sli);
+}
+
+
+static void
+fc_acceptConnection_ipv4 (void *cls,
+			  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  fc_acceptConnection (cls, tc, GNUNET_YES);
+}
+
+
+static void
+fc_acceptConnection_ipv6 (void *cls,
+			  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  fc_acceptConnection (cls, tc, GNUNET_NO);
+}
+
+
+static int
+service_try_to_connect (const struct sockaddr *addr, 
+			socklen_t addrlen, 
+			struct ForwardedConnection *fc)
+{
+  struct GNUNET_NETWORK_Handle *sock;
+  struct ServiceListeningInfo *serviceListeningInfo;
+
+  sock = GNUNET_NETWORK_socket_create (AF_INET, SOCK_STREAM, 0);
+  if (sock == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to create a socket\n");
+      return 1;
+    }
+  
+  if ( (GNUNET_SYSERR == GNUNET_NETWORK_socket_connect (sock, addr, addrlen)) &&
+       (errno != EINPROGRESS) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to connect\n");
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
+      return 1;
+    }
+  
+  serviceListeningInfo = GNUNET_malloc (sizeof (struct ServiceListeningInfo));
+  serviceListeningInfo->serviceName = NULL;
+  serviceListeningInfo->service_addr = GNUNET_malloc (addrlen);
+  memcpy (serviceListeningInfo->service_addr,
+	  addr,
+	  addrlen);
+  serviceListeningInfo->service_addr_len = addrlen;
+  serviceListeningInfo->listeningSocket = sock;
+
+  switch (addrlen)
+    {
+    case sizeof (struct sockaddr_in):
+      fc->service_connect_ipv4 = serviceListeningInfo;
+      serviceListeningInfo->acceptTask =
+        GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
+                                        serviceListeningInfo->listeningSocket,
+				        &fc_acceptConnection_ipv4, fc);
+      break;
+    case sizeof (struct sockaddr_in6):
+      fc->service_connect_ipv6 = serviceListeningInfo;
+      serviceListeningInfo->acceptTask =
+        GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
+                                        serviceListeningInfo->listeningSocket,
+				        &fc_acceptConnection_ipv6, fc);
+      break;
+    default:
+      GNUNET_break (0);
+      return 1;
+    }
+  return 0;
+}
+
 
 /**
  *
@@ -714,250 +876,111 @@ start_forwarding (void *cls,
 {
   struct ForwardedConnection *fc = cls;
   struct GNUNET_TIME_Relative rem;
-  int fail = 0;
-  int failures = 0;
-  int is_zero = 0, is_ipv6 = 0, is_ipv4 = 0;
-  struct sockaddr_in *target_ipv4;
-  struct sockaddr_in6 *target_ipv6;
-
-  int free_ipv4 = 1, free_ipv6 = 1;
-  char listen_address[128];
-  uint16_t listening_port;
+  int failures;
+  int is_zero;
+  int is_ipv4;
+  int is_ipv6;
+  struct sockaddr_in target_ipv4;
+  struct sockaddr_in6 target_ipv6;
+  const struct sockaddr *v4;
+  const struct sockaddr *v6;
+  char listen_address[INET_ADDRSTRLEN];
+  uint16_t listening_port; /* in big endian */
 
   fc->start_task = GNUNET_SCHEDULER_NO_TASK;
   if ( (NULL != tc) &&
        (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)) )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		_("Unable to forward to service `%s': shutdown\n"),
-		fc->listen_info->serviceName);
-    closeClientAndServiceSockets (fc, REASON_ERROR);
-    return;
-  }
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Unable to forward to service `%s': shutdown\n"),
+		  fc->listen_info->serviceName);
+      closeClientAndServiceSockets (fc, REASON_ERROR);
+      return;
+    }
   rem = GNUNET_TIME_absolute_get_remaining (fc->timeout);
   if (rem.rel_value == 0)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Unable to forward to service `%s': timeout before connect\n"),
-		fc->listen_info->serviceName);
-    closeClientAndServiceSockets (fc, REASON_ERROR);
-    return;
-  }
-  target_ipv4 = GNUNET_malloc (sizeof (struct sockaddr_in));
-  target_ipv6 = GNUNET_malloc (sizeof (struct sockaddr_in6));
-
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Unable to forward to service `%s': timeout before connect\n"),
+		  fc->listen_info->serviceName);
+      closeClientAndServiceSockets (fc, REASON_ERROR);
+      return;
+    }
   switch (fc->listen_info->service_addr->sa_family)
-  {
-  case AF_INET:
-    inet_ntop (fc->listen_info->service_addr->sa_family, (const void *) &((struct sockaddr_in *) fc->listen_info->service_addr)->sin_addr, listen_address, INET_ADDRSTRLEN);
-    if (strncmp (listen_address, "0.0.0.0:", 8) == 0 || strncmp (listen_address, "0.0.0.0", 7) == 0)
-      is_zero = 1;
-    is_ipv4 = 1;
-    listening_port = ((struct sockaddr_in *)fc->listen_info->service_addr)->sin_port;
-    break;
-  case AF_INET6:
-    inet_ntop (fc->listen_info->service_addr->sa_family, (const void *) &((struct sockaddr_in6 *) fc->listen_info->service_addr)->sin6_addr, listen_address, INET6_ADDRSTRLEN);
-    if (strncmp (listen_address, "[::]:", 5) == 0 || strncmp (listen_address, "::", 2) == 0)
-      is_zero = 1;
-    is_ipv6 = 1;
-    listening_port = ((struct sockaddr_in6 *)fc->listen_info->service_addr)->sin6_port;
-    break;
-  default:
-    break;
-  }
-
+    {
+    case AF_INET:
+      inet_ntop (fc->listen_info->service_addr->sa_family, 
+		 (const void *) &((struct sockaddr_in *) fc->listen_info->service_addr)->sin_addr, 
+		 listen_address,
+		 INET_ADDRSTRLEN);
+      is_zero = (strncmp (listen_address, "0.0.0.0:", 8) == 0) || (strncmp (listen_address, "0.0.0.0", 7) == 0);
+      is_ipv4 = GNUNET_YES;
+      is_ipv6 = GNUNET_NO;
+      listening_port = ((struct sockaddr_in *)fc->listen_info->service_addr)->sin_port;
+      break;
+    case AF_INET6:
+      inet_ntop (fc->listen_info->service_addr->sa_family, 
+		 (const void *) &((struct sockaddr_in6 *) fc->listen_info->service_addr)->sin6_addr, 
+		 listen_address, 
+		 INET6_ADDRSTRLEN);
+      is_zero = (strncmp (listen_address, "[::]:", 5) == 0) || (strncmp (listen_address, "::", 2) == 0);
+      is_ipv4 = GNUNET_NO;
+      is_ipv6 = GNUNET_YES;
+      listening_port = ((struct sockaddr_in6 *)fc->listen_info->service_addr)->sin6_port;
+      break;
+    default:
+      GNUNET_break (0);
+      closeClientAndServiceSockets (fc, REASON_ERROR);
+      return;
+    }
+  
   fc->service_connect_ipv4 = NULL;
   fc->service_connect_ipv6 = NULL;
+  v4 = NULL;
+  v6 = NULL;
   if (is_zero)
-  {
-    /* connect to [::1] and 127.0.0.1 instead of [::] and 0.0.0.0 */
-    inet_pton (AF_INET, "127.0.0.1", &target_ipv4->sin_addr);
-    target_ipv4->sin_family = AF_INET;
-    target_ipv4->sin_port = listening_port;
-    is_ipv4 = 1;
-    free_ipv4 = 0;
-
-    inet_pton (AF_INET6, "0:0:0:0:0:0:0:1", &target_ipv6->sin6_addr);
-    target_ipv6->sin6_family = AF_INET6;
-    target_ipv6->sin6_port = listening_port;
-    is_ipv6 = 1;
-    free_ipv6 = 0;
-  }
+    {
+      /* connect to [::1] and 127.0.0.1 instead of [::] and 0.0.0.0 */
+      memset (&target_ipv4, 0, sizeof (target_ipv4));
+      inet_pton (AF_INET, "127.0.0.1", &target_ipv4.sin_addr);
+      target_ipv4.sin_family = AF_INET;
+      target_ipv4.sin_port = listening_port;
+      v4 = (const struct sockaddr *) &target_ipv4;
+      is_ipv4 = GNUNET_YES;
+      
+      memset (&target_ipv6, 0, sizeof (target_ipv6));
+      inet_pton (AF_INET6, "::1", &target_ipv6.sin6_addr);
+      target_ipv6.sin6_family = AF_INET6;
+      target_ipv6.sin6_port = listening_port;
+      is_ipv6 = GNUNET_YES;
+      v6 = (const struct sockaddr *) &target_ipv6;
+    }
   else
-  {
-    if (is_ipv4)
-      memcpy (target_ipv4, fc->listen_info->service_addr, sizeof (struct sockaddr_in));
-    else if (is_ipv6)
-      memcpy (target_ipv6, fc->listen_info->service_addr, sizeof (struct sockaddr_in6));
-  }
-
+    {
+      if (is_ipv4)
+	v4 = (const struct sockaddr*) fc->listen_info->service_addr;
+      if (is_ipv6) 
+	v6 = (const struct sockaddr*) fc->listen_info->service_addr;
+    }
+  failures = 0;
   if (is_ipv4)
-    failures += free_ipv4 = service_try_to_connect ((struct sockaddr *) target_ipv4, sizeof (struct sockaddr_in), fc);
+    failures += service_try_to_connect (v4,
+					sizeof (struct sockaddr_in), 
+					fc);
   if (is_ipv6)
-    failures += free_ipv6 = service_try_to_connect ((struct sockaddr *) target_ipv6, sizeof (struct sockaddr_in6), fc);
-
-  if (is_ipv4 + is_ipv6 <= failures)
-    fail = 1;
-
-  if (free_ipv4)
-    GNUNET_free (target_ipv4);
-  if (free_ipv6)
-    GNUNET_free (target_ipv6);
-
-  if (fail)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _ ("Unable to start service `%s': %s\n"),
-		fc->listen_info->serviceName,
-		STRERROR (errno));
-    closeClientAndServiceSockets (fc, REASON_ERROR);
-    return;
-  }
-}
-
-static void
-fc_acceptConnection_ipv4 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  fc_acceptConnection (cls, tc, 1, 0);
-}
-
-static void
-fc_acceptConnection_ipv6 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  fc_acceptConnection (cls, tc, 0, 1);
-}
-
-static void
-fc_acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc, int is_ipv4, int is_ipv6)
-{
-  struct ForwardedConnection *fc = cls;
-  struct ServiceListeningInfo *sli;
-
-  if (is_ipv4)
-    sli = fc->service_connect_ipv4;
-  else if (is_ipv6)
-    sli = fc->service_connect_ipv6;
-  else
-    GNUNET_break (0);
-
-  if ((tc->reason & (GNUNET_SCHEDULER_REASON_SHUTDOWN | GNUNET_SCHEDULER_REASON_TIMEOUT | GNUNET_SCHEDULER_REASON_PREREQ_DONE)) || ((tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY) && fc->armServiceSocket))
-  {
-    GNUNET_NETWORK_socket_close (sli->listeningSocket);
-    if (is_ipv4)
-      fc->service_connect_ipv4 = NULL;
-    else if (is_ipv6)
-      fc->service_connect_ipv6 = NULL;
-  }
-  else if (tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY)
-  {
-#if DEBUG_SERVICE_MANAGER
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-       "Connected to service, now starting forwarding\n");
-#endif
-    fc->armServiceSocket = sli->listeningSocket;
-    if ((is_ipv4 && fc->service_connect_ipv6 != NULL))
+    failures += service_try_to_connect (v6,
+					sizeof (struct sockaddr_in6), 
+					fc);
+  if (is_ipv4 + is_ipv6 == failures)
     {
-      GNUNET_SCHEDULER_cancel (fc->service_connect_ipv6->acceptTask);
-      fc->service_connect_ipv6->acceptTask = GNUNET_SCHEDULER_add_now (fc_acceptConnection_ipv6, fc);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _ ("Unable to start service `%s': %s\n"),
+		  fc->listen_info->serviceName,
+		  STRERROR (errno));
+      closeClientAndServiceSockets (fc, REASON_ERROR);
+      return;
     }
-    else if (is_ipv6 && fc->service_connect_ipv4 != NULL)
-    {
-      GNUNET_SCHEDULER_cancel (fc->service_connect_ipv4->acceptTask);
-      fc->service_connect_ipv4->acceptTask = GNUNET_SCHEDULER_add_now (fc_acceptConnection_ipv4, fc);
-    }
-    GNUNET_free (fc->listen_info->service_addr);
-    fc->listen_info->service_addr = sli->service_addr;
-    fc->listen_info->service_addr_len = sli->service_addr_len;
-    /*fc->listen_info->listeningSocket is it closed already?*/
-    if (fc->client_to_service_task == GNUNET_SCHEDULER_NO_TASK)
-    {
-      if (fc->client_to_service_bufferDataLength == 0) 
-	  fc->client_to_service_task =
-	    GNUNET_SCHEDULER_add_read_net (
-					 GNUNET_TIME_UNIT_FOREVER_REL,
-					 fc->armClientSocket,
-					 &receiveFromClient, fc);
-      else
-	  fc->client_to_service_task = 
-	    GNUNET_SCHEDULER_add_write_net (
-					  GNUNET_TIME_UNIT_FOREVER_REL,
-					  fc->armServiceSocket,
-					  &forwardToService, fc);
-    }
-    if (fc->service_to_client_task == GNUNET_SCHEDULER_NO_TASK)
-    {
-      if (fc->service_to_client_bufferDataLength == 0) 
-	  fc->service_to_client_task =
-	    GNUNET_SCHEDULER_add_read_net (
-					 GNUNET_TIME_UNIT_FOREVER_REL,
-					 fc->armServiceSocket,
-					 &receiveFromService, fc);
-      else
-	  fc->service_to_client_task = 
-	    GNUNET_SCHEDULER_add_write_net (
-					  GNUNET_TIME_UNIT_FOREVER_REL,
-					  fc->armClientSocket,
-					  &forwardToClient, fc);
-    }
-  }
-  else
-  {
-    GNUNET_break (0);
-  }
-  GNUNET_free (sli);
 }
-
-static int
-service_try_to_connect (struct sockaddr *addr, socklen_t addrlen, struct ForwardedConnection *fc)
-{
-  struct GNUNET_NETWORK_Handle *sock;
-  struct ServiceListeningInfo *serviceListeningInfo;
-
-  sock = GNUNET_NETWORK_socket_create (AF_INET, SOCK_STREAM, 0);
-  if (sock == NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to create a socket\n");
-    return 1;
-  }
-  
-  if ( (GNUNET_SYSERR == GNUNET_NETWORK_socket_connect (sock, addr, addrlen)) &&
-       (errno != EINPROGRESS) )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to connect\n");
-    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
-    return 1;
-  }
-
-  serviceListeningInfo = GNUNET_malloc (sizeof (struct ServiceListeningInfo));
-  serviceListeningInfo->serviceName = NULL;
-  serviceListeningInfo->service_addr = addr;
-  serviceListeningInfo->service_addr_len = addrlen;
-  serviceListeningInfo->listeningSocket = sock;
-
-  switch (addrlen)
-  {
-  case sizeof (struct sockaddr_in):
-    fc->service_connect_ipv4 = serviceListeningInfo;
-    serviceListeningInfo->acceptTask =
-        GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                        serviceListeningInfo->listeningSocket,
-				        &fc_acceptConnection_ipv4, fc);
-    break;
-  case sizeof (struct sockaddr_in6):
-    fc->service_connect_ipv6 = serviceListeningInfo;
-    serviceListeningInfo->acceptTask =
-        GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                        serviceListeningInfo->listeningSocket,
-				        &fc_acceptConnection_ipv6, fc);
-    break;
-  default:
-    GNUNET_break (0);
-    return 1;
-    break;
-  }
-  return 0;
-}
-
 
 
 /**
