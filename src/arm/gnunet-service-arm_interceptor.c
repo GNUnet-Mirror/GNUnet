@@ -313,7 +313,7 @@ closeClientAndServiceSockets (struct ForwardedConnection *fc,
 #endif
       if (fc->client_to_service_task != GNUNET_SCHEDULER_NO_TASK) 
 	{
-	  GNUNET_SCHEDULER_cancel (				   fc->client_to_service_task);
+	  GNUNET_SCHEDULER_cancel (fc->client_to_service_task);
 	  fc->client_to_service_task = GNUNET_SCHEDULER_NO_TASK;
 	}
       if (fc->armClientSocket != NULL)
@@ -331,7 +331,7 @@ closeClientAndServiceSockets (struct ForwardedConnection *fc,
 	      "Closing forwarding connection (done with both directions)\n");
 #endif
   if (fc->start_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (			     fc->start_task);
+    GNUNET_SCHEDULER_cancel (fc->start_task);
   if ( (NULL != fc->armClientSocket) &&
        (GNUNET_SYSERR ==
 	GNUNET_NETWORK_socket_close (fc->armClientSocket)) )
@@ -661,8 +661,7 @@ receiveFromClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 						fc->armClientSocket))
     {
       fc->client_to_service_task =
-	GNUNET_SCHEDULER_add_read_net (
-				       GNUNET_TIME_UNIT_FOREVER_REL,
+	GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
 				       fc->armClientSocket,
 				       &receiveFromClient, fc);
       return;
@@ -1044,7 +1043,7 @@ acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	  GNUNET_free (pos->listeningSocket); /* deliberately no closing! */
 	  GNUNET_free (pos->service_addr);
 	  GNUNET_free (pos->serviceName);
-	  GNUNET_SCHEDULER_cancel (				   pos->acceptTask);
+	  GNUNET_SCHEDULER_cancel (pos->acceptTask);
 	  GNUNET_CONTAINER_DLL_remove (serviceListeningInfoList_head,
 				       serviceListeningInfoList_tail, 
 				       pos);
