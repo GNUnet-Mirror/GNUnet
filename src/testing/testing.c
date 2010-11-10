@@ -790,6 +790,7 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 #endif
   if (NULL == ret->cfgfile)
     {
+      GNUNET_free_non_null (ret->ssh_port_str);
       GNUNET_free_non_null (ret->hostname);
       GNUNET_free (ret);
       return NULL;

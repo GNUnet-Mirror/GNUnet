@@ -2515,9 +2515,6 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
       break;
     }
 
-  if (num_connections < 0)
-    return GNUNET_SYSERR;
-
   if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (pg->cfg, "TESTING", "F2F"))
     {
       ret = create_and_copy_friend_files(pg);
@@ -3025,7 +3022,7 @@ add_closest (struct GNUNET_TESTING_PeerGroup *pg, unsigned int num, GNUNET_TESTI
           GNUNET_CONTAINER_multihashmap_iterate(pg->peers[pg_iter].allowed_peers, &find_closest_peers, &closest_ctx);
           if (closest_ctx.closest != NULL)
             {
-              GNUNET_assert((0 <= closest_ctx.closest_num) && (closest_ctx.closest_num < pg->total));
+              GNUNET_assert(closest_ctx.closest_num < pg->total);
               proc(pg, pg_iter, closest_ctx.closest_num);
             }
         }
@@ -3196,7 +3193,13 @@ GNUNET_TESTING_get_topology (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING
           total_count++;
         }
     }
-  topology_context->total = total_count;
+  if (total_count == 0)
+    {
+      cb(cls, NULL, NULL, GNUNET_TIME_relative_get_zero(), 0, "Cannot iterate over topology, no running peers!");
+      GNUNET_free(topology_context);
+    }
+  else
+    topology_context->total = total_count;
   return;
 }
 
@@ -3333,7 +3336,8 @@ stats_check_existing(struct GNUNET_TESTING_PeerGroup *pg, struct PeerData *speci
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string(specific_peer->cfg, "statistics", "unixpath", &unix_domain_socket))
     return GNUNET_NO;
 
-  GNUNET_CONFIGURATION_get_value_number(specific_peer->cfg, "statistics", "port", &port);
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number(specific_peer->cfg, "statistics", "port", &port))
+    return GNUNET_NO;
 
   if (specific_peer->daemon->hostname != NULL)
     GNUNET_asprintf(&to_match, "%s%s%llu", specific_peer->daemon->hostname, unix_domain_socket, port);
@@ -3344,7 +3348,8 @@ stats_check_existing(struct GNUNET_TESTING_PeerGroup *pg, struct PeerData *speci
     {
       if (0 == strcmp(to_match, pos->unique_string))
         {
-          GNUNET_free(to_match);
+          GNUNET_free (unix_domain_socket);
+          GNUNET_free (to_match);
           return GNUNET_YES;
         }
       pos = pos->next;
@@ -3353,6 +3358,7 @@ stats_check_existing(struct GNUNET_TESTING_PeerGroup *pg, struct PeerData *speci
   pos->unique_string = to_match;
   pos->next = *stats_list;
   *stats_list = pos;
+  GNUNET_free (unix_domain_socket);
   return GNUNET_NO;
 }
 

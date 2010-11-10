@@ -302,8 +302,7 @@ static void topology_cb (void *cls,
                   uint32_t distance,
                   const char *emsg)
 {
-  FILE *outfile;
-  outfile = cls;
+  FILE *outfile = cls;
   if (first != NULL)
   {
     if (outfile != NULL)
