@@ -1151,8 +1151,7 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_TIME_Relative delay,
 
 #else
   /* unoptimized version */
-  return GNUNET_SCHEDULER_add_select (sched,
-                                      GNUNET_SCHEDULER_PRIORITY_KEEP,
+  return GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_KEEP,
                                       GNUNET_SCHEDULER_NO_TASK, delay,
                                       NULL, NULL, task, task_cls);
 #endif
@@ -1351,8 +1350,7 @@ GNUNET_SCHEDULER_add_read_file (struct GNUNET_TIME_Relative delay,
   GNUNET_assert (rfd != NULL);
   rs = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_handle_set (rs, rfd);
-  ret = GNUNET_SCHEDULER_add_select (sched,
-                                     GNUNET_SCHEDULER_PRIORITY_KEEP,
+  ret = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_KEEP,
                                      GNUNET_SCHEDULER_NO_TASK, delay,
                                      rs, NULL, task, task_cls);
   GNUNET_NETWORK_fdset_destroy (rs);
@@ -1400,8 +1398,7 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
   GNUNET_assert (wfd != NULL);
   ws = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_handle_set (ws, wfd);
-  ret = GNUNET_SCHEDULER_add_select (sched,
-                                     GNUNET_SCHEDULER_PRIORITY_KEEP,
+  ret = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_KEEP,
                                      GNUNET_SCHEDULER_NO_TASK,
                                      delay, NULL, ws, task, task_cls);
   GNUNET_NETWORK_fdset_destroy (ws);
