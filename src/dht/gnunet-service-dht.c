@@ -1672,7 +1672,7 @@ static void forward_message (const struct GNUNET_MessageHeader *msg,
   size_t psize;
 
   increment_stats(STAT_ROUTE_FORWARDS);
-
+  GNUNET_assert(peer != NULL);
   if ((msg_ctx->closest != GNUNET_YES) && (peer == find_closest_peer(&msg_ctx->key)))
     increment_stats(STAT_ROUTE_FORWARDS_CLOSEST);
 
@@ -2434,6 +2434,7 @@ handle_dht_find_peer (const struct GNUNET_MessageHeader *find_msg,
       else /* We don't want this peer! */
 	{
 	  route_message (find_msg, message_context);
+	  GNUNET_free (other_hello);
 	  return;
 	}
 #endif
@@ -2512,6 +2513,7 @@ handle_dht_find_peer (const struct GNUNET_MessageHeader *find_msg,
     }
   else
     {
+      GNUNET_free(recent_hash);
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received duplicate find peer request too soon!\n");
     }
 
@@ -3912,7 +3914,6 @@ malicious_get_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   get_message.header.type = htons(GNUNET_MESSAGE_TYPE_DHT_GET);
   get_message.type = htonl(GNUNET_BLOCK_DHT_MALICIOUS_MESSAGE_TYPE);
   memset(&message_context, 0, sizeof(struct DHT_MessageContext));
-  message_context.client = NULL;
   random_key = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, (uint32_t)-1);
   GNUNET_CRYPTO_hash(&random_key, sizeof(uint32_t), &key);
   memcpy(&message_context.key, &key, sizeof(GNUNET_HashCode));
@@ -4539,6 +4540,7 @@ void handle_core_disconnect (void *cls,
   increment_stats(STAT_DISCONNECTS);
   GNUNET_assert(GNUNET_CONTAINER_multihashmap_contains(all_known_peers, &peer->hashPubKey));
   to_remove = GNUNET_CONTAINER_multihashmap_get(all_known_peers, &peer->hashPubKey);
+  GNUNET_assert (to_remove != NULL);
   GNUNET_assert(0 == memcmp(peer, &to_remove->id, sizeof(struct GNUNET_PeerIdentity)));
   current_bucket = find_current_bucket(&to_remove->id.hashPubKey);
   delete_peer(to_remove, current_bucket);

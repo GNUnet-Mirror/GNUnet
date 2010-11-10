@@ -490,10 +490,7 @@ add_node (unsigned long long *nodeuid, struct GNUNET_PeerIdentity * node)
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
-  if (node != NULL)
-    ret = fprintf(outfile, "set @node = \"%s\";\n", GNUNET_h2s_full(&node->hashPubKey));
-  else
-    return GNUNET_SYSERR;
+  ret = fprintf(outfile, "set @node = \"%s\";\n", GNUNET_h2s_full(&node->hashPubKey));
 
   if (ret < 0)
     return GNUNET_SYSERR;

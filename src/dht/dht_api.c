@@ -555,7 +555,7 @@ void
 GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle)
 {
   struct PendingMessage *pm;
-
+  GNUNET_assert(handle != NULL);
   GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size(handle->active_requests));
   if (handle->th != NULL)
     {

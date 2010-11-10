@@ -247,6 +247,9 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
  * Stop async DHT-get.
  *
  * @param get_handle handle to the GET operation to stop
+ *
+ * On return get_handle will no longer be valid, caller
+ * must not use again!!!
  */
 void
 GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *get_handle)

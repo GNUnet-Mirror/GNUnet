@@ -1356,8 +1356,6 @@ add_route (unsigned long long *sqlqueryuid, unsigned long long queryid,
 
   if (from_node != NULL)
     get_node_uid (&from_uid, &from_node->hashPubKey);
-  else
-    from_uid = 0;
 
   if (to_node != NULL)
     get_node_uid (&to_uid, &to_node->hashPubKey);
@@ -1456,9 +1454,8 @@ update_current_topology (unsigned int connections)
     }
   if (ret > 0)
     return GNUNET_OK;
-  else
-    return GNUNET_SYSERR;
-  return GNUNET_OK;
+  return GNUNET_SYSERR;
+
 }
 
 /*
@@ -1487,9 +1484,7 @@ add_topology (int num_connections)
     }
   if (ret > 0)
     return GNUNET_OK;
-  else
-    return GNUNET_SYSERR;
-  return GNUNET_OK;
+  return GNUNET_SYSERR;
 }
 
 /*
@@ -1535,9 +1530,7 @@ add_extended_topology (const struct GNUNET_PeerIdentity *first, const struct GNU
     }
   if (ret > 0)
     return GNUNET_OK;
-  else
-    return GNUNET_SYSERR;
-  return GNUNET_OK;
+  return GNUNET_SYSERR;
 }
 
 

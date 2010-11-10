@@ -414,8 +414,6 @@ static struct GNUNET_TIME_Relative malicious_put_frequency;
 
 static unsigned long long settle_time;
 
-static unsigned long long trial_to_run;
-
 static struct GNUNET_DHTLOG_Handle *dhtlog_handle;
 
 static unsigned long long trialuid;
@@ -466,7 +464,7 @@ static unsigned int *churn_array;
 /**
  * Hash map of stats contexts.
  */
-struct GNUNET_CONTAINER_MultiHashMap *stats_map;
+static struct GNUNET_CONTAINER_MultiHashMap *stats_map;
 
 /**
  * LL of malicious settings.
@@ -507,7 +505,7 @@ static struct GNUNET_TESTING_PeerGroup *pg;
 /**
  * Global config handle.
  */
-const struct GNUNET_CONFIGURATION_Handle *config;
+static const struct GNUNET_CONFIGURATION_Handle *config;
 
 /**
  * Total number of peers to run, set based on config file.
@@ -693,8 +691,8 @@ reset_meter(struct ProgressMeter *meter)
 static void
 free_meter(struct ProgressMeter *meter)
 {
-  GNUNET_free_non_null(meter->startup_string);
-  GNUNET_free_non_null(meter);
+  GNUNET_free_non_null (meter->startup_string);
+  GNUNET_free (meter);
 }
 
 /**
@@ -1125,6 +1123,7 @@ static void add_new_connection(struct FindPeerContext *find_peer_context,
   if (GNUNET_CONTAINER_multihashmap_contains(find_peer_context->peer_hash, &first->hashPubKey))
   {
     first_count = GNUNET_CONTAINER_multihashmap_get(find_peer_context->peer_hash, &first->hashPubKey);
+    GNUNET_assert(first_count != NULL);
     first_count->count++;
     GNUNET_CONTAINER_heap_update_cost(find_peer_context->peer_min_heap, first_count->heap_node, first_count->count);
   }
@@ -1140,6 +1139,7 @@ static void add_new_connection(struct FindPeerContext *find_peer_context,
   if (GNUNET_CONTAINER_multihashmap_contains(find_peer_context->peer_hash, &second->hashPubKey))
   {
     second_count = GNUNET_CONTAINER_multihashmap_get(find_peer_context->peer_hash, &second->hashPubKey);
+    GNUNET_assert(second_count != NULL);
     second_count->count++;
     GNUNET_CONTAINER_heap_update_cost(find_peer_context->peer_min_heap, second_count->heap_node, second_count->count);
   }
@@ -1179,10 +1179,12 @@ static int iterate_min_heap_peers (void *cls,
   if (cost == 0)
     {
       d1 = GNUNET_TESTING_daemon_get_by_id (pg, &peer_count->peer_id);
+      GNUNET_assert(d1 != NULL);
       d2 = d1;
       while ((d2 == d1) || (GNUNET_YES != GNUNET_TESTING_daemon_running(d2)))
         {
           d2 = GNUNET_TESTING_daemon_get(pg, GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers));
+          GNUNET_assert(d2 != NULL);
         }
 
       /** Just try to connect the peers, don't worry about callbacks, etc. **/
@@ -1233,7 +1235,7 @@ count_peers_churn_cb (void *cls,
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Peer count finished (%u connections)\n",
                                             find_peer_context->current_peers);
       peer_count = GNUNET_CONTAINER_heap_peek(find_peer_context->peer_min_heap);
-
+      GNUNET_assert(peer_count != NULL);
       /* WAIT. When peers are churned they will come back with their peers (at least in peerinfo), because the HOSTS file doesn't likely get removed. CRAP. */
       /* NO they won't, because we have disabled peerinfo writing to disk (remember?) so we WILL have to give them new connections */
       /* Best course of action: have DHT automatically try to add peers from peerinfo on startup. This way IF peerinfo writes to file
@@ -1363,6 +1365,7 @@ schedule_churn_find_peer_requests (void *cls, const struct GNUNET_SCHEDULER_Task
       test_find_peer = GNUNET_malloc(sizeof(struct TestFindPeer));
       /* If we have sent requests, choose peers with a low number of connections to send requests from */
       peer_count = GNUNET_CONTAINER_heap_remove_root(find_peer_ctx->peer_min_heap);
+      GNUNET_assert(peer_count != NULL);
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Sending find peer request from peer with %u connections\n", peer_count->count);
       GNUNET_CONTAINER_multihashmap_remove(find_peer_ctx->peer_hash, &peer_count->peer_id.hashPubKey, peer_count);
       test_find_peer->daemon = GNUNET_TESTING_daemon_get_by_id(pg, &peer_count->peer_id);
@@ -1902,10 +1905,10 @@ count_peers_cb (void *cls,
                                             connection_estimate(num_peers, DEFAULT_BUCKET_SIZE),
                                             2 * connection_estimate(num_peers, DEFAULT_BUCKET_SIZE));
 
-      if ((find_peer_context->last_sent > 8) &&
-          (find_peer_context->current_peers - find_peer_context->previous_peers > FIND_PEER_THRESHOLD) &&
+      if ((find_peer_context->last_sent < 8) ||
+          ((find_peer_context->current_peers - find_peer_context->previous_peers > FIND_PEER_THRESHOLD) &&
           (find_peer_context->current_peers < 2 * connection_estimate(num_peers, DEFAULT_BUCKET_SIZE)) &&
-          (GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime).rel_value > 0))
+          (GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime).rel_value > 0)))
         {
           GNUNET_SCHEDULER_add_now(&schedule_find_peer_requests, find_peer_context);
         }
@@ -2469,6 +2472,7 @@ run (void *cls,
   char *hostfile;
   float topology_probability;
   unsigned long long temp_config_number;
+  unsigned long long trial_to_run;
   int stop_closest;
   int stop_found;
   int strict_kademlia;
@@ -2479,6 +2483,7 @@ run (void *cls,
   int count;
   int ret;
   int line_number;
+
 
   config = cfg;
   rounds_finished = 0;
@@ -2533,6 +2538,8 @@ run (void *cls,
       if (GNUNET_OK != GNUNET_DISK_file_test (churn_filename))
         {
           GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Error reading churn file!\n");
+          GNUNET_free_non_null(trialmessage);
+          GNUNET_free(churn_filename);
           return;
         }
       if ((0 != STAT (churn_filename, &frstat)) || (frstat.st_size == 0))
@@ -2571,10 +2578,10 @@ run (void *cls,
               churn_data[count] = '\0';
               if (1 != sscanf(buf, "%u", &churn_rounds))
                 {
-                  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Failed to read number of rounds from %s, ending test!\n", churn_filename);
-                  GNUNET_free_non_null(trialmessage);
-                  GNUNET_free(churn_filename);
+                  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Failed to read number of rounds from churn file, ending test!\n");
                   ret = 4200;
+                  GNUNET_free_non_null(trialmessage);
+                  GNUNET_free_non_null(churn_data);
                   return;
                 }
               GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Read %u rounds from churn file\n", churn_rounds);
