@@ -2787,7 +2787,10 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
   target_value = 1;
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "random %u, target %u, max %u\n", random_value, target_replication, target_replication * (hop_count + 1) + diameter);
   if (random_value < target_replication)
-    target_value++;
+    {
+      increment_stats("# DHT Messages split");
+      target_value++;
+    }
 
   return target_value;
 }
