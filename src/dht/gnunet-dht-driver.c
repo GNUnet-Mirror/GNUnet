@@ -867,7 +867,7 @@ log_topology_cb (void *cls,
           topo_ctx->total_peers++;
         }
       topo_ctx->total_connections++;
-      if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(config, "dht_testing", "mysql_logging_extended"))
+      if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(config, "dht_testing", "mysql_logging"))
         dhtlog_handle->insert_extended_topology(first, second);
     }
   else
