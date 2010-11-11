@@ -2791,9 +2791,19 @@ run (void *cls,
     num_puts = num_peers;
 
   if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_number (cfg, "dht_testing", "put_replication",
+                                             &put_replication))
+    put_replication = DEFAULT_PUT_REPLICATION;
+
+  if (GNUNET_SYSERR ==
       GNUNET_CONFIGURATION_get_value_number (cfg, "dht_testing", "num_gets",
                                              &num_gets))
     num_gets = num_peers;
+
+  if (GNUNET_SYSERR ==
+        GNUNET_CONFIGURATION_get_value_number (cfg, "dht_testing", "get_replication",
+                                               &get_replication))
+      get_replication = DEFAULT_GET_REPLICATION;
 
   if (GNUNET_OK ==
         GNUNET_CONFIGURATION_get_value_number (cfg, "dht_testing", "find_peer_delay",
