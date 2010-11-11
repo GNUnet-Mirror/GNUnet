@@ -4241,7 +4241,7 @@ handle_dht_p2p_route_request (void *cls,
 
   if (get_max_send_delay().rel_value > MAX_REQUEST_TIME.rel_value)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Sending of previous replies took too long, backing off!\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sending of previous replies took too long, backing off!\n");
     increment_stats("# route requests dropped due to high load");
     decrease_max_send_delay(get_max_send_delay());
     return GNUNET_YES;
