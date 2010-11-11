@@ -447,6 +447,7 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
                                               GNUNET_TIME_UNIT_FOREVER_REL,
                                               GNUNET_BLOCK_TYPE_TEST,
                                               &key,
+                                              DEFAULT_GET_REPLICATION,
 					      GNUNET_DHT_RO_NONE,
 					      NULL, 0,
 					      NULL, 0,
@@ -515,6 +516,7 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   outstanding_puts++;
   GNUNET_DHT_put(test_put->dht_handle,
                  &key,
+                 DEFAULT_PUT_REPLICATION,
 		 GNUNET_DHT_RO_NONE,
                  GNUNET_BLOCK_TYPE_TEST,
                  sizeof(data), data,

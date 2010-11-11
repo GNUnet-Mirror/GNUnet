@@ -71,11 +71,6 @@ typedef enum
 struct GNUNET_DHTLOG_TrialInfo
 {
   /**
-   * Trialuid, possibly set by insert call.
-   */
-  unsigned long long trialuid;
-
-  /**
    * Outside of database identifier for the trial.
    */
   unsigned int other_identifier;
@@ -142,7 +137,7 @@ struct GNUNET_DHTLOG_TrialInfo
 
   /**
    * Routing behaves as it would in Kademlia (modified to work recursively,
-   * and with our other GNUnet constraints.
+   * and with our other GNUnet constraints).
    */
   unsigned int strict_kademlia;
 
@@ -222,13 +217,11 @@ struct GNUNET_DHTLOG_Handle
   /*
    * Update dhttests.trials table with current server time as end time
    *
-   * @param trialuid trial to update
    * @param gets_succeeded how many gets did the trial report successful
    *
    * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
    */
-  int (*update_trial) (unsigned long long trialuid,
-                       unsigned int gets_succeeded);
+  int (*update_trial) (unsigned int gets_succeeded);
 
   /*
    * Update dhttests.nodes table setting the identified
@@ -287,13 +280,11 @@ struct GNUNET_DHTLOG_Handle
   /*
    * Update dhttests.trials table with total connections information
    *
-   * @param trialuid the trialuid to update
    * @param totalConnections the number of connections
    *
    * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
    */
-  int (*update_connections) (unsigned long long trialuid,
-                             unsigned int totalConnections);
+  int (*update_connections) (unsigned int totalConnections);
 
   /*
    * Update dhttests.trials table with total connections information

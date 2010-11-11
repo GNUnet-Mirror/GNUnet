@@ -39,6 +39,8 @@
  *
  * @param handle handle to DHT service
  * @param key the key to store under
+ * @param desired_replication_level estimate of how many
+ *                nearest peers this request should reach
  * @param options routing options for this message
  * @param type type of the value
  * @param size number of bytes in data; must be less than 64k
@@ -52,6 +54,7 @@
 void
 GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
                 const GNUNET_HashCode * key,
+                uint32_t desired_replication_level,
 		enum GNUNET_DHT_RouteOption options,
                 enum GNUNET_BLOCK_Type type,
                 size_t size,
@@ -82,7 +85,7 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
   GNUNET_break (NULL ==
 		GNUNET_DHT_route_start (handle, 
 					key, 
-					DEFAULT_PUT_REPLICATION, options,
+					desired_replication_level, options,
 					&put_msg->header, 
 					timeout, 
 					NULL, NULL,
@@ -168,10 +171,12 @@ get_reply_iterator (void *cls,
  * @param timeout how long to wait for transmission of this request to the service
  * @param type expected type of the response object
  * @param key the key to look up
+ * @param desired_replication_level estimate of how many
+                  nearest peers this request should reach
  * @param options routing options for this message
  * @param bf bloom filter associated with query (can be NULL)
  * @param bf_mutator mutation value for bf
- * @param xquery extrended query data (can be NULL, depending on type)
+ * @param xquery extended query data (can be NULL, depending on type)
  * @param xquery_size number of bytes in xquery
  * @param iter function to call on each result
  * @param iter_cls closure for iter
@@ -183,6 +188,7 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
                       struct GNUNET_TIME_Relative timeout,
                       enum GNUNET_BLOCK_Type type,
                       const GNUNET_HashCode * key,
+                      uint32_t desired_replication_level,
 		      enum GNUNET_DHT_RouteOption options,
 		      const struct GNUNET_CONTAINER_BloomFilter *bf,
 		      int32_t bf_mutator,
@@ -232,7 +238,7 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
   get_handle->route_handle =
     GNUNET_DHT_route_start (handle,
 			    key, 
-			    DEFAULT_GET_REPLICATION,
+			    desired_replication_level,
 			    options,
 			    &get_msg->header, 
 			    timeout,

@@ -41,7 +41,6 @@
  */
 int add_trial (struct GNUNET_DHTLOG_TrialInfo *trial_info)
 {
-  trial_info->trialuid = 42;
   return GNUNET_OK;
 }
 
@@ -93,14 +92,12 @@ add_node (unsigned long long *nodeuid, struct GNUNET_PeerIdentity * node)
 /*
  * Update dhttests.trials table with current server time as end time
  *
- * @param trialuid trial to update
  * @param gets_succeeded how many gets did the testcase report as successful
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
  */
 int
-update_trials (unsigned long long trialuid,
-               unsigned int gets_succeeded)
+update_trials (unsigned int gets_succeeded)
 {
   return GNUNET_OK;
 }
@@ -127,13 +124,12 @@ add_generic_stat (const struct GNUNET_PeerIdentity *peer,
 /*
  * Update dhttests.trials table with total connections information
  *
- * @param trialuid the trialuid to update
  * @param totalConnections the number of connections
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
  */
 int
-add_connections (unsigned long long trialuid, unsigned int totalConnections)
+add_connections (unsigned int totalConnections)
 {
   return GNUNET_OK;
 }

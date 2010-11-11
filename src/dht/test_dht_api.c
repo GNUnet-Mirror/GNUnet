@@ -400,6 +400,7 @@ test_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 			  TOTAL_TIMEOUT,
 			  GNUNET_BLOCK_TYPE_TEST,
 			  &hash,
+			  DEFAULT_GET_REPLICATION,
 			  GNUNET_DHT_RO_NONE,
 			  NULL, 0,
 			  NULL, 0,
@@ -438,6 +439,7 @@ test_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (peer->dht_handle != NULL);
 
   GNUNET_DHT_put (peer->dht_handle, &hash, 
+                  DEFAULT_PUT_REPLICATION,
 		  GNUNET_DHT_RO_NONE,
 		  GNUNET_BLOCK_TYPE_TEST,
 		  data_size, data,

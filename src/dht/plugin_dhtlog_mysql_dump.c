@@ -289,7 +289,7 @@ add_extended_topology (const struct GNUNET_PeerIdentity *first, const struct GNU
 int add_trial (struct GNUNET_DHTLOG_TrialInfo *trial_info)
 {
   int ret;
-  trial_info->trialuid = 0;
+
   if (outfile == NULL)
     return GNUNET_SYSERR;
 
@@ -505,23 +505,14 @@ add_node (unsigned long long *nodeuid, struct GNUNET_PeerIdentity * node)
 /*
  * Update dhttests.trials table with current server time as end time
  *
- * @param trialuid trial to update
  * @param gets_succeeded how many gets did the testcase report as successful
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
  */
 int
-update_trials (unsigned long long trialuid,
-               unsigned int gets_succeeded)
+update_trials (unsigned int gets_succeeded)
 {
   int ret;
-#if DEBUG_DHTLOG
-/*  if (trialuid != current_trial)
-    {
-      fprintf (stderr,
-               _("Trialuid to update is not equal to current_trial\n"));
-    }*/
-#endif
 
   if (outfile == NULL)
     return GNUNET_SYSERR;
@@ -573,22 +564,15 @@ set_malicious (struct GNUNET_PeerIdentity *peer)
 /*
  * Update dhttests.trials table with total connections information
  *
- * @param trialuid the trialuid to update
  * @param totalConnections the number of connections
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
  */
 int
-add_connections (unsigned long long trialuid, unsigned int totalConnections)
+add_connections (unsigned int totalConnections)
 {
   int ret;
-#if DEBUG_DHTLOG
-/*  if (trialuid != current_trial)
-    {
-      fprintf (stderr,
-               _("Trialuid to update is not equal to current_trial(!)(?)\n"));
-    }*/
-#endif
+
   if (outfile == NULL)
     return GNUNET_SYSERR;
 

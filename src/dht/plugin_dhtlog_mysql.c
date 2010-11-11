@@ -850,7 +850,7 @@ int add_trial (struct GNUNET_DHTLOG_TrialInfo *trial_info)
 
   stmt = mysql_stmt_init(conn);
   if (GNUNET_OK !=
-      (ret = prepared_statement_run (insert_trial, &trial_info->trialuid,
+      (ret = prepared_statement_run (insert_trial, &current_trial,
                                      MYSQL_TYPE_LONG, &trial_info->other_identifier, GNUNET_YES,
                                      MYSQL_TYPE_LONG, &trial_info->num_nodes, GNUNET_YES,
                                      MYSQL_TYPE_LONG, &trial_info->topology, GNUNET_YES,
@@ -1149,14 +1149,12 @@ add_node (unsigned long long *nodeuid, struct GNUNET_PeerIdentity * node)
 /*
  * Update dhttests.trials table with current server time as end time
  *
- * @param trialuid trial to update
  * @param gets_succeeded how many gets did the testcase report as successful
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
  */
 int
-update_trials (unsigned long long trialuid,
-               unsigned int gets_succeeded)
+update_trials (unsigned int gets_succeeded)
 {
   int ret;
 
@@ -1164,7 +1162,7 @@ update_trials (unsigned long long trialuid,
       (ret = prepared_statement_run (update_trial,
                                     NULL,
                                     MYSQL_TYPE_LONG, &gets_succeeded, GNUNET_YES,
-                                    MYSQL_TYPE_LONGLONG, &trialuid, GNUNET_YES,
+                                    MYSQL_TYPE_LONGLONG, &current_trial, GNUNET_YES,
                                     -1)))
     {
       if (ret == GNUNET_SYSERR)
@@ -1215,13 +1213,12 @@ int set_malicious (struct GNUNET_PeerIdentity *peer)
 /*
  * Update dhttests.trials table with total connections information
  *
- * @param trialuid the trialuid to update
  * @param totalConnections the number of connections
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure.
  */
 int
-add_connections (unsigned long long trialuid, unsigned int totalConnections)
+add_connections (unsigned int totalConnections)
 {
   int ret;
 
@@ -1232,7 +1229,7 @@ add_connections (unsigned long long trialuid, unsigned int totalConnections)
                                                   &totalConnections,
                                                   GNUNET_YES,
                                                   MYSQL_TYPE_LONGLONG,
-                                                  &trialuid, GNUNET_YES, -1)))
+                                                  &current_trial, GNUNET_YES, -1)))
     {
       if (ret == GNUNET_SYSERR)
         {

@@ -27,7 +27,7 @@
 #ifndef DHT_H_
 #define DHT_H_
 
-#define DEBUG_DHT GNUNET_NO
+#define DEBUG_DHT GNUNET_YES
 
 /**
  * Needs to be GNUNET_YES for logging to dhtlog to work!
@@ -55,19 +55,11 @@
 #define DHT_FORWARD_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5)
 
 /**
- * FIXME: document.
+ * Priority for routing results from other peers through
+ * the DHT.
  */
 #define DHT_SEND_PRIORITY 4
 
-/**
- * FIXME: document.
- */
-#define DEFAULT_GET_REPLICATION 5
-
-/**
- * FIXME: document.
- */
-#define DEFAULT_PUT_REPLICATION 8
 
 #define STAT_ROUTES "# DHT ROUTE Requests Seen"
 #define STAT_ROUTE_FORWARDS "# DHT ROUTE Requests Forwarded"

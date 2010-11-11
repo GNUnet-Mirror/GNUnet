@@ -369,7 +369,7 @@ enum DHT_ROUND_TYPES
 /* Globals */
 
 /**
- * Timeout to let all get requests happen.
+ * Timeout to let all GET requests happen.
  */
 static struct GNUNET_TIME_Relative all_get_timeout;
 
@@ -378,45 +378,114 @@ static struct GNUNET_TIME_Relative all_get_timeout;
  */
 static struct GNUNET_TIME_Relative get_timeout;
 
+/**
+ * Time to allow for GET requests to be sent to service.
+ */
 static struct GNUNET_TIME_Relative get_delay;
 
+/**
+ * Time to allow for PUT requests to be sent to service.
+ */
 static struct GNUNET_TIME_Relative put_delay;
 
+/**
+ * Delay between sending find peer requests (if
+ * handled by the driver, no effect if sent by service).
+ */
 static struct GNUNET_TIME_Relative find_peer_delay;
 
+/**
+ * Time between find peer requests
+ * (find_peer_delay / max_outstanding_find_peer)
+ */
 static struct GNUNET_TIME_Relative find_peer_offset;
 
+/**
+ * How many seconds to allow each peer to start.
+ */
 static struct GNUNET_TIME_Relative seconds_per_peer_start;
 
+/**
+ * Boolean value, should the driver issue find peer requests
+ * (GNUNET_YES) or should it be left to the service (GNUNET_NO)
+ */
 static unsigned int do_find_peer;
 
+/**
+ * Boolean value, should replication be done by the dht
+ * service (GNUNET_YES) or by the driver (GNUNET_NO)
+ */
 static unsigned int in_dht_replication;
 
+/**
+ * Size of test data to insert/retrieve during testing.
+ */
 static unsigned long long test_data_size = DEFAULT_TEST_DATA_SIZE;
 
+/**
+ * Maximum number of concurrent PUT requests.
+ */
 static unsigned long long max_outstanding_puts = DEFAULT_MAX_OUTSTANDING_PUTS;
 
+/**
+ * Maximum number of concurrent GET requests.
+ */
 static unsigned long long max_outstanding_gets = DEFAULT_MAX_OUTSTANDING_GETS;
 
+/**
+ * Number of nodes issuing malicious GET messages.
+ */
 static unsigned long long malicious_getters;
 
+/**
+ * Maximum number of concurrent find peer messages being sent.
+ */
 static unsigned long long max_outstanding_find_peers;
 
+/**
+ * Number of nodes issuing malicious PUT messages.
+ */
 static unsigned long long malicious_putters;
 
+/**
+ * Time (in seconds) to delay between rounds.
+ */
 static unsigned long long round_delay;
 
+/**
+ * How many malicious droppers to seed in the network.
+ */
 static unsigned long long malicious_droppers;
 
+/**
+ * How often to send malicious GET messages.
+ */
 static struct GNUNET_TIME_Relative malicious_get_frequency;
 
+/**
+ * How often to send malicious PUT messages.
+ */
 static struct GNUNET_TIME_Relative malicious_put_frequency;
 
+/**
+ * How long to send find peer requests.
+ */
 static unsigned long long settle_time;
 
+/**
+ * Handle to the dhtlog service.
+ */
 static struct GNUNET_DHTLOG_Handle *dhtlog_handle;
 
-static unsigned long long trialuid;
+/**
+ * Replication value for GET requests.
+ */
+static unsigned long long get_replication;
+
+/**
+ * Replication value for PUT requests.
+ */
+static unsigned long long put_replication;
 
 /**
  * If GNUNET_YES, insert data at the same peers every time.
@@ -759,7 +828,7 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   if (dhtlog_handle != NULL)
     {
       fprintf(stderr, "Update trial endtime\n");
-      dhtlog_handle->update_trial (trialuid, gets_completed);
+      dhtlog_handle->update_trial (gets_completed);
       GNUNET_DHTLOG_disconnect(dhtlog_handle);
       dhtlog_handle = NULL;
     }
@@ -985,7 +1054,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   if (dhtlog_handle != NULL)
     {
       fprintf(stderr, "Update trial endtime\n");
-      dhtlog_handle->update_trial (trialuid, gets_completed);
+      dhtlog_handle->update_trial (gets_completed);
       GNUNET_DHTLOG_disconnect(dhtlog_handle);
       dhtlog_handle = NULL;
     }
@@ -1736,6 +1805,7 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
                                               get_delay,
                                               GNUNET_BLOCK_TYPE_TEST,
                                               &known_keys[test_get->uid],
+                                              get_replication,
 					      GNUNET_DHT_RO_NONE,
 					      NULL, 0,
 					      NULL, 0,
@@ -1844,6 +1914,7 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   outstanding_puts++;
   GNUNET_DHT_put(test_put->dht_handle,
                  &known_keys[test_put->uid],
+                 put_replication,
 		 GNUNET_DHT_RO_NONE,
                  GNUNET_BLOCK_TYPE_TEST,
                  sizeof(data), data,
@@ -2303,7 +2374,7 @@ topology_callback (void *cls,
 #endif
       if (dhtlog_handle != NULL)
         {
-          dhtlog_handle->update_connections (trialuid, total_connections);
+          dhtlog_handle->update_connections (total_connections);
           dhtlog_handle->insert_topology(expected_connections);
         }
 

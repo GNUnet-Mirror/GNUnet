@@ -239,6 +239,7 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   global_get_handle = GNUNET_DHT_get_start(peer2dht, GNUNET_TIME_relative_get_forever(),
 					   GNUNET_BLOCK_TYPE_TEST,
 					   &key,
+					   DEFAULT_GET_REPLICATION,
 					   GNUNET_DHT_RO_NONE,
 					   NULL, 0,
 					   NULL, 0,
@@ -272,6 +273,7 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   /* Insert the data at the first peer */
   GNUNET_DHT_put(peer1dht,
                  &key,
+                 DEFAULT_PUT_REPLICATION,
 		 GNUNET_DHT_RO_NONE,
                  GNUNET_BLOCK_TYPE_TEST,
                  sizeof(data), data,

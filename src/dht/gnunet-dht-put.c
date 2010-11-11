@@ -151,6 +151,7 @@ run (void *cls,
              query_key, data);
   GNUNET_DHT_put (dht_handle,
 		  &key, 
+		  DEFAULT_PUT_REPLICATION,
 		  GNUNET_DHT_RO_NONE,
 		  query_type, 
 		  strlen (data), data,

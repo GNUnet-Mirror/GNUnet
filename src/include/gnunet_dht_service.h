@@ -52,6 +52,20 @@ extern "C"
 #define GNUNET_DHT_GET_BLOOMFILTER_K 16
 
 /**
+ * Non-intelligent default DHT GET replication.
+ * Should be chosen by application if anything about
+ * the network is known.
+ */
+#define DEFAULT_GET_REPLICATION 5
+
+/**
+ * Non-intelligent default DHT PUT replication.
+ * Should be chosen by application if anything about
+ * the network is known.
+ */
+#define DEFAULT_PUT_REPLICATION 8
+
+/**
  * Connection to the DHT service.
  */
 struct GNUNET_DHT_Handle;
@@ -121,33 +135,34 @@ GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle);
 /* *************** Standard API: get and put ******************* */
 
 /**
- * Perform a PUT operation on the DHT identified by 'table' storing
- * a binding of 'key' to 'value'.  The peer does not have to be part
- * of the table (if so, we will attempt to locate a peer that is!)
+ * Perform a PUT operation storing data in the DHT.
  *
  * @param handle handle to DHT service
- * @param key the key to store data under
+ * @param key the key to store under
+ * @param desired_replication_level estimate of how many
+ *                nearest peers this request should reach
  * @param options routing options for this message
  * @param type type of the value
  * @param size number of bytes in data; must be less than 64k
  * @param data the data to store
- * @param exp desired expiration time for the data
- * @param timeout when to abort if we fail to transmit the request 
- *                for the PUT to the local DHT service
+ * @param exp desired expiration time for the value
+ * @param timeout how long to wait for transmission of this request
  * @param cont continuation to call when done (transmitting request to service)
  * @param cont_cls closure for cont
+ * @return GNUNET_YES if put message is queued for transmission
  */
 void
 GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
                 const GNUNET_HashCode * key,
-		enum GNUNET_DHT_RouteOption options,
+                uint32_t desired_replication_level,
+                enum GNUNET_DHT_RouteOption options,
                 enum GNUNET_BLOCK_Type type,
                 size_t size,
                 const char *data,
                 struct GNUNET_TIME_Absolute exp,
                 struct GNUNET_TIME_Relative timeout,
-		GNUNET_SCHEDULER_Task cont,
-		void *cont_cls);
+                GNUNET_SCHEDULER_Task cont,
+                void *cont_cls);
 
 
 /**
@@ -177,33 +192,36 @@ typedef void (*GNUNET_DHT_GetIterator)(void *cls,
 
 
 /**
- * Perform an asynchronous GET operation on the DHT.  See
+ * Perform an asynchronous GET operation on the DHT identified. See
  * also "GNUNET_BLOCK_evaluate".
  *
  * @param handle handle to the DHT service
- * @param timeout timeout for this request to be sent to the
- *        service (this is NOT a timeout for receiving responses)
- * @param type expected type of the response object (GNUNET_BLOCK_TYPE_FS_*)
+ * @param timeout how long to wait for transmission of this request to the service
+ * @param type expected type of the response object
  * @param key the key to look up
+ * @param desired_replication_level estimate of how many
+                  nearest peers this request should reach
  * @param options routing options for this message
  * @param bf bloom filter associated with query (can be NULL)
  * @param bf_mutator mutation value for bf
- * @param xquery extrended query data (can be NULL, depending on type)
+ * @param xquery extended query data (can be NULL, depending on type)
  * @param xquery_size number of bytes in xquery
  * @param iter function to call on each result
  * @param iter_cls closure for iter
- * @return handle to stop the async get, NULL on error
+ *
+ * @return handle to stop the async get
  */
 struct GNUNET_DHT_GetHandle *
 GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
                       struct GNUNET_TIME_Relative timeout,
                       enum GNUNET_BLOCK_Type type,
                       const GNUNET_HashCode * key,
-		      enum GNUNET_DHT_RouteOption options,
-		      const struct GNUNET_CONTAINER_BloomFilter *bf,
-		      int32_t bf_mutator,
-		      const void *xquery,
-		      size_t xquery_size,
+                      uint32_t desired_replication_level,
+                      enum GNUNET_DHT_RouteOption options,
+                      const struct GNUNET_CONTAINER_BloomFilter *bf,
+                      int32_t bf_mutator,
+                      const void *xquery,
+                      size_t xquery_size,
                       GNUNET_DHT_GetIterator iter,
                       void *iter_cls);
 
@@ -212,6 +230,9 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
  * Stop async DHT-get.  Frees associated resources.
  *
  * @param get_handle GET operation to stop.
+ *
+ * On return get_handle will no longer be valid, caller
+ * must not use again!!!
  */
 void
 GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *get_handle);

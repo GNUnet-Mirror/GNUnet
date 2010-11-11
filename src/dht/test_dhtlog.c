@@ -168,7 +168,7 @@ test (struct GNUNET_DHTLOG_Handle * api)
 #if VERBOSE
   fprintf(stderr, "Insert stat succeeded!\n");
 #endif
-  ret = api->update_trial (trial_info.trialuid, 787);
+  ret = api->update_trial (787);
   CHECK(ret);
 #if VERBOSE
   fprintf(stderr, "Update trial succeeded!\n");
