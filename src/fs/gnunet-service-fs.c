@@ -4488,6 +4488,7 @@ main_init (struct GNUNET_SERVER_Handle *server,
   peer_request_map = GNUNET_CONTAINER_multihashmap_create (enc);
   requests_by_expiration_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN); 
   core = GNUNET_CORE_connect (cfg,
+			      1, /* larger? */
 			      GNUNET_TIME_UNIT_FOREVER_REL,
 			      NULL,
 			      NULL,

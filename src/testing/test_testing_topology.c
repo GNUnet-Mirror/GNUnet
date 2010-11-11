@@ -521,6 +521,7 @@ init_notify_peer1 (void *cls,
    * Connect to the receiving peer
    */
   pos->peer2handle = GNUNET_CORE_connect (pos->peer2->cfg,
+					  1,
 					  TIMEOUT,
 					  pos,
 					  &init_notify_peer2,
@@ -562,6 +563,7 @@ send_test_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
    * Connect to the sending peer
    */
   pos->peer1handle = GNUNET_CORE_connect (pos->peer1->cfg,
+					  1,
                                           TIMEOUT,
                                           pos,
                                           &init_notify_peer1,

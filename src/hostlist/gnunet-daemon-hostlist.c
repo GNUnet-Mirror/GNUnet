@@ -269,6 +269,7 @@ run (void *cls,
   stats = GNUNET_STATISTICS_create ("hostlist", cfg);
 
   core = GNUNET_CORE_connect (cfg,
+			      1,
 			      GNUNET_TIME_UNIT_FOREVER_REL,
 			      NULL,
 			      &core_init,

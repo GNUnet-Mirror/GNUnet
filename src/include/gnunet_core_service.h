@@ -179,6 +179,7 @@ typedef void
  * subject to queue size limitations.
  *
  * @param cfg configuration to use
+ * @param queue_size size of the per-peer message queue
  * @param timeout after how long should we give up trying to connect to the core service?
  * @param cls closure for the various callbacks that follow (including handlers in the handlers array)
  * @param init callback to call on timeout or once we have successfully
@@ -215,6 +216,7 @@ typedef void
  */
 struct GNUNET_CORE_Handle *
 GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
+		     unsigned int queue_size,
                      struct GNUNET_TIME_Relative timeout,
                      void *cls,
                      GNUNET_CORE_StartupCallback init,
@@ -384,7 +386,10 @@ struct GNUNET_CORE_TransmitHandle;
  * @param target who should receive the message,
  *        use NULL for this peer (loopback)
  * @param notify_size how many bytes of buffer space does notify want?
- * @param notify function to call when buffer space is available
+ * @param notify function to call when buffer space is available;
+ *        will be called with NULL on timeout or if the overall queue
+ *        for this peer is larger than queue_size and this is currently
+ *        the message with the lowest priority
  * @param notify_cls closure for notify
  * @return non-NULL if the notify callback was queued,
  *         NULL if we can not even queue the request (insufficient

@@ -2993,6 +2993,7 @@ run (void *cls,
   GNUNET_SERVER_add_handlers (server, plugin_handlers);
   coreAPI =
   GNUNET_CORE_connect (cfg,
+		       1,
                        GNUNET_TIME_relative_get_forever(),
                        NULL, /* FIXME: anything we want to pass around? */
                        &core_init,

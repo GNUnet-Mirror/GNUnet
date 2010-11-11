@@ -219,7 +219,7 @@ init_notify (void *cls,
       GNUNET_assert (ok == 2);
       OKPP;
       /* connect p2 */
-      GNUNET_CORE_connect (p2.cfg,
+      GNUNET_CORE_connect (p2.cfg, 1,
                            TIMEOUT,
                            &p2,
                            &init_notify,			 
@@ -310,7 +310,7 @@ run (void *cls,
   OKPP;
   setup_peer (&p1, "test_core_api_peer1.conf");
   setup_peer (&p2, "test_core_api_peer2.conf");
-  GNUNET_CORE_connect (p1.cfg,
+  GNUNET_CORE_connect (p1.cfg, 1,
                        TIMEOUT,
                        &p1,
                        &init_notify,

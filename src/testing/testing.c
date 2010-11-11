@@ -544,6 +544,7 @@ start_fsm (void *cls,
 #endif
       d->phase = SP_START_CORE;
       d->server = GNUNET_CORE_connect (d->cfg,
+				       1,
                                        ARM_START_WAIT,
                                        d,
                                        &testing_init,
@@ -1537,6 +1538,7 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 #endif
 
   ctx->d1core = GNUNET_CORE_connect (d1->cfg,
+				     1,
                                      timeout,
                                      ctx,
                                      NULL,
@@ -1554,6 +1556,7 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 
 #if CONNECT_CORE2
   ctx->d2core = GNUNET_CORE_connect (d2->cfg,
+				     1,
                                      timeout,
                                      ctx,
                                      NULL,
@@ -1616,6 +1619,7 @@ reattempt_daemons_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
   GNUNET_assert(ctx->d1core == NULL);
 
   ctx->d1core = GNUNET_CORE_connect (ctx->d1->cfg,
+				     1,
                                      GNUNET_TIME_absolute_get_remaining(ctx->timeout),
                                      ctx,
                                      NULL,

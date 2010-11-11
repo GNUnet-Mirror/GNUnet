@@ -370,6 +370,7 @@ setup_learn_peer (struct PeerContext *p, const char *cfgname)
   if ( NULL != filename)  GNUNET_free ( filename );
 
   p->core = GNUNET_CORE_connect (p->cfg,
+				 1,
 				 GNUNET_TIME_UNIT_FOREVER_REL,
 				 NULL,
 				 NULL,

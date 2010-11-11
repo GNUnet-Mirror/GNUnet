@@ -129,6 +129,11 @@ struct GNUNET_CORE_Handle
   GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
 
   /**
+   * Number of messages we should queue per target.
+   */
+  unsigned int queue_size;
+
+  /**
    * Number of entries in the handlers array.
    */
   unsigned int hcnt;
@@ -722,6 +727,7 @@ transmit_start (void *cls, size_t size, void *buf)
  * complete (or fail) asynchronously.
  *
  * @param cfg configuration to use
+ * @param queue_size size of the per-peer message queue
  * @param timeout after how long should we give up trying to connect to the core service?
  * @param cls closure for the various callbacks that follow (including handlers in the handlers array)
  * @param init callback to call on timeout or once we have successfully
@@ -743,6 +749,7 @@ transmit_start (void *cls, size_t size, void *buf)
  */
 struct GNUNET_CORE_Handle *
 GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
+		     unsigned int queue_size,
                      struct GNUNET_TIME_Relative timeout,
                      void *cls,
                      GNUNET_CORE_StartupCallback init,
@@ -769,6 +776,7 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->inbound_hdr_only = inbound_hdr_only;
   h->outbound_hdr_only = outbound_hdr_only;
   h->handlers = handlers;
+  h->queue_size = queue_size;
   h->client_notifications = GNUNET_CLIENT_connect ("core", cfg);
   if (h->client_notifications == NULL)
     {

@@ -4567,7 +4567,8 @@ run (void *cls,
   datacache = GNUNET_DATACACHE_create (cfg, "dhtcache");
   GNUNET_SERVER_add_handlers (server, plugin_handlers);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
-  coreAPI = GNUNET_CORE_connect (cfg,   /* Main configuration */
+  coreAPI = GNUNET_CORE_connect (cfg,    /* Main configuration */
+				 1, /* queue size */
                                  GNUNET_TIME_UNIT_FOREVER_REL,
                                  NULL,  /* Closure passed to DHT functions */
                                  &core_init,    /* Call core_init once connected */
