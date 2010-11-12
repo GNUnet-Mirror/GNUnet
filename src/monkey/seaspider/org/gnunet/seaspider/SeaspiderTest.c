@@ -8,6 +8,7 @@
 
 
 #define PRE_PROC_DIR 0
+#define MACRO_fun(arg1, arg2) (arg1 + arg2)
 
 struct MyStruct {
 	int member;
@@ -27,14 +28,6 @@ static int fun(int arg1, int arg2)
 	return arg1 + arg2;
 }
 
-/*
- * "inline" is a showstopper for the parser!
- * 
-inline int funInline(int arg1, int arg2)
-{
-	return arg1 + arg2;
-}
-*/
 
 int main(int args, const char * argv[])
 {
@@ -80,7 +73,7 @@ int main(int args, const char * argv[])
 				fun(enumMember1, enumMember2 ? enumMember2 : enumMember1); // ternary operator
 				break;
 			default:
-				fun(enumMember1, PRE_PROC_DIR); // preprocessing directive
+				MACRO_fun(enumMember1, PRE_PROC_DIR); // preprocessing directive
 				break;
 			}
 		}
