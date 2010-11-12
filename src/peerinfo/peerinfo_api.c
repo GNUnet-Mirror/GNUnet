@@ -236,6 +236,10 @@ do_transmit (void *cls, size_t size, void *buf)
 	}
       return 0;
     }
+  /* If it can be NULL above, it can be NULL here to... */
+  if (tqe == NULL)
+    return 0;
+
   ret = tqe->size;
   GNUNET_assert (size >= ret);
   memcpy (buf, &tqe[1], ret);
