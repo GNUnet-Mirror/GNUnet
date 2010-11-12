@@ -3,7 +3,6 @@ package org.gnunet.seaspider;
 import org.gnunet.seaspider.parser.nodes.ANDExpression;
 import org.gnunet.seaspider.parser.nodes.AdditiveExpression;
 import org.gnunet.seaspider.parser.nodes.ArgumentExpressionList;
-import org.gnunet.seaspider.parser.nodes.AssignmentExpression;
 import org.gnunet.seaspider.parser.nodes.AssignmentOperator;
 import org.gnunet.seaspider.parser.nodes.CastExpression;
 import org.gnunet.seaspider.parser.nodes.CompoundStatement;
