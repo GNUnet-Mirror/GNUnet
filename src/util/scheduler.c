@@ -252,7 +252,6 @@ check_priority (enum GNUNET_SCHEDULER_Priority p)
  * future), but only if the return value is "GNUNET_NO" (and
  * the "lowest_pending_id" check failed).
  *
- * @param sched the scheduler
  * @param id which task are we checking for
  * @return GNUNET_YES if so, GNUNET_NO if not
  */
@@ -304,7 +303,6 @@ is_pending (GNUNET_SCHEDULER_TaskIdentifier id)
 /**
  * Update all sets and timeout for select.
  *
- * @param sched the scheduler
  * @param rs read-set, set to all FDs we would like to read (updated)
  * @param ws write-set, set to all FDs we would like to write (updated)
  * @param timeout next timeout (updated)
@@ -388,7 +386,6 @@ set_overlaps (const struct GNUNET_NETWORK_FDSet *ready,
  * Check if the given task is eligible to run now.
  * Also set the reason why it is eligible.
  *
- * @param sched the scheduler
  * @param task task to check if it is ready
  * @param now the current time
  * @param rs set of FDs ready for reading
@@ -514,9 +511,6 @@ check_ready (const struct GNUNET_NETWORK_FDSet *rs,
  * cause all tasks to run (as soon as possible, respecting
  * priorities and prerequisite tasks).  Note that tasks
  * scheduled AFTER this call may still be delayed arbitrarily.
- *
- * @param sched the scheduler
- */
 void
 GNUNET_SCHEDULER_shutdown ()
 {
@@ -582,7 +576,6 @@ destroy_task (struct Task *t)
  * may become ready, hence we should select on it).  Naturally, if
  * there are no more ready tasks, we also return.  
  *
- * @param sched the scheduler
  * @param rs FDs ready for reading
  * @param ws FDs ready for writing
  */
@@ -826,7 +819,6 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
  * started.  Will return the same value as 
  * the GNUNET_SCHEDULER_TaskContext's reason field.
  *
- * @param sched scheduler to query
  * @return reason(s) why the current task is run
  */
 enum GNUNET_SCHEDULER_Reason
@@ -843,7 +835,6 @@ GNUNET_SCHEDULER_get_reason ()
  * dropped (if the decision should be made based on the number of
  * tasks ready to run).
  *
- * @param sched scheduler to query
  * @param p priority level to look at
  * @return number of tasks pending right now
  */
@@ -873,7 +864,6 @@ GNUNET_SCHEDULER_get_load (enum GNUNET_SCHEDULER_Priority p)
  * Cancel the task with the specified identifier.
  * The task must not yet have run.
  *
- * @param sched scheduler to use
  * @param task id of the task to cancel
  * @return original closure of the task
  */
@@ -967,7 +957,6 @@ GNUNET_SCHEDULER_cancel (GNUNET_SCHEDULER_TaskIdentifier task)
  * similar to the other "add" functions except that there is no delay
  * and the reason code can be specified.
  *
- * @param sched scheduler to use
  * @param task main function of the task
  * @param task_cls closure for 'main'
  * @param reason reason for task invocation
@@ -1014,7 +1003,6 @@ GNUNET_SCHEDULER_add_continuation (GNUNET_SCHEDULER_Task task,
  * has completed. It will be run with the priority of the calling
  * task.
  *
- * @param sched scheduler to use
  * @param prerequisite_task run this task after the task with the given
  *        task identifier completes (and any of our other
  *        conditions, such as delay, read or write-readiness
@@ -1040,7 +1028,6 @@ GNUNET_SCHEDULER_add_after (GNUNET_SCHEDULER_TaskIdentifier prerequisite_task,
 /**
  * Schedule a new task to be run with a specified priority.
  *
- * @param sched scheduler to use
  * @param prio how important is the new task?
  * @param task main function of the task
  * @param task_cls closure of task
@@ -1065,7 +1052,6 @@ GNUNET_SCHEDULER_add_with_priority (enum GNUNET_SCHEDULER_Priority prio,
  * will be scheduled for execution once the delay has expired. It
  * will be run with the priority of the calling task.
  *
- * @param sched scheduler to use
  * @param delay when should this operation time out? Use 
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
  * @param task main function of the task
@@ -1163,7 +1149,6 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_TIME_Relative delay,
  * Schedule a new task to be run as soon as possible. The task
  * will be run with the priority of the calling task.
  *
- * @param sched scheduler to use
  * @param task main function of the task
  * @param task_cls closure of task
  * @return unique task identifier for the job
@@ -1199,7 +1184,6 @@ GNUNET_SCHEDULER_add_now (GNUNET_SCHEDULER_Task task,
  *     || shutdown-active )
  * </code>
  *
- * @param sched scheduler to use
  * @param delay how long should we wait? Use GNUNET_TIME_UNIT_FOREVER_REL for "forever",
  *        which means that the task will only be run after we receive SIGTERM
  * @param rfd file descriptor we want to read (can be -1)
@@ -1269,7 +1253,6 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
  * socket operation is ready.  It will be run with the priority of
  * the calling task.
  *
- * @param sched scheduler to use
  * @param delay when should this operation time out? Use 
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
  * @param rfd read file-descriptor
@@ -1299,7 +1282,6 @@ GNUNET_SCHEDULER_add_read_net (struct GNUNET_TIME_Relative delay,
  * socket operation is ready.  It will be run with the priority of
  * the calling task.
  *
- * @param sched scheduler to use
  * @param delay when should this operation time out? Use 
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
  * @param wfd write file-descriptor
@@ -1329,7 +1311,6 @@ GNUNET_SCHEDULER_add_write_net (struct GNUNET_TIME_Relative delay,
  * socket operation is ready. It will be run with the priority of
  * the calling task.
  *
- * @param sched scheduler to use
  * @param delay when should this operation time out? Use 
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
  * @param rfd read file-descriptor
@@ -1377,7 +1358,6 @@ GNUNET_SCHEDULER_add_read_file (struct GNUNET_TIME_Relative delay,
  * socket operation is ready. It will be run with the priority of
  * the calling task.
  *
- * @param sched scheduler to use
  * @param delay when should this operation time out? Use 
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
  * @param wfd write file-descriptor
@@ -1435,7 +1415,6 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
  *     || (shutdown-active && run-on-shutdown) )
  * </code>
  *
- * @param sched scheduler to use
  * @param prio how important is this task?
  * @param prerequisite_task run this task after the task with the given
  *        task identifier completes (and any of our other
