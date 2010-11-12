@@ -2296,17 +2296,15 @@ http_plugin_send (void *cls,
       if (force_address != GNUNET_YES)
          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"No existing connection: creating new session %X to peer %s\n", ps, GNUNET_i2s(target));
 #endif
-      if ((addrlen!=0) && (addr!=NULL))
-      {
-         ps->addr = GNUNET_malloc(addrlen);
-         memcpy(ps->addr,addr,addrlen);
-         ps->addrlen = addrlen;
-      }
+ 	  ps->addr = GNUNET_malloc(addrlen);
+	  memcpy(ps->addr,addr,addrlen);
+	  ps->addrlen = addrlen;
+      /*
 	  else
 	  {
 		ps->addr = NULL;
 		ps->addrlen = 0;
-	  }
+	  }*/
   	  ps->direction=OUTBOUND;
 	  ps->recv_connected = GNUNET_NO;
 	  ps->recv_force_disconnect = GNUNET_NO;
