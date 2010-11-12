@@ -586,7 +586,7 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
                    outfile_path,
                    "mysqldump_nodes",
                    getpid());
-
+  GNUNET_free(fn);
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 
   if (fn == NULL)
@@ -619,6 +619,7 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
                    "mysqldump_routes",
                    getpid());
 
+  GNUNET_free(fn);
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 
   if (fn == NULL)
@@ -651,6 +652,7 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
                    "mysqldump_queries",
                    getpid());
 
+  GNUNET_free(fn);
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 
   if (fn == NULL)
@@ -683,6 +685,7 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
                    "mysqldump_stats",
                    getpid());
 
+  GNUNET_free(fn);
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 
   if (fn == NULL)
@@ -714,7 +717,7 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
                    outfile_path,
                    "mysqldump_generic_stats",
                    getpid());
-
+  GNUNET_free(fn);
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 
   if (fn == NULL)
@@ -746,7 +749,7 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
                    outfile_path,
                    "mysqldump_dhtkey",
                    getpid());
-
+  GNUNET_free(fn);
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 
   if (fn == NULL)
@@ -778,7 +781,7 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
                    outfile_path,
                    "mysqldump_extended_topology",
                    getpid());
-
+  GNUNET_free(fn);
   fn = GNUNET_STRINGS_filename_expand (outfile_name);
 
   if (fn == NULL)

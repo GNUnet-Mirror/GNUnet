@@ -2050,7 +2050,7 @@ schedule_find_peer_requests (void *cls, const struct GNUNET_SCHEDULER_TaskContex
       else /* If we have sent requests, choose peers with a low number of connections to send requests from */
         {
           peer_count = GNUNET_CONTAINER_heap_remove_root(find_peer_ctx->peer_min_heap);
-          GNUNET_CONTAINER_multihashmap_remove(find_peer_ctx->peer_hash, &peer_count->peer_id.hashPubKey, peer_count);
+          GNUNET_assert(GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(find_peer_ctx->peer_hash, &peer_count->peer_id.hashPubKey, peer_count));
           test_find_peer->daemon = GNUNET_TESTING_daemon_get_by_id(pg, &peer_count->peer_id);
           GNUNET_assert(test_find_peer->daemon != NULL);
         }
@@ -3040,7 +3040,7 @@ run (void *cls,
                                              &num_peers))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Number of peers must be specified in section %s option %s\n", topology_str, "TESTING", "NUM_PEERS");
+                  "Number of peers must be specified in section %s option %s\n", "TESTING", "NUM_PEERS");
     }
   GNUNET_assert(num_peers > 0 && num_peers < ULONG_MAX);
   /* Set peers_left so we know when all peers started */
