@@ -9,7 +9,7 @@ import org.tmatesoft.sqljet.core.table.SqlJetDb;
 
 public class ExpressionDatabaseHandler {
 
-	private static final boolean DEBUG = true;
+	private static final boolean DEBUG = false;
 		
 	private static SqlJetDb db;
 
