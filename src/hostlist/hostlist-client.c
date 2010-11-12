@@ -1421,7 +1421,8 @@ static void save_hostlist_file ( int shutdown )
                   "HOSTLISTFILE", "HOSTLIST");
       return;
     }
-  GNUNET_DISK_directory_create_for_file (filename);
+  if (GNUNET_SYSERR != GNUNET_DISK_directory_create_for_file (filename))
+  {
   wh = GNUNET_BIO_write_open (filename);
   if ( NULL == wh)
     {
@@ -1435,7 +1436,7 @@ static void save_hostlist_file ( int shutdown )
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Writing %u hostlist URIs to `%s'\n" ),
               linked_list_size, filename);
-
+  }
   /* add code to write hostlists to file using bio */
   ok = GNUNET_YES;
   counter = 0;
