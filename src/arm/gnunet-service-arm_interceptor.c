@@ -788,6 +788,7 @@ service_try_to_connect (const struct sockaddr *addr,
 	  addrlen);
   serviceListeningInfo->service_addr_len = addrlen;
   serviceListeningInfo->listeningSocket = sock;
+  serviceListeningInfo->fc = fc;
   serviceListeningInfo->acceptTask =
     GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
 				    serviceListeningInfo->listeningSocket,
