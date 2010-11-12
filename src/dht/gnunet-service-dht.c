@@ -1112,7 +1112,7 @@ core_transmit_notify (void *cls,
 
   size_t off;
   size_t msize;
-
+  peer->th = NULL;
   if (buf == NULL)
     {
       /* client disconnected */
@@ -1125,7 +1125,6 @@ core_transmit_notify (void *cls,
   if (peer->head == NULL)
     return 0;
 
-  peer->th = NULL;
   off = 0;
   pending = peer->head;
   reply_times[reply_counter] = GNUNET_TIME_absolute_get_difference(pending->scheduled, GNUNET_TIME_absolute_get());
@@ -1523,7 +1522,7 @@ static void delete_peer (struct PeerInfo *peer,
 
   if (peer->send_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel(peer->send_task);
-  if (peer->th != NULL)
+  if ((peer->th != NULL) && (coreAPI != NULL))
     GNUNET_CORE_notify_transmit_ready_cancel(peer->th);
 
   pos = peer->head;
