@@ -511,6 +511,7 @@ check_ready (const struct GNUNET_NETWORK_FDSet *rs,
  * cause all tasks to run (as soon as possible, respecting
  * priorities and prerequisite tasks).  Note that tasks
  * scheduled AFTER this call may still be delayed arbitrarily.
+ */
 void
 GNUNET_SCHEDULER_shutdown ()
 {
