@@ -4425,9 +4425,9 @@ core_init (void *cls,
   if (server == NULL)
     {
 #if DEBUG_DHT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%s: Connection to core FAILED!\n", "dht",
-              GNUNET_i2s (identity));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%s: Connection to core FAILED!\n", "dht",
+                  GNUNET_i2s (identity));
 #endif
       GNUNET_SCHEDULER_cancel (cleanup_task);
       GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);

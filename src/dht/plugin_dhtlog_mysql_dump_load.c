@@ -326,7 +326,7 @@ add_node (unsigned long long *nodeuid, struct GNUNET_PeerIdentity * node)
     return GNUNET_SYSERR;
 
   ret = fprintf(node_outfile, "TRIALUID\t%s\n", GNUNET_h2s_full(&node->hashPubKey));
-
+  fflush(node_outfile);
   if (ret >= 0)
     return GNUNET_OK;
   return GNUNET_SYSERR;
@@ -348,7 +348,7 @@ update_trials (unsigned int gets_succeeded)
     return GNUNET_SYSERR;
 
   ret = fprintf(outfile, "update trials set endtime=\"%s\", gets_succeeded=%u where trialuid = @temp_trial;\n", get_sql_time(), gets_succeeded);
-
+  fflush(node_outfile);
   if (ret >= 0)
     return GNUNET_OK;
   else
@@ -373,7 +373,7 @@ set_malicious (struct GNUNET_PeerIdentity *peer)
     return GNUNET_SYSERR;
 
   ret = fprintf(outfile, "update nodes set malicious_dropper = 1 where trialuid = @temp_trial and nodeid = \"%s\";\n", GNUNET_h2s_full(&peer->hashPubKey));
-
+  fflush(node_outfile);
   if (ret >= 0)
     return GNUNET_OK;
   else
@@ -397,7 +397,7 @@ add_connections (unsigned int totalConnections)
     return GNUNET_SYSERR;
 
   ret = fprintf(outfile, "update trials set totalConnections = %u where trialuid = @temp_trial;\n", totalConnections);
-
+  fflush(node_outfile);
   if (ret >= 0)
     return GNUNET_OK;
   else
