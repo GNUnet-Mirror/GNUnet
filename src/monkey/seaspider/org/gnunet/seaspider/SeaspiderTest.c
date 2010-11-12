@@ -27,6 +27,14 @@ static int fun(int arg1, int arg2)
 	return arg1 + arg2;
 }
 
+/*
+ * "inline" is a showstopper for the parser!
+ * 
+inline int funInline(int arg1, int arg2)
+{
+	return arg1 + arg2;
+}
+*/
 
 int main(int args, const char * argv[])
 {
