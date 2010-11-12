@@ -55,7 +55,7 @@ int main(int args, const char * argv[])
 	/* for loop */
 	for (i = 0; i < 2; i++) {
 		/* conditional expressions */
-		if ( x > 0) {
+	       if ( x > 0) { 
 			while (y < 5) {
 				y++;
 			}
