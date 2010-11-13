@@ -51,6 +51,7 @@ static struct PeerContext p1;
 
 static struct PeerContext p2;
 
+static GNUNET_SCHEDULER_TaskIdentifier timeout_task_id;
 
 static int ok;
 
@@ -112,25 +113,26 @@ init_notify (void *cls,
   struct PeerContext *p = cls;
 
   GNUNET_assert (server != NULL);
-  p->ch = server;
+  GNUNET_assert (p->ch == server);
   if (cls == &p1)
     {
       /* connect p2 */
-      GNUNET_CORE_connect (p2.cfg, 1,
-                           &p2,
-                           &init_notify,			 
-                           &connect_notify,
-                           &disconnect_notify,
-			   NULL,
-                           &inbound_notify,
-                           GNUNET_YES,
-                           &outbound_notify, GNUNET_YES, handlers);
+      p2.ch = GNUNET_CORE_connect (p2.cfg, 1,
+				   &p2,
+				   &init_notify,			 
+				   &connect_notify,
+				   &disconnect_notify,
+				   NULL,
+				   &inbound_notify,
+				   GNUNET_YES,
+				   &outbound_notify, GNUNET_YES, handlers);
     }
   else
     {
       GNUNET_assert (cls == &p2);
       GNUNET_CORE_disconnect (p1.ch);
       GNUNET_CORE_disconnect (p2.ch);
+      GNUNET_SCHEDULER_cancel (timeout_task_id);
       ok = 0;
     }
 }
@@ -153,6 +155,26 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 
 
 static void
+timeout_task (void *cls, 
+	      const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  fprintf (stderr, "Timeout.\n");
+  if (p1.ch != NULL)
+    {
+      GNUNET_CORE_disconnect (p1.ch);
+      p1.ch = NULL;
+    }
+  if (p2.ch != NULL)
+    {
+      GNUNET_CORE_disconnect (p2.ch);
+      p2.ch = NULL;
+    }
+  ok = 42;
+}
+
+
+
+static void
 run (void *cls,
      char *const *args,
      const char *cfgfile, 
@@ -162,14 +184,17 @@ run (void *cls,
   OKPP;
   setup_peer (&p1, "test_core_api_peer1.conf");
   setup_peer (&p2, "test_core_api_peer2.conf");
-  GNUNET_CORE_connect (p1.cfg, 1,
-                       &p1,
-                       &init_notify,
-		       &connect_notify,
-                       &disconnect_notify,
-		       NULL,
-                       &inbound_notify,
-                       GNUNET_YES, &outbound_notify, GNUNET_YES, handlers);
+  timeout_task_id = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+						  &timeout_task,
+						  NULL);
+  p1.ch = GNUNET_CORE_connect (p1.cfg, 1,
+			       &p1,
+			       &init_notify,
+			       &connect_notify,
+			       &disconnect_notify,
+			       NULL,
+			       &inbound_notify,
+			       GNUNET_YES, &outbound_notify, GNUNET_YES, handlers);
 }
 
 
