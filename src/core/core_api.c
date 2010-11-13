@@ -371,9 +371,11 @@ reconnect_task (void *cls,
  * one to the core.
  *
  * @param h core handle
+ * @param ignore_currently_down transmit message even if not initialized?
  */
 static void
-trigger_next_request (struct GNUNET_CORE_Handle *h);
+trigger_next_request (struct GNUNET_CORE_Handle *h,
+		      int ignore_currently_down);
 
 
 /**
@@ -425,7 +427,7 @@ request_next_transmission (struct PeerRecord *pr)
     }
   if (NULL == (th = pr->pending_head))
     {
-      trigger_next_request (h);
+      trigger_next_request (h, GNUNET_NO);
       return;
     }
   GNUNET_assert (pr->prev == NULL);
@@ -451,7 +453,7 @@ request_next_transmission (struct PeerRecord *pr)
 				     h->pending_tail,
 				     h->pending_tail,
 				     cm);
-  trigger_next_request (h);
+  trigger_next_request (h, GNUNET_NO);
 }
 
 
@@ -514,7 +516,7 @@ transmit_message (void *cls,
       msize = ntohs (hdr->size);
       if (size < msize)
 	{
-	  trigger_next_request (h);
+	  trigger_next_request (h, GNUNET_NO);
 	  return 0;
 	}
       memcpy (buf, hdr, msize);
@@ -524,7 +526,7 @@ transmit_message (void *cls,
       if (NULL != cm->cont)
 	GNUNET_SCHEDULER_add_now (cm->cont, cm->cont_cls);
       GNUNET_free (cm);
-      trigger_next_request (h);
+      trigger_next_request (h, GNUNET_NO);
       return msize;
     }
   /* now check for 'ready' P2P messages */
@@ -533,7 +535,7 @@ transmit_message (void *cls,
       th = pr->pending_head;
       if (size < th->msize + sizeof (struct SendMessage))
 	{
-	  trigger_next_request (h);
+	  trigger_next_request (h, GNUNET_NO);
 	  return 0;
 	}
       GNUNET_CONTAINER_DLL_remove (h->ready_peer_head,
@@ -597,13 +599,16 @@ transmit_message (void *cls,
  * one to the core.
  *
  * @param h core handle
+ * @param ignore_currently_down transmit message even if not initialized?
  */
 static void
-trigger_next_request (struct GNUNET_CORE_Handle *h)
+trigger_next_request (struct GNUNET_CORE_Handle *h,
+		      int ignore_currently_down)
 {
   uint16_t msize;
 
-  if (GNUNET_YES == h->currently_down)
+  if ( (GNUNET_YES == h->currently_down) &&
+       (ignore_currently_down == GNUNET_NO) )
     return;
   if (NULL != h->cth)
     return;
@@ -748,7 +753,7 @@ main_notify_handler (void *cls,
       if (GNUNET_YES == h->currently_down)
 	{
 	  h->currently_down = GNUNET_NO;
-	  trigger_next_request (h);
+	  trigger_next_request (h, GNUNET_NO);
 	}
       if (NULL != (init = h->init))
 	{
@@ -809,7 +814,7 @@ main_notify_handler (void *cls,
 		  (h->ready_peer_head == pr) );
       disconnect_and_free_peer_entry (h, &dnm->peer.hashPubKey, pr);
       if (trigger)
-	trigger_next_request (h);
+	trigger_next_request (h, GNUNET_NO);
       break;
     case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_STATUS_CHANGE:
       if (NULL == h->status_events)
@@ -959,7 +964,7 @@ main_notify_handler (void *cls,
       GNUNET_CONTAINER_DLL_insert (h->ready_peer_head,
 				   h->ready_peer_tail,
 				   pr);
-      trigger_next_request (h);
+      trigger_next_request (h, GNUNET_NO);
       break;
     case GNUNET_MESSAGE_TYPE_CORE_CONFIGURATION_INFO:
       if (ntohs (msg->size) != sizeof (struct ConfigurationInfoMessage))
@@ -1097,7 +1102,7 @@ reconnect (struct GNUNET_CORE_Handle *h)
   GNUNET_CONTAINER_DLL_insert (h->pending_head,
 			       h->pending_tail,
 			       cm);
-  trigger_next_request (h);
+  trigger_next_request (h, GNUNET_YES);
 }
 
 
@@ -1156,6 +1161,7 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->outbound_hdr_only = outbound_hdr_only;
   h->handlers = handlers;
   h->hcnt = 0;
+  h->peers = GNUNET_CONTAINER_multihashmap_create (128);
   while (handlers[h->hcnt].callback != NULL)
     h->hcnt++;
   GNUNET_assert (h->hcnt <
@@ -1466,7 +1472,7 @@ GNUNET_CORE_peer_request_connect (struct GNUNET_CORE_Handle *h,
   cm->cont = &peer_request_connect_cont;
   cm->cont_cls = ret;
   if (h->pending_head == cm)
-    trigger_next_request (h);
+    trigger_next_request (h, GNUNET_NO);
   return ret;
 }
 

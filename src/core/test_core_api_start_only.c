@@ -31,7 +31,7 @@
 #include "gnunet_program_lib.h"
 #include "gnunet_scheduler_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define START_ARM GNUNET_YES
 
@@ -176,6 +176,8 @@ run (void *cls,
 static void
 stop_arm (struct PeerContext *p)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Stopping peer\n");
 #if START_ARM
   if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
@@ -208,6 +210,8 @@ check ()
   ok = 1;
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "test-core-api-start-only", "nohelp", options, &run, &ok);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Test finished\n");
   stop_arm (&p1);
   stop_arm (&p2);
   return ok;
