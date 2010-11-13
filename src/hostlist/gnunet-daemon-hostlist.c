@@ -141,13 +141,12 @@ core_init (void *cls,
  * Core handler for p2p hostlist advertisements
  */
 static int advertisement_handler (void *cls,
-                             const struct GNUNET_PeerIdentity * peer,
-                             const struct GNUNET_MessageHeader * message,
-                             struct GNUNET_TIME_Relative latency,
-                             uint32_t distance)
+				  const struct GNUNET_PeerIdentity * peer,
+				  const struct GNUNET_MessageHeader * message,
+				  const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   GNUNET_assert (NULL != client_adv_handler);
-  return (*client_adv_handler) (cls, peer, message, latency, distance);
+  return (*client_adv_handler) (cls, peer, message, atsi);
 }
 
 
@@ -156,23 +155,21 @@ static int advertisement_handler (void *cls,
  *
  * @param cls closure
  * @param peer peer identity this notification is about
- * @param latency reported latency of the connection with 'other'
- * @param distance reported distance (DV) to 'other'
+ * @param atsi performance data
  */
 static void
 connect_handler (void *cls,
                  const struct
                  GNUNET_PeerIdentity * peer,
-                 struct GNUNET_TIME_Relative latency,
-                 uint32_t distance)
+		 const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "A new peer connected, notifying client and server\n");
   if ( NULL != client_ch)
-    (*client_ch) (cls, peer, latency, distance);
+    (*client_ch) (cls, peer, atsi);
 #if HAVE_MHD
   if ( NULL != server_ch)
-    (*server_ch) (cls, peer, latency, distance);
+    (*server_ch) (cls, peer, atsi);
 #endif
 }
 
@@ -270,7 +267,6 @@ run (void *cls,
 
   core = GNUNET_CORE_connect (cfg,
 			      1,
-			      GNUNET_TIME_UNIT_FOREVER_REL,
 			      NULL,
 			      &core_init,
 			      &connect_handler, &disconnect_handler, NULL,

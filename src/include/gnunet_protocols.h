@@ -357,19 +357,26 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CORE_CONFIGURATION_INFO 73
 
 /**
- * Request from client with message to transmit.
+ * Request from client to transmit message.
  */
-#define GNUNET_MESSAGE_TYPE_CORE_SEND 74
+#define GNUNET_MESSAGE_TYPE_CORE_SEND_REQUEST 74
+
+/**
+ * Confirmation from core that message can now be sent
+ */
+#define GNUNET_MESSAGE_TYPE_CORE_SEND_READY 75
+
+/**
+ * Client with message to transmit (after SEND_READY confirmation
+ * was received).
+ */
+#define GNUNET_MESSAGE_TYPE_CORE_SEND 76
 
 /**
  * Request from client asking to connect to a peer.
  */
-#define GNUNET_MESSAGE_TYPE_CORE_REQUEST_CONNECT 75
+#define GNUNET_MESSAGE_TYPE_CORE_REQUEST_CONNECT 77
 
-/**
- * Request from client asking to call back with all connected peers.
- */
-#define GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS 76
 
 /**
  * Session key exchange between peers.

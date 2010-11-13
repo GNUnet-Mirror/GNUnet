@@ -37,6 +37,7 @@ extern "C"
 #endif
 
 #include "gnunet_util_lib.h"
+#include "gnunet_transport_service.h"
 
 /**
  * Version number of GNUnet-core API.
@@ -55,35 +56,32 @@ struct GNUNET_CORE_Handle;
  *
  * @param cls closure
  * @param peer peer identity this notification is about
- * @param latency reported latency of the connection with 'other'
- * @param distance reported distance (DV) to 'other' 
+ * @param atsi performance data for the connection
  */
 typedef void (*GNUNET_CORE_ConnectEventHandler) (void *cls,
 						 const struct
-						 GNUNET_PeerIdentity * peer,
-						 struct GNUNET_TIME_Relative latency,
-						 uint32_t distance);
+						 GNUNET_PeerIdentity *peer,
+						 const struct GNUNET_TRANSPORT_ATS_Information *atsi);
+
 
 /**
  * Method called whenever a given peer has a status change.
  *
  * @param cls closure
  * @param peer peer identity this notification is about
- * @param latency reported latency of the connection with 'other'
- * @param distance reported distance (DV) to 'other' 
- * @param bandwidth_in available amount of inbound bandwidth
- * @param bandwidth_out available amount of outbound bandwidth
  * @param timeout absolute time when this peer will time out
  *        unless we see some further activity from it
+ * @param bandwidth_in available amount of inbound bandwidth
+ * @param bandwidth_out available amount of outbound bandwidth
+ * @param atsi performance data for the connection
  */
 typedef void (*GNUNET_CORE_PeerStatusEventHandler) (void *cls,
 						    const struct
 						    GNUNET_PeerIdentity * peer,
-						    struct GNUNET_TIME_Relative latency,
-						    uint32_t distance,
 						    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
 						    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-						    struct GNUNET_TIME_Absolute timeout);
+						    struct GNUNET_TIME_Absolute timeout,
+						    const struct GNUNET_TRANSPORT_ATS_Information *atsi);
 
 
 /**
@@ -94,29 +92,26 @@ typedef void (*GNUNET_CORE_PeerStatusEventHandler) (void *cls,
  */
 typedef void (*GNUNET_CORE_DisconnectEventHandler) (void *cls,
 						    const struct
-						    GNUNET_PeerIdentity * peer);
+						    GNUNET_PeerIdentity *peer);
 
 
 /**
  * Functions with this signature are called whenever a message is
  * received or transmitted.
  *
- * @param cls closure
+ * @param cls closure (set from GNUNET_CORE_connect)
  * @param peer the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
- * @param latency reported latency of the connection with 'other'
- * @param distance reported distance (DV) to 'other' 
+ * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 typedef int
   (*GNUNET_CORE_MessageCallback) (void *cls,
-                                  const struct GNUNET_PeerIdentity * other,
-                                  const struct GNUNET_MessageHeader *
-                                  message,
-				  struct GNUNET_TIME_Relative latency,
-				  uint32_t distance);
+                                  const struct GNUNET_PeerIdentity *other,
+                                  const struct GNUNET_MessageHeader *message,
+				  const struct GNUNET_TRANSPORT_ATS_Information *atsi);
 
 
 /**
@@ -180,7 +175,6 @@ typedef void
  *
  * @param cfg configuration to use
  * @param queue_size size of the per-peer message queue
- * @param timeout after how long should we give up trying to connect to the core service?
  * @param cls closure for the various callbacks that follow (including handlers in the handlers array)
  * @param init callback to call on timeout or once we have successfully
  *        connected to the core service; note that timeout is only meaningful if init is not NULL
@@ -217,7 +211,6 @@ typedef void
 struct GNUNET_CORE_Handle *
 GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 		     unsigned int queue_size,
-                     struct GNUNET_TIME_Relative timeout,
                      void *cls,
                      GNUNET_CORE_StartupCallback init,
                      GNUNET_CORE_ConnectEventHandler connects,
@@ -231,7 +224,9 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Disconnect from the core service.
+ * Disconnect from the core service.    This function can only 
+ * be called *after* all pending 'GNUNET_CORE_notify_transmit_ready'
+ * requests have been explicitly cancelled.
  *
  * @param handle connection to core to disconnect
  */
@@ -257,7 +252,7 @@ struct GNUNET_CORE_PeerRequestHandle;
  * to our connection attempt within the given time frame, 'cont' will
  * be called with the TIMEOUT reason code.
  *
- * @param cfg configuration to use
+ * @param h core handle
  * @param timeout how long to try to talk to core
  * @param peer who should we connect to
  * @param cont function to call once the request has been completed (or timed out)
@@ -265,7 +260,7 @@ struct GNUNET_CORE_PeerRequestHandle;
  * @return NULL on error (cont will not be called), otherwise handle for cancellation
  */
 struct GNUNET_CORE_PeerRequestHandle *
-GNUNET_CORE_peer_request_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_CORE_peer_request_connect (struct GNUNET_CORE_Handle *h,
 				  struct GNUNET_TIME_Relative timeout,
 				  const struct GNUNET_PeerIdentity * peer,
 				  GNUNET_SCHEDULER_Task cont,
@@ -283,14 +278,11 @@ GNUNET_CORE_peer_request_connect_cancel (struct GNUNET_CORE_PeerRequestHandle *r
 
 
 /**
- * Function called with statistics about the given peer.
+ * Function called with perference change information about the given peer.
  *
  * @param cls closure
  * @param peer identifies the peer
- * @param bpm_in set to the current bandwidth limit (receiving) for this peer
- * @param bpm_out set to the current bandwidth limit (sending) for this peer
- * @param latency current latency estimate, "FOREVER" if we have been
- *                disconnected
+ * @param bandwidth_out available amount of outbound bandwidth
  * @param amount set to the amount that was actually reserved or unreserved;
  *               either the full requested amount or zero (no partial reservations)
  * @param preference current traffic preference for the given peer
@@ -299,8 +291,7 @@ typedef void
   (*GNUNET_CORE_PeerConfigurationInfoCallback) (void *cls,
                                                 const struct
                                                 GNUNET_PeerIdentity * peer,
-                                                struct GNUNET_BANDWIDTH_Value32NBO bpm_in,
-                                                struct GNUNET_BANDWIDTH_Value32NBO bpm_out,
+						struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
 						int amount,
                                                 uint64_t preference);
 
@@ -314,8 +305,9 @@ struct GNUNET_CORE_InformationRequestContext;
 
 /**
  * Obtain statistics and/or change preferences for the given peer.
+ * You can only have one such pending request per peer.
  *
- * @param cfg configuration to use
+ * @param h core handle
  * @param peer identifies the peer
  * @param timeout after how long should we give up (and call "info" with NULL
  *                for "peer" to signal an error)?
@@ -337,7 +329,7 @@ struct GNUNET_CORE_InformationRequestContext;
  * @return NULL on error
  */
 struct GNUNET_CORE_InformationRequestContext *
-GNUNET_CORE_peer_change_preference (const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
 				    const struct GNUNET_PeerIdentity *peer,
 				    struct GNUNET_TIME_Relative timeout,
 				    struct GNUNET_BANDWIDTH_Value32NBO bw_out,
@@ -349,24 +341,32 @@ GNUNET_CORE_peer_change_preference (const struct GNUNET_CONFIGURATION_Handle *cf
 
 /**
  * Cancel request for getting information about a peer.
+ * Note that an eventual change in preference, trust or bandwidth
+ * assignment MAY have already been committed at the time, 
+ * so cancelling a request is NOT sure to undo the original
+ * request.  The original request may or may not still commit.
+ * The only thing cancellation ensures is that the callback
+ * from the original request will no longer be called.
  *
  * @param irc context returned by the original GNUNET_CORE_peer_get_info call
  */
 void
 GNUNET_CORE_peer_change_preference_cancel (struct GNUNET_CORE_InformationRequestContext *irc);
 
+
 /**
- * Obtain statistics and/or change preferences for the given peer.
+ * Iterate over all connected peers.
  *
- * @param cfg configuration to use
+ * @param h core handle
  * @param peer_cb function to call with the peer information
  * @param cb_cls closure for peer_cb
- * @return GNUNET_OK if iterating, GNUNET_SYSERR on error
+ * @return GNUNET_OK on success, GNUNET_SYSERR on errors
  */
 int
-GNUNET_CORE_iterate_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_CORE_iterate_peers (struct GNUNET_CORE_Handle *h,
                            GNUNET_CORE_ConnectEventHandler peer_cb,
                            void *cb_cls);
+
 
 /**
  * Handle for a transmission request.

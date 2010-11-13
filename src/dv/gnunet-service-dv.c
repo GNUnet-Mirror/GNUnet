@@ -1311,11 +1311,11 @@ void send_message_delayed (void *cls,
  * @param latency the latency of the connection we received the message from
  * @param distance the distance to the immediate peer
  */
-static int handle_dv_data_message (void *cls,
-                                   const struct GNUNET_PeerIdentity * peer,
-                                   const struct GNUNET_MessageHeader * message,
-                                   struct GNUNET_TIME_Relative latency,
-                                   uint32_t distance)
+static int 
+handle_dv_data_message (void *cls,
+			const struct GNUNET_PeerIdentity * peer,
+			const struct GNUNET_MessageHeader * message,
+			const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   const p2p_dv_MESSAGE_Data *incoming = (const p2p_dv_MESSAGE_Data *) message;
   const struct GNUNET_MessageHeader *packed_message;
@@ -1919,14 +1919,12 @@ void handle_dv_send_message (void *cls,
 static int handle_dv_gossip_message (void *cls,
                                      const struct GNUNET_PeerIdentity *peer,
                                      const struct GNUNET_MessageHeader *message,
-                                     struct GNUNET_TIME_Relative latency,
-                                     uint32_t distance);
+                                     const struct GNUNET_TRANSPORT_ATS_Information *atsi);
 
 static int handle_dv_disconnect_message (void *cls,
                                          const struct GNUNET_PeerIdentity *peer,
                                          const struct GNUNET_MessageHeader *message,
-                                         struct GNUNET_TIME_Relative latency,
-                                         uint32_t distance);
+					 const struct GNUNET_TRANSPORT_ATS_Information *atsi);
 /** End forward declarations **/
 
 
@@ -2327,7 +2325,8 @@ generate_hello_address (void *cls, size_t max, void *buf)
  *         not added)
  */
 static struct DistantNeighbor *
-addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer, struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pkey,
+addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer,
+		   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pkey,
                    unsigned int referrer_peer_id,
                    struct DirectNeighbor *referrer, unsigned int cost)
 {
@@ -2466,7 +2465,10 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer, struct GNUNET_CRYPTO
 #if DEBUG_DV_MESSAGES
                   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: learned about peer %llu from which we have a previous unknown message, processing!\n", my_short_id, referrer_peer_id);
 #endif
-                  handle_dv_data_message(NULL, &referrer->pending_messages[i].sender, referrer->pending_messages[i].message, referrer->pending_messages[i].latency, referrer->pending_messages[i].distance);
+                  handle_dv_data_message(NULL, &referrer->pending_messages[i].sender, 
+					 referrer->pending_messages[i].message, 
+					 referrer->pending_messages[i].latency, 
+					 referrer->pending_messages[i].distance);
                   GNUNET_free(referrer->pending_messages[i].message);
                   referrer->pending_messages[i].sender_id = 0;
                 }
@@ -2521,14 +2523,12 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer, struct GNUNET_CRYPTO
  * @param cls closure
  * @param peer peer which sent the message (immediate sender)
  * @param message the message
- * @param latency the latency of the connection we received the message from
- * @param distance the distance to the immediate peer
+ * @param atsi performance data
  */
 static int handle_dv_disconnect_message (void *cls,
                                          const struct GNUNET_PeerIdentity *peer,
                                          const struct GNUNET_MessageHeader *message,
-                                         struct GNUNET_TIME_Relative latency,
-                                         uint32_t distance)
+					 const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct DirectNeighbor *referrer;
   struct DistantNeighbor *distant;
@@ -2570,14 +2570,13 @@ static int handle_dv_disconnect_message (void *cls,
  * @param cls closure
  * @param peer peer which sent the message (immediate sender)
  * @param message the message
- * @param latency the latency of the connection we received the message from
- * @param distance the distance to the immediate peer
+ * @param atsi performance data
  */
-static int handle_dv_gossip_message (void *cls,
-                                     const struct GNUNET_PeerIdentity *peer,
-                                     const struct GNUNET_MessageHeader *message,
-                                     struct GNUNET_TIME_Relative latency,
-                                     uint32_t distance)
+static int 
+handle_dv_gossip_message (void *cls,
+			  const struct GNUNET_PeerIdentity *peer,
+			  const struct GNUNET_MessageHeader *message,
+			  const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct DirectNeighbor *referrer;
   p2p_dv_MESSAGE_NeighborInfo *enc_message = (p2p_dv_MESSAGE_NeighborInfo *)message;
@@ -2623,9 +2622,10 @@ static int handle_dv_gossip_message (void *cls,
  *
  * @return GNUNET_YES to continue iteration, GNUNET_NO otherwise
  */
-static int add_all_extended_peers (void *cls,
-                                   const GNUNET_HashCode * key,
-                                   void *value)
+static int 
+add_all_extended_peers (void *cls,
+			const GNUNET_HashCode * key,
+			void *value)
 {
   struct NeighborSendContext *send_context = (struct NeighborSendContext *)cls;
   struct DistantNeighbor *distant = (struct DistantNeighbor *)value;
@@ -2660,9 +2660,10 @@ static int add_all_extended_peers (void *cls,
  *         iterate,
  *         GNUNET_NO if not.
  */
-static int gossip_all_to_all_iterator (void *cls,
-                                      const GNUNET_HashCode * key,
-                                      void *abs_value)
+static int 
+gossip_all_to_all_iterator (void *cls,
+			    const GNUNET_HashCode * key,
+			    void *abs_value)
 {
   struct DirectNeighbor *direct = abs_value;
 
@@ -2704,9 +2705,10 @@ gossip_all_to_all (void *cls,
  *
  * @return GNUNET_YES to continue iteration, GNUNET_NO otherwise
  */
-static int add_all_direct_neighbors (void *cls,
-                                     const GNUNET_HashCode * key,
-                                     void *value)
+static int 
+add_all_direct_neighbors (void *cls,
+			  const GNUNET_HashCode * key,
+			  void *value)
 {
   struct DirectNeighbor *direct = (struct DirectNeighbor *)value;
   struct DirectNeighbor *to = (struct DirectNeighbor *)cls;
@@ -2832,13 +2834,12 @@ process_peerinfo (void *cls,
  *
  * @param cls closure
  * @param peer peer identity this notification is about
- * @param latency reported latency of the connection with peer
- * @param distance reported distance (DV) to peer
+ * @param atsi performance data
  */
-void handle_core_connect (void *cls,
-                          const struct GNUNET_PeerIdentity * peer,
-                          struct GNUNET_TIME_Relative latency,
-                          uint32_t distance)
+static void 
+handle_core_connect (void *cls,
+		     const struct GNUNET_PeerIdentity * peer,
+		     const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct DirectNeighbor *neighbor;
   struct DistantNeighbor *about;
@@ -2994,7 +2995,6 @@ run (void *cls,
   coreAPI =
   GNUNET_CORE_connect (cfg,
 		       1,
-                       GNUNET_TIME_relative_get_forever(),
                        NULL, /* FIXME: anything we want to pass around? */
                        &core_init,
                        &handle_core_connect,

@@ -298,8 +298,6 @@ static int stats_print  (void *cls,
 static void topology_cb (void *cls,
                   const struct GNUNET_PeerIdentity *first,
                   const struct GNUNET_PeerIdentity *second,
-                  struct GNUNET_TIME_Relative latency,
-                  uint32_t distance,
                   const char *emsg)
 {
   FILE *outfile = cls;
@@ -329,8 +327,7 @@ static int
 process_mtype (void *cls,
                const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_MessageHeader *message,
-               struct GNUNET_TIME_Relative latency,
-               uint32_t distance)
+	       const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   char *dotOutFileNameFinished;
   FILE *dotOutFileFinished;
@@ -522,7 +519,6 @@ init_notify_peer1 (void *cls,
    */
   pos->peer2handle = GNUNET_CORE_connect (pos->peer2->cfg,
 					  1,
-					  TIMEOUT,
 					  pos,
 					  &init_notify_peer2,
 					  NULL,
@@ -564,7 +560,6 @@ send_test_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
    */
   pos->peer1handle = GNUNET_CORE_connect (pos->peer1->cfg,
 					  1,
-                                          TIMEOUT,
                                           pos,
                                           &init_notify_peer1,
                                           NULL, NULL,

@@ -1,4 +1,11 @@
 0.9.0pre2:
+* BIG CORE REFACTORING:
+  - get testcases to pass again (!)
+  - fix transport service API (ATS!)
+  - fix transport plugin API (ATS!)
+  - actually transmit ATS data through core API
+  - fix FS 'latency' ATS function
+  - fix DV
 * Integration test:
   - test bootstrapping via hostlist + transport/core/dht connect
 

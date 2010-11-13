@@ -1556,25 +1556,39 @@ destroy_pending_request (struct PendingRequest *pr)
 
 
 /**
+ * Find latency information in 'atsi'.
+ *
+ * @param atsi performance data
+ * @return connection latency
+ */
+static struct GNUNET_TIME_Relative
+get_latency (const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+{
+  /* FIXME: extract latency data from 'atsi' */
+  return GNUNET_TIME_UNIT_SECONDS;
+}
+
+
+/**
  * Method called whenever a given peer connects.
  *
  * @param cls closure, not used
  * @param peer peer identity this notification is about
- * @param latency reported latency of the connection with 'other'
- * @param distance reported distance (DV) to 'other' 
+ * @param atsi performance information
  */
 static void 
 peer_connect_handler (void *cls,
 		      const struct
 		      GNUNET_PeerIdentity * peer,
-		      struct GNUNET_TIME_Relative latency,
-		      uint32_t distance)
+		      const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct ConnectedPeer *cp;
   struct MigrationReadyBlock *pos;
   char *fn;
   uint32_t trust;
+  struct GNUNET_TIME_Relative latency;
 
+  latency = get_latency (atsi);
   cp = GNUNET_CONTAINER_multihashmap_get (connected_peers,
 					  &peer->hashPubKey);
   if (NULL != cp)
@@ -1612,25 +1626,25 @@ peer_connect_handler (void *cls,
  *
  * @param cls closure
  * @param peer peer identity this notification is about
- * @param latency reported latency of the connection with 'other'
- * @param distance reported distance (DV) to 'other' 
  * @param bandwidth_in available amount of inbound bandwidth
  * @param bandwidth_out available amount of outbound bandwidth
  * @param timeout absolute time when this peer will time out
  *        unless we see some further activity from it
+ * @param atsi status information
  */
 static void
 peer_status_handler (void *cls,
 		     const struct
 		     GNUNET_PeerIdentity * peer,
-		     struct GNUNET_TIME_Relative latency,
-		     uint32_t distance,
 		     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
 		     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-		     struct GNUNET_TIME_Absolute timeout)
+		     struct GNUNET_TIME_Absolute timeout,
+		     const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct ConnectedPeer *cp;
+  struct GNUNET_TIME_Relative latency;
 
+  latency = get_latency (atsi);
   cp = GNUNET_CONTAINER_multihashmap_get (connected_peers,
 					  &peer->hashPubKey);
   if (cp == NULL)
@@ -2529,7 +2543,6 @@ refresh_bloomfilter (struct PendingRequest *pr)
  *
  * @param cls the requests "struct PendingRequest*"
  * @param peer identifies the peer
- * @param bpm_in set to the current bandwidth limit (receiving) for this peer
  * @param bpm_out set to the current bandwidth limit (sending) for this peer
  * @param amount set to the amount that was actually reserved or unreserved
  * @param preference current traffic preference for the given peer
@@ -2538,7 +2551,6 @@ static void
 target_reservation_cb (void *cls,
 		       const struct
 		       GNUNET_PeerIdentity * peer,
-		       struct GNUNET_BANDWIDTH_Value32NBO bpm_in,
 		       struct GNUNET_BANDWIDTH_Value32NBO bpm_out,
 		       int amount,
 		       uint64_t preference)
@@ -2984,7 +2996,7 @@ forward_request_task (void *cls,
       cp = GNUNET_CONTAINER_multihashmap_get (connected_peers,
 					      &psc.target.hashPubKey);
       GNUNET_assert (NULL != cp);
-      pr->irc = GNUNET_CORE_peer_change_preference (cfg,
+      pr->irc = GNUNET_CORE_peer_change_preference (core,
 						    &psc.target,
 						    GNUNET_CONSTANTS_SERVICE_TIMEOUT, 
 						    GNUNET_BANDWIDTH_value_init (UINT32_MAX),
@@ -2999,7 +3011,7 @@ forward_request_task (void *cls,
       /* force forwarding */
       static struct GNUNET_BANDWIDTH_Value32NBO zerobw;
       target_reservation_cb (pr, &psc.target,
-			     zerobw, zerobw, 0, 0.0);
+			     zerobw, 0, 0.0);
     }
 }
 
@@ -3467,8 +3479,7 @@ put_migration_continuation (void *cls,
  * @param other the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
- * @param latency reported latency of the connection with 'other'
- * @param distance reported distance (DV) to 'other' 
+ * @param atsi performance information
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -3476,8 +3487,7 @@ static int
 handle_p2p_put (void *cls,
 		const struct GNUNET_PeerIdentity *other,
 		const struct GNUNET_MessageHeader *message,
-		struct GNUNET_TIME_Relative latency,
-		uint32_t distance)
+		const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   const struct PutMessage *put;
   uint16_t msize;
@@ -3608,8 +3618,7 @@ handle_p2p_put (void *cls,
  * @param other the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
- * @param latency reported latency of the connection with 'other'
- * @param distance reported distance (DV) to 'other' 
+ * @param atsi performance information
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -3617,8 +3626,7 @@ static int
 handle_p2p_migration_stop (void *cls,
 			   const struct GNUNET_PeerIdentity *other,
 			   const struct GNUNET_MessageHeader *message,
-			   struct GNUNET_TIME_Relative latency,
-			   uint32_t distance)
+			   const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct ConnectedPeer *cp; 
   const struct MigrationStopMessage *msm;
@@ -3955,8 +3963,7 @@ check_duplicate_request_peer (void *cls,
  * @param other the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
- * @param latency reported latency of the connection with 'other'
- * @param distance reported distance (DV) to 'other' 
+ * @param atsi performance information
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -3964,8 +3971,7 @@ static int
 handle_p2p_get (void *cls,
 		const struct GNUNET_PeerIdentity *other,
 		const struct GNUNET_MessageHeader *message,
-		struct GNUNET_TIME_Relative latency,
-		uint32_t distance)
+		const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct PendingRequest *pr;
   struct ConnectedPeer *cp;
@@ -4491,7 +4497,6 @@ main_init (struct GNUNET_SERVER_Handle *server,
   requests_by_expiration_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN); 
   core = GNUNET_CORE_connect (cfg,
 			      1, /* larger? */
-			      GNUNET_TIME_UNIT_FOREVER_REL,
 			      NULL,
 			      NULL,
 			      &peer_connect_handler,

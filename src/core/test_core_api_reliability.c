@@ -148,8 +148,7 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 connect_notify (void *cls,
                 const struct GNUNET_PeerIdentity *peer,
-		struct GNUNET_TIME_Relative latency,
-		uint32_t distance)
+		const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct PeerContext *pc = cls;
   GNUNET_assert (pc->connect_status == 0);
@@ -175,8 +174,7 @@ static int
 inbound_notify (void *cls,
                 const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_MessageHeader *message,
-		struct GNUNET_TIME_Relative latency,
-		uint32_t distance)
+		const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -190,8 +188,7 @@ static int
 outbound_notify (void *cls,
                  const struct GNUNET_PeerIdentity *other,
                  const struct GNUNET_MessageHeader *message,
-		 struct GNUNET_TIME_Relative latency,
-		 uint32_t distance)
+		 const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -215,8 +212,7 @@ static int
 process_mtype (void *cls,
                const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_MessageHeader *message,
-	       struct GNUNET_TIME_Relative latency,
-	       uint32_t distance)
+	       const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   static int n;
   unsigned int s;
@@ -366,7 +362,6 @@ init_notify (void *cls,
       OKPP;
       /* connect p2 */
       GNUNET_CORE_connect (p2.cfg, 1,
-                           TIMEOUT,
                            &p2,
                            &init_notify,			 
                            &connect_notify,
@@ -456,7 +451,6 @@ run (void *cls,
   setup_peer (&p1, "test_core_api_peer1.conf");
   setup_peer (&p2, "test_core_api_peer2.conf");
   GNUNET_CORE_connect (p1.cfg, 1,
-                       TIMEOUT,
                        &p1,
                        &init_notify,
 		       &connect_notify,

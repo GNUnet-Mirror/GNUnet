@@ -285,19 +285,21 @@ struct PeerInfo
   struct GNUNET_CORE_InformationRequestContext *info_ctx;
 
   /**
+   * What is the identity of the peer?
+   */
+  struct GNUNET_PeerIdentity id;
+
+#if 0
+  /**
    * What is the average latency for replies received?
    */
   struct GNUNET_TIME_Relative latency;
 
   /**
-   * What is the identity of the peer?
-   */
-  struct GNUNET_PeerIdentity id;
-
-  /**
    * Transport level distance to peer.
    */
   unsigned int distance;
+#endif
 
   /**
    * Holds matching bits from peer to current target,
@@ -1380,7 +1382,6 @@ update_core_preference (void *cls,
  *
  * @param cls closure
  * @param peer identifies the peer
- * @param bpm_in set to the current bandwidth limit (receiving) for this peer
  * @param bpm_out set to the current bandwidth limit (sending) for this peer
  * @param amount set to the amount that was actually reserved or unreserved;
  *               either the full requested amount or zero (no partial reservations)
@@ -1389,7 +1390,6 @@ update_core_preference (void *cls,
 static void
 update_core_preference_finish (void *cls,
                                const struct GNUNET_PeerIdentity * peer,
-                               struct GNUNET_BANDWIDTH_Value32NBO bpm_in,
                                struct GNUNET_BANDWIDTH_Value32NBO bpm_out,
                                int amount, uint64_t preference)
 {
@@ -1416,7 +1416,7 @@ update_core_preference (void *cls,
       matching = 63;
     }
   preference = 1LL << matching;
-  peer->info_ctx = GNUNET_CORE_peer_change_preference (cfg,
+  peer->info_ctx = GNUNET_CORE_peer_change_preference (coreAPI,
                                                        &peer->id,
                                                        GNUNET_TIME_relative_get_forever(),
                                                        GNUNET_BANDWIDTH_value_init (UINT32_MAX),
@@ -1433,23 +1433,23 @@ update_core_preference (void *cls,
  * @param peer GNUNET_PeerIdentity of the peer to add
  * @param bucket the already figured out bucket to add
  *        the peer to
- * @param latency the core reported latency of this peer
- * @param distance the transport level distance to this peer
+ * @param atsi performance information
  *
  * @return the newly added PeerInfo
  */
 static struct PeerInfo *
 add_peer(const struct GNUNET_PeerIdentity *peer,
          unsigned int bucket,
-         struct GNUNET_TIME_Relative latency,
-         unsigned int distance)
+         const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct PeerInfo *new_peer;
   GNUNET_assert(bucket < MAX_BUCKETS);
   GNUNET_assert(peer != NULL);
   new_peer = GNUNET_malloc(sizeof(struct PeerInfo));
+#if 0
   new_peer->latency = latency;
   new_peer->distance = distance;
+#endif
 
   memcpy(&new_peer->id, peer, sizeof(struct GNUNET_PeerIdentity));
 
@@ -1769,8 +1769,7 @@ void schedule_ping_messages()
 static struct PeerInfo *
 try_add_peer(const struct GNUNET_PeerIdentity *peer,
              unsigned int bucket,
-             struct GNUNET_TIME_Relative latency,
-             unsigned int distance)
+	     const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   int peer_bucket;
   struct PeerInfo *new_peer;
@@ -1781,7 +1780,7 @@ try_add_peer(const struct GNUNET_PeerIdentity *peer,
   peer_bucket = find_current_bucket(&peer->hashPubKey);
 
   GNUNET_assert(peer_bucket >= lowest_bucket);
-  new_peer = add_peer(peer, peer_bucket, latency, distance);
+  new_peer = add_peer(peer, peer_bucket, atsi);
 
   if ((k_buckets[lowest_bucket].peers_size) >= bucket_size)
     enable_next_bucket();
@@ -1991,7 +1990,8 @@ static int route_result_message(struct GNUNET_MessageHeader *msg,
         {
           increment_stats(STAT_HELLOS_PROVIDED);
           GNUNET_TRANSPORT_offer_hello(transport_handle, hello_msg);
-          GNUNET_CORE_peer_request_connect(cfg, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5), &new_peer, NULL, NULL);
+          GNUNET_CORE_peer_request_connect(coreAPI, 
+					   GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5), &new_peer, NULL, NULL);
         }
       }
     }
@@ -2420,7 +2420,8 @@ handle_dht_find_peer (const struct GNUNET_MessageHeader *find_msg,
         {
           increment_stats(STAT_HELLOS_PROVIDED);
           GNUNET_TRANSPORT_offer_hello(transport_handle, other_hello);
-          GNUNET_CORE_peer_request_connect(cfg, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5), &peer_id, NULL, NULL);
+          GNUNET_CORE_peer_request_connect(coreAPI, 
+					   GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5), &peer_id, NULL, NULL);
 	  route_message (find_msg, msg_ctx);
 	  GNUNET_free (other_hello);
           return;
@@ -4228,7 +4229,7 @@ static int
 handle_dht_p2p_route_request (void *cls,
 			      const struct GNUNET_PeerIdentity *peer,
 			      const struct GNUNET_MessageHeader *message,
-			      struct GNUNET_TIME_Relative latency, uint32_t distance)
+			      const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -4284,7 +4285,7 @@ static int
 handle_dht_p2p_route_result (void *cls,
 			     const struct GNUNET_PeerIdentity *peer,
 			     const struct GNUNET_MessageHeader *message,
-			     struct GNUNET_TIME_Relative latency, uint32_t distance)
+			     const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -4472,13 +4473,12 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
  *
  * @param cls closure
  * @param peer peer identity this notification is about
- * @param latency reported latency of the connection with peer
- * @param distance reported distance (DV) to peer
+ * @param atsi performance data
  */
-void handle_core_connect (void *cls,
-                          const struct GNUNET_PeerIdentity * peer,
-                          struct GNUNET_TIME_Relative latency,
-                          uint32_t distance)
+static void 
+handle_core_connect (void *cls,
+		     const struct GNUNET_PeerIdentity * peer,
+		     const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct PeerInfo *ret;
 
@@ -4497,8 +4497,7 @@ void handle_core_connect (void *cls,
     GNUNET_DATACACHE_put(datacache, &peer->hashPubKey, sizeof(struct GNUNET_PeerIdentity), (const char *)peer, GNUNET_BLOCK_TYPE_DHT_HELLO, GNUNET_TIME_absolute_get_forever());
   ret = try_add_peer(peer,
                      find_current_bucket(&peer->hashPubKey),
-                     latency,
-                     distance);
+                     atsi);
   if (ret != NULL)
     {
       newly_found_peers++;
@@ -4517,9 +4516,10 @@ void handle_core_connect (void *cls,
  * @param cls closure
  * @param peer peer identity this notification is about
  */
-void handle_core_disconnect (void *cls,
-                             const struct
-                             GNUNET_PeerIdentity * peer)
+static void
+handle_core_disconnect (void *cls,
+			const struct
+			GNUNET_PeerIdentity * peer)
 {
   struct PeerInfo *to_remove;
   int current_bucket;
@@ -4563,7 +4563,6 @@ run (void *cls,
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
   coreAPI = GNUNET_CORE_connect (cfg,    /* Main configuration */
 				 1, /* queue size */
-                                 GNUNET_TIME_UNIT_FOREVER_REL,
                                  NULL,  /* Closure passed to DHT functions */
                                  &core_init,    /* Call core_init once connected */
                                  &handle_core_connect,  /* Handle connects */

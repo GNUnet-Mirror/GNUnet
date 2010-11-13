@@ -3104,7 +3104,7 @@ perform_dfs (struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
 static void
 internal_topology_callback(void *cls,
                            const struct GNUNET_PeerIdentity *peer,
-                           struct GNUNET_TIME_Relative latency, uint32_t distance)
+			   const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct CoreContext *core_ctx = cls;
   struct TopologyIterateContext *iter_ctx = core_ctx->iter_context;
@@ -3118,12 +3118,14 @@ internal_topology_callback(void *cls,
     }
   else
     {
-      iter_ctx->topology_cb(iter_ctx->cls, &core_ctx->daemon->id, peer, latency, distance, NULL);
+      iter_ctx->topology_cb(iter_ctx->cls, &core_ctx->daemon->id,
+			    peer, NULL);
     }
 
   if (iter_ctx->completed == iter_ctx->total)
     {
-      iter_ctx->topology_cb(iter_ctx->cls, NULL, NULL, GNUNET_TIME_relative_get_zero(), 0, NULL);
+      iter_ctx->topology_cb(iter_ctx->cls, NULL, NULL, 
+			    NULL);
       /* Once all are done, free the iteration context */
       GNUNET_free(iter_ctx);
     }
@@ -3157,8 +3159,8 @@ schedule_get_topology(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                       _("Creating connection, outstanding_connections is %d\n"), outstanding_connects);
 #endif
       topology_context->connected++;
-      if (GNUNET_OK != GNUNET_CORE_iterate_peers (core_context->daemon->cfg, &internal_topology_callback, core_context))
-        internal_topology_callback(core_context, NULL, GNUNET_TIME_relative_get_zero(), 0);
+      if (GNUNET_OK != GNUNET_CORE_iterate_peers (core_context->daemon->server, &internal_topology_callback, core_context))
+        internal_topology_callback(core_context, NULL, NULL);
 
     }
 }
@@ -3195,7 +3197,7 @@ GNUNET_TESTING_get_topology (struct GNUNET_TESTING_PeerGroup *pg, GNUNET_TESTING
     }
   if (total_count == 0)
     {
-      cb(cls, NULL, NULL, GNUNET_TIME_relative_get_zero(), 0, "Cannot iterate over topology, no running peers!");
+      cb(cls, NULL, NULL, "Cannot iterate over topology, no running peers!");
       GNUNET_free(topology_context);
     }
   else

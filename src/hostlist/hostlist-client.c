@@ -1137,15 +1137,13 @@ task_hostlist_saving (void *cls,
  *
  * @param cls closure
  * @param peer peer identity this notification is about
- * @param latency reported latency of the connection with 'other'
- * @param distance reported distance (DV) to 'other' 
+ * @param atsi performance data
  */
 static void
 handler_connect (void *cls,
 		 const struct
 		 GNUNET_PeerIdentity * peer,
-		 struct GNUNET_TIME_Relative latency,
-		 uint32_t distance)
+		 const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   GNUNET_assert (stat_connection_count < UINT_MAX);
   stat_connection_count++;
@@ -1181,17 +1179,15 @@ handler_disconnect (void *cls,
  * @param cls closure (always NULL)
  * @param peer the peer sending the message
  * @param message the actual message
- * @param latency latency
- * @param distance distance
+ * @param atsi performance data
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 handler_advertisement (void *cls,
-    const struct GNUNET_PeerIdentity * peer,
-    const struct GNUNET_MessageHeader * message,
-    struct GNUNET_TIME_Relative latency,
-    uint32_t distance)
+		       const struct GNUNET_PeerIdentity * peer,
+		       const struct GNUNET_MessageHeader * message,
+		       const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   size_t size;
   size_t uri_size;

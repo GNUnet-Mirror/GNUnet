@@ -854,8 +854,6 @@ static void
 log_topology_cb (void *cls,
 		 const struct GNUNET_PeerIdentity *first,
 		 const struct GNUNET_PeerIdentity *second,
-		 struct GNUNET_TIME_Relative latency,
-		 uint32_t distance,
 		 const char *emsg)
 {
   struct TopologyIteratorContext *topo_ctx = cls;
@@ -1286,8 +1284,6 @@ static void
 count_peers_churn_cb (void *cls,
 		      const struct GNUNET_PeerIdentity *first,
 		      const struct GNUNET_PeerIdentity *second,
-		      struct GNUNET_TIME_Relative latency,
-		      uint32_t distance,
 		      const char *emsg)
 {
   struct FindPeerContext *find_peer_context = cls;
@@ -1958,8 +1954,6 @@ static void
 count_peers_cb (void *cls,
 		const struct GNUNET_PeerIdentity *first,
 		const struct GNUNET_PeerIdentity *second,
-		struct GNUNET_TIME_Relative latency,
-		uint32_t distance,
 		const char *emsg)
 {
   struct FindPeerContext *find_peer_context = cls;

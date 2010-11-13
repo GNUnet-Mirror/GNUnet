@@ -35,12 +35,6 @@
 
 #define START_ARM GNUNET_YES
 
-
-/**
- * How long until we give up on transmitting the message?
- */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
-
 #define MTYPE 12345
 
 struct PeerContext
@@ -71,8 +65,7 @@ static int ok;
 static void
 connect_notify (void *cls,
                 const struct GNUNET_PeerIdentity *peer,
-		struct GNUNET_TIME_Relative latency,
-		uint32_t distance)
+		const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
 }
 
@@ -88,8 +81,7 @@ static int
 inbound_notify (void *cls,
                 const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_MessageHeader *message,
-		struct GNUNET_TIME_Relative latency,
-		uint32_t distance)
+		const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   return GNUNET_OK;
 }
@@ -99,8 +91,7 @@ static int
 outbound_notify (void *cls,
                  const struct GNUNET_PeerIdentity *other,
                  const struct GNUNET_MessageHeader *message,
-		 struct GNUNET_TIME_Relative latency,
-		 uint32_t distance)
+		 const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   return GNUNET_OK;
 }
@@ -126,7 +117,6 @@ init_notify (void *cls,
     {
       /* connect p2 */
       GNUNET_CORE_connect (p2.cfg, 1,
-                           TIMEOUT,
                            &p2,
                            &init_notify,			 
                            &connect_notify,
@@ -173,7 +163,6 @@ run (void *cls,
   setup_peer (&p1, "test_core_api_peer1.conf");
   setup_peer (&p2, "test_core_api_peer2.conf");
   GNUNET_CORE_connect (p1.cfg, 1,
-                       TIMEOUT,
                        &p1,
                        &init_notify,
 		       &connect_notify,

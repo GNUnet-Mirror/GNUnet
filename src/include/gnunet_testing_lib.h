@@ -395,8 +395,6 @@ typedef void (*GNUNET_TESTING_NotifyConnection)(void *cls,
 typedef void (*GNUNET_TESTING_NotifyTopology)(void *cls,
                                               const struct GNUNET_PeerIdentity *first,
                                               const struct GNUNET_PeerIdentity *second,
-                                              struct GNUNET_TIME_Relative latency,
-                                              uint32_t distance,
                                               const char *emsg);
 
 /**

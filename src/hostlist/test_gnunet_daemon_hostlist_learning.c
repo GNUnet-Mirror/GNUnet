@@ -283,11 +283,11 @@ check_statistics (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Core handler for p2p hostlist advertisements
  */
-static int ad_arrive_handler (void *cls,
-                             const struct GNUNET_PeerIdentity * peer,
-                             const struct GNUNET_MessageHeader * message,
-                             struct GNUNET_TIME_Relative latency,
-                             uint32_t distance)
+static int 
+ad_arrive_handler (void *cls,
+		   const struct GNUNET_PeerIdentity * peer,
+		   const struct GNUNET_MessageHeader * message,
+		   const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   char *hostname;
   char *expected_uri;
@@ -371,7 +371,6 @@ setup_learn_peer (struct PeerContext *p, const char *cfgname)
 
   p->core = GNUNET_CORE_connect (p->cfg,
 				 1,
-				 GNUNET_TIME_UNIT_FOREVER_REL,
 				 NULL,
 				 NULL,
 				 NULL, NULL, NULL,

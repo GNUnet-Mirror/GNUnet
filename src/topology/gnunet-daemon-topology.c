@@ -413,7 +413,7 @@ attempt_connect (struct Peer *pos)
 			    gettext_noop ("# connect requests issued to core"),
 			    1,
 			    GNUNET_NO);
-  pos->connect_req = GNUNET_CORE_peer_request_connect (cfg,
+  pos->connect_req = GNUNET_CORE_peer_request_connect (handle,
 						       GNUNET_TIME_UNIT_MINUTES,
 						       &pos->pid,
 						       &connect_completed_callback,
@@ -689,15 +689,13 @@ reschedule_hellos (void *cls,
  *
  * @param cls closure
  * @param peer peer identity this notification is about
- * @param latency reported latency of the connection with 'other'
- * @param distance reported distance (DV) to 'other' 
+ * @param atsi performance data
  */
 static void 
 connect_notify (void *cls,
 		const struct
 		GNUNET_PeerIdentity * peer,
-		struct GNUNET_TIME_Relative latency,
-		uint32_t distance)
+		const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct Peer *pos;
 
@@ -1167,8 +1165,7 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param other the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual HELLO message
- * @param latency reported latency of the connection with 'other'
- * @param distance reported distance (DV) to 'other' 
+ * @param atsi performance data
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -1177,8 +1174,7 @@ handle_encrypted_hello (void *cls,
 			const struct GNUNET_PeerIdentity * other,
 			const struct GNUNET_MessageHeader *
 			message,
-			struct GNUNET_TIME_Relative latency,
-			uint32_t distance)
+			const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct Peer *peer;
   struct GNUNET_PeerIdentity pid;
@@ -1379,7 +1375,6 @@ run (void *cls,
 					NULL);
   handle = GNUNET_CORE_connect (cfg,
 				1,
-				GNUNET_TIME_UNIT_FOREVER_REL,
 				NULL,
 				&core_init,
 				&connect_notify,

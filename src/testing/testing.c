@@ -545,7 +545,9 @@ start_fsm (void *cls,
       d->phase = SP_START_CORE;
       d->server = GNUNET_CORE_connect (d->cfg,
 				       1,
+#if NO_MORE_TIMEOUT_FIXME
                                        ARM_START_WAIT,
+#endif
                                        d,
                                        &testing_init,
                                        NULL, NULL, NULL,
@@ -1347,8 +1349,15 @@ notify_connect_result (void *cls,
     {
       if (ctx->cb != NULL)
         {
-          ctx->cb (ctx->cb_cls, &ctx->d1->id, &ctx->d2->id, ctx->distance, ctx->d1->cfg,
-                   ctx->d2->cfg, ctx->d1, ctx->d2, NULL);
+          ctx->cb (ctx->cb_cls, 
+		   &ctx->d1->id,
+		   &ctx->d2->id, 
+		   ctx->distance, 
+		   ctx->d1->cfg,
+                   ctx->d2->cfg,
+		   ctx->d1, 
+		   ctx->d2, 
+		   NULL);
         }
     }
   else if (remaining.rel_value > 0)
@@ -1397,25 +1406,24 @@ notify_connect_result (void *cls,
  *
  * @param cls our "struct ConnectContext"
  * @param peer identity of the peer that has connected
- * @param latency the round trip latency of the connection to this peer
- * @param distance distance the transport level distance to this peer
+ * @param atsi performance information
  *
  */
 static void
-connect_notify (void *cls, const struct GNUNET_PeerIdentity * peer, struct GNUNET_TIME_Relative latency,
-                uint32_t distance)
+connect_notify (void *cls, 
+		const struct GNUNET_PeerIdentity * peer, 
+		const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct ConnectContext *ctx = cls;
 
   if (memcmp(&ctx->d2->id, peer, sizeof(struct GNUNET_PeerIdentity)) == 0)
     {
       ctx->connected = GNUNET_YES;
-      ctx->distance = distance;
+      ctx->distance = 0; /* FIXME: distance */
       GNUNET_SCHEDULER_cancel(ctx->timeout_task);
       ctx->timeout_task = GNUNET_SCHEDULER_add_now (&notify_connect_result,
 						    ctx);
     }
-
 }
 
 #if CONNECT_CORE2
@@ -1424,20 +1432,20 @@ connect_notify (void *cls, const struct GNUNET_PeerIdentity * peer, struct GNUNE
  *
  * @param cls our "struct ConnectContext"
  * @param peer identity of the peer that has connected
- * @param latency the round trip latency of the connection to this peer
- * @param distance distance the transport level distance to this peer
+ * @param atsi performance information
  *
  */
 static void
-connect_notify_core2 (void *cls, const struct GNUNET_PeerIdentity * peer, struct GNUNET_TIME_Relative latency,
-                uint32_t distance)
+connect_notify_core2 (void *cls, 
+		      const struct GNUNET_PeerIdentity * peer, 
+		      const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct ConnectContext *ctx = cls;
 
   if (memcmp(&ctx->d2->id, peer, sizeof(struct GNUNET_PeerIdentity)) == 0)
     {
       ctx->connected = GNUNET_YES;
-      ctx->distance = distance;
+      ctx->distance = 0; /* FIXME: distance */
       GNUNET_SCHEDULER_cancel(ctx->timeout_task);
       ctx->timeout_task = GNUNET_SCHEDULER_add_now (&notify_connect_result,
                                                     ctx);
@@ -1477,7 +1485,7 @@ send_hello(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_assert(hello != NULL);
       GNUNET_TRANSPORT_offer_hello (ctx->d2th, hello);
 
-      ctx->connect_request_handle = GNUNET_CORE_peer_request_connect (ctx->d2->cfg,
+      ctx->connect_request_handle = GNUNET_CORE_peer_request_connect (ctx->d2->server,
                                                                       GNUNET_TIME_relative_divide(ctx->relative_timeout,
                                                                                                   ctx->max_connect_attempts + 1),
                                                                       &ctx->d1->id,
@@ -1539,7 +1547,9 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 
   ctx->d1core = GNUNET_CORE_connect (d1->cfg,
 				     1,
+#if NO_MORE_TIMEOUT_FIXME
                                      timeout,
+#endif
                                      ctx,
                                      NULL,
                                      &connect_notify, NULL, NULL,
@@ -1557,7 +1567,9 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 #if CONNECT_CORE2
   ctx->d2core = GNUNET_CORE_connect (d2->cfg,
 				     1,
+#if NO_MORE_TIMEOUT_FIXME
                                      timeout,
+#endif
                                      ctx,
                                      NULL,
                                      NULL, NULL, NULL,
@@ -1620,7 +1632,9 @@ reattempt_daemons_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
 
   ctx->d1core = GNUNET_CORE_connect (ctx->d1->cfg,
 				     1,
+#if NO_MORE_TIMEOUT_FIXME
                                      GNUNET_TIME_absolute_get_remaining(ctx->timeout),
+#endif
                                      ctx,
                                      NULL,
                                      &connect_notify, NULL, NULL,

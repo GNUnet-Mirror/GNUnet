@@ -376,15 +376,13 @@ adv_transmit_ready ( void *cls, size_t size, void *buf)
  *
  * @param cls closure
  * @param peer peer identity this notification is about
- * @param latency reported latency of the connection with 'other'
- * @param distance reported distance (DV) to 'other'
+ * @param atsi performance data
  */
 static void
 connect_handler (void *cls,
                  const struct
                  GNUNET_PeerIdentity * peer,
-                 struct GNUNET_TIME_Relative latency,
-                 uint32_t distance)
+		 const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   size_t size;
 

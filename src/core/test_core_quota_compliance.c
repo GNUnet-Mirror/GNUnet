@@ -191,8 +191,7 @@ static int
 inbound_notify (void *cls,
                 const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_MessageHeader *message,
-		struct GNUNET_TIME_Relative latency,
-		uint32_t distance)
+		const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   total_bytes_recv += ntohs (message->size);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -207,8 +206,7 @@ static int
 outbound_notify (void *cls,
                  const struct GNUNET_PeerIdentity *other,
                  const struct GNUNET_MessageHeader *message,
-		 struct GNUNET_TIME_Relative latency,
-		 uint32_t distance)
+		 const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
 #if DEBUG_CONNECTIONS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -238,38 +236,37 @@ static void
 measurement_end (void *cls,
 	   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-	  struct GNUNET_TIME_Relative duration;
-
-	  measure_task  = GNUNET_SCHEDULER_NO_TASK;
-	  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-		return;
-
-	  if (err_task != GNUNET_SCHEDULER_NO_TASK)
-		  GNUNET_SCHEDULER_cancel (err_task);
-	  if (send_task != GNUNET_SCHEDULER_NO_TASK)
-		  GNUNET_SCHEDULER_cancel (send_task);
-
-	  GNUNET_STATISTICS_get(p1.stats,"core","# discarded CORE_SEND requests",GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, &p1);
-	  GNUNET_STATISTICS_get(p1.stats,"core","# discarded CORE_SEND requests",GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, &p2);
-	  GNUNET_STATISTICS_get(p1.stats,"core","# discarded lower priority CORE_SEND requests",GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, &p1);
-	  GNUNET_STATISTICS_get(p1.stats,"core","# discarded lower priority CORE_SEND requests",GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, &p2);
-
-	  GNUNET_STATISTICS_get(p1.stats,"core","# discarded CORE_SEND request bytes",GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, &p1);
-	  GNUNET_STATISTICS_get(p1.stats,"core","# discarded CORE_SEND request bytes",GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, &p2);
-	  GNUNET_STATISTICS_get(p1.stats,"core","# discarded lower priority CORE_SEND request bytes",GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, &p1);
-	  GNUNET_STATISTICS_get(p1.stats,"core","# discarded lower priority CORE_SEND request bytes",GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, &p2);
-	  measurement_running = GNUNET_NO;
-	  duration = GNUNET_TIME_absolute_get_difference(start_time, GNUNET_TIME_absolute_get());
-	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-			  "\nQuota compliance: \n"\
-			  "Receive rate: %10llu kB/s\n"
-			  "Send rate   : %10llu kB/s\n"\
-			  "Quota       : %10llu kB/s\n",
-			  (total_bytes_recv/(duration.rel_value / 1000)/1024),
-			  (total_bytes_sent/(duration.rel_value / 1000)/1024),current_quota_p1_in/1024);
-
-
-      GNUNET_SCHEDULER_add_now (&terminate_task, NULL);
+  struct GNUNET_TIME_Relative duration;
+  
+  measure_task  = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+  
+  if (err_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (err_task);
+  if (send_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (send_task);
+  
+  GNUNET_STATISTICS_get(p1.stats,"core","# discarded CORE_SEND requests",GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, &p1);
+  GNUNET_STATISTICS_get(p1.stats,"core","# discarded CORE_SEND requests",GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, &p2);
+  GNUNET_STATISTICS_get(p1.stats,"core","# discarded lower priority CORE_SEND requests",GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, &p1);
+  GNUNET_STATISTICS_get(p1.stats,"core","# discarded lower priority CORE_SEND requests",GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, &p2);
+  
+  GNUNET_STATISTICS_get(p1.stats,"core","# discarded CORE_SEND request bytes",GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, &p1);
+  GNUNET_STATISTICS_get(p1.stats,"core","# discarded CORE_SEND request bytes",GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, &p2);
+  GNUNET_STATISTICS_get(p1.stats,"core","# discarded lower priority CORE_SEND request bytes",GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, &p1);
+  GNUNET_STATISTICS_get(p1.stats,"core","# discarded lower priority CORE_SEND request bytes",GNUNET_TIME_UNIT_SECONDS, &next_fin, &check_2, &p2);
+  measurement_running = GNUNET_NO;
+  duration = GNUNET_TIME_absolute_get_difference(start_time, GNUNET_TIME_absolute_get());
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "\nQuota compliance: \n"			\
+	      "Receive rate: %10llu kB/s\n"
+	      "Send rate   : %10llu kB/s\n"			\
+	      "Quota       : %10llu kB/s\n",
+	      (total_bytes_recv/(duration.rel_value / 1000)/1024),
+	      (total_bytes_sent/(duration.rel_value / 1000)/1024),
+	      current_quota_p1_in/1024);
+  GNUNET_SCHEDULER_add_now (&terminate_task, NULL);
 }
 
 static size_t
@@ -279,17 +276,19 @@ static void
 send_tsk (void *cls,
 	   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-	 send_task = GNUNET_SCHEDULER_NO_TASK;
-
-	  ch = GNUNET_CORE_notify_transmit_ready (p1.ch,
-	  							 0,
-	  							 FAST_TIMEOUT,
-	  							 &p2.id,
-	  							 sizeof (struct TestMessage) + MEASUREMENT_MSG_SIZE,
-	  							 &transmit_ready, &p1);
+  send_task = GNUNET_SCHEDULER_NO_TASK;
+  
+  ch = GNUNET_CORE_notify_transmit_ready (p1.ch,
+					  0,
+					  FAST_TIMEOUT,
+					  &p2.id,
+					  sizeof (struct TestMessage) + MEASUREMENT_MSG_SIZE,
+					  &transmit_ready, &p1);
 }
 
-static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
+
+static void 
+measure (unsigned long long quota_p1, unsigned long long quota_p2)
 {
 #if VERBOSE
   if ((is_asymmetric_send_constant == GNUNET_YES) || (is_asymmetric_recv_constant == GNUNET_YES))
@@ -316,11 +315,11 @@ static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
   total_bytes = 0;
   total_bytes_sent = 0;
   ch = GNUNET_CORE_notify_transmit_ready (p1.ch,
-					       0,
-					       TIMEOUT,
-					       &p2.id,
-					       sizeof (struct TestMessage) + MEASUREMENT_MSG_SIZE,
-					       &transmit_ready, &p1);
+					  0,
+					  TIMEOUT,
+					  &p2.id,
+					  sizeof (struct TestMessage) + MEASUREMENT_MSG_SIZE,
+					  &transmit_ready, &p1);
 }
 
 static int tr_n;
@@ -330,8 +329,7 @@ static int
 process_mtype (void *cls,
                const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_MessageHeader *message,
-	       struct GNUNET_TIME_Relative latency,
-	       uint32_t distance)
+	       const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   static int n;
   unsigned int s;
@@ -453,7 +451,6 @@ init_notify (void *cls,
       OKPP;
       /* connect p2 */
       GNUNET_CORE_connect (p2.cfg, 1,
-                           TIMEOUT,
                            &p2,
                            &init_notify,			 
                            &connect_notify,
@@ -534,7 +531,6 @@ run (void *cls,
   setup_peer (&p1, "test_core_quota_peer1.conf");
   setup_peer (&p2, "test_core_quota_peer2.conf");
   GNUNET_CORE_connect (p1.cfg, 1,
-                       TIMEOUT,
                        &p1,
                        &init_notify,
                        &connect_notify,
@@ -606,7 +602,7 @@ main (int argc, char *argv[])
 {
   int ret;
 
-  GNUNET_log_setup ("test-core-api",
+  GNUNET_log_setup ("test-core-quota-compliance",
 #if VERBOSE
                     "DEBUG",
 #else

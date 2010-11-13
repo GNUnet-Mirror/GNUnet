@@ -22,6 +22,17 @@
  * @file core/core.h
  * @brief common internal definitions for core service
  * @author Christian Grothoff
+ *
+ * TODO:
+ * - bound message queue size
+ * - on disconnect from core, signal disconnect for all peers
+ *   and clean up peer records
+ * - create / destroy peer records on connect/disconnect events
+ * - implement iterator API
+ * - implement re-configure API
+ * - check on peer-related events that connection is known
+ *   (if not, GNUNET_break + reconnect)
+ * - handle atsi records
  */
 #include "gnunet_bandwidth_lib.h"
 #include "gnunet_crypto_lib.h"
@@ -112,9 +123,10 @@ struct ConnectNotifyMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Distance to the peer.
+   * Number of ATS key-value pairs that follow this struct
+   * (excluding the 0-terminator).
    */
-  uint32_t distance GNUNET_PACKED;
+  uint32_t ats_count GNUNET_PACKED;
 
   /**
    * Currently observed latency.
@@ -125,6 +137,12 @@ struct ConnectNotifyMessage
    * Identity of the connecting peer.
    */
   struct GNUNET_PeerIdentity peer;
+
+  /**
+   * First of the ATS information blocks (we must have at least
+   * one due to the 0-termination requirement).
+   */
+  struct GNUNET_TRANSPORT_ATS_Information ats;
 
 };
 
@@ -141,14 +159,10 @@ struct PeerStatusNotifyMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Distance to the peer.
+   * Number of ATS key-value pairs that follow this struct
+   * (excluding the 0-terminator).
    */
-  uint32_t distance GNUNET_PACKED;
-
-  /**
-   * Currently observed latency.
-   */
-  struct GNUNET_TIME_RelativeNBO latency;
+  uint32_t ats_count GNUNET_PACKED;
 
   /**
    * When the peer would time out (unless we see activity)
@@ -169,6 +183,12 @@ struct PeerStatusNotifyMessage
    * Identity of the peer.
    */
   struct GNUNET_PeerIdentity peer;
+
+  /**
+   * First of the ATS information blocks (we must have at least
+   * one due to the 0-termination requirement).
+   */
+  struct GNUNET_TRANSPORT_ATS_Information ats;
 
 };
 
@@ -197,7 +217,6 @@ struct DisconnectNotifyMessage
 };
 
 
-
 /**
  * Message sent by the service to clients to notify them about
  * messages being received or transmitted.  This overall message is
@@ -216,9 +235,10 @@ struct NotifyTrafficMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Distance to the peer.
+   * Number of ATS key-value pairs that follow this struct
+   * (excluding the 0-terminator).
    */
-  uint32_t distance GNUNET_PACKED;
+  uint32_t ats_count GNUNET_PACKED;
 
   /**
    * Currently observed latency.
@@ -229,6 +249,12 @@ struct NotifyTrafficMessage
    * Identity of the receiver or sender.
    */
   struct GNUNET_PeerIdentity peer;
+
+  /**
+   * First of the ATS information blocks (we must have at least
+   * one due to the 0-termination requirement).
+   */
+  struct GNUNET_TRANSPORT_ATS_Information ats;
 
 };
 
@@ -245,9 +271,9 @@ struct RequestInfoMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Always zero.
+   * Unique request ID.
    */
-  uint32_t reserved GNUNET_PACKED;
+  uint32_t rim_id GNUNET_PACKED;
 
   /**
    * Limit the number of bytes of outbound traffic to this
@@ -296,10 +322,9 @@ struct ConfigurationInfoMessage
   int32_t reserved_amount GNUNET_PACKED;
 
   /**
-   * Available bandwidth in for this peer.
-   * 0 if we have been disconnected.
+   * Unique request ID.
    */
-  struct GNUNET_BANDWIDTH_Value32NBO bw_in;
+  uint32_t rim_id GNUNET_PACKED;
 
   /**
    * Available bandwidth out for this peer,
@@ -314,7 +339,7 @@ struct ConfigurationInfoMessage
   uint64_t preference;
 
   /**
-   * Identity of the receiver or sender.
+   * Identity of the peer.
    */
   struct GNUNET_PeerIdentity peer;
 
@@ -322,8 +347,86 @@ struct ConfigurationInfoMessage
 
 
 /**
- * Client asking core to transmit a particular message to
- * a particular target.  
+ * Client notifying core about the maximum-priority
+ * message it has in the queue for a particular target.
+ */
+struct SendMessageRequest
+{
+  /**
+   * Header with type GNUNET_MESSAGE_TYPE_CORE_SEND_REQUEST
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * How important is this message?
+   */
+  uint32_t priority GNUNET_PACKED;
+
+  /**
+   * By what time would the sender really like to see this
+   * message transmitted?
+   */
+  struct GNUNET_TIME_AbsoluteNBO deadline;
+
+  /**
+   * Identity of the intended target.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * How large is the client's message queue for this peer?
+   */
+  uint32_t queue_size GNUNET_PACKED;
+
+  /**
+   * How large is the message?
+   */
+  uint16_t size GNUNET_PACKED;
+
+  /**
+   * Counter for this peer to match SMRs to replies.
+   */
+  uint16_t smr_id GNUNET_PACKED;
+
+};
+
+
+/**
+ * Core notifying client that it is allowed to now 
+ * transmit a message to the given target
+ * (response to GNUNET_MESSAGE_TYPE_CORE_SEND_REQUEST).
+ */
+struct SendMessageReady
+{
+  /**
+   * Header with type GNUNET_MESSAGE_TYPE_CORE_SEND_READY
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * How many bytes are allowed for transmission? 
+   * Guaranteed to be at least as big as the requested size,
+   * or ZERO if the request is rejected (will timeout, 
+   * peer disconnected, queue full, etc.).
+   */
+  uint16_t size GNUNET_PACKED;
+
+  /**
+   * smr_id from the request.
+   */
+  uint16_t smr_id GNUNET_PACKED;
+
+  /**
+   * Identity of the intended target.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+};
+
+
+/**
+ * Client asking core to transmit a particular message to a particular
+ * target (responsde to GNUNET_MESSAGE_TYPE_CORE_SEND_READY).
  */
 struct SendMessage
 {
