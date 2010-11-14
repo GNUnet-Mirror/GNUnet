@@ -1153,7 +1153,11 @@ handle_client_init (void *cls,
   while (c != NULL)
     {
       if (client == c->client_handle)
-        break;
+        {
+          GNUNET_break (0);
+          GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+          return;
+        }
       c = c->next;
     }
   msize = ntohs (message->size);
@@ -1167,19 +1171,16 @@ handle_client_init (void *cls,
   im = (const struct InitMessage *) message;
   types = (const uint16_t *) &im[1];
   msize -= sizeof (struct InitMessage);
-  if (c == NULL)
-    {
-      c = GNUNET_malloc (sizeof (struct Client) + msize);
-      c->client_handle = client;
-      c->next = clients;
-      clients = c;
-      c->tcnt = msize / sizeof (uint16_t);
-      c->types = (const uint16_t *) &c[1];    
-      wtypes = (uint16_t *) &c[1];
-      for (i=0;i<c->tcnt;i++)
-	wtypes[i] = ntohs (types[i]);
-      c->options = ntohl (im->options);
-    }
+  c = GNUNET_malloc (sizeof (struct Client) + msize);
+  c->client_handle = client;
+  c->next = clients;
+  clients = c;
+  c->tcnt = msize / sizeof (uint16_t);
+  c->types = (const uint16_t *) &c[1];
+  wtypes = (uint16_t *) &c[1];
+  for (i=0;i<c->tcnt;i++)
+    wtypes[i] = ntohs (types[i]);
+  c->options = ntohl (im->options);
 #if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Client %p is interested in %u message types\n",
