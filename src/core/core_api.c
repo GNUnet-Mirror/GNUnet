@@ -237,6 +237,11 @@ struct GNUNET_CORE_Handle
   struct GNUNET_CONTAINER_MultiHashMap *peers;
 
   /**
+   * Identity of this peer.
+   */
+  struct GNUNET_PeerIdentity me;
+
+  /**
    * ID of reconnect task (if any).
    */
   GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
@@ -781,7 +786,6 @@ main_notify_handler (void *cls,
   const struct GNUNET_CORE_MessageHandler *mh;
   GNUNET_CORE_StartupCallback init;
   GNUNET_CORE_PeerConfigurationInfoCallback pcic;
-  struct GNUNET_PeerIdentity my_identity;
   struct PeerRecord *pr;
   struct GNUNET_CORE_TransmitHandle *th;
   unsigned int hpos;
@@ -832,8 +836,8 @@ main_notify_handler (void *cls,
 	  GNUNET_CRYPTO_hash (&m->publicKey,
 			      sizeof (struct
 				      GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-			      &my_identity.hashPubKey);
-	  init (h->cls, h, &my_identity, &m->publicKey);
+			      &h->me.hashPubKey);
+	  init (h->cls, h, &h->me, &m->publicKey);
 	}
       break;
     case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT:
@@ -849,6 +853,14 @@ main_notify_handler (void *cls,
 		  "Received notification about connection from `%s'.\n",
 		  GNUNET_i2s (&cnm->peer));
 #endif
+      if (0 == memcmp (&h->me,
+		       &cnm->peer,
+		       sizeof (struct GNUNET_PeerIdentity)))
+	{
+	  /* disconnect from self!? */
+	  GNUNET_break (0);
+	  return;
+	}
       pr = GNUNET_CONTAINER_multihashmap_get (h->peers,
 					      &cnm->peer.hashPubKey);
       if (pr != NULL)
@@ -878,6 +890,14 @@ main_notify_handler (void *cls,
 	  return;
         }
       dnm = (const struct DisconnectNotifyMessage *) msg;
+      if (0 == memcmp (&h->me,
+		       &dnm->peer,
+		       sizeof (struct GNUNET_PeerIdentity)))
+	{
+	  /* connection to self!? */
+	  GNUNET_break (0);
+	  return;
+	}
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Received notification about disconnect from `%s'.\n",
@@ -911,6 +931,14 @@ main_notify_handler (void *cls,
 	  return;
         }
       psnm = (const struct PeerStatusNotifyMessage *) msg;
+      if (0 == memcmp (&h->me,
+		       &psnm->peer,
+		       sizeof (struct GNUNET_PeerIdentity)))
+	{
+	  /* self-change!? */
+	  GNUNET_break (0);
+	  return;
+	}
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Received notification about status change by `%s'.\n",
@@ -941,6 +969,14 @@ main_notify_handler (void *cls,
 	  return;
         }
       ntm = (const struct NotifyTrafficMessage *) msg;
+      if (0 == memcmp (&h->me,
+		       &ntm->peer,
+		       sizeof (struct GNUNET_PeerIdentity)))
+	{
+	  /* self-change!? */
+	  GNUNET_break (0);
+	  return;
+	}
       em = (const struct GNUNET_MessageHeader *) &ntm[1];
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -998,6 +1034,14 @@ main_notify_handler (void *cls,
 	  return;
         }
       ntm = (const struct NotifyTrafficMessage *) msg;
+      if (0 == memcmp (&h->me,
+		       &ntm->peer,
+		       sizeof (struct GNUNET_PeerIdentity)))
+	{
+	  /* self-change!? */
+	  GNUNET_break (0);
+	  return;
+	}
       em = (const struct GNUNET_MessageHeader *) &ntm[1];
       pr = GNUNET_CONTAINER_multihashmap_get (h->peers,
 					      &ntm->peer.hashPubKey);
@@ -1035,6 +1079,14 @@ main_notify_handler (void *cls,
 	  return;
         }
       smr = (const struct SendMessageReady *) msg;
+      if (0 == memcmp (&h->me,
+		       &smr->peer,
+		       sizeof (struct GNUNET_PeerIdentity)))
+	{
+	  /* self-change!? */
+	  GNUNET_break (0);
+	  return;
+	}
       pr = GNUNET_CONTAINER_multihashmap_get (h->peers,
 					      &smr->peer.hashPubKey);
       if (pr == NULL)
@@ -1077,6 +1129,14 @@ main_notify_handler (void *cls,
 	  return;
 	}
       cim = (const struct ConfigurationInfoMessage*) msg;
+      if (0 == memcmp (&h->me,
+		       &cim->peer,
+		       sizeof (struct GNUNET_PeerIdentity)))
+	{
+	  /* self-change!? */
+	  GNUNET_break (0);
+	  return;
+	}
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Received notification about configuration update for `%s'.\n",

@@ -57,6 +57,7 @@ static struct PeerContext p1;
 
 static struct PeerContext p2;
 
+static GNUNET_SCHEDULER_TaskIdentifier err_task;
 
 static int ok;
 
@@ -95,6 +96,27 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+static size_t
+transmit_ready (void *cls, size_t size, void *buf)
+{
+  struct PeerContext *p = cls;
+  struct GNUNET_MessageHeader *m;
+
+  GNUNET_assert (ok == 4);
+  OKPP;
+  GNUNET_assert (p == &p1);
+  GNUNET_assert (buf != NULL);
+  m = (struct GNUNET_MessageHeader *) buf;
+  m->type = htons (MTYPE);
+  m->size = htons (sizeof (struct GNUNET_MessageHeader));
+  err_task = 
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 120), 
+				  &terminate_task_error, NULL);
+
+  return sizeof (struct GNUNET_MessageHeader);
+}
+
+
 static void
 connect_notify (void *cls,
                 const struct GNUNET_PeerIdentity *peer,
@@ -106,6 +128,20 @@ connect_notify (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Encrypted connection established to peer `%4s'\n",
               GNUNET_i2s (peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Asking core (1) for transmission to peer `%4s'\n",
+	      GNUNET_i2s (&p2.id));
+  if (NULL == GNUNET_CORE_notify_transmit_ready (p1.ch,
+						 0,
+						 GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 45),
+						 &p2.id,
+						 sizeof (struct GNUNET_MessageHeader),
+						 &transmit_ready, &p1))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "RECEIVED NULL when asking core (1) for transmission to peer `%4s'\n",
+		  GNUNET_i2s (&p2.id));
+    }  
 }
 
 
@@ -145,8 +181,6 @@ outbound_notify (void *cls,
 }
 
 
-static GNUNET_SCHEDULER_TaskIdentifier err_task;
-
 
 static int
 process_mtype (void *cls,
@@ -168,27 +202,6 @@ static struct GNUNET_CORE_MessageHandler handlers[] = {
   {&process_mtype, MTYPE, sizeof (struct GNUNET_MessageHeader)},
   {NULL, 0, 0}
 };
-
-
-static size_t
-transmit_ready (void *cls, size_t size, void *buf)
-{
-  struct PeerContext *p = cls;
-  struct GNUNET_MessageHeader *m;
-
-  GNUNET_assert (ok == 4);
-  OKPP;
-  GNUNET_assert (p == &p1);
-  GNUNET_assert (buf != NULL);
-  m = (struct GNUNET_MessageHeader *) buf;
-  m->type = htons (MTYPE);
-  m->size = htons (sizeof (struct GNUNET_MessageHeader));
-  err_task = 
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 120), &terminate_task_error, NULL);
-
-  return sizeof (struct GNUNET_MessageHeader);
-}
-
 
 
 static void
@@ -226,21 +239,12 @@ init_notify (void *cls,
       OKPP;
       GNUNET_assert (cls == &p2);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Asking core (1) for transmission to peer `%4s'\n",
+                  "Asking core (1) to connect to peer `%4s'\n",
                   GNUNET_i2s (&p2.id));
-
-      if (NULL == GNUNET_CORE_notify_transmit_ready (p1.ch,
-                                         0,
-                                         GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 45),
-                                         &p2.id,
-                                         sizeof (struct GNUNET_MessageHeader),
-                                         &transmit_ready, &p1))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "RECEIVED NULL when asking core (1) for transmission to peer `%4s'\n",
-                      GNUNET_i2s (&p2.id));
-        }
-
+      GNUNET_CORE_peer_request_connect (p1.ch,
+					GNUNET_TIME_UNIT_SECONDS,
+					&p2.id,
+					NULL, NULL);
     }
 }
 
