@@ -103,6 +103,19 @@ static struct GNUNET_CORE_MessageHandler handlers[] = {
 };
 
 
+static void
+shutdown_task (void *cls, 
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_CORE_disconnect (p1.ch);
+  p1.ch = NULL;
+  GNUNET_CORE_disconnect (p2.ch);
+  p2.ch = NULL;
+  ok = 0;
+}
+
+
+
 
 static void
 init_notify (void *cls,
@@ -130,10 +143,8 @@ init_notify (void *cls,
   else
     {
       GNUNET_assert (cls == &p2);
-      GNUNET_CORE_disconnect (p1.ch);
-      GNUNET_CORE_disconnect (p2.ch);
       GNUNET_SCHEDULER_cancel (timeout_task_id);
-      ok = 0;
+      GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     }
 }
 
