@@ -987,6 +987,9 @@ handle_peer_status_change (struct Neighbour *n)
 #endif
   psnm.header.size = htons (sizeof (struct PeerStatusNotifyMessage));
   psnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_STATUS_CHANGE);
+  psnm.ats_count = htonl (0);
+  psnm.ats.type = htonl (0);
+  psnm.ats.value = htonl (0);
   psnm.timeout = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_add (n->last_activity,
 								      GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT));
   psnm.bandwidth_in = n->bw_in;
@@ -1204,6 +1207,9 @@ handle_client_init (void *cls,
       /* notify new client about existing neighbours */
       cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
       cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
+      cnm.ats_count = htonl (0);
+      cnm.ats.type = htonl (0);
+      cnm.ats.value = htonl (0);
       n = neighbours;
       while (n != NULL)
 	{
@@ -2088,6 +2094,9 @@ batch_message (struct Neighbour *n,
       return 0;
     }
   ntm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_OUTBOUND);
+  ntm->ats_count = htonl (0);
+  ntm->ats.type = htonl (0);
+  ntm->ats.value = htonl (0);
   ntm->peer = n->peer;
   pos = n->messages;
   prev = NULL;
@@ -3518,6 +3527,9 @@ send_p2p_message_to_client (struct Neighbour *sender,
   ntm = (struct NotifyTrafficMessage *) buf;
   ntm->header.size = htons (msize + sizeof (struct NotifyTrafficMessage));
   ntm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_INBOUND);
+  ntm->ats_count = htonl (0);
+  ntm->ats.type = htonl (0);
+  ntm->ats.value = htonl (0);
   ntm->peer = sender->peer;
   memcpy (&ntm[1], m, msize);
   send_to_client (client, &ntm->header, GNUNET_YES);
