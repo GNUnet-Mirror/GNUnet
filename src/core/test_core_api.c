@@ -34,7 +34,7 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_transport_service.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define START_ARM GNUNET_YES
 
@@ -123,25 +123,29 @@ connect_notify (void *cls,
 		const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct PeerContext *pc = cls;
+
   GNUNET_assert (pc->connect_status == 0);
   pc->connect_status = 1;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Encrypted connection established to peer `%4s'\n",
-              GNUNET_i2s (peer));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Asking core (1) for transmission to peer `%4s'\n",
-	      GNUNET_i2s (&p2.id));
-  if (NULL == GNUNET_CORE_notify_transmit_ready (p1.ch,
-						 0,
-						 GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 45),
-						 &p2.id,
-						 sizeof (struct GNUNET_MessageHeader),
-						 &transmit_ready, &p1))
+  if (pc == &p1)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "RECEIVED NULL when asking core (1) for transmission to peer `%4s'\n",
+		  "Encrypted connection established to peer `%4s'\n",
+		  GNUNET_i2s (peer));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Asking core (1) for transmission to peer `%4s'\n",
 		  GNUNET_i2s (&p2.id));
-    }  
+      if (NULL == GNUNET_CORE_notify_transmit_ready (p1.ch,
+						     0,
+						     GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 45),
+						     &p2.id,
+						     sizeof (struct GNUNET_MessageHeader),
+						     &transmit_ready, &p1))
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "RECEIVED NULL when asking core (1) for transmission to peer `%4s'\n",
+		      GNUNET_i2s (&p2.id));
+	}  
+    }
 }
 
 
@@ -150,6 +154,7 @@ disconnect_notify (void *cls,
                    const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *pc = cls;
+
   pc->connect_status = 0;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Encrypted connection to `%4s' cut\n", GNUNET_i2s (peer));

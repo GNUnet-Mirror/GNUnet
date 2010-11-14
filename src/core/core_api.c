@@ -819,10 +819,6 @@ main_notify_handler (void *cls,
       m = (const struct InitReplyMessage *) msg;
       GNUNET_break (0 == ntohl (m->reserved));
       /* start our message processing loop */
-#if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Successfully connected to core service, starting processing loop.\n");
-#endif
       if (GNUNET_YES == h->currently_down)
 	{
 	  h->currently_down = GNUNET_NO;
@@ -837,7 +833,19 @@ main_notify_handler (void *cls,
 			      sizeof (struct
 				      GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
 			      &h->me.hashPubKey);
+#if DEBUG_CORE
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Connected to core service of peer `%s'.\n",
+		      GNUNET_i2s (&h->me));
+#endif
 	  init (h->cls, h, &h->me, &m->publicKey);
+	}
+      else
+	{
+#if DEBUG_CORE
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Successfully reconnected to core service.\n");
+#endif
 	}
       break;
     case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT:
