@@ -682,18 +682,20 @@ get_absolute_url (const char *ref_url, int is_desc_file, const char *raw_url)
 
 
 /**
- * Construct control URL for device from its description URL and
- * UPNP_IGD_Data_ information. This involves resolving relative paths
+ * Construct control URL and service type for device from its description URL
+ * and UPNP_IGD_Data_ information. This involves resolving relative paths
  * and choosing between Common Interface Config and interface-specific
  * paths.
  *
  * @param desc_url URL to the description file of the device
  * @param data IGD information obtained from the description file
- * @returns a URL to control the IGD device, or the empty string
- *   in case of failure
+ * @param control_url place to store a URL to control the IGD device (will be
+ *   the empty string in case of failure)
+ * @param service_type place to store the service type corresponding to control_url
+ *   (will be the empty string in case of failure)
  */
-static char *
-format_control_urls (const char *desc_url, struct UPNP_IGD_Data_ *data)
+static void
+format_control_urls (const char *desc_url, struct UPNP_IGD_Data_ *data, char **control_url, char **service_type)
 {
   const char *ref_url;
   int is_desc_file;
@@ -710,11 +712,22 @@ format_control_urls (const char *desc_url, struct UPNP_IGD_Data_ *data)
     }
 
   if (data->control_url[0] != '\0')
-    return get_absolute_url (ref_url, is_desc_file, data->control_url);
+    {
+      *control_url = get_absolute_url (ref_url, is_desc_file, data->control_url);
+      *service_type = GNUNET_strdup (data->service_type);
+    }
   else if (data->control_url_CIF[0] != '\0')
-    return get_absolute_url (ref_url, is_desc_file, data->control_url_CIF);
+    {
+      *control_url = get_absolute_url (ref_url, is_desc_file, data->control_url_CIF);
+      *service_type = GNUNET_strdup (data->service_type_CIF);
+    }
   else
-    return GNUNET_strdup ("");
+    {
+      /* If no suitable URL-service type pair was found, set both to empty
+       * to avoid pretending things will work */
+      *control_url = GNUNET_strdup ("");
+      *service_type = GNUNET_strdup ("");
+    }
 }
 
 static void get_valid_igd (struct UPNP_discover_cls *cls);
@@ -789,16 +802,9 @@ get_valid_igd_receive (char *desc, void *data)
   memset (igd_data, 0, sizeof (struct UPNP_IGD_Data_));
   UPNP_IGD_parse_desc_ (desc, strlen (desc), igd_data);
 
-  cls->current_dev->control_url =
-    format_control_urls (cls->current_dev->desc_url, igd_data);
-
-  if (igd_data->service_type != '\0')
-    cls->current_dev->service_type = GNUNET_strdup (igd_data->service_type);
-  else if (igd_data->service_type_CIF != '\0')
-    cls->current_dev->service_type =
-      GNUNET_strdup (igd_data->service_type_CIF);
-  else
-    cls->current_dev->service_type = GNUNET_strdup ("");
+  format_control_urls (cls->current_dev->desc_url, igd_data,
+                       &cls->current_dev->control_url,
+                       &cls->current_dev->service_type);
 
   cls->current_dev->data = igd_data;
 
