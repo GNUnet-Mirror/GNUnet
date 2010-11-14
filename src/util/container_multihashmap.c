@@ -198,8 +198,7 @@ GNUNET_CONTAINER_multihashmap_iterate (const struct
   GNUNET_HashCode kc;
 
   count = 0;
-  GNUNET_assert(map!=NULL);
-
+  GNUNET_assert(map != NULL);
   for (i = 0; i < map->map_length; i++)
     {
       n = map->map[i];
