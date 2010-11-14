@@ -31,7 +31,7 @@
 #include "gnunet_program_lib.h"
 #include "gnunet_scheduler_lib.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define START_ARM GNUNET_YES
 

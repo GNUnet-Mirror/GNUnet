@@ -65,6 +65,9 @@ static unsigned long long total_bytes;
 
 static struct GNUNET_TIME_Absolute start_time;
 
+static GNUNET_SCHEDULER_TaskIdentifier err_task;
+
+
 struct PeerContext
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -83,6 +86,9 @@ static struct PeerContext p1;
 static struct PeerContext p2;
 
 static int ok;
+
+static int32_t tr_n;
+
 
 #if VERBOSE
 #define OKPP do { ok++; fprintf (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
@@ -145,17 +151,99 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+static size_t
+transmit_ready (void *cls, size_t size, void *buf)
+{
+  char *cbuf = buf;
+  struct TestMessage hdr;
+  unsigned int s;
+  unsigned int ret;
+
+  GNUNET_assert (size <= GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE); 
+  if (buf == NULL)
+    {
+      if (p1.ch != NULL)
+	GNUNET_break (NULL != 
+		      GNUNET_CORE_notify_transmit_ready (p1.ch,
+							 0,
+							 FAST_TIMEOUT,
+							 &p2.id,
+							 get_size(tr_n),
+							 &transmit_ready, &p1));
+      return 0;
+    }
+  GNUNET_assert (tr_n < TOTAL_MSGS);
+  ret = 0;
+  s = get_size (tr_n);
+  GNUNET_assert (size >= s);
+  GNUNET_assert (buf != NULL);
+  cbuf = buf;
+  do
+    {
+#if VERBOSE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Sending message %u of size %u at offset %u\n",
+		  tr_n,
+		  s,
+		  ret);
+#endif
+      hdr.header.size = htons (s);
+      hdr.header.type = htons (MTYPE);
+      hdr.num = htonl (tr_n);
+      memcpy (&cbuf[ret], &hdr, sizeof (struct TestMessage));
+      ret += sizeof (struct TestMessage);
+      memset (&cbuf[ret], tr_n, s - sizeof (struct TestMessage));
+      ret += s - sizeof (struct TestMessage);
+      tr_n++;
+      s = get_size (tr_n);
+      if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16))
+	break; /* sometimes pack buffer full, sometimes not */
+    }
+  while (size - ret >= s);
+  GNUNET_SCHEDULER_cancel (err_task);
+  err_task = 
+    GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+				  &terminate_task_error, 
+				  NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Returning total message block of size %u\n",
+	      ret);
+  total_bytes += ret;
+  return ret;
+}
+
+
+
 static void
 connect_notify (void *cls,
                 const struct GNUNET_PeerIdentity *peer,
 		const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct PeerContext *pc = cls;
+
   GNUNET_assert (pc->connect_status == 0);
   pc->connect_status = 1;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Encrypted connection established to peer `%4s'\n",
-              GNUNET_i2s (peer));
+  if (pc == &p1)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Encrypted connection established to peer `%4s'\n",
+		  GNUNET_i2s (peer));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Asking core (1) for transmission to peer `%4s'\n",
+                  GNUNET_i2s (&p2.id));
+      err_task = 
+	GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+				      &terminate_task_error, 
+				      NULL);
+      start_time = GNUNET_TIME_absolute_get ();
+      GNUNET_break (NULL != 
+		    GNUNET_CORE_notify_transmit_ready (p1.ch,
+						       0,
+						       TIMEOUT,
+						       &p2.id,
+						       get_size (0),
+						       &transmit_ready, &p1));
+    }
 }
 
 
@@ -199,14 +287,8 @@ outbound_notify (void *cls,
 }
 
 
-static GNUNET_SCHEDULER_TaskIdentifier err_task;
-
-
 static size_t
 transmit_ready (void *cls, size_t size, void *buf);
-
-static int tr_n;
-
 
 static int
 process_mtype (void *cls,
@@ -279,68 +361,6 @@ static struct GNUNET_CORE_MessageHandler handlers[] = {
 };
 
 
-static size_t
-transmit_ready (void *cls, size_t size, void *buf)
-{
-  char *cbuf = buf;
-  struct TestMessage hdr;
-  unsigned int s;
-  unsigned int ret;
-
-  GNUNET_assert (size <= GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE); 
-  if (buf == NULL)
-    {
-      if (p1.ch != NULL)
-	GNUNET_break (NULL != 
-		      GNUNET_CORE_notify_transmit_ready (p1.ch,
-							 0,
-							 FAST_TIMEOUT,
-							 &p2.id,
-							 get_size(tr_n),
-							 &transmit_ready, &p1));
-      return 0;
-    }
-  GNUNET_assert (tr_n < TOTAL_MSGS);
-  ret = 0;
-  s = get_size (tr_n);
-  GNUNET_assert (size >= s);
-  GNUNET_assert (buf != NULL);
-  cbuf = buf;
-  do
-    {
-#if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Sending message %u of size %u at offset %u\n",
-		  tr_n,
-		  s,
-		  ret);
-#endif
-      hdr.header.size = htons (s);
-      hdr.header.type = htons (MTYPE);
-      hdr.num = htonl (tr_n);
-      memcpy (&cbuf[ret], &hdr, sizeof (struct TestMessage));
-      ret += sizeof (struct TestMessage);
-      memset (&cbuf[ret], tr_n, s - sizeof (struct TestMessage));
-      ret += s - sizeof (struct TestMessage);
-      tr_n++;
-      s = get_size (tr_n);
-      if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16))
-	break; /* sometimes pack buffer full, sometimes not */
-    }
-  while (size - ret >= s);
-  GNUNET_SCHEDULER_cancel (err_task);
-  err_task = 
-    GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-				  &terminate_task_error, 
-				  NULL);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Returning total message block of size %u\n",
-	      ret);
-  total_bytes += ret;
-  return ret;
-}
-
-
 
 static void
 init_notify (void *cls,
@@ -377,20 +397,12 @@ init_notify (void *cls,
       OKPP;
       GNUNET_assert (cls == &p2);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Asking core (1) for transmission to peer `%4s'\n",
+                  "Asking core (1) to connect to peer `%4s'\n",
                   GNUNET_i2s (&p2.id));
-      err_task = 
-	GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-				      &terminate_task_error, 
-				      NULL);
-      start_time = GNUNET_TIME_absolute_get ();
-      GNUNET_break (NULL != 
-		    GNUNET_CORE_notify_transmit_ready (p1.ch,
-						       0,
-						       TIMEOUT,
-						       &p2.id,
-						       get_size (0),
-						       &transmit_ready, &p1));
+      GNUNET_CORE_peer_request_connect (p1.ch,
+					GNUNET_TIME_UNIT_SECONDS,
+					&p2.id,
+					NULL, NULL);
     }
 }
 
