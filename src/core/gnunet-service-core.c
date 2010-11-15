@@ -978,7 +978,8 @@ handle_peer_status_change (struct Neighbour *n)
 {
   struct PeerStatusNotifyMessage psnm;
 
-  if (! n->is_connected)
+  if ( (! n->is_connected) ||
+       (n->status != PEER_STATE_KEY_CONFIRMED) )
     return;
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
