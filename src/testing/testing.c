@@ -1479,13 +1479,14 @@ send_hello(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ctx->hello_send_task = GNUNET_SCHEDULER_NO_TASK;
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     return;
-  if ((ctx->d1->hello != NULL) && (NULL != GNUNET_HELLO_get_header(ctx->d1->hello)))
+  if ((ctx->d2->hello != NULL) && (NULL != GNUNET_HELLO_get_header(ctx->d2->hello)))
     {
-      hello = GNUNET_HELLO_get_header(ctx->d1->hello);
+      hello = GNUNET_HELLO_get_header(ctx->d2->hello);
       GNUNET_assert(hello != NULL);
+      /* FIXME: if this works, change d2th to d1th */
       GNUNET_TRANSPORT_offer_hello (ctx->d2th, hello);
-
-      ctx->connect_request_handle = GNUNET_CORE_peer_request_connect (ctx->d2->server,
+      GNUNET_assert(ctx->d1core != NULL);
+      ctx->connect_request_handle = GNUNET_CORE_peer_request_connect (ctx->d1core,
                                                                       GNUNET_TIME_relative_divide(ctx->relative_timeout,
                                                                                                   ctx->max_connect_attempts + 1),
                                                                       &ctx->d1->id,
@@ -1594,9 +1595,9 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 
 #endif
 
-  ctx->d2th = GNUNET_TRANSPORT_connect (d2->cfg,
-					&d2->id,
-					d2, NULL, NULL, NULL);
+  ctx->d2th = GNUNET_TRANSPORT_connect (d1->cfg,
+					&d1->id,
+					d1, NULL, NULL, NULL);
   if (ctx->d2th == NULL)
     {
       GNUNET_CORE_disconnect(ctx->d1core);
@@ -1649,9 +1650,9 @@ reattempt_daemons_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
       return;
     }
 
-  ctx->d2th = GNUNET_TRANSPORT_connect (ctx->d2->cfg,
-					&ctx->d2->id,
-					ctx->d2, NULL, NULL, NULL);
+  ctx->d2th = GNUNET_TRANSPORT_connect (ctx->d1->cfg,
+					&ctx->d1->id,
+					ctx->d1, NULL, NULL, NULL);
   if (ctx->d2th == NULL)
     {
       GNUNET_CORE_disconnect(ctx->d1core);
