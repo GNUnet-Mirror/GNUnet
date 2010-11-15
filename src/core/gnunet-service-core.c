@@ -1078,7 +1078,8 @@ handle_client_send_request (void *cls,
   req = (const struct SendMessageRequest*) message;
   n = find_neighbour (&req->peer);
   if ( (n == NULL) ||
-       (GNUNET_YES != n->is_connected) )
+       (GNUNET_YES != n->is_connected) ||
+       (n->status != PEER_STATE_KEY_CONFIRMED) )
     { 
       /* neighbour must have disconnected since request was issued,
 	 ignore (client will realize it once it processes the 
