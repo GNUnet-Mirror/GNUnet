@@ -2697,6 +2697,7 @@ run (void *cls,
 
   hosts = NULL;
   temphost = NULL;
+  data = NULL;
   if (hostfile != NULL)
     {
       if (GNUNET_OK != GNUNET_DISK_file_test (hostfile))
