@@ -1377,17 +1377,31 @@ handle_client_request_info (void *cls,
 			    const struct GNUNET_MessageHeader *message)
 {
   const struct RequestInfoMessage *rcm;
+  struct Client *pos;
   struct Neighbour *n;
   struct ConfigurationInfoMessage cim;
   int32_t want_reserv;
   int32_t got_reserv;
   unsigned long long old_preference;
-  struct GNUNET_SERVER_TransmitContext *tc;
 
 #if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core service receives `%s' request.\n", "REQUEST_INFO");
 #endif
+  pos = clients;
+  while (pos != NULL)
+    {
+      if (client == pos->client_handle)
+        break;
+      pos = pos->next;
+    }
+  if (pos == NULL)
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+
   rcm = (const struct RequestInfoMessage *) message;
   n = find_neighbour (&rcm->peer);
   memset (&cim, 0, sizeof (cim));
@@ -1452,15 +1466,12 @@ handle_client_request_info (void *cls,
   cim.header.size = htons (sizeof (struct ConfigurationInfoMessage));
   cim.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_CONFIGURATION_INFO);
   cim.peer = rcm->peer;
-
 #if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending `%s' message to client.\n", "CONFIGURATION_INFO");
 #endif
-  tc = GNUNET_SERVER_transmit_context_create (client);
-  GNUNET_SERVER_transmit_context_append_message (tc, &cim.header);
-  GNUNET_SERVER_transmit_context_run (tc,
-				      GNUNET_TIME_UNIT_FOREVER_REL);
+  send_to_client (pos, &cim.header, GNUNET_NO);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
