@@ -283,6 +283,16 @@ struct ConnectedPeer
   struct GNUNET_LOAD_Value *transmission_delay;
 
   /**
+   * Context of our GNUNET_CORE_peer_change_preference call (or NULL).
+   */
+  struct GNUNET_CORE_InformationRequestContext *irc;
+
+  /**
+   * Request for which 'irc' is currently active (or NULL).
+   */
+  struct PendingRequest *pr;
+
+  /**
    * Time when the last transmission request was issued.
    */
   struct GNUNET_TIME_Absolute last_transmission_request_start;
@@ -554,14 +564,14 @@ struct PendingRequest
   struct GNUNET_CONTAINER_BloomFilter *bf;
 
   /**
-   * Context of our GNUNET_CORE_peer_change_preference call.
-   */
-  struct GNUNET_CORE_InformationRequestContext *irc;
-
-  /**
    * Reference to DHT get operation for this request (or NULL).
    */
   struct GNUNET_DHT_GetHandle *dht_get;
+
+  /**
+   * Context of our GNUNET_CORE_peer_change_preference call.
+   */
+  struct ConnectedPeer *pirc;
 
   /**
    * Hash code of all replies that we have seen so far (only valid
@@ -1524,10 +1534,11 @@ destroy_pending_request (struct PendingRequest *pr)
       GNUNET_CONTAINER_bloomfilter_free (pr->bf);					 
       pr->bf = NULL;
     }
-  if (pr->irc != NULL)
+  if (pr->pirc != NULL)
     {
-      GNUNET_CORE_peer_change_preference_cancel (pr->irc);
-      pr->irc = NULL;
+      GNUNET_CORE_peer_change_preference_cancel (pr->pirc->irc);
+      pr->pirc->irc = NULL;
+      pr->pirc = NULL;
     }
   if (pr->replies_seen != NULL)
     {
@@ -1816,6 +1827,14 @@ peer_disconnect_handler (void *cls,
 		GNUNET_CONTAINER_multihashmap_remove (connected_peers,
 						      &peer->hashPubKey,
 						      cp));
+  if (cp->irc != NULL)
+    {
+      GNUNET_CORE_peer_change_preference_cancel (cp->irc);
+      cp->irc = NULL;
+      cp->pr->pirc = NULL;
+      cp->pr = NULL;
+    }
+
   /* remove this peer from migration considerations; schedule
      alternatives */
   next = mig_head;
@@ -2124,8 +2143,28 @@ transmit_to_peer (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Dropping message, core too busy.\n");
 #endif
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Dropping message, core too busy.\n");
       GNUNET_LOAD_update (cp->transmission_delay,
 			  UINT64_MAX);
+      
+      if (NULL != (pm = cp->pending_messages_head))
+	{
+	  GNUNET_CONTAINER_DLL_remove (cp->pending_messages_head,
+				       cp->pending_messages_tail,
+				       pm);
+	  cp->pending_requests--;    
+	  destroy_pending_message (pm, 0);
+	}
+      if (NULL != (pm = cp->pending_messages_head))
+	{
+	  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == cp->delayed_transmission_request_task);
+	  min_delay = GNUNET_TIME_absolute_get_remaining (pm->delay_until);
+	  cp->delayed_transmission_request_task
+	    = GNUNET_SCHEDULER_add_delayed (min_delay,
+					    &delayed_transmission_request,
+					    cp);
+	}
       return 0;
     }  
   GNUNET_LOAD_update (cp->transmission_delay,
@@ -2567,16 +2606,6 @@ target_reservation_cb (void *cls,
   uint32_t bm;
   unsigned int i;
 
-  pr->irc = NULL;
-  if (peer == NULL)
-    {
-      /* error in communication with core, try again later */
-      if (pr->task == GNUNET_SCHEDULER_NO_TASK)
-	pr->task = GNUNET_SCHEDULER_add_delayed (get_processing_delay (),
-						 &forward_request_task,
-						 pr);
-      return;
-    }
   /* (3) transmit, update ttl/priority */
   cp = GNUNET_CONTAINER_multihashmap_get (connected_peers,
 					  &peer->hashPubKey);
@@ -2587,6 +2616,17 @@ target_reservation_cb (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Selected peer disconnected!\n");
 #endif
+      if (pr->task == GNUNET_SCHEDULER_NO_TASK)
+	pr->task = GNUNET_SCHEDULER_add_delayed (get_processing_delay (),
+						 &forward_request_task,
+						 pr);
+      return;
+    }
+  cp->irc = NULL;
+  pr->pirc = NULL;
+  if (peer == NULL)
+    {
+      /* error in communication with core, try again later */
       if (pr->task == GNUNET_SCHEDULER_NO_TASK)
 	pr->task = GNUNET_SCHEDULER_add_delayed (get_processing_delay (),
 						 &forward_request_task,
@@ -2710,6 +2750,11 @@ struct PeerSelectionContext
    */
   double target_score;
 
+  /**
+   * Does it make sense to we re-try quickly again?
+   */
+  int fast_retry;
+
 };
 
 
@@ -2738,13 +2783,18 @@ target_peer_select_cb (void *cls,
   unsigned int pc;
 
   /* 1) check that this peer is not the initiator */
-  if (cp == pr->cp)
+  if (cp == pr->cp)     
     {
 #if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Skipping initiator in forwarding selection\n");
 #endif
       return GNUNET_YES; /* skip */	   
+    }
+  if (cp->irc != NULL)
+    {
+      psc->fast_retry = GNUNET_YES;
+      return GNUNET_YES; /* skip: already querying core about this peer for other reasons */
     }
 
   /* 2) check if we have already (recently) forwarded to this peer */
@@ -2755,6 +2805,8 @@ target_peer_select_cb (void *cls,
       {
 	pc = pr->used_targets[i].num_requests;
 	GNUNET_assert (pc > 0);
+	/* FIXME: make re-enabling a peer independent of how often
+	   this function is called??? */
 	if (0 != GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
 					   RETRY_PROBABILITY_INV * pc))
 	  {
@@ -2824,19 +2876,19 @@ target_peer_select_cb (void *cls,
   if (pr->target_pid == cp->pid)
     score += 100.0;
   /* store best-fit in closure */
-#if DEBUG_FS
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Peer `%s' gets score %f for forwarding query, max is %f\n",
-	      GNUNET_h2s (key),
-	      score,
-	      psc->target_score);
-#endif  
   score++; /* avoid zero */
   if (score > psc->target_score)
     {
       psc->target_score = score;
       psc->target.hashPubKey = *key; 
     }
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Peer `%s' gets score %f for forwarding query, max is %8f\n",
+	      GNUNET_h2s (key),
+	      score,
+	      psc->target_score);
+#endif
   return GNUNET_YES;
 }
   
@@ -2916,7 +2968,7 @@ forward_request_task (void *cls,
   struct GNUNET_TIME_Relative delay;
 
   pr->task = GNUNET_SCHEDULER_NO_TASK;
-  if (pr->irc != NULL)
+  if (pr->pirc != NULL)
     {
 #if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2949,12 +3001,16 @@ forward_request_task (void *cls,
   /* (1) select target */
   psc.pr = pr;
   psc.target_score = -DBL_MAX;
+  psc.fast_retry = GNUNET_NO;
   GNUNET_CONTAINER_multihashmap_iterate (connected_peers,
 					 &target_peer_select_cb,
 					 &psc);  
   if (psc.target_score == -DBL_MAX)
     {
-      delay = get_processing_delay ();
+      if (psc.fast_retry == GNUNET_YES)
+	delay = GNUNET_TIME_UNIT_MILLISECONDS; /* FIXME: store adaptive fast-retry value in 'pr' */
+      else
+	delay = get_processing_delay ();
 #if DEBUG_FS 
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "No peer selected for forwarding of query `%s', will try again in %llu ms!\n",
@@ -2996,7 +3052,10 @@ forward_request_task (void *cls,
       cp = GNUNET_CONTAINER_multihashmap_get (connected_peers,
 					      &psc.target.hashPubKey);
       GNUNET_assert (NULL != cp);
-      pr->irc = GNUNET_CORE_peer_change_preference (core,
+      GNUNET_assert (cp->irc == NULL);
+      pr->pirc = cp;
+      cp->pr = pr;
+      cp->irc = GNUNET_CORE_peer_change_preference (core,
 						    &psc.target,
 						    GNUNET_CONSTANTS_SERVICE_TIMEOUT, 
 						    GNUNET_BANDWIDTH_value_init (UINT32_MAX),
@@ -3004,6 +3063,7 @@ forward_request_task (void *cls,
 						    cp->inc_preference,
 						    &target_reservation_cb,
 						    pr);
+      GNUNET_assert (cp->irc != NULL);
       cp->inc_preference = 0;
     }
   else
