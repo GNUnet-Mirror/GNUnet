@@ -1788,6 +1788,7 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
     }
   irc = GNUNET_malloc (sizeof (struct GNUNET_CORE_InformationRequestContext));
   irc->h = h;
+  irc->pr = pr;
   irc->info = info;
   irc->info_cls = info_cls;
   cm = GNUNET_malloc (sizeof (struct ControlMessage) +
