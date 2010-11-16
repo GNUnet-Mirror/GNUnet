@@ -59,9 +59,9 @@
 
 #define MAX_CONCURRENT_SHUTDOWN 10
 
-#define CONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
+#define CONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 200)
 
-#define CONNECT_ATTEMPTS 8
+#define CONNECT_ATTEMPTS 21
 
 /**
  * Prototype of a function called whenever two peers would be connected

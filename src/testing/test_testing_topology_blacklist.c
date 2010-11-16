@@ -190,15 +190,17 @@ topology_callback (void *cls,
         fprintf (dotOutFile, "\tn%s -- n%s;\n", first_daemon->shortname,
                  second_daemon->shortname);
     }
-#if VERBOSE
+
   else
     {
       failed_connections++;
+#if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Failed to connect peer %s to peer %s with error :\n%s\n",
                   first_daemon->shortname, second_daemon->shortname, emsg);
-    }
 #endif
+    }
+
 
   if (total_connections == expected_connections)
     {

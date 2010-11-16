@@ -1595,9 +1595,6 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 #endif
 
   ctx->d1core = GNUNET_CORE_connect (d1->cfg, 1,
-#if NO_MORE_TIMEOUT_FIXME
-                                     timeout,
-#endif
                                      ctx,
                                      NULL,
                                      &connect_notify, NULL, NULL,
@@ -1657,7 +1654,7 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide
                                   (ctx->relative_timeout,
                                    ctx->max_connect_attempts),
-                                  &notify_connect_result, ctx);
+                                   &notify_connect_result, ctx);
 
   ctx->hello_send_task = GNUNET_SCHEDULER_add_now (&send_hello, ctx);
 }
