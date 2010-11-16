@@ -377,6 +377,10 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_CORE_REQUEST_CONNECT 77
 
+/**
+ * Request for peer iteration from CORE service.
+ */
+#define GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS 78
 
 /**
  * Session key exchange between peers.

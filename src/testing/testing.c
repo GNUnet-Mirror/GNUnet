@@ -1533,10 +1533,12 @@ send_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                            ctx->max_connect_attempts + 1),
                                           &ctx->d2->id,
                                           &core_connect_request_cont, ctx);
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+#if DEBUG_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Sending connect request to CORE of %s for peer %s\n",
                   GNUNET_i2s (&ctx->d1->id),
                   GNUNET_h2s (&ctx->d2->id.hashPubKey));
+#endif
       ctx->timeout_hello =
         GNUNET_TIME_relative_add (ctx->timeout_hello,
                                   GNUNET_TIME_relative_multiply

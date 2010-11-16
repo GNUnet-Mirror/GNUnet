@@ -142,6 +142,12 @@ struct TestMessageContext
   /* Identifier for this message, so we don't disconnect other peers! */
   uint32_t uid;
 
+  /* Has peer1 been notified already of a connection to peer2? */
+  int peer1notified;
+
+  /* Has the core of peer2 been connected already? */
+  int peer2connected;
+
   /* Task for disconnecting cores, allow task to be cancelled on shutdown */
   GNUNET_SCHEDULER_TaskIdentifier disconnect_task;
 
@@ -364,6 +370,7 @@ process_mtype (void *cls,
 #endif
 
   total_messages_received++;
+
 #if VERBOSE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received message from `%4s', type %d.\n", GNUNET_i2s (peer),
@@ -491,32 +498,88 @@ init_notify_peer2 (void *cls,
 {
   struct TestMessageContext *pos = cls;
 
-#if VERBOSE > 1
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core connection to `%4s' established, scheduling message send\n",
-              GNUNET_i2s (my_identity));
-#endif
   total_server_connections++;
 
-  if (NULL == GNUNET_CORE_notify_transmit_ready (pos->peer1handle,
-                                                 0,
-                                                 TIMEOUT,
-                                                 &pos->peer2->id,
-                                                 sizeof (struct
-                                                         GNUNET_TestMessage),
-                                                 &transmit_ready, pos))
+  pos->peer2connected = GNUNET_YES;
+  if (pos->peer1notified == GNUNET_YES) /* Peer 1 has been notified of connection to peer 2 */
     {
+#if VERBOSE > 1
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "RECEIVED NULL when asking core (1) for transmission to peer `%4s'\n",
-                  GNUNET_i2s (&pos->peer2->id));
-      transmit_ready_failed++;
-    }
-  else
-    {
-      transmit_ready_scheduled++;
+                  "Scheduling message send to peer `%s' from peer `%s' (init_notify_peer2)\n",
+                  GNUNET_i2s (my_identity), GNUNET_h2s(&pos->peer1->id.hashPubKey));
+#endif
+      if (NULL == GNUNET_CORE_notify_transmit_ready (pos->peer1handle,
+                                                     0,
+                                                     TIMEOUT,
+                                                     &pos->peer2->id,
+                                                     sizeof (struct
+                                                             GNUNET_TestMessage),
+                                                     &transmit_ready, pos))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "RECEIVED NULL when asking core (1) for transmission to peer `%4s'\n",
+                      GNUNET_i2s (&pos->peer2->id));
+          transmit_ready_failed++;
+        }
+      else
+        {
+          transmit_ready_scheduled++;
+        }
     }
 }
 
+/**
+ * Method called whenever a given peer connects.
+ *
+ * @param cls closure
+ * @param peer peer identity this notification is about
+ * @param atsi performance data for the connection
+ */
+static void connect_notify_peers (void *cls,
+                                  const struct
+                                  GNUNET_PeerIdentity *peer,
+                                  const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+{
+  struct TestMessageContext *pos = cls;
+
+  if (0 == memcmp(peer, &pos->peer2->id, sizeof(struct GNUNET_PeerIdentity)))
+    {
+      pos->peer1notified = GNUNET_YES;
+#if VERBOSE > 1
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Peer `%s' notified of connection to peer `%s'\n",
+                GNUNET_i2s (&pos->peer1->id), GNUNET_h2s(&peer->hashPubKey));
+#endif
+    }
+  else
+    return;
+
+  if (pos->peer2connected == GNUNET_YES) /* Already connected and notified of connection, send message! */
+    {
+#if VERBOSE > 1
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Scheduling message send to peer `%s' from peer `%s' (init_notify_peer2)\n",
+                GNUNET_i2s (&pos->peer2->id), GNUNET_h2s(&pos->peer1->id.hashPubKey));
+#endif
+      if (NULL == GNUNET_CORE_notify_transmit_ready (pos->peer1handle,
+                                                     0,
+                                                     TIMEOUT,
+                                                     &pos->peer2->id,
+                                                     sizeof (struct
+                                                             GNUNET_TestMessage),
+                                                     &transmit_ready, pos))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "RECEIVED NULL when asking core (1) for transmission to peer `%4s'\n",
+                      GNUNET_i2s (&pos->peer2->id));
+          transmit_ready_failed++;
+        }
+      else
+        {
+          transmit_ready_scheduled++;
+        }
+    }
+}
 
 static void
 init_notify_peer1 (void *cls,
@@ -585,7 +648,7 @@ send_test_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                           1,
                                           pos,
                                           &init_notify_peer1,
-                                          NULL, NULL,
+                                          &connect_notify_peers, NULL,
                                           NULL,
                                           NULL,
                                           GNUNET_NO, NULL, GNUNET_NO,
@@ -639,7 +702,7 @@ topology_callback (void *cls,
 #endif
       total_connections++;
 #if VERBOSE > 1
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "connected peer %s to peer %s\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "connected peer %s to peer %s\n",
                   first_daemon->shortname, second_daemon->shortname);
 #endif
       temp_context = GNUNET_malloc (sizeof (struct TestMessageContext));

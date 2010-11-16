@@ -770,7 +770,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
 	  snprintf (lsof, sizeof (lsof), "lsof -p %d", getpid());
 	  close (1);
 	  dup2 (2, 1);
-	  system (lsof);		  
+	  ret = system (lsof);		  
 #endif
 #endif
           abort ();

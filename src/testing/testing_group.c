@@ -3421,12 +3421,15 @@ schedule_get_topology (void *cls,
                   outstanding_connects);
 #endif
       topology_context->connected++;
+
       if (GNUNET_OK !=
-          GNUNET_CORE_iterate_peers (core_context->daemon->server,
+          GNUNET_CORE_iterate_peers (core_context->daemon->cfg,
                                      &internal_topology_callback,
                                      core_context))
-        internal_topology_callback (core_context, NULL, NULL);
-
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Topology iteration failed.\n");
+          internal_topology_callback (core_context, NULL, NULL);
+        }
     }
 }
 

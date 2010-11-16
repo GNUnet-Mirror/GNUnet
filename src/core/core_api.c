@@ -1432,6 +1432,9 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
   if (NULL == pr)
     {
       /* attempt to send to peer that is not connected */
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                 "Attempting to send to peer `%s' from peer `%s', but not connected!\n",
+                 GNUNET_i2s(target), GNUNET_h2s(&handle->me.hashPubKey));
       GNUNET_break (0);
       return NULL;
     }
@@ -1839,6 +1842,7 @@ GNUNET_CORE_peer_change_preference_cancel (struct GNUNET_CORE_InformationRequest
 }
 
 
+#if NEW
 /* ********************* GNUNET_CORE_iterate_peers *********************** */
 
 /**
@@ -1903,6 +1907,6 @@ GNUNET_CORE_iterate_peers (struct GNUNET_CORE_Handle *h,
 					 &ic);
   return GNUNET_OK;
 }
-
+#endif
 
 /* end of core_api.c */

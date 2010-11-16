@@ -2528,7 +2528,9 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   GNUNET_SERVER_disconnect_notify (plugin->server,
 				   &disconnect_notify,
                                    plugin);
-  GNUNET_CONFIGURATION_get_value_string(env->cfg, "transport-tcp", "BINDTO", &plugin->bind_address);
+
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_string (env->cfg, "transport-tcp", "BINDTO", &plugin->bind_address))
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Binding tcp plugin to specific address: `%s'\n", plugin->bind_address);
 
   if (plugin->behind_nat == GNUNET_NO)
     {

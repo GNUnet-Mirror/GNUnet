@@ -357,13 +357,13 @@ GNUNET_CORE_peer_change_preference_cancel (struct GNUNET_CORE_InformationRequest
 /**
  * Iterate over all connected peers.
  *
- * @param h core handle
+ * @param cfg configuration handle
  * @param peer_cb function to call with the peer information
  * @param cb_cls closure for peer_cb
  * @return GNUNET_OK on success, GNUNET_SYSERR on errors
  */
 int
-GNUNET_CORE_iterate_peers (struct GNUNET_CORE_Handle *h,
+GNUNET_CORE_iterate_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
                            GNUNET_CORE_ConnectEventHandler peer_cb,
                            void *cb_cls);
 

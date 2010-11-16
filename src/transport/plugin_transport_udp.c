@@ -2293,9 +2293,10 @@ libgnunet_plugin_transport_udp_init (void *cls)
 
   plugin->service = service;
 
-  GNUNET_CONFIGURATION_get_value_string(env->cfg, "transport-udp", "BINDTO", &plugin->bind_address);
-
-  GNUNET_CONFIGURATION_get_value_string(env->cfg, "transport-udp", "BINDTO6", &plugin->bind6_address);
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_string(env->cfg, "transport-udp", "BINDTO", &plugin->bind_address))
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Binding udp plugin to specific address: `%s'\n", plugin->bind_address);
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_string(env->cfg, "transport-udp", "BINDTO6", &plugin->bind6_address))
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Binding udp plugin to specific address: `%s'\n", plugin->bind6_address);
 
   if (plugin->behind_nat == GNUNET_NO)
     {
