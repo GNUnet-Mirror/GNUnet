@@ -157,11 +157,9 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ok = 42;
 }
 
-static void
-connect_notify (void *cls,
+static void connect_notify (void *cls,
                 const struct GNUNET_PeerIdentity *peer,
-		struct GNUNET_TIME_Relative latency,
-		uint32_t distance)
+		const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct PeerContext *pc = cls;
   GNUNET_assert (pc->connect_status == 0);
