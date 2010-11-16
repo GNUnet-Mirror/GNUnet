@@ -658,11 +658,9 @@ transmit_message (void *cls,
       memcpy (buf, hdr, msize);
       GNUNET_CONTAINER_DLL_remove (h->pending_head,
 				   h->pending_tail,
-				   cm);
+				   cm);     
       if (NULL != cm->cont)
-	GNUNET_SCHEDULER_add_continuation (cm->cont, 
-					   cm->cont_cls,
-					   GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+	cm->cont (cm->cont_cls, NULL);
       GNUNET_free (cm);
       trigger_next_request (h, GNUNET_NO);
       return msize;
