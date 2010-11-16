@@ -24,7 +24,7 @@
 #include "platform.h"
 #include "gnunet_testing_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
 
@@ -41,7 +41,8 @@ end_cb (void *cls, const char *emsg)
   else
     {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Daemon terminated, will now exit.\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Daemon terminated, will now exit.\n");
 #endif
       ok = 0;
     }
@@ -58,7 +59,8 @@ my_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Daemon `%s' started, will now stop it.\n", GNUNET_i2s (id));
 #endif
-  GNUNET_TESTING_daemon_stop (d, TIMEOUT, &end_cb, NULL, GNUNET_YES, GNUNET_NO);
+  GNUNET_TESTING_daemon_stop (d, TIMEOUT, &end_cb, NULL, GNUNET_YES,
+                              GNUNET_NO);
 }
 
 
@@ -73,7 +75,9 @@ run (void *cls,
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemon.\n");
 #endif
-  d = GNUNET_TESTING_daemon_start (cfg, TIMEOUT, NULL, NULL, 0, NULL, NULL, &my_cb, NULL);
+  d =
+    GNUNET_TESTING_daemon_start (cfg, TIMEOUT, NULL, NULL, 0, NULL, NULL,
+                                 &my_cb, NULL);
   GNUNET_assert (d != NULL);
 }
 

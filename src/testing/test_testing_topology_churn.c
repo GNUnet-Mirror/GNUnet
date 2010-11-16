@@ -75,14 +75,13 @@ struct GNUNET_TestMessage
 /**
  * Check whether peers successfully shut down.
  */
-void shutdown_callback (void *cls,
-                        const char *emsg)
+void
+shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
     {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Shutdown of peers failed!\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed!\n");
 #endif
       if (ok == 0)
         ok = 666;
@@ -102,7 +101,7 @@ finish_testing ()
   GNUNET_assert (pg != NULL);
 
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel(die_task);
+    GNUNET_SCHEDULER_cancel (die_task);
 
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -110,20 +109,18 @@ finish_testing ()
 #endif
 
 #if VERBOSE
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Calling daemons_stop\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Calling daemons_stop\n");
 #endif
   GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
 #if VERBOSE
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "daemons_stop finished\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "daemons_stop finished\n");
 #endif
 
   ok = 0;
 }
 
 static void
-end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   char *msg = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -153,61 +150,63 @@ static struct ChurnTestContext churn_ctx;
  * @param cls closure
  * @param emsg NULL on success
  */
-void churn_callback(void *cls,
-                    const char *emsg)
+void
+churn_callback (void *cls, const char *emsg)
 {
   if (emsg == NULL)
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Successfully churned peers!\n", emsg);
-      GNUNET_SCHEDULER_add_now(churn_ctx.next_task, NULL);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Successfully churned peers!\n",
+                  emsg);
+      GNUNET_SCHEDULER_add_now (churn_ctx.next_task, NULL);
     }
   else
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Failed to churn peers with error `%s'\n", emsg);
-      GNUNET_SCHEDULER_cancel(die_task);
-      die_task = GNUNET_SCHEDULER_add_now(&end_badly, NULL);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Failed to churn peers with error `%s'\n", emsg);
+      GNUNET_SCHEDULER_cancel (die_task);
+      die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     }
 }
 
 
 static void
-churn_peers_both()
+churn_peers_both ()
 {
   churn_ctx.next_task = &finish_testing;
-  GNUNET_TESTING_daemons_churn(pg, 1, 1, TIMEOUT, &churn_callback, NULL);
+  GNUNET_TESTING_daemons_churn (pg, 1, 1, TIMEOUT, &churn_callback, NULL);
 }
 
 static void
-churn_peers_off_again()
+churn_peers_off_again ()
 {
   churn_ctx.next_task = &churn_peers_both;
-  GNUNET_TESTING_daemons_churn(pg, 2, 0, TIMEOUT, &churn_callback, NULL);
+  GNUNET_TESTING_daemons_churn (pg, 2, 0, TIMEOUT, &churn_callback, NULL);
 }
 
 static void
-churn_peers_on()
+churn_peers_on ()
 {
   churn_ctx.next_task = &churn_peers_off_again;
-  GNUNET_TESTING_daemons_churn(pg, 0, 2, TIMEOUT, &churn_callback, NULL);
+  GNUNET_TESTING_daemons_churn (pg, 0, 2, TIMEOUT, &churn_callback, NULL);
 }
 
 static void
-churn_peers_off()
+churn_peers_off ()
 {
   churn_ctx.next_task = &churn_peers_on;
-  GNUNET_TESTING_daemons_churn(pg, 2, 0, TIMEOUT, &churn_callback, NULL);
+  GNUNET_TESTING_daemons_churn (pg, 2, 0, TIMEOUT, &churn_callback, NULL);
 }
 
 static void
 peers_started_callback (void *cls,
-       const struct GNUNET_PeerIdentity *id,
-       const struct GNUNET_CONFIGURATION_Handle *cfg,
-       struct GNUNET_TESTING_Daemon *d, const char *emsg)
+                        const struct GNUNET_PeerIdentity *id,
+                        const struct GNUNET_CONFIGURATION_Handle *cfg,
+                        struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
   if (emsg != NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to start daemon with error: `%s'\n",
-                  emsg);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Failed to start daemon with error: `%s'\n", emsg);
       return;
     }
   GNUNET_assert (id != NULL);
@@ -220,15 +219,15 @@ peers_started_callback (void *cls,
     {
 #if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "All %d daemons started, now testing churn!\n",
-                  num_peers);
+                  "All %d daemons started, now testing churn!\n", num_peers);
 #endif
       GNUNET_SCHEDULER_cancel (die_task);
       /* Set up task in case topology creation doesn't finish
        * within a reasonable amount of time */
       die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                                (GNUNET_TIME_UNIT_MINUTES, 5),
-                                               &end_badly, "from peers_started_callback");
+                                               &end_badly,
+                                               "from peers_started_callback");
       churn_peers_off ();
       ok = 0;
     }
@@ -247,7 +246,9 @@ run (void *cls,
               "Starting daemons based on config file %s\n", cfgfile);
 #endif
 
-  if (GNUNET_YES != GNUNET_CONFIGURATION_get_value_string(cfg, "paths", "servicehome", &test_directory))
+  if (GNUNET_YES !=
+      GNUNET_CONFIGURATION_get_value_string (cfg, "paths", "servicehome",
+                                             &test_directory))
     {
       ok = 404;
       return;
@@ -261,7 +262,7 @@ run (void *cls,
   main_cfg = cfg;
 
   peers_left = num_peers;
-  GNUNET_assert(num_peers > 0 && num_peers < (unsigned int)-1);
+  GNUNET_assert (num_peers > 0 && num_peers < (unsigned int) -1);
 
   /* For this specific test we only really want a CLIQUE topology as the
    * overlay allowed topology, and a RING topology as the underlying connection
@@ -275,11 +276,13 @@ run (void *cls,
   /* Set up a task to end testing if peer start fails */
   die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                            (GNUNET_TIME_UNIT_MINUTES, 5),
-                                           &end_badly, "didn't start all daemons in reasonable amount of time!!!");
+                                           &end_badly,
+                                           "didn't start all daemons in reasonable amount of time!!!");
 
   pg = GNUNET_TESTING_daemons_start (cfg,
-                                     peers_left, TIMEOUT, NULL, NULL, &peers_started_callback, NULL,
-                                     NULL, NULL, NULL);
+                                     peers_left, TIMEOUT, NULL, NULL,
+                                     &peers_started_callback, NULL, NULL,
+                                     NULL, NULL);
 
 }
 
@@ -287,7 +290,7 @@ static int
 check ()
 {
   int ret;
-  char *const argv[] = {"test-testing-topology-churn",
+  char *const argv[] = { "test-testing-topology-churn",
     "-c",
     "test_testing_data_topology_churn.conf",
 #if VERBOSE
@@ -299,11 +302,13 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
   ret = GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-testing-topology-churn", "nohelp",
-                      options, &run, &ok);
+                            argv, "test-testing-topology-churn", "nohelp",
+                            options, &run, &ok);
   if (ret != GNUNET_OK)
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "`test-testing-topology-churn': Failed with error code %d\n", ret);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "`test-testing-topology-churn': Failed with error code %d\n",
+                  ret);
     }
 
   return ok;
@@ -331,7 +336,9 @@ main (int argc, char *argv[])
     {
       if (GNUNET_DISK_directory_remove (test_directory) != GNUNET_OK)
         {
-          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Failed to remove testing directory %s\n", test_directory);
+          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                      "Failed to remove testing directory %s\n",
+                      test_directory);
         }
     }
 
