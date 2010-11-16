@@ -4729,7 +4729,7 @@ run (void *cls,
       converge_option = DHT_CONVERGE_BINARY;
     }
 
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "dht_testing", "converge_modifier", &converge_modifier_buf))
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "dht", "converge_modifier", &converge_modifier_buf))
     {
       if (1 != sscanf(converge_modifier_buf, "%f", &converge_modifier))
         {
