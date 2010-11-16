@@ -2758,7 +2758,7 @@ run (void *cls,
           buf = &data[count + 1];
       }
     }
-  GNUNET_free(data);
+  GNUNET_free_non_null(data);
   if (GNUNET_OK !=
           GNUNET_CONFIGURATION_get_value_number (cfg, "dht_testing", "malicious_getters",
                                                  &malicious_getters))
