@@ -143,6 +143,10 @@ struct ControlMessage
    */
   void *cont_cls;
 
+  /**
+   * Transmit handle (if one is associated with this ControlMessage), or NULL.
+   */
+  struct GNUNET_CORE_TransmitHandle *th;
 };
 
 
@@ -561,6 +565,7 @@ request_next_transmission (struct PeerRecord *pr)
   cm->cont = &mark_control_message_sent;
   cm->cont_cls = th;
   th->cm = cm;
+  cm->th = th;
   smr = (struct SendMessageRequest*) &cm[1];
   smr->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_SEND_REQUEST);
   smr->header.size = htons (sizeof (struct SendMessageRequest));
@@ -659,8 +664,12 @@ transmit_message (void *cls,
       GNUNET_CONTAINER_DLL_remove (h->pending_head,
 				   h->pending_tail,
 				   cm);     
+      if (cm->th != NULL)
+	cm->th->cm = NULL;
       if (NULL != cm->cont)
-	cm->cont (cm->cont_cls, NULL);
+	GNUNET_SCHEDULER_add_continuation (cm->cont, 
+					   cm->cont_cls,
+					   GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       GNUNET_free (cm);
       trigger_next_request (h, GNUNET_NO);
       return msize;
@@ -1403,6 +1412,8 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
       GNUNET_CONTAINER_DLL_remove (handle->pending_head,
 				   handle->pending_tail,
 				   cm);
+      if (cm->th != NULL)
+	cm->th->cm = NULL;
       cm->cont (cm->cont_cls, NULL);
       GNUNET_free (cm);
     }
@@ -1884,72 +1895,5 @@ GNUNET_CORE_peer_change_preference_cancel (struct GNUNET_CORE_InformationRequest
   GNUNET_free (irc);
 }
 
-
-#if NEW
-/* ********************* GNUNET_CORE_iterate_peers *********************** */
-
-/**
- * Context for 'iterate_peers' helper function.
- */
-struct IterationContext
-{
-  /**
-   * Callback to call.
-   */
-  GNUNET_CORE_ConnectEventHandler peer_cb;
-
-  /**
-   * Closure for 'peer_cb'.
-   */
-  void *cb_cls;
-};
-
-
-/**
- * Call callback for each peer.
- *
- * @param cls the 'struct IterationContext'
- * @param hc peer identity, not used
- * @param value the 'struct PeerRecord'
- * @return GNUNET_YES (continue iteration)
- */
-static int
-iterate_peers (void *cls,
-	       const GNUNET_HashCode *hc,
-	       void *value)
-{
-  struct IterationContext *ic = cls;
-  struct PeerRecord *pr = value;
-
-  ic->peer_cb (ic->cb_cls,
-	       &pr->peer,
-	       NULL /* FIXME: pass atsi? */);
-  return GNUNET_YES;
-}
-
-
-/**
- * Obtain statistics and/or change preferences for the given peer.
- *
- * @param h handle to core
- * @param peer_cb function to call with the peer information
- * @param cb_cls closure for peer_cb
- * @return GNUNET_OK if iterating, GNUNET_SYSERR on error
- */
-int
-GNUNET_CORE_iterate_peers (struct GNUNET_CORE_Handle *h,
-                           GNUNET_CORE_ConnectEventHandler peer_cb,
-                           void *cb_cls)
-{
-  struct IterationContext ic;
-
-  ic.peer_cb = peer_cb;
-  ic.cb_cls = cb_cls;
-  GNUNET_CONTAINER_multihashmap_iterate (h->peers,
-					 &iterate_peers,
-					 &ic);
-  return GNUNET_OK;
-}
-#endif
 
 /* end of core_api.c */
