@@ -1032,7 +1032,13 @@ schedule_peer_messages (struct Neighbour *n)
       mqe = mqe->next;
     }
   if (queue_size >= MAX_PEER_QUEUE_SIZE)
-    return; /* queue still full */
+    {
+#if DEBUG_CORE_CLIENT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Not considering client transmission requests: queue full\n");
+#endif
+      return; /* queue still full */
+    }
   /* find highest priority request */
   pos = n->active_client_request_head;
   car = NULL;
@@ -1045,6 +1051,11 @@ schedule_peer_messages (struct Neighbour *n)
     }
   if (car == NULL)
     return; /* no pending requests */
+#if DEBUG_CORE_CLIENT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Permitting client transmission request to `%s'\n",
+	      GNUNET_i2s (&n->peer));
+#endif
   c = car->client;
   GNUNET_CONTAINER_DLL_remove (n->active_client_request_head,
 			       n->active_client_request_tail,
@@ -1084,6 +1095,10 @@ handle_client_send_request (void *cls,
       /* neighbour must have disconnected since request was issued,
 	 ignore (client will realize it once it processes the 
 	 disconnect notification) */
+#if DEBUG_CORE_CLIENT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Dropped client request for transmission (am disconnected)\n");
+#endif
       GNUNET_STATISTICS_update (stats, 
 				gettext_noop ("# send requests dropped (disconnected)"), 
 				1, 
@@ -1104,6 +1119,10 @@ handle_client_send_request (void *cls,
     }
   if (c->requests == NULL)
     c->requests = GNUNET_CONTAINER_multihashmap_create (16);
+#if DEBUG_CORE_CLIENT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received client transmission request. queueing\n");
+#endif
   car = GNUNET_CONTAINER_multihashmap_get (c->requests,
 					   &req->peer.hashPubKey);
   if (car == NULL)

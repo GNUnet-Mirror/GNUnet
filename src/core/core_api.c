@@ -473,7 +473,7 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
     {
       GNUNET_CONTAINER_DLL_remove (h->pending_head,
 				   h->pending_tail,
-				   cm);
+				   cm);      
       cm->cont (cm->cont_cls, NULL);
       GNUNET_free (cm);
     }
@@ -574,6 +574,11 @@ request_next_transmission (struct PeerRecord *pr)
 				     h->pending_tail,
 				     h->pending_tail,
 				     cm);
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Adding SEND REQUEST for peer `%s' to message queue\n",
+	      GNUNET_i2s (&pr->peer));
+#endif
   trigger_next_request (h, GNUNET_NO);
 }
 
@@ -747,15 +752,33 @@ trigger_next_request (struct GNUNET_CORE_Handle *h,
 
   if ( (GNUNET_YES == h->currently_down) &&
        (ignore_currently_down == GNUNET_NO) )
-    return;
+    {
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Core connection down, not processing queue\n");
+#endif
+      return;
+    }
   if (NULL != h->cth)
-    return;
+    {
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Request pending, not processing queue\n");
+#endif
+      return;
+    }
   if (h->pending_head != NULL)
     msize = ntohs (((struct GNUNET_MessageHeader*) &h->pending_head[1])->size);    
   else if (h->ready_peer_head != NULL)
     msize = h->ready_peer_head->pending_head->msize + sizeof (struct SendMessage);    
   else
-    return; /* no pending message */
+    {
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Request queue empty, not processing queue\n");
+#endif
+      return; /* no pending message */
+    }
   h->cth = GNUNET_CLIENT_notify_transmit_ready (h->client,
 						msize,
 						GNUNET_TIME_UNIT_FOREVER_REL,
@@ -1466,7 +1489,13 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
 	  return NULL;
 	}
       if (priority <= minp->priority)
-	return NULL; /* priority too low */
+	{
+#if DEBUG_CORE
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Dropping transmission request: priority too low\n");
+#endif
+	  return NULL; /* priority too low */
+	}
       GNUNET_CONTAINER_DLL_remove (pr->pending_head,
 				   pr->pending_tail,
 				   minp);
@@ -1502,6 +1531,10 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
 				     th);
   pr->queue_size++;
   /* was the request queue previously empty? */
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmission request added to queue\n");
+#endif
   if (pr->pending_head == th) 
     request_next_transmission (pr);
   return th;
@@ -1525,6 +1558,7 @@ GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle
   GNUNET_CONTAINER_DLL_remove (pr->pending_head,
 			       pr->pending_tail,
 			       th);    
+  pr->queue_size--;
   if (th->cm != NULL)
     {
       /* we're currently in the control queue, remove */
@@ -1658,6 +1692,10 @@ GNUNET_CORE_peer_request_connect (struct GNUNET_CORE_Handle *h,
   ret->cont_cls = cont_cls;
   cm->cont = &peer_request_connect_cont;
   cm->cont_cls = ret;
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Queueing REQUEST_CONNECT request\n");
+#endif
   if (h->pending_head == cm)
     trigger_next_request (h, GNUNET_NO);
   return ret;
@@ -1804,11 +1842,17 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
   rim->reserve_inbound = htonl (amount);
   rim->preference_change = GNUNET_htonll(preference);
   rim->peer = *peer;
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Queueing CHANGE PREFERENCE request\n");
+#endif
   GNUNET_CONTAINER_DLL_insert (h->pending_head,
 			       h->pending_tail,
 			       cm); 
   pr->pcic = info;
   pr->pcic_cls = info_cls;
+  if (h->pending_head == cm)
+    trigger_next_request (h, GNUNET_NO);
   return irc;
 }
 
