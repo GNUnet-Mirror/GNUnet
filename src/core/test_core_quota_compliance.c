@@ -35,7 +35,7 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_transport_service.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define START_ARM GNUNET_YES
 
@@ -85,8 +85,12 @@ struct PeerContext
 };
 
 static struct PeerContext p1;
-
 static struct PeerContext p2;
+
+static unsigned long long current_quota_p1_in;
+static unsigned long long current_quota_p1_out;
+static unsigned long long current_quota_p2_in;
+static unsigned long long current_quota_p2_out;
 
 static int ok;
 
@@ -110,8 +114,6 @@ struct TestMessage
 static void
 terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  unsigned long long delta;
-
   GNUNET_CORE_disconnect (p1.ch);
   p1.ch = NULL;
   GNUNET_CORE_disconnect (p2.ch);
@@ -120,10 +122,6 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   p1.th = NULL;
   GNUNET_TRANSPORT_disconnect (p2.th);
   p2.th = NULL;
-  delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
-  fprintf (stderr,
-	   "\nThroughput was %llu kb/s\n",
-	   total_bytes * 1000 / 1024 / delta);
   ok = 0;
 }
 
@@ -151,11 +149,39 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  unsigned long long int delta;
+  unsigned long long int throughput;
+  unsigned long long int max_quota_in;
+  unsigned long long int max_quota_out;
+  unsigned long long int quota_delta;
+
   measure_task = GNUNET_SCHEDULER_NO_TASK;
   fprintf(stdout,"\n");
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "FINIIISH!\n");
   running = GNUNET_NO;
 
+  delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
+  throughput = total_bytes * 1000 / 1024 / delta;
+  if (current_quota_p1_in < current_quota_p2_in)
+	  max_quota_in = current_quota_p1_in;
+  else
+	  max_quota_in = current_quota_p2_in;
+  if (current_quota_p1_out < current_quota_p2_out)
+	  max_quota_out = current_quota_p1_out;
+  else
+	  max_quota_out = current_quota_p2_out;
+
+  if (max_quota_out < max_quota_in)
+	  quota_delta = max_quota_in / 10;
+  else
+	  quota_delta = max_quota_out / 10;
+
+  if ((throughput < max_quota_out)&& (throughput < max_quota_in))
+  {
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Throughput: %llu kb/s\n",throughput);
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Max. inbound quota allowed: %llu kb/s\n",max_quota_in/1024);
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Max. outbound quota allowed: %llu kb/s\n",max_quota_out/1024);
+  }
   GNUNET_SCHEDULER_cancel (err_task);
   GNUNET_SCHEDULER_add_now (&terminate_task, NULL);
 
@@ -308,18 +334,16 @@ process_mtype (void *cls,
 	       const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   static int n;
-  unsigned int s;
   const struct TestMessage *hdr;
 
   hdr = (const struct TestMessage*) message;
-  s = MSIZE;
   if (MTYPE != ntohs (message->type))
     return GNUNET_SYSERR;
-  if (ntohs (message->size) != s)
+  if (ntohs (message->size) != MSIZE)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  "Expected message %u of size %u, got %u bytes of message %u\n",
-		  n, s,
+		  n, MSIZE,
 		  ntohs (message->size),
 		  ntohl (hdr->num));
       GNUNET_SCHEDULER_cancel (err_task);
@@ -330,7 +354,7 @@ process_mtype (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  "Expected message %u of size %u, got %u bytes of message %u\n",
-		  n, s,
+		  n, MSIZE,
 		  ntohs (message->size),
 		  ntohl (hdr->num));
       GNUNET_SCHEDULER_cancel (err_task);
@@ -473,6 +497,24 @@ run (void *cls,
   OKPP;
   setup_peer (&p1, "test_core_quota_peer1.conf");
   setup_peer (&p2, "test_core_quota_peer2.conf");
+
+  GNUNET_assert (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_number (p1.cfg,
+                                         "CORE",
+                                         "TOTAL_QUOTA_IN",
+                                         &current_quota_p1_in));
+  GNUNET_assert (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_number (p2.cfg,
+                                         "CORE",
+                                         "TOTAL_QUOTA_IN",
+                                         &current_quota_p2_in));
+  GNUNET_assert (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_number (p1.cfg,
+                                         "CORE",
+                                         "TOTAL_QUOTA_OUT",
+                                         &current_quota_p1_out));
+  GNUNET_assert (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_number (p2.cfg,
+                                         "CORE",
+                                         "TOTAL_QUOTA_OUT",
+                                         &current_quota_p2_out));
+
   GNUNET_CORE_connect (p1.cfg, 1,
                        &p1,
                        &init_notify,
