@@ -37,8 +37,8 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_hello_lib.h"
 
-#define DEBUG_TESTING GNUNET_YES
-#define DEBUG_TESTING_RECONNECT GNUNET_YES
+#define DEBUG_TESTING GNUNET_NO
+#define DEBUG_TESTING_RECONNECT GNUNET_NO
 
 /**
  * How long do we wait after starting gnunet-service-arm
