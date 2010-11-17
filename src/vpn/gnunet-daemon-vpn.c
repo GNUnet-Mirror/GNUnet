@@ -134,6 +134,7 @@ static void dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg
 /**
  * Callback called by notify_transmit_ready; sends dns-queries or rehijack-messages
  * to the service-dns
+ * {{{
  */
 static size_t
 send_query(void* cls, size_t size, void* buf) {
@@ -181,9 +182,11 @@ send_query(void* cls, size_t size, void* buf) {
 
     return len;
 }
+/* }}} */
 
 /**
  * Function scheduled as very last function, cleans up after us
+ *{{{
  */
 static void
 cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
@@ -205,9 +208,11 @@ cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
 	dns_connection = NULL;
       }
 }
+/*}}}*/
 
 /**
  * Start the helper-process
+ * {{{
  */
 static void
 start_helper_and_schedule(void *cls,
@@ -236,9 +241,11 @@ start_helper_and_schedule(void *cls,
 
     GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, fh_from_helper, &helper_read, NULL);
 }
+/*}}}*/
 
 /**
  * Restart the helper-process
+ * {{{
  */
 static void
 restart_helper(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
@@ -254,9 +261,11 @@ restart_helper(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
     /* Restart the helper */
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, start_helper_and_schedule, NULL);
 }
+/*}}}*/
 
 /**
  * Read from the helper-process
+ * {{{
  */
 static void
 helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
@@ -279,6 +288,7 @@ helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
 
     GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, fh_from_helper, &helper_read, NULL);
 }
+/*}}}*/
 
 /**
  * Calculate the checksum of an IPv4-Header
