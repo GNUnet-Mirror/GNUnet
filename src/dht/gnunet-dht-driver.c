@@ -859,6 +859,7 @@ log_topology_cb (void *cls,
   struct TopologyIteratorContext *topo_ctx = cls;
   if ((first != NULL) && (second != NULL))
     {
+      /* GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "According to CORE, peer %s is connected to %s\n", GNUNET_i2s(first), GNUNET_h2s(&second->hashPubKey));*/
       if ((topo_ctx->peers_seen != NULL) && (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(topo_ctx->peers_seen, &first->hashPubKey)))
         {
           GNUNET_CONTAINER_multihashmap_put(topo_ctx->peers_seen, &first->hashPubKey, NULL, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
@@ -2351,6 +2352,9 @@ topology_callback (void *cls,
   else
     {
       failed_connections++;
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Failed to connect peer %s to peer %s with error :\n%s\n",
+                  first_daemon->shortname,
+                  second_daemon->shortname, emsg);
 #if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to connect peer %s to peer %s with error :\n%s\n",
                   first_daemon->shortname,
@@ -2366,6 +2370,8 @@ topology_callback (void *cls,
                   "Created %d total connections, which is our target number!  Starting next phase of testing.\n",
                   total_connections);
 #endif
+      if (failed_connections > 0)
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "While connecting, had %u failed connections.\n", failed_connections);
       if (dhtlog_handle != NULL)
         {
           dhtlog_handle->update_connections (total_connections);

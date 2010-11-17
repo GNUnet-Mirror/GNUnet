@@ -71,6 +71,8 @@
  */
 #define DEFAULT_BUCKET_SIZE 4
 
+#define DEFAULT_CORE_QUEUE_SIZE 32
+
 /**
  * Minimum number of peers we need for "good" routing,
  * any less than this and we will allow messages to
@@ -95,7 +97,7 @@
 /**
  * How long to keep recent requests around by default.
  */
-#define DEFAULT_RECENT_REMOVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
+#define DEFAULT_RECENT_REMOVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
 /**
  * Default time to wait to send find peer messages sent by the dht service.
@@ -4553,7 +4555,7 @@ run (void *cls,
   GNUNET_SERVER_add_handlers (server, plugin_handlers);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
   coreAPI = GNUNET_CORE_connect (cfg,    /* Main configuration */
-				 1, /* queue size */
+				 DEFAULT_CORE_QUEUE_SIZE, /* queue size */
                                  NULL,  /* Closure passed to DHT functions */
                                  &core_init,    /* Call core_init once connected */
                                  &handle_core_connect,  /* Handle connects */
