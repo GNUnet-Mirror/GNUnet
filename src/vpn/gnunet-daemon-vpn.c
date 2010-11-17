@@ -176,10 +176,13 @@ cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
     GNUNET_assert (0 != (tskctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN));
 
     /* stop the helper */
-    GNUNET_OS_process_kill (helper_proc, SIGTERM);
-    GNUNET_OS_process_wait (helper_proc);
-    GNUNET_OS_process_close (helper_proc);
-    helper_proc = NULL;
+    if (helper_proc != NULL)
+      {
+	GNUNET_OS_process_kill (helper_proc, SIGTERM);
+	GNUNET_OS_process_wait (helper_proc);
+	GNUNET_OS_process_close (helper_proc);
+	helper_proc = NULL;
+      }
 
     /* close the connection to the service-dns */
     if (dns_connection != NULL)
