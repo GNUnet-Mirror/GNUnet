@@ -35,7 +35,6 @@
 #include "gnunet_transport_service.h"
 
 #define VERBOSE GNUNET_NO
-
 #define START_ARM GNUNET_YES
 
 #define MTYPE 12345
@@ -318,7 +317,6 @@ run (void *cls,
                        &inbound_notify,
                        GNUNET_YES, &outbound_notify, GNUNET_YES, handlers);
 }
-
 
 static void
 stop_arm (struct PeerContext *p)

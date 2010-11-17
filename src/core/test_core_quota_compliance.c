@@ -34,8 +34,9 @@
 #include "gnunet_program_lib.h"
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_statistics_service.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 #define DEBUG_TRANSMISSION GNUNET_NO
 
 #define SYMMETRIC 0
@@ -84,6 +85,7 @@ struct PeerContext
   struct GNUNET_PeerIdentity id;   
   struct GNUNET_TRANSPORT_Handle *th;
   struct GNUNET_MessageHeader *hello;
+  struct GNUNET_STATISTICS_Handle *stats;
   int connect_status;
 #if START_ARM
   struct GNUNET_OS_Process *arm_proc;
@@ -151,6 +153,37 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ok = 42;
 }
 
+
+/**
+ * Callback function to process statistic values.
+ *
+ * @param cls closure
+ * @param subsystem name of subsystem that created the statistic
+ * @param name the name of the datum
+ * @param value the current value
+ * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
+ * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ */
+static int
+print_stat (void *cls,
+	    const char *subsystem,
+	    const char *name,
+	    uint64_t value,
+	    int is_persistent)
+{
+  if (cls==&p1)
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	   "Peer1 %50s = %12llu\n",
+	   name,
+	   (unsigned long long) value);
+  if (cls==&p2)
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		   "Peer2 %50s = %12llu\n",
+		   name,
+		   (unsigned long long) value);
+  return GNUNET_OK;
+}
+
 static void
 measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -185,33 +218,86 @@ measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	  quota_delta = max_quota_out / 10;
 
   if ((throughput_out < (max_quota_out/1024)) && (throughput_out < (max_quota_in/1024)))
-  {
 	  ok = 0;
-  }
   else
-  {
 	  ok = 1;
+
+  GNUNET_STATISTICS_get (p1.stats,
+		     "core",
+		     "# discarded CORE_SEND requests",
+		     GNUNET_TIME_UNIT_FOREVER_REL,
+		     NULL,
+		     &print_stat, &p1);
+
+  GNUNET_STATISTICS_get (p1.stats,
+		     "core",
+		     "# discarded CORE_SEND request bytes",
+		     GNUNET_TIME_UNIT_FOREVER_REL,
+		     NULL,
+		     &print_stat, &p1);
+  GNUNET_STATISTICS_get (p1.stats,
+		     "core",
+		     "# discarded lower priority CORE_SEND requests",
+		     GNUNET_TIME_UNIT_FOREVER_REL,
+		     NULL,
+		     &print_stat, NULL);
+  GNUNET_STATISTICS_get (p1.stats,
+		     "core",
+		     "# discarded lower priority CORE_SEND request bytes",
+		     GNUNET_TIME_UNIT_FOREVER_REL,
+		     NULL,
+		     &print_stat, &p1);
+  GNUNET_STATISTICS_get (p2.stats,
+		     "core",
+		     "# discarded CORE_SEND requests",
+		     GNUNET_TIME_UNIT_FOREVER_REL,
+		     NULL,
+		     &print_stat, &p2);
+
+  GNUNET_STATISTICS_get (p2.stats,
+		     "core",
+		     "# discarded CORE_SEND request bytes",
+		     GNUNET_TIME_UNIT_FOREVER_REL,
+		     NULL,
+		     &print_stat, &p2);
+  GNUNET_STATISTICS_get (p2.stats,
+		     "core",
+		     "# discarded lower priority CORE_SEND requests",
+		     GNUNET_TIME_UNIT_FOREVER_REL,
+		     NULL,
+		     &print_stat, &p2);
+  GNUNET_STATISTICS_get (p2.stats,
+		     "core",
+		     "# discarded lower priority CORE_SEND request bytes",
+		     GNUNET_TIME_UNIT_FOREVER_REL,
+		     NULL,
+		     &print_stat, &p2);
+
+  enum GNUNET_ErrorType kind = GNUNET_ERROR_TYPE_DEBUG;
+  if (ok==1)
+  {
+	  kind = GNUNET_ERROR_TYPE_ERROR;
   }
   switch (test)
   {
   case SYMMETRIC:
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Core quota compliance test with symmetric quotas\n");
+	  GNUNET_log (kind,"Core quota compliance test with symmetric quotas: %s\n", (ok==0)?"PASSED":"FAILED");
 	  break;
   case ASYMMETRIC_SEND_LIMITED:
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Core quota compliance test with limited sender quota\n",throughput_in,total_bytes_recv, delta/1000);
+	  GNUNET_log (kind,"Core quota compliance test with limited sender quota: %s\n", (ok==0)?"PASSED":"FAILED");
 	  break;
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Core quota compliance test with limited receiver quota\n",throughput_in,total_bytes_recv, delta/1000);
   case ASYMMETRIC_RECV_LIMITED:
+	  GNUNET_log (kind,"Core quota compliance test with limited receiver quota: %s\n", (ok==0)?"PASSED":"FAILED");
 	  break;
   };
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Peer 1 send    rate: %llu kB/s (%llu Bytes in %u sec.)\n",throughput_out,total_bytes_sent, delta/1000);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Peer 2 receive rate: %llu kB/s (%llu Bytes in %u sec.)\n",throughput_in,total_bytes_recv, delta/1000);
-
-
+  GNUNET_log (kind,"Peer 1 send  rate: %llu kB/s (%llu Bytes in %u sec.)\n",throughput_out,total_bytes_sent, delta/1000);
+  GNUNET_log (kind,"Peer 1 send quota: %llu kB/s\n",current_quota_p1_out / 1024);
+  GNUNET_log (kind,"Peer 2 receive  rate: %llu kB/s (%llu Bytes in %u sec.)\n",throughput_in,total_bytes_recv, delta/1000);
+  GNUNET_log (kind,"Peer 2 receive quota: %llu kB/s\n",current_quota_p2_in / 1024);
+/*
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Max. inbound  quota allowed: %llu kB/s\n",max_quota_in /1024);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Max. outbound quota allowed: %llu kB/s\n",max_quota_out/1024);
-
+*/
   GNUNET_SCHEDULER_cancel (err_task);
   GNUNET_SCHEDULER_add_now (&terminate_task, NULL);
 
@@ -293,6 +379,7 @@ connect_notify (void *cls,
                   "Asking core (1) for transmission to peer `%4s'\n",
                   GNUNET_i2s (&p2.id));
 #endif
+      if (err_task != GNUNET_SCHEDULER_NO_TASK) GNUNET_SCHEDULER_cancel (err_task);
       err_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 				      &terminate_task_error,
 				      NULL);
@@ -515,6 +602,8 @@ setup_peer (struct PeerContext *p, const char *cfgname)
                                         "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
+  p->stats = GNUNET_STATISTICS_create ("core",p->cfg);
+  GNUNET_assert (p->stats!=NULL);
   p->th = GNUNET_TRANSPORT_connect (p->cfg, NULL, p, NULL, NULL, NULL);
   GNUNET_assert (p->th != NULL);
   GNUNET_TRANSPORT_get_hello (p->th, &process_hello, p);
@@ -529,6 +618,9 @@ run (void *cls,
 {
   GNUNET_assert (ok == 1);
   OKPP;
+  err_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+			      &terminate_task_error,
+			      NULL);
   if (test == SYMMETRIC)
     {
       setup_peer (&p1, "test_core_quota_peer1.conf");
@@ -640,8 +732,6 @@ main (int argc, char *argv[])
                     "WARNING",
 #endif
                     NULL);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "argv[0] %s",argv[0]);
   ret = check ();
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-peer-1");
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-peer-2");
