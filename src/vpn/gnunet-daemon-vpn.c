@@ -119,6 +119,15 @@ static struct answer_packet_list *answer_proc_tail;
  */
 static struct GNUNET_CONTAINER_MultiHashMap* hashmap;
 
+struct map_entry {
+    struct GNUNET_vpn_service_descriptor desc;
+    uint16_t namelen;
+    /**
+     * In DNS-Format!
+     */
+    char name[1];
+};
+
 static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx);
 static void dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg);
 
@@ -544,8 +553,14 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 	memset(&key, 0, sizeof(GNUNET_HashCode));
 	new_ip6addr((char*)&key, pkt);
 
-	struct GNUNET_vpn_service_descriptor* value = GNUNET_malloc(sizeof(struct GNUNET_vpn_service_descriptor));
-	memcpy(value, &pkt->service_descr, sizeof(struct GNUNET_vpn_service_descriptor));
+	uint16_t namelen = strlen((char*)pkt->data+12)+1;
+
+	struct map_entry* value = GNUNET_malloc(sizeof(struct GNUNET_vpn_service_descriptor) + 2 + namelen);
+
+	value->namelen = namelen;
+	memcpy(value->name, pkt->data+12, namelen);
+
+	memcpy(&value->desc, &pkt->service_descr, sizeof(struct GNUNET_vpn_service_descriptor));
 
 	if (GNUNET_OK != GNUNET_CONTAINER_multihashmap_put(hashmap,
 							   &key,
@@ -557,24 +572,44 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 
 	memcpy(((char*)pkt)+ntohs(pkt->addroffset), &key, 16);
 
-	  /*FIXME:
-	   * -save DNS_Record into hashmap, pointed to by ip
-	   * -regularily walk through hashmap, deleting old entries
-	   *  when is an entry old?
-	   *  have a last-used field
-	   *  don't remove if last-used "recent", ask dht again if record expired
-	   */
-
 	list = GNUNET_malloc(htons(pkt->hdr.size) + 2*sizeof(struct answer_packet_list*));
 
 	memcpy(&list->pkt, pkt, htons(pkt->hdr.size));
+
       }
     else if (pkt->subtype == GNUNET_DNS_ANSWER_TYPE_REV)
       {
+	GNUNET_HashCode key;
+	memset(&key, 0, sizeof key);
+	unsigned char* k = (unsigned char*)&key;
+	unsigned char* s = pkt->data+12;
+	int i = 0;
+	/* Whoever designed the reverse IPv6-lookup is batshit insane */
+	for (i = 0; i < 16; i++)
+	  {
+	    unsigned char c1 = s[(4*i)+1];
+	    unsigned char c2 = s[(4*i)+3];
+	    if (c1 <= '9')
+	      k[15-i] = c1 - '0';
+	    else
+	      k[15-i] = c1 - 87; /* 87 is the difference between 'a' and 10 */
+	    if (c2 <= '9')
+	      k[15-i] += 16*(c2 - '0');
+	    else
+	      k[15-i] += 16*(c2 - 87);
+	  }
+
+	struct map_entry* map_entry = GNUNET_CONTAINER_multihashmap_get(hashmap, &key);
 	unsigned short offset = ntohs(pkt->addroffset);
 
-        unsigned short namelen = htons(22); /* calculate the length of the answer */
-	char name[22] = {13, 'p', 'h', 'i', 'l', 'i', 'p', 'p', 't', 'o', 'e', 'l', 'k', 'e', 6, 'g', 'n', 'u', 'n', 'e', 't', 0};
+	if (map_entry == NULL)
+	  {
+	    GNUNET_free(pkt);
+	    return;
+	  }
+
+        unsigned short namelen = htons(map_entry->namelen);
+	char* name = map_entry->name;
 
 	list = GNUNET_malloc(2*sizeof(struct answer_packet_list*) + offset + 2 + ntohs(namelen));
 
