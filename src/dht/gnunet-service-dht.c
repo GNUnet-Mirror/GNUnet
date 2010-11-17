@@ -2709,17 +2709,19 @@ static unsigned int estimate_diameter()
  * forward the request to obtain the desired
  * target_replication count (on average).
  *
- * Always 0, 1 or 2 (don't send, send once, split)
+ * returns: target_replication / (est. hops) + (target_replication * hop_count)
+ * where est. hops is typically 2 * the routing table depth
+ *
+ * @param hop_count number of hops the message has traversed
+ * @param target_replication the number of total paths desired
+ *
+ * @return Some number of peers to forward the message to
  */
 static unsigned int
 get_forward_count (unsigned int hop_count, size_t target_replication)
 {
-#if DOUBLE
-  double target_count;
-  double random_probability;
-#else
   uint32_t random_value;
-#endif
+  unsigned int forward_count;
   unsigned int target_value;
   unsigned int diameter;
 
@@ -2761,38 +2763,19 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
       return 0;
     }
 
-#if DOUBLE
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Replication %d, hop_count %u, diameter %u\n", target_replication, hop_count, diameter);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Numerator %f, denominator %f\n", (double)target_replication, ((double)target_replication * (hop_count + 1) + diameter));
-  target_count = /* target_count is ALWAYS < 1 unless replication is < 1 */
-    (double)target_replication / ((double)target_replication * (hop_count + 1) + diameter);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Target count is %f\n", target_count);
-  random_probability = ((double)GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-      RAND_MAX)) / RAND_MAX;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Random is %f\n", random_probability);
+  random_value = 0;
+  target_value = target_replication / ((2.0 * (diameter)) + ((float)target_replication * hop_count));
+  if (target_value > 1)
+    return (unsigned int)target_value;
+  else
+    random_value = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, (unsigned int)-1);
 
-  target_value = 0;
-  //while (target_value < target_count)
-  if (target_value < target_count)
-    target_value++; /* target_value is ALWAYS 1 after this "loop", right?  Because target_count is always > 0, right?  Or does it become 0.00000... at some point because the hop count is so high? */
+  if (random_value < (target_value * (unsigned int)-1))
+    forward_count = 2;
+  else
+    forward_count = 1;
 
-
-  //if ((target_count + 1 - (double)target_value) > random_probability)
-  if ((target_count) > random_probability)
-    target_value++;
-#endif
-
-  random_value = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_STRONG, target_replication * (hop_count + 1) + diameter) + 1;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "replication %u, at hop %d, will split with probability %f\n", target_replication, hop_count, target_replication / (double)((target_replication * (hop_count + 1) + diameter) + 1));
-  target_value = 1;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "random %u, target %u, max %u\n", random_value, target_replication, target_replication * (hop_count + 1) + diameter);
-  if (random_value < target_replication)
-    {
-      increment_stats("# DHT Messages split");
-      target_value++;
-    }
-
-  return target_value;
+  return forward_count;
 }
 
 /*
@@ -3340,7 +3323,7 @@ remove_forward_entry (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (record->head == NULL) /* No more entries in DLL */
     {
-      GNUNET_assert(GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(forward_list.hashmap, &record->key, record));
+      GNUNET_assert(GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (forward_list.hashmap, &record->key, record));
       GNUNET_free(record);
     }
   if (source_info->find_peers_responded != NULL)
@@ -3365,13 +3348,15 @@ static int cache_response(struct DHT_MessageContext *msg_ctx)
   struct GNUNET_TIME_Absolute now;
   unsigned int current_size;
 
-  current_size = GNUNET_CONTAINER_multihashmap_size(forward_list.hashmap);
+  current_size = GNUNET_CONTAINER_multihashmap_size (forward_list.hashmap);
+
+#if DELETE_WHEN_FULL
   while (current_size >= MAX_OUTSTANDING_FORWARDS)
     {
-      source_info = GNUNET_CONTAINER_heap_remove_root(forward_list.minHeap);
+      source_info = GNUNET_CONTAINER_heap_remove_root (forward_list.minHeap);
       GNUNET_assert(source_info != NULL);
       record = source_info->record;
-      GNUNET_CONTAINER_DLL_remove(record->head, record->tail, source_info);
+      GNUNET_CONTAINER_DLL_remove (record->head, record->tail, source_info);
       if (record->head == NULL) /* No more entries in DLL */
         {
           GNUNET_assert(GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(forward_list.hashmap, &record->key, record));
@@ -3384,6 +3369,11 @@ static int cache_response(struct DHT_MessageContext *msg_ctx)
       GNUNET_free(source_info);
       current_size = GNUNET_CONTAINER_multihashmap_size(forward_list.hashmap);
     }
+#endif
+  /** Non-local request and have too many outstanding forwards, discard! */
+  if ((current_size >= MAX_OUTSTANDING_FORWARDS) && (msg_ctx->client == NULL))
+    return GNUNET_NO;
+
   now = GNUNET_TIME_absolute_get();
   record = GNUNET_CONTAINER_multihashmap_get(forward_list.hashmap, &msg_ctx->key);
   if (record != NULL) /* Already know this request! */
@@ -3410,10 +3400,10 @@ static int cache_response(struct DHT_MessageContext *msg_ctx)
 
   source_info = GNUNET_malloc(sizeof(struct DHTRouteSource));
   source_info->record = record;
-  source_info->delete_task = GNUNET_SCHEDULER_add_delayed(DHT_FORWARD_TIMEOUT, &remove_forward_entry, source_info);
+  source_info->delete_task = GNUNET_SCHEDULER_add_delayed (DHT_FORWARD_TIMEOUT, &remove_forward_entry, source_info);
   source_info->find_peers_responded = GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
   memcpy(&source_info->source, msg_ctx->peer, sizeof(struct GNUNET_PeerIdentity));
-  GNUNET_CONTAINER_DLL_insert_after(record->head, record->tail, record->tail, source_info);
+  GNUNET_CONTAINER_DLL_insert_after (record->head, record->tail, record->tail, source_info);
   if (msg_ctx->client != NULL) /* For local request, set timeout so high it effectively never gets pushed out */
     {
       source_info->client = msg_ctx->client;
@@ -4201,18 +4191,19 @@ handle_dht_local_route_stop(void *cls, struct GNUNET_SERVER_Client *client,
               "`%s:%s': Received `%s' request from client, uid %llu\n", my_short_id, "DHT",
               "GENERIC STOP", GNUNET_ntohll (dht_stop_msg->unique_id));
 #endif
-  record = GNUNET_CONTAINER_multihashmap_get(forward_list.hashmap, &dht_stop_msg->key);
+  record = GNUNET_CONTAINER_multihashmap_get (forward_list.hashmap, &dht_stop_msg->key);
   if (record != NULL)
     {
       pos = record->head;
 
       while (pos != NULL)
         {
+          /* If the client is non-null (local request) and the client matches the requesting client, remove the entry. */
           if ((pos->client != NULL) && (pos->client->client_handle == client))
             {
               GNUNET_SCHEDULER_cancel(pos->delete_task);
               pos->delete_task = GNUNET_SCHEDULER_NO_TASK;
-              GNUNET_SCHEDULER_add_now(&remove_forward_entry, pos);
+              GNUNET_SCHEDULER_add_continuation (&remove_forward_entry, pos, GNUNET_SCHEDULER_REASON_PREREQ_DONE);
             }
           pos = pos->next;
         }
