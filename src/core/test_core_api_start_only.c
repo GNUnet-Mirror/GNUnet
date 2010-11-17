@@ -195,7 +195,7 @@ run (void *cls,
   OKPP;
   setup_peer (&p1, "test_core_api_peer1.conf");
   setup_peer (&p2, "test_core_api_peer2.conf");
-  timeout_task_id = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+  timeout_task_id = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
 						  &timeout_task,
 						  NULL);
   p1.ch = GNUNET_CORE_connect (p1.cfg, 1,
