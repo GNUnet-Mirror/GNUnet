@@ -422,11 +422,14 @@ message_token(void *cls,
 	    break;
 	  case 0x3a:
 	    /* ICMPv6 */
-	    pkt6_icmp = GNUNET_malloc(ntohs(pkt6->shdr.size));
-	    memcpy(pkt6_icmp, pkt6, ntohs(pkt6->shdr.size));
+	    pkt6_icmp = (struct ip6_icmp*)pkt6;
 	    /* If this packet is an icmp-echo-request and a mapping exists, answer */
 	    if (pkt6_icmp->icmp_hdr.type == 0x80 && address_mapping_exists(pkt6->ip6_hdr.sadr))
+	      {
+		pkt6_icmp = GNUNET_malloc(ntohs(pkt6->shdr.size));
+		memcpy(pkt6_icmp, pkt6, ntohs(pkt6->shdr.size));
 		GNUNET_SCHEDULER_add_now(&send_icmp_response, pkt6_icmp);
+	      }
 	    break;
 	  }
       }
