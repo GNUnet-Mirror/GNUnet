@@ -501,8 +501,8 @@ connect_to_service_dns (void *cls,
 void
 new_ip6addr(char* buf, struct answer_packet* pkt) {
 	memcpy(buf, (int[]){htons(0x1234)}, 2);
-	memcpy(buf+2, &pkt->service_descriptor, 6);
-	memcpy(buf+8, &pkt->peer, 8);
+	memcpy(buf+2, &pkt->service_descr.service_descriptor, 6);
+	memcpy(buf+8, &pkt->service_descr.peer, 8);
 }
 /*}}}*/
 

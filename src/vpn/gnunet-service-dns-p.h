@@ -47,6 +47,13 @@ enum GNUNET_DNS_ANSWER_Subtype {
     GNUNET_DNS_ANSWER_TYPE_REV
 };
 
+struct GNUNET_vpn_service_descriptor {
+    GNUNET_HashCode peer GNUNET_PACKED;
+    GNUNET_HashCode service_descriptor GNUNET_PACKED;
+    uint64_t ports GNUNET_PACKED;
+    uint32_t service_type GNUNET_PACKED;
+};
+
 struct answer_packet {
     struct GNUNET_MessageHeader hdr;
     enum GNUNET_DNS_ANSWER_Subtype subtype GNUNET_PACKED;
@@ -56,10 +63,7 @@ struct answer_packet {
     unsigned dst_port:16 GNUNET_PACKED;
 
     /* Only sensible when subtype == GNUNET_DNS_ANSWER_TYPE_SERVICE */
-    GNUNET_HashCode peer;
-    GNUNET_HashCode service_descriptor;
-    uint64_t ports;
-    uint32_t service_type;
+    struct GNUNET_vpn_service_descriptor service_descr;
 
     /* The offsett in octets from the beginning of the struct to the field
      * in data where the IP-Address has to go. */

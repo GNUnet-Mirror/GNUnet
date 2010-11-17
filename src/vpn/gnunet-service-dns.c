@@ -283,15 +283,15 @@ receive_dht(void *cls,
 
     GNUNET_CRYPTO_hash(&rec->peer,
 		       sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-		       &answer->pkt.peer);
+		       &answer->pkt.service_descr.peer);
 
-    memcpy(&answer->pkt.service_descriptor,
+    memcpy(&answer->pkt.service_descr.service_descriptor,
 	   &rec->service_descriptor,
 	   sizeof(GNUNET_HashCode));
-    memcpy(&answer->pkt.service_type,
+    memcpy(&answer->pkt.service_descr.service_type,
 	   &rec->service_type,
-	   sizeof(answer->pkt.service_type));
-    memcpy(&answer->pkt.ports, &rec->ports, sizeof(answer->pkt.ports));
+	   sizeof(answer->pkt.service_descr.service_type));
+    memcpy(&answer->pkt.service_descr.ports, &rec->ports, sizeof(answer->pkt.service_descr.ports));
 
     answer->pkt.from = query_states[id].remote_ip;
 
