@@ -3340,7 +3340,7 @@ handle_pong (struct Neighbour *n,
                   "PONG", GNUNET_i2s (&t.target), 
 		  (unsigned int) t.challenge);
 #endif
-      GNUNET_break_op (0);
+      GNUNET_break_op (n->ping_challenge != t.challenge);
       return;
     }
   switch (n->status)
@@ -3384,7 +3384,7 @@ handle_pong (struct Neighbour *n,
       cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
       cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
       cnm.peer = n->peer;
-      send_to_all_clients (&cnm.header, GNUNET_YES, GNUNET_CORE_OPTION_SEND_CONNECT);
+      send_to_all_clients (&cnm.header, GNUNET_NO, GNUNET_CORE_OPTION_SEND_CONNECT);
       process_encrypted_neighbour_queue (n);
       /* fall-through! */
     case PEER_STATE_KEY_CONFIRMED:
@@ -4179,7 +4179,7 @@ handle_transport_notify_disconnect (void *cls,
       cnm.header.size = htons (sizeof (struct DisconnectNotifyMessage));
       cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT);
       cnm.peer = *peer;
-      send_to_all_clients (&cnm.header, GNUNET_YES, GNUNET_CORE_OPTION_SEND_DISCONNECT);
+      send_to_all_clients (&cnm.header, GNUNET_NO, GNUNET_CORE_OPTION_SEND_DISCONNECT);
     }
   n->is_connected = GNUNET_NO;
   while (NULL != (car = n->active_client_request_head))
