@@ -114,6 +114,11 @@ static struct answer_packet_list *answer_proc_head;
  */
 static struct answer_packet_list *answer_proc_tail;
 
+/**
+ * The hashmap containing the mappings from ipv6-addresses to gnunet-descriptors
+ */
+static struct GNUNET_CONTAINER_MultiHashMap* hashmap;
+
 static void helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx);
 static void dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg);
 
@@ -347,9 +352,16 @@ helper_write(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
 				       NULL);
 }
 
+/**
+ * @return GNUNET_YES if a mapping exists
+ */
 static int
 address_mapping_exists(unsigned char addr[]) {
-    return 1;
+    GNUNET_HashCode* key = alloca(sizeof(GNUNET_HashCode));
+    memset(key, 0, sizeof(GNUNET_HashCode));
+    memcpy(key, addr, 16);
+
+    return GNUNET_CONTAINER_multihashmap_contains(hashmap, key);
 }
 
 static void
@@ -424,7 +436,7 @@ message_token(void *cls,
 	    /* ICMPv6 */
 	    pkt6_icmp = (struct ip6_icmp*)pkt6;
 	    /* If this packet is an icmp-echo-request and a mapping exists, answer */
-	    if (pkt6_icmp->icmp_hdr.type == 0x80 && address_mapping_exists(pkt6->ip6_hdr.sadr))
+	    if (pkt6_icmp->icmp_hdr.type == 0x80 && address_mapping_exists(pkt6->ip6_hdr.dadr))
 	      {
 		pkt6_icmp = GNUNET_malloc(ntohs(pkt6->shdr.size));
 		memcpy(pkt6_icmp, pkt6, ntohs(pkt6->shdr.size));
@@ -528,7 +540,22 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
       {
 	pkt->subtype = GNUNET_DNS_ANSWER_TYPE_IP;
 
-	new_ip6addr(((char*)pkt)+ntohs(pkt->addroffset), pkt);
+	GNUNET_HashCode key;
+	memset(&key, 0, sizeof(GNUNET_HashCode));
+	new_ip6addr((char*)&key, pkt);
+
+	struct GNUNET_vpn_service_descriptor* value = GNUNET_malloc(sizeof(struct GNUNET_vpn_service_descriptor));
+	memcpy(value, &pkt->service_descr, sizeof(struct GNUNET_vpn_service_descriptor));
+
+	if (GNUNET_OK != GNUNET_CONTAINER_multihashmap_put(hashmap,
+							   &key,
+							   value,
+							   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+	  {
+	    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not store to hashmap\n");
+	  }
+
+	memcpy(((char*)pkt)+ntohs(pkt->addroffset), &key, 16);
 
 	  /*FIXME:
 	   * -save DNS_Record into hashmap, pointed to by ip
@@ -634,6 +661,7 @@ run (void *cls,
     mst = GNUNET_SERVER_mst_create(&message_token, NULL);
     cfg = cfg_;
     restart_hijack = 0;
+    hashmap = GNUNET_CONTAINER_multihashmap_create(65536);
     GNUNET_SCHEDULER_add_now (connect_to_service_dns, NULL);
     GNUNET_SCHEDULER_add_now (start_helper_and_schedule, NULL);
     GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);
