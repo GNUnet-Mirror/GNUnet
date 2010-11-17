@@ -495,6 +495,18 @@ connect_to_service_dns (void *cls,
 }
 
 /**
+ * Create a new Address from an answer-packet
+ * {{{
+ */
+void
+new_ip6addr(char* buf, struct answer_packet* pkt) {
+	memcpy(buf, (int[]){htons(0x1234)}, 2);
+	memcpy(buf+2, &pkt->service_descriptor, 6);
+	memcpy(buf+8, &pkt->peer, 8);
+}
+/*}}}*/
+
+/**
  * This gets scheduled with cls pointing to an answer_packet and does everything
  * needed in order to send it to the helper.
  *
@@ -514,14 +526,9 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
     //FIXME htons?
     if (pkt->subtype == GNUNET_DNS_ANSWER_TYPE_SERVICE)
       {
-	unsigned char ip6addr[16];
-
 	pkt->subtype = GNUNET_DNS_ANSWER_TYPE_IP;
-	memcpy(ip6addr, (int[]){htons(0x1234)}, 2);
-	memcpy(ip6addr+2, &pkt->peer, 7);
-	memcpy(ip6addr+9, &pkt->service_descriptor, 7);
 
-	memcpy(((char*)pkt)+ntohs(pkt->addroffset), ip6addr, 16);
+	new_ip6addr(((char*)pkt)+ntohs(pkt->addroffset), pkt);
 
 	  /*FIXME:
 	   * -save DNS_Record into hashmap, pointed to by ip
