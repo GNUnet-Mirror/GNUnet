@@ -36,7 +36,11 @@
 #include "gnunet_transport_service.h"
 
 #define VERBOSE GNUNET_YES
-#define DEBUG_TRANSMISSION GNUNET_YES
+#define DEBUG_TRANSMISSION GNUNET_NO
+
+#define SYMMETRIC 0
+#define ASYMMETRIC_SEND_LIMITED 1
+#define ASYMMETRIC_RECV_LIMITED 2
 
 #define START_ARM GNUNET_YES
 
@@ -95,7 +99,7 @@ static unsigned long long current_quota_p2_in;
 static unsigned long long current_quota_p2_out;
 
 static int ok;
-
+static int test;
 static int32_t tr_n;
 
 static int running;
@@ -152,7 +156,7 @@ measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned long long int delta;
   unsigned long long int throughput_out;
-  unsigned long long int throughput_int;
+  unsigned long long int throughput_in;
   unsigned long long int max_quota_in;
   unsigned long long int max_quota_out;
   unsigned long long int quota_delta;
@@ -164,7 +168,7 @@ measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
 
   throughput_out = total_bytes_sent * 1000 / 1024 / delta;
-  throughput_int = total_bytes_recv * 1000 / 1024 / delta;
+  throughput_in = total_bytes_recv * 1000 / 1024 / delta;
 
   if (current_quota_p1_in < current_quota_p2_in)
 	  max_quota_in = current_quota_p1_in;
@@ -188,13 +192,25 @@ measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
 	  ok = 1;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Bytes in: %llu Bytes\n",total_bytes_recv);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Throughput in: %llu kb/s\n",throughput_out);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Max. inbound quota allowed: %llu kb/s\n",max_quota_in/1024);
+  switch (test)
+  {
+  case SYMMETRIC:
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Core quota compliance test with symmetric quotas\n");
+	  break;
+  case ASYMMETRIC_SEND_LIMITED:
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Core quota compliance test with limited sender quota\n",throughput_in,total_bytes_recv, delta/1000);
+	  break;
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Core quota compliance test with limited receiver quota\n",throughput_in,total_bytes_recv, delta/1000);
+  case ASYMMETRIC_RECV_LIMITED:
+	  break;
+  };
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Bytes out: %llu Bytes\n",total_bytes_sent);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Throughput out: %llu kb/s\n",throughput_out);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Max. outbound quota allowed: %llu kb/s\n",max_quota_out/1024);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Peer 1 send    rate: %llu kB/s (%llu Bytes in %u sec.)\n",throughput_out,total_bytes_sent, delta/1000);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Peer 2 receive rate: %llu kB/s (%llu Bytes in %u sec.)\n",throughput_in,total_bytes_recv, delta/1000);
+
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Max. inbound  quota allowed: %llu kB/s\n",max_quota_in /1024);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Max. outbound quota allowed: %llu kB/s\n",max_quota_out/1024);
 
   GNUNET_SCHEDULER_cancel (err_task);
   GNUNET_SCHEDULER_add_now (&terminate_task, NULL);
@@ -381,7 +397,7 @@ process_mtype (void *cls,
 	      ntohs (message->size));	      
 #endif
   n++;
-  if (0 == (n % (TOTAL_MSGS/100)))
+  if (0 == (n % 10))
     fprintf (stderr, ".");
   if (n == TOTAL_MSGS)
     {
@@ -513,9 +529,23 @@ run (void *cls,
 {
   GNUNET_assert (ok == 1);
   OKPP;
-  setup_peer (&p1, "test_core_quota_peer1.conf");
-  setup_peer (&p2, "test_core_quota_peer2.conf");
+  if (test == SYMMETRIC)
+    {
+      setup_peer (&p1, "test_core_quota_peer1.conf");
+      setup_peer (&p2, "test_core_quota_peer2.conf");
+    }
+  else if (test == ASYMMETRIC_SEND_LIMITED)
+    {
+      setup_peer (&p1, "test_core_quota_asymmetric_send_limited_peer1.conf");
+      setup_peer (&p2, "test_core_quota_asymmetric_send_limited_peer2.conf");
+    }
+  else if (test == ASYMMETRIC_RECV_LIMITED)
+    {
+      setup_peer (&p1, "test_core_quota_asymmetric_recv_limited_peer1.conf");
+      setup_peer (&p2, "test_core_quota_asymmetric_recv_limited_peer2.conf");
+    }
 
+  GNUNET_assert (test != -1);
   GNUNET_assert (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_number (p1.cfg,
                                          "CORE",
                                          "TOTAL_QUOTA_IN",
@@ -563,6 +593,8 @@ stop_arm (struct PeerContext *p)
 static int
 check ()
 {
+
+
   char *const argv[] = { "test-core-quota-compliance",
     "-c",
     "test_core_api_data.conf",
@@ -587,6 +619,20 @@ main (int argc, char *argv[])
 {
   int ret;
 
+  test = -1;
+  if (strstr(argv[0], "_symmetric") != NULL)
+    {
+      test = SYMMETRIC;
+    }
+  else if (strstr(argv[0], "_asymmetric_send") != NULL)
+    {
+	  test = ASYMMETRIC_SEND_LIMITED;
+    }
+  else if (strstr(argv[0], "_asymmetric_recv") != NULL)
+    {
+	  test = ASYMMETRIC_RECV_LIMITED;
+    }
+  GNUNET_assert (test != -1);
   GNUNET_log_setup ("test-core-quota-compliance",
 #if VERBOSE
                     "DEBUG",
@@ -594,6 +640,8 @@ main (int argc, char *argv[])
                     "WARNING",
 #endif
                     NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "argv[0] %s",argv[0]);
   ret = check ();
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-peer-1");
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-peer-2");
