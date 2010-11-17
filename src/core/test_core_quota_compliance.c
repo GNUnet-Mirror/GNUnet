@@ -36,7 +36,7 @@
 #include "gnunet_transport_service.h"
 
 #define VERBOSE GNUNET_YES
-#define DEBUG_TRANSMISSION GNUNET_NO
+#define DEBUG_TRANSMISSION GNUNET_YES
 
 #define START_ARM GNUNET_YES
 
@@ -45,7 +45,7 @@
  * 'MAX_PENDING' in 'gnunet-service-transport.c', otherwise
  * messages may be dropped even for a reliable transport.
  */
-#define TOTAL_MSGS (60 * 10)
+#define TOTAL_MSGS (60000 * 10)
 
 /**
  * How long until we give up on transmitting the message?
@@ -63,7 +63,8 @@
 #define MSIZE 1024
 #define MEASUREMENT_LENGTH GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
-static unsigned long long total_bytes;
+static unsigned long long total_bytes_sent;
+static unsigned long long total_bytes_recv;
 
 static struct GNUNET_TIME_Absolute start_time;
 
@@ -150,7 +151,8 @@ static void
 measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned long long int delta;
-  unsigned long long int throughput;
+  unsigned long long int throughput_out;
+  unsigned long long int throughput_int;
   unsigned long long int max_quota_in;
   unsigned long long int max_quota_out;
   unsigned long long int quota_delta;
@@ -160,7 +162,10 @@ measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   running = GNUNET_NO;
 
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
-  throughput = total_bytes * 1000 / 1024 / delta;
+
+  throughput_out = total_bytes_sent * 1000 / 1024 / delta;
+  throughput_int = total_bytes_recv * 1000 / 1024 / delta;
+
   if (current_quota_p1_in < current_quota_p2_in)
 	  max_quota_in = current_quota_p1_in;
   else
@@ -175,7 +180,7 @@ measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   else
 	  quota_delta = max_quota_out / 10;
 
-  if ((throughput < (max_quota_out/1024)) && (throughput < (max_quota_in/1024)))
+  if ((throughput_out < (max_quota_out/1024)) && (throughput_out < (max_quota_in/1024)))
   {
 	  ok = 0;
   }
@@ -183,8 +188,12 @@ measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
 	  ok = 1;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Throughput: %llu kb/s\n",throughput);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Bytes in: %llu Bytes\n",total_bytes_recv);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Throughput in: %llu kb/s\n",throughput_out);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Max. inbound quota allowed: %llu kb/s\n",max_quota_in/1024);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Bytes out: %llu Bytes\n",total_bytes_sent);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Throughput out: %llu kb/s\n",throughput_out);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Max. outbound quota allowed: %llu kb/s\n",max_quota_out/1024);
 
   GNUNET_SCHEDULER_cancel (err_task);
@@ -197,7 +206,6 @@ transmit_ready (void *cls, size_t size, void *buf)
 {
   char *cbuf = buf;
   struct TestMessage hdr;
-  unsigned int s;
   unsigned int ret;
 
   GNUNET_assert (size <= GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE);
@@ -215,8 +223,7 @@ transmit_ready (void *cls, size_t size, void *buf)
     }
   GNUNET_assert (tr_n < TOTAL_MSGS);
   ret = 0;
-  s = MSIZE;
-  GNUNET_assert (size >= s);
+  GNUNET_assert (size >= MSIZE);
   GNUNET_assert (buf != NULL);
   cbuf = buf;
   do
@@ -225,28 +232,27 @@ transmit_ready (void *cls, size_t size, void *buf)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Sending message %u of size %u at offset %u\n",
 		  tr_n,
-		  s,
+		  MSIZE,
 		  ret);
 #endif
-      hdr.header.size = htons (s);
+      hdr.header.size = htons (MSIZE);
       hdr.header.type = htons (MTYPE);
       hdr.num = htonl (tr_n);
       memcpy (&cbuf[ret], &hdr, sizeof (struct TestMessage));
       ret += sizeof (struct TestMessage);
-      memset (&cbuf[ret], tr_n, s - sizeof (struct TestMessage));
-      ret += s - sizeof (struct TestMessage);
+      memset (&cbuf[ret], tr_n, MSIZE - sizeof (struct TestMessage));
+      ret += MSIZE - sizeof (struct TestMessage);
       tr_n++;
-      s = MSIZE;
       if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16))
 	break; /* sometimes pack buffer full, sometimes not */
     }
-  while (size - ret >= s);
+  while (size - ret >= MSIZE);
   GNUNET_SCHEDULER_cancel (err_task);
   err_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 				  &terminate_task_error,
 				  NULL);
 
-  total_bytes += ret;
+  total_bytes_sent += ret;
   return ret;
 }
 
@@ -309,8 +315,9 @@ inbound_notify (void *cls,
 {
 #if DEBUG_TRANSMISSION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core provides inbound data from `%4s'.\n", GNUNET_i2s (other));
+              "Core provides inbound data from `%4s' %llu.\n", GNUNET_i2s (other), ntohs(message->size));
 #endif
+  total_bytes_recv += ntohs(message->size);
   return GNUNET_OK;
 }
 
