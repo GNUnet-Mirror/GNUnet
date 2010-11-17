@@ -780,7 +780,9 @@ int GNUNET_CONTAINER_multihashmap_get_multiple (const struct
   if ((element)->next == NULL) \
     (tail) = (element)->prev;  \
   else \
-    (element)->next->prev = (element)->prev; } while (0)
+    (element)->next->prev = (element)->prev; \
+  (element)->next = NULL; \
+  (element)->prev = NULL; } while (0)
 
 
 
