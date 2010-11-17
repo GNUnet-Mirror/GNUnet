@@ -1263,7 +1263,7 @@ destroy_active_client_request (void *cls,
 			       const GNUNET_HashCode *key,
 			       void *value)
 {
-  struct ClientActiveRequest *car = cls;
+  struct ClientActiveRequest *car = value;
   struct Neighbour *n;
   struct GNUNET_PeerIdentity peer;
 
