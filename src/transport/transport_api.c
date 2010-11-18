@@ -436,6 +436,7 @@ schedule_peer_transmission (struct GNUNET_TRANSPORT_Handle *h)
   struct NeighbourList *next;
   struct GNUNET_TIME_Relative retry_time;
   struct GNUNET_TIME_Relative duration;
+  GNUNET_CONNECTION_TransmitReadyNotify notify;
 
   if (h->quota_task != GNUNET_SCHEDULER_NO_TASK)
     {
@@ -474,8 +475,11 @@ schedule_peer_transmission (struct GNUNET_TRANSPORT_Handle *h)
 	      th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
 	    }	
 	  n->transmit_stage = TS_NEW;
-	  if (NULL != th->notify)
-	    GNUNET_assert (0 == th->notify (th->notify_cls, 0, NULL));
+	  if (NULL != (notify = th->notify))
+	    {
+	      th->notify = NULL;
+	      GNUNET_assert (0 == notify (th->notify_cls, 0, NULL));
+	    }
 	  continue;
 	}
       if (duration.rel_value > 0)
@@ -527,6 +531,7 @@ transport_notify_ready (void *cls, size_t size, void *buf)
   struct GNUNET_TRANSPORT_TransmitHandle *th;
   struct NeighbourList *n;
   struct OutboundMessage obm;
+  GNUNET_CONNECTION_TransmitReadyNotify notify;
   size_t ret;
   size_t mret;
   size_t nret;
@@ -593,9 +598,11 @@ transport_notify_ready (void *cls, size_t size, void *buf)
 	  GNUNET_break (0);
 	}
       GNUNET_assert (size >= sizeof (struct OutboundMessage));
-      mret = th->notify (th->notify_cls,
-			 size - sizeof (struct OutboundMessage),
-			 &cbuf[ret + sizeof (struct OutboundMessage)]);
+      notify = th->notify;
+      th->notify = NULL;
+      mret = notify (th->notify_cls,
+		     size - sizeof (struct OutboundMessage),
+		     &cbuf[ret + sizeof (struct OutboundMessage)]);
       GNUNET_assert (mret <= size - sizeof (struct OutboundMessage));
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -714,8 +721,8 @@ control_transmit_timeout (void *cls,
   struct ControlMessage *th = cls;
 
   th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
-  if (NULL != th->notify)
-    th->notify (th->notify_cls, 0, NULL);
+  if (NULL != th->notify)    
+    th->notify (th->notify_cls, 0, NULL);    
   GNUNET_CONTAINER_DLL_remove (th->h->control_head,
 			       th->h->control_tail,
 			       th);
@@ -743,29 +750,29 @@ schedule_control_transmit (struct GNUNET_TRANSPORT_Handle *h,
                            GNUNET_CONNECTION_TransmitReadyNotify notify,
                            void *notify_cls)
 {
-  struct ControlMessage *th;
+  struct ControlMessage *cm;
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Control transmit of %u bytes within %llums requested\n",
               size, (unsigned long long) timeout.rel_value);
 #endif
-  th = GNUNET_malloc (sizeof (struct ControlMessage));
-  th->h = h;
-  th->notify = notify;
-  th->notify_cls = notify_cls;
-  th->notify_size = size;
-  th->notify_delay_task
-    = GNUNET_SCHEDULER_add_delayed (timeout, &control_transmit_timeout, th);
+  cm = GNUNET_malloc (sizeof (struct ControlMessage));
+  cm->h = h;
+  cm->notify = notify;
+  cm->notify_cls = notify_cls;
+  cm->notify_size = size;
+  cm->notify_delay_task
+    = GNUNET_SCHEDULER_add_delayed (timeout, &control_transmit_timeout, cm);
   if (at_head)
     GNUNET_CONTAINER_DLL_insert (h->control_head,
 				 h->control_tail,
-				 th);
+				 cm);
   else
     GNUNET_CONTAINER_DLL_insert_after (h->control_head,
 				       h->control_tail,
 				       h->control_tail,
-				       th);
+				       cm);
   schedule_transmission (h);
 }
 
@@ -1086,6 +1093,7 @@ neighbour_free (struct NeighbourList *n)
   struct NeighbourList *prev;
   struct NeighbourList *pos;
 
+  GNUNET_assert (n->th->notify == NULL);
   h = n->h;
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1128,8 +1136,9 @@ neighbour_disconnect (struct NeighbourList *n)
   n->is_connected = GNUNET_NO;
   if (h->nd_cb != NULL)
     h->nd_cb (h->cls, &n->id);
-  if (n->transmit_stage == TS_NEW)
+  if (n->transmit_stage == TS_NEW)    
     neighbour_free (n);
+    
 }
 
 
@@ -1286,7 +1295,8 @@ send_transport_request_connect (void *cls, size_t size, void *buf)
  * @param n the neighbor to send the request connect message about
  *
  */
-static void send_request_connect_message(struct GNUNET_TRANSPORT_Handle *h, struct NeighbourList *n)
+static void 
+send_request_connect_message(struct GNUNET_TRANSPORT_Handle *h, struct NeighbourList *n)
 {
   struct TransportRequestConnectMessage *trcm;
 
@@ -1859,6 +1869,7 @@ GNUNET_TRANSPORT_notify_transmit_ready_cancel (struct
 {
   struct NeighbourList *n;
 
+  th->notify = NULL;
   n = th->neighbour;
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1866,6 +1877,11 @@ GNUNET_TRANSPORT_notify_transmit_ready_cancel (struct
               th->notify_size - sizeof (struct OutboundMessage),
               GNUNET_i2s (&n->id));
 #endif
+  if (th->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (th->notify_delay_task);
+      th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
+    }
   switch (n->transmit_stage)
     {
     case TS_NEW:
@@ -1884,11 +1900,6 @@ GNUNET_TRANSPORT_notify_transmit_ready_cancel (struct
       break;
     default:
       GNUNET_break (0);
-    }
-  if (th->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (th->notify_delay_task);
-      th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
     }
 }
 
