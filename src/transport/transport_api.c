@@ -1093,7 +1093,7 @@ neighbour_free (struct NeighbourList *n)
   struct NeighbourList *prev;
   struct NeighbourList *pos;
 
-  GNUNET_assert (n->th->notify == NULL);
+  GNUNET_assert (n->transmit_handle.notify == NULL);
   h = n->h;
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
