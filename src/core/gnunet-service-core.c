@@ -2739,17 +2739,16 @@ notify_transport_connect_done (void *cls, size_t size, void *buf)
 {
   struct Neighbour *n = cls;
 
+  n->th = NULL;
   if (GNUNET_YES != n->is_connected)
     {
       /* transport should only call us to transmit a message after
        * telling us about a successful connection to the respective peer */
-      n->th = NULL; /* If this happens because of a timeout, reset n-th so another message may be sent for this peer! */
 #if DEBUG_CORE
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Timeout on notify connect!\n");
 #endif
       return 0;
     }
-  n->th = NULL;
   if (buf == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -4182,6 +4181,7 @@ handle_transport_notify_disconnect (void *cls,
       send_to_all_clients (&cnm.header, GNUNET_NO, GNUNET_CORE_OPTION_SEND_DISCONNECT);
     }
   n->is_connected = GNUNET_NO;
+  n->status = PEER_STATE_DOWN;
   while (NULL != (car = n->active_client_request_head))
     {
       GNUNET_CONTAINER_DLL_remove (n->active_client_request_head,
