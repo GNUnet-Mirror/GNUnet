@@ -65,7 +65,7 @@
 #define FAST_TIMEOUT GNUNET_TIME_relative_divide (GNUNET_CONSTANTS_MAX_CORK_DELAY, 2)
 
 #define MTYPE 12345
-#define MSIZE 1024
+#define MESSAGESIZE 1024
 #define MEASUREMENT_LENGTH GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 static unsigned long long total_bytes_sent;
@@ -319,13 +319,13 @@ transmit_ready (void *cls, size_t size, void *buf)
 							 0,
 							 FAST_TIMEOUT,
 							 &p2.id,
-							 MSIZE,
+							 MESSAGESIZE,
 							 &transmit_ready, &p1));
       return 0;
     }
   GNUNET_assert (tr_n < TOTAL_MSGS);
   ret = 0;
-  GNUNET_assert (size >= MSIZE);
+  GNUNET_assert (size >= MESSAGESIZE);
   GNUNET_assert (buf != NULL);
   cbuf = buf;
   do
@@ -334,21 +334,21 @@ transmit_ready (void *cls, size_t size, void *buf)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Sending message %u of size %u at offset %u\n",
 		  tr_n,
-		  MSIZE,
+		  MESSAGESIZE,
 		  ret);
 #endif
-      hdr.header.size = htons (MSIZE);
+      hdr.header.size = htons (MESSAGESIZE);
       hdr.header.type = htons (MTYPE);
       hdr.num = htonl (tr_n);
       memcpy (&cbuf[ret], &hdr, sizeof (struct TestMessage));
       ret += sizeof (struct TestMessage);
-      memset (&cbuf[ret], tr_n, MSIZE - sizeof (struct TestMessage));
-      ret += MSIZE - sizeof (struct TestMessage);
+      memset (&cbuf[ret], tr_n, MESSAGESIZE - sizeof (struct TestMessage));
+      ret += MESSAGESIZE - sizeof (struct TestMessage);
       tr_n++;
       if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16))
 	break; /* sometimes pack buffer full, sometimes not */
     }
-  while (size - ret >= MSIZE);
+  while (size - ret >= MESSAGESIZE);
   GNUNET_SCHEDULER_cancel (err_task);
   err_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 				  &terminate_task_error,
@@ -391,7 +391,7 @@ connect_notify (void *cls,
 						       0,
 						       TIMEOUT,
 						       &p2.id,
-						       MSIZE,
+						       MESSAGESIZE,
 						       &transmit_ready, &p1));
     }
 }
@@ -455,11 +455,11 @@ process_mtype (void *cls,
   hdr = (const struct TestMessage*) message;
   if (MTYPE != ntohs (message->type))
     return GNUNET_SYSERR;
-  if (ntohs (message->size) != MSIZE)
+  if (ntohs (message->size) != MESSAGESIZE)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  "Expected message %u of size %u, got %u bytes of message %u\n",
-		  n, MSIZE,
+		  n, MESSAGESIZE,
 		  ntohs (message->size),
 		  ntohl (hdr->num));
       GNUNET_SCHEDULER_cancel (err_task);
@@ -470,7 +470,7 @@ process_mtype (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  "Expected message %u of size %u, got %u bytes of message %u\n",
-		  n, MSIZE,
+		  n, MESSAGESIZE,
 		  ntohs (message->size),
 		  ntohl (hdr->num));
       GNUNET_SCHEDULER_cancel (err_task);
@@ -499,7 +499,7 @@ process_mtype (void *cls,
 							 0,
 							 FAST_TIMEOUT,
 							 &p2.id,
-							 MSIZE,
+							 MESSAGESIZE,
 							 &transmit_ready, &p1));
     }
   return GNUNET_OK;
