@@ -486,14 +486,9 @@ process_mtype (void *cls,
   n++;
   if (0 == (n % 10))
     fprintf (stderr, ".");
-  if (n == TOTAL_MSGS)
-    {
-      GNUNET_SCHEDULER_cancel (err_task);
-      GNUNET_SCHEDULER_add_now (&terminate_task, NULL);
-    }
-  else
-    {
-      if (running == GNUNET_YES)
+
+
+  if (running == GNUNET_YES)
 	GNUNET_break (NULL !=
 		      GNUNET_CORE_notify_transmit_ready (p1.ch,
 							 0,
@@ -501,7 +496,6 @@ process_mtype (void *cls,
 							 &p2.id,
 							 MESSAGESIZE,
 							 &transmit_ready, &p1));
-    }
   return GNUNET_OK;
 }
 
