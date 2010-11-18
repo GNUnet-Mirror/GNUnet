@@ -733,8 +733,23 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-peer-1");
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-peer-2");
+  if (test == SYMMETRIC)
+    {
+	  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-sym-peer-1/");
+	  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-sym-peer-2/");
+    }
+  else if (test == ASYMMETRIC_SEND_LIMITED)
+    {
+	  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-asym-sender-lim-peer-1/");
+	  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-asym-sender-lim-peer-2/");
+    }
+  else if (test == ASYMMETRIC_RECV_LIMITED)
+    {
+	  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-asym-recv-lim-peer-1/");
+	  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-asym-recv-lim-peer-2/");
+    }
+
+
 
   return ret;
 }
