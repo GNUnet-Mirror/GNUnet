@@ -3799,6 +3799,9 @@ static void handle_client_disconnect (void *cls,
 
   if (found != NULL)
     {
+      if (found->transmit_handle != NULL)
+        GNUNET_CONNECTION_notify_transmit_ready_cancel(found->transmit_handle);
+
       while(NULL != (reply = found->pending_head))
         {
           GNUNET_CONTAINER_DLL_remove(found->pending_head, found->pending_tail, reply);

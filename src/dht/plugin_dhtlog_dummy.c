@@ -304,7 +304,7 @@ libgnunet_plugin_dhtlog_dummy_init (void * cls)
   plugin->dhtlog_api->insert_topology = &add_topology;
   plugin->dhtlog_api->update_topology = &update_topology;
   plugin->dhtlog_api->insert_extended_topology = &add_extended_topology;
-  return NULL;
+  return plugin;
 }
 
 /**

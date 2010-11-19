@@ -70,7 +70,7 @@ GNUNET_DHTLOG_connect (const struct GNUNET_CONFIGURATION_Handle *c)
 
   api = plugin->dhtlog_api;
   GNUNET_free (plugin_name);
-  GNUNET_free(plugin);
+  GNUNET_free (plugin);
   return api;
 }
 
