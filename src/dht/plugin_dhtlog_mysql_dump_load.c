@@ -581,6 +581,7 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
       return NULL;
     }
 
+  GNUNET_free(outfile_name);
   GNUNET_asprintf (&outfile_name,
                    "%s%s-%d",
                    outfile_path,
@@ -613,6 +614,7 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
       return NULL;
     }
 
+  GNUNET_free(outfile_name);
   GNUNET_asprintf (&outfile_name,
                    "%s%s-%d",
                    outfile_path,
@@ -646,6 +648,7 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
       return NULL;
     }
 
+  GNUNET_free(outfile_name);
   GNUNET_asprintf (&outfile_name,
                    "%s%s-%d",
                    outfile_path,
@@ -679,6 +682,7 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
       return NULL;
     }
 
+  GNUNET_free(outfile_name);
   GNUNET_asprintf (&outfile_name,
                    "%s%s-%d",
                    outfile_path,
@@ -712,6 +716,7 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
       return NULL;
     }
 
+  GNUNET_free(outfile_name);
   GNUNET_asprintf (&outfile_name,
                    "%s%s-%d",
                    outfile_path,
@@ -744,6 +749,7 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
       return NULL;
     }
 
+  GNUNET_free(outfile_name);
   GNUNET_asprintf (&outfile_name,
                    "%s%s-%d",
                    outfile_path,
@@ -776,6 +782,7 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
       return NULL;
     }
 
+  GNUNET_free(outfile_name);
   GNUNET_asprintf (&outfile_name,
                    "%s%s-%d",
                    outfile_path,
