@@ -4008,6 +4008,7 @@ send_find_peer_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   temp_bloom = GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
   GNUNET_CONTAINER_multihashmap_iterate(all_known_peers, &add_known_to_bloom, temp_bloom);
   GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_bloomfilter_get_raw_data(temp_bloom, find_peer_msg->bloomfilter, DHT_BLOOM_SIZE));
+  GNUNET_CONTAINER_bloomfilter_free (temp_bloom);
   memset(&msg_ctx, 0, sizeof(struct DHT_MessageContext));
   memcpy(&msg_ctx.key, &my_identity.hashPubKey, sizeof(GNUNET_HashCode));
   msg_ctx.unique_id = GNUNET_ntohll (GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_STRONG, (uint64_t)-1));
@@ -4269,6 +4270,7 @@ handle_dht_p2p_route_request (void *cls,
   msg_ctx->importance = DHT_DEFAULT_P2P_IMPORTANCE;
   msg_ctx->timeout = DHT_DEFAULT_P2P_TIMEOUT;
   demultiplex_message(enc_msg, msg_ctx);
+  GNUNET_CONTAINER_bloomfilter_free (msg_ctx->bloom);
   GNUNET_free(msg_ctx);
   return GNUNET_YES;
 }
