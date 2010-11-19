@@ -1267,6 +1267,11 @@ struct ConnectContext
   struct GNUNET_CORE_Handle *d1core;
 
   /**
+   * Have we actually connected to the core of the first daemon yet?
+   */
+  int d1core_ready;
+
+  /**
    * Testing handle to the second daemon.
    */
   struct GNUNET_TESTING_Daemon *d2;
@@ -1519,7 +1524,7 @@ send_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ctx->hello_send_task = GNUNET_SCHEDULER_NO_TASK;
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     return;
-  if ((ctx->d2->hello != NULL)
+  if ((ctx->d1core_ready == GNUNET_YES) && (ctx->d2->hello != NULL)
       && (NULL != GNUNET_HELLO_get_header (ctx->d2->hello)))
     {
       hello = GNUNET_HELLO_get_header (ctx->d2->hello);
@@ -1546,6 +1551,20 @@ send_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
   ctx->hello_send_task = GNUNET_SCHEDULER_add_delayed (ctx->timeout_hello,
                                                        &send_hello, ctx);
+}
+
+void
+core_init_notify (void *cls,
+                  struct GNUNET_CORE_Handle * server,
+                  const struct GNUNET_PeerIdentity *
+                  my_identity,
+                  const struct
+                  GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *
+                  publicKey)
+{
+  struct ConnectContext *connect_ctx = cls;
+
+  connect_ctx->d1core_ready = GNUNET_YES;
 }
 
 /**
@@ -1594,9 +1613,10 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
               d1->shortname, d2->shortname);
 #endif
 
+  /* FIXME: possible bug, core gets connected after peers are connected, thus the connect_notify function is never called (?) */
   ctx->d1core = GNUNET_CORE_connect (d1->cfg, 1,
                                      ctx,
-                                     NULL,
+                                     &core_init_notify,
                                      &connect_notify, NULL, NULL,
                                      NULL, GNUNET_NO,
                                      NULL, GNUNET_NO, no_handlers);
