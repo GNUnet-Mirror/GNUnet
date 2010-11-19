@@ -1412,6 +1412,7 @@ notify_connect_result (void *cls,
           GNUNET_CORE_disconnect (ctx->d1core);
           ctx->d1core = NULL;
         }
+      ctx->d1core_ready = GNUNET_NO;
 #if CONNECT_CORE2
       if (ctx->d2core != NULL)
         {
@@ -1696,14 +1697,10 @@ reattempt_daemons_connect (void *cls,
 #endif
 
   GNUNET_assert (ctx->d1core == NULL);
-
+  ctx->d1core_ready = GNUNET_NO;
   ctx->d1core = GNUNET_CORE_connect (ctx->d1->cfg, 1,
-#if NO_MORE_TIMEOUT_FIXME
-                                     GNUNET_TIME_absolute_get_remaining
-                                     (ctx->timeout),
-#endif
                                      ctx,
-                                     NULL,
+                                     &core_init_notify,
                                      &connect_notify, NULL, NULL,
                                      NULL, GNUNET_NO,
                                      NULL, GNUNET_NO, no_handlers);
