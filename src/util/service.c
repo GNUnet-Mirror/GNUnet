@@ -867,6 +867,14 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
                                                            &unixpath));
 
       /* probe UNIX support */
+      struct sockaddr_un s_un;
+      if (strlen(unixpath) >= sizeof(s_un.sun_path))
+      {
+    	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("UNIXPATH `%s' too long, maximum length is %llu\n"),unixpath, sizeof(s_un.sun_path));
+      }
+      /* FIXME: Perhaps add an assertion or a break??? */
+
       desc = GNUNET_NETWORK_socket_create (AF_UNIX, SOCK_STREAM, 0);
       if (NULL == desc)
         {
