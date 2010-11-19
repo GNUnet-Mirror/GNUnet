@@ -2014,6 +2014,9 @@ schedule_find_peer_requests (void *cls, const struct GNUNET_SCHEDULER_TaskContex
   if (find_peer_ctx->total > max_outstanding_find_peers)
     find_peer_ctx->total = max_outstanding_find_peers;
 
+  if (find_peer_ctx->total > GNUNET_CONTAINER_heap_get_size(find_peer_ctx->peer_min_heap)) /* Don't try to send more messages than we have peers! */
+    find_peer_ctx->total = GNUNET_CONTAINER_heap_get_size(find_peer_ctx->peer_min_heap);
+
   find_peer_ctx->last_sent = find_peer_ctx->total;
   GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Sending %u find peer messages (goal at least %u connections)\n", find_peer_ctx->total, connection_estimate(num_peers, DEFAULT_BUCKET_SIZE));
 
@@ -2021,7 +2024,7 @@ schedule_find_peer_requests (void *cls, const struct GNUNET_SCHEDULER_TaskContex
   for (i = 0; i < find_peer_ctx->total; i++)
     {
       test_find_peer = GNUNET_malloc(sizeof(struct TestFindPeer));
-      if (find_peer_ctx->previous_peers == 0) /* If we haven't sent any requests, yet choose random peers */
+      if (find_peer_ctx->previous_peers == 0) /* If we haven't sent any requests yet, choose random peers */
         {
           /**
            * Attempt to spread find peer requests across even sections of the peer address
