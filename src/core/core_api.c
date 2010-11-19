@@ -464,15 +464,6 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
 {
   struct ControlMessage *cm;
 
-  if (h->client != NULL)
-    {
-      GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
-      h->client = NULL;
-      GNUNET_CONTAINER_multihashmap_iterate (h->peers,
-					     &disconnect_and_free_peer_entry,
-					     h);
-    }
-  h->currently_down = GNUNET_YES;
   while (NULL != (cm = h->pending_head))
     {
       GNUNET_CONTAINER_DLL_remove (h->pending_head,
@@ -481,6 +472,16 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
       cm->cont (cm->cont_cls, NULL);
       GNUNET_free (cm);
     }
+  if (h->client != NULL)
+    {
+      GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+      h->client = NULL;
+      GNUNET_CONTAINER_multihashmap_iterate (h->peers,
+					     &disconnect_and_free_peer_entry,
+					     h);
+    }
+  GNUNET_assert (h->pending_head == NULL);
+  h->currently_down = GNUNET_YES;
   GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
   h->retry_backoff = GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_SECONDS,
 					       h->retry_backoff);

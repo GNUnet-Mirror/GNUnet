@@ -467,6 +467,7 @@ arm_service_report (void *cls,
     }
   if (pos->callback != NULL)
     pos->callback (pos->cls, GNUNET_YES);
+  GNUNET_free (proc);
   GNUNET_free (pos);
 }
 
