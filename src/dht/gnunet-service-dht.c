@@ -2115,7 +2115,10 @@ static int route_result_message(struct GNUNET_MessageHeader *msg,
       pos = pos->next;
     }
   if (msg_ctx->bloom != NULL)
+  {
     GNUNET_CONTAINER_bloomfilter_free(msg_ctx->bloom);
+    msg_ctx->bloom = NULL;
+  }
   return 0;
 }
 
@@ -3458,7 +3461,10 @@ route_message(const struct GNUNET_MessageHeader *msg,
         }
 #endif
       if (msg_ctx->bloom != NULL)
+      {
         GNUNET_CONTAINER_bloomfilter_free(msg_ctx->bloom);
+        msg_ctx->bloom = NULL;
+      }
       return;
     }
 
@@ -3505,7 +3511,6 @@ route_message(const struct GNUNET_MessageHeader *msg,
                                    NULL);
     }
 #endif
-
 
   GNUNET_CONTAINER_bloomfilter_add (msg_ctx->bloom, &my_identity.hashPubKey);
   hash_from_uid (msg_ctx->unique_id, &unique_hash);
@@ -3581,6 +3586,7 @@ route_message(const struct GNUNET_MessageHeader *msg,
     {
       GNUNET_CONTAINER_bloomfilter_or2(recent_req->bloom, msg_ctx->bloom, DHT_BLOOM_SIZE);
       GNUNET_CONTAINER_bloomfilter_free(msg_ctx->bloom);
+      msg_ctx->bloom = NULL;
     }
 }
 
@@ -4270,7 +4276,11 @@ handle_dht_p2p_route_request (void *cls,
   msg_ctx->importance = DHT_DEFAULT_P2P_IMPORTANCE;
   msg_ctx->timeout = DHT_DEFAULT_P2P_TIMEOUT;
   demultiplex_message(enc_msg, msg_ctx);
-  GNUNET_CONTAINER_bloomfilter_free (msg_ctx->bloom);
+  if (msg_ctx->bloom != NULL)
+  {
+    GNUNET_CONTAINER_bloomfilter_free (msg_ctx->bloom);
+    msg_ctx->bloom = NULL;
+  }
   GNUNET_free(msg_ctx);
   return GNUNET_YES;
 }
