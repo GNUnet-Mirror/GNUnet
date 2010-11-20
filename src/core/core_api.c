@@ -468,8 +468,11 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
     {
       GNUNET_CONTAINER_DLL_remove (h->pending_head,
 				   h->pending_tail,
-				   cm);      
-      cm->cont (cm->cont_cls, NULL);
+				   cm);
+      if (cm->th != NULL)
+	cm->th->cm = NULL; 
+      if (cm->cont != NULL)
+	cm->cont (cm->cont_cls, NULL);
       GNUNET_free (cm);
     }
   if (h->client != NULL)
@@ -517,22 +520,6 @@ transmission_timeout (void *cls,
 
 
 /**
- * Control message was sent, mark it as such.
- *
- * @param cls the 'struct GNUNET_CORE_TransmitHandle*'
- * @param tc scheduler context
- */
-static void
-mark_control_message_sent (void *cls,
-			   const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct GNUNET_CORE_TransmitHandle *th = cls;
-
-  th->cm = NULL;
-}
-
-
-/**
  * Send a control message to the peer asking for transmission
  * of the message in the given peer record.
  *
@@ -563,8 +550,6 @@ request_next_transmission (struct PeerRecord *pr)
 						   pr);
   cm = GNUNET_malloc (sizeof (struct ControlMessage) + 
 		      sizeof (struct SendMessageRequest));
-  cm->cont = &mark_control_message_sent;
-  cm->cont_cls = th;
   th->cm = cm;
   cm->th = th;
   smr = (struct SendMessageRequest*) &cm[1];
@@ -1415,7 +1400,8 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
 				   cm);
       if (cm->th != NULL)
 	cm->th->cm = NULL;
-      cm->cont (cm->cont_cls, NULL);
+      if (cm->cont != NULL)
+	cm->cont (cm->cont_cls, NULL);
       GNUNET_free (cm);
     }
   GNUNET_CONTAINER_multihashmap_iterate (handle->peers,
