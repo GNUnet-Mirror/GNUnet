@@ -1725,6 +1725,7 @@ peer_transmit_timeout (void *cls,
 	      n->transmit_stage);
 #endif
   notify = th->notify;
+  th->notify = NULL;
   notify_cls = th->notify_cls;
   switch (n->transmit_stage)
     {
