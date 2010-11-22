@@ -1925,7 +1925,7 @@ GNUNET_DISK_npipe_open (const char *fn,
 
   if (mkfifo(fn, translate_unix_perms(perm)) == -1)
     {
-      if (errno == EEXISTS && flags & GNUNET_DISK_OPEN_FAILIFEXISTS)
+      if (errno == EEXIST && flags & GNUNET_DISK_OPEN_FAILIFEXISTS)
         return NULL;
     }
 
