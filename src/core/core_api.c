@@ -1521,9 +1521,9 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
   /* Order entries by deadline, but SKIP 'HEAD' if
      we're in the 'ready_peer_*' DLL */
   /* FIXME: again, pr->pending_head is NULL after a reconnect_later call */
+  pos = pr->pending_head;
   if (pr->pending_head != NULL)
     {
-      pos = pr->pending_head;
       if ( (pr->prev != NULL) ||
            (pr->next != NULL) ||
            (pr == handle->ready_peer_head) )
