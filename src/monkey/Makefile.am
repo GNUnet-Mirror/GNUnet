@@ -39,7 +39,8 @@ gnunet_monkey_SOURCES = \
  gdbmi_thread.c \
  gdbmi_var_obj.c \
  gnunet-monkey.c \
- mail_sender.c
+ mail_sender.c \
+ edb_api.c
 
 gnunet_monkey_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
