@@ -18,8 +18,8 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file transport/test_gnunet_transport_plugin.http.c
- * @brief testcase for gnunet_transport_plugin.http.c
+ * @file transport/test_plugin_transport_http.c
+ * @brief testcase for plugin_transport_http.c
  * @author Matthias Wachs
  */
 
@@ -459,10 +459,10 @@ shutdown_clean ()
 
   GNUNET_free(test_addr);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Unloading http plugin\n");
-  GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_gnunet_transport_plugin.http", api));
+  GNUNET_assert (NULL == GNUNET_PLUGIN_unload ("libgnunet_gnunet_transport_plugin_http", api));
 
   GNUNET_SCHEDULER_shutdown();
-  GNUNET_DISK_directory_remove ("/tmp/test_gnunet_transport_plugin.http");
+  GNUNET_DISK_directory_remove ("/tmp/test_gnunet_transport_plugin_http");
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Exiting testcase\n");
   exit(fail);
@@ -1311,7 +1311,7 @@ main (int argc, char *const *argv)
   };
   int ret;
   char *const argv_prog[] = {
-    "test_gnunet_transport_plugin.http",
+    "test_gnunet_transport_plugin_http",
     "-c",
     "test_plugin_transport_data_http.conf",
     "-L",
@@ -1322,7 +1322,7 @@ main (int argc, char *const *argv)
 #endif
     NULL
   };
-  GNUNET_log_setup ("test_gnunet_transport_plugin.http",
+  GNUNET_log_setup ("test_gnunet_transport_plugin_http",
 #if VERBOSE
                     "DEBUG",
 #else
@@ -1333,12 +1333,12 @@ main (int argc, char *const *argv)
   ret = (GNUNET_OK ==
          GNUNET_PROGRAM_run (5,
                              argv_prog,
-                             "test_gnunet_transport_plugin.http",
+                             "test_gnunet_transport_plugin_http",
                              "testcase", options, &run, NULL)) ? GNUNET_NO : GNUNET_YES;
 
-    GNUNET_DISK_directory_remove ("/tmp/test_gnunet_transport_plugin.http");
+  GNUNET_DISK_directory_remove ("/tmp/test_gnunet_transport_plugin_http");
 
   return fail;
 }
 
-/* end of test_gnunet_transport_plugin.http.c */
+/* end of test_gnunet_transport_plugin_http.c */
