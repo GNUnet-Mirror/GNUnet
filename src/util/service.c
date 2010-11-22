@@ -872,8 +872,10 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
       {
     	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("UNIXPATH `%s' too long, maximum length is %llu\n"),unixpath, sizeof(s_un.sun_path));
+	      GNUNET_free_non_null (hostname);
+	      GNUNET_free (unixpath);
+    	  return GNUNET_SYSERR;
       }
-      /* FIXME: Perhaps add an assertion or a break??? */
 
       desc = GNUNET_NETWORK_socket_create (AF_UNIX, SOCK_STREAM, 0);
       if (NULL == desc)
