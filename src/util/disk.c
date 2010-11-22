@@ -1929,7 +1929,7 @@ GNUNET_DISK_npipe_open (const char *fn,
         return NULL;
     }
 
-  flags ~= GNUNET_DISK_OPEN_FAILIFEXISTS;
+  flags = flags & (~GNUNET_DISK_OPEN_FAILIFEXISTS);
   return GNUNET_DISK_file_open(fn, flags, perm);
 #endif
 }
