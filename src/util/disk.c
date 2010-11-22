@@ -1888,9 +1888,8 @@ GNUNET_DISK_npipe_open (const char *fn,
                        enum GNUNET_DISK_OpenFlags flags,
                        enum GNUNET_DISK_AccessPermissions perm)
 {
-  struct GNUNET_DISK_FileHandle *ret;
-
 #ifdef MINGW
+  struct GNUNET_DISK_FileHandle *ret;
   HANDLE h;
   DWORD openMode;
   char *name;
@@ -1921,11 +1920,10 @@ GNUNET_DISK_npipe_open (const char *fn,
 
   return ret;
 #else
-  int fd;
-
   if (mkfifo(fn, translate_unix_perms(perm)) == -1)
     {
-      if (errno == EEXIST && flags & GNUNET_DISK_OPEN_FAILIFEXISTS)
+      if ( (errno != EEXIST) ||
+	   (0 != (flags & GNUNET_DISK_OPEN_FAILIFEXISTS)) )
         return NULL;
     }
 
