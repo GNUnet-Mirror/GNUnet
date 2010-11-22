@@ -771,7 +771,7 @@ trigger_next_request (struct GNUNET_CORE_Handle *h,
     }
   if (h->pending_head != NULL)
     msize = ntohs (((struct GNUNET_MessageHeader*) &h->pending_head[1])->size);    
-  else if (h->ready_peer_head != NULL)
+  else if ((h->ready_peer_head != NULL) && (h->ready_peer_head->pending_head != NULL)) /* FIXME: h->ready_peer_head->pending_head check necessary? */
     msize = h->ready_peer_head->pending_head->msize + sizeof (struct SendMessage);    
   else
     {
@@ -1137,7 +1137,6 @@ main_notify_handler (void *cls,
       if (pr->pending_head == NULL)
         {
           GNUNET_break (0);
-          reconnect_later (h);
           return;
         }
 
