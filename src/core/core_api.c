@@ -1520,13 +1520,21 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
 
   /* Order entries by deadline, but SKIP 'HEAD' if
      we're in the 'ready_peer_*' DLL */
-  pos = pr->pending_head;
-  if ( (pr->prev != NULL) ||
-       (pr->next != NULL) ||
-       (pr == handle->ready_peer_head) )
+  /* FIXME: again, pr->pending_head is NULL after a reconnect_later call */
+  if (pr->pending_head != NULL)
     {
-      GNUNET_assert (pos != NULL);
-      pos = pos->next; /* skip head */
+      pos = pr->pending_head;
+      if ( (pr->prev != NULL) ||
+           (pr->next != NULL) ||
+           (pr == handle->ready_peer_head) )
+        {
+          GNUNET_assert (pos != NULL);
+          pos = pos->next; /* skip head */
+        }
+    }
+  else
+    {
+      GNUNET_break(0);
     }
 
   /* insertion sort */
@@ -1587,7 +1595,7 @@ GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle
 	   (pr == h->ready_peer_head) )
 	{
 	  /* the request that was 'approved' by core was
-	     cancelled before it could be transmitted; remove
+	     canceled before it could be transmitted; remove
 	     us from the 'ready' list */
 	  GNUNET_CONTAINER_DLL_remove (h->ready_peer_head,
 				       h->ready_peer_tail,
