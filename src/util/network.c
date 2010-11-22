@@ -1137,28 +1137,38 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
                GNUNET_CONTAINER_slist_next (i))
 
             {
-              HANDLE h;
+              struct GNUNET_DISK_FileHandle *fh;
               DWORD dwBytes;
-              h = *(HANDLE *) GNUNET_CONTAINER_slist_get (i, NULL);
-              if (!PeekNamedPipe (h, NULL, 0, NULL, &dwBytes, NULL))
+              fh = (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (i, NULL);
+              if (fh->type == GNUNET_PIPE)
                 {
-                  retcode = -1;
-                  SetErrnoFromWinError (GetLastError ());
+                  if (!PeekNamedPipe (fh->h, NULL, 0, NULL, &dwBytes, NULL))
+                    {
+                      retcode = -1;
+                      SetErrnoFromWinError (GetLastError ());
 
-#if DEBUG_NETWORK
-                  GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
-                                       "PeekNamedPipe");
+    #if DEBUG_NETWORK
+                      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+                                           "PeekNamedPipe");
 
-#endif
-                  goto select_loop_end;
+    #endif
+                      goto select_loop_end;
+                    }
+                  else if (dwBytes)
+
+                    {
+                      GNUNET_CONTAINER_slist_add (handles_read,
+                                                  GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
+                                                  fh, sizeof (struct GNUNET_DISK_FileHandle));
+                      retcode++;
+                    }
                 }
-              else if (dwBytes)
-
+              else
                 {
+                  /* Should we wait for more bytes to read here (in case of previous EOF)? */
                   GNUNET_CONTAINER_slist_add (handles_read,
                                               GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
-                                              &h, sizeof (HANDLE));
-                  retcode++;
+                                              fh, sizeof (struct GNUNET_DISK_FileHandle));
                 }
             }
           GNUNET_CONTAINER_slist_iter_destroy (i);
@@ -1174,16 +1184,20 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
                GNUNET_CONTAINER_slist_next (i))
 
             {
-              HANDLE h;
+              struct GNUNET_DISK_FileHandle *fh;
               DWORD dwBytes;
-              h = *(HANDLE *) GNUNET_CONTAINER_slist_get (i, NULL);
-              if (!PeekNamedPipe (h, NULL, 0, NULL, &dwBytes, NULL))
 
+              fh = (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (i, NULL);
+              if (fh->type == GNUNET_PIPE)
                 {
-                  GNUNET_CONTAINER_slist_add (handles_except,
-                                              GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
-                                              &h, sizeof (HANDLE));
-                  retcode++;
+                  if (!PeekNamedPipe (fh->h, NULL, 0, NULL, &dwBytes, NULL))
+
+                    {
+                      GNUNET_CONTAINER_slist_add (handles_except,
+                                                  GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
+                                                  fh, sizeof (struct GNUNET_DISK_FileHandle));
+                      retcode++;
+                    }
                 }
             }
           GNUNET_CONTAINER_slist_iter_destroy (i);

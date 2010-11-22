@@ -40,8 +40,13 @@ struct GNUNET_DISK_FileHandle
    * File handle under W32.
    */ 
   HANDLE h;
-  
-#else                           /*  */
+
+  /**
+   * Type
+   */
+  enum {GNUNET_DISK_FILE, GNUNET_PIPE} type;
+#else
+
   /**
    * File handle on other OSes.
    */ 

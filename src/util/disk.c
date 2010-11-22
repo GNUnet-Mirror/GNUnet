@@ -101,6 +101,34 @@ struct GetFileSizeData
 };
 
 
+int translate_unix_perms(enum GNUNET_DISK_AccessPermissions perm)
+{
+  int mode;
+
+  mode = 0;
+  if (perm & GNUNET_DISK_PERM_USER_READ)
+    mode |= S_IRUSR;
+  if (perm & GNUNET_DISK_PERM_USER_WRITE)
+    mode |= S_IWUSR;
+  if (perm & GNUNET_DISK_PERM_USER_EXEC)
+    mode |= S_IXUSR;
+  if (perm & GNUNET_DISK_PERM_GROUP_READ)
+    mode |= S_IRGRP;
+  if (perm & GNUNET_DISK_PERM_GROUP_WRITE)
+    mode |= S_IWGRP;
+  if (perm & GNUNET_DISK_PERM_GROUP_EXEC)
+    mode |= S_IXGRP;
+  if (perm & GNUNET_DISK_PERM_OTHER_READ)
+    mode |= S_IROTH;
+  if (perm & GNUNET_DISK_PERM_OTHER_WRITE)
+    mode |= S_IWOTH;
+  if (perm & GNUNET_DISK_PERM_OTHER_EXEC)
+    mode |= S_IXOTH;
+
+  return mode;
+}
+
+
 /**
  * Iterate over all files in the given directory and 
  * accumulate their size.
@@ -1259,24 +1287,7 @@ GNUNET_DISK_file_open (const char *fn,
     {
       (void) GNUNET_DISK_directory_create_for_file (expfn);
       oflags |= O_CREAT;
-      if (perm & GNUNET_DISK_PERM_USER_READ)
-        mode |= S_IRUSR;
-      if (perm & GNUNET_DISK_PERM_USER_WRITE)
-        mode |= S_IWUSR;
-      if (perm & GNUNET_DISK_PERM_USER_EXEC)
-        mode |= S_IXUSR;
-      if (perm & GNUNET_DISK_PERM_GROUP_READ)
-        mode |= S_IRGRP;
-      if (perm & GNUNET_DISK_PERM_GROUP_WRITE)
-        mode |= S_IWGRP;
-      if (perm & GNUNET_DISK_PERM_GROUP_EXEC)
-        mode |= S_IXGRP;
-      if (perm & GNUNET_DISK_PERM_OTHER_READ)
-        mode |= S_IROTH;
-      if (perm & GNUNET_DISK_PERM_OTHER_WRITE)
-        mode |= S_IWOTH;
-      if (perm & GNUNET_DISK_PERM_OTHER_EXEC)
-        mode |= S_IXOTH;
+      mode = translate_unix_perms(perm);
     }
 
   fd = open (expfn, oflags | O_LARGEFILE, mode);
@@ -1347,6 +1358,7 @@ GNUNET_DISK_file_open (const char *fn,
   ret = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
 #ifdef MINGW
   ret->h = h;
+  ret->type = GNUNET_DISK_FILE;
 #else
   ret->fd = fd;
 #endif
@@ -1748,6 +1760,8 @@ GNUNET_DISK_pipe (int blocking, int inherit_read, int inherit_write)
       SetNamedPipeHandleState (p->fd[1]->h, &mode, NULL, NULL);
       /* this always fails on Windows 95, so we don't care about error handling */
     }
+  p->fd[0]->type = GNUNET_PIPE;
+  p->fd[1]->type = GNUNET_PIPE;
 #endif
   return p;
 }
@@ -1859,6 +1873,89 @@ GNUNET_DISK_pipe_close (struct GNUNET_DISK_PipeHandle *p)
   GNUNET_free (p);
   errno = save;
   return ret;
+}
+
+
+/**
+ * Creates a named pipe/FIFO
+ * @param fn name of the named pipe
+ * @param flags open flags
+ * @param perm access permissions
+ * @return pipe handle on success, NULL on error
+ */
+struct GNUNET_DISK_FileHandle *
+GNUNET_DISK_npipe_open (const char *fn,
+                       enum GNUNET_DISK_OpenFlags flags,
+                       enum GNUNET_DISK_AccessPermissions perm)
+{
+  struct GNUNET_DISK_FileHandle *ret;
+
+#ifdef MINGW
+  HANDLE h;
+  DWORD openMode;
+  char *name;
+
+  openMode = 0;
+  if (flags & GNUNET_DISK_OPEN_READWRITE)
+    openMode = PIPE_ACCESS_DUPLEX;
+  else if (flags & GNUNET_DISK_OPEN_READ)
+    openMode = PIPE_ACCESS_INBOUND;
+  else if (flags & GNUNET_DISK_OPEN_WRITE)
+    openMode = PIPE_ACCESS_OUTBOUND;
+
+  if (flags & GNUNET_DISK_OPEN_FAILIFEXISTS)
+    openMode |= FILE_FLAG_FIRST_PIPE_INSTANCE;
+
+  GNUNET_asprintf(&name, "\\\\.\\pipe\\pipename\\%s", fn);
+  h = CreateNamedPipe (fn, openMode | FILE_FLAG_OVERLAPPED,
+      PIPE_TYPE_BYTE | PIPE_READMODE_BYTE, 2, 1, 1, 0, NULL);
+  GNUNET_free(name);
+  if (h == NULL)
+    {
+      SetErrnoFromWinError(GetLastError());
+      return NULL;
+    }
+
+  ret = GNUNET_malloc(sizeof(*ret));
+  ret->h = h;
+
+  return ret;
+#else
+  int fd;
+
+  if (mkfifo(fn, translate_unix_perms(perm)) == -1)
+    {
+      if (errno == EEXISTS && flags & GNUNET_DISK_OPEN_FAILIFEXISTS)
+        return NULL;
+    }
+
+  flags ~= GNUNET_DISK_OPEN_FAILIFEXISTS;
+  return GNUNET_DISK_file_open(fn, flags, perm);
+#endif
+}
+
+/**
+ * Closes a named pipe/FIFO
+ * @param pipe named pipe
+ * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ */
+int
+GNUNET_DISK_npipe_close (struct GNUNET_DISK_FileHandle *pipe)
+{
+#ifndef MINGW
+  return close(pipe->fd) == 0 ? GNUNET_OK : GNUNET_SYSERR;
+#else
+  BOOL ret;
+
+  ret = CloseHandle(pipe->h);
+  if (!ret)
+    {
+      SetErrnoFromWinError(GetLastError());
+      return GNUNET_SYSERR;
+    }
+  else
+    return GNUNET_OK;
+#endif
 }
 
 
