@@ -463,6 +463,7 @@ static void
 reconnect_later (struct GNUNET_CORE_Handle *h)
 {
   struct ControlMessage *cm;
+  struct PeerRecord *pr;
 
   while (NULL != (cm = h->pending_head))
     {
@@ -484,6 +485,11 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
 					     &disconnect_and_free_peer_entry,
 					     h);
     }
+  while (NULL != (pr = h->ready_peer_head))    
+    GNUNET_CONTAINER_DLL_remove (h->ready_peer_head,
+				 h->ready_peer_tail,
+				 pr);
+  
   GNUNET_assert (h->pending_head == NULL);
   h->currently_down = GNUNET_YES;
   GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
@@ -664,12 +670,7 @@ transmit_message (void *cls,
   /* now check for 'ready' P2P messages */
   if (NULL != (pr = h->ready_peer_head))
     {
-      /* FIXME: If a reconnect_later call happened, this can be NULL! */
-      if (pr->pending_head == NULL)
-        {
-          GNUNET_break(0);
-          return 0;
-        }
+      GNUNET_assert (pr->pending_head != NULL);
       th = pr->pending_head;
       if (size < th->msize + sizeof (struct SendMessage))
 	{
@@ -769,7 +770,7 @@ trigger_next_request (struct GNUNET_CORE_Handle *h,
     }
   if (h->pending_head != NULL)
     msize = ntohs (((struct GNUNET_MessageHeader*) &h->pending_head[1])->size);    
-  else if ((h->ready_peer_head != NULL) && (h->ready_peer_head->pending_head != NULL)) /* FIXME: h->ready_peer_head->pending_head check necessary? */
+  else if (h->ready_peer_head != NULL) 
     msize = h->ready_peer_head->pending_head->msize + sizeof (struct SendMessage);    
   else
     {
@@ -1133,7 +1134,7 @@ main_notify_handler (void *cls,
 #endif
       if (pr->pending_head == NULL)
         {
-	  /* request must have been cancelled between the origional request
+	  /* request must have been cancelled between the original request
 	     and the response from core, ignore core's readiness */
           return;
         }
@@ -1518,21 +1519,13 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
 
   /* Order entries by deadline, but SKIP 'HEAD' if
      we're in the 'ready_peer_*' DLL */
-  /* FIXME: again, pr->pending_head is NULL after a reconnect_later call */
   pos = pr->pending_head;
-  if (pr->pending_head != NULL)
+  if ( (pr->prev != NULL) ||
+       (pr->next != NULL) ||
+       (pr == handle->ready_peer_head) )
     {
-      if ( (pr->prev != NULL) ||
-           (pr->next != NULL) ||
-           (pr == handle->ready_peer_head) )
-        {
-          GNUNET_assert (pos != NULL);
-          pos = pos->next; /* skip head */
-        }
-    }
-  else
-    {
-      GNUNET_break(0);
+      GNUNET_assert (pos != NULL);
+      pos = pos->next; /* skip head */
     }
 
   /* insertion sort */
