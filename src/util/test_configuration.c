@@ -473,7 +473,12 @@ main (int argc, char *argv[])
       return 1;
     }
   failureCount += testConfig ();
-  failureCount += 2 * testConfigFilenames ();
+  if (failureCount > 0)
+    goto error;
+
+  failureCount = testConfigFilenames ();
+  if (failureCount > 0)
+    goto error;
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_write (cfg, "/tmp/gnunet-test.conf"))
     {
@@ -537,6 +542,7 @@ main (int argc, char *argv[])
 
   GNUNET_CONFIGURATION_destroy (cfgDefault);
 
+error:
   if (failureCount != 0)
     {
       fprintf (stderr, "Test failed: %u\n", failureCount);
