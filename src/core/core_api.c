@@ -479,8 +479,6 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
     {
       GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
       h->client = NULL;
-      /* FIXME: is this right? GNUNET_CLIENT_disconnect frees all outstanding transmission handles, so h->cth is invalid! */
-      /* Otherwise a subsequent call to GNUNET_CORE_disconnect tries to cancel this task!!! */
       h->cth = NULL;
       GNUNET_CONTAINER_multihashmap_iterate (h->peers,
 					     &disconnect_and_free_peer_entry,
@@ -1133,10 +1131,10 @@ main_notify_handler (void *cls,
 		  "Received notification about transmission readiness to `%s'.\n",
 		  GNUNET_i2s (&smr->peer));
 #endif
-      /* FIXME: pr->pending_head is sometimes NULL here... Safe to just return?  Or does this indicate something is out of sync somewhere else? */
       if (pr->pending_head == NULL)
         {
-          GNUNET_break (0);
+	  /* request must have been cancelled between the origional request
+	     and the response from core, ignore core's readiness */
           return;
         }
 
