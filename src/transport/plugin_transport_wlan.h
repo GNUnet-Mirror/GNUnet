@@ -33,14 +33,23 @@ typedef unsigned short uint16_t;
 //Informations (in German) http://www.umtslink.at/content/WLAN_macheader-196.html
 static const uint8_t u8aIeeeHeader[] = 
   {
-    0x08, 0x01, // Frame Control 0x08= 00001000 -> | b1,2 = 0 -> Version 0; b3,4 = 10 -> Data; b5-8 = 0 -> Normal Data
-				//	0x01 = 00000001 -> | b1 = 1 to DS; b2 = 0 not from DS;
+    0x08, 0x01, // Frame Control 0x08= 00001000 -> | b1,2 = 0 -> Version 0;
+                //      b3,4 = 10 -> Data; b5-8 = 0 -> Normal Data
+		//	0x01 = 00000001 -> | b1 = 1 to DS; b2 = 0 not from DS;
     0x00, 0x00, // Duration/ID
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // mac1
-    0x13, 0x22, 0x33, 0x44, 0x55, 0x66, // mac2
-    0x13, 0x22, 0x33, 0x44, 0x55, 0x66, // mac3
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // mac1 - in this case receiver
+    0x13, 0x22, 0x33, 0x44, 0x55, 0x66, // mac2 - in this case bssid
+    0x13, 0x22, 0x33, 0x44, 0x55, 0x66, // mac3 - in this case sender
     0x10, 0x86, //Sequence Control
   };
+
+// gnunet bssid
+static const char macbc[] =
+  { 0x13, 0x22, 0x33, 0x44, 0x55, 0x66 };
+
+// broadcast mac
+static const char bc_all_mac[] =
+   { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 /**
  * Wlan header

@@ -35,11 +35,9 @@
 
 //#include "radiotap.h"
 
-// broadcast mac
-static const char macbc[] = "13223344";
-
 // mac of this node
-char mac[] = "13223355";
+char mac[] =
+  { 0x13, 0x22, 0x33, 0x44, 0x55, 0x66 };
 
 /* wifi bitrate to use in 500kHz units */
 

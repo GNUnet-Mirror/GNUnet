@@ -697,6 +697,13 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_WLAN_FRAGMENT 199
 
 /**
+ * Fragment ack of a message
+ */
+
+#define GNUNET_MESSAGE_TYPE_WLAN_FRAGMENT_ACK 200
+
+
+/**
  * Type of messages to query the local service-dns
  */
 #define GNUNET_MESSAGE_TYPE_LOCAL_QUERY_DNS 205
