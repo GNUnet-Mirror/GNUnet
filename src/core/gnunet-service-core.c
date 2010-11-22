@@ -860,6 +860,21 @@ derive_pong_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
 
 
 /**
+ * At what time should the connection to the given neighbour
+ * time out (given no further activity?)
+ *
+ * @param n neighbour in question
+ * @return absolute timeout
+ */
+static struct GNUNET_TIME_Absolute 
+get_neighbour_timeout (struct Neighbour *n)
+{
+  return GNUNET_TIME_absolute_add (n->last_activity,
+				   GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+}
+
+
+/**
  * A preference value for a neighbour was update.  Update
  * the preference sum accordingly.
  *
@@ -991,8 +1006,7 @@ handle_peer_status_change (struct Neighbour *n)
   psnm.ats_count = htonl (0);
   psnm.ats.type = htonl (0);
   psnm.ats.value = htonl (0);
-  psnm.timeout = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_add (n->last_activity,
-								      GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT));
+  psnm.timeout = GNUNET_TIME_absolute_hton (get_neighbour_timeout (n));
   psnm.bandwidth_in = n->bw_in;
   psnm.bandwidth_out = n->bw_out;
   psnm.peer = n->peer;
@@ -1663,8 +1677,7 @@ send_keep_alive (void *cls,
               ((void *) &pm->target - (void *) pm));
   process_encrypted_neighbour_queue (n);
   /* reschedule PING job */
-  left = GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_add (n->last_activity,
-								       GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT));
+  left = GNUNET_TIME_absolute_get_remaining (get_neighbour_timeout (n));
   retry = GNUNET_TIME_relative_max (GNUNET_TIME_relative_divide (left, 2),
 				    MIN_PING_FREQUENCY);
   n->keep_alive_task 
@@ -1710,8 +1723,7 @@ consider_free_neighbour (struct Neighbour *n)
        (GNUNET_YES == n->is_connected) )
     return; /* no chance */
     
-  left = GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_add (n->last_activity,
-								       GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT));
+  left = GNUNET_TIME_absolute_get_remaining (get_neighbour_timeout (n));
   if (left.rel_value > 0)
     {
       if (n->dead_clean_task != GNUNET_SCHEDULER_NO_TASK)
@@ -3382,7 +3394,10 @@ handle_pong (struct Neighbour *n,
         }      
       cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
       cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
+      cnm.ats_count = htonl (0);
       cnm.peer = n->peer;
+      cnm.ats.type = htonl (0);
+      cnm.ats.value = htonl (0);
       send_to_all_clients (&cnm.header, GNUNET_NO, GNUNET_CORE_OPTION_SEND_CONNECT);
       process_encrypted_neighbour_queue (n);
       /* fall-through! */
@@ -4047,7 +4062,7 @@ neighbour_quota_update (void *cls,
   else
     q_in = GNUNET_BANDWIDTH_value_init (need_per_peer + (uint32_t) share);
   /* check if we want to disconnect for good due to inactivity */
-  if ( (GNUNET_TIME_absolute_get_duration (n->last_activity).rel_value > GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value) &&
+  if ( (GNUNET_TIME_absolute_get_duration (get_neighbour_timeout (n)).rel_value > 0) &&
        (GNUNET_TIME_absolute_get_duration (n->time_established).rel_value > GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value) )
     {
 #if DEBUG_CORE
