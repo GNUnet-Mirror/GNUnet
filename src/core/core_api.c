@@ -666,6 +666,12 @@ transmit_message (void *cls,
   /* now check for 'ready' P2P messages */
   if (NULL != (pr = h->ready_peer_head))
     {
+      /* FIXME: If a reconnect_later call happened, this can be NULL! */
+      if (pr->pending_head == NULL)
+        {
+          GNUNET_break(0);
+          return 0;
+        }
       th = pr->pending_head;
       if (size < th->msize + sizeof (struct SendMessage))
 	{
