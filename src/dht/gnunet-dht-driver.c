@@ -2576,6 +2576,16 @@ run (void *cls,
       return;
     }
 
+  /* Get number of peers to start from configuration */
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "num_peers",
+                                             &num_peers))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Number of peers must be specified in section %s option %s\n", "TESTING", "NUM_PEERS");
+    }
+  GNUNET_assert(num_peers > 0 && num_peers < ULONG_MAX);
+
   /**
    * Get DHT specific testing options.
    */
@@ -3053,15 +3063,6 @@ run (void *cls,
   GNUNET_free_non_null(topology_str);
   GNUNET_free_non_null(blacklist_topology_str);
 
-  /* Get number of peers to start from configuration */
-  if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "num_peers",
-                                             &num_peers))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Number of peers must be specified in section %s option %s\n", "TESTING", "NUM_PEERS");
-    }
-  GNUNET_assert(num_peers > 0 && num_peers < ULONG_MAX);
   /* Set peers_left so we know when all peers started */
   peers_left = num_peers;
 
