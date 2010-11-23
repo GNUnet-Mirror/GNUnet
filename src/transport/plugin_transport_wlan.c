@@ -51,6 +51,10 @@
 
 #define DEBUG_wlan GNUNET_NO
 
+#define MESSAGE_LENGHT_UNKNOWN -1
+#define NO_MESSAGE_OR_MESSAGE_FINISHED -2
+
+
 /**
  * After how long do we expire an address that we
  * learned from another peer if it is not reconfirmed
@@ -220,7 +224,7 @@ struct AckQueue
 {
 	struct AckQueue * next;
 	struct AckQueue * prev;
-	int fragment_num; //TODO change it to offset
+	int fragment_num; //TODO change it to offset if better
 };
 
 /**
@@ -232,7 +236,7 @@ struct RecQueue
         struct RecQueue * next;
         struct RecQueue * prev;
         uint16_t num;
-        char * msg;
+        const char * msg;
         uint16_t size;
 };
 
@@ -328,7 +332,9 @@ struct Session
   //int rec_offset;
 
   /**
-   * size of the message received, -1 means that the size is not known, -2 means no message received
+   * size of the message received,
+   * MESSAGE_LENGHT_UNKNOWN means that the size is not known,
+   * NO_MESSAGE_OR_MESSAGE_FINISHED means no message received
    */
 
   int rec_size;
@@ -535,6 +541,14 @@ check_fragment_queue(struct Plugin * plugin);
 uint32_t
 getcrc32(const char *msgbuf, size_t msgbuf_size);
 
+static void
+free_rec_frag_queue(struct Session * session);
+
+static void
+wlan_process_helper (void *cls,
+                      void *client,
+                      const struct GNUNET_MessageHeader *hdr);
+
 /**
  * get the next message number, at the moment just a random one
  *
@@ -608,7 +622,7 @@ create_session(struct Plugin *plugin,const uint8_t * addr)
   memcpy(queue->content->addr, addr, 6);
   queue->content->message_id_out = get_next_message_id();
   queue->content->has_fragment = 0;
-  queue->content->rec_size = -2;
+  queue->content->rec_size = NO_MESSAGE_OR_MESSAGE_FINISHED;
 
   plugin->session_count++;
   return queue->content;
@@ -698,6 +712,9 @@ free_acks (struct FragmentMessage * fm){
 		GNUNET_CONTAINER_DLL_remove(fm->head, fm->tail, fq);
 		GNUNET_free(fq);
 	}
+	//needed?
+	fm->head = NULL;
+	fm->tail = NULL;
 }
 
 //TODO doxigen
@@ -940,6 +957,7 @@ check_fragment_queue (struct Plugin * plugin){
 	}
 }
 
+//TODO doxigen
 static void
 check_finished_fragment(struct Plugin * plugin, struct FragmentMessage * fm){
   struct AckQueue * ack;
@@ -1013,7 +1031,7 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           *(plugin->env->our_hello));
 
       msgheader = GNUNET_malloc(size);
-      msgheader->size = htons(size - sizeof(struct GNUNET_MessageHeader));
+      msgheader->size = htons(size);
       msgheader->type = htons(GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
 
       radioHeader = (struct RadiotapHeader *) &msgheader[1];
@@ -1023,7 +1041,7 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       getWlanHeader(ieeewlanheader);
 
       msgheader2 = (struct GNUNET_MessageHeader *) &ieeewlanheader[1];
-      msgheader2->size = htons(GNUNET_HELLO_size(*(plugin->env->our_hello)));
+      msgheader2->size = htons(GNUNET_HELLO_size(*(plugin->env->our_hello)) + sizeof(struct GNUNET_MessageHeader));
       msgheader2->type = htons(GNUNET_MESSAGE_TYPE_WLAN_ADVERTISEMENT);
 
       memcpy(&msgheader2[1], *plugin->env->our_hello, GNUNET_HELLO_size(
@@ -1103,7 +1121,7 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 		//or the missing part of the message in case this is the last fragment
 		copysize = GNUNET_MIN(fm->message_size - copyoffset,
 				WLAN_MTU - sizeof(struct FragmentationHeader));
-		fragheader.header.size = htons(copysize);
+		fragheader.header.size = htons(copysize + sizeof(struct FragmentationHeader));
 		fragheader.header.type = htons(GNUNET_MESSAGE_TYPE_WLAN_FRAGMENT);
 
 
@@ -1136,7 +1154,7 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	size += sizeof(struct RadiotapHeader) + sizeof(struct IeeeHeader)
 		+ sizeof(struct GNUNET_MessageHeader);
 	msgheader = GNUNET_malloc(size);
-	msgheader->size = htons(size - sizeof(struct GNUNET_MessageHeader));
+	msgheader->size = htons(size);
 	msgheader->type = htons(GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
 
 	radioHeader = (struct RadiotapHeader*) &msgheader[1];
@@ -1286,7 +1304,7 @@ wlan_plugin_send (void *cls,
   (newmsg->msg) = GNUNET_malloc(msgbuf_size + sizeof(struct WlanHeader));
   wlanheader = (struct WlanHeader *) newmsg->msg;
   //copy msg to buffer, not fragmented / segmented yet, but with message header
-  wlanheader->header.size = htons(msgbuf_size);
+  wlanheader->header.size = htons(msgbuf_size + sizeof(struct WlanHeader));
   wlanheader->header.type = htons(GNUNET_MESSAGE_TYPE_WLAN_DATA);
   memcpy(&(wlanheader->target), target, sizeof(struct GNUNET_PeerIdentity));
   wlanheader->crc = htonl(getcrc32(msgbuf, msgbuf_size));
@@ -1302,6 +1320,7 @@ wlan_plugin_send (void *cls,
 
 }
 
+//TODO doxigen
 static struct FragmentMessage *
 get_fragment_message_from_session(struct Session * session)
 {
@@ -1361,6 +1380,8 @@ wlan_plugin_disconnect(void *cls, const struct GNUNET_PeerIdentity *target)
           fm = get_fragment_message_from_session(queue->content);
           free_fragment_message(plugin,fm);
 
+          //dispose all received fragments
+          free_rec_frag_queue(queue->content);
 
           // remove PendingMessage
           pm = queue->content->pending_message;
@@ -1499,8 +1520,124 @@ wlan_plugin_address_to_string (void *cls,
   return GNUNET_strdup (ret);
 }
 
+/**
+ * Function to test if fragment number already exists in the fragments received
+ */
+//TODO doxigen
+static const int
+is_double_msg(struct Session * session, struct FragmentationHeader * fh)
+{
+  struct RecQueue * rec_queue = session->frag_head;
+  while (rec_queue != NULL)
+    {
+      if (rec_queue->num == fh->fragment_off_or_num)
+        {
+          return GNUNET_YES;
+        }
+      rec_queue = rec_queue->next;
+
+    }
+  return GNUNET_NO;
+}
 
 
+static void
+insert_fragment_in_queue(struct Session * session, struct RecQueue * rec_queue)
+{
+  struct RecQueue * rec_queue2 = session->frag_head;
+  struct WlanHeader * wlanheader = NULL;
+  //first received fragment of message
+  if (session->rec_size == NO_MESSAGE_OR_MESSAGE_FINISHED)
+    {
+      session->rec_size = MESSAGE_LENGHT_UNKNOWN;
+    }
+  //this is the first fragment of the message (fragment id 0)
+  if (rec_queue->num == 0)
+    {
+      wlanheader = (struct WlanHeader *) rec_queue->msg;
+      session->rec_size = wlanheader->header.size;
+    }
+
+  //sort into list
+  while (rec_queue2 != NULL)
+    {
+      if (rec_queue2->num > rec_queue->num)
+        {
+          //next element number is grater than the current num
+          GNUNET_CONTAINER_DLL_insert_before(session->frag_head, session->frag_tail, rec_queue2, rec_queue);
+          return;
+        }
+      rec_queue = rec_queue->next;
+    }
+  //no element has a grater number
+  GNUNET_CONTAINER_DLL_insert_tail(session->frag_head, session->frag_tail, rec_queue);
+}
+
+/**
+ * Function to dispose the fragments received for a message
+ */
+//TODO doxigen
+static void
+free_rec_frag_queue(struct Session * session)
+{
+  struct RecQueue * rec_queue = session->frag_head;
+  struct RecQueue * rec_queue2;
+  while (rec_queue != NULL)
+    {
+      rec_queue2 = rec_queue;
+      rec_queue = rec_queue->next;
+      GNUNET_free(rec_queue2);
+    }
+  session->frag_head = NULL;
+  session->frag_tail = NULL;
+  session->rec_size = NO_MESSAGE_OR_MESSAGE_FINISHED;
+}
+
+/**
+ * Function to check if all fragments of a message have been received
+ */
+//TODO doxigen
+static void
+check_rec_finished_msg (struct Plugin* plugin, struct Session_light * session_light, struct Session * session){
+  struct RecQueue * rec_queue = session->frag_head;
+  int packetsize = session->rec_size;
+  int sum = 0;
+  int aktnum = 0;
+  char * msg;
+  //some fragment should be received
+  GNUNET_assert(session->rec_size != NO_MESSAGE_OR_MESSAGE_FINISHED);
+  //check if first fragment is present
+  if (session->rec_size == MESSAGE_LENGHT_UNKNOWN){
+    return;
+  }
+  while (rec_queue != NULL){
+    sum += rec_queue->size;
+    //check if all fragment numbers are present
+    if (rec_queue->num != aktnum){
+      return;
+    }
+    aktnum ++;
+    rec_queue = rec_queue->next;
+  }
+  //sum should always be smaller or equal of
+  GNUNET_assert(sum <= packetsize);
+  if (sum == packetsize){
+    //copy fragments together
+    msg = GNUNET_malloc(packetsize);
+    rec_queue = session->frag_head;
+    aktnum = 0;
+    while (rec_queue != NULL){
+      memcpy(msg + aktnum, rec_queue->msg, rec_queue->size);
+      aktnum += rec_queue->size;
+      rec_queue = rec_queue->next;
+    }
+    free_rec_frag_queue(session);
+    //call wlan_process_helper to process the message
+    wlan_process_helper (plugin, session_light, (struct GNUNET_MessageHeader*) msg);
+
+    GNUNET_free(msg);
+  }
+}
 
 /**
  * Function used for to process the data from the suid process
@@ -1518,6 +1655,7 @@ wlan_process_helper (void *cls,
   struct WlanHeader * wlanheader = NULL;
   struct FragmentationHeader * fh = NULL;
   struct FragmentMessage * fm = NULL;
+  struct RecQueue * rec_queue = NULL;
   const struct GNUNET_MessageHeader * temp_hdr = NULL;
   const char * tempmsg = NULL;
   struct Session_light * session_light;
@@ -1626,7 +1764,7 @@ wlan_process_helper (void *cls,
         }
       session = session_light->session;
 
-      fh = (struct FragmentationHeader *) &hdr[1];
+      fh = (struct FragmentationHeader *) hdr;
       tempmsg = (char*) &fh[1];
 
       //if not in session list
@@ -1641,7 +1779,38 @@ wlan_process_helper (void *cls,
             }
           else
             {
-              //todo fragments to message
+              //todo fragments do not timeout
+              //check if message_id is rigth or it is a new msg
+              if ((session->message_id_in == ntohs(fh->message_id))
+                  || (session->rec_size == NO_MESSAGE_OR_MESSAGE_FINISHED))
+                {
+                session->message_id_in = ntohs(fh->message_id);
+                  if (is_double_msg(session, fh) != GNUNET_YES)
+                    {
+                      rec_queue = GNUNET_malloc(sizeof (struct RecQueue) +
+                              ntohs(fh->header.size) - sizeof(struct FragmentationHeader));
+                      rec_queue->size = ntohs(fh->header.size
+                          - sizeof(struct FragmentationHeader));
+                      rec_queue->num = ntohs(fh->fragment_off_or_num);
+                      rec_queue->msg = (char*) &rec_queue[1];
+                      //copy msg to buffer
+                      memcpy((char*) rec_queue->msg, tempmsg, rec_queue->size);
+                      insert_fragment_in_queue(session, rec_queue);
+                      check_rec_finished_msg(plugin, session_light, session);
+                    }
+                  else
+                    {
+                      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                          "WLAN fragment is a clone\n");
+                      return;
+                    }
+                }
+              else
+                {
+                GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                      "WLAN fragment message_id and session message_id are not the same and a message is already (partly) received\n");
+                  return;
+                }
             }
         }
       else
@@ -1705,7 +1874,7 @@ wlan_process_helper (void *cls,
 
   else if (ntohs(hdr->type) == GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL)
     {
-      //TODO Control
+      //TODO more control
       if (ntohs(hdr->size) == 6)
         {
           plugin->mac_address = GNUNET_malloc(6);
@@ -1730,6 +1899,8 @@ wlan_process_helper (void *cls,
   else
     {
       // TODO Wrong data?
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "WLAN packet has not the right type\n");
+      return;
     }
 }
 
@@ -1879,16 +2050,16 @@ libgnunet_plugin_transport_wlan_init (void *cls)
  * Exit point from the plugin.
  */
 //TODO doxigen
-//fixme cleanup
+//FIXME cleanup
 void *
 libgnunet_plugin_transport_wlan_done (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
 
-  GNUNET_SERVER_mst_destroy(plugin->consoltoken);
-
   GNUNET_assert(cls !=NULL);
+
+  GNUNET_SERVER_mst_destroy(plugin->consoltoken);
 
   GNUNET_free_non_null(plugin->mac_address);
   GNUNET_free (plugin);
