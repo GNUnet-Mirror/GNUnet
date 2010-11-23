@@ -436,8 +436,15 @@ GNUNET_log_from (enum GNUNET_ErrorType kind,
                  const char *comp, const char *message, ...)
 {
   va_list va;
+  char comp_w_pid[128];
+
   va_start (va, message);
-  mylog (kind, comp, message, va);
+  GNUNET_snprintf (comp_w_pid,
+		   sizeof (comp_w_pid),
+		   "%s-%d",
+		   comp,
+		   getpid());
+  mylog (kind, comp_w_pid, message, va);
   va_end (va);
 }
 
