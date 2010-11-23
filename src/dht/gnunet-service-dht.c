@@ -2727,7 +2727,7 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
 {
   uint32_t random_value;
   unsigned int forward_count;
-  unsigned int target_value;
+  float target_value;
   unsigned int diameter;
 
   /**

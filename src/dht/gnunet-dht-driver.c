@@ -506,6 +506,12 @@ static unsigned int get_from_same;
 static unsigned long long total_rounds;
 
 /**
+ * Target number of connections (will stop sending find peer
+ * messages when this number is exceeded)
+ */
+static unsigned long long target_total_connections;
+
+/**
  * Number of rounds already run
  */
 static unsigned int rounds_finished;
@@ -1965,16 +1971,17 @@ count_peers_cb (void *cls,
     }
   else
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Peer count finished (%u connections), %u new peers, connection estimate %u (double %u)\n",
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Peer count finished (%u connections), %u new peers, connection estimate %u (target %u)\n",
                                             find_peer_context->current_peers,
                                             find_peer_context->current_peers - find_peer_context->previous_peers,
                                             connection_estimate(num_peers, DEFAULT_BUCKET_SIZE),
-                                            2 * connection_estimate(num_peers, DEFAULT_BUCKET_SIZE));
+                                            target_total_connections);
 
       if ((find_peer_context->last_sent < 8) ||
           ((find_peer_context->current_peers - find_peer_context->previous_peers > FIND_PEER_THRESHOLD) &&
           (find_peer_context->current_peers < 2 * connection_estimate(num_peers, DEFAULT_BUCKET_SIZE)) &&
-          (GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime).rel_value > 0)))
+          (GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime).rel_value > 0) &&
+          (find_peer_context->current_peers < target_total_connections)))
         {
           GNUNET_SCHEDULER_add_now(&schedule_find_peer_requests, find_peer_context);
         }
@@ -2018,7 +2025,7 @@ schedule_find_peer_requests (void *cls, const struct GNUNET_SCHEDULER_TaskContex
     find_peer_ctx->total = num_peers;
 
   find_peer_ctx->last_sent = find_peer_ctx->total;
-  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Sending %u find peer messages (goal at least %u connections)\n", find_peer_ctx->total, connection_estimate(num_peers, DEFAULT_BUCKET_SIZE));
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Sending %u find peer messages (goal at least %u connections)\n", find_peer_ctx->total, target_total_connections);
 
   find_peer_offset = GNUNET_TIME_relative_divide(find_peer_delay, find_peer_ctx->total);
   for (i = 0; i < find_peer_ctx->total; i++)
@@ -2957,6 +2964,14 @@ run (void *cls,
                                                &total_rounds))
     {
       total_rounds = 1;
+    }
+
+  if ((GNUNET_SYSERR ==
+        GNUNET_CONFIGURATION_get_value_number (cfg, "dht_testing", "target_total_connections",
+                                               &target_total_connections)) ||
+                                               (target_total_connections == 0))
+    {
+      target_total_connections = connection_estimate(num_peers, DEFAULT_BUCKET_SIZE);
     }
 
   topology_str = NULL;
