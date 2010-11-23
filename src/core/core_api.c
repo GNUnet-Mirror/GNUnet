@@ -590,14 +590,26 @@ transmission_timeout (void *cls,
 		      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerRecord *pr = cls;
+  struct GNUNET_CORE_Handle *h = pr->ch;
   struct GNUNET_CORE_TransmitHandle *th;
-
+  
   pr->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   th = pr->pending_head;
   GNUNET_CONTAINER_DLL_remove (pr->pending_head,
                                pr->pending_tail,
                                th);
   pr->queue_size--;
+  if ( (pr->prev != NULL) ||
+       (pr->next != NULL) ||
+       (pr == h->ready_peer_head) )
+    {
+      /* the request that was 'approved' by core was
+	 canceled before it could be transmitted; remove
+	 us from the 'ready' list */
+      GNUNET_CONTAINER_DLL_remove (h->ready_peer_head,
+				   h->ready_peer_tail,
+				   pr);
+    }
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Signalling timeout of request for transmission to CORE service\n");
@@ -1514,9 +1526,9 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
   /* bound queue size */
   if (pr->queue_size == handle->queue_size)
     {
-      /* find lowest-priority entry */
-      minp = pr->pending_head;
-      prev = minp->next;
+      /* find lowest-priority entry, but skip the head of the list */
+      minp = pr->pending_head->next;
+      prev = minp;
       while (prev != NULL)
 	{
 	  if (prev->priority < minp->priority)
