@@ -354,6 +354,15 @@ unsigned long long GNUNET_htonll (unsigned long long n);
 #define GNUNET_malloc(size) GNUNET_xmalloc_(size, __FILE__, __LINE__)
 
 /**
+ * Allocate and initialize a block of memory.
+ * 
+ * @param buf data to initalize the block with
+ * @param size the number of bytes in buf (and size of the allocation)
+ * @return pointer to size bytes of memory, never NULL (!)
+ */
+#define GNUNET_memdup(buf,size) GNUNET_xmemdup_(buf, size, __FILE__, __LINE__)
+
+/**
  * Wrapper around malloc. Allocates size bytes of memory.
  * The memory will be zero'ed out.
  *
@@ -476,6 +485,21 @@ int GNUNET_asprintf (char **buf, const char *format, ...);
  * @return allocated memory, never NULL
  */
 void *GNUNET_xmalloc_ (size_t size, const char *filename, int linenumber);
+
+
+
+/**
+ * Allocate and initialize memory. Checks the return value, aborts if no more
+ * memory is available.  Don't use GNUNET_xmemdup_ directly. Use the
+ * GNUNET_memdup macro.
+ *
+ * @param buf buffer to initialize from (must contain size bytes)
+ * @param size number of bytes to allocate
+ * @param filename where is this call being made (for debugging)
+ * @param linenumber line where this call is being made (for debugging)
+ * @return allocated memory, never NULL
+ */
+void *GNUNET_xmemdup_ (const void *buf, size_t size, const char *filename, int linenumber);
 
 
 /**

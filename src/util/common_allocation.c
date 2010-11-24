@@ -69,6 +69,46 @@ GNUNET_xmalloc_ (size_t size, const char *filename, int linenumber)
 
 
 /**
+ * Allocate and initialize memory. Checks the return value, aborts if no more
+ * memory is available.  Don't use GNUNET_xmemdup_ directly. Use the
+ * GNUNET_memdup macro.
+ *
+ * @param buf buffer to initialize from (must contain size bytes)
+ * @param size number of bytes to allocate
+ * @param filename where is this call being made (for debugging)
+ * @param linenumber line where this call is being made (for debugging)
+ * @return allocated memory, never NULL
+ */
+void *GNUNET_xmemdup_ (const void *buf, size_t size, const char *filename, int linenumber)
+{
+  void *ret;
+  /* As a security precaution, we generally do not allow very large
+     allocations here */
+  GNUNET_assert_at (size <= GNUNET_MAX_MALLOC_CHECKED, filename, linenumber);
+#ifdef W32_MEM_LIMIT
+  size += sizeof (size_t);
+  if (mem_used + size > W32_MEM_LIMIT)
+    return NULL;
+#endif
+  GNUNET_assert_at (size < INT_MAX, filename, linenumber);
+  ret = malloc (size);
+  if (ret == NULL)
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "malloc");
+      abort ();
+    }
+#ifdef W32_MEM_LIMIT
+  *((size_t *) ret) = size;
+  ret = &((size_t *) ret)[1];
+  mem_used += size;
+#endif
+  memcpy (ret, buf, size);
+  return ret;
+}
+
+
+
+/**
  * Wrapper around malloc. Allocates size bytes of memory.
  * The memory will be zero'ed out.
  *
