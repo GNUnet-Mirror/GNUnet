@@ -1960,8 +1960,12 @@ process_interfaces (void *cls,
     {
     case AF_INET:
       t4.ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
-      GNUNET_assert(NULL != inet_ntop(AF_INET, &t4.ipv4_addr, &buf[0], INET_ADDRSTRLEN));
-      if ((plugin->bind_address != NULL) && (0 != strcmp(buf, plugin->bind_address)))
+      GNUNET_assert (NULL != inet_ntop(AF_INET, 
+				       &t4.ipv4_addr, 
+				       &buf[0], 
+				       INET_ADDRSTRLEN));
+      if ( (plugin->bind_address != NULL) && 
+	   (0 != strcmp(buf, plugin->bind_address)) )
         {
           GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, 
 			   "tcp",
@@ -1985,7 +1989,9 @@ process_interfaces (void *cls,
       break;
     case AF_INET6:      
       if ( (IN6_IS_ADDR_LINKLOCAL (&((struct sockaddr_in6 *) addr)->sin6_addr)) || 
-	   (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(plugin->env->cfg, "transport-tcp", "DISABLEV6")) )
+	   (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(plugin->env->cfg, 
+							       "transport-tcp", 
+							       "DISABLEV6")) )
 	{
 	  /* skip link local addresses */
 	  return GNUNET_OK;
@@ -1994,7 +2000,8 @@ process_interfaces (void *cls,
 	      &((struct sockaddr_in6 *) addr)->sin6_addr,
 	      sizeof (struct in6_addr));
       add_to_address_list (plugin, &t6.ipv6_addr, sizeof (struct in6_addr));
-      if ((plugin->behind_nat == GNUNET_YES) && (plugin->only_nat_addresses == GNUNET_YES))
+      if ( (plugin->behind_nat == GNUNET_YES) && 
+	   (plugin->only_nat_addresses == GNUNET_YES) )
         t6.t6_port = htons(0);
       else if (plugin->behind_nat == GNUNET_YES) /* We are behind NAT, but will advertise NAT and normal addresses */
         {
