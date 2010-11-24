@@ -609,7 +609,7 @@ add_to_address_list (struct Plugin *plugin,
       v6.sin6_port = htons (plugin->open_port);
       memcpy (&v6.sin6_addr, arg, arg_size);
 #if HAVE_SOCKADDR_IN_SIN_LEN
-      v6.sin_len = sizeof (struct sockaddr_in6);
+      v6.sin6_len = sizeof (struct sockaddr_in6);
 #endif
       sa = (const struct sockaddr*) &v6;
       salen = sizeof (v6);
