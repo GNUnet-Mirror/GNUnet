@@ -42,7 +42,7 @@
  */
 typedef void (*GNUNET_NAT_AddressCallback) (void *cls, 
 					    int add_remove,
-                                            const struct sockaddr * addr,
+                                            const struct sockaddr *addr,
                                             socklen_t addrlen);
 
 
