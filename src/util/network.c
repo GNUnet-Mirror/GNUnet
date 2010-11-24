@@ -835,11 +835,9 @@ GNUNET_NETWORK_fdset_handle_set (struct GNUNET_NETWORK_FDSet *fds,
                                  const struct GNUNET_DISK_FileHandle *h)
 {
 #ifdef MINGW
-  HANDLE hw;
-  GNUNET_DISK_internal_file_handle_ (h, &hw, sizeof (HANDLE));
   GNUNET_CONTAINER_slist_add (fds->handles,
                               GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
-                              &hw, sizeof (HANDLE));
+                              h, sizeof (struct GNUNET_DISK_FileHandle));
 
 #else
   int fd;
@@ -850,23 +848,6 @@ GNUNET_NETWORK_fdset_handle_set (struct GNUNET_NETWORK_FDSet *fds,
 
 #endif
 }
-
-
-#if MINGW
-/**
- * Add a W32 file handle to the fd set
- * @param fds fd set
- * @param h the file handle to add
- */
-void
-GNUNET_NETWORK_fdset_handle_set_native_w32_handle (struct GNUNET_NETWORK_FDSet *fds,
-						   HANDLE h)
-{
-  GNUNET_CONTAINER_slist_add (fds->handles,
-                              GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
-                              &h, sizeof (HANDLE));
-}
-#endif
 
 
 /**
@@ -881,8 +862,8 @@ GNUNET_NETWORK_fdset_handle_isset (const struct GNUNET_NETWORK_FDSet *fds,
 {
 
 #ifdef MINGW
-  return GNUNET_CONTAINER_slist_contains (fds->handles, &h->h,
-                                          sizeof (HANDLE));
+  return GNUNET_CONTAINER_slist_contains (fds->handles, h,
+                                          sizeof (struct GNUNET_DISK_FileHandle));
 #else
   return FD_ISSET (h->fd, &fds->sds);
 #endif
@@ -913,7 +894,7 @@ GNUNET_NETWORK_fdset_overlap (const struct GNUNET_NETWORK_FDSet *fds1,
     }
 #else
   struct GNUNET_CONTAINER_SList_Iterator *it;
-  HANDLE *h;
+  struct GNUNET_DISK_FileHandle *h;
   int i;
   int j;
 
@@ -931,9 +912,9 @@ GNUNET_NETWORK_fdset_overlap (const struct GNUNET_NETWORK_FDSet *fds1,
   it = GNUNET_CONTAINER_slist_begin (fds1->handles);
   while (GNUNET_CONTAINER_slist_end (it) != GNUNET_YES)
     {
-      h = (HANDLE *) GNUNET_CONTAINER_slist_get (it, NULL);
+      h = (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (it, NULL);
       if (GNUNET_CONTAINER_slist_contains
-          (fds2->handles, h, sizeof (HANDLE)))
+          (fds2->handles, h, sizeof (struct GNUNET_DISK_FileHandle)))
         {
           GNUNET_CONTAINER_slist_iter_destroy (it);
           return GNUNET_YES;
