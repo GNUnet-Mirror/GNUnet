@@ -1905,7 +1905,8 @@ expire_address_task (void *cls,
  *        expired
  */
 static void
-update_addresses (struct TransportPlugin *plugin, int fresh)
+update_addresses (struct TransportPlugin *plugin, 
+		  int fresh)
 {
   static struct GNUNET_TIME_Absolute last_update;
   struct GNUNET_TIME_Relative min_remaining;
@@ -2181,9 +2182,9 @@ plugin_env_notify_address (void *cls,
   while (al != NULL)
     {
       if ((addrlen == al->addrlen) && (0 == memcmp (addr, &al[1], addrlen)))
-        {
-          if (al->expires.abs_value < abex.abs_value)
-            al->expires = abex;
+        {	      
+	  al->expires = abex;
+	  update_addresses (p, GNUNET_NO);
           return;
         }
       al = al->next;
