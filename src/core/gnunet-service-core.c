@@ -2757,7 +2757,7 @@ notify_transport_connect_done (void *cls, size_t size, void *buf)
       /* transport should only call us to transmit a message after
        * telling us about a successful connection to the respective peer */
 #if DEBUG_CORE
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Timeout on notify connect!\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Timeout on notify connect!\n");
 #endif
       return 0;
     }
@@ -4194,6 +4194,11 @@ handle_transport_notify_disconnect (void *cls,
       cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT);
       cnm.peer = *peer;
       send_to_all_clients (&cnm.header, GNUNET_NO, GNUNET_CORE_OPTION_SEND_DISCONNECT);
+    }
+  if (NULL != n->th)
+    {
+      GNUNET_TRANSPORT_notify_transmit_ready_cancel (n->th);
+      n->th = NULL;
     }
   n->is_connected = GNUNET_NO;
   n->status = PEER_STATE_DOWN;
