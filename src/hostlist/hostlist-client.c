@@ -1168,9 +1168,9 @@ handler_disconnect (void *cls,
   GNUNET_assert (stat_connection_count > 0);
   stat_connection_count--;
   GNUNET_STATISTICS_update (stats,
-							gettext_noop ("# active connections"),
-							-1,
-							GNUNET_NO);
+			    gettext_noop ("# active connections"),
+			    -1,
+			    GNUNET_NO);
 }
 
 /**
