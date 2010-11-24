@@ -24,6 +24,7 @@ SUBDIRS = \
   datacache \
   datastore \
   template \
+  $(NAT_DIR) \
   transport \
   peerinfo-tool \
   core \
@@ -32,7 +33,6 @@ SUBDIRS = \
   dht \
   hostlist \
   topology \
-  $(NAT_DIR) \
   fs \
   fragmentation \
   vpn
