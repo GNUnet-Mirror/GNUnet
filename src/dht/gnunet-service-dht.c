@@ -144,7 +144,7 @@
 /**
  * How many initial requests to send out (in true Kademlia fashion)
  */
-#define DHT_KADEMLIA_REPLICATION 3
+#define DEFAULT_KADEMLIA_REPLICATION 3
 
 /*
  * Default frequency for sending malicious get messages
@@ -309,7 +309,7 @@ struct PeerInfo
    * be considered a really bad idea.
    * FIXME: remove this value (create struct which holds
    *        a single peerinfo and the matching bits, use
-   *        that to pass to comparitor)
+   *        that to pass to comparator)
    */
   unsigned int matching_bits;
 
@@ -880,6 +880,11 @@ static unsigned long long malicious_get_frequency;
  * Frequency for malicious put requests.
  */
 static unsigned long long malicious_put_frequency;
+
+/**
+ * Kademlia replication
+ */
+static unsigned long long kademlia_replication;
 
 /**
  * Reply times for requests, if we are busy, don't send any
@@ -2730,6 +2735,11 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
   float target_value;
   unsigned int diameter;
 
+  diameter = estimate_diameter ();
+
+  if (GNUNET_NO == use_max_hops)
+    max_hops = (diameter + 1) * 2;
+
   /**
    * If we are behaving in strict kademlia mode, send multiple initial requests,
    * but then only send to 1 or 0 peers based strictly on the number of hops.
@@ -2737,7 +2747,7 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
   if (strict_kademlia == GNUNET_YES)
     {
       if (hop_count == 0)
-        return DHT_KADEMLIA_REPLICATION;
+        return kademlia_replication;
       else if (hop_count < max_hops)
         return 1;
       else
@@ -2748,8 +2758,7 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
    * routing right?  The estimation below only works if we think we have reasonably
    * full routing tables, which for our RR topologies may not be the case!
    */
-  diameter = estimate_diameter ();
-  if ((hop_count > (diameter + 1) * 2) && (MINIMUM_PEER_THRESHOLD < estimate_diameter() * bucket_size) && (use_max_hops == GNUNET_NO))
+  if (hop_count > max_hops)
     {
 #if DEBUG_DHT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2758,18 +2767,10 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
 #endif
       return 0;
     }
-  else if (hop_count > max_hops)
-    {
-#if DEBUG_DHT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "`%s:%s': Hop count too high (greater than max)\n", my_short_id,
-                  "DHT");
-#endif
-      return 0;
-    }
 
   random_value = 0;
-  target_value = target_replication / ((2.0 * (diameter)) + ((float)target_replication * hop_count));
+  /* FIXME: we use diameter as the expected number of hops, but with randomized routing we will likely route to more! */
+  target_value = target_replication / (diameter + ((float)target_replication * hop_count));
   if (target_value > 1)
     return (unsigned int)target_value;
   else
@@ -4663,6 +4664,16 @@ run (void *cls,
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number(cfg, "DHT", "REPLICATION_FREQUENCY", &temp_config_num))
     {
       dht_republish_frequency = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, temp_config_num);
+    }
+
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number(cfg, "DHT", "bucket_size", &temp_config_num))
+    {
+      bucket_size = (unsigned int)temp_config_num;
+    }
+
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number(cfg, "DHT", "kad_alpha", &kademlia_replication))
+    {
+      kademlia_replication = DEFAULT_KADEMLIA_REPLICATION;
     }
 
   if (GNUNET_YES ==
