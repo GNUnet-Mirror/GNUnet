@@ -350,9 +350,7 @@ static void measurement_counter
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
 	return;
 
-#if VERBOSE
   fprintf(stderr,".");
-#endif
   measurement_counter_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
 							   &measurement_counter,
 							   NULL);
@@ -379,9 +377,9 @@ measurement_end (void *cls,
     GNUNET_SCHEDULER_cancel (measurement_counter_task);
     measurement_counter_task = GNUNET_SCHEDULER_NO_TASK;
   }
-#if VERBOSE
+
   fprintf(stderr,"\n");
-#endif
+
 
   if (transmit_handle != NULL)
   {
