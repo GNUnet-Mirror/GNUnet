@@ -44,7 +44,7 @@
 
 #define DEBUG_HANDSHAKE GNUNET_NO
 
-#define DEBUG_CORE_QUOTA GNUNET_YES
+#define DEBUG_CORE_QUOTA GNUNET_NO
 
 /**
  * Receive and send buffer windows grow over time.  For
@@ -4026,6 +4026,8 @@ neighbour_quota_update (void *cls,
 {
   struct Neighbour *n = cls;
   struct GNUNET_BANDWIDTH_Value32NBO q_in;
+  struct GNUNET_BANDWIDTH_Value32NBO q_out;
+  struct GNUNET_BANDWIDTH_Value32NBO q_out_min;
   double pref_rel;
   double share;
   unsigned long long distributable;
@@ -4053,14 +4055,31 @@ neighbour_quota_update (void *cls,
   need_per_peer = GNUNET_BANDWIDTH_value_get_available_until (MIN_BANDWIDTH_PER_PEER,
 							      GNUNET_TIME_UNIT_SECONDS);  
   need_per_second = need_per_peer * neighbour_count;
+
+  /* calculate inbound bandwidth per peer */
   distributable = 0;
-  if (bandwidth_target_out_bps > need_per_second)
-    distributable = bandwidth_target_out_bps - need_per_second;
+  if (bandwidth_target_in_bps > need_per_second)
+    distributable = bandwidth_target_in_bps - need_per_second;
   share = distributable * pref_rel;
   if (share + need_per_peer > UINT32_MAX)
     q_in = GNUNET_BANDWIDTH_value_init (UINT32_MAX);
   else
     q_in = GNUNET_BANDWIDTH_value_init (need_per_peer + (uint32_t) share);
+
+  /* calculate outbound bandwidth per peer */
+  distributable = 0;
+  if (bandwidth_target_out_bps > need_per_second)
+    distributable = bandwidth_target_out_bps - need_per_second;
+  share = distributable * pref_rel;
+  if (share + need_per_peer > UINT32_MAX)
+    q_out = GNUNET_BANDWIDTH_value_init (UINT32_MAX);
+  else
+    q_out = GNUNET_BANDWIDTH_value_init (need_per_peer + (uint32_t) share);
+  n->bw_out_internal_limit = q_out;
+
+  q_out_min = GNUNET_BANDWIDTH_value_min (n->bw_out_external_limit, n->bw_out_internal_limit);
+  GNUNET_BANDWIDTH_tracker_update_quota (&n->available_send_window, n->bw_out);
+
   /* check if we want to disconnect for good due to inactivity */
   if ( (GNUNET_TIME_absolute_get_duration (get_neighbour_timeout (n)).rel_value > 0) &&
        (GNUNET_TIME_absolute_get_duration (n->time_established).rel_value > GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value) )
@@ -4081,10 +4100,13 @@ neighbour_quota_update (void *cls,
 	      (unsigned int) ntohl (n->bw_in.value__),
 	      (unsigned int) ntohl (n->bw_out.value__),
 	      (unsigned int) ntohl (n->bw_out_internal_limit.value__));
-#endif
-  if (n->bw_in.value__ != q_in.value__) 
+  #endif
+  if ((n->bw_in.value__ != q_in.value__) || (n->bw_out.value__ != q_out_min.value__))
     {
-      n->bw_in = q_in;
+	  if (n->bw_in.value__ != q_in.value__)
+		  n->bw_in = q_in;
+	  if (n->bw_out.value__ != q_out_min.value__)
+		  n->bw_out = q_out_min;
       if (GNUNET_YES == n->is_connected)
 	GNUNET_TRANSPORT_set_quota (transport,
 				    &n->peer,
