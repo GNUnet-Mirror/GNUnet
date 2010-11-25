@@ -176,6 +176,7 @@ end ()
 	    GNUNET_SCHEDULER_cancel (measurement_counter_task);
 	    measurement_counter_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  fprintf(stderr,"\n");
   GNUNET_SCHEDULER_shutdown ();
 #if DEBUG_CONNECTIONS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transports!\n");
@@ -377,9 +378,6 @@ measurement_end (void *cls,
     GNUNET_SCHEDULER_cancel (measurement_counter_task);
     measurement_counter_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
-  fprintf(stderr,"\n");
-
 
   if (transmit_handle != NULL)
   {
