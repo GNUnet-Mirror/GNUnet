@@ -1964,6 +1964,33 @@ static int consider_peer (struct GNUNET_PeerIdentity *peer)
   return GNUNET_NO;
 }
 
+
+/**
+ * Task used to remove forwarding entries, either
+ * after timeout, when full, or on shutdown.
+ *
+ * @param cls the entry to remove
+ * @param tc context, reason, etc.
+ */
+static void
+remove_forward_entry (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct DHTRouteSource *source_info = cls;
+  struct DHTQueryRecord *record;
+  source_info = GNUNET_CONTAINER_heap_remove_node(forward_list.minHeap, source_info->hnode);
+  record = source_info->record;
+  GNUNET_CONTAINER_DLL_remove(record->head, record->tail, source_info);
+
+  if (record->head == NULL) /* No more entries in DLL */
+    {
+      GNUNET_assert(GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (forward_list.hashmap, &record->key, record));
+      GNUNET_free(record);
+    }
+  if (source_info->find_peers_responded != NULL)
+    GNUNET_CONTAINER_bloomfilter_free(source_info->find_peers_responded);
+  GNUNET_free(source_info);
+}
+
 /**
  * Main function that handles whether or not to route a result
  * message to other peers, or to send to our local client.
@@ -2117,7 +2144,13 @@ static int route_result_message(struct GNUNET_MessageHeader *msg,
                                                msg_ctx->peer, &pos->source);
                 }
 #endif
-              forward_result_message(msg, peer_info, msg_ctx);
+              forward_result_message (msg, peer_info, msg_ctx);
+              /* Try removing forward entries after sending once, only allows ONE response per request */
+              if (pos->delete_task != GNUNET_SCHEDULER_NO_TASK)
+                {
+                  GNUNET_SCHEDULER_cancel(pos->delete_task);
+                  pos->delete_task = GNUNET_SCHEDULER_add_now (&remove_forward_entry, pos);
+                }
             }
           else
             {
@@ -3351,33 +3384,6 @@ remove_recent (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CONTAINER_heap_destroy(recent.minHeap);
   }
   */
-}
-
-
-/**
- * Task used to remove forwarding entries, either
- * after timeout, when full, or on shutdown.
- *
- * @param cls the entry to remove
- * @param tc context, reason, etc.
- */
-static void
-remove_forward_entry (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct DHTRouteSource *source_info = cls;
-  struct DHTQueryRecord *record;
-  source_info = GNUNET_CONTAINER_heap_remove_node(forward_list.minHeap, source_info->hnode);
-  record = source_info->record;
-  GNUNET_CONTAINER_DLL_remove(record->head, record->tail, source_info);
-
-  if (record->head == NULL) /* No more entries in DLL */
-    {
-      GNUNET_assert(GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (forward_list.hashmap, &record->key, record));
-      GNUNET_free(record);
-    }
-  if (source_info->find_peers_responded != NULL)
-    GNUNET_CONTAINER_bloomfilter_free(source_info->find_peers_responded);
-  GNUNET_free(source_info);
 }
 
 /**
