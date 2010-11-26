@@ -2845,17 +2845,20 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
     }
 
   random_value = 0;
-  /* FIXME: we use diameter as the expected number of hops, but with randomized routing we will likely route to more! */
+  forward_count = 1;
   target_value = target_replication / (diameter + ((float)target_replication * hop_count));
   if (target_value > 1)
-    return (unsigned int)target_value;
+    {
+      /* Set forward count to floor of target_value */
+      forward_count = (unsigned int)target_value;
+      /* Subtract forward_count (floor) from target_value (yields value between 0 and 1) */
+      target_value = target_value - forward_count;
+    }
   else
     random_value = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, (unsigned int)-1);
 
   if (random_value < (target_value * (unsigned int)-1))
-    forward_count = 2;
-  else
-    forward_count = 1;
+    forward_count += 1;
 
   return forward_count;
 }
