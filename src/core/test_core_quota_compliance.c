@@ -136,7 +136,8 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Testcase timout, exit!\n");
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Testcase failed!\n");
   //GNUNET_break (0);
 
   if (measure_task != GNUNET_SCHEDULER_NO_TASK)
@@ -719,6 +720,22 @@ main (int argc, char *argv[])
 	  test = ASYMMETRIC_RECV_LIMITED;
     }
   GNUNET_assert (test != -1);
+  if (test == SYMMETRIC)
+    {
+	  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-sym-peer-1/");
+	  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-sym-peer-2/");
+    }
+  else if (test == ASYMMETRIC_SEND_LIMITED)
+    {
+	  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-asym-sender-lim-peer-1/");
+	  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-asym-sender-lim-peer-2/");
+    }
+  else if (test == ASYMMETRIC_RECV_LIMITED)
+    {
+	  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-asym-recv-lim-peer-1/");
+	  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-asym-recv-lim-peer-2/");
+    }
+
   GNUNET_log_setup ("test-core-quota-compliance",
 #if VERBOSE
                     "DEBUG",
