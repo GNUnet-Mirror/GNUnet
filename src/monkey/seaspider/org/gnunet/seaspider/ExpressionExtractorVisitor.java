@@ -480,11 +480,16 @@ public class ExpressionExtractorVisitor extends DepthFirstVisitor {
 		current_expression = new ExpressionBuilder();
 		n.f0.accept(this);
 		if (n.f1.present()) {
+			LineNumberInfo lin = LineNumberInfo.get(n);
+			current_expression.commit(lin.lineEnd);
 			operator = true;
 			NodeSequence ns = (NodeSequence) n.f1.node;
 			ns.nodes.get(0).accept(this);
 			operator = false;
+			old.push(current_expression.expression);
+			current_expression = new ExpressionBuilder();
 			ns.nodes.get(1).accept(this);
+			current_expression.commit(lin.lineEnd);
 		}
 		old.push(current_expression.expression);
 		current_expression = old;
