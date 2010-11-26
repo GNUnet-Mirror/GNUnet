@@ -1145,6 +1145,7 @@ core_transmit_notify (void *cls,
 
   off = 0;
   pending = peer->head;
+#if DUMB
   reply_times[reply_counter] = GNUNET_TIME_absolute_get_difference(pending->scheduled, GNUNET_TIME_absolute_get());
   msize = ntohs(pending->msg->size);
   if (msize <= size)
@@ -1159,13 +1160,14 @@ core_transmit_notify (void *cls,
                                    pending);
       GNUNET_free (pending);
     }
-#if SMART
+#else
   while (NULL != pending &&
-          (size - off >= (msize = ntohs (pending->msg->size))))
+         (size - off >= (msize = ntohs (pending->msg->size))))
     {
       memcpy (&cbuf[off], pending->msg, msize);
       off += msize;
       peer->pending_count--;
+      increment_stats("# pending messages sent");
       GNUNET_assert(peer->pending_count >= 0);
       GNUNET_CONTAINER_DLL_remove (peer->head,
                                    peer->tail,
@@ -1175,7 +1177,7 @@ core_transmit_notify (void *cls,
     }
 #endif
   if ((peer->head != NULL) && (peer->send_task == GNUNET_SCHEDULER_NO_TASK))
-    peer->send_task = GNUNET_SCHEDULER_add_now(&try_core_send, peer);
+    peer->send_task = GNUNET_SCHEDULER_add_now (&try_core_send, peer);
 
   return off;
 }
@@ -1541,6 +1543,7 @@ static void delete_peer (struct PeerInfo *peer,
   pos = peer->head;
   while (pos != NULL) /* Remove any pending messages for this peer */
     {
+      increment_stats("# dht pending messages discarded (due to disconnect/shutdown)");
       next = pos->next;
       GNUNET_free(pos);
       pos = next;
@@ -4430,7 +4433,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "%s:%s Removing peer %s from bucket %d!\n", my_short_id, "DHT", GNUNET_i2s(&pos->id), bucket_count);
 #endif
-          delete_peer(pos, bucket_count);
+          delete_peer (pos, bucket_count);
         }
     }
   if (coreAPI != NULL)
