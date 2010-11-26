@@ -257,6 +257,11 @@ struct PeerInfo
   struct PeerInfo *prev;
 
   /**
+   * Count of outstanding messages for peer.
+   */
+  unsigned int pending_count;
+
+  /**
    * Head of pending messages to be sent to this peer.
    */
   struct P2PPendingMessage *head;
@@ -1098,6 +1103,8 @@ forward_result_message (const struct GNUNET_MessageHeader *msg,
 #if DEBUG_DHT > 1
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s:%s Adding pending message size %d for peer %s\n", my_short_id, "DHT", msize, GNUNET_i2s(&peer->id));
 #endif
+  peer->pending_count++;
+  increment_stats("# pending messages scheduled");
   GNUNET_CONTAINER_DLL_insert_after(peer->head, peer->tail, peer->tail, pending);
   if (peer->send_task == GNUNET_SCHEDULER_NO_TASK)
     peer->send_task = GNUNET_SCHEDULER_add_now(&try_core_send, peer);
@@ -1144,23 +1151,22 @@ core_transmit_notify (void *cls,
     {
       off = msize;
       memcpy (cbuf, pending->msg, msize);
+      peer->pending_count--;
+      increment_stats("# pending messages sent");
+      GNUNET_assert(peer->pending_count >= 0);
       GNUNET_CONTAINER_DLL_remove (peer->head,
                                    peer->tail,
                                    pending);
-#if DEBUG_DHT > 1
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s:%s Removing pending message size %d for peer %s\n", my_short_id, "DHT", msize, GNUNET_i2s(&peer->id));
-#endif
       GNUNET_free (pending);
     }
 #if SMART
   while (NULL != pending &&
           (size - off >= (msize = ntohs (pending->msg->size))))
     {
-#if DEBUG_DHT_ROUTING
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "`%s:%s' : transmit_notify (core) called with size %d, available %d\n", my_short_id, "dht service", msize, size);
-#endif
       memcpy (&cbuf[off], pending->msg, msize);
       off += msize;
+      peer->pending_count--;
+      GNUNET_assert(peer->pending_count >= 0);
       GNUNET_CONTAINER_DLL_remove (peer->head,
                                    peer->tail,
                                    pending);
@@ -1170,9 +1176,7 @@ core_transmit_notify (void *cls,
 #endif
   if ((peer->head != NULL) && (peer->send_task == GNUNET_SCHEDULER_NO_TASK))
     peer->send_task = GNUNET_SCHEDULER_add_now(&try_core_send, peer);
-#if DEBUG_DHT > 1
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "`%s:%s' : transmit_notify (core) called with size %d, available %d, returning %d\n", my_short_id, "dht service", msize, size, off);
-#endif
+
   return off;
 }
 
@@ -1701,6 +1705,8 @@ static void forward_message (const struct GNUNET_MessageHeader *msg,
 #if DEBUG_DHT > 1
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s:%s Adding pending message size %d for peer %s\n", my_short_id, "DHT", msize, GNUNET_i2s(&peer->id));
 #endif
+  peer->pending_count++;
+  increment_stats("# pending messages scheduled");
   GNUNET_CONTAINER_DLL_insert_after(peer->head, peer->tail, peer->tail, pending);
   if (peer->send_task == GNUNET_SCHEDULER_NO_TASK)
     peer->send_task = GNUNET_SCHEDULER_add_now(&try_core_send, peer);
