@@ -743,6 +743,10 @@ main (int argc, char *argv[])
 #ifdef MINGW
   return GNUNET_SYSERR;
 #endif
+
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-1");
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-2");
+
   if (strstr(argv[0], "tcp_nat") != NULL)
     {
       is_tcp_nat = GNUNET_YES;

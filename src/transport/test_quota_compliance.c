@@ -795,6 +795,10 @@ main (int argc, char *argv[])
 	  else
 		  GNUNET_asprintf(&logger, "test-quota-compliance-%s-%s","https","symmetric");
   }
+
+  GNUNET_DISK_directory_remove ("/tmp/test_quota_compliance_peer1");
+  GNUNET_DISK_directory_remove ("/tmp/test_quota_compliance_peer2");
+
   fprintf(stderr,  "Running `%s'\n", logger);
   GNUNET_log_setup ("test-quota-compliance",
 #if VERBOSE
