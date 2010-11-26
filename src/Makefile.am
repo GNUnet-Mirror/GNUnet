@@ -2,10 +2,6 @@
 #  INTLEMU_SUBDIRS = intlemu
 #endif
 
-if !MINGW
- NAT_DIR = nat
-endif
-
 if HAVE_ESMTP
 if HAVE_OPENSSL
  MONKEY_DIR = monkey
@@ -24,7 +20,7 @@ SUBDIRS = \
   datacache \
   datastore \
   template \
-  $(NAT_DIR) \
+  nat \
   transport \
   peerinfo-tool \
   core \
