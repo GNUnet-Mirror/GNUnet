@@ -2600,7 +2600,19 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
   put_type = (enum GNUNET_BLOCK_Type) ntohl (put_msg->type);
 #if HAVE_MALICIOUS
   if (put_type == GNUNET_BLOCK_DHT_MALICIOUS_MESSAGE_TYPE)
-    return;
+    {
+#if DEBUG_DHT_ROUTING
+      if ((debug_routes_extended) && (dhtlog_handle != NULL))
+        {
+          /** Log routes that die due to high load! */
+          dhtlog_handle->insert_route (NULL, msg_ctx->unique_id, DHTLOG_ROUTE,
+                                       msg_ctx->hop_count, GNUNET_SYSERR,
+                                       &my_identity, &msg_ctx->key, msg_ctx->peer,
+                                       NULL);
+        }
+#endif
+      return;
+    }
 #endif
   data_size = ntohs (put_msg->header.size) - sizeof (struct GNUNET_DHT_PutMessage);
   ret = GNUNET_BLOCK_get_key (block_context,
@@ -2610,6 +2622,16 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
 			      &key);
   if (GNUNET_NO == ret)
     {
+#if DEBUG_DHT_ROUTING
+      if ((debug_routes_extended) && (dhtlog_handle != NULL))
+        {
+          /** Log routes that die due to high load! */
+          dhtlog_handle->insert_route (NULL, msg_ctx->unique_id, DHTLOG_ROUTE,
+                                       msg_ctx->hop_count, GNUNET_SYSERR,
+                                       &my_identity, &msg_ctx->key, msg_ctx->peer,
+                                       NULL);
+        }
+#endif
       /* invalid reply */
       GNUNET_break_op (0);
       return;
@@ -2619,6 +2641,16 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
 		     &msg_ctx->key,
 		     sizeof (GNUNET_HashCode))) )
     {
+#if DEBUG_DHT_ROUTING
+      if ((debug_routes_extended) && (dhtlog_handle != NULL))
+        {
+          /** Log routes that die due to high load! */
+          dhtlog_handle->insert_route (NULL, msg_ctx->unique_id, DHTLOG_ROUTE,
+                                       msg_ctx->hop_count, GNUNET_SYSERR,
+                                       &my_identity, &msg_ctx->key, msg_ctx->peer,
+                                       NULL);
+        }
+#endif
       /* invalid wrapper: key mismatch! */
       GNUNET_break_op (0);
       return;
@@ -3441,6 +3473,7 @@ route_message(const struct GNUNET_MessageHeader *msg,
 #if DEBUG_DHT_ROUTING > 1
   struct PeerInfo *nearest;
 #endif
+  unsigned int target_forward_count;
   unsigned int forward_count;
   struct RecentRequest *recent_req;
   GNUNET_HashCode unique_hash;
@@ -3470,15 +3503,15 @@ route_message(const struct GNUNET_MessageHeader *msg,
     }
 
   increment_stats(STAT_ROUTES);
-  forward_count = get_forward_count(msg_ctx->hop_count, msg_ctx->replication);
-  GNUNET_asprintf(&stat_forward_count, "# forward counts of %d", forward_count);
+  target_forward_count = get_forward_count(msg_ctx->hop_count, msg_ctx->replication);
+  GNUNET_asprintf(&stat_forward_count, "# forward counts of %d", target_forward_count);
   increment_stats(stat_forward_count);
   GNUNET_free(stat_forward_count);
   if (msg_ctx->bloom == NULL)
     msg_ctx->bloom = GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
 
   if ((stop_on_closest == GNUNET_YES) && (msg_ctx->closest == GNUNET_YES) && (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DHT_PUT))
-    forward_count = 0;
+    target_forward_count = 0;
 
   /**
    * NOTICE:  In Kademlia, a find peer request goes no further if the peer doesn't return
@@ -3496,22 +3529,8 @@ route_message(const struct GNUNET_MessageHeader *msg,
    * routing tables still get constructed.
    */
   if ((GNUNET_YES == strict_kademlia) && (msg_ctx->closest == GNUNET_YES) && (msg_ctx->hop_count > 0) && (ntohs(msg->type) != GNUNET_MESSAGE_TYPE_DHT_FIND_PEER))
-    forward_count = 0;
+    target_forward_count = 0;
 
-#if DEBUG_DHT_ROUTING
-  if (forward_count == 0)
-    ret = GNUNET_SYSERR;
-  else
-    ret = GNUNET_NO;
-
-  if ((debug_routes_extended) && (dhtlog_handle != NULL))
-    {
-      dhtlog_handle->insert_route (NULL, msg_ctx->unique_id, DHTLOG_ROUTE,
-                                   msg_ctx->hop_count, ret,
-                                   &my_identity, &msg_ctx->key, msg_ctx->peer,
-                                   NULL);
-    }
-#endif
 
   GNUNET_CONTAINER_bloomfilter_add (msg_ctx->bloom, &my_identity.hashPubKey);
   hash_from_uid (msg_ctx->unique_id, &unique_hash);
@@ -3546,12 +3565,14 @@ route_message(const struct GNUNET_MessageHeader *msg,
       GNUNET_SCHEDULER_add_now(&remove_recent, recent_req);
     }
 
-  for (i = 0; i < forward_count; i++)
+  forward_count = 0;
+  for (i = 0; i < target_forward_count; i++)
     {
       selected = select_peer(&msg_ctx->key, msg_ctx->bloom, msg_ctx->hop_count);
 
       if (selected != NULL)
         {
+          forward_count++;
           if (GNUNET_CRYPTO_hash_matching_bits(&selected->id.hashPubKey, &msg_ctx->key) >= GNUNET_CRYPTO_hash_matching_bits(&my_identity.hashPubKey, &msg_ctx->key))
             GNUNET_asprintf(&temp_stat_str, "# requests routed to close(r) peer hop %u", msg_ctx->hop_count);
           else
@@ -3589,6 +3610,21 @@ route_message(const struct GNUNET_MessageHeader *msg,
       GNUNET_CONTAINER_bloomfilter_free(msg_ctx->bloom);
       msg_ctx->bloom = NULL;
     }
+
+#if DEBUG_DHT_ROUTING
+  if (forward_count == 0)
+    ret = GNUNET_SYSERR;
+  else
+    ret = GNUNET_NO;
+
+  if ((debug_routes_extended) && (dhtlog_handle != NULL))
+    {
+      dhtlog_handle->insert_route (NULL, msg_ctx->unique_id, DHTLOG_ROUTE,
+                                   msg_ctx->hop_count, ret,
+                                   &my_identity, &msg_ctx->key, msg_ctx->peer,
+                                   NULL);
+    }
+#endif
 }
 
 
@@ -4243,14 +4279,6 @@ handle_dht_p2p_route_request (void *cls,
   struct GNUNET_MessageHeader *enc_msg = (struct GNUNET_MessageHeader *)&incoming[1];
   struct DHT_MessageContext *msg_ctx;
 
-  if (get_max_send_delay().rel_value > MAX_REQUEST_TIME.rel_value)
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sending of previous replies took too long, backing off!\n");
-    increment_stats("# route requests dropped due to high load");
-    decrease_max_send_delay(get_max_send_delay());
-    return GNUNET_YES;
-  }
-
   if (ntohs(enc_msg->type) == GNUNET_MESSAGE_TYPE_DHT_P2P_PING) /* Throw these away. FIXME: Don't throw these away? (reply)*/
     {
 #if DEBUG_PING
@@ -4264,6 +4292,24 @@ handle_dht_p2p_route_request (void *cls,
       GNUNET_break_op(0);
       return GNUNET_YES;
     }
+
+  if (get_max_send_delay().rel_value > MAX_REQUEST_TIME.rel_value)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sending of previous replies took too long, backing off!\n");
+    increment_stats("# route requests dropped due to high load");
+    decrease_max_send_delay(get_max_send_delay());
+#if DEBUG_DHT_ROUTING
+    if ((debug_routes_extended) && (dhtlog_handle != NULL))
+      {
+        /** Log routes that die due to high load! */
+        dhtlog_handle->insert_route (NULL, GNUNET_ntohll(incoming->unique_id), DHTLOG_ROUTE,
+                                     ntohl(incoming->hop_count), GNUNET_SYSERR,
+                                     &my_identity, &incoming->key, peer,
+                                     NULL);
+      }
+#endif
+    return GNUNET_YES;
+  }
   msg_ctx = GNUNET_malloc(sizeof (struct DHT_MessageContext));
   msg_ctx->bloom = GNUNET_CONTAINER_bloomfilter_init(incoming->bloomfilter, DHT_BLOOM_SIZE, DHT_BLOOM_K);
   GNUNET_assert(msg_ctx->bloom != NULL);
@@ -4276,7 +4322,7 @@ handle_dht_p2p_route_request (void *cls,
   msg_ctx->peer = peer;
   msg_ctx->importance = DHT_DEFAULT_P2P_IMPORTANCE;
   msg_ctx->timeout = DHT_DEFAULT_P2P_TIMEOUT;
-  demultiplex_message(enc_msg, msg_ctx);
+  demultiplex_message (enc_msg, msg_ctx);
   if (msg_ctx->bloom != NULL)
   {
     GNUNET_CONTAINER_bloomfilter_free (msg_ctx->bloom);
