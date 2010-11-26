@@ -3,6 +3,7 @@ package org.gnunet.seaspider;
 import org.gnunet.seaspider.parser.nodes.ANDExpression;
 import org.gnunet.seaspider.parser.nodes.AdditiveExpression;
 import org.gnunet.seaspider.parser.nodes.ArgumentExpressionList;
+import org.gnunet.seaspider.parser.nodes.AssignmentExpression;
 import org.gnunet.seaspider.parser.nodes.AssignmentOperator;
 import org.gnunet.seaspider.parser.nodes.CastExpression;
 import org.gnunet.seaspider.parser.nodes.CompoundStatement;
@@ -297,12 +298,40 @@ public class ExpressionExtractorVisitor extends DepthFirstVisitor {
 		}
 		old.push(current_expression.expression);
 		current_expression = old;
-	}
-
+	}	
+	
 	public void visit(AssignmentOperator n) {
 		operator = true;
 		super.visit(n);
 		operator = false;
+	}
+	
+	public void visit(AssignmentExpression n)
+	{
+		if (0 == n.f0.which)
+		{
+			NodeSequence ns = (NodeSequence) n.f0.choice;
+			UnaryExpression u = (UnaryExpression) ns.elementAt(0);
+			AssignmentOperator ao = (AssignmentOperator) ns.elementAt(1);
+			AssignmentExpression ae = (AssignmentExpression) ns.elementAt(2);
+			LineNumberInfo lin = LineNumberInfo.get(n);
+
+			ExpressionBuilder old = current_expression;
+			current_expression = new ExpressionBuilder();
+			u.accept(this);
+			current_expression.commit(lin.lineEnd);
+			ao.accept (this);
+			old.push(current_expression.expression);
+			current_expression = new ExpressionBuilder();
+			ae.accept(this);
+			current_expression.commit(lin.lineEnd);
+			old.push(current_expression.expression);
+			current_expression = old;
+		}
+		else
+		{
+			n.f0.choice.accept (this);
+		}
 	}
 
 	public void visit(ConditionalExpression n) {
