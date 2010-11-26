@@ -1049,9 +1049,11 @@ try_core_send (void *cls,
       reply_counter++;
       if (reply_counter >= MAX_REPLY_TIMES)
 	reply_counter = 0;
-      peer->th = GNUNET_CORE_notify_transmit_ready(coreAPI, pending->importance,
-                                                   pending->timeout, &peer->id,
-                                                   ssize, &core_transmit_notify, peer);
+      peer->th = GNUNET_CORE_notify_transmit_ready (coreAPI, pending->importance,
+                                                    pending->timeout, &peer->id,
+                                                    ssize, &core_transmit_notify, peer);
+      if (peer->th == NULL)
+        increment_stats("# notify transmit ready failed");
     }
 }
 
@@ -3600,7 +3602,7 @@ route_message(const struct GNUNET_MessageHeader *msg,
                                            &selected->id);
             }
 #endif
-          forward_message(msg, selected, msg_ctx);
+          forward_message (msg, selected, msg_ctx);
         }
     }
 
