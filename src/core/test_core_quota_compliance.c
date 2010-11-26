@@ -137,7 +137,7 @@ static void
 terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Testcase timout, exit!\n");
-  GNUNET_break (0);
+  //GNUNET_break (0);
 
   if (measure_task != GNUNET_SCHEDULER_NO_TASK)
 	  GNUNET_SCHEDULER_cancel(measure_task);
