@@ -131,7 +131,7 @@ get_nat_state_str (enum GNUNET_NAT_PortState state)
 static int
 get_traversal_status (const struct GNUNET_NAT_Handle *h)
 {
-  return MAX (h->natpmp_status, h->upnp_status);
+  return GNUNET_MAX (h->natpmp_status, h->upnp_status);
 }
 
 

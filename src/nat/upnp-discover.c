@@ -1201,7 +1201,12 @@ UPNP_discover_ (const char *multicastif,
         {
           if (multicastif)
             {
+#ifndef MINGW
               if_index = if_nametoindex (multicastif);
+#else
+              // FIXME
+              if_index = 0;
+#endif
               if (!if_index)
                 PRINT_SOCKET_ERROR ("if_nametoindex");
 

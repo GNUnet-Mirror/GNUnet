@@ -320,12 +320,12 @@ parse_url (const char *url, char *hostname, unsigned short *port, char **path)
 
   if (!p2 || (p2 > p3))
     {
-      strncpy (hostname, p1, MIN (MAX_HOSTNAME_LEN, (int) (p3 - p1)));
+      strncpy (hostname, p1, GNUNET_MIN (MAX_HOSTNAME_LEN, (int) (p3 - p1)));
       *port = 80;
     }
   else
     {
-      strncpy (hostname, p1, MIN (MAX_HOSTNAME_LEN, (int) (p2 - p1)));
+      strncpy (hostname, p1, GNUNET_MIN (MAX_HOSTNAME_LEN, (int) (p2 - p1)));
       *port = 0;
       p2++;
 

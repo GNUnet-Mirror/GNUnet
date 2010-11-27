@@ -302,7 +302,12 @@ get_ip_address_cb (int error, char *ext_addr, void *cls)
         }
 
       /* Try IPv4 and IPv6 as we don't know what's the format */
+#ifndef MINGW
       if (inet_aton (ext_addr, &addr) != 0)
+#else
+      addr.S_un.S_addr = inet_addr(ext_addr);
+      if (addr.S_un.S_addr == INADDR_NONE)
+#endif
         {
           handle->ext_addr = GNUNET_malloc (sizeof (struct sockaddr_in));
           handle->ext_addr->sa_family = AF_INET;
