@@ -2669,7 +2669,6 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
 #if DEBUG_DHT_ROUTING
       if ((debug_routes_extended) && (dhtlog_handle != NULL))
         {
-          /** Log routes that die due to high load! */
           dhtlog_handle->insert_route (NULL, msg_ctx->unique_id, DHTLOG_ROUTE,
                                        msg_ctx->hop_count, GNUNET_SYSERR,
                                        &my_identity, &msg_ctx->key, msg_ctx->peer,
@@ -2688,7 +2687,6 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
 #if DEBUG_DHT_ROUTING
       if ((debug_routes_extended) && (dhtlog_handle != NULL))
         {
-          /** Log routes that die due to high load! */
           dhtlog_handle->insert_route (NULL, msg_ctx->unique_id, DHTLOG_ROUTE,
                                        msg_ctx->hop_count, GNUNET_SYSERR,
                                        &my_identity, &msg_ctx->key, msg_ctx->peer,
@@ -3095,7 +3093,9 @@ select_peer (const GNUNET_HashCode * target,
   my_matching_bits = GNUNET_CRYPTO_hash_matching_bits(target, &my_identity.hashPubKey);
 
   total_distance = 0;
-  if (strict_kademlia == GNUNET_YES)
+  /** If we are doing kademlia routing, or converge is binary (saves some cycles) */
+  if ((strict_kademlia == GNUNET_YES) ||
+      ((converge_option == DHT_CONVERGE_BINARY) && (hops >= converge_modifier)))
     {
       largest_distance = 0;
       chosen = NULL;
@@ -3223,7 +3223,7 @@ select_peer (const GNUNET_HashCode * target,
 
   if (total_distance == 0) /* No peers to select from! */
     {
-      increment_stats("# select_peer, total_distance == 0");
+      increment_stats("# failed to select peer");
       return NULL;
     }
 
@@ -3660,7 +3660,8 @@ static void
 demultiplex_message(const struct GNUNET_MessageHeader *msg,
                     struct DHT_MessageContext *msg_ctx)
 {
-  msg_ctx->closest = am_closest_peer(&msg_ctx->key, NULL);
+  /* FIXME: Should we use closest excluding those we won't route to (the bloomfilter problem)? */
+  msg_ctx->closest = am_closest_peer(&msg_ctx->key, msg_ctx->bloom);
   switch (ntohs(msg->type))
     {
     case GNUNET_MESSAGE_TYPE_DHT_GET: /* Add to hashmap of requests seen, search for data (always) */
