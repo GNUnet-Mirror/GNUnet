@@ -4143,6 +4143,12 @@ handle_dht_local_route_request (void *cls, struct GNUNET_SERVER_Client *client,
   if (dhtlog_handle != NULL)
     dhtlog_handle->insert_dhtkey (NULL, &dht_msg->key);
 #endif
+
+  if (GNUNET_YES == malicious_dropper)
+    {
+      GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      return;
+    }
   memset(&msg_ctx, 0, sizeof(struct DHT_MessageContext));
   msg_ctx.client = find_active_client (client);
   memcpy(&msg_ctx.key, &dht_msg->key, sizeof(GNUNET_HashCode));
@@ -4222,7 +4228,7 @@ handle_dht_control_message (void *cls, struct GNUNET_SERVER_Client *client,
       dhtlog_handle->set_malicious(&my_identity);
 #endif
     malicious_dropper = GNUNET_YES;
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
 	       "%s:%s Initiating malicious DROP behavior\n", my_short_id, "DHT");
     break;
 #endif
@@ -4313,6 +4319,21 @@ handle_dht_p2p_route_request (void *cls,
       return GNUNET_YES;
     }
 
+  if (malicious_dropper == GNUNET_YES)
+    {
+#if DEBUG_DHT_ROUTING
+      if ((debug_routes_extended) && (dhtlog_handle != NULL))
+        {
+          /** Log routes that die due to high load! */
+          dhtlog_handle->insert_route (NULL, GNUNET_ntohll(incoming->unique_id), DHTLOG_ROUTE,
+                                       ntohl(incoming->hop_count), GNUNET_SYSERR,
+                                       &my_identity, &incoming->key, peer,
+                                       NULL);
+        }
+#endif
+      return GNUNET_YES;
+    }
+
   if (get_max_send_delay().rel_value > MAX_REQUEST_TIME.rel_value)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sending of previous replies took too long, backing off!\n");
@@ -4373,6 +4394,21 @@ handle_dht_p2p_route_result (void *cls,
   if (ntohs(enc_msg->size) >= GNUNET_SERVER_MAX_MESSAGE_SIZE - 1)
     {
       GNUNET_break_op(0);
+      return GNUNET_YES;
+    }
+
+  if (malicious_dropper == GNUNET_YES)
+    {
+#if DEBUG_DHT_ROUTING
+      if ((debug_routes_extended) && (dhtlog_handle != NULL))
+        {
+          /** Log routes that die due to high load! */
+          dhtlog_handle->insert_route (NULL, GNUNET_ntohll(incoming->unique_id), DHTLOG_ROUTE,
+                                       ntohl(incoming->hop_count), GNUNET_SYSERR,
+                                       &my_identity, &incoming->key, peer,
+                                       NULL);
+        }
+#endif
       return GNUNET_YES;
     }
 

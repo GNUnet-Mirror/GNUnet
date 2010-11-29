@@ -3088,7 +3088,7 @@ run (void *cls,
   trial_info.gets = num_gets;
   trial_info.concurrent = max_outstanding_gets;
   trial_info.settle_time = settle_time;
-  trial_info.num_rounds = 1;
+  trial_info.num_rounds = total_rounds;
   trial_info.malicious_getters = malicious_getters;
   trial_info.malicious_putters = malicious_putters;
   trial_info.malicious_droppers = malicious_droppers;
