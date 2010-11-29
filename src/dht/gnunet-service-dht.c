@@ -2904,7 +2904,7 @@ am_closest_peer (const GNUNET_HashCode * target, struct GNUNET_CONTAINER_BloomFi
       other_bits = GNUNET_CRYPTO_hash_matching_bits(&pos->id.hashPubKey, target);
       if (other_bits > bits)
         return GNUNET_NO;
-      else if (other_bits == bits) /* We match the same number of bits, do distance comparison */
+      else if (other_bits == bits) /* We match the same number of bits */
         {
           if (strict_kademlia != GNUNET_YES) /* Return that we at as close as any other peer */
             return GNUNET_YES;
@@ -2992,7 +2992,7 @@ converge_distance (const GNUNET_HashCode *target,
          * they are sorted.)
          */
 
-        if (hops > converge_modifier) /* Past cutoff */
+        if (hops >= converge_modifier) /* Past cutoff */
           {
             return ULLONG_MAX;
           }
