@@ -46,7 +46,6 @@
 #include "gnunet_protocols.h"
 #include "gnunet_resolver_service.h"
 #include "gnunet_server_lib.h"
-#include "gnunet_service_lib.h"
 #include "gnunet_signatures.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
@@ -354,11 +353,6 @@ struct Plugin
    * Our environment.
    */
   struct GNUNET_TRANSPORT_PluginEnvironment *env;
-
-  /**
-   * Handle to the network service.
-   */
-  struct GNUNET_SERVICE_Context *service;
 
   /*
    * Session of peers with whom we are currently connected
@@ -2152,7 +2146,6 @@ libgnunet_plugin_transport_udp_init (void *cls)
   unsigned long long port;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct Plugin *plugin;
-  struct GNUNET_SERVICE_Context *service;
   int sockets_created;
   int behind_nat;
   int allow_nat;
@@ -2160,15 +2153,6 @@ libgnunet_plugin_transport_udp_init (void *cls)
   char *internal_address;
   char *external_address;
   struct IPv4UdpAddress v4_address;
-
-  service = GNUNET_SERVICE_start ("transport-udp", env->cfg);
-  if (service == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _
-                       ("Failed to start service for `%s' transport plugin.\n"),
-                       "udp");
-      return NULL;
-    }
 
   if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
                                                          "transport-udp",
@@ -2219,7 +2203,6 @@ libgnunet_plugin_transport_udp_init (void *cls)
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Require EXTERNAL_ADDRESS for service `%s' in configuration (either BEHIND_NAT or ALLOW_NAT set to YES)!\n"),
                   "transport-udp");
-      GNUNET_SERVICE_stop (service);
       return NULL;
     }
 
@@ -2238,7 +2221,6 @@ libgnunet_plugin_transport_udp_init (void *cls)
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                        _("Require INTERNAL_ADDRESS for service `%s' in configuration!\n"),
                        "transport-udp");
-      GNUNET_SERVICE_stop (service);
       GNUNET_free_non_null(external_address);
       return NULL;
     }
@@ -2261,7 +2243,6 @@ libgnunet_plugin_transport_udp_init (void *cls)
                   "PORT",
                   port,
                   65535);
-      GNUNET_SERVICE_stop (service);
       GNUNET_free_non_null(external_address);
       GNUNET_free_non_null(internal_address);
       return NULL;
@@ -2290,8 +2271,6 @@ libgnunet_plugin_transport_udp_init (void *cls)
   api->address_pretty_printer = &udp_plugin_address_pretty_printer;
   api->address_to_string = &udp_address_to_string;
   api->check_address = &udp_check_address;
-
-  plugin->service = service;
 
   if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_string(env->cfg, "transport-udp", "BINDTO", &plugin->bind_address))
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Binding udp plugin to specific address: `%s'\n", plugin->bind_address);
@@ -2347,8 +2326,6 @@ libgnunet_plugin_transport_udp_done (void *cls)
       GNUNET_RESOLVER_request_cancel (plugin->hostname_dns);
       plugin->hostname_dns = NULL;
     }
-
-  GNUNET_SERVICE_stop (plugin->service);
 
   GNUNET_NETWORK_fdset_destroy (plugin->rs);
   while (NULL != (lal = plugin->lal_head))
