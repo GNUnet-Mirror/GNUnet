@@ -454,6 +454,11 @@ struct Plugin
   struct TCPProbeContext *probe_tail;
 
   /**
+   * Handle for (DYN)DNS lookup of our external IP.
+   */
+  struct GNUNET_RESOLVER_RequestHandle *ext_dns;
+
+  /**
    * ID of task used to update our addresses when one expires.
    */
   GNUNET_SCHEDULER_TaskIdentifier address_update_task;
@@ -475,14 +480,24 @@ struct Plugin
   int behind_nat;
 
   /**
+   * Has the NAT been punched?
+   */
+  int nat_punched;
+
+  /**
    * Is this transport configured to allow connections to NAT'd peers?
    */
-  int allow_nat;
+  int enable_nat_client;
+
+  /**
+   * Should we run the gnunet-nat-server?
+   */
+  int enable_nat_server;
 
   /**
    * Are we allowed to try UPnP/PMP for NAT traversal?
    */
-  int allow_upnp;
+  int enable_upnp;
 
 };
 
@@ -619,7 +634,8 @@ add_to_address_list (struct Plugin *plugin,
       GNUNET_break (0);
       return;
     }
-  if (plugin->allow_upnp)
+  if ( (plugin->behind_nat == GNUNET_YES) &&
+       (plugin->enable_upnp == GNUNET_YES) )
     lal->nat = GNUNET_NAT_register (sa, salen,
 				    &nat_port_map_callback,
 				    lal);
@@ -1362,8 +1378,10 @@ tcp_plugin_send (void *cls,
         return -1; /* NAT client only works with IPv4 addresses */
 
 
-      if ((plugin->allow_nat == GNUNET_YES) && (is_natd == GNUNET_YES) &&
-           (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(plugin->nat_wait_conns, &target->hashPubKey)))
+      if ( (plugin->enable_nat_client == GNUNET_YES) && 
+	   (is_natd == GNUNET_YES) &&
+           (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(plugin->nat_wait_conns,
+								&target->hashPubKey)) )
         {
 #if DEBUG_TCP_NAT
           GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
@@ -1407,9 +1425,10 @@ tcp_plugin_send (void *cls,
           run_gnunet_nat_client (plugin, &a4);
           return 0;
         }
-      if ( (plugin->allow_nat == GNUNET_YES) && 
+      if ( (plugin->enable_nat_client == GNUNET_YES) && 
 	   (is_natd == GNUNET_YES) && 
-	   (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(plugin->nat_wait_conns, &target->hashPubKey)) )
+	   (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(plugin->nat_wait_conns, 
+								 &target->hashPubKey)) )
         {
           /* Only do one NAT punch attempt per peer identity */
           return -1;
@@ -2593,6 +2612,58 @@ check_gnunet_nat_binary (const char *binary)
 
 
 /**
+ * Our (external) hostname was resolved.
+ *
+ * @param cls the 'struct Plugin'
+ * @param addr NULL on error, otherwise result of DNS lookup
+ * @param addrlen number of bytes in addr
+ */
+static void
+process_external_ip (void *cls,
+		     const struct sockaddr *addr,
+		     socklen_t addrlen)
+{
+  struct Plugin *plugin = cls;
+  const struct sockaddr_in *s;
+  struct IPv4TcpAddress t4;
+
+
+  plugin->ext_dns = NULL;
+  if (addr == NULL)
+    return;
+  GNUNET_assert (addrlen == sizeof (struct sockaddr_in));
+  s = (const struct sockaddr_in *) addr;
+  t4.ipv4_addr = s->sin_addr.s_addr;
+  if ( (plugin->behind_nat == GNUNET_YES) &&
+       (plugin->enable_nat_server == GNUNET_YES) )
+    {
+      t4.t_port = htons(0);
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, 
+		       "tcp",
+		       "Notifying transport of address %s:%d\n", 
+		       plugin->external_address,
+		       0);
+    }
+  else
+    {
+      t4.t_port = htons(plugin->adv_port);
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, 
+		       "tcp",
+		       "Notifying transport of address %s:%d\n",
+		       plugin->external_address, 
+		       (int) plugin->adv_port);
+    }
+  add_to_address_list (plugin, 
+		       &t4.ipv4_addr, 
+		       sizeof (struct in_addr));
+  plugin->env->notify_address (plugin->env->cls,
+			       "tcp",
+			       &t4, sizeof(t4),
+			       GNUNET_TIME_UNIT_FOREVER_REL);
+}
+
+
+/**
  * Entry point for the plugin.
  *
  * @param cls closure, the 'struct GNUNET_TRANSPORT_PluginEnvironment*'
@@ -2616,32 +2687,44 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   unsigned long long bport;
   unsigned int i;
   int behind_nat;
-  int allow_nat;
+  int nat_punched;
+  int enable_nat_client;
+  int enable_nat_server;
+  int enable_upnp;
   char *internal_address;
   char *external_address;
   struct sockaddr_in in_addr;
-  struct IPv4TcpAddress t4;
   struct GNUNET_TIME_Relative idle_timeout;
 
   behind_nat = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
 						     "transport-tcp",
 						     "BEHIND_NAT");
-  if ( (GNUNET_YES == behind_nat) &&
+  nat_punched = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+						      "transport-tcp",
+						      "NAT_PUNCHED");
+  enable_nat_client = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+							    "transport-tcp",
+							    "ENABLE_NAT_CLIENT");
+  enable_nat_server = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+							    "transport-tcp",
+							    "ENABLE_NAT_SERVER");
+  enable_upnp = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+						      "transport-tcp",
+						      "ENABLE_UPNP");
+  
+  if ( (GNUNET_YES == enable_nat_server) &&
        (GNUNET_YES != check_gnunet_nat_binary("gnunet-nat-server")) )
     {
-      behind_nat = GNUNET_NO;
+      enable_nat_server = GNUNET_NO;
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Configuration requires `%s', but binary is not installed properly (SUID bit not set).  Option disabled.\n"),
 		  "gnunet-nat-server");        
     }
 
-  allow_nat = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
-						    "transport-tcp",
-						    "ALLOW_NAT");
-  if ( (GNUNET_YES == allow_nat) &&
+  if ( (GNUNET_YES == enable_nat_client) &&
        (GNUNET_YES != check_gnunet_nat_binary("gnunet-nat-client")) )
     {
-      allow_nat = GNUNET_NO;
+      enable_nat_client = GNUNET_NO;
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Configuration requires `%s', but binary is not installed properly (SUID bit not set).  Option disabled.\n"),
 		  "gnunet-nat-client");	
@@ -2662,12 +2745,27 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   if ( (external_address != NULL) && 
        (inet_pton(AF_INET, external_address, &in_addr.sin_addr) != 1) ) 
     {
+      
       GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
 		       "tcp",
 		       _("Malformed %s `%s' given in configuration!\n"), 
 		       "EXTERNAL_ADDRESS",
 		       external_address);
       return NULL;   
+    }
+  if ( (external_address == NULL) &&
+       (nat_punched == GNUNET_YES) )
+    {
+      nat_punched = GNUNET_NO;
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Configuration says NAT was punched, but `%s' is not given.  Option ignored.\n"),
+		  "EXTERNAL_ADDRESS");	
+    }
+
+  if (GNUNET_YES == nat_punched)
+    {
+      enable_nat_server = GNUNET_NO;
+      enable_upnp = GNUNET_NO;
     }
 
   internal_address = NULL;
@@ -2743,10 +2841,10 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   plugin->external_address = external_address;
   plugin->internal_address = internal_address;
   plugin->behind_nat = behind_nat;
-  plugin->allow_nat = allow_nat;
-  plugin->allow_upnp = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
-							     "transport-tcp",
-							     "ENABLE_UPNP");
+  plugin->nat_punched = nat_punched;
+  plugin->enable_nat_client = enable_nat_client;
+  plugin->enable_nat_server = enable_nat_server;
+  plugin->enable_upnp = enable_upnp;
   plugin->env = env;
   plugin->lsock = NULL;
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
@@ -2795,6 +2893,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   GNUNET_OS_network_interfaces_list (&process_interfaces, plugin);
 
   if ( (plugin->behind_nat == GNUNET_YES) &&
+       (plugin->enable_nat_server == GNUNET_YES) &&
        (GNUNET_YES != tcp_transport_start_nat_server(plugin)) )
     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
@@ -2812,7 +2911,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
       return NULL;
     }
 
-  if (allow_nat == GNUNET_YES)
+  if (enable_nat_client == GNUNET_YES)
     {
       plugin->nat_wait_conns = GNUNET_CONTAINER_multihashmap_create(16);
       GNUNET_assert (plugin->nat_wait_conns != NULL);
@@ -2850,32 +2949,14 @@ libgnunet_plugin_transport_tcp_init (void *cls)
                                                            &process_hostname_ips,
                                                            plugin);
 
-  if ( (plugin->external_address != NULL) && 
-       (inet_pton(AF_INET,
-		  plugin->external_address, 
-		  &t4.ipv4_addr) == 1) )
+  if (plugin->external_address != NULL) 
     {
-      if (plugin->behind_nat == GNUNET_YES) 
-	{
-	  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, 
-			   "tcp",
-			   "Notifying transport of address %s:0\n", 
-			   plugin->external_address);
-	  t4.t_port = htons(0);
-	}
-      else
-	{
-	  t4.t_port = htons(plugin->adv_port);
-	  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, 
-			   "tcp",
-			   "Notifying transport of address %s:%d\n",
-			   plugin->external_address, 
-			   plugin->adv_port);
-	}
-      add_to_address_list (plugin, &t4.ipv4_addr, sizeof (struct in_addr));
-      plugin->env->notify_address (plugin->env->cls,
-				   "tcp",
-				   &t4, sizeof(t4), GNUNET_TIME_UNIT_FOREVER_REL);
+      plugin->ext_dns = GNUNET_RESOLVER_ip_get (env->cfg,
+						plugin->external_address,
+						AF_INET,
+						GNUNET_TIME_UNIT_MINUTES,
+						&process_external_ip,
+						plugin);
     }
   return api;
 }
@@ -2893,6 +2974,11 @@ libgnunet_plugin_transport_tcp_done (void *cls)
   struct LocalAddrList *lal;
   struct TCPProbeContext *tcp_probe;
 
+  if (plugin->ext_dns != NULL)
+    {
+      GNUNET_RESOLVER_request_cancel (plugin->ext_dns);
+      plugin->ext_dns = NULL;
+    }
   while (NULL != (session = plugin->sessions))
     disconnect_session (session);
   if (NULL != plugin->hostname_dns)
