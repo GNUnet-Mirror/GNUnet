@@ -190,6 +190,12 @@ struct InboundMessage
   uint32_t reserved GNUNET_PACKED;
 
   /**
+   * Number of ATS key-value pairs that follow this struct
+   * (excluding the 0-terminator).
+   */
+  uint32_t ats_count GNUNET_PACKED;
+
+  /**
    * Latency estimate.
    */
   struct GNUNET_TIME_RelativeNBO latency;
@@ -204,6 +210,11 @@ struct InboundMessage
    */
   uint32_t distance;
 
+  /**
+   * First of the ATS information blocks (we must have at least
+   * one due to the 0-termination requirement).
+   */
+  struct GNUNET_TRANSPORT_ATS_Information ats;
 };
 
 
