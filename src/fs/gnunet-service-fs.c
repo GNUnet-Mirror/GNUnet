@@ -39,6 +39,7 @@
 #include "gnunet_protocols.h"
 #include "gnunet_signatures.h"
 #include "gnunet_statistics_service.h"
+#include "gnunet_transport_service.h"
 #include "gnunet_util_lib.h"
 #include "gnunet-service-fs_indexing.h"
 #include "fs.h"
@@ -1582,8 +1583,17 @@ destroy_pending_request (struct PendingRequest *pr)
 static struct GNUNET_TIME_Relative
 get_latency (const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
-  /* FIXME: extract latency data from 'atsi' */
-  return GNUNET_TIME_UNIT_SECONDS;
+  while ( (ntohl (atsi->type) != GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR) &&
+	  (ntohl (atsi->type) != GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY) )
+    atsi++;
+  if (ntohl (atsi->type) == GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR) 
+    {
+      GNUNET_break (0);
+      /* how can we not have latency data? */
+      return GNUNET_TIME_UNIT_SECONDS;
+    }
+  return GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+					ntohl (atsi->value));
 }
 
 
