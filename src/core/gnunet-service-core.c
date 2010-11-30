@@ -3887,8 +3887,7 @@ static void
 handle_transport_receive (void *cls,
                           const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_MessageHeader *message,
-                          struct GNUNET_TIME_Relative latency,
-			  unsigned int distance)
+                          const struct GNUNET_TRANSPORT_ATS_Information *ats, uint32_t ats_count)
 {
   struct Neighbour *n;
   struct GNUNET_TIME_Absolute now;
@@ -4132,8 +4131,7 @@ neighbour_quota_update (void *cls,
 static void
 handle_transport_notify_connect (void *cls,
                                  const struct GNUNET_PeerIdentity *peer,
-                                 struct GNUNET_TIME_Relative latency,
-				 unsigned int distance)
+                                 const struct GNUNET_TRANSPORT_ATS_Information *ats, uint32_t ats_count)
 {
   struct Neighbour *n;
 
