@@ -48,7 +48,7 @@ extern "C"
  * @param addrlen length of the address
  */
 typedef void (*GNUNET_RESOLVER_AddressCallback) (void *cls,
-                                                 const struct sockaddr * addr,
+                                                 const struct sockaddr *addr,
                                                  socklen_t addrlen);
 
 
