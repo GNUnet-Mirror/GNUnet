@@ -3383,10 +3383,12 @@ schedule_next_ping (struct ForeignAddressList *fal)
  *
  * @param message the payload
  * @param n peer who claimed to be the sender
+ * @param ats ATS information
+ * @param ats_count numbers of elements following the ats struct (excluding the 0-terminator)
  */
 static void
 handle_payload_message (const struct GNUNET_MessageHeader *message,
-			struct NeighbourList *n)
+			struct NeighbourList *n, struct GNUNET_TRANSPORT_ATS_Information *ats, uint32_t ats_count)
 {
   struct InboundMessage *im;
   struct TransportClient *cpos;
@@ -3441,14 +3443,23 @@ handle_payload_message (const struct GNUNET_MessageHeader *message,
 			    gettext_noop ("# payload received from other peers"),
 			    msize,
 			    GNUNET_NO);
+
   /* transmit message to all clients */
-  im = GNUNET_malloc (sizeof (struct InboundMessage) + msize);
-  im->header.size = htons (sizeof (struct InboundMessage) + msize);
+  im = GNUNET_malloc (sizeof (struct InboundMessage) + ats_count * sizeof(struct GNUNET_TRANSPORT_ATS_Information) + msize);
+  im->header.size = htons (sizeof (struct InboundMessage) +  ats_count * sizeof(struct GNUNET_TRANSPORT_ATS_Information) + msize);
   im->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
   im->latency = GNUNET_TIME_relative_hton (n->latency);
   im->peer = n->id;
   im->distance = ntohl(n->distance);
-  memcpy (&im[1], message, msize);
+  im->ats_count = htonl(ats_count);
+  /* insert ATS elements */
+  memcpy (&(im->ats), ats, ats_count * sizeof(struct GNUNET_TRANSPORT_ATS_Information));
+  /* insert ATS terminator */
+  (&im->ats)[ats_count].type  = htonl(0);
+  (&im->ats)[ats_count].value = htonl(0);
+  /* insert msg after terminator */
+  memcpy (&(&im->ats)[ats_count+1], message, msize);
+
   cpos = clients;
   while (cpos != NULL)
     {
@@ -3669,7 +3680,8 @@ check_pending_validation (void *cls,
 	  if (NULL != (prem = n->pre_connect_message_buffer))
 	    {
 	      n->pre_connect_message_buffer = NULL;
-	      handle_payload_message (prem, n);
+	      /* FIXME: */
+	      handle_payload_message (prem, n, NULL, 0);
 	      GNUNET_free (prem);
 	    }
 	}
@@ -4759,7 +4771,7 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 	  handle_pong (plugin, message, peer, sender_address, sender_address_len);
 	  break;
 	default:
-	  handle_payload_message (message, n);
+	  handle_payload_message (message, n, NULL, 0);
 	  break;
 	}
     }

@@ -1661,8 +1661,9 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
         }
       im = (const struct InboundMessage *) msg;
       GNUNET_break (0 == ntohl (im->reserved));
-      imm = (const struct GNUNET_MessageHeader *) &im[1];
-      if (ntohs (imm->size) + sizeof (struct InboundMessage) != size)
+      GNUNET_assert(sizeof (struct InboundMessage) + ntohl(im->ats_count) * sizeof(struct GNUNET_TRANSPORT_ATS_Information) + sizeof (struct GNUNET_MessageHeader) <= size);
+      imm = (const struct GNUNET_MessageHeader *) &((&im->ats)[ntohl(im->ats_count)+1]);
+      if (ntohs (imm->size) + sizeof (struct InboundMessage) + ntohl(im->ats_count) * sizeof(struct GNUNET_TRANSPORT_ATS_Information) != size)
         {
           GNUNET_break (0);
           break;
