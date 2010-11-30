@@ -4407,11 +4407,14 @@ handle_transport_notify_disconnect (void *cls,
       cnm.peer = *peer;
       send_to_all_clients (&cnm.header, GNUNET_NO, GNUNET_CORE_OPTION_SEND_DISCONNECT);
     }
-  if (NULL != n->th)
+
+  /* On transport disconnect transport doesn't cancel requests, so must do so here. */
+  if (n->th != NULL)
     {
-      GNUNET_TRANSPORT_notify_transmit_ready_cancel (n->th);
-      n->th = NULL;
+      GNUNET_TRANSPORT_notify_transmit_ready_cancel(n->th);
     }
+  n->th = NULL;
+
   n->is_connected = GNUNET_NO;
   n->status = PEER_STATE_DOWN;
   while (NULL != (car = n->active_client_request_head))
