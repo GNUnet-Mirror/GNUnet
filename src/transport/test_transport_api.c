@@ -82,6 +82,8 @@ static int is_http;
 
 static int is_https;
 
+static int is_multi_protocol;
+
 static  GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 static char * key_file_p1;
@@ -344,6 +346,12 @@ run (void *cls,
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 					   &end_badly, NULL);
 
+  if (is_multi_protocol)
+    {
+      setup_peer (&p1, "test_transport_api_multi_peer1.conf");
+      setup_peer (&p2, "test_transport_api_multi_peer2.conf");
+    }
+
   if (is_udp)
     {
       setup_peer (&p1, "test_transport_api_udp_peer1.conf");
@@ -559,10 +567,22 @@ main (int argc, char *argv[])
     {
       is_http = GNUNET_YES;
     }
+  else if (strstr(argv[0], "multi") != NULL)
+    {
+	  is_multi_protocol = GNUNET_YES;
+    }
 
   ret = check ();
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-1");
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-2");
+  if (is_multi_protocol)
+  {
+	  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-multi-peer-1/");
+	  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-multi-peer-2/");
+  }
+  else
+  {
+	  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-1");
+	  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-2");
+  }
   return ret;
 }
 

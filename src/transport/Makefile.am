@@ -200,6 +200,7 @@ check_PROGRAMS = \
  $(HTTP_API_TEST) \
  $(HTTPS_PLUGIN_TEST) \
  $(HTTPS_API_TEST) \
+ test_transport_api_multi \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
  test_transport_api_reliability_udp \
@@ -223,6 +224,7 @@ TESTS = \
  $(HTTP_API_TEST) \
  $(HTTPS_PLUGIN_TEST) \
  $(HTTPS_API_TEST) \
+ test_transport_api_multi \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
  $(HTTP_REL_TEST) \
@@ -391,6 +393,12 @@ test_quota_compliance_udp_asymmetric_recv_constant_LDADD = \
 # $(top_builddir)/src/transport/libgnunettransport.la \
 # $(top_builddir)/src/util/libgnunetutil.la 
 
+test_transport_api_multi_SOURCES = \
+ test_transport_api.c
+test_transport_api_multi_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
 endif
 
 
@@ -409,6 +417,8 @@ EXTRA_DIST = \
   test_transport_api_http_peer2.conf \
   test_transport_api_https_peer1.conf \
   test_transport_api_https_peer2.conf \
+  test_transport_api_multi_peer1.conf \
+  test_transport_api_multi_peer2.conf \
   test_transport_api_rel_http_peer1.conf \
   test_transport_api_rel_http_peer2.conf \
   test_transport_api_rel_https_peer1.conf \
