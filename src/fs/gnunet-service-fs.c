@@ -24,6 +24,8 @@
  * @author Christian Grothoff
  *
  * TODO:
+ * - collect traffic data for anonymity levels > 1
+ * - implement transmission restrictions for anonymity level > 1
  * - more statistics
  */
 #include "platform.h"
