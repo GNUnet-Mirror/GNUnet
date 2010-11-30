@@ -1311,7 +1311,7 @@ main (int argc, char *const *argv)
   };
   int ret;
   char *const argv_prog[] = {
-    "test_gnunet_transport_plugin_http",
+    "test_plugin_transport_http",
     "-c",
     "test_plugin_transport_data_http.conf",
     "-L",
@@ -1322,7 +1322,7 @@ main (int argc, char *const *argv)
 #endif
     NULL
   };
-  GNUNET_log_setup ("test_gnunet_transport_plugin_http",
+  GNUNET_log_setup ("test_plugin_transport_http",
 #if VERBOSE
                     "DEBUG",
 #else
