@@ -244,8 +244,7 @@ static void
 notify_receive_new (void *cls,
                 const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message,
-                struct GNUNET_TIME_Relative latency,
-		uint32_t distance)
+                const struct GNUNET_TRANSPORT_ATS_Information *ats, uint32_t ats_count)
 {
   unsigned int s;
   const struct TestMessage *hdr;
@@ -538,8 +537,7 @@ static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
 static void
 notify_connect (void *cls,
                 const struct GNUNET_PeerIdentity *peer,
-                struct GNUNET_TIME_Relative latency,
-		uint32_t distance)
+                const struct GNUNET_TRANSPORT_ATS_Information *ats, uint32_t ats_count)
 {
   if (cls == &p1)
     {

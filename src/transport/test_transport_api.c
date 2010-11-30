@@ -140,8 +140,7 @@ static void
 notify_receive (void *cls,
                 const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message,
-                struct GNUNET_TIME_Relative latency,
-		uint32_t distance)
+                const struct GNUNET_TRANSPORT_ATS_Information *ats, uint32_t ats_count)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ok is (%d)!\n",
               ok);
@@ -186,8 +185,7 @@ notify_ready (void *cls, size_t size, void *buf)
 static void
 notify_connect (void *cls,
                 const struct GNUNET_PeerIdentity *peer,
-                struct GNUNET_TIME_Relative latency,
-		uint32_t distance)
+                const struct GNUNET_TRANSPORT_ATS_Information *ats, uint32_t ats_count)
 {
   if (cls == &p1)
     {

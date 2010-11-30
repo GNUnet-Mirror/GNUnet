@@ -3680,14 +3680,14 @@ check_pending_validation (void *cls,
 	  if (NULL != (prem = n->pre_connect_message_buffer))
 	    {
 	      n->pre_connect_message_buffer = NULL;
+	      /*
 	      struct GNUNET_TRANSPORT_ATS_Information * ats = GNUNET_malloc(2 * sizeof(struct GNUNET_TRANSPORT_ATS_Information));
 	      ats[0].type = htonl(GNUNET_TRANSPORT_LATENCY_LSB);
 	      ats[0].value = htonl(n->latency.rel_value);
 	      ats[1].type = htonl(GNUNET_TRANSPORT_DISTANCE);
-	      ats[1].value = htonl(n->distance);
-	      handle_payload_message (prem, n, ats, 2);
-	      fprintf(stderr,"ATS!");
-	      GNUNET_free (ats);
+	      ats[1].value = htonl(n->distance);*/
+	      handle_payload_message (prem, n, NULL, 0);
+	      //GNUNET_free (ats);
 	      GNUNET_free (prem);
 	    }
 	}
