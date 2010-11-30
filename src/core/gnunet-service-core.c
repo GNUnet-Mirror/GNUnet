@@ -1188,7 +1188,10 @@ handle_client_init (void *cls,
   const uint16_t *types;
   uint16_t *wtypes;
   struct Neighbour *n;
-  struct ConnectNotifyMessage cnm;
+  struct ConnectNotifyMessage *cnm;
+  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
+  struct GNUNET_TRANSPORT_ATS_Information *ats;
+  size_t size;
   unsigned int i;
 
 #if DEBUG_CORE_CLIENT
@@ -1250,22 +1253,39 @@ handle_client_init (void *cls,
   if (0 != (c->options & GNUNET_CORE_OPTION_SEND_CONNECT))
     {
       /* notify new client about existing neighbours */
-      cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
-      cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
-      cnm.ats_count = htonl (0);
-      cnm.ats.type = htonl (0);
-      cnm.ats.value = htonl (0);
       n = neighbours;
       while (n != NULL)
 	{
+	  size = sizeof (struct ConnectNotifyMessage) +
+	    (n->ats_count+1) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+	  if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+	    {
+	      GNUNET_break (0);
+	      /* recovery strategy: throw away performance data */
+	      GNUNET_array_grow (n->ats,
+				 n->ats_count,
+				 0);
+	      size = sizeof (struct ConnectNotifyMessage) +
+		(n->ats_count+1) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+	    }
+	  cnm = (struct ConnectNotifyMessage*) buf;	  
+	  cnm->header.size = htons (size);
+	  cnm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
+	  cnm->ats_count = htonl (n->ats_count);
+	  ats = &cnm->ats;
+	  memcpy (ats,
+		  n->ats,
+		  sizeof (struct GNUNET_TRANSPORT_ATS_Information) * n->ats_count);
+	  ats[n->ats_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+	  ats[n->ats_count].value = htonl (0);
 	  if (n->status == PEER_STATE_KEY_CONFIRMED)
 	    {
 #if DEBUG_CORE_CLIENT
 	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 			  "Sending `%s' message to client.\n", "NOTIFY_CONNECT");
 #endif
-	      cnm.peer = n->peer;
-	      send_to_client (c, &cnm.header, GNUNET_NO);
+	      cnm->peer = n->peer;
+	      send_to_client (c, &cnm->header, GNUNET_NO);
 	    }
 	  n = n->next;
 	}
@@ -3673,9 +3693,22 @@ send_p2p_message_to_client (struct Neighbour *sender,
                             struct Client *client,
                             const void *m, size_t msize)
 {
-  char buf[msize + sizeof (struct NotifyTrafficMessage)];
+  size_t size = msize + sizeof (struct NotifyTrafficMessage) +
+    (sender->ats_count+1) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+  char buf[size];
   struct NotifyTrafficMessage *ntm;
+  struct GNUNET_TRANSPORT_ATS_Information *ats;
 
+  if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+    {
+      GNUNET_break (0);
+      /* recovery strategy: throw performance data away... */
+      GNUNET_array_grow (sender->ats,
+			 sender->ats_count,
+			 0);
+      size = msize + sizeof (struct NotifyTrafficMessage) +
+	(sender->ats_count+1) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+    }
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core service passes message from `%4s' of type %u to client.\n",
@@ -3683,13 +3716,19 @@ send_p2p_message_to_client (struct Neighbour *sender,
               (unsigned int) ntohs (((const struct GNUNET_MessageHeader *) m)->type));
 #endif
   ntm = (struct NotifyTrafficMessage *) buf;
-  ntm->header.size = htons (msize + sizeof (struct NotifyTrafficMessage));
+  ntm->header.size = htons (size);
   ntm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_INBOUND);
-  ntm->ats_count = htonl (0);
-  ntm->ats.type = htonl (0);
-  ntm->ats.value = htonl (0);
+  ntm->ats_count = htonl (sender->ats_count);
   ntm->peer = sender->peer;
-  memcpy (&ntm[1], m, msize);
+  ats = &ntm->ats;
+  memcpy (ats,
+	  sender->ats,
+	  sizeof (struct GNUNET_TRANSPORT_ATS_Information) * sender->ats_count);
+  ats[sender->ats_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+  ats[sender->ats_count].value = htonl (0);  
+  memcpy (&ats[sender->ats_count+1],
+	  m, 
+	  msize);
   send_to_client (client, &ntm->header, GNUNET_YES);
 }
 
