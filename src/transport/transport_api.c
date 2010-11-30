@@ -1681,13 +1681,12 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
 	  return;
 	}
       fprintf(stderr,"transport_api GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT ats_count %u\n",ntohl (cim->ats_count));
-      n->is_connected = GNUNET_YES;
+     n->is_connected = GNUNET_YES;
       if (h->nc_cb != NULL)
           	  h->nc_cb (h->cls, &n->id,
       		    NULL,
       		    0);
-
-     /* FIX if (h->nc_cb != NULL)
+     /*  if (h->nc_cb != NULL)
     	  h->nc_cb (h->cls, &n->id,
 		    &(cim->ats), 
 		    ntohl (cim->ats_count));*/
@@ -1787,13 +1786,13 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
 	  return;
 	}
       fprintf(stderr,"transport_api GNUNET_MESSAGE_TYPE_TRANSPORT_RECV ats_count %u\n",ntohl (im->ats_count));
-      if (h->rec != NULL)
+    if (h->rec != NULL)
     		h->rec (h->cls, &im->peer,
     			imm,
     			NULL,
     			0);
-    /* FIX
-	h->rec (h->cls, &im->peer, 
+
+	/*h->rec (h->cls, &im->peer,
 		imm, 
 		&im->ats, 
 		ntohl (im->ats_count));*/
