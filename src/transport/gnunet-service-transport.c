@@ -2227,7 +2227,6 @@ notify_clients_connect (const struct GNUNET_PeerIdentity *peer,
   cim.ats_count = htonl(0);
   cim.ats.type  = htonl(0);
   cim.ats.value = htonl(0);
-  fprintf (stderr,"%lu %u %lu ", sizeof (struct ConnectInfoMessage), ntohl(cim.ats_count), sizeof (struct GNUNET_TRANSPORT_ATS_Information));
   memcpy (&cim.id, peer, sizeof (struct GNUNET_PeerIdentity));
   cpos = clients;
   while (cpos != NULL)
@@ -3449,7 +3448,6 @@ handle_payload_message (const struct GNUNET_MessageHeader *message,
 			    GNUNET_NO);
 
   /* transmit message to all clients */
-  fprintf(stderr,"handle_payload_message ats_count %u\n",ats_count);
   im = GNUNET_malloc (sizeof (struct InboundMessage) + ats_count * sizeof(struct GNUNET_TRANSPORT_ATS_Information) + msize);
   im->header.size = htons (sizeof (struct InboundMessage) +  ats_count * sizeof(struct GNUNET_TRANSPORT_ATS_Information) + msize);
   im->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
@@ -4887,7 +4885,6 @@ handle_start (void *cls,
 	      cim.id = n->id;
 	      cim.latency = GNUNET_TIME_relative_hton (n->latency);
 	      cim.distance = htonl (n->distance);
-	      fprintf (stderr,"%lu %u %lu ", sizeof (struct ConnectInfoMessage), ntohl(cim.ats_count), sizeof (struct GNUNET_TRANSPORT_ATS_Information));
 	      transmit_to_client (c, &cim.header, GNUNET_NO);
             }
 	    n = n->next;
