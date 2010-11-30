@@ -335,6 +335,13 @@ enum GNUNET_TRANSPORT_ATS_Property
    */
   GNUNET_TRANSPORT_ATS_QUALITY_NET_THROUGHPUT = 1033,
   
+  /**
+   * Distance on network layer
+   *
+   * Unit: []
+   */
+  GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE = 1034,
+
   /* Availability related values */
   /* =========================== */
   
