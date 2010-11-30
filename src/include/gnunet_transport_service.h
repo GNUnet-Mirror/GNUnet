@@ -401,9 +401,8 @@ typedef void (*GNUNET_TRANSPORT_ReceiveCallback) (void *cls,
                                                   const struct
                                                   GNUNET_MessageHeader *
                                                   message,
-						  struct GNUNET_TIME_Relative
-                                                  latency,
-						  uint32_t distance);
+                                const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                                                  uint32_t ats_count);
 
 
 /**
@@ -425,8 +424,8 @@ struct GNUNET_TRANSPORT_Handle;
 typedef void
   (*GNUNET_TRANSPORT_NotifyConnect) (void *cls,
                                      const struct GNUNET_PeerIdentity * peer,
-                                     struct GNUNET_TIME_Relative latency,
-				     uint32_t distance);
+                                     const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                                     uint32_t ats_count);
 
 /**
  * Function called to notify transport users that another
