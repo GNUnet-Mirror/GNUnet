@@ -94,11 +94,9 @@ check_localhost(void *cls, const char *hostname)
     }
   else
     {
-#if DEBUG_RESOLVER
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-          "Received invalid hostname `%s'.\n", hostname);
-#endif
-      GNUNET_break(0);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  "Received unexpected hostname `%s', expected `localhost' (this could be OK).\n", 
+		  hostname);
     }
 }
 
