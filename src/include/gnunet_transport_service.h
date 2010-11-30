@@ -253,13 +253,13 @@ enum GNUNET_TRANSPORT_ATS_Property
    * Delay
    * Time between when the time packet is sent and the packet arrives
    *
-   * Unit: [μs]
+   * Unit: [ms]
    *
    * Examples:
    *
-   * LAN   :  180
-   * Dialup: 4000
-   * WLAN  : 7000
+   * LAN   :    1
+   * WLAN  :    2
+   * Dialup:  500
    */
   GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY = 1028,
   
@@ -268,7 +268,7 @@ enum GNUNET_TRANSPORT_ATS_Property
    * Time variations of the delay
    * 1st derivative of a delay function
    *
-   * Unit: [μs]
+   * Unit: [ms]
    */
   GNUNET_TRANSPORT_ATS_QUALITY_NET_JITTER = 1029,
   
@@ -381,8 +381,6 @@ struct GNUNET_TRANSPORT_ATS_Information
    */
   uint32_t value;
 };
-
-
 
 
 /**
