@@ -885,7 +885,12 @@ static unsigned int mig_size;
 /**
  * Are we allowed to migrate content to this peer.
  */
-static int active_migration;
+static int active_to_migration;
+
+/**
+ * Are we allowed to push out content from this peer.
+ */
+static int active_from_migration;
 
 /**
  * How many entires with zero anonymity do we currently estimate
@@ -3618,7 +3623,7 @@ handle_p2p_put (void *cls,
       prq.sender->inc_preference += CONTENT_BANDWIDTH_VALUE + 1000 * prq.priority;
       change_host_trust (prq.sender, prq.priority);
     }
-  if ( (GNUNET_YES == active_migration) &&
+  if ( (GNUNET_YES == active_to_migration) &&
        (GNUNET_NO == test_put_load_too_high (prq.priority)) )
     {      
 #if DEBUG_FS
@@ -3640,7 +3645,7 @@ handle_p2p_put (void *cls,
     }
   putl = GNUNET_LOAD_get_load (datastore_put_load);
   if ( (GNUNET_NO == prq.request_found) &&
-       ( (GNUNET_YES != active_migration) ||
+       ( (GNUNET_YES != active_to_migration) ||
        	 (putl > 2.5 * (1 + prq.priority)) ) )
     {
       cp = GNUNET_CONTAINER_multihashmap_get (connected_peers,
@@ -3648,7 +3653,7 @@ handle_p2p_put (void *cls,
       if (GNUNET_TIME_absolute_get_duration (cp->last_migration_block).rel_value < 5000)
 	return GNUNET_OK; /* already blocked */
       /* We're too busy; send MigrationStop message! */
-      if (GNUNET_YES != active_migration) 
+      if (GNUNET_YES != active_to_migration) 
 	putl = 1.0 + GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 5);
       block_time = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
 						  5000 + GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
@@ -4587,8 +4592,7 @@ main_init (struct GNUNET_SERVER_Handle *server,
 	}
       return GNUNET_SYSERR;
     }
-  /* FIXME: distinguish between sending and storing in options? */
-  if (active_migration) 
+  if (active_from_migration) 
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  _("Content migration is enabled, will start to gather data\n"));
@@ -4628,9 +4632,12 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  active_migration = GNUNET_CONFIGURATION_get_value_yesno (cfg,
-							   "FS",
-							   "ACTIVEMIGRATION");
+  active_to_migration = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+							      "FS",
+							      "CONTENT_CACHING");
+  active_from_migration = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+								"FS",
+								"CONTENT_PUSHING");
   dsh = GNUNET_DATASTORE_connect (cfg);
   if (dsh == NULL)
     {
