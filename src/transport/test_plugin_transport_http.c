@@ -1341,4 +1341,4 @@ main (int argc, char *const *argv)
   return fail;
 }
 
-/* end of test_gnunet_transport_plugin_http.c */
+/* end of test_plugin_transport_http.c */
