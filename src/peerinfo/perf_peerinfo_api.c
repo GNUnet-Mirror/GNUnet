@@ -153,11 +153,13 @@ static int
 check ()
 {
   int ok = 0;
-  char *const argv[] = { "test-peerinfo-hammer",
+  char *const argv[] = { "perf-peerinfo-api",
     "-c",
     "test_peerinfo_api_data.conf",
 #if DEBUG_PEERINFO
     "-L", "DEBUG",
+#else
+    "-L", "ERROR",
 #endif
     NULL
   };
@@ -170,6 +172,8 @@ check ()
                                  "gnunet-service-peerinfo",
 #if DEBUG_PEERINFO
                                  "-L", "DEBUG",
+#else
+				"-L", "ERROR",
 #endif
                                  "-c", "test_peerinfo_api_data.conf", NULL);
 #endif

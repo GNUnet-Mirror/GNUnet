@@ -391,9 +391,8 @@ struct GNUNET_TRANSPORT_ATS_Information
  * @param cls closure
  * @param peer (claimed) identity of the other peer
  * @param message the message
- * @param latency estimated latency for communicating with the
- *             given peer (round-trip)
- * @param distance in overlay hops, as given by transport plugin
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
  */
 typedef void (*GNUNET_TRANSPORT_ReceiveCallback) (void *cls,
                                                   const struct
@@ -401,7 +400,7 @@ typedef void (*GNUNET_TRANSPORT_ReceiveCallback) (void *cls,
                                                   const struct
                                                   GNUNET_MessageHeader *
                                                   message,
-                                const struct GNUNET_TRANSPORT_ATS_Information *ats,
+						  const struct GNUNET_TRANSPORT_ATS_Information *ats,
                                                   uint32_t ats_count);
 
 
@@ -417,9 +416,8 @@ struct GNUNET_TRANSPORT_Handle;
  *
  * @param cls closure
  * @param peer the peer that connected
- * @param latency estimated latency for communicating with the
- *             given peer (round-trip)
- * @param distance in overlay hops, as given by transport plugin
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
  */
 typedef void
   (*GNUNET_TRANSPORT_NotifyConnect) (void *cls,

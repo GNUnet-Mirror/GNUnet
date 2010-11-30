@@ -1591,12 +1591,9 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
       GNUNET_break (n->is_connected == GNUNET_NO);
       n->is_connected = GNUNET_YES;
       if (h->nc_cb != NULL)
-    	  h->nc_cb (h->cls, &n->id, &(cim->ats), cim->ats_count);
-/*
-	h->nc_cb (h->cls, &n->id,
-		  GNUNET_TIME_relative_ntoh (cim->latency),
-		  ntohl (cim->distance));
-*/
+    	  h->nc_cb (h->cls, &n->id,
+		    &(cim->ats), 
+		    cim->ats_count);
       break;
     case GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT:
       if (size != sizeof (struct DisconnectInfoMessage))
@@ -1688,8 +1685,10 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
 	  break;
 	}
       if (h->rec != NULL)
-    	  h->rec (h->cls, &im->peer, imm, &im->ats, im->ats_count);
-        //h->rec (h->cls, &im->peer, imm, GNUNET_TIME_relative_ntoh (im->latency), ntohl(im->distance));
+	h->rec (h->cls, &im->peer, 
+		imm, 
+		&im->ats, 
+		im->ats_count);
       break;
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

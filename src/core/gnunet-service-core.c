@@ -474,6 +474,11 @@ struct Neighbour
   struct SetKeyMessage *skm;
 
   /**
+   * Performance data for the peer.
+   */ 
+  struct GNUNET_TRANSPORT_ATS_Information *ats;
+
+  /**
    * Identity of the neighbour.
    */
   struct GNUNET_PeerIdentity peer;
@@ -556,6 +561,11 @@ struct Neighbour
    * How valueable were the messages of this peer recently?
    */
   unsigned long long current_preference;
+
+  /**
+   * Number of entries in 'ats'.
+   */ 
+  unsigned int ats_count;
 
   /**
    * Bit map indicating which of the 32 sequence numbers before the last
@@ -1344,8 +1354,8 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
  */
 static void
 handle_client_iterate_peers (void *cls,
-                    struct GNUNET_SERVER_Client *client,
-                    const struct GNUNET_MessageHeader *message)
+			     struct GNUNET_SERVER_Client *client,
+			     const struct GNUNET_MessageHeader *message)
 
 {
   struct Neighbour *n;
@@ -1555,6 +1565,7 @@ free_neighbour (struct Neighbour *n)
       GNUNET_SCHEDULER_cancel (n->keep_alive_task);
   if (n->status == PEER_STATE_KEY_CONFIRMED)
     GNUNET_STATISTICS_update (stats, gettext_noop ("# established sessions"), -1, GNUNET_NO);
+  GNUNET_array_grow (n->ats, n->ats_count, 0);
   GNUNET_free_non_null (n->public_key);
   GNUNET_free_non_null (n->pending_ping);
   GNUNET_free_non_null (n->pending_pong);
@@ -3134,10 +3145,15 @@ send_key (struct Neighbour *n)
  *
  * @param n the neighbour from which we received message m
  * @param m the set key message we received
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
  */
 static void
 handle_set_key (struct Neighbour *n,
-		const struct SetKeyMessage *m);
+		const struct SetKeyMessage *m,
+		const struct GNUNET_TRANSPORT_ATS_Information *ats, 
+		uint32_t ats_count);
+
 
 
 /**
@@ -3170,7 +3186,7 @@ process_hello_retry_handle_set_key (void *cls,
 		      GNUNET_i2s (&n->peer),
 		      "SET_KEY");
 #endif
-	  handle_set_key (n, sm);
+	  handle_set_key (n, sm, NULL, 0);
 	}
       else
 	{
@@ -3196,14 +3212,55 @@ process_hello_retry_handle_set_key (void *cls,
 
 
 /**
+ * Merge the given performance data with the data we currently
+ * track for the given neighbour.
+ *
+ * @param n neighbour
+ * @param ats new performance data
+ * @param ats_count number of records in ats
+ */
+static void
+update_neighbour_performance (struct Neighbour *n,
+			      const struct GNUNET_TRANSPORT_ATS_Information *ats, 
+			      uint32_t ats_count)
+{
+  uint32_t i;
+  unsigned int j;
+
+  if (ats_count == 0)
+    return;
+  for (i=0;i<ats_count;i++)
+    {
+      for (j=0;j<n->ats_count;j++)
+	{
+	  if (n->ats[j].type == ats[i].type)
+	    {
+	      n->ats[j].value = ats[i].value;
+	      break;
+	    }
+	}
+      if (j == n->ats_count)	
+	GNUNET_array_append (n->ats,
+			     n->ats_count,
+			     *ats);	
+    }
+}
+
+
+/**
  * We received a PING message.  Validate and transmit
  * PONG.
  *
  * @param n sender of the PING
  * @param m the encrypted PING message itself
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
  */
 static void
-handle_ping (struct Neighbour *n, const struct PingMessage *m)
+handle_ping (struct Neighbour *n,
+	     const struct PingMessage *m,
+	     const struct GNUNET_TRANSPORT_ATS_Information *ats, 
+	     uint32_t ats_count)
 {
   struct PingMessage t;
   struct PongMessage tx;
@@ -3245,6 +3302,7 @@ handle_ping (struct Neighbour *n, const struct PingMessage *m)
       GNUNET_break_op (0);
       return;
     }
+  update_neighbour_performance (n, ats, ats_count);
   me = GNUNET_malloc (sizeof (struct MessageEntry) +
                       sizeof (struct PongMessage));
   GNUNET_CONTAINER_DLL_insert_after (n->encrypted_head,
@@ -3291,10 +3349,14 @@ handle_ping (struct Neighbour *n, const struct PingMessage *m)
  *
  * @param n sender of the PONG
  * @param m the encrypted PONG message itself
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
  */
 static void
 handle_pong (struct Neighbour *n, 
-	     const struct PongMessage *m)
+	     const struct PongMessage *m,
+	     const struct GNUNET_TRANSPORT_ATS_Information *ats, 
+	     uint32_t ats_count)
 {
   struct PongMessage t;
   struct ConnectNotifyMessage cnm;
@@ -3409,6 +3471,7 @@ handle_pong (struct Neighbour *n,
 	= GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT, 2),
 					&send_keep_alive,
 					n);
+      update_neighbour_performance (n, ats, ats_count);
       handle_peer_status_change (n);
       break;
     default:
@@ -3424,9 +3487,14 @@ handle_pong (struct Neighbour *n,
  *
  * @param n the neighbour from which we received message m
  * @param m the set key message we received
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
  */
 static void
-handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
+handle_set_key (struct Neighbour *n, 
+		const struct SetKeyMessage *m,
+		const struct GNUNET_TRANSPORT_ATS_Information *ats, 
+		uint32_t ats_count)
 {
   struct SetKeyMessage *m_cpy;
   struct GNUNET_TIME_Absolute t;
@@ -3531,6 +3599,7 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
       n->last_packets_bitmap = 0;
       n->decrypt_key_created = t;
     }
+  update_neighbour_performance (n, ats, ats_count);
   sender_status = (enum PeerStateMachine) ntohl (m->sender_status);
   switch (n->status)
     {
@@ -3578,14 +3647,14 @@ handle_set_key (struct Neighbour *n, const struct SetKeyMessage *m)
     {
       ping = n->pending_ping;
       n->pending_ping = NULL;
-      handle_ping (n, ping);
+      handle_ping (n, ping, NULL, 0);
       GNUNET_free (ping);
     }
   if (n->pending_pong != NULL)
     {
       pong = n->pending_pong;
       n->pending_pong = NULL;
-      handle_pong (n, pong);
+      handle_pong (n, pong, NULL, 0);
       GNUNET_free (pong);
     }
 }
@@ -3709,10 +3778,17 @@ deliver_message (void *cls,
 /**
  * We received an encrypted message.  Decrypt, validate and
  * pass on to the appropriate clients.
+ *
+ * @param n target of the message
+ * @param m encrypted message
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
  */
 static void
 handle_encrypted_message (struct Neighbour *n,
-                          const struct EncryptedMessage *m)
+                          const struct EncryptedMessage *m,
+                          const struct GNUNET_TRANSPORT_ATS_Information *ats, 
+			  uint32_t ats_count)
 {
   size_t size = ntohs (m->header.size);
   char buf[size];
@@ -3864,6 +3940,7 @@ handle_encrypted_message (struct Neighbour *n,
 			 size - sizeof (struct EncryptedMessage),
 			 GNUNET_NO);
   handle_peer_status_change (n);
+  update_neighbour_performance (n, ats, ats_count);
   if (GNUNET_OK != GNUNET_SERVER_mst_receive (mst, 
 					      n,
 					      &buf[sizeof (struct EncryptedMessage)], 
@@ -3879,15 +3956,15 @@ handle_encrypted_message (struct Neighbour *n,
  * @param cls closure
  * @param peer (claimed) identity of the other peer
  * @param message the message
- * @param latency estimated latency for communicating with the
- *             given peer (round-trip)
- * @param distance in overlay hops, as given by transport plugin
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
  */
 static void
 handle_transport_receive (void *cls,
                           const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_MessageHeader *message,
-                          const struct GNUNET_TRANSPORT_ATS_Information *ats, uint32_t ats_count)
+                          const struct GNUNET_TRANSPORT_ATS_Information *ats, 
+			  uint32_t ats_count)
 {
   struct Neighbour *n;
   struct GNUNET_TIME_Absolute now;
@@ -3923,7 +4000,9 @@ handle_transport_receive (void *cls,
           return;
         }
       GNUNET_STATISTICS_update (stats, gettext_noop ("# session keys received"), 1, GNUNET_NO);
-      handle_set_key (n, (const struct SetKeyMessage *) message);
+      handle_set_key (n,
+		      (const struct SetKeyMessage *) message,
+		      ats, ats_count);
       break;
     case GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE:
       if (size < sizeof (struct EncryptedMessage) +
@@ -3938,7 +4017,9 @@ handle_transport_receive (void *cls,
           GNUNET_break_op (0);
           return;
         }
-      handle_encrypted_message (n, (const struct EncryptedMessage *) message);
+      handle_encrypted_message (n, 
+				(const struct EncryptedMessage *) message,
+				ats, ats_count);
       break;
     case GNUNET_MESSAGE_TYPE_CORE_PING:
       if (size != sizeof (struct PingMessage))
@@ -3960,7 +4041,8 @@ handle_transport_receive (void *cls,
           memcpy (n->pending_ping, message, sizeof (struct PingMessage));
           return;
         }
-      handle_ping (n, (const struct PingMessage *) message);
+      handle_ping (n, (const struct PingMessage *) message,
+		   ats, ats_count);
       break;
     case GNUNET_MESSAGE_TYPE_CORE_PONG:
       if (size != sizeof (struct PongMessage))
@@ -3982,7 +4064,8 @@ handle_transport_receive (void *cls,
           memcpy (n->pending_pong, message, sizeof (struct PongMessage));
           return;
         }
-      handle_pong (n, (const struct PongMessage *) message);
+      handle_pong (n, (const struct PongMessage *) message,
+		   ats, ats_count);
       break;
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -4125,13 +4208,14 @@ neighbour_quota_update (void *cls,
  *
  * @param cls closure
  * @param peer the peer that connected
- * @param latency current latency of the connection
- * @param distance in overlay hops, as given by transport plugin
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
  */
 static void
 handle_transport_notify_connect (void *cls,
                                  const struct GNUNET_PeerIdentity *peer,
-                                 const struct GNUNET_TRANSPORT_ATS_Information *ats, uint32_t ats_count)
+                                 const struct GNUNET_TRANSPORT_ATS_Information *ats,
+				 uint32_t ats_count)
 {
   struct Neighbour *n;
 
@@ -4159,6 +4243,7 @@ handle_transport_notify_connect (void *cls,
 			    1, 
 			    GNUNET_NO);
   n->is_connected = GNUNET_YES;      
+  update_neighbour_performance (n, ats, ats_count);
   GNUNET_BANDWIDTH_tracker_init (&n->available_send_window,
 				 n->bw_out,
 				 MAX_WINDOW_TIME_S);
