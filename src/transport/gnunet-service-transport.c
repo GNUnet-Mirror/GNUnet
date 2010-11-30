@@ -3448,9 +3448,9 @@ handle_payload_message (const struct GNUNET_MessageHeader *message,
   im = GNUNET_malloc (sizeof (struct InboundMessage) + ats_count * sizeof(struct GNUNET_TRANSPORT_ATS_Information) + msize);
   im->header.size = htons (sizeof (struct InboundMessage) +  ats_count * sizeof(struct GNUNET_TRANSPORT_ATS_Information) + msize);
   im->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
-  im->latency = GNUNET_TIME_relative_hton (n->latency);
+  //im->latency = GNUNET_TIME_relative_hton (n->latency);
+  //im->distance = ntohl(n->distance);
   im->peer = n->id;
-  im->distance = ntohl(n->distance);
   im->ats_count = htonl(ats_count);
   /* insert ATS elements */
   memcpy (&(im->ats), ats, ats_count * sizeof(struct GNUNET_TRANSPORT_ATS_Information));
@@ -3680,8 +3680,14 @@ check_pending_validation (void *cls,
 	  if (NULL != (prem = n->pre_connect_message_buffer))
 	    {
 	      n->pre_connect_message_buffer = NULL;
-	      /* FIXME: */
-	      handle_payload_message (prem, n, NULL, 0);
+	      struct GNUNET_TRANSPORT_ATS_Information * ats = GNUNET_malloc(2 * sizeof(struct GNUNET_TRANSPORT_ATS_Information));
+	      ats[0].type = htonl(GNUNET_TRANSPORT_LATENCY_LSB);
+	      ats[0].value = htonl(n->latency.rel_value);
+	      ats[1].type = htonl(GNUNET_TRANSPORT_DISTANCE);
+	      ats[1].value = htonl(n->distance);
+	      handle_payload_message (prem, n, ats, 2);
+	      fprintf(stderr,"ATS!");
+	      GNUNET_free (ats);
 	      GNUNET_free (prem);
 	    }
 	}
@@ -4771,6 +4777,7 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 	  handle_pong (plugin, message, peer, sender_address, sender_address_len);
 	  break;
 	default:
+	  /* FIXME */
 	  handle_payload_message (message, n, NULL, 0);
 	  break;
 	}

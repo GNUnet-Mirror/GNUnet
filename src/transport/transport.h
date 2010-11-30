@@ -86,6 +86,12 @@ struct ConnectInfoMessage
   struct GNUNET_MessageHeader header;
 
   /**
+   * Number of ATS key-value pairs that follow this struct
+   * (excluding the 0-terminator).
+   */
+  uint32_t ats_count GNUNET_PACKED;
+
+  /**
    * Transport distance metric (i.e. hops for DV)
    */
   uint32_t distance;
@@ -100,6 +106,11 @@ struct ConnectInfoMessage
    */
   struct GNUNET_PeerIdentity id;
 
+  /**
+   * First of the ATS information blocks (we must have at least
+   * one due to the 0-termination requirement).
+   */
+  struct GNUNET_TRANSPORT_ATS_Information ats;
 };
 
 
@@ -198,7 +209,7 @@ struct InboundMessage
   /**
    * Latency estimate.
    */
-  struct GNUNET_TIME_RelativeNBO latency;
+  //struct GNUNET_TIME_RelativeNBO latency;
 
   /**
    * Which peer sent the message?
@@ -208,7 +219,7 @@ struct InboundMessage
   /**
    * Distance metric.
    */
-  uint32_t distance;
+  //uint32_t distance;
 
   /**
    * First of the ATS information blocks (we must have at least
