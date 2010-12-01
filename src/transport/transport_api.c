@@ -401,7 +401,6 @@ struct GNUNET_TRANSPORT_Handle
 };
 
 
-// FIXME: replace with hash map!
 /**
  * Get the neighbour list entry for the given peer
  *
@@ -413,9 +412,6 @@ static struct NeighbourList *
 neighbour_find (struct GNUNET_TRANSPORT_Handle *h,
                 const struct GNUNET_PeerIdentity *peer)
 {
-  if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_contains(h->neighbours, &peer->hashPubKey))
-    return NULL;
-
   return GNUNET_CONTAINER_multihashmap_get(h->neighbours, &peer->hashPubKey);
 }
 
