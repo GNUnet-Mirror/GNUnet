@@ -383,6 +383,11 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS 78
 
 /**
+ * Last reply from core to request for peer iteration from CORE service.
+ */
+#define GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS_END 79
+
+/**
  * Session key exchange between peers.
  */
 #define GNUNET_MESSAGE_TYPE_CORE_SET_KEY 80

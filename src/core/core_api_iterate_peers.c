@@ -67,12 +67,14 @@ receive_info (void *cls,
 {
   struct GNUNET_CORE_RequestContext *request_context = cls;
   const struct ConnectNotifyMessage *connect_message;
-
+  uint32_t ats_count;
+  uint16_t msize;
 
   /* Handle last message or error case, disconnect and clean up */
+  msize = ntohs (msg->size);
   if ( (msg == NULL) ||
-      ((ntohs (msg->type) == GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT) &&
-      (ntohs (msg->size) == sizeof (struct GNUNET_MessageHeader))) )
+      ((ntohs (msg->type) == GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS_END) &&
+      (msize == sizeof (struct GNUNET_MessageHeader))) )
     {
       if (request_context->peer_cb != NULL)
 	request_context->peer_cb (request_context->cb_cls,
@@ -84,7 +86,7 @@ receive_info (void *cls,
 
   /* Handle incorrect message type or size, disconnect and clean up */
   if ( (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT) ||
-       (ntohs (msg->size) != sizeof (struct ConnectNotifyMessage)) )
+       (msize < sizeof (struct ConnectNotifyMessage)) )
     {
       GNUNET_break (0);
       if (request_context->peer_cb != NULL)
@@ -94,15 +96,28 @@ receive_info (void *cls,
       GNUNET_free (request_context);
       return;
     }
-
-  /* Normal case */
   connect_message = (const struct ConnectNotifyMessage *) msg;
+  ats_count = ntohl (connect_message->ats_count);
+  if ( (msize != sizeof (struct ConnectNotifyMessage) + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information)) ||
+       (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR != ntohl ((&connect_message->ats)[ats_count].type)) )
+    {
+      GNUNET_break (0);
+      if (request_context->peer_cb != NULL)
+        request_context->peer_cb (request_context->cb_cls,
+                                  NULL, NULL);
+      GNUNET_CLIENT_disconnect (request_context->client, GNUNET_NO);
+      GNUNET_free (request_context);
+      return;
+    }
+  /* Normal case */
   if (request_context->peer_cb != NULL)
     request_context->peer_cb (request_context->cb_cls,
                               &connect_message->peer,
-                              NULL);
-
-  GNUNET_CLIENT_receive(request_context->client, &receive_info, request_context, GNUNET_TIME_relative_get_forever());
+                              &connect_message->ats);
+  GNUNET_CLIENT_receive(request_context->client, 
+			&receive_info, 
+			request_context,
+			GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 /**

@@ -1452,7 +1452,7 @@ handle_client_iterate_peers (void *cls,
       n = n->next;
     }
   done_msg.size = htons (sizeof (struct GNUNET_MessageHeader));
-  done_msg.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
+  done_msg.type = htons (GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS_END);
   GNUNET_SERVER_transmit_context_append_message (tc, &done_msg);
   GNUNET_SERVER_transmit_context_run (tc,
                                       GNUNET_TIME_UNIT_FOREVER_REL);
