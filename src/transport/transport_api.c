@@ -209,11 +209,6 @@ struct TryTransmitContext
   struct GNUNET_TRANSPORT_TransmitHandle *ret;
 
   /**
-   * Temporary transmit handle.
-   */
-  struct GNUNET_TRANSPORT_TransmitHandle *th;
-
-  /**
    * Time to retry the send task.
    */
   struct GNUNET_TIME_Relative retry_time;
@@ -439,6 +434,7 @@ quota_transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   schedule_transmission (h);
 }
 
+
 /**
  * Iterator over hash map entries, attempt to schedule
  * a transmission to entries in the neighbour hashmap.
@@ -459,19 +455,20 @@ try_schedule_transmission (void *cls,
   struct TryTransmitContext *try_transmit_ctx = cls;
   struct GNUNET_TIME_Relative duration;
   GNUNET_CONNECTION_TransmitReadyNotify notify;
+  struct GNUNET_TRANSPORT_TransmitHandle *th;
 
   if (n->transmit_stage != TS_QUEUED)
     return GNUNET_YES; /* not eligible, keep iterating */
   if (n->is_connected != GNUNET_YES)
     return GNUNET_YES; /* keep iterating */
 
-  try_transmit_ctx->th = &n->transmit_handle;
-  GNUNET_break (n == try_transmit_ctx->th->neighbour);
+  th = &n->transmit_handle;
+  GNUNET_break (n == th->neighbour);
   /* check outgoing quota */
   duration = GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker,
-                                                 try_transmit_ctx->th->notify_size - sizeof (struct OutboundMessage));
+                                                 th->notify_size - sizeof (struct OutboundMessage));
   struct GNUNET_TIME_Absolute duration_abs = GNUNET_TIME_relative_to_absolute (duration);
-  if (try_transmit_ctx->th->timeout.abs_value < duration_abs.abs_value)
+  if (th->timeout.abs_value < duration_abs.abs_value)
     {
       /* signal timeout! */
 #if DEBUG_TRANSPORT
@@ -480,16 +477,16 @@ try_schedule_transmission (void *cls,
                   duration.rel_value,
                   GNUNET_i2s (&n->id));
 #endif
-      if (try_transmit_ctx->th->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
+      if (th->notify_delay_task != GNUNET_SCHEDULER_NO_TASK)
         {
-          GNUNET_SCHEDULER_cancel (try_transmit_ctx->th->notify_delay_task);
-          try_transmit_ctx->th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
+          GNUNET_SCHEDULER_cancel (th->notify_delay_task);
+	  th->notify_delay_task = GNUNET_SCHEDULER_NO_TASK;
         }
       n->transmit_stage = TS_NEW;
-      if (NULL != (notify = try_transmit_ctx->th->notify))
+      if (NULL != (notify = th->notify))
         {
-          try_transmit_ctx->th->notify = NULL;
-          GNUNET_assert (0 == notify (try_transmit_ctx->th->notify_cls, 0, NULL));
+          th->notify = NULL;
+          GNUNET_assert (0 == notify (th->notify_cls, 0, NULL));
         }
       return GNUNET_YES; /* keep iterating */
     }
@@ -499,7 +496,7 @@ try_schedule_transmission (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Need more bandwidth (%u b/s allowed, %u b needed), delaying delivery to `%4s' by %llu ms\n",
                   (unsigned int) n->out_tracker.available_bytes_per_s__,
-                  (unsigned int) try_transmit_ctx->th->notify_size - sizeof (struct OutboundMessage),
+                  (unsigned int) th->notify_size - sizeof (struct OutboundMessage),
                   GNUNET_i2s (&n->id),
                   duration.rel_value);
 #endif
@@ -510,14 +507,13 @@ try_schedule_transmission (void *cls,
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Have %u bytes of bandwidth available for transmission to `%4s' right now\n",
-              try_transmit_ctx->th->notify_size - sizeof (struct OutboundMessage),
+              th->notify_size - sizeof (struct OutboundMessage),
               GNUNET_i2s (&n->id));
 #endif
 
   if ( (try_transmit_ctx->ret == NULL) ||
-       (try_transmit_ctx->ret->priority < try_transmit_ctx->th->priority) )
-    try_transmit_ctx->ret = try_transmit_ctx->th;
-
+       (try_transmit_ctx->ret->priority < th->priority) )
+    try_transmit_ctx->ret = th;
   return GNUNET_YES;
 }
 
