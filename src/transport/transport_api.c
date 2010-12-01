@@ -1139,7 +1139,11 @@ neighbour_free (struct NeighbourList *n)
       n->transmit_handle.notify = NULL;
     }
   */
-
+  /* NATE: if the above is not needed, then clearly this assertion
+     should hold (I've checked the code and I'm pretty sure this is
+     true. -CG 
+     FIXME: remove above comments once we've seen tests pass with the assert... */
+  GNUNET_assert (n->transmit_handle.notify_delay_task == GNUNET_SCHEDULER_NO_TASK);
   GNUNET_assert (n->transmit_handle.notify == NULL);
   h = n->h;
 #if DEBUG_TRANSPORT
@@ -1150,8 +1154,10 @@ neighbour_free (struct NeighbourList *n)
   GNUNET_break (n->is_connected == GNUNET_NO);
   GNUNET_break (n->transmit_stage == TS_NEW);
 
-  GNUNET_assert(GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(h->neighbours, &n->id.hashPubKey, n));
-
+  GNUNET_assert(GNUNET_YES == 
+		GNUNET_CONTAINER_multihashmap_remove(h->neighbours, 
+						     &n->id.hashPubKey, 
+						     n));
   GNUNET_free (n);
 }
 
@@ -1208,6 +1214,7 @@ forget_neighbours (void *cls,
                    void *value)
 {
   struct NeighbourList *n = value;
+
 #if DEBUG_TRANSPORT_DISCONNECT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Disconnecting due to reconnect being called\n");
@@ -1217,6 +1224,7 @@ forget_neighbours (void *cls,
 
   return GNUNET_YES;
 }
+
 
 /**
  * Try again to connect to transport service.
@@ -1238,7 +1246,9 @@ reconnect (void *cls,
       return;
     }
   /* Forget about all neighbours that we used to be connected to */
-  GNUNET_CONTAINER_multihashmap_iterate(h->neighbours, &forget_neighbours, NULL);
+  GNUNET_CONTAINER_multihashmap_iterate(h->neighbours, 
+					&forget_neighbours, 
+					NULL);
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
