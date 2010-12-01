@@ -815,18 +815,39 @@ schedule_control_transmit (struct GNUNET_TRANSPORT_Handle *h,
 }
 
 
+/**
+ * FIXME: document
+ */
 struct SetQuotaContext
 {
+  /**
+   * FIXME: document
+   */
   struct GNUNET_TRANSPORT_Handle *handle;
 
+  /**
+   * FIXME: document
+   */
   struct GNUNET_PeerIdentity target;
 
+  /**
+   * FIXME: document
+   */
   GNUNET_SCHEDULER_Task cont;
 
+  /**
+   * Closure for 'cont'.
+   */
   void *cont_cls;
 
+  /**
+   * FIXME: document
+   */
   struct GNUNET_TIME_Absolute timeout;
 
+  /**
+   * FIXME: document
+   */
   struct GNUNET_BANDWIDTH_Value32NBO quota_in;
 };
 
@@ -1178,6 +1199,13 @@ neighbour_disconnect (struct NeighbourList *n)
 #endif
   GNUNET_break (n->is_connected == GNUNET_YES);
   n->is_connected = GNUNET_NO;
+  /* FIXME: this 'in_disconnect' flag is dubious; we should define 
+     clearly what disconnect means for pending 'notify_transmit_ready'
+     requests; maybe a good approach is to REQUIRE clients to 
+     call 'notify_transmit_ready_cancel' on pending requests on disconnect
+     and otherwise FAIL HARD with an assertion failure before 
+     'neighbour_free' right here (transmit_stage would be forced
+     to 'TS_NEW') */
   n->in_disconnect = GNUNET_YES;
   if (h->nd_cb != NULL)
     h->nd_cb (h->cls, &n->id);
@@ -1509,6 +1537,12 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transport disconnect called!\n");
 #endif
+  /* FIXME: this flag is dubious, we should be able to do this
+     more cleanly; also, we should probably do 'disconnect'
+     callbacks for every connected peer here, i.e. by calling
+     the iterator with 'forget_neighbours' instead of 'delete_neighbours'.
+  */
+  
   handle->in_disconnect = GNUNET_YES;
 
   GNUNET_assert (GNUNET_SYSERR !=
