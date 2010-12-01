@@ -539,7 +539,8 @@ schedule_peer_transmission (struct GNUNET_TRANSPORT_Handle *h)
       GNUNET_SCHEDULER_cancel (h->quota_task);
       h->quota_task = GNUNET_SCHEDULER_NO_TASK;
     }
-  memset(&try_transmit_ctx, 0, sizeof(struct TryTransmitContext));
+  try_transmit_ctx.h = h;
+  try_transmit_ctx.ret = NULL;
   try_transmit_ctx.retry_time = GNUNET_TIME_UNIT_FOREVER_REL;
   GNUNET_CONTAINER_multihashmap_iterate(h->neighbours, 
 					&try_schedule_transmission, 
