@@ -1277,7 +1277,7 @@ handle_client_init (void *cls,
       while (n != NULL)
 	{
 	  size = sizeof (struct ConnectNotifyMessage) +
-	    (n->ats_count+1) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+	    (n->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
 	  if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
 	    {
 	      GNUNET_break (0);
@@ -1286,7 +1286,7 @@ handle_client_init (void *cls,
 				 n->ats_count,
 				 0);
 	      size = sizeof (struct ConnectNotifyMessage) +
-		(n->ats_count+1) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+		(n->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
 	    }
 	  cnm = (struct ConnectNotifyMessage*) buf;	  
 	  cnm->header.size = htons (size);
@@ -1419,7 +1419,7 @@ handle_client_iterate_peers (void *cls,
       if (n->status == PEER_STATE_KEY_CONFIRMED)
         {
 	  size = sizeof (struct ConnectNotifyMessage) +
-	    (n->ats_count+1) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+	    (n->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
 	  if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
 	    {
 	      GNUNET_break (0);
@@ -1428,7 +1428,7 @@ handle_client_iterate_peers (void *cls,
 				 n->ats_count,
 				 0);
 	      size = sizeof (struct PeerStatusNotifyMessage) +
-		(n->ats_count+1) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+		(n->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
 	    }
 	  cnm = (struct ConnectNotifyMessage*) buf;
 	  cnm->header.size = htons (size);
@@ -1438,7 +1438,7 @@ handle_client_iterate_peers (void *cls,
 	  memcpy (ats,
 		  n->ats,
 		  n->ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
-	  ats[n->ats_count].type = htonl (0);
+	  ats[n->ats_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
 	  ats[n->ats_count].value = htonl (0);	  
 #if DEBUG_CORE_CLIENT
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -3526,7 +3526,7 @@ handle_pong (struct Neighbour *n,
         }      
       update_neighbour_performance (n, ats, ats_count);      
       size = sizeof (struct ConnectNotifyMessage) +
-	(n->ats_count+1) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+	(n->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
       if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
 	{
 	  GNUNET_break (0);
@@ -3535,7 +3535,7 @@ handle_pong (struct Neighbour *n,
 			     n->ats_count,
 			     0);
 	  size = sizeof (struct PeerStatusNotifyMessage) +
-	    (n->ats_count+1) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+	    (n->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
 	}
       cnm = (struct ConnectNotifyMessage*) buf;
       cnm->header.size = htons (size);
@@ -3545,7 +3545,7 @@ handle_pong (struct Neighbour *n,
       memcpy (mats,
 	      n->ats,
 	      n->ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
-      mats[n->ats_count].type = htonl (0);
+      mats[n->ats_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
       mats[n->ats_count].value = htonl (0);      
       send_to_all_clients (&cnm->header, 
 			   GNUNET_NO, 
