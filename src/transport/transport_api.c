@@ -456,6 +456,7 @@ try_schedule_transmission (void *cls,
   struct GNUNET_TIME_Relative duration;
   GNUNET_CONNECTION_TransmitReadyNotify notify;
   struct GNUNET_TRANSPORT_TransmitHandle *th;
+  struct GNUNET_TIME_Absolute duration_abs;
 
   if (n->transmit_stage != TS_QUEUED)
     return GNUNET_YES; /* not eligible, keep iterating */
@@ -467,7 +468,7 @@ try_schedule_transmission (void *cls,
   /* check outgoing quota */
   duration = GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker,
                                                  th->notify_size - sizeof (struct OutboundMessage));
-  struct GNUNET_TIME_Absolute duration_abs = GNUNET_TIME_relative_to_absolute (duration);
+  duration_abs = GNUNET_TIME_relative_to_absolute (duration);
   if (th->timeout.abs_value < duration_abs.abs_value)
     {
       /* signal timeout! */
@@ -498,7 +499,7 @@ try_schedule_transmission (void *cls,
                   (unsigned int) n->out_tracker.available_bytes_per_s__,
                   (unsigned int) th->notify_size - sizeof (struct OutboundMessage),
                   GNUNET_i2s (&n->id),
-                  duration.rel_value);
+                  (unsigned long long) duration.rel_value);
 #endif
       try_transmit_ctx->retry_time = GNUNET_TIME_relative_min (try_transmit_ctx->retry_time,
                                                                duration);
@@ -517,6 +518,7 @@ try_schedule_transmission (void *cls,
   return GNUNET_YES;
 }
 
+
 /**
  * Figure out which transmission to a peer can be done right now.
  * If none can, schedule a task to call 'schedule_transmission'
@@ -530,7 +532,6 @@ try_schedule_transmission (void *cls,
 static struct GNUNET_TRANSPORT_TransmitHandle *
 schedule_peer_transmission (struct GNUNET_TRANSPORT_Handle *h)
 {
-
   struct TryTransmitContext try_transmit_ctx;
 
   if (h->quota_task != GNUNET_SCHEDULER_NO_TASK)
@@ -540,8 +541,9 @@ schedule_peer_transmission (struct GNUNET_TRANSPORT_Handle *h)
     }
   memset(&try_transmit_ctx, 0, sizeof(struct TryTransmitContext));
   try_transmit_ctx.retry_time = GNUNET_TIME_UNIT_FOREVER_REL;
-  GNUNET_CONTAINER_multihashmap_iterate(h->neighbours, &try_schedule_transmission, &try_transmit_ctx);
-
+  GNUNET_CONTAINER_multihashmap_iterate(h->neighbours, 
+					&try_schedule_transmission, 
+					&try_transmit_ctx);
   if (try_transmit_ctx.ret == NULL)
     h->quota_task = GNUNET_SCHEDULER_add_delayed (try_transmit_ctx.retry_time,
 						  &quota_transmit_ready,
