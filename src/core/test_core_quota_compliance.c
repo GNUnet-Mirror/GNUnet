@@ -623,8 +623,8 @@ run (void *cls,
     }
   else if (test == ASYMMETRIC_SEND_LIMITED)
     {
-      setup_peer (&p1, "test_core_quota_asymmetric_send_limited_peer1.conf");
-      setup_peer (&p2, "test_core_quota_asymmetric_send_limited_peer2.conf");
+      setup_peer (&p1, "test_core_quota_asymmetric_send_limit_peer1.conf");
+      setup_peer (&p2, "test_core_quota_asymmetric_send_limit_peer2.conf");
     }
   else if (test == ASYMMETRIC_RECV_LIMITED)
     {
@@ -727,8 +727,8 @@ main (int argc, char *argv[])
     }
   else if (test == ASYMMETRIC_SEND_LIMITED)
     {
-	  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-asym-sender-lim-peer-1/");
-	  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-asym-sender-lim-peer-2/");
+	  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-asym-send-lim-peer-1/");
+	  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-asym-send-lim-peer-2/");
     }
   else if (test == ASYMMETRIC_RECV_LIMITED)
     {
@@ -751,8 +751,8 @@ main (int argc, char *argv[])
     }
   else if (test == ASYMMETRIC_SEND_LIMITED)
     {
-	  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-asym-sender-lim-peer-1/");
-	  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-asym-sender-lim-peer-2/");
+	  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-asym-send-lim-peer-1/");
+	  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-quota-asym-send-lim-peer-2/");
     }
   else if (test == ASYMMETRIC_RECV_LIMITED)
     {
