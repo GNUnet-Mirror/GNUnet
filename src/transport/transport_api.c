@@ -1374,6 +1374,7 @@ send_request_connect_message(struct GNUNET_TRANSPORT_Handle *h, struct Neighbour
                              GNUNET_TIME_UNIT_FOREVER_REL, &send_transport_request_connect, trcm);
 }
 
+
 /**
  * Add neighbour to our list
  *
@@ -1411,6 +1412,7 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
 
   return n;
 }
+
 
 /**
  * Iterator over hash map entries, for deleting state of a neighbor.
@@ -1509,11 +1511,11 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
 #endif
   handle->in_disconnect = GNUNET_YES;
 
-  GNUNET_assert(GNUNET_SYSERR !=
-                GNUNET_CONTAINER_multihashmap_iterate(handle->neighbours,
-                                                      &delete_neighbours,
-                                                      handle));
-  GNUNET_CONTAINER_multihashmap_destroy(handle->neighbours);
+  GNUNET_assert (GNUNET_SYSERR !=
+		 GNUNET_CONTAINER_multihashmap_iterate(handle->neighbours,
+						       &delete_neighbours,
+						       handle));
+  GNUNET_CONTAINER_multihashmap_destroy (handle->neighbours);
 
   while (NULL != (hwl = handle->hwl_head))
     {
@@ -2005,7 +2007,8 @@ GNUNET_TRANSPORT_notify_transmit_ready_cancel (struct
       break;
     case TS_QUEUED:
       n->transmit_stage = TS_NEW;
-      if (n->in_disconnect == GNUNET_NO)
+      if ( (n->in_disconnect == GNUNET_NO) &&
+	   (n->is_connected == GNUNET_NO) )
 	neighbour_free (n);
       break;
     case TS_TRANSMITTED:
