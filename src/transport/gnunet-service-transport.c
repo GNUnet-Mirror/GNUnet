@@ -2222,11 +2222,9 @@ notify_clients_connect (const struct GNUNET_PeerIdentity *peer,
 			    GNUNET_NO);
   cim.header.size = htons (sizeof (struct ConnectInfoMessage));
   cim.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
-  cim.distance = htonl (distance);
-  cim.latency = GNUNET_TIME_relative_hton (latency);
   cim.ats_count = htonl(0);
-  cim.ats.type  = htonl(0);
-  cim.ats.value = htonl(0);
+  cim.ats.type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+  cim.ats.value = htonl (0);
   memcpy (&cim.id, peer, sizeof (struct GNUNET_PeerIdentity));
   cpos = clients;
   while (cpos != NULL)
@@ -3386,12 +3384,10 @@ schedule_next_ping (struct ForeignAddressList *fal)
  *
  * @param message the payload
  * @param n peer who claimed to be the sender
- * @param ats ATS information
- * @param ats_count numbers of elements following the ats struct (excluding the 0-terminator)
  */
 static void
 handle_payload_message (const struct GNUNET_MessageHeader *message,
-			struct NeighbourList *n, struct GNUNET_TRANSPORT_ATS_Information *ats, uint32_t ats_count)
+						struct NeighbourList *n)
 {
   struct InboundMessage *im;
   struct TransportClient *cpos;
@@ -3446,21 +3442,24 @@ handle_payload_message (const struct GNUNET_MessageHeader *message,
 			    gettext_noop ("# payload received from other peers"),
 			    msize,
 			    GNUNET_NO);
-
   /* transmit message to all clients */
-  im = GNUNET_malloc (sizeof (struct InboundMessage) + ats_count * sizeof(struct GNUNET_TRANSPORT_ATS_Information) + msize);
-  im->header.size = htons (sizeof (struct InboundMessage) +  ats_count * sizeof(struct GNUNET_TRANSPORT_ATS_Information) + msize);
+  uint32_t ats_count = 2;
+  uint16_t size = sizeof (struct InboundMessage) + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information) + msize;
+
+  im = GNUNET_malloc (size);
+  im->header.size = htons (size);
   im->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
   im->peer = n->id;
   im->ats_count = htonl(ats_count);
-  /* insert ATS elements */
-  memcpy (&(im->ats), ats, ats_count * sizeof(struct GNUNET_TRANSPORT_ATS_Information));
-  /* insert ATS terminator */
-  (&im->ats)[ats_count].type  = htonl(0);
-  (&im->ats)[ats_count].value = htonl(0);
-  /* insert msg after terminator */
-  memcpy (&(&im->ats)[ats_count+1], message, msize);
+  /* Setting ATS data */
+  (&(im->ats))[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+  (&(im->ats))[0].value = htonl (n->distance);
+  (&(im->ats))[1].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY);
+  (&(im->ats))[1].value = htonl ((uint32_t) n->latency.rel_value);
+  (&(im->ats))[ats_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+  (&(im->ats))[ats_count].value = htonl (0);
 
+  memcpy (&((&(im->ats))[ats_count+1]), message, msize);
   cpos = clients;
   while (cpos != NULL)
     {
@@ -3681,17 +3680,7 @@ check_pending_validation (void *cls,
 	  if (NULL != (prem = n->pre_connect_message_buffer))
 	    {
 	      n->pre_connect_message_buffer = NULL;
-	      struct GNUNET_TRANSPORT_ATS_Information * ats = GNUNET_malloc(2 * sizeof(struct GNUNET_TRANSPORT_ATS_Information));
-	      ats[0].type = htonl(GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY);
-	      if (n->latency.rel_value <= UINT32_MAX)
-	    	  ats[0].value = htonl((uint32_t) n->latency.rel_value);
-	      else
-	    	  ats[0].value = htonl(UINT32_MAX);
-	      ats[1].type  = htonl(GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
-	      ats[1].value = htonl(n->distance);
-	      //handle_payload_message (prem, n, NULL, 0);
-	      handle_payload_message (prem, n, ats, 2);
-	      GNUNET_free (ats);
+	      handle_payload_message (prem, n);
 	      GNUNET_free (prem);
 	    }
 	}
@@ -4696,7 +4685,6 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct ForeignAddressList *peer_address;
   uint16_t msize;
   struct NeighbourList *n;
-  struct GNUNET_TRANSPORT_ATS_Information * ats;
   struct GNUNET_TIME_Relative ret;
   if (is_blacklisted (peer, plugin))
     return GNUNET_TIME_UNIT_FOREVER_REL;
@@ -4782,17 +4770,7 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 	  handle_pong (plugin, message, peer, sender_address, sender_address_len);
 	  break;
 	default:
-	  ats = GNUNET_malloc(2 * sizeof(struct GNUNET_TRANSPORT_ATS_Information));
-	  ats[0].type = htonl(GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY);
-	  if (n->latency.rel_value <= UINT32_MAX)
-		  ats[0].value = htonl((uint32_t) n->latency.rel_value);
-	  else
-		  ats[0].value = htonl(UINT32_MAX);
-	  ats[1].type  = htonl(GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
-	  ats[1].value = htonl(n->distance);
-	  //handle_payload_message (message, n, NULL, 0);
-	  handle_payload_message (message, n, ats, 2);
-	  GNUNET_free(ats);
+	  handle_payload_message (message, n);
 	  break;
 	}
     }
@@ -4875,16 +4853,14 @@ handle_start (void *cls,
       cim.header.size = htons (sizeof (struct ConnectInfoMessage));
       cim.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
       cim.ats_count = htonl(0);
-      cim.ats.type  = htonl(0);
-      cim.ats.value = htonl(0);
+      cim.ats.type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+      cim.ats.value = htonl (0);
       n = neighbours;
       while (n != NULL)
 	{
 	  if (GNUNET_YES == n->received_pong)
 	    {
 	      cim.id = n->id;
-	      cim.latency = GNUNET_TIME_relative_hton (n->latency);
-	      cim.distance = htonl (n->distance);
 	      transmit_to_client (c, &cim.header, GNUNET_NO);
             }
 	    n = n->next;

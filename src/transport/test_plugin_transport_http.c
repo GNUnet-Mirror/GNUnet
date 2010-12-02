@@ -1311,7 +1311,7 @@ main (int argc, char *const *argv)
   };
   int ret;
   char *const argv_prog[] = {
-    "test_plugin_transport_http",
+    "test_gnunet_transport_plugin_http",
     "-c",
     "test_plugin_transport_data_http.conf",
     "-L",
@@ -1322,7 +1322,7 @@ main (int argc, char *const *argv)
 #endif
     NULL
   };
-  GNUNET_log_setup ("test_plugin_transport_http",
+  GNUNET_log_setup ("test_gnunet_transport_plugin_http",
 #if VERBOSE
                     "DEBUG",
 #else
@@ -1336,9 +1336,9 @@ main (int argc, char *const *argv)
                              "test_gnunet_transport_plugin_http",
                              "testcase", options, &run, NULL)) ? GNUNET_NO : GNUNET_YES;
 
-  GNUNET_DISK_directory_remove ("/tmp/test_plugin_transport_http");
+  GNUNET_DISK_directory_remove ("/tmp/test_gnunet_transport_plugin_http");
 
   return fail;
 }
 
-/* end of test_plugin_transport_http.c */
+/* end of test_gnunet_transport_plugin_http.c */
