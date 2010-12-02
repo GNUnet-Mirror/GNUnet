@@ -335,12 +335,13 @@ enum GNUNET_TRANSPORT_ATS_Property
    */
   GNUNET_TRANSPORT_ATS_QUALITY_NET_THROUGHPUT = 1033,
   
-  /**
-   * Distance on network layer
-   *
-   * Unit: []
-   */
+ /**
+  * Distance on network layer
+  *
+  * Unit: []
+  */
   GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE = 1034,
+
 
   /* Availability related values */
   /* =========================== */
@@ -390,6 +391,8 @@ struct GNUNET_TRANSPORT_ATS_Information
 };
 
 
+
+
 /**
  * Function called by the transport for each received message.
  *
@@ -405,7 +408,7 @@ typedef void (*GNUNET_TRANSPORT_ReceiveCallback) (void *cls,
                                                   const struct
                                                   GNUNET_MessageHeader *
                                                   message,
-						  const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                                                  const struct GNUNET_TRANSPORT_ATS_Information *ats,
                                                   uint32_t ats_count);
 
 
