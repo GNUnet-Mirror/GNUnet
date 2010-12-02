@@ -3541,6 +3541,7 @@ handle_pong (struct Neighbour *n,
       cnm->header.size = htons (size);
       cnm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
       cnm->ats_count = htonl (n->ats_count);
+      cnm->peer = n->peer;
       mats = &cnm->ats;
       memcpy (mats,
 	      n->ats,
