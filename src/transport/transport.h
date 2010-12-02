@@ -89,7 +89,7 @@ struct ConnectInfoMessage
    * Number of ATS key-value pairs that follow this struct
    * (excluding the 0-terminator).
    */
-  uint32_t ats_count;
+  uint32_t ats_count GNUNET_PACKED;
 
   /**
    * Identity of the new neighbour.
