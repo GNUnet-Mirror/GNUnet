@@ -153,9 +153,9 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
               if (GNUNET_OK !=
                   proc (proc_cls,
                         szEntry,
-                        pAddrTable->table[dwIfIdx].dwIndex == dwExternalNIC,
+                        pTable->table[dwIfIdx].dwIndex == dwExternalNIC,
                         (const struct sockaddr *) &sa,
-                        0))
+                        sizeof (sa)))
                 break;
             }
         }

@@ -45,7 +45,7 @@
 
 struct addr_cls
 {
-  const struct sockaddr *addr;
+  struct sockaddr *addr;
   socklen_t addrlen;
 };
 
@@ -76,22 +76,16 @@ process_if (void *cls,
 {
   struct addr_cls *data = cls;
 
-  if (addr)
+  if (addr && addrlen > 0)
     {
-      data->addr = addr;
+      if (data->addr)
+        GNUNET_free (data->addr);
+      data->addr = memcpy (GNUNET_malloc (addrlen), addr, addrlen);
       data->addrlen = addrlen;
+      if (isDefault)
+        return GNUNET_SYSERR;
     }
-
-  if (strcmp (name, "eth1") == 0 && addr->sa_family == AF_INET)
-    return GNUNET_SYSERR;
-
   return GNUNET_OK;
-
-
-  if (isDefault && addr)
-    return GNUNET_SYSERR;
-  else
-    return GNUNET_OK;
 }
 
 static void
