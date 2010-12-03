@@ -20,7 +20,6 @@ libgnunetnat_la_SOURCES = \
   nat.c 
 
 libgnunetnat_la_CFLAGS = \
- -I$(top_scrdir)/include \
  -DDEBUG_UPNP -g -O0
 
 libgnunetnat_la_LIBADD = \

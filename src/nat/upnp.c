@@ -30,13 +30,14 @@
  *
  * @author Milan Bouchet-Valat
  */
+#include "platform.h"
+#include "gnunet_common.h"
+
 #include <stdlib.h>
 #include <assert.h>
 #include <errno.h>
 #include <string.h>
 
-#include "platform.h"
-#include "gnunet_common.h"
 #include "gnunet_nat_lib.h"
 #include "nat.h"
 #include "upnp-discover.h"
