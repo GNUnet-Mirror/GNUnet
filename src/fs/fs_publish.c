@@ -509,6 +509,7 @@ encode_cont (void *cls,
  * @param cls closure
  * @param query the query for the block (key for lookup in the datastore)
  * @param offset offset of the block in the file
+ * @param depth depth of the block in the file
  * @param type type of the block (IBLOCK or DBLOCK)
  * @param block the (encrypted) block
  * @param block_size size of block (in bytes)
@@ -517,6 +518,7 @@ static void
 block_proc (void *cls,
 	    const GNUNET_HashCode *query,
 	    uint64_t offset,
+	    unsigned int depth,
 	    enum GNUNET_BLOCK_Type type,
 	    const void *block,
 	    uint16_t block_size)

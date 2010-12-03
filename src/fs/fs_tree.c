@@ -109,6 +109,11 @@ struct GNUNET_FS_TreeEncoder
    */
   struct ContentHashKey *chk_tree;
 
+  /**
+   * Are we currently in 'GNUNET_FS_tree_encoder_next'?
+   * Flag used to prevent recursion.
+   */
+  int in_next;
 };
 
 
@@ -307,7 +312,8 @@ compute_chk_offset (unsigned int height,
  *
  * @param te tree encoder to use
  */
-void GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder * te)
+void 
+GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder * te)
 {
   struct ContentHashKey *mychk;
   const void *pt_block;
@@ -318,6 +324,8 @@ void GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder * te)
   struct GNUNET_CRYPTO_AesInitializationVector iv;
   unsigned int off;
 
+  GNUNET_assert (GNUNET_NO == te->in_next);
+  te->in_next = GNUNET_YES;
   if (te->current_depth == te->chk_tree_depth)
     {
       pt_size = GNUNET_MIN(DBLOCK_SIZE,
@@ -332,6 +340,7 @@ void GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder * te)
 	  GNUNET_SCHEDULER_add_continuation (te->cont,
 					     te->cls,
 					     GNUNET_SCHEDULER_REASON_TIMEOUT);
+	  te->in_next = GNUNET_NO;
 	  return;
 	}
       pt_block = iob;
@@ -352,6 +361,7 @@ void GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder * te)
       GNUNET_SCHEDULER_add_continuation (te->cont,
 					 te->cls,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      te->in_next = GNUNET_NO;
       return;
     }
   off = compute_chk_offset (te->chk_tree_depth - te->current_depth,
@@ -382,6 +392,7 @@ void GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder * te)
     te->proc (te->cls,
 	      &mychk->query,
 	      te->publish_offset,
+	      te->current_depth,
 	      (te->current_depth == te->chk_tree_depth) 
 	      ? GNUNET_BLOCK_TYPE_FS_DBLOCK 
 	      : GNUNET_BLOCK_TYPE_FS_IBLOCK,
@@ -408,6 +419,7 @@ void GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder * te)
       else
 	te->current_depth = te->chk_tree_depth;
     }
+  te->in_next = GNUNET_NO;
 }
 
 

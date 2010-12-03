@@ -1,4 +1,3 @@
-
 /*
      This file is part of GNUnet.
      (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009 Christian Grothoff (and other contributing authors)
@@ -915,6 +914,18 @@ GNUNET_FS_download_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
 
 
 /**
+ * Task that creates the initial (top-level) download
+ * request for the file.
+ *
+ * @param cls the 'struct GNUNET_FS_DownloadContext'
+ * @param tc scheduler context
+ */
+void
+GNUNET_FS_download_start_task_ (void *cls,
+				const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
  * Fill in all of the generic fields for 
  * an unindex event and call the callback.
  *
@@ -1601,8 +1612,20 @@ struct GNUNET_FS_SearchContext
    * when the search is being stopped (if not
    * GNUNET_SCHEDULER_NO_TASK).  Used for the task that adds some
    * artificial delay when trying to reconnect to the FS service.
-   */
+o   */
   GNUNET_SCHEDULER_TaskIdentifier task;
+
+  /**
+   * How many of the entries in the search request
+   * map have been passed to the service so far?
+   */
+  unsigned int search_request_map_offset;
+
+  /**
+   * How many of the keywords in the KSK
+   * map have been passed to the service so far?
+   */
+  unsigned int keyword_offset;
   
   /**
    * Anonymity level for the search.
@@ -1792,6 +1815,11 @@ struct GNUNET_FS_DownloadContext
   GNUNET_SCHEDULER_TaskIdentifier task;
 
   /**
+   * Task used to start the download.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier start_task;
+
+  /**
    * What was the size of the file on disk that we're downloading
    * before we started?  Used to detect if there is a point in
    * checking an existing block on disk for matching the desired
@@ -1849,6 +1877,12 @@ struct GNUNET_FS_DownloadContext
    * data from the meta data yet?
    */
   int tried_full_data;
+
+  /**
+   * Have we tried to reconstruct an IBLOCK from disk
+   * and failed (and should hence not try again?)
+   */
+  int reconstruct_failed;
 };
 
 

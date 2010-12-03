@@ -1,37 +1,17 @@
 0.9.0pre2:
 * BIG CORE REFACTORING:
-  - fix transport service API (ATS!)
-  - fix transport plugin API (ATS!)
-  - actually transmit ATS data through core API
-  - fix FS 'latency' ATS function
-  - fix DV
+  - fix transport plugin API (ATS!) [mw]
+  - fix DV [nate]
 * Integration test:
   - test bootstrapping via hostlist + transport/core/dht connect
-
-0.9.0pre3:
-* Determine RC bugs and fix those (release should have no known real bugs)
-* ARM: [CG/Safey]
-  - start_forwarding should not use 'listen_info->service_addr' for connecting since that one can be 0.0.0.0;
-    if it is, we need to use (IPv4 & IPv6) loopback [LRN]
-  - better tracking of which config changes actually need to cause process restarts by ARM.
-  - handle gnunet-arm -k in combination with auto-start magic (what is the right thing here?)
-  - discover dependencies between services
 * CORE:
-  - provide 'reliable' P2P transmission API and queueing infrastructure
   - Jun 27 11:51:54 core-7670 ERROR Assertion failed at gnunet-service-core.c:3616.
     (transport notified us that we connected to ourselves!!!; can we still reproduce this?)
-* DHT: [Nate]
-  - track paths content travels (PUT, reply-to-get) in messages,
-    pass to client (client API & protocol already support this!)
-* DATASTORE: 
-  - GNUNET_DATASTORE_cancel method not tested
-* TESTING: [Nate]
-  - test basic peer re-configure 
-* TOPOLOGY: [Nate]
-  - needs more testing (especially F2F topology) & transport blacklisting
-* TRANSPORT-TCP [MW]:
-  - should use hash map to look up sessions
-* TRANSPORT: 
+    => Also, we may want to issue a 'connect to ourselves' automatically on start of
+       core_api AND allow messages to self [CG/phillip]
+
+0.9.0pre3:
+* TRANSPORT: [MW]
   - [#1585, #1583, #1582] transport-level disconnect (i.e. TCP) does not cause core-level
     disconnect in a timely fashion (waits for connection timeout);
     need to figure a way to make it near-instant in those cases 
@@ -41,73 +21,44 @@
        likely good enough until we get ATS going; still should be tested...
     => "peers connected (transport)" now instantly goes to ZERO (core statistic),
        but "established sessions" stays up...
-* NAT/UPNP: [Milan]
-  - finalize API design
+* NAT/UPNP: [Milan / Ayush / MW]
   - [#1609] code clean up
   - testing
-  - integration with transport service
-  - also do UPnP-based (external) IP detection
-    (Note: build library always, build UPnP service when dependencies like libxml2 are available)
+  - integration with transport service:
+    + test TCP
+    + implement UDP, HTTP/HTTPS 
+* DHT: [Nate]
+  - track paths content travels (PUT, reply-to-get) in messages,
+    pass to client (client API & protocol already support this!)
 * FS: [CG]
-  - library:
-    + reconstruct IBLOCKS from DBLOCKS if possible (during download; see FIXME in fs_download)
-    + add support for pushing "already seen" search results to FS service for bloomfilter
-    + use different 'priority' for probe downloads vs. normal downloads
   - implement multi-peer FS performance tests
     + insert
     + download
     + search
-    + unindex
-  - implement anonymity level > 1
-  - re-implement gnunet-auto-share
-* GNUNET-GTK:
-  - finish publish dialog details:
-    + normalize keywords (edit subdialog)
-  - implement download by URI dialog; figure out where to display those downloads!
-  - figure out where in the GUI we should show active uploads/unindex operations and allow aborts
-  - implement unindex operation (use dialog with all indexed files for selection)
-  - events:
+* GNUNET-GTK: [CG]
+  - figure out where in the GUI we should show active upload operations and allow aborts
+  - handle events:
     + search error
     + publish error
-    + unindex error
-* MONKEY: [Safey]
-  - better crash management (attach debugging support, capture and analyze
-    debug output, detect random vs. deterministic crashes)
-  - '-m EMAIL' option for alternative e-mail TO
-  - '-f FILENAME' option to write  report to file instead of e-mail (for testing!)
+* Determine RC bugs and fix those (release should have no known real bugs)
 
 0.9.0:
-* Determine RC bugs and fix those  (release should have no known real bugs)
-* UTIL:
-  - only connect() sockets that are ready (select()) [Nils]
-    [On W32, we need to select after calling socket before doing connect etc.]
-* new webpage: [BL]
-  - convert documentation pages to books
+* new webpage:
   - update books (especially for developers)
   - make a NICE download page and figure out how to enable developers to publish TGZs nicely
   - port "contact" page
-  - add content type for "todo" items
-* TBENCH: [MW]
-  - good to have for transport/DV evaluation! 
-* TRACEKIT: [MW]
-  - good to have for DHT evaluation!
-* DHT: [Nate]
-  - performance tests
-* BLOCK:
-  - more testing (KBlock, SBlock, NBlock)
 * FS migration:
-  - exclude content that will "soon" expire from migration?
-  - exclude content with zero-anonymity from gap migration?
+  - exclude content that will "soon" expire from migration
   - make migration data rate & datastore IO-rate configurable
   - exclude certain peers as targets (based on hash values) in each
     iteration => same peer can only be picked every n-th iteration 
     for the same content => fewer duplicate sending!
-
+* big code review
+* Determine RC bugs and fix those  (release should have no known real bugs)
 
 0.9.1:
 * TRANSPORT: [MW]
   - WiFi transport backend [DB]
-  - implement gnunet-transport (transport configurator / tester)
   - Implement method of learning our external addresses from
     other peers; need some kind of threshold-based
     scheme, limiting both the total number of addresses that we accept 
@@ -124,8 +75,7 @@
       => If MiM attacker uses vetoed address, blacklist the specific IP for
          the presumed neighbour!
   - need to periodically probe latency/transport cost changes & possibly switch transport
-  - should use hash map to look up Neighbours (service AND plugins!)
-* DV: [Nate]
+* DV: [Nate?]
   - proper bandwidth allocation
   - performance tests
 * PEERINFO:	
@@ -133,11 +83,12 @@
     (theoretically reduces overhead; bounds message queue size)
   - merge multiple iteration requests over "all" peers in the queue
     (theoretically reduces overhead; bounds messgae queue size)
-* STATISTICS: [CG]
+* STATISTICS:
   - should use BIO instead of mmap
 * FS: [CG]
   - Remove KBlocks in gnunet-unindex (see discussion with Kenneth Almquist on gnunet-devs in 9/2009)
   - use different queue prioritization for probe-downloads vs. normal downloads
+  - re-implement gnunet-auto-share
 * UTIL: [CG]
   - allow limiting UNIX socket access by UID/GID
 * GNUNET-GTK: [CG]
@@ -148,6 +99,19 @@
   - right-clicking on NS list in search dialog should open menu that allows 
     * viewing full meta data 
     * deletion of namespace info
+  - implement unindex operation (use dialog with all indexed files for selection)
+  - finish publish dialog details:
+    + normalize keywords (edit subdialog)
+  - implement download by URI dialog; figure out where to display those downloads!
+* ARM: [CG/Safey]
+  - better tracking of which config changes actually need to cause process restarts by ARM.
+  - handle gnunet-arm -k in combination with auto-start magic (what is the right thing here?)
+  - discover dependencies between services
+* MONKEY: [Safey]
+  - better crash management (attach debugging support, capture and analyze
+    debug output, detect random vs. deterministic crashes)
+  - '-m EMAIL' option for alternative e-mail TO
+  - '-f FILENAME' option to write  report to file instead of e-mail (for testing!)
 
 0.9.2:
 * PEERINFO: [NN]
@@ -167,7 +131,7 @@
   - testcase would be nice
   - generic block support for DHT
 * STATISTICS:
-  - test notification-based statistics API [LT]
+  - test notification-based statistics API
   - implement statistics GUI (=> start from gnunet-gtk by button!)
 * PEERINFO: [NN]
   - move peerinfo to new GUI (=> start from gnunet-gtk by button!)
@@ -182,10 +146,7 @@
   - improved batching
   - resource limit integration with ATS
 * VPN [PT]
-  - DNS hijacking
-  - DNS exit
   - TCP entry/exit
-  - UDP entry/exit
   - internal services
   - integration with DHT routing
   - optimized routes (beyond DHT/DV)

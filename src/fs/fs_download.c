@@ -24,7 +24,6 @@
  *
  * TODO:
  * - different priority for scheduling probe downloads?
- * - check if iblocks can be computed from existing blocks (can wait, hard)
  */
 #include "platform.h"
 #include "gnunet_constants.h"
@@ -32,7 +31,7 @@
 #include "fs.h"
 #include "fs_tree.h"
 
-#define DEBUG_DOWNLOAD GNUNET_YES
+#define DEBUG_DOWNLOAD GNUNET_NO
 
 /**
  * Determine if the given download (options and meta data) should cause
@@ -415,6 +414,223 @@ match_full_data (void *cls,
 }
 
 
+
+/**
+ * Closure for 'reconstruct_cont' and 'reconstruct_cb'.
+ */
+struct ReconstructContext
+{
+  /**
+   * File handle open for the reconstruction.
+   */
+  struct GNUNET_DISK_FileHandle *fh;
+
+  /**
+   * the download context.
+   */
+  struct GNUNET_FS_DownloadContext *dc;
+
+  /**
+   * Tree encoder used for the reconstruction.
+   */
+  struct GNUNET_FS_TreeEncoder *te;
+
+  /**
+   * CHK of block we are trying to reconstruct.
+   */
+  struct ContentHashKey chk;
+
+  /**
+   * Request that was generated.
+   */
+  struct DownloadRequest *sm;
+
+  /**
+   * Offset of block we are trying to reconstruct.
+   */
+  uint64_t offset;
+
+  /**
+   * Depth of block we are trying to reconstruct.
+   */
+  unsigned int depth;
+
+};
+
+
+/**
+ * Continuation after a possible attempt to reconstruct
+ * the current IBlock from the existing file.
+ *
+ * @param cls the 'struct ReconstructContext'
+ * @param tc scheduler context
+ */
+static void
+reconstruct_cont (void *cls,
+		  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct ReconstructContext *rcc = cls;
+
+  if (rcc->te != NULL)
+    GNUNET_FS_tree_encoder_finish (rcc->te, NULL, NULL);
+  rcc->dc->reconstruct_failed = GNUNET_YES;
+  if (rcc->fh != NULL)
+    GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (rcc->fh));
+  if ( (rcc->dc->th == NULL) &&
+       (rcc->dc->client != NULL) )
+    {
+#if DEBUG_DOWNLOAD
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Asking for transmission to FS service\n");
+#endif
+      rcc->dc->th = GNUNET_CLIENT_notify_transmit_ready (rcc->dc->client,
+							 sizeof (struct SearchMessage),
+							 GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+							 GNUNET_NO,
+							 &transmit_download_request,
+							 rcc->dc);
+    }
+  else
+    {
+#if DEBUG_DOWNLOAD
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Transmission request not issued (%p %p)\n",
+		  rcc->dc->th, 
+		  rcc->dc->client);
+#endif
+    }
+  GNUNET_free (rcc);
+}
+
+
+static void
+get_next_block (void *cls,
+		const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct ReconstructContext *rcc = cls;  
+  GNUNET_FS_tree_encoder_next (rcc->te);
+}
+
+
+/**
+ * Function called asking for the current (encoded)
+ * block to be processed.  After processing the
+ * client should either call "GNUNET_FS_tree_encode_next"
+ * or (on error) "GNUNET_FS_tree_encode_finish".
+ *
+ * This function checks if the content on disk matches
+ * the expected content based on the URI.
+ * 
+ * @param cls closure
+ * @param query the query for the block (key for lookup in the datastore)
+ * @param offset offset of the block
+ * @param type type of the block (IBLOCK or DBLOCK)
+ * @param block the (encrypted) block
+ * @param block_size size of block (in bytes)
+ */
+static void 
+reconstruct_cb (void *cls,
+		const GNUNET_HashCode *query,
+		uint64_t offset,
+		unsigned int depth,
+		enum GNUNET_BLOCK_Type type,
+		const void *block,
+		uint16_t block_size)
+{
+  struct ReconstructContext *rcc = cls;
+  struct ProcessResultClosure prc;
+  struct GNUNET_FS_TreeEncoder *te;
+  uint64_t off;
+  uint64_t boff;
+  uint64_t roff;
+  unsigned int i;
+
+  roff = offset / DBLOCK_SIZE;
+  for (i=rcc->dc->treedepth;i>depth;i--)
+    roff /= CHK_PER_INODE;
+  boff = roff * DBLOCK_SIZE;
+  for (i=rcc->dc->treedepth;i>depth;i--)
+    boff *= CHK_PER_INODE;
+  /* convert reading offset into IBLOCKs on-disk offset */
+  off = compute_disk_offset (GNUNET_FS_uri_chk_get_file_size (rcc->dc->uri),
+			     boff,
+			     depth,
+			     rcc->dc->treedepth);
+  if ( (off == rcc->offset) &&
+       (depth == rcc->depth) &&
+       (0 == memcmp (query,
+		     &rcc->chk.query,
+		     sizeof (GNUNET_HashCode))) )
+    {
+      /* already got it! */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  _("Block reconstruction at offset %llu and depth %u successful\n"),
+		  (unsigned long long) offset,
+		  depth);
+      prc.dc = rcc->dc;
+      prc.data = block;
+      prc.size = block_size;
+      prc.type = type;
+      prc.query = rcc->chk.query;
+      prc.do_store = GNUNET_NO;
+      process_result_with_request (&prc,
+				   &rcc->chk.key,
+				   rcc->sm);
+      te = rcc->te;
+      rcc->te = NULL;
+      GNUNET_FS_tree_encoder_finish (te, NULL, NULL);
+      GNUNET_free (rcc);
+      return;     
+    }
+  GNUNET_SCHEDULER_add_continuation (&get_next_block,
+				     rcc,
+				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+}
+
+
+/**
+ * Function called by the tree encoder to obtain
+ * a block of plaintext data (for the lowest level
+ * of the tree).
+ *
+ * @param cls our 'struct ReconstructContext'
+ * @param offset identifies which block to get
+ * @param max (maximum) number of bytes to get; returning
+ *        fewer will also cause errors
+ * @param buf where to copy the plaintext buffer
+ * @param emsg location to store an error message (on error)
+ * @return number of bytes copied to buf, 0 on error
+ */
+static size_t
+fh_reader (void *cls,
+	   uint64_t offset,
+	   size_t max, 
+	   void *buf,
+	   char **emsg)
+{
+  struct ReconstructContext *rcc = cls;
+  struct GNUNET_DISK_FileHandle *fh = rcc->fh;
+  ssize_t ret;
+
+  *emsg = NULL;
+  if (offset !=
+      GNUNET_DISK_file_seek (fh,
+			     offset,
+			     GNUNET_DISK_SEEK_SET))
+    {
+      *emsg = GNUNET_strdup (strerror (errno));
+      return 0;
+    }
+  ret = GNUNET_DISK_file_read (fh, buf, max);
+  if (ret < 0)
+    {
+      *emsg = GNUNET_strdup (strerror (errno));
+      return 0;
+    }
+  return ret;
+}
+
+
 /**
  * Schedule the download of the specified block in the tree.
  *
@@ -440,8 +656,9 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
   GNUNET_HashCode key;
   struct MatchDataContext mdc;
   struct GNUNET_DISK_FileHandle *fh;
+  struct ReconstructContext *rcc;
 
-  total = GNUNET_ntohll (dc->uri->data.chk.file_length);
+  total = GNUNET_FS_uri_chk_get_file_size (dc->uri);
   len = GNUNET_FS_tree_calculate_block_size (total,
 					     dc->treedepth,
 					     offset,
@@ -485,12 +702,15 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
 	      GNUNET_h2s (&chk->query));
 #endif
   fh = NULL;
-  if ( (dc->old_file_size > off) &&
+  if ( ( (dc->old_file_size > off) ||
+	 ( (depth < dc->treedepth) &&
+	   (dc->reconstruct_failed == GNUNET_NO) ) ) &&
        (dc->filename != NULL) )    
     fh = GNUNET_DISK_file_open (dc->filename,
 				GNUNET_DISK_OPEN_READ,
 				GNUNET_DISK_PERM_NONE);    
   if ( (fh != NULL) &&
+       (dc->old_file_size > off) &&
        (off  == 
 	GNUNET_DISK_file_seek (fh,
 			       off,
@@ -517,44 +737,29 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
 	  return;
 	}
     }
-  if (fh != NULL)
-    GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fh));
-  if (depth < dc->treedepth)
+  rcc = GNUNET_malloc (sizeof (struct ReconstructContext));
+  rcc->fh = fh;
+  rcc->dc = dc;
+  rcc->sm = sm;
+  rcc->chk = *chk;
+  rcc->offset = off;
+  rcc->depth = depth;
+  if ( (depth < dc->treedepth) &&
+       (dc->reconstruct_failed == GNUNET_NO) &&
+       (fh != NULL) )
     {
-      // FIXME: try if we could
-      // reconstitute this IBLOCK
-      // from the existing blocks on disk (can wait)
-      // (read block(s), encode, compare with
-      // query; if matches, simply return)
+      rcc->te = GNUNET_FS_tree_encoder_create (dc->h,
+					       dc->old_file_size,
+					       rcc,
+					       fh_reader,
+					       &reconstruct_cb,
+					       NULL,
+					       &reconstruct_cont);
+      GNUNET_FS_tree_encoder_next (rcc->te);
+      return;
     }
-
-  if ( (dc->th == NULL) &&
-       (dc->client != NULL) )
-    {
-#if DEBUG_DOWNLOAD
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Asking for transmission to FS service\n");
-#endif
-      dc->th = GNUNET_CLIENT_notify_transmit_ready (dc->client,
-						    sizeof (struct SearchMessage),
-						    GNUNET_CONSTANTS_SERVICE_TIMEOUT,
-						    GNUNET_NO,
-						    &transmit_download_request,
-						    dc);
-    }
-  else
-    {
-#if DEBUG_DOWNLOAD
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Transmission request not issued (%p %p)\n",
-		  dc->th, 
-		  dc->client);
-#endif
-
-    }
-
+  reconstruct_cont (rcc, NULL);
 }
-
 
 
 /**
@@ -1624,6 +1829,29 @@ deactivate_fs_download (void *cls)
 
 
 /**
+ * Task that creates the initial (top-level) download
+ * request for the file.
+ *
+ * @param cls the 'struct GNUNET_FS_DownloadContext'
+ * @param tc scheduler context
+ */
+void
+GNUNET_FS_download_start_task_ (void *cls,
+				const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_FS_DownloadContext *dc = cls;
+
+  dc->start_task = GNUNET_SCHEDULER_NO_TASK;
+  schedule_block_download (dc, 
+			   (dc->uri->type == chk) 
+			   ? &dc->uri->data.chk.chk
+			   : &dc->uri->data.loc.fi.chk,
+			   0, 
+			   1 /* 0 == CHK, 1 == top */); 
+}
+
+
+/**
  * Create SUSPEND event for the given download operation
  * and then clean up our state (without stop signal).
  *
@@ -1634,7 +1862,12 @@ GNUNET_FS_download_signal_suspend_ (void *cls)
 {
   struct GNUNET_FS_DownloadContext *dc = cls;
   struct GNUNET_FS_ProgressInfo pi;
-  
+
+  if (dc->start_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (dc->start_task);
+      dc->start_task = GNUNET_SCHEDULER_NO_TASK;
+    }
   if (dc->top != NULL)
     GNUNET_FS_end_top (dc->h, dc->top);
   while (NULL != dc->child_head)
@@ -1785,12 +2018,7 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_START;
   pi.value.download.specifics.start.meta = meta;
   GNUNET_FS_download_make_status_ (&pi, dc);
-  schedule_block_download (dc, 
-			   (dc->uri->type == chk) 
-			   ? &dc->uri->data.chk.chk
-			   : &dc->uri->data.loc.fi.chk,
-			   0, 
-			   1 /* 0 == CHK, 1 == top */); 
+  dc->start_task = GNUNET_SCHEDULER_add_now (&GNUNET_FS_download_start_task_, dc);
   GNUNET_FS_download_sync_ (dc);
   GNUNET_FS_download_start_downloading_ (dc);
   return dc;
@@ -1913,15 +2141,11 @@ GNUNET_FS_download_start_from_search (struct GNUNET_FS_Handle *h,
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_START;
   pi.value.download.specifics.start.meta = dc->meta;
   GNUNET_FS_download_make_status_ (&pi, dc);
-  schedule_block_download (dc, 
-			   &dc->uri->data.chk.chk,
-			   0, 
-			   1 /* 0 == CHK, 1 == top */); 
+  dc->start_task = GNUNET_SCHEDULER_add_now (&GNUNET_FS_download_start_task_, dc);
   GNUNET_FS_download_sync_ (dc);
   GNUNET_FS_download_start_downloading_ (dc);
   return dc;  
 }
-
 
 /**
  * Start the downloading process (by entering the queue).
@@ -1931,6 +2155,8 @@ GNUNET_FS_download_start_from_search (struct GNUNET_FS_Handle *h,
 void
 GNUNET_FS_download_start_downloading_ (struct GNUNET_FS_DownloadContext *dc)
 {
+  if (dc->completed == dc->length)
+    return;
   GNUNET_assert (dc->job_queue == NULL);
   dc->job_queue = GNUNET_FS_queue_ (dc->h, 
 				    &activate_fs_download,
@@ -1955,6 +2181,11 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
 
   if (dc->top != NULL)
     GNUNET_FS_end_top (dc->h, dc->top);
+  if (dc->start_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (dc->start_task);
+      dc->start_task = GNUNET_SCHEDULER_NO_TASK;
+    }
   if (dc->search != NULL)
     {
       dc->search->download = NULL;

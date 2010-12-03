@@ -184,7 +184,7 @@ run (void *cls,
        (! GNUNET_FS_uri_test_loc (uri)) )
     {
       fprintf (stderr,
-	       "Only CHK or LOC URIs supported.\n");
+	       _("Only CHK or LOC URIs supported.\n"));
       ret = 1;
       GNUNET_FS_uri_destroy (uri);
       return;		 
@@ -192,7 +192,7 @@ run (void *cls,
   if (NULL == filename)
     {
       fprintf (stderr,
-	       "Target filename must be specified.\n");
+	       _("Target filename must be specified.\n"));
       ret = 1;
       GNUNET_FS_uri_destroy (uri);
       return;		 

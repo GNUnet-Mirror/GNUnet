@@ -85,6 +85,13 @@
 #define TRUST_FLUSH_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 /**
+ * How quickly do we age cover traffic?  At the given 
+ * time interval, remaining cover traffic counters are
+ * decremented by 1/16th.
+ */
+#define COVER_AGE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+
+/**
  * How often do we at most PUT content into the DHT?
  */
 #define MAX_DHT_PUT_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
@@ -493,9 +500,6 @@ struct UsedTargetEntry
   GNUNET_PEER_Id pid;
 
 };
-
-
-
 
 
 /**
@@ -927,6 +931,34 @@ static struct GNUNET_LOAD_Value *datastore_put_load;
  * How long do requests typically stay in the routing table?
  */
 static struct GNUNET_LOAD_Value *rt_entry_lifetime;
+
+/**
+ * How many query messages have we received 'recently' that 
+ * have not yet been claimed as cover traffic?
+ */
+static unsigned int cover_query_count;
+
+/**
+ * How many content messages have we received 'recently' that 
+ * have not yet been claimed as cover traffic?
+ */
+static unsigned int cover_content_count;
+
+/**
+ * ID of our task that we use to age the cover counters.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier cover_age_task;
+
+static void
+age_cover_counters (void *cls,
+		    const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  cover_content_count = (cover_content_count * 15) / 16;
+  cover_query_count = (cover_query_count * 15) / 16;
+  cover_age_task = GNUNET_SCHEDULER_add_delayed (COVER_AGE_FREQUENCY,
+						 &age_cover_counters,
+						 NULL);
+}
 
 /**
  * We've just now completed a datastore request.  Update our
@@ -2084,6 +2116,8 @@ shutdown_task (void *cls,
   cfg = NULL;  
   GNUNET_free_non_null (trustDirectory);
   trustDirectory = NULL;
+  GNUNET_SCHEDULER_cancel (cover_age_task);
+  cover_age_task = GNUNET_SCHEDULER_NO_TASK;
 }
 
 
@@ -3015,6 +3049,26 @@ forward_request_task (void *cls,
 					  &process_dht_reply,
 					  pr);
     }
+
+  if ( (pr->anonymity_level > 1) &&
+       (cover_query_count < pr->anonymity_level - 1) )
+    {
+      delay = get_processing_delay ();
+#if DEBUG_FS 
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Not enough cover traffic to forward query `%s', will try again in %llu ms!\n",
+		  GNUNET_h2s (&pr->query),
+		  delay.rel_value);
+#endif
+      pr->task = GNUNET_SCHEDULER_add_delayed (delay,
+					       &forward_request_task,
+					       pr);
+      return;
+    }
+  /* consume cover traffic */
+  if (pr->anonymity_level > 1) 
+    cover_query_count -= pr->anonymity_level - 1;
+
   /* (1) select target */
   psc.pr = pr;
   psc.target_score = -DBL_MAX;
@@ -3221,6 +3275,11 @@ struct ProcessReplyClosure
   uint32_t priority;
 
   /**
+   * Anonymity requirements for this reply.
+   */
+  uint32_t anonymity_level;
+
+  /**
    * Evaluation result (returned).
    */
   enum GNUNET_BLOCK_EvaluationResult eval;
@@ -3264,6 +3323,22 @@ struct GNUNET_TIME_Relative art_delay;
   size_t msize;
   unsigned int i;
 
+  if (NULL == pr->client_request_list)
+    {
+      /* reply will go over the network, check for cover traffic */
+      if ( (prq->anonymity_level >  1) &&
+	   (cover_content_count < prq->anonymity_level - 1) )
+	{
+	  /* insufficient cover traffic, skip */
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# replies suppressed due to lack of cover traffic"),
+				    1,
+				    GNUNET_NO);
+	  return GNUNET_YES;
+	}	
+      if (prq->anonymity_level >  1) 
+	cover_content_count -= prq->anonymity_level - 1;
+    }
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Matched result (type %u) for query `%s' with pending request\n",
@@ -3603,6 +3678,7 @@ handle_p2p_put (void *cls,
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
+  cover_content_count++;
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received result for query `%s' from peer `%4s'\n",
@@ -3624,6 +3700,7 @@ handle_p2p_put (void *cls,
   prq.type = type;
   prq.expiration = expiration;
   prq.priority = 0;
+  prq.anonymity_level = 1;
   prq.finished = GNUNET_NO;
   prq.request_found = GNUNET_NO;
   GNUNET_CONTAINER_multihashmap_get_multiple (query_request_map,
@@ -3905,6 +3982,7 @@ process_local_reply (void *cls,
   prq.priority = priority;  
   prq.finished = GNUNET_NO;
   prq.request_found = GNUNET_NO;
+  prq.anonymity_level = anonymity;
   if ( (old_rf == 0) &&
        (pr->results_found == 0) )
     update_datastore_delays (pr->start_time);
@@ -4100,6 +4178,7 @@ handle_p2p_get (void *cls,
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
+  cover_query_count++;
   bm = ntohl (gm->hash_bitmap);
   bits = 0;
   cps = GNUNET_CONTAINER_multihashmap_get (connected_peers,
@@ -4625,6 +4704,9 @@ main_init (struct GNUNET_SERVER_Handle *server,
 
 
   GNUNET_SERVER_add_handlers (server, handlers);
+  cover_age_task = GNUNET_SCHEDULER_add_delayed (COVER_AGE_FREQUENCY,
+						 &age_cover_counters,
+						 NULL);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&shutdown_task,
 				NULL);

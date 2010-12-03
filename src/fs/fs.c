@@ -1815,7 +1815,9 @@ GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc)
        (GNUNET_OK !=
 	GNUNET_BIO_write_int32 (wh, (uint32_t) dc->has_finished)) ||
        (GNUNET_OK !=
-	GNUNET_BIO_write_int32 (wh, num_pending)) )
+	GNUNET_BIO_write_int32 (wh, num_pending)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write_int32 (wh, dc->start_task != GNUNET_SCHEDULER_NO_TASK)) )
     {
       GNUNET_break (0);		  
       goto cleanup; 
@@ -2583,6 +2585,7 @@ deserialize_download (struct GNUNET_FS_Handle *h,
   uint32_t options;
   uint32_t status;
   uint32_t num_pending;
+  int32_t  start_pending;
 
   uris = NULL;
   emsg = NULL;
@@ -2621,7 +2624,9 @@ deserialize_download (struct GNUNET_FS_Handle *h,
        (GNUNET_OK !=
 	GNUNET_BIO_read_int32 (rh, &status)) ||
        (GNUNET_OK !=
-	GNUNET_BIO_read_int32 (rh, &num_pending)) )
+	GNUNET_BIO_read_int32 (rh, &num_pending)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int32 (rh, &start_pending)) )
     {
       GNUNET_break (0);
       goto cleanup;          
@@ -2692,6 +2697,9 @@ deserialize_download (struct GNUNET_FS_Handle *h,
       signal_download_resume (dc);  
     }
   GNUNET_free (uris);
+  if (start_pending)
+    dc->start_task 
+      = GNUNET_SCHEDULER_add_now (&GNUNET_FS_download_start_task_, dc);
   return;
  cleanup:
   GNUNET_free_non_null (uris);
