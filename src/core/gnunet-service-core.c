@@ -3763,7 +3763,7 @@ send_p2p_message_to_client (struct Neighbour *sender,
                             const void *m, size_t msize)
 {
   size_t size = msize + sizeof (struct NotifyTrafficMessage) +
-    (sender->ats_count+1) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+    (sender->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
   char buf[size];
   struct NotifyTrafficMessage *ntm;
   struct GNUNET_TRANSPORT_ATS_Information *ats;
@@ -3776,7 +3776,7 @@ send_p2p_message_to_client (struct Neighbour *sender,
 			 sender->ats_count,
 			 0);
       size = msize + sizeof (struct NotifyTrafficMessage) +
-	(sender->ats_count+1) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+	(sender->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
     }
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
