@@ -2206,10 +2206,12 @@ plugin_env_notify_address (void *cls,
 static void
 notify_clients_connect (const struct GNUNET_PeerIdentity *peer,
                         struct GNUNET_TIME_Relative latency,
-			uint32_t distance)
+                        uint32_t distance)
 {
-  struct ConnectInfoMessage cim;
+  struct ConnectInfoMessage * cim;
   struct TransportClient *cpos;
+  uint32_t ats_count;
+  uint16_t size;
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2220,18 +2222,28 @@ notify_clients_connect (const struct GNUNET_PeerIdentity *peer,
 			    gettext_noop ("# peers connected"),
 			    1,
 			    GNUNET_NO);
-  cim.header.size = htons (sizeof (struct ConnectInfoMessage));
-  cim.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
-  cim.ats_count = htonl(0);
-  cim.ats.type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
-  cim.ats.value = htonl (0);
-  memcpy (&cim.id, peer, sizeof (struct GNUNET_PeerIdentity));
+
+  ats_count = 2;
+  size  = sizeof (struct ConnectInfoMessage) + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+  cim = GNUNET_malloc (size);
+
+  cim->header.size = htons (size);
+  cim->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
+  cim->ats_count = htonl(2);
+  (&(cim->ats))[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+  (&(cim->ats))[0].value = htonl (distance);
+  (&(cim->ats))[1].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY);
+  (&(cim->ats))[1].value = htonl ((uint32_t) latency.rel_value);
+  (&(cim->ats))[2].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+  (&(cim->ats))[2].value = htonl (0);
+  memcpy (&cim->id, peer, sizeof (struct GNUNET_PeerIdentity));
   cpos = clients;
   while (cpos != NULL)
     {
-      transmit_to_client (cpos, &cim.header, GNUNET_NO);
+      transmit_to_client (cpos, &(cim->header), GNUNET_NO);
       cpos = cpos->next;
     }
+  GNUNET_free (cim);
 }
 
 
