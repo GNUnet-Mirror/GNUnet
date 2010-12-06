@@ -111,7 +111,8 @@ typedef struct GNUNET_TIME_Relative (*GNUNET_TRANSPORT_PluginReceiveCallback) (v
 									       const struct
 									       GNUNET_MessageHeader *
 									       message,
-									       uint32_t distance,
+									       const struct GNUNET_TRANSPORT_ATS_Information *ats,
+						                   uint32_t ats_count,
 									       struct Session *session,
 									       const char *sender_address,
 									       uint16_t sender_address_len);

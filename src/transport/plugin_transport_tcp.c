@@ -2020,6 +2020,7 @@ delayed_done (void *cls,
   session->receive_delay_task = GNUNET_SCHEDULER_NO_TASK;
   delay = session->plugin->env->receive (session->plugin->env->cls,
 					 &session->target,
+					 NULL,
 					 NULL, 0,
 					 session,
 					 NULL, 0);
@@ -2076,7 +2077,14 @@ handle_tcp_data (void *cls,
 			    gettext_noop ("# bytes received via TCP"),
 			    ntohs (message->size),
 			    GNUNET_NO);
-  delay = plugin->env->receive (plugin->env->cls, &session->target, message, 1,
+  struct GNUNET_TRANSPORT_ATS_Information distance[2];
+  distance[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+  distance[0].value = htonl (1);
+  distance[1].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+  distance[1].value = htonl (0);
+  delay = plugin->env->receive (plugin->env->cls, &session->target, message,
+				(const struct GNUNET_TRANSPORT_ATS_Information *) &distance,
+				2,
 				session,
 				(GNUNET_YES == session->inbound) ? NULL : session->connect_addr,
 				(GNUNET_YES == session->inbound) ? 0 : session->connect_alen);

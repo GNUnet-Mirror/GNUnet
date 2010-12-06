@@ -4703,9 +4703,10 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
 static struct GNUNET_TIME_Relative
 plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_MessageHeader *message,
-                    uint32_t distance,
-		    struct Session *session,
-		    const char *sender_address,
+                    const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                    uint32_t ats_count,
+                    struct Session *session,
+                    const char *sender_address,
                     uint16_t sender_address_len)
 {
   struct TransportPlugin *plugin = cls;
@@ -4716,6 +4717,8 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_TIME_Relative ret;
   if (is_blacklisted (peer, plugin))
     return GNUNET_TIME_UNIT_FOREVER_REL;
+  uint32_t distance;
+  int c;
 
   n = find_neighbour (peer);
   if (n == NULL)
@@ -4725,6 +4728,15 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     service_context = service_context->next;
   GNUNET_assert ((plugin->api->send == NULL) || (service_context != NULL));
   peer_address = NULL;
+  distance = 1;
+  for (c=0; c<ats_count; c++)
+  {
+	  if (ntohl(ats[c].type) == GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE)
+	  {
+		  distance = ntohl(ats[c].value);
+	  }
+  }
+
   if (message != NULL)
     {
       if ( (session != NULL) ||

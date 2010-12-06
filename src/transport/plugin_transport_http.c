@@ -873,9 +873,18 @@ static void mhd_write_mst_cb (void *cls,
               ntohs(message->size),
 	      GNUNET_i2s(&(ps->peercontext)->identity),http_plugin_address_to_string(NULL,ps->addr,ps->addrlen));
 #endif
+  struct GNUNET_TRANSPORT_ATS_Information distance[2];
+  distance[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+  distance[0].value = htonl (1);
+  distance[1].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+  distance[1].value = htonl (0);
+
   delay = pc->plugin->env->receive (ps->peercontext->plugin->env->cls,
 								        					  &pc->identity,
-								        					  message, 1, ps,
+								        					  message,
+								        					  (const struct GNUNET_TRANSPORT_ATS_Information *) &distance,
+								        					  2,
+								        					  ps,
 								        					  NULL,
 								        					  0);
   pc->delay = delay;
@@ -1576,9 +1585,17 @@ static void curl_receive_mst_cb  (void *cls,
               ntohs(message->size),
               GNUNET_i2s(&(pc->identity)),http_plugin_address_to_string(NULL,ps->addr,ps->addrlen));
 #endif
+  struct GNUNET_TRANSPORT_ATS_Information distance[2];
+  distance[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+  distance[0].value = htonl (1);
+  distance[1].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+  distance[1].value = htonl (0);
+
   delay = pc->plugin->env->receive (pc->plugin->env->cls,
 								  &pc->identity,
-							      message, 1, ps,
+							      message,
+							      (const struct GNUNET_TRANSPORT_ATS_Information *) &distance, 2,
+							      ps,
 							      ps->addr,
 							      ps->addrlen);
 

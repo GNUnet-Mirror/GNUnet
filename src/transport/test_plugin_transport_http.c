@@ -505,13 +505,13 @@ static void run_connection_tests( int phase , void * cls);
  * Recieves messages from plugin, in real world transport
  */
 static struct GNUNET_TIME_Relative
-receive (void *cls,
-         const struct GNUNET_PeerIdentity * peer,
-         const struct GNUNET_MessageHeader * message,
-         uint32_t distance,
-         struct Session *session,
-         const char *sender_address,
-         uint16_t sender_address_len)
+receive (void *cls, const struct GNUNET_PeerIdentity *peer,
+        const struct GNUNET_MessageHeader *message,
+        const struct GNUNET_TRANSPORT_ATS_Information *ats,
+        uint32_t ats_count,
+        struct Session *session,
+        const char *sender_address,
+        uint16_t sender_address_len)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testcase recieved new message from peer `%s' with type %u and length %u, session %X\n",  GNUNET_i2s(peer), ntohs(message->type), ntohs(message->size),session);
 

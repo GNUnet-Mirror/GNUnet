@@ -1474,7 +1474,14 @@ udp_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
                   "Sending message type %d to transport!\n",
                   ntohs(currhdr->type));
 #endif
-      plugin->env->receive (plugin->env->cls, sender, currhdr, UDP_DIRECT_DISTANCE,
+      struct GNUNET_TRANSPORT_ATS_Information distance[2];
+      distance[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+      distance[0].value = htonl (UDP_DIRECT_DISTANCE);
+      distance[1].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+      distance[1].value = htonl (0);
+
+      plugin->env->receive (plugin->env->cls, sender, currhdr,
+    		    (const struct GNUNET_TRANSPORT_ATS_Information *) &distance, 2,
 			    NULL, sender_addr, fromlen);
   }
 

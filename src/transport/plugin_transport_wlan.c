@@ -1750,8 +1750,15 @@ wlan_process_helper (void *cls,
         }
       }
       //"receive" the message
+      struct GNUNET_TRANSPORT_ATS_Information distance[2];
+      distance[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+      distance[0].value = htonl (1);
+      distance[1].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+      distance[1].value = htonl (0);
+
       plugin->env->receive(plugin, &session->target,
-           temp_hdr, 1, session, session->addr, sizeof(session->addr));
+           temp_hdr, (const struct GNUNET_TRANSPORT_ATS_Information *) &distance, 2,
+           session, session->addr, sizeof(session->addr));
     }
 
   else if (ntohs(hdr->type) == GNUNET_MESSAGE_TYPE_WLAN_FRAGMENT)
