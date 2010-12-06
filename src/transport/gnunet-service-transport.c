@@ -562,6 +562,16 @@ struct NeighbourList
    */
   int public_key_valid;
 
+  /**
+   * Performance data for the peer.
+   */
+  struct GNUNET_TRANSPORT_ATS_Information *ats;
+
+  /**
+   * Identity of the neighbour.
+   */
+  struct GNUNET_PeerIdentity peer;
+
 };
 
 /**
@@ -2211,7 +2221,7 @@ notify_clients_connect (const struct GNUNET_PeerIdentity *peer,
   struct ConnectInfoMessage * cim;
   struct TransportClient *cpos;
   uint32_t ats_count;
-  uint16_t size;
+  size_t size;
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2225,6 +2235,10 @@ notify_clients_connect (const struct GNUNET_PeerIdentity *peer,
 
   ats_count = 2;
   size  = sizeof (struct ConnectInfoMessage) + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+  if (size > GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  {
+	  GNUNET_break(0);
+  }
   cim = GNUNET_malloc (size);
 
   cim->header.size = htons (size);
@@ -3456,7 +3470,9 @@ handle_payload_message (const struct GNUNET_MessageHeader *message,
 			    GNUNET_NO);
   /* transmit message to all clients */
   uint32_t ats_count = 2;
-  uint16_t size = sizeof (struct InboundMessage) + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information) + msize;
+  size_t size = sizeof (struct InboundMessage) + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information) + msize;
+  if (size > GNUNET_SERVER_MAX_MESSAGE_SIZE)
+	  GNUNET_break(0);
 
   im = GNUNET_malloc (size);
   im->header.size = htons (size);
@@ -4817,8 +4833,10 @@ handle_start (void *cls,
 {
   const struct StartMessage *start;
   struct TransportClient *c;
-  struct ConnectInfoMessage cim;
+  struct ConnectInfoMessage * cim;
   struct NeighbourList *n;
+  uint32_t ats_count;
+  size_t size;
 
   start = (const struct StartMessage*) message;
 #if DEBUG_TRANSPORT
@@ -4853,7 +4871,7 @@ handle_start (void *cls,
   clients = c;
   c->client = client;
   if (our_hello != NULL)
-    {
+  {
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Sending our own `%s' to new client\n", "HELLO");
@@ -4862,23 +4880,36 @@ handle_start (void *cls,
                           (const struct GNUNET_MessageHeader *) our_hello,
                           GNUNET_NO);
       /* tell new client about all existing connections */
-      cim.header.size = htons (sizeof (struct ConnectInfoMessage));
-      cim.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
-      cim.ats_count = htonl(0);
-      cim.ats.type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
-      cim.ats.value = htonl (0);
+      ats_count = 2;
+      size  = sizeof (struct ConnectInfoMessage) + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+      if (size > GNUNET_SERVER_MAX_MESSAGE_SIZE)
+      {
+    	  GNUNET_break(0);
+      }
+      cim = GNUNET_malloc (size);
+
+      cim->header.size = htons (size);
+      cim->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
+      cim->ats_count = htonl(ats_count);
+      (&(cim->ats))[2].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+      (&(cim->ats))[2].value = htonl (0);
       n = neighbours;
       while (n != NULL)
-	{
-	  if (GNUNET_YES == n->received_pong)
-	    {
-	      cim.id = n->id;
-	      transmit_to_client (c, &cim.header, GNUNET_NO);
-            }
+	  {
+		  if (GNUNET_YES == n->received_pong)
+		  {
+			  (&(cim->ats))[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+			  (&(cim->ats))[0].value = htonl (n->distance);
+			  (&(cim->ats))[1].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY);
+			  (&(cim->ats))[1].value = htonl ((uint32_t) n->latency.rel_value);
+			  cim->id = n->id;
+			  transmit_to_client (c, &cim->header, GNUNET_NO);
+		  }
 	    n = n->next;
-        }
-    }
+      }
+  }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_free(cim);
 }
 
 

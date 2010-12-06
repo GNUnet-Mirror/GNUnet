@@ -1709,6 +1709,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
           GNUNET_break (0);
           break;
         }
+
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Receiving `%s' message for `%4s'.\n",
@@ -1724,7 +1725,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
       /* FIXME */
       if (h->nc_cb != NULL)
     	  h->nc_cb (h->cls, &n->id,
-		  NULL,0);
+		  &cim->ats,ats_count);
       /* FIXEND */
       break;
     case GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT:
@@ -1796,6 +1797,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
       ats_count = ntohl(im->ats_count);
       //imm = (const struct GNUNET_MessageHeader *) &im[1];
       imm = (const struct GNUNET_MessageHeader *) &((&(im->ats))[ats_count+1]);
+
       if (ntohs (imm->size) + sizeof (struct InboundMessage) + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information) != size)
         {
           GNUNET_break (0);
@@ -1819,8 +1821,8 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
 	}
       /* FIXME: */
       if (h->rec != NULL)
-	h->rec (h->cls, &im->peer, imm,
-		NULL, 0);
+		h->rec (h->cls, &im->peer, imm,
+			&im->ats, ats_count);
       /* ENDFIX */
       break;
     default:
