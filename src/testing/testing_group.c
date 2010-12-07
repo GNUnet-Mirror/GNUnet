@@ -2574,12 +2574,13 @@ connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
  * by the topology.  This will only have an effect once peers
  * are started if the FRIENDS_ONLY option is set in the base
  * config.  Also takes an optional restrict topology which
- * disallows connections based on a particular transport
+ * disallows connections based on particular transports
  * UNLESS they are specified in the restricted topology.
  *
  * @param pg the peer group struct representing the running peers
  * @param topology which topology to connect the peers in
- * @param restrict_topology allow only direct TCP connections in this topology
+ * @param restrict_topology disallow restrict_transports transport
+ *                          connections to peers NOT in this topology
  *                          use GNUNET_TESTING_TOPOLOGY_NONE for no restrictions
  * @param restrict_transports space delimited list of transports to blacklist
  *                            to create restricted topology
