@@ -2756,7 +2756,7 @@ run (void *cls,
 
     buf = data;
     count = 0;
-    while (count < frstat.st_size)
+    while (count < frstat.st_size - 1)
       {
         count++;
         /* if (((data[count] == '\n') || (data[count] == '\0')) && (buf != &data[count]))*/
