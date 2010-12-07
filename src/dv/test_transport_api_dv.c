@@ -25,7 +25,7 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_core_service.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define TEST_ALL GNUNET_NO
 
@@ -385,18 +385,44 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 static void
 send_other_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc);
 
+/**
+ * Get distance information from 'atsi'.
+ *
+ * @param atsi performance data
+ * @return connected transport distance
+ */
+static uint32_t
+get_atsi_distance (const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+{
+  while ( (ntohl (atsi->type) != GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR) &&
+          (ntohl (atsi->type) != GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE) )
+    atsi++;
+  if (ntohl (atsi->type) == GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR)
+    {
+      GNUNET_break (0);
+      /* FIXME: we do not have distance data? Assume direct neighbor. */
+      return 1;
+    }
+  return ntohl (atsi->value);
+}
+
 static int
 process_mtype (void *cls,
                const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_MessageHeader *message,
-               struct GNUNET_TIME_Relative latency,
-               uint32_t distance)
+               const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct TestMessageContext *pos = cls;
   struct GNUNET_TestMessage *msg = (struct GNUNET_TestMessage *)message;
+#if VERBOSE
+  uint32_t distance;
+#endif
   if (pos->uid != ntohl(msg->uid))
     return GNUNET_OK;
 
+#if VERBOSE
+  distance = get_atsi_distance(atsi);
+#endif
   GNUNET_assert(0 == memcmp(peer, &pos->peer1->id, sizeof(struct GNUNET_PeerIdentity)));
   if (total_other_expected_messages == 0)
     {
@@ -530,14 +556,12 @@ init_notify_peer1 (void *cls,
    */
   pos->peer2handle = GNUNET_CORE_connect (pos->peer2->cfg,
 					  1, 
-					  TIMEOUT,
 					  pos,
 					  &init_notify_peer2,
 					  NULL,
 					  NULL,
 					  NULL, NULL,
 					  GNUNET_YES, NULL, GNUNET_YES, handlers);
-
 }
 
 
@@ -569,7 +593,6 @@ send_test_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
    */
   pos->peer1handle = GNUNET_CORE_connect (pos->peer1->cfg,
 					  1,
-                                          TIMEOUT,
                                           pos,
                                           &init_notify_peer1,
                                           NULL, NULL,
@@ -801,8 +824,7 @@ create_topology ()
 static void all_connect_handler (void *cls,
                                  const struct
                                  GNUNET_PeerIdentity * peer,
-                                 struct GNUNET_TIME_Relative latency,
-                                 uint32_t distance)
+                                 const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct GNUNET_TESTING_Daemon *d = cls;
   struct GNUNET_TESTING_Daemon *second_daemon;
@@ -810,6 +832,9 @@ static void all_connect_handler (void *cls,
 #if !TEST_ALL
   struct TestMessageContext *temp_context;
 #endif
+  uint32_t distance;
+  distance = get_atsi_distance(atsi);
+
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "connected peer %s to peer %s, distance %u\n",
            d->shortname,
@@ -884,7 +909,6 @@ peers_started_callback (void *cls,
   new_peer = GNUNET_malloc(sizeof(struct PeerContext));
   new_peer->peer_handle = GNUNET_CORE_connect(cfg, 
 					      1,
-					      GNUNET_TIME_UNIT_FOREVER_REL,
 					      d, NULL,
 					      &all_connect_handler, 
 					      NULL, NULL, NULL, 

@@ -27,9 +27,6 @@
  * @author Christian Grothoff
  * @author Nathan Evans
  *
- * TODO: The gossip rates need to be worked out.  Probably many other things
- * as well.
- *
  */
 #include "platform.h"
 #include "gnunet_client_lib.h"
@@ -1298,6 +1295,48 @@ void send_message_delayed (void *cls,
 }
 #endif
 
+/**
+ * Get distance information from 'atsi'.
+ *
+ * @param atsi performance data
+ * @return connected transport distance
+ */
+static uint32_t
+get_atsi_distance (const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+{
+  while ( (ntohl (atsi->type) != GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR) &&
+          (ntohl (atsi->type) != GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE) )
+    atsi++;
+  if (ntohl (atsi->type) == GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR)
+    {
+      GNUNET_break (0);
+      /* FIXME: we do not have distance data? Assume direct neighbor. */
+      return DIRECT_NEIGHBOR_COST;
+    }
+  return ntohl (atsi->value);
+}
+
+/**
+ * Find latency information in 'atsi'.
+ *
+ * @param atsi performance data
+ * @return connection latency
+ */
+static struct GNUNET_TIME_Relative
+get_atsi_latency (const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+{
+  while ( (ntohl (atsi->type) != GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR) &&
+          (ntohl (atsi->type) != GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY) )
+    atsi++;
+  if (ntohl (atsi->type) == GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR)
+    {
+      GNUNET_break (0);
+      /* how can we not have latency data? */
+      return GNUNET_TIME_UNIT_SECONDS;
+    }
+  /* FIXME: Multiply by GNUNET_TIME_UNIT_MILLISECONDS (1) to get as a GNUNET_TIME_Relative */
+  return GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, ntohl (atsi->value));
+}
 
 /**
  * Core handler for dv data messages.  Whatever this message
@@ -1341,6 +1380,8 @@ handle_dv_data_message (void *cls,
   int ret;
   size_t packed_message_size;
   char *cbuf;
+  uint32_t distance; /* Distance information */
+  struct GNUNET_TIME_Relative latency; /* Latency information */
 
   packed_message_size = ntohs(incoming->header.size) - sizeof(p2p_dv_MESSAGE_Data);
 #if DEBUG_DV
@@ -1350,7 +1391,6 @@ handle_dv_data_message (void *cls,
 
   if (ntohs (incoming->header.size) <  sizeof (p2p_dv_MESSAGE_Data) + sizeof (struct GNUNET_MessageHeader))
     {
-
 #if DEBUG_DV
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "`%s': Message sizes don't add up, total size %u, expected at least %u!\n", "dv service", ntohs(incoming->header.size), sizeof (p2p_dv_MESSAGE_Data) + sizeof (struct GNUNET_MessageHeader));
@@ -1358,6 +1398,9 @@ handle_dv_data_message (void *cls,
       return GNUNET_SYSERR;
     }
 
+  /* Iterate over ATS_Information to get distance and latency */
+  latency = get_atsi_latency(atsi);
+  distance = get_atsi_distance(atsi);
   dn = GNUNET_CONTAINER_multihashmap_get (direct_neighbors,
                                           &peer->hashPubKey);
   if (dn == NULL)
@@ -1481,9 +1524,6 @@ handle_dv_data_message (void *cls,
   if (0 == memcmp (destination, peer, sizeof (struct GNUNET_PeerIdentity)))
     {
       /* FIXME: create stat: routing loop-discard! */
-#if DEBUG_DV_PEER_NUMBERS
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "\n\n\nLoopy loo message\n\n\n");
-#endif
 
 #if DEBUG_DV_MESSAGES
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1588,14 +1628,14 @@ neighbor_send_task (void *cls,
   struct PendingMessage *pending_message;
 
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
-  {
+    {
 #if DEBUG_DV_GOSSIP
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s: Called with reason shutdown, shutting down!\n",
               GNUNET_i2s(&my_identity));
 #endif
-    return;
-  }
+      return;
+    }
 
   if (send_context->fast_gossip_list_head != NULL)
     {
@@ -2465,10 +2505,17 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer,
 #if DEBUG_DV_MESSAGES
                   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s: learned about peer %llu from which we have a previous unknown message, processing!\n", my_short_id, referrer_peer_id);
 #endif
-                  handle_dv_data_message(NULL, &referrer->pending_messages[i].sender, 
+                  struct GNUNET_TRANSPORT_ATS_Information atsi[3];
+                  atsi[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+                  atsi[0].value = htonl (referrer->pending_messages[i].distance);
+                  atsi[1].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY);
+                  atsi[1].value = htonl ((uint32_t)referrer->pending_messages[i].latency.rel_value);
+                  atsi[2].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+                  atsi[2].value = htonl (0);
+                  handle_dv_data_message(NULL,
+                                         &referrer->pending_messages[i].sender,
 					 referrer->pending_messages[i].message, 
-					 referrer->pending_messages[i].latency, 
-					 referrer->pending_messages[i].distance);
+					 (const struct GNUNET_TRANSPORT_ATS_Information *)&atsi);
                   GNUNET_free(referrer->pending_messages[i].message);
                   referrer->pending_messages[i].sender_id = 0;
                 }
@@ -2849,8 +2896,11 @@ handle_core_connect (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s: Receives core connect message for peer %s distance %d!\n", "dv", GNUNET_i2s(peer), distance);
 #endif
+  uint32_t distance;
 
-  if ((distance == DIRECT_NEIGHBOR_COST) && (GNUNET_CONTAINER_multihashmap_get(direct_neighbors, &peer->hashPubKey) == NULL))
+  distance = get_atsi_distance (atsi);
+  if ((distance == DIRECT_NEIGHBOR_COST) &&
+      (GNUNET_CONTAINER_multihashmap_get(direct_neighbors, &peer->hashPubKey) == NULL))
   {
     peerinfo_iterator = GNUNET_malloc(sizeof(struct PeerIteratorContext));
     neighbor = GNUNET_malloc (sizeof (struct DirectNeighbor));
