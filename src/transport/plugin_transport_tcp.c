@@ -3018,7 +3018,8 @@ libgnunet_plugin_transport_tcp_done (void *cls)
       GNUNET_free (tcp_probe);
     }
 
-  if (plugin->behind_nat == GNUNET_YES)
+  if ((plugin->behind_nat == GNUNET_YES) &&
+      (plugin->enable_nat_server == GNUNET_YES))
     {
       if (0 != GNUNET_OS_process_kill (plugin->server_proc, SIGTERM))
         GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
