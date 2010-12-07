@@ -3296,9 +3296,9 @@ update_neighbour_performance (struct Neighbour *n,
 
   if (ats_count == 0)
     return;
-  for (i=0;i<ats_count;i++)
+  for (i = 0; i < ats_count; i++)
     {
-      for (j=0;j<n->ats_count;j++)
+      for (j=0;j < n->ats_count; j++)
 	{
 	  if (n->ats[j].type == ats[i].type)
 	    {
@@ -3306,10 +3306,12 @@ update_neighbour_performance (struct Neighbour *n,
 	      break;
 	    }
 	}
-      if (j == n->ats_count)	
-	GNUNET_array_append (n->ats,
-			     n->ats_count,
-			     *ats);	
+      if (j == n->ats_count)
+        {
+          GNUNET_array_append (n->ats,
+                               n->ats_count,
+                               ats[i]);
+        }
     }
 }
 
