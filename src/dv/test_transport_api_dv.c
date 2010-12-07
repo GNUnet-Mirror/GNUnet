@@ -25,7 +25,7 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_core_service.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define TEST_ALL GNUNET_NO
 
@@ -502,39 +502,98 @@ static struct GNUNET_CORE_MessageHandler handlers[] = {
   {NULL, 0, 0}
 };
 
+/**
+ * Notify of all peer1's peers, once peer 2 is found, schedule connect
+ * to peer two for message send.
+ *
+ * @param cls closure
+ * @param peer peer identity this notification is about
+ * @param atsi performance data for the connection
+ */
+static void connect_notify_peer2 (void *cls,
+                                  const struct
+                                  GNUNET_PeerIdentity *peer,
+                                  const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+{
+  struct TestMessageContext *pos = cls;
+
+  if (0 == memcmp(&pos->peer1->id, peer, sizeof(struct GNUNET_PeerIdentity)))
+    {
+#if VERBOSE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Core connection from `%s' to `%4s' verfied, sending message!\n",
+                  GNUNET_i2s(&pos->peer2->id), GNUNET_h2s (&peer->hashPubKey));
+#endif
+      if (NULL == GNUNET_CORE_notify_transmit_ready (pos->peer1handle,
+                                                     0,
+                                                     TIMEOUT,
+                                                     &pos->peer2->id,
+                                                     sizeof (struct GNUNET_TestMessage),
+                                                     &transmit_ready, pos))
+        {
+          /* This probably shouldn't happen, but it does (timing issue?) */
+          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                      "RECEIVED NULL when asking core (1) for transmission to peer `%4s'\n",
+                      GNUNET_i2s (&pos->peer2->id));
+          transmit_ready_failed++;
+          total_other_expected_messages--;
+        }
+      else
+        {
+          transmit_ready_scheduled++;
+        }
+    }
+}
+
 static void
 init_notify_peer2 (void *cls,
              struct GNUNET_CORE_Handle *server,
              const struct GNUNET_PeerIdentity *my_identity,
              const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
 {
-  struct TestMessageContext *pos = cls;
-
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core connection to `%4s' established, scheduling message send\n",
+              "Core connection to `%4s' established, awaiting connections.\n",
               GNUNET_i2s (my_identity));
 #endif
   total_server_connections++;
-
-  if (NULL == GNUNET_CORE_notify_transmit_ready (pos->peer1handle,
-                                                 0,
-                                                 TIMEOUT,
-                                                 &pos->peer2->id,
-                                                 sizeof (struct GNUNET_TestMessage),
-                                                 &transmit_ready, pos))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "RECEIVED NULL when asking core (1) for transmission to peer `%4s'\n",
-                  GNUNET_i2s (&pos->peer2->id));
-      transmit_ready_failed++;
-    }
-  else
-    {
-      transmit_ready_scheduled++;
-    }
 }
 
+/**
+ * Notify of all peer1's peers, once peer 2 is found, schedule connect
+ * to peer two for message send.
+ *
+ * @param cls closure
+ * @param peer peer identity this notification is about
+ * @param atsi performance data for the connection
+ */
+static void connect_notify_peer1 (void *cls,
+                                  const struct
+                                  GNUNET_PeerIdentity *peer,
+                                  const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+{
+  struct TestMessageContext *pos = cls;
+
+  if (0 == memcmp(&pos->peer2->id, peer, sizeof(struct GNUNET_PeerIdentity)))
+    {
+#if VERBOSE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Core connection from `%s' to `%4s' verified.\n",
+                  GNUNET_i2s(&pos->peer1->id), GNUNET_h2s (&peer->hashPubKey));
+#endif
+      /*
+       * Connect to the receiving peer
+       */
+      pos->peer2handle = GNUNET_CORE_connect (pos->peer2->cfg,
+                                              1,
+                                              pos,
+                                              &init_notify_peer2,
+                                              &connect_notify_peer2,
+                                              NULL,
+                                              NULL, NULL,
+                                              GNUNET_YES, NULL, GNUNET_YES, handlers);
+    }
+}
 
 static void
 init_notify_peer1 (void *cls,
@@ -542,26 +601,12 @@ init_notify_peer1 (void *cls,
              const struct GNUNET_PeerIdentity *my_identity,
              const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
 {
-  struct TestMessageContext *pos = cls;
   total_server_connections++;
-
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core connection to `%4s' established, setting up handles\n",
+              "Core connection to `%4s' established, awaiting connections...\n",
               GNUNET_i2s (my_identity));
 #endif
-
-  /*
-   * Connect to the receiving peer
-   */
-  pos->peer2handle = GNUNET_CORE_connect (pos->peer2->cfg,
-					  1, 
-					  pos,
-					  &init_notify_peer2,
-					  NULL,
-					  NULL,
-					  NULL, NULL,
-					  GNUNET_YES, NULL, GNUNET_YES, handlers);
 }
 
 
@@ -595,7 +640,8 @@ send_test_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 					  1,
                                           pos,
                                           &init_notify_peer1,
-                                          NULL, NULL,
+                                          &connect_notify_peer1,
+                                          NULL,
                                           NULL,
                                           NULL,
                                           GNUNET_NO, NULL, GNUNET_NO, no_handlers);
@@ -718,9 +764,7 @@ topology_callback (void *cls,
       temp_context->uid = total_connections;
       temp_context->disconnect_task = GNUNET_SCHEDULER_NO_TASK;
       test_messages = temp_context;
-
       expected_messages++;
-
     }
 #if VERBOSE
   else
@@ -863,7 +907,6 @@ static void all_connect_handler (void *cls,
       other_test_messages = temp_context;
     }
 #endif
-
 
   if (dotOutFile != NULL)
     {

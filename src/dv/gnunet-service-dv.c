@@ -855,7 +855,7 @@ size_t core_transmit_notify (void *cls,
  */
 static void
 try_core_send (void *cls,
-                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PendingMessage *pending;
   pending = core_pending_head;
@@ -863,8 +863,8 @@ try_core_send (void *cls,
   if (core_transmit_handle != NULL)
     return; /* Message send already in progress */
 
-  if (pending != NULL)
-    core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, pending->importance, pending->timeout, &pending->recipient, pending->msg_size, &core_transmit_notify, NULL);
+  if ((pending != NULL) && (coreAPI != NULL))
+    core_transmit_handle = GNUNET_CORE_notify_transmit_ready (coreAPI, pending->importance, pending->timeout, &pending->recipient, pending->msg_size, &core_transmit_notify, NULL);
 }
 
 /**
@@ -1440,8 +1440,6 @@ handle_dv_data_message (void *cls,
         pos = pos->next;
       }
 #endif
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "%s: unknown sender (%u), Message uid %u from %s!\n", my_short_id, ntohl(incoming->sender), ntohl(incoming->uid), GNUNET_i2s(&dn->identity));
 
       found_pos = -1;
       for (i = 0; i< MAX_OUTSTANDING_MESSAGES; i++)
@@ -2148,6 +2146,7 @@ shutdown_task (void *cls,
   GNUNET_CONTAINER_heap_destroy(neighbor_min_heap);
 
   GNUNET_CORE_disconnect (coreAPI);
+  coreAPI = NULL;
   GNUNET_PEERINFO_disconnect(peerinfo_handle);
   GNUNET_SERVER_mst_destroy(coreMST);
   GNUNET_free_non_null(my_short_id);
@@ -2963,6 +2962,7 @@ void handle_core_disconnect (void *cls,
   struct DistantNeighbor *referee;
   struct FindDestinationContext fdc;
   struct DisconnectContext disconnect_context;
+  struct PendingMessage *pending_pos;
 
 #if DEBUG_DV
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2971,10 +2971,24 @@ void handle_core_disconnect (void *cls,
 
   neighbor =
     GNUNET_CONTAINER_multihashmap_get (direct_neighbors, &peer->hashPubKey);
+
   if (neighbor == NULL)
     {
       return;
     }
+
+  pending_pos = core_pending_head;
+  while (NULL != pending_pos)
+    {
+      if (0 == memcmp(&pending_pos->recipient, &neighbor->identity, sizeof(struct GNUNET_PeerIdentity)))
+        {
+          GNUNET_CONTAINER_DLL_remove(core_pending_head, core_pending_tail, pending_pos);
+          pending_pos = core_pending_head;
+        }
+      else
+        pending_pos = pending_pos->next;
+    }
+
   while (NULL != (referee = neighbor->referee_head))
     distant_neighbor_free (referee);
 
@@ -2992,11 +3006,12 @@ void handle_core_disconnect (void *cls,
 
   GNUNET_assert (neighbor->referee_tail == NULL);
   if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_remove (direct_neighbors,
-                                        &peer->hashPubKey, neighbor))
+                                                         &peer->hashPubKey, neighbor))
     {
       GNUNET_break(0);
     }
-  if ((neighbor->send_context != NULL) && (neighbor->send_context->task != GNUNET_SCHEDULER_NO_TASK))
+  if ((neighbor->send_context != NULL) &&
+      (neighbor->send_context->task != GNUNET_SCHEDULER_NO_TASK))
     GNUNET_SCHEDULER_cancel(neighbor->send_context->task);
   GNUNET_free (neighbor);
 }
@@ -3072,8 +3087,8 @@ run (void *cls,
 
   /* Scheduled the task to clean up when shutdown is called */
   cleanup_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &shutdown_task,
-                                NULL);
+                                               &shutdown_task,
+                                               NULL);
 }
 
 
