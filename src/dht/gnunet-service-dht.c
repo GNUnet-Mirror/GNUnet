@@ -2333,8 +2333,8 @@ handle_dht_get (const struct GNUNET_MessageHeader *msg,
   else
     {
       msg_ctx->reply_bf = GNUNET_CONTAINER_bloomfilter_init (end,
-								     bf_size,
-								     GNUNET_DHT_GET_BLOOMFILTER_K);
+                                                             bf_size,
+                                                             GNUNET_DHT_GET_BLOOMFILTER_K);
     }
   type = (enum GNUNET_BLOCK_Type) ntohl (get_msg->type);
 #if DEBUG_DHT
@@ -4145,11 +4145,6 @@ handle_dht_local_route_request (void *cls, struct GNUNET_SERVER_Client *client,
     dhtlog_handle->insert_dhtkey (NULL, &dht_msg->key);
 #endif
 
-  if (GNUNET_YES == malicious_dropper)
-    {
-      GNUNET_SERVER_receive_done (client, GNUNET_OK);
-      return;
-    }
   memset(&msg_ctx, 0, sizeof(struct DHT_MessageContext));
   msg_ctx.client = find_active_client (client);
   memcpy(&msg_ctx.key, &dht_msg->key, sizeof(GNUNET_HashCode));
@@ -4160,6 +4155,7 @@ handle_dht_local_route_request (void *cls, struct GNUNET_SERVER_Client *client,
   msg_ctx.peer = &my_identity;
   msg_ctx.importance = DHT_DEFAULT_P2P_IMPORTANCE + 4; /* Make local routing a higher priority */
   msg_ctx.timeout = DHT_DEFAULT_P2P_TIMEOUT;
+
   if (ntohs(enc_msg->type) == GNUNET_MESSAGE_TYPE_DHT_GET)
     increment_stats(STAT_GET_START);
   else if (ntohs(enc_msg->type) == GNUNET_MESSAGE_TYPE_DHT_PUT)
@@ -4167,8 +4163,35 @@ handle_dht_local_route_request (void *cls, struct GNUNET_SERVER_Client *client,
   else if (ntohs(enc_msg->type) == GNUNET_MESSAGE_TYPE_DHT_FIND_PEER)
     increment_stats(STAT_FIND_PEER_START);
 
-  demultiplex_message(enc_msg, &msg_ctx);
+  if (GNUNET_YES == malicious_dropper)
+    {
+      if (ntohs(enc_msg->type) == GNUNET_MESSAGE_TYPE_DHT_GET)
+        {
+#if DEBUG_DHT_ROUTING
+          if ((debug_routes) && (dhtlog_handle != NULL))
+            {
+              dhtlog_handle->insert_query (NULL, msg_ctx.unique_id, DHTLOG_GET,
+                                            msg_ctx.hop_count, GNUNET_NO, &my_identity,
+                                            &msg_ctx.key);
+            }
+#endif
+        }
+      else if (ntohs(enc_msg->type) == GNUNET_MESSAGE_TYPE_DHT_PUT)
+        {
+#if DEBUG_DHT_ROUTING
+          if ((debug_routes) && (dhtlog_handle != NULL))
+            {
+              dhtlog_handle->insert_query (NULL, msg_ctx.unique_id, DHTLOG_PUT,
+                                           msg_ctx.hop_count, GNUNET_NO, &my_identity,
+                                           &msg_ctx.key);
+            }
+#endif
+        }
+      GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      return;
+    }
 
+  demultiplex_message(enc_msg, &msg_ctx);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 
 }
