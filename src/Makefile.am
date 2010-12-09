@@ -25,7 +25,7 @@ SUBDIRS = \
   peerinfo-tool \
   core \
   testing \
-  $(dv) \
+  dv \
   dht \
   hostlist \
   topology \
