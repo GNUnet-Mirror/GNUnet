@@ -1478,17 +1478,17 @@ GNUNET_DISK_get_home_filename (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 struct GNUNET_DISK_MapHandle
 {
+  /**
+   * Address where the map is in memory.
+   */
+  void *addr;
+
 #ifdef MINGW
   /**
    * Underlying OS handle.
    */
   HANDLE h;
 #else
-  /**
-   * Address where the map is in memory.
-   */
-  void *addr;
-
   /**
    * Number of bytes mapped.
    */
@@ -1523,7 +1523,6 @@ GNUNET_DISK_file_map (const struct GNUNET_DISK_FileHandle *h,
 
 #ifdef MINGW
   DWORD mapAccess, protect;
-  void *ret;
 
   if ((access & GNUNET_DISK_MAP_TYPE_READ) &&
       (access & GNUNET_DISK_MAP_TYPE_WRITE))
@@ -1556,15 +1555,15 @@ GNUNET_DISK_file_map (const struct GNUNET_DISK_FileHandle *h,
       return NULL;
     }
 
-  ret = MapViewOfFile ((*m)->h, mapAccess, 0, 0, len);
-  if (!ret)
+  (*m)->addr = MapViewOfFile ((*m)->h, mapAccess, 0, 0, len);
+  if (!(*m)->addr)
     {
       SetErrnoFromWinError (GetLastError ());
       CloseHandle ((*m)->h);
       GNUNET_free (*m);
     }
 
-  return ret;
+  return (*m)->addr;
 #else
   int prot;
 
@@ -1602,7 +1601,7 @@ GNUNET_DISK_file_unmap (struct GNUNET_DISK_MapHandle *h)
     }
 
 #ifdef MINGW
-  ret = UnmapViewOfFile (h->h) ? GNUNET_OK : GNUNET_SYSERR;
+  ret = UnmapViewOfFile (h->addr) ? GNUNET_OK : GNUNET_SYSERR;
   if (ret != GNUNET_OK)
     SetErrnoFromWinError (GetLastError ());
   if (!CloseHandle (h->h) && (ret == GNUNET_OK))
