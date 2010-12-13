@@ -184,6 +184,12 @@ notify_ready (void *cls, size_t size, void *buf)
   return sizeof (struct GNUNET_MessageHeader);
 }
 
+static size_t
+notify_ready_connect (void *cls, size_t size, void *buf)
+{
+  return 0;
+}
+
 
 static void
 notify_connect (void *cls,
@@ -310,6 +316,14 @@ exchange_hello_last (void *cls,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
                                       message, &me->id));
+
+  GNUNET_assert(NULL != GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
+                                          &p1.id,
+                                          sizeof (struct GNUNET_MessageHeader), 0,
+                                          TIMEOUT,
+                                          &notify_ready_connect,
+                                          NULL));
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Finished exchanging HELLOs, now waiting for transmission!\n");
 }
@@ -379,10 +393,10 @@ run (void *cls,
       setup_peer (&p2, "test_transport_api_http_peer2.conf");
     }
   else if (is_https)
-	{
-	  setup_peer (&p1, "test_transport_api_https_peer1.conf");
-	  setup_peer (&p2, "test_transport_api_https_peer2.conf");
-	}
+    {
+      setup_peer (&p1, "test_transport_api_https_peer1.conf");
+      setup_peer (&p2, "test_transport_api_https_peer2.conf");
+    }
   GNUNET_assert(p1.th != NULL);
   GNUNET_assert(p2.th != NULL);
 
