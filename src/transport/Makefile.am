@@ -279,8 +279,6 @@ test_transport_api_udp_nat_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
-if HAVE_MHD
-
 test_plugin_transport_http_SOURCES = \
  test_plugin_transport_http.c
 test_plugin_transport_http_LDADD = \
@@ -398,8 +396,6 @@ test_transport_api_multi_SOURCES = \
 test_transport_api_multi_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la  
-
-endif
 
 
 EXTRA_DIST = \
