@@ -182,7 +182,7 @@ callback_download (void *ptr, size_t size, size_t nmemb, void *ctx)
 }
 
 static void
-task_download (struct download_cls *cls,
+task_download (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
@@ -243,7 +243,7 @@ download_prepare (struct download_cls *cls)
                                rtime,
                                grs,
                                gws,
-                               (GNUNET_SCHEDULER_Task) & task_download, cls);
+                               & task_download, cls);
   GNUNET_NETWORK_fdset_destroy (gws);
   GNUNET_NETWORK_fdset_destroy (grs);
 }
@@ -255,10 +255,10 @@ download_prepare (struct download_cls *cls)
  * @param tc task context
  */
 static void
-task_download (struct download_cls *cls,
+task_download (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-
+  struct download_cls *dc = cls;
   int running;
   struct CURLMsg *msg;
   CURLMcode mret;
@@ -268,33 +268,33 @@ task_download (struct download_cls *cls,
 #if DEBUG_UPNP
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "UPnP",
                        "Shutdown requested while trying to download device description from `%s'\n",
-                       cls->url);
+                       dc->url);
 #endif
-      cls->caller_cb (NULL, cls->caller_cls);
-      download_clean_up (cls);
+      dc->caller_cb (NULL, dc->caller_cls);
+      download_clean_up (dc);
       return;
     }
-  if (GNUNET_TIME_absolute_get_remaining (cls->end_time).rel_value == 0)
+  if (GNUNET_TIME_absolute_get_remaining (dc->end_time).rel_value == 0)
     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "UPnP",
                        _
                        ("Timeout trying to download UPnP device description from '%s'\n"),
-                       cls->url);
-      cls->caller_cb (NULL, cls->caller_cls);
-      download_clean_up (cls);
+                       dc->url);
+      dc->caller_cb (NULL, dc->caller_cls);
+      download_clean_up (dc);
       return;
     }
 
   do
     {
       running = 0;
-      mret = curl_multi_perform (cls->multi, &running);
+      mret = curl_multi_perform (dc->multi, &running);
 
       if (running == 0)
         {
           do
             {
-              msg = curl_multi_info_read (cls->multi, &running);
+              msg = curl_multi_info_read (dc->multi, &running);
               GNUNET_break (msg != NULL);
               if (msg == NULL)
                 break;
@@ -305,23 +305,23 @@ task_download (struct download_cls *cls,
                   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                               _("%s failed for `%s' at %s:%d: `%s'\n"),
                               "curl_multi_perform",
-                              cls->url,
+                              dc->url,
                               __FILE__,
                               __LINE__,
                               curl_easy_strerror (msg->data.result));
-                  cls->caller_cb (NULL, cls->caller_cls);
+                  dc->caller_cb (NULL, dc->caller_cls);
                 }
               else
                 {
                   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "UPnP",
                                    _
                                    ("Download of device description `%s' completed.\n"),
-                                   cls->url);
-                  cls->caller_cb (GNUNET_strdup (cls->download_buffer),
-                                  cls->caller_cls);
+                                   dc->url);
+                  dc->caller_cb (GNUNET_strdup (dc->download_buffer),
+                                  dc->caller_cls);
                 }
 
-              download_clean_up (cls);
+              download_clean_up (dc);
               return;
             }
           while ((running > 0));
@@ -335,11 +335,11 @@ task_download (struct download_cls *cls,
                        _("%s failed at %s:%d: `%s'\n"),
                        "curl_multi_perform", __FILE__, __LINE__,
                        curl_multi_strerror (mret));
-      download_clean_up (cls);
-      cls->caller_cb (NULL, cls->caller_cls);
+      download_clean_up (dc);
+      dc->caller_cb (NULL, dc->caller_cls);
     }
 
-  download_prepare (cls);
+  download_prepare (dc);
 }
 
 
