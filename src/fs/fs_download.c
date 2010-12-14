@@ -1839,9 +1839,35 @@ void
 GNUNET_FS_download_start_task_ (void *cls,
 				const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_FS_DownloadContext *dc = cls;
+  struct GNUNET_FS_DownloadContext *dc = cls;  
+  struct GNUNET_FS_ProgressInfo pi;
+  struct GNUNET_DISK_FileHandle *fh;
 
   dc->start_task = GNUNET_SCHEDULER_NO_TASK;
+  if (dc->length == 0)
+    {
+      /* no bytes required! */
+      if (dc->filename != NULL) 
+	{
+	  fh = GNUNET_DISK_file_open (dc->filename != NULL 
+				      ? dc->filename 
+				      : dc->temp_filename, 
+				      GNUNET_DISK_OPEN_READWRITE | 
+				      GNUNET_DISK_OPEN_CREATE,
+				      GNUNET_DISK_PERM_USER_READ |
+				      GNUNET_DISK_PERM_USER_WRITE |
+				      GNUNET_DISK_PERM_GROUP_READ |
+				      GNUNET_DISK_PERM_OTHER_READ);
+	  GNUNET_DISK_file_close (fh);
+	}
+
+      pi.status = GNUNET_FS_STATUS_DOWNLOAD_COMPLETED;
+      GNUNET_FS_download_make_status_ (&pi, dc);
+      GNUNET_FS_download_sync_ (dc);
+       if (dc->parent != NULL)
+	check_completed (dc->parent);      
+      return;
+    }
   schedule_block_download (dc, 
 			   (dc->uri->type == chk) 
 			   ? &dc->uri->data.chk.chk

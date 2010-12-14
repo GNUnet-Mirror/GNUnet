@@ -173,7 +173,6 @@ GNUNET_FS_tree_encoder_create (struct GNUNET_FS_Handle *h,
 {
   struct GNUNET_FS_TreeEncoder *te;
   
-  GNUNET_assert (size > 0);
   te = GNUNET_malloc (sizeof (struct GNUNET_FS_TreeEncoder));  
   te->h = h;
   te->size = size;
@@ -253,7 +252,7 @@ GNUNET_FS_tree_calculate_block_size (uint64_t fsize,
   uint64_t epos;
   unsigned int chks;
 
-  GNUNET_assert (offset < fsize);
+  GNUNET_assert (offset <= fsize);
   if (depth == totaldepth)
     {
       ret = DBLOCK_SIZE;
