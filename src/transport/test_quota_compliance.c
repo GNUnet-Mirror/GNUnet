@@ -361,6 +361,7 @@ measurement_end (void *cls,
 	   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   static int strike_counter;
+  static int failed_measurement_counter;
   unsigned long long  quota_allowed = 0;
   int delta = 0;
 
@@ -408,7 +409,10 @@ measurement_end (void *cls,
 			  (total_bytes_sent/(duration.rel_value / 1000)/1024),
 			  total_bytes_sent/(duration.rel_value / 1000));
 	  ok = 1;
-	  end();
+	  failed_measurement_counter--;
+	  if (failed_measurement_counter < 0)
+		  end();
+	  return;
   }
 
   /* Throughput is bigger than allowed quota + some extra*/
@@ -424,7 +428,9 @@ measurement_end (void *cls,
 			  (total_bytes_sent/(duration.rel_value / 1000)/1024), 
 			  total_bytes_sent/(duration.rel_value / 1000));
 	  ok = 1;
-	  end();
+	  failed_measurement_counter--;
+	  if (failed_measurement_counter < 0)
+		  end();
 	  return;
   }
   else
@@ -433,12 +439,15 @@ measurement_end (void *cls,
 			  "\nQuota compliance ok: \n"\
 			  "Quota allowed: %10llu kB/s\n"\
 			  "Throughput   : %10llu kB/s\n", (quota_allowed / (1024)) , (total_bytes_sent/(duration.rel_value / 1000)/1024));
+	  if (failed_measurement_counter < 2)
+		  failed_measurement_counter++;
 	  ok = 0;
   }
 
   if ((quota_allowed) > (2 *(total_bytes_sent/(duration.rel_value / 1000))))
   {
-	  strike_counter++;
+	  if (failed_measurement_counter < 2)
+		  failed_measurement_counter++;
 	  if (strike_counter == 2)
 	  {
 		  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -457,7 +466,6 @@ measurement_end (void *cls,
 	  end();
 	  return;
   }
-
   if (is_asymmetric_send_constant == GNUNET_YES)
   {
    if ((quota_allowed * 2) < MEASUREMENT_MAX_QUOTA)
