@@ -470,9 +470,14 @@ check ()
   return ok;
 }
 
-
+/**
+ * Return the actual path to a file found in the current
+ * PATH environment variable.
+ *
+ * @param binary the name of the file to find
+ */
 static char *
-get_path_from_PATH ()
+get_path_from_PATH (char *binary)
 {
   char *path;
   char *pos;
@@ -482,7 +487,11 @@ get_path_from_PATH ()
 
   p = getenv ("PATH");
   if (p == NULL)
-    return NULL;
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("PATH environment variable is unset.\n"));
+      return NULL;
+    }
   path = GNUNET_strdup (p);     /* because we write on it */
   buf = GNUNET_malloc (strlen (path) + 20);
   pos = path;
@@ -490,7 +499,7 @@ get_path_from_PATH ()
   while (NULL != (end = strchr (pos, PATH_SEPARATOR)))
     {
       *end = '\0';
-      sprintf (buf, "%s/%s", pos, "gnunet-nat-server");
+      sprintf (buf, "%s/%s", pos, binary);
       if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
         {
           GNUNET_free (path);
@@ -498,34 +507,78 @@ get_path_from_PATH ()
         }
       pos = end + 1;
     }
-  sprintf (buf, "%s/%s", pos, "gnunet-nat-server");
-  GNUNET_free (path);
+  sprintf (buf, "%s/%s", pos, binary);
   if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
-    return buf;
+    {
+      GNUNET_free (path);
+      return buf;
+    }
   GNUNET_free (buf);
+  GNUNET_free (path);
   return NULL;
 }
 
-
+/**
+ * Check whether the suid bit is set on a file.
+ * Attempts to find the file using the current
+ * PATH environment variable as a search path.
+ *
+ * @param binary the name of the file to check
+ *
+ * @return GNUNET_YES if the binary is found and
+ *         can be run properly, GNUNET_NO otherwise
+ */
 static int
-check_gnunet_nat_server()
+check_gnunet_nat_binary(char *binary)
 {
   struct stat statbuf;
   char *p;
+#ifdef MINGW
+  SOCKET rawsock;
+#endif
 
-  p = get_path_from_PATH ();
+#ifdef MINGW
+  char *binaryexe;
+  GNUNET_asprintf (&binaryexe, "%s.exe", binary);
+  p = get_path_from_PATH (binaryexe);
+  free (binaryexe);
+#else
+  p = get_path_from_PATH (binary);
+#endif
   if (p == NULL)
-    return GNUNET_NO;
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Could not find binary `%s' in PATH!\n"),
+                  binary);
+      return GNUNET_NO;
+    }
   if (0 != STAT (p, &statbuf))
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("stat (%s) failed: %s\n"),
+                  p,
+                  STRERROR (errno));
       GNUNET_free (p);
       return GNUNET_SYSERR;
     }
   GNUNET_free (p);
+#ifndef MINGW
   if ( (0 != (statbuf.st_mode & S_ISUID)) &&
        (statbuf.st_uid == 0) )
     return GNUNET_YES;
   return GNUNET_NO;
+#else
+  rawsock = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
+  if (INVALID_SOCKET == rawsock)
+    {
+      DWORD err = GetLastError ();
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "socket (AF_INET, SOCK_RAW, IPPROTO_ICMP) have failed! GLE = %d\n", err);
+      return GNUNET_NO; /* not running as administrator */
+    }
+  closesocket (rawsock);
+  return GNUNET_YES;
+#endif
 }
 
 int
@@ -547,7 +600,7 @@ main (int argc, char *argv[])
   if (strstr(argv[0], "tcp_nat") != NULL)
     {
       is_tcp_nat = GNUNET_YES;
-      if (check_gnunet_nat_server() != GNUNET_OK)
+      if (GNUNET_YES != check_gnunet_nat_binary("gnunet-nat-server"))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                       "`%s' not properly installed, cannot run NAT test!\n",
@@ -562,7 +615,7 @@ main (int argc, char *argv[])
   else if (strstr(argv[0], "udp_nat") != NULL)
     {
       is_udp_nat = GNUNET_YES;
-      if (check_gnunet_nat_server() != GNUNET_OK)
+      if (GNUNET_YES != check_gnunet_nat_binary("gnunet-nat-server"))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                       "`%s' not properly installed, cannot run NAT test!\n",
