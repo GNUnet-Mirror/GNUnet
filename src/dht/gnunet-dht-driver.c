@@ -794,7 +794,8 @@ put_disconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   test_put->disconnect_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_DHT_disconnect(test_put->dht_handle);
   test_put->dht_handle = NULL;
-  test_put->daemon = GNUNET_TESTING_daemon_get(pg, GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers));
+  if (replicate_same == GNUNET_NO)
+    test_put->daemon = GNUNET_TESTING_daemon_get(pg, GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers));
 }
 
 /**
