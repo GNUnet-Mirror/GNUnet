@@ -38,6 +38,7 @@
 #include "gnunet_client_lib.h"
 #include "gnunet_container_lib.h"
 #include "block_dns.h"
+#include "gnunet_constants.h"
 
 /**
  * Final status code.
@@ -495,7 +496,7 @@ send_udp (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct udp_pkt *udp = (struct udp_pkt *) (hc + 1);
   GNUNET_CORE_notify_transmit_ready (core_handle,
 				     42,
-				     GNUNET_TIME_UNIT_FOREVER_REL,
+				     GNUNET_TIME_relative_divide(GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
 				     peer,
 				     htons (sizeof
 					    (struct GNUNET_MessageHeader) +
@@ -878,7 +879,7 @@ receive_from_network (void *cls,
   memcpy (pkt + 1, buf, len);
 
   GNUNET_CORE_notify_transmit_ready (core_handle, 42,
-				     GNUNET_TIME_UNIT_FOREVER_REL,
+				     GNUNET_TIME_relative_divide(GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
 				     &data->state.peer, len_pkt,
 				     send_udp_service, hdr);
 
