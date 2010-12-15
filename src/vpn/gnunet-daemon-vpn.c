@@ -134,6 +134,7 @@ static struct GNUNET_CORE_Handle *core_handle;
 struct map_entry {
     struct GNUNET_vpn_service_descriptor desc;
     uint16_t namelen;
+    uint64_t additional_ports;
     /**
      * In DNS-Format!
      */
@@ -539,7 +540,8 @@ message_token(void *cls,
 		GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Mapping exists; type: %d; UDP is %d; port: %x/%x!\n", me->desc.service_type, htonl(GNUNET_DNS_SERVICE_TYPE_UDP), pkt6_udp->udp_hdr.dpt, me->desc.ports);
 		GNUNET_free(key);
 		if (me->desc.service_type & htonl(GNUNET_DNS_SERVICE_TYPE_UDP) &&
-		    port_in_ports(me->desc.ports, pkt6_udp->udp_hdr.dpt))
+		    (port_in_ports(me->desc.ports, pkt6_udp->udp_hdr.dpt) ||
+		     port_in_ports(me->additional_ports, pkt6_udp->udp_hdr.dpt)))
 		  {
 		    size_t size = sizeof(struct GNUNET_PeerIdentity) + sizeof(struct GNUNET_MessageHeader) + sizeof(GNUNET_HashCode) + ntohs(pkt6_udp->udp_hdr.len);
 		    struct GNUNET_PeerIdentity *cls = GNUNET_malloc(size);
@@ -672,12 +674,14 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 
 	uint16_t namelen = strlen((char*)pkt->data+12)+1;
 
-	struct map_entry* value = GNUNET_malloc(sizeof(struct GNUNET_vpn_service_descriptor) + 2 + namelen);
+	struct map_entry* value = GNUNET_malloc(sizeof(struct GNUNET_vpn_service_descriptor) + 2 + 8 + namelen);
 
 	value->namelen = namelen;
 	memcpy(value->name, pkt->data+12, namelen);
 
 	memcpy(&value->desc, &pkt->service_descr, sizeof(struct GNUNET_vpn_service_descriptor));
+
+	value->additional_ports = 0;
 
 	if (GNUNET_OK != GNUNET_CONTAINER_multihashmap_put(hashmap,
 							   &key,
@@ -844,7 +848,9 @@ receive_from_network (void *cls,
 
   char buf[1400];
 
-  ssize_t len = GNUNET_NETWORK_socket_recv (data->sock, buf, 1400);
+  struct sockaddr_in addr_in;
+  socklen_t addr_len = sizeof(struct sockaddr_in);
+  ssize_t len = GNUNET_NETWORK_socket_recvfrom (data->sock, buf, 1400, (struct sockaddr*)&addr_in, &addr_len);
 
   if (len < 0) {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Problem reading from socket: %m\n");
@@ -863,7 +869,7 @@ receive_from_network (void *cls,
   hdr->type = htons (GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK);
 
   pkt->dpt = htons(data->state.spt);
-  pkt->spt = htons(data->state.dpt);
+  pkt->spt = addr_in.sin_port;
   pkt->len = htons (len_udp);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "UDP from %d to %d\n", ntohs(pkt->spt), ntohs(pkt->dpt));
   /* The chksm can only be computed knowing the ip-addresses */
@@ -903,6 +909,21 @@ send_to_network (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 }
 
+static void
+add_additional_port (struct map_entry *me, uint16_t port)
+{
+  uint16_t *ps = (uint16_t *) & me->additional_ports;
+  unsigned int i;
+  for (i = 0; i < 4; i++)
+    {
+      if (ps[i] == 0)
+	{
+	  ps[i] = port;
+	  break;
+	}
+    }
+}
+
 static int
 receive_udp_back (void *cls, const struct GNUNET_PeerIdentity *other,
 	     const struct GNUNET_MessageHeader *message,
@@ -916,6 +937,8 @@ receive_udp_back (void *cls, const struct GNUNET_PeerIdentity *other,
   size_t size = sizeof(struct ip6_udp) + ntohs(pkt->len) - 1 - sizeof(struct udp_pkt);
 
   struct ip6_udp* pkt6 = alloca(size);
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Relaying calc:%d gnu:%d udp:%d bytes!\n", size, ntohs(message->size), ntohs(pkt->len));
 
   pkt6->shdr.type = htons(GNUNET_MESSAGE_TYPE_VPN_HELPER);
   pkt6->shdr.size = htons(size);
@@ -938,6 +961,20 @@ receive_udp_back (void *cls, const struct GNUNET_PeerIdentity *other,
   memcpy(pkt6->ip6_hdr.dadr, (unsigned char[]){0x12, 0x34, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}, 16);
 
   memcpy(&pkt6->udp_hdr, pkt, ntohs(pkt->len));
+
+  GNUNET_HashCode* key = address_mapping_exists(pkt6->ip6_hdr.sadr);
+  GNUNET_assert (key != NULL);
+
+  struct map_entry *me = GNUNET_CONTAINER_multihashmap_get(hashmap, key);
+
+  GNUNET_free(key);
+
+  GNUNET_assert (me != NULL);
+  GNUNET_assert (me->desc.service_type & htonl(GNUNET_DNS_SERVICE_TYPE_UDP));
+  if (!port_in_ports(me->desc.ports, pkt6->udp_hdr.spt) ||
+      !port_in_ports(me->additional_ports, pkt6->udp_hdr.spt)) {
+      add_additional_port(me, pkt6->udp_hdr.spt);
+  }
 
   pkt6->udp_hdr.crc = 0;
   uint32_t sum = 0;
@@ -982,12 +1019,16 @@ receive_udp_service (void *cls, const struct GNUNET_PeerIdentity *other,
   memcpy (&state->peer, other, sizeof (struct GNUNET_PeerIdentity));
   memcpy (&state->desc, desc, sizeof (GNUNET_HashCode));
   state->spt = ntohs (pkt->spt);
-  state->dpt = ntohs (pkt->dpt);
+
+  /* Hash without the dpt, so that eg tftp works */
+  state->dpt = 0;
 
   memcpy (send + 1, pkt, ntohs (pkt->len));
 
   GNUNET_HashCode hash;
   GNUNET_CRYPTO_hash (state, state_size, &hash);
+
+  state->dpt = ntohs (pkt->dpt);
 
   struct GNUNET_NETWORK_Handle *sock =
     GNUNET_CONTAINER_multihashmap_get (udp_connections, &hash);
