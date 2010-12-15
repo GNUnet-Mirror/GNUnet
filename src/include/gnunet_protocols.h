@@ -674,6 +674,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_SERVICE_UDP 186
 
+/**
+ * Type of messages containing an UDP packet from a service
+ */
+#define GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK 187
+
 
 /**
  * Type of messages between the gnunet-wlan-helper and the daemon

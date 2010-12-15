@@ -121,6 +121,12 @@ static struct answer_packet_list *answer_proc_tail;
 static struct GNUNET_CONTAINER_MultiHashMap* hashmap;
 
 /**
+ * This hashmap contains the mapping from peer, service-descriptor,
+ * source-port and destination-port to a socket
+ */
+static struct GNUNET_CONTAINER_MultiHashMap *udp_connections;
+
+/**
  * The handle to core
  */
 static struct GNUNET_CORE_Handle *core_handle;
@@ -302,20 +308,28 @@ helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
 }
 /*}}}*/
 
+static uint32_t calculate_checksum_update(uint32_t sum, uint16_t *hdr, short len) {
+    for(; len >= 2; len -= 2)
+      sum += *(hdr++);
+    if (len == 1)
+      sum += *((unsigned char*)hdr);
+    return sum;
+}
+
+static uint16_t calculate_checksum_end(uint32_t sum) {
+    while (sum >> 16)
+      sum = (sum >> 16) + (sum & 0xFFFF);
+
+    return ~sum;
+}
+
 /**
  * Calculate the checksum of an IPv4-Header
  */
 static uint16_t
 calculate_ip_checksum(uint16_t* hdr, short len) {
-    uint32_t sum = 0;
-    for(; len >= 2; len -= 2)
-      sum += *(hdr++);
-    if (len == 1)
-      sum += *((unsigned char*)hdr);
-
-    sum = (sum >> 16) + (sum & 0xFFFF);
-
-    return ~sum;
+    uint32_t sum = calculate_checksum_update(0, hdr, len);
+    return calculate_checksum_end(sum);
 }
 
 /**
@@ -457,9 +471,10 @@ handle_udp (void *cls, size_t size, void *buf)
   hdr->type = ntohs (GNUNET_MESSAGE_TYPE_SERVICE_UDP);
   GNUNET_assert (size >= ntohs (hdr->size));
   memcpy (buf, hdr, ntohs (hdr->size));
+  size = ntohs(hdr->size);
   GNUNET_free (cls);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent!\n");
-  return ntohs (hdr->size);
+  return size;
 }
 
 static unsigned int
@@ -622,10 +637,10 @@ connect_to_service_dns (void *cls,
  * {{{
  */
 void
-new_ip6addr(char* buf, struct answer_packet* pkt) {
+new_ip6addr(char* buf, const GNUNET_HashCode *peer, const GNUNET_HashCode *service_desc) {
 	memcpy(buf+14, (int[]){htons(0x3412)}, 2);
-	memcpy(buf+8, &pkt->service_descr.service_descriptor, 6);
-	memcpy(buf, &pkt->service_descr.peer, 8);
+	memcpy(buf+8, service_desc, 6);
+	memcpy(buf, peer, 8);
 }
 /*}}}*/
 
@@ -653,7 +668,7 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 
 	GNUNET_HashCode key;
 	memset(&key, 0, sizeof(GNUNET_HashCode));
-	new_ip6addr((char*)&key, pkt);
+	new_ip6addr((char*)&key, &pkt->service_descr.peer, &pkt->service_descr.service_descriptor);
 
 	uint16_t namelen = strlen((char*)pkt->data+12)+1;
 
@@ -789,15 +804,218 @@ dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg) {
     GNUNET_CLIENT_receive(dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
+struct udp_state
+{
+  struct GNUNET_PeerIdentity peer;
+  GNUNET_HashCode desc;
+  short spt;
+  short dpt;
+};
+
+struct send_cls
+{
+  struct GNUNET_NETWORK_Handle *sock;
+  struct udp_state state;
+};
+
+static size_t
+send_udp_service (void *cls, size_t size, void *buf)
+{
+  struct GNUNET_MessageHeader *hdr = cls;
+  GNUNET_assert(size >= ntohs(hdr->size));
+
+  memcpy(buf, cls, ntohs(hdr->size));
+  size_t ret = ntohs(hdr->size);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sending %d bytes back!\n", ntohs(hdr->size));
+  GNUNET_free(cls);
+  return ret;
+}
+
+void
+receive_from_network (void *cls,
+		      const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)
+    {
+      GNUNET_free(cls);
+      return;
+    }
+  struct send_cls *data = cls;
+
+  char buf[1400];
+
+  ssize_t len = GNUNET_NETWORK_socket_recv (data->sock, buf, 1400);
+
+  if (len < 0) {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Problem reading from socket: %m\n");
+    goto out;
+  }
+
+  size_t len_udp = len + sizeof (struct udp_pkt);
+  size_t len_pkt = len_udp + sizeof (struct GNUNET_MessageHeader) + sizeof(GNUNET_HashCode);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sending data back: data: %d; udp: %d, pkt:%d\n", len, len_udp, len_pkt);
+
+  struct GNUNET_MessageHeader *hdr = GNUNET_malloc (len_pkt);
+  GNUNET_HashCode *desc = (GNUNET_HashCode *) (hdr + 1);
+  struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
+
+  hdr->size = htons (len_pkt);
+  hdr->type = htons (GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK);
+
+  pkt->dpt = htons(data->state.spt);
+  pkt->spt = htons(data->state.dpt);
+  pkt->len = htons (len_udp);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "UDP from %d to %d\n", ntohs(pkt->spt), ntohs(pkt->dpt));
+  /* The chksm can only be computed knowing the ip-addresses */
+
+  memcpy (desc, &data->state.desc, sizeof (GNUNET_HashCode));
+  memcpy (pkt + 1, buf, len);
+
+  GNUNET_CORE_notify_transmit_ready (core_handle, 42,
+				     GNUNET_TIME_UNIT_FOREVER_REL,
+				     &data->state.peer, len_pkt,
+				     send_udp_service, hdr);
+
+out:
+  GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, data->sock,
+				 receive_from_network, cls);
+}
+
+void
+send_to_network (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)
+    return;
+  struct send_cls *data = cls;
+  struct udp_pkt *pkt = (struct udp_pkt *) (data + 1);
+
+  struct sockaddr_in a4;
+  memset(&a4, 0, sizeof(struct sockaddr_in));
+  a4.sin_family = AF_INET;
+  a4.sin_port = htons(data->state.dpt);
+  memcpy(&a4.sin_addr.s_addr, (char[]){127, 0, 0, 1}, 4);
+
+  GNUNET_NETWORK_socket_sendto (data->sock, pkt + 1,
+				ntohs (pkt->len) - sizeof (struct udp_pkt),
+				(struct sockaddr*)&a4, sizeof a4);
+
+  GNUNET_free(cls);
+
+}
+
 static int
-receive_udp (void *cls, const struct GNUNET_PeerIdentity *other,
+receive_udp_back (void *cls, const struct GNUNET_PeerIdentity *other,
 	     const struct GNUNET_MessageHeader *message,
 	     const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
+  GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
+  struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
+  char addr[16];
+  new_ip6addr(addr, &other->hashPubKey, desc);
+
+  size_t size = sizeof(struct ip6_udp) + ntohs(pkt->len) - 1 - sizeof(struct udp_pkt);
+
+  struct ip6_udp* pkt6 = alloca(size);
+
+  pkt6->shdr.type = htons(GNUNET_MESSAGE_TYPE_VPN_HELPER);
+  pkt6->shdr.size = htons(size);
+
+  pkt6->tun.flags = 0;
+  pkt6->tun.type = htons(0x86dd);
+
+  pkt6->ip6_hdr.version = 6;
+  pkt6->ip6_hdr.tclass_h = 0;
+  pkt6->ip6_hdr.tclass_l = 0;
+  pkt6->ip6_hdr.flowlbl = 0;
+  pkt6->ip6_hdr.paylgth = pkt->len;
+  pkt6->ip6_hdr.nxthdr = 0x11;
+  pkt6->ip6_hdr.hoplmt = 0xff;
+
+  unsigned int i;
+  for (i = 0; i < 16; i++)
+    pkt6->ip6_hdr.sadr[15-i] = addr[i];
+
+  memcpy(pkt6->ip6_hdr.dadr, (unsigned char[]){0x12, 0x34, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}, 16);
+
+  memcpy(&pkt6->udp_hdr, pkt, ntohs(pkt->len));
+
+  pkt6->udp_hdr.crc = 0;
+  uint32_t sum = 0;
+  sum = calculate_checksum_update(sum, (uint16_t*)&pkt6->ip6_hdr.sadr, 16);
+  sum = calculate_checksum_update(sum, (uint16_t*)&pkt6->ip6_hdr.dadr, 16);
+  uint32_t tmp = (pkt6->udp_hdr.len & 0xffff);
+  sum = calculate_checksum_update(sum, (uint16_t*)&tmp, 4);
+  tmp = htons(((pkt6->ip6_hdr.nxthdr & 0x00ff)));
+  sum = calculate_checksum_update(sum, (uint16_t*)&tmp, 4);
+
+  sum = calculate_checksum_update(sum, (uint16_t*)&pkt6->udp_hdr, ntohs(pkt->len));
+  pkt6->udp_hdr.crc = calculate_checksum_end(sum);
+
+
+  /* FIXME */ GNUNET_DISK_file_write(fh_to_helper, pkt6, size);
+
+  return GNUNET_OK;
+}
+
+static int
+receive_udp_service (void *cls, const struct GNUNET_PeerIdentity *other,
+		     const struct GNUNET_MessageHeader *message,
+		     const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+{
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received UDP-Packet from peer %s\n",
 	      GNUNET_i2s (other));
-  struct udp_pkt *pkt = (struct udp_pkt *) (message + 1);
-  pkt_printf_udp (pkt);
+  GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
+  struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
+
+  /* FIXME -> check acl etc */
+  GNUNET_assert (ntohs (pkt->len) ==
+		 ntohs (message->size) -
+		 sizeof (struct GNUNET_MessageHeader) -
+		 sizeof (GNUNET_HashCode));
+
+  size_t state_size = sizeof (struct udp_state);
+  size_t cls_size = sizeof (struct send_cls) + ntohs (pkt->len);
+  struct send_cls *send = GNUNET_malloc (cls_size);
+  struct udp_state *state = &send->state;
+  unsigned int new = GNUNET_NO;
+
+  memcpy (&state->peer, other, sizeof (struct GNUNET_PeerIdentity));
+  memcpy (&state->desc, desc, sizeof (GNUNET_HashCode));
+  state->spt = ntohs (pkt->spt);
+  state->dpt = ntohs (pkt->dpt);
+
+  memcpy (send + 1, pkt, ntohs (pkt->len));
+
+  GNUNET_HashCode hash;
+  GNUNET_CRYPTO_hash (state, state_size, &hash);
+
+  struct GNUNET_NETWORK_Handle *sock =
+    GNUNET_CONTAINER_multihashmap_get (udp_connections, &hash);
+
+  if (sock == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating new Socket!\n");
+      sock = GNUNET_NETWORK_socket_create (AF_INET, SOCK_DGRAM, 0);
+      new = GNUNET_YES;
+    }
+
+  send->sock = sock;
+
+  GNUNET_CONTAINER_multihashmap_put (udp_connections, &hash, sock,
+				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+
+
+  if (new)
+    {
+      struct send_cls *recv = GNUNET_malloc (sizeof (struct send_cls));
+      memcpy (recv, send, sizeof (struct send_cls));
+      GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, sock,
+				     receive_from_network, recv);
+    }
+
+  GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL, sock,
+				  send_to_network, send);
+
   return GNUNET_OK;
 }
 
@@ -815,7 +1033,8 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg_) {
     const static struct GNUNET_CORE_MessageHandler handlers[] = {
-	  {receive_udp, GNUNET_MESSAGE_TYPE_SERVICE_UDP, 0},
+	  {receive_udp_service, GNUNET_MESSAGE_TYPE_SERVICE_UDP, 0},
+	  {receive_udp_back, GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK, 0},
 	  {NULL, 0, 0}
     };
     core_handle = GNUNET_CORE_connect(cfg_,
@@ -834,6 +1053,7 @@ run (void *cls,
     cfg = cfg_;
     restart_hijack = 0;
     hashmap = GNUNET_CONTAINER_multihashmap_create(65536);
+    udp_connections = GNUNET_CONTAINER_multihashmap_create(65536);
     GNUNET_SCHEDULER_add_now (connect_to_service_dns, NULL);
     GNUNET_SCHEDULER_add_now (start_helper_and_schedule, NULL);
     GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);
