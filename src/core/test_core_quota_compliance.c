@@ -20,9 +20,6 @@
 /**
  * @file core/test_core_quota_compliance.c
  * @brief testcase for core_api.c focusing quota compliance on core level
- *
- * FIXME:
- * - make sure connect callback is invoked properly as well!
  */
 #include "platform.h"
 #include "gnunet_common.h"
@@ -122,10 +119,14 @@ struct TestMessage
 static void
 terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_CORE_disconnect (p1.ch);
+  struct GNUNET_CORE_Handle *ch;
+
+  ch = p1.ch;
   p1.ch = NULL;
-  GNUNET_CORE_disconnect (p2.ch);
+  GNUNET_CORE_disconnect (ch);
+  ch = p2.ch;
   p2.ch = NULL;
+  GNUNET_CORE_disconnect (ch);
   GNUNET_TRANSPORT_disconnect (p1.th);
   p1.th = NULL;
   GNUNET_TRANSPORT_disconnect (p2.th);
@@ -314,7 +315,8 @@ transmit_ready (void *cls, size_t size, void *buf)
   GNUNET_assert (size <= GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE);
   if (buf == NULL)
     {
-      if (p1.ch != NULL)
+      if ( (p1.ch != NULL) &&
+	   (p1.connect_status == 1) )
 	GNUNET_break (NULL !=
 		      GNUNET_CORE_notify_transmit_ready (p1.ch,
 							 0,
