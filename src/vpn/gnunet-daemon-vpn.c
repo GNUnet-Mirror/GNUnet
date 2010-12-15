@@ -34,6 +34,7 @@
 #include "gnunet_protocols.h"
 #include "gnunet_server_lib.h"
 #include "gnunet-service-dns-p.h"
+#include "gnunet_core_service.h"
 #include "gnunet_client_lib.h"
 #include "gnunet_container_lib.h"
 #include "block_dns.h"
@@ -118,6 +119,11 @@ static struct answer_packet_list *answer_proc_tail;
  * The hashmap containing the mappings from ipv6-addresses to gnunet-descriptors
  */
 static struct GNUNET_CONTAINER_MultiHashMap* hashmap;
+
+/**
+ * The handle to core
+ */
+static struct GNUNET_CORE_Handle *core_handle;
 
 struct map_entry {
     struct GNUNET_vpn_service_descriptor desc;
@@ -206,6 +212,12 @@ cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
       {
 	GNUNET_CLIENT_disconnect (dns_connection, GNUNET_NO);
 	dns_connection = NULL;
+      }
+
+    if (core_handle != NULL)
+      {
+	GNUNET_CORE_disconnect(core_handle);
+	core_handle = NULL;
       }
 }
 /*}}}*/
@@ -374,18 +386,24 @@ helper_write(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
 }
 
 /**
- * @return GNUNET_YES if a mapping exists
+ * @return the hash of the IP-Address if a mapping exists, NULL otherwise
  */
-static int
+static GNUNET_HashCode*
 address_mapping_exists(unsigned char addr[]) {
-    GNUNET_HashCode* key = alloca(sizeof(GNUNET_HashCode));
+    GNUNET_HashCode* key = GNUNET_malloc(sizeof(GNUNET_HashCode));
     unsigned char* k = (unsigned char*)key;
     memset(key, 0, sizeof(GNUNET_HashCode));
     unsigned int i;
     for (i = 0; i < 16; i++)
 	k[15-i] = addr[i];
 
-    return GNUNET_CONTAINER_multihashmap_contains(hashmap, key);
+    if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(hashmap, key))
+      return key;
+    else
+      {
+	GNUNET_free(key);
+	return NULL;
+      }
 }
 
 static void
@@ -423,6 +441,54 @@ send_icmp_response(void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
 }
 
 /**
+ * cls is the pointer to a GNUNET_MessageHeader that is
+ * followed by the service-descriptor and the udp-packet that should be sent;
+ */
+static size_t
+handle_udp (void *cls, size_t size, void *buf)
+{
+  struct GNUNET_PeerIdentity *peer = cls;
+  struct GNUNET_MessageHeader *hdr =
+    (struct GNUNET_MessageHeader *) (peer + 1);
+  GNUNET_HashCode *hc = (GNUNET_HashCode *) (hdr + 1);
+  struct udp_pkt *udp = (struct udp_pkt *) (hc + 1);
+  hdr->size = htons (sizeof (struct GNUNET_MessageHeader) +
+		     sizeof (GNUNET_HashCode) + ntohs (udp->len));
+  hdr->type = ntohs (GNUNET_MESSAGE_TYPE_SERVICE_UDP);
+  GNUNET_assert (size >= ntohs (hdr->size));
+  memcpy (buf, hdr, ntohs (hdr->size));
+  GNUNET_free (cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent!\n");
+  return ntohs (hdr->size);
+}
+
+static unsigned int
+port_in_ports (uint64_t ports, uint16_t port)
+{
+  uint16_t *ps = (uint16_t *) & ports;
+  return ps[0] == port || ps[1] == port || ps[2] == port || ps[3] == port;
+}
+
+void
+send_udp (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_PeerIdentity *peer = cls;
+  struct GNUNET_MessageHeader *hdr =
+    (struct GNUNET_MessageHeader *) (peer + 1);
+  GNUNET_HashCode *hc = (GNUNET_HashCode *) (hdr + 1);
+  struct udp_pkt *udp = (struct udp_pkt *) (hc + 1);
+  GNUNET_CORE_notify_transmit_ready (core_handle,
+				     42,
+				     GNUNET_TIME_UNIT_FOREVER_REL,
+				     peer,
+				     htons (sizeof
+					    (struct GNUNET_MessageHeader) +
+					    sizeof (GNUNET_HashCode) +
+					    ntohs (udp->len)), handle_udp,
+				     cls);
+}
+
+/**
  * Receive packets from the helper-process
  */
 static void
@@ -441,6 +507,7 @@ message_token(void *cls,
 	struct ip6_tcp *pkt6_tcp;
 	struct ip6_udp *pkt6_udp;
 	struct ip6_icmp *pkt6_icmp;
+	GNUNET_HashCode* key;
 
 	pkt_printf(pkt6);
 	switch(pkt6->ip6_hdr.nxthdr)
@@ -451,17 +518,37 @@ message_token(void *cls,
 	    break;
 	  case 0x11:
 	    pkt6_udp = (struct ip6_udp*)pkt6;
-	    pkt_printf_ip6udp(pkt6_udp);
-	    if (ntohs(pkt6_udp->udp_hdr.dpt) == 53) {
-		pkt_printf_ip6dns((struct ip6_udp_dns*)pkt6_udp);
-	    }
+	    if ((key = address_mapping_exists(pkt6->ip6_hdr.dadr)) != NULL)
+	      {
+		struct map_entry* me = GNUNET_CONTAINER_multihashmap_get(hashmap, key);
+		GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Mapping exists; type: %d; UDP is %d; port: %x/%x!\n", me->desc.service_type, htonl(GNUNET_DNS_SERVICE_TYPE_UDP), pkt6_udp->udp_hdr.dpt, me->desc.ports);
+		GNUNET_free(key);
+		if (me->desc.service_type & htonl(GNUNET_DNS_SERVICE_TYPE_UDP) &&
+		    port_in_ports(me->desc.ports, pkt6_udp->udp_hdr.dpt))
+		  {
+		    size_t size = sizeof(struct GNUNET_PeerIdentity) + sizeof(struct GNUNET_MessageHeader) + sizeof(GNUNET_HashCode) + ntohs(pkt6_udp->udp_hdr.len);
+		    struct GNUNET_PeerIdentity *cls = GNUNET_malloc(size);
+		    struct GNUNET_MessageHeader *hdr = (struct GNUNET_MessageHeader*)(cls+1);
+		    GNUNET_HashCode* hc = (GNUNET_HashCode*)(hdr + 1);
+		    memcpy(cls, &me->desc.peer, sizeof(struct GNUNET_PeerIdentity));
+		    memcpy(hc, &me->desc.service_descriptor, sizeof(GNUNET_HashCode));
+		    memcpy(hc+1, &pkt6_udp->udp_hdr, ntohs(pkt6_udp->udp_hdr.len));
+		    GNUNET_CORE_peer_request_connect(core_handle,
+					GNUNET_TIME_UNIT_FOREVER_REL,
+					(struct GNUNET_PeerIdentity*)&me->desc.peer,
+					send_udp,
+					cls);
+		    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Queued to send to peer %x\n", *((unsigned int*)&me->desc.peer));
+		  }
+	      }
 	    break;
 	  case 0x3a:
 	    /* ICMPv6 */
 	    pkt6_icmp = (struct ip6_icmp*)pkt6;
 	    /* If this packet is an icmp-echo-request and a mapping exists, answer */
-	    if (pkt6_icmp->icmp_hdr.type == 0x80 && address_mapping_exists(pkt6->ip6_hdr.dadr))
+	    if (pkt6_icmp->icmp_hdr.type == 0x80 && (key = address_mapping_exists(pkt6->ip6_hdr.dadr)) != NULL)
 	      {
+		GNUNET_free(key);
 		pkt6_icmp = GNUNET_malloc(ntohs(pkt6->shdr.size));
 		memcpy(pkt6_icmp, pkt6, ntohs(pkt6->shdr.size));
 		GNUNET_SCHEDULER_add_now(&send_icmp_response, pkt6_icmp);
@@ -702,6 +789,18 @@ dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg) {
     GNUNET_CLIENT_receive(dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
+static int
+receive_udp (void *cls, const struct GNUNET_PeerIdentity *other,
+	     const struct GNUNET_MessageHeader *message,
+	     const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received UDP-Packet from peer %s\n",
+	      GNUNET_i2s (other));
+  struct udp_pkt *pkt = (struct udp_pkt *) (message + 1);
+  pkt_printf_udp (pkt);
+  return GNUNET_OK;
+}
+
 /**
  * Main function that will be run by the scheduler.
  *
@@ -715,6 +814,22 @@ run (void *cls,
      char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg_) {
+    const static struct GNUNET_CORE_MessageHandler handlers[] = {
+	  {receive_udp, GNUNET_MESSAGE_TYPE_SERVICE_UDP, 0},
+	  {NULL, 0, 0}
+    };
+    core_handle = GNUNET_CORE_connect(cfg_,
+				      42,
+				      NULL,
+				      NULL,
+				      NULL,
+				      NULL,
+				      NULL,
+				      NULL,
+				      0,
+				      NULL,
+				      0,
+				      handlers);
     mst = GNUNET_SERVER_mst_create(&message_token, NULL);
     cfg = cfg_;
     restart_hijack = 0;

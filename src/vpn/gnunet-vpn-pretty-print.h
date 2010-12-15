@@ -9,6 +9,8 @@ extern void pkt_printf(struct ip6_pkt* pkt);
 
 void pkt_printf_dns(struct dns_pkt* pkt);
 
+void pkt_printf_udp(struct udp_pkt* pkt);
+
 void pkt_printf_ip6tcp(struct ip6_tcp* pkt);
 void pkt_printf_ip6udp(struct ip6_udp* pkt);
 void pkt_printf_ip6dns(struct ip6_udp_dns* pkt);

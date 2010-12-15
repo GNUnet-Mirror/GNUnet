@@ -669,6 +669,10 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_VPN_HELPER 185
 
+/**
+ * Type of messages containing an UDP packet for a service
+ */
+#define GNUNET_MESSAGE_TYPE_SERVICE_UDP 186
 
 
 /**

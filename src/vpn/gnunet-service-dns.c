@@ -521,6 +521,9 @@ publish_name (void *cls,
 
     GNUNET_CRYPTO_hash(name, strlen(name)+1, &data.service_descriptor);
 
+    data.service_type = htonl(GNUNET_DNS_SERVICE_TYPE_UDP);
+    data.ports = htons(69);
+
     char* keyfile;
     if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename(cfg, "GNUNETD",
 							     "HOSTKEY", &keyfile))

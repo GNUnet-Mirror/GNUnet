@@ -176,11 +176,15 @@ void pkt_printf_ip6tcp(struct ip6_tcp* pkt) {{{
 			);
 }}}
 
+void pkt_printf_udp(struct udp_pkt* hdr) {
+	printf("spt: %u\n", ntohs(hdr->spt));
+	printf("dpt: %u\n", ntohs(hdr->dpt));
+	printf("len: %u\n", ntohs(hdr->len));
+	printf("crc: 0x%x\n", ntohs(hdr->crc));
+}
+
 void pkt_printf_ip6udp(struct ip6_udp* pkt) {{{
-	printf("spt: %u\n", ntohs(pkt->udp_hdr.spt));
-	printf("dpt: %u\n", ntohs(pkt->udp_hdr.dpt));
-	printf("len: %u\n", ntohs(pkt->udp_hdr.len));
-	printf("crc: 0x%x\n", ntohs(pkt->udp_hdr.crc));
+    pkt_printf_udp(&pkt->udp_hdr);
 }}}
 
 static char* dns_types(unsigned short type) {{{
