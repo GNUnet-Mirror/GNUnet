@@ -379,8 +379,11 @@ helper_write(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
 static int
 address_mapping_exists(unsigned char addr[]) {
     GNUNET_HashCode* key = alloca(sizeof(GNUNET_HashCode));
+    unsigned char* k = (unsigned char*)key;
     memset(key, 0, sizeof(GNUNET_HashCode));
-    memcpy(key, addr, 16);
+    unsigned int i;
+    for (i = 0; i < 16; i++)
+	k[15-i] = addr[i];
 
     return GNUNET_CONTAINER_multihashmap_contains(hashmap, key);
 }
@@ -533,9 +536,9 @@ connect_to_service_dns (void *cls,
  */
 void
 new_ip6addr(char* buf, struct answer_packet* pkt) {
-	memcpy(buf, (int[]){htons(0x1234)}, 2);
-	memcpy(buf+2, &pkt->service_descr.service_descriptor, 6);
-	memcpy(buf+8, &pkt->service_descr.peer, 8);
+	memcpy(buf+14, (int[]){htons(0x3412)}, 2);
+	memcpy(buf+8, &pkt->service_descr.service_descriptor, 6);
+	memcpy(buf, &pkt->service_descr.peer, 8);
 }
 /*}}}*/
 
@@ -582,7 +585,14 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 	    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not store to hashmap\n");
 	  }
 
-	memcpy(((char*)pkt)+ntohs(pkt->addroffset), &key, 16);
+	/*
+	 * Copy the newly generated backward ip-address to the packet
+	 */
+	char* c = ((char*)pkt)+ntohs(pkt->addroffset);
+	char* k = (char*)&key;
+	unsigned int i;
+	for (i = 0; i < 16; i++)
+	    c[15-i] = k[i];
 
 	list = GNUNET_malloc(htons(pkt->hdr.size) + 2*sizeof(struct answer_packet_list*));
 
@@ -602,13 +612,13 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 	    unsigned char c1 = s[(4*i)+1];
 	    unsigned char c2 = s[(4*i)+3];
 	    if (c1 <= '9')
-	      k[15-i] = c1 - '0';
+	      k[i] = c1 - '0';
 	    else
-	      k[15-i] = c1 - 87; /* 87 is the difference between 'a' and 10 */
+	      k[i] = c1 - 87; /* 87 is the difference between 'a' and 10 */
 	    if (c2 <= '9')
-	      k[15-i] += 16*(c2 - '0');
+	      k[i] += 16*(c2 - '0');
 	    else
-	      k[15-i] += 16*(c2 - 87);
+	      k[i] += 16*(c2 - 87);
 	  }
 
 	struct map_entry* map_entry = GNUNET_CONTAINER_multihashmap_get(hashmap, &key);
