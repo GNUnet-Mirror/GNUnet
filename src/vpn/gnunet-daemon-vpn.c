@@ -526,7 +526,6 @@ message_token(void *cls,
 	struct ip6_icmp *pkt6_icmp;
 	GNUNET_HashCode* key;
 
-	pkt_printf(pkt6);
 	switch(pkt6->ip6_hdr.nxthdr)
 	  {
 	  case 0x06:
