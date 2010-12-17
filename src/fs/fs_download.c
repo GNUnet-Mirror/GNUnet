@@ -446,6 +446,11 @@ struct ReconstructContext
   struct DownloadRequest *sm;
 
   /**
+   * Helper task.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier task;
+
+  /**
    * Offset of block we are trying to reconstruct.
    */
   uint64_t offset;
@@ -472,8 +477,11 @@ reconstruct_cont (void *cls,
   struct ReconstructContext *rcc = cls;
 
   if (rcc->te != NULL)
-    GNUNET_FS_tree_encoder_finish (rcc->te, NULL, NULL);
+    {
+      GNUNET_FS_tree_encoder_finish (rcc->te, NULL, NULL);
+    }
   rcc->dc->reconstruct_failed = GNUNET_YES;
+  rcc->dc->rcc = NULL;
   if (rcc->fh != NULL)
     GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (rcc->fh));
   if ( (rcc->dc->th == NULL) &&
@@ -508,6 +516,8 @@ get_next_block (void *cls,
 		const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ReconstructContext *rcc = cls;  
+
+  rcc->task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_FS_tree_encoder_next (rcc->te);
 }
 
@@ -582,9 +592,8 @@ reconstruct_cb (void *cls,
       GNUNET_free (rcc);
       return;     
     }
-  GNUNET_SCHEDULER_add_continuation (&get_next_block,
-				     rcc,
-				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  rcc->task = GNUNET_SCHEDULER_add_now (&get_next_block,
+					rcc);
 }
 
 
@@ -744,6 +753,7 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
   rcc->chk = *chk;
   rcc->offset = off;
   rcc->depth = depth;
+  dc->rcc = rcc;
   if ( (depth < dc->treedepth) &&
        (dc->reconstruct_failed == GNUNET_NO) &&
        (fh != NULL) )
@@ -1874,6 +1884,11 @@ GNUNET_FS_download_start_task_ (void *cls,
 			   : &dc->uri->data.loc.fi.chk,
 			   0, 
 			   1 /* 0 == CHK, 1 == top */); 
+  GNUNET_FS_download_sync_ (dc);
+  GNUNET_FS_download_start_downloading_ (dc);
+  pi.status = GNUNET_FS_STATUS_DOWNLOAD_START;
+  pi.value.download.specifics.start.meta = dc->meta;
+  GNUNET_FS_download_make_status_ (&pi, dc);
 }
 
 
@@ -1889,11 +1904,6 @@ GNUNET_FS_download_signal_suspend_ (void *cls)
   struct GNUNET_FS_DownloadContext *dc = cls;
   struct GNUNET_FS_ProgressInfo pi;
 
-  if (dc->start_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (dc->start_task);
-      dc->start_task = GNUNET_SCHEDULER_NO_TASK;
-    }
   if (dc->top != NULL)
     GNUNET_FS_end_top (dc->h, dc->top);
   while (NULL != dc->child_head)
@@ -1912,10 +1922,26 @@ GNUNET_FS_download_signal_suspend_ (void *cls)
     GNUNET_CONTAINER_DLL_remove (dc->parent->child_head,
 				 dc->parent->child_tail,
 				 dc);  
-  pi.status = GNUNET_FS_STATUS_DOWNLOAD_SUSPEND;
-  GNUNET_FS_download_make_status_ (&pi, dc);
   if (GNUNET_SCHEDULER_NO_TASK != dc->task)
     GNUNET_SCHEDULER_cancel (dc->task);
+  if (dc->start_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (dc->start_task);
+      dc->start_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  else
+    {
+      pi.status = GNUNET_FS_STATUS_DOWNLOAD_SUSPEND;
+      GNUNET_FS_download_make_status_ (&pi, dc);
+    }
+  if (dc->rcc != NULL)
+    {
+      if (dc->rcc->task != GNUNET_SCHEDULER_NO_TASK)
+	GNUNET_SCHEDULER_cancel (dc->rcc->task);
+      if (dc->rcc->te != NULL)
+	GNUNET_FS_tree_encoder_finish (dc->rcc->te, NULL, NULL);	
+      dc->rcc = NULL;
+    }
   GNUNET_CONTAINER_multihashmap_iterate (dc->active,
 					 &free_entry,
 					 NULL);
@@ -1972,7 +1998,6 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 			  void *cctx,
 			  struct GNUNET_FS_DownloadContext *parent)
 {
-  struct GNUNET_FS_ProgressInfo pi;
   struct GNUNET_FS_DownloadContext *dc;
 
   GNUNET_assert (GNUNET_FS_uri_test_chk (uri) ||
@@ -2041,12 +2066,7 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 				    &GNUNET_FS_download_signal_suspend_,
 				    dc);
     }
-  pi.status = GNUNET_FS_STATUS_DOWNLOAD_START;
-  pi.value.download.specifics.start.meta = meta;
-  GNUNET_FS_download_make_status_ (&pi, dc);
   dc->start_task = GNUNET_SCHEDULER_add_now (&GNUNET_FS_download_start_task_, dc);
-  GNUNET_FS_download_sync_ (dc);
-  GNUNET_FS_download_start_downloading_ (dc);
   return dc;
 }
 
@@ -2096,7 +2116,6 @@ GNUNET_FS_download_start_from_search (struct GNUNET_FS_Handle *h,
 				      enum GNUNET_FS_DownloadOptions options,
 				      void *cctx)
 {
-  struct GNUNET_FS_ProgressInfo pi;
   struct GNUNET_FS_DownloadContext *dc;
 
   if ( (sr == NULL) ||
@@ -2164,12 +2183,7 @@ GNUNET_FS_download_start_from_search (struct GNUNET_FS_Handle *h,
 	      "Download tree has depth %u\n",
 	      dc->treedepth);
 #endif
-  pi.status = GNUNET_FS_STATUS_DOWNLOAD_START;
-  pi.value.download.specifics.start.meta = dc->meta;
-  GNUNET_FS_download_make_status_ (&pi, dc);
   dc->start_task = GNUNET_SCHEDULER_add_now (&GNUNET_FS_download_start_task_, dc);
-  GNUNET_FS_download_sync_ (dc);
-  GNUNET_FS_download_start_downloading_ (dc);
   return dc;  
 }
 
@@ -2221,6 +2235,14 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
     {
       GNUNET_FS_dequeue_ (dc->job_queue);
       dc->job_queue = NULL;
+    }
+  if (dc->rcc != NULL)
+    {
+      if (dc->rcc->task != GNUNET_SCHEDULER_NO_TASK)
+	GNUNET_SCHEDULER_cancel (dc->rcc->task);
+      if (dc->rcc->te != NULL)
+	GNUNET_FS_tree_encoder_finish (dc->rcc->te, NULL, NULL);
+      dc->rcc = NULL;
     }
   have_children = (NULL != dc->child_head) ? GNUNET_YES : GNUNET_NO;
   while (NULL != dc->child_head)

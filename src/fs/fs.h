@@ -1683,6 +1683,12 @@ struct DownloadRequest
 
 
 /**
+ * Closure for 'reconstruct_cont' and 'reconstruct_cb'.
+ */
+struct ReconstructContext;
+
+
+/**
  * Context for controlling a download.
  */
 struct GNUNET_FS_DownloadContext
@@ -1724,6 +1730,11 @@ struct GNUNET_FS_DownloadContext
    * Tail of list of child downloads.
    */
   struct GNUNET_FS_DownloadContext *child_tail;
+
+  /**
+   * State for block reconstruction.
+   */
+  struct ReconstructContext *rcc;
 
   /**
    * Previous download belonging to the same parent.

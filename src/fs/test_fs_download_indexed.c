@@ -215,7 +215,6 @@ progress_cb (void *cls,
 				NULL);
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_START:
-      GNUNET_assert (download == NULL);
       GNUNET_assert (0 == strcmp ("download", event->value.download.cctx));
       GNUNET_assert (NULL == event->value.download.pctx);
       GNUNET_assert (NULL != event->value.download.uri);
