@@ -32,6 +32,8 @@ gnunet_arm_LDADD = \
   $(top_builddir)/src/arm/libgnunetarm.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
+gnunet_arm_DEPENDENCIES = \
+  libgnunetarm.la			  
 
 gnunet_service_arm_SOURCES = \
  gnunet-service-arm.c  gnunet-service-arm.h \
@@ -39,6 +41,8 @@ gnunet_service_arm_SOURCES = \
 gnunet_service_arm_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
+gnunet_service_arm_DEPENDENCIES = \
+  libgnunetarm.la			  
 
 
 mockup_service_SOURCES = \

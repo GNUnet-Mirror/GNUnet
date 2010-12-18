@@ -102,6 +102,8 @@ gnunet_service_dht_LDADD = \
   $(top_builddir)/src/datacache/libgnunetdatacache.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/dht/libgnunetdhtlog.la -lm
+gnunet_service_dht_DEPENDENCIES = \
+  libgnunetdhtlog.la				  
 
 gnunet_dht_get_SOURCES = \
  gnunet-dht-get.c         
@@ -109,6 +111,8 @@ gnunet_dht_get_LDADD = \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/util/libgnunetutil.la 
+gnunet_dht_get_DEPENDENCIES = \
+  libgnunetdht.la			      
 
 gnunet_dht_get_peer_SOURCES = \
  gnunet-dht-get-peer.c         
@@ -117,6 +121,8 @@ gnunet_dht_get_peer_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/util/libgnunetutil.la 
+gnunet_dht_get_peer_DEPENDENCIES = \
+  libgnunetdht.la			      
 
 gnunet_dht_put_SOURCES = \
  gnunet-dht-put.c         
@@ -124,6 +130,8 @@ gnunet_dht_put_LDADD = \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/util/libgnunetutil.la 
+gnunet_dht_put_DEPENDENCIES = \
+  libgnunetdht.la			      
 
 gnunet_dht_driver_SOURCES = \
  gnunet-dht-driver.c         
@@ -134,6 +142,10 @@ gnunet_dht_driver_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/dht/libgnunetdhtlog.la
+gnunet_dht_driver_DEPENDENCIES = \
+  libgnunetdht.la \
+  libgnunetdhtlog.la  
+
 
 check_PROGRAMS = $(STUD_TESTS) \
  test_dht_api \
@@ -155,6 +167,8 @@ test_dht_api_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/dht/libgnunetdht.la
+test_dht_api_DEPENDENCIES = \
+  libgnunetdht.la			    
 
 test_dht_multipeer_SOURCES = \
  test_dht_multipeer.c
@@ -162,6 +176,8 @@ test_dht_multipeer_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/dht/libgnunetdht.la  
+test_dht_multipeer_DEPENDENCIES = \
+  libgnunetdht.la			    
  
 #test_hash_operations_SOURCES = \
 # test_hash_operations.c
@@ -176,6 +192,8 @@ test_dht_twopeer_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/dht/libgnunetdht.la    
+test_dht_twopeer_DEPENDENCIES = \
+  libgnunetdht.la			    
 
 test_dht_twopeer_put_get_SOURCES = \
  test_dht_twopeer_put_get.c

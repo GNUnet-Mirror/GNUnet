@@ -91,6 +91,8 @@ gnunet_transport_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
+gnunet_transport_DEPENDENCIES = \
+  libgnunettransport.la				
 
 gnunet_service_transport_SOURCES = \
  gnunet-service-transport.c plugin_transport.h 
@@ -100,6 +102,8 @@ gnunet_service_transport_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
+gnunet_service_transport_DEPENDENCIES = \
+  libgnunettransport.la				
 
 
 plugin_LTLIBRARIES = \

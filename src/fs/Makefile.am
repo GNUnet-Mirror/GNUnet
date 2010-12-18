@@ -61,6 +61,8 @@ gnunet_directory_LDADD = \
   $(top_builddir)/src/fs/libgnunetfs.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
+gnunet_directory_DEPENDENCIES = \
+  libgnunetfs.la
 
 gnunet_download_SOURCES =  \
  gnunet-download.c         
@@ -68,6 +70,8 @@ gnunet_download_LDADD =  \
  $(top_builddir)/src/fs/libgnunetfs.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(GN_LIBINTL)
+gnunet_download_DEPENDENCIES = \
+  libgnunetfs.la
 
 gnunet_publish_SOURCES =  \
  gnunet-publish.c         
@@ -75,6 +79,8 @@ gnunet_publish_LDADD =  \
  $(top_builddir)/src/fs/libgnunetfs.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(GN_LIBINTL)
+gnunet_publish_DEPENDENCIES = \
+  libgnunetfs.la
 
 gnunet_pseudonym_SOURCES = \
  gnunet-pseudonym.c
@@ -83,6 +89,8 @@ gnunet_pseudonym_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   -lextractor \
   $(GN_LIBINTL)
+gnunet_pseudonym_DEPENDENCIES = \
+  libgnunetfs.la
 
 gnunet_search_SOURCES = \
  gnunet-search.c         
@@ -90,6 +98,8 @@ gnunet_search_LDADD = \
   $(top_builddir)/src/fs/libgnunetfs.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
+gnunet_search_DEPENDENCIES = \
+  libgnunetfs.la
 
 gnunet_service_fs_SOURCES =  \
  gnunet-service-fs.c \
@@ -103,6 +113,8 @@ gnunet_service_fs_LDADD =  \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(GN_LIBINTL)
+gnunet_service_fs_DEPENDENCIES = \
+  libgnunetfs.la
 
 gnunet_unindex_SOURCES = \
  gnunet-unindex.c         
@@ -110,6 +122,8 @@ gnunet_unindex_LDADD = \
   $(top_builddir)/src/fs/libgnunetfs.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
+gnunet_unindex_DEPENDENCIES = \
+  libgnunetfs.la
 
 
 

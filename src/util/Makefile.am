@@ -90,14 +90,17 @@ gnunet_service_resolver_SOURCES = \
 gnunet_service_resolver_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
-
+gnunet_service_resolver_DEPENDENCIES = \
+  libgnunetutil.la
+	
 
 gnunet_resolver_SOURCES = \
  gnunet-resolver.c         
 gnunet_resolver_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
-
+gnunet_resolver_DEPENDENCIES = \
+  libgnunetutil.la
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_test.la

@@ -38,6 +38,8 @@ gnunet_service_dv_LDADD = \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
+gnunet_service_dv_DEPENDENCIES = \
+  libgnunetdv.la				 
 
 libgnunet_plugin_transport_dv_la_SOURCES = \
   plugin_transport_dv.c
@@ -48,7 +50,8 @@ libgnunet_plugin_transport_dv_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
 libgnunet_plugin_transport_dv_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
-
+libgnunet_plugin_transport_dv_la_DEPENDENCIES = \
+  libgnunetdv.la						
 
 check_PROGRAMS = \
  test_transport_api_dv

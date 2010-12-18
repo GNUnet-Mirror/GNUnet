@@ -27,6 +27,9 @@ libgnunet_plugin_block_dht_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
 libgnunet_plugin_block_dht_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
+libgnunet_plugin_block_dht_la_DEPENDENCIES = \
+  libgnunetblock.la 
+
 
 libgnunet_plugin_block_fs_la_SOURCES = \
   plugin_block_fs.c
@@ -35,6 +38,9 @@ libgnunet_plugin_block_fs_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
 libgnunet_plugin_block_fs_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
+libgnunet_plugin_block_fs_la_DEPENDENCIES = \
+  libgnunetblock.la
+					    
 
 libgnunet_plugin_block_dns_la_SOURCES = \
   plugin_block_dns.c
@@ -57,11 +63,15 @@ libgnunet_plugin_block_test_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
 libgnunet_plugin_block_test_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
+libgnunet_plugin_block_test_la_DEPENDENCIES = \
+  libgnunetblock.la					      
 
 
 libgnunetblock_la_SOURCES = \
   block.c 
 libgnunetblock_la_LIBADD = \
+ $(top_builddir)/src/util/libgnunetutil.la  
+libgnunetblock_la_DEPENDENCIES = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 check_PROGRAMS = \

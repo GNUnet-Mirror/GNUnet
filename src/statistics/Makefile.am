@@ -32,6 +32,8 @@ gnunet_statistics_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
+gnunet_statistics_DEPENDENCIES = \
+  libgnunetstatistics.la				 
 
 gnunet_service_statistics_SOURCES = \
  gnunet-service-statistics.c         
@@ -39,7 +41,8 @@ gnunet_service_statistics_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
-
+gnunet_service_statistics_DEPENDENCIES = \
+  libgnunetstatistics.la				 
 
 check_PROGRAMS = \
  test_statistics_api \
