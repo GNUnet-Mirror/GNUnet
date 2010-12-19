@@ -678,13 +678,17 @@ int
 main (int argc, char *argv[])
 {
   int ret;
-  const char *pos;
+  char *pos;
   char dir_name[128];
 
   /* determine name of plugin to use */
   plugin_name = argv[0];
   while (NULL != (pos = strstr(plugin_name, "_")))
     plugin_name = pos+1;
+  if (NULL != (pos = strstr(plugin_name, ".")))
+    pos[0] = 0;
+  else
+    pos = (char *) plugin_name;
 
   GNUNET_snprintf (dir_name,
 		   sizeof (dir_name),
@@ -699,6 +703,8 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
+  if (pos != plugin_name)
+    pos[0] = '.';
   GNUNET_DISK_directory_remove (dir_name);
   return ret;
 }

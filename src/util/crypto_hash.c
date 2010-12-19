@@ -141,7 +141,7 @@ file_hash_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   size_t delta;
 
   fhc->task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_assert (fhc->offset < fhc->fsize);
+  GNUNET_assert (fhc->offset <= fhc->fsize);
   delta = fhc->bsize;
   if (fhc->fsize - fhc->offset < delta)
     delta = fhc->fsize - fhc->offset;

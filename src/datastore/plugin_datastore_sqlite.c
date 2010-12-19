@@ -28,7 +28,7 @@
 #include "gnunet_datastore_plugin.h"
 #include <sqlite3.h>
 
-#define DEBUG_SQLITE GNUNET_YES
+#define DEBUG_SQLITE GNUNET_NO
 
 
 /**
@@ -105,6 +105,11 @@ struct Plugin
   sqlite3 *dbh;
 
   /**
+   * Precompiled SQL for deletion.
+   */
+  sqlite3_stmt *delRow;
+
+  /**
    * Precompiled SQL for update.
    */
   sqlite3_stmt *updPrio;
@@ -145,9 +150,16 @@ sq_prepare (sqlite3 * dbh, const char *zSql,
             sqlite3_stmt ** ppStmt)
 {
   char *dummy;
-  return sqlite3_prepare_v2 (dbh,
-			     zSql,
-			     strlen (zSql), ppStmt, (const char **) &dummy);
+  int result;
+  result = sqlite3_prepare_v2 (dbh,
+			       zSql,
+			       strlen (zSql), ppStmt, (const char **) &dummy);
+#if DEBUG_SQLITE
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		   "sqlite",
+                   "Prepared %p: %d\n", *ppStmt, result);
+#endif
+  return result;
 }
 
 
@@ -324,12 +336,16 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
                    "INSERT INTO gn080 (size, type, prio, "
                    "anonLevel, expire, hash, vhash, value) VALUES "
                    "(?, ?, ?, ?, ?, ?, ?, ?)",
-                   &plugin->insertContent) != SQLITE_OK))
+                   &plugin->insertContent) != SQLITE_OK) ||
+      (sq_prepare (plugin->dbh,
+                   "DELETE FROM gn080 WHERE _ROWID_ = ?",
+                   &plugin->delRow) != SQLITE_OK))
     {
       LOG_SQLITE (plugin, NULL,
                   GNUNET_ERROR_TYPE_ERROR, "precompiling");
       return GNUNET_SYSERR;
     }
+
   return GNUNET_OK;
 }
 
@@ -342,11 +358,36 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
 static void
 database_shutdown (struct Plugin *plugin)
 {
+  int result;
+  if (plugin->delRow != NULL)
+    sqlite3_finalize (plugin->delRow);
   if (plugin->updPrio != NULL)
     sqlite3_finalize (plugin->updPrio);
   if (plugin->insertContent != NULL)
     sqlite3_finalize (plugin->insertContent);
-  sqlite3_close (plugin->dbh);
+  result = sqlite3_close(plugin->dbh);
+  while (result == SQLITE_BUSY)
+    {
+      sqlite3_stmt *stmt;
+      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, 
+		       "sqlite",
+		       _("Tried to close sqlite without finalizing all prepared statements.\n"));
+      for (stmt = sqlite3_next_stmt(plugin->dbh, NULL); stmt != NULL; stmt = sqlite3_next_stmt(plugin->dbh, NULL))
+        {
+#if DEBUG_SQLITE
+          GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		     "sqlite", "Closing statement %p\n", stmt);
+#endif
+          result = sqlite3_finalize(stmt);
+#if DEBUG_SQLITE
+          if (result != SQLITE_OK)
+              GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		               "sqlite",
+                               "Failed to close statement %p: %d\n", stmt, result);
+#endif
+        }
+      result = sqlite3_close(plugin->dbh);
+    }
   GNUNET_free_non_null (plugin->fn);
 }
 
@@ -362,26 +403,23 @@ static int
 delete_by_rowid (struct Plugin* plugin, 
 		 unsigned long long rid)
 {
-  sqlite3_stmt *stmt;
 
-  if (sq_prepare (plugin->dbh,
-                  "DELETE FROM gn080 WHERE _ROWID_ = ?", &stmt) != SQLITE_OK)
-    {
-      LOG_SQLITE (plugin, NULL,
-                  GNUNET_ERROR_TYPE_ERROR |
-                  GNUNET_ERROR_TYPE_BULK, "sq_prepare");
-      return GNUNET_SYSERR;
-    }
-  sqlite3_bind_int64 (stmt, 1, rid);
-  if (SQLITE_DONE != sqlite3_step (stmt))
+  sqlite3_bind_int64 (plugin->delRow, 1, rid);
+  if (SQLITE_DONE != sqlite3_step (plugin->delRow))
     {
       LOG_SQLITE (plugin, NULL,
                   GNUNET_ERROR_TYPE_ERROR |
                   GNUNET_ERROR_TYPE_BULK, "sqlite3_step");
-      sqlite3_finalize (stmt);
+      if (SQLITE_OK != sqlite3_reset (plugin->delRow))
+          LOG_SQLITE (plugin, NULL,
+                      GNUNET_ERROR_TYPE_ERROR |
+                      GNUNET_ERROR_TYPE_BULK, "sqlite3_reset");
       return GNUNET_SYSERR;
     }
-  sqlite3_finalize (stmt);
+  if (SQLITE_OK != sqlite3_reset (plugin->delRow))
+      LOG_SQLITE (plugin, NULL,
+                  GNUNET_ERROR_TYPE_ERROR |
+                  GNUNET_ERROR_TYPE_BULK, "sqlite3_reset");
   return GNUNET_OK;
 }
 
@@ -1167,7 +1205,7 @@ sqlite_plugin_iter_migration_order (void *cls,
  * Call sqlite using the already prepared query to get
  * the next result.
  *
- * @param cls not used
+ * @param cls context with the prepared query
  * @param nc context with the prepared query
  * @return GNUNET_OK on success, GNUNET_SYSERR on error, GNUNET_NO if
  *        there are no more results 
@@ -1185,6 +1223,10 @@ all_next_prepare (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Asked to clean up iterator state.\n");
 #endif
+      nc = (struct NextContext *)cls;
+      if (nc->stmt)
+          sqlite3_finalize (nc->stmt);
+      nc->stmt = NULL;
       return GNUNET_SYSERR;
     }
   plugin = nc->plugin;
@@ -1241,7 +1283,7 @@ sqlite_plugin_iter_all_now (void *cls,
   nc->iter_cls = iter_cls;
   nc->stmt = stmt;
   nc->prep = &all_next_prepare;
-  nc->prep_cls = NULL;
+  nc->prep_cls = nc;
   sqlite_next_request (nc, GNUNET_NO);
 }
 
@@ -1595,10 +1637,26 @@ libgnunet_plugin_datastore_sqlite_done (void *cls)
   struct GNUNET_DATASTORE_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
 
+#if DEBUG_SQLITE
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		   "sqlite",
+		   "sqlite plugin is doneing\n");
+#endif
+
   if (plugin->next_task != GNUNET_SCHEDULER_NO_TASK)
     {
+#if DEBUG_SQLITE
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		       "sqlite",
+		       "Canceling next task\n");
+#endif
       GNUNET_SCHEDULER_cancel (plugin->next_task);
       plugin->next_task = GNUNET_SCHEDULER_NO_TASK;
+#if DEBUG_SQLITE
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		       "sqlite",
+		       "Prep'ing next task\n");
+#endif
       plugin->next_task_nc->prep (plugin->next_task_nc->prep_cls, NULL);
       GNUNET_free (plugin->next_task_nc);
       plugin->next_task_nc = NULL;
@@ -1606,6 +1664,11 @@ libgnunet_plugin_datastore_sqlite_done (void *cls)
   fn = NULL;
   if (plugin->drop_on_shutdown)
     fn = GNUNET_strdup (plugin->fn);
+#if DEBUG_SQLITE
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		   "sqlite",
+		   "Shutting down database\n");
+#endif
   database_shutdown (plugin);
   plugin->env = NULL; 
   GNUNET_free (api);
@@ -1617,6 +1680,11 @@ libgnunet_plugin_datastore_sqlite_done (void *cls)
 				  fn);
       GNUNET_free (fn);
     }
+#if DEBUG_SQLITE
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		   "sqlite",
+		   "sqlite plugin is finished doneing\n");
+#endif
   return NULL;
 }
 
