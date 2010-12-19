@@ -121,7 +121,7 @@ FAILURE:
 int
 main (int argc, char *argv[])
 {
-  const char *pos;
+  char *pos;
   char cfg_name[128];
   char *const xargv[] = { 
     "test-datacache-quota",
@@ -143,14 +143,22 @@ main (int argc, char *argv[])
                     "WARNING",
 #endif
                     NULL);
+
   /* determine name of plugin to use */
   plugin_name = argv[0];
   while (NULL != (pos = strstr(plugin_name, "_")))
     plugin_name = pos+1;
+  if (NULL != (pos = strstr(plugin_name, ".")))
+    pos[0] = 0;
+  else
+    pos = (char *) plugin_name;
+  
   GNUNET_snprintf (cfg_name,
 		   sizeof (cfg_name),
 		   "test_datacache_data_%s.conf",
 		   plugin_name);
+  if (pos != plugin_name)
+    pos[0] = '.';
   GNUNET_PROGRAM_run ((sizeof (xargv) / sizeof (char *)) - 1,
                       xargv, "test-datacache-quota", "nohelp",
                       options, &run, NULL);

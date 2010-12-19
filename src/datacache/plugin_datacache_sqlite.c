@@ -424,12 +424,21 @@ libgnunet_plugin_datacache_sqlite_done (void *cls)
   struct GNUNET_DATACACHE_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
 
+#if !WINDOWS || defined(__CYGWIN__)
   if (0 != UNLINK (plugin->fn))
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
 			      "unlink", 
 			      plugin->fn);
   GNUNET_free (plugin->fn);
+#endif
   sqlite3_close (plugin->dbh);
+#if WINDOWS && !defined(__CYGWIN__)
+  if (0 != UNLINK (plugin->fn))
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+			      "unlink", 
+			      plugin->fn);
+  GNUNET_free (plugin->fn);
+#endif
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;
