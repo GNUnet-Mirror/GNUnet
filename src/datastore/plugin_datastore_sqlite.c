@@ -359,6 +359,8 @@ static void
 database_shutdown (struct Plugin *plugin)
 {
   int result;
+  sqlite3_stmt *stmt;
+
   if (plugin->delRow != NULL)
     sqlite3_finalize (plugin->delRow);
   if (plugin->updPrio != NULL)
@@ -366,13 +368,14 @@ database_shutdown (struct Plugin *plugin)
   if (plugin->insertContent != NULL)
     sqlite3_finalize (plugin->insertContent);
   result = sqlite3_close(plugin->dbh);
-  while (result == SQLITE_BUSY)
+#if SQLITE_VERSION_NUMBER >= 3007000
+  if (result == SQLITE_BUSY)
     {
-      sqlite3_stmt *stmt;
       GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, 
 		       "sqlite",
 		       _("Tried to close sqlite without finalizing all prepared statements.\n"));
-      for (stmt = sqlite3_next_stmt(plugin->dbh, NULL); stmt != NULL; stmt = sqlite3_next_stmt(plugin->dbh, NULL))
+      stmt = sqlite3_next_stmt(plugin->dbh, NULL); 
+      while (stmt != NULL)
         {
 #if DEBUG_SQLITE
           GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
@@ -385,9 +388,16 @@ database_shutdown (struct Plugin *plugin)
 		               "sqlite",
                                "Failed to close statement %p: %d\n", stmt, result);
 #endif
+	  stmt = sqlite3_next_stmt(plugin->dbh, NULL);
         }
       result = sqlite3_close(plugin->dbh);
     }
+#endif
+  if (SQLITE_OK != result)
+      LOG_SQLITE (plugin, NULL,
+                  GNUNET_ERROR_TYPE_ERROR, 
+		  "sqlite3_close");
+
   GNUNET_free_non_null (plugin->fn);
 }
 

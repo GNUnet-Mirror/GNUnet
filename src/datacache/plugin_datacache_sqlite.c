@@ -423,6 +423,8 @@ libgnunet_plugin_datacache_sqlite_done (void *cls)
 {
   struct GNUNET_DATACACHE_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
+  int result;
+  sqlite3_stmt *stmt;
 
 #if !WINDOWS || defined(__CYGWIN__)
   if (0 != UNLINK (plugin->fn))
@@ -431,7 +433,37 @@ libgnunet_plugin_datacache_sqlite_done (void *cls)
 			      plugin->fn);
   GNUNET_free (plugin->fn);
 #endif
-  sqlite3_close (plugin->dbh);
+  result = sqlite3_close (plugin->dbh);
+#if SQLITE_VERSION_NUMBER >= 3007000
+  if (result == SQLITE_BUSY)
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, 
+		       "sqlite",
+		       _("Tried to close sqlite without finalizing all prepared statements.\n"));
+      stmt = sqlite3_next_stmt(plugin->dbh, NULL); 
+      while (stmt != NULL)
+        {
+#if DEBUG_SQLITE
+          GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+			   "sqlite", "Closing statement %p\n", stmt);
+#endif
+          result = sqlite3_finalize(stmt);
+#if DEBUG_SQLITE
+          if (result != SQLITE_OK)
+	    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+			     "sqlite",
+			     "Failed to close statement %p: %d\n", stmt, result);
+#endif
+	  stmt = sqlite3_next_stmt(plugin->dbh, NULL);
+        }
+      result = sqlite3_close(plugin->dbh);
+    }
+#endif
+  if (SQLITE_OK != result)
+    LOG_SQLITE (plugin->dbh,
+		GNUNET_ERROR_TYPE_ERROR, 
+		"sqlite3_close");
+
 #if WINDOWS && !defined(__CYGWIN__)
   if (0 != UNLINK (plugin->fn))
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
