@@ -359,8 +359,9 @@ static void
 database_shutdown (struct Plugin *plugin)
 {
   int result;
+#if SQLITE_VERSION_NUMBER >= 3007000
   sqlite3_stmt *stmt;
-  stmt = NULL;
+#endif
 
   if (plugin->delRow != NULL)
     sqlite3_finalize (plugin->delRow);
