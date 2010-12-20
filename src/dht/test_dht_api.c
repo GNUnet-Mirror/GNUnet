@@ -180,6 +180,7 @@ test_find_peer_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (peer->dht_handle != NULL);
 
   GNUNET_DHT_find_peer_stop (peer->find_peer_handle);
+  peer->find_peer_handle = NULL;
 
 #if HAVE_MALICIOUS
   GNUNET_DHT_set_malicious_getter (peer->dht_handle, GNUNET_TIME_UNIT_SECONDS);
@@ -356,6 +357,7 @@ test_get_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
   GNUNET_assert (peer->dht_handle != NULL);
   GNUNET_DHT_get_stop (peer->get_handle);
+  peer->get_handle = NULL;
   GNUNET_SCHEDULER_add_now(&test_find_peer,
 			   &p1);
 }
