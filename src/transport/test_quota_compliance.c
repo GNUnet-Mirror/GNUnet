@@ -391,10 +391,10 @@ measurement_end (void *cls,
 	  quota_allowed = current_quota_p2;
 
 
-  if (MEASUREMENT_SOFT_LIMIT > (quota_allowed/10))
+  if (MEASUREMENT_SOFT_LIMIT > (quota_allowed/3))
 	  delta = MEASUREMENT_SOFT_LIMIT;
   else
-	  delta = (quota_allowed/10);
+	  delta = (quota_allowed/3);
 
   /* Throughput is far too slow. This is to prevent the test to exit with success when throughput is 0 */
   if ((total_bytes_sent/(duration.rel_value / 1000)) < 100)
@@ -411,7 +411,14 @@ measurement_end (void *cls,
 	  ok = 1;
 	  failed_measurement_counter--;
 	  if (failed_measurement_counter < 0)
+	  {
+		  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+				  "\nQuota measurement failed and no free strike: %i\n",failed_measurement_counter);
 		  end();
+	  }
+	  else
+		  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+				  "\nQuota measurement failed and %i free strikes\n",failed_measurement_counter);
 	  return;
   }
 
@@ -430,7 +437,14 @@ measurement_end (void *cls,
 	  ok = 1;
 	  failed_measurement_counter--;
 	  if (failed_measurement_counter < 0)
+	  {
+		  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+				  "\nQuota measurement failed and no free strike: %i\n",failed_measurement_counter);
 		  end();
+	  }
+	  else
+		  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+				  "\nQuota measurement failed and %i free strikes\n",failed_measurement_counter);
 	  return;
   }
   else
