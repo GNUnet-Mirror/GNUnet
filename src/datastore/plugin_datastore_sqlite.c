@@ -360,6 +360,7 @@ database_shutdown (struct Plugin *plugin)
 {
   int result;
   sqlite3_stmt *stmt;
+  stmt = NULL;
 
   if (plugin->delRow != NULL)
     sqlite3_finalize (plugin->delRow);
