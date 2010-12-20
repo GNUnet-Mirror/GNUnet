@@ -424,8 +424,9 @@ libgnunet_plugin_datacache_sqlite_done (void *cls)
   struct GNUNET_DATACACHE_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
   int result;
+#if SQLITE_VERSION_NUMBER >= 3007000
   sqlite3_stmt *stmt;
-  stmt = NULL;
+#endif
 
 #if !WINDOWS || defined(__CYGWIN__)
   if (0 != UNLINK (plugin->fn))
