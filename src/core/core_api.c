@@ -1146,7 +1146,7 @@ main_notify_handler (void *cls,
 		  GNUNET_i2s (&ntm->peer));
 #endif
       if ((GNUNET_NO == h->outbound_hdr_only) &&
-          (msize != ntohs (em->size) + sizeof (struct NotifyTrafficMessage) + 
+          (msize != ntohs (em->size) + sizeof (struct NotifyTrafficMessage) 
 	   + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information)) )
         {
           GNUNET_break (0);
