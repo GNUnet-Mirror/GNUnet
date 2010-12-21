@@ -4516,9 +4516,10 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
       memcpy (&pong[1],
 	      plugin->short_name,
 	      slen);
-      memcpy (&((char*)&pong[1])[slen],
-	      sender_address,
-	      sender_address_len);
+      if ((sender_address!=NULL) && (sender_address_len > 0))
+		  memcpy (&((char*)&pong[1])[slen],
+			  sender_address,
+			  sender_address_len);
       if (GNUNET_TIME_absolute_get_remaining (session_header->pong_sig_expires).rel_value < PONG_SIGNATURE_LIFETIME.rel_value / 4)
 	{
 	  /* create / update cached sig */
