@@ -315,6 +315,7 @@ check()
   if (str[0] != 'T')
     {
       GNUNET_CONTAINER_meta_data_destroy(meta2);
+      GNUNET_free (str);
       ABORT(meta);      
     } 
   //check branch
