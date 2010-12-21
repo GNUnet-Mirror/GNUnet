@@ -3733,13 +3733,11 @@ handle_p2p_put (void *cls,
 			    start);
     }
   putl = GNUNET_LOAD_get_load (datastore_put_load);
-  if ( (GNUNET_NO == prq.request_found) &&
+  if ( (NULL != (cp = prq.sender)) &&
+       (GNUNET_NO == prq.request_found) &&
        ( (GNUNET_YES != active_to_migration) ||
-       	 (putl > 2.5 * (1 + prq.priority)) ) )
+	 (putl > 2.5 * (1 + prq.priority)) ) ) 
     {
-      cp = GNUNET_CONTAINER_multihashmap_get (connected_peers,
-					      &other->hashPubKey);
-      GNUNET_assert (NULL != cp);
       if (GNUNET_TIME_absolute_get_duration (cp->last_migration_block).rel_value < 5000)
 	return GNUNET_OK; /* already blocked */
       /* We're too busy; send MigrationStop message! */
