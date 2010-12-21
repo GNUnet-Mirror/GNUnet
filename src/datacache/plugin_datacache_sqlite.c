@@ -283,6 +283,8 @@ sqlite_plugin_del (void *cls)
   unsigned int dtype;
   sqlite3_stmt *stmt;
   sqlite3_stmt *dstmt;
+  char blob[65536];
+  GNUNET_HashCode hc;
 
 #if DEBUG_DATACACHE_SQLITE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -291,21 +293,15 @@ sqlite_plugin_del (void *cls)
 #endif
   stmt = NULL;
   dstmt = NULL;
-  if ((sq_prepare (plugin->dbh,
+  if (sq_prepare (plugin->dbh,
                    "SELECT type, key, value FROM ds090 ORDER BY expire ASC LIMIT 1",
-                   &stmt) != SQLITE_OK) ||
-      (sq_prepare (plugin->dbh,
-                   "DELETE FROM ds090 "
-                   "WHERE key=? AND value=? AND type=?",
-                   &dstmt) != SQLITE_OK))
+                   &stmt) != SQLITE_OK)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
 		  _("`%s' failed at %s:%d with error: %s\n"),
 		  "sq_prepare", __FILE__, __LINE__, sqlite3_errmsg (plugin->dbh));
-      if (dstmt != NULL)
-        sqlite3_finalize (dstmt);
       if (stmt != NULL)
-        sqlite3_finalize (stmt);
+        (void) sqlite3_finalize (stmt);
       return GNUNET_SYSERR;
     }
   if (SQLITE_ROW != sqlite3_step (stmt))
@@ -314,37 +310,69 @@ sqlite_plugin_del (void *cls)
 		  _("`%s' failed at %s:%d with error: %s\n"),
 		  "sqlite3_step", __FILE__, __LINE__,
 		  sqlite3_errmsg (plugin->dbh));
-      sqlite3_finalize (dstmt);
-      sqlite3_finalize (stmt);
+      (void) sqlite3_finalize (stmt);
       return GNUNET_SYSERR;
     }
   dtype = sqlite3_column_int (stmt, 0);
   GNUNET_break (sqlite3_column_bytes (stmt, 1) == sizeof (GNUNET_HashCode));
   dsize = sqlite3_column_bytes (stmt, 2);
-  sqlite3_bind_blob (dstmt,
-		     1, sqlite3_column_blob (stmt, 1),
-		     sizeof (GNUNET_HashCode),
-		     SQLITE_TRANSIENT);
-  sqlite3_bind_blob (dstmt,
-		     2, sqlite3_column_blob (stmt, 2),
-		     dsize,
-		     SQLITE_TRANSIENT);
-  sqlite3_bind_int (dstmt, 3, dtype);
+  GNUNET_assert (dsize <= sizeof (blob));
+  memcpy (blob, sqlite3_column_blob (stmt, 2), dsize);
+  memcpy (&hc, sqlite3_column_blob (stmt, 1), sizeof (GNUNET_HashCode));
+  if (SQLITE_OK != sqlite3_finalize (stmt))
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+		_("`%s' failed at %s:%d with error: %s\n"),
+		"sqlite3_step", __FILE__, __LINE__,
+		sqlite3_errmsg (plugin->dbh));    
+  if (sq_prepare (plugin->dbh,
+		  "DELETE FROM ds090 "
+		  "WHERE key=? AND value=? AND type=?",
+		  &dstmt) != SQLITE_OK)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+		  _("`%s' failed at %s:%d with error: %s\n"),
+		  "sq_prepare", __FILE__, __LINE__, sqlite3_errmsg (plugin->dbh));
+      if (stmt != NULL)
+        (void) sqlite3_finalize (stmt);
+      return GNUNET_SYSERR;
+    }
+  if ( (SQLITE_OK !=
+	sqlite3_bind_blob (dstmt,
+			   1, &hc,
+			   sizeof (GNUNET_HashCode),
+			   SQLITE_TRANSIENT)) ||
+       (SQLITE_OK !=
+	sqlite3_bind_blob (dstmt,
+			   2, blob,
+			   dsize,
+			   SQLITE_TRANSIENT)) ||
+       (SQLITE_OK != 
+	sqlite3_bind_int (dstmt, 3, dtype)) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+		  _("`%s' failed at %s:%d with error: %s\n"),
+		  "sqlite3_bind", __FILE__, __LINE__,
+		  sqlite3_errmsg (plugin->dbh));    
+      (void) sqlite3_finalize (dstmt);
+      return GNUNET_SYSERR;
+    }
   if (sqlite3_step (dstmt) != SQLITE_DONE)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
 		  _("`%s' failed at %s:%d with error: %s\n"),
 		  "sqlite3_step", __FILE__, __LINE__,
 		  sqlite3_errmsg (plugin->dbh));    
-      sqlite3_finalize (dstmt);
-      sqlite3_finalize (stmt);
+      (void) sqlite3_finalize (dstmt);
       return GNUNET_SYSERR;
     }
   plugin->env->delete_notify (plugin->env->cls,
-			      sqlite3_column_blob (stmt, 1),
+			      &hc,
 			      dsize + OVERHEAD);
-  sqlite3_finalize (dstmt);
-  sqlite3_finalize (stmt);
+  if (SQLITE_OK != sqlite3_finalize (dstmt))
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+		_("`%s' failed at %s:%d with error: %s\n"),
+		"sqlite3_finalize", __FILE__, __LINE__,
+		sqlite3_errmsg (plugin->dbh));    
   return GNUNET_OK;
 }
 
