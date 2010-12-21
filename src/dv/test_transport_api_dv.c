@@ -547,9 +547,9 @@ static void connect_notify_peer2 (void *cls,
 
 static void
 init_notify_peer2 (void *cls,
-             struct GNUNET_CORE_Handle *server,
-             const struct GNUNET_PeerIdentity *my_identity,
-             const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
+                   struct GNUNET_CORE_Handle *server,
+                   const struct GNUNET_PeerIdentity *my_identity,
+                   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
 {
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -597,9 +597,9 @@ static void connect_notify_peer1 (void *cls,
 
 static void
 init_notify_peer1 (void *cls,
-             struct GNUNET_CORE_Handle *server,
-             const struct GNUNET_PeerIdentity *my_identity,
-             const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
+                   struct GNUNET_CORE_Handle *server,
+                   const struct GNUNET_PeerIdentity *my_identity,
+                   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
 {
   total_server_connections++;
 #if VERBOSE
@@ -877,6 +877,10 @@ static void all_connect_handler (void *cls,
   struct TestMessageContext *temp_context;
 #endif
   uint32_t distance;
+
+  if (0 == memcmp(&d->id, peer, sizeof(struct GNUNET_PeerIdentity)))
+    return;
+
   distance = get_atsi_distance(atsi);
 
 #if VERBOSE

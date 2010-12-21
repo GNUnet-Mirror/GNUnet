@@ -2897,6 +2897,10 @@ handle_core_connect (void *cls,
 #endif
   uint32_t distance;
 
+  /* Check for connect to self message */
+  if (0 == memcmp(&my_identity, peer, sizeof(struct GNUNET_PeerIdentity)))
+    return;
+
   distance = get_atsi_distance (atsi);
   if ((distance == DIRECT_NEIGHBOR_COST) &&
       (GNUNET_CONTAINER_multihashmap_get(direct_neighbors, &peer->hashPubKey) == NULL))
@@ -2968,6 +2972,10 @@ void handle_core_disconnect (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s: Receives core peer disconnect message!\n", "dv");
 #endif
+
+  /* Check for disconnect from self message */
+  if (0 == memcmp(&my_identity, peer, sizeof(struct GNUNET_PeerIdentity)))
+    return;
 
   neighbor =
     GNUNET_CONTAINER_multihashmap_get (direct_neighbors, &peer->hashPubKey);
