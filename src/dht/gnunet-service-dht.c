@@ -1175,7 +1175,6 @@ core_transmit_notify (void *cls, size_t size, void *buf)
       off += msize;
       peer->pending_count--;
       increment_stats ("# pending messages sent");
-      GNUNET_assert (peer->pending_count >= 0);
       GNUNET_CONTAINER_DLL_remove (peer->head, peer->tail, pending);
       GNUNET_free (pending);
       pending = peer->head;
@@ -3339,7 +3338,7 @@ select_peer (const GNUNET_HashCode * target,
               continue;         /* Ignore bloomfiltered peers */
             }
           temp_converge_distance = converge_distance (target, pos, hops);
-          if ((temp_converge_distance <= ULLONG_MAX) && (total_distance + temp_converge_distance > total_distance))     /* Handle largest case and overflow */
+          if (total_distance + temp_converge_distance > total_distance)     /* Handle largest case and overflow */
             total_distance += temp_converge_distance;
           else
             break;              /* overflow case */
