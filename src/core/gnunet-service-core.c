@@ -153,9 +153,25 @@
  */
 enum PeerStateMachine
 {
+  /**
+   * No handshake yet.
+   */
   PEER_STATE_DOWN,
+
+  /**
+   * We've sent our session key.
+   */
   PEER_STATE_KEY_SENT,
+  
+  /**
+   * We've received the other peers session key.
+   */
   PEER_STATE_KEY_RECEIVED,
+
+  /**
+   * The other peer has confirmed our session key with a message
+   * encrypted with his session key (which we got).  Session is now fully up.
+   */
   PEER_STATE_KEY_CONFIRMED
 };
 
@@ -402,10 +418,6 @@ struct ClientActiveRequest;
  */
 struct Neighbour
 {
-  /**
-   * We keep neighbours in a linked list (for now).
-   */
-  struct Neighbour *next;
 
   /**
    * Unencrypted messages destined for this peer.
@@ -769,9 +781,14 @@ static struct Client *clients;
 static struct GNUNET_SERVER_NotificationContext *notifier;
 
 /**
- * We keep neighbours in a linked list (for now).
+ * Map of peer identities to 'struct Neighbour'.
  */
-static struct Neighbour *neighbours;
+static struct GNUNET_CONTAINER_MultiHashMap *neighbours;
+
+/**
+ * Neighbour entry for "this" peer.
+ */
+static struct Neighbour self;
 
 /**
  * For creating statistics.
@@ -784,13 +801,7 @@ static struct GNUNET_STATISTICS_Handle *stats;
 static unsigned long long preference_sum;
 
 /**
- * Total number of neighbours we have.
- */
-static unsigned int neighbour_count;
-
-/**
  * How much inbound bandwidth are we supposed to be using per second?
- * FIXME: this value is not used!
  */
 static unsigned long long bandwidth_target_in_bps;
 
@@ -885,6 +896,23 @@ get_neighbour_timeout (struct Neighbour *n)
 
 
 /**
+ * Helper function for update_preference_sum.
+ */
+static int
+update_preference (void *cls,
+		   const GNUNET_HashCode *key,
+		   void *value)
+{
+  unsigned long long *ps = cls;
+  struct Neighbour *n = value;
+
+  n->current_preference /= 2;
+  *ps += n->current_preference;
+  return GNUNET_OK;
+}    
+
+
+/**
  * A preference value for a neighbour was update.  Update
  * the preference sum accordingly.
  *
@@ -893,7 +921,6 @@ get_neighbour_timeout (struct Neighbour *n)
 static void
 update_preference_sum (unsigned long long inc)
 {
-  struct Neighbour *n;
   unsigned long long os;
 
   os = preference_sum;
@@ -902,13 +929,9 @@ update_preference_sum (unsigned long long inc)
     return; /* done! */
   /* overflow! compensate by cutting all values in half! */
   preference_sum = 0;
-  n = neighbours;
-  while (n != NULL)
-    {
-      n->current_preference /= 2;
-      preference_sum += n->current_preference;
-      n = n->next;
-    }    
+  GNUNET_CONTAINER_multihashmap_iterate (neighbours,
+					 &update_preference,
+					 &preference_sum);
   GNUNET_STATISTICS_set (stats, gettext_noop ("# total peer preference"), preference_sum, GNUNET_NO);
 }
 
@@ -923,14 +946,7 @@ update_preference_sum (unsigned long long inc)
 static struct Neighbour *
 find_neighbour (const struct GNUNET_PeerIdentity *peer)
 {
-  struct Neighbour *ret;
-
-  ret = neighbours;
-  while ((ret != NULL) &&
-         (0 != memcmp (&ret->peer,
-                       peer, sizeof (struct GNUNET_PeerIdentity))))
-    ret = ret->next;
-  return ret;
+  return GNUNET_CONTAINER_multihashmap_get (neighbours, &peer->hashPubKey);
 }
 
 
@@ -1068,33 +1084,42 @@ schedule_peer_messages (struct Neighbour *n)
   unsigned int queue_size;
   
   /* check if neighbour queue is empty enough! */
-  queue_size = 0;
-  mqe = n->messages;
-  while (mqe != NULL) 
+  if (n != &self)
     {
-      queue_size++;
-      mqe = mqe->next;
-    }
-  if (queue_size >= MAX_PEER_QUEUE_SIZE)
-    {
+      queue_size = 0;
+      mqe = n->messages;
+      while (mqe != NULL) 
+	{
+	  queue_size++;
+	  mqe = mqe->next;
+	}
+      if (queue_size >= MAX_PEER_QUEUE_SIZE)
+	{
 #if DEBUG_CORE_CLIENT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Not considering client transmission requests: queue full\n");
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Not considering client transmission requests: queue full\n");
 #endif
-      return; /* queue still full */
+	  return; /* queue still full */
+	}
+      /* find highest priority request */
+      pos = n->active_client_request_head;
+      car = NULL;
+      while (pos != NULL)
+	{
+	  if ( (car == NULL) ||
+	       (pos->priority > car->priority) )
+	    car = pos;
+	  pos = pos->next;
+	}
+      if (car == NULL)
+	return; /* no pending requests */
     }
-  /* find highest priority request */
-  pos = n->active_client_request_head;
-  car = NULL;
-  while (pos != NULL)
+  else
     {
-      if ( (car == NULL) ||
-	   (pos->priority > car->priority) )
-	car = pos;
-      pos = pos->next;
+      car = n->active_client_request_head;
+      if (car == NULL)
+	return;
     }
-  if (car == NULL)
-    return; /* no pending requests */
 #if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Permitting client transmission request to `%s'\n",
@@ -1131,7 +1156,12 @@ handle_client_send_request (void *cls,
   struct ClientActiveRequest *car;
 
   req = (const struct SendMessageRequest*) message;
-  n = find_neighbour (&req->peer);
+  if (0 == memcmp (&req->peer,
+		   &my_identity,
+		   sizeof (struct GNUNET_PeerIdentity)))
+    n = &self;
+  else
+    n = find_neighbour (&req->peer);
   if ( (n == NULL) ||
        (GNUNET_YES != n->is_connected) ||
        (n->status != PEER_STATE_KEY_CONFIRMED) )
@@ -1194,6 +1224,57 @@ handle_client_send_request (void *cls,
 
 
 /**
+ * Notify client about an existing connection to one of our neighbours.
+ */
+static int
+notify_client_about_neighbour (void *cls,
+			       const GNUNET_HashCode *key,
+			       void *value)
+{
+  struct Client *c = cls;
+  struct Neighbour *n = value;
+  size_t size;
+  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
+  struct GNUNET_TRANSPORT_ATS_Information *ats;
+  struct ConnectNotifyMessage *cnm;
+
+  size = sizeof (struct ConnectNotifyMessage) +
+    (n->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+  if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+    {
+      GNUNET_break (0);
+      /* recovery strategy: throw away performance data */
+      GNUNET_array_grow (n->ats,
+			 n->ats_count,
+			 0);
+      size = sizeof (struct ConnectNotifyMessage) +
+	(n->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+    }
+  cnm = (struct ConnectNotifyMessage*) buf;	  
+  cnm->header.size = htons (size);
+  cnm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
+  cnm->ats_count = htonl (n->ats_count);
+  ats = &cnm->ats;
+  memcpy (ats,
+	  n->ats,
+	  sizeof (struct GNUNET_TRANSPORT_ATS_Information) * n->ats_count);
+  ats[n->ats_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+  ats[n->ats_count].value = htonl (0);
+  if (n->status == PEER_STATE_KEY_CONFIRMED)
+    {
+#if DEBUG_CORE_CLIENT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Sending `%s' message to client.\n", "NOTIFY_CONNECT");
+#endif
+      cnm->peer = n->peer;
+      send_to_client (c, &cnm->header, GNUNET_NO);
+    }
+  return GNUNET_OK;
+}
+
+
+
+/**
  * Handle CORE_INIT request.
  */
 static void
@@ -1207,11 +1288,6 @@ handle_client_init (void *cls,
   uint16_t msize;
   const uint16_t *types;
   uint16_t *wtypes;
-  struct Neighbour *n;
-  struct ConnectNotifyMessage *cnm;
-  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
-  struct GNUNET_TRANSPORT_ATS_Information *ats;
-  size_t size;
   unsigned int i;
 
 #if DEBUG_CORE_CLIENT
@@ -1273,42 +1349,9 @@ handle_client_init (void *cls,
   if (0 != (c->options & GNUNET_CORE_OPTION_SEND_CONNECT))
     {
       /* notify new client about existing neighbours */
-      n = neighbours;
-      while (n != NULL)
-	{
-	  size = sizeof (struct ConnectNotifyMessage) +
-	    (n->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
-	  if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
-	    {
-	      GNUNET_break (0);
-	      /* recovery strategy: throw away performance data */
-	      GNUNET_array_grow (n->ats,
-				 n->ats_count,
-				 0);
-	      size = sizeof (struct ConnectNotifyMessage) +
-		(n->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
-	    }
-	  cnm = (struct ConnectNotifyMessage*) buf;	  
-	  cnm->header.size = htons (size);
-	  cnm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
-	  cnm->ats_count = htonl (n->ats_count);
-	  ats = &cnm->ats;
-	  memcpy (ats,
-		  n->ats,
-		  sizeof (struct GNUNET_TRANSPORT_ATS_Information) * n->ats_count);
-	  ats[n->ats_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
-	  ats[n->ats_count].value = htonl (0);
-	  if (n->status == PEER_STATE_KEY_CONFIRMED)
-	    {
-#if DEBUG_CORE_CLIENT
-	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-			  "Sending `%s' message to client.\n", "NOTIFY_CONNECT");
-#endif
-	      cnm->peer = n->peer;
-	      send_to_client (c, &cnm->header, GNUNET_NO);
-	    }
-	  n = n->next;
-	}
+      GNUNET_CONTAINER_multihashmap_iterate (neighbours,
+					     &notify_client_about_neighbour,
+					     c);
     }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -1390,6 +1433,58 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 
 
 /**
+ * Helper function for handle_client_iterate_peers.
+ */
+static int
+queue_connect_message (void *cls,
+		       const GNUNET_HashCode *key,
+		       void *value)
+{
+  struct GNUNET_SERVER_TransmitContext *tc = cls;
+  struct Neighbour *n = value;
+  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
+  struct GNUNET_TRANSPORT_ATS_Information *ats;
+  size_t size;
+  struct ConnectNotifyMessage *cnm;
+
+  cnm = (struct ConnectNotifyMessage*) buf;
+  if (n->status != PEER_STATE_KEY_CONFIRMED)
+    return GNUNET_OK;
+  size = sizeof (struct ConnectNotifyMessage) +
+    (n->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+  if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+    {
+      GNUNET_break (0);
+      /* recovery strategy: throw away performance data */
+      GNUNET_array_grow (n->ats,
+			 n->ats_count,
+			 0);
+      size = sizeof (struct PeerStatusNotifyMessage) +
+	n->ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+    }
+  cnm = (struct ConnectNotifyMessage*) buf;
+  cnm->header.size = htons (size);
+  cnm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
+  cnm->ats_count = htonl (n->ats_count);
+  ats = &cnm->ats;
+  memcpy (ats,
+	  n->ats,
+	  n->ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
+  ats[n->ats_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+  ats[n->ats_count].value = htonl (0);	  
+#if DEBUG_CORE_CLIENT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending `%s' message to client.\n",
+	      "NOTIFY_CONNECT");
+#endif
+  cnm->peer = n->peer;
+  GNUNET_SERVER_transmit_context_append_message (tc, 
+						 &cnm->header);
+  return GNUNET_OK;
+}
+
+
+/**
  * Handle CORE_ITERATE_PEERS request.
  *
  * @param cls unused
@@ -1402,55 +1497,12 @@ handle_client_iterate_peers (void *cls,
 			     const struct GNUNET_MessageHeader *message)
 
 {
-  struct Neighbour *n;
-  struct ConnectNotifyMessage *cnm;
   struct GNUNET_MessageHeader done_msg;
   struct GNUNET_SERVER_TransmitContext *tc;
-  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
-  struct GNUNET_TRANSPORT_ATS_Information *ats;
-  size_t size;
 
   /* notify new client about existing neighbours */
   tc = GNUNET_SERVER_transmit_context_create (client);
-  cnm = (struct ConnectNotifyMessage*) buf;
-  n = neighbours;
-  while (n != NULL)
-    {
-      if (n->status == PEER_STATE_KEY_CONFIRMED)
-        {
-	  size = sizeof (struct ConnectNotifyMessage) +
-	    (n->ats_count) * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
-	  if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
-	    {
-	      GNUNET_break (0);
-	      /* recovery strategy: throw away performance data */
-	      GNUNET_array_grow (n->ats,
-				 n->ats_count,
-				 0);
-	      size = sizeof (struct PeerStatusNotifyMessage) +
-		n->ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
-	    }
-	  cnm = (struct ConnectNotifyMessage*) buf;
-	  cnm->header.size = htons (size);
-	  cnm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
-	  cnm->ats_count = htonl (n->ats_count);
-	  ats = &cnm->ats;
-	  memcpy (ats,
-		  n->ats,
-		  n->ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
-	  ats[n->ats_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
-	  ats[n->ats_count].value = htonl (0);	  
-#if DEBUG_CORE_CLIENT
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Sending `%s' message to client.\n",
-		      "NOTIFY_CONNECT");
-#endif
-          cnm->peer = n->peer;
-          GNUNET_SERVER_transmit_context_append_message (tc, 
-							 &cnm->header);
-        }
-      n = n->next;
-    }
+  GNUNET_CONTAINER_multihashmap_iterate (neighbours, &queue_connect_message, tc);
   done_msg.size = htons (sizeof (struct GNUNET_MessageHeader));
   done_msg.type = htons (GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS_END);
   GNUNET_SERVER_transmit_context_append_message (tc, &done_msg);
@@ -1792,8 +1844,6 @@ consider_free_task (void *cls,
 static void
 consider_free_neighbour (struct Neighbour *n)
 { 
-  struct Neighbour *pos;
-  struct Neighbour *prev;
   struct GNUNET_TIME_Relative left;
 
   if ( (n->th != NULL) ||
@@ -1812,22 +1862,13 @@ consider_free_neighbour (struct Neighbour *n)
       return;
     }
   /* actually free the neighbour... */
-  prev = NULL;
-  pos = neighbours;
-  while (pos != n)
-    {
-      prev = pos;
-      pos = pos->next;
-    }
-  if (prev == NULL)
-    neighbours = n->next;
-  else
-    prev->next = n->next;
-  GNUNET_assert (neighbour_count > 0);
-  neighbour_count--;
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CONTAINER_multihashmap_remove (neighbours,
+						       &n->peer.hashPubKey,
+						       n));
   GNUNET_STATISTICS_set (stats,
 			 gettext_noop ("# neighbour entries allocated"), 
-			 neighbour_count,
+			 GNUNET_CONTAINER_multihashmap_size (neighbours),
 			 GNUNET_NO);
   free_neighbour (n);
 }
@@ -2643,10 +2684,6 @@ create_neighbour (const struct GNUNET_PeerIdentity *pid)
 	      GNUNET_i2s (pid));
 #endif
   n = GNUNET_malloc (sizeof (struct Neighbour));
-  n->next = neighbours;
-  neighbours = n;
-  neighbour_count++;
-  GNUNET_STATISTICS_set (stats, gettext_noop ("# neighbour entries allocated"), neighbour_count, GNUNET_NO);
   n->peer = *pid;
   GNUNET_CRYPTO_aes_create_session_key (&n->encrypt_key);
   now = GNUNET_TIME_absolute_get ();
@@ -2659,6 +2696,13 @@ create_neighbour (const struct GNUNET_PeerIdentity *pid)
   n->bw_out_external_limit = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT;
   n->ping_challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
                                                 UINT32_MAX);
+  GNUNET_assert (GNUNET_OK == 
+		 GNUNET_CONTAINER_multihashmap_put (neighbours,
+						    &n->peer.hashPubKey,
+						    n,
+						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  GNUNET_STATISTICS_set (stats, gettext_noop ("# neighbour entries allocated"), 
+			 GNUNET_CONTAINER_multihashmap_size (neighbours), GNUNET_NO);
   neighbour_quota_update (n, NULL);
   consider_free_neighbour (n);
   return n;
@@ -2702,10 +2746,15 @@ handle_client_send (void *cls,
   msize -= sizeof (struct SendMessage);
   if (0 == memcmp (&sm->peer, &my_identity, sizeof (struct GNUNET_PeerIdentity)))
     {
-      /* FIXME: should we not allow loopback-injection here? */
-      GNUNET_break (0);
+      /* loopback */
+      GNUNET_SERVER_mst_receive (mst,
+				 &self,
+				 (const char*) &sm[1],
+				 msize,
+				 GNUNET_YES,
+				 GNUNET_NO);
       if (client != NULL)
-        GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+        GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return;
     }
   n = find_neighbour (&sm->peer);
@@ -4225,6 +4274,7 @@ neighbour_quota_update (void *cls,
   unsigned long long distributable;
   uint64_t need_per_peer;
   uint64_t need_per_second;
+  unsigned int neighbour_count;
 
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -4236,6 +4286,9 @@ neighbour_quota_update (void *cls,
      divides by a bit more to avoid division by zero AND to
      account for possibility of new neighbours joining any time 
      AND to convert to double... */
+  neighbour_count = GNUNET_CONTAINER_multihashmap_size (neighbours);
+  if (neighbour_count == 0)
+    return;
   if (preference_sum == 0)
     {
       pref_rel = 1.0 / (double) neighbour_count;
@@ -4448,30 +4501,42 @@ handle_transport_notify_disconnect (void *cls,
 
 
 /**
+ * Wrapper around 'free_neighbour'; helper for 'cleaning_task'.
+ */
+static int
+free_neighbour_helper (void *cls,
+		       const GNUNET_HashCode *key,
+		       void *value)
+{
+  struct Neighbour *n = value;
+
+  free_neighbour (n);
+  return GNUNET_OK;
+}
+
+
+/**
  * Last task run during shutdown.  Disconnects us from
  * the transport.
  */
 static void
 cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct Neighbour *n;
   struct Client *c;
 
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Core service shutting down.\n");
 #endif
-  while (NULL != (n = neighbours))
-    {
-      neighbours = n->next;
-      GNUNET_assert (neighbour_count > 0);
-      neighbour_count--;
-      free_neighbour (n);
-    }
+  GNUNET_CONTAINER_multihashmap_iterate (neighbours,
+					 &free_neighbour_helper,
+					 NULL);
+  GNUNET_CONTAINER_multihashmap_destroy (neighbours);
+  neighbours = NULL;
+  GNUNET_STATISTICS_set (stats, gettext_noop ("# neighbour entries allocated"), 0, GNUNET_NO);
   GNUNET_assert (transport != NULL);
   GNUNET_TRANSPORT_disconnect (transport);
   transport = NULL;
-  GNUNET_STATISTICS_set (stats, gettext_noop ("# neighbour entries allocated"), neighbour_count, GNUNET_NO);
   GNUNET_SERVER_notification_context_destroy (notifier);
   notifier = NULL;
   while (NULL != (c = clients))
@@ -4520,7 +4585,7 @@ run (void *cls,
   };
   char *keyfile;
 
-  cfg = c;  
+  cfg = c;    
   /* parse configuration */
   if (
        (GNUNET_OK !=
@@ -4563,9 +4628,14 @@ run (void *cls,
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
+  neighbours = GNUNET_CONTAINER_multihashmap_create (128);
   GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
   GNUNET_CRYPTO_hash (&my_public_key,
                       sizeof (my_public_key), &my_identity.hashPubKey);
+  self.public_key = &my_public_key;
+  self.last_activity = GNUNET_TIME_UNIT_FOREVER_ABS;
+  self.status = PEER_STATE_KEY_CONFIRMED;
+  self.is_connected = GNUNET_YES;
   /* setup notification */
   notifier = GNUNET_SERVER_notification_context_create (server, 
 							MAX_NOTIFY_QUEUE);

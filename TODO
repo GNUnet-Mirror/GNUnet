@@ -1,14 +1,6 @@
 0.9.0pre2:
-* BIG CORE REFACTORING:
-  - fix transport plugin API (ATS!) [mw]
-  - fix DV [nate]
 * Integration test:
   - test bootstrapping via hostlist + transport/core/dht connect
-* CORE:
-  - Jun 27 11:51:54 core-7670 ERROR Assertion failed at gnunet-service-core.c:3616.
-    (transport notified us that we connected to ourselves!!!; can we still reproduce this?)
-    => Also, we may want to issue a 'connect to ourselves' automatically on start of
-       core_api AND allow messages to self [CG/phillip]
 
 0.9.0pre3:
 * TRANSPORT: [MW]
@@ -35,6 +27,7 @@
     + insert
     + download
     + search
+  - implement anonymity level > 1
 * GNUNET-GTK: [CG]
   - figure out where in the GUI we should show active upload operations and allow aborts
   - handle events:

@@ -221,6 +221,10 @@ connect_notify (void *cls,
 {
   struct PeerContext *pc = cls;
 
+  if (0 == memcmp (&pc->id,
+		   peer,
+		   sizeof (struct GNUNET_PeerIdentity)))
+    return;
   GNUNET_assert (pc->connect_status == 0);
   pc->connect_status = 1;
   if (pc == &p1)
@@ -252,6 +256,11 @@ disconnect_notify (void *cls,
                    const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *pc = cls;
+
+  if (0 == memcmp (&pc->id,
+		   peer,
+		   sizeof (struct GNUNET_PeerIdentity)))
+    return;
   pc->connect_status = 0;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Encrypted connection to `%4s' cut\n", GNUNET_i2s (peer));

@@ -881,6 +881,22 @@ main_notify_handler (void *cls,
 		      "Successfully reconnected to core service.\n");
 #endif
 	}
+      /* fake 'connect to self' */
+      pr = GNUNET_CONTAINER_multihashmap_get (h->peers,
+					      &h->me.hashPubKey);
+      GNUNET_assert (pr == NULL);
+      pr = GNUNET_malloc (sizeof (struct PeerRecord));
+      pr->peer = h->me;
+      pr->ch = h;
+      GNUNET_assert (GNUNET_YES ==
+		     GNUNET_CONTAINER_multihashmap_put (h->peers,
+							&h->me.hashPubKey,
+							pr,
+							GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
+      if (NULL != h->connects)
+	h->connects (h->cls,
+		     &h->me,
+		     NULL);
       break;
     case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT:
       if (msize < sizeof (struct ConnectNotifyMessage))
