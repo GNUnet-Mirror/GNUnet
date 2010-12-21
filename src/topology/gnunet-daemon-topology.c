@@ -772,7 +772,9 @@ disconnect_notify (void *cls,
 		   GNUNET_PeerIdentity * peer)
 {
   struct Peer *pos;
- 
+
+  if (0 == memcmp(&my_identity, peer, sizeof(struct GNUNET_PeerIdentity)))
+    return;
 #if DEBUG_TOPOLOGY
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Core told us that we disconnected from `%s'\n",
