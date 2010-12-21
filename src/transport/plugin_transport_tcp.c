@@ -2369,7 +2369,6 @@ tcp_plugin_server_read (void *cls,
   /* construct socket address of sender */
   memset (&sin_addr, 0, sizeof (sin_addr));
   sin_addr.sin_family = AF_INET;
-  sin_addr.sin_port = htons((uint16_t) port);
 #if HAVE_SOCKADDR_IN_SIN_LEN
   sin_addr.sin_len = sizeof (sin_addr);
 #endif
@@ -2389,7 +2388,7 @@ tcp_plugin_server_read (void *cls,
 					  plugin);
       return;
     }
-
+  sin_addr.sin_port = htons((uint16_t) port);
 #if DEBUG_TCP_NAT
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "tcp",
