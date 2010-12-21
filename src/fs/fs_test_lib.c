@@ -535,7 +535,8 @@ GNUNET_FS_TEST_daemons_stop (unsigned int total,
 	GNUNET_CONFIGURATION_destroy (daemons[i]->cfg);
       if (NULL != daemons[i]->publish_tmp_file)
 	{
-	  GNUNET_DISK_directory_remove (daemons[i]->publish_tmp_file);
+	  GNUNET_break (GNUNET_OK ==
+			GNUNET_DISK_directory_remove (daemons[i]->publish_tmp_file));
 	  GNUNET_free (daemons[i]->publish_tmp_file);
 	}
       GNUNET_free (daemons[i]);
