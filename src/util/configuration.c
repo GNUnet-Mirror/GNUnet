@@ -306,7 +306,11 @@ GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *cfg,
   fn = GNUNET_STRINGS_filename_expand (filename);
   if (fn == NULL)
     return GNUNET_SYSERR;
-  GNUNET_DISK_directory_create_for_file (fn);
+  if (GNUNET_OK != GNUNET_DISK_directory_create_for_file (fn))
+    {
+      GNUNET_free (fn);
+      return GNUNET_SYSERR;
+    }
   if (NULL == (fp = FOPEN (fn, "w")))
     {
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "fopen", fn);

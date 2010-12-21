@@ -304,7 +304,12 @@ cron_scan_directory_data_hosts (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   count = 0;
-  GNUNET_DISK_directory_create (networkIdDirectory);
+  if (GNUNET_SYSERR == GNUNET_DISK_directory_create (networkIdDirectory))
+    {
+      GNUNET_SCHEDULER_add_delayed (DATA_HOST_FREQ,
+				    &cron_scan_directory_data_hosts, NULL);
+      return;
+    }
   GNUNET_DISK_directory_scan (networkIdDirectory,
                               &hosts_directory_scan_callback, &count);
   if ((0 == count) && (0 == (++retries & 31)))
@@ -355,12 +360,19 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
       host->hello = mrg;
     }
   fn = get_host_filename (peer);
-  GNUNET_DISK_directory_create_for_file (fn);
-  GNUNET_DISK_fn_write (fn, 
-			host->hello, 
-			GNUNET_HELLO_size (host->hello),
-			GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE
-			| GNUNET_DISK_PERM_GROUP_READ | GNUNET_DISK_PERM_OTHER_READ);
+  if (GNUNET_OK == GNUNET_DISK_directory_create_for_file (fn))
+    {
+      if (GNUNET_OK != 
+	  GNUNET_DISK_fn_write (fn, 
+				host->hello, 
+				GNUNET_HELLO_size (host->hello),
+				GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE
+				| GNUNET_DISK_PERM_GROUP_READ | GNUNET_DISK_PERM_OTHER_READ))
+	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+				  "write",
+				  fn);
+	
+    }
   GNUNET_free (fn);
   notify_all (host);
 }
