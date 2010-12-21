@@ -3739,6 +3739,7 @@ handle_p2p_put (void *cls,
     {
       cp = GNUNET_CONTAINER_multihashmap_get (connected_peers,
 					      &other->hashPubKey);
+      GNUNET_assert (NULL != cp);
       if (GNUNET_TIME_absolute_get_duration (cp->last_migration_block).rel_value < 5000)
 	return GNUNET_OK; /* already blocked */
       /* We're too busy; send MigrationStop message! */
