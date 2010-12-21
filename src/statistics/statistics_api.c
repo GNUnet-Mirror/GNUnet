@@ -738,7 +738,12 @@ GNUNET_STATISTICS_create (const char *subsystem,
   ret->cfg = cfg;
   ret->subsystem = GNUNET_strdup (subsystem);
   ret->backoff = GNUNET_TIME_UNIT_MILLISECONDS;
-  try_connect (ret);
+  if (GNUNET_YES != try_connect (ret))
+    {
+      GNUNET_free (ret->subsystem);
+      GNUNET_free (ret);
+      return NULL;
+    }
   return ret;
 }
 
