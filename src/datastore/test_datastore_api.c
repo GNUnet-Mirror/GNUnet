@@ -656,6 +656,7 @@ check ()
 #endif
                                  "-c", cfg_name, NULL);
 #endif
+  GNUNET_assert (NULL != proc);
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "test-datastore-api", "nohelp",
                       options, &run, NULL);
