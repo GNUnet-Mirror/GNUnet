@@ -24,6 +24,9 @@
  * @author David Brodski
  */
 
+#ifndef PLUGIN_TRANSPORT_WLAN
+#define PLUGIN_TRANSPORT_WLAN
+
 #include "gnunet_common.h"
 
 typedef unsigned int uint32_t;
@@ -163,3 +166,4 @@ struct RadiotapHeader
   uint8_t antenna;
 };
 
+#endif

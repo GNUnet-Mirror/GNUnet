@@ -77,10 +77,14 @@ bin_SCRIPTS = \
 gnunet_nat_server_SOURCES = \
  $(NATSERVER)
 
+    
 gnunet_transport_wlan_helper_SOURCES = \
- gnunet-transport-wlan-helper.c         
+ gnunet-transport-wlan-helper.c
 gnunet_transport_wlan_helper_LDADD = \
  -lpcap
+ 
+test_plugin_transport_wlan_SOURCES = \
+ test_plugin_transport_wlan_dummy.c
 
 gnunet_nat_client_SOURCES = \
  $(NATCLIENT)         
@@ -215,7 +219,8 @@ check_PROGRAMS = \
  test_quota_compliance_udp \
  test_quota_compliance_udp_asymmetric_recv_constant \
  $(HTTP_QUOTA_TEST) \
- $(HTTPS_QUOTA_TEST)
+ $(HTTPS_QUOTA_TEST) \
+ test_plugin_transport_wlan
 # TODO: add tests for nat, etc.
 
 if !DISABLE_TEST_RUN
