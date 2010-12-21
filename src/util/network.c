@@ -270,10 +270,12 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
 #ifdef IPPROTO_IPV6
   const int on = 1;
   if (desc->af == AF_INET6)
-    setsockopt (desc->fd, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof (on));
+    if (0 != setsockopt (desc->fd, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof (on)))
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_DEBUG, "setsockopt");
 #if 0
   /* is this needed or desired? or done elsewhere? */
-  setsockopt (desc->fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on));
+  if (0 != setsockopt (desc->fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_DEBUG, "setsockopt");
 #endif
 #endif
 #endif
