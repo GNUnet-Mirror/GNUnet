@@ -360,12 +360,9 @@ kill_task (void *cbData,
     }
   /* Connect to the doNothing task */
   doNothingConnection = GNUNET_CLIENT_connect ("do-nothing", cfg);
-#if LOG_BACKOFF
-  if (NULL == doNothingConnection)
-    fprintf(killLogFilePtr, 
-	    "Unable to connect to do-nothing process!\n");
-#endif  
+  GNUNET_assert (doNothingConnection != NULL);
   if (trialCount == 12) {
+    GNUNET_CLIENT_disconnect (doNothingConnection, GNUNET_NO);
     GNUNET_ARM_stop_service (arm, 
 			     "do-nothing", 
 			     TIMEOUT,
@@ -373,7 +370,6 @@ kill_task (void *cbData,
     ok = 0;
     return;
   }
-  
   /* Use the created connection to kill the doNothingTask */
   arm_service_shutdown(doNothingConnection,
 		       TIMEOUT, 
