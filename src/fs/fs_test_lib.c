@@ -579,6 +579,7 @@ file_generator (void *cls,
   uint8_t *cbuf = buf;
   int mod;
 
+  *emsg = NULL;
   if (buf == NULL)
     return 0;
   for (pos=0;pos<8;pos++)
@@ -647,6 +648,7 @@ GNUNET_FS_TEST_publish (struct GNUNET_FS_TestDaemon *daemon,
 	{
 	  bsize = GNUNET_MIN (sizeof (buf),
 			      size - off);
+	  emsg = NULL;
 	  GNUNET_assert (bsize ==
 			 file_generator (daemon,
 					 off,
