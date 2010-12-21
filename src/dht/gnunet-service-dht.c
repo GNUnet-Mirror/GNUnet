@@ -2959,9 +2959,9 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
   else
     random_value =
       GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG,
-                                (unsigned int) -1);
+                                UINT32_MAX);
 
-  if (random_value < (target_value * (unsigned int) -1))
+  if (random_value < (target_value * UINT32_MAX))
     forward_count += 1;
 
   return forward_count;
@@ -3969,7 +3969,7 @@ republish_content_iterator (void *cls,
   memcpy (&put_msg[1], data, size);
   new_msg_ctx->unique_id =
     GNUNET_ntohll (GNUNET_CRYPTO_random_u64
-                   (GNUNET_CRYPTO_QUALITY_WEAK, (uint64_t) - 1));
+                   (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX));
   new_msg_ctx->replication = ntohl (DEFAULT_PUT_REPLICATION);
   new_msg_ctx->msg_options = ntohl (0);
   new_msg_ctx->network_size = estimate_diameter ();
@@ -4166,12 +4166,12 @@ malicious_put_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get_forever ());
   memset (&msg_ctx, 0, sizeof (struct DHT_MessageContext));
   random_key =
-    GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, (uint32_t) - 1);
+    GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
   GNUNET_CRYPTO_hash (&random_key, sizeof (uint32_t), &key);
   memcpy (&msg_ctx.key, &key, sizeof (GNUNET_HashCode));
   msg_ctx.unique_id =
     GNUNET_ntohll (GNUNET_CRYPTO_random_u64
-                   (GNUNET_CRYPTO_QUALITY_WEAK, (uint64_t) - 1));
+                   (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX));
   msg_ctx.replication = ntohl (DHT_DEFAULT_FIND_PEER_REPLICATION);
   msg_ctx.msg_options = ntohl (0);
   msg_ctx.network_size = estimate_diameter ();
@@ -4216,12 +4216,12 @@ malicious_get_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   get_message.type = htonl (GNUNET_BLOCK_DHT_MALICIOUS_MESSAGE_TYPE);
   memset (&msg_ctx, 0, sizeof (struct DHT_MessageContext));
   random_key =
-    GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, (uint32_t) - 1);
+    GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
   GNUNET_CRYPTO_hash (&random_key, sizeof (uint32_t), &key);
   memcpy (&msg_ctx.key, &key, sizeof (GNUNET_HashCode));
   msg_ctx.unique_id =
     GNUNET_ntohll (GNUNET_CRYPTO_random_u64
-                   (GNUNET_CRYPTO_QUALITY_WEAK, (uint64_t) - 1));
+                   (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX));
   msg_ctx.replication = ntohl (DHT_DEFAULT_FIND_PEER_REPLICATION);
   msg_ctx.msg_options = ntohl (0);
   msg_ctx.network_size = estimate_diameter ();
@@ -4347,7 +4347,7 @@ send_find_peer_message (void *cls,
   memcpy (&msg_ctx.key, &my_identity.hashPubKey, sizeof (GNUNET_HashCode));
   msg_ctx.unique_id =
     GNUNET_ntohll (GNUNET_CRYPTO_random_u64
-                   (GNUNET_CRYPTO_QUALITY_STRONG, (uint64_t) - 1));
+                   (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX));
   msg_ctx.replication = DHT_DEFAULT_FIND_PEER_REPLICATION;
   msg_ctx.msg_options = DHT_DEFAULT_FIND_PEER_OPTIONS;
   msg_ctx.network_size = estimate_diameter ();
