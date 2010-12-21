@@ -501,6 +501,12 @@ static unsigned int replicate_same;
 static unsigned int get_from_same;
 
 /**
+ * Should malicious peers be set after allowing for settle time?
+ * Default is to set them malicious after initial connection setup.
+ */
+static unsigned int malicious_after_settle;
+
+/**
  * Number of rounds for testing (PUTS + GETS)
  */
 static unsigned long long total_rounds;
@@ -1933,6 +1939,9 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 static void
 schedule_find_peer_requests (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc);
 
+static void
+setup_malicious_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc);
+
 /**
  * Given a number of total peers and a bucket size, estimate the number of
  * connections in a perfect kademlia topology.
@@ -1993,6 +2002,9 @@ count_peers_cb (void *cls,
           GNUNET_CONTAINER_heap_destroy(find_peer_context->peer_min_heap);
           GNUNET_free(find_peer_context);
           fprintf(stderr, "Not sending any more find peer requests.\n");
+
+          if (GNUNET_YES == malicious_after_settle)
+            GNUNET_SCHEDULER_add_now(&setup_malicious_peers, NULL);
         }
     }
 }
@@ -2324,8 +2336,11 @@ setup_malicious_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc
     }
   else /* Otherwise, continue testing */
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Scheduling continue_puts_and_gets now!\n");
-      GNUNET_SCHEDULER_add_now (&continue_puts_and_gets, NULL);
+      if (cls != NULL)
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Scheduling continue_puts_and_gets now!\n");
+          GNUNET_SCHEDULER_add_now (&continue_puts_and_gets, NULL);
+        }
     }
 }
 
@@ -2390,21 +2405,22 @@ topology_callback (void *cls,
         }
 
       GNUNET_SCHEDULER_cancel (die_task);
-      /*die_task = GNUNET_SCHEDULER_add_delayed (DEFAULT_TIMEOUT,
-                                               &end_badly, "from setup puts/gets");*/
+
       if ((dhtlog_handle != NULL) && (settle_time > 0))
         {
           topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
-          topo_ctx->cont = &setup_malicious_peers;
+          if (GNUNET_YES == malicious_after_settle) /* Don't set malicious peers until after settle_time */
+            topo_ctx->cont = &continue_puts_and_gets;
+          else /* Set malicious peers now */
+            topo_ctx->cont = &setup_malicious_peers;
           topo_ctx->peers_seen = GNUNET_CONTAINER_multihashmap_create(num_peers);
-          //topo_ctx->cont = &continue_puts_and_gets;
+          topo_ctx->cls = NULL;
+          //
           GNUNET_SCHEDULER_add_now(&capture_current_topology, topo_ctx);
         }
       else
         {
-          GNUNET_SCHEDULER_add_now(&setup_malicious_peers, NULL);
-          /*GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time),
-                                        &continue_puts_and_gets, NULL);*/
+          GNUNET_SCHEDULER_add_now(&setup_malicious_peers, &continue_puts_and_gets);
         }
     }
   else if (total_connections + failed_connections == expected_connections)
@@ -2921,6 +2937,8 @@ run (void *cls,
 							&malicious_put_frequency))
     malicious_put_frequency = DEFAULT_MALICIOUS_PUT_FREQUENCY;
 
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(cfg, "DHT_TESTING", "MALICIOUS_AFTER_SETTLE"))
+    malicious_after_settle = GNUNET_YES;
 
   /* The normal behavior of the DHT is to do find peer requests
    * on its own.  Only if this is explicitly turned off should

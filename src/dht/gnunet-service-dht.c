@@ -4929,6 +4929,10 @@ handle_core_connect (void *cls,
 {
   struct PeerInfo *ret;
 
+  /* Check for connect to self message */
+  if (0 == memcmp(&my_identity, peer, sizeof(struct GNUNET_PeerIdentity)))
+    return;
+
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s:%s Receives core connect message for peer %s distance %d!\n",
@@ -4977,6 +4981,10 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerInfo *to_remove;
   int current_bucket;
+
+  /* Check for disconnect from self message */
+  if (0 == memcmp(&my_identity, peer, sizeof(struct GNUNET_PeerIdentity)))
+    return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s:%s: Received peer disconnect message for peer `%s' from %s\n",
