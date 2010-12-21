@@ -134,11 +134,12 @@ init_connection (struct Plugin *plugin)
   PGresult *ret;
 
   /* Open database and precompile statements */
-  conninfo = NULL;
-  GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
-					 "datacache-postgres",
-					 "CONFIG",
-					 &conninfo);
+  if (GNUNET_OK != 
+      GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
+					     "datacache-postgres",
+					     "CONFIG",
+					     &conninfo))
+    conninfo = NULL;
   plugin->dbh = PQconnectdb (conninfo == NULL ? "" : conninfo);
   GNUNET_free_non_null (conninfo);
   if (NULL == plugin->dbh)
