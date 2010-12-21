@@ -715,7 +715,7 @@ fc_acceptConnection (void *cls,
 
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY))
     {
-      GNUNET_NETWORK_socket_close (sli->listeningSocket);
+      GNUNET_assert (GNUNET_OK == GNUNET_NETWORK_socket_close (sli->listeningSocket));
       closeClientAndServiceSockets (fc, REASON_ERROR);
       GNUNET_free (sli);
       return;
