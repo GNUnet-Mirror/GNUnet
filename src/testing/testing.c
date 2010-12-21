@@ -1462,7 +1462,7 @@ connect_notify (void *cls,
 {
   struct ConnectContext *ctx = cls;
 
-  if (memcmp (&ctx->d2->id, peer, sizeof (struct GNUNET_PeerIdentity)) == 0)
+  if (0 == memcmp (&ctx->d2->id, peer, sizeof (struct GNUNET_PeerIdentity)))
     {
       ctx->connected = GNUNET_YES;
       ctx->distance = 0;        /* FIXME: distance */
