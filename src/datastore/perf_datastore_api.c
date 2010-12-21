@@ -388,6 +388,7 @@ check ()
                                  "-L", "DEBUG",
 #endif
                                  "-c", cfg_name, NULL);
+  GNUNET_assert (NULL != proc);
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "perf-datastore-api", "nohelp",
                       options, &run, NULL);
