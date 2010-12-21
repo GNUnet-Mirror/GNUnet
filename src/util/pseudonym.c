@@ -249,7 +249,7 @@ read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
        (GNUNET_OK != GNUNET_BIO_read_string(fileR, "Read string error!", ns_name, 200)) ||
        (GNUNET_OK != GNUNET_BIO_read_meta_data(fileR, "Read meta data error!", meta)) )
     {
-      GNUNET_BIO_read_close(fileR, &emsg);
+      (void) GNUNET_BIO_read_close(fileR, &emsg);
       GNUNET_free_non_null (emsg);
       GNUNET_free_non_null (*ns_name);
       *ns_name = NULL;

@@ -1466,9 +1466,9 @@ GNUNET_DISK_get_home_filename (const struct GNUNET_CONFIGURATION_Handle *cfg,
     }
   va_end (ap);
   if ((ret[strlen (ret) - 1] != '/') && (ret[strlen (ret) - 1] != '\\'))
-    GNUNET_DISK_directory_create_for_file (ret);
+    (void) GNUNET_DISK_directory_create_for_file (ret);
   else
-    GNUNET_DISK_directory_create (ret);
+    (void) GNUNET_DISK_directory_create (ret);
   return ret;
 }
 
