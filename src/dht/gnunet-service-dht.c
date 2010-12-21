@@ -3293,7 +3293,7 @@ select_peer (const GNUNET_HashCode * target,
                                              &sorted_closest[i]->id.
                                              hashPubKey))
         break;                  /* Ignore bloomfiltered peers */
-      if ((temp_converge_distance <= ULLONG_MAX) && (total_distance + temp_converge_distance > total_distance)) /* Handle largest case and overflow */
+      if (total_distance + temp_converge_distance > total_distance) /* Handle largest case and overflow */
         total_distance += temp_converge_distance;
       else
         break;                  /* overflow case */
@@ -3314,7 +3314,7 @@ select_peer (const GNUNET_HashCode * target,
               continue;         /* Ignore bloomfiltered peers */
             }
           temp_converge_distance = converge_distance (target, pos, hops);
-          if ((temp_converge_distance <= ULLONG_MAX) && (total_distance + temp_converge_distance > total_distance))     /* Handle largest case and overflow */
+          if (total_distance + temp_converge_distance > total_distance)     /* Handle largest case and overflow */
             total_distance += temp_converge_distance;
           else
             break;              /* overflow case */
@@ -3367,7 +3367,7 @@ select_peer (const GNUNET_HashCode * target,
         break;                  /* Ignore bloomfiltered peers */
       temp_converge_distance =
         converge_distance (target, sorted_closest[i], hops);
-      if ((temp_converge_distance <= ULLONG_MAX) && (stats_total_distance + temp_converge_distance > stats_total_distance))     /* Handle largest case and overflow */
+      if (stats_total_distance + temp_converge_distance > stats_total_distance)     /* Handle largest case and overflow */
         stats_total_distance += temp_converge_distance;
       else
         break;                  /* overflow case */
@@ -3397,7 +3397,7 @@ select_peer (const GNUNET_HashCode * target,
               continue;         /* Ignore bloomfiltered peers */
             }
           temp_converge_distance = converge_distance (target, pos, hops);
-          if ((temp_converge_distance <= ULLONG_MAX) && (stats_total_distance + temp_converge_distance > stats_total_distance)) /* Handle largest case and overflow */
+          if (stats_total_distance + temp_converge_distance > stats_total_distance) /* Handle largest case and overflow */
             stats_total_distance += temp_converge_distance;
           else
             break;              /* overflow case */
@@ -3430,7 +3430,7 @@ select_peer (const GNUNET_HashCode * target,
               continue;         /* Ignore bloomfiltered peers */
             }
           temp_converge_distance = converge_distance (target, pos, hops);
-          if ((temp_converge_distance <= ULLONG_MAX) && (stats_total_distance + temp_converge_distance > stats_total_distance)) /* Handle largest case and overflow */
+          if (stats_total_distance + temp_converge_distance > stats_total_distance) /* Handle largest case and overflow */
             stats_total_distance += temp_converge_distance;
           else
             break;              /* overflow case */
