@@ -455,6 +455,11 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   GNUNET_assert (p->th != NULL);
 }
 
+static size_t
+notify_ready_connect (void *cls, size_t size, void *buf)
+{
+  return 0;
+}
 
 static void
 exchange_hello_last (void *cls,
@@ -473,6 +478,14 @@ exchange_hello_last (void *cls,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
                                       message, &me->id));
+
+  GNUNET_assert(NULL != GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
+                                          &p1.id,
+                                          sizeof (struct GNUNET_MessageHeader), 0,
+                                          TIMEOUT,
+                                          &notify_ready_connect,
+                                          NULL));
+
   /* both HELLOs exchanged, get ready to test transmission! */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Finished exchanging HELLOs, now waiting for transmission!\n");
