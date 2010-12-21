@@ -766,6 +766,7 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
   struct GNUNET_TIME_Relative timeout;
   int i;
 
+  if (h == NULL) return;
   if (GNUNET_SCHEDULER_NO_TASK != h->backoff_task)
     GNUNET_SCHEDULER_cancel (h->backoff_task);
   if (sync_first)
@@ -918,6 +919,7 @@ schedule_action (struct GNUNET_STATISTICS_Handle *h)
     }
 }
 
+
 /**
  * Get statistic from the peer.
  *
@@ -1025,6 +1027,8 @@ GNUNET_STATISTICS_watch (struct GNUNET_STATISTICS_Handle *handle,
 {
   struct GNUNET_STATISTICS_WatchEntry *w;
 
+  if (handle == NULL) 
+    return GNUNET_SYSERR;
   w = GNUNET_malloc (sizeof (struct GNUNET_STATISTICS_WatchEntry));
   w->subsystem = GNUNET_strdup (subsystem);
   w->name = GNUNET_strdup (name);
