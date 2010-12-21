@@ -1099,7 +1099,7 @@ disconnect_session (struct Session *session)
 	GNUNET_SERVER_receive_done (session->client,
 				    GNUNET_SYSERR);	
     }
-  if (session->client != NULL)	
+  else if (session->client != NULL)
     GNUNET_SERVER_client_drop (session->client);
   GNUNET_STATISTICS_update (session->plugin->env->stats,
 			    gettext_noop ("# TCP sessions active"),

@@ -1406,7 +1406,7 @@ transmit_send_ok (struct TransportClient *client,
  *
  * @param cls closure, identifies the entry on the
  *            message queue that was transmitted and the
- *            client responsible for queueing the message
+ *            client responsible for queuing the message
  * @param target the peer receiving the message
  * @param result GNUNET_OK on success, if the transmission
  *           failed, we should not tell the client to transmit
