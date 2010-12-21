@@ -1561,7 +1561,7 @@ static void churn_complete (void *cls, const char *emsg)
  * requests once the new peers have done so.
  *
  * @param cls closure (unused)
- * @param cls task context (unused)
+ * @param tc task context (unused)
  */
 static void
 churn_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)

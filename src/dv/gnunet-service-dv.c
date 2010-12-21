@@ -1347,8 +1347,7 @@ get_atsi_latency (const struct GNUNET_TRANSPORT_ATS_Information *atsi)
  * @param cls closure
  * @param peer peer which sent the message (immediate sender)
  * @param message the message
- * @param latency the latency of the connection we received the message from
- * @param distance the distance to the immediate peer
+ * @param atsi transport ATS information (latency, distance, etc.)
  */
 static int 
 handle_dv_data_message (void *cls,

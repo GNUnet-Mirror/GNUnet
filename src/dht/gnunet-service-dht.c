@@ -1829,8 +1829,7 @@ schedule_ping_messages ()
  *
  * @param peer the peer identity of the peer being added
  * @param bucket the bucket that we want this peer to go in
- * @param latency transport latency of this peer
- * @param distance transport distance to this peer
+ * @param atsi transport ATS information
  *
  * @return NULL if the peer was not added,
  *         pointer to PeerInfo for new peer otherwise
@@ -3176,6 +3175,7 @@ compare_peers (const void *p1, const void *p2)
  *
  * @param target the key we are selecting a peer to route to
  * @param bloom a bloomfilter containing entries this request has seen already
+ * @param hops how many hops has this message traversed thus far
  *
  * @return Peer to route to, or NULL on error
  */
@@ -4600,6 +4600,11 @@ handle_dht_local_route_stop (void *cls, struct GNUNET_SERVER_Client *client,
 
 /**
  * Core handler for p2p route requests.
+ *
+ * @param cls closure
+ * @param peer peer identity this notification is about
+ * @param atsi performance data
+ *
  */
 static int
 handle_dht_p2p_route_request (void *cls,
@@ -4698,6 +4703,11 @@ handle_dht_p2p_route_request (void *cls,
 
 /**
  * Core handler for p2p route results.
+ *
+ * @param cls closure
+ * @param peer peer identity this notification is about
+ * @param atsi performance data
+ *
  */
 static int
 handle_dht_p2p_route_result (void *cls,

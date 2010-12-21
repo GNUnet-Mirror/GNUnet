@@ -2505,6 +2505,9 @@ copy_allowed_topology (struct GNUNET_TESTING_PeerGroup *pg)
  * of each peer in the peer group
  *
  * @param pg the peer group we are dealing with
+ * @param notify_callback callback to notify when finished
+ * @param notify_cls closure for notify callback
+ *
  * @return the number of connections that will be attempted
  */
 static int
