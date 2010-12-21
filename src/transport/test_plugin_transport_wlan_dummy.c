@@ -124,20 +124,20 @@ main(int argc, char *argv[])
   else if (pid == 0) // CHILD PROCESS
     {
       int rv = 0;
-      int read = 0;
+      int readc = 0;
       int pos = 0;
       char line[MAXLINE];
 
       while (closeprog == 0)
         {
-          read = 0;
+          readc = 0;
 
-          while (read < sizeof( struct RadiotapHeader) + sizeof(struct GNUNET_MessageHeader)){
+          while (readc < sizeof( struct RadiotapHeader) + sizeof(struct GNUNET_MessageHeader)){
             if ((rv = read(STDIN_FILENO, line, MAXLINE)) < 0)
               {
                 perror("READ ERROR FROM STDIN");
               }
-            read += rv;
+            readc += rv;
           }
 
           pos = 0;
@@ -149,9 +149,9 @@ main(int argc, char *argv[])
           //do not send radiotap header
           pos += sizeof( struct RadiotapHeader);
 
-          while (pos < read)
+          while (pos < readc)
             {
-              pos += fwrite(&line[pos], 1, read - pos, fpout);
+              pos += fwrite(&line[pos], 1, readc - pos, fpout);
             }
         }
 
