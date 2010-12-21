@@ -215,7 +215,7 @@ outer:
 				struct suid_packet *pkt = (struct suid_packet*) buf;
 				r = read(0, buf, sizeof(struct GNUNET_MessageHeader));
 				if (r <= 0) {
-					fprintf(stderr, "read-error: %m\n");
+					fprintf(stderr, "read-error: %s\n", strerror (errno));
 					shutdown(fd_tun, SHUT_WR);
 					shutdown(0, SHUT_RD);
 					wri=0;
@@ -225,7 +225,7 @@ outer:
 				while (r < ntohs(pkt->hdr.size)) {
 					int t = read(0, buf + r, ntohs(pkt->hdr.size) - r);
 					if (r < 0) {
-						fprintf(stderr, "read-error: %m\n");
+						fprintf(stderr, "read-error: %s\n", strerror (errno));
 						shutdown(fd_tun, SHUT_WR);
 						shutdown(0, SHUT_RD);
 						wri=0;
@@ -237,7 +237,7 @@ outer:
 				while (r < ntohs(pkt->hdr.size) - sizeof(struct GNUNET_MessageHeader)) {
 					int t = write(fd_tun, pkt->data, ntohs(pkt->hdr.size) - sizeof(struct GNUNET_MessageHeader) - r);
 					if (t < 0) {
-						fprintf(stderr, "write-error 3: %m\n");
+						fprintf(stderr, "write-error 3: %s\n", strerror (errno));
 						shutdown(fd_tun, SHUT_WR);
 						shutdown(0, SHUT_RD);
 						wri = 0;
@@ -249,7 +249,7 @@ outer:
 				write_stdout_possible = 0;
 				r = read(fd_tun, buf, MAX_SIZE);
 				if (r <= 0) {
-					fprintf(stderr, "read-error: %m\n");
+					fprintf(stderr, "read-error: %s\n", strerror (errno));
 					shutdown(fd_tun, SHUT_RD);
 					shutdown(1, SHUT_WR);
 					rea = 0;
@@ -260,7 +260,7 @@ outer:
 				while(r < sizeof(struct GNUNET_MessageHeader)) {
 					int t = write(1, &hdr, sizeof(struct GNUNET_MessageHeader) - r);
 					if (t < 0) {
-						fprintf(stderr, "write-error 2: %m\n");
+						fprintf(stderr, "write-error 2: %s\n", strerror (errno));
 						shutdown(fd_tun, SHUT_RD);
 						shutdown(1, SHUT_WR);
 						rea = 0;
