@@ -3631,7 +3631,10 @@ stats_check_existing (struct GNUNET_TESTING_PeerGroup *pg,
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (specific_peer->cfg, "statistics",
                                              "port", &port))
-    return GNUNET_NO;
+    {
+      GNUNET_free(unix_domain_socket);
+      return GNUNET_NO;
+    }
 
   if (specific_peer->daemon->hostname != NULL)
     GNUNET_asprintf (&to_match, "%s%s%llu", specific_peer->daemon->hostname,
