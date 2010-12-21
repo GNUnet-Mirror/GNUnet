@@ -704,6 +704,9 @@ connect_notify (void *cls,
 	      "Core told us that we are connecting to `%s'\n",
 	      GNUNET_i2s (peer));
 #endif
+  if (0 == memcmp(&my_identity, peer, sizeof(struct GNUNET_PeerIdentity)))
+    return;
+
   connection_count++;
   GNUNET_STATISTICS_set (stats,
 			 gettext_noop ("# peers connected"),
