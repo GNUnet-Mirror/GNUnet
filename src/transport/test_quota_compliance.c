@@ -801,7 +801,7 @@ main (int argc, char *argv[])
 	  else
 		  GNUNET_asprintf(&logger, "test-quota-compliance-%s-%s","tcp","symmetric");
   }
-  if (is_udp == GNUNET_YES)
+  else if (is_udp == GNUNET_YES)
   {
 	  if (is_asymmetric_recv_constant == GNUNET_YES)
 		  GNUNET_asprintf(&logger, "test-quota-compliance-%s-%s","udp","asymmetric_recv_constant");
@@ -810,7 +810,7 @@ main (int argc, char *argv[])
 	  else
 		  GNUNET_asprintf(&logger, "test-quota-compliance-%s-%s","udp","symmetric");
   }
-  if (is_http == GNUNET_YES)
+  else if (is_http == GNUNET_YES)
   {
 	  if (is_asymmetric_recv_constant == GNUNET_YES)
 		  GNUNET_asprintf(&logger, "test-quota-compliance-%s-%s","http","asymmetric_recv_constant");
@@ -819,7 +819,7 @@ main (int argc, char *argv[])
 	  else
 		  GNUNET_asprintf(&logger, "test-quota-compliance-%s-%s","http","symmetric");
   }
-  if (is_https == GNUNET_YES)
+  else if (is_https == GNUNET_YES)
   {
 	  if (is_asymmetric_recv_constant == GNUNET_YES)
 		  GNUNET_asprintf(&logger, "test-quota-compliance-%s-%s","https","asymmetric_recv_constant");
@@ -827,6 +827,10 @@ main (int argc, char *argv[])
 		  GNUNET_asprintf(&logger, "test-quota-compliance-%s-%s","https","asymmetric_send_constant");
 	  else
 		  GNUNET_asprintf(&logger, "test-quota-compliance-%s-%s","https","symmetric");
+  }
+  else
+  {
+	  GNUNET_asprintf(&logger, "test-quota-compliance-%s-%s","noplugin","none");
   }
 
   GNUNET_DISK_directory_remove ("/tmp/test_quota_compliance_peer1");
