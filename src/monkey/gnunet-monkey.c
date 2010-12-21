@@ -96,7 +96,10 @@ int wait_for_stop(mi_h *h)
  if (sr)
    {
     f = gmi_stack_info_frame(h);
-    send_bug_mail(sr, f);
+    if (f != NULL)
+      send_bug_mail(sr, f);
+    else
+      GNUNET_break (0);
     mi_free_stop(sr);
     res = 0;
    }
