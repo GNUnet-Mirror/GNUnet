@@ -71,10 +71,9 @@ receive_info (void *cls,
   uint16_t msize;
 
   /* Handle last message or error case, disconnect and clean up */
-  msize = ntohs (msg->size);
   if ( (msg == NULL) ||
       ((ntohs (msg->type) == GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS_END) &&
-      (msize == sizeof (struct GNUNET_MessageHeader))) )
+      (ntohs (msg->size) == sizeof (struct GNUNET_MessageHeader))) )
     {
       if (request_context->peer_cb != NULL)
 	request_context->peer_cb (request_context->cb_cls,
@@ -84,6 +83,7 @@ receive_info (void *cls,
       return;
     }
 
+  msize = ntohs (msg->size);
   /* Handle incorrect message type or size, disconnect and clean up */
   if ( (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT) ||
        (msize < sizeof (struct ConnectNotifyMessage)) )
