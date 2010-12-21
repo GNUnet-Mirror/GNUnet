@@ -842,10 +842,11 @@ update_config (void *cls,
                            "/tmp/test-service-%s-%u", section, ctx->upnum++);
           value = uval;
         }
-      else if (GNUNET_YES ==
+      else if ((GNUNET_YES ==
                GNUNET_CONFIGURATION_get_value_number (ctx->orig, "testing",
                                                       per_host_variable,
-                                                      &num_per_host))
+                                                      &num_per_host)) && (num_per_host > 0))
+
         {
           GNUNET_snprintf (uval,
                            sizeof (uval),
