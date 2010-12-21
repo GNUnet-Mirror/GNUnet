@@ -860,7 +860,7 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
   if (GNUNET_CONFIGURATION_have_value (cfg,
                                        serviceName, "UNIXPATH"))
     {
-      GNUNET_break (GNUNET_OK ==
+      GNUNET_assert (GNUNET_OK ==
                     GNUNET_CONFIGURATION_get_value_string (cfg,
                                                            serviceName,
                                                            "UNIXPATH",
