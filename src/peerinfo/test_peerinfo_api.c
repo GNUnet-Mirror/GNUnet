@@ -179,6 +179,7 @@ check ()
                                  "-L", "DEBUG",
 #endif
                                  "-c", "test_peerinfo_api_data.conf", NULL);
+  GNUNET_assert (NULL != proc);
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "test-peerinfo-api", "nohelp",
                       options, &run, &ok);
