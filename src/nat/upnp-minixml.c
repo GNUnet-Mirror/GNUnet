@@ -49,7 +49,7 @@
  */
 
 /**
- * @file nat/minixml.c
+ * @file nat/upnp-minixml.c
  * @brief Simple XML parser used by UPnP
  *
  * @author Milan Bouchet-Valat

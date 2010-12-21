@@ -19,7 +19,7 @@
 */
 
 /**
- * @file transport/gnunet_transport_plugin.http.c
+ * @file transport/plugin_transport_http.c
  * @brief http transport service plugin
  * @author Matthias Wachs
  */

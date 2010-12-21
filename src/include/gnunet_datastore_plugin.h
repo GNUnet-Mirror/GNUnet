@@ -19,7 +19,7 @@
 */
 
 /**
- * @file datastore/gnunet_datastore_plugin.h
+ * @file include/gnunet_datastore_plugin.h
  * @brief API for the database backend plugins.
  * @author Christian Grothoff
  */

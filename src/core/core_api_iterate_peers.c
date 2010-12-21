@@ -148,7 +148,6 @@ transmit_request(void *cls,
 /**
  * Obtain statistics and/or change preferences for the given peer.
  *
- * @param sched scheduler to use
  * @param cfg configuration to use
  * @param peer_cb function to call with the peer information
  * @param cb_cls closure for peer_cb

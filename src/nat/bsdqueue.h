@@ -19,7 +19,7 @@
 */
 
 /**
- * @file nat/bsd-queue.h
+ * @file nat/bsdqueue.h
  * @brief BSD implementation of simple lists
  *
  * @author Milan Bouchet-Valat

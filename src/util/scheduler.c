@@ -432,7 +432,6 @@ is_ready (struct Task *task,
 /**
  * Put a task that is ready for execution into the ready queue.
  *
- * @param handle the scheduler
  * @param task task ready for execution
  */
 static void
@@ -451,7 +450,6 @@ queue_ready_task (struct Task *task)
  * Check which tasks are ready and move them
  * to the respective ready queue.
  *
- * @param handle the scheduler
  * @param rs FDs ready for reading
  * @param ws FDs ready for writing
  */

@@ -1150,7 +1150,7 @@ select_better_session (struct Session *s1,
  * gnunet-nat-client to send dummy ICMP responses.
  *
  * @param plugin the plugin for this transport
- * @param addr the address of the peer (IPv4-only)
+ * @param sa the address of the peer (IPv4-only)
  */
 static void
 run_gnunet_nat_client (struct Plugin *plugin, 

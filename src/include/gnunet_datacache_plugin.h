@@ -19,7 +19,7 @@
 */
 
 /**
- * @file datacache/gnunet_datacache_plugin.h
+ * @file include/gnunet_datacache_plugin.h
  * @brief API for database backends for the datacache
  * @author Christian Grothoff
  */

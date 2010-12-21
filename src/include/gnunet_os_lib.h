@@ -188,7 +188,7 @@ struct GNUNET_OS_Process *GNUNET_OS_process_current (void);
 
 
 /**
- * Sends @sig to the process
+ * Sends sig to the process
  *
  * @param proc pointer to process structure
  * @param sig signal

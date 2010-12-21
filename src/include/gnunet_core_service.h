@@ -111,7 +111,7 @@ typedef int
   (*GNUNET_CORE_MessageCallback) (void *cls,
                                   const struct GNUNET_PeerIdentity *other,
                                   const struct GNUNET_MessageHeader *message,
-				  const struct GNUNET_TRANSPORT_ATS_Information *atsi);
+                                  const struct GNUNET_TRANSPORT_ATS_Information *atsi);
 
 
 /**
