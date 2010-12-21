@@ -1195,6 +1195,8 @@ run_gnunet_nat_client (struct Plugin *plugin,
 				  inet4,
 				  port_as_string, 
 				  NULL);
+  if (NULL == proc)
+    return;
   /* we know that the gnunet-nat-client will terminate virtually
      instantly */
   GNUNET_OS_process_wait (proc);
