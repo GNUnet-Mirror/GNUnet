@@ -1555,6 +1555,7 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
 	{
 	  GNUNET_break (handle->queue_size != 0);
 	  GNUNET_break (pr->queue_size == 0);
+	  GNUNET_free(th);
 	  return NULL;
 	}
       if (priority <= minp->priority)
