@@ -4899,7 +4899,6 @@ handle_start (void *cls,
     	  GNUNET_break(0);
       }
       cim = GNUNET_malloc (size);
-
       cim->header.size = htons (size);
       cim->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
       cim->ats_count = htonl(ats_count);
@@ -4919,9 +4918,9 @@ handle_start (void *cls,
 		  }
 	    n = n->next;
       }
+      GNUNET_free (cim);
   }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  GNUNET_free(cim);
 }
 
 
