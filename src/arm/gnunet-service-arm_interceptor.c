@@ -865,7 +865,7 @@ start_forwarding (void *cls,
       if ( (strncmp (listen_address, "[::]:", 5) == 0) || (strncmp (listen_address, "::", 2) == 0) )
 	{
 	  memset (&target_ipv6, 0, sizeof (target_ipv6));
-	  inet_pton (AF_INET6, "::1", &target_ipv6.sin6_addr);
+	  target_ipv6.sin6_addr = in6addr_loopback;
 	  target_ipv6.sin6_family = AF_INET6;
 	  target_ipv6.sin6_port = v6->sin6_port;
 	  v6 = &target_ipv6;
