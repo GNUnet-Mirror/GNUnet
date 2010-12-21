@@ -103,6 +103,7 @@ check ()
 #endif
                                  "-c", "test_statistics_api_data.conf", NULL);
 #endif
+  GNUNET_assert (NULL != proc);
   GNUNET_PROGRAM_run (3, argv, "test-statistics-api", "nohelp",
                       options, &run, &ok);
 #if START_SERVICE
