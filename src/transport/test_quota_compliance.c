@@ -415,11 +415,11 @@ measurement_end (void *cls,
 		  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 				  "\nQuota measurement failed and no free strike: %i\n",failed_measurement_counter);
 		  end();
+		  return;
 	  }
 	  else
 		  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 				  "\nQuota measurement failed and %i free strikes\n",failed_measurement_counter);
-	  return;
   }
 
   /* Throughput is bigger than allowed quota + some extra*/
@@ -441,11 +441,11 @@ measurement_end (void *cls,
 		  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 				  "\nQuota measurement failed and no free strike: %i\n",failed_measurement_counter);
 		  end();
+		  return;
 	  }
 	  else
 		  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 				  "\nQuota measurement failed and %i free strikes\n",failed_measurement_counter);
-	  return;
   }
   else
   {
