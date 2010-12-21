@@ -859,14 +859,14 @@ main_notify_handler (void *cls,
 	  trigger_next_request (h, GNUNET_NO);
 	}
       h->retry_backoff = GNUNET_TIME_UNIT_MILLISECONDS;
+      GNUNET_CRYPTO_hash (&m->publicKey,
+			  sizeof (struct
+				  GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+			  &h->me.hashPubKey);
       if (NULL != (init = h->init))
 	{
 	  /* mark so we don't call init on reconnect */
 	  h->init = NULL;
-	  GNUNET_CRYPTO_hash (&m->publicKey,
-			      sizeof (struct
-				      GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-			      &h->me.hashPubKey);
 #if DEBUG_CORE
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Connected to core service of peer `%s'.\n",
