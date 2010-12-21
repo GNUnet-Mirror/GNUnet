@@ -375,6 +375,7 @@ check()
       "-L", "DEBUG",
 #endif
       "-c", "test_resolver_api_data.conf", NULL);
+  GNUNET_assert (NULL != proc);
   GNUNET_free(fn);
   GNUNET_assert(GNUNET_OK == GNUNET_PROGRAM_run((sizeof(argv) / sizeof(char *))
       - 1, argv, "test-resolver-api", "nohelp", options, &run, &ok));
