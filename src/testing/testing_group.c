@@ -1489,14 +1489,14 @@ create_nated_internet (struct GNUNET_TESTING_PeerGroup *pg,
   nat_percentage = 0.6;         /* FIXME: default percentage? */
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (pg->cfg,
                                                           "TESTING",
-                                                          "NATPERCENTAGE",
+                                                          "PERCENTAGE",
                                                           &p_string))
     {
       if (sscanf (p_string, "%lf", &nat_percentage) != 1)
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                     _
                     ("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
-                    p_string, "NATPERCENTAGE", "TESTING");
+                    p_string, "PERCENTAGE", "TESTING");
       GNUNET_free (p_string);
     }
 
