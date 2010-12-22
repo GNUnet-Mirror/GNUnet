@@ -2927,6 +2927,7 @@ handle_client_request_connect (void *cls,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
+  GNUNET_break (ntohl (cm->reserved) == 0);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   n = find_neighbour (&cm->peer);
   if (n == NULL)
@@ -4459,6 +4460,7 @@ handle_transport_notify_disconnect (void *cls,
     {
       cnm.header.size = htons (sizeof (struct DisconnectNotifyMessage));
       cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT);
+      cnm.reserved = htonl (0);
       cnm.peer = *peer;
       send_to_all_clients (&cnm.header, GNUNET_NO, GNUNET_CORE_OPTION_SEND_DISCONNECT);
     }

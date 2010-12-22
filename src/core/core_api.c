@@ -964,6 +964,7 @@ main_notify_handler (void *cls,
 	  GNUNET_break (0);
 	  return;
 	}
+      GNUNET_break (0 == ntohl (dnm->reserved));
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Received notification about disconnect from `%s'.\n",
