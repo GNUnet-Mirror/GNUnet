@@ -771,6 +771,10 @@ struct MigrationReadyBlock
   enum GNUNET_BLOCK_Type type;
 };
 
+/**
+ * Identity of this peer.
+ */
+static struct GNUNET_PeerIdentity my_id;
 
 /**
  * Our connection to the datastore.
@@ -1615,6 +1619,8 @@ destroy_pending_request (struct PendingRequest *pr)
 static struct GNUNET_TIME_Relative
 get_latency (const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
+  if (atsi == NULL)
+    return GNUNET_TIME_UNIT_SECONDS;
   while ( (ntohl (atsi->type) != GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR) &&
 	  (ntohl (atsi->type) != GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY) )
     atsi++;
@@ -1648,6 +1654,8 @@ peer_connect_handler (void *cls,
   uint32_t trust;
   struct GNUNET_TIME_Relative latency;
 
+  if (0 == memcmp (&my_id, peer, sizeof (struct GNUNET_PeerIdentity)))
+    return;
   latency = get_latency (atsi);
   cp = GNUNET_CONTAINER_multihashmap_get (connected_peers,
 					  &peer->hashPubKey);
@@ -1856,6 +1864,8 @@ peer_disconnect_handler (void *cls,
   struct MigrationReadyBlock *pos;
   struct MigrationReadyBlock *next;
 
+  if (0 == memcmp (&my_id, peer, sizeof (struct GNUNET_PeerIdentity)))
+    return;
   GNUNET_CONTAINER_multihashmap_get_multiple (peer_request_map,
 					      &peer->hashPubKey,
 					      &destroy_request,
@@ -4589,6 +4599,35 @@ handle_start_search (void *cls,
 
 /* **************************** Startup ************************ */
 
+
+
+/**
+ * Function called after GNUNET_CORE_connect has succeeded
+ * (or failed for good).  Note that the private key of the
+ * peer is intentionally not exposed here; if you need it,
+ * your process should try to read the private key file
+ * directly (which should work if you are authorized...).
+ *
+ * @param cls closure
+ * @param server handle to the server, NULL if we failed
+ * @param my_identity ID of this peer, NULL if we failed
+ * @param publicKey public key of this peer, NULL if we failed
+ */
+static void
+peer_init_handler (void *cls,
+		   struct GNUNET_CORE_Handle * server,
+		   const struct GNUNET_PeerIdentity *
+		   my_identity,
+		   const struct
+		   GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *
+		   publicKey)
+{
+  my_id = *my_identity;
+}
+
+
+
+
 /**
  * Process fs requests.
  *
@@ -4653,7 +4692,7 @@ main_init (struct GNUNET_SERVER_Handle *server,
   core = GNUNET_CORE_connect (cfg,
 			      1, /* larger? */
 			      NULL,
-			      NULL,
+			      &peer_init_handler,
 			      &peer_connect_handler,
 			      &peer_disconnect_handler,
 			      &peer_status_handler,
