@@ -36,7 +36,7 @@ gnunet_service_core_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
-  
+
 check_PROGRAMS = \
  test_core_api_start_only \
  test_core_api \

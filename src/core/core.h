@@ -129,11 +129,6 @@ struct ConnectNotifyMessage
   uint32_t ats_count GNUNET_PACKED;
 
   /**
-   * Currently observed latency.
-   */
-  struct GNUNET_TIME_RelativeNBO latency;
-
-  /**
    * Identity of the connecting peer.
    */
   struct GNUNET_PeerIdentity peer;
