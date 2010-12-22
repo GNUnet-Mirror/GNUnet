@@ -580,7 +580,8 @@ file_generator (void *cls,
   uint8_t *cbuf = buf;
   int mod;
 
-  *emsg = NULL;
+  if (emsg != NULL)
+    *emsg = NULL;
   if (buf == NULL)
     return 0;
   for (pos=0;pos<8;pos++)
