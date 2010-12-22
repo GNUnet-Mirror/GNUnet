@@ -220,8 +220,7 @@ check_PROGRAMS = \
  test_quota_compliance_udp \
  test_quota_compliance_udp_asymmetric_recv_constant \
  $(HTTP_QUOTA_TEST) \
- $(HTTPS_QUOTA_TEST) \
- test_plugin_transport_wlan
+ $(HTTPS_QUOTA_TEST)
 # TODO: add tests for nat, etc.
 
 if !DISABLE_TEST_RUN
