@@ -36,6 +36,7 @@ if HAVE_PCAP
 if LINUX
  WANBIN = gnunet-transport-wlan-helper
  WLAN_PLUGIN_LA = libgnunet_plugin_transport_wlan.la
+ WLAN_API_TEST = test_transport_api_wlan
 endif
 endif
 
@@ -200,6 +201,7 @@ libgnunet_plugin_transport_https_la_CFLAGS = \
  $(CFLAGS) -DBUILD_HTTPS  
 endif
 
+
 check_PROGRAMS = \
  test_transport_api_tcp \
  test_transport_api_tcp_nat \
@@ -209,7 +211,7 @@ check_PROGRAMS = \
  $(HTTP_API_TEST) \
  $(HTTPS_PLUGIN_TEST) \
  $(HTTPS_API_TEST) \
- test_transport_api_wlan \
+ $(WLAN_API_TEST) \
  test_transport_api_multi \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
@@ -331,11 +333,15 @@ test_transport_api_reliability_https_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
+if HAVE_PCAP
+if LINUX
 test_transport_api_wlan_SOURCES = \
  test_transport_api.c
 test_transport_api_wlan_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la  
+endif
+endif
 
 test_quota_compliance_tcp_SOURCES = \
  test_quota_compliance.c
@@ -414,8 +420,6 @@ test_transport_api_multi_SOURCES = \
 test_transport_api_multi_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la  
-
-
 EXTRA_DIST = \
   test_transport_api_data.conf \
   test_transport_api_tcp_peer1.conf \

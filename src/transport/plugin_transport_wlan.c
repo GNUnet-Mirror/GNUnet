@@ -49,7 +49,7 @@
 
 #define FRAGMENT_QUEUE_SIZE 10
 
-#define DEBUG_wlan GNUNET_NO
+#define DEBUG_wlan GNUNET_YES
 
 #define MESSAGE_LENGHT_UNKNOWN -1
 #define NO_MESSAGE_OR_MESSAGE_FINISHED -2
@@ -1994,7 +1994,7 @@ wlan_plugin_helper_read (void *cls,
 static int
 wlan_transport_start_wlan_helper(struct Plugin *plugin, int testmode)
 {
-
+  char * filename = "gnunet-transport-wlan-helper";
   plugin->server_stdout = GNUNET_DISK_pipe(GNUNET_YES, GNUNET_NO, GNUNET_YES);
   if (plugin->server_stdout == NULL)
     return GNUNET_SYSERR;
@@ -2005,12 +2005,12 @@ wlan_transport_start_wlan_helper(struct Plugin *plugin, int testmode)
 
 #if DEBUG_wlan
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "Starting gnunet-wlan-helper process cmd: %s %s\n", "gnunet-wlan-helper", plugin->interface);
+      "Starting gnunet-wlan-helper process cmd: %s %s %i\n", filename, plugin->interface, testmode);
 #endif
   /* Start the server process */
+
   plugin->server_proc = GNUNET_OS_start_process(plugin->server_stdin,
-      plugin->server_stdout, "gnunet-transport-wlan-helper",
-      plugin->interface, testmode, NULL);
+		  plugin->server_stdout, filename, plugin->interface, ((testmode==1)?"1":"0"), NULL);
   if (plugin->server_proc == NULL)
     {
 #if DEBUG_wlan
@@ -2077,7 +2077,6 @@ libgnunet_plugin_transport_wlan_init (void *cls)
 
   GNUNET_assert(cls !=NULL);
 
-  fprintf(stderr,"HERE");
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
   plugin->pendingsessions = 0;

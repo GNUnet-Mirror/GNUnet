@@ -595,11 +595,11 @@ testmode(int argc, char *argv[])
 int
 main(int argc, char *argv[])
 {
-	if ((argc==3) && (strstr(argv[2],"1")))
+	if ((argc==2) && (strstr(argv[1],"1")))
 	{
 		return testmode(argc, argv);
 	}
-
+#if 0
 	u8 u8aSendBuffer[500];
 	char szErrbuf[PCAP_ERRBUF_SIZE];
 	int nCaptureHeaderLength = 0, n80211HeaderLength = 0, nLinkEncap = 0;
@@ -697,7 +697,7 @@ main(int argc, char *argv[])
 
 	//get header type
 	nLinkEncap = pcap_datalink(ppcap);
-	nCaptureHeaderLength = 0;
+	nCaptureHeaderLength = 0;home/mwachs/gnb/bin/
 
 	switch (nLinkEncap) {
 
@@ -857,7 +857,7 @@ main(int argc, char *argv[])
 	}
 
 
-
+#endif
 	return (0);
 }
 
