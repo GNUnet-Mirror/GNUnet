@@ -392,10 +392,11 @@ int ieee80211_radiotap_iterator_next(
 	return -ENOENT;
 }
 
-#define FIFO_FILE1       "MYFIFOin"
-#define FIFO_FILE2       "MYFIFOout"
+#define FIFO_FILE1       "/tmp/MYFIFOin"
+#define FIFO_FILE2       "/tmp/MYFIFOout"
 #define MAXLINE         5000
 
+int first;
 int closeprog = 0;
 
 void sigfunc(int sig)
@@ -404,9 +405,14 @@ void sigfunc(int sig)
  if(sig != SIGINT || sig != SIGTERM || sig != SIGKILL)
    return;
  else
-  {
-   closeprog = 1;
-   }
+    {
+      closeprog = 1;
+      if (first == 1)
+        {
+          unlink(FIFO_FILE1);
+          unlink(FIFO_FILE2);
+        }
+    }
 }
 
 
@@ -416,19 +422,18 @@ testmode(int argc, char *argv[])
 {
   struct stat st;
   int erg;
-  int first;
+
+  int fd[2];
   FILE *fpin;
   FILE *fpout;
   pid_t pid;
 
-  signal(SIGINT,sigfunc);
-  signal(SIGTERM,sigfunc);
-  signal(SIGKILL,sigfunc);
+
 
   //make the fifos if needed
   if (stat(FIFO_FILE1, &st) != 0)
     {
-      if (stat(FIFO_FILE2, &st) != 0)
+      if (stat(FIFO_FILE2, &st) == 0)
         {
           perror("FIFO 2 exists, but FIFO 1 not");
           exit(1);
@@ -452,7 +457,7 @@ testmode(int argc, char *argv[])
   else
     {
       first = 0;
-      if (stat(FIFO_FILE2, &st) == 0)
+      if (stat(FIFO_FILE2, &st) != 0)
         {
           perror("FIFO 1 exists, but FIFO 2 not");
           exit(1);
@@ -472,6 +477,9 @@ testmode(int argc, char *argv[])
 
   // fork
 
+  fd[0] = STDIN_FILENO;
+  fd[1] = STDOUT_FILENO;
+
   if ((pid = fork()) < 0)
     {
       perror("FORK ERROR");
@@ -488,6 +496,10 @@ testmode(int argc, char *argv[])
     }
   else if (pid == 0) // CHILD PROCESS
     {
+
+      signal(SIGINT, sigfunc);
+      signal(SIGTERM, sigfunc);
+      signal(SIGKILL, sigfunc);
       int rv = 0;
       int readc = 0;
       int pos = 0;
@@ -498,7 +510,7 @@ testmode(int argc, char *argv[])
           readc = 0;
 
           while (readc < sizeof( struct RadiotapHeader) + sizeof(struct GNUNET_MessageHeader)){
-            if ((rv = read(STDIN_FILENO, line, MAXLINE)) < 0)
+            if ((rv = read(fd[0], line, MAXLINE)) < 0)
               {
                 perror("READ ERROR FROM STDIN");
               }
@@ -526,11 +538,13 @@ testmode(int argc, char *argv[])
     }
   else // PARENT PROCESS
     {
+      signal(SIGINT, sigfunc);
+      signal(SIGTERM, sigfunc);
+      signal(SIGKILL, sigfunc);
       int rv = 0;
       ssize_t pos = 0;
       char line[MAXLINE];
       struct Wlan_Helper_Control_Message macmsg;
-
 
       //Send random mac address
       macmsg.mac.mac[0] = 0x13;
@@ -544,7 +558,7 @@ testmode(int argc, char *argv[])
       pos = 0;
       while (pos < sizeof(struct Wlan_Helper_Control_Message))
         {
-          pos += write(STDOUT_FILENO, &macmsg + pos, sizeof(struct Wlan_Helper_Control_Message) - pos);
+          pos += write(fd[1], &macmsg + pos, sizeof(struct Wlan_Helper_Control_Message) - pos);
         }
 
       while (closeprog == 0)
@@ -557,7 +571,7 @@ testmode(int argc, char *argv[])
           pos = 0;
           while (pos < rv)
             {
-              pos += write(STDOUT_FILENO, &line[pos], rv - pos);
+              pos += write(fd[1], &line[pos], rv - pos);
             }
         }
 
