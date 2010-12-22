@@ -236,11 +236,6 @@ struct NotifyTrafficMessage
   uint32_t ats_count GNUNET_PACKED;
 
   /**
-   * Currently observed latency.
-   */
-  struct GNUNET_TIME_RelativeNBO latency;
-
-  /**
    * Identity of the receiver or sender.
    */
   struct GNUNET_PeerIdentity peer;
