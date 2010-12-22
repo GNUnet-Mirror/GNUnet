@@ -36,7 +36,8 @@ if HAVE_PCAP
 if LINUX
  WANBIN = gnunet-transport-wlan-helper
  WLAN_PLUGIN_LA = libgnunet_plugin_transport_wlan.la
- WLAN_API_TEST = test_transport_api_wlan
+ WLAN_API_TEST =
+# WLAN_API_TEST = test_transport_api_wlan
 endif
 endif
 
@@ -233,7 +234,7 @@ TESTS = \
  $(HTTP_API_TEST) \
  $(HTTPS_PLUGIN_TEST) \
  $(HTTPS_API_TEST) \
- test_transport_api_wlan \
+ $(WLAN_API_TEST) \
  test_transport_api_multi \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
