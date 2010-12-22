@@ -125,6 +125,8 @@ struct GNUNET_HOSTLIST_ADV_Message
 };
 
 
+static struct GNUNET_PeerIdentity me;
+
 static void
 core_init (void *cls,
 	   struct GNUNET_CORE_Handle * server,
@@ -134,7 +136,7 @@ core_init (void *cls,
 	   GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *
 	   publicKey)
 {
- /* Nothing to do here */
+  me = *my_identity;
 }
 
 /**
@@ -163,6 +165,8 @@ connect_handler (void *cls,
                  GNUNET_PeerIdentity * peer,
 		 const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
+  if (0 == memcmp (&me, peer, sizeof (struct GNUNET_PeerIdentity)))
+    return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "A new peer connected, notifying client and server\n");
   if ( NULL != client_ch)
@@ -184,7 +188,8 @@ disconnect_handler (void *cls,
                     const struct
                     GNUNET_PeerIdentity * peer)
 {
-
+  if (0 == memcmp (&me, peer, sizeof (struct GNUNET_PeerIdentity)))
+    return;
   /* call hostlist client disconnect handler*/
   if ( NULL != client_dh)
     (*client_dh) (cls, peer);
