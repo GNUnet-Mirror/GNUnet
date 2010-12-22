@@ -34,6 +34,7 @@
 #include "gnunet_os_lib.h"
 #include "gnunet_transport_plugin.h"
 #include "transport.h"
+#include "gnunet_util_lib.h"
 #include "plugin_transport_wlan.h"
 #include "gnunet_common.h"
 #include "gnunet-transport-wlan-helper.h"
@@ -394,7 +395,7 @@ int ieee80211_radiotap_iterator_next(
 
 #define FIFO_FILE1       "/tmp/MYFIFOin"
 #define FIFO_FILE2       "/tmp/MYFIFOout"
-#define MAXLINE         5000
+#define MAXLINE         20
 
 int first;
 int closeprog = 0;
@@ -407,11 +408,10 @@ void sigfunc(int sig)
  else
     {
       closeprog = 1;
-      if (first == 1)
-        {
-          unlink(FIFO_FILE1);
-          unlink(FIFO_FILE2);
-        }
+
+      unlink(FIFO_FILE1);
+      unlink(FIFO_FILE2);
+
     }
 }
 
@@ -504,31 +504,48 @@ testmode(int argc, char *argv[])
       int readc = 0;
       int pos = 0;
       char line[MAXLINE];
+      int ret = 0;
 
       while (closeprog == 0)
         {
           readc = 0;
 
-          while (readc < sizeof( struct RadiotapHeader) + sizeof(struct GNUNET_MessageHeader)){
+          //while (readc < sizeof( struct RadiotapHeader) + sizeof(struct GNUNET_MessageHeader)){
             if ((rv = read(fd[0], line, MAXLINE)) < 0)
               {
                 perror("READ ERROR FROM STDIN");
               }
             readc += rv;
+          //}
+
+          if (closeprog == 1){
+            break;
           }
 
           pos = 0;
 
-          fwrite(&line[pos], 1, sizeof(struct GNUNET_MessageHeader), fpout);
 
-          pos += sizeof(struct GNUNET_MessageHeader);
+          perror("writing blub");
+          //fwrite(&line[pos], 1, sizeof(struct GNUNET_MessageHeader), fpout);
+
+          //pos += sizeof(struct GNUNET_Mes#include "gnunet_util_lib.h"sageHeader);
 
           //do not send radiotap header
-          pos += sizeof( struct RadiotapHeader);
+          //pos += sizeof( struct RadiotapHeader);
 
           while (pos < readc)
             {
-              pos += fwrite(&line[pos], 1, readc - pos, fpout);
+              ret = fwrite(&line[pos], 1, readc - pos, fpout);
+              if (ret < 0)
+                {
+                  closeprog = 1;
+                  perror("Write ERROR FROM fpout");
+                  break;
+                }
+              else
+                {
+                  pos += ret;
+                }
             }
         }
 
@@ -542,6 +559,7 @@ testmode(int argc, char *argv[])
       signal(SIGTERM, sigfunc);
       signal(SIGKILL, sigfunc);
       int rv = 0;
+      int ret = 0;
       ssize_t pos = 0;
       char line[MAXLINE];
       struct Wlan_Helper_Control_Message macmsg;
@@ -554,8 +572,10 @@ testmode(int argc, char *argv[])
       macmsg.mac.mac[4] = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 255);
       macmsg.mac.mac[5] = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 255);
       macmsg.hdr.size = sizeof(struct Wlan_Helper_Control_Message);
+      macmsg.hdr.type = GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL;
 
       pos = 0;
+
       while (pos < sizeof(struct Wlan_Helper_Control_Message))
         {
           pos += write(fd[1], &macmsg + pos, sizeof(struct Wlan_Helper_Control_Message) - pos);
@@ -567,11 +587,24 @@ testmode(int argc, char *argv[])
             {
               perror("READ ERROR FROM fpin");
             }
-
+          if (closeprog == 1){
+            break;
+          }
           pos = 0;
           while (pos < rv)
             {
-              pos += write(fd[1], &line[pos], rv - pos);
+
+              ret= write(fd[1], &line[pos], rv - pos);
+              if (ret < 0)
+                {
+                  closeprog = 1;
+                  perror("Write ERROR FROM STDout");
+                  break;
+                }
+              else
+                {
+                  pos += ret;
+                }
             }
         }
 
