@@ -1111,24 +1111,22 @@ schedule_peer_messages (struct Neighbour *n)
 	    car = pos;
 	  pos = pos->next;
 	}
-      if (car == NULL)
-	return; /* no pending requests */
-      GNUNET_CONTAINER_DLL_remove (n->active_client_request_head,
-				   n->active_client_request_tail,
-				   car);
     }
   else
     {
       car = n->active_client_request_head;
-      if (car == NULL)
-	return; /* no pending requests */
     }
+  if (car == NULL)
+    return; /* no pending requests */
 #if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Permitting client transmission request to `%s'\n",
 	      GNUNET_i2s (&n->peer));
 #endif
   c = car->client;
+  GNUNET_CONTAINER_DLL_remove (n->active_client_request_head,
+			       n->active_client_request_tail,
+			       car);
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove (c->requests,
 						       &n->peer.hashPubKey,
@@ -4634,6 +4632,7 @@ run (void *cls,
   GNUNET_CRYPTO_hash (&my_public_key,
                       sizeof (my_public_key), &my_identity.hashPubKey);
   self.public_key = &my_public_key;
+  self.peer = my_identity;
   self.last_activity = GNUNET_TIME_UNIT_FOREVER_ABS;
   self.status = PEER_STATE_KEY_CONFIRMED;
   self.is_connected = GNUNET_YES;
