@@ -32,6 +32,20 @@
 typedef unsigned int uint32_t;
 typedef unsigned short uint16_t;
 
+
+struct MacAddress
+{
+  char mac[6];
+};
+
+struct Wlan_Helper_Control_Message
+{
+  struct GNUNET_MessageHeader hdr;
+  struct MacAddress mac ;
+};
+
+
+
 /* Wlan IEEE80211 header default */
 //Informations (in German) http://www.umtslink.at/content/WLAN_macheader-196.html
 static const uint8_t u8aIeeeHeader[] = 
@@ -74,18 +88,18 @@ struct IeeeHeader
   /**
    * first mac byte 1
    */
-  uint8_t mac1[6];
+  struct MacAddress mac1;
 
   
   /**
    * second mac
    */
-  uint8_t mac2[6];
+  struct MacAddress mac2;
   
   /**
    * third mac
    */
-  uint8_t mac3[6];
+  struct MacAddress mac3;
   
   /**
    * Wlan Sequence Control

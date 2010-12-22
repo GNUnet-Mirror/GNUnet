@@ -119,6 +119,15 @@ main(int argc, char *argv[])
   if ((pid = fork()) < 0)
     {
       perror("FORK ERROR");
+
+      //clean up
+      if (first == 1)
+              {
+                unlink(FIFO_FILE1);
+                unlink(FIFO_FILE2);
+              }
+      fclose(fpin);
+      fclose(fpout);
       return -3;
     }
   else if (pid == 0) // CHILD PROCESS
@@ -164,12 +173,29 @@ main(int argc, char *argv[])
       int rv = 0;
       ssize_t pos = 0;
       char line[MAXLINE];
+      struct Wlan_Helper_Control_Message macmsg;
+
+
+      //Send random mac address
+      macmsg.mac.mac[0] = 0x13;
+      macmsg.mac.mac[1] = 0x22;
+      macmsg.mac.mac[2] = 0x33;
+      macmsg.mac.mac[3] = 0x44;
+      macmsg.mac.mac[4] = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 255);
+      macmsg.mac.mac[5] = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 255);
+      macmsg.hdr.size = sizeof(struct Wlan_Helper_Control_Message);
+
+      pos = 0;
+      while (pos < sizeof(struct Wlan_Helper_Control_Message))
+        {
+          pos += write(STDOUT_FILENO, &macmsg + pos, sizeof(struct Wlan_Helper_Control_Message) - pos);
+        }
 
       while (closeprog == 0)
         {
           if ((rv = fread(line, 1, MAXLINE, fpin)) < 0)
             {
-              perror("READ ERROR FROM STDIN");
+              perror("READ ERROR FROM fpin");
             }
 
           pos = 0;
