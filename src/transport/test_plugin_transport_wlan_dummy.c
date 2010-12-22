@@ -58,7 +58,7 @@ void sigfunc(int sig)
 int
 main(int argc, char *argv[])
 {
-  struct stat st;
+  struct stat st,st2;
   int erg;
   int first;
   FILE *fpin;
@@ -72,7 +72,7 @@ main(int argc, char *argv[])
   //make the fifos if needed
   if (stat(FIFO_FILE1, &st) != 0)
     {
-      if (stat(FIFO_FILE2, &st) != 0)
+      if (stat(FIFO_FILE2, &st2) != 0)
         {
           perror("FIFO 2 exists, but FIFO 1 not");
           exit(1);
@@ -96,7 +96,7 @@ main(int argc, char *argv[])
   else
     {
       first = 0;
-      if (stat(FIFO_FILE2, &st) == 0)
+      if (stat(FIFO_FILE2, &st2) == 0)
         {
           perror("FIFO 1 exists, but FIFO 2 not");
           exit(1);

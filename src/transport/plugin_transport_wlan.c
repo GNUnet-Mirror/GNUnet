@@ -1992,7 +1992,7 @@ wlan_plugin_helper_read (void *cls,
  * @return GNUNET_YES if process was started, GNUNET_SYSERR on error
  */
 static int
-wlan_transport_start_wlan_helper(struct Plugin *plugin)
+wlan_transport_start_wlan_helper(struct Plugin *plugin, int testmode)
 {
 
   plugin->server_stdout = GNUNET_DISK_pipe(GNUNET_YES, GNUNET_NO, GNUNET_YES);
@@ -2010,7 +2010,7 @@ wlan_transport_start_wlan_helper(struct Plugin *plugin)
   /* Start the server process */
   plugin->server_proc = GNUNET_OS_start_process(plugin->server_stdin,
       plugin->server_stdout, "gnunet-transport-wlan-helper",
-      "gnunet-transport-wlan-helper", plugin->interface, NULL);
+      plugin->interface, testmode, NULL);
   if (plugin->server_proc == NULL)
     {
 #if DEBUG_wlan
@@ -2038,6 +2038,27 @@ wlan_transport_start_wlan_helper(struct Plugin *plugin)
 }
 
 
+/**
+ * Exit point from the plugin.
+ */
+//TODO doxigen
+//FIXME cleanup
+void *
+libgnunet_plugin_transport_wlan_done (void *cls)
+{
+  struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
+  struct Plugin *plugin = api->cls;
+
+  GNUNET_assert(cls !=NULL);
+
+  if (plugin->consoltoken != NULL)
+  GNUNET_SERVER_mst_destroy(plugin->consoltoken);
+
+  GNUNET_free_non_null(plugin->interface);
+  GNUNET_free (plugin);
+  GNUNET_free (api);
+  return NULL;
+}
 
 /**
  * Entry point for the plugin.
@@ -2048,21 +2069,15 @@ wlan_transport_start_wlan_helper(struct Plugin *plugin)
 void *
 libgnunet_plugin_transport_wlan_init (void *cls)
 {
-  struct GNUNET_SERVICE_Context *service;
+  //struct GNUNET_SERVICE_Context *service;
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct Plugin *plugin;
+  int testmode;
 
   GNUNET_assert(cls !=NULL);
 
-  service = GNUNET_SERVICE_start ("transport-wlan", env->cfg);
-	if (service == NULL){
-		GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-			   _("Failed to start service for `%s' transport plugin.\n"),
-			   "wlan");
-		return NULL;
-	}
-
+  fprintf(stderr,"HERE");
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
   plugin->pendingsessions = 0;
@@ -2071,7 +2086,25 @@ libgnunet_plugin_transport_wlan_init (void *cls)
   plugin->server_read_task = GNUNET_SCHEDULER_NO_TASK;
   plugin->server_write_delay_task = GNUNET_SCHEDULER_NO_TASK;
 
-  wlan_transport_start_wlan_helper(plugin);
+  testmode = GNUNET_NO;
+  if (GNUNET_CONFIGURATION_have_value (env->cfg,
+		  "transport-wlan", "TESTMODE"))
+	{
+	  testmode = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+			  "transport-wlan","TESTMODE");
+	}
+
+  if (GNUNET_CONFIGURATION_have_value (env->cfg,
+		  "transport-wlan", "INTERFACE"))
+	{
+	   if (GNUNET_CONFIGURATION_get_value_string (env->cfg,
+			  "transport-wlan","INTERFACE", &(plugin->interface)) != GNUNET_YES){
+		   libgnunet_plugin_transport_wlan_done(plugin);
+		   return NULL;
+	   }
+	}
+
+  wlan_transport_start_wlan_helper(plugin, testmode);
   plugin->consoltoken = GNUNET_SERVER_mst_create(&wlan_process_helper,plugin);
 
   //plugin->sessions = GNUNET_malloc (sizeof (struct Sessionqueue));
@@ -2089,27 +2122,6 @@ libgnunet_plugin_transport_wlan_init (void *cls)
   start_next_message_id();
 
   return api;
-}
-
-
-/**
- * Exit point from the plugin.
- */
-//TODO doxigen
-//FIXME cleanup
-void *
-libgnunet_plugin_transport_wlan_done (void *cls)
-{
-  struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
-  struct Plugin *plugin = api->cls;
-
-  GNUNET_assert(cls !=NULL);
-
-  GNUNET_SERVER_mst_destroy(plugin->consoltoken);
-
-  GNUNET_free (plugin);
-  GNUNET_free (api);
-  return NULL;
 }
 
 /* end of plugin_transport_wlan.c */

@@ -27,11 +27,23 @@
  * This program serves as the mediator between the wlan interface and
  * gnunet
  */
-#include "gnunet-transport-wlan-helper.h"
-#include "plugin_transport_wlan.h"
-#include "ieee80211_radiotap.h"
 
+
+#include "platform.h"
+#include "gnunet_constants.h"
+#include "gnunet_os_lib.h"
+#include "gnunet_transport_plugin.h"
+#include "transport.h"
+#include "plugin_transport_wlan.h"
+#include "gnunet_common.h"
+#include "gnunet-transport-wlan-helper.h"
+#include "ieee80211_radiotap.h"
 #include <pcap.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+
+
 
 
 
@@ -380,11 +392,200 @@ int ieee80211_radiotap_iterator_next(
 	return -ENOENT;
 }
 
+#define FIFO_FILE1       "MYFIFOin"
+#define FIFO_FILE2       "MYFIFOout"
+#define MAXLINE         5000
+
+int closeprog = 0;
+
+void sigfunc(int sig)
+{
+
+ if(sig != SIGINT || sig != SIGTERM || sig != SIGKILL)
+   return;
+ else
+  {
+   closeprog = 1;
+   }
+}
+
+
+
+int
+testmode(int argc, char *argv[])
+{
+  struct stat st;
+  int erg;
+  int first;
+  FILE *fpin;
+  FILE *fpout;
+  pid_t pid;
+
+  signal(SIGINT,sigfunc);
+  signal(SIGTERM,sigfunc);
+  signal(SIGKILL,sigfunc);
+
+  //make the fifos if needed
+  if (stat(FIFO_FILE1, &st) != 0)
+    {
+      if (stat(FIFO_FILE2, &st) != 0)
+        {
+          perror("FIFO 2 exists, but FIFO 1 not");
+          exit(1);
+        }
+      first = 1;
+      umask(0);
+      erg = mknod(FIFO_FILE1, S_IFIFO | 0666, 0);
+      erg = mknod(FIFO_FILE2, S_IFIFO | 0666, 0);
+
+      if ((fpin = fopen(FIFO_FILE1, "r")) == NULL)
+        {
+          perror("fopen");
+          exit(1);
+        }
+      if ((fpout = fopen(FIFO_FILE2, "w")) == NULL)
+        {
+          perror("fopen");
+          exit(1);
+        }
+    }
+  else
+    {
+      first = 0;
+      if (stat(FIFO_FILE2, &st) == 0)
+        {
+          perror("FIFO 1 exists, but FIFO 2 not");
+          exit(1);
+        }
+      if ((fpout = fopen(FIFO_FILE1, "w")) == NULL)
+        {
+          perror("fopen");
+          exit(1);
+        }
+      if ((fpin = fopen(FIFO_FILE2, "r")) == NULL)
+        {
+          perror("fopen");
+          exit(1);
+        }
+
+    }
+
+  // fork
+
+  if ((pid = fork()) < 0)
+    {
+      perror("FORK ERROR");
+
+      //clean up
+      if (first == 1)
+              {
+                unlink(FIFO_FILE1);
+                unlink(FIFO_FILE2);
+              }
+      fclose(fpin);
+      fclose(fpout);
+      return -3;
+    }
+  else if (pid == 0) // CHILD PROCESS
+    {
+      int rv = 0;
+      int readc = 0;
+      int pos = 0;
+      char line[MAXLINE];
+
+      while (closeprog == 0)
+        {
+          readc = 0;
+
+          while (readc < sizeof( struct RadiotapHeader) + sizeof(struct GNUNET_MessageHeader)){
+            if ((rv = read(STDIN_FILENO, line, MAXLINE)) < 0)
+              {
+                perror("READ ERROR FROM STDIN");
+              }
+            readc += rv;
+          }
+
+          pos = 0;
+
+          fwrite(&line[pos], 1, sizeof(struct GNUNET_MessageHeader), fpout);
+
+          pos += sizeof(struct GNUNET_MessageHeader);
+
+          //do not send radiotap header
+          pos += sizeof( struct RadiotapHeader);
+
+          while (pos < readc)
+            {
+              pos += fwrite(&line[pos], 1, readc - pos, fpout);
+            }
+        }
+
+
+      //clean up
+      fclose(fpout);
+    }
+  else // PARENT PROCESS
+    {
+      int rv = 0;
+      ssize_t pos = 0;
+      char line[MAXLINE];
+      struct Wlan_Helper_Control_Message macmsg;
+
+
+      //Send random mac address
+      macmsg.mac.mac[0] = 0x13;
+      macmsg.mac.mac[1] = 0x22;
+      macmsg.mac.mac[2] = 0x33;
+      macmsg.mac.mac[3] = 0x44;
+      macmsg.mac.mac[4] = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 255);
+      macmsg.mac.mac[5] = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 255);
+      macmsg.hdr.size = sizeof(struct Wlan_Helper_Control_Message);
+
+      pos = 0;
+      while (pos < sizeof(struct Wlan_Helper_Control_Message))
+        {
+          pos += write(STDOUT_FILENO, &macmsg + pos, sizeof(struct Wlan_Helper_Control_Message) - pos);
+        }
+
+      while (closeprog == 0)
+        {
+          if ((rv = fread(line, 1, MAXLINE, fpin)) < 0)
+            {
+              perror("READ ERROR FROM fpin");
+            }
+
+          pos = 0;
+          while (pos < rv)
+            {
+              pos += write(STDOUT_FILENO, &line[pos], rv - pos);
+            }
+        }
+
+
+      //clean up
+      fclose(fpin);
+
+      if (first == 1)
+        {
+          unlink(FIFO_FILE1);
+          unlink(FIFO_FILE2);
+        }
+    }
+
+  // Write the input to the output
+
+  return (0);
+}
 
 
 int
 main(int argc, char *argv[])
 {
+	if ((argc==3) && (strstr(argv[2],"1")))
+	{
+		return testmode(argc, argv);
+	}
+
 	u8 u8aSendBuffer[500];
 	char szErrbuf[PCAP_ERRBUF_SIZE];
 	int nCaptureHeaderLength = 0, n80211HeaderLength = 0, nLinkEncap = 0;

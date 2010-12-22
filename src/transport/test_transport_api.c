@@ -36,7 +36,7 @@
 #include "gnunet_transport_service.h"
 #include "transport.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define VERBOSE_ARM GNUNET_NO
 
@@ -83,6 +83,8 @@ static int is_http;
 static int is_https;
 
 static int is_multi_protocol;
+
+static int is_wlan;
 
 static  GNUNET_SCHEDULER_TaskIdentifier die_task;
 
@@ -397,6 +399,11 @@ run (void *cls,
       setup_peer (&p1, "test_transport_api_https_peer1.conf");
       setup_peer (&p2, "test_transport_api_https_peer2.conf");
     }
+  else if (is_wlan)
+    {
+      setup_peer (&p1, "test_transport_api_wlan_peer1.conf");
+      setup_peer (&p2, "test_transport_api_wlan_peer2.conf");
+    }
   GNUNET_assert(p1.th != NULL);
   GNUNET_assert(p2.th != NULL);
 
@@ -635,11 +642,14 @@ main (int argc, char *argv[])
     {
       is_http = GNUNET_YES;
     }
+  else if (strstr(argv[0], "wlan") != NULL)
+    {
+       is_wlan = GNUNET_YES;
+    }
   else if (strstr(argv[0], "multi") != NULL)
     {
        is_multi_protocol = GNUNET_YES;
     }
-
 
   ret = check ();
   if (is_multi_protocol)

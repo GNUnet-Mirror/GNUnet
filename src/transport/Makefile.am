@@ -81,6 +81,7 @@ gnunet_nat_server_SOURCES = \
 gnunet_transport_wlan_helper_SOURCES = \
  gnunet-transport-wlan-helper.c
 gnunet_transport_wlan_helper_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
  -lpcap
  
 test_plugin_transport_wlan_SOURCES = \
@@ -208,6 +209,7 @@ check_PROGRAMS = \
  $(HTTP_API_TEST) \
  $(HTTPS_PLUGIN_TEST) \
  $(HTTPS_API_TEST) \
+ test_transport_api_wlan \
  test_transport_api_multi \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
@@ -233,6 +235,7 @@ TESTS = \
  $(HTTP_API_TEST) \
  $(HTTPS_PLUGIN_TEST) \
  $(HTTPS_API_TEST) \
+ test_transport_api_wlan \
  test_transport_api_multi \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
@@ -328,6 +331,12 @@ test_transport_api_reliability_https_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
+test_transport_api_wlan_SOURCES = \
+ test_transport_api.c
+test_transport_api_wlan_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
 test_quota_compliance_tcp_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_tcp_LDADD = \
@@ -422,6 +431,8 @@ EXTRA_DIST = \
   test_transport_api_http_peer2.conf \
   test_transport_api_https_peer1.conf \
   test_transport_api_https_peer2.conf \
+  test_transport_api_wlan_peer1.conf \
+  test_transport_api_wlan_peer2.conf \
   test_transport_api_multi_peer1.conf \
   test_transport_api_multi_peer2.conf \
   test_transport_api_rel_http_peer1.conf \
