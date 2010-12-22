@@ -84,9 +84,6 @@ gnunet_transport_wlan_helper_SOURCES = \
 gnunet_transport_wlan_helper_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
  -lpcap
- 
-test_plugin_transport_wlan_SOURCES = \
- test_plugin_transport_wlan_dummy.c
 
 gnunet_nat_client_SOURCES = \
  $(NATCLIENT)         
