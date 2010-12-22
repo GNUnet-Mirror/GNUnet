@@ -1169,14 +1169,6 @@ main_notify_handler (void *cls,
 	  return;
         }
       smr = (const struct SendMessageReady *) msg;
-      if (0 == memcmp (&h->me,
-		       &smr->peer,
-		       sizeof (struct GNUNET_PeerIdentity)))
-	{
-	  /* self-change!? */
-	  GNUNET_break (0);
-	  return;
-	}
       pr = GNUNET_CONTAINER_multihashmap_get (h->peers,
 					      &smr->peer.hashPubKey);
       if (pr == NULL)

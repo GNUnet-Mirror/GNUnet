@@ -1113,12 +1113,15 @@ schedule_peer_messages (struct Neighbour *n)
 	}
       if (car == NULL)
 	return; /* no pending requests */
+      GNUNET_CONTAINER_DLL_remove (n->active_client_request_head,
+				   n->active_client_request_tail,
+				   car);
     }
   else
     {
       car = n->active_client_request_head;
       if (car == NULL)
-	return;
+	return; /* no pending requests */
     }
 #if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1126,12 +1129,10 @@ schedule_peer_messages (struct Neighbour *n)
 	      GNUNET_i2s (&n->peer));
 #endif
   c = car->client;
-  GNUNET_CONTAINER_DLL_remove (n->active_client_request_head,
-			       n->active_client_request_tail,
-			       car);
-  GNUNET_CONTAINER_multihashmap_remove (c->requests,
-					&n->peer.hashPubKey,
-					car);  
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_remove (c->requests,
+						       &n->peer.hashPubKey,
+						       car));  
   smr.header.size = htons (sizeof (struct SendMessageReady));
   smr.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_SEND_READY);
   smr.size = htons (car->msize);
