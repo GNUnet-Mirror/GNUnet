@@ -242,6 +242,19 @@ struct GNUNET_CORE_PeerRequestHandle;
 
 
 /**
+ * Type of function called upon completion.
+ *
+ * @param cls closure
+ * @param success GNUNET_OK on success (which for request_connect
+ *        ONLY means that we transmitted the connect request to CORE,
+ *        it does not mean that we are actually now connected!);
+ *        GNUNET_NO on timeout,
+ *        GNUNET_SYSERR if core was shut down
+ */
+typedef void (*GNUNET_CORE_ControlContinuation)(void *cls, int success);
+
+
+/**
  * Request that the core should try to connect to a particular peer.
  * Once the request has been transmitted to the core, the continuation
  * function will be called.  Note that this does NOT mean that a
@@ -263,7 +276,7 @@ struct GNUNET_CORE_PeerRequestHandle *
 GNUNET_CORE_peer_request_connect (struct GNUNET_CORE_Handle *h,
 				  struct GNUNET_TIME_Relative timeout,
 				  const struct GNUNET_PeerIdentity * peer,
-				  GNUNET_SCHEDULER_Task cont,
+				  GNUNET_CORE_ControlContinuation cont,
 				  void *cont_cls);
 
 

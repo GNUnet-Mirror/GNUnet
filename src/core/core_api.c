@@ -129,12 +129,10 @@ struct ControlMessage
   struct ControlMessage *prev;
 
   /**
-   * Function to run after successful transmission (or call with
-   * reason 'TIMEOUT' on error); called with scheduler context 'NULL'
-   * on disconnect.
+   * Function to run after transmission failed/succeeded.
    */
-  GNUNET_SCHEDULER_Task cont;
-
+  GNUNET_CORE_ControlContinuation cont;
+  
   /**
    * Closure for 'cont'.
    */
@@ -462,17 +460,7 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
   struct ControlMessage *cm;
   struct PeerRecord *pr;
 
-  while (NULL != (cm = h->control_pending_head))
-    {
-      GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
-				   h->control_pending_tail,
-				   cm);
-      if (cm->th != NULL)
-	cm->th->cm = NULL; 
-      if (cm->cont != NULL)
-	cm->cont (cm->cont_cls, NULL);
-      GNUNET_free (cm);
-    }
+  GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
   if (h->client != NULL)
     {
       GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
@@ -486,15 +474,24 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
     GNUNET_CONTAINER_DLL_remove (h->ready_peer_head,
 				 h->ready_peer_tail,
 				 pr);
-  
-  GNUNET_assert (h->control_pending_head == NULL);
   h->currently_down = GNUNET_YES;
-  GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
-  h->retry_backoff = GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_SECONDS,
-					       h->retry_backoff);
   h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->retry_backoff,
 						    &reconnect_task,
 						    h);
+  while (NULL != (cm = h->control_pending_head))
+    {
+      GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
+				   h->control_pending_tail,
+				   cm);
+      if (cm->th != NULL)
+	cm->th->cm = NULL; 
+      if (cm->cont != NULL)
+	cm->cont (cm->cont_cls, GNUNET_NO);
+      GNUNET_free (cm);
+    }
+  GNUNET_assert (h->control_pending_head == NULL);
+  h->retry_backoff = GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_SECONDS,
+					       h->retry_backoff);
   h->retry_backoff = GNUNET_TIME_relative_multiply (h->retry_backoff, 2);
 }
 
@@ -636,6 +633,7 @@ transmit_message (void *cls,
   uint16_t msize;
   size_t ret;
 
+  GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
   h->cth = NULL;
   if (buf == NULL)
     {
@@ -669,9 +667,7 @@ transmit_message (void *cls,
       if (cm->th != NULL)
 	cm->th->cm = NULL;
       if (NULL != cm->cont)
-	GNUNET_SCHEDULER_add_continuation (cm->cont, 
-					   cm->cont_cls,
-					   GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+	cm->cont (cm->cont_cls, GNUNET_OK);
       GNUNET_free (cm);
       trigger_next_request (h, GNUNET_NO);
       return msize;
@@ -1266,23 +1262,24 @@ main_notify_handler (void *cls,
  * Starts our 'receive' loop.
  *
  * @param cls the 'struct GNUNET_CORE_Handle'
- * @param tc task context
+ * @param success were we successful
  */
 static void
 init_done_task (void *cls, 
-		const struct GNUNET_SCHEDULER_TaskContext *tc)
+		int success)
 {
   struct GNUNET_CORE_Handle *h = cls;
 
-  if (tc == NULL)
-    return; /* error */
-  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
+  if (success == GNUNET_SYSERR)
+    return; /* shutdown */
+  if (success == GNUNET_NO)
     {
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Failed to exchange INIT with core, retrying\n");
 #endif
-      reconnect_later (h);
+      if (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK)
+	reconnect_later (h);
       return;
     }
   GNUNET_CLIENT_receive (h->client,
@@ -1454,11 +1451,6 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
       GNUNET_CLIENT_disconnect (handle->client, GNUNET_NO);
       handle->client = NULL;
     }
-  if (handle->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (handle->reconnect_task);
-      handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
-    }
   while (NULL != (cm = handle->control_pending_head))
     {
       GNUNET_CONTAINER_DLL_remove (handle->control_pending_head,
@@ -1467,8 +1459,13 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
       if (cm->th != NULL)
 	cm->th->cm = NULL;
       if (cm->cont != NULL)
-	cm->cont (cm->cont_cls, NULL);
+	cm->cont (cm->cont_cls, GNUNET_SYSERR);
       GNUNET_free (cm);
+    }
+  if (handle->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (handle->reconnect_task);
+      handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
     }
   GNUNET_CONTAINER_multihashmap_iterate (handle->peers,
 					 &disconnect_and_free_peer_entry,
@@ -1672,7 +1669,7 @@ struct GNUNET_CORE_PeerRequestHandle
   /**
    * Continuation to run when done.
    */
-  GNUNET_SCHEDULER_Task cont;
+  GNUNET_CORE_ControlContinuation cont;
 
   /**
    * Closure for 'cont'.
@@ -1688,22 +1685,16 @@ struct GNUNET_CORE_PeerRequestHandle
  * resources.
  *
  * @param cls the 'struct GNUNET_CORE_PeerRequestHandle'
- * @param tc scheduler context
+ * @param success was the request transmitted?
  */
 static void
 peer_request_connect_cont (void *cls,
-			   const struct GNUNET_SCHEDULER_TaskContext *tc)
+			   int success)
 {
   struct GNUNET_CORE_PeerRequestHandle *ret = cls;
   
   if (ret->cont != NULL)
-    {
-      if (tc == NULL)
-	GNUNET_SCHEDULER_add_now (ret->cont,
-				  ret->cont_cls);
-      else
-	ret->cont (ret->cont_cls, tc);
-    }
+    ret->cont (ret->cont_cls, success);    
   GNUNET_free (ret);
 }
 
@@ -1730,7 +1721,7 @@ struct GNUNET_CORE_PeerRequestHandle *
 GNUNET_CORE_peer_request_connect (struct GNUNET_CORE_Handle *h,
 				  struct GNUNET_TIME_Relative timeout,
 				  const struct GNUNET_PeerIdentity * peer,
-				  GNUNET_SCHEDULER_Task cont,
+				  GNUNET_CORE_ControlContinuation cont,
 				  void *cont_cls)
 {
   struct GNUNET_CORE_PeerRequestHandle *ret;
@@ -1822,11 +1813,11 @@ struct GNUNET_CORE_InformationRequestContext
  * CM was sent, remove link so we don't double-free.
  *
  * @param cls the 'struct GNUNET_CORE_InformationRequestContext'
- * @param tc scheduler context
+ * @param success were we successful?
  */
 static void
 change_preference_send_continuation (void *cls,
-				     const struct GNUNET_SCHEDULER_TaskContext *tc)
+				     int success)
 {
   struct GNUNET_CORE_InformationRequestContext *irc = cls;
 

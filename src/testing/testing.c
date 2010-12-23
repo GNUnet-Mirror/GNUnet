@@ -1504,17 +1504,15 @@ connect_notify_core2 (void *cls,
  * Task called once a core connect request has been transmitted.
  *
  * @param cls struct ConnectContext
- * @param tc context information (why was this task triggered now)
+ * @param success was the request successful?
  */
 void
 core_connect_request_cont (void *cls,
-                           const struct GNUNET_SCHEDULER_TaskContext *tc)
+                           int success)
 {
   struct ConnectContext *ctx = cls;
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_PREREQ_DONE)
-    ctx->connect_request_handle = NULL;
-  return;
+  ctx->connect_request_handle = NULL;
 }
 
 static void

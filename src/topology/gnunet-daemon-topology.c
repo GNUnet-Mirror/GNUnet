@@ -271,11 +271,11 @@ whitelist_peers ()
  * Function called by core when our attempt to connect succeeded.
  *
  * @param cls the 'struct Peer' for which we issued the connect request
- * @param tc scheduler context
+ * @param success was the request transmitted
  */
 static void
 connect_completed_callback (void *cls,
-			    const struct GNUNET_SCHEDULER_TaskContext *tc)
+			    int success)
 {
   struct Peer *pos = cls;
 

@@ -487,7 +487,8 @@ port_in_ports (uint64_t ports, uint16_t port)
 }
 
 void
-send_udp (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+send_udp (void *cls, 
+	  int success)
 {
   struct GNUNET_PeerIdentity *peer = cls;
   struct GNUNET_MessageHeader *hdr =
