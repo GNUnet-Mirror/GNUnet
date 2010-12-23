@@ -2944,10 +2944,16 @@ handle_client_request_connect (void *cls,
                  "Core received `%s' request for `%4s', already connected!\n",
                  "REQUEST_CONNECT",
                  GNUNET_i2s (&cm->peer));
-      GNUNET_STATISTICS_update (stats, 
-				gettext_noop ("# connection requests ignored (already connected)"), 
-				1,
-				GNUNET_NO);
+      if (GNUNET_YES == n->is_connected) 
+	GNUNET_STATISTICS_update (stats, 
+				  gettext_noop ("# connection requests ignored (already connected)"), 
+				  1,
+				  GNUNET_NO);
+      else
+	GNUNET_STATISTICS_update (stats, 
+				  gettext_noop ("# connection requests ignored (already trying)"), 
+				  1,
+				  GNUNET_NO);
       return; /* already connected, or at least trying */
     }
   GNUNET_STATISTICS_update (stats, 
@@ -4170,7 +4176,10 @@ handle_transport_receive (void *cls,
           GNUNET_break_op (0);
           return;
         }
-      GNUNET_STATISTICS_update (stats, gettext_noop ("# session keys received"), 1, GNUNET_NO);
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# session keys received"), 
+				1, 
+				GNUNET_NO);
       handle_set_key (n,
 		      (const struct SetKeyMessage *) message,
 		      ats, ats_count);
