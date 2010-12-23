@@ -1,7 +1,3 @@
-0.9.0pre2:
-* Integration test:
-  - test bootstrapping via hostlist + transport/core/dht connect
-
 0.9.0pre3:
 * TRANSPORT: [MW]
   - [#1585, #1583, #1582] transport-level disconnect (i.e. TCP) does not cause core-level
