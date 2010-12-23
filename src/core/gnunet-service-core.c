@@ -1886,7 +1886,9 @@ consider_free_neighbour (struct Neighbour *n)
  * @return number of bytes transmitted
  */
 static size_t
-notify_encrypted_transmit_ready (void *cls, size_t size, void *buf)
+notify_encrypted_transmit_ready (void *cls, 
+				 size_t size, 
+				 void *buf)
 {
   struct Neighbour *n = cls;
   struct MessageEntry *m;
@@ -1936,6 +1938,10 @@ notify_encrypted_transmit_ready (void *cls, size_t size, void *buf)
     }
   GNUNET_free (m);
   consider_free_neighbour (n);
+  GNUNET_STATISTICS_update (stats, 
+			    gettext_noop ("# encrypted bytes given to transport"), 
+			    ret, 
+			    GNUNET_NO);
   return ret;
 }
 
@@ -2038,7 +2044,10 @@ do_decrypt (struct Neighbour *n,
       GNUNET_break (0);
       return GNUNET_SYSERR;
     }
-  GNUNET_STATISTICS_update (stats, gettext_noop ("# bytes decrypted"), size, GNUNET_NO);
+  GNUNET_STATISTICS_update (stats, 
+			    gettext_noop ("# bytes decrypted"), 
+			    size, 
+			    GNUNET_NO);
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Decrypted %u bytes from `%4s' using key %u, IV %u\n",
@@ -2876,7 +2885,9 @@ handle_client_send (void *cls,
  * @return number of bytes transmitted
  */
 static size_t
-notify_transport_connect_done (void *cls, size_t size, void *buf)
+notify_transport_connect_done (void *cls,
+			       size_t size,
+			       void *buf)
 {
   struct Neighbour *n = cls;
 
@@ -2886,8 +2897,13 @@ notify_transport_connect_done (void *cls, size_t size, void *buf)
       /* transport should only call us to transmit a message after
        * telling us about a successful connection to the respective peer */
 #if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Timeout on notify connect!\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		  "Timeout on notify connect!\n");
 #endif
+      GNUNET_STATISTICS_update (stats, 
+				gettext_noop ("# connection requests timed out in transport"), 
+				1,
+				GNUNET_NO);
       return 0;
     }
   if (buf == NULL)
