@@ -142,7 +142,7 @@ print_address (void *cls,
 				   addrlen,
 				   no_resolve,
 				   tname,
-				   GNUNET_TIME_UNIT_SECONDS,
+				   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20),
 				   &process_resolved_address,
 				   pc);
   return GNUNET_OK;
@@ -165,8 +165,6 @@ print_peer_info (void *cls,
   if (peer == NULL)    
     {
       GNUNET_PEERINFO_disconnect (peerinfo);
-      fprintf (stderr,
-	       _("Error in communication with PEERINFO service\n"));
       return;    
     }
   if (be_quiet)
@@ -224,11 +222,13 @@ run (void *cls,
 		   _("Could not access PEERINFO service.  Exiting.\n"));
 	  return;
 	}
-      (void) GNUNET_PEERINFO_iterate (peerinfo,
+      if (NULL == GNUNET_PEERINFO_iterate (peerinfo,
 				      NULL,
 				      GNUNET_TIME_relative_multiply
-				      (GNUNET_TIME_UNIT_SECONDS, 2),
-				      &print_peer_info, NULL);
+				      (GNUNET_TIME_UNIT_SECONDS, 20),
+				      &print_peer_info, NULL))
+      fprintf (stderr,
+	       _("Error in communication with PEERINFO service\n"));
     }
   else
     {
