@@ -227,7 +227,7 @@ get_content_and_header_len (const char *p, int n,
  * @param available number of bytes in buf
  * @param addr address of the sender
  * @param addrlen size of addr
- * @errCode value of errno
+ * @param errCode value of errno
  */
 static void
 UPNP_command_receiver (void *data,
@@ -348,6 +348,8 @@ parse_url (const char *url, char *hostname, unsigned short *port, char **path)
  * @param service type of the service corresponding to the command
  * @param action action to send
  * @param args arguments for action
+ * @param buffer buffer
+ * @param buf_size buffer size
  * @param caller_cb user callback to trigger when done
  * @param caller_cls closure to pass to caller_cb
  */

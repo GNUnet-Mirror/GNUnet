@@ -338,9 +338,7 @@ get_ip_address_cb (int error, char *ext_addr, void *cls)
  * 
  * @param handle the handle for UPnP object
  * @param is_enabled whether enable port redirection
- * @param doPortCheck FIXME
- * @param ext_addr pointer for returning external IP address.
- *     Will be set to NULL if address could not be found. Don't free the sockaddr.
+ * @param doPortCheck do port check
  */
 void
 GNUNET_NAT_UPNP_pulse (struct GNUNET_NAT_UPNP_Handle *handle,

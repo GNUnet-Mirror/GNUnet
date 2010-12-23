@@ -348,7 +348,7 @@ task_download (void *cls,
  *
  * @param url URL of the file to download
  * @param caller_cb user function to call when done
- * @caller_cls closure to pass to caller_cb
+ * @param caller_cls closure to pass to caller_cb
  */
 void
 download_device_description (char *url, download_cb caller_cb,
@@ -777,7 +777,7 @@ get_valid_igd_connected_cb (char *response, size_t received, void *data)
  * Then, schedule UPnP command to check whether device is connected.
  *
  * @param desc UPnP IGD description (in XML)
- * @data closure from UPNP_discover()
+ * @param data closure from UPNP_discover()
  */
 static void
 get_valid_igd_receive (char *desc, void *data)
@@ -910,11 +910,7 @@ discover_send (void *data, const struct GNUNET_SCHEDULER_TaskContext *tc);
  * and get their descriptions.
  *
  * @param data closure from UPNP_discover()
- * @buf content of the reply
- * @available number of bytes stored in buf
- * @addr address of the sender
- * @addrlen size of addr
- * @param errCode value of errno
+ * @param tc task context
  */
 static void
 discover_recv (void *data, const struct GNUNET_SCHEDULER_TaskContext *tc)

@@ -98,6 +98,8 @@ typedef void (*UPNP_command_cb_) (char *response, size_t received, void *cls);
  * @param service type of the service corresponding to the command
  * @param action action to send
  * @param args arguments for action
+ * @param buffer buffer
+ * @param buf_size buffer size
  * @param caller_cb user callback to trigger when done
  * @param caller_cls closure to pass to caller_cb
  */
@@ -128,7 +130,7 @@ typedef void (*UPNP_get_external_ip_address_cb_) (int error,
  * @param control_url the control URL corresponding to service_type on the device
  * @param service_type service type to call the command on
  * @param caller_cb function to call when done
- * @param cls closure passed to caller_cb
+ * @param caller_cls closure passed to caller_cb
  */
 void
 UPNP_get_external_ip_address_ (const char *control_url,
@@ -163,8 +165,8 @@ UPNP_get_external_ip_address_ (const char *control_url,
  * @param error GNUNET_OK on success, another value on error (see above)
  * @param control_url the control URL the command was called on
  * @param service_type service the command was called on
- * @param in_port port on the gateway on the LAN side which was requested
- * @param in_client address in the LAN which was requested
+ * @param ext_port external port
+ * @param inPort port on the gateway on the LAN side which was requested
  * @param proto protocol for which port mapping was requested
  * @param remote_host remote host for which port mapping was requested
  * @param cls the closure passed to the command function
@@ -186,10 +188,11 @@ typedef void (*UPNP_port_mapping_cb_) (int error,
  * @param ext_port port that should be opened on the WAN side
  * @param in_port port on the gateway on the LAN side which should map ext_port
  * @param in_client address in the LAN to which packets should be redirected
+ * @param desc description
  * @param proto protocol for which to request port mapping
  * @param remote_host remote host for which to request port mapping
  * @param caller_cb function to call when done
- * @param cls closure passed to caller_cb
+ * @param caller_cls closure passed to caller_cb
  */
 void
 UPNP_add_port_mapping_ (const char *control_url, const char *service_type,
@@ -208,8 +211,7 @@ UPNP_add_port_mapping_ (const char *control_url, const char *service_type,
  *
  * @param control_url the control URL the command was called on
  * @param service_type service the command was called on
- * @param in_port port on the gateway on the LAN side which was requested
- * @param in_client address in the LAN which was requested
+ * @param ext_port external port
  * @param proto protocol for which port mapping was requested
  * @param remote_host remote host for which port mapping was requested
  * @param caller_cb function to call when done
@@ -228,10 +230,10 @@ UPNP_delete_port_mapping_ (const char *control_url, const char *service_type,
  * @param error GNUNET_OK if port is currently mapped, another value on error
  * @param control_url the control URL the command was called on
  * @param service_type service the command was called on
+ * @param ext_port external port
+ * @param proto protocol for which port mapping was requested
  * @param in_port port on the gateway on the LAN side which was requested
  * @param in_client address in the LAN which was requested
- * @param proto protocol for which port mapping was requested
- * @param remote_host remote host for which port mapping was requested
  * @param cls the closure passed to the command function
  */
 typedef void (*UPNP_get_specific_port_mapping_entry_cb_) (int error,
@@ -253,12 +255,10 @@ typedef void (*UPNP_get_specific_port_mapping_entry_cb_) (int error,
  *
  * @param control_url the control URL the command was called on
  * @param service_type service the command was called on
- * @param in_port port on the gateway on the LAN side which was requested
- * @param in_client address in the LAN which was requested
+ * @param ext_port external port
  * @param proto protocol for which port mapping was requested
- * @param remote_host remote host for which port mapping was requested
  * @param caller_cb function to call when done
- * @param cls closure passed to caller_cb
+ * @param callers_cls closure passed to caller_cb
  */
 void
 UPNP_get_specific_port_mapping_entry_ (const char *control_url,
