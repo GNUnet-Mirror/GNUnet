@@ -544,6 +544,8 @@ request_next_transmission (struct PeerRecord *pr)
       trigger_next_request (h, GNUNET_NO);
       return;
     }
+  if (th->cm != NULL)
+    return; /* already done */
   GNUNET_assert (pr->prev == NULL);
   GNUNET_assert (pr->next == NULL);
   pr->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining (th->timeout),
