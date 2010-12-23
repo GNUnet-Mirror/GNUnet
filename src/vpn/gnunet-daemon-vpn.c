@@ -1066,7 +1066,7 @@ receive_udp_service (void *cls, const struct GNUNET_PeerIdentity *other,
  * @param cls closure
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
- * @param cfg configuration
+ * @param cfg_ configuration
  */
 static void
 run (void *cls,

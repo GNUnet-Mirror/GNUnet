@@ -573,9 +573,8 @@ publish_name (void *cls,
 
 /**
  * @param cls closure
- * @param sched scheduler to use
  * @param server the initialized server
- * @param cfg configuration to use
+ * @param cfg_ configuration to use
  */
 static void
 run (void *cls,
