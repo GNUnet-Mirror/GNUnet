@@ -59,7 +59,7 @@
  * For how long do we blacklist anyone under any cirumstances after a failed connection
  * attempt?
  */
-#define GREYLIST_AFTER_ATTEMPT_MAX GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 18)
+#define GREYLIST_AFTER_ATTEMPT_MAX GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 1)
 
 /**
  * How often do we at most advertise any HELLO to a peer?
