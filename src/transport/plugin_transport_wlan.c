@@ -1987,13 +1987,13 @@ wlan_plugin_helper_read (void *cls,
  * Start the gnunet-wlan-helper process.
  *
  * @param plugin the transport plugin
- *
+ * @param testmode should we use the dummy driver for testing?
  * @return GNUNET_YES if process was started, GNUNET_SYSERR on error
  */
 static int
 wlan_transport_start_wlan_helper(struct Plugin *plugin, int testmode)
 {
-  char * filename = "gnunet-transport-wlan-helper";
+  const char * filename = "gnunet-transport-wlan-helper";
   plugin->server_stdout = GNUNET_DISK_pipe(GNUNET_YES, GNUNET_NO, GNUNET_YES);
   if (plugin->server_stdout == NULL)
     return GNUNET_SYSERR;

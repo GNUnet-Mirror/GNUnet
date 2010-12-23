@@ -180,7 +180,7 @@ get_content_len_from_line (const char *p, int n)
  * @param p HTML to parse
  * @param n size of p
  * @param content_len pointer to store content length to
- * @param content_len pointer to store header length to
+ * @param header_len pointer to store header length to
  */
 static void
 get_content_and_header_len (const char *p, int n,

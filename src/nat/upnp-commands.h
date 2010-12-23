@@ -215,7 +215,7 @@ UPNP_add_port_mapping_ (const char *control_url, const char *service_type,
  * @param proto protocol for which port mapping was requested
  * @param remote_host remote host for which port mapping was requested
  * @param caller_cb function to call when done
- * @param cls closure passed to caller_cb
+ * @param caller_cls closure passed to caller_cb
  */
 void
 UPNP_delete_port_mapping_ (const char *control_url, const char *service_type,
@@ -258,7 +258,7 @@ typedef void (*UPNP_get_specific_port_mapping_entry_cb_) (int error,
  * @param ext_port external port
  * @param proto protocol for which port mapping was requested
  * @param caller_cb function to call when done
- * @param callers_cls closure passed to caller_cb
+ * @param caller_cls closure passed to caller_cb
  */
 void
 UPNP_get_specific_port_mapping_entry_ (const char *control_url,

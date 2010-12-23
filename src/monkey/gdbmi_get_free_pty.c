@@ -34,7 +34,7 @@
 
   Description:
   Look for a free and usable pseudo terminal. Low level, use
-@x{gmi_look_for_free_pty}.
+  gmi_look_for_free_pty().
   
   Return: A file descriptor connected to the master pty and the name of the slave device, or <0 on error.
   
