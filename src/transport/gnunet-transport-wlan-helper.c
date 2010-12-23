@@ -19,7 +19,7 @@
 */
 
 /**
- * @file src/transport/gnunet-wlan.c
+ * @file src/transport/gnunet-transport-wlan-helper.c
  * @brief wlan layer two server; must run as root (SUID will do)
  *        This code will work under GNU/Linux only.
  * @author David Brodski

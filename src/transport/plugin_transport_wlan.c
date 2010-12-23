@@ -997,7 +997,7 @@ check_finished_fragment(struct Plugin * plugin, struct FragmentMessage * fm){
  * Function called to when wlan helper is ready to get some data
  *
  * @param cls closure
- * @param GNUNET_SCHEDULER_TaskContext
+ * @param tc GNUNET_SCHEDULER_TaskContext
  */
 
 static void
