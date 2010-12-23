@@ -1682,7 +1682,10 @@ free_neighbour (struct Neighbour *n)
   if (n->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)    
       GNUNET_SCHEDULER_cancel (n->keep_alive_task);
   if (n->status == PEER_STATE_KEY_CONFIRMED)
-    GNUNET_STATISTICS_update (stats, gettext_noop ("# established sessions"), -1, GNUNET_NO);
+    GNUNET_STATISTICS_update (stats, 
+			      gettext_noop ("# established sessions"), 
+			      -1, 
+			      GNUNET_NO);
   GNUNET_array_grow (n->ats, n->ats_count, 0);
   GNUNET_free_non_null (n->public_key);
   GNUNET_free_non_null (n->pending_ping);
@@ -2921,7 +2924,9 @@ handle_client_request_connect (void *cls,
   struct Neighbour *n;
   struct GNUNET_TIME_Relative timeout;
 
-  if (0 == memcmp (&cm->peer, &my_identity, sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == memcmp (&cm->peer, 
+		   &my_identity, 
+		   sizeof (struct GNUNET_PeerIdentity)))
     {
       GNUNET_break (0);
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -2939,9 +2944,16 @@ handle_client_request_connect (void *cls,
                  "Core received `%s' request for `%4s', already connected!\n",
                  "REQUEST_CONNECT",
                  GNUNET_i2s (&cm->peer));
+      GNUNET_STATISTICS_update (stats, 
+				gettext_noop ("# connection requests ignored (already connected)"), 
+				1,
+				GNUNET_NO);
       return; /* already connected, or at least trying */
     }
-  GNUNET_STATISTICS_update (stats, gettext_noop ("# connection requests received"), 1, GNUNET_NO);
+  GNUNET_STATISTICS_update (stats, 
+			    gettext_noop ("# connection requests received"), 
+			    1,
+			    GNUNET_NO);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Core received `%s' request for `%4s', will try to establish connection\n",
@@ -4146,7 +4158,7 @@ handle_transport_receive (void *cls,
   n = find_neighbour (peer);
   if (n == NULL)
     n = create_neighbour (peer);
-  changed = GNUNET_YES; /* FIXME... */
+  changed = GNUNET_NO;
   up = (n->status == PEER_STATE_KEY_CONFIRMED);
   type = ntohs (message->type);
   size = ntohs (message->size);
@@ -4239,7 +4251,10 @@ handle_transport_receive (void *cls,
       changed = GNUNET_YES;
       if (!up)
 	{
-	  GNUNET_STATISTICS_update (stats, gettext_noop ("# established sessions"), 1, GNUNET_NO);
+	  GNUNET_STATISTICS_update (stats, 
+				    gettext_noop ("# established sessions"), 
+				    1, 
+				    GNUNET_NO);
 	  n->time_established = now;
 	}
       if (n->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)
@@ -4446,16 +4461,16 @@ handle_transport_notify_disconnect (void *cls,
 
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer `%4s' disconnected from us; received notification from transport.\n", GNUNET_i2s (peer));
+              "Peer `%4s' disconnected from us; received notification from transport.\n", 
+	      GNUNET_i2s (peer));
 #endif
-
   n = find_neighbour (peer);
   if (n == NULL)
     {
       GNUNET_break (0);
       return;
     }
-  GNUNET_break (n->is_connected);
+  GNUNET_break (n->is_connected == GNUNET_YES);
   if (n->status == PEER_STATE_KEY_CONFIRMED)
     {
       cnm.header.size = htons (sizeof (struct DisconnectNotifyMessage));
@@ -4463,15 +4478,18 @@ handle_transport_notify_disconnect (void *cls,
       cnm.reserved = htonl (0);
       cnm.peer = *peer;
       send_to_all_clients (&cnm.header, GNUNET_NO, GNUNET_CORE_OPTION_SEND_DISCONNECT);
+      GNUNET_STATISTICS_update (stats, 
+				gettext_noop ("# established sessions"), 
+				-1, 
+				GNUNET_NO);
     }
 
   /* On transport disconnect transport doesn't cancel requests, so must do so here. */
   if (n->th != NULL)
     {
-      GNUNET_TRANSPORT_notify_transmit_ready_cancel(n->th);
+      GNUNET_TRANSPORT_notify_transmit_ready_cancel (n->th);
+      n->th = NULL;
     }
-  n->th = NULL;
-
   n->is_connected = GNUNET_NO;
   n->status = PEER_STATE_DOWN;
   while (NULL != (car = n->active_client_request_head))
