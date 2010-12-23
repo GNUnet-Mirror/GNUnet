@@ -2080,6 +2080,9 @@ shutdown_task (void *cls,
     handle_client_disconnect (NULL,
 			      client_list->client);
   cron_flush_trust (NULL, NULL);
+  GNUNET_assert (NULL != core);
+  GNUNET_CORE_disconnect (core);
+  core = NULL;
   GNUNET_CONTAINER_multihashmap_iterate (connected_peers,
 					 &clean_peer,
 					 NULL);
@@ -2096,9 +2099,6 @@ shutdown_task (void *cls,
   GNUNET_break (0 == GNUNET_CONTAINER_multihashmap_size (peer_request_map));
   GNUNET_CONTAINER_multihashmap_destroy (peer_request_map);
   peer_request_map = NULL;
-  GNUNET_assert (NULL != core);
-  GNUNET_CORE_disconnect (core);
-  core = NULL;
   if (stats != NULL)
     {
       GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
