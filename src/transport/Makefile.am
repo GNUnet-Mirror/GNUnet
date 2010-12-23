@@ -100,7 +100,7 @@ gnunet_transport_DEPENDENCIES = \
   libgnunettransport.la				
 
 gnunet_service_transport_SOURCES = \
- gnunet-service-transport.c plugin_transport.h 
+ gnunet-service-transport.c  
 gnunet_service_transport_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
@@ -413,6 +413,7 @@ test_transport_api_multi_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 EXTRA_DIST = \
+  gnunet-transport-certificate-creation \
   test_transport_api_data.conf \
   test_transport_api_tcp_peer1.conf \
   test_transport_api_tcp_peer2.conf \

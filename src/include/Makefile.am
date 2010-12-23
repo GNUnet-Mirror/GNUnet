@@ -15,6 +15,8 @@ gnunetinclude_HEADERS = \
   platform.h \
   plibc.h \
   $(WINPROC) \
+  block_dns.h \
+  block_fs.h \
   gnunet_arm_service.h \
   gnunet_bandwidth_lib.h \
   gnunet_bio_lib.h \

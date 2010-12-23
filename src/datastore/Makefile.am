@@ -16,7 +16,7 @@ lib_LTLIBRARIES = \
   libgnunetdatastore.la
 
 libgnunetdatastore_la_SOURCES = \
-  datastore_api.c datastore.h plugin_datastore.h
+  datastore_api.c datastore.h 
 libgnunetdatastore_la_LIBADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -30,7 +30,7 @@ bin_PROGRAMS = \
  gnunet-service-datastore
 
 gnunet_service_datastore_SOURCES = \
- gnunet-service-datastore.c plugin_datastore.h
+ gnunet-service-datastore.c 
 gnunet_service_datastore_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \

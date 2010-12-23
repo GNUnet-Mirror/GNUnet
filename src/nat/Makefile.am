@@ -17,7 +17,8 @@ libgnunetnat_la_SOURCES = \
   upnp-igd-parse.c upnp-igd-parse.h \
   upnp-minixml.c upnp-minixml.h \
   upnp-reply-parse.c upnp-reply-parse.h bsdqueue.h \
-  nat.c 
+  nat.c nat.h \
+  natpmp.h 
 
 libgnunetnat_la_CFLAGS = \
  -DDEBUG_UPNP -g -O0
