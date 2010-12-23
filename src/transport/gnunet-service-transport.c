@@ -1379,12 +1379,14 @@ transmit_to_client (struct TransportClient *client,
  * given neighbour.
  *
  * @param client who to notify
- * @param n neighbour to notify about
+ * @param n neighbour to notify about, can be NULL (on failure)
+ * @param target target of the transmission
  * @param result status code for the transmission request
  */
 static void
 transmit_send_ok (struct TransportClient *client,
 		  struct NeighbourList *n,
+		  const struct GNUNET_PeerIdentity *target,
 		  int result)
 {
   struct SendOkMessage send_ok_msg;
@@ -1392,8 +1394,11 @@ transmit_send_ok (struct TransportClient *client,
   send_ok_msg.header.size = htons (sizeof (send_ok_msg));
   send_ok_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
   send_ok_msg.success = htonl (result);
-  send_ok_msg.latency = GNUNET_TIME_relative_hton (n->latency);
-  send_ok_msg.peer = n->id;
+  if (n != NULL)
+    send_ok_msg.latency = GNUNET_TIME_relative_hton (n->latency);
+  else
+    send_ok_msg.latency = GNUNET_TIME_relative_hton (GNUNET_TIME_UNIT_FOREVER_REL);
+  send_ok_msg.peer = *target;
   transmit_to_client (client, &send_ok_msg.header, GNUNET_NO);
 }
 
@@ -1438,8 +1443,6 @@ transmit_send_continuation (void *cls,
 				mq->message_buf_size,
 				GNUNET_NO);
     }
-  n = find_neighbour(&mq->neighbour_id);
-  GNUNET_assert (n != NULL);
   if (mq->specific_address != NULL)
     {
       if (result == GNUNET_OK)
@@ -1471,10 +1474,12 @@ transmit_send_continuation (void *cls,
       if (! mq->internal_msg)
 	mq->specific_address->in_transmit = GNUNET_NO;
     }
+  n = find_neighbour(&mq->neighbour_id);
   if (mq->client != NULL)
-    transmit_send_ok (mq->client, n, result);
+    transmit_send_ok (mq->client, n, target, result);
   GNUNET_free (mq);
-  try_transmission_to_peer (n);
+  if (n != NULL)
+    try_transmission_to_peer (n);
 }
 
 
@@ -1649,7 +1654,7 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 				    mq->message_buf_size,
 				    GNUNET_NO);
 	  if (mq->client != NULL)
-	    transmit_send_ok (mq->client, neighbour, GNUNET_NO);
+	    transmit_send_ok (mq->client, neighbour, &neighbour->id, GNUNET_NO);
 	  GNUNET_CONTAINER_DLL_remove (neighbour->messages_head,
 				       neighbour->messages_tail,
 				       mq);
