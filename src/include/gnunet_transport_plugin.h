@@ -251,7 +251,12 @@ struct GNUNET_TRANSPORT_PluginEnvironment
 
 /**
  * Function called by the GNUNET_TRANSPORT_TransmitFunction
- * upon "completion".
+ * upon "completion".  In the case that a peer disconnects,
+ * this function must be called for each pending request
+ * (with a 'failure' indication) AFTER notifying the service
+ * about the disconnect event (so that the service won't try
+ * to transmit more messages, believing the connection still
+ * exists...).
  *
  * @param cls closure
  * @param target who was the recipient of the message?
