@@ -21,7 +21,7 @@
 /**
  * @file fs/fs_publish.c
  * @brief publish a file or directory in GNUnet
- * @see http://gnunet.org/encoding
+ * @see https://gnunet.org/encoding
  * @author Krista Bennett
  * @author Christian Grothoff
  */
@@ -1559,6 +1559,11 @@ publish_ksk_cont (void *cls,
       return;
     }
   keyword = pkc->ksk_uri->data.ksk.keywords[pkc->i++];
+#if DEBUG_PUBLISH
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Publishing under keyword `%s'\n",
+	      keyword);
+#endif
   /* first character of keyword indicates if it is
      mandatory or not -- ignore for hashing */
   GNUNET_CRYPTO_hash (&keyword[1], strlen (&keyword[1]), &key);
