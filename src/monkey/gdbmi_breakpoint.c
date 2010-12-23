@@ -5,8 +5,8 @@
 
   Module: Breakpoint table commands.
   Comments:
-  GDB/MI commands for the "Breakpoint Table Commands" section.@p
-
+  GDB/MI commands for the "Breakpoint Table Commands" section.
+   @<p>
 @<pre>
 gdb command:          Implemented?
 
@@ -22,7 +22,7 @@ gdb command:          Implemented?
 @</pre>
 
 (*) I think the program should keep track of the breakpoints, so it will
-be implemented when I have more time.@p
+be implemented when I have more time.  @<p>
 
 ***************************************************************************/
 

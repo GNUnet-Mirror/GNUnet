@@ -5,7 +5,7 @@
 
   Module: Stack manipulation.
   Comments:
-  GDB/MI commands for the "Stack Manipulation" section.@p
+  GDB/MI commands for the "Stack Manipulation" section.  @<p>
 
 @<pre>
 gdb command:              Implemented?
@@ -84,8 +84,8 @@ mi_frames *gmi_stack_list_frames(mi_h *h)
 /**[txh]********************************************************************
 
   Description: 
-  List of frames. Arguments aren't filled. Only the frames in the @var{from}
- - @var{to} range are returned.
+  List of frames. Arguments aren't filled. Only the frames in the from
+ - to range are returned.
   
   Command: -stack-list-frames
   Return:  A new list of mi_frames or NULL on error.
@@ -101,7 +101,7 @@ mi_frames *gmi_stack_list_frames_r(mi_h *h, int from, int to)
 /**[txh]********************************************************************
 
   Description:
-  List arguments. Only @var{level} and @var{args} filled.
+  List arguments. Only level and args filled.
   
   Command: -stack-list-arguments
   Return:  A new list of mi_frames or NULL on error.
@@ -117,8 +117,8 @@ mi_frames *gmi_stack_list_arguments(mi_h *h, int show)
 /**[txh]********************************************************************
 
   Description:
-  List arguments. Only @var{level} and @var{args} filled. Only for the
-frames in the @var{from} - @var{to} range.
+  List arguments. Only level and args filled. Only for the
+frames in the from - to range.
   
   Command: -stack-list-arguments
   Return:  A new list of mi_frames or NULL on error.

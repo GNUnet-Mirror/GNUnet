@@ -5,7 +5,9 @@
 
   Module: Data manipulation.
   Comments:
-  GDB/MI commands for the "Data manipulation" section.@p
+  GDB/MI commands for the "Data manipulation" section.
+
+  @<p>
 
 @<pre>
 gdb command:                       Implemented?
@@ -26,11 +28,11 @@ gdb command:                       Implemented?
 -environment-path                  No
 @</pre>
 
-Notes:@p
+Notes:  @<p>
 
 1) -display* aren't implemented. You can use CLI command display, but the
 results are sent to the console. So it looks like the best is to manually
-use -data-evaluate-expression to emulate it.@p
+use -data-evaluate-expression to emulate it.  @<p>
 
 2) GDB bug mi/1770: Affects gdb<=6.2, when you ask for the names of the
 registers you get it plus the name of the "pseudo-registers", but if you

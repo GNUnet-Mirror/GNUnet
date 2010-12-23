@@ -6,7 +6,8 @@
   Module: Connect.
   Comments:
   This module handles the dialog with gdb, including starting and stopping
-gdb.@p
+gdb.
+  @<p>
 
 GDB Bug workaround for "file -readnow": I tried to workaround a bug using
 it but looks like this option also have bugs!!!! so I have to use the
@@ -441,7 +442,7 @@ mi_h *mi_connect_local()
 /**[txh]********************************************************************
 
   Description:
-  Close connection. You should ask gdb to quit first @x{gmi_gdb_exit}.
+  Close connection. You should ask gdb to quit first gmi_gdb_exit.
   
 ***************************************************************************/
 
@@ -705,7 +706,7 @@ const char *mi_get_main_func()
   Description:
   Opens a new xterm to be used by the child process to debug.
   
-  Return: A new mi_aux_term structure, you can use @x{gmi_end_aux_term} to
+  Return: A new mi_aux_term structure, you can use gmi_end_aux_term to
 release it.
   
 ***************************************************************************/
@@ -853,7 +854,7 @@ void mi_force_version(mi_h *h, unsigned vMajor, unsigned vMiddle,
 /**[txh]********************************************************************
 
   Description:
-  Dis/Enables the @var{wa} workaround for a bug in gdb.
+  Dis/Enables the workaround for a bug in gdb.
 
 ***************************************************************************/
 
@@ -870,7 +871,7 @@ void mi_set_workaround(unsigned wa, int enable)
 /**[txh]********************************************************************
 
   Description:
-  Finds if the @var{wa} workaround for a bug in gdb is enabled.
+  Finds if the workaround for a bug in gdb is enabled.
   
   Return: !=0 if enabled.
   

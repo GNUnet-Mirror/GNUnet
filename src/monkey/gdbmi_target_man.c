@@ -5,7 +5,7 @@
 
   Module: Target manipulation.
   Comments:
-  GDB/MI commands for the "Target Manipulation" section.@p
+  GDB/MI commands for the "Target Manipulation" section.  @<p>
 
 @<pre>
 -target-attach                  Yes (implemented using attach)

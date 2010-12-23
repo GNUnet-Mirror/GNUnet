@@ -5,7 +5,7 @@
 
   Module: Thread commands.
   Comments:
-  GDB/MI commands for the "Thread Commands" section.@p
+  GDB/MI commands for the "Thread Commands" section.  @<p>
 
 @<pre>
 gdb command:              Implemented?

@@ -1,5 +1,5 @@
 /**
- * @file seaspider/SeaspiderTest.c
+ * @file src/monkey/seaspider/SeaspiderTest.c
  * @brief C file to test Seaspider's parsing
  */
 

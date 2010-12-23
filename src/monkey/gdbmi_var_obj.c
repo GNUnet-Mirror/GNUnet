@@ -5,7 +5,8 @@
 
   Module: Variable objects.
   Comments:
-  GDB/MI commands for the "Variable Objects" section.@p
+  GDB/MI commands for the "Variable Objects" section.
+    @<p>
 
 @<pre>
 gdb command:              Imp? Description:
@@ -23,13 +24,14 @@ gdb command:              Imp? Description:
 -var-update               Yes* update the variable and its children
 @</pre>
 
-Notes:@p
+Notes:  @<p>
 1) I suggest letting gdb to choose the names for the variables.@*
 2) -var-list-children supports an optional "show values" argument in MI v2.
 It isn't implemented.@*
-@p
 
-* MI v1 and v2 result formats supported.@p
+  @<p>
+
+* MI v1 and v2 result formats supported.  @<p>
 
 ***************************************************************************/
 
@@ -113,7 +115,7 @@ void mi_var_list_children(mi_h *h, const char *name)
 /**[txh]********************************************************************
 
   Description:
-  Create a variable object. I recommend using @x{gmi_var_create} and letting
+  Create a variable object. I recommend using gmi_var_create and letting
 gdb choose the names.
 
   Command: -var-create
@@ -131,7 +133,7 @@ mi_gvar *gmi_var_create_nm(mi_h *h, const char *name, int frame, const char *exp
 
   Description:
   Create a variable object. The name is selected by gdb. Alternative:
-@x{gmi_full_var_create}.
+  gmi_full_var_create.
 
   Command: -var-create [auto name]
   Return: A new mi_gvar strcture or NULL on error.
@@ -292,7 +294,7 @@ mi_gvar *gmi_full_var_create(mi_h *h, int frame, const char *exp)
 updated.
 
   Command: -var-update
-  Return: !=0 OK. The @var{changed} list contains the list of changed vars.
+  Return: !=0 OK. The changed list contains the list of changed vars.
   
 ***************************************************************************/
 
@@ -305,7 +307,7 @@ int gmi_var_update(mi_h *h, mi_gvar *var, mi_gvar_chg **changed)
 /**[txh]********************************************************************
 
   Description:
-  Change variable. The new value replaces the @var{value} field.
+  Change variable. The new value replaces the value field.
 
   Command: -var-assign
   Return: !=0 OK

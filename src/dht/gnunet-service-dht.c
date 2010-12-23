@@ -1951,6 +1951,7 @@ add_pending_message (struct ClientList *client,
  * @param client the client to send the reply to
  * @param message the encapsulated message to send
  * @param uid the unique identifier of this request
+ * @param key key
  */
 static void
 send_reply_to_client (struct ClientList *client,
@@ -4602,6 +4603,7 @@ handle_dht_local_route_stop (void *cls, struct GNUNET_SERVER_Client *client,
  * Core handler for p2p route requests.
  *
  * @param cls closure
+ * @param message message
  * @param peer peer identity this notification is about
  * @param atsi performance data
  *
@@ -4705,6 +4707,7 @@ handle_dht_p2p_route_request (void *cls,
  * Core handler for p2p route results.
  *
  * @param cls closure
+ * @param message message
  * @param peer peer identity this notification is about
  * @param atsi performance data
  *

@@ -6,7 +6,7 @@
   Module: Allocator.
   Comments:
   Most alloc/free routines are here. Free routines must accept NULL
-pointers. Alloc functions must set mi_error.@p
+pointers. Alloc functions must set mi_error.  @<p>
   
 ***************************************************************************/
 

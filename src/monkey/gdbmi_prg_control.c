@@ -5,7 +5,7 @@
 
   Module: Program control.
   Comments:
-  GDB/MI commands for the "Program Control" section.@p
+  GDB/MI commands for the "Program Control" section.  @<p>
 
 @<pre>
 gdb command:                   Implemented?
@@ -33,7 +33,7 @@ gdb command:                   Implemented?
 @</pre>
 
 (*)  gmi_exec_kill implements it, but you should ensure that
-gmi_gdb_set("confirm","off") was called.@p
+gmi_gdb_set("confirm","off") was called.  @<p>
 
 GDB Bug workaround for -file-exec-and-symbols and -file-symbol-file: This
 is complex, but a real bug. When you set a breakpoint you never know the

@@ -534,6 +534,7 @@ get_next_block (void *cls,
  * @param cls closure
  * @param query the query for the block (key for lookup in the datastore)
  * @param offset offset of the block
+ * @param depth depth
  * @param type type of the block (IBLOCK or DBLOCK)
  * @param block the (encrypted) block
  * @param block_size size of block (in bytes)

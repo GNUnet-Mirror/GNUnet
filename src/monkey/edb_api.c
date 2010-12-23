@@ -58,8 +58,7 @@ GNUNET_MONKEY_EDB_connect (const char *db_file_name)
 /**
  * Disconnect from Database, and cleanup resources
  *
- * @param cfg configuration to use (used to know the path of the .db file).
- * @param service service that *this* process is implementing/providing, can be NULL
+ * @param context context
  * @return GNUNET_OK on success, GNUNET_NO on failure
  */
 int

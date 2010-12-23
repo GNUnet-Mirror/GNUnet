@@ -86,7 +86,7 @@ int mi_look_for_free_pty(int *master, char **slave)
   Description:
   Look for a free and usable pseudo terminal to be used by the child.
   
-  Return: A new mi_pty structure, you can use @x{gmi_end_pty} to
+  Return: A new mi_pty structure, you can use gmi_end_pty to
 release it.
   
 ***************************************************************************/

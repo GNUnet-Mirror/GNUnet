@@ -50,8 +50,7 @@ struct GNUNET_MONKEY_EDB_Context *GNUNET_MONKEY_EDB_connect (const char
 /**
  * Disconnect from Database, and cleanup resources
  *
- * @param cfg configuration to use (used to know the path of the .db file).
- * @param service service that *this* process is implementing/providing, can be NULL
+ * @param context context
  * @return GNUNET_OK on success, GNUNET_NO on failure
  */
 int GNUNET_MONKEY_EDB_disconnect (struct GNUNET_MONKEY_EDB_Context *context);

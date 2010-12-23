@@ -5,7 +5,7 @@
 
   Module: Miscellaneous commands.
   Comments:
-  GDB/MI commands for the "Miscellaneous Commands" section.@p
+  GDB/MI commands for the "Miscellaneous Commands" section.  @<p>
 
 @<pre>
 gdb command:       Implemented?
