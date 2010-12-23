@@ -3912,6 +3912,7 @@ internal_hostkey_callback (void *cls,
  *
  * @param cls closure
  * @param id identifier for the daemon, NULL on error
+ * @param cfg config
  * @param d handle for the daemon
  * @param emsg error message (NULL on success)
  */
