@@ -34,10 +34,11 @@ endif
 
 if HAVE_PCAP
 if LINUX
+if HAVE_EXPERIMENTAL
  WANBIN = gnunet-transport-wlan-helper
  WLAN_PLUGIN_LA = libgnunet_plugin_transport_wlan.la
- WLAN_API_TEST =
-# WLAN_API_TEST = test_transport_api_wlan
+ WLAN_API_TEST = test_transport_api_wlan
+endif
 endif
 endif
 
@@ -137,8 +138,6 @@ libgnunet_plugin_transport_template_la_LIBADD = \
 libgnunet_plugin_transport_template_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
-if HAVE_PCAP
-if LINUX
 libgnunet_plugin_transport_wlan_la_SOURCES = \
 	plugin_transport_wlan.c
 libgnunet_plugin_transport_wlan_la_LIBADD = \
@@ -148,8 +147,6 @@ libgnunet_plugin_transport_wlan_la_LIBADD = \
 	$(top_builddir)/src/util/libgnunetutil.la 
 libgnunet_plugin_transport_wlan_la_LDFLAGS = \
 	$(GN_PLUGIN_LDFLAGS)
-endif
-endif
 
 libgnunet_plugin_transport_udp_la_SOURCES = \
   plugin_transport_udp.c
@@ -171,7 +168,6 @@ libgnunet_plugin_transport_udp_la_LDFLAGS = \
 #libgnunet_plugin_transport_udp_nat_la_LDFLAGS = \
 # $(GN_PLUGIN_LDFLAGS)
 
-if HAVE_MHD 
 libgnunet_plugin_transport_http_la_SOURCES = \
   plugin_transport_http.c
 libgnunet_plugin_transport_http_la_LIBADD = \
@@ -197,7 +193,6 @@ libgnunet_plugin_transport_https_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_transport_https_la_CFLAGS = \
  $(CFLAGS) -DBUILD_HTTPS  
-endif
 
 
 check_PROGRAMS = \
