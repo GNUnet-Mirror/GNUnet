@@ -2731,7 +2731,7 @@ run (void *cls,
     }
   GNUNET_free_non_null(churn_data);
 
-  /** Check for a hostfile containing user@host:port triples */
+  /* Check for a hostfile containing user@host:port triples */
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "hostfile",
                                              &hostfile))
