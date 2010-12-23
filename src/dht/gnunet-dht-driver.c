@@ -2217,7 +2217,7 @@ malicious_disconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
         GNUNET_SCHEDULER_add_now (&continue_puts_and_gets, NULL);
       else
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time),
-                                    &continue_puts_and_gets, NULL);
+                                      &continue_puts_and_gets, NULL);
     }
 
 }
@@ -2414,8 +2414,7 @@ topology_callback (void *cls,
           else /* Set malicious peers now */
             topo_ctx->cont = &setup_malicious_peers;
           topo_ctx->peers_seen = GNUNET_CONTAINER_multihashmap_create(num_peers);
-          topo_ctx->cls = NULL;
-          //
+          topo_ctx->cls = &continue_puts_and_gets;
           GNUNET_SCHEDULER_add_now(&capture_current_topology, topo_ctx);
         }
       else
