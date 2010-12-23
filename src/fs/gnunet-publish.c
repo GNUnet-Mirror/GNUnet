@@ -210,6 +210,27 @@ meta_printer (void *cls,
 
 
 /**
+ * Iterator printing keywords
+ *
+ * @param cls closure
+ * @param keyword the keyword
+ * @param is_mandatory is the keyword mandatory (in a search)
+ * @return GNUNET_OK to continue to iterate, GNUNET_SYSERR to abort
+ */
+
+static int
+keyword_printer (void *cls,
+		 const char *keyword,
+		 int is_mandatory)
+{
+  fprintf (stdout, 
+	   "\t%s\n",
+	   keyword);
+  return 0;
+}
+
+
+/**
  * Function called on all entries before the publication.  This is
  * where we perform modifications to the default based on command-line
  * options.
@@ -276,14 +297,22 @@ publish_inspector (void *cls,
 						   EXTRACTOR_METATYPE_FILENAME);
       fs = GNUNET_STRINGS_byte_size_fancy (length);
       fprintf (stdout,
+	       _("Meta data for file `%s' (%s)\n"),
+	       fn,
+	       fs);
+      GNUNET_CONTAINER_meta_data_iterate (m,
+					  &meta_printer,
+					  NULL);
+      fprintf (stdout,
 	       _("Keywords for file `%s' (%s)\n"),
 	       fn,
 	       fs);
       GNUNET_free (fn);
       GNUNET_free (fs);
-      GNUNET_CONTAINER_meta_data_iterate (m,
-					  &meta_printer,
-					  NULL);
+      if (NULL != *uri)
+	GNUNET_FS_uri_ksk_get_keywords (*uri,
+					&keyword_printer,
+					NULL);
       fprintf (stdout, "\n");
     }
   if (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (m))
@@ -381,6 +410,7 @@ run (void *cls,
   struct GNUNET_FS_FileInformation *fi;
   struct GNUNET_FS_Namespace *namespace;
   struct EXTRACTOR_PluginList *plugins;
+  struct GNUNET_FS_Uri *keywords;
   struct stat sbuf;
   char *ex;
   char *emsg;
@@ -538,16 +568,18 @@ run (void *cls,
       GNUNET_FS_meta_data_extract_from_file (meta,
 					     args[0],
 					     plugins);
+      keywords = GNUNET_FS_uri_ksk_create_from_meta_data (meta);
       fi = GNUNET_FS_file_information_create_from_file (ctx,
 							NULL,
 							args[0],
-							NULL,
+							keywords,
 							NULL,
 							!do_insert,
 							anonymity,
 							priority,
 							GNUNET_TIME_relative_to_absolute (DEFAULT_EXPIRATION));
       GNUNET_break (fi != NULL);
+      GNUNET_FS_uri_destroy (keywords);
     }
   EXTRACTOR_plugin_remove_all (plugins);  
   if (fi == NULL)
