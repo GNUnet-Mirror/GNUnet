@@ -4210,7 +4210,11 @@ handle_transport_receive (void *cls,
       if ((n->status != PEER_STATE_KEY_RECEIVED) &&
           (n->status != PEER_STATE_KEY_CONFIRMED))
         {
-          GNUNET_break_op (0);
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# failed to decrypt message (no session key)"), 
+				    1, 
+				    GNUNET_NO);
+          send_key (n);
           return;
         }
       handle_encrypted_message (n, 
