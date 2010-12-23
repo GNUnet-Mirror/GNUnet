@@ -114,10 +114,6 @@ struct GNUNET_PEERINFO_IteratorContext;
  * host and then finally once with a NULL pointer.  After that final
  * invocation, the iterator context must no longer be used.
  *
- * Note that the last call can be triggered by timeout or by simply
- * being done; however, the trust argument will be set to zero if we
- * are done, 1 if we timed out and 2 for fatal error.
- *
  * Instead of calling this function with 'peer == NULL' 
  * it is often better to use 'GNUNET_PEERINFO_notify'.
  * 
