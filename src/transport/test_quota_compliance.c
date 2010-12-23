@@ -148,7 +148,7 @@ static GNUNET_SCHEDULER_TaskIdentifier die_task;
 static GNUNET_SCHEDULER_TaskIdentifier measurement_task;
 static GNUNET_SCHEDULER_TaskIdentifier measurement_counter_task;
 
-struct GNUNET_TRANSPORT_TransmitHandle * transmit_handle;
+static struct GNUNET_TRANSPORT_TransmitHandle * transmit_handle;
 
 #define OKPP do { ok++; } while (0)
 

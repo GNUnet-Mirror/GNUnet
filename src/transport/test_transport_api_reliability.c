@@ -100,7 +100,7 @@ static int msg_scheduled;
 static int msg_sent;
 static int msg_recv_expected;
 static int msg_recv;
-
+static struct GNUNET_TRANSPORT_TransmitHandle * transmit_handle;
 
 #if VERBOSE
 #define OKPP do { ok++; fprintf (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
@@ -351,6 +351,11 @@ notify_connect (void *cls,
 
   if (connected == 2)
     {
+
+	  if ((transmit_handle!=NULL) && (cls == NULL))
+		 GNUNET_TRANSPORT_notify_transmit_ready_cancel(transmit_handle);
+	  if ((transmit_handle!=NULL) && (cls == &transmit_handle))
+		 transmit_handle==NULL;
       GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
                                               &p1.id,
                                               get_size (0), 0, TIMEOUT,
@@ -466,7 +471,7 @@ exchange_hello_last (void *cls,
                      const struct GNUNET_MessageHeader *message)
 {
   struct PeerContext *me = cls;
-
+  transmit_handle = NULL;
   GNUNET_TRANSPORT_get_hello_cancel (p2.th, &exchange_hello_last, me);
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -479,12 +484,12 @@ exchange_hello_last (void *cls,
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
                                       message, &me->id));
 
-  GNUNET_assert(NULL != GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
+  GNUNET_assert(NULL != (transmit_handle = GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
                                           &p1.id,
                                           sizeof (struct GNUNET_MessageHeader), 0,
                                           TIMEOUT,
                                           &notify_ready_connect,
-                                          NULL));
+                                          &transmit_handle)));
 
   /* both HELLOs exchanged, get ready to test transmission! */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
