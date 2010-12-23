@@ -75,8 +75,8 @@ GNUNET_MONKEY_EDB_disconnect (struct GNUNET_MONKEY_EDB_Context *context)
  * of the expression pointed to by start_line_no and end_line_no
  * 
  * @param context the returned expessions will be available in it. 
- * expression_list_head, and expression_list_tail must be null, 
- * otherwise GNUNET_NO will be returned 
+ *        expression_list_head and expression_list_tail must be NULL, 
+ *        otherwise GNUNET_NO will be returned 
  * @param file_name path to the file in which the expression in question exists
  * @param start_line_no expression beginning line
  * @param end_line_no expression end line
