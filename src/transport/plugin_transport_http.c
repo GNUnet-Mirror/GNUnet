@@ -512,18 +512,18 @@ static void http_server_daemon_v6_run (void *cls, const struct GNUNET_SCHEDULER_
 
 /**
  * Function setting up curl handle and selecting message to send
+ *
  * @param plugin plugin
- * @param ses session to send data to
- * @param con connection
- * @return bytes sent to peer
+ * @param ps session
+ * @return GNUNET_SYSERR on failure, GNUNET_NO if connecting, GNUNET_YES if ok
  */
 static int send_check_connections (struct Plugin *plugin, struct Session *ps);
 
 /**
  * Function setting up file descriptors and scheduling task to run
- * @param cls closure
- * @param ses session to send data to
- * @param
+ *
+ * @param  plugin plugin as closure
+ * @return GNUNET_SYSERR for hard failure, GNUNET_OK for ok
  */
 static int curl_schedule (struct Plugin *plugin);
 
@@ -1818,7 +1818,7 @@ static void curl_perform (void *cls,
 /**
  * Function setting up file descriptors and scheduling task to run
  *
- * @param plugin plugin as closure
+ * @param  plugin plugin as closure
  * @return GNUNET_SYSERR for hard failure, GNUNET_OK for ok
  */
 static int curl_schedule(struct Plugin *plugin)

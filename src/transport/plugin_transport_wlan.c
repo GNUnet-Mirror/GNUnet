@@ -1725,7 +1725,6 @@ wlan_data_helper(void *cls, void * client, const struct GNUNET_MessageHeader * h
         distance[0].value = htonl (1);
         distance[1].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
         distance[1].value = htonl (0);
-
         plugin->env->receive(plugin, &session->target,
              temp_hdr, (const struct GNUNET_TRANSPORT_ATS_Information *) &distance, 2,
              session, session->addr, sizeof(session->addr));
@@ -2010,7 +2009,7 @@ wlan_transport_start_wlan_helper(struct Plugin *plugin, int testmode)
   /* Start the server process */
 
   plugin->server_proc = GNUNET_OS_start_process(plugin->server_stdin,
-		  plugin->server_stdout, filename, plugin->interface, ((testmode==1)?"1":"0"), NULL);
+		  plugin->server_stdout, filename,filename, plugin->interface, ((testmode==1)?"1":"0"), NULL);
   if (plugin->server_proc == NULL)
     {
 #if DEBUG_wlan
