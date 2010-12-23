@@ -5,6 +5,8 @@
   - integration with transport service:
     + test TCP
     + implement UDP, HTTP/HTTPS 
+* Transport:
+  - UDP fragmentation
 * DHT: [Nate]
   - track paths content travels (PUT, reply-to-get) in messages,
     pass to client (client API & protocol already support this!)
