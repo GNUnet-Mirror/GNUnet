@@ -355,7 +355,7 @@ notify_connect (void *cls,
 	  if ((transmit_handle!=NULL) && (cls == NULL))
 		 GNUNET_TRANSPORT_notify_transmit_ready_cancel(transmit_handle);
 	  if ((transmit_handle!=NULL) && (cls == &transmit_handle))
-		 transmit_handle==NULL;
+		 transmit_handle=NULL;
       GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
                                               &p1.id,
                                               get_size (0), 0, TIMEOUT,
