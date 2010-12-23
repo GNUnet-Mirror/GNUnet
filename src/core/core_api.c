@@ -212,12 +212,12 @@ struct GNUNET_CORE_Handle
   /**
    * Head of doubly-linked list of pending requests.
    */
-  struct ControlMessage *pending_head;
+  struct ControlMessage *control_pending_head;
 
   /**
    * Tail of doubly-linked list of pending requests.
    */
-  struct ControlMessage *pending_tail;
+  struct ControlMessage *control_pending_tail;
 
   /**
    * Head of doubly-linked list of peers that are core-approved
@@ -462,10 +462,10 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
   struct ControlMessage *cm;
   struct PeerRecord *pr;
 
-  while (NULL != (cm = h->pending_head))
+  while (NULL != (cm = h->control_pending_head))
     {
-      GNUNET_CONTAINER_DLL_remove (h->pending_head,
-				   h->pending_tail,
+      GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
+				   h->control_pending_tail,
 				   cm);
       if (cm->th != NULL)
 	cm->th->cm = NULL; 
@@ -487,7 +487,7 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
 				 h->ready_peer_tail,
 				 pr);
   
-  GNUNET_assert (h->pending_head == NULL);
+  GNUNET_assert (h->control_pending_head == NULL);
   h->currently_down = GNUNET_YES;
   GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
   h->retry_backoff = GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_SECONDS,
@@ -565,9 +565,9 @@ request_next_transmission (struct PeerRecord *pr)
   smr->queue_size = htonl (pr->queue_size);
   smr->size = htons (th->msize);
   smr->smr_id = htons (th->smr_id = pr->smr_id_gen++);
-  GNUNET_CONTAINER_DLL_insert_after (h->pending_head,
-				     h->pending_tail,
-				     h->pending_tail,
+  GNUNET_CONTAINER_DLL_insert_after (h->control_pending_head,
+				     h->control_pending_tail,
+				     h->control_pending_tail,
 				     cm);
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -647,7 +647,7 @@ transmit_message (void *cls,
       return 0;
     }
   /* first check for control messages */
-  if (NULL != (cm = h->pending_head))
+  if (NULL != (cm = h->control_pending_head))
     {
       hdr = (const struct GNUNET_MessageHeader*) &cm[1];
       msize = ntohs (hdr->size);
@@ -663,8 +663,8 @@ transmit_message (void *cls,
 		  (unsigned int) ntohs (hdr->type));
 #endif
       memcpy (buf, hdr, msize);
-      GNUNET_CONTAINER_DLL_remove (h->pending_head,
-				   h->pending_tail,
+      GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
+				   h->control_pending_tail,
 				   cm);     
       if (cm->th != NULL)
 	cm->th->cm = NULL;
@@ -777,8 +777,8 @@ trigger_next_request (struct GNUNET_CORE_Handle *h,
 #endif
       return;
     }
-  if (h->pending_head != NULL)
-    msize = ntohs (((struct GNUNET_MessageHeader*) &h->pending_head[1])->size);    
+  if (h->control_pending_head != NULL)
+    msize = ntohs (((struct GNUNET_MessageHeader*) &h->control_pending_head[1])->size);    
   else if (h->ready_peer_head != NULL) 
     msize = h->ready_peer_head->pending_head->msize + sizeof (struct SendMessage);    
   else
@@ -1349,8 +1349,8 @@ reconnect (struct GNUNET_CORE_Handle *h)
   ts = (uint16_t *) &init[1];
   for (hpos = 0; hpos < h->hcnt; hpos++)
     ts[hpos] = htons (h->handlers[hpos].type);
-  GNUNET_CONTAINER_DLL_insert (h->pending_head,
-			       h->pending_tail,
+  GNUNET_CONTAINER_DLL_insert (h->control_pending_head,
+			       h->control_pending_tail,
 			       cm);
   trigger_next_request (h, GNUNET_YES);
 }
@@ -1459,10 +1459,10 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
       GNUNET_SCHEDULER_cancel (handle->reconnect_task);
       handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
     }
-  while (NULL != (cm = handle->pending_head))
+  while (NULL != (cm = handle->control_pending_head))
     {
-      GNUNET_CONTAINER_DLL_remove (handle->pending_head,
-				   handle->pending_tail,
+      GNUNET_CONTAINER_DLL_remove (handle->control_pending_head,
+				   handle->control_pending_tail,
 				   cm);
       if (cm->th != NULL)
 	cm->th->cm = NULL;
@@ -1625,8 +1625,8 @@ GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle
   if (th->cm != NULL)
     {
       /* we're currently in the control queue, remove */
-      GNUNET_CONTAINER_DLL_remove (h->pending_head,
-				   h->pending_tail,
+      GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
+				   h->control_pending_tail,
 				   th->cm);
       GNUNET_free (th->cm);      
     }
@@ -1745,8 +1745,8 @@ GNUNET_CORE_peer_request_connect (struct GNUNET_CORE_Handle *h,
   msg->reserved = htonl (0);
   msg->timeout = GNUNET_TIME_relative_hton (timeout);
   msg->peer = *peer;
-  GNUNET_CONTAINER_DLL_insert (h->pending_head,
-			       h->pending_tail,
+  GNUNET_CONTAINER_DLL_insert (h->control_pending_head,
+			       h->control_pending_tail,
 			       cm);
   ret = GNUNET_malloc (sizeof (struct GNUNET_CORE_PeerRequestHandle));
   ret->h = h;
@@ -1759,7 +1759,7 @@ GNUNET_CORE_peer_request_connect (struct GNUNET_CORE_Handle *h,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Queueing REQUEST_CONNECT request\n");
 #endif
-  if (h->pending_head == cm)
+  if (h->control_pending_head == cm)
     trigger_next_request (h, GNUNET_NO);
   return ret;
 }
@@ -1777,8 +1777,8 @@ GNUNET_CORE_peer_request_connect_cancel (struct GNUNET_CORE_PeerRequestHandle *r
   struct GNUNET_CORE_Handle *h = req->h;
   struct ControlMessage *cm = req->cm;
 
-  GNUNET_CONTAINER_DLL_remove (h->pending_head,
-			       h->pending_tail,
+  GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
+			       h->control_pending_tail,
 			       cm);
   GNUNET_free (cm);
   GNUNET_free (req);
@@ -1909,12 +1909,12 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Queueing CHANGE PREFERENCE request\n");
 #endif
-  GNUNET_CONTAINER_DLL_insert (h->pending_head,
-			       h->pending_tail,
+  GNUNET_CONTAINER_DLL_insert (h->control_pending_head,
+			       h->control_pending_tail,
 			       cm); 
   pr->pcic = info;
   pr->pcic_cls = info_cls;
-  if (h->pending_head == cm)
+  if (h->control_pending_head == cm)
     trigger_next_request (h, GNUNET_NO);
   return irc;
 }
@@ -1939,8 +1939,8 @@ GNUNET_CORE_peer_change_preference_cancel (struct GNUNET_CORE_InformationRequest
 
   if (irc->cm != NULL)
     {
-      GNUNET_CONTAINER_DLL_remove (h->pending_head,
-				   h->pending_tail,
+      GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
+				   h->control_pending_tail,
 				   irc->cm);
       GNUNET_free (irc->cm);
     }
