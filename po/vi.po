@@ -12,6 +12,7 @@ msgstr ""
 "PO-Revision-Date: 2008-09-10 22:05+0930\n"
 "Last-Translator: Clytie Siddall <clytie@riverland.net.au>\n"
 "Language-Team: Vietnamese <vi-VN@googlegroups.com>\n"
+"Language: vi\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -133,10 +134,10 @@ msgid ""
 "You can specify a hostname, GNUnet will then use DNS to resolve it.\n"
 "If in doubt, leave this empty."
 msgstr ""
-"Nếu nhà cung cấp luôn luôn gán cùng một địa chỉ IP (một địa chỉ IP « tĩnh »), "
-"thì hãy nhập địa chỉ đó vào vùng « Địa chỉ IP ». Nếu địa chỉ IP thay đổi sau "
-"mỗi lần kết nối (địa chỉ IP « động ») nhưng có một tên máy luôn luôn chỉ tới "
-"địa chỉ IP thực của bạn (« DNS động »), thì cũng có thể nhập nó ở đây.\n"
+"Nếu nhà cung cấp luôn luôn gán cùng một địa chỉ IP (một địa chỉ IP « tĩnh "
+"»), thì hãy nhập địa chỉ đó vào vùng « Địa chỉ IP ». Nếu địa chỉ IP thay đổi "
+"sau mỗi lần kết nối (địa chỉ IP « động ») nhưng có một tên máy luôn luôn chỉ "
+"tới địa chỉ IP thực của bạn (« DNS động »), thì cũng có thể nhập nó ở đây.\n"
 "Nếu không biết phải làm gì, thì hãy để trống. GNUnet sẽ thử tự động phát "
 "hiện địa chỉ IP.\n"
 "Bạn cũng có thể ghi rõ tên máy. Vì thế GNUnet sẽ dùng dịch vụ DNS để giải "
@@ -583,8 +584,8 @@ msgid ""
 "\tEnter unsigned integer in interval [%llu,%llu] (type '%s' for default "
 "value %llu): "
 msgstr ""
-"\tNhập số nguyên không có dấu trong khoảng [%llu,%llu] (gõ « %s » cho giá trị "
-"mặc định %llu): "
+"\tNhập số nguyên không có dấu trong khoảng [%llu,%llu] (gõ « %s » cho giá "
+"trị mặc định %llu): "
 
 #: src/setup/text/conf.c:187
 #, c-format
@@ -677,8 +678,8 @@ msgstr "Tập tin cấu hình « %s » đã được ghi.\n"
 msgid ""
 "Internal error: entry `%s' in section `%s' not found for visibility change!\n"
 msgstr ""
-"Lỗi nội bộ : mục nhập « %s » trong phần « %s » không tìm thấy để thay đổi tình "
-"trạng hiển rõ.\n"
+"Lỗi nội bộ : mục nhập « %s » trong phần « %s » không tìm thấy để thay đổi "
+"tình trạng hiển rõ.\n"
 
 #: src/setup/lib/wizard_util.c:126
 msgid "Can't open Service Control Manager"
@@ -921,7 +922,8 @@ msgstr "%s: tùy chọn « -W %s » không cho phép đối số\n"
 #, c-format
 msgid "No interface specified in section `%s' under `%s'!\n"
 msgstr ""
-"Không có giao diện mạng được xác định trong cấu hình phần « %s » dưới « %s ».\n"
+"Không có giao diện mạng được xác định trong cấu hình phần « %s » dưới « %s "
+"».\n"
 
 #: src/util/network/ip.c:127 src/util/network/ip.c:246 src/transports/ip.c:291
 #, c-format
@@ -952,7 +954,8 @@ msgstr ""
 #: src/util/network/ip.c:330
 #, c-format
 msgid "Could not resolve `%s' to determine our IP address: %s\n"
-msgstr "Không thể giải quyết « %s » để quyết định địa chỉ IP của chúng ta: %s\n"
+msgstr ""
+"Không thể giải quyết « %s » để quyết định địa chỉ IP của chúng ta: %s\n"
 
 #: src/util/network/ip.c:363
 #, c-format
@@ -1013,8 +1016,8 @@ msgstr "Gặp lỗi cú pháp trong tập tin cấu hình « %s » tại dòng %
 #: src/util/config/config.c:592
 #, c-format
 msgid ""
-"Configuration value '%llu' for '%s' in section '%s' is out of legal bounds [%"
-"llu,%llu]\n"
+"Configuration value '%llu' for '%s' in section '%s' is out of legal bounds "
+"[%llu,%llu]\n"
 msgstr ""
 "Giá tri cấu hình « %llu » cho « %s » trong phần « %s » ở ngoại phạm vi được "
 "phép [%llu,%llu]\n"
@@ -1030,8 +1033,8 @@ msgid ""
 "Configuration value '%s' for '%s' in section '%s' is not in set of legal "
 "choices\n"
 msgstr ""
-"Giá trị cấu hình « %s » cho « %s » trong phần « %s » không phải nằm trong tập "
-"hợp các sự chọn được phép\n"
+"Giá trị cấu hình « %s » cho « %s » trong phần « %s » không phải nằm trong "
+"tập hợp các sự chọn được phép\n"
 
 #: src/util/crypto/locking_gcrypt.c:80
 #, c-format
@@ -1126,7 +1129,8 @@ msgstr "Lỗi phân tích dữ liệu giao diện từ « %s ».\n"
 msgid ""
 "No network interfaces defined in configuration section `%s' under `%s'!\n"
 msgstr ""
-"Không có giao diện mạng được xác định trong cấu hình phần « %s » dưới « %s ».\n"
+"Không có giao diện mạng được xác định trong cấu hình phần « %s » dưới « %s "
+"».\n"
 
 #: src/util/os/osconfig.c:153
 msgid "Setting open descriptor limit not supported.\n"
@@ -1226,7 +1230,8 @@ msgstr "TiB"
 
 #: src/util/string/string.c:226
 msgid "Failed to expand `$HOME': environment variable `HOME' not set"
-msgstr "Lỗi mở rộng biến môi trường « $HOME »: chưa đặt biến môi trường « HOME »"
+msgstr ""
+"Lỗi mở rộng biến môi trường « $HOME »: chưa đặt biến môi trường « HOME »"
 
 #: src/util/loggers/file.c:229
 #, c-format
@@ -1918,8 +1923,8 @@ msgstr "Lỗi truy cập đến thư mục nhà GNUnet « %s »\n"
 #, c-format
 msgid "Existing key in file `%s' failed format check, creating new key.\n"
 msgstr ""
-"Kiểm tra định dạng của chìa khóa đã có trong tập tin « %s » không thành công, "
-"đang tạo chìa khóa máy mới.\n"
+"Kiểm tra định dạng của chìa khóa đã có trong tập tin « %s » không thành "
+"công, đang tạo chìa khóa máy mới.\n"
 
 #: src/applications/chat/lib/messaging.c:399
 msgid "Creating new key for this nickname (this may take a while).\n"
@@ -1991,7 +1996,8 @@ msgstr "Không thể nạp phần bổ sung truyền tải « %s »\n"
 #: src/applications/transport/transport.c:795
 #, c-format
 msgid "Transport library `%s' did not provide required function '%s%s'.\n"
-msgstr "Thư viện truyền tải « %s » không cung cấp chức năng yêu cầu « %s%s ».\n"
+msgstr ""
+"Thư viện truyền tải « %s » không cung cấp chức năng yêu cầu « %s%s ».\n"
 
 #: src/applications/transport/transport.c:824
 #, c-format
@@ -2116,7 +2122,8 @@ msgstr "Hoàn thành tạo khoá máy.\n"
 msgid ""
 "File `%s' in directory `%s' does not match naming convention. Removed.\n"
 msgstr ""
-"Tập tin « %s » trong thư mục « %s » không tùy theo quy ước đặt tên. Bị gỡ bỏ.\n"
+"Tập tin « %s » trong thư mục « %s » không tùy theo quy ước đặt tên. Bị gỡ "
+"bỏ.\n"
 
 #: src/applications/identity/identity.c:408
 #, c-format
@@ -2261,8 +2268,8 @@ msgstr ""
 #, c-format
 msgid "Session key received from peer `%s' is for `%s' and not for me!\n"
 msgstr ""
-"Khoá phiên chạy được nhận từ đồng đẳng « %s » dành cho « %s », không phải cho "
-"tôi.\n"
+"Khoá phiên chạy được nhận từ đồng đẳng « %s » dành cho « %s », không phải "
+"cho tôi.\n"
 
 #: src/applications/session/connect.c:659
 #, c-format
@@ -2852,7 +2859,8 @@ msgstr "tải xuống đệ quy một thư mục GNUnet"
 #: src/applications/fs/tools/gnunet-download.c:119
 #, c-format
 msgid "Download of file `%s' at %16llu out of %16llu bytes (%8.3f KiB/s)\n"
-msgstr "Tải xuống tập tin « %s » tại %16llu trên %16llu byte (%8.3f KiB/giây)\n"
+msgstr ""
+"Tải xuống tập tin « %s » tại %16llu trên %16llu byte (%8.3f KiB/giây)\n"
 
 #: src/applications/fs/tools/gnunet-download.c:133
 #, c-format
@@ -3089,8 +3097,8 @@ msgid ""
 "`%s' registering client handlers %d %d %d %d %d %d %d %d and P2P handlers %d "
 "%d\n"
 msgstr ""
-"« %s » đang đăng ký các trình điều khiển kiểu ứng dụng khách %d %d %d %d %d %"
-"d %d %d và kiểu P2P %d %d\n"
+"« %s » đang đăng ký các trình điều khiển kiểu ứng dụng khách %d %d %d %d %d "
+"%d %d %d và kiểu P2P %d %d\n"
 
 #: src/applications/fs/gap/fs.c:921
 msgid "enables (anonymous) file-sharing"
@@ -3234,8 +3242,8 @@ msgstr "Đang đợi các đồng đẳng kết nối"
 #, c-format
 msgid "Connecting nodes in 2d torus topology: %u rows %u columns\n"
 msgstr ""
-"Đang kết nối các điểm nút theo địa hình học hình xuyến hai chiều: %u hàng, %"
-"u cột\n"
+"Đang kết nối các điểm nút theo địa hình học hình xuyến hai chiều: %u hàng, "
+"%u cột\n"
 
 #: src/applications/testing/remotetopologies.c:491
 #, c-format
@@ -3788,8 +3796,8 @@ msgstr "tắt đệm lót với dữ liệu ngẫu nhiên (vẫn thực nghiệm
 #: src/server/gnunetd.c:190
 msgid "print all log messages to the console (only works together with -d)"
 msgstr ""
-"in mọi thông điệp ghi sự kiện ra bàn giao tiếp (chỉ hoạt động tổ hợp với « -d "
-"»)"
+"in mọi thông điệp ghi sự kiện ra bàn giao tiếp (chỉ hoạt động tổ hợp với « -"
+"d »)"
 
 #: src/server/gnunetd.c:194
 msgid "specify username as which gnunetd should run"
@@ -4123,8 +4131,8 @@ msgid ""
 "%d out of %d peers contacted successfully (%d times transport unavailable).\n"
 msgstr ""
 "\n"
-"Đã liên lạc thành công với %d trên %d đồng đẳng (truyền tải không sẵn sàng %"
-"d lần).\n"
+"Đã liên lạc thành công với %d trên %d đồng đẳng (truyền tải không sẵn sàng "
+"%d lần).\n"
 
 #: src/transports/common.c:370
 #, c-format
@@ -4174,7 +4182,8 @@ msgstr "# các byte loại đi bởi SMTP (đi ra)"
 #, c-format
 msgid "%s failed for url `%s' and post-data `%s' at %s:%d: `%s'\n"
 msgstr ""
-"%s bị lỗi đối với địa chỉ URL « %s » và dữ liệu cuối « %s » tại %s:%d: « %s »\n"
+"%s bị lỗi đối với địa chỉ URL « %s » và dữ liệu cuối « %s » tại %s:%d: « %s "
+"»\n"
 
 #: src/transports/upnp/upnp.c:476
 #, c-format
@@ -4381,8 +4390,8 @@ msgstr ""
 "\n"
 "Một số tùy chọn nào đó có áp dụng cho mã thực nghiệm, mà có thể vẫn còn được "
 "phát triển thì chưa đầy đủ chức năng, ổn định hay đủ thử để sử dụng một cách "
-"chung. Các tính năng này được nhãn là « alpha » (a). Nếu một tính năng vẫn là "
-"alpha, khuyên người dùng bình thường không dùng nó.\n"
+"chung. Các tính năng này được nhãn là « alpha » (a). Nếu một tính năng vẫn "
+"là alpha, khuyên người dùng bình thường không dùng nó.\n"
 "\n"
 "Tùy nhiên, nếu bạn quen với tiến trình thử và phản hồi, mời bạn tham gia "
 "(miễn là bạn hiểu được rằng phần mềm này có thể chưa sẵn sàng sử dụng với dữ "
@@ -4666,15 +4675,15 @@ msgid ""
 "transport requires the use of tcp, http and/or smtp in addition to nat "
 "itself."
 msgstr ""
-"Dùng một danh sách các mô-đun định giới bằng dấu cách, v.d. « udp smtp tcp ». "
-"Những cơ chế truyền sẵn sàng: udp, tcp, http, smtp, nat.\n"
+"Dùng một danh sách các mô-đun định giới bằng dấu cách, v.d. « udp smtp tcp "
+"». Những cơ chế truyền sẵn sàng: udp, tcp, http, smtp, nat.\n"
 "\n"
 "Nạp hai mô-đun « nat » và « tcp » cần thiết cho đồng đẳng nằm sau máy NAT mà "
 "không tới được từ bên ngoài. Đồng đẳng KHÔNG phải nằm sau máy NAT và muốn "
 "_cho phép_ kết nối từ đồng đẳng mà CÓ phải nằm sau NAT thì CŨNG cần phải nạp "
-"mô-đun « nat ». Ghi chú rằng việc truyền thật lúc nào cũng chạy qua tcp, được "
-"sơ khởi bởi đồng đẳng nằm sau máy NAT. Cơ chế truyền nat cũng cần thiết tcp, "
-"http và/hay smtp thêm vào nat chính nó."
+"mô-đun « nat ». Ghi chú rằng việc truyền thật lúc nào cũng chạy qua tcp, "
+"được sơ khởi bởi đồng đẳng nằm sau máy NAT. Cơ chế truyền nat cũng cần thiết "
+"tcp, http và/hay smtp thêm vào nat chính nó."
 
 #: contrib/config-daemon.scm:366
 msgid "Which applications should gnunetd support?"
@@ -4881,10 +4890,10 @@ msgstr ""
 "Tùy chọn này ghi rõ những máy nào đủ tin cậy để kết nối là ứng dụng khách "
 "(đến cổng TCP). Có ích nếu bạn chạy trình nên gnunetd trên một máy của mạng "
 "cục bộ, cũng muốn các máy khác cùng mạng dùng nút này làm máy phục vụ. Mặc "
-"định là tùy chọn này được đặt thành « loopback only » (chỉ mạch nội bộ). Định "
-"dạng là IP/MẶT_NẠ_MẠNG mà địa chỉ IP được ghi rõ theo thập phân đánh chấm (v."
-"d. 255.255.0.0), và mặt nạ mạng (netmask) theo hoặc cách ghi CIDR (v.d. "
-"1/16) hoặc thập phân đánh chấm. Vài mục nhập nên định giới bằng dấu hai "
+"định là tùy chọn này được đặt thành « loopback only » (chỉ mạch nội bộ). "
+"Định dạng là IP/MẶT_NẠ_MẠNG mà địa chỉ IP được ghi rõ theo thập phân đánh "
+"chấm (v.d. 255.255.0.0), và mặt nạ mạng (netmask) theo hoặc cách ghi CIDR (v."
+"d. 1/16) hoặc thập phân đánh chấm. Vài mục nhập nên định giới bằng dấu hai "
 "chấm, cũng không cho phép khoảng cách."
 
 #: contrib/config-daemon.scm:509
@@ -5197,8 +5206,8 @@ msgstr ""
 "này thành NO (không). Chỉ đặt thành YES nếu đồng đẳng khác không thể liên "
 "lạc với máy này một cách trực tiếp. Bạn cũng có thể sử dụng câu lệnh « make "
 "check » (trong /src/transports/upnp) để tìm biết nếu NAT đó hỗ trợ UPnP "
-"không. Bạn cũng có thể sử dụng công cụ gnunet-transport-check với tùy chọn « -"
-"p » để quyết định thiết lập nào gây ra nhiều kết nối hơn. Đặt YES chỉ nếu "
+"không. Bạn cũng có thể sử dụng công cụ gnunet-transport-check với tùy chọn « "
+"-p » để quyết định thiết lập nào gây ra nhiều kết nối hơn. Đặt YES chỉ nếu "
 "bạn không nhận kết nối bằng cách khác. Đặt thành AUTO (tự động) để sử dụng "
 "YES nếu địa chỉ IP cục bộ thuộc về một mạng IP riêng, không thì NO."
 
@@ -5626,8 +5635,8 @@ msgstr ""
 "sung. Định dạng là « [[-]tên_thư_viện[:[-]tên_thư_viện]*] ».\n"
 "\n"
 "Mặc định là dùng tên tập tin, và ngắt từ lớn ở dấu cách, dấu gạch dưới v.v. "
-"Đây nên ổn cho phần lớn người dùng. Dấu gạch nối « - » đằng trước một tên thư "
-"viện có ngụ ý nó nên được thực hiện cuối cùng, thích hợp chỉ cho split-"
+"Đây nên ổn cho phần lớn người dùng. Dấu gạch nối « - » đằng trước một tên "
+"thư viện có ngụ ý nó nên được thực hiện cuối cùng, thích hợp chỉ cho split-"
 "library."
 
 #: contrib/config-client.scm:253
