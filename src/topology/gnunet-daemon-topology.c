@@ -792,6 +792,7 @@ disconnect_notify (void *cls,
       GNUNET_break (0);
       return;
     }
+  pos->is_connected = GNUNET_NO;
   connection_count--;
   GNUNET_STATISTICS_set (stats,
 			 gettext_noop ("# peers connected"),
