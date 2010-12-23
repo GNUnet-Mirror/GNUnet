@@ -4461,7 +4461,7 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
                    plugin->env.my_identity,
                    sizeof (struct GNUNET_PeerIdentity)))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Received `%s' message from `%s' destined for `%s' which is not me!\n"),
 		  "PING",
 		  (sender_address != NULL)
