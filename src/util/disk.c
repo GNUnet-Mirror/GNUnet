@@ -1987,7 +1987,7 @@ GNUNET_DISK_npipe_create (char **fn,
     }
 
   flags = flags & (~GNUNET_DISK_OPEN_FAILIFEXISTS);
-  return GNUNET_DISK_file_open(fn, flags, perm);
+  return GNUNET_DISK_file_open(*fn, flags, perm);
 #endif
 }
 
