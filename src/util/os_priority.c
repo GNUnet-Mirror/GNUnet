@@ -27,7 +27,10 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_os_lib.h"
+#include "gnunet_scheduler_lib.h"
 #include "disk.h"
+
+#define GNUNET_OS_CONTROL_PIPE "GNUNET_OS_CONTROL_PIPE"
 
 struct GNUNET_OS_Process
 {
@@ -35,21 +38,76 @@ struct GNUNET_OS_Process
 #if WINDOWS
   HANDLE handle;
 #endif
+  int sig;
+  struct GNUNET_DISK_FileHandle *control_pipe;
 };
 
 static struct GNUNET_OS_Process current_process;
 
 
-#if WINDOWS
+/**
+ * This handler is called when there are control data to be read on the pipe
+ */
 void
-GNUNET_OS_process_set_handle(struct GNUNET_OS_Process *proc, HANDLE handle)
+GNUNET_OS_parent_control_handler (void *cls,
+                                  const struct
+                                  GNUNET_SCHEDULER_TaskContext * tc)
 {
-  if (proc->handle != NULL)
-    CloseHandle (proc->handle);
-  proc->handle = handle;
-}
-#endif
+  struct GNUNET_DISK_FileHandle *control_pipe = (struct GNUNET_DISK_FileHandle *) cls;
+  int sig;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' invoked because of %d\n", __FUNCTION__, tc->reason);
+
+  if (tc->reason & (GNUNET_SCHEDULER_REASON_SHUTDOWN | GNUNET_SCHEDULER_REASON_TIMEOUT | GNUNET_SCHEDULER_REASON_PREREQ_DONE))
+  {
+    GNUNET_DISK_npipe_close (control_pipe);
+  }
+  else
+  {
+    if (GNUNET_DISK_file_read (control_pipe, &sig, sizeof (sig)) != sizeof (sig))
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "GNUNET_DISK_file_read");
+      GNUNET_DISK_npipe_close (control_pipe);
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got control code %d from parent\n", sig);
+      raise (sig);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Re-scheduling the parent control handler pipe\n");
+      GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, control_pipe, GNUNET_OS_parent_control_handler, control_pipe);
+    }
+  }
+}
+
+/**
+ * Connects this process to its parent via pipe
+ */
+void
+GNUNET_OS_install_parent_control_handler (void *cls,
+                                          const struct
+                                          GNUNET_SCHEDULER_TaskContext * tc)
+{
+  char *env_buf;
+  struct GNUNET_DISK_FileHandle *control_pipe = NULL;
+
+  env_buf = getenv (GNUNET_OS_CONTROL_PIPE);
+  if (env_buf == NULL || strlen (env_buf) <= 0)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not installing a handler because %s=%s\n", GNUNET_OS_CONTROL_PIPE, env_buf);
+    return;
+  }
+
+  control_pipe = GNUNET_DISK_npipe_open (env_buf, GNUNET_DISK_OPEN_READ,
+        GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
+  if (control_pipe == NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to open the pipe `%s'\n", env_buf);
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding parent control handler pipe `%s' to the scheduler\n", env_buf);
+  GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, control_pipe, GNUNET_OS_parent_control_handler, control_pipe);
+}
 
 /**
  * Get process structure for current process
@@ -74,28 +132,60 @@ GNUNET_OS_process_current ()
 int
 GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
 {
-#if WINDOWS
-  if (sig == SIGKILL || sig == SIGTERM)
+#if ENABLE_WINDOWS_WORKAROUNDS
+  int res;
+  int ret;
+
+  ret = GNUNET_DISK_file_write (proc->control_pipe, &sig, sizeof(sig));
+  if (ret != sizeof(sig))
   {
-    HANDLE h = proc->handle;
-    if (NULL == h)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Invalid process information {%d, %08X}\n"),
-		  proc->pid,
-		  h);
-      return -1;
-    }
-    if (!TerminateProcess (h, 0))
-    {
-      SetErrnoFromWinError (GetLastError ());
-      return -1;
-    }
+    if (errno == ECOMM)
+      /* Child process is not controllable via pipe */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+          "Child process is not controllable, will kill it directly\n");
     else
-      return 0;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+          "Failed to write into control pipe , errno is %d\n", errno);
+    res = PLIBC_KILL (proc->pid, sig);
   }
-  errno = EINVAL;
-  return -1;
+  else
+  {
+  	struct GNUNET_NETWORK_FDSet *rfds;
+    struct GNUNET_NETWORK_FDSet *efds;
+
+    rfds = GNUNET_NETWORK_fdset_create ();
+    efds = GNUNET_NETWORK_fdset_create ();
+
+    GNUNET_NETWORK_fdset_handle_set (rfds, proc->control_pipe);
+    GNUNET_NETWORK_fdset_handle_set (efds, proc->control_pipe);
+
+ read_next:
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+            "Wrote control code into control pipe, now waiting\n");
+
+        ret = GNUNET_NETWORK_socket_select (rfds, NULL, efds,
+            GNUNET_TIME_relative_multiply (GNUNET_TIME_relative_get_unit (),
+                5000));
+
+        if (ret < 1 || GNUNET_NETWORK_fdset_handle_isset (efds,
+            proc->control_pipe))
+          {
+            /* Just to be sure */
+            PLIBC_KILL (proc->pid, sig);
+            res = 0;
+          }
+        else
+          {
+            if (GNUNET_DISK_file_read (proc->control_pipe, &ret,
+                sizeof(ret)) != GNUNET_OK)
+              res = PLIBC_KILL (proc->pid, sig);
+
+            /* Child signaled shutdown is in progress */
+            goto read_next;
+          }
+      }
+
+    return res;
 #else
   return kill (proc->pid, sig);
 #endif
@@ -117,13 +207,19 @@ GNUNET_OS_process_get_pid (struct GNUNET_OS_Process *proc)
 void
 GNUNET_OS_process_close (struct GNUNET_OS_Process *proc)
 {
-#if WINDOWS
+#if ENABLE_WINDOWS_WORKAROUNDS
+  if (proc->control_pipe)
+    GNUNET_DISK_npipe_close (proc->control_pipe);
+#endif
+// FIXME NILS
+#ifdef WINDOWS
   if (proc->handle != NULL)
     CloseHandle (proc->handle);
-#endif  
+#endif
   GNUNET_free (proc);
 }
 
+// FIXME NILS
 #if WINDOWS
 #include "gnunet_signal_lib.h"
 
@@ -258,6 +354,105 @@ GNUNET_OS_set_process_priority (struct GNUNET_OS_Process *proc,
   return GNUNET_OK;
 }
 
+#if MINGW
+static char *
+CreateCustomEnvTable (char **vars)
+{
+  char *win32_env_table, *ptr, **var_ptr, *result, *result_ptr;
+  size_t tablesize = 0;
+  size_t items_count = 0;
+  size_t n_found = 0, n_var;
+  char *index = NULL;
+  size_t c;
+  size_t var_len;
+  char *var;
+  char *val;
+  win32_env_table = GetEnvironmentStringsA ();
+  if (win32_env_table == NULL)
+    return NULL;
+  for (c = 0, var_ptr = vars; *var_ptr; var_ptr += 2, c++);
+  n_var = c;
+  index = GNUNET_malloc (n_var);
+  for (c = 0; c < n_var; c++)
+    index[c] = 0;
+  for (items_count = 0, ptr = win32_env_table; ptr[0] != 0; items_count++)
+  {
+    size_t len = strlen (ptr);
+    int found = 0;
+    for (var_ptr = vars; *var_ptr; var_ptr++)
+    {
+      var = *var_ptr++;
+      val = *var_ptr;
+      var_len = strlen (var);
+      if (strncmp (var, ptr, var_len) == 0)
+      {
+        found = 1;
+        index[c] = 1;
+        tablesize += var_len + strlen (val) + 1;
+        break;
+      }
+    }
+    if (!found)
+      tablesize += len + 1;
+    ptr += len + 1; 
+  }
+  for (n_found = 0, c = 0, var_ptr = vars; *var_ptr; var_ptr++, c++)
+  {
+    var = *var_ptr++;
+    val = *var_ptr;
+    if (index[c] != 1)
+      n_found += strlen (var) + strlen (val) + 1;
+  }
+  result = GNUNET_malloc (tablesize + n_found + 1);
+  for (result_ptr = result, ptr = win32_env_table; ptr[0] != 0;)
+  {
+    size_t len = strlen (ptr);
+    int found = 0;
+    for (c = 0, var_ptr = vars; *var_ptr; var_ptr++, c++)
+    {
+      var = *var_ptr++;
+      val = *var_ptr;
+      var_len = strlen (var);
+      if (strncmp (var, ptr, var_len) == 0)
+      {
+        found = 1;
+        break;
+      }
+    }
+    if (!found)
+    {
+      strcpy (result_ptr, ptr);
+      result_ptr += len + 1;
+    }
+    else
+    {
+      strcpy (result_ptr, var);
+      result_ptr += var_len;
+      strcpy (result_ptr, val);
+      result_ptr += strlen (val) + 1;
+    }
+    ptr += len + 1;
+  }
+  for (c = 0, var_ptr = vars; *var_ptr; var_ptr++, c++)
+  {
+    var = *var_ptr++;
+    val = *var_ptr;
+    var_len = strlen (var);
+    if (index[c] != 1)
+    {
+      strcpy (result_ptr, var);
+      result_ptr += var_len;
+      strcpy (result_ptr, val);
+      result_ptr += strlen (val) + 1;
+    }
+  }
+  FreeEnvironmentStrings (win32_env_table);
+  GNUNET_free (index);
+  *result_ptr = 0;
+  return result;
+}
+#endif
+
 /**
  * Start a process.
  *
@@ -273,16 +468,28 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
 			 const char *filename, ...)
 {
   va_list ap;
+#if ENABLE_WINDOWS_WORKAROUNDS
+  char *childpipename = NULL;
+  struct GNUNET_DISK_FileHandle *control_pipe = NULL;
+#endif
+  struct GNUNET_OS_Process *gnunet_proc = NULL;
 
 #ifndef MINGW
   pid_t ret;
-  struct GNUNET_OS_Process *gnunet_proc = NULL;
   char **argv;
   int argc;
   int fd_stdout_write;
   int fd_stdout_read;
   int fd_stdin_read;
   int fd_stdin_write;
+
+#if ENABLE_WINDOWS_WORKAROUNDS
+  control_pipe = GNUNET_DISK_npipe_create (&childpipename,
+      GNUNET_DISK_OPEN_WRITE, GNUNET_DISK_PERM_USER_READ |
+      GNUNET_DISK_PERM_USER_WRITE);
+  if (control_pipe == NULL)
+    return NULL;
+#endif
 
   argc = 0;
   va_start (ap, filename);
@@ -316,6 +523,9 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
       if (ret == -1)
         {
           GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "fork");
+#if ENABLE_WINDOWS_WORKAROUNDS
+          GNUNET_DISK_npipe_close (control_pipe);
+#endif
         }
       else
         {
@@ -337,10 +547,21 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
 #endif
           gnunet_proc = GNUNET_malloc (sizeof (struct GNUNET_OS_Process));
           gnunet_proc->pid = ret;
+#if ENABLE_WINDOWS_WORKAROUNDS
+          gnunet_proc->control_pipe = control_pipe;
+#endif
         }
       GNUNET_free (argv);
+#if ENABLE_WINDOWS_WORKAROUNDS
+      GNUNET_free (childpipename);
+#endif
       return gnunet_proc;
     }
+
+#if ENABLE_WINDOWS_WORKAROUNDS
+  setenv (GNUNET_OS_CONTROL_PIPE, childpipename, 1);
+  GNUNET_free (childpipename);
+#endif
 
   if (pipe_stdout != NULL)
     {
@@ -367,23 +588,84 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
   char *cmd, *idx;
   STARTUPINFO start;
   PROCESS_INFORMATION proc;
-  struct GNUNET_OS_Process *gnunet_proc = NULL;
 
   HANDLE stdin_handle;
   HANDLE stdout_handle;
 
   char path[MAX_PATH + 1];
 
+  char *our_env[3] = { NULL, NULL, NULL };
+  char *env_block = NULL;
+  char *pathbuf;
+  DWORD pathbuf_len, alloc_len;
+  char *self_prefix;
+  char *bindir;
+  char *libdir;
+  char *ptr;
+  char *non_const_filename;
+
+  /* Search in prefix dir (hopefully - the directory from which
+   * the current module was loaded), bindir and libdir, then in PATH
+   */
+  self_prefix = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_SELF_PREFIX);
+  bindir = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_BINDIR);
+  libdir = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_LIBDIR);
+
+  pathbuf_len = GetEnvironmentVariableA ("PATH", (char *) &pathbuf, 0);
+
+  alloc_len = pathbuf_len + 1 + strlen (self_prefix) + 1 + strlen (bindir) + 1 + strlen (libdir);
+
+  pathbuf = GNUNET_malloc (alloc_len * sizeof (char));
+
+  ptr = pathbuf;
+  ptr += sprintf (pathbuf, "%s;%s;%s;", self_prefix, bindir, libdir);
+  GNUNET_free (self_prefix);
+  GNUNET_free (bindir);
+  GNUNET_free (libdir);
+
+  alloc_len = GetEnvironmentVariableA ("PATH", ptr, pathbuf_len);
+  GNUNET_assert (alloc_len == (pathbuf_len - 1));
+
+  cmdlen = strlen (filename);
+  if (cmdlen < 5 || strcmp (&filename[cmdlen - 4], ".exe") != 0)
+    GNUNET_asprintf (&non_const_filename, "%s.exe", filename);
+  else
+    GNUNET_asprintf (&non_const_filename, "%s", filename);
+
+  /* Check that this is the full path. If it isn't, search. */
+  if (non_const_filename[1] == ':')
+    snprintf (path, sizeof (path) / sizeof (char), "%s", non_const_filename);
+  else if (!SearchPathA (pathbuf, non_const_filename, NULL, sizeof (path) / sizeof (char), path, NULL))
+    {
+      SetErrnoFromWinError (GetLastError ());
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "SearchPath", non_const_filename);
+      GNUNET_free (non_const_filename);
+      GNUNET_free (pathbuf);
+      return NULL;
+    }
+  GNUNET_free (pathbuf);
+  GNUNET_free (non_const_filename);
+ 
   cmdlen = 0;
   va_start (ap, filename);
   while (NULL != (arg = va_arg (ap, char *)))
-      cmdlen = cmdlen + strlen (arg) + 3;
+  {
+      if (cmdlen == 0)
+        cmdlen = cmdlen + strlen (path) + 3;
+      else
+        cmdlen = cmdlen + strlen (arg) + 3;
+  }
   va_end (ap);
 
   cmd = idx = GNUNET_malloc (sizeof (char) * (cmdlen + 1));
   va_start (ap, filename);
   while (NULL != (arg = va_arg (ap, char *)))
-      idx += sprintf (idx, "\"%s\" ", arg);
+  {
+      if (idx == cmd)
+        idx += sprintf (idx, "\"%s\" ", path);
+      else
+        idx += sprintf (idx, "\"%s\" ", arg);
+  }
   va_end (ap);
 
   memset (&start, 0, sizeof (start));
@@ -404,28 +686,46 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
       start.hStdOutput = stdout_handle;
     }
 
-  if (32 >= (int) FindExecutableA (filename, NULL, path)) 
-    {
-      SetErrnoFromWinError (GetLastError ());
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "FindExecutable", filename);
-      return NULL;
-    }
+  control_pipe = GNUNET_DISK_npipe_create (&childpipename,
+      GNUNET_DISK_OPEN_WRITE, GNUNET_DISK_PERM_USER_READ |
+      GNUNET_DISK_PERM_USER_WRITE);
+  if (control_pipe == NULL)
+  {
+    GNUNET_free (cmd);
+    GNUNET_free (path);
+    return NULL;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Opened the parent end of the pipe `%s'\n", childpipename);
+
+  GNUNET_asprintf (&our_env[0], "%s=", GNUNET_OS_CONTROL_PIPE);
+  GNUNET_asprintf (&our_env[1], "%s", childpipename);
+  our_env[2] = NULL;
+  env_block = CreateCustomEnvTable (our_env);
+  GNUNET_free (our_env[0]);
+  GNUNET_free (our_env[1]);
 
   if (!CreateProcessA
-      (path, cmd, NULL, NULL, TRUE, DETACHED_PROCESS, NULL, NULL, &start,
-       &proc))
+      (path, cmd, NULL, NULL, TRUE, DETACHED_PROCESS | CREATE_SUSPENDED,
+       env_block, NULL, &start, &proc))
     {
       SetErrnoFromWinError (GetLastError ());
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "CreateProcess", path);
+      GNUNET_free (env_block);
+      GNUNET_free (cmd);
       return NULL;
     }
+
+  GNUNET_free (env_block);
 
   gnunet_proc = GNUNET_malloc (sizeof (struct GNUNET_OS_Process));
   gnunet_proc->pid = proc.dwProcessId;
   gnunet_proc->handle = proc.hProcess;
+  gnunet_proc->control_pipe = control_pipe;
 
   CreateThread (NULL, 64000, ChildWaitThread, (void *) gnunet_proc, 0, NULL);
 
+  ResumeThread (proc.hThread);
   CloseHandle (proc.hThread);
 
   GNUNET_free (cmd);
@@ -450,6 +750,11 @@ struct GNUNET_OS_Process *
 GNUNET_OS_start_process_v (const int *lsocks,
 			   const char *filename, char *const argv[])
 {
+#if ENABLE_WINDOWS_WORKAROUNDS
+  struct GNUNET_DISK_FileHandle *control_pipe = NULL;
+  char *childpipename = NULL;
+#endif
+
 #ifndef MINGW
   pid_t ret;
   char lpid[16];
@@ -462,6 +767,14 @@ GNUNET_OS_start_process_v (const int *lsocks,
   int flags;
   int *lscp;
   unsigned int ls;    
+
+#if ENABLE_WINDOWS_WORKAROUNDS
+  control_pipe = GNUNET_DISK_npipe_create (&childpipename,
+      GNUNET_DISK_OPEN_WRITE, GNUNET_DISK_PERM_USER_READ |
+      GNUNET_DISK_PERM_USER_WRITE);
+  if (control_pipe == NULL)
+    return NULL;
+#endif
 
   lscp = NULL;
   ls = 0;
@@ -482,6 +795,9 @@ GNUNET_OS_start_process_v (const int *lsocks,
       if (ret == -1)
         {
           GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "fork");
+#if ENABLE_WINDOWS_WORKAROUNDS
+          GNUNET_DISK_npipe_close (control_pipe);
+#endif
         }
       else
         {
@@ -498,10 +814,23 @@ GNUNET_OS_start_process_v (const int *lsocks,
 #endif
           gnunet_proc = GNUNET_malloc (sizeof (struct GNUNET_OS_Process));
           gnunet_proc->pid = ret;
+#if ENABLE_WINDOWS_WORKAROUNDS
+          gnunet_proc->control_pipe = control_pipe;
+
+#endif
         }
       GNUNET_array_grow (lscp, ls, 0);
+#if ENABLE_WINDOWS_WORKAROUNDS
+      GNUNET_free (childpipename);
+#endif
       return gnunet_proc;
     }
+
+#if ENABLE_WINDOWS_WORKAROUNDS
+  	setenv (GNUNET_OS_CONTROL_PIPE, childpipename, 1);
+  	GNUNET_free (childpipename);
+#endif
+
   if (lscp != NULL)
     {
       /* read systemd documentation... */
@@ -555,17 +884,68 @@ GNUNET_OS_start_process_v (const int *lsocks,
   STARTUPINFO start;
   PROCESS_INFORMATION proc;
   int argcount = 0;
-  char non_const_filename[MAX_PATH +1];
   struct GNUNET_OS_Process *gnunet_proc = NULL;
+
+  char path[MAX_PATH + 1];
+
+  char *our_env[3] = { NULL, NULL, NULL };
+  char *env_block = NULL;
+  char *pathbuf;
+  DWORD pathbuf_len, alloc_len;
+  char *self_prefix;
+  char *bindir;
+  char *libdir;
+  char *ptr;
+  char *non_const_filename;
 
   GNUNET_assert (lsocks == NULL);
 
-  if (32 >= (int) FindExecutableA (filename, NULL, non_const_filename)) 
+  /* Search in prefix dir (hopefully - the directory from which
+   * the current module was loaded), bindir and libdir, then in PATH
+   */
+  self_prefix = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_SELF_PREFIX);
+  bindir = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_BINDIR);
+  libdir = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_LIBDIR);
+
+  pathbuf_len = GetEnvironmentVariableA ("PATH", (char *) &pathbuf, 0);
+
+  alloc_len = pathbuf_len + 1 + strlen (self_prefix) + 1 + strlen (bindir) + 1 + strlen (libdir);
+
+  pathbuf = GNUNET_malloc (alloc_len * sizeof (char));
+
+  ptr = pathbuf;
+  ptr += sprintf (pathbuf, "%s;%s;%s;", self_prefix, bindir, libdir);
+  GNUNET_free (self_prefix);
+  GNUNET_free (bindir);
+  GNUNET_free (libdir);
+
+  alloc_len = GetEnvironmentVariableA ("PATH", ptr, pathbuf_len);
+  if (alloc_len != pathbuf_len - 1)
+  {
+    GNUNET_free (pathbuf);
+    errno = ENOSYS; /* PATH changed on the fly. What kind of error is that? */
+    return NULL;
+  }
+
+  cmdlen = strlen (filename);
+  if (cmdlen < 5 || strcmp (&filename[cmdlen - 4], ".exe") != 0)
+    GNUNET_asprintf (&non_const_filename, "%s.exe", filename);
+  else
+    GNUNET_asprintf (&non_const_filename, "%s", filename);
+
+  /* Check that this is the full path. If it isn't, search. */
+  if (non_const_filename[1] == ':')
+    snprintf (path, sizeof (path) / sizeof (char), "%s", non_const_filename);
+  else if (!SearchPathA (pathbuf, non_const_filename, NULL, sizeof (path) / sizeof (char), path, NULL))
     {
       SetErrnoFromWinError (GetLastError ());
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "FindExecutable", filename);
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "SearchPath", non_const_filename);
+      GNUNET_free (non_const_filename);
+      GNUNET_free (pathbuf);
       return NULL;
     }
+  GNUNET_free (pathbuf);
+  GNUNET_free (non_const_filename);
 
   /* Count the number of arguments */
   arg = (char **) argv;
@@ -583,7 +963,10 @@ GNUNET_OS_start_process_v (const int *lsocks,
   arg = (char **) argv;
   while (*arg)
     {
-      non_const_argv[argcount] = GNUNET_strdup (*arg);
+      if (arg == argv)
+        non_const_argv[argcount] = GNUNET_strdup (path);
+      else
+        non_const_argv[argcount] = GNUNET_strdup (*arg);
       arg++;
       argcount++;
     }
@@ -607,30 +990,55 @@ GNUNET_OS_start_process_v (const int *lsocks,
       arg++;
     }
 
+  while (argcount > 0)
+    GNUNET_free (non_const_argv[--argcount]);
+  GNUNET_free (non_const_argv);
+
   memset (&start, 0, sizeof (start));
   start.cb = sizeof (start);
 
+  control_pipe = GNUNET_DISK_npipe_create (&childpipename,
+      GNUNET_DISK_OPEN_WRITE, GNUNET_DISK_PERM_USER_READ |
+      GNUNET_DISK_PERM_USER_WRITE);
+  if (control_pipe == NULL)
+  {
+    GNUNET_free (cmd);
+    GNUNET_free (path);
+    return NULL;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Opened the parent end of the pipe `%s'\n", childpipename);
+
+  GNUNET_asprintf (&our_env[0], "%s=", GNUNET_OS_CONTROL_PIPE);
+  GNUNET_asprintf (&our_env[1], "%s", childpipename);
+  our_env[2] = NULL;
+  env_block = CreateCustomEnvTable (our_env);
+  GNUNET_free (our_env[0]);
+  GNUNET_free (our_env[1]);
+
   if (!CreateProcess
-      (non_const_filename, cmd, NULL, NULL, FALSE, DETACHED_PROCESS, NULL, NULL, &start,
-       &proc))
+      (path, cmd, NULL, NULL, FALSE, DETACHED_PROCESS | CREATE_SUSPENDED,
+       env_block, NULL, &start, &proc))
     {
       SetErrnoFromWinError (GetLastError ());
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "CreateProcess");
+      GNUNET_free (env_block);
+      GNUNET_free (cmd);
       return NULL;
     }
+
+  GNUNET_free (env_block);
 
   gnunet_proc = GNUNET_malloc (sizeof (struct GNUNET_OS_Process));
   gnunet_proc->pid = proc.dwProcessId;
   gnunet_proc->handle = proc.hProcess;
+  gnunet_proc->control_pipe = control_pipe;
 
   CreateThread (NULL, 64000, ChildWaitThread, (void *) gnunet_proc, 0, NULL);
 
+  ResumeThread (proc.hThread);
   CloseHandle (proc.hThread);
   GNUNET_free (cmd);
-
-  while (argcount > 0)
-    GNUNET_free (non_const_argv[--argcount]);
-  GNUNET_free (non_const_argv);
 
   return gnunet_proc;
 #endif

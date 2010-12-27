@@ -755,6 +755,23 @@ AC_MSG_RESULT($enable_malicious)
 AM_CONDITIONAL([HAVE_MALICIOUS], [test "x$enable_malicious" = "x1"])
 AC_DEFINE_UNQUOTED([HAVE_MALICIOUS], $enable_malicious, [Compile malicious code])
 
+# should code be enabled that works around missing OS functionality on Windows?
+# used for test cases
+AC_ARG_ENABLE(windows_workarounds, [AS_HELP_STRING([--enable-windows_workarounds],
+               [enable workarounds used on Windows (only useful for test cases)])])
+if test $build_target = "mingw"
+then
+	workarounds=1
+else
+	if test x$enable_windows_workarounds = "xyes"
+	then
+		workarounds=1
+	else
+		workarounds=0
+	fi
+fi
+AC_DEFINE_UNQUOTED([ENABLE_WINDOWS_WORKAROUNDS], $workarounds, [enable workarounds used on Windows (only useful for test cases)])
+
 # gcov compilation
 use_gcov=no
 AC_ARG_ENABLE([coverage], AS_HELP_STRING([--enable-coverage],

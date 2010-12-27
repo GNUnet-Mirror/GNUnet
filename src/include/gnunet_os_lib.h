@@ -274,6 +274,14 @@ int GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
 int GNUNET_OS_process_wait (struct GNUNET_OS_Process *proc);
 
 
+/**
+ * Connects this process to its parent via pipe
+ */
+void
+GNUNET_OS_install_parent_control_handler (void *cls,
+                                          const struct
+                                          GNUNET_SCHEDULER_TaskContext * tc);
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

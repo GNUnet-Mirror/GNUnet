@@ -1127,15 +1127,26 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
                 {
                   if (!PeekNamedPipe (fh->h, NULL, 0, NULL, &dwBytes, NULL))
                     {
-                      retcode = -1;
-                      SetErrnoFromWinError (GetLastError ());
+                      DWORD error_code = GetLastError ();
+                      switch (error_code)
+                      {
+                      case ERROR_BROKEN_PIPE:
+                        GNUNET_CONTAINER_slist_add (handles_read,
+                                                  GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
+                                                  fh, sizeof (struct GNUNET_DISK_FileHandle));
+                        retcode++;
+                        break;
+                      default:
+                        retcode = -1;
+                        SetErrnoFromWinError (error_code);
 
     #if DEBUG_NETWORK
-                      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
-                                           "PeekNamedPipe");
+                        GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+                                             "PeekNamedPipe");
 
     #endif
-                      goto select_loop_end;
+                        goto select_loop_end;
+                      }
                     }
                   else if (dwBytes)
 

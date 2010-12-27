@@ -31,8 +31,10 @@
 #include "gnunet_disk_lib.h"
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_strings_lib.h"
+#include "gnunet_crypto_lib.h"
 #include "disk.h"
 
+#define DEBUG_NPIPE GNUNET_YES
 
 /**
  * Block size for IO for copying files.
@@ -1876,20 +1878,20 @@ GNUNET_DISK_pipe_close (struct GNUNET_DISK_PipeHandle *p)
 
 
 /**
- * Creates a named pipe/FIFO
- * @param fn name of the named pipe
+ * Creates a named pipe/FIFO and opens it
+ * @param fn pointer to the name of the named pipe or to NULL
  * @param flags open flags
  * @param perm access permissions
  * @return pipe handle on success, NULL on error
  */
 struct GNUNET_DISK_FileHandle *
-GNUNET_DISK_npipe_open (const char *fn,
-                       enum GNUNET_DISK_OpenFlags flags,
-                       enum GNUNET_DISK_AccessPermissions perm)
+GNUNET_DISK_npipe_create (char **fn,
+                          enum GNUNET_DISK_OpenFlags flags,
+                          enum GNUNET_DISK_AccessPermissions perm)
 {
 #ifdef MINGW
   struct GNUNET_DISK_FileHandle *ret;
-  HANDLE h;
+  HANDLE h = NULL;
   DWORD openMode;
   char *name;
 
@@ -1904,11 +1906,120 @@ GNUNET_DISK_npipe_open (const char *fn,
   if (flags & GNUNET_DISK_OPEN_FAILIFEXISTS)
     openMode |= FILE_FLAG_FIRST_PIPE_INSTANCE;
 
-  GNUNET_asprintf(&name, "\\\\.\\pipe\\pipename\\%s", fn);
-  h = CreateNamedPipe (fn, openMode | FILE_FLAG_OVERLAPPED,
-      PIPE_TYPE_BYTE | PIPE_READMODE_BYTE, 2, 1, 1, 0, NULL);
-  GNUNET_free(name);
-  if (h == NULL)
+  while (h == NULL)
+    {
+      DWORD error_code;
+      name = NULL;
+      if (*fn != NULL)
+        {
+          GNUNET_asprintf(&name, "\\\\.\\pipe\\%.246s", fn);
+#if DEBUG_NPIPE
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying to create an instance of named pipe `%s'\n", name);
+#endif
+          h = CreateNamedPipe (name, openMode | FILE_FLAG_OVERLAPPED,
+              PIPE_TYPE_BYTE | PIPE_READMODE_BYTE, 2, 1, 1, 0, NULL);
+        }
+      else
+        {
+          GNUNET_asprintf(fn, "\\\\.\\pipe\\gnunet-%llu",
+              GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX));
+#if DEBUG_NPIPE
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying to create unique named pipe `%s'\n", *fn);
+#endif
+          h = CreateNamedPipe (*fn, openMode | FILE_FLAG_OVERLAPPED | FILE_FLAG_FIRST_PIPE_INSTANCE,
+              PIPE_TYPE_BYTE | PIPE_READMODE_BYTE, 2, 1, 1, 0, NULL);
+        }
+      error_code = GetLastError ();
+      if (name)
+          GNUNET_free(name);
+      /* don't re-set name to NULL yet */
+      if (h == INVALID_HANDLE_VALUE)
+        {
+          SetErrnoFromWinError(error_code);
+#if DEBUG_NPIPE
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Pipe creation have failed because of %d, errno is %d\n", error_code, errno);
+#endif
+          if (name == NULL)
+            {
+#if DEBUG_NPIPE
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Pipe was to be unique, considering re-creation\n");
+#endif
+              GNUNET_free (*fn);
+              *fn = NULL;
+              if (error_code != ERROR_ACCESS_DENIED && error_code != ERROR_PIPE_BUSY)
+                {
+                  return NULL;
+                }
+#if DEBUG_NPIPE
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Pipe name was not unique, trying again\n");
+#endif
+              h = NULL;
+            }
+          else
+              return NULL;
+        }
+    }
+  errno = 0;
+
+  ret = GNUNET_malloc(sizeof(*ret));
+  ret->h = h;
+  ret->type = GNUNET_PIPE;
+
+  return ret;
+#else
+  if (*fn == NULL)
+    {
+      char dir[] = "/tmp/gnunet-pipe-XXXXXX";
+
+      if (mkdtemp(dir) == NULL)
+        {
+          GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "mkdtemp");
+          return NULL;
+        }
+      GNUNET_asprintf(fn, "%s/child-control", dir);
+    }
+
+  if (mkfifo(*fn, translate_unix_perms(perm)) == -1)
+    {
+      if ( (errno != EEXIST) ||
+	   (0 != (flags & GNUNET_DISK_OPEN_FAILIFEXISTS)) )
+        return NULL;
+    }
+
+  flags = flags & (~GNUNET_DISK_OPEN_FAILIFEXISTS);
+  return GNUNET_DISK_file_open(fn, flags, perm);
+#endif
+}
+
+/**
+ * Opens already existing named pipe/FIFO
+ *
+ * @param fn name of an existing named pipe
+ * @param flags open flags
+ * @param perm access permissions
+ * @return pipe handle on success, NULL on error
+ */
+struct GNUNET_DISK_FileHandle *
+GNUNET_DISK_npipe_open (const char *fn,
+                        enum GNUNET_DISK_OpenFlags flags,
+                        enum GNUNET_DISK_AccessPermissions perm)
+{
+#ifdef MINGW
+  struct GNUNET_DISK_FileHandle *ret;
+  HANDLE h;
+  DWORD openMode;
+
+  openMode = 0;
+  if (flags & GNUNET_DISK_OPEN_READWRITE)
+    openMode = GENERIC_WRITE | GENERIC_READ;
+  else if (flags & GNUNET_DISK_OPEN_READ)
+    openMode = GENERIC_READ;
+  else if (flags & GNUNET_DISK_OPEN_WRITE)
+    openMode = GENERIC_WRITE;
+
+  h = CreateFile (fn, openMode, 0, NULL, OPEN_EXISTING,
+      FILE_FLAG_OVERLAPPED | FILE_READ_ATTRIBUTES, NULL);
+  if (h == INVALID_HANDLE_VALUE)
     {
       SetErrnoFromWinError(GetLastError());
       return NULL;
@@ -1916,16 +2027,10 @@ GNUNET_DISK_npipe_open (const char *fn,
 
   ret = GNUNET_malloc(sizeof(*ret));
   ret->h = h;
+  ret->type = GNUNET_PIPE;
 
   return ret;
 #else
-  if (mkfifo(fn, translate_unix_perms(perm)) == -1)
-    {
-      if ( (errno != EEXIST) ||
-	   (0 != (flags & GNUNET_DISK_OPEN_FAILIFEXISTS)) )
-        return NULL;
-    }
-
   flags = flags & (~GNUNET_DISK_OPEN_FAILIFEXISTS);
   return GNUNET_DISK_file_open(fn, flags, perm);
 #endif
