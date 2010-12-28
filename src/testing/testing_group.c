@@ -1347,7 +1347,22 @@ create_scale_free (struct GNUNET_TESTING_PeerGroup *pg,
 
 /**
  * Create a topology given a peer group (set of running peers)
- * and a connection processor.
+ * and a connection processor.  Creates a small world topology
+ * according to the rewired ring construction.  The basic
+ * behavior is that a ring topology is created, but with some
+ * probability instead of connecting a peer to the next
+ * neighbor in the ring a connection will be created to a peer
+ * selected uniformly at random.   We use the TESTING
+ * PERCENTAGE option to specify what number of
+ * connections each peer should have.  Default is 2,
+ * which makes the ring, any given number is multiplied by
+ * the log of the network size; i.e. a PERCENTAGE of 2 makes
+ * each peer have on average 2logn connections.  The additional
+ * connections are made at increasing distance around the ring
+ * from the original peer, or to random peers based on the re-
+ * wiring probability. The TESTING
+ * PROBABILITY option is used as the probability that a given
+ * connection is rewired.
  *
  * @param pg the peergroup to create the topology on
  * @param proc the connection processor to call to actually set
@@ -1364,7 +1379,7 @@ create_small_world_ring (struct GNUNET_TESTING_PeerGroup *pg,
   int nodeToConnect;
   unsigned int natLog;
   unsigned int randomPeer;
-  double random, logNModifier, percentage;
+  double random, logNModifier, probability;
   unsigned int smallWorldConnections;
   int connsPerPeer;
   char *p_string;
@@ -1376,7 +1391,7 @@ create_small_world_ring (struct GNUNET_TESTING_PeerGroup *pg,
   logNModifier = 0.5;           /* FIXME: default value? */
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (pg->cfg,
                                                           "TESTING",
-                                                          "LOGNMODIFIER",
+                                                          "PERCENTAGE",
                                                           &p_string))
     {
       if (sscanf (p_string, "%lf", &logNModifier) != 1)
@@ -1386,13 +1401,13 @@ create_small_world_ring (struct GNUNET_TESTING_PeerGroup *pg,
                     p_string, "LOGNMODIFIER", "TESTING");
       GNUNET_free (p_string);
     }
-  percentage = 0.5;             /* FIXME: default percentage? */
+  probability = 0.5;             /* FIXME: default percentage? */
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (pg->cfg,
                                                           "TESTING",
-                                                          "PERCENTAGE",
+                                                          "PROBABILITY",
                                                           &p_string))
     {
-      if (sscanf (p_string, "%lf", &percentage) != 1)
+      if (sscanf (p_string, "%lf", &probability) != 1)
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                     _
                     ("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
@@ -1404,6 +1419,8 @@ create_small_world_ring (struct GNUNET_TESTING_PeerGroup *pg,
 
   if (connsPerPeer % 2 == 1)
     connsPerPeer += 1;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Target is %d connections per peer."), connsPerPeer);
 
   smallWorldConnections = 0;
   connect_attempts = 0;
@@ -1431,7 +1448,7 @@ create_small_world_ring (struct GNUNET_TESTING_PeerGroup *pg,
             ((double)
              GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
                                        UINT64_MAX) / ((double) UINT64_MAX));
-          if (random < percentage)
+          if (random < probability)
             {
               /* Connect to uniformly selected random peer */
               randomPeer =
@@ -2014,7 +2031,6 @@ static int
 blacklist_file_iterator (void *cls, const GNUNET_HashCode * key, void *value)
 {
   struct BlacklistContext *blacklist_ctx = cls;
-  //FILE *temp_blacklist_handle = cls;
   struct GNUNET_TESTING_Daemon *peer = value;
   struct GNUNET_PeerIdentity *temppeer;
   struct GNUNET_CRYPTO_HashAsciiEncoded peer_enc;
