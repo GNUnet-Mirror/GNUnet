@@ -1139,8 +1139,7 @@ decrement_find_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   GNUNET_assert(test_find_peer->find_peer_context->outstanding > 0);
   test_find_peer->find_peer_context->outstanding--;
   test_find_peer->find_peer_context->total--;
-  if ((0 == test_find_peer->find_peer_context->total) &&
-      (GNUNET_TIME_absolute_get_remaining(test_find_peer->find_peer_context->endtime).rel_value > 60))
+  if (0 == test_find_peer->find_peer_context->total)
   {
     GNUNET_SCHEDULER_add_now(&count_new_peers, test_find_peer->find_peer_context);
   }
@@ -2181,6 +2180,11 @@ continue_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
   if (dhtlog_handle != NULL)
     dhtlog_handle->insert_round(DHT_ROUND_NORMAL, rounds_finished);
 
+  if (GNUNET_YES != malicious_after_settle)
+    {
+      GNUNET_SCHEDULER_add_now(&setup_malicious_peers, NULL);
+    }
+
   if (GNUNET_YES == do_find_peer)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Scheduling find peer requests during \"settle\" time.\n");
@@ -2211,13 +2215,7 @@ malicious_disconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
 
   if (malicious_completed == malicious_getters + malicious_putters + malicious_droppers)
     {
-      GNUNET_SCHEDULER_cancel(die_task);
-      fprintf(stderr, "Finished setting all malicious peers up, calling continuation!\n");
-      if (dhtlog_handle != NULL)
-        GNUNET_SCHEDULER_add_now (&continue_puts_and_gets, NULL);
-      else
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, settle_time),
-                                      &continue_puts_and_gets, NULL);
+      fprintf(stderr, "Finished setting all malicious peers up!\n");
     }
 
 }
@@ -2323,25 +2321,6 @@ setup_malicious_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc
       ctx->malicious_type = GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_DROP;
       GNUNET_SCHEDULER_add_now (&set_malicious, ctx);
     }
-
-  /**
-   * If we have any malicious peers to set up,
-   * the malicious callback should call continue_gets_and_puts
-   */
-  if (malicious_getters + malicious_putters + malicious_droppers > 0)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Giving malicious set tasks some time before starting testing!\n");
-      die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, (malicious_getters + malicious_putters + malicious_droppers) * 2),
-                                               &end_badly, "from set malicious");
-    }
-  else /* Otherwise, continue testing */
-    {
-      if (cls != NULL)
-        {
-          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Scheduling continue_puts_and_gets now!\n");
-          GNUNET_SCHEDULER_add_now (&continue_puts_and_gets, NULL);
-        }
-    }
 }
 
 /**
@@ -2409,17 +2388,9 @@ topology_callback (void *cls,
       if ((dhtlog_handle != NULL) && (settle_time > 0))
         {
           topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
-          if (GNUNET_YES == malicious_after_settle) /* Don't set malicious peers until after settle_time */
-            topo_ctx->cont = &continue_puts_and_gets;
-          else /* Set malicious peers now */
-            topo_ctx->cont = &setup_malicious_peers;
+          topo_ctx->cont = &continue_puts_and_gets;
           topo_ctx->peers_seen = GNUNET_CONTAINER_multihashmap_create(num_peers);
-          topo_ctx->cls = &continue_puts_and_gets;
           GNUNET_SCHEDULER_add_now(&capture_current_topology, topo_ctx);
-        }
-      else
-        {
-          GNUNET_SCHEDULER_add_now(&setup_malicious_peers, &continue_puts_and_gets);
         }
     }
   else if (total_connections + failed_connections == expected_connections)
@@ -3160,6 +3131,7 @@ main (int argc, char *argv[])
   ret = GNUNET_PROGRAM_run (argc,
                             argv, "gnunet-dht-driver", "nohelp",
                             options, &run, &ok);
+
 
   if (ret != GNUNET_OK)
     {
