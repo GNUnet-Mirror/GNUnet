@@ -300,7 +300,7 @@ main (int argc, char *const *argv)
      1, &GNUNET_GETOPT_set_uint, &anonymity},
     {'n', "no-network", NULL,
      gettext_noop ("only search the local peer (no P2P network search)"),
-     1, &GNUNET_GETOPT_set_uint, &local_only},
+     0, &GNUNET_GETOPT_set_one, &local_only},
     {'o', "output", "PREFIX",
      gettext_noop
      ("write search results to file starting with PREFIX"),
