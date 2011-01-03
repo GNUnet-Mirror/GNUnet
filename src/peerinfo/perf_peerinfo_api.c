@@ -107,7 +107,8 @@ add_peer (size_t i)
 static void
 process (void *cls,
          const struct GNUNET_PeerIdentity *peer,
-         const struct GNUNET_HELLO_Message *hello)
+         const struct GNUNET_HELLO_Message *hello,
+         const char * err_msg)
 {
   if (peer == NULL)
     {

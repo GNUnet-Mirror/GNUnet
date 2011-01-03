@@ -157,14 +157,15 @@ print_address (void *cls,
 static void
 print_peer_info (void *cls,
                  const struct GNUNET_PeerIdentity *peer,
-                 const struct GNUNET_HELLO_Message *hello)
+                 const struct GNUNET_HELLO_Message *hello,
+                 const char * err_msg)
 {
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
   struct PrintContext *pc;
 
   if (peer == NULL)    
     {
-      fprintf (stderr,_("Error in communication with PEERINFO service\n"));
+      if (err_msg != NULL) fprintf (stderr,_("Error in communication with PEERINFO service\n"));
       GNUNET_PEERINFO_disconnect (peerinfo);
       return;    
     }

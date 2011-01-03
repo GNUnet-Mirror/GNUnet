@@ -2710,15 +2710,23 @@ add_to_foreign_address_list (void *cls,
  * @param cls closure ('struct NeighbourList*')
  * @param peer id of the peer, NULL for last call
  * @param h hello message for the peer (can be NULL)
+ * @param err_msg NULL if successful, otherwise contains error message
  */
 static void
 add_hello_for_peer (void *cls,
 		    const struct GNUNET_PeerIdentity *peer,
-		    const struct GNUNET_HELLO_Message *h)
+		    const struct GNUNET_HELLO_Message *h,
+		    const char *err_msg)
 {
   struct NeighbourList *n = cls;
 
-  if (peer == NULL)
+  if (err_msg != NULL)
+  {
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      _("Error in communication with PEERINFO service\n"));
+	/* return; */
+  }
+  if ((peer == NULL))
     {
       GNUNET_STATISTICS_update (stats,
                                 gettext_noop ("# outstanding peerinfo iterate requests"),
@@ -4029,17 +4037,26 @@ run_validation (void *cls,
  * @param cls closure
  * @param peer id of the peer, NULL for last call
  * @param h hello message for the peer (can be NULL)
+ * @param err_msg NULL if successful, otherwise contains error message
  */
 static void
 check_hello_validated (void *cls,
                        const struct GNUNET_PeerIdentity *peer,
-                       const struct GNUNET_HELLO_Message *h)
+                       const struct GNUNET_HELLO_Message *h,
+                       const char *err_msg)
 {
   struct CheckHelloValidatedContext *chvc = cls;
   struct GNUNET_HELLO_Message *plain_hello;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pk;
   struct GNUNET_PeerIdentity target;
   struct NeighbourList *n;
+
+  if (err_msg != NULL)
+  {
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      _("Error in communication with PEERINFO service\n"));
+	 /* return; */
+  }
 
   if (peer == NULL)
     {

@@ -100,10 +100,17 @@ add_peer ()
 static void
 process (void *cls,
          const struct GNUNET_PeerIdentity *peer,
-         const struct GNUNET_HELLO_Message *hello)
+         const struct GNUNET_HELLO_Message *hello,
+         const char * err_msg)
 {
   int *ok = cls;
   unsigned int agc;
+
+  if (err_msg != NULL)
+  {
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      _("Error in communication with PEERINFO service\n"));
+  }
 
   if (peer == NULL)
     {

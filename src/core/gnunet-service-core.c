@@ -3006,9 +3006,17 @@ handle_client_request_connect (void *cls,
 static void
 process_hello_retry_send_key (void *cls,
                               const struct GNUNET_PeerIdentity *peer,
-                              const struct GNUNET_HELLO_Message *hello)
+                              const struct GNUNET_HELLO_Message *hello,
+                              const char *err_msg)
 {
   struct Neighbour *n = cls;
+
+  if (err_msg != NULL)
+  {
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      _("Error in communication with PEERINFO service\n"));
+	/* return; */
+  }
 
   if (peer == NULL)
     {
@@ -3318,10 +3326,18 @@ handle_set_key (struct Neighbour *n,
 static void
 process_hello_retry_handle_set_key (void *cls,
                                     const struct GNUNET_PeerIdentity *peer,
-                                    const struct GNUNET_HELLO_Message *hello)
+                                    const struct GNUNET_HELLO_Message *hello,
+                                    const char *err_msg)
 {
   struct Neighbour *n = cls;
   struct SetKeyMessage *sm = n->skm;
+
+  if (err_msg != NULL)
+  {
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      _("Error in communication with PEERINFO service\n"));
+	/* return; */
+  }
 
   if (peer == NULL)
     {

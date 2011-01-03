@@ -2806,11 +2806,13 @@ add_all_direct_neighbors (void *cls,
  * @param cls closure
  * @param peer id of the peer, NULL for last call
  * @param hello hello message for the peer (can be NULL)
+ * @param err_msg NULL if successful, otherwise contains error message
  */
 static void
 process_peerinfo (void *cls,
                   const struct GNUNET_PeerIdentity *peer,
-                  const struct GNUNET_HELLO_Message *hello)
+                  const struct GNUNET_HELLO_Message *hello,
+                  const char *err_msg)
 {
   struct PeerIteratorContext *peerinfo_iterator = cls;
   struct DirectNeighbor *neighbor = peerinfo_iterator->neighbor;
@@ -2819,7 +2821,12 @@ process_peerinfo (void *cls,
   char *neighbor_pid;
 #endif
   int sent;
-
+  if (err_msg != NULL)
+  {
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      _("Error in communication with PEERINFO service\n"));
+	  /* return; */
+  }
   if (peer == NULL)
     {
       if (distant->pkey == NULL)

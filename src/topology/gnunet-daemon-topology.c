@@ -924,13 +924,22 @@ consider_for_advertising (const struct GNUNET_HELLO_Message *hello)
  * @param cls closure (not used)
  * @param peer potential peer to connect to
  * @param hello HELLO for this peer (or NULL)
+ * @param err_msg NULL if successful, otherwise contains error message
  */
 static void
 process_peer (void *cls,
 	      const struct GNUNET_PeerIdentity *peer,
-	      const struct GNUNET_HELLO_Message *hello)
+	      const struct GNUNET_HELLO_Message *hello,
+          const char *err_msg)
 {
   struct Peer *pos;
+
+  if (err_msg != NULL)
+  {
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      _("Error in communication with PEERINFO service\n"));
+	  /* return; */
+  }
 
   GNUNET_assert (peer != NULL);
   if (0 == memcmp (&my_identity,
