@@ -273,11 +273,11 @@ trigger_transmit (struct GNUNET_PEERINFO_Handle *h)
   struct TransmissionQueueEntry *tqe;
 
   if (NULL == (tqe = h->tq_head))
-    return;
+    return NULL;
   if (h->th != NULL)
-    return;
+    return NULL;
   if (h->in_receive == GNUNET_YES)
-    return;
+    return NULL;
   h->th = GNUNET_CLIENT_notify_transmit_ready (h->client,
 					       tqe->size,
 					       GNUNET_TIME_absolute_get_remaining (tqe->timeout),
@@ -551,8 +551,7 @@ signal_timeout (void *cls,
  * @param timeout how long to wait until timing out
  * @param callback the method to call for each peer
  * @param callback_cls closure for callback
- * @return NULL on error (in this case, 'callback' is never called!), 
- *         otherwise an iterator context
+ * @return iterator context
  */
 struct GNUNET_PEERINFO_IteratorContext *
 GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
