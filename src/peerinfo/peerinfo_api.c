@@ -273,11 +273,11 @@ trigger_transmit (struct GNUNET_PEERINFO_Handle *h)
   struct TransmissionQueueEntry *tqe;
 
   if (NULL == (tqe = h->tq_head))
-    return NULL;
+    return;
   if (h->th != NULL)
-    return NULL;
+    return;
   if (h->in_receive == GNUNET_YES)
-    return NULL;
+    return;
   h->th = GNUNET_CLIENT_notify_transmit_ready (h->client,
 					       tqe->size,
 					       GNUNET_TIME_absolute_get_remaining (tqe->timeout),
