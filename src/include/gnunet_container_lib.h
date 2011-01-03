@@ -33,6 +33,11 @@
 #include "gnunet_crypto_lib.h"
 #include <extractor.h>
 
+#ifndef EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME
+/* hack for LE < 0.6.3 */
+#define EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME 180
+#endif
+
 #ifdef __cplusplus
 extern "C"
 {

@@ -199,7 +199,7 @@ meta_printer (void *cls,
   if ( (format != EXTRACTOR_METAFORMAT_UTF8) &&
        (format != EXTRACTOR_METAFORMAT_C_STRING) )
     return 0;
-  if (type == EXTRACTOR_METATYPE_FILENAME) 
+  if (type == EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME) 
     return 0;
   fprintf (stdout, 
 	   "\t%s - %s\n",
@@ -294,7 +294,7 @@ publish_inspector (void *cls,
   if (extract_only)
     {
       fn = GNUNET_CONTAINER_meta_data_get_by_type (m,
-						   EXTRACTOR_METATYPE_FILENAME);
+						   EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME);
       fs = GNUNET_STRINGS_byte_size_fancy (length);
       fprintf (stdout,
 	       _("Meta data for file `%s' (%s)\n"),

@@ -298,7 +298,7 @@ GNUNET_FS_directory_list_contents (size_t size,
         }
       pos += mdSize;
       filename = GNUNET_CONTAINER_meta_data_get_by_type (md,
-							 EXTRACTOR_METATYPE_FILENAME);
+							 EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME);
       full_data.size = 0;
       full_data.data = NULL;
       GNUNET_CONTAINER_meta_data_iterate (md,

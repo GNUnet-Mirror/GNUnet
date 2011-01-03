@@ -853,7 +853,7 @@ GNUNET_FS_meta_data_suggest_filename (const struct GNUNET_CONTAINER_MetaData *md
   const char *ext;
 
   ret = GNUNET_CONTAINER_meta_data_get_by_type (md,
-						EXTRACTOR_METATYPE_FILENAME);
+						EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME);
   if (ret != NULL)
     return ret;  
   ext = NULL;

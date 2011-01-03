@@ -154,7 +154,7 @@ progress_cb (void *cls,
       printf ("#%u:\n", cnt++);
       filename =
         GNUNET_CONTAINER_meta_data_get_by_type (info->value.search.specifics.result.meta,
-						EXTRACTOR_METATYPE_FILENAME);
+						EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME);
       if (filename != NULL)
         {
           while (NULL != (dotdot = strstr (filename, "..")))

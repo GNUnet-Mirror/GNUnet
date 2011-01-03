@@ -947,7 +947,7 @@ GNUNET_FS_publish_main_ (void *cls,
       while (NULL != p->dir)
 	{
 	  fn = GNUNET_CONTAINER_meta_data_get_by_type (p->meta,
-						       EXTRACTOR_METATYPE_FILENAME);
+						       EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME);
 	  p = p->dir;
 	  if (fn != NULL)
 	    {
