@@ -22,11 +22,6 @@
  * @file fs/gnunet-service-fs_indexing.c
  * @brief program that provides indexing functions of the file-sharing service
  * @author Christian Grothoff
- *
- * TODO:
- * - consider doing GNUNET_CRYPTO_hash_file_cancel on active indexing
- *   jobs during shutdown (currently, shutdown will only happen after
- *   all of those are done, not sure if this is good or bad)
  */
 #include "platform.h"
 #include <float.h>
@@ -702,6 +697,8 @@ shutdown_task (void *cls,
   while (NULL != (pos = indexed_files))
     {
       indexed_files = pos->next;
+      if (pos->fhc != NULL)
+	GNUNET_CRYPTO_hash_file_cancel (pos->fhc);
       GNUNET_free (pos);
     }
   cfg = NULL;
