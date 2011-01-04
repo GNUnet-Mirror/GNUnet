@@ -33,75 +33,80 @@
 
 static pid_t child;
 
-static void sigchld_handler(int val)
+static void
+sigchld_handler (int val)
 {
   int status = 0;
   int ret = 0;
-  
+
   waitpid (child, &status, 0);
-  if (WIFEXITED(status) != 0)
-  {
-    ret = WEXITSTATUS(status);
-    printf("Test process exited with result %u\n", ret);
-  }
-  if (WIFSIGNALED(status) != 0)
-  {
-	ret = WTERMSIG(status);
-	printf("Test process was signaled %u\n", ret);
-  }   
-  exit(ret);  
+  if (WIFEXITED (status) != 0)
+    {
+      ret = WEXITSTATUS (status);
+      printf ("Test process exited with result %u\n", ret);
+    }
+  if (WIFSIGNALED (status) != 0)
+    {
+      ret = WTERMSIG (status);
+      printf ("Test process was signaled %u\n", ret);
+    }
+  exit (ret);
 }
 
-static void sigint_handler(int val)
-{ 
-  kill(0, val);
-  exit(val);
-}
-
-int main(int argc, char *argv[])
+static void
+sigint_handler (int val)
 {
-int timeout = 0;
-pid_t gpid =0;
-
-if (argc < 3)
-{  
-  printf("arg 1: timeout in sec., arg 2: executable, arg<n> arguments\n");     
-  exit(1);
+  kill (0, val);
+  exit (val);
 }
 
-timeout = atoi(argv[1]);
+int
+main (int argc, char *argv[])
+{
+  int timeout = 0;
+  pid_t gpid = 0;
 
-if (timeout == 0)
-  timeout = 600;   
+  if (argc < 3)
+    {
+      printf
+	("arg 1: timeout in sec., arg 2: executable, arg<n> arguments\n");
+      exit (1);
+    }
+
+  timeout = atoi (argv[1]);
+
+  if (timeout == 0)
+    timeout = 600;
 
 /* with getpgid() it does not compile, but getpgrp is the BSD version and working */
-gpid = getpgrp();
+  gpid = getpgrp ();
 
-signal(SIGCHLD, sigchld_handler);
-signal(SIGABRT, sigint_handler);
-signal(SIGFPE,  sigint_handler);
-signal(SIGILL,  sigint_handler);
-signal(SIGINT,  sigint_handler);
-signal(SIGSEGV, sigint_handler);
-signal(SIGTERM, sigint_handler);
+  signal (SIGCHLD, sigchld_handler);
+  signal (SIGABRT, sigint_handler);
+  signal (SIGFPE, sigint_handler);
+  signal (SIGILL, sigint_handler);
+  signal (SIGINT, sigint_handler);
+  signal (SIGSEGV, sigint_handler);
+  signal (SIGTERM, sigint_handler);
 
-child = fork();
-if (child==0)
-{
-  /*  int setpgrp(pid_t pid, pid_t pgid); is not working on this machine*/
-   //setpgrp (0, pid_t gpid);
-   setpgid(0,gpid);
-   execvp(argv[2],&argv[2]);
-   exit(1);
-}
-if (child > 0)
-{
-  sleep(timeout);
-  printf("Child processes were killed after timeout of %u seconds\n",timeout);
-  kill(0,SIGTERM);
-  exit(1);
-}  
-exit(1);
+  child = fork ();
+  if (child == 0)
+    {
+      /*  int setpgrp(pid_t pid, pid_t pgid); is not working on this machine */
+      //setpgrp (0, pid_t gpid);
+      setpgid (0, gpid);
+      execvp (argv[2], &argv[2]);
+      exit (1);
+    }
+  if (child > 0)
+    {
+      sleep (timeout);
+      printf ("Child processes were killed after timeout of %u seconds\n",
+	      timeout);
+      kill (0, SIGTERM);
+      exit (1);
+    }
+  exit (1);
 }
 
 /* end of timeout_watchdog.c */
