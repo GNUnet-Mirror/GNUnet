@@ -3002,6 +3002,7 @@ handle_client_request_connect (void *cls,
  * @param cls the 'struct Neighbour' to retry sending the key for
  * @param peer the peer for which this is the HELLO
  * @param hello HELLO message of that peer
+ * @param err_msg NULL if successful, otherwise contains error message
  */
 static void
 process_hello_retry_send_key (void *cls,
@@ -3322,6 +3323,7 @@ handle_set_key (struct Neighbour *n,
  * @param cls pointer to the set key message
  * @param peer the peer for which this is the HELLO
  * @param hello HELLO message of that peer
+ * @param err_msg NULL if successful, otherwise contains error message
  */
 static void
 process_hello_retry_handle_set_key (void *cls,
