@@ -36,9 +36,16 @@
 static int ret;
 
 /**
+ * Handle to the cleanup task.
+ */
+GNUNET_SCHEDULER_TaskIdentifier die_task;
+
+static struct GNUNET_PeerIdentity myself;
+
+/**
  * The handle to core
  */
-static struct GNUNET_CORE_Handle *core_handle;
+struct GNUNET_CORE_Handle *core;
 
 /**
  * Function scheduled as very last function, cleans up after us
@@ -46,23 +53,26 @@ static struct GNUNET_CORE_Handle *core_handle;
 static void
 cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tskctx)
 {
-  GNUNET_assert (0 != (tskctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN));
+  die_task = GNUNET_SCHEDULER_NO_TASK;
 
-  if (core_handle != NULL)
+  if (core != NULL)
     {
-      GNUNET_CORE_disconnect (core_handle);
-      core_handle = NULL;
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Disconnecting core.\n");
+      GNUNET_CORE_disconnect (core);
+      core = NULL;
     }
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Ending test.\n");
 }
-
-static struct GNUNET_PeerIdentity myself;
-
-struct GNUNET_CORE_Handle *core;
 
 static int
 receive(void* cls, const struct GNUNET_PeerIdentity* other, const struct GNUNET_MessageHeader* message, const struct GNUNET_TRANSPORT_ATS_Information* atsi)
 {
+  if (die_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(die_task);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received message from peer %s\n", GNUNET_i2s(other));
+  GNUNET_SCHEDULER_add_now(&cleanup, NULL);
+  ret = 0;
   return GNUNET_OK;
 }
 
@@ -139,7 +149,7 @@ run (void *cls,
 			      init,
 			      connect_cb,
 			      NULL, NULL, NULL, 0, NULL, 0, handlers);
-  GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);
+  die_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60), &cleanup, cls);
 }
 
 /**
