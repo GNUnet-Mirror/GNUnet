@@ -136,6 +136,9 @@ run (void *cls,
     fprintf (stderr,
 	     _("Connected to %s service!\n"), "DHT");
 
+  if (query_type == GNUNET_BLOCK_TYPE_ANY) /* Type of data not set */
+    query_type = GNUNET_BLOCK_TYPE_TEST;
+
   GNUNET_CRYPTO_hash (query_key, strlen (query_key), &key);
 
   timeout =
