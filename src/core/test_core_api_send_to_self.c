@@ -194,6 +194,8 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
 
+  ret = 1;
+
   return (GNUNET_OK ==
 	  GNUNET_PROGRAM_run (argc,
 			      argv,
