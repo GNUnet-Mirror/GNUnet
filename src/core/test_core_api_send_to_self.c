@@ -48,6 +48,11 @@ static struct GNUNET_PeerIdentity myself;
 struct GNUNET_CORE_Handle *core;
 
 /**
+ * Handle to gnunet-service-arm.
+ */
+struct GNUNET_OS_Process *arm_proc;
+
+/**
  * Function scheduled as very last function, cleans up after us
  */
 static void
@@ -61,6 +66,19 @@ cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tskctx)
       GNUNET_CORE_disconnect (core);
       core = NULL;
     }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Stopping peer\n");
+  if (0 != GNUNET_OS_process_kill (arm_proc, SIGTERM))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+
+  if (GNUNET_OS_process_wait(arm_proc) != GNUNET_OK)
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "ARM process %u stopped\n", GNUNET_OS_process_get_pid (arm_proc));
+  GNUNET_OS_process_close (arm_proc);
+  arm_proc = NULL;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Ending test.\n");
 }
@@ -137,18 +155,28 @@ connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
 static void
 run (void *cls,
      char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg_)
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   const static struct GNUNET_CORE_MessageHandler handlers[] = {
-    {receive, GNUNET_MESSAGE_TYPE_SERVICE_UDP, 0},
+    {&receive, GNUNET_MESSAGE_TYPE_SERVICE_UDP, 0},
     {NULL, 0, 0}
   };
-  core = GNUNET_CORE_connect (cfg_,
+
+  arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+                                        "gnunet-service-arm",
+#if VERBOSE
+                                        "-L", "DEBUG",
+#endif
+                                        "-c", "test_core_api_data.conf", NULL);
+
+  core = GNUNET_CORE_connect (cfg,
 			      42,
 			      NULL,
-			      init,
-			      connect_cb,
+			      &init,
+			      &connect_cb,
 			      NULL, NULL, NULL, 0, NULL, 0, handlers);
+
   die_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60), &cleanup, cls);
 }
 

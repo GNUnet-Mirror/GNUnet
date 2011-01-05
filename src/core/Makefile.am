@@ -25,7 +25,7 @@ libgnunetcore_la_LDFLAGS = \
 
 
 bin_PROGRAMS = \
- gnunet-service-core test_core_api_send_to_self
+ gnunet-service-core
 
 gnunet_service_core_SOURCES = \
  gnunet-service-core.c 
