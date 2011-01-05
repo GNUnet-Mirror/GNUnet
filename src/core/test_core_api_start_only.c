@@ -33,6 +33,8 @@
 
 #define VERBOSE GNUNET_NO
 
+#define TIMEOUT 3
+
 #define START_ARM GNUNET_YES
 
 #define MTYPE 12345
@@ -195,7 +197,7 @@ run (void *cls,
   OKPP;
   setup_peer (&p1, "test_core_api_peer1.conf");
   setup_peer (&p2, "test_core_api_peer2.conf");
-  timeout_task_id = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+  timeout_task_id = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, TIMEOUT),
 						  &timeout_task,
 						  NULL);
   p1.ch = GNUNET_CORE_connect (p1.cfg, 1,
@@ -242,6 +244,8 @@ check ()
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-peer-1");
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-peer-2");
 
   ok = 1;
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
@@ -266,7 +270,8 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
-
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-peer-1");
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-peer-2");
   return ret;
 }
 
