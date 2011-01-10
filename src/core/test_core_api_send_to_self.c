@@ -168,7 +168,7 @@ run (void *cls,
 #if VERBOSE
                                         "-L", "DEBUG",
 #endif
-                                        "-c", "test_core_api_data.conf", NULL);
+                                        "-c", "test_core_api_peer1.conf", NULL);
 
   core = GNUNET_CORE_connect (cfg,
 			      42,
