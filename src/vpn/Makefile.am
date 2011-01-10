@@ -22,7 +22,7 @@ endif
 
 
 bin_PROGRAMS = \
-  gnunet-daemon-vpn gnunet-service-dns $(VPNBIN) $(HIJACKBIN)
+  gnunet-daemon-exit gnunet-daemon-vpn gnunet-service-dns $(VPNBIN) $(HIJACKBIN)
 
 
 gnunet_helper_vpn_SOURCES = \
@@ -54,6 +54,14 @@ gnunet_service_dns_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
+  $(GN_LIBINTL)
+
+gnunet_daemon_exit_SOURCES = \
+ gnunet-daemon-exit.c
+gnunet_daemon_exit_LDADD = \
+  $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 
 #check_PROGRAMS = \
