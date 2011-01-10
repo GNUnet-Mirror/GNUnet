@@ -2017,8 +2017,10 @@ count_peers_cb (void *cls,
           GNUNET_free(find_peer_context);
           fprintf(stderr, "Not sending any more find peer requests.\n");
 
+#if HAVE_MALICIOUS
           if (GNUNET_YES == malicious_after_settle)
             GNUNET_SCHEDULER_add_now(&setup_malicious_peers, NULL);
+#endif
         }
     }
 }
@@ -2212,10 +2214,12 @@ continue_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
   if (dhtlog_handle != NULL)
     dhtlog_handle->insert_round(DHT_ROUND_NORMAL, rounds_finished);
 
+#if HAVE_MALICIOUS
   if (GNUNET_YES != malicious_after_settle)
     {
       GNUNET_SCHEDULER_add_now(&setup_malicious_peers, NULL);
     }
+#endif
 
   if (GNUNET_YES == do_find_peer)
     {
@@ -2313,6 +2317,7 @@ set_malicious (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 						      &malicious_disconnect_task, ctx);
 }
 
+#if HAVE_MALICIOUS
 /**
  * Choose the next peer from the peer group to set as malicious.
  * If we are doing a sybil attack, find the nearest peer to the
@@ -2408,6 +2413,7 @@ setup_malicious_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc
       GNUNET_SCHEDULER_add_now (&set_malicious, ctx);
     }
 }
+#endif
 
 /**
  * This function is called whenever a connection attempt is finished between two of
