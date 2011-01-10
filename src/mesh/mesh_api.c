@@ -104,6 +104,25 @@ struct GNUNET_MESH_Handle
 };
 
 static void
+send_end_connect(void* cls,
+		     const struct GNUNET_SCHEDULER_TaskContext* tc)
+{
+  struct GNUNET_MESH_Tunnel* tunnel = cls;
+
+  tunnel->connect_handler(tunnel->handler_cls, NULL, NULL);
+}
+
+static void
+send_self_connect(void* cls,
+		        const struct GNUNET_SCHEDULER_TaskContext* tc)
+{
+  struct GNUNET_MESH_Tunnel* tunnel = cls;
+
+  tunnel->connect_handler(tunnel->handler_cls, &tunnel->handle->myself, NULL);
+  GNUNET_SCHEDULER_add_now(send_end_connect, tunnel);
+}
+
+static void
 core_startup (void *cls,
 	      struct GNUNET_CORE_Handle *core,
 	      const struct GNUNET_PeerIdentity *my_identity,
@@ -160,6 +179,7 @@ core_connect (void *cls,
 					     tunnel);
 	  tunnel->tunnel.connect_handler (tunnel->tunnel.handler_cls,
 					  peer, atsi);
+	  GNUNET_SCHEDULER_add_now(send_end_connect, tunnel);
 	  tunnel = next;
 	}
       else
@@ -349,7 +369,7 @@ GNUNET_MESH_peer_request_connect_all (struct GNUNET_MESH_Handle *handle,
 					 handle->established_tunnels.tail,
 					 handle->established_tunnels.tail,
 					 tunnel);
-      connect_handler (handler_cls, &handle->myself, NULL);
+      GNUNET_SCHEDULER_add_now(send_self_connect, tunnel);
     }
   else
     {
@@ -361,6 +381,12 @@ GNUNET_MESH_peer_request_connect_all (struct GNUNET_MESH_Handle *handle,
     }
 
   return &tunnel->tunnel;
+}
+
+const struct GNUNET_PeerIdentity*
+GNUNET_MESH_get_peer(const struct GNUNET_MESH_Tunnel* tunnel)
+{
+  return &tunnel->peer;
 }
 
 static size_t

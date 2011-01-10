@@ -68,7 +68,7 @@ struct GNUNET_MESH_Tunnel;
  */
 typedef int
   (*GNUNET_MESH_MessageCallback) (void *cls,
-                                  const struct GNUNET_MESH_Tunnel *tunnel,
+                                  struct GNUNET_MESH_Tunnel *tunnel,
 				  void **tunnel_ctx,
                                   const struct GNUNET_MessageHeader *message,
 				  const struct GNUNET_TRANSPORT_ATS_Information *atsi);
@@ -131,6 +131,16 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      void *cls,
 		     GNUNET_MESH_TunnelEndHandler cleaner,
                      const struct GNUNET_MESH_MessageHandler *handlers);
+
+
+/**
+ * Get the peer on the other side of this tunnel if it is just one. Return NULL otherwise
+ * 
+ * @param tunnel the tunnel
+ * @return the peer or NULL
+ */
+const struct GNUNET_PeerIdentity*
+GNUNET_MESH_get_peer(const struct GNUNET_MESH_Tunnel* tunnel);
 
 
 /**
