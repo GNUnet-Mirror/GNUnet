@@ -75,6 +75,8 @@ item_printer (void *cls,
   if ( (format != EXTRACTOR_METAFORMAT_UTF8) &&
        (format != EXTRACTOR_METAFORMAT_C_STRING) )
     return 0;
+  if (type == EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME) 
+    return 0;
   printf ("\t%20s: %s\n",
           dgettext (LIBEXTRACTOR_GETTEXT_DOMAIN,
                     EXTRACTOR_metatype_to_string (type)),

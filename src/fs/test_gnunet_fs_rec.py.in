@@ -40,8 +40,8 @@ try:
   down.expect (pexpect.EOF);
 
   dir = pexpect.spawn ('gnunet-directory -c test_gnunet_fs_rec_data.conf  rdir/a.gnd')
-  dir.expect (re.compile (" last: a"));
-  dir.expect (re.compile (" last: COPYING"));
+#  dir.expect (re.compile (" last: a"));
+#  dir.expect (re.compile (" last: COPYING"));
 #  dir.expect (re.compile (" *embedded filename: a"));
 #  dir.expect (re.compile (" *embedded filename: COPYING"));
   dir.expect (pexpect.EOF)
