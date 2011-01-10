@@ -43,6 +43,11 @@ GNUNET_SCHEDULER_TaskIdentifier die_task;
 static struct GNUNET_PeerIdentity myself;
 
 /**
+ * Configuration to load for the new peer.
+ */
+struct GNUNET_CONFIGURATION_Handle *core_cfg;
+
+/**
  * The handle to core
  */
 struct GNUNET_CORE_Handle *core;
@@ -163,6 +168,8 @@ run (void *cls,
     {NULL, 0, 0}
   };
 
+  core_cfg = GNUNET_CONFIGURATION_create ();
+
   arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
                                         "gnunet-service-arm",
 #if VERBOSE
@@ -170,7 +177,8 @@ run (void *cls,
 #endif
                                         "-c", "test_core_api_peer1.conf", NULL);
 
-  core = GNUNET_CORE_connect (cfg,
+  GNUNET_assert(GNUNET_OK == GNUNET_CONFIGURATION_load (core_cfg, "test_core_api_peer1.conf"));
+  core = GNUNET_CORE_connect (core_cfg,
 			      42,
 			      NULL,
 			      &init,
