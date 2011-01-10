@@ -255,10 +255,11 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 
 	uint16_t namelen = strlen((char*)pkt->data+12)+1;
 
-	struct map_entry* value = GNUNET_malloc(sizeof(struct GNUNET_vpn_service_descriptor) + 2 + 8 + namelen);
+	struct map_entry* value = GNUNET_malloc(sizeof(struct map_entry) + namelen);
+	char* name = (char*)(value +1);
 
 	value->namelen = namelen;
-	memcpy(value->name, pkt->data+12, namelen);
+	memcpy(name, pkt->data+12, namelen);
 
 	memcpy(&value->desc, &pkt->service_descr, sizeof(struct GNUNET_vpn_service_descriptor));
 
@@ -318,13 +319,14 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 	  }
 
         unsigned short namelen = htons(map_entry->namelen);
-	char* name = map_entry->name;
+	char* name = (char*)(map_entry + 1);
 
 	list = GNUNET_malloc(2*sizeof(struct answer_packet_list*) + offset + 2 + ntohs(namelen));
 
 	struct answer_packet* rpkt = &list->pkt;
 
-	memcpy(rpkt, pkt, offset);
+	/* The offset points to the first byte belonging to the address */
+	memcpy(rpkt, pkt, offset - 1);
 
 	rpkt->subtype = GNUNET_DNS_ANSWER_TYPE_IP;
 	rpkt->hdr.size = ntohs(offset + 2 + ntohs(namelen));

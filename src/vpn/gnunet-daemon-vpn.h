@@ -77,9 +77,8 @@ struct map_entry {
     uint16_t namelen;
     uint64_t additional_ports;
     /**
-     * In DNS-Format!
+     * After this struct the name is located in DNS-Format!
      */
-    char name[1];
 };
 
 #endif /* end of include guard: GNUNET-DAEMON-VPN_H */
