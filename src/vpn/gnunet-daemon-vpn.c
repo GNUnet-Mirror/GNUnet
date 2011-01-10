@@ -181,6 +181,7 @@ send_udp_to_peer_notify_callback (void *cls, size_t size, void *buf)
   hdr->size = htons (sizeof (struct GNUNET_MessageHeader) +
 		     sizeof (GNUNET_HashCode) + ntohs (udp->len));
   hdr->type = ntohs (GNUNET_MESSAGE_TYPE_SERVICE_UDP);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "send_udp_to_peer_notify_callback: buf = %x; size = %u;\n", buf, size);
   GNUNET_assert (size >= ntohs (hdr->size));
   memcpy (buf, hdr, ntohs (hdr->size));
   size = ntohs(hdr->size);
@@ -212,7 +213,8 @@ send_udp_to_peer (void *cls,
 				     htons (sizeof
 					    (struct GNUNET_MessageHeader) +
 					    sizeof (GNUNET_HashCode) +
-					    ntohs (udp->len)), send_udp_to_peer_notify_callback,
+					    ntohs (udp->len)),
+				     send_udp_to_peer_notify_callback,
 				     cls);
 }
 
@@ -442,6 +444,14 @@ receive_udp_back (void *cls, const struct GNUNET_PeerIdentity *other,
   return GNUNET_OK;
 }
 
+void init_core (void* cls, struct GNUNET_CORE_Handle* server, const struct GNUNET_PeerIdentity* my_identity, const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pubkey) {
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connected to CORE, I am %x\n", *((unsigned long*)my_identity));
+}
+
+void connect_core (void* cls, const struct GNUNET_PeerIdentity* peer, const struct GNUNET_TRANSPORT_ATS_Information *atsi) {
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connected to peer %x\n", *((unsigned long*)peer));
+}
+
 /**
  * Main function that will be run by the scheduler.
  *
@@ -463,8 +473,8 @@ run (void *cls,
     core_handle = GNUNET_CORE_connect(cfg_,
 				      42,
 				      NULL,
-				      NULL,
-				      NULL,
+				      init_core,
+				      connect_core,
 				      NULL,
 				      NULL,
 				      NULL,
