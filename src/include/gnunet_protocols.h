@@ -732,6 +732,12 @@ extern "C"
 
 
 /**
+ * Type of message used to transport messages throug a MESH-tunnel
+ */
+#define GNUNET_MESSAGE_TYPE_MESH 215
+
+
+/**
  * Type used to match 'all' message types.
  */
 #define GNUNET_MESSAGE_TYPE_ALL 65535

@@ -798,6 +798,7 @@ src/hello/Makefile
 src/include/Makefile
 src/include/gnunet_directories.h
 src/hostlist/Makefile
+src/mesh/Makefile
 src/monkey/Makefile
 src/nat/Makefile
 src/peerinfo/Makefile
