@@ -178,6 +178,7 @@ run (void *cls,
                                         "-c", "test_core_api_peer1.conf", NULL);
 
   GNUNET_assert(GNUNET_OK == GNUNET_CONFIGURATION_load (core_cfg, "test_core_api_peer1.conf"));
+
   core = GNUNET_CORE_connect (core_cfg,
 			      42,
 			      NULL,
@@ -188,6 +189,33 @@ run (void *cls,
   die_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60), &cleanup, cls);
 }
 
+
+static int
+check ()
+{
+  char *const argv[] = { "test-core-api-send-to-self",
+    "-c",
+    "test_core_api_data.conf",
+#if VERBOSE
+    "-L", "DEBUG",
+#endif
+    NULL
+  };
+
+  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_END
+  };
+
+  ret = 1;
+
+  return (GNUNET_OK ==
+	  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
+			      argv,
+			      "test_core_api_send_to_self",
+			      gettext_noop ("help text"),
+			      options, &run, NULL)) ? ret : 1;
+}
+
 /**
  * The main function to obtain template from gnunetd.
  *
@@ -196,20 +224,18 @@ run (void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char *const *argv)
+main (int argc, char *argv[])
 {
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
-
-  ret = 1;
-
-  return (GNUNET_OK ==
-	  GNUNET_PROGRAM_run (argc,
-			      argv,
-			      "test_core_api_send_to_self",
-			      gettext_noop ("help text"),
-			      options, &run, NULL)) ? ret : 1;
+  GNUNET_log_setup ("test-core-api-send-to-self",
+#if VERBOSE
+                    "DEBUG",
+#else
+                    "WARNING",
+#endif
+                    NULL);
+  ret = check ();
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-peer-1");
+  return ret;
 }
 
 /* end of test_core_api_send_to_self.c */
