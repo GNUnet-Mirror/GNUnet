@@ -987,7 +987,6 @@ main_notify_handler (void *cls,
       if (NULL == h->status_events)
         {
           GNUNET_break (0);
-          break;
         }
       if (msize < sizeof (struct PeerStatusNotifyMessage))
         {
@@ -1040,14 +1039,7 @@ main_notify_handler (void *cls,
 	  return;
         }
       ntm = (const struct NotifyTrafficMessage *) msg;
-      if (0 == memcmp (&h->me,
-		       &ntm->peer,
-		       sizeof (struct GNUNET_PeerIdentity)))
-	{
-	  /* self-change!? */
-	  GNUNET_break (0);
-	  return;
-	}
+
       ats_count = ntohl (ntm->ats_count);
       if ( (msize < sizeof (struct NotifyTrafficMessage) + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information)
 	    + sizeof (struct GNUNET_MessageHeader)) ||
