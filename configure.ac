@@ -883,8 +883,8 @@ You also need to create an configuration file that should
 specify the path where GNUnet should store data.  For example,
 you could store in "/etc/gnunet.conf" the following lines:
 
-[PATHS]
-SERVICEHOME = /opt/gnunet/
+[[PATHS]]
+SERVICEHOME = /var/lib/gnunet
 DEFAULTCONFIG = /etc/gnunet.conf
 
 Now, in order to start your peer, run as the 'gnunet' user
