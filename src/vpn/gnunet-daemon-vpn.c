@@ -209,7 +209,8 @@ cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
     /* stop the helper */
     if (helper_proc != NULL)
       {
-	GNUNET_OS_process_kill (helper_proc, SIGTERM);
+	if (0 != GNUNET_OS_process_kill (helper_proc, SIGTERM))
+	  GNUNET_log_strerror(GNUNET_ERROR_TYPE_WARNING, "kill");
 	GNUNET_OS_process_wait (helper_proc);
 	GNUNET_OS_process_close (helper_proc);
 	helper_proc = NULL;
@@ -354,6 +355,7 @@ helper_write(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
     size_t pkt_len = sizeof(struct GNUNET_MessageHeader) + sizeof(struct pkt_tun) + net_len;
 
     struct ip_udp_dns* pkt = alloca(pkt_len);
+    GNUNET_assert(pkt != NULL);
     memset(pkt, 0, pkt_len);
 
     /* set the gnunet-header */
@@ -427,6 +429,7 @@ send_icmp_response(void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
     struct ip6_icmp* request = cls;
 
     struct ip6_icmp* response = alloca(ntohs(request->shdr.size));
+    GNUNET_assert(response != NULL);
     memset(response, 0, ntohs(request->shdr.size));
 
     response->shdr.size = request->shdr.size;
@@ -538,6 +541,7 @@ message_token(void *cls,
 	    if ((key = address_mapping_exists(pkt6->ip6_hdr.dadr)) != NULL)
 	      {
 		struct map_entry* me = GNUNET_CONTAINER_multihashmap_get(hashmap, key);
+		GNUNET_assert(me != NULL);
 		GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Mapping exists; type: %d; UDP is %d; port: %x/%x!\n", me->desc.service_type, htonl(GNUNET_DNS_SERVICE_TYPE_UDP), pkt6_udp->udp_hdr.dpt, me->desc.ports);
 		GNUNET_free(key);
 		if (me->desc.service_type & htonl(GNUNET_DNS_SERVICE_TYPE_UDP) &&
@@ -619,6 +623,8 @@ connect_to_service_dns (void *cls,
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connecting to service-dns\n");
     GNUNET_assert (dns_connection == NULL);
     dns_connection = GNUNET_CLIENT_connect ("dns", cfg);
+    /* This would most likely be a misconfiguration */
+    GNUNET_assert(dns_connection != NULL);
     GNUNET_CLIENT_receive(dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
 
     /* If a packet is already in the list, schedule to send it */
@@ -939,6 +945,8 @@ receive_udp_back (void *cls, const struct GNUNET_PeerIdentity *other,
 
   struct ip6_udp* pkt6 = alloca(size);
 
+  GNUNET_assert(pkt6 != NULL);
+
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Relaying calc:%d gnu:%d udp:%d bytes!\n", size, ntohs(message->size), ntohs(pkt->len));
 
   pkt6->shdr.type = htons(GNUNET_MESSAGE_TYPE_VPN_HELPER);
@@ -1038,6 +1046,7 @@ receive_udp_service (void *cls, const struct GNUNET_PeerIdentity *other,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating new Socket!\n");
       sock = GNUNET_NETWORK_socket_create (AF_INET, SOCK_DGRAM, 0);
+      GNUNET_assert(sock != NULL);
       new = GNUNET_YES;
     }
 

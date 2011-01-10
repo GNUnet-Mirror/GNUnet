@@ -535,6 +535,7 @@ publish_name (void *cls,
 
     struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file(keyfile);
     GNUNET_free(keyfile);
+    GNUNET_assert(my_private_key != NULL);
 
     GNUNET_CRYPTO_rsa_key_get_public(my_private_key, &data.peer);
 

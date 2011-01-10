@@ -54,6 +54,12 @@ void term(int sig) {
 static void set_address6(char* dev, char* address, unsigned long prefix_len) { /* {{{ */
 	int fd = socket(AF_INET6, SOCK_DGRAM, 0);
 
+	if (fd < 0)
+	  {
+	    fprintf(stderr, "error creating socket: %m\n");
+	    exit(1);
+	  }
+
 	struct ifreq ifr;
 	struct in6_ifreq ifr6;
 
@@ -62,7 +68,12 @@ static void set_address6(char* dev, char* address, unsigned long prefix_len) { /
 
 	sa6.sin6_family = AF_INET6;
 
-	/* FIXME */ inet_pton(AF_INET6, address, sa6.sin6_addr.s6_addr);
+	int r =  inet_pton(AF_INET6, address, sa6.sin6_addr.s6_addr);
+	if (r < 0)
+	  {
+	    fprintf(stderr, "error at inet_pton: %m\n");
+	    exit(1);
+	  }
 
 	memcpy((char *) &ifr6.ifr6_addr, (char *) &sa6.sin6_addr, sizeof(struct in6_addr));
 
@@ -79,9 +90,9 @@ static void set_address6(char* dev, char* address, unsigned long prefix_len) { /
 		perror("SIOCSIFADDR");
 	}
 
-	/* FIXME */ ioctl(fd, SIOCGIFFLAGS, &ifr);
+	(void)ioctl(fd, SIOCGIFFLAGS, &ifr);
 	ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
-	/* FIXME */ ioctl(fd, SIOCSIFFLAGS, &ifr);
+	(void)ioctl(fd, SIOCSIFFLAGS, &ifr);
 	close(fd);
 } /* }}} */
 
@@ -96,7 +107,12 @@ static void set_address4(char* dev, char* address, char* mask) { /* {{{ */
 	addr->sin_family = AF_INET;
 	addr->sin_addr.s_addr = inet_addr(address);
 
-	/* FIXME */ inet_pton(AF_INET, address, &addr->sin_addr.s_addr);
+	int r = inet_pton(AF_INET, address, &addr->sin_addr.s_addr);
+	if (r < 0)
+	  {
+	    fprintf(stderr, "error at inet_pton: %m\n");
+	    exit(1);
+	  }
 
 	fd = socket(PF_INET, SOCK_DGRAM, 0);
 	if(fd < 0) {
@@ -113,7 +129,12 @@ static void set_address4(char* dev, char* address, char* mask) { /* {{{ */
 	}
 
 	addr = (struct sockaddr_in*)&(ifr.ifr_netmask);
-	/* FIXME */ inet_pton(AF_INET, mask, &addr->sin_addr.s_addr);
+	r = inet_pton(AF_INET, mask, &addr->sin_addr.s_addr);
+	if (r < 0)
+	  {
+	    fprintf(stderr, "error at inet_pton: %m\n");
+	    exit(1);
+	  }
 
 	if(ioctl(fd, SIOCSIFNETMASK, &ifr) != 0 ) {
 		perror("SIOCSIFNETMASK");
@@ -121,9 +142,9 @@ static void set_address4(char* dev, char* address, char* mask) { /* {{{ */
 		return;
 	}
 
-	/* FIXME */ ioctl(fd, SIOCGIFFLAGS, &ifr);
+	(void)ioctl(fd, SIOCGIFFLAGS, &ifr);
 	ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
-	/* FIXME */ ioctl(fd, SIOCSIFFLAGS, &ifr);
+	(void)ioctl(fd, SIOCSIFFLAGS, &ifr);
 	close(fd);
 } /* }}} */
 
