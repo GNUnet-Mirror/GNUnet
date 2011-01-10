@@ -55,7 +55,9 @@ GNUNET_HashCode* address_mapping_exists(unsigned char addr[]);
 unsigned int port_in_ports (uint64_t ports, uint16_t port);
 
 void
-send_udp_to_peer (void *cls, int success);
+send_udp_to_peer (void *cls,
+		  const struct GNUNET_PeerIdentity *peer,
+		  const struct GNUNET_TRANSPORT_ATS_Information *atsi);
 
 /**
  * The configuration to use
@@ -63,9 +65,9 @@ send_udp_to_peer (void *cls, int success);
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
- * The handle to core
+ * The handle to mesh
  */
-struct GNUNET_CORE_Handle *core_handle;
+struct GNUNET_MESH_Handle *mesh_handle;
 
 /**
  * The hashmap containing the mappings from ipv6-addresses to gnunet-descriptors
@@ -74,6 +76,7 @@ struct GNUNET_CONTAINER_MultiHashMap* hashmap;
 
 struct map_entry {
     struct GNUNET_vpn_service_descriptor desc;
+    struct GNUNET_MESH_Tunnel *tunnel;
     uint16_t namelen;
     uint64_t additional_ports;
     /**

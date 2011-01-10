@@ -32,7 +32,7 @@
 #include "gnunet_common.h"
 #include <gnunet_os_lib.h>
 #include "gnunet_protocols.h"
-#include <gnunet_core_service.h>
+#include <gnunet_mesh_service.h>
 #include "gnunet_client_lib.h"
 #include "gnunet_container_lib.h"
 #include "gnunet_constants.h"
@@ -78,10 +78,10 @@ cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
 	dns_connection = NULL;
       }
 
-    if (core_handle != NULL)
+    if (mesh_handle != NULL)
       {
-	GNUNET_CORE_disconnect(core_handle);
-	core_handle = NULL;
+	GNUNET_MESH_disconnect(mesh_handle);
+	mesh_handle = NULL;
       }
 }
 /*}}}*/
@@ -199,17 +199,18 @@ port_in_ports (uint64_t ports, uint16_t port)
 
 void
 send_udp_to_peer (void *cls, 
-		  int success)
+		  const struct GNUNET_PeerIdentity *peer,
+		  const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
-  struct GNUNET_PeerIdentity *peer = cls;
+  struct GNUNET_MESH_Tunnel **tunnel = cls;
   struct GNUNET_MessageHeader *hdr =
-    (struct GNUNET_MessageHeader *) (peer + 1);
+    (struct GNUNET_MessageHeader *) (tunnel + 1);
   GNUNET_HashCode *hc = (GNUNET_HashCode *) (hdr + 1);
   struct udp_pkt *udp = (struct udp_pkt *) (hc + 1);
-  GNUNET_CORE_notify_transmit_ready (core_handle,
+  GNUNET_MESH_notify_transmit_ready (*tunnel,
+				     GNUNET_NO,
 				     42,
 				     GNUNET_TIME_relative_divide(GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
-				     peer,
 				     htons (sizeof
 					    (struct GNUNET_MessageHeader) +
 					    sizeof (GNUNET_HashCode) +
@@ -374,13 +375,16 @@ add_additional_port (struct map_entry *me, uint16_t port)
 }
 
 static int
-receive_udp_back (void *cls, const struct GNUNET_PeerIdentity *other,
-	     const struct GNUNET_MessageHeader *message,
-	     const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+receive_udp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
+		  void **tunnel_ctx,
+		  const struct GNUNET_MessageHeader *message,
+		  const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
   char addr[16];
+  const struct GNUNET_PeerIdentity* other = GNUNET_MESH_get_peer(tunnel);
+
   new_ip6addr(addr, &other->hashPubKey, desc);
 
   size_t size = sizeof(struct ip6_udp) + ntohs(pkt->len) - 1 - sizeof(struct udp_pkt);
@@ -444,11 +448,11 @@ receive_udp_back (void *cls, const struct GNUNET_PeerIdentity *other,
   return GNUNET_OK;
 }
 
-void init_core (void* cls, struct GNUNET_CORE_Handle* server, const struct GNUNET_PeerIdentity* my_identity, const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pubkey) {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connected to CORE, I am %x\n", *((unsigned long*)my_identity));
+void init_mesh (void* cls, struct GNUNET_MESH_Handle* server, const struct GNUNET_PeerIdentity* my_identity, const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pubkey) {
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connected to MESH, I am %x\n", *((unsigned long*)my_identity));
 }
 
-void connect_core (void* cls, const struct GNUNET_PeerIdentity* peer, const struct GNUNET_TRANSPORT_ATS_Information *atsi) {
+void connect_mesh (void* cls, const struct GNUNET_PeerIdentity* peer, const struct GNUNET_TRANSPORT_ATS_Information *atsi) {
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connected to peer %x\n", *((unsigned long*)peer));
 }
 
@@ -466,21 +470,13 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
-    const static struct GNUNET_CORE_MessageHandler handlers[] = {
+    const static struct GNUNET_MESH_MessageHandler handlers[] = {
 	  {receive_udp_back, GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK, 0},
 	  {NULL, 0, 0}
     };
-    core_handle = GNUNET_CORE_connect(cfg_,
-				      42,
-				      NULL,
-				      init_core,
-				      connect_core,
+    mesh_handle = GNUNET_MESH_connect(cfg_,
 				      NULL,
 				      NULL,
-				      NULL,
-				      0,
-				      NULL,
-				      0,
 				      handlers);
     mst = GNUNET_SERVER_mst_create(&message_token, NULL);
     cfg = cfg_;

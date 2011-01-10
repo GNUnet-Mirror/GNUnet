@@ -27,7 +27,7 @@
 #include <gnunet_common.h>
 #include <gnunet_program_lib.h>
 #include <gnunet_protocols.h>
-#include <gnunet_core_service.h>
+#include <gnunet_mesh_service.h>
 #include <gnunet_constants.h>
 
 #include "gnunet-vpn-packet.h"
@@ -38,9 +38,9 @@
 static int ret;
 
 /**
- * The handle to core
+ * The handle to mesh
  */
-static struct GNUNET_CORE_Handle *core_handle;
+static struct GNUNET_MESH_Handle *mesh_handle;
 
 /**
  * This hashmap contains the mapping from peer, service-descriptor,
@@ -54,6 +54,7 @@ static struct GNUNET_CONTAINER_MultiHashMap *udp_connections;
 struct udp_state
 {
   struct GNUNET_PeerIdentity peer;
+  struct GNUNET_MESH_Tunnel *tunnel;
   GNUNET_HashCode desc;
   short spt;
   short dpt;
@@ -75,10 +76,10 @@ static void
 cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
     GNUNET_assert (0 != (tskctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN));
 
-    if (core_handle != NULL)
+    if (mesh_handle != NULL)
       {
-	GNUNET_CORE_disconnect(core_handle);
-	core_handle = NULL;
+	GNUNET_MESH_disconnect(mesh_handle);
+	mesh_handle = NULL;
       }
 }
 
@@ -137,9 +138,10 @@ receive_from_network (void *cls,
   memcpy (desc, &data->state.desc, sizeof (GNUNET_HashCode));
   memcpy (pkt + 1, buf, len);
 
-  GNUNET_CORE_notify_transmit_ready (core_handle, 42,
+  GNUNET_MESH_notify_transmit_ready (data->state.tunnel, 42,
+				     GNUNET_NO,
 				     GNUNET_TIME_relative_divide(GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
-				     &data->state.peer, len_pkt,
+				     len_pkt,
 				     send_udp_service, hdr);
 
 out:
@@ -169,13 +171,16 @@ send_to_network (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 }
 
+/** 
+ * The messages are one GNUNET_HashCode for the service, followed by a struct udp_pkt
+ */
 static int
-receive_udp_service (void *cls, const struct GNUNET_PeerIdentity *other,
+receive_udp_service (void *cls,
+		     struct GNUNET_MESH_Tunnel *tunnel,
+		     void **tunnel_ctx,
 		     const struct GNUNET_MessageHeader *message,
 		     const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received UDP-Packet from peer %s\n",
-	      GNUNET_i2s (other));
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
 
@@ -191,7 +196,7 @@ receive_udp_service (void *cls, const struct GNUNET_PeerIdentity *other,
   struct udp_state *state = &send->state;
   unsigned int new = GNUNET_NO;
 
-  memcpy (&state->peer, other, sizeof (struct GNUNET_PeerIdentity));
+  state->tunnel = tunnel;
   memcpy (&state->desc, desc, sizeof (GNUNET_HashCode));
   state->spt = ntohs (pkt->spt);
 
@@ -250,21 +255,13 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
-  const static struct GNUNET_CORE_MessageHandler handlers[] = {
+  const static struct GNUNET_MESH_MessageHandler handlers[] = {
 	{receive_udp_service, GNUNET_MESSAGE_TYPE_SERVICE_UDP, 0},
 	{NULL, 0, 0}
   };
-  core_handle = GNUNET_CORE_connect(cfg_,
-				    42,
+  mesh_handle = GNUNET_MESH_connect(cfg_,
 				    NULL,
-				    NULL,
-				    NULL,
-				    NULL,
-				    NULL,
-				    NULL,
-				    0,
-				    NULL,
-				    0,
+				    NULL, /* FIXME */
 				    handlers);
 
   udp_connections = GNUNET_CONTAINER_multihashmap_create(65536);

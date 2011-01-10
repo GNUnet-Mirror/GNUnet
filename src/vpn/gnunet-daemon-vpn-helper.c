@@ -27,7 +27,7 @@
 #include <gnunet_common.h>
 #include <gnunet_client_lib.h>
 #include <gnunet_os_lib.h>
-#include <gnunet_core_service.h>
+#include <gnunet_mesh_service.h>
 #include <gnunet_protocols.h>
 #include <gnunet_server_lib.h>
 #include <gnunet_container_lib.h>
@@ -243,18 +243,28 @@ message_token(void *cls,
 		    (port_in_ports(me->desc.ports, pkt6_udp->udp_hdr.dpt) ||
 		     port_in_ports(me->additional_ports, pkt6_udp->udp_hdr.dpt)))
 		  {
-		    size_t size = sizeof(struct GNUNET_PeerIdentity) + sizeof(struct GNUNET_MessageHeader) + sizeof(GNUNET_HashCode) + ntohs(pkt6_udp->udp_hdr.len);
-		    struct GNUNET_PeerIdentity *cls = GNUNET_malloc(size);
+		    size_t size = sizeof(struct GNUNET_MESH_Tunnel*) + sizeof(struct GNUNET_MessageHeader) + sizeof(GNUNET_HashCode) + ntohs(pkt6_udp->udp_hdr.len);
+		    struct GNUNET_MESH_Tunnel **cls = GNUNET_malloc(size);
 		    struct GNUNET_MessageHeader *hdr = (struct GNUNET_MessageHeader*)(cls+1);
 		    GNUNET_HashCode* hc = (GNUNET_HashCode*)(hdr + 1);
-		    memcpy(cls, &me->desc.peer, sizeof(struct GNUNET_PeerIdentity));
+
 		    memcpy(hc, &me->desc.service_descriptor, sizeof(GNUNET_HashCode));
 		    memcpy(hc+1, &pkt6_udp->udp_hdr, ntohs(pkt6_udp->udp_hdr.len));
-		    GNUNET_CORE_peer_request_connect(core_handle,
-					GNUNET_TIME_UNIT_FOREVER_REL,
-					(struct GNUNET_PeerIdentity*)&me->desc.peer,
-					send_udp_to_peer,
-					cls);
+
+		    if (me->tunnel == NULL)
+		      {
+			*cls = GNUNET_MESH_peer_request_connect_all(mesh_handle,
+								    GNUNET_TIME_UNIT_FOREVER_REL,
+								    1,
+								    (struct GNUNET_PeerIdentity*)&me->desc.peer,
+								    send_udp_to_peer,
+								    NULL,
+								    cls);
+			me->tunnel = *cls;
+		      }
+		    else
+		      *cls = me->tunnel;
+		      //FIXME: somehow call send_udp_to_peer
 		    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Queued to send to peer %x\n", *((unsigned int*)&me->desc.peer));
 		  }
 	      }
