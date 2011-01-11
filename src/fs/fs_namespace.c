@@ -1032,9 +1032,9 @@ process_update_node (void *cls,
 
 
 /**
- * Closure for 'find_sccs'.
+ * Closure for 'find_trees'.
  */
-struct FindSccClosure 
+struct FindTreeClosure 
 {
   /**
    * Namespace we are operating on.
@@ -1042,14 +1042,14 @@ struct FindSccClosure
   struct GNUNET_FS_Namespace *namespace;
 
   /**
-   * Array with 'head's of SCCs.
+   * Array with 'head's of TREEs.
    */
-  struct NamespaceUpdateNode **scc_array;
+  struct NamespaceUpdateNode **tree_array;
 
   /**
-   * Size of 'scc_array'
+   * Size of 'tree_array'
    */
-  unsigned int scc_array_size;
+  unsigned int tree_array_size;
 
   /**
    * Current generational ID used.
@@ -1057,7 +1057,7 @@ struct FindSccClosure
   unsigned int nug;
 
   /**
-   * Identifier for the current SCC, or UINT_MAX for none yet.
+   * Identifier for the current TREE, or UINT_MAX for none yet.
    */
   unsigned int id;
 };
@@ -1065,15 +1065,18 @@ struct FindSccClosure
 
 /**
  * Find all nodes reachable from the current node (including the
- * current node itself).  If they are in no SCC, add them to the
- * current one.   If they are the head of another SCC, merge the
- * SCCs.  If they are in the middle of another SCC, let them be.
- * We can tell that a node is already in an SCC by checking if
+ * current node itself).  If they are in no tree, add them to the
+ * current one.   If they are the head of another tree, merge the
+ * trees.  If they are in the middle of another tree, let them be.
+ * We can tell that a node is already in an tree by checking if
  * its 'nug' field is set to the current 'nug' value.  It is the
- * head of an SCC if it is in the 'scc_array' under its respective
- * 'scc_id'.
+ * head of an tree if it is in the 'tree_array' under its respective
+ * 'tree_id'.
  *
- * @param cls closure (of type 'struct FindSccClosure')
+ * In short, we're trying to find the smallest number of tree to 
+ * cover a directed graph.
+ *
+ * @param cls closure (of type 'struct FindTreeClosure')
  * @param key current key code
  * @param value value in the hash map
  * @return GNUNET_YES if we should continue to
@@ -1081,34 +1084,40 @@ struct FindSccClosure
  *         GNUNET_NO if not.
  */
 static int
-find_sccs (void *cls,
+find_trees (void *cls,
 	   const GNUNET_HashCode * key,
 	   void *value)
 {
-  struct FindSccClosure *fc = cls;
+  struct FindTreeClosure *fc = cls;
   struct NamespaceUpdateNode *nsn = value;
   GNUNET_HashCode hc;
 
   if (nsn->nug == fc->nug)
     {
-      if (fc->scc_array[nsn->scc_id] != nsn)
-	return GNUNET_YES; /* part of another SCC, end trace */
-      if (nsn->scc_id == fc->id)
-	return GNUNET_YES; /* that's us */
-      fc->scc_array[nsn->scc_id] = NULL;
+      if (nsn->tree_id == UINT_MAX) 
+	return GNUNET_YES; /* circular */	
+      GNUNET_assert (nsn->tree_id < fc->tree_array_size);
+      if (fc->tree_array[nsn->tree_id] != nsn)
+	return GNUNET_YES; /* part of "another" (directed) TREE, 
+			      and not root of it, end trace */	
+      if (nsn->tree_id == fc->id)
+	return GNUNET_YES; /* that's our own root (can this be?) */
+      /* merge existing TREE, we have a root for both */
+      fc->tree_array[nsn->tree_id] = NULL;
       if (fc->id == UINT_MAX)
-	fc->id = nsn->scc_id; /* take over ID */
+	fc->id = nsn->tree_id; /* take over ID */
     }
   else
     {
       nsn->nug = fc->nug;
+      nsn->tree_id = UINT_MAX; /* mark as undef */
       /* trace */
       GNUNET_CRYPTO_hash (nsn->update,
 			  strlen (nsn->update),
 			  &hc);
       GNUNET_CONTAINER_multihashmap_get_multiple (fc->namespace->update_map,
 						  &hc,
-						  &find_sccs,
+						  &find_trees,
 						  fc);
     }
   return GNUNET_YES;
@@ -1123,15 +1132,17 @@ find_sccs (void *cls,
  * 
  * Calling this function with "next_id" NULL will cause the library to
  * call "ip" with a root for each strongly connected component of the
- * graph (a root being a node from which all other nodes in the Scc
+ * graph (a root being a node from which all other nodes in the Tree
  * are reachable).
  * 
  * Calling this function with "next_id" being the name of a node will
  * cause the library to call "ip" with all children of the node.  Note
- * that cycles within an SCC are possible (including self-loops).
+ * that cycles within the final tree are possible (including self-loops).
+ * I know, odd definition of a tree, but the GUI will display an actual
+ * tree (GtkTreeView), so that's what counts for the term here.
  *
  * @param namespace namespace to inspect for updateable content
- * @param next_id ID to look for; use NULL to look for SCC roots
+ * @param next_id ID to look for; use NULL to look for tree roots
  * @param ip function to call on each updateable identifier
  * @param ip_cls closure for ip
  */
@@ -1146,7 +1157,7 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
   GNUNET_HashCode hc;
   struct NamespaceUpdateNode *nsn;
   struct ProcessUpdateClosure pc;
-  struct FindSccClosure fc;
+  struct FindTreeClosure fc;
 
   if (namespace->update_nodes == NULL)
     read_update_information_graph (namespace);
@@ -1190,12 +1201,12 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
     }
 #if DEBUG_NAMESPACE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Calculating SCCs to find roots of update trees\n");
+	      "Calculating TREEs to find roots of update trees\n");
 #endif
-  /* Find heads of SCCs in update graph */
+  /* Find heads of TREEs in update graph */
   nug = ++namespace->nug_gen;
-  fc.scc_array = NULL;
-  fc.scc_array_size = 0;
+  fc.tree_array = NULL;
+  fc.tree_array_size = 0;
 
   for (i=0;i<namespace->update_node_count;i++)
     {
@@ -1204,11 +1215,11 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
 	{
 #if DEBUG_NAMESPACE
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "SCC of node `%s' is %u\n",
+		      "TREE of node `%s' is %u\n",
 		      nsn->id,
 		      nsn->nug);
 #endif
-	  continue; /* already placed in SCC */
+	  continue; /* already placed in TREE */
 	}
       GNUNET_CRYPTO_hash (nsn->update,
 			  strlen (nsn->update),
@@ -1219,66 +1230,66 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
       fc.namespace = namespace;
       GNUNET_CONTAINER_multihashmap_get_multiple (namespace->update_map,
 						  &hc,
-						  &find_sccs,
+						  &find_trees,
 						  &fc);
       if (fc.id == UINT_MAX)
 	{
-	  /* start new SCC */
-	  for (fc.id=0;fc.id<fc.scc_array_size;fc.id++)
+	  /* start new TREE */
+	  for (fc.id=0;fc.id<fc.tree_array_size;fc.id++)
 	    {
-	      if (fc.scc_array[fc.id] == NULL)
+	      if (fc.tree_array[fc.id] == NULL)
 		{
-		  fc.scc_array[fc.id] = nsn;
-		  nsn->scc_id = fc.id;
+		  fc.tree_array[fc.id] = nsn;
+		  nsn->tree_id = fc.id;
 		  break;
 		}
 	    }
-	  if (fc.id == fc.scc_array_size)
+	  if (fc.id == fc.tree_array_size)
 	    {
-	      GNUNET_array_append (fc.scc_array,
-				   fc.scc_array_size,
+	      GNUNET_array_append (fc.tree_array,
+				   fc.tree_array_size,
 				   nsn);
-	      nsn->scc_id = fc.id;
+	      nsn->tree_id = fc.id;
 	    }
 #if DEBUG_NAMESPACE
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Starting new SCC %u with node `%s'\n",
-		      nsn->scc_id,
+		      "Starting new TREE %u with node `%s'\n",
+		      nsn->tree_id,
 		      nsn->id);
 #endif
-	  /* put all nodes with same identifier into this SCC */
+	  /* put all nodes with same identifier into this TREE */
 	  GNUNET_CRYPTO_hash (nsn->id,
 			      strlen (nsn->id),
 			      &hc);
-	  fc.id = nsn->scc_id;
+	  fc.id = nsn->tree_id;
 	  fc.nug = nug;
 	  fc.namespace = namespace;
 	  GNUNET_CONTAINER_multihashmap_get_multiple (namespace->update_map,
 						      &hc,
-						      &find_sccs,
+						      &find_trees,
 						      &fc);
 	}
       else
 	{
-	  /* make head of SCC "id" */
-	  fc.scc_array[fc.id] = nsn;
-	  nsn->scc_id = fc.id;
+	  /* make head of TREE "id" */
+	  fc.tree_array[fc.id] = nsn;
+	  nsn->tree_id = fc.id;
 	}
 #if DEBUG_NAMESPACE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "SCC of node `%s' is %u\n",
+		  "TREE of node `%s' is %u\n",
 		  nsn->id,
 		  fc.id);
 #endif
     }
-  for (i=0;i<fc.scc_array_size;i++)
+  for (i=0;i<fc.tree_array_size;i++)
     {
-      nsn = fc.scc_array[i];
+      nsn = fc.tree_array[i];
       if (NULL != nsn)
 	{
 #if DEBUG_NAMESPACE
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Root of SCC %u is node `%s'\n",
+		      "Root of TREE %u is node `%s'\n",
 		      i,
 		      nsn->id);
 #endif
@@ -1290,12 +1301,12 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
 	      nsn->update);
 	}
     }
-  GNUNET_array_grow (fc.scc_array,
-		     fc.scc_array_size,
+  GNUNET_array_grow (fc.tree_array,
+		     fc.tree_array_size,
 		     0);
 #if DEBUG_NAMESPACE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Done processing SCCs\n");
+	      "Done processing TREEs\n");
 #endif
 }
 

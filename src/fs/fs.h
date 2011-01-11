@@ -1925,14 +1925,14 @@ struct NamespaceUpdateNode
 
   /**
    * Namespace update generation ID.  Used to ensure
-   * freshness of the scc_id.
+   * freshness of the tree_id.
    */
   unsigned int nug;
   
   /**
-   * SCC this entry belongs to (if nug is current).
+   * TREE this entry belongs to (if nug is current).
    */
-  unsigned int scc_id;
+  unsigned int tree_id;
 
 };
 
