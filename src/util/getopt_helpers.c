@@ -176,7 +176,7 @@ GNUNET_GETOPT_set_ulong (struct GNUNET_GETOPT_CommandLineProcessorContext
   if (1 != SSCANF (value, "%llu", val))
     {
       fprintf (stderr,
-               _("You must pass a number to the `%s' option.\n"), "-X");
+               _("You must pass a number to the `%s' option.\n"), option);
       return GNUNET_SYSERR;
     }
   return GNUNET_OK;
@@ -192,7 +192,7 @@ GNUNET_GETOPT_set_uint (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
   if (1 != SSCANF (value, "%u", val))
     {
       fprintf (stderr,
-               _("You must pass a number to the `%s' option.\n"), "-X");
+               _("You must pass a number to the `%s' option.\n"), option);
       return GNUNET_SYSERR;
     }
   return GNUNET_OK;
