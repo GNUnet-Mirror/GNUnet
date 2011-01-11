@@ -31,5 +31,5 @@ SUBDIRS = \
   topology \
   fs \
   fragmentation \
-  vpn \
-  mesh
+  mesh \
+  vpn
