@@ -56,6 +56,7 @@ void sigfunc(int sig)
 
 
 
+
 int
 main(int argc, char *argv[])
 {
@@ -144,9 +145,32 @@ main(int argc, char *argv[])
       int pos = 0;
       char line[MAXLINE];
 
+      fd_set rfds;
+      fd_set wfds;
+      struct timeval tv;
+      int retval;
+
+
+      tv.tv_sec = 5;
+      tv.tv_usec = 0;
+
+
+      FD_ZERO(&rfds);
+      FD_SET(STDIN_FILENO, &rfds);
+
+      FD_ZERO(&wfds);
+      FD_SET(STDOUT_FILENO, &wfds);
+
+      struct GNUNET_SERVER_MessageStreamTokenizer * stdin_mst;
+      struct GNUNET_SERVER_MessageStreamTokenizer * file_in_mst;
+
+      stdin_mst = GNUNET_SERVER_mst_create(&stdin_send, NULL);
+      file_in_mst = GNUNET_SERVER_mst_create(&file_in_send, NULL);
+
       while (closeprog == 0)
         {
           readc = 0;
+
 
           while (readc < sizeof( struct RadiotapHeader) + sizeof(struct GNUNET_MessageHeader)){
             if ((rv = read(STDIN_FILENO, line, MAXLINE)) < 0)

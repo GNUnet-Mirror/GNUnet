@@ -2008,6 +2008,8 @@ wlan_transport_start_wlan_helper(struct Plugin *plugin, int testmode)
 #endif
   /* Start the server process */
 
+  //if (testmode == 0){
+
   plugin->server_proc = GNUNET_OS_start_process(plugin->server_stdin,
 		  plugin->server_stdout, filename,filename, plugin->interface, ((testmode==1)?"1":"0"), NULL);
   if (plugin->server_proc == NULL)
@@ -2018,6 +2020,13 @@ wlan_transport_start_wlan_helper(struct Plugin *plugin, int testmode)
 #endif
       return GNUNET_SYSERR;
     }
+  //} else if (testmode == 1){
+
+
+  //} else if (testmode == 2){
+
+
+  //}
   /* Close the write end of the read pipe */
   GNUNET_DISK_pipe_close_end(plugin->server_stdout, GNUNET_DISK_PIPE_END_WRITE);
 
