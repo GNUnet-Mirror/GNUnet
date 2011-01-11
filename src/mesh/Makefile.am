@@ -17,6 +17,7 @@ libgnunetmesh_la_SOURCES = \
   mesh_api.c
 libgnunetmesh_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
   $(GN_LIBINTL) $(XLIB)
 libgnunetmesh_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
