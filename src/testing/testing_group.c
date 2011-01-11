@@ -601,6 +601,19 @@ struct ConnectContext
   struct ConnectTopologyContext *ct_ctx;
 };
 
+struct UnblacklistContext
+{
+  /**
+   * The peergroup
+   */
+  struct GNUNET_TESTING_PeerGroup *pg;
+
+  /**
+   * uid of the first peer
+   */
+  uint32_t first_uid;
+};
+
 /**
  * Convert unique ID to hash code.
  *
@@ -1904,6 +1917,63 @@ create_clique (struct GNUNET_TESTING_PeerGroup *pg,
 }
 
 /**
+ * Iterator over hash map entries.
+ *
+ * @param cls closure the peer group
+ * @param key the key stored in the hashmap is the
+ *            index of the peer to connect to
+ * @param value value in the hash map, handle to the peer daemon
+ * @return GNUNET_YES if we should continue to
+ *         iterate,
+ *         GNUNET_NO if not.
+ */
+static int
+unblacklist_iterator (void *cls,
+                      const GNUNET_HashCode * key,
+                      void *value)
+{
+  struct UnblacklistContext *un_ctx = cls;
+  uint32_t second_pos;
+
+  uid_from_hash (key, &second_pos);
+
+  unblacklist_connections(un_ctx->pg, un_ctx->first_uid, second_pos);
+
+  return GNUNET_YES;
+}
+
+/**
+ * Create a blacklist topology based on the allowed topology
+ * which disallows any connections not in the allowed topology
+ * at the transport level.
+ *
+ * @param pg the peergroup to create the topology on
+ * @param proc the connection processor to call to allow
+ *        up connections between two peers
+ *
+ * @return the number of connections that were set up
+ *
+ */
+static unsigned int
+copy_allowed (struct GNUNET_TESTING_PeerGroup *pg,
+             GNUNET_TESTING_ConnectionProcessor proc)
+{
+  struct UnblacklistContext un_ctx;
+  unsigned int count;
+  unsigned int total;
+
+  un_ctx.pg = pg;
+  total = 0;
+  for (count = 0; count < pg->total - 1; count++)
+    {
+      un_ctx.first_uid = count;
+      total += GNUNET_CONTAINER_multihashmap_iterate(pg->peers[count].allowed_peers, &unblacklist_iterator, &un_ctx);
+    }
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Unblacklisted %u peers\n", total);
+  return total;
+}
+
+/**
  * Create a topology given a peer group (set of running peers)
  * and a connection processor.
  *
@@ -2037,6 +2107,7 @@ blacklist_file_iterator (void *cls, const GNUNET_HashCode * key, void *value)
 
   temppeer = &peer->id;
   GNUNET_CRYPTO_hash_to_enc (&temppeer->hashPubKey, &peer_enc);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Writing entry %s:%s to file\n", blacklist_ctx->transport, (char *) &peer_enc);
   fprintf (blacklist_ctx->temp_file_handle, "%s:%s\n",
            blacklist_ctx->transport, (char *) &peer_enc);
 
@@ -2212,6 +2283,7 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg,
   unsigned int i;
   char *pos;
   char *temp_transports;
+  int entry_count;
 
   procarr = GNUNET_malloc (sizeof (struct GNUNET_OS_Process *) * pg->total);
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
@@ -2233,7 +2305,7 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg,
             {
               temp_transports[i] = '\0';
               blacklist_ctx.transport = pos;
-              GNUNET_CONTAINER_multihashmap_iterate (pg->
+              entry_count = GNUNET_CONTAINER_multihashmap_iterate (pg->
                                                      peers
                                                      [pg_iter].blacklisted_peers,
                                                      &blacklist_file_iterator,
@@ -2716,8 +2788,7 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
     }
 
   /* Use the create clique method to initially set all connections as blacklisted. */
-  if (restrict_topology != GNUNET_TESTING_TOPOLOGY_NONE)
-    create_clique (pg, &blacklist_connections);
+  create_clique (pg, &blacklist_connections);
 
   unblacklisted_connections = 0;
   /* Un-blacklist connections as per the topology specified */
@@ -2800,12 +2871,17 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
                   _
                   ("Creating no blacklist topology (all peers can connect at transport level)\n"));
 #endif
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                _
+                ("Creating blacklist topology from allowed\n"));
+    unblacklisted_connections = copy_allowed (pg, &unblacklist_connections);
     default:
       break;
     }
 
   if ((unblacklisted_connections > 0) && (restrict_transports != NULL))
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Creating blacklist with `%s'", restrict_transports);
       ret = create_and_copy_blacklist_files (pg, restrict_transports);
       if (ret != GNUNET_OK)
         {
@@ -4124,7 +4200,8 @@ GNUNET_TESTING_daemons_continue_startup (struct GNUNET_TESTING_PeerGroup *pg)
  * @param cb_cls closure for cb
  * @param connect_callback function to call each time two hosts are connected
  * @param connect_callback_cls closure for connect_callback
- * @param hostnames linked list of hosts to use to start peers on (NULL to run on localhost only)
+ * @param hostnames linked list of host structs to use to start peers on
+ *                  (NULL to run on localhost only)
  *
  * @return NULL on error, otherwise handle to control peer group
  */
