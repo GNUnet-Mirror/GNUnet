@@ -2944,8 +2944,8 @@ handle_client_request_connect (void *cls,
 		   &my_identity, 
 		   sizeof (struct GNUNET_PeerIdentity)))
     {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      /* In this case a client has asked us to connect to ourselves, not really an error! */
+      GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return;
     }
   GNUNET_break (ntohl (cm->reserved) == 0);
@@ -3014,7 +3014,7 @@ process_hello_retry_send_key (void *cls,
 
   if (err_msg != NULL)
   {
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      _("Error in communication with PEERINFO service\n"));
 	/* return; */
   }
@@ -3336,7 +3336,7 @@ process_hello_retry_handle_set_key (void *cls,
 
   if (err_msg != NULL)
   {
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      _("Error in communication with PEERINFO service\n"));
 	/* return; */
   }

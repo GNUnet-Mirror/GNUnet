@@ -539,7 +539,7 @@ signal_timeout (void *cls,
 				 ic->h->tq_tail,
 				 ic->tqe);
   reconnect (ic->h);
-  ic->callback (ic->callback_cls, NULL, NULL,err_msg);
+  ic->callback (ic->callback_cls, NULL, NULL, err_msg);
   ic->callback = NULL;
   GNUNET_free_non_null (ic->tqe);
   GNUNET_free (err_msg);

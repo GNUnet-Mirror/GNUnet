@@ -22,7 +22,7 @@
  * Code in this file is originally based on the miniupnp library.
  * Copyright (c) 2005-2009, Thomas BERNARD. All rights reserved.
  *
- * Original licence:
+ * Original license:
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -70,7 +70,7 @@
 #define DESCRIPTION_BUFSIZE 2048
 #define CURL_EASY_SETOPT(c, a, b) do { ret = curl_easy_setopt(c, a, b); if (ret != CURLE_OK) GNUNET_log(GNUNET_ERROR_TYPE_WARNING, _("%s failed at %s:%d: `%s'\n"), "curl_easy_setopt", __FILE__, __LINE__, curl_easy_strerror(ret)); } while (0)
 #define PRINT_SOCKET_ERROR(a) GNUNET_log_from(GNUNET_ERROR_TYPE_WARNING, "UPnP", _("%s failed at %s:%d: '%s'\n"), a, __FILE__, __LINE__, strerror (errno));
-
+#define PRINT_SOCKET_ERROR_STR(a, b) GNUNET_log_from(GNUNET_ERROR_TYPE_WARNING, "UPnP", _("%s failed at %s:%d: '%s' on `%s'\n"), a, __FILE__, __LINE__, strerror (errno), b);
 
 /**
  * Callback function called when download is finished.
@@ -1204,7 +1204,7 @@ UPNP_discover_ (const char *multicastif,
               if_index = 0;
 #endif
               if (!if_index)
-                PRINT_SOCKET_ERROR ("if_nametoindex");
+                PRINT_SOCKET_ERROR_STR ("if_nametoindex", multicastif);
 
               if (GNUNET_NETWORK_socket_setsockopt
                   (sudp, IPPROTO_IPV6, IPV6_MULTICAST_IF, &if_index,

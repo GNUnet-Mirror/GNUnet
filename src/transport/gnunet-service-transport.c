@@ -2725,7 +2725,7 @@ add_hello_for_peer (void *cls,
 
   if (err_msg != NULL)
   {
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      _("Error in communication with PEERINFO service\n"));
 	/* return; */
   }
@@ -4056,7 +4056,7 @@ check_hello_validated (void *cls,
 
   if (err_msg != NULL)
   {
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      _("Error in communication with PEERINFO service\n"));
 	 /* return; */
   }
