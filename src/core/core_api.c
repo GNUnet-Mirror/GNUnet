@@ -1518,6 +1518,7 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
                  GNUNET_SERVER_MAX_MESSAGE_SIZE);
   th = GNUNET_malloc (sizeof (struct GNUNET_CORE_TransmitHandle));
   th->peer = pr;
+  GNUNET_assert(NULL != notify);
   th->get_message = notify;
   th->get_message_cls = notify_cls;
   th->timeout = GNUNET_TIME_relative_to_absolute (maxdelay);

@@ -173,9 +173,9 @@ send_icmp_response(void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
 static size_t
 send_udp_to_peer_notify_callback (void *cls, size_t size, void *buf)
 {
-  struct GNUNET_PeerIdentity *peer = cls;
+  struct GNUNET_MESH_Tunnel **tunnel = cls;
   struct GNUNET_MessageHeader *hdr =
-    (struct GNUNET_MessageHeader *) (peer + 1);
+    (struct GNUNET_MessageHeader *) (tunnel + 1);
   GNUNET_HashCode *hc = (GNUNET_HashCode *) (hdr + 1);
   struct udp_pkt *udp = (struct udp_pkt *) (hc + 1);
   hdr->size = htons (sizeof (struct GNUNET_MessageHeader) +
@@ -202,6 +202,7 @@ send_udp_to_peer (void *cls,
 		  const struct GNUNET_PeerIdentity *peer,
 		  const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
+  if (peer == NULL) return;
   struct GNUNET_MESH_Tunnel **tunnel = cls;
   struct GNUNET_MessageHeader *hdr =
     (struct GNUNET_MessageHeader *) (tunnel + 1);

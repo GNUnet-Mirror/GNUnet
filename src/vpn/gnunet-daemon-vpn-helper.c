@@ -263,8 +263,10 @@ message_token(void *cls,
 			me->tunnel = *cls;
 		      }
 		    else
-		      *cls = me->tunnel;
-		      //FIXME: somehow call send_udp_to_peer
+		      {
+			*cls = me->tunnel;
+			send_udp_to_peer(cls, (struct GNUNET_PeerIdentity*)1, NULL);
+		      }
 		    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Queued to send to peer %x\n", *((unsigned int*)&me->desc.peer));
 		  }
 	      }

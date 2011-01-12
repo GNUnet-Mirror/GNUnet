@@ -46,15 +46,19 @@ struct tunnel_message
   /* followed by another GNUNET_MessageHeader */
 };
 
+struct notify_cls
+{
+  void* notify_cls;
+  GNUNET_CONNECTION_TransmitReadyNotify notify;
+  struct GNUNET_MESH_Tunnel *tunnel;
+};
+
 struct GNUNET_MESH_Tunnel
 {
   /* The other peer this tunnel leads to; just unicast for the moment! */
   struct GNUNET_PeerIdentity peer;
 
   struct tunnel_id id;
-
-  void* notify_cls;
-  GNUNET_CONNECTION_TransmitReadyNotify notify;
 
   /* The handlers and cls for outbound tunnels. Are NULL for inbound tunnels. */
   GNUNET_MESH_TunnelDisconnectHandler disconnect_handler;
@@ -260,7 +264,7 @@ core_receive (void *cls,
 
   struct GNUNET_MESH_MessageHandler *handler;
 
-  for (handler = handle->handlers; handler != NULL; handler++)
+  for (handler = handle->handlers; handler->callback != NULL; handler++)
     {
       if ( (ntohs (rmessage->type) == handler->type)
 	   && ( (handler->expected_size == 0)
@@ -273,7 +277,7 @@ core_receive (void *cls,
   /* handler->callback handles this message */
 
   /* If no handler was found, drop the message but keep the channel open */
-  if (handler == NULL)
+  if (handler->callback == NULL)
     return GNUNET_OK;
 
   struct tunnel_list_element *tunnel = handle->established_tunnels.head;
@@ -341,6 +345,7 @@ GNUNET_MESH_peer_request_connect_all (struct GNUNET_MESH_Handle *handle,
   memcpy (&tunnel->tunnel.id.target, peers,
 	  sizeof (struct GNUNET_PeerIdentity));
   tunnel->tunnel.id.id = current_id++;
+  memcpy (&tunnel->tunnel.peer, peers, sizeof(struct GNUNET_PeerIdentity));
 
   struct peer_list_element *element = handle->connected_peers.head;
   while (element != NULL)
@@ -396,14 +401,17 @@ GNUNET_MESH_get_peer(const struct GNUNET_MESH_Tunnel* tunnel)
 static size_t
 core_notify(void* cls, size_t size, void* buf)
 {
-  struct GNUNET_MESH_Tunnel *tunnel = cls;
+  struct notify_cls *ncls = cls;
+  struct GNUNET_MESH_Tunnel *tunnel = ncls->tunnel;
   struct tunnel_message* message = buf;
   void* cbuf = (void*) &message[1];
+  GNUNET_assert(NULL != ncls->notify);
 
-  size_t sent = tunnel->notify(tunnel->notify_cls, size - sizeof(struct tunnel_message), cbuf);
+  size_t sent = ncls->notify(ncls->notify_cls, size - sizeof(struct tunnel_message), cbuf);
 
-  tunnel->notify = NULL;
-  tunnel->notify_cls = NULL;
+  GNUNET_free(ncls);
+
+  if (0 == sent) return 0;
 
   sent += sizeof(struct tunnel_message);
 
@@ -427,15 +435,18 @@ GNUNET_MESH_notify_transmit_ready (struct
 				   GNUNET_CONNECTION_TransmitReadyNotify
 				   notify, void *notify_cls)
 {
-  tunnel->notify_cls = notify_cls;
-  tunnel->notify = notify;
+  struct notify_cls *cls = GNUNET_malloc(sizeof(struct notify_cls));
+  cls->notify_cls = notify_cls;
+  GNUNET_assert(NULL != notify);
+  cls->notify = notify;
+  cls->tunnel = tunnel;
   GNUNET_CORE_notify_transmit_ready(tunnel->handle->core,
 				    priority,
 				    maxdelay,
 				    &tunnel->peer,
 				    notify_size + sizeof(struct tunnel_message),
 				    &core_notify,
-				    (void*)tunnel);
+				    (void*)cls);
 
   /* aborting is not implemented yet */
   return (struct GNUNET_MESH_TransmitHandle*) 1;
@@ -468,6 +479,7 @@ GNUNET_MESH_connect (const struct
 
   ret->handlers =
     GNUNET_malloc (len * sizeof (struct GNUNET_MESH_MessageHandler));
+  memset(ret->handlers, 0, len * sizeof(struct GNUNET_MESH_MessageHandler));
   memcpy (ret->handlers, handlers,
 	  len * sizeof (struct GNUNET_MESH_MessageHandler));
 
