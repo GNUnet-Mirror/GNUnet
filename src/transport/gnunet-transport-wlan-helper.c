@@ -138,7 +138,7 @@ Dump(u8 * pu8, int nLength)
 
 
 void
-usage(void)
+usage()
 {
 	printf(
 	    "Usage: wlan-hwd [options] <interface>\n\nOptions\n"
@@ -397,25 +397,18 @@ int ieee80211_radiotap_iterator_next(
 #define FIFO_FILE2       "/tmp/MYFIFOout"
 #define MAXLINE         20
 
-int first;
-int closeprog = 0;
+static int first;
+static int closeprog;
 
-void sigfunc(int sig)
+static void 
+sigfunc(int sig)
 {
-
- if(sig != SIGINT || sig != SIGTERM || sig != SIGKILL)
-   return;
- else
-    {
-      closeprog = 1;
-
-      unlink(FIFO_FILE1);
-      unlink(FIFO_FILE2);
-
-    }
+  closeprog = 1;  
+  unlink(FIFO_FILE1);
+  unlink(FIFO_FILE2);
 }
 
-struct sendbuf{
+struct sendbuf {
   int pos;
   int size;
   char buf[MAXLINE * 2];
@@ -517,9 +510,8 @@ testmode(int argc, char *argv[])
   fdpin = fileno(fpin);
   fdpout = fileno(fpout);
 
-  signal(SIGINT, sigfunc);
-  signal(SIGTERM, sigfunc);
-  signal(SIGKILL, sigfunc);
+  signal(SIGINT, &sigfunc);
+  signal(SIGTERM, &sigfunc);
 
   char readbuf[MAXLINE];
   int readsize = 0;
