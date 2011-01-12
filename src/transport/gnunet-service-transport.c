@@ -972,13 +972,15 @@ is_blacklisted (const struct GNUNET_PeerIdentity *peer, struct TransportPlugin *
 
   if (plugin->blacklist != NULL)
     {
-      if (GNUNET_CONTAINER_multihashmap_contains(plugin->blacklist, &peer->hashPubKey) == GNUNET_YES)
+      if (GNUNET_CONTAINER_multihashmap_contains (plugin->blacklist, &peer->hashPubKey) == GNUNET_YES)
         {
 #if DEBUG_BLACKLIST
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Peer `%s:%s' is blacklisted!\n"),
                       plugin->short_name, GNUNET_i2s (peer));
 #endif
+          if (stats != NULL)
+            GNUNET_STATISTICS_update (stats, "# blacklisted peers refused", 1, GNUNET_NO);
           return GNUNET_YES;
         }
     }
@@ -1165,6 +1167,7 @@ read_blacklist_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
       while ((pos < frstat.st_size) && isspace ( (unsigned char) data[pos]))
         pos++;
     }
+  GNUNET_STATISTICS_update (stats, "# Transport entries blacklisted", entries_found, GNUNET_NO);
   GNUNET_free (data);
   GNUNET_free (fn);
 }
