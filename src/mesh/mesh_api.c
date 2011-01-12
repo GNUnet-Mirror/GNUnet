@@ -32,7 +32,7 @@
 
 struct tunnel_id
 {
-  uint32_t id;
+  uint32_t id GNUNET_PACKED;
   struct GNUNET_PeerIdentity initiator;
   struct GNUNET_PeerIdentity target;
 };
@@ -262,9 +262,9 @@ core_receive (void *cls,
 
   for (handler = handle->handlers; handler != NULL; handler++)
     {
-      if (ntohs (rmessage->type) == handler->type
-	  && (handler->expected_size == 0
-	      || handler->expected_size == ntohs (rmessage->size)))
+      if ( (ntohs (rmessage->type) == handler->type)
+	   && ( (handler->expected_size == 0)
+		|| (handler->expected_size == ntohs (rmessage->size))) )
 	{
 	  break;
 	}
@@ -378,6 +378,10 @@ GNUNET_MESH_peer_request_connect_all (struct GNUNET_MESH_Handle *handle,
 					 handle->pending_tunnels.tail,
 					 handle->pending_tunnels.tail,
 					 tunnel);
+      (void) GNUNET_CORE_peer_request_connect (handle->core,
+					       timeout,
+					       peers,
+					       NULL, NULL);					
     }
 
   return &tunnel->tunnel;
@@ -394,7 +398,7 @@ core_notify(void* cls, size_t size, void* buf)
 {
   struct GNUNET_MESH_Tunnel *tunnel = cls;
   struct tunnel_message* message = buf;
-  void* cbuf = (void*)(message + 1);
+  void* cbuf = (void*) &message[1];
 
   size_t sent = tunnel->notify(tunnel->notify_cls, size - sizeof(struct tunnel_message), cbuf);
 
@@ -430,11 +434,11 @@ GNUNET_MESH_notify_transmit_ready (struct
 				    maxdelay,
 				    &tunnel->peer,
 				    notify_size + sizeof(struct tunnel_message),
-				    core_notify,
+				    &core_notify,
 				    (void*)tunnel);
 
   /* aborting is not implemented yet */
-  return (struct GNUNET_MESH_TransmitHandle*)1;
+  return (struct GNUNET_MESH_TransmitHandle*) 1;
 }
 
 
@@ -454,7 +458,7 @@ GNUNET_MESH_connect (const struct
   ret->connected_peers.tail = NULL;
   ret->cleaner = cleaner;
   ret->cls = cls;
-
+    
   const struct GNUNET_MESH_MessageHandler *it;
   unsigned int len = 1;
   for (it = handlers; it->callback != NULL; it++)
@@ -468,16 +472,16 @@ GNUNET_MESH_connect (const struct
 	  len * sizeof (struct GNUNET_MESH_MessageHandler));
 
   const static struct GNUNET_CORE_MessageHandler core_handlers[] = {
-    {core_receive, GNUNET_MESSAGE_TYPE_MESH, 0},
+    {&core_receive, GNUNET_MESSAGE_TYPE_MESH, 0},
     {NULL, 0, 0}
   };
 
   ret->core = GNUNET_CORE_connect (cfg,
 				   42,
 				   ret,
-				   core_startup,
-				   core_connect,
-				   core_disconnect,
+				   &core_startup,
+				   &core_connect,
+				   &core_disconnect,
 				   NULL,
 				   NULL,
 				   GNUNET_NO, NULL, GNUNET_NO, core_handlers);
@@ -516,4 +520,4 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
   GNUNET_free (handle);
 }
 
-/* end of core_api.c */
+/* end of mesh_api.c */
