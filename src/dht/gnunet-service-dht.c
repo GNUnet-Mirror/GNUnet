@@ -3590,7 +3590,10 @@ cache_response (struct DHT_MessageContext *msg_ctx)
           GNUNET_free (record);
         }
       if (source_info->delete_task != GNUNET_SCHEDULER_NO_TASK)
-        GNUNET_SCHEDULER_cancel (source_info->delete_task);
+	{
+	  GNUNET_SCHEDULER_cancel (source_info->delete_task);
+	  source_info->delete_task = GNUNET_SCHEDULER_NO_TASK;
+	}
       if (source_info->find_peers_responded != NULL)
         GNUNET_CONTAINER_bloomfilter_free (source_info->find_peers_responded);
       GNUNET_free (source_info);
@@ -4048,8 +4051,10 @@ find_client_records (void *cls, const GNUNET_HashCode * key, void *value)
       GNUNET_CONTAINER_DLL_remove (record->head, record->tail, pos);
       GNUNET_CONTAINER_heap_remove_node (forward_list.minHeap, pos->hnode);
       if (pos->delete_task != GNUNET_SCHEDULER_NO_TASK)
-        GNUNET_SCHEDULER_cancel (pos->delete_task);
-
+	{
+	  GNUNET_SCHEDULER_cancel (pos->delete_task);
+	  pos->delete_task = GNUNET_SCHEDULER_NO_TASK;
+	}
       if (pos->find_peers_responded != NULL)
         GNUNET_CONTAINER_bloomfilter_free (pos->find_peers_responded);
       GNUNET_free (pos);
@@ -4586,10 +4591,9 @@ handle_dht_local_route_stop (void *cls, struct GNUNET_SERVER_Client *client,
           /* If the client is non-null (local request) and the client matches the requesting client, remove the entry. */
           if ((pos->client != NULL) && (pos->client->client_handle == client))
             {
-              GNUNET_SCHEDULER_cancel (pos->delete_task);
-              pos->delete_task = GNUNET_SCHEDULER_NO_TASK;
-              GNUNET_SCHEDULER_add_continuation (&remove_forward_entry, pos,
-                                                 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+	      if (pos->delete_task != GNUNET_SCHEDULER_NO_TASK)
+		GNUNET_SCHEDULER_cancel (pos->delete_task);
+              pos->delete_task = GNUNET_SCHEDULER_add_now (&remove_forward_entry, pos);
             }
           pos = pos->next;
         }
