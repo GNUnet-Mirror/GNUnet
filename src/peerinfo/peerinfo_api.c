@@ -532,7 +532,7 @@ signal_timeout (void *cls,
 
   GNUNET_asprintf(&err_msg,_("Timeout transmitting iteration request to `%s' service.\n"),
 	      "PEERINFO");
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,err_msg);
+
   ic->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   if (! ic->in_receive)
     GNUNET_CONTAINER_DLL_remove (ic->h->tq_head,
