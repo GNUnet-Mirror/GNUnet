@@ -1180,7 +1180,7 @@ main (int argc, char *argv[])
   char *binary_start_pos;
   char *our_binary_name;
 
-  binary_start_pos = rindex (argv[0], '/');
+  binary_start_pos = strchr (argv[0], '/');
   GNUNET_assert (binary_start_pos != NULL);
   topology_string = strstr (binary_start_pos, "_topology");
   GNUNET_assert (topology_string != NULL);
