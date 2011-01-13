@@ -2135,7 +2135,7 @@ setup_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
       if (GNUNET_YES == malicious_sybil)
         {
           memcpy(&known_keys[i], &sybil_target, sizeof(GNUNET_HashCode) / 2);
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Distance between sybil location and key is %d\n", GNUNET_CRYPTO_hash_matching_bits(&known_keys[i], &sybil_target));
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Distance between sybil location and key is %d\n", GNUNET_CRYPTO_hash_matching_bits(&known_keys[i], &sybil_target));
         }
       test_put->daemon = GNUNET_TESTING_daemon_get(pg, GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers));
       /* Don't start PUTs at malicious peers! */
@@ -2351,7 +2351,7 @@ choose_next_malicious (struct GNUNET_TESTING_PeerGroup *pg, struct GNUNET_CONTAI
           bits_match = GNUNET_CRYPTO_hash_matching_bits (&temp_daemon->id.hashPubKey, &sybil_target);
           if (bits_match >= curr_distance)
             {
-              GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Found nearer peer %s to %s, old matching bits %d, new %d\n", GNUNET_i2s(&temp_daemon->id), GNUNET_h2s(&sybil_target), curr_distance, bits_match);
+              GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Found nearer peer %s to %s, old matching bits %d, new %d\n", GNUNET_i2s(&temp_daemon->id), GNUNET_h2s(&sybil_target), curr_distance, bits_match);
               nearest = i;
               curr_distance = bits_match;
             }
