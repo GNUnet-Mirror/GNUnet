@@ -1255,14 +1255,14 @@ udp_plugin_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
  * @param sockinfo which socket did we receive the message on
  */
 static void
-udp_demultiplexer(struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
+udp_demultiplexer(struct Plugin *plugin, 
+		  struct GNUNET_PeerIdentity *sender,
                   const struct GNUNET_MessageHeader *currhdr,
                   const void *sender_addr,
                   size_t fromlen, struct UDP_Sock_Info *sockinfo)
 {
   struct UDP_NAT_ProbeMessageReply *outgoing_probe_reply;
   struct UDP_NAT_ProbeMessageConfirmation *outgoing_probe_confirmation;
-
   char addr_buf[INET_ADDRSTRLEN];
   struct UDP_NAT_Probes *outgoing_probe;
   struct PeerSession *peer_session;
@@ -1509,7 +1509,6 @@ udp_plugin_select (void *cls,
   char addr[32];
   ssize_t ret;
   int offset;
-  int count;
   int tsize;
   char *msgbuf;
   const struct GNUNET_MessageHeader *currhdr;
@@ -1520,6 +1519,7 @@ udp_plugin_select (void *cls,
   const void *ca;
   size_t calen;
   struct UDP_Sock_Info *udp_sock;
+  uint16_t csize;
 
   plugin->select_task = GNUNET_SCHEDULER_NO_TASK;
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
@@ -1577,7 +1577,9 @@ udp_plugin_select (void *cls,
       return;
     }
   msg = (struct UDPMessage *) buf;
-  if (ntohs (msg->header.size) < sizeof (struct UDPMessage))
+  csize = ntohs (msg->header.size);
+  if ( (csize < sizeof (struct UDPMessage)) ||
+       (csize > ret) )
     {
       GNUNET_break_op (0);
       plugin->select_task =
@@ -1590,14 +1592,20 @@ udp_plugin_select (void *cls,
   msgbuf = (char *)&msg[1];
   memcpy (&sender, &msg->sender, sizeof (struct GNUNET_PeerIdentity));
   offset = 0;
-  count = 0;
-  tsize = ntohs (msg->header.size) - sizeof(struct UDPMessage);
-  while (offset < tsize)
+  tsize = csize - sizeof (struct UDPMessage);
+  while (offset + sizeof (struct GNUNET_MessageHeader) <= tsize)
     {
       currhdr = (struct GNUNET_MessageHeader *)&msgbuf[offset];
-      udp_demultiplexer(plugin, &sender, currhdr, ca, calen, udp_sock);
-      offset += ntohs(currhdr->size);
-      count++;
+      csize = ntohs (currhdr->size);
+      if ( (csize < sizeof (struct GNUNET_MessageHeader)) ||
+	   (csize > tsize - offset) )
+	{
+	  GNUNET_break_op (0);
+	  break;
+	}
+      udp_demultiplexer(plugin, &sender, currhdr, 
+			ca, calen, udp_sock);
+      offset += csize;
     }
   plugin->select_task =
     GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
