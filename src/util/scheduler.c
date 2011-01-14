@@ -740,10 +740,9 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
                                      task_cls,
                                      GNUNET_SCHEDULER_REASON_STARTUP);
 #if ENABLE_WINDOWS_WORKAROUNDS
-  GNUNET_SCHEDULER_add_continuation (GNUNET_OS_install_parent_control_handler,
+  GNUNET_SCHEDULER_add_continuation (&GNUNET_OS_install_parent_control_handler,
                                      NULL, GNUNET_SCHEDULER_REASON_STARTUP);
 #endif
-
   last_tr = 0;
   busy_wait_warning = 0;
   while ((pending != NULL) ||

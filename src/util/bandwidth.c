@@ -185,7 +185,6 @@ update_tracker (struct GNUNET_BANDWIDTH_Tracker *av)
       max_carry = av->available_bytes_per_s__ * av->max_carry_s__;
       if (max_carry < GNUNET_SERVER_MAX_MESSAGE_SIZE)
     	  max_carry = GNUNET_SERVER_MAX_MESSAGE_SIZE;
-      av->consumption_since_last_update__ = -left_bytes;
       if (max_carry > left_bytes)
     	 av->consumption_since_last_update__ = -left_bytes;
       else
