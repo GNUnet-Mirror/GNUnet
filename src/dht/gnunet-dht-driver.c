@@ -885,6 +885,7 @@ log_topology_cb (void *cls,
 		 const char *emsg)
 {
   struct TopologyIteratorContext *topo_ctx = cls;
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "log_topology_cb\n");
   if ((first != NULL) && (second != NULL))
     {
       /* GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "According to CORE, peer %s is connected to %s\n", GNUNET_i2s(first), GNUNET_h2s(&second->hashPubKey));*/
@@ -1039,6 +1040,7 @@ capture_current_topology (void *cls, const struct GNUNET_SCHEDULER_TaskContext *
 {
   struct TopologyIteratorContext *topo_ctx = cls;
   dhtlog_handle->insert_topology(0);
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Called capture_current_topology\n");
   GNUNET_TESTING_get_topology (pg, &log_topology_cb, topo_ctx);
 }
 
@@ -2019,7 +2021,10 @@ count_peers_cb (void *cls,
 
 #if HAVE_MALICIOUS
           if (GNUNET_YES == malicious_after_settle)
+          {
+            GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "calling setup_malicious_peers\n");
             GNUNET_SCHEDULER_add_now(&setup_malicious_peers, NULL);
+          }
 #endif
         }
     }
@@ -2125,6 +2130,7 @@ setup_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   int remember[num_puts][num_peers];
   memset(&remember, 0, sizeof(int) * num_puts * num_peers);
 #endif
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "in setup_puts_and_gets\n");
   known_keys = GNUNET_malloc(sizeof(GNUNET_HashCode) * num_puts);
   for (i = 0; i < num_puts; i++)
     {
@@ -2188,6 +2194,7 @@ continue_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
   int max;
   struct TopologyIteratorContext *topo_ctx;
   struct FindPeerContext *find_peer_context;
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "In continue_puts_and_gets, dhtlog_handle %s\n", dhtlog_handle);
   if (dhtlog_handle != NULL)
     {
       if (settle_time >= 180 * 2)
@@ -2206,6 +2213,7 @@ continue_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
       topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
       topo_ctx->cont = &setup_puts_and_gets;
       topo_ctx->peers_seen = GNUNET_CONTAINER_multihashmap_create(num_peers);
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "setting setup_puts_and_gets for %d seconds in the future\n", settle_time + 90);
       GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, (settle_time + 90)), &capture_current_topology, topo_ctx);
     }
   else
@@ -2338,6 +2346,7 @@ choose_next_malicious (struct GNUNET_TESTING_PeerGroup *pg, struct GNUNET_CONTAI
   struct GNUNET_TESTING_Daemon *temp_daemon;
 
   curr_distance = 0;
+  GNUNET_assert (bloom != NULL);
 
   if (GNUNET_YES == malicious_sybil)
     {
@@ -2345,7 +2354,7 @@ choose_next_malicious (struct GNUNET_TESTING_PeerGroup *pg, struct GNUNET_CONTAI
         {
           temp_daemon = GNUNET_TESTING_daemon_get(pg, i);
           /* Check if this peer matches the bloomfilter */
-          if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (bloom, &temp_daemon->id.hashPubKey))
+          if ((GNUNET_NO == GNUNET_TESTING_daemon_running(temp_daemon)) || (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (bloom, &temp_daemon->id.hashPubKey)))
             continue;
 
           bits_match = GNUNET_CRYPTO_hash_matching_bits (&temp_daemon->id.hashPubKey, &sybil_target);
@@ -2480,10 +2489,13 @@ topology_callback (void *cls,
       if ((dhtlog_handle != NULL) && (settle_time > 0))
         {
           topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Setting continue gets and puts as topo_cont\n");
           topo_ctx->cont = &continue_puts_and_gets;
           topo_ctx->peers_seen = GNUNET_CONTAINER_multihashmap_create(num_peers);
           GNUNET_SCHEDULER_add_now(&capture_current_topology, topo_ctx);
         }
+      else
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "For some reason, NOT scheduling final topology capture (settle_time %d, dhtlog_handle %s)!\n", settle_time, dhtlog_handle);
     }
   else if (total_connections + failed_connections == expected_connections)
     {
@@ -3009,11 +3021,8 @@ run (void *cls,
       malicious_sybil = GNUNET_YES;
     }
 
-  if ((malicious_droppers > 0) || (malicious_getters > 0) || (malicious_putters > 0))
-    {
-      /* Create the bloomfilter for choosing which peers to set malicious */
-      malicious_bloom = GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
-    }
+  /* Create the bloomfilter for choosing which peers to set malicious */
+  malicious_bloom = GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE, DHT_BLOOM_K);
 
   /* The normal behavior of the DHT is to do find peer requests
    * on its own.  Only if this is explicitly turned off should
