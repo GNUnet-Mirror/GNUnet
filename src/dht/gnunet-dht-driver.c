@@ -2221,7 +2221,7 @@ continue_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
   int max;
   struct TopologyIteratorContext *topo_ctx;
   struct FindPeerContext *find_peer_context;
-  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "In continue_puts_and_gets, dhtlog_handle %s\n", dhtlog_handle);
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "In continue_puts_and_gets\n");
   if (dhtlog_handle != NULL)
     {
       if (settle_time >= 180 * 2)
