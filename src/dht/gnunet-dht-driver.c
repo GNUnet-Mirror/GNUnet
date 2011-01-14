@@ -880,12 +880,11 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
  */
 static void 
 log_topology_cb (void *cls,
-		 const struct GNUNET_PeerIdentity *first,
-		 const struct GNUNET_PeerIdentity *second,
-		 const char *emsg)
+                 const struct GNUNET_PeerIdentity *first,
+                 const struct GNUNET_PeerIdentity *second,
+                 const char *emsg)
 {
   struct TopologyIteratorContext *topo_ctx = cls;
-  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "log_topology_cb\n");
   if ((first != NULL) && (second != NULL))
     {
       /* GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "According to CORE, peer %s is connected to %s\n", GNUNET_i2s(first), GNUNET_h2s(&second->hashPubKey));*/
@@ -2116,6 +2115,20 @@ schedule_find_peer_requests (void *cls, const struct GNUNET_SCHEDULER_TaskContex
 }
 
 /**
+ * Convert unique ID to hash code.
+ *
+ * @param uid unique ID to convert
+ * @param hash set to uid (extended with zeros)
+ */
+static void
+hash_from_uid (uint32_t uid, GNUNET_HashCode *hash)
+{
+  memset (hash, 0, sizeof (GNUNET_HashCode));
+  *((uint32_t *) hash) = uid;
+}
+
+
+/**
  * Set up all of the put and get operations we want to do
  * in the current round.  Allocate data structure for each,
  * add to list, then schedule the actual PUT operations.
@@ -2126,6 +2139,8 @@ setup_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   int i;
   struct TestPutContext *test_put;
   struct TestGetContext *test_get;
+  uint32_t temp_peer;
+  GNUNET_HashCode uid_hash;
 #if REMEMBER
   int remember[num_puts][num_peers];
   memset(&remember, 0, sizeof(int) * num_puts * num_peers);
@@ -2143,12 +2158,18 @@ setup_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
           memcpy(&known_keys[i], &sybil_target, sizeof(GNUNET_HashCode) / 2);
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Distance between sybil location and key is %d\n", GNUNET_CRYPTO_hash_matching_bits(&known_keys[i], &sybil_target));
         }
-      test_put->daemon = GNUNET_TESTING_daemon_get(pg, GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers));
+      temp_peer = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
+      test_put->daemon = GNUNET_TESTING_daemon_get(pg, temp_peer);
       /* Don't start PUTs at malicious peers! */
       if (malicious_bloom != NULL)
         {
-          while (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test(malicious_bloom, &test_put->daemon->id.hashPubKey))
-            test_put->daemon = GNUNET_TESTING_daemon_get(pg, GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers));
+          hash_from_uid(temp_peer, &uid_hash);
+          while (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test(malicious_bloom, &uid_hash))
+          {
+            temp_peer = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
+            hash_from_uid(temp_peer, &uid_hash);
+            test_put->daemon = GNUNET_TESTING_daemon_get(pg, temp_peer);
+          }
         }
 
       test_put->next = all_puts;
@@ -2164,12 +2185,18 @@ setup_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
         temp_daemon = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);	
       remember[test_get->uid][temp_daemon] = 1;
 #endif
-      test_get->daemon = GNUNET_TESTING_daemon_get(pg, GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers));
+      temp_peer = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
+      test_get->daemon = GNUNET_TESTING_daemon_get(pg, temp_peer);
       /* Don't start GETs at malicious peers! */
       if (malicious_bloom != NULL)
         {
-          while (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test(malicious_bloom, &test_get->daemon->id.hashPubKey))
-            test_get->daemon = GNUNET_TESTING_daemon_get(pg, GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers));
+          hash_from_uid(temp_peer, &uid_hash);
+          while (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test(malicious_bloom, &uid_hash))
+          {
+            temp_peer = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
+            hash_from_uid(temp_peer, &uid_hash);
+            test_get->daemon = GNUNET_TESTING_daemon_get(pg, temp_peer);
+          }
         }
       test_get->next = all_gets;
       all_gets = test_get;
@@ -2325,6 +2352,7 @@ set_malicious (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 						      &malicious_disconnect_task, ctx);
 }
 
+
 #if HAVE_MALICIOUS
 /**
  * Choose the next peer from the peer group to set as malicious.
@@ -2344,6 +2372,7 @@ choose_next_malicious (struct GNUNET_TESTING_PeerGroup *pg, struct GNUNET_CONTAI
   int bits_match;
   int curr_distance;
   struct GNUNET_TESTING_Daemon *temp_daemon;
+  GNUNET_HashCode uid_hash;
 
   curr_distance = 0;
   GNUNET_assert (bloom != NULL);
@@ -2353,8 +2382,9 @@ choose_next_malicious (struct GNUNET_TESTING_PeerGroup *pg, struct GNUNET_CONTAI
       for (i = 0; i < num_peers; i++)
         {
           temp_daemon = GNUNET_TESTING_daemon_get(pg, i);
+          hash_from_uid(i, &uid_hash);
           /* Check if this peer matches the bloomfilter */
-          if ((GNUNET_NO == GNUNET_TESTING_daemon_running(temp_daemon)) || (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (bloom, &temp_daemon->id.hashPubKey)))
+          if ((GNUNET_NO == GNUNET_TESTING_daemon_running(temp_daemon)) || (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (bloom, &uid_hash)))
             continue;
 
           bits_match = GNUNET_CRYPTO_hash_matching_bits (&temp_daemon->id.hashPubKey, &sybil_target);
@@ -2369,7 +2399,8 @@ choose_next_malicious (struct GNUNET_TESTING_PeerGroup *pg, struct GNUNET_CONTAI
   else
     {
       nearest = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
-      while (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (bloom, &temp_daemon->id.hashPubKey))
+      hash_from_uid(nearest, &uid_hash);
+      while (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (bloom, &uid_hash))
         {
           nearest = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
         }
@@ -2389,13 +2420,15 @@ setup_malicious_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc
   struct MaliciousContext *ctx;
   int i;
   uint32_t temp_daemon;
+  GNUNET_HashCode uid_hash;
 
   for (i = 0; i < malicious_getters; i++)
     {
       ctx = GNUNET_malloc(sizeof(struct MaliciousContext));
       temp_daemon = choose_next_malicious(pg, malicious_bloom);
       ctx->daemon = GNUNET_TESTING_daemon_get(pg, temp_daemon);
-      GNUNET_CONTAINER_bloomfilter_add(malicious_bloom, &ctx->daemon->id.hashPubKey);
+      hash_from_uid(temp_daemon, &uid_hash);
+      GNUNET_CONTAINER_bloomfilter_add(malicious_bloom, &uid_hash);
       ctx->malicious_type = GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_GET;
       GNUNET_SCHEDULER_add_now (&set_malicious, ctx);
 
@@ -2406,7 +2439,8 @@ setup_malicious_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc
       ctx = GNUNET_malloc(sizeof(struct MaliciousContext));
       temp_daemon = choose_next_malicious(pg, malicious_bloom);
       ctx->daemon = GNUNET_TESTING_daemon_get(pg, temp_daemon);
-      GNUNET_CONTAINER_bloomfilter_add(malicious_bloom, &ctx->daemon->id.hashPubKey);
+      hash_from_uid(temp_daemon, &uid_hash);
+      GNUNET_CONTAINER_bloomfilter_add(malicious_bloom, &uid_hash);
       ctx->malicious_type = GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_PUT;
       GNUNET_SCHEDULER_add_now (&set_malicious, ctx);
 
@@ -2417,7 +2451,8 @@ setup_malicious_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc
       ctx = GNUNET_malloc(sizeof(struct MaliciousContext));
       temp_daemon = choose_next_malicious(pg, malicious_bloom);
       ctx->daemon = GNUNET_TESTING_daemon_get(pg, temp_daemon);
-      GNUNET_CONTAINER_bloomfilter_add(malicious_bloom, &ctx->daemon->id.hashPubKey);
+      hash_from_uid(temp_daemon, &uid_hash);
+      GNUNET_CONTAINER_bloomfilter_add(malicious_bloom, &uid_hash);
       ctx->malicious_type = GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_DROP;
       GNUNET_SCHEDULER_add_now (&set_malicious, ctx);
     }
@@ -3245,7 +3280,6 @@ main (int argc, char *argv[])
   ret = GNUNET_PROGRAM_run (argc,
                             argv, "gnunet-dht-driver", "nohelp",
                             options, &run, &ok);
-
 
   if (malicious_bloom != NULL)
     GNUNET_CONTAINER_bloomfilter_free (malicious_bloom);
