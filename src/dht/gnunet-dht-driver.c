@@ -2141,6 +2141,7 @@ setup_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   struct TestGetContext *test_get;
   uint32_t temp_peer;
   GNUNET_HashCode uid_hash;
+  int count;
 #if REMEMBER
   int remember[num_puts][num_peers];
   memset(&remember, 0, sizeof(int) * num_puts * num_peers);
@@ -2163,13 +2164,17 @@ setup_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
       /* Don't start PUTs at malicious peers! */
       if (malicious_bloom != NULL)
         {
+          count = 0;
           hash_from_uid(temp_peer, &uid_hash);
-          while (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test(malicious_bloom, &uid_hash))
+          while ((GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test(malicious_bloom, &uid_hash)) && (count < num_peers))
           {
             temp_peer = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
             hash_from_uid(temp_peer, &uid_hash);
             test_put->daemon = GNUNET_TESTING_daemon_get(pg, temp_peer);
+            count++;
           }
+          if (count == num_peers)
+            GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Couldn't find peer not in malicious bloom to select!\n");
         }
 
       test_put->next = all_puts;
@@ -2191,12 +2196,16 @@ setup_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
       if (malicious_bloom != NULL)
         {
           hash_from_uid(temp_peer, &uid_hash);
-          while (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test(malicious_bloom, &uid_hash))
+          count = 0;
+          while ((GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test(malicious_bloom, &uid_hash)) && (count < num_peers))
           {
             temp_peer = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
             hash_from_uid(temp_peer, &uid_hash);
             test_get->daemon = GNUNET_TESTING_daemon_get(pg, temp_peer);
+            count++;
           }
+          if (count == num_peers)
+            GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Couldn't find peer not in malicious bloom to select!\n");
         }
       test_get->next = all_gets;
       all_gets = test_get;
