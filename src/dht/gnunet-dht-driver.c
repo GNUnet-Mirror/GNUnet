@@ -2404,6 +2404,7 @@ choose_next_malicious (struct GNUNET_TESTING_PeerGroup *pg, struct GNUNET_CONTAI
       while (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (bloom, &uid_hash))
         {
           nearest = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
+          hash_from_uid(nearest, &uid_hash);
         }
     }
 
