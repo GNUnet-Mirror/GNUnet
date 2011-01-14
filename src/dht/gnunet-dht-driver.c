@@ -2371,6 +2371,7 @@ choose_next_malicious (struct GNUNET_TESTING_PeerGroup *pg, struct GNUNET_CONTAI
   int nearest;
   int bits_match;
   int curr_distance;
+  int count;
   struct GNUNET_TESTING_Daemon *temp_daemon;
   GNUNET_HashCode uid_hash;
 
@@ -2401,11 +2402,15 @@ choose_next_malicious (struct GNUNET_TESTING_PeerGroup *pg, struct GNUNET_CONTAI
     {
       nearest = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
       hash_from_uid(nearest, &uid_hash);
-      while (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (bloom, &uid_hash))
+      while ((GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (bloom, &uid_hash)) && (count < num_peers))
         {
+          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Peer %d already in bloom (tried %d times)\n", nearest, count);
           nearest = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
           hash_from_uid(nearest, &uid_hash);
+          count++;
         }
+      if (count == num_peers)
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Tried %d times to find a peer, selecting %d at random!!\n", count, nearest);
     }
 
   return nearest;
