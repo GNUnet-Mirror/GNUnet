@@ -1111,7 +1111,6 @@ transmit_search_request (void *cls,
       GNUNET_CRYPTO_hash_xor (&idh,
 			      &sm->target,
 			      &sm->query);
-      mbc.skip_cnt = sc->search_request_map_offset;
       mbc.put_cnt = (size - msize) / sizeof (GNUNET_HashCode);
       sqms = GNUNET_CONTAINER_multihashmap_size (sc->master_result_map);
       mbc.put_cnt = GNUNET_MIN (mbc.put_cnt,
