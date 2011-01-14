@@ -2375,6 +2375,7 @@ choose_next_malicious (struct GNUNET_TESTING_PeerGroup *pg, struct GNUNET_CONTAI
   GNUNET_HashCode uid_hash;
 
   curr_distance = 0;
+  nearest = 0;
   GNUNET_assert (bloom != NULL);
 
   if (GNUNET_YES == malicious_sybil)
