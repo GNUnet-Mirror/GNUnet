@@ -2683,7 +2683,7 @@ add_to_foreign_address_list (void *cls,
     }
   if (fal == NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Failed to add new address for `%4s'\n",
 		  GNUNET_i2s (&n->id));
       return GNUNET_OK;
