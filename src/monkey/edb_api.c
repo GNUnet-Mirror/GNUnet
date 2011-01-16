@@ -50,46 +50,76 @@ struct GNUNET_MONKEY_EDB_Context
 struct GNUNET_MONKEY_EDB_Context *
 GNUNET_MONKEY_EDB_connect (const char *db_file_name)
 {
-	/* TODO: Implementation */
-	return NULL;
+  int err;
+  struct GNUNET_MONKEY_EDB_Context *ctxt =
+    GNUNET_malloc (sizeof (struct GNUNET_MONKEY_EDB_Context));
+
+  err = sqlite3_open (db_file_name, &ctxt->db_handle);
+  if (err)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Cannot open Expression Database. `%s'\n",
+		  sqlite3_errmsg (ctxt->db_handle));
+      return NULL;
+    }
+  return ctxt;
 }
 
 
 /**
  * Disconnect from Database, and cleanup resources
  *
- * @param context context
+ * @param context context containing the Expression Database handle
  * @return GNUNET_OK on success, GNUNET_NO on failure
  */
 int
-GNUNET_MONKEY_EDB_disconnect (struct GNUNET_MONKEY_EDB_Context *context)
+GNUNET_MONKEY_EDB_disconnect (struct GNUNET_MONKEY_EDB_Context *cntxt)
 {
-	/* TODO: Implementation */
-	return GNUNET_OK;
+  sqlite3_close (cntxt->db_handle);
+  GNUNET_free (cntxt);
+  return GNUNET_OK;
 }
 
 
 /**
- * Update the context with a list of expressions. 
- * The list is the initializations of sub-expressions 
- * of the expression pointed to by start_line_no and end_line_no
+ * Run an SQLite query to retrieve those expressions that are previous to
+ * given expression and are in the same scope of the given expression
  * 
- * @param context the returned expessions will be available in it. 
- *        expression_list_head and expression_list_tail must be NULL, 
- *        otherwise GNUNET_NO will be returned 
+ * @param cntxt context containing the Expression Database handle.
  * @param file_name path to the file in which the expression in question exists
  * @param start_line_no expression beginning line
- * @param end_line_no expression end line
+ * @param end_line_no line number for the expression's scope end
  * @param iter callback function, iterator for expressions returned from the Database
  * @param iter_cls closure for the expression iterator
  * @return GNUNET_OK success, GNUNET_NO failure
  */
 int
-GNUNET_MONKEY_EDB_get_expressions (struct GNUNET_MONKEY_EDB_Context *context,
+GNUNET_MONKEY_EDB_get_expressions (struct GNUNET_MONKEY_EDB_Context *cntxt,
 				   const char *file_name, int start_line_no,
 				   int end_line_no,
-				   GNUNET_MONKEY_ExpressionIterator iter, void *iter_cls)
+				   GNUNET_MONKEY_ExpressionIterator iter,
+				   void *iter_cls)
 {
-	/* TODO: Implementation */
-	return GNUNET_OK;
+  int err;
+  char *errMsg;
+  char *query;
+  if (asprintf
+      (&query,
+       "select expr_syntax, start_lineno from Expression where file_name = \'%s\' and start_lineno < %d and end_lineno = %d",
+       file_name, start_line_no, end_line_no) == -1)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Memory allocation problem occurred.");
+      return GNUNET_NO;
+    }
+
+  err = sqlite3_exec (cntxt->db_handle, query, iter, iter_cls, &errMsg);
+  if (err)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Error occurred while executing Database query. `%s'",
+		  errMsg);
+      return GNUNET_NO;
+    }
+  return GNUNET_OK;
 }

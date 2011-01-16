@@ -38,7 +38,7 @@ public class ExpressionDatabaseHandler {
 	private static Stack<HashMap<String, Integer>> expressionStack = new Stack<HashMap<String, Integer>>();
 
 	public static void createExpressionDatabase(String databasePath) {
-		String createTableQuery = "CREATE TABLE Expression ( expr_ID INT NOT NULL PRIMARY KEY , "
+		String createTableQuery = "CREATE TABLE Expression ( expr_ID INTEGER PRIMARY KEY AUTOINCREMENT, "
 				+ "file_name TEXT NOT NULL , expr_syntax TEXT NOT NULL ,"
 				+ " start_lineno INT, end_lineno INT)";
 
@@ -79,7 +79,7 @@ public class ExpressionDatabaseHandler {
 			if (DEBUG)
 				System.out.println(fileName + ":[" + startLineNo + "-"
 						+ endLineNo + "]: " + expressionSyntax);
-			table.insert(currentFileName, expressionSyntax, startLineNo,
+			table.insert(null, currentFileName, expressionSyntax, startLineNo,
 					endLineNo);
 		} catch (SqlJetException e) {
 			e.printStackTrace();
@@ -195,7 +195,9 @@ public class ExpressionDatabaseHandler {
 					.println("Error:Database handle is not initialized. Program will exit now!");
 			System.exit(1);
 		}
-
+		
+		String[] fileNameArr = fileName.split("src/");
+		fileName = fileNameArr[1];
 		insertExpression(fileName, expressionSyntax, startLineNo, endLineNo);
 	}
 }

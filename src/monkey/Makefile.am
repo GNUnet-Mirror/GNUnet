@@ -14,6 +14,28 @@ if !MINGW
 if HAVE_ESMTP
 if HAVE_OPENSSL
 
+
+lib_LTLIBRARIES = libmonkeyedb.la \
+				  libmonkeyaction.la
+
+libmonkeyedb_la_SOURCES = \
+  edb_api.c \
+  gnunet_monkey_edb.h
+  
+libmonkeyedb_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  -lsqlite3 \
+  $(GN_LIBINTL) $(XLIB)  
+  
+libmonkeyaction_la_SOURCES = \
+  action_api.c \
+  gnunet_monkey_action.h
+
+libmonkeyaction_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL) $(XLIB)  
+
+  
 bin_PROGRAMS = \
  gnunet-monkey \
  gnunet-service-monkey 
@@ -39,11 +61,12 @@ gnunet_monkey_SOURCES = \
  gdbmi_thread.c \
  gdbmi_var_obj.c \
  gnunet-monkey.c \
- mail_sender.c \
- edb_api.c
+ mail_sender.c
 
 gnunet_monkey_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/monkey/libmonkeyedb.la \
+  $(top_builddir)/src/monkey/libmonkeyaction.la \
   -lesmtp \
   $(GN_LIBINTL)
 
@@ -59,13 +82,21 @@ bug_null_pointer_exception:
 	gcc -g -O0 -o bug_null_pointer_exception bug_null_pointer_exception.c
 	
 check_PROGRAMS = \
-    bug_null_pointer_exception
+    bug_null_pointer_exception \
+    test_monkey_edb
     #test_gnunet_monkey	
 
 if !DISABLE_TEST_RUN
 # TESTS = $(check_SCRIPTS)
+TESTS = $(check_PROGRAMS)
 endif
 
+test_monkey_edb_SOURCES = \
+  test_monkey_edb.c
+test_monkey_edb_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/monkey/libmonkeyedb.la
+  
 #test_gnunet_monkey_SOURCES = \
  #test_gnunet_monkey.c
 #test_gnunet_monkey_LDADD = \
@@ -84,4 +115,3 @@ check_SCRIPTS = \
 endif
 endif
 endif
-

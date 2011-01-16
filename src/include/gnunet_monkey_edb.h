@@ -29,7 +29,7 @@
 #ifdef __cplusplus
 extern "C"
 {
-#if 0                           /* keep Emacsens' auto-indent happy */
+#if 0				/* keep Emacsens' auto-indent happy */
 }
 #endif
 #endif
@@ -53,16 +53,16 @@ struct GNUNET_MONKEY_EDB_Context *GNUNET_MONKEY_EDB_connect (const char
  * @param context context
  * @return GNUNET_OK on success, GNUNET_NO on failure
  */
-int GNUNET_MONKEY_EDB_disconnect (struct GNUNET_MONKEY_EDB_Context *context);
+int GNUNET_MONKEY_EDB_disconnect (struct GNUNET_MONKEY_EDB_Context *cntxt);
 
 
-typedef int (*GNUNET_MONKEY_ExpressionIterator)(void *cls, const char *expression, int begin_line);
+typedef int (*GNUNET_MONKEY_ExpressionIterator) (void *, int, char **,
+						 char **);
 
 
 /**
- * Update the context with a list of expressions. 
- * The list is the initializations of sub-expressions 
- * of the expression pointed to by start_line_no and end_line_no
+ * Run an SQLite query to retrieve those expressions that are previous to
+ * given expression and are in the same scope of the given expression
  * For example, consider the following code snippet:
  * {
  *   struct Something whole; // line no.1 
@@ -71,29 +71,27 @@ typedef int (*GNUNET_MONKEY_ExpressionIterator)(void *cls, const char *expressio
  *   whole.part->member = 1; // line no.4
  * }
  * If the expression supplied to the function is that of line no.4 "whole.part->member = 1;"
- * The returned list of expressions will be: whole.part = part (line no.3), 
- * struct SomethingElse part (line no.2), and struct Something whole (line no.1),
- * which are the initialization expressions of the building components of the expression in question
- * 
- * @param context the returned expessions will be available in it. 
- * expression_list_head, and expression_list_tail must be null, 
- * otherwise GNUNET_NO will be returned 
+ * The returned list of expressions will be: whole.part (line no.4), whole.part->member (line no.4),
+ * whole (line no.3), whole.part (line no.3), &part (line no.3), whole.part = &part (line no.3)
+ *
+ * @param cntxt context containing the Expression Database handle.
  * @param file_name path to the file in which the expression in question exists
  * @param start_line_no expression beginning line
- * @param end_line_no expression end line
+ * @param end_line_no line number for the expression's scope end
  * @param iter callback function, iterator for expressions returned from the Database
  * @param iter_cls closure for the expression iterator
  * @return GNUNET_OK success, GNUNET_NO failure
  */
 int
-GNUNET_MONKEY_EDB_get_expressions (struct GNUNET_MONKEY_EDB_Context *context,
+GNUNET_MONKEY_EDB_get_expressions (struct GNUNET_MONKEY_EDB_Context *cntxt,
 				   const char *file_name, int start_line_no,
 				   int end_line_no,
-				   GNUNET_MONKEY_ExpressionIterator iter, void *iter_cls);
+				   GNUNET_MONKEY_ExpressionIterator iter,
+				   void *iter_cls);
 
 
 
-#if 0                           /* keep Emacsens' auto-indent happy */
+#if 0				/* keep Emacsens' auto-indent happy */
 {
 #endif
 #ifdef __cplusplus
@@ -101,4 +99,3 @@ GNUNET_MONKEY_EDB_get_expressions (struct GNUNET_MONKEY_EDB_Context *context,
 #endif
 
 #endif
-

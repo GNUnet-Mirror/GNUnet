@@ -65,4 +65,5 @@ gnunetinclude_HEADERS = \
   gnunet_transport_plugin.h \
   gnunet_upnp_service.h \
   gnunet_util_lib.h \
-  gnunet_monkey_edb.h
+  gnunet_monkey_edb.h \
+  gnunet_monkey_action.h
