@@ -22,11 +22,6 @@
  * @file fs/gnunet-service-fs.c
  * @brief gnunet anonymity protocol implementation
  * @author Christian Grothoff
- *
- * TODO:
- * - collect traffic data for anonymity levels > 1
- * - implement transmission restrictions for anonymity level > 1
- * - more statistics
  */
 #include "platform.h"
 #include <float.h>
@@ -147,7 +142,6 @@
  * via the configuration file (32k is just the default).
  */
 static unsigned long long max_pending_requests = (32 * 1024);
-
 
 /**
  * Information we keep for each pending reply.  The

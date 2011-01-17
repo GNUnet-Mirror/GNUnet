@@ -15,7 +15,6 @@
     + insert
     + download
     + search
-  - implement anonymity level > 1
   - exclude content that will "soon" expire from migration
   - make migration data rate & datastore IO-rate configurable
   - exclude certain peers as targets (based on hash values) in each
