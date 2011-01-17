@@ -1,4 +1,4 @@
-0.9.0pre3:
+0.9.0pre3: [2'11]
 * NAT/UPNP: [Milan / Ayush / MW]
   - [#1609] code clean up
   - testing
