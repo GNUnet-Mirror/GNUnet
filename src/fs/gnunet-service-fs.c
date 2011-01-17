@@ -92,6 +92,15 @@
 #define MAX_DHT_PUT_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
+ * How long must content remain valid for us to consider it for migration?  
+ * If content will expire too soon, there is clearly no point in pushing
+ * it to other peers.  This value gives the threshold for migration.  Note
+ * that if this value is increased, the migration testcase may need to be
+ * adjusted as well (especially the CONTENT_LIFETIME in fs_test_lib.c).
+ */
+#define MIN_MIGRATION_CONTENT_LIFETIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 30)
+
+/**
  * Inverse of the probability that we will submit the same query
  * to the same peer again.  If the same peer already got the query
  * repeatedly recently, the probability is multiplied by the inverse
@@ -1281,6 +1290,13 @@ process_migration_content (void *cls,
       mig_qe = NULL;
       if (mig_size < MAX_MIGRATION_QUEUE)  
 	consider_migration_gathering ();
+      return;
+    }
+  if (GNUNET_TIME_absolute_get_remaining (expiration).rel_value < 
+      MIN_MIGRATION_CONTENT_LIFETIME.rel_value)
+    {
+      /* content will expire soon, don't bother */
+      GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
       return;
     }
   if (type == GNUNET_BLOCK_TYPE_FS_ONDEMAND)

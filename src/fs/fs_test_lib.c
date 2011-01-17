@@ -33,6 +33,8 @@
 
 #define CONNECT_ATTEMPTS 4
 
+#define CONTENT_LIFETIME GNUNET_TIME_UNIT_HOURS
+
 /**
  * Handle for a daemon started for testing FS.
  */
@@ -673,7 +675,7 @@ GNUNET_FS_TEST_publish (struct GNUNET_FS_TestDaemon *daemon,
 							do_index,
 							anonymity,
 							42 /* priority */,
-							GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS));
+							GNUNET_TIME_relative_to_absolute (CONTENT_LIFETIME));
     }
   else
     {
@@ -687,7 +689,7 @@ GNUNET_FS_TEST_publish (struct GNUNET_FS_TestDaemon *daemon,
 							  do_index,
 							  anonymity,
 							  42 /* priority */,
-							  GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS));
+							  GNUNET_TIME_relative_to_absolute (CONTENT_LIFETIME));
     }
   daemon->publish_context = GNUNET_FS_publish_start (daemon->fs,
 						     fi,

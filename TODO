@@ -15,11 +15,6 @@
     + insert
     + download
     + search
-  - exclude content that will "soon" expire from migration
-  - make migration data rate & datastore IO-rate configurable
-  - exclude certain peers as targets (based on hash values) in each
-    iteration => same peer can only be picked every n-th iteration
-    for the same content => fewer duplicate sending!
 * GNUNET-GTK: [CG]
   - figure out where in the GUI we should show active upload operations and allow aborts
   - handle events:
