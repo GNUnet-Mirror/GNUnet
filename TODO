@@ -24,7 +24,7 @@
 
 0.9.0:
 * new webpage:
-  - update books (especially for developers)
+  - write chapter on DHT/block [Nate] 
   - make a NICE download page 
 * big code review
 * Determine RC bugs and fix those  (release should have no known real bugs)
