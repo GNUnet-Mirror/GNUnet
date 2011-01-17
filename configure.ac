@@ -810,6 +810,7 @@ src/topology/Makefile
 src/transport/Makefile
 src/util/Makefile
 src/vpn/Makefile
+src/chat/Makefile
 pkgconfig/Makefile
 pkgconfig/gnunetarm.pc
 pkgconfig/gnunetblock.pc

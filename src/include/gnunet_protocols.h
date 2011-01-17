@@ -738,13 +738,79 @@ extern "C"
 
 
 /**
+ * Message sent from client to join a chat room.
+ */
+#define GNUNET_MESSAGE_TYPE_CHAT_JOIN_REQUEST 300
+
+/**
+ * Message sent to client to indicate joining of another room member.
+ */
+#define GNUNET_MESSAGE_TYPE_CHAT_JOIN_NOTIFICATION 301
+
+/**
+ * Message sent to client to indicate leaving of another room member.
+ */
+#define GNUNET_MESSAGE_TYPE_CHAT_LEAVE_NOTIFICATION 302
+
+/**
+ * Notification sent by service to client indicating that we've received a chat
+ * message.
+ */
+#define GNUNET_MESSAGE_TYPE_CHAT_MESSAGE_NOTIFICATION 303
+
+/**
+ * Request sent by client to transmit a chat message to another room members.
+ */
+#define GNUNET_MESSAGE_TYPE_CHAT_TRANSMIT_REQUEST 304
+
+/**
+ * Receipt sent from a message receiver to the service to confirm delivery of
+ * a chat message.
+ */
+#define GNUNET_MESSAGE_TYPE_CHAT_CONFIRMATION_RECEIPT 305
+
+/**
+ * Notification sent from the service to the original sender
+ * to acknowledge delivery of a chat message.
+ */
+#define GNUNET_MESSAGE_TYPE_CHAT_CONFIRMATION_NOTIFICATION 306
+
+/**
+ * P2P message sent to indicate joining of another room member.
+ */
+#define GNUNET_MESSAGE_TYPE_CHAT_P2P_JOIN_NOTIFICATION 307
+
+/**
+ * P2P message sent to indicate leaving of another room member.
+ */
+#define GNUNET_MESSAGE_TYPE_CHAT_P2P_LEAVE_NOTIFICATION 308
+
+/**
+ * P2P message sent to a newly connected peer to request its known clients in
+ * order to synchronize room members.
+ */
+#define GNUNET_MESSAGE_TYPE_CHAT_P2P_SYNC_REQUEST 309
+
+/**
+ * Notification sent from one peer to another to indicate that we have received
+ * a chat message.
+ */
+#define GNUNET_MESSAGE_TYPE_CHAT_P2P_MESSAGE_NOTIFICATION 310
+
+/**
+ * P2P receipt confirming delivery of a chat message.
+ */
+#define GNUNET_MESSAGE_TYPE_CHAT_P2P_CONFIRMATION_RECEIPT 311
+
+
+/**
  * Type used to match 'all' message types.
  */
 #define GNUNET_MESSAGE_TYPE_ALL 65535
 
 /*
   TODO:
-  - applications (FS, VPN, CHAT, TRACEKIT, TBENCH)
+  - applications (FS, VPN, TRACEKIT, TBENCH)
 */
 
 

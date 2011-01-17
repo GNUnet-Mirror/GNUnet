@@ -32,4 +32,5 @@ SUBDIRS = \
   fs \
   fragmentation \
   mesh \
-  vpn
+  vpn \
+  chat

@@ -102,6 +102,15 @@ extern "C"
  */
 #define GNUNET_SIGNATURE_PURPOSE_DNS_RECORD 11
 
+/**
+ * Signature of a chat message.
+ */
+#define GNUNET_SIGNATURE_PURPOSE_CHAT_MESSAGE 12
+
+/**
+ * Signature of confirmation receipt for a chat message.
+ */
+#define GNUNET_SIGNATURE_PURPOSE_CHAT_RECEIPT 13
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
