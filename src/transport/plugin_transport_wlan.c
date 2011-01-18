@@ -557,9 +557,8 @@ wlan_process_helper (void *cls,
 
 /**
  * get the next message number, at the moment just a random one
- *
+ * @return returns the next valid message-number for sending packets
  */
-//TODO doxigen
 uint32_t
 get_next_message_id()
 {
@@ -568,8 +567,8 @@ get_next_message_id()
 
 /**
  * start next message number generator
+ * (not necessary at the moment)
  */
-//TODO doxigen
 void
 start_next_message_id()
 {
@@ -792,9 +791,10 @@ get_ack_timeout (struct FragmentMessage * fm){
 	return FRAGMENT_TIMEOUT;
 }
 
-//TODO doxigen
+
 /**
  * Function to set the timer for the next timeout of the fragment queue
+ * @param plugin the handle to the plugin struct
  */
 static void
 check_next_fragment_timeout(struct Plugin * const plugin)
@@ -879,9 +879,11 @@ get_next_queue_Session (struct Plugin * plugin){
 	return NULL;
 }
 
-//TODO doxigen
+
 /**
  * Function to sort the message into the message fragment queue
+ * @prarm plugin the plugin struct
+ * @param message to sort into the queue
  */
 static void
 sort_fragment_into_queue (struct Plugin * plugin, struct FragmentMessage * fm){
@@ -902,7 +904,11 @@ sort_fragment_into_queue (struct Plugin * plugin, struct FragmentMessage * fm){
 			plugin->pending_Fragment_Messages_tail,fm2,fm);
 }
 
-//TODO doxigen
+/**
+ * frees the space of a message in the fragment queue (send queue)
+ * @param plugin the plugin struct
+ * @param fm message to free
+ */
 static void
 free_fragment_message(struct Plugin * plugin,struct FragmentMessage * fm)
 {
@@ -918,9 +924,10 @@ free_fragment_message(struct Plugin * plugin,struct FragmentMessage * fm)
     }
 }
 
-//TODO doxigen
 /**
  * Function to check if there is some space in the fragment queue
+ * inserts a message if space is available
+ * @param plugin the plugin struct
  */
 
 static void
@@ -963,7 +970,12 @@ check_fragment_queue (struct Plugin * plugin){
 	}
 }
 
-//TODO doxigen
+/**
+ * Funktion to check if all fragments where send and the acks received
+ * frees the space if finished
+ * @param plugin the plugin struct
+ * @param fm the message to check
+ */
 static void
 check_finished_fragment(struct Plugin * plugin, struct FragmentMessage * fm){
   struct AckQueue * ack;
@@ -1532,8 +1544,12 @@ wlan_plugin_address_to_string (void *cls,
 
 /**
  * Function to test if fragment number already exists in the fragments received
+ *
+ * @param session session the fragment belongs to
+ * @param fh Fragmentheader of the fragment
+ * @return GNUNET_YES if fragment exists already, GNUNET_NO if it does not exists in the queue of the session
  */
-//TODO doxigen
+
 static const int
 is_double_msg(struct Session * session, struct FragmentationHeader * fh)
 {
@@ -1550,6 +1566,11 @@ is_double_msg(struct Session * session, struct FragmentationHeader * fh)
   return GNUNET_NO;
 }
 
+/**
+ * Function to insert a fragment in a queue of a session
+ * @param session session the fragment belongs to
+ * @param rec_queue fragment to add
+ */
 
 static void
 insert_fragment_in_queue(struct Session * session, struct RecQueue * rec_queue)
@@ -1585,8 +1606,9 @@ insert_fragment_in_queue(struct Session * session, struct RecQueue * rec_queue)
 
 /**
  * Function to dispose the fragments received for a message
+ * @param session session to free the fragments from
  */
-//TODO doxigen
+
 static void
 free_rec_frag_queue(struct Session * session)
 {
@@ -1605,8 +1627,11 @@ free_rec_frag_queue(struct Session * session)
 
 /**
  * Function to check if all fragments of a message have been received
+ * @param plugin the plugin handle
+ * @param session_light information of the message sender
+ * @param session session the message belongs to
  */
-//TODO doxigen
+
 static void
 check_rec_finished_msg (struct Plugin* plugin, struct Session_light * session_light, struct Session * session){
   struct RecQueue * rec_queue = session->frag_head;
@@ -1631,7 +1656,13 @@ check_rec_finished_msg (struct Plugin* plugin, struct Session_light * session_li
   }
   //sum should always be smaller or equal of
   GNUNET_assert(sum <= packetsize);
-  if (sum == packetsize){
+  if(sum == packetsize){
+
+#if DEBUG_wlan
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "check_rec_finished_msg: A message with fragments is complete\n");
+#endif
+
     //copy fragments together
     msg = GNUNET_malloc(packetsize);
     rec_queue = session->frag_head;
@@ -1649,6 +1680,13 @@ check_rec_finished_msg (struct Plugin* plugin, struct Session_light * session_li
   }
 }
 
+/**
+ * Function used for to process the data received from the wlan interface
+ *
+ * @param cls the plugin handle
+ * @param client client which send the data (not used)
+ * @param hdr hdr of the GNUNET_MessageHeader
+ */
 static void
 wlan_data_helper(void *cls, void * client, const struct GNUNET_MessageHeader * hdr)
 {
@@ -1669,202 +1707,246 @@ wlan_data_helper(void *cls, void * client, const struct GNUNET_MessageHeader * h
   const struct GNUNET_MessageHeader * temp_hdr = NULL;
 
   if (ntohs(hdr->type) == GNUNET_MESSAGE_TYPE_WLAN_ADVERTISEMENT)
-      {
-        //TODO better DOS protection, error handling
-        GNUNET_assert(client != NULL);
-        session_light = (struct Session_light *) client;
-        if (session_light->session == NULL){
+    {
+
+#if DEBUG_wlan
+      GNUNET_log(
+          GNUNET_ERROR_TYPE_DEBUG,
+          "Func wlan_data_helper got GNUNET_MESSAGE_TYPE_WLAN_ADVERTISEMENT size: %i\n",
+          ntohs(hdr->size));
+#endif
+
+      //TODO better DOS protection, error handling
+      GNUNET_assert(client != NULL);
+      session_light = (struct Session_light *) client;
+      if (session_light->session == NULL)
+        {
           session_light->session = get_Session(plugin, session_light->addr);
         }
-        GNUNET_assert(GNUNET_HELLO_get_id(
-            (const struct GNUNET_HELLO_Message *) &hdr[1],
-            &(session_light->session->target) ) != GNUNET_SYSERR);
+      GNUNET_assert(GNUNET_HELLO_get_id(
+              (const struct GNUNET_HELLO_Message *) &hdr[1],
+              &(session_light->session->target) ) != GNUNET_SYSERR);
 
-      }
+    }
 
 
     else if (ntohs(hdr->type) == GNUNET_MESSAGE_TYPE_WLAN_DATA)
-      {
-        GNUNET_assert(client != NULL);
-        session_light = (struct Session_light *) client;
-        if (session_light->session == NULL){
+    {
+
+#if DEBUG_wlan
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "Func wlan_data_helper got GNUNET_MESSAGE_TYPE_WLAN_DATA size: %i\n",
+          ntohs(hdr->size));
+#endif
+
+      GNUNET_assert(client != NULL);
+      session_light = (struct Session_light *) client;
+      if (session_light->session == NULL)
+        {
           session_light->session = search_session(plugin, session_light->addr);
         }
-        session = session_light->session;
-        wlanheader =(struct WlanHeader *) &hdr[1];
-        tempmsg = (char*) &wlanheader[1];
-        temp_hdr = ( const struct GNUNET_MessageHeader *) &wlanheader[1];
+      session = session_light->session;
+      wlanheader = (struct WlanHeader *) &hdr[1];
+      tempmsg = (char*) &wlanheader[1];
+      temp_hdr = (const struct GNUNET_MessageHeader *) &wlanheader[1];
 
-        if (getcrc32(tempmsg, wlanheader->header.size) != wlanheader->crc){
+      if (getcrc32(tempmsg, wlanheader->header.size) != wlanheader->crc)
+        {
           //wrong crc, dispose message
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                                       "WLAN message crc was wrong\n");
+          GNUNET_log(GNUNET_ERROR_TYPE_INFO, "WLAN message crc was wrong\n");
           return;
         }
 
-        //if not in session list
-        if (session == NULL){
+      //if not in session list
+      if (session == NULL)
+        {
 
           //try if it is a hello message
-          if (ntohs(temp_hdr->type) == GNUNET_MESSAGE_TYPE_HELLO){
-            session = create_session(plugin, session_light->addr);
-            session_light->session = session;
-            GNUNET_assert(GNUNET_HELLO_get_id(
-                (const struct GNUNET_HELLO_Message *) temp_hdr,
-                &session->target ) != GNUNET_SYSERR);
+          if (ntohs(temp_hdr->type) == GNUNET_MESSAGE_TYPE_HELLO)
+            {
+              session = create_session(plugin, session_light->addr);
+              session_light->session = session;
+              GNUNET_assert(GNUNET_HELLO_get_id(
+                      (const struct GNUNET_HELLO_Message *) temp_hdr,
+                      &session->target ) != GNUNET_SYSERR);
 
-          } else {
-            GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                               "WLAN client not in session list and not a hello message\n");
-            return;
-          }
+            }
+          else
+            {
+              GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                  "WLAN client not in session list and not a hello message\n");
+              return;
+            }
         }
-        //"receive" the message
-        struct GNUNET_TRANSPORT_ATS_Information distance[2];
-        distance[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
-        distance[0].value = htonl (1);
-        distance[1].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
-        distance[1].value = htonl (0);
-        plugin->env->receive(plugin, &session->target,
-             temp_hdr, (const struct GNUNET_TRANSPORT_ATS_Information *) &distance, 2,
-             session, session->addr, sizeof(session->addr));
-      }
+      //"receive" the message
+      struct GNUNET_TRANSPORT_ATS_Information distance[2];
+      distance[0].type = htonl(GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+      distance[0].value = htonl(1);
+      distance[1].type = htonl(GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+      distance[1].value = htonl(0);
+      plugin->env->receive(plugin, &session->target, temp_hdr,
+          (const struct GNUNET_TRANSPORT_ATS_Information *) &distance, 2,
+          session, session->addr, sizeof(session->addr));
+    }
 
-    else if (ntohs(hdr->type) == GNUNET_MESSAGE_TYPE_WLAN_FRAGMENT)
-      {
-        GNUNET_assert(client != NULL);
-        session_light = (struct Session_light *) client;
-        if (session_light->session == NULL)
-          {
-            session_light->session = search_session(plugin, session_light->addr);
-          }
-        session = session_light->session;
+  else if (ntohs(hdr->type) == GNUNET_MESSAGE_TYPE_WLAN_FRAGMENT)
+    {
 
-        fh = (struct FragmentationHeader *) hdr;
-        tempmsg = (char*) &fh[1];
+#if DEBUG_wlan
+      GNUNET_log(
+          GNUNET_ERROR_TYPE_DEBUG,
+          "Func wlan_data_helper got GNUNET_MESSAGE_TYPE_WLAN_FRAGMENT size: %i\n",
+          ntohs(hdr->size));
+#endif
 
-        //if not in session list
-        if (session != NULL)
-          {
-            if (getcrc16(tempmsg, fh->header.size) != fh->message_crc)
-              {
-                //wrong crc, dispose message
-                GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-                    "WLAN fragment crc was wrong\n");
-                return;
-              }
-            else
-              {
-                //todo fragments do not timeout
-                //check if message_id is rigth or it is a new msg
-                if ((session->message_id_in == ntohs(fh->message_id))
-                    || (session->rec_size == NO_MESSAGE_OR_MESSAGE_FINISHED))
-                  {
-                  session->message_id_in = ntohs(fh->message_id);
-                    if (is_double_msg(session, fh) != GNUNET_YES)
-                      {
-                        rec_queue = GNUNET_malloc(sizeof (struct RecQueue) +
-                                ntohs(fh->header.size) - sizeof(struct FragmentationHeader));
-                        rec_queue->size = ntohs(fh->header.size
-                            - sizeof(struct FragmentationHeader));
-                        rec_queue->num = ntohs(fh->fragment_off_or_num);
-                        rec_queue->msg = (char*) &rec_queue[1];
-                        //copy msg to buffer
-                        memcpy((char*) rec_queue->msg, tempmsg, rec_queue->size);
-                        insert_fragment_in_queue(session, rec_queue);
-                        check_rec_finished_msg(plugin, session_light, session);
-                      }
-                    else
-                      {
-                        GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-                            "WLAN fragment is a clone\n");
-                        return;
-                      }
-                  }
-                else
-                  {
-                  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-                        "WLAN fragment message_id and session message_id are not the same and a message is already (partly) received\n");
-                    return;
-                  }
-              }
-          }
-        else
-          {
-            GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                "WLAN client not in session list and it is a fragment message\n");
-            return;
-          }
-
-      }
-
-    else if (ntohs(hdr->type) == GNUNET_MESSAGE_TYPE_WLAN_FRAGMENT_ACK)
-      {
-        GNUNET_assert(client != NULL);
-        session_light = (struct Session_light *) client;
-        if (session_light->session == NULL)
-          {
-            session_light->session = search_session(plugin, session_light->addr);
-            GNUNET_assert(session_light->session != NULL);
-          }
-        session = session_light->session;
-        fh = (struct FragmentationHeader *) &hdr[1];
-        if (fh->message_id == session->message_id_out)
-          {
-            fm = get_fragment_message_from_session(session);
-            if (fm != NULL)
-              {
-
-                ack2 = fm->head;
-                while (ack2!=NULL){
-                  // check for double
-                  if (ack2->fragment_num != fh->fragment_off_or_num)
-                      {
-                        // check if next ack has bigger number
-                        if (ack2->fragment_num > fh->fragment_off_or_num)
-                          {
-                            ack = GNUNET_malloc(sizeof(struct AckQueue));
-                            ack->fragment_num = fh->fragment_off_or_num;
-                            GNUNET_CONTAINER_DLL_insert_before(fm->head,fm->tail,ack2,ack);
-                            //check if finished
-                            check_finished_fragment(plugin, fm);
-                            return;
-                          }
-                      }
-                    else
-                      {
-                        //double ack
-                        return;
-                      }
-                  ack2 = ack2->next;
-                }
-                //GNUNET_CONTAINER_DLL_insert_tail(fm->head,fm->tail,ack);
-                //should never happen but...
-                //check_finished_fragment(plugin, fm);
-              }
-            else
-              {
-                GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                    "WLAN fragment not in fragment list but id is right\n");
-                return;
-              }
-
-          }
-
-      }
-    else
+      GNUNET_assert(client != NULL);
+      session_light = (struct Session_light *) client;
+      if (session_light->session == NULL)
         {
-          // TODO Wrong data?
-          GNUNET_log(GNUNET_ERROR_TYPE_INFO, "WLAN packet has not the right type\n");
+          session_light->session = search_session(plugin, session_light->addr);
+        }
+      session = session_light->session;
+
+      fh = (struct FragmentationHeader *) hdr;
+      tempmsg = (char*) &fh[1];
+
+      //if not in session list
+      if (session != NULL)
+        {
+          if (getcrc16(tempmsg, fh->header.size) != fh->message_crc)
+            {
+              //wrong crc, dispose message
+              GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                  "WLAN fragment crc was wrong\n");
+              return;
+            }
+          else
+            {
+              //todo fragments do not timeout
+              //check if message_id is rigth or it is a new msg
+              if ((session->message_id_in == ntohs(fh->message_id))
+                  || (session->rec_size == NO_MESSAGE_OR_MESSAGE_FINISHED))
+                {
+                  session->message_id_in = ntohs(fh->message_id);
+                  if (is_double_msg(session, fh) != GNUNET_YES)
+                    {
+                      rec_queue
+                          = GNUNET_malloc(sizeof (struct RecQueue) +
+                              ntohs(fh->header.size) - sizeof(struct FragmentationHeader));
+                      rec_queue->size = ntohs(fh->header.size
+                          - sizeof(struct FragmentationHeader));
+                      rec_queue->num = ntohs(fh->fragment_off_or_num);
+                      rec_queue->msg = (char*) &rec_queue[1];
+                      //copy msg to buffer
+                      memcpy((char*) rec_queue->msg, tempmsg, rec_queue->size);
+                      insert_fragment_in_queue(session, rec_queue);
+                      check_rec_finished_msg(plugin, session_light, session);
+                    }
+                  else
+                    {
+                      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                          "WLAN fragment is a clone\n");
+                      return;
+                    }
+                }
+              else
+                {
+                  GNUNET_log(
+                      GNUNET_ERROR_TYPE_INFO,
+                      "WLAN fragment message_id and session message_id are not the same and a message is already (partly) received\n");
+                  return;
+                }
+            }
+        }
+      else
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+              "WLAN client not in session list and it is a fragment message\n");
           return;
         }
+
+    }
+
+  else if (ntohs(hdr->type) == GNUNET_MESSAGE_TYPE_WLAN_FRAGMENT_ACK)
+    {
+
+#if DEBUG_wlan
+      GNUNET_log(
+          GNUNET_ERROR_TYPE_DEBUG,
+          "Func wlan_data_helper got GNUNET_MESSAGE_TYPE_WLAN_FRAGMENT_ACK size: %i\n",
+          ntohs(hdr->size));
+#endif
+
+      GNUNET_assert(client != NULL);
+      session_light = (struct Session_light *) client;
+      if (session_light->session == NULL)
+        {
+          session_light->session = search_session(plugin, session_light->addr);
+          GNUNET_assert(session_light->session != NULL);
+        }
+      session = session_light->session;
+      fh = (struct FragmentationHeader *) &hdr[1];
+      if (fh->message_id == session->message_id_out)
+        {
+          fm = get_fragment_message_from_session(session);
+          if (fm != NULL)
+            {
+
+              ack2 = fm->head;
+              while (ack2 != NULL)
+                {
+                  // check for double
+                  if (ack2->fragment_num != fh->fragment_off_or_num)
+                    {
+                      // check if next ack has bigger number
+                      if (ack2->fragment_num > fh->fragment_off_or_num)
+                        {
+                          ack = GNUNET_malloc(sizeof(struct AckQueue));
+                          ack->fragment_num = fh->fragment_off_or_num;
+                          GNUNET_CONTAINER_DLL_insert_before(fm->head,fm->tail,ack2,ack);
+                          //check if finished
+                          check_finished_fragment(plugin, fm);
+                          return;
+                        }
+                    }
+                  else
+                    {
+                      //double ack
+                      return;
+                    }
+                  ack2 = ack2->next;
+                }
+              //GNUNET_CONTAINER_DLL_insert_tail(fm->head,fm->tail,ack);
+              //should never happen but...
+              //check_finished_fragment(plugin, fm);
+            }
+          else
+            {
+              GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                  "WLAN fragment not in fragment list but id is right\n");
+              return;
+            }
+
+        }
+
+    }
+  else
+    {
+      // TODO Wrong data?
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+          "WLAN packet inside the WLAN helper packet has not the right type\n");
+      return;
+    }
 
 }
 
 /**
  * Function used for to process the data from the suid process
+ *
+ * @param cls the plugin handle
+ * @param client which send the data (not used)
+ * @param hdr of the GNUNET_MessageHeader
  */
-//TODO doxigen
 
 static void
 wlan_process_helper (void *cls,
@@ -1881,6 +1963,13 @@ wlan_process_helper (void *cls,
 
   if (ntohs(hdr->type) == GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA)
     {
+#if DEBUG_wlan
+      GNUNET_log(
+          GNUNET_ERROR_TYPE_DEBUG,
+          "Func wlan_process_helper got  GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA size: %i\n",
+          ntohs(hdr->size));
+#endif
+
       //call wlan_process_helper with the message inside, later with wlan: analyze signal
       GNUNET_assert(ntohs(hdr->size) >= sizeof(struct IeeeHeader));
       wlanIeeeHeader = (struct IeeeHeader *) &hdr[1];
@@ -1918,6 +2007,15 @@ wlan_process_helper (void *cls,
 
   else if (ntohs(hdr->type) == GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL)
     {
+
+
+#if DEBUG_wlan
+      GNUNET_log(
+          GNUNET_ERROR_TYPE_DEBUG,
+          "Func wlan_process_helper got  GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL size: %i\n",
+          ntohs(hdr->size));
+#endif
+
       //TODO more control
       //TODO use struct wlan_helper_control
       if (ntohs(hdr->size) == sizeof(struct Wlan_Helper_Control_Message))
@@ -1927,7 +2025,7 @@ wlan_process_helper (void *cls,
           GNUNET_log(
               GNUNET_ERROR_TYPE_DEBUG,
               "Notifying transport of address %s\n",
-              wlan_plugin_address_to_string(cls, &(plugin->mac_address), hdr->size));
+              wlan_plugin_address_to_string(cls, &(plugin->mac_address), ntohs(hdr->size) - sizeof(struct GNUNET_MessageHeader)));
           plugin->env->notify_address(plugin->env->cls, "wlan",
               &plugin->mac_address, sizeof(struct MacAddress),
               GNUNET_TIME_UNIT_FOREVER_REL);
@@ -1949,6 +2047,14 @@ wlan_process_helper (void *cls,
     }
 }
 
+/**
+ * We have been notified that wlan-helper has written something to stdout.
+ * Handle the output, then reschedule this function to be called again once
+ * more is available.
+ *
+ * @param cls the plugin handle
+ * @param tc the scheduling context
+ */
 
 static void
 wlan_plugin_helper_read (void *cls,
@@ -1957,11 +2063,16 @@ wlan_plugin_helper_read (void *cls,
   struct Plugin *plugin = cls;
   plugin->server_read_task = GNUNET_SCHEDULER_NO_TASK;
 
-  char mybuf[WLAN_MTU + sizeof(struct GNUNET_MessageHeader)];
-  ssize_t bytes;
+#if DEBUG_wlan
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Start reading from STDIN\n");
+#endif
 
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     return;
+
+  char mybuf[WLAN_MTU + sizeof(struct GNUNET_MessageHeader)];
+  ssize_t bytes;
 
   bytes = GNUNET_DISK_file_read (plugin->server_stdout_handle, 
 				 mybuf, sizeof(mybuf));
@@ -2008,10 +2119,9 @@ wlan_transport_start_wlan_helper(struct Plugin *plugin, int testmode)
 #endif
   /* Start the server process */
 
-  //if (testmode == 0){
 
   plugin->server_proc = GNUNET_OS_start_process(plugin->server_stdin,
-		  plugin->server_stdout, filename,filename, plugin->interface, ((testmode==1)?"1":"0"), NULL);
+		  plugin->server_stdout, filename,filename, plugin->interface, ((testmode==1)?"1":(testmode==2)?"2":"0"), NULL);
   if (plugin->server_proc == NULL)
     {
 #if DEBUG_wlan
@@ -2020,13 +2130,7 @@ wlan_transport_start_wlan_helper(struct Plugin *plugin, int testmode)
 #endif
       return GNUNET_SYSERR;
     }
-  //} else if (testmode == 1){
 
-
-  //} else if (testmode == 2){
-
-
-  //}
   /* Close the write end of the read pipe */
   GNUNET_DISK_pipe_close_end(plugin->server_stdout, GNUNET_DISK_PIPE_END_WRITE);
 
@@ -2039,9 +2143,16 @@ wlan_transport_start_wlan_helper(struct Plugin *plugin, int testmode)
       GNUNET_DISK_PIPE_END_WRITE);
 
   GNUNET_assert(plugin->server_read_task == GNUNET_SCHEDULER_NO_TASK);
+
+#if DEBUG_wlan
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "Adding server_read_task for the wlan-helper\n");
+#endif
+
   plugin->server_read_task = GNUNET_SCHEDULER_add_read_file(
       GNUNET_TIME_UNIT_FOREVER_REL, plugin->server_stdout_handle,
       &wlan_plugin_helper_read, plugin);
+
   return GNUNET_YES;
 }
 
@@ -2056,6 +2167,11 @@ libgnunet_plugin_transport_wlan_done (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
+
+#if DEBUG_wlan
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "libgnunet_plugin_transport_wlan_done started\n");
+#endif
 
   GNUNET_assert(cls !=NULL);
 
@@ -2081,7 +2197,7 @@ libgnunet_plugin_transport_wlan_init (void *cls)
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct Plugin *plugin;
-  int testmode;
+  static unsigned long long testmode =0;
 
   GNUNET_assert(cls !=NULL);
 
@@ -2093,15 +2209,15 @@ libgnunet_plugin_transport_wlan_init (void *cls)
   plugin->server_read_task = GNUNET_SCHEDULER_NO_TASK;
   plugin->server_write_delay_task = GNUNET_SCHEDULER_NO_TASK;
 
-  testmode = GNUNET_NO;
-  if (GNUNET_CONFIGURATION_have_value (env->cfg,
-		  "transport-wlan", "TESTMODE"))
-	{
-	  testmode = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
-			  "transport-wlan","TESTMODE");
-	}
 
-  if (GNUNET_CONFIGURATION_have_value (env->cfg,
+  if (GNUNET_CONFIGURATION_have_value(env->cfg, "transport-wlan", "TESTMODE"))
+    {
+      if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number(env->cfg, "transport-wlan",
+          "TESTMODE", &testmode))
+        return NULL;
+    }
+
+  if (GNUNET_CONFIGURATION_have_value(env->cfg,
 		  "transport-wlan", "INTERFACE"))
 	{
 	   if (GNUNET_CONFIGURATION_get_value_string (env->cfg,
@@ -2127,6 +2243,11 @@ libgnunet_plugin_transport_wlan_init (void *cls)
 
 
   start_next_message_id();
+
+#if DEBUG_wlan
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "wlan init finished\n");
+#endif
 
   return api;
 }
