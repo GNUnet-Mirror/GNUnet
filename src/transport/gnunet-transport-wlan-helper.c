@@ -420,9 +420,22 @@ stdin_send (void *cls,
                       const struct GNUNET_MessageHeader *hdr)
 {
   struct sendbuf *write_pout = cls;
-  GNUNET_assert (hdr->size + write_pout->size < MAXLINE *2);
-  memcpy(write_pout->buf + write_pout->size, hdr, hdr->size);
-  write_pout->size += hdr->size;
+  int sendsize = ntohs(hdr->size) - sizeof(struct RadiotapHeader) ;
+  struct GNUNET_MessageHeader newheader;
+
+  GNUNET_assert(GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA == ntohs(hdr->type));
+  GNUNET_assert (sendsize + write_pout->size < MAXLINE *2);
+
+
+  newheader.size = htons(sendsize);
+  newheader.type = htons(GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
+
+
+  memcpy(write_pout->buf + write_pout->size, &newheader, sizeof(struct GNUNET_MessageHeader));
+  write_pout->size += sizeof(struct GNUNET_MessageHeader);
+
+  memcpy(write_pout->buf + write_pout->size, hdr + sizeof(struct RadiotapHeader) + sizeof(struct GNUNET_MessageHeader), sizeof(struct GNUNET_MessageHeader));
+  write_pout->size += sendsize;
 }
 
 static void
@@ -431,9 +444,13 @@ file_in_send (void *cls,
                       const struct GNUNET_MessageHeader *hdr)
 {
   struct sendbuf * write_std = cls;
-  GNUNET_assert (hdr->size + write_std->size < MAXLINE *2);
-  memcpy(write_std->buf + write_std->size, hdr, hdr->size);
-  write_std->size += hdr->size;
+  int sendsize = ntohs(hdr->size);
+
+  GNUNET_assert(GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA == ntohs(hdr->type));
+  GNUNET_assert (sendsize + write_std->size < MAXLINE *2);
+
+  memcpy(write_std->buf + write_std->size, hdr, sendsize);
+  write_std->size += sendsize;
 }
 
 int
@@ -448,14 +465,12 @@ testmode(int argc, char *argv[])
   int fdpin;
   int fdpout;
 
-
-
   //make the fifos if needed
-  if (stat(FIFO_FILE1, &st) != 0)
+  if (0 != stat(FIFO_FILE1, &st))
     {
-      if (stat(FIFO_FILE2, &st) == 0)
+      if (0 == stat(FIFO_FILE2, &st))
         {
-          perror("FIFO 2 exists, but FIFO 1 not");
+        fprintf(stderr, "FIFO_FILE2 exists, but FIFO_FILE1 not");
           exit(1);
         }
 
@@ -463,52 +478,70 @@ testmode(int argc, char *argv[])
       erg = mknod(FIFO_FILE1, S_IFIFO | 0666, 0);
       erg = mknod(FIFO_FILE2, S_IFIFO | 0666, 0);
 
-
     }
   else
     {
 
-      if (stat(FIFO_FILE2, &st) != 0)
+      if (0 != stat(FIFO_FILE2, &st))
         {
-          perror("FIFO 1 exists, but FIFO 2 not");
+        fprintf(stderr, "FIFO_FILE1 exists, but FIFO_FILE2 not");
           exit(1);
         }
 
+    }
+
+  if (strstr(argv[2], "1"))
+    {
+      //fprintf(stderr, "First\n");
+      first = 1;
+      fpin = fopen(FIFO_FILE1, "r");
+      if (NULL == fpin)
+        {
+        fprintf(stderr, "fopen of read FIFO_FILE1");
+          exit(1);
+        }
+      if (NULL == (fpout = fopen(FIFO_FILE2, "w")))
+        {
+        fprintf(stderr, "fopen of write FIFO_FILE2");
+          exit(1);
+        }
+
+    }
+  else
+    {
+      first = 0;
+      //fprintf(stderr, "Second\n");
+      if (NULL == (fpout = fopen(FIFO_FILE1, "w")))
+        {
+        fprintf(stderr, "fopen of write FIFO_FILE1");
+          exit(1);
+        }
+      if (NULL == (fpin = fopen(FIFO_FILE2, "r")))
+        {
+        fprintf(stderr, "fopen of read FIFO_FILE2");
+          exit(1);
+        }
 
     }
 
-  if (strstr(argv[2],"1")) {
-    first = 1;
-    fpin = fopen(FIFO_FILE1, "r");
-    if (fpin == NULL)
-            {
-              perror("fopen");
-              exit(1);
-            }
-          if ((fpout = fopen(FIFO_FILE2, "w")) == NULL)
-            {
-              perror("fopen");
-              exit(1);
-            }
-
-  } else {
-    first = 0;
-    if ((fpout = fopen(FIFO_FILE1, "w")) == NULL)
-            {
-              perror("fopen");
-              exit(1);
-            }
-          if ((fpin = fopen(FIFO_FILE2, "r")) == NULL)
-            {
-              perror("fopen");
-              exit(1);
-            }
-
-
-  }
-
   fdpin = fileno(fpin);
+  if (fdpin >= FD_SETSIZE)
+    {
+      fprintf(stderr, "File fdpin number too large (%d > %u)\n", fdpin,
+          (unsigned int) FD_SETSIZE);
+      close(fdpin);
+      return -1;
+    }
+
   fdpout = fileno(fpout);
+  if (fdpout >= FD_SETSIZE)
+    {
+      fprintf(stderr, "File fdpout number too large (%d > %u)\n", fdpout,
+          (unsigned int) FD_SETSIZE);
+      close(fdpout);
+      return -1;
+
+    }
 
   signal(SIGINT, &sigfunc);
   signal(SIGTERM, &sigfunc);
@@ -525,8 +558,6 @@ testmode(int argc, char *argv[])
 
   int ret = 0;
   int maxfd = 0;
-  int to_write_stdout = 0;
-  int to_write_fpout = 0;
 
   fd_set rfds;
   fd_set wfds;
@@ -534,10 +565,6 @@ testmode(int argc, char *argv[])
   int retval;
 
 
-
-  maxfd = MAX(fdpout, fdpin);
-  maxfd = MAX(maxfd, STDOUT_FILENO);
-  maxfd++;
 
   struct GNUNET_SERVER_MessageStreamTokenizer * stdin_mst;
   struct GNUNET_SERVER_MessageStreamTokenizer * file_in_mst;
@@ -556,54 +583,114 @@ testmode(int argc, char *argv[])
   macmsg.mac.mac[3] = 0x44;
   macmsg.mac.mac[4] = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 255);
   macmsg.mac.mac[5] = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 255);
-  macmsg.hdr.size = sizeof(struct Wlan_Helper_Control_Message);
-  macmsg.hdr.type = GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL;
+  macmsg.hdr.size = htons(sizeof(struct Wlan_Helper_Control_Message));
+  macmsg.hdr.type = htons(GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL);
 
-  memcpy(&write_std.buf, &macmsg, macmsg.hdr.size);
-  write_std.size = macmsg.hdr.size;
+  memcpy(&write_std.buf, &macmsg, sizeof(struct Wlan_Helper_Control_Message));
+  write_std.size = sizeof(struct Wlan_Helper_Control_Message);
+
+  /*
+  //wait
+  tv.tv_sec = 2;
+  tv.tv_usec = 0;
+  retval = select(0, NULL, NULL, NULL, &tv);
 
 
-  while (closeprog == 0)
+  tv.tv_sec = 3;
+  tv.tv_usec = 0;
+  // if there is something to write
+  FD_ZERO(&wfds);
+  FD_SET(STDOUT_FILENO, &wfds);
+
+  retval = select(STDOUT_FILENO + 1, NULL, &wfds, NULL, &tv);
+
+  if (FD_ISSET(STDOUT_FILENO, &wfds))
     {
+      ret = write(STDOUT_FILENO, write_std.buf + write_std.pos, write_std.size
+          - write_std.pos);
+
+      if (0 > ret)
+        {
+          closeprog = 1;
+          fprintf(stderr, "Write ERROR to STDOUT");
+          exit(1);
+        }
+      else
+        {
+          write_std.pos += ret;
+          // check if finished
+          if (write_std.pos == write_std.size)
+            {
+              write_std.pos = 0;
+              write_std.size = 0;
+            }
+        }
+    }
+
+  memcpy(&write_std.buf, &macmsg, sizeof(struct Wlan_Helper_Control_Message));
+  write_std.size = sizeof(struct Wlan_Helper_Control_Message);
+  */
+
+  //wait
+  tv.tv_sec = 2;
+  tv.tv_usec = 0;
+  retval = select(0, NULL, NULL, NULL, &tv);
+
+  while (0 == closeprog)
+    {
+
+      maxfd = 0;
 
       //set timeout
       tv.tv_sec = 5;
       tv.tv_usec = 0;
 
       FD_ZERO(&rfds);
-      // if output queue is emty
-      if (to_write_fpout == 0)
-        FD_SET(STDIN_FILENO, &rfds);
-      if (to_write_stdout == 0)
-        FD_SET(fdpin, &rfds);
+      // if output queue is empty
+      if (0 == write_pout.size)
+        {
+          FD_SET(STDIN_FILENO, &rfds);
 
+        }
+      if (0 == write_std.size)
+        {
+          FD_SET(fdpin, &rfds);
+          maxfd = fdpin;
+        }
       FD_ZERO(&wfds);
       // if there is something to write
-      if (to_write_stdout > 0)
+      if (0 < write_std.size){
         FD_SET(STDOUT_FILENO, &wfds);
-      if (to_write_fpout > 0)
+        maxfd = MAX(maxfd, STDOUT_FILENO);
+      }
+
+      if (0 < write_pout.size){
         FD_SET(fdpout, &wfds);
-
-      retval = select(maxfd, &rfds, &wfds, NULL, &tv);
-
-
-      if (retval == -1 && errno == EINTR){
-        continue;
+        maxfd = MAX(maxfd, fdpout);
       }
-      if (retval < 0){
-        perror("select()");
-        exit(1);
-      }
+
+
+      retval = select(maxfd + 1, &rfds, &wfds, NULL, &tv);
+
+      if (-1 == retval && EINTR == errno)
+        {
+          continue;
+        }
+      if (0 > retval)
+        {
+          fprintf(stderr, "select failed: %s\n", strerror(errno));
+          exit(1);
+        }
 
       if (FD_ISSET(STDOUT_FILENO, &wfds))
         {
           ret = write(STDOUT_FILENO, write_std.buf + write_std.pos,
               write_std.size - write_std.pos);
 
-          if (ret < 0)
+          if (0 > ret)
             {
               closeprog = 1;
-              perror("Write ERROR to STDOUT");
+              fprintf(stderr, "Write ERROR to STDOUT");
               exit(1);
             }
           else
@@ -620,13 +707,13 @@ testmode(int argc, char *argv[])
 
       if (FD_ISSET(fdpout, &wfds))
         {
-          ret = write(fdpout, write_pout.buf + write_pout.pos,
-              write_pout.size - write_pout.pos);
+          ret = write(fdpout, write_pout.buf + write_pout.pos, write_pout.size
+              - write_pout.pos);
 
-          if (ret < 0)
+          if (0 > ret)
             {
               closeprog = 1;
-              perror("Write ERROR to fdpout");
+              fprintf(stderr, "Write ERROR to fdpout");
               exit(1);
             }
           else
@@ -635,64 +722,59 @@ testmode(int argc, char *argv[])
               // check if finished
               if (write_pout.pos == write_pout.size)
                 {
-                write_pout.pos = 0;
-                write_pout.size = 0;
+                  write_pout.pos = 0;
+                  write_pout.size = 0;
                 }
             }
         }
 
       if (FD_ISSET(STDIN_FILENO, &rfds))
-              {
-        readsize = read(STDIN_FILENO, readbuf,
-                    sizeof(readbuf));
+        {
+          readsize = read(STDIN_FILENO, readbuf, sizeof(readbuf));
 
-                if (readsize < 0)
-                  {
-                    closeprog = 1;
-                    perror("Write ERROR to STDIN_FILENO");
-                    exit(1);
-                  }
-                else
-                  {
-                  GNUNET_SERVER_mst_receive(stdin_mst, NULL,
-                      readbuf, readsize, GNUNET_NO, GNUNET_NO);
+          if (0 > readsize)
+            {
+              closeprog = 1;
+              fprintf(stderr, "Read ERROR to STDIN_FILENO");
+              exit(1);
+            }
+          else
+            {
+              GNUNET_SERVER_mst_receive(stdin_mst, NULL, readbuf, readsize,
+                  GNUNET_NO, GNUNET_NO);
 
-                  }
-              }
+            }
+        }
 
       if (FD_ISSET(fdpin, &rfds))
-              {
-        readsize = read(fdpin, readbuf,
-                    sizeof(readbuf));
-
-                if (readsize < 0)
-                  {
-                    closeprog = 1;
-                    perror("Write ERROR to STDIN_FILENO");
-                    exit(1);
-                  }
-                else
-                  {
-                  GNUNET_SERVER_mst_receive(file_in_mst, NULL,
-                      readbuf, readsize, GNUNET_NO, GNUNET_NO);
-
-                  }
-              }
-
-
-        }
-
-      //clean up
-      fclose(fpout);
-      fclose(fpin);
-      perror("Write ERROR to STDIN_FILENO");
-
-      if (first == 1)
         {
-          unlink(FIFO_FILE1);
-          unlink(FIFO_FILE2);
+          readsize = read(fdpin, readbuf, sizeof(readbuf));
+
+          if (0 > readsize)
+            {
+              closeprog = 1;
+              fprintf(stderr, "Read ERROR to fdpin");
+              exit(1);
+            }
+          else
+            {
+              GNUNET_SERVER_mst_receive(file_in_mst, NULL, readbuf, readsize,
+                  GNUNET_NO, GNUNET_NO);
+
+            }
         }
 
+    }
+
+  //clean up
+  fclose(fpout);
+  fclose(fpin);
+
+  if (1 == first)
+    {
+      unlink(FIFO_FILE1);
+      unlink(FIFO_FILE2);
+    }
 
   return (0);
 }
@@ -701,14 +783,20 @@ testmode(int argc, char *argv[])
 int
 main(int argc, char *argv[])
 {
-  if (argc == 3)
+  if (3 != argc)
     {
-      if (strstr(argv[2], "1") || strstr(argv[2], "2"))
-        {
-
-          return testmode(argc, argv);
-        }
+      fprintf(
+          stderr,
+          "This program must be started with the interface and the operating mode as argument.\n");
+      return 1;
     }
+
+  if (strstr(argv[2], "1") || strstr(argv[2], "2"))
+    {
+
+      return testmode(argc, argv);
+    }
+
 #if 0
 	u8 u8aSendBuffer[500];
 	char szErrbuf[PCAP_ERRBUF_SIZE];
