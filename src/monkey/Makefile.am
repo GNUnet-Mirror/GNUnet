@@ -82,7 +82,6 @@ bug_null_pointer_exception:
 	gcc -g -O0 -o bug_null_pointer_exception bug_null_pointer_exception.c
 	
 check_PROGRAMS = \
-    bug_null_pointer_exception \
     test_monkey_edb
     #test_gnunet_monkey	
 
