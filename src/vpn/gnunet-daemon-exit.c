@@ -242,12 +242,12 @@ receive_udp_service (void *cls,
 }
 
 /**
- * Main function that will be run by the scheduler.
+ * @brief Main function that will be run by the scheduler.
  *
  * @param cls closure
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
- * @param cfg configuration
+ * @param cfg_ configuration
  */
 static void
 run (void *cls,
