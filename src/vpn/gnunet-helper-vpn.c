@@ -56,13 +56,6 @@ struct in6_ifreq
 #endif
 
 
-struct suid_packet 
-{
-  struct GNUNET_MessageHeader hdr;
-  unsigned char data[1];
-}
-
-
 /**
  * Creates a tun-interface called dev;
  * @param dev is asumed to point to a char[IFNAMSIZ]
@@ -305,7 +298,7 @@ outer:
 	  if (FD_ISSET (0, &fds_r) && write_fd_possible)
 	    {
 	      write_fd_possible = 0;
-	      struct suid_packet *pkt = (struct suid_packet *) buf;
+	      struct GNUNET_MessageHeader *pkt = ( struct GNUNET_MessageHeader *) buf;
 	      tin = read (0, buf, sizeof (struct GNUNET_MessageHeader));
 	      if (tin <= 0)
 		{
@@ -315,11 +308,11 @@ outer:
 		  wri = 0;
 		  goto outer;
 		}
-	      if (pkt->hdr.type != ntohs (GNUNET_MESSAGE_TYPE_VPN_HELPER))
+	      if (pkt->type != ntohs (GNUNET_MESSAGE_TYPE_VPN_HELPER))
 		abort ();
-	      while (tin < ntohs (pkt->hdr.size))
+	      while (tin < ntohs (pkt->size))
 		{
-		  ssize_t t = read (0, buf + tin, ntohs (pkt->hdr.size) - tin);
+		  ssize_t t = read (0, buf + tin, ntohs (pkt->size) - tin);
 		  if (t <= 0)
 		    {
 		      fprintf (stderr, "read-error: %s\n", strerror (errno));
@@ -332,11 +325,11 @@ outer:
 		}
 	      tin = 0;
 	      while (tin <
-		     ntohs (pkt->hdr.size) -
+		     ntohs (pkt->size) -
 		     sizeof (struct GNUNET_MessageHeader))
 		{
-		  ssize_t t = write (fd_tun, pkt->data,
-				 ntohs (pkt->hdr.size) -
+		  ssize_t t = write (fd_tun, &pkt[1],
+				 ntohs (pkt->size) -
 				 sizeof (struct GNUNET_MessageHeader) - tin);
 		  if (t <= 0)
 		    {
