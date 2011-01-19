@@ -288,6 +288,7 @@ outer:
 	}
 
       int r = select (fd_tun + 1, &fds_r, &fds_w, NULL, NULL);
+      /* FIXME: if error... */
       if (r > 0)
 	{
 	  if (FD_ISSET (fd_tun, &fds_w))

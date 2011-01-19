@@ -313,7 +313,7 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 	  }
 
 	struct map_entry* map_entry = GNUNET_CONTAINER_multihashmap_get(hashmap, &key);
-	unsigned short offset = ntohs(pkt->addroffset);
+	uint16_t offset = ntohs(pkt->addroffset);
 
 	if (map_entry == NULL)
 	  {
