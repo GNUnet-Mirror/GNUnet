@@ -26,34 +26,98 @@
  * @author Philipp Tölke
  */
 #include <platform.h>
+#include <linux/if_tun.h>
 
-#include "gnunet-vpn-tun.h"
+/**
+ * Need 'struct GNUNET_MessageHeader'.
+ */
 #include "gnunet_common.h"
+
+/**
+ * Need VPN message types.
+ */
 #include "gnunet_protocols.h"
-#include "gnunet-vpn-helper-p.h"
+
+/**
+ * Maximum size of a GNUnet message (GNUNET_SERVER_MAX_MESSAGE_SIZE)
+ */
+#define MAX_SIZE 65536
 
 #ifndef _LINUX_IN6_H
-
-#define MAX_SIZE (65535 - sizeof(struct GNUNET_MessageHeader))
-
-// This is in linux/include/net/ipv6.h.
-struct in6_ifreq
+/**
+ * This is in linux/include/net/ipv6.h, but not always exported...
+ */
+struct in6_ifreq 
 {
   struct in6_addr ifr6_addr;
   uint32_t ifr6_prefixlen;
   unsigned int ifr6_ifindex;
 };
-
 #endif
+
+
+struct suid_packet 
+{
+  struct GNUNET_MessageHeader hdr;
+  unsigned char data[1];
+}
 
 static int running = 1;
 
-static void
-term (int sig)
+static void 
+term (int sig) 
 {
-  fprintf (stderr, "Got SIGTERM...\n");
+  fprintf (stderr, 
+	   "Got SIGTERM...\n");
   if (sig == SIGTERM)
     running = 0;
+}
+
+
+/**
+ * Creates a tun-interface called dev;
+ * @param dev is asumed to point to a char[IFNAMSIZ]
+ *        if *dev == '\0', uses the name supplied by the kernel
+ * @return the fd to the tun or -1 on error
+ */
+static int 
+init_tun (char *dev) 
+{
+  struct ifreq ifr;
+  int fd;
+
+  if (NULL == dev) 
+    {
+      errno = EINVAL;
+      return -1;
+    }
+
+  if (-1 == (fd = open("/dev/net/tun", O_RDWR))) 
+    {
+      fprintf (stderr, 
+	       "Error opening `%s': %s\n", 
+	       "/dev/net/tun",
+	       strerror(errno));
+      return -1;
+    }
+
+  memset(&ifr, 0, sizeof(ifr));
+  ifr.ifr_flags = IFF_TUN;
+
+  if ('\0' == *dev)
+    strncpy(ifr.ifr_name, dev, IFNAMSIZ);
+
+  if (-1 == ioctl(fd, TUNSETIFF, (void *) &ifr))
+    {
+      fprintf (stderr, 
+	       "Error with ioctl on `%s': %s\n", 
+	       "/dev/net/tun",
+	       strerror(errno));
+      close(fd);
+      return -1;
+    }
+  strcpy(dev, ifr.ifr_name);
+  return fd;
 }
 
 /**
@@ -65,7 +129,7 @@ term (int sig)
  */
 static void
 set_address6 (char *dev, char *address, unsigned long prefix_len)
-{				/* {{{ */
+{			    
   int fd = socket (AF_INET6, SOCK_DGRAM, 0);
 
   if (fd < 0)
@@ -111,9 +175,9 @@ set_address6 (char *dev, char *address, unsigned long prefix_len)
   ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
   (void) ioctl (fd, SIOCSIFFLAGS, &ifr);
   close (fd);
-}				/* }}} */
+}
 
-static void
+
 /**
  * @brief Sets the IPv4-Address given in address on the interface dev
  *
@@ -121,8 +185,9 @@ static void
  * @param address the IPv4-Address
  * @param mask the netmask
  */
+static void
 set_address4 (char *dev, char *address, char *mask)
-{				/* {{{ */
+{
   int fd = 0;
   struct sockaddr_in *addr;
   struct ifreq ifr;
@@ -175,7 +240,8 @@ set_address4 (char *dev, char *address, char *mask)
   ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
   (void) ioctl (fd, SIOCSIFFLAGS, &ifr);
   close (fd);
-}				/* }}} */
+}
+
 
 /**
  * @brief sets the socket to nonblocking
@@ -186,22 +252,20 @@ static void
 setnonblocking (int fd)
 {				/*{{{ */
   int opts;
+	opts = fcntl(fd,F_GETFL);
+	if (opts < 0) {
+			perror("fcntl(F_GETFL)");
+	}
+	opts = (opts | O_NONBLOCK);
+	if (fcntl(fd,F_SETFL,opts) < 0) {
+			perror("fcntl(F_SETFL)");
+	}
+	return;
+}
 
-  opts = fcntl (fd, F_GETFL);
-  if (opts < 0)
-    {
-      perror ("fcntl(F_GETFL)");
-    }
-  opts = (opts | O_NONBLOCK);
-  if (fcntl (fd, F_SETFL, opts) < 0)
-    {
-      perror ("fcntl(F_SETFL)");
-    }
-  return;
-}				/*}}} */
 
-int
-main (int argc, char **argv)
+int 
+main(int argc, char** argv) 
 {
   unsigned char buf[MAX_SIZE];
 

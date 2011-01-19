@@ -26,9 +26,7 @@ bin_PROGRAMS = \
 
 
 gnunet_helper_vpn_SOURCES = \
- gnunet-helper-vpn.c \
- gnunet-vpn-helper-p.h \
- gnunet-vpn-tun.h gnunet-vpn-tun.c
+ gnunet-helper-vpn.c
 
 gnunet_helper_hijack_dns_SOURCES = \
  gnunet-helper-hijack-dns.c
