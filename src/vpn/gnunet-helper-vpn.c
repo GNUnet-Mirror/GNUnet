@@ -20,7 +20,9 @@
 
 /**
  * @file vpn/gnunet-daemon-vpn.c
- * @brief
+ * @brief the helper for various vpn-daemons. Opens a virtual network-interface,
+ * sends data received on the if to stdout, sends data received on stdin to the
+ * interface
  * @author Philipp Tölke
  */
 #include <platform.h>
@@ -31,280 +33,351 @@
 #include "gnunet-vpn-helper-p.h"
 
 #ifndef _LINUX_IN6_H
-// This is in linux/include/net/ipv6.h.
 
 #define MAX_SIZE (65535 - sizeof(struct GNUNET_MessageHeader))
 
-struct in6_ifreq {
-    struct in6_addr ifr6_addr;
-    uint32_t ifr6_prefixlen;
-    unsigned int ifr6_ifindex;
+// This is in linux/include/net/ipv6.h.
+struct in6_ifreq
+{
+  struct in6_addr ifr6_addr;
+  uint32_t ifr6_prefixlen;
+  unsigned int ifr6_ifindex;
 };
 
 #endif
 
-int running = 1;
+static int running = 1;
 
-void term(int sig) {
-	fprintf(stderr, "Got SIGTERM...\n");
-	if (sig == SIGTERM)
-		running = 0;
+static void
+term (int sig)
+{
+  fprintf (stderr, "Got SIGTERM...\n");
+  if (sig == SIGTERM)
+    running = 0;
 }
 
-static void set_address6(char* dev, char* address, unsigned long prefix_len) { /* {{{ */
-	int fd = socket(AF_INET6, SOCK_DGRAM, 0);
+/**
+ * @brief Sets the IPv6-Address given in address on the interface dev
+ *
+ * @param dev the interface to configure
+ * @param address the IPv6-Address
+ * @param prefix_len the length of the network-prefix
+ */
+static void
+set_address6 (char *dev, char *address, unsigned long prefix_len)
+{				/* {{{ */
+  int fd = socket (AF_INET6, SOCK_DGRAM, 0);
 
-	if (fd < 0)
-	  {
-	    fprintf(stderr, "error creating socket: %m\n");
-	    exit(1);
-	  }
+  if (fd < 0)
+    {
+      fprintf (stderr, "error creating socket: %m\n");
+      exit (1);
+    }
 
-	struct ifreq ifr;
-	struct in6_ifreq ifr6;
+  struct ifreq ifr;
+  struct in6_ifreq ifr6;
 
-	struct sockaddr_in6 sa6;
-	memset(&sa6, 0, sizeof(struct sockaddr_in6));
+  struct sockaddr_in6 sa6;
+  memset (&sa6, 0, sizeof (struct sockaddr_in6));
 
-	sa6.sin6_family = AF_INET6;
+  sa6.sin6_family = AF_INET6;
 
-	int r =  inet_pton(AF_INET6, address, sa6.sin6_addr.s6_addr);
-	if (r < 0)
-	  {
-	    fprintf(stderr, "error at inet_pton: %m\n");
-	    exit(1);
-	  }
+  int r = inet_pton (AF_INET6, address, sa6.sin6_addr.s6_addr);
+  if (r < 0)
+    {
+      fprintf (stderr, "error at inet_pton: %m\n");
+      exit (1);
+    }
 
-	memcpy((char *) &ifr6.ifr6_addr, (char *) &sa6.sin6_addr, sizeof(struct in6_addr));
+  memcpy ((char *) &ifr6.ifr6_addr, (char *) &sa6.sin6_addr,
+	  sizeof (struct in6_addr));
 
-	strncpy(ifr.ifr_name, dev, IFNAMSIZ);
+  strncpy (ifr.ifr_name, dev, IFNAMSIZ);
 
-	if (ioctl(fd, SIOGIFINDEX, &ifr) < 0) {
-		perror("SIOGIFINDEX");
-	}
+  if (ioctl (fd, SIOGIFINDEX, &ifr) < 0)
+    {
+      perror ("SIOGIFINDEX");
+    }
 
-	ifr6.ifr6_ifindex = ifr.ifr_ifindex;
-	ifr6.ifr6_prefixlen = prefix_len;
+  ifr6.ifr6_ifindex = ifr.ifr_ifindex;
+  ifr6.ifr6_prefixlen = prefix_len;
 
-	if (ioctl(fd, SIOCSIFADDR, &ifr6) < 0) {
-		perror("SIOCSIFADDR");
-	}
+  if (ioctl (fd, SIOCSIFADDR, &ifr6) < 0)
+    {
+      perror ("SIOCSIFADDR");
+    }
 
-	(void)ioctl(fd, SIOCGIFFLAGS, &ifr);
-	ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
-	(void)ioctl(fd, SIOCSIFFLAGS, &ifr);
-	close(fd);
-} /* }}} */
+  (void) ioctl (fd, SIOCGIFFLAGS, &ifr);
+  ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
+  (void) ioctl (fd, SIOCSIFFLAGS, &ifr);
+  close (fd);
+}				/* }}} */
 
-static void set_address4(char* dev, char* address, char* mask) { /* {{{ */
-	int fd=0;
-	struct sockaddr_in* addr;
-	struct ifreq ifr;
+static void
+/**
+ * @brief Sets the IPv4-Address given in address on the interface dev
+ *
+ * @param dev the interface to configure
+ * @param address the IPv4-Address
+ * @param mask the netmask
+ */
+set_address4 (char *dev, char *address, char *mask)
+{				/* {{{ */
+  int fd = 0;
+  struct sockaddr_in *addr;
+  struct ifreq ifr;
 
-	memset(&ifr, 0, sizeof(struct ifreq));
-	addr = (struct sockaddr_in *)&(ifr.ifr_addr);
-	memset(addr, 0, sizeof(struct sockaddr_in));
-	addr->sin_family = AF_INET;
-	addr->sin_addr.s_addr = inet_addr(address);
+  memset (&ifr, 0, sizeof (struct ifreq));
+  addr = (struct sockaddr_in *) &(ifr.ifr_addr);
+  memset (addr, 0, sizeof (struct sockaddr_in));
+  addr->sin_family = AF_INET;
+  addr->sin_addr.s_addr = inet_addr (address);
 
-	int r = inet_pton(AF_INET, address, &addr->sin_addr.s_addr);
-	if (r < 0)
-	  {
-	    fprintf(stderr, "error at inet_pton: %m\n");
-	    exit(1);
-	  }
+  int r = inet_pton (AF_INET, address, &addr->sin_addr.s_addr);
+  if (r < 0)
+    {
+      fprintf (stderr, "error at inet_pton: %m\n");
+      exit (1);
+    }
 
-	fd = socket(PF_INET, SOCK_DGRAM, 0);
-	if(fd < 0) {
-		perror("socket()");
-		return;
-	}
+  fd = socket (PF_INET, SOCK_DGRAM, 0);
+  if (fd < 0)
+    {
+      perror ("socket()");
+      return;
+    }
 
-	strncpy(ifr.ifr_name, dev, IFNAMSIZ);
+  strncpy (ifr.ifr_name, dev, IFNAMSIZ);
 
-	if(ioctl(fd, SIOCSIFADDR, &ifr) != 0 ) {
-		perror("SIOCSIFADDR");
-		close(fd);
-		return;
-	}
+  if (ioctl (fd, SIOCSIFADDR, &ifr) != 0)
+    {
+      perror ("SIOCSIFADDR");
+      close (fd);
+      return;
+    }
 
-	addr = (struct sockaddr_in*)&(ifr.ifr_netmask);
-	r = inet_pton(AF_INET, mask, &addr->sin_addr.s_addr);
-	if (r < 0)
-	  {
-	    fprintf(stderr, "error at inet_pton: %m\n");
-	    exit(1);
-	  }
+  addr = (struct sockaddr_in *) &(ifr.ifr_netmask);
+  r = inet_pton (AF_INET, mask, &addr->sin_addr.s_addr);
+  if (r < 0)
+    {
+      fprintf (stderr, "error at inet_pton: %m\n");
+      exit (1);
+    }
 
-	if(ioctl(fd, SIOCSIFNETMASK, &ifr) != 0 ) {
-		perror("SIOCSIFNETMASK");
-		close(fd);
-		return;
-	}
+  if (ioctl (fd, SIOCSIFNETMASK, &ifr) != 0)
+    {
+      perror ("SIOCSIFNETMASK");
+      close (fd);
+      return;
+    }
 
-	(void)ioctl(fd, SIOCGIFFLAGS, &ifr);
-	ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
-	(void)ioctl(fd, SIOCSIFFLAGS, &ifr);
-	close(fd);
-} /* }}} */
+  (void) ioctl (fd, SIOCGIFFLAGS, &ifr);
+  ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
+  (void) ioctl (fd, SIOCSIFFLAGS, &ifr);
+  close (fd);
+}				/* }}} */
 
-void setnonblocking(int fd) {/*{{{*/
-	int opts;
+/**
+ * @brief sets the socket to nonblocking
+ *
+ * @param fd the socket
+ */
+static void
+setnonblocking (int fd)
+{				/*{{{ */
+  int opts;
 
-	opts = fcntl(fd,F_GETFL);
-	if (opts < 0) {
-			perror("fcntl(F_GETFL)");
-	}
-	opts = (opts | O_NONBLOCK);
-	if (fcntl(fd,F_SETFL,opts) < 0) {
-			perror("fcntl(F_SETFL)");
-	}
-	return;
-}/*}}}*/
+  opts = fcntl (fd, F_GETFL);
+  if (opts < 0)
+    {
+      perror ("fcntl(F_GETFL)");
+    }
+  opts = (opts | O_NONBLOCK);
+  if (fcntl (fd, F_SETFL, opts) < 0)
+    {
+      perror ("fcntl(F_SETFL)");
+    }
+  return;
+}				/*}}} */
 
-int main(int argc, char** argv) {
-	unsigned char buf[MAX_SIZE];
+int
+main (int argc, char **argv)
+{
+  unsigned char buf[MAX_SIZE];
 
-	char dev[IFNAMSIZ];
-	memset(dev, 0, IFNAMSIZ);
+  char dev[IFNAMSIZ];
+  memset (dev, 0, IFNAMSIZ);
 
-	signal(SIGTERM, &term);
+  signal (SIGTERM, &term);
 
-	int fd_tun = init_tun(dev);
+  int fd_tun = init_tun (dev);
 
-	if (fd_tun < 0) {
-		fprintf(stderr, "Could not initialize tun-interface: %s\n", strerror(errno));
-		exit(1);
-	}
+  if (fd_tun < 0)
+    {
+      fprintf (stderr, "Could not initialize tun-interface: %s\n",
+	       strerror (errno));
+      exit (1);
+    }
 
-	{
-	// TODO: get this out of argv
-	char address[] = "1234::1";
-	unsigned long prefix_len = 16;
+  {
+    // TODO: get this out of argv
+    char address[] = "1234::1";
+    unsigned long prefix_len = 16;
 
-	set_address6(dev, address, prefix_len);
-	}
+    set_address6 (dev, address, prefix_len);
+  }
 
-	{
-	char address[] = "10.10.10.1";
-	char mask[] = "255.255.255.252";
+  {
+    char address[] = "10.10.10.1";
+    char mask[] = "255.255.255.252";
 
-	set_address4(dev, address, mask);
-	}
+    set_address4 (dev, address, mask);
+  }
 
-	uid_t uid = getuid ();
-	if (setresuid (uid, uid, uid) != 0 )
-		fprintf (stderr, "Failed to setresuid: %s\n", strerror(errno));
+  uid_t uid = getuid ();
+  if (setresuid (uid, uid, uid) != 0)
+    fprintf (stderr, "Failed to setresuid: %s\n", strerror (errno));
 
-	setnonblocking(0);
-	setnonblocking(1);
-	setnonblocking(fd_tun);
+  setnonblocking (0);
+  setnonblocking (1);
+  setnonblocking (fd_tun);
 
-	fd_set fds_w;
-	fd_set fds_r;
+  fd_set fds_w;
+  fd_set fds_r;
 
-	int rea = 1;
-	int wri = 1;
+  int rea = 1;
+  int wri = 1;
 
-	int write_fd_possible = 0;
-	int write_stdout_possible = 0;
+  int write_fd_possible = 0;
+  int write_stdout_possible = 0;
 outer:
-	while((rea == 1 || wri == 1) && running == 1) {
-		FD_ZERO(&fds_w);
-		FD_ZERO(&fds_r);
+  while ((rea == 1 || wri == 1) && running == 1)
+    {
+      FD_ZERO (&fds_w);
+      FD_ZERO (&fds_r);
 
-		if (rea) {
-			FD_SET(fd_tun, &fds_r);
-			if (!write_stdout_possible)
-				FD_SET(1, &fds_w);
-		}
-
-		if (wri) {
-			FD_SET(0, &fds_r);
-			if (!write_fd_possible)
-				FD_SET(fd_tun, &fds_w);
-		}
-
-		int r = select(fd_tun+1, &fds_r, &fds_w, (fd_set*)0, 0);
-
-		if(r > 0) {
-			if (FD_ISSET(fd_tun, &fds_w)) write_fd_possible = 1;
-			if (FD_ISSET(1, &fds_w)) write_stdout_possible = 1;
-
-			if (FD_ISSET(0, &fds_r) && write_fd_possible) {
-				write_fd_possible = 0;
-				struct suid_packet *pkt = (struct suid_packet*) buf;
-				r = read(0, buf, sizeof(struct GNUNET_MessageHeader));
-				if (r <= 0) {
-					fprintf(stderr, "read-error: %s\n", strerror (errno));
-					shutdown(fd_tun, SHUT_WR);
-					shutdown(0, SHUT_RD);
-					wri=0;
-					goto outer;
-				}
-				if(pkt->hdr.type != ntohs(GNUNET_MESSAGE_TYPE_VPN_HELPER)) abort();
-				while (r < ntohs(pkt->hdr.size)) {
-					int t = read(0, buf + r, ntohs(pkt->hdr.size) - r);
-					if (r < 0) {
-						fprintf(stderr, "read-error: %s\n", strerror (errno));
-						shutdown(fd_tun, SHUT_WR);
-						shutdown(0, SHUT_RD);
-						wri=0;
-						goto outer;
-					}
-					r += t;
-				}
-				r = 0;
-				while (r < ntohs(pkt->hdr.size) - sizeof(struct GNUNET_MessageHeader)) {
-					int t = write(fd_tun, pkt->data, ntohs(pkt->hdr.size) - sizeof(struct GNUNET_MessageHeader) - r);
-					if (t < 0) {
-						fprintf(stderr, "write-error 3: %s\n", strerror (errno));
-						shutdown(fd_tun, SHUT_WR);
-						shutdown(0, SHUT_RD);
-						wri = 0;
-						goto outer;
-					}
-					r += t;
-				}
-			} else if (write_stdout_possible && FD_ISSET(fd_tun, &fds_r)) {
-				write_stdout_possible = 0;
-				r = read(fd_tun, buf, MAX_SIZE);
-				if (r <= 0) {
-					fprintf(stderr, "read-error: %s\n", strerror (errno));
-					shutdown(fd_tun, SHUT_RD);
-					shutdown(1, SHUT_WR);
-					rea = 0;
-					goto outer;
-				}
-				struct GNUNET_MessageHeader hdr = { .size = htons(r + sizeof(struct GNUNET_MessageHeader)), .type = htons(GNUNET_MESSAGE_TYPE_VPN_HELPER) };
-				r = 0;
-				while(r < sizeof(struct GNUNET_MessageHeader)) {
-					int t = write(1, &hdr, sizeof(struct GNUNET_MessageHeader) - r);
-					if (t < 0) {
-						fprintf(stderr, "write-error 2: %s\n", strerror (errno));
-						shutdown(fd_tun, SHUT_RD);
-						shutdown(1, SHUT_WR);
-						rea = 0;
-						goto outer;
-					}
-					r += t;
-				}
-				while(r < ntohs(hdr.size)) {
-					int t = write(1, buf, ntohs(hdr.size) - r);
-					if (t < 0) {
-						fprintf(stderr, "write-error 1: %s, written %d/%d\n", strerror(errno), r, ntohs(hdr.size));
-						shutdown(fd_tun, SHUT_RD);
-						shutdown(1, SHUT_WR);
-						rea = 0;
-						goto outer;
-					}
-					r += t;
-				}
-			}
-		}
+      if (rea)
+	{
+	  FD_SET (fd_tun, &fds_r);
+	  if (!write_stdout_possible)
+	    FD_SET (1, &fds_w);
 	}
 
-	close(fd_tun);
+      if (wri)
+	{
+	  FD_SET (0, &fds_r);
+	  if (!write_fd_possible)
+	    FD_SET (fd_tun, &fds_w);
+	}
 
-	return 0;
+      int r = select (fd_tun + 1, &fds_r, &fds_w, (fd_set *) 0, 0);
+
+      if (r > 0)
+	{
+	  if (FD_ISSET (fd_tun, &fds_w))
+	    write_fd_possible = 1;
+	  if (FD_ISSET (1, &fds_w))
+	    write_stdout_possible = 1;
+
+	  if (FD_ISSET (0, &fds_r) && write_fd_possible)
+	    {
+	      write_fd_possible = 0;
+	      struct suid_packet *pkt = (struct suid_packet *) buf;
+	      r = read (0, buf, sizeof (struct GNUNET_MessageHeader));
+	      if (r <= 0)
+		{
+		  fprintf (stderr, "read-error: %s\n", strerror (errno));
+		  shutdown (fd_tun, SHUT_WR);
+		  shutdown (0, SHUT_RD);
+		  wri = 0;
+		  goto outer;
+		}
+	      if (pkt->hdr.type != ntohs (GNUNET_MESSAGE_TYPE_VPN_HELPER))
+		abort ();
+	      while (r < ntohs (pkt->hdr.size))
+		{
+		  int t = read (0, buf + r, ntohs (pkt->hdr.size) - r);
+		  if (r < 0)
+		    {
+		      fprintf (stderr, "read-error: %s\n", strerror (errno));
+		      shutdown (fd_tun, SHUT_WR);
+		      shutdown (0, SHUT_RD);
+		      wri = 0;
+		      goto outer;
+		    }
+		  r += t;
+		}
+	      r = 0;
+	      while (r <
+		     ntohs (pkt->hdr.size) -
+		     sizeof (struct GNUNET_MessageHeader))
+		{
+		  int t = write (fd_tun, pkt->data,
+				 ntohs (pkt->hdr.size) -
+				 sizeof (struct GNUNET_MessageHeader) - r);
+		  if (t < 0)
+		    {
+		      fprintf (stderr, "write-error 3: %s\n",
+			       strerror (errno));
+		      shutdown (fd_tun, SHUT_WR);
+		      shutdown (0, SHUT_RD);
+		      wri = 0;
+		      goto outer;
+		    }
+		  r += t;
+		}
+	    }
+	  else if (write_stdout_possible && FD_ISSET (fd_tun, &fds_r))
+	    {
+	      write_stdout_possible = 0;
+	      r = read (fd_tun, buf, MAX_SIZE);
+	      if (r <= 0)
+		{
+		  fprintf (stderr, "read-error: %s\n", strerror (errno));
+		  shutdown (fd_tun, SHUT_RD);
+		  shutdown (1, SHUT_WR);
+		  rea = 0;
+		  goto outer;
+		}
+	      struct GNUNET_MessageHeader hdr = {.size =
+		  htons (r + sizeof (struct GNUNET_MessageHeader)),.type =
+		  htons (GNUNET_MESSAGE_TYPE_VPN_HELPER)
+	      };
+	      r = 0;
+	      while (r < sizeof (struct GNUNET_MessageHeader))
+		{
+		  int t =
+		    write (1, &hdr, sizeof (struct GNUNET_MessageHeader) - r);
+		  if (t < 0)
+		    {
+		      fprintf (stderr, "write-error 2: %s\n",
+			       strerror (errno));
+		      shutdown (fd_tun, SHUT_RD);
+		      shutdown (1, SHUT_WR);
+		      rea = 0;
+		      goto outer;
+		    }
+		  r += t;
+		}
+	      while (r < ntohs (hdr.size))
+		{
+		  int t = write (1, buf, ntohs (hdr.size) - r);
+		  if (t < 0)
+		    {
+		      fprintf (stderr, "write-error 1: %s, written %d/%d\n",
+			       strerror (errno), r, ntohs (hdr.size));
+		      shutdown (fd_tun, SHUT_RD);
+		      shutdown (1, SHUT_WR);
+		      rea = 0;
+		      goto outer;
+		    }
+		  r += t;
+		}
+	    }
+	}
+    }
+
+  close (fd_tun);
+
+  return 0;
 }
