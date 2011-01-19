@@ -1,7 +1,6 @@
 #ifndef _GNTUN_PACKET_H_
 #define _GNTUN_PACKET_H_
 
-#include "gnunet-vpn-helper-p.h"
 #include "gnunet_common.h"
 
 // Headers

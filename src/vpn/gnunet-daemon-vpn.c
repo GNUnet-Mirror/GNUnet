@@ -27,7 +27,6 @@
 #include "gnunet_getopt_lib.h"
 #include "gnunet_program_lib.h"
 #include "gnunet-vpn-packet.h"
-#include "gnunet-vpn-helper-p.h"
 #include "gnunet-vpn-pretty-print.h"
 #include "gnunet_common.h"
 #include <gnunet_os_lib.h>

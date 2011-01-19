@@ -395,37 +395,6 @@ outer:
 }
 
 
-
-/**
- * @brief sets the socket to nonblocking
- *
- * @param fd the socket
- */
-static void
-setnonblocking (int fd)
-{
-  int opts;
-
-  if (-1 == (opts = fcntl (fd, F_GETFL)))
-    {
-      fprintf (stderr, 
-	       "Error in fcntl at line %d: %s\n",
-	       __LINE__,
-	       strerror (errno));
-      exit (1);
-    }
-  opts |= O_NONBLOCK;
-  if (-1 == fcntl (fd, F_SETFL, opts)) 
-    {
-      fprintf (stderr, 
-	       "Error in fcntl at line %d: %s\n",
-	       __LINE__,
-	       strerror (errno));
-      exit (1);
-    }
-}
-
-
 int 
 main (int argc, 
       char** argv) 
