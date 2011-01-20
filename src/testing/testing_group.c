@@ -229,6 +229,21 @@ struct CreateTopologyContext
   void *cls;
 };
 
+enum States
+{
+  /** Waiting to read number of peers */
+  NUM_PEERS,
+
+  /** Should find next peer index */
+  PEER_INDEX,
+
+  /** Should find colon */
+  COLON,
+
+  /** Should read other peer index, space, or endline */
+  OTHER_PEER_INDEX
+};
+
 #if OLD
 struct PeerConnection
 {
@@ -712,6 +727,11 @@ GNUNET_TESTING_topology_get (enum GNUNET_TESTING_Topology *topology,
        * All peers are disconnected.
        */
     "NONE",
+
+      /**
+       * Read the topology from a file.
+       */
+    "FROM_FILE",
 
     NULL
   };
@@ -2011,6 +2031,145 @@ create_line (struct GNUNET_TESTING_PeerGroup *pg,
  * and a connection processor.
  *
  * @param pg the peergroup to create the topology on
+ * @param filename the file to read topology information from
+ * @param proc the connection processor to call to actually set
+ *        up connections between two peers
+ *
+ * @return the number of connections that were set up
+ *
+ */
+static unsigned int
+create_from_file (struct GNUNET_TESTING_PeerGroup *pg,
+                  char *filename,
+                  GNUNET_TESTING_ConnectionProcessor proc)
+{
+  int connect_attempts;
+  unsigned int first_peer_index;
+  unsigned int second_peer_index;
+  connect_attempts = 0;
+  struct stat frstat;
+  int count;
+  char *data;
+  char *buf;
+  unsigned int total_peers;
+
+  enum States curr_state;
+
+  if (GNUNET_OK != GNUNET_DISK_file_test (filename))
+      GNUNET_DISK_fn_write (filename, NULL, 0, GNUNET_DISK_PERM_USER_READ
+        | GNUNET_DISK_PERM_USER_WRITE);
+
+  if ((0 != STAT (filename, &frstat)) || (frstat.st_size == 0))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Could not open file specified for topology!");
+      return connect_attempts;
+    }
+
+  data = GNUNET_malloc_large (frstat.st_size);
+  GNUNET_assert(data != NULL);
+  if (frstat.st_size !=
+      GNUNET_DISK_fn_read (filename, data, frstat.st_size))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Could not read file %s specified for host list, ending test!", filename);
+      GNUNET_free (data);
+      return connect_attempts;
+    }
+
+  buf = data;
+  count = 0;
+  /* First line should contain a single integer, specifying the number of peers */
+  /* Each subsequent line should contain this format PEER_INDEX:OTHER_PEER_INDEX[,...] */
+  curr_state = NUM_PEERS;
+  while (count < frstat.st_size - 1)
+    {
+      if ((buf[count] == '\n') || (buf[count] == ' '))
+      {
+        count++;
+        continue;
+      }
+
+      switch (curr_state)
+      {
+        case NUM_PEERS:
+          if (1 != sscanf(&buf[count], "%u", &total_peers))
+            {
+              GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Failed to read number of peers from topology file!\n");
+              GNUNET_free_non_null(data);
+              return connect_attempts;
+            }
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Read %u total peers in topology\n", total_peers);
+          curr_state = PEER_INDEX;
+          while((buf[count] != '\n') && (count < frstat.st_size - 1))
+            count++;
+          count++;
+          break;
+        case PEER_INDEX:
+          if (1 != sscanf(&buf[count], "%u", &first_peer_index))
+            {
+              GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Failed to read peer index from topology file!\n");
+              GNUNET_free_non_null(data);
+              return connect_attempts;
+            }
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Read next peer index %u\n", first_peer_index);
+          while((buf[count] != ':') && (count < frstat.st_size - 1))
+            count++;
+          count++;
+          curr_state = OTHER_PEER_INDEX;
+          break;
+        case COLON:
+          if (1 == sscanf(&buf[count], ":"))
+            curr_state = OTHER_PEER_INDEX;
+          count++;
+          break;
+        case OTHER_PEER_INDEX:
+          if (1 != sscanf(&buf[count], "%u", &second_peer_index))
+            {
+              GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Failed to peer index from topology file!\n");
+              GNUNET_free_non_null(data);
+              return connect_attempts;
+            }
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Read second peer index %u\n", second_peer_index);
+          while((buf[count] != '\n') && (buf[count] != ' ') && (count < frstat.st_size - 1))
+            count++;
+          if (buf[count] == '\n')
+          {
+            curr_state = PEER_INDEX;
+          }
+          else if (buf[count] != ' ')
+          {
+            curr_state = OTHER_PEER_INDEX;
+          }
+          count++;
+          curr_state = OTHER_PEER_INDEX;
+          break;
+        default:
+          GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Found bad data in topology file while in state %d!\n", curr_state);
+          GNUNET_break(0);
+          return connect_attempts;
+      }
+
+    }
+#if 0
+  /* Connect each peer to the next highest numbered peer */
+  for (count = 0; count < pg->total - 1; count++)
+    {
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Connecting peer %d to peer %d\n", first_peer_index, second_peer_index);
+#endif
+      connect_attempts += proc (pg, first_peer_index, second_peer_index);
+    }
+#endif
+  return connect_attempts;
+}
+
+/**
+ * Create a topology given a peer group (set of running peers)
+ * and a connection processor.
+ *
+ * @param pg the peergroup to create the topology on
  * @param proc the connection processor to call to actually set
  *        up connections between two peers
  *
@@ -2690,6 +2849,7 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
   int ret;
   unsigned int num_connections;
   int unblacklisted_connections;
+  char *filename;
 
   switch (topology)
     {
@@ -2752,6 +2912,21 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
                   _("Creating straight line topology\n"));
 #endif
       num_connections = create_line (pg, &add_allowed_connections);
+      break;
+    case GNUNET_TESTING_TOPOLOGY_FROM_FILE:
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Creating topology from file!\n"));
+#endif
+      if (GNUNET_OK ==
+          GNUNET_CONFIGURATION_get_value_string (pg->cfg, "testing", "topology_file",
+                                                 &filename))
+        num_connections = create_from_file (pg, filename, &add_allowed_connections);
+      else
+      {
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Missing configuration option TESTING:TOPOLOGY_FILE for creating topology from file!");
+        num_connections = 0;
+      }
       break;
     case GNUNET_TESTING_TOPOLOGY_NONE:
 #if VERBOSE_TESTING
@@ -2866,6 +3041,7 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
       unblacklisted_connections = create_line (pg, &unblacklist_connections);
       break;
     case GNUNET_TESTING_TOPOLOGY_NONE:
+    case GNUNET_TESTING_TOPOLOGY_FROM_FILE:
 #if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _
