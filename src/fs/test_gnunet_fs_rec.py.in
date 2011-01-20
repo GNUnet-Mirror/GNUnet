@@ -30,20 +30,17 @@ try:
   pub = pexpect.spawn ('gnunet-publish -c test_gnunet_fs_rec_data.conf -d -k testdir dir/')
   pub.expect ('Publishing `dir/\' done.\r')
   pub.expect ("URI is `gnunet://fs/chk/CQI091BQ15LLC2NO5RQM2LP95D8I0ONKDFT912V8CMH3BIPDUSDKG3JL07V9E89JPJ0CG5JE9EAQLC1Q6I0VF9L8M86MO0K3DG7HA2O.NVIUL6B7AT6TIUVOV0JLIQ3LLSS3TRLCVAISDS47V0KVHN22TJ9H9247HQNA8T3KK1J32QJ65312DUQPA2EBQPNII279BU0MKJEB94G.20181'.")
-  #pub.expect ("URI is `gnunet://fs/chk/8PNDC5FDF7T57HUGM9ODSL7CDKNOLPUFDCJQQ2MPP4SUPSEAJP1LNLBMEFN21KAG0KNVG3LG2AJCV322G3ECU6GKM9HFCVKM78LKEUO.9MI810JGAE6QVQMTBBVO2E92PA3C1MVF511CGKIPBMJ1B0PERIBDK9TNVD2JB4E4NFTD5F8QORJ644CUC281PISDND1NVGC7PB14388.20173'.")
   pub.expect (pexpect.EOF)
 
   down = pexpect.spawn ('gnunet-download -c test_gnunet_fs_rec_data.conf -R -o rdir.gnd gnunet://fs/chk/CQI091BQ15LLC2NO5RQM2LP95D8I0ONKDFT912V8CMH3BIPDUSDKG3JL07V9E89JPJ0CG5JE9EAQLC1Q6I0VF9L8M86MO0K3DG7HA2O.NVIUL6B7AT6TIUVOV0JLIQ3LLSS3TRLCVAISDS47V0KVHN22TJ9H9247HQNA8T3KK1J32QJ65312DUQPA2EBQPNII279BU0MKJEB94G.20181')
-  #down = pexpect.spawn ('gnunet-download -c test_gnunet_fs_rec_data.conf -R -o rdir.gnd gnunet://fs/chk/8PNDC5FDF7T57HUGM9ODSL7CDKNOLPUFDCJQQ2MPP4SUPSEAJP1LNLBMEFN21KAG0KNVG3LG2AJCV322G3ECU6GKM9HFCVKM78LKEUO.9MI810JGAE6QVQMTBBVO2E92PA3C1MVF511CGKIPBMJ1B0PERIBDK9TNVD2JB4E4NFTD5F8QORJ644CUC281PISDND1NVGC7PB14388.20173')
-
   down.expect (re.compile ("Downloading `rdir.gnd\' done \(.*\).\r"));
   down.expect (pexpect.EOF);
 
   dir = pexpect.spawn ('gnunet-directory -c test_gnunet_fs_rec_data.conf  rdir/a.gnd')
-#  dir.expect (re.compile (" last: a"));
-#  dir.expect (re.compile (" last: COPYING"));
-#  dir.expect (re.compile (" *embedded filename: a"));
-#  dir.expect (re.compile (" *embedded filename: COPYING"));
+  dir.expect (re.compile ("Directory `a' summary:"));
+  dir.expect (re.compile (" *mimetype: application/gnunet-directory"));
+  dir.expect (re.compile ("COPYING (.*)"));
+  dir.expect (re.compile ("INSTALL (.*)"));
   dir.expect (pexpect.EOF)
 
   os.system ('rm -r rdir/b.gnd rdir/a.gnd')
