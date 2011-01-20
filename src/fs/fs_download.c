@@ -290,7 +290,9 @@ encrypt_existing_match (struct GNUNET_FS_DownloadContext *dc,
     }
 #if DEBUG_DOWNLOAD
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Matching block already present, no need for download!\n");
+	      "Matching block for `%s' at offset %llu already present, no need for download!\n",
+	      dc->filename,
+	      (unsigned long long) dr->offset);
 #endif
   /* already got it! */
   prc.dc = dc;
@@ -470,7 +472,7 @@ try_match_block (struct GNUNET_FS_DownloadContext *dc,
   unsigned int i;
   char enc[DBLOCK_SIZE];
   struct ContentHashKey chks[CHK_PER_INODE];
-  struct ContentHashKey chk;
+  struct ContentHashKey in_chk;
   struct GNUNET_CRYPTO_AesSessionKey sk;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
   size_t dlen;
@@ -478,7 +480,11 @@ try_match_block (struct GNUNET_FS_DownloadContext *dc,
   struct GNUNET_DISK_FileHandle *fh;
   int complete;
   const char *fn;
+  const char *odata;
+  size_t odata_len;
   
+  odata = data;
+  odata_len = data_len;
   if (BRS_DOWNLOAD_UP == dr->state)
     return;
   if (dr->depth > 0)
@@ -492,6 +498,8 @@ try_match_block (struct GNUNET_FS_DownloadContext *dc,
 			   data, data_len);
 	  if (drc->state != BRS_RECONSTRUCT_META_UP)
 	    complete = GNUNET_NO;
+	  else
+	    chks[i] = drc->chk;
 	}
       if (GNUNET_YES != complete)
 	return;
@@ -507,9 +515,9 @@ try_match_block (struct GNUNET_FS_DownloadContext *dc,
     }
   GNUNET_CRYPTO_hash (&data[dr->offset],
 		      dlen,
-		      &chk.key);
-  GNUNET_CRYPTO_hash_to_aes_key (&chk.key, &sk, &iv);
-  if (-1 == GNUNET_CRYPTO_aes_encrypt (data, dlen,
+		      &in_chk.key);
+  GNUNET_CRYPTO_hash_to_aes_key (&in_chk.key, &sk, &iv);
+  if (-1 == GNUNET_CRYPTO_aes_encrypt (&data[dr->offset], dlen,
 				       &sk,
 				       &iv,
 				       enc))
@@ -517,15 +525,15 @@ try_match_block (struct GNUNET_FS_DownloadContext *dc,
       GNUNET_break (0);
       return;
     }
-  GNUNET_CRYPTO_hash (enc, dlen, &chk.query);
+  GNUNET_CRYPTO_hash (enc, dlen, &in_chk.query);
   switch (dr->state)
     {
     case BRS_INIT:
-      dr->chk = chk;
+      dr->chk = in_chk;
       dr->state = BRS_RECONSTRUCT_META_UP;
       break;
     case BRS_CHK_SET:
-      if (0 != memcmp (&chk,
+      if (0 != memcmp (&in_chk,
 		       &dr->chk,
 		       sizeof (struct ContentHashKey)))
 	{
@@ -562,8 +570,8 @@ try_match_block (struct GNUNET_FS_DownloadContext *dc,
 	}
       if (data_len != 
 	  GNUNET_DISK_file_write (fh,
-				  data,
-				  data_len))
+				  odata,
+				  odata_len))
 	{
 	  GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
 				    "write",
@@ -589,6 +597,11 @@ try_match_block (struct GNUNET_FS_DownloadContext *dc,
       pi.value.download.specifics.progress.data_len = dlen;
       pi.value.download.specifics.progress.depth = 0;
       GNUNET_FS_download_make_status_ (&pi, dc);
+      if (0 != truncate (dc->filename,
+			 GNUNET_ntohll (dc->uri->data.chk.file_length)))
+	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+				  "truncate",
+				  dc->filename);
       check_completed (dc);      
       break;
     default:
@@ -630,6 +643,11 @@ match_full_data (void *cls,
 
   if (type != EXTRACTOR_METATYPE_GNUNET_FULL_DATA) 
     return 0;
+#if DEBUG_DOWNLOAD
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Found %u bytes of FD!\n",
+	      (unsigned int) data_len);
+#endif
   if (GNUNET_FS_uri_chk_get_file_size (dc->uri) != data_len)
     {
       GNUNET_break_op (0);
@@ -734,7 +752,7 @@ try_top_down_reconstruction (struct GNUNET_FS_DownloadContext *dc,
     return; /* mismatch */
   if (GNUNET_OK !=
       encrypt_existing_match (dc,
-			      chk,
+			      &dr->chk,
 			      dr,
 			      block,
 			      len,
@@ -1019,6 +1037,12 @@ trigger_recursive_download (void *cls,
 	}
       GNUNET_DISK_file_close (fh);
     }
+#if DEBUG_DOWNLOAD
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Triggering recursive download of size %llu with %u bytes MD\n",
+	      (unsigned long long) GNUNET_FS_uri_chk_get_file_size (uri),
+	      (unsigned int) GNUNET_CONTAINER_meta_data_get_serialized_size (meta));
+#endif
   GNUNET_FS_download_start (dc->h,
 			    uri,
 			    meta,
@@ -1116,10 +1140,9 @@ process_result_with_request (void *cls,
       goto signal_error;
     }
 
-  GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_remove (dc->active,
-						       &prc->query,
-						       dr));
+  (void) GNUNET_CONTAINER_multihashmap_remove (dc->active,
+					       &prc->query,
+					       dr);
   if (GNUNET_YES == dr->is_pending)
     {
       GNUNET_CONTAINER_DLL_remove (dc->pending_head,
@@ -2064,8 +2087,15 @@ GNUNET_FS_download_start_task_ (void *cls,
 	}
     }
   /* attempt reconstruction from meta data */
-  if (GNUNET_FS_uri_chk_get_file_size (dc->uri) <= MAX_INLINE_SIZE)
+  if ( (GNUNET_FS_uri_chk_get_file_size (dc->uri) <= MAX_INLINE_SIZE) &&
+       (NULL != dc->meta) )
     {
+#if DEBUG_DOWNLOAD
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Trying to find embedded meta data for download of size %llu with %u bytes MD\n",
+		  (unsigned long long) GNUNET_FS_uri_chk_get_file_size (dc->uri),
+		  (unsigned int) GNUNET_CONTAINER_meta_data_get_serialized_size (dc->meta));
+#endif
       GNUNET_CONTAINER_meta_data_iterate (dc->meta,
 					  &match_full_data,
 					  dc);
