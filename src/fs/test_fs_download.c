@@ -29,7 +29,7 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_fs_service.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define START_ARM GNUNET_YES
 
@@ -86,6 +86,8 @@ timeout_kill_task (void *cls,
       GNUNET_FS_publish_stop (publish);
       publish = NULL;
     }
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "Timeout downloading file\n");
   timeout_kill = GNUNET_SCHEDULER_NO_TASK;
   err = 1;
 }
@@ -140,10 +142,10 @@ progress_cb (void *cls,
     case GNUNET_FS_STATUS_PUBLISH_PROGRESS:
 #if VERBOSE
       printf ("Publish is progressing (%llu/%llu at level %u off %llu)...\n",
-              (unsigned long long) event->abs_value.publish.completed,
-              (unsigned long long) event->abs_value.publish.size,
-	      event->abs_value.publish.specifics.progress.depth,
-	      (unsigned long long) event->abs_value.publish.specifics.progress.offset);
+              (unsigned long long) event->value.publish.completed,
+              (unsigned long long) event->value.publish.size,
+	      event->value.publish.specifics.progress.depth,
+	      (unsigned long long) event->value.publish.specifics.progress.offset);
 #endif      
       break;
     case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
@@ -173,10 +175,10 @@ progress_cb (void *cls,
       GNUNET_assert (download == event->value.download.dc);
 #if VERBOSE
       printf ("Download is progressing (%llu/%llu at level %u off %llu)...\n",
-              (unsigned long long) event->abs_value.download.completed,
-              (unsigned long long) event->abs_value.download.size,
-	      event->abs_value.download.specifics.progress.depth,
-	      (unsigned long long) event->abs_value.download.specifics.progress.offset);
+              (unsigned long long) event->value.download.completed,
+              (unsigned long long) event->value.download.size,
+	      event->value.download.specifics.progress.depth,
+	      (unsigned long long) event->value.download.specifics.progress.offset);
 #endif
       break;
     case GNUNET_FS_STATUS_PUBLISH_ERROR:

@@ -101,10 +101,10 @@ progress_cb (void *cls,
     case GNUNET_FS_STATUS_PUBLISH_PROGRESS:
 #if VERBOSE
       printf ("Publish is progressing (%llu/%llu at level %u off %llu)...\n",
-              (unsigned long long) event->abs_value.publish.completed,
-              (unsigned long long) event->abs_value.publish.size,
-	      event->abs_value.publish.specifics.progress.depth,
-	      (unsigned long long) event->abs_value.publish.specifics.progress.offset);
+              (unsigned long long) event->value.publish.completed,
+              (unsigned long long) event->value.publish.size,
+	      event->value.publish.specifics.progress.depth,
+	      (unsigned long long) event->value.publish.specifics.progress.offset);
 #endif      
       break;
     case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
