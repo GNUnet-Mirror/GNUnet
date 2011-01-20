@@ -23,6 +23,7 @@ libgnunetfs_la_SOURCES = \
   fs_getopt.c \
   fs_list_indexed.c \
   fs_publish.c \
+  fs_misc.c \
   fs_namespace.c \
   fs_search.c \
   fs_tree.c fs_tree.h \

@@ -78,6 +78,8 @@ static void
 timeout_kill_task (void *cls,
 		   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "Timeout downloading file\n");
   if (download != NULL)
     {
       GNUNET_FS_download_stop (download, GNUNET_YES);
@@ -134,6 +136,8 @@ static void
 restart_fs_task (void *cls,
 		 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Restarting FS.\n");
   GNUNET_FS_stop (fs);
   fs = GNUNET_FS_start (cfg,
 			"test-fs-download-persistence",
@@ -242,18 +246,26 @@ progress_cb (void *cls,
       publish = event->value.publish.pc;
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_SUSPEND:
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Download suspended.\n");
       GNUNET_assert (event->value.download.dc == download);
       download = NULL;
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_RESUME:
       GNUNET_assert (NULL == download);
       download = event->value.download.dc;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Download resumed.\n");
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_ACTIVE:
       consider_restart (event->status);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Download active.\n");
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_INACTIVE:
       consider_restart (event->status);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Download inactive.\n");
       break;
     case GNUNET_FS_STATUS_PUBLISH_START:
       GNUNET_assert (0 == strcmp ("publish-context", event->value.publish.cctx));
@@ -270,6 +282,8 @@ progress_cb (void *cls,
       fs = NULL;
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_START:
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Download started.\n");
       consider_restart (event->status);
       GNUNET_assert (download == NULL);
       download = event->value.download.dc;

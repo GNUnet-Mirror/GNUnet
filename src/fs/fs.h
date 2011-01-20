@@ -925,6 +925,7 @@ GNUNET_FS_download_start_task_ (void *cls,
 				const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
+
 /**
  * Fill in all of the generic fields for 
  * an unindex event and call the callback.
@@ -1612,7 +1613,7 @@ struct GNUNET_FS_SearchContext
    * when the search is being stopped (if not
    * GNUNET_SCHEDULER_NO_TASK).  Used for the task that adds some
    * artificial delay when trying to reconnect to the FS service.
-o   */
+   */
   GNUNET_SCHEDULER_TaskIdentifier task;
 
   /**
@@ -1645,37 +1646,131 @@ o   */
 
 
 /**
+ * FSM for possible states a block can go through.  The typical
+ * order of progression is linear through the states, alternatives
+ * are documented in the comments.
+ */
+enum BlockRequestState
+  {
+    /**
+     * Initial state, block has only been allocated (since it is
+     * relevant to the overall download request).
+     */
+    BRS_INIT = 0,
+
+    /**
+     * We've checked the block on the path down the tree, and the
+     * content on disk did match the desired CHK, but not all
+     * the way down, so at the bottom some blocks will still
+     * need to be reconstructed).
+     */
+    BRS_RECONSTRUCT_DOWN = 1,
+
+    /**
+     * We've calculated the CHK bottom-up based on the meta data.
+     * This may work, but if it did we have to write the meta data to
+     * disk at the end (and we still need to check against the
+     * CHK set on top).
+     */
+    BRS_RECONSTRUCT_META_UP = 2,
+
+    /**
+     * We've calculated the CHK bottom-up based on what we have on
+     * disk, which may not be what the desired CHK is.  If the
+     * reconstructed CHKs match whatever comes from above, we're
+     * done with the respective subtree.
+     */
+    BRS_RECONSTRUCT_UP = 3,
+
+    /**
+     * We've determined the real, desired CHK for this block 
+     * (full tree reconstruction failed), request is now pending.
+     * If the CHK that bubbled up through reconstruction did match
+     * the top-level request, the state machine for the subtree
+     * would have moved to BRS_DOWNLOAD_UP.
+     */
+    BRS_CHK_SET = 4,
+
+    /**
+     * We've successfully downloaded this block, but the children
+     * still need to be either downloaded or verified (download
+     * request propagates down).  If the download fails, the
+     * state machine for this block may move to 
+     * BRS_DOWNLOAD_ERROR instead.
+     */
+    BRS_DOWNLOAD_DOWN = 5,
+
+    /**
+     * This block and all of its children have been downloaded
+     * successfully (full completion propagates up).
+     */
+    BRS_DOWNLOAD_UP = 6,
+
+    /**
+     * We got a block back that matched the query but did not hash to
+     * the key (malicious publisher or hash collision); this block
+     * can never be downloaded (error propagates up).
+     */
+    BRS_ERROR = 7
+    
+  };
+
+
+/**
  * Information about an active download request.
  */ 
 struct DownloadRequest
 {
   /**
-   * While pending, we keep all download requests in a linked list.
+   * While pending, we keep all download requests in a doubly-linked list.
    */
   struct DownloadRequest *next;
 
   /**
-   * CHK for the request.
+   * While pending, we keep all download requests in a doubly-linked list.
    */
-  struct ContentHashKey chk;
+  struct DownloadRequest *prev;
 
   /**
-   * Offset of the corresponding block.
+   * Parent in the CHK-tree.
+   */
+  struct DownloadRequest *parent;
+
+  /**
+   * Array (!) of child-requests, or NULL for the bottom of the tree.
+   */
+  struct DownloadRequest **children;
+
+  /**
+   * CHK for the request for this block (set during reconstruction
+   * to what we have on disk, later to what we want to have).
+   */
+  struct ContentHashKey chk;  
+
+  /**
+   * Offset of the corresponding block.  Specifically, first (!) byte of
+   * the first DBLOCK in the subtree induced by block represented by
+   * this request.
    */
   uint64_t offset;
 
   /**
-   * Depth of the corresponding block in the tree.
+   * Number of entries in 'children' array.
+   */
+  unsigned int num_children;
+
+  /**
+   * Depth of the corresponding block in the tree.  0==DBLOCKs.
    */
   unsigned int depth;
 
   /**
-   * Set if this request is currently in the linked list of pending
-   * requests.  Needed in case we get a response for a request that we
-   * have not yet send (i.e. due to two blocks with identical
-   * content); in this case, we would need to remove the block from
-   * the pending list (and need a fast way to check if the block is on
-   * it).
+   * State in the FSM.
+   */
+  enum BlockRequestState state;
+
+  /**
+   * GNUNET_YES if this entry is in the pending list.
    */
   int is_pending;
 
@@ -1683,9 +1778,12 @@ struct DownloadRequest
 
 
 /**
- * Closure for 'reconstruct_cont' and 'reconstruct_cb'.
+ * (recursively) free download request structure
+ *
+ * @param dr request to free
  */
-struct ReconstructContext;
+void
+GNUNET_FS_free_download_request_ (struct DownloadRequest *dr);
 
 
 /**
@@ -1732,11 +1830,6 @@ struct GNUNET_FS_DownloadContext
   struct GNUNET_FS_DownloadContext *child_tail;
 
   /**
-   * State for block reconstruction.
-   */
-  struct ReconstructContext *rcc;
-
-  /**
    * Previous download belonging to the same parent.
    */
   struct GNUNET_FS_DownloadContext *prev;
@@ -1752,8 +1845,7 @@ struct GNUNET_FS_DownloadContext
   void *client_info;
 
   /**
-   * URI that identifies the file that
-   * we are downloading.
+   * URI that identifies the file that we are downloading.
    */
   struct GNUNET_FS_Uri *uri;
 
@@ -1787,16 +1879,9 @@ struct GNUNET_FS_DownloadContext
   char *temp_filename;
 
   /**
-   * Map of active requests (those waiting
-   * for a response).  The key is the hash
-   * of the encryped block (aka query).
+   * Our entry in the job queue.
    */
-  struct GNUNET_CONTAINER_MultiHashMap *active;
-
-  /**
-   * Linked list of pending requests.
-   */
-  struct DownloadRequest *pending;
+  struct GNUNET_FS_QueueEntry *job_queue;
 
   /**
    * Non-NULL if we are currently having a request for
@@ -1805,9 +1890,36 @@ struct GNUNET_FS_DownloadContext
   struct GNUNET_CLIENT_TransmitHandle *th;
 
   /**
-   * Our entry in the job queue.
+   * Tree encoder used for the reconstruction.
    */
-  struct GNUNET_FS_QueueEntry *job_queue;
+  struct GNUNET_FS_TreeEncoder *te;
+
+  /**
+   * File handle for reading data from an existing file
+   * (to pass to tree encoder).
+   */
+  struct GNUNET_DISK_FileHandle *rfh;
+
+  /**
+   * Map of active requests (those waiting for a response).  The key
+   * is the hash of the encryped block (aka query).
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *active;
+
+  /**
+   * Head of linked list of pending requests.
+   */
+  struct DownloadRequest *pending_head;
+
+  /**
+   * Head of linked list of pending requests.
+   */
+  struct DownloadRequest *pending_tail;
+
+  /**
+   * Top-level download request.
+   */
+  struct DownloadRequest *top_request;
 
   /**
    * Identity of the peer having the content, or all-zeros
@@ -1816,27 +1928,14 @@ struct GNUNET_FS_DownloadContext
   struct GNUNET_PeerIdentity target;
 
   /**
-   * ID of a task that is using this struct
-   * and that must be cancelled when the download
-   * is being stopped (if not GNUNET_SCHEDULER_NO_TASK).
-   * Used for the task that adds some artificial
-   * delay when trying to reconnect to the FS
-   * service.
+   * ID of a task that is using this struct and that must be cancelled
+   * when the download is being stopped (if not
+   * GNUNET_SCHEDULER_NO_TASK).  Used for the task that adds some
+   * artificial delay when trying to reconnect to the FS service or
+   * the task processing incrementally the data on disk, or the
+   * task requesting blocks, etc.
    */
   GNUNET_SCHEDULER_TaskIdentifier task;
-
-  /**
-   * Task used to start the download.
-   */
-  GNUNET_SCHEDULER_TaskIdentifier start_task;
-
-  /**
-   * What was the size of the file on disk that we're downloading
-   * before we started?  Used to detect if there is a point in
-   * checking an existing block on disk for matching the desired
-   * content.  0 if the file did not exist already.
-   */
-  uint64_t old_file_size;
 
   /**
    * What is the first offset that we're interested
@@ -1855,6 +1954,14 @@ struct GNUNET_FS_DownloadContext
    * the specified range (DBlocks only).
    */
   uint64_t completed;
+
+  /**
+   * What was the size of the file on disk that we're downloading
+   * before we started?  Used to detect if there is a point in
+   * checking an existing block on disk for matching the desired
+   * content.  0 if the file did not exist already.
+   */
+  uint64_t old_file_size;
 
   /**
    * Time download was started.
@@ -1883,17 +1990,6 @@ struct GNUNET_FS_DownloadContext
    */
   int has_finished;
 
-  /**
-   * Have we tried (and failed) to find matching full
-   * data from the meta data yet?
-   */
-  int tried_full_data;
-
-  /**
-   * Have we tried to reconstruct an IBLOCK from disk
-   * and failed (and should hence not try again?)
-   */
-  int reconstruct_failed;
 };
 
 

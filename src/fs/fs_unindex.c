@@ -114,7 +114,7 @@ GNUNET_FS_unindex_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
  * @param offset where are we in the file
  * @param pt_block plaintext of the currently processed block
  * @param pt_size size of pt_block
- * @param depth depth of the block in the tree
+ * @param depth depth of the block in the tree, 0 for DBLOCK
  */
 static void
 unindex_progress (void *cls,
@@ -188,16 +188,16 @@ process_cont (void *cls,
  * or (on error) "GNUNET_FS_tree_encode_finish".
  *
  * @param cls closure
- * @param query the query for the block (key for lookup in the datastore)
+ * @param chk content hash key for the block (key for lookup in the datastore)
  * @param offset offset of the block
- * @param depth depth of the block
+ * @param depth depth of the block, 0 for DBLOCK
  * @param type type of the block (IBLOCK or DBLOCK)
  * @param block the (encrypted) block
  * @param block_size size of block (in bytes)
  */
 static void 
 unindex_process (void *cls,
-		 const GNUNET_HashCode *query,
+		 const struct ContentHashKey *chk,
 		 uint64_t offset,
 		 unsigned int depth,
 		 enum GNUNET_BLOCK_Type type,
@@ -226,7 +226,7 @@ unindex_process (void *cls,
 	      "Sending REMOVE request to DATASTORE service\n");
 #endif
   GNUNET_DATASTORE_remove (uc->dsh,
-			   query,
+			   &chk->query,
 			   size,
 			   data,
 			   -2, 1,

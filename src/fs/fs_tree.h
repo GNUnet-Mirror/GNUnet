@@ -21,7 +21,7 @@
 /**
  * @file fs/fs_tree.h
  * @brief Merkle-tree-ish-CHK file encoding for GNUnet
- * @see http://gnunet.org/encoding.php3
+ * @see https://gnunet.org/encoding
  * @author Krista Bennett
  * @author Christian Grothoff
  *
@@ -35,13 +35,43 @@
 #include "fs.h"
 
 /**
- * Compute the depth of the CHK tree.
+ * Compute the depth of the CHK tree.  
  *
  * @param flen file length for which to compute the depth
- * @return depth of the tree
+ * @return depth of the tree, always > 0.  A depth of 1 means only a DBLOCK.
  */
 unsigned int
 GNUNET_FS_compute_depth (uint64_t flen);
+
+
+/**
+ * Calculate how many bytes of payload a block tree of the given
+ * depth MAY correspond to at most (this function ignores the fact that
+ * some blocks will only be present partially due to the total file
+ * size cutting some blocks off at the end).
+ *
+ * @param depth depth of the block.  depth==0 is a DBLOCK.
+ * @return number of bytes of payload a subtree of this depth may correspond to
+ */
+uint64_t
+GNUNET_FS_tree_compute_tree_size (unsigned int depth);
+
+
+/**
+ * Compute how many bytes of data should be stored in
+ * the specified block.
+ *
+ * @param fsize overall file size, must be > 0.
+ * @param offset offset in the original data corresponding
+ *         to the beginning of the tree induced by the block;
+ *         must be < fsize
+ * @param depth depth of the node in the tree, 0 for DBLOCK
+ * @return number of bytes stored in this node
+ */
+size_t
+GNUNET_FS_tree_calculate_block_size (uint64_t fsize,
+				     uint64_t offset,
+				     unsigned int depth);
 
 
 /**
@@ -58,15 +88,15 @@ struct GNUNET_FS_TreeEncoder;
  * or (on error) "GNUNET_FS_tree_encode_finish".
  *
  * @param cls closure
- * @param query the query for the block (key for lookup in the datastore)
+ * @param chk content hash key for the block
  * @param offset offset of the block
- * @param depth depth of the block
+ * @param depth depth of the block, 0 for DBLOCKs
  * @param type type of the block (IBLOCK or DBLOCK)
  * @param block the (encrypted) block
  * @param block_size size of block (in bytes)
  */
 typedef void (*GNUNET_FS_TreeBlockProcessor)(void *cls,
-					     const GNUNET_HashCode *query,
+					     const struct ContentHashKey *chk,
 					     uint64_t offset,
 					     unsigned int depth,
 					     enum GNUNET_BLOCK_Type type,
@@ -82,7 +112,7 @@ typedef void (*GNUNET_FS_TreeBlockProcessor)(void *cls,
  * @param offset where are we in the file
  * @param pt_block plaintext of the currently processed block
  * @param pt_size size of pt_block
- * @param depth depth of the block in the tree
+ * @param depth depth of the block in the tree, 0 for DBLOCKS
  */
 typedef void (*GNUNET_FS_TreeProgressCallback)(void *cls,
 					       uint64_t offset,
@@ -141,39 +171,9 @@ void GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder * te);
  *        prior to completion and prior to an internal error,
  *        both "*uri" and "*emsg" will be set to NULL).
  */
-void GNUNET_FS_tree_encoder_finish (struct GNUNET_FS_TreeEncoder * te,
+void GNUNET_FS_tree_encoder_finish (struct GNUNET_FS_TreeEncoder *te,
 				    struct GNUNET_FS_Uri **uri,
 				    char **emsg);
-
-
-/**
- * Compute the size of the current IBlock.
- *
- * @param height height of the IBlock in the tree (aka overall
- *               number of tree levels minus depth); 0 == DBlock
- * @param offset current offset in the overall file
- * @return size of the corresponding IBlock
- */
-uint16_t 
-GNUNET_FS_tree_compute_iblock_size (unsigned int height,
-				    uint64_t offset);
-
-
-/**
- * Compute how many bytes of data should be stored in
- * the specified node.
- *
- * @param fsize overall file size
- * @param totaldepth depth of the entire tree
- * @param offset offset of the node
- * @param depth depth of the node
- * @return number of bytes stored in this node
- */
-size_t
-GNUNET_FS_tree_calculate_block_size (uint64_t fsize,
-				     unsigned int totaldepth,
-				     uint64_t offset,
-				     unsigned int depth);
 
 
 #if 0
@@ -187,7 +187,7 @@ GNUNET_FS_tree_calculate_block_size (uint64_t fsize,
  * @param data set to the resume data
  * @param size set to the size of the resume data
  */
-void GNUNET_FS_tree_encoder_resume_get_data (const struct GNUNET_FS_TreeEncoder * te,
+void GNUNET_FS_tree_encoder_resume_get_data (const struct GNUNET_FS_TreeEncoder *te,
 					     void **data,
 					     size_t *size);
 
@@ -200,7 +200,7 @@ void GNUNET_FS_tree_encoder_resume_get_data (const struct GNUNET_FS_TreeEncoder 
  * @param data the resume data
  * @param size the size of the resume data
  */
-void GNUNET_FS_tree_encoder_resume (struct GNUNET_FS_TreeEncoder * te,
+void GNUNET_FS_tree_encoder_resume (struct GNUNET_FS_TreeEncoder *te,
 				    const void *data,
 				    size_t size);
 #endif

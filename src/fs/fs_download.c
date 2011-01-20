@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2008, 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2001-2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -61,8 +61,7 @@ is_recursive_download (struct GNUNET_FS_DownloadContext *dc)
  * 
  * @param fsize overall file size
  * @param off offset of the block in the file
- * @param depth depth of the block in the tree
- * @param treedepth maximum depth of the tree
+ * @param depth depth of the block in the tree, 0 for DBLOCK
  * @return off for DBLOCKS (depth == treedepth),
  *         otherwise an offset past the end
  *         of the file that does not overlap
@@ -71,23 +70,22 @@ is_recursive_download (struct GNUNET_FS_DownloadContext *dc)
 static uint64_t
 compute_disk_offset (uint64_t fsize,
 		     uint64_t off,
-		     unsigned int depth,
-		     unsigned int treedepth)
+		     unsigned int depth)
 {
   unsigned int i;
   uint64_t lsize; /* what is the size of all IBlocks for depth "i"? */
   uint64_t loff; /* where do IBlocks for depth "i" start? */
   unsigned int ioff; /* which IBlock corresponds to "off" at depth "i"? */
   
-  if (depth == treedepth)
+  if (depth == 0)
     return off;
   /* first IBlocks start at the end of file, rounded up
      to full DBLOCK_SIZE */
   loff = ((fsize + DBLOCK_SIZE - 1) / DBLOCK_SIZE) * DBLOCK_SIZE;
-  lsize = ( (fsize + DBLOCK_SIZE-1) / DBLOCK_SIZE) * sizeof (struct ContentHashKey);
+  lsize = ( (fsize + DBLOCK_SIZE - 1) / DBLOCK_SIZE) * sizeof (struct ContentHashKey);
   GNUNET_assert (0 == (off % DBLOCK_SIZE));
   ioff = (off / DBLOCK_SIZE);
-  for (i=treedepth-1;i>depth;i--)
+  for (i=1;i<depth;i++)
     {
       loff += lsize;
       lsize = (lsize + CHK_PER_INODE - 1) / CHK_PER_INODE;
@@ -100,35 +98,32 @@ compute_disk_offset (uint64_t fsize,
 
 
 /**
- * Given a file of the specified treedepth and a block at the given
- * offset and depth, calculate the offset for the CHK at the given
- * index.
+ * Given a block at the given offset and depth, calculate the offset
+ * for the CHK at the given index.
  *
  * @param offset the offset of the first
  *        DBLOCK in the subtree of the 
  *        identified IBLOCK
- * @param depth the depth of the IBLOCK in the tree
- * @param treedepth overall depth of the tree
+ * @param depth the depth of the IBLOCK in the tree, 0 for DBLOCK
  * @param k which CHK in the IBLOCK are we 
  *        talking about
  * @return offset if k=0, otherwise an appropriately
- *         larger value (i.e., if depth = treedepth-1,
- *         the returned value should be offset+DBLOCK_SIZE)
+ *         larger value (i.e., if depth = 1,
+ *         the returned value should be offset+k*DBLOCK_SIZE)
  */
 static uint64_t
 compute_dblock_offset (uint64_t offset,
 		       unsigned int depth,
-		       unsigned int treedepth,
 		       unsigned int k)
 {
   unsigned int i;
   uint64_t lsize; /* what is the size of the sum of all DBlocks 
 		     that a CHK at depth i corresponds to? */
 
-  if (depth == treedepth)
+  if (depth == 0)
     return offset;
   lsize = DBLOCK_SIZE;
-  for (i=treedepth-1;i>depth;i--)
+  for (i=1;i<depth;i++)
     lsize *= CHK_PER_INODE;
   return offset + k * lsize;
 }
@@ -176,6 +171,7 @@ GNUNET_FS_download_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
     dc->client_info = GNUNET_FS_search_probe_progress_ (NULL,
 							pi);
 }
+
 
 /**
  * We're ready to transmit a search request to the
@@ -255,20 +251,18 @@ process_result_with_request (void *cls,
  * 
  * @param dc download in question
  * @param chk request this relates to
- * @param sm request details
+ * @param dr request details
  * @param block plaintext data matching request
  * @param len number of bytes in block
- * @param depth depth of the block
  * @param do_store should we still store the block on disk?
  * @return GNUNET_OK on success
  */
 static int
 encrypt_existing_match (struct GNUNET_FS_DownloadContext *dc,
 			const struct ContentHashKey *chk,
-			struct DownloadRequest *sm,
+			struct DownloadRequest *dr,
 			const char * block,		       
 			size_t len,
-			int depth,
 			int do_store)
 {
   struct ProcessResultClosure prc;
@@ -302,609 +296,15 @@ encrypt_existing_match (struct GNUNET_FS_DownloadContext *dc,
   prc.dc = dc;
   prc.data = enc;
   prc.size = len;
-  prc.type = (dc->treedepth == depth) 
+  prc.type = (0 == dr->depth) 
     ? GNUNET_BLOCK_TYPE_FS_DBLOCK 
     : GNUNET_BLOCK_TYPE_FS_IBLOCK;
   prc.query = chk->query;
   prc.do_store = do_store;
   process_result_with_request (&prc,
 			       &chk->key,
-			       sm);
+			       dr);
   return GNUNET_OK;
-}
-
-
-/**
- * Closure for match_full_data.
- */
-struct MatchDataContext 
-{
-  /**
-   * CHK we are looking for.
-   */
-  const struct ContentHashKey *chk;
-
-  /**
-   * Download we're processing.
-   */
-  struct GNUNET_FS_DownloadContext *dc;
-
-  /**
-   * Request details.
-   */
-  struct DownloadRequest *sm;
-
-  /**
-   * Overall offset in the file.
-   */
-  uint64_t offset;
-
-  /**
-   * Desired length of the block.
-   */
-  size_t len;
-
-  /**
-   * Flag set to GNUNET_YES on success.
-   */
-  int done;
-};
-
-/**
- * Type of a function that libextractor calls for each
- * meta data item found.
- *
- * @param cls closure (user-defined)
- * @param plugin_name name of the plugin that produced this value;
- *        special values can be used (i.e. '&lt;zlib&gt;' for zlib being
- *        used in the main libextractor library and yielding
- *        meta data).
- * @param type libextractor-type describing the meta data
- * @param format basic format information about data 
- * @param data_mime_type mime-type of data (not of the original file);
- *        can be NULL (if mime-type is not known)
- * @param data actual meta-data found
- * @param data_len number of bytes in data
- * @return 0 to continue extracting, 1 to abort
- */ 
-static int
-match_full_data (void *cls,
-		 const char *plugin_name,
-		 enum EXTRACTOR_MetaType type,
-		 enum EXTRACTOR_MetaFormat format,
-		 const char *data_mime_type,
-		 const char *data,
-		 size_t data_len)
-{
-  struct MatchDataContext *mdc = cls;
-  GNUNET_HashCode key;
-
-  if (type == EXTRACTOR_METATYPE_GNUNET_FULL_DATA) 
-    {
-      if ( (mdc->offset > data_len) ||
-	   (mdc->offset + mdc->len > data_len) )
-	return 1;
-      GNUNET_CRYPTO_hash (&data[mdc->offset],
-			  mdc->len,
-			  &key);
-      if (0 != memcmp (&key,
-		       &mdc->chk->key,
-		       sizeof (GNUNET_HashCode)))
-	{
-	  GNUNET_break_op (0);
-	  return 1;
-	}
-      /* match found! */
-      if (GNUNET_OK !=
-	  encrypt_existing_match (mdc->dc,
-				  mdc->chk,
-				  mdc->sm,
-				  &data[mdc->offset],
-				  mdc->len,
-				  0,
-				  GNUNET_YES))
-	{
-	  GNUNET_break_op (0);
-	  return 1;
-	}
-      mdc->done = GNUNET_YES;
-      return 1;
-    }
-  return 0;
-}
-
-
-
-/**
- * Closure for 'reconstruct_cont' and 'reconstruct_cb'.
- */
-struct ReconstructContext
-{
-  /**
-   * File handle open for the reconstruction.
-   */
-  struct GNUNET_DISK_FileHandle *fh;
-
-  /**
-   * the download context.
-   */
-  struct GNUNET_FS_DownloadContext *dc;
-
-  /**
-   * Tree encoder used for the reconstruction.
-   */
-  struct GNUNET_FS_TreeEncoder *te;
-
-  /**
-   * CHK of block we are trying to reconstruct.
-   */
-  struct ContentHashKey chk;
-
-  /**
-   * Request that was generated.
-   */
-  struct DownloadRequest *sm;
-
-  /**
-   * Helper task.
-   */
-  GNUNET_SCHEDULER_TaskIdentifier task;
-
-  /**
-   * Offset of block we are trying to reconstruct.
-   */
-  uint64_t offset;
-
-  /**
-   * Depth of block we are trying to reconstruct.
-   */
-  unsigned int depth;
-
-};
-
-
-/**
- * Continuation after a possible attempt to reconstruct
- * the current IBlock from the existing file.
- *
- * @param cls the 'struct ReconstructContext'
- * @param tc scheduler context
- */
-static void
-reconstruct_cont (void *cls,
-		  const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct ReconstructContext *rcc = cls;
-
-  if (rcc->te != NULL)
-    {
-      GNUNET_FS_tree_encoder_finish (rcc->te, NULL, NULL);
-    }
-  rcc->dc->reconstruct_failed = GNUNET_YES;
-  rcc->dc->rcc = NULL;
-  if (rcc->fh != NULL)
-    GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (rcc->fh));
-  if ( (rcc->dc->th == NULL) &&
-       (rcc->dc->client != NULL) )
-    {
-#if DEBUG_DOWNLOAD
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Asking for transmission to FS service\n");
-#endif
-      rcc->dc->th = GNUNET_CLIENT_notify_transmit_ready (rcc->dc->client,
-							 sizeof (struct SearchMessage),
-							 GNUNET_CONSTANTS_SERVICE_TIMEOUT,
-							 GNUNET_NO,
-							 &transmit_download_request,
-							 rcc->dc);
-    }
-  else
-    {
-#if DEBUG_DOWNLOAD
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Transmission request not issued (%p %p)\n",
-		  rcc->dc->th, 
-		  rcc->dc->client);
-#endif
-    }
-  GNUNET_free (rcc);
-}
-
-
-static void
-get_next_block (void *cls,
-		const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct ReconstructContext *rcc = cls;  
-
-  rcc->task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_FS_tree_encoder_next (rcc->te);
-}
-
-
-/**
- * Function called asking for the current (encoded)
- * block to be processed.  After processing the
- * client should either call "GNUNET_FS_tree_encode_next"
- * or (on error) "GNUNET_FS_tree_encode_finish".
- *
- * This function checks if the content on disk matches
- * the expected content based on the URI.
- * 
- * @param cls closure
- * @param query the query for the block (key for lookup in the datastore)
- * @param offset offset of the block
- * @param depth depth
- * @param type type of the block (IBLOCK or DBLOCK)
- * @param block the (encrypted) block
- * @param block_size size of block (in bytes)
- */
-static void 
-reconstruct_cb (void *cls,
-		const GNUNET_HashCode *query,
-		uint64_t offset,
-		unsigned int depth,
-		enum GNUNET_BLOCK_Type type,
-		const void *block,
-		uint16_t block_size)
-{
-  struct ReconstructContext *rcc = cls;
-  struct ProcessResultClosure prc;
-  struct GNUNET_FS_TreeEncoder *te;
-  uint64_t off;
-  uint64_t boff;
-  uint64_t roff;
-  unsigned int i;
-
-  roff = offset / DBLOCK_SIZE;
-  for (i=rcc->dc->treedepth;i>depth;i--)
-    roff /= CHK_PER_INODE;
-  boff = roff * DBLOCK_SIZE;
-  for (i=rcc->dc->treedepth;i>depth;i--)
-    boff *= CHK_PER_INODE;
-  /* convert reading offset into IBLOCKs on-disk offset */
-  off = compute_disk_offset (GNUNET_FS_uri_chk_get_file_size (rcc->dc->uri),
-			     boff,
-			     depth,
-			     rcc->dc->treedepth);
-  if ( (off == rcc->offset) &&
-       (depth == rcc->depth) &&
-       (0 == memcmp (query,
-		     &rcc->chk.query,
-		     sizeof (GNUNET_HashCode))) )
-    {
-      /* already got it! */
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  _("Block reconstruction at offset %llu and depth %u successful\n"),
-		  (unsigned long long) offset,
-		  depth);
-      prc.dc = rcc->dc;
-      prc.data = block;
-      prc.size = block_size;
-      prc.type = type;
-      prc.query = rcc->chk.query;
-      prc.do_store = GNUNET_NO;
-      process_result_with_request (&prc,
-				   &rcc->chk.key,
-				   rcc->sm);
-      te = rcc->te;
-      rcc->te = NULL;
-      GNUNET_FS_tree_encoder_finish (te, NULL, NULL);
-      GNUNET_free (rcc);
-      return;     
-    }
-  rcc->task = GNUNET_SCHEDULER_add_now (&get_next_block,
-					rcc);
-}
-
-
-/**
- * Function called by the tree encoder to obtain
- * a block of plaintext data (for the lowest level
- * of the tree).
- *
- * @param cls our 'struct ReconstructContext'
- * @param offset identifies which block to get
- * @param max (maximum) number of bytes to get; returning
- *        fewer will also cause errors
- * @param buf where to copy the plaintext buffer
- * @param emsg location to store an error message (on error)
- * @return number of bytes copied to buf, 0 on error
- */
-static size_t
-fh_reader (void *cls,
-	   uint64_t offset,
-	   size_t max, 
-	   void *buf,
-	   char **emsg)
-{
-  struct ReconstructContext *rcc = cls;
-  struct GNUNET_DISK_FileHandle *fh = rcc->fh;
-  ssize_t ret;
-
-  *emsg = NULL;
-  if (offset !=
-      GNUNET_DISK_file_seek (fh,
-			     offset,
-			     GNUNET_DISK_SEEK_SET))
-    {
-      *emsg = GNUNET_strdup (strerror (errno));
-      return 0;
-    }
-  ret = GNUNET_DISK_file_read (fh, buf, max);
-  if (ret < 0)
-    {
-      *emsg = GNUNET_strdup (strerror (errno));
-      return 0;
-    }
-  return ret;
-}
-
-
-/**
- * Schedule the download of the specified block in the tree.
- *
- * @param dc overall download this block belongs to
- * @param chk content-hash-key of the block
- * @param offset offset of the block in the file
- *         (for IBlocks, the offset is the lowest
- *          offset of any DBlock in the subtree under
- *          the IBlock)
- * @param depth depth of the block, 0 is the root of the tree
- */
-static void
-schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
-			 const struct ContentHashKey *chk,
-			 uint64_t offset,
-			 unsigned int depth)
-{
-  struct DownloadRequest *sm;
-  uint64_t total;
-  uint64_t off;
-  size_t len;
-  char block[DBLOCK_SIZE];
-  GNUNET_HashCode key;
-  struct MatchDataContext mdc;
-  struct GNUNET_DISK_FileHandle *fh;
-  struct ReconstructContext *rcc;
-
-  total = GNUNET_FS_uri_chk_get_file_size (dc->uri);
-  len = GNUNET_FS_tree_calculate_block_size (total,
-					     dc->treedepth,
-					     offset,
-					     depth);
-  off = compute_disk_offset (total,
-			     offset,
-			     depth,
-			     dc->treedepth);
-  sm = GNUNET_malloc (sizeof (struct DownloadRequest));
-  sm->chk = *chk;
-  sm->offset = offset;
-  sm->depth = depth;
-  sm->is_pending = GNUNET_YES;
-  sm->next = dc->pending;
-  dc->pending = sm;
-  GNUNET_CONTAINER_multihashmap_put (dc->active,
-				     &chk->query,
-				     sm,
-				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  if ( (dc->tried_full_data == GNUNET_NO) &&
-       (depth == 0) )
-    {      
-      mdc.dc = dc;
-      mdc.sm = sm;
-      mdc.chk = chk;
-      mdc.offset = offset;
-      mdc.len = len;
-      mdc.done = GNUNET_NO;
-      GNUNET_CONTAINER_meta_data_iterate (dc->meta,
-					  &match_full_data,
-					  &mdc);
-      if (mdc.done == GNUNET_YES)
-	return;
-      dc->tried_full_data = GNUNET_YES; 
-    }
-#if DEBUG_DOWNLOAD
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Scheduling download at offset %llu and depth %u for `%s'\n",
-	      (unsigned long long) offset,
-	      depth,
-	      GNUNET_h2s (&chk->query));
-#endif
-  fh = NULL;
-  if ( ( (dc->old_file_size > off) ||
-	 ( (depth < dc->treedepth) &&
-	   (dc->reconstruct_failed == GNUNET_NO) ) ) &&
-       (dc->filename != NULL) )    
-    fh = GNUNET_DISK_file_open (dc->filename,
-				GNUNET_DISK_OPEN_READ,
-				GNUNET_DISK_PERM_NONE);    
-  if ( (fh != NULL) &&
-       (dc->old_file_size > off) &&
-       (off  == 
-	GNUNET_DISK_file_seek (fh,
-			       off,
-			       GNUNET_DISK_SEEK_SET) ) &&
-       (len == 
-	GNUNET_DISK_file_read (fh,
-			       block,
-			       len)) )
-    {
-      GNUNET_CRYPTO_hash (block, len, &key);
-      if ( (0 == memcmp (&key,
-			 &chk->key,
-			 sizeof (GNUNET_HashCode))) &&
-	   (GNUNET_OK ==
-	    encrypt_existing_match (dc,
-				    chk,
-				    sm,
-				    block,
-				    len,
-				    depth,
-				    GNUNET_NO)) )
-	{
-	  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fh));
-	  return;
-	}
-    }
-  rcc = GNUNET_malloc (sizeof (struct ReconstructContext));
-  rcc->fh = fh;
-  rcc->dc = dc;
-  rcc->sm = sm;
-  rcc->chk = *chk;
-  rcc->offset = off;
-  rcc->depth = depth;
-  dc->rcc = rcc;
-  if ( (depth < dc->treedepth) &&
-       (dc->reconstruct_failed == GNUNET_NO) &&
-       (fh != NULL) )
-    {
-      rcc->te = GNUNET_FS_tree_encoder_create (dc->h,
-					       dc->old_file_size,
-					       rcc,
-					       fh_reader,
-					       &reconstruct_cb,
-					       NULL,
-					       &reconstruct_cont);
-      GNUNET_FS_tree_encoder_next (rcc->te);
-      return;
-    }
-  reconstruct_cont (rcc, NULL);
-}
-
-
-/**
- * Suggest a filename based on given metadata.
- * 
- * @param md given meta data
- * @return NULL if meta data is useless for suggesting a filename
- */
-char *
-GNUNET_FS_meta_data_suggest_filename (const struct GNUNET_CONTAINER_MetaData *md)
-{
-  static const char *mimeMap[][2] = {
-    {"application/bz2", ".bz2"},
-    {"application/gnunet-directory", ".gnd"},
-    {"application/java", ".class"},
-    {"application/msword", ".doc"},
-    {"application/ogg", ".ogg"},
-    {"application/pdf", ".pdf"},
-    {"application/pgp-keys", ".key"},
-    {"application/pgp-signature", ".pgp"},
-    {"application/postscript", ".ps"},
-    {"application/rar", ".rar"},
-    {"application/rtf", ".rtf"},
-    {"application/xml", ".xml"},
-    {"application/x-debian-package", ".deb"},
-    {"application/x-dvi", ".dvi"},
-    {"applixation/x-flac", ".flac"},
-    {"applixation/x-gzip", ".gz"},
-    {"application/x-java-archive", ".jar"},
-    {"application/x-java-vm", ".class"},
-    {"application/x-python-code", ".pyc"},
-    {"application/x-redhat-package-manager", ".rpm"},
-    {"application/x-rpm", ".rpm"},
-    {"application/x-tar", ".tar"},
-    {"application/x-tex-pk", ".pk"},
-    {"application/x-texinfo", ".texinfo"},
-    {"application/x-xcf", ".xcf"},
-    {"application/x-xfig", ".xfig"},
-    {"application/zip", ".zip"},
-    
-    {"audio/midi", ".midi"},
-    {"audio/mpeg", ".mp3"},
-    {"audio/real", ".rm"},
-    {"audio/x-wav", ".wav"},
-    
-    {"image/gif", ".gif"},
-    {"image/jpeg", ".jpg"},
-    {"image/pcx", ".pcx"},
-    {"image/png", ".png"},
-    {"image/tiff", ".tiff"},
-    {"image/x-ms-bmp", ".bmp"},
-    {"image/x-xpixmap", ".xpm"},
-    
-    {"text/css", ".css"},
-    {"text/html", ".html"},
-    {"text/plain", ".txt"},
-    {"text/rtf", ".rtf"},
-    {"text/x-c++hdr", ".h++"},
-    {"text/x-c++src", ".c++"},
-    {"text/x-chdr", ".h"},
-    {"text/x-csrc", ".c"},
-    {"text/x-java", ".java"},
-    {"text/x-moc", ".moc"},
-    {"text/x-pascal", ".pas"},
-    {"text/x-perl", ".pl"},
-    {"text/x-python", ".py"},
-    {"text/x-tex", ".tex"},
-    
-    {"video/avi", ".avi"},
-    {"video/mpeg", ".mpeg"},
-    {"video/quicktime", ".qt"},
-    {"video/real", ".rm"},
-    {"video/x-msvideo", ".avi"},
-    {NULL, NULL},
-  };
-  char *ret;
-  unsigned int i;
-  char *mime;
-  char *base;
-  const char *ext;
-
-  ret = GNUNET_CONTAINER_meta_data_get_by_type (md,
-						EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME);
-  if (ret != NULL)
-    return ret;  
-  ext = NULL;
-  mime = GNUNET_CONTAINER_meta_data_get_by_type (md,
-						 EXTRACTOR_METATYPE_MIMETYPE);
-  if (mime != NULL)
-    {
-      i = 0;
-      while ( (mimeMap[i][0] != NULL) && 
-	      (0 != strcmp (mime, mimeMap[i][0])))
-        i++;
-      if (mimeMap[i][1] == NULL)
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | 
-		    GNUNET_ERROR_TYPE_BULK,
-		    _("Did not find mime type `%s' in extension list.\n"),
-		    mime);
-      else
-	ext = mimeMap[i][1];
-      GNUNET_free (mime);
-    }
-  base = GNUNET_CONTAINER_meta_data_get_first_by_types (md,
-							EXTRACTOR_METATYPE_TITLE,
-							EXTRACTOR_METATYPE_BOOK_TITLE,
-							EXTRACTOR_METATYPE_ORIGINAL_TITLE,
-							EXTRACTOR_METATYPE_PACKAGE_NAME,
-							EXTRACTOR_METATYPE_URL,
-							EXTRACTOR_METATYPE_URI, 
-							EXTRACTOR_METATYPE_DESCRIPTION,
-							EXTRACTOR_METATYPE_ISRC,
-							EXTRACTOR_METATYPE_JOURNAL_NAME,
-							EXTRACTOR_METATYPE_AUTHOR_NAME,
-							EXTRACTOR_METATYPE_SUBJECT,
-							EXTRACTOR_METATYPE_ALBUM,
-							EXTRACTOR_METATYPE_ARTIST,
-							EXTRACTOR_METATYPE_KEYWORDS,
-							EXTRACTOR_METATYPE_COMMENT,
-							EXTRACTOR_METATYPE_UNKNOWN,
-							-1);
-  if ( (base == NULL) &&
-       (ext == NULL) )
-    return NULL;
-  if (base == NULL)
-    return GNUNET_strdup (ext);
-  if (ext == NULL)
-    return base;
-  GNUNET_asprintf (&ret,
-		   "%s%s",
-		   base,
-		   ext);
-  GNUNET_free (base);
-  return ret;
 }
 
 
@@ -1006,9 +406,14 @@ full_recursive_download (struct GNUNET_FS_DownloadContext *dc)
 
 
 /**
- * Check if all child-downloads have completed and
- * if so, signal completion (and possibly recurse to
- * parent).
+ * Check if all child-downloads have completed (or trigger them if
+ * necessary) and once we're completely done, signal completion (and
+ * possibly recurse to parent).  This function MUST be called when the
+ * download of a file itself is done or when the download of a file is
+ * done and then later a direct child download has completed (and
+ * hence this download may complete itself).
+ *
+ * @param dc download to check for completion of children
  */
 static void
 check_completed (struct GNUNET_FS_DownloadContext *dc)
@@ -1016,6 +421,11 @@ check_completed (struct GNUNET_FS_DownloadContext *dc)
   struct GNUNET_FS_ProgressInfo pi;
   struct GNUNET_FS_DownloadContext *pos;
 
+  /* first, check if we need to download children */
+  if ( (dc->child_head == NULL) &&
+       (is_recursive_download (dc)) )
+    full_recursive_download (dc);  
+  /* then, check if children are done already */
   pos = dc->child_head;
   while (pos != NULL)
     {
@@ -1027,13 +437,413 @@ check_completed (struct GNUNET_FS_DownloadContext *dc)
 	return; /* not transitively done yet */
       pos = pos->next;
     }
+  /* All of our children are done, so mark this download done */
   dc->has_finished = GNUNET_YES;
   GNUNET_FS_download_sync_ (dc);
+
   /* signal completion */
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_COMPLETED;
   GNUNET_FS_download_make_status_ (&pi, dc);
+
+  /* let parent know */
   if (dc->parent != NULL)
     check_completed (dc->parent);  
+}
+
+
+/**
+ * We got a block of plaintext data (from the meta data).
+ * Try it for upward reconstruction of the data.  On success,
+ * the top-level block will move to state BRS_DOWNLOAD_UP.
+ *
+ * @param dr one of our request entries
+ * @param data plaintext data, starting from the beginning of the file
+ * @param data_len number of bytes in data
+ */ 
+static void
+try_match_block (struct GNUNET_FS_DownloadContext *dc,
+		 struct DownloadRequest *dr,
+		 const char *data,
+		 size_t data_len)
+{
+  struct GNUNET_FS_ProgressInfo pi;
+  unsigned int i;
+  char enc[DBLOCK_SIZE];
+  struct ContentHashKey chks[CHK_PER_INODE];
+  struct ContentHashKey chk;
+  struct GNUNET_CRYPTO_AesSessionKey sk;
+  struct GNUNET_CRYPTO_AesInitializationVector iv;
+  size_t dlen;
+  struct DownloadRequest *drc;
+  struct GNUNET_DISK_FileHandle *fh;
+  int complete;
+  const char *fn;
+  
+  if (BRS_DOWNLOAD_UP == dr->state)
+    return;
+  if (dr->depth > 0)
+    {
+      complete = GNUNET_YES;
+      for (i=0;i<dr->num_children;i++)
+	{
+	  drc = dr->children[i];
+	  try_match_block (dc,
+			   drc,
+			   data, data_len);
+	  if (drc->state != BRS_RECONSTRUCT_META_UP)
+	    complete = GNUNET_NO;
+	}
+      if (GNUNET_YES != complete)
+	return;
+      data = (const char*) chks;
+      dlen = dr->num_children * sizeof (struct ContentHashKey);
+    }
+  else
+    {
+      if (dr->offset > data_len) 
+	return; /* oops */
+      dlen = GNUNET_MIN (data_len - dr->offset,
+			 DBLOCK_SIZE);
+    }
+  GNUNET_CRYPTO_hash (&data[dr->offset],
+		      dlen,
+		      &chk.key);
+  GNUNET_CRYPTO_hash_to_aes_key (&chk.key, &sk, &iv);
+  if (-1 == GNUNET_CRYPTO_aes_encrypt (data, dlen,
+				       &sk,
+				       &iv,
+				       enc))
+    {
+      GNUNET_break (0);
+      return;
+    }
+  GNUNET_CRYPTO_hash (enc, dlen, &chk.query);
+  switch (dr->state)
+    {
+    case BRS_INIT:
+      dr->chk = chk;
+      dr->state = BRS_RECONSTRUCT_META_UP;
+      break;
+    case BRS_CHK_SET:
+      if (0 != memcmp (&chk,
+		       &dr->chk,
+		       sizeof (struct ContentHashKey)))
+	{
+	  /* other peer provided bogus meta data */
+	  GNUNET_break_op (0);
+	  break;
+	}
+      /* write block to disk */
+      fn = dc->filename != NULL 
+	? dc->filename 
+	: dc->temp_filename;
+      fh = GNUNET_DISK_file_open (fn,
+				  GNUNET_DISK_OPEN_READWRITE | 
+				  GNUNET_DISK_OPEN_CREATE | 
+				  GNUNET_DISK_OPEN_TRUNCATE,
+				  GNUNET_DISK_PERM_USER_READ |
+				  GNUNET_DISK_PERM_USER_WRITE |
+				  GNUNET_DISK_PERM_GROUP_READ |
+				  GNUNET_DISK_PERM_OTHER_READ);     
+      if (fh == NULL)
+	{
+	  GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+				    "open",
+				    fn);
+	  GNUNET_asprintf (&dc->emsg,
+			   _("Failed to open file `%s' for writing"),
+			   fn);
+	  GNUNET_DISK_file_close (fh);
+	  dr->state = BRS_ERROR;
+	  pi.status = GNUNET_FS_STATUS_DOWNLOAD_ERROR;
+	  pi.value.download.specifics.error.message = dc->emsg;
+	  GNUNET_FS_download_make_status_ (&pi, dc); 
+	  return;
+	}
+      if (data_len != 
+	  GNUNET_DISK_file_write (fh,
+				  data,
+				  data_len))
+	{
+	  GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+				    "write",
+				    fn);	      
+	  GNUNET_asprintf (&dc->emsg,
+			   _("Failed to open file `%s' for writing"),
+			   fn);
+	  GNUNET_DISK_file_close (fh);
+	  dr->state = BRS_ERROR;
+	  pi.status = GNUNET_FS_STATUS_DOWNLOAD_ERROR;
+	  pi.value.download.specifics.error.message = dc->emsg;
+	  GNUNET_FS_download_make_status_ (&pi, dc);	  
+	  return;
+	}
+      GNUNET_DISK_file_close (fh);
+      /* signal success */      
+      dr->state = BRS_DOWNLOAD_UP;
+      dc->completed = dc->length;
+      GNUNET_FS_download_sync_ (dc);
+      pi.status = GNUNET_FS_STATUS_DOWNLOAD_PROGRESS;
+      pi.value.download.specifics.progress.data = data;
+      pi.value.download.specifics.progress.offset = 0;
+      pi.value.download.specifics.progress.data_len = dlen;
+      pi.value.download.specifics.progress.depth = 0;
+      GNUNET_FS_download_make_status_ (&pi, dc);
+      check_completed (dc);      
+      break;
+    default:
+      /* how did we get here? */
+      GNUNET_break (0);
+      break;
+    }
+}
+
+
+/**
+ * Type of a function that libextractor calls for each
+ * meta data item found.  If we find full data meta data,
+ * call 'try_match_block' on it.
+ *
+ * @param cls our 'struct GNUNET_FS_DownloadContext*'
+ * @param plugin_name name of the plugin that produced this value;
+ *        special values can be used (i.e. '&lt;zlib&gt;' for zlib being
+ *        used in the main libextractor library and yielding
+ *        meta data).
+ * @param type libextractor-type describing the meta data
+ * @param format basic format information about data 
+ * @param data_mime_type mime-type of data (not of the original file);
+ *        can be NULL (if mime-type is not known)
+ * @param data actual meta-data found
+ * @param data_len number of bytes in data
+ * @return 0 to continue extracting, 1 to abort
+ */ 
+static int
+match_full_data (void *cls,
+		 const char *plugin_name,
+		 enum EXTRACTOR_MetaType type,
+		 enum EXTRACTOR_MetaFormat format,
+		 const char *data_mime_type,
+		 const char *data,
+		 size_t data_len)
+{
+  struct GNUNET_FS_DownloadContext *dc = cls;
+
+  if (type != EXTRACTOR_METATYPE_GNUNET_FULL_DATA) 
+    return 0;
+  if (GNUNET_FS_uri_chk_get_file_size (dc->uri) != data_len)
+    {
+      GNUNET_break_op (0);
+      return 1; /* bogus meta data */
+    }
+  try_match_block (dc,
+		   dc->top_request,
+		   data,
+		   data_len);
+  return 1;
+}
+
+
+/**
+ * Set the state of the given download request to
+ * BRS_DOWNLOAD_UP and propagate it up the tree.
+ *
+ * @param dr download request that is done
+ */
+static void
+propagate_up (struct DownloadRequest *dr)
+{
+  unsigned int i;
+
+  do
+    {
+      dr->state = BRS_DOWNLOAD_UP;
+      dr = dr->parent;
+      if (dr == NULL)
+	break;
+      for (i=0;i<dr->num_children;i++)
+	if (dr->children[i]->state != BRS_DOWNLOAD_UP)
+	  break;
+    }
+  while (i == dr->num_children);
+}
+
+
+/**
+ * Try top-down reconstruction.  Before, the given request node
+ * must have the state BRS_CHK_SET.  Afterwards, more nodes may
+ * have that state or advanced to BRS_DOWNLOAD_DOWN or even
+ * BRS_DOWNLOAD_UP.  It is also possible to get BRS_ERROR on the
+ * top level.
+ *
+ * @param dc overall download this block belongs to
+ * @param dr block to reconstruct
+ */
+static void
+try_top_down_reconstruction (struct GNUNET_FS_DownloadContext *dc,
+			     struct DownloadRequest *dr)
+{
+  uint64_t off;
+  char block[DBLOCK_SIZE];
+  GNUNET_HashCode key;
+  uint64_t total;
+  size_t len;
+  unsigned int i;
+  unsigned int chk_off;
+  struct DownloadRequest *drc;
+  uint64_t child_block_size;
+  const struct ContentHashKey *chks;
+  int up_done;
+  
+  GNUNET_assert (dc->rfh != NULL);
+  GNUNET_assert (dr->state == BRS_CHK_SET);
+  total = GNUNET_FS_uri_chk_get_file_size (dc->uri);
+  GNUNET_assert (dr->depth < dc->treedepth);
+  len = GNUNET_FS_tree_calculate_block_size (total,
+					     dr->offset,
+					     dr->depth);
+  GNUNET_assert (len <= DBLOCK_SIZE);
+  off = compute_disk_offset (total,
+			     dr->offset,
+			     dr->depth);
+  if (dc->old_file_size < off + len) 
+    return; /* failure */
+  if (off  != 
+      GNUNET_DISK_file_seek (dc->rfh,
+			     off,
+			     GNUNET_DISK_SEEK_SET) ) 
+    {
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+				"seek",
+				dc->filename);
+      return; /* failure */
+    }
+  if (len != 
+      GNUNET_DISK_file_read (dc->rfh,
+			     block,
+			     len)) 
+    {
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+				"read",
+				dc->filename);
+      return; /* failure */
+    }
+  GNUNET_CRYPTO_hash (block, len, &key);
+  if (0 != memcmp (&key,
+		   &dr->chk.key,
+		   sizeof (GNUNET_HashCode)))
+    return; /* mismatch */
+  if (GNUNET_OK !=
+      encrypt_existing_match (dc,
+			      chk,
+			      dr,
+			      block,
+			      len,
+			      GNUNET_NO))
+    {
+      /* hash matches but encrypted block does not, really bad */
+      dr->state = BRS_ERROR;
+      /* propagate up */
+      while (dr->parent != NULL)
+	{
+	  dr = dr->parent;
+	  dr->state = BRS_ERROR;
+	}
+      return;
+    }
+  /* block matches */
+  dr->state = BRS_DOWNLOAD_DOWN;
+
+  /* set CHKs for children */
+  up_done = GNUNET_YES;
+  chks = (const struct ContentHashKey*) block;
+  for (i=0;i<dr->num_children;i++)
+    {
+      drc = dr->children[i];
+      GNUNET_assert (drc->offset >= dr->offset);
+      child_block_size = GNUNET_FS_tree_compute_tree_size (drc->depth);
+      GNUNET_assert (0 == (drc->offset - dr->offset) % child_block_size);
+      chk_off = (drc->offset - dr->offset) / child_block_size;
+      GNUNET_assert (drc->state == BRS_INIT);
+      drc->state = BRS_CHK_SET;
+      drc->chk = chks[chk_off];
+      try_top_down_reconstruction (dc, drc);
+      if (drc->state != BRS_DOWNLOAD_UP)
+	up_done = GNUNET_NO; /* children not all done */
+    } 
+  if (up_done == GNUNET_YES)
+    propagate_up (dr); /* children all done (or no children...) */
+}
+
+
+/**
+ * Schedule the download of the specified block in the tree.
+ *
+ * @param dc overall download this block belongs to
+ * @param chk content-hash-key of the block
+ * @param offset offset of the block in the file
+ *         (for IBlocks, the offset is the lowest
+ *          offset of any DBlock in the subtree under
+ *          the IBlock)
+ * @param depth depth of the block, 0 is the root of the tree
+ */
+static void
+schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
+			 struct DownloadRequest *dr)
+{
+  unsigned int i;
+
+  switch (dr->state)
+    {
+    case BRS_INIT:
+      GNUNET_assert (0);
+      break;
+    case BRS_RECONSTRUCT_DOWN:
+      GNUNET_assert (0);
+      break;
+    case BRS_RECONSTRUCT_META_UP:
+      GNUNET_assert (0);
+      break;
+    case BRS_RECONSTRUCT_UP:
+      GNUNET_assert (0);
+      break;
+    case BRS_CHK_SET:
+      /* normal case, start download */
+      break;
+    case BRS_DOWNLOAD_DOWN:
+      for (i=0;i<dr->num_children;i++)
+	schedule_block_download (dc, dr->children[i]);
+      return;
+    case BRS_DOWNLOAD_UP:
+      /* We're done! */
+      return;
+    case BRS_ERROR:
+      GNUNET_break (0);
+      return;
+    }
+#if DEBUG_DOWNLOAD
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Scheduling download at offset %llu and depth %u for `%s'\n",
+	      (unsigned long long) dr->offset,
+	      dr->depth,
+	      GNUNET_h2s (&dr->chk.query));
+#endif
+  GNUNET_CONTAINER_DLL_insert (dc->pending_head,
+			       dc->pending_tail,
+			       dr);
+  dr->is_pending = GNUNET_YES;
+  GNUNET_CONTAINER_multihashmap_put (dc->active,
+				     &dr->chk.query,
+				     dr,
+				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  if (dc->client == NULL)
+    return; /* download not active */
+  if (NULL == dc->th)
+    dc->th = GNUNET_CLIENT_notify_transmit_ready (dc->client,
+						  sizeof (struct SearchMessage),
+						  GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+						  GNUNET_NO,
+						  &transmit_download_request,
+						  dc);
 }
 
 
@@ -1178,7 +988,7 @@ trigger_recursive_download (void *cls,
     {
       if (full_name == NULL)
 	{
-	  temp_name = GNUNET_DISK_mktemp ("gnunet-directory-download-tmp");
+	  temp_name = GNUNET_DISK_mktemp ("gnunet-download-trd");
 	  real_name = temp_name;
 	}
       else
@@ -1226,20 +1036,21 @@ trigger_recursive_download (void *cls,
 
 
 /**
- * Free entries in the map.
+ * (recursively) free download request structure
  *
- * @param cls unused (NULL)
- * @param key unused
- * @param entry entry of type "struct DownloadRequest" which is freed
- * @return GNUNET_OK
+ * @param dr request to free
  */
-static int
-free_entry (void *cls,
-	    const GNUNET_HashCode *key,
-	    void *entry)
+void
+GNUNET_FS_free_download_request_ (struct DownloadRequest *dr)
 {
-  GNUNET_free (entry);
-  return GNUNET_OK;
+  unsigned int i;
+
+  if (dr == NULL)
+    return;
+  for (i=0;i<dr->num_children;i++)
+    GNUNET_FS_free_download_request_ (dr->children[i]);
+  GNUNET_free_non_null (dr->children);
+  GNUNET_free (dr);
 }
 
 
@@ -1254,15 +1065,14 @@ free_entry (void *cls,
  */
 static int
 process_result_with_request (void *cls,
-			     const GNUNET_HashCode * key,
+			     const GNUNET_HashCode *key,
 			     void *value)
 {
   struct ProcessResultClosure *prc = cls;
-  struct DownloadRequest *sm = value;
-  struct DownloadRequest *ppos;
-  struct DownloadRequest *pprev;
-  struct GNUNET_DISK_FileHandle *fh;
+  struct DownloadRequest *dr = value;
   struct GNUNET_FS_DownloadContext *dc = prc->dc;
+  struct DownloadRequest *drc;
+  struct GNUNET_DISK_FileHandle *fh = NULL;
   struct GNUNET_CRYPTO_AesSessionKey skey;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
   char pt[prc->size];
@@ -1273,43 +1083,53 @@ process_result_with_request (void *cls,
   int i;
   struct ContentHashKey *chk;
 
-  fh = NULL;
+#if DEBUG_DOWNLOAD
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received block `%s' matching pending request at depth %u and offset %llu/%llu\n",
+	      GNUNET_h2s (key),
+	      dr->depth,
+	      (unsigned long long) dr->offset,
+	      (unsigned long long) GNUNET_ntohll (dc->uri->data.chk.file_length));
+	      
+#endif
   bs = GNUNET_FS_tree_calculate_block_size (GNUNET_ntohll (dc->uri->data.chk.file_length),
-					    dc->treedepth,
-					    sm->offset,
-					    sm->depth);
+					    dr->offset,
+					    dr->depth);
   if (prc->size != bs)
     {
-#if DEBUG_DOWNLOAD
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Internal error or bogus download URI (expected %u bytes, got %u)\n",
-		  bs,
-		  prc->size);
-#endif
-      dc->emsg = GNUNET_strdup ("Internal error or bogus download URI");
+      GNUNET_asprintf (&dc->emsg,
+		       _("Internal error or bogus download URI (expected %u bytes at depth %u and offset %llu/%llu, got %u bytes)\n"),
+		       bs,
+		       dr->depth,
+		       (unsigned long long) dr->offset,
+		       (unsigned long long) GNUNET_ntohll (dc->uri->data.chk.file_length),
+		       prc->size);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  "%s", 
+		  dc->emsg);
+      while (dr->parent != NULL)
+	{
+	  dr->state = BRS_ERROR;
+	  dr = dr->parent;
+	}
+      dr->state = BRS_ERROR;
       goto signal_error;
     }
+
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove (dc->active,
 						       &prc->query,
-						       sm));
-  /* if this request is on the pending list, remove it! */
-  pprev = NULL;
-  ppos = dc->pending;
-  while (ppos != NULL)
+						       dr));
+  if (GNUNET_YES == dr->is_pending)
     {
-      if (ppos == sm)
-	{
-	  if (pprev == NULL)
-	    dc->pending = ppos->next;
-	  else
-	    pprev->next = ppos->next;
-	  break;
-	}
-      pprev = ppos;
-      ppos = ppos->next;
+      GNUNET_CONTAINER_DLL_remove (dc->pending_head,
+				   dc->pending_tail,
+				   dr);
+      dr->is_pending = GNUNET_NO;
     }
-  GNUNET_CRYPTO_hash_to_aes_key (&sm->chk.key, &skey, &iv);
+
+
+  GNUNET_CRYPTO_hash_to_aes_key (&dr->chk.key, &skey, &iv);
   if (-1 == GNUNET_CRYPTO_aes_decrypt (prc->data,
 				       prc->size,
 				       &skey,
@@ -1317,18 +1137,17 @@ process_result_with_request (void *cls,
 				       pt))
     {
       GNUNET_break (0);
-      dc->emsg = GNUNET_strdup ("internal error decrypting content");
+      dc->emsg = GNUNET_strdup (_("internal error decrypting content"));
       goto signal_error;
     }
   off = compute_disk_offset (GNUNET_ntohll (dc->uri->data.chk.file_length),
-			     sm->offset,
-			     sm->depth,
-			     dc->treedepth);
+			     dr->offset,
+			     dr->depth);
   /* save to disk */
   if ( ( GNUNET_YES == prc->do_store) &&
        ( (dc->filename != NULL) ||
 	 (is_recursive_download (dc)) ) &&
-       ( (sm->depth == dc->treedepth) ||
+       ( (dr->depth == dc->treedepth) ||
 	 (0 == (dc->options & GNUNET_FS_DOWNLOAD_NO_TEMPORARIES)) ) )
     {
       fh = GNUNET_DISK_file_open (dc->filename != NULL 
@@ -1339,23 +1158,15 @@ process_result_with_request (void *cls,
 				  GNUNET_DISK_PERM_USER_READ |
 				  GNUNET_DISK_PERM_USER_WRITE |
 				  GNUNET_DISK_PERM_GROUP_READ |
-				  GNUNET_DISK_PERM_OTHER_READ);
-    }
-  if ( (NULL == fh) &&
-       (GNUNET_YES == prc->do_store) &&
-       ( (dc->filename != NULL) ||
-	 (is_recursive_download (dc)) ) &&
-       ( (sm->depth == dc->treedepth) ||
-	 (0 == (dc->options & GNUNET_FS_DOWNLOAD_NO_TEMPORARIES)) ) )
-    {
-      GNUNET_asprintf (&dc->emsg,
-		       _("Download failed: could not open file `%s': %s\n"),
-		       dc->filename,
-		       STRERROR (errno));
-      goto signal_error;
-    }
-  if (fh != NULL)
-    {
+				  GNUNET_DISK_PERM_OTHER_READ);    
+      if (NULL == fh)
+	{
+	  GNUNET_asprintf (&dc->emsg,
+			   _("Download failed: could not open file `%s': %s\n"),
+			   dc->filename,
+			   STRERROR (errno));
+	  goto signal_error;
+	}      
 #if DEBUG_DOWNLOAD
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Saving decrypted block to disk at offset %llu\n",
@@ -1389,22 +1200,24 @@ process_result_with_request (void *cls,
       GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fh));
       fh = NULL;
     }
-  if (sm->depth == dc->treedepth) 
+
+  if (dr->depth == 0) 
     {
+      /* DBLOCK, update progress and try recursion if applicable */
       app = prc->size;
-      if (sm->offset < dc->offset)
+      if (dr->offset < dc->offset)
 	{
 	  /* starting offset begins in the middle of pt,
 	     do not count first bytes as progress */
-	  GNUNET_assert (app > (dc->offset - sm->offset));
-	  app -= (dc->offset - sm->offset);	  
+	  GNUNET_assert (app > (dc->offset - dr->offset));
+	  app -= (dc->offset - dr->offset);	  
 	}
-      if (sm->offset + prc->size > dc->offset + dc->length)
+      if (dr->offset + prc->size > dc->offset + dc->length)
 	{
 	  /* end of block is after relevant range,
 	     do not count last bytes as progress */
-	  GNUNET_assert (app > (sm->offset + prc->size) - (dc->offset + dc->length));
-	  app -= (sm->offset + prc->size) - (dc->offset + dc->length);
+	  GNUNET_assert (app > (dr->offset + prc->size) - (dc->offset + dc->length));
+	  app -= (dr->offset + prc->size) - (dc->offset + dc->length);
 	}
       dc->completed += app;
 
@@ -1419,15 +1232,18 @@ process_result_with_request (void *cls,
 					   dc);         
 	    
     }
+  dr->state = BRS_DOWNLOAD_DOWN;
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_PROGRESS;
   pi.value.download.specifics.progress.data = pt;
-  pi.value.download.specifics.progress.offset = sm->offset;
+  pi.value.download.specifics.progress.offset = dr->offset;
   pi.value.download.specifics.progress.data_len = prc->size;
-  pi.value.download.specifics.progress.depth = sm->depth;
+  pi.value.download.specifics.progress.depth = dr->depth;
   GNUNET_FS_download_make_status_ (&pi, dc);
   GNUNET_assert (dc->completed <= dc->length);
+
   if (dc->completed == dc->length)
     {
+      /* download completed, signal */
 #if DEBUG_DOWNLOAD
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Download completed, truncating file to desired length %llu\n",
@@ -1447,46 +1263,64 @@ process_result_with_request (void *cls,
 	  GNUNET_FS_dequeue_ (dc->job_queue);
 	  dc->job_queue = NULL;
 	}
-      if (is_recursive_download (dc))
-	full_recursive_download (dc);
-      if (dc->child_head == NULL)
-	{
-	  /* signal completion */
-	  pi.status = GNUNET_FS_STATUS_DOWNLOAD_COMPLETED;
-	  GNUNET_FS_download_make_status_ (&pi, dc);
-	  if (dc->parent != NULL)
-	    check_completed (dc->parent);
-	}
-      GNUNET_assert (sm->depth == dc->treedepth);
+      GNUNET_assert (dr->depth == 0);
+      check_completed (dc);
     }
-  if (sm->depth == dc->treedepth) 
+  if (dr->depth == 0) 
     {
+      propagate_up (dr);
+      /* bottom of the tree, no child downloads possible, just sync */
       GNUNET_FS_download_sync_ (dc);
-      GNUNET_free (sm);      
       return GNUNET_YES;
     }
+
 #if DEBUG_DOWNLOAD
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Triggering downloads of children (this block was at depth %u and offset %llu)\n",
-	      sm->depth,
-	      (unsigned long long) sm->offset);
+	      dr->depth,
+	      (unsigned long long) dr->offset);
 #endif
   GNUNET_assert (0 == (prc->size % sizeof(struct ContentHashKey)));
   chk = (struct ContentHashKey*) pt;
   for (i=(prc->size / sizeof(struct ContentHashKey))-1;i>=0;i--)
     {
-      off = compute_dblock_offset (sm->offset,
-				   sm->depth,
-				   dc->treedepth,
+      off = compute_dblock_offset (dr->offset,
+				   dr->depth,
 				   i);
-      if ( (off + DBLOCK_SIZE >= dc->offset) &&
-	   (off < dc->offset + dc->length) ) 
-	schedule_block_download (dc,
-				 &chk[i],
-				 off,
-				 sm->depth + 1);
+      drc = dr->children[i];
+      switch (drc->state)
+	{
+	case BRS_INIT:
+	  drc->chk = chk[i];
+	  drc->state = BRS_CHK_SET;
+	  schedule_block_download (dc, drc);
+	  break;
+	case BRS_RECONSTRUCT_DOWN:
+	  GNUNET_assert (0);
+	  break;
+	case BRS_RECONSTRUCT_META_UP:
+	  GNUNET_assert (0);
+	  break;
+	case BRS_RECONSTRUCT_UP:
+	  GNUNET_assert (0);
+	  break;
+	case BRS_CHK_SET:
+	  GNUNET_assert (0);
+	  break;
+	case BRS_DOWNLOAD_DOWN:
+	  GNUNET_assert (0);
+	  break;
+	case BRS_DOWNLOAD_UP:
+	  GNUNET_assert (0);
+	  break;
+	case BRS_ERROR:
+	  GNUNET_assert (0);
+	  break;
+	default:
+	  GNUNET_assert (0);
+	  break;
+	}
     }
-  GNUNET_free (sm);
   GNUNET_FS_download_sync_ (dc);
   return GNUNET_YES;
 
@@ -1503,12 +1337,13 @@ process_result_with_request (void *cls,
       dc->th = NULL;
     }
   GNUNET_CLIENT_disconnect (dc->client, GNUNET_NO);
-  GNUNET_CONTAINER_multihashmap_iterate (dc->active,
-					 &free_entry,
-					 NULL);
-  dc->pending = NULL;
   dc->client = NULL;
-  GNUNET_free (sm);
+  GNUNET_FS_free_download_request_ (dc->top_request);
+  dc->top_request = NULL;
+  GNUNET_CONTAINER_multihashmap_destroy (dc->active);
+  dc->active = NULL;
+  dc->pending_head = NULL;
+  dc->pending_tail = NULL;
   GNUNET_FS_download_sync_ (dc);
   return GNUNET_NO;
 }
@@ -1608,6 +1443,7 @@ transmit_download_request (void *cls,
   struct GNUNET_FS_DownloadContext *dc = cls;
   size_t msize;
   struct SearchMessage *sm;
+  struct DownloadRequest *dr;
 
   dc->th = NULL;
   if (NULL == buf)
@@ -1622,13 +1458,13 @@ transmit_download_request (void *cls,
   GNUNET_assert (size >= sizeof (struct SearchMessage));
   msize = 0;
   sm = buf;
-  while ( (dc->pending != NULL) &&
+  while ( (NULL != (dr = dc->pending_head)) &&
 	  (size >= msize + sizeof (struct SearchMessage)) )
     {
 #if DEBUG_DOWNLOAD
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Transmitting download request for `%s' to `%s'-service\n",
-		  GNUNET_h2s (&dc->pending->chk.query),
+		  GNUNET_h2s (&dr->chk.query),
 		  "FS");
 #endif
       memset (sm, 0, sizeof (struct SearchMessage));
@@ -1638,25 +1474,30 @@ transmit_download_request (void *cls,
 	sm->options = htonl (1);
       else
 	sm->options = htonl (0);      
-      if (dc->pending->depth == dc->treedepth)
+      if (dr->depth == 0)
 	sm->type = htonl (GNUNET_BLOCK_TYPE_FS_DBLOCK);
       else
 	sm->type = htonl (GNUNET_BLOCK_TYPE_FS_IBLOCK);
       sm->anonymity_level = htonl (dc->anonymity);
       sm->target = dc->target.hashPubKey;
-      sm->query = dc->pending->chk.query;
-      dc->pending->is_pending = GNUNET_NO;
-      dc->pending = dc->pending->next;
+      sm->query = dr->chk.query;
+      GNUNET_CONTAINER_DLL_remove (dc->pending_head,
+				   dc->pending_tail,
+				   dr);
+      dr->is_pending = GNUNET_NO;
       msize += sizeof (struct SearchMessage);
       sm++;
     }
-  if (dc->pending != NULL)
-    dc->th = GNUNET_CLIENT_notify_transmit_ready (dc->client,
-						  sizeof (struct SearchMessage),
-						  GNUNET_CONSTANTS_SERVICE_TIMEOUT,
-						  GNUNET_NO,
-						  &transmit_download_request,
-						  dc); 
+  if (dc->pending_head != NULL)
+    {
+      dc->th = GNUNET_CLIENT_notify_transmit_ready (dc->client,
+						    sizeof (struct SearchMessage),
+						    GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+						    GNUNET_NO,
+						    &transmit_download_request,
+						    dc); 
+      GNUNET_assert (dc->th != NULL);
+    }
   return msize;
 }
 
@@ -1686,12 +1527,16 @@ do_reconnect (void *cls,
       return;
     }
   dc->client = client;
-  dc->th = GNUNET_CLIENT_notify_transmit_ready (client,
-						sizeof (struct SearchMessage),
-						GNUNET_CONSTANTS_SERVICE_TIMEOUT,
-						GNUNET_NO,
-						&transmit_download_request,
-						dc);  
+  if (dc->pending_head != NULL)
+    {
+      dc->th = GNUNET_CLIENT_notify_transmit_ready (client,
+						    sizeof (struct SearchMessage),
+						    GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+						    GNUNET_NO,
+						    &transmit_download_request,
+						    dc);
+      GNUNET_assert (dc->th != NULL);
+    }
   GNUNET_CLIENT_receive (client,
 			 &receive_results,
 			 dc,
@@ -1700,7 +1545,7 @@ do_reconnect (void *cls,
 
 
 /**
- * Add entries that are not yet pending back to the pending list.
+ * Add entries to the pending list.
  *
  * @param cls our download context
  * @param key unused
@@ -1715,12 +1560,10 @@ retry_entry (void *cls,
   struct GNUNET_FS_DownloadContext *dc = cls;
   struct DownloadRequest *dr = entry;
 
-  if (! dr->is_pending)
-    {
-      dr->next = dc->pending;
-      dr->is_pending = GNUNET_YES;
-      dc->pending = entry;
-    }
+  GNUNET_CONTAINER_DLL_insert (dc->pending_head,
+			       dc->pending_tail,
+			       dr);
+  dr->is_pending = GNUNET_YES;
   return GNUNET_OK;
 }
 
@@ -1747,6 +1590,9 @@ try_reconnect (struct GNUNET_FS_DownloadContext *dc)
 	  GNUNET_CLIENT_notify_transmit_ready_cancel (dc->th);
 	  dc->th = NULL;
 	}
+      /* full reset of the pending list */
+      dc->pending_head = NULL;
+      dc->pending_tail = NULL;
       GNUNET_CONTAINER_multihashmap_iterate (dc->active,
 					     &retry_entry,
 					     dc);
@@ -1762,7 +1608,6 @@ try_reconnect (struct GNUNET_FS_DownloadContext *dc)
 				    &do_reconnect,
 				    dc);
 }
-
 
 
 /**
@@ -1799,13 +1644,16 @@ activate_fs_download (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Asking for transmission to FS service\n");
 #endif
-  dc->th = GNUNET_CLIENT_notify_transmit_ready (dc->client,
-						sizeof (struct SearchMessage),
-						GNUNET_CONSTANTS_SERVICE_TIMEOUT,
-						GNUNET_NO,
-						&transmit_download_request,
-						dc);    
-  GNUNET_assert (dc->th != NULL);
+  if (dc->pending_head != NULL)
+    {
+      dc->th = GNUNET_CLIENT_notify_transmit_ready (dc->client,
+						    sizeof (struct SearchMessage),
+						    GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+						    GNUNET_NO,
+						    &transmit_download_request,
+						    dc);    
+      GNUNET_assert (dc->th != NULL);
+    }
 }
 
 
@@ -1840,6 +1688,271 @@ deactivate_fs_download (void *cls)
 
 
 /**
+ * (recursively) Create a download request structure.
+ *
+ * @param parent parent of the current entry
+ * @param depth depth of the current entry, 0 are the DBLOCKs,
+ *              top level block is 'dc->treedepth - 1'
+ * @param dr_offset offset in the original file this block maps to
+ *              (as in, offset of the first byte of the first DBLOCK 
+ *               in the subtree rooted in the returned download request tree)
+ * @param file_start_offset desired starting offset for the download
+ *             in the original file; requesting tree should not contain
+ *             DBLOCKs prior to the file_start_offset
+ * @param file_length desired number of bytes the user wanted to access
+ *        (from file_start_offset).  Resulting tree should not contain
+ *        DBLOCKs after file_start_offset + file_length.
+ * @return download request tree for the given range of DBLOCKs at
+ *         the specified depth
+ */
+static struct DownloadRequest *
+create_download_request (struct DownloadRequest *parent,
+			 unsigned int depth,
+			 uint64_t dr_offset,
+			 uint64_t file_start_offset,
+			 uint64_t desired_length)
+{
+  struct DownloadRequest *dr;
+  unsigned int i;
+  unsigned int head_skip;
+  uint64_t child_block_size;
+  
+  dr = GNUNET_malloc (sizeof (struct DownloadRequest));
+  dr->parent = parent;
+  dr->depth = depth;
+  dr->offset = dr_offset;
+  if (depth > 0)
+    {
+      child_block_size = GNUNET_FS_tree_compute_tree_size (depth - 1);
+      
+      /* calculate how many blocks at this level are not interesting
+	 from the start (rounded down), either because of the requested
+	 file offset or because this IBlock is further along */
+      if (dr_offset < file_start_offset)
+	head_skip = file_start_offset / child_block_size;	
+      else
+	head_skip = dr_offset / child_block_size;	
+
+      /* calculate index of last block at this level that is interesting (rounded up) */
+      dr->num_children = file_start_offset + desired_length / child_block_size;
+      if (dr->num_children * child_block_size < file_start_offset + desired_length)
+	dr->num_children++; /* round up */
+
+      /* now we can get the total number of children for this block */
+      dr->num_children -= head_skip;
+      if (dr->num_children > CHK_PER_INODE)
+	dr->num_children = CHK_PER_INODE; /* cap at max */
+
+      /* why else would we have gotten here to begin with? (that'd be a bad logic error) */
+      GNUNET_assert (dr->num_children > 0); 
+
+      dr->children = GNUNET_malloc (dr->num_children * 
+				    sizeof (struct DownloadRequest *));
+      for (i=0;i<dr->num_children;i++)
+	dr->children[i] = create_download_request (dr,
+						   depth - 1,
+						   dr_offset + i * child_block_size,
+						   file_start_offset,
+						   desired_length);      
+    }
+  return dr;
+}
+
+
+/**
+ * Continuation after a possible attempt to reconstruct
+ * the current IBlock from the existing file.
+ *
+ * @param cls the 'struct ReconstructContext'
+ * @param tc scheduler context
+ */
+static void
+reconstruct_cont (void *cls,
+		  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_FS_DownloadContext *dc = cls;
+
+  /* clean up state from tree encoder */
+  if (dc->te != NULL)
+    {
+      GNUNET_FS_tree_encoder_finish (dc->te, NULL, NULL);
+      dc->te = NULL;
+    }
+  if (dc->task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (dc->task);
+      dc->task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  if (dc->rfh != NULL)
+    {
+      GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (dc->rfh));
+      dc->rfh = NULL;
+    }
+  /* start "normal" download */
+  schedule_block_download (dc, 
+			   dc->top_request);
+}
+
+
+/**
+ * Task requesting the next block from the tree encoder.
+ *
+ * @param tc task context
+ */
+static void
+get_next_block (void *cls,
+		const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_FS_DownloadContext *dc = cls;
+
+  dc->task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_FS_tree_encoder_next (dc->te);
+}
+
+
+
+/**
+ * Function called asking for the current (encoded)
+ * block to be processed.  After processing the
+ * client should either call "GNUNET_FS_tree_encode_next"
+ * or (on error) "GNUNET_FS_tree_encode_finish".
+ *
+ * This function checks if the content on disk matches
+ * the expected content based on the URI.
+ * 
+ * @param cls closure
+ * @param chk content hash key for the block
+ * @param offset offset of the block
+ * @param depth depth of the block, 0 for DBLOCK
+ * @param type type of the block (IBLOCK or DBLOCK)
+ * @param block the (encrypted) block
+ * @param block_size size of block (in bytes)
+ */
+static void 
+reconstruct_cb (void *cls,
+		const struct ContentHashKey *chk,
+		uint64_t offset,
+		unsigned int depth,
+		enum GNUNET_BLOCK_Type type,
+		const void *block,
+		uint16_t block_size)
+{
+  struct GNUNET_FS_DownloadContext *dc = cls;
+  struct GNUNET_FS_ProgressInfo pi;
+  struct DownloadRequest *dr;
+  uint64_t blen;
+  unsigned int chld;
+
+  /* find corresponding request entry */
+  dr = dc->top_request;
+  while (dr->depth > depth)
+    {
+      blen = GNUNET_FS_tree_compute_tree_size (dr->depth);
+      chld = (offset - dr->offset) / blen;
+      GNUNET_assert (chld < dr->num_children);
+      dr = dr->children[chld];
+    }
+  switch (dr->state)
+    {
+    case BRS_INIT:
+      break;
+    case BRS_RECONSTRUCT_DOWN:
+      break;
+    case BRS_RECONSTRUCT_META_UP:
+      break;
+    case BRS_RECONSTRUCT_UP:
+      break;
+    case BRS_CHK_SET:
+      if (0 == memcmp (chk,
+		       &dr->chk,
+		       sizeof (struct ContentHashKey)))
+	{
+	  /* block matches, hence tree below matches; 
+	     this request is done! */
+	  dr->state = BRS_DOWNLOAD_UP;
+	  /* calculate how many bytes of payload this block
+	     corresponds to */
+	  blen = GNUNET_FS_tree_compute_tree_size (dr->depth);
+	  /* how many of those bytes are in the requested range? */
+	  blen = GNUNET_MIN (blen,
+			     dc->length + dc->offset - dr->offset);
+	  /* signal progress */
+	  dc->completed += blen;
+	  pi.status = GNUNET_FS_STATUS_DOWNLOAD_PROGRESS;
+	  pi.value.download.specifics.progress.data = NULL;
+	  pi.value.download.specifics.progress.offset = offset;
+	  pi.value.download.specifics.progress.data_len = 0;
+	  pi.value.download.specifics.progress.depth = 0;
+	  GNUNET_FS_download_make_status_ (&pi, dc);	  	 
+	}
+      else
+	{
+	}
+      break; 
+    case BRS_DOWNLOAD_DOWN:
+      break; 
+    case BRS_DOWNLOAD_UP:
+      break;
+    case BRS_ERROR:
+      break;
+    default:
+      GNUNET_assert (0);
+      break;
+    }
+  if ( (dr == dc->top_request) &&
+       (dr->state == BRS_DOWNLOAD_UP) )
+    {
+      check_completed (dc);
+      return;
+    }
+  dc->task = GNUNET_SCHEDULER_add_now (&get_next_block,
+				       dc);
+}
+
+
+/**
+ * Function called by the tree encoder to obtain a block of plaintext
+ * data (for the lowest level of the tree).
+ *
+ * @param cls our 'struct ReconstructContext'
+ * @param offset identifies which block to get
+ * @param max (maximum) number of bytes to get; returning
+ *        fewer will also cause errors
+ * @param buf where to copy the plaintext buffer
+ * @param emsg location to store an error message (on error)
+ * @return number of bytes copied to buf, 0 on error
+ */
+static size_t
+fh_reader (void *cls,
+	   uint64_t offset,
+	   size_t max, 
+	   void *buf,
+	   char **emsg)
+{
+  struct GNUNET_FS_DownloadContext *dc = cls;
+  struct GNUNET_DISK_FileHandle *fh = dc->rfh;
+  ssize_t ret;
+
+  *emsg = NULL;
+  if (offset !=
+      GNUNET_DISK_file_seek (fh,
+			     offset,
+			     GNUNET_DISK_SEEK_SET))
+    {
+      *emsg = GNUNET_strdup (strerror (errno));
+      return 0;
+    }
+  ret = GNUNET_DISK_file_read (fh, buf, max);
+  if (ret < 0)
+    {
+      *emsg = GNUNET_strdup (strerror (errno));
+      return 0;
+    }
+  return ret;
+}
+
+
+/**
  * Task that creates the initial (top-level) download
  * request for the file.
  *
@@ -1854,7 +1967,11 @@ GNUNET_FS_download_start_task_ (void *cls,
   struct GNUNET_FS_ProgressInfo pi;
   struct GNUNET_DISK_FileHandle *fh;
 
-  dc->start_task = GNUNET_SCHEDULER_NO_TASK;
+#if DEBUG_DOWNLOAD
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Start task running...\n");
+#endif
+  dc->task = GNUNET_SCHEDULER_NO_TASK;
   if (dc->length == 0)
     {
       /* no bytes required! */
@@ -1863,33 +1980,128 @@ GNUNET_FS_download_start_task_ (void *cls,
 	  fh = GNUNET_DISK_file_open (dc->filename != NULL 
 				      ? dc->filename 
 				      : dc->temp_filename, 
-				      GNUNET_DISK_OPEN_READWRITE | 
-				      GNUNET_DISK_OPEN_CREATE,
+				      GNUNET_DISK_OPEN_READWRITE |
+				      GNUNET_DISK_OPEN_CREATE |
+				      ( (0 == GNUNET_FS_uri_chk_get_file_size (dc->uri)) 
+					? GNUNET_DISK_OPEN_TRUNCATE : 0),
 				      GNUNET_DISK_PERM_USER_READ |
 				      GNUNET_DISK_PERM_USER_WRITE |
 				      GNUNET_DISK_PERM_GROUP_READ |
 				      GNUNET_DISK_PERM_OTHER_READ);
 	  GNUNET_DISK_file_close (fh);
 	}
-
-      pi.status = GNUNET_FS_STATUS_DOWNLOAD_COMPLETED;
-      GNUNET_FS_download_make_status_ (&pi, dc);
       GNUNET_FS_download_sync_ (dc);
-       if (dc->parent != NULL)
-	check_completed (dc->parent);      
+      check_completed (dc);
       return;
     }
-  schedule_block_download (dc, 
-			   (dc->uri->type == chk) 
-			   ? &dc->uri->data.chk.chk
-			   : &dc->uri->data.loc.fi.chk,
-			   0, 
-			   1 /* 0 == CHK, 1 == top */); 
-  GNUNET_FS_download_sync_ (dc);
+  if (dc->emsg != NULL)	
+    return;
+  if (dc->top_request == NULL)
+    {
+      dc->top_request = create_download_request (NULL, dc->treedepth - 1, 0,
+						 dc->offset, dc->length);
+      dc->top_request->state = BRS_CHK_SET;
+      dc->top_request->chk = (dc->uri->type == chk) 
+	? dc->uri->data.chk.chk
+	: dc->uri->data.loc.fi.chk;
+      /* signal start */
+      GNUNET_FS_download_sync_ (dc);
+      pi.status = GNUNET_FS_STATUS_DOWNLOAD_START;
+      pi.value.download.specifics.start.meta = dc->meta;
+      GNUNET_FS_download_make_status_ (&pi, dc);
+    }
   GNUNET_FS_download_start_downloading_ (dc);
-  pi.status = GNUNET_FS_STATUS_DOWNLOAD_START;
-  pi.value.download.specifics.start.meta = dc->meta;
-  GNUNET_FS_download_make_status_ (&pi, dc);
+  /* attempt reconstruction from disk */
+  if (GNUNET_YES == GNUNET_DISK_file_test (dc->filename))    
+    dc->rfh = GNUNET_DISK_file_open (dc->filename,
+				     GNUNET_DISK_OPEN_READ,
+				     GNUNET_DISK_PERM_NONE);    
+  if (dc->top_request->state == BRS_CHK_SET)
+    {
+      if (dc->rfh != NULL)
+	{
+	  /* first, try top-down */
+	  try_top_down_reconstruction (dc, dc->top_request);
+	  switch (dc->top_request->state)
+	    {
+	    case BRS_CHK_SET:
+	      break; /* normal */
+	    case BRS_DOWNLOAD_DOWN:
+	      break; /* normal, some blocks already down */
+	    case BRS_DOWNLOAD_UP:
+	      /* already done entirely, party! */
+	      dc->completed = dc->length;
+	      GNUNET_FS_download_sync_ (dc);
+	      pi.status = GNUNET_FS_STATUS_DOWNLOAD_PROGRESS;
+	      /* slightly ugly: no data provided to callee; maybe mmap the
+		 file instead? Or is 'data' pure convenience!? */
+	      pi.value.download.specifics.progress.data = NULL;
+	      pi.value.download.specifics.progress.offset = dc->offset;
+	      pi.value.download.specifics.progress.data_len = dc->length;
+	      pi.value.download.specifics.progress.depth = 0;
+	      GNUNET_FS_download_make_status_ (&pi, dc);
+	      if (dc->rfh != NULL)
+		{
+		  /* avoid hanging on to file handle longer than 
+		     necessary */
+		  GNUNET_DISK_file_close (dc->rfh);
+		  dc->rfh = NULL;
+		}
+	      check_completed (dc);
+	      return;      
+	    case BRS_ERROR:
+	      GNUNET_asprintf (&dc->emsg,
+			       _("Invalid URI"));
+	      GNUNET_FS_download_sync_ (dc);
+	      pi.status = GNUNET_FS_STATUS_DOWNLOAD_ERROR;
+	      pi.value.download.specifics.error.message = dc->emsg;
+	      GNUNET_FS_download_make_status_ (&pi, dc);
+	      return;
+	    default:
+	      GNUNET_assert (0);
+	      break;
+	    }
+	}
+    }
+  /* attempt reconstruction from meta data */
+  if (GNUNET_FS_uri_chk_get_file_size (dc->uri) <= MAX_INLINE_SIZE)
+    {
+      GNUNET_CONTAINER_meta_data_iterate (dc->meta,
+					  &match_full_data,
+					  dc);
+      if (dc->top_request->state == BRS_DOWNLOAD_UP)
+	{
+	  if (dc->rfh != NULL)
+	    {
+	      /* avoid hanging on to file handle longer than 
+		 necessary */
+	      GNUNET_DISK_file_close (dc->rfh);
+	      dc->rfh = NULL;
+	    }
+	  return; /* finished, status update was already done for us */
+	}
+    }
+  if (dc->rfh != NULL)
+    {
+      /* finally, try bottom-up */
+      dc->te = GNUNET_FS_tree_encoder_create (dc->h,
+					      dc->old_file_size,
+					      dc,
+					      &fh_reader,
+					      &reconstruct_cb,
+					      NULL,
+					      &reconstruct_cont);     
+      dc->task = GNUNET_SCHEDULER_add_now (&get_next_block,
+					   dc);
+    }
+  else
+    {
+      /* simple, top-level download */
+	schedule_block_download (dc, 
+				 dc->top_request);
+    }
+  if (dc->top_request->state == BRS_DOWNLOAD_UP)
+    check_completed (dc);
 }
 
 
@@ -1923,30 +2135,29 @@ GNUNET_FS_download_signal_suspend_ (void *cls)
     GNUNET_CONTAINER_DLL_remove (dc->parent->child_head,
 				 dc->parent->child_tail,
 				 dc);  
-  if (GNUNET_SCHEDULER_NO_TASK != dc->task)
-    GNUNET_SCHEDULER_cancel (dc->task);
-  if (dc->start_task != GNUNET_SCHEDULER_NO_TASK)
+  if (dc->task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (dc->start_task);
-      dc->start_task = GNUNET_SCHEDULER_NO_TASK;
+      GNUNET_SCHEDULER_cancel (dc->task);
+      dc->task = GNUNET_SCHEDULER_NO_TASK;
     }
-  else
+  pi.status = GNUNET_FS_STATUS_DOWNLOAD_SUSPEND;
+  GNUNET_FS_download_make_status_ (&pi, dc);
+  if (dc->te != NULL)
     {
-      pi.status = GNUNET_FS_STATUS_DOWNLOAD_SUSPEND;
-      GNUNET_FS_download_make_status_ (&pi, dc);
+      GNUNET_FS_tree_encoder_finish (dc->te, NULL, NULL);	
+      dc->te = NULL;
     }
-  if (dc->rcc != NULL)
+  if (dc->rfh != NULL)
     {
-      if (dc->rcc->task != GNUNET_SCHEDULER_NO_TASK)
-	GNUNET_SCHEDULER_cancel (dc->rcc->task);
-      if (dc->rcc->te != NULL)
-	GNUNET_FS_tree_encoder_finish (dc->rcc->te, NULL, NULL);	
-      dc->rcc = NULL;
+      GNUNET_DISK_file_close (dc->rfh);
+      dc->rfh = NULL;
     }
-  GNUNET_CONTAINER_multihashmap_iterate (dc->active,
-					 &free_entry,
-					 NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (dc->active);
+  GNUNET_FS_free_download_request_ (dc->top_request);
+  if (dc->active != NULL)
+    {
+      GNUNET_CONTAINER_multihashmap_destroy (dc->active);
+      dc->active = NULL;
+    }
   GNUNET_free_non_null (dc->filename);
   GNUNET_CONTAINER_meta_data_destroy (dc->meta);
   GNUNET_FS_uri_destroy (dc->uri);
@@ -2067,7 +2278,8 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 				    &GNUNET_FS_download_signal_suspend_,
 				    dc);
     }
-  dc->start_task = GNUNET_SCHEDULER_add_now (&GNUNET_FS_download_start_task_, dc);
+  dc->task = GNUNET_SCHEDULER_add_now (&GNUNET_FS_download_start_task_, 
+				       dc);
   return dc;
 }
 
@@ -2184,9 +2396,11 @@ GNUNET_FS_download_start_from_search (struct GNUNET_FS_Handle *h,
 	      "Download tree has depth %u\n",
 	      dc->treedepth);
 #endif
-  dc->start_task = GNUNET_SCHEDULER_add_now (&GNUNET_FS_download_start_task_, dc);
+  dc->task = GNUNET_SCHEDULER_add_now (&GNUNET_FS_download_start_task_, 
+				       dc);
   return dc;  
 }
+
 
 /**
  * Start the downloading process (by entering the queue).
@@ -2222,10 +2436,12 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
 
   if (dc->top != NULL)
     GNUNET_FS_end_top (dc->h, dc->top);
-  if (dc->start_task != GNUNET_SCHEDULER_NO_TASK)
+
+
+  if (dc->task != GNUNET_SCHEDULER_NO_TASK)
     {
-      GNUNET_SCHEDULER_cancel (dc->start_task);
-      dc->start_task = GNUNET_SCHEDULER_NO_TASK;
+      GNUNET_SCHEDULER_cancel (dc->task);
+      dc->task = GNUNET_SCHEDULER_NO_TASK;
     }
   if (dc->search != NULL)
     {
@@ -2237,13 +2453,10 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
       GNUNET_FS_dequeue_ (dc->job_queue);
       dc->job_queue = NULL;
     }
-  if (dc->rcc != NULL)
+  if (dc->te != NULL)
     {
-      if (dc->rcc->task != GNUNET_SCHEDULER_NO_TASK)
-	GNUNET_SCHEDULER_cancel (dc->rcc->task);
-      if (dc->rcc->te != NULL)
-	GNUNET_FS_tree_encoder_finish (dc->rcc->te, NULL, NULL);
-      dc->rcc = NULL;
+      GNUNET_FS_tree_encoder_finish (dc->te, NULL, NULL);
+      dc->te = NULL;
     }
   have_children = (NULL != dc->child_head) ? GNUNET_YES : GNUNET_NO;
   while (NULL != dc->child_head)
@@ -2268,12 +2481,13 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc,
 				dc->serialization);  
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_STOPPED;
   GNUNET_FS_download_make_status_ (&pi, dc);
-  if (GNUNET_SCHEDULER_NO_TASK != dc->task)
-    GNUNET_SCHEDULER_cancel (dc->task);
-  GNUNET_CONTAINER_multihashmap_iterate (dc->active,
-					 &free_entry,
-					 NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (dc->active);
+  GNUNET_FS_free_download_request_ (dc->top_request);
+  dc->top_request = NULL;
+  if (dc->active != NULL)
+    {
+      GNUNET_CONTAINER_multihashmap_destroy (dc->active);
+      dc->active = NULL;
+    }
   if (dc->filename != NULL)
     {
       if ( (dc->completed != dc->length) &&

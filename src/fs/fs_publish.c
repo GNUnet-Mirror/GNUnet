@@ -457,6 +457,7 @@ encode_cont (void *cls,
   struct GNUNET_FS_FileInformation *p;
   struct GNUNET_FS_ProgressInfo pi;
   char *emsg;
+  uint64_t flen;
 
   p = sc->fi_pos;
   GNUNET_FS_tree_encoder_finish (p->te,
@@ -484,13 +485,13 @@ encode_cont (void *cls,
 	      "Finished with tree encoder\n");
 #endif  
   /* final progress event */
+  flen = GNUNET_FS_uri_chk_get_file_size (p->chk_uri);
   pi.status = GNUNET_FS_STATUS_PUBLISH_PROGRESS;
   pi.value.publish.specifics.progress.data = NULL;
-  pi.value.publish.specifics.progress.offset = GNUNET_FS_uri_chk_get_file_size (p->chk_uri);
+  pi.value.publish.specifics.progress.offset = flen;
   pi.value.publish.specifics.progress.data_len = 0;
-  pi.value.publish.specifics.progress.depth = 0;
-  p->client_info = GNUNET_FS_publish_make_status_ (&pi, sc, p, 
-						   GNUNET_FS_uri_chk_get_file_size (p->chk_uri));
+  pi.value.publish.specifics.progress.depth = GNUNET_FS_compute_depth (flen);
+  p->client_info = GNUNET_FS_publish_make_status_ (&pi, sc, p, flen);
 
   /* continue with main */
   sc->upload_task 
@@ -507,18 +508,18 @@ encode_cont (void *cls,
  * or (on error) "GNUNET_FS_tree_encode_finish".
  *
  * @param cls closure
- * @param query the query for the block (key for lookup in the datastore)
+ * @param chk content hash key for the block 
  * @param offset offset of the block in the file
- * @param depth depth of the block in the file
+ * @param depth depth of the block in the file, 0 for DBLOCK
  * @param type type of the block (IBLOCK or DBLOCK)
  * @param block the (encrypted) block
  * @param block_size size of block (in bytes)
  */
 static void 
 block_proc (void *cls,
-	    const GNUNET_HashCode *query,
+	    const struct ContentHashKey *chk,
 	    uint64_t offset,
-	    unsigned int depth,
+	    unsigned int depth, 
 	    enum GNUNET_BLOCK_Type type,
 	    const void *block,
 	    uint16_t block_size)
@@ -556,7 +557,7 @@ block_proc (void *cls,
 #if DEBUG_PUBLISH
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Indexing block `%s' for offset %llu with index size %u\n",
-		  GNUNET_h2s (query),
+		  GNUNET_h2s (&chk->query),
 		  (unsigned long long) offset,
 		  sizeof (struct OnDemandBlock));
 #endif
@@ -564,7 +565,7 @@ block_proc (void *cls,
       odb.file_id = p->data.file.file_id;
       GNUNET_DATASTORE_put (sc->dsh,
 			    (p->is_directory) ? 0 : sc->rid,
-			    query,
+			    &chk->query,
 			    sizeof (struct OnDemandBlock),
 			    &odb,
 			    GNUNET_BLOCK_TYPE_FS_ONDEMAND,
@@ -580,13 +581,13 @@ block_proc (void *cls,
 #if DEBUG_PUBLISH
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Publishing block `%s' for offset %llu with size %u\n",
-	      GNUNET_h2s (query),
+	      GNUNET_h2s (&chk->query),
 	      (unsigned long long) offset,
 	      (unsigned int) block_size);
 #endif
   GNUNET_DATASTORE_put (sc->dsh,
 			(p->is_directory) ? 0 : sc->rid,
-			query,
+			&chk->query,
 			block_size,
 			block,
 			type,
@@ -608,7 +609,7 @@ block_proc (void *cls,
  * @param offset where are we in the file
  * @param pt_block plaintext of the currently processed block
  * @param pt_size size of pt_block
- * @param depth depth of the block in the tree
+ * @param depth depth of the block in the tree, 0 for DBLOCK
  */
 static void 
 progress_proc (void *cls,
