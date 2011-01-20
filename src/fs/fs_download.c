@@ -24,6 +24,7 @@
  *
  * TODO:
  * - different priority for scheduling probe downloads?
+ * - download seems to not always find (or at least use!) embedded full data
  */
 #include "platform.h"
 #include "gnunet_constants.h"
