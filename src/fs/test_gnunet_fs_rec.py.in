@@ -36,12 +36,12 @@ try:
   down.expect (re.compile ("Downloading `rdir.gnd\' done \(.*\).\r"));
   down.expect (pexpect.EOF);
 
-  dir = pexpect.spawn ('gnunet-directory -c test_gnunet_fs_rec_data.conf  rdir/a.gnd')
-  dir.expect (re.compile ("Directory `a' summary:"));
-  dir.expect (re.compile (" *mimetype: application/gnunet-directory"));
-  dir.expect (re.compile ("COPYING (.*)"));
-  dir.expect (re.compile ("INSTALL (.*)"));
-  dir.expect (pexpect.EOF)
+#  dir = pexpect.spawn ('gnunet-directory -c test_gnunet_fs_rec_data.conf  rdir/a.gnd')
+#  dir.expect (re.compile ("Directory `a' summary:"));
+#  dir.expect (re.compile (" *mimetype: application/gnunet-directory"));
+#  dir.expect (re.compile ("COPYING (.*)"));
+#  dir.expect (re.compile ("INSTALL (.*)"));
+#  dir.expect (pexpect.EOF)
 
   os.system ('rm -r rdir/b.gnd rdir/a.gnd')
   if (0 != os.system ("diff -r dir rdir")):
