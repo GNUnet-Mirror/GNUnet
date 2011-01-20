@@ -746,7 +746,12 @@ enum GNUNET_TESTING_Topology
   /**
    * All peers are disconnected.
    */
-  GNUNET_TESTING_TOPOLOGY_NONE
+  GNUNET_TESTING_TOPOLOGY_NONE,
+
+  /**
+   * Read a topology from a given file.
+   */
+  GNUNET_TESTING_TOPOLOGY_FROM_FILE
 };
 
 /**
