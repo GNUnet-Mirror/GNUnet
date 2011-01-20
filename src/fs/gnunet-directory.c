@@ -48,10 +48,16 @@ item_printer (void *cls,
 	      const char *data,
 	      size_t data_size)
 {
+  if (type == EXTRACTOR_METATYPE_GNUNET_FULL_DATA) 
+    {
+      printf(_("\t<original file embedded in %u bytes of meta data>\n"),
+	     (unsigned int) data_size);
+      return 0;
+    }
   if ( (format != EXTRACTOR_METAFORMAT_UTF8) &&
        (format != EXTRACTOR_METAFORMAT_C_STRING) )
     return 0;
-  if (type == EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME) 
+  if (type == EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME)
     return 0;
   printf ("\t%20s: %s\n",
           dgettext (LIBEXTRACTOR_GETTEXT_DOMAIN,
@@ -85,22 +91,31 @@ print_entry (void *cls,
 	     const void *data)
 {
   char *string;
-
+  char *name;
+  
+  name = GNUNET_CONTAINER_meta_data_get_by_type (meta,
+						 EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME);
   if (uri == NULL)
     {
-      printf (_("Directory summary:\n"));
+      printf (_("Directory `%s' meta data:\n"),
+	      name);
       GNUNET_CONTAINER_meta_data_iterate (meta,
 					  &item_printer,
 					  NULL);
       printf ("\n");
+      printf (_("Directory `%s' contents:\n"),
+	      name);
+      GNUNET_free (name);
       return;
     }
   string = GNUNET_FS_uri_to_string (uri);
-  printf ("%s:\n", string);
+  printf ("%s (%s):\n", name, string);
   GNUNET_free (string);
   GNUNET_CONTAINER_meta_data_iterate (meta,
 				      &item_printer,
 				      NULL);
+  printf ("\n");
+  GNUNET_free (name);
 }
 
 
@@ -161,6 +176,7 @@ run (void *cls,
 					 0, 
 					 &print_entry,
 					 NULL);
+      printf ("\n");
       GNUNET_DISK_file_unmap (map);
       GNUNET_DISK_file_close (h);
     }
