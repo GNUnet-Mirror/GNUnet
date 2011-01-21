@@ -51,17 +51,17 @@
  */
 #define HIGH_PORT 56000
 
-#define MAX_OUTSTANDING_CONNECTIONS 100
+#define MAX_OUTSTANDING_CONNECTIONS 200
 
-#define MAX_CONCURRENT_HOSTKEYS 100
+#define MAX_CONCURRENT_HOSTKEYS 200
 
-#define MAX_CONCURRENT_STARTING 100
+#define MAX_CONCURRENT_STARTING 200
 
 #define MAX_CONCURRENT_SHUTDOWN 100
 
-#define CONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 45)
+#define CONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 180)
 
-#define CONNECT_ATTEMPTS 21
+#define CONNECT_ATTEMPTS 30
 
 /**
  * Prototype of a function called whenever two peers would be connected
@@ -2207,7 +2207,6 @@ create_from_file (struct GNUNET_TESTING_PeerGroup *pg,
               GNUNET_free_non_null(data);
               return connect_attempts;
             }
-          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Read next peer index %u\n", first_peer_index);
           while((buf[count] != ':') && (count < frstat.st_size - 1))
             count++;
           count++;
@@ -2225,7 +2224,6 @@ create_from_file (struct GNUNET_TESTING_PeerGroup *pg,
               GNUNET_free_non_null(data);
               return connect_attempts;
             }
-          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Read second peer index %u\n", second_peer_index);
           /* Assume file is written with first peer 1, but array index is 0 */
           connect_attempts += proc (pg, first_peer_index - 1, second_peer_index - 1);
           while((buf[count] != '\n') && (buf[count] != ',') && (count < frstat.st_size - 1))
