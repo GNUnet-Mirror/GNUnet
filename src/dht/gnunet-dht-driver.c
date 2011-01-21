@@ -2265,7 +2265,7 @@ continue_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
     }
 #endif
 
-  if (GNUNET_YES == do_find_peer)
+  if ((GNUNET_YES == do_find_peer) && (settle_time > 0))
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Scheduling find peer requests during \"settle\" time.\n");
       find_peer_context = GNUNET_malloc(sizeof(struct FindPeerContext));
@@ -2537,7 +2537,7 @@ topology_callback (void *cls,
 
       GNUNET_SCHEDULER_cancel (die_task);
 
-      if ((dhtlog_handle != NULL) && (settle_time > 0))
+      if (dhtlog_handle != NULL)
         {
           topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
           GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Setting continue gets and puts as topo_cont\n");
@@ -2546,7 +2546,10 @@ topology_callback (void *cls,
           GNUNET_SCHEDULER_add_now(&capture_current_topology, topo_ctx);
         }
       else
-        GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "For some reason, NOT scheduling final topology capture (settle_time %d, dhtlog_handle %s)!\n", settle_time, dhtlog_handle);
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "For some reason, NOT scheduling final topology capture (settle_time %d, dhtlog_handle %s)!\n", settle_time, dhtlog_handle);
+          GNUNET_SCHEDULER_add_now(&continue_puts_and_gets, NULL);
+        }
     }
   else if (total_connections + failed_connections == expected_connections)
     {
