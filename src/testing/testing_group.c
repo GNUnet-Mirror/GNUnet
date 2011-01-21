@@ -51,15 +51,15 @@
  */
 #define HIGH_PORT 56000
 
-#define MAX_OUTSTANDING_CONNECTIONS 40
+#define MAX_OUTSTANDING_CONNECTIONS 100
 
-#define MAX_CONCURRENT_HOSTKEYS 10
+#define MAX_CONCURRENT_HOSTKEYS 100
 
-#define MAX_CONCURRENT_STARTING 10
+#define MAX_CONCURRENT_STARTING 100
 
-#define MAX_CONCURRENT_SHUTDOWN 10
+#define MAX_CONCURRENT_SHUTDOWN 100
 
-#define CONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 200)
+#define CONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 45)
 
 #define CONNECT_ATTEMPTS 21
 
@@ -2151,13 +2151,12 @@ create_from_file (struct GNUNET_TESTING_PeerGroup *pg,
   enum States curr_state;
 
   if (GNUNET_OK != GNUNET_DISK_file_test (filename))
-      GNUNET_DISK_fn_write (filename, NULL, 0, GNUNET_DISK_PERM_USER_READ
-        | GNUNET_DISK_PERM_USER_WRITE);
+    GNUNET_DISK_fn_write (filename, NULL, 0, GNUNET_DISK_PERM_USER_READ);
 
   if ((0 != STAT (filename, &frstat)) || (frstat.st_size == 0))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Could not open file specified for topology!");
+                  "Could not open file `%s' specified for topology!", filename);
       return connect_attempts;
     }
 
