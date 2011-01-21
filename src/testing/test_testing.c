@@ -76,7 +76,7 @@ run (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemon.\n");
 #endif
   d =
-    GNUNET_TESTING_daemon_start (cfg, TIMEOUT, NULL, NULL, 0, NULL, NULL,
+    GNUNET_TESTING_daemon_start (cfg, TIMEOUT, NULL, NULL, 0, NULL, NULL, NULL,
                                  &my_cb, NULL);
   GNUNET_assert (d != NULL);
 }

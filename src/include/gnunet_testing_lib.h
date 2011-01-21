@@ -43,6 +43,8 @@ extern "C"
 #endif
 #endif
 
+#define HOSTKEYFILESIZE 914
+
 /**
  * Handle for a GNUnet daemon (technically a set of
  * daemons; the handle is really for the master ARM
@@ -409,6 +411,7 @@ typedef void (*GNUNET_TESTING_NotifyTopology)(void *cls,
  *        (use NULL for localhost).
  * @param ssh_username ssh username to use when connecting to hostname
  * @param sshport port to pass to ssh process when connecting to hostname
+ * @param hostkey pointer to a hostkey to be written to disk (instead of being generated)
  * @param hostkey_callback function to call once the hostkey has been
  *        generated for this peer, but it hasn't yet been started
  *        (NULL to start immediately, otherwise waits on GNUNET_TESTING_daemon_continue_start)
@@ -423,8 +426,9 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                              const char *hostname,
                              const char *ssh_username,
                              uint16_t sshport,
-                             GNUNET_TESTING_NotifyHostkeyCreated hostkey_callback,
-                             void *hostkey_cls,
+                             const char *hostkey,
+                             GNUNET_TESTING_NotifyHostkeyCreated
+                             hostkey_callback, void *hostkey_cls,
                              GNUNET_TESTING_NotifyDaemonRunning cb,
                              void *cb_cls);
 

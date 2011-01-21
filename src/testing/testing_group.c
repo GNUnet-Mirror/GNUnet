@@ -304,6 +304,11 @@ struct InternalStartContext
   const char *username;
 
   /**
+   * Pointer to starting memory location of a hostkey
+   */
+  const char *hostkey;
+
+  /**
    * Port to use for ssh.
    */
   uint16_t sshport;
@@ -627,6 +632,96 @@ struct UnblacklistContext
    * uid of the first peer
    */
   uint32_t first_uid;
+};
+
+struct RandomContext
+{
+  /**
+   * The peergroup
+   */
+  struct GNUNET_TESTING_PeerGroup *pg;
+
+  /**
+   * uid of the first peer
+   */
+  uint32_t first_uid;
+
+  /**
+   * Peer data for first peer.
+   */
+  struct PeerData *first;
+
+  /**
+   * Random percentage to use
+   */
+  double percentage;
+};
+
+struct MinimumContext
+{
+  /**
+   * The peergroup
+   */
+  struct GNUNET_TESTING_PeerGroup *pg;
+
+  /**
+   * uid of the first peer
+   */
+  uint32_t first_uid;
+
+  /**
+   * Peer data for first peer.
+   */
+  struct PeerData *first;
+
+  /**
+   * Number of conns per peer
+   */
+  unsigned int num_to_add;
+
+  /**
+   * Permuted array of all possible connections.  Only add the Nth
+   * peer if it's in the Nth position.
+   */
+  unsigned int *pg_array;
+
+  /**
+   * What number is the current element we are iterating over?
+   */
+  unsigned int current;
+};
+
+struct DFSContext
+{
+  /**
+   * The peergroup
+   */
+  struct GNUNET_TESTING_PeerGroup *pg;
+
+  /**
+   * uid of the first peer
+   */
+  uint32_t first_uid;
+
+  /**
+   * uid of the second peer
+   */
+  uint32_t second_uid;
+
+  /**
+   * Peer data for first peer.
+   */
+  struct PeerData *first;
+
+  /**
+   * Which peer has been chosen as the one to add?
+   */
+  unsigned int chosen;
+
+  /**
+   * What number is the current element we are iterating over?
+   */
+  unsigned int current;
 };
 
 /**
@@ -2100,6 +2195,7 @@ create_from_file (struct GNUNET_TESTING_PeerGroup *pg,
               return connect_attempts;
             }
           GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Read %u total peers in topology\n", total_peers);
+          GNUNET_assert(total_peers == pg->total);
           curr_state = PEER_INDEX;
           while((buf[count] != '\n') && (count < frstat.st_size - 1))
             count++;
@@ -2131,18 +2227,19 @@ create_from_file (struct GNUNET_TESTING_PeerGroup *pg,
               return connect_attempts;
             }
           GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Read second peer index %u\n", second_peer_index);
-          while((buf[count] != '\n') && (buf[count] != ' ') && (count < frstat.st_size - 1))
+          /* Assume file is written with first peer 1, but array index is 0 */
+          connect_attempts += proc (pg, first_peer_index - 1, second_peer_index - 1);
+          while((buf[count] != '\n') && (buf[count] != ',') && (count < frstat.st_size - 1))
             count++;
           if (buf[count] == '\n')
           {
             curr_state = PEER_INDEX;
           }
-          else if (buf[count] != ' ')
+          else if (buf[count] != ',')
           {
             curr_state = OTHER_PEER_INDEX;
           }
           count++;
-          curr_state = OTHER_PEER_INDEX;
           break;
         default:
           GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Found bad data in topology file while in state %d!\n", curr_state);
@@ -3078,95 +3175,6 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
   return num_connections;
 }
 
-struct RandomContext
-{
-  /**
-   * The peergroup
-   */
-  struct GNUNET_TESTING_PeerGroup *pg;
-
-  /**
-   * uid of the first peer
-   */
-  uint32_t first_uid;
-
-  /**
-   * Peer data for first peer.
-   */
-  struct PeerData *first;
-
-  /**
-   * Random percentage to use
-   */
-  double percentage;
-};
-
-struct MinimumContext
-{
-  /**
-   * The peergroup
-   */
-  struct GNUNET_TESTING_PeerGroup *pg;
-
-  /**
-   * uid of the first peer
-   */
-  uint32_t first_uid;
-
-  /**
-   * Peer data for first peer.
-   */
-  struct PeerData *first;
-
-  /**
-   * Number of conns per peer
-   */
-  unsigned int num_to_add;
-
-  /**
-   * Permuted array of all possible connections.  Only add the Nth
-   * peer if it's in the Nth position.
-   */
-  unsigned int *pg_array;
-
-  /**
-   * What number is the current element we are iterating over?
-   */
-  unsigned int current;
-};
-
-struct DFSContext
-{
-  /**
-   * The peergroup
-   */
-  struct GNUNET_TESTING_PeerGroup *pg;
-
-  /**
-   * uid of the first peer
-   */
-  uint32_t first_uid;
-
-  /**
-   * uid of the second peer
-   */
-  uint32_t second_uid;
-
-  /**
-   * Peer data for first peer.
-   */
-  struct PeerData *first;
-
-  /**
-   * Which peer has been chosen as the one to add?
-   */
-  unsigned int chosen;
-
-  /**
-   * What number is the current element we are iterating over?
-   */
-  unsigned int current;
-};
 
 /**
  * Iterator for choosing random peers to connect.
@@ -4324,6 +4332,7 @@ internal_start (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                      internal_context->hostname,
                                      internal_context->username,
                                      internal_context->sshport,
+                                     internal_context->hostkey,
                                      &internal_hostkey_callback,
                                      internal_context,
                                      &internal_startup_callback,
@@ -4405,6 +4414,9 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   char *baseservicehome;
   char *newservicehome;
   char *tmpdir;
+  char *hostkeys_file;
+  char *hostkey_data;
+  struct GNUNET_DISK_FileHandle *fd;
   struct GNUNET_CONFIGURATION_Handle *pcfg;
   unsigned int off;
   unsigned int hostcnt;
@@ -4412,12 +4424,15 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   uint16_t sshport;
   uint32_t upnum;
   uint32_t fdnum;
+  uint64_t fs;
+  uint64_t total_hostkeys;
 
   if (0 == total)
     {
       GNUNET_break (0);
       return NULL;
     }
+  hostkey_data = NULL;
   upnum = 0;
   fdnum = 0;
   pg = GNUNET_malloc (sizeof (struct GNUNET_TESTING_PeerGroup));
@@ -4509,6 +4524,42 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
       hostcnt = 0;
       minport = LOW_PORT;
     }
+
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_string (cfg, "TESTING", "HOSTKEYSFILE",
+                                                          &hostkeys_file))
+    {
+      if (GNUNET_YES != GNUNET_DISK_file_test (hostkeys_file))
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Couldn't read hostkeys file!");
+      else
+        {
+          /* Check hostkey file size, read entire thing into memory */
+          fd = GNUNET_DISK_file_open (hostkeys_file, GNUNET_DISK_OPEN_READ,
+                                      GNUNET_DISK_PERM_NONE);
+          if (NULL == fd)
+            {
+              GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", hostkeys_file);
+              return NULL;
+            }
+
+          if (GNUNET_YES != GNUNET_DISK_file_size (hostkeys_file, &fs, GNUNET_YES))
+            fs = 0;
+
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Found file size %llu for hostkeys, expect hostkeys to be size %d\n", fs, HOSTKEYFILESIZE);
+
+          if (fs % HOSTKEYFILESIZE != 0)
+            {
+              GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "File size %llu seems incorrect for hostkeys...\n", fs);
+            }
+          else
+            {
+              total_hostkeys = fs / HOSTKEYFILESIZE;
+              GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Will read %llu hostkeys from file\n", total_hostkeys);
+              hostkey_data = GNUNET_malloc_large (fs);
+              GNUNET_assert (fs == GNUNET_DISK_file_read (fd, hostkey_data, fs));
+            }
+        }
+    }
+
   for (off = 0; off < total; off++)
     {
       if (hostcnt > 0)
@@ -4570,6 +4621,8 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
       pg->peers[off].internal_context.hostname = hostname;
       pg->peers[off].internal_context.username = username;
       pg->peers[off].internal_context.sshport = sshport;
+      if (hostkey_data != NULL)
+        pg->peers[off].internal_context.hostkey = &hostkey_data[off * HOSTKEYFILESIZE];
       pg->peers[off].internal_context.hostkey_callback = hostkey_callback;
       pg->peers[off].internal_context.hostkey_cls = hostkey_cls;
       pg->peers[off].internal_context.start_cb = cb;

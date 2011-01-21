@@ -385,6 +385,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           return;
         }
       d->hostkeybuf[103] = '\0';
+
       if ((bytes_read < 0) ||
           (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (d->hostkeybuf,
                                                         &d->id.hashPubKey)))
@@ -789,6 +790,7 @@ GNUNET_TESTING_daemon_start_stopped (struct GNUNET_TESTING_Daemon *daemon,
  *        (use NULL for localhost).
  * @param ssh_username ssh username to use when connecting to hostname
  * @param sshport port to pass to ssh process when connecting to hostname
+ * @param hostkey pointer to a hostkey to be written to disk (instead of being generated)
  * @param hostkey_callback function to call once the hostkey has been
  *        generated for this peer, but it hasn't yet been started
  *        (NULL to start immediately, otherwise waits on GNUNET_TESTING_daemon_continue_start)
@@ -803,6 +805,7 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                              const char *hostname,
                              const char *ssh_username,
                              uint16_t sshport,
+                             const char *hostkey,
                              GNUNET_TESTING_NotifyHostkeyCreated
                              hostkey_callback, void *hostkey_cls,
                              GNUNET_TESTING_NotifyDaemonRunning cb,
@@ -811,6 +814,9 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_TESTING_Daemon *ret;
   char *arg;
   char *username;
+  char *servicehome;
+  char *hostkeyfile;
+  struct GNUNET_DISK_FileHandle *fn;
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_TESTING_Daemon));
   ret->hostname = (hostname == NULL) ? NULL : GNUNET_strdup (hostname);
@@ -842,6 +848,28 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_CONFIGURATION_set_value_string (ret->cfg,
                                          "PATHS",
                                          "DEFAULTCONFIG", ret->cfgfile);
+  if (hostkey != NULL)
+    {
+      GNUNET_assert(GNUNET_OK ==
+                    GNUNET_CONFIGURATION_get_value_string (ret->cfg,
+                                                           "PATHS",
+                                                           "SERVICEHOME",
+                                                           &servicehome));
+      GNUNET_assert (GNUNET_OK == GNUNET_DISK_directory_create (servicehome));
+      GNUNET_asprintf(&hostkeyfile, "%s/.hostkey", servicehome);
+      fn =
+      GNUNET_DISK_file_open (hostkeyfile,
+                             GNUNET_DISK_OPEN_READWRITE
+                             | GNUNET_DISK_OPEN_CREATE,
+                             GNUNET_DISK_PERM_USER_READ |
+                             GNUNET_DISK_PERM_USER_WRITE);
+      GNUNET_assert(fn != NULL);
+      GNUNET_assert(HOSTKEYFILESIZE == GNUNET_DISK_file_write(fn, hostkey, HOSTKEYFILESIZE));
+      GNUNET_assert(GNUNET_OK == GNUNET_DISK_file_close(fn));
+      GNUNET_free(servicehome);
+      GNUNET_free(hostkeyfile);
+    }
+
   /* 1) write configuration to temporary file */
   if (GNUNET_OK != GNUNET_CONFIGURATION_write (ret->cfg, ret->cfgfile))
     {
