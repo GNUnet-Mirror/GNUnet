@@ -2250,11 +2250,11 @@ continue_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
       topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
       topo_ctx->cont = &setup_puts_and_gets;
       topo_ctx->peers_seen = GNUNET_CONTAINER_multihashmap_create(num_peers);
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "setting setup_puts_and_gets for %d seconds in the future\n", settle_time + 90);
-      GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, (settle_time + 90)), &capture_current_topology, topo_ctx);
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "setting setup_puts_and_gets for %d seconds in the future\n", settle_time + 10);
+      GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, (settle_time + 10)), &capture_current_topology, topo_ctx);
     }
   else
-    GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, (settle_time + 90)), &setup_puts_and_gets, NULL);
+    GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, (settle_time + 10)), &setup_puts_and_gets, NULL);
 
   if (dhtlog_handle != NULL)
     dhtlog_handle->insert_round(DHT_ROUND_NORMAL, rounds_finished);
