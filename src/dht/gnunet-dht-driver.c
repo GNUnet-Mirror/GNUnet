@@ -2260,7 +2260,7 @@ continue_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
     dhtlog_handle->insert_round(DHT_ROUND_NORMAL, rounds_finished);
 
 #if HAVE_MALICIOUS
-  if (GNUNET_YES != malicious_after_settle)
+  if ((GNUNET_YES != malicious_after_settle) && (settle_time > 0))
     {
       GNUNET_SCHEDULER_add_now(&setup_malicious_peers, NULL);
     }
