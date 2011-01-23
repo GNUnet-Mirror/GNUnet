@@ -206,6 +206,14 @@ struct Plugin
 
 };
 
+struct Finish_send
+{
+  struct Plugin * plugin;
+  char * msgheader;
+  struct GNUNET_MessageHeader * msgstart;
+  ssize_t size;
+};
+
 /**
  * Queue of sessions, for the general session queue and the pending session queue
  */
@@ -555,6 +563,9 @@ wlan_process_helper (void *cls,
                       void *client,
                       const struct GNUNET_MessageHeader *hdr);
 
+static void
+finish_sending(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 /**
  * get the next message number, at the moment just a random one
  * @return returns the next valid message-number for sending packets
@@ -562,7 +573,7 @@ wlan_process_helper (void *cls,
 uint32_t
 get_next_message_id()
 {
-  return GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
+  return GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
 }
 
 /**
@@ -1006,14 +1017,14 @@ check_finished_fragment(struct Plugin * plugin, struct FragmentMessage * fm){
 }
 
 /**
- * Function called to when wlan helper is ready to get some data
+ * Function called when wlan helper is ready to get some data
  *
  * @param cls closure
  * @param tc GNUNET_SCHEDULER_TaskContext
  */
 
 static void
-do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_transmit(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 
   struct Plugin * plugin = cls;
@@ -1032,6 +1043,7 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_MessageHeader * msgheader2 = NULL;
   struct FragmentationHeader fragheader;
   struct FragmentationHeader * fragheaderptr = NULL;
+  struct Finish_send * finish = NULL;
   uint16_t size = 0;
   const char * copystart = NULL;
   uint16_t copysize = 0;
@@ -1060,23 +1072,33 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       getWlanHeader(ieeewlanheader);
 
       msgheader2 = (struct GNUNET_MessageHeader *) &ieeewlanheader[1];
-      msgheader2->size = htons(GNUNET_HELLO_size(*(plugin->env->our_hello)) + sizeof(struct GNUNET_MessageHeader));
+      msgheader2->size = htons(GNUNET_HELLO_size(*(plugin->env->our_hello))
+          + sizeof(struct GNUNET_MessageHeader));
       msgheader2->type = htons(GNUNET_MESSAGE_TYPE_WLAN_ADVERTISEMENT);
 
       memcpy(&msgheader2[1], *plugin->env->our_hello, GNUNET_HELLO_size(
           *(plugin->env->our_hello)));
 
-
       bytes = GNUNET_DISK_file_write(plugin->server_stdin_handle, msgheader,
           size);
+      if (bytes == GNUNET_SYSERR)
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+              _("Error writing to wlan healper. errno == %d, ERROR: %s\n"),
+              errno, strerror(errno));
+
+        }
+      GNUNET_assert(bytes != GNUNET_SYSERR);
       GNUNET_assert(bytes == size);
+
+      GNUNET_free(msgheader);
 
       set_next_beacon_time(plugin);
       check_next_fragment_timeout(plugin);
+
       return;
 
     }
-
 
   fm = plugin->pending_Fragment_Messages_head;
   GNUNET_assert(fm != NULL);
@@ -1084,135 +1106,227 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert(session != NULL);
 
   // test if message timed out
-  if (GNUNET_TIME_absolute_get_remaining(fm->timeout).rel_value == 0){
-	  free_acks(fm);
-	  GNUNET_assert(plugin->pending_fragment_messages > 0);
-	  plugin->pending_fragment_messages --;
-	  GNUNET_CONTAINER_DLL_remove(plugin->pending_Fragment_Messages_head,
-			  plugin->pending_Fragment_Messages_tail, fm);
+  if (GNUNET_TIME_absolute_get_remaining(fm->timeout).rel_value == 0)
+    {
+      free_acks(fm);
+      GNUNET_assert(plugin->pending_fragment_messages > 0);
+      plugin->pending_fragment_messages--;
+      GNUNET_CONTAINER_DLL_remove(plugin->pending_Fragment_Messages_head,
+          plugin->pending_Fragment_Messages_tail, fm);
 
-	  GNUNET_free(fm->msg);
+      GNUNET_free(fm->msg);
 
-	  GNUNET_free(fm);
-	  check_fragment_queue(plugin);
-  } else {
+      GNUNET_free(fm);
+      check_fragment_queue(plugin);
+    }
+  else
+    {
 
-	  if (fm->message_size > WLAN_MTU) {
-		size += sizeof(struct FragmentationHeader);
-		// check/set for retransmission
-		if (GNUNET_TIME_absolute_get_duration(fm->next_ack).rel_value == 0) {
+      if (fm->message_size > WLAN_MTU)
+        {
+          size += sizeof(struct FragmentationHeader);
+          // check/set for retransmission
+          if (GNUNET_TIME_absolute_get_duration(fm->next_ack).rel_value == 0)
+            {
 
-			// be positive and try again later :-D
-			fm->next_ack = GNUNET_TIME_relative_to_absolute(get_ack_timeout(fm));
-			// find first missing fragment
-			akt = fm->head;
-			fm->message_pos = 0;
+              // be positive and try again later :-D
+              fm->next_ack = GNUNET_TIME_relative_to_absolute(get_ack_timeout(
+                  fm));
+              // find first missing fragment
+              akt = fm->head;
+              fm->message_pos = 0;
 
-			//test if ack 0 was already received
-			while (akt != NULL){
-				//if fragment is present, take next
-				if (akt->fragment_num == fm->message_pos) {
-					fm->message_pos ++;
-				}
-				//next ack is bigger then the fragment number
-				//in case there is something like this: (acks) 1, 2, 5, 6, ...
-				//and we send 3 again, the next number should be 4
-				else if (akt->fragment_num > fm->message_pos) {
-					break;
-				}
+              //test if ack 0 was already received
+              while (akt != NULL)
+                {
+                  //if fragment is present, take next
+                  if (akt->fragment_num == fm->message_pos)
+                    {
+                      fm->message_pos++;
+                    }
+                  //next ack is bigger then the fragment number
+                  //in case there is something like this: (acks) 1, 2, 5, 6, ...
+                  //and we send 3 again, the next number should be 4
+                  else if (akt->fragment_num > fm->message_pos)
+                    {
+                      break;
+                    }
 
-				akt = akt->next;
+                  akt = akt->next;
 
-			}
+                }
+
+            }
+
+          copyoffset = (WLAN_MTU - sizeof(struct FragmentationHeader))
+              * fm->message_pos;
+          fragheader.fragment_off_or_num = htons(fm->message_pos);
+          fragheader.message_id = htonl(session->message_id_out);
+
+          // start should be smaller then the packet size
+          GNUNET_assert(copyoffset < fm->message_size);
+          copystart = fm->msg + copyoffset;
+
+          //size of the fragment is either the MTU - overhead
+          //or the missing part of the message in case this is the last fragment
+          copysize = GNUNET_MIN(fm->message_size - copyoffset,
+              WLAN_MTU - sizeof(struct FragmentationHeader));
+          fragheader.header.size = htons(copysize
+              + sizeof(struct FragmentationHeader));
+          fragheader.header.type = htons(GNUNET_MESSAGE_TYPE_WLAN_FRAGMENT);
+
+          //get the next missing fragment
+          akt = fm->head;
+          fm->message_pos++;
+
+          //test if ack was already received
+          while (akt != NULL)
+            {
+              //if fragment is present, take next
+              if (akt->fragment_num == fm->message_pos)
+                {
+                  fm->message_pos++;
+                }
+              //next ack is bigger then the fragment number
+              //in case there is something like this: (acks) 1, 2, 5, 6, ...
+              //and we send 3 again, the next number should be 4
+              else if (akt->fragment_num > fm->message_pos)
+                {
+                  break;
+                }
+
+              akt = akt->next;
+            }
+        }
+      else
+        {
+          // there is no need to split
+          copystart = fm->msg;
+          copysize = fm->message_size;
+        }
+
+      size += copysize;
+      size += sizeof(struct RadiotapHeader) + sizeof(struct IeeeHeader)
+          + sizeof(struct GNUNET_MessageHeader);
+      msgheader = GNUNET_malloc(size);
+      msgheader->size = htons(size);
+      msgheader->type = htons(GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
+
+      radioHeader = (struct RadiotapHeader*) &msgheader[1];
+      getRadiotapHeader(radioHeader);
+
+      ieeewlanheader = (struct IeeeHeader *) &radioHeader[1];
+      getWlanHeader(ieeewlanheader);
+
+      //could be faster if content is just send and not copyed before
+      //fragmentheader is needed
+      if (fm->message_size > WLAN_MTU)
+        {
+          fragheader.message_crc = htons(getcrc16(copystart, copysize));
+          memcpy(&ieeewlanheader[1], &fragheader,
+              sizeof(struct FragmentationHeader));
+          fragheaderptr = (struct FragmentationHeader *) &ieeewlanheader[1];
+          memcpy(&fragheaderptr[1], copystart, copysize);
+        }
+      else
+        {
+          memcpy(&ieeewlanheader[1], copystart, copysize);
+        }
+
+      bytes = GNUNET_DISK_file_write(plugin->server_stdin_handle, msgheader, size);
+      if (bytes == GNUNET_SYSERR){
+        GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+            _("Error writing to wlan healper. errno == %d, ERROR: %s\n"), errno, strerror(errno) );
+
+      }
+      GNUNET_assert(bytes != GNUNET_SYSERR);
+
+      if (bytes != size)
+        {
+          finish = GNUNET_malloc(sizeof( struct Finish_send));
+          finish->plugin = plugin;
+          finish->msgheader = (char * ) msgheader + bytes;
+          finish->size = size - bytes;
+          finish->msgstart = msgheader;
+
+          GNUNET_assert(plugin->server_write_task == GNUNET_SCHEDULER_NO_TASK);
+
+          plugin->server_write_task = GNUNET_SCHEDULER_add_write_file(
+              GNUNET_TIME_UNIT_FOREVER_REL, plugin->server_stdin_handle,
+              &finish_sending, finish);
+
+        }
+      else
+        {
+          GNUNET_assert(bytes == size);
+
+          GNUNET_free(msgheader);
+          check_next_fragment_timeout(plugin);
+        }
+
+      //check if this was the last fragment of this message, if true then queue at the end of the list
+      if (copysize + copyoffset >= fm->message_size)
+        {
+          GNUNET_assert(copysize + copyoffset == fm->message_size);
+
+          GNUNET_CONTAINER_DLL_remove (plugin->pending_Fragment_Messages_head,
+              plugin->pending_Fragment_Messages_tail, fm);
+
+          GNUNET_CONTAINER_DLL_insert_tail(plugin->pending_Fragment_Messages_head,
+              plugin->pending_Fragment_Messages_tail, fm);
+          // if fragments have opimized timeouts
+          //sort_fragment_into_queue(plugin,fm);
+
+        }
+
+    }
+}
 
 
-	 	}
+static void
+finish_sending(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Finish_send * finish;
+  struct Plugin * plugin;
+  ssize_t bytes;
 
-		copyoffset = (WLAN_MTU - sizeof(struct FragmentationHeader)) * fm->message_pos;
-		fragheader.fragment_off_or_num = htons(fm->message_pos);
-		fragheader.message_id = htonl(session->message_id_out);
+  finish = cls;
+  plugin = finish->plugin;
 
-		// start should be smaller then the packet size
-		GNUNET_assert(copyoffset < fm->message_size);
-		copystart = fm->msg + copyoffset;
+  plugin->server_write_task = GNUNET_SCHEDULER_NO_TASK;
 
-		//size of the fragment is either the MTU - overhead
-		//or the missing part of the message in case this is the last fragment
-		copysize = GNUNET_MIN(fm->message_size - copyoffset,
-				WLAN_MTU - sizeof(struct FragmentationHeader));
-		fragheader.header.size = htons(copysize + sizeof(struct FragmentationHeader));
-		fragheader.header.type = htons(GNUNET_MESSAGE_TYPE_WLAN_FRAGMENT);
+  bytes = GNUNET_DISK_file_write(plugin->server_stdin_handle, finish->msgheader, finish->size);
+  GNUNET_assert(bytes != GNUNET_SYSERR);
 
+  GNUNET_assert(plugin->server_write_task == GNUNET_SCHEDULER_NO_TASK);
+  if (bytes != finish->size)
+    {
 
-		//get the next missing fragment
-		akt = fm->head;
-		fm->message_pos ++;
+      finish->plugin = plugin;
+      finish->msgheader = finish->msgheader + bytes;
+      finish->size = finish->size - bytes;
+      plugin->server_write_task = GNUNET_SCHEDULER_add_write_file(
+          GNUNET_TIME_UNIT_FOREVER_REL, plugin->server_stdin_handle,
+          &finish_sending, finish);
+    }
+  else
+    {
+      GNUNET_free(finish->msgstart);
+      GNUNET_free(finish);
+      check_next_fragment_timeout(plugin);
+    }
 
-		//test if ack was already received
-		while (akt != NULL){
-			//if fragment is present, take next
-			if (akt->fragment_num == fm->message_pos) {
-				fm->message_pos ++;
-			}
-			//next ack is bigger then the fragment number
-			//in case there is something like this: (acks) 1, 2, 5, 6, ...
-			//and we send 3 again, the next number should be 4
-			else if (akt->fragment_num > fm->message_pos) {
-				break;
-			}
+}
 
-			akt = akt->next;
-		}
-	  } else {
-	  	// there is no need to split
-	  	copystart = fm->msg;
-	  	copysize = fm->message_size;
-	  }
+int
+getRadiotapHeader(struct RadiotapHeader * Header){
+  return GNUNET_YES;
+};
 
-	size += copysize;
-	size += sizeof(struct RadiotapHeader) + sizeof(struct IeeeHeader)
-		+ sizeof(struct GNUNET_MessageHeader);
-	msgheader = GNUNET_malloc(size);
-	msgheader->size = htons(size);
-	msgheader->type = htons(GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
+int
+getWlanHeader(struct IeeeHeader * Header){
 
-	radioHeader = (struct RadiotapHeader*) &msgheader[1];
-	getRadiotapHeader(radioHeader);
-
-	ieeewlanheader = (struct IeeeHeader *) &radioHeader[1];
-	getWlanHeader(ieeewlanheader);
-
-
-	//could be faster if content is just send and not copyed before
-	//fragmentheader is needed
-	if (fm->message_size > WLAN_MTU){
-		fragheader.message_crc = htons(getcrc16(copystart, copysize));
-		memcpy(&ieeewlanheader[1],&fragheader, sizeof(struct FragmentationHeader));
-		fragheaderptr = (struct FragmentationHeader *) &ieeewlanheader[1];
-		memcpy(&fragheaderptr[1],copystart,copysize);
-	} else {
-		memcpy(&ieeewlanheader[1],copystart,copysize);
-	}
-
-	bytes = GNUNET_DISK_file_write(plugin->server_stdin_handle, msgheader, size);
-	GNUNET_assert(bytes == size);
-
-	//check if this was the last fragment of this message, if true then queue at the end of the list
-	if (copysize + copyoffset >= fm->message_size){
-		GNUNET_assert(copysize + copyoffset == fm->message_size);
-
-		GNUNET_CONTAINER_DLL_remove (plugin->pending_Fragment_Messages_head,
-				plugin->pending_Fragment_Messages_tail, fm);
-
-		GNUNET_CONTAINER_DLL_insert_tail(plugin->pending_Fragment_Messages_head,
-				plugin->pending_Fragment_Messages_tail, fm);
-		// if fragments have opimized timeouts
-		//sort_fragment_into_queue(plugin,fm);
-
-	}
-	check_next_fragment_timeout(plugin);
-
-  }
+  return GNUNET_YES;
 }
 
 
@@ -1746,7 +1860,7 @@ wlan_data_helper(void *cls, void * client, const struct GNUNET_MessageHeader * h
           session_light->session = search_session(plugin, session_light->addr);
         }
       session = session_light->session;
-      wlanheader = (struct WlanHeader *) &hdr[1];
+      wlanheader = (struct WlanHeader *) &hdr;
       tempmsg = (char*) &wlanheader[1];
       temp_hdr = (const struct GNUNET_MessageHeader *) &wlanheader[1];
 
@@ -2148,6 +2262,8 @@ wlan_transport_start_wlan_helper(struct Plugin *plugin, int testmode)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
       "Adding server_read_task for the wlan-helper\n");
 #endif
+
+  sleep(2);
 
   plugin->server_read_task = GNUNET_SCHEDULER_add_read_file(
       GNUNET_TIME_UNIT_FOREVER_REL, plugin->server_stdout_handle,

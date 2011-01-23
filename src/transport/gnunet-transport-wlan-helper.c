@@ -38,6 +38,7 @@
 #include "plugin_transport_wlan.h"
 #include "gnunet_common.h"
 #include "gnunet-transport-wlan-helper.h"
+#include "gnunet_crypto_lib.h"
 #include "ieee80211_radiotap.h"
 #include <pcap.h>
 #include <stdio.h>
@@ -395,7 +396,7 @@ int ieee80211_radiotap_iterator_next(
 
 #define FIFO_FILE1       "/tmp/MYFIFOin"
 #define FIFO_FILE2       "/tmp/MYFIFOout"
-#define MAXLINE         20
+#define MAXLINE         4096
 
 static int first;
 static int closeprog;
@@ -420,22 +421,36 @@ stdin_send (void *cls,
                       const struct GNUNET_MessageHeader *hdr)
 {
   struct sendbuf *write_pout = cls;
-  int sendsize = ntohs(hdr->size) - sizeof(struct RadiotapHeader) ;
+  int sendsize;
   struct GNUNET_MessageHeader newheader;
+  char * from;
+  char * to;
 
-  GNUNET_assert(GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA == ntohs(hdr->type));
-  GNUNET_assert (sendsize + write_pout->size < MAXLINE *2);
+  sendsize = ntohs(hdr->size) - sizeof(struct RadiotapHeader) ;
+
+
+  if(GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA != ntohs(hdr->type)){
+    fprintf(stderr, "Function stdin_send: wrong packet type\n");
+    exit(1);
+  }
+  if((sendsize + write_pout->size) > MAXLINE * 2){
+    fprintf(stderr, "Function stdin_send: Packet too big for buffer\n");
+    exit(1);
+  }
 
 
   newheader.size = htons(sendsize);
   newheader.type = htons(GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
 
 
-  memcpy(write_pout->buf + write_pout->size, &newheader, sizeof(struct GNUNET_MessageHeader));
+  to = write_pout->buf + write_pout->size;
+  memcpy(to, &newheader, sizeof(struct GNUNET_MessageHeader));
   write_pout->size += sizeof(struct GNUNET_MessageHeader);
 
-  memcpy(write_pout->buf + write_pout->size, hdr + sizeof(struct RadiotapHeader) + sizeof(struct GNUNET_MessageHeader), sizeof(struct GNUNET_MessageHeader));
-  write_pout->size += sendsize;
+  from = (char *) hdr + sizeof(struct RadiotapHeader) + sizeof(struct GNUNET_MessageHeader);
+  to = write_pout->buf + write_pout->size;
+  memcpy(to, from, sendsize - sizeof(struct GNUNET_MessageHeader));
+  write_pout->size += sendsize - sizeof(struct GNUNET_MessageHeader);
 }
 
 static void
@@ -444,10 +459,18 @@ file_in_send (void *cls,
                       const struct GNUNET_MessageHeader *hdr)
 {
   struct sendbuf * write_std = cls;
-  int sendsize = ntohs(hdr->size);
+  int sendsize;
 
-  GNUNET_assert(GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA == ntohs(hdr->type));
-  GNUNET_assert (sendsize + write_std->size < MAXLINE *2);
+  sendsize = ntohs(hdr->size);
+
+  if(GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA != ntohs(hdr->type)){
+    fprintf(stderr, "Function file_in_send: wrong packet type\n");
+    exit(1);
+  }
+  if((sendsize + write_std->size) > MAXLINE * 2){
+    fprintf(stderr, "Function file_in_send: Packet too big for buffer\n");
+    exit(1);
+  }
 
   memcpy(write_std->buf + write_std->size, hdr, sendsize);
   write_std->size += sendsize;
@@ -470,7 +493,7 @@ testmode(int argc, char *argv[])
     {
       if (0 == stat(FIFO_FILE2, &st))
         {
-        fprintf(stderr, "FIFO_FILE2 exists, but FIFO_FILE1 not");
+        fprintf(stderr, "FIFO_FILE2 exists, but FIFO_FILE1 not\n");
           exit(1);
         }
 
@@ -484,7 +507,7 @@ testmode(int argc, char *argv[])
 
       if (0 != stat(FIFO_FILE2, &st))
         {
-        fprintf(stderr, "FIFO_FILE1 exists, but FIFO_FILE2 not");
+        fprintf(stderr, "FIFO_FILE1 exists, but FIFO_FILE2 not\n");
           exit(1);
         }
 
@@ -497,12 +520,12 @@ testmode(int argc, char *argv[])
       fpin = fopen(FIFO_FILE1, "r");
       if (NULL == fpin)
         {
-        fprintf(stderr, "fopen of read FIFO_FILE1");
+        fprintf(stderr, "fopen of read FIFO_FILE1\n");
           exit(1);
         }
       if (NULL == (fpout = fopen(FIFO_FILE2, "w")))
         {
-        fprintf(stderr, "fopen of write FIFO_FILE2");
+        fprintf(stderr, "fopen of write FIFO_FILE2\n");
           exit(1);
         }
 
@@ -513,12 +536,12 @@ testmode(int argc, char *argv[])
       //fprintf(stderr, "Second\n");
       if (NULL == (fpout = fopen(FIFO_FILE1, "w")))
         {
-        fprintf(stderr, "fopen of write FIFO_FILE1");
+        fprintf(stderr, "fopen of write FIFO_FILE1\n");
           exit(1);
         }
       if (NULL == (fpin = fopen(FIFO_FILE2, "r")))
         {
-        fprintf(stderr, "fopen of read FIFO_FILE2");
+        fprintf(stderr, "fopen of read FIFO_FILE2\n");
           exit(1);
         }
 
@@ -581,8 +604,8 @@ testmode(int argc, char *argv[])
   macmsg.mac.mac[1] = 0x22;
   macmsg.mac.mac[2] = 0x33;
   macmsg.mac.mac[3] = 0x44;
-  macmsg.mac.mac[4] = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 255);
-  macmsg.mac.mac[5] = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 255);
+  macmsg.mac.mac[4] = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_STRONG, 256);
+  macmsg.mac.mac[5] = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_NONCE, 256);
   macmsg.hdr.size = htons(sizeof(struct Wlan_Helper_Control_Message));
   macmsg.hdr.type = htons(GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL);
 
@@ -690,7 +713,7 @@ testmode(int argc, char *argv[])
           if (0 > ret)
             {
               closeprog = 1;
-              fprintf(stderr, "Write ERROR to STDOUT");
+              fprintf(stderr, "Write ERROR to STDOUT\n");
               exit(1);
             }
           else
@@ -713,7 +736,7 @@ testmode(int argc, char *argv[])
           if (0 > ret)
             {
               closeprog = 1;
-              fprintf(stderr, "Write ERROR to fdpout");
+              fprintf(stderr, "Write ERROR to fdpout\n");
               exit(1);
             }
           else
@@ -735,10 +758,10 @@ testmode(int argc, char *argv[])
           if (0 > readsize)
             {
               closeprog = 1;
-              fprintf(stderr, "Read ERROR to STDIN_FILENO");
+              fprintf(stderr, "Read ERROR to STDIN_FILENO\n");
               exit(1);
             }
-          else
+          else if (0 < readsize)
             {
               GNUNET_SERVER_mst_receive(stdin_mst, NULL, readbuf, readsize,
                   GNUNET_NO, GNUNET_NO);
@@ -753,10 +776,10 @@ testmode(int argc, char *argv[])
           if (0 > readsize)
             {
               closeprog = 1;
-              fprintf(stderr, "Read ERROR to fdpin");
+              fprintf(stderr, "Read ERROR to fdpin: %s\n", strerror(errno));
               exit(1);
             }
-          else
+          else if (0 < readsize)
             {
               GNUNET_SERVER_mst_receive(file_in_mst, NULL, readbuf, readsize,
                   GNUNET_NO, GNUNET_NO);
