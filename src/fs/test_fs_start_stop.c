@@ -101,7 +101,6 @@ run (void *cls,
 			GNUNET_FS_FLAGS_NONE,
 			GNUNET_FS_OPTIONS_END);
   GNUNET_assert (NULL != fs); 
-  sleep (1); /* FIXME */
   GNUNET_FS_stop (fs);
 }
 
