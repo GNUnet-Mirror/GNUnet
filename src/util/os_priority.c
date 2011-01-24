@@ -320,32 +320,11 @@ GNUNET_OS_set_process_priority (struct GNUNET_OS_Process *proc,
     SetPriorityClass (h, rprio);
   }
 #elif LINUX 
-  pid_t pid;
-
-  pid = proc->pid;
-  if ( (0 == pid) ||
-       (pid == getpid () ) )
+  if (0 != setpriority (PRIO_PROCESS, proc->pid, rprio))
     {
-      int have = nice (0);
-      int delta = rprio - have;
-      errno = 0;
-      if ( (delta != 0) &&
-	   (rprio == nice (delta)) && 
-	   (errno != 0) )
-        {
-          GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING |
-                               GNUNET_ERROR_TYPE_BULK, "nice");
-          return GNUNET_SYSERR;
-        }
-    }
-  else
-    {
-      if (0 != setpriority (PRIO_PROCESS, pid, rprio))
-        {
-          GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING |
-                               GNUNET_ERROR_TYPE_BULK, "setpriority");
-          return GNUNET_SYSERR;
-        }
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING |
+			   GNUNET_ERROR_TYPE_BULK, "setpriority");
+      return GNUNET_SYSERR;
     }
 #else
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
