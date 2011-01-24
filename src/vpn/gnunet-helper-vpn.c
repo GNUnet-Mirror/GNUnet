@@ -59,7 +59,7 @@ struct in6_ifreq
 /**
  * Creates a tun-interface called dev;
  * @param dev is asumed to point to a char[IFNAMSIZ]
- *        if *dev == '\0', uses the name supplied by the kernel
+ *        if *dev == '\\0', uses the name supplied by the kernel
  * @return the fd to the tun or -1 on error
  */
 static int 

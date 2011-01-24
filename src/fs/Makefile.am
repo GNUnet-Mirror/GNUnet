@@ -152,7 +152,8 @@ check_PROGRAMS = \
  test_gnunet_service_fs_p2p \
  perf_gnunet_service_fs_p2p \
  perf_gnunet_service_fs_p2p_dht \
- perf_gnunet_service_fs_p2p_index
+ perf_gnunet_service_fs_p2p_index \
+ perf_gnunet_service_fs_p2p_trust 
 
 
 if HAVE_PYTHON_PEXPECT
@@ -331,6 +332,14 @@ perf_gnunet_service_fs_p2p_index_LDADD = \
 perf_gnunet_service_fs_p2p_dht_SOURCES = \
  perf_gnunet_service_fs_p2p.c
 perf_gnunet_service_fs_p2p_dht_LDADD = \
+  $(top_builddir)/src/fs/libgnunetfstest.a \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/fs/libgnunetfs.la  \
+  $(top_builddir)/src/util/libgnunetutil.la  
+
+perf_gnunet_service_fs_p2p_trust_SOURCES = \
+ perf_gnunet_service_fs_p2p_trust.c
+perf_gnunet_service_fs_p2p_trust_LDADD = \
   $(top_builddir)/src/fs/libgnunetfstest.a \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/fs/libgnunetfs.la  \

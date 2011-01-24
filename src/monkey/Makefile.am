@@ -21,12 +21,12 @@ lib_LTLIBRARIES = libmonkeyedb.la \
 libmonkeyedb_la_SOURCES = \
   edb_api.c \
   gnunet_monkey_edb.h
-  
+
 libmonkeyedb_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   -lsqlite3 \
   $(GN_LIBINTL) $(XLIB)  
-  
+
 libmonkeyaction_la_SOURCES = \
   action_api.c \
   gnunet_monkey_action.h
@@ -35,7 +35,6 @@ libmonkeyaction_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL) $(XLIB)  
 
-  
 bin_PROGRAMS = \
  gnunet-monkey \
  gnunet-service-monkey 
@@ -80,7 +79,7 @@ gnunet_service_monkey_LDADD = \
 
 bug_null_pointer_exception:
 	gcc -g -O0 -o bug_null_pointer_exception bug_null_pointer_exception.c
-	
+
 check_PROGRAMS = \
     test_monkey_edb
     #test_gnunet_monkey	
@@ -95,14 +94,14 @@ test_monkey_edb_SOURCES = \
 test_monkey_edb_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/monkey/libmonkeyedb.la
-  
+
 #test_gnunet_monkey_SOURCES = \
  #test_gnunet_monkey.c
 #test_gnunet_monkey_LDADD = \
   #$(top_builddir)/src/arm/libgnunetarm.la \
   #$(top_builddir)/src/util/libgnunetutil.la  
-  
-  
+
+
 check_SCRIPTS = \
   #test_gnunet_monkey.sh \
   #test_monkey_npe.sh

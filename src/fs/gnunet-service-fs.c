@@ -39,7 +39,7 @@
 #include "gnunet-service-fs_indexing.h"
 #include "fs.h"
 
-#define DEBUG_FS GNUNET_NO
+#define DEBUG_FS GNUNET_YES
 
 /**
  * Should we introduce random latency in processing?  Required for proper

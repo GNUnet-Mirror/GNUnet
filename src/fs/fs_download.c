@@ -464,6 +464,7 @@ check_completed (struct GNUNET_FS_DownloadContext *dc)
  * the top-level block will move to state BRS_DOWNLOAD_UP.
  *
  * @param dr one of our request entries
+ * @param dr download request to match against
  * @param data plaintext data, starting from the beginning of the file
  * @param data_len number of bytes in data
  */ 
@@ -802,12 +803,7 @@ try_top_down_reconstruction (struct GNUNET_FS_DownloadContext *dc,
  * Schedule the download of the specified block in the tree.
  *
  * @param dc overall download this block belongs to
- * @param chk content-hash-key of the block
- * @param offset offset of the block in the file
- *         (for IBlocks, the offset is the lowest
- *          offset of any DBlock in the subtree under
- *          the IBlock)
- * @param depth depth of the block, 0 is the root of the tree
+ * @param dr request to schedule
  */
 static void
 schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
@@ -1690,7 +1686,7 @@ deactivate_fs_download (void *cls)
  * @param file_start_offset desired starting offset for the download
  *             in the original file; requesting tree should not contain
  *             DBLOCKs prior to the file_start_offset
- * @param file_length desired number of bytes the user wanted to access
+ * @param desired_length desired number of bytes the user wanted to access
  *        (from file_start_offset).  Resulting tree should not contain
  *        DBLOCKs after file_start_offset + file_length.
  * @return download request tree for the given range of DBLOCKs at
@@ -1788,6 +1784,7 @@ reconstruct_cont (void *cls,
 /**
  * Task requesting the next block from the tree encoder.
  *
+ * @param cls the 'struct GNUJNET_FS_DownloadContext' we're processing
  * @param tc task context
  */
 static void

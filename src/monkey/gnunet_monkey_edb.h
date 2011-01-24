@@ -19,7 +19,7 @@
  */
 
 /**
- * @file include/gnunet_monkey_edb.h
+ * @file monkey/gnunet_monkey_edb.h
  * @brief Monkey API for accessing the Expression Database (edb)
  */
 
@@ -64,12 +64,14 @@ typedef int (*GNUNET_MONKEY_ExpressionIterator) (void *, int, char **,
  * Run an SQLite query to retrieve those expressions that are previous to
  * given expression and are in the same scope of the given expression
  * For example, consider the following code snippet:
+ *
  * {
  *   struct Something whole; // line no.1 
  *   struct SomethingElse part; // line no.2
  *   whole.part = &part; // line no.3
  *   whole.part->member = 1; // line no.4
  * }
+ *
  * If the expression supplied to the function is that of line no.4 "whole.part->member = 1;"
  * The returned list of expressions will be: whole.part (line no.4), whole.part->member (line no.4),
  * whole (line no.3), whole.part (line no.3), &part (line no.3), whole.part = &part (line no.3)

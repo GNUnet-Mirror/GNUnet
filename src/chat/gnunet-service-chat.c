@@ -19,8 +19,8 @@
 */
 
 /**
- * @file chat/gnunet-service-caht.c
- * @brief program that tracks template
+ * @file chat/gnunet-service-chat.c
+ * @brief service providing chat functionality 
  * @author Christian Grothoff
  * @author Vitaly Minko
  */
@@ -1460,7 +1460,7 @@ cleanup_task (void *cls,
  *
  * @param cls closure, NULL
  * @param server handle to the server for this service
- * @param identity the public identity of this peer
+ * @param my_identity the public identity of this peer
  * @param publicKey the public key of this peer
  */
 static void
@@ -1479,7 +1479,7 @@ core_init (void *cls,
  *
  * @param cls closure, NULL
  * @param server the initialized server
- * @param cfg configuration to use
+ * @param c configuration to use
  */
 static void
 run (void *cls,

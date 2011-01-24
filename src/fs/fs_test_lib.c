@@ -527,6 +527,7 @@ GNUNET_FS_TEST_daemons_stop (unsigned int total,
   struct GNUNET_CONFIGURATION_Handle *gcfg;
 
   GNUNET_assert (total > 0);
+  GNUNET_assert (daemons[0] != NULL);
   pg = daemons[0]->group;
   gcfg = daemons[0]->gcfg;
   for (i=0;i<total;i++)
@@ -540,6 +541,7 @@ GNUNET_FS_TEST_daemons_stop (unsigned int total,
 	  GNUNET_break (GNUNET_OK ==
 			GNUNET_DISK_directory_remove (daemons[i]->publish_tmp_file));
 	  GNUNET_free (daemons[i]->publish_tmp_file);
+	  daemons[i]->publish_tmp_file = NULL;
 	}
       GNUNET_free (daemons[i]);
       daemons[i] = NULL;

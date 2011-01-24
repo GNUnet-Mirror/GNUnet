@@ -83,7 +83,7 @@ static int do_help (const char *args, const void *xtra);
  * @param cls closure, NULL
  * @param room in which room was the message received?
  * @param sender what is the ID of the sender? (maybe NULL)
- * @param member_info information about the joining member
+ * @param meta information about the joining member
  * @param message the message text
  * @param options options for the message
  * @return GNUNET_OK to accept the message now, GNUNET_NO to
@@ -183,6 +183,7 @@ confirmation_cb (void *cls,
 /**
  * Callback used for notification that another room member has joined or left.
  *
+ * @param cls closure (not used)
  * @param member_info will be non-null if the member is joining, NULL if he is
  *        leaving
  * @param member_id hash of public key of the user (for unique identification)
@@ -580,7 +581,7 @@ out:
  * @param cls closure, NULL
  * @param args remaining command-line arguments
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
- * @param cfg configuration
+ * @param c configuration
  */
 static void
 run (void *cls,
