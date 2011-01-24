@@ -197,6 +197,7 @@ int GNUNET_GETOPT_run (const char *binaryOptions,
                        const struct GNUNET_GETOPT_CommandLineOption
                        *allOptions, unsigned int argc, char *const *argv);
 
+
 /**
  * Set an option of type 'unsigned long long' from the command line.
  * A pointer to this function should be passed as part of the
