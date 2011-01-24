@@ -617,6 +617,23 @@ int GNUNET_CONTAINER_multihashmap_contains (const struct
 
 
 /**
+ * Check if the map contains the given value under the given
+ * key.
+ *
+ * @param map the map
+ * @param key the key to test if a value exists for it
+ * @param value value to test for
+ * @return GNUNET_YES if such a value exists,
+ *         GNUNET_NO if not
+ */
+int GNUNET_CONTAINER_multihashmap_contains_value (const struct
+						  GNUNET_CONTAINER_MultiHashMap
+						  *map,
+						  const GNUNET_HashCode * key,
+						  const void *value);
+
+
+/**
  * Store a key-value pair in the map.
  *
  * @param map the map
@@ -690,6 +707,8 @@ int GNUNET_CONTAINER_multihashmap_get_multiple (const struct
  * @param element element to insert
  */
 #define GNUNET_CONTAINER_DLL_insert(head,tail,element) do { \
+  GNUNET_assert ( ( (element)->prev == NULL) && ((head) != (element))); \
+  GNUNET_assert ( ( (element)->next == NULL) && ((tail) != (element))); \
   (element)->next = (head); \
   (element)->prev = NULL; \
   if ((tail) == NULL) \
@@ -697,6 +716,7 @@ int GNUNET_CONTAINER_multihashmap_get_multiple (const struct
   else \
     (head)->prev = element; \
   (head) = (element); } while (0)
+
 
 /**
  * Insert an element at the tail of a DLL. Assumes that head, tail and
@@ -707,6 +727,8 @@ int GNUNET_CONTAINER_multihashmap_get_multiple (const struct
  * @param element element to insert
  */
 #define GNUNET_CONTAINER_DLL_insert_tail(head,tail,element) do { \
+  GNUNET_assert ( ( (element)->prev == NULL) && ((head) != (element))); \
+  GNUNET_assert ( ( (element)->next == NULL) && ((tail) != (element))); \
   (element)->prev = (tail); \
   (element)->next = NULL; \
   if ((head) == NULL) \
@@ -714,6 +736,7 @@ int GNUNET_CONTAINER_multihashmap_get_multiple (const struct
   else \
     (tail)->next = element; \
   (tail) = (element); } while (0)
+
 
 /**
  * Insert an element into a DLL after the given other element.  Insert
@@ -725,6 +748,8 @@ int GNUNET_CONTAINER_multihashmap_get_multiple (const struct
  * @param element element to insert
  */
 #define GNUNET_CONTAINER_DLL_insert_after(head,tail,other,element) do { \
+  GNUNET_assert ( ( (element)->prev == NULL) && ((head) != (element))); \
+  GNUNET_assert ( ( (element)->next == NULL) && ((tail) != (element))); \
   (element)->prev = (other); \
   if (NULL == other) \
     { \
@@ -741,6 +766,7 @@ int GNUNET_CONTAINER_multihashmap_get_multiple (const struct
   else \
     (element)->next->prev = (element); } while (0)
 
+
 /**
  * Insert an element into a DLL before the given other element.  Insert
  * at the tail if the other element is NULL.
@@ -751,6 +777,8 @@ int GNUNET_CONTAINER_multihashmap_get_multiple (const struct
  * @param element element to insert
  */
 #define GNUNET_CONTAINER_DLL_insert_before(head,tail,other,element) do { \
+  GNUNET_assert ( ( (element)->prev == NULL) && ((head) != (element))); \
+  GNUNET_assert ( ( (element)->next == NULL) && ((tail) != (element))); \
   (element)->next = (other); \
   if (NULL == other) \
     { \
@@ -778,6 +806,8 @@ int GNUNET_CONTAINER_multihashmap_get_multiple (const struct
  * @param element element to remove
  */
 #define GNUNET_CONTAINER_DLL_remove(head,tail,element) do { \
+  GNUNET_assert ( ( (element)->prev != NULL) || ((head) == (element))); \
+  GNUNET_assert ( ( (element)->next != NULL) || ((tail) == (element))); \
   if ((element)->prev == NULL) \
     (head) = (element)->next;  \
   else \
