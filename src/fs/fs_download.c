@@ -893,9 +893,7 @@ trigger_recursive_download (void *cls,
 {
   struct GNUNET_FS_DownloadContext *dc = cls;  
   struct GNUNET_FS_DownloadContext *cpos;
-  // struct GNUNET_DISK_FileHandle *fh;
   char *temp_name;
-  // const char *real_name;
   char *fn;
   char *us;
   char *ext;
