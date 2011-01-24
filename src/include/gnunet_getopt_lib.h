@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2009, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -137,51 +137,66 @@ struct GNUNET_GETOPT_CommandLineOption
 
 /**
  * Macro defining the option to print the command line
- * help text.
+ * help text (-h option).
  *
  * @param about string with brief description of the application
  */
 #define GNUNET_GETOPT_OPTION_HELP(about) \
   { 'h', "help", (const char *) NULL, gettext_noop("print this help"), 0, &GNUNET_GETOPT_format_help_, (void *) about }
 
+
 /**
  * Macro defining the option to print the version of
- * the application
+ * the application (-v option)
  *
  * @param version string with the version number
  */
 #define GNUNET_GETOPT_OPTION_VERSION(version) \
   { 'v', "version", (const char *) NULL, gettext_noop("print the version number"), 0, &GNUNET_GETOPT_print_version_, (void *) version }
 
+
 /**
- * Get the log level
+ * Allow user to specify log file name (-l option)
+ *
+ * @param logfn set to the name of the logfile
  */
 #define GNUNET_GETOPT_OPTION_LOGFILE(logfn)				\
   { 'l', "logfile", "LOGFILE", gettext_noop("configure logging to write logs to LOGFILE"), 1, &GNUNET_GETOPT_set_string, (void *) logfn }
 
+
 /**
- * Set the configuration option for logging.
+ * Allow user to specify log level (-L option)
+ *
+ * @param loglev set to the log level
  */
 #define GNUNET_GETOPT_OPTION_LOGLEVEL(loglev)				\
   { 'L', "log", "LOGLEVEL", gettext_noop("configure logging to use LOGLEVEL"), 1, &GNUNET_GETOPT_set_string, (void *) loglev }
 
+
 /**
- * Get number of verbose flags
+ * Get number of verbose (-V) flags
+ *
+ * @param level where to store the verbosity level (should be an 'int')
  */
 #define GNUNET_GETOPT_OPTION_VERBOSE(level)				\
   { 'V', "verbose", (const char *) NULL, gettext_noop("be verbose"), 0, &GNUNET_GETOPT_increment_value, (void *) level }
 
+
 /**
- * Get configuration file name
+ * Get configuration file name (-c option)
+ *
+ * @param fn set to the configuration file name
  */
 #define GNUNET_GETOPT_OPTION_CFG_FILE(fn)				\
   { 'c', "config", "FILENAME", gettext_noop("use configuration file FILENAME"), 1, &GNUNET_GETOPT_set_string, (void *) fn }
 
+
 /**
- * Marker to end the list of options.
+ * Marker for the end of the list of options.
  */
 #define GNUNET_GETOPT_OPTION_END \
   { '\0', NULL, NULL, NULL, 0, NULL, NULL }
+
 
 /**
  * Parse the command line.
