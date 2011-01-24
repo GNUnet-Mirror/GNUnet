@@ -309,6 +309,7 @@ void GNUNET_NETWORK_fdset_add (struct GNUNET_NETWORK_FDSet *dst,
 void GNUNET_NETWORK_fdset_copy (struct GNUNET_NETWORK_FDSet *to,
                                 const struct GNUNET_NETWORK_FDSet *from);
 
+
 /**
  * Return file descriptor for this network handle
  *

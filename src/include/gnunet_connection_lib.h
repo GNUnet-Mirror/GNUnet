@@ -53,15 +53,34 @@ struct GNUNET_CONNECTION_Handle;
 
 
 /**
+ * Credentials for UNIX domain sockets.
+ */
+struct GNUNET_CONNECTION_Credentials
+{
+  /**
+   * UID of the other end of the connection.
+   */
+  uid_t uid;
+
+  /**
+   * GID of the other end of the connection.
+   */
+  gid_t gid;
+};
+
+
+/**
  * Function to call for access control checks.
  *
  * @param cls closure
+ * @param ucred credentials, if available, otherwise NULL
  * @param addr address
  * @param addrlen length of address
  * @return GNUNET_YES to allow, GNUNET_NO to deny, GNUNET_SYSERR
  *   for unknown address family (will be denied).
  */
 typedef int (*GNUNET_CONNECTION_AccessCheck) (void *cls,
+					      const struct GNUNET_CONNECTION_Credentials *ucred,
                                            const struct sockaddr * addr,
                                            socklen_t addrlen);
 

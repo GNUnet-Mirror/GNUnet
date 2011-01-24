@@ -451,6 +451,7 @@ GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle
     return GNUNET_NO;
 }
 
+
 /**
  * Read data from a connected socket (always non-blocking).
  * @param desc socket
@@ -774,11 +775,19 @@ GNUNET_NETWORK_fdset_copy (struct GNUNET_NETWORK_FDSet *to,
 #endif
 }
 
+
+/**
+ * Return file descriptor for this network handle
+ *
+ * @param desc wrapper to process
+ * @return POSIX file descriptor
+ */
 int
 GNUNET_NETWORK_get_fd (struct GNUNET_NETWORK_Handle *desc)
 {
   return desc->fd;
 }
+
 
 /**
  * Copy a native fd set

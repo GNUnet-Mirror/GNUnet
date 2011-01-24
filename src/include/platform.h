@@ -156,6 +156,9 @@
 #include <sys/loadavg.h>
 #include <semaphore.h>
 #endif
+#if HAVE_UCRED_H
+#include <ucred.h>
+#endif
 #ifdef CYGWIN
 #include <windows.h>
 #include <cygwin/if.h>

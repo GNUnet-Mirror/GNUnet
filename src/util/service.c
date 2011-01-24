@@ -512,6 +512,18 @@ struct GNUNET_SERVICE_Context
   int require_found;
 
   /**
+   * Do we require a matching UID for UNIX domain socket
+   * connections?
+   */
+  int match_uid;
+
+  /**
+   * Do we require a matching GID for UNIX domain socket
+   * connections?
+   */
+  int match_gid;
+
+  /**
    * Our options.
    */
   enum GNUNET_SERVICE_Options options;
@@ -579,9 +591,18 @@ static const struct GNUNET_SERVER_MessageHandler defhandlers[] = {
 
 /**
  * Check if access to the service is allowed from the given address.
+ *
+ * @param cls closure
+ * @param uc credentials, if available, otherwise NULL
+ * @param addr address
+ * @param addrlen length of address
+ * @return GNUNET_YES to allow, GNUNET_NO to deny, GNUNET_SYSERR
+ *   for unknown address family (will be denied).
  */
 static int
-check_access (void *cls, const struct sockaddr *addr, socklen_t addrlen)
+check_access (void *cls, 
+	      const struct GNUNET_CONNECTION_Credentials *uc,
+	      const struct sockaddr *addr, socklen_t addrlen)
 {
   struct GNUNET_SERVICE_Context *sctx = cls;
   const struct sockaddr_in *i4;
@@ -609,8 +630,23 @@ check_access (void *cls, const struct sockaddr *addr, socklen_t addrlen)
             (!check_ipv6_listed (sctx->v6_denied, &i6->sin6_addr)));
       break;
     case AF_UNIX:
-      /* FIXME: support checking UID/GID in the future... */
       ret = GNUNET_OK; /* always OK for now */
+      if ( (sctx->match_uid == GNUNET_YES) ||
+	   (sctx->match_gid == GNUNET_YES) )
+	ret = GNUNET_NO;
+      if ( (uc != NULL) &&
+	   ( (sctx->match_uid != GNUNET_YES) ||
+	     (uc->uid == geteuid()) ||
+	     (uc->uid == getuid()) ) &&
+	   ( (sctx->match_gid != GNUNET_YES) ||
+	     (uc->gid == getegid()) ||
+	     (uc->gid == getgid())) )
+	ret = GNUNET_YES;
+      else
+	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		    _("Access denied to UID %d / GID %d\n"), 
+		    (uc == NULL) ? -1 : uc->uid,
+		    (uc == NULL) ? -1 : uc->gid);	
       break;
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -1187,7 +1223,12 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
 					     &sctx->addrlens)) )
     return GNUNET_SYSERR;
   sctx->require_found = tolerant ? GNUNET_NO : GNUNET_YES;
-
+  sctx->match_uid = GNUNET_CONFIGURATION_get_value_yesno (sctx->cfg,
+							  sctx->serviceName,
+							  "UNIX_MATCH_UID");
+  sctx->match_gid = GNUNET_CONFIGURATION_get_value_yesno (sctx->cfg,
+							  sctx->serviceName,
+							  "UNIX_MATCH_GID");
   process_acl4 (&sctx->v4_denied, sctx, "REJECT_FROM");
   process_acl4 (&sctx->v4_allowed, sctx, "ACCEPT_FROM");
   process_acl6 (&sctx->v6_denied, sctx, "REJECT_FROM6");

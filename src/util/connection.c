@@ -346,6 +346,12 @@ GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck access,
   struct sockaddr_in6 *v6;
   struct sockaddr *sa;
   void *uaddr;
+  struct GNUNET_CONNECTION_Credentials *gcp;  
+  struct GNUNET_CONNECTION_Credentials gc;  
+#ifdef SO_PEERCRED
+  struct ucred uc;
+  socklen_t olen;
+#endif
 
   addrlen = sizeof (addr);
   sock =
@@ -384,9 +390,50 @@ GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck access,
       uaddr = GNUNET_malloc (addrlen);
       memcpy (uaddr, addr, addrlen);
     }
+  gcp = NULL;
+  gc.uid = 0;
+  gc.gid = 0;
+  if (sa->sa_family == AF_UNIX)
+    {
+#if HAVE_GETPEEREID
+      /* most BSDs */
+      if (0 == getpeereid (GNUNET_NETWORK_get_fd (sock), 
+			   &gc.uid,
+			   &gc.gid))
+	gcp = &gc;
+#else
+#ifdef SO_PEERCRED
+      /* largely traditional GNU/Linux */
+      olen = sizeof (uc);
+      if ( (0 ==
+	    getsockopt (GNUNET_NETWORK_get_fd (sock), 
+			SOL_SOCKET, SO_PEERCRED, &uc, &olen)) &&
+	   (olen == sizeof (uc)) )
+	{
+	  gc.uid = uc.uid;
+	  gc.gid = uc.gid;
+	  gcp = &gc;	
+	}
+#else
+#if HAVE_GETPEERUCRED
+      /* this is for Solaris 10 */
+      ucred_t *uc;
+
+      uc = NULL;
+      if (0 == getpeerucred (GNUNET_NETWORK_get_fd (sock), &uc))
+	{
+	  gc.uid = ucred_geteuid (uc);
+	  gc.gid = ucred_getegid (uc);
+	  gcp = &gc;
+	}
+      ucred_free (uc);
+#endif
+#endif
+#endif
+    }
 
   if ((access != NULL) &&
-      (GNUNET_YES != (aret = access (access_cls, uaddr, addrlen))))
+      (GNUNET_YES != (aret = access (access_cls, gcp, uaddr, addrlen))))
     {
       if (aret == GNUNET_NO)
         GNUNET_log (GNUNET_ERROR_TYPE_INFO,
