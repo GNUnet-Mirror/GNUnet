@@ -871,9 +871,7 @@ struct GNUNET_FS_ProgressInfo
 
 	  /**
 	   * Depth of the given block in the tree; 
-	   * 0 would be the highest level (the first
-	   * call is guaranteed to be for the lowest
-	   * level).
+	   * 0 would be the lowest level (DBLOCKs).
 	   */
 	  unsigned int depth;
 
@@ -1015,7 +1013,10 @@ struct GNUNET_FS_ProgressInfo
 	struct {
   
 	  /**
-	   * Data block we just obtained.
+	   * Data block we just obtained, can be NULL (even if
+	   * data_len > 0) if we found the entire block 'intact' on
+	   * disk.  In this case, it is also possible for 'data_len'
+	   * to be larger than an individual (32k) block.
 	   */
 	  const void *data;
 	  
@@ -1031,9 +1032,7 @@ struct GNUNET_FS_ProgressInfo
 
 	  /**
 	   * Depth of the given block in the tree; 
-	   * 0 would be the highest level (the first
-	   * call is guaranteed to be for the lowest
-	   * level).
+	   * 0 would be the lowest level (DBLOCKS).
 	   */
 	  unsigned int depth;
 
@@ -1454,9 +1453,7 @@ struct GNUNET_FS_ProgressInfo
 
 	  /**
 	   * Depth of the given block in the tree; 
-	   * 0 would be the highest level (the first
-	   * call is guaranteed to be for the lowest
-	   * level).
+	   * 0 would be the lowest level (DBLOCKS).
 	   */
 	  unsigned int depth;
 
