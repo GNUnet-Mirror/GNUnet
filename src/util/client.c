@@ -253,6 +253,7 @@ struct GNUNET_CLIENT_Connection
 
 };
 
+
 /**
  * Try to connect to the service.
  *
@@ -272,7 +273,7 @@ do_connect (const char *service_name,
   unsigned long long port;
 
 #if AF_UNIX
-  if (0 == attempt % 2)
+  if (0 == (attempt % 2))
     {
       /* on even rounds, try UNIX */
       if (GNUNET_OK ==
@@ -312,6 +313,27 @@ do_connect (const char *service_name,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("Need a non-empty hostname for service `%s'.\n"),
                   service_name);
+      return NULL;
+    }
+  if (port == 0)
+    {
+#if AF_UNIX
+      if (0 != (attempt % 2))
+	{
+	  /* try UNIX */
+	  if (GNUNET_OK ==
+	      GNUNET_CONFIGURATION_get_value_string (cfg,
+						     service_name,
+						     "UNIXPATH", &unixpath))
+	    {
+	      sock = GNUNET_CONNECTION_create_from_connect_to_unixpath (cfg,
+									unixpath);
+	      GNUNET_free (unixpath);
+	      if (sock != NULL)
+		return sock;
+	    }
+	}
+#endif
       return NULL;
     }
   sock = GNUNET_CONNECTION_create_from_connect (cfg,
