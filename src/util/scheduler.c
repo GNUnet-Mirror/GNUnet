@@ -606,7 +606,8 @@ run_ready (struct GNUNET_NETWORK_FDSet *rs,
       if (current_priority != pos->priority)
 	{
 	  current_priority = pos->priority;
-	  (void) GNUNET_OS_set_process_priority (GNUNET_OS_process_current (), pos->priority);
+	  (void) GNUNET_OS_set_process_priority (GNUNET_OS_process_current (), 
+						 pos->priority);
 	}
       active_task = pos;
 #if PROFILE_DELAYS
