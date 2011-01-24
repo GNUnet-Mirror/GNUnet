@@ -372,4 +372,4 @@ main (int argc, char *argv[])
   return ok;
 }
 
-/* end of perf_gnunet_service_fs_p2p_index.c */
+/* end of perf_gnunet_service_fs_p2p.c */
