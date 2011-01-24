@@ -336,6 +336,36 @@ GNUNET_CONTAINER_multihashmap_contains (const struct
 
 
 /**
+ * Check if the map contains the given value under the given
+ * key.
+ *
+ * @param map the map
+ * @param key the key to test if a value exists for it
+ * @param value value to test for
+ * @return GNUNET_YES if such a value exists,
+ *         GNUNET_NO if not
+ */
+int GNUNET_CONTAINER_multihashmap_contains_value (const struct
+						  GNUNET_CONTAINER_MultiHashMap
+						  *map,
+						  const GNUNET_HashCode * key,
+						  const void *value)
+{
+  struct MapEntry *e;
+
+  e = map->map[idx_of (map, key)];
+  while (e != NULL)
+    {
+      if ( (0 == memcmp (key, &e->key, sizeof (GNUNET_HashCode))) &&
+	   (e->value == value) )
+        return GNUNET_YES;
+      e = e->next;
+    }
+  return GNUNET_NO;
+}
+
+
+/**
  * Grow the given map to a more appropriate size.
  *
  * @param map the hash map to grow
