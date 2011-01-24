@@ -1478,6 +1478,7 @@ destroy_pending_message_list_entry (struct PendingMessageList *pml)
   GNUNET_CONTAINER_DLL_remove (pml->target->pending_messages_head,
 			       pml->target->pending_messages_tail,
 			       pml->pm);
+  GNUNET_assert (pml->target->pending_requests > 0);
   pml->target->pending_requests--;
   GNUNET_free (pml->pm);
   GNUNET_free (pml);
@@ -2222,6 +2223,7 @@ transmit_to_peer (void *cls,
 	  GNUNET_CONTAINER_DLL_remove (cp->pending_messages_head,
 				       cp->pending_messages_tail,
 				       pm);
+	  GNUNET_assert (cp->pending_requests > 0);
 	  cp->pending_requests--;    
 	  destroy_pending_message (pm, 0);
 	}
@@ -2260,6 +2262,7 @@ transmit_to_peer (void *cls,
 	  GNUNET_CONTAINER_DLL_remove (cp->pending_messages_head,
 				       cp->pending_messages_tail,
 				       pm);
+	  GNUNET_assert (cp->pending_requests > 0);
 	  cp->pending_requests--;
 	}
       destroy_pending_message (pm, cp->pid);
@@ -2675,6 +2678,11 @@ target_reservation_cb (void *cls,
   uint32_t bm;
   unsigned int i;
 
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Core called back... for query `%s'.\n",
+		  GNUNET_h2s (&pr->query));
+#endif
   /* (3) transmit, update ttl/priority */
   cp = GNUNET_CONTAINER_multihashmap_get (connected_peers,
 					  &peer->hashPubKey);
@@ -3144,6 +3152,11 @@ forward_request_task (void *cls,
       GNUNET_assert (cp->irc == NULL);
       pr->pirc = cp;
       cp->pr = pr;
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Asking core for bandwidth for query `%s'.\n",
+		  GNUNET_h2s (&pr->query));
+#endif
       cp->irc = GNUNET_CORE_peer_change_preference (core,
 						    &psc.target,
 						    GNUNET_CONSTANTS_SERVICE_TIMEOUT, 
