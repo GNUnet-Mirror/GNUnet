@@ -846,16 +846,20 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
 	      dr->depth,
 	      GNUNET_h2s (&dr->chk.query));
 #endif
-  GNUNET_CONTAINER_DLL_insert (dc->pending_head,
-			       dc->pending_tail,
-			       dr);
-  dr->is_pending = GNUNET_YES;
+  GNUNET_assert (GNUNET_NO ==
+		 GNUNET_CONTAINER_multihashmap_contains_value (dc->active,
+							       &dr->chk.query,
+							       dr));
   GNUNET_CONTAINER_multihashmap_put (dc->active,
 				     &dr->chk.query,
 				     dr,
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   if (dc->client == NULL)
     return; /* download not active */
+  GNUNET_CONTAINER_DLL_insert (dc->pending_head,
+			       dc->pending_tail,
+			       dr);
+  dr->is_pending = GNUNET_YES;
   if (NULL == dc->th)
     dc->th = GNUNET_CLIENT_notify_transmit_ready (dc->client,
 						  sizeof (struct SearchMessage),
@@ -1547,6 +1551,8 @@ retry_entry (void *cls,
   struct GNUNET_FS_DownloadContext *dc = cls;
   struct DownloadRequest *dr = entry;
 
+  dr->next = NULL;
+  dr->prev = NULL;
   GNUNET_CONTAINER_DLL_insert (dc->pending_head,
 			       dc->pending_tail,
 			       dr);
@@ -1624,6 +1630,8 @@ activate_fs_download (void *cls,
 			 GNUNET_TIME_UNIT_FOREVER_REL);
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_ACTIVE;
   GNUNET_FS_download_make_status_ (&pi, dc);
+  GNUNET_assert (dc->pending_head == NULL);
+  GNUNET_assert (dc->pending_tail == NULL);
   GNUNET_CONTAINER_multihashmap_iterate (dc->active,
 					 &retry_entry,
 					 dc);
@@ -1669,6 +1677,8 @@ deactivate_fs_download (void *cls)
       GNUNET_CLIENT_disconnect (dc->client, GNUNET_NO);
       dc->client = NULL;
     }
+  dc->pending_head = NULL;
+  dc->pending_tail = NULL;
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_INACTIVE;
   GNUNET_FS_download_make_status_ (&pi, dc);
 }
