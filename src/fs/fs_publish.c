@@ -838,6 +838,16 @@ hash_for_index_cb (void *cls,
 	      p->filename,
 	      GNUNET_h2s (res));
 #endif
+  if (0 != (sc->options & GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY))
+    {
+      p->data.file.file_id = *res;
+      p->data.file.have_hash = GNUNET_YES;
+      p->data.file.index_start_confirmed = GNUNET_YES;
+      GNUNET_FS_file_information_sync_ (p);
+      publish_content (sc);
+      GNUNET_free (fn);
+      return;
+    }
   client = GNUNET_CLIENT_connect ("fs",
 				  sc->h->cfg);
   if (NULL == client)
@@ -1261,6 +1271,7 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
   ret->h = h;
   ret->fi = fi;
   ret->namespace = namespace;
+  ret->options = options;
   if (namespace != NULL)
     {
       namespace->rc++;
