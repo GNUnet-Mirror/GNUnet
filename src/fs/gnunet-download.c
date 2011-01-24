@@ -99,6 +99,10 @@ progress_cb (void *cls,
   switch (info->status)
     {
     case GNUNET_FS_STATUS_DOWNLOAD_START:
+      if (verbose > 1)
+	fprintf (stderr,
+		 _("Starting download `%s'.\n"),
+		 info->value.download.filename);
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_PROGRESS:
       if (verbose)
@@ -281,7 +285,7 @@ main (int argc, char *const *argv)
      0, &GNUNET_GETOPT_set_one, &do_recursive},
     {'V', "verbose", NULL,
      gettext_noop ("be verbose (print progress information)"),
-     0, &GNUNET_GETOPT_set_one, &verbose},
+     0, &GNUNET_GETOPT_increment_value, &verbose},
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==

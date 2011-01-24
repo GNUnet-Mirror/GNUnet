@@ -24,7 +24,6 @@
  *
  * TODO:
  * - different priority for scheduling probe downloads?
- * - download seems to not always find (or at least use!) embedded full data
  */
 #include "platform.h"
 #include "gnunet_constants.h"
@@ -442,6 +441,11 @@ check_completed (struct GNUNET_FS_DownloadContext *dc)
     }
   /* All of our children are done, so mark this download done */
   dc->has_finished = GNUNET_YES;
+  if (dc->job_queue != NULL)
+    {
+      GNUNET_FS_dequeue_ (dc->job_queue);
+      dc->job_queue = NULL;
+    }
   GNUNET_FS_download_sync_ (dc);
 
   /* signal completion */
@@ -889,9 +893,9 @@ trigger_recursive_download (void *cls,
 {
   struct GNUNET_FS_DownloadContext *dc = cls;  
   struct GNUNET_FS_DownloadContext *cpos;
-  struct GNUNET_DISK_FileHandle *fh;
+  // struct GNUNET_DISK_FileHandle *fh;
   char *temp_name;
-  const char *real_name;
+  // const char *real_name;
   char *fn;
   char *us;
   char *ext;
@@ -1002,42 +1006,59 @@ trigger_recursive_download (void *cls,
     }
 
   temp_name = NULL;
-  if ( (data != NULL) &&
-       (GNUNET_FS_uri_chk_get_file_size (uri) == length) )
+#if 0
+  if (data != NULL) 
     {
-      if (full_name == NULL)
+      if (GNUNET_FS_uri_chk_get_file_size (uri) == length)
 	{
-	  temp_name = GNUNET_DISK_mktemp ("gnunet-download-trd");
-	  real_name = temp_name;
+	  if (full_name == NULL)
+	    {
+	      temp_name = GNUNET_DISK_mktemp ("gnunet-download-trd");
+	      real_name = temp_name;
+	    }
+	  else
+	    {
+	      real_name = full_name;
+	    }
+	  /* write to disk, then trigger normal download which will instantly progress to completion */
+	  fh = GNUNET_DISK_file_open (real_name,
+				  GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_TRUNCATE | GNUNET_DISK_OPEN_CREATE,
+				      GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
+	  if (fh == NULL)
+	    {
+	      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+					"open",
+					real_name);	      
+	      GNUNET_free (full_name);
+	      GNUNET_free_non_null (fn);
+	      return;
+	    }
+	  if (length != 
+	      GNUNET_DISK_file_write (fh,
+				      data,
+				      length))
+	    {
+	      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+					"write",
+					full_name);	      
+	    }
+#if DEBUG_DOWNLOAD
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Wrote %llu bytes of plaintext from meta data to `%s' for validation\n",
+		      (unsigned long long) length,
+		      real_name);
+#endif
+	  GNUNET_DISK_file_close (fh);
 	}
       else
 	{
-	  real_name = full_name;
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		      _("Length mismatch between supplied plaintext and expected file size (%llu != %llu)\n"),
+		      (unsigned long long) GNUNET_FS_uri_chk_get_file_size (uri),
+		      (unsigned long long) length);
 	}
-      /* write to disk, then trigger normal download which will instantly progress to completion */
-      fh = GNUNET_DISK_file_open (real_name,
-				  GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_TRUNCATE | GNUNET_DISK_OPEN_CREATE,
-				  GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
-      if (fh == NULL)
-	{
-	  GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-				    "open",
-				    real_name);	      
-	  GNUNET_free (full_name);
-	  GNUNET_free_non_null (fn);
-	  return;
-	}
-      if (length != 
-	  GNUNET_DISK_file_write (fh,
-				  data,
-				  length))
-	{
-	  GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-				    "write",
-				    full_name);	      
-	}
-      GNUNET_DISK_file_close (fh);
     }
+#endif
 #if DEBUG_DOWNLOAD
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Triggering recursive download of size %llu with %u bytes MD\n",
@@ -1264,6 +1285,8 @@ process_result_with_request (void *cls,
   pi.value.download.specifics.progress.depth = dr->depth;
   GNUNET_FS_download_make_status_ (&pi, dc);
   GNUNET_assert (dc->completed <= dc->length);
+  if (dr->depth == 0) 
+    propagate_up (dr);
 
   if (dc->completed == dc->length)
     {
@@ -1282,17 +1305,11 @@ process_result_with_request (void *cls,
 				      "truncate",
 				      dc->filename);
 	}
-      if (dc->job_queue != NULL)
-	{
-	  GNUNET_FS_dequeue_ (dc->job_queue);
-	  dc->job_queue = NULL;
-	}
       GNUNET_assert (dr->depth == 0);
       check_completed (dc);
     }
   if (dr->depth == 0) 
     {
-      propagate_up (dr);
       /* bottom of the tree, no child downloads possible, just sync */
       GNUNET_FS_download_sync_ (dc);
       return GNUNET_YES;
@@ -2045,6 +2062,11 @@ GNUNET_FS_download_start_task_ (void *cls,
       if (dc->rfh != NULL)
 	{
 	  /* first, try top-down */
+#if DEBUG_DOWNLOAD
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Trying top-down reconstruction for `%s'\n",
+		      dc->filename);
+#endif
 	  try_top_down_reconstruction (dc, dc->top_request);
 	  switch (dc->top_request->state)
 	    {
@@ -2054,16 +2076,6 @@ GNUNET_FS_download_start_task_ (void *cls,
 	      break; /* normal, some blocks already down */
 	    case BRS_DOWNLOAD_UP:
 	      /* already done entirely, party! */
-	      dc->completed = dc->length;
-	      GNUNET_FS_download_sync_ (dc);
-	      pi.status = GNUNET_FS_STATUS_DOWNLOAD_PROGRESS;
-	      /* slightly ugly: no data provided to callee; maybe mmap the
-		 file instead? Or is 'data' pure convenience!? */
-	      pi.value.download.specifics.progress.data = NULL;
-	      pi.value.download.specifics.progress.offset = dc->offset;
-	      pi.value.download.specifics.progress.data_len = dc->length;
-	      pi.value.download.specifics.progress.depth = 0;
-	      GNUNET_FS_download_make_status_ (&pi, dc);
 	      if (dc->rfh != NULL)
 		{
 		  /* avoid hanging on to file handle longer than 
@@ -2071,7 +2083,6 @@ GNUNET_FS_download_start_task_ (void *cls,
 		  GNUNET_DISK_file_close (dc->rfh);
 		  dc->rfh = NULL;
 		}
-	      check_completed (dc);
 	      return;      
 	    case BRS_ERROR:
 	      GNUNET_asprintf (&dc->emsg,
@@ -2115,6 +2126,11 @@ GNUNET_FS_download_start_task_ (void *cls,
   if (dc->rfh != NULL)
     {
       /* finally, try bottom-up */
+#if DEBUG_DOWNLOAD
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Trying bottom-up reconstruction of file `%s'\n",
+		  dc->filename);
+#endif
       dc->te = GNUNET_FS_tree_encoder_create (dc->h,
 					      dc->old_file_size,
 					      dc,
