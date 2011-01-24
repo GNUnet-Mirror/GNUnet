@@ -902,6 +902,7 @@ trigger_recursive_download (void *cls,
   char *dn;
   char *pos;
   char *full_name;
+  char *sfn;
 
   if (NULL == uri)
     return; /* entry for the directory itself */
@@ -965,6 +966,10 @@ trigger_recursive_download (void *cls,
 		     (NULL !=
 		      strstr (dn + strlen(dn) - strlen(GNUNET_FS_DIRECTORY_EXT),
 			      GNUNET_FS_DIRECTORY_EXT)) );
+      sfn = GNUNET_strdup (filename);
+      while ( (strlen (sfn) > 0) &&
+	      (filename[strlen(sfn)-1] == '/') )
+	sfn[strlen(sfn)-1] = '\0';
       if ( (strlen (dn) >= strlen (GNUNET_FS_DIRECTORY_EXT)) &&
 	   (NULL !=
 	    strstr (dn + strlen(dn) - strlen(GNUNET_FS_DIRECTORY_EXT),
@@ -980,7 +985,7 @@ trigger_recursive_download (void *cls,
 			   "%s%s%s%s",
 			   dn,
 			   DIR_SEPARATOR_STR,
-			   filename,
+			   sfn,
 			   GNUNET_FS_DIRECTORY_EXT);
 	}
       else
@@ -989,7 +994,7 @@ trigger_recursive_download (void *cls,
 			   "%s%s%s",
 			   dn,
 			   DIR_SEPARATOR_STR,
-			   filename);
+			   sfn);
 	}
       GNUNET_free (dn);
     }
@@ -1006,59 +1011,6 @@ trigger_recursive_download (void *cls,
     }
 
   temp_name = NULL;
-#if 0
-  if (data != NULL) 
-    {
-      if (GNUNET_FS_uri_chk_get_file_size (uri) == length)
-	{
-	  if (full_name == NULL)
-	    {
-	      temp_name = GNUNET_DISK_mktemp ("gnunet-download-trd");
-	      real_name = temp_name;
-	    }
-	  else
-	    {
-	      real_name = full_name;
-	    }
-	  /* write to disk, then trigger normal download which will instantly progress to completion */
-	  fh = GNUNET_DISK_file_open (real_name,
-				  GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_TRUNCATE | GNUNET_DISK_OPEN_CREATE,
-				      GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
-	  if (fh == NULL)
-	    {
-	      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-					"open",
-					real_name);	      
-	      GNUNET_free (full_name);
-	      GNUNET_free_non_null (fn);
-	      return;
-	    }
-	  if (length != 
-	      GNUNET_DISK_file_write (fh,
-				      data,
-				      length))
-	    {
-	      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-					"write",
-					full_name);	      
-	    }
-#if DEBUG_DOWNLOAD
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Wrote %llu bytes of plaintext from meta data to `%s' for validation\n",
-		      (unsigned long long) length,
-		      real_name);
-#endif
-	  GNUNET_DISK_file_close (fh);
-	}
-      else
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		      _("Length mismatch between supplied plaintext and expected file size (%llu != %llu)\n"),
-		      (unsigned long long) GNUNET_FS_uri_chk_get_file_size (uri),
-		      (unsigned long long) length);
-	}
-    }
-#endif
 #if DEBUG_DOWNLOAD
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Triggering recursive download of size %llu with %u bytes MD\n",

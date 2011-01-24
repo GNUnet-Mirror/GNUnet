@@ -422,7 +422,6 @@ dir_scan_cb (void *cls,
       GNUNET_FS_meta_data_extract_from_file (meta,
 					     filename,
 					     dsc->extractors);
-      // FIXME: remove path from filename in metadata!
       keywords = GNUNET_FS_uri_ksk_create_from_meta_data (meta);
       ksk_uri = GNUNET_FS_uri_ksk_canonicalize (keywords);
       fi = GNUNET_FS_file_information_create_from_file (dsc->h,
@@ -582,6 +581,7 @@ GNUNET_FS_file_information_create_from_directory (struct GNUNET_FS_Handle *h,
   struct GNUNET_CONTAINER_MetaData *meta;
   const char *fn;
   const char *ss;
+  char *dn;
 
   dc.entries = NULL;
   meta = GNUNET_CONTAINER_meta_data_create ();
@@ -617,13 +617,17 @@ GNUNET_FS_file_information_create_from_directory (struct GNUNET_FS_Handle *h,
 				 DIR_SEPARATOR_STR))) &&
 	  (strlen (ss) > 1) )
     fn = ss + 1;
+  GNUNET_asprintf (&dn,
+		   "%s/", 
+		   fn);
   GNUNET_CONTAINER_meta_data_insert (ret->meta,
 				     "<gnunet>",
 				     EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME,
 				     EXTRACTOR_METAFORMAT_C_STRING,
 				     "text/plain",
-				     fn,
-				     strlen (fn) + 1);
+				     dn,
+				     strlen (dn) + 1);
+  GNUNET_free (dn);
   ret->filename = GNUNET_strdup (filename);
   return ret;
 }
