@@ -965,11 +965,15 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (const struct
 						  ret->addr,
 						  ret->addrlen)) 
     {
+      /* Just return; we expect everything to work eventually so don't fail HARD */
+      return ret;
+#if HARD_FAIL
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (ret->sock));
       GNUNET_free (ret->addr);
       GNUNET_free (ret->write_buffer);
       GNUNET_free (ret);
       return NULL;
+#endif
     }
   connect_success_continuation (ret);
   return ret;
