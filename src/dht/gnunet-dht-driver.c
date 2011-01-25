@@ -3077,7 +3077,8 @@ run (void *cls,
     }
 
   /* Create the bloomfilter for choosing which peers to set malicious */
-  malicious_bloom = GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE * 10, DHT_BLOOM_K);
+  if (malicious_droppers > 0)
+    malicious_bloom = GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_K * malicious_droppers, DHT_BLOOM_K);
 
   /* The normal behavior of the DHT is to do find peer requests
    * on its own.  Only if this is explicitly turned off should
