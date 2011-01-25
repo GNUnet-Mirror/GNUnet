@@ -22,17 +22,6 @@
  * @file core/core.h
  * @brief common internal definitions for core service
  * @author Christian Grothoff
- *
- * TODO:
- * - bound message queue size
- * - on disconnect from core, signal disconnect for all peers
- *   and clean up peer records
- * - create / destroy peer records on connect/disconnect events
- * - implement iterator API
- * - implement re-configure API
- * - check on peer-related events that connection is known
- *   (if not, GNUNET_break + reconnect)
- * - handle atsi records
  */
 #include "gnunet_bandwidth_lib.h"
 #include "gnunet_crypto_lib.h"
