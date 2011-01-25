@@ -719,7 +719,7 @@ struct PendingRequest
   int8_t local_only;
 
   /**
-   * GNUNET_YES if we should not forward this request to other peers.
+   * GNUNET_YES if we should not forward this request to other peers. (HUH?)
    */
   int8_t forward_only;
 
