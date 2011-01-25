@@ -2412,6 +2412,7 @@ choose_next_malicious (struct GNUNET_TESTING_PeerGroup *pg, struct GNUNET_CONTAI
     {
       nearest = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, num_peers);
       hash_from_uid(nearest, &uid_hash);
+      count = 0;
       while ((GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (bloom, &uid_hash)) && (count < num_peers))
         {
           GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Peer %d already in bloom (tried %d times)\n", nearest, count);
@@ -2710,7 +2711,7 @@ run (void *cls,
   int count;
   int ret;
   int line_number;
-
+  int k;
 
   config = cfg;
   rounds_finished = 0;
@@ -3077,8 +3078,13 @@ run (void *cls,
     }
 
   /* Create the bloomfilter for choosing which peers to set malicious */
+
+  /* Bloomfilter size must be 2^k for some integer k */
+  k = 1;
+  while (1 << k < malicious_droppers)
+    k++;
   if (malicious_droppers > 0)
-    malicious_bloom = GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_K * malicious_droppers, DHT_BLOOM_K);
+    malicious_bloom = GNUNET_CONTAINER_bloomfilter_init (NULL, 1 << k, DHT_BLOOM_K);
 
   /* The normal behavior of the DHT is to do find peer requests
    * on its own.  Only if this is explicitly turned off should
