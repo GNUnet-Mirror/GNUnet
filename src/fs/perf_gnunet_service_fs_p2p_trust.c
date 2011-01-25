@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2010 Christian Grothoff (and other contributing authors)
+     (C) 2010,2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -51,12 +51,12 @@
 #include "fs_test_lib.h"
 #include "gnunet_testing_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 /**
  * File-size we use for testing.
  */
-#define FILESIZE (1024 * 1024 * 100)
+#define FILESIZE (1024 * 1024 * 10)
 
 /**
  * How long until we give up on transmitting the message?
@@ -251,7 +251,7 @@ do_report (void *cls,
       if (del.rel_value == 0)
 	del.rel_value = 1;
       fancy = GNUNET_STRINGS_byte_size_fancy (((unsigned long long)FILESIZE) * 1000LL / del.rel_value);
-      fprintf (stdout,
+      fprintf (stderr,
 	       "Download speed of type `%s' was %s/s\n",
 	       type,
 	       fancy);
@@ -472,4 +472,4 @@ main (int argc, char *argv[])
   return ok;
 }
 
-/* end of perf_gnunet_service_fs_p2p_index.c */
+/* end of perf_gnunet_service_fs_p2p_trust.c */
