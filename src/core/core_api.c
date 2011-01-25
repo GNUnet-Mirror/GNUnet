@@ -1231,7 +1231,13 @@ main_notify_handler (void *cls,
 	  return;
 	}
       if (pr->rim_id != ntohl (cim->rim_id))
-	break;
+	{
+#if DEBUG_CORE
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Reservation ID mismatch in notification...\n");
+#endif
+	  break;
+	}
       pcic = pr->pcic;
       pr->pcic = NULL;
       if (pcic != NULL)
