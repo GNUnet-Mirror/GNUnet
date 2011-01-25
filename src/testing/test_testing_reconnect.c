@@ -163,7 +163,7 @@ my_cb1 (void *cls,
               "Daemon `%s' started.\n", GNUNET_i2s (id));
 #endif
   d2 =
-    GNUNET_TESTING_daemon_start (c2, TIMEOUT, NULL, NULL, 0, NULL, NULL,
+    GNUNET_TESTING_daemon_start (c2, TIMEOUT, NULL, NULL, 0, NULL, NULL, NULL,
                                  &my_cb2, NULL);
   GNUNET_assert (d2 != NULL);
 }
@@ -190,7 +190,7 @@ run_phase ()
 {
   phase++;
   d1 =
-    GNUNET_TESTING_daemon_start (c1, TIMEOUT, NULL, NULL, 0, NULL, NULL,
+    GNUNET_TESTING_daemon_start (c1, TIMEOUT, NULL, NULL, 0, NULL, NULL, NULL,
                                  &my_cb1, NULL);
   GNUNET_assert (d1 != NULL);
 }
