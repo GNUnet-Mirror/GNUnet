@@ -136,12 +136,31 @@ main (int argc, char *const argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
-  GNUNET_log_setup ("test-nat", "DEBUG", NULL);
+  char *const argv_prog[] = {
+    "test-nat",
+    "-c",
+    "test-nat.conf",
+    "-L",
+#if VERBOSE
+    "DEBUG",
+#else
+    "WARNING",
+#endif
+    NULL
+  };
+
+  GNUNET_log_setup ("test-nat",
+#if VERBOSE
+                    "DEBUG",
+#else
+                    "WARNING",
+#endif
+                    NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Testing NAT library, timeout set to %d seconds\n", TIMEOUT);
 
-  GNUNET_PROGRAM_run (argc, argv, "test-nat", "nohelp", options, &run, NULL);
+  GNUNET_PROGRAM_run (5, argv_prog, "test-nat", "nohelp", options, &run, NULL);
 
   return 0;
 }
