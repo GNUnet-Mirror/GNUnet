@@ -276,10 +276,11 @@ do_connect (const char *service_name,
   if (0 == (attempt % 2))
     {
       /* on even rounds, try UNIX */
-      if (GNUNET_OK ==
+      if ((GNUNET_OK ==
 	  GNUNET_CONFIGURATION_get_value_string (cfg,
 						 service_name,
-						 "UNIXPATH", &unixpath))
+						 "UNIXPATH", &unixpath)) &&
+          (0 < strlen (unixpath)))
 	{
 	  sock = GNUNET_CONNECTION_create_from_connect_to_unixpath (cfg,
 								    unixpath);
@@ -321,10 +322,11 @@ do_connect (const char *service_name,
       if (0 != (attempt % 2))
 	{
 	  /* try UNIX */
-	  if (GNUNET_OK ==
+	  if ((GNUNET_OK ==
 	      GNUNET_CONFIGURATION_get_value_string (cfg,
 						     service_name,
-						     "UNIXPATH", &unixpath))
+						     "UNIXPATH", &unixpath)) &&
+              (0 < strlen (unixpath)))
 	    {
 	      sock = GNUNET_CONNECTION_create_from_connect_to_unixpath (cfg,
 									unixpath);
