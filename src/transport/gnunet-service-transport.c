@@ -1034,7 +1034,7 @@ read_blacklist_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
     {
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  _("Option `%s' in section `%s' not specified!\n"),
+                  "Option `%s' in section `%s' not specified!\n",
                   "BLACKLIST_FILE",
                   "TRANSPORT");
 #endif
@@ -1122,7 +1122,7 @@ read_blacklist_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
       pos = colon_pos + 1;
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  _("Read transport name %s in blacklist file.\n"),
+                  "Read transport name %s in blacklist file.\n",
                   transport_name);
 #endif
       memcpy (&enc, &data[pos], sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded));
@@ -1196,8 +1196,10 @@ transmit_to_client_callback (void *cls, size_t size, void *buf)
   client->th = NULL;
   if (buf == NULL)
     {
+#if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Transmission to client failed, closing connection.\n");
+#endif
       /* fatal error with client, free message queue! */
       while (NULL != (q = client->message_queue_head))
         {

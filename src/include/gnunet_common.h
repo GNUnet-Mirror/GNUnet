@@ -147,6 +147,7 @@ enum GNUNET_ErrorType
   GNUNET_ERROR_TYPE_BULK = 32
 };
 
+
 /**
  * User-defined handler for log messages.
  *
@@ -208,6 +209,7 @@ int
 GNUNET_log_setup (const char *comp,
                   const char *loglevel, const char *logfile);
 
+
 /**
  * Add a custom logger.
  *
@@ -215,6 +217,7 @@ GNUNET_log_setup (const char *comp,
  * @param logger_cls closure for logger
  */
 void GNUNET_logger_add (GNUNET_Logger logger, void *logger_cls);
+
 
 /**
  * Remove a custom logger.
@@ -235,6 +238,7 @@ void GNUNET_logger_remove (GNUNET_Logger logger, void *logger_cls);
  */
 const char *GNUNET_h2s (const GNUNET_HashCode *hc);
 
+
 /**
  * Convert a hash value to a string (for printing debug messages).
  * This prints all 104 characters of a hashcode!
@@ -245,6 +249,7 @@ const char *GNUNET_h2s (const GNUNET_HashCode *hc);
  * @return string
  */
 const char *GNUNET_h2s_full (const GNUNET_HashCode *hc);
+
 
 /**
  * Convert a peer identity to a string (for printing debug messages).
@@ -278,6 +283,7 @@ const char *GNUNET_a2s (const struct sockaddr *addr,
  * @return string corresponding to the type
  */
 const char *GNUNET_error_type_to_string (enum GNUNET_ErrorType kind);
+
 
 /**
  * Use this for fatal errors that cannot be handled

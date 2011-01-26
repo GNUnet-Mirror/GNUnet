@@ -2350,6 +2350,7 @@ tcp_plugin_server_read (void *cls,
 		       "Finished reading from server stdout with code: %d\n", 
 		       bytes);
 #endif
+      /* FIXME: consider process_wait here? */
       return;
     }
 
