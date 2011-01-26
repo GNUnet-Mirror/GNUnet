@@ -1,6 +1,7 @@
 #ifndef _GNTUN_PACKET_H_
 #define _GNTUN_PACKET_H_
 
+#include "platform.h"
 #include "gnunet_common.h"
 
 // Headers
