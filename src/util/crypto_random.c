@@ -256,7 +256,6 @@ killfind ()
 
 void __attribute__ ((constructor)) GNUNET_CRYPTO_random_init ()
 {
-  SRANDOM (time (NULL));
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   if (!gcry_check_version (GCRYPT_VERSION))
     {
@@ -271,6 +270,7 @@ void __attribute__ ((constructor)) GNUNET_CRYPTO_random_init ()
 #endif
   gcry_set_progress_handler (&entropy_generator, NULL);
   atexit (&killfind);
+  SRANDOM (time (NULL) ^ GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX));
 }
 
 
