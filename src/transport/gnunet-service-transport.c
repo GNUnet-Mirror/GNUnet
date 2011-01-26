@@ -976,7 +976,7 @@ is_blacklisted (const struct GNUNET_PeerIdentity *peer, struct TransportPlugin *
         {
 #if DEBUG_BLACKLIST
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      _("Peer `%s:%s' is blacklisted!\n"),
+                      "Peer `%s:%s' is blacklisted!\n",
                       plugin->short_name, GNUNET_i2s (peer));
 #endif
           if (stats != NULL)
