@@ -455,18 +455,20 @@ stdin_send (void *cls,
 
 static void
 file_in_send (void *cls,
-                      void *client,
-                      const struct GNUNET_MessageHeader *hdr)
+	      void *client,
+	      const struct GNUNET_MessageHeader *hdr)
 {
   struct sendbuf * write_std = cls;
-  int sendsize;
+  uint16_t sendsize;
 
   sendsize = ntohs(hdr->size);
 
-  if(GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA != ntohs(hdr->type)){
-    fprintf(stderr, "Function file_in_send: wrong packet type\n");
-    exit(1);
-  }
+  if (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA != ntohs(hdr->type))
+    {
+      fprintf (stderr, 
+	       "Function file_in_send: wrong packet type\n");
+      exit(1);
+    }
   if((sendsize + write_std->size) > MAXLINE * 2){
     fprintf(stderr, "Function file_in_send: Packet too big for buffer\n");
     exit(1);

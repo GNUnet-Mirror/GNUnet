@@ -27,10 +27,9 @@
 #ifndef PLUGIN_TRANSPORT_WLAN
 #define PLUGIN_TRANSPORT_WLAN
 
+#include <stdint.h>
 #include "gnunet_common.h"
 
-typedef unsigned int uint32_t;
-typedef unsigned short uint16_t;
 
 
 struct MacAddress
@@ -82,7 +81,6 @@ struct IeeeHeader
   /**
    * Duration / ID
    */
-
   uint16_t duration_id GNUNET_PACKED;
   
   /**
