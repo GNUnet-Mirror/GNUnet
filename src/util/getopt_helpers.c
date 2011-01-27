@@ -168,7 +168,7 @@ GNUNET_GETOPT_format_help_ (struct GNUNET_GETOPT_CommandLineProcessorContext
 int
 GNUNET_GETOPT_increment_value (struct
                                GNUNET_GETOPT_CommandLineProcessorContext *ctx,
-                               void *scls, const char *cmdLineOption,
+                               void *scls, const char *option,
                                const char *value)
 {
   int *val = scls;

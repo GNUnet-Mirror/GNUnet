@@ -111,9 +111,9 @@ GSF_local_client_register_disconnect_callback_ (struct GSF_LocalClient *lc,
  * @param it_cls closure for it
  */
 void
-GSF_connected_peer_unregister_disconnect_callback_ (struct GSF_ConnectedPeer *cp,
-						    GSF_PendingRequestIterator it,
-						    void *it_cls);
+GSF_local_client_unregister_disconnect_callback_ (struct GSF_LocalClient *lc,
+						  GSF_PendingRequestIterator it,
+						  void *it_cls);
 
 #endif
 /* end of gnunet-service-fs_lc.h */

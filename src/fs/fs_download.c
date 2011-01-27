@@ -463,7 +463,7 @@ check_completed (struct GNUNET_FS_DownloadContext *dc)
  * Try it for upward reconstruction of the data.  On success,
  * the top-level block will move to state BRS_DOWNLOAD_UP.
  *
- * @param dr one of our request entries
+ * @param dc context for the download
  * @param dr download request to match against
  * @param data plaintext data, starting from the beginning of the file
  * @param data_len number of bytes in data

@@ -19,7 +19,7 @@
 */
 
 /**
- * @file chat/chat_api.c
+ * @file chat/chat.c
  * @brief convenience API for sending and receiving chat messages
  * @author Christian Grothoff
  * @author Nathan Evans

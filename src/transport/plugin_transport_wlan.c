@@ -894,7 +894,7 @@ get_next_queue_Session (struct Plugin * plugin){
 /**
  * Function to sort the message into the message fragment queue
  * @param plugin the plugin struct
- * @param message to sort into the queue
+ * @param fm message to sort into the queue
  */
 static void
 sort_fragment_into_queue (struct Plugin * plugin, struct FragmentMessage * fm){
