@@ -279,6 +279,7 @@ disconnect_cores (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   total_server_connections -= 2;
 }
 
+#if DO_STATS
 static void
 stats_finished (void *cls, int result)
 {
@@ -306,6 +307,7 @@ stats_print (void *cls,
               GNUNET_i2s (peer), subsystem, name, value);
   return GNUNET_OK;
 }
+#endif
 
 static void
 topology_cb (void *cls,
@@ -331,9 +333,11 @@ topology_cb (void *cls,
         {
           fprintf (outfile, "}\n");
           fclose (outfile);
+#if DO_STATS
           GNUNET_TESTING_get_statistics (pg, &stats_finished, &stats_print,
                                          NULL);
-          //GNUNET_SCHEDULER_add_now (&finish_testing, NULL);
+#endif
+          GNUNET_SCHEDULER_add_now (&finish_testing, NULL);
         }
     }
 }
@@ -811,18 +815,19 @@ connect_topology ()
                                          connect_topology_option,
                                          connect_topology_option_modifier,
                                          &topology_creation_finished, NULL);
-#if VERBOSE > 1
+#if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Have %d expected connections\n", expected_connections);
 #endif
     }
 
   GNUNET_SCHEDULER_cancel (die_task);
-  if (expected_connections == GNUNET_SYSERR)
+  if (expected_connections < 1)
     {
       die_task =
         GNUNET_SCHEDULER_add_now (&end_badly,
                                   "from connect topology (bad return)");
+      return;
     }
 
   die_task = GNUNET_SCHEDULER_add_delayed (TEST_TIMEOUT,

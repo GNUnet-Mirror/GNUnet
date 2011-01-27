@@ -453,7 +453,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       if (NULL == d->hostname)
         {
 #if DEBUG_TESTING
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                       "Starting `%s', with command `%s %s %s %s %s %s'.\n",
                       "gnunet-arm", "gnunet-arm", "-c", d->cfgfile,
                       "-L", "DEBUG", "-s");
@@ -473,7 +473,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
             dst = GNUNET_strdup (d->hostname);
 
 #if DEBUG_TESTING
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                       "Starting `%s', with command `%s %s %s %s %s %s %s %s'.\n",
                       "gnunet-arm", "ssh", dst, "gnunet-arm", "-c",
                       d->cfgfile, "-L", "DEBUG", "-s", "-q");
@@ -526,7 +526,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           return;
         }
 #if DEBUG_TESTING
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Started `%s', waiting for `%s' to be up.\n",
                   "gnunet-arm", "gnunet-service-core");
 #endif
@@ -551,6 +551,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                     (NULL == d->hostname)
                     ? _("`gnunet-arm' does not seem to terminate.\n")
                     : _("`ssh' does not seem to terminate.\n"));
+              GNUNET_free(d->proc);
               return;
             }
           /* wait some more */
@@ -560,10 +561,15 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           return;
         }
 #if DEBUG_TESTING
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Successfully started `%s'.\n", "gnunet-arm");
 #endif
+      GNUNET_free(d->proc);
       d->phase = SP_START_CORE;
+#if DEBUG_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Calling CORE_connect\n");
+#endif
       d->server = GNUNET_CORE_connect (d->cfg, 1,
 #if NO_MORE_TIMEOUT_FIXME
                                        ARM_START_WAIT,
@@ -604,6 +610,8 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               GNUNET_free_non_null (d->hostname);
               GNUNET_free_non_null (d->username);
               GNUNET_free_non_null (d->shortname);
+              GNUNET_free_non_null (d->proc);
+              d->proc = NULL;
               GNUNET_free (d);
               return;
             }
@@ -636,6 +644,8 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           GNUNET_free_non_null (d->hostname);
           GNUNET_free_non_null (d->username);
           GNUNET_free_non_null (d->shortname);
+          GNUNET_free_non_null (d->proc);
+          d->proc = NULL;
           GNUNET_free (d);
           return;
         }
@@ -666,6 +676,8 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_free_non_null (d->hello);
       d->hello = NULL;
       GNUNET_free_non_null (d->shortname);
+      GNUNET_free_non_null (d->proc);
+      d->proc = NULL;
       d->shortname = NULL;
       if (NULL != d->dead_cb)
         d->dead_cb (d->dead_cb_cls, NULL);
@@ -815,7 +827,10 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   char *arg;
   char *username;
   char *servicehome;
+  char *baseservicehome;
+  char *slash;
   char *hostkeyfile;
+  char *temp_file_name;
   struct GNUNET_DISK_FileHandle *fn;
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_TESTING_Daemon));
@@ -826,7 +841,18 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     }
   else
     ret->ssh_port_str = NULL;
-  ret->cfgfile = GNUNET_DISK_mktemp ("gnunet-testing-config");
+
+  /* Find service home and base service home directories, create it if it doesn't exist */
+  GNUNET_assert(GNUNET_OK ==
+                GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                       "PATHS",
+                                                       "SERVICEHOME",
+                                                       &servicehome));
+
+  GNUNET_assert (GNUNET_OK == GNUNET_DISK_directory_create (servicehome));
+  GNUNET_asprintf(&temp_file_name, "%s/gnunet-testing-config", servicehome);
+  ret->cfgfile = GNUNET_DISK_mktemp (temp_file_name);
+  GNUNET_free(temp_file_name);
 #if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Setting up peer with configuration file `%s'.\n",
@@ -848,14 +874,11 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_CONFIGURATION_set_value_string (ret->cfg,
                                          "PATHS",
                                          "DEFAULTCONFIG", ret->cfgfile);
+
+  /* Write hostkey to file, if we were given one */
+  hostkeyfile = NULL;
   if (hostkey != NULL)
     {
-      GNUNET_assert(GNUNET_OK ==
-                    GNUNET_CONFIGURATION_get_value_string (ret->cfg,
-                                                           "PATHS",
-                                                           "SERVICEHOME",
-                                                           &servicehome));
-      GNUNET_assert (GNUNET_OK == GNUNET_DISK_directory_create (servicehome));
       GNUNET_asprintf(&hostkeyfile, "%s/.hostkey", servicehome);
       fn =
       GNUNET_DISK_file_open (hostkeyfile,
@@ -866,11 +889,9 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
       GNUNET_assert(fn != NULL);
       GNUNET_assert(HOSTKEYFILESIZE == GNUNET_DISK_file_write(fn, hostkey, HOSTKEYFILESIZE));
       GNUNET_assert(GNUNET_OK == GNUNET_DISK_file_close(fn));
-      GNUNET_free(servicehome);
-      GNUNET_free(hostkeyfile);
     }
 
-  /* 1) write configuration to temporary file */
+  /* write configuration to temporary file */
   if (GNUNET_OK != GNUNET_CONFIGURATION_write (ret->cfg, ret->cfgfile))
     {
       if (0 != UNLINK (ret->cfgfile))
@@ -897,42 +918,54 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     }
   ret->username = username;
 
-  /* 2) copy file to remote host */
+  /* copy directory to remote host */
   if (NULL != hostname)
     {
 #if DEBUG_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Copying configuration file to host `%s'.\n", hostname);
+                  "Copying configuration directory to host `%s'.\n", hostname);
 #endif
+      baseservicehome = GNUNET_strdup(servicehome);
+      /* Remove trailing /'s */
+      while (baseservicehome[strlen(baseservicehome) - 1] == '/')
+        baseservicehome[strlen(baseservicehome) - 1] = '\0';
+      /* Find next directory /, jump one ahead */
+      slash = strrchr(baseservicehome, '/');
+      if (slash != NULL)
+        *(++slash) = '\0';
+
       ret->phase = SP_COPYING;
       if (NULL != username)
-        GNUNET_asprintf (&arg, "%s@%s:%s", username, hostname, ret->cfgfile);
+        GNUNET_asprintf (&arg, "%s@%s:%s", username, hostname, baseservicehome);
       else
-        GNUNET_asprintf (&arg, "%s:%s", hostname, ret->cfgfile);
+        GNUNET_asprintf (&arg, "%s:%s", hostname, baseservicehome);
 
       if (ret->ssh_port_str == NULL)
         {
-          ret->proc = GNUNET_OS_start_process (NULL, NULL, "scp", "scp",
+          ret->proc = GNUNET_OS_start_process (NULL, NULL, "scp", "scp", "-r",
 #if !DEBUG_TESTING
                                                "-q",
 #endif
-                                               ret->cfgfile, arg, NULL);
+                                               servicehome, arg, NULL);
+#if DEBUG_TESTING
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "copying directory with command scp -r %s %s\n", servicehome, arg);
+#endif
         }
       else
         {
           ret->proc = GNUNET_OS_start_process (NULL, NULL, "scp",
-                                               "scp", "-P", ret->ssh_port_str,
+                                               "scp", "-r", "-P", ret->ssh_port_str,
 #if !DEBUG_TESTING
                                                "-q",
 #endif
-                                               ret->cfgfile, arg, NULL);
+                                               servicehome, arg, NULL);
         }
       GNUNET_free (arg);
       if (NULL == ret->proc)
         {
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                       _
-                      ("Could not start `%s' process to copy configuration file.\n"),
+                      ("Could not start `%s' process to copy configuration directory.\n"),
                       "scp");
           if (0 != UNLINK (ret->cfgfile))
             GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
@@ -942,11 +975,19 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
           GNUNET_free_non_null (ret->username);
           GNUNET_free (ret->cfgfile);
           GNUNET_free (ret);
+          if ((hostkey != NULL) && (0 != UNLINK(hostkeyfile)))
+            GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+                                      "unlink", hostkeyfile);
+          GNUNET_free_non_null(hostkeyfile);
+          GNUNET_assert (GNUNET_OK == GNUNET_DISK_directory_remove (servicehome));
+          GNUNET_free(servicehome);
           return NULL;
         }
       ret->task
         = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_EXEC_WAIT,
                                         &start_fsm, ret);
+      GNUNET_free_non_null(hostkeyfile);
+      GNUNET_free(servicehome);
       return ret;
     }
 #if DEBUG_TESTING
@@ -957,6 +998,8 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_SCHEDULER_add_continuation (&start_fsm,
                                      ret,
                                      GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_free_non_null(hostkeyfile);
+  GNUNET_free(servicehome);
   return ret;
 }
 

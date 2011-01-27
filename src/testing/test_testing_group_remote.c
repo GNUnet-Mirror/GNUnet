@@ -85,14 +85,14 @@ my_cb (void *cls,
   peers_left--;
   if (peers_left == 0)
     {
-      //GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
+      GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
       ok = 0;
     }
   else if (peers_failed == peers_left)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Too many peers failed, ending test!\n");
-      //GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
+      GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
     }
 }
 
