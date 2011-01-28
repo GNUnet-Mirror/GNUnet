@@ -161,8 +161,7 @@ send_to_network (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   memset(&a4, 0, sizeof(struct sockaddr_in));
   a4.sin_family = AF_INET;
   a4.sin_port = htons(data->state.dpt);
-  memcpy(&a4.sin_addr.s_addr, (char[]){127, 0, 0, 1}, 4);
-
+  GNUNET_assert (0 == inet_pton (AF_INET, "127.0.0.1", &a4.sin_addr));
   GNUNET_NETWORK_socket_sendto (data->sock, pkt + 1,
 				ntohs (pkt->len) - sizeof (struct udp_pkt),
 				(struct sockaddr*)&a4, sizeof a4);
