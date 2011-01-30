@@ -186,6 +186,8 @@ GSF_peer_transmit_ (struct GSF_ConnectedPeer *peer,
 
 /**
  * Cancel an earlier request for transmission.
+ *
+ * @param pth request to cancel
  */
 void
 GSF_peer_transmit_cancel_ (struct GSF_PeerTransmitHandle *pth);
@@ -283,6 +285,22 @@ GSF_connected_peer_reserve_ (struct GSF_ConnectedPeer *cp,
 			     size_t size,
 			     GSF_PeerReserveCallback rc,
 			     void *rc_cls);
+
+
+/**
+ * Initialize peer management subsystem.
+ *
+ * @param cfg configuration to use
+ */
+void
+GSF_connected_peer_init_ (struct GNUNET_CONFIGURATION_Handle *cfg);
+
+
+/**
+ * Shutdown peer management subsystem.
+ */
+void
+GSF_connected_peer_done_ (void);
 
 
 #endif
