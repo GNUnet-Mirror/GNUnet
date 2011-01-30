@@ -301,14 +301,14 @@ run (int fd_tun)
    */
   unsigned char buftun[MAX_SIZE];
   ssize_t buftun_size = 0;
-  unsigned char *buftun_read;
+  unsigned char *buftun_read = 0;
 
   /*
    * The buffer filled by reading from stdin
    */
   unsigned char bufin[MAX_SIZE];
   ssize_t bufin_size = 0;
-  unsigned char *bufin_write;
+  unsigned char *bufin_write = 0;
 
   fd_set fds_w;
   fd_set fds_r;
