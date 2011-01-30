@@ -32,6 +32,7 @@
 #include <gnunet_server_lib.h>
 #include <gnunet_container_lib.h>
 #include <block_dns.h>
+#include <gnunet_configuration_lib.h>
 
 #include "gnunet-daemon-vpn-dns.h"
 #include "gnunet-daemon-vpn.h"
@@ -74,10 +75,44 @@ start_helper_and_schedule(void *cls,
 
     if (helper_in == NULL || helper_out == NULL) return;
 
+    char* ipv6addr;
+    char* ipv6prefix;
+    char* ipv4addr;
+    char* ipv4mask;
+
+    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "vpn", "IPV6ADDR", &ipv6addr))
+      {
+	GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "No entry 'IPV6ADDR' in configuration!\n");
+	exit(1);
+      }
+
+    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "vpn", "IPV6PREFIX", &ipv6prefix))
+      {
+	GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "No entry 'IPV6PREFIX' in configuration!\n");
+	exit(1);
+      }
+
+    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "vpn", "IPV4ADDR", &ipv4addr))
+      {
+	GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "No entry 'IPV4ADDR' in configuration!\n");
+	exit(1);
+      }
+
+    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "vpn", "IPV4MASK", &ipv4mask))
+      {
+	GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "No entry 'IPV4MASK' in configuration!\n");
+	exit(1);
+      }
+
     helper_proc =
       GNUNET_OS_start_process (helper_in, helper_out, "gnunet-helper-vpn",
-			       "gnunet-helper-vpn", "1234::1", "16", "10.10.10.1",
-			       "255.255.255.0");
+			       "gnunet-helper-vpn", ipv6addr, ipv6prefix,
+			       ipv4addr, ipv4mask, NULL);
+
+    GNUNET_free(ipv6addr);
+    GNUNET_free(ipv6prefix);
+    GNUNET_free(ipv4addr);
+    GNUNET_free(ipv4mask);
 
     fh_from_helper = GNUNET_DISK_pipe_handle (helper_out, GNUNET_DISK_PIPE_END_READ);
     fh_to_helper = GNUNET_DISK_pipe_handle (helper_in, GNUNET_DISK_PIPE_END_WRITE);
