@@ -480,17 +480,28 @@ main (int argc, char **argv)
       return 1;
     }
 
+  if (5 != argc)
+    {
+      fprintf(stderr, "Fatal: must supply 4 arguments!\n");
+      return 1;
+    }
+
   {
-    // TODO: get this out of argv
-    char address[] = "1234::1";
-    unsigned long prefix_len = 16;
+    char *address = argv[1];
+    long prefix_len = atol(argv[2]);
+
+    if (prefix_len < 1 || prefix_len > 127)
+      {
+	fprintf(stderr, "Fatal: prefix_len out of range\n");
+	return 1;
+      }
 
     set_address6 (dev, address, prefix_len);
   }
 
   {
-    char address[] = "10.10.10.1";
-    char mask[] = "255.255.255.252";
+    char *address = argv[3];
+    char *mask = argv[4];
 
     set_address4 (dev, address, mask);
   }

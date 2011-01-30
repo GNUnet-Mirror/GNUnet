@@ -74,7 +74,10 @@ start_helper_and_schedule(void *cls,
 
     if (helper_in == NULL || helper_out == NULL) return;
 
-    helper_proc = GNUNET_OS_start_process(helper_in, helper_out, "gnunet-helper-vpn", "gnunet-helper-vpn", NULL);
+    helper_proc =
+      GNUNET_OS_start_process (helper_in, helper_out, "gnunet-helper-vpn",
+			       "gnunet-helper-vpn", "1234::1", "16", "10.10.10.1",
+			       "255.255.255.0");
 
     fh_from_helper = GNUNET_DISK_pipe_handle (helper_out, GNUNET_DISK_PIPE_END_READ);
     fh_to_helper = GNUNET_DISK_pipe_handle (helper_in, GNUNET_DISK_PIPE_END_WRITE);
