@@ -67,53 +67,15 @@ GSF_local_client_transmit_ (struct GSF_LocalClient *lc,
 
 
 /**
- * A local client disconnected from us.  Tear down the local client
- * record.
+ * A client disconnected from us.  Tear down the local client record.
  *
  * @param cls unused
  * @param client handle of the client
  */
 void
-GSF_local_client_disconnect_handler_ (void *cls,
-				      const struct GNUNET_SERVER_Client *client);
+GSF_client_disconnect_handler_ (void *cls,
+				const struct GNUNET_SERVER_Client *client);
 
-
-
-/**
- * Signature of function called on a local client
- *
- * @param cls closure
- * @param lc local client handle
- */
-typedef int (*GSF_LocalClientIterator)(void *cls,
-				       struct GSF_LocalClient *lc);
-
-
-
-/**
- * Register callback to invoke on local client disconnect.
- *
- * @param lc client to monitor
- * @param it function to call on disconnect
- * @param it_cls closure for it
- */
-void
-GSF_local_client_register_disconnect_callback_ (struct GSF_LocalClient *lc,
-						GSF_LocalClientIterator it,
-						void *it_cls);
-
-
-/**
- * Register callback to invoke on local client disconnect.
- *
- * @param lc client to stop monitoring
- * @param it function to no longer call on disconnect
- * @param it_cls closure for it
- */
-void
-GSF_local_client_unregister_disconnect_callback_ (struct GSF_LocalClient *lc,
-						  GSF_PendingRequestIterator it,
-						  void *it_cls);
 
 #endif
 /* end of gnunet-service-fs_lc.h */

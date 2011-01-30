@@ -19,132 +19,111 @@
 */
 
 /**
- * @file fs/gnunet-service-fs_cp.h
+ * @file fs/gnunet-service-fs_cp.c
  * @brief API to handle 'connected peers'
  * @author Christian Grothoff
  */
-#ifndef GNUNET_SERVICE_FS_CP_H
-#define GNUNET_SERVICE_FS_CP_H
-
+#include "platform.h"
 #include "gnunet-service-fs.h"
+#include "gnunet-service-fs_cp.h"
 
 
-/**
- * Performance data kept for a peer.
- */
-struct GSF_PeerPerformanceData
+struct GSF_PeerTransmitHandle
 {
 
   /**
-   * Transport performance data.
+   * Time when this transmission request was issued.
    */
-  struct GNUNET_TRANSPORT_ATS_Information *atsi;
+  struct GNUNET_TIME_Absolute transmission_request_start_time;
 
-  /**
-   * List of the last clients for which this peer successfully
-   * answered a query.
-   */
-  struct GSF_LocalClient *last_client_replies[CS2P_SUCCESS_LIST_SIZE];
-
-  /**
-   * List of the last PIDs for which
-   * this peer successfully answered a query;
-   * We use 0 to indicate no successful reply.
-   */
-  GNUNET_PEER_Id last_p2p_replies[P2P_SUCCESS_LIST_SIZE];
-
-  /**
-   * Average delay between sending the peer a request and
-   * getting a reply (only calculated over the requests for
-   * which we actually got a reply).   Calculated
-   * as a moving average: new_delay = ((n-1)*last_delay+curr_delay) / n
-   */ 
-  struct GNUNET_TIME_Relative avg_reply_delay;
-
-  /**
-   * Point in time until which this peer does not want us to migrate content
-   * to it.
-   */
-  struct GNUNET_TIME_Absolute migration_blocked_until;
-
-  /**
-   * Transmission times for the last MAX_QUEUE_PER_PEER
-   * requests for this peer.  Used as a ring buffer, current
-   * offset is stored in 'last_request_times_off'.  If the
-   * oldest entry is more recent than the 'avg_delay', we should
-   * not send any more requests right now.
-   */
-  struct GNUNET_TIME_Absolute last_request_times[MAX_QUEUE_PER_PEER];
-
-  /**
-   * How long does it typically take for us to transmit a message
-   * to this peer?  (delay between the request being issued and
-   * the callback being invoked).
-   */
-  struct GNUNET_LOAD_Value *transmission_delay;
-
-  /**
-   * Average priority of successful replies.  Calculated
-   * as a moving average: new_avg = ((n-1)*last_avg+curr_prio) / n
-   */
-  double avg_priority;
-
-  /**
-   * Number of pending queries (replies are not counted)
-   */
-  unsigned int pending_queries;
-
-  /**
-   * Number of pending replies (queries are not counted)
-   */
-  unsigned int pending_replies;
 
 };
 
 
 /**
- * Signature of function called on a connected peer.
- *
- * @param cls closure
- * @param peer identity of the peer
- * @param cp handle to the connected peer record
- * @param perf peer performance data
+ * A connected peer.
  */
-typedef void (*GSF_ConnectedPeerIterator)(void *cls,
-					  const struct GNUNET_PeerIdentity *peer,
-					  struct GSF_ConnectedPeer *cp,
-					  const struct GSF_PeerPerformanceData *ppd);
+struct GSF_ConnectedPeer 
+{
 
+  /**
+   * Performance data for this peer.
+   */
+  struct GSF_PeerPerformanceData ppd;
 
-/**
- * Function called to get a message for transmission.
- *
- * @param cls closure
- * @param buf_size number of bytes available in buf
- * @param buf where to copy the message, NULL on error (peer disconnect)
- * @return number of bytes copied to 'buf', can be 0 (without indicating an error)
- */
-typedef size_t (*GSF_GetMessageCallback)(void *cls,
-					 size_t buf_size,
-					 void *buf);
+  /**
+   * Time until when we blocked this peer from migrating
+   * data to us.
+   */
+  struct GNUNET_TIME_Absolute last_migration_block;
 
+  /**
+   * Handle for an active request for transmission to this
+   * peer, or NULL.
+   */
+  struct GNUNET_CORE_TransmitHandle *cth;
 
-/**
- * Signature of function called on a reservation success or failure.
- *
- * @param cls closure
- * @param cp handle to the connected peer record
- * @param success GNUNET_YES on success, GNUNET_NO on failure
- */
-typedef void (*GSF_PeerReserveCallback)(void *cls,
-					struct GSF_ConnectedPeer *cp,
-					int success);
+  /**
+   * Messages (replies, queries, content migration) we would like to
+   * send to this peer in the near future.  Sorted by priority, head.
+   */
+  struct GSF_PeerTransmitHandle *pth_head;
 
+  /**
+   * Messages (replies, queries, content migration) we would like to
+   * send to this peer in the near future.  Sorted by priority, tail.
+   */
+  struct GSF_PeerTransmitHandle *pth_tail;
 
-/**
- * Handle to cancel a transmission request.
- */
-struct GSF_PeerTransmitHandle;
+  /**
+   * Context of our GNUNET_CORE_peer_change_preference call (or NULL).
+   */
+  struct GNUNET_CORE_InformationRequestContext *irc;
+
+  /**
+   * ID of delay task for scheduling transmission.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier delayed_transmission_request_task;
+
+  /**
+   * Increase in traffic preference still to be submitted
+   * to the core service for this peer.
+   */
+  uint64_t inc_preference;
+
+  /**
+   * Trust rating for this peer
+   */
+  uint32_t trust;
+
+  /**
+   * Trust rating for this peer on disk.
+   */
+  uint32_t disk_trust;
+
+  /**
+   * The peer's identity.
+   */
+  GNUNET_PEER_Id pid;
+
+  /**
+   * Which offset in "last_p2p_replies" will be updated next?
+   * (we go round-robin).
+   */
+  unsigned int last_p2p_replies_woff;
+
+  /**
+   * Which offset in "last_client_replies" will be updated next?
+   * (we go round-robin).
+   */
+  unsigned int last_client_replies_woff;
+
+  /**
+   * Current offset into 'last_request_times' ring buffer.
+   */
+  unsigned int last_request_times_off;
+
+};
 
 
 /**
@@ -157,7 +136,11 @@ struct GSF_PeerTransmitHandle;
  */
 struct GSF_ConnectedPeer *
 GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
-			   const struct GNUNET_TRANSPORT_ATS_Information *atsi);
+			   const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+{
+  // FIXME
+  return NULL;
+}
 
 
 /**
@@ -181,14 +164,20 @@ GSF_peer_transmit_ (struct GSF_ConnectedPeer *peer,
 		    struct GNUNET_TIME_Relative timeout,
 		    size_t size,
 		    GSF_GetMessageCallback gmc,
-		    void *gmc_cls);
+		    void *gmc_cls)
+{
+  // FIXME
+  return NULL;
+}
 
 
 /**
  * Cancel an earlier request for transmission.
  */
 void
-GSF_peer_transmit_cancel_ (struct GSF_PeerTransmitHandle *pth);
+GSF_peer_transmit_cancel_ (struct GSF_PeerTransmitHandle *pth)
+{
+}
 
 
 /**
@@ -205,7 +194,9 @@ GSF_peer_update_performance_ (struct GSF_ConnectedPeer *peer,
 			      GNUNET_TIME_Absolute request_time,
 			      uint32_t request_priority,
 			      const struct GSF_LocalClient *initiator_client,
-			      const struct GSF_ConnectedPeer *initiator_peer);
+			      const struct GSF_ConnectedPeer *initiator_peer)
+{
+}
 
 
 /**
@@ -225,7 +216,9 @@ GSF_peer_status_handler_ (void *cls,
 			  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
 			  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
 			  struct GNUNET_TIME_Absolute timeout,
-			  const struct GNUNET_TRANSPORT_ATS_Information *atsi);
+			  const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+{
+}
 
 
 /**
@@ -237,17 +230,9 @@ GSF_peer_status_handler_ (void *cls,
  */
 void
 GSF_peer_disconnect_handler_ (void *cls,
-			      const struct GNUNET_PeerIdentity *peer);
-
-
-/**
- * Notification that a local client disconnected.  Clean up all of our
- * references to the given handle.
- *
- * @param lc handle to the local client (henceforth invalid)
- */
-void
-GSF_handle_local_client_disconnect_ (const struct GSF_LocalClient *lc);
+			      const struct GNUNET_PeerIdentity *peer)
+{
+}
 
 
 /**
@@ -258,12 +243,11 @@ GSF_handle_local_client_disconnect_ (const struct GSF_LocalClient *lc);
  */
 void
 GSF_iterate_connected_peers_ (GSF_ConnectedPeerIterator it,
-			      void *it_cls);
+			      void *it_cls)
+{
+}
 
 
-// FIXME: should we allow queueing multiple reservation requests?
-// FIXME: what about cancellation?
-// FIXME: change docu on peer disconnect handling?
 /**
  * Try to reserve bandwidth (to receive data FROM the given peer).
  * This function must only be called ONCE per connected peer at a
@@ -275,14 +259,25 @@ GSF_iterate_connected_peers_ (GSF_ConnectedPeerIterator it,
  *
  * @param cp peer to reserve bandwidth from
  * @param size number of bytes to reserve
- * @param rc function to call upon reservation success
+ * @param rc function to call upon reservation success or failure
  * @param rc_cls closure for rc
  */
 void
 GSF_connected_peer_reserve_ (struct GSF_ConnectedPeer *cp,
 			     size_t size,
 			     GSF_PeerReserveCallback rc,
-			     void *rc_cls);
+			     void *rc_cls)
+{
+  // FIXME: should we allow queueing multiple reservation requests?
+  // FIXME: what about cancellation?
+  // FIXME: change docu on peer disconnect handling?
+  if (NULL != cp->irc)
+    {
+      rc (rc_cls, cp, GNUNET_NO);
+      return;
+    }
+  // FIXME...
+}
 
 
 #endif

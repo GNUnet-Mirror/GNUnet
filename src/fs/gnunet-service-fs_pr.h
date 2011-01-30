@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -120,6 +120,40 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
 
 
 /**
+ * Update a given pending request with additional replies
+ * that have been seen.
+ *
+ * @param pr request to update
+ * @param replies_seen hash codes of replies that we've seen
+ * @param replies_seen_count size of the replies_seen array
+ */
+void
+GSF_pending_request_update_ (struct GSF_PendingRequest *pr,
+			     const GNUNET_HashCode *replies_seen,
+			     unsigned int replies_seen_count);
+
+
+/**
+ * Get the query for a given pending request.
+ *
+ * @param pr the request
+ * @return pointer to the query (only valid as long as pr is valid)
+ */
+const GNUNET_HashCode *
+GSF_pending_request_get_query_ (const struct GSF_PendingRequest *pr);
+
+
+/**
+ * Get the type of a given pending request.
+ *
+ * @param pr the request
+ * @return query type
+ */
+enum GNUNET_BLOCK_Type
+GSF_pending_request_get_type_ (const struct GSF_PendingRequest *pr);
+
+
+/**
  * Generate the message corresponding to the given pending request for
  * transmission to other peers (or at least determine its size).
  *
@@ -165,32 +199,6 @@ void
 GSF_iterate_pending_requests_ (GSF_PendingRequestIterator it,
 			       void *cls);
 
-
-
-/**
- * Register callback to invoke on request destruction.
- *
- * @param pr request to monitor
- * @param it function to call on destruction
- * @param it_cls closure for it
- */
-void
-GSF_pending_request_register_destroy_callback_ (struct GSF_PendingRequest *pr,
-				       GSF_PendingRequestIterator it,
-				       void *it_cls);
-
-
-/**
- * Unregister callback to invoke on request destruction.
- *
- * @param pr request to stop monitoring
- * @param it function to no longer call on destruction
- * @param it_cls closure for it
- */
-void
-GSF_pending_request_unregister_destroy_callback_ (struct GSF_PendingRequest *pr,
-						  GSF_PendingRequestIterator it,
-						  void *it_cls);
 
 
 #endif

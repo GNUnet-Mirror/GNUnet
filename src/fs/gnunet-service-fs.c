@@ -445,8 +445,7 @@ struct ClientList
   struct ClientList *next;
 
   /**
-   * ID of a client making a request, NULL if this entry is for a
-   * peer.
+   * ID of a client.
    */
   struct GNUNET_SERVER_Client *client;
 
