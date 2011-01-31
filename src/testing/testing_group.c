@@ -1325,7 +1325,6 @@ add_connections (struct GNUNET_TESTING_PeerGroup *pg,
   switch (list)
   {
   case ALLOWED:
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Adding to ALLOWED\n");
     first_list = &pg->peers[first].allowed_peers_head;
     second_list = &pg->peers[second].allowed_peers_head;
     first_tail = &pg->peers[first].allowed_peers_tail;
@@ -1397,7 +1396,6 @@ add_connections (struct GNUNET_TESTING_PeerGroup *pg,
   if (add_first)
     {
 #if OLD
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Adding peer %d to %d\n", second, first);
       new_first = GNUNET_malloc (sizeof (struct PeerConnection));
       new_first->index = second;
       GNUNET_CONTAINER_DLL_insert(*first_list, *first_tail, new_first);
@@ -3152,7 +3150,7 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
         num_connections = create_from_file (pg, filename, &add_connections, ALLOWED);
       else
       {
-        GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Missing configuration option TESTING:TOPOLOGY_FILE for creating topology from file!");
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Missing configuration option TESTING:TOPOLOGY_FILE for creating topology from file!\n");
         num_connections = 0;
       }
       break;
@@ -4866,7 +4864,7 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
       else
         proc = GNUNET_OS_start_process (NULL, NULL, "ssh",
                                             "ssh", arg, "mkdir -p", baseservicehome,  NULL);
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Creating remote dir with command ssh %s %s %s\n", arg, " mkdir -p ", baseservicehome);
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Creating remote dir with command ssh %s %s %s\n", arg, " mkdir -p ", baseservicehome);
       GNUNET_OS_process_wait(proc);
     }
   GNUNET_free(baseservicehome);
@@ -4875,7 +4873,7 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                                           &hostkeys_file))
     {
       if (GNUNET_YES != GNUNET_DISK_file_test (hostkeys_file))
-        GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Couldn't read hostkeys file!");
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Couldn't read hostkeys file!\n");
       else
         {
           /* Check hostkey file size, read entire thing into memory */
