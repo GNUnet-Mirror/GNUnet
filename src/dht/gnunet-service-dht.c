@@ -5277,10 +5277,7 @@ run (void *cls,
 
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (cfg, "dht", "paper_forwarding"))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Forwarding strictly according to paper!\n");
       paper_forwarding = GNUNET_YES;
-    }
 
   stats = GNUNET_STATISTICS_create ("dht", cfg);
 
