@@ -61,9 +61,9 @@
 
 #define MAX_CONCURRENT_SHUTDOWN 200
 
-#define CONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 180)
+#define CONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 
-#define CONNECT_ATTEMPTS 30
+#define CONNECT_ATTEMPTS 12
 
 /**
  * Which list of peers do we need to modify?
