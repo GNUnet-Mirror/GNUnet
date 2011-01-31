@@ -1458,6 +1458,7 @@ add_connections (struct GNUNET_TESTING_PeerGroup *pg,
  *
  * @param pg the peer group we are dealing with
  * @param proc the connection processor to use
+ * @param list the peer list to use
  *
  * @return the number of connections created
  */
@@ -1531,6 +1532,7 @@ create_scale_free (struct GNUNET_TESTING_PeerGroup *pg,
  * @param pg the peergroup to create the topology on
  * @param proc the connection processor to call to actually set
  *        up connections between two peers
+ * @param list the peer list to use
  *
  * @return the number of connections that were set up
  *
@@ -1654,6 +1656,7 @@ create_small_world_ring (struct GNUNET_TESTING_PeerGroup *pg,
  * @param pg the peergroup to create the topology on
  * @param proc the connection processor to call to actually set
  *        up connections between two peers
+ * @param list the peer list to use
  *
  * @return the number of connections that were set up
  *
@@ -1716,6 +1719,7 @@ create_nated_internet (struct GNUNET_TESTING_PeerGroup *pg,
  * @param pg the peergroup to create the topology on
  * @param proc the connection processor to call to actually set
  *        up connections between two peers
+ * @param list the peer list to use
  *
  * @return the number of connections that were set up
  *
@@ -1886,6 +1890,7 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg,
  * @param pg the peergroup to create the topology on
  * @param proc the connection processor to call to actually set
  *        up connections between two peers
+ * @param list the peer list to use
  *
  * @return the number of connections that were set up
  *
@@ -1948,6 +1953,7 @@ create_erdos_renyi (struct GNUNET_TESTING_PeerGroup *pg,
  * @param pg the peergroup to create the topology on
  * @param proc the connection processor to call to actually set
  *        up connections between two peers
+ * @param list the peer list to use
  *
  * @return the number of connections that were set up
  *
@@ -2036,6 +2042,7 @@ create_2d_torus (struct GNUNET_TESTING_PeerGroup *pg,
  * @param pg the peergroup to create the topology on
  * @param proc the connection processor to call to actually set
  *        up connections between two peers
+ * @param list the peer list to use
  *
  * @return the number of connections that were set up
  *
@@ -2179,6 +2186,7 @@ create_line (struct GNUNET_TESTING_PeerGroup *pg,
  * @param filename the file to read topology information from
  * @param proc the connection processor to call to actually set
  *        up connections between two peers
+ * @param list the peer list to use
  *
  * @return the number of connections that were set up
  *
@@ -2316,6 +2324,7 @@ create_from_file (struct GNUNET_TESTING_PeerGroup *pg,
  * @param pg the peergroup to create the topology on
  * @param proc the connection processor to call to actually set
  *        up connections between two peers
+ * @param list the peer list to use
  *
  * @return the number of connections that were set up
  *
@@ -3153,7 +3162,7 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
                   _
                   ("Creating no allowed topology (all peers can connect at core level)\n"));
 #endif
-      num_connections = 0;
+      num_connections = pg->total * pg->total; /* Clique is allowed! */
       break;
     default:
       num_connections = 0;
@@ -3763,6 +3772,7 @@ find_closest_peers (void *cls, const GNUNET_HashCode * key, void *value)
  * @param pg the peergroup we are dealing with
  * @param num how many connections at least should each peer have (if possible)?
  * @param proc processor to actually add the connections
+ * @param list the peer list to use
  */
 void
 add_closest (struct GNUNET_TESTING_PeerGroup *pg, unsigned int num,
