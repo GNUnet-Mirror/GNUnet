@@ -55,6 +55,9 @@
 
 #define MAX_OUTSTANDING_CONNECTIONS 200
 
+/* Maximum time to delay connect attempt */
+#define MAX_CONNECT_DELAY 300
+
 #define MAX_CONCURRENT_HOSTKEYS 500
 
 #define MAX_CONCURRENT_STARTING 200
@@ -696,6 +699,11 @@ struct ConnectContext
    * Higher level topology connection context.
    */
   struct ConnectTopologyContext *ct_ctx;
+
+  /**
+   * Whether this connection has been accounted for in the schedule_connect call.
+   */
+  int counted;
 };
 
 struct UnblacklistContext
@@ -833,6 +841,13 @@ uid_from_hash (const GNUNET_HashCode * hash, uint32_t * uid)
  * connect attempts.
  */
 static int outstanding_connects;
+
+/**
+ * Number of connects we have scheduled at the same
+ * time, the more we already have scheduled the longer
+ * we should wait before calling schedule_connect again.
+ */
+static int outstanding_scheduled_connects;
 
 /**
  * Get a topology from a string input.
@@ -1819,7 +1834,11 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg,
       connect_attempts += proc (pg, i, nodeToConnect, list);
 
       if (i < cols)
-        nodeToConnect = (rows * cols) - cols + i;
+        {
+          nodeToConnect = (rows * cols) - cols + i;
+          if (nodeToConnect >= pg->total)
+            nodeToConnect -= cols;
+        }
       else
         nodeToConnect = i - cols;
 
@@ -2014,7 +2033,11 @@ create_2d_torus (struct GNUNET_TESTING_PeerGroup *pg,
 
       /* Second connect to the node immediately above */
       if (i < cols)
-        nodeToConnect = (rows * cols) - cols + i;
+        {
+          nodeToConnect = (rows * cols) - cols + i;
+          if (nodeToConnect >= pg->total)
+            nodeToConnect -= cols;
+        }
       else
         nodeToConnect = i - cols;
 
@@ -2826,8 +2849,14 @@ schedule_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   _
                   ("Delaying connect, we have too many outstanding connections!\n"));
 #endif
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_MILLISECONDS, 100),
+      if (GNUNET_NO == connect_context->counted)
+        {
+          connect_context->counted = GNUNET_YES;
+          outstanding_scheduled_connects++;
+        }
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_add (GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_MILLISECONDS, 100), GNUNET_TIME_relative_multiply
+                                        (GNUNET_TIME_UNIT_MILLISECONDS, outstanding_scheduled_connects * 2)),
                                     &schedule_connect, connect_context);
     }
   else
@@ -2838,6 +2867,7 @@ schedule_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   outstanding_connects);
 #endif
       outstanding_connects++;
+      outstanding_scheduled_connects--;
       GNUNET_TESTING_daemons_connect (connect_context->first,
                                       connect_context->second,
                                       CONNECT_TIMEOUT,
@@ -3012,7 +3042,14 @@ connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
           connect_context->first = pg->peers[pg_iter].daemon;
           connect_context->second = pg->peers[connection_iter->index].daemon;
           connect_context->ct_ctx = ct_ctx;
-          GNUNET_SCHEDULER_add_now (&schedule_connect, connect_context);
+          if (total < MAX_OUTSTANDING_CONNECTIONS)
+            {
+              GNUNET_SCHEDULER_add_now (&schedule_connect, connect_context);
+            }
+          else
+            {
+              GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 1000 * (total / MAX_OUTSTANDING_CONNECTIONS)), &schedule_connect, connect_context);
+            }
           connection_iter = connection_iter->next;
           total++;
         }
