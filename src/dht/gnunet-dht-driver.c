@@ -2617,10 +2617,8 @@ create_topology ()
   peers_left = num_peers; /* Reset counter */
   if (GNUNET_TESTING_create_topology (pg, topology, blacklist_topology, blacklist_transports) != GNUNET_SYSERR)
     {
-#if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Topology set up, now starting peers!\n");
-#endif
       GNUNET_TESTING_daemons_continue_startup(pg);
     }
   else
@@ -2662,11 +2660,9 @@ hostkey_callback (void *cls,
     peers_left--;
     if (GNUNET_YES == update_meter(hostkey_meter))
       {
-#if VERBOSE
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                     "All %d hostkeys created, now creating topology!\n",
                     num_peers);
-#endif
         GNUNET_SCHEDULER_cancel (die_task);
         /* Set up task in case topology creation doesn't finish
          * within a reasonable amount of time */

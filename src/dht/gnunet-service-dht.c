@@ -4540,7 +4540,7 @@ handle_dht_control_message (void *cls, struct GNUNET_SERVER_Client *client,
         dhtlog_handle->set_malicious (&my_identity);
 #endif
       malicious_dropper = GNUNET_YES;
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "%s:%s Initiating malicious DROP behavior\n", my_short_id,
                   "DHT");
       break;
