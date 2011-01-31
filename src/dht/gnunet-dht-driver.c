@@ -72,6 +72,9 @@
 /* If less than this many peers are added, speed up sending */
 #define MIN_FIND_PEER_CUTOFF 500
 
+/* How often (in seconds) to print out connection information */
+#define CONN_UPDATE_DURATION 10
+
 #define DEFAULT_MAX_OUTSTANDING_PUTS 10
 
 #define DEFAULT_MAX_OUTSTANDING_FIND_PEERS 196
@@ -406,6 +409,16 @@ static struct GNUNET_TIME_Relative find_peer_offset;
 static struct GNUNET_TIME_Relative seconds_per_peer_start;
 
 /**
+ * At what time did we start the connection process.
+ */
+static struct GNUNET_TIME_Absolute connect_start_time;
+
+/**
+ * What was the last time we updated connection/second information.
+ */
+static struct GNUNET_TIME_Absolute connect_last_time;
+
+/**
  * Boolean value, should the driver issue find peer requests
  * (GNUNET_YES) or should it be left to the service (GNUNET_NO)
  */
@@ -660,6 +673,11 @@ static unsigned long long malicious_completed;
  * with success?)
  */
 static unsigned int total_connections;
+
+/**
+ * Previous connections, for counting new connections during some duration.
+ */
+static unsigned int previous_connections;
 
 /**
  * Global used to count how many failed connections we have
@@ -2498,6 +2516,25 @@ topology_callback (void *cls,
                    const char *emsg)
 {
   struct TopologyIteratorContext *topo_ctx;
+  unsigned long long duration;
+  unsigned long long total_duration;
+  unsigned int new_connections;
+
+  if (GNUNET_TIME_absolute_get_difference (connect_last_time,
+      GNUNET_TIME_absolute_get()).rel_value > GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, CONN_UPDATE_DURATION).rel_value)
+    {
+      /* Get number of new connections */
+      new_connections = total_connections - previous_connections;
+      /* Get duration in seconds */
+      duration = GNUNET_TIME_absolute_get_difference (connect_last_time,
+                                                      GNUNET_TIME_absolute_get()).rel_value / 1000;
+      total_duration = GNUNET_TIME_absolute_get_difference (connect_start_time,
+                                                      GNUNET_TIME_absolute_get()).rel_value / 1000;
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Conns/sec in last %d seconds: %f, Conns/sec for entire duration: %f\n", CONN_UPDATE_DURATION, (float)new_connections / duration, (float)total_connections / total_duration);
+      connect_last_time = GNUNET_TIME_absolute_get();
+      previous_connections = total_connections;
+
+    }
   if (emsg == NULL)
     {
       total_connections++;
@@ -2593,6 +2630,7 @@ peers_started_callback (void *cls,
       expected_connections = UINT_MAX;
       if ((pg != NULL) && (peers_left == 0))
         {
+          connect_start_time = GNUNET_TIME_absolute_get();
           expected_connections = GNUNET_TESTING_connect_topology (pg, connect_topology, connect_topology_option, connect_topology_option_modifier, NULL, NULL);
 
           peer_connect_meter = create_meter(expected_connections, "Peer connection ", GNUNET_YES);
