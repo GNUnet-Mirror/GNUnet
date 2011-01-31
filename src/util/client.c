@@ -43,6 +43,8 @@
  */
 #define MAX_ATTEMPTS 50
 
+#define UNIXPATH_RETRIES 0
+
 
 /**
  * Handle for a transmission request.
@@ -271,7 +273,9 @@ do_connect (const char *service_name,
   char *hostname;
   char *unixpath;
   unsigned long long port;
+  unsigned int count;
 
+  sock = NULL;
 #if AF_UNIX
   if (0 == (attempt % 2))
     {
@@ -280,13 +284,28 @@ do_connect (const char *service_name,
 	  GNUNET_CONFIGURATION_get_value_string (cfg,
 						 service_name,
 						 "UNIXPATH", &unixpath)) &&
-          (0 < strlen (unixpath)))
+          (0 < strlen (unixpath))) /* We have a non-NULL unixpath, does that mean it's valid? */
 	{
-	  sock = GNUNET_CONNECTION_create_from_connect_to_unixpath (cfg,
-								    unixpath);
+          count = 0;
+          sock = GNUNET_CONNECTION_create_from_connect_to_unixpath (cfg, unixpath);
+          while ((NULL == sock) && (count < UNIXPATH_RETRIES))
+            {
+#if DEBUG_CLIENT
+              GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Failed to connect to unixpath `%s', retrying!\n", unixpath);
+#endif
+              count++;
+              sleep(1);
+              sock = GNUNET_CONNECTION_create_from_connect_to_unixpath (cfg, unixpath);
+            }
+
 	  GNUNET_free (unixpath);
 	  if (sock != NULL)
-	    return sock;
+	    {
+#if DEBUG_CLIENT
+              GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connected to unixpath `%s'!\n", unixpath);
+#endif
+              return sock;
+	    }
 	}
     }
 #endif
@@ -332,12 +351,16 @@ do_connect (const char *service_name,
 									unixpath);
 	      GNUNET_free (unixpath);
 	      if (sock != NULL)
-		return sock;
+	        {
+                  return sock;
+	        }
 	    }
 	}
 #endif
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Port is 0 for service `%s', unixpath didn't work, returning NULL(!)!\n", service_name);
       return NULL;
     }
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Creating from connect!\n");
   sock = GNUNET_CONNECTION_create_from_connect (cfg,
                                                 hostname,
                                                 port);
@@ -480,6 +503,9 @@ receive_helper (void *cls,
   if ((available == 0) || (conn->sock == NULL) || (errCode != 0))
     {
       /* signal timeout! */
+#if DEBUG_CLIENT
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "timeout in receive_helper, available %d, conn->sock %s, errCode %d\n", available, conn->sock == NULL ? "NULL" : "non-NULL", errCode);
+#endif
       if (NULL != (receive_handler = conn->receiver_handler))
         {
           receive_handler_cls = conn->receiver_handler_cls;
@@ -586,6 +612,9 @@ GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
     {
       GNUNET_assert (sock->in_receive == GNUNET_NO);
       sock->in_receive = GNUNET_YES;
+#if DEBUG_CLIENT
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "calling GNUNET_CONNECTION_receive\n");
+#endif
       GNUNET_CONNECTION_receive (sock->sock,
                                  GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
                                  timeout, &receive_helper, sock);

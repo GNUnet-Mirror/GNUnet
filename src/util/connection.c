@@ -41,6 +41,8 @@
 
 #define DEBUG_CONNECTION GNUNET_NO
 
+#define HARD_FAIL GNUNET_NO
+
 
 /**
  * Possible functions to call after connect failed or succeeded.
@@ -965,14 +967,16 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (const struct
 						  ret->addr,
 						  ret->addrlen)) 
     {
-      /* Just return; we expect everything to work eventually so don't fail HARD */
-      return ret;
 #if HARD_FAIL
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (ret->sock));
       GNUNET_free (ret->addr);
       GNUNET_free (ret->write_buffer);
       GNUNET_free (ret);
       return NULL;
+#else /* Just return; we expect everything to work eventually so don't fail HARD */
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (ret->sock));
+      ret->sock = NULL;
+      return ret;
 #endif
     }
   connect_success_continuation (ret);
@@ -1415,7 +1419,9 @@ connect_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CONNECTION_Handle *sock = cls;
   GNUNET_CONNECTION_TransmitReadyNotify notify;
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Transmission request of size %u fails, connection failed (%p).\n",
+              sock->nth.notify_size, sock);
 #if DEBUG_CONNECTION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transmission request of size %u fails, connection failed (%p).\n",
