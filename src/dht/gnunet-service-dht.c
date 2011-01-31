@@ -733,6 +733,13 @@ static unsigned int do_find_peer;
 static unsigned int do_republish;
 
 /**
+ * Use exactly the forwarding formula as described in
+ * the paper if set to GNUNET_YES, otherwise use the
+ * slightly modified version.
+ */
+static unsigned int paper_forwarding;
+
+/**
  * Use the "real" distance metric when selecting the
  * next routing hop.  Can be less accurate.
  */
@@ -2941,28 +2948,50 @@ get_forward_count (unsigned int hop_count, size_t target_replication)
                   "`%s:%s': Hop count too high (est %d, lowest %d), NOT Forwarding request\n",
                   my_short_id, "DHT", estimate_diameter (), lowest_bucket);
 #endif
+      /* FIXME: does this work as intended, isn't the decision to forward or not made based on closeness as well? */
+      if (GNUNET_YES == paper_forwarding) /* Once we have reached our ideal number of hops, don't stop forwarding! */
+        {
+          return 1;
+        }
+	  
       return 0;
     }
-
-  random_value = 0;
-  forward_count = 1;
-  target_value =
-    target_replication / (diameter +
-                          ((float) target_replication * hop_count));
-  if (target_value > 1)
+    
+  if (GNUNET_YES == paper_forwarding)
     {
+      /* FIXME: re-run replication trials with this formula */
+      target_value = 1 + (target_replication - 1.0) / (diameter
+          + ((float) (target_replication - 1.0) * hop_count));
       /* Set forward count to floor of target_value */
       forward_count = (unsigned int) target_value;
       /* Subtract forward_count (floor) from target_value (yields value between 0 and 1) */
       target_value = target_value - forward_count;
+      random_value = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_STRONG,
+          UINT32_MAX);
+
+      if (random_value < (target_value * UINT32_MAX))
+        forward_count += 1;
     }
   else
-    random_value =
-      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG,
-                                UINT32_MAX);
+    {
+      random_value = 0;
+      forward_count = 1;
+      target_value = target_replication / (diameter
+          + ((float) target_replication * hop_count));
+      if (target_value > 1)
+        {
+          /* Set forward count to floor of target_value */
+          forward_count = (unsigned int) target_value;
+          /* Subtract forward_count (floor) from target_value (yields value between 0 and 1) */
+          target_value = target_value - forward_count;
+        }
+      else
+        random_value = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_STRONG,
+            UINT32_MAX);
 
-  if (random_value < (target_value * UINT32_MAX))
-    forward_count += 1;
+      if (random_value < (target_value * UINT32_MAX))
+        forward_count += 1;
+    }
 
   return forward_count;
 }
@@ -5244,6 +5273,13 @@ run (void *cls,
           converge_modifier = 0.0;
         }
       GNUNET_free (converge_modifier_buf);
+    }
+
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "dht", "paper_forwarding"))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Forwarding strictly according to paper!\n");
+      paper_forwarding = GNUNET_YES;
     }
 
   stats = GNUNET_STATISTICS_create ("dht", cfg);
