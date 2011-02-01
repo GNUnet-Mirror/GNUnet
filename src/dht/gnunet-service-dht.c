@@ -482,6 +482,16 @@ struct DHT_MessageContext
   uint32_t hop_count;
 
   /**
+   * How many peer identities are present in the path history?
+   */
+  uint32_t path_history_len;
+
+  /**
+   * Path history.
+   */
+  char *path_history;
+
+  /**
    * How important is this message?
    */
   unsigned int importance;
@@ -1085,10 +1095,11 @@ forward_result_message (const struct GNUNET_MessageHeader *msg,
   struct P2PPendingMessage *pending;
   size_t msize;
   size_t psize;
+  char *path_start;
 
   increment_stats (STAT_RESULT_FORWARDS);
   msize =
-    sizeof (struct GNUNET_DHT_P2PRouteResultMessage) + ntohs (msg->size);
+    sizeof (struct GNUNET_DHT_P2PRouteResultMessage) + ntohs (msg->size) + (sizeof(struct GNUNET_PeerIdentity) * msg_ctx->path_history_len);
   GNUNET_assert (msize <= GNUNET_SERVER_MAX_MESSAGE_SIZE);
   psize = sizeof (struct P2PPendingMessage) + msize;
   pending = GNUNET_malloc (psize);
@@ -1099,8 +1110,15 @@ forward_result_message (const struct GNUNET_MessageHeader *msg,
   result_message->header.size = htons (msize);
   result_message->header.type =
     htons (GNUNET_MESSAGE_TYPE_DHT_P2P_ROUTE_RESULT);
-  result_message->put_path_length = htons (0);  /* FIXME: implement */
-  result_message->get_path_length = htons (0);  /* FIXME: implement */
+  result_message->outgoing_path_length = htonl (msg_ctx->path_history_len);
+  if (msg_ctx->path_history_len > 0)
+    {
+      /* End of pending is where enc_msg starts */
+      path_start = (char *)&pending[1];
+      /* Offset by the size of the enc_msg */
+      path_start += ntohs (msg->size);
+      memcpy(path_start, msg_ctx->path_history, msg_ctx->path_history_len * (sizeof(struct GNUNET_PeerIdentity)));
+    }
   result_message->options = htonl (msg_ctx->msg_options);
   result_message->hop_count = htonl (msg_ctx->hop_count + 1);
   GNUNET_assert (GNUNET_OK ==
@@ -1723,6 +1741,7 @@ forward_message (const struct GNUNET_MessageHeader *msg,
   struct P2PPendingMessage *pending;
   size_t msize;
   size_t psize;
+  char *route_path;
 
   increment_stats (STAT_ROUTE_FORWARDS);
   GNUNET_assert (peer != NULL);
@@ -1730,7 +1749,7 @@ forward_message (const struct GNUNET_MessageHeader *msg,
       && (peer == find_closest_peer (&msg_ctx->key)))
     increment_stats (STAT_ROUTE_FORWARDS_CLOSEST);
 
-  msize = sizeof (struct GNUNET_DHT_P2PRouteMessage) + ntohs (msg->size);
+  msize = sizeof (struct GNUNET_DHT_P2PRouteMessage) + ntohs (msg->size) + (msg_ctx->path_history_len * sizeof(struct GNUNET_PeerIdentity));
   GNUNET_assert (msize <= GNUNET_SERVER_MAX_MESSAGE_SIZE);
   psize = sizeof (struct P2PPendingMessage) + msize;
   pending = GNUNET_malloc (psize);
@@ -1753,6 +1772,16 @@ forward_message (const struct GNUNET_MessageHeader *msg,
                                                               DHT_BLOOM_SIZE));
   memcpy (&route_message->key, &msg_ctx->key, sizeof (GNUNET_HashCode));
   memcpy (&route_message[1], msg, ntohs (msg->size));
+  if (GNUNET_DHT_RO_RECORD_ROUTE == (msg_ctx->msg_options & GNUNET_DHT_RO_RECORD_ROUTE))
+    {
+      route_message->route_path_length = htonl(msg_ctx->path_history_len);
+      /* Set pointer to start of enc_msg */
+      route_path = (char *)&route_message[1];
+      /* Offset to the end of the enc_msg */
+      route_path += ntohs (msg->size);
+      /* Copy the route_path after enc_msg */
+      memcpy (route_path, msg_ctx->path_history, msg_ctx->path_history_len * sizeof(struct GNUNET_PeerIdentity));
+    }
 #if DEBUG_DHT > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s:%s Adding pending message size %d for peer %s\n",
@@ -2304,6 +2333,13 @@ datacache_get_iterator (void *cls,
     case GNUNET_BLOCK_EVALUATION_OK_MORE:
       new_msg_ctx = GNUNET_malloc (sizeof (struct DHT_MessageContext));
       memcpy (new_msg_ctx, msg_ctx, sizeof (struct DHT_MessageContext));
+      if (GNUNET_DHT_RO_RECORD_ROUTE == (msg_ctx->msg_options & GNUNET_DHT_RO_RECORD_ROUTE))
+        {
+          new_msg_ctx->msg_options = GNUNET_DHT_RO_RECORD_ROUTE;
+          new_msg_ctx->path_history_len = msg_ctx->path_history_len;
+          /* Assign to previous msg_ctx path history, caller should free after our return */
+          new_msg_ctx->path_history = msg_ctx->path_history;
+        }
       get_result =
         GNUNET_malloc (sizeof (struct GNUNET_DHT_GetResultMessage) + size);
       get_result->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_GET_RESULT);
@@ -2702,6 +2738,13 @@ handle_dht_find_peer (const struct GNUNET_MessageHeader *find_msg,
   new_msg_ctx->importance = DHT_DEFAULT_P2P_IMPORTANCE + 2;     /* Make find peer requests a higher priority */
   new_msg_ctx->timeout = DHT_DEFAULT_P2P_TIMEOUT;
   increment_stats (STAT_FIND_PEER_ANSWER);
+  if (GNUNET_DHT_RO_RECORD_ROUTE == (msg_ctx->msg_options & GNUNET_DHT_RO_RECORD_ROUTE))
+    {
+      new_msg_ctx->msg_options = GNUNET_DHT_RO_RECORD_ROUTE;
+      new_msg_ctx->path_history_len = msg_ctx->path_history_len;
+      /* Assign to previous msg_ctx path history, caller should free after our return */
+      new_msg_ctx->path_history = msg_ctx->path_history;
+    }
   route_result_message (find_peer_result, new_msg_ctx);
   GNUNET_free (new_msg_ctx);
 #if DEBUG_DHT_ROUTING
@@ -3914,6 +3957,7 @@ demultiplex_message (const struct GNUNET_MessageHeader *msg,
 {
   /* FIXME: Should we use closest excluding those we won't route to (the bloomfilter problem)? */
   msg_ctx->closest = am_closest_peer (&msg_ctx->key, msg_ctx->bloom);
+
   switch (ntohs (msg->type))
     {
     case GNUNET_MESSAGE_TYPE_DHT_GET:  /* Add to hashmap of requests seen, search for data (always) */
@@ -4462,6 +4506,12 @@ handle_dht_local_route_request (void *cls,
   msg_ctx.unique_id = GNUNET_ntohll (dht_msg->unique_id);
   msg_ctx.replication = ntohl (dht_msg->desired_replication_level);
   msg_ctx.msg_options = ntohl (dht_msg->options);
+  if (GNUNET_DHT_RO_RECORD_ROUTE == (msg_ctx.msg_options & GNUNET_DHT_RO_RECORD_ROUTE))
+    {
+      msg_ctx.path_history = GNUNET_malloc(sizeof(struct GNUNET_PeerIdentity));
+      memcpy(msg_ctx.path_history, &my_identity, sizeof(struct GNUNET_PeerIdentity));
+      msg_ctx.path_history_len = 1;
+    }
   msg_ctx.network_size = estimate_diameter ();
   msg_ctx.peer = &my_identity;
   msg_ctx.importance = DHT_DEFAULT_P2P_IMPORTANCE + 4;  /* Make local routing a higher priority */
@@ -4501,6 +4551,7 @@ handle_dht_local_route_request (void *cls,
 #endif
         }
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      GNUNET_free_non_null(msg_ctx.path_history);
       return;
     }
 
@@ -4658,6 +4709,8 @@ handle_dht_p2p_route_request (void *cls,
   struct GNUNET_MessageHeader *enc_msg =
     (struct GNUNET_MessageHeader *) &incoming[1];
   struct DHT_MessageContext *msg_ctx;
+  char *route_path;
+  int path_size;
 
   if (ntohs (enc_msg->type) == GNUNET_MESSAGE_TYPE_DHT_P2P_PING)        /* Throw these away. FIXME: Don't throw these away? (reply) */
     {
@@ -4721,6 +4774,20 @@ handle_dht_p2p_route_request (void *cls,
   msg_ctx->replication = ntohl (incoming->desired_replication_level);
   msg_ctx->unique_id = GNUNET_ntohll (incoming->unique_id);
   msg_ctx->msg_options = ntohl (incoming->options);
+  if (GNUNET_DHT_RO_RECORD_ROUTE == (msg_ctx->msg_options & GNUNET_DHT_RO_RECORD_ROUTE))
+    {
+      path_size = ntohl(incoming->route_path_length) * sizeof(struct GNUNET_PeerIdentity);
+      GNUNET_assert(ntohs(message->size) ==
+                    (sizeof(struct GNUNET_DHT_P2PRouteMessage) +
+                     ntohs(enc_msg->size) +
+                     path_size));
+      route_path = (char *)&incoming[1];
+      route_path = route_path + ntohs(enc_msg->size);
+      msg_ctx->path_history = GNUNET_malloc(sizeof(struct GNUNET_PeerIdentity) + path_size);
+      memcpy(msg_ctx->path_history, route_path, path_size);
+      memcpy(&msg_ctx->path_history[path_size], &my_identity, sizeof(struct GNUNET_PeerIdentity));
+      msg_ctx->path_history_len = ntohl(incoming->route_path_length) + 1;
+    }
   msg_ctx->network_size = ntohl (incoming->network_size);
   msg_ctx->peer = peer;
   msg_ctx->importance = DHT_DEFAULT_P2P_IMPORTANCE;
@@ -4799,6 +4866,22 @@ handle_dht_p2p_route_result (void *cls,
   msg_ctx.peer = peer;
   msg_ctx.importance = DHT_DEFAULT_P2P_IMPORTANCE + 2;  /* Make result routing a higher priority */
   msg_ctx.timeout = DHT_DEFAULT_P2P_TIMEOUT;
+  if ((GNUNET_DHT_RO_RECORD_ROUTE == (msg_ctx.msg_options & GNUNET_DHT_RO_RECORD_ROUTE)) && (ntohl (incoming->outgoing_path_length) > 0))
+    {
+      if (ntohs(message->size) - sizeof(struct GNUNET_DHT_P2PRouteResultMessage) - ntohs(enc_msg->size) !=
+          ntohl (incoming->outgoing_path_length) * sizeof(struct GNUNET_PeerIdentity))
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Return message indicated a path was included, but sizes are wrong!\nTotal message size %d, enc_msg size %d, left over %d, expected %d\n",
+                                                 ntohs(message->size), ntohs(enc_msg->size),
+                                                 ntohs(message->size) - sizeof(struct GNUNET_DHT_P2PRouteResultMessage) - ntohs(enc_msg->size),
+                                                 ntohl(incoming->outgoing_path_length) * sizeof(struct GNUNET_PeerIdentity));
+          return GNUNET_NO;
+        }
+
+      msg_ctx.path_history = (char *)&incoming[1];
+      msg_ctx.path_history += ntohs(enc_msg->size);
+      msg_ctx.path_history_len = ntohl (incoming->outgoing_path_length);
+    }
   route_result_message (enc_msg, &msg_ctx);
   return GNUNET_YES;
 }
@@ -5236,7 +5319,7 @@ run (void *cls,
     }
 #endif
 
-  converge_option = DHT_CONVERGE_SQUARE;
+  converge_option = DHT_CONVERGE_BINARY;
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (cfg, "dht", "converge_linear"))
     {
@@ -5261,6 +5344,7 @@ run (void *cls,
       converge_option = DHT_CONVERGE_BINARY;
     }
 
+  converge_modifier = 4.0;
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_string (cfg, "dht", "converge_modifier",
                                              &converge_modifier_buf))

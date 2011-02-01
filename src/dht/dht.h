@@ -267,6 +267,13 @@ struct GNUNET_DHT_P2PRouteMessage
   uint32_t network_size GNUNET_PACKED;
 
   /**
+   * Route path length; number of GNUNET_PeerIdentity's
+   * copied to the end of this message (before the actual
+   * encapsulated message)
+   */
+  uint32_t route_path_length GNUNET_PACKED;
+
+  /**
    * Unique ID identifying this request
    */
   uint64_t unique_id GNUNET_PACKED;
@@ -287,13 +294,6 @@ struct GNUNET_DHT_P2PRouteMessage
 
 /**
  * Generic P2P route result
- *
- * FIXME: One question is how much to include for a route result message.
- *        Assuming a peer receives such a message, but has no record of a
- *        route message, what should it do?  It can either drop the message
- *        or try to forward it towards the original peer...  However, for
- *        that to work we would need to include the original peer identity
- *        in the GET request, which adds more data to the message.
  */
 struct GNUNET_DHT_P2PRouteResultMessage
 {
@@ -303,18 +303,11 @@ struct GNUNET_DHT_P2PRouteResultMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Number of peers recorded in the "PUT" path.
-   * (original path message took during "PUT").  These
-   * peer identities follow this message.
+   * Number of peers recorded in the path
+   * (inverse of the path the outgoing message took).
+   * These peer identities follow this message.
    */
-  uint16_t put_path_length GNUNET_PACKED;
-
-  /**
-   * Number of peers recorded in the "GET" path
-   * (inverse of the path the GET message took).  These
-   * peer identities follow this message.
-   */
-  uint16_t get_path_length GNUNET_PACKED;
+  uint16_t outgoing_path_length GNUNET_PACKED;
 
   /**
    * Message options
