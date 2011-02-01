@@ -1050,7 +1050,7 @@ do_transmit(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   uint copyoffset = 0;
   struct AckQueue * akt = NULL;
 
-#if 0
+#if 1
   struct GNUNET_MessageHeader * msgheader2 = NULL;
 
   //test if a "hello-beacon" has to be send
@@ -1922,7 +1922,7 @@ wlan_data_helper(void *cls, void * client, const struct GNUNET_MessageHeader * h
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "After Information\n");
 #endif
-      plugin->env->receive(plugin, &(session->target), temp_hdr,
+      plugin->env->receive(plugin->env, &(session->target), temp_hdr,
           (const struct GNUNET_TRANSPORT_ATS_Information *) &distance, 2,
           session, session->addr, sizeof(session->addr));
 #if DEBUG_wlan
@@ -2140,7 +2140,7 @@ wlan_process_helper (void *cls,
             temp_hdr = (struct GNUNET_MessageHeader *) &wlanIeeeHeader[1];
               while (pos < hdr->size)
                 {
-                  wlan_data_helper(plugin, &session_light, temp_hdr);
+                  wlan_data_helper(plugin, session_light, temp_hdr);
                   pos += temp_hdr->size + sizeof(struct GNUNET_MessageHeader);
                 }
             }
