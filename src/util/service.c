@@ -629,6 +629,7 @@ check_access (void *cls,
         && ((sctx->v6_denied == NULL) ||
             (!check_ipv6_listed (sctx->v6_denied, &i6->sin6_addr)));
       break;
+#ifndef WINDOWS
     case AF_UNIX:
       ret = GNUNET_OK; /* always OK for now */
       if ( (sctx->match_uid == GNUNET_YES) ||
@@ -648,6 +649,7 @@ check_access (void *cls,
 		    (uc == NULL) ? -1 : uc->uid,
 		    (uc == NULL) ? -1 : uc->gid);	
       break;
+#endif
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("Unknown address family %d\n"), addr->sa_family);
