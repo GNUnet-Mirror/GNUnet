@@ -41,27 +41,10 @@
 #include "gnunet-vpn-packet.h"
 
 /**
- * PipeHandle to receive data from the helper
- */
-static struct GNUNET_DISK_PipeHandle* helper_in;
-
-/**
- * PipeHandle to send data to the helper
- */
-static struct GNUNET_DISK_PipeHandle* helper_out;
-
-/**
- * FileHandle to receive data from the helper
- */
-static const struct GNUNET_DISK_FileHandle* fh_from_helper;
-
-/**
- * FileHandle to send data to the helper
- */
-static const struct GNUNET_DISK_FileHandle* fh_to_helper;
-
-/**
  * Start the helper-process
+ *
+ * If cls != NULL it is assumed that this function is called as a result of a dying
+ * helper. cls is then taken as handle to the old helper and is cleaned up.
  * {{{
  */
 void
@@ -70,15 +53,21 @@ start_helper_and_schedule(void *cls,
     if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
       return;
 
-    helper_in = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO);
-    helper_out = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_NO, GNUNET_YES);
+    if (cls != NULL)
+      cleanup_helper(cls);
+    cls = NULL;
 
-    if (helper_in == NULL || helper_out == NULL) return;
-
+    char* ifname;
     char* ipv6addr;
     char* ipv6prefix;
     char* ipv4addr;
     char* ipv4mask;
+
+    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "vpn", "IFNAME", &ifname))
+      {
+	GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "No entry 'IFNAME' in configuration!\n");
+	exit(1);
+      }
 
     if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "vpn", "IPV6ADDR", &ipv6addr))
       {
@@ -104,75 +93,32 @@ start_helper_and_schedule(void *cls,
 	exit(1);
       }
 
-    helper_proc =
-      GNUNET_OS_start_process (helper_in, helper_out, "gnunet-helper-vpn",
-			       "gnunet-helper-vpn", ipv6addr, ipv6prefix,
-			       ipv4addr, ipv4mask, NULL);
+    /* Start the helper
+     * Messages get passed to the function message_token
+     * When the helper dies, this function will be called again with the
+     * helper_handle as cls.
+     */
+    helper_handle = start_helper(ifname,
+				 ipv6addr,
+				 ipv6prefix,
+				 ipv4addr,
+				 ipv4mask,
+				 "vpn-gnunet",
+				 start_helper_and_schedule,
+				 message_token,
+				 NULL,
+				 NULL);
 
     GNUNET_free(ipv6addr);
     GNUNET_free(ipv6prefix);
     GNUNET_free(ipv4addr);
     GNUNET_free(ipv4mask);
 
-    fh_from_helper = GNUNET_DISK_pipe_handle (helper_out, GNUNET_DISK_PIPE_END_READ);
-    fh_to_helper = GNUNET_DISK_pipe_handle (helper_in, GNUNET_DISK_PIPE_END_WRITE);
-
-    GNUNET_DISK_pipe_close_end(helper_out, GNUNET_DISK_PIPE_END_WRITE);
-    GNUNET_DISK_pipe_close_end(helper_in, GNUNET_DISK_PIPE_END_READ);
-
     /* Tell the dns-service to rehijack the dns-port
      * The routing-table gets flushed if an interface disappears.
      */
     restart_hijack = 1;
     GNUNET_CLIENT_notify_transmit_ready(dns_connection, sizeof(struct GNUNET_MessageHeader), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
-
-    GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, fh_from_helper, &helper_read, NULL);
-}
-/*}}}*/
-/**
- * Restart the helper-process
- * {{{
- */
-void
-restart_helper(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
-    // Kill the helper
-    GNUNET_OS_process_kill (helper_proc, SIGKILL);
-    GNUNET_OS_process_wait (helper_proc);
-    GNUNET_OS_process_close (helper_proc);
-    helper_proc = NULL;
-
-    GNUNET_DISK_pipe_close(helper_in);
-    GNUNET_DISK_pipe_close(helper_out);
-
-    /* Restart the helper */
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, start_helper_and_schedule, NULL);
-}
-/*}}}*/
-
-/**
- * Read from the helper-process
- * {{{
- */
-void
-helper_read(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
-    /* no message can be bigger then 64k */
-    char buf[65535];
-
-    if (tsdkctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)
-      return;
-
-    int t = GNUNET_DISK_file_read(fh_from_helper, &buf, 65535);
-
-    /* On read-error, restart the helper */
-    if (t<=0) {
-	GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Read error for header from vpn-helper: %m\n");
-	GNUNET_SCHEDULER_add_now(restart_helper, cls);
-	return;
-    }
-
-    /* FIXME */ GNUNET_SERVER_mst_receive(mst, NULL, buf, t, 0, 0);
-
-    GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, fh_from_helper, &helper_read, NULL);
 }
 /*}}}*/
 
@@ -234,12 +180,12 @@ helper_write(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
     GNUNET_CONTAINER_DLL_remove (answer_proc_head, answer_proc_tail, ans);
     GNUNET_free(ans);
 
-    /* FIXME */ GNUNET_DISK_file_write(fh_to_helper, pkt, pkt_len);
+    /* FIXME */ GNUNET_DISK_file_write(helper_handle->fh_to_helper, pkt, pkt_len);
 
     /* if more packets are available, reschedule */
     if (answer_proc_head != NULL)
       GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL,
-				       fh_to_helper,
+				       helper_handle->fh_to_helper,
 				       &helper_write,
 				       NULL);
 }
@@ -361,10 +307,10 @@ message_token(void *cls,
 
 void write_to_helper(void* buf, size_t len)
 {
-  (void)GNUNET_DISK_file_write(fh_to_helper, buf, len);
+  (void)GNUNET_DISK_file_write(helper_handle->fh_to_helper, buf, len);
 }
 
 void schedule_helper_write(struct GNUNET_TIME_Relative time, void* cls)
 {
-  GNUNET_SCHEDULER_add_write_file (time, fh_to_helper, &helper_write, cls);
+  GNUNET_SCHEDULER_add_write_file (time, helper_handle->fh_to_helper, &helper_write, cls);
 }

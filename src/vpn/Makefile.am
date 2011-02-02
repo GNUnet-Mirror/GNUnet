@@ -36,7 +36,8 @@ gnunet_daemon_vpn_SOURCES = \
  gnunet-vpn-pretty-print.c gnunet-vpn-pretty-print.h \
  gnunet-dns-parser.c gnunet-dns-parser.h \
  gnunet-daemon-vpn-helper.c gnunet-daemon-vpn-helper.h \
- gnunet-daemon-vpn-dns.c gnunet-daemon-vpn-dns.h
+ gnunet-daemon-vpn-dns.c gnunet-daemon-vpn-dns.h \
+ gnunet-helper-vpn-api.c gnunet-helper-vpn-api.h
 gnunet_daemon_vpn_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \

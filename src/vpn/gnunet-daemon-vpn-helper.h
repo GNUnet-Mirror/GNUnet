@@ -26,15 +26,12 @@
 #ifndef GNUNET_DAEMON_VPN_HELPER_H
 #define GNUNET_DAEMON_VPN_HELPER_H
 
-/**
- * The process id of the helper
- */
-struct GNUNET_OS_Process *helper_proc;
+#include "gnunet-helper-vpn-api.h"
 
 /**
- * The Message-Tokenizer that tokenizes the messages comming from the helper
+ * Handle to the helper. contains filedescriptors and such
  */
-struct GNUNET_SERVER_MessageStreamTokenizer* mst;
+struct GNUNET_VPN_HELPER_Handle *helper_handle;
 
 /**
  * Start the helper-process
@@ -65,9 +62,7 @@ void message_token(void *cls,
 		   const struct GNUNET_MessageHeader *message);
 
 void write_to_helper(void* buf, size_t len);
-// GNUNET_DISK_file_write(fh_to_helper, response, ntohs(response->shdr.size));
 
 void schedule_helper_write(struct GNUNET_TIME_Relative, void* cls);
-// GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL, fh_to_helper, &helper_write, NULL);
 
 #endif /* end of include guard: GNUNET-DAEMON-VPN-HELPER_H */

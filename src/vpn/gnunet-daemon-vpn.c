@@ -29,7 +29,6 @@
 #include "gnunet-vpn-packet.h"
 #include "gnunet-vpn-pretty-print.h"
 #include "gnunet_common.h"
-#include <gnunet_os_lib.h>
 #include "gnunet_protocols.h"
 #include <gnunet_mesh_service.h>
 #include "gnunet_client_lib.h"
@@ -61,14 +60,7 @@ cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
     GNUNET_assert (0 != (tskctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN));
 
     /* stop the helper */
-    if (helper_proc != NULL)
-      {
-	if (0 != GNUNET_OS_process_kill (helper_proc, SIGTERM))
-	  GNUNET_log_strerror(GNUNET_ERROR_TYPE_WARNING, "kill");
-	GNUNET_OS_process_wait (helper_proc);
-	GNUNET_OS_process_close (helper_proc);
-	helper_proc = NULL;
-      }
+    cleanup_helper(helper_handle);
 
     /* close the connection to the service-dns */
     if (dns_connection != NULL)
@@ -478,7 +470,6 @@ run (void *cls,
 				      NULL,
 				      NULL,
 				      handlers);
-    mst = GNUNET_SERVER_mst_create(&message_token, NULL);
     cfg = cfg_;
     restart_hijack = 0;
     hashmap = GNUNET_CONTAINER_multihashmap_create(65536);
