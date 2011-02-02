@@ -30,7 +30,6 @@
  * have your name added to the list):
  *
  * - Philipp Tölke
- * - Christian Grothoff
  */
 #include "platform.h"
 #include <linux/if_tun.h>
@@ -96,7 +95,7 @@ init_tun (char *dev)
   memset (&ifr, 0, sizeof (ifr));
   ifr.ifr_flags = IFF_TUN;
 
-  if ('\0' == *dev)
+  if ('\0' != *dev)
     strncpy (ifr.ifr_name, dev, IFNAMSIZ);
 
   if (-1 == ioctl (fd, TUNSETIFF, (void *) &ifr))
@@ -532,7 +531,16 @@ main (int argc, char **argv)
   char dev[IFNAMSIZ];
   int fd_tun;
 
-  memset (dev, 0, IFNAMSIZ);
+  if (6 != argc)
+    {
+      fprintf (stderr, 
+	       "Fatal: must supply 5 arguments!\n");
+      return 1;
+    }
+
+  strncpy(dev, argv[1], IFNAMSIZ);
+  dev[IFNAMSIZ - 1] = '\0';
+
   if (-1 == (fd_tun = init_tun (dev)))
     {
       fprintf (stderr, 
@@ -540,16 +548,9 @@ main (int argc, char **argv)
       return 1;
     }
 
-  if (5 != argc)
-    {
-      fprintf (stderr, 
-	       "Fatal: must supply 4 arguments!\n");
-      return 1;
-    }
-
   {
-    const char *address = argv[1];
-    long prefix_len = atol(argv[2]);
+    const char *address = argv[2];
+    long prefix_len = atol(argv[3]);
 
     if ( (prefix_len < 1) || (prefix_len > 127) )
       {
@@ -561,8 +562,8 @@ main (int argc, char **argv)
   }
   
   {
-    const char *address = argv[3];
-    const char *mask = argv[4];
+    const char *address = argv[4];
+    const char *mask = argv[5];
 
     set_address4 (dev, address, mask);
   }
