@@ -2003,8 +2003,7 @@ add_pending_message (struct ClientList *client,
  *
  * @param client the client to send the reply to
  * @param message the encapsulated message to send
- * @param uid the unique identifier of this request
- * @param key key
+ * @param msg_ctx the context of the received message
  */
 static void
 send_reply_to_client (struct ClientList *client,
