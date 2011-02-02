@@ -661,9 +661,11 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
 
+#ifndef WINDOWS
   flags = fcntl (0, F_GETFL, 0);
   flags |= O_NONBLOCK;
   fcntl (0, F_SETFL, flags);
+#endif
   return (GNUNET_OK ==
 	  GNUNET_PROGRAM_run (argc,
 			      argv,
