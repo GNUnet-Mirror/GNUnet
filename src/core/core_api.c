@@ -1478,9 +1478,9 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
 
 /**
  * Ask the core to call "notify" once it is ready to transmit the
- * given number of bytes to the specified "target".  If we are not yet
- * connected to the specified peer, a call to this function will cause
- * us to try to establish a connection.
+ * given number of bytes to the specified "target".    Must only be
+ * called after a connection to the respective peer has been
+ * established (and the client has been informed about this).
  *
  * @param handle connection to core service
  * @param priority how important is the message?

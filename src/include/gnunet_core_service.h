@@ -389,9 +389,10 @@ struct GNUNET_CORE_TransmitHandle;
 
 /**
  * Ask the core to call "notify" once it is ready to transmit the
- * given number of bytes to the specified "target".  If we are not yet
- * connected to the specified peer, a call to this function will cause
- * us to try to establish a connection.
+ * given number of bytes to the specified "target".   Must only be
+ * called after a connection to the respective peer has been
+ * established (and the client has been informed about this).
+ * 
  *
  * @param handle connection to core service
  * @param priority how important is the message?
@@ -402,7 +403,12 @@ struct GNUNET_CORE_TransmitHandle;
  * @param notify function to call when buffer space is available;
  *        will be called with NULL on timeout or if the overall queue
  *        for this peer is larger than queue_size and this is currently
- *        the message with the lowest priority
+ *        the message with the lowest priority; will also be called
+ *        with 'NULL' buf if the peer disconnects; since the disconnect
+ *        signal will be emmitted even later, clients MUST cancel
+ *        all pending transmission requests DURING the disconnect
+ *        handler (unless they ensure that 'notify' never calls
+ *        'GNUNET_CORE_notify_transmit_ready').
  * @param notify_cls closure for notify
  * @return non-NULL if the notify callback was queued,
  *         NULL if we can not even queue the request (insufficient
