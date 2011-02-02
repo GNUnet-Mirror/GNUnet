@@ -1252,6 +1252,7 @@ remove_connections (struct GNUNET_TESTING_PeerGroup *pg,
     break;
   default:
     GNUNET_break(0);
+    return 0;
   }
 
   first_iter = *first_list;
@@ -1365,6 +1366,7 @@ add_connections (struct GNUNET_TESTING_PeerGroup *pg,
     break;
   default:
     GNUNET_break(0);
+    return 0;
   }
 
   add_first = GNUNET_YES;
