@@ -28,7 +28,7 @@
 #include "gnunet_protocols.h"
 #include "dhtlog.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 static int ok;
 

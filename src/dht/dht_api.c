@@ -182,6 +182,17 @@ struct GNUNET_DHT_Handle
   struct GNUNET_CONTAINER_MultiHashMap *active_requests;
 
   /**
+   * Task for trying to reconnect.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+
+  /**
+   * How quickly should we retry?  Used for exponential back-off on
+   * connect-errors.
+   */
+  struct GNUNET_TIME_Relative retry_time;
+
+  /**
    * Generator for unique ids.
    */
   uint64_t uid_gen;
@@ -266,31 +277,62 @@ add_request_to_pending (void *cls,
 
 
 /**
- * Re-connect to the DHT, re-issue all pending requests if needed.
+ * Try reconnecting to the dht service.
+ *
+ * @param cls GNUNET_DHT_Handle
+ * @param tc scheduler context
  */
 static void
-reconnect (struct GNUNET_DHT_Handle *handle)
+try_reconnect (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (handle->client != NULL)
+  struct GNUNET_DHT_Handle *handle = cls;
+
+  if (handle->retry_time.rel_value < GNUNET_CONSTANTS_SERVICE_RETRY.rel_value)
+    handle->retry_time = GNUNET_CONSTANTS_SERVICE_RETRY;
+  else
+    handle->retry_time = GNUNET_TIME_relative_multiply (handle->retry_time, 2);
+  if (handle->retry_time.rel_value > GNUNET_CONSTANTS_SERVICE_TIMEOUT.rel_value)
+    handle->retry_time = GNUNET_CONSTANTS_SERVICE_TIMEOUT;
+  handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  handle->client = GNUNET_CLIENT_connect ("dht", handle->cfg);
+  if (handle->client == NULL)
     {
-      GNUNET_CLIENT_disconnect (handle->client, 
-				GNUNET_NO);
-      handle->client = NULL;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "dht reconnect failed(!)\n");
+      return;
     }
-  if (GNUNET_YES != try_connect (handle))
-    return;
+
   GNUNET_CONTAINER_multihashmap_iterate (handle->active_requests,
-					 &add_request_to_pending,
-					 handle);
+                                         &add_request_to_pending,
+                                         handle);
   if (handle->pending_head == NULL)
     return;
   GNUNET_CLIENT_notify_transmit_ready (handle->client,
-				       ntohs(handle->pending_head->msg->size),
-				       GNUNET_TIME_UNIT_FOREVER_REL,
-				       GNUNET_NO,
-				       &transmit_pending,
-				       handle);
-				       
+                                       ntohs(handle->pending_head->msg->size),
+                                       GNUNET_TIME_UNIT_FOREVER_REL,
+                                       GNUNET_NO,
+                                       &transmit_pending,
+                                       handle);
+}
+
+
+/**
+ * Try reconnecting to the DHT service.
+ *
+ * @param handle handle to dht to (possibly) disconnect and reconnect
+ */
+static void
+do_disconnect (struct GNUNET_DHT_Handle *handle)
+{
+  if (handle->client == NULL)
+    return;
+
+  GNUNET_CLIENT_disconnect (handle->client, GNUNET_NO);
+  handle->client = NULL;
+  handle->reconnect_task = GNUNET_SCHEDULER_add_delayed (handle->retry_time,
+                                                         &try_reconnect,
+                                                         handle);
 }
 
 
@@ -302,8 +344,11 @@ process_pending_messages (struct GNUNET_DHT_Handle *handle)
 {
   struct PendingMessage *head;
 
-  if (GNUNET_YES != try_connect (handle))
-    return;      
+  if (handle->client == NULL)
+    {
+      do_disconnect(handle);
+      return;
+    }
   if (handle->th != NULL)
     return;
   if (NULL == (head = handle->pending_head))
@@ -316,7 +361,7 @@ process_pending_messages (struct GNUNET_DHT_Handle *handle)
 						    handle);
   if (NULL == handle->th)    
     {
-      reconnect (handle);
+      do_disconnect (handle);
       return;
     }
 }
@@ -337,7 +382,7 @@ transmit_pending (void *cls,
   handle->th = NULL;
   if (buf == NULL)
     {
-      reconnect (handle);
+      do_disconnect (handle);
       return 0;
     }
   if (NULL == (head = handle->pending_head))
@@ -377,8 +422,6 @@ transmit_pending (void *cls,
 }
 
 
-
-
 /**
  * Process a given reply that might match the given
  * request.
@@ -393,12 +436,11 @@ process_reply (void *cls,
   const struct GNUNET_MessageHeader *enc_msg;
   size_t enc_size;
   uint64_t uid;
-  const struct GNUNET_PeerIdentity **get_path;
-  const struct GNUNET_PeerIdentity **put_path;
+  const struct GNUNET_PeerIdentity **outgoing_path;
   const struct GNUNET_PeerIdentity *pos;
-  uint16_t gpl;
-  uint16_t ppl;
+  uint32_t outgoing_path_length;
   unsigned int i;
+  char *path_offset;
 
   uid = GNUNET_ntohll (dht_msg->unique_id);
   if (uid != rh->uid)
@@ -407,62 +449,43 @@ process_reply (void *cls,
 		  "Reply UID did not match request UID\n");
       return GNUNET_YES;
     }
-  enc_size = ntohs (dht_msg->header.size) - sizeof (struct GNUNET_DHT_RouteResultMessage);
+  enc_msg = (const struct GNUNET_MessageHeader *)&dht_msg[1];
+  enc_size = ntohs (enc_msg->size);
   if (enc_size < sizeof (struct GNUNET_MessageHeader))
     {
       GNUNET_break (0);
       return GNUNET_NO;
     }
-  pos = (const struct GNUNET_PeerIdentity *) &dht_msg[1];
-  ppl = ntohs (dht_msg->put_path_length);
-  gpl = ntohs (dht_msg->get_path_length);
-  if ( (ppl + gpl) * sizeof (struct GNUNET_PeerIdentity) > enc_size)
+  path_offset = (char *)&dht_msg[1];
+  path_offset += enc_size;
+  pos = (const struct GNUNET_PeerIdentity *) path_offset;
+  outgoing_path_length = ntohl (dht_msg->outgoing_path_length);
+  if (outgoing_path_length * sizeof (struct GNUNET_PeerIdentity) > ntohs(dht_msg->header.size) - enc_size)
     {
       GNUNET_break (0);
       return GNUNET_NO;
     }
-  if (ppl > 0)
+
+  if (outgoing_path_length > 0)
     {
-      put_path = GNUNET_malloc ((ppl+1) * sizeof (struct GNUNET_PeerIdentity*));
-      for (i=0;i<ppl;i++)
+      outgoing_path = GNUNET_malloc ((outgoing_path_length + 1) * sizeof (struct GNUNET_PeerIdentity*));
+      for (i = 0; i < outgoing_path_length; i++)
 	{
-	  put_path[i] = pos;
+	  outgoing_path[i] = pos;
 	  pos++;
 	}
-      put_path[ppl] = NULL;
+      outgoing_path[outgoing_path_length] = NULL;
     }
   else
-    put_path = NULL;
-  if (gpl > 0)
-    {
-      get_path = GNUNET_malloc ((gpl+1) * sizeof (struct GNUNET_PeerIdentity*));
-      for (i=0;i<gpl;i++)
-	{
-	  get_path[i] = pos;
-	  pos++;
-	}
-      get_path[gpl] = NULL;
-    }
-  else
-    get_path = NULL;
-  enc_size -= (ppl + gpl) * sizeof (struct GNUNET_PeerIdentity);
-  enc_msg = (const struct GNUNET_MessageHeader *) pos;
-  if (enc_size != ntohs (enc_msg->size))
-    {
-      GNUNET_break (0);
-      GNUNET_free_non_null (get_path);
-      GNUNET_free_non_null (put_path);
-      return GNUNET_NO;
-    }
+    outgoing_path = NULL;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Processing reply.\n");
   rh->iter (rh->iter_cls, 
 	    &rh->key,
-	    get_path,
-	    put_path,
+	    outgoing_path,
 	    enc_msg);
-  GNUNET_free_non_null (get_path);
-  GNUNET_free_non_null (put_path);
+  GNUNET_free_non_null (outgoing_path);
   return GNUNET_YES;
 }
 
@@ -485,19 +508,19 @@ service_message_handler (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Error receiving data from DHT service, reconnecting\n");
-      reconnect (handle);
+      do_disconnect (handle);
       return;
     }
   if (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE_RESULT)
     {
       GNUNET_break (0);
-      reconnect (handle);
+      do_disconnect (handle);
       return;
     }
   if (ntohs (msg->size) < sizeof (struct GNUNET_DHT_RouteResultMessage))
     {
       GNUNET_break (0);
-      reconnect (handle);
+      do_disconnect (handle);
       return;
     }
   dht_msg = (const struct GNUNET_DHT_RouteResultMessage *) msg;

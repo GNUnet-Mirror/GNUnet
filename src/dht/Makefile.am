@@ -52,7 +52,7 @@ libgnunet_plugin_dhtlog_mysql_dump_la_LIBADD = \
   $(XLIB)
 libgnunet_plugin_dhtlog_mysql_dump_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
-
+ 
 libgnunet_plugin_dhtlog_mysql_dump_load_la_SOURCES = \
   plugin_dhtlog_mysql_dump_load.c
 libgnunet_plugin_dhtlog_mysql_dump_load_la_LIBADD = \
@@ -70,6 +70,7 @@ libgnunetdhtlog_la_LDFLAGS = \
   -version-info 0:0:0
 
 libgnunetdht_la_SOURCES = \
+libgnunetdht_la_SOURCES = \
   dht_api.c dht.h \
   dht_api_get_put.c \
   dht_api_find_peer.c 
@@ -84,12 +85,10 @@ bin_PROGRAMS = $(STUD_PROGS) \
  gnunet-service-dht \
  gnunet-dht-get \
  gnunet-dht-get-peer \
- gnunet-dht-put 
+ gnunet-dht-put \
+ gnunet-dht-driver
 
-if HAVE_MALICIOUS
-noinst_PROGRAMS = \
- gnunet-dht-driver 
-endif
+noinst_PROGRAMS = $(check_PROGRAMS)
 
 gnunet_service_dht_SOURCES = \
  gnunet-service-dht.c         
@@ -151,14 +150,17 @@ check_PROGRAMS = $(STUD_TESTS) \
  test_dht_api \
  test_dht_twopeer \
  test_dht_twopeer_put_get \
+ test_dht_twopeer_path_tracking \
  test_dht_multipeer \
- test_dhtlog 
-# test_hash_operations
+ test_dhtlog
 
 if !DISABLE_TEST_RUN
 TESTS = test_dht_api $(check_SCRIPTS) \
  test_dht_twopeer \
- test_dht_twopeer_put_get
+ test_dht_twopeer_put_get \
+ test_dht_twopeer_path_tracking \
+ test_dht_multipeer \
+ test_dhtlog
 endif
 
 test_dht_api_SOURCES = \
@@ -179,13 +181,6 @@ test_dht_multipeer_LDADD = \
 test_dht_multipeer_DEPENDENCIES = \
   libgnunetdht.la			    
  
-#test_hash_operations_SOURCES = \
-# test_hash_operations.c
-#test_hash_operations_LDADD = \
-# $(top_builddir)/src/util/libgnunetutil.la \
-# $(top_builddir)/src/testing/libgnunettesting.la \
-# $(top_builddir)/src/dht/libgnunetdht.la 
-
 test_dht_twopeer_SOURCES = \
  test_dht_twopeer.c
 test_dht_twopeer_LDADD = \
@@ -198,6 +193,13 @@ test_dht_twopeer_DEPENDENCIES = \
 test_dht_twopeer_put_get_SOURCES = \
  test_dht_twopeer_put_get.c
 test_dht_twopeer_put_get_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/dht/libgnunetdht.la   
+ 
+test_dht_twopeer_path_tracking_SOURCES = \
+ test_dht_twopeer_path_tracking.c
+test_dht_twopeer_path_tracking_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/dht/libgnunetdht.la   

@@ -220,7 +220,8 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
                                                          &stop_retry_get, get_context);
   get_context->get_handle = GNUNET_DHT_get_start(get_context->dht_handle,
 						 GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5),
-                                                 0 /* FIXME: use real type */, &get_context->peer->hashPubKey,
+						 GNUNET_BLOCK_TYPE_DHT_HELLO,
+						 &get_context->peer->hashPubKey,
                                                  DEFAULT_GET_REPLICATION,
 						 GNUNET_DHT_RO_NONE,
 						 NULL, 0,
@@ -303,7 +304,6 @@ topology_callback (void *cls,
 
       curr_get_ctx.dht_handle = peer1dht;
       curr_get_ctx.peer = &peer2id;
-      //GNUNET_SCHEDULER_add_now (&do_get, &curr_get_ctx);
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 2), &do_get, &curr_get_ctx);
     }
   else if (total_connections + failed_connections == expected_connections)

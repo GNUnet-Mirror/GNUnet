@@ -53,6 +53,8 @@
 
 #define MAX_OUTSTANDING_GETS 10
 
+#define PATH_TRACKING GNUNET_YES
+
 /* Structs */
 
 struct TestPutContext
@@ -206,6 +208,8 @@ static unsigned int total_connections;
  */
 static unsigned int failed_connections;
 
+enum GNUNET_DHT_RouteOption route_option;
+
 /* Task handle to use to schedule test failure */
 GNUNET_SCHEDULER_TaskIdentifier die_task;
 
@@ -223,7 +227,6 @@ static double connect_topology_option_modifier = 0.0;
 
 /* Global return value (0 for success, anything else for failure) */
 static int ok;
-
 
 /**
  * Check whether peers successfully shut down.
@@ -395,12 +398,29 @@ void get_result_iterator (void *cls,
   struct TestGetContext *test_get = cls;
   GNUNET_HashCode search_key; /* Key stored under */
   char original_data[TEST_DATA_SIZE]; /* Made up data to store */
-
+  unsigned int i;
   memset(original_data, test_get->uid, sizeof(original_data));
   GNUNET_CRYPTO_hash(original_data, TEST_DATA_SIZE, &search_key);
 
   if (test_get->succeeded == GNUNET_YES)
     return; /* Get has already been successful, probably ending now */
+
+#if PATH_TRACKING
+  if (put_path != NULL)
+    {
+      fprintf(stderr, "PUT Path: ");
+      for (i = 0; put_path[i] != NULL; i++)
+        fprintf(stderr, "%s%s", i == 0 ? "" : "->", GNUNET_i2s(put_path[i]));
+      fprintf(stderr, "\n");
+    }
+  if (get_path != NULL)
+    {
+      fprintf(stderr, "GET Path: ");
+      for (i = 0; get_path[i] != NULL; i++)
+        fprintf(stderr, "%s%s", i == 0 ? "" : "->", GNUNET_i2s(get_path[i]));
+      fprintf(stderr, "\n");
+    }
+#endif
 
   if ((0 != memcmp(&search_key, key, sizeof (GNUNET_HashCode))) || (0 != memcmp(original_data, data, sizeof(original_data))))
     {
@@ -448,7 +468,7 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
                                               GNUNET_BLOCK_TYPE_TEST,
                                               &key,
                                               DEFAULT_GET_REPLICATION,
-					      GNUNET_DHT_RO_NONE,
+                                              route_option,
 					      NULL, 0,
 					      NULL, 0,
                                               &get_result_iterator,
@@ -517,7 +537,7 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   GNUNET_DHT_put(test_put->dht_handle,
                  &key,
                  DEFAULT_PUT_REPLICATION,
-		 GNUNET_DHT_RO_NONE,
+		 route_option,
                  GNUNET_BLOCK_TYPE_TEST,
                  sizeof(data), data,
                  GNUNET_TIME_UNIT_FOREVER_ABS,
@@ -757,6 +777,12 @@ run (void *cls,
   char * blacklist_topology_str;
   char * connect_topology_option_str;
   char * connect_topology_option_modifier_string;
+
+#if PATH_TRACKING
+  route_option = GNUNET_DHT_RO_RECORD_ROUTE;
+#else
+  route_option = GNUNET_DHT_RO_NONE;
+#endif
 
   /* Get path from configuration file */
   if (GNUNET_YES != GNUNET_CONFIGURATION_get_value_string(cfg, "paths", "servicehome", &test_directory))

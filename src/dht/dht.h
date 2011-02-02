@@ -199,18 +199,11 @@ struct GNUNET_DHT_RouteResultMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Number of peers recorded in the "PUT" path.
-   * (original path message took during "PUT").  These
-   * peer identities follow this message.
+   * Number of peers recorded in the outgoing
+   * path from source to the final destination
+   * of this message.
    */
-  uint16_t put_path_length GNUNET_PACKED;
-
-  /**
-   * Number of peers recorded in the "GET" path
-   * (inverse of the path the GET message took).  These
-   * peer identities follow this message.
-   */
-  uint16_t get_path_length GNUNET_PACKED;
+  uint32_t outgoing_path_length GNUNET_PACKED;
 
   /**
    * Unique ID identifying this request (necessary for
@@ -223,11 +216,9 @@ struct GNUNET_DHT_RouteResultMessage
    */
   GNUNET_HashCode key;
 
-  /* PUT path */
-
-  /* GET path */
-
   /* GNUNET_MessageHeader *enc actual DHT message, copied to end of this dealy do */
+
+  /* OUTGOING path */
 };
 
 
@@ -267,11 +258,11 @@ struct GNUNET_DHT_P2PRouteMessage
   uint32_t network_size GNUNET_PACKED;
 
   /**
-   * Route path length; number of GNUNET_PeerIdentity's
-   * copied to the end of this message (before the actual
-   * encapsulated message)
+   * Generic route path length for a message in the
+   * DHT that arrived at a peer and generated
+   * a reply. Copied to the end of this message.
    */
-  uint32_t route_path_length GNUNET_PACKED;
+  uint32_t outgoing_path_length GNUNET_PACKED;
 
   /**
    * Unique ID identifying this request
@@ -290,6 +281,8 @@ struct GNUNET_DHT_P2PRouteMessage
 
   /* GNUNET_MessageHeader *enc actual DHT message, copied to end of this dealy do */
 
+  /* OUTGOING PATH */
+
 };
 
 /**
@@ -307,7 +300,7 @@ struct GNUNET_DHT_P2PRouteResultMessage
    * (inverse of the path the outgoing message took).
    * These peer identities follow this message.
    */
-  uint16_t outgoing_path_length GNUNET_PACKED;
+  uint32_t outgoing_path_length GNUNET_PACKED;
 
   /**
    * Message options
@@ -341,12 +334,9 @@ struct GNUNET_DHT_P2PRouteResultMessage
   uint32_t network_size GNUNET_PACKED;
 #endif
 
-
-  /* PUT path */
-
-  /* GET path */
-
   /* GNUNET_MessageHeader *enc actual DHT message, copied to end of this dealy do */
+
+  /* OUTGOING PATH */
 };
 
 
@@ -449,13 +439,41 @@ struct GNUNET_DHT_GetResultMessage
   /**
    * The type for the data for the GET request
    */
-  uint32_t type;
+  uint16_t type;
+
+  /**
+   * The number of peer identities appended to the end of this
+   * message.
+   */
+  uint16_t put_path_length;
 
   /**
    * When does this entry expire?
    */
   struct GNUNET_TIME_AbsoluteNBO expiration;
 
+};
+
+/**
+ * Entry for inserting data into datacache from the DHT.
+ * Needed here so block library can verify entries that
+ * are shoveled into the DHT.
+ */
+struct DHTPutEntry
+{
+  /**
+   * Size of data.
+   */
+  uint16_t data_size;
+
+  /**
+   * Length of recorded path.
+   */
+  uint16_t path_length;
+
+  /* PUT DATA */
+
+  /* PATH ENTRIES */
 };
 
 
