@@ -106,7 +106,12 @@ enum GNUNET_DHT_RouteOption
      * We should keep track of the route that the message
      * took in the P2P network.
      */
-    GNUNET_DHT_RO_RECORD_ROUTE = 2
+    GNUNET_DHT_RO_RECORD_ROUTE = 2,
+
+    /**
+     * Possible message option for query key randomization.
+     */
+    GNUNET_DHT_RO_BART = 4
   };
 
 
@@ -290,16 +295,15 @@ GNUNET_DHT_find_peer_stop (struct GNUNET_DHT_FindPeerHandle *find_peer_handle);
  *
  * @param cls closure
  * @param key key that was used
- * @param get_path NULL-terminated array of pointers
- *                 to the peers on reverse GET path (or NULL if not recorded)
- * @param put_path NULL-terminated array of pointers
+ * @param outgoing_path NULL-terminated array of pointers
+ *                      to the peers on reverse outgoing
+ *                      path (or NULL if not recorded)
  *                 to the peers on the PUT path (or NULL if not recorded)
  * @param reply response
  */
 typedef void (*GNUNET_DHT_ReplyProcessor)(void *cls,
 					  const GNUNET_HashCode *key,
-					  const struct GNUNET_PeerIdentity * const *get_path,
-					  const struct GNUNET_PeerIdentity * const *put_path,
+					  const struct GNUNET_PeerIdentity * const *outgoing_path,
                                           const struct GNUNET_MessageHeader *reply);
 
 
