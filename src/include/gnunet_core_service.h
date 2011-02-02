@@ -325,7 +325,7 @@ struct GNUNET_CORE_InformationRequestContext;
  * @param timeout after how long should we give up (and call "info" with NULL
  *                for "peer" to signal an error)?
  * @param bw_out set to the current bandwidth limit (sending) for this peer,
- *                caller should set "bpm_out" to "-1" to avoid changing
+ *                caller should set "bpm_out" to "GNUNET_BANDWIDTH_VALUE_MAX" to avoid changing
  *                the current value; otherwise "bw_out" will be lowered to
  *                the specified value; passing a pointer to "0" can be used to force
  *                us to disconnect from the peer; "bw_out" might not increase

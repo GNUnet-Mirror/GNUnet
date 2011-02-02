@@ -196,15 +196,15 @@ GSF_peer_transmit_cancel_ (struct GSF_PeerTransmitHandle *pth);
 /**
  * Report on receiving a reply; update the performance record of the given peer.
  *
- * @param peer responding peer (will be updated)
+ * @param cp responding peer (will be updated)
  * @param request_time time at which the original query was transmitted
  * @param request_priority priority of the original request
  * @param initiator_client local client on responsible for query (or NULL)
  * @param initiator_peer other peer responsible for query (or NULL)
  */
 void
-GSF_peer_update_performance_ (struct GSF_ConnectedPeer *peer,
-			      GNUNET_TIME_Absolute request_time,
+GSF_peer_update_performance_ (struct GSF_ConnectedPeer *cp,
+			      struct GNUNET_TIME_Absolute request_time,
 			      uint32_t request_priority,
 			      const struct GSF_LocalClient *initiator_client,
 			      const struct GSF_ConnectedPeer *initiator_peer);
@@ -231,6 +231,24 @@ GSF_peer_status_handler_ (void *cls,
 
 
 /**
+ * Handle P2P "MIGRATION_STOP" message.
+ *
+ * @param cls closure, always NULL
+ * @param other the other peer involved (sender or receiver, NULL
+ *        for loopback messages where we are both sender and receiver)
+ * @param message the actual message
+ * @param atsi performance information
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+int
+GSF_handle_p2p_migration_stop_ (void *cls,
+				const struct GNUNET_PeerIdentity *other,
+				const struct GNUNET_MessageHeader *message,
+				const struct GNUNET_TRANSPORT_ATS_Information *atsi);
+
+
+/**
  * A peer disconnected from us.  Tear down the connected peer
  * record.
  *
@@ -253,6 +271,20 @@ GSF_handle_local_client_disconnect_ (const struct GSF_LocalClient *lc);
 
 
 /**
+ * Notify core about a preference we have for the given peer
+ * (to allocate more resources towards it).  The change will
+ * be communicated the next time we reserve bandwidth with
+ * core (not instantly).
+ *
+ * @param cp peer to reserve bandwidth from
+ * @param pref preference change
+ */
+void
+GSF_connected_peer_change_preference_ (struct GSF_ConnectedPeer *cp,
+				       uint64_t pref);
+
+
+/**
  * Iterate over all connected peers.
  *
  * @param it function to call for each peer
@@ -261,30 +293,6 @@ GSF_handle_local_client_disconnect_ (const struct GSF_LocalClient *lc);
 void
 GSF_iterate_connected_peers_ (GSF_ConnectedPeerIterator it,
 			      void *it_cls);
-
-
-// FIXME: should we allow queueing multiple reservation requests?
-// FIXME: what about cancellation?
-// FIXME: change docu on peer disconnect handling?
-/**
- * Try to reserve bandwidth (to receive data FROM the given peer).
- * This function must only be called ONCE per connected peer at a
- * time; it can be called again after the 'rc' callback was invoked.
- * If the peer disconnects, the request is (silently!) ignored (and
- * the requester is responsible to register for notification about the
- * peer disconnect if any special action needs to be taken in this
- * case).
- *
- * @param cp peer to reserve bandwidth from
- * @param size number of bytes to reserve
- * @param rc function to call upon reservation success
- * @param rc_cls closure for rc
- */
-void
-GSF_connected_peer_reserve_ (struct GSF_ConnectedPeer *cp,
-			     size_t size,
-			     GSF_PeerReserveCallback rc,
-			     void *rc_cls);
 
 
 /**

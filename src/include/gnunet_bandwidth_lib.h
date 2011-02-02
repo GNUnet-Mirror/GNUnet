@@ -94,6 +94,12 @@ GNUNET_BANDWIDTH_value_init (uint32_t bytes_per_second);
 
 
 /**
+ * Maximum possible bandwidth value.
+ */
+#define GNUNET_BANDWIDTH_VALUE_MAX GNUNET_BANDWIDTH_value_init(UINT32_MAX)
+
+
+/**
  * At the given bandwidth, calculate how much traffic will be
  * available until the given deadline.
  *

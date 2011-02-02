@@ -44,6 +44,25 @@ GSF_plan_entry_create_ (struct GSF_ConnectedPeer *cp,
 
 
 /**
+ * Notify the plan about a new peer to use.
+ *
+ * @param cp connected peer 
+ */
+void
+GSF_plan_notify_new_peer_ (struct GSF_ConnectedPeer *cp);
+
+
+/**
+ * Notify the plan about a peer being no longer available.
+ *
+ * @param cp connected peer 
+ */
+void
+GSF_plan_notify_peer_disconnect_ (struct GSF_ConnectedPeer *cp);
+
+
+
+/**
  * Get the first plan entry for the given connected peer.
  * FIXME...
  *
