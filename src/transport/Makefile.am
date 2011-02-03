@@ -46,7 +46,8 @@ if LINUX
 UNIX_PLUGIN_LA = libgnunet_plugin_transport_unix.la
 UNIX_PLUGIN_TEST = test_transport_api_unix
 UNIX_REL_TEST = test_transport_api_unreliability_unix
-UNIX_QUOTA_TEST = test_quota_compliance_unix
+UNIX_QUOTA_TEST = test_quota_compliance_unix \
+     test_quota_compliance_unix_asymmetric_recv_constant
 NATBIN = gnunet-nat-server gnunet-nat-client
 install-exec-hook:
 	chown root $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client $(bindir)/gnunet-wlan || true
@@ -279,18 +280,6 @@ test_transport_api_reliability_tcp_nat_SOURCES = \
 test_transport_api_reliability_tcp_nat_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la 
-
-test_transport_api_reliability_udp_SOURCES = \
- test_transport_api_reliability.c
-test_transport_api_reliability_udp_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/util/libgnunetutil.la
- 
-test_transport_api_reliability_unix_SOURCES = \
- test_transport_api_reliability.c
-test_transport_api_reliability_unix_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/util/libgnunetutil.la  
 
 test_transport_api_udp_SOURCES = \
  test_transport_api.c
