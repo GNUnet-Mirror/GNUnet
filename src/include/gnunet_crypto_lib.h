@@ -691,6 +691,14 @@ struct GNUNET_CRYPTO_RsaPrivateKey *GNUNET_CRYPTO_rsa_key_create (void);
 
 
 /**
+ * Get the size of a key file.
+ *
+ * @return size of a gnunet private key
+ */
+uint32_t
+GNUNET_CRYPTO_rsa_key_size ();
+
+/**
  * Create a new private key by reading it from a file.  If the
  * files does not exist, create a new key and write it to the
  * file.  Caller must free return value. Note that this function
