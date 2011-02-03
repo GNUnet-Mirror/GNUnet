@@ -139,6 +139,7 @@ static int is_tcp_nat;
 static int is_http;
 static int is_https;
 static int is_udp;
+static int is_unix;
 static int is_asymmetric_send_constant;
 static int is_asymmetric_recv_constant;
 
@@ -731,6 +732,17 @@ run (void *cls,
       setup_peer (&p1, "test_quota_compliance_udp_peer1.conf");
       setup_peer (&p2, "test_quota_compliance_udp_peer2.conf");
     }
+  else if (is_unix)
+    {
+          if (is_asymmetric_recv_constant == GNUNET_YES)
+                  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing asymmetric quota compliance (receiver quota constant) for UNIX transport plugin\n");
+          else if (is_asymmetric_send_constant == GNUNET_YES)
+                  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing asymmetric quota compliance (sender quota constant) for UNIX transport plugin\n");
+          else
+                  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing symmetric quota compliance for UNIX transport plugin\n");
+      setup_peer (&p1, "test_quota_compliance_unix_peer1.conf");
+      setup_peer (&p2, "test_quota_compliance_unix_peer2.conf");
+    }
   else if (is_tcp_nat)
     {
 	  if (is_asymmetric_recv_constant == GNUNET_YES)
@@ -777,6 +789,10 @@ main (int argc, char *argv[])
     {
       is_udp = GNUNET_YES;
     }
+  else if (strstr(argv[0], "unix") != NULL)
+    {
+      is_unix = GNUNET_YES;
+    }
 
   if (strstr(argv[0], "asymmetric_recv") != NULL)
   {
@@ -809,6 +825,15 @@ main (int argc, char *argv[])
 		  GNUNET_asprintf(&logger, "test-quota-compliance-%s-%s","udp","asymmetric_send_constant");
 	  else
 		  GNUNET_asprintf(&logger, "test-quota-compliance-%s-%s","udp","symmetric");
+  }
+  else if (is_unix == GNUNET_YES)
+  {
+          if (is_asymmetric_recv_constant == GNUNET_YES)
+                  GNUNET_asprintf(&logger, "test-quota-compliance-%s-%s","unix","asymmetric_recv_constant");
+          else if (is_asymmetric_send_constant == GNUNET_YES)
+                  GNUNET_asprintf(&logger, "test-quota-compliance-%s-%s","unix","asymmetric_send_constant");
+          else
+                  GNUNET_asprintf(&logger, "test-quota-compliance-%s-%s","unix","symmetric");
   }
   else if (is_http == GNUNET_YES)
   {

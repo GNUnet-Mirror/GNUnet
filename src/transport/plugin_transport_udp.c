@@ -662,6 +662,8 @@ udp_real_send (void *cls,
     GNUNET_NETWORK_socket_sendto (send_handle, message, ssize,
                                   sb,
                                   sbs);
+  if (GNUNET_SYSERR == sent)
+    GNUNET_log_strerror(GNUNET_ERROR_TYPE_DEBUG, "sendto");
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "UDP transmit %u-byte message to %s (%d: %s)\n",
 	      (unsigned int) ssize,

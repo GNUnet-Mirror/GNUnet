@@ -43,6 +43,10 @@ endif
 endif
 
 if LINUX
+UNIX_PLUGIN_LA = libgnunet_plugin_transport_unix.la
+UNIX_PLUGIN_TEST = test_transport_api_unix
+UNIX_REL_TEST = test_transport_api_unreliability_unix
+UNIX_QUOTA_TEST = test_quota_compliance_unix
 NATBIN = gnunet-nat-server gnunet-nat-client
 install-exec-hook:
 	chown root $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client $(bindir)/gnunet-wlan || true
@@ -114,6 +118,7 @@ gnunet_service_transport_DEPENDENCIES = \
 plugin_LTLIBRARIES = \
   libgnunet_plugin_transport_tcp.la \
   libgnunet_plugin_transport_udp.la \
+  $(UNIX_PLUGIN_LA) \
   $(HTTP_PLUGIN_LA) \
   $(HTTPS_PLUGIN_LA) \
   $(WLAN_PLUGIN_LA) \
@@ -157,16 +162,16 @@ libgnunet_plugin_transport_udp_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
 libgnunet_plugin_transport_udp_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
-
-#libgnunet_plugin_transport_udp_nat_la_SOURCES = \
-#  plugin_transport_udp_nat.c
-#libgnunet_plugin_transport_udp_nat_la_LIBADD = \
-#  $(top_builddir)/src/hello/libgnunethello.la \
-#  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-#  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
-#  $(top_builddir)/src/util/libgnunetutil.la 
-#libgnunet_plugin_transport_udp_nat_la_LDFLAGS = \
-# $(GN_PLUGIN_LDFLAGS)
+ 
+libgnunet_plugin_transport_unix_la_SOURCES = \
+  plugin_transport_unix.c
+libgnunet_plugin_transport_unix_la_LIBADD = \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
+libgnunet_plugin_transport_unix_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
 
 libgnunet_plugin_transport_http_la_SOURCES = \
   plugin_transport_http.c
@@ -199,6 +204,7 @@ check_PROGRAMS = \
  test_transport_api_tcp \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
+ $(UNIX_PLUGIN_TEST) \
  test_transport_api_udp_nat \
  $(HTTP_PLUGIN_TEST) \
  $(HTTP_API_TEST) \
@@ -208,13 +214,16 @@ check_PROGRAMS = \
  test_transport_api_multi \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
- test_transport_api_reliability_udp \
+ test_transport_api_unreliability_udp \
+ test_transport_api_unreliability_unix \
+ $(UNIX_REL_TEST) \
  $(HTTP_REL_TEST) \
  $(HTTPS_REL_TEST) \
  test_quota_compliance_tcp \
  test_quota_compliance_tcp_asymmetric_recv_constant \
  test_quota_compliance_udp \
  test_quota_compliance_udp_asymmetric_recv_constant \
+ $(UNIX_QUOTA_TEST) \
  $(HTTP_QUOTA_TEST) \
  $(HTTPS_QUOTA_TEST)
 # TODO: add tests for nat, etc.
@@ -224,6 +233,7 @@ TESTS = \
  test_transport_api_tcp \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
+ $(UNIX_PLUGIN_TEST) \
  test_transport_api_udp_nat \
  $(HTTP_PLUGIN_TEST) \
  $(HTTP_API_TEST) \
@@ -233,12 +243,15 @@ TESTS = \
  test_transport_api_multi \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
+ test_transport_api_unreliability_udp \
+ test_transport_api_unreliability_unix \
  $(HTTP_REL_TEST) \
  $(HTTPS_REL_TEST) \
  test_quota_compliance_tcp \
  test_quota_compliance_tcp_asymmetric_recv_constant \
  test_quota_compliance_udp \
  test_quota_compliance_udp_asymmetric_recv_constant \
+ $(UNIX_QUOTA_TEST) \
  $(HTTP_QUOTA_TEST) \
  $(HTTPS_QUOTA_TEST)
 endif
@@ -271,19 +284,31 @@ test_transport_api_reliability_udp_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_udp_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/util/libgnunetutil.la   
+ $(top_builddir)/src/util/libgnunetutil.la
+ 
+test_transport_api_reliability_unix_SOURCES = \
+ test_transport_api_reliability.c
+test_transport_api_reliability_unix_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
 
 test_transport_api_udp_SOURCES = \
  test_transport_api.c
 test_transport_api_udp_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la  
-
+ 
 test_transport_api_udp_nat_SOURCES = \
  test_transport_api.c
 test_transport_api_udp_nat_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/util/libgnunetutil.la  
+ $(top_builddir)/src/util/libgnunetutil.la   
+ 
+test_transport_api_unix_SOURCES = \
+ test_transport_api.c
+test_transport_api_unix_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la 
 
 test_plugin_transport_http_SOURCES = \
  test_plugin_transport_http.c
@@ -322,6 +347,18 @@ test_transport_api_https_LDADD = \
 test_transport_api_reliability_https_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_https_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+ 
+test_transport_api_unreliability_unix_SOURCES = \
+ test_transport_api_unreliability.c
+test_transport_api_unreliability_unix_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+
+test_transport_api_unreliability_udp_SOURCES = \
+ test_transport_api_unreliability.c
+test_transport_api_unreliability_udp_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
@@ -407,6 +444,19 @@ test_quota_compliance_udp_asymmetric_recv_constant_LDADD = \
 # $(top_builddir)/src/transport/libgnunettransport.la \
 # $(top_builddir)/src/util/libgnunetutil.la 
 
+test_quota_compliance_unix_SOURCES = \
+ test_quota_compliance.c
+test_quota_compliance_unix_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+
+test_quota_compliance_unix_asymmetric_recv_constant_SOURCES = \
+ test_quota_compliance.c
+test_quota_compliance_unix_asymmetric_recv_constant_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+
+
 test_transport_api_multi_SOURCES = \
  test_transport_api.c
 test_transport_api_multi_LDADD = \
@@ -419,6 +469,8 @@ EXTRA_DIST = \
   test_transport_api_tcp_peer2.conf \
   test_transport_api_udp_peer1.conf \
   test_transport_api_udp_peer2.conf \
+  test_transport_api_unix_peer1.conf \
+  test_transport_api_unix_peer2.conf \
   test_transport_api_udp_nat_peer1.conf \
   test_transport_api_udp_nat_peer2.conf \
   test_transport_api_tcp_nat_peer1.conf \
@@ -446,4 +498,6 @@ EXTRA_DIST = \
   test_quota_compliance_https_peer1.conf \
   test_quota_compliance_https_peer2.conf \
   test_quota_compliance_udp_peer1.conf \
-  test_quota_compliance_udp_peer2.conf
+  test_quota_compliance_udp_peer2.conf \
+  test_quota_compliance_unix_peer1.conf \
+  test_quota_compliance_unix_peer2.conf

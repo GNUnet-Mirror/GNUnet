@@ -76,6 +76,8 @@ static int is_tcp_nat;
 
 static int is_udp;
 
+static int is_unix;
+
 static int is_udp_nat;
 
 static int is_http;
@@ -369,6 +371,12 @@ run (void *cls,
       setup_peer (&p1, "test_transport_api_udp_peer1.conf");
       setup_peer (&p2, "test_transport_api_udp_peer2.conf");
     }
+  if (is_unix)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Using unix domain socket transport\n");
+      setup_peer (&p1, "test_transport_api_unix_peer1.conf");
+      setup_peer (&p2, "test_transport_api_unix_peer2.conf");
+    }
   if (is_multi_protocol)
     {
       setup_peer (&p1, "test_transport_api_multi_peer1.conf");
@@ -633,6 +641,10 @@ main (int argc, char *argv[])
   else if (strstr(argv[0], "udp") != NULL)
     {
       is_udp = GNUNET_YES;
+    }
+  else if (strstr(argv[0], "unix") != NULL)
+    {
+      is_unix = GNUNET_YES;
     }
   else if (strstr(argv[0], "https") != NULL)
     {

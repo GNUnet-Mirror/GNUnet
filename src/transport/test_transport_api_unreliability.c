@@ -18,10 +18,11 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file transport/test_transport_api_reliability.c
- * @brief base test case for transport implementations
+ * @file transport/test_transport_api_unreliability.c
+ * @brief test case for transports; ensures messages get
+ *        through, regardless of order
  *
- * This test case serves as a base for tcp and http
+ * This test case serves as a base for unreliable
  * transport test cases to check that the transports
  * achieve reliable message delivery.
  */
@@ -48,12 +49,14 @@
  * 'MAX_PENDING' in 'gnunet-service-transport.c', otherwise
  * messages may be dropped even for a reliable transport.
  */
-#define TOTAL_MSGS (10000 * 2)
+#define TOTAL_MSGS (80000 * 3) /* Total messages should be divisible by 8, so we can make a nice bitmap */
 
 /**
  * How long until we give up on transmitting the message?
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1500)
+
+#define UNRELIABLE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 #define MTYPE 12345
 
@@ -93,12 +96,16 @@ static struct GNUNET_TIME_Absolute start_time;
 
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
-static char * key_file_p1;
-static char * cert_file_p1;
+static char *key_file_p1;
+static char *cert_file_p1;
 
-static char * key_file_p2;
-static char * cert_file_p2;
+static char *key_file_p2;
+static char *cert_file_p2;
+
 static char *test_name;
+
+static char bitmap[TOTAL_MSGS / 8];
+
 static int msg_scheduled;
 static int msg_sent;
 static int msg_recv_expected;
@@ -111,12 +118,62 @@ static struct GNUNET_TRANSPORT_TransmitHandle * transmit_handle;
 #define OKPP do { ok++; } while (0)
 #endif
 
+/**
+ * Sets a bit active in the bitmap.
+ *
+ * @param bitIdx which bit to set
+ */
+static void
+set_bit (unsigned int bitIdx)
+{
+  size_t arraySlot;
+  unsigned int targetBit;
+  if (bitIdx > sizeof(bitmap) * 8)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "setting bit %d of %d(!)\n", bitIdx, sizeof(bitmap) * 8);
+      return;
+    }
+  GNUNET_assert(bitIdx < sizeof(bitmap) * 8);
+  arraySlot = bitIdx / 8;
+  targetBit = (1L << (bitIdx % 8));
+  bitmap[arraySlot] |= targetBit;
+}
+
+/**
+ * Obtain a bit from bitmap.
+ * @param map the bitmap
+ * @param bit index from bitmap
+ *
+ * @return Bit \a bit from hashcode \a code
+ */
+int
+get_bit (const char *map, unsigned int bit)
+{
+  if (bit >= TOTAL_MSGS)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "get bit %d of %d(!?!?)\n", bit, sizeof(bitmap) * 8);
+      return 0;
+    }
+  return ((map)[bit >> 3] & (1 << (bit & 7))) > 0;
+}
 
 static void
 end ()
 {
   unsigned long long delta;
+  int i;
+  int result;
   char *value_name;
+
+  result = 0;
+  for (i = 0; i < TOTAL_MSGS; i++)
+    {
+      if (get_bit(bitmap, i) == 0)
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Did not receive message %d\n", i);
+          result = -1;
+        }
+    }
 
   GNUNET_SCHEDULER_cancel (die_task);
   die_task = GNUNET_SCHEDULER_NO_TASK;
@@ -130,12 +187,54 @@ end ()
 	      "Transports disconnected, returning success!\n");
 #endif
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
+  GNUNET_asprintf(&value_name, "unreliable_kbs_%s", test_name);
+  GAUGER (value_name, (int)(total_bytes * 1000 / 1024 /delta));
+  GNUNET_free(value_name);
   fprintf (stderr,
 	   "\nThroughput was %llu kb/s\n",
 	   total_bytes * 1000 / 1024 / delta);
-  GNUNET_asprintf(&value_name, "reliable_kbs_%s", test_name);
+  ok = result;
+
+}
+
+static void
+end_unreliably ()
+{
+  unsigned long long delta;
+  int i;
+  int num_failed;
+  char *value_name;
+  num_failed = 0;
+  for (i = 0; i < TOTAL_MSGS; i++)
+    {
+      if (get_bit(bitmap, i) == 0)
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Did not receive message %d\n", i);
+          num_failed++;
+        }
+    }
+
+  die_task = GNUNET_SCHEDULER_NO_TASK;
+#if VERBOSE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transports!\n");
+#endif
+  GNUNET_TRANSPORT_disconnect (p1.th);
+  GNUNET_TRANSPORT_disconnect (p2.th);
+#if VERBOSE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Transports disconnected, returning success!\n");
+#endif
+  delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
+  fprintf (stderr,
+           "\nThroughput was %llu kb/s\n",
+           total_bytes * 1000 / 1024 / delta);
+  GNUNET_asprintf(&value_name, "unreliable_kbs_%s", test_name);
   GAUGER (value_name, (int)(total_bytes * 1000 / 1024 /delta));
   GNUNET_free(value_name);
+  GNUNET_asprintf(&value_name, "unreliable_failed_%s", test_name);
+  GAUGER (value_name, (int)num_failed);
+  GNUNET_free(value_name);
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Had %d failed messages!\n", num_failed);
   ok = 0;
 
 }
@@ -201,47 +300,39 @@ notify_receive (void *cls,
   const struct TestMessage *hdr;
 
   hdr = (const struct TestMessage*) message;
-  s = get_size (n);
+
   if (MTYPE != ntohs (message->type))
     return;
   msg_recv_expected = n;
   msg_recv = ntohl(hdr->num);
+  s = get_size (ntohl(hdr->num));
+
   if (ntohs (message->size) != s)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  "Expected message %u of size %u, got %u bytes of message %u\n",
-		  n, s,
+		  ntohl(hdr->num), s,
 		  ntohs (message->size),
 		  ntohl (hdr->num));
       GNUNET_SCHEDULER_cancel (die_task);
       die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
       return;
     }
-  if (ntohl (hdr->num) != n)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Expected message %u of size %u, got %u bytes of message %u\n",
-		  n, s,
-		  ntohs (message->size),
-		  ntohl (hdr->num));
-      GNUNET_SCHEDULER_cancel (die_task);
-      die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-      return;
-    }
-  memset (cbuf, n, s - sizeof (struct TestMessage));
+
+  memset (cbuf, ntohl(hdr->num), s - sizeof (struct TestMessage));
   if (0 != memcmp (cbuf,
 		   &hdr[1],
 		   s - sizeof (struct TestMessage)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  "Expected message %u with bits %u, but body did not match\n",
-		  n, (unsigned char) n);
+		  ntohl(hdr->num), (unsigned char) n);
       GNUNET_SCHEDULER_cancel (die_task);
       die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
       return;
     }
 #if VERBOSE
-  if (ntohl(hdr->num) % 5000 == 0)
+  if (ntohl(hdr->num) % 5 == 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Got message %u of size %u\n",
@@ -250,7 +341,8 @@ notify_receive (void *cls,
     }
 #endif
   n++;
-  if (0 == (n % (TOTAL_MSGS/100)))
+  set_bit(ntohl(hdr->num));
+  if (0 == (n % (5000)))
     {
       fprintf (stderr, ".");
       GNUNET_SCHEDULER_cancel (die_task);
@@ -317,6 +409,12 @@ notify_ready (void *cls, size_t size, void *buf)
 					    NULL);
     msg_scheduled = n;
   }
+  else
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "All messages scheduled to be sent!!\n");
+      GNUNET_SCHEDULER_cancel(die_task);
+      die_task = GNUNET_SCHEDULER_add_delayed (UNRELIABLE_TIMEOUT, &end_unreliably, NULL);
+    }
   if (n % 5000 == 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -817,6 +915,7 @@ main (int argc, char *argv[])
   ret = check ();
   GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-1");
   GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-2");
+  GNUNET_free_non_null(test_name);
   return ret;
 }
 
