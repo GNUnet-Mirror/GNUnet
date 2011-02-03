@@ -85,7 +85,7 @@ extern "C"
 /**
  * How long do we delay messages to get larger packet sizes (CORKing)?
  */
-#define GNUNET_CONSTANTS_MAX_CORK_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 10)
+#define GNUNET_CONSTANTS_MAX_CORK_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 /**
  * Until which load do we consider the peer overly idle
