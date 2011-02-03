@@ -423,8 +423,8 @@ stdin_send (void *cls,
   struct sendbuf *write_pout = cls;
   int sendsize;
   struct GNUNET_MessageHeader newheader;
-  volatile char * from;
-  volatile char * to;
+  char * from;
+  char * to;
 
   sendsize = ntohs(hdr->size) - sizeof(struct RadiotapHeader) ;
 
