@@ -996,9 +996,9 @@ mhd_access_cb (void *cls,
   struct Plugin *plugin = cls;
   struct MHD_Response *response;
   const union MHD_ConnectionInfo * conn_info;
-
-  struct sockaddr_in  *addrin;
-  struct sockaddr_in6 *addrin6;
+  const struct sockaddr *client_addr;
+  const struct sockaddr_in  *addrin;
+  const struct sockaddr_in6 *addrin6;
 
   char address[INET6_ADDRSTRLEN+14];
   struct GNUNET_PeerIdentity pi_in;
@@ -1077,9 +1077,11 @@ mhd_access_cb (void *cls,
 
     conn_info = MHD_get_connection_info(mhd_connection, MHD_CONNECTION_INFO_CLIENT_ADDRESS );
     /* Incoming IPv4 connection */
-    if ( AF_INET == conn_info->client_addr->sin_family)
+    /* cast required for legacy MHD API < 0.9.6 */
+    client_addr = (const struct sockaddr *) conn_info->client_addr;
+    if ( AF_INET == client_addr->sa_family)
     {
-      addrin = conn_info->client_addr;
+      addrin = (const struct sockaddr_in*) client_addr;
       inet_ntop(addrin->sin_family, &(addrin->sin_addr),address,INET_ADDRSTRLEN);
       memcpy(&ipv4addr.ipv4_addr,&(addrin->sin_addr),sizeof(struct in_addr));
       ipv4addr.u_port = addrin->sin_port;
@@ -1087,9 +1089,9 @@ mhd_access_cb (void *cls,
       addr_len = sizeof(struct IPv4HttpAddress);
     }
     /* Incoming IPv6 connection */
-    if ( AF_INET6 == conn_info->client_addr->sin_family)
+    if ( AF_INET6 == client_addr->sa_family)
     {
-      addrin6 = (struct sockaddr_in6 *) conn_info->client_addr;
+      addrin6 = (const struct sockaddr_in6 *) client_addr;
       inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr),address,INET6_ADDRSTRLEN);
       memcpy(&ipv6addr.ipv6_addr,&(addrin6->sin6_addr),sizeof(struct in6_addr));
       ipv6addr.u6_port = addrin6->sin6_port;

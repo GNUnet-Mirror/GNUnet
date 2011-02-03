@@ -35,7 +35,7 @@ endif
 if HAVE_PCAP
 if LINUX
 if HAVE_EXPERIMENTAL
- WANBIN = gnunet-transport-wlan-helper
+# WANBIN = gnunet-transport-wlan-helper
  WLAN_PLUGIN_LA = libgnunet_plugin_transport_wlan.la
  WLAN_API_TEST = test_transport_api_wlan
 endif
