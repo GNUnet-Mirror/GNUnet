@@ -843,13 +843,6 @@ uid_from_hash (const GNUNET_HashCode * hash, uint32_t * uid)
 static int outstanding_connects;
 
 /**
- * Number of connects we have scheduled at the same
- * time, the more we already have scheduled the longer
- * we should wait before calling schedule_connect again.
- */
-static int outstanding_scheduled_connects;
-
-/**
  * Get a topology from a string input.
  *
  * @param topology where to write the retrieved topology
@@ -2851,14 +2844,8 @@ schedule_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   _
                   ("Delaying connect, we have too many outstanding connections!\n"));
 #endif
-      if (GNUNET_NO == connect_context->counted)
-        {
-          connect_context->counted = GNUNET_YES;
-          outstanding_scheduled_connects++;
-        }
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_add (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_MILLISECONDS, 100), GNUNET_TIME_relative_multiply
-                                        (GNUNET_TIME_UNIT_MILLISECONDS, outstanding_scheduled_connects * 2)),
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_MILLISECONDS, 100),
                                     &schedule_connect, connect_context);
     }
   else
@@ -2869,7 +2856,6 @@ schedule_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   outstanding_connects);
 #endif
       outstanding_connects++;
-      outstanding_scheduled_connects--;
       GNUNET_TESTING_daemons_connect (connect_context->first,
                                       connect_context->second,
                                       CONNECT_TIMEOUT,
@@ -3044,14 +3030,7 @@ connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
           connect_context->first = pg->peers[pg_iter].daemon;
           connect_context->second = pg->peers[connection_iter->index].daemon;
           connect_context->ct_ctx = ct_ctx;
-          if (total < MAX_OUTSTANDING_CONNECTIONS)
-            {
-              GNUNET_SCHEDULER_add_now (&schedule_connect, connect_context);
-            }
-          else
-            {
-              GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 1000 * (total / MAX_OUTSTANDING_CONNECTIONS)), &schedule_connect, connect_context);
-            }
+          GNUNET_SCHEDULER_add_now (&schedule_connect, connect_context);
           connection_iter = connection_iter->next;
           total++;
         }
