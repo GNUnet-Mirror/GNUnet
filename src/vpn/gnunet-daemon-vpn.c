@@ -404,8 +404,12 @@ receive_udp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
   unsigned int i;
   for (i = 0; i < 16; i++)
     pkt6->ip6_hdr.sadr[15-i] = addr[i];
-  inet_pton (AF_INET6, "1234::1", pkt6->ip6_hdr.dadr);
 
+  {
+    char* ipv6addr;
+    GNUNET_assert(GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "vpn", "IPV6ADDR", &ipv6addr));
+    inet_pton (AF_INET6, ipv6addr, pkt6->ip6_hdr.dadr);
+  }
   memcpy(&pkt6->udp_hdr, pkt, ntohs(pkt->len));
 
   GNUNET_HashCode* key = address_mapping_exists(pkt6->ip6_hdr.sadr);
