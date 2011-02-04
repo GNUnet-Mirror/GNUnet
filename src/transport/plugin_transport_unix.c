@@ -698,7 +698,7 @@ add_to_address_list (struct Plugin *plugin,
  * @param plugin the main plugin for this transport
  * @param sender from which peer the message was received
  * @param currhdr pointer to the header of the message
- * @param sender_addr the address from which the message was received
+ * @param un the address from which the message was received
  * @param fromlen the length of the address
  */
 static void
@@ -743,7 +743,6 @@ unix_plugin_select (void *cls,
   char buf[65536];
   struct UNIXMessage *msg;
   struct GNUNET_PeerIdentity sender;
-  //socklen_t fromlen;
   struct sockaddr_un un;
   socklen_t addrlen;
   ssize_t ret;
