@@ -404,8 +404,7 @@ receive_udp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
   unsigned int i;
   for (i = 0; i < 16; i++)
     pkt6->ip6_hdr.sadr[15-i] = addr[i];
-  char temp_addr[] = {0x12, 0x34, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
-  memcpy(pkt6->ip6_hdr.dadr, temp_addr, 16);
+  inet_pton (AF_INET6, "1234::1", pkt6->ip6_hdr.dadr);
 
   memcpy(&pkt6->udp_hdr, pkt, ntohs(pkt->len));
 
