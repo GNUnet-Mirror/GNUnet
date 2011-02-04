@@ -409,6 +409,7 @@ receive_udp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
     char* ipv6addr;
     GNUNET_assert(GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "vpn", "IPV6ADDR", &ipv6addr));
     inet_pton (AF_INET6, ipv6addr, pkt6->ip6_hdr.dadr);
+    GNUNET_free(ipv6addr);
   }
   memcpy(&pkt6->udp_hdr, pkt, ntohs(pkt->len));
 
