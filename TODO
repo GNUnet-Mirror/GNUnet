@@ -7,9 +7,6 @@
     + implement UDP, HTTP/HTTPS 
 * Transport:
   - UDP fragmentation
-* DHT: [Nate]
-  - track paths content travels (PUT, reply-to-get) in messages,
-    pass to client (client API & protocol already support this!)
 * FS: [CG]
   - implement multi-peer FS performance tests
     + insert
