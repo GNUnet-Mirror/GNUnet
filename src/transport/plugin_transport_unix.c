@@ -487,7 +487,7 @@ unix_real_send (void *cls,
   ssize_t sent;
   const void *sb;
   size_t sbs;
-  struct sockaddr_un *un;
+  struct sockaddr_un un;
   size_t slen;
 
   if (send_handle == NULL)
@@ -522,18 +522,18 @@ unix_real_send (void *cls,
           sizeof (struct GNUNET_PeerIdentity));
   memcpy (&message[1], msgbuf, msgbuf_size);
 
-  un = GNUNET_malloc (sizeof (struct sockaddr_un));
-  un->sun_family = AF_UNIX;
+  memset(&un, 0, sizeof(un));
+  un.sun_family = AF_UNIX;
   slen = strlen (addr) + 1;
   sent = 0;
-  GNUNET_assert(slen < sizeof(un->sun_path));
-  memcpy (un->sun_path, addr, slen);
-  un->sun_path[slen] = '\0';
+  GNUNET_assert(slen < sizeof(un.sun_path));
+  memcpy (un.sun_path, addr, slen);
+  un.sun_path[slen] = '\0';
 #if LINUX
-  un->sun_path[0] = '\0';
+  un.sun_path[0] = '\0';
 #endif
   slen += sizeof (sa_family_t);
-  sb = (struct sockaddr*) un;
+  sb = (struct sockaddr*) &un;
   sbs = slen;
 
   sent = GNUNET_NETWORK_socket_sendto(send_handle, message, ssize, sb, sbs);
@@ -574,13 +574,8 @@ unix_real_send (void *cls,
                   (sent < 0) ? STRERROR (errno) : "ok");
 #endif
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_DEBUG, "send");
+      GNUNET_free(message);
       return ssize;
-    }
-  if (incoming_retry_context != NULL)
-    {
-      GNUNET_free(incoming_retry_context->msg);
-      GNUNET_free(incoming_retry_context->addr);
-      GNUNET_free(incoming_retry_context);
     }
 #if DEBUG_UNIX
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -598,6 +593,13 @@ unix_real_send (void *cls,
         {
           cont (cont_cls, target, GNUNET_OK);
         }
+    }
+
+  if (incoming_retry_context != NULL)
+    {
+      GNUNET_free(incoming_retry_context->msg);
+      GNUNET_free(incoming_retry_context->addr);
+      GNUNET_free(incoming_retry_context);
     }
 
   GNUNET_free (message);
@@ -837,22 +839,22 @@ unix_transport_server_start (void *cls)
   struct sockaddr *serverAddr;
   socklen_t addrlen;
   int sockets_created;
-  struct sockaddr_un *un;
+  struct sockaddr_un un;
   size_t slen;
 
-  un = GNUNET_malloc (sizeof (struct sockaddr_un));
-  un->sun_family = AF_UNIX;
+  memset(&un, 0, sizeof(un));
+  un.sun_family = AF_UNIX;
   slen = strlen (plugin->unix_socket_path) + 1;
 
-  GNUNET_assert(slen < sizeof(un->sun_path));
-  memcpy (un->sun_path, plugin->unix_socket_path, slen);
-  un->sun_path[slen] = '\0';
+  GNUNET_assert(slen < sizeof(un.sun_path));
+  memcpy (un.sun_path, plugin->unix_socket_path, slen);
+  un.sun_path[slen] = '\0';
   slen += sizeof (sa_family_t);
-  serverAddr = (struct sockaddr*) un;
+  serverAddr = (struct sockaddr*) &un;
   addrlen = slen;
   sockets_created = 0;
 #if LINUX
-  un->sun_path[0] = '\0';
+  un.sun_path[0] = '\0';
 #endif
 
   plugin->unix_sock.desc = GNUNET_NETWORK_socket_create (AF_UNIX, SOCK_DGRAM, 0);
@@ -871,7 +873,7 @@ unix_transport_server_start (void *cls)
 #endif
 	}
       else
-        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Bound to `%s'\n", &un->sun_path[0]);
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Bound to `%s'\n", &un.sun_path[0]);
       if (plugin->unix_sock.desc != NULL)
         sockets_created++;
     }
