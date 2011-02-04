@@ -26,6 +26,8 @@
 #ifndef GNUNET_MONKEY_ACTION_H
 #define GNUNET_MONKEY_ACTION_H
 
+#include "gdbmi.h"
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -34,10 +36,26 @@ extern "C"
 #endif
 #endif
 
-int GNUNET_MONKEY_ACTION_report_file();
-int GNUNET_MONKEY_ACTION_report_email();
+
+/**
+ * Context for the Action API
+ */
+struct GNUNET_MONKEY_ACTION_Context
+{
+	const char* binary_name;
+	int debug_mode;
+	char* debug_report;
+
+	/* gdb debugging attributes */
+	mi_stop* gdb_stop_reason;
+	mi_frames* gdb_frames;
+};
+
+int GNUNET_MONKEY_ACTION_report_file(struct GNUNET_MONKEY_ACTION_Context* cntxt, const char* dumpFileName);
+int GNUNET_MONKEY_ACTION_report_email(struct GNUNET_MONKEY_ACTION_Context* cntxt);
 int GNUNET_MONKEY_ACTION_rerun_with_valgrind();
-int GNUNET_MONKEY_ACTION_rerun_with_gdb();
+int GNUNET_MONKEY_ACTION_rerun_with_gdb(struct GNUNET_MONKEY_ACTION_Context* cntxt);
+int GNUNET_MONKEY_ACTION_format_report(struct GNUNET_MONKEY_ACTION_Context* cntxt);
 int GNUNET_MONKEY_ACTION_check_bug_redundancy();
 
 

@@ -8,6 +8,9 @@
   
 ***************************************************************************/
 
+#ifndef GDBMI_H
+#define GDBMI_H
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -710,4 +713,4 @@ int gmi_var_list_children(mi_h *h, mi_gvar *var);
 }
 #endif
 
-
+#endif
