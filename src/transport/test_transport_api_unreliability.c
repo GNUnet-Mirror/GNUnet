@@ -128,12 +128,11 @@ set_bit (unsigned int bitIdx)
 {
   size_t arraySlot;
   unsigned int targetBit;
-  if (bitIdx > sizeof(bitmap) * 8)
+  if (bitIdx >= sizeof(bitmap) * 8)
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "setting bit %d of %d(!)\n", bitIdx, sizeof(bitmap) * 8);
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "tried to set bit %d of %d(!?!?)\n", bitIdx, sizeof(bitmap) * 8);
       return;
     }
-  GNUNET_assert(bitIdx < sizeof(bitmap) * 8);
   arraySlot = bitIdx / 8;
   targetBit = (1L << (bitIdx % 8));
   bitmap[arraySlot] |= targetBit;
