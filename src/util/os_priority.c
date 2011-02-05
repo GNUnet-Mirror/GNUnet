@@ -460,7 +460,9 @@ CreateCustomEnvTable (char **vars)
  * @param pipe_stdout pipe to use to get output from child process (or NULL)
  * @param filename name of the binary
  * @param ... NULL-terminated list of arguments to the process
+ *
  * @return pointer to process structure of the new process, NULL on error
+ *
  */
 struct GNUNET_OS_Process *
 GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin, 
