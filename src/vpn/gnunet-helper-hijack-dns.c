@@ -47,14 +47,17 @@ int fork_and_exec(char* file, char* cmd[]) {
 int main(int argc, char** argv) {
 	int delete = 0;
 	int port = 0;
-	if (argc < 2) return GNUNET_SYSERR;
+        char* virt_dns;
+	if (argc < 3) return GNUNET_SYSERR;
 
 	if (strncmp(argv[1], "-d", 2) == 0) {
 		if (argc < 3) return GNUNET_SYSERR;
 		delete = 1;
 		port = atoi(argv[2]);
+                virt_dns = argv[3];
 	} else {
 		port = atoi(argv[1]);
+                virt_dns = argv[2];
 	}
 
 	if (port == 0) return GNUNET_SYSERR;
@@ -75,7 +78,7 @@ int main(int argc, char** argv) {
 	int r;
 	if (delete) {
 e4:
-		r = fork_and_exec("/sbin/ip", (char*[]){"ip", "route", "del", "default", "via", "10.10.10.2","table","2", NULL});
+		r = fork_and_exec("/sbin/ip", (char*[]){"ip", "route", "del", "default", "via", virt_dns,"table","2", NULL});
 e3:
 		r = fork_and_exec("/sbin/ip", (char*[]){"ip", "rule", "del", "fwmark", "3", "table","2", NULL});
 e2:
@@ -90,7 +93,7 @@ e1:
 		if (!r) goto e2;
 		r = fork_and_exec("/sbin/ip", (char*[]){"ip", "rule", "add", "fwmark", "3", "table","2", NULL});
 		if (!r) goto e3;
-		r = fork_and_exec("/sbin/ip", (char*[]){"ip", "route", "add", "default", "via", "10.10.10.2","table","2", NULL});
+		r = fork_and_exec("/sbin/ip", (char*[]){"ip", "route", "add", "default", "via", virt_dns, "table","2", NULL});
 		if (!r) goto e4;
 	}
 	if (r) return GNUNET_YES;

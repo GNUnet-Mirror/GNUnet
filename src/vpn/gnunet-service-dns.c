@@ -104,6 +104,13 @@ struct receive_dht_cls {
 static void
 hijack(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
     char port_s[6];
+    char* virt_dns;
+
+    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "vpn", "VIRTDNS", &virt_dns))
+      {
+	GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "No entry 'VIRTDNS' in configuration!\n");
+	exit(1);
+      }
 
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Hijacking, port is %d\n", dnsoutport);
     snprintf(port_s, 6, "%d", dnsoutport);
@@ -112,6 +119,7 @@ hijack(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 						     "gnunet-helper-hijack-dns",
 						     "gnunet-hijack-dns",
 						     port_s,
+                                                     virt_dns,
 						     NULL));
 }
 
@@ -121,6 +129,13 @@ hijack(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 static void
 unhijack(unsigned short port) {
     char port_s[6];
+    char* virt_dns;
+
+    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "vpn", "VIRTDNS", &virt_dns))
+      {
+	GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "No entry 'VIRTDNS' in configuration!\n");
+	exit(1);
+      }
 
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "unHijacking, port is %d\n", port);
     snprintf(port_s, 6, "%d", port);
@@ -130,6 +145,7 @@ unhijack(unsigned short port) {
 			    "gnunet-hijack-dns",
 			    "-d",
 			    port_s,
+                            virt_dns,
 			    NULL);
 }
 
@@ -403,16 +419,56 @@ receive_query(void *cls,
 	goto outfree;
       }
 
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Query for '%s'; namelen=%d\n", pdns->queries[0]->name, pdns->queries[0]->namelen);
     /* The query is for a PTR of a previosly resolved virtual IP */
     if (htons(pdns->queries[0]->qtype) == 12 &&
-	pdns->queries[0]->namelen > 19 &&
-	0 == strncmp(pdns->queries[0]->name+(pdns->queries[0]->namelen - 19), ".4.3.2.1.ip6.arpa.", 19))
+	74 == pdns->queries[0]->namelen)
       {
-	GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Reverse-Query for .gnunet!\n");
+        char* ipv6addr;
+        char ipv6[16];
+        char ipv6rev[74] = "X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.X.ip6.arpa.";
+        unsigned int i;
+        unsigned long long ipv6prefix;
+        unsigned int comparelen;
 
-	GNUNET_SCHEDULER_add_now(send_rev_query, pdns);
+        GNUNET_assert(GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "vpn", "IPV6ADDR", &ipv6addr));
+        inet_pton (AF_INET6, ipv6addr, ipv6);
+        GNUNET_free(ipv6addr);
 
-	goto out;
+        GNUNET_assert(GNUNET_OK == GNUNET_CONFIGURATION_get_value_number(cfg, "vpn", "IPV6PREFIX", &ipv6prefix));
+        GNUNET_assert(ipv6prefix < 127);
+        ipv6prefix = (ipv6prefix + 7)/8;
+
+        for (i = ipv6prefix; i < 16; i++)
+          ipv6[i] = 0;
+
+	for (i = 0; i < 16; i++)
+	  {
+	    unsigned char c1 = ipv6[i] >> 4;
+	    unsigned char c2 = ipv6[i] & 0xf;
+
+	    if (c1 <= 9)
+              ipv6rev[62-(4*i)] = c1 + '0';
+	    else
+              ipv6rev[62-(4*i)] = c1 + 87; /* 87 is the difference between 'a' and 10 */
+
+	    if (c2 <= 9)
+              ipv6rev[62-((4*i)+2)] = c2 + '0';
+	    else
+              ipv6rev[62-((4*i)+2)] = c2 + 87;
+	  }
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "My network is %s'.\n", ipv6rev);
+        comparelen = 10 + 4*ipv6prefix;
+        if(0 == strncmp(pdns->queries[0]->name+(pdns->queries[0]->namelen - comparelen),
+                        ipv6rev + (74 - comparelen),
+                        comparelen))
+          {
+            GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Reverse-Query for .gnunet!\n");
+
+            GNUNET_SCHEDULER_add_now(send_rev_query, pdns);
+
+            goto out;
+          }
       }
 
     /* The query should be sent to the network */

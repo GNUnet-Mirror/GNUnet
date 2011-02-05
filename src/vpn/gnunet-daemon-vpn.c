@@ -215,10 +215,27 @@ send_udp_to_peer (void *cls,
  * Create a new Address from an answer-packet
  */
 void
-new_ip6addr(char* buf, const GNUNET_HashCode *peer, const GNUNET_HashCode *service_desc) { /* {{{ */
-	memcpy(buf+14, (int[]){htons(0x3412)}, 2);
-	memcpy(buf+8, service_desc, 6);
-	memcpy(buf, peer, 8);
+new_ip6addr(unsigned char* buf, const GNUNET_HashCode *peer, const GNUNET_HashCode *service_desc) { /* {{{ */
+    char* ipv6addr;
+    unsigned long long ipv6prefix;
+    GNUNET_assert(GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "vpn", "IPV6ADDR", &ipv6addr));
+    GNUNET_assert(GNUNET_OK == GNUNET_CONFIGURATION_get_value_number(cfg, "vpn", "IPV6PREFIX", &ipv6prefix));
+    GNUNET_assert(ipv6prefix < 127);
+    ipv6prefix = (ipv6prefix + 7)/8;
+
+    inet_pton (AF_INET6, ipv6addr, buf);
+    GNUNET_free(ipv6addr);
+
+    int peer_length = 16 - ipv6prefix - 6;
+    if (peer_length <= 0)
+      peer_length = 0;
+
+    int service_length = 16 - ipv6prefix - peer_length;
+    if (service_length <= 0)
+      service_length = 0;
+
+    memcpy(buf+ipv6prefix, service_desc, service_length);
+    memcpy(buf+ipv6prefix+service_length, peer, peer_length);
 }
 /*}}}*/
 
@@ -246,7 +263,16 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 
 	GNUNET_HashCode key;
 	memset(&key, 0, sizeof(GNUNET_HashCode));
-	new_ip6addr((char*)&key, &pkt->service_descr.peer, &pkt->service_descr.service_descriptor);
+
+	unsigned char* c = ((unsigned char*)pkt)+ntohs(pkt->addroffset);
+	unsigned char* k = (unsigned char*)&key;
+	new_ip6addr(c, &pkt->service_descr.peer, &pkt->service_descr.service_descriptor);
+	/*
+	 * Copy the newly generated ip-address to the key backwarts (as only the first part is hashed)
+	 */
+	unsigned int i;
+	for (i = 0; i < 16; i++)
+	    k[15-i] = c[i];
 
 	uint16_t namelen = strlen((char*)pkt->data+12)+1;
 
@@ -268,14 +294,6 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 	    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not store to hashmap\n");
 	  }
 
-	/*
-	 * Copy the newly generated backward ip-address to the packet
-	 */
-	char* c = ((char*)pkt)+ntohs(pkt->addroffset);
-	char* k = (char*)&key;
-	unsigned int i;
-	for (i = 0; i < 16; i++)
-	    c[15-i] = k[i];
 
 	list = GNUNET_malloc(htons(pkt->hdr.size) + 2*sizeof(struct answer_packet_list*));
 
@@ -374,16 +392,15 @@ receive_udp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
-  char addr[16];
   const struct GNUNET_PeerIdentity* other = GNUNET_MESH_get_peer(tunnel);
-
-  new_ip6addr(addr, &other->hashPubKey, desc);
 
   size_t size = sizeof(struct ip6_udp) + ntohs(pkt->len) - 1 - sizeof(struct udp_pkt);
 
   struct ip6_udp* pkt6 = alloca(size);
 
   GNUNET_assert(pkt6 != NULL);
+
+  new_ip6addr(pkt6->ip6_hdr.sadr, &other->hashPubKey, desc);
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Relaying calc:%d gnu:%d udp:%d bytes!\n", size, ntohs(message->size), ntohs(pkt->len));
 
@@ -400,10 +417,6 @@ receive_udp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
   pkt6->ip6_hdr.paylgth = pkt->len;
   pkt6->ip6_hdr.nxthdr = 0x11;
   pkt6->ip6_hdr.hoplmt = 0xff;
-
-  unsigned int i;
-  for (i = 0; i < 16; i++)
-    pkt6->ip6_hdr.sadr[15-i] = addr[i];
 
   {
     char* ipv6addr;
