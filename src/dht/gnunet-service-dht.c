@@ -2365,13 +2365,6 @@ datacache_get_iterator (void *cls,
               "`%s:%s': Received `%s' response from datacache\n", my_short_id,
               "DHT", "GET");
 #endif
-  eval = GNUNET_BLOCK_evaluate (block_context,
-                                type,
-                                key,
-                                &msg_ctx->reply_bf,
-                                msg_ctx->reply_bf_mutator,
-                                msg_ctx->xquery,
-                                msg_ctx->xquery_size, data, size);
 
   put_entry = (const struct DHTPutEntry *)data;
 
@@ -2389,6 +2382,14 @@ datacache_get_iterator (void *cls,
       msg_ctx->do_forward = GNUNET_NO;
       return GNUNET_OK;
     }
+
+    eval = GNUNET_BLOCK_evaluate (block_context,
+                                  type,
+                                  key,
+                                  &msg_ctx->reply_bf,
+                                  msg_ctx->reply_bf_mutator,
+                                  msg_ctx->xquery,
+                                  msg_ctx->xquery_size, &put_entry[1], put_entry->data_size);
 
   switch (eval)
     {
@@ -2994,6 +2995,7 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
           path_offset += data_size;
           memcpy(path_offset, msg_ctx->path_history, msg_ctx->path_history_len * sizeof(struct GNUNET_PeerIdentity));
         }
+
       ret = GNUNET_DATACACHE_put (datacache, &msg_ctx->key, put_size,
                                   (char *) put_entry, put_type,
                                   GNUNET_TIME_absolute_ntoh

@@ -40,6 +40,8 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_core_service.h"
 #include "gnunet_dht_service.h"
+#include "block_dns.h"
+#include "gnunet_signatures.h"
 
 /* DEFINES */
 #define VERBOSE GNUNET_NO
@@ -52,6 +54,8 @@
 
 /* If number of peers not in config file, use this number */
 #define DEFAULT_NUM_PEERS 2
+
+#define DNS GNUNET_NO
 
 /* Globals */
 
@@ -105,6 +109,10 @@ GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 /* Global return value (0 for success, anything else for failure) */
 static int ok;
+
+#if DNS
+struct GNUNET_DNS_Record data;
+#endif
 
 /**
  * Peer identity of the first peer started.
@@ -222,7 +230,6 @@ void get_result_iterator (void *cls,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received correct GET response!\n");
   GNUNET_SCHEDULER_cancel(die_task);
   GNUNET_DHT_get_stop(global_get_handle);
   GNUNET_SCHEDULER_add_now (&finish_testing, NULL);
@@ -235,15 +242,23 @@ static void
 do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   GNUNET_HashCode key; /* Key for data lookup */
+#if DNS
+  memcpy(&key, &data.service_descriptor, sizeof(GNUNET_HashCode));
+#else
   memset(&key, 42, sizeof(GNUNET_HashCode)); /* Set the key to the same thing as when data was inserted */
+#endif
   global_get_handle = GNUNET_DHT_get_start(peer2dht, GNUNET_TIME_relative_get_forever(),
-					   GNUNET_BLOCK_TYPE_TEST,
-					   &key,
-					   DEFAULT_GET_REPLICATION,
-					   GNUNET_DHT_RO_NONE,
-					   NULL, 0,
-					   NULL, 0,
-					   &get_result_iterator, NULL);
+#if DNS
+                                           GNUNET_BLOCK_TYPE_DNS,
+#else
+                                           GNUNET_BLOCK_TYPE_TEST,
+#endif
+                                           &key,
+                                           DEFAULT_GET_REPLICATION,
+                                           GNUNET_DHT_RO_NONE,
+                                           NULL, 0,
+                                           NULL, 0,
+                                           &get_result_iterator, NULL);
 }
 
 /**
@@ -259,6 +274,8 @@ put_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10), &do_get, NULL);
 }
 
+
+#if !DNS
 /**
  * Set up some data, and call API PUT function
  */
@@ -274,13 +291,70 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   GNUNET_DHT_put(peer1dht,
                  &key,
                  DEFAULT_PUT_REPLICATION,
-		 GNUNET_DHT_RO_NONE,
+                 GNUNET_DHT_RO_NONE,
                  GNUNET_BLOCK_TYPE_TEST,
                  sizeof(data), data,
                  GNUNET_TIME_UNIT_FOREVER_ABS,
                  GNUNET_TIME_UNIT_FOREVER_REL,
                  &put_finished, NULL);
 }
+#else
+
+/**
+ * Set up some data, and call API PUT function
+ */
+static void
+do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  char* name = "philipptoelke.gnunet.";
+  size_t size = sizeof(struct GNUNET_DNS_Record);
+  memset(&data, 0, size);
+
+  data.purpose.size = htonl(size - sizeof(struct GNUNET_CRYPTO_RsaSignature));
+  data.purpose.purpose = GNUNET_SIGNATURE_PURPOSE_DNS_RECORD;
+
+  GNUNET_CRYPTO_hash(name, strlen(name)+1, &data.service_descriptor);
+
+  data.service_type = htonl(GNUNET_DNS_SERVICE_TYPE_UDP);
+  data.ports = htons(69);
+
+  char* keyfile;
+  GNUNET_asprintf(&keyfile, "/tmp/test_dns_data_key");
+  struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file(keyfile);
+  GNUNET_free(keyfile);
+  GNUNET_assert(my_private_key != NULL);
+
+  GNUNET_CRYPTO_rsa_key_get_public(my_private_key, &data.peer);
+
+  data.expiration_time = GNUNET_TIME_relative_to_absolute(GNUNET_TIME_UNIT_HOURS);
+
+  /* Sign the block */
+  if (GNUNET_OK != GNUNET_CRYPTO_rsa_sign(my_private_key,
+                                          &data.purpose,
+                                          &data.signature))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "could not sign DNS_Record\n");
+      return;
+    }
+  GNUNET_CRYPTO_rsa_key_free(my_private_key);
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Putting with key %08x\n",
+             *((unsigned int*)&data.service_descriptor));
+
+  GNUNET_DHT_put(peer1dht,
+                 &data.service_descriptor,
+                 DEFAULT_PUT_REPLICATION,
+                 GNUNET_DHT_RO_NONE,
+                 GNUNET_BLOCK_TYPE_DNS,
+                 size,
+                 (char*)&data,
+                 GNUNET_TIME_relative_to_absolute(GNUNET_TIME_UNIT_HOURS),
+                 GNUNET_TIME_UNIT_MINUTES,
+                 &put_finished,
+                 NULL);
+}
+#endif
 
 /**
  * This function is called whenever a connection attempt is finished between two of

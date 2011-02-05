@@ -1850,9 +1850,9 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
                                               GNUNET_BLOCK_TYPE_TEST,
                                               &known_keys[test_get->uid],
                                               get_replication,
-					      GNUNET_DHT_RO_NONE,
-					      NULL, 0,
-					      NULL, 0,
+                                              GNUNET_DHT_RO_NONE,
+                                              NULL, 0,
+                                              NULL, 0,
                                               &get_result_iterator,
                                               test_get);
 

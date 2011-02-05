@@ -84,7 +84,7 @@ bin_PROGRAMS = $(STUD_PROGS) \
  gnunet-service-dht \
  gnunet-dht-get \
  gnunet-dht-get-peer \
- gnunet-dht-put 
+ gnunet-dht-put
 
 if HAVE_MALICIOUS
 noinst_PROGRAMS = \
