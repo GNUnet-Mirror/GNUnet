@@ -552,8 +552,9 @@ publish_name (void *cls,
     GNUNET_CRYPTO_rsa_key_free(my_private_key);
 
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-	       "Putting with key %08x\n",
-	       *((unsigned int*)&data.service_descriptor));
+	       "Putting with key %08x, size = %d\n",
+	       *((unsigned int*)&data.service_descriptor),
+               size);
 
     GNUNET_DHT_put(dht,
 		   &data.service_descriptor,

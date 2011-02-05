@@ -67,21 +67,36 @@ block_plugin_dns_evaluate (void *cls,
       return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
 
     if (reply_block_size != sizeof(struct GNUNET_DNS_Record))
-      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+      {
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DNS-Block is invalid: reply_block_size=%d != %d\n", reply_block_size, sizeof(struct GNUNET_DNS_Record));
+        return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+      }
 
     const struct GNUNET_DNS_Record* rec = reply_block;
 
     if (ntohl(rec->purpose.size) != sizeof(struct GNUNET_DNS_Record) - sizeof(struct GNUNET_CRYPTO_RsaSignature))
-      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+      {
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                   "DNS-Block is invalid: rec->purpose.size=%d != %d\n",
+                   ntohl(rec->purpose.size),
+                   sizeof(struct GNUNET_DNS_Record) - sizeof(struct GNUNET_CRYPTO_RsaSignature));
+        return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+      }
 
     if (GNUNET_TIME_relative_get_zero().rel_value == GNUNET_TIME_absolute_get_remaining(rec->expiration_time).rel_value)
-      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+      {
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DNS-Block is invalid: Timeout\n");
+        return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+      }
 
     if (GNUNET_OK != GNUNET_CRYPTO_rsa_verify (htonl(GNUNET_SIGNATURE_PURPOSE_DNS_RECORD),
 					       &rec->purpose,
 					       &rec->signature,
 					       &rec->peer))
-      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+      {
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DNS-Block is invalid: invalid signature\n");
+        return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+      }
 
     /* How to decide whether there are no more? */
     return GNUNET_BLOCK_EVALUATION_OK_MORE;
