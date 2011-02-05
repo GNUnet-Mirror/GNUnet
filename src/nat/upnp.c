@@ -67,7 +67,7 @@ struct GNUNET_NAT_UPNP_Handle
   unsigned int is_mapped;
   enum UPNP_State state;
   struct sockaddr *ext_addr;
-  const char *iface;
+  char *iface;
   int processing;
   GNUNET_NAT_UPNP_pulse_cb pulse_cb;
   void *pulse_cls;
@@ -79,10 +79,10 @@ process_if (void *cls,
             int isDefault, const struct sockaddr *addr, socklen_t addrlen)
 {
   struct GNUNET_NAT_UPNP_Handle *upnp = cls;
-
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "UPNP found if `%s'\n", name);
   if (addr && GNUNET_NAT_cmp_addr (upnp->addr, addr) == 0)
     {
-      upnp->iface = name;       // BADNESS!
+      upnp->iface = GNUNET_strdup(name);       // BADNESS!
       return GNUNET_SYSERR;
     }
 
