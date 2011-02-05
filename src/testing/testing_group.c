@@ -662,6 +662,11 @@ struct GNUNET_TESTING_PeerGroup
   unsigned int outstanding_connects;
 
   /**
+   * How many connects have already been scheduled?
+   */
+  unsigned int total_connects_scheduled;
+
+  /**
    * Hostkeys loaded from a file.
    */
   char *hostkey_data;
@@ -685,10 +690,24 @@ struct ConnectTopologyContext
   unsigned int remaining_connections;
 
   /**
+   * How many more connections do we need to schedule?
+   */
+  unsigned int remaining_connects_to_schedule;
+
+  /**
    * Handle to group of peers.
    */
   struct GNUNET_TESTING_PeerGroup *pg;
 
+  /**
+   * How long to try this connection before timing out.
+   */
+  struct GNUNET_TIME_Relative connect_timeout;
+
+  /**
+   * How many times to retry connecting the two peers.
+   */
+  unsigned int connect_attempts;
 
   /**
    * Temp value set for each iteration.
@@ -722,16 +741,6 @@ struct ConnectContext
    * Higher level topology connection context.
    */
   struct ConnectTopologyContext *ct_ctx;
-
-  /**
-   * How long to try this connection before timing out.
-   */
-  struct GNUNET_TIME_Relative connect_timeout;
-
-  /**
-   * How many times to retry connecting the two peers.
-   */
-  unsigned int connect_attempts;
 
   /**
    * Whether this connection has been accounted for in the schedule_connect call.
@@ -2815,6 +2824,41 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg,
   return ret;
 }
 
+/* Forward Declaration */
+static void
+schedule_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+/**
+ * Choose a random peer's next connection to create, and
+ * call schedule_connect to set up the connect task.
+ *
+ * @param ct_ctx the overall connection context
+ */
+static void preschedule_connect(struct ConnectTopologyContext *ct_ctx)
+{
+  struct GNUNET_TESTING_PeerGroup *pg = ct_ctx->pg;
+  struct PeerConnection *connection_iter;
+  struct ConnectContext *connect_context;
+  uint32_t random_peer;
+
+  if (ct_ctx->remaining_connects_to_schedule == 0)
+    return;
+  random_peer = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, pg->total);
+  while (pg->peers[random_peer].connect_peers_head == NULL)
+    random_peer = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, pg->total);
+
+  connection_iter = pg->peers[random_peer].connect_peers_head;
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Scheduling connection between %d and %d\n", random_peer, connection_iter->index);
+
+  connect_context = GNUNET_malloc (sizeof (struct ConnectContext));
+  connect_context->first = pg->peers[random_peer].daemon;
+  connect_context->second = pg->peers[connection_iter->index].daemon;
+  connect_context->ct_ctx = ct_ctx;
+  GNUNET_SCHEDULER_add_now (&schedule_connect, connect_context);
+  GNUNET_CONTAINER_DLL_remove(pg->peers[random_peer].connect_peers_head, pg->peers[random_peer].connect_peers_tail, connection_iter);
+  ct_ctx->remaining_connects_to_schedule--;
+}
+
 
 /**
  * Internal notification of a connection, kept so that we can ensure some connections
@@ -2841,6 +2885,8 @@ internal_connect_notify (void *cls,
         ct_ctx->notify_connections_done (ct_ctx->notify_cls, NULL);
       GNUNET_free (ct_ctx);
     }
+  else
+    preschedule_connect(ct_ctx);
 
   if (pg->notify_connection != NULL)
     pg->notify_connection (pg->notify_connection_cls, first, second, distance,
@@ -2884,10 +2930,11 @@ schedule_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   outstanding_connects);
 #endif
       pg->outstanding_connects++;
+      pg->total_connects_scheduled++;
       GNUNET_TESTING_daemons_connect (connect_context->first,
                                       connect_context->second,
-                                      connect_context->connect_timeout,
-                                      connect_context->connect_attempts,
+                                      connect_context->ct_ctx->connect_timeout,
+                                      connect_context->ct_ctx->connect_attempts,
                                       &internal_connect_notify,
                                       connect_context->ct_ctx);
       GNUNET_free (connect_context);
@@ -3017,8 +3064,8 @@ connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
   struct ConnectTopologyContext *ct_ctx;
 #if OLD
   struct PeerConnection *connection_iter;
-  struct ConnectContext *connect_context;
 #else
+  struct ConnectContext *connect_context;
   int ret;
 #endif
 
@@ -3048,9 +3095,32 @@ connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
       GNUNET_free (ct_ctx);
       return total;
     }
+  ct_ctx->connect_timeout = connect_timeout;
+  ct_ctx->connect_attempts = connect_attempts;
   ct_ctx->remaining_connections = total;
-  total = 0;
+  ct_ctx->remaining_connects_to_schedule = total;
 
+
+  /**
+   * FIXME: iterating over peer lists in this way means that a single peer will have
+   * all of its connections scheduled basically at once.  This means a single peer
+   * will have a lot of work to do, and may slow down the connection process.  If
+   * we could choose a connection *randomly* that would work much better.
+   *
+   * Even using the hashmap method we still choose all of a single peers connections.
+   *
+   * Will we incur a serious performance penalty iterating over the lists a bunch of
+   * times?  Probably not compared to the delays in connecting peers.  Can't hurt
+   * to try anyhow...
+   */
+  for (pg_iter = 0; pg_iter < pg->max_outstanding_connections; pg_iter++)
+  {
+    preschedule_connect(ct_ctx);
+  }
+  return total;
+
+#if SLOW
+  total = 0;
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
     {
 #if OLD
@@ -3062,8 +3132,6 @@ connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
           connect_context->first = pg->peers[pg_iter].daemon;
           connect_context->second = pg->peers[connection_iter->index].daemon;
           connect_context->ct_ctx = ct_ctx;
-          connect_context->connect_timeout = connect_timeout;
-          connect_context->connect_attempts = connect_attempts;
           GNUNET_SCHEDULER_add_now (&schedule_connect, connect_context);
           connection_iter = connection_iter->next;
           total++;
@@ -3078,6 +3146,7 @@ connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
 #endif
     }
   return total;
+#endif
 }
 
 
