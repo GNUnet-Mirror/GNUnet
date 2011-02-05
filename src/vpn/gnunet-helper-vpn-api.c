@@ -44,6 +44,8 @@ stop_helper (struct GNUNET_VPN_HELPER_Handle *handle)
 
   GNUNET_DISK_pipe_close (handle->helper_in);
   GNUNET_DISK_pipe_close (handle->helper_out);
+
+  GNUNET_SERVER_mst_destroy(handle->mst);
 }
 
 /**

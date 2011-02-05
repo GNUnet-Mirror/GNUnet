@@ -113,6 +113,7 @@ start_helper_and_schedule(void *cls,
     GNUNET_free(ipv6prefix);
     GNUNET_free(ipv4addr);
     GNUNET_free(ipv4mask);
+    GNUNET_free(ifname);
 
     /* Tell the dns-service to rehijack the dns-port
      * The routing-table gets flushed if an interface disappears.
