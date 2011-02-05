@@ -212,7 +212,7 @@ find_plugin (struct GNUNET_BLOCK_Context *ctx,
  * @param query original query (hash)
  * @param bf pointer to bloom filter associated with query; possibly updated (!)
  * @param bf_mutator mutation value for bf
- * @param xquery extrended query data (can be NULL, depending on type)
+ * @param xquery extended query data (can be NULL, depending on type)
  * @param xquery_size number of bytes in xquery
  * @param reply_block response to validate
  * @param reply_block_size number of bytes in reply block
