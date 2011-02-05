@@ -107,9 +107,11 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 
   if ((msg == NULL) && (shutdown_ctx->confirmed != GNUNET_YES))
     {
+#if DEBUG_ARM
       /* Means the other side closed the connection and never confirmed a shutdown */
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Service handle shutdown before ACK!\n");
+#endif
       if (shutdown_ctx->cont != NULL)
         shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_SYSERR);
       GNUNET_SCHEDULER_cancel(shutdown_ctx->cancel_task);
@@ -171,7 +173,9 @@ void service_shutdown_cancel (void *cls,
                               const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   struct ShutdownContext *shutdown_ctx = cls;
-  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "service_shutdown_cancel called!\n");
+#if DEBUG_ARM
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "service_shutdown_cancel called!\n");
+#endif
   shutdown_ctx->cont(shutdown_ctx->cont_cls, GNUNET_SYSERR);
   GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
   GNUNET_free(shutdown_ctx);
@@ -622,6 +626,9 @@ GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h,
               _("Asked to start service `%s' within %llu ms\n"), service_name,
 	      (unsigned long long) timeout.rel_value);
 #endif
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              _("Asked to start service `%s' within %llu ms\n"), service_name,
+              (unsigned long long) timeout.rel_value);
   if (0 == strcasecmp ("arm", service_name))
     {
       slen = strlen ("arm") + 1;
@@ -640,12 +647,15 @@ GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h,
       client = GNUNET_CLIENT_connect ("arm", h->cfg);
       if (client == NULL)
 	{
+          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "arm_api, GNUNET_CLIENT_connect returned NULL\n");
 	  cb (cb_cls, GNUNET_SYSERR);
 	  return;
 	}
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "arm_api, GNUNET_CLIENT_connect returned non-NULL\n");
       GNUNET_CLIENT_ignore_shutdown (client, GNUNET_YES);
       h->client = client;
     }
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "arm_api, h->client non-NULL\n");
   change_service (h, service_name, timeout, cb, cb_cls, GNUNET_MESSAGE_TYPE_ARM_START);
 }
 
