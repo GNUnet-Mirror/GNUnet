@@ -331,6 +331,8 @@ transmit_message (void *cls,
 						    &transmit_message,
 						    cl);
     }
+  else
+    GNUNET_assert (cl->num_pending == 0);
   return ret;
 }
 
