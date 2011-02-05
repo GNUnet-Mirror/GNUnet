@@ -559,13 +559,15 @@ void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 
 
 /**
- * Start count gnunetd processes with the same set of transports and
+ * Start count gnunet instances with the same set of transports and
  * applications.  The port numbers (any option called "PORT") will be
  * adjusted to ensure that no two peers running on the same system
  * have the same port(s) in their respective configurations.
  *
  * @param cfg configuration template to use
  * @param total number of daemons to start
+ * @param max_concurrent_connections for testing, how many peers can
+ *                                   we connect to simultaneously
  * @param timeout total time allowed for peers to start
  * @param hostkey_callback function to call on each peers hostkey generation
  *        if NULL, peers will be started by this call, if non-null,
@@ -576,16 +578,18 @@ void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
  * @param cb_cls closure for cb
  * @param connect_callback function to call each time two hosts are connected
  * @param connect_callback_cls closure for connect_callback
- * @param hostnames linked list of hosts to use to start peers on (NULL to run on localhost only)
+ * @param hostnames linked list of host structs to use to start peers on
+ *                  (NULL to run on localhost only)
  *
  * @return NULL on error, otherwise handle to control peer group
  */
 struct GNUNET_TESTING_PeerGroup *
 GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               unsigned int total,
+                              unsigned int max_concurrent_connections,
                               struct GNUNET_TIME_Relative timeout,
-                              GNUNET_TESTING_NotifyHostkeyCreated hostkey_callback,
-                              void *hostkey_cls,
+                              GNUNET_TESTING_NotifyHostkeyCreated
+                              hostkey_callback, void *hostkey_cls,
                               GNUNET_TESTING_NotifyDaemonRunning cb,
                               void *cb_cls,
                               GNUNET_TESTING_NotifyConnection
@@ -894,20 +898,24 @@ GNUNET_TESTING_get_topology (struct GNUNET_TESTING_PeerGroup *pg,
  * @param topology which topology to connect the peers in
  * @param options options for connecting the topology
  * @param option_modifier modifier for options that take a parameter
+ * @param connect_timeout how long to wait before giving up on connecting
+ *                        two peers
+ * @param connect_attempts how many times to attempt to connect two peers
+ *                         over the connect_timeout duration
  * @param notify_callback notification to be called once all connections completed
  * @param notify_cls closure for notification callback
  *
- * @return the number of connections that will be attempted (multiple of two,
- *         each bidirectional connection counts twice!), GNUNET_SYSERR on error
- *
+ * @return the number of connections that will be attempted, GNUNET_SYSERR on error
  */
 int
 GNUNET_TESTING_connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
                                  enum GNUNET_TESTING_Topology topology,
                                  enum GNUNET_TESTING_TopologyOption options,
                                  double option_modifier,
-                                 GNUNET_TESTING_NotifyCompletion notify_callback,
-                                 void *notify_cls);
+                                 struct GNUNET_TIME_Relative connect_timeout,
+                                 unsigned int connect_attempts,
+                                 GNUNET_TESTING_NotifyCompletion
+                                 notify_callback, void *notify_cls);
 
 /**
  * Start or stop an individual peer from the given group.

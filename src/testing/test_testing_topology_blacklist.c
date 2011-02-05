@@ -43,6 +43,10 @@
 
 static int ok;
 
+struct GNUNET_TIME_Relative connect_timeout;
+
+static unsigned long long connect_attempts;
+
 static unsigned long long num_peers;
 
 static unsigned int total_connections;
@@ -256,6 +260,8 @@ connect_topology ()
         GNUNET_TESTING_connect_topology (pg, connection_topology,
                                          connect_topology_option,
                                          connect_topology_option_modifier,
+                                         connect_timeout,
+                                         connect_attempts,
                                          NULL, NULL);
 #if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -393,6 +399,7 @@ run (void *cls,
   unsigned long long connect_topology_num;
   unsigned long long blacklist_topology_num;
   unsigned long long connect_topology_option_num;
+  unsigned long long temp_connect;
   char *connect_topology_option_modifier_string;
   ok = 1;
 
@@ -487,6 +494,26 @@ run (void *cls,
                                              &num_peers))
     num_peers = DEFAULT_NUM_PEERS;
 
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "connect_timeout",
+                                             &temp_connect))
+    connect_timeout =
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, temp_connect);
+  else
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n", "testing", "connect_timeout");
+      return;
+    }
+
+
+  if (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "connect_attempts",
+                                               &connect_attempts))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n", "testing", "connect_attempts");
+      return;
+    }
+
   main_cfg = cfg;
 
   GNUNET_assert (num_peers > 0 && num_peers < (unsigned int) -1);
@@ -508,7 +535,8 @@ run (void *cls,
                                            "didn't start all daemons in reasonable amount of time!!!");
 
   pg = GNUNET_TESTING_daemons_start (cfg,
-                                     peers_left, TIMEOUT, &hostkey_callback,
+                                     peers_left, peers_left,
+                                     TIMEOUT, &hostkey_callback,
                                      NULL, &peers_started_callback, NULL,
                                      &topology_callback, NULL, NULL);
 

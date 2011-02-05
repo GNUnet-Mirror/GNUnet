@@ -394,6 +394,7 @@ GNUNET_FS_TEST_daemons_start (const char *template_cfg_file,
     daemons[i] = GNUNET_malloc (sizeof (struct GNUNET_FS_TestDaemon));
   sctx->group = GNUNET_TESTING_daemons_start (sctx->cfg,
 					      total,
+					      total, /* Outstanding connections */
 					      timeout,
 					      NULL,
 					      NULL,

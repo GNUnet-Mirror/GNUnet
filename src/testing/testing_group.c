@@ -53,20 +53,10 @@
  */
 #define HIGH_PORT 56000
 
-#define MAX_OUTSTANDING_CONNECTIONS 200
-
 /* Maximum time to delay connect attempt */
 #define MAX_CONNECT_DELAY 300
 
 #define MAX_CONCURRENT_HOSTKEYS 500
-
-#define MAX_CONCURRENT_STARTING 200
-
-#define MAX_CONCURRENT_SHUTDOWN 200
-
-#define CONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
-
-#define CONNECT_ATTEMPTS 12
 
 /**
  * Which list of peers do we need to modify?
@@ -105,6 +95,11 @@ typedef unsigned int (*GNUNET_TESTING_ConnectionProcessor) (struct
  */
 struct ChurnContext
 {
+  /**
+   * The peergroup we are dealing with.
+   */
+  struct GNUNET_TESTING_PeerGroup *pg;
+
   /**
    * Callback used to notify of churning finished
    */
@@ -168,6 +163,7 @@ struct RestartContext
 
 struct ShutdownContext
 {
+  struct GNUNET_TESTING_PeerGroup *pg;
   /**
    * Total peers to wait for
    */
@@ -349,6 +345,11 @@ struct InternalStartContext
 struct ChurnRestartContext
 {
   /**
+   * PeerGroup that we are working with.
+   */
+  struct GNUNET_TESTING_PeerGroup *pg;
+
+  /**
    * Number of restarts currently in flight.
    */
   unsigned int outstanding;
@@ -494,6 +495,11 @@ struct HostData
 struct TopologyIterateContext
 {
   /**
+   * The peergroup we are working with.
+   */
+  struct GNUNET_TESTING_PeerGroup *pg;
+
+  /**
    * Callback for notifying of two connected peers.
    */
   GNUNET_TESTING_NotifyTopology topology_cb;
@@ -521,6 +527,11 @@ struct TopologyIterateContext
 
 struct StatsIterateContext
 {
+  /**
+   * The peergroup that we are dealing with.
+   */
+  struct GNUNET_TESTING_PeerGroup *pg;
+
   /**
    * Continuation to call once all stats information has been retrieved.
    */
@@ -639,6 +650,18 @@ struct GNUNET_TESTING_PeerGroup
   unsigned int started;
 
   /**
+   * Number of possible connections to peers
+   * at a time.
+   */
+  unsigned int max_outstanding_connections;
+
+  /**
+   * Number of connects we are waiting on, allows us to rate limit
+   * connect attempts.
+   */
+  unsigned int outstanding_connects;
+
+  /**
    * Hostkeys loaded from a file.
    */
   char *hostkey_data;
@@ -699,6 +722,16 @@ struct ConnectContext
    * Higher level topology connection context.
    */
   struct ConnectTopologyContext *ct_ctx;
+
+  /**
+   * How long to try this connection before timing out.
+   */
+  struct GNUNET_TIME_Relative connect_timeout;
+
+  /**
+   * How many times to retry connecting the two peers.
+   */
+  unsigned int connect_attempts;
 
   /**
    * Whether this connection has been accounted for in the schedule_connect call.
@@ -835,12 +868,6 @@ uid_from_hash (const GNUNET_HashCode * hash, uint32_t * uid)
   memcpy (uid, hash, sizeof (uint32_t));
 }
 #endif
-
-/**
- * Number of connects we are waiting on, allows us to rate limit
- * connect attempts.
- */
-static int outstanding_connects;
 
 /**
  * Get a topology from a string input.
@@ -2806,7 +2833,7 @@ internal_connect_notify (void *cls,
 {
   struct ConnectTopologyContext *ct_ctx = cls;
   struct GNUNET_TESTING_PeerGroup *pg = ct_ctx->pg;
-  outstanding_connects--;
+  pg->outstanding_connects--;
   ct_ctx->remaining_connections--;
   if (ct_ctx->remaining_connections == 0)
     {
@@ -2833,11 +2860,12 @@ static void
 schedule_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ConnectContext *connect_context = cls;
+  struct GNUNET_TESTING_PeerGroup *pg = connect_context->ct_ctx->pg;
 
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     return;
 
-  if (outstanding_connects > MAX_OUTSTANDING_CONNECTIONS)
+  if (pg->outstanding_connects > pg->max_outstanding_connections)
     {
 #if VERBOSE_TESTING > 2
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2855,11 +2883,11 @@ schedule_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   _("Creating connection, outstanding_connections is %d\n"),
                   outstanding_connects);
 #endif
-      outstanding_connects++;
+      pg->outstanding_connects++;
       GNUNET_TESTING_daemons_connect (connect_context->first,
                                       connect_context->second,
-                                      CONNECT_TIMEOUT,
-                                      CONNECT_ATTEMPTS,
+                                      connect_context->connect_timeout,
+                                      connect_context->connect_attempts,
                                       &internal_connect_notify,
                                       connect_context->ct_ctx);
       GNUNET_free (connect_context);
@@ -2970,6 +2998,8 @@ copy_allowed_topology (struct GNUNET_TESTING_PeerGroup *pg)
  * of each peer in the peer group
  *
  * @param pg the peer group we are dealing with
+ * @param connect_timeout how long try connecting two peers
+ * @param connect_attempts how many times (max) to attempt
  * @param notify_callback callback to notify when finished
  * @param notify_cls closure for notify callback
  *
@@ -2977,6 +3007,8 @@ copy_allowed_topology (struct GNUNET_TESTING_PeerGroup *pg)
  */
 static int
 connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
+                  struct GNUNET_TIME_Relative connect_timeout,
+                  unsigned int connect_attempts,
                   GNUNET_TESTING_NotifyCompletion notify_callback,
                   void *notify_cls)
 {
@@ -3030,6 +3062,8 @@ connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
           connect_context->first = pg->peers[pg_iter].daemon;
           connect_context->second = pg->peers[connection_iter->index].daemon;
           connect_context->ct_ctx = ct_ctx;
+          connect_context->connect_timeout = connect_timeout;
+          connect_context->connect_attempts = connect_attempts;
           GNUNET_SCHEDULER_add_now (&schedule_connect, connect_context);
           connection_iter = connection_iter->next;
           total++;
@@ -4010,7 +4044,7 @@ schedule_get_topology (void *cls,
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     return;
 
-  if (topology_context->connected > MAX_OUTSTANDING_CONNECTIONS)
+  if (topology_context->connected > topology_context->pg->max_outstanding_connections)
     {
 #if VERBOSE_TESTING > 2
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -4058,6 +4092,7 @@ GNUNET_TESTING_get_topology (struct GNUNET_TESTING_PeerGroup *pg,
   topology_context = GNUNET_malloc (sizeof (struct TopologyIterateContext));
   topology_context->topology_cb = cb;
   topology_context->cls = cls;
+  topology_context->pg = pg;
   total_count = 0;
   for (i = 0; i < pg->total; i++)
     {
@@ -4152,7 +4187,7 @@ schedule_get_statistics (void *cls,
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     return;
 
-  if (stats_context->connected > MAX_OUTSTANDING_CONNECTIONS)
+  if (stats_context->connected > stats_context->pg->max_outstanding_connections)
     {
 #if VERBOSE_TESTING > 2
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -4290,6 +4325,7 @@ GNUNET_TESTING_get_statistics (struct GNUNET_TESTING_PeerGroup *pg,
   stats_context->cont = cont;
   stats_context->proc = proc;
   stats_context->cls = cls;
+  stats_context->pg = pg;
   total_count = 0;
 
   for (i = 0; i < pg->total; i++)
@@ -4338,6 +4374,10 @@ GNUNET_TESTING_get_statistics (struct GNUNET_TESTING_PeerGroup *pg,
  * @param topology which topology to connect the peers in
  * @param options options for connecting the topology
  * @param option_modifier modifier for options that take a parameter
+ * @param connect_timeout how long to wait before giving up on connecting
+ *                        two peers
+ * @param connect_attempts how many times to attempt to connect two peers
+ *                         over the connect_timeout duration
  * @param notify_callback notification to be called once all connections completed
  * @param notify_cls closure for notification callback
  *
@@ -4348,6 +4388,8 @@ GNUNET_TESTING_connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
                                  enum GNUNET_TESTING_Topology topology,
                                  enum GNUNET_TESTING_TopologyOption options,
                                  double option_modifier,
+                                 struct GNUNET_TIME_Relative connect_timeout,
+                                 unsigned int connect_attempts,
                                  GNUNET_TESTING_NotifyCompletion
                                  notify_callback, void *notify_cls)
 {
@@ -4480,7 +4522,7 @@ GNUNET_TESTING_connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
       break;
     }
 
-  return connect_topology (pg, notify_callback, notify_cls);
+  return connect_topology (pg, connect_timeout, connect_attempts, notify_callback, notify_cls);
 }
 
 /**
@@ -4547,7 +4589,7 @@ internal_continue_startup (void *cls,
       return;
     }
 
-  if (internal_context->peer->pg->starting < MAX_CONCURRENT_STARTING)
+  if (internal_context->peer->pg->starting < internal_context->peer->pg->max_outstanding_connections)
     {
       internal_context->peer->pg->starting++;
       GNUNET_TESTING_daemon_continue_startup (internal_context->peer->daemon);
@@ -4630,7 +4672,7 @@ schedule_churn_restart (void *cls,
   struct ChurnRestartContext *startup_ctx =
     peer_restart_ctx->churn_restart_ctx;
 
-  if (startup_ctx->outstanding > MAX_CONCURRENT_STARTING)
+  if (startup_ctx->outstanding > startup_ctx->pg->max_outstanding_connections)
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                   (GNUNET_TIME_UNIT_MILLISECONDS, 100),
                                   &schedule_churn_restart, peer_restart_ctx);
@@ -4706,6 +4748,8 @@ GNUNET_TESTING_daemons_continue_startup (struct GNUNET_TESTING_PeerGroup *pg)
  *
  * @param cfg configuration template to use
  * @param total number of daemons to start
+ * @param max_concurrent_connections for testing, how many peers can
+ *                                   we connect to simultaneously
  * @param timeout total time allowed for peers to start
  * @param hostkey_callback function to call on each peers hostkey generation
  *        if NULL, peers will be started by this call, if non-null,
@@ -4724,6 +4768,7 @@ GNUNET_TESTING_daemons_continue_startup (struct GNUNET_TESTING_PeerGroup *pg)
 struct GNUNET_TESTING_PeerGroup *
 GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               unsigned int total,
+                              unsigned int max_concurrent_connections,
                               struct GNUNET_TIME_Relative timeout,
                               GNUNET_TESTING_NotifyHostkeyCreated
                               hostkey_callback, void *hostkey_cls,
@@ -4776,6 +4821,7 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   pg->total = total;
   pg->max_timeout = GNUNET_TIME_relative_to_absolute (timeout);
   pg->peers = GNUNET_malloc (total * sizeof (struct PeerData));
+  pg->max_outstanding_connections = max_concurrent_connections;
   if (NULL != hostnames)
     {
       off = 0;
@@ -5176,12 +5222,12 @@ schedule_churn_shutdown_task (void *cls,
 {
   struct PeerShutdownContext *peer_shutdown_ctx = cls;
   struct ShutdownContext *shutdown_ctx;
-
+  struct ChurnContext *churn_ctx;
   GNUNET_assert (peer_shutdown_ctx != NULL);
   shutdown_ctx = peer_shutdown_ctx->shutdown_ctx;
   GNUNET_assert (shutdown_ctx != NULL);
-
-  if (shutdown_ctx->outstanding > MAX_CONCURRENT_SHUTDOWN)
+  churn_ctx = (struct ChurnContext *)shutdown_ctx->cb_cls;
+  if (shutdown_ctx->outstanding > churn_ctx->pg->max_outstanding_connections)
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                   (GNUNET_TIME_UNIT_MILLISECONDS, 100),
                                   &schedule_churn_shutdown_task,
@@ -5308,6 +5354,7 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
   churn_ctx->num_to_stop = voff;
   churn_ctx->cb = cb;
   churn_ctx->cb_cls = cb_cls;
+  churn_ctx->pg = pg;
 
   for (i = 0; i < pg->total; i++)
     {
@@ -5362,6 +5409,7 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
       churn_startup_ctx = GNUNET_malloc (sizeof (struct ChurnRestartContext));
       churn_startup_ctx->churn_ctx = churn_ctx;
       churn_startup_ctx->timeout = timeout;
+      churn_startup_ctx->pg = pg;
     }
   for (i = 0; i < von; i++)
     {
@@ -5529,7 +5577,7 @@ schedule_shutdown_task (void *cls,
   shutdown_ctx = peer_shutdown_ctx->shutdown_ctx;
   GNUNET_assert (shutdown_ctx != NULL);
 
-  if (shutdown_ctx->outstanding > MAX_CONCURRENT_SHUTDOWN)
+  if (shutdown_ctx->outstanding > shutdown_ctx->pg->max_outstanding_connections)
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                   (GNUNET_TIME_UNIT_MILLISECONDS, 100),
                                   &schedule_shutdown_task, peer_shutdown_ctx);
@@ -5572,6 +5620,7 @@ GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg,
   shutdown_ctx->cb_cls = cb_cls;
   shutdown_ctx->total_peers = pg->total;
   shutdown_ctx->timeout = timeout;
+  shutdown_ctx->pg = pg;
   /* shtudown_ctx->outstanding = 0; */
 
   for (off = 0; off < pg->total; off++)

@@ -52,6 +52,10 @@ static int ok;
 
 static unsigned long long num_peers;
 
+struct GNUNET_TIME_Relative connect_timeout;
+
+static unsigned long long connect_attempts;
+
 static unsigned int topology_connections;
 
 static unsigned int total_connections;
@@ -814,6 +818,8 @@ connect_topology ()
         GNUNET_TESTING_connect_topology (pg, connection_topology,
                                          connect_topology_option,
                                          connect_topology_option_modifier,
+                                         connect_timeout,
+                                         connect_attempts,
                                          &topology_creation_finished, NULL);
 #if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1112,6 +1118,26 @@ run (void *cls,
     settle_time =
       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, temp_settle);
 
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "connect_timeout",
+                                             &temp_settle))
+    connect_timeout =
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, temp_settle);
+  else
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n", "testing", "connect_timeout");
+      return;
+    }
+
+
+  if (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "connect_attempts",
+                                               &connect_attempts))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n", "testing", "connect_attempts");
+      return;
+    }
+
   if (GNUNET_SYSERR ==
       GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "num_peers",
                                              &num_peers))
@@ -1136,6 +1162,7 @@ run (void *cls,
   GNUNET_assert (num_peers > 0 && num_peers < (unsigned int) -1);
   pg = GNUNET_TESTING_daemons_start (cfg,
                                      peers_left,
+                                     peers_left / 2,
                                      GNUNET_TIME_relative_multiply
                                      (GNUNET_TIME_UNIT_SECONDS,
                                       SECONDS_PER_PEER_START * num_peers),

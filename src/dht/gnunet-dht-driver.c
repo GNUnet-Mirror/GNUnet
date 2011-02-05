@@ -67,7 +67,7 @@
 #define FIND_PEER_THRESHOLD 1
 
 /* If more than this many peers are added, slow down sending */
-#define MAX_FIND_PEER_CUTOFF 4000
+#define MAX_FIND_PEER_CUTOFF 2000
 
 /* If less than this many peers are added, speed up sending */
 #define MIN_FIND_PEER_CUTOFF 500
@@ -77,7 +77,7 @@
 
 #define DEFAULT_MAX_OUTSTANDING_PUTS 10
 
-#define DEFAULT_MAX_OUTSTANDING_FIND_PEERS 196
+#define DEFAULT_MAX_OUTSTANDING_FIND_PEERS 128
 
 #define DEFAULT_FIND_PEER_OFFSET GNUNET_TIME_relative_divide (DEFAULT_FIND_PEER_DELAY, DEFAULT_MAX_OUTSTANDING_FIND_PEERS)
 
@@ -372,6 +372,16 @@ enum DHT_ROUND_TYPES
 /* Globals */
 
 /**
+ * How long to try to connect two peers.
+ */
+struct GNUNET_TIME_Relative connect_timeout;
+
+/**
+ * How many times to re-attempt connecting two peers.
+ */
+static unsigned long long connect_attempts;
+
+/**
  * Timeout to let all GET requests happen.
  */
 static struct GNUNET_TIME_Relative all_get_timeout;
@@ -434,6 +444,11 @@ static unsigned int in_dht_replication;
  * Size of test data to insert/retrieve during testing.
  */
 static unsigned long long test_data_size = DEFAULT_TEST_DATA_SIZE;
+
+/**
+ * Maximum number of concurrent connections to peers.
+ */
+static unsigned long long max_outstanding_connections;
 
 /**
  * Maximum number of concurrent PUT requests.
@@ -2533,7 +2548,7 @@ topology_callback (void *cls,
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Conns/sec in last %d seconds: %f, Conns/sec for entire duration: %f\n", CONN_UPDATE_DURATION, (float)new_connections / duration, (float)total_connections / total_duration);
       connect_last_time = GNUNET_TIME_absolute_get();
       previous_connections = total_connections;
-
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "have %u total_connections\n", total_connections);
     }
   if (emsg == NULL)
     {
@@ -2631,7 +2646,11 @@ peers_started_callback (void *cls,
       if ((pg != NULL) && (peers_left == 0))
         {
           connect_start_time = GNUNET_TIME_absolute_get();
-          expected_connections = GNUNET_TESTING_connect_topology (pg, connect_topology, connect_topology_option, connect_topology_option_modifier, NULL, NULL);
+          expected_connections = GNUNET_TESTING_connect_topology(pg,
+                                                                 connect_topology, connect_topology_option,
+                                                                 connect_topology_option_modifier,
+                                                                 connect_timeout, connect_attempts,
+                                                                 NULL, NULL);
 
           peer_connect_meter = create_meter(expected_connections, "Peer connection ", GNUNET_YES);
           fprintf(stderr, "Have %d expected connections\n", expected_connections);
@@ -2766,6 +2785,34 @@ run (void *cls,
                   "Number of peers must be specified in section %s option %s\n", "TESTING", "NUM_PEERS");
     }
   GNUNET_assert(num_peers > 0 && num_peers < ULONG_MAX);
+
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "connect_timeout",
+                                             &temp_config_number))
+    connect_timeout =
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, temp_config_number);
+  else
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n", "testing", "connect_timeout");
+      return;
+    }
+
+
+  if (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "connect_attempts",
+                                               &connect_attempts))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n", "testing", "connect_attempts");
+      return;
+    }
+
+  if (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "max_outstanding_connections",
+                                               &max_outstanding_connections))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n", "testing", "max_outstanding_connections");
+      return;
+    }
 
   /**
    * Get DHT specific testing options.
@@ -3314,6 +3361,7 @@ run (void *cls,
   get_meter = create_meter(num_gets, "Gets completed ", GNUNET_YES);
   pg = GNUNET_TESTING_daemons_start (cfg,
                                      peers_left,
+                                     max_outstanding_connections,
                                      GNUNET_TIME_relative_multiply(seconds_per_peer_start, num_peers),
                                      &hostkey_callback, NULL,
                                      &peers_started_callback, NULL,
