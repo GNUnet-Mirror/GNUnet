@@ -208,7 +208,7 @@ GNUNET_TIME_absolute_get_remaining (struct GNUNET_TIME_Absolute future)
 /**
  * Compute the time difference between the given start and end times.
  * Use this function instead of actual subtraction to ensure that
- * "FOREVER" and overflows are handeled correctly.
+ * "FOREVER" and overflows are handled correctly.
  *
  * @return 0 if start >= end; FOREVER if end==FOREVER; otherwise end - start
  */
