@@ -55,7 +55,7 @@
 /* If number of peers not in config file, use this number */
 #define DEFAULT_NUM_PEERS 2
 
-#define DNS GNUNET_NO
+#define DNS GNUNET_YES
 
 /* Globals */
 
@@ -215,20 +215,30 @@ void get_result_iterator (void *cls,
 			  const struct GNUNET_PeerIdentity * const *put_path,
 			  enum GNUNET_BLOCK_Type type,
                           size_t size,
-                          const void *data)
+                          const void *result_data)
 {
   GNUNET_HashCode original_key; /* Key data was stored data under */
   char original_data[4]; /* Made up data that was stored */
   memset(&original_key, 42, sizeof(GNUNET_HashCode)); /* Set the key to what it was set to previously */
   memset(original_data, 43, sizeof(original_data));
 
-  if ((0 != memcmp(&original_key, key, sizeof (GNUNET_HashCode))) || (0 != memcmp(original_data, data, sizeof(original_data))))
+#if DNS
+  if ((0 != memcmp(&data.service_descriptor, key, sizeof (GNUNET_HashCode))) || (0 != memcmp((char *)&data, result_data, sizeof(original_data))))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Key or data is not the same as was inserted!\n");
+      GNUNET_SCHEDULER_cancel(die_task);
+      GNUNET_SCHEDULER_add_now(&end_badly, "key or data mismatch in get response!\n");
+      return;
+    }
+#else
+  if ((0 != memcmp(&original_key, key, sizeof (GNUNET_HashCode))) || (0 != memcmp(original_data, result_data, sizeof(original_data))))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Key or data is not the same as was inserted!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Key or data is not the same as was inserted!\n");
     GNUNET_SCHEDULER_cancel(die_task);
     GNUNET_SCHEDULER_add_now(&end_badly, "key or data mismatch in get response!\n");
     return;
   }
+#endif
 
   GNUNET_SCHEDULER_cancel(die_task);
   GNUNET_DHT_get_stop(global_get_handle);
