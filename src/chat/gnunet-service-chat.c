@@ -33,9 +33,10 @@
 #include "gnunet_signatures.h"
 #include "chat.h"
 
-#define DEBUG_CHAT_SERVICE GNUNET_YES
+#define DEBUG_CHAT_SERVICE GNUNET_NO
 #define MAX_TRANSMIT_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 #define QUEUE_SIZE 16
+#define MAX_ANONYMOUS_MSG_LIST_LENGTH 16
 
 
 /**
@@ -93,6 +94,20 @@ struct ChatClient
 
 };
 
+/**
+ * Linked list of recent anonymous messages.
+ */
+struct AnonymousMessage
+{
+  struct AnonymousMessage *next;
+
+  /**
+   * Hash of the message.
+   */
+  GNUNET_HashCode hash;
+
+};
+
 
 /**
  * Handle to the core service (NULL until we've connected to it).
@@ -119,6 +134,56 @@ static struct ChatClient *client_list_head = NULL;
  */
 struct GNUNET_SERVER_NotificationContext *nc = NULL;
 
+/**
+ * Head of the list of recent anonymous messages.
+ */
+static struct AnonymousMessage *anonymous_list_head = NULL;
+ 
+
+static void
+remember_anonymous_message (const struct P2PReceiveNotificationMessage *p2p_rnmsg)
+{
+  static GNUNET_HashCode hash;
+  struct AnonymousMessage *anon_msg;
+  struct AnonymousMessage *prev;
+  int anon_list_len;
+
+  GNUNET_CRYPTO_hash (p2p_rnmsg, ntohs (p2p_rnmsg->header.size), &hash);
+  anon_msg = GNUNET_malloc (sizeof (struct AnonymousMessage));
+  anon_msg->hash = hash;
+  anon_msg->next = anonymous_list_head;
+  anonymous_list_head = anon_msg;
+  anon_list_len = 1;
+  prev = NULL;
+  while ((NULL != anon_msg->next))
+    {
+      prev = anon_msg;
+      anon_msg = anon_msg->next;
+      anon_list_len++;
+    }
+  if (anon_list_len == MAX_ANONYMOUS_MSG_LIST_LENGTH)
+    {
+      GNUNET_free (anon_msg);
+      if (NULL != prev)
+	prev->next = NULL;
+    }
+}
+
+
+static int
+lookup_anonymous_message (const struct P2PReceiveNotificationMessage *p2p_rnmsg)
+{
+  static GNUNET_HashCode hash;
+  struct AnonymousMessage *anon_msg;
+
+  GNUNET_CRYPTO_hash (p2p_rnmsg, ntohs (p2p_rnmsg->header.size), &hash);
+  anon_msg = anonymous_list_head;
+  while ((NULL != anon_msg) &&
+	 (0 != memcmp (&anon_msg->hash, &hash, sizeof (GNUNET_HashCode))))
+    anon_msg = anon_msg->next;
+  return (NULL != anon_msg);
+}
+
 
 /**
  * Transmit a message notification to the peer.
@@ -141,9 +206,17 @@ transmit_message_notification_to_peer (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Transmitting P2P message notification\n");
 #endif
+  if (buf == NULL)
+    {
+      /* client disconnected */
+#if DEBUG_CHAT_SERVICE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Buffer is NULL, dropping the message\n");
+#endif
+      return 0;
+    }
   msg_size = ntohs (my_msg->header.size);
   GNUNET_assert (size >= msg_size);
-  GNUNET_assert (NULL != buf);
   memcpy (m, my_msg, msg_size);
   GNUNET_free (my_msg);
   return msg_size;
@@ -205,8 +278,10 @@ handle_transmit_request (void *cls,
   struct GNUNET_CRYPTO_AesSessionKey key;
   char encrypted_msg[MAX_MESSAGE_LENGTH];
   const char *room;
+  size_t room_len;
   int msg_len;
-  int priv_msg;
+  int is_priv;
+  int is_anon;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Client sent a chat message\n");
   if (ntohs (message->size) <= sizeof (struct TransmitRequestMessage))
@@ -218,8 +293,8 @@ handle_transmit_request (void *cls,
     }
   trmsg = (const struct TransmitRequestMessage *) message;
   msg_len = ntohs (trmsg->header.size) - sizeof (struct TransmitRequestMessage);
-  priv_msg = (ntohl (trmsg->msg_options) & GNUNET_CHAT_MSG_PRIVATE) != 0;
-  if (priv_msg)
+  is_priv = (0 != (ntohl (trmsg->msg_options) & GNUNET_CHAT_MSG_PRIVATE));
+  if (is_priv)
     {
 #if DEBUG_CHAT_SERVICE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Encrypting the message text\n");
@@ -244,7 +319,7 @@ handle_transmit_request (void *cls,
 			      msg_len);
   rnmsg->header.type = htons (GNUNET_MESSAGE_TYPE_CHAT_MESSAGE_NOTIFICATION);
   rnmsg->msg_options = trmsg->msg_options;
-  rnmsg->sequence_number = trmsg->sequence_number;
+  rnmsg->timestamp = trmsg->timestamp;
   pos = client_list_head;
   while ((NULL != pos) && (pos->client != client))
     pos = pos->next;
@@ -260,11 +335,18 @@ handle_transmit_request (void *cls,
     }
   room = pos->room;
   pos->msg_sequence_number = ntohl (trmsg->sequence_number);
-  if (0 == (ntohl (trmsg->msg_options) & GNUNET_CHAT_MSG_ANONYMOUS))
-    rnmsg->sender = pos->id;
-  else
+  is_anon = (0 != (ntohl (trmsg->msg_options) & GNUNET_CHAT_MSG_ANONYMOUS));
+  if (is_anon)
+    {
     memset (&rnmsg->sender, 0, sizeof (GNUNET_HashCode));
-  if (priv_msg)
+      rnmsg->sequence_number = 0;
+    }
+  else
+    {
+      rnmsg->sender = pos->id;
+      rnmsg->sequence_number = trmsg->sequence_number;
+    }
+  if (is_priv)
     {
 #if DEBUG_CHAT_SERVICE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -323,7 +405,7 @@ handle_transmit_request (void *cls,
 	  (NULL != pos->client) &&
 	  (pos->client != client))
 	{
-	  if (((!priv_msg) ||
+	  if (((!is_priv) ||
 	       (0 == memcmp (&trmsg->target,
 			     &pos->id,
 			     sizeof (GNUNET_HashCode)))) &&
@@ -341,16 +423,25 @@ handle_transmit_request (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Broadcasting message to neighbour peers\n");
 #endif
+  if (is_anon)
+    {
+      room_len = strlen (room);
+      p2p_rnmsg = GNUNET_malloc (sizeof (struct P2PReceiveNotificationMessage) +
+				 msg_len + room_len);
+      p2p_rnmsg->header.size =
+	htons (sizeof (struct P2PReceiveNotificationMessage) + msg_len +
+	       room_len);
+      p2p_rnmsg->room_name_len = htons (room_len);
+      memcpy ((char *) &p2p_rnmsg[1], room, room_len);
+      memcpy ((char *) &p2p_rnmsg[1] + room_len, &trmsg[1], msg_len);
+    }
+  else
+    {
   p2p_rnmsg = GNUNET_malloc (sizeof (struct P2PReceiveNotificationMessage) +
 			     msg_len);
-  p2p_rnmsg->header.size = htons (sizeof (struct P2PReceiveNotificationMessage) +
-				  msg_len);
-  p2p_rnmsg->header.type = htons (GNUNET_MESSAGE_TYPE_CHAT_P2P_MESSAGE_NOTIFICATION);
-  p2p_rnmsg->msg_options = trmsg->msg_options;
-  p2p_rnmsg->sequence_number = trmsg->sequence_number;
-  memcpy (&p2p_rnmsg->sender, &rnmsg->sender, sizeof (GNUNET_HashCode));
-  p2p_rnmsg->target = trmsg->target;
-  if (priv_msg)
+      p2p_rnmsg->header.size =
+	htons (sizeof (struct P2PReceiveNotificationMessage) + msg_len);
+      if (is_priv)
     {
       memcpy (&p2p_rnmsg[1], encrypted_msg, msg_len);
       memcpy (&p2p_rnmsg->encrypted_key,
@@ -358,9 +449,17 @@ handle_transmit_request (void *cls,
 	      sizeof (struct GNUNET_CRYPTO_RsaEncryptedData));
     }
   else
-    {
       memcpy (&p2p_rnmsg[1], &trmsg[1], msg_len);
     }
+  p2p_rnmsg->header.type = htons (GNUNET_MESSAGE_TYPE_CHAT_P2P_MESSAGE_NOTIFICATION);
+  p2p_rnmsg->msg_options = trmsg->msg_options;
+  p2p_rnmsg->sequence_number = trmsg->sequence_number;
+  p2p_rnmsg->timestamp = trmsg->timestamp;
+  p2p_rnmsg->reserved = 0;
+  p2p_rnmsg->sender = rnmsg->sender;
+  p2p_rnmsg->target = trmsg->target;
+  if (is_anon)
+    remember_anonymous_message (p2p_rnmsg);
   GNUNET_CORE_iterate_peers (cfg,
 			     &send_message_noficiation,
 			     p2p_rnmsg);
@@ -591,9 +690,17 @@ transmit_confirmation_receipt_to_peer (void *cls,
 	      "Transmitting P2P confirmation receipt to '%s'\n",
 	      GNUNET_h2s (&receipt->target));
 #endif
+  if (buf == NULL)
+    {
+      /* client disconnected */
+#if DEBUG_CHAT_SERVICE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Buffer is NULL, dropping the message\n");
+#endif
+      return 0;
+    }
   msg_size = sizeof (struct P2PConfirmationReceiptMessage);
   GNUNET_assert (size >= msg_size);
-  GNUNET_assert (NULL != buf);
   memcpy (buf, receipt, msg_size);
   GNUNET_free (receipt);
   return msg_size;
@@ -765,9 +872,17 @@ transmit_leave_notification_to_peer (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Transmitting P2P leave notification\n");
 #endif
+  if (buf == NULL)
+    {
+      /* client disconnected */
+#if DEBUG_CHAT_SERVICE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Buffer is NULL, dropping the message\n");
+#endif
+      return 0;
+    }
   msg_size = sizeof (struct P2PLeaveNotificationMessage);
   GNUNET_assert (size >= msg_size);
-  GNUNET_assert (NULL != buf);
   m = buf;
   m->header.type = htons (GNUNET_MESSAGE_TYPE_CHAT_P2P_LEAVE_NOTIFICATION);
   m->header.size = htons (msg_size);
@@ -787,7 +902,6 @@ send_leave_noficiation (void *cls,
 			const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct ChatClient *entry = cls;
-  struct GNUNET_CORE_TransmitHandle *th;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key;
   size_t msg_size;
 
@@ -806,14 +920,15 @@ send_leave_noficiation (void *cls,
       msg_size = sizeof (struct P2PLeaveNotificationMessage);
       public_key = GNUNET_memdup (&entry->public_key,
 				  sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
-      th = GNUNET_CORE_notify_transmit_ready (core,
+      if (NULL == GNUNET_CORE_notify_transmit_ready (core,
 					      1,
 					      MAX_TRANSMIT_DELAY,
 					      peer,
 					      msg_size,
 					      &transmit_leave_notification_to_peer,
-					      public_key);
-      GNUNET_assert (NULL != th);
+						     public_key))
+	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		    _("Failed to queue a leave notification\n"));
     }
 }
 
@@ -1108,8 +1223,12 @@ handle_p2p_message_notification (void *cls,
   struct ChatClient *sender;
   struct ChatClient *pos;
   static GNUNET_HashCode all_zeros;
-  int priv_msg;
+  int is_priv;
+  int is_anon;
   uint16_t msg_len;
+  uint16_t room_name_len;
+  char *room_name = NULL;
+  char *text;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Got P2P message notification\n");
   if (ntohs (message->size) <= sizeof (struct P2PReceiveNotificationMessage))
@@ -1119,6 +1238,37 @@ handle_p2p_message_notification (void *cls,
       return GNUNET_SYSERR;
     }
   p2p_rnmsg = (const struct P2PReceiveNotificationMessage *) message;
+  msg_len = ntohs (p2p_rnmsg->header.size) -
+    sizeof (struct P2PReceiveNotificationMessage);
+
+  is_anon = (0 != (ntohl (p2p_rnmsg->msg_options) & GNUNET_CHAT_MSG_ANONYMOUS));
+  if (is_anon)
+    {
+      room_name_len = ntohs (p2p_rnmsg->room_name_len);
+      if (msg_len <= room_name_len)
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      "Malformed message: wrong length of the room name\n");
+	  GNUNET_break_op (0);
+	  return GNUNET_SYSERR;
+	}
+      msg_len -= room_name_len;
+      if (lookup_anonymous_message (p2p_rnmsg))
+	{
+#if DEBUG_CHAT_SERVICE
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "This anonymous message has already been handled.");
+#endif
+	  return GNUNET_OK;
+	}
+      remember_anonymous_message (p2p_rnmsg);
+      room_name = GNUNET_malloc (room_name_len + 1);
+      memcpy (room_name, (char *) &p2p_rnmsg[1], room_name_len);
+      room_name[room_name_len] = '\0';
+      text = (char *) &p2p_rnmsg[1] + room_name_len;
+    }
+  else
+    {
   sender = client_list_head;
   while ((NULL != sender) &&
 	 (0 != memcmp (&sender->id,
@@ -1127,10 +1277,13 @@ handle_p2p_message_notification (void *cls,
     sender = sender->next;
   if (NULL == sender)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	  /* not an error since the sender may have left before we got the
+	     message */
+#if DEBUG_CHAT_SERVICE
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Unknown source. Rejecting the message\n");
-      GNUNET_break_op (0);
-      return GNUNET_SYSERR;
+#endif
+	  return GNUNET_OK;
     }
   if (sender->msg_sequence_number >= ntohl (p2p_rnmsg->sequence_number))
     {
@@ -1138,15 +1291,19 @@ handle_p2p_message_notification (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "This message has already been handled."
 		  " Sequence numbers (msg/sender): %u/%u\n",
-		  ntohl (p2p_rnmsg->sequence_number), sender->msg_sequence_number);
+		      ntohl (p2p_rnmsg->sequence_number),
+		      sender->msg_sequence_number);
 #endif
       return GNUNET_OK;
     }
   sender->msg_sequence_number = ntohl (p2p_rnmsg->sequence_number);
-  msg_len = ntohs (p2p_rnmsg->header.size) -
-    sizeof (struct P2PReceiveNotificationMessage);
+      room_name = sender->room;
+      text = (char *) &p2p_rnmsg[1];
+    }
+
 #if DEBUG_CHAT_SERVICE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending message to local room members\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending message to local room members\n");
 #endif
   rnmsg = GNUNET_malloc (sizeof (struct ReceiveNotificationMessage) + msg_len);
   rnmsg->header.size = htons (sizeof (struct ReceiveNotificationMessage) +
@@ -1154,21 +1311,22 @@ handle_p2p_message_notification (void *cls,
   rnmsg->header.type = htons (GNUNET_MESSAGE_TYPE_CHAT_MESSAGE_NOTIFICATION);
   rnmsg->msg_options = p2p_rnmsg->msg_options;
   rnmsg->sequence_number = p2p_rnmsg->sequence_number;
-  priv_msg = (0 != memcmp (&all_zeros,
+  rnmsg->timestamp = p2p_rnmsg->timestamp;
+  is_priv = (0 != memcmp (&all_zeros,
 			   &p2p_rnmsg->target, sizeof (GNUNET_HashCode)));
-  if (priv_msg)
+  if (is_priv)
     memcpy (&rnmsg->encrypted_key,
 	    &p2p_rnmsg->encrypted_key,
 	    sizeof (struct GNUNET_CRYPTO_RsaEncryptedData));
-  memcpy (&rnmsg->sender, &p2p_rnmsg->sender, sizeof (GNUNET_HashCode));
-  memcpy (&rnmsg[1], &p2p_rnmsg[1], msg_len);
+  rnmsg->sender = p2p_rnmsg->sender;
+  memcpy (&rnmsg[1], text, msg_len);
   pos = client_list_head;
   while (NULL != pos)
     {
-      if ((0 == strcmp (sender->room, pos->room)) &&
+      if ((0 == strcmp (room_name, pos->room)) &&
 	  (NULL != pos->client))
 	{
-	  if (((!priv_msg) ||
+	  if (((!is_priv) ||
 	       (0 == memcmp (&p2p_rnmsg->target,
 			     &pos->id,
 			     sizeof (GNUNET_HashCode)))) &&
@@ -1182,6 +1340,8 @@ handle_p2p_message_notification (void *cls,
 	}
       pos = pos->next;
     }
+  if (is_anon)
+    GNUNET_free (room_name);
 #if DEBUG_CHAT_SERVICE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Broadcasting message notification to neighbour peers\n");
@@ -1441,6 +1601,9 @@ static void
 cleanup_task (void *cls,
 	      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct AnonymousMessage *next_msg;
+  struct ChatClient *next_client;
+
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Cleaning up\n");
   if (NULL != core)
     {
@@ -1451,6 +1614,20 @@ cleanup_task (void *cls,
     {
       GNUNET_SERVER_notification_context_destroy (nc);
       nc = NULL;
+    }
+  while (NULL != client_list_head)
+    {
+      next_client = client_list_head->next;
+      GNUNET_free (client_list_head->room);
+      GNUNET_free_non_null (client_list_head->member_info);
+      GNUNET_free (client_list_head);
+      client_list_head = next_client;
+    }
+  while (NULL != anonymous_list_head)
+    {
+      next_msg = anonymous_list_head->next;
+      GNUNET_free (anonymous_list_head);
+      anonymous_list_head = next_msg;
     }
 }
 

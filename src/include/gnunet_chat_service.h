@@ -89,6 +89,14 @@ enum GNUNET_CHAT_MsgOptions
 struct GNUNET_CHAT_Room;
 
 /**
+ * Callback used for notification that we have joined the room.
+ *
+ * @param cls closure
+ * @return GNUNET_OK
+ */
+typedef int (*GNUNET_CHAT_JoinCallback) (void *cls);
+
+/**
  * Callback used for notification about incoming messages.
  *
  * @param cls closure
@@ -96,6 +104,7 @@ struct GNUNET_CHAT_Room;
  * @param sender what is the ID of the sender? (maybe NULL)
  * @param member_info information about the joining member
  * @param message the message text
+ * @param timestamp when was the message sent?
  * @param options options for the message
  * @return GNUNET_OK to accept the message now, GNUNET_NO to
  *         accept (but user is away), GNUNET_SYSERR to signal denied delivery
@@ -105,11 +114,13 @@ typedef int (*GNUNET_CHAT_MessageCallback) (void *cls,
 					    const GNUNET_HashCode *sender,
 					    const struct GNUNET_CONTAINER_MetaData *member_info,
 					    const char *message,
+					    struct GNUNET_TIME_Absolute timestamp,
 					    enum GNUNET_CHAT_MsgOptions options);
 
 /**
  * Callback used for notification that another room member has joined or left.
  *
+ * @param cls closure
  * @param member_info will be non-null if the member is joining, NULL if he is
  *        leaving
  * @param member_id hash of public key of the user (for unique identification)
@@ -129,8 +140,6 @@ typedef int (*GNUNET_CHAT_MemberListCallback) (void *cls,
  * @param orig_seq_number sequence number of the original message
  * @param timestamp when was the message received?
  * @param receiver who is confirming the receipt?
- * @param msg_hash hash of the original message
- * @param receipt signature confirming delivery
  * @return GNUNET_OK to continue, GNUNET_SYSERR to refuse processing further
  *         confirmations from anyone for this message
  */
@@ -138,9 +147,7 @@ typedef int (*GNUNET_CHAT_MessageConfirmation) (void *cls,
 						struct GNUNET_CHAT_Room *room,
 						uint32_t orig_seq_number,
 						struct GNUNET_TIME_Absolute timestamp,
-						const GNUNET_HashCode *receiver,
-						const GNUNET_HashCode *msg_hash,
-						const struct GNUNET_CRYPTO_RsaSignature *receipt);
+						const GNUNET_HashCode *receiver);
 
 /**
  * Join a chat room.
@@ -153,6 +160,8 @@ typedef int (*GNUNET_CHAT_MessageConfirmation) (void *cls,
  * @param member_info information about the joining member
  * @param room_name name of the room
  * @param msg_options message options of the joining user
+ * @param joinCallback which function to call when we've joined the room
+ * @param join_cls argument to callback
  * @param messageCallback which function to call if a message has
  *        been received?
  * @param message_cls argument to callback
@@ -170,6 +179,8 @@ GNUNET_CHAT_join_room (const struct GNUNET_CONFIGURATION_Handle *cfg,
 		       struct GNUNET_CONTAINER_MetaData *member_info,
 		       const char *room_name,
 		       enum GNUNET_CHAT_MsgOptions msg_options,
+		       GNUNET_CHAT_JoinCallback joinCallback,
+		       void *join_cls,
 		       GNUNET_CHAT_MessageCallback messageCallback,
 		       void *message_cls,
 		       GNUNET_CHAT_MemberListCallback memberCallback,

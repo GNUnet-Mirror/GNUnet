@@ -37,3 +37,85 @@ gnunet_chat_LDADD = \
   $(top_builddir)/src/chat/libgnunetchat.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
+
+check_PROGRAMS = \
+ test_chat \
+ test_chat_acknowledgement \
+ test_chat_anonymous \
+ test_chat_authentication \
+ test_chat_p2p \
+ test_chat_acknowledgement_p2p \
+ test_chat_anonymous_p2p \
+ test_chat_authentication_p2p \
+ test_chat_private \
+ test_chat_private_p2p
+
+if !DISABLE_TEST_RUN
+TESTS = $(check_PROGRAMS)
+endif
+
+test_chat_SOURCES = \
+ test_chat.c
+test_chat_LDADD = \
+  $(top_builddir)/src/chat/libgnunetchat.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+
+test_chat_acknowledgement_SOURCES = \
+ test_chat.c
+test_chat_acknowledgement_LDADD = \
+  $(top_builddir)/src/chat/libgnunetchat.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+
+test_chat_anonymous_SOURCES = \
+ test_chat.c
+test_chat_anonymous_LDADD = \
+  $(top_builddir)/src/chat/libgnunetchat.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+
+test_chat_authentication_SOURCES = \
+ test_chat.c
+test_chat_authentication_LDADD = \
+  $(top_builddir)/src/chat/libgnunetchat.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+
+test_chat_p2p_SOURCES = \
+ test_chat.c
+test_chat_p2p_LDADD = \
+  $(top_builddir)/src/chat/libgnunetchat.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+
+test_chat_acknowledgement_p2p_SOURCES = \
+ test_chat.c
+test_chat_acknowledgement_p2p_LDADD = \
+  $(top_builddir)/src/chat/libgnunetchat.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+
+test_chat_anonymous_p2p_SOURCES = \
+ test_chat.c
+test_chat_anonymous_p2p_LDADD = \
+  $(top_builddir)/src/chat/libgnunetchat.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+
+test_chat_authentication_p2p_SOURCES = \
+ test_chat.c
+test_chat_authentication_p2p_LDADD = \
+  $(top_builddir)/src/chat/libgnunetchat.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+
+test_chat_private_SOURCES = \
+ test_chat_private.c
+test_chat_private_LDADD = \
+  $(top_builddir)/src/chat/libgnunetchat.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+
+test_chat_private_p2p_SOURCES = \
+ test_chat_private.c
+test_chat_private_p2p_LDADD = \
+  $(top_builddir)/src/chat/libgnunetchat.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+
+EXTRA_DIST = \
+  test_chat_data.conf \
+  test_chat_peer1.conf \
+  test_chat_peer2.conf \
+  test_chat_peer3.conf

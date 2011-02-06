@@ -78,6 +78,20 @@ static int do_help (const char *args, const void *xtra);
 
 
 /**
+ * Callback used for notification that we have joined the room.
+ *
+ * @param cls closure
+ * @return GNUNET_OK
+ */
+static int
+join_cb (void *cls)
+{
+  fprintf (stdout, _("Joined\n"));
+  return GNUNET_OK;
+}
+
+
+/**
  * Callback used for notification about incoming messages.
  *
  * @param cls closure, NULL
@@ -93,11 +107,13 @@ static int
 receive_cb (void *cls,
 	    struct GNUNET_CHAT_Room *room,
 	    const GNUNET_HashCode *sender,
-	    const struct GNUNET_CONTAINER_MetaData *meta,
+	    const struct GNUNET_CONTAINER_MetaData *member_info,
 	    const char *message,
+	    struct GNUNET_TIME_Absolute timestamp,
 	    enum GNUNET_CHAT_MsgOptions options)
 {
   char *nick;
+  char *time;
   const char *fmt;
 
   if (NULL != sender)
@@ -109,43 +125,43 @@ receive_cb (void *cls,
     {
     case GNUNET_CHAT_MSG_OPTION_NONE:
     case GNUNET_CHAT_MSG_ANONYMOUS:
-      fmt = _("`%s' said: %s\n");
+      fmt = _("(%s) `%s' said: %s\n");
       break;
     case GNUNET_CHAT_MSG_PRIVATE:
-      fmt = _("`%s' said to you: %s\n");
+      fmt = _("(%s) `%s' said to you: %s\n");
       break;
     case GNUNET_CHAT_MSG_PRIVATE | GNUNET_CHAT_MSG_ANONYMOUS:
-      fmt = _("`%s' said to you: %s\n");
+      fmt = _("(%s) `%s' said to you: %s\n");
       break;
     case GNUNET_CHAT_MSG_AUTHENTICATED:
-      fmt = _("`%s' said for sure: %s\n");
+      fmt = _("(%s) `%s' said for sure: %s\n");
       break;
     case GNUNET_CHAT_MSG_PRIVATE | GNUNET_CHAT_MSG_AUTHENTICATED:
-      fmt = _("`%s' said to you for sure: %s\n");
+      fmt = _("(%s) `%s' said to you for sure: %s\n");
       break;
     case GNUNET_CHAT_MSG_ACKNOWLEDGED:
-      fmt = _("`%s' was confirmed that you received: %s\n");
+      fmt = _("(%s) `%s' was confirmed that you received: %s\n");
       break;
     case GNUNET_CHAT_MSG_PRIVATE | GNUNET_CHAT_MSG_ACKNOWLEDGED:
-      fmt = _("`%s' was confirmed that you and only you received: %s\n");
+      fmt = _("(%s) `%s' was confirmed that you and only you received: %s\n");
       break;
     case GNUNET_CHAT_MSG_AUTHENTICATED | GNUNET_CHAT_MSG_ACKNOWLEDGED:
-      fmt = _("`%s' was confirmed that you received from him or her: %s\n");
+      fmt = _("(%s) `%s' was confirmed that you received from him or her: %s\n");
       break;
     case GNUNET_CHAT_MSG_AUTHENTICATED | GNUNET_CHAT_MSG_PRIVATE | GNUNET_CHAT_MSG_ACKNOWLEDGED:
-      fmt =
-	_
-	("`%s' was confirmed that you and only you received from him or her: %s\n");
+      fmt = _("(%s) `%s' was confirmed that you and only you received from him or her: %s\n");
       break;
     case GNUNET_CHAT_MSG_OFF_THE_RECORD:
-      fmt = _("`%s' said off the record: %s\n");
+      fmt = _("(%s) `%s' said off the record: %s\n");
       break;
     default:
-      fmt = _("<%s> said using an unknown message type: %s\n");
+      fmt = _("(%s) <%s> said using an unknown message type: %s\n");
       break;
     }
-  fprintf (stdout, fmt, nick, message);
+  time = GNUNET_STRINGS_absolute_time_to_string (timestamp);
+  fprintf (stdout, fmt, time, nick, message);
   GNUNET_free (nick);
+  GNUNET_free (time);
   return GNUNET_OK;
 }
 
@@ -168,9 +184,7 @@ confirmation_cb (void *cls,
 		 struct GNUNET_CHAT_Room *room,
 		 uint32_t orig_seq_number,
 		 struct GNUNET_TIME_Absolute timestamp,
-		 const GNUNET_HashCode *receiver,
-		 const GNUNET_HashCode *msg_hash,
-		 const struct GNUNET_CRYPTO_RsaSignature *receipt)
+		 const GNUNET_HashCode *receiver)
 {
   char *nick;
 
@@ -248,18 +262,6 @@ member_list_cb (void *cls,
 
 
 static int
-do_transmit (const char *msg, const void *xtra)
-{
-  uint32_t seq;
-  GNUNET_CHAT_send_message (room,
-			    msg,
-			    GNUNET_CHAT_MSG_OPTION_NONE,
-			    NULL, &seq);
-  return GNUNET_OK;
-}
-
-
-static int
 do_join (const char *arg, const void *xtra)
 {
   char *my_name;
@@ -276,6 +278,7 @@ do_join (const char *arg, const void *xtra)
 				meta,
 				room_name,
 				-1,
+				&join_cb, NULL,
 				&receive_cb, NULL,
 				&member_list_cb, NULL,
 				&confirmation_cb, NULL, &me);
@@ -285,7 +288,7 @@ do_join (const char *arg, const void *xtra)
       return GNUNET_SYSERR;
     }
   my_name = GNUNET_PSEUDONYM_id_to_name (cfg, &me);
-  fprintf (stdout, _("Joined room `%s' as user `%s'\n"), room_name, my_name);
+  fprintf (stdout, _("Joining room `%s' as user `%s'...\n"), room_name, my_name);
   GNUNET_free (my_name);
   return GNUNET_OK;
 }
@@ -315,6 +318,7 @@ do_nick (const char *msg, const void *xtra)
 				meta,
 				room_name,
 				-1,
+				&join_cb, NULL,
 				&receive_cb, NULL,
 				&member_list_cb, NULL,
 				&confirmation_cb, NULL, &me);
@@ -355,7 +359,19 @@ do_names (const char *msg, const void *xtra)
 
 
 static int
-do_pm (const char *msg, const void *xtra)
+do_send (const char *msg, const void *xtra)
+{
+  uint32_t seq;
+  GNUNET_CHAT_send_message (room,
+			    msg,
+			    GNUNET_CHAT_MSG_OPTION_NONE,
+			    NULL, &seq);
+  return GNUNET_OK;
+}
+
+
+static int
+do_send_pm (const char *msg, const void *xtra)
 {
   char *user;
   GNUNET_HashCode uid;
@@ -404,7 +420,7 @@ do_pm (const char *msg, const void *xtra)
 
 
 static int
-do_transmit_sig (const char *msg, const void *xtra)
+do_send_sig (const char *msg, const void *xtra)
 {
   uint32_t seq;
   GNUNET_CHAT_send_message (room,
@@ -416,12 +432,24 @@ do_transmit_sig (const char *msg, const void *xtra)
 
 
 static int
-do_transmit_ack (const char *msg, const void *xtra)
+do_send_ack (const char *msg, const void *xtra)
 {
   uint32_t seq;
   GNUNET_CHAT_send_message (room,
 			    msg,
 			    GNUNET_CHAT_MSG_ACKNOWLEDGED,
+			    NULL, &seq);
+  return GNUNET_OK;
+}
+
+
+static int
+do_send_anonymous (const char *msg, const void *xtra)
+{
+  uint32_t seq;
+  GNUNET_CHAT_send_message (room,
+			    msg,
+			    GNUNET_CHAT_MSG_ANONYMOUS,
 			    NULL, &seq);
   return GNUNET_OK;
 }
@@ -454,19 +482,24 @@ static struct ChatCommand commands[] = {
    gettext_noop
    ("Use `/nick nickname' to change your nickname.  This will cause you to"
     " leave the current room and immediately rejoin it with the new name.")},
-  {"/msg ", &do_pm,
+  {"/msg ", &do_send_pm,
    gettext_noop
    ("Use `/msg nickname message' to send a private message to the specified"
     " user")},
-  {"/notice ", &do_pm,
+  {"/notice ", &do_send_pm,
    gettext_noop ("The `/notice' command is an alias for `/msg'")},
-  {"/query ", &do_pm,
+  {"/query ", &do_send_pm,
    gettext_noop ("The `/query' command is an alias for `/msg'")},
-  {"/sig ", &do_transmit_sig,
+  {"/sig ", &do_send_sig,
    gettext_noop ("Use `/sig message' to send a signed public message")},
-  {"/ack ", &do_transmit_ack,
+  {"/ack ", &do_send_ack,
    gettext_noop
    ("Use `/ack message' to require signed acknowledgment of the message")},
+  {"/anonymous ", &do_send_anonymous,
+   gettext_noop
+   ("Use `/anonymous message' to send a public anonymous message")},
+  {"/anon ", &do_send_anonymous,
+   gettext_noop ("The `/anon' command is an alias for `/anonymous'")},
   {"/quit", &do_quit,
    gettext_noop ("Use `/quit' to terminate gnunet-chat")},
   {"/leave", &do_quit,
@@ -479,13 +512,9 @@ static struct ChatCommand commands[] = {
   /* Add standard commands:
      /whois (print metadata),
      /ignore (set flag, check on receive!) */
-  /* Add special commands (currently supported):
-     + anonymous msgs
-     + authenticated msgs
-   */
   /* the following three commands must be last! */
   {"/", &do_unknown, NULL},
-  {"", &do_transmit, NULL},
+  {"", &do_send, NULL},
   {NULL, NULL, NULL},
 };
 
@@ -615,6 +644,7 @@ run (void *cls,
 				meta,
 				room_name,
 				-1,
+				&join_cb, NULL,
 				&receive_cb, NULL,
 				&member_list_cb, NULL,
 				&confirmation_cb, NULL, &me);
@@ -628,7 +658,7 @@ run (void *cls,
       return;
     }
   my_name = GNUNET_PSEUDONYM_id_to_name (cfg, &me);
-  fprintf (stdout, _("Joined room `%s' as user `%s'\n"), room_name, my_name);
+  fprintf (stdout, _("Joining room `%s' as user `%s'...\n"), room_name, my_name);
   GNUNET_free (my_name);
   handle_cmd_task =
     GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_UI,

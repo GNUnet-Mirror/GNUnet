@@ -70,8 +70,13 @@ struct ReceiveNotificationMessage
   uint32_t reserved GNUNET_PACKED;
 
   /**
+   * Timestamp of the message.
+   */
+  struct GNUNET_TIME_AbsoluteNBO timestamp;
+
+  /**
    * Hash of the public key of the pseudonym of the sender of the message.
-   * TBD: Should be all zeros for anonymous.
+   * Should be all zeros for anonymous.
    */
   GNUNET_HashCode sender;
 
@@ -122,6 +127,11 @@ struct TransmitRequestMessage
   uint32_t sequence_number GNUNET_PACKED;
 
   /**
+   * Timestamp of the message.
+   */
+  struct GNUNET_TIME_AbsoluteNBO timestamp;
+
+  /**
    * Who should receive this message?  Set to all zeros for "everyone".
    */
   GNUNET_HashCode target;
@@ -131,12 +141,15 @@ struct TransmitRequestMessage
 
 /**
  * Receipt sent from a message receiver to the service to confirm delivery of
- * a chat message.
+ * a chat message and from the service to sender of the original message to
+ * acknowledge delivery.
  */
 struct ConfirmationReceiptMessage
 {
   /**
-   * Message type will be GNUNET_MESSAGE_TYPE_CHAT_CONFIRMATION_RECEIPT 
+   * Message type will be
+   * GNUNET_MESSAGE_TYPE_CHAT_CONFIRMATION_RECEIPT when sending from client,
+   * GNUNET_MESSAGE_TYPE_CHAT_CONFIRMATION_NOTIFICATION when sending to client.
    */
   struct GNUNET_MessageHeader header;
 
@@ -351,8 +364,9 @@ struct P2PLeaveNotificationMessage
 
 /**
  * Message send by one peer to another to indicate receiving of a chat message.
- * After this struct, the remaining bytes are the actual text message.  If the
- * mesasge is private, then the text is encrypted, otherwise it's plaintext.
+ * This struct is followed by the room name (only if the message is anonymous)
+ * and then the remaining bytes are the actual text message.  If the mesasge is
+ * private, then the text is encrypted, otherwise it's plaintext.
  */
 struct P2PReceiveNotificationMessage
 {
@@ -372,13 +386,23 @@ struct P2PReceiveNotificationMessage
   uint32_t sequence_number GNUNET_PACKED;
 
   /**
+   * Length of the room name. This is only used for anonymous messages.
+   */
+  uint16_t room_name_len GNUNET_PACKED;
+
+  /**
    * Reserved (for alignment).
    */
-  uint32_t reserved GNUNET_PACKED;
+  uint16_t reserved GNUNET_PACKED;
+
+  /**
+   * Timestamp of the message.
+   */
+  struct GNUNET_TIME_AbsoluteNBO timestamp;
 
   /**
    * Hash of the public key of the pseudonym of the sender of the message
-   * TBD: Should be all zeros for anonymous.
+   * Should be all zeros for anonymous.
    */
   GNUNET_HashCode sender;
 

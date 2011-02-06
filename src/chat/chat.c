@@ -32,12 +32,12 @@
 #include "gnunet_signatures.h"
 #include "chat.h"
 
-#define DEBUG_CHAT GNUNET_YES
+#define DEBUG_CHAT GNUNET_NO
 #define NICK_IDENTITY_PREFIX ".chat_identity_"
 
 
 /**
- * Handle for a (joined) chat room.
+ * Handle for a chat room.
  */
 struct GNUNET_CHAT_Room
 {
@@ -52,6 +52,12 @@ struct GNUNET_CHAT_Room
   struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
 
   struct MemberList *members;
+
+  int is_joined;
+
+  GNUNET_CHAT_JoinCallback join_callback;
+
+  void *join_callback_cls;
 
   GNUNET_CHAT_MessageCallback message_callback;
 
@@ -221,7 +227,9 @@ process_result (struct GNUNET_CHAT_Room *room,
   struct JoinNotificationMessage *join_msg;
   struct ReceiveNotificationMessage *received_msg;
   struct ConfirmationReceiptMessage *receipt;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
   GNUNET_HashCode id;
+  const GNUNET_HashCode *sender;
   struct GNUNET_CONTAINER_MetaData *meta;
   struct GNUNET_CHAT_SendReceiptContext *src;
   struct MemberList *pos;
@@ -261,11 +269,30 @@ process_result (struct GNUNET_CHAT_Room *room,
 			  sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
 			  &pos->id);
       GNUNET_PSEUDONYM_add (room->cfg, &pos->id, meta);
+      pos->next = room->members;
+      room->members = pos;
+      if (GNUNET_NO == room->is_joined)
+	{
+	  GNUNET_CRYPTO_rsa_key_get_public (room->my_private_key, &pkey);
+	  if (0 == memcmp (&join_msg->public_key,
+			   &pkey,
+			   sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)))
+	    {
+	      room->join_callback (room->join_callback_cls);
+	      room->is_joined = GNUNET_YES;
+	    }
+	  else
+	    {
+	      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+			  _("The current user must be the the first one joined\n"));
+	      GNUNET_break (0);
+	      return;
+	    }
+	}
+      else 
       room->member_list_callback (room->member_list_callback_cls,
 				  meta, &join_msg->public_key,
 				  ntohl (join_msg->msg_options));
-      pos->next = room->members;
-      room->members = pos;
       break;
     case GNUNET_MESSAGE_TYPE_CHAT_LEAVE_NOTIFICATION:
 #if DEBUG_CHAT
@@ -347,6 +374,13 @@ process_result (struct GNUNET_CHAT_Room *room,
 	  memcpy (message_content, &received_msg[1], msg_len);
 	}
       message_content[msg_len] = '\0';
+      if (0 != (ntohl (received_msg->msg_options) & GNUNET_CHAT_MSG_ANONYMOUS))
+	{
+	  sender = NULL;
+	  meta = NULL;
+	}
+      else
+	{
       pos = room->members;
       while ((NULL != pos) &&
 	     (0 != memcmp (&pos->id,
@@ -354,11 +388,15 @@ process_result (struct GNUNET_CHAT_Room *room,
 			   sizeof (GNUNET_HashCode))))
 	pos = pos->next;
       GNUNET_assert (NULL != pos);
+	  sender = &received_msg->sender;
+	  meta = pos->meta;
+	}
       room->message_callback (room->message_callback_cls,
 			      room,
-			      &received_msg->sender,
-			      pos->meta,
+			      sender,
+			      meta,
 			      message_content,
+			      GNUNET_TIME_absolute_ntoh (received_msg->timestamp),
 			      ntohl (received_msg->msg_options));
       if (message_content != decrypted_msg)
 	GNUNET_free (message_content);
@@ -378,9 +416,7 @@ process_result (struct GNUNET_CHAT_Room *room,
 				     room,
 				     ntohl (receipt->sequence_number),
 				     GNUNET_TIME_absolute_ntoh (receipt->timestamp),
-				     &receipt->target,
-				     &receipt->content,
-				     &receipt->signature);
+				     &receipt->target);
       break;
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -510,8 +546,9 @@ transmit_join_request (void *cls,
     {
 #if DEBUG_CHAT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Could not transmit join request\n");
+		  "Could not transmit join request, retrying...\n");
 #endif
+      GNUNET_CHAT_rejoin_room (chat_room);
       return 0;
     }
 #if DEBUG_CHAT
@@ -542,6 +579,10 @@ transmit_join_request (void *cls,
 		  _("Could not serialize metadata\n"));
       return 0;
     }
+  GNUNET_CLIENT_receive (chat_room->client,
+			 &receive_results,
+			 chat_room,
+			 GNUNET_TIME_UNIT_FOREVER_REL);
   return size_of_join;
 }
 
@@ -623,6 +664,8 @@ GNUNET_CHAT_join_room (const struct GNUNET_CONFIGURATION_Handle *cfg,
 		       struct GNUNET_CONTAINER_MetaData *member_info,
 		       const char *room_name,
 		       enum GNUNET_CHAT_MsgOptions msg_options,
+		       GNUNET_CHAT_JoinCallback joinCallback,
+		       void *join_cls,
 		       GNUNET_CHAT_MessageCallback messageCallback,
 		       void *message_cls,
 		       GNUNET_CHAT_MemberListCallback memberCallback,
@@ -654,11 +697,32 @@ GNUNET_CHAT_join_room (const struct GNUNET_CONFIGURATION_Handle *cfg,
 		  _("Failed to connect to the chat service\n"));
       return NULL;
     }
+  if (NULL == joinCallback)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Undefined mandatory parameter: joinCallback\n"));
+      return NULL;
+    }
+  if (NULL == messageCallback)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Undefined mandatory parameter: messageCallback\n"));
+      return NULL;
+    }
+  if (NULL == memberCallback)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Undefined mandatory parameter: memberCallback\n"));
+      return NULL;
+    }
   chat_room = GNUNET_malloc (sizeof (struct GNUNET_CHAT_Room));
   chat_room->msg_options = msg_options;
   chat_room->room_name = GNUNET_strdup (room_name);
   chat_room->member_info = GNUNET_CONTAINER_meta_data_duplicate (member_info);
   chat_room->my_private_key = priv_key;
+  chat_room->is_joined = GNUNET_NO;
+  chat_room->join_callback = joinCallback;
+  chat_room->join_callback_cls = join_cls;
   chat_room->message_callback = messageCallback;
   chat_room->message_callback_cls = message_cls;
   chat_room->member_list_callback = memberCallback;
@@ -668,10 +732,6 @@ GNUNET_CHAT_join_room (const struct GNUNET_CONFIGURATION_Handle *cfg,
   chat_room->cfg = cfg;
   chat_room->client = client;
   chat_room->members = NULL;
-  GNUNET_CLIENT_receive (client,
-			 &receive_results,
-			 chat_room,
-			 GNUNET_TIME_UNIT_FOREVER_REL);
   if (GNUNET_SYSERR == GNUNET_CHAT_rejoin_room (chat_room))
     {
       GNUNET_CHAT_leave_room (chat_room);
@@ -717,6 +777,8 @@ transmit_send_request (void *cls,
   msg_to_send->header.type = htons (GNUNET_MESSAGE_TYPE_CHAT_TRANSMIT_REQUEST);
   msg_to_send->msg_options = htonl (smc->options);
   msg_to_send->sequence_number = htonl (smc->sequence_number);
+  msg_to_send->timestamp =
+    GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
   msg_to_send->reserved = htonl (0);
   if (NULL == smc->receiver)
     memset (&msg_to_send->target, 0, sizeof (GNUNET_HashCode));
@@ -770,13 +832,15 @@ GNUNET_CHAT_send_message (struct GNUNET_CHAT_Room *room,
 #if DEBUG_CHAT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending a message\n");
 #endif
-  *sequence_number = ++room->sequence_number;
+  room->sequence_number++;
+  if (NULL != sequence_number)
+    *sequence_number = room->sequence_number;
   smc = GNUNET_malloc (sizeof (struct GNUNET_CHAT_SendMessageContext));
   smc->chat_room = room;
   smc->message = GNUNET_strdup (message);
   smc->options = options;
   smc->receiver = receiver;
-  smc->sequence_number = *sequence_number;
+  smc->sequence_number = room->sequence_number;
   msg_size = strlen (message) + sizeof (struct TransmitRequestMessage);
   GNUNET_CLIENT_notify_transmit_ready (room->client,
 				       msg_size,
