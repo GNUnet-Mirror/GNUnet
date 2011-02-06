@@ -7,8 +7,14 @@
     + implement UDP, HTTP/HTTPS 
 * Transport:
   - UDP fragmentation
+* FS/CORE [CG]
+  - download of 100 MB file from 'leach' peer hung due to 
+    failure of core-api to call back after a change preference request
+    (structs indicate request was transmitted but reply never received?)
+  - other runs (-L DEBUG) with downloads using the new 'trust' test show
+    non-deterministic results (for any set of peers)
 * FS: [CG]
-  - implement multi-peer FS performance tests
+  - implement multi-peer FS performance tests + gauger them!
     + insert
     + download
     + search
