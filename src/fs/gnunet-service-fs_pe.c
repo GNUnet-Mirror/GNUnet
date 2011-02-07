@@ -19,14 +19,12 @@
 */
 
 /**
- * @file fs/gnunet-service-fs_pe.h
+ * @file fs/gnunet-service-fs_pe.c
  * @brief API to manage query plan
  * @author Christian Grothoff
  */
-#ifndef GNUNET_SERVICE_FS_PE_H
-#define GNUNET_SERVICE_FS_PE_H
-
-#include "gnunet-service-fs.h"
+#include "platform.h"
+#include "gnunet-service-fs_pe.h"
 
 
 /**
@@ -40,7 +38,10 @@
 void
 GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
 	       struct GSF_PendingRequest *pr,
-	       double weight);
+	       double weight)
+{
+ // FIXME
+}
 
 
 /**
@@ -50,7 +51,10 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
  * @param cp connected peer 
  */
 void
-GSF_plan_notify_peer_disconnect_ (struct GSF_ConnectedPeer *cp);
+GSF_plan_notify_peer_disconnect_ (struct GSF_ConnectedPeer *cp)
+{
+ // FIXME
+}
 
 
 /**
@@ -60,7 +64,10 @@ GSF_plan_notify_peer_disconnect_ (struct GSF_ConnectedPeer *cp);
  * @param pr request that is done
  */
 void
-GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr);
+GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr)
+{
+ // FIXME
+}
 
 
 /**
@@ -71,7 +78,10 @@ GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr);
  * @return NULL if the queue for this peer is empty
  */
 struct GSF_PendingRequest *
-GSF_plan_get_ (struct GSF_ConnectedPeer *cp);
+GSF_plan_get_ (struct GSF_ConnectedPeer *cp)
+{
+  return NULL; // FIXME
+}
 
 
 /**
@@ -81,7 +91,11 @@ GSF_plan_get_ (struct GSF_ConnectedPeer *cp);
  * @return number of entries in this peer's request queue
  */
 unsigned int
-GSF_plan_size_ (struct GSF_ConnectedPeer *cp);
+GSF_plan_size_ (struct GSF_ConnectedPeer *cp)
+{
+  return 0; // FIXME
+}
 
-#endif
+
+
 /* end of gnunet-service-fs_pe.h */

@@ -44,12 +44,5 @@ struct GSF_PendingRequest;
 struct GSF_LocalClient;
 
 
-/**
- * Entry in the query transmission plan.
- */
-struct GSF_PlanEntry;
-
-
-
 #endif
 /* end of gnunet-service-fs.h */

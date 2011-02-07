@@ -33,6 +33,10 @@
 #define TRUST_FLUSH_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 
+
+/**
+ * Handle to cancel a transmission request.
+ */
 struct GSF_PeerTransmitHandle
 {
 
@@ -954,5 +958,4 @@ GSF_handle_local_client_disconnect_ (const struct GSF_LocalClient *lc)
 }
 
 
-#endif
-/* end of gnunet-service-fs_cp.h */
+/* end of gnunet-service-fs_cp.c */
