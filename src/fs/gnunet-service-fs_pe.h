@@ -38,9 +38,9 @@
  *        lower weights are earlier in the queue
  */
 void
-GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
+GSF_plan_add_ (const struct GSF_ConnectedPeer *cp,
 	       struct GSF_PendingRequest *pr,
-	       double weight);
+	       GNUNET_CONTAINER_HeapCostType weight);
 
 
 /**
@@ -50,7 +50,7 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
  * @param cp connected peer 
  */
 void
-GSF_plan_notify_peer_disconnect_ (struct GSF_ConnectedPeer *cp);
+GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp);
 
 
 /**
@@ -60,7 +60,7 @@ GSF_plan_notify_peer_disconnect_ (struct GSF_ConnectedPeer *cp);
  * @param pr request that is done
  */
 void
-GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr);
+GSF_plan_notify_request_done_ (const struct GSF_PendingRequest *pr);
 
 
 /**
@@ -71,7 +71,7 @@ GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr);
  * @return NULL if the queue for this peer is empty
  */
 struct GSF_PendingRequest *
-GSF_plan_get_ (struct GSF_ConnectedPeer *cp);
+GSF_plan_get_ (const struct GSF_ConnectedPeer *cp);
 
 
 /**
@@ -81,7 +81,22 @@ GSF_plan_get_ (struct GSF_ConnectedPeer *cp);
  * @return number of entries in this peer's request queue
  */
 unsigned int
-GSF_plan_size_ (struct GSF_ConnectedPeer *cp);
+GSF_plan_size_ (const struct GSF_ConnectedPeer *cp);
+
+
+/**
+ * Initialize plan subsystem.
+ */
+void
+GSF_plan_init (void);
+
+
+/**
+ * Shutdown plan subsystem.
+ */
+void
+GSF_plan_done (void);
+
 
 #endif
 /* end of gnunet-service-fs_pe.h */

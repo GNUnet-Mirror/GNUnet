@@ -285,6 +285,17 @@ GSF_connected_peer_change_preference_ (struct GSF_ConnectedPeer *cp,
 
 
 /**
+ * Obtain the identity of a connected peer.
+ *
+ * @param cp peer to reserve bandwidth from
+ * @param id identity to set (written to)
+ */
+void
+GSF_connected_peer_get_identity_ (const struct GSF_ConnectedPeer *cp,
+				  struct GNUNET_PeerIdentity *id);
+
+
+/**
  * Iterate over all connected peers.
  *
  * @param it function to call for each peer

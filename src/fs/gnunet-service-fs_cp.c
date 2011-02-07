@@ -778,6 +778,21 @@ GSF_iterate_connected_peers_ (GSF_ConnectedPeerIterator it,
 
 
 /**
+ * Obtain the identity of a connected peer.
+ *
+ * @param cp peer to reserve bandwidth from
+ * @param id identity to set (written to)
+ */
+void
+GSF_connected_peer_get_identity_ (const struct GSF_ConnectedPeer *cp,
+				  struct GNUNET_PeerIdentity *id)
+{
+  GNUNET_PEER_resolve (cp->pid,
+		       &id);
+}
+
+
+/**
  * Write host-trust information to a file - flush the buffer entry!
  *
  * @param cls closure, not used
