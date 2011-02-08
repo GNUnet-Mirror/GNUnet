@@ -318,7 +318,11 @@ connect_topology (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   expected_connections = -1;
   if ((pg != NULL) && (peers_left == 0))
-    expected_connections = GNUNET_TESTING_connect_topology (pg, GNUNET_TESTING_TOPOLOGY_CLIQUE, GNUNET_TESTING_TOPOLOGY_OPTION_ALL, 0.0, NULL, NULL);
+    expected_connections = GNUNET_TESTING_connect_topology (pg,
+                                                            GNUNET_TESTING_TOPOLOGY_CLIQUE,
+                                                            GNUNET_TESTING_TOPOLOGY_OPTION_ALL,
+                                                            0.0,
+                                                            TIMEOUT, 12, NULL, NULL);
 
   GNUNET_SCHEDULER_cancel (die_task);
   if (expected_connections == GNUNET_SYSERR)
@@ -409,7 +413,12 @@ run (void *cls,
                                            &end_badly, "didn't start all daemons in reasonable amount of time!!!");
 
   pg = GNUNET_TESTING_daemons_start (cfg,
-                                     num_peers, TIMEOUT, NULL, NULL, &peers_started_callback, NULL,
+                                     num_peers,
+                                     10,
+                                     TIMEOUT,
+                                     NULL, NULL,
+                                     &peers_started_callback,
+                                     NULL,
                                      &topology_callback, NULL, NULL);
 
 }

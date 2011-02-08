@@ -682,7 +682,13 @@ peers_started_callback (void *cls,
       expected_connections = -1;
       if ((pg != NULL) && (peers_left == 0))
         {
-          expected_connections = GNUNET_TESTING_connect_topology (pg, connection_topology, connect_topology_option, connect_topology_option_modifier, NULL, NULL);
+          expected_connections = GNUNET_TESTING_connect_topology (pg,
+                                                                  connection_topology,
+                                                                  connect_topology_option,
+                                                                  connect_topology_option_modifier,
+                                                                  TIMEOUT,
+                                                                  num_peers,
+                                                                  NULL, NULL);
 #if VERBOSE
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Have %d expected connections\n", expected_connections);
@@ -870,8 +876,16 @@ run (void *cls,
                                            &end_badly, "didn't generate all hostkeys within a reasonable amount of time!!!");
 
   pg = GNUNET_TESTING_daemons_start (cfg,
-                                     peers_left, GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, SECONDS_PER_PEER_START * num_peers), &hostkey_callback, NULL, &peers_started_callback, NULL,
-                                     &topology_callback, NULL, NULL);
+                                     peers_left,
+                                     peers_left,
+                                     GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, SECONDS_PER_PEER_START * num_peers),
+                                     &hostkey_callback,
+                                     NULL,
+                                     &peers_started_callback,
+                                     NULL,
+                                     &topology_callback,
+                                     NULL,
+                                     NULL);
 
 }
 

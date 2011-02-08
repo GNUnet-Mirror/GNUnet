@@ -410,7 +410,14 @@ peers_started_callback (void *cls,
       if ((pg != NULL)) /* Sanity check */
         {
           /* Connect peers in a "straight line" topology, return the number of expected connections */
-          expected_connections = GNUNET_TESTING_connect_topology (pg, GNUNET_TESTING_TOPOLOGY_LINE, GNUNET_TESTING_TOPOLOGY_OPTION_ALL, 0.0, NULL, NULL);
+          expected_connections = GNUNET_TESTING_connect_topology (pg,
+                                                                  GNUNET_TESTING_TOPOLOGY_LINE,
+                                                                  GNUNET_TESTING_TOPOLOGY_OPTION_ALL,
+                                                                  0.0,
+                                                                  TIMEOUT,
+                                                                  2,
+                                                                  NULL,
+                                                                  NULL);
         }
 
       /* Cancel current timeout fail task */
@@ -454,8 +461,16 @@ run (void *cls,
   /* Start num_peers peers, call peers_started_callback on peer start, topology_callback on peer connect */
   /* Read the API documentation for other parameters! */
   pg = GNUNET_TESTING_daemons_start (cfg,
-                                     num_peers, TIMEOUT, NULL, NULL, &peers_started_callback, NULL,
-                                     &topology_callback, NULL, NULL);
+                                     num_peers,
+                                     num_peers,
+                                     TIMEOUT,
+                                     NULL,
+                                     NULL,
+                                     &peers_started_callback,
+                                     NULL,
+                                     &topology_callback,
+                                     NULL,
+                                     NULL);
 
 }
 
