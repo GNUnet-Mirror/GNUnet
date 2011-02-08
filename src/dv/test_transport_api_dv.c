@@ -818,7 +818,13 @@ connect_topology ()
   expected_connections = -1;
   if ((pg != NULL) && (peers_left == 0))
     {
-      expected_connections = GNUNET_TESTING_connect_topology (pg, connection_topology, connect_topology_option, connect_topology_option_modifier, NULL, NULL);
+      expected_connections = GNUNET_TESTING_connect_topology (pg,
+                                                              connection_topology,
+                                                              connect_topology_option,
+                                                              connect_topology_option_modifier,
+                                                              TIMEOUT,
+                                                              12,
+                                                              NULL, NULL);
 #if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Have %d expected connections\n", expected_connections);
@@ -1132,8 +1138,16 @@ run (void *cls,
 
   peer_daemon_hash = GNUNET_CONTAINER_multihashmap_create(peers_left);
   pg = GNUNET_TESTING_daemons_start (cfg,
-                                     peers_left, TIMEOUT, &hostkey_callback, NULL, &peers_started_callback, NULL,
-                                     &topology_callback, NULL, NULL);
+                                     peers_left,
+                                     peers_left,
+                                     TIMEOUT,
+                                     &hostkey_callback,
+                                     NULL,
+                                     &peers_started_callback,
+                                     NULL,
+                                     &topology_callback,
+                                     NULL,
+                                     NULL);
 
 }
 
