@@ -63,7 +63,58 @@ enum GSF_PendingRequestOptions
      * Option mask for typical local requests.
      */
     GSF_PRO_LOCAL_REQUEST = (GSF_PRO_BLOOMFILTER_FULL_REFRESH | GSF_PRO_PRIORITY_UNLIMITED)
+
   };
+
+
+/**
+ * Public data associated with each pending request.
+ */
+struct GSF_PendingRequestData
+{
+
+  /**
+   * Primary query hash for this request.
+   */
+  GNUNET_HashCode query;
+
+  /**
+   * Namespace to query, only set if the type is SBLOCK.
+   */
+  GNUNET_HashCode namespace;
+			
+  /**
+   * Identity of a peer hosting the content, only set if
+   * 'has_target' is GNUNET_YES.
+   */
+  struct GNUNET_PeerIdentity target;
+
+  /**
+   * Desired anonymity level.
+   */
+  uint32_t anonymity_level;
+
+  /**
+   * Priority that this request (still) has for us.
+   */
+  uint32_t priority;
+
+  /**
+   * Options for the request.
+   */
+  enum GSF_PendingRequestOptions options;
+  
+  /**
+   * Type of the requested block.
+   */
+  enum GNUNET_BLOCK_Type type;
+
+  /**
+   * Is the 'target' value set to a valid peer identity?
+   */
+  int has_target;
+
+};
 
 
 /**
@@ -109,7 +160,7 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
 			     const GNUNET_HashCode *query,
 			     const GNUNET_HashCode *namespace,
 			     const struct GNUNET_PeerIdentity *target,
-			     struct GNUNET_CONTAINER_BloomFilter *bf,
+			     const struct GNUNET_CONTAINER_BloomFilter *bf,
 			     int32_t mingle,
 			     uint32_t anonymity_level,
 			     uint32_t priority,

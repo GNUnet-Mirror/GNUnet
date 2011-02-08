@@ -28,6 +28,38 @@
 
 
 /**
+ * An active request.
+ */
+struct GSF_PendingRequest
+{
+  /**
+   * Public data for the request.
+   */ 
+  struct GSF_PendingRequestData public_data;
+
+  GSF_PendingRequestReplyHandler rh;
+
+  void *rh_cls;
+
+  const GNUNET_HashCode *replies_seen;
+
+  struct GNUNET_CONTAINER_BloomFilter *bf;
+
+  unsigned int replies_seen_count;
+
+  int32_t mingle;
+			    
+};
+
+
+/**
+ * All pending requests, ordered by the query.  Entries
+ * are of type 'struct GSF_PendingRequest*'.
+ */
+static struct GNUNET_CONTAINER_MultiHashMap *requests;
+
+
+/**
  * Create a new pending request.  
  *
  * @param options request options
@@ -51,7 +83,7 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
 			     const GNUNET_HashCode *query,
 			     const GNUNET_HashCode *namespace,
 			     const struct GNUNET_PeerIdentity *target,
-			     struct GNUNET_CONTAINER_BloomFilter *bf,
+			     const struct GNUNET_CONTAINER_BloomFilter *bf,
 			     int32_t mingle,
 			     uint32_t anonymity_level,
 			     uint32_t priority,
