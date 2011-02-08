@@ -321,6 +321,8 @@ do_connect (void *cls,
 				   GNUNET_TESTING_TOPOLOGY_LINE,				   
 				   GNUNET_TESTING_TOPOLOGY_OPTION_NONE,
 				   0.0,
+				   TIMEOUT,
+				   NUM_DAEMONS,
 				   &do_publish,
 				   NULL);
 }
