@@ -42,7 +42,7 @@
 #define DEFAULT_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5)
 
 /* Timeout for waiting for (individual) replies to get requests */
-#define DEFAULT_GET_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 90)
+#define DEFAULT_GET_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10)
 
 #define DEFAULT_TOPOLOGY_CAPTURE_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 90)
 
@@ -292,8 +292,6 @@ struct FindPeerContext
   /**
    * How long to send find peer requests, once the settle time
    * is over don't send any more out!
-   *
-   * TODO: Add option for settle time and find peer sending time?
    */
   struct GNUNET_TIME_Absolute endtime;
 
@@ -701,6 +699,12 @@ static unsigned int previous_connections;
  */
 static unsigned int failed_connections;
 
+/**
+ * If GNUNET_YES, only log PUT/GET round data to mysql, otherwise
+ * log everything (including each dht service logging).
+ */
+static unsigned int dhtlog_minimal;
+
 /* Task handle to use to schedule shutdown if something goes wrong */
 GNUNET_SCHEDULER_TaskIdentifier die_task;
 
@@ -920,15 +924,13 @@ log_topology_cb (void *cls,
   struct TopologyIteratorContext *topo_ctx = cls;
   if ((first != NULL) && (second != NULL))
     {
-      /* GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "According to CORE, peer %s is connected to %s\n", GNUNET_i2s(first), GNUNET_h2s(&second->hashPubKey));*/
       if ((topo_ctx->peers_seen != NULL) && (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(topo_ctx->peers_seen, &first->hashPubKey)))
         {
           GNUNET_CONTAINER_multihashmap_put(topo_ctx->peers_seen, &first->hashPubKey, NULL, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
           topo_ctx->total_peers++;
         }
       topo_ctx->total_connections++;
-      if ((GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(config, "dht_testing", "mysql_logging")) ||
-          (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(config, "dht_testing", "mysql_logging_extended")))
+      if ((GNUNET_NO == dhtlog_minimal) && (dhtlog_handle != NULL))
         dhtlog_handle->insert_extended_topology(first, second);
     }
   else
@@ -1571,7 +1573,6 @@ static void churn_complete (void *cls, const char *emsg)
         }
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Added %d peers to heap, total size %d\n", count_added, GNUNET_CONTAINER_heap_get_size(find_peer_context->peer_min_heap));
       GNUNET_SCHEDULER_add_delayed(DEFAULT_PEER_DISCONNECT_TIMEOUT, &schedule_churn_get_topology, find_peer_context);
-      //GNUNET_TESTING_get_topology (pg, &count_peers_churn_cb, find_peer_context);
     }
   else
     {
@@ -1589,6 +1590,7 @@ static void churn_complete (void *cls, const char *emsg)
           die_task = GNUNET_SCHEDULER_add_delayed (calc_timeout,
                                                    &end_badly, "from do gets (churn_complete)");
           GNUNET_SCHEDULER_add_delayed(DEFAULT_PEER_DISCONNECT_TIMEOUT, &capture_current_topology, topo_ctx);
+          dhtlog_handle->insert_round(DHT_ROUND_GET, rounds_finished);
         }
       else
         {
@@ -1596,8 +1598,6 @@ static void churn_complete (void *cls, const char *emsg)
           calc_timeout = GNUNET_TIME_relative_add(calc_timeout, DEFAULT_PEER_DISCONNECT_TIMEOUT);
           die_task = GNUNET_SCHEDULER_add_delayed (calc_timeout,
                                                    &end_badly, "from do gets (churn_complete)");
-          if (dhtlog_handle != NULL)
-            dhtlog_handle->insert_round(DHT_ROUND_GET, rounds_finished);
           GNUNET_SCHEDULER_add_delayed(DEFAULT_PEER_DISCONNECT_TIMEOUT, &do_get, all_gets);
         }
     }
@@ -1692,6 +1692,8 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   if ((gets_completed + gets_failed == num_gets) && (outstanding_gets == 0))
     {
       fprintf(stderr, "Canceling die task (get_stop_finished) %llu gets completed, %llu gets failed\n", gets_completed, gets_failed);
+      if ((GNUNET_YES == dhtlog_minimal) && (NULL != dhtlog_handle))
+        dhtlog_handle->insert_round_details(DHT_ROUND_GET, rounds_finished, num_gets, gets_completed);
       GNUNET_SCHEDULER_cancel(die_task);
       reset_meter(put_meter);
       reset_meter(get_meter);
@@ -1703,7 +1705,7 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
        */
       if (rounds_finished == total_rounds - 1) /* Everything is finished, end testing */
         {
-          if (dhtlog_handle != NULL)
+          if ((dhtlog_handle != NULL) && (GNUNET_NO == dhtlog_minimal))
             {
               topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
               topo_ctx->cont = &log_dht_statistics;
@@ -1907,7 +1909,7 @@ put_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
     {
       GNUNET_assert(outstanding_puts == 0);
       GNUNET_SCHEDULER_cancel (die_task);
-      if (dhtlog_handle != NULL)
+      if ((dhtlog_handle != NULL) && (GNUNET_NO == dhtlog_minimal))
         {
           topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
           topo_ctx->cont = &do_get;
@@ -2265,7 +2267,7 @@ continue_puts_and_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext * t
   struct TopologyIteratorContext *topo_ctx;
   struct FindPeerContext *find_peer_context;
   GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "In continue_puts_and_gets\n");
-  if (dhtlog_handle != NULL)
+  if ((dhtlog_handle != NULL) && (GNUNET_NO == dhtlog_minimal))
     {
       if (settle_time >= 180 * 2)
         max = (settle_time / 180) - 2;
@@ -2818,8 +2820,12 @@ run (void *cls,
    * Get DHT specific testing options.
    */
   if ((GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht_testing", "mysql_logging")) ||
-      (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht_testing", "mysql_logging_extended")))
+      (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht_testing", "mysql_logging_extended")) ||
+      (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht_testing", "mysql_logging_minimal")))
     {
+      if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(cfg, "dht_testing", "mysql_logging_minimal"))
+        dhtlog_minimal = GNUNET_YES;
+
       dhtlog_handle = GNUNET_DHTLOG_connect(cfg);
       if (dhtlog_handle == NULL)
         {

@@ -108,6 +108,11 @@ static struct StatementHandle *insert_node;
 
 static struct StatementHandle *insert_round;
 
+#define INSERT_ROUND_DETAILS_STMT "INSERT INTO rounds (trialuid, round_type, round_count, starttime, endtime, num_messages, num_messages_succeeded) "\
+                          "VALUES (?, ?, ?, NOW(), NOW(), ?, ?)"
+
+static struct StatementHandle *insert_round_details;
+
 #define INSERT_TRIALS_STMT "INSERT INTO trials"\
                             "(starttime, other_trial_identifier, numnodes, topology,"\
                             "topology_percentage, topology_probability,"\
@@ -454,6 +459,7 @@ iopen (struct GNUNET_DHTLOG_Plugin *plugin)
       PINIT (insert_route, INSERT_ROUTES_STMT) ||
       PINIT (insert_trial, INSERT_TRIALS_STMT) ||
       PINIT (insert_round, INSERT_ROUNDS_STMT) ||
+      PINIT (insert_round, INSERT_ROUND_DETAILS_STMT) ||
       PINIT (insert_stat, INSERT_STAT_STMT) ||
       PINIT (insert_generic_stat, INSERT_GENERIC_STAT_STMT) ||
       PINIT (insert_node, INSERT_NODES_STMT) ||
@@ -911,6 +917,38 @@ int add_round (unsigned int round_type, unsigned int round_count)
                                 MYSQL_TYPE_LONGLONG, &current_trial, GNUNET_YES,
                                 MYSQL_TYPE_LONG, &round_type, GNUNET_YES,
                                 MYSQL_TYPE_LONG, &round_count, GNUNET_YES, -1);
+  mysql_stmt_close(stmt);
+  if (ret != GNUNET_OK)
+    return GNUNET_SYSERR;
+  return ret;
+}
+
+/*
+ * Inserts the specified round results into the
+ * dhttests.processed_round_details table
+ *
+ * @param round_type the type of round that is being started
+ * @param round_count counter for the round (if applicable)
+ * @param num_messages the total number of messages initiated
+ * @param num_messages_succeeded the number of messages that succeeded
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int add_round_details (unsigned int round_type, unsigned int round_count,
+                       unsigned int num_messages, unsigned int num_messages_succeeded)
+{
+  MYSQL_STMT *stmt;
+  int ret;
+
+  stmt = mysql_stmt_init(conn);
+  ret = prepared_statement_run (insert_round_details,
+                                NULL,
+                                MYSQL_TYPE_LONGLONG, &current_trial, GNUNET_YES,
+                                MYSQL_TYPE_LONG, &round_type, GNUNET_YES,
+                                MYSQL_TYPE_LONG, &round_count, GNUNET_YES,
+                                MYSQL_TYPE_LONG, &num_messages, GNUNET_YES,
+                                MYSQL_TYPE_LONG, &num_messages_succeeded, GNUNET_YES,
+                                -1);
   mysql_stmt_close(stmt);
   if (ret != GNUNET_OK)
     return GNUNET_SYSERR;
@@ -1561,6 +1599,7 @@ libgnunet_plugin_dhtlog_mysql_init (void * cls)
   plugin->dhtlog_api->insert_trial = &add_trial;
   plugin->dhtlog_api->insert_stat = &add_stat;
   plugin->dhtlog_api->insert_round = &add_round;
+  plugin->dhtlog_api->insert_round_details = &add_round_details;
   plugin->dhtlog_api->add_generic_stat = &add_generic_stat;
   plugin->dhtlog_api->insert_query = &add_query;
   plugin->dhtlog_api->update_trial = &update_trials;
@@ -1593,6 +1632,7 @@ libgnunet_plugin_dhtlog_mysql_done (void * cls)
   prepared_statement_close(insert_route);
   prepared_statement_close(insert_trial);
   prepared_statement_close(insert_round);
+  prepared_statement_close(insert_round_details);
   prepared_statement_close(insert_node);
   prepared_statement_close(insert_dhtkey);
   prepared_statement_close(update_trial);

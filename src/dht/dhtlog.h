@@ -278,6 +278,20 @@ struct GNUNET_DHTLOG_Handle
   int (*insert_round) (unsigned int round_type, unsigned int round_count);
 
   /*
+   * Inserts the specified round results into the
+   * dhttests.processed_round_details table
+   *
+   * @param round_type the type of round that is being started
+   * @param round_count counter for the round (if applicable)
+   * @param num_messages the total number of messages initiated
+   * @param num_messages_succeeded the number of messages that succeeded
+   *
+   * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+   */
+  int (*insert_round_details) (unsigned int round_type, unsigned int round_count,
+                               unsigned int num_messages, unsigned int num_messages_succeeded);
+
+  /*
    * Update dhttests.trials table with total connections information
    *
    * @param totalConnections the number of connections

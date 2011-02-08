@@ -65,6 +65,10 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 #define INSERT_ROUND_STMT "prepare insert_round from 'INSERT INTO rounds (trialuid, round_type, round_count, starttime) VALUES (@temp_trial, @rtype, @rcount, @curr_time)'"
 
+#define INSERT_ROUND_DETAILS_STMT "prepare insert_round_details from 'INSERT INTO processed_trial_rounds "\
+                                  "(trialuid, round_type, round_count, starttime, endtime, num_messages, num_messages_succeeded)"\
+                                  "VALUES (@temp_trial, @rtype, @rcount, @curr_time, @curr_time, @totalmsgs, @msgssucceeded)'"
+
 #define EXTEND_TOPOLOGY_STMT "prepare extend_topology from 'INSERT INTO extended_topology (topology_uid, uid_first, uid_second) "\
                              "VALUES (@temp_topology, ?, ?)'"
 
@@ -161,6 +165,7 @@ iopen ()
   if (PINIT (INSERT_QUERIES_STMT) ||
       PINIT (INSERT_ROUTES_STMT) ||
       PINIT (INSERT_ROUND_STMT) ||
+      PINIT (INSERT_ROUND_DETAILS_STMT) ||
       PINIT (INSERT_TRIALS_STMT) ||
       PINIT (SET_MALICIOUS_STMT) ||
       PINIT (INSERT_GENERIC_STAT_STMT) ||
@@ -203,6 +208,36 @@ int add_round (unsigned int round_type, unsigned int round_count)
   if (ret < 0)
     return GNUNET_SYSERR;
   ret = fprintf(outfile, "execute insert_round;\n");
+
+  if (ret >= 0)
+    return GNUNET_OK;
+  return GNUNET_SYSERR;
+}
+
+/*
+ * Inserts the specified round results into the
+ * dhttests.processed_round_details table
+ *
+ * @param round_type the type of round that is being started
+ * @param round_count counter for the round (if applicable)
+ * @param num_messages the total number of messages initiated
+ * @param num_messages_succeeded the number of messages that succeeded
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int add_round_details (unsigned int round_type, unsigned int round_count,
+                       unsigned int num_messages, unsigned int num_messages_succeeded)
+{
+  int ret;
+  if (outfile == NULL)
+    return GNUNET_SYSERR;
+
+  ret = fprintf(outfile, "set @curr_time = \"%s\", @rtype = \"%u\", @rcount = \"%u\", @totalmsgs = \"%u\", @msgssucceeded = \"%u\";\n",
+                          get_sql_time(), round_type, round_count, num_messages, num_messages_succeeded);
+
+  if (ret < 0)
+    return GNUNET_SYSERR;
+  ret = fprintf(outfile, "execute insert_round_details;\n");
 
   if (ret >= 0)
     return GNUNET_OK;
@@ -821,6 +856,7 @@ libgnunet_plugin_dhtlog_mysql_dump_init (void * cls)
   plugin->dhtlog_api = GNUNET_malloc(sizeof(struct GNUNET_DHTLOG_Handle));
   plugin->dhtlog_api->insert_trial = &add_trial;
   plugin->dhtlog_api->insert_round = &add_round;
+  plugin->dhtlog_api->insert_round_details = &add_round_details;
   plugin->dhtlog_api->insert_stat = &add_stat;
   plugin->dhtlog_api->insert_query = &add_query;
   plugin->dhtlog_api->update_trial = &update_trials;

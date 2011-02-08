@@ -180,6 +180,8 @@ test (struct GNUNET_DHTLOG_Handle * api)
 #endif
   ret = api->insert_round(401, 507);
   CHECK(ret);
+  ret = api->insert_round_details(402, 507, 1123, 985);
+  CHECK(ret);
 #if VERBOSE
   fprintf(stderr, "Insert round succeeded!\n");
 #endif

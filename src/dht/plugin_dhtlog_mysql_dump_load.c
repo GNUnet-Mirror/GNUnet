@@ -132,6 +132,32 @@ int add_round (unsigned int round_type, unsigned int round_count)
 }
 
 /*
+ * Inserts the specified round results into the
+ * dhttests.processed_round_details table
+ *
+ * @param round_type the type of round that is being started
+ * @param round_count counter for the round (if applicable)
+ * @param num_messages the total number of messages initiated
+ * @param num_messages_succeeded the number of messages that succeeded
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int add_round_details (unsigned int round_type, unsigned int round_count,
+                       unsigned int num_messages, unsigned int num_messages_succeeded)
+{
+  int ret;
+  if (outfile == NULL)
+    return GNUNET_SYSERR;
+
+  ret = fprintf(outfile, "insert into processed_trial_rounds (trialuid, round_type, round_count, starttime, endtime, num_messages, num_messages_succeeded) values (@temp_trial, \"%u\", \"%u\", \"%s\", \"%s\", \"%u\", \"%u\");\n",
+                                                              round_type, round_count, get_sql_time(), get_sql_time(), num_messages, num_messages_succeeded);
+
+  if (ret >= 0)
+    return GNUNET_OK;
+  return GNUNET_SYSERR;
+}
+
+/*
  * Records a connection between two peers in the current topology
  *
  * @param first one side of the connection
@@ -824,6 +850,7 @@ libgnunet_plugin_dhtlog_mysql_dump_load_init (void * cls)
   plugin->dhtlog_api->insert_trial = &add_trial;
   plugin->dhtlog_api->insert_stat = &add_stat;
   plugin->dhtlog_api->insert_round = &add_round;
+  plugin->dhtlog_api->insert_round_details = &add_round_details;
   plugin->dhtlog_api->insert_query = &add_query;
   plugin->dhtlog_api->update_trial = &update_trials;
   plugin->dhtlog_api->insert_route = &add_route;
