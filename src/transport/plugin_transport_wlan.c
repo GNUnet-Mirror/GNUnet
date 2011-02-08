@@ -696,7 +696,7 @@ queue_Session (struct Plugin *plugin,
 
 	while (queue != NULL){
 		// content is never NULL
-		GNUNET_assert (queue->content == NULL);
+		GNUNET_assert (queue->content != NULL);
 		// is session already in queue?
 		if (session == queue->content){
 			return;
@@ -819,6 +819,7 @@ check_next_fragment_timeout(struct Plugin * const plugin)
   if (plugin->server_write_delay_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel(plugin->server_write_delay_task);
+      plugin->server_write_delay_task = GNUNET_SCHEDULER_NO_TASK;
     }
   fm = plugin->pending_Fragment_Messages_head;
 
@@ -1050,11 +1051,12 @@ do_transmit(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   uint copyoffset = 0;
   struct AckQueue * akt = NULL;
 
-#if 1
+
   struct GNUNET_MessageHeader * msgheader2 = NULL;
 
   //test if a "hello-beacon" has to be send
-  if (GNUNET_TIME_absolute_get_remaining(plugin->beacon_time).rel_value == 0)
+  if (0==1)
+  //if (GNUNET_TIME_absolute_get_remaining(plugin->beacon_time).rel_value == 0)
     {
       //check if the message is not to big
       GNUNET_assert(sizeof(struct WlanHeader) + GNUNET_HELLO_size(
@@ -1103,7 +1105,7 @@ do_transmit(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     }
 
-#endif
+
 
   fm = plugin->pending_Fragment_Messages_head;
   GNUNET_assert(fm != NULL);
@@ -1642,7 +1644,7 @@ wlan_plugin_address_to_string (void *cls,
 			       const void *addr,
 			       size_t addrlen)
 {
-  char ret[92];
+  static char ret[40];
   const unsigned char * input;
   
   GNUNET_assert(cls !=NULL);
@@ -1658,7 +1660,7 @@ wlan_plugin_address_to_string (void *cls,
 		   "%s Mac-Adress %X:%X:%X:%X:%X:%X",
 		   PROTOCOL_PREFIX, 
 		   input[0], input[1], input[2], input[3], input[4], input[5]);  
-  return GNUNET_strdup (ret);
+  return ret;
 }
 
 /**
@@ -1876,11 +1878,6 @@ wlan_data_helper(void *cls, void * client, const struct GNUNET_MessageHeader * h
           return;
         }
 
-#if DEBUG_wlan
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "After crc\n");
-#endif
-
       //if not in session list
       if (session == NULL)
         {
@@ -1888,10 +1885,6 @@ wlan_data_helper(void *cls, void * client, const struct GNUNET_MessageHeader * h
           //try if it is a hello message
           if (ntohs(temp_hdr->type) == GNUNET_MESSAGE_TYPE_HELLO)
             {
-#if DEBUG_wlan
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "New WLAN Client\n");
-#endif
               session = create_session(plugin, session_light->addr);
               session_light->session = session;
               GNUNET_assert(GNUNET_HELLO_get_id(
@@ -1907,28 +1900,15 @@ wlan_data_helper(void *cls, void * client, const struct GNUNET_MessageHeader * h
             }
         }
 
-#if DEBUG_wlan
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "After session\n");
-#endif
-
       //"receive" the message
       struct GNUNET_TRANSPORT_ATS_Information distance[2];
       distance[0].type = htonl(GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
       distance[0].value = htonl(1);
       distance[1].type = htonl(GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
       distance[1].value = htonl(0);
-#if DEBUG_wlan
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "After Information\n");
-#endif
-      plugin->env->receive(plugin->env, &(session->target), temp_hdr,
+      plugin->env->receive(plugin->env->cls, &(session->target), temp_hdr,
           (const struct GNUNET_TRANSPORT_ATS_Information *) &distance, 2,
           session, session->addr, sizeof(session->addr));
-#if DEBUG_wlan
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "After receive\n");
-#endif
 
     }
 
@@ -2081,7 +2061,7 @@ wlan_data_helper(void *cls, void * client, const struct GNUNET_MessageHeader * h
       return;
     }
 
-#if DEBUG_wlan
+#if 0
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Helper finished\n");
 #endif
