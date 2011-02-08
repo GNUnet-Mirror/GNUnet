@@ -3064,9 +3064,6 @@ connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
   struct ConnectTopologyContext *ct_ctx;
 #if OLD
   struct PeerConnection *connection_iter;
-#else
-  struct ConnectContext *connect_context;
-  int ret;
 #endif
 
   total = 0;
@@ -3100,53 +3097,12 @@ connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
   ct_ctx->remaining_connections = total;
   ct_ctx->remaining_connects_to_schedule = total;
 
-
-  /**
-   * FIXME: iterating over peer lists in this way means that a single peer will have
-   * all of its connections scheduled basically at once.  This means a single peer
-   * will have a lot of work to do, and may slow down the connection process.  If
-   * we could choose a connection *randomly* that would work much better.
-   *
-   * Even using the hashmap method we still choose all of a single peers connections.
-   *
-   * Will we incur a serious performance penalty iterating over the lists a bunch of
-   * times?  Probably not compared to the delays in connecting peers.  Can't hurt
-   * to try anyhow...
-   */
   for (pg_iter = 0; pg_iter < pg->max_outstanding_connections; pg_iter++)
   {
     preschedule_connect(ct_ctx);
   }
   return total;
 
-#if SLOW
-  total = 0;
-  for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
-    {
-#if OLD
-      connection_iter = pg->peers[pg_iter].connect_peers_head;
-      while (connection_iter != NULL)
-        {
-          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Scheduling connect of peer %d to peer %d\n", pg_iter, connection_iter->index);
-          connect_context = GNUNET_malloc (sizeof (struct ConnectContext));
-          connect_context->first = pg->peers[pg_iter].daemon;
-          connect_context->second = pg->peers[connection_iter->index].daemon;
-          connect_context->ct_ctx = ct_ctx;
-          GNUNET_SCHEDULER_add_now (&schedule_connect, connect_context);
-          connection_iter = connection_iter->next;
-          total++;
-        }
-#else
-      ret =
-        GNUNET_CONTAINER_multihashmap_iterate (pg->
-                                               peers[pg_iter].connect_peers,
-                                               &connect_iterator, ct_ctx);
-      GNUNET_assert (GNUNET_SYSERR != ret && ret >= 0);
-      total = total + ret;
-#endif
-    }
-  return total;
-#endif
 }
 
 
