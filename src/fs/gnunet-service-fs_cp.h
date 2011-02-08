@@ -249,6 +249,22 @@ GSF_handle_p2p_migration_stop_ (void *cls,
 
 
 /**
+ * Handle P2P "QUERY" message.  Only responsible for creating the
+ * request entry itself and setting up reply callback and cancellation
+ * on peer disconnect.  Does NOT execute the actual request strategy
+ * (planning).
+ *
+ * @param other the other peer involved (sender or receiver, NULL
+ *        for loopback messages where we are both sender and receiver)
+ * @param message the actual message
+ * @return pending request handle, NULL on error
+ */
+struct GSF_PendingRequest *
+GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
+		       const struct GNUNET_MessageHeader *message);
+
+
+/**
  * A peer disconnected from us.  Tear down the connected peer
  * record.
  *

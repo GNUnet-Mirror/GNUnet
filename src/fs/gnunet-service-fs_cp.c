@@ -427,6 +427,28 @@ GSF_handle_p2p_migration_stop_ (void *cls,
 
 
 /**
+ * Handle P2P "QUERY" message.
+ *
+ * @param other the other peer involved (sender or receiver, NULL
+ *        for loopback messages where we are both sender and receiver)
+ * @param message the actual message
+ * @return pending request handle, NULL on error
+ */
+struct GSF_PendingRequest *
+GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
+		       const struct GNUNET_MessageHeader *message)
+{
+  // FIXME!
+  // parse request
+  // setup pending request
+  // track pending request to cancel it on peer disconnect (!)
+  // return it!
+  // (actual planning & execution up to caller!)
+  return NULL;
+}
+
+
+/**
  * Function called if there has been a timeout trying to satisfy
  * a transmission request.
  *

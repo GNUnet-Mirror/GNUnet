@@ -19,70 +19,12 @@
 */
 
 /**
- * @file fs/gnunet-service-fs_pr.h
+ * @file fs/gnunet-service-fs_pr.c
  * @brief API to handle pending requests
  * @author Christian Grothoff
  */
-#ifndef GNUNET_SERVICE_FS_PR_H
-#define GNUNET_SERVICE_FS_PR_H
-
-#include "gnunet-service-fs.h"
-
-
-/**
- * Options for pending requests (bits to be ORed).
- */
-enum GSF_PendingRequestOptions
-  {
-    /**
-     * Request must only be processed locally.
-     */
-    GSF_PRO_LOCAL_ONLY = 1,
-    
-    /**
-     * Request must only be forwarded (no routing)
-     */
-    GSF_PRO_FORWARD_ONLY = 2,
-
-    /**
-     * Request persists indefinitely (no expiration).
-     */
-    GSF_PRO_REQUEST_EXPIRES = 4,
-
-    /**
-     * Request is allowed to refresh bloomfilter and change mingle value.
-     */
-    GSF_PRO_BLOOMFILTER_FULL_REFRESH = 8,
-
-    /**
-     * Request priority is allowed to be exceeded.
-     */
-    GSF_PRO_PRIORITY_UNLIMITED = 16,
-
-    /**
-     * Option mask for typical local requests.
-     */
-    GSF_PRO_LOCAL_REQUEST = (GSF_PRO_BLOOMFILTER_FULL_REFRESH | GSF_PRO_PRIORITY_UNLIMITED)
-  };
-
-
-/**
- * Handle a reply to a pending request.  Also called if a request
- * expires (then with data == NULL).  The handler may be called
- * many times (depending on the request type), but will not be
- * called during or after a call to GSF_pending_request_cancel 
- * and will also not be called anymore after a call signalling
- * expiration.
- *
- * @param cls user-specified closure
- * @param pr handle to the original pending request
- * @param data response data, NULL on request expiration
- * @param data_len number of bytes in data
- */
-typedef void (*GSF_PendingRequestReplyHandler)(void *cls,
-					       struct GSF_PendingRequest *pr,
-					       const void *data,
-					       size_t data_len);
+#include "platform.h"
+#include "gnunet-service-fs_pr.h"
 
 
 /**
@@ -116,7 +58,10 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
 			     const GNUNET_HashCode *replies_seen,
 			     unsigned int replies_seen_count,
 			     GSF_PendingRequestReplyHandler rh,
-			     void *rh_cls);
+			     void *rh_cls)
+{
+  return NULL; // FIXME
+}
 
 
 /**
@@ -130,7 +75,11 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
 void
 GSF_pending_request_update_ (struct GSF_PendingRequest *pr,
 			     const GNUNET_HashCode *replies_seen,
-			     unsigned int replies_seen_count);
+			     unsigned int replies_seen_count)
+{
+  // FIXME
+}
+
 
 
 /**
@@ -140,7 +89,10 @@ GSF_pending_request_update_ (struct GSF_PendingRequest *pr,
  * @return pointer to the query (only valid as long as pr is valid)
  */
 const GNUNET_HashCode *
-GSF_pending_request_get_query_ (const struct GSF_PendingRequest *pr);
+GSF_pending_request_get_query_ (const struct GSF_PendingRequest *pr)
+{
+  return NULL; // FIXME
+}
 
 
 /**
@@ -150,7 +102,10 @@ GSF_pending_request_get_query_ (const struct GSF_PendingRequest *pr);
  * @return query type
  */
 enum GNUNET_BLOCK_Type
-GSF_pending_request_get_type_ (const struct GSF_PendingRequest *pr);
+GSF_pending_request_get_type_ (const struct GSF_PendingRequest *pr)
+{
+  return 0; // FIXME
+}
 
 
 /**
@@ -165,7 +120,10 @@ GSF_pending_request_get_type_ (const struct GSF_PendingRequest *pr);
 size_t
 GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
 				  size_t buf_size,
-				  void *buf);
+				  void *buf)
+{
+  return 0; // FIXME
+}
 
 
 /**
@@ -174,19 +132,9 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
  * @param pr request to cancel
  */
 void
-GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr);
-
-
-/**
- * Signature of function called on each request.
- *
- * @param cls closure
- * @param key query for the request
- * @param pr handle to the pending request
- */
-typedef int (*GSF_PendingRequestIterator)(void *cls,
-					  const GNUNET_HashCode *key,
-					  struct GSF_PendingRequest *pr);
+GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr)
+{
+}
 
 
 /**
@@ -197,7 +145,10 @@ typedef int (*GSF_PendingRequestIterator)(void *cls,
  */
 void
 GSF_iterate_pending_requests_ (GSF_PendingRequestIterator it,
-			       void *cls);
+			       void *cls)
+{
+  // FIXME
+}
 
 
 /**
@@ -215,22 +166,30 @@ GSF_iterate_pending_requests_ (GSF_PendingRequestIterator it,
  */
 int
 GSF_handle_p2p_content_ (const struct GNUNET_PeerIdentity *other,
-			 const struct GNUNET_MessageHeader *message);
+			 const struct GNUNET_MessageHeader *message)
+{
+  return GNUNET_SYSERR; // FIXME
+}
 
 
 /**
  * Setup the subsystem.
  */
 void
-GSF_pending_request_init_ (void);
+GSF_pending_request_init_ ()
+{
+  // FIXME
+}
 
 
 /**
  * Shutdown the subsystem.
  */
 void
-GSF_pending_request_done_ (void);
+GSF_pending_request_done_ ()
+{
+  // FIXME
+}
 
 
-#endif
-/* end of gnunet-service-fs_pr.h */
+/* end of gnunet-service-fs_pr.c */

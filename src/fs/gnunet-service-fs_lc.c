@@ -181,13 +181,12 @@ GSF_local_client_lookup_ (struct GNUNET_SERVER_Client *client)
 /**
  * Handle START_SEARCH-message (search request from local client).
  *
- * @param cls closure
  * @param client identification of the client
  * @param message the actual message
+ * @return pending request handle for the request, NULL on error
  */
-void
-GSF_local_client_start_search_handler_ (void *cls,
-					struct GNUNET_SERVER_Client *client,
+struct GSF_PendingRequest *
+GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
 					const struct GNUNET_MessageHeader *message)
 {
   static GNUNET_HashCode all_zeros;
@@ -207,7 +206,7 @@ GSF_local_client_start_search_handler_ (void *cls,
       GNUNET_break (0);
       GNUNET_SERVER_receive_done (client,
 				  GNUNET_SYSERR);
-      return;
+      return NULL;
     }
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# client searches received"),
@@ -223,7 +222,6 @@ GSF_local_client_start_search_handler_ (void *cls,
 	      (unsigned int) type);
 #endif
   lc = GSF_local_client_lookup_ (client);
-
 
   /* detect duplicate KBLOCK requests */
   if ( (type == GNUNET_BLOCK_TYPE_FS_KBLOCK) ||
@@ -252,7 +250,7 @@ GSF_local_client_start_search_handler_ (void *cls,
 				    GNUNET_NO);
 	  GNUNET_SERVER_receive_done (client,
 				      GNUNET_OK);
-	  return;
+	  return NULL;
 	}
     }
 
@@ -268,25 +266,24 @@ GSF_local_client_start_search_handler_ (void *cls,
   options = GSF_PRO_LOCAL_REQUEST;  
   if (0 != (1 & ntohl (sm->options)))
     options |= GSF_PRO_LOCAL_ONLY;
-  cr->pr = GSF_pending_request_create (options,
-				       
-				       type,
-				       &sm->query,
-				       (type == GNUNET_BLOCK_TYPE_SBLOCK)
-				       ? &sm->target /* namespace */
-				       : NULL,
-				       (0 != memcmp (&sm->target,
-						     &all_zeros,
-						     sizeof (GNUNET_HashCode)))
-				       ? &sm->target,
-				       : NULL,
-				       NULL /* bf */, 0 /* mingle */,
-				       ntohl (sm->anonymity_level),
-				       0 /* priority */,
-				       &sm[1], sc,
-				       &client_response_handler,
-				       cr);
-  // FIXME: start local processing and/or P2P processing?
+  cr->pr = GSF_pending_request_create_ (options,
+					type,
+					&sm->query,
+					(type == GNUNET_BLOCK_TYPE_SBLOCK)
+					? &sm->target /* namespace */
+					: NULL,
+					(0 != memcmp (&sm->target,
+						      &all_zeros,
+						      sizeof (GNUNET_HashCode)))
+					? &sm->target,
+					: NULL,
+					NULL /* bf */, 0 /* mingle */,
+					ntohl (sm->anonymity_level),
+					0 /* priority */,
+					&sm[1], sc,
+					&client_response_handler,
+					cr);
+  return cr->pr;
 }
 
 

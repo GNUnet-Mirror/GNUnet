@@ -42,14 +42,16 @@ GSF_local_client_lookup_ (struct GNUNET_SERVER_Client *client);
 
 /**
  * Handle START_SEARCH-message (search request from local client).
+ * Only responsible for creating the request entry itself and setting
+ * up reply callback and cancellation on client disconnect.  Does NOT
+ * execute the actual request strategy (planning).
  *
- * @param cls closure
  * @param client identification of the client
  * @param message the actual message
+ * @return pending request handle for the request, NULL on error
  */
-void
-GSF_local_client_start_search_handler_ (void *cls,
-					struct GNUNET_SERVER_Client *client,
+struct GSF_PendingRequest *
+GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
 					const struct GNUNET_MessageHeader *message);
 
 
