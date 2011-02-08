@@ -308,6 +308,7 @@ try_reconnect (void *cls,
                                          handle);
   if (handle->pending_head == NULL)
     return;
+
   GNUNET_CLIENT_notify_transmit_ready (handle->client,
                                        ntohs(handle->pending_head->msg->size),
                                        GNUNET_TIME_UNIT_FOREVER_REL,
@@ -382,6 +383,7 @@ transmit_pending (void *cls,
   handle->th = NULL;
   if (buf == NULL)
     {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Transmission to DHT service failed!  Reconnecting!\n");
       do_disconnect (handle);
       return 0;
     }
