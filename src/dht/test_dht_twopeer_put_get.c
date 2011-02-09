@@ -55,7 +55,7 @@
 /* If number of peers not in config file, use this number */
 #define DEFAULT_NUM_PEERS 2
 
-#define DNS GNUNET_YES
+#define DNS GNUNET_NO
 
 /* Globals */
 
