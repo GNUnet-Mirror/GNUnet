@@ -252,7 +252,7 @@ getValue__ (unsigned char a)
  * Convert GNUNET_CRYPTO_hash to ASCII encoding.  The ASCII encoding is rather
  * GNUnet specific.  It was chosen such that it only uses characters
  * in [0-9A-V], can be produced without complex arithmetics and uses a
- * small number of characters.  The GNUnet encoding uses 102
+ * small number of characters.  The GNUnet encoding uses 103
  * characters plus a null terminator.
  *
  * @param block the hash code
