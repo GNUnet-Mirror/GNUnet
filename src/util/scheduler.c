@@ -1219,6 +1219,7 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
   t->backtrace_strings = backtrace_symbols(backtrace_array, t->num_backtrace_strings);
 #endif
   t->read_fd = rfd;
+  GNUNET_assert(wfd >= -1);
   t->write_fd = wfd;
   t->id = ++last_id;
 #if PROFILE_DELAYS
@@ -1328,6 +1329,7 @@ GNUNET_SCHEDULER_add_write_net (struct GNUNET_TIME_Relative delay,
   GNUNET_NETWORK_fdset_destroy (ws);
   return ret;
 #else
+  GNUNET_assert(GNUNET_NETWORK_get_fd(wfd) >= 0);
   return add_without_sets (delay,
 			   -1,
 			   GNUNET_NETWORK_get_fd (wfd),
@@ -1421,6 +1423,7 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
   int fd;
 
   GNUNET_DISK_internal_file_handle_ (wfd, &fd, sizeof (int));
+  GNUNET_assert(fd >= 0);
   return add_without_sets (delay,
 			   -1,
 			   fd,
