@@ -31,17 +31,43 @@
  */
 struct GSF_ConnectedPeer;
 
-
 /**
  * An active request.
  */
 struct GSF_PendingRequest;
 
-
 /**
  * A local client.
  */
 struct GSF_LocalClient;
+
+
+/**
+ * Our connection to the datastore.
+ */
+extern struct GNUNET_DATASTORE_Handle *GSF_dsh;
+
+/**
+ * Our configuration.
+ */
+extern const struct GNUNET_CONFIGURATION_Handle *GSF_cfg;
+
+/**
+ * Handle for reporting statistics.
+ */
+extern struct GNUNET_STATISTICS_Handle *GSF_stats;
+
+/**
+ * Pointer to handle to the core service (points to NULL until we've
+ * connected to it).
+ */
+extern struct GNUNET_CORE_Handle *GSF_core;
+
+/**
+ * Handle for DHT operations.
+ */
+static struct GNUNET_DHT_Handle *GSF_dht;
+
 
 
 #endif

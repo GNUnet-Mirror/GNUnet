@@ -68,7 +68,9 @@ enum GSF_PendingRequestOptions
 
 
 /**
- * Public data associated with each pending request.
+ * Public data (in the sense of not encapsulated within
+ * 'gnunet-service-fs_pr', not in the sense of network-wide
+ * known) associated with each pending request.
  */
 struct GSF_PendingRequestData
 {
@@ -185,36 +187,18 @@ GSF_pending_request_update_ (struct GSF_PendingRequest *pr,
 
 
 /**
- * Get the query for a given pending request.
- *
- * @param pr the request
- * @return pointer to the query (only valid as long as pr is valid)
- */
-const GNUNET_HashCode *
-GSF_pending_request_get_query_ (const struct GSF_PendingRequest *pr);
-
-
-/**
- * Get the type of a given pending request.
- *
- * @param pr the request
- * @return query type
- */
-enum GNUNET_BLOCK_Type
-GSF_pending_request_get_type_ (const struct GSF_PendingRequest *pr);
-
-
-/**
  * Generate the message corresponding to the given pending request for
  * transmission to other peers (or at least determine its size).
  *
  * @param pr request to generate the message for
+ * @param do_route are we routing the reply
  * @param buf_size number of bytes available in buf
  * @param buf where to copy the message (can be NULL)
- * @return number of bytes needed (if > buf_size) or used
+ * @return number of bytes needed (if buf_size too small) or used
  */
 size_t
 GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
+				  int do_route,
 				  size_t buf_size,
 				  void *buf);
 
@@ -230,10 +214,12 @@ GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr);
 
 /**
  * Signature of function called on each request.
+ * (Note: 'subtype' of GNUNET_CONTAINER_HashMapIterator).
  *
  * @param cls closure
  * @param key query for the request
  * @param pr handle to the pending request
+ * @return GNUNET_YES to continue to iterate
  */
 typedef int (*GSF_PendingRequestIterator)(void *cls,
 					  const GNUNET_HashCode *key,
@@ -257,16 +243,42 @@ GSF_iterate_pending_requests_ (GSF_PendingRequestIterator it,
  * this content and possibly passes it on (to local clients or other
  * peers).  Does NOT perform migration (content caching at this peer).
  *
- * @param other the other peer involved (sender or receiver, NULL
+ * @param cp the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
- * @return how valueable was the content to us (0 for not at all),
+ * @return GNUNET_OK if the message was well-formed,
  *         GNUNET_SYSERR if the message was malformed (close connection,
  *         do not cache under any circumstances)
  */
 int
-GSF_handle_p2p_content_ (const struct GNUNET_PeerIdentity *other,
+GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
 			 const struct GNUNET_MessageHeader *message);
+
+
+/**
+ * Iterator called on each result obtained for a DHT
+ * operation that expects a reply
+ *
+ * @param cls closure, the 'struct GSF_PendingRequest *'.
+ * @param exp when will this value expire
+ * @param key key of the result
+ * @param get_path NULL-terminated array of pointers
+ *                 to the peers on reverse GET path (or NULL if not recorded)
+ * @param put_path NULL-terminated array of pointers
+ *                 to the peers on the PUT path (or NULL if not recorded)
+ * @param type type of the result
+ * @param size number of bytes in data
+ * @param data pointer to the result data
+ */
+void
+GSF_handle_dht_reply_ (void *cls,
+		       struct GNUNET_TIME_Absolute exp,
+		       const GNUNET_HashCode * key,
+		       const struct GNUNET_PeerIdentity * const *get_path,
+		       const struct GNUNET_PeerIdentity * const *put_path,
+		       enum GNUNET_BLOCK_Type type,
+		       size_t size,
+		       const void *data);
 
 
 /**
