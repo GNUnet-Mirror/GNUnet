@@ -750,6 +750,12 @@ static unsigned int do_republish;
 static unsigned int paper_forwarding;
 
 /**
+ * PUT Peer Identities of peers we know about into
+ * the datacache.
+ */
+static unsigned int put_peer_identities;
+
+/**
  * Use the "real" distance metric when selecting the
  * next routing hop.  Can be less accurate.
  */
@@ -1021,10 +1027,11 @@ get_max_send_delay ()
       if (reply_times[i].rel_value > max_time.rel_value)
         max_time.rel_value = reply_times[i].rel_value;
     }
-
+#if DEBUG_DHT
   if (max_time.rel_value > MAX_REQUEST_TIME.rel_value)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Max send delay was %llu\n",
                 (unsigned long long) max_time.rel_value);
+#endif
   return max_time;
 }
 
@@ -1487,9 +1494,11 @@ update_core_preference (void *cls,
                                       &peer->id.hashPubKey);
   if (matching >= 64)
     {
+#if DEBUG_DHT
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Peer identifier matches by %u bits, only shifting as much as we can!\n",
                   matching);
+#endif
       matching = 63;
     }
   preference = 1LL << matching;
@@ -2260,7 +2269,9 @@ route_result_message (struct GNUNET_MessageHeader *msg,
           for (i = 0; i < msg_ctx->path_history_len; i++)
             {
               path_offset = &msg_ctx->path_history[i * sizeof(struct GNUNET_PeerIdentity)];
+#if DEBUG_DHT > 1
               GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "(before client) Key %s Found peer %d:%s\n", GNUNET_h2s(&msg_ctx->key), i, GNUNET_i2s((struct GNUNET_PeerIdentity *)path_offset));
+#endif
             }
           send_reply_to_client (pos->client, msg, msg_ctx);
         }
@@ -2776,9 +2787,11 @@ handle_dht_find_peer (const struct GNUNET_MessageHeader *find_msg,
                                          &msg_ctx->key, NULL,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
     {
+#if DEBUG_DHT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Adding recent remove task for key `%s`!\n",
                   GNUNET_h2s (&msg_ctx->key));
+#endif
       /* Only add a task if there wasn't one for this key already! */
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_SECONDS, 30),
@@ -2787,8 +2800,10 @@ handle_dht_find_peer (const struct GNUNET_MessageHeader *find_msg,
   else
     {
       GNUNET_free (recent_hash);
+#if DEBUG_DHT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Received duplicate find peer request too soon!\n");
+#endif
     }
 
   /* Simplistic find_peer functionality, always return our hello */
@@ -2806,10 +2821,11 @@ handle_dht_find_peer (const struct GNUNET_MessageHeader *find_msg,
   find_peer_result->type = htons (GNUNET_MESSAGE_TYPE_DHT_FIND_PEER_RESULT);
   find_peer_result->size = htons (tsize);
   memcpy (&find_peer_result[1], my_hello, hello_size);
-
+#if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "`%s': Sending hello size %d to requesting peer.\n",
               "DHT", hello_size);
+#endif
 
   new_msg_ctx = GNUNET_malloc (sizeof (struct DHT_MessageContext));
   memcpy (new_msg_ctx, msg_ctx, sizeof (struct DHT_MessageContext));
@@ -5180,13 +5196,15 @@ handle_core_connect (void *cls,
       GNUNET_CONTAINER_multihashmap_contains (all_known_peers,
                                               &peer->hashPubKey))
     {
+#if DEBUG_DHT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "%s:%s Received %s message for peer %s, but already have peer in RT!",
                   my_short_id, "DHT", "CORE CONNECT", GNUNET_i2s (peer));
+#endif
       return;
     }
 
-  if (datacache != NULL)
+  if ((datacache != NULL) && (GNUNET_YES == put_peer_identities))
     {
       put_entry = GNUNET_malloc(sizeof(struct DHTPutEntry) + sizeof (struct GNUNET_PeerIdentity));
       put_entry->path_length = 0;
@@ -5230,18 +5248,21 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   /* Check for disconnect from self message */
   if (0 == memcmp(&my_identity, peer, sizeof(struct GNUNET_PeerIdentity)))
     return;
-
+#if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s:%s: Received peer disconnect message for peer `%s' from %s\n",
               my_short_id, "DHT", GNUNET_i2s (peer), "CORE");
+#endif
 
   if (GNUNET_YES !=
       GNUNET_CONTAINER_multihashmap_contains (all_known_peers,
                                               &peer->hashPubKey))
     {
+#if DEBUG_DHT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "%s:%s: do not have peer `%s' in RT, can't disconnect!\n",
                   my_short_id, "DHT", GNUNET_i2s (peer));
+#endif
       return;
     }
   increment_stats (STAT_DISCONNECTS);
@@ -5478,6 +5499,10 @@ run (void *cls,
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (cfg, "dht", "paper_forwarding"))
       paper_forwarding = GNUNET_YES;
+
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "dht", "put_peer_identities"))
+      put_peer_identities = GNUNET_YES;
 
   stats = GNUNET_STATISTICS_create ("dht", cfg);
 
