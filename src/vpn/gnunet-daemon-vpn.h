@@ -62,17 +62,17 @@ send_udp_to_peer (void *cls,
 /**
  * The configuration to use
  */
-const struct GNUNET_CONFIGURATION_Handle *cfg;
+extern const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
  * The handle to mesh
  */
-struct GNUNET_MESH_Handle *mesh_handle;
+extern struct GNUNET_MESH_Handle *mesh_handle;
 
 /**
  * The hashmap containing the mappings from ipv6-addresses to gnunet-descriptors
  */
-struct GNUNET_CONTAINER_MultiHashMap* hashmap;
+extern struct GNUNET_CONTAINER_MultiHashMap* hashmap;
 
 struct map_entry {
     struct GNUNET_vpn_service_descriptor desc;

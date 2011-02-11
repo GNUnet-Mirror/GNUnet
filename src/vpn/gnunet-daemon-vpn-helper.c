@@ -40,6 +40,8 @@
 #include "gnunet-service-dns-p.h"
 #include "gnunet-vpn-packet.h"
 
+struct GNUNET_VPN_HELPER_Handle *helper_handle;
+
 /**
  * Start the helper-process
  *

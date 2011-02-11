@@ -31,7 +31,7 @@
 /**
  * Handle to the helper. contains filedescriptors and such
  */
-struct GNUNET_VPN_HELPER_Handle *helper_handle;
+extern struct GNUNET_VPN_HELPER_Handle *helper_handle;
 
 /**
  * Start the helper-process

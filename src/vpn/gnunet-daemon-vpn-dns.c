@@ -39,6 +39,13 @@
 #include "gnunet-service-dns-p.h"
 #include "gnunet-vpn-packet.h"
 
+struct query_packet_list *head;
+struct query_packet_list *tail;
+struct GNUNET_CLIENT_Connection *dns_connection;
+unsigned char restart_hijack;
+struct answer_packet_list *answer_proc_head;
+struct answer_packet_list *answer_proc_tail;
+
 /**
  * Callback called by notify_transmit_ready; sends dns-queries or rehijack-messages
  * to the service-dns

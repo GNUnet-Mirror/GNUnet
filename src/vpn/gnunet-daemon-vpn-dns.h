@@ -29,12 +29,12 @@
 /**
  * a list of outgoing dns-query-packets
  */
-struct query_packet_list *head;
+extern struct query_packet_list *head;
 
 /**
  * The last element of the list of outgoing dns-query-packets
  */
-struct query_packet_list *tail;
+extern struct query_packet_list *tail;
 
 /**
  * Callback called by notify_transmit_ready; sends dns-queries or rehijack-messages
@@ -57,7 +57,7 @@ void dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg);
 /**
  * The connection to the service-dns
  */
-struct GNUNET_CLIENT_Connection *dns_connection;
+extern struct GNUNET_CLIENT_Connection *dns_connection;
 
 /**
  * A flag to show that the service-dns has to rehijack the outbound dns-packets
@@ -65,7 +65,7 @@ struct GNUNET_CLIENT_Connection *dns_connection;
  * This gets set when the helper restarts as the routing-tables are flushed when
  * the interface vanishes.
  */
-unsigned char restart_hijack;
+extern unsigned char restart_hijack;
 
 /**
  * A list of processed dns-responses.
@@ -73,11 +73,11 @@ unsigned char restart_hijack;
  * "processed" means that the packet is complete and can be sent out via udp
  * directly
  */
-struct answer_packet_list *answer_proc_head;
+extern struct answer_packet_list *answer_proc_head;
 
 /**
  * The last element of the list of processed dns-responses.
  */
-struct answer_packet_list *answer_proc_tail;
+extern struct answer_packet_list *answer_proc_tail;
 
 #endif /* end of include guard: GNUNET-DAEMON-VPN-DNS_H */

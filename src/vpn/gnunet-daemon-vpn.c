@@ -40,6 +40,10 @@
 
 #include "gnunet-daemon-vpn.h"
 
+const struct GNUNET_CONFIGURATION_Handle *cfg;
+struct GNUNET_MESH_Handle *mesh_handle;
+struct GNUNET_CONTAINER_MultiHashMap* hashmap;
+
 /**
  * Final status code.
  */
