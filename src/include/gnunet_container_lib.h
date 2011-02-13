@@ -65,6 +65,7 @@ struct GNUNET_CONTAINER_BloomFilter;
 typedef int (*GNUNET_HashCodeIterator) (void *cls,
 					GNUNET_HashCode * next);
 
+
 /**
  * Load a bloom-filter from a file.
  *
@@ -84,6 +85,7 @@ GNUNET_CONTAINER_bloomfilter_load (const
 				   unsigned
 				   int
 				   k);
+
 
 /**
  * Create a bloom filter from raw bits.
@@ -108,6 +110,7 @@ GNUNET_CONTAINER_bloomfilter_init (const
 				   int
 				   k);
 
+
 /**
  * Copy the raw data of this bloomfilter into
  * the given data array.
@@ -121,6 +124,7 @@ int GNUNET_CONTAINER_bloomfilter_get_raw_data (const struct
                                                *bf, char *data,
                                                size_t size);
 
+
 /**
  * Test if an element is in the filter.
  * @param e the element
@@ -130,6 +134,7 @@ int GNUNET_CONTAINER_bloomfilter_get_raw_data (const struct
 int GNUNET_CONTAINER_bloomfilter_test (const struct GNUNET_CONTAINER_BloomFilter
                                        *bf, const GNUNET_HashCode * e);
 
+
 /**
  * Add an element to the filter
  * @param bf the filter
@@ -138,6 +143,7 @@ int GNUNET_CONTAINER_bloomfilter_test (const struct GNUNET_CONTAINER_BloomFilter
 void GNUNET_CONTAINER_bloomfilter_add (struct GNUNET_CONTAINER_BloomFilter
                                        *bf, const GNUNET_HashCode * e);
 
+
 /**
  * Remove an element from the filter.
  * @param bf the filter
@@ -145,6 +151,18 @@ void GNUNET_CONTAINER_bloomfilter_add (struct GNUNET_CONTAINER_BloomFilter
  */
 void GNUNET_CONTAINER_bloomfilter_remove (struct GNUNET_CONTAINER_BloomFilter
                                           *bf, const GNUNET_HashCode * e);
+
+
+/**
+ * Free the space associcated with a filter
+ * in memory, flush to drive if needed (do not
+ * free the space on the drive)
+ * @param bf the filter
+ */
+struct GNUNET_CONTAINER_BloomFilter *
+GNUNET_CONTAINER_bloomfilter_copy (const struct GNUNET_CONTAINER_BloomFilter *bf);
+
+
 
 /**
  * Free the space associcated with a filter
@@ -942,7 +960,9 @@ GNUNET_CONTAINER_heap_iterate (const struct GNUNET_CONTAINER_Heap *heap,
  *
  */
 void *
-GNUNET_CONTAINER_heap_get_random (struct GNUNET_CONTAINER_Heap *heap, uint32_t max);
+GNUNET_CONTAINER_heap_get_random (struct GNUNET_CONTAINER_Heap *heap, 
+				  uint32_t max);
+
 
 /**
  * Perform a random walk of the tree.  The walk is biased
