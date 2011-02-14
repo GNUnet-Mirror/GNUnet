@@ -895,8 +895,13 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
     hostname = NULL;
 
 #ifdef AF_UNIX
-  if (GNUNET_CONFIGURATION_have_value (cfg,
-                                       serviceName, "UNIXPATH"))
+  if ((GNUNET_YES == GNUNET_CONFIGURATION_have_value (cfg,
+                                       serviceName, "UNIXPATH")) &&
+      (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                           serviceName,
+                                                           "UNIXPATH",
+                                                           &unixpath)) &&
+      (0 < strlen(unixpath)))
     {
       GNUNET_assert (GNUNET_OK ==
                     GNUNET_CONFIGURATION_get_value_string (cfg,
