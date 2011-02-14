@@ -5215,7 +5215,7 @@ handle_core_connect (void *cls,
                             (char *)put_entry, GNUNET_BLOCK_TYPE_DHT_HELLO,
                             GNUNET_TIME_absolute_get_forever ());
     }
-  else
+  else if (datacache == NULL)
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "DHT has no connection to datacache!\n");
   ret = try_add_peer (peer, find_current_bucket (&peer->hashPubKey), atsi);
   if (ret != NULL)
