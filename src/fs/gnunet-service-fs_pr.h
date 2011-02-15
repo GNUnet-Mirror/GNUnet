@@ -92,6 +92,16 @@ struct GSF_PendingRequestData
   struct GNUNET_PeerIdentity target;
 
   /**
+   * Current TTL for the request.
+   */
+  struct GNUNET_TIME_Absolute ttl;
+
+  /**
+   * When did we start with the request.
+   */
+  struct GNUNET_TIME_Absolute start_time;
+
+  /**
    * Desired anonymity level.
    */
   uint32_t anonymity_level;
@@ -146,10 +156,12 @@ typedef void (*GSF_PendingRequestReplyHandler)(void *cls,
  * @param query key for the lookup
  * @param namespace namespace to lookup, NULL for no namespace
  * @param target preferred target for the request, NULL for none
- * @param bf bloom filter for known replies, can be NULL
+ * @param bf_data raw data for bloom filter for known replies, can be NULL
+ * @param bf_size number of bytes in bf_data
  * @param mingle mingle value for bf
  * @param anonymity_level desired anonymity level
  * @param priority maximum outgoing cummulative request priority to use
+ * @param ttl current time-to-live for the request
  * @param replies_seen hash codes of known local replies
  * @param replies_seen_count size of the 'replies_seen' array
  * @param rh handle to call when we get a reply
@@ -162,10 +174,12 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
 			     const GNUNET_HashCode *query,
 			     const GNUNET_HashCode *namespace,
 			     const struct GNUNET_PeerIdentity *target,
-			     const struct GNUNET_CONTAINER_BloomFilter *bf,
+			     const char *bf_data,
+			     size_t bf_size,
 			     int32_t mingle,
 			     uint32_t anonymity_level,
 			     uint32_t priority,
+			     int32_t ttl,
 			     const GNUNET_HashCode *replies_seen,
 			     unsigned int replies_seen_count,
 			     GSF_PendingRequestReplyHandler rh,
@@ -184,6 +198,16 @@ void
 GSF_pending_request_update_ (struct GSF_PendingRequest *pr,
 			     const GNUNET_HashCode *replies_seen,
 			     unsigned int replies_seen_count);
+
+
+/**
+ * Obtain the public data associated with a pending request
+ * 
+ * @param pr pending request
+ * @return associated public data
+ */
+struct GSF_PendingRequestData *
+GSF_pending_request_get_data_ (struct GSF_PendingRequest *pr);
 
 
 /**

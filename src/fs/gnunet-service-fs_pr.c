@@ -182,10 +182,12 @@ refresh_bloomfilter (struct GSF_PendingRequest *pr)
  * @param query key for the lookup
  * @param namespace namespace to lookup, NULL for no namespace
  * @param target preferred target for the request, NULL for none
- * @param bf bloom filter for known replies, can be NULL
+ * @param bf_data raw data for bloom filter for known replies, can be NULL
+ * @param bf_size number of bytes in bf_data
  * @param mingle mingle value for bf
  * @param anonymity_level desired anonymity level
  * @param priority maximum outgoing cummulative request priority to use
+ * @param ttl current time-to-live for the request
  * @param replies_seen hash codes of known local replies
  * @param replies_seen_count size of the 'replies_seen' array
  * @param rh handle to call when we get a reply
@@ -198,10 +200,12 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
 			     const GNUNET_HashCode *query,
 			     const GNUNET_HashCode *namespace,
 			     const struct GNUNET_PeerIdentity *target,
-			     const struct GNUNET_CONTAINER_BloomFilter *bf,
+			     const char *bf_data,
+			     size_t bf_size,
 			     int32_t mingle,
 			     uint32_t anonymity_level,
 			     uint32_t priority,
+			     int32_t ttl,
 			     const GNUNET_HashCode *replies_seen,
 			     unsigned int replies_seen_count,
 			     GSF_PendingRequestReplyHandler rh,
@@ -226,8 +230,16 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
   pr->public_data.priority = priority;
   pr->public_data.options = options;
   pr->public_data.type = type;  
+  pr->public_data.start_time = GNUNET_TIME_absolute_get ();
   pr->rh = rh;
   pr->rh_cls = rh_cls;
+  if (ttl >= 0)
+    pr->ttl = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+									       (uint32_t) ttl));
+  else
+    pr->ttl = GNUNET_TIME_absolute_subtract (pr->public_data.start_time,
+					     GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+									    (uint32_t) (- ttl)));
   if (replies_seen_count > 0)
     {
       pr->replies_seen_size = replies_seen_count;
@@ -237,9 +249,11 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
 	      replies_seen_count * sizeof (struct GNUNET_HashCode));
       pr->replies_seen_count = replies_seen_count;
     }
-  if (NULL != bf)    
+  if (NULL != bf_data)    
     {
-      pr->bf = GNUNET_CONTAINER_bloomfilter_copy (bf);
+      pr->bf = GNUNET_CONTAINER_bloomfilter_init (bf_data,
+						  bf_size,
+						  BLOOMFILTER_K);
       pr->mingle = mingle;
     }
   else if ( (replies_seen_count > 0) &&
@@ -254,7 +268,36 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
   // FIXME: if not a local query, we also need to track the
   // total number of external queries we currently have and
   // bound it => need an additional heap!
+
+  pr->hnode = GNUNET_CONTAINER_heap_insert (requests_by_expiration_heap,
+					    pr,
+					    pr->start_time.abs_value + pr->ttl);
+
+
+
+  /* make sure we don't track too many requests */
+  if (GNUNET_CONTAINER_heap_get_size (requests_by_expiration_heap) > max_pending_requests)
+    {
+      pr = GNUNET_CONTAINER_heap_peek (requests_by_expiration_heap);
+      GNUNET_assert (pr != NULL);
+      destroy_pending_request (pr);
+    }
+
+
   return pr;
+}
+
+
+/**
+ * Obtain the public data associated with a pending request
+ * 
+ * @param pr pending request
+ * @return associated public data
+ */
+struct GSF_PendingRequestData *
+GSF_pending_request_get_data_ (struct GSF_PendingRequest *pr)
+{
+  return &pr->public_data;
 }
 
 

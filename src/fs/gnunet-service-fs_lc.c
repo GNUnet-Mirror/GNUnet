@@ -341,7 +341,7 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
 						      sizeof (GNUNET_HashCode)))
 					? &sm->target,
 					: NULL,
-					NULL /* bf */, 0 /* mingle */,
+					NULL, 0, 0 /* bf */, 
 					ntohl (sm->anonymity_level),
 					0 /* priority */,
 					&sm[1], sc,

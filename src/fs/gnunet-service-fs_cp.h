@@ -257,7 +257,7 @@ GSF_handle_p2p_migration_stop_ (void *cls,
  * Handle P2P "QUERY" message.  Only responsible for creating the
  * request entry itself and setting up reply callback and cancellation
  * on peer disconnect.  Does NOT execute the actual request strategy
- * (planning).
+ * (planning) or local database operations.
  *
  * @param other the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
