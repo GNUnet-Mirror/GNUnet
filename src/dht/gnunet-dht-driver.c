@@ -449,6 +449,11 @@ static unsigned long long test_data_size = DEFAULT_TEST_DATA_SIZE;
 static unsigned long long max_outstanding_connections;
 
 /**
+ * Maximum number of concurrent ssh instances to peers.
+ */
+static unsigned long long max_concurrent_ssh;
+
+/**
  * Maximum number of concurrent PUT requests.
  */
 static unsigned long long max_outstanding_puts = DEFAULT_MAX_OUTSTANDING_PUTS;
@@ -2100,7 +2105,12 @@ schedule_find_peer_requests (void *cls, const struct GNUNET_SCHEDULER_TaskContex
   for (i = 0; i < find_peer_ctx->total; i++)
     {
       test_find_peer = GNUNET_malloc(sizeof(struct TestFindPeer));
-      if (find_peer_ctx->previous_peers == 0) /* If we haven't sent any requests yet, choose random peers */
+      /* If we haven't sent any requests yet, choose random peers */
+      /* Also choose random in _half_ of all cases, so we don't
+       * get stuck choosing topologically restricted peers with
+       * few connections that will never be able to find any new
+       * peers! */
+      if ((find_peer_ctx->previous_peers == 0) || (i % 2 == 0))
         {
           /**
            * Attempt to spread find peer requests across even sections of the peer address
@@ -2816,6 +2826,14 @@ run (void *cls,
       return;
     }
 
+  if (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "max_concurrent_ssh",
+                                               &max_concurrent_ssh))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n", "testing", "max_concurrent_ssh");
+      return;
+    }
+
   /**
    * Get DHT specific testing options.
    */
@@ -2998,7 +3016,7 @@ run (void *cls,
           {
             data[count] = '\0';
             temphost = GNUNET_malloc(sizeof(struct GNUNET_TESTING_Host));
-            ret = sscanf(buf, "%a[a-zA-Z0-9]@%a[a-zA-Z0-9.]:%hd", &temphost->username, &temphost->hostname, &temphost->port);
+            ret = sscanf(buf, "%a[a-zA-Z0-9_]@%a[a-zA-Z0-9.]:%hd", &temphost->username, &temphost->hostname, &temphost->port);
             if (3 == ret)
               {
                 GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Successfully read host %s, port %d and user %s from file\n", temphost->hostname, temphost->port, temphost->username);
@@ -3368,6 +3386,7 @@ run (void *cls,
   pg = GNUNET_TESTING_daemons_start (cfg,
                                      peers_left,
                                      max_outstanding_connections,
+                                     max_concurrent_ssh,
                                      GNUNET_TIME_relative_multiply(seconds_per_peer_start, num_peers),
                                      &hostkey_callback, NULL,
                                      &peers_started_callback, NULL,

@@ -298,7 +298,7 @@ try_reconnect (void *cls,
   handle->client = GNUNET_CLIENT_connect ("dht", handle->cfg);
   if (handle->client == NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "dht reconnect failed(!)\n");
       return;
     }
