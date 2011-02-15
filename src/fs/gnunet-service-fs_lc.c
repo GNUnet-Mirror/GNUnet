@@ -190,13 +190,26 @@ GSF_local_client_lookup_ (struct GNUNET_SERVER_Client *client)
  * @param pr handle to the original pending request
  * @param data response data, NULL on request expiration
  * @param data_len number of bytes in data
+ * @param more GNUNET_YES if the request remains active (may call
+ *             this function again), GNUNET_NO if the request is
+ *             finished (client must not call GSF_pending_request_cancel_)
  */
 static void
 client_response_handler (void *cls,
 			 struct GSF_PendingRequest *pr,
 			 const void *data,
-			 size_t data_len)
+			 size_t data_len,
+			 int more)
 {
+  struct ClientRequest *cr = cls;
+
+  if (NULL == data)
+    {
+      /* ugh, request 'timed out' -- how can this be? */
+      GNUNET_break (0);
+      GNUNET_assert (GNUNET_NO == more);
+      return;
+    }
   /* FIXME: adapt old code below to new API! */
 
       GNUNET_STATISTICS_update (stats,

@@ -615,7 +615,6 @@ update_request_performance_data (struct ProcessReplyClosure *prq,
 }
 				
 
-
 /**
  * We have received a reply; handle it!
  *
@@ -663,30 +662,13 @@ process_reply (void *cls,
       break;
     case GNUNET_BLOCK_EVALUATION_OK_LAST:
       update_request_performance_data (prq, pr);
-      /* FIXME: adapt code to new API! */
-      while (NULL != pr->pending_head)
-	destroy_pending_message_list_entry (pr->pending_head);
-      if (pr->qe != NULL)
-	{
-	  if (pr->client_request_list != NULL)
-	    GNUNET_SERVER_receive_done (pr->client_request_list->client_list->client, 
-					GNUNET_YES);
-	  GNUNET_DATASTORE_cancel (pr->qe);
-	  pr->qe = NULL;
-	}
-      pr->do_remove = GNUNET_YES;
-      if (pr->task != GNUNET_SCHEDULER_NO_TASK)
-	{
-	  GNUNET_SCHEDULER_cancel (pr->task);
-	  pr->task = GNUNET_SCHEDULER_NO_TASK;
-	}
-      GNUNET_break (GNUNET_YES ==
-		    GNUNET_CONTAINER_multihashmap_remove (query_request_map,
-							  key,
-							  pr));
       GNUNET_LOAD_update (rt_entry_lifetime,
 			  GNUNET_TIME_absolute_get_duration (pr->start_time).rel_value);
-      break;
+      /* pass on to other peers / local clients */
+      pr->rh (pr->rh_cls, pr, prq->data, prq->size, GNUNET_NO);
+      /* destroy request, we're done */
+      GSF_pending_request_cancel_ (pr);
+      return GNUNET_YES;
     case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
       GNUNET_STATISTICS_update (stats,
 				gettext_noop ("# duplicate replies discarded (bloomfilter)"),
@@ -741,7 +723,7 @@ process_reply (void *cls,
   pr->results_found++;
   prq->request_found = GNUNET_YES;
   /* finally, pass on to other peers / local clients */
-  pr->rh (pr->rh_cls, pr, prq->data, prq->size);
+  pr->rh (pr->rh_cls, pr, prq->data, prq->size, GNUNET_YES);
   return GNUNET_YES;
 }
 
@@ -975,6 +957,7 @@ void
 GSF_pending_request_init_ ()
 {
   pr_map = GNUNET_CONTAINER_multihashmap_create (32 * 1024);
+  requests_by_expiration_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN); 
 }
 
 
@@ -989,6 +972,8 @@ GSF_pending_request_done_ ()
 					 NULL);
   GNUNET_CONTAINER_multihashmap_destroy (pr_map);
   pr_map = NULL;
+  GNUNET_CONTAINER_heap_destroy (requests_by_expiration_heap);
+  requests_by_expiration_heap = NULL;
 }
 
 
