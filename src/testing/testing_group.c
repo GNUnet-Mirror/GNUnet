@@ -44,7 +44,7 @@
  * enough to not conflict with client-ports (typically starting around
  * 32k).
  */
-#define LOW_PORT 10000
+#define LOW_PORT 12000
 
 /**
  * Highest port used for GNUnet testing.  Should be low enough to not
@@ -2539,11 +2539,15 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
   struct GNUNET_OS_Process **procarr;
   char *arg;
   char *mytemp;
+#if NOT_STUPID
   enum GNUNET_OS_ProcessStatusType type;
   unsigned long return_code;
   int count;
-  int ret;
   int max_wait = 10;
+#endif
+  int ret;
+
+  ret = GNUNET_OK;
 #if OLD
   struct GNUNET_CRYPTO_HashAsciiEncoded peer_enc;
   struct PeerConnection *conn_iter;
@@ -2615,6 +2619,11 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
             GNUNET_OS_start_process (NULL, NULL, "scp", "scp", mytemp, arg,
                                      NULL);
 
+          ret = GNUNET_OS_process_wait(procarr[pg_iter]); /* FIXME: schedule this, throttle! */
+          GNUNET_OS_process_close (procarr[pg_iter]);
+          if (ret != GNUNET_OK)
+            return ret;
+          procarr[pg_iter] = NULL;
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Copying file with command scp %s %s\n"), mytemp,
@@ -2626,6 +2635,7 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
       GNUNET_free (mytemp);
     }
 
+#if NOT_STUPID
   count = 0;
   ret = GNUNET_SYSERR;
   while ((count < max_wait) && (ret != GNUNET_OK))
@@ -2671,6 +2681,7 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
 #if VERBOSE_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               _("Finished copying all friend files!\n"));
+#endif
 #endif
   GNUNET_free (procarr);
   return ret;
