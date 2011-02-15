@@ -116,8 +116,9 @@ run (void *cls,
 #endif
   peers_left = NUM_PEERS;
   pg = GNUNET_TESTING_daemons_start (cfg,
-                                     peers_left,
-                                     NUM_PEERS,
+                                     peers_left, /* Total number of peers */
+                                     peers_left, /* Number of outstanding connections */
+                                     peers_left, /* Number of parallel ssh connections, or peers being started at once */
                                      TIMEOUT,
                                      NULL, NULL,
                                      &my_cb, NULL, NULL, NULL, NULL);

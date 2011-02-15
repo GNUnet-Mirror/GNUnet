@@ -1181,6 +1181,7 @@ run (void *cls,
   pg = GNUNET_TESTING_daemons_start (cfg,
                                      peers_left,
                                      peers_left / 2,
+                                     peers_left,
                                      GNUNET_TIME_relative_multiply
                                      (GNUNET_TIME_UNIT_SECONDS,
                                       SECONDS_PER_PEER_START * num_peers),

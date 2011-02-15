@@ -461,8 +461,9 @@ run (void *cls,
   /* Start num_peers peers, call peers_started_callback on peer start, topology_callback on peer connect */
   /* Read the API documentation for other parameters! */
   pg = GNUNET_TESTING_daemons_start (cfg,
-                                     num_peers,
-                                     num_peers,
+                                     peers_left, /* Total number of peers */
+                                     peers_left, /* Number of outstanding connections */
+                                     peers_left, /* Number of parallel ssh connections, or peers being started at once */
                                      TIMEOUT,
                                      NULL,
                                      NULL,

@@ -535,7 +535,7 @@ run (void *cls,
                                            "didn't start all daemons in reasonable amount of time!!!");
 
   pg = GNUNET_TESTING_daemons_start (cfg,
-                                     peers_left, peers_left,
+                                     peers_left, peers_left, peers_left,
                                      TIMEOUT, &hostkey_callback,
                                      NULL, &peers_started_callback, NULL,
                                      &topology_callback, NULL, NULL);

@@ -395,6 +395,7 @@ GNUNET_FS_TEST_daemons_start (const char *template_cfg_file,
   sctx->group = GNUNET_TESTING_daemons_start (sctx->cfg,
 					      total,
 					      total, /* Outstanding connections */
+					      total, /* Outstanding ssh connections */
 					      timeout,
 					      NULL,
 					      NULL,

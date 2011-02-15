@@ -1138,8 +1138,9 @@ run (void *cls,
 
   peer_daemon_hash = GNUNET_CONTAINER_multihashmap_create(peers_left);
   pg = GNUNET_TESTING_daemons_start (cfg,
-                                     peers_left,
-                                     peers_left,
+                                     peers_left, /* Total number of peers */
+                                     peers_left, /* Number of outstanding connections */
+                                     peers_left, /* Number of parallel ssh connections, or peers being started at once */
                                      TIMEOUT,
                                      &hostkey_callback,
                                      NULL,

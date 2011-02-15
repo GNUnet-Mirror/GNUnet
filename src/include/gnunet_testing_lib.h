@@ -567,7 +567,9 @@ void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
  * @param cfg configuration template to use
  * @param total number of daemons to start
  * @param max_concurrent_connections for testing, how many peers can
- *                                   we connect to simultaneously
+*                                   we connect to simultaneously
+ * @param max_concurrent_ssh when starting with ssh, how many ssh
+ *        connections will we allow at once (based on remote hosts allowed!)
  * @param timeout total time allowed for peers to start
  * @param hostkey_callback function to call on each peers hostkey generation
  *        if NULL, peers will be started by this call, if non-null,
@@ -587,6 +589,7 @@ struct GNUNET_TESTING_PeerGroup *
 GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               unsigned int total,
                               unsigned int max_concurrent_connections,
+                              unsigned int max_concurrent_ssh,
                               struct GNUNET_TIME_Relative timeout,
                               GNUNET_TESTING_NotifyHostkeyCreated
                               hostkey_callback, void *hostkey_cls,

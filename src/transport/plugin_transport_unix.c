@@ -80,6 +80,24 @@ struct UNIXMessage
 
 };
 
+struct RetryList
+{
+  /**
+   * Pointer to next element.
+   */
+  struct RetryList *next;
+
+  /**
+   * Pointer to previous element.
+   */
+  struct RetryList *prev;
+
+  /**
+   * The actual retry context.
+   */
+  struct RetrySendContext *retry_ctx;
+};
+
 /**
  * Network format for IPv4 addresses.
  */
@@ -191,6 +209,11 @@ struct RetrySendContext
    * The priority of the message.
    */
   unsigned int priority;
+
+  /**
+   * Entry in the DLL of retry items.
+   */
+  struct RetryList *retry_list_entry;
 };
 
 /**
@@ -342,6 +365,16 @@ struct Plugin
 
 };
 
+/**
+ * Head of retry DLL.
+ */
+static struct RetryList *retry_list_head;
+
+/**
+ * Tail of retry DLL.
+ */
+static struct RetryList *retry_list_tail;
+
 
 /**
  * Disconnect from a remote node.  Clean up session if we have one for this peer
@@ -370,6 +403,22 @@ static int
 unix_transport_server_stop (void *cls)
 {
   struct Plugin *plugin = cls;
+  struct RetryList *pos;
+
+  pos = retry_list_head;
+
+  while(NULL != (pos = retry_list_head))
+    {
+      GNUNET_CONTAINER_DLL_remove(retry_list_head, retry_list_tail, pos);
+      if (GNUNET_SCHEDULER_NO_TASK != pos->retry_ctx->retry_task)
+        {
+          GNUNET_SCHEDULER_cancel(pos->retry_ctx->retry_task);
+        }
+      GNUNET_free(pos->retry_ctx->msg);
+      GNUNET_free(pos->retry_ctx->addr);
+      GNUNET_free(pos->retry_ctx);
+      GNUNET_free(pos);
+    }
 
   if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK)
     {
@@ -428,7 +477,13 @@ void retry_send_message (void *cls,
   struct RetrySendContext *retry_ctx = cls;
 
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
-    return;
+    {
+      GNUNET_free(retry_ctx->msg);
+      GNUNET_free(retry_ctx->addr);
+      GNUNET_free(retry_ctx);
+      return;
+    }
+
   unix_real_send (retry_ctx->plugin,
                   retry_ctx,
                   retry_ctx->send_handle,
@@ -489,6 +544,7 @@ unix_real_send (void *cls,
   size_t sbs;
   struct sockaddr_un un;
   size_t slen;
+  struct RetryList *retry_list_entry;
 
   if (send_handle == NULL)
     {
@@ -542,6 +598,7 @@ unix_real_send (void *cls,
     {
       if (incoming_retry_context == NULL)
         {
+          retry_list_entry = GNUNET_malloc(sizeof(struct RetryList));
           retry_ctx = GNUNET_malloc(sizeof(struct RetrySendContext));
           retry_ctx->addr = GNUNET_malloc(addrlen);
           retry_ctx->msg = GNUNET_malloc(msgbuf_size);
@@ -557,6 +614,9 @@ unix_real_send (void *cls,
           retry_ctx->timeout = GNUNET_TIME_relative_to_absolute(timeout);
           memcpy(&retry_ctx->target, target, sizeof(struct GNUNET_PeerIdentity));
           retry_ctx->delay = GNUNET_TIME_UNIT_MILLISECONDS;
+          retry_ctx->retry_list_entry = retry_list_entry;
+          retry_list_entry->retry_ctx = retry_ctx;
+          GNUNET_CONTAINER_DLL_insert(retry_list_head, retry_list_tail, retry_list_entry);
         }
       else
         {
@@ -597,6 +657,8 @@ unix_real_send (void *cls,
 
   if (incoming_retry_context != NULL)
     {
+      GNUNET_CONTAINER_DLL_remove(retry_list_head, retry_list_tail, incoming_retry_context->retry_list_entry);
+      GNUNET_free(incoming_retry_context->retry_list_entry);
       GNUNET_free(incoming_retry_context->msg);
       GNUNET_free(incoming_retry_context->addr);
       GNUNET_free(incoming_retry_context);

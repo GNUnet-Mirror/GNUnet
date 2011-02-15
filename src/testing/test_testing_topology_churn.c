@@ -281,7 +281,9 @@ run (void *cls,
 
   pg = GNUNET_TESTING_daemons_start (cfg,
                                      peers_left,
-                                     peers_left, TIMEOUT, NULL, NULL,
+                                     peers_left,
+                                     peers_left,
+                                     TIMEOUT, NULL, NULL,
                                      &peers_started_callback, NULL, NULL,
                                      NULL, NULL);
 

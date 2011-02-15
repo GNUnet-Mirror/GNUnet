@@ -3336,9 +3336,9 @@ process_hello_retry_handle_set_key (void *cls,
 
   if (err_msg != NULL)
   {
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      _("Error in communication with PEERINFO service\n"));
-	/* return; */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                _("Error in communication with PEERINFO service\n"));
+    /* return; */
   }
 
   if (peer == NULL)

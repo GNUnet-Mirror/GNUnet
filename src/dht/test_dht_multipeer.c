@@ -876,8 +876,9 @@ run (void *cls,
                                            &end_badly, "didn't generate all hostkeys within a reasonable amount of time!!!");
 
   pg = GNUNET_TESTING_daemons_start (cfg,
-                                     peers_left,
-                                     peers_left,
+                                     peers_left, /* Total number of peers */
+                                     peers_left, /* Number of outstanding connections */
+                                     peers_left, /* Number of parallel ssh connections, or peers being started at once */
                                      GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, SECONDS_PER_PEER_START * num_peers),
                                      &hostkey_callback,
                                      NULL,
