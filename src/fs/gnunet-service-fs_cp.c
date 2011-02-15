@@ -981,34 +981,49 @@ GSF_peer_transmit_cancel_ (struct GSF_PeerTransmitHandle *pth)
  * @param cp responding peer (will be updated)
  * @param request_time time at which the original query was transmitted
  * @param request_priority priority of the original request
- * @param initiator_client local client on responsible for query (or NULL)
- * @param initiator_peer other peer responsible for query (or NULL)
  */
 void
 GSF_peer_update_performance_ (struct GSF_ConnectedPeer *cp,
 			      struct GNUNET_TIME_Absolute request_time,
-			      uint32_t request_priority,
-			      const struct GSF_LocalClient *initiator_client,
-			      const struct GSF_ConnectedPeer *initiator_peer)
+			      uint32_t request_priority)
 {
   struct GNUNET_TIME_Relative delay;
-  unsigned int i;
 
   delay = GNUNET_TIME_absolute_get_duration (request_time);  
   cp->ppd.avg_reply_delay = (cp->ppd.avg_reply_delay * (RUNAVG_DELAY_N-1) + delay.rel_value) / RUNAVG_DELAY_N;
   cp->ppd.avg_priority = (cp->avg_priority * (RUNAVG_DELAY_N-1) + request_priority) / RUNAVG_DELAY_N;
-  if (NULL != initiator_client)
-    {
-      cp->ppd.last_client_replies[cp->last_client_replies_woff++ % CS2P_SUCCESS_LIST_SIZE] = initiator_client;
-    }
-  else if (NULL != initiator_peer)
-    {
-      GNUNET_PEER_change_rc (cp->ppd.last_p2p_replies[cp->last_p2p_replies_woff % P2P_SUCCESS_LIST_SIZE], -1);
-      cp->ppd.last_p2p_replies[cp->last_p2p_replies_woff++ % P2P_SUCCESS_LIST_SIZE] = initiator_peer->pid;
-      GNUNET_PEER_change_rc (initiator_peer->pid, 1);
-    }
-  else
-    GNUNET_break (0);
+}
+
+
+/**
+ * Report on receiving a reply in response to an initiating client.
+ * Remember that this peer is good for this client.
+ *
+ * @param cp responding peer (will be updated)
+ * @param initiator_client local client on responsible for query
+ */
+void
+GSF_peer_update_responder_client_ (struct GSF_ConnectedPeer *cp,
+				   const struct GSF_LocalClient *initiator_client)
+{
+  cp->ppd.last_client_replies[cp->last_client_replies_woff++ % CS2P_SUCCESS_LIST_SIZE] = initiator_client;
+}
+
+
+/**
+ * Report on receiving a reply in response to an initiating peer.
+ * Remember that this peer is good for this initiating peer.
+ *
+ * @param cp responding peer (will be updated)
+ * @param initiator_peer other peer responsible for query
+ */
+void
+GSF_peer_update_responder_peer_ (struct GSF_ConnectedPeer *cp,
+				 const struct GSF_ConnectedPeer *initiator_peer)
+{
+  GNUNET_PEER_change_rc (cp->ppd.last_p2p_replies[cp->last_p2p_replies_woff % P2P_SUCCESS_LIST_SIZE], -1);
+  cp->ppd.last_p2p_replies[cp->last_p2p_replies_woff++ % P2P_SUCCESS_LIST_SIZE] = initiator_peer->pid;
+  GNUNET_PEER_change_rc (initiator_peer->pid, 1);
 }
 
 

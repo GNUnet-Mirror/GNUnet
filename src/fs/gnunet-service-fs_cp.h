@@ -204,15 +204,35 @@ GSF_peer_transmit_cancel_ (struct GSF_PeerTransmitHandle *pth);
  * @param cp responding peer (will be updated)
  * @param request_time time at which the original query was transmitted
  * @param request_priority priority of the original request
- * @param initiator_client local client on responsible for query (or NULL)
- * @param initiator_peer other peer responsible for query (or NULL)
  */
 void
 GSF_peer_update_performance_ (struct GSF_ConnectedPeer *cp,
 			      struct GNUNET_TIME_Absolute request_time,
-			      uint32_t request_priority,
-			      const struct GSF_LocalClient *initiator_client,
-			      const struct GSF_ConnectedPeer *initiator_peer);
+			      uint32_t request_priority);
+
+
+/**
+ * Report on receiving a reply in response to an initiating client.
+ * Remember that this peer is good for this client.
+ *
+ * @param cp responding peer (will be updated)
+ * @param initiator_client local client on responsible for query
+ */
+void
+GSF_peer_update_responder_client_ (struct GSF_ConnectedPeer *cp,
+				   const struct GSF_LocalClient *initiator_client);
+
+
+/**
+ * Report on receiving a reply in response to an initiating peer.
+ * Remember that this peer is good for this initiating peer.
+ *
+ * @param cp responding peer (will be updated)
+ * @param initiator_peer other peer responsible for query
+ */
+void
+GSF_peer_update_responder_peer_ (struct GSF_ConnectedPeer *cp,
+				 const struct GSF_ConnectedPeer *initiator_peer);
 
 
 /**

@@ -2320,7 +2320,7 @@ struct GetMessage
    * The number should be in big-endian format when used
    * for mingling.
    */
-  int32_t filter_mutator GNUNET_PACKED;
+  uint32_t filter_mutator GNUNET_PACKED;
 
   /**
    * Which of the optional hash codes are present at the end of the

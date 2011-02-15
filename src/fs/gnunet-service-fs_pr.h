@@ -112,6 +112,11 @@ struct GSF_PendingRequestData
   uint32_t priority;
 
   /**
+   * Priority that this request (originally) had for us.
+   */
+  uint32_t original_priority;
+
+  /**
    * Options for the request.
    */
   enum GSF_PendingRequestOptions options;
@@ -120,6 +125,11 @@ struct GSF_PendingRequestData
    * Type of the requested block.
    */
   enum GNUNET_BLOCK_Type type;
+
+  /**
+   * Number of results we have found for this request so far.
+   */
+  unsigned int results_found;
 
   /**
    * Is the 'target' value set to a valid peer identity?
@@ -182,7 +192,7 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
 			     const struct GNUNET_PeerIdentity *target,
 			     const char *bf_data,
 			     size_t bf_size,
-			     int32_t mingle,
+			     uint32_t mingle,
 			     uint32_t anonymity_level,
 			     uint32_t priority,
 			     int32_t ttl,
