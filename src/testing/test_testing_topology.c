@@ -26,7 +26,9 @@
 #include "gnunet_core_service.h"
 #include "gnunet_os_lib.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
+
+#define PROGRESS_BARS GNUNET_YES
 
 #define DELAY_FOR_LOGGING GNUNET_NO
 
@@ -359,7 +361,7 @@ process_mtype (void *cls,
   if (pos->uid != ntohl (msg->uid))
     return GNUNET_OK;
 
-#if VERBOSE
+#if PROGRESS_BARS
   if ((total_messages_received) % modnum == 0)
     {
       if (total_messages_received == 0)
@@ -390,7 +392,7 @@ process_mtype (void *cls,
 
   if (total_messages_received == expected_messages)
     {
-#if VERBOSE
+#if PROGRESS_BARS
       fprintf (stdout, "100%%]\n");
 #endif
       GNUNET_SCHEDULER_cancel (die_task);
@@ -691,7 +693,7 @@ topology_callback (void *cls,
   struct TestMessageContext *temp_context;
   if (emsg == NULL)
     {
-#if VERBOSE
+#if PROGRESS_BARS
       if ((total_connections) % modnum == 0)
         {
           if (total_connections == 0)
@@ -738,7 +740,7 @@ topology_callback (void *cls,
 
   if (total_connections == expected_connections)
     {
-#if VERBOSE
+#if PROGRESS_BARS
       fprintf (stdout, "100%%]\n");
 #endif
 #if VERBOSE
@@ -748,6 +750,10 @@ topology_callback (void *cls,
 #endif
       modnum = expected_messages / 4;
       dotnum = (expected_messages / 50) + 1;
+      if (modnum == 0)
+        modnum = 1;
+      if (dotnum == 0)
+        dotnum = 1;
       GNUNET_SCHEDULER_cancel (die_task);
       die_task = GNUNET_SCHEDULER_NO_TASK;
 #if DELAY_FOR_LOGGING
@@ -764,7 +770,7 @@ topology_callback (void *cls,
       GNUNET_SCHEDULER_add_delayed (settle_time, &send_test_messages,
                                     test_messages);
 #endif
-#if VERBOSE
+#if PROGRESS_BARS
       fprintf (stdout, "Test message progress: [");
 #endif
 
@@ -821,8 +827,8 @@ connect_topology ()
                                          connect_timeout,
                                          connect_attempts,
                                          &topology_creation_finished, NULL);
-#if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+#if PROGRESS_BARS
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Have %d expected connections\n", expected_connections);
 #endif
     }
@@ -836,12 +842,18 @@ connect_topology ()
       return;
     }
 
-  die_task = GNUNET_SCHEDULER_add_delayed (TEST_TIMEOUT,
+  die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                           (GNUNET_TIME_UNIT_SECONDS,
+                                            SECONDS_PER_PEER_START * num_peers),
                                            &end_badly,
                                            "from connect topology (timeout)");
   modnum = expected_connections / 4;
   dotnum = (expected_connections / 50) + 1;
-#if VERBOSE
+  if (modnum == 0)
+    modnum = 1;
+  if (dotnum == 0)
+    dotnum = 1;
+#if PROGRESS_BARS
   fprintf (stdout, "Peer connection progress: [");
 #endif
 }
@@ -854,7 +866,7 @@ create_topology ()
       (pg, topology, blacklist_topology,
        blacklist_transports) != GNUNET_SYSERR)
     {
-#if VERBOSE
+#if PROGRESS_BARS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Topology set up, now starting peers!\n");
       fprintf (stdout, "Daemon start progress [");
@@ -869,7 +881,9 @@ create_topology ()
                                   "from create topology (bad return)");
     }
   GNUNET_SCHEDULER_cancel (die_task);
-  die_task = GNUNET_SCHEDULER_add_delayed (TEST_TIMEOUT,
+  die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                           (GNUNET_TIME_UNIT_SECONDS,
+                                            SECONDS_PER_PEER_START * num_peers),
                                            &end_badly,
                                            "from continue startup (timeout)");
 }
@@ -892,7 +906,7 @@ peers_started_callback (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Started daemon %llu out of %llu\n",
               (num_peers - peers_left) + 1, num_peers);
 #endif
-#if VERBOSE
+#if PROGRESS_BARS
   if ((num_peers - peers_left) % modnum == 0)
     {
       if (num_peers - peers_left == 0)
@@ -912,7 +926,7 @@ peers_started_callback (void *cls,
   peers_left--;
   if (peers_left == 0)
     {
-#if VERBOSE
+#if PROGRESS_BARS
       fprintf (stdout, "100%%]\n");
 #endif
 #if VERBOSE
@@ -965,7 +979,7 @@ hostkey_callback (void *cls,
               num_peers - peers_left, num_peers, GNUNET_i2s (id));
 #endif
 
-#if VERBOSE
+#if PROGRESS_BARS
   if ((num_peers - peers_left) % modnum == 0)
     {
       if (num_peers - peers_left == 0)
@@ -985,7 +999,7 @@ hostkey_callback (void *cls,
   peers_left--;
   if (peers_left == 0)
     {
-#if VERBOSE
+#if PROGRESS_BARS
       fprintf (stdout, "100%%]\n");
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "All %d hostkeys created, now creating topology!\n",
@@ -1148,7 +1162,11 @@ run (void *cls,
   peers_left = num_peers;
   modnum = num_peers / 4;
   dotnum = (num_peers / 50) + 1;
-#if VERBOSE
+  if (modnum == 0)
+    modnum = 1;
+  if (dotnum == 0)
+    dotnum = 1;
+#if PROGRESS_BARS
   fprintf (stdout, "Hostkey generation progress: [");
 #endif
   /* Set up a task to end testing if peer start fails */

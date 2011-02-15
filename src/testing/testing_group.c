@@ -56,8 +56,6 @@
 /* Maximum time to delay connect attempt */
 #define MAX_CONNECT_DELAY 300
 
-#define MAX_CONCURRENT_HOSTKEYS 500
-
 /**
  * Which list of peers do we need to modify?
  */
@@ -656,6 +654,11 @@ struct GNUNET_TESTING_PeerGroup
   unsigned int max_outstanding_connections;
 
   /**
+   * Number of ssh connections to peers (max).
+   */
+  unsigned int max_concurrent_ssh;
+
+  /**
    * Number of connects we are waiting on, allows us to rate limit
    * connect attempts.
    */
@@ -1125,6 +1128,7 @@ update_config (void *cls,
  * out of "*port" numbers, return NULL.
  *
  * @param cfg template configuration
+ * @param off the current peer offset
  * @param port port numbers to use, update to reflect
  *             port numbers that were used
  * @param upnum number to make unix domain socket names unique
@@ -1136,6 +1140,7 @@ update_config (void *cls,
  */
 static struct GNUNET_CONFIGURATION_Handle *
 make_config (const struct GNUNET_CONFIGURATION_Handle *cfg,
+             uint32_t off,
              uint16_t * port,
              uint32_t * upnum, const char *hostname, uint32_t * fdnum)
 {
@@ -1143,6 +1148,7 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg,
   uint16_t orig;
   char *control_host;
   char *allowed_hosts;
+  unsigned long long temp_port;
 
   orig = *port;
   uc.nport = *port;
@@ -1171,20 +1177,28 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
       GNUNET_CONFIGURATION_set_value_string (uc.ret, "core", "ACCEPT_FROM",
                                              allowed_hosts);
-      GNUNET_CONFIGURATION_set_value_string (uc.ret, "core", "UNIXPATH",
-                                             "");
       GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport",
                                              "ACCEPT_FROM", allowed_hosts);
-      GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport", "UNIXPATH",
-                                             "");
       GNUNET_CONFIGURATION_set_value_string (uc.ret, "dht", "ACCEPT_FROM",
                                              allowed_hosts);
-      GNUNET_CONFIGURATION_set_value_string (uc.ret, "dht", "UNIXPATH",
-                                             "");
       GNUNET_CONFIGURATION_set_value_string (uc.ret, "statistics",
                                              "ACCEPT_FROM", allowed_hosts);
-      GNUNET_CONFIGURATION_set_value_string (uc.ret, "statistics", "UNIXPATH",
-                                             "");
+
+      GNUNET_CONFIGURATION_set_value_string (uc.ret, "core", "UNIXPATH", "");
+      GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport", "UNIXPATH", "");
+      GNUNET_CONFIGURATION_set_value_string (uc.ret, "dht", "UNIXPATH", "");
+      GNUNET_CONFIGURATION_set_value_string (uc.ret, "statistics", "UNIXPATH", "");
+
+
+      if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number(uc.orig, "statistics", "port", &temp_port) &&
+          (temp_port != 0) &&
+          (GNUNET_YES !=
+              GNUNET_CONFIGURATION_get_value_yesno (uc.orig, "testing",
+                                                    "single_statistics_per_host")))
+        {
+          GNUNET_CONFIGURATION_set_value_number (uc.ret, "statistics", "port", temp_port + off);
+        }
+
       GNUNET_free_non_null (control_host);
       GNUNET_free (allowed_hosts);
     }
@@ -4614,7 +4628,7 @@ internal_continue_startup (void *cls,
       return;
     }
 
-  if (internal_context->peer->pg->starting < internal_context->peer->pg->max_outstanding_connections)
+  if (internal_context->peer->pg->starting < internal_context->peer->pg->max_concurrent_ssh)
     {
       internal_context->peer->pg->starting++;
       GNUNET_TESTING_daemon_continue_startup (internal_context->peer->daemon);
@@ -4697,7 +4711,7 @@ schedule_churn_restart (void *cls,
   struct ChurnRestartContext *startup_ctx =
     peer_restart_ctx->churn_restart_ctx;
 
-  if (startup_ctx->outstanding > startup_ctx->pg->max_outstanding_connections)
+  if (startup_ctx->outstanding > startup_ctx->pg->max_concurrent_ssh)
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                   (GNUNET_TIME_UNIT_MILLISECONDS, 100),
                                   &schedule_churn_restart, peer_restart_ctx);
@@ -4721,7 +4735,7 @@ internal_start (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       return;
     }
 
-  if (internal_context->peer->pg->starting < MAX_CONCURRENT_HOSTKEYS)
+  if (internal_context->peer->pg->starting < internal_context->peer->pg->max_concurrent_ssh)
     {
       internal_context->peer->pg->starting++;
       internal_context->peer->daemon =
@@ -4774,7 +4788,9 @@ GNUNET_TESTING_daemons_continue_startup (struct GNUNET_TESTING_PeerGroup *pg)
  * @param cfg configuration template to use
  * @param total number of daemons to start
  * @param max_concurrent_connections for testing, how many peers can
- *                                   we connect to simultaneously
+*                                   we connect to simultaneously
+ * @param max_concurrent_ssh when starting with ssh, how many ssh
+ *        connections will we allow at once (based on remote hosts allowed!)
  * @param timeout total time allowed for peers to start
  * @param hostkey_callback function to call on each peers hostkey generation
  *        if NULL, peers will be started by this call, if non-null,
@@ -4794,6 +4810,7 @@ struct GNUNET_TESTING_PeerGroup *
 GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               unsigned int total,
                               unsigned int max_concurrent_connections,
+                              unsigned int max_concurrent_ssh,
                               struct GNUNET_TIME_Relative timeout,
                               GNUNET_TESTING_NotifyHostkeyCreated
                               hostkey_callback, void *hostkey_cls,
@@ -4847,6 +4864,7 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   pg->max_timeout = GNUNET_TIME_relative_to_absolute (timeout);
   pg->peers = GNUNET_malloc (total * sizeof (struct PeerData));
   pg->max_outstanding_connections = max_concurrent_connections;
+  pg->max_concurrent_ssh = max_concurrent_ssh;
   if (NULL != hostnames)
     {
       off = 0;
@@ -4935,7 +4953,6 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                                                     &baseservicehome));
   for (i = 0; i < pg->num_hosts; i++)
     {
-
       if (NULL != pg->hosts[i].username)
         GNUNET_asprintf (&arg, "%s@%s", pg->hosts[i].username, pg->hosts[i].hostname);
       else
@@ -5003,6 +5020,7 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
           username = pg->hosts[off % hostcnt].username;
           sshport = pg->hosts[off % hostcnt].sshport;
           pcfg = make_config (cfg,
+                              off,
                               &pg->hosts[off % hostcnt].minport,
                               &upnum, hostname, &fdnum);
         }
@@ -5011,7 +5029,7 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
           hostname = NULL;
           username = NULL;
           sshport = 0;
-          pcfg = make_config (cfg, &minport, &upnum, hostname, &fdnum);
+          pcfg = make_config (cfg, off, &minport, &upnum, hostname, &fdnum);
         }
 
       if (NULL == pcfg)
@@ -5252,7 +5270,7 @@ schedule_churn_shutdown_task (void *cls,
   shutdown_ctx = peer_shutdown_ctx->shutdown_ctx;
   GNUNET_assert (shutdown_ctx != NULL);
   churn_ctx = (struct ChurnContext *)shutdown_ctx->cb_cls;
-  if (shutdown_ctx->outstanding > churn_ctx->pg->max_outstanding_connections)
+  if (shutdown_ctx->outstanding > churn_ctx->pg->max_concurrent_ssh)
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                   (GNUNET_TIME_UNIT_MILLISECONDS, 100),
                                   &schedule_churn_shutdown_task,
@@ -5602,7 +5620,7 @@ schedule_shutdown_task (void *cls,
   shutdown_ctx = peer_shutdown_ctx->shutdown_ctx;
   GNUNET_assert (shutdown_ctx != NULL);
 
-  if (shutdown_ctx->outstanding > shutdown_ctx->pg->max_outstanding_connections)
+  if (shutdown_ctx->outstanding > shutdown_ctx->pg->max_concurrent_ssh)
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                   (GNUNET_TIME_UNIT_MILLISECONDS, 100),
                                   &schedule_shutdown_task, peer_shutdown_ctx);
