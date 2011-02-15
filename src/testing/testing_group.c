@@ -363,6 +363,23 @@ struct ChurnRestartContext
   struct GNUNET_TIME_Relative timeout;
 };
 
+struct OutstandingSSH
+{
+  struct OutstandingSSH *next;
+
+  struct OutstandingSSH *prev;
+
+  /**
+   * Number of current ssh connections.
+   */
+  uint32_t outstanding;
+
+  /**
+   * The hostname of this peer.
+   */
+  const char *hostname;
+};
+
 /**
  * Data we keep per peer.
  */
@@ -673,6 +690,18 @@ struct GNUNET_TESTING_PeerGroup
    * Hostkeys loaded from a file.
    */
   char *hostkey_data;
+
+  /**
+   * Head of DLL to keep track of the number of outstanding
+   * ssh connections per peer.
+   */
+  struct OutstandingSSH *ssh_head;
+
+  /**
+   * Tail of DLL to keep track of the number of outstanding
+   * ssh connections per peer.
+   */
+  struct OutstandingSSH *ssh_tail;
 };
 
 struct UpdateContext
@@ -2777,6 +2806,8 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg,
             GNUNET_OS_start_process (NULL, NULL, "scp", "scp", mytemp, arg,
                                      NULL);
 
+          GNUNET_OS_process_wait(procarr[pg_iter]); /* FIXME: add scheduled blacklist file copy that parallelizes file copying! */
+
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Copying file with command scp %s %s\n"), mytemp,
@@ -4565,6 +4596,63 @@ GNUNET_TESTING_connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
 }
 
 /**
+ * Lookup and return the number of SSH connections to a host.
+ *
+ * @param hostname the hostname to lookup in the list
+ * @param pg the peergroup that the host belongs to
+ *
+ * @return the number of current ssh connections to the host
+ */
+static unsigned int
+count_outstanding_at_host(const char *hostname, struct GNUNET_TESTING_PeerGroup *pg)
+{
+  struct OutstandingSSH *pos;
+  pos = pg->ssh_head;
+  while ((pos != NULL) && (strcmp(pos->hostname, hostname) != 0))
+    pos = pos->next;
+  GNUNET_assert(pos != NULL);
+  return pos->outstanding;
+}
+
+
+/**
+ * Increment the number of SSH connections to a host by one.
+ *
+ * @param hostname the hostname to lookup in the list
+ * @param pg the peergroup that the host belongs to
+ *
+ */
+static void
+increment_outstanding_at_host(const char *hostname, struct GNUNET_TESTING_PeerGroup *pg)
+{
+  struct OutstandingSSH *pos;
+  pos = pg->ssh_head;
+  while ((pos != NULL) && (strcmp(pos->hostname, hostname) != 0))
+    pos = pos->next;
+  GNUNET_assert(pos != NULL);
+  pos->outstanding++;
+}
+
+/**
+ * Decrement the number of SSH connections to a host by one.
+ *
+ * @param hostname the hostname to lookup in the list
+ * @param pg the peergroup that the host belongs to
+ *
+ */
+static void
+decrement_outstanding_at_host(const char *hostname, struct GNUNET_TESTING_PeerGroup *pg)
+{
+  struct OutstandingSSH *pos;
+  pos = pg->ssh_head;
+  while ((pos != NULL) && (strcmp(pos->hostname, hostname) != 0))
+    pos = pos->next;
+  GNUNET_assert(pos != NULL);
+  pos->outstanding--;
+}
+
+
+/**
  * Callback that is called whenever a hostkey is generated
  * for a peer.  Call the real callback and decrement the
  * starting counter for the peergroup.
@@ -4582,6 +4670,8 @@ internal_hostkey_callback (void *cls,
   struct InternalStartContext *internal_context = cls;
   internal_context->peer->pg->starting--;
   internal_context->peer->pg->started++;
+  if (internal_context->hostname != NULL)
+    decrement_outstanding_at_host(internal_context->hostname, internal_context->peer->pg);
   if (internal_context->hostkey_callback != NULL)
     internal_context->hostkey_callback (internal_context->hostkey_cls, id, d,
                                         emsg);
@@ -4628,8 +4718,12 @@ internal_continue_startup (void *cls,
       return;
     }
 
-  if (internal_context->peer->pg->starting < internal_context->peer->pg->max_concurrent_ssh)
+  if ((internal_context->peer->pg->starting < internal_context->peer->pg->max_concurrent_ssh) ||
+      ((internal_context->hostname != NULL) &&
+       (count_outstanding_at_host(internal_context->hostname, internal_context->peer->pg) < internal_context->peer->pg->max_concurrent_ssh)))
     {
+      if (internal_context->hostname != NULL)
+        increment_outstanding_at_host(internal_context->hostname, internal_context->peer->pg);
       internal_context->peer->pg->starting++;
       GNUNET_TESTING_daemon_continue_startup (internal_context->peer->daemon);
     }
@@ -4725,6 +4819,8 @@ schedule_churn_restart (void *cls,
     }
 }
 
+
+
 static void
 internal_start (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -4735,8 +4831,12 @@ internal_start (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       return;
     }
 
-  if (internal_context->peer->pg->starting < internal_context->peer->pg->max_concurrent_ssh)
+  if ((internal_context->peer->pg->starting < internal_context->peer->pg->max_concurrent_ssh) ||
+      ((internal_context->hostname != NULL) &&
+       (count_outstanding_at_host(internal_context->hostname, internal_context->peer->pg) < internal_context->peer->pg->max_concurrent_ssh)))
     {
+      if (internal_context->hostname != NULL)
+        increment_outstanding_at_host(internal_context->hostname, internal_context->peer->pg);
       internal_context->peer->pg->starting++;
       internal_context->peer->daemon =
         GNUNET_TESTING_daemon_start (internal_context->peer->cfg,
@@ -4953,6 +5053,10 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                                                     &baseservicehome));
   for (i = 0; i < pg->num_hosts; i++)
     {
+      struct OutstandingSSH *ssh_entry;
+      ssh_entry = GNUNET_malloc(sizeof(struct OutstandingSSH));
+      ssh_entry->hostname = pg->hosts[i].hostname; /* Don't free! */
+      GNUNET_CONTAINER_DLL_insert(pg->ssh_head, pg->ssh_tail, ssh_entry);
       if (NULL != pg->hosts[i].username)
         GNUNET_asprintf (&arg, "%s@%s", pg->hosts[i].username, pg->hosts[i].hostname);
       else
