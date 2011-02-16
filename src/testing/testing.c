@@ -1669,12 +1669,18 @@ core_initial_iteration (void *cls,
     {
       ctx->connected = GNUNET_YES;
       ctx->distance = 0;        /* FIXME: distance */
-      ctx->timeout_task = GNUNET_SCHEDULER_add_now (&notify_connect_result,
-                                                    ctx);
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Not sending a connect request; already connected!\n");
+      return;
     }
   else if (peer == NULL) /* Peer not already connected, need to schedule connect request! */
     {
+      if (ctx->connected == GNUNET_YES)
+        {
+          ctx->timeout_task = GNUNET_SCHEDULER_add_now (&notify_connect_result,
+                                                        ctx);
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Not sending a connect request; already connected!\n");
+          return;
+        }
+
       ctx->d1core = GNUNET_CORE_connect (ctx->d1->cfg, 1,
                                          ctx,
                                          &core_init_notify,
