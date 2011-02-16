@@ -1540,7 +1540,10 @@ connect_notify (void *cls,
       ctx->connected = GNUNET_YES;
       ctx->distance = 0;        /* FIXME: distance */
       if (ctx->hello_send_task != GNUNET_SCHEDULER_NO_TASK)
-        GNUNET_SCHEDULER_cancel(ctx->hello_send_task);
+        {
+          GNUNET_SCHEDULER_cancel(ctx->hello_send_task);
+          ctx->hello_send_task = GNUNET_SCHEDULER_NO_TASK;
+        }
       GNUNET_SCHEDULER_cancel (ctx->timeout_task);
       ctx->timeout_task = GNUNET_SCHEDULER_add_now (&notify_connect_result,
                                                     ctx);
