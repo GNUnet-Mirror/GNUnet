@@ -1677,7 +1677,6 @@ core_initial_iteration (void *cls,
         {
           ctx->timeout_task = GNUNET_SCHEDULER_add_now (&notify_connect_result,
                                                         ctx);
-          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Not sending a connect request; already connected!\n");
           return;
         }
 
