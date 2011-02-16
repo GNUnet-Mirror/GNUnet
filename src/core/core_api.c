@@ -921,7 +921,7 @@ main_notify_handler (void *cls,
 		       &cnm->peer,
 		       sizeof (struct GNUNET_PeerIdentity)))
 	{
-	  /* disconnect from self!? */
+	  /* connect to self!? */
 	  GNUNET_break (0);
 	  return;
 	}
@@ -1716,7 +1716,9 @@ peer_request_connect_cont (void *cls,
  * @param peer who should we connect to
  * @param cont function to call once the request has been completed (or timed out)
  * @param cont_cls closure for cont
- * @return NULL on error (cont will not be called), otherwise handle for cancellation
+ *
+ * @return NULL on error or already connected,
+ *         otherwise handle for cancellation
  */
 struct GNUNET_CORE_PeerRequestHandle *
 GNUNET_CORE_peer_request_connect (struct GNUNET_CORE_Handle *h,
@@ -1728,10 +1730,25 @@ GNUNET_CORE_peer_request_connect (struct GNUNET_CORE_Handle *h,
   struct GNUNET_CORE_PeerRequestHandle *ret;
   struct ControlMessage *cm;
   struct ConnectMessage *msg;
+  struct PeerRecord *pr;
+  static struct GNUNET_TRANSPORT_ATS_Information distance[2];
 
   if (NULL != GNUNET_CONTAINER_multihashmap_get (h->peers,
                                           &peer->hashPubKey))
-    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "core_api", "Received CONNECT requests for already connected peer!\n");
+    {
+      pr = GNUNET_CONTAINER_multihashmap_get(h->peers, &peer->hashPubKey);
+      GNUNET_assert(pr != NULL);
+      distance[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+      distance[0].value = htonl (1);
+      distance[1].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+      distance[1].value = htonl (0);
+
+      if (NULL != h->connects)
+        h->connects (h->cls,
+                     &pr->peer,
+                     &distance[0]);
+      return NULL;
+    }
   
   cm = GNUNET_malloc (sizeof (struct ControlMessage) + 
 		      sizeof (struct ConnectMessage));
