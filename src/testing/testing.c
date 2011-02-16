@@ -1510,9 +1510,11 @@ notify_connect_result (void *cls,
         }
     }
 
-  GNUNET_TRANSPORT_disconnect (ctx->d1th);
+  if (ctx->d1th != NULL)
+    GNUNET_TRANSPORT_disconnect (ctx->d1th);
   ctx->d1th = NULL;
-  GNUNET_CORE_disconnect (ctx->d1core);
+  if (ctx->d1core != NULL)
+    GNUNET_CORE_disconnect (ctx->d1core);
   ctx->d1core = NULL;
   GNUNET_free (ctx);
 }
@@ -1669,6 +1671,7 @@ core_initial_iteration (void *cls,
       ctx->distance = 0;        /* FIXME: distance */
       ctx->timeout_task = GNUNET_SCHEDULER_add_now (&notify_connect_result,
                                                     ctx);
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Not sending a connect request; already connected!\n");
     }
   else if (peer == NULL) /* Peer not already connected, need to schedule connect request! */
     {
