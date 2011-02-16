@@ -1667,7 +1667,6 @@ core_initial_iteration (void *cls,
     {
       ctx->connected = GNUNET_YES;
       ctx->distance = 0;        /* FIXME: distance */
-      GNUNET_SCHEDULER_cancel (ctx->timeout_task);
       ctx->timeout_task = GNUNET_SCHEDULER_add_now (&notify_connect_result,
                                                     ctx);
     }
