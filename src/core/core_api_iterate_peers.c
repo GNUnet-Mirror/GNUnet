@@ -152,7 +152,7 @@ transmit_request(void *cls,
     return 0;
 
   msg = (struct GNUNET_MessageHeader *)buf;
-  msg->size = htons (sizeof (struct GNUNET_MessageHeader));
+  msg->size = htons (msize);
   msg->type = htons (GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS);
   memcpy(&msg[1], peer, sizeof(struct GNUNET_PeerIdentity));
 
