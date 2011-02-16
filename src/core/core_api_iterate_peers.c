@@ -31,7 +31,6 @@
 
 struct GNUNET_CORE_RequestContext
 {
-  
   /**
    * Our connection to the service.
    */
@@ -46,6 +45,11 @@ struct GNUNET_CORE_RequestContext
    * Function called with the peer.
    */
   GNUNET_CORE_ConnectEventHandler peer_cb;
+
+  /**
+   * Peer to check for.
+   */
+  struct GNUNET_PeerIdentity *peer;
 
   /**
    * Closure for peer_cb.
@@ -136,21 +140,78 @@ transmit_request(void *cls,
                  size_t size, void *buf)
 {
   struct GNUNET_MessageHeader *msg;
-  if ((size < sizeof(struct GNUNET_MessageHeader)) || (buf == NULL))
+  struct GNUNET_PeerIdentity *peer = cls;
+  int msize;
+
+  if (peer == NULL)
+    msize = sizeof(struct GNUNET_MessageHeader);
+  else
+    msize = sizeof(struct GNUNET_MessageHeader) + sizeof(struct GNUNET_PeerIdentity);
+
+  if ((size < msize) || (buf == NULL))
     return 0;
 
   msg = (struct GNUNET_MessageHeader *)buf;
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
   msg->type = htons (GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS);
-  return sizeof(struct GNUNET_MessageHeader);
+  memcpy(&msg[1], peer, sizeof(struct GNUNET_PeerIdentity));
+
+  return msize;
 }
 
 /**
- * Obtain statistics and/or change preferences for the given peer.
+ * Iterate over all currently connected peers.
+ * Calls peer_cb with each connected peer, and then
+ * once with NULL to indicate that all peers have
+ * been handled.
+ *
+ * @param cfg configuration to use
+ * @param peer the specific peer to check for
+ * @param peer_cb function to call with the peer information
+ * @param cb_cls closure for peer_cb
+ *
+ * @return GNUNET_OK if iterating, GNUNET_SYSERR on error
+ */
+int
+GNUNET_CORE_is_peer_connected (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                               struct GNUNET_PeerIdentity *peer,
+                               GNUNET_CORE_ConnectEventHandler peer_cb,
+                               void *cb_cls)
+{
+  struct GNUNET_CORE_RequestContext *request_context;
+  struct GNUNET_CLIENT_Connection *client;
+
+  client = GNUNET_CLIENT_connect ("core", cfg);
+  if (client == NULL)
+    return GNUNET_SYSERR;
+  GNUNET_assert(peer != NULL);
+  request_context = GNUNET_malloc (sizeof (struct GNUNET_CORE_RequestContext));
+  request_context->client = client;
+  request_context->peer_cb = peer_cb;
+  request_context->cb_cls = cb_cls;
+  request_context->peer = peer;
+
+  request_context->th = GNUNET_CLIENT_notify_transmit_ready(client,
+                                                            sizeof(struct GNUNET_MessageHeader) + sizeof(struct GNUNET_PeerIdentity),
+                                                            GNUNET_TIME_relative_get_forever(),
+                                                            GNUNET_YES,
+                                                            &transmit_request,
+                                                            peer);
+
+  GNUNET_CLIENT_receive(client, &receive_info, request_context, GNUNET_TIME_relative_get_forever());
+  return GNUNET_OK;
+}
+
+/**
+ * Iterate over all currently connected peers.
+ * Calls peer_cb with each connected peer, and then
+ * once with NULL to indicate that all peers have
+ * been handled.
  *
  * @param cfg configuration to use
  * @param peer_cb function to call with the peer information
  * @param cb_cls closure for peer_cb
+ *
  * @return GNUNET_OK if iterating, GNUNET_SYSERR on error
  */
 int

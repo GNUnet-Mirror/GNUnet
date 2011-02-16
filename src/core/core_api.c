@@ -1730,25 +1730,11 @@ GNUNET_CORE_peer_request_connect (struct GNUNET_CORE_Handle *h,
   struct GNUNET_CORE_PeerRequestHandle *ret;
   struct ControlMessage *cm;
   struct ConnectMessage *msg;
-  struct PeerRecord *pr;
-  static struct GNUNET_TRANSPORT_ATS_Information distance[2];
 
   if (NULL != GNUNET_CONTAINER_multihashmap_get (h->peers,
                                           &peer->hashPubKey))
-    {
-      pr = GNUNET_CONTAINER_multihashmap_get(h->peers, &peer->hashPubKey);
-      GNUNET_assert(pr != NULL);
-      distance[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
-      distance[0].value = htonl (1);
-      distance[1].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
-      distance[1].value = htonl (0);
+    return NULL; /* Already connected, means callback should have happened already! */
 
-      if (NULL != h->connects)
-        h->connects (h->cls,
-                     &pr->peer,
-                     &distance[0]);
-      return NULL;
-    }
   
   cm = GNUNET_malloc (sizeof (struct ControlMessage) + 
 		      sizeof (struct ConnectMessage));

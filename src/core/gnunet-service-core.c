@@ -1498,10 +1498,22 @@ handle_client_iterate_peers (void *cls,
 {
   struct GNUNET_MessageHeader done_msg;
   struct GNUNET_SERVER_TransmitContext *tc;
-
+  struct GNUNET_PeerIdentity *peer;
+  int msize;
   /* notify new client about existing neighbours */
+
+  msize = ntohs(message->size);
   tc = GNUNET_SERVER_transmit_context_create (client);
-  GNUNET_CONTAINER_multihashmap_iterate (neighbours, &queue_connect_message, tc);
+  if (msize == sizeof(struct GNUNET_MessageHeader))
+    GNUNET_CONTAINER_multihashmap_iterate (neighbours, &queue_connect_message, tc);
+  else if (msize == sizeof(struct GNUNET_MessageHeader) + sizeof(struct GNUNET_PeerIdentity))
+    {
+      peer = (struct GNUNET_PeerIdentity *)&message[1];
+      GNUNET_CONTAINER_multihashmap_get_multiple(neighbours, &peer->hashPubKey, &queue_connect_message, tc);
+    }
+  else
+    GNUNET_break(0);
+
   done_msg.size = htons (sizeof (struct GNUNET_MessageHeader));
   done_msg.type = htons (GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS_END);
   GNUNET_SERVER_transmit_context_append_message (tc, &done_msg);
@@ -2908,6 +2920,10 @@ notify_transport_connect_done (void *cls,
     }
   if (buf == NULL)
     {
+      GNUNET_STATISTICS_update (stats,
+                                gettext_noop ("# connection requests timed out in transport"),
+                                1,
+                                GNUNET_NO);
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  _("Failed to connect to `%4s': transport failed to connect\n"),
 		  GNUNET_i2s (&n->peer));
@@ -2966,10 +2982,20 @@ handle_client_request_connect (void *cls,
 				  1,
 				  GNUNET_NO);
       else
-	GNUNET_STATISTICS_update (stats, 
-				  gettext_noop ("# connection requests ignored (already trying)"), 
-				  1,
-				  GNUNET_NO);
+        {
+          GNUNET_TRANSPORT_notify_transmit_ready_cancel(n->th);
+          n->th = GNUNET_TRANSPORT_notify_transmit_ready (transport,
+                                                          &cm->peer,
+                                                          sizeof (struct GNUNET_MessageHeader), 0,
+                                                          timeout,
+                                                          &notify_transport_connect_done,
+                                                          n);
+          GNUNET_break (NULL != n->th);
+          GNUNET_STATISTICS_update (stats,
+                                    gettext_noop ("# connection requests retried (due to repeat request connect)"),
+                                    1,
+                                    GNUNET_NO);
+        }
       return; /* already connected, or at least trying */
     }
   GNUNET_STATISTICS_update (stats, 
