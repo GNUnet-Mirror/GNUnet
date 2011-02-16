@@ -380,6 +380,25 @@ GNUNET_CORE_iterate_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
                            GNUNET_CORE_ConnectEventHandler peer_cb,
                            void *cb_cls);
 
+/**
+ * Iterate over all currently connected peers.
+ * Calls peer_cb with each connected peer, and then
+ * once with NULL to indicate that all peers have
+ * been handled.
+ *
+ * @param cfg configuration to use
+ * @param peer the specific peer to check for
+ * @param peer_cb function to call with the peer information
+ * @param cb_cls closure for peer_cb
+ *
+ * @return GNUNET_OK if iterating, GNUNET_SYSERR on error
+ */
+int
+GNUNET_CORE_is_peer_connected (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                               struct GNUNET_PeerIdentity *peer,
+                               GNUNET_CORE_ConnectEventHandler peer_cb,
+                               void *cb_cls);
+
 
 /**
  * Handle for a transmission request.
