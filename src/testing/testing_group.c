@@ -4713,6 +4713,8 @@ internal_startup_callback (void *cls,
 {
   struct InternalStartContext *internal_context = cls;
   internal_context->peer->pg->starting--;
+  if (internal_context->hostname != NULL)
+    decrement_outstanding_at_host(internal_context->hostname, internal_context->peer->pg);
   if (internal_context->start_cb != NULL)
     internal_context->start_cb (internal_context->start_cb_cls, id, cfg, d,
                                 emsg);
