@@ -1539,6 +1539,8 @@ connect_notify (void *cls,
     {
       ctx->connected = GNUNET_YES;
       ctx->distance = 0;        /* FIXME: distance */
+      if (ctx->hello_send_task != GNUNET_SCHEDULER_NO_TASK)
+        GNUNET_SCHEDULER_cancel(ctx->hello_send_task);
       GNUNET_SCHEDULER_cancel (ctx->timeout_task);
       ctx->timeout_task = GNUNET_SCHEDULER_add_now (&notify_connect_result,
                                                     ctx);
@@ -1774,7 +1776,8 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 #endif
 
   /* Core is up! Iterate over all _known_ peers first to check if we are already connected to the peer! */
-  GNUNET_CORE_iterate_peers(ctx->d1->cfg, &core_initial_iteration, ctx);
+  GNUNET_CORE_is_peer_connected (ctx->d1->cfg, &ctx->d2->id, &core_initial_iteration, ctx);
+  /* GNUNET_CORE_iterate_peers(ctx->d1->cfg, &core_initial_iteration, ctx); */
 
 }
 
