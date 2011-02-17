@@ -35,6 +35,9 @@
 #include "dhtlog.h"
 #include "dht.h"
 
+/* Specific DEBUG hack, do not use normally (may leak memory, segfault, or eat children.) */
+#define ONLY_TESTING GNUNET_YES
+
 /* DEFINES */
 #define VERBOSE GNUNET_NO
 
@@ -431,6 +434,21 @@ static struct GNUNET_TIME_Absolute connect_last_time;
  * (GNUNET_YES) or should it be left to the service (GNUNET_NO)
  */
 static unsigned int do_find_peer;
+
+#if ONLY_TESTING
+/**
+ * Are we currently trying to connect two peers repeatedly?
+ */
+static unsigned int repeat_connect_mode;
+
+/**
+ * Task for repeating connects.
+ */
+GNUNET_SCHEDULER_TaskIdentifier repeat_connect_task;
+
+struct GNUNET_TESTING_Daemon *repeat_connect_peer1;
+struct GNUNET_TESTING_Daemon *repeat_connect_peer2;
+#endif
 
 /**
  * Boolean value, should replication be done by the dht
@@ -2522,6 +2540,39 @@ setup_malicious_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc
 }
 #endif
 
+/* Forward declaration */
+static void
+topology_callback (void *cls,
+                   const struct GNUNET_PeerIdentity *first,
+                   const struct GNUNET_PeerIdentity *second,
+                   uint32_t distance,
+                   const struct GNUNET_CONFIGURATION_Handle *first_cfg,
+                   const struct GNUNET_CONFIGURATION_Handle *second_cfg,
+                   struct GNUNET_TESTING_Daemon *first_daemon,
+                   struct GNUNET_TESTING_Daemon *second_daemon,
+                   const char *emsg);
+
+/**
+ * Retry connecting two specific peers until they connect,
+ * at a specific interval.  These two peers previously failed
+ * to connect, and we hope they continue to so that we can
+ * debug the reason they are having issues.
+ */
+static void
+repeat_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Repeating connect attempt between %s and %s.\n", repeat_connect_peer1->shortname, repeat_connect_peer2->shortname);
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Peer 1 configuration `%s'\n", repeat_connect_peer1->cfgfile);
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Peer 2 configuration `%s'\n", repeat_connect_peer2->cfgfile);
+
+  GNUNET_TESTING_daemons_connect(repeat_connect_peer1,
+                                 repeat_connect_peer2,
+                                 GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60),
+                                 2, &topology_callback, NULL);
+}
+
+
 /**
  * This function is called whenever a connection attempt is finished between two of
  * the started peers (started with GNUNET_TESTING_daemons_start).  The total
@@ -2546,6 +2597,28 @@ topology_callback (void *cls,
   unsigned long long duration;
   unsigned long long total_duration;
   unsigned int new_connections;
+  float conns_per_sec_recent;
+  float conns_per_sec_total;
+
+#if ONLY_TESTING
+  if (repeat_connect_mode == GNUNET_YES)
+    {
+      if ((first_daemon == repeat_connect_peer1) &&
+          (second_daemon == repeat_connect_peer2))
+        {
+          if (emsg != NULL) /* Peers failed to connect again! */
+            return;
+          else /* Repeat peers actually connected! */
+            {
+              if (repeat_connect_task != GNUNET_SCHEDULER_NO_TASK)
+                GNUNET_SCHEDULER_cancel(repeat_connect_task);
+              repeat_connect_peer1 = NULL;
+              repeat_connect_peer2 = NULL;
+              repeat_connect_mode = GNUNET_NO;
+            }
+        }
+    }
+#endif
 
   if (GNUNET_TIME_absolute_get_difference (connect_last_time,
       GNUNET_TIME_absolute_get()).rel_value > GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, CONN_UPDATE_DURATION).rel_value)
@@ -2557,10 +2630,29 @@ topology_callback (void *cls,
                                                       GNUNET_TIME_absolute_get()).rel_value / 1000;
       total_duration = GNUNET_TIME_absolute_get_difference (connect_start_time,
                                                       GNUNET_TIME_absolute_get()).rel_value / 1000;
+      conns_per_sec_recent = (float)new_connections / duration;
+      conns_per_sec_total = (float)total_connections / total_duration;
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Conns/sec in last %d seconds: %f, Conns/sec for entire duration: %f\n", CONN_UPDATE_DURATION, (float)new_connections / duration, (float)total_connections / total_duration);
       connect_last_time = GNUNET_TIME_absolute_get();
       previous_connections = total_connections;
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "have %u total_connections\n", total_connections);
+#if ONLY_TESTING
+      /* These conditions likely mean we've entered the death spiral of doom */
+      if ((total_connections > 100000) &&
+          (conns_per_sec_recent < 5.0) &&
+          (conns_per_sec_total > 10.0) &&
+          (emsg != NULL) &&
+          (repeat_connect_mode == GNUNET_NO))
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Entering repeat connection attempt mode!\n");
+
+          repeat_connect_peer1 = first_daemon;
+          repeat_connect_peer2 = second_daemon;
+          repeat_connect_mode = GNUNET_YES;
+          repeat_connect_task = GNUNET_SCHEDULER_add_now(&repeat_connect, NULL);
+        }
+
+#endif
     }
   if (emsg == NULL)
     {
@@ -2584,6 +2676,11 @@ topology_callback (void *cls,
                   second_daemon->shortname, emsg);
 #endif
     }
+
+#if ONLY_TESTING
+  if (repeat_connect_mode == GNUNET_YES)
+    return;
+#endif
 
   GNUNET_assert(peer_connect_meter != NULL);
   if (GNUNET_YES == update_meter(peer_connect_meter))
