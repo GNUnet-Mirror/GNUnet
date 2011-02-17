@@ -5694,6 +5694,7 @@ void
 internal_shutdown_callback (void *cls, const char *emsg)
 {
   struct ShutdownContext *shutdown_ctx = cls;
+  unsigned int off;
 
   shutdown_ctx->outstanding--;
   if (emsg == NULL)
@@ -5714,6 +5715,17 @@ internal_shutdown_callback (void *cls, const char *emsg)
                           "Not all peers successfully shut down!");
       else
         shutdown_ctx->cb (shutdown_ctx->cb_cls, NULL);
+
+      GNUNET_free (shutdown_ctx->pg->peers);
+      GNUNET_free_non_null(shutdown_ctx->pg->hostkey_data);
+      for (off = 0; off < shutdown_ctx->pg->num_hosts; off++)
+        {
+          GNUNET_free (shutdown_ctx->pg->hosts[off].hostname);
+          GNUNET_free_non_null (shutdown_ctx->pg->hosts[off].username);
+        }
+      GNUNET_free_non_null (shutdown_ctx->pg->hosts);
+      GNUNET_free (shutdown_ctx->pg);
+
       GNUNET_free (shutdown_ctx);
     }
 }
@@ -5835,15 +5847,7 @@ GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg,
                                                peers[off].blacklisted_peers);
 #endif
     }
-  GNUNET_free (pg->peers);
-  GNUNET_free_non_null(pg->hostkey_data);
-  for (off = 0; off < pg->num_hosts; off++)
-    {
-      GNUNET_free (pg->hosts[off].hostname);
-      GNUNET_free_non_null (pg->hosts[off].username);
-    }
-  GNUNET_free_non_null (pg->hosts);
-  GNUNET_free (pg);
+
 }
 
 
