@@ -2604,10 +2604,10 @@ topology_callback (void *cls,
   unsigned long long total_duration;
   unsigned int new_connections;
   unsigned int new_failed_connections;
-  float conns_per_sec_recent;
-  float conns_per_sec_total;
-  float failed_conns_per_sec_recent;
-  float failed_conns_per_sec_total;
+  double conns_per_sec_recent;
+  double conns_per_sec_total;
+  double failed_conns_per_sec_recent;
+  double failed_conns_per_sec_total;
 
 #if ONLY_TESTING
   if (repeat_connect_mode == GNUNET_YES)
@@ -2631,8 +2631,6 @@ topology_callback (void *cls,
     }
 #endif
 
-
-
   if (GNUNET_TIME_absolute_get_difference (connect_last_time,
       GNUNET_TIME_absolute_get()).rel_value > GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, CONN_UPDATE_DURATION).rel_value)
     {
@@ -2648,10 +2646,10 @@ topology_callback (void *cls,
       total_duration = GNUNET_TIME_absolute_get_difference (connect_start_time,
                                                       GNUNET_TIME_absolute_get()).rel_value / 1000;
 
-      failed_conns_per_sec_recent = (float)new_failed_connections / duration;
-      failed_conns_per_sec_total = (float)failed_connections / total_duration;
-      conns_per_sec_recent = (float)new_connections / duration;
-      conns_per_sec_total = (float)total_connections / total_duration;
+      failed_conns_per_sec_recent = (double)new_failed_connections / duration;
+      failed_conns_per_sec_total = (double)failed_connections / total_duration;
+      conns_per_sec_recent = (double)new_connections / duration;
+      conns_per_sec_total = (double)total_connections / total_duration;
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Recent: %.2f/s, Total: %.2f/s, Recent failed: %.2f/s, total failed %.2f/s\n",
                  conns_per_sec_recent, CONN_UPDATE_DURATION, conns_per_sec_total,
                  failed_conns_per_sec_recent, failed_conns_per_sec_total);
@@ -2677,6 +2675,11 @@ topology_callback (void *cls,
         }
 #endif
     }
+  else if (repeat_connect_mode == GNUNET_YES)
+    {
+      repeat_connect_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60), &repeat_connect, NULL);
+    }
+
   if (emsg == NULL)
     {
       total_connections++;
