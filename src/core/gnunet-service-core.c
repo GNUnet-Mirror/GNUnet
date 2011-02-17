@@ -2964,6 +2964,7 @@ handle_client_request_connect (void *cls,
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return;
     }
+  timeout = GNUNET_TIME_relative_ntoh (cm->timeout);
   GNUNET_break (ntohl (cm->reserved) == 0);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   n = find_neighbour (&cm->peer);
@@ -3008,7 +3009,6 @@ handle_client_request_connect (void *cls,
 	      "REQUEST_CONNECT",
 	      GNUNET_i2s (&cm->peer));
 
-  timeout = GNUNET_TIME_relative_ntoh (cm->timeout);
   /* ask transport to connect to the peer */
   n->th = GNUNET_TRANSPORT_notify_transmit_ready (transport,
 						  &cm->peer,
