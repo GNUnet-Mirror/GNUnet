@@ -298,7 +298,7 @@ do_connect (const char *service_name,
               sock = GNUNET_CONNECTION_create_from_connect_to_unixpath (cfg, unixpath);
             }
 
-	  GNUNET_free (unixpath);
+
 	  if (sock != NULL)
 	    {
 #if DEBUG_CLIENT
@@ -307,6 +307,7 @@ do_connect (const char *service_name,
               return sock;
 	    }
 	}
+      GNUNET_free_non_null (unixpath);
     }
 #endif
 
