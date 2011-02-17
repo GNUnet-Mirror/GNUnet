@@ -2571,6 +2571,7 @@ repeat_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Peer 1 configuration `%s'\n", repeat_connect_peer1->cfgfile);
   GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Peer 2 configuration `%s'\n", repeat_connect_peer2->cfgfile);
 
+  repeat_connect_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_TESTING_daemons_connect(repeat_connect_peer1,
                                  repeat_connect_peer2,
                                  GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60),
@@ -2660,7 +2661,7 @@ topology_callback (void *cls,
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "have %u total_connections, %u failed\n", total_connections, failed_connections);
 #if ONLY_TESTING
       /* These conditions likely mean we've entered the death spiral of doom */
-      if ((total_connections > 100000) &&
+      if ((total_connections > 20000) &&
           (conns_per_sec_recent < 5.0) &&
           (conns_per_sec_total > 10.0) &&
           (emsg != NULL) &&

@@ -1545,15 +1545,16 @@ add_peer (const struct GNUNET_PeerIdentity *peer,
                                      k_buckets[bucket].tail, new_peer);
   k_buckets[bucket].peers_size++;
 
+#if DO_UPDATE_PREFERENCE
   if ((GNUNET_CRYPTO_hash_matching_bits
        (&my_identity.hashPubKey, &peer->hashPubKey) > 0)
       && (k_buckets[bucket].peers_size <= bucket_size))
     {
-#if DO_UPDATE_PREFERENCE
+
       new_peer->preference_task =
         GNUNET_SCHEDULER_add_now (&update_core_preference, new_peer);
-#endif
     }
+#endif
 
   return new_peer;
 }
