@@ -2651,13 +2651,13 @@ topology_callback (void *cls,
       failed_conns_per_sec_total = (float)failed_connections / total_duration;
       conns_per_sec_recent = (float)new_connections / duration;
       conns_per_sec_total = (float)total_connections / total_duration;
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Recent: %f/s, Total: %f/s, Recent failed: %f/s, total failed %f/s\n",
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Recent: %.2f/s, Total: %.2f/s, Recent failed: %.2f/s, total failed %.2f/s\n",
                  conns_per_sec_recent, CONN_UPDATE_DURATION, conns_per_sec_total,
                  failed_conns_per_sec_recent, failed_conns_per_sec_total);
       connect_last_time = GNUNET_TIME_absolute_get();
       previous_connections = total_connections;
       previous_failed_connections = failed_connections;
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "have %u total_connections\n", total_connections);
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "have %u total_connections, %u failed\n", total_connections, failed_connections);
 #if ONLY_TESTING
       /* These conditions likely mean we've entered the death spiral of doom */
       if ((total_connections > 100000) &&
@@ -2674,7 +2674,6 @@ topology_callback (void *cls,
           GNUNET_TESTING_stop_connections(pg);
           repeat_connect_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60), &repeat_connect, NULL);
         }
-
 #endif
     }
   if (emsg == NULL)
