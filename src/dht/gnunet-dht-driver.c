@@ -2603,7 +2603,7 @@ topology_callback (void *cls,
 
       GNUNET_SCHEDULER_cancel (die_task);
 
-      if (dhtlog_handle != NULL)
+      if ((GNUNET_YES == dhtlog_minimal) && (NULL != dhtlog_handle))
         {
           topo_ctx = GNUNET_malloc(sizeof(struct TopologyIteratorContext));
           GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Setting continue gets and puts as topo_cont\n");
