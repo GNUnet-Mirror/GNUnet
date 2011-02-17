@@ -2545,6 +2545,7 @@ setup_malicious_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc
 }
 #endif
 
+#if ONLY_TESTING
 /* Forward declaration */
 static void
 topology_callback (void *cls,
@@ -2577,7 +2578,7 @@ repeat_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
                                  GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60),
                                  2, &topology_callback, NULL);
 }
-
+#endif
 
 /**
  * This function is called whenever a connection attempt is finished between two of
