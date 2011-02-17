@@ -2676,10 +2676,12 @@ topology_callback (void *cls,
         }
 #endif
     }
+#if ONLY_TESTING
   else if (repeat_connect_mode == GNUNET_YES)
     {
       repeat_connect_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60), &repeat_connect, NULL);
     }
+#endif
 
   if (emsg == NULL)
     {
