@@ -716,6 +716,11 @@ static unsigned int total_connections;
 static unsigned int previous_connections;
 
 /**
+ * For counting failed connections during some duration.
+ */
+static unsigned int previous_failed_connections;
+
+/**
  * Global used to count how many failed connections we have
  * been notified about (how many times has topology_callback
  * been called with failure?)
@@ -2597,8 +2602,11 @@ topology_callback (void *cls,
   unsigned long long duration;
   unsigned long long total_duration;
   unsigned int new_connections;
+  unsigned int new_failed_connections;
   float conns_per_sec_recent;
   float conns_per_sec_total;
+  float failed_conns_per_sec_recent;
+  float failed_conns_per_sec_total;
 
 #if ONLY_TESTING
   if (repeat_connect_mode == GNUNET_YES)
@@ -2615,26 +2623,40 @@ topology_callback (void *cls,
               repeat_connect_peer1 = NULL;
               repeat_connect_peer2 = NULL;
               repeat_connect_mode = GNUNET_NO;
+              GNUNET_TESTING_resume_connections(pg);
+              GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Resuming normal connection mode, debug connection was successful!\n");
             }
         }
     }
 #endif
+
+
 
   if (GNUNET_TIME_absolute_get_difference (connect_last_time,
       GNUNET_TIME_absolute_get()).rel_value > GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, CONN_UPDATE_DURATION).rel_value)
     {
       /* Get number of new connections */
       new_connections = total_connections - previous_connections;
+
+      /* Get number of new FAILED connections */
+      new_failed_connections = failed_connections - previous_failed_connections;
+
       /* Get duration in seconds */
       duration = GNUNET_TIME_absolute_get_difference (connect_last_time,
                                                       GNUNET_TIME_absolute_get()).rel_value / 1000;
       total_duration = GNUNET_TIME_absolute_get_difference (connect_start_time,
                                                       GNUNET_TIME_absolute_get()).rel_value / 1000;
+
+      failed_conns_per_sec_recent = (float)new_failed_connections / duration;
+      failed_conns_per_sec_total = (float)failed_connections / total_duration;
       conns_per_sec_recent = (float)new_connections / duration;
       conns_per_sec_total = (float)total_connections / total_duration;
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Conns/sec in last %d seconds: %f, Conns/sec for entire duration: %f\n", CONN_UPDATE_DURATION, (float)new_connections / duration, (float)total_connections / total_duration);
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Recent: %f/s, Total: %f/s, Recent failed: %f/s, total failed %f/s\n",
+                 conns_per_sec_recent, CONN_UPDATE_DURATION, conns_per_sec_total,
+                 failed_conns_per_sec_recent, failed_conns_per_sec_total);
       connect_last_time = GNUNET_TIME_absolute_get();
       previous_connections = total_connections;
+      previous_failed_connections = failed_connections;
       GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "have %u total_connections\n", total_connections);
 #if ONLY_TESTING
       /* These conditions likely mean we've entered the death spiral of doom */
@@ -2645,11 +2667,12 @@ topology_callback (void *cls,
           (repeat_connect_mode == GNUNET_NO))
         {
           GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Entering repeat connection attempt mode!\n");
-
           repeat_connect_peer1 = first_daemon;
           repeat_connect_peer2 = second_daemon;
           repeat_connect_mode = GNUNET_YES;
-          repeat_connect_task = GNUNET_SCHEDULER_add_now(&repeat_connect, NULL);
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Stopping NEW connections from being scheduled!\n");
+          GNUNET_TESTING_stop_connections(pg);
+          repeat_connect_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60), &repeat_connect, NULL);
         }
 
 #endif
@@ -2667,10 +2690,11 @@ topology_callback (void *cls,
   else
     {
       failed_connections++;
+#if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Failed to connect peer %s to peer %s with error :\n%s\n",
                   first_daemon->shortname,
                   second_daemon->shortname, emsg);
-#if VERBOSE
+
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to connect peer %s to peer %s with error :\n%s\n",
                   first_daemon->shortname,
                   second_daemon->shortname, emsg);

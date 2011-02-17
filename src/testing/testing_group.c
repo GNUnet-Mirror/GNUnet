@@ -702,6 +702,11 @@ struct GNUNET_TESTING_PeerGroup
    * ssh connections per peer.
    */
   struct OutstandingSSH *ssh_tail;
+
+  /**
+   * Stop scheduling peers connecting.
+   */
+  unsigned int stop_connects;
 };
 
 struct UpdateContext
@@ -2904,8 +2909,9 @@ static void preschedule_connect(struct ConnectTopologyContext *ct_ctx)
     random_peer = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, pg->total);
 
   connection_iter = pg->peers[random_peer].connect_peers_head;
+#if DEBUG_TESTING
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Scheduling connection between %d and %d\n", random_peer, connection_iter->index);
-
+#endif
   connect_context = GNUNET_malloc (sizeof (struct ConnectContext));
   connect_context->first = pg->peers[random_peer].daemon;
   connect_context->second = pg->peers[connection_iter->index].daemon;
@@ -2967,7 +2973,7 @@ schedule_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     return;
 
-  if (pg->outstanding_connects > pg->max_outstanding_connections)
+  if ((pg->outstanding_connects > pg->max_outstanding_connections) || (pg->stop_connects == GNUNET_YES))
     {
 #if VERBOSE_TESTING > 2
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -4440,6 +4446,26 @@ GNUNET_TESTING_get_statistics (struct GNUNET_TESTING_PeerGroup *pg,
         }
     }
   return;
+}
+
+/**
+ * Stop the connection process temporarily.
+ *
+ * @param pg the peer group to stop connecting
+ */
+void GNUNET_TESTING_stop_connections(struct GNUNET_TESTING_PeerGroup *pg)
+{
+  pg->stop_connects = GNUNET_YES;
+}
+
+/**
+ * Resume the connection process temporarily.
+ *
+ * @param pg the peer group to resume connecting
+ */
+void GNUNET_TESTING_resume_connections(struct GNUNET_TESTING_PeerGroup *pg)
+{
+  pg->stop_connects = GNUNET_NO;
 }
 
 /**

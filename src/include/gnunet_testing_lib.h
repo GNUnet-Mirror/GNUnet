@@ -889,6 +889,20 @@ GNUNET_TESTING_get_topology (struct GNUNET_TESTING_PeerGroup *pg,
 			     GNUNET_TESTING_NotifyTopology cb, void *cls);
 
 /**
+ * Stop the connection process temporarily.
+ *
+ * @param pg the peer group to stop connecting
+ */
+void GNUNET_TESTING_stop_connections(struct GNUNET_TESTING_PeerGroup *pg);
+
+/**
+ * Resume the connection process.
+ *
+ * @param pg the peer group to resume connecting
+ */
+void GNUNET_TESTING_resume_connections(struct GNUNET_TESTING_PeerGroup *pg);
+
+/**
  * There are many ways to connect peers that are supported by this function.
  * To connect peers in the same topology that was created via the
  * GNUNET_TESTING_create_topology, the topology variable must be set to
