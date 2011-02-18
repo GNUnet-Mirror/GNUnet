@@ -25,6 +25,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_datacache_lib.h"
+#include <gauger.h>
 
 #define VERBOSE GNUNET_NO
 
@@ -69,6 +70,7 @@ run (void *cls,
   struct GNUNET_TIME_Absolute exp;
   struct GNUNET_TIME_Absolute start;
   unsigned int i;
+  char gstr[128];
   
   ok = 0;
   h = GNUNET_DATACACHE_create (cfg,
@@ -101,6 +103,12 @@ run (void *cls,
   fprintf (stdout, "Stored %u items in %llums\n",
 	   ITERATIONS,
 	   (unsigned long long) GNUNET_TIME_absolute_get_duration(start).rel_value);
+  GNUNET_snprintf (gstr, sizeof (gstr),
+		   "Time to PUT %u items in %s-datacache_ms",
+		   ITERATIONS,
+		   plugins_name);
+  GAUGER (GNUNET_TIME_absolute_get_duration(start).rel_value,
+	  gstr);  
   start = GNUNET_TIME_absolute_get ();
   memset (&k, 0, sizeof (GNUNET_HashCode));
   for (i = 0; i < ITERATIONS; i++)
@@ -117,6 +125,12 @@ run (void *cls,
 	   found, ITERATIONS,
 	   (unsigned long long) GNUNET_TIME_absolute_get_duration(start).rel_value,
 	   ITERATIONS - found);
+  GNUNET_snprintf (gstr, sizeof (gstr),
+		   "Time to try to GET %u items from %s-datacache_ms",
+		   ITERATIONS,
+		   plugins_name);
+  GAUGER (GNUNET_TIME_absolute_get_duration(start).rel_value,
+	  gstr);  
 	   
   GNUNET_DATACACHE_destroy (h);
   ASSERT (ok == 0);
