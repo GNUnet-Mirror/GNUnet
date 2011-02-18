@@ -302,7 +302,7 @@ run_continuation (void *cls,
     case RP_DONE:
       GNUNET_snprintf (gstr, sizeof (gstr),
 		       "PUT operations in %s-datastore_op/s",
-		       plugins_name);
+		       plugin_name);
       if (crc->i == ITERATIONS)
 	GAUGER (1000 * stored_ops / (1 + GNUNET_TIME_absolute_get_duration(start_time).rel_value),
 		gstr);  
