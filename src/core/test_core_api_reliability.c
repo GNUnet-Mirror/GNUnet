@@ -34,6 +34,7 @@
 #include "gnunet_program_lib.h"
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_transport_service.h"
+#include <gauger.h>
 
 #define VERBOSE GNUNET_NO
 
@@ -131,6 +132,8 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   fprintf (stderr,
 	   "\nThroughput was %llu kb/s\n",
 	   total_bytes * 1000 / 1024 / delta);
+  GAUGER ("Core throughput_kb/s", 
+	  total_bytes * 1000 / 1024 / delta);
   ok = 0;
 }
 
