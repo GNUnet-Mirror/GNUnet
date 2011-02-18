@@ -58,7 +58,6 @@ struct ClientRequest
 };
 
 
-
 /**
  * Replies to be transmitted to the client.  The actual
  * response message is allocated after this struct.
@@ -85,7 +84,6 @@ struct ClientResponse
    */
   size_t msize;
 };
-
 
 
 /**
@@ -188,6 +186,7 @@ GSF_local_client_lookup_ (struct GNUNET_SERVER_Client *client)
  *
  * @param cls user-specified closure
  * @param pr handle to the original pending request
+ * @param expiration when does 'data' expire?
  * @param data response data, NULL on request expiration
  * @param data_len number of bytes in data
  * @param more GNUNET_YES if the request remains active (may call
@@ -197,11 +196,15 @@ GSF_local_client_lookup_ (struct GNUNET_SERVER_Client *client)
 static void
 client_response_handler (void *cls,
 			 struct GSF_PendingRequest *pr,
+			 struct GNUNET_TIME_Absolute expiration,
 			 const void *data,
 			 size_t data_len,
 			 int more)
 {
   struct ClientRequest *cr = cls;
+  struct GSF_LocalClient *lc;
+  struct PutMessage *pm;
+  const struct GSF_PendingRequestData *prd;
 
   if (NULL == data)
     {
@@ -210,49 +213,29 @@ client_response_handler (void *cls,
       GNUNET_assert (GNUNET_NO == more);
       return;
     }
-  /* FIXME: adapt old code below to new API! */
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# replies received for local clients"),
+			    1,
+			    GNUNET_NO);
+  prd = GSF_pending_request_get_data_ (pr);
+  GNUNET_assert (pr == cr->pr);
+  lc = cr->lc;
+  pm = GNUNET_malloc (sizeof (PutMessage) + data_len);
+  pm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_PUT);
+  pm->header.size = htons (msize);
+  pm->type = htonl (prd->type);
+  pm->expiration = GNUNET_TIME_absolute_hton (prq->expiration);
+  memcpy (&pm[1], data, data_len);      
+  GSF_local_client_transmit_ (lc, &pm->header);
 
-      GNUNET_STATISTICS_update (stats,
-				gettext_noop ("# replies received for local clients"),
-				1,
-				GNUNET_NO);
-      cl = pr->client_request_list->client_list;
-      msize = sizeof (struct PutMessage) + prq->size;
-      creply = GNUNET_malloc (msize + sizeof (struct ClientResponseMessage));
-      creply->msize = msize;
-      creply->client_list = cl;
-      GNUNET_CONTAINER_DLL_insert_after (cl->res_head,
-					 cl->res_tail,
-					 cl->res_tail,
-					 creply);      
-      pm = (struct PutMessage*) &creply[1];
-      pm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_PUT);
-      pm->header.size = htons (msize);
-      pm->type = htonl (prq->type);
-      pm->expiration = GNUNET_TIME_absolute_hton (prq->expiration);
-      memcpy (&pm[1], prq->data, prq->size);      
-      if (NULL == cl->th)
-	{
-#if DEBUG_FS
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Transmitting result for query `%s' to client\n",
-		      GNUNET_h2s (key));
-#endif  
-	  cl->th = GNUNET_SERVER_notify_transmit_ready (cl->client,
-							msize,
-							GNUNET_TIME_UNIT_FOREVER_REL,
-							&transmit_to_client,
-							cl);
-	}
-      GNUNET_break (cl->th != NULL);
-      if (pr->do_remove)		
-	{
-	  prq->finished = GNUNET_YES;
-	  destroy_pending_request (pr);	 	
-	}
-
+  if (GNUNET_NO == more)		
+    {
+      GNUNET_CONTAINER_DLL_remove (lc->cr_head,
+				   lc->cr_tail,
+				   cr);
+      GNUNET_free (cr);
+    }
 }
-
 
 
 /**
@@ -431,6 +414,7 @@ GSF_local_client_transmit_ (struct GSF_LocalClient *lc,
   res = GNUNET_malloc (sizeof (struct ClientResponse) + msize);
   res->lc = lc;
   res->msize = msize;
+  memcpy (&res[1], msg, msize);
   GNUNET_CONTAINER_DLL_insert_tail (lc->res_head,
 				    lc->res_tail,
 				    res);
