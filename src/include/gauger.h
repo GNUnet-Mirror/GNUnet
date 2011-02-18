@@ -5,6 +5,6 @@
 #include <stdio.h>
 #include <sys/wait.h>
 
-#define GAUGER(counter, value) {char __gauger_s[32];pid_t __gauger_p;if(!(__gauger_p=fork())){if(!fork()){sprintf(__gauger_s,"%d",value);execlp("gauger-cli.py","gauger-cli.py",counter, __gauger_s,(char*)NULL);_exit(1);}else{_exit(0);}}else{waitpid(__gauger_p,NULL,0);}}
+#define GAUGER(counter, value) {char __gauger_s[64];pid_t __gauger_p;if(!(__gauger_p=fork())){if(!fork()){sprintf(__gauger_s,"%llu", (unsigned long long) value);execlp("gauger-cli.py","gauger-cli.py",counter, __gauger_s,(char*)NULL);_exit(1);}else{_exit(0);}}else{waitpid(__gauger_p,NULL,0);}}
 
 #endif
