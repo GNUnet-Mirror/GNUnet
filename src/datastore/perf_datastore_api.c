@@ -242,6 +242,7 @@ run_continuation (void *cls,
   static char data[65536];
   int i;
   int k;
+  char gstr[128];
 
   ok = (int) crc->phase;
   switch (crc->phase)
@@ -293,11 +294,18 @@ run_continuation (void *cls,
                1000 * stored_ops / (1 + GNUNET_TIME_absolute_get_duration(start_time).rel_value));
       crc->phase = RP_PUT;
       crc->j = 0;
+      start = GNUNET_TIME_absolute_get ();
       GNUNET_SCHEDULER_add_continuation (&run_continuation,
 					 crc,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       break;
     case RP_DONE:
+      GNUNET_snprintf (gstr, sizeof (gstr),
+		       "PUT operations in %s-datastore_op/s",
+		       plugins_name);
+      if (crc->i == ITERATIONS)
+	GAUGER (1000 * stored_ops / (1 + GNUNET_TIME_absolute_get_duration(start_time).rel_value),
+		gstr);  
       GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
       GNUNET_free (crc);
       ok = 0;
