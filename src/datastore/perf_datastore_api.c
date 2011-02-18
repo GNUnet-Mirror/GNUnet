@@ -36,6 +36,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_datastore_service.h"
+#include <gauger.h>
 
 #define VERBOSE GNUNET_NO
 
@@ -294,7 +295,6 @@ run_continuation (void *cls,
                1000 * stored_ops / (1 + GNUNET_TIME_absolute_get_duration(start_time).rel_value));
       crc->phase = RP_PUT;
       crc->j = 0;
-      start = GNUNET_TIME_absolute_get ();
       GNUNET_SCHEDULER_add_continuation (&run_continuation,
 					 crc,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -304,8 +304,7 @@ run_continuation (void *cls,
 		       "PUT operations in %s-datastore_op/s",
 		       plugin_name);
       if (crc->i == ITERATIONS)
-	GAUGER (1000 * stored_ops / (1 + GNUNET_TIME_absolute_get_duration(start_time).rel_value),
-		gstr);  
+	GAUGER (gstr, 1000 * stored_ops / (1 + GNUNET_TIME_absolute_get_duration(start_time).rel_value));
       GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
       GNUNET_free (crc);
       ok = 0;
