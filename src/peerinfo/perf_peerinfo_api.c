@@ -32,6 +32,7 @@
 #include "gnunet_program_lib.h"
 #include "gnunet_time_lib.h"
 #include "peerinfo.h"
+#include <gauger.h>
 
 #define START_SERVICE 1
 
@@ -186,6 +187,8 @@ check ()
 	   "Received %u/%u calls before timeout\n",
 	   numpeers,
 	   NUM_REQUESTS * NUM_REQUESTS / 2);
+  GAUGER ("Peerinfo lookups_peers/s",
+	  numpeers/30);
 #if START_SERVICE
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
     {
