@@ -106,7 +106,7 @@ run (void *cls,
   GNUNET_snprintf (gstr, sizeof (gstr),
 		   "Time to PUT %u items in %s-datacache_ms",
 		   ITERATIONS,
-		   plugins_name);
+		   plugin_name);
   GAUGER (GNUNET_TIME_absolute_get_duration(start).rel_value,
 	  gstr);  
   start = GNUNET_TIME_absolute_get ();
@@ -128,7 +128,7 @@ run (void *cls,
   GNUNET_snprintf (gstr, sizeof (gstr),
 		   "Time to try to GET %u items from %s-datacache_ms",
 		   ITERATIONS,
-		   plugins_name);
+		   plugin_name);
   GAUGER (GNUNET_TIME_absolute_get_duration(start).rel_value,
 	  gstr);  
 	   
