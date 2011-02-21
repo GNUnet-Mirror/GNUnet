@@ -1,6 +1,7 @@
 INCLUDES = -I$(top_srcdir)/src/include
 
 plugindir = $(libdir)/gnunet
+SUBDIRS = libgnu
 
 if MINGW
 noinst_LTLIBRARIES = \
@@ -74,7 +75,8 @@ libgnunetutil_la_LIBADD = \
   $(GCLIBADD) $(WINLIB) \
   $(LIBGCRYPT_LIBS) \
   $(LTLIBICONV) \
-  -lltdl -lz $(XLIB)
+  -lltdl -lz $(XLIB) \
+  libgnu/libgnu.la
 
 libgnunetutil_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \

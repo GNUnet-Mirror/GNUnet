@@ -32,6 +32,8 @@ AH_TOP([#define _GNU_SOURCE  1])
 AC_CANONICAL_HOST
 AC_PROG_AWK
 AC_PROG_CC
+gl_EARLY
+gl_INIT
 AC_PROG_CPP
 AC_PROG_CXX
 AC_PROG_OBJC
@@ -809,6 +811,7 @@ src/testing/Makefile
 src/topology/Makefile
 src/transport/Makefile
 src/util/Makefile
+src/util/libgnu/Makefile
 src/vpn/Makefile
 src/chat/Makefile
 pkgconfig/Makefile
