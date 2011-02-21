@@ -415,7 +415,7 @@ receive_udp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
 
   GNUNET_assert (me != NULL);
   GNUNET_assert (me->desc.service_type & htonl(GNUNET_DNS_SERVICE_TYPE_UDP));
-  if (!port_in_ports(me->desc.ports, pkt6->udp_hdr.spt) ||
+  if (!port_in_ports(me->desc.ports, pkt6->udp_hdr.spt) &&
       !port_in_ports(me->additional_ports, pkt6->udp_hdr.spt)) {
       add_additional_port(me, pkt6->udp_hdr.spt);
   }
