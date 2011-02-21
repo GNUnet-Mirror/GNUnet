@@ -266,14 +266,12 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 
 	value->additional_ports = 0;
 
-	if (GNUNET_OK != GNUNET_CONTAINER_multihashmap_put(hashmap,
-							   &key,
-							   value,
-							   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
-	  {
-	    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not store to hashmap\n");
-            GNUNET_free(value);
-	  }
+        if (GNUNET_NO ==
+            GNUNET_CONTAINER_multihashmap_contains (hashmap, &key))
+          GNUNET_CONTAINER_multihashmap_put (hashmap, &key, value,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+        else
+          GNUNET_free(value);
 
 
 	list = GNUNET_malloc(htons(pkt->hdr.size) + 2*sizeof(struct answer_packet_list*));
