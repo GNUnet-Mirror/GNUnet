@@ -272,6 +272,7 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 							   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
 	  {
 	    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not store to hashmap\n");
+            GNUNET_free(value);
 	  }
 
 

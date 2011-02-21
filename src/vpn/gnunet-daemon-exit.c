@@ -125,11 +125,25 @@ struct udp_state
 static struct GNUNET_CONTAINER_MultiHashMap *udp_services;
 
 /**
+ * Function that frees everything from a hashmap
+ */
+static int
+free_iterate(void* cls, const GNUNET_HashCode* hash, void* value)
+{
+  GNUNET_free(value);
+  return GNUNET_YES;
+}
+
+/**
  * Function scheduled as very last function, cleans up after us
  */
 static void
 cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
     GNUNET_assert (0 != (tskctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN));
+
+    GNUNET_CONTAINER_multihashmap_iterate(udp_connections,
+                                          free_iterate,
+                                          NULL);
 
     if (mesh_handle != NULL)
       {
@@ -501,6 +515,8 @@ receive_udp_service (void *cls,
       GNUNET_assert(GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "exit", "IPV4MASK", &ipv4mask));
       inet_pton(AF_INET, ipv4addr, &tmp);
       inet_pton(AF_INET, ipv4mask, &tmp2);
+      GNUNET_free(ipv4addr);
+      GNUNET_free(ipv4mask);
 
       /* This should be a noop */
       tmp = tmp & tmp2;
@@ -586,6 +602,8 @@ receive_udp_service (void *cls,
       GNUNET_CONTAINER_multihashmap_contains (udp_connections, &hash))
     GNUNET_CONTAINER_multihashmap_put (udp_connections, &hash, state,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  else
+    GNUNET_free(state);
 
   (void)GNUNET_DISK_file_write(helper_handle->fh_to_helper, buf, len);
   return GNUNET_YES;
