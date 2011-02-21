@@ -39,6 +39,7 @@
 #include "gnunet-daemon-vpn-helper.h"
 #include "gnunet-service-dns-p.h"
 #include "gnunet-vpn-packet.h"
+#include "gnunet-vpn-checksum.h"
 
 struct GNUNET_VPN_HELPER_Handle *helper_handle;
 

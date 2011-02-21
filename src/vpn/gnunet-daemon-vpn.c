@@ -37,8 +37,8 @@
 #include <block_dns.h>
 #include "gnunet-daemon-vpn-helper.h"
 #include "gnunet-daemon-vpn-dns.h"
-
 #include "gnunet-daemon-vpn.h"
+#include "gnunet-vpn-checksum.h"
 
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 struct GNUNET_MESH_Handle *mesh_handle;
@@ -80,30 +80,6 @@ cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
       }
 }
 /*}}}*/
-
-static uint32_t calculate_checksum_update(uint32_t sum, uint16_t *hdr, short len) {
-    for(; len >= 2; len -= 2)
-      sum += *(hdr++);
-    if (len == 1)
-      sum += *((unsigned char*)hdr);
-    return sum;
-}
-
-static uint16_t calculate_checksum_end(uint32_t sum) {
-    while (sum >> 16)
-      sum = (sum >> 16) + (sum & 0xFFFF);
-
-    return ~sum;
-}
-
-/**
- * Calculate the checksum of an IPv4-Header
- */
-uint16_t
-calculate_ip_checksum(uint16_t* hdr, short len) {
-    uint32_t sum = calculate_checksum_update(0, hdr, len);
-    return calculate_checksum_end(sum);
-}
 
 /**
  * @return the hash of the IP-Address if a mapping exists, NULL otherwise

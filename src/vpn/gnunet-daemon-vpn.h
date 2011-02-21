@@ -38,12 +38,6 @@
 void
 process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc);
 
-/**
- * Calculate the checksum of an IPv4-Header
- */
-uint16_t
-calculate_ip_checksum(uint16_t* hdr, short len);
-
 void
 send_icmp_response(void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 

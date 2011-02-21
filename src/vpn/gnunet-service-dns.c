@@ -576,6 +576,7 @@ publish_name (void *cls,
     data.purpose.purpose = GNUNET_SIGNATURE_PURPOSE_DNS_RECORD;
 
     GNUNET_CRYPTO_hash(name, strlen(name)+1, &data.service_descriptor);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Store with key1 %x\n", *((unsigned long long*)&data.service_descriptor));
 
     data.service_type = htonl(GNUNET_DNS_SERVICE_TYPE_UDP);
     data.ports = htons(69);
