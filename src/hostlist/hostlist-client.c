@@ -335,7 +335,7 @@ callback_download (void *ptr,
 				    1, 
 				    GNUNET_NO);
 	  stat_hellos_obtained++;
-	  GNUNET_TRANSPORT_offer_hello (transport, msg);
+	  GNUNET_TRANSPORT_offer_hello (transport, msg, NULL, NULL);
 	}
       else
 	{

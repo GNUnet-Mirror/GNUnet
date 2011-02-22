@@ -482,6 +482,7 @@ GNUNET_FS_TEST_daemons_connect (struct GNUNET_FS_TestDaemon *daemon1,
 				  daemon2->daemon,
 				  timeout,
 				  CONNECT_ATTEMPTS,
+				  GNUNET_YES,
 				  &notify_connection,
 				  ncc);
 }

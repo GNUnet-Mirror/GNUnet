@@ -38,7 +38,7 @@
 #include "gnunet_hello_lib.h"
 
 #define DEBUG_TESTING GNUNET_NO
-#define DEBUG_TESTING_RECONNECT GNUNET_NO
+#define DEBUG_TESTING_RECONNECT GNUNET_YES
 
 /**
  * How long do we wait after starting gnunet-service-arm
@@ -65,9 +65,18 @@ static void
 process_hello (void *cls, const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_TESTING_Daemon *daemon = cls;
+  GNUNET_TESTING_NotifyDaemonRunning cb;
+
   int msize;
   if (daemon == NULL)
     return;
+
+  GNUNET_assert (daemon->phase == SP_GET_HELLO);
+
+  cb = daemon->cb;
+  daemon->cb = NULL;
+  if (daemon->task != GNUNET_SCHEDULER_NO_TASK) /* Assertion here instead? */
+    GNUNET_SCHEDULER_cancel(daemon->task);
 
   if (daemon->server != NULL)
     {
@@ -105,8 +114,14 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
       GNUNET_TRANSPORT_disconnect (daemon->th);
       daemon->th = NULL;
     }
+  daemon->phase = SP_START_DONE;
 
+  if (NULL != cb) /* FIXME: what happens when this callback calls GNUNET_TESTING_daemon_stop? */
+    cb (daemon->cb_cls, &daemon->id, daemon->cfg, daemon, NULL);
 }
+
+static void
+start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Function called after GNUNET_CORE_connect has succeeded
@@ -127,12 +142,10 @@ testing_init (void *cls,
               const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
 {
   struct GNUNET_TESTING_Daemon *d = cls;
-  GNUNET_TESTING_NotifyDaemonRunning cb;
 
   GNUNET_assert (d->phase == SP_START_CORE);
-  d->phase = SP_START_DONE;
-  cb = d->cb;
-  d->cb = NULL;
+  d->phase = SP_GET_HELLO;
+
   if (server == NULL)
     {
       d->server = NULL;
@@ -141,8 +154,8 @@ testing_init (void *cls,
                                     GNUNET_TIME_absolute_get_remaining
                                     (d->max_timeout), d->dead_cb,
                                     d->dead_cb_cls, GNUNET_YES, GNUNET_NO);
-      else if (NULL != cb)
-        cb (d->cb_cls, NULL, d->cfg, d,
+      else if (NULL != d->cb)
+        d->cb (d->cb_cls, NULL, d->cfg, d,
             _("Failed to connect to core service\n"));
       return;
     }
@@ -154,9 +167,6 @@ testing_init (void *cls,
   d->shortname = strdup (GNUNET_i2s (my_identity));
   d->server = server;
   d->running = GNUNET_YES;
-
-  if (NULL != cb)               /* FIXME: what happens when this callback calls GNUNET_TESTING_daemon_stop? */
-    cb (d->cb_cls, my_identity, d->cfg, d, NULL);
 
   if (GNUNET_NO == d->running)
     {
@@ -192,6 +202,12 @@ testing_init (void *cls,
 #endif
 
   GNUNET_TRANSPORT_get_hello (d->th, &process_hello, d);
+  /* wait some more */
+  if (d->task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(d->task);
+  d->task
+    = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_EXEC_WAIT,
+                                    &start_fsm, d);
 }
 
 
@@ -551,7 +567,12 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                     (NULL == d->hostname)
                     ? _("`gnunet-arm' does not seem to terminate.\n")
                     : _("`ssh' does not seem to terminate.\n"));
+              GNUNET_CONFIGURATION_destroy (d->cfg);
+              GNUNET_free (d->cfgfile);
+              GNUNET_free_non_null (d->hostname);
+              GNUNET_free_non_null (d->username);
               GNUNET_free(d->proc);
+              GNUNET_free(d);
               return;
             }
           /* wait some more */
@@ -570,18 +591,68 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Calling CORE_connect\n");
 #endif
+      /* Fall through */
+    case SP_START_CORE:
+      if (d->server != NULL)
+        GNUNET_CORE_disconnect(d->server);
+
+      if (GNUNET_TIME_absolute_get_remaining (d->max_timeout).rel_value ==
+          0)
+        {
+          cb = d->cb;
+          d->cb = NULL;
+          if (NULL != cb)
+            cb (d->cb_cls,
+                NULL,
+                d->cfg,
+                d,
+                _("Unable to connect to CORE service for peer!\n"));
+          GNUNET_CONFIGURATION_destroy (d->cfg);
+          GNUNET_free (d->cfgfile);
+          GNUNET_free_non_null (d->hostname);
+          GNUNET_free_non_null (d->username);
+          GNUNET_free (d);
+          return;
+        }
       d->server = GNUNET_CORE_connect (d->cfg, 1,
-#if NO_MORE_TIMEOUT_FIXME
-                                       ARM_START_WAIT,
-#endif
                                        d,
                                        &testing_init,
                                        NULL, NULL, NULL,
                                        NULL, GNUNET_NO,
                                        NULL, GNUNET_NO, no_handlers);
+      d->task
+        = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_CONSTANTS_SERVICE_RETRY, 2),
+                                        &start_fsm, d);
       break;
-    case SP_START_CORE:
-      GNUNET_break (0);
+    case SP_GET_HELLO:
+      if (GNUNET_TIME_absolute_get_remaining (d->max_timeout).rel_value ==
+          0)
+        {
+          if (d->server != NULL)
+            GNUNET_CORE_disconnect(d->server);
+          if (d->th != NULL)
+            GNUNET_TRANSPORT_disconnect(d->th);
+          cb = d->cb;
+          d->cb = NULL;
+          if (NULL != cb)
+            cb (d->cb_cls,
+                NULL,
+                d->cfg,
+                d,
+                _("Unable to get HELLO for peer!\n"));
+          GNUNET_CONFIGURATION_destroy (d->cfg);
+          GNUNET_free (d->cfgfile);
+          GNUNET_free_non_null (d->hostname);
+          GNUNET_free_non_null (d->username);
+          GNUNET_free (d);
+          return;
+        }
+      if (d->hello != NULL)
+        return;
+      GNUNET_assert(d->task == GNUNET_SCHEDULER_NO_TASK);
+      d->task
+        = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_CONSTANTS_SERVICE_RETRY, 2),
+                                        &start_fsm, d);
       break;
     case SP_START_DONE:
       GNUNET_break (0);
@@ -1368,12 +1439,6 @@ struct ConnectContext
   void *cb_cls;
 
   /**
-   * When should this operation be complete (or we must trigger
-   * a timeout).
-   */
-  struct GNUNET_TIME_Absolute timeout;
-
-  /**
    * The relative timeout from whence this connect attempt was
    * started.  Allows for reconnect attempts.
    */
@@ -1383,7 +1448,7 @@ struct ConnectContext
    * Maximum number of connect attempts, will retry connection
    * this number of times on failures.
    */
-  unsigned int max_connect_attempts;
+  unsigned int connect_attempts;
 
   /**
    * Hello timeout task
@@ -1405,6 +1470,11 @@ struct ConnectContext
    * Was the connection attempt successful?
    */
   int connected;
+
+  /**
+   * When connecting, do we need to send the HELLO?
+   */
+  int send_hello;
 
   /**
    * The distance between the two connected peers
@@ -1431,8 +1501,6 @@ notify_connect_result (void *cls,
                        const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ConnectContext *ctx = cls;
-  struct GNUNET_TIME_Relative remaining;
-
   ctx->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   if (ctx->hello_send_task != GNUNET_SCHEDULER_NO_TASK)
     {
@@ -1445,6 +1513,7 @@ notify_connect_result (void *cls,
       GNUNET_CORE_peer_request_connect_cancel (ctx->connect_request_handle);
       ctx->connect_request_handle = NULL;
     }
+
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     {
       if (ctx->d1th != NULL)
@@ -1458,12 +1527,16 @@ notify_connect_result (void *cls,
       ctx->d2core = NULL;
 #endif
       ctx->d1core = NULL;
-
       GNUNET_free (ctx);
       return;
     }
 
-  remaining = GNUNET_TIME_absolute_get_remaining (ctx->timeout);
+  if (ctx->d1th != NULL)
+    GNUNET_TRANSPORT_disconnect (ctx->d1th);
+  ctx->d1th = NULL;
+  if (ctx->d1core != NULL)
+    GNUNET_CORE_disconnect (ctx->d1core);
+  ctx->d1core = NULL;
 
   if (ctx->connected == GNUNET_YES)
     {
@@ -1476,13 +1549,8 @@ notify_connect_result (void *cls,
                    ctx->d1->cfg, ctx->d2->cfg, ctx->d1, ctx->d2, NULL);
         }
     }
-  else if (remaining.rel_value > 0)
+  else if (ctx->connect_attempts > 0)
     {
-      if (ctx->d1core != NULL)
-        {
-          GNUNET_CORE_disconnect (ctx->d1core);
-          ctx->d1core = NULL;
-        }
       ctx->d1core_ready = GNUNET_NO;
 #if CONNECT_CORE2
       if (ctx->d2core != NULL)
@@ -1491,12 +1559,6 @@ notify_connect_result (void *cls,
           ctx->d2core = NULL;
         }
 #endif
-
-      if (ctx->d1th != NULL)
-        {
-          GNUNET_TRANSPORT_disconnect (ctx->d1th);
-          ctx->d1th = NULL;
-        }
       GNUNET_SCHEDULER_add_now (&reattempt_daemons_connect, ctx);
       return;
     }
@@ -1510,12 +1572,6 @@ notify_connect_result (void *cls,
         }
     }
 
-  if (ctx->d1th != NULL)
-    GNUNET_TRANSPORT_disconnect (ctx->d1th);
-  ctx->d1th = NULL;
-  if (ctx->d1core != NULL)
-    GNUNET_CORE_disconnect (ctx->d1core);
-  ctx->d1core = NULL;
   GNUNET_free (ctx);
 }
 
@@ -1535,8 +1591,15 @@ connect_notify (void *cls,
 {
   struct ConnectContext *ctx = cls;
 
+#if DEBUG_TESTING
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Connected peer %s to peer %s\n",
+                ctx->d1->shortname, GNUNET_i2s(peer));
+#endif
+
   if (0 == memcmp (&ctx->d2->id, peer, sizeof (struct GNUNET_PeerIdentity)))
     {
+
       ctx->connected = GNUNET_YES;
       ctx->distance = 0;        /* FIXME: distance */
       if (ctx->hello_send_task != GNUNET_SCHEDULER_NO_TASK)
@@ -1606,17 +1669,16 @@ send_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       hello = GNUNET_HELLO_get_header (ctx->d2->hello);
       GNUNET_assert (hello != NULL);
-      GNUNET_TRANSPORT_offer_hello (ctx->d1th, hello);
+      GNUNET_TRANSPORT_offer_hello (ctx->d1th, hello, NULL, NULL);
       GNUNET_assert (ctx->d1core != NULL);
       ctx->connect_request_handle =
         GNUNET_CORE_peer_request_connect (ctx->d1core,
-                                          GNUNET_TIME_relative_divide
-                                          (ctx->relative_timeout,
-                                           ctx->max_connect_attempts + 1),
-                                           &ctx->d2->id,
-                                           &core_connect_request_cont, ctx);
+                                          ctx->relative_timeout,
+                                          &ctx->d2->id,
+                                          &core_connect_request_cont, ctx);
+
 #if DEBUG_TESTING
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Sending connect request to CORE of %s for peer %s\n",
                   GNUNET_i2s (&ctx->d1->id),
                   GNUNET_h2s (&ctx->d2->id.hashPubKey));
@@ -1649,6 +1711,88 @@ core_init_notify (void *cls,
 {
   struct ConnectContext *connect_ctx = cls;
   connect_ctx->d1core_ready = GNUNET_YES;
+
+  if (connect_ctx->send_hello == GNUNET_NO)
+    {
+      connect_ctx->connect_request_handle =
+          GNUNET_CORE_peer_request_connect (connect_ctx->d1core,
+                                            connect_ctx->relative_timeout,
+                                            &connect_ctx->d2->id,
+                                            &core_connect_request_cont, connect_ctx);
+      GNUNET_assert(connect_ctx->connect_request_handle != NULL);
+#if DEBUG_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Sending connect request to CORE of %s for peer %s\n",
+                  connect_ctx->d1->shortname,
+                  connect_ctx->d2->shortname);
+#endif
+    }
+
+}
+
+
+static void
+reattempt_daemons_connect (void *cls,
+                           const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct ConnectContext *ctx = cls;
+  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+    {
+      GNUNET_free(ctx);
+      return;
+    }
+#if DEBUG_TESTING_RECONNECT
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "re-attempting connect of peer %s to peer %s\n",
+              ctx->d1->shortname, ctx->d2->shortname);
+#endif
+  ctx->connect_attempts--;
+  GNUNET_assert (ctx->d1core == NULL);
+  ctx->d1core_ready = GNUNET_NO;
+  ctx->d1core = GNUNET_CORE_connect (ctx->d1->cfg, 1,
+                                     ctx,
+                                     &core_init_notify,
+                                     &connect_notify, NULL, NULL,
+                                     NULL, GNUNET_NO,
+                                     NULL, GNUNET_NO, no_handlers);
+  if (ctx->d1core == NULL)
+    {
+      if (NULL != ctx->cb)
+        ctx->cb (ctx->cb_cls, &ctx->d1->id, &ctx->d2->id, 0, ctx->d1->cfg,
+                 ctx->d2->cfg, ctx->d1, ctx->d2,
+                 _("Failed to connect to core service of first peer!\n"));
+      GNUNET_free (ctx);
+      return;
+    }
+
+  if (ctx->send_hello == GNUNET_YES)
+    {
+      ctx->d1th = GNUNET_TRANSPORT_connect (ctx->d1->cfg,
+                                            &ctx->d1->id,
+                                            ctx->d1, NULL, NULL, NULL);
+      if (ctx->d1th == NULL)
+        {
+          GNUNET_CORE_disconnect (ctx->d1core);
+          GNUNET_free (ctx);
+          if (NULL != ctx->cb)
+            ctx->cb (ctx->cb_cls, &ctx->d1->id, &ctx->d2->id, 0, ctx->d1->cfg,
+                     ctx->d2->cfg, ctx->d1, ctx->d2,
+                     _("Failed to connect to transport service!\n"));
+          return;
+        }
+      ctx->hello_send_task = GNUNET_SCHEDULER_add_now (&send_hello, ctx);
+    }
+  else
+    {
+      ctx->connect_request_handle =
+        GNUNET_CORE_peer_request_connect (ctx->d1core,
+                                          ctx->relative_timeout,
+                                          &ctx->d2->id,
+                                          &core_connect_request_cont, ctx);
+    }
+  ctx->timeout_task =
+    GNUNET_SCHEDULER_add_delayed (ctx->relative_timeout,
+                                  &notify_connect_result, ctx);
 }
 
 /**
@@ -1676,7 +1820,7 @@ core_initial_iteration (void *cls,
       ctx->distance = 0;        /* FIXME: distance */
       return;
     }
-  else if (peer == NULL) /* Peer not already connected, need to schedule connect request! */
+  else if (peer == NULL) /* End of iteration over peers */
     {
       if (ctx->connected == GNUNET_YES)
         {
@@ -1685,12 +1829,21 @@ core_initial_iteration (void *cls,
           return;
         }
 
-      ctx->d1core = GNUNET_CORE_connect (ctx->d1->cfg, 1,
-                                         ctx,
-                                         &core_init_notify,
-                                         &connect_notify, NULL, NULL,
-                                         NULL, GNUNET_NO,
-                                         NULL, GNUNET_NO, no_handlers);
+      /* Peer not already connected, need to schedule connect request! */
+      if (ctx->d1core == NULL)
+        {
+#if DEBUG_TESTING
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Peers are NOT connected, connecting to core!\n");
+#endif
+          ctx->d1core = GNUNET_CORE_connect (ctx->d1->cfg, 1,
+                                             ctx,
+                                             &core_init_notify,
+                                             &connect_notify, NULL, NULL,
+                                             NULL, GNUNET_NO,
+                                             NULL, GNUNET_NO, no_handlers);
+        }
+
       if (ctx->d1core == NULL)
         {
           GNUNET_free (ctx);
@@ -1700,34 +1853,25 @@ core_initial_iteration (void *cls,
           return;
         }
 
-#if DEBUG_TESTING > 2
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Asked to connect peer %s to peer %s\n",
-              ctx->d1->shortname, ctx->d2->shortname);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connecting to transport service of peer %s\n", ctx->d2->shortname);
-
-#endif
-
-      ctx->d1th = GNUNET_TRANSPORT_connect (ctx->d1->cfg,
-                                            &ctx->d1->id, ctx->d1, NULL, NULL, NULL);
-      if (ctx->d1th == NULL)
+      if (ctx->send_hello == GNUNET_YES)
         {
-          GNUNET_CORE_disconnect (ctx->d1core);
-          GNUNET_free (ctx);
-          if (NULL != ctx->cb)
-            ctx->cb (ctx->cb_cls, &ctx->d1->id, &ctx->d2->id, 0, ctx->d1->cfg, ctx->d2->cfg, ctx->d1, ctx->d2,
-                _("Failed to connect to transport service!\n"));
-          return;
+          ctx->d1th = GNUNET_TRANSPORT_connect (ctx->d1->cfg,
+                                                &ctx->d1->id, ctx->d1, NULL, NULL, NULL);
+          if (ctx->d1th == NULL)
+            {
+              GNUNET_CORE_disconnect (ctx->d1core);
+              GNUNET_free (ctx);
+              if (NULL != ctx->cb)
+                ctx->cb (ctx->cb_cls, &ctx->d1->id, &ctx->d2->id, 0, ctx->d1->cfg, ctx->d2->cfg, ctx->d1, ctx->d2,
+                    _("Failed to connect to transport service!\n"));
+              return;
+            }
+          ctx->hello_send_task = GNUNET_SCHEDULER_add_now (&send_hello, ctx);
         }
 
       ctx->timeout_task =
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide
-                                      (ctx->relative_timeout,
-                                       ctx->max_connect_attempts),
-                                       &notify_connect_result, ctx);
-
-      ctx->hello_send_task = GNUNET_SCHEDULER_add_now (&send_hello, ctx);
+        GNUNET_SCHEDULER_add_delayed (ctx->relative_timeout,
+                                      &notify_connect_result, ctx);
     }
 }
 
@@ -1741,6 +1885,8 @@ core_initial_iteration (void *cls,
  *        allowed to take?
  * @param max_connect_attempts how many times should we try to reconnect
  *        (within timeout)
+ * @param send_hello GNUNET_YES to send the HELLO, GNUNET_NO to assume
+ *                   the HELLO has already been exchanged
  * @param cb function to call at the end
  * @param cb_cls closure for cb
  */
@@ -1749,6 +1895,7 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
                                 struct GNUNET_TESTING_Daemon *d2,
                                 struct GNUNET_TIME_Relative timeout,
                                 unsigned int max_connect_attempts,
+                                int send_hello,
                                 GNUNET_TESTING_NotifyConnection cb,
                                 void *cb_cls)
 {
@@ -1761,17 +1908,18 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
             _("Peers are not fully running yet, can not connect!\n"));
       return;
     }
+
   ctx = GNUNET_malloc (sizeof (struct ConnectContext));
   ctx->d1 = d1;
   ctx->d2 = d2;
-  ctx->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   ctx->timeout_hello =
     GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500);
-  ctx->relative_timeout = timeout;
+  ctx->relative_timeout = GNUNET_TIME_relative_divide(timeout, max_connect_attempts);
   ctx->cb = cb;
   ctx->cb_cls = cb_cls;
-  ctx->max_connect_attempts = max_connect_attempts;
+  ctx->connect_attempts = max_connect_attempts;
   ctx->connected = GNUNET_NO;
+  ctx->send_hello = send_hello;
 #if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asked to connect peer %s to peer %s\n",
@@ -1779,66 +1927,8 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 #endif
 
   /* Core is up! Iterate over all _known_ peers first to check if we are already connected to the peer! */
-  GNUNET_CORE_is_peer_connected (ctx->d1->cfg, &ctx->d2->id, &core_initial_iteration, ctx);
-  /* GNUNET_CORE_iterate_peers(ctx->d1->cfg, &core_initial_iteration, ctx); */
-
-}
-
-static void
-reattempt_daemons_connect (void *cls,
-                           const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-
-  struct ConnectContext *ctx = cls;
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
-    {
-      return;
-    }
-#if DEBUG_TESTING_RECONNECT
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "re-attempting connect of peer %s to peer %s\n",
-              ctx->d1->shortname, ctx->d2->shortname);
-#endif
-
-  GNUNET_assert (ctx->d1core == NULL);
-  ctx->d1core_ready = GNUNET_NO;
-  ctx->d1core = GNUNET_CORE_connect (ctx->d1->cfg, 1,
-                                     ctx,
-                                     &core_init_notify,
-                                     &connect_notify, NULL, NULL,
-                                     NULL, GNUNET_NO,
-                                     NULL, GNUNET_NO, no_handlers);
-  if (ctx->d1core == NULL)
-    {
-      if (NULL != ctx->cb)
-        ctx->cb (ctx->cb_cls, &ctx->d1->id, &ctx->d2->id, 0, ctx->d1->cfg,
-                 ctx->d2->cfg, ctx->d1, ctx->d2,
-                 _("Failed to connect to core service of first peer!\n"));
-      GNUNET_free (ctx);
-      return;
-    }
-
-  ctx->d1th = GNUNET_TRANSPORT_connect (ctx->d1->cfg,
-                                        &ctx->d1->id,
-                                        ctx->d1, NULL, NULL, NULL);
-  if (ctx->d1th == NULL)
-    {
-      GNUNET_CORE_disconnect (ctx->d1core);
-      GNUNET_free (ctx);
-      if (NULL != ctx->cb)
-        ctx->cb (ctx->cb_cls, &ctx->d1->id, &ctx->d2->id, 0, ctx->d1->cfg,
-                 ctx->d2->cfg, ctx->d1, ctx->d2,
-                 _("Failed to connect to transport service!\n"));
-      return;
-    }
-
-  ctx->timeout_task =
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide
-                                  (ctx->relative_timeout,
-                                   ctx->max_connect_attempts),
-                                  &notify_connect_result, ctx);
-
-  ctx->hello_send_task = GNUNET_SCHEDULER_add_now (&send_hello, ctx);
+  GNUNET_assert(GNUNET_OK == GNUNET_CORE_is_peer_connected (ctx->d1->cfg, &ctx->d2->id, &core_initial_iteration, ctx));
+  /*GNUNET_assert(GNUNET_OK == GNUNET_CORE_iterate_peers (ctx->d1->cfg, &core_initial_iteration, ctx));*/
 }
 
 /* end of testing.c */

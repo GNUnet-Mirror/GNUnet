@@ -304,6 +304,7 @@ do_connect (const char *service_name,
 #if DEBUG_CLIENT
               GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connected to unixpath `%s'!\n", unixpath);
 #endif
+              GNUNET_free(unixpath);
               return sock;
 	    }
 	}

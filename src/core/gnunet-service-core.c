@@ -1498,7 +1498,6 @@ handle_client_iterate_peers (void *cls,
 {
   struct GNUNET_MessageHeader done_msg;
   struct GNUNET_SERVER_TransmitContext *tc;
-  struct GNUNET_PeerIdentity *peer;
   int msize;
   /* notify new client about existing neighbours */
 
@@ -1506,13 +1505,40 @@ handle_client_iterate_peers (void *cls,
   tc = GNUNET_SERVER_transmit_context_create (client);
   if (msize == sizeof(struct GNUNET_MessageHeader))
     GNUNET_CONTAINER_multihashmap_iterate (neighbours, &queue_connect_message, tc);
-  else if (msize == sizeof(struct GNUNET_MessageHeader) + sizeof(struct GNUNET_PeerIdentity))
-    {
-      peer = (struct GNUNET_PeerIdentity *)&message[1];
-      GNUNET_CONTAINER_multihashmap_get_multiple(neighbours, &peer->hashPubKey, &queue_connect_message, tc);
-    }
   else
     GNUNET_break(0);
+
+  done_msg.size = htons (sizeof (struct GNUNET_MessageHeader));
+  done_msg.type = htons (GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS_END);
+  GNUNET_SERVER_transmit_context_append_message (tc, &done_msg);
+  GNUNET_SERVER_transmit_context_run (tc,
+                                      GNUNET_TIME_UNIT_FOREVER_REL);
+}
+
+/**
+ * Handle CORE_ITERATE_PEERS request.
+ *
+ * @param cls unused
+ * @param client client sending the iteration request
+ * @param message iteration request message
+ */
+static void
+handle_client_have_peer (void *cls,
+                             struct GNUNET_SERVER_Client *client,
+                             const struct GNUNET_MessageHeader *message)
+
+{
+  struct GNUNET_MessageHeader done_msg;
+  struct GNUNET_SERVER_TransmitContext *tc;
+  struct GNUNET_PeerIdentity *peer;
+  int msize;
+  /* notify new client about existing neighbours */
+
+  msize = ntohs(message->size);
+  tc = GNUNET_SERVER_transmit_context_create (client);
+
+  peer = (struct GNUNET_PeerIdentity *)&message[1];
+  GNUNET_CONTAINER_multihashmap_get_multiple(neighbours, &peer->hashPubKey, &queue_connect_message, tc);
 
   done_msg.size = htons (sizeof (struct GNUNET_MessageHeader));
   done_msg.type = htons (GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS_END);
@@ -2973,10 +2999,6 @@ handle_client_request_connect (void *cls,
   if ( (GNUNET_YES == n->is_connected) ||
        (n->th != NULL) )
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                 "Core received `%s' request for `%4s', already connected!\n",
-                 "REQUEST_CONNECT",
-                 GNUNET_i2s (&cm->peer));
       if (GNUNET_YES == n->is_connected) 
 	GNUNET_STATISTICS_update (stats, 
 				  gettext_noop ("# connection requests ignored (already connected)"), 
@@ -3004,10 +3026,12 @@ handle_client_request_connect (void *cls,
 			    1,
 			    GNUNET_NO);
 
+#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Core received `%s' request for `%4s', will try to establish connection\n",
 	      "REQUEST_CONNECT",
 	      GNUNET_i2s (&cm->peer));
+#endif
 
   /* ask transport to connect to the peer */
   n->th = GNUNET_TRANSPORT_notify_transmit_ready (transport,
@@ -4662,6 +4686,9 @@ run (void *cls,
     {&handle_client_iterate_peers, NULL,
      GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS,
      sizeof (struct GNUNET_MessageHeader)},
+    {&handle_client_have_peer, NULL,
+     GNUNET_MESSAGE_TYPE_CORE_PEER_CONNECTED,
+     sizeof (struct GNUNET_MessageHeader) + sizeof(struct GNUNET_PeerIdentity)},
     {&handle_client_request_info, NULL,
      GNUNET_MESSAGE_TYPE_CORE_REQUEST_INFO,
      sizeof (struct RequestInfoMessage)},

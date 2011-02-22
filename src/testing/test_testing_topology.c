@@ -1027,6 +1027,7 @@ run (void *cls,
   char *connect_topology_option_str;
   char *connect_topology_option_modifier_string;
   unsigned long long temp_settle;
+  unsigned long long max_outstanding_connections;
   ok = 1;
 
   dotOutFile = fopen (dotOutFileName, "w");
@@ -1152,6 +1153,14 @@ run (void *cls,
       return;
     }
 
+  if (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "max_outstanding_connections",
+                                               &max_outstanding_connections))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n", "testing", "max_outstanding_connections");
+      return;
+    }
+
   if (GNUNET_SYSERR ==
       GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "num_peers",
                                              &num_peers))
@@ -1180,7 +1189,7 @@ run (void *cls,
   GNUNET_assert (num_peers > 0 && num_peers < (unsigned int) -1);
   pg = GNUNET_TESTING_daemons_start (cfg,
                                      peers_left,
-                                     peers_left / 2,
+                                     max_outstanding_connections,
                                      peers_left,
                                      GNUNET_TIME_relative_multiply
                                      (GNUNET_TIME_UNIT_SECONDS,

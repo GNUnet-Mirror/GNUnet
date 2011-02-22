@@ -603,15 +603,19 @@ GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_Handle *handle,
 /**
  * Offer the transport service the HELLO of another peer.  Note that
  * the transport service may just ignore this message if the HELLO is
- * malformed or useless due to our local configuration.  If the HELLO
- * is working, we should add it to PEERINFO.
+ * malformed or useless due to our local configuration.
  *
  * @param handle connection to transport service
  * @param hello the hello message
+ * @param cont continuation to call when HELLO has been sent
+ * @param cls closure for continuation
+ *
  */
 void
 GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
-                              const struct GNUNET_MessageHeader *hello);
+                              const struct GNUNET_MessageHeader *hello,
+                              GNUNET_SCHEDULER_Task cont,
+                              void *cls);
 
 
 /**

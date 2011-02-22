@@ -34,9 +34,10 @@
 #include "gnunet_dht_service.h"
 #include "dhtlog.h"
 #include "dht.h"
+#include "gauger.h"
 
 /* Specific DEBUG hack, do not use normally (may leak memory, segfault, or eat children.) */
-#define ONLY_TESTING GNUNET_YES
+#define ONLY_TESTING GNUNET_NO
 
 /* DEFINES */
 #define VERBOSE GNUNET_NO
@@ -686,6 +687,16 @@ static unsigned long long outstanding_gets;
  * How many gets are done?
  */
 static unsigned long long gets_completed;
+
+/**
+ * Total number of items to attempt to get.
+ */
+static unsigned long long cumulative_num_gets;
+
+/**
+ * How many gets are done?
+ */
+static unsigned long long cumulative_successful_gets;
 
 /**
  * How many gets failed?
@@ -1354,7 +1365,7 @@ static int iterate_min_heap_peers (void *cls,
         {
           timeout = GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime);
         }
-      GNUNET_TESTING_daemons_connect(d1, d2, timeout, DEFAULT_RECONNECT_ATTEMPTS, NULL, NULL);
+      GNUNET_TESTING_daemons_connect(d1, d2, timeout, DEFAULT_RECONNECT_ATTEMPTS, GNUNET_YES, NULL, NULL);
     }
   if (GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime).rel_value > 0)
     return GNUNET_YES;
@@ -1793,6 +1804,9 @@ get_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 
   if (tc->reason == GNUNET_SCHEDULER_REASON_TIMEOUT)
     gets_failed++;
+  else
+    cumulative_successful_gets++;
+
   GNUNET_assert(test_get->get_handle != NULL);
   GNUNET_DHT_get_stop(test_get->get_handle);
   test_get->get_handle = NULL;
@@ -1889,6 +1903,7 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   GNUNET_assert(test_get->dht_handle != NULL);
   outstanding_gets++;
 
+  cumulative_num_gets++;
   /* Insert the data at the first peer */
   test_get->get_handle = GNUNET_DHT_get_start(test_get->dht_handle,
                                               get_delay,
@@ -2617,7 +2632,11 @@ topology_callback (void *cls,
           (second_daemon == repeat_connect_peer2))
         {
           if (emsg != NULL) /* Peers failed to connect again! */
-            return;
+            {
+              GNUNET_assert(repeat_connect_task == GNUNET_SCHEDULER_NO_TASK);
+              repeat_connect_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60), &repeat_connect, NULL);
+              return;
+            }
           else /* Repeat peers actually connected! */
             {
               if (repeat_connect_task != GNUNET_SCHEDULER_NO_TASK)
@@ -2676,12 +2695,6 @@ topology_callback (void *cls,
         }
 #endif
     }
-#if ONLY_TESTING
-  else if (repeat_connect_mode == GNUNET_YES)
-    {
-      repeat_connect_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60), &repeat_connect, NULL);
-    }
-#endif
 
   if (emsg == NULL)
     {
@@ -2708,7 +2721,7 @@ topology_callback (void *cls,
     }
 
 #if ONLY_TESTING
-  if (repeat_connect_mode == GNUNET_YES)
+  if ((repeat_connect_mode == GNUNET_YES) )
     return;
 #endif
 
@@ -2727,6 +2740,27 @@ topology_callback (void *cls,
           dhtlog_handle->update_connections (total_connections);
           dhtlog_handle->insert_topology(expected_connections);
         }
+
+
+      total_duration = GNUNET_TIME_absolute_get_difference (connect_start_time,
+                                                            GNUNET_TIME_absolute_get()).rel_value / 1000;
+      failed_conns_per_sec_total = (double)failed_connections / total_duration;
+      conns_per_sec_total = (double)total_connections / total_duration;
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Overall connection info --- Total: %u, Total Failed %u/s\n",
+                 total_connections, failed_connections);
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Overall connection info --- Total: %.2f/s, Total Failed %.2f/s\n",
+                 conns_per_sec_total, failed_conns_per_sec_total);
+      /** Comment out until gauger is ready */
+      /**
+      GNUNET_asprintf(&temp_conn_string, "dht_peer_connection_speed");
+      GNUNET_asprintf(&temp_failed_conn_string, "dht_peer_failed_connection_speed");
+
+      GAUGER_COUNTER(temp_conn_string, conns_per_sec_total, trial_to_run, DATE);
+      GAUGER_COUNTER(temp_failed_conn_string, failed_conns_per_sec_total, trial_to_run, DATE);
+
+      GNUNET_free(temp_conn_string);
+      GNUNET_free(temp_failed_conn_string);
+      */
 
       GNUNET_SCHEDULER_cancel (die_task);
 

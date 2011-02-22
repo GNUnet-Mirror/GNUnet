@@ -388,29 +388,34 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS_END 79
 
 /**
+ * Check whether a given peer is currently connected to CORE.
+ */
+#define GNUNET_MESSAGE_TYPE_CORE_PEER_CONNECTED 80
+
+/**
  * Session key exchange between peers.
  */
-#define GNUNET_MESSAGE_TYPE_CORE_SET_KEY 80
+#define GNUNET_MESSAGE_TYPE_CORE_SET_KEY 81
 
 /**
  * Encapsulation for an encrypted message between peers.
  */
-#define GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE 81
+#define GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE 82
 
 /**
  * Check that other peer is alive (challenge).
  */
-#define GNUNET_MESSAGE_TYPE_CORE_PING 82
+#define GNUNET_MESSAGE_TYPE_CORE_PING 83
 
 /**
  * Confirmation that other peer is alive.
  */
-#define GNUNET_MESSAGE_TYPE_CORE_PONG 83
+#define GNUNET_MESSAGE_TYPE_CORE_PONG 84
 
 /**
  * Request by the other peer to terminate the connection.
  */
-#define GNUNET_MESSAGE_TYPE_CORE_HANGUP 84
+#define GNUNET_MESSAGE_TYPE_CORE_HANGUP 85
 
 /**
  * Message sent by datastore client on join.

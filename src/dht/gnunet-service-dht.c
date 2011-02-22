@@ -2181,7 +2181,7 @@ route_result_message (struct GNUNET_MessageHeader *msg,
           if (GNUNET_YES == consider_peer (&new_peer))
             {
               increment_stats (STAT_HELLOS_PROVIDED);
-              GNUNET_TRANSPORT_offer_hello (transport_handle, hello_msg);
+              GNUNET_TRANSPORT_offer_hello (transport_handle, hello_msg, NULL, NULL);
               GNUNET_CORE_peer_request_connect (coreAPI,
                                                 GNUNET_TIME_relative_multiply
                                                 (GNUNET_TIME_UNIT_SECONDS, 5),
@@ -2701,7 +2701,7 @@ handle_dht_find_peer (const struct GNUNET_MessageHeader *find_msg,
       if (GNUNET_YES == consider_peer (&peer_id))
         {
           increment_stats (STAT_HELLOS_PROVIDED);
-          GNUNET_TRANSPORT_offer_hello (transport_handle, other_hello);
+          GNUNET_TRANSPORT_offer_hello (transport_handle, other_hello, NULL, NULL);
           GNUNET_CORE_peer_request_connect (coreAPI,
                                             GNUNET_TIME_relative_multiply
                                             (GNUNET_TIME_UNIT_SECONDS, 5),

@@ -1733,8 +1733,12 @@ GNUNET_CORE_peer_request_connect (struct GNUNET_CORE_Handle *h,
 
   if (NULL != GNUNET_CONTAINER_multihashmap_get (h->peers,
                                           &peer->hashPubKey))
-    return NULL; /* Already connected, means callback should have happened already! */
-
+    {
+#if DEBUG_CORE
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Peers are already connected!\n");
+#endif
+      return NULL;
+    }
   
   cm = GNUNET_malloc (sizeof (struct ControlMessage) + 
 		      sizeof (struct ConnectMessage));

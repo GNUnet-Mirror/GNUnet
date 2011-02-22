@@ -1230,7 +1230,7 @@ handle_encrypted_hello (void *cls,
     }
   if (transport != NULL)
     GNUNET_TRANSPORT_offer_hello (transport,
-				  message);
+				  message, NULL, NULL);
   return GNUNET_OK;
 }
 

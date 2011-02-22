@@ -153,9 +153,13 @@ transmit_request(void *cls,
 
   msg = (struct GNUNET_MessageHeader *)buf;
   msg->size = htons (msize);
-  msg->type = htons (GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS);
   if (peer != NULL)
-    memcpy(&msg[1], peer, sizeof(struct GNUNET_PeerIdentity));
+    {
+      msg->type = htons (GNUNET_MESSAGE_TYPE_CORE_PEER_CONNECTED);
+      memcpy(&msg[1], peer, sizeof(struct GNUNET_PeerIdentity));
+    }
+  else
+    msg->type = htons (GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS);
 
   return msize;
 }
@@ -198,7 +202,7 @@ GNUNET_CORE_is_peer_connected (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                                             GNUNET_YES,
                                                             &transmit_request,
                                                             peer);
-
+  GNUNET_assert(request_context->th != NULL);
   GNUNET_CLIENT_receive(client, &receive_info, request_context, GNUNET_TIME_relative_get_forever());
   return GNUNET_OK;
 }

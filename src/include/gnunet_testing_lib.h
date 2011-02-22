@@ -158,6 +158,11 @@ enum GNUNET_TESTING_StartPhase
   SP_START_CORE,
 
   /**
+   * CORE is up, now make sure we get the HELLO for this peer.
+   */
+  SP_GET_HELLO,
+
+  /**
    * Core has notified us that we've established a connection to the service.
    * The main FSM halts here and waits to be moved to UPDATE or CLEANUP.
    */
@@ -545,15 +550,19 @@ void GNUNET_TESTING_daemon_reconfigure (struct GNUNET_TESTING_Daemon *d,
  *        allowed to take?
  * @param max_connect_attempts how many times should we try to reconnect
  *        (within timeout)
+ * @param send_hello GNUNET_YES to send the HELLO, GNUNET_NO to assume
+ *                   the HELLO has already been exchanged
  * @param cb function to call at the end
  * @param cb_cls closure for cb
  */
-void GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
-				     struct GNUNET_TESTING_Daemon *d2,
-				     struct GNUNET_TIME_Relative timeout,
-				     unsigned int max_connect_attempts,
-				     GNUNET_TESTING_NotifyConnection cb,
-				     void *cb_cls);
+void
+GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
+                                struct GNUNET_TESTING_Daemon *d2,
+                                struct GNUNET_TIME_Relative timeout,
+                                unsigned int max_connect_attempts,
+                                int send_hello,
+                                GNUNET_TESTING_NotifyConnection cb,
+                                void *cb_cls);
 
 
 

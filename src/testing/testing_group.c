@@ -30,13 +30,15 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_core_service.h"
 
-#define VERBOSE_TESTING GNUNET_YES
+#define VERBOSE_TESTING GNUNET_NO
 
 #define VERBOSE_TOPOLOGY GNUNET_YES
 
 #define DEBUG_CHURN GNUNET_NO
 
 #define OLD 1
+
+#define USE_SEND_HELLOS GNUNET_NO
 
 /**
  * Lowest port used for GNUnet testing.  Should be high enough to not
@@ -156,6 +158,40 @@ struct RestartContext
    */
   void *callback_cls;
 
+};
+
+
+struct SendHelloContext
+{
+  /**
+   * Global handle to the peer group.
+   */
+  struct GNUNET_TESTING_PeerGroup *pg;
+
+  /**
+   * The data about this specific peer.
+   */
+  struct PeerData *peer;
+
+  /**
+   * The next HELLO that needs sent to this peer.
+   */
+  struct PeerConnection *peer_pos;
+
+  /**
+   * Are we connected to CORE yet?
+   */
+  unsigned int core_ready;
+
+  /**
+   * How many attempts should we make for failed connections?
+   */
+  unsigned int connect_attempts;
+
+  /**
+   * Task for scheduling core connect requests to be sent.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier core_connect_task;
 };
 
 
@@ -599,6 +635,46 @@ struct StatsCoreContext
   struct GNUNET_STATISTICS_GetHandle *stats_get_handle;
 };
 
+
+struct ConnectTopologyContext
+{
+  /**
+   * How many connections are left to create.
+   */
+  unsigned int remaining_connections;
+
+  /**
+   * Handle to group of peers.
+   */
+  struct GNUNET_TESTING_PeerGroup *pg;
+
+  /**
+   * How long to try this connection before timing out.
+   */
+  struct GNUNET_TIME_Relative connect_timeout;
+
+  /**
+   * How many times to retry connecting the two peers.
+   */
+  unsigned int connect_attempts;
+
+  /**
+   * Temp value set for each iteration.
+   */
+  //struct PeerData *first;
+
+  /**
+   * Notification that all peers are connected.
+   */
+  GNUNET_TESTING_NotifyCompletion notify_connections_done;
+
+  /**
+   * Closure for notify.
+   */
+  void *notify_cls;
+};
+
+
 /**
  * Handle to a group of GNUnet peers.
  */
@@ -682,6 +758,11 @@ struct GNUNET_TESTING_PeerGroup
   unsigned int outstanding_connects;
 
   /**
+   * Number of HELLOs we have yet to send.
+   */
+  unsigned int remaining_hellos;
+
+  /**
    * How many connects have already been scheduled?
    */
   unsigned int total_connects_scheduled;
@@ -707,72 +788,59 @@ struct GNUNET_TESTING_PeerGroup
    * Stop scheduling peers connecting.
    */
   unsigned int stop_connects;
+
+  /**
+   * Connection context for peer group.
+   */
+  struct ConnectTopologyContext ct_ctx;
 };
 
 struct UpdateContext
 {
+  /**
+   * The altered configuration.
+   */
   struct GNUNET_CONFIGURATION_Handle *ret;
+
+  /**
+   * The original configuration to alter.
+   */
   const struct GNUNET_CONFIGURATION_Handle *orig;
+
+  /**
+   * The hostname that this peer will run on.
+   */
   const char *hostname;
+
+  /**
+   * The next possible port to assign.
+   */
   unsigned int nport;
+
+  /**
+   * Unique number for unix domain sockets.
+   */
   unsigned int upnum;
+
+  /**
+   * Unique number for this peer/host to offset
+   * things that are grouped by host.
+   */
   unsigned int fdnum;
 };
 
-struct ConnectTopologyContext
-{
-  /**
-   * How many connections are left to create.
-   */
-  unsigned int remaining_connections;
-
-  /**
-   * How many more connections do we need to schedule?
-   */
-  unsigned int remaining_connects_to_schedule;
-
-  /**
-   * Handle to group of peers.
-   */
-  struct GNUNET_TESTING_PeerGroup *pg;
-
-  /**
-   * How long to try this connection before timing out.
-   */
-  struct GNUNET_TIME_Relative connect_timeout;
-
-  /**
-   * How many times to retry connecting the two peers.
-   */
-  unsigned int connect_attempts;
-
-  /**
-   * Temp value set for each iteration.
-   */
-  //struct PeerData *first;
-
-  /**
-   * Notification that all peers are connected.
-   */
-  GNUNET_TESTING_NotifyCompletion notify_connections_done;
-
-  /**
-   * Closure for notify.
-   */
-  void *notify_cls;
-};
 
 struct ConnectContext
 {
   /**
-   * Peer to connect second to.
+   * Index of peer to connect second to.
    */
-  struct GNUNET_TESTING_Daemon *first;
+  uint32_t first_index;
 
   /**
-   * Peer to connect first to.
+   * Index of peer to connect first to.
    */
-  struct GNUNET_TESTING_Daemon *second;
+  uint32_t second_index;
 
   /**
    * Higher level topology connection context.
@@ -913,6 +981,10 @@ uid_from_hash (const GNUNET_HashCode * hash, uint32_t * uid)
 {
   memcpy (uid, hash, sizeof (uint32_t));
 }
+#endif
+
+#if USE_SEND_HELLOS
+static struct GNUNET_CORE_MessageHandler no_handlers[] = { {NULL, 0, 0} };
 #endif
 
 /**
@@ -1102,25 +1174,34 @@ update_config (void *cls,
   char *per_host_variable;
   unsigned long long num_per_host;
 
+  GNUNET_asprintf (&single_variable, "single_%s_per_host", section);
+  GNUNET_asprintf (&per_host_variable, "num_%s_per_host", section);
+
   if ((0 == strcmp (option, "PORT")) && (1 == sscanf (value, "%u", &ival)))
     {
-      GNUNET_asprintf (&single_variable, "single_%s_per_host", section);
-      if ((ival != 0)
-          && (GNUNET_YES !=
+      if ((ival != 0) &&
+          (GNUNET_YES !=
               GNUNET_CONFIGURATION_get_value_yesno (ctx->orig, "testing",
                                                     single_variable)))
         {
           GNUNET_snprintf (cval, sizeof (cval), "%u", ctx->nport++);
           value = cval;
         }
-
-      GNUNET_free (single_variable);
+      else if ((ival != 0) &&
+               (GNUNET_YES ==
+               GNUNET_CONFIGURATION_get_value_yesno (ctx->orig, "testing",
+                                                     single_variable)) &&
+               GNUNET_CONFIGURATION_get_value_number (ctx->orig, "testing",
+                                                      per_host_variable,
+                                                      &num_per_host))
+        {
+          GNUNET_snprintf (cval, sizeof (cval), "%u", ival + ctx->fdnum % num_per_host);
+          value = cval;
+        }
     }
 
   if (0 == strcmp (option, "UNIXPATH"))
     {
-      GNUNET_asprintf (&single_variable, "single_%s_per_host", section);
-      GNUNET_asprintf (&per_host_variable, "num_%s_per_host", section);
       if (GNUNET_YES !=
           GNUNET_CONFIGURATION_get_value_yesno (ctx->orig, "testing",
                                                 single_variable))
@@ -1142,15 +1223,14 @@ update_config (void *cls,
                            section, ctx->fdnum % num_per_host);
           value = uval;
         }
-      GNUNET_free (single_variable);
-      GNUNET_free (per_host_variable);
     }
 
   if ((0 == strcmp (option, "HOSTNAME")) && (ctx->hostname != NULL))
     {
       value = ctx->hostname;
     }
-
+  GNUNET_free (single_variable);
+  GNUNET_free (per_host_variable);
   GNUNET_CONFIGURATION_set_value_string (ctx->ret, section, option, value);
 }
 
@@ -1176,13 +1256,13 @@ static struct GNUNET_CONFIGURATION_Handle *
 make_config (const struct GNUNET_CONFIGURATION_Handle *cfg,
              uint32_t off,
              uint16_t * port,
-             uint32_t * upnum, const char *hostname, uint32_t * fdnum)
+             uint32_t * upnum, const char *hostname,
+             uint32_t * fdnum)
 {
   struct UpdateContext uc;
   uint16_t orig;
   char *control_host;
   char *allowed_hosts;
-  unsigned long long temp_port;
 
   orig = *port;
   uc.nport = *port;
@@ -1222,16 +1302,6 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg,
       GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport", "UNIXPATH", "");
       GNUNET_CONFIGURATION_set_value_string (uc.ret, "dht", "UNIXPATH", "");
       GNUNET_CONFIGURATION_set_value_string (uc.ret, "statistics", "UNIXPATH", "");
-
-
-      if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number(uc.orig, "statistics", "port", &temp_port) &&
-          (temp_port != 0) &&
-          (GNUNET_YES !=
-              GNUNET_CONFIGURATION_get_value_yesno (uc.orig, "testing",
-                                                    "single_statistics_per_host")))
-        {
-          GNUNET_CONFIGURATION_set_value_number (uc.ret, "statistics", "port", temp_port + off);
-        }
 
       GNUNET_free_non_null (control_host);
       GNUNET_free (allowed_hosts);
@@ -1493,9 +1563,6 @@ add_connections (struct GNUNET_TESTING_PeerGroup *pg,
       new_first = GNUNET_malloc (sizeof (struct PeerConnection));
       new_first->index = second;
       GNUNET_CONTAINER_DLL_insert(*first_list, *first_tail, new_first);
-      /*
-      new_first->next = *first_list;
-      *first_list = new_first;*/
 #else
       GNUNET_assert (GNUNET_OK ==
                            GNUNET_CONTAINER_multihashmap_put (pg->
@@ -1516,10 +1583,6 @@ add_connections (struct GNUNET_TESTING_PeerGroup *pg,
       new_second = GNUNET_malloc (sizeof (struct PeerConnection));
       new_second->index = first;
       GNUNET_CONTAINER_DLL_insert(*second_list, *second_tail, new_second);
-      /*
-      new_second->next = *second_list;
-      *second_list = new_second;
-      *second_list */
 #else
       GNUNET_assert (GNUNET_OK ==
                      GNUNET_CONTAINER_multihashmap_put (pg->
@@ -2606,7 +2669,8 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       _("Copying file with command cp %s %s\n"), mytemp, arg);
 #endif
-
+          ret = GNUNET_OS_process_wait(procarr[pg_iter]); /* FIXME: schedule this, throttle! */
+          GNUNET_OS_process_close (procarr[pg_iter]);
           GNUNET_free (arg);
         }
       else                      /* Remote, scp the file to the correct place */
@@ -2895,31 +2959,400 @@ schedule_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  *
  * @param ct_ctx the overall connection context
  */
-static void preschedule_connect(struct ConnectTopologyContext *ct_ctx)
+static void preschedule_connect(struct GNUNET_TESTING_PeerGroup *pg)
 {
-  struct GNUNET_TESTING_PeerGroup *pg = ct_ctx->pg;
+  struct ConnectTopologyContext *ct_ctx = &pg->ct_ctx;
   struct PeerConnection *connection_iter;
   struct ConnectContext *connect_context;
   uint32_t random_peer;
 
-  if (ct_ctx->remaining_connects_to_schedule == 0)
+  if (ct_ctx->remaining_connections == 0)
     return;
   random_peer = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, pg->total);
   while (pg->peers[random_peer].connect_peers_head == NULL)
     random_peer = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, pg->total);
 
   connection_iter = pg->peers[random_peer].connect_peers_head;
-#if DEBUG_TESTING
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Scheduling connection between %d and %d\n", random_peer, connection_iter->index);
-#endif
   connect_context = GNUNET_malloc (sizeof (struct ConnectContext));
-  connect_context->first = pg->peers[random_peer].daemon;
-  connect_context->second = pg->peers[connection_iter->index].daemon;
+  connect_context->first_index = random_peer;
+  connect_context->second_index = connection_iter->index;
   connect_context->ct_ctx = ct_ctx;
   GNUNET_SCHEDULER_add_now (&schedule_connect, connect_context);
   GNUNET_CONTAINER_DLL_remove(pg->peers[random_peer].connect_peers_head, pg->peers[random_peer].connect_peers_tail, connection_iter);
-  ct_ctx->remaining_connects_to_schedule--;
+  GNUNET_free(connection_iter);
+  ct_ctx->remaining_connections--;
 }
+
+#if USE_SEND_HELLOS
+/* Forward declaration */
+static void schedule_send_hellos (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
+ * Close connections and free the hello context.
+ *
+ * @param cls the 'struct SendHelloContext *'
+ * @param tc scheduler context
+ */
+static void
+free_hello_context (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct SendHelloContext *send_hello_context = cls;
+  if (send_hello_context->peer->daemon->server != NULL)
+    {
+      GNUNET_CORE_disconnect(send_hello_context->peer->daemon->server);
+      send_hello_context->peer->daemon->server = NULL;
+    }
+  if (send_hello_context->peer->daemon->th != NULL)
+    {
+      GNUNET_TRANSPORT_disconnect(send_hello_context->peer->daemon->th);
+      send_hello_context->peer->daemon->th = NULL;
+    }
+  if (send_hello_context->core_connect_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel(send_hello_context->core_connect_task);
+      send_hello_context->core_connect_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  send_hello_context->pg->outstanding_connects--;
+  GNUNET_free(send_hello_context);
+}
+
+/**
+ * For peers that haven't yet connected, notify
+ * the caller that they have failed (timeout).
+ *
+ * @param cls the 'struct SendHelloContext *'
+ * @param tc scheduler context
+ */
+static void
+notify_remaining_connections_failed (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct SendHelloContext *send_hello_context = cls;
+  struct GNUNET_TESTING_PeerGroup *pg = send_hello_context->pg;
+  struct PeerConnection *connection;
+
+  GNUNET_CORE_disconnect(send_hello_context->peer->daemon->server);
+  send_hello_context->peer->daemon->server = NULL;
+
+  connection = send_hello_context->peer->connect_peers_head;
+
+  while (connection != NULL)
+    {
+      if (pg->notify_connection != NULL)
+        {
+          pg->notify_connection(pg->notify_connection_cls,
+                                &send_hello_context->peer->daemon->id,
+                                &pg->peers[connection->index].daemon->id,
+                                0, /* FIXME */
+                                send_hello_context->peer->daemon->cfg,
+                                pg->peers[connection->index].daemon->cfg,
+                                send_hello_context->peer->daemon,
+                                pg->peers[connection->index].daemon,
+                                "Peers failed to connect (timeout)");
+        }
+      GNUNET_CONTAINER_DLL_remove(send_hello_context->peer->connect_peers_head, send_hello_context->peer->connect_peers_tail, connection);
+      GNUNET_free(connection);
+      connection = connection->next;
+    }
+  GNUNET_SCHEDULER_add_now(&free_hello_context, send_hello_context);
+#if BAD
+      other_peer = &pg->peers[connection->index];
+#endif
+}
+
+
+/**
+ * For peers that haven't yet connected, send
+ * CORE connect requests.
+ *
+ * @param cls the 'struct SendHelloContext *'
+ * @param tc scheduler context
+ */
+static void
+send_core_connect_requests (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct SendHelloContext *send_hello_context = cls;
+  struct PeerConnection *conn;
+  GNUNET_assert(send_hello_context->peer->daemon->server != NULL);
+
+  send_hello_context->core_connect_task = GNUNET_SCHEDULER_NO_TASK;
+
+  send_hello_context->connect_attempts++;
+  if (send_hello_context->connect_attempts < send_hello_context->pg->ct_ctx.connect_attempts)
+    {
+      conn = send_hello_context->peer->connect_peers_head;
+      while (conn != NULL)
+        {
+          GNUNET_CORE_peer_request_connect(send_hello_context->peer->daemon->server,
+                                           GNUNET_TIME_relative_get_forever(),
+                                           &send_hello_context->pg->peers[conn->index].daemon->id,
+                                           NULL,
+                                           NULL);
+          conn = conn->next;
+        }
+      send_hello_context->core_connect_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_divide(send_hello_context->pg->ct_ctx.connect_timeout, send_hello_context->pg->ct_ctx.connect_attempts) ,
+                                                                           &send_core_connect_requests,
+                                                                           send_hello_context);
+    }
+  else
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Timeout before all connections created, marking rest as failed!\n");
+      GNUNET_SCHEDULER_add_now(&notify_remaining_connections_failed, send_hello_context);
+    }
+
+}
+
+
+/**
+ * Success, connection is up.  Signal client our success.
+ *
+ * @param cls our "struct SendHelloContext"
+ * @param peer identity of the peer that has connected
+ * @param atsi performance information
+ *
+ * FIXME: remove peers from BOTH lists, call notify twice, should
+ * double the speed of connections as long as the list iteration
+ * doesn't take too long!
+ */
+static void
+core_connect_notify (void *cls,
+                     const struct GNUNET_PeerIdentity *peer,
+                     const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+{
+  struct SendHelloContext *send_hello_context = cls;
+  struct PeerConnection *connection;
+  struct GNUNET_TESTING_PeerGroup *pg = send_hello_context->pg;
+#if BAD
+  struct PeerData *other_peer;
+#endif
+#if DEBUG_TESTING
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Connected peer %s to peer %s\n",
+                ctx->d1->shortname, GNUNET_i2s(peer));
+#endif
+
+  if (0 == memcmp(&send_hello_context->peer->daemon->id, peer, sizeof(struct GNUNET_PeerIdentity)))
+    return;
+
+  connection = send_hello_context->peer->connect_peers_head;
+#if BAD
+  other_peer = NULL;
+#endif
+
+  while ((connection != NULL) &&
+         (0 != memcmp(&pg->peers[connection->index].daemon->id, peer, sizeof(struct GNUNET_PeerIdentity))))
+    {
+      connection = connection->next;
+    }
+
+  if (connection == NULL)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Connected peer %s to %s, not in list (no problem(?))\n", GNUNET_i2s(peer), send_hello_context->peer->daemon->shortname);
+    }
+  else
+    {
+#if BAD
+      other_peer = &pg->peers[connection->index];
+#endif
+      if (pg->notify_connection != NULL)
+        {
+          pg->notify_connection(pg->notify_connection_cls,
+                                &send_hello_context->peer->daemon->id,
+                                peer,
+                                0, /* FIXME */
+                                send_hello_context->peer->daemon->cfg,
+                                pg->peers[connection->index].daemon->cfg,
+                                send_hello_context->peer->daemon,
+                                pg->peers[connection->index].daemon,
+                                NULL);
+        }
+      GNUNET_CONTAINER_DLL_remove(send_hello_context->peer->connect_peers_head, send_hello_context->peer->connect_peers_tail, connection);
+      GNUNET_free(connection);
+    }
+
+#if BAD
+  /* Notify of reverse connection and remove from other peers list of outstanding */
+  if (other_peer != NULL)
+    {
+      connection = other_peer->connect_peers_head;
+      while ((connection != NULL) &&
+             (0 != memcmp(&send_hello_context->peer->daemon->id, &pg->peers[connection->index].daemon->id, sizeof(struct GNUNET_PeerIdentity))))
+        {
+          connection = connection->next;
+        }
+      if (connection != NULL)
+        {
+          if (pg->notify_connection != NULL)
+            {
+              pg->notify_connection(pg->notify_connection_cls,
+                                    peer,
+                                    &send_hello_context->peer->daemon->id,
+                                    0, /* FIXME */
+                                    pg->peers[connection->index].daemon->cfg,
+                                    send_hello_context->peer->daemon->cfg,
+                                    pg->peers[connection->index].daemon,
+                                    send_hello_context->peer->daemon,
+                                    NULL);
+            }
+
+          GNUNET_CONTAINER_DLL_remove(other_peer->connect_peers_head, other_peer->connect_peers_tail, connection);
+          GNUNET_free(connection);
+        }
+    }
+#endif
+
+  if (send_hello_context->peer->connect_peers_head == NULL)
+    {
+      GNUNET_SCHEDULER_add_now(&free_hello_context, send_hello_context);
+    }
+}
+
+/**
+ * Notify of a successful connection to the core service.
+ *
+ * @param cls a struct SendHelloContext *
+ * @param server handle to the core service
+ * @param my_identity the peer identity of this peer
+ * @param publicKey the public key of the peer
+ */
+void
+core_init (void *cls,
+                  struct GNUNET_CORE_Handle * server,
+                  const struct GNUNET_PeerIdentity *
+                  my_identity,
+                  const struct
+                  GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *
+                  publicKey)
+{
+  struct SendHelloContext *send_hello_context = cls;
+  send_hello_context->core_ready = GNUNET_YES;
+}
+
+
+/**
+ * Function called once a hello has been sent
+ * to the transport, move on to the next one
+ * or go away forever.
+ *
+ * @param cls the 'struct SendHelloContext *'
+ * @param tc scheduler context
+ */
+static void
+hello_sent_callback (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct SendHelloContext *send_hello_context = cls;
+  //unsigned int pg_iter;
+  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+    {
+      GNUNET_free(send_hello_context);
+      return;
+    }
+
+  send_hello_context->pg->remaining_hellos--;
+#if DEBUG_TESTING
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Sent HELLO, have %d remaining!\n", send_hello_context->pg->remaining_hellos);
+#endif
+  if (send_hello_context->peer_pos == NULL) /* All HELLOs (for this peer!) have been transmitted! */
+    {
+#if DEBUG_TESTING
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "All hellos for this peer sent, disconnecting transport!\n");
+#endif
+      GNUNET_assert(send_hello_context->peer->daemon->th != NULL);
+      GNUNET_TRANSPORT_disconnect(send_hello_context->peer->daemon->th);
+      send_hello_context->peer->daemon->th = NULL;
+
+      /*if (send_hello_context->pg->remaining_hellos == 0)
+        {
+          for (pg_iter = 0; pg_iter < send_hello_context->pg->max_outstanding_connections; pg_iter++)
+            {
+              preschedule_connect(&send_hello_context->pg->ct_ctx);
+            }
+        }
+        */
+      GNUNET_assert (send_hello_context->peer->daemon->server == NULL);
+      send_hello_context->peer->daemon->server = GNUNET_CORE_connect(send_hello_context->peer->cfg,
+                                                                     1,
+                                                                     send_hello_context,
+                                                                     &core_init,
+                                                                     &core_connect_notify,
+                                                                     NULL,
+                                                                     NULL,
+                                                                     NULL, GNUNET_NO,
+                                                                     NULL, GNUNET_NO,
+                                                                     no_handlers);
+
+      send_hello_context->core_connect_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_divide(send_hello_context->pg->ct_ctx.connect_timeout, send_hello_context->pg->ct_ctx.connect_attempts),
+                                                                           &send_core_connect_requests,
+                                                                           send_hello_context);
+    }
+  else
+    GNUNET_SCHEDULER_add_now(&schedule_send_hellos, send_hello_context);
+}
+
+
+/**
+ * Connect to a peer, give it all the HELLO's of those peers
+ * we will later ask it to connect to.
+ *
+ * @param ct_ctx the overall connection context
+ */
+static void schedule_send_hellos (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct SendHelloContext *send_hello_context = cls;
+  struct GNUNET_TESTING_PeerGroup *pg = send_hello_context->pg;
+
+  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+    {
+      GNUNET_free(send_hello_context);
+      return;
+    }
+
+  GNUNET_assert(send_hello_context->peer_pos != NULL); /* All of the HELLO sends to be scheduled have been scheduled! */
+
+  if (((send_hello_context->peer->daemon->th == NULL) &&
+       (pg->outstanding_connects > pg->max_outstanding_connections)) ||
+      (pg->stop_connects == GNUNET_YES))
+    {
+#if VERBOSE_TESTING > 2
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _
+                  ("Delaying connect, we have too many outstanding connections!\n"));
+#endif
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_MILLISECONDS, 100),
+                                    &schedule_send_hellos, send_hello_context);
+    }
+  else
+    {
+#if VERBOSE_TESTING > 2
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Creating connection, outstanding_connections is %d\n"),
+                  outstanding_connects);
+#endif
+      if (send_hello_context->peer->daemon->th == NULL)
+        {
+          pg->outstanding_connects++; /* Actual TRANSPORT, CORE connections! */
+          send_hello_context->peer->daemon->th = GNUNET_TRANSPORT_connect(send_hello_context->peer->cfg,
+                                                                          NULL,
+                                                                          send_hello_context,
+                                                                          NULL,
+                                                                          NULL,
+                                                                          NULL);
+        }
+#if DEBUG_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Offering Hello of peer %s to peer %s\n"),
+                  send_hello_context->peer->daemon->shortname, pg->peers[send_hello_context->peer_pos->index].daemon->shortname);
+#endif
+      GNUNET_TRANSPORT_offer_hello(send_hello_context->peer->daemon->th,
+                                   (const struct GNUNET_MessageHeader *)pg->peers[send_hello_context->peer_pos->index].daemon->hello,
+                                   &hello_sent_callback,
+                                   send_hello_context);
+      send_hello_context->peer_pos = send_hello_context->peer_pos->next;
+      GNUNET_assert(send_hello_context->peer->daemon->th != NULL);
+    }
+}
+#endif
 
 
 /**
@@ -2937,23 +3370,54 @@ internal_connect_notify (void *cls,
                          struct GNUNET_TESTING_Daemon *second_daemon,
                          const char *emsg)
 {
-  struct ConnectTopologyContext *ct_ctx = cls;
+  struct ConnectContext *connect_ctx = cls;
+  struct ConnectTopologyContext *ct_ctx = connect_ctx->ct_ctx;
   struct GNUNET_TESTING_PeerGroup *pg = ct_ctx->pg;
+  struct PeerConnection *connection;
   pg->outstanding_connects--;
-  ct_ctx->remaining_connections--;
+
+  /*
+   * Check whether the inverse connection has been scheduled yet,
+   * if not, we can remove it from the other peers list and avoid
+   * even trying to connect them again!
+   */
+  connection = pg->peers[connect_ctx->second_index].connect_peers_head;
+#if BAD
+  other_peer = NULL;
+#endif
+
+  while ((connection != NULL) &&
+         (0 != memcmp(first, &pg->peers[connection->index].daemon->id, sizeof(struct GNUNET_PeerIdentity))))
+    {
+      connection = connection->next;
+    }
+
+  if (connection != NULL) /* Can safely remove! */
+    {
+      ct_ctx->remaining_connections--;
+      if (pg->notify_connection != NULL) /* Notify of reverse connection */
+        pg->notify_connection (pg->notify_connection_cls, second, first, distance,
+                               second_cfg, first_cfg, second_daemon, first_daemon,
+                               emsg);
+
+      GNUNET_CONTAINER_DLL_remove(pg->peers[connect_ctx->second_index].connect_peers_head, pg->peers[connect_ctx->second_index].connect_peers_tail, connection);
+      GNUNET_free(connection);
+    }
+
   if (ct_ctx->remaining_connections == 0)
     {
       if (ct_ctx->notify_connections_done != NULL)
         ct_ctx->notify_connections_done (ct_ctx->notify_cls, NULL);
-      GNUNET_free (ct_ctx);
     }
   else
-    preschedule_connect(ct_ctx);
+    preschedule_connect(pg);
 
   if (pg->notify_connection != NULL)
     pg->notify_connection (pg->notify_connection_cls, first, second, distance,
                            first_cfg, second_cfg, first_daemon, second_daemon,
                            emsg);
+
+  GNUNET_free(connect_ctx);
 }
 
 
@@ -2975,8 +3439,8 @@ schedule_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if ((pg->outstanding_connects > pg->max_outstanding_connections) || (pg->stop_connects == GNUNET_YES))
     {
-#if VERBOSE_TESTING > 2
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _
                   ("Delaying connect, we have too many outstanding connections!\n"));
 #endif
@@ -2986,20 +3450,24 @@ schedule_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
   else
     {
-#if VERBOSE_TESTING > 2
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  _("Creating connection, outstanding_connections is %d\n"),
-                  outstanding_connects);
+#if VERBOSE_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Creating connection, outstanding_connections is %d (max %d)\n"),
+                  pg->outstanding_connects, pg->max_outstanding_connections);
 #endif
       pg->outstanding_connects++;
       pg->total_connects_scheduled++;
-      GNUNET_TESTING_daemons_connect (connect_context->first,
-                                      connect_context->second,
+      GNUNET_TESTING_daemons_connect (pg->peers[connect_context->first_index].daemon,
+                                      pg->peers[connect_context->second_index].daemon,
                                       connect_context->ct_ctx->connect_timeout,
                                       connect_context->ct_ctx->connect_attempts,
+#if USE_SEND_HELLOS
+                                      GNUNET_NO,
+#else
+                                      GNUNET_YES,
+#endif
                                       &internal_connect_notify,
-                                      connect_context->ct_ctx);
-      GNUNET_free (connect_context);
+                                      connect_context); /* FIXME: free connect context! */
     }
 }
 
@@ -3123,16 +3591,18 @@ connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
 {
   unsigned int pg_iter;
   unsigned int total;
-  struct ConnectTopologyContext *ct_ctx;
+
 #if OLD
   struct PeerConnection *connection_iter;
 #endif
+#if USE_SEND_HELLOS
+  struct SendHelloContext *send_hello_context
+#endif
 
   total = 0;
-  ct_ctx = GNUNET_malloc (sizeof (struct ConnectTopologyContext));
-  ct_ctx->notify_connections_done = notify_callback;
-  ct_ctx->notify_cls = notify_cls;
-  ct_ctx->pg = pg;
+  pg->ct_ctx.notify_connections_done = notify_callback;
+  pg->ct_ctx.notify_cls = notify_cls;
+  pg->ct_ctx.pg = pg;
 
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
     {
@@ -3150,19 +3620,29 @@ connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
     }
 
   if (total == 0)
-    {
-      GNUNET_free (ct_ctx);
-      return total;
-    }
-  ct_ctx->connect_timeout = connect_timeout;
-  ct_ctx->connect_attempts = connect_attempts;
-  ct_ctx->remaining_connections = total;
-  ct_ctx->remaining_connects_to_schedule = total;
+    return total;
 
+  pg->ct_ctx.connect_timeout = connect_timeout;
+  pg->ct_ctx.connect_attempts = connect_attempts;
+  pg->ct_ctx.remaining_connections = total;
+
+#if USE_SEND_HELLOS
+  /* First give all peers the HELLO's of other peers (connect to first peer's transport service, give HELLO's of other peers, continue...) */
+  pg->remaining_hellos = total;
+  for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
+    {
+      send_hello_context = GNUNET_malloc(sizeof(struct SendHelloContext));
+      send_hello_context->peer = &pg->peers[pg_iter];
+      send_hello_context->peer_pos = pg->peers[pg_iter].connect_peers_head;
+      send_hello_context->pg = pg;
+      GNUNET_SCHEDULER_add_now(&schedule_send_hellos, send_hello_context);
+    }
+#else
   for (pg_iter = 0; pg_iter < pg->max_outstanding_connections; pg_iter++)
-  {
-    preschedule_connect(ct_ctx);
-  }
+    {
+      preschedule_connect(pg);
+    }
+#endif
   return total;
 
 }
