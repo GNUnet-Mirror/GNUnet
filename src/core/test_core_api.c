@@ -275,14 +275,14 @@ process_hello (void *cls,
   p->hello = GNUNET_malloc (ntohs (message->size));
   memcpy (p->hello, message, ntohs (message->size));
   if ((p == &p1) && (p2.th != NULL))
-    GNUNET_TRANSPORT_offer_hello (p2.th, message);
+    GNUNET_TRANSPORT_offer_hello (p2.th, message, NULL, NULL);
   if ((p == &p2) && (p1.th != NULL))
-    GNUNET_TRANSPORT_offer_hello (p1.th, message);
+    GNUNET_TRANSPORT_offer_hello (p1.th, message, NULL, NULL);
 
   if ((p == &p1) && (p2.hello != NULL))
-    GNUNET_TRANSPORT_offer_hello (p1.th, p2.hello);
+    GNUNET_TRANSPORT_offer_hello (p1.th, p2.hello, NULL, NULL);
   if ((p == &p2) && (p1.hello != NULL))
-    GNUNET_TRANSPORT_offer_hello (p2.th, p1.hello);
+    GNUNET_TRANSPORT_offer_hello (p2.th, p1.hello, NULL, NULL);
 }
 
 
