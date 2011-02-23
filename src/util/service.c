@@ -904,12 +904,6 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
                                                            &unixpath)) &&
       (0 < strlen(unixpath)))
     {
-      GNUNET_assert (GNUNET_OK ==
-                    GNUNET_CONFIGURATION_get_value_string (cfg,
-                                                           serviceName,
-                                                           "UNIXPATH",
-                                                           &unixpath));
-
       /* probe UNIX support */
       struct sockaddr_un s_un;
       if (strlen(unixpath) >= sizeof(s_un.sun_path))
