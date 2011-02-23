@@ -669,7 +669,7 @@ exchange_hello (void *cls,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
                                       message, &me->id));
-  GNUNET_TRANSPORT_offer_hello (p2.th, message);
+  GNUNET_TRANSPORT_offer_hello (p2.th, message, NULL, NULL);
   GNUNET_TRANSPORT_get_hello (p2.th, &exchange_hello_last, &p2);
 }
 

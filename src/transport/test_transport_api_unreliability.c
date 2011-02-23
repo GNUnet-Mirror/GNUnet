@@ -186,8 +186,8 @@ end ()
 	      "Transports disconnected, returning success!\n");
 #endif
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
-  GNUNET_asprintf(&value_name, "unreliable-%s_kb/s", test_name);
-  GAUGER (value_name, (int)(total_bytes * 1000 / 1024 /delta));
+  GNUNET_asprintf(&value_name, "unreliable_%s", test_name);
+  GAUGER (value_name, (int)(total_bytes * 1000 / 1024 /delta), "kbs");
   GNUNET_free(value_name);
   fprintf (stderr,
 	   "\nThroughput was %llu kb/s\n",
@@ -227,11 +227,11 @@ end_unreliably ()
   fprintf (stderr,
            "\nThroughput was %llu kb/s\n",
            total_bytes * 1000 / 1024 / delta);
-  GNUNET_asprintf(&value_name, "unreliable-%s_kb/s", test_name);
-  GAUGER (value_name, (int)(total_bytes * 1000 / 1024 /delta));
+  GNUNET_asprintf(&value_name, "unreliable_%s", test_name);
+  GAUGER (value_name, (int)(total_bytes * 1000 / 1024 /delta), "kbs");
   GNUNET_free(value_name);
-  GNUNET_asprintf(&value_name, "unreliable-%s_failed messages", test_name);
-  GAUGER (value_name, (int)num_failed);
+  GNUNET_asprintf(&value_name, "unreliable_failed_%s", test_name);
+  GAUGER (value_name, (int)num_failed, "count");
   GNUNET_free(value_name);
   GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Had %d failed messages!\n", num_failed);
   ok = 0;
@@ -624,7 +624,7 @@ exchange_hello (void *cls,
               "Received HELLO size %d\n",
 	      GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message));
 #endif
-  GNUNET_TRANSPORT_offer_hello (p2.th, message);
+  GNUNET_TRANSPORT_offer_hello (p2.th, message, NULL, NULL);
   GNUNET_TRANSPORT_get_hello (p2.th, &exchange_hello_last, &p2);
 }
 

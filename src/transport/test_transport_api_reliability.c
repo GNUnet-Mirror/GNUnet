@@ -133,8 +133,8 @@ end ()
   fprintf (stderr,
 	   "\nThroughput was %llu kb/s\n",
 	   total_bytes * 1000 / 1024 / delta);
-  GNUNET_asprintf(&value_name, "reliable-%s_kb/s", test_name);
-  GAUGER (value_name, (int)(total_bytes * 1000 / 1024 /delta));
+  GNUNET_asprintf(&value_name, "reliable_%s", test_name);
+  GAUGER (value_name, (int)(total_bytes * 1000 / 1024 /delta), "kbs");
   GNUNET_free(value_name);
   ok = 0;
 
@@ -527,7 +527,7 @@ exchange_hello (void *cls,
               "Received HELLO size %d\n",
 	      GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message));
 #endif
-  GNUNET_TRANSPORT_offer_hello (p2.th, message);
+  GNUNET_TRANSPORT_offer_hello (p2.th, message, NULL, NULL);
   GNUNET_TRANSPORT_get_hello (p2.th, &exchange_hello_last, &p2);
 }
 
