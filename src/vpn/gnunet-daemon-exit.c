@@ -262,13 +262,24 @@ message_token (void *cls,
 				     msg);
 }
 
+
 /**
  * Reads the configuration servicecfg and populates udp_services
+ *
+ * @param cls unused
+ * @param section name of section in config, equal to hostname
+ * @param option type of redirect
+ * @param value specification of services, format is
+ *         "OFFERED-PORT:HOSTNAME:HOST-PORT" (SPACE <more of those>)*
  */
 static void
 read_service_conf (void *cls, const char *section, const char *option,
                    const char *value)
 {
+  char *cpy;
+  char *redirect;
+  char *hostname;
+  char *hostport;
   GNUNET_HashCode hash;
   uint16_t *desc = alloca (sizeof (GNUNET_HashCode) + 2);
   GNUNET_CRYPTO_hash (section, strlen (section) + 1,
@@ -276,18 +287,26 @@ read_service_conf (void *cls, const char *section, const char *option,
 
   if (0 == strcmp ("UDP_REDIRECTS", option))
     {
-      char *saveptr;
-      char *value_ = alloca (strlen (value) + 1);
-      memcpy (value_, value, strlen (value) + 1);
-      char *token = strtok_r (value_, " ", &saveptr);
-      while (NULL != token)
-        {
-          char *isaveptr;
-
-          char *itoken = strtok_r (token, ":", &isaveptr);
-          GNUNET_assert (NULL != itoken);
-          int local_port = atoi (itoken);
-          GNUNET_assert ((local_port > 0) && (local_port < 65536));
+      cpy = GNUNET_strdup (value);
+      for (redirect = strtok (cpy, " "); redirect != NULL; redirect = strtok (NULL, " "))
+	{     
+	  if (NULL == (hostname = strstr (redirect, ":")))
+	    {
+	      // FIXME: bitch
+	      continue;
+	    }
+	  hostname[0] = '\0';
+	  hostname++;
+	  if (NULL == (hostport = strstr (hostname, ":")))
+	    {
+	      // FIXME: bitch
+	      continue;
+	    }
+	  hostport[0] = '\0';
+	  hostport++;
+	  
+          int local_port = atoi (redirect);
+          GNUNET_assert ((local_port > 0) && (local_port < 65536)); // FIXME: don't crash!!!
           *desc = local_port;
 
           GNUNET_CRYPTO_hash (desc, sizeof (GNUNET_HashCode) + 2, &hash);
@@ -297,9 +316,7 @@ read_service_conf (void *cls, const char *section, const char *option,
           memset (serv, 0, sizeof (struct udp_service));
           serv->my_port = local_port;
 
-          itoken = strtok_r (NULL, ":", &isaveptr);
-          GNUNET_assert (NULL != itoken);
-          if (0 == strcmp ("localhost4", itoken))
+          if (0 == strcmp ("localhost4", hostname))
             {
               serv->version = 4;
 
@@ -314,7 +331,7 @@ read_service_conf (void *cls, const char *section, const char *option,
                                         serv->v4.ip4address));
               GNUNET_free (ip4addr);
             }
-          else if (0 == strcmp ("localhost6", itoken))
+          else if (0 == strcmp ("localhost6", hostname))
             {
               serv->version = 6;
 
@@ -334,11 +351,7 @@ read_service_conf (void *cls, const char *section, const char *option,
               // Lookup, yadayadayada
               GNUNET_assert (0);
             }
-
-          itoken = strtok_r (NULL, ":", &isaveptr);
-          GNUNET_assert (NULL != itoken);
-          serv->remote_port = atoi (itoken);
-
+          serv->remote_port = atoi (hostport);
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Store with key1 %x\n",
                       *((unsigned long long *) (desc + 1)));
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Store with key2 %x\n",
@@ -347,9 +360,8 @@ read_service_conf (void *cls, const char *section, const char *option,
                          GNUNET_CONTAINER_multihashmap_put (udp_services,
                                                             &hash, serv,
                                                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-
-          token = strtok_r (NULL, " ", &saveptr);
         }
+      GNUNET_free (cpy);
     }
 }
 
