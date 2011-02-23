@@ -1,7 +1,6 @@
 INCLUDES = -I$(top_srcdir)/src/include
 
 plugindir = $(libdir)/gnunet
-SUBDIRS = libgnu
 
 if MINGW
 noinst_LTLIBRARIES = \

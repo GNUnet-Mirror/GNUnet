@@ -811,7 +811,6 @@ src/testing/Makefile
 src/topology/Makefile
 src/transport/Makefile
 src/util/Makefile
-src/util/libgnu/Makefile
 src/vpn/Makefile
 src/chat/Makefile
 pkgconfig/Makefile
