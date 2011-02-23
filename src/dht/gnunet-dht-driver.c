@@ -68,8 +68,6 @@
 
 #define DEFAULT_BUCKET_SIZE 4
 
-#define FIND_PEER_THRESHOLD 1
-
 /* If more than this many peers are added, slow down sending */
 #define MAX_FIND_PEER_CUTOFF 2000
 
@@ -2082,8 +2080,7 @@ count_peers_cb (void *cls,
                                             target_total_connections);
 
       if ((find_peer_context->last_sent < 8) ||
-          ((find_peer_context->current_peers - find_peer_context->previous_peers > FIND_PEER_THRESHOLD) &&
-          (find_peer_context->current_peers < 2 * connection_estimate(num_peers, DEFAULT_BUCKET_SIZE)) &&
+          ((find_peer_context->current_peers < 2 * connection_estimate(num_peers, DEFAULT_BUCKET_SIZE)) &&
           (GNUNET_TIME_absolute_get_remaining(find_peer_context->endtime).rel_value > 0) &&
           (find_peer_context->current_peers < target_total_connections)))
         {

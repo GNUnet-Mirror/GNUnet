@@ -132,8 +132,7 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   fprintf (stderr,
 	   "\nThroughput was %llu kb/s\n",
 	   total_bytes * 1000 / 1024 / delta);
-  GAUGER ("Core throughput_kb/s", 
-	  total_bytes * 1000 / 1024 / delta);
+  GAUGER ("Core throughput/s", total_bytes * 1000 / 1024 / delta, "kbs");
   ok = 0;
 }
 
