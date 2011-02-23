@@ -894,9 +894,10 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
   else
     hostname = NULL;
 
+  unixpath = NULL;
 #ifdef AF_UNIX
   if ((GNUNET_YES == GNUNET_CONFIGURATION_have_value (cfg,
-                                       serviceName, "UNIXPATH")) &&
+						      serviceName, "UNIXPATH")) &&
       (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg,
                                                            serviceName,
                                                            "UNIXPATH",
@@ -912,13 +913,13 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
       /* probe UNIX support */
       struct sockaddr_un s_un;
       if (strlen(unixpath) >= sizeof(s_un.sun_path))
-      {
-    	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("UNIXPATH `%s' too long, maximum length is %llu\n"),unixpath, sizeof(s_un.sun_path));
-	      GNUNET_free_non_null (hostname);
-	      GNUNET_free (unixpath);
-    	  return GNUNET_SYSERR;
-      }
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		      _("UNIXPATH `%s' too long, maximum length is %llu\n"),unixpath, sizeof(s_un.sun_path));
+	  GNUNET_free_non_null (hostname);
+	  GNUNET_free (unixpath);
+	  return GNUNET_SYSERR;
+	}
 
       desc = GNUNET_NETWORK_socket_create (AF_UNIX, SOCK_STREAM, 0);
       if (NULL == desc)
@@ -944,10 +945,6 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
           desc = NULL;
 	}
     }
-  else
-    unixpath = NULL;
-#else
-  unixpath = NULL;
 #endif
 
   if ( (port == 0) &&
@@ -965,7 +962,7 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
       saddrlens = GNUNET_malloc (2 * sizeof (socklen_t));
       add_unixpath (saddrs, saddrlens, unixpath);
       GNUNET_free_non_null (unixpath);
-      GNUNET_free_non_null(hostname);
+      GNUNET_free_non_null (hostname);
       *addrs = saddrs;
       *addr_lens = saddrlens;
       return 1;
@@ -989,7 +986,7 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
                       _("Failed to resolve `%s': %s\n"),
                       hostname, gai_strerror (ret));
           GNUNET_free (hostname);
-	  GNUNET_free (unixpath);
+	  GNUNET_free_non_null (unixpath);
           return GNUNET_SYSERR;
         }
       next = res;
@@ -1008,7 +1005,7 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
                       disablev6 ? "IPv4 " : "", hostname);
           freeaddrinfo (res);
           GNUNET_free (hostname);
-	  GNUNET_free (unixpath);
+	  GNUNET_free_non_null (unixpath);
           return GNUNET_SYSERR;
         }
       resi = i;
