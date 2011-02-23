@@ -40,6 +40,8 @@
 
 #define USE_SEND_HELLOS GNUNET_NO
 
+#define TOPOLOGY_HACK GNUNET_YES
+
 /**
  * Lowest port used for GNUnet testing.  Should be high enough to not
  * conflict with other applications running on the hosts but be low
@@ -1840,12 +1842,8 @@ create_nated_internet (struct GNUNET_TESTING_PeerGroup *pg,
       GNUNET_free (p_string);
     }
 
-
-
   cutoff = (unsigned int) (nat_percentage * pg->total);
-
   connect_attempts = 0;
-
   for (outer_count = 0; outer_count < pg->total - 1; outer_count++)
     {
       for (inner_count = outer_count + 1; inner_count < pg->total;
@@ -1862,10 +1860,70 @@ create_nated_internet (struct GNUNET_TESTING_PeerGroup *pg,
             }
         }
     }
+  return connect_attempts;
+}
+
+#if TOPOLOGY_HACK
+/**
+ * Create a topology given a peer group (set of running peers)
+ * and a connection processor.
+ *
+ * @param pg the peergroup to create the topology on
+ * @param proc the connection processor to call to actually set
+ *        up connections between two peers
+ * @param list the peer list to use
+ *
+ * @return the number of connections that were set up
+ *
+ */
+static unsigned int
+create_nated_internet_copy (struct GNUNET_TESTING_PeerGroup *pg,
+                            GNUNET_TESTING_ConnectionProcessor proc,
+                            enum PeerLists list)
+{
+  unsigned int outer_count, inner_count;
+  unsigned int cutoff;
+  int connect_attempts;
+  double nat_percentage;
+  char *p_string;
+
+  nat_percentage = 0.6;         /* FIXME: default percentage? */
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (pg->cfg,
+                                                          "TESTING",
+                                                          "PERCENTAGE",
+                                                          &p_string))
+    {
+      if (sscanf (p_string, "%lf", &nat_percentage) != 1)
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                    _
+                    ("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
+                    p_string, "PERCENTAGE", "TESTING");
+      GNUNET_free (p_string);
+    }
+
+  cutoff = (unsigned int) (nat_percentage * pg->total);
+  connect_attempts = 0;
+  for (outer_count = 0; outer_count < pg->total - 1; outer_count++)
+    {
+      for (inner_count = outer_count + 1; inner_count < pg->total;
+           inner_count++)
+        {
+          if ((outer_count > cutoff) || (inner_count > cutoff))
+            {
+#if VERBOSE_TESTING
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          "Connecting peer %d to peer %d\n",
+                          outer_count, inner_count);
+#endif
+              connect_attempts += proc (pg, outer_count, inner_count, list);
+              add_connections(pg, outer_count, inner_count, ALLOWED);
+            }
+        }
+    }
 
   return connect_attempts;
-
 }
+#endif
 
 /**
  * Create a topology given a peer group (set of running peers)
@@ -2306,6 +2364,7 @@ copy_allowed (struct GNUNET_TESTING_PeerGroup *pg,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Unblacklisted %u peers\n", total);
   return total;
 }
+
 
 /**
  * Create a topology given a peer group (set of running peers)
@@ -3681,6 +3740,9 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
   unsigned int num_connections;
   int unblacklisted_connections;
   char *filename;
+  struct PeerConnection *conn_iter;
+  struct PeerConnection *temp_conn;
+  unsigned int off;
 
 #if !OLD
   unsigned int i;
@@ -3868,8 +3930,36 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Blacklisting all but InterNAT topology\n"));
 #endif
-      unblacklisted_connections =
-        create_nated_internet (pg, &remove_connections, BLACKLIST);
+
+#if TOPOLOGY_HACK
+    for (off = 0; off < pg->total; off++)
+      {
+        conn_iter = pg->peers[off].allowed_peers_head;
+        while (conn_iter != NULL)
+          {
+            temp_conn = conn_iter->next;
+            GNUNET_free(conn_iter);
+            conn_iter = temp_conn;
+          }
+        pg->peers[off].allowed_peers_head = NULL;
+        pg->peers[off].allowed_peers_tail = NULL;
+
+        conn_iter = pg->peers[off].connect_peers_head;
+        while (conn_iter != NULL)
+          {
+            temp_conn = conn_iter->next;
+            GNUNET_free(conn_iter);
+            conn_iter = temp_conn;
+          }
+        pg->peers[off].connect_peers_head = NULL;
+        pg->peers[off].connect_peers_tail = NULL;
+      }
+    unblacklisted_connections = create_nated_internet_copy(pg, &remove_connections, BLACKLIST);
+#else
+    unblacklisted_connections =
+          create_nated_internet (pg, &remove_connections, BLACKLIST);
+#endif
+
       break;
     case GNUNET_TESTING_TOPOLOGY_SCALE_FREE:
 #if VERBOSE_TESTING
