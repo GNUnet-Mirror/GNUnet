@@ -128,12 +128,14 @@ static void my_cb(void *cls,
       return;
     }
   GNUNET_TESTING_daemons_connect (last, d, TIMEOUT, CONNECT_ATTEMPTS,
+                                  GNUNET_YES,
 				  &notify_connect_complete,
 				  NULL);
   if (peers_left == 0)
     {
       /* close circle */
       GNUNET_TESTING_daemons_connect (d, first, TIMEOUT, CONNECT_ATTEMPTS,
+                                      GNUNET_YES,
 				      &notify_connect_complete,
 				      NULL);
     }

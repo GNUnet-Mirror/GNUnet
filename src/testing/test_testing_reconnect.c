@@ -147,6 +147,7 @@ my_cb2 (void *cls,
 #endif
   GNUNET_TESTING_daemons_connect (d1, d2,
                                   TIMEOUT, CONNECT_ATTEMPTS,
+                                  GNUNET_YES,
                                   &my_connect_complete, NULL);
 }
 
