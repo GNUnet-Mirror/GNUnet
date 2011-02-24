@@ -31,7 +31,7 @@
 #include "gnunet_time_lib.h"
 
 /**
- * After how many seconds do we always print
+ * After how many milliseconds do we always print
  * that "message X was repeated N times"?  Use 12h.
  */
 #define BULK_DELAY_THRESHOLD (12 * 60 * 60 * 1000)
