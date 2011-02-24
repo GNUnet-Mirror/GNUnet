@@ -133,8 +133,8 @@ end ()
   fprintf (stderr,
 	   "\nThroughput was %llu kb/s\n",
 	   total_bytes * 1000 / 1024 / delta);
-  GNUNET_asprintf(&value_name, "reliable_%s", test_name);
-  GAUGER (value_name, (int)(total_bytes * 1000 / 1024 /delta), "kbs");
+  GNUNET_asprintf(&value_name, "TRANSPORT:reliable_%s", test_name);
+  GAUGER (value_name, (int)(total_bytes * 1000 / 1024 /delta), "kb/s");
   GNUNET_free(value_name);
   ok = 0;
 
