@@ -1014,6 +1014,8 @@ create_meter(unsigned int total, char * start_string, int print)
   ret->print = print;
   ret->total = total;
   ret->modnum = total / 4;
+  if (ret->modnum == 0) /* Divide by zero check */
+    ret->modnum = 1;
   ret->dotnum = (total / 50) + 1;
   if (start_string != NULL)
     ret->startup_string = GNUNET_strdup(start_string);
