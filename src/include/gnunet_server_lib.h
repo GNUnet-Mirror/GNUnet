@@ -38,7 +38,6 @@ extern "C"
 
 #include "gnunet_common.h"
 #include "gnunet_connection_lib.h"
-#include "gnunet_scheduler_lib.h"
 
 
 /**
@@ -455,7 +454,7 @@ struct GNUNET_SERVER_NotificationContext;
  * @param server server for which this function creates the context
  * @param queue_length maximum number of messages to keep in
  *        the notification queue; optional messages are dropped
- *        it the queue gets longer than this number of messages
+ *        if the queue gets longer than this number of messages
  * @return handle to the notification context
  */
 struct GNUNET_SERVER_NotificationContext *
