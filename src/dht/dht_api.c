@@ -287,7 +287,7 @@ try_reconnect (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_DHT_Handle *handle = cls;
-
+  handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   if (handle->retry_time.rel_value < GNUNET_CONSTANTS_SERVICE_RETRY.rel_value)
     handle->retry_time = GNUNET_CONSTANTS_SERVICE_RETRY;
   else
@@ -328,7 +328,7 @@ do_disconnect (struct GNUNET_DHT_Handle *handle)
 {
   if (handle->client == NULL)
     return;
-
+  GNUNET_assert(handle->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
   GNUNET_CLIENT_disconnect (handle->client, GNUNET_NO);
   handle->client = NULL;
   handle->reconnect_task = GNUNET_SCHEDULER_add_delayed (handle->retry_time,
@@ -607,6 +607,8 @@ GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle)
       GNUNET_CLIENT_disconnect (handle->client, GNUNET_YES);
       handle->client = NULL;
     }  
+  if (handle->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(handle->reconnect_task);
   GNUNET_CONTAINER_multihashmap_destroy(handle->active_requests);
   GNUNET_free (handle);
 }
