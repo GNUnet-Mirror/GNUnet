@@ -4544,7 +4544,13 @@ choose_minimum (struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
     {
       while (pg->peers[pg_iter].connect_peers_head != NULL)
-        remove_connections(pg, pg_iter, pg->peers[pg_iter].connect_peers_head->index, CONNECT, GNUNET_YES);
+        {
+          conn_iter = pg->peers[pg_iter].connect_peers_head;
+          GNUNET_CONTAINER_DLL_remove(pg->peers[pg_iter].connect_peers_head,
+              pg->peers[pg_iter].connect_peers_tail, pg->peers[pg_iter].connect_peers_head);
+          GNUNET_free(conn_iter);
+          /*remove_connections(pg, pg_iter, pg->peers[pg_iter].connect_peers_head->index, CONNECT, GNUNET_YES);*/
+        }
 
       pg->peers[pg_iter].connect_peers_head = pg->peers[pg_iter].connect_peers_working_set_head;
       pg->peers[pg_iter].connect_peers_tail = pg->peers[pg_iter].connect_peers_working_set_tail;
