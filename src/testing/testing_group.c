@@ -2009,6 +2009,8 @@ create_nated_internet_copy (struct GNUNET_TESTING_PeerGroup *pg,
   int connect_attempts;
   double nat_percentage;
   char *p_string;
+  unsigned int count;
+  struct ProgressMeter *conn_meter;
 
   nat_percentage = 0.6;         /* FIXME: default percentage? */
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (pg->cfg,
@@ -2025,6 +2027,19 @@ create_nated_internet_copy (struct GNUNET_TESTING_PeerGroup *pg,
     }
 
   cutoff = (unsigned int) (nat_percentage * pg->total);
+  count = 0;
+  for (outer_count = 0; outer_count < pg->total - 1; outer_count++)
+    {
+      for (inner_count = outer_count + 1; inner_count < pg->total;
+           inner_count++)
+        {
+          if ((outer_count > cutoff) || (inner_count > cutoff))
+            {
+              count++;
+            }
+        }
+    }
+  conn_meter = create_meter(count, "NAT COPY", GNUNET_YES);
   connect_attempts = 0;
   for (outer_count = 0; outer_count < pg->total - 1; outer_count++)
     {
@@ -2040,9 +2055,11 @@ create_nated_internet_copy (struct GNUNET_TESTING_PeerGroup *pg,
 #endif
               connect_attempts += proc (pg, outer_count, inner_count, list, GNUNET_YES);
               add_connections(pg, outer_count, inner_count, ALLOWED, GNUNET_NO);
+              update_meter(conn_meter);
             }
         }
     }
+  free_meter(conn_meter);
 
   return connect_attempts;
 }
