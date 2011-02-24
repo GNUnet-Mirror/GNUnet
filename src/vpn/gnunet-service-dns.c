@@ -102,51 +102,60 @@ struct receive_dht_cls {
  * Hijack all outgoing DNS-Traffic but for traffic leaving "our" port.
  */
 static void
-hijack(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
-    char port_s[6];
-    char* virt_dns;
+hijack (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  char port_s[6];
+  char *virt_dns;
+  struct GNUNET_OS_Process *proc;
 
-    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "vpn", "VIRTDNS", &virt_dns))
-      {
-	GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "No entry 'VIRTDNS' in configuration!\n");
-	exit(1);
-      }
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "VIRTDNS",
+                                             &virt_dns))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "No entry 'VIRTDNS' in configuration!\n");
+      exit (1);
+    }
 
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Hijacking, port is %d\n", dnsoutport);
-    snprintf(port_s, 6, "%d", dnsoutport);
-    GNUNET_OS_process_close (GNUNET_OS_start_process(NULL,
-						     NULL,
-						     "gnunet-helper-hijack-dns",
-						     "gnunet-hijack-dns",
-						     port_s,
-                                                     virt_dns,
-						     NULL));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Hijacking, port is %d\n", dnsoutport);
+  snprintf (port_s, 6, "%d", dnsoutport);
+  if (NULL != (proc = GNUNET_OS_start_process (NULL,
+                                               NULL,
+                                               "gnunet-helper-hijack-dns",
+                                               "gnunet-hijack-dns",
+                                               port_s, virt_dns, NULL)))
+    GNUNET_OS_process_close (proc);
+  GNUNET_free (virt_dns);
 }
 
 /**
  * Delete the hijacking-routes
  */
 static void
-unhijack(unsigned short port) {
-    char port_s[6];
-    char* virt_dns;
+unhijack (unsigned short port)
+{
+  char port_s[6];
+  char *virt_dns;
+  struct GNUNET_OS_Process *proc;
 
-    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "vpn", "VIRTDNS", &virt_dns))
-      {
-	GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "No entry 'VIRTDNS' in configuration!\n");
-	exit(1);
-      }
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "VIRTDNS",
+                                             &virt_dns))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "No entry 'VIRTDNS' in configuration!\n");
+      exit (1);
+    }
 
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "unHijacking, port is %d\n", port);
-    snprintf(port_s, 6, "%d", port);
-    GNUNET_OS_start_process(NULL,
-			    NULL,
-			    "gnunet-helper-hijack-dns",
-			    "gnunet-hijack-dns",
-			    "-d",
-			    port_s,
-                            virt_dns,
-			    NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "unHijacking, port is %d\n", port);
+  snprintf (port_s, 6, "%d", port);
+  if (NULL != (proc = GNUNET_OS_start_process (NULL,
+                                               NULL,
+                                               "gnunet-helper-hijack-dns",
+                                               "gnunet-hijack-dns",
+                                               "-d", port_s, virt_dns, NULL)))
+    GNUNET_OS_process_close (proc);
+  GNUNET_free (virt_dns);
 }
 
 /**

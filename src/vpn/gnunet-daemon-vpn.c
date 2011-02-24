@@ -470,8 +470,8 @@ run (void *cls,
     restart_hijack = 0;
     hashmap = GNUNET_CONTAINER_multihashmap_create(65536);
     udp_connections = GNUNET_CONTAINER_multihashmap_create(65536);
-    GNUNET_SCHEDULER_add_now (connect_to_service_dns, NULL);
-    GNUNET_SCHEDULER_add_now (start_helper_and_schedule, NULL);
+    GNUNET_SCHEDULER_TaskIdentifier conn_task = GNUNET_SCHEDULER_add_now (connect_to_service_dns, NULL);
+    GNUNET_SCHEDULER_add_after (conn_task, start_helper_and_schedule, NULL);
     GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);
 }
 
