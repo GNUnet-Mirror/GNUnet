@@ -1455,7 +1455,7 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg,
 }
 
 /*
- * Add entries to the some list
+ * Remove entries from the peer connection list
  *
  * @param pg the peer group we are working with
  * @param first index of the first peer
@@ -2039,7 +2039,7 @@ create_nated_internet_copy (struct GNUNET_TESTING_PeerGroup *pg,
                           outer_count, inner_count);
 #endif
               connect_attempts += proc (pg, outer_count, inner_count, list, GNUNET_YES);
-              add_connections(pg, outer_count, inner_count, ALLOWED, GNUNET_YES);
+              add_connections(pg, outer_count, inner_count, ALLOWED, GNUNET_NO);
             }
         }
     }
