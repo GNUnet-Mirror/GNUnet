@@ -226,11 +226,11 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 	{
 	  /* disconnect tunnels */
 	  /* outbound tunnels */
-	  if (telement->tunnel.connect_handler != NULL)
+	  if (telement->tunnel.connect_handler != NULL && NULL != telement->tunnel.disconnect_handler)
 	    telement->tunnel.disconnect_handler (telement->tunnel.handler_cls,
 						 peer);
 	  /* inbound tunnels */
-	  else
+	  else if (NULL != handle->cleaner)
 	    handle->cleaner (handle->cls, &telement->tunnel,
 			     &telement->tunnel.ctx);
 
