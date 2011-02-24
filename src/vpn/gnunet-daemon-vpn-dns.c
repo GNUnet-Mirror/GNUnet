@@ -117,8 +117,11 @@ connect_to_service_dns (void *cls,
     GNUNET_assert (dns_connection == NULL);
     dns_connection = GNUNET_CLIENT_connect ("dns", cfg);
     /* This would most likely be a misconfiguration */
-    GNUNET_assert(dns_connection != NULL);
+    GNUNET_assert(NULL != dns_connection);
     GNUNET_CLIENT_receive(dns_connection, &dns_answer_handler, NULL, GNUNET_TIME_UNIT_FOREVER_REL);
+
+    /* We might not yet be connected. Yay, mps. */
+    if (NULL == dns_connection) return;
 
     /* If a packet is already in the list, schedule to send it */
     if (head != NULL)

@@ -122,7 +122,8 @@ start_helper_and_schedule(void *cls,
      * The routing-table gets flushed if an interface disappears.
      */
     restart_hijack = 1;
-    GNUNET_CLIENT_notify_transmit_ready(dns_connection, sizeof(struct GNUNET_MessageHeader), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
+    if (NULL != dns_connection)
+      GNUNET_CLIENT_notify_transmit_ready(dns_connection, sizeof(struct GNUNET_MessageHeader), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
 }
 /*}}}*/
 
