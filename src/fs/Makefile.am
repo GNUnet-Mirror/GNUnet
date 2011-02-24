@@ -61,6 +61,7 @@ gnunet_directory_SOURCES = \
 gnunet_directory_LDADD = \
   $(top_builddir)/src/fs/libgnunetfs.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  -lextractor \
   $(GN_LIBINTL)
 gnunet_directory_DEPENDENCIES = \
   libgnunetfs.la
@@ -79,6 +80,7 @@ gnunet_publish_SOURCES =  \
 gnunet_publish_LDADD =  \
  $(top_builddir)/src/fs/libgnunetfs.la \
  $(top_builddir)/src/util/libgnunetutil.la \
+ -lextractor \
  $(GN_LIBINTL)
 gnunet_publish_DEPENDENCIES = \
   libgnunetfs.la
@@ -98,6 +100,7 @@ gnunet_search_SOURCES = \
 gnunet_search_LDADD = \
   $(top_builddir)/src/fs/libgnunetfs.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+ -lextractor \
   $(GN_LIBINTL)
 gnunet_search_DEPENDENCIES = \
   libgnunetfs.la
