@@ -89,7 +89,8 @@ typedef unsigned int (*GNUNET_TESTING_ConnectionProcessor) (struct
                                                             first,
                                                             unsigned int
                                                             second,
-                                                            enum PeerLists list);
+                                                            enum PeerLists list,
+                                                            unsigned int check);
 
 
 /**
@@ -958,6 +959,25 @@ struct DFSContext
   unsigned int current;
 };
 
+/**
+ * Simple struct to keep track of progress, and print a
+ * nice little percentage meter for long running tasks.
+ */
+struct ProgressMeter
+{
+  unsigned int total;
+
+  unsigned int modnum;
+
+  unsigned int dotnum;
+
+  unsigned int completed;
+
+  int print;
+
+  char *startup_string;
+};
+
 #if !OLD
 /**
  * Convert unique ID to hash code.
@@ -988,6 +1008,102 @@ uid_from_hash (const GNUNET_HashCode * hash, uint32_t * uid)
 #if USE_SEND_HELLOS
 static struct GNUNET_CORE_MessageHandler no_handlers[] = { {NULL, 0, 0} };
 #endif
+
+/**
+ * Create a meter to keep track of the progress of some task.
+ *
+ * @param total the total number of items to complete
+ * @param start_string a string to prefix the meter with (if printing)
+ * @param print GNUNET_YES to print the meter, GNUNET_NO to count
+ *              internally only
+ *
+ * @return the progress meter
+ */
+static struct ProgressMeter *
+create_meter(unsigned int total, char * start_string, int print)
+{
+  struct ProgressMeter *ret;
+  ret = GNUNET_malloc(sizeof(struct ProgressMeter));
+  ret->print = print;
+  ret->total = total;
+  ret->modnum = total / 4;
+  ret->dotnum = (total / 50) + 1;
+  if (start_string != NULL)
+    ret->startup_string = GNUNET_strdup(start_string);
+  else
+    ret->startup_string = GNUNET_strdup("");
+
+  return ret;
+}
+
+/**
+ * Update progress meter (increment by one).
+ *
+ * @param meter the meter to update and print info for
+ *
+ * @return GNUNET_YES if called the total requested,
+ *         GNUNET_NO if more items expected
+ */
+static int
+update_meter(struct ProgressMeter *meter)
+{
+  if (meter->print == GNUNET_YES)
+    {
+      if (meter->completed % meter->modnum == 0)
+        {
+          if (meter->completed == 0)
+            {
+              fprintf(stdout, "%sProgress: [0%%", meter->startup_string);
+            }
+          else
+            fprintf(stdout, "%d%%", (int) (((float) meter->completed
+                / meter->total) * 100));
+        }
+      else if (meter->completed % meter->dotnum == 0)
+        fprintf(stdout, ".");
+
+      if (meter->completed + 1 == meter->total)
+        fprintf(stdout, "%d%%]\n", 100);
+      fflush(stdout);
+    }
+  meter->completed++;
+
+  if (meter->completed == meter->total)
+    return GNUNET_YES;
+  if (meter->completed > meter->total)
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Progress meter overflow!!\n");
+  return GNUNET_NO;
+}
+
+/**
+ * Reset progress meter.
+ *
+ * @param meter the meter to reset
+ *
+ * @return GNUNET_YES if meter reset,
+ *         GNUNET_SYSERR on error
+ */
+static int
+reset_meter(struct ProgressMeter *meter)
+{
+  if (meter == NULL)
+    return GNUNET_SYSERR;
+
+  meter->completed = 0;
+  return GNUNET_YES;
+}
+
+/**
+ * Release resources for meter
+ *
+ * @param meter the meter to free
+ */
+static void
+free_meter(struct ProgressMeter *meter)
+{
+  GNUNET_free_non_null (meter->startup_string);
+  GNUNET_free (meter);
+}
 
 /**
  * Get a topology from a string input.
@@ -1345,6 +1461,7 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param first index of the first peer
  * @param second index of the second peer
  * @param list the peer list to use
+ * @param check UNUSED
  *
  * @return the number of connections added (can be 0, 1 or 2)
  *
@@ -1352,7 +1469,7 @@ make_config (const struct GNUNET_CONFIGURATION_Handle *cfg,
 static unsigned int
 remove_connections (struct GNUNET_TESTING_PeerGroup *pg,
                    unsigned int first, unsigned int second,
-                   enum PeerLists list)
+                   enum PeerLists list, unsigned int check)
 {
   int removed;
 #if OLD
@@ -1457,6 +1574,8 @@ remove_connections (struct GNUNET_TESTING_PeerGroup *pg,
  * @param first index of the first peer
  * @param second index of the second peer
  * @param list the list type that we should modify
+ * @param check GNUNET_YES to check lists before adding
+ *              GNUNET_NO to force add
  *
  * @return the number of connections added (can be 0, 1 or 2)
  *
@@ -1464,7 +1583,8 @@ remove_connections (struct GNUNET_TESTING_PeerGroup *pg,
 static unsigned int
 add_connections (struct GNUNET_TESTING_PeerGroup *pg,
                  unsigned int first, unsigned int second,
-                 enum PeerLists list)
+                 enum PeerLists list,
+                 unsigned int check)
 {
   int added;
   int add_first;
@@ -1521,26 +1641,29 @@ add_connections (struct GNUNET_TESTING_PeerGroup *pg,
   add_first = GNUNET_YES;
   add_second = GNUNET_YES;
 
-  first_iter = *first_list;
-  while (first_iter != NULL)
+  if (check == GNUNET_YES)
     {
-      if (first_iter->index == second)
+      first_iter = *first_list;
+      while (first_iter != NULL)
         {
-          add_first = GNUNET_NO;
-          break;
+          if (first_iter->index == second)
+            {
+              add_first = GNUNET_NO;
+              break;
+            }
+          first_iter = first_iter->next;
         }
-      first_iter = first_iter->next;
-    }
 
-  second_iter = *second_list;
-  while (second_iter != NULL)
-    {
-      if (second_iter->index == first)
+      second_iter = *second_list;
+      while (second_iter != NULL)
         {
-          add_second = GNUNET_NO;
-          break;
+          if (second_iter->index == first)
+            {
+              add_second = GNUNET_NO;
+              break;
+            }
+          second_iter = second_iter->next;
         }
-      second_iter = second_iter->next;
     }
 #else
   if (GNUNET_NO ==
@@ -1634,7 +1757,7 @@ create_scale_free (struct GNUNET_TESTING_PeerGroup *pg,
   GNUNET_assert (pg->total > 1);
 
   /* Add a connection between the first two nodes */
-  total_connections = proc (pg, 0, 1, list);
+  total_connections = proc (pg, 0, 1, list, GNUNET_YES);
 
   for (outer_count = 1; outer_count < pg->total; outer_count++)
     {
@@ -1659,7 +1782,7 @@ create_scale_free (struct GNUNET_TESTING_PeerGroup *pg,
               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                           "Connecting peer %d to peer %d\n", outer_count, i);
 #endif
-              total_connections += proc (pg, outer_count, i, list);
+              total_connections += proc (pg, outer_count, i, list, GNUNET_YES);
             }
         }
     }
@@ -1786,7 +1909,7 @@ create_small_world_ring (struct GNUNET_TESTING_PeerGroup *pg,
                     GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                               pg->total);
                 }
-              smallWorldConnections += proc (pg, i, randomPeer, list);
+              smallWorldConnections += proc (pg, i, randomPeer, list, GNUNET_YES);
             }
           else
             {
@@ -1795,7 +1918,7 @@ create_small_world_ring (struct GNUNET_TESTING_PeerGroup *pg,
                 {
                   nodeToConnect = nodeToConnect - pg->total;
                 }
-              connect_attempts += proc (pg, i, nodeToConnect, list);
+              connect_attempts += proc (pg, i, nodeToConnect, list, GNUNET_YES);
             }
         }
 
@@ -1856,7 +1979,7 @@ create_nated_internet (struct GNUNET_TESTING_PeerGroup *pg,
                           "Connecting peer %d to peer %d\n",
                           outer_count, inner_count);
 #endif
-              connect_attempts += proc (pg, outer_count, inner_count, list);
+              connect_attempts += proc (pg, outer_count, inner_count, list, GNUNET_YES);
             }
         }
     }
@@ -1915,8 +2038,8 @@ create_nated_internet_copy (struct GNUNET_TESTING_PeerGroup *pg,
                           "Connecting peer %d to peer %d\n",
                           outer_count, inner_count);
 #endif
-              connect_attempts += proc (pg, outer_count, inner_count, list);
-              add_connections(pg, outer_count, inner_count, ALLOWED);
+              connect_attempts += proc (pg, outer_count, inner_count, list, GNUNET_YES);
+              add_connections(pg, outer_count, inner_count, ALLOWED, GNUNET_YES);
             }
         }
     }
@@ -2031,7 +2154,7 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg,
       else
         nodeToConnect = i - cols + 1;
 
-      connect_attempts += proc (pg, i, nodeToConnect, list);
+      connect_attempts += proc (pg, i, nodeToConnect, list, GNUNET_YES);
 
       if (i < cols)
         {
@@ -2043,7 +2166,7 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg,
         nodeToConnect = i - cols;
 
       if (nodeToConnect < pg->total)
-        connect_attempts += proc (pg, i, nodeToConnect, list);
+        connect_attempts += proc (pg, i, nodeToConnect, list, GNUNET_YES);
     }
   natLog = log (pg->total);
 #if VERBOSE_TESTING > 2
@@ -2085,7 +2208,7 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg,
                     ((double) UINT64_MAX);
                   /* If random < probability, then connect the two nodes */
                   if (random < probability)
-                    smallWorldConnections += proc (pg, j, k, list);
+                    smallWorldConnections += proc (pg, j, k, list, GNUNET_YES);
 
                 }
             }
@@ -2153,7 +2276,7 @@ create_erdos_renyi (struct GNUNET_TESTING_PeerGroup *pg,
 #endif
           if (temp_rand < probability)
             {
-              connect_attempts += proc (pg, outer_count, inner_count, list);
+              connect_attempts += proc (pg, outer_count, inner_count, list, GNUNET_YES);
             }
         }
     }
@@ -2229,7 +2352,7 @@ create_2d_torus (struct GNUNET_TESTING_PeerGroup *pg,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Connecting peer %d to peer %d\n", i, nodeToConnect);
 #endif
-      connect_attempts += proc (pg, i, nodeToConnect, list);
+      connect_attempts += proc (pg, i, nodeToConnect, list, GNUNET_YES);
 
       /* Second connect to the node immediately above */
       if (i < cols)
@@ -2247,7 +2370,7 @@ create_2d_torus (struct GNUNET_TESTING_PeerGroup *pg,
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Connecting peer %d to peer %d\n", i, nodeToConnect);
 #endif
-          connect_attempts += proc (pg, i, nodeToConnect, list);
+          connect_attempts += proc (pg, i, nodeToConnect, list, GNUNET_YES);
         }
 
     }
@@ -2264,20 +2387,25 @@ create_2d_torus (struct GNUNET_TESTING_PeerGroup *pg,
  * @param proc the connection processor to call to actually set
  *        up connections between two peers
  * @param list the peer list to use
+ * @param check does the connection processor need to check before
+ *              performing an action on the list?
  *
  * @return the number of connections that were set up
  *
  */
 static unsigned int
 create_clique (struct GNUNET_TESTING_PeerGroup *pg,
-               GNUNET_TESTING_ConnectionProcessor proc, enum PeerLists list)
+               GNUNET_TESTING_ConnectionProcessor proc,
+               enum PeerLists list,
+               unsigned int check)
 {
   unsigned int outer_count;
   unsigned int inner_count;
   int connect_attempts;
-
+  struct ProgressMeter *conn_meter;
   connect_attempts = 0;
 
+  conn_meter = create_meter((((pg->total * pg->total) + pg->total) / 2) - pg->total, "Create Clique ", GNUNET_YES);
   for (outer_count = 0; outer_count < pg->total - 1; outer_count++)
     {
       for (inner_count = outer_count + 1; inner_count < pg->total;
@@ -2288,10 +2416,13 @@ create_clique (struct GNUNET_TESTING_PeerGroup *pg,
                       "Connecting peer %d to peer %d\n",
                       outer_count, inner_count);
 #endif
-          connect_attempts += proc (pg, outer_count, inner_count, list);
+          connect_attempts += proc (pg, outer_count, inner_count, list, check);
+          update_meter(conn_meter);
         }
     }
-
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Meter has %d left\n", conn_meter->total - conn_meter->completed);
+  reset_meter(conn_meter);
+  free_meter(conn_meter);
   return connect_attempts;
 }
 
@@ -2353,7 +2484,7 @@ copy_allowed (struct GNUNET_TESTING_PeerGroup *pg,
       iter = pg->peers[count].allowed_peers_head;
       while (iter != NULL)
         {
-          remove_connections(pg, count, iter->index, BLACKLIST);
+          remove_connections(pg, count, iter->index, BLACKLIST, GNUNET_YES);
           //unblacklist_connections(pg, count, iter->index);
           iter = iter->next;
         }
@@ -2394,7 +2525,7 @@ create_line (struct GNUNET_TESTING_PeerGroup *pg,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Connecting peer %d to peer %d\n", count, count + 1);
 #endif
-      connect_attempts += proc (pg, count, count + 1, list);
+      connect_attempts += proc (pg, count, count + 1, list, GNUNET_YES);
     }
 
   return connect_attempts;
@@ -2505,7 +2636,7 @@ create_from_file (struct GNUNET_TESTING_PeerGroup *pg,
               return connect_attempts;
             }
           /* Assume file is written with first peer 1, but array index is 0 */
-          connect_attempts += proc (pg, first_peer_index - 1, second_peer_index - 1, list);
+          connect_attempts += proc (pg, first_peer_index - 1, second_peer_index - 1, list, GNUNET_YES);
           while((buf[count] != '\n') && (buf[count] != ',') && (count < frstat.st_size - 1))
             count++;
           if (buf[count] == '\n')
@@ -2567,11 +2698,11 @@ create_ring (struct GNUNET_TESTING_PeerGroup *pg,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Connecting peer %d to peer %d\n", count, count + 1);
 #endif
-      connect_attempts += proc (pg, count, count + 1, list);
+      connect_attempts += proc (pg, count, count + 1, list, GNUNET_YES);
     }
 
   /* Connect the last peer to the first peer */
-  connect_attempts += proc (pg, pg->total - 1, 0, list);
+  connect_attempts += proc (pg, pg->total - 1, 0, list, GNUNET_YES);
 
   return connect_attempts;
 }
@@ -3608,7 +3739,7 @@ copy_allowed_topology (struct GNUNET_TESTING_PeerGroup *pg)
       while (iter != NULL)
         {
           GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Creating connection between %d and %d\n", pg_iter, iter->index);
-          total += add_connections(pg, pg_iter, iter->index, CONNECT);
+          total += add_connections(pg, pg_iter, iter->index, CONNECT, GNUNET_NO);
           //total += add_actual_connections(pg, pg_iter, iter->index);
           iter = iter->next;
         }
@@ -3764,7 +3895,7 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
 #if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Creating clique topology\n"));
 #endif
-      num_connections = create_clique (pg, &add_connections, ALLOWED);
+      num_connections = create_clique (pg, &add_connections, ALLOWED, GNUNET_NO);
       break;
     case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD_RING:
 #if VERBOSE_TESTING
@@ -3871,7 +4002,7 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
 
   /* Use the create clique method to initially set all connections as blacklisted. */
   if ((restrict_topology != GNUNET_TESTING_TOPOLOGY_NONE) && (restrict_topology != GNUNET_TESTING_TOPOLOGY_FROM_FILE))
-    create_clique (pg, &add_connections, BLACKLIST);
+    create_clique (pg, &add_connections, BLACKLIST, GNUNET_NO);
 
   unblacklisted_connections = 0;
   /* Un-blacklist connections as per the topology specified */
@@ -3883,7 +4014,7 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
                   _("Blacklisting all but clique topology\n"));
 #endif
       unblacklisted_connections =
-        create_clique (pg, &remove_connections, BLACKLIST);
+        create_clique (pg, &remove_connections, BLACKLIST, GNUNET_NO);
       break;
     case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD_RING:
 #if VERBOSE_TESTING
@@ -4201,7 +4332,7 @@ choose_random_connections (struct GNUNET_TESTING_PeerGroup *pg,
                                        UINT64_MAX)) / ((double) UINT64_MAX);
           if (random_number < percentage)
             {
-              add_connections(pg, pg_iter, conn_iter->index, WORKING_SET);
+              add_connections(pg, pg_iter, conn_iter->index, WORKING_SET, GNUNET_YES);
             }
           conn_iter = conn_iter->next;
         }
@@ -4224,7 +4355,7 @@ choose_random_connections (struct GNUNET_TESTING_PeerGroup *pg,
     {
       conn_iter = pg->peers[pg_iter].connect_peers_head;
       while (pg->peers[pg_iter].connect_peers_head != NULL)
-        remove_connections(pg, pg_iter, pg->peers[pg_iter].connect_peers_head->index, CONNECT);
+        remove_connections(pg, pg_iter, pg->peers[pg_iter].connect_peers_head->index, CONNECT, GNUNET_YES);
 
       pg->peers[pg_iter].connect_peers_head = pg->peers[pg_iter].connect_peers_working_set_head;
       pg->peers[pg_iter].connect_peers_tail = pg->peers[pg_iter].connect_peers_working_set_tail;
@@ -4357,7 +4488,7 @@ choose_minimum (struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
             conn_iter = conn_iter->next;
           /* We now have a random connection, connect it! */
           GNUNET_assert(conn_iter != NULL);
-          add_connections(pg, pg_iter, conn_iter->index, WORKING_SET);
+          add_connections(pg, pg_iter, conn_iter->index, WORKING_SET, GNUNET_YES);
         }
     }
 #else
@@ -4396,7 +4527,7 @@ choose_minimum (struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
     {
       while (pg->peers[pg_iter].connect_peers_head != NULL)
-        remove_connections(pg, pg_iter, pg->peers[pg_iter].connect_peers_head->index, CONNECT);
+        remove_connections(pg, pg_iter, pg->peers[pg_iter].connect_peers_head->index, CONNECT, GNUNET_YES);
 
       pg->peers[pg_iter].connect_peers_head = pg->peers[pg_iter].connect_peers_working_set_head;
       pg->peers[pg_iter].connect_peers_tail = pg->peers[pg_iter].connect_peers_working_set_tail;
@@ -4572,8 +4703,8 @@ perform_dfs (struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
           temp_count++;
         }
       GNUNET_assert(peer_iter != NULL);
-      add_connections(pg, starting_peer, peer_iter->index, WORKING_SET);
-      remove_connections(pg, starting_peer, peer_iter->index, CONNECT);
+      add_connections(pg, starting_peer, peer_iter->index, WORKING_SET, GNUNET_NO);
+      remove_connections(pg, starting_peer, peer_iter->index, CONNECT, GNUNET_YES);
       starting_peer = peer_iter->index;
       dfs_count++;
     }
@@ -5077,7 +5208,7 @@ GNUNET_TESTING_connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Creating clique CONNECT topology\n"));
 #endif
-      create_clique (pg, &add_connections, CONNECT);
+      create_clique (pg, &add_connections, CONNECT, GNUNET_NO);
       break;
     case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD_RING:
 #if VERBOSE_TOPOLOGY
