@@ -50,15 +50,12 @@ int mi_get_cstring_r(mi_results *r, const char *str, const char **end)
  /* Meassure. */
  for (s=str, len=0; *s && !EndOfStr(s); s++)
     {
+	 if (!*s) {
+		 mi_error = MI_PARSER;
+		 return 0;
+	 }
      if (*s=='\\')
-       {
-        if (!*s)
-          {
-           mi_error=MI_PARSER;
-           return 0;
-          }
-        s++;
-       }
+    	 s++;
      len++;
     }
  /* Copy. */
@@ -117,8 +114,10 @@ char *mi_get_var_name(const char *str, const char **end)
  l=s-str;
  r=mi_malloc(l+1);
  /* Copy. */
- memcpy(r,str,l);
- r[l]=0;
+ if (NULL != r) {
+	 memcpy(r,str,l);
+	 r[l]=0;
+ }
  if (end)
     *end=s+1;
  return r;
@@ -1086,16 +1085,16 @@ int mi_res_changelist(mi_h *h, mi_gvar_chg **changed)
              n->name=r->v.cstr;
              r->v.cstr=NULL;
             }
-          else if (strcmp(r->var,"in_scope")==0)
+          else if ((NULL != n) && (strcmp(r->var,"in_scope")==0))
             {
              n->in_scope=strcmp(r->v.cstr,"true")==0;
             }
-          else if (strcmp(r->var,"new_type")==0)
+          else if ((NULL != n) && (strcmp(r->var,"new_type")==0))
             {
              n->new_type=r->v.cstr;
              r->v.cstr=NULL;
             }
-          else if (strcmp(r->var,"new_num_children")==0)
+          else if ((NULL != n) && (strcmp(r->var,"new_num_children")==0))
             {
              n->new_num_children=atoi(r->v.cstr);
             }
@@ -1133,7 +1132,7 @@ int mi_get_children(mi_results *ch, mi_gvar *v)
           return 0;
        if (!v->child)
           v->child=aux;
-       else
+       else if (NULL != cur)
           cur->next=aux;
        cur=aux;
        cur->parent=v;
@@ -1738,9 +1737,12 @@ mi_chg_reg *mi_parse_list_regs(mi_results *r, int *how_many)
           cur=cur->next=mi_alloc_chg_reg();
        else
           first=cur=mi_alloc_chg_reg();
-       cur->name=c->v.cstr;
-       cur->reg=cregs++;
-       c->v.cstr=NULL;
+       
+       if (NULL != cur) {
+	       cur->name=c->v.cstr;
+	       cur->reg=cregs++;
+	       c->v.cstr=NULL;
+       }
       }
     c=c->next;
    }
@@ -1891,12 +1893,14 @@ mi_chg_reg *mi_parse_reg_values_l(mi_results *r, int *how_many)
             {
              if (strcmp(c->var,"number")==0)
                {
-                cur->reg=atoi(c->v.cstr);
+            	if (NULL != cur) 
+            		cur->reg=atoi(c->v.cstr);
                 (*how_many)++;
                }
              else if (strcmp(c->var,"value")==0)
                {
-                cur->val=c->v.cstr;
+            	if (NULL != cur)
+            		 cur->val=c->v.cstr;
                 c->v.cstr=NULL;
                }
             }
