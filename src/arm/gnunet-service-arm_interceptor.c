@@ -1126,7 +1126,7 @@ createListeningSocket (struct sockaddr *sa,
   if (GNUNET_NETWORK_socket_bind
       (sock, (const struct sockaddr *) sa, addr_len) != GNUNET_OK)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Unable to bind listening socket for service `%s' to address `%s': %s\n"),
 		  serviceName,
 		  GNUNET_a2s (sa, addr_len),
