@@ -3582,7 +3582,6 @@ run(void *cls, char * const *args, const char *cfgfile,
       while (count < frstat.st_size - 1)
         {
           count++;
-          /* if (((data[count] == '\n') || (data[count] == '\0')) && (buf != &data[count]))*/
           if (((data[count] == '\n')) && (buf != &data[count]))
             {
               data[count] = '\0';
@@ -3593,7 +3592,7 @@ run(void *cls, char * const *args, const char *cfgfile,
               if (3 == ret)
                 {
                   GNUNET_log (
-                              GNUNET_ERROR_TYPE_WARNING,
+                              GNUNET_ERROR_TYPE_DEBUG,
                               "Successfully read host %s, port %d and user %s from file\n",
                               temphost->hostname, temphost->port,
                               temphost->username);
@@ -3606,7 +3605,6 @@ run(void *cls, char * const *args, const char *cfgfile,
                   buf = &data[count + 1];
                   continue;
                 }
-              /* temphost->hostname = buf; */
               temphost->next = hosts;
               hosts = temphost;
               buf = &data[count + 1];
