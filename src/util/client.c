@@ -359,10 +359,10 @@ do_connect (const char *service_name,
 	    }
 	}
 #endif
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Port is 0 for service `%s', unixpath didn't work, returning NULL(!)!\n", service_name);
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Port is 0 for service `%s', unixpath didn't work, returning NULL(!)!\n", service_name);
       return NULL;
     }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Creating from connect!\n");
+
   sock = GNUNET_CONNECTION_create_from_connect (cfg,
                                                 hostname,
                                                 port);
