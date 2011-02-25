@@ -301,10 +301,10 @@ run_continuation (void *cls,
       break;
     case RP_DONE:
       GNUNET_snprintf (gstr, sizeof (gstr),
-		       "DATASTORE:PUT operations in %s-datastore",
+		       "PUT operations in %s-datastore",
 		       plugin_name);
       if (crc->i == ITERATIONS)
-	GAUGER (gstr, 1000 * stored_ops / (1 + GNUNET_TIME_absolute_get_duration(start_time).rel_value), "op/s");
+	GAUGER ("DATASTORE", gstr, 1000 * stored_ops / (1 + GNUNET_TIME_absolute_get_duration(start_time).rel_value), "op/s");
       GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
       GNUNET_free (crc);
       ok = 0;

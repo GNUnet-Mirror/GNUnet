@@ -186,8 +186,8 @@ end ()
 	      "Transports disconnected, returning success!\n");
 #endif
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
-  GNUNET_asprintf(&value_name, "TRANSPORT:unreliable_%s", test_name);
-  GAUGER (value_name, (int)(total_bytes * 1000 / 1024 /delta), "kb/s");
+  GNUNET_asprintf(&value_name, "unreliable_%s", test_name);
+  GAUGER ("TRANSPORT", value_name, (int)(total_bytes * 1000 / 1024 /delta), "kb/s");
   GNUNET_free(value_name);
   fprintf (stderr,
 	   "\nThroughput was %llu kb/s\n",
@@ -227,11 +227,11 @@ end_unreliably ()
   fprintf (stderr,
            "\nThroughput was %llu kb/s\n",
            total_bytes * 1000 / 1024 / delta);
-  GNUNET_asprintf(&value_name, "TRANSPORT:unreliable_%s", test_name);
-  GAUGER (value_name, (int)(total_bytes * 1000 / 1024 /delta), "kb/s");
+  GNUNET_asprintf(&value_name, "unreliable_%s", test_name);
+  GAUGER ("TRANSPORT", value_name, (int)(total_bytes * 1000 / 1024 /delta), "kb/s");
   GNUNET_free(value_name);
-  GNUNET_asprintf(&value_name, "TRANSPORT:unreliable_failed_%s", test_name);
-  GAUGER (value_name, (int)num_failed, "msgs");
+  GNUNET_asprintf(&value_name, "unreliable_failed_%s", test_name);
+  GAUGER ("TRANSPORT", value_name, (int)num_failed, "msgs");
   GNUNET_free(value_name);
   GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Had %d failed messages!\n", num_failed);
   ok = 0;

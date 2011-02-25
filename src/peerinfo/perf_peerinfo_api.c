@@ -187,7 +187,7 @@ check ()
 	   "Received %u/%u calls before timeout\n",
 	   numpeers,
 	   NUM_REQUESTS * NUM_REQUESTS / 2);
-  GAUGER ("PEERINFO:Peerinfo lookups", numpeers / 30, "peers/s");
+  GAUGER ("PEERINFO", "Peerinfo lookups", numpeers / 30, "peers/s");
 #if START_SERVICE
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
     {
