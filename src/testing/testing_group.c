@@ -84,8 +84,8 @@ enum PeerLists
  */
 typedef unsigned int
 (*GNUNET_TESTING_ConnectionProcessor)(struct GNUNET_TESTING_PeerGroup * pg,
-    unsigned int first, unsigned int second, enum PeerLists list,
-    unsigned int check);
+                                      unsigned int first, unsigned int second,
+                                      enum PeerLists list, unsigned int check);
 
 /**
  * Context for handling churning a peer group
@@ -1105,7 +1105,7 @@ free_meter(struct ProgressMeter *meter)
  */
 int
 GNUNET_TESTING_topology_get(enum GNUNET_TESTING_Topology *topology,
-    const char *topology_string)
+                            const char *topology_string)
 {
   /**
    * Strings representing topologies in enum
@@ -1197,8 +1197,8 @@ GNUNET_TESTING_topology_get(enum GNUNET_TESTING_Topology *topology,
  */
 int
 GNUNET_TESTING_topology_option_get(
-    enum GNUNET_TESTING_TopologyOption *topology_option,
-    const char *topology_string)
+                                   enum GNUNET_TESTING_TopologyOption *topology_option,
+                                   const char *topology_string)
 {
   /**
    * Options for connecting a topology as strings.
@@ -1270,7 +1270,7 @@ GNUNET_TESTING_topology_option_get(
  */
 static void
 update_config(void *cls, const char *section, const char *option,
-    const char *value)
+              const char *value)
 {
   struct UpdateContext *ctx = cls;
   unsigned int ival;
@@ -1356,7 +1356,8 @@ update_config(void *cls, const char *section, const char *option,
  */
 static struct GNUNET_CONFIGURATION_Handle *
 make_config(const struct GNUNET_CONFIGURATION_Handle *cfg, uint32_t off,
-    uint16_t * port, uint32_t * upnum, const char *hostname, uint32_t * fdnum)
+            uint16_t * port, uint32_t * upnum, const char *hostname,
+            uint32_t * fdnum)
 {
   struct UpdateContext uc;
   uint16_t orig;
@@ -1450,7 +1451,7 @@ make_config(const struct GNUNET_CONFIGURATION_Handle *cfg, uint32_t off,
  */
 static unsigned int
 remove_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first,
-    unsigned int second, enum PeerLists list, unsigned int check)
+                   unsigned int second, enum PeerLists list, unsigned int check)
 {
   int removed;
 #if OLD
@@ -1563,7 +1564,7 @@ remove_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first,
  */
 static unsigned int
 add_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first,
-    unsigned int second, enum PeerLists list, unsigned int check)
+                unsigned int second, enum PeerLists list, unsigned int check)
 {
   int added;
   int add_first;
@@ -1722,7 +1723,7 @@ add_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first,
  */
 static unsigned int
 create_scale_free(struct GNUNET_TESTING_PeerGroup *pg,
-    GNUNET_TESTING_ConnectionProcessor proc, enum PeerLists list)
+                  GNUNET_TESTING_ConnectionProcessor proc, enum PeerLists list)
 {
 
   unsigned int total_connections;
@@ -1796,7 +1797,8 @@ create_scale_free(struct GNUNET_TESTING_PeerGroup *pg,
  */
 static unsigned int
 create_small_world_ring(struct GNUNET_TESTING_PeerGroup *pg,
-    GNUNET_TESTING_ConnectionProcessor proc, enum PeerLists list)
+                        GNUNET_TESTING_ConnectionProcessor proc,
+                        enum PeerLists list)
 {
   unsigned int i, j;
   int nodeToConnect;
@@ -1921,7 +1923,8 @@ create_small_world_ring(struct GNUNET_TESTING_PeerGroup *pg,
  */
 static unsigned int
 create_nated_internet(struct GNUNET_TESTING_PeerGroup *pg,
-    GNUNET_TESTING_ConnectionProcessor proc, enum PeerLists list)
+                      GNUNET_TESTING_ConnectionProcessor proc,
+                      enum PeerLists list)
 {
   unsigned int outer_count, inner_count;
   unsigned int cutoff;
@@ -1979,7 +1982,8 @@ create_nated_internet(struct GNUNET_TESTING_PeerGroup *pg,
  */
 static unsigned int
 create_nated_internet_copy(struct GNUNET_TESTING_PeerGroup *pg,
-    GNUNET_TESTING_ConnectionProcessor proc, enum PeerLists list)
+                           GNUNET_TESTING_ConnectionProcessor proc,
+                           enum PeerLists list)
 {
   unsigned int outer_count, inner_count;
   unsigned int cutoff;
@@ -2055,7 +2059,7 @@ create_nated_internet_copy(struct GNUNET_TESTING_PeerGroup *pg,
  */
 static unsigned int
 create_small_world(struct GNUNET_TESTING_PeerGroup *pg,
-    GNUNET_TESTING_ConnectionProcessor proc, enum PeerLists list)
+                   GNUNET_TESTING_ConnectionProcessor proc, enum PeerLists list)
 {
   unsigned int i, j, k;
   unsigned int square;
@@ -2230,7 +2234,7 @@ create_small_world(struct GNUNET_TESTING_PeerGroup *pg,
  */
 static unsigned int
 create_erdos_renyi(struct GNUNET_TESTING_PeerGroup *pg,
-    GNUNET_TESTING_ConnectionProcessor proc, enum PeerLists list)
+                   GNUNET_TESTING_ConnectionProcessor proc, enum PeerLists list)
 {
   double temp_rand;
   unsigned int outer_count;
@@ -2293,7 +2297,7 @@ create_erdos_renyi(struct GNUNET_TESTING_PeerGroup *pg,
  */
 static unsigned int
 create_2d_torus(struct GNUNET_TESTING_PeerGroup *pg,
-    GNUNET_TESTING_ConnectionProcessor proc, enum PeerLists list)
+                GNUNET_TESTING_ConnectionProcessor proc, enum PeerLists list)
 {
   unsigned int i;
   unsigned int square;
@@ -2387,8 +2391,8 @@ create_2d_torus(struct GNUNET_TESTING_PeerGroup *pg,
  */
 static unsigned int
 create_clique(struct GNUNET_TESTING_PeerGroup *pg,
-    GNUNET_TESTING_ConnectionProcessor proc, enum PeerLists list,
-    unsigned int check)
+              GNUNET_TESTING_ConnectionProcessor proc, enum PeerLists list,
+              unsigned int check)
 {
   unsigned int outer_count;
   unsigned int inner_count;
@@ -2460,7 +2464,7 @@ unblacklist_iterator (void *cls,
  */
 static unsigned int
 copy_allowed(struct GNUNET_TESTING_PeerGroup *pg,
-    GNUNET_TESTING_ConnectionProcessor proc)
+             GNUNET_TESTING_ConnectionProcessor proc)
 {
   struct UnblacklistContext un_ctx;
   unsigned int count;
@@ -2502,7 +2506,7 @@ copy_allowed(struct GNUNET_TESTING_PeerGroup *pg,
  */
 static unsigned int
 create_line(struct GNUNET_TESTING_PeerGroup *pg,
-    GNUNET_TESTING_ConnectionProcessor proc, enum PeerLists list)
+            GNUNET_TESTING_ConnectionProcessor proc, enum PeerLists list)
 {
   unsigned int count;
   int connect_attempts;
@@ -2537,7 +2541,7 @@ create_line(struct GNUNET_TESTING_PeerGroup *pg,
  */
 static unsigned int
 create_from_file(struct GNUNET_TESTING_PeerGroup *pg, char *filename,
-    GNUNET_TESTING_ConnectionProcessor proc, enum PeerLists list)
+                 GNUNET_TESTING_ConnectionProcessor proc, enum PeerLists list)
 {
   int connect_attempts;
   unsigned int first_peer_index;
@@ -2683,7 +2687,7 @@ create_from_file(struct GNUNET_TESTING_PeerGroup *pg, char *filename,
  */
 static unsigned int
 create_ring(struct GNUNET_TESTING_PeerGroup *pg,
-    GNUNET_TESTING_ConnectionProcessor proc, enum PeerLists list)
+            GNUNET_TESTING_ConnectionProcessor proc, enum PeerLists list)
 {
   unsigned int count;
   int connect_attempts;
@@ -2955,7 +2959,7 @@ create_and_copy_friend_files(struct GNUNET_TESTING_PeerGroup *pg)
  */
 static int
 create_and_copy_blacklist_files(struct GNUNET_TESTING_PeerGroup *pg,
-    const char *transports)
+                                const char *transports)
 {
   FILE *temp_file_handle;
   unsigned int pg_iter;
@@ -3546,11 +3550,13 @@ static void schedule_send_hellos (void *cls, const struct GNUNET_SCHEDULER_TaskC
  */
 static void
 internal_connect_notify(void *cls, const struct GNUNET_PeerIdentity *first,
-    const struct GNUNET_PeerIdentity *second, uint32_t distance,
-    const struct GNUNET_CONFIGURATION_Handle *first_cfg,
-    const struct GNUNET_CONFIGURATION_Handle *second_cfg,
-    struct GNUNET_TESTING_Daemon *first_daemon,
-    struct GNUNET_TESTING_Daemon *second_daemon, const char *emsg)
+                        const struct GNUNET_PeerIdentity *second,
+                        uint32_t distance,
+                        const struct GNUNET_CONFIGURATION_Handle *first_cfg,
+                        const struct GNUNET_CONFIGURATION_Handle *second_cfg,
+                        struct GNUNET_TESTING_Daemon *first_daemon,
+                        struct GNUNET_TESTING_Daemon *second_daemon,
+                        const char *emsg)
 {
   struct ConnectContext *connect_ctx = cls;
   struct ConnectTopologyContext *ct_ctx = connect_ctx->ct_ctx;
@@ -3771,8 +3777,10 @@ copy_allowed_topology(struct GNUNET_TESTING_PeerGroup *pg)
  */
 static int
 connect_topology(struct GNUNET_TESTING_PeerGroup *pg,
-    struct GNUNET_TIME_Relative connect_timeout, unsigned int connect_attempts,
-    GNUNET_TESTING_NotifyCompletion notify_callback, void *notify_cls)
+                 struct GNUNET_TIME_Relative connect_timeout,
+                 unsigned int connect_attempts,
+                 GNUNET_TESTING_NotifyCompletion notify_callback,
+                 void *notify_cls)
 {
   unsigned int pg_iter;
   unsigned int total;
@@ -3855,9 +3863,9 @@ connect_topology(struct GNUNET_TESTING_PeerGroup *pg,
  */
 unsigned int
 GNUNET_TESTING_create_topology(struct GNUNET_TESTING_PeerGroup *pg,
-    enum GNUNET_TESTING_Topology topology,
-    enum GNUNET_TESTING_Topology restrict_topology,
-    const char *restrict_transports)
+                               enum GNUNET_TESTING_Topology topology,
+                               enum GNUNET_TESTING_Topology restrict_topology,
+                               const char *restrict_transports)
 {
   int ret;
 
@@ -4302,7 +4310,7 @@ dfs_connect_iterator (void *cls, const GNUNET_HashCode * key, void *value)
  */
 void
 choose_random_connections(struct GNUNET_TESTING_PeerGroup *pg,
-    double percentage)
+                          double percentage)
 {
   struct RandomContext random_ctx;
   uint32_t pg_iter;
@@ -4804,7 +4812,7 @@ perform_dfs(struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
  */
 static void
 internal_topology_callback(void *cls, const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                           const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct CoreContext *core_ctx = cls;
   struct TopologyIterateContext *iter_ctx = core_ctx->iter_context;
@@ -4881,7 +4889,7 @@ schedule_get_topology(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 void
 GNUNET_TESTING_get_topology(struct GNUNET_TESTING_PeerGroup *pg,
-    GNUNET_TESTING_NotifyTopology cb, void *cls)
+                            GNUNET_TESTING_NotifyTopology cb, void *cls)
 {
   struct TopologyIterateContext *topology_context;
   struct CoreContext *core_ctx;
@@ -4932,7 +4940,7 @@ GNUNET_TESTING_get_topology(struct GNUNET_TESTING_PeerGroup *pg,
  */
 static int
 internal_stats_callback(void *cls, const char *subsystem, const char *name,
-    uint64_t value, int is_persistent)
+                        uint64_t value, int is_persistent)
 {
   struct StatsCoreContext *core_context = cls;
   struct StatsIterateContext *stats_context =
@@ -4977,7 +4985,7 @@ internal_stats_cont(void *cls, int success)
  */
 static void
 schedule_get_statistics(void *cls,
-    const struct GNUNET_SCHEDULER_TaskContext *tc)
+                        const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct StatsCoreContext *core_context = cls;
   struct StatsIterateContext *stats_context =
@@ -5053,7 +5061,8 @@ struct DuplicateStats
  */
 static int
 stats_check_existing(struct GNUNET_TESTING_PeerGroup *pg,
-    struct PeerData *specific_peer, struct DuplicateStats **stats_list)
+                     struct PeerData *specific_peer,
+                     struct DuplicateStats **stats_list)
 {
   struct DuplicateStats *pos;
   char *unix_domain_socket;
@@ -5109,8 +5118,9 @@ stats_check_existing(struct GNUNET_TESTING_PeerGroup *pg,
  */
 void
 GNUNET_TESTING_get_statistics(struct GNUNET_TESTING_PeerGroup *pg,
-    GNUNET_STATISTICS_Callback cont, GNUNET_TESTING_STATISTICS_Iterator proc,
-    void *cls)
+                              GNUNET_STATISTICS_Callback cont,
+                              GNUNET_TESTING_STATISTICS_Iterator proc,
+                              void *cls)
 {
   struct StatsIterateContext *stats_context;
   struct StatsCoreContext *core_ctx;
@@ -5205,11 +5215,15 @@ GNUNET_TESTING_resume_connections(struct GNUNET_TESTING_PeerGroup *pg)
  * @return the number of connections that will be attempted, GNUNET_SYSERR on error
  */
 int
-GNUNET_TESTING_connect_topology(struct GNUNET_TESTING_PeerGroup *pg,
-    enum GNUNET_TESTING_Topology topology,
-    enum GNUNET_TESTING_TopologyOption options, double option_modifier,
-    struct GNUNET_TIME_Relative connect_timeout, unsigned int connect_attempts,
-    GNUNET_TESTING_NotifyCompletion notify_callback, void *notify_cls)
+GNUNET_TESTING_connect_topology(
+                                struct GNUNET_TESTING_PeerGroup *pg,
+                                enum GNUNET_TESTING_Topology topology,
+                                enum GNUNET_TESTING_TopologyOption options,
+                                double option_modifier,
+                                struct GNUNET_TIME_Relative connect_timeout,
+                                unsigned int connect_attempts,
+                                GNUNET_TESTING_NotifyCompletion notify_callback,
+                                void *notify_cls)
 {
   switch (topology)
     {
@@ -5348,7 +5362,7 @@ GNUNET_TESTING_connect_topology(struct GNUNET_TESTING_PeerGroup *pg,
  */
 static unsigned int
 count_outstanding_at_host(const char *hostname,
-    struct GNUNET_TESTING_PeerGroup *pg)
+                          struct GNUNET_TESTING_PeerGroup *pg)
 {
   struct OutstandingSSH *pos;
   pos = pg->ssh_head;
@@ -5367,7 +5381,7 @@ count_outstanding_at_host(const char *hostname,
  */
 static void
 increment_outstanding_at_host(const char *hostname,
-    struct GNUNET_TESTING_PeerGroup *pg)
+                              struct GNUNET_TESTING_PeerGroup *pg)
 {
   struct OutstandingSSH *pos;
   pos = pg->ssh_head;
@@ -5386,7 +5400,7 @@ increment_outstanding_at_host(const char *hostname,
  */
 static void
 decrement_outstanding_at_host(const char *hostname,
-    struct GNUNET_TESTING_PeerGroup *pg)
+                              struct GNUNET_TESTING_PeerGroup *pg)
 {
   struct OutstandingSSH *pos;
   pos = pg->ssh_head;
@@ -5408,7 +5422,7 @@ decrement_outstanding_at_host(const char *hostname,
  */
 static void
 internal_hostkey_callback(void *cls, const struct GNUNET_PeerIdentity *id,
-    struct GNUNET_TESTING_Daemon *d, const char *emsg)
+                          struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
   struct InternalStartContext *internal_context = cls;
   internal_context->peer->pg->starting--;
@@ -5440,8 +5454,8 @@ internal_hostkey_callback(void *cls, const struct GNUNET_PeerIdentity *id,
  */
 static void
 internal_startup_callback(void *cls, const struct GNUNET_PeerIdentity *id,
-    const struct GNUNET_CONFIGURATION_Handle *cfg,
-    struct GNUNET_TESTING_Daemon *d, const char *emsg)
+                          const struct GNUNET_CONFIGURATION_Handle *cfg,
+                          struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
   struct InternalStartContext *internal_context = cls;
   internal_context->peer->pg->starting--;
@@ -5455,7 +5469,7 @@ internal_startup_callback(void *cls, const struct GNUNET_PeerIdentity *id,
 
 static void
 internal_continue_startup(void *cls,
-    const struct GNUNET_SCHEDULER_TaskContext *tc)
+                          const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct InternalStartContext *internal_context = cls;
 
@@ -5501,8 +5515,8 @@ internal_continue_startup(void *cls,
  */
 void
 churn_start_callback(void *cls, const struct GNUNET_PeerIdentity *id,
-    const struct GNUNET_CONFIGURATION_Handle *cfg,
-    struct GNUNET_TESTING_Daemon *d, const char *emsg)
+                     const struct GNUNET_CONFIGURATION_Handle *cfg,
+                     struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
   struct ChurnRestartContext *startup_ctx = cls;
   struct ChurnContext *churn_ctx = startup_ctx->churn_ctx;
@@ -5658,13 +5672,19 @@ GNUNET_TESTING_daemons_continue_startup(struct GNUNET_TESTING_PeerGroup *pg)
  * @return NULL on error, otherwise handle to control peer group
  */
 struct GNUNET_TESTING_PeerGroup *
-GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
-    unsigned int total, unsigned int max_concurrent_connections,
-    unsigned int max_concurrent_ssh, struct GNUNET_TIME_Relative timeout,
-    GNUNET_TESTING_NotifyHostkeyCreated hostkey_callback, void *hostkey_cls,
-    GNUNET_TESTING_NotifyDaemonRunning cb, void *cb_cls,
-    GNUNET_TESTING_NotifyConnection connect_callback,
-    void *connect_callback_cls, const struct GNUNET_TESTING_Host *hostnames)
+GNUNET_TESTING_daemons_start(
+                             const struct GNUNET_CONFIGURATION_Handle *cfg,
+                             unsigned int total,
+                             unsigned int max_concurrent_connections,
+                             unsigned int max_concurrent_ssh,
+                             struct GNUNET_TIME_Relative timeout,
+                             GNUNET_TESTING_NotifyHostkeyCreated hostkey_callback,
+                             void *hostkey_cls,
+                             GNUNET_TESTING_NotifyDaemonRunning cb,
+                             void *cb_cls,
+                             GNUNET_TESTING_NotifyConnection connect_callback,
+                             void *connect_callback_cls,
+                             const struct GNUNET_TESTING_Host *hostnames)
 {
   struct GNUNET_TESTING_PeerGroup *pg;
   const struct GNUNET_TESTING_Host *hostpos;
@@ -5956,7 +5976,7 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 struct GNUNET_TESTING_Daemon *
 GNUNET_TESTING_daemon_get(struct GNUNET_TESTING_PeerGroup *pg,
-    unsigned int position)
+                          unsigned int position)
 {
   if (position < pg->total)
     return pg->peers[position].daemon;
@@ -5975,7 +5995,7 @@ GNUNET_TESTING_daemon_get(struct GNUNET_TESTING_PeerGroup *pg,
  */
 struct GNUNET_TESTING_Daemon *
 GNUNET_TESTING_daemon_get_by_id(struct GNUNET_TESTING_PeerGroup *pg,
-    struct GNUNET_PeerIdentity *peer_id)
+                                struct GNUNET_PeerIdentity *peer_id)
 {
   unsigned int i;
 
@@ -6001,8 +6021,8 @@ GNUNET_TESTING_daemon_get_by_id(struct GNUNET_TESTING_PeerGroup *pg,
  */
 void
 restart_callback(void *cls, const struct GNUNET_PeerIdentity *id,
-    const struct GNUNET_CONFIGURATION_Handle *cfg,
-    struct GNUNET_TESTING_Daemon *d, const char *emsg)
+                 const struct GNUNET_CONFIGURATION_Handle *cfg,
+                 struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
   struct RestartContext *restart_context = cls;
 
@@ -6116,7 +6136,7 @@ GNUNET_TESTING_daemons_running(struct GNUNET_TESTING_PeerGroup *pg)
  */
 static void
 schedule_churn_shutdown_task(void *cls,
-    const struct GNUNET_SCHEDULER_TaskContext *tc)
+                             const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerShutdownContext *peer_shutdown_ctx = cls;
   struct ShutdownContext *shutdown_ctx;
@@ -6164,8 +6184,9 @@ schedule_churn_shutdown_task(void *cls,
  */
 void
 GNUNET_TESTING_daemons_churn(struct GNUNET_TESTING_PeerGroup *pg,
-    unsigned int voff, unsigned int von, struct GNUNET_TIME_Relative timeout,
-    GNUNET_TESTING_NotifyCompletion cb, void *cb_cls)
+                             unsigned int voff, unsigned int von,
+                             struct GNUNET_TIME_Relative timeout,
+                             GNUNET_TESTING_NotifyCompletion cb, void *cb_cls)
 {
   struct ChurnContext *churn_ctx;
   struct ShutdownContext *shutdown_ctx;
@@ -6340,7 +6361,8 @@ GNUNET_TESTING_daemons_churn(struct GNUNET_TESTING_PeerGroup *pg,
  */
 void
 GNUNET_TESTING_daemons_restart(struct GNUNET_TESTING_PeerGroup *pg,
-    GNUNET_TESTING_NotifyCompletion callback, void *callback_cls)
+                               GNUNET_TESTING_NotifyCompletion callback,
+                               void *callback_cls)
 {
   struct RestartContext *restart_context;
   unsigned int off;
@@ -6373,9 +6395,9 @@ GNUNET_TESTING_daemons_restart(struct GNUNET_TESTING_PeerGroup *pg,
  */
 void
 GNUNET_TESTING_daemons_vary(struct GNUNET_TESTING_PeerGroup *pg,
-    unsigned int offset, int desired_status,
-    struct GNUNET_TIME_Relative timeout, GNUNET_TESTING_NotifyCompletion cb,
-    void *cb_cls)
+                            unsigned int offset, int desired_status,
+                            struct GNUNET_TIME_Relative timeout,
+                            GNUNET_TESTING_NotifyCompletion cb, void *cb_cls)
 {
   struct ShutdownContext *shutdown_ctx;
   struct ChurnRestartContext *startup_ctx;
@@ -6426,10 +6448,15 @@ GNUNET_TESTING_daemons_vary(struct GNUNET_TESTING_PeerGroup *pg,
 void
 internal_shutdown_callback(void *cls, const char *emsg)
 {
+  struct PeerShutdownContext *peer_shutdown_ctx = cls;
   struct ShutdownContext *shutdown_ctx = cls;
   unsigned int off;
 
   shutdown_ctx->outstanding--;
+  if (peer_shutdown_ctx->daemon->hostname != NULL)
+    decrement_outstanding_at_host (peer_shutdown_ctx->daemon->hostname,
+                                   shutdown_ctx->pg);
+
   if (emsg == NULL)
     {
       shutdown_ctx->peers_down++;
@@ -6460,6 +6487,7 @@ internal_shutdown_callback(void *cls, const char *emsg)
 
       GNUNET_free (shutdown_ctx);
     }
+  GNUNET_free(peer_shutdown_ctx);
 }
 
 /**
@@ -6479,21 +6507,26 @@ schedule_shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   shutdown_ctx = peer_shutdown_ctx->shutdown_ctx;
   GNUNET_assert (shutdown_ctx != NULL);
 
-  if (shutdown_ctx->outstanding > shutdown_ctx->pg->max_concurrent_ssh)
-    GNUNET_SCHEDULER_add_delayed (
-                                  GNUNET_TIME_relative_multiply (
-                                                                 GNUNET_TIME_UNIT_MILLISECONDS,
-                                                                 100),
-                                  &schedule_shutdown_task, peer_shutdown_ctx);
-  else
+  if ((shutdown_ctx->outstanding < shutdown_ctx->pg->max_concurrent_ssh)
+      || ((peer_shutdown_ctx->daemon->hostname != NULL)
+          && (count_outstanding_at_host (peer_shutdown_ctx->daemon->hostname,
+                                         shutdown_ctx->pg)
+              < shutdown_ctx->pg->max_concurrent_ssh)))
     {
+      if (peer_shutdown_ctx->daemon->hostname != NULL)
+        increment_outstanding_at_host (peer_shutdown_ctx->daemon->hostname,
+                                       shutdown_ctx->pg);
       shutdown_ctx->outstanding++;
       GNUNET_TESTING_daemon_stop (peer_shutdown_ctx->daemon,
                                   shutdown_ctx->timeout,
-                                  &internal_shutdown_callback, shutdown_ctx,
+                                  &internal_shutdown_callback, peer_shutdown_ctx,
                                   GNUNET_YES, GNUNET_NO);
-      GNUNET_free (peer_shutdown_ctx);
     }
+  else
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+                                                                 100),
+                                  &schedule_shutdown_task, peer_shutdown_ctx);
+
 }
 
 /**
@@ -6506,8 +6539,8 @@ schedule_shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 void
 GNUNET_TESTING_daemons_stop(struct GNUNET_TESTING_PeerGroup *pg,
-    struct GNUNET_TIME_Relative timeout, GNUNET_TESTING_NotifyCompletion cb,
-    void *cb_cls)
+                            struct GNUNET_TIME_Relative timeout,
+                            GNUNET_TESTING_NotifyCompletion cb, void *cb_cls)
 {
   unsigned int off;
   struct ShutdownContext *shutdown_ctx;
@@ -6579,7 +6612,6 @@ GNUNET_TESTING_daemons_stop(struct GNUNET_TESTING_PeerGroup *pg,
           peers[off].blacklisted_peers);
 #endif
     }
-
 }
 
 /* end of testing_group.c */
