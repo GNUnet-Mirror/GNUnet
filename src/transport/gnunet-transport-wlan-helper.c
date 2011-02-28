@@ -739,7 +739,6 @@ testmode(int argc, char *argv[])
             {
               closeprog = 1;
               fprintf(stderr, "Write ERROR to fdpout\n");
-              exit(1);
             }
           else
             {
@@ -761,13 +760,17 @@ testmode(int argc, char *argv[])
             {
               closeprog = 1;
               fprintf(stderr, "Read ERROR to STDIN_FILENO\n");
-              exit(1);
             }
           else if (0 < readsize)
             {
               GNUNET_SERVER_mst_receive(stdin_mst, NULL, readbuf, readsize,
                   GNUNET_NO, GNUNET_NO);
 
+            }
+          else
+            {
+              //eof
+              closeprog = 1;
             }
         }
 
@@ -779,13 +782,18 @@ testmode(int argc, char *argv[])
             {
               closeprog = 1;
               fprintf(stderr, "Read ERROR to fdpin: %s\n", strerror(errno));
-              exit(1);
+              closeprog = 1;
             }
           else if (0 < readsize)
             {
               GNUNET_SERVER_mst_receive(file_in_mst, NULL, readbuf, readsize,
                   GNUNET_NO, GNUNET_NO);
 
+            }
+          else
+            {
+              //eof
+              closeprog = 1;
             }
         }
 
