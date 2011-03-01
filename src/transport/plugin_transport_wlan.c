@@ -599,6 +599,9 @@ wlan_data_massage_handler(struct Plugin * plugin,
     struct Session_light * session_light,
     const struct GNUNET_MessageHeader * hdr);
 
+static const char *
+wlan_plugin_address_to_string(void *cls, const void *addr, size_t addrlen);
+
 /**
  * get the next message number, at the moment just a random one
  * @return returns the next valid message-number for sending packets
@@ -674,6 +677,12 @@ create_session(struct Plugin *plugin, const uint8_t * addr)
   queue->content->rec_size = NO_MESSAGE_OR_MESSAGE_FINISHED;
 
   plugin->session_count++;
+
+#if DEBUG_wlan
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "New session %p with %s\n", queue->content ,wlan_plugin_address_to_string(NULL,addr, 6));
+#endif
+
   return queue->content;
 }
 
@@ -1030,13 +1039,13 @@ check_fragment_queue(struct Plugin * plugin)
             pm->transmit_cont(pm->transmit_cont_cls, &pid,
                 GNUNET_OK);
 #if DEBUG_wlan
-              GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "called pm->transmit_cont\n");
+              GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "called pm->transmit_cont for %p\n", session);
 #endif
             }
           else
             {
 #if DEBUG_wlan
-              GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "no pm->transmit_cont\n");
+              GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "no pm->transmit_cont for %p\n", session);
 #endif
             }
           GNUNET_free(pm);
@@ -1753,7 +1762,7 @@ wlan_plugin_address_pretty_printer(void *cls, const char *type,
   char ret[92];
   const unsigned char * input;
 
-  GNUNET_assert(cls !=NULL);
+  //GNUNET_assert(cls !=NULL);
   if (addrlen != 6)
     {
       /* invalid address (MAC addresses have 6 bytes) */
@@ -1762,7 +1771,7 @@ wlan_plugin_address_pretty_printer(void *cls, const char *type,
       return;
     }
   input = (const unsigned char*) addr;
-  GNUNET_snprintf(ret, sizeof(ret), "%s Mac-Adress %.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
+  GNUNET_snprintf(ret, sizeof(ret), "%s Mac-Address %.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
       PROTOCOL_PREFIX, input[0], input[1], input[2], input[3], input[4],
       input[5]);
   asc(asc_cls, ret);
@@ -1791,7 +1800,7 @@ wlan_plugin_address_suggested(void *cls, const void *addr, size_t addrlen)
 
   GNUNET_assert(cls !=NULL);
   //FIXME mitm is not checked
-  //Mac Adress has 6 bytes
+  //Mac Address has 6 bytes
   if (addrlen == 6)
     {
       /* TODO check for bad addresses like multicast, broadcast, etc */
@@ -1822,7 +1831,7 @@ wlan_plugin_address_to_string(void *cls, const void *addr, size_t addrlen)
   static char ret[40];
   const unsigned char * input;
 
-  GNUNET_assert(cls !=NULL);
+  //GNUNET_assert(cls !=NULL);
   if (addrlen != 6)
     {
       /* invalid address (MAC addresses have 6 bytes) */
@@ -1830,7 +1839,7 @@ wlan_plugin_address_to_string(void *cls, const void *addr, size_t addrlen)
       return NULL;
     }
   input = (const unsigned char*) addr;
-  GNUNET_snprintf(ret, sizeof(ret), "%s Mac-Adress %.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
+  GNUNET_snprintf(ret, sizeof(ret), "%s Mac-Address %.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
       PROTOCOL_PREFIX, input[0], input[1], input[2], input[3], input[4],
       input[5]);
   return ret;
@@ -1960,7 +1969,7 @@ check_rec_finished_msg(struct Plugin* plugin,
 
 #if DEBUG_wlan
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "check_rec_finished_msg: A message with fragments is complete\n");
+          "check_rec_finished_msg: A message for %p is complete\n", session);
 #endif
 
       //copy fragments together
@@ -2082,9 +2091,9 @@ wlan_data_massage_handler(struct Plugin * plugin,
       distance[1].value = htonl(0);
 
 #if DEBUG_wlan
-          GNUNET_log(
-              GNUNET_ERROR_TYPE_DEBUG,
-              "Calling plugin->env->receive\n");
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "Calling plugin->env->receive for session %p; %s\n", session,
+          wlan_plugin_address_to_string(NULL, session->addr, 6));
 #endif
       plugin->env->receive(plugin->env->cls, &(session->target), temp_hdr,
           (const struct GNUNET_TRANSPORT_ATS_Information *) &distance, 2,
@@ -2152,15 +2161,18 @@ wlan_data_helper(void *cls, struct Session_light * session_light,
   //ADVERTISEMENT
   if (ntohs(hdr->type) == GNUNET_MESSAGE_TYPE_WLAN_ADVERTISEMENT)
     {
+
+      //TODO better DOS protection, error handling
+      //TODO test first than create session
+      GNUNET_assert(session_light != NULL);
+
 #if DEBUG_wlan
       GNUNET_log(
           GNUNET_ERROR_TYPE_DEBUG,
-          "Func wlan_data_helper got GNUNET_MESSAGE_TYPE_WLAN_ADVERTISEMENT size: %u\n",
-          ntohs(hdr->size));
+          "Func wlan_data_helper got GNUNET_MESSAGE_TYPE_WLAN_ADVERTISEMENT size: %u; %s\n",
+          ntohs(hdr->size), wlan_plugin_address_to_string(NULL,session_light->addr, 6));
 #endif
 
-      //TODO better DOS protection, error handling
-      GNUNET_assert(session_light != NULL);
       if (session_light->session == NULL)
         {
           session_light->session = get_Session(plugin, session_light->addr);
@@ -2188,9 +2200,9 @@ wlan_data_helper(void *cls, struct Session_light * session_light,
 #if DEBUG_wlan
       GNUNET_log(
           GNUNET_ERROR_TYPE_DEBUG,
-          "Func wlan_data_helper got GNUNET_MESSAGE_TYPE_WLAN_FRAGMENT with message_id %u with fragment number %i, size: %u\n",
+          "Func wlan_data_helper got GNUNET_MESSAGE_TYPE_WLAN_FRAGMENT with message_id %u with fragment number %i, size: %u; %s\n",
           ntohl(fh->message_id), ntohs(fh->fragment_off_or_num), ntohs(
-              hdr->size));
+              hdr->size), wlan_plugin_address_to_string(NULL,session_light->addr, 6));
 #endif
 
       if (getcrc16(tempmsg, ntohs(fh->header.size)) != ntohs(fh->message_crc))
@@ -2272,8 +2284,8 @@ wlan_data_helper(void *cls, struct Session_light * session_light,
 #if DEBUG_wlan
       GNUNET_log(
           GNUNET_ERROR_TYPE_DEBUG,
-          "Func wlan_data_helper got GNUNET_MESSAGE_TYPE_WLAN_FRAGMENT_ACK size: %u\n",
-          ntohs(hdr->size));
+          "Func wlan_data_helper got GNUNET_MESSAGE_TYPE_WLAN_FRAGMENT_ACK size: %u; %s\n",
+          ntohs(hdr->size), wlan_plugin_address_to_string(NULL,session_light->addr, 6));
 #endif
 
       GNUNET_assert(session_light != NULL);
@@ -2367,8 +2379,8 @@ wlan_data_helper(void *cls, struct Session_light * session_light,
  * Function used for to process the data from the suid process
  *
  * @param cls the plugin handle
- * @param client which send the data (not used)
- * @param hdr of the GNUNET_MessageHeader
+ * @param client client that send the data (not used)
+ * @param hdr header of the GNUNET_MessageHeader
  */
 
 static void
@@ -2395,13 +2407,6 @@ wlan_process_helper(void *cls, void *client,
       //call wlan_process_helper with the message inside, later with wlan: analyze signal
       GNUNET_assert(ntohs(hdr->size) >= sizeof(struct IeeeHeader) + sizeof(struct GNUNET_MessageHeader));
       wlanIeeeHeader = (struct IeeeHeader *) &hdr[1];
-      datasize = ntohs(hdr->size) - sizeof(struct IeeeHeader)
-          - sizeof(struct GNUNET_MessageHeader);
-
-      session_light = GNUNET_malloc(sizeof(struct Session_light));
-      memcpy(session_light->addr, &(wlanIeeeHeader->mac3),
-          sizeof(struct MacAddress));
-      session_light->session = search_session(plugin, session_light->addr);
 
       //process only if it is an broadcast or for this computer both with the gnunet bssid
 
@@ -2415,7 +2420,18 @@ wlan_process_helper(void *cls, void *client,
               &(wlanIeeeHeader->mac1), &(plugin->mac_address),
               sizeof(struct MacAddress)) == 0)
             {
+
               // process the inner data
+
+
+              datasize = ntohs(hdr->size) - sizeof(struct IeeeHeader)
+                  - sizeof(struct GNUNET_MessageHeader);
+
+              session_light = GNUNET_malloc(sizeof(struct Session_light));
+              memcpy(session_light->addr, &(wlanIeeeHeader->mac3),
+                  sizeof(struct MacAddress));
+              //session_light->session = search_session(plugin,session_light->addr);
+
               pos = 0;
               temp_hdr = (struct GNUNET_MessageHeader *) &wlanIeeeHeader[1];
               while (pos < datasize)
@@ -2427,6 +2443,9 @@ wlan_process_helper(void *cls, void *client,
                   pos += ntohs(temp_hdr->size);
 
                 }
+
+              //clean up
+              GNUNET_free(session_light);
             }
           else
             {
@@ -2446,8 +2465,7 @@ wlan_process_helper(void *cls, void *client,
 #endif
         }
 
-      //clean up
-      GNUNET_free(session_light);
+
 
     }
 
