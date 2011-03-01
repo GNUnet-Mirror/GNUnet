@@ -26,6 +26,7 @@
 #include "platform.h"
 #include "gnunet-service-fs.h"
 #include "gnunet-service-fs_cp.h"
+#include "gnunet-service-fs_push.h"
 
 /**
  * How often do we flush trust values to disk?
@@ -116,6 +117,11 @@ struct GSF_ConnectedPeer
   struct GNUNET_TIME_Absolute last_migration_block;
 
   /**
+   * Task scheduled to revive migration to this peer.
+   */
+  struct GNUNET_SCHEDULER_TaskIdentifier mig_revive_task;
+
+  /**
    * Messages (replies, queries, content migration) we would like to
    * send to this peer in the near future.  Sorted by priority, head.
    */
@@ -144,11 +150,6 @@ struct GSF_ConnectedPeer
   struct GNUNET_CONTAINER_MulitHashMap *request_map;
 
   /**
-   * ID of delay task for scheduling transmission.
-   */
-  GNUNET_SCHEDULER_TaskIdentifier delayed_transmission_request_task; // FIXME: used in 'push' (ugh!)
-
-  /**
    * Increase in traffic preference still to be submitted
    * to the core service for this peer.
    */
@@ -158,11 +159,6 @@ struct GSF_ConnectedPeer
    * Trust rating for this peer on disk.
    */
   uint32_t disk_trust;
-
-  /**
-   * The peer's identity.
-   */
-  GNUNET_PEER_Id pid;
 
   /**
    * Which offset in "last_p2p_replies" will be updated next?
@@ -388,7 +384,7 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
 
   cp = GNUNET_malloc (sizeof (struct GSF_ConnectedPeer));
   cp->transmission_delay = GNUNET_LOAD_value_init (latency);
-  cp->pid = GNUNET_PEER_intern (peer);
+  cp->ppd.pid = GNUNET_PEER_intern (peer);
   cp->transmission_delay = GNUNET_LOAD_value_init (0);
   cp->irc = GNUNET_CORE_peer_change_preference (core,
 						peer,
@@ -411,7 +407,37 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
 						   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   update_atsi (cp, atsi);
   GSF_plan_notify_new_peer_ (cp);
+  GSF_push_start_ (cp);
   return cp;
+}
+
+
+/**
+ * It may be time to re-start migrating content to this
+ * peer.  Check, and if so, restart migration.
+ *
+ * @param cls the 'struct GSF_ConnectedPeer'
+ * @param tc scheduler context
+ */
+static void
+revive_migration (void *cls,
+		  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GSF_ConnectedPeer *cp = cls;
+  struct GNUNET_TIME_Relative bt;
+  
+  cp->mig_revive_task = GNUNET_SCHEDULER_NO_TASK;
+  bt = GNUNET_TIME_absolute_get_remaining (cp->ppd.migration_blocked_until);
+  if (0 != bt.rel_value)
+    {
+      /* still time left... */
+      cp->mig_revive_task 
+	= GNUNET_SCHEDULER_add_delayed (bt,
+					&revive_migration,
+					cp);
+      return;
+    }
+  GSF_push_start_ (cp);
 }
 
 
@@ -434,6 +460,7 @@ GSF_handle_p2p_migration_stop_ (void *cls,
 {
   struct GSF_ConnectedPeer *cp; 
   const struct MigrationStopMessage *msm;
+  struct GNUNET_TIME_Relative bt;
 
   msm = (const struct MigrationStopMessage*) message;
   cp = GNUNET_CONTAINER_multihashmap_get (cp_map,
@@ -443,7 +470,16 @@ GSF_handle_p2p_migration_stop_ (void *cls,
       GNUNET_break (0);
       return GNUNET_OK;
     }
-  cp->ppd.migration_blocked_until = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_ntoh (msm->duration));
+  bt = GNUNET_TIME_relative_ntoh (msm->duration);
+  cp->ppd.migration_blocked_until = GNUNET_TIME_relative_to_absolute (bt);
+  if (cp->mig_revive_task == GNUNET_SCHEDULER_NO_TASK)
+    {
+      GSF_push_stop_ (cp);
+      cp->mig_revive_task 
+	= GNUNET_SCHEDULER_add_delayed (bt,
+					&revive_migration,
+					cp);
+    }
   update_atsi (cp, atsi);
   return GNUNET_OK;
 }
@@ -880,7 +916,7 @@ GSF_peer_transmit_ (struct GSF_ConnectedPeer *peer,
 				       cp->pth_tail,
 				       prev,
 				       pth);
-  GNUNET_PEER_resolve (cp->pid,
+  GNUNET_PEER_resolve (cp->ppd.pid,
 		       &target);
   if (GNUNET_YES == is_query)
     {
@@ -1022,8 +1058,8 @@ GSF_peer_update_responder_peer_ (struct GSF_ConnectedPeer *cp,
 				 const struct GSF_ConnectedPeer *initiator_peer)
 {
   GNUNET_PEER_change_rc (cp->ppd.last_p2p_replies[cp->last_p2p_replies_woff % P2P_SUCCESS_LIST_SIZE], -1);
-  cp->ppd.last_p2p_replies[cp->last_p2p_replies_woff++ % P2P_SUCCESS_LIST_SIZE] = initiator_peer->pid;
-  GNUNET_PEER_change_rc (initiator_peer->pid, 1);
+  cp->ppd.last_p2p_replies[cp->last_p2p_replies_woff++ % P2P_SUCCESS_LIST_SIZE] = initiator_peer->ppd.pid;
+  GNUNET_PEER_change_rc (initiator_peer->ppd.pid, 1);
 }
 
 
@@ -1125,7 +1161,12 @@ GSF_peer_disconnect_handler_ (void *cls,
 				   pth);
       GNUNET_free (pth);
     }
-  GNUNET_PEER_change_rc (cp->pid, -1);
+  GNUNET_PEER_change_rc (cp->ppd.pid, -1);
+  if (GNUNET_SCHEDULER_NO_TASK != cp->mig_revive_task)
+    {
+      GNUNET_SCHEDULER_cancel (cp->mig_revive_task);
+      cp->mig_revive_task = GNUNET_SCHEDULER_NO_TASK;
+    }
   GNUNET_free (cp);
 }
 
@@ -1201,7 +1242,7 @@ void
 GSF_connected_peer_get_identity_ (const struct GSF_ConnectedPeer *cp,
 				  struct GNUNET_PeerIdentity *id)
 {
-  GNUNET_PEER_resolve (cp->pid,
+  GNUNET_PEER_resolve (cp->ppd.pid,
 		       &id);
 }
 
@@ -1281,7 +1322,7 @@ flush_trust (void *cls,
 
   if (cp->trust == cp->disk_trust)
     return GNUNET_OK;                     /* unchanged */
-  GNUNET_PEER_resolve (cp->pid,
+  GNUNET_PEER_resolve (cp->ppd.pid,
 		       &pid);
   fn = get_trust_filename (&pid);
   if (cp->trust == 0)

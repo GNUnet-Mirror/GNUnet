@@ -26,14 +26,11 @@
 #include "platform.h"
 #include "gnunet-service-fs_put.h"
 
-/* FIXME: below are only old code fragments to use... */
-
 
 /**
  * Request to datastore for DHT PUTs (or NULL).
  */
 static struct GNUNET_DATASTORE_QueueEntry *dht_qe;
-
 
 /**
  * Type we will request for the next DHT PUT round from the datastore.
@@ -50,9 +47,6 @@ static GNUNET_SCHEDULER_TaskIdentifier dht_task;
  * to have in the database?
  */
 static unsigned int zero_anonymity_count_estimate;
-
-
-
 
 
 /**
@@ -99,7 +93,6 @@ consider_dht_put_gathering (void *cls)
 					   &gather_dht_put_blocks,
 					   cls);
 }
-
 
 
 /**
@@ -172,7 +165,6 @@ process_dht_put_content (void *cls,
 }
 
 
-
 /**
  * Task that is run periodically to obtain blocks for DHT PUTs.
  * 
@@ -195,3 +187,36 @@ gather_dht_put_blocks (void *cls,
       GNUNET_assert (dht_qe != NULL);
     }
 }
+
+
+/**
+ * Setup the module.
+ * 
+ * @param cfg configuration to use
+ */
+void
+GSF_put_init_ (struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  dht_task = GNUNET_SCHEDULER_add_now (&gather_dht_put_blocks, NULL);
+}
+
+
+/**
+ * Shutdown the module.
+ */
+void
+GSF_put_done_ ()
+{
+  if (GNUNET_SCHEDULER_NO_TASK != dht_task)
+    {
+      GNUNET_SCHEDULER_cancel (dht_task);
+      dht_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  if (NULL != dht_qe)
+    {
+      GNUNET_DATASTORE_cancel (dht_qe);
+      dht_qe = NULL;
+    }
+}
+
+/* end of gnunet-service-fs_put.c */

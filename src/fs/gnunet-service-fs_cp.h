@@ -90,6 +90,11 @@ struct GSF_PeerPerformanceData
   double avg_priority;
 
   /**
+   * The peer's identity.
+   */
+  GNUNET_PEER_Id pid;
+
+  /**
    * Trust rating for this peer
    */
   uint32_t trust;

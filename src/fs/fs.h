@@ -65,10 +65,10 @@
 #define MAX_MIGRATION_QUEUE 32
 
 /**
- * How many peers do we select as possible
- * targets per block obtained for migration?
+ * Blocks are at most migrated to this number of peers
+ * plus one, each time they are fetched from the database.
  */
-#define MIGRATION_LIST_SIZE 4
+#define MIGRATION_LIST_SIZE 2
 
 /**
  * To how many peers do we forward each migration block ultimately?
