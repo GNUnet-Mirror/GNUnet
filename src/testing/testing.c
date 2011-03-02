@@ -164,7 +164,8 @@ testing_init (void *cls,
               "Successfully started peer `%4s'.\n", GNUNET_i2s (my_identity));
 #endif
   d->id = *my_identity;
-  d->shortname = strdup (GNUNET_i2s (my_identity));
+  if (d->shortname == NULL)
+    d->shortname = strdup (GNUNET_i2s (my_identity));
   d->server = server;
   d->running = GNUNET_YES;
 
@@ -267,6 +268,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                 NULL, d->cfg, d, _("`scp' did not complete cleanly.\n"));
           return;
         }
+      GNUNET_OS_process_close(d->proc);
 #if DEBUG_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Successfully copied configuration file.\n");
@@ -755,6 +757,10 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           GNUNET_TRANSPORT_disconnect (d->th);
           d->th = NULL;
         }
+
+      if (NULL != d->dead_cb)
+        d->dead_cb (d->dead_cb_cls, NULL);
+
       /* state clean up and notifications */
       if (d->churn == GNUNET_NO)
         {
@@ -770,9 +776,6 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_free_non_null (d->proc);
       d->proc = NULL;
       d->shortname = NULL;
-      if (NULL != d->dead_cb)
-        d->dead_cb (d->dead_cb_cls, NULL);
-
       if (d->churn == GNUNET_NO)
         GNUNET_free (d);
 
@@ -977,7 +980,7 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
       GNUNET_CRYPTO_hash(&public_key, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &ret->id.hashPubKey);
       ret->shortname = GNUNET_strdup(GNUNET_i2s(&ret->id));
       ret->have_hostkey = GNUNET_YES;
-      GNUNET_free(private_key);
+      GNUNET_CRYPTO_rsa_key_free(private_key);
     }
 
   /* Write hostkey to file, if we were given one */
@@ -1093,6 +1096,7 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
         = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_EXEC_WAIT,
                                         &start_fsm, ret);
       GNUNET_free_non_null(hostkeyfile);
+      GNUNET_free(baseservicehome);
       GNUNET_free(servicehome);
       return ret;
     }

@@ -5845,7 +5845,9 @@ GNUNET_TESTING_daemons_start(
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Creating remote dir with command ssh %s %s %s\n", arg,
                   " mkdir -p ", baseservicehome);
+      GNUNET_free(arg);
       GNUNET_OS_process_wait (proc);
+      GNUNET_OS_process_close(proc);
     }
   GNUNET_free(baseservicehome);
 
@@ -6449,8 +6451,9 @@ void
 internal_shutdown_callback(void *cls, const char *emsg)
 {
   struct PeerShutdownContext *peer_shutdown_ctx = cls;
-  struct ShutdownContext *shutdown_ctx = cls;
+  struct ShutdownContext *shutdown_ctx = peer_shutdown_ctx->shutdown_ctx;
   unsigned int off;
+  struct OutstandingSSH *ssh_pos;
 
   shutdown_ctx->outstanding--;
   if (peer_shutdown_ctx->daemon->hostname != NULL)
@@ -6483,8 +6486,12 @@ internal_shutdown_callback(void *cls, const char *emsg)
           GNUNET_free_non_null (shutdown_ctx->pg->hosts[off].username);
         }
       GNUNET_free_non_null (shutdown_ctx->pg->hosts);
+      while (NULL != (ssh_pos = shutdown_ctx->pg->ssh_head))
+        {
+          GNUNET_CONTAINER_DLL_remove(shutdown_ctx->pg->ssh_head, shutdown_ctx->pg->ssh_tail, ssh_pos);
+          GNUNET_free(ssh_pos);
+        }
       GNUNET_free (shutdown_ctx->pg);
-
       GNUNET_free (shutdown_ctx);
     }
   GNUNET_free(peer_shutdown_ctx);
