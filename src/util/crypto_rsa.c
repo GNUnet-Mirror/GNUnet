@@ -380,16 +380,25 @@ rsa_encode_key (const struct GNUNET_CRYPTO_RsaPrivateKey *hostkey)
 /**
  * Decode the private key from the file-format back
  * to the "normal", internal format.
+ *
+ * @param buf the buffer where the private key data is stored
+ * @param len the length of the data in 'buffer'
  */
-static struct GNUNET_CRYPTO_RsaPrivateKey *
-rsa_decode_key (const struct RsaPrivateKeyBinaryEncoded *encoding)
+struct GNUNET_CRYPTO_RsaPrivateKey *
+GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len)
 {
   struct GNUNET_CRYPTO_RsaPrivateKey *ret;
+  const struct RsaPrivateKeyBinaryEncoded *encoding = (const struct RsaPrivateKeyBinaryEncoded *)buf;
   gcry_sexp_t res;
   gcry_mpi_t n, e, d, p, q, u;
   int rc;
   size_t size;
   int pos;
+  uint16_t enc_len;
+
+  enc_len = ntohs(encoding->len);
+  if (len != enc_len)
+    return NULL;
 
   pos = 0;
   size = ntohs (encoding->sizen);
@@ -718,7 +727,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
   GNUNET_assert (fs == GNUNET_DISK_file_read (fd, enc, fs));
   len = ntohs (enc->len);
   ret = NULL;
-  if ((len != fs) || (NULL == (ret = rsa_decode_key (enc))))
+  if ((len != fs) || (NULL == (ret = GNUNET_CRYPTO_rsa_decode_key ((char *)enc, len))))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _

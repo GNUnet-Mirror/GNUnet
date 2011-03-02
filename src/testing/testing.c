@@ -435,6 +435,8 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #if DEBUG_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Successfully got hostkey!\n");
 #endif
+      /* Fall through */
+    case SP_HOSTKEY_CREATED:
       if (d->hostkey_callback != NULL)
         {
           d->hostkey_callback (d->hostkey_cls, &d->id, d, NULL);
@@ -444,8 +446,6 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         {
           d->phase = SP_TOPOLOGY_SETUP;
         }
-      /* Fall through */
-    case SP_HOSTKEY_CREATED:
       /* wait for topology finished */
       if ((GNUNET_YES == d->dead)
           || (GNUNET_TIME_absolute_get_remaining (d->max_timeout).rel_value ==
@@ -903,6 +903,8 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   char *hostkeyfile;
   char *temp_file_name;
   struct GNUNET_DISK_FileHandle *fn;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;
+  struct GNUNET_CRYPTO_RsaPrivateKey *private_key;
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_TESTING_Daemon));
   ret->hostname = (hostname == NULL) ? NULL : GNUNET_strdup (hostname);
@@ -1065,7 +1067,18 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "No need to copy configuration file since we are running locally.\n");
 #endif
-  ret->phase = SP_COPIED;
+  if (hostkey != NULL) /* Get the peer identity from the hostkey */
+    {
+      private_key = GNUNET_CRYPTO_rsa_decode_key(hostkey, HOSTKEYFILESIZE);
+      GNUNET_assert(private_key != NULL);
+      GNUNET_CRYPTO_rsa_key_get_public (private_key,
+                                        &public_key);
+      GNUNET_CRYPTO_hash(&public_key, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &ret->id.hashPubKey);
+      ret->shortname = GNUNET_strdup(GNUNET_i2s(&ret->id));
+      ret->phase = SP_HOSTKEY_CREATED;
+    }
+  else
+    ret->phase = SP_COPIED;
   GNUNET_SCHEDULER_add_continuation (&start_fsm,
                                      ret,
                                      GNUNET_SCHEDULER_REASON_PREREQ_DONE);

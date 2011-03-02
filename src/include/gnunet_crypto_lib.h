@@ -690,6 +690,16 @@ GNUNET_CRYPTO_kdf (void *result, size_t out_len,
 struct GNUNET_CRYPTO_RsaPrivateKey *GNUNET_CRYPTO_rsa_key_create (void);
 
 /**
+ * Decode the private key from the data-format back
+ * to the "normal", internal format.
+ *
+ * @param buf the buffer where the private key data is stored
+ * @param len the length of the data in 'buffer'
+ */
+struct GNUNET_CRYPTO_RsaPrivateKey *
+GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len);
+
+/**
  * Create a new private key by reading it from a file.  If the
  * files does not exist, create a new key and write it to the
  * file.  Caller must free return value. Note that this function
