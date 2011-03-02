@@ -51,7 +51,7 @@
 
 #define HALLO_BEACON_SCALING_FACTOR 900
 
-#define DEBUG_wlan GNUNET_YES
+#define DEBUG_wlan GNUNET_NO
 
 #define MESSAGE_LENGHT_UNKNOWN -1
 #define NO_MESSAGE_OR_MESSAGE_FINISHED -2
@@ -107,10 +107,16 @@ struct Plugin
   int session_count;
 
   /**
-   * encapsulation to the local wlan server prog
+   * encapsulation of data from the local wlan helper program
    */
 
-  struct GNUNET_SERVER_MessageStreamTokenizer * consoltoken;
+  struct GNUNET_SERVER_MessageStreamTokenizer * suid_tokenizer;
+
+  /**
+   * encapsulation of packets received
+   */
+
+  struct GNUNET_SERVER_MessageStreamTokenizer * data_tokenizer;
 
   /**
    * stdout pipe handle for the gnunet-wlan-helper process
@@ -1978,6 +1984,7 @@ check_rec_finished_msg(struct Plugin* plugin,
       aktnum = 0;
       while (rec_queue != NULL)
         {
+          //TODO SAVE SOME COPY OPS AND CHECK CRC WITHOUT COPY
           memcpy(msg + aktnum, rec_queue->msg, rec_queue->size);
           aktnum += rec_queue->size;
           rec_queue = rec_queue->next;
@@ -1992,6 +1999,38 @@ check_rec_finished_msg(struct Plugin* plugin,
     }
 }
 
+static void
+process_data(void *cls, void *client,
+    const struct GNUNET_MessageHeader *hdr){
+
+  GNUNET_assert(client != NULL);
+  GNUNET_assert(cls != NULL);
+  struct Session * session = (struct Session * )client;
+  struct Plugin * plugin = (struct Plugin * ) cls;
+
+  struct GNUNET_TRANSPORT_ATS_Information distance[2];
+  distance[0].type = htonl(GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+  distance[0].value = htonl(1);
+  distance[1].type = htonl(GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+  distance[1].value = htonl(0);
+
+#if DEBUG_wlan
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "Calling plugin->env->receive for session %p; %s\n", session,
+          wlan_plugin_address_to_string(NULL, session->addr, 6));
+#endif
+
+  plugin->env->receive(plugin->env->cls, &(session->target), hdr,
+      (const struct GNUNET_TRANSPORT_ATS_Information *) &distance, 2,
+      session, session->addr, sizeof(session->addr));
+}
+
+/**
+ * handels the data after all fragments are put together
+ * @param plugin
+ * @param session_light
+ * @param hdr pointer to the data
+ */
 static void
 wlan_data_massage_handler(struct Plugin * plugin,
     struct Session_light * session_light,
@@ -2084,20 +2123,12 @@ wlan_data_massage_handler(struct Plugin * plugin,
         }
 
       //"receive" the message
-      struct GNUNET_TRANSPORT_ATS_Information distance[2];
-      distance[0].type = htonl(GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
-      distance[0].value = htonl(1);
-      distance[1].type = htonl(GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
-      distance[1].value = htonl(0);
 
-#if DEBUG_wlan
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "Calling plugin->env->receive for session %p; %s\n", session,
-          wlan_plugin_address_to_string(NULL, session->addr, 6));
-#endif
-      plugin->env->receive(plugin->env->cls, &(session->target), temp_hdr,
-          (const struct GNUNET_TRANSPORT_ATS_Information *) &distance, 2,
-          session, session->addr, sizeof(session->addr));
+
+      GNUNET_SERVER_mst_receive(plugin->data_tokenizer, session, (const char *) temp_hdr,
+          ntohs(hdr->size) - sizeof(struct WlanHeader), GNUNET_YES, GNUNET_NO);
+
+
       return;
     }
   else
@@ -2260,7 +2291,7 @@ wlan_data_helper(void *cls, struct Session_light * session_light,
       else
         {
           GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-              "WLAN client not in session list and it is a fragment message\n");
+              "WLAN client not in session list\n");
           wlan_data_massage_handler(plugin, session_light,
               (struct GNUNET_MessageHeader *) tempmsg);
           session = session_light->session;
@@ -2549,7 +2580,7 @@ wlan_plugin_helper_read(void *cls,
 #endif
       return;
     }
-  GNUNET_SERVER_mst_receive(plugin->consoltoken, NULL, mybuf, bytes, GNUNET_NO,
+  GNUNET_SERVER_mst_receive(plugin->suid_tokenizer, NULL, mybuf, bytes, GNUNET_NO,
       GNUNET_NO);
 
   GNUNET_assert(plugin->server_read_task == GNUNET_SCHEDULER_NO_TASK);
@@ -2642,8 +2673,12 @@ libgnunet_plugin_transport_wlan_done(void *cls)
 
   GNUNET_assert(cls !=NULL);
 
-  if (plugin->consoltoken != NULL)
-    GNUNET_SERVER_mst_destroy(plugin->consoltoken);
+  if (plugin->suid_tokenizer != NULL)
+    GNUNET_SERVER_mst_destroy(plugin->suid_tokenizer);
+
+  if (plugin->data_tokenizer != NULL)
+      GNUNET_SERVER_mst_destroy(plugin->data_tokenizer);
+
 
   GNUNET_free_non_null(plugin->interface);
   GNUNET_free (plugin);
@@ -2696,7 +2731,9 @@ libgnunet_plugin_transport_wlan_init(void *cls)
     }
 
   wlan_transport_start_wlan_helper(plugin, testmode);
-  plugin->consoltoken = GNUNET_SERVER_mst_create(&wlan_process_helper, plugin);
+  plugin->suid_tokenizer = GNUNET_SERVER_mst_create(&wlan_process_helper, plugin);
+
+  plugin->data_tokenizer = GNUNET_SERVER_mst_create(&process_data, plugin);
 
   //plugin->sessions = GNUNET_malloc (sizeof (struct Sessionqueue));
   //plugin->pending_Sessions = GNUNET_malloc (sizeof (struct Sessionqueue));
