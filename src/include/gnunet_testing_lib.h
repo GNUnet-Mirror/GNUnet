@@ -301,6 +301,12 @@ struct GNUNET_TESTING_Daemon
   int dead;
 
   /**
+   * GNUNET_YES if the hostkey has been created
+   * for this peer, GNUNET_NO otherwise.
+   */
+  int have_hostkey;
+
+  /**
    * PID of the process that we started last.
    */
   struct GNUNET_OS_Process *proc;
