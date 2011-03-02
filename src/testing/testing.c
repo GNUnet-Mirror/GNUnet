@@ -274,109 +274,119 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       d->phase = SP_COPIED;
       /* fall-through */
     case SP_COPIED:
-      /* Start create hostkey process */
-      d->pipe_stdout = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_YES);
-      if (d->pipe_stdout == NULL)
+      /* Start create hostkey process if we don't already know the peer identity!*/
+      if (GNUNET_NO == d->have_hostkey)
         {
-          cb = d->cb;
-          d->cb = NULL;
-          if (NULL != cb)
-            cb (d->cb_cls,
-                NULL,
-                d->cfg,
-                d,
-                (NULL == d->hostname)
-                ? _("Failed to create pipe for `gnunet-peerinfo' process.\n")
-                : _("Failed to create pipe for `ssh' process.\n"));
-          return;
-        }
-      if (NULL == d->hostname)
-        {
-#if DEBUG_TESTING
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Starting `%s', with command `%s %s %s %s'.\n",
-                      "gnunet-peerinfo", "gnunet-peerinfo", "-c", d->cfgfile,
-                      "-sq");
-#endif
-          d->proc =
-            GNUNET_OS_start_process (NULL, d->pipe_stdout, "gnunet-peerinfo",
-                                     "gnunet-peerinfo", "-c", d->cfgfile,
-                                     "-sq", NULL);
-          GNUNET_DISK_pipe_close_end (d->pipe_stdout,
-                                      GNUNET_DISK_PIPE_END_WRITE);
-        }
-      else
-        {
-          if (d->username != NULL)
-            GNUNET_asprintf (&dst, "%s@%s", d->username, d->hostname);
+          d->pipe_stdout = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_YES);
+          if (d->pipe_stdout == NULL)
+            {
+              cb = d->cb;
+              d->cb = NULL;
+              if (NULL != cb)
+                cb (d->cb_cls,
+                    NULL,
+                    d->cfg,
+                    d,
+                    (NULL == d->hostname)
+                    ? _("Failed to create pipe for `gnunet-peerinfo' process.\n")
+                    : _("Failed to create pipe for `ssh' process.\n"));
+              return;
+            }
+          if (NULL == d->hostname)
+            {
+    #if DEBUG_TESTING
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          "Starting `%s', with command `%s %s %s %s'.\n",
+                          "gnunet-peerinfo", "gnunet-peerinfo", "-c", d->cfgfile,
+                          "-sq");
+    #endif
+              d->proc =
+                GNUNET_OS_start_process (NULL, d->pipe_stdout, "gnunet-peerinfo",
+                                         "gnunet-peerinfo", "-c", d->cfgfile,
+                                         "-sq", NULL);
+              GNUNET_DISK_pipe_close_end (d->pipe_stdout,
+                                          GNUNET_DISK_PIPE_END_WRITE);
+            }
           else
-            dst = GNUNET_strdup (d->hostname);
+            {
+              if (d->username != NULL)
+                GNUNET_asprintf (&dst, "%s@%s", d->username, d->hostname);
+              else
+                dst = GNUNET_strdup (d->hostname);
 
-#if DEBUG_TESTING
+    #if DEBUG_TESTING
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          "Starting `%s', with command `%s %s %s %s %s %s'.\n",
+                          "gnunet-peerinfo", "ssh", dst, "gnunet-peerinfo", "-c",
+                          d->cfgfile, "-sq");
+    #endif
+              if (d->ssh_port_str == NULL)
+                {
+                  d->proc = GNUNET_OS_start_process (NULL, d->pipe_stdout, "ssh",
+                                                     "ssh",
+    #if !DEBUG_TESTING
+                                                     "-q",
+    #endif
+                                                     dst,
+                                                     "gnunet-peerinfo",
+                                                     "-c", d->cfgfile, "-sq",
+                                                     NULL);
+                }
+              else
+                {
+                  d->proc = GNUNET_OS_start_process (NULL, d->pipe_stdout, "ssh",
+                                                     "ssh", "-p", d->ssh_port_str,
+    #if !DEBUG_TESTING
+                                                     "-q",
+    #endif
+                                                     dst,
+                                                     "gnunet-peerinfo",
+                                                     "-c", d->cfgfile, "-sq",
+                                                     NULL);
+                }
+              GNUNET_DISK_pipe_close_end (d->pipe_stdout,
+                                          GNUNET_DISK_PIPE_END_WRITE);
+              GNUNET_free (dst);
+            }
+          if (NULL == d->proc)
+            {
+              GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                          _("Could not start `%s' process to create hostkey.\n"),
+                          (NULL == d->hostname) ? "gnunet-peerinfo" : "ssh");
+              cb = d->cb;
+              d->cb = NULL;
+              if (NULL != cb)
+                cb (d->cb_cls,
+                    NULL,
+                    d->cfg,
+                    d,
+                    (NULL == d->hostname)
+                    ? _("Failed to start `gnunet-peerinfo' process.\n")
+                    : _("Failed to start `ssh' process.\n"));
+              GNUNET_DISK_pipe_close (d->pipe_stdout);
+              return;
+            }
+    #if DEBUG_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Starting `%s', with command `%s %s %s %s %s %s'.\n",
-                      "gnunet-peerinfo", "ssh", dst, "gnunet-peerinfo", "-c",
-                      d->cfgfile, "-sq");
-#endif
-          if (d->ssh_port_str == NULL)
-            {
-              d->proc = GNUNET_OS_start_process (NULL, d->pipe_stdout, "ssh",
-                                                 "ssh",
-#if !DEBUG_TESTING
-                                                 "-q",
-#endif
-                                                 dst,
-                                                 "gnunet-peerinfo",
-                                                 "-c", d->cfgfile, "-sq",
-                                                 NULL);
-            }
-          else
-            {
-              d->proc = GNUNET_OS_start_process (NULL, d->pipe_stdout, "ssh",
-                                                 "ssh", "-p", d->ssh_port_str,
-#if !DEBUG_TESTING
-                                                 "-q",
-#endif
-                                                 dst,
-                                                 "gnunet-peerinfo",
-                                                 "-c", d->cfgfile, "-sq",
-                                                 NULL);
-            }
-          GNUNET_DISK_pipe_close_end (d->pipe_stdout,
-                                      GNUNET_DISK_PIPE_END_WRITE);
-          GNUNET_free (dst);
+                      "Started `%s', waiting for hostkey.\n", "gnunet-peerinfo");
+    #endif
+          d->phase = SP_HOSTKEY_CREATE;
+          d->task
+            =
+            GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_absolute_get_remaining
+                                            (d->max_timeout),
+                                            GNUNET_DISK_pipe_handle
+                                            (d->pipe_stdout,
+                                             GNUNET_DISK_PIPE_END_READ),
+                                            &start_fsm, d);
         }
-      if (NULL == d->proc)
+      else /* Already have a hostkey! */
         {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                      _("Could not start `%s' process to create hostkey.\n"),
-                      (NULL == d->hostname) ? "gnunet-peerinfo" : "ssh");
-          cb = d->cb;
-          d->cb = NULL;
-          if (NULL != cb)
-            cb (d->cb_cls,
-                NULL,
-                d->cfg,
-                d,
-                (NULL == d->hostname)
-                ? _("Failed to start `gnunet-peerinfo' process.\n")
-                : _("Failed to start `ssh' process.\n"));
-          GNUNET_DISK_pipe_close (d->pipe_stdout);
-          return;
+          d->phase = SP_HOSTKEY_CREATED;
+          /* wait some more */
+          d->task
+            = GNUNET_SCHEDULER_add_now (&start_fsm, d);
         }
-#if DEBUG_TESTING
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Started `%s', waiting for hostkey.\n", "gnunet-peerinfo");
-#endif
-      d->phase = SP_HOSTKEY_CREATE;
-      d->task
-        =
-        GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_absolute_get_remaining
-                                        (d->max_timeout),
-                                        GNUNET_DISK_pipe_handle
-                                        (d->pipe_stdout,
-                                         GNUNET_DISK_PIPE_END_READ),
-                                        &start_fsm, d);
       break;
     case SP_HOSTKEY_CREATE:
       bytes_read =
@@ -432,11 +442,13 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (d->proc));
       GNUNET_OS_process_close (d->proc);
       d->proc = NULL;
+      d->have_hostkey = GNUNET_YES;
 #if DEBUG_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Successfully got hostkey!\n");
 #endif
       /* Fall through */
     case SP_HOSTKEY_CREATED:
+      GNUNET_assert(d->have_hostkey == GNUNET_YES);
       if (d->hostkey_callback != NULL)
         {
           d->hostkey_callback (d->hostkey_cls, &d->id, d, NULL);
@@ -949,6 +961,18 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                          "PATHS",
                                          "DEFAULTCONFIG", ret->cfgfile);
 
+  if (hostkey != NULL) /* Get the peer identity from the hostkey */
+    {
+      private_key = GNUNET_CRYPTO_rsa_decode_key(hostkey, HOSTKEYFILESIZE);
+      GNUNET_assert(private_key != NULL);
+      GNUNET_CRYPTO_rsa_key_get_public (private_key,
+                                        &public_key);
+      GNUNET_CRYPTO_hash(&public_key, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &ret->id.hashPubKey);
+      ret->shortname = GNUNET_strdup(GNUNET_i2s(&ret->id));
+      ret->have_hostkey = GNUNET_YES;
+      GNUNET_free(private_key);
+    }
+
   /* Write hostkey to file, if we were given one */
   hostkeyfile = NULL;
   if (hostkey != NULL)
@@ -1057,6 +1081,7 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
           GNUNET_free(servicehome);
           return NULL;
         }
+
       ret->task
         = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_EXEC_WAIT,
                                         &start_fsm, ret);
@@ -1068,18 +1093,7 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "No need to copy configuration file since we are running locally.\n");
 #endif
-  if (hostkey != NULL) /* Get the peer identity from the hostkey */
-    {
-      private_key = GNUNET_CRYPTO_rsa_decode_key(hostkey, HOSTKEYFILESIZE);
-      GNUNET_assert(private_key != NULL);
-      GNUNET_CRYPTO_rsa_key_get_public (private_key,
-                                        &public_key);
-      GNUNET_CRYPTO_hash(&public_key, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &ret->id.hashPubKey);
-      ret->shortname = GNUNET_strdup(GNUNET_i2s(&ret->id));
-      ret->phase = SP_HOSTKEY_CREATED;
-    }
-  else
-    ret->phase = SP_COPIED;
+  ret->phase = SP_COPIED;
   GNUNET_SCHEDULER_add_continuation (&start_fsm,
                                      ret,
                                      GNUNET_SCHEDULER_REASON_PREREQ_DONE);
