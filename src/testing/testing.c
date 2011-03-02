@@ -440,6 +440,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       if (d->hostkey_callback != NULL)
         {
           d->hostkey_callback (d->hostkey_cls, &d->id, d, NULL);
+          d->hostkey_callback = NULL;
           d->phase = SP_HOSTKEY_CREATED;
         }
       else
