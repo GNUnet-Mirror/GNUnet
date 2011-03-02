@@ -382,7 +382,15 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         }
       else /* Already have a hostkey! */
         {
-          d->phase = SP_HOSTKEY_CREATED;
+          if (d->hostkey_callback != NULL)
+            {
+              d->hostkey_callback (d->hostkey_cls, &d->id, d, NULL);
+              d->hostkey_callback = NULL;
+              d->phase = SP_HOSTKEY_CREATED;
+            }
+          else
+            d->phase = SP_TOPOLOGY_SETUP;
+
           /* wait some more */
           d->task
             = GNUNET_SCHEDULER_add_now (&start_fsm, d);
@@ -443,12 +451,6 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_OS_process_close (d->proc);
       d->proc = NULL;
       d->have_hostkey = GNUNET_YES;
-#if DEBUG_TESTING
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Successfully got hostkey!\n");
-#endif
-      /* Fall through */
-    case SP_HOSTKEY_CREATED:
-      GNUNET_assert(d->have_hostkey == GNUNET_YES);
       if (d->hostkey_callback != NULL)
         {
           d->hostkey_callback (d->hostkey_cls, &d->id, d, NULL);
@@ -459,6 +461,11 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         {
           d->phase = SP_TOPOLOGY_SETUP;
         }
+#if DEBUG_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Successfully got hostkey!\n");
+#endif
+      /* Fall through */
+    case SP_HOSTKEY_CREATED:
       /* wait for topology finished */
       if ((GNUNET_YES == d->dead)
           || (GNUNET_TIME_absolute_get_remaining (d->max_timeout).rel_value ==
