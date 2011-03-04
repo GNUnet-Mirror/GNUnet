@@ -24,7 +24,14 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#include "gnunet-service-fs.h"
 #include "gnunet-service-fs_put.h"
+
+
+/**
+ * How often do we at most PUT content into the DHT?
+ */
+#define MAX_DHT_PUT_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 
 /**
@@ -70,7 +77,7 @@ consider_dht_put_gathering (void *cls)
 {
   struct GNUNET_TIME_Relative delay;
 
-  if (dsh == NULL)
+  if (GSF_dsh == NULL)
     return;
   if (dht_qe != NULL)
     return;
@@ -92,6 +99,17 @@ consider_dht_put_gathering (void *cls)
   dht_task = GNUNET_SCHEDULER_add_delayed (delay,
 					   &gather_dht_put_blocks,
 					   cls);
+}
+
+
+/**
+ * Function called upon completion of the DHT PUT operation.
+ */
+static void
+dht_put_continuation (void *cls,
+		      const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_DATASTORE_get_next (GSF_dsh, GNUNET_YES);
 }
 
 
@@ -151,7 +169,7 @@ process_dht_put_content (void *cls,
 	      GNUNET_h2s (key),
 	      type);
 #endif
-  GNUNET_DHT_put (dht_handle,
+  GNUNET_DHT_put (GSF_dht,
 		  key,
 		  DEFAULT_PUT_REPLICATION,
 		  GNUNET_DHT_RO_NONE,
@@ -176,16 +194,16 @@ gather_dht_put_blocks (void *cls,
 		       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   dht_task = GNUNET_SCHEDULER_NO_TASK;
-  if (dsh != NULL)
-    {
-      if (dht_put_type == GNUNET_BLOCK_TYPE_FS_ONDEMAND)
-	dht_put_type = GNUNET_BLOCK_TYPE_FS_KBLOCK;
-      dht_qe = GNUNET_DATASTORE_get_zero_anonymity (dsh, 0, UINT_MAX,
-						    GNUNET_TIME_UNIT_FOREVER_REL,
-						    dht_put_type++,
-						    &process_dht_put_content, NULL);
-      GNUNET_assert (dht_qe != NULL);
-    }
+  if (GSF_dsh == NULL)
+    return;
+  if (dht_put_type == GNUNET_BLOCK_TYPE_FS_ONDEMAND)
+    dht_put_type = GNUNET_BLOCK_TYPE_FS_KBLOCK;
+  dht_qe = GNUNET_DATASTORE_get_zero_anonymity (GSF_dsh, 
+						0, UINT_MAX,
+						GNUNET_TIME_UNIT_FOREVER_REL,
+						dht_put_type++,
+						&process_dht_put_content, NULL);
+  GNUNET_assert (dht_qe != NULL);
 }
 
 
