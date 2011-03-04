@@ -43,7 +43,6 @@ static struct GNUNET_CONTAINER_MultiHashMap *plans;
 static struct GNUNET_CONTAINER_Heap *
 get_heap (const struct GSF_ConnectedPeer *cp)
 {
-  struct GNUNET_CONTAINER_Heap *h;
   struct GNUNET_PeerIdentity id;
 
   GSF_connected_peer_get_identity_ (cp, &id);
@@ -67,7 +66,6 @@ GSF_plan_add_ (const struct GSF_ConnectedPeer *cp,
 {
   struct GNUNET_PeerIdentity id;
   struct GNUNET_CONTAINER_Heap *h;
-  struct GSF_PendingRequest *pr;
 
   GSF_connected_peer_get_identity_ (cp, &id);
   h = GNUNET_CONTAINER_multihashmap_get (plans,
@@ -97,7 +95,6 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
 {
   struct GNUNET_PeerIdentity id;
   struct GNUNET_CONTAINER_Heap *h;
-  struct GSF_PendingRequest *pr;
 
   GSF_connected_peer_get_identity_ (cp, &id);
   h = GNUNET_CONTAINER_multihashmap_get (plans,
@@ -212,7 +209,6 @@ struct GSF_PendingRequest *
 GSF_plan_get_ (const struct GSF_ConnectedPeer *cp)
 {
   struct GNUNET_CONTAINER_Heap *h;
-  struct GSF_PendingRequest *pr;
 
   h = get_heap (cp);
   if (NULL == h)
@@ -257,7 +253,7 @@ void
 GSF_plan_done ()
 {
   GNUNET_assert (0 == 
-		 GNUNET_CONTAINER_multihashmap_get_size (plans));
+		 GNUNET_CONTAINER_multihashmap_size (plans));
   GNUNET_CONTAINER_multihashmap_destroy (plans);
 }
 
