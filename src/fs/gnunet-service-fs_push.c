@@ -25,7 +25,21 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#include "gnunet-service-fs.h"
+#include "gnunet-service-fs_cp.h"
+#include "gnunet-service-fs_indexing.h"
 #include "gnunet-service-fs_push.h"
+
+
+/**
+ * How long must content remain valid for us to consider it for migration?  
+ * If content will expire too soon, there is clearly no point in pushing
+ * it to other peers.  This value gives the threshold for migration.  Note
+ * that if this value is increased, the migration testcase may need to be
+ * adjusted as well (especially the CONTENT_LIFETIME in fs_test_lib.c).
+ */
+#define MIN_MIGRATION_CONTENT_LIFETIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 30)
+
 
 /**
  * Block that is ready for migration to other peers.  Actual data is at the end of the block.
@@ -234,7 +248,7 @@ transmit_content (struct MigrationReadyPeer *peer,
   struct GSF_PeerPerformanceData *ppd;
   int ret;
 
-  ppd = GSF_get_peer_performance_data (peer->peer);
+  ppd = GSF_get_peer_performance_data_ (peer->peer);
   GNUNET_assert (NULL == peer->th);
   msize = sizeof (struct PutMessage) + block->size;
   msg = GNUNET_malloc (msize);
@@ -310,12 +324,12 @@ score_content (struct MigrationReadyPeer *peer,
   struct GNUNET_PeerIdentity id;
   uint32_t dist;
 
-  ppd = GSF_get_peer_performance_data (peer->peer);
+  ppd = GSF_get_peer_performance_data_ (peer->peer);
   for (i=0;i<MIGRATION_LIST_SIZE;i++)
-    if (mb->target_list[i] == ppd->pid)
+    if (block->target_list[i] == ppd->pid)
       return -1;
-  GSF_connected_peer_get_identity (peer->peer,
-				   &id);
+  GNUNET_PEER_resolve (ppd->pid,
+		       &id);
   dist = GNUNET_CRYPTO_hash_distance_u32 (&block->query,
 					  &id.hashPubKey);
   /* closer distance, higher score: */
@@ -347,14 +361,14 @@ find_content (struct MigrationReadyPeer *mrp)
   GNUNET_assert (NULL == mrp->th);
   best = NULL;
   best_score = -1;
-  pos = mig_qe;
+  pos = mig_head;
   while (NULL != pos)
     {
       score = score_content (mrp, pos);
       if (score > best_score)
 	{
 	  best_score = score;
-	  best = mrp;
+	  best = pos;
 	}
       pos = pos->next;
     }
@@ -365,14 +379,14 @@ find_content (struct MigrationReadyPeer *mrp)
 	 queue is full, purge most-forwarded
 	 block from queue to make room for more */
       score = 0;
-      pos = mig_qe;
+      pos = mig_head;
       while (NULL != pos)
 	{
 	  score = count_targets (pos);
 	  if (score >= best_score)
 	    {
 	      best_score = score;
-	      best = mrp;
+	      best = pos;
 	    }
 	  pos = pos->next;
 	}
@@ -381,7 +395,7 @@ find_content (struct MigrationReadyPeer *mrp)
       consider_gathering ();
       return;
     }
-  transmit_content (peer, best);
+  transmit_content (mrp, best);
 }
 
 
