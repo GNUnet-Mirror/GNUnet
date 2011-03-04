@@ -110,12 +110,12 @@ typedef int (*GNUNET_CHAT_JoinCallback) (void *cls);
  *         accept (but user is away), GNUNET_SYSERR to signal denied delivery
  */
 typedef int (*GNUNET_CHAT_MessageCallback) (void *cls,
-					    struct GNUNET_CHAT_Room *room,
-					    const GNUNET_HashCode *sender,
-					    const struct GNUNET_CONTAINER_MetaData *member_info,
-					    const char *message,
-					    struct GNUNET_TIME_Absolute timestamp,
-					    enum GNUNET_CHAT_MsgOptions options);
+                                            struct GNUNET_CHAT_Room *room,
+                                            const GNUNET_HashCode *sender,
+                                            const struct GNUNET_CONTAINER_MetaData *member_info,
+                                            const char *message,
+                                            struct GNUNET_TIME_Absolute timestamp,
+                                            enum GNUNET_CHAT_MsgOptions options);
 
 /**
  * Callback used for notification that another room member has joined or left.
@@ -128,9 +128,9 @@ typedef int (*GNUNET_CHAT_MessageCallback) (void *cls,
  * @return GNUNET_OK
  */
 typedef int (*GNUNET_CHAT_MemberListCallback) (void *cls,
-					       const struct GNUNET_CONTAINER_MetaData *member_info,
-					       const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *member_id,
-					       enum GNUNET_CHAT_MsgOptions options);
+                                               const struct GNUNET_CONTAINER_MetaData *member_info,
+                                               const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *member_id,
+                                               enum GNUNET_CHAT_MsgOptions options);
 
 /**
  * Callback used for message delivery confirmations.
@@ -144,10 +144,10 @@ typedef int (*GNUNET_CHAT_MemberListCallback) (void *cls,
  *         confirmations from anyone for this message
  */
 typedef int (*GNUNET_CHAT_MessageConfirmation) (void *cls,
-						struct GNUNET_CHAT_Room *room,
-						uint32_t orig_seq_number,
-						struct GNUNET_TIME_Absolute timestamp,
-						const GNUNET_HashCode *receiver);
+                                                struct GNUNET_CHAT_Room *room,
+                                                uint32_t orig_seq_number,
+                                                struct GNUNET_TIME_Absolute timestamp,
+                                                const GNUNET_HashCode *receiver);
 
 /**
  * Join a chat room.
@@ -175,19 +175,19 @@ typedef int (*GNUNET_CHAT_MessageConfirmation) (void *cls,
  */
 struct GNUNET_CHAT_Room *
 GNUNET_CHAT_join_room (const struct GNUNET_CONFIGURATION_Handle *cfg,
-		       const char *nick_name,
-		       struct GNUNET_CONTAINER_MetaData *member_info,
-		       const char *room_name,
-		       enum GNUNET_CHAT_MsgOptions msg_options,
-		       GNUNET_CHAT_JoinCallback joinCallback,
-		       void *join_cls,
-		       GNUNET_CHAT_MessageCallback messageCallback,
-		       void *message_cls,
-		       GNUNET_CHAT_MemberListCallback memberCallback,
-		       void *member_cls,
-		       GNUNET_CHAT_MessageConfirmation confirmationCallback,
-		       void *confirmation_cls,
-		       GNUNET_HashCode *me);
+                       const char *nick_name,
+                       struct GNUNET_CONTAINER_MetaData *member_info,
+                       const char *room_name,
+                       enum GNUNET_CHAT_MsgOptions msg_options,
+                       GNUNET_CHAT_JoinCallback joinCallback,
+                       void *join_cls,
+                       GNUNET_CHAT_MessageCallback messageCallback,
+                       void *message_cls,
+                       GNUNET_CHAT_MemberListCallback memberCallback,
+                       void *member_cls,
+                       GNUNET_CHAT_MessageConfirmation confirmationCallback,
+                       void *confirmation_cls,
+                       GNUNET_HashCode *me);
 
 /**
  * Send a message.
@@ -200,10 +200,10 @@ GNUNET_CHAT_join_room (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 void
 GNUNET_CHAT_send_message (struct GNUNET_CHAT_Room *room,
-			  const char *message,
-			  enum GNUNET_CHAT_MsgOptions options,
-			  const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *receiver,
-			  uint32_t *sequence_number);
+                          const char *message,
+                          enum GNUNET_CHAT_MsgOptions options,
+                          const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *receiver,
+                          uint32_t *sequence_number);
 
 
 /**
