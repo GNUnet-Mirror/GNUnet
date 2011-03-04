@@ -149,7 +149,7 @@ struct GNUNET_CHAT_SendReceiptContext
  * Ask client to send a join request.
  */
 static int
-GNUNET_CHAT_rejoin_room (struct GNUNET_CHAT_Room *chat_room);
+rejoin_room (struct GNUNET_CHAT_Room *chat_room);
 
 
 /**
@@ -448,7 +448,7 @@ receive_results (void *cls,
   if (NULL == msg)
     {
       GNUNET_break (0);
-      GNUNET_CHAT_rejoin_room (chat_room);
+      rejoin_room (chat_room);
       return;
     }
   process_result (chat_room, msg);
@@ -468,8 +468,8 @@ receive_results (void *cls,
  * Returns the private key on success, NULL on error.
  */
 static struct GNUNET_CRYPTO_RsaPrivateKey *
-GNUNET_CHAT_initPrivateKey (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			    const char *nick_name)
+init_private_key (const struct GNUNET_CONFIGURATION_Handle *cfg,
+		  const char *nick_name)
 {
   char *home;
   char *keyfile;
@@ -548,7 +548,7 @@ transmit_join_request (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Could not transmit join request, retrying...\n");
 #endif
-      GNUNET_CHAT_rejoin_room (chat_room);
+      rejoin_room (chat_room);
       return 0;
     }
 #if DEBUG_CHAT
@@ -591,7 +591,7 @@ transmit_join_request (void *cls,
  * Ask to send a join request.
  */
 static int
-GNUNET_CHAT_rejoin_room (struct GNUNET_CHAT_Room *chat_room)
+rejoin_room (struct GNUNET_CHAT_Room *chat_room)
 {
   size_t size_of_join;
 
@@ -682,7 +682,7 @@ GNUNET_CHAT_join_room (const struct GNUNET_CONFIGURATION_Handle *cfg,
 #if DEBUG_CHAT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Joining the room '%s'\n", room_name);
 #endif
-  priv_key = GNUNET_CHAT_initPrivateKey (cfg, nick_name);
+  priv_key = init_private_key (cfg, nick_name);
   if (NULL == priv_key)
     return NULL;
   GNUNET_CRYPTO_rsa_key_get_public (priv_key, &pub_key);
@@ -732,7 +732,7 @@ GNUNET_CHAT_join_room (const struct GNUNET_CONFIGURATION_Handle *cfg,
   chat_room->cfg = cfg;
   chat_room->client = client;
   chat_room->members = NULL;
-  if (GNUNET_SYSERR == GNUNET_CHAT_rejoin_room (chat_room))
+  if (GNUNET_SYSERR == rejoin_room (chat_room))
     {
       GNUNET_CHAT_leave_room (chat_room);
       return NULL;
