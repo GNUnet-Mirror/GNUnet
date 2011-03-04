@@ -323,9 +323,11 @@ GSF_handle_dht_reply_ (void *cls,
 
 /**
  * Setup the subsystem.
+ *
+ * @param cfg configuration to use
  */
 void
-GSF_pending_request_init_ (void);
+GSF_pending_request_init_ (struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**

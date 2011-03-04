@@ -99,6 +99,13 @@ extern double GSF_current_priorities;
 extern unsigned int GSF_cover_query_count;
 
 
+/**
+ * Our block context.
+ */
+extern struct GNUNET_BLOCK_Context *GSF_block_ctx;
+
+
+
 
 #endif
 /* end of gnunet-service-fs.h */
