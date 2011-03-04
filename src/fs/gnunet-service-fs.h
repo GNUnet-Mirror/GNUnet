@@ -26,6 +26,13 @@
 #ifndef GNUNET_SERVICE_FS_H
 #define GNUNET_SERVICE_FS_H
 
+#include "gnunet_util_lib.h"
+#include "gnunet_statistics_service.h"
+#include "gnunet_transport_service.h"
+#include "gnunet_core_service.h"
+#include "gnunet_block_lib.h"
+#include "fs.h"
+
 /**
  * A connected peer.
  */
@@ -66,7 +73,30 @@ extern struct GNUNET_CORE_Handle *GSF_core;
 /**
  * Handle for DHT operations.
  */
-static struct GNUNET_DHT_Handle *GSF_dht;
+extern struct GNUNET_DHT_Handle *GSF_dht;
+
+/**
+ * How long do requests typically stay in the routing table?
+ */
+extern struct GNUNET_LOAD_Value *GSF_rt_entry_lifetime;
+
+/**
+ * Typical priorities we're seeing from other peers right now.  Since
+ * most priorities will be zero, this value is the weighted average of
+ * non-zero priorities seen "recently".  In order to ensure that new
+ * values do not dramatically change the ratio, values are first
+ * "capped" to a reasonable range (+N of the current value) and then
+ * averaged into the existing value by a ratio of 1:N.  Hence
+ * receiving the largest possible priority can still only raise our
+ * "current_priorities" by at most 1.
+ */
+extern double GSF_current_priorities;
+
+/**
+ * How many query messages have we received 'recently' that 
+ * have not yet been claimed as cover traffic?
+ */
+extern unsigned int GSF_cover_query_count;
 
 
 

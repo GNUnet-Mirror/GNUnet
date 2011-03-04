@@ -26,6 +26,7 @@
 #ifndef GNUNET_SERVICE_FS_CP_H
 #define GNUNET_SERVICE_FS_CP_H
 
+#include "fs.h"
 #include "gnunet-service-fs.h"
 
 
@@ -175,7 +176,7 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
  * If the peer disconnects before the transmission can happen,
  * the callback is invoked with a 'NULL' buffer.
  *
- * @param peer target peer
+ * @param cp target peer
  * @param is_query is this a query (GNUNET_YES) or content (GNUNET_NO)
  * @param priority how important is this request?
  * @param timeout when does this request timeout (call gmc with error)
@@ -185,7 +186,7 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
  * @return handle to cancel request
  */
 struct GSF_PeerTransmitHandle *
-GSF_peer_transmit_ (struct GSF_ConnectedPeer *peer,
+GSF_peer_transmit_ (struct GSF_ConnectedPeer *cp,
 		    int is_query,
 		    uint32_t priority,
 		    struct GNUNET_TIME_Relative timeout,
@@ -225,7 +226,7 @@ GSF_peer_update_performance_ (struct GSF_ConnectedPeer *cp,
  */
 void
 GSF_peer_update_responder_client_ (struct GSF_ConnectedPeer *cp,
-				   const struct GSF_LocalClient *initiator_client);
+				   struct GSF_LocalClient *initiator_client);
 
 
 /**
