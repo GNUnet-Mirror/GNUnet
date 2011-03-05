@@ -197,6 +197,8 @@ send_rev_query(void * cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
 
     unsigned short id = pdns->s.id;
 
+    free_parsed_dns_packet(pdns);
+
     if (query_states[id].valid != GNUNET_YES) return;
     query_states[id].valid = GNUNET_NO;
 
@@ -208,8 +210,7 @@ send_rev_query(void * cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
 		 + sizeof(struct dns_query_line) \
 		 + 2 /* To hold the pointer (as defined in RFC1035) to the name */ \
 		 + sizeof(struct dns_record_line) - 1 \
-		 - 2 /* We do not know the lenght of the answer yet*/ \
-		 - 2 /* No idea why... */ ;
+		 - 2 /* We do not know the lenght of the answer yet*/;
 
     struct answer_packet_list* answer = GNUNET_malloc(len + 2*sizeof(struct answer_packet_list*));
     memset(answer, 0, len + 2*sizeof(struct answer_packet_list*));
