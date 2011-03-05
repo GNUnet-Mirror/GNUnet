@@ -402,6 +402,25 @@ GNUNET_CONFIGURATION_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
+ * Iterate over all sections in the configuration.
+ *
+ * @param cfg configuration to inspect
+ * @param iter function to call on each section
+ * @param iter_cls closure for iter
+ */
+void
+GNUNET_CONFIGURATION_iterate_sections (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                       GNUNET_CONFIGURATION_Section_Iterator iter,
+                                       void *iter_cls)
+{
+  struct ConfigSection *spos;
+
+  for (spos = cfg->sections; spos != NULL; spos = spos->next)
+    iter (iter_cls, spos->name);
+}
+
+
+/**
  * Copy a configuration value to the given target configuration.
  * Overwrites existing entries.
  *

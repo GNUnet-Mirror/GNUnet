@@ -61,6 +61,11 @@ static struct GNUNET_DHT_Handle *dht;
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
+ * The handle to the service-configuration
+ */
+static struct GNUNET_CONFIGURATION_Handle *servicecfg;
+
+/**
  * A list of DNS-Responses that have to be sent to the requesting client
  */
 static struct answer_packet_list *head;
@@ -568,74 +573,222 @@ cleanup_task (void *cls,
 }
 
 /**
+ * @brief Create a port-map from udp and tcp redirects
+ *
+ * @param udp_redirects
+ * @param tcp_redirects
+ *
+ * @return 
+ */
+uint64_t
+get_port_from_redirects (const char *udp_redirects, const char *tcp_redirects)
+{
+  uint64_t ret = 0;
+  char* cpy, *hostname, *redirect;
+  int local_port, count = 0;
+
+  if (NULL != udp_redirects)
+    {
+      cpy = GNUNET_strdup (udp_redirects);
+      for (redirect = strtok (cpy, " "); redirect != NULL; redirect = strtok (NULL, " "))
+        {
+          if (NULL == (hostname = strstr (redirect, ":")))
+            {
+              // FIXME: bitch
+              continue;
+            }
+          hostname[0] = '\0';
+          local_port = atoi (redirect);
+          GNUNET_assert ((local_port > 0) && (local_port < 65536)); // FIXME: don't crash!!!
+
+          ret |= (0xFFFF & htons(local_port));
+          ret <<= 16;
+          count ++;
+
+          if(count > 4)
+            {
+              ret = 0;
+              goto out;
+            }
+        }
+      GNUNET_free(cpy);
+      cpy = NULL;
+    }
+
+  if (NULL != tcp_redirects)
+    {
+      cpy = GNUNET_strdup (tcp_redirects);
+      for (redirect = strtok (cpy, " "); redirect != NULL; redirect = strtok (NULL, " "))
+        {
+          if (NULL == (hostname = strstr (redirect, ":")))
+            {
+              // FIXME: bitch
+              continue;
+            }
+          hostname[0] = '\0';
+          local_port = atoi (redirect);
+          GNUNET_assert ((local_port > 0) && (local_port < 65536)); // FIXME: don't crash!!!
+
+          ret |= (0xFFFF & htons(local_port));
+          ret <<= 16;
+          count ++;
+
+          if(count > 4)
+            {
+              ret = 0;
+              goto out;
+            }
+        }
+      GNUNET_free(cpy);
+      cpy = NULL;
+    }
+
+out:
+  if (NULL != cpy)
+    GNUNET_free(cpy);
+  return ret;
+}
+
+void
+publish_name (const char *name, uint64_t ports, uint32_t service_type,
+              struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key)
+{
+  size_t size = sizeof (struct GNUNET_DNS_Record);
+  struct GNUNET_DNS_Record data;
+  memset (&data, 0, size);
+
+  data.purpose.size =
+    htonl (size - sizeof (struct GNUNET_CRYPTO_RsaSignature));
+  data.purpose.purpose = GNUNET_SIGNATURE_PURPOSE_DNS_RECORD;
+
+  GNUNET_CRYPTO_hash (name, strlen (name) + 1, &data.service_descriptor);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Store with key1 %x\n",
+              *((unsigned long long *) &data.service_descriptor));
+
+  data.service_type = service_type;
+  data.ports = ports;
+
+  GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &data.peer);
+
+  data.expiration_time =
+    GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_HOURS, 2));
+
+  /* Sign the block */
+  if (GNUNET_OK != GNUNET_CRYPTO_rsa_sign (my_private_key,
+                                           &data.purpose, &data.signature))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "could not sign DNS_Record\n");
+      return;
+    }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Putting with key %08x, size = %d\n",
+              *((unsigned int *) &data.service_descriptor), size);
+
+  GNUNET_DHT_put (dht,
+                  &data.service_descriptor,
+                  DEFAULT_PUT_REPLICATION,
+                  GNUNET_DHT_RO_NONE,
+                  GNUNET_BLOCK_TYPE_DNS,
+                  size,
+                  (char *) &data,
+                  GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS),
+                  GNUNET_TIME_UNIT_MINUTES, NULL, NULL);
+}
+
+/**
+ * @brief Publishes the record defined by the section section
+ *
+ * @param cls closure
+ * @param section the current section
+ */
+void
+publish_iterate (void *cls, const char *section)
+{
+  char *udp_redirects, *tcp_redirects, *alternative_names, *alternative_name,
+    *keyfile;
+
+  GNUNET_CONFIGURATION_get_value_string (servicecfg, section,
+                                         "UDP_REDIRECTS", &udp_redirects);
+  GNUNET_CONFIGURATION_get_value_string (servicecfg, section, "TCP_REDIRECTS",
+                                         &tcp_redirects);
+
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "GNUNETD",
+                                                            "HOSTKEY",
+                                                            &keyfile))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "could not read keyfile-value\n");
+      if (keyfile != NULL)
+        GNUNET_free (keyfile);
+      return;
+    }
+
+  struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key =
+    GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+  GNUNET_free (keyfile);
+  GNUNET_assert (my_private_key != NULL);
+
+  uint64_t ports = get_port_from_redirects (udp_redirects, tcp_redirects);
+  uint32_t service_type = 0;
+
+  if (NULL != udp_redirects)
+    service_type = GNUNET_DNS_SERVICE_TYPE_UDP;
+
+  if (NULL != tcp_redirects)
+    service_type = GNUNET_DNS_SERVICE_TYPE_TCP;
+
+  service_type = htonl (service_type);
+
+
+  publish_name (section, ports, service_type, my_private_key);
+
+  GNUNET_CONFIGURATION_get_value_string (servicecfg, section,
+                                         "ALTERNATIVE_NAMES",
+                                         &alternative_names);
+  for (alternative_name = strtok (alternative_names, " ");
+       alternative_name != NULL; alternative_name = strtok (NULL, " "))
+    {
+      char *altname =
+        alloca (strlen (alternative_name) + strlen (section) + 1 + 1);
+      strcpy (altname, alternative_name);
+      strcpy (altname + strlen (alternative_name) + 1, section);
+      altname[strlen (alternative_name)] = '.';
+
+      publish_name (altname, ports, service_type, my_private_key);
+    }
+
+  GNUNET_free_non_null(alternative_names);
+  GNUNET_CRYPTO_rsa_key_free (my_private_key);
+  GNUNET_free_non_null (udp_redirects);
+  GNUNET_free_non_null (tcp_redirects);
+}
+
+/**
  * Publish a DNS-record in the DHT. This is up to now just for testing.
  */
 static void
-publish_name (void *cls,
-	      const struct GNUNET_SCHEDULER_TaskContext *tc) {
+publish_names (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc) {
+    char *services;
     if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
       return;
 
-    char* name = "philipptoelke.gnunet.";
-    size_t size = sizeof(struct GNUNET_DNS_Record);
-    struct GNUNET_DNS_Record data;
-    memset(&data, 0, size);
+    if (NULL != servicecfg)
+      GNUNET_CONFIGURATION_destroy(servicecfg);
 
-    data.purpose.size = htonl(size - sizeof(struct GNUNET_CRYPTO_RsaSignature));
-    data.purpose.purpose = GNUNET_SIGNATURE_PURPOSE_DNS_RECORD;
+    GNUNET_CONFIGURATION_get_value_filename(cfg, "dns", "SERVICES", &services);
 
-    GNUNET_CRYPTO_hash(name, strlen(name)+1, &data.service_descriptor);
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Store with key1 %x\n", *((unsigned long long*)&data.service_descriptor));
-
-    data.service_type = htonl(GNUNET_DNS_SERVICE_TYPE_UDP);
-    data.ports = htons(69);
-
-    char* keyfile;
-    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename(cfg, "GNUNETD",
-							     "HOSTKEY", &keyfile))
+    servicecfg = GNUNET_CONFIGURATION_create();
+    if (GNUNET_OK == GNUNET_CONFIGURATION_parse(servicecfg, services))
       {
-	GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "could not read keyfile-value\n");
-	if (keyfile != NULL) GNUNET_free(keyfile);
-	return;
+        GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Parsing services %s\n", services);
+        GNUNET_CONFIGURATION_iterate_sections(servicecfg, publish_iterate, NULL);
       }
-
-    struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file(keyfile);
-    GNUNET_free(keyfile);
-    GNUNET_assert(my_private_key != NULL);
-
-    GNUNET_CRYPTO_rsa_key_get_public(my_private_key, &data.peer);
-
-    data.expiration_time = GNUNET_TIME_relative_to_absolute(GNUNET_TIME_UNIT_HOURS);
-
-  /* Sign the block */
-    if (GNUNET_OK != GNUNET_CRYPTO_rsa_sign(my_private_key,
-					    &data.purpose,
-					    &data.signature))
-      {
-	GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "could not sign DNS_Record\n");
-	return;
-      }
-    GNUNET_CRYPTO_rsa_key_free(my_private_key);
-
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-	       "Putting with key %08x, size = %d\n",
-	       *((unsigned int*)&data.service_descriptor),
-               size);
-
-    GNUNET_DHT_put(dht,
-		   &data.service_descriptor,
-		   DEFAULT_PUT_REPLICATION,
-		   GNUNET_DHT_RO_NONE,
-		   GNUNET_BLOCK_TYPE_DNS,
-		   size,
-		   (char*)&data,
-		   GNUNET_TIME_relative_to_absolute(GNUNET_TIME_UNIT_HOURS),
-		   GNUNET_TIME_UNIT_MINUTES,
-		   NULL,
-		   NULL);
+    if (NULL != services)
+      GNUNET_free(services);
 
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_HOURS,
-				  publish_name,
+				  publish_names,
 				  NULL);
 }
 
@@ -689,7 +842,7 @@ run (void *cls,
 
   dnsoutport = htons(addr.sin_port);
 
-  GNUNET_SCHEDULER_add_now (publish_name, NULL);
+  GNUNET_SCHEDULER_add_now (publish_names, NULL);
 
   GNUNET_SCHEDULER_add_read_net(GNUNET_TIME_UNIT_FOREVER_REL, dnsout, &read_response, NULL);
 

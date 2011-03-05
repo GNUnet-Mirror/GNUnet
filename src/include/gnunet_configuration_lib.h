@@ -142,6 +142,16 @@ typedef void (*GNUNET_CONFIGURATION_Iterator)(void *cls,
 
 
 /**
+ * Function to iterate over section.
+ *
+ * @param cls closure
+ * @param section name of the section
+ */
+typedef void (*GNUNET_CONFIGURATION_Section_Iterator)(void *cls,
+					      const char *section);
+
+
+/**
  * Iterate over all options in the configuration.
  *
  * @param cfg configuration to inspect
@@ -152,6 +162,17 @@ void GNUNET_CONFIGURATION_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg
 				   GNUNET_CONFIGURATION_Iterator iter,
 				   void *iter_cls);
 
+
+/**
+ * Iterate over all sections in the configuration.
+ *
+ * @param cfg configuration to inspect
+ * @param iter function to call on each section
+ * @param iter_cls closure for iter
+ */
+void GNUNET_CONFIGURATION_iterate_sections (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                            GNUNET_CONFIGURATION_Section_Iterator iter,
+                                            void *iter_cls);
 
 /**
  * Get a configuration value that should be a number.
