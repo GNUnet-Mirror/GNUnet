@@ -230,7 +230,7 @@ message_token(void *cls,
 		GNUNET_free(key);
 		if (me->desc.service_type & htonl(GNUNET_DNS_SERVICE_TYPE_UDP) &&
 		    (port_in_ports(me->desc.ports, pkt6_udp->udp_hdr.dpt) ||
-		     port_in_ports(me->additional_ports, pkt6_udp->udp_hdr.dpt)))
+		     testBit(me->additional_ports, ntohs(pkt6_udp->udp_hdr.dpt))))
 		  {
 		    size_t size = sizeof(struct GNUNET_MESH_Tunnel*) + sizeof(struct GNUNET_MessageHeader) + sizeof(GNUNET_HashCode) + ntohs(pkt6_udp->udp_hdr.len);
 		    struct GNUNET_MESH_Tunnel **cls = GNUNET_malloc(size);

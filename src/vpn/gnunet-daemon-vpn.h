@@ -72,10 +72,35 @@ struct map_entry {
     struct GNUNET_vpn_service_descriptor desc;
     struct GNUNET_MESH_Tunnel *tunnel;
     uint16_t namelen;
-    uint64_t additional_ports;
+    char additional_ports[8192];
     /**
      * After this struct the name is located in DNS-Format!
      */
 };
+
+/**
+ * Sets a bit active in a bitArray.
+ *
+ * @param bitArray memory area to set the bit in
+ * @param bitIdx which bit to set
+ */
+void setBit (char *bitArray, unsigned int bitIdx);
+
+/**
+ * Clears a bit from bitArray.
+ *
+ * @param bitArray memory area to set the bit in
+ * @param bitIdx which bit to unset
+ */
+void clearBit (char *bitArray, unsigned int bitIdx);
+
+/**
+ * Checks if a bit is active in the bitArray
+ *
+ * @param bitArray memory area to set the bit in
+ * @param bitIdx which bit to test
+ * @return GNUNET_YES if the bit is set, GNUNET_NO if not.
+ */
+int testBit (char *bitArray, unsigned int bitIdx);
 
 #endif /* end of include guard: GNUNET-DAEMON-VPN_H */

@@ -264,7 +264,7 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 
 	memcpy(&value->desc, &pkt->service_descr, sizeof(struct GNUNET_vpn_service_descriptor));
 
-	value->additional_ports = 0;
+        memset(value->additional_ports, 0, 8192);
 
         if (GNUNET_NO ==
             GNUNET_CONTAINER_multihashmap_contains (hashmap, &key))
@@ -348,19 +348,71 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
     return;
 }
 
+/**
+ * Sets a bit active in a bitArray.
+ *
+ * @param bitArray memory area to set the bit in
+ * @param bitIdx which bit to set
+ */
+void
+setBit (char *bitArray, unsigned int bitIdx)
+{
+  size_t arraySlot;
+  unsigned int targetBit;
+
+  arraySlot = bitIdx / 8;
+  targetBit = (1L << (bitIdx % 8));
+  bitArray[arraySlot] |= targetBit;
+}
+
+/**
+ * Clears a bit from bitArray.
+ *
+ * @param bitArray memory area to set the bit in
+ * @param bitIdx which bit to unset
+ */
+void
+clearBit (char *bitArray, unsigned int bitIdx)
+{
+  size_t slot;
+  unsigned int targetBit;
+
+  slot = bitIdx / 8;
+  targetBit = (1L << (bitIdx % 8));
+  bitArray[slot] = bitArray[slot] & (~targetBit);
+}
+
+/**
+ * Checks if a bit is active in the bitArray
+ *
+ * @param bitArray memory area to set the bit in
+ * @param bitIdx which bit to test
+ * @return GNUNET_YES if the bit is set, GNUNET_NO if not.
+ */
+int
+testBit (char *bitArray, unsigned int bitIdx)
+{
+  size_t slot;
+  unsigned int targetBit;
+
+  slot = bitIdx / 8;
+  targetBit = (1L << (bitIdx % 8));
+  if (bitArray[slot] & targetBit)
+    return GNUNET_YES;
+  else
+    return GNUNET_NO;
+}
+
+/**
+ * @brief Add the port to the list of additional ports in the map_entry
+ *
+ * @param me the map_entry
+ * @param port the port in host-byte-order
+ */
 static void
 add_additional_port (struct map_entry *me, uint16_t port)
 {
-  uint16_t *ps = (uint16_t *) & me->additional_ports;
-  unsigned int i;
-  for (i = 0; i < 4; i++)
-    {
-      if (ps[i] == 0)
-	{
-	  ps[i] = port;
-	  break;
-	}
-    }
+  setBit(me->additional_ports, port);
 }
 
 static int
@@ -415,8 +467,8 @@ receive_udp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
   GNUNET_assert (me != NULL);
   GNUNET_assert (me->desc.service_type & htonl(GNUNET_DNS_SERVICE_TYPE_UDP));
   if (!port_in_ports(me->desc.ports, pkt6->udp_hdr.spt) &&
-      !port_in_ports(me->additional_ports, pkt6->udp_hdr.spt)) {
-      add_additional_port(me, pkt6->udp_hdr.spt);
+      !testBit(me->additional_ports, ntohs(pkt6->udp_hdr.spt))) {
+      add_additional_port(me, ntohs(pkt6->udp_hdr.spt));
   }
 
   pkt6->udp_hdr.crc = 0;
