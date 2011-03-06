@@ -92,8 +92,10 @@ int mi_look_for_free_vt()
    }
 
  /* Get the state of the console -- in particular, the free VT field */
- if (ioctl(console_fd,VT_GETSTATE,&vts))
+ if (ioctl(console_fd,VT_GETSTATE,&vts)) {
+	 close(console_fd);
     return -2;
+ }
  close(console_fd);
 
  /* We attempt to set our euid to 0; if we were run with euid 0 to

@@ -273,53 +273,42 @@ mi_output *mi_get_response_blk(mi_h *h)
    }
  do
    {
-    if (1)
-      {
-       /*
-        That's a must. If we just keep trying to read and failing things
-        become really sloooowwww. Instead we try and if it fails we wait
-        until something is available.
-        TODO: Implement something with the time out, a callback to ask the
-        application is we have to wait or not could be a good thing.
-       */
-       fd_set set;
-       struct timeval timeout;
-       int ret;
+   /*
+    That's a must. If we just keep trying to read and failing things
+    become really sloooowwww. Instead we try and if it fails we wait
+    until something is available.
+    TODO: Implement something with the time out, a callback to ask the
+    application is we have to wait or not could be a good thing.
+   */
+   fd_set set;
+   struct timeval timeout;
+   int ret;
 
-       r=mi_get_response(h);
-       if (r)
-          return mi_retire_response(h);
+   r=mi_get_response(h);
+   if (r)
+      return mi_retire_response(h);
 
-       FD_ZERO(&set);
-       FD_SET(h->from_gdb[0],&set);
-       timeout.tv_sec=h->time_out;
-       timeout.tv_usec=0;
-       ret=TEMP_FAILURE_RETRY(select(FD_SETSIZE,&set,NULL,NULL,&timeout));
-       if (!ret)
-         {
-          if (!mi_check_running(h))
-            {
-             h->died=1;
-             mi_error=MI_GDB_DIED;
-             return NULL;
-            }
-          if (h->time_out_cb)
-             ret=h->time_out_cb(h->time_out_cb_data);
-          if (!ret)
-            {
-             mi_error=MI_GDB_TIME_OUT;
-             return NULL;
-            }
-         }
-      }
-    else
-      {
-       r=mi_get_response(h);
-       if (r)
-          return mi_retire_response(h);
-       else
-          usleep(100);
-      }
+   FD_ZERO(&set);
+   FD_SET(h->from_gdb[0],&set);
+   timeout.tv_sec=h->time_out;
+   timeout.tv_usec=0;
+   ret=TEMP_FAILURE_RETRY(select(FD_SETSIZE,&set,NULL,NULL,&timeout));
+   if (!ret)
+     {
+      if (!mi_check_running(h))
+        {
+         h->died=1;
+         mi_error=MI_GDB_DIED;
+         return NULL;
+        }
+      if (h->time_out_cb)
+         ret=h->time_out_cb(h->time_out_cb_data);
+      if (!ret)
+        {
+         mi_error=MI_GDB_TIME_OUT;
+         return NULL;
+        }
+     }
    }
  while (!r);
 
