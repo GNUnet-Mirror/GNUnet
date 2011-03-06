@@ -648,6 +648,8 @@ GNUNET_CHAT_leave_room (struct GNUNET_CHAT_Room *chat_room)
  * @param member_info information about the joining member
  * @param room_name name of the room
  * @param msg_options message options of the joining user
+ * @param joinCallback function to call on successful join
+ * @param join_cls closure for joinCallback 
  * @param messageCallback which function to call if a message has
  *        been received?
  * @param message_cls argument to callback

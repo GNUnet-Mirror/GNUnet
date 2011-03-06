@@ -97,8 +97,9 @@ join_cb (void *cls)
  * @param cls closure, NULL
  * @param room in which room was the message received?
  * @param sender what is the ID of the sender? (maybe NULL)
- * @param meta information about the joining member
+ * @param member_info information about the joining member
  * @param message the message text
+ * @param timestamp time when the member joined
  * @param options options for the message
  * @return GNUNET_OK to accept the message now, GNUNET_NO to
  *         accept (but user is away), GNUNET_SYSERR to signal denied delivery
@@ -174,8 +175,6 @@ receive_cb (void *cls,
  * @param orig_seq_number sequence number of the original message
  * @param timestamp when was the message received?
  * @param receiver who is confirming the receipt?
- * @param msg_hash hash of the original message
- * @param receipt signature confirming delivery
  * @return GNUNET_OK to continue, GNUNET_SYSERR to refuse processing further
  *         confirmations from anyone for this message
  */
