@@ -154,10 +154,10 @@ void GNUNET_CONTAINER_bloomfilter_remove (struct GNUNET_CONTAINER_BloomFilter
 
 
 /**
- * Free the space associcated with a filter
- * in memory, flush to drive if needed (do not
- * free the space on the drive)
+ * Create a copy of a bloomfilter.
+ *
  * @param bf the filter
+ * @return copy of bf
  */
 struct GNUNET_CONTAINER_BloomFilter *
 GNUNET_CONTAINER_bloomfilter_copy (const struct GNUNET_CONTAINER_BloomFilter *bf);

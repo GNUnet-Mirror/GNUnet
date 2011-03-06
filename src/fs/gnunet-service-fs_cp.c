@@ -1610,7 +1610,7 @@ GSF_connected_peer_done_ ()
 /**
  * Iterator to remove references to LC entry.
  *
- * @param the 'struct GSF_LocalClient*' to look for
+ * @param cls the 'struct GSF_LocalClient*' to look for
  * @param key current key code
  * @param value value in the hash map (peer entry)
  * @return GNUNET_YES (we should continue to iterate)

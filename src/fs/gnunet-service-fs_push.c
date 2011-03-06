@@ -348,7 +348,7 @@ consider_gathering (void);
 /**
  * Find content for migration to this peer.
  *
- * @param mig peer to find content for
+ * @param mrp peer to find content for
  */ 
 static void
 find_content (struct MigrationReadyPeer *mrp)
