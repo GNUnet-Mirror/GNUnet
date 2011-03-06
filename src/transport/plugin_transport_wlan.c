@@ -2170,7 +2170,7 @@ add_ack_for_send(struct Plugin * plugin, struct Session * session,
  * Function used for to process the data received from the wlan interface
  *
  * @param cls the plugin handle
- * @param client client which send the data (not used)
+ * @param session_light FIXME: document
  * @param hdr hdr of the GNUNET_MessageHeader
  */
 static void

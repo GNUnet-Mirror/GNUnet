@@ -270,7 +270,7 @@ message_token (void *cls,
  * @param section name of section in config, equal to hostname
  * @param option type of redirect
  * @param value specification of services, format is
- *         "OFFERED-PORT:HOSTNAME:HOST-PORT" (SPACE <more of those>)*
+ *         "OFFERED-PORT:HOSTNAME:HOST-PORT" (SPACE &lt;more of those&gt;)*
  */
 static void
 read_service_conf (void *cls, const char *section, const char *option,
