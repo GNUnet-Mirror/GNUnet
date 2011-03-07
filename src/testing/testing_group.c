@@ -32,7 +32,7 @@
 
 #define VERBOSE_TESTING GNUNET_NO
 
-#define VERBOSE_TOPOLOGY GNUNET_YES
+#define VERBOSE_TOPOLOGY GNUNET_NO
 
 #define DEBUG_CHURN GNUNET_NO
 
@@ -5704,6 +5704,7 @@ GNUNET_TESTING_daemons_start(
   struct GNUNET_DISK_FileHandle *fd;
   struct GNUNET_CONFIGURATION_Handle *pcfg;
   unsigned int off;
+  struct OutstandingSSH *ssh_entry;
   unsigned int hostcnt;
   unsigned int i;
   uint16_t minport;
@@ -5816,13 +5817,13 @@ GNUNET_TESTING_daemons_start(
 
   /* Create the servicehome directory for each remote peer */
   GNUNET_assert(GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS", "SERVICEHOME",
-          &baseservicehome));
+                                                                    &baseservicehome));
   for (i = 0; i < pg->num_hosts; i++)
     {
-      struct OutstandingSSH *ssh_entry;
       ssh_entry = GNUNET_malloc(sizeof(struct OutstandingSSH));
       ssh_entry->hostname = pg->hosts[i].hostname; /* Don't free! */
       GNUNET_CONTAINER_DLL_insert(pg->ssh_head, pg->ssh_tail, ssh_entry);
+      GNUNET_asprintf(&tmpdir, "%s/%s", baseservicehome, pg->hosts[i].hostname);
       if (NULL != pg->hosts[i].username)
         GNUNET_asprintf (&arg, "%s@%s", pg->hosts[i].username,
                          pg->hosts[i].hostname);
@@ -5836,15 +5837,16 @@ GNUNET_TESTING_daemons_start(
 #if !DEBUG_TESTING
                                           "-q",
 #endif
-                                          arg, "mkdir -p", baseservicehome,
+                                          arg, "mkdir -p", tmpdir,
                                           NULL);
         }
       else
         proc = GNUNET_OS_start_process (NULL, NULL, "ssh", "ssh", arg,
-                                        "mkdir -p", baseservicehome, NULL);
+                                        "mkdir -p", tmpdir, NULL);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Creating remote dir with command ssh %s %s %s\n", arg,
-                  " mkdir -p ", baseservicehome);
+                  " mkdir -p ", tmpdir);
+      GNUNET_free(tmpdir);
       GNUNET_free(arg);
       GNUNET_OS_process_wait (proc);
       GNUNET_OS_process_close(proc);
@@ -5927,15 +5929,22 @@ GNUNET_TESTING_daemons_start(
                                                     "SERVICEHOME",
                                                     &baseservicehome))
         {
-          GNUNET_asprintf (&newservicehome, "%s/%d/", baseservicehome, off);
+          if (hostname != NULL)
+            GNUNET_asprintf (&newservicehome, "%s/%s/%d/", baseservicehome, hostname, off);
+          else
+            GNUNET_asprintf (&newservicehome, "%s/%d/", baseservicehome, off);
           GNUNET_free (baseservicehome);
         }
       else
         {
           tmpdir = getenv ("TMPDIR");
           tmpdir = tmpdir ? tmpdir : "/tmp";
-          GNUNET_asprintf (&newservicehome, "%s/%s/%d/", tmpdir,
-                           "gnunet-testing-test-test", off);
+          if (hostname != NULL)
+            GNUNET_asprintf (&newservicehome, "%s/%s/%s/%d/", tmpdir, hostname,
+                             "gnunet-testing-test-test", off);
+          else
+            GNUNET_asprintf (&newservicehome, "%s/%s/%d/", tmpdir,
+                             "gnunet-testing-test-test", off);
         }
       GNUNET_CONFIGURATION_set_value_string (pcfg, "PATHS", "SERVICEHOME",
                                              newservicehome);

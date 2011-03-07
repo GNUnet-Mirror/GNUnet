@@ -39,6 +39,7 @@
 
 #define DEBUG_TESTING GNUNET_NO
 #define DEBUG_TESTING_RECONNECT GNUNET_YES
+#define WAIT_FOR_HELLO GNUNET_NO
 
 /**
  * How long do we wait after starting gnunet-service-arm
@@ -116,13 +117,16 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
     }
   daemon->phase = SP_START_DONE;
 
+#if WAIT_FOR_HELLO
   if (NULL != cb) /* FIXME: what happens when this callback calls GNUNET_TESTING_daemon_stop? */
     cb (daemon->cb_cls, &daemon->id, daemon->cfg, daemon, NULL);
+#endif
 }
 
 static void
 start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
+#if WAIT_FOR_HELLO
 /**
  * Function called after GNUNET_CORE_connect has succeeded
  * (or failed for good).  Note that the private key of the
@@ -163,7 +167,7 @@ testing_init (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Successfully started peer `%4s'.\n", GNUNET_i2s (my_identity));
 #endif
-  d->id = *my_identity;
+  d->id = *my_identity; /* FIXME: shouldn't we already have this from reading the hostkey file? */
   if (d->shortname == NULL)
     d->shortname = strdup (GNUNET_i2s (my_identity));
   d->server = server;
@@ -210,7 +214,7 @@ testing_init (void *cls,
     = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_EXEC_WAIT,
                                     &start_fsm, d);
 }
-
+#endif
 
 /**
  * Finite-state machine for starting GNUnet.
@@ -618,6 +622,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       if (d->server != NULL)
         GNUNET_CORE_disconnect(d->server);
 
+#if WAIT_FOR_HELLO
       if (GNUNET_TIME_absolute_get_remaining (d->max_timeout).rel_value ==
           0)
         {
@@ -645,6 +650,34 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       d->task
         = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_CONSTANTS_SERVICE_RETRY, 2),
                                         &start_fsm, d);
+#else
+      d->th = GNUNET_TRANSPORT_connect (d->cfg, &d->id, d, NULL, NULL, NULL);
+      if (d->th == NULL)
+        {
+          if (GNUNET_YES == d->dead)
+            GNUNET_TESTING_daemon_stop (d,
+                                        GNUNET_TIME_absolute_get_remaining
+                                        (d->max_timeout), d->dead_cb,
+                                        d->dead_cb_cls, GNUNET_YES, GNUNET_NO);
+          else if (NULL != d->cb)
+            d->cb (d->cb_cls, &d->id, d->cfg, d,
+                   _("Failed to connect to transport service!\n"));
+          return;
+        }
+    #if DEBUG_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Connected to transport service `%s', getting HELLO\n",
+                  GNUNET_i2s (my_identity));
+    #endif
+
+      GNUNET_TRANSPORT_get_hello (d->th, &process_hello, d);
+      cb = d->cb;
+      d->cb = NULL;
+      if (NULL != cb) /* FIXME: what happens when this callback calls GNUNET_TESTING_daemon_stop? */
+        cb (d->cb_cls, &d->id, d->cfg, d, NULL);
+      d->running = GNUNET_YES;
+      d->phase = SP_GET_HELLO;
+#endif
       break;
     case SP_GET_HELLO:
       if (GNUNET_TIME_absolute_get_remaining (d->max_timeout).rel_value ==
@@ -1945,6 +1978,7 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
       if (NULL != cb)
         cb (cb_cls, &d1->id, &d2->id, 0, d1->cfg, d2->cfg, d1, d2,
             _("Peers are not fully running yet, can not connect!\n"));
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Peers are not up!\n");
       return;
     }
 
