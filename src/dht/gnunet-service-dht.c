@@ -4691,6 +4691,7 @@ handle_dht_control_message (void *cls, struct GNUNET_SERVER_Client *client,
 {
   const struct GNUNET_DHT_ControlMessage *dht_control_msg =
     (const struct GNUNET_DHT_ControlMessage *) message;
+
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "`%s:%s': Received `%s' request from client, command %d\n",

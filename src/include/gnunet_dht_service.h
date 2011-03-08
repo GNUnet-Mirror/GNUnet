@@ -384,9 +384,13 @@ GNUNET_DHT_find_peers (struct GNUNET_DHT_Handle *handle,
  * all requests received.
  *
  * @param handle handle to the DHT service
+ * @param cont continuation to call when done (transmitting request to service)
+ * @param cont_cls closure for cont
+ *
  */
 void 
-GNUNET_DHT_set_malicious_dropper (struct GNUNET_DHT_Handle *handle);
+GNUNET_DHT_set_malicious_dropper (struct GNUNET_DHT_Handle *handle, GNUNET_SCHEDULER_Task cont,
+    void *cont_cls);
 
 
 /**
@@ -394,11 +398,14 @@ GNUNET_DHT_set_malicious_dropper (struct GNUNET_DHT_Handle *handle);
  * requests every 'frequency' milliseconds.
  *
  * @param handle handle to the DHT service
- * @param frequency delay (in milliseconds) between sending malicious messages
+ * @param frequency delay between sending malicious messages
+ * @param cont continuation to call when done (transmitting request to service)
+ * @param cont_cls closure for cont
  */
 void 
 GNUNET_DHT_set_malicious_putter (struct GNUNET_DHT_Handle *handle,
-				 struct GNUNET_TIME_Relative frequency);
+         struct GNUNET_TIME_Relative frequency, GNUNET_SCHEDULER_Task cont,
+          void *cont_cls);
 
 
 /**
@@ -407,10 +414,13 @@ GNUNET_DHT_set_malicious_putter (struct GNUNET_DHT_Handle *handle,
  *
  * @param handle handle to the DHT service
  * @param frequency delay between sending malicious messages
+ * @param cont continuation to call when done (transmitting request to service)
+ * @param cont_cls closure for cont
  */
-void 
-GNUNET_DHT_set_malicious_getter (struct GNUNET_DHT_Handle *handle, 
-				 struct GNUNET_TIME_Relative frequency);
+void
+GNUNET_DHT_set_malicious_getter (struct GNUNET_DHT_Handle *handle,
+         struct GNUNET_TIME_Relative frequency, GNUNET_SCHEDULER_Task cont,
+          void *cont_cls);
 
 
 #endif

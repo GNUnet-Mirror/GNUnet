@@ -238,8 +238,10 @@ try_connect (struct GNUNET_DHT_Handle *handle)
 		  _("Failed to connect to the DHT service!\n"));
       return GNUNET_NO;
     }
+#if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Starting to process replies from DHT\n");
+#endif
   GNUNET_CLIENT_receive (handle->client,
                          &service_message_handler,
                          handle, 
@@ -871,10 +873,13 @@ GNUNET_DHT_find_peers (struct GNUNET_DHT_Handle *handle,
  *
  * @param handle handle to the DHT service
  * @param frequency delay between sending malicious messages
+ * @param cont continuation to call when done (transmitting request to service)
+ * @param cont_cls closure for cont
  */
 void
 GNUNET_DHT_set_malicious_getter (struct GNUNET_DHT_Handle *handle,
-				 struct GNUNET_TIME_Relative frequency)
+				 struct GNUNET_TIME_Relative frequency, GNUNET_SCHEDULER_Task cont,
+			    void *cont_cls)
 {
   if (frequency.rel_value > UINT16_MAX)
     {
@@ -883,7 +888,7 @@ GNUNET_DHT_set_malicious_getter (struct GNUNET_DHT_Handle *handle,
     }
   send_control_message (handle,
 			GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_GET, frequency.rel_value,
-			NULL, NULL);
+			cont, cont_cls);
 }
 
 /**
@@ -892,10 +897,13 @@ GNUNET_DHT_set_malicious_getter (struct GNUNET_DHT_Handle *handle,
  *
  * @param handle handle to the DHT service
  * @param frequency delay between sending malicious messages
+ * @param cont continuation to call when done (transmitting request to service)
+ * @param cont_cls closure for cont
  */
 void 
 GNUNET_DHT_set_malicious_putter (struct GNUNET_DHT_Handle *handle, 
-				 struct GNUNET_TIME_Relative frequency)
+				 struct GNUNET_TIME_Relative frequency, GNUNET_SCHEDULER_Task cont,
+			    void *cont_cls)
 {
   if (frequency.rel_value > UINT16_MAX)
     {
@@ -905,7 +913,7 @@ GNUNET_DHT_set_malicious_putter (struct GNUNET_DHT_Handle *handle,
 
   send_control_message (handle,
 			GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_PUT, frequency.rel_value,
-			NULL, NULL);
+			cont, cont_cls);
 }
 
 
@@ -914,13 +922,17 @@ GNUNET_DHT_set_malicious_putter (struct GNUNET_DHT_Handle *handle,
  * all requests received.
  *
  * @param handle handle to the DHT service
+ * @param cont continuation to call when done (transmitting request to service)
+ * @param cont_cls closure for cont
+ *
  */
 void 
-GNUNET_DHT_set_malicious_dropper (struct GNUNET_DHT_Handle *handle)
+GNUNET_DHT_set_malicious_dropper (struct GNUNET_DHT_Handle *handle, GNUNET_SCHEDULER_Task cont,
+    void *cont_cls)
 {
   send_control_message (handle,
-			GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_DROP, 0,
-			NULL, NULL);
+                        GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_DROP, 0,
+                        cont, cont_cls);
 }
 
 #endif

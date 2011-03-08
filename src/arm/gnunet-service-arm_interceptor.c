@@ -1094,6 +1094,8 @@ createListeningSocket (struct sockaddr *sa,
       sock = GNUNET_NETWORK_socket_create (PF_INET6, SOCK_STREAM, 0);
       break;
     case AF_UNIX:
+      if (strcmp(GNUNET_a2s (sa, addr_len), "@") == 0) /* Do not bind to blank UNIX path! */
+        return;
       sock = GNUNET_NETWORK_socket_create (PF_UNIX, SOCK_STREAM, 0);
       break;
     default:

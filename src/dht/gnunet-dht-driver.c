@@ -2690,7 +2690,7 @@ continue_puts_and_gets(void *cls,
  */
 static void
 malicious_disconnect_task(void *cls,
-    const struct GNUNET_SCHEDULER_TaskContext * tc)
+                          const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   struct MaliciousContext *ctx = cls;
   outstanding_malicious--;
@@ -2705,7 +2705,6 @@ malicious_disconnect_task(void *cls,
     {
       fprintf (stderr, "Finished setting all malicious peers up!\n");
     }
-
 }
 
 /**
@@ -2753,16 +2752,13 @@ set_malicious(void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   switch (ctx->malicious_type)
     {
   case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_GET:
-    GNUNET_DHT_set_malicious_getter (ctx->dht_handle, malicious_get_frequency);
-    GNUNET_SCHEDULER_add_now (&malicious_done_task, ctx);
+    GNUNET_DHT_set_malicious_getter (ctx->dht_handle, malicious_get_frequency, &malicious_done_task, ctx);
     break;
   case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_PUT:
-    GNUNET_DHT_set_malicious_putter (ctx->dht_handle, malicious_put_frequency);
-    GNUNET_SCHEDULER_add_now (&malicious_done_task, ctx);
+    GNUNET_DHT_set_malicious_putter (ctx->dht_handle, malicious_put_frequency, &malicious_done_task, ctx);
     break;
   case GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_DROP:
-    GNUNET_DHT_set_malicious_dropper (ctx->dht_handle);
-    GNUNET_SCHEDULER_add_now (&malicious_done_task, ctx);
+    GNUNET_DHT_set_malicious_dropper (ctx->dht_handle, &malicious_done_task, ctx);
     break;
   default:
     break;
