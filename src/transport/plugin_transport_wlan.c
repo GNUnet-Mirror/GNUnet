@@ -1587,8 +1587,8 @@ wlan_plugin_send(void *cls, const struct GNUNET_PeerIdentity * target,
   struct Plugin * plugin = cls;
   struct PendingMessage * newmsg = NULL;
   struct WlanHeader * wlanheader = NULL;
-  struct GNUNET_MessageHeader * innermsg =
-      (struct GNUNET_MessageHeader *) msgbuf;
+  //struct GNUNET_MessageHeader * innermsg =
+   //    (struct GNUNET_MessageHeader *) msgbuf;
 
   //check if msglen > 0
   GNUNET_assert(msgbuf_size > 0);

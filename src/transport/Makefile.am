@@ -351,7 +351,7 @@ test_transport_api_reliability_https_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la
- 
+
 test_transport_api_unreliability_unix_SOURCES = \
  test_transport_api_unreliability.c
 test_transport_api_unreliability_unix_LDADD = \
