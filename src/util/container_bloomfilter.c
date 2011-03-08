@@ -96,7 +96,7 @@ GNUNET_CONTAINER_bloomfilter_get_size (const struct GNUNET_CONTAINER_BloomFilter
  * Copy an existing memory.  Any association with a file
  * on-disk will be lost in the process.
  * @param bf the filter to copy
- * @retun copy of the bf
+ * @return copy of the bf
  */
 struct GNUNET_CONTAINER_BloomFilter *
 GNUNET_CONTAINER_bloomfilter_copy (const struct GNUNET_CONTAINER_BloomFilter *bf)
