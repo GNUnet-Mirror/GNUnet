@@ -2552,6 +2552,7 @@ create_from_file(struct GNUNET_TESTING_PeerGroup *pg, char *filename,
 
   buf = data;
   count = 0;
+  first_peer_index = 0;
   /* First line should contain a single integer, specifying the number of peers */
   /* Each subsequent line should contain this format PEER_INDEX:OTHER_PEER_INDEX[,...] */
   curr_state = NUM_PEERS;
