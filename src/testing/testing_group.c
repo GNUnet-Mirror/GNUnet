@@ -42,7 +42,7 @@
 
 #define TOPOLOGY_HACK GNUNET_YES
 
-#define AVOID_CONN_MALLOC GNUNET_YES
+#define AVOID_CONN_MALLOC GNUNET_NO
 
 /**
  * Lowest port used for GNUnet testing.  Should be high enough to not
@@ -2639,17 +2639,6 @@ create_from_file(struct GNUNET_TESTING_PeerGroup *pg, char *filename,
         }
 
     }
-#if 0
-  /* Connect each peer to the next highest numbered peer */
-  for (count = 0; count < pg->total - 1; count++)
-    {
-#if VERBOSE_TESTING
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-          "Connecting peer %d to peer %d\n", first_peer_index, second_peer_index);
-#endif
-      connect_attempts += proc (pg, first_peer_index, second_peer_index);
-    }
-#endif
   return connect_attempts;
 }
 
