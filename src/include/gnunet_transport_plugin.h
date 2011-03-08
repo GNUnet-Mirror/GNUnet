@@ -112,7 +112,7 @@ typedef struct GNUNET_TIME_Relative (*GNUNET_TRANSPORT_PluginReceiveCallback) (v
 									       GNUNET_MessageHeader *
 									       message,
 									       const struct GNUNET_TRANSPORT_ATS_Information *ats,
-						                   uint32_t ats_count,
+									       uint32_t ats_count,
 									       struct Session *session,
 									       const char *sender_address,
 									       uint16_t sender_address_len);
@@ -171,10 +171,10 @@ typedef struct GNUNET_TIME_Relative (*GNUNET_TRANSPORT_TrafficReport) (void *cls
  * @param cost pointer to the first element of struct GNUNET_TRANSPORT_ATS_Cost_Information[]
  */
 typedef void (*GNUNET_TRANSPORT_CostReport) (void *cls,
-											 const struct GNUNET_PeerIdentity *peer,
+					     const struct GNUNET_PeerIdentity *peer,
                                              const void *addr,
                                              uint16_t addrlen,
-											 struct GNUNET_TRANSPORT_ATS_Information * cost);
+					     struct GNUNET_TRANSPORT_ATS_Information * cost);
 
 /**
  * The transport service will pass a pointer to a struct
