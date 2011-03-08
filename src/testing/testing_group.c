@@ -42,6 +42,8 @@
 
 #define TOPOLOGY_HACK GNUNET_YES
 
+#define AVOID_CONN_MALLOC GNUNET_YES
+
 /**
  * Lowest port used for GNUnet testing.  Should be high enough to not
  * conflict with other applications running on the hosts but be low
@@ -782,6 +784,12 @@ struct GNUNET_TESTING_PeerGroup
    * Connection context for peer group.
    */
   struct ConnectTopologyContext ct_ctx;
+
+#if AVOID_CONN_MALLOC
+  struct PeerConnection working_peer_connections[200000];
+
+  unsigned int current_peer_connection;
+#endif
 };
 
 struct UpdateContext
@@ -1569,7 +1577,7 @@ add_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first,
   int added;
   int add_first;
   int add_second;
-#if OLD
+
   struct PeerConnection **first_list;
   struct PeerConnection **second_list;
   struct PeerConnection *first_iter;
@@ -1578,15 +1586,7 @@ add_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first,
   struct PeerConnection *new_second;
   struct PeerConnection **first_tail;
   struct PeerConnection **second_tail;
-#else
-  GNUNET_HashCode hash_first;
-  GNUNET_HashCode hash_second;
 
-  hash_from_uid (first, &hash_first);
-  hash_from_uid (second, &hash_second);
-#endif
-
-#if OLD
   switch (list)
     {
   case ALLOWED:
@@ -1645,59 +1645,32 @@ add_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first,
           second_iter = second_iter->next;
         }
     }
-#else
-  if (GNUNET_NO ==
-      GNUNET_CONTAINER_multihashmap_contains (pg->peers[first].blacklisted_peers,
-          &hash_second))
-    {
-      add_first = GNUNET_YES;
-    }
-
-  if (GNUNET_NO ==
-      GNUNET_CONTAINER_multihashmap_contains (pg->peers[second].blacklisted_peers,
-          &hash_first))
-    {
-      add_second = GNUNET_YES;
-    }
-#endif
 
   added = 0;
   if (add_first)
     {
-#if OLD
+#if AVOID_CONN_MALLOC
+      new_first = &pg->working_peer_connections[pg->current_peer_connection];
+      pg->current_peer_connection++;
+#else
       new_first = GNUNET_malloc (sizeof (struct PeerConnection));
+#endif
       new_first->index = second;
       GNUNET_CONTAINER_DLL_insert(*first_list, *first_tail, new_first);
-#else
-      GNUNET_assert (GNUNET_OK ==
-          GNUNET_CONTAINER_multihashmap_put (pg->
-              peers
-              [first].blacklisted_peers,
-              &hash_second,
-              pg->
-              peers[second].daemon,
-              GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-#endif
       pg->peers[first].num_connections++;
       added++;
     }
 
   if (add_second)
     {
-#if OLD
+#if AVOID_CONN_MALLOC
+      new_second = &pg->working_peer_connections[pg->current_peer_connection];
+      pg->current_peer_connection++;
+#else
       new_second = GNUNET_malloc (sizeof (struct PeerConnection));
+#endif
       new_second->index = first;
       GNUNET_CONTAINER_DLL_insert(*second_list, *second_tail, new_second);
-#else
-      GNUNET_assert (GNUNET_OK ==
-          GNUNET_CONTAINER_multihashmap_put (pg->
-              peers
-              [second].blacklisted_peers,
-              &hash_first,
-              pg->
-              peers[first].daemon,
-              GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-#endif
       pg->peers[second].num_connections++;
       added++;
     }
@@ -2593,7 +2566,9 @@ create_from_file(struct GNUNET_TESTING_PeerGroup *pg, char *filename,
       switch (curr_state)
         {
       case NUM_PEERS:
-        if (1 != sscanf (&buf[count], "%u", &total_peers))
+        errno = 0;
+        total_peers = strtoul(&buf[count], NULL, 10);
+        if (errno != 0)
           {
             GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                         "Failed to read number of peers from topology file!\n");
@@ -2609,7 +2584,9 @@ create_from_file(struct GNUNET_TESTING_PeerGroup *pg, char *filename,
         count++;
         break;
       case PEER_INDEX:
-        if (1 != sscanf (&buf[count], "%u", &first_peer_index))
+        errno = 0;
+        first_peer_index = strtoul(&buf[count], NULL, 10);
+        if (errno != 0)
           {
             GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                         "Failed to read peer index from topology file!\n");
@@ -2627,7 +2604,9 @@ create_from_file(struct GNUNET_TESTING_PeerGroup *pg, char *filename,
         count++;
         break;
       case OTHER_PEER_INDEX:
-        if (1 != sscanf (&buf[count], "%u", &second_peer_index))
+        errno = 0;
+        second_peer_index = strtoul(&buf[count], NULL, 10);
+        if (errno != 0)
           {
             GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                         "Failed to peer index from topology file!\n");
@@ -2636,7 +2615,7 @@ create_from_file(struct GNUNET_TESTING_PeerGroup *pg, char *filename,
           }
         /* Assume file is written with first peer 1, but array index is 0 */
         connect_attempts += proc (pg, first_peer_index - 1, second_peer_index
-            - 1, list, GNUNET_YES);
+                                  - 1, list, GNUNET_YES);
         while ((buf[count] != '\n') && (buf[count] != ',') && (count
             < frstat.st_size - 1))
           count++;
