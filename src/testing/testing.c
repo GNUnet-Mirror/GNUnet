@@ -217,6 +217,27 @@ testing_init (void *cls,
 #endif
 
 /**
+ * Notify of a peer being up and running.  Scheduled as a task
+ * so that variables which may need to be set are set before
+ * the connect callback can set up new operations.
+ *
+ * @param cls the testing daemon
+ * @param tc task scheduler context
+ */
+static void
+notify_daemon_started (void *cls,
+                       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_TESTING_Daemon *d = cls;
+  GNUNET_TESTING_NotifyDaemonRunning cb;
+
+  cb = d->cb;
+  d->cb = NULL;
+  if (NULL != cb)
+    cb (d->cb_cls, &d->id, d->cfg, d, NULL);
+}
+
+/**
  * Finite-state machine for starting GNUnet.
  *
  * @param cls our "struct GNUNET_TESTING_Daemon"
@@ -671,10 +692,11 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     #endif
 
       GNUNET_TRANSPORT_get_hello (d->th, &process_hello, d);
-      cb = d->cb;
+      GNUNET_SCHEDULER_add_now(&notify_daemon_started, d);
+      /*cb = d->cb;
       d->cb = NULL;
-      if (NULL != cb) /* FIXME: what happens when this callback calls GNUNET_TESTING_daemon_stop? */
-        cb (d->cb_cls, &d->id, d->cfg, d, NULL);
+      if (NULL != cb)
+        cb (d->cb_cls, &d->id, d->cfg, d, NULL);*/
       d->running = GNUNET_YES;
       d->phase = SP_GET_HELLO;
 #endif
