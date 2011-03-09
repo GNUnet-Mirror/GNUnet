@@ -79,6 +79,7 @@
   - finish publish dialog details:
     + normalize keywords (edit subdialog)
   - implement download by URI dialog; figure out where to display those downloads!
+  - add combo box to select desired mime type for search
 * ARM: [CG/Safey]
   - better tracking of which config changes actually need to cause process restarts by ARM.
   - handle gnunet-arm -k in combination with auto-start magic (what is the right thing here?)
