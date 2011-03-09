@@ -216,6 +216,7 @@ testing_init (void *cls,
 }
 #endif
 
+#if !WAIT_FOR_HELLO
 /**
  * Notify of a peer being up and running.  Scheduled as a task
  * so that variables which may need to be set are set before
@@ -236,6 +237,7 @@ notify_daemon_started (void *cls,
   if (NULL != cb)
     cb (d->cb_cls, &d->id, d->cfg, d, NULL);
 }
+#endif
 
 /**
  * Finite-state machine for starting GNUnet.
@@ -471,6 +473,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
             cb (d->cb_cls, NULL, d->cfg, d, _("`Failed to get hostkey!\n"));
           return;
         }
+      d->shortname = GNUNET_strdup(GNUNET_i2s(&d->id));
       GNUNET_DISK_pipe_close (d->pipe_stdout);
       d->pipe_stdout = NULL;
       (void) GNUNET_OS_process_kill (d->proc, SIGKILL);
@@ -685,11 +688,11 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                    _("Failed to connect to transport service!\n"));
           return;
         }
-    #if DEBUG_TESTING
+#if DEBUG_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Connected to transport service `%s', getting HELLO\n",
-                  GNUNET_i2s (my_identity));
-    #endif
+                  GNUNET_i2s (&d->id));
+#endif
 
       GNUNET_TRANSPORT_get_hello (d->th, &process_hello, d);
       GNUNET_SCHEDULER_add_now(&notify_daemon_started, d);
@@ -1759,10 +1762,15 @@ send_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     return;
   if ((ctx->d1core_ready == GNUNET_YES) && (ctx->d2->hello != NULL)
-      && (NULL != GNUNET_HELLO_get_header (ctx->d2->hello)))
+      && (NULL != GNUNET_HELLO_get_header (ctx->d2->hello))
+      && (ctx->d1->phase == SP_START_DONE)
+      && (ctx->d2->phase == SP_START_DONE))
     {
       hello = GNUNET_HELLO_get_header (ctx->d2->hello);
       GNUNET_assert (hello != NULL);
+#if DEBUG_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Offering hello of %s to %s\n", ctx->d2->shortname, ctx->d1->shortname);
+#endif
       GNUNET_TRANSPORT_offer_hello (ctx->d1th, hello, NULL, NULL);
       GNUNET_assert (ctx->d1core != NULL);
       ctx->connect_request_handle =
@@ -2023,6 +2031,7 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 
   /* Core is up! Iterate over all _known_ peers first to check if we are already connected to the peer! */
   GNUNET_assert(GNUNET_OK == GNUNET_CORE_is_peer_connected (ctx->d1->cfg, &ctx->d2->id, &core_initial_iteration, ctx));
+  GNUNET_assert(GNUNET_OK == GNUNET_CORE_is_peer_connected (ctx->d2->cfg, &ctx->d1->id, NULL, NULL));
   /*GNUNET_assert(GNUNET_OK == GNUNET_CORE_iterate_peers (ctx->d1->cfg, &core_initial_iteration, ctx));*/
 }
 
