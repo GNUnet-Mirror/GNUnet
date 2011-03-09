@@ -76,7 +76,7 @@ GSF_local_client_transmit_ (struct GSF_LocalClient *lc,
  */
 void
 GSF_client_disconnect_handler_ (void *cls,
-				const struct GNUNET_SERVER_Client *client);
+				struct GNUNET_SERVER_Client *client);
 
 
 #endif

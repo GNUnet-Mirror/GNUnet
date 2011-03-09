@@ -178,6 +178,8 @@ typedef void (*GSF_PendingRequestReplyHandler)(void *cls,
  * @param anonymity_level desired anonymity level
  * @param priority maximum outgoing cummulative request priority to use
  * @param ttl current time-to-live for the request
+ * @param sender_pid peer ID to use for the sender when forwarding, 0 for none;
+ *                   reference counter is taken over by this function
  * @param replies_seen hash codes of known local replies
  * @param replies_seen_count size of the 'replies_seen' array
  * @param rh handle to call when we get a reply
@@ -196,6 +198,7 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
 			     uint32_t anonymity_level,
 			     uint32_t priority,
 			     int32_t ttl,
+			     GNUNET_PEER_Id sender_pid,
 			     const GNUNET_HashCode *replies_seen,
 			     unsigned int replies_seen_count,
 			     GSF_PendingRequestReplyHandler rh,
@@ -327,7 +330,7 @@ GSF_handle_dht_reply_ (void *cls,
  * @param cfg configuration to use
  */
 void
-GSF_pending_request_init_ (struct GNUNET_CONFIGURATION_Handle *cfg);
+GSF_pending_request_init_ (void);
 
 
 /**

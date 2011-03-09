@@ -65,6 +65,12 @@ struct GSF_PendingRequest
   struct GNUNET_CONTAINER_HeapNode *hnode;
 
   /**
+   * Identity of the peer that we should use for the 'sender'
+   * (recipient of the response) when forwarding (0 for none).
+   */
+  GNUNET_PEER_Id sender_pid;
+
+  /**
    * Number of valid entries in the 'replies_seen' array.
    */
   unsigned int replies_seen_count;
@@ -203,6 +209,7 @@ refresh_bloomfilter (struct GSF_PendingRequest *pr)
  * @param anonymity_level desired anonymity level
  * @param priority maximum outgoing cummulative request priority to use
  * @param ttl current time-to-live for the request
+ * @param sender_pid peer ID to use for the sender when forwarding, 0 for none
  * @param replies_seen hash codes of known local replies
  * @param replies_seen_count size of the 'replies_seen' array
  * @param rh handle to call when we get a reply
@@ -221,6 +228,7 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
 			     uint32_t anonymity_level,
 			     uint32_t priority,
 			     int32_t ttl,
+			     GNUNET_PEER_Id sender_pid,
 			     const GNUNET_HashCode *replies_seen,
 			     unsigned int replies_seen_count,
 			     GSF_PendingRequestReplyHandler rh,
@@ -247,6 +255,7 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
   pr->public_data.options = options;
   pr->public_data.type = type;  
   pr->public_data.start_time = GNUNET_TIME_absolute_get ();
+  pr->sender_pid = sender_pid;
   pr->rh = rh;
   pr->rh_cls = rh_cls;
   if (ttl >= 0)
@@ -451,14 +460,14 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
   ext = (GNUNET_HashCode*) &gm[1];
   k = 0;  
   if (GNUNET_YES != do_route)
-    GNUNET_PEER_resolve (pr->cp->pid, 
+    GNUNET_PEER_resolve (pr->sender_pid, 
 			 (struct GNUNET_PeerIdentity*) &ext[k++]);
   if (GNUNET_BLOCK_TYPE_FS_SBLOCK == pr->public_data.type)
     memcpy (&ext[k++], 
 	    &pr->public_data.namespace, 
 	    sizeof (GNUNET_HashCode));
   if (GNUNET_YES == pr->public_data.has_target)
-    GNUNET_PEER_resolve (pr->public_data.target_pid, 
+    GNUNET_PEER_resolve (pr->sender_pid, 
 			 (struct GNUNET_PeerIdentity*) &ext[k++]);
   if (pr->bf != NULL)
     GNUNET_CONTAINER_bloomfilter_get_raw_data (pr->bf,
@@ -487,6 +496,7 @@ clean_request (void *cls,
   GNUNET_free_non_null (pr->replies_seen);
   if (NULL != pr->bf)
     GNUNET_CONTAINER_bloomfilter_free (pr->bf);
+  GNUNET_PEER_change_rc (pr->sender_pid, -1);
   if (NULL != pr->hnode)
     GNUNET_CONTAINER_heap_remove_node (requests_by_expiration_heap,
 				       pr->hnode);
@@ -519,8 +529,8 @@ GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr)
  * @param cls closure for it
  */
 void
-GSF_iterate_pending_pr_map_ (GSF_PendingRequestIterator it,
-			     void *cls)
+GSF_iterate_pending_requests_ (GSF_PendingRequestIterator it,
+			       void *cls)
 {
   GNUNET_CONTAINER_multihashmap_iterate (pr_map,
 					 (GNUNET_CONTAINER_HashMapIterator) it,
@@ -943,14 +953,12 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
 
 /**
  * Setup the subsystem.
- *
- * @param cfg configuration to use
  */
 void
-GSF_pending_request_init_ (struct GNUNET_CONFIGURATION_Handle *cfg)
+GSF_pending_request_init_ ()
 {
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (cfg,
+      GNUNET_CONFIGURATION_get_value_number (GSF_cfg,
 					     "fs",
 					     "MAX_PENDING_REQUESTS",
 					     &max_pending_requests))

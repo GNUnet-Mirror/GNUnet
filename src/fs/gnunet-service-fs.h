@@ -33,6 +33,28 @@
 #include "gnunet_block_lib.h"
 #include "fs.h"
 
+
+/**
+ * Should we introduce random latency in processing?  Required for proper
+ * implementation of GAP, but can be disabled for performance evaluation of
+ * the basic routing algorithm.
+ *
+ * Note that with delays enabled, performance can be significantly lower
+ * (several orders of magnitude in 2-peer test runs); if you want to
+ * measure throughput of other components, set this to NO.  Also, you
+ * might want to consider changing 'RETRY_PROBABILITY_INV' to 1 for
+ * a rather wasteful mode of operation (that might still get the highest
+ * throughput overall).
+ *
+ * Performance measurements (for 50 MB file, 2 peers):
+ *
+ * - Without delays: 3300 kb/s
+ * - With    delays:  101 kb/s
+ */
+#define SUPPORT_DELAYS GNUNET_NO
+
+
+
 /**
  * A connected peer.
  */
@@ -97,6 +119,12 @@ extern double GSF_current_priorities;
  * have not yet been claimed as cover traffic?
  */
 extern unsigned int GSF_cover_query_count;
+
+/**
+ * How many content messages have we received 'recently' that 
+ * have not yet been claimed as cover traffic?
+ */
+extern unsigned int GSF_cover_content_count;
 
 
 /**

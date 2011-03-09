@@ -54,6 +54,7 @@ bin_PROGRAMS = \
   gnunet-pseudonym \
   gnunet-search \
   gnunet-service-fs \
+  gnunet-service-fs-new \
   gnunet-unindex 
 
 gnunet_directory_SOURCES = \
@@ -105,8 +106,29 @@ gnunet_search_LDADD = \
 gnunet_search_DEPENDENCIES = \
   libgnunetfs.la
 
+gnunet_service_fs_new_SOURCES =  \
+ gnunet-service-fs_new.c gnunet-service-fs.h \
+ gnunet-service-fs_cp.c gnunet-service-fs_cp.h \
+ gnunet-service-fs_indexing.c gnunet-service-fs_indexing.h \
+ gnunet-service-fs_lc.c gnunet-service-fs_lc.h \
+ gnunet-service-fs_pe.c gnunet-service-fs_pe.h \
+ gnunet-service-fs_pr.c gnunet-service-fs_pr.h \
+ gnunet-service-fs_push.c gnunet-service-fs_push.h \
+ gnunet-service-fs_put.c gnunet-service-fs_put.h 
+gnunet_service_fs_new_LDADD =  \
+ $(top_builddir)/src/fs/libgnunetfs.la \
+ $(top_builddir)/src/dht/libgnunetdht.la \
+ $(top_builddir)/src/block/libgnunetblock.la \
+ $(top_builddir)/src/datastore/libgnunetdatastore.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/core/libgnunetcore.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(GN_LIBINTL)
+gnunet_service_fs_new_DEPENDENCIES = \
+  libgnunetfs.la
+
 gnunet_service_fs_SOURCES =  \
- gnunet-service-fs.c \
+ gnunet-service-fs.c gnunet-service-fs.h \
  gnunet-service-fs_indexing.c gnunet-service-fs_indexing.h 
 gnunet_service_fs_LDADD =  \
  $(top_builddir)/src/fs/libgnunetfs.la \

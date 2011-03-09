@@ -349,6 +349,7 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
 					ntohl (sm->anonymity_level),
 					0 /* priority */,
 					0 /* ttl */,
+					0 /* sender PID */,
 					(const GNUNET_HashCode*) &sm[1], sc,
 					&client_response_handler,
 					cr);
@@ -445,7 +446,7 @@ GSF_local_client_transmit_ (struct GSF_LocalClient *lc,
  */
 void
 GSF_client_disconnect_handler_ (void *cls,
-				const struct GNUNET_SERVER_Client *client)
+				struct GNUNET_SERVER_Client *client)
 {
   struct GSF_LocalClient *pos;
   struct ClientRequest *cr;

@@ -601,22 +601,20 @@ GSF_push_stop_ (struct GSF_ConnectedPeer *peer)
 
 /**
  * Setup the module.
- * 
- * @param cfg configuration to use
  */
 void
-GSF_push_init_ (struct GNUNET_CONFIGURATION_Handle *cfg)
+GSF_push_init_ ()
 {
   int enabled;
 
-  enabled = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+  enabled = GNUNET_CONFIGURATION_get_value_yesno (GSF_cfg,
 						  "FS",
 						  "CONTENT_PUSHING");
   if (GNUNET_YES != enabled)
     return;
  
   if (GNUNET_OK != 
-      GNUNET_CONFIGURATION_get_value_time (cfg,
+      GNUNET_CONFIGURATION_get_value_time (GSF_cfg,
 					   "fs",
 					   "MIN_MIGRATION_DELAY",
 					   &min_migration_delay))

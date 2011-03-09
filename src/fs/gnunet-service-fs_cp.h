@@ -172,6 +172,15 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
 
 
 /**
+ * Get a handle for a connected peer.
+ *
+ * @param peer peer's identity
+ */
+struct GSF_ConnectedPeer *
+GSF_peer_get_ (const struct GNUNET_PeerIdentity *peer);
+
+
+/**
  * Transmit a message to the given peer as soon as possible.
  * If the peer disconnects before the transmission can happen,
  * the callback is invoked with a 'NULL' buffer.
@@ -377,11 +386,9 @@ GSF_iterate_connected_peers_ (GSF_ConnectedPeerIterator it,
 
 /**
  * Initialize peer management subsystem.
- *
- * @param cfg configuration to use
  */
 void
-GSF_connected_peer_init_ (struct GNUNET_CONFIGURATION_Handle *cfg);
+GSF_connected_peer_init_ (void);
 
 
 /**

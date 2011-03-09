@@ -31,11 +31,9 @@
 
 /**
  * Setup the module.
- * 
- * @param cfg configuration to use
  */
 void
-GSF_push_init_ (struct GNUNET_CONFIGURATION_Handle *cfg);
+GSF_push_init_ (void);
 
 
 /**

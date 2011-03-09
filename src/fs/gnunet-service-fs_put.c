@@ -209,11 +209,9 @@ gather_dht_put_blocks (void *cls,
 
 /**
  * Setup the module.
- * 
- * @param cfg configuration to use
  */
 void
-GSF_put_init_ (struct GNUNET_CONFIGURATION_Handle *cfg)
+GSF_put_init_ ()
 {
   dht_task = GNUNET_SCHEDULER_add_now (&gather_dht_put_blocks, NULL);
 }

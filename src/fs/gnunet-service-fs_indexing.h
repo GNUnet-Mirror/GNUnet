@@ -105,8 +105,6 @@ GNUNET_FS_handle_unindex (void *cls,
 			  const struct GNUNET_MessageHeader *message);
 
 
-
-
 /**
  * Initialize the indexing submodule.
  *

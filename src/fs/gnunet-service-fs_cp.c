@@ -452,6 +452,19 @@ revive_migration (void *cls,
 
 
 /**
+ * Get a handle for a connected peer.
+ *
+ * @param peer peer's identity
+ */
+struct GSF_ConnectedPeer *
+GSF_peer_get_ (const struct GNUNET_PeerIdentity *peer)
+{
+  return GNUNET_CONTAINER_multihashmap_get (cp_map,
+					    &peer->hashPubKey);
+}
+
+
+/**
  * Handle P2P "MIGRATION_STOP" message.
  *
  * @param cls closure, always NULL
@@ -793,7 +806,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
   int32_t priority;
   int32_t ttl;
   enum GNUNET_BLOCK_Type type;
-
+  GNUNET_PEER_Id spid;
 
   msize = ntohs(message->size);
   if (msize < sizeof (struct GetMessage))
@@ -891,6 +904,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
   namespace = (0 != (bm & GET_MESSAGE_BIT_SKS_NAMESPACE)) ? &opt[bits++] : NULL;
   target = (0 != (bm & GET_MESSAGE_BIT_TRANSMIT_TO)) ? ((const struct GNUNET_PeerIdentity*) &opt[bits++]) : NULL;
   options = 0;
+  spid = 0;
   if ( (GNUNET_LOAD_get_load (cp->ppd.transmission_delay) > 3 * (1 + priority)) ||
        (GNUNET_LOAD_get_average (cp->ppd.transmission_delay) > 
 	GNUNET_CONSTANTS_MAX_CORK_DELAY.rel_value * 2 + GNUNET_LOAD_get_average (GSF_rt_entry_lifetime)) )
@@ -899,6 +913,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
 	 so at best indirect the query */
       priority = 0;
       options |= GSF_PRO_FORWARD_ONLY;
+      spid = GNUNET_PEER_intern (other);
     }
   ttl = bound_ttl (ntohl (gm->ttl), priority);
   /* decrement ttl (always) */
@@ -972,6 +987,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
 				    1 /* anonymity */,
 				    (uint32_t) priority,
 				    ttl,
+				    spid,
 				    NULL, 0, /* replies_seen */
 				    &handle_p2p_reply,
 				    cp);
@@ -1290,7 +1306,9 @@ GSF_peer_disconnect_handler_ (void *cls,
 
   cp = GNUNET_CONTAINER_multihashmap_get (cp_map,
 					  &peer->hashPubKey);
-  GNUNET_assert (NULL != cp);
+  if (NULL == cp)
+    return; /* must have been disconnect from core with
+	       'peer' == my_id, ignore */
   GNUNET_CONTAINER_multihashmap_remove (cp_map,
 					&peer->hashPubKey,
 					cp);
@@ -1553,15 +1571,13 @@ cron_flush_trust (void *cls,
 
 /**
  * Initialize peer management subsystem.
- *
- * @param cfg configuration to use
  */
 void
-GSF_connected_peer_init_ (struct GNUNET_CONFIGURATION_Handle *cfg)
+GSF_connected_peer_init_ ()
 {
   cp_map = GNUNET_CONTAINER_multihashmap_create (128);
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_filename (cfg,
+                 GNUNET_CONFIGURATION_get_value_filename (GSF_cfg,
                                                           "fs",
                                                           "TRUST",
                                                           &trustDirectory));
