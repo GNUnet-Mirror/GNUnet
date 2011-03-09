@@ -743,6 +743,57 @@ extern "C"
 
 
 /**
+ * MESH message types (WiP)
+ */
+
+/**
+ * Request the creation of a path
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE   256
+
+/**
+ * Request the modification of an existing path
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_PATH_CHANGE   257
+
+/**
+ * Request the addition to a new branch to a path
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_PATH_ADD      258
+
+/**
+ * At some point, the route will spontaneously change
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_PATH_CHANGED  259
+
+/**
+ * Transport data in the mesh (origin->end)
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_DATA_GO       260
+
+/**
+ * Transport data back in the mesh (end->origin)
+ * (not sure if this is the right way, should be some other solution)
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_DATA_BACK     261
+
+/**
+ * We need flow control
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_SPEED_NOTIFY  262
+
+/**
+ * 640kb should be enough for everybody
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_RESERVE_END   288
+
+/**
+ * MESH message types END
+ */
+
+
+
+/**
  * Message sent from client to join a chat room.
  */
 #define GNUNET_MESSAGE_TYPE_CHAT_JOIN_REQUEST 300

@@ -114,7 +114,7 @@ typedef void (GNUNET_MESH_TunnelEndHandler)(void *cls,
 
 
 /**
- * Connect to the mesh service.  
+ * Connect to the mesh service.
  *
  * @param cfg configuration to use
  * @param cls closure for the various callbacks that follow (including handlers in the handlers array)
@@ -190,7 +190,7 @@ struct GNUNET_MESH_PeerRequestHandle;
  *
  * @param h mesh handle
  * @param timeout how long to try to establish a connection
- * @param num_peers length of the peers arrray
+ * @param num_peers length of the peers array
  * @param peers list of candidates to connect to
  * @param connect_handler function to call on successful connect (or timeout)
  * @param disconnect_handler function to call on disconnect
