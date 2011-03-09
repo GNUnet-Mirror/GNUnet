@@ -183,9 +183,9 @@ test_find_peer_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   peer->find_peer_handle = NULL;
 
 #if HAVE_MALICIOUS
-  GNUNET_DHT_set_malicious_getter (peer->dht_handle, GNUNET_TIME_UNIT_SECONDS);
-  GNUNET_DHT_set_malicious_putter (peer->dht_handle, GNUNET_TIME_UNIT_SECONDS);
-  GNUNET_DHT_set_malicious_dropper (peer->dht_handle);
+  GNUNET_DHT_set_malicious_getter (peer->dht_handle, GNUNET_TIME_UNIT_SECONDS, NULL, NULL);
+  GNUNET_DHT_set_malicious_putter (peer->dht_handle, GNUNET_TIME_UNIT_SECONDS, NULL, NULL);
+  GNUNET_DHT_set_malicious_dropper (peer->dht_handle, NULL, NULL);
 #endif
   GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1),
 			       &end, &p1);
