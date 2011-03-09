@@ -42,7 +42,6 @@
 
 #define TOPOLOGY_HACK GNUNET_YES
 
-#define AVOID_CONN_MALLOC GNUNET_NO
 
 /**
  * Lowest port used for GNUnet testing.  Should be high enough to not
@@ -784,12 +783,6 @@ struct GNUNET_TESTING_PeerGroup
    * Connection context for peer group.
    */
   struct ConnectTopologyContext ct_ctx;
-
-#if AVOID_CONN_MALLOC
-  struct PeerConnection working_peer_connections[200000];
-
-  unsigned int current_peer_connection;
-#endif
 };
 
 struct UpdateContext
@@ -1649,12 +1642,7 @@ add_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first,
   added = 0;
   if (add_first)
     {
-#if AVOID_CONN_MALLOC
-      new_first = &pg->working_peer_connections[pg->current_peer_connection];
-      pg->current_peer_connection++;
-#else
       new_first = GNUNET_malloc (sizeof (struct PeerConnection));
-#endif
       new_first->index = second;
       GNUNET_CONTAINER_DLL_insert(*first_list, *first_tail, new_first);
       pg->peers[first].num_connections++;
@@ -1663,12 +1651,7 @@ add_connections(struct GNUNET_TESTING_PeerGroup *pg, unsigned int first,
 
   if (add_second)
     {
-#if AVOID_CONN_MALLOC
-      new_second = &pg->working_peer_connections[pg->current_peer_connection];
-      pg->current_peer_connection++;
-#else
       new_second = GNUNET_malloc (sizeof (struct PeerConnection));
-#endif
       new_second->index = first;
       GNUNET_CONTAINER_DLL_insert(*second_list, *second_tail, new_second);
       pg->peers[second].num_connections++;

@@ -48,6 +48,17 @@ end_cb (void *cls, const char *emsg)
     }
 }
 
+
+
+void do_shutdown (void *cls,
+                  const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct GNUNET_TESTING_Daemon *d = cls;
+  GNUNET_TESTING_daemon_stop (d, TIMEOUT, &end_cb, NULL, GNUNET_YES,
+                              GNUNET_NO);
+}
+
+
 static void
 my_cb (void *cls,
        const struct GNUNET_PeerIdentity *id,
@@ -59,8 +70,7 @@ my_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Daemon `%s' started, will now stop it.\n", GNUNET_i2s (id));
 #endif
-  GNUNET_TESTING_daemon_stop (d, TIMEOUT, &end_cb, NULL, GNUNET_YES,
-                              GNUNET_NO);
+  GNUNET_SCHEDULER_add_now(&do_shutdown, d);
 }
 
 
