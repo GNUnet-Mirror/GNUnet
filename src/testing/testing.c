@@ -2031,7 +2031,6 @@ GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
 
   /* Core is up! Iterate over all _known_ peers first to check if we are already connected to the peer! */
   GNUNET_assert(GNUNET_OK == GNUNET_CORE_is_peer_connected (ctx->d1->cfg, &ctx->d2->id, &core_initial_iteration, ctx));
-  GNUNET_assert(GNUNET_OK == GNUNET_CORE_is_peer_connected (ctx->d2->cfg, &ctx->d1->id, NULL, NULL));
   /*GNUNET_assert(GNUNET_OK == GNUNET_CORE_iterate_peers (ctx->d1->cfg, &core_initial_iteration, ctx));*/
 }
 
