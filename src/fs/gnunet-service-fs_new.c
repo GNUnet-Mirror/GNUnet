@@ -70,6 +70,13 @@
  */
 #define COVER_AGE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
+/**
+ * At what frequency should our datastore load decrease
+ * automatically (since if we don't use it, clearly the
+ * load must be going down).
+ */
+#define DATASTORE_LOAD_AUTODECLINE GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250)
+
 
 /* ****************************** globals ****************************** */
 
@@ -153,6 +160,11 @@ static GNUNET_SCHEDULER_TaskIdentifier cover_age_task;
 static struct GNUNET_CORE_Handle *core;
 
 /**
+ * Datastore 'GET' load tracking.
+ */
+static struct GNUNET_LOAD_Value *datastore_get_load;
+
+/**
  * Identity of this peer.
  */
 static struct GNUNET_PeerIdentity my_id;
@@ -173,6 +185,50 @@ age_cover_counters (void *cls,
 						 &age_cover_counters,
 						 NULL);
 }
+
+
+
+/**
+ * We've just now completed a datastore request.  Update our
+ * datastore load calculations.
+ *
+ * @param start time when the datastore request was issued
+ */
+void
+GSF_update_datastore_delay_ (struct GNUNET_TIME_Absolute start)
+{
+  struct GNUNET_TIME_Relative delay;
+
+  delay = GNUNET_TIME_absolute_get_duration (start);
+  GNUNET_LOAD_update (datastore_get_load,
+		      delay.rel_value);
+}
+
+
+/**
+ * Test if the DATABASE (GET) load on this peer is too high
+ * to even consider processing the query at
+ * all.  
+ * 
+ * @return GNUNET_YES if the load is too high to do anything (load high)
+ *         GNUNET_NO to process normally (load normal)
+ *         GNUNET_SYSERR to process for free (load low)
+ */
+int
+GSF_test_get_load_too_high_ (uint32_t priority)
+{
+  double ld;
+
+  ld = GNUNET_LOAD_get_load (datastore_get_load);
+  if (ld < 1)
+    return GNUNET_SYSERR;    
+  if (ld <= priority)    
+    return GNUNET_NO;    
+  return GNUNET_YES;
+}
+
+
+
 
 
 /**
@@ -311,11 +367,18 @@ start_p2p_processing (void *cls,
 		      enum GNUNET_BLOCK_EvaluationResult result)
 {
   struct GNUNET_SERVER_Client *client = cls;
+  struct GSF_PendingRequestData *prd;
 
   GNUNET_SERVER_receive_done (client,
 			      GNUNET_OK);
   if (GNUNET_BLOCK_EVALUATION_OK_LAST == result)
-    return; /* we're done... */
+    return; /* we're done, 'pr' was already destroyed... */
+  prd = GSF_pending_request_get_data_ (pr);
+  if (0 != (GSF_PRO_LOCAL_ONLY & prd->options) )
+    {
+      GSF_pending_request_cancel_ (pr);
+      return;
+    }
   GSF_dht_lookup_ (pr);
   consider_forwarding (NULL, pr, result);
 }
@@ -381,6 +444,8 @@ shutdown_task (void *cls,
       GNUNET_SCHEDULER_cancel (cover_age_task);
       cover_age_task = GNUNET_SCHEDULER_NO_TASK;
     }
+  GNUNET_LOAD_value_free (datastore_get_load);
+  datastore_get_load = NULL;
 }
 
 
@@ -512,6 +577,7 @@ main_init (struct GNUNET_SERVER_Handle *server,
   cover_age_task = GNUNET_SCHEDULER_add_delayed (COVER_AGE_FREQUENCY,
 						 &age_cover_counters,
 						 NULL);
+  datastore_get_load = GNUNET_LOAD_value_init (DATASTORE_LOAD_AUTODECLINE);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&shutdown_task,
 				NULL);

@@ -315,9 +315,9 @@ GSF_dht_lookup_ (struct GSF_PendingRequest *pr);
  * @param pr the pending request we were processing
  * @param result final datastore lookup result
  */
-typedef void (GSF_LocalLookupContinuation)(void *cls,
-					   struct GSF_PendingRequest *pr,
-					   enum GNUNET_BLOCK_EvaluationResult result);
+typedef void (*GSF_LocalLookupContinuation)(void *cls,
+					    struct GSF_PendingRequest *pr,
+					    enum GNUNET_BLOCK_EvaluationResult result);
 
 
 /**

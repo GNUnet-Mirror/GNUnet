@@ -126,12 +126,33 @@ extern unsigned int GSF_cover_query_count;
  */
 extern unsigned int GSF_cover_content_count;
 
-
 /**
  * Our block context.
  */
 extern struct GNUNET_BLOCK_Context *GSF_block_ctx;
 
+
+/**
+ * Test if the DATABASE (GET) load on this peer is too high
+ * to even consider processing the query at
+ * all.  
+ * 
+ * @return GNUNET_YES if the load is too high to do anything (load high)
+ *         GNUNET_NO to process normally (load normal)
+ *         GNUNET_SYSERR to process for free (load low)
+ */
+int
+GSF_test_get_load_too_high_ (uint32_t priority);
+
+
+/**
+ * We've just now completed a datastore request.  Update our
+ * datastore load calculations.
+ *
+ * @param start time when the datastore request was issued
+ */
+void
+GSF_update_datastore_delay_ (struct GNUNET_TIME_Absolute start);
 
 
 

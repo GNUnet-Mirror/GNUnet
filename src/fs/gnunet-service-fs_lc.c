@@ -292,6 +292,10 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
        (type == GNUNET_BLOCK_TYPE_FS_NBLOCK) ||
        (type == GNUNET_BLOCK_TYPE_ANY) )
     {
+      /* FIXME: this does currently not work to filter duplicate
+	 results from *local* datastore since the local store is
+	 queried before we continue to process additional
+	 messages from the client! -- fix protocol? */
       cr = lc->cr_head;
       while (cr != NULL) 
 	{

@@ -955,6 +955,7 @@ static unsigned int cover_content_count;
  */
 static GNUNET_SCHEDULER_TaskIdentifier cover_age_task;
 
+
 static void
 age_cover_counters (void *cls,
 		    const struct GNUNET_SCHEDULER_TaskContext *tc)

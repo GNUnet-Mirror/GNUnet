@@ -618,33 +618,6 @@ handle_p2p_reply (void *cls,
 
 
 /**
- * Test if the DATABASE (GET) load on this peer is too high
- * to even consider processing the query at
- * all.  
- * 
- * @return GNUNET_YES if the load is too high to do anything (load high)
- *         GNUNET_NO to process normally (load normal)
- *         GNUNET_SYSERR to process for free (load low)
- */
-static int
-test_get_load_too_high (uint32_t priority)
-{
-#if FIXME_later
-  double ld;
-
-  ld = GNUNET_LOAD_get_load (datastore_get_load);
-  if (ld < 1)
-    return GNUNET_SYSERR;    
-  if (ld <= priority)    
-    return GNUNET_NO;    
-  return GNUNET_YES;
-#else
-  return GNUNET_SYSERR;
-#endif
-}
-
-
-/**
  * Increase the host credit by a value.
  *
  * @param cp which peer to change the trust value on
@@ -699,7 +672,7 @@ bound_priority (uint32_t prio_in,
   double rret;
   int ld;
 
-  ld = test_get_load_too_high (0);
+  ld = GSF_test_get_load_too_high_ (0);
   if (ld == GNUNET_SYSERR)
     {
       GNUNET_STATISTICS_update (GSF_stats,
@@ -723,7 +696,7 @@ bound_priority (uint32_t prio_in,
   if ( (ld == GNUNET_YES) && (ret > 0) )
     {
       /* try with charging */
-      ld = test_get_load_too_high (ret);
+      ld = GSF_test_get_load_too_high_ (ret);
     }
   if (ld == GNUNET_YES)
     {
