@@ -3017,6 +3017,7 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
                                   (char *) put_entry, put_type,
                                   GNUNET_TIME_absolute_ntoh
                                   (put_msg->expiration));
+      GNUNET_free (put_entry);
 
       if ((ret == GNUNET_YES) && (do_republish == GNUNET_YES))
         {
@@ -5216,6 +5217,7 @@ handle_core_connect (void *cls,
                             sizeof(struct DHTPutEntry) + sizeof (struct GNUNET_PeerIdentity),
                             (char *)put_entry, GNUNET_BLOCK_TYPE_DHT_HELLO,
                             GNUNET_TIME_absolute_get_forever ());
+      GNUNET_free (put_entry);
     }
   else if (datacache == NULL)
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "DHT has no connection to datacache!\n");
