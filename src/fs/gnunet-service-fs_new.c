@@ -27,7 +27,7 @@
  * - GSF_plan_get_ (!)
  * - GSF_plan_size_ (?)
  * - GSF_plan_notify_request_done (!)
- * - 
+ * - consider re-issue GSF_dht_lookup_ after non-DHT reply received 
  *
  *
  */
@@ -224,6 +224,49 @@ plan (struct GSF_ConnectedPeer *cp,
 
 
 /**
+ * We have a new request, consider forwarding it to the given
+ * peer.
+ *
+ * @param cls the 'struct GSF_PendingRequest'
+ * @param peer identity of the peer
+ * @param cp handle to the connected peer record
+ * @param perf peer performance data
+ */
+static void
+consider_request_for_forwarding (void *cls,
+				 const struct GNUNET_PeerIdentity *peer,
+				 struct GSF_ConnectedPeer *cp,
+				 const struct GSF_PeerPerformanceData *ppd)
+{
+  struct GSF_PendingRequest *pr = cls;
+
+  plan (cp, pr);
+}
+
+
+/**
+ * Function to be called after we're done processing
+ * replies from the local lookup.  If the result status
+ * code indicates that there may be more replies, plan
+ * forwarding the request.
+ *
+ * @param cls closure (NULL)
+ * @param pr the pending request we were processing
+ * @param result final datastore lookup result
+ */
+static void
+consider_forwarding (void *cls,
+		     struct GSF_PendingRequest *pr,
+		     enum GNUNET_BLOCK_EvaluationResult result)
+{
+  if (GNUNET_BLOCK_EVALUATION_OK_LAST == result)
+    return; /* we're done... */
+  GSF_iterate_connected_peers_ (&consider_request_for_forwarding,
+				pr);
+}
+
+
+/**
  * Handle P2P "GET" request.
  *
  * @param cls closure, always NULL
@@ -244,31 +287,37 @@ handle_p2p_get (void *cls,
 
   pr = GSF_handle_p2p_query_ (other, message);
   if (NULL == pr)
-    return GNUNET_SYSERR;    
-  /* FIXME: local lookup! */
-  /* FIXME: after local lookup, trigger forwarding/routing! */
+    return GNUNET_SYSERR;
+  GSF_local_lookup_ (pr, 
+		     &consider_forwarding,
+		     NULL);
   return GNUNET_OK;
 }
 
 
 /**
- * We have a new request, consider forwarding it to the given
- * peer.
+ * We're done with the local lookup, now consider
+ * P2P processing (depending on request options and
+ * result status).  Also signal that we can now 
+ * receive more request information from the client.
  *
- * @param cls the 'struct GSF_PendingRequest'
- * @param peer identity of the peer
- * @param cp handle to the connected peer record
- * @param perf peer performance data
+ * @param cls the client doing the request ('struct GNUNET_SERVER_Client')
+ * @param pr the pending request we were processing
+ * @param result final datastore lookup result
  */
 static void
-consider_request_for_forwarding (void *cls,
-				 const struct GNUNET_PeerIdentity *peer,
-				 struct GSF_ConnectedPeer *cp,
-				 const struct GSF_PeerPerformanceData *ppd)
+start_p2p_processing (void *cls,
+		      struct GSF_PendingRequest *pr,
+		      enum GNUNET_BLOCK_EvaluationResult result)
 {
-  struct GSF_PendingRequest *pr = cls;
+  struct GNUNET_SERVER_Client *client = cls;
 
-  plan (cp, pr);
+  GNUNET_SERVER_receive_done (client,
+			      GNUNET_OK);
+  if (GNUNET_BLOCK_EVALUATION_OK_LAST == result)
+    return; /* we're done... */
+  GSF_dht_lookup_ (pr);
+  consider_forwarding (NULL, pr, result);
 }
 
 
@@ -292,28 +341,9 @@ handle_start_search (void *cls,
       /* 'GNUNET_SERVER_receive_done was already called! */
       return;
     }
-  /* FIXME: local lookup, then (after DB done!) receive_done: */
-  GNUNET_SERVER_receive_done (client,
-			      GNUNET_OK);
-#if 0
-  /* FIXME: also do DHT lookup */
-  struct GNUNET_DHT_GetHandle *gh;
-  /* store 'gh' with 'pr', cancel it on pr destruction, etc. */
-  gh = GNUNET_DHT_get_start (GSF_dht,
-			     timeout,
-			     type,
-			     key,
-			     des_repl_level,
-			     options,
-			     bf,
-			     bf_mutator,
-			     xquery,
-			     xquery_size,
-			     &GSF_handle_dht_reply_,
-			     pr);
-#endif
-  GSF_iterate_connected_peers_ (&consider_request_for_forwarding,
-				pr);
+  GSF_local_lookup_ (pr, 
+		     &start_p2p_processing,
+		     client);
 }
 
 

@@ -299,29 +299,38 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
 
 
 /**
- * Iterator called on each result obtained for a DHT
- * operation that expects a reply
+ * Consider looking up the data in the DHT (anonymity-level permitting).
  *
- * @param cls closure, the 'struct GSF_PendingRequest *'.
- * @param exp when will this value expire
- * @param key key of the result
- * @param get_path NULL-terminated array of pointers
- *                 to the peers on reverse GET path (or NULL if not recorded)
- * @param put_path NULL-terminated array of pointers
- *                 to the peers on the PUT path (or NULL if not recorded)
- * @param type type of the result
- * @param size number of bytes in data
- * @param data pointer to the result data
+ * @param pr the pending request to process
  */
 void
-GSF_handle_dht_reply_ (void *cls,
-		       struct GNUNET_TIME_Absolute exp,
-		       const GNUNET_HashCode * key,
-		       const struct GNUNET_PeerIdentity * const *get_path,
-		       const struct GNUNET_PeerIdentity * const *put_path,
-		       enum GNUNET_BLOCK_Type type,
-		       size_t size,
-		       const void *data);
+GSF_dht_lookup_ (struct GSF_PendingRequest *pr);
+
+
+/**
+ * Function to be called after we're done processing
+ * replies from the local lookup.
+ *
+ * @param cls closure
+ * @param pr the pending request we were processing
+ * @param result final datastore lookup result
+ */
+typedef void (GSF_LocalLookupContinuation)(void *cls,
+					   struct GSF_PendingRequest *pr,
+					   enum GNUNET_BLOCK_EvaluationResult result);
+
+
+/**
+ * Look up the request in the local datastore.
+ *
+ * @param pr the pending request to process
+ * @param cont function to call at the end
+ * @param cont_cls closure for cont
+ */
+void
+GSF_local_lookup_ (struct GSF_PendingRequest *pr,
+		   GSF_LocalLookupContinuation cont,
+		   void *cont_cls);
 
 
 /**

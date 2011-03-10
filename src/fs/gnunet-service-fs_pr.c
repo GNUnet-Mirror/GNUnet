@@ -65,6 +65,16 @@ struct GSF_PendingRequest
   struct GNUNET_CONTAINER_HeapNode *hnode;
 
   /**
+   * Datastore queue entry for this request (or NULL for none).
+   */
+  struct GNUNET_DATASTORE_QueueEntry *qe;
+
+  /**
+   * DHT request handle for this request (or NULL for none).
+   */
+  struct GNUNET_DHT_GetHandle *gh;
+
+  /**
    * Identity of the peer that we should use for the 'sender'
    * (recipient of the response) when forwarding (0 for none).
    */
@@ -500,6 +510,10 @@ clean_request (void *cls,
   if (NULL != pr->hnode)
     GNUNET_CONTAINER_heap_remove_node (requests_by_expiration_heap,
 				       pr->hnode);
+  if (NULL != pr->qe)
+    GNUNET_DATASTORE_cancel (pr->qe);
+  if (NULL != pr->gh)
+    GNUNET_DHT_get_stop (pr->gh);
   GNUNET_free (pr);
   return GNUNET_YES;
 }
@@ -713,6 +727,10 @@ process_reply (void *cls,
 				1,
 				GNUNET_NO);      
     }
+  else
+    {     
+      GSF_dht_lookup_ (pr);
+    }
   prq->priority += pr->public_data.original_priority;
   pr->public_data.priority = 0;
   pr->public_data.original_priority = 0;
@@ -799,15 +817,15 @@ test_put_load_too_high (uint32_t priority)
  * @param size number of bytes in data
  * @param data pointer to the result data
  */
-void
-GSF_handle_dht_reply_ (void *cls,
-		       struct GNUNET_TIME_Absolute exp,
-		       const GNUNET_HashCode *key,
-		       const struct GNUNET_PeerIdentity * const *get_path,
-		       const struct GNUNET_PeerIdentity * const *put_path,
-		       enum GNUNET_BLOCK_Type type,
-		       size_t size,
-		       const void *data)
+static void
+handle_dht_reply (void *cls,
+		  struct GNUNET_TIME_Absolute exp,
+		  const GNUNET_HashCode *key,
+		  const struct GNUNET_PeerIdentity * const *get_path,
+		  const struct GNUNET_PeerIdentity * const *put_path,
+		  enum GNUNET_BLOCK_Type type,
+		  size_t size,
+		  const void *data)
 {
   struct GSF_PendingRequest *pr = cls;
   struct ProcessReplyClosure prq;
@@ -840,6 +858,247 @@ GSF_handle_dht_reply_ (void *cls,
 			    start);
     }
 }
+
+
+/**
+ * Consider looking up the data in the DHT (anonymity-level permitting).
+ *
+ * @param pr the pending request to process
+ */
+void
+GSF_dht_lookup_ (struct GSF_PendingRequest *pr)
+{
+  const void *xquery;
+  size_t xquery_size;
+  struct GNUNET_PeerIdentity pi;
+  char buf[sizeof (GNUNET_HashCode) * 2];
+
+  if (0 != pr->public_data.anonymity_level)
+    return;
+  if (NULL != pr->gh)
+    {
+      GNUNET_DHT_get_stop (pr->gh);
+      pr->gh = NULL;
+    }
+  xquery = NULL;
+  xquery_size = 0;
+  if (GNUNET_BLOCK_TYPE_FS_SBLOCK == pr->public_data.type)
+    {
+      xquery = buf;
+      memcpy (buf, &pr->public_data.namespace, sizeof (GNUNET_HashCode));
+      xquery_size = sizeof (GNUNET_HashCode);
+    }
+  if (0 != (pr->public_data.options & GSF_PRO_FORWARD_ONLY))
+    {
+      GNUNET_PEER_resolve (pr->sender_pid,
+			   &pi);
+      memcpy (&buf[xquery_size], &pi, sizeof (struct GNUNET_PeerIdentity));
+      xquery_size += sizeof (struct GNUNET_PeerIdentity);
+    }
+  pr->gh = GNUNET_DHT_get_start (GSF_dht,
+				 GNUNET_TIME_UNIT_FOREVER_REL,
+				 pr->public_data.type,
+				 &pr->public_data.query,
+				 DEFAULT_GET_REPLICATION,
+				 GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+				 pr->bf,
+				 pr->mingle,
+				 xquery,
+				 xquery_size,
+				 &handle_dht_reply,
+				 pr);
+}
+
+
+/**
+ * We're processing (local) results for a search request
+ * from another peer.  Pass applicable results to the
+ * peer and if we are done either clean up (operation
+ * complete) or forward to other peers (more results possible).
+ *
+ * @param cls our closure (struct LocalGetContext)
+ * @param key key for the content
+ * @param size number of bytes in data
+ * @param data content stored
+ * @param type type of the content
+ * @param priority priority of the content
+ * @param anonymity anonymity-level for the content
+ * @param expiration expiration time for the content
+ * @param uid unique identifier for the datum;
+ *        maybe 0 if no unique identifier is available
+ */
+static void
+process_local_reply (void *cls,
+		     const GNUNET_HashCode * key,
+		     size_t size,
+		     const void *data,
+		     enum GNUNET_BLOCK_Type type,
+		     uint32_t priority,
+		     uint32_t anonymity,
+		     struct GNUNET_TIME_Absolute expiration, 
+		     uint64_t uid)
+{
+#if FIXME
+  struct PendingRequest *pr = cls;
+  struct ProcessReplyClosure prq;
+  struct CheckDuplicateRequestClosure cdrc;
+  GNUNET_HashCode query;
+  unsigned int old_rf;
+  
+  if (NULL == key)
+    {
+#if DEBUG_FS > 1
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Done processing local replies, forwarding request to other peers.\n");
+#endif
+      pr->qe = NULL;
+      if (pr->client_request_list != NULL)
+	{
+	  GNUNET_SERVER_receive_done (pr->client_request_list->client_list->client, 
+				      GNUNET_YES);
+	  /* Figure out if this is a duplicate request and possibly
+	     merge 'struct PendingRequest' entries */
+	  cdrc.have = NULL;
+	  cdrc.pr = pr;
+	  GNUNET_CONTAINER_multihashmap_get_multiple (query_request_map,
+						      &pr->query,
+						      &check_duplicate_request_client,
+						      &cdrc);
+	  if (cdrc.have != NULL)
+	    {
+#if DEBUG_FS
+	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+			  "Received request for block `%s' twice from client, will only request once.\n",
+			  GNUNET_h2s (&pr->query));
+#endif
+	      
+	      destroy_pending_request (pr);
+	      return;
+	    }
+	}
+      if (pr->local_only == GNUNET_YES)
+	{
+	  destroy_pending_request (pr);
+	  return;
+	}
+      /* no more results */
+      if (pr->task == GNUNET_SCHEDULER_NO_TASK)
+	pr->task = GNUNET_SCHEDULER_add_now (&forward_request_task,
+					     pr);      
+      return;
+    }
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "New local response to `%s' of type %u.\n",
+	      GNUNET_h2s (key),
+	      type);
+#endif
+  if (type == GNUNET_BLOCK_TYPE_FS_ONDEMAND)
+    {
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Found ONDEMAND block, performing on-demand encoding\n");
+#endif
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# on-demand blocks matched requests"),
+				1,
+				GNUNET_NO);
+      if (GNUNET_OK != 
+	  GNUNET_FS_handle_on_demand_block (key, size, data, type, priority, 
+					    anonymity, expiration, uid, 
+					    &process_local_reply,
+					    pr))
+      if (pr->qe != NULL)
+	{
+	  GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
+	}
+      return;
+    }
+  old_rf = pr->results_found;
+  memset (&prq, 0, sizeof (prq));
+  prq.data = data;
+  prq.expiration = expiration;
+  prq.size = size;  
+  if (GNUNET_OK != 
+      GNUNET_BLOCK_get_key (block_ctx,
+			    type,
+			    data,
+			    size,
+			    &query))
+    {
+      GNUNET_break (0);
+      GNUNET_DATASTORE_remove (dsh,
+			       key,
+			       size, data,
+			       -1, -1, 
+			       GNUNET_TIME_UNIT_FOREVER_REL,
+			       NULL, NULL);
+      GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
+      return;
+    }
+  prq.type = type;
+  prq.priority = priority;  
+  prq.finished = GNUNET_NO;
+  prq.request_found = GNUNET_NO;
+  prq.anonymity_level = anonymity;
+  if ( (old_rf == 0) &&
+       (pr->results_found == 0) )
+    update_datastore_delays (pr->start_time);
+  process_reply (&prq, key, pr);
+  if (prq.finished == GNUNET_YES)
+    return;
+  if (pr->qe == NULL)
+    return; /* done here */
+  if (prq.eval == GNUNET_BLOCK_EVALUATION_OK_LAST)
+    {
+      pr->local_only = GNUNET_YES; /* do not forward */
+      GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
+      return;
+    }
+  if ( (pr->client_request_list == NULL) &&
+       ( (GNUNET_YES == test_get_load_too_high (0)) ||
+	 (pr->results_found > 5 + 2 * pr->priority) ) )
+    {
+#if DEBUG_FS > 2
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Load too high, done with request\n");
+#endif
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# processing result set cut short due to load"),
+				1,
+				GNUNET_NO);
+      GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
+      return;
+    }
+  GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
+#endif
+}
+
+
+/**
+ * Look up the request in the local datastore.
+ *
+ * @param pr the pending request to process
+ * @param cont function to call at the end
+ * @param cont_cls closure for cont
+ */
+void
+GSF_local_lookup_ (struct GSF_PendingRequest *pr,
+		   GSF_LocalLookupContinuation cont,
+		   void *cont_cls)
+{
+  // FIXME: fix process_local_reply / cont!
+  GNUNET_assert (NULL == pr->gh);
+  pr->qe = GNUNET_DATASTORE_get (GSF_dsh,
+				 &pr->public_data.query,
+				 pr->public_data.type,
+				 1 /* queue priority */,
+				 1 /* max queue size */,
+				 GNUNET_TIME_UNIT_FOREVER_REL,
+				 &process_local_reply,
+				 pr);
+}
+
 
 
 /**
