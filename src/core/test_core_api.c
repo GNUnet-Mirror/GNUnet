@@ -138,6 +138,7 @@ connect_notify (void *cls,
 		  "Asking core (1) for transmission to peer `%4s'\n",
 		  GNUNET_i2s (&p2.id));
       if (NULL == GNUNET_CORE_notify_transmit_ready (p1.ch,
+						     GNUNET_YES,
 						     0,
 						     GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 45),
 						     &p2.id,

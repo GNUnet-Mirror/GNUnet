@@ -2886,10 +2886,13 @@ handle_client_send (void *cls,
 	      GNUNET_i2s (&sm->peer),
 	      (unsigned int) msize);
 #endif  
+  GNUNET_break (0 == ntohl (sm->reserved));
   e = GNUNET_malloc (sizeof (struct MessageEntry) + msize);
   e->deadline = GNUNET_TIME_absolute_ntoh (sm->deadline);
   e->priority = ntohl (sm->priority);
   e->size = msize;
+  if (GNUNET_YES != (int) ntohl (sm->cork))
+    e->got_slack = GNUNET_YES;
   memcpy (&e[1], &sm[1], msize);
 
   /* insert, keep list sorted by deadline */

@@ -141,6 +141,7 @@ connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Connected to myself; sending message!\n");
       GNUNET_CORE_notify_transmit_ready (core,
+					 GNUNET_YES,
 					 0, GNUNET_TIME_UNIT_FOREVER_REL,
 					 peer,
 					 sizeof (struct GNUNET_MessageHeader),

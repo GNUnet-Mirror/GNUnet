@@ -319,6 +319,7 @@ transmit_ready (void *cls, size_t size, void *buf)
 	   (p1.connect_status == 1) )
 	GNUNET_break (NULL !=
 		      GNUNET_CORE_notify_transmit_ready (p1.ch,
+							 GNUNET_NO,
 							 0,
 							 FAST_TIMEOUT,
 							 &p2.id,
@@ -395,11 +396,12 @@ connect_notify (void *cls,
       measure_task = GNUNET_SCHEDULER_add_delayed(MEASUREMENT_LENGTH, &measurement_stop, NULL);
 
       GNUNET_break (NULL != GNUNET_CORE_notify_transmit_ready (p1.ch,
-						       0,
-						       TIMEOUT,
-						       &p2.id,
-						       MESSAGESIZE,
-						       &transmit_ready, &p1));
+							       GNUNET_NO,
+							       0,
+							       TIMEOUT,
+							       &p2.id,
+							       MESSAGESIZE,
+							       &transmit_ready, &p1));
     }
 }
 
@@ -503,6 +505,7 @@ process_mtype (void *cls,
   if (running == GNUNET_YES)
 	GNUNET_break (NULL !=
 		      GNUNET_CORE_notify_transmit_ready (p1.ch,
+							 GNUNET_NO,
 							 0,
 							 FAST_TIMEOUT,
 							 &p2.id,

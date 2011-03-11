@@ -430,6 +430,16 @@ struct SendMessage
    */
   struct GNUNET_PeerIdentity peer;
 
+  /**
+   * GNUNET_YES if corking is allowed, GNUNET_NO if not.
+   */
+  uint32_t cork GNUNET_PACKED;
+
+  /**
+   * Always 0.
+   */
+  uint64_t reserved GNUNET_PACKED;
+
 };
 
 

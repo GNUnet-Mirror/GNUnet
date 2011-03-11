@@ -346,6 +346,11 @@ struct GNUNET_CORE_TransmitHandle
    */
   uint16_t smr_id;
 
+  /**
+   * Is corking allowed?
+   */
+  int cork;
+
 };
 
 
@@ -707,6 +712,8 @@ transmit_message (void *cls,
       sm->priority = htonl (th->priority);
       sm->deadline = GNUNET_TIME_absolute_hton (th->timeout);
       sm->peer = pr->peer;
+      sm->cork = htonl ((uint32_t) th->cork);
+      sm->reserved = htonl (0);
       ret = th->get_message (th->get_message_cls,
 			     size - sizeof (struct SendMessage),
 			     &sm[1]);
@@ -1532,6 +1539,7 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
   th->timeout = GNUNET_TIME_relative_to_absolute (maxdelay);
   th->priority = priority;
   th->msize = notify_size;
+  th->cork = cork;
   /* bound queue size */
   if (pr->queue_size == handle->queue_size)
     {
