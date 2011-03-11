@@ -63,6 +63,11 @@ struct GSF_RequestPlan
    */
   struct GNUNET_TIME_Absolute earliest_transmission;
 
+  /**
+   * Priority for this request for this target.
+   */
+  uint32_t priority;
+
 };
 
 
@@ -115,6 +120,7 @@ plan (struct PeerPlan *pp,
   prd = GSF_pending_request_get_data_ (rp->pr);
   weight = 0; // FIXME: calculate real weight!
   // FIXME: calculate 'rp->earliest_transmission'!
+  // fIXME: claculate 'rp->priority'! 
   rp->hn = GNUNET_CONTAINER_heap_insert (pp->heap,
 					 rp,
 					 weight);
@@ -206,7 +212,7 @@ schedule_peer_transmission (void *cls,
   msize = GSF_pending_request_get_message_ (rp->pr, 0, NULL);					   
   pp->pth = GSF_peer_transmit_ (pp->cp,
 				GNUNET_YES,
-				0 /* FIXME: pr->priority? */,
+				rp->priority,
 				GNUNET_TIME_UNIT_FOREVER_REL,
 				msize,
 				&transmit_message_callback,
