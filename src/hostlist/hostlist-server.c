@@ -414,6 +414,7 @@ connect_handler (void *cls,
               "Asked core to transmit advertisement message with a size of %u bytes to peer `%s'\n",
 	      size,GNUNET_i2s(peer));
   if (NULL == GNUNET_CORE_notify_transmit_ready (core,
+						 GNUNET_YES,
 						 0,
 						 GNUNET_ADV_TIMEOUT,
 						 peer,

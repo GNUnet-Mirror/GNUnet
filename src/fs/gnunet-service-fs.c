@@ -1163,6 +1163,7 @@ consider_migration (void *cls,
     }
   cp->cth 
     = GNUNET_CORE_notify_transmit_ready (core,
+					 GNUNET_YES,
 					 0, GNUNET_TIME_UNIT_FOREVER_REL,
 					 (const struct GNUNET_PeerIdentity*) key,
 					 msize + sizeof (struct PutMessage),
@@ -2169,6 +2170,7 @@ delayed_transmission_request (void *cls,
 		       &pid);
   cp->last_transmission_request_start = GNUNET_TIME_absolute_get ();
   cp->cth = GNUNET_CORE_notify_transmit_ready (core,
+					       GNUNET_YES,
 					       pm->priority,
 					       GNUNET_CONSTANTS_SERVICE_TIMEOUT,
 					       &pid,
@@ -2405,6 +2407,7 @@ add_to_pending_messages_for_peer (struct ConnectedPeer *cp,
   /* need to schedule transmission */
   cp->last_transmission_request_start = GNUNET_TIME_absolute_get ();
   cp->cth = GNUNET_CORE_notify_transmit_ready (core,
+					       GNUNET_YES,
 					       cp->pending_messages_head->priority,
 					       MAX_TRANSMIT_DELAY,
 					       &pid,

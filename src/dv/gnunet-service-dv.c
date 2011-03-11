@@ -864,8 +864,15 @@ try_core_send (void *cls,
     return; /* Message send already in progress */
 
   if ((pending != NULL) && (coreAPI != NULL))
-    core_transmit_handle = GNUNET_CORE_notify_transmit_ready (coreAPI, pending->importance, pending->timeout, &pending->recipient, pending->msg_size, &core_transmit_notify, NULL);
+    core_transmit_handle = GNUNET_CORE_notify_transmit_ready (coreAPI,
+							      GNUNET_YES,
+							      pending->importance,
+							      pending->timeout, 
+							      &pending->recipient,
+							      pending->msg_size,
+							      &core_transmit_notify, NULL);
 }
+
 
 /**
  * Function called to notify a client about the socket
@@ -939,7 +946,7 @@ size_t core_transmit_notify (void *cls,
 
   GNUNET_SCHEDULER_add_now(&try_core_send, NULL);
   /*if (reply != NULL)
-    core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, reply->importance, reply->timeout, &reply->recipient, reply->msg_size, &core_transmit_notify, NULL);*/
+    core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, GNUNET_YES,  reply->importance, reply->timeout, &reply->recipient, reply->msg_size, &core_transmit_notify, NULL);*/
 
   return off;
 }
@@ -1704,7 +1711,7 @@ neighbor_send_task (void *cls,
 
       GNUNET_SCHEDULER_add_now(try_core_send, NULL);
       /*if (core_transmit_handle == NULL)
-        core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, default_dv_priority, GNUNET_TIME_relative_get_forever(), &to->identity, sizeof(p2p_dv_MESSAGE_NeighborInfo), &core_transmit_notify, NULL);*/
+        core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, GNUNET_YES,  default_dv_priority, GNUNET_TIME_relative_get_forever(), &to->identity, sizeof(p2p_dv_MESSAGE_NeighborInfo), &core_transmit_notify, NULL);*/
 
     }
 
@@ -2080,7 +2087,7 @@ static int schedule_disconnect_messages (void *cls,
 
   GNUNET_SCHEDULER_add_now(try_core_send, NULL);
   /*if (core_transmit_handle == NULL)
-    core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, default_dv_priority, GNUNET_TIME_relative_get_forever(), &notify->identity, sizeof(p2p_dv_MESSAGE_Disconnect), &core_transmit_notify, NULL);*/
+    core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, GNUNET_YES, default_dv_priority, GNUNET_TIME_relative_get_forever(), &notify->identity, sizeof(p2p_dv_MESSAGE_Disconnect), &core_transmit_notify, NULL);*/
 
   return GNUNET_YES;
 }

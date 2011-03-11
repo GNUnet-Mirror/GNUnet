@@ -262,6 +262,7 @@ send_message_noficiation (void *cls,
 #endif
   my_msg = GNUNET_memdup (msg, ntohs (msg->header.size));
   if (NULL == GNUNET_CORE_notify_transmit_ready (core,
+						 GNUNET_NO,
                                                  1,
                                                  MAX_TRANSMIT_DELAY,
                                                  &pid,
@@ -553,6 +554,7 @@ send_join_noficiation (void *cls,
     strlen (entry->room) + 
     entry->meta_len;
   if (NULL == GNUNET_CORE_notify_transmit_ready (core,
+						 GNUNET_NO,
                                                  1,
                                                  MAX_TRANSMIT_DELAY,
                                                  &pid,
@@ -750,6 +752,7 @@ send_confirmation_receipt (void *cls,
   my_receipt = GNUNET_memdup (receipt,
                               sizeof (struct P2PConfirmationReceiptMessage));
   if (NULL == GNUNET_CORE_notify_transmit_ready (core,
+						 GNUNET_YES,
                                                  1,
                                                  MAX_TRANSMIT_DELAY,
                                                  &pid,
@@ -936,6 +939,7 @@ send_leave_noficiation (void *cls,
   public_key = GNUNET_memdup (&entry->public_key,
                               sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
   if (NULL == GNUNET_CORE_notify_transmit_ready (core,
+						 GNUNET_YES,
                                                  1,
                                                  MAX_TRANSMIT_DELAY,
                                                  &pid,
@@ -1408,6 +1412,7 @@ handle_p2p_sync_request (void *cls,
         strlen (entry->room) + 
         entry->meta_len;
       th = GNUNET_CORE_notify_transmit_ready (core,
+					      GNUNET_NO,
                                               1,
                                               MAX_TRANSMIT_DELAY,
                                               other,
@@ -1589,6 +1594,7 @@ peer_connect_handler (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Peer connected: %s\n", GNUNET_i2s (peer));
   th = GNUNET_CORE_notify_transmit_ready (core,
+					  GNUNET_YES,
                                           1,
                                           MAX_TRANSMIT_DELAY,
                                           peer,

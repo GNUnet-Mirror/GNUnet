@@ -1483,6 +1483,7 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
  * established (and the client has been informed about this).
  *
  * @param handle connection to core service
+ * @param cork is corking allowed for this transmission?
  * @param priority how important is the message?
  * @param maxdelay how long can the message wait?
  * @param target who should receive the message,
@@ -1496,6 +1497,7 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
  */
 struct GNUNET_CORE_TransmitHandle *
 GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
+				   int cork,
                                    uint32_t priority,
                                    struct GNUNET_TIME_Relative maxdelay,
                                    const struct GNUNET_PeerIdentity *target,

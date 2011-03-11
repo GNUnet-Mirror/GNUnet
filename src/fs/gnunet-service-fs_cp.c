@@ -368,6 +368,7 @@ core_reserve_callback (void *cls,
     {
       /* reservation success, try transmission now! */
       pth->cth = GNUNET_CORE_notify_transmit_ready (GSF_core,
+						    GNUNET_YES,
 						    pth->priority,
 						    GNUNET_TIME_absolute_get_remaining (pth->timeout),
 						    peer,
@@ -1110,6 +1111,7 @@ GSF_peer_transmit_ (struct GSF_ConnectedPeer *cp,
   if (is_ready)
     {
       pth->cth = GNUNET_CORE_notify_transmit_ready (GSF_core,
+						    GNUNET_YES,
 						    priority,
 						    timeout,
 						    &target,

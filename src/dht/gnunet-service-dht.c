@@ -1076,7 +1076,9 @@ try_core_send (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       if (reply_counter >= MAX_REPLY_TIMES)
         reply_counter = 0;
       peer->th =
-        GNUNET_CORE_notify_transmit_ready (coreAPI, pending->importance,
+        GNUNET_CORE_notify_transmit_ready (coreAPI, 
+					   GNUNET_YES,
+					   pending->importance,
                                            pending->timeout, &peer->id, ssize,
                                            &core_transmit_notify, peer);
       if (peer->th == NULL)

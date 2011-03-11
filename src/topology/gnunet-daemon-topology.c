@@ -635,7 +635,9 @@ schedule_next_hello (void *cls,
   if (delay.rel_value == 0)
     {
       /* now! */
-      pl->hello_req = GNUNET_CORE_notify_transmit_ready (handle, 0,
+      pl->hello_req = GNUNET_CORE_notify_transmit_ready (handle, 
+							 GNUNET_YES,
+							 0,
 							 GNUNET_CONSTANTS_SERVICE_TIMEOUT,
 							 &pl->pid,
 							 next_want,

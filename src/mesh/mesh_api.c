@@ -441,6 +441,7 @@ GNUNET_MESH_notify_transmit_ready (struct
   cls->notify = notify;
   cls->tunnel = tunnel;
   GNUNET_CORE_notify_transmit_ready(tunnel->handle->core,
+				    cork,
 				    priority,
 				    maxdelay,
 				    &tunnel->peer,
