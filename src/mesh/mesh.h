@@ -27,6 +27,7 @@
 #ifndef MESH_H_
 #define MESH_H_
 #include <stdint.h>
+#include "gnunet_common.h"
 
 /**
  * Message for mesh path management
@@ -79,6 +80,11 @@ struct GNUNET_MESH_Data
      * TID of the tunnel
      */
     uint32_t tid;
+
+    /**
+     * FIXME Some form of authentication
+     */
+    uint32_t token;
 
     /**
      * Size of payload

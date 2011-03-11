@@ -213,7 +213,7 @@ GNUNET_MESH_peer_request_connect_any (struct GNUNET_MESH_Handle *h,
  *
  * @param h mesh handle
  * @param timeout how long to try to establish a connection
- * @param num_peers length of the peers arrray
+ * @param num_peers length of the peers array
  * @param peers list of candidates to connect to
  * @param connect_handler function to call on successful connect (or timeout);
  *                will be called for EACH of the peers in the list and

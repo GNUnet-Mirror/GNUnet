@@ -25,6 +25,10 @@
  */
 
 #include <stdint.h>
+#include "gnunet_common.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_core_service.h"
+#include <netinet/in.h>
 
 /**
  * All the states a peer participating in a tunnel can be in.
@@ -136,6 +140,11 @@ struct MESH_tunnel
     uint32_t speed_max;
 
     /**
+     * Last time the tunnel was used
+     */
+    struct GNUNET_TIME_Absolute timestamp;
+
+    /**
      * Peers in the tunnel, for future optimizations
      */
     struct PeerInfo *peers;
@@ -172,7 +181,76 @@ struct Clients
     int fixme;
 };
 
+/**
+ * Handler for requests of creating new path
+ *
+ * @param cls closure
+ * @param client the client this message is from
+ * @param message the message received
+ */
+static void
+handle_mesh_path_create (void *cls,
+                         struct GNUNET_SERVER_Client *client,
+                         const struct GNUNET_MessageHeader *message)
+{
+    return;
+}
 
+/**
+ * Handler for client disconnection
+ *
+ * @param cls closure
+ * @param client identification of the client; NULL
+ *        for the last call when the server is destroyed
+ */
+static void
+handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
+{
+    /* Remove client from list, delete all timers and queues associated */
+    return;
+}
+
+/**
+ * Core handler for mesh network traffic
+ *
+ * @param cls closure
+ * @param message message
+ * @param peer peer identity this notification is about
+ * @param atsi performance data
+ *
+ */
+static int
+handle_mesh_network_traffic (void *cls,
+                              const struct GNUNET_PeerIdentity *peer,
+                              const struct GNUNET_MessageHeader *message,
+                              const struct GNUNET_TRANSPORT_ATS_Information
+                              *atsi)
+{
+    if(GNUNET_MESSAGE_TYPE_MESH_DATA_GO == ntohs(message->type)) {
+        /* Retransmit to next in path of tunnel identified by message */
+        return 0;
+    } else { /* GNUNET_MESSAGE_TYPE_MESH_DATA_BACK */
+        /* Retransmit to previous in path of tunnel identified by message */
+        return 0;
+    }
+}
+
+/**
+ * Functions to handle messages from core
+ */
+static struct GNUNET_CORE_MessageHandler core_handlers[] = {
+  {&handle_mesh_network_traffic, GNUNET_MESSAGE_TYPE_MESH_DATA_GO, 0},
+  {&handle_mesh_network_traffic, GNUNET_MESSAGE_TYPE_MESH_DATA_BACK, 0},
+  {NULL, 0, 0}
+};
+
+/**
+ * Functions to handle messages from clients
+ */
+static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
+  {&handle_mesh_path_create, NULL, GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE, 0},
+  {NULL, NULL, 0, 0}
+};
 
 /**
  * Process mesh requests. FIXME NON FUNCTIONAL, COPIED FROM DHT!!
@@ -189,17 +267,16 @@ run (void *cls,
   struct GNUNET_TIME_Relative next_send_time;
   unsigned long long temp_config_num;
   char *converge_modifier_buf;
+  GNUNET_CORE_Handle *coreAPI;
 
-  cfg = c;
-  datacache = GNUNET_DATACACHE_create (cfg, "dhtcache");
   GNUNET_SERVER_add_handlers (server, plugin_handlers);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
-  coreAPI = GNUNET_CORE_connect (cfg,   /* Main configuration */
-                                 DEFAULT_CORE_QUEUE_SIZE,       /* queue size */
+  coreAPI = GNUNET_CORE_connect (c,   /* Main configuration */
+                                 32,       /* queue size */
                                  NULL,  /* Closure passed to DHT functions */
-                                 &core_init,    /* Call core_init once connected */
-                                 &handle_core_connect,  /* Handle connects */
-                                 &handle_core_disconnect,       /* remove peers on disconnects */
+                                 NULL,    /* Call core_init once connected */
+                                 NULL,  /* Handle connects */
+                                 NULL,       /* remove peers on disconnects */
                                  NULL,  /* Do we care about "status" updates? */
                                  NULL,  /* Don't want notified about all incoming messages */
                                  GNUNET_NO,     /* For header only inbound notification */

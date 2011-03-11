@@ -469,7 +469,7 @@ GNUNET_MESH_connect (const struct
   ret->connected_peers.tail = NULL;
   ret->cleaner = cleaner;
   ret->cls = cls;
-    
+
   const struct GNUNET_MESH_MessageHandler *it;
   unsigned int len = 1;
   for (it = handlers; it->callback != NULL; it++)
