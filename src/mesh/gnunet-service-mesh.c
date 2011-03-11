@@ -211,6 +211,26 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 }
 
 /**
+ * Core handler for path creation
+ *
+ * @param cls closure
+ * @param message message
+ * @param peer peer identity this notification is about
+ * @param atsi performance data
+ *
+ */
+static int
+handle_mesh_path_create (void *cls,
+                              const struct GNUNET_PeerIdentity *peer,
+                              const struct GNUNET_MessageHeader *message,
+                              const struct GNUNET_TRANSPORT_ATS_Information
+                              *atsi)
+{
+    /* Extract path */
+    return GNUNET_OK;
+}
+
+/**
  * Core handler for mesh network traffic
  *
  * @param cls closure
@@ -228,10 +248,10 @@ handle_mesh_network_traffic (void *cls,
 {
     if(GNUNET_MESSAGE_TYPE_MESH_DATA_GO == ntohs(message->type)) {
         /* Retransmit to next in path of tunnel identified by message */
-        return 0;
+        return GNUNET_OK;
     } else { /* GNUNET_MESSAGE_TYPE_MESH_DATA_BACK */
         /* Retransmit to previous in path of tunnel identified by message */
-        return 0;
+        return GNUNET_OK;
     }
 }
 
@@ -239,6 +259,7 @@ handle_mesh_network_traffic (void *cls,
  * Functions to handle messages from core
  */
 static struct GNUNET_CORE_MessageHandler core_handlers[] = {
+  {&handle_mesh_path_create, NULL, GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE, 0},
   {&handle_mesh_network_traffic, GNUNET_MESSAGE_TYPE_MESH_DATA_GO, 0},
   {&handle_mesh_network_traffic, GNUNET_MESSAGE_TYPE_MESH_DATA_BACK, 0},
   {NULL, 0, 0}
@@ -248,7 +269,9 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
  * Functions to handle messages from clients
  */
 static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
-  {&handle_mesh_path_create, NULL, GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE, 0},
+  {&handle_local_path_create, NULL, GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE, 0},
+  {&handle_local_network_traffic, GNUNET_MESSAGE_TYPE_MESH_DATA_GO, 0},
+  {&handle_local_network_traffic, GNUNET_MESSAGE_TYPE_MESH_DATA_BACK, 0},
   {NULL, NULL, 0, 0}
 };
 
