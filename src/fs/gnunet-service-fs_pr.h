@@ -92,6 +92,16 @@ struct GSF_PendingRequestData
   struct GNUNET_PeerIdentity target;
 
   /**
+   * Fields for the plan module to track a DLL with the request.
+   */
+  struct GSF_RequestPlan *rp_head;
+
+  /**
+   * Fields for the plan module to track a DLL with the request.
+   */
+  struct GSF_RequestPlan *rp_tail;
+
+  /**
    * Current TTL for the request.
    */
   struct GNUNET_TIME_Absolute ttl;

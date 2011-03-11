@@ -21,6 +21,15 @@
 /**
  * @author Bartlomiej Polot
  * @file mesh/mesh.h
+ *
+ * TODO:
+ * - soft stateing (keep-alive (CHANGE?) / timeout / disconnect) -- not a message issue
+ * - error reporting (CREATE/CHANGE/ADD/DEL?) -- new message!
+ * - partial disconnect reporting -- same as error reporting?
+ * - add vs create? change vs. keep-alive? same msg or different ones? -- thinking...
+ * - speed requirement specification (change?) in mesh API -- API call
+ *
+ * - API messages!
  */
 
 
@@ -35,41 +44,44 @@
 struct GNUNET_MESH_ManipulatePath
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_PATH_[CREATE|CHANGE|ADD]
+     * Type: GNUNET_MESSAGE_TYPE_MESH_PATH_[CREATE|CHANGE|ADD|DEL]
+     *
+     * Size: sizeof(struct GNUNET_MESH_ManipulatePath) + path_length * sizeof (struct GNUNET_PeerIdentity)
      */
     struct GNUNET_MessageHeader header;
 
     /**
-     * Id of the tunnel this path belongs to
+     * Id of the tunnel this path belongs to, unique in conjunction with the origin.
      */
-    uint32_t tid;
+    uint32_t tid GNUNET_PACKED;
 
     /**
-     * Information about speed requirements
+     * Information about speed requirements.  If the tunnel cannot sustain the 
+     * minimum bandwidth, packets are to be dropped.
      */
-    uint32_t speed_min;
-    uint32_t speed_max;
+    uint32_t speed_min GNUNET_PACKED;
 
     /**
-     * Number of hops in the path given below
+     * path_length structs defining the *whole* path from the origin [0] to the
+     * final destination [path_length-1].
      */
-    uint16_t path_length;
-
-    /**
-     * path_length structs defining the *whole* path
-     */
-    struct GNUNET_PeerIdentity peers[];
+  // struct GNUNET_PeerIdentity peers[path_length];
 };
 
 /**
- * Message for mesh data traffic
+ * Message for mesh data traffic to all tunnel targets.
  */
-struct GNUNET_MESH_Data
+struct GNUNET_MESH_OriginMulticast
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_DATA_[GO|BACK]
+     * Type: GNUNET_MESSAGE_TYPE_DATA_MULTICAST
      */
     struct GNUNET_MessageHeader header;
+
+    /**
+     * TID of the tunnel
+     */
+    uint32_t tid GNUNET_PACKED;
 
     /**
      * OID of the tunnel
@@ -77,25 +89,85 @@ struct GNUNET_MESH_Data
     struct GNUNET_PeerIdentity oid;
 
     /**
+     * FIXME: Some form of authentication
+     */
+    // uint32_t token;
+
+    /**
+     * Payload follows
+     */
+};
+
+
+/**
+ * Message for mesh data traffic to a particular destination from origin.
+ */
+struct GNUNET_MESH_DataMessageFromOrigin
+{
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_DATA_MESSAGE_FROM_ORIGIN
+     */
+    struct GNUNET_MessageHeader header;
+
+    /**
      * TID of the tunnel
      */
-    uint32_t tid;
+    uint32_t tid GNUNET_PACKED;
 
     /**
-     * FIXME Some form of authentication
+     * OID of the tunnel
      */
-    uint32_t token;
+    struct GNUNET_PeerIdentity oid;
 
     /**
-     * Size of payload
-     * FIXME uint16 enough?
+     * Destination.
      */
-    uint16_t size;
+    struct GNUNET_PeerIdentity destination;
 
     /**
-     * Payload
+     * FIXME: Some form of authentication
      */
-    uint8_t data[];
+    // uint32_t token;
+
+    /**
+     * Payload follows
+     */
+};
+
+
+/**
+ * Message for mesh data traffic from a tunnel participant to origin.
+ */
+struct GNUNET_MESH_DataMessageToOrigin
+{
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_DATA_MESSAGE_TO_ORIGIN
+     */
+    struct GNUNET_MessageHeader header;
+
+    /**
+     * TID of the tunnel
+     */
+    uint32_t tid GNUNET_PACKED;
+
+    /**
+     * OID of the tunnel
+     */
+    struct GNUNET_PeerIdentity oid;
+
+    /**
+     * Sender of the message.
+     */
+    struct GNUNET_PeerIdentity sender;
+
+    /**
+     * FIXME: Some form of authentication
+     */
+    // uint32_t token;
+
+    /**
+     * Payload follows
+     */
 };
 
 /**
@@ -109,24 +181,20 @@ struct GNUNET_MESH_SpeedNotify
     struct GNUNET_MessageHeader header;
 
     /**
+     * TID of the tunnel
+     */
+    uint32_t tid GNUNET_PACKED;
+
+    /**
      * OID of the tunnel
      */
     struct GNUNET_PeerIdentity oid;
 
     /**
-     * TID of the tunnel
-     */
-    uint32_t tid;
-
-    /**
-     * Slowest link down the path
+     * Slowest link down the path (above minimum speed requirement).
      */
     uint32_t speed_min;
 
-    /**
-     * Fastest link down the path
-     */
-    uint32_t speed_max;
 };
 
 #endif

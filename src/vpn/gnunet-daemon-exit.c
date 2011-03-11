@@ -447,6 +447,7 @@ static int
 receive_udp_service (void *cls,
                      struct GNUNET_MESH_Tunnel *tunnel,
                      void **tunnel_ctx,
+		     const struct GNUNET_PeerIdentity *sender,
                      const struct GNUNET_MessageHeader *message,
                      const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {

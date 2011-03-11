@@ -1532,8 +1532,7 @@ destroy_pending_request (struct PendingRequest *pr)
 
   if (pr->hnode != NULL)
     {
-      GNUNET_CONTAINER_heap_remove_node (requests_by_expiration_heap,
-					 pr->hnode);
+      GNUNET_CONTAINER_heap_remove_node (pr->hnode);
       pr->hnode = NULL;
     }
   if (NULL == pr->client_request_list)

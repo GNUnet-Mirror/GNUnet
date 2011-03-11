@@ -1243,10 +1243,8 @@ do_get(void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc);
 static int
 remove_peer_count(void *cls, const GNUNET_HashCode * key, void *value)
 {
-  struct FindPeerContext *find_peer_ctx = cls;
   struct PeerCount *peer_count = value;
-  GNUNET_CONTAINER_heap_remove_node (find_peer_ctx->peer_min_heap,
-                                     peer_count->heap_node);
+  GNUNET_CONTAINER_heap_remove_node (peer_count->heap_node);
   GNUNET_free(peer_count);
 
   return GNUNET_YES;

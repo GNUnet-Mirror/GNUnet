@@ -70,6 +70,10 @@ struct GSF_PendingRequest;
  */
 struct GSF_LocalClient;
 
+/**
+ * Information kept per plan per request ('pe' module).
+ */
+struct GSF_RequestPlan;
 
 /**
  * Our connection to the datastore.

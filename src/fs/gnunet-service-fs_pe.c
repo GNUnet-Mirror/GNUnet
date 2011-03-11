@@ -28,13 +28,51 @@
 #include "gnunet-service-fs_pe.h"
 #include "gnunet-service-fs_pr.h"
 
+
+/**
+ * Information we keep per request per peer.  This is a doubly-linked
+ * list (with head and tail in the 'struct GSF_PendingRequestData')
+ * with one entry in each heap of each 'struct PeerPlan'.  Each
+ * entry tracks information relevant for this request and this peer.
+ */
+struct GSF_RequestPlan
+{
+
+  /**
+   * This is a doubly-linked list.
+   */
+  struct GSF_RequestPlan *next;
+
+  /**
+   * This is a doubly-linked list.
+   */
+  struct GSF_RequestPlan *prev;
+
+  /**
+   * Heap node associated with this request and this peer.
+   */
+  struct GNUNET_CONTAINER_HeapNode *hn;
+
+  /**
+   * Associated pending request.
+   */
+  struct GSF_PendingRequest *pr;
+
+  /**
+   * Earliest time we'd be happy to transmit this request.
+   */
+  struct GNUNET_TIME_Absolute earliest_transmission;
+
+};
+
+
 /**
  * Transmission plan for a peer.
  */
 struct PeerPlan
 {
   /**
-   * Heap with pending queries, smaller weights mean higher priority.
+   * Heap with pending queries (struct GSF_RequestPlan), smaller weights mean higher priority.
    */
   struct GNUNET_CONTAINER_Heap *heap;
 
@@ -62,6 +100,28 @@ static struct GNUNET_CONTAINER_MultiHashMap *plans;
 
 
 /**
+ * Insert the given request plan into the heap with the appropriate weight.
+ *
+ * @param pp associated peer's plan
+ * @param rp request to plan
+ */
+static void
+plan (struct PeerPlan *pp,
+      struct GSF_RequestPlan *rp)
+{
+  GNUNET_CONTAINER_HeapCostType weight;
+  struct GSF_PendingRequestData *prd;
+
+  prd = GSF_pending_request_get_data_ (rp->pr);
+  weight = 0; // FIXME: calculate real weight!
+  // FIXME: calculate 'rp->earliest_transmission'!
+  rp->hn = GNUNET_CONTAINER_heap_insert (pp->heap,
+					 rp,
+					 weight);
+}
+
+
+/**
  * Figure out when and how to transmit to the given peer.
  *
  * @param cls the 'struct GSF_ConnectedPeer' for transmission
@@ -86,7 +146,7 @@ transmit_message_callback (void *cls,
 			   void *buf)
 {
   struct PeerPlan *pp = cls;
-  struct GSF_PendingRequest *pr;
+  struct GSF_RequestPlan *rp;
   size_t msize;
 
   if (NULL == buf)
@@ -95,8 +155,8 @@ transmit_message_callback (void *cls,
       pp->task = GNUNET_SCHEDULER_add_now (&schedule_peer_transmission, pp);
       return 0;
     }
-  pr = GNUNET_CONTAINER_heap_peek (pp->heap);
-  msize = GSF_pending_request_get_message_ (pr, buf_size, buf);
+  rp = GNUNET_CONTAINER_heap_peek (pp->heap);
+  msize = GSF_pending_request_get_message_ (rp->pr, buf_size, buf);
   if (msize > buf_size)
     {
       /* buffer to small (message changed), try again */
@@ -104,8 +164,9 @@ transmit_message_callback (void *cls,
       return 0;
     }
   /* remove from root, add again elsewhere... */
-  GNUNET_assert (pr == GNUNET_CONTAINER_heap_remove_root (pp->heap));
-  GSF_plan_add_ (pp->cp, pr);
+  GNUNET_assert (rp == GNUNET_CONTAINER_heap_remove_root (pp->heap));
+  rp->hn = NULL;
+  plan (pp, rp);
   return msize;
 }
 
@@ -121,7 +182,8 @@ schedule_peer_transmission (void *cls,
 			    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerPlan *pp = cls;
-  struct GSF_PendingRequest *pr;
+  struct GSF_RequestPlan *rp;
+  struct GSF_PendingRequestData *prd;
   size_t msize;
   struct GNUNET_TIME_Relative delay;
 
@@ -131,17 +193,17 @@ schedule_peer_transmission (void *cls,
   if (0 == GNUNET_CONTAINER_heap_get_size (pp->heap))
     return;
   GNUNET_assert (NULL == pp->pth);
-  pr = GNUNET_CONTAINER_heap_peek (pp->heap);
-  if (0) // FIXME: if (re)transmission should wait, wait...
+  rp = GNUNET_CONTAINER_heap_peek (pp->heap);
+  prd = GSF_pending_request_get_data_ (rp->pr);
+  delay = GNUNET_TIME_absolute_get_remaining (rp->earliest_transmission);
+  if (delay.rel_value > 0)
     {
-      delay = GNUNET_TIME_UNIT_SECONDS;
-      // FIXME
       pp->task = GNUNET_SCHEDULER_add_delayed (delay,
 					       &schedule_peer_transmission,
 					       pp);
       return;
     }
-  msize = GSF_pending_request_get_message_ (pr, 0, NULL);					   
+  msize = GSF_pending_request_get_message_ (rp->pr, 0, NULL);					   
   pp->pth = GSF_peer_transmit_ (pp->cp,
 				GNUNET_YES,
 				0 /* FIXME: pr->priority? */,
@@ -165,7 +227,8 @@ GSF_plan_add_ (const struct GSF_ConnectedPeer *cp,
 {
   struct GNUNET_PeerIdentity id;
   struct PeerPlan *pp;
-  GNUNET_CONTAINER_HeapCostType weight;
+  struct GSF_PendingRequestData *prd;
+  struct GSF_RequestPlan *rp;
   
   GSF_connected_peer_get_identity_ (cp, &id);
   pp = GNUNET_CONTAINER_multihashmap_get (plans,
@@ -179,13 +242,16 @@ GSF_plan_add_ (const struct GSF_ConnectedPeer *cp,
 					 pp,
 					 GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
     }
-  weight = 0; // FIXME: calculate real weight!
-  GNUNET_CONTAINER_heap_insert (pp->heap,
-				pr,
-				weight);
+  prd = GSF_pending_request_get_data_ (pr);
+  rp = GNUNET_malloc (sizeof (struct GSF_RequestPlan));
+  rp->pr = pr;
+  GNUNET_CONTAINER_DLL_insert (prd->rp_head,
+			       prd->rp_tail,
+			       rp);
+  plan (pp, rp);
   if (pp->pth != NULL)
     {
-      if (pr != GNUNET_CONTAINER_heap_peek (pp->heap))
+      if (rp != GNUNET_CONTAINER_heap_peek (pp->heap))
 	return;
       GSF_peer_transmit_cancel_ (pp->pth);
       pp->pth = NULL;
@@ -208,6 +274,8 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
 {
   struct GNUNET_PeerIdentity id;
   struct PeerPlan *pp;
+  struct GSF_RequestPlan *rp;
+  struct GSF_PendingRequestData *prd;
 
   GSF_connected_peer_get_identity_ (cp, &id);
   pp = GNUNET_CONTAINER_multihashmap_get (plans,
@@ -219,101 +287,40 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
     GSF_peer_transmit_cancel_ (pp->pth);
   if (GNUNET_SCHEDULER_NO_TASK != pp->task)
     GNUNET_SCHEDULER_cancel (pp->task);
+  while (NULL != (rp = GNUNET_CONTAINER_heap_remove_root (pp->heap)))
+    {
+      prd = GSF_pending_request_get_data_ (rp->pr);
+      GNUNET_CONTAINER_DLL_remove (prd->rp_head,
+				   prd->rp_tail,
+				   rp);
+      GNUNET_free (rp);
+    }
   GNUNET_CONTAINER_heap_destroy (pp->heap);
   GNUNET_free (pp);
 }
 
 
 /**
- * Closure for 'find_request'.
- */
-struct FindRequestClosure
-{
-  /**
-   * Place to store the node that was found (NULL for none).
-   */
-  struct GNUNET_CONTAINER_HeapNode *node;
-
-  /**
-   * Value we're looking for
-   */
-  const struct GSF_PendingRequest *pr;
-};
-
-
-/**
- * Find a heap node where the value matches the
- * pending request given in the closure.
- *
- * @param cls the 'struct FindRequestClosure'
- * @param node heap structure we're looking for on a match
- * @param element the pending request stored in the heap
- * @param cost weight of the request
- * @return GNUNET_YES to continue looking
- */
-static int
-find_request (void *cls,
-	      struct GNUNET_CONTAINER_HeapNode *node,
-	      void *element,
-	      GNUNET_CONTAINER_HeapCostType cost)
-{
-  struct FindRequestClosure *frc = cls;
-  struct GSF_PendingRequest *pr = element;
-
-  if (pr == frc->pr)
-    {
-      frc->node = node;
-      return GNUNET_NO;
-    }
-  return GNUNET_YES;
-}
-
-
-/**
- * Remove the given request from all heaps. * FIXME: O(n) -- inefficient!
- *
- * @param cls 'struct GSF_PendingRequest' to purge
- * @param key identity of the peer we're currently looking at (unused)
- * @param value PeerPlan for the given peer to search for the 'cls'
- * @return GNUNET_OK (continue iteration)
- */
-static int
-remove_request (void *cls,
-		const GNUNET_HashCode *key,
-		void *value)
-{
-  const struct GSF_PendingRequest *pr = cls;
-  struct PeerPlan *pp = value;
-  struct GNUNET_CONTAINER_Heap *h = pp->heap;
-  struct FindRequestClosure frc;
-
-  frc.pr = pr;
-  do
-    {
-      frc.node = NULL;
-      GNUNET_CONTAINER_heap_iterate (h, &find_request, &frc);
-      if (frc.node != NULL)
-	GNUNET_CONTAINER_heap_remove_node (h, frc.node);
-    }
-  while (NULL != frc.node);
-  return GNUNET_OK;
-}
-
-
-/**
  * Notify the plan about a request being done; destroy all entries
- * associated with this request.  Note that this implementation is
- * currently terribly inefficient (O(n)) and could instead be done in
- * O(1).  But for now, I first want to see it work correctly...
+ * associated with this request.
  *
  * @param pr request that is done
  */
 void
 GSF_plan_notify_request_done_ (const struct GSF_PendingRequest *pr)
 {
-  GNUNET_CONTAINER_multihashmap_iterate (plans,
-					 &remove_request,
-					 (void*) pr);
+  struct GSF_RequestPlan *rp;
+  struct GSF_PendingRequestData *prd;
+
+  while (NULL != (rp = prd->rp_head))
+    {
+      prd = GSF_pending_request_get_data_ (rp->pr);
+      GNUNET_CONTAINER_heap_remove_node (rp->hn);
+      GNUNET_CONTAINER_DLL_remove (prd->rp_head,
+				   prd->rp_tail,
+				   rp);
+      GNUNET_free (rp);
+    }
 }
 
 

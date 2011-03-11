@@ -1011,8 +1011,7 @@ GNUNET_CONTAINER_heap_remove_root (struct GNUNET_CONTAINER_Heap *heap);
  * @return element data stored at the node, NULL if heap is empty
  */
 void *
-GNUNET_CONTAINER_heap_remove_node (struct GNUNET_CONTAINER_Heap *heap,
-				   struct GNUNET_CONTAINER_HeapNode *node);
+GNUNET_CONTAINER_heap_remove_node (struct GNUNET_CONTAINER_HeapNode *node);
 
 
 /**

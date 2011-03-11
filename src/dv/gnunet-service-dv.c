@@ -2010,8 +2010,8 @@ distant_neighbor_free (struct DistantNeighbor *referee)
       GNUNET_CONTAINER_DLL_remove (referrer->referee_head,
                          referrer->referee_tail, referee);
     }
-  GNUNET_CONTAINER_heap_remove_node (neighbor_max_heap, referee->max_loc);
-  GNUNET_CONTAINER_heap_remove_node (neighbor_min_heap, referee->min_loc);
+  GNUNET_CONTAINER_heap_remove_node (referee->max_loc);
+  GNUNET_CONTAINER_heap_remove_node (referee->min_loc);
   GNUNET_CONTAINER_multihashmap_remove_all (extended_neighbors,
                                     &referee->identity.hashPubKey);
   GNUNET_free_non_null (referee->pkey);

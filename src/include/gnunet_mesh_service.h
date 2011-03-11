@@ -61,6 +61,7 @@ struct GNUNET_MESH_Tunnel;
  * @param cls closure (set from GNUNET_MESH_connect)
  * @param tunnel connection to the other end
  * @param tunnel_ctx place to store local state associated with the tunnel
+ * @param sender who sent the message
  * @param message the actual message
  * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
@@ -69,7 +70,8 @@ struct GNUNET_MESH_Tunnel;
 typedef int
   (*GNUNET_MESH_MessageCallback) (void *cls,
                                   struct GNUNET_MESH_Tunnel *tunnel,
-				  void **tunnel_ctx,
+				  void **tunnel_ctx, 
+				  const struct GNUNET_PeerIdentity *sender,
                                   const struct GNUNET_MessageHeader *message,
 				  const struct GNUNET_TRANSPORT_ATS_Information *atsi);
 
@@ -249,6 +251,18 @@ GNUNET_MESH_peer_request_connect_add (struct GNUNET_MESH_Tunnel *tunnel,
 
 
 /**
+ * Request that a peer should be removed from the tunnel.  The existing
+ * disconnect handler will be called ONCE if we were connected.
+ *
+ * @param tunnel handle to existing tunnel
+ * @param peer peer to remove
+ */
+void
+GNUNET_MESH_peer_request_connect_del (struct GNUNET_MESH_Tunnel *tunnel,
+				      const struct GNUNET_PeerIdentity *peer);
+
+
+/**
  * Request that the mesh should try to connect to a peer supporting the given
  * message type.
  *
@@ -300,6 +314,7 @@ struct GNUNET_MESH_TransmitHandle;
  * @param cork is corking allowed for this transmission?
  * @param priority how important is the message?
  * @param maxdelay how long can the message wait?
+ * @param target destination for the message, NULL for multicast to all tunnel targets 
  * @param notify_size how many bytes of buffer space does notify want?
  * @param notify function to call when buffer space is available;
  *        will be called with NULL on timeout or if the overall queue
@@ -319,6 +334,7 @@ GNUNET_MESH_notify_transmit_ready (struct
 				   struct
 				   GNUNET_TIME_Relative
 				   maxdelay,
+				   // const struct GNUNET_PeerIdentity *target,
 				   size_t
 				   notify_size,
 				   GNUNET_CONNECTION_TransmitReadyNotify

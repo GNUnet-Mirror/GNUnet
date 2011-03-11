@@ -37,6 +37,11 @@
 struct GNUNET_CONTAINER_HeapNode
 {
   /**
+   * Heap this node belongs to.
+   */
+  struct GNUNET_CONTAINER_Heap *heap;
+
+  /**
    * Parent node.
    */
   struct GNUNET_CONTAINER_HeapNode *parent;
@@ -340,6 +345,7 @@ GNUNET_CONTAINER_heap_insert (struct GNUNET_CONTAINER_Heap *heap,
   struct GNUNET_CONTAINER_HeapNode *node;
 
   node = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_HeapNode));
+  node->heap = heap;
   node->element = element;
   node->cost = cost;
   heap->size++;
@@ -405,10 +411,10 @@ GNUNET_CONTAINER_heap_remove_root (struct GNUNET_CONTAINER_Heap *heap)
  * 'size' field of the tree.
  */
 static void
-remove_node (struct GNUNET_CONTAINER_Heap *heap,
-	     struct GNUNET_CONTAINER_HeapNode *node)
+remove_node (struct GNUNET_CONTAINER_HeapNode *node)
 {
   struct GNUNET_CONTAINER_HeapNode *ancestor;
+  struct GNUNET_CONTAINER_Heap *heap = node->heap;
 
   /* update 'size' of the ancestors */
   ancestor = node;
@@ -471,20 +477,20 @@ remove_node (struct GNUNET_CONTAINER_Heap *heap,
 /**
  * Removes a node from the heap.
  * 
- * @param heap heap to modify
  * @param node node to remove
  * @return element data stored at the node
  */
 void *
-GNUNET_CONTAINER_heap_remove_node (struct GNUNET_CONTAINER_Heap *heap,
-                                   struct GNUNET_CONTAINER_HeapNode *node)
+GNUNET_CONTAINER_heap_remove_node (struct GNUNET_CONTAINER_HeapNode *node)
 {
   void *ret;
- 
+  struct GNUNET_CONTAINER_Heap *heap;
+
+  heap = node->heap; 
   CHECK (heap->root);
   if (heap->walk_pos == node)
     (void) GNUNET_CONTAINER_heap_walk_get_next (heap);
-  remove_node (heap, node);
+  remove_node (node);
   heap->size--;
   ret = node->element;
   if (heap->walk_pos == node)
@@ -518,7 +524,7 @@ GNUNET_CONTAINER_heap_update_cost (struct GNUNET_CONTAINER_Heap *heap,
 		  (heap->size == heap->root->tree_size + 1) );
   CHECK (heap->root);
 #endif
-  remove_node (heap, node);
+  remove_node (node);
 #if DEBUG
   CHECK (heap->root);
   GNUNET_assert ( ( (heap->size == 1) && 

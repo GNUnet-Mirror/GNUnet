@@ -315,7 +315,7 @@ core_receive (void *cls,
     }
 
   return handler->callback (handle->cls, &tunnel->tunnel,
-			    &tunnel->tunnel.ctx, rmessage, atsi);
+			    &tunnel->tunnel.ctx, other, rmessage, atsi);
 }
 
 

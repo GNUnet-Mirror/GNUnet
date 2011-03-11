@@ -2115,8 +2115,7 @@ remove_forward_entry (void *cls,
   struct DHTRouteSource *source_info = cls;
   struct DHTQueryRecord *record;
   source_info =
-    GNUNET_CONTAINER_heap_remove_node (forward_list.minHeap,
-                                       source_info->hnode);
+    GNUNET_CONTAINER_heap_remove_node (source_info->hnode);
   record = source_info->record;
   GNUNET_CONTAINER_DLL_remove (record->head, record->tail, source_info);
 
@@ -3733,7 +3732,7 @@ remove_recent (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (recent.hashmap, &hash,
                                                        req));
-  GNUNET_CONTAINER_heap_remove_node (recent.minHeap, req->heap_node);
+  GNUNET_CONTAINER_heap_remove_node (req->heap_node);
   GNUNET_CONTAINER_bloomfilter_free (req->bloom);
   GNUNET_free (req);
 
@@ -4241,7 +4240,7 @@ find_client_records (void *cls, const GNUNET_HashCode * key, void *value)
   if (pos != NULL)
     {
       GNUNET_CONTAINER_DLL_remove (record->head, record->tail, pos);
-      GNUNET_CONTAINER_heap_remove_node (forward_list.minHeap, pos->hnode);
+      GNUNET_CONTAINER_heap_remove_node (pos->hnode);
       if (pos->delete_task != GNUNET_SCHEDULER_NO_TASK)
 	{
 	  GNUNET_SCHEDULER_cancel (pos->delete_task);

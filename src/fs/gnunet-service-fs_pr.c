@@ -526,8 +526,7 @@ clean_request (void *cls,
     GNUNET_CONTAINER_bloomfilter_free (pr->bf);
   GNUNET_PEER_change_rc (pr->sender_pid, -1);
   if (NULL != pr->hnode)
-    GNUNET_CONTAINER_heap_remove_node (requests_by_expiration_heap,
-				       pr->hnode);
+    GNUNET_CONTAINER_heap_remove_node (pr->hnode);
   if (NULL != pr->qe)
     GNUNET_DATASTORE_cancel (pr->qe);
   if (NULL != pr->gh)

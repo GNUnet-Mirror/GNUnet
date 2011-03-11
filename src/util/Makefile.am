@@ -92,7 +92,7 @@ gnunet_service_resolver_LDADD = \
   $(GN_LIBINTL)
 gnunet_service_resolver_DEPENDENCIES = \
   libgnunetutil.la
-	
+
 
 gnunet_resolver_SOURCES = \
  gnunet-resolver.c         
@@ -229,7 +229,8 @@ test_crypto_aes_LDADD = \
 test_crypto_aes_weak_SOURCES = \
  test_crypto_aes_weak.c
 test_crypto_aes_weak_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la  
+ $(top_builddir)/src/util/libgnunetutil.la  \
+ -lgcrypt
 
 test_crypto_crc_SOURCES = \
  test_crypto_crc.c
