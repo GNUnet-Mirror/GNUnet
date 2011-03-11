@@ -39,8 +39,7 @@
  */
 void
 GSF_plan_add_ (const struct GSF_ConnectedPeer *cp,
-	       struct GSF_PendingRequest *pr,
-	       GNUNET_CONTAINER_HeapCostType weight);
+	       struct GSF_PendingRequest *pr);
 
 
 /**
@@ -61,27 +60,6 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp);
  */
 void
 GSF_plan_notify_request_done_ (const struct GSF_PendingRequest *pr);
-
-
-/**
- * Get the lowest-weight entry for the respective peer
- * from the plan.  Removes the entry from the plan's queue.
- *
- * @param cp connected peer to query for the next request
- * @return NULL if the queue for this peer is empty
- */
-struct GSF_PendingRequest *
-GSF_plan_get_ (const struct GSF_ConnectedPeer *cp);
-
-
-/**
- * Get the size of the request queue for the given peer.
- *
- * @param cp connected peer to query 
- * @return number of entries in this peer's request queue
- */
-unsigned int
-GSF_plan_size_ (const struct GSF_ConnectedPeer *cp);
 
 
 /**

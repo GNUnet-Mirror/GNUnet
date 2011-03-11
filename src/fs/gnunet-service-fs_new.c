@@ -228,9 +228,6 @@ GSF_test_get_load_too_high_ (uint32_t priority)
 }
 
 
-
-
-
 /**
  * Handle P2P "PUT" message.
  *
@@ -261,25 +258,6 @@ handle_p2p_put (void *cls,
 
 
 /**
- * Decide with what weight we should forward the given
- * request to the given peer.
- *
- * @param cp target peer
- * @param pr request
- */
-static void
-plan (struct GSF_ConnectedPeer *cp,
-      struct GSF_PendingRequest *pr)
-{
-  GNUNET_CONTAINER_HeapCostType weight;
-
-  weight = 0;
-  /* FIXME: calculate weight properly... */
-  GSF_plan_add_ (cp, pr, weight);
-}
-
-
-/**
  * We have a new request, consider forwarding it to the given
  * peer.
  *
@@ -296,7 +274,7 @@ consider_request_for_forwarding (void *cls,
 {
   struct GSF_PendingRequest *pr = cls;
 
-  plan (cp, pr);
+  GSF_plan_add_ (cp, pr);
 }
 
 
@@ -466,7 +444,7 @@ consider_peer_for_forwarding (void *cls,
 {
   struct GSF_ConnectedPeer *cp = cls;
   
-  plan (cp, pr);
+  GSF_plan_add_ (cp, pr);
   return GNUNET_YES;
 }
 

@@ -423,14 +423,12 @@ GSF_pending_request_update_ (struct GSF_PendingRequest *pr,
  * transmission to other peers (or at least determine its size).
  *
  * @param pr request to generate the message for
- * @param do_route are we routing the reply
  * @param buf_size number of bytes available in buf
  * @param buf where to copy the message (can be NULL)
  * @return number of bytes needed (if > buf_size) or used
  */
 size_t
 GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
-				  int do_route,
 				  size_t buf_size,
 				  void *buf)
 {
@@ -444,10 +442,13 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
   size_t bf_size;
   struct GNUNET_TIME_Absolute now;
   int64_t ttl;
+  int do_route;
+
 
   k = 0;
   bm = 0;
-  if (GNUNET_YES != do_route)
+  do_route = (0 == (pr->public_data.options & GSF_PRO_FORWARD_ONLY));
+  if (! do_route)
     {
       bm |= GET_MESSAGE_BIT_RETURN_TO;
       k++;      
@@ -471,7 +472,7 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
   gm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_GET);
   gm->header.size = htons (msize);
   gm->type = htonl (pr->public_data.type);
-  if (GNUNET_YES == do_route)
+  if (do_route)
     prio = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
 				     pr->public_data.priority + 1);
   else
@@ -486,7 +487,7 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
   gm->query = pr->public_data.query;
   ext = (GNUNET_HashCode*) &gm[1];
   k = 0;  
-  if (GNUNET_YES != do_route)
+  if (! do_route)
     GNUNET_PEER_resolve (pr->sender_pid, 
 			 (struct GNUNET_PeerIdentity*) &ext[k++]);
   if (GNUNET_BLOCK_TYPE_FS_SBLOCK == pr->public_data.type)

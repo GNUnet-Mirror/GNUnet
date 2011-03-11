@@ -234,14 +234,12 @@ GSF_pending_request_get_data_ (struct GSF_PendingRequest *pr);
  * transmission to other peers (or at least determine its size).
  *
  * @param pr request to generate the message for
- * @param do_route are we routing the reply
  * @param buf_size number of bytes available in buf
  * @param buf where to copy the message (can be NULL)
  * @return number of bytes needed (if buf_size too small) or used
  */
 size_t
 GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
-				  int do_route,
 				  size_t buf_size,
 				  void *buf);
 
