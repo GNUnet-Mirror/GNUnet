@@ -6032,9 +6032,9 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
           GNUNET_asprintf(&newservicehome, "%s/%s", baseservicehome, pg->hosts[off].hostname);
 
           if (NULL != username)
-            GNUNET_asprintf (&arg, "%s@%s:%s", username, pg->hosts[off].hostname, newservicehome);
+            GNUNET_asprintf (&arg, "%s@%s:%s", username, pg->hosts[off].hostname, baseservicehome);
           else
-            GNUNET_asprintf (&arg, "%s:%s", pg->hosts[off].hostname, newservicehome);
+            GNUNET_asprintf (&arg, "%s:%s", pg->hosts[off].hostname, baseservicehome);
 
           /* FIXME: Doesn't support ssh_port option! */
           proc = GNUNET_OS_start_process (NULL, NULL, "scp", "scp", "-r",
