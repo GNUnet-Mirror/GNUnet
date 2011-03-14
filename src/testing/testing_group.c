@@ -26,6 +26,7 @@
  *
  */
 #include "platform.h"
+#include "gnunet_constants.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_testing_lib.h"
 #include "gnunet_core_service.h"
@@ -5583,43 +5584,24 @@ struct PeerStartHelperContext
   struct GNUNET_TESTING_PeerGroup *pg;
 
   struct HostData *host;
+
+  struct GNUNET_OS_Process *proc;
 };
 
 static void
-start_peer_helper (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+check_peers_started (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerStartHelperContext *helper = cls;
-  char *baseservicehome;
-  char *tempdir;
-  struct GNUNET_OS_Process *proc;
-  unsigned int i;
-  char *arg;
   enum GNUNET_OS_ProcessStatusType type;
   unsigned long code;
+  unsigned int i;
   GNUNET_TESTING_NotifyDaemonRunning cb;
-  /* ssh user@host peerStartHelper /path/to/basedirectory */
 
-  GNUNET_assert(GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (helper->pg->cfg, "PATHS", "SERVICEHOME",
-                                                                    &baseservicehome));
-  GNUNET_asprintf(&tempdir, "%s/%s/", baseservicehome, helper->host->hostname);
-  if (NULL != helper->host->username)
-    GNUNET_asprintf (&arg, "%s@%s", helper->host->username, helper->host->hostname);
-  else
-    GNUNET_asprintf (&arg, "%s", helper->host->hostname);
-
-  /* FIXME: Doesn't support ssh_port option! */
-  proc = GNUNET_OS_start_process (NULL, NULL, "ssh", "ssh", arg,
-                                  "peerStartHelper.pl", tempdir,  NULL);
-
-  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "starting peers with cmd ssh %s %s %s\n", arg, "peerStartHelper.pl", tempdir);
-
-  GNUNET_OS_process_wait (proc);
-  if (GNUNET_OK != GNUNET_OS_process_status (proc, &type, &code))
-    code = 1;
-  GNUNET_OS_process_close(proc);
-  GNUNET_free (tempdir);
-  GNUNET_free (baseservicehome);
-  GNUNET_free (arg);
+  if (GNUNET_NO == GNUNET_OS_process_status (helper->proc, &type, &code)) /* Still running, wait some more! */
+  {
+    GNUNET_SCHEDULER_add_delayed(GNUNET_CONSTANTS_EXEC_WAIT, &check_peers_started, helper);
+    return;
+  }
 
   helper->pg->starting--;
   if (helper->pg->starting == 0) /* All peers have finished starting! */
@@ -5633,12 +5615,10 @@ start_peer_helper (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           if (NULL != cb)
           {
             if ((type != GNUNET_OS_PROCESS_EXITED) || (code != 0))
-              {
-                cb (helper->pg->peers[i].daemon->cb_cls,
-                    &helper->pg->peers[i].daemon->id,
-                    helper->pg->peers[i].daemon->cfg, helper->pg->peers[i].daemon,
-                    "Failed to execute peerStartHelper.pl, or return code bad!");
-              }
+              cb (helper->pg->peers[i].daemon->cb_cls,
+                  &helper->pg->peers[i].daemon->id,
+                  helper->pg->peers[i].daemon->cfg, helper->pg->peers[i].daemon,
+                  "Failed to execute peerStartHelper.pl, or return code bad!");
             else
               cb (helper->pg->peers[i].daemon->cb_cls,
                   &helper->pg->peers[i].daemon->id,
@@ -5649,7 +5629,34 @@ start_peer_helper (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
         }
     }
+  GNUNET_OS_process_close(helper->proc);
+}
 
+static void
+start_peer_helper (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct PeerStartHelperContext *helper = cls;
+  char *baseservicehome;
+  char *tempdir;
+  char *arg;
+  /* ssh user@host peerStartHelper /path/to/basedirectory */
+  GNUNET_assert(GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (helper->pg->cfg, "PATHS", "SERVICEHOME",
+                                                                    &baseservicehome));
+  GNUNET_asprintf(&tempdir, "%s/%s/", baseservicehome, helper->host->hostname);
+  if (NULL != helper->host->username)
+    GNUNET_asprintf (&arg, "%s@%s", helper->host->username, helper->host->hostname);
+  else
+    GNUNET_asprintf (&arg, "%s", helper->host->hostname);
+
+  /* FIXME: Doesn't support ssh_port option! */
+  helper->proc = GNUNET_OS_start_process (NULL, NULL, "ssh", "ssh", arg,
+                                  "peerStartHelper.pl", tempdir,  NULL);
+
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "starting peers with cmd ssh %s %s %s\n", arg, "peerStartHelper.pl", tempdir);
+  GNUNET_SCHEDULER_add_now (&check_peers_started, helper);
+  GNUNET_free (tempdir);
+  GNUNET_free (baseservicehome);
+  GNUNET_free (arg);
 }
 #endif
 
@@ -6029,7 +6036,7 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
     {
       for (off = 0; off < hostcnt; off++)
         {
-          GNUNET_asprintf(&newservicehome, "%s/%s", baseservicehome, pg->hosts[off].hostname);
+          GNUNET_asprintf(&newservicehome, "%s/%s/*", baseservicehome, pg->hosts[off].hostname);
 
           if (NULL != username)
             GNUNET_asprintf (&arg, "%s@%s:%s", username, pg->hosts[off].hostname, baseservicehome);
