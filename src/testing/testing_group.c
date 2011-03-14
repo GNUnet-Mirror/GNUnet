@@ -36,8 +36,11 @@
 
 #define DEBUG_CHURN GNUNET_NO
 
+#define USE_START_HELPER GNUNET_YES
+
 #define OLD 1
 
+/* Before connecting peers, send all of the HELLOs */
 #define USE_SEND_HELLOS GNUNET_NO
 
 #define TOPOLOGY_HACK GNUNET_YES
@@ -3474,12 +3477,9 @@ static void schedule_send_hellos (void *cls, const struct GNUNET_SCHEDULER_TaskC
         if (send_hello_context->peer->daemon->th == NULL)
           {
             pg->outstanding_connects++; /* Actual TRANSPORT, CORE connections! */
-            send_hello_context->peer->daemon->th = GNUNET_TRANSPORT_connect(send_hello_context->peer->cfg,
-                NULL,
-                send_hello_context,
-                NULL,
-                NULL,
-                NULL);
+            send_hello_context->peer->daemon->th
+                = GNUNET_TRANSPORT_connect (send_hello_context->peer->cfg, NULL,
+                                            send_hello_context, NULL, NULL, NULL);
           }
 #if DEBUG_TESTING
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -3606,7 +3606,7 @@ schedule_connect(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                       connect_context->ct_ctx->connect_timeout,
                                       connect_context->ct_ctx->connect_attempts,
 #if USE_SEND_HELLOS
-                                       GNUNET_NO,
+                                      GNUNET_NO,
 #else
                                       GNUNET_YES,
 #endif
@@ -3741,7 +3741,7 @@ connect_topology(struct GNUNET_TESTING_PeerGroup *pg,
   struct PeerConnection *connection_iter;
 #endif
 #if USE_SEND_HELLOS
-  struct SendHelloContext *send_hello_context
+  struct SendHelloContext *send_hello_context;
 #endif
 
   total = 0;
@@ -5532,6 +5532,7 @@ schedule_churn_restart(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
 }
 
+
 static void
 internal_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -5556,6 +5557,7 @@ internal_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       internal_context->peer->daemon
           = GNUNET_TESTING_daemon_start (internal_context->peer->cfg,
                                          internal_context->timeout,
+                                         GNUNET_NO,
                                          internal_context->hostname,
                                          internal_context->username,
                                          internal_context->sshport,
@@ -5574,6 +5576,66 @@ internal_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                     &internal_start, internal_context);
     }
 }
+#if USE_START_HELPER
+
+struct PeerStartHelperContext
+{
+  struct GNUNET_TESTING_PeerGroup *pg;
+
+  struct HostData *host;
+};
+
+static void
+start_peer_helper (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct PeerStartHelperContext *helper = cls;
+  char *baseservicehome;
+  char *tempdir;
+  struct GNUNET_OS_Process *proc;
+  unsigned int i;
+  char *arg;
+  GNUNET_TESTING_NotifyDaemonRunning cb;
+  /* ssh user@host peerStartHelper /path/to/basedirectory */
+
+  GNUNET_assert(GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (helper->pg->cfg, "PATHS", "SERVICEHOME",
+                                                                    &baseservicehome));
+  GNUNET_asprintf(&tempdir, "%s/%s/", baseservicehome, helper->host->hostname);
+  if (NULL != helper->host->username)
+    GNUNET_asprintf (&arg, "%s@%s", helper->host->username, helper->host->hostname);
+  else
+    GNUNET_asprintf (&arg, "%s", helper->host->hostname);
+
+  /* FIXME: Doesn't support ssh_port option! */
+  proc = GNUNET_OS_start_process (NULL, NULL, "ssh", "ssh", arg,
+                                  "peerStartHelper.pl", tempdir,  NULL);
+
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "starting peers with cmd ssh %s %s %s\n", arg, "peerStartHelper.pl", tempdir);
+
+  GNUNET_OS_process_wait (proc);
+  GNUNET_OS_process_close(proc);
+  GNUNET_free (tempdir);
+  GNUNET_free (baseservicehome);
+  GNUNET_free (arg);
+
+  helper->pg->starting--;
+  if (helper->pg->starting == 0) /* All peers have finished starting! */
+    {
+      /* Call the peer started callback for each peer, set proper FSM state (?) */
+      for (i = 0; i < helper->pg->total; i++)
+        {
+          cb = helper->pg->peers[i].daemon->cb;
+          helper->pg->peers[i].daemon->cb = NULL;
+          if (NULL != cb)
+            cb (helper->pg->peers[i].daemon->cb_cls,
+                &helper->pg->peers[i].daemon->id,
+                helper->pg->peers[i].daemon->cfg, helper->pg->peers[i].daemon,
+                NULL);
+
+        }
+    }
+
+}
+#endif
 
 /**
  * Function which continues a peer group starting up
@@ -5587,14 +5649,57 @@ GNUNET_TESTING_daemons_continue_startup(struct GNUNET_TESTING_PeerGroup *pg)
 {
   unsigned int i;
 
+#if USE_START_HELPER
+  if ((pg->num_hosts > 0) && (pg->hostkey_data != NULL))
+    {
+      struct PeerStartHelperContext *helper;
+      pg->starting = pg->num_hosts;
+      for (i = 0; i < pg->num_hosts; i++)
+        {
+          helper = GNUNET_malloc(sizeof(struct PeerStartHelperContext));
+          helper->pg = pg;
+          helper->host = &pg->hosts[i];
+          GNUNET_SCHEDULER_add_now(&start_peer_helper, helper);
+        }
+    }
+  else
+    {
+      pg->starting = 0;
+      for (i = 0; i < pg->total; i++)
+        {
+          GNUNET_SCHEDULER_add_now (&internal_continue_startup,
+                                    &pg->peers[i].internal_context);
+        }
+    }
+#else
   pg->starting = 0;
   for (i = 0; i < pg->total; i++)
     {
       GNUNET_SCHEDULER_add_now (&internal_continue_startup,
                                 &pg->peers[i].internal_context);
-      //GNUNET_TESTING_daemon_continue_startup(pg->peers[i].daemon);
     }
+#endif
 }
+
+#if USE_START_HELPER
+static void
+call_hostkey_callbacks (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_TESTING_PeerGroup *pg = cls;
+  unsigned int i;
+  for (i = 0; i < pg->total; i++)
+    {
+      if (pg->peers[i].internal_context.hostkey_callback != NULL)
+        pg->peers[i].internal_context.hostkey_callback (pg->peers[i].internal_context.hostkey_cls,
+                                                           &pg->peers[i].daemon->id,
+                                                           pg->peers[i].daemon,
+                                                           NULL);
+    }
+
+  if (pg->peers[0].internal_context.hostkey_callback == NULL)
+    GNUNET_TESTING_daemons_continue_startup (pg);
+}
+#endif
 
 /**
  * Start count gnunet instances with the same set of transports and
@@ -5624,8 +5729,7 @@ GNUNET_TESTING_daemons_continue_startup(struct GNUNET_TESTING_PeerGroup *pg)
  * @return NULL on error, otherwise handle to control peer group
  */
 struct GNUNET_TESTING_PeerGroup *
-GNUNET_TESTING_daemons_start(
-                             const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
                              unsigned int total,
                              unsigned int max_concurrent_connections,
                              unsigned int max_concurrent_ssh,
@@ -5640,11 +5744,6 @@ GNUNET_TESTING_daemons_start(
 {
   struct GNUNET_TESTING_PeerGroup *pg;
   const struct GNUNET_TESTING_Host *hostpos;
-#if 0
-  char *pos;
-  const char *rpos;
-  char *start;
-#endif
   const char *hostname;
   const char *username;
   char *baseservicehome;
@@ -5715,51 +5814,6 @@ GNUNET_TESTING_daemons_start(
       hostcnt = off;
       minport = 0;
       pg->num_hosts = off;
-
-#if NO_LL
-      off = 2;
-      /* skip leading spaces */
-      while ((0 != *hostnames) && (isspace ((unsigned char) *hostnames)))
-      hostnames++;
-      rpos = hostnames;
-      while ('\0' != *rpos)
-        {
-          if (isspace ((unsigned char) *rpos))
-          off++;
-          rpos++;
-        }
-      pg->hosts = GNUNET_malloc (off * sizeof (struct HostData));
-      off = 0;
-      start = GNUNET_strdup (hostnames);
-      pos = start;
-      while ('\0' != *pos)
-        {
-          if (isspace ((unsigned char) *pos))
-            {
-              *pos = '\0';
-              if (strlen (start) > 0)
-                {
-                  pg->hosts[off].minport = LOW_PORT;
-                  pg->hosts[off++].hostname = start;
-                }
-              start = pos + 1;
-            }
-          pos++;
-        }
-      if (strlen (start) > 0)
-        {
-          pg->hosts[off].minport = LOW_PORT;
-          pg->hosts[off++].hostname = start;
-        }
-      if (off == 0)
-        {
-          GNUNET_free (start);
-          GNUNET_free (pg->hosts);
-          pg->hosts = NULL;
-        }
-      hostcnt = off;
-      minport = 0; /* make gcc happy */
-#endif
     }
   else
     {
@@ -5885,7 +5939,9 @@ GNUNET_TESTING_daemons_start(
             GNUNET_asprintf (&newservicehome, "%s/%s/%d/", baseservicehome, hostname, off);
           else
             GNUNET_asprintf (&newservicehome, "%s/%d/", baseservicehome, off);
+#if !USE_START_HELPER
           GNUNET_free (baseservicehome);
+#endif
         }
       else
         {
@@ -5902,16 +5958,6 @@ GNUNET_TESTING_daemons_start(
                                              newservicehome);
       GNUNET_free (newservicehome);
       pg->peers[off].cfg = pcfg;
-#if DEFER
-      /* Can we do this later? */
-      pg->peers[off].allowed_peers =
-      GNUNET_CONTAINER_multihashmap_create (total);
-      pg->peers[off].connect_peers =
-      GNUNET_CONTAINER_multihashmap_create (total);
-      pg->peers[off].blacklisted_peers =
-      GNUNET_CONTAINER_multihashmap_create (total);
-
-#endif
       pg->peers[off].pg = pg;
       pg->peers[off].internal_context.peer = &pg->peers[off];
       pg->peers[off].internal_context.timeout = timeout;
@@ -5925,11 +5971,83 @@ GNUNET_TESTING_daemons_start(
       pg->peers[off].internal_context.hostkey_cls = hostkey_cls;
       pg->peers[off].internal_context.start_cb = cb;
       pg->peers[off].internal_context.start_cb_cls = cb_cls;
-
+#if !USE_START_HELPER
       GNUNET_SCHEDULER_add_now (&internal_start,
                                 &pg->peers[off].internal_context);
+#else
+      if ((pg->hostkey_data != NULL) && (hostcnt > 0))
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Have hostkey data and running on remote hosts!\n");
+          GNUNET_TESTING_daemon_start (pcfg,
+                                       timeout,
+                                       GNUNET_YES,
+                                       hostname,
+                                       username,
+                                       sshport,
+                                       pg->peers[off].internal_context.hostkey,
+                                       &internal_hostkey_callback,
+                                       &pg->peers[off].internal_context,
+                                       &internal_startup_callback,
+                                       &pg->peers[off].internal_context);
+          /**
+           * At this point, given that we had a hostkeyfile,
+           * we can call the hostkey callback!
+           * But first, we should copy (rsync) all of the configs
+           * and hostkeys to the remote peers.  Then let topology
+           * creation happen, then call the peer start helper processes,
+           * then set pg->whatever_phase for each peer and let them
+           * enter the fsm to get the HELLO's for peers and start connecting.
+           */
+        }
+      else
+        {
+          GNUNET_SCHEDULER_add_now (&internal_start,
+                                    &pg->peers[off].internal_context);
+        }
 
+#endif
     }
+
+#if USE_START_HELPER /* Now the peergroup has been set up, hostkeys and configs written to files. */
+  if ((pg->hostkey_data != NULL) && (hostcnt > 0))
+    {
+      for (off = 0; off < hostcnt; off++)
+        {
+          GNUNET_asprintf(&newservicehome, "%s/%s/", baseservicehome, pg->hosts[off].hostname);
+
+          if (NULL != username)
+            GNUNET_asprintf (&arg, "%s@%s:%s", username, pg->hosts[off].hostname, newservicehome);
+          else
+            GNUNET_asprintf (&arg, "%s:%s", pg->hosts[off].hostname, newservicehome);
+
+          /* FIXME: Doesn't support ssh_port option! */
+          proc = GNUNET_OS_start_process (NULL, NULL, "scp", "scp", "-r",
+#if !DEBUG_TESTING
+                                               "-q",
+#endif
+                                               newservicehome, arg, NULL);
+
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "copying directory with command scp -r %s %s\n", newservicehome, arg);
+
+
+          GNUNET_free (arg);
+          if (NULL == proc)
+            {
+              GNUNET_log (
+                          GNUNET_ERROR_TYPE_ERROR,
+                          _
+                          ("Could not start `%s' process to copy configuration directory.\n"),
+                          "scp");
+              GNUNET_assert(0);
+            }
+          GNUNET_OS_process_wait (proc);
+          GNUNET_OS_process_close (proc);
+        }
+      /* Now all the configuration files and hostkeys are copied to the remote host.  Call the hostkey callback for each peer! */
+      GNUNET_SCHEDULER_add_now(&call_hostkey_callbacks, pg);
+    }
+  GNUNET_free (baseservicehome);
+#endif
   return pg;
 }
 

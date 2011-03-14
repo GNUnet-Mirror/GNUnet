@@ -72,7 +72,7 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
   if (daemon == NULL)
     return;
 
-  GNUNET_assert (daemon->phase == SP_GET_HELLO);
+  GNUNET_assert (daemon->phase == SP_GET_HELLO || daemon->phase == SP_START_DONE);
 
   cb = daemon->cb;
   daemon->cb = NULL;
@@ -514,7 +514,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_EXEC_WAIT,
                                         &start_fsm, d);
       break;
-    case SP_TOPOLOGY_SETUP:
+    case SP_TOPOLOGY_SETUP: /* Indicates topology setup has completed! */
       /* start GNUnet on remote host */
       if (NULL == d->hostname)
         {
@@ -950,6 +950,8 @@ GNUNET_TESTING_daemon_start_stopped (struct GNUNET_TESTING_Daemon *daemon,
  *
  * @param cfg configuration to use
  * @param timeout how long to wait starting up peers
+ * @param pretend GNUNET_YES to set up files but not start peer GNUNET_NO
+ *                to really start the peer (default)
  * @param hostname name of the machine where to run GNUnet
  *        (use NULL for localhost).
  * @param ssh_username ssh username to use when connecting to hostname
@@ -966,6 +968,7 @@ GNUNET_TESTING_daemon_start_stopped (struct GNUNET_TESTING_Daemon *daemon,
 struct GNUNET_TESTING_Daemon *
 GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                              struct GNUNET_TIME_Relative timeout,
+                             int pretend,
                              const char *hostname,
                              const char *ssh_username,
                              uint16_t sshport,
@@ -1084,88 +1087,91 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     }
   ret->username = username;
 
-  /* copy directory to remote host */
-  if (NULL != hostname)
+  if (GNUNET_NO == pretend) /* Copy files, enter finite state machine */
     {
+      /* copy directory to remote host */
+      if (NULL != hostname)
+        {
 #if DEBUG_TESTING
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Copying configuration directory to host `%s'.\n", hostname);
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Copying configuration directory to host `%s'.\n", hostname);
 #endif
-      baseservicehome = GNUNET_strdup(servicehome);
-      /* Remove trailing /'s */
-      while (baseservicehome[strlen(baseservicehome) - 1] == '/')
-        baseservicehome[strlen(baseservicehome) - 1] = '\0';
-      /* Find next directory /, jump one ahead */
-      slash = strrchr(baseservicehome, '/');
-      if (slash != NULL)
-        *(++slash) = '\0';
+          baseservicehome = GNUNET_strdup(servicehome);
+          /* Remove trailing /'s */
+          while (baseservicehome[strlen(baseservicehome) - 1] == '/')
+            baseservicehome[strlen(baseservicehome) - 1] = '\0';
+          /* Find next directory /, jump one ahead */
+          slash = strrchr(baseservicehome, '/');
+          if (slash != NULL)
+            *(++slash) = '\0';
 
-      ret->phase = SP_COPYING;
-      if (NULL != username)
-        GNUNET_asprintf (&arg, "%s@%s:%s", username, hostname, baseservicehome);
-      else
-        GNUNET_asprintf (&arg, "%s:%s", hostname, baseservicehome);
+          ret->phase = SP_COPYING;
+          if (NULL != username)
+            GNUNET_asprintf (&arg, "%s@%s:%s", username, hostname, baseservicehome);
+          else
+            GNUNET_asprintf (&arg, "%s:%s", hostname, baseservicehome);
 
-      if (ret->ssh_port_str == NULL)
-        {
-          ret->proc = GNUNET_OS_start_process (NULL, NULL, "scp", "scp", "-r",
+          if (ret->ssh_port_str == NULL)
+            {
+              ret->proc = GNUNET_OS_start_process (NULL, NULL, "scp", "scp", "-r",
 #if !DEBUG_TESTING
-                                               "-q",
+                                                   "-q",
 #endif
-                                               servicehome, arg, NULL);
+                                                   servicehome, arg, NULL);
 #if DEBUG_TESTING
-          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "copying directory with command scp -r %s %s\n", servicehome, arg);
+              GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "copying directory with command scp -r %s %s\n", servicehome, arg);
 #endif
-        }
-      else
-        {
-          ret->proc = GNUNET_OS_start_process (NULL, NULL, "scp",
-                                               "scp", "-r", "-P", ret->ssh_port_str,
-#if !DEBUG_TESTING
-                                               "-q",
-#endif
-                                               servicehome, arg, NULL);
-        }
-      GNUNET_free (arg);
-      if (NULL == ret->proc)
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                      _
-                      ("Could not start `%s' process to copy configuration directory.\n"),
-                      "scp");
-          if (0 != UNLINK (ret->cfgfile))
-            GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-                                      "unlink", ret->cfgfile);
-          GNUNET_CONFIGURATION_destroy (ret->cfg);
-          GNUNET_free_non_null (ret->hostname);
-          GNUNET_free_non_null (ret->username);
-          GNUNET_free (ret->cfgfile);
-          GNUNET_free (ret);
-          if ((hostkey != NULL) && (0 != UNLINK(hostkeyfile)))
-            GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-                                      "unlink", hostkeyfile);
+            }
+          else
+            {
+              ret->proc = GNUNET_OS_start_process (NULL, NULL, "scp",
+                                                   "scp", "-r", "-P", ret->ssh_port_str,
+    #if !DEBUG_TESTING
+                                                   "-q",
+    #endif
+                                                   servicehome, arg, NULL);
+            }
+          GNUNET_free (arg);
+          if (NULL == ret->proc)
+            {
+              GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                          _
+                          ("Could not start `%s' process to copy configuration directory.\n"),
+                          "scp");
+              if (0 != UNLINK (ret->cfgfile))
+                GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+                                          "unlink", ret->cfgfile);
+              GNUNET_CONFIGURATION_destroy (ret->cfg);
+              GNUNET_free_non_null (ret->hostname);
+              GNUNET_free_non_null (ret->username);
+              GNUNET_free (ret->cfgfile);
+              GNUNET_free (ret);
+              if ((hostkey != NULL) && (0 != UNLINK(hostkeyfile)))
+                GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+                                          "unlink", hostkeyfile);
+              GNUNET_free_non_null(hostkeyfile);
+              GNUNET_assert (GNUNET_OK == GNUNET_DISK_directory_remove (servicehome));
+              GNUNET_free(servicehome);
+              return NULL;
+            }
+
+          ret->task
+            = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_EXEC_WAIT,
+                                            &start_fsm, ret);
           GNUNET_free_non_null(hostkeyfile);
-          GNUNET_assert (GNUNET_OK == GNUNET_DISK_directory_remove (servicehome));
+          GNUNET_free(baseservicehome);
           GNUNET_free(servicehome);
-          return NULL;
+          return ret;
         }
-
-      ret->task
-        = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_EXEC_WAIT,
-                                        &start_fsm, ret);
-      GNUNET_free_non_null(hostkeyfile);
-      GNUNET_free(baseservicehome);
-      GNUNET_free(servicehome);
-      return ret;
-    }
 #if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "No need to copy configuration file since we are running locally.\n");
 #endif
-  ret->phase = SP_COPIED;
-  GNUNET_SCHEDULER_add_continuation (&start_fsm,
-                                     ret,
-                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      ret->phase = SP_COPIED;
+      GNUNET_SCHEDULER_add_continuation (&start_fsm,
+                                         ret,
+                                         GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    }
   GNUNET_free_non_null(hostkeyfile);
   GNUNET_free(servicehome);
   return ret;
@@ -1867,6 +1873,36 @@ reattempt_daemons_connect (void *cls,
       return;
     }
 
+  /* Don't know reason for initial connect failure, update the HELLO for the second peer */
+  if (NULL != ctx->d2->hello)
+    {
+      GNUNET_free(ctx->d2->hello);
+      ctx->d2->hello = NULL;
+      if (NULL != ctx->d2->th)
+        {
+          GNUNET_TRANSPORT_get_hello_cancel(ctx->d2->th, &process_hello, ctx->d2);
+          GNUNET_TRANSPORT_disconnect(ctx->d2->th);
+        }
+      ctx->d2->th = GNUNET_TRANSPORT_connect (ctx->d2->cfg, &ctx->d2->id, NULL, NULL, NULL, NULL);
+      GNUNET_assert(ctx->d2->th != NULL);
+      GNUNET_TRANSPORT_get_hello (ctx->d2->th, &process_hello, ctx->d2);
+    }
+
+  if ((NULL == ctx->d2->hello) && (ctx->d2->th == NULL))
+    {
+      ctx->d2->th = GNUNET_TRANSPORT_connect (ctx->d2->cfg, &ctx->d2->id, NULL, NULL, NULL, NULL);
+      if (ctx->d2->th == NULL)
+        {
+          GNUNET_CORE_disconnect (ctx->d1core);
+          GNUNET_free (ctx);
+          if (NULL != ctx->cb)
+            ctx->cb (ctx->cb_cls, &ctx->d1->id, &ctx->d2->id, 0, ctx->d1->cfg, ctx->d2->cfg, ctx->d1, ctx->d2,
+                     _("Failed to connect to transport service!\n"));
+          return;
+        }
+      GNUNET_TRANSPORT_get_hello (ctx->d2->th, &process_hello, ctx->d2);
+    }
+
   if (ctx->send_hello == GNUNET_YES)
     {
       ctx->d1th = GNUNET_TRANSPORT_connect (ctx->d1->cfg,
@@ -1953,6 +1989,21 @@ core_initial_iteration (void *cls,
             ctx->cb (ctx->cb_cls, &ctx->d1->id, &ctx->d2->id, 0, ctx->d1->cfg, ctx->d2->cfg, ctx->d1, ctx->d2,
                 _("Failed to connect to core service of first peer!\n"));
           return;
+        }
+
+      if ((NULL == ctx->d2->hello) && (ctx->d2->th == NULL)) /* Do not yet have the second peer's hello, set up a task to get it */
+        {
+          ctx->d2->th = GNUNET_TRANSPORT_connect (ctx->d2->cfg, &ctx->d2->id, NULL, NULL, NULL, NULL);
+          if (ctx->d2->th == NULL)
+            {
+              GNUNET_CORE_disconnect (ctx->d1core);
+              GNUNET_free (ctx);
+              if (NULL != ctx->cb)
+                ctx->cb (ctx->cb_cls, &ctx->d1->id, &ctx->d2->id, 0, ctx->d1->cfg, ctx->d2->cfg, ctx->d1, ctx->d2,
+                         _("Failed to connect to transport service!\n"));
+              return;
+            }
+          GNUNET_TRANSPORT_get_hello (ctx->d2->th, &process_hello, ctx->d2);
         }
 
       if (ctx->send_hello == GNUNET_YES)

@@ -24,7 +24,7 @@
 #include "platform.h"
 #include "gnunet_testing_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 /**
  * How long until we give up on connecting the peers?
@@ -164,7 +164,7 @@ my_cb1 (void *cls,
               "Daemon `%s' started.\n", GNUNET_i2s (id));
 #endif
   d2 =
-    GNUNET_TESTING_daemon_start (c2, TIMEOUT, NULL, NULL, 0, NULL, NULL, NULL,
+    GNUNET_TESTING_daemon_start (c2, TIMEOUT, GNUNET_NO, NULL, NULL, 0, NULL, NULL, NULL,
                                  &my_cb2, NULL);
   GNUNET_assert (d2 != NULL);
 }
@@ -191,7 +191,7 @@ run_phase ()
 {
   phase++;
   d1 =
-    GNUNET_TESTING_daemon_start (c1, TIMEOUT, NULL, NULL, 0, NULL, NULL, NULL,
+    GNUNET_TESTING_daemon_start (c1, TIMEOUT, GNUNET_NO, NULL, NULL, 0, NULL, NULL, NULL,
                                  &my_cb1, NULL);
   GNUNET_assert (d1 != NULL);
 }

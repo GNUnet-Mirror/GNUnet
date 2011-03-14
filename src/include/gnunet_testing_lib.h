@@ -418,6 +418,8 @@ typedef void (*GNUNET_TESTING_NotifyTopology)(void *cls,
  *
  * @param cfg configuration to use
  * @param timeout how long to wait starting up peers
+ * @param pretend GNUNET_YES to set up files but not start peer GNUNET_NO
+ *                to really start the peer (default)
  * @param hostname name of the machine where to run GNUnet
  *        (use NULL for localhost).
  * @param ssh_username ssh username to use when connecting to hostname
@@ -434,6 +436,7 @@ typedef void (*GNUNET_TESTING_NotifyTopology)(void *cls,
 struct GNUNET_TESTING_Daemon *
 GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                              struct GNUNET_TIME_Relative timeout,
+                             int pretend,
                              const char *hostname,
                              const char *ssh_username,
                              uint16_t sshport,
