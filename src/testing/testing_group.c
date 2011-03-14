@@ -5594,6 +5594,8 @@ start_peer_helper (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_OS_Process *proc;
   unsigned int i;
   char *arg;
+  enum GNUNET_OS_ProcessStatusType type;
+  unsigned long code;
   GNUNET_TESTING_NotifyDaemonRunning cb;
   /* ssh user@host peerStartHelper /path/to/basedirectory */
 
@@ -5612,6 +5614,7 @@ start_peer_helper (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "starting peers with cmd ssh %s %s %s\n", arg, "peerStartHelper.pl", tempdir);
 
   GNUNET_OS_process_wait (proc);
+  GNUNET_OS_process_status (proc, &type, &code);
   GNUNET_OS_process_close(proc);
   GNUNET_free (tempdir);
   GNUNET_free (baseservicehome);
@@ -5625,11 +5628,23 @@ start_peer_helper (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         {
           cb = helper->pg->peers[i].daemon->cb;
           helper->pg->peers[i].daemon->cb = NULL;
+
           if (NULL != cb)
-            cb (helper->pg->peers[i].daemon->cb_cls,
-                &helper->pg->peers[i].daemon->id,
-                helper->pg->peers[i].daemon->cfg, helper->pg->peers[i].daemon,
-                NULL);
+          {
+            if ((type != GNUNET_OS_PROCESS_EXITED) || (code != 0))
+              {
+                cb (helper->pg->peers[i].daemon->cb_cls,
+                    &helper->pg->peers[i].daemon->id,
+                    helper->pg->peers[i].daemon->cfg, helper->pg->peers[i].daemon,
+                    "Failed to execute peerStartHelper.pl, or return code bad!");
+              }
+            else
+              cb (helper->pg->peers[i].daemon->cb_cls,
+                  &helper->pg->peers[i].daemon->id,
+                  helper->pg->peers[i].daemon->cfg, helper->pg->peers[i].daemon,
+                  NULL);
+
+          }
 
         }
     }
@@ -5978,7 +5993,7 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
       if ((pg->hostkey_data != NULL) && (hostcnt > 0))
         {
           GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Have hostkey data and running on remote hosts!\n");
-          GNUNET_TESTING_daemon_start (pcfg,
+          pg->peers[off].daemon = GNUNET_TESTING_daemon_start (pcfg,
                                        timeout,
                                        GNUNET_YES,
                                        hostname,
