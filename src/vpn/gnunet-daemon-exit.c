@@ -292,21 +292,23 @@ read_service_conf (void *cls, const char *section, const char *option,
 	{     
 	  if (NULL == (hostname = strstr (redirect, ":")))
 	    {
-	      // FIXME: bitch
+              GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Warning: option %s is not formatted correctly!\n", redirect);
 	      continue;
 	    }
 	  hostname[0] = '\0';
 	  hostname++;
 	  if (NULL == (hostport = strstr (hostname, ":")))
 	    {
-	      // FIXME: bitch
+              GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Warning: option %s is not formatted correctly!\n", redirect);
 	      continue;
 	    }
 	  hostport[0] = '\0';
 	  hostport++;
 	  
           int local_port = atoi (redirect);
-          GNUNET_assert ((local_port > 0) && (local_port < 65536)); // FIXME: don't crash!!!
+          if (!((local_port > 0) && (local_port < 65536)))
+            GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Warning: %s is not a correct port.", redirect);
+
           *desc = local_port;
 
           GNUNET_CRYPTO_hash (desc, sizeof (GNUNET_HashCode) + 2, &hash);
@@ -642,7 +644,7 @@ run (void *cls,
   };
   mesh_handle = GNUNET_MESH_connect(cfg_,
 				    NULL,
-				    NULL, /* FIXME */
+				    NULL,
 				    handlers);
 
   cfg = cfg_;

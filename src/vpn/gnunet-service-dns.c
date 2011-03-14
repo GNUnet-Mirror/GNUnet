@@ -595,12 +595,13 @@ get_port_from_redirects (const char *udp_redirects, const char *tcp_redirects)
         {
           if (NULL == (hostname = strstr (redirect, ":")))
             {
-              // FIXME: bitch
+              GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Warning: option %s is not formatted correctly!\n", redirect);
               continue;
             }
           hostname[0] = '\0';
           local_port = atoi (redirect);
-          GNUNET_assert ((local_port > 0) && (local_port < 65536)); // FIXME: don't crash!!!
+          if (!((local_port > 0) && (local_port < 65536)))
+            GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Warning: %s is not a correct port.", redirect);
 
           ret |= (0xFFFF & htons(local_port));
           ret <<= 16;
@@ -623,12 +624,13 @@ get_port_from_redirects (const char *udp_redirects, const char *tcp_redirects)
         {
           if (NULL == (hostname = strstr (redirect, ":")))
             {
-              // FIXME: bitch
+              GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Warning: option %s is not formatted correctly!\n", redirect);
               continue;
             }
           hostname[0] = '\0';
           local_port = atoi (redirect);
-          GNUNET_assert ((local_port > 0) && (local_port < 65536)); // FIXME: don't crash!!!
+          if (!((local_port > 0) && (local_port < 65536)))
+            GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Warning: %s is not a correct port.", redirect);
 
           ret |= (0xFFFF & htons(local_port));
           ret <<= 16;
