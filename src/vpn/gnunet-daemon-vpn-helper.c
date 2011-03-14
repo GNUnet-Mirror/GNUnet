@@ -248,8 +248,8 @@ message_token (void *cls,
                       sizeof (GNUNET_HashCode));
 
               if (0x11 == pkt6->ip6_hdr.nxthdr
-                  && me->
-                  desc.service_type & htonl (GNUNET_DNS_SERVICE_TYPE_UDP)
+                  && (me->desc.
+                      service_type & htonl (GNUNET_DNS_SERVICE_TYPE_UDP))
                   && (port_in_ports (me->desc.ports, pkt6_udp->udp_hdr.dpt)
                       || testBit (me->additional_ports,
                                   ntohs (pkt6_udp->udp_hdr.dpt))))
@@ -260,13 +260,11 @@ message_token (void *cls,
                           ntohs (pkt6_udp->udp_hdr.len));
 
                 }
-              else if (0x11 == pkt6->ip6_hdr.nxthdr
-                       && me->desc.
-                       service_type & htonl (GNUNET_DNS_SERVICE_TYPE_TCP)
+              else if (0x06 == pkt6->ip6_hdr.nxthdr
+                       && (me->desc.
+                           service_type & htonl (GNUNET_DNS_SERVICE_TYPE_TCP))
                        &&
-                       (port_in_ports (me->desc.ports, pkt6_tcp->tcp_hdr.dpt)
-                        && testBit (me->additional_ports,
-                                    ntohs (pkt6_tcp->tcp_hdr.spt))))
+                       (port_in_ports (me->desc.ports, pkt6_tcp->tcp_hdr.dpt)))
                 {
                   hdr->type = ntohs (GNUNET_MESSAGE_TYPE_SERVICE_TCP);
 
@@ -297,10 +295,10 @@ message_token (void *cls,
                   *cls = me->tunnel;
                   send_pkt_to_peer (cls, (struct GNUNET_PeerIdentity *) 1,
                                     NULL);
+                  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                              "Queued to send to peer %x, type %d\n",
+                              *((unsigned int *) &me->desc.peer), ntohs(hdr->type));
                 }
-              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                          "Queued to send to peer %x\n",
-                          *((unsigned int *) &me->desc.peer));
             }
           break;
         case 0x3a:

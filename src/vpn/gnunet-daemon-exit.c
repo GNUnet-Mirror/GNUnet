@@ -65,11 +65,12 @@ static struct GNUNET_MESH_Handle *mesh_handle;
  * source-port and destination-port to a socket
  */
 static struct GNUNET_CONTAINER_MultiHashMap *udp_connections;
+static struct GNUNET_CONTAINER_MultiHashMap *tcp_connections;
 
 /**
  * This struct is saved into the services-hashmap
  */
-struct udp_service
+struct redirect_service
 {
   /**
    * One of 4 or 6
@@ -91,7 +92,7 @@ struct udp_service
   };
 };
 
-struct udp_info
+struct redirect_info
 {
     /**
      * The source-address of this connection. When a packet to this address is
@@ -105,24 +106,25 @@ struct udp_info
 };
 
 /**
- * This struct is saved into udp_connections;
+ * This struct is saved into {tcp,udp}_connections;
  */
-struct udp_state
+struct redirect_state
 {
   struct GNUNET_MESH_Tunnel *tunnel;
   GNUNET_HashCode desc;
-  struct udp_service *serv;
+  struct redirect_service *serv;
 
   /**
    * The source-address and -port of this connection
    */
-  struct udp_info udp_info;
+  struct redirect_info redirect_info;
 };
 
 /**
- * This hashmap saves interesting things about the configured services
+ * This hashmaps saves interesting things about the configured services
  */
 static struct GNUNET_CONTAINER_MultiHashMap *udp_services;
+static struct GNUNET_CONTAINER_MultiHashMap *tcp_services;
 
 /**
  * Function that frees everything from a hashmap
@@ -142,6 +144,10 @@ cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
     GNUNET_assert (0 != (tskctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN));
 
     GNUNET_CONTAINER_multihashmap_iterate(udp_connections,
+                                          free_iterate,
+                                          NULL);
+
+    GNUNET_CONTAINER_multihashmap_iterate(tcp_connections,
                                           free_iterate,
                                           NULL);
 
@@ -183,8 +189,8 @@ message_token (void *cls,
   uint32_t len;
 
   struct udp_pkt *udp;
-  struct udp_info u_i;
-  memset(&u_i, 0, sizeof(struct udp_info));
+  struct redirect_info u_i;
+  memset(&u_i, 0, sizeof(struct redirect_info));
 
   unsigned int version;
 
@@ -216,8 +222,8 @@ message_token (void *cls,
 
   /* get tunnel and service-descriptor from this*/
   GNUNET_HashCode hash;
-  GNUNET_CRYPTO_hash(&u_i, sizeof(struct udp_info), &hash);
-  struct udp_state *state = GNUNET_CONTAINER_multihashmap_get(udp_connections, &hash);
+  GNUNET_CRYPTO_hash(&u_i, sizeof(struct redirect_info), &hash);
+  struct redirect_state *state = GNUNET_CONTAINER_multihashmap_get(udp_connections, &hash);
 
   tunnel = state->tunnel;
 
@@ -228,8 +234,8 @@ message_token (void *cls,
     }
   else
     {
-      struct udp_service *serv = GNUNET_malloc(sizeof(struct udp_service));
-      memcpy(serv, state->serv, sizeof(struct udp_service));
+      struct redirect_service *serv = GNUNET_malloc(sizeof(struct redirect_service));
+      memcpy(serv, state->serv, sizeof(struct redirect_service));
       serv->my_port = ntohs(udp->spt);
       serv->remote_port = ntohs(udp->spt);
       uint16_t *desc = alloca (sizeof (GNUNET_HashCode) + 2);
@@ -285,37 +291,52 @@ read_service_conf (void *cls, const char *section, const char *option,
   GNUNET_CRYPTO_hash (section, strlen (section) + 1,
                       (GNUNET_HashCode *) (desc + 1));
 
+#define TCP 2
+#define UDP 1
+
+  unsigned int proto;
   if (0 == strcmp ("UDP_REDIRECTS", option))
+    proto = UDP;
+  else if (0 == strcmp ("TCP_REDIRECTS", option))
+    proto = TCP;
+  else
+    proto = 0;
+
+  if (0 != proto)
     {
       cpy = GNUNET_strdup (value);
-      for (redirect = strtok (cpy, " "); redirect != NULL; redirect = strtok (NULL, " "))
-	{     
-	  if (NULL == (hostname = strstr (redirect, ":")))
-	    {
-              GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Warning: option %s is not formatted correctly!\n", redirect);
-	      continue;
-	    }
-	  hostname[0] = '\0';
-	  hostname++;
-	  if (NULL == (hostport = strstr (hostname, ":")))
-	    {
-              GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Warning: option %s is not formatted correctly!\n", redirect);
-	      continue;
-	    }
-	  hostport[0] = '\0';
-	  hostport++;
-	  
+      for (redirect = strtok (cpy, " "); redirect != NULL; redirect = strtok
+           (NULL, " "))
+        {
+          if (NULL == (hostname = strstr (redirect, ":")))
+            {
+              GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Warning: option %s is not formatted correctly!\n",
+                          redirect);
+              continue;
+            }
+          hostname[0] = '\0';
+          hostname++;
+          if (NULL == (hostport = strstr (hostname, ":")))
+            {
+              GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Warning: option %s is not formatted correctly!\n",
+                          redirect);
+              continue;
+            }
+          hostport[0] = '\0';
+          hostport++;
+
           int local_port = atoi (redirect);
           if (!((local_port > 0) && (local_port < 65536)))
-            GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Warning: %s is not a correct port.", redirect);
+            GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Warning: %s is not a correct port.",
+                        redirect);
 
           *desc = local_port;
 
           GNUNET_CRYPTO_hash (desc, sizeof (GNUNET_HashCode) + 2, &hash);
 
-          struct udp_service *serv =
-            GNUNET_malloc (sizeof (struct udp_service));
-          memset (serv, 0, sizeof (struct udp_service));
+          struct redirect_service *serv =
+            GNUNET_malloc (sizeof (struct redirect_service));
+          memset (serv, 0, sizeof (struct redirect_service));
           serv->my_port = local_port;
 
           if (0 == strcmp ("localhost4", hostname))
@@ -358,10 +379,17 @@ read_service_conf (void *cls, const char *section, const char *option,
                       *((unsigned long long *) (desc + 1)));
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Store with key2 %x\n",
                       *((unsigned long long *) &hash));
-          GNUNET_assert (GNUNET_OK ==
-                         GNUNET_CONTAINER_multihashmap_put (udp_services,
-                                                            &hash, serv,
-                                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+          if (UDP == proto)
+            GNUNET_assert (GNUNET_OK ==
+                           GNUNET_CONTAINER_multihashmap_put (udp_services,
+                                                              &hash, serv,
+                                                              GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+          else
+            GNUNET_assert (GNUNET_OK ==
+                           GNUNET_CONTAINER_multihashmap_put (tcp_services,
+                                                              &hash, serv,
+                                                              GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+
         }
       GNUNET_free (cpy);
     }
@@ -445,7 +473,7 @@ start_helper_and_schedule(void *cls,
 static void
 prepare_ipv4_packet (ssize_t len, ssize_t pktlen, void *payload,
                      uint16_t protocol, void *ipaddress, void *tunnel,
-                     struct udp_state *state, struct ip_udp *pkt4)
+                     struct redirect_state *state, struct ip_pkt *pkt4)
 {
   uint32_t tmp, tmp2;
 
@@ -454,7 +482,7 @@ prepare_ipv4_packet (ssize_t len, ssize_t pktlen, void *payload,
   pkt4->tun.flags = 0;
   pkt4->tun.type = htons (0x0800);
 
-  memcpy (&pkt4->udp_hdr, payload, pktlen);
+  memcpy (&pkt4->data, payload, pktlen);
 
   pkt4->ip_hdr.version = 4;
   pkt4->ip_hdr.hdr_lngth = 5;
@@ -493,10 +521,40 @@ prepare_ipv4_packet (ssize_t len, ssize_t pktlen, void *payload,
 
   pkt4->ip_hdr.sadr = tmp;
 
-  memcpy (&state->udp_info.addr, &tmp, 4);
-  state->udp_info.pt = pkt4->udp_hdr.spt;
+  memcpy (&state->redirect_info.addr, &tmp, 4);
+  if (0x11 == protocol)
+    {
+      struct ip_udp* pkt4_udp = (struct ip_udp*)pkt4;
+      state->redirect_info.pt = pkt4_udp->udp_hdr.spt;
 
-  pkt4->udp_hdr.crc = 0;        /* Optional for IPv4 */
+      pkt4_udp->udp_hdr.crc = 0;        /* Optional for IPv4 */
+    }
+  else if (0x06 == protocol)
+    {
+      struct ip_tcp* pkt4_tcp = (struct ip_tcp*)pkt4;
+      state->redirect_info.pt = pkt4_tcp->tcp_hdr.spt;
+
+      pkt4_tcp->tcp_hdr.crc = 0;
+      uint32_t sum = 0;
+      tmp = pkt4->ip_hdr.sadr;
+      sum =
+        calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+      tmp = pkt4->ip_hdr.dadr;
+      sum =
+        calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+
+      tmp = (protocol << 16) | (0xffff & pktlen);
+
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "line: %08x, %x \n", tmp, (0xffff & pktlen));
+
+      tmp = htonl(tmp);
+
+      sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+
+      sum =
+        calculate_checksum_update (sum, (uint16_t *) & pkt4_tcp->tcp_hdr, pktlen);
+      pkt4_tcp->tcp_hdr.crc = calculate_checksum_end (sum);
+    }
 
   pkt4->ip_hdr.chks =
     calculate_ip_checksum ((uint16_t *) & pkt4->ip_hdr, 5 * 4);
@@ -505,7 +563,7 @@ prepare_ipv4_packet (ssize_t len, ssize_t pktlen, void *payload,
 static void
 prepare_ipv6_packet (ssize_t len, ssize_t pktlen, void *payload,
                      uint16_t protocol, void *ipaddress, void *tunnel,
-                     struct udp_state *state, struct ip6_udp *pkt6)
+                     struct redirect_state *state, struct ip6_pkt *pkt6)
 {
   uint32_t tmp;
 
@@ -515,7 +573,7 @@ prepare_ipv6_packet (ssize_t len, ssize_t pktlen, void *payload,
 
   pkt6->tun.type = htons (0x86dd);
 
-  memcpy (&pkt6->udp_hdr, payload, pktlen);
+  memcpy (&pkt6->data, payload, pktlen);
 
   pkt6->ip6_hdr.version = 6;
   pkt6->ip6_hdr.nxthdr = protocol;
@@ -551,24 +609,141 @@ prepare_ipv6_packet (ssize_t len, ssize_t pktlen, void *payload,
           ((char *) &tunnel) + offset, 16 - ipv6prefix);
 
   /* copy the needed information into the state */
-  memcpy (&state->udp_info.addr, &pkt6->ip6_hdr.sadr, 16);
-  state->udp_info.pt = pkt6->udp_hdr.spt;
+  memcpy (&state->redirect_info.addr, &pkt6->ip6_hdr.sadr, 16);
 
-  pkt6->udp_hdr.crc = 0;
-  uint32_t sum = 0;
-  sum =
-    calculate_checksum_update (sum, (uint16_t *) & pkt6->ip6_hdr.sadr, 16);
-  sum =
-    calculate_checksum_update (sum, (uint16_t *) & pkt6->ip6_hdr.dadr, 16);
-  tmp = (htons (pktlen) & 0xffff);
-  sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
-  tmp = htons (((pkt6->ip6_hdr.nxthdr & 0x00ff)));
-  sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+  if (0x11 == protocol)
+    {
+      struct ip6_udp* pkt6_udp = (struct ip6_udp*)pkt6;
+      state->redirect_info.pt = pkt6_udp->udp_hdr.spt;
 
-  sum =
-    calculate_checksum_update (sum, (uint16_t *) & pkt6->udp_hdr,
-                               ntohs (pkt6->udp_hdr.len));
-  pkt6->udp_hdr.crc = calculate_checksum_end (sum);
+      pkt6_udp->udp_hdr.crc = 0;
+      uint32_t sum = 0;
+      sum =
+        calculate_checksum_update (sum, (uint16_t *) & pkt6_udp->ip6_hdr.sadr, 16);
+      sum =
+        calculate_checksum_update (sum, (uint16_t *) & pkt6_udp->ip6_hdr.dadr, 16);
+      tmp = (htons (pktlen) & 0xffff);
+      sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+      tmp = htons (((pkt6_udp->ip6_hdr.nxthdr & 0x00ff)));
+      sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+
+      sum =
+        calculate_checksum_update (sum, (uint16_t *) & pkt6_udp->udp_hdr,
+                                   ntohs (pkt6_udp->udp_hdr.len));
+      pkt6_udp->udp_hdr.crc = calculate_checksum_end (sum);
+    }
+  else if (0x06 == protocol)
+    {
+      struct ip6_tcp* pkt6_tcp = (struct ip6_tcp*)pkt6;
+      state->redirect_info.pt = pkt6_tcp->tcp_hdr.spt;
+
+      pkt6_tcp->tcp_hdr.crc = 0;
+      uint32_t sum = 0;
+      sum =
+        calculate_checksum_update (sum, (uint16_t *) & pkt6->ip6_hdr.sadr, 16);
+      sum =
+        calculate_checksum_update (sum, (uint16_t *) & pkt6->ip6_hdr.dadr, 16);
+      tmp = htonl(pktlen);
+      sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+      tmp = htonl (((pkt6->ip6_hdr.nxthdr & 0x000000ff)));
+      sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+
+      sum =
+        calculate_checksum_update (sum, (uint16_t *) & pkt6_tcp->tcp_hdr,
+                                   ntohs (pkt6->ip6_hdr.paylgth));
+      pkt6_tcp->tcp_hdr.crc = calculate_checksum_end (sum);
+    }
+}
+
+/**
+ * The messages are one GNUNET_HashCode for the service followed by a struct tcp_pkt
+ */
+static int
+receive_tcp_service (void *cls,
+                     struct GNUNET_MESH_Tunnel *tunnel,
+                     void **tunnel_ctx,
+		     const struct GNUNET_PeerIdentity *sender,
+                     const struct GNUNET_MessageHeader *message,
+                     const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+{
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received TCP-Packet\n");
+  GNUNET_HashCode hash;
+  GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
+  struct tcp_pkt *pkt = (struct tcp_pkt *) (desc + 1);
+  unsigned int pkt_len = ntohs(message->size) - sizeof (struct
+                                                        GNUNET_MessageHeader) -
+    sizeof(GNUNET_HashCode);
+
+  /** Get the configuration from the services-hashmap.
+   *
+   * Which service is needed only depends on the service-descriptor and the
+   * destination-port
+   */
+  uint16_t *tcp_desc = alloca (sizeof (GNUNET_HashCode) + 2);
+
+  memcpy (tcp_desc + 1, desc, sizeof (GNUNET_HashCode));
+  *tcp_desc = ntohs (pkt->dpt);
+  GNUNET_CRYPTO_hash (tcp_desc, sizeof (GNUNET_HashCode) + 2, &hash);
+  struct redirect_service *serv =
+    GNUNET_CONTAINER_multihashmap_get (tcp_services, &hash);
+  if (NULL == serv)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "No service found for TCP dpt %d!\n",
+                  *tcp_desc);
+      return GNUNET_YES;
+    }
+
+  pkt->dpt = htons (serv->remote_port);
+  /* FIXME -> check acl etc */
+
+  char *buf;
+  size_t len;
+
+  /* Prepare the state.
+   * This will be saved in the hashmap, so that the receiving procedure knows
+   * through which tunnel this connection has to be routed.
+   */
+  struct redirect_state *state = GNUNET_malloc (sizeof (struct redirect_state));
+  memset (state, 0, sizeof (struct redirect_state));
+  state->tunnel = tunnel;
+  state->serv = serv;
+  memcpy (&state->desc, desc, sizeof (GNUNET_HashCode));
+
+  len = sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) +
+    sizeof (struct ip6_hdr) + pkt_len;
+  buf = alloca (len);
+
+  memset (buf, 0, len);
+
+  switch (serv->version)
+    {
+    case 4:
+      prepare_ipv4_packet (len, pkt_len, pkt, 0x06,    /* TCP */
+                           &serv->v4.ip4address,
+                           tunnel, state, (struct ip_pkt *) buf);
+      break;
+    case 6:
+      prepare_ipv6_packet (len, pkt_len, pkt, 0x06,    /* TCP */
+                           &serv->v6.ip6address,
+                           tunnel, state, (struct ip6_pkt *) buf);
+
+      break;
+    default:
+      GNUNET_assert (0);
+      break;
+    }
+
+  GNUNET_CRYPTO_hash (&state->redirect_info, sizeof (struct redirect_info), &hash);
+
+  if (GNUNET_NO ==
+      GNUNET_CONTAINER_multihashmap_contains (tcp_connections, &hash))
+    GNUNET_CONTAINER_multihashmap_put (tcp_connections, &hash, state,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  else
+    GNUNET_free (state);
+
+  (void) GNUNET_DISK_file_write (helper_handle->fh_to_helper, buf, len);
+  return GNUNET_YES;
 }
 
 /**
@@ -596,11 +771,11 @@ receive_udp_service (void *cls,
   memcpy (udp_desc + 1, desc, sizeof (GNUNET_HashCode));
   *udp_desc = ntohs (pkt->dpt);
   GNUNET_CRYPTO_hash (udp_desc, sizeof (GNUNET_HashCode) + 2, &hash);
-  struct udp_service *serv =
+  struct redirect_service *serv =
     GNUNET_CONTAINER_multihashmap_get (udp_services, &hash);
   if (NULL == serv)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "No service found for dpt %d!\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "No service found for UDP dpt %d!\n",
                   *udp_desc);
       return GNUNET_YES;
     }
@@ -615,8 +790,8 @@ receive_udp_service (void *cls,
    * This will be saved in the hashmap, so that the receiving procedure knows
    * through which tunnel this connection has to be routed.
    */
-  struct udp_state *state = GNUNET_malloc (sizeof (struct udp_state));
-  memset (state, 0, sizeof (struct udp_state));
+  struct redirect_state *state = GNUNET_malloc (sizeof (struct redirect_state));
+  memset (state, 0, sizeof (struct redirect_state));
   state->tunnel = tunnel;
   state->serv = serv;
   memcpy (&state->desc, desc, sizeof (GNUNET_HashCode));
@@ -632,12 +807,12 @@ receive_udp_service (void *cls,
     case 4:
       prepare_ipv4_packet (len, ntohs (pkt->len), pkt, 0x11,    /* UDP */
                            &serv->v4.ip4address,
-                           tunnel, state, (struct ip_udp *) buf);
+                           tunnel, state, (struct ip_pkt *) buf);
       break;
     case 6:
       prepare_ipv6_packet (len, ntohs (pkt->len), pkt, 0x11,    /* UDP */
                            &serv->v6.ip6address,
-                           tunnel, state, (struct ip6_udp *) buf);
+                           tunnel, state, (struct ip6_pkt *) buf);
 
       break;
     default:
@@ -645,7 +820,7 @@ receive_udp_service (void *cls,
       break;
     }
 
-  GNUNET_CRYPTO_hash (&state->udp_info, sizeof (struct udp_info), &hash);
+  GNUNET_CRYPTO_hash (&state->redirect_info, sizeof (struct redirect_info), &hash);
 
   if (GNUNET_NO ==
       GNUNET_CONTAINER_multihashmap_contains (udp_connections, &hash))
@@ -674,6 +849,7 @@ run (void *cls,
 {
   const static struct GNUNET_MESH_MessageHandler handlers[] = {
 	{receive_udp_service, GNUNET_MESSAGE_TYPE_SERVICE_UDP, 0},
+	{receive_tcp_service, GNUNET_MESSAGE_TYPE_SERVICE_TCP, 0},
 	{NULL, 0, 0}
   };
   mesh_handle = GNUNET_MESH_connect(cfg_,
@@ -683,7 +859,9 @@ run (void *cls,
 
   cfg = cfg_;
   udp_connections = GNUNET_CONTAINER_multihashmap_create(65536);
+  tcp_connections = GNUNET_CONTAINER_multihashmap_create(65536);
   udp_services = GNUNET_CONTAINER_multihashmap_create(65536);
+  tcp_services = GNUNET_CONTAINER_multihashmap_create(65536);
 
   char *services;
   GNUNET_CONFIGURATION_get_value_filename(cfg, "dns", "SERVICES", &services);

@@ -41,6 +41,8 @@ struct ip_hdr {
 	unsigned dadr:32 GNUNET_PACKED;
 };
 
+#define TCP_FLAG_SYN 2
+
 struct tcp_pkt {
 	unsigned spt:16 GNUNET_PACKED;
 	unsigned dpt:16 GNUNET_PACKED;
@@ -197,11 +199,20 @@ struct ip_udp {
 	struct udp_pkt udp_hdr;
 	unsigned char data[1];
 };
+
 struct ip_udp_dns {
 	struct GNUNET_MessageHeader shdr;
 	struct pkt_tun tun;
 	struct ip_hdr ip_hdr;
 	struct udp_dns udp_dns;
+};
+
+struct ip_tcp {
+	struct GNUNET_MessageHeader shdr;
+	struct pkt_tun tun;
+	struct ip_hdr ip_hdr;
+	struct tcp_pkt tcp_hdr;
+	unsigned char data[1];
 };
 
 #endif

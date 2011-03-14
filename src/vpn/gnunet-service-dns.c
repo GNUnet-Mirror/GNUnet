@@ -738,7 +738,7 @@ publish_iterate (void *cls, const char *section)
     service_type = GNUNET_DNS_SERVICE_TYPE_UDP;
 
   if (NULL != tcp_redirects)
-    service_type = GNUNET_DNS_SERVICE_TYPE_TCP;
+    service_type |= GNUNET_DNS_SERVICE_TYPE_TCP;
 
   service_type = htonl (service_type);
 
