@@ -479,6 +479,80 @@ receive_udp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
   return GNUNET_OK;
 }
 
+static int
+receive_tcp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
+		  void **tunnel_ctx,
+		  const struct GNUNET_PeerIdentity *sender,
+		  const struct GNUNET_MessageHeader *message,
+		  const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+{
+  GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
+  struct tcp_pkt *pkt = (struct tcp_pkt *) (desc + 1);
+  const struct GNUNET_PeerIdentity* other = GNUNET_MESH_get_peer(tunnel);
+
+  size_t pktlen = ntohs(message->size) - sizeof(struct GNUNET_MessageHeader) - sizeof(GNUNET_HashCode);
+  size_t size = pktlen + sizeof(struct ip6_tcp) - 1;
+
+  struct ip6_tcp* pkt6 = alloca(size);
+
+  GNUNET_assert(pkt6 != NULL);
+
+  new_ip6addr(pkt6->ip6_hdr.sadr, &other->hashPubKey, desc);
+
+  pkt6->shdr.type = htons(GNUNET_MESSAGE_TYPE_VPN_HELPER);
+  pkt6->shdr.size = htons(size);
+
+  pkt6->tun.flags = 0;
+  pkt6->tun.type = htons(0x86dd);
+
+  pkt6->ip6_hdr.version = 6;
+  pkt6->ip6_hdr.tclass_h = 0;
+  pkt6->ip6_hdr.tclass_l = 0;
+  pkt6->ip6_hdr.flowlbl = 0;
+  pkt6->ip6_hdr.paylgth = htons(pktlen);
+  pkt6->ip6_hdr.nxthdr = 0x06;
+  pkt6->ip6_hdr.hoplmt = 0xff;
+
+  {
+    char* ipv6addr;
+    GNUNET_assert(GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "vpn", "IPV6ADDR", &ipv6addr));
+    inet_pton (AF_INET6, ipv6addr, pkt6->ip6_hdr.dadr);
+    GNUNET_free(ipv6addr);
+  }
+  memcpy(&pkt6->tcp_hdr, pkt, pktlen);
+
+  GNUNET_HashCode* key = address_mapping_exists(pkt6->ip6_hdr.sadr);
+  GNUNET_assert (key != NULL);
+
+  struct map_entry *me = GNUNET_CONTAINER_multihashmap_get(hashmap, key);
+
+  GNUNET_free(key);
+
+  GNUNET_assert (me != NULL);
+  GNUNET_assert (me->desc.service_type & htonl(GNUNET_DNS_SERVICE_TYPE_TCP));
+
+  pkt6->tcp_hdr.crc = 0;
+  uint32_t sum = 0;
+  uint32_t tmp;
+  sum =
+    calculate_checksum_update (sum, (uint16_t *) & pkt6->ip6_hdr.sadr, 16);
+  sum =
+    calculate_checksum_update (sum, (uint16_t *) & pkt6->ip6_hdr.dadr, 16);
+  tmp = htonl(pktlen);
+  sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+  tmp = htonl (((pkt6->ip6_hdr.nxthdr & 0x000000ff)));
+  sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+
+  sum =
+    calculate_checksum_update (sum, (uint16_t *) & pkt6->tcp_hdr,
+                               ntohs (pkt6->ip6_hdr.paylgth));
+  pkt6->tcp_hdr.crc = calculate_checksum_end (sum);
+
+  write_to_helper(pkt6, size);
+
+  return GNUNET_OK;
+}
+
 void init_mesh (void* cls, struct GNUNET_MESH_Handle* server, const struct GNUNET_PeerIdentity* my_identity, const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pubkey) {
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connected to MESH, I am %x\n", *((unsigned long*)my_identity));
 }
@@ -503,6 +577,7 @@ run (void *cls,
 {
     const static struct GNUNET_MESH_MessageHandler handlers[] = {
 	  {receive_udp_back, GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK, 0},
+	  {receive_tcp_back, GNUNET_MESSAGE_TYPE_SERVICE_TCP_BACK, 0},
 	  {NULL, 0, 0}
     };
     mesh_handle = GNUNET_MESH_connect(cfg_,

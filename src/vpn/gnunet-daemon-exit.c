@@ -174,6 +174,144 @@ send_udp_to_peer_notify_callback (void *cls, size_t size, void *buf)
 }
 
 /**
+ * @brief Handles an UDP-Packet received from the helper.
+ *
+ * @param udp A pointer to the Packet
+ * @param dadr The IP-Destination-address
+ * @param addrlen The length of the address
+ * @param version 4 or 6
+ */
+static void
+udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen,
+                 unsigned int version)
+{
+  struct redirect_info u_i;
+  struct GNUNET_MESH_Tunnel *tunnel;
+  uint32_t len;
+  struct GNUNET_MessageHeader *msg;
+
+  memset (&u_i, 0, sizeof (struct redirect_info));
+
+  memcpy (&u_i.addr, dadr, addrlen);
+
+  u_i.pt = udp->dpt;
+
+  /* get tunnel and service-descriptor from this */
+  GNUNET_HashCode hash;
+  GNUNET_CRYPTO_hash (&u_i, sizeof (struct redirect_info), &hash);
+  struct redirect_state *state =
+    GNUNET_CONTAINER_multihashmap_get (udp_connections, &hash);
+
+  tunnel = state->tunnel;
+
+  /* check if spt == serv.remote if yes: set spt = serv.myport ("nat") */
+  if (ntohs (udp->spt) == state->serv->remote_port)
+    {
+      udp->spt = htons (state->serv->my_port);
+    }
+  else
+    {
+      struct redirect_service *serv =
+        GNUNET_malloc (sizeof (struct redirect_service));
+      memcpy (serv, state->serv, sizeof (struct redirect_service));
+      serv->my_port = ntohs (udp->spt);
+      serv->remote_port = ntohs (udp->spt);
+      uint16_t *desc = alloca (sizeof (GNUNET_HashCode) + 2);
+      memcpy ((GNUNET_HashCode *) (desc + 1), &state->desc,
+              sizeof (GNUNET_HashCode));
+      *desc = ntohs (udp->spt);
+      GNUNET_HashCode hash;
+      GNUNET_CRYPTO_hash (desc, sizeof (GNUNET_HashCode) + 2, &hash);
+      GNUNET_assert (GNUNET_OK ==
+                     GNUNET_CONTAINER_multihashmap_put (udp_services,
+                                                        &hash, serv,
+                                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+      state->serv = serv;
+    }
+  /* send udp-packet back */
+  len =
+    sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) +
+    ntohs (udp->len);
+  msg = GNUNET_malloc (len);
+  msg->size = htons (len);
+  msg->type = htons (GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK);
+  GNUNET_HashCode *desc = (GNUNET_HashCode *) (msg + 1);
+  memcpy (desc, &state->desc, sizeof (GNUNET_HashCode));
+  void *_udp = desc + 1;
+  memcpy (_udp, udp, ntohs (udp->len));
+
+  GNUNET_MESH_notify_transmit_ready (tunnel,
+                                     GNUNET_NO,
+                                     42,
+                                     GNUNET_TIME_relative_divide
+                                     (GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
+                                     len, send_udp_to_peer_notify_callback,
+                                     msg);
+}
+
+/**
+ * @brief Handles a TCP-Packet received from the helper.
+ *
+ * @param tcp A pointer to the Packet
+ * @param dadr The IP-Destination-address
+ * @param addrlen The length of the address
+ * @param version 4 or 6
+ */
+static void
+tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
+                 unsigned int version, size_t pktlen)
+{
+  struct redirect_info u_i;
+  struct GNUNET_MESH_Tunnel *tunnel;
+  uint32_t len;
+  struct GNUNET_MessageHeader *msg;
+
+  memset (&u_i, 0, sizeof (struct redirect_info));
+
+  memcpy (&u_i.addr, dadr, addrlen);
+  u_i.pt = tcp->dpt;
+
+  /* get tunnel and service-descriptor from this */
+  GNUNET_HashCode hash;
+  GNUNET_CRYPTO_hash (&u_i, sizeof (struct redirect_info), &hash);
+  struct redirect_state *state =
+    GNUNET_CONTAINER_multihashmap_get (tcp_connections, &hash);
+
+  tunnel = state->tunnel;
+
+  /* check if spt == serv.remote if yes: set spt = serv.myport ("nat") */
+  if (ntohs (tcp->spt) == state->serv->remote_port)
+    {
+      tcp->spt = htons (state->serv->my_port);
+    }
+  else
+    {
+      // This is an illegal packet.
+      GNUNET_assert (0);
+    }
+  /* send udp-packet back */
+  len =
+    sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) + pktlen;
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "len: %d\n", pktlen);
+  msg = GNUNET_malloc (len);
+  msg->size = htons (len);
+  msg->type = htons (GNUNET_MESSAGE_TYPE_SERVICE_TCP_BACK);
+  GNUNET_HashCode *desc = (GNUNET_HashCode *) (msg + 1);
+  memcpy (desc, &state->desc, sizeof (GNUNET_HashCode));
+  void *_tcp = desc + 1;
+  memcpy (_tcp, tcp, pktlen);
+
+  GNUNET_MESH_notify_transmit_ready (tunnel,
+                                     GNUNET_NO,
+                                     42,
+                                     GNUNET_TIME_relative_divide
+                                     (GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
+                                     len, send_udp_to_peer_notify_callback,
+                                     msg);
+}
+
+
+/**
  * Receive packets from the helper-process
  */
 static void
@@ -184,90 +322,40 @@ message_token (void *cls,
 
   struct tun_pkt *pkt_tun = (struct tun_pkt *) message;
 
-  struct GNUNET_MessageHeader *msg;
-  struct GNUNET_MESH_Tunnel *tunnel;
-  uint32_t len;
-
-  struct udp_pkt *udp;
-  struct redirect_info u_i;
-  memset(&u_i, 0, sizeof(struct redirect_info));
-
-  unsigned int version;
-
   /* ethertype is ipv6 */
   if (ntohs (pkt_tun->tun.type) == 0x86dd)
     {
-      struct ip6_udp *pkt6 = (struct ip6_udp*)pkt_tun;
-      if (pkt6->ip6_hdr.nxthdr != 0x11) return;
-      /* lookup in udp_connections for dpt/dadr*/
-      memcpy(&u_i.addr, pkt6->ip6_hdr.dadr, 16);
-      udp = &pkt6->udp_hdr;
-      version = 6;
+      struct ip6_pkt *pkt6 = (struct ip6_pkt *) pkt_tun;
+      if (0x11 == pkt6->ip6_hdr.nxthdr)
+        udp_from_helper (&((struct ip6_udp *) pkt6)->udp_hdr,
+                         (unsigned char *) &pkt6->ip6_hdr.dadr, 16, 6);
+      else if (0x06 == pkt6->ip6_hdr.nxthdr)
+        tcp_from_helper (&((struct ip6_tcp *) pkt6)->tcp_hdr,
+                         (unsigned char *) &pkt6->ip6_hdr.dadr, 16, 6,
+                         ntohs (pkt6->ip6_hdr.paylgth));
     }
-  else if (ntohs(pkt_tun->tun.type) == 0x0800)
+  else if (ntohs (pkt_tun->tun.type) == 0x0800)
     {
-      struct ip_udp *pkt4 = (struct ip_udp*)pkt_tun;
-      if (pkt4->ip_hdr.proto != 0x11) return;
+      struct ip_pkt *pkt4 = (struct ip_pkt *) pkt_tun;
       uint32_t tmp = pkt4->ip_hdr.dadr;
-      memcpy(&u_i.addr, &tmp, 4);
-      udp = &pkt4->udp_hdr;
-      version = 4;
+      if (0x11 == pkt4->ip_hdr.proto)
+        udp_from_helper (&((struct ip_udp *) pkt4)->udp_hdr,
+                         (unsigned char *) &tmp, 4, 4);
+      else if (0x06 == pkt4->ip_hdr.proto)
+        {
+          size_t pktlen = ntohs(pkt4->ip_hdr.tot_lngth);
+          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "tot: %d\n", pktlen);
+          pktlen -= 4*pkt4->ip_hdr.hdr_lngth;
+          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "-hdr: %d\n", pktlen);
+          tcp_from_helper (&((struct ip_tcp *) pkt4)->tcp_hdr,
+                           (unsigned char *) &tmp, 4, 4, pktlen);
+        }
     }
   else
     {
       return;
     }
-
-  u_i.pt = udp->dpt;
-
-  /* get tunnel and service-descriptor from this*/
-  GNUNET_HashCode hash;
-  GNUNET_CRYPTO_hash(&u_i, sizeof(struct redirect_info), &hash);
-  struct redirect_state *state = GNUNET_CONTAINER_multihashmap_get(udp_connections, &hash);
-
-  tunnel = state->tunnel;
-
-  /* check if spt == serv.remote if yes: set spt = serv.myport*/
-  if (ntohs(udp->spt) == state->serv->remote_port)
-    {
-      udp->spt = htons(state->serv->my_port);
-    }
-  else
-    {
-      struct redirect_service *serv = GNUNET_malloc(sizeof(struct redirect_service));
-      memcpy(serv, state->serv, sizeof(struct redirect_service));
-      serv->my_port = ntohs(udp->spt);
-      serv->remote_port = ntohs(udp->spt);
-      uint16_t *desc = alloca (sizeof (GNUNET_HashCode) + 2);
-      memcpy((GNUNET_HashCode *) (desc + 1), &state->desc, sizeof(GNUNET_HashCode));
-      *desc = ntohs(udp->spt);
-      GNUNET_HashCode hash;
-      GNUNET_CRYPTO_hash (desc, sizeof (GNUNET_HashCode) + 2, &hash);
-      GNUNET_assert (GNUNET_OK ==
-		     GNUNET_CONTAINER_multihashmap_put (udp_services,
-							&hash, serv,
-							GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-      state->serv = serv;
-    }
-  /* send udp-packet back */ 
-  len = sizeof(struct GNUNET_MessageHeader) + sizeof(GNUNET_HashCode) + ntohs(udp->len);
-  msg = GNUNET_malloc(len);
-  msg->size = htons(len);
-  msg->type = htons(GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK);
-  GNUNET_HashCode *desc = (GNUNET_HashCode*)(msg+1);
-  memcpy(desc, &state->desc, sizeof(GNUNET_HashCode));
-  void* _udp = desc+1;
-  memcpy(_udp, udp, ntohs(udp->len));
-
-  GNUNET_MESH_notify_transmit_ready (tunnel,
-				     GNUNET_NO,
-				     42,
-				     GNUNET_TIME_relative_divide(GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
-				     len,
-				     send_udp_to_peer_notify_callback,
-				     msg);
 }
-
 
 /**
  * Reads the configuration servicecfg and populates udp_services

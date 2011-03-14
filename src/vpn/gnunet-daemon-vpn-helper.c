@@ -274,6 +274,9 @@ message_token (void *cls,
                 }
               else
                 {
+                  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Dropping packet. nxthdr=%d, type=%d, dpt=%x, flg=%d, ports=%x\n",
+                             pkt6->ip6_hdr.nxthdr, ntohl(me->desc.service_type),
+                             ntohs(pkt6_tcp->tcp_hdr.dpt), pkt6_tcp->tcp_hdr.flg, me->desc.ports);
                   GNUNET_free (cls);
                   cls = NULL;
                 }
