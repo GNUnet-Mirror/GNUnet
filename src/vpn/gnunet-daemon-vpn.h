@@ -49,7 +49,7 @@ GNUNET_HashCode* address_mapping_exists(unsigned char addr[]);
 unsigned int port_in_ports (uint64_t ports, uint16_t port);
 
 void
-send_udp_to_peer (void *cls,
+send_pkt_to_peer (void *cls,
 		  const struct GNUNET_PeerIdentity *peer,
 		  const struct GNUNET_TRANSPORT_ATS_Information *atsi);
 

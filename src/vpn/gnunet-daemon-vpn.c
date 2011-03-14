@@ -139,20 +139,15 @@ send_icmp_response(void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
 
 /**
  * cls is the pointer to a GNUNET_MessageHeader that is
- * followed by the service-descriptor and the udp-packet that should be sent;
+ * followed by the service-descriptor and the packet that should be sent;
  */
 static size_t
-send_udp_to_peer_notify_callback (void *cls, size_t size, void *buf)
+send_pkt_to_peer_notify_callback (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MESH_Tunnel **tunnel = cls;
   struct GNUNET_MessageHeader *hdr =
     (struct GNUNET_MessageHeader *) (tunnel + 1);
-  GNUNET_HashCode *hc = (GNUNET_HashCode *) (hdr + 1);
-  struct udp_pkt *udp = (struct udp_pkt *) (hc + 1);
-  hdr->size = htons (sizeof (struct GNUNET_MessageHeader) +
-		     sizeof (GNUNET_HashCode) + ntohs (udp->len));
-  hdr->type = ntohs (GNUNET_MESSAGE_TYPE_SERVICE_UDP);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "send_udp_to_peer_notify_callback: buf = %x; size = %u;\n", buf, size);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "send_pkt_to_peer_notify_callback: buf = %x; size = %u;\n", buf, size);
   GNUNET_assert (size >= ntohs (hdr->size));
   memcpy (buf, hdr, ntohs (hdr->size));
   size = ntohs(hdr->size);
@@ -169,7 +164,7 @@ port_in_ports (uint64_t ports, uint16_t port)
 }
 
 void
-send_udp_to_peer (void *cls, 
+send_pkt_to_peer (void *cls, 
 		  const struct GNUNET_PeerIdentity *peer,
 		  const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
@@ -177,17 +172,12 @@ send_udp_to_peer (void *cls,
   struct GNUNET_MESH_Tunnel **tunnel = cls;
   struct GNUNET_MessageHeader *hdr =
     (struct GNUNET_MessageHeader *) (tunnel + 1);
-  GNUNET_HashCode *hc = (GNUNET_HashCode *) (hdr + 1);
-  struct udp_pkt *udp = (struct udp_pkt *) (hc + 1);
   GNUNET_MESH_notify_transmit_ready (*tunnel,
 				     GNUNET_NO,
 				     42,
 				     GNUNET_TIME_relative_divide(GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
-				     htons (sizeof
-					    (struct GNUNET_MessageHeader) +
-					    sizeof (GNUNET_HashCode) +
-					    ntohs (udp->len)),
-				     send_udp_to_peer_notify_callback,
+                                     ntohs(hdr->size),
+				     send_pkt_to_peer_notify_callback,
 				     cls);
 }
 
