@@ -6029,7 +6029,7 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
     {
       for (off = 0; off < hostcnt; off++)
         {
-          GNUNET_asprintf(&newservicehome, "%s/%s/", baseservicehome, pg->hosts[off].hostname);
+          GNUNET_asprintf(&newservicehome, "%s/%s", baseservicehome, pg->hosts[off].hostname);
 
           if (NULL != username)
             GNUNET_asprintf (&arg, "%s@%s:%s", username, pg->hosts[off].hostname, newservicehome);
