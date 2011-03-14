@@ -5614,7 +5614,8 @@ start_peer_helper (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "starting peers with cmd ssh %s %s %s\n", arg, "peerStartHelper.pl", tempdir);
 
   GNUNET_OS_process_wait (proc);
-  GNUNET_OS_process_status (proc, &type, &code);
+  if (GNUNET_OK != GNUNET_OS_process_status (proc, &type, &code))
+    code = 1;
   GNUNET_OS_process_close(proc);
   GNUNET_free (tempdir);
   GNUNET_free (baseservicehome);
