@@ -6671,7 +6671,10 @@ GNUNET_TESTING_daemons_stop(struct GNUNET_TESTING_PeerGroup *pg,
       GNUNET_SCHEDULER_add_now (&schedule_shutdown_task, peer_shutdown_ctx);
 
       if (NULL != pg->peers[off].cfg)
+      {
         GNUNET_CONFIGURATION_destroy (pg->peers[off].cfg);
+        pg->peers[off].cfg = NULL;
+      }
 #if OLD
       conn_iter = pg->peers[off].allowed_peers_head;
       while (conn_iter != NULL)
