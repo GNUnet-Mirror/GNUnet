@@ -338,6 +338,8 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
   GSF_connected_peer_get_identity_ (cp, &id);
   pp = GNUNET_CONTAINER_multihashmap_get (plans,
 					  &id.hashPubKey);
+  if (NULL == pp)
+    return; /* nothing was ever planned for this peer */
   GNUNET_CONTAINER_multihashmap_remove (plans,
 					&id.hashPubKey,
 					pp);
