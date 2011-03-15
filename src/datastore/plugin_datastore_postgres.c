@@ -350,8 +350,8 @@ init_connection (struct Plugin *plugin)
 		       (ret,
 			PG_DIAG_SQLSTATE)))))
     {
-      check_result (plugin,
-		    ret, PGRES_COMMAND_OK, "CREATE TABLE", "gn090", __LINE__);
+      (void) check_result (plugin,
+	  	           ret, PGRES_COMMAND_OK, "CREATE TABLE", "gn090", __LINE__);
       PQfinish (plugin->dbh);
       plugin->dbh = NULL;
       return GNUNET_SYSERR;
