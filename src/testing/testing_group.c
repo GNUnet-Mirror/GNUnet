@@ -5597,7 +5597,6 @@ check_peers_started (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned int i;
   GNUNET_TESTING_NotifyDaemonRunning cb;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Checking whether peer startup process finished!\n");
   if (GNUNET_NO == GNUNET_OS_process_status (helper->proc, &type, &code)) /* Still running, wait some more! */
   {
     GNUNET_SCHEDULER_add_delayed(GNUNET_CONSTANTS_EXEC_WAIT, &check_peers_started, helper);
