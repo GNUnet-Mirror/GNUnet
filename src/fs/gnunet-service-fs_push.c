@@ -605,8 +605,6 @@ GSF_push_stop_ (struct GSF_ConnectedPeer *peer)
 void
 GSF_push_init_ ()
 {
-  int enabled;
-
   enabled = GNUNET_CONFIGURATION_get_value_yesno (GSF_cfg,
 						  "FS",
 						  "CONTENT_PUSHING");
