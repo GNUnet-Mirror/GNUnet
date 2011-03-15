@@ -592,7 +592,7 @@ handle_p2p_reply (void *cls,
 							  &prd->query,
 							  pr));
       return;
-    }
+    }  
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Transmitting result for query `%s'\n",
@@ -603,6 +603,11 @@ handle_p2p_reply (void *cls,
 			    1,
 			    GNUNET_NO); 
   msize = sizeof (struct PutMessage) + data_len;
+  if (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+    {
+      GNUNET_break (0);
+      return;
+    }
   pm = GNUNET_malloc (sizeof (msize));
   pm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_PUT);
   pm->header.size = htons (msize);
