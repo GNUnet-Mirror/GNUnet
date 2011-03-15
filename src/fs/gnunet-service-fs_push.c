@@ -372,9 +372,10 @@ find_content (struct MigrationReadyPeer *mrp)
 	}
       pos = pos->next;
     }
-  if ( (NULL == best) &&
-       (mig_size >= MAX_MIGRATION_QUEUE) )
+  if (NULL == best) 
     {
+      if (mig_size < MAX_MIGRATION_QUEUE)
+	return; /* will fill up eventually... */
       /* failed to find migration target AND
 	 queue is full, purge most-forwarded
 	 block from queue to make room for more */
