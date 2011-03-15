@@ -5597,6 +5597,7 @@ check_peers_started (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned int i;
   GNUNET_TESTING_NotifyDaemonRunning cb;
 
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Checking whether peer startup process finished!\n");
   if (GNUNET_NO == GNUNET_OS_process_status (helper->proc, &type, &code)) /* Still running, wait some more! */
   {
     GNUNET_SCHEDULER_add_delayed(GNUNET_CONSTANTS_EXEC_WAIT, &check_peers_started, helper);
@@ -6000,7 +6001,6 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
 #else
       if ((pg->hostkey_data != NULL) && (hostcnt > 0))
         {
-          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Have hostkey data and running on remote hosts!\n");
           pg->peers[off].daemon = GNUNET_TESTING_daemon_start (pcfg,
                                        timeout,
                                        GNUNET_YES,
@@ -6036,22 +6036,17 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
     {
       for (off = 0; off < hostcnt; off++)
         {
-          GNUNET_asprintf(&newservicehome, "%s/%s/*", baseservicehome, pg->hosts[off].hostname);
+          GNUNET_asprintf(&newservicehome, "%s/%s/", baseservicehome, pg->hosts[off].hostname);
 
           if (NULL != username)
-            GNUNET_asprintf (&arg, "%s@%s:%s", username, pg->hosts[off].hostname, baseservicehome);
+            GNUNET_asprintf (&arg, "%s@%s:%s/%s", username, pg->hosts[off].hostname, baseservicehome, pg->hosts[off].hostname);
           else
-            GNUNET_asprintf (&arg, "%s:%s", pg->hosts[off].hostname, baseservicehome);
+            GNUNET_asprintf (&arg, "%s:%s/%s", pg->hosts[off].hostname, baseservicehome, pg->hosts[off].hostname);
 
           /* FIXME: Doesn't support ssh_port option! */
-          proc = GNUNET_OS_start_process (NULL, NULL, "scp", "scp", "-r",
-#if !DEBUG_TESTING
-                                               "-q",
-#endif
-                                               newservicehome, arg, NULL);
+          proc = GNUNET_OS_start_process (NULL, NULL, "rsync", "rsync", "-r", newservicehome, arg, NULL);
 
-          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "copying directory with command scp -r %s %s\n", newservicehome, arg);
-
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "copying directory with command rsync -r %s %s\n", newservicehome, arg);
 
           GNUNET_free (arg);
           if (NULL == proc)
