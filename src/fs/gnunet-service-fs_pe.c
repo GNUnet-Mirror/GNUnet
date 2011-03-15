@@ -174,6 +174,7 @@ transmit_message_callback (void *cls,
   struct GSF_RequestPlan *rp;
   size_t msize;
 
+  pp->pth = NULL;
   if (NULL == buf)
     {
       /* failed, try again... */
@@ -181,6 +182,11 @@ transmit_message_callback (void *cls,
       return 0;
     }
   rp = GNUNET_CONTAINER_heap_peek (pp->priority_heap);
+  if (NULL == rp)
+    {
+      pp->task = GNUNET_SCHEDULER_add_now (&schedule_peer_transmission, pp);
+      return 0;
+    }
   msize = GSF_pending_request_get_message_ (rp->pr, buf_size, buf);
   if (msize > buf_size)
     {
