@@ -5611,7 +5611,8 @@ check_peers_started (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         {
           cb = helper->pg->peers[i].daemon->cb;
           helper->pg->peers[i].daemon->cb = NULL;
-
+          helper->pg->peers[i].daemon->running = GNUNET_YES;
+          helper->pg->peers[i].daemon->phase = SP_START_DONE;
           if (NULL != cb)
           {
             if ((type != GNUNET_OS_PROCESS_EXITED) || (code != 0))
