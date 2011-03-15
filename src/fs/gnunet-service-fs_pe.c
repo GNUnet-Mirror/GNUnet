@@ -368,14 +368,14 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
  * @param pr request that is done
  */
 void
-GSF_plan_notify_request_done_ (const struct GSF_PendingRequest *pr)
+GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr)
 {
   struct GSF_RequestPlan *rp;
   struct GSF_PendingRequestData *prd;
 
+  prd = GSF_pending_request_get_data_ (pr);
   while (NULL != (rp = prd->rp_head))
     {
-      prd = GSF_pending_request_get_data_ (rp->pr);
       GNUNET_CONTAINER_heap_remove_node (rp->hn);
       GNUNET_CONTAINER_DLL_remove (prd->rp_head,
 				   prd->rp_tail,

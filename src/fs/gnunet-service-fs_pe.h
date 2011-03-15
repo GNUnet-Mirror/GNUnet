@@ -59,7 +59,7 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp);
  * @param pr request that is done
  */
 void
-GSF_plan_notify_request_done_ (const struct GSF_PendingRequest *pr);
+GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr);
 
 
 /**

@@ -96,12 +96,6 @@ const struct GNUNET_CONFIGURATION_Handle *GSF_cfg;
 struct GNUNET_STATISTICS_Handle *GSF_stats;
 
 /**
- * Pointer to handle to the core service (points to NULL until we've
- * connected to it).
- */
-struct GNUNET_CORE_Handle *GSF_core;
-
-/**
  * Handle for DHT operations.
  */
 struct GNUNET_DHT_Handle *GSF_dht;
@@ -140,6 +134,12 @@ unsigned int GSF_cover_content_count;
  */
 struct GNUNET_BLOCK_Context *GSF_block_ctx;
 
+/**
+ * Pointer to handle to the core service (points to NULL until we've
+ * connected to it).
+ */
+struct GNUNET_CORE_Handle *GSF_core;
+
 
 /* ***************************** locals ******************************* */
 
@@ -152,12 +152,6 @@ static struct GNUNET_CONFIGURATION_Handle *block_cfg;
  * ID of our task that we use to age the cover counters.
  */
 static GNUNET_SCHEDULER_TaskIdentifier cover_age_task;
-
-/**
- * Pointer to handle to the core service (points to NULL until we've
- * connected to it).
- */
-static struct GNUNET_CORE_Handle *core;
 
 /**
  * Datastore 'GET' load tracking.
@@ -398,10 +392,10 @@ static void
 shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (NULL != core)
+  if (NULL != GSF_core)
     {
-      GNUNET_CORE_disconnect (core);
-      core = NULL;
+      GNUNET_CORE_disconnect (GSF_core);
+      GSF_core = NULL;
     }
   GSF_put_done_ ();
   GSF_push_done_ ();
@@ -531,17 +525,17 @@ main_init (struct GNUNET_SERVER_Handle *server,
     {NULL, NULL, 0, 0}
   };
 
-  core = GNUNET_CORE_connect (GSF_cfg,
-			      1, /* larger? */
-			      NULL,
-			      &peer_init_handler,
-			      &peer_connect_handler,
-			      &GSF_peer_disconnect_handler_,
-			      &GSF_peer_status_handler_,
-			      NULL, GNUNET_NO,
-			      NULL, GNUNET_NO,
-			      p2p_handlers);
-  if (NULL == core)
+  GSF_core = GNUNET_CORE_connect (GSF_cfg,
+				  1, /* larger? */
+				  NULL,
+				  &peer_init_handler,
+				  &peer_connect_handler,
+				  &GSF_peer_disconnect_handler_,
+				  &GSF_peer_status_handler_,
+				  NULL, GNUNET_NO,
+				  NULL, GNUNET_NO,
+				  p2p_handlers);
+  if (NULL == GSF_core)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Failed to connect to `%s' service.\n"),
@@ -577,7 +571,7 @@ run (void *cls,
 {
   GSF_cfg = cfg;
   GSF_dsh = GNUNET_DATASTORE_connect (cfg);
-  if (GSF_dsh == NULL)
+  if (NULL == GSF_dsh)
     {
       GNUNET_SCHEDULER_shutdown ();
       return;
