@@ -483,6 +483,9 @@ GSF_client_disconnect_handler_ (void *cls,
       pos->th = NULL;
     }
   GSF_handle_local_client_disconnect_ (pos);
+  GNUNET_CONTAINER_DLL_remove (client_head,
+			       client_tail,
+			       pos);
   GNUNET_free (pos);
 }
 
