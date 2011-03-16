@@ -525,6 +525,7 @@ static void connect_notify_peer2 (void *cls,
                   GNUNET_i2s(&pos->peer2->id), GNUNET_h2s (&peer->hashPubKey));
 #endif
       if (NULL == GNUNET_CORE_notify_transmit_ready (pos->peer1handle,
+                                                     GNUNET_YES,
                                                      0,
                                                      TIMEOUT,
                                                      &pos->peer2->id,
