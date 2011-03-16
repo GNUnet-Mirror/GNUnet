@@ -2927,11 +2927,11 @@ repeat_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
  */
 static void
 topology_callback(void *cls, const struct GNUNET_PeerIdentity *first,
-    const struct GNUNET_PeerIdentity *second, uint32_t distance,
-    const struct GNUNET_CONFIGURATION_Handle *first_cfg,
-    const struct GNUNET_CONFIGURATION_Handle *second_cfg,
-    struct GNUNET_TESTING_Daemon *first_daemon,
-    struct GNUNET_TESTING_Daemon *second_daemon, const char *emsg)
+                  const struct GNUNET_PeerIdentity *second, uint32_t distance,
+                  const struct GNUNET_CONFIGURATION_Handle *first_cfg,
+                  const struct GNUNET_CONFIGURATION_Handle *second_cfg,
+                  struct GNUNET_TESTING_Daemon *first_daemon,
+                  struct GNUNET_TESTING_Daemon *second_daemon, const char *emsg)
 {
   struct TopologyIteratorContext *topo_ctx;
   unsigned long long duration;
@@ -3214,12 +3214,14 @@ peers_started_callback(void *cls, const struct GNUNET_PeerIdentity *id,
 static void
 create_topology()
 {
+  unsigned int create_expected_connections;
   peers_left = num_peers; /* Reset counter */
-  if (GNUNET_TESTING_create_topology (pg, topology, blacklist_topology,
-                                      blacklist_transports) != GNUNET_SYSERR)
+  create_expected_connections = GNUNET_TESTING_create_topology (pg, topology, blacklist_topology,
+                                                                blacklist_transports);
+  if (create_expected_connections > 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Topology set up, now starting peers!\n");
+                  "Topology set up, have %u expected connections, now starting peers!\n", create_expected_connections);
       GNUNET_TESTING_daemons_continue_startup (pg);
     }
   else
