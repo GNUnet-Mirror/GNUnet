@@ -3696,7 +3696,7 @@ copy_allowed_topology(struct GNUNET_TESTING_PeerGroup *pg)
                       "Creating connection between %d and %d\n", pg_iter,
                       iter->index);
           total += add_connections (pg, pg_iter, iter->index, CONNECT,
-                                    GNUNET_NO);
+                                    GNUNET_YES);
           //total += add_actual_connections(pg, pg_iter, iter->index);
           iter = iter->next;
         }
@@ -3960,6 +3960,8 @@ GNUNET_TESTING_create_topology(struct GNUNET_TESTING_PeerGroup *pg,
   if ((restrict_topology != GNUNET_TESTING_TOPOLOGY_NONE) && (restrict_topology
       != GNUNET_TESTING_TOPOLOGY_FROM_FILE))
     create_clique (pg, &add_connections, BLACKLIST, GNUNET_NO);
+  else
+    return num_connections;
 
   unblacklisted_connections = 0;
   /* Un-blacklist connections as per the topology specified */
