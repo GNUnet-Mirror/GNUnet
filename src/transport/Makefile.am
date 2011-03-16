@@ -34,11 +34,12 @@ endif
 
 if HAVE_PCAP
 if LINUX
-if HAVE_EXPERIMENTAL
+#if HAVE_EXPERIMENTAL
  WANBIN = gnunet-transport-wlan-helper
  WLAN_PLUGIN_LA = libgnunet_plugin_transport_wlan.la
  WLAN_API_TEST = test_transport_api_wlan
-endif
+ WLAN_REL_TEST = test_transport_api_reliability_wlan
+#endif
 endif
 endif
 
@@ -212,6 +213,7 @@ check_PROGRAMS = \
  $(HTTPS_PLUGIN_TEST) \
  $(HTTPS_API_TEST) \
  $(WLAN_API_TEST) \
+ $(WLAN_REL_TEST) \
  test_transport_api_multi \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
@@ -284,6 +286,14 @@ test_transport_api_reliability_tcp_nat_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la 
+
+test_transport_api_reliability_wlan_SOURCES = \
+ test_transport_api_reliability.c
+test_transport_api_reliability_wlan_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+
 
 test_transport_api_udp_SOURCES = \
  test_transport_api.c
