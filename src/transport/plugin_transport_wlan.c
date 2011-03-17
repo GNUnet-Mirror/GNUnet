@@ -2064,7 +2064,7 @@ wlan_plugin_address_to_string(void *cls, const void *addr, size_t addrlen)
     }
   input = (const unsigned char*) addr;
   GNUNET_snprintf(ret, sizeof(ret),
-      "%s Mac-Address %.2X:%.2X:%.2X:%.2X:%.2X:%.2X", PROTOCOL_PREFIX,
+      "%s Mac-Address %02X:%02X:%02X:%02X:%02X:%02X", PROTOCOL_PREFIX,
       input[0], input[1], input[2], input[3], input[4], input[5]);
   return ret;
 }
@@ -2540,7 +2540,7 @@ insert_fragment_in_in_message_queue(struct Plugin * plugin,
       rec_queue->num = ntohs(fh->fragment_off_or_num);
       rec_queue->msg = (char*) &(rec_queue[1]);
       //copy msg to buffer
-      memcpy(rec_queue->msg, tempmsg, rec_queue->size);
+      memcpy((char *)rec_queue->msg, tempmsg, rec_queue->size);
       insert_fragment_in_queue(rec_message, rec_queue);
       //save bitfield
       retval = rec_message->received_fragments;
