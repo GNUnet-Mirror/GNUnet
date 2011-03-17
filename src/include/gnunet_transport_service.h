@@ -390,6 +390,26 @@ struct GNUNET_TRANSPORT_ATS_Information
   uint32_t value;
 };
 
+/* Minimum time between to calculations*/
+#define ATS_MIN_INTERVAL  GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS,250)
+#define ATS_EXEC_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,1)
+
+#define DEBUG_ATS GNUNET_NO
+
+struct ATS_info
+{
+	struct GNUNET_CONTAINER_MultiHashMap * peers;
+	struct GNUNET_TIME_Absolute last;
+	struct GNUNET_TIME_Relative min_delta;
+	struct GNUNET_TIME_Relative reg_delta;
+
+	GNUNET_SCHEDULER_TaskIdentifier ats_task;
+};
+
+struct ATS_peer
+{
+	struct GNUNET_PeerIdentity peer;
+};
 
 
 

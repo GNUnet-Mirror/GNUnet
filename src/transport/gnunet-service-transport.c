@@ -904,6 +904,11 @@ static struct GNUNET_CONTAINER_MultiHashMap *validation_map;
 static struct GNUNET_STATISTICS_Handle *stats;
 
 /**
+ * Handle for ats information
+ */
+static struct ATS_info *ats;
+
+/**
  * The peer specified by the given neighbour has timed-out or a plugin
  * has disconnected.  We may either need to do nothing (other plugins
  * still up), or trigger a full disconnect and clean up.  This
@@ -926,6 +931,21 @@ static void disconnect_neighbour (struct NeighbourList *n, int check);
  */
 static void try_transmission_to_peer (struct NeighbourList *neighbour);
 
+
+struct ATS_info * ats_init ();
+
+void ats_shutdown (struct ATS_info * ats);
+
+void ats_notify_peer_connect (struct ATS_info * ats,
+		const struct GNUNET_PeerIdentity *peer,
+		const struct GNUNET_TRANSPORT_ATS_Information *ats_data);
+
+void ats_notify_peer_disconnect (struct ATS_info * ats,
+		const struct GNUNET_PeerIdentity *peer);
+
+void ats_notify_ats_data (struct ATS_info * ats,
+		const struct GNUNET_PeerIdentity *peer,
+		const struct GNUNET_TRANSPORT_ATS_Information *ats_data);
 
 /**
  * Find an entry in the neighbour list for a particular peer.
@@ -2261,12 +2281,17 @@ notify_clients_connect (const struct GNUNET_PeerIdentity *peer,
   (&(cim->ats))[2].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
   (&(cim->ats))[2].value = htonl (0);
   memcpy (&cim->id, peer, sizeof (struct GNUNET_PeerIdentity));
+
+  /* notify ats about connecting peer */
+  ats_notify_peer_connect(ats, peer, &(cim->ats));
+
   cpos = clients;
   while (cpos != NULL)
     {
       transmit_to_client (cpos, &(cim->header), GNUNET_NO);
       cpos = cpos->next;
     }
+
   GNUNET_free (cim);
 }
 
@@ -2293,6 +2318,10 @@ notify_clients_disconnect (const struct GNUNET_PeerIdentity *peer)
   dim.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT);
   dim.reserved = htonl (0);
   memcpy (&dim.peer, peer, sizeof (struct GNUNET_PeerIdentity));
+
+  /* notify ats about connecting peer */
+  ats_notify_peer_disconnect(ats, peer);
+
   cpos = clients;
   while (cpos != NULL)
     {
@@ -2967,7 +2996,6 @@ static struct BlacklistCheck *bc_tail;
 static void
 do_blacklist_check (void *cls,
 		    const struct GNUNET_SCHEDULER_TaskContext *tc);
-
 
 /**
  * Transmit blacklist query to the client.
@@ -3722,6 +3750,7 @@ check_pending_validation (void *cls,
       if (GNUNET_NO == n->received_pong)
 	{
 	  n->received_pong = GNUNET_YES;
+
 	  notify_clients_connect (&target, n->latency, n->distance);
 	  if (NULL != (prem = n->pre_connect_message_buffer))
 	    {
@@ -4732,7 +4761,7 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
 static struct GNUNET_TIME_Relative
 plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_MessageHeader *message,
-                    const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                    const struct GNUNET_TRANSPORT_ATS_Information *ats_data,
                     uint32_t ats_count,
                     struct Session *session,
                     const char *sender_address,
@@ -4760,11 +4789,14 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   distance = 1;
   for (c=0; c<ats_count; c++)
   {
-	  if (ntohl(ats[c].type) == GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE)
+	  if (ntohl(ats_data[c].type) == GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE)
 	  {
-		  distance = ntohl(ats[c].value);
+		  distance = ntohl(ats_data[c].value);
 	  }
   }
+  /* notify ATS about incoming data */
+  ats_notify_ats_data(ats, peer, ats_data);
+
 
   if (message != NULL)
     {
@@ -5453,6 +5485,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CONTAINER_multihashmap_destroy (validation_map);
   validation_map = NULL;
 
+  ats_shutdown(ats);
+
   /* free 'chvc' data structure */
   while (NULL != (chvc = chvc_head))
     {
@@ -5488,6 +5522,157 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_break (bc_head == NULL);
 }
 
+void ats_calculate_bandwidth_distribution (struct ATS_info * ats)
+{
+	struct GNUNET_TIME_Relative delta = GNUNET_TIME_absolute_get_difference(ats->last,GNUNET_TIME_absolute_get());
+	if (delta.rel_value < ats->min_delta.rel_value)
+	{
+#if DEBUG_ATS
+		//GNUNET_log (GNUNET_ERROR_TYPE_BULK, "Minimum time between cycles not reached\n");
+#endif
+		return;
+	}
+#if DEBUG_ATS
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "CALCULATE DISTRIBUTION\n");
+#endif
+	ats->last = GNUNET_TIME_absolute_get();
+
+}
+
+
+void
+ats_schedule_calculation (void *cls,
+			  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+	struct ATS_info *ats = (struct ATS_info *) cls;
+	if (ats==NULL)
+		return;
+
+	ats->ats_task = GNUNET_SCHEDULER_NO_TASK;
+	if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+	    return;
+
+#if DEBUG_ATS
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Running scheduled calculation\n");
+#endif
+	ats_calculate_bandwidth_distribution (ats);
+
+	ats->ats_task = GNUNET_SCHEDULER_add_delayed (ats->reg_delta,
+	                                &ats_schedule_calculation, ats);
+}
+
+
+int ats_map_remove_peer (void *cls,
+		const GNUNET_HashCode * key,
+		void *value)
+{
+
+	struct ATS_peer * p =  (struct ATS_peer *) value;
+#if DEBUG_ATS
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "map_remove_peer_it: `%s'\n", GNUNET_i2s(&p->peer));
+#endif
+	/* cleanup peer */
+	GNUNET_free(p);
+
+	return GNUNET_YES;
+}
+
+
+struct ATS_info * ats_init ()
+{
+	struct ATS_info * ats;
+#if DEBUG_ATS
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ats_init\n");
+#endif
+	ats = GNUNET_malloc(sizeof (struct ATS_info));
+	ats->peers = GNUNET_CONTAINER_multihashmap_create(10);
+	GNUNET_assert(ats->peers!=NULL);
+
+	ats->min_delta = ATS_MIN_INTERVAL;
+	ats->reg_delta = ATS_EXEC_INTERVAL;
+
+	ats->ats_task = GNUNET_SCHEDULER_NO_TASK;
+/*
+	ats->ats_task = GNUNET_SCHEDULER_add_delayed (ats->reg_delta,
+	                                &schedule_calculation, NULL);
+
+	ats->ats_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+	                                &schedule_calculation, NULL);
+*/
+	ats->ats_task = GNUNET_SCHEDULER_add_now(&ats_schedule_calculation, ats);
+
+	return ats;
+}
+
+
+void ats_shutdown (struct ATS_info * ats)
+{
+#if DEBUG_ATS
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ats_destroy\n");
+#endif
+	if (ats->ats_task != GNUNET_SCHEDULER_NO_TASK)
+		GNUNET_SCHEDULER_cancel(ats->ats_task);
+	ats->ats_task = GNUNET_SCHEDULER_NO_TASK;
+
+	GNUNET_CONTAINER_multihashmap_iterate (ats->peers,ats_map_remove_peer,NULL);
+	GNUNET_CONTAINER_multihashmap_destroy (ats->peers);
+	GNUNET_free (ats);
+}
+
+
+void ats_notify_peer_connect (struct ATS_info * ats,
+		const struct GNUNET_PeerIdentity *peer,
+		const struct GNUNET_TRANSPORT_ATS_Information *ats_data)
+{
+	int c = 0;
+#if DEBUG_ATS
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ats_notify_peer_connect: %s\n",GNUNET_i2s(peer));
+#endif
+
+	while (ntohl(ats_data[c].type)!=0)
+	{
+#if DEBUG_ATS
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ats type [%i]: %i\n",ntohl(ats_data[c].type), ntohl(ats_data[c].value));
+#endif
+		c++;
+	}
+	/* check if peer is already known */
+	if (!GNUNET_CONTAINER_multihashmap_contains (ats->peers,&peer->hashPubKey))
+	{
+		struct ATS_peer * p = GNUNET_malloc (sizeof (struct ATS_peer));
+		memcpy(&p->peer, peer, sizeof (struct GNUNET_PeerIdentity));
+		GNUNET_CONTAINER_multihashmap_put(ats->peers, &p->peer.hashPubKey, p, GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
+	}
+
+	ats_calculate_bandwidth_distribution(ats);
+}
+
+void ats_notify_peer_disconnect (struct ATS_info * ats,
+		const struct GNUNET_PeerIdentity *peer)
+{
+#if DEBUG_ATS
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ats_notify_peer_disconnect: %s\n",GNUNET_i2s(peer));
+#endif
+	/* remove peer */
+	if (GNUNET_CONTAINER_multihashmap_contains (ats->peers, &peer->hashPubKey))
+	{
+		ats_map_remove_peer(NULL, &peer->hashPubKey, GNUNET_CONTAINER_multihashmap_get (ats->peers, &peer->hashPubKey));
+		GNUNET_CONTAINER_multihashmap_remove_all (ats->peers, &peer->hashPubKey);
+	}
+
+	ats_calculate_bandwidth_distribution (ats);
+}
+
+
+void ats_notify_ats_data (struct ATS_info * ats,
+		const struct GNUNET_PeerIdentity *peer,
+		const struct GNUNET_TRANSPORT_ATS_Information *ats_data)
+{
+#if DEBUG_ATS
+	GNUNET_log (GNUNET_ERROR_TYPE_BULK, "ATS_notify_ats_data: %s\n",GNUNET_i2s(peer));
+#endif
+	ats_calculate_bandwidth_distribution(ats);
+}
 
 /**
  * Initiate transport service.
@@ -5554,6 +5739,7 @@ run (void *cls,
       validation_map = NULL;
       return;
     }
+  ats = ats_init();
   max_connect_per_transport = (uint32_t) tneigh;
   peerinfo = GNUNET_PEERINFO_connect (cfg);
   if (peerinfo == NULL)
