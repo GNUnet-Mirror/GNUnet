@@ -106,7 +106,7 @@ gnunet_transport_DEPENDENCIES = \
   libgnunettransport.la				
 
 gnunet_service_transport_SOURCES = \
- gnunet-service-transport.c  
+ gnunet-service-transport.c
 gnunet_service_transport_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
@@ -203,6 +203,7 @@ libgnunet_plugin_transport_https_la_CFLAGS = \
 
 
 check_PROGRAMS = \
+ test_transport_ats \
  test_transport_api_tcp \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
@@ -233,6 +234,7 @@ check_PROGRAMS = \
 
 if !DISABLE_TEST_RUN
 TESTS = \
+ test_transport_ats \
  test_transport_api_tcp \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
@@ -258,6 +260,13 @@ TESTS = \
  $(HTTP_QUOTA_TEST) \
  $(HTTPS_QUOTA_TEST)
 endif
+
+test_transport_ats_SOURCES = \
+ test_transport_ats.c
+test_transport_ats_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
 
 test_transport_api_tcp_SOURCES = \
  test_transport_api.c
