@@ -30,6 +30,27 @@
 #include "gnunet_time_lib.h"
 #include "gnunet_transport_service.h"
 
+/* Minimum time between to calculations*/
+#define ATS_MIN_INTERVAL  GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS,250)
+#define ATS_EXEC_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,1)
+
+#define DEBUG_ATS GNUNET_NO
+
+struct ATS_info
+{
+	struct GNUNET_CONTAINER_MultiHashMap * peers;
+	struct GNUNET_TIME_Absolute last;
+	struct GNUNET_TIME_Relative min_delta;
+	struct GNUNET_TIME_Relative reg_delta;
+
+	GNUNET_SCHEDULER_TaskIdentifier ats_task;
+};
+
+struct ATS_peer
+{
+	struct GNUNET_PeerIdentity peer;
+};
+
 #define DEBUG_TRANSPORT GNUNET_NO
 #define DEBUG_TRANSPORT_TIMEOUT GNUNET_NO
 #define DEBUG_TRANSPORT_DISCONNECT GNUNET_NO

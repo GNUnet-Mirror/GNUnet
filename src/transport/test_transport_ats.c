@@ -336,7 +336,6 @@ static void
 exchange_hello (void *cls,
                 const struct GNUNET_MessageHeader *message)
 {
-  return;
   struct PeerContext *me = cls;
 
   GNUNET_TRANSPORT_get_hello_cancel (p1.th, &exchange_hello, me);

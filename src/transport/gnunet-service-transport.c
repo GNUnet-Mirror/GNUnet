@@ -929,7 +929,7 @@ static void disconnect_neighbour (struct NeighbourList *n, int check);
  *
  * @param neighbour target peer for which to transmit
  */
-static void try_transmission_to_peer (struct NeighbourList *neighbour);
+static void try_transmission_to_peer (struct NeighbourList *n);
 
 
 struct ATS_info * ats_init ();
@@ -946,6 +946,9 @@ void ats_notify_peer_disconnect (struct ATS_info * ats,
 void ats_notify_ats_data (struct ATS_info * ats,
 		const struct GNUNET_PeerIdentity *peer,
 		const struct GNUNET_TRANSPORT_ATS_Information *ats_data);
+
+struct ForeignAddressList * ats_get_preferred_address (struct ATS_info * ats,
+		struct NeighbourList *n);
 
 /**
  * Find an entry in the neighbour list for a particular peer.
@@ -1525,6 +1528,9 @@ find_ready_address(struct NeighbourList *neighbour)
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
   struct ForeignAddressList *best_address;
 
+  /* Hack to prefer unix domain sockets */
+  struct ForeignAddressList *unix_address = NULL;
+
   best_address = NULL;
   while (head != NULL)
     {
@@ -1566,6 +1572,12 @@ find_ready_address(struct NeighbourList *neighbour)
 			(unsigned long long) addresses->timeout.abs_value,
 			(unsigned int) addresses->distance);
 #endif
+		 if (0==strcmp(head->plugin->short_name,"unix"))
+		 {
+			 if ((unix_address == NULL) || ((unix_address != NULL) &&
+				 (addresses->latency.rel_value < unix_address->latency.rel_value)))
+		 		unix_address = addresses;
+		 }
           if ( ( (best_address == NULL) ||
 		 (addresses->connected == GNUNET_YES) ||
 		 (best_address->connected == GNUNET_NO) ) &&
@@ -1577,12 +1589,22 @@ find_ready_address(struct NeighbourList *neighbour)
 	     connected a chance some times... */
           addresses = addresses->next;
         }
+      if (unix_address != NULL)
+    	  break;
       head = head->next;
     }
+  if (unix_address != NULL)
+  {
+	  best_address = unix_address;
+#if DEBUG_TRANSPORT
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Found unix address, forced this address\n");
+#endif
+  }
   if (best_address != NULL)
     {
 #if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Best address found (`%s') has latency of %llu ms.\n",
 		  (best_address->addrlen > 0)
 		  ? a2s (best_address->ready_list->plugin->short_name,
@@ -1599,6 +1621,7 @@ find_ready_address(struct NeighbourList *neighbour)
 				1,
 				GNUNET_NO);
     }
+
   return best_address;
 
 }
@@ -1626,7 +1649,7 @@ retry_transmission_task (void *cls,
  * @param neighbour target peer for which to transmit
  */
 static void
-try_transmission_to_peer (struct NeighbourList *neighbour)
+try_transmission_to_peer (struct NeighbourList *n)
 {
   struct ReadyList *rl;
   struct MessageQueue *mq;
@@ -1634,7 +1657,7 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
   ssize_t ret;
   int force_address;
 
-  if (neighbour->messages_head == NULL)
+  if (n->messages_head == NULL)
     {
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1644,12 +1667,12 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
       return;                     /* nothing to do */
     }
   rl = NULL;
-  mq = neighbour->messages_head;
+  mq = n->messages_head;
   force_address = GNUNET_YES;
   if (mq->specific_address == NULL)
     {
 	  /* TODO: ADD ATS */
-      mq->specific_address = find_ready_address(neighbour);
+      mq->specific_address = ats_get_preferred_address(ats, n);
       GNUNET_STATISTICS_update (stats,
 				gettext_noop ("# transport selected peer address freely"),
 				1,
@@ -1680,9 +1703,9 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 				    mq->message_buf_size,
 				    GNUNET_NO);
 	  if (mq->client != NULL)
-	    transmit_send_ok (mq->client, neighbour, &neighbour->id, GNUNET_NO);
-	  GNUNET_CONTAINER_DLL_remove (neighbour->messages_head,
-				       neighbour->messages_tail,
+	    transmit_send_ok (mq->client, n, &n->id, GNUNET_NO);
+	  GNUNET_CONTAINER_DLL_remove (n->messages_head,
+				       n->messages_tail,
 				       mq);
 	  GNUNET_free (mq);
 	  return;               /* nobody ready */
@@ -1691,11 +1714,11 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 				gettext_noop ("# message delivery deferred (no address)"),
 				1,
 				GNUNET_NO);
-      if (neighbour->retry_task != GNUNET_SCHEDULER_NO_TASK)
-	GNUNET_SCHEDULER_cancel (neighbour->retry_task);
-      neighbour->retry_task = GNUNET_SCHEDULER_add_delayed (timeout,
+      if (n->retry_task != GNUNET_SCHEDULER_NO_TASK)
+	GNUNET_SCHEDULER_cancel (n->retry_task);
+      n->retry_task = GNUNET_SCHEDULER_add_delayed (timeout,
 							    &retry_transmission_task,
-							    neighbour);
+							    n);
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "No validated destination address available to transmit message of size %u to peer `%4s', will wait %llums to find an address.\n",
@@ -1707,8 +1730,8 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
 	 (unless that's already pending...) */
       return;
     }
-  GNUNET_CONTAINER_DLL_remove (neighbour->messages_head,
-			       neighbour->messages_tail,
+  GNUNET_CONTAINER_DLL_remove (n->messages_head,
+			       n->messages_tail,
 			       mq);
   if (mq->specific_address->connected == GNUNET_NO)
     mq->specific_address->connect_attempts++;
@@ -5673,6 +5696,23 @@ void ats_notify_ats_data (struct ATS_info * ats,
 	GNUNET_log (GNUNET_ERROR_TYPE_BULK, "ATS_notify_ats_data: %s\n",GNUNET_i2s(peer));
 #endif
 	ats_calculate_bandwidth_distribution(ats);
+}
+
+struct ForeignAddressList * ats_get_preferred_address (struct ATS_info * ats,
+		struct NeighbourList *n)
+{
+#if DEBUG_ATS
+	GNUNET_log (GNUNET_ERROR_TYPE_BULK, "ats_get_prefered_transport for peer: %s\n",GNUNET_i2s(&n->id));
+#endif
+	struct ReadyList *next = n->plugins;
+	while (next != NULL)
+	{
+#if DEBUG_ATS
+		GNUNET_log (GNUNET_ERROR_TYPE_BULK, "plugin: %s %i\n",next->plugin->short_name,strcmp(next->plugin->short_name,"unix"));
+#endif
+		next = next->next;
+	}
+	return find_ready_address(n);
 }
 
 /**
