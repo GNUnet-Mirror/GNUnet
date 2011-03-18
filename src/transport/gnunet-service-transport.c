@@ -1648,6 +1648,7 @@ try_transmission_to_peer (struct NeighbourList *neighbour)
   force_address = GNUNET_YES;
   if (mq->specific_address == NULL)
     {
+	  /* TODO: ADD ATS */
       mq->specific_address = find_ready_address(neighbour);
       GNUNET_STATISTICS_update (stats,
 				gettext_noop ("# transport selected peer address freely"),
@@ -4750,7 +4751,7 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
  * @param peer (claimed) identity of the other peer
  * @param message the message, NULL if we only care about
  *                learning about the delay until we should receive again
- * @param ats information for automatic transport selection
+ * @param ats_data information for automatic transport selection
  * @param ats_count number of elements in ats not including 0-terminator
  * @param session identifier used for this session (can be NULL)
  * @param sender_address binary address of the sender (if observed)
