@@ -343,8 +343,6 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
 
 /**
  * Setup the subsystem.
- *
- * @param cfg configuration to use
  */
 void
 GSF_pending_request_init_ (void);

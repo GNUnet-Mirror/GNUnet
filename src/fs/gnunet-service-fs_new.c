@@ -258,7 +258,7 @@ handle_p2p_put (void *cls,
  * @param cls the 'struct GSF_PendingRequest'
  * @param peer identity of the peer
  * @param cp handle to the connected peer record
- * @param perf peer performance data
+ * @param ppd peer performance data
  */
 static void
 consider_request_for_forwarding (void *cls,

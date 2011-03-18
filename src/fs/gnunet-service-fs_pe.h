@@ -34,8 +34,6 @@
  *
  * @param cp peer with the entry
  * @param pr request with the entry
- * @param weight determines position of the entry in the cp queue,
- *        lower weights are earlier in the queue
  */
 void
 GSF_plan_add_ (const struct GSF_ConnectedPeer *cp,

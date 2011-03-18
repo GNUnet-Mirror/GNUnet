@@ -1006,7 +1006,6 @@ GNUNET_CONTAINER_heap_remove_root (struct GNUNET_CONTAINER_Heap *heap);
 /**
  * Removes a node from the heap.
  * 
- * @param heap heap to modify
  * @param node node to remove
  * @return element data stored at the node, NULL if heap is empty
  */
