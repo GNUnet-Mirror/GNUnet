@@ -245,6 +245,7 @@ schedule_peer_transmission (void *cls,
     }
   /* process from priority heap */
   rp = GNUNET_CONTAINER_heap_peek (pp->priority_heap);
+  GNUNET_assert (NULL != rp);
   prd = GSF_pending_request_get_data_ (rp->pr);
   msize = GSF_pending_request_get_message_ (rp->pr, 0, NULL);					   
   pp->pth = GSF_peer_transmit_ (pp->cp,
