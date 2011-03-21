@@ -1758,9 +1758,9 @@ GNUNET_CORE_peer_request_connect (struct GNUNET_CORE_Handle *h,
   msg->reserved = htonl (0);
   msg->timeout = GNUNET_TIME_relative_hton (timeout);
   msg->peer = *peer;
-  GNUNET_CONTAINER_DLL_insert (h->control_pending_head,
-			       h->control_pending_tail,
-			       cm);
+  GNUNET_CONTAINER_DLL_insert_tail (h->control_pending_head,
+				    h->control_pending_tail,
+				    cm);
   ret = GNUNET_malloc (sizeof (struct GNUNET_CORE_PeerRequestHandle));
   ret->h = h;
   ret->cm = cm;
