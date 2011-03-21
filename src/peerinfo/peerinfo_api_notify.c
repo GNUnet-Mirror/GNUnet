@@ -62,6 +62,11 @@ struct GNUNET_PEERINFO_NotifyContext
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+  /**
+   * Tasked used for delayed re-connection attempt.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier task;
+
 };
 
 
@@ -86,6 +91,32 @@ receive_notifications (struct GNUNET_PEERINFO_NotifyContext *nc);
 
 
 /**
+ * Task to re-try connecting to peerinfo.
+ *
+ * @param cls the 'struct GNUNET_PEERINFO_NotifyContext'
+ * @param tc scheduler context
+ */ 
+static void
+reconnect (void *cls,
+	   const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_PEERINFO_NotifyContext *nc = cls;
+
+  nc->task = GNUNET_SCHEDULER_NO_TASK;
+  nc->client = GNUNET_CLIENT_connect ("peerinfo", nc->cfg);
+  if (NULL == nc->client)
+    {
+      /* ugh */
+      nc->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+					       &reconnect,
+					       nc);
+      return; 
+    }
+  request_notifications (nc);
+}
+
+
+/**
  * Receive a peerinfo information message, process it and
  * go for more.
  *
@@ -105,8 +136,7 @@ process_notification (void *cls,
   if (msg == NULL)
     {
       GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
-      nc->client = GNUNET_CLIENT_connect ("peerinfo", nc->cfg);
-      request_notifications (nc);
+      reconnect (nc, NULL);
       return;
     }
   ms = ntohs (msg->size);
@@ -259,7 +289,10 @@ GNUNET_PEERINFO_notify_cancel (struct GNUNET_PEERINFO_NotifyContext *nc)
       GNUNET_CLIENT_notify_transmit_ready_cancel (nc->init);
       nc->init = NULL;
     }
-  GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
+  if (NULL != nc->client)
+    GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
+  if (GNUNET_SCHEDULER_NO_TASK != nc->task)
+    GNUNET_SCHEDULER_cancel (nc->task);
   GNUNET_free (nc);
 }
 
