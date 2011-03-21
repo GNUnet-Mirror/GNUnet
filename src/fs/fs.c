@@ -1424,6 +1424,11 @@ deserialize_publish_file (void *cls,
     }    
   pc->options = options;
   pc->all_done = all_done;
+  if (NULL == fi_root)
+    {
+      GNUNET_break (0);
+      goto cleanup;    
+    }
   pc->fi = deserialize_file_information (h, fi_root);
   if (pc->fi == NULL)
     {
@@ -2595,6 +2600,8 @@ free_download_context (struct GNUNET_FS_DownloadContext *dc)
       free_download_context (dcc);
     }
   GNUNET_FS_free_download_request_ (dc->top_request);
+  if (NULL != dc->active)    
+    GNUNET_CONTAINER_multihashmap_destroy (dc->active);    
   GNUNET_free (dc);
 }
 
