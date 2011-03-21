@@ -43,9 +43,6 @@
  */
 #define MAX_ATTEMPTS 50
 
-#define UNIXPATH_RETRIES 0
-
-
 /**
  * Handle for a transmission request.
  */
@@ -273,7 +270,6 @@ do_connect (const char *service_name,
   char *hostname;
   char *unixpath;
   unsigned long long port;
-  unsigned int count;
 
   sock = NULL;
 #if AF_UNIX
@@ -286,21 +282,7 @@ do_connect (const char *service_name,
 						 "UNIXPATH", &unixpath)) &&
           (0 < strlen (unixpath))) /* We have a non-NULL unixpath, does that mean it's valid? */
 	{
-          count = 0;
           sock = GNUNET_CONNECTION_create_from_connect_to_unixpath (cfg, unixpath);
-          while ((NULL == sock) && (count < UNIXPATH_RETRIES))
-            {
-#if DEBUG_CLIENT
-              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-			  "Failed to connect to UNIXPATH `%s', retrying!\n", 
-			  unixpath);
-#endif
-              count++;
-              sleep(1);
-              sock = GNUNET_CONNECTION_create_from_connect_to_unixpath (cfg, unixpath);
-            }
-
-
 	  if (sock != NULL)
 	    {
 #if DEBUG_CLIENT
