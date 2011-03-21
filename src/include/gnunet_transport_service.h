@@ -396,22 +396,6 @@ struct GNUNET_TRANSPORT_ATS_Information
 
 #define DEBUG_ATS GNUNET_NO
 
-struct ATS_info
-{
-	struct GNUNET_CONTAINER_MultiHashMap * peers;
-	struct GNUNET_TIME_Absolute last;
-	struct GNUNET_TIME_Relative min_delta;
-	struct GNUNET_TIME_Relative reg_delta;
-
-	GNUNET_SCHEDULER_TaskIdentifier ats_task;
-};
-
-struct ATS_peer
-{
-	struct GNUNET_PeerIdentity peer;
-};
-
-
 
 /**
  * Function called by the transport for each received message.
