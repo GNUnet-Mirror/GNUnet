@@ -63,10 +63,10 @@ struct GNUNET_MONKEY_ACTION_Context
 
 int GNUNET_MONKEY_ACTION_report_file(struct GNUNET_MONKEY_ACTION_Context* cntxt, const char* dumpFileName);
 int GNUNET_MONKEY_ACTION_report_email(struct GNUNET_MONKEY_ACTION_Context* cntxt);
-int GNUNET_MONKEY_ACTION_rerun_with_valgrind();
+int GNUNET_MONKEY_ACTION_rerun_with_valgrind(void);
 int GNUNET_MONKEY_ACTION_rerun_with_gdb(struct GNUNET_MONKEY_ACTION_Context* cntxt);
 int GNUNET_MONKEY_ACTION_format_report(struct GNUNET_MONKEY_ACTION_Context* cntxt);
-int GNUNET_MONKEY_ACTION_check_bug_redundancy();
+int GNUNET_MONKEY_ACTION_check_bug_redundancy(void);
 
 
 #if 0				/* keep Emacsens' auto-indent happy */
