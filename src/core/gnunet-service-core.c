@@ -1375,6 +1375,7 @@ destroy_active_client_request (void *cls,
 
   peer.hashPubKey = *key;
   n = find_neighbour (&peer);
+  GNUNET_assert (NULL != n);
   GNUNET_CONTAINER_DLL_remove (n->active_client_request_head,
 			       n->active_client_request_tail,
 			       car);
