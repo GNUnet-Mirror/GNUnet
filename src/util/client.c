@@ -291,7 +291,9 @@ do_connect (const char *service_name,
           while ((NULL == sock) && (count < UNIXPATH_RETRIES))
             {
 #if DEBUG_CLIENT
-              GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Failed to connect to unixpath `%s', retrying!\n", unixpath);
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+			  "Failed to connect to UNIXPATH `%s', retrying!\n", 
+			  unixpath);
 #endif
               count++;
               sleep(1);
@@ -324,8 +326,7 @@ do_connect (const char *service_name,
                                               "HOSTNAME", &hostname)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _
-                  ("Could not determine valid hostname and port for service `%s' from configuration.\n"),
+                  _("Could not determine valid hostname and port for service `%s' from configuration.\n"),
                   service_name);
       return NULL;
     }
@@ -353,13 +354,16 @@ do_connect (const char *service_name,
 									unixpath);
 	      GNUNET_free (unixpath);
 	      if (sock != NULL)
-	        {
-                  return sock;
-	        }
+		return sock;	        
 	    }
 	}
 #endif
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Port is 0 for service `%s', unixpath didn't work, returning NULL(!)!\n", service_name);
+#if DEBUG_CLIENT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		  "Port is 0 for service `%s', UNIXPATH did not work, returning NULL!\n",
+		  service_name);
+#endif
+      GNUNET_free (hostname);
       return NULL;
     }
 
