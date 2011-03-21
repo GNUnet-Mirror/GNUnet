@@ -603,8 +603,9 @@ try_match_block (struct GNUNET_FS_DownloadContext *dc,
       pi.value.download.specifics.progress.data_len = dlen;
       pi.value.download.specifics.progress.depth = 0;
       GNUNET_FS_download_make_status_ (&pi, dc);
-      if (0 != truncate (dc->filename,
-			 GNUNET_ntohll (dc->uri->data.chk.file_length)))
+      if ( (NULL != dc->filename) &&
+	   (0 != truncate (dc->filename,
+			   GNUNET_ntohll (dc->uri->data.chk.file_length))) )
 	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
 				  "truncate",
 				  dc->filename);
@@ -1975,9 +1976,7 @@ GNUNET_FS_download_start_task_ (void *cls,
       /* no bytes required! */
       if (dc->filename != NULL) 
 	{
-	  fh = GNUNET_DISK_file_open (dc->filename != NULL 
-				      ? dc->filename 
-				      : dc->temp_filename, 
+	  fh = GNUNET_DISK_file_open (dc->filename, 
 				      GNUNET_DISK_OPEN_READWRITE |
 				      GNUNET_DISK_OPEN_CREATE |
 				      ( (0 == GNUNET_FS_uri_chk_get_file_size (dc->uri)) 
