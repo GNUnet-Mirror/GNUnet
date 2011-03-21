@@ -144,7 +144,7 @@ print_recipient_status (smtp_recipient_t recipient,
 }
 
 
-void sendMail(const char *messageContents) 
+void sendMail(const char *messageContents, const char *emailAddress)
 {
 	smtp_session_t session;
 	smtp_message_t message;
@@ -154,7 +154,7 @@ void sendMail(const char *messageContents)
 	char *host = "localhost:25";
 	char *from = "gnunet-monkey";
 	char *subject = "e-mail from Libesmtp!";
-	const char *recipient_address = "safey.allah@gmail.com";
+	const char *recipient_address = emailAddress;
 	char tempFileName[1000];
 	int tempFd;
 	FILE *fp;

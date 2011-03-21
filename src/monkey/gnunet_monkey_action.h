@@ -37,12 +37,22 @@ extern "C"
 #endif
 
 
+/* Debug constants */
+#define DEBUG_MODE_GDB 0
+#define GDB_STATE_STOPPED 1
+#define GDB_STATE_EXIT_NORMALLY 2
+#define GDB_STATE_ERROR 3
+#define DEBUG_MODE_VALGRIND 4
+#define DEBUG_MODE_REPORT_READY 5
+
+
 /**
  * Context for the Action API
  */
 struct GNUNET_MONKEY_ACTION_Context
 {
 	const char* binary_name;
+	const char* email_address;
 	int debug_mode;
 	char* debug_report;
 

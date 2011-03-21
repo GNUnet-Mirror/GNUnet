@@ -28,12 +28,7 @@
 #include "gnunet_monkey_action.h"
 #include <libesmtp.h>
 
-
-#define DEBUG_MODE_GDB 0
-#define DEBUG_MODE_VALGRIND 1
-#define DEBUG_MODE_REPORT_READY 2
-
-extern void sendMail (const char *messageContents);
+extern void sendMail (const char *messageContents, const char *emailAddress);
 
 
 static int async_c=0;
@@ -77,32 +72,24 @@ static void cb_async(mi_output *o, void *data)
 }
 
 
-static int wait_for_stop(mi_h *h)
+static int wait_for_stop(mi_h *h, struct GNUNET_MONKEY_ACTION_Context *cntxt)
 {
-	int res=1;
-	mi_stop *sr;
-	mi_frames *f;
-
 	while (!mi_get_response(h))
 		usleep(1000);
 	/* The end of the async. */
-	sr=mi_res_stop(h);
-	if (sr)
+	cntxt->gdb_stop_reason=mi_res_stop(h);
+	if (cntxt->gdb_stop_reason)
 	{
-		f = gmi_stack_info_frame(h);
-		if (NULL == f)
-			printf("f is NULL!\n");
-		if (NULL == f)
+		if (cntxt->gdb_stop_reason->reason == sr_exited_normally)
+			return GDB_STATE_EXIT_NORMALLY;
+
+		cntxt->gdb_frames = gmi_stack_info_frame(h);
+		if (NULL == cntxt->gdb_frames)
 		  GNUNET_break(0);
 
-		mi_free_stop(sr);
-		res = 0;
+		return GDB_STATE_STOPPED;
 	}
-	else
-	{
-	res=0;
-	}
-	return res;
+	return GDB_STATE_ERROR;
 }
 
 
@@ -119,7 +106,7 @@ int GNUNET_MONKEY_ACTION_report_file(struct GNUNET_MONKEY_ACTION_Context* cntxt,
 int GNUNET_MONKEY_ACTION_report_email(struct GNUNET_MONKEY_ACTION_Context* cntxt)
 {
 	if (cntxt->debug_mode == DEBUG_MODE_REPORT_READY)
-		sendMail(cntxt->debug_report);
+		sendMail(cntxt->debug_report, cntxt->email_address);
 
 	return GNUNET_OK;
 }
@@ -135,11 +122,12 @@ int GNUNET_MONKEY_ACTION_rerun_with_valgrind()
 int GNUNET_MONKEY_ACTION_rerun_with_gdb(struct GNUNET_MONKEY_ACTION_Context* cntxt)
 {
 	cntxt->debug_mode = DEBUG_MODE_GDB;
-	mi_aux_term *xterm_tty=NULL;
 
 	/* This is like a file-handle for fopen.
 	    Here we have all the state of gdb "connection". */
-	 mi_h *h;
+	mi_set_gdb_exe("/tmp/gdb/bin/gdb");
+	mi_h *h;
+	int ret;
 
 	 /* Connect to gdb child. */
 	 h = mi_connect_local();
@@ -182,36 +170,11 @@ int GNUNET_MONKEY_ACTION_rerun_with_gdb(struct GNUNET_MONKEY_ACTION_Context* cnt
 	    return GNUNET_NO;
 	   }
 	 /* Here we should be stopped when the program crashes */
-	 if (!wait_for_stop(h))
-	   {
+	 ret = wait_for_stop(h, cntxt);
+	 if (ret != GDB_STATE_ERROR)
 	    mi_disconnect(h);
-	    return GNUNET_NO;
-	   }
 
-	 /* Continue execution. */
-	 if (!gmi_exec_continue(h))
-	   {
-	    printf("Error in continue!\n");
-	    mi_disconnect(h);
-	    return GNUNET_NO;
-	   }
-	 /* Here we should be terminated. */
-	 if (!wait_for_stop(h))
-	   {
-	    mi_disconnect(h);
-	    return GNUNET_NO;
-	   }
-
-	 /* Exit from gdb. */
-	 gmi_gdb_exit(h);
-	 /* Close the connection. */
-	 mi_disconnect(h);
-	 /* Wait 5 seconds and close the auxiliar terminal. */
-	 printf("Waiting 5 seconds\n");
-	 sleep(5);
-	 gmi_end_aux_term(xterm_tty);
-
-	return GNUNET_OK;
+	return ret;
 }
 
 
@@ -219,7 +182,7 @@ int GNUNET_MONKEY_ACTION_format_report(struct GNUNET_MONKEY_ACTION_Context* cntx
 {
 	switch (cntxt->debug_mode) {
 	case DEBUG_MODE_GDB:
-		GNUNET_asprintf(&cntxt->debug_report,
+		GNUNET_asprintf(&(cntxt->debug_report),
 			"Bug detected in file:%s\nfunction:%s\nline:%d\nreason:%s\nreceived signal:%s\n%s\n",
 			cntxt->gdb_frames->file, cntxt->gdb_frames->func, cntxt->gdb_frames->line, mi_reason_enum_to_str(cntxt->gdb_stop_reason->reason), cntxt->gdb_stop_reason->signal_name, cntxt->gdb_stop_reason->signal_meaning);
 		break;
