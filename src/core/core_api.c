@@ -1922,9 +1922,9 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Queueing CHANGE PREFERENCE request\n");
 #endif
-  GNUNET_CONTAINER_DLL_insert (h->control_pending_head,
-			       h->control_pending_tail,
-			       cm); 
+  GNUNET_CONTAINER_DLL_insert_tail (h->control_pending_head,
+				    h->control_pending_tail,
+				    cm); 
   pr->pcic = info;
   pr->pcic_cls = info_cls;
   if (h->control_pending_head == cm)
