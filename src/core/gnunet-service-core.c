@@ -1433,6 +1433,11 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 
 /**
  * Helper function for handle_client_iterate_peers.
+ *
+ * @param cls the 'struct GNUNET_SERVER_TransmitContext' to queue replies
+ * @param key identity of the connected peer
+ * @param value the 'struct Neighbour' for the peer
+ * @return GNUNET_OK (continue to iterate)
  */
 static int
 queue_connect_message (void *cls,
@@ -1516,7 +1521,7 @@ handle_client_iterate_peers (void *cls,
 }
 
 /**
- * Handle CORE_ITERATE_PEERS request.
+ * Handle CORE_ITERATE_PEERS request.  Notify client about existing neighbours.
  *
  * @param cls unused
  * @param client client sending the iteration request
@@ -1531,15 +1536,13 @@ handle_client_have_peer (void *cls,
   struct GNUNET_MessageHeader done_msg;
   struct GNUNET_SERVER_TransmitContext *tc;
   struct GNUNET_PeerIdentity *peer;
-  int msize;
-  /* notify new client about existing neighbours */
 
-  msize = ntohs(message->size);
   tc = GNUNET_SERVER_transmit_context_create (client);
-
-  peer = (struct GNUNET_PeerIdentity *)&message[1];
-  GNUNET_CONTAINER_multihashmap_get_multiple(neighbours, &peer->hashPubKey, &queue_connect_message, tc);
-
+  peer = (struct GNUNET_PeerIdentity *) &message[1];
+  GNUNET_CONTAINER_multihashmap_get_multiple(neighbours,
+					     &peer->hashPubKey, 
+					     &queue_connect_message, 
+					     tc);
   done_msg.size = htons (sizeof (struct GNUNET_MessageHeader));
   done_msg.type = htons (GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS_END);
   GNUNET_SERVER_transmit_context_append_message (tc, &done_msg);
@@ -1550,6 +1553,10 @@ handle_client_have_peer (void *cls,
 
 /**
  * Handle REQUEST_INFO request.
+ *
+ * @param cls unused
+ * @param client client sending the request
+ * @param message iteration request message
  */
 static void
 handle_client_request_info (void *cls,
