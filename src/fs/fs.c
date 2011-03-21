@@ -2592,6 +2592,7 @@ free_download_context (struct GNUNET_FS_DownloadContext *dc)
   GNUNET_free_non_null (dc->temp_filename);
   GNUNET_free_non_null (dc->emsg);
   GNUNET_free_non_null (dc->filename);
+  GNUNET_free_non_null (dc->serialization);
   while (NULL != (dcc = dc->child_head))
     {
       GNUNET_CONTAINER_DLL_remove (dc->child_head,
