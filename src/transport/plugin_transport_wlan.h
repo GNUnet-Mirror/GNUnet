@@ -54,13 +54,13 @@ static const uint8_t u8aIeeeHeader[] =
 		//	0x01 = 00000001 -> | b1 = 1 to DS; b2 = 0 not from DS;
     0x00, 0x00, // Duration/ID
     0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // mac1 - in this case receiver
-    0x13, 0x22, 0x33, 0x44, 0x55, 0x66, // mac2 - in this case bssid
-    0x13, 0x22, 0x33, 0x44, 0x55, 0x66, // mac3 - in this case sender
+    0x13, 0x22, 0x33, 0x44, 0x55, 0x66, // mac2 - in this case sender
+    0x13, 0x22, 0x33, 0x44, 0x55, 0x66, // mac3 - in this case bssid
     0x10, 0x86, //Sequence Control
   };
 
 // gnunet bssid
-static const char macbc[] =
+static const char mac_bssid[] =
   { 0x13, 0x22, 0x33, 0x44, 0x55, 0x66 };
 
 // broadcast mac
@@ -129,7 +129,9 @@ struct RadiotapHeader
   /**
    * radiotap version
    */
-  uint16_t version GNUNET_PACKED;
+  u_int8_t version;
+
+  u_int8_t pad_version;
   
   /**
    * radiotap header length
@@ -137,7 +139,7 @@ struct RadiotapHeader
   uint16_t length GNUNET_PACKED;
   
   /**
-   * bitmap
+   * bitmap, fields present
    */
   uint32_t bitmap GNUNET_PACKED;
   

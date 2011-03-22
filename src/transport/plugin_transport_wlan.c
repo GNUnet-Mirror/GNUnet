@@ -728,56 +728,6 @@ testBit(char *bitArray, unsigned int bitIdx)
 }
 
 /**
- * Sets a bit active in the bitArray.
- *
- * @param bitArray memory area to set the bit in
- * @param bitIdx which bit to set
- */
-/*static uint64_t
- setBit (uint64_t bitArray, unsigned int bitIdx)
- {
- uint64_t targetBit;
-
- targetBit = (1ULL << bitIdx);
- return bitArray | targetBit;
- }
- */
-/**
- * Clears a bit from bitArray.
- *
- * @param bitArray memory area to set the bit in
- * @param bitIdx which bit to unset
- */
-/*static uint64_t
- clearBit (uint64_t bitArray, unsigned int bitIdx)
- {
- uint64_t targetBit;
-
- targetBit = (1ULL << bitIdx);
- return bitArray & (~targetBit);
- }
- */
-/**
- * Checks if a bit is active in the bitArray
- *
- * @param bitArray memory area to set the bit in
- * @param bitIdx which bit to test
- * @return GNUNET_YES if the bit is set, GNUNET_NO if not.
- */
-/*static int
- testBit (uint64_t bitArray, unsigned int bitIdx)
- {
- uint64_t targetBit;
-
-
- targetBit = (1ULL << bitIdx);
- if (bitArray & targetBit)
- return GNUNET_YES;
- else
- return GNUNET_NO;
- }
- */
-/**
  * get the next message number, at the moment just a random one
  * @return returns the next valid message-number for sending packets
  */
@@ -1675,8 +1625,8 @@ int
 getWlanHeader(struct IeeeHeader * Header, const char * const to_mac_addr,
     struct Plugin * plugin)
 {
-  memcpy(&Header->mac2, macbc, sizeof(macbc));
-  memcpy(&Header->mac3, plugin->mac_address.mac, sizeof(plugin->mac_address));
+  memcpy(&Header->mac3, mac_bssid, sizeof(mac_bssid));
+  memcpy(&Header->mac2, plugin->mac_address.mac, sizeof(plugin->mac_address));
   memcpy(&Header->mac1, to_mac_addr, sizeof(plugin->mac_address));
   return GNUNET_YES;
 }
@@ -2154,7 +2104,8 @@ insert_fragment_in_queue(struct Receive_Message_Queue * rec_message,
 
 /**
  * Function to dispose the fragments received for a message and the message
- * @param session session to free the fragments from
+ * @param plugin pointer to the plugin struct
+ * @param rec_message pointer to the struct holding the message which should be freed
  */
 
 static void
@@ -2187,6 +2138,7 @@ free_receive_message(struct Plugin* plugin,
  * @param plugin the plugin handle
  * @param session_light information of the message sender
  * @param session session the message belongs to
+ * @param rec_message pointer to the message that should be checked
  */
 
 static void
@@ -2398,6 +2350,7 @@ wlan_data_massage_handler(struct Plugin * plugin,
  * function to add an ack to send it for a received fragment
  * @param plugin pointer to the global plugin structure
  * @param session pointer to the session this ack belongs to
+ * @param bitfield bitfield to send
  * @param fh pointer to the fragmentation header which we would like to acknolage
  */
 
@@ -2470,6 +2423,7 @@ get_receive_message_from_session(struct Plugin * plugin,
 /**
  * function to insert a received fragment into the right fragment queue of the right message
  * @param plugin pointer to the plugin struct
+ * @param session_light pointer to the session_light struct of this message
  * @param session session this fragment belongs to
  * @param fh pointer to the header of the fragment
  * @return new fragment bitfield for the message
@@ -2770,7 +2724,7 @@ wlan_process_helper(void *cls, void *client,
       //process only if it is an broadcast or for this computer both with the gnunet bssid
 
       //check for bssid
-      if (memcmp(&(wlanIeeeHeader->mac2), macbc, sizeof(struct MacAddress))
+      if (memcmp(&(wlanIeeeHeader->mac3), mac_bssid, sizeof(struct MacAddress))
           == 0)
         {
           //check for broadcast or mac
@@ -2787,7 +2741,7 @@ wlan_process_helper(void *cls, void *client,
                   - sizeof(struct GNUNET_MessageHeader);
 
               session_light = GNUNET_malloc(sizeof(struct Session_light));
-              memcpy(session_light->addr, &(wlanIeeeHeader->mac3),
+              memcpy(session_light->addr, &(wlanIeeeHeader->mac2),
                   sizeof(struct MacAddress));
               //session_light->session = search_session(plugin,session_light->addr);
 
