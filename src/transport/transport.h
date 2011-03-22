@@ -34,7 +34,7 @@
 #define ATS_MIN_INTERVAL  GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS,250)
 #define ATS_EXEC_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,1)
 
-#define DEBUG_ATS GNUNET_NO
+#define DEBUG_ATS GNUNET_YES
 
 struct ATS_info
 {
@@ -49,6 +49,9 @@ struct ATS_info
 struct ATS_peer
 {
 	struct GNUNET_PeerIdentity peer;
+	struct NeighbourList * n;
+	double f;
+	int	t;
 };
 
 #define DEBUG_TRANSPORT GNUNET_NO

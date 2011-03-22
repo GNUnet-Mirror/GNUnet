@@ -105,6 +105,10 @@ gnunet_transport_LDADD = \
 gnunet_transport_DEPENDENCIES = \
   libgnunettransport.la				
 
+if HAVE_GLPK
+  GN_GLPK = -lglpk
+endif
+
 gnunet_service_transport_SOURCES = \
  gnunet-service-transport.c
 gnunet_service_transport_LDADD = \
@@ -112,10 +116,10 @@ gnunet_service_transport_LDADD = \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_GLPK) \
   $(GN_LIBINTL)
 gnunet_service_transport_DEPENDENCIES = \
-  libgnunettransport.la				
-
+  libgnunettransport.la				  
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_transport_tcp.la \

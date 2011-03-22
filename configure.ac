@@ -247,6 +247,17 @@ LIBCURL_CHECK_CONFIG(,7.20.1,,AC_MSG_ERROR([GNUnet requires libcurl >= 7.20.1]))
 # restore LIBS
 LIBS=$SAVE_LIBS
 
+# glpk
+glpk=0
+AC_CHECK_HEADERS([glpk.h]) 
+if test "$ac_cv_header_glpk_h" = yes; then
+AM_CONDITIONAL(HAVE_GLPK, 1) 
+AC_DEFINE_UNQUOTED([HAVE_GLPK], test x$glpk = xtrue, [We have GLPK])
+else 
+AM_CONDITIONAL(HAVE_GLPK, test x$glpk = xtrue) 
+AC_MSG_WARN([GLPK not installed.]) 
+fi 
+
 # test for kvm and kstat (for CPU stats under BSD/Solaris)
 AC_CHECK_LIB([kvm],[kvm_open])
 AC_CHECK_LIB([kstat],[kstat_open])
@@ -621,6 +632,8 @@ AM_CONDITIONAL(HAVE_ESMTP, test x$esmtp = x1)
 AC_DEFINE_UNQUOTED([HAVE_ESMTP], $esmtp, [We have libesmtp])
 # restore LIBS
 LIBS=$SAVE_LIBS
+
+
 
 # check for gettext
 AM_GNU_GETTEXT([external])

@@ -45,7 +45,7 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 90)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
  * How long until we give up on transmitting the message?
@@ -138,7 +138,7 @@ end_badly ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transports!\n");
   GNUNET_break (0);
   GNUNET_TRANSPORT_disconnect (p1.th);
-  GNUNET_TRANSPORT_disconnect (p2.th);
+  //GNUNET_TRANSPORT_disconnect (p2.th);
   ok = 1;
 }
 
@@ -367,11 +367,11 @@ run (void *cls,
 					   &end_badly, NULL);
 
   setup_peer (&p1, "test_transport_ats_peer1.conf");
-  setup_peer (&p2, "test_transport_ats_peer2.conf");
+  //setup_peer (&p2, "test_transport_ats_peer2.conf");
 
   GNUNET_assert(p1.th != NULL);
-  GNUNET_assert(p2.th != NULL);
-
+  //GNUNET_assert(p2.th != NULL);
+  return;
   GNUNET_TRANSPORT_get_hello (p1.th, &exchange_hello, &p1);
 }
 
@@ -398,7 +398,7 @@ check ()
                       argv, "test-transport-api", "nohelp",
                       options, &run, &ok);
   stop_arm (&p1);
-  stop_arm (&p2);
+ // stop_arm (&p2);
 
   if (is_https)
   {

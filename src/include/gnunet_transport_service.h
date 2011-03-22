@@ -390,11 +390,6 @@ struct GNUNET_TRANSPORT_ATS_Information
   uint32_t value;
 };
 
-/* Minimum time between to calculations*/
-#define ATS_MIN_INTERVAL  GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS,250)
-#define ATS_EXEC_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,1)
-
-#define DEBUG_ATS GNUNET_NO
 
 
 /**

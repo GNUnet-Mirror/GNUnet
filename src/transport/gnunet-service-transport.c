@@ -38,6 +38,9 @@
 #include "gnunet_signatures.h"
 #include "gnunet_transport_plugin.h"
 #include "transport.h"
+#if HAVE_GLPK
+#include <glpk.h>
+#endif
 
 #define DEBUG_BLACKLIST GNUNET_YES
 
@@ -5546,6 +5549,153 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_break (bc_head == NULL);
 }
 
+
+
+#if HAVE_GLPK
+
+glp_prob * ats_create_problem(int peers, double b_min, double b_max, double r, const struct ATS_peer * list, int max_it, int max_dur)
+{
+	int c1, c2;
+	glp_prob *lp;
+	char * transport;
+
+	int rows = 1 + peers + peers + peers;
+	int cols = peers;
+	int index = 1;
+	int start = 0;
+	int cur_row = 0;
+
+	int ia[1+(rows*cols)], ja[1+(rows*cols)];
+	double ar[1+(rows*cols)];
+	double value;
+
+	/* Setting options */
+/*	glp_smcp * options = GNUNET_malloc( sizeof (glp_smcp));
+	// max iterations
+	options->it_lim = max_it;
+	// max durations
+	options->tm_lim = max_it;
+	options->msg_lev = GLP_MSG_OFF;
+	options->meth = GLP_PRIMAL;
+	options->pricing = GLP_PT_PSE;
+	options->r_test = GLP_RT_HAR;
+	options->tol_bnd =
+*/
+
+	lp = glp_create_prob();
+	glp_set_prob_name(lp, "gnunet ats bandwidth distribution");
+	glp_set_obj_dir(lp, GLP_MAX);
+
+	/* Adding transports */
+	glp_add_cols(lp, cols);
+	for (c1=1; c1<=cols; c1++)
+	{
+		GNUNET_asprintf(&transport,"Peer %s",GNUNET_i2s(&list[c1-1].peer));
+		//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ats_create_problem Peer[%i] : %s \n",c1-1 , transport);
+		/* add a single transport */
+		glp_set_col_name(lp, c1, transport);
+		/* add a lower bound */
+		glp_set_col_bnds(lp, c1, GLP_LO, 0.0, 0.0);
+		/* set coefficient function */
+		glp_set_obj_coef(lp, c1, 1.0);
+		GNUNET_free(transport);
+	}
+
+
+	/* Adding constraints */
+	glp_add_rows(lp, rows);
+	cur_row = 1;
+
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "row: %i \n", cur_row);
+	glp_set_row_bnds(lp, cur_row, GLP_UP, 0.0, b_max);
+	for (index=1; index<=cols; index++)
+	{
+		ia[index] = 1, ja[index] = index, ar[index] = 1.0;
+	}
+
+
+	cur_row = 2;
+	start = index+1;
+	for (c1=0; c1<peers; c1++)
+	{
+		//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "row: %i \n", cur_row);
+		glp_set_row_bnds(lp, cur_row , GLP_UP, 0.0, b_max);
+
+		for (c2 = 1; c2 <= cols; c2++)
+		{
+			//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "c1: %i c2 %i  index: %i \n",c1 , c2, index);
+			ia[index] = cur_row;
+			ja[index] = c2;
+			ar[index] = ((c1+1 == c2) ? 1.0 : 0.0);
+			//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ia: %i ja %i  ar: %f \n",cur_row , c2, ((c1+1 == c2) ? 1.0 : 0.0));
+			index++;
+		}
+		cur_row++;
+	}
+
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "CONST 3 \n");
+
+	start = index+1;
+	for (c1=0; c1<peers; c1++)
+	{
+		//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "row: %i \n", cur_row);
+		glp_set_row_bnds(lp, cur_row , GLP_LO, b_min, 0.0);
+
+		for (c2 = 1; c2 <= cols; c2++)
+		{
+			//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "c1: %i c2 %i  index: %i \n",c1 , c2, index);
+			ia[index] = cur_row;
+			ja[index] = c2;
+			ar[index] = ((c1+1 == c2) ? 1.0 : 0.0);
+			//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ia: %i ja %i  ar: %f \n",cur_row , c2, ((c1+1 == c2) ? 1.0 : 0.0));
+			index++;
+		}
+		cur_row++;
+	}
+
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "CONST 4 \n");
+
+	start = index+1;
+	for (c1=0; c1<peers; c1++)
+	{
+
+		value = list[c1].f * r;
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "row: %i %f\n", cur_row, value);
+		glp_set_row_bnds(lp, cur_row , GLP_LO, value, 0.0);
+
+		for (c2 = 1; c2 <= cols; c2++)
+		{
+			//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "c1: %i c2 %i  index: %i \n",c1 , c2, index);
+			ia[index] = cur_row;
+			ja[index] = c2;
+			ar[index] = ((c1+1 == c2) ? (1.0/b_max) : 0.0);
+			//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ia: %i ja %i  ar: %f \n",cur_row , c2, ((c1+1 == c2) ? 1.0 : 0.0));
+			index++;
+		}
+		cur_row++;
+	}
+
+	glp_load_matrix(lp, rows * cols, ia, ja, ar);
+
+	glp_simplex(lp, NULL);
+
+
+	printf("z = %g; ", glp_get_obj_val(lp));
+	for (c1=1; c1<= peers; c1++ )
+	{
+		printf("x%i = %g; ", c1, glp_get_col_prim(lp, c1));
+	}
+	glp_delete_prob(lp);
+	//GNUNET_free(options);
+	return lp;
+}
+#else
+void ats_create_problem(int peers, double b_min, double b_max, double r, const struct ATS_peer * list, int max_it, int max_dur)
+{
+
+}
+#endif
+
 void ats_calculate_bandwidth_distribution (struct ATS_info * ats)
 {
 	struct GNUNET_TIME_Relative delta = GNUNET_TIME_absolute_get_difference(ats->last,GNUNET_TIME_absolute_get());
@@ -5559,6 +5709,29 @@ void ats_calculate_bandwidth_distribution (struct ATS_info * ats)
 #if DEBUG_ATS
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "CALCULATE DISTRIBUTION\n");
 #endif
+
+	int transports = 9;
+	double b_min   = 10;
+	double b_max   = 100.0;
+	double r	   = 0.8;
+
+	int it = 50;
+	int dur = 500;
+
+	struct ATS_peer * list = GNUNET_malloc(transports * sizeof (struct ATS_peer));
+	int c = 0;
+	while (c < transports)
+	{
+		list[c].peer.hashPubKey.bits[0] = c+1;
+		list[c].f = 1 / (double) transports;
+		//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ats_calculate_bandwidth_distribution Peer[%i] : %s %p \n",c , GNUNET_i2s(&list[c].peer), &list[c].peer);
+		c++;
+	}
+
+	ats_create_problem(transports, b_min, b_max, r, list, it, dur);
+
+	GNUNET_free (list);
+
 	ats->last = GNUNET_TIME_absolute_get();
 
 }
@@ -5780,6 +5953,12 @@ run (void *cls,
       validation_map = NULL;
       return;
     }
+#if HAVE_GLPK
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("HAVE\n"));
+#else
+	  //GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("NOT HAVE\n"));
+#endif
+
   ats = ats_init();
   max_connect_per_transport = (uint32_t) tneigh;
   peerinfo = GNUNET_PEERINFO_connect (cfg);
