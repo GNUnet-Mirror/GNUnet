@@ -257,10 +257,9 @@ AC_CHECK_HEADERS(glpk.h, ,[a=false])
 AC_CHECK_LIB([glpk],[glp_create_prob], , [a=false])
 if test $a == false
 then
-	AC_MSG_NOTICE([Feature b0rk is missing.])
 	AM_CONDITIONAL(HAVE_GLPK, [test x$a = xtrue])
+	AM_CONDITIONAL(HAVE_LIBGLPK, [test x$a != x$a])
 else
-	AC_MSG_NOTICE([Feature b0rk is present.])
 	AM_CONDITIONAL(HAVE_GLPK, [test x$a = xtrue])
 	AM_CONDITIONAL(HAVE_LIBGLPK, [test x$a = x$a])
 fi
