@@ -301,7 +301,11 @@ int ieee80211_radiotap_iterator_next(
 		[IEEE80211_RADIOTAP_DBM_TX_POWER] = 0x11,
 		[IEEE80211_RADIOTAP_ANTENNA] = 0x11,
 		[IEEE80211_RADIOTAP_DB_ANTSIGNAL] = 0x11,
-		[IEEE80211_RADIOTAP_DB_ANTNOISE] = 0x11
+		[IEEE80211_RADIOTAP_DB_ANTNOISE] = 0x11,
+		[IEEE80211_RADIOTAP_TX_FLAGS] = 0x22,
+		[IEEE80211_RADIOTAP_RX_FLAGS] = 0x22,
+		[IEEE80211_RADIOTAP_RTS_RETRIES] = 0x11,
+		[IEEE80211_RADIOTAP_DATA_RETRIES] = 0x11
 		/*
 		 * add more here as they are defined in
 		 * include/net/ieee80211_radiotap.h
@@ -478,6 +482,28 @@ file_in_send (void *cls,
   write_std->size += sendsize;
 }
 
+/**
+ * function to create GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL message for plugin
+ * @param buffer pointer to buffer for the message
+ * @param mac pointer to the mac address
+ * @return number of bytes written
+ */
+
+int
+send_mac_to_plugin(char* buffer, char * mac){
+
+  struct Wlan_Helper_Control_Message macmsg;
+
+
+
+  memcpy(macmsg.mac.mac, mac, sizeof(struct MacAddress));
+  macmsg.hdr.size = htons(sizeof(struct Wlan_Helper_Control_Message));
+  macmsg.hdr.type = htons(GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL);
+
+  memcpy(buffer, &macmsg, sizeof(struct Wlan_Helper_Control_Message));
+  return sizeof(struct Wlan_Helper_Control_Message);
+}
+
 int
 testmode(int argc, char *argv[])
 {
@@ -599,20 +625,17 @@ testmode(int argc, char *argv[])
 
   //send mac first
 
-  struct Wlan_Helper_Control_Message macmsg;
+  struct MacAddress macaddr;
 
   //Send random mac address
-  macmsg.mac.mac[0] = 0x13;
-  macmsg.mac.mac[1] = 0x22;
-  macmsg.mac.mac[2] = 0x33;
-  macmsg.mac.mac[3] = 0x44;
-  macmsg.mac.mac[4] = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_STRONG, 256);
-  macmsg.mac.mac[5] = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_NONCE, 256);
-  macmsg.hdr.size = htons(sizeof(struct Wlan_Helper_Control_Message));
-  macmsg.hdr.type = htons(GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL);
+  macaddr.mac[0] = 0x13;
+  macaddr.mac[1] = 0x22;
+  macaddr.mac[2] = 0x33;
+  macaddr.mac[3] = 0x44;
+  macaddr.mac[4] = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_STRONG, 256);
+  macaddr.mac[5] = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_NONCE, 256);
 
-  memcpy(&write_std.buf, &macmsg, sizeof(struct Wlan_Helper_Control_Message));
-  write_std.size = sizeof(struct Wlan_Helper_Control_Message);
+  write_std.size = send_mac_to_plugin((char *) &write_std.buf, macaddr.mac);
 
   /*
   //wait
@@ -812,6 +835,229 @@ testmode(int argc, char *argv[])
   return (0);
 }
 
+void packet_callback(unsigned char *Args,
+                      const struct pcap_pkthdr* Pkthdr,
+                      unsigned char *Packet)
+{
+fprintf(stderr, "+"); fflush(stderr);
+}
+
+
+int
+hardwaremode(int argc, char *argv[])
+{
+
+  struct ifreq ifreq;
+  char mac[6];
+  int SockFD;
+
+  int fdpin;
+  int fdpout;
+
+  pcap_t *ppcap = NULL;
+  char szErrbuf[PCAP_ERRBUF_SIZE];
+
+  SockFD = socket(AF_INET, SOCK_DGRAM, 0);
+
+  strcpy(ifreq.ifr_name, argv[1]);
+  if (ioctl(SockFD, SIOCGIFHWADDR, &ifreq) < 0)
+    {
+      printf("SIOCGIFHWADDR(%s): %m\n", ifreq.ifr_name);
+      return 0;
+    }
+
+  //copy mac to mac array
+  memcpy(mac, ifreq.ifr_hwaddr.sa_data, sizeof(struct MacAddress));
+
+  printf("Device %s -> Ethernet %02x:%02x:%02x:%02x:%02x:%02x\n",
+      ifreq.ifr_name, (int) mac[0], (int) mac[1], (int) mac[2], (int) mac[3],
+      (int) mac[4], (int) mac[5]);
+
+  return 0;
+  // open the interface in pcap
+  ppcap = pcap_open_live(argv[1], 800, 1, 20, szErrbuf);
+  if (ppcap == NULL)
+    {
+      printf("Unable to open interface %s in pcap: %s\n", argv[1], szErrbuf);
+      return (1);
+    }
+
+  char readbuf[MAXLINE];
+  int readsize = 0;
+  struct sendbuf write_std;
+  write_std.size = 0;
+  write_std.pos = 0;
+
+  struct sendbuf write_pout;
+  write_pout.size = 0;
+  write_pout.pos = 0;
+
+  int ret = 0;
+  int maxfd = 0;
+
+  fd_set rfds;
+  fd_set wfds;
+  struct timeval tv;
+  int retval;
+
+  struct GNUNET_SERVER_MessageStreamTokenizer * stdin_mst;
+  struct GNUNET_SERVER_MessageStreamTokenizer * file_in_mst;
+
+  fdpin = pcap_fileno(ppcap);
+  fdpout = pcap_fileno(ppcap);
+
+  stdin_mst = GNUNET_SERVER_mst_create(&stdin_send, &write_pout);
+  file_in_mst = GNUNET_SERVER_mst_create(&file_in_send, &write_std);
+
+  //send mac first
+
+  write_std.size = send_mac_to_plugin((char *) &write_std.buf, mac);
+
+  //wait
+  tv.tv_sec = 2;
+  tv.tv_usec = 0;
+  retval = select(0, NULL, NULL, NULL, &tv);
+
+  while (0 == closeprog)
+    {
+
+      maxfd = 0;
+
+      //set timeout
+      tv.tv_sec = 5;
+      tv.tv_usec = 0;
+
+      FD_ZERO(&rfds);
+      // if output queue is empty
+      if (0 == write_pout.size)
+        {
+          FD_SET(STDIN_FILENO, &rfds);
+
+        }
+      if (0 == write_std.size)
+        {
+          FD_SET(fdpin, &rfds);
+          maxfd = fdpin;
+        }
+      FD_ZERO(&wfds);
+      // if there is something to write
+      if (0 < write_std.size)
+        {
+          FD_SET(STDOUT_FILENO, &wfds);
+          maxfd = MAX(maxfd, STDOUT_FILENO);
+        }
+
+      if (0 < write_pout.size)
+        {
+          FD_SET(fdpout, &wfds);
+          maxfd = MAX(maxfd, fdpout);
+        }
+
+      retval = select(maxfd + 1, &rfds, &wfds, NULL, &tv);
+
+      if (-1 == retval && EINTR == errno)
+        {
+          continue;
+        }
+      if (0 > retval)
+        {
+          fprintf(stderr, "select failed: %s\n", strerror(errno));
+          exit(1);
+        }
+
+      if (FD_ISSET(STDOUT_FILENO, &wfds))
+        {
+          ret = write(STDOUT_FILENO, write_std.buf + write_std.pos,
+              write_std.size - write_std.pos);
+
+          if (0 > ret)
+            {
+              closeprog = 1;
+              fprintf(stderr, "Write ERROR to STDOUT\n");
+              exit(1);
+            }
+          else
+            {
+              write_std.pos += ret;
+              // check if finished
+              if (write_std.pos == write_std.size)
+                {
+                  write_std.pos = 0;
+                  write_std.size = 0;
+                }
+            }
+        }
+
+      if (FD_ISSET(fdpout, &wfds))
+        {
+          ret = write(fdpout, write_pout.buf + write_pout.pos, write_pout.size
+              - write_pout.pos);
+
+          if (0 > ret)
+            {
+              closeprog = 1;
+              fprintf(stderr, "Write ERROR to fdpout\n");
+            }
+          else
+            {
+              write_pout.pos += ret;
+              // check if finished
+              if (write_pout.pos == write_pout.size)
+                {
+                  write_pout.pos = 0;
+                  write_pout.size = 0;
+                }
+            }
+        }
+
+      if (FD_ISSET(STDIN_FILENO, &rfds))
+        {
+          readsize = read(STDIN_FILENO, readbuf, sizeof(readbuf));
+
+          if (0 > readsize)
+            {
+              closeprog = 1;
+              fprintf(stderr, "Read ERROR to STDIN_FILENO\n");
+            }
+          else if (0 < readsize)
+            {
+              GNUNET_SERVER_mst_receive(stdin_mst, NULL, readbuf, readsize,
+                  GNUNET_NO, GNUNET_NO);
+
+            }
+          else
+            {
+              //eof
+              closeprog = 1;
+            }
+        }
+
+      if (FD_ISSET(fdpin, &rfds))
+        {
+          readsize = read(fdpin, readbuf, sizeof(readbuf));
+
+          if (0 > readsize)
+            {
+              closeprog = 1;
+              fprintf(stderr, "Read ERROR to fdpin: %s\n", strerror(errno));
+              closeprog = 1;
+            }
+          else if (0 < readsize)
+            {
+              GNUNET_SERVER_mst_receive(file_in_mst, NULL, readbuf, readsize,
+                  GNUNET_NO, GNUNET_NO);
+
+            }
+          else
+            {
+              //eof
+              closeprog = 1;
+            }
+        }
+
+    }
+
+}
 
 int
 main(int argc, char *argv[])
@@ -828,6 +1074,8 @@ main(int argc, char *argv[])
     {
 
       return testmode(argc, argv);
+    } else {
+      hardwaremode(argc, argv);
     }
 
 #if 0
@@ -928,7 +1176,7 @@ main(int argc, char *argv[])
 
 	//get header type
 	nLinkEncap = pcap_datalink(ppcap);
-	nCaptureHeaderLength = 0;home/mwachs/gnb/bin/
+	nCaptureHeaderLength = 0;
 
 	switch (nLinkEncap) {
 
