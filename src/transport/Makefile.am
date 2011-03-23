@@ -105,7 +105,7 @@ gnunet_transport_LDADD = \
 gnunet_transport_DEPENDENCIES = \
   libgnunettransport.la				
 
-if HAVE_GLPK
+if HAVE_LIBGLPK
   GN_GLPK = -lglpk
 endif
 

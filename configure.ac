@@ -248,15 +248,22 @@ LIBCURL_CHECK_CONFIG(,7.20.1,,AC_MSG_ERROR([GNUnet requires libcurl >= 7.20.1]))
 LIBS=$SAVE_LIBS
 
 # glpk
-glpk=0
-AC_CHECK_HEADERS([glpk.h]) 
-if test "$ac_cv_header_glpk_h" = yes; then
-AM_CONDITIONAL(HAVE_GLPK, 1) 
-AC_DEFINE_UNQUOTED([HAVE_GLPK], test x$glpk = xtrue, [We have GLPK])
-else 
-AM_CONDITIONAL(HAVE_GLPK, test x$glpk = xtrue) 
-AC_MSG_WARN([GLPK not installed.]) 
-fi 
+#AC_CHECK_HEADERS(glpk.h, glpk=true)
+#AM_CONDITIONAL(HAVE_GLPK, test x$glpk = xtrue)
+#AC_CHECK_LIB([glpk],[glp_create_prob])
+
+a=true
+AC_CHECK_HEADERS(glpk.h, ,[a=false])
+AC_CHECK_LIB([glpk],[glp_create_prob], , [a=false])
+if test $a == false
+then
+	AC_MSG_NOTICE([Feature b0rk is missing.])
+	AM_CONDITIONAL(HAVE_GLPK, [test x$a = xtrue])
+else
+	AC_MSG_NOTICE([Feature b0rk is present.])
+	AM_CONDITIONAL(HAVE_GLPK, [test x$a = xtrue])
+	AM_CONDITIONAL(HAVE_LIBGLPK, [test x$a = x$a])
+fi
 
 # test for kvm and kstat (for CPU stats under BSD/Solaris)
 AC_CHECK_LIB([kvm],[kvm_open])

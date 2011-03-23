@@ -38,7 +38,7 @@
 #include "gnunet_signatures.h"
 #include "gnunet_transport_plugin.h"
 #include "transport.h"
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
 #include <glpk.h>
 #endif
 
@@ -5548,12 +5548,14 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_break (bl_head == NULL);
   GNUNET_break (bc_head == NULL);
 }
+#if !HAVE_LIBGLPK
 
+void ats_create_problem(int peers, double b_min, double b_max, double r, const struct ATS_peer * list, int max_it, int max_dur)
+{
 
-
-#if HAVE_GLPK
-
-glp_prob * ats_create_problem(int peers, double b_min, double b_max, double r, const struct ATS_peer * list, int max_it, int max_dur)
+}
+#else
+glp_prob * ats_create_problem (int peers, double b_min, double b_max, double r, const struct ATS_peer * list, int max_it, int max_dur)
 {
 	int c1, c2;
 	glp_prob *lp;
@@ -5688,11 +5690,6 @@ glp_prob * ats_create_problem(int peers, double b_min, double b_max, double r, c
 	glp_delete_prob(lp);
 	//GNUNET_free(options);
 	return lp;
-}
-#else
-void ats_create_problem(int peers, double b_min, double b_max, double r, const struct ATS_peer * list, int max_it, int max_dur)
-{
-
 }
 #endif
 
