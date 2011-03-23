@@ -48,6 +48,13 @@
 
 #define DEBUG_TRANSPORT_HELLO GNUNET_YES
 
+#ifndef DEBUG_ATS
+#define DEBUG_ATS GNUNET_YES
+#else
+#undef	DEBUG_ATS
+#define DEBUG_ATS GNUNET_YES
+#endif
+
 /**
  * Should we do some additional checks (to validate behavior
  * of clients)?
@@ -5548,20 +5555,25 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_break (bl_head == NULL);
   GNUNET_break (bc_head == NULL);
 }
-#if !HAVE_LIBGLPK
 
-void ats_create_problem(int peers, double b_min, double b_max, double r, const struct ATS_peer * list, int max_it, int max_dur)
+struct ATS_transports
 {
+	int	id;
+	double c_max;
+	double c_1;
+};
 
-}
-#else
-glp_prob * ats_create_problem (int peers, double b_min, double b_max, double r, const struct ATS_peer * list, int max_it, int max_dur)
+#define FUNCTION ats_create_problem (int peers, int transports, double b_min, double b_max, double r, double R, const struct ATS_peer * pl, const struct ATS_transports * tl, int max_it, int max_dur)
+
+#if HAVE_LIBGLPK
+glp_prob * FUNCTION
 {
+	int result = GLP_UNDEF;
 	int c1, c2;
 	glp_prob *lp;
-	char * transport;
+	char * peer_n;
 
-	int rows = 1 + peers + peers + peers;
+	int rows = 1 + (3*peers) +  (transports);
 	int cols = peers;
 	int index = 1;
 	int start = 0;
@@ -5572,18 +5584,16 @@ glp_prob * ats_create_problem (int peers, double b_min, double b_max, double r, 
 	double value;
 
 	/* Setting options */
-/*	glp_smcp * options = GNUNET_malloc( sizeof (glp_smcp));
+	glp_smcp * options = GNUNET_malloc( sizeof (glp_smcp));
+	glp_init_smcp(options);
+
 	// max iterations
 	options->it_lim = max_it;
 	// max durations
-	options->tm_lim = max_it;
-	options->msg_lev = GLP_MSG_OFF;
-	options->meth = GLP_PRIMAL;
-	options->pricing = GLP_PT_PSE;
-	options->r_test = GLP_RT_HAR;
-	options->tol_bnd =
-*/
+	options->tm_lim = max_dur;
+	options->msg_lev = GLP_MSG_ALL;
 
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Creating LP problem: %i peers, relativity r %3.2f, b_max %5.2f, b_min %5.2f, \n",peers, r, b_max, b_min);
 	lp = glp_create_prob();
 	glp_set_prob_name(lp, "gnunet ats bandwidth distribution");
 	glp_set_obj_dir(lp, GLP_MAX);
@@ -5592,15 +5602,17 @@ glp_prob * ats_create_problem (int peers, double b_min, double b_max, double r, 
 	glp_add_cols(lp, cols);
 	for (c1=1; c1<=cols; c1++)
 	{
-		GNUNET_asprintf(&transport,"Peer %s",GNUNET_i2s(&list[c1-1].peer));
-		//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ats_create_problem Peer[%i] : %s \n",c1-1 , transport);
+		GNUNET_asprintf(&peer_n,"%s",GNUNET_i2s(&pl[c1-1].peer));
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peer[%i] , transport %i, %s: f: %f\n",c1-1 , pl[c1-1].t, peer_n, pl[c1-1].f);
 		/* add a single transport */
-		glp_set_col_name(lp, c1, transport);
+		glp_set_col_name(lp, c1, peer_n);
 		/* add a lower bound */
 		glp_set_col_bnds(lp, c1, GLP_LO, 0.0, 0.0);
 		/* set coefficient function */
-		glp_set_obj_coef(lp, c1, 1.0);
-		GNUNET_free(transport);
+		value = pl[c1-1].f/b_max;
+		value = 1.0;
+		glp_set_obj_coef(lp, c1, value);
+		GNUNET_free(peer_n);
 	}
 
 
@@ -5608,7 +5620,7 @@ glp_prob * ats_create_problem (int peers, double b_min, double b_max, double r, 
 	glp_add_rows(lp, rows);
 	cur_row = 1;
 
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "row: %i \n", cur_row);
+	// GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "row: %i \n", cur_row);
 	glp_set_row_bnds(lp, cur_row, GLP_UP, 0.0, b_max);
 	for (index=1; index<=cols; index++)
 	{
@@ -5635,8 +5647,6 @@ glp_prob * ats_create_problem (int peers, double b_min, double b_max, double r, 
 		cur_row++;
 	}
 
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "CONST 3 \n");
-
 	start = index+1;
 	for (c1=0; c1<peers; c1++)
 	{
@@ -5655,14 +5665,12 @@ glp_prob * ats_create_problem (int peers, double b_min, double b_max, double r, 
 		cur_row++;
 	}
 
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "CONST 4 \n");
-
 	start = index+1;
 	for (c1=0; c1<peers; c1++)
 	{
 
-		value = list[c1].f * r;
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "row: %i %f\n", cur_row, value);
+		value = pl[c1].f * r;
+		//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "row: %i %f\n", cur_row, value);
 		glp_set_row_bnds(lp, cur_row , GLP_LO, value, 0.0);
 
 		for (c2 = 1; c2 <= cols; c2++)
@@ -5677,21 +5685,47 @@ glp_prob * ats_create_problem (int peers, double b_min, double b_max, double r, 
 		cur_row++;
 	}
 
+	/* transport capacity sum of b * c_i < c_max */
+	start = index+1;
+	for (c1=0; c1<transports; c1++)
+	{
+
+		value = tl[c1].c_max;
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Transport %i: c_max %5.2f c_1 %5.2f \n", c1, value, tl[c1].c_1);
+		glp_set_row_bnds(lp, cur_row , GLP_UP, 0.0 , value);
+
+		for (c2 = 1; c2 <= cols; c2++)
+		{
+			//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "c1: %i c2 %i  index: %i \n",c1 , c2, index);
+			ia[index] = cur_row;
+			ja[index] = c2;
+			ar[index] = ((pl[c1-1].t == tl[c1].id) ? (tl[c1].c_1) : 0.0);
+			//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ia: %i ja %i  ar: %f \n",cur_row , c2, ((c1+1 == c2) ? 1.0 : 0.0));
+			index++;
+		}
+		cur_row++;
+	}
+
 	glp_load_matrix(lp, rows * cols, ia, ja, ar);
 
-	glp_simplex(lp, NULL);
+	result = glp_simplex(lp, options);
 
-
-	printf("z = %g; ", glp_get_obj_val(lp));
 	for (c1=1; c1<= peers; c1++ )
 	{
 		printf("x%i = %g; ", c1, glp_get_col_prim(lp, c1));
 	}
+	printf("z = %g; \n", glp_get_obj_val(lp));
 	glp_delete_prob(lp);
-	//GNUNET_free(options);
+	GNUNET_free(options);
 	return lp;
 }
+#else
+void * FUNCTION
+{
+
+}
 #endif
+
 
 void ats_calculate_bandwidth_distribution (struct ATS_info * ats)
 {
@@ -5707,31 +5741,54 @@ void ats_calculate_bandwidth_distribution (struct ATS_info * ats)
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "CALCULATE DISTRIBUTION\n");
 #endif
 
-	int transports = 9;
+	int peers = 3;
+	int transports = 3;
+
 	double b_min   = 10;
 	double b_max   = 100.0;
-	double r	   = 0.8;
+	double r	   = 0.85;//1.0;
+	double R	   = 1.0;
 
 	int it = 50;
 	int dur = 500;
 
-	struct ATS_peer * list = GNUNET_malloc(transports * sizeof (struct ATS_peer));
+	struct ATS_transports * tl = GNUNET_malloc(transports * sizeof (struct ATS_peer));
+
+	struct ATS_peer * pl = GNUNET_malloc(peers * sizeof (struct ATS_peer));
 	int c = 0;
-	while (c < transports)
+	while (c < peers)
 	{
-		list[c].peer.hashPubKey.bits[0] = c+1;
-		list[c].f = 1 / (double) transports;
+		pl[c].peer.hashPubKey.bits[0] = c+1;
+		pl[c].f = 1 / (double) peers ;
+		pl[c].t = 1;
 		//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ats_calculate_bandwidth_distribution Peer[%i] : %s %p \n",c , GNUNET_i2s(&list[c].peer), &list[c].peer);
 		c++;
 	}
+	c = 0;
+	while (c < transports)
+	{
+		tl[c].id = c;
+		tl[c].c_max = 100;
+		tl[c].c_1 = 1;
+		c++;
+	}
 
-	ats_create_problem(transports, b_min, b_max, r, list, it, dur);
+	// test //
 
-	GNUNET_free (list);
+	pl[0].f = 0.33;
+	pl[2].f = 0.43;
+	pl[1].f = 0.33;
+	// test //
+
+	ats_create_problem(peers, transports, b_min, b_max, r, R, pl, tl, it, dur);
+
+	GNUNET_free (pl);
+	GNUNET_free (tl);
 
 	ats->last = GNUNET_TIME_absolute_get();
 
 }
+
 
 
 void
@@ -5872,13 +5929,13 @@ struct ForeignAddressList * ats_get_preferred_address (struct ATS_info * ats,
 		struct NeighbourList *n)
 {
 #if DEBUG_ATS
-	GNUNET_log (GNUNET_ERROR_TYPE_BULK, "ats_get_prefered_transport for peer: %s\n",GNUNET_i2s(&n->id));
+	//GNUNET_log (GNUNET_ERROR_TYPE_BULK, "ats_get_prefered_transport for peer: %s\n",GNUNET_i2s(&n->id));
 #endif
 	struct ReadyList *next = n->plugins;
 	while (next != NULL)
 	{
 #if DEBUG_ATS
-		GNUNET_log (GNUNET_ERROR_TYPE_BULK, "plugin: %s %i\n",next->plugin->short_name,strcmp(next->plugin->short_name,"unix"));
+		//GNUNET_log (GNUNET_ERROR_TYPE_BULK, "plugin: %s %i\n",next->plugin->short_name,strcmp(next->plugin->short_name,"unix"));
 #endif
 		next = next->next;
 	}
