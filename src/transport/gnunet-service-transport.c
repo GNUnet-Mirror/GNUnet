@@ -48,13 +48,6 @@
 
 #define DEBUG_TRANSPORT_HELLO GNUNET_YES
 
-#ifndef DEBUG_ATS
-#define DEBUG_ATS GNUNET_YES
-#else
-#undef	DEBUG_ATS
-#define DEBUG_ATS GNUNET_YES
-#endif
-
 #define VERBOSE_ATS GNUNET_NO
 
 /**
@@ -5566,7 +5559,6 @@ struct ATS_transports
 
 #define FUNCTION ats_create_problem (int peers, int transports, double b_min, double b_max, double r, double R, const struct ATS_peer * pl, const struct ATS_transports * tl, int max_it, int max_dur)
 
-#if HAVE_LIBGLPK
 glp_prob * FUNCTION
 {
 	int result = GLP_UNDEF;
@@ -5717,47 +5709,36 @@ glp_prob * FUNCTION
 	if (DEBUG_ATS)
 	{
 		switch (result) {
+		case GLP_ESTOP  :    /* search terminated by application */
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Search terminated by application ");
 		case GLP_EITLIM :    /* iteration limit exceeded */
 			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Iteration limit exceeded ");
 		break;
 		case GLP_ETMLIM :    /* time limit exceeded */
 			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Time limit exceeded ");
 		break;
+		case GLP_ENOFEAS:    /* no primal/dual feasible solution */
+		case GLP_ENOCVG :    /* no convergence */
+		case GLP_ERANGE	:	 /* result out of range */
 		case GLP_ENOPFS :    /* no primal feasible solution */
 		case GLP_ENODFS :    /* no dual feasible solution */
 			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No feasible solution");
 		break;
 
 		case GLP_EBADB  :    /* invalid basis */
-
-		break;
 		case GLP_ESING  :    /* singular matrix */
-		break;
 		case GLP_ECOND  :    /* ill-conditioned matrix */
-		break;
 		case GLP_EBOUND :    /* invalid bounds */
-		break;
 		case GLP_EFAIL  :    /* solver failed */
-		break;
 		case GLP_EOBJLL :    /* objective lower limit reached */
-		break;
 		case GLP_EOBJUL :    /* objective upper limit reached */
-		break;
 		case GLP_EROOT  :    /* root LP optimum not provided */
-		break;
-		case GLP_ESTOP  :    /* search terminated by application */
-		break;
 		case GLP_EMIPGAP:    /* relative mip gap tolerance reached */
-		break;
-		case GLP_ENOFEAS:    /* no primal/dual feasible solution */
-		break;
-		case GLP_ENOCVG :    /* no convergence */
-		break;
 		case GLP_EINSTAB:    /* numerical instability */
-		break;
 		case GLP_EDATA  :    /* invalid data */
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Invalid Input data\n");
 		break;
-		case GLP_ERANGE	:	 /* result out of range */
+
 		break;
 			default:
 				GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Optimal solution\n");
@@ -5781,6 +5762,7 @@ glp_prob * FUNCTION
 	GNUNET_free(options);
 	return lp;
 }
+#if HAVE_LIBGLPK
 #else
 void * FUNCTION
 {
@@ -5810,6 +5792,7 @@ void ats_calculate_bandwidth_distribution ()
 
 	int it = 50;
 	int dur = 500;
+	//if (INT_MAX) ats.max_exec_duration.rel_value;
 
 	struct ATS_transports * tl = GNUNET_malloc(transports * sizeof (struct ATS_peer));
 
@@ -5900,6 +5883,7 @@ struct ATS_info * ats_init ()
 
 	ats->min_delta = ATS_MIN_INTERVAL;
 	ats->exec_intervall = ATS_EXEC_INTERVAL;
+	ats->max_exec_duration = ATS_MAX_EXEC_DURATION;
 
 	ats->ats_task = GNUNET_SCHEDULER_NO_TASK;
 /*
