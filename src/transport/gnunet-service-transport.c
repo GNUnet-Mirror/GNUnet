@@ -5566,7 +5566,7 @@ struct ATS_transports
 
 #define FUNCTION ats_create_problem (int peers, int transports, double b_min, double b_max, double r, double R, const struct ATS_peer * pl, const struct ATS_transports * tl, int max_it, int max_dur)
 
-
+#if HAVE_LIBGLPK
 glp_prob * FUNCTION
 {
 	int result = GLP_UNDEF;
@@ -5781,7 +5781,6 @@ glp_prob * FUNCTION
 	GNUNET_free(options);
 	return lp;
 }
-#if HAVE_LIBGLPK
 #else
 void * FUNCTION
 {

@@ -39,6 +39,9 @@
 struct ATS_info
 {
 	struct GNUNET_CONTAINER_MultiHashMap * peers;
+	/**
+	 * Time of last execution
+	 */
 	struct GNUNET_TIME_Absolute last;
 	/**
 	 * Minimum intervall between two executions
