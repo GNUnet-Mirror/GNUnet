@@ -42,9 +42,9 @@
 #include <shlobj.h>
 #include <objbase.h>
 #include <sys/param.h>          /* #define BYTE_ORDER */
-#include <Ntsecapi.h>
+#include <ntsecapi.h>
 #include <lm.h>
-#include <Aclapi.h>
+#include <aclapi.h>
 
 
 #ifdef __cplusplus

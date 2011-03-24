@@ -29,7 +29,7 @@ AC_CONFIG_HEADERS([gnunet_config.h])
 AH_TOP([#define _GNU_SOURCE  1])
 
 # Checks for programs.
-AC_CANONICAL_HOST
+AC_CANONICAL_SYSTEM
 AC_PROG_AWK
 AC_PROG_CC
 gl_EARLY
@@ -193,6 +193,8 @@ then
   AC_MSG_ERROR([GNUnet needs libgcrypt])
 fi
 
+if test $build = $target
+then
 AC_MSG_CHECKING([for working HMAC])
 AC_LANG_PUSH(C)
 LIBS="$LIBS $LIBGCRYPT_LIBS"
@@ -246,6 +248,8 @@ AC_LANG_POP(C)
 LIBCURL_CHECK_CONFIG(,7.20.1,,AC_MSG_ERROR([GNUnet requires libcurl >= 7.20.1]))
 # restore LIBS
 LIBS=$SAVE_LIBS
+
+fi	# $build = $target
 
 # glpk
 #AC_CHECK_HEADERS(glpk.h, glpk=true)
