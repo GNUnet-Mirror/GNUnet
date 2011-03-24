@@ -431,6 +431,11 @@ static struct GNUNET_TIME_Absolute connect_last_time;
  */
 static unsigned int do_find_peer;
 
+/**
+ * Whether or not to insert gauger data.
+ */
+static unsigned int insert_gauger_data;
+
 #if ONLY_TESTING
 /**
  * Are we currently trying to connect two peers repeatedly?
@@ -968,7 +973,8 @@ finish_testing(void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   GNUNET_asprintf (&temp_get_string,
                    "DHT Successful GETs (trial %d)", trial_to_run);
   GNUNET_asprintf (&revision_str, "%llu", revision);
-  GAUGER_ID("DHT_TESTING", temp_get_string, cumulative_successful_gets / (double)cumulative_num_gets, "percent successful", revision_str);
+  if (GNUNET_YES == insert_gauger_data)
+    GAUGER_ID("DHT_TESTING", temp_get_string, cumulative_successful_gets / (double)cumulative_num_gets, "percent successful", revision_str);
   fprintf (
            stderr,
            "Finished trial, had %llu successful gets out of %llu total, %.2f percent succeeded\n",
@@ -3096,8 +3102,12 @@ topology_callback(void *cls, const struct GNUNET_PeerIdentity *first,
                        "DHT Profiler Connection failed (trial %d)",
                        trial_to_run);
       GNUNET_asprintf (&revision_str, "%llu", revision);
-      GAUGER_ID("DHT_TESTING", temp_conn_string, conns_per_sec_total, "conns/s", revision_str);
-      GAUGER_ID("DHT_TESTING", temp_conn_failed_string, failed_conns_per_sec_total, "failed_conns", revision_str);
+
+      if (GNUNET_YES == insert_gauger_data)
+        GAUGER_ID("DHT_TESTING", temp_conn_string, conns_per_sec_total, "conns/s", revision_str);
+      if (GNUNET_YES == insert_gauger_data)
+        GAUGER_ID("DHT_TESTING", temp_conn_failed_string, failed_conns_per_sec_total, "failed_conns", revision_str);
+
       GNUNET_free(temp_conn_string);
       GNUNET_free(temp_conn_failed_string);
       GNUNET_asprintf (&temp_conn_string,
@@ -3107,8 +3117,10 @@ topology_callback(void *cls, const struct GNUNET_PeerIdentity *first,
                        &temp_conn_failed_string,
                        "DHT Profiler Total Connections failed (trial %d)",
                        trial_to_run);
-      GAUGER_ID("DHT_TESTING", temp_conn_string, total_connections, "conns", revision_str);
-      GAUGER_ID("DHT_TESTING", temp_conn_failed_string, failed_connections, "failed conns", revision_str);
+      if (GNUNET_YES == insert_gauger_data)
+        GAUGER_ID("DHT_TESTING", temp_conn_string, total_connections, "conns", revision_str);
+      if (GNUNET_YES == insert_gauger_data)
+        GAUGER_ID("DHT_TESTING", temp_conn_failed_string, failed_connections, "failed conns", revision_str);
       GNUNET_free(temp_conn_string);
       GNUNET_free(temp_conn_failed_string);
       GNUNET_free(revision_str);
@@ -3790,6 +3802,10 @@ run(void *cls, char * const *args, const char *cfgfile,
   if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_yesno (cfg, "dht",
                                                          "do_find_peer"))
     do_find_peer = GNUNET_YES;
+
+  if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_yesno (cfg, "dht",
+                                                           "insert_gauger_data"))
+    insert_gauger_data = GNUNET_YES;
 
   if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (cfg, "dht",
                                                           "republish"))
