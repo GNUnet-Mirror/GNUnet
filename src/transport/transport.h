@@ -40,8 +40,18 @@ struct ATS_info
 {
 	struct GNUNET_CONTAINER_MultiHashMap * peers;
 	struct GNUNET_TIME_Absolute last;
+	/**
+	 * Minimum intervall between two executions
+	 */
 	struct GNUNET_TIME_Relative min_delta;
-	struct GNUNET_TIME_Relative reg_delta;
+	/**
+	 * Regular intervall when execution is triggered
+	 */
+	struct GNUNET_TIME_Relative exec_intervall;
+	/**
+	 * Maximum execution time per calculation
+	 */
+	struct GNUNET_TIME_Relative max_exec_duration;
 
 	GNUNET_SCHEDULER_TaskIdentifier ats_task;
 };
