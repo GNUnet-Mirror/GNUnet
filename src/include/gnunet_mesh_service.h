@@ -70,7 +70,7 @@ struct GNUNET_MESH_Tunnel;
 typedef int
   (*GNUNET_MESH_MessageCallback) (void *cls,
                                   struct GNUNET_MESH_Tunnel *tunnel,
-				  void **tunnel_ctx, 
+				  void **tunnel_ctx,
 				  const struct GNUNET_PeerIdentity *sender,
                                   const struct GNUNET_MessageHeader *message,
 				  const struct GNUNET_TRANSPORT_ATS_Information *atsi);
@@ -334,7 +334,7 @@ GNUNET_MESH_notify_transmit_ready (struct
 				   struct
 				   GNUNET_TIME_Relative
 				   maxdelay,
-				   // const struct GNUNET_PeerIdentity *target,
+				   const struct GNUNET_PeerIdentity *target,
 				   size_t
 				   notify_size,
 				   GNUNET_CONNECTION_TransmitReadyNotify
