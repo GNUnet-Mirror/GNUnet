@@ -36,7 +36,7 @@
  * @param pr request with the entry
  */
 void
-GSF_plan_add_ (const struct GSF_ConnectedPeer *cp,
+GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
 	       struct GSF_PendingRequest *pr);
 
 

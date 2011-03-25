@@ -267,7 +267,7 @@ schedule_peer_transmission (void *cls,
  * @param pr request with the entry
  */
 void
-GSF_plan_add_ (const struct GSF_ConnectedPeer *cp,
+GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
 	       struct GSF_PendingRequest *pr)
 {
   struct GNUNET_PeerIdentity id;
@@ -283,6 +283,7 @@ GSF_plan_add_ (const struct GSF_ConnectedPeer *cp,
       pp = GNUNET_malloc (sizeof (struct PeerPlan));
       pp->priority_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MAX);
       pp->delay_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
+      pp->cp = cp;
       GNUNET_CONTAINER_multihashmap_put (plans,
 					 &id.hashPubKey,
 					 pp,
