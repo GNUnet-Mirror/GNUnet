@@ -256,16 +256,16 @@ fi	# $build = $target
 #AM_CONDITIONAL(HAVE_GLPK, test x$glpk = xtrue)
 #AC_CHECK_LIB([glpk],[glp_create_prob])
 
-a=true
-AC_CHECK_HEADERS(glpk.h, ,[a=false])
-AC_CHECK_LIB([glpk],[glp_create_prob], , [a=false])
-if test $a == false
+glpk=true
+AC_CHECK_HEADERS(glpk.h, ,[gplk=false])
+AC_CHECK_LIB([glpk],[glp_create_prob], , [gplk=false])
+if test $gplk == false
 then
-	AM_CONDITIONAL(HAVE_GLPK, [test x$a = xtrue])
-	AM_CONDITIONAL(HAVE_LIBGLPK, [test x$a != x$a])
+	AM_CONDITIONAL(HAVE_GLPK, [test x$gplk = xtrue])
+	AM_CONDITIONAL(HAVE_LIBGLPK, [test x$gplk != x$gplk])
 else
-	AM_CONDITIONAL(HAVE_GLPK, [test x$a = xtrue])
-	AM_CONDITIONAL(HAVE_LIBGLPK, [test x$a = x$a])
+	AM_CONDITIONAL(HAVE_GLPK, [test x$gplk = xtrue])
+	AM_CONDITIONAL(HAVE_LIBGLPK, [test x$gplk = x$gplk])
 fi
 
 # test for kvm and kstat (for CPU stats under BSD/Solaris)
