@@ -421,6 +421,28 @@ core_notify(void* cls, size_t size, void* buf)
   return sent;
 }
 
+
+/**
+ * Ask the mesh to call "notify" once it is ready to transmit the
+ * given number of bytes to the specified "target".  If we are not yet
+ * connected to the specified peer, a call to this function will cause
+ * us to try to establish a connection.
+ *
+ * @param tunnel tunnel to use for transmission
+ * @param cork is corking allowed for this transmission?
+ * @param priority how important is the message?
+ * @param maxdelay how long can the message wait?
+ * @param target destination for the message, NULL for multicast to all tunnel targets 
+ * @param notify_size how many bytes of buffer space does notify want?
+ * @param notify function to call when buffer space is available;
+ *        will be called with NULL on timeout or if the overall queue
+ *        for this peer is larger than queue_size and this is currently
+ *        the message with the lowest priority
+ * @param notify_cls closure for notify
+ * @return non-NULL if the notify callback was queued,
+ *         NULL if we can not even queue the request (insufficient
+ *         memory); if NULL is returned, "notify" will NOT be called.
+ */
 struct GNUNET_MESH_TransmitHandle *
 GNUNET_MESH_notify_transmit_ready (struct
 				   GNUNET_MESH_Tunnel
@@ -430,6 +452,7 @@ GNUNET_MESH_notify_transmit_ready (struct
 				   struct
 				   GNUNET_TIME_Relative
 				   maxdelay,
+				   const struct GNUNET_PeerIdentity *target,
 				   size_t
 				   notify_size,
 				   GNUNET_CONNECTION_TransmitReadyNotify
