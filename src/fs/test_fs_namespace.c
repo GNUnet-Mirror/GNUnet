@@ -28,7 +28,7 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_fs_service.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define START_ARM GNUNET_YES
 
@@ -90,8 +90,6 @@ stop_arm (struct PeerContext *p)
   GNUNET_OS_process_close (p->arm_proc);
   p->arm_proc = NULL;
 #endif
-  if (GNUNET_SCHEDULER_NO_TASK  != kill_task)
-    GNUNET_SCHEDULER_cancel (kill_task);
   GNUNET_CONFIGURATION_destroy (p->cfg);
 }
 
@@ -107,6 +105,8 @@ abort_ksk_search_task (void *cls,
       if (sks_search == NULL)
 	{
 	  GNUNET_FS_stop (fs);
+	  if (GNUNET_SCHEDULER_NO_TASK  != kill_task)
+	    GNUNET_SCHEDULER_cancel (kill_task);
 	}
     }
 }
@@ -129,6 +129,8 @@ abort_sks_search_task (void *cls,
   if (ksk_search == NULL)
     {
       GNUNET_FS_stop (fs);
+      if (GNUNET_SCHEDULER_NO_TASK  != kill_task)
+	GNUNET_SCHEDULER_cancel (kill_task);
     }    
 }
 
