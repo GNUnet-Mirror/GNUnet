@@ -2815,6 +2815,7 @@ create_and_copy_friend_files(struct GNUNET_TESTING_PeerGroup *pg)
           GNUNET_asprintf (&arg, "%s/friends", temp_service_path);
           procarr[pg_iter] = GNUNET_OS_start_process (NULL, NULL, "mv", "mv",
                                                       mytemp, arg, NULL);
+          GNUNET_assert(procarr[pg_iter] != NULL);
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               _("Copying file with command cp %s %s\n"), mytemp, arg);
@@ -2836,7 +2837,7 @@ create_and_copy_friend_files(struct GNUNET_TESTING_PeerGroup *pg)
                              temp_service_path);
           procarr[pg_iter] = GNUNET_OS_start_process (NULL, NULL, "scp", "scp",
                                                       mytemp, arg, NULL);
-
+          GNUNET_assert(procarr[pg_iter] != NULL);
           ret = GNUNET_OS_process_wait (procarr[pg_iter]); /* FIXME: schedule this, throttle! */
           GNUNET_OS_process_close (procarr[pg_iter]);
           if (ret != GNUNET_OK)
@@ -3034,7 +3035,7 @@ create_and_copy_blacklist_files(struct GNUNET_TESTING_PeerGroup *pg,
                              temp_service_path);
           procarr[pg_iter] = GNUNET_OS_start_process (NULL, NULL, "scp", "scp",
                                                       mytemp, arg, NULL);
-
+          GNUNET_assert(procarr[pg_iter] != NULL);
           GNUNET_OS_process_wait (procarr[pg_iter]); /* FIXME: add scheduled blacklist file copy that parallelizes file copying! */
 
 #if VERBOSE_TESTING
@@ -5654,7 +5655,7 @@ start_peer_helper (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   /* FIXME: Doesn't support ssh_port option! */
   helper->proc = GNUNET_OS_start_process (NULL, NULL, "ssh", "ssh", arg,
                                   "peerStartHelper.pl", tempdir,  NULL);
-
+  GNUNET_assert(helper->proc != NULL);
   GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "starting peers with cmd ssh %s %s %s\n", arg, "peerStartHelper.pl", tempdir);
   GNUNET_SCHEDULER_add_now (&check_peers_started, helper);
   GNUNET_free (tempdir);
@@ -5875,6 +5876,7 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
       else
         proc = GNUNET_OS_start_process (NULL, NULL, "ssh", "ssh", arg,
                                         "mkdir -p", tmpdir, NULL);
+      GNUNET_assert(proc != NULL);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Creating remote dir with command ssh %s %s %s\n", arg,
                   " mkdir -p ", tmpdir);
@@ -5907,7 +5909,7 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
             fs = 0;
 
           GNUNET_log (
-                      GNUNET_ERROR_TYPE_WARNING,
+                      GNUNET_ERROR_TYPE_DEBUG,
                       "Found file size %llu for hostkeys, expect hostkeys to be size %d\n",
                       fs, HOSTKEYFILESIZE);
 
