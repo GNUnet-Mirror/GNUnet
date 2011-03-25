@@ -5557,10 +5557,18 @@ struct ATS_transports
 	double c_1;
 };
 
-#define FUNCTION ats_create_problem (int peers, int transports, double b_min, double b_max, double r, double R, const struct ATS_peer * pl, const struct ATS_transports * tl, int max_it, int max_dur)
 
 #if HAVE_LIBGLPK
-glp_prob * FUNCTION
+static glp_prob *
+ats_create_problem (int peers,
+		    int transports, 
+		    double b_min, 
+		    double b_max,
+		    double r, double R, 
+		    const struct ATS_peer * pl, 
+		    const struct ATS_transports * tl, 
+		    int max_it, 
+		    int max_dur)
 {
 	int result = GLP_UNDEF;
 	int c1, c2;
@@ -5764,9 +5772,18 @@ glp_prob * FUNCTION
 	return lp;
 }
 #else
-void * FUNCTION
+static void *
+ats_create_problem (int peers,
+		    int transports, 
+		    double b_min, 
+		    double b_max,
+		    double r, double R, 
+		    const struct ATS_peer * pl, 
+		    const struct ATS_transports * tl, 
+		    int max_it, 
+		    int max_dur)
 {
-
+  return NULL;
 }
 #endif
 
