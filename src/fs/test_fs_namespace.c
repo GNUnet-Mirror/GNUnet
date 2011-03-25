@@ -22,16 +22,13 @@
  * @file fs/test_fs_namespace.c
  * @brief Test for fs_namespace.c
  * @author Christian Grothoff
- *
- * TODO:
- * - add timeout task
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_fs_service.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define START_ARM GNUNET_YES
 
@@ -48,6 +45,8 @@ static struct GNUNET_FS_Handle *fs;
 static struct GNUNET_FS_SearchContext *sks_search;
 
 static struct GNUNET_FS_SearchContext *ksk_search;
+
+static GNUNET_SCHEDULER_TaskIdentifier kill_task;
 
 static int update_started;
 
@@ -91,6 +90,8 @@ stop_arm (struct PeerContext *p)
   GNUNET_OS_process_close (p->arm_proc);
   p->arm_proc = NULL;
 #endif
+  if (GNUNET_SCHEDULER_NO_TASK  != kill_task)
+    GNUNET_SCHEDULER_cancel (kill_task);
   GNUNET_CONFIGURATION_destroy (p->cfg);
 }
 
@@ -130,6 +131,19 @@ abort_sks_search_task (void *cls,
       GNUNET_FS_stop (fs);
     }    
 }
+
+
+static void
+do_timeout (void *cls,
+	    const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  fprintf (stderr,
+	   "Operation timed out\n");
+  kill_task = GNUNET_SCHEDULER_NO_TASK;
+  abort_sks_search_task (NULL, tc);
+  abort_ksk_search_task (NULL, tc);
+}
+
 
 
 static void *
@@ -370,6 +384,9 @@ testNamespace ()
 				 expiration,					   
 				 "root",
 				 &adv_cont, NULL);
+  kill_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+					    &do_timeout,
+					    NULL);
   GNUNET_FS_uri_destroy (ksk_uri);
   GNUNET_FS_namespace_delete (ns, GNUNET_NO);
   GNUNET_CONTAINER_meta_data_destroy (meta);

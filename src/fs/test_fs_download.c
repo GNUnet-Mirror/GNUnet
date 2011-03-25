@@ -150,7 +150,7 @@ progress_cb (void *cls,
 #endif      
       break;
     case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
-      printf ("Publishing complete, %llu kbps.\n",
+      printf ("Publishing complete, %llu kb/s.\n",
 	      (unsigned long long) (FILESIZE * 1000LL / (1+GNUNET_TIME_absolute_get_duration (start).rel_value) / 1024LL));
       GAUGER ("FS",
 	      "Publishing speed (insertion)",
@@ -171,7 +171,7 @@ progress_cb (void *cls,
       GNUNET_assert (download != NULL);
       break;
     case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
-      printf ("Download complete,  %llu kbps.\n",
+      printf ("Download complete,  %llu kb/s.\n",
 	      (unsigned long long) (FILESIZE * 1000LL / (1+GNUNET_TIME_absolute_get_duration (start).rel_value) / 1024LL));
       GAUGER ("FS",
 	      "Local download speed (inserted)",

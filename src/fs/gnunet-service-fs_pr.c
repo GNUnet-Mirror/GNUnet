@@ -958,7 +958,7 @@ process_local_reply (void *cls,
     {
 #if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "No further local repsonses available.\n");
+		  "No further local responses available.\n");
 #endif
       pr->qe = NULL;
       if (NULL != (cont = pr->llc_cont))
