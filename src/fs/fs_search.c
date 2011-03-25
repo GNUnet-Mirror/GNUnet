@@ -843,8 +843,14 @@ process_result (struct GNUNET_FS_SearchContext *sc,
       process_nblock (sc, data, size);
       break;
     case GNUNET_BLOCK_TYPE_ANY:
+      GNUNET_break (0);
+      break;
     case GNUNET_BLOCK_TYPE_FS_DBLOCK:
+      GNUNET_break (0);
+      break;
     case GNUNET_BLOCK_TYPE_FS_ONDEMAND:
+      GNUNET_break (0);
+      break;
     case GNUNET_BLOCK_TYPE_FS_IBLOCK:
       GNUNET_break (0);
       break;
