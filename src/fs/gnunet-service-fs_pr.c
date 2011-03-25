@@ -333,6 +333,7 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
 	  dpr->rh (dpr->rh_cls,
 		   dpr,
 		   GNUNET_TIME_UNIT_FOREVER_ABS,
+		   GNUNET_BLOCK_TYPE_ANY,
 		   NULL, 0);
 	  GSF_pending_request_cancel_ (dpr);
 	}
@@ -692,6 +693,7 @@ process_reply (void *cls,
       pr->rh (pr->rh_cls, 	      
 	      pr,
 	      prq->expiration,
+	      prq->type,
 	      prq->data, prq->size);
       return GNUNET_YES;
     case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
@@ -749,6 +751,7 @@ process_reply (void *cls,
   pr->rh (pr->rh_cls,
 	  pr, 
 	  prq->expiration,
+	  prq->type,
 	  prq->data, prq->size);
   return GNUNET_YES;
 }

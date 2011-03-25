@@ -560,6 +560,7 @@ copy_reply (void *cls,
  *            have liked an answer to the request
  * @param pr handle to the original pending request
  * @param expiration when does 'data' expire?
+ * @param type type of the block
  * @param data response data, NULL on request expiration
  * @param data_len number of bytes in data
  */
@@ -567,6 +568,7 @@ static void
 handle_p2p_reply (void *cls,
 		  struct GSF_PendingRequest *pr,
 		  struct GNUNET_TIME_Absolute expiration,
+		  enum GNUNET_BLOCK_Type type,
 		  const void *data,
 		  size_t data_len)
 {
@@ -588,6 +590,13 @@ handle_p2p_reply (void *cls,
 							  pr));
       return;
     }  
+  GNUNET_break (type != GNUNET_BLOCK_TYPE_ANY);
+  if ( (prd->type != type) &&
+       (prd->type != GNUNET_BLOCK_TYPE_ANY) )
+    {
+      GNUNET_break (0);
+      return;
+    }
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Transmitting result for query `%s'\n",
@@ -606,7 +615,7 @@ handle_p2p_reply (void *cls,
   pm = GNUNET_malloc (sizeof (msize));
   pm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_PUT);
   pm->header.size = htons (msize);
-  pm->type = htonl (prd->type);
+  pm->type = htonl (type);
   pm->expiration = GNUNET_TIME_absolute_hton (expiration);
   memcpy (&pm[1], data, data_len);
   (void) GSF_peer_transmit_ (cp, GNUNET_NO,
