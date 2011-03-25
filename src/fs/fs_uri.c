@@ -406,8 +406,9 @@ uri_chk_parse (const char *s, char **emsg)
   char h1[sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded)];
   char h2[sizeof(struct GNUNET_CRYPTO_HashAsciiEncoded)];
 
+  if (NULL == s)
+    return NULL;
   GNUNET_assert (s != NULL);
-
   slen = strlen (s);
   pos = strlen (GNUNET_FS_URI_CHK_PREFIX);
   if ( (slen < pos + 2 * sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) + 1) ||

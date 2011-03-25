@@ -173,6 +173,12 @@ run (void *cls,
   char *emsg;
   enum GNUNET_FS_DownloadOptions options;
 
+  if (NULL == args[0])
+    {
+      fprintf (stderr,
+	       _("You need to specify a URI argument.\n"));
+      return;
+    }
   uri = GNUNET_FS_uri_parse (args[0],
 			     &emsg);
   if (NULL == uri)

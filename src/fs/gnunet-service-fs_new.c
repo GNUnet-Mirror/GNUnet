@@ -418,6 +418,8 @@ shutdown_task (void *cls,
     }
   GNUNET_LOAD_value_free (datastore_get_load);
   datastore_get_load = NULL;
+  GNUNET_LOAD_value_free (GSF_rt_entry_lifetime);
+  GSF_rt_entry_lifetime = NULL;
 }
 
 
@@ -576,6 +578,7 @@ run (void *cls,
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
+  GSF_rt_entry_lifetime = GNUNET_LOAD_value_init (GNUNET_TIME_UNIT_FOREVER_REL);
   GSF_stats = GNUNET_STATISTICS_create ("fs", cfg);
   block_cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_CONFIGURATION_set_value_string (block_cfg,
