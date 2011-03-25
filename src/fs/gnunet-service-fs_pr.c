@@ -1034,10 +1034,21 @@ process_local_reply (void *cls,
     GSF_update_datastore_delay_ (pr->public_data.start_time);
   process_reply (&prq, key, pr);
   if (prq.finished == GNUNET_YES)
-    return;
+    {
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Request processing finished, not asking datastore for more\n");
+#endif
+      return;
+    }
   pr->local_result = prq.eval;
   if (pr->qe == NULL)
-    return; /* done here */
+    {
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Request cancelled, not asking datastore for more\n");
+#endif
+    }
   if (prq.eval == GNUNET_BLOCK_EVALUATION_OK_LAST)
     {
       GNUNET_DATASTORE_get_next (GSF_dsh, GNUNET_NO);

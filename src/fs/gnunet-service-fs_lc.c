@@ -232,12 +232,23 @@ client_response_handler (void *cls,
   pm->expiration = GNUNET_TIME_absolute_hton (expiration);
   memcpy (&pm[1], data, data_len);      
   GSF_local_client_transmit_ (lc, &pm->header);
-
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Queued reply to query `%s' for local client\n",
+	      GNUNET_h2s (&prd->query),
+	      (unsigned int) prd->type);
+#endif
   if (GNUNET_NO == more)		
     {
       GNUNET_CONTAINER_DLL_remove (lc->cr_head,
 				   lc->cr_tail,
 				   cr);
+      GNUNET_SERVER_receive_done (lc->client,
+				  GNUNET_OK);
+      GNUNET_STATISTICS_update (GSF_stats,
+				gettext_noop ("# client searches active"),
+				- 1,
+				GNUNET_NO);
       GNUNET_free (cr);
     }
 }
@@ -469,6 +480,10 @@ GSF_client_disconnect_handler_ (void *cls,
 				   pos->cr_tail,
 				   cr);
       GSF_pending_request_cancel_ (cr->pr);
+      GNUNET_STATISTICS_update (GSF_stats,
+				gettext_noop ("# client searches active"),
+				- 1,
+				GNUNET_NO);
       GNUNET_free (cr);
     }
   while (NULL != (res = pos->res_head))
