@@ -28,6 +28,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_fs_service.h"
+#include <gauger.h>
 
 #define VERBOSE GNUNET_NO
 
@@ -151,6 +152,10 @@ progress_cb (void *cls,
     case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
       printf ("Publishing complete, %llu kbps.\n",
 	      (unsigned long long) (FILESIZE * 1000LL / (1+GNUNET_TIME_absolute_get_duration (start).rel_value) / 1024LL));
+      GAUGER ("FS",
+	      "Publishing speed",
+	      (unsigned long long) (FILESIZE * 1000LL / (1+GNUNET_TIME_absolute_get_duration (start).rel_value) / 1024LL),
+	      "kb/s");      
       fn = GNUNET_DISK_mktemp ("gnunet-download-test-dst");
       start = GNUNET_TIME_absolute_get ();
       download = GNUNET_FS_download_start (fs,
@@ -168,6 +173,10 @@ progress_cb (void *cls,
     case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
       printf ("Download complete,  %llu kbps.\n",
 	      (unsigned long long) (FILESIZE * 1000LL / (1+GNUNET_TIME_absolute_get_duration (start).rel_value) / 1024LL));
+      GAUGER ("FS",
+	      "Local download speed",
+	      (unsigned long long) (FILESIZE * 1000LL / (1+GNUNET_TIME_absolute_get_duration (start).rel_value) / 1024LL),
+	      "kb/s");      
       GNUNET_SCHEDULER_add_now (&abort_download_task,
 				NULL);
       break;
