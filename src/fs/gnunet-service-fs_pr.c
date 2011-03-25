@@ -1080,7 +1080,9 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
   pr->llc_cont_cls = cont_cls;
   pr->qe = GNUNET_DATASTORE_get (GSF_dsh,
 				 &pr->public_data.query,
-				 pr->public_data.type,
+				 pr->public_data.type == GNUNET_BLOCK_TYPE_FS_DBLOCK 
+				 ? GNUNET_BLOCK_TYPE_ANY 
+				 : pr->public_data.type, 
 				 1 /* queue priority */,
 				 1 /* max queue size */,
 				 GNUNET_TIME_UNIT_FOREVER_REL,
