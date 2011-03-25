@@ -162,16 +162,12 @@ struct GSF_PendingRequestData
  * @param expiration when does 'data' expire?
  * @param data response data, NULL on request expiration
  * @param data_len number of bytes in data
- * @param more GNUNET_YES if the request remains active (may call
- *             this function again), GNUNET_NO if the request is
- *             finished (client must not call GSF_pending_request_cancel_)
  */
 typedef void (*GSF_PendingRequestReplyHandler)(void *cls,
 					       struct GSF_PendingRequest *pr,
 					       struct GNUNET_TIME_Absolute expiration,
 					       const void *data,
-					       size_t data_len,
-					       int more);
+					       size_t data_len);
 
 
 /**

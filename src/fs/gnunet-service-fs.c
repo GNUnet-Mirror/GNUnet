@@ -1297,7 +1297,7 @@ process_migration_content (void *cls,
       MIN_MIGRATION_CONTENT_LIFETIME.rel_value)
     {
       /* content will expire soon, don't bother */
-      GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
+      GNUNET_DATASTORE_get_next (dsh);
       return;
     }
   if (type == GNUNET_BLOCK_TYPE_FS_ONDEMAND)
@@ -1309,7 +1309,7 @@ process_migration_content (void *cls,
 					    &process_migration_content,
 					    NULL))
 	{
-	  GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
+	  GNUNET_DATASTORE_get_next (dsh);
 	}
       return;
     }
@@ -1333,7 +1333,7 @@ process_migration_content (void *cls,
   GNUNET_CONTAINER_multihashmap_iterate (connected_peers,
 					 &consider_migration,
 					 mb);
-  GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
+  GNUNET_DATASTORE_get_next (dsh);
 }
 
 
@@ -1344,7 +1344,7 @@ static void
 dht_put_continuation (void *cls,
 		      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
+  GNUNET_DATASTORE_get_next (dsh);
 }
 
 
@@ -3984,7 +3984,7 @@ process_local_reply (void *cls,
 					    pr))
       if (pr->qe != NULL)
 	{
-	  GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
+	  GNUNET_DATASTORE_get_next (dsh);
 	}
       return;
     }
@@ -4007,7 +4007,7 @@ process_local_reply (void *cls,
 			       -1, -1, 
 			       GNUNET_TIME_UNIT_FOREVER_REL,
 			       NULL, NULL);
-      GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
+      GNUNET_DATASTORE_get_next (dsh);
       return;
     }
   prq.type = type;
@@ -4026,7 +4026,7 @@ process_local_reply (void *cls,
   if (prq.eval == GNUNET_BLOCK_EVALUATION_OK_LAST)
     {
       pr->local_only = GNUNET_YES; /* do not forward */
-      GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
+      GNUNET_DATASTORE_get_next (dsh);
       return;
     }
   if ( (pr->client_request_list == NULL) &&
@@ -4041,10 +4041,10 @@ process_local_reply (void *cls,
 				gettext_noop ("# processing result set cut short due to load"),
 				1,
 				GNUNET_NO);
-      GNUNET_DATASTORE_get_next (dsh, GNUNET_NO);
+      GNUNET_DATASTORE_get_next (dsh);
       return;
     }
-  GNUNET_DATASTORE_get_next (dsh, GNUNET_YES);
+  GNUNET_DATASTORE_get_next (dsh);
 }
 
 

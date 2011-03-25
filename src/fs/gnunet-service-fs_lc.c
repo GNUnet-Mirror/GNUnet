@@ -192,17 +192,13 @@ GSF_local_client_lookup_ (struct GNUNET_SERVER_Client *client)
  * @param expiration when does 'data' expire?
  * @param data response data, NULL on request expiration
  * @param data_len number of bytes in data
- * @param more GNUNET_YES if the request remains active (may call
- *             this function again), GNUNET_NO if the request is
- *             finished (client must not call GSF_pending_request_cancel_)
  */
 static void
 client_response_handler (void *cls,
 			 struct GSF_PendingRequest *pr,
 			 struct GNUNET_TIME_Absolute expiration,
 			 const void *data,
-			 size_t data_len,
-			 int more)
+			 size_t data_len)
 {
   struct ClientRequest *cr = cls;
   struct GSF_LocalClient *lc;
@@ -214,7 +210,6 @@ client_response_handler (void *cls,
     {
       /* ugh, request 'timed out' -- how can this be? */
       GNUNET_break (0);
-      GNUNET_assert (GNUNET_NO == more);
       return;
     }
   GNUNET_STATISTICS_update (GSF_stats,
@@ -238,19 +233,6 @@ client_response_handler (void *cls,
 	      GNUNET_h2s (&prd->query),
 	      (unsigned int) prd->type);
 #endif
-  if (GNUNET_NO == more)		
-    {
-      GNUNET_CONTAINER_DLL_remove (lc->cr_head,
-				   lc->cr_tail,
-				   cr);
-      GNUNET_SERVER_receive_done (lc->client,
-				  GNUNET_OK);
-      GNUNET_STATISTICS_update (GSF_stats,
-				gettext_noop ("# client searches active"),
-				- 1,
-				GNUNET_NO);
-      GNUNET_free (cr);
-    }
 }
 
 

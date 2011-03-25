@@ -109,7 +109,7 @@ static void
 dht_put_continuation (void *cls,
 		      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_DATASTORE_get_next (GSF_dsh, GNUNET_YES);
+  GNUNET_DATASTORE_get_next (GSF_dsh);
 }
 
 

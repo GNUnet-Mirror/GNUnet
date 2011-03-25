@@ -333,8 +333,7 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
 	  dpr->rh (dpr->rh_cls,
 		   dpr,
 		   GNUNET_TIME_UNIT_FOREVER_ABS,
-		   NULL, 0,
-		   GNUNET_SYSERR);
+		   NULL, 0);
 	  GSF_pending_request_cancel_ (dpr);
 	}
     }
@@ -618,11 +617,6 @@ struct ProcessReplyClosure
   enum GNUNET_BLOCK_EvaluationResult eval;
 
   /**
-   * Did we finish processing the associated request?
-   */ 
-  int finished;
-
-  /**
    * Did we find a matching request?
    */
   int request_found;
@@ -698,11 +692,7 @@ process_reply (void *cls,
       pr->rh (pr->rh_cls, 	      
 	      pr,
 	      prq->expiration,
-	      prq->data, prq->size, 
-	      GNUNET_NO);
-      /* destroy request, we're done */
-      prq->finished = GNUNET_YES;
-      GSF_pending_request_cancel_ (pr);
+	      prq->data, prq->size);
       return GNUNET_YES;
     case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
       GNUNET_STATISTICS_update (GSF_stats,
@@ -759,8 +749,7 @@ process_reply (void *cls,
   pr->rh (pr->rh_cls,
 	  pr, 
 	  prq->expiration,
-	  prq->data, prq->size, 
-	  GNUNET_YES);
+	  prq->data, prq->size);
   return GNUNET_YES;
 }
 
@@ -958,13 +947,16 @@ process_local_reply (void *cls,
 {
   struct GSF_PendingRequest *pr = cls;
   GSF_LocalLookupContinuation cont;
-
   struct ProcessReplyClosure prq;
   GNUNET_HashCode query;
   unsigned int old_rf;
   
   if (NULL == key)
     {
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "No further local repsonses available.\n");
+#endif
       pr->qe = NULL;
       if (NULL != (cont = pr->llc_cont))
 	{
@@ -998,7 +990,7 @@ process_local_reply (void *cls,
 					    pr))
 	{
 	  if (pr->qe != NULL)
-	    GNUNET_DATASTORE_get_next (GSF_dsh, GNUNET_YES);	    
+	    GNUNET_DATASTORE_get_next (GSF_dsh);
 	}
       return;
     }
@@ -1021,26 +1013,17 @@ process_local_reply (void *cls,
 			       -1, -1, 
 			       GNUNET_TIME_UNIT_FOREVER_REL,
 			       NULL, NULL);
-      GNUNET_DATASTORE_get_next (GSF_dsh, GNUNET_YES);
+      GNUNET_DATASTORE_get_next (GSF_dsh);
       return;
     }
   prq.type = type;
   prq.priority = priority;  
-  prq.finished = GNUNET_NO;
   prq.request_found = GNUNET_NO;
   prq.anonymity_level = anonymity;
   if ( (old_rf == 0) &&
        (pr->public_data.results_found == 0) )
     GSF_update_datastore_delay_ (pr->public_data.start_time);
   process_reply (&prq, key, pr);
-  if (prq.finished == GNUNET_YES)
-    {
-#if DEBUG_FS
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Request processing finished, not asking datastore for more\n");
-#endif
-      return;
-    }
   pr->local_result = prq.eval;
   if (pr->qe == NULL)
     {
@@ -1048,11 +1031,6 @@ process_local_reply (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Request cancelled, not asking datastore for more\n");
 #endif
-    }
-  if (prq.eval == GNUNET_BLOCK_EVALUATION_OK_LAST)
-    {
-      GNUNET_DATASTORE_get_next (GSF_dsh, GNUNET_NO);
-      return;
     }
   if ( (0 == (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.options)) &&
        ( (GNUNET_YES == GSF_test_get_load_too_high_ (0)) ||
@@ -1066,10 +1044,18 @@ process_local_reply (void *cls,
 				gettext_noop ("# processing result set cut short due to load"),
 				1,
 				GNUNET_NO);
-      GNUNET_DATASTORE_get_next (GSF_dsh, GNUNET_NO);
+      GNUNET_DATASTORE_cancel (pr->qe);
+      pr->qe = NULL;
+      if (NULL != (cont = pr->llc_cont))
+	{
+	  pr->llc_cont = NULL;
+	  cont (pr->llc_cont_cls,
+		pr,
+		pr->local_result);
+	}
       return;
     }
-  GNUNET_DATASTORE_get_next (GSF_dsh, GNUNET_YES);
+  GNUNET_DATASTORE_get_next (GSF_dsh);
 }
 
 
@@ -1162,7 +1148,6 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
   prq.expiration = expiration;
   prq.priority = 0;
   prq.anonymity_level = 1;
-  prq.finished = GNUNET_NO;
   prq.request_found = GNUNET_NO;
   GNUNET_CONTAINER_multihashmap_get_multiple (pr_map,
 					      &query,

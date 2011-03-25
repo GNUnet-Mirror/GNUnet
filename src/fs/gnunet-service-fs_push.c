@@ -479,7 +479,7 @@ process_migration_content (void *cls,
       MIN_MIGRATION_CONTENT_LIFETIME.rel_value)
     {
       /* content will expire soon, don't bother */
-      GNUNET_DATASTORE_get_next (GSF_dsh, GNUNET_YES);
+      GNUNET_DATASTORE_get_next (GSF_dsh);
       return;
     }
   if (type == GNUNET_BLOCK_TYPE_FS_ONDEMAND)
@@ -491,7 +491,7 @@ process_migration_content (void *cls,
 					    &process_migration_content,
 					    NULL))
 	{
-	  GNUNET_DATASTORE_get_next (GSF_dsh, GNUNET_YES);
+	  GNUNET_DATASTORE_get_next (GSF_dsh);
 	}
       return;
     }
@@ -522,7 +522,7 @@ process_migration_content (void *cls,
 	}
       pos = pos->next;
     }
-  GNUNET_DATASTORE_get_next (GSF_dsh, GNUNET_YES);
+  GNUNET_DATASTORE_get_next (GSF_dsh);
 }
 
 
