@@ -33,7 +33,8 @@
 /* Minimum time between to calculations*/
 #define ATS_MIN_INTERVAL  GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 250)
 #define ATS_EXEC_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1)
-#define ATS_MAX_EXEC_DURATION GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 500)
+#define ATS_MAX_EXEC_DURATION GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 500)
+#define ATS_MAX_ITERATIONS INT_MAX
 
 struct ATS_info
 {
@@ -54,6 +55,10 @@ struct ATS_info
 	 * Maximum execution time per calculation
 	 */
 	struct GNUNET_TIME_Relative max_exec_duration;
+	/**
+	 * Maximum number of LP iterations per calculation
+	 */
+	int max_iterations;
 
 	GNUNET_SCHEDULER_TaskIdentifier ats_task;
 };

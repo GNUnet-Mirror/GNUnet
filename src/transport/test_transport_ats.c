@@ -136,7 +136,7 @@ static void
 end_badly ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transports!\n");
-  GNUNET_break (0);
+  //GNUNET_break (0);
   GNUNET_TRANSPORT_disconnect (p1.th);
   //GNUNET_TRANSPORT_disconnect (p2.th);
   ok = 1;
