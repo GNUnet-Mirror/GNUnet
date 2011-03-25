@@ -1197,11 +1197,12 @@ process_result_message (void *cls,
   if (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END) 
     {
       GNUNET_break (ntohs(msg->size) == sizeof(struct GNUNET_MessageHeader));
+      free_queue_entry (qe);
 #if DEBUG_DATASTORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Received end of result set\n");
+		  "Received end of result set, new queue size is %u\n",
+		  h->queue_size);
 #endif
-      free_queue_entry (qe);
       if (rc.iter != NULL)
 	rc.iter (rc.iter_cls,
 		 NULL, 0, NULL, 0, 0, 0, 
@@ -1247,7 +1248,7 @@ process_result_message (void *cls,
 	  do_disconnect (h);	  
 	  return;
 	}
-      GNUNET_DATASTORE_get_next (h, GNUNET_NO);
+      GNUNET_DATASTORE_get_next (h);
       return;
     }
   dm = (const struct DataMessage*) msg;
@@ -1473,26 +1474,13 @@ GNUNET_DATASTORE_get (struct GNUNET_DATASTORE_Handle *h,
  * from the datastore.
  * 
  * @param h handle to the datastore
- * @param more GNUNET_YES to get moxre results, GNUNET_NO to abort
- *        iteration (with a final call to "iter" with key/data == NULL).
  */
 void 
-GNUNET_DATASTORE_get_next (struct GNUNET_DATASTORE_Handle *h,
-			   int more)
+GNUNET_DATASTORE_get_next (struct GNUNET_DATASTORE_Handle *h)
 {
   struct GNUNET_DATASTORE_QueueEntry *qe = h->queue_head;
-  struct ResultContext rc = qe->qc.rc;
 
   GNUNET_assert (&process_result_message == qe->response_proc);
-  if (GNUNET_YES != more)
-    {
-      qe->qc.rc.iter = NULL;
-      qe->qc.rc.iter_cls = NULL;
-      if (rc.iter != NULL)
-	rc.iter (rc.iter_cls,
-		 NULL, 0, NULL, 0, 0, 0, 
-		 GNUNET_TIME_UNIT_ZERO_ABS, 0);	
-    }
   h->in_receive = GNUNET_YES;
   GNUNET_CLIENT_receive (h->client,
 			 qe->response_proc,
@@ -1511,7 +1499,6 @@ void
 GNUNET_DATASTORE_cancel (struct GNUNET_DATASTORE_QueueEntry *qe)
 {
   struct GNUNET_DATASTORE_Handle *h;
-  int reconnect;
 
   h = qe->h;
 #if DEBUG_DATASTORE
@@ -1521,19 +1508,11 @@ GNUNET_DATASTORE_cancel (struct GNUNET_DATASTORE_QueueEntry *qe)
 	       qe->was_transmitted,
 	       h->queue_head == qe);
 #endif
-  reconnect = GNUNET_NO;
   if (GNUNET_YES == qe->was_transmitted) 
     {
-      if (qe->response_proc == &process_result_message)	
-	{
-	  qe->qc.rc.iter = NULL;    
-	  if (GNUNET_YES != h->in_receive)
-	    GNUNET_DATASTORE_get_next (h, GNUNET_YES);
-	}
-      else
-	{
-	  qe->qc.sc.cont = NULL;
-	}
+      free_queue_entry (qe);
+      h->retry_time = GNUNET_TIME_UNIT_ZERO;
+      do_disconnect (h);
       return;
     }
   free_queue_entry (qe);

@@ -223,13 +223,13 @@ delete_value (void *cls,
   stored_ops++;
   if (stored_bytes < MAX_SIZE)
     {
-      GNUNET_DATASTORE_get_next (datastore, GNUNET_YES);
+      GNUNET_DATASTORE_get_next (datastore);
       return;     
     }
   crc->key = *key;
   crc->esize = size;
   memcpy (crc->data, data, size);
-  GNUNET_DATASTORE_get_next (datastore, GNUNET_YES);
+  GNUNET_DATASTORE_get_next (datastore);
 }
 
 

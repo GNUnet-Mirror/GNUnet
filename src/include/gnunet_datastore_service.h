@@ -317,12 +317,9 @@ GNUNET_DATASTORE_get (struct GNUNET_DATASTORE_Handle *h,
  * from the datastore.
  * 
  * @param h handle to the datastore
- * @param more GNUNET_YES to get moxre results, GNUNET_NO to abort
- *        iteration (with a final call to "iter" with key/data == NULL).
  */
 void
-GNUNET_DATASTORE_get_next (struct GNUNET_DATASTORE_Handle *h,
-			   int more);
+GNUNET_DATASTORE_get_next (struct GNUNET_DATASTORE_Handle *h);
 
 
 /**
