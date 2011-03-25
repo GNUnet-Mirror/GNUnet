@@ -1083,8 +1083,12 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
 				 pr->public_data.type == GNUNET_BLOCK_TYPE_FS_DBLOCK 
 				 ? GNUNET_BLOCK_TYPE_ANY 
 				 : pr->public_data.type, 
-				 1 /* queue priority */,
-				 1 /* max queue size */,
+				 (0 != (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.options))
+				 ? UINT_MAX
+				 : 1 /* queue priority */,
+				 (0 != (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.options))
+				 ? UINT_MAX
+				 : 1 /* max queue size */,
 				 GNUNET_TIME_UNIT_FOREVER_REL,
 				 &process_local_reply,
 				 pr);
