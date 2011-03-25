@@ -33,6 +33,8 @@
 #include "gnunet_block_lib.h"
 #include "fs.h"
 
+#define DEBUG_FS GNUNET_YES
+
 
 /**
  * Should we introduce random latency in processing?  Required for proper

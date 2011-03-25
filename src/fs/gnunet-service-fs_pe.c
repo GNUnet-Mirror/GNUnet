@@ -24,6 +24,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#include "gnunet-service-fs.h"
 #include "gnunet-service-fs_cp.h"
 #include "gnunet-service-fs_pe.h"
 #include "gnunet-service-fs_pr.h"

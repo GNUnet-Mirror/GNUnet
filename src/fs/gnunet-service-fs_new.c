@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -28,7 +28,7 @@
  * - GSF_plan_size_ (?)
  * - GSF_plan_notify_request_done (!)
  * - consider re-issue GSF_dht_lookup_ after non-DHT reply received 
- *
+ * - implement 'SUPPORT_DELAYS'
  *
  */
 #include "platform.h"
@@ -52,8 +52,6 @@
 #include "gnunet-service-fs_push.h"
 #include "gnunet-service-fs_put.h"
 #include "fs.h"
-
-#define DEBUG_FS GNUNET_YES
 
 /**
  * Size for the hash map for DHT requests from the FS
@@ -416,6 +414,7 @@ shutdown_task (void *cls,
       GNUNET_SCHEDULER_cancel (cover_age_task);
       cover_age_task = GNUNET_SCHEDULER_NO_TASK;
     }
+  GNUNET_FS_indexing_done ();
   GNUNET_LOAD_value_free (datastore_get_load);
   datastore_get_load = NULL;
   GNUNET_LOAD_value_free (GSF_rt_entry_lifetime);

@@ -25,6 +25,7 @@
  */
 #include "platform.h"
 #include "gnunet_load_lib.h"
+#include "gnunet-service-fs.h"
 #include "gnunet-service-fs_cp.h"
 #include "gnunet-service-fs_indexing.h"
 #include "gnunet-service-fs_pr.h"
@@ -861,7 +862,7 @@ handle_dht_reply (void *cls,
 #if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Replicating result for query `%s' with priority %u\n",
-		  GNUNET_h2s (&query),
+		  GNUNET_h2s (key),
 		  prq.priority);
 #endif
       start = GNUNET_malloc (sizeof (struct GNUNET_TIME_Absolute));

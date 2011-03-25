@@ -31,10 +31,9 @@
 #include "gnunet_protocols.h"
 #include "gnunet_signatures.h"
 #include "gnunet_util_lib.h"
+#include "gnunet-service-fs.h"
 #include "gnunet-service-fs_indexing.h"
 #include "fs.h"
-
-#define DEBUG_FS GNUNET_NO
 
 /**
  * In-memory information about indexed files (also available
@@ -681,14 +680,10 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
 
 
 /**
- * Task run during shutdown.
- *
- * @param cls unused
- * @param tc unused
+ * Shutdown the module.
  */
-static void
-shutdown_task (void *cls,
-	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+void
+GNUNET_FS_indexing_done ()
 {
   struct IndexInfo *pos;  
 
@@ -718,9 +713,6 @@ GNUNET_FS_indexing_init (const struct GNUNET_CONFIGURATION_Handle *c,
   cfg = c;
   dsh = d;
   ifm = GNUNET_CONTAINER_multihashmap_create (128);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&shutdown_task,
-				NULL);
   read_index_list ();
   return GNUNET_OK;
 }

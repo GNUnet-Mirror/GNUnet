@@ -596,7 +596,7 @@ handle_p2p_reply (void *cls,
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Transmitting result for query `%s'\n",
-	      GNUNET_h2s (key));
+	      GNUNET_h2s (&prd->query));
 #endif  
   GNUNET_STATISTICS_update (GSF_stats,
 			    gettext_noop ("# replies received for other peers"),
@@ -1636,6 +1636,8 @@ clean_local_client (void *cls,
 void
 GSF_handle_local_client_disconnect_ (const struct GSF_LocalClient *lc)
 {
+  if (NULL == cp_map)
+    return; /* already cleaned up */
   GNUNET_CONTAINER_multihashmap_iterate (cp_map,
 					 &clean_local_client,
 					 (void*) lc);

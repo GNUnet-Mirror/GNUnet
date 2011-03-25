@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -115,6 +115,13 @@ GNUNET_FS_handle_unindex (void *cls,
 int
 GNUNET_FS_indexing_init (const struct GNUNET_CONFIGURATION_Handle *c,
 			 struct GNUNET_DATASTORE_Handle *d);
+
+
+/**
+ * Shutdown the module.
+ */
+void
+GNUNET_FS_indexing_done (void);
 
 
 #endif

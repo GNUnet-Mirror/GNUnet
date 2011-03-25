@@ -25,6 +25,7 @@
  */
 
 #include "platform.h"
+#include "gnunet-service-fs.h"
 #include "gnunet-service-fs_lc.h"
 #include "gnunet-service-fs_cp.h"
 #include "gnunet-service-fs_pr.h"
