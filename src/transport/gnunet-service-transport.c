@@ -48,8 +48,8 @@
 
 #define DEBUG_TRANSPORT_HELLO GNUNET_YES
 
-#define DEBUG_ATS GNUNET_YES
-#define VERBOSE_ATS GNUNET_YES
+#define DEBUG_ATS GNUNET_NO
+#define VERBOSE_ATS GNUNET_NO
 
 /**
  * Should we do some additional checks (to validate behavior
@@ -5711,8 +5711,10 @@ ats_create_problem (int peers,
 	glp_load_matrix(lp, rows * cols, ia, ja, ar);
 
 	/* Solve the MLP problem */
+
 	if (mlp == GNUNET_YES)
 	{
+#if 0
 		glp_iocp opt;
 		glp_init_iocp(&opt);
 
@@ -5726,6 +5728,7 @@ ats_create_problem (int peers,
 		else
 			opt.msg_lev = GLP_MSG_OFF;
 		result = glp_intopt(lp, &opt);
+#endif
 	}
 	/* Solve the LP problem */
 	{
@@ -5736,7 +5739,7 @@ ats_create_problem (int peers,
 		opt.it_lim = max_it;
 		/* maximum duration */
 		opt.tm_lim = max_dur;
-		opt.presolve =GLP_ON;
+		opt.presolve = GLP_ON;
 		/* output level */
 		if (VERBOSE_ATS)
 			opt.msg_lev = GLP_MSG_ALL;
