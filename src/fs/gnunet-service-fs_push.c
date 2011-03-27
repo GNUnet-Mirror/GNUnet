@@ -226,6 +226,11 @@ transmit_message (void *cls,
   GNUNET_assert (msize <= buf_size);
   memcpy (buf, msg, msize);
   GNUNET_free (msg);
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Pushing %u bytes to another peer\n",
+	      msize);
+#endif
   find_content (peer);
   return msize;
 }
@@ -254,7 +259,7 @@ transmit_content (struct MigrationReadyPeer *peer,
   msg = GNUNET_malloc (msize);
   msg->header.type = htons (42);
   msg->header.size = htons (msize);
-  
+  GNUNET_break (0);
   memcpy (&msg[1],
 	  &block[1],
 	  block->size);
@@ -375,7 +380,17 @@ find_content (struct MigrationReadyPeer *mrp)
   if (NULL == best) 
     {
       if (mig_size < MAX_MIGRATION_QUEUE)
-	return; /* will fill up eventually... */
+	{
+#if DEBUG_FS
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "No content found for pushing, waiting for queue to fill\n");
+#endif
+	  return; /* will fill up eventually... */
+	}
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "No suitable content found, purging content from full queue\n");
+#endif
       /* failed to find migration target AND
 	 queue is full, purge most-forwarded
 	 block from queue to make room for more */
@@ -392,10 +407,14 @@ find_content (struct MigrationReadyPeer *mrp)
 	  pos = pos->next;
 	}
       GNUNET_assert (NULL != best);
-      delete_migration_block (best);      
+      delete_migration_block (best);
       consider_gathering ();
       return;
     }
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Preparing to push best content to peer\n");
+#endif
   transmit_content (mrp, best);
 }
 
@@ -517,6 +536,10 @@ process_migration_content (void *cls,
     {
       if (NULL == pos->th)
 	{
+#if DEBUG_FS
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Preparing to push best content to peer\n");
+#endif
 	  if (GNUNET_YES == transmit_content (pos, mb))
 	    break; /* 'mb' was freed! */
 	}
