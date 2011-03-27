@@ -28,6 +28,7 @@
 #include "gnunet-service-fs.h"
 #include "gnunet-service-fs_cp.h"
 #include "gnunet-service-fs_indexing.h"
+#include "gnunet-service-fs_pe.h"
 #include "gnunet-service-fs_pr.h"
 
 
@@ -522,6 +523,7 @@ clean_request (void *cls,
 {
   struct GSF_PendingRequest *pr = value;
   
+  GSF_plan_notify_request_done_ (pr);
   GNUNET_free_non_null (pr->replies_seen);
   if (NULL != pr->bf)
     GNUNET_CONTAINER_bloomfilter_free (pr->bf);

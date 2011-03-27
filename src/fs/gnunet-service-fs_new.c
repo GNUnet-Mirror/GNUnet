@@ -26,7 +26,6 @@
  * To use:
  * - GSF_plan_get_ (!)
  * - GSF_plan_size_ (?)
- * - GSF_plan_notify_request_done (!)
  * - consider re-issue GSF_dht_lookup_ after non-DHT reply received 
  * - implement 'SUPPORT_DELAYS'
  *
