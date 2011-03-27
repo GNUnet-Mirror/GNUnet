@@ -153,9 +153,13 @@ struct GSF_ConnectedPeer
 
   /**
    * Context of our GNUNET_CORE_peer_change_preference call (or NULL).
-   * NULL if we have successfully reserved 32k, otherwise non-NULL.
    */
   struct GNUNET_CORE_InformationRequestContext *irc;
+
+  /**
+   * Task scheduled if we need to retry bandwidth reservation later.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier irc_delay_task;
 
   /**
    * Active requests from this neighbour.
@@ -189,6 +193,12 @@ struct GSF_ConnectedPeer
    * Current offset into 'last_request_times' ring buffer.
    */
   unsigned int last_request_times_off;
+
+  /**
+   * GNUNET_YES if we did successfully reserve 32k bandwidth,
+   * GNUNET_NO if not.
+   */
+  int did_reserve;
 
 };
 
@@ -340,32 +350,71 @@ core_reserve_callback (void *cls,
 		       struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
 		       int32_t amount,
 		       struct GNUNET_TIME_Relative res_delay,
+		       uint64_t preference);
+
+
+/**
+ * (re)try to reserve bandwidth from the given peer.
+ *
+ * @param cls the 'struct GSF_ConnectedPeer' to reserve from
+ * @param tc scheduler context
+ */
+static void
+retry_reservation (void *cls,
+		   const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GSF_ConnectedPeer *cp = cls;
+  uint64_t ip;
+  struct GNUNET_PeerIdentity target;
+
+  GNUNET_PEER_resolve (cp->ppd.pid,
+		       &target);
+  cp->irc_delay_task = GNUNET_SCHEDULER_NO_TASK;
+  ip = cp->inc_preference;
+  cp->inc_preference = 0;
+  cp->irc = GNUNET_CORE_peer_change_preference (GSF_core,
+						&target,
+						GNUNET_TIME_UNIT_FOREVER_REL,
+						GNUNET_BANDWIDTH_VALUE_MAX,
+						DBLOCK_SIZE,
+						ip,
+						&core_reserve_callback,
+						cp);
+}
+
+
+/**
+ * Function called by core upon success or failure of our bandwidth reservation request.
+ *
+ * @param cls the 'struct GSF_ConnectedPeer' of the peer for which we made the request
+ * @param peer identifies the peer
+ * @param bandwidth_out available amount of outbound bandwidth
+ * @param amount set to the amount that was actually reserved or unreserved;
+ *               either the full requested amount or zero (no partial reservations)
+ * @param res_delay if the reservation could not be satisfied (amount was 0), how
+ *        long should the client wait until re-trying?
+ * @param preference current traffic preference for the given peer
+ */
+static void
+core_reserve_callback (void *cls,
+		       const struct GNUNET_PeerIdentity *peer,
+		       struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+		       int32_t amount,
+		       struct GNUNET_TIME_Relative res_delay,
 		       uint64_t preference)
 {
   struct GSF_ConnectedPeer *cp = cls;
   struct GSF_PeerTransmitHandle *pth;
-  uint64_t ip;
 
   cp->irc = NULL;
   if (0 == amount)
     {
-      /* failed; retry! (how did we get here!?) */
-      /* FIXME: wait res_delay before re-trying! */
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Failed to reserve bandwidth to peer `%s'\n"),
-		  GNUNET_i2s (peer));
-      ip = cp->inc_preference;
-      cp->inc_preference = 0;
-      cp->irc = GNUNET_CORE_peer_change_preference (GSF_core,
-						    peer,
-						    GNUNET_TIME_UNIT_FOREVER_REL,
-						    GNUNET_BANDWIDTH_VALUE_MAX,
-						    DBLOCK_SIZE,
-						    ip,
-						    &core_reserve_callback,
-						    cp);
+      cp->irc_delay_task = GNUNET_SCHEDULER_add_delayed (res_delay,
+							 &retry_reservation,
+							 cp);
       return;
     }
+  cp->did_reserve = GNUNET_YES;
   pth = cp->pth_head;
   if ( (NULL != pth) &&
        (NULL == pth->cth) )
@@ -1089,8 +1138,9 @@ GSF_peer_transmit_ (struct GSF_ConnectedPeer *cp,
     {
       /* query, need reservation */
       cp->ppd.pending_queries++;
-      if (NULL == cp->irc)
+      if (GNUNET_YES == cp->did_reserve)
 	{
+	  cp->did_reserve = GNUNET_NO;
 	  /* reservation already done! */
 	  is_ready = GNUNET_YES;
 	  ip = cp->inc_preference;
@@ -1309,6 +1359,11 @@ GSF_peer_disconnect_handler_ (void *cls,
     {
       GNUNET_CORE_peer_change_preference_cancel (cp->irc);
       cp->irc = NULL;
+    }
+  if (GNUNET_SCHEDULER_NO_TASK != cp->irc_delay_task)
+    {
+      GNUNET_SCHEDULER_cancel (cp->irc_delay_task);
+      cp->irc_delay_task = GNUNET_SCHEDULER_NO_TASK;
     }
   GNUNET_CONTAINER_multihashmap_iterate (cp->request_map,
 					 &cancel_pending_request,
