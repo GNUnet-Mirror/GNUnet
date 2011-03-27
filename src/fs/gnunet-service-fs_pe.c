@@ -227,9 +227,9 @@ schedule_peer_transmission (void *cls,
 	  (GNUNET_TIME_absolute_get_remaining (rp->earliest_transmission).rel_value == 0) )
     {
       rp = GNUNET_CONTAINER_heap_remove_root (pp->delay_heap);
-      GNUNET_CONTAINER_heap_insert (pp->priority_heap,
-				    rp, 
-				    rp->priority);					
+      rp->hn = GNUNET_CONTAINER_heap_insert (pp->priority_heap,
+					     rp, 
+					     rp->priority);					
       if (NULL == (rp = GNUNET_CONTAINER_heap_peek (pp->delay_heap)))
 	break;
     }   
