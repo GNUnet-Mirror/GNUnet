@@ -2658,6 +2658,8 @@ refresh_bloomfilter (struct PendingRequest *pr)
  * @param peer identifies the peer
  * @param bpm_out set to the current bandwidth limit (sending) for this peer
  * @param amount set to the amount that was actually reserved or unreserved
+ * @param res_delay if the reservation could not be satisfied (amount was 0), how
+ *        long should the client wait until re-trying?
  * @param preference current traffic preference for the given peer
  */
 static void
@@ -2665,7 +2667,8 @@ target_reservation_cb (void *cls,
 		       const struct
 		       GNUNET_PeerIdentity * peer,
 		       struct GNUNET_BANDWIDTH_Value32NBO bpm_out,
-		       int amount,
+		       int32_t amount,
+		       struct GNUNET_TIME_Relative res_delay,
 		       uint64_t preference)
 {
   struct PendingRequest *pr = cls;
@@ -3175,7 +3178,9 @@ forward_request_task (void *cls,
       /* force forwarding */
       static struct GNUNET_BANDWIDTH_Value32NBO zerobw;
       target_reservation_cb (pr, &psc.target,
-			     zerobw, 0, 0.0);
+			     zerobw, 0, 
+			     GNUNET_TIME_UNIT_FOREVER_REL,
+			     0.0);
     }
 }
 

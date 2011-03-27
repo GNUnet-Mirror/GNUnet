@@ -77,7 +77,7 @@ typedef void (*GNUNET_CORE_ConnectEventHandler) (void *cls,
  */
 typedef void (*GNUNET_CORE_PeerStatusEventHandler) (void *cls,
 						    const struct
-						    GNUNET_PeerIdentity * peer,
+						    GNUNET_PeerIdentity *peer,
 						    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
 						    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
 						    struct GNUNET_TIME_Absolute timeout,
@@ -298,14 +298,17 @@ GNUNET_CORE_peer_request_connect_cancel (struct GNUNET_CORE_PeerRequestHandle *r
  * @param bandwidth_out available amount of outbound bandwidth
  * @param amount set to the amount that was actually reserved or unreserved;
  *               either the full requested amount or zero (no partial reservations)
+ * @param res_delay if the reservation could not be satisfied (amount was 0), how
+ *        long should the client wait until re-trying?
  * @param preference current traffic preference for the given peer
  */
 typedef void
   (*GNUNET_CORE_PeerConfigurationInfoCallback) (void *cls,
                                                 const struct
-                                                GNUNET_PeerIdentity * peer,
+                                                GNUNET_PeerIdentity *peer,
 						struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-						int amount,
+						int32_t amount,
+						struct GNUNET_TIME_Relative res_delay,
                                                 uint64_t preference);
 
 

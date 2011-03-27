@@ -1571,6 +1571,7 @@ handle_client_request_info (void *cls,
   int32_t want_reserv;
   int32_t got_reserv;
   unsigned long long old_preference;
+  struct GNUNET_TIME_Relative rdelay;
 
 #if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1621,8 +1622,9 @@ handle_client_request_info (void *cls,
         }
       else if (want_reserv > 0)
         {
-	  if (GNUNET_BANDWIDTH_tracker_get_delay (&n->available_recv_window,
-						  want_reserv).rel_value == 0)
+	  rdelay = GNUNET_BANDWIDTH_tracker_get_delay (&n->available_recv_window,
+						       want_reserv);
+	  if (rdelay.rel_value == 0)
 	    got_reserv = want_reserv;
 	  else
             got_reserv = 0; /* all or nothing */
@@ -1647,6 +1649,7 @@ handle_client_request_info (void *cls,
 		  (int) got_reserv);
 #endif
       cim.reserved_amount = htonl (got_reserv);
+      cim.reserve_delay = GNUNET_TIME_relative_hton (rdelay);
       cim.rim_id = rcm->rim_id;
       cim.bw_out = n->bw_out;
       cim.preference = n->current_preference;

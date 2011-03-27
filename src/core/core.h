@@ -301,6 +301,13 @@ struct ConfigurationInfoMessage
   int32_t reserved_amount GNUNET_PACKED;
 
   /**
+   * If the reservation request could not be satisfied (reserved_amount
+   * was zero), how long should the client wait until retrying? 0 if
+   * bandwidth was reserved.
+   */
+  struct GNUNET_TIME_RelativeNBO reserve_delay;
+
+  /**
    * Unique request ID.
    */
   uint32_t rim_id GNUNET_PACKED;

@@ -330,13 +330,16 @@ peer_transmit_ready_cb (void *cls,
  * @param bandwidth_out available amount of outbound bandwidth
  * @param amount set to the amount that was actually reserved or unreserved;
  *               either the full requested amount or zero (no partial reservations)
+ * @param res_delay if the reservation could not be satisfied (amount was 0), how
+ *        long should the client wait until re-trying?
  * @param preference current traffic preference for the given peer
  */
 static void
 core_reserve_callback (void *cls,
 		       const struct GNUNET_PeerIdentity *peer,
 		       struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-		       int amount,
+		       int32_t amount,
+		       struct GNUNET_TIME_Relative res_delay,
 		       uint64_t preference)
 {
   struct GSF_ConnectedPeer *cp = cls;
@@ -347,6 +350,7 @@ core_reserve_callback (void *cls,
   if (0 == amount)
     {
       /* failed; retry! (how did we get here!?) */
+      /* FIXME: wait res_delay before re-trying! */
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Failed to reserve bandwidth to peer `%s'\n"),
 		  GNUNET_i2s (peer));

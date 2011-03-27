@@ -1372,9 +1372,13 @@ process_notify (struct GNUNET_CONNECTION_Handle *sock)
  * expired).
  *
  * This task notifies the client about the timeout.
+ *
+ * @param cls the 'struct GNUNET_CONNECTION_Handle'
+ * @param tc scheduler context
  */
 static void
-transmit_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+transmit_timeout (void *cls, 
+		  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CONNECTION_Handle *sock = cls;
   GNUNET_CONNECTION_TransmitReadyNotify notify;
@@ -1403,15 +1407,23 @@ transmit_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * at the time of being asked to transmit.
  *
  * This task notifies the client about the error.
+ *
+ * @param cls the 'struct GNUNET_CONNECTION_Handle'
+ * @param tc scheduler context
  */
 static void
-connect_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+connect_error (void *cls, 
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CONNECTION_Handle *sock = cls;
   GNUNET_CONNECTION_TransmitReadyNotify notify;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmission request of size %u fails, connection failed (%p).\n",
-              sock->nth.notify_size, sock);
+              "Transmission request of size %u fails (%s/%u), connection failed (%p).\n",
+              sock->nth.notify_size, 
+	      sock->hostname,
+	      sock->port,
+	      sock);
 #if DEBUG_CONNECTION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transmission request of size %u fails, connection failed (%p).\n",
@@ -1424,6 +1436,11 @@ connect_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+/**
+ * FIXME
+ *
+ * @param sock FIXME
+ */
 static void
 transmit_error (struct GNUNET_CONNECTION_Handle *sock)
 {

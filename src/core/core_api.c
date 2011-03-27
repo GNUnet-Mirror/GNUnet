@@ -422,7 +422,9 @@ disconnect_and_free_peer_entry (void *cls,
       pcic (pr->pcic_cls,
 	    &pr->peer,
 	    zero,
-	    0, 0);
+	    0, 
+	    GNUNET_TIME_UNIT_FOREVER_REL,
+	    0);
     }
   if (pr->timeout_task != GNUNET_SCHEDULER_NO_TASK)
     {
@@ -1252,6 +1254,7 @@ main_notify_handler (void *cls,
 	      &pr->peer,
 	      cim->bw_out,
 	      ntohl (cim->reserved_amount),
+	      GNUNET_TIME_relative_ntoh (cim->reserve_delay),
 	      GNUNET_ntohll (cim->preference));
       break;
     default:
@@ -1810,16 +1813,6 @@ struct GNUNET_CORE_InformationRequestContext
   struct GNUNET_CORE_Handle *h;
 
   /**
-   * Function to call with the information.
-   */
-  GNUNET_CORE_PeerConfigurationInfoCallback info;
-
-  /**
-   * Closure for info.
-   */
-  void *info_cls;
-
-  /**
    * Link to control message, NULL if CM was sent.
    */ 
   struct ControlMessage *cm;
@@ -1903,8 +1896,6 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
   irc = GNUNET_malloc (sizeof (struct GNUNET_CORE_InformationRequestContext));
   irc->h = h;
   irc->pr = pr;
-  irc->info = info;
-  irc->info_cls = info_cls;
   cm = GNUNET_malloc (sizeof (struct ControlMessage) +
 		      sizeof (struct RequestInfoMessage));
   cm->cont = &change_preference_send_continuation;

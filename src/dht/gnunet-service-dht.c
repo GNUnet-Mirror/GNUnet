@@ -1466,13 +1466,17 @@ update_core_preference (void *cls,
  * @param bpm_out set to the current bandwidth limit (sending) for this peer
  * @param amount set to the amount that was actually reserved or unreserved;
  *               either the full requested amount or zero (no partial reservations)
+ * @param res_delay if the reservation could not be satisfied (amount was 0), how
+ *        long should the client wait until re-trying?
  * @param preference current traffic preference for the given peer
  */
 static void
 update_core_preference_finish (void *cls,
                                const struct GNUNET_PeerIdentity *peer,
                                struct GNUNET_BANDWIDTH_Value32NBO bpm_out,
-                               int amount, uint64_t preference)
+                               int32_t amount, 
+			       struct GNUNET_TIME_Relative res_delay,
+			       uint64_t preference)
 {
   struct PeerInfo *peer_info = cls;
   peer_info->info_ctx = NULL;
