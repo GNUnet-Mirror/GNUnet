@@ -56,6 +56,14 @@
 #define SUPPORT_DELAYS GNUNET_NO
 
 
+/**
+ * At what frequency should our datastore load decrease
+ * automatically (since if we don't use it, clearly the
+ * load must be going down).
+ */
+#define DATASTORE_LOAD_AUTODECLINE GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250)
+
+
 
 /**
  * A connected peer.

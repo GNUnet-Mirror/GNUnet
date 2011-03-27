@@ -24,8 +24,6 @@
  * @author Christian Grothoff
  *
  * To use:
- * - GSF_plan_get_ (!)
- * - GSF_plan_size_ (?)
  * - consider re-issue GSF_dht_lookup_ after non-DHT reply received 
  * - implement 'SUPPORT_DELAYS'
  *
@@ -66,13 +64,6 @@
  * decremented by 1/16th.
  */
 #define COVER_AGE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
-
-/**
- * At what frequency should our datastore load decrease
- * automatically (since if we don't use it, clearly the
- * load must be going down).
- */
-#define DATASTORE_LOAD_AUTODECLINE GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250)
 
 
 /* ****************************** globals ****************************** */

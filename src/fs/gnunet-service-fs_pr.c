@@ -1189,6 +1189,16 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
 			    &put_migration_continuation, 
 			    start);
     }
+  else
+    {
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Choosing not to keep content `%s' (%d/%d)\n",
+		  GNUNET_h2s (&query),
+		  active_to_migration,
+		  test_put_load_too_high (prq.priority));
+#endif
+    }
   putl = GNUNET_LOAD_get_load (datastore_put_load);
   if ( (NULL != (cp = prq.sender)) &&
        (GNUNET_NO == prq.request_found) &&
@@ -1201,7 +1211,7 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
 						  5000 + GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
 										   (unsigned int) (60000 * putl * putl)));
       GSF_block_peer_migration_ (cp, block_time);
-    }
+    }  
   return GNUNET_OK;
 }
 
@@ -1222,6 +1232,7 @@ GSF_pending_request_init_ ()
 		  _("Configuration fails to specify `%s', assuming default value."),
 		  "MAX_PENDING_REQUESTS");
     }
+  datastore_put_load = GNUNET_LOAD_value_init (DATASTORE_LOAD_AUTODECLINE);
   pr_map = GNUNET_CONTAINER_multihashmap_create (32 * 1024);
   requests_by_expiration_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN); 
 }
@@ -1240,6 +1251,8 @@ GSF_pending_request_done_ ()
   pr_map = NULL;
   GNUNET_CONTAINER_heap_destroy (requests_by_expiration_heap);
   requests_by_expiration_heap = NULL;
+  GNUNET_LOAD_value_free (datastore_put_load);
+  datastore_put_load = NULL;
 }
 
 

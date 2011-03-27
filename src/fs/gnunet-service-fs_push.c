@@ -219,6 +219,10 @@ transmit_message (void *cls,
   peer->msg = NULL;
   if (buf == NULL)
     {
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Failed to migrate content to another peer (disconnect)\n");
+#endif
       GNUNET_free (msg);
       return 0;
     }
@@ -257,9 +261,10 @@ transmit_content (struct MigrationReadyPeer *peer,
   GNUNET_assert (NULL == peer->th);
   msize = sizeof (struct PutMessage) + block->size;
   msg = GNUNET_malloc (msize);
-  msg->header.type = htons (42);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_FS_PUT);
   msg->header.size = htons (msize);
-  GNUNET_break (0);
+  msg->type = htonl (block->type);
+  msg->expiration = GNUNET_TIME_absolute_hton (block->expiration);
   memcpy (&msg[1],
 	  &block[1],
 	  block->size);
@@ -282,6 +287,11 @@ transmit_content (struct MigrationReadyPeer *peer,
     {
       ret = GNUNET_NO;
     }
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Asking for transmission of %u bytes for migration\n",
+	      msize);
+#endif
   peer->th = GSF_peer_transmit_ (peer->peer,
 				 GNUNET_NO,
 				 0 /* priority */,

@@ -324,9 +324,9 @@ peer_transmit_ready_cb (void *cls,
       GNUNET_assert (0 < cp->ppd.pending_replies--);
     }
   GNUNET_LOAD_update (cp->ppd.transmission_delay,
-		      GNUNET_TIME_absolute_get_duration (pth->transmission_request_start_time).rel_value);  
+		      GNUNET_TIME_absolute_get_duration (pth->transmission_request_start_time).rel_value);
   ret = pth->gmc (pth->gmc_cls, 
-		  0, NULL);
+		  size, buf);
   GNUNET_free (pth);  
   return ret;
 }
@@ -1057,7 +1057,11 @@ peer_transmit_timeout (void *cls,
 {
   struct GSF_PeerTransmitHandle *pth = cls;
   struct GSF_ConnectedPeer *cp;
-  
+
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Timeout trying to transmit to other peer\n");
+#endif  
   pth->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   cp = pth->cp;
   GNUNET_CONTAINER_DLL_remove (cp->pth_head,
@@ -1184,8 +1188,21 @@ GSF_peer_transmit_ (struct GSF_ConnectedPeer *cp,
       /* pth->cth could be NULL here, that's OK, we'll try again
 	 later... */
     }
+  else
+    {
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Not ready to ask for transmission to `%s'\n",
+		  GNUNET_i2s (&target));
+#endif
+    }
   if (pth->cth == NULL)
     {
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "No transmission task scheduled, creating timeout task (%llu ms)\n",
+		  (unsigned long long) timeout.rel_value);
+#endif
       /* if we're waiting for reservation OR if we could not do notify_transmit_ready,
 	 install a timeout task to be on the safe side */
       pth->timeout_task = GNUNET_SCHEDULER_add_delayed (timeout,
@@ -1490,7 +1507,7 @@ create_migration_stop_message (void *cls,
   cp->migration_pth = NULL;
   if (NULL == buf)
     return 0;
-  GNUNET_assert (size > sizeof (struct MigrationStopMessage));
+  GNUNET_assert (size >= sizeof (struct MigrationStopMessage));
   msm.header.size = htons (sizeof (struct MigrationStopMessage));
   msm.header.type = htons (GNUNET_MESSAGE_TYPE_FS_MIGRATION_STOP);
   msm.duration = GNUNET_TIME_relative_hton (GNUNET_TIME_absolute_get_remaining (cp->last_migration_block));
@@ -1510,8 +1527,20 @@ void
 GSF_block_peer_migration_ (struct GSF_ConnectedPeer *cp,
 			   struct GNUNET_TIME_Relative block_time)
 {
-  if (GNUNET_TIME_absolute_get_duration (cp->last_migration_block).rel_value > block_time.rel_value)
-    return; /* already blocked */
+  if (GNUNET_TIME_absolute_get_remaining (cp->last_migration_block).rel_value > block_time.rel_value)
+    {
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Migration already blocked for another %llu ms\n",
+		  (unsigned long long) GNUNET_TIME_absolute_get_remaining (cp->last_migration_block).rel_value);
+#endif
+      return; /* already blocked */
+    }
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Asking to stop migration for %llu ms\n",
+	      (unsigned long long) block_time.rel_value);
+#endif
   cp->last_migration_block = GNUNET_TIME_relative_to_absolute (block_time);
   if (cp->migration_pth != NULL)
     GSF_peer_transmit_cancel_ (cp->migration_pth);
