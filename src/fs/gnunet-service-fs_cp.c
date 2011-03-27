@@ -630,6 +630,7 @@ handle_p2p_reply (void *cls,
   struct PutMessage *pm;
   size_t msize;
 
+  GNUNET_assert (data_len < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   prd = GSF_pending_request_get_data_ (pr);
   if (NULL == data)
     {
@@ -665,7 +666,7 @@ handle_p2p_reply (void *cls,
       GNUNET_break (0);
       return;
     }
-  pm = GNUNET_malloc (sizeof (msize));
+  pm = GNUNET_malloc (msize);
   pm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_PUT);
   pm->header.size = htons (msize);
   pm->type = htonl (type);
