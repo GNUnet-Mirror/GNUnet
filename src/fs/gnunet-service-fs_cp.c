@@ -1511,6 +1511,7 @@ create_migration_stop_message (void *cls,
   GNUNET_assert (size >= sizeof (struct MigrationStopMessage));
   msm.header.size = htons (sizeof (struct MigrationStopMessage));
   msm.header.type = htons (GNUNET_MESSAGE_TYPE_FS_MIGRATION_STOP);
+  msm.reserved = htonl (0);
   msm.duration = GNUNET_TIME_relative_hton (GNUNET_TIME_absolute_get_remaining (cp->last_migration_block));
   memcpy (buf, &msm, sizeof (struct MigrationStopMessage));
   return sizeof (struct MigrationStopMessage);
