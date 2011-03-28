@@ -996,6 +996,7 @@ main_notify_handler (void *cls,
       if (NULL == h->status_events)
         {
           GNUNET_break (0);
+	  return;
         }
       if (msize < sizeof (struct PeerStatusNotifyMessage))
         {
