@@ -995,6 +995,7 @@ trigger_recursive_download (void *cls,
 			   DIR_SEPARATOR_STR,
 			   sfn);
 	}
+      GNUNET_free (sfn);
       GNUNET_free (dn);
     }
   if ( (full_name != NULL) &&
