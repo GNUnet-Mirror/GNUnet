@@ -263,7 +263,7 @@ check()
     }
   
   //check meta_data_test_equal
-  if (GNUNET_YES != GNUNET_CONTAINER_meta_data_test_equal(meta,meta2))
+  if (GNUNET_YES != GNUNET_CONTAINER_meta_data_test_equal(meta, meta2))
     {
       GNUNET_CONTAINER_meta_data_destroy(meta2);
       ABORT(meta);
@@ -276,23 +276,23 @@ check()
       GNUNET_CONTAINER_meta_data_destroy(meta2);
       ABORT(meta);
     }
-  //check equal branch in meta_data_test_equal
+  // check equal branch in meta_data_test_equal
   if (GNUNET_YES != GNUNET_CONTAINER_meta_data_test_equal(meta,meta))
     {
       GNUNET_CONTAINER_meta_data_destroy(meta2);
       ABORT(meta);
     }  
-  //check "count" branch in meta_data_test_equal
+  // check "count" branch in meta_data_test_equal
   if (GNUNET_NO != GNUNET_CONTAINER_meta_data_test_equal(meta,meta2))
     {
       GNUNET_CONTAINER_meta_data_destroy(meta2);
       ABORT(meta);
     }   
 
-  //check meta_data_add_publication_date
+  // check meta_data_add_publication_date
   GNUNET_CONTAINER_meta_data_add_publication_date(meta2);
   
-  //check meta_data_merge
+  // check meta_data_merge
   GNUNET_CONTAINER_meta_data_clear(meta2);
   GNUNET_CONTAINER_meta_data_merge(meta2,meta);
   if (100 == GNUNET_CONTAINER_meta_data_iterate(meta2,NULL,NULL))
@@ -301,16 +301,16 @@ check()
       ABORT(meta);
     }  
   
-  //check meta_data_get_by_type
+  // check meta_data_get_by_type
   GNUNET_CONTAINER_meta_data_clear(meta2);
-  if (NULL != (str = GNUNET_CONTAINER_meta_data_get_by_type(meta2,EXTRACTOR_METATYPE_UNKNOWN)))
+  if (NULL != (str = GNUNET_CONTAINER_meta_data_get_by_type (meta2, EXTRACTOR_METATYPE_UNKNOWN)))
     {
       GNUNET_CONTAINER_meta_data_destroy(meta2);
       GNUNET_free (str);
       ABORT(meta);      
     } 
   
-  str = GNUNET_CONTAINER_meta_data_get_by_type(meta,EXTRACTOR_METATYPE_UNKNOWN);
+  str = GNUNET_CONTAINER_meta_data_get_by_type (meta, EXTRACTOR_METATYPE_UNKNOWN);
   GNUNET_assert (NULL != str);
   if (str[0] != 'T')
     {
@@ -318,8 +318,10 @@ check()
       GNUNET_free (str);
       ABORT(meta);      
     } 
-  //check branch
-  if (NULL != (str = GNUNET_CONTAINER_meta_data_get_by_type(meta,EXTRACTOR_METATYPE_PUBLICATION_DATE)))
+  GNUNET_free (str);
+
+  // check branch
+  if (NULL != (str = GNUNET_CONTAINER_meta_data_get_by_type (meta, EXTRACTOR_METATYPE_PUBLICATION_DATE)))
     {
       GNUNET_free (str);
       GNUNET_CONTAINER_meta_data_destroy(meta2);
@@ -327,9 +329,9 @@ check()
     } 
 
   //check meta_data_get_first_by_types
-  str = GNUNET_CONTAINER_meta_data_get_first_by_types(meta,
-						      EXTRACTOR_METATYPE_UNKNOWN,
-						      -1);
+  str = GNUNET_CONTAINER_meta_data_get_first_by_types (meta,
+						       EXTRACTOR_METATYPE_UNKNOWN,
+						       -1);
   GNUNET_assert (NULL != str);
   if (str[0] != 'T')
     {
@@ -340,7 +342,6 @@ check()
   GNUNET_free (str);
       
   //check meta_data_get_thumbnail
-
   if (GNUNET_CONTAINER_meta_data_get_thumbnail(meta, &thumb) != 0)
     {
       GNUNET_free (thumb);
@@ -350,7 +351,7 @@ check()
 
   //check meta_data_duplicate
   GNUNET_CONTAINER_meta_data_duplicate(meta);
-  if (200 == GNUNET_CONTAINER_meta_data_iterate(meta,NULL,NULL))
+  if (200 == GNUNET_CONTAINER_meta_data_iterate (meta, NULL, NULL))
     {
       GNUNET_CONTAINER_meta_data_destroy(meta2);
       ABORT(meta);
