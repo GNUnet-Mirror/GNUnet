@@ -751,6 +751,12 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_MESH 215
 
+/**
+ * Type of message used to send another peer which messages we want to receive
+ * through a mesh-tunnel.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_HELLO 216
+
 
 /**
  * MESH message types (WiP)

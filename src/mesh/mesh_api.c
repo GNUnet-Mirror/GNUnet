@@ -67,6 +67,11 @@ struct GNUNET_MESH_Tunnel
 
   struct GNUNET_MESH_Handle* handle;
 
+  /* The message-type requested for this tunnel. Is only needed for pending
+   * by_tupe-tunnels
+   */
+  uint16_t message_type;
+
   /* The context of the receive-function. */
   void *ctx;
 };
@@ -85,6 +90,13 @@ struct tunnel_list
 struct peer_list_element
 {
   struct GNUNET_PeerIdentity peer;
+
+  /* how many Message-Types can this peer receive */
+  unsigned int num_types;
+
+  /* array of message-types */
+  uint16_t *types;
+
   struct GNUNET_TRANSPORT_ATS_Information atsi;
   struct peer_list_element *next, *prev;
 };
@@ -103,8 +115,11 @@ struct GNUNET_MESH_Handle
   struct peer_list connected_peers;
   struct tunnel_list established_tunnels;
   struct tunnel_list pending_tunnels;
+  struct tunnel_list pending_by_type_tunnels;
   void *cls;
   GNUNET_MESH_TunnelEndHandler *cleaner;
+  size_t hello_message_size;
+  uint16_t *hello_message;
 };
 
 static void
@@ -136,6 +151,22 @@ core_startup (void *cls,
   memcpy (&handle->myself, my_identity, sizeof (struct GNUNET_PeerIdentity));
   handle->connected_to_core = GNUNET_YES;
 }
+
+static size_t
+send_hello_message (void *cls, size_t size, void *buf)
+{
+  struct GNUNET_MESH_Handle *handle = cls;
+  struct GNUNET_MessageHeader *hdr = buf;
+
+  size_t sent = sizeof(struct GNUNET_MessageHeader) + handle->hello_message_size;
+
+  hdr->type = htons(GNUNET_MESSAGE_TYPE_MESH_HELLO);
+  hdr->size = htons(size);
+
+  memcpy(hdr+1, handle->hello_message, handle->hello_message_size);
+  return sent;
+}
+
 
 /**
  * Core calls this if we are connected to a new peer.
@@ -189,6 +220,15 @@ core_connect (void *cls,
       else
 	tunnel = tunnel->next;
     }
+  GNUNET_CORE_notify_transmit_ready(handle->core,
+                                    GNUNET_NO,
+                                    42,
+                                    GNUNET_TIME_UNIT_SECONDS,
+                                    peer,
+                                    sizeof(struct GNUNET_MessageHeader) + handle->hello_message_size,
+                                    &send_hello_message,
+                                    cls);
+
 }
 
 /**
@@ -214,6 +254,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     {
       GNUNET_CONTAINER_DLL_remove (handle->connected_peers.head,
 				   handle->connected_peers.tail, element);
+      GNUNET_free_non_null(element->types);
       GNUNET_free (element);
     }
 
@@ -246,6 +287,67 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 	  telement = telement->next;
 	}
     }
+}
+
+/**
+ * Receive a message from core.
+ * This is a hello-message, containing the message-types the other peer can receive
+ */
+static int
+receive_hello (void *cls,
+               const struct GNUNET_PeerIdentity *other,
+               const struct GNUNET_MessageHeader *message,
+               const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+{
+  struct GNUNET_MESH_Handle *handle = cls;
+  uint16_t *num = (uint16_t *) (message + 1);
+  uint16_t *ports = num + 1;
+  unsigned int i;
+
+  struct peer_list_element *element = handle->connected_peers.head;
+  while (element != NULL)
+    {
+      if (0 ==
+          memcmp (&element->peer, other, sizeof (struct GNUNET_PeerIdentity)))
+        break;
+      element = element->next;
+    }
+
+  element->num_types = *num;
+  element->types = GNUNET_malloc (*num * sizeof (uint16_t));
+
+  for (i = 0; i < *num; i++)
+    element->types[i] = ntohs (ports[i]);
+
+  struct tunnel_list_element *tunnel = handle->pending_by_type_tunnels.head;
+  while (tunnel != NULL)
+    {
+      struct tunnel_list_element *next = tunnel->next;
+      for (i = 0; i < *num; i++)
+        {
+          if (ntohs (ports[i]) == tunnel->tunnel.message_type)
+            {
+              GNUNET_CONTAINER_DLL_remove (handle->pending_tunnels.head,
+                                           handle->pending_tunnels.tail,
+                                           tunnel);
+              GNUNET_CONTAINER_DLL_insert_after (handle->established_tunnels.
+                                                 head,
+                                                 handle->established_tunnels.
+                                                 tail,
+                                                 handle->established_tunnels.
+                                                 tail, tunnel);
+              tunnel->tunnel.connect_handler (tunnel->tunnel.handler_cls,
+                                              &tunnel->tunnel.peer, atsi);
+              GNUNET_SCHEDULER_add_now (send_end_connect, tunnel);
+              break;
+            }
+        }
+      if (ntohs (ports[i]) == tunnel->tunnel.message_type)
+        tunnel = next;
+      else
+        tunnel = tunnel->next;
+    }
+  return GNUNET_OK;
 }
 
 /**
@@ -317,6 +419,53 @@ core_receive (void *cls,
   return handler->callback (handle->cls, &tunnel->tunnel,
 			    &tunnel->tunnel.ctx, other, rmessage, atsi);
 }
+
+struct GNUNET_MESH_Tunnel *
+GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Handle *handle,
+                                          struct GNUNET_TIME_Relative timeout,
+                                          uint16_t message_type,
+                                          GNUNET_MESH_TunnelConnectHandler
+                                          connect_handler,
+                                          GNUNET_MESH_TunnelDisconnectHandler
+                                          disconnect_handler,
+                                          void *handler_cls)
+{
+  /* Look in the list of connected peers */
+  struct peer_list_element *element = handle->connected_peers.head;
+  while (element != NULL)
+    {
+      unsigned int i;
+      for (i = 0; i < element->num_types; i++)
+        if (message_type == element->types[i])
+          return GNUNET_MESH_peer_request_connect_all (handle, timeout, 1,
+                                                       &handle->myself,
+                                                       connect_handler,
+                                                       disconnect_handler,
+                                                       handler_cls);
+      element = element->next;
+    }
+
+  /* Put into pending list */
+  struct tunnel_list_element *tunnel =
+    GNUNET_malloc (sizeof (struct tunnel_list_element));
+
+  tunnel->tunnel.connect_handler = connect_handler;
+  tunnel->tunnel.disconnect_handler = disconnect_handler;
+  tunnel->tunnel.handler_cls = handler_cls;
+  tunnel->tunnel.ctx = NULL;
+  tunnel->tunnel.handle = handle;
+  memcpy (&tunnel->tunnel.id.initiator, &handle->myself,
+          sizeof (struct GNUNET_PeerIdentity));
+  tunnel->tunnel.id.id = current_id++;
+  tunnel->tunnel.message_type = message_type;
+
+  GNUNET_CONTAINER_DLL_insert_after (handle->pending_by_type_tunnels.head,
+                                     handle->pending_by_type_tunnels.tail,
+                                     handle->pending_by_type_tunnels.tail,
+                                     tunnel);
+  return &tunnel->tunnel;
+}
+
 
 
 struct GNUNET_MESH_Tunnel *
@@ -509,6 +658,7 @@ GNUNET_MESH_connect (const struct
 
   const static struct GNUNET_CORE_MessageHandler core_handlers[] = {
     {&core_receive, GNUNET_MESSAGE_TYPE_MESH, 0},
+    {&receive_hello, GNUNET_MESSAGE_TYPE_MESH_HELLO, 0},
     {NULL, 0, 0}
   };
 
