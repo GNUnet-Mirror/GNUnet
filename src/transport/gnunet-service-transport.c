@@ -48,8 +48,8 @@
 
 #define DEBUG_TRANSPORT_HELLO GNUNET_YES
 
-#define DEBUG_ATS GNUNET_NO
-#define VERBOSE_ATS GNUNET_NO
+#define DEBUG_ATS GNUNET_YES
+#define VERBOSE_ATS GNUNET_YES
 
 /**
  * Should we do some additional checks (to validate behavior
@@ -5558,8 +5558,8 @@ struct ATS_transports
 	double c_1;
 };
 
-#if HAVE_LIBGLPK
 
+#if HAVE_LIBGLPK
 static glp_prob *
 ats_create_problem (int peers,
 		    int transports, 
@@ -5580,12 +5580,14 @@ ats_create_problem (int peers,
 	int rows = 1 + (3*peers) +  (transports);
 	int cols = peers;
 	int index = 1;
-	int start = 0;
+	//int start = 0;
 	int cur_row = 0;
+	int size = 1+(rows*cols);
 
-	int * ia = GNUNET_malloc (1+(rows*cols) * sizeof (int));
-	int * ja = GNUNET_malloc (1+(rows*cols) * sizeof (int));
-	double * ar = GNUNET_malloc(1+(rows*cols)* sizeof (double));
+
+	int * ia = GNUNET_malloc (size * sizeof (int));
+	int * ja = GNUNET_malloc (size * sizeof (int));
+	double * ar = GNUNET_malloc(size* sizeof (double));
 
 	double value;
 
@@ -5628,7 +5630,6 @@ ats_create_problem (int peers,
 	 * V b_i in B:  b_i <= b_max
 	 */
 	cur_row = 2;
-	start = index+1;
 	for (c1=0; c1<peers; c1++)
 	{
 		//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "row: %i \n", cur_row);
@@ -5647,7 +5648,6 @@ ats_create_problem (int peers,
 	/* constraint 3: Minimum bandwidth
 	 * V b_i in B:  b_i >= b_min
 	 */
-	start = index+1;
 	for (c1=0; c1<peers; c1++)
 	{
 		glp_set_row_bnds(lp, cur_row , GLP_LO, b_min, 0.0);
@@ -5665,7 +5665,6 @@ ats_create_problem (int peers,
 	/* constraint 4: Bandwidth assignment relativity to peer preference
 	 * bi/ {bmax, cmax } >= r*f
 	 */
-	start = index+1;
 	for (c1=0; c1<peers; c1++)
 	{
 
@@ -5690,19 +5689,23 @@ ats_create_problem (int peers,
 
 	/* constraint 4: transport capacity
 	 * sum of b * c_i < c_max */
-	start = index+1;
 	for (c1=0; c1<transports; c1++)
 	{
 
 		value = tl[c1].c_max;
-		if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transport %i: c_max %5.2f c_1 %5.2f \n", c1, value, tl[c1].c_1);
+		if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Transport %i: c_max %5.2f c_1 %5.2f \n", c1, value, tl[c1].c_1);
 		glp_set_row_bnds(lp, cur_row , GLP_UP, 0.0 , value);
 
 		for (c2 = 1; c2 <= cols; c2++)
 		{
+
 			ia[index] = cur_row;
 			ja[index] = c2;
-			ar[index] = ((pl[c1-1].t == tl[c1].id) ? (tl[c1].c_1) : 0.0);
+			if (pl[c2-1].t == tl[c1].id)
+				value = tl[c1].c_1;
+			else value = 0;
+			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Transport %i peer %i:  index %i size %i value %f\n", c1,c2, index, size, value);
+			ar[index] = value;
 			index++;
 		}
 		cur_row++;
@@ -5799,7 +5802,9 @@ ats_create_problem (int peers,
 		GNUNET_asprintf(&debug_solution, "%s %s = %g;", (debug_solution!=NULL) ? debug_solution : "", GNUNET_i2s(&pl[c1-1].peer), glp_get_col_prim(lp, c1));
 		if (old!=NULL) GNUNET_free(old);
 	}
+	old = debug_solution;
 	GNUNET_asprintf(&debug_solution, "%s z = %g; \n", debug_solution,  glp_get_obj_val(lp));
+	if (old!=NULL) GNUNET_free(old);
 	if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s \n",debug_solution);
 	GNUNET_free(debug_solution);
 
@@ -5811,7 +5816,6 @@ ats_create_problem (int peers,
 
 	return lp;
 }
-
 #else
 static void *
 ats_create_problem (int peers,
@@ -5871,8 +5875,9 @@ void ats_benchmark (int peers, int transports, int start_peers, int end_peers)
 		tl[c].id = c;
 		tl[c].c_max = 10000;
 		tl[c].c_1 = 1;
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ats_calculate_bandwidth_distribution Peer[%i] : %i \n",c , tl[c].id);
 		c++;
-		//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ats_calculate_bandwidth_distribution Peer[%i] : %s %p \n",c , GNUNET_i2s(&pl[c].peer), &pl[c].peer);
+
 	}
 
 	// test //
