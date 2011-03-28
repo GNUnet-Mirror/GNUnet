@@ -34,7 +34,7 @@
 
 struct MacAddress
 {
-  char mac[6];
+  u_int8_t mac[6];
 };
 
 struct Wlan_Helper_Control_Message
@@ -67,43 +67,6 @@ static const char mac_bssid[] =
 static const char bc_all_mac[] =
    { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
-/**
- * Wlan header
- */
-
-struct IeeeHeader
-{
-  /**
-   * Wlan flags
-   */
-  uint16_t frame_control GNUNET_PACKED;
-
-  /**
-   * Duration / ID
-   */
-  uint16_t duration_id GNUNET_PACKED;
-  
-  /**
-   * first mac byte 1
-   */
-  struct MacAddress mac1;
-
-  
-  /**
-   * second mac
-   */
-  struct MacAddress mac2;
-  
-  /**
-   * third mac
-   */
-  struct MacAddress mac3;
-  
-  /**
-   * Wlan Sequence Control
-   */
-  uint16_t sequence_control GNUNET_PACKED;
-};
 
 /* this is the template radiotap header we send packets out with */
 
@@ -119,6 +82,36 @@ static const uint8_t u8aRadiotapHeader[] =
     0xde, // <-- antsignal
     0x00, // <-- antnoise
     0x01, // <-- antenna
+};
+
+struct Radiotap_Send
+{
+  /**
+     * wlan send rate
+     */
+    uint8_t rate;
+
+    /**
+     * antenna
+     */
+    uint8_t antenna;
+
+    /**
+     * Transmit power expressed as unitless distance from max power set at factory calibration.
+     * 0 is max power. Monotonically nondecreasing with lower power levels.
+     */
+
+    uint16_t tx_power;
+};
+
+struct rx_info {
+        uint64_t ri_mactime;
+        int32_t ri_power;
+        int32_t ri_noise;
+        uint32_t ri_channel;
+        uint32_t ri_freq;
+        uint32_t ri_rate;
+        uint32_t ri_antenna;
 };
 
 /**

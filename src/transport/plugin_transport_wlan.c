@@ -34,6 +34,7 @@
 #include "plugin_transport_wlan.h"
 #include "gnunet_common.h"
 #include "gnunet_crypto_lib.h"
+#include "wlan/ieee80211.h"
 
 #define PROTOCOL_PREFIX "wlan"
 
@@ -473,6 +474,11 @@ struct Session
 
   int fragment_messages_in_count;
 
+  //TODO DOXIGEN
+  uint8_t rate;
+  uint16_t tx_power;
+  uint8_t antenna;
+
 };
 
 /**
@@ -606,10 +612,11 @@ struct FragmentationAckHeader
 };
 
 int
-getRadiotapHeader(struct RadiotapHeader * Header);
+getRadiotapHeader(struct Plugin * plugin, struct Session * session,
+    struct Radiotap_Send * Header);
 
 int
-getWlanHeader(struct IeeeHeader * Header, const char * to_mac_addr,
+getWlanHeader(struct ieee80211_frame * Header, const char * to_mac_addr,
     struct Plugin * plugin);
 
 static int
@@ -696,15 +703,15 @@ setBit(char *bitArray, unsigned int bitIdx)
  * @param bitIdx which bit to unset
  */
 /*static void
-clearBit(char *bitArray, unsigned int bitIdx)
-{
-  size_t slot;
-  unsigned int targetBit;
+ clearBit(char *bitArray, unsigned int bitIdx)
+ {
+ size_t slot;
+ unsigned int targetBit;
 
-  slot = bitIdx / 8;
-  targetBit = (1L << (bitIdx % 8));
-  bitArray[slot] = bitArray[slot] & (~targetBit);
-}*/
+ slot = bitIdx / 8;
+ targetBit = (1L << (bitIdx % 8));
+ bitArray[slot] = bitArray[slot] & (~targetBit);
+ }*/
 
 /**
  * Checks if a bit is active in the bitArray
@@ -1012,12 +1019,14 @@ get_next_queue_Session(struct Plugin * plugin)
       session = sessionqueue->content;
 
       pm = session->pending_message;
-      if (pm == NULL){
+      if (pm == NULL)
+        {
 #if DEBUG_wlan
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-          "pending message is empty, should not happen. session %p\n", session);
+          GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+              "pending message is empty, should not happen. session %p\n",
+              session);
 #endif
-      }
+        }
       GNUNET_assert(pm != NULL);
 
       //check for message timeout
@@ -1180,12 +1189,13 @@ check_fragment_queue(struct Plugin * plugin)
             }
           GNUNET_free(pm);
 
-          if (session->pending_message2 != NULL){
-            session->pending_message = session->pending_message2;
-            session->pending_message2 = NULL;
-            //requeue session
-            queue_Session(plugin, session);
-          }
+          if (session->pending_message2 != NULL)
+            {
+              session->pending_message = session->pending_message2;
+              session->pending_message2 = NULL;
+              //requeue session
+              queue_Session(plugin, session);
+            }
 
           //check if timeout changed
           check_next_fragment_timeout(plugin);
@@ -1270,23 +1280,23 @@ send_hello_beacon(struct Plugin * plugin)
   uint16_t size = 0;
   ssize_t bytes;
   struct GNUNET_MessageHeader * msgheader = NULL;
-  struct IeeeHeader * ieeewlanheader = NULL;
-  struct RadiotapHeader * radioHeader = NULL;
+  struct ieee80211_frame * ieeewlanheader = NULL;
+  struct Radiotap_Send * radioHeader = NULL;
   struct GNUNET_MessageHeader * msgheader2 = NULL;
 
   GNUNET_assert(sizeof(struct WlanHeader) + GNUNET_HELLO_size(
           *(plugin->env->our_hello)) <= WLAN_MTU);
-  size = sizeof(struct GNUNET_MessageHeader) + sizeof(struct RadiotapHeader)
-      + sizeof(struct IeeeHeader) + sizeof(struct GNUNET_MessageHeader)
+  size = sizeof(struct GNUNET_MessageHeader) + sizeof(struct Radiotap_Send)
+      + sizeof(struct ieee80211_frame) + sizeof(struct GNUNET_MessageHeader)
       + GNUNET_HELLO_size(*(plugin->env->our_hello));
 
   msgheader = GNUNET_malloc(size);
   msgheader->size = htons(size);
   msgheader->type = htons(GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
 
-  radioHeader = (struct RadiotapHeader*) &msgheader[1];
-  getRadiotapHeader(radioHeader);
-  ieeewlanheader = (struct IeeeHeader*) &radioHeader[1];
+  radioHeader = (struct Radiotap_Send*) &msgheader[1];
+  getRadiotapHeader(plugin, NULL, radioHeader);
+  ieeewlanheader = (struct ieee80211_frame*) &radioHeader[1];
   getWlanHeader(ieeewlanheader, bc_all_mac, plugin);
 
   msgheader2 = (struct GNUNET_MessageHeader*) &ieeewlanheader[1];
@@ -1321,8 +1331,8 @@ send_ack(struct Plugin * plugin, struct AckSendQueue * ack)
   uint16_t size = 0;
   ssize_t bytes;
   struct GNUNET_MessageHeader * msgheader = NULL;
-  struct IeeeHeader * ieeewlanheader = NULL;
-  struct RadiotapHeader * radioHeader = NULL;
+  struct ieee80211_frame * ieeewlanheader = NULL;
+  struct Radiotap_Send * radioHeader = NULL;
   struct FragmentationAckHeader * msgheader2 = NULL;
 
   GNUNET_assert(sizeof(struct FragmentationAckHeader) <= WLAN_MTU);
@@ -1333,15 +1343,15 @@ send_ack(struct Plugin * plugin, struct AckSendQueue * ack)
       ack->message_id, ack->fragments_field);
 #endif
 
-  size = sizeof(struct GNUNET_MessageHeader) + sizeof(struct RadiotapHeader)
-      + sizeof(struct IeeeHeader) + sizeof(struct FragmentationAckHeader);
+  size = sizeof(struct GNUNET_MessageHeader) + sizeof(struct Radiotap_Send)
+      + sizeof(struct ieee80211_frame) + sizeof(struct FragmentationAckHeader);
   msgheader = GNUNET_malloc(size);
   msgheader->size = htons(size);
   msgheader->type = htons(GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
 
-  radioHeader = (struct RadiotapHeader*) &msgheader[1];
-  getRadiotapHeader(radioHeader);
-  ieeewlanheader = (struct IeeeHeader*) &radioHeader[1];
+  radioHeader = (struct Radiotap_Send*) &msgheader[1];
+  getRadiotapHeader(plugin, ack->session, radioHeader);
+  ieeewlanheader = (struct ieee80211_frame*) &radioHeader[1];
   getWlanHeader(ieeewlanheader, ack->session->addr, plugin);
 
   msgheader2 = (struct FragmentationAckHeader*) &ieeewlanheader[1];
@@ -1383,8 +1393,8 @@ do_transmit(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   struct Session * session = NULL;
   struct FragmentMessage * fm = NULL;
-  struct IeeeHeader * ieeewlanheader = NULL;
-  struct RadiotapHeader * radioHeader = NULL;
+  struct ieee80211_frame * ieeewlanheader = NULL;
+  struct Radiotap_Send * radioHeader = NULL;
   struct GNUNET_MessageHeader * msgheader = NULL;
 
   struct FragmentationHeader fragheader;
@@ -1486,16 +1496,16 @@ do_transmit(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
            }*/
 
           size += copysize;
-          size += sizeof(struct RadiotapHeader) + sizeof(struct IeeeHeader)
+          size += sizeof(struct Radiotap_Send) + sizeof(struct ieee80211_frame)
               + sizeof(struct GNUNET_MessageHeader);
           msgheader = GNUNET_malloc(size);
           msgheader->size = htons(size);
           msgheader->type = htons(GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
 
-          radioHeader = (struct RadiotapHeader*) &msgheader[1];
-          getRadiotapHeader(radioHeader);
+          radioHeader = (struct Radiotap_Send*) &msgheader[1];
+          getRadiotapHeader(plugin, session, radioHeader);
 
-          ieeewlanheader = (struct IeeeHeader *) &radioHeader[1];
+          ieeewlanheader = (struct ieee80211_frame *) &radioHeader[1];
           getWlanHeader(ieeewlanheader, fm->session->addr, plugin);
 
           //could be faster if content is just send and not copyed before
@@ -1607,8 +1617,13 @@ finish_sending(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 int
-getRadiotapHeader(struct RadiotapHeader * Header)
+getRadiotapHeader(struct Plugin * plugin, struct Session * session,
+    struct Radiotap_Send * header)
 {
+
+  header->rate = session->rate;
+  header->tx_power = session->tx_power;
+  header->antenna = session->antenna;
   return GNUNET_YES;
 }
 ;
@@ -1622,12 +1637,12 @@ getRadiotapHeader(struct RadiotapHeader * Header)
  */
 
 int
-getWlanHeader(struct IeeeHeader * Header, const char * const to_mac_addr,
+getWlanHeader(struct ieee80211_frame * Header, const char * const to_mac_addr,
     struct Plugin * plugin)
 {
-  memcpy(&Header->mac3, mac_bssid, sizeof(mac_bssid));
-  memcpy(&Header->mac2, plugin->mac_address.mac, sizeof(plugin->mac_address));
-  memcpy(&Header->mac1, to_mac_addr, sizeof(plugin->mac_address));
+  memcpy(&Header->i_addr3, mac_bssid, sizeof(mac_bssid));
+  memcpy(&Header->i_addr2, plugin->mac_address.mac, sizeof(plugin->mac_address));
+  memcpy(&Header->i_addr1, to_mac_addr, sizeof(plugin->mac_address));
   return GNUNET_YES;
 }
 
@@ -1722,7 +1737,7 @@ wlan_plugin_send(void *cls, const struct GNUNET_PeerIdentity * target,
   //if (session->target != NULL){
   //  GNUNET_assert(session->target == *target);
   //} else {
-    session->target = *target;
+  session->target = *target;
   //}
 
 
@@ -1780,7 +1795,6 @@ wlan_plugin_send(void *cls, const struct GNUNET_PeerIdentity * target,
       "New message for %p with size (incl wlan header) %u added\n", session,
       newmsg->message_size);
 #endif
-
 
   //queue session
   queue_Session(plugin, session);
@@ -2494,7 +2508,7 @@ insert_fragment_in_in_message_queue(struct Plugin * plugin,
       rec_queue->num = ntohs(fh->fragment_off_or_num);
       rec_queue->msg = (char*) &(rec_queue[1]);
       //copy msg to buffer
-      memcpy((char *)rec_queue->msg, tempmsg, rec_queue->size);
+      memcpy((char *) rec_queue->msg, tempmsg, rec_queue->size);
       insert_fragment_in_queue(rec_message, rec_queue);
       //save bitfield
       retval = rec_message->received_fragments;
@@ -2679,10 +2693,9 @@ wlan_data_helper(void *cls, struct Session_light * session_light,
 }
 
 char *
-macprinter(struct MacAddress macx)
+macprinter(u_int8_t * mac)
 {
   static char macstr[20];
-  char * mac = macx.mac;
   sprintf(macstr, "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X", mac[0], mac[1], mac[2],
       mac[3], mac[4], mac[5]);
   return macstr;
@@ -2701,7 +2714,7 @@ wlan_process_helper(void *cls, void *client,
     const struct GNUNET_MessageHeader *hdr)
 {
   struct Plugin *plugin = cls;
-  struct IeeeHeader * wlanIeeeHeader = NULL;
+  struct ieee80211_frame * wlanIeeeHeader = NULL;
   struct Session_light * session_light = NULL;
   const struct GNUNET_MessageHeader * temp_hdr = NULL;
 
@@ -2718,30 +2731,30 @@ wlan_process_helper(void *cls, void *client,
 #endif
 
       //call wlan_process_helper with the message inside, later with wlan: analyze signal
-      GNUNET_assert(ntohs(hdr->size) >= sizeof(struct IeeeHeader) + sizeof(struct GNUNET_MessageHeader));
-      wlanIeeeHeader = (struct IeeeHeader *) &hdr[1];
+      GNUNET_assert(ntohs(hdr->size) >= sizeof(struct ieee80211_frame) + sizeof(struct GNUNET_MessageHeader));
+      wlanIeeeHeader = (struct ieee80211_frame *) &hdr[1];
 
       //process only if it is an broadcast or for this computer both with the gnunet bssid
 
       //check for bssid
-      if (memcmp(&(wlanIeeeHeader->mac3), mac_bssid, sizeof(struct MacAddress))
-          == 0)
+      if (memcmp(&(wlanIeeeHeader->i_addr3), mac_bssid,
+          sizeof(struct MacAddress)) == 0)
         {
           //check for broadcast or mac
-          if (memcmp(&(wlanIeeeHeader->mac1), bc_all_mac,
+          if (memcmp(&(wlanIeeeHeader->i_addr1), bc_all_mac,
               sizeof(struct MacAddress) == 0) || memcmp(
-              &(wlanIeeeHeader->mac1), &(plugin->mac_address),
+              &(wlanIeeeHeader->i_addr1), &(plugin->mac_address),
               sizeof(struct MacAddress)) == 0)
             {
 
               // process the inner data
 
 
-              datasize = ntohs(hdr->size) - sizeof(struct IeeeHeader)
+              datasize = ntohs(hdr->size) - sizeof(struct ieee80211_frame)
                   - sizeof(struct GNUNET_MessageHeader);
 
               session_light = GNUNET_malloc(sizeof(struct Session_light));
-              memcpy(session_light->addr, &(wlanIeeeHeader->mac2),
+              memcpy(session_light->addr, &(wlanIeeeHeader->i_addr2),
                   sizeof(struct MacAddress));
               //session_light->session = search_session(plugin,session_light->addr);
 
@@ -2765,7 +2778,7 @@ wlan_process_helper(void *cls, void *client,
 #if DEBUG_wlan
               GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                   "Func wlan_process_helper got wrong MAC: %s\n", macprinter(
-                      wlanIeeeHeader->mac1));
+                       wlanIeeeHeader->i_addr1));
 #endif
             }
         }
@@ -2774,7 +2787,7 @@ wlan_process_helper(void *cls, void *client,
 #if DEBUG_wlan
           GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
               "Func wlan_process_helper got wrong BSSID: %s\n", macprinter(
-                  wlanIeeeHeader->mac2));
+                  wlanIeeeHeader->i_addr2));
 #endif
         }
 
@@ -2807,7 +2820,7 @@ wlan_process_helper(void *cls, void *client,
       else
         {
           GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Wrong wlan mac address %s\n",
-              macprinter(plugin->mac_address));
+              macprinter(plugin->mac_address.mac));
         }
 
     }

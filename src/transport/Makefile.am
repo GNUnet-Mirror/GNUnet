@@ -88,7 +88,11 @@ gnunet_nat_server_SOURCES = \
 
     
 gnunet_transport_wlan_helper_SOURCES = \
+ wlan/radiotap-parser.c \
+ wlan/helper_common.c \
+ wlan/loopback_helper.c \
  gnunet-transport-wlan-helper.c
+
 gnunet_transport_wlan_helper_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
  -lpcap
