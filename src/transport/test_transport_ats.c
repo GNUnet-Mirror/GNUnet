@@ -47,12 +47,12 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20)
 
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 #define MTYPE 12345
 
@@ -494,6 +494,15 @@ main (int argc, char *argv[])
                     "WARNING",
 #endif
                     NULL);
+#ifdef HAVE_LIBGLPK
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "GLPK is installed\n");
+#else
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "GLPK is not installed\n");
+  return 0;
+
+#endif
 
   if (strstr(argv[0], "tcp_nat") != NULL)
     {
