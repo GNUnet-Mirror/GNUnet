@@ -48,8 +48,8 @@
 
 #define DEBUG_TRANSPORT_HELLO GNUNET_YES
 
-#define DEBUG_ATS GNUNET_YES
-#define VERBOSE_ATS GNUNET_YES
+#define DEBUG_ATS GNUNET_NO
+#define VERBOSE_ATS GNUNET_NO
 
 /**
  * Should we do some additional checks (to validate behavior
@@ -5580,7 +5580,6 @@ ats_create_problem (int peers,
 	int rows = 1 + (3*peers) +  (transports);
 	int cols = peers;
 	int index = 1;
-	//int start = 0;
 	int cur_row = 0;
 	int size = 1+(rows*cols);
 
@@ -5592,7 +5591,7 @@ ats_create_problem (int peers,
 	double value;
 
 	if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Creating LP problem: %i peers, relativity r %3.2f, b_max %5.2f, b_min %5.2f, \n",peers, r, b_max, b_min);
-	if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Current memory consumption  %i\n",(1+(rows*cols) * (2*sizeof(int) + sizeof(double))) / (1024*1024));
+	if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Current memory consumption  %i\n",(1+(rows*cols) * (2*sizeof(int) + sizeof(double))));
 	lp = glp_create_prob();
 	glp_set_prob_name(lp, "gnunet ats bandwidth distribution");
 	glp_set_obj_dir(lp, GLP_MAX);
@@ -5704,7 +5703,6 @@ ats_create_problem (int peers,
 			if (pl[c2-1].t == tl[c1].id)
 				value = tl[c1].c_1;
 			else value = 0;
-			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Transport %i peer %i:  index %i size %i value %f\n", c1,c2, index, size, value);
 			ar[index] = value;
 			index++;
 		}
@@ -5836,6 +5834,7 @@ ats_create_problem (int peers,
 void ats_benchmark (int peers, int transports, int start_peers, int end_peers)
 {
 	struct GNUNET_TIME_Absolute start;
+	struct GNUNET_TIME_Relative duration;
 	int test = 11;
 	int mlp = GNUNET_NO;
 
@@ -5875,7 +5874,7 @@ void ats_benchmark (int peers, int transports, int start_peers, int end_peers)
 		tl[c].id = c;
 		tl[c].c_max = 10000;
 		tl[c].c_1 = 1;
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ats_calculate_bandwidth_distribution Peer[%i] : %i \n",c , tl[c].id);
+		//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ats_calculate_bandwidth_distribution Peer[%i] : %i \n",c , tl[c].id);
 		c++;
 
 	}
@@ -5888,9 +5887,14 @@ void ats_benchmark (int peers, int transports, int start_peers, int end_peers)
 	// test //
 	start = GNUNET_TIME_absolute_get();
 	ats_create_problem(peers, transports, b_min, b_max, r, R, pl, tl, it, dur, mlp);
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "benchmark result ({LP/MLP},peers,duration,mem):%s,%i,%llu,%i\n",(mlp)?"mlp":"lp", peers,
-				GNUNET_TIME_absolute_get_difference(start,GNUNET_TIME_absolute_get()).rel_value, (1+(peers*transports) * (2*sizeof(int) + sizeof(double))));
 
+	duration = GNUNET_TIME_absolute_get_difference(start,GNUNET_TIME_absolute_get());
+
+	if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "benchmark result ({LP/MLP},peers,duration,mem):%s,%i,%llu,%i\n",
+				(mlp)?"mlp":"lp", (int )peers, duration.rel_value,
+				(1+(peers*transports) * (2*sizeof(int) + sizeof(double))));
+
+	GNUNET_STATISTICS_set (stats, "ATS execution time 100 peers", duration.rel_value, GNUNET_NO);
 	GNUNET_free (pl);
 	GNUNET_free (tl);
 	}
@@ -5902,7 +5906,7 @@ void ats_calculate_bandwidth_distribution ()
 	if (delta.rel_value < ats->min_delta.rel_value)
 	{
 #if DEBUG_ATS
-		//GNUNET_log (GNUNET_ERROR_TYPE_BULK, "Minimum time between cycles not reached\n");
+		GNUNET_log (GNUNET_ERROR_TYPE_BULK, "Minimum time between cycles not reached\n");
 #endif
 		return;
 	}
@@ -5930,7 +5934,7 @@ void ats_calculate_bandwidth_distribution ()
 	struct ATS_peer * pl = NULL;
 
 	start = GNUNET_TIME_absolute_get();
-	ats_benchmark(10,3,10,10);
+	ats_benchmark(100,3,100,100);
 	//ats_create_problem(peers, transports, b_min, b_max, r, R, pl, tl, it, dur, mlp);
 
 	GNUNET_free_non_null (pl);
@@ -6159,11 +6163,6 @@ run (void *cls,
       validation_map = NULL;
       return;
     }
-#if HAVE_GLPK
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("HAVE\n"));
-#else
-	  //GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("NOT HAVE\n"));
-#endif
 
   ats = ats_init();
   max_connect_per_transport = (uint32_t) tneigh;

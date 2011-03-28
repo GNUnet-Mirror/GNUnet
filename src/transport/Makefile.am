@@ -270,6 +270,7 @@ test_transport_ats_SOURCES = \
 test_transport_ats_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_transport_api_tcp_SOURCES = \
