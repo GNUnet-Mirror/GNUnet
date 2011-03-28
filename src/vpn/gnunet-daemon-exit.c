@@ -257,6 +257,7 @@ udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen,
  * @param dadr The IP-Destination-address
  * @param addrlen The length of the address
  * @param version 4 or 6
+ * @param pktlen the length of the packet, including its header
  */
 static void
 tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
