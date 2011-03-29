@@ -5849,8 +5849,8 @@ static int ats_create_problem (int max_it, int max_dur )
 	{
 		GNUNET_asprintf(&name, "q%i",c);
 		glp_set_col_name(prob, c, name);
-		GNUNET_free (name);
 		glp_set_col_name(prob, (2*c_mechs) + 3 +c, name);
+		GNUNET_free (name);
 		glp_set_obj_coef(prob, (2*c_mechs) + 3 +c, Q[c]);
 	}
 
