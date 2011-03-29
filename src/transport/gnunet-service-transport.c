@@ -5589,6 +5589,7 @@ static int ats_create_problem (int max_it, int max_dur )
 
 	glp_prob *prob;
 
+	int c;
 	int c_peers = 0;
 	int c_mechs = 0;
 	int result;
@@ -5599,6 +5600,15 @@ static int ats_create_problem (int max_it, int max_dur )
 	double v_b_min = 100;
 	double v_n_min = 2;
 	double M = 1000000000;
+
+	double D = 1;
+	double U = 1;
+	double R = 1;
+	double Q[c_q_metrics+1];
+	for (c=1; c<=c_q_metrics; c++)
+	{
+		Q[c] = 1;
+	}
 
 	struct NeighbourList *next = neighbours;
 	while (next!=NULL)
@@ -5681,7 +5691,6 @@ static int ats_create_problem (int max_it, int max_dur )
 	glp_set_obj_dir(prob, GLP_MAX);
 
 	/* adding columns */
-	int c;
 	char * name;
 	glp_add_cols(prob, 2 * c_mechs);
 	for (c=1; c <= c_mechs; c++)
@@ -5693,10 +5702,10 @@ static int ats_create_problem (int max_it, int max_dur )
 		glp_set_obj_coef(prob, c, 1.0);
 
 	}
-	for (c=c_mechs; c <= 2*c_mechs; c++)
+	for (c=c_mechs+1; c <= 2*c_mechs; c++)
 	{
-		GNUNET_asprintf(&name, "n%i",c);
-		glp_set_col_name(prob, c, "n1");
+		GNUNET_asprintf(&name, "n%i",(c-c_mechs)+1);
+		glp_set_col_name(prob, c, name);
 		glp_set_col_bnds(prob, c, GLP_DB, 0.0, 1.0);
 		glp_set_col_kind(prob, c, GLP_IV);
 		glp_set_obj_coef(prob, c, 1.0);
@@ -5820,6 +5829,31 @@ static int ats_create_problem (int max_it, int max_dur )
 	GNUNET_assert (row_index-1==c_peers+(2*c_mechs)+1);
 	GNUNET_assert (array_index==6*c_mechs);
 
+	/* optimisation constraints*/
+
+	/* adding columns */
+	glp_add_cols(prob, 3 + c_q_metrics);
+	glp_set_col_name(prob, (2*c_mechs) + 1, "d");
+	glp_set_obj_coef(prob, (2*c_mechs) + 1, D);
+	//glp_set_col_bnds(prob, c, GLP_DB, 0.0, 1.0);
+	//glp_set_col_kind(prob, c, GLP_IV);
+	glp_set_col_name(prob, (2*c_mechs) + 2, "u");
+	glp_set_obj_coef(prob, (2*c_mechs) + 2, U);
+	//glp_set_col_bnds(prob, c, GLP_DB, 0.0, 1.0);
+	//glp_set_col_kind(prob, c, GLP_IV);
+	glp_set_col_name(prob, (2*c_mechs) + 3, "r");
+	glp_set_obj_coef(prob, (2*c_mechs) + 3, R);
+	//glp_set_col_bnds(prob, c, GLP_DB, 0.0, 1.0);
+	//glp_set_col_kind(prob, c, GLP_IV);
+	for (c=1; c<= c_q_metrics; c++)
+	{
+		GNUNET_asprintf(&name, "q%i",c);
+		glp_set_col_name(prob, c, name);
+		GNUNET_free (name);
+		glp_set_col_name(prob, (2*c_mechs) + 3 +c, "q");
+		glp_set_obj_coef(prob, (2*c_mechs) + 3 +c, Q[c]);
+	}
+
 	glp_load_matrix(prob, array_index-1, ia, ja, ar);
 
 	/* Solve the LP problem */
@@ -5877,6 +5911,20 @@ static int ats_create_problem (int max_it, int max_dur )
 			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Optimal solution\n");
 	break;
 	}
+
+	char * debug_solution = NULL;
+	char * old = NULL;
+	for (c=1; c<= 2*c_mechs; c++ )
+	{
+		old = debug_solution;
+		GNUNET_asprintf(&debug_solution, "%s %s = %g;", (debug_solution!=NULL) ? debug_solution : "", glp_get_col_name(prob,c), glp_get_col_prim(prob, c));
+		if (old!=NULL) GNUNET_free(old);
+	}
+	old = debug_solution;
+	GNUNET_asprintf(&debug_solution, "%s z = %g; \n", debug_solution,  glp_get_obj_val(prob));
+	if (old!=NULL) GNUNET_free(old);
+	if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s \n",debug_solution);
+	GNUNET_free(debug_solution);
 
 	glp_delete_prob(prob);
 
@@ -5956,7 +6004,7 @@ void ats_benchmark (int peers, int transports, int start_peers, int end_peers)
 
 	duration = GNUNET_TIME_absolute_get_difference(start,GNUNET_TIME_absolute_get());
 
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "benchmark execution time in [ms] for %i mechanisms: %llu\n", c_mechs, duration.rel_value);
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP execution time in [ms] for %i mechanisms: %llu\n", c_mechs, duration.rel_value);
 
 	GNUNET_STATISTICS_set (stats, "ATS execution time 100 peers", duration.rel_value, GNUNET_NO);
 }
