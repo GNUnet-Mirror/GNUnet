@@ -36,6 +36,11 @@ extern "C"
 #endif
 
 /**
+ * End of list marker.
+ */
+#define GNUNET_APPLICATION_TYPE_END 0
+
+/**
  * Test.
  */
 #define GNUNET_APPLICATION_TYPE_TEST 1
