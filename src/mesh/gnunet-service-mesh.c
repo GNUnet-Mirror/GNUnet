@@ -22,6 +22,13 @@
  * @file mesh/gnunet-service-mesh.c
  * @brief GNUnet MESH service
  * @author Bartlomiej Polot
+ *
+ * TODO:
+ * - soft stateing (keep-alive (CHANGE?) / timeout / disconnect) -- not a message issue
+ * - error reporting (CREATE/CHANGE/ADD/DEL?) -- new message!
+ * - partial disconnect reporting -- same as error reporting?
+ * - add vs create? change vs. keep-alive? same msg or different ones? -- thinking...
+ * - speed requirement specification (change?) in mesh API -- API call
  */
 
 #include <stdint.h>
@@ -29,6 +36,174 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_core_service.h"
 #include <netinet/in.h>
+
+
+/******************************************************************************/
+/********************      MESH NETWORK MESSAGES     **************************/
+/******************************************************************************/
+
+/**
+ * Message for mesh path management
+ */
+struct GNUNET_MESH_ManipulatePath
+{
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_MESH_PATH_[CREATE|CHANGE|ADD|DEL]
+     *
+     * Size: sizeof(struct GNUNET_MESH_ManipulatePath) + path_length * sizeof (struct GNUNET_PeerIdentity)
+     */
+    struct GNUNET_MessageHeader header;
+
+    /**
+     * Id of the tunnel this path belongs to, unique in conjunction with the origin.
+     */
+    uint32_t tid GNUNET_PACKED;
+
+    /**
+     * Information about speed requirements.  If the tunnel cannot sustain the 
+     * minimum bandwidth, packets are to be dropped.
+     */
+    uint32_t speed_min GNUNET_PACKED;
+
+    /**
+     * path_length structs defining the *whole* path from the origin [0] to the
+     * final destination [path_length-1].
+     */
+  // struct GNUNET_PeerIdentity peers[path_length];
+};
+
+/**
+ * Message for mesh data traffic to all tunnel targets.
+ */
+struct GNUNET_MESH_OriginMulticast
+{
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_DATA_MULTICAST
+     */
+    struct GNUNET_MessageHeader header;
+
+    /**
+     * TID of the tunnel
+     */
+    uint32_t tid GNUNET_PACKED;
+
+    /**
+     * OID of the tunnel
+     */
+    struct GNUNET_PeerIdentity oid;
+
+    /**
+     * FIXME: Some form of authentication
+     */
+    // uint32_t token;
+
+    /**
+     * Payload follows
+     */
+};
+
+
+/**
+ * Message for mesh data traffic to a particular destination from origin.
+ */
+struct GNUNET_MESH_DataMessageFromOrigin
+{
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_DATA_MESSAGE_FROM_ORIGIN
+     */
+    struct GNUNET_MessageHeader header;
+
+    /**
+     * TID of the tunnel
+     */
+    uint32_t tid GNUNET_PACKED;
+
+    /**
+     * OID of the tunnel
+     */
+    struct GNUNET_PeerIdentity oid;
+
+    /**
+     * Destination.
+     */
+    struct GNUNET_PeerIdentity destination;
+
+    /**
+     * FIXME: Some form of authentication
+     */
+    // uint32_t token;
+
+    /**
+     * Payload follows
+     */
+};
+
+
+/**
+ * Message for mesh data traffic from a tunnel participant to origin.
+ */
+struct GNUNET_MESH_DataMessageToOrigin
+{
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_DATA_MESSAGE_TO_ORIGIN
+     */
+    struct GNUNET_MessageHeader header;
+
+    /**
+     * TID of the tunnel
+     */
+    uint32_t tid GNUNET_PACKED;
+
+    /**
+     * OID of the tunnel
+     */
+    struct GNUNET_PeerIdentity oid;
+
+    /**
+     * Sender of the message.
+     */
+    struct GNUNET_PeerIdentity sender;
+
+    /**
+     * FIXME: Some form of authentication
+     */
+    // uint32_t token;
+
+    /**
+     * Payload follows
+     */
+};
+
+/**
+ * Message for mesh flow control
+ */
+struct GNUNET_MESH_SpeedNotify
+{
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_DATA_SPEED_NOTIFY
+     */
+    struct GNUNET_MessageHeader header;
+
+    /**
+     * TID of the tunnel
+     */
+    uint32_t tid GNUNET_PACKED;
+
+    /**
+     * OID of the tunnel
+     */
+    struct GNUNET_PeerIdentity oid;
+
+    /**
+     * Slowest link down the path (above minimum speed requirement).
+     */
+    uint32_t speed_min;
+
+};
+
+/******************************************************************************/
+/************************      DATA STRUCTURES     ****************************/
+/******************************************************************************/
 
 /**
  * All the states a peer participating in a tunnel can be in.
@@ -183,6 +358,7 @@ struct Clients
 
 /**
  * Handler for requests of creating new path
+ * type: struct GNUNET_CORE_MessageHandler
  *
  * @param cls closure
  * @param client the client this message is from
@@ -212,6 +388,7 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 
 /**
  * Core handler for path creation
+ * struct GNUNET_CORE_MessageHandler
  *
  * @param cls closure
  * @param message message
@@ -227,6 +404,10 @@ handle_mesh_path_create (void *cls,
                               *atsi)
 {
     /* Extract path */
+    /* Find origin & self */
+    /* Search for origin in local tunnels */
+    /* Create tunnel / add path */
+    /* Retransmit to next link in chain, if any (core_notify + callback) */
     return GNUNET_OK;
 }
 
@@ -269,9 +450,9 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
  * Functions to handle messages from clients
  */
 static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
-  {&handle_local_path_create, NULL, GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE, 0},
-  {&handle_local_network_traffic, GNUNET_MESSAGE_TYPE_MESH_DATA_GO, 0},
-  {&handle_local_network_traffic, GNUNET_MESSAGE_TYPE_MESH_DATA_BACK, 0},
+  {&handle_local_path_create, NULL, GNUNET_MESSAGE_TYPE_LOCAL_PATH_CREATE, 0},
+  {&handle_local_network_traffic, GNUNET_MESSAGE_TYPE_LOCAL_DATA_GO, 0},
+  {&handle_local_network_traffic, GNUNET_MESSAGE_TYPE_LOCAL_DATA_BACK, 0},
   {NULL, NULL, 0, 0}
 };
 
