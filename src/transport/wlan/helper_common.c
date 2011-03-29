@@ -16,7 +16,7 @@
 #include <unistd.h>
 #include <getopt.h>
 
-//#include "platform.h"
+#include "platform.h"
 #include "gnunet_constants.h"
 #include "gnunet_os_lib.h"
 #include "gnunet_transport_plugin.h"
