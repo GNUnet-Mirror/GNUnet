@@ -116,6 +116,12 @@ typedef void (GNUNET_MESH_TunnelEndHandler)(void *cls,
 
 
 /**
+ * Type for an application.  Values defined in gnunet_applications.h
+ */
+typedef uint32_t GNUNET_MESH_ApplicationType;
+
+
+/**
  * Connect to the mesh service.
  *
  * @param cfg configuration to use
@@ -132,8 +138,8 @@ struct GNUNET_MESH_Handle *
 GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      void *cls,
 		     GNUNET_MESH_TunnelEndHandler cleaner,
-                     const struct GNUNET_MESH_MessageHandler *handlers);
-
+                     const struct GNUNET_MESH_MessageHandler *handlers, 
+		     const GNUNET_MESH_ServiceType *stypes);
 
 /**
  * Get the peer on the other side of this tunnel if it is just one. Return NULL otherwise
@@ -268,7 +274,7 @@ GNUNET_MESH_peer_request_connect_del (struct GNUNET_MESH_Tunnel *tunnel,
  *
  * @param h mesh handle
  * @param timeout how long to try to establish a connection
- * @param message_type message type that must be supported by the peer (MESH should
+ * @param app_type application type that must be supported by the peer (MESH should
  *                discover peer in proximity handling this type)
  * @param connect_handler function to call on successful connect (or timeout);
  *                will be called for EACH of the peers in the list and
@@ -282,7 +288,7 @@ GNUNET_MESH_peer_request_connect_del (struct GNUNET_MESH_Tunnel *tunnel,
 struct GNUNET_MESH_Tunnel *
 GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Handle *h,
 					  struct GNUNET_TIME_Relative timeout,
-					  uint16_t message_type,
+					  GNUNET_MESH_ApplicationType app_type,
 					  GNUNET_MESH_TunnelConnectHandler connect_handler,
 					  GNUNET_MESH_TunnelDisconnectHandler disconnect_handler,
 					  void *handler_cls);
