@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file transport/test_transport_ats.c
+ * @file transport/test_transport_api.c
  * @brief base test case for transport implementations
  *
  * This test case serves as a base for tcp, udp, and udp-nat
@@ -34,9 +34,7 @@
 #include "gnunet_program_lib.h"
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_transport_service.h"
-#include "gnunet_statistics_service.h"
 #include "transport.h"
-#include "gauger.h"
 
 #define VERBOSE GNUNET_NO
 
@@ -47,12 +45,12 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 #define MTYPE 12345
 
@@ -61,7 +59,6 @@ struct PeerContext
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_TRANSPORT_Handle *th;
   struct GNUNET_PeerIdentity id;
-  struct GNUNET_STATISTICS_Handle *stats;
 #if START_ARM
   struct GNUNET_OS_Process *arm_proc;
 #endif
@@ -69,36 +66,13 @@ struct PeerContext
 
 static struct PeerContext p1;
 
-/**
- * Handle for reporting statistics.
- */
-
-
-
 static struct PeerContext p2;
 
 static int ok;
 
-static int is_tcp;
 
-static int is_tcp_nat;
-
-static int is_udp;
-
-static int is_unix;
-
-static int is_udp_nat;
-
-static int is_http;
-
-static int is_https;
-
-static int is_multi_protocol;
-
-static int is_wlan;
 
 static  GNUNET_SCHEDULER_TaskIdentifier die_task;
-
 
 #if VERBOSE
 #define OKPP do { ok++; fprintf (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
@@ -116,8 +90,7 @@ end ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transports!\n");
   GNUNET_TRANSPORT_disconnect (p1.th);
   GNUNET_TRANSPORT_disconnect (p2.th);
-  if (p1.stats != NULL)
-	  GNUNET_STATISTICS_destroy (p1.stats, GNUNET_NO);
+
   die_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transports disconnected, returning success!\n");
   ok = 0;
@@ -141,11 +114,9 @@ static void
 end_badly ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transports!\n");
-  //GNUNET_break (0);
+  GNUNET_break (0);
   GNUNET_TRANSPORT_disconnect (p1.th);
-  if (p1.stats != NULL)
-	  GNUNET_STATISTICS_destroy (p1.stats, GNUNET_NO);
-  //GNUNET_TRANSPORT_disconnect (p2.th);
+  GNUNET_TRANSPORT_disconnect (p2.th);
   ok = 1;
 }
 
@@ -170,6 +141,7 @@ notify_receive (void *cls,
                  ntohs (message->size));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received message from peer (%p)!\n",
               cls);
+  sleep(5);
   end ();
 }
 
@@ -210,6 +182,9 @@ notify_connect (void *cls,
 {
   if (cls == &p1)
     {
+      GNUNET_SCHEDULER_cancel (die_task);
+      die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT_TRANSMIT,
+					       &end_badly, NULL);
 
       GNUNET_TRANSPORT_notify_transmit_ready (p1.th,
 					      &p2.id,
@@ -229,17 +204,6 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 	      GNUNET_i2s (peer), cls);
 }
 
-int stat_cb (void *cls,
-		   const char *subsystem,
-		   const char *name,
-		   uint64_t value,
-		   int is_persistent)
-{
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-	              "Execution time for 100 Peers: %llu\n",value);
-	  return GNUNET_NO;
-}
-
 
 static void
 setup_peer (struct PeerContext *p, const char *cfgname)
@@ -254,19 +218,12 @@ setup_peer (struct PeerContext *p, const char *cfgname)
                                         "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
-  p->stats = GNUNET_STATISTICS_create ("transport", p->cfg);
-  GNUNET_assert (p->stats != NULL);
-  GNUNET_assert (GNUNET_OK == GNUNET_STATISTICS_watch (p->stats,"transport","ATS execution time 100 peers", stat_cb, NULL));
 
   p->th = GNUNET_TRANSPORT_connect (p->cfg,
                                     NULL, p,
                                     &notify_receive,
                                     &notify_connect, &notify_disconnect);
   GNUNET_assert (p->th != NULL);
-
-  GNUNET_SCHEDULER_cancel (die_task);
-  die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT_TRANSMIT,
-				       &end_badly, NULL);
 }
 
 
@@ -332,11 +289,10 @@ run (void *cls,
 					   &end_badly, NULL);
 
   setup_peer (&p1, "test_transport_ats_peer1.conf");
-  //setup_peer (&p2, "test_transport_ats_peer2.conf");
-
+  setup_peer (&p2, "test_transport_ats_peer2.conf");
   GNUNET_assert(p1.th != NULL);
-  //GNUNET_assert(p2.th != NULL);
-  return;
+  GNUNET_assert(p2.th != NULL);
+
   GNUNET_TRANSPORT_get_hello (p1.th, &exchange_hello, &p1);
 }
 
@@ -363,121 +319,11 @@ check ()
                       argv, "test-transport-api", "nohelp",
                       options, &run, &ok);
   stop_arm (&p1);
- // stop_arm (&p2);
-
+  stop_arm (&p2);
   return ok;
 }
 
-/**
- * Return the actual path to a file found in the current
- * PATH environment variable.
- *
- * @param binary the name of the file to find
- */
-static char *
-get_path_from_PATH (char *binary)
-{
-  char *path;
-  char *pos;
-  char *end;
-  char *buf;
-  const char *p;
 
-  p = getenv ("PATH");
-  if (p == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("PATH environment variable is unset.\n"));
-      return NULL;
-    }
-  path = GNUNET_strdup (p);     /* because we write on it */
-  buf = GNUNET_malloc (strlen (path) + 20);
-  pos = path;
-
-  while (NULL != (end = strchr (pos, PATH_SEPARATOR)))
-    {
-      *end = '\0';
-      sprintf (buf, "%s/%s", pos, binary);
-      if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
-        {
-          GNUNET_free (path);
-          return buf;
-        }
-      pos = end + 1;
-    }
-  sprintf (buf, "%s/%s", pos, binary);
-  if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
-    {
-      GNUNET_free (path);
-      return buf;
-    }
-  GNUNET_free (buf);
-  GNUNET_free (path);
-  return NULL;
-}
-
-/**
- * Check whether the suid bit is set on a file.
- * Attempts to find the file using the current
- * PATH environment variable as a search path.
- *
- * @param binary the name of the file to check
- *
- * @return GNUNET_YES if the binary is found and
- *         can be run properly, GNUNET_NO otherwise
- */
-static int
-check_gnunet_nat_binary(char *binary)
-{
-  struct stat statbuf;
-  char *p;
-#ifdef MINGW
-  SOCKET rawsock;
-#endif
-
-#ifdef MINGW
-  char *binaryexe;
-  GNUNET_asprintf (&binaryexe, "%s.exe", binary);
-  p = get_path_from_PATH (binaryexe);
-  free (binaryexe);
-#else
-  p = get_path_from_PATH (binary);
-#endif
-  if (p == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Could not find binary `%s' in PATH!\n"),
-                  binary);
-      return GNUNET_NO;
-    }
-  if (0 != STAT (p, &statbuf))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("stat (%s) failed: %s\n"),
-                  p,
-                  STRERROR (errno));
-      GNUNET_free (p);
-      return GNUNET_SYSERR;
-    }
-  GNUNET_free (p);
-#ifndef MINGW
-  if ( (0 != (statbuf.st_mode & S_ISUID)) &&
-       (statbuf.st_uid == 0) )
-    return GNUNET_YES;
-  return GNUNET_NO;
-#else
-  rawsock = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
-  if (INVALID_SOCKET == rawsock)
-    {
-      DWORD err = GetLastError ();
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "socket (AF_INET, SOCK_RAW, IPPROTO_ICMP) have failed! GLE = %d\n", err);
-      return GNUNET_NO; /* not running as administrator */
-    }
-  closesocket (rawsock);
-  return GNUNET_YES;
-#endif
-}
 
 int
 main (int argc, char *argv[])
@@ -487,89 +333,19 @@ main (int argc, char *argv[])
   return GNUNET_SYSERR;
 #endif
 
-  GNUNET_log_setup ("test-transport-ats",
+  GNUNET_log_setup ("test-transport-api",
 #if VERBOSE
                     "DEBUG",
 #else
                     "WARNING",
 #endif
                     NULL);
-#ifdef HAVE_LIBGLPK
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "GLPK is installed\n");
-#else
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "GLPK is not installed\n");
-  return 0;
-
-#endif
-
-  if (strstr(argv[0], "tcp_nat") != NULL)
-    {
-      is_tcp_nat = GNUNET_YES;
-      if (GNUNET_YES != check_gnunet_nat_binary("gnunet-nat-server"))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                      "`%s' not properly installed, cannot run NAT test!\n",
-                      "gnunet-nat-server");
-          return 0;
-        }
-    }
-  else if (strstr(argv[0], "tcp") != NULL)
-    {
-      is_tcp = GNUNET_YES;
-    }
-  else if (strstr(argv[0], "udp_nat") != NULL)
-    {
-      is_udp_nat = GNUNET_YES;
-      if (GNUNET_YES != check_gnunet_nat_binary("gnunet-nat-server"))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                      "`%s' not properly installed, cannot run NAT test!\n",
-		      "gnunet-nat-server");
-          return 0;
-        }
-    }
-  else if (strstr(argv[0], "udp") != NULL)
-    {
-      is_udp = GNUNET_YES;
-    }
-  else if (strstr(argv[0], "unix") != NULL)
-    {
-      is_unix = GNUNET_YES;
-    }
-  else if (strstr(argv[0], "https") != NULL)
-    {
-      is_https = GNUNET_YES;
-    }
-  else if (strstr(argv[0], "http") != NULL)
-    {
-      is_http = GNUNET_YES;
-    }
-  else if (strstr(argv[0], "wlan") != NULL)
-    {
-       is_wlan = GNUNET_YES;
-    }
-  else if (strstr(argv[0], "multi") != NULL)
-    {
-       is_multi_protocol = GNUNET_YES;
-    }
 
   ret = check ();
-  if (is_multi_protocol)
-  {
-         GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-multi-peer-1/");
-         GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-multi-peer-2/");
-  }
-  else
-  {
-         GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-1");
-         GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-2");
-  }
+	 GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-1");
+	 GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-2");
 
-  //return ret;
-  /* GGG */
-  return 0;
+  return ret;
 }
 
-/* end of test_transport_ats.c */
+/* end of test_transport_api.c */

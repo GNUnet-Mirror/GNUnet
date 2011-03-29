@@ -63,14 +63,6 @@ struct ATS_info
 	GNUNET_SCHEDULER_TaskIdentifier ats_task;
 };
 
-struct ATS_peer
-{
-	struct GNUNET_PeerIdentity peer;
-	struct NeighbourList * n;
-	double f;
-	int	t;
-};
-
 #define DEBUG_TRANSPORT GNUNET_NO
 #define DEBUG_TRANSPORT_TIMEOUT GNUNET_NO
 #define DEBUG_TRANSPORT_DISCONNECT GNUNET_NO
