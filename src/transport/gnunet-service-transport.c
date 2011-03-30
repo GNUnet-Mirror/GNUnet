@@ -5963,68 +5963,17 @@ static int ats_create_problem (int max_it, int max_dur )
 /* To remove: just for testing */
 void ats_benchmark (int peers, int transports, int start_peers, int end_peers)
 {
-	static int glpk;
+	static int glpk = GNUNET_YES;
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%i\n", glpk);
 	struct GNUNET_TIME_Absolute start;
 	struct GNUNET_TIME_Relative duration;
-/*
-	int test = 11;
-	int mlp = GNUNET_NO;
-
-	for (test=start_peers; test<=end_peers; test++)
-	{
-	int peers = test;
-	int transports = 3;
-
-	double b_min   = 5;
-	double b_max   = 50;
-	double r	   = 0.85;//1.0;
-	double R	   = 1.0;
-
-	int it = ATS_MAX_ITERATIONS;
-	int dur = 500;
-	if (INT_MAX < ats->max_exec_duration.rel_value)
-		dur = INT_MAX;
-	else
-		dur = (int) ats->max_exec_duration.rel_value;
-
-
-	struct ATS_mechanism * tl = GNUNET_malloc(transports * sizeof (struct ATS_peer));
-
-	struct ATS_peer * pl = GNUNET_malloc(peers * sizeof (struct ATS_peer));
-	int c = 0;
-	while (c < peers)
-	{
-		pl[c].peer.hashPubKey.bits[0] = c+1;
-		pl[c].f = 1 / (double) peers ;
-		pl[c].t = 1;
-		//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ats_calculate_bandwidth_distribution Peer[%i] : %s %p \n",c , GNUNET_i2s(&pl[c].peer), &pl[c].peer);
-		c++;
-	}
-	c = 0;
-	while (c < transports)
-	{
-		tl[c].id = c;
-		tl[c].c_max = 10000;
-		tl[c].c_1 = 1;
-		//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ats_calculate_bandwidth_distribution Peer[%i] : %i \n",c , tl[c].id);
-		c++;
-
-	}
-
-	// test //
-
-	//pl[0].f = 0.33;
-	//pl[2].f = 0.43;
-	//pl[1].f = 0.33;
-	// test //
-	 *
-	 */
 	int c_mechs = 0;
+
 	if (glpk==GNUNET_YES)
 	{
 		start = GNUNET_TIME_absolute_get();
 		c_mechs = ats_create_problem(5000,5000);
-		if (c_mechs != -1)
+		if (c_mechs >= 0)
 		{
 		duration = GNUNET_TIME_absolute_get_difference(start,GNUNET_TIME_absolute_get());
 		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP execution time in [ms] for %i mechanisms: %llu\n", c_mechs, duration.rel_value);
