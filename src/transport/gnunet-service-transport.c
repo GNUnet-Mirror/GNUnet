@@ -5600,7 +5600,9 @@ static int ats_create_problem (int max_it, int max_dur )
 
 	double v_b_min = 100;
 	double v_n_min = 1;
-	double M = 109951162777600; // 100 TB
+
+	//double M = 10000000000; // ~10 GB
+	double M = 1000;
 
 	// This are values that are later set from extern
 	double D = 1;
@@ -5675,6 +5677,9 @@ static int ats_create_problem (int max_it, int max_dur )
 	c_mechs--;
 	c_peers--;
 
+	if (v_n_min > c_peers)
+		v_n_min = c_peers;
+
 	/* number of variables == coloumns */
 	//int c_cols = 2 * c_mechs + 3 + c_q_metrics;
 	/* number of constraints == rows */
@@ -5682,7 +5687,7 @@ static int ats_create_problem (int max_it, int max_dur )
 
 	if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Creating problem with: %i peers, %i mechanisms\n", c_peers, c_mechs);
 
-	int size = 1 + 6 *c_mechs;
+	int size = 1 + 7 *c_mechs +1;
 	int row_index;
 	int array_index=1;
 	int * ia = GNUNET_malloc (size * sizeof (int));
@@ -5703,7 +5708,7 @@ static int ats_create_problem (int max_it, int max_dur )
 		glp_set_col_name(prob, c, name);
 		GNUNET_free (name);
 		glp_set_col_bnds(prob, c, GLP_LO, 0.0, 0.0);
-		glp_set_obj_coef(prob, c, 1.0);
+		glp_set_obj_coef(prob, c, 1);
 
 	}
 	/* adding n_t cols */
@@ -5714,7 +5719,7 @@ static int ats_create_problem (int max_it, int max_dur )
 		GNUNET_free (name);
 		glp_set_col_bnds(prob, c, GLP_DB, 0.0, 1.0);
 		glp_set_col_kind(prob, c, GLP_IV);
-		glp_set_obj_coef(prob, c, 1.0);
+		glp_set_obj_coef(prob, c, 0);
 	}
 
 	/* feasibility constraints */
@@ -5724,7 +5729,7 @@ static int ats_create_problem (int max_it, int max_dur )
 	glp_add_rows(prob, c_peers);
 	for (c=1; c<=c_peers; c++)
 	{
-		glp_set_row_bnds(prob, row_index, GLP_DB, 0.0, 1.0);
+		glp_set_row_bnds(prob, row_index, GLP_FX, 1.0, 1.0);
 
 		struct ATS_mechanism *m = peers[c].m_head;
 		while (m!=NULL)
@@ -5840,15 +5845,15 @@ static int ats_create_problem (int max_it, int max_dur )
 	glp_add_cols(prob, 3 + c_q_metrics);
 	glp_set_col_name(prob, (2*c_mechs) + 1, "d");
 	glp_set_obj_coef(prob, (2*c_mechs) + 1, D);
-	//glp_set_col_bnds(prob, c, GLP_DB, 0.0, 1.0);
+	glp_set_col_bnds(prob, (2*c_mechs) + 1, GLP_LO, 0.0, 0);
 	//glp_set_col_kind(prob, c, GLP_IV);
 	glp_set_col_name(prob, (2*c_mechs) + 2, "u");
-	glp_set_obj_coef(prob, (2*c_mechs) + 2, U);
+	glp_set_obj_coef(prob, (2*c_mechs) + 2, 0);
 	//glp_set_col_bnds(prob, c, GLP_DB, 0.0, 1.0);
 	//glp_set_col_kind(prob, c, GLP_IV);
 	glp_set_col_name(prob, (2*c_mechs) + 3, "r");
-	glp_set_obj_coef(prob, (2*c_mechs) + 3, R);
-	//glp_set_col_bnds(prob, c, GLP_DB, 0.0, 1.0);
+	glp_set_obj_coef(prob, (2*c_mechs) + 3, 0);
+	//glp_set_col_bnds(prob, (2*c_mechs) + 3, GLP_DB, 0.0, 100.0);
 	//glp_set_col_kind(prob, c, GLP_IV);
 	for (c=1; c<= c_q_metrics; c++)
 	{
@@ -5858,6 +5863,36 @@ static int ats_create_problem (int max_it, int max_dur )
 		GNUNET_free (name);
 		glp_set_obj_coef(prob, (2*c_mechs) + 3 +c, Q[c]);
 	}
+
+	// Constraint 6: optimize for diversity
+	if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Constraint 6\n");
+	glp_add_rows(prob, 1);
+	if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bounds [row]=[%i] \n",row_index);
+	glp_set_row_bnds(prob, row_index, GLP_FX, 0.0, 0.0);
+	//glp_set_row_bnds(prob, row_index, GLP_UP, 0.0, 0.0);
+	for (c=1; c<=c_mechs; c++)
+	{
+		// b_t - n_t * b_min >= 0
+		ia[array_index] = row_index;
+		ja[array_index] = c_mechs + mechanisms[c].col_index;
+		ar[array_index] = 1;
+		if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
+		array_index++;
+	}
+
+	ia[array_index] = row_index;
+	ja[array_index] = (2*c_mechs) + 1;
+	ar[array_index] = -1;
+
+	if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
+	array_index++;
+	row_index ++;
+
+	GNUNET_assert (row_index-1==c_peers+(2*c_mechs)+2);
+	GNUNET_assert (array_index-1==7*c_mechs+1);
+
+
+
 	glp_load_matrix(prob, array_index-1, ia, ja, ar);
 
 
@@ -5936,7 +5971,7 @@ static int ats_create_problem (int max_it, int max_dur )
 
 	char * debug_solution = NULL;
 	char * old = NULL;
-	for (c=1; c<= 2*c_mechs; c++ )
+	for (c=1; c<= (2*c_mechs) +3; c++ )
 	{
 		old = debug_solution;
 		GNUNET_asprintf(&debug_solution, "%s %s = %g;", (debug_solution!=NULL) ? debug_solution : "", glp_get_col_name(prob,c), glp_get_col_prim(prob, c));
