@@ -139,7 +139,7 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      void *cls,
 		     GNUNET_MESH_TunnelEndHandler cleaner,
                      const struct GNUNET_MESH_MessageHandler *handlers, 
-		     const GNUNET_MESH_ServiceType *stypes);
+		     const GNUNET_MESH_ApplicationType *stypes);
 
 /**
  * Get the peer on the other side of this tunnel if it is just one. Return NULL otherwise

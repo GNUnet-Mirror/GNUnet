@@ -95,7 +95,7 @@ struct peer_list_element
   unsigned int num_types;
 
   /* array of message-types */
-  uint16_t *types;
+  GNUNET_MESH_ApplicationType *types;
 
   struct GNUNET_TRANSPORT_ATS_Information atsi;
   struct peer_list_element *next, *prev;
@@ -314,10 +314,10 @@ receive_hello (void *cls,
     }
 
   element->num_types = *num;
-  element->types = GNUNET_malloc (*num * sizeof (uint16_t));
+  element->types = GNUNET_malloc (*num * sizeof (GNUNET_MESH_ApplicationType));
 
   for (i = 0; i < *num; i++)
-    element->types[i] = ntohs (ports[i]);
+    element->types[i] = (GNUNET_MESH_ApplicationType)ntohs (ports[i]);
 
   struct tunnel_list_element *tunnel = handle->pending_by_type_tunnels.head;
   while (tunnel != NULL)
@@ -423,7 +423,7 @@ core_receive (void *cls,
 struct GNUNET_MESH_Tunnel *
 GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Handle *handle,
                                           struct GNUNET_TIME_Relative timeout,
-                                          uint16_t message_type,
+                                          GNUNET_MESH_ApplicationType message_type,
                                           GNUNET_MESH_TunnelConnectHandler
                                           connect_handler,
                                           GNUNET_MESH_TunnelDisconnectHandler
@@ -632,7 +632,8 @@ GNUNET_MESH_connect (const struct
 		     *cfg, void *cls,
 		     GNUNET_MESH_TunnelEndHandler
 		     cleaner,
-		     const struct GNUNET_MESH_MessageHandler *handlers)
+		     const struct GNUNET_MESH_MessageHandler *handlers,
+                     const GNUNET_MESH_ApplicationType *stypes)
 {
   struct GNUNET_MESH_Handle *ret =
     GNUNET_malloc (sizeof (struct GNUNET_MESH_Handle));

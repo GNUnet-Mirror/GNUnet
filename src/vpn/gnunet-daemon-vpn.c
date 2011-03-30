@@ -584,7 +584,8 @@ run (void *cls,
     mesh_handle = GNUNET_MESH_connect(cfg_,
 				      NULL,
 				      NULL,
-				      handlers);
+                                      handlers,
+                                      NULL);
     cfg = cfg_;
     restart_hijack = 0;
     hashmap = GNUNET_CONTAINER_multihashmap_create(65536);
