@@ -5574,8 +5574,8 @@ struct ATS_peer
 	int	t;
 };
 
-#define DEBUG_ATS GNUNET_NO
-#define VERBOSE_ATS GNUNET_NO
+#define DEBUG_ATS GNUNET_YES
+#define VERBOSE_ATS GNUNET_YES
 
 
 static int ats_create_problem (int max_it, int max_dur )
@@ -5586,7 +5586,7 @@ static int ats_create_problem (int max_it, int max_dur )
 #else
 	if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "glpk installed\n");
 
-
+#endif
 	glp_prob *prob;
 
 	int c;
@@ -5600,11 +5600,13 @@ static int ats_create_problem (int max_it, int max_dur )
 
 	double v_b_min = 100;
 	double v_n_min = 1;
-	double M = 1000000000;
+	double M = 109951162777600; // 100 TB
 
+	// This are values that are later set from extern
 	double D = 1;
 	double U = 1;
 	double R = 1;
+
 	double Q[c_q_metrics+1];
 	for (c=1; c<=c_q_metrics; c++)
 	{
@@ -5760,8 +5762,8 @@ static int ats_create_problem (int max_it, int max_dur )
 		array_index++;
 		row_index ++;
 	}
-	//GNUNET_assert (row_index-1==c_peers+c_mechs);
-	//GNUNET_assert (array_index==c_mechs+(2*c_mechs));
+	GNUNET_assert (row_index-1==c_peers+c_mechs);
+	GNUNET_assert (array_index-1==c_mechs+(2*c_mechs));
 
 	/* Constraint 3: minimum bandwidth*/
 	if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Constraint 3\n");
@@ -5770,7 +5772,7 @@ static int ats_create_problem (int max_it, int max_dur )
 	{
 		/* b_t - n_t * b_min <= 0 */
 		if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bounds [row]=[%i] \n",row_index);
-		glp_set_row_bnds(prob, row_index, GLP_UP, 0.0, 0.0);
+		glp_set_row_bnds(prob, row_index, GLP_LO, 0.0, 0.0);
 
 		ia[array_index] = row_index;
 		ja[array_index] = mechanisms[c].col_index;
@@ -5784,8 +5786,8 @@ static int ats_create_problem (int max_it, int max_dur )
 		array_index++;
 		row_index ++;
 	}
-	//GNUNET_assert (row_index-1==c_peers+(2*c_mechs));
-	//GNUNET_assert (array_index==c_mechs+(4*c_mechs));
+	GNUNET_assert (row_index-1==c_peers+(2*c_mechs));
+	GNUNET_assert (array_index-1==c_mechs+(4*c_mechs));
 
 	/* Constraint 4: max ressource capacity */
 	/*
@@ -5829,8 +5831,8 @@ static int ats_create_problem (int max_it, int max_dur )
 		array_index++;
 	}
 	row_index ++;
-	//GNUNET_assert (row_index-1==c_peers+(2*c_mechs)+1);
-	//GNUNET_assert (array_index==6*c_mechs);
+	GNUNET_assert (row_index-1==c_peers+(2*c_mechs)+1);
+	GNUNET_assert (array_index-1==6*c_mechs);
 
 	/* optimisation constraints*/
 
@@ -5958,7 +5960,6 @@ static int ats_create_problem (int max_it, int max_dur )
 	GNUNET_free(peers);
 
 	return c_mechs;
-#endif
 }
 
 /* To remove: just for testing */
