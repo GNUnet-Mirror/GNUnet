@@ -5964,7 +5964,6 @@ static int ats_create_problem (int max_it, int max_dur )
 void ats_benchmark (int peers, int transports, int start_peers, int end_peers)
 {
 	static int glpk = GNUNET_YES;
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%i\n", glpk);
 	struct GNUNET_TIME_Absolute start;
 	struct GNUNET_TIME_Relative duration;
 	int c_mechs = 0;
