@@ -5593,6 +5593,7 @@ static int ats_create_problem (int max_it, int max_dur )
 	int c_peers = 0;
 	int c_mechs = 0;
 	int result;
+	int solution;
 
 	int c_c_ressources = 0;
 	int c_q_metrics = 0;
@@ -5856,22 +5857,20 @@ static int ats_create_problem (int max_it, int max_dur )
 
 	glp_load_matrix(prob, array_index-1, ia, ja, ar);
 
-	/* Solve the LP problem */
-	glp_smcp opt ;
-	glp_init_smcp(&opt);
+	glp_iocp opt;
+	glp_init_iocp(&opt);
 
-	/* maximum iterations */
-	opt.it_lim = max_it;
+	/* Use LP presolver (if not, valid LP solution has to be provided)*/
+	opt.presolve =GLP_ON;
 	/* maximum duration */
 	opt.tm_lim = max_dur;
-	opt.presolve = GLP_ON;
 	/* output level */
-	if (DEBUG_ATS)
+	if (VERBOSE_ATS)
 		opt.msg_lev = GLP_MSG_ALL;
 	else
 		opt.msg_lev = GLP_MSG_OFF;
-
-	result = glp_simplex(prob, &opt);
+	result = glp_intopt (prob, &opt);
+	solution =  glp_mip_status (prob);
 
 	switch (result) {
 	case GLP_ESTOP  :    /* search terminated by application */
@@ -5908,8 +5907,26 @@ static int ats_create_problem (int max_it, int max_dur )
 
 	break;
 		default:
-			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Optimal solution\n");
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Problem has been solved\n");
 	break;
+	}
+
+	switch (solution) {
+		case GLP_UNDEF:
+			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MIP solution is undeﬁned\n");
+			break;
+		case GLP_OPT:
+			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MIP solution is integer optimal\n");
+			break;
+		case GLP_FEAS:
+			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MIP solution is integer feasible, however, its optimality (or non-optimality) has not been proven, \n");
+			break;
+		case GLP_NOFEAS:
+			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MI problem has no integer feasible solution\n");
+			break;
+			break;
+		default:
+			break;
 	}
 
 	char * debug_solution = NULL;
