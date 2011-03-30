@@ -5585,7 +5585,7 @@ static int ats_create_problem (int max_it, int max_dur )
 	return;
 #else
 	if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "glpk installed\n");
-#endif
+
 
 	glp_prob *prob;
 
@@ -5599,7 +5599,7 @@ static int ats_create_problem (int max_it, int max_dur )
 	int c_q_metrics = 0;
 
 	double v_b_min = 100;
-	double v_n_min = 2;
+	double v_n_min = 1;
 	double M = 1000000000;
 
 	double D = 1;
@@ -5694,6 +5694,7 @@ static int ats_create_problem (int max_it, int max_dur )
 	/* adding columns */
 	char * name;
 	glp_add_cols(prob, 2 * c_mechs);
+	/* adding b_t cols */
 	for (c=1; c <= c_mechs; c++)
 	{
 		GNUNET_asprintf(&name, "b%i",c);
@@ -5703,14 +5704,15 @@ static int ats_create_problem (int max_it, int max_dur )
 		glp_set_obj_coef(prob, c, 1.0);
 
 	}
+	/* adding n_t cols */
 	for (c=c_mechs+1; c <= 2*c_mechs; c++)
 	{
 		GNUNET_asprintf(&name, "n%i",(c-c_mechs)+1);
 		glp_set_col_name(prob, c, name);
+		GNUNET_free (name);
 		glp_set_col_bnds(prob, c, GLP_DB, 0.0, 1.0);
 		glp_set_col_kind(prob, c, GLP_IV);
 		glp_set_obj_coef(prob, c, 1.0);
-		GNUNET_free (name);
 	}
 
 	/* feasibility constraints */
@@ -5955,6 +5957,7 @@ static int ats_create_problem (int max_it, int max_dur )
 	GNUNET_free(peers);
 
 	return c_mechs;
+#endif
 }
 
 /* To remove: just for testing */
