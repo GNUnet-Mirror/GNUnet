@@ -5582,7 +5582,7 @@ static int ats_create_problem (int max_it, int max_dur )
 {
 #if !HAVE_LIBGLPK
 	if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "no glpk installed\n");
-	return;
+	return -1;
 #else
 	if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "glpk installed\n");
 
@@ -5963,6 +5963,7 @@ static int ats_create_problem (int max_it, int max_dur )
 /* To remove: just for testing */
 void ats_benchmark (int peers, int transports, int start_peers, int end_peers)
 {
+	static int glpk;
 	struct GNUNET_TIME_Absolute start;
 	struct GNUNET_TIME_Relative duration;
 /*
@@ -6019,14 +6020,18 @@ void ats_benchmark (int peers, int transports, int start_peers, int end_peers)
 	 *
 	 */
 	int c_mechs = 0;
-	start = GNUNET_TIME_absolute_get();
-	c_mechs = ats_create_problem(5000,5000);
-
-	duration = GNUNET_TIME_absolute_get_difference(start,GNUNET_TIME_absolute_get());
-
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP execution time in [ms] for %i mechanisms: %llu\n", c_mechs, duration.rel_value);
-
-	GNUNET_STATISTICS_set (stats, "ATS execution time 100 peers", duration.rel_value, GNUNET_NO);
+	if (glpk==GNUNET_YES)
+	{
+		start = GNUNET_TIME_absolute_get();
+		c_mechs = ats_create_problem(5000,5000);
+		if (c_mechs != -1)
+		{
+		duration = GNUNET_TIME_absolute_get_difference(start,GNUNET_TIME_absolute_get());
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP execution time in [ms] for %i mechanisms: %llu\n", c_mechs, duration.rel_value);
+		GNUNET_STATISTICS_set (stats, "ATS execution time 100 peers", duration.rel_value, GNUNET_NO);
+		}
+		else glpk = GNUNET_NO;
+	}
 }
 
 void ats_calculate_bandwidth_distribution ()
