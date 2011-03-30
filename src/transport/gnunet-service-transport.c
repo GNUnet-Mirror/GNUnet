@@ -5574,19 +5574,28 @@ struct ATS_peer
 	int	t;
 };
 
-#define DEBUG_ATS GNUNET_YES
-#define VERBOSE_ATS GNUNET_YES
+#define DEBUG_ATS GNUNET_NO
+#define VERBOSE_ATS GNUNET_NO
 
-
-static int ats_create_problem (int max_it, int max_dur )
+/** solve the bandwidth distribution problem
+ * @param max_it maximum iterations
+ * @param max_dur maximum duration in ms
+ * @param D	weight for diversity
+ * @param U weight for utility
+ * @param R weight for relativity
+ * @param v_b_min minimal bandwidth per peer
+ * @param v_n_min minimum number of connections
+ * @return GNUNET_SYSERR if glpk is not available, number of mechanisms used
+ */
+static int ats_create_problem (int max_it, int max_dur , double D, double U, double R, int v_b_min, int v_n_min)
 {
 #if !HAVE_LIBGLPK
 	if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "no glpk installed\n");
-	return -1;
+	return GNUNET_SYSERR;
 #else
 	if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "glpk installed\n");
 
-#endif
+
 	glp_prob *prob;
 
 	int c;
@@ -5598,16 +5607,8 @@ static int ats_create_problem (int max_it, int max_dur )
 	int c_c_ressources = 0;
 	int c_q_metrics = 0;
 
-	double v_b_min = 100;
-	double v_n_min = 1;
-
 	//double M = 10000000000; // ~10 GB
 	double M = 1000;
-
-	// This are values that are later set from extern
-	double D = 1;
-	double U = 1;
-	double R = 1;
 
 	double Q[c_q_metrics+1];
 	for (c=1; c<=c_q_metrics; c++)
@@ -6071,6 +6072,7 @@ static int ats_create_problem (int max_it, int max_dur )
 	GNUNET_free(peers);
 
 	return c_mechs;
+#endif
 }
 
 /* To remove: just for testing */
@@ -6084,7 +6086,7 @@ void ats_benchmark (int peers, int transports, int start_peers, int end_peers)
 	if (glpk==GNUNET_YES)
 	{
 		start = GNUNET_TIME_absolute_get();
-		c_mechs = ats_create_problem(5000,5000);
+		c_mechs = ats_create_problem(5000, 5000, 1.0, 1.0, 1.0, 1000, 5);
 		if (c_mechs >= 0)
 		{
 		duration = GNUNET_TIME_absolute_get_difference(start,GNUNET_TIME_absolute_get());
