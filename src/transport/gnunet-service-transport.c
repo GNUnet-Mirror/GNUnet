@@ -5689,7 +5689,7 @@ static int ats_create_problem (int max_it, int max_dur )
 
 	if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Creating problem with: %i peers, %i mechanisms\n", c_peers, c_mechs);
 
-	int size = 1 + 8 *c_mechs +2;
+	int size = 1 + 8 *c_mechs +2 + c_mechs + c_peers;
 	int row_index;
 	int array_index=1;
 	int * ia = GNUNET_malloc (size * sizeof (int));
@@ -5847,16 +5847,16 @@ static int ats_create_problem (int max_it, int max_dur )
 	glp_add_cols(prob, 3 + c_q_metrics);
 	glp_set_col_name(prob, (2*c_mechs) + 1, "d");
 	glp_set_obj_coef(prob, (2*c_mechs) + 1, D);
-	glp_set_col_bnds(prob, (2*c_mechs) + 1, GLP_LO, 0.0, 0);
+	glp_set_col_bnds(prob, (2*c_mechs) + 1, GLP_LO, 0.0, 0.0);
 	//glp_set_col_kind(prob, c, GLP_IV);
 	glp_set_col_name(prob, (2*c_mechs) + 2, "u");
 	glp_set_obj_coef(prob, (2*c_mechs) + 2, U);
-	glp_set_col_bnds(prob, (2*c_mechs) + 2, GLP_LO, 0.0, 0);
+	glp_set_col_bnds(prob, (2*c_mechs) + 2, GLP_LO, 0.0, 0.0);
 	//glp_set_col_bnds(prob, c, GLP_DB, 0.0, 1.0);
 	//glp_set_col_kind(prob, c, GLP_IV);
 	glp_set_col_name(prob, (2*c_mechs) + 3, "r");
 	glp_set_obj_coef(prob, (2*c_mechs) + 3, R);
-	//glp_set_col_bnds(prob, (2*c_mechs) + 3, GLP_DB, 0.0, 100.0);
+	glp_set_col_bnds(prob, (2*c_mechs) + 3, GLP_LO, 0.0, 0.0);
 	//glp_set_col_kind(prob, c, GLP_IV);
 	for (c=1; c<= c_q_metrics; c++)
 	{
@@ -5940,6 +5940,34 @@ static int ats_create_problem (int max_it, int max_dur )
 
 	GNUNET_assert (row_index-1==c_peers+(2*c_mechs)+3);
 	GNUNET_assert (array_index-1==8*c_mechs+2);
+
+	// Constraint 9: optimize relativity
+	if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Constraint 9\n");
+	glp_add_rows(prob, c_peers);
+	for (c=1; c<=c_peers; c++)
+	{
+		glp_set_row_bnds(prob, row_index, GLP_LO, 0.0, 0.0);
+
+		struct ATS_mechanism *m = peers[c].m_head;
+		while (m!=NULL)
+		{
+			ia[array_index] = row_index;
+			ja[array_index] = m->col_index;
+			ar[array_index] = 1;
+			if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
+			array_index++;
+			m = m->next;
+		}
+		ia[array_index] = row_index;
+		ja[array_index] = (2*c_mechs) + 3;
+		ar[array_index] = -1;
+		if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
+		array_index++;
+
+		row_index++;
+	}
+	GNUNET_assert (row_index-1==2*c_peers+(2*c_mechs)+3);
+	GNUNET_assert (array_index-1==9*c_mechs+2+c_peers);
 
 	glp_load_matrix(prob, array_index-1, ia, ja, ar);
 
