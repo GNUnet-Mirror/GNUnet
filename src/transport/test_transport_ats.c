@@ -18,8 +18,8 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file testing/test_testing_group.c
- * @brief testcase for functions to connect peers in testing.c
+ * @file testing/test_transport_ats.c
+ * @brief testcase for ats functionality
  */
 #include "platform.h"
 #include "gnunet_testing_lib.h"
@@ -27,14 +27,11 @@
 
 #define VERBOSE GNUNET_YES
 
-#define NUM_PEERS 4
+#define NUM_PEERS 2
 
-#define DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
-/**
- * How long until we give up on connecting the peers?
- */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
 
 static int ok;
 
@@ -45,6 +42,8 @@ static int failed_peers;
 static struct GNUNET_TESTING_PeerGroup *pg;
 
 static  GNUNET_SCHEDULER_TaskIdentifier task;
+
+struct GNUNET_TESTING_Daemon * master_deamon;
 
 
 /**
@@ -91,18 +90,25 @@ delay_task (void *cls,
 
 static void connect_peers()
 {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting peers!\n");
-
     task = GNUNET_SCHEDULER_add_delayed(DELAY, &delay_task, NULL);
-
-
-    //GNUNET_TESTING_daemons_connect();
-	//shutdown_peers();
 
 }
 
+void daemon_connect_cb(void *cls,
+						const struct GNUNET_PeerIdentity *first,
+						const struct GNUNET_PeerIdentity *second,
+						uint32_t distance,
+						const struct GNUNET_CONFIGURATION_Handle *first_cfg,
+						const struct GNUNET_CONFIGURATION_Handle *second_cfg,
+						struct GNUNET_TESTING_Daemon *first_daemon,
+						struct GNUNET_TESTING_Daemon *second_daemon,
+						const char *emsg)
+{
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected peer `%s' \n", GNUNET_i2s(first), GNUNET_i2s(second));
+}
+
 static void
-my_cb (void *cls,
+daemon_start_cb (void *cls,
        const struct GNUNET_PeerIdentity *id,
        const struct GNUNET_CONFIGURATION_Handle *cfg,
        struct GNUNET_TESTING_Daemon *d, const char *emsg)
@@ -122,8 +128,19 @@ my_cb (void *cls,
         }
       return;
     }
-
   peers_left--;
+
+  if (master_deamon == NULL)
+  {
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Master peer `%s'\n", GNUNET_i2s(id));
+	  master_deamon = d;
+  }
+  else
+  {
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting peer `%s'\n", GNUNET_i2s(id));
+	  GNUNET_TESTING_daemons_connect(master_deamon, d, TIMEOUT, 10, GNUNET_YES,&daemon_connect_cb, NULL);
+  }
+
   if (peers_left == 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -157,7 +174,7 @@ run (void *cls,
                                      peers_left, /* Number of parallel ssh connections, or peers being started at once */
                                      TIMEOUT,
                                      NULL, NULL,
-                                     &my_cb, NULL, NULL, NULL, NULL);
+                                     &daemon_start_cb, NULL, NULL, NULL, NULL);
   GNUNET_assert (pg != NULL);
 }
 
@@ -205,4 +222,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of test_testing_group.c */
+/* end of test_transport_ats.c*/
