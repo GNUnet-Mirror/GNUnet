@@ -217,7 +217,6 @@ schedule_peer_transmission (void *cls,
 {
   struct PeerPlan *pp = cls;
   struct GSF_RequestPlan *rp;
-  struct GSF_PendingRequestData *prd;
   size_t msize;
 
   pp->task = GNUNET_SCHEDULER_NO_TASK;
@@ -226,12 +225,10 @@ schedule_peer_transmission (void *cls,
   while ( (NULL != (rp = GNUNET_CONTAINER_heap_peek (pp->delay_heap))) &&
 	  (GNUNET_TIME_absolute_get_remaining (rp->earliest_transmission).rel_value == 0) )
     {
-      rp = GNUNET_CONTAINER_heap_remove_root (pp->delay_heap);
+      GNUNET_assert (rp == GNUNET_CONTAINER_heap_remove_root (pp->delay_heap));
       rp->hn = GNUNET_CONTAINER_heap_insert (pp->priority_heap,
 					     rp, 
 					     rp->priority);					
-      if (NULL == (rp = GNUNET_CONTAINER_heap_peek (pp->delay_heap)))
-	break;
     }   
   if (0 == GNUNET_CONTAINER_heap_get_size (pp->priority_heap))
     {
@@ -247,7 +244,6 @@ schedule_peer_transmission (void *cls,
   /* process from priority heap */
   rp = GNUNET_CONTAINER_heap_peek (pp->priority_heap);
   GNUNET_assert (NULL != rp);
-  prd = GSF_pending_request_get_data_ (rp->pr);
   msize = GSF_pending_request_get_message_ (rp->pr, 0, NULL);					   
   pp->pth = GSF_peer_transmit_ (pp->cp,
 				GNUNET_YES,

@@ -939,6 +939,18 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
 	      (unsigned int) bm);
 #endif
   namespace = (0 != (bm & GET_MESSAGE_BIT_SKS_NAMESPACE)) ? &opt[bits++] : NULL;
+  if ( (type == GNUNET_BLOCK_TYPE_FS_SBLOCK) &&
+       (namespace == NULL) )
+    {
+      GNUNET_break_op (0);
+      return NULL;
+    }
+  if ( (type != GNUNET_BLOCK_TYPE_FS_SBLOCK) &&
+       (namespace != NULL) )
+    {
+      GNUNET_break_op (0);
+      return NULL;
+    }
   target = (0 != (bm & GET_MESSAGE_BIT_TRANSMIT_TO)) ? ((const struct GNUNET_PeerIdentity*) &opt[bits++]) : NULL;
   options = 0;
   spid = 0;

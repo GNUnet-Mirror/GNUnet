@@ -98,38 +98,6 @@ compute_disk_offset (uint64_t fsize,
 
 
 /**
- * Given a block at the given offset and depth, calculate the offset
- * for the CHK at the given index.
- *
- * @param offset the offset of the first
- *        DBLOCK in the subtree of the 
- *        identified IBLOCK
- * @param depth the depth of the IBLOCK in the tree, 0 for DBLOCK
- * @param k which CHK in the IBLOCK are we 
- *        talking about
- * @return offset if k=0, otherwise an appropriately
- *         larger value (i.e., if depth = 1,
- *         the returned value should be offset+k*DBLOCK_SIZE)
- */
-static uint64_t
-compute_dblock_offset (uint64_t offset,
-		       unsigned int depth,
-		       unsigned int k)
-{
-  unsigned int i;
-  uint64_t lsize; /* what is the size of the sum of all DBlocks 
-		     that a CHK at depth i corresponds to? */
-
-  if (depth == 0)
-    return offset;
-  lsize = DBLOCK_SIZE;
-  for (i=1;i<depth;i++)
-    lsize *= CHK_PER_INODE;
-  return offset + k * lsize;
-}
-
-
-/**
  * Fill in all of the generic fields for a download event and call the
  * callback.
  *
@@ -1277,9 +1245,6 @@ process_result_with_request (void *cls,
   chk = (struct ContentHashKey*) pt;
   for (i=(prc->size / sizeof(struct ContentHashKey))-1;i>=0;i--)
     {
-      off = compute_dblock_offset (dr->offset,
-				   dr->depth,
-				   i);
       drc = dr->children[i];
       switch (drc->state)
 	{

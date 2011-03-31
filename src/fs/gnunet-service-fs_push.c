@@ -404,7 +404,6 @@ find_content (struct MigrationReadyPeer *mrp)
       /* failed to find migration target AND
 	 queue is full, purge most-forwarded
 	 block from queue to make room for more */
-      score = 0;
       pos = mig_head;
       while (NULL != pos)
 	{
