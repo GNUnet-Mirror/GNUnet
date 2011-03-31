@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2009 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -18,263 +18,126 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file transport/test_transport_api.c
- * @brief base test case for transport implementations
- *
- * This test case serves as a base for tcp, udp, and udp-nat
- * transport test cases.  Based on the executable being run
- * the correct test case will be performed.  Conservation of
- * C code apparently.
+ * @file testing/test_testing_group.c
+ * @brief testcase for functions to connect peers in testing.c
  */
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_hello_lib.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_os_lib.h"
-#include "gnunet_program_lib.h"
+#include "gnunet_testing_lib.h"
 #include "gnunet_scheduler_lib.h"
-#include "gnunet_transport_service.h"
-#include "transport.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
-#define VERBOSE_ARM GNUNET_NO
+#define NUM_PEERS 4
 
-#define START_ARM GNUNET_YES
+#define DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
- * How long until we give up on transmitting the message?
+ * How long until we give up on connecting the peers?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
-
-/**
- * How long until we give up on transmitting the message?
- */
-#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
-
-#define MTYPE 12345
-
-struct PeerContext
-{
-  struct GNUNET_CONFIGURATION_Handle *cfg;
-  struct GNUNET_TRANSPORT_Handle *th;
-  struct GNUNET_PeerIdentity id;
-#if START_ARM
-  struct GNUNET_OS_Process *arm_proc;
-#endif
-};
-
-static struct PeerContext p1;
-
-static struct PeerContext p2;
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
 
 static int ok;
 
+static int peers_left;
+
+static int failed_peers;
+
+static struct GNUNET_TESTING_PeerGroup *pg;
+
+static  GNUNET_SCHEDULER_TaskIdentifier task;
 
 
-static  GNUNET_SCHEDULER_TaskIdentifier die_task;
+/**
+ * Check whether peers successfully shut down.
+ */
+void
+shutdown_callback (void *cls, const char *emsg)
+{
+  if (emsg != NULL)
+    {
+#if VERBOSE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed!\n");
+#endif
+      if (ok == 0)
+        ok = 666;
+    }
+  else
+    {
+#if VERBOSE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "All peers successfully shut down!\n");
+#endif
+    }
+}
+
+static void shutdown_peers()
+{
+    GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
+}
+
+void
+delay_task (void *cls,
+			  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+	task = GNUNET_SCHEDULER_NO_TASK;
+	if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+	    return;
 
 #if VERBOSE
-#define OKPP do { ok++; fprintf (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
-#else
-#define OKPP do { ok++; } while (0)
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Delay over\n");
 #endif
+	shutdown_peers ();
+}
 
-
-static void
-end ()
+static void connect_peers()
 {
-  /* do work here */
-  GNUNET_assert (ok == 6);
-  GNUNET_SCHEDULER_cancel (die_task);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transports!\n");
-  GNUNET_TRANSPORT_disconnect (p1.th);
-  GNUNET_TRANSPORT_disconnect (p2.th);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting peers!\n");
 
-  die_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transports disconnected, returning success!\n");
-  ok = 0;
+    task = GNUNET_SCHEDULER_add_delayed(DELAY, &delay_task, NULL);
+
+
+    //GNUNET_TESTING_daemons_connect();
+	//shutdown_peers();
+
 }
 
 static void
-stop_arm (struct PeerContext *p)
+my_cb (void *cls,
+       const struct GNUNET_PeerIdentity *id,
+       const struct GNUNET_CONFIGURATION_Handle *cfg,
+       struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
-#if START_ARM
-  if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  GNUNET_OS_process_wait (p->arm_proc);
-  GNUNET_OS_process_close (p->arm_proc);
-  p->arm_proc = NULL;
-#endif
-  GNUNET_CONFIGURATION_destroy (p->cfg);
-}
-
-
-static void
-end_badly ()
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transports!\n");
-  GNUNET_break (0);
-  GNUNET_TRANSPORT_disconnect (p1.th);
-  GNUNET_TRANSPORT_disconnect (p2.th);
-  ok = 1;
-}
-
-static void
-notify_receive (void *cls,
-                const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_MessageHeader *message,
-                const struct GNUNET_TRANSPORT_ATS_Information *ats,
-                uint32_t ats_count)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ok is (%d)!\n",
-              ok);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received message of type %d from peer (%p)!\n",
-                ntohs(message->type), cls);
-
-  GNUNET_assert (ok == 5);
-  OKPP;
-
-  GNUNET_assert (MTYPE == ntohs (message->type));
-  GNUNET_assert (sizeof (struct GNUNET_MessageHeader) ==
-                 ntohs (message->size));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received message from peer (%p)!\n",
-              cls);
-  sleep(5);
-  end ();
-}
-
-
-static size_t
-notify_ready (void *cls, size_t size, void *buf)
-{
-  struct GNUNET_MessageHeader *hdr;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmitting message to peer (%p) - %u!\n", cls, sizeof (struct GNUNET_MessageHeader));
-  GNUNET_assert (size >= 256);
-  GNUNET_assert (ok == 4);
-  OKPP;
-
-  if (buf != NULL)
-  {
-    hdr = buf;
-    hdr->size = htons (sizeof (struct GNUNET_MessageHeader));
-    hdr->type = htons (MTYPE);
-  }
-
-  return sizeof (struct GNUNET_MessageHeader);
-}
-
-static size_t
-notify_ready_connect (void *cls, size_t size, void *buf)
-{
-  return 0;
-}
-
-
-static void
-notify_connect (void *cls,
-                const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_TRANSPORT_ATS_Information *ats,
-                uint32_t ats_count)
-{
-  if (cls == &p1)
+  if (id == NULL)
     {
-      GNUNET_SCHEDULER_cancel (die_task);
-      die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT_TRANSMIT,
-					       &end_badly, NULL);
-
-      GNUNET_TRANSPORT_notify_transmit_ready (p1.th,
-					      &p2.id,
-					      256, 0, TIMEOUT, &notify_ready,
-					      &p1);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Start callback called with error (too long starting peers), aborting test!\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Error from testing: `%s'\n");
+      failed_peers++;
+      if (failed_peers == peers_left)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Too many peers failed, ending test!\n");
+          ok = 1;
+          GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
+        }
+      return;
     }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer `%4s' connected to us (%p)!\n", GNUNET_i2s (peer), cls);
-}
 
-
-static void
-notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer `%4s' disconnected (%p)!\n",
-	      GNUNET_i2s (peer), cls);
-}
-
-
-static void
-setup_peer (struct PeerContext *p, const char *cfgname)
-{
-  p->cfg = GNUNET_CONFIGURATION_create ();
-#if START_ARM
-  p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
-                                        "gnunet-service-arm",
-#if VERBOSE_ARM
-                                        "-L", "DEBUG",
-#endif
-                                        "-c", cfgname, NULL);
-#endif
-  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
-
-  p->th = GNUNET_TRANSPORT_connect (p->cfg,
-                                    NULL, p,
-                                    &notify_receive,
-                                    &notify_connect, &notify_disconnect);
-  GNUNET_assert (p->th != NULL);
-}
-
-
-static void
-exchange_hello_last (void *cls,
-                     const struct GNUNET_MessageHeader *message)
-{
-  struct PeerContext *me = cls;
-
-  GNUNET_TRANSPORT_get_hello_cancel (p2.th, &exchange_hello_last, me);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Exchanging HELLO with peer (%p)!\n", cls);
-  GNUNET_assert (ok >= 3);
-  OKPP;
-  GNUNET_assert (message != NULL);
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
-                                      message, &me->id));
-
-  GNUNET_assert(NULL != GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
-                                          &p1.id,
-                                          sizeof (struct GNUNET_MessageHeader), 0,
-                                          TIMEOUT,
-                                          &notify_ready_connect,
-                                          NULL));
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Finished exchanging HELLOs, now waiting for transmission!\n");
-}
-
-static void
-exchange_hello (void *cls,
-                const struct GNUNET_MessageHeader *message)
-{
-  struct PeerContext *me = cls;
-
-  GNUNET_TRANSPORT_get_hello_cancel (p1.th, &exchange_hello, me);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Exchanging HELLO with peer (%p)!\n", cls);
-  GNUNET_assert (ok >= 2);
-  OKPP;
-  GNUNET_assert (message != NULL);
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
-                                      message, &me->id));
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received HELLO size %d\n", GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message));
-
-  GNUNET_TRANSPORT_offer_hello (p2.th, message, NULL, NULL);
-  GNUNET_TRANSPORT_get_hello (p2.th, &exchange_hello_last, &p2);
+  peers_left--;
+  if (peers_left == 0)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "All peers started successfully!\n");
+      connect_peers();
+      ok = 0;
+    }
+  else if (failed_peers == peers_left)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Too many peers failed, ending test!\n");
+      GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
+      ok = 1;
+    }
 }
 
 
@@ -283,69 +146,63 @@ run (void *cls,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_assert (ok == 1);
-  OKPP;
-  die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-					   &end_badly, NULL);
-
-  setup_peer (&p1, "test_transport_ats_peer1.conf");
-  setup_peer (&p2, "test_transport_ats_peer2.conf");
-  GNUNET_assert(p1.th != NULL);
-  GNUNET_assert(p2.th != NULL);
-
-  GNUNET_TRANSPORT_get_hello (p1.th, &exchange_hello, &p1);
+  ok = 1;
+#if VERBOSE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting %i peers.\n", NUM_PEERS);
+#endif
+  peers_left = NUM_PEERS;
+  pg = GNUNET_TESTING_daemons_start (cfg,
+                                     peers_left, /* Total number of peers */
+                                     peers_left, /* Number of outstanding connections */
+                                     peers_left, /* Number of parallel ssh connections, or peers being started at once */
+                                     TIMEOUT,
+                                     NULL, NULL,
+                                     &my_cb, NULL, NULL, NULL, NULL);
+  GNUNET_assert (pg != NULL);
 }
 
 static int
 check ()
 {
-  static char *const argv[] = { "test-transport-api",
+  char *const argv[] = { "test-testing",
     "-c",
-    "test_transport_api_data.conf",
+    "test_testing_data.conf",
 #if VERBOSE
     "-L", "DEBUG",
 #endif
     NULL
   };
-  static struct GNUNET_GETOPT_CommandLineOption options[] = {
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-
-#if WRITECONFIG
-  setTransportOptions("test_transport_api_data.conf");
-#endif
-  ok = 1;
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-transport-api", "nohelp",
+                      argv, "test-testing-group", "nohelp",
                       options, &run, &ok);
-  stop_arm (&p1);
-  stop_arm (&p2);
   return ok;
 }
-
-
 
 int
 main (int argc, char *argv[])
 {
   int ret;
-#ifdef MINGW
-  return GNUNET_SYSERR;
-#endif
 
-  GNUNET_log_setup ("test-transport-api",
+  GNUNET_log_setup ("test-testing-group",
 #if VERBOSE
                     "DEBUG",
 #else
                     "WARNING",
 #endif
                     NULL);
-
   ret = check ();
-	 GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-1");
-	 GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-2");
-
+  /**
+   * Still need to remove the base testing directory here,
+   * because group starts will create subdirectories under this
+   * main dir.  However, we no longer need to sleep, as the
+   * shutdown sequence won't return until everything is cleaned
+   * up.
+   */
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-testing");
   return ret;
 }
 
-/* end of test_transport_api.c */
+/* end of test_testing_group.c */
