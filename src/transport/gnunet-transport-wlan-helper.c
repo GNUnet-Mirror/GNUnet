@@ -86,6 +86,7 @@
 #include "wlan/ieee80211_radiotap.h"
 #include "wlan/crctable_osdep.h"
 #include "wlan/loopback_helper.h"
+#include "wlan/ieee80211.h"
 
 #define ARPHRD_IEEE80211        801
 #define ARPHRD_IEEE80211_PRISM  802
@@ -250,15 +251,10 @@ Dump(u8 * pu8, int nLength)
 void
 usage()
 {
-  printf("Usage: wlan-hwd [options] <interface>\n\nOptions\n"
-    "-f/--fcs           Mark as having FCS (CRC) already\n"
-    "                   (pkt ends with 4 x sacrificial - chars)\n"
-    "Example:\n"
-    "  echo -n mon0 > /sys/class/ieee80211/phy0/add_iface\n"
-    "  iwconfig mon0 mode monitor\n"
-    "  ifconfig mon0 up\n"
-    "  wlan-hwd mon0        Spam down mon0 with\n"
-    "                       radiotap header first\n"
+  printf("Usage: interface-name optins\n"
+    "options: 0 = with hardware\n"
+    "1 = first loopback file\n"
+    "2 = second loopback file\n"
     "\n");
   exit(1);
 }
@@ -925,34 +921,75 @@ stdin_send_hw(void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 }
 
 int
-maketest(unsigned char * buf)
+maketest(unsigned char * buf, struct Hardware_Infos * dev)
 {
+  uint16_t * tmp16;
+  static uint16_t seqenz = 0;
+  static int first = 0;
+
+  const int rate = 11000000;
+  static const char
+      txt[] =
+          "Hallo1Hallo2 Hallo3 Hallo4...998877665544332211Hallo1Hallo2 Hallo3 Hallo4...998877665544332211";
+
   unsigned char u8aRadiotap[] =
     { 0x00, 0x00, // <-- radiotap version
-        0x0c, 0x00, // <- radiotap header length
-        0x04, 0x80, 0x00, 0x00, // <-- bitmap
+        0x00, 0x00, // <- radiotap header length
+        0x04, 0x80, 0x02, 0x00, // <-- bitmap
         0x00, // <-- rate
         0x00, // <-- padding for natural alignment
-        0x18, 0x00, // <-- TX flags
+        0x10, 0x00, // <-- TX flags
+        0x04 //retries
       };
 
-  static const uint8_t u8aIeeeHeader[] =
-    { 0x08, 0x01, // Frame Control 0x08= 00001000 -> | b1,2 = 0 -> Version 0;
+  /*uint8_t u8aRadiotap[] =
+   {
+   0x00, 0x00, // <-- radiotap version
+   0x19, 0x00, // <- radiotap header length
+   0x6f, 0x08, 0x00, 0x00, // <-- bitmap
+   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // <-- timestamp
+   0x00, // <-- flags (Offset +0x10)
+   0x6c, // <-- rate (0ffset +0x11)
+   0x71, 0x09, 0xc0, 0x00, // <-- channel
+   0xde, // <-- antsignal
+   0x00, // <-- antnoise
+   0x01, // <-- antenna
+   };*/
+
+  u8aRadiotap[8] = (rate/500000);
+  u8aRadiotap[2] = htole16(sizeof(u8aRadiotap));
+
+  static struct ieee80211_frame u8aIeeeHeader;
+
+  uint8_t u8aIeeeHeader_def[] =
+    { 0x08, 0x00, // Frame Control 0x08= 00001000 -> | b1,2 = 0 -> Version 0;
         //      b3,4 = 10 -> Data; b5-8 = 0 -> Normal Data
         //      0x01 = 00000001 -> | b1 = 1 to DS; b2 = 0 not from DS;
         0x00, 0x00, // Duration/ID
-        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // mac1 - in this case receiver
-        0x13, 0x22, 0x33, 0x44, 0x55, 0x66, // mac2 - in this case sender
-        0x13, 0x22, 0x33, 0x44, 0x55, 0x66, // mac3 - in this case bssid
+
+        //0x00, 0x1f, 0x3f, 0xd1, 0x8e, 0xe6, // mac1 - in this case receiver
+        0x00, 0x1d, 0xe0, 0xb0, 0x17, 0xdf, // mac1 - in this case receiver
+        0xC0, 0x3F, 0x0E, 0x44, 0x2D, 0x51, // mac2 - in this case sender
+        0x02, 0x1d, 0xe0, 0x00, 0x01, 0xc4,
+        //0x13, 0x22, 0x33, 0x44, 0x55, 0x66, // mac3 - in this case bssid
         0x10, 0x86, //Sequence Control
       };
+  if (first == 0)
+    {
+      memcpy(&u8aIeeeHeader, u8aIeeeHeader_def, sizeof(struct ieee80211_frame));
+      memcpy(u8aIeeeHeader.i_addr2, dev->pl_mac, 6);
+      first = 1;
+    }
 
-  static const char txt[] = "Hallo1Hallo2 Hallo3 Hallo4...998877665544332211";
+  tmp16 = (uint16_t*) u8aIeeeHeader.i_dur;
+  *tmp16 = (uint16_t) htole16((sizeof(txt) + sizeof(struct ieee80211_frame) * 1000000) / rate + 290);
+  tmp16 = (uint16_t*) u8aIeeeHeader.i_seq;
+  *tmp16 = (*tmp16 & IEEE80211_SEQ_FRAG_MASK) | (htole16(seqenz)
+      << IEEE80211_SEQ_SEQ_SHIFT);
+  seqenz++;
 
-  u8aRadiotap[8] = 8;
   memcpy(buf, u8aRadiotap, sizeof(u8aRadiotap));
-  struct ieee80211_frame * ieee = (struct ieee80211_frame *) u8aIeeeHeader;
-  memcpy(buf + sizeof(u8aRadiotap), ieee, sizeof(u8aIeeeHeader));
+  memcpy(buf + sizeof(u8aRadiotap), &u8aIeeeHeader, sizeof(u8aIeeeHeader));
   memcpy(buf + sizeof(u8aRadiotap) + sizeof(u8aIeeeHeader), txt, sizeof(txt));
   return sizeof(u8aRadiotap) + sizeof(u8aIeeeHeader) + sizeof(txt);
 
@@ -1021,7 +1058,7 @@ hardwaremode(int argc, char *argv[])
   while (0 == closeprog)
     {
 
-      write_pout.size = maketest(write_pout.buf);
+      write_pout.size = maketest(write_pout.buf, &dev);
       tv.tv_sec = 2;
       tv.tv_usec = 0;
       retval = select(0, NULL, NULL, NULL, &tv);
@@ -1112,7 +1149,9 @@ hardwaremode(int argc, char *argv[])
               if (write_pout.pos != write_pout.size && ret != 0)
                 {
                   closeprog = 1;
-                  fprintf(stderr, "Write ERROR packet not in one piece send: %u, %u\n", write_pout.pos, write_pout.size);
+                  fprintf(stderr,
+                      "Write ERROR packet not in one piece send: %u, %u\n",
+                      write_pout.pos, write_pout.size);
                 }
               else if (write_pout.pos == write_pout.size)
                 {
@@ -1186,6 +1225,7 @@ main(int argc, char *argv[])
       fprintf(
           stderr,
           "This program must be started with the interface and the operating mode as argument.\n");
+      usage();
       return 1;
     }
 
