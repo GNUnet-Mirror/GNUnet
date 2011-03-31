@@ -972,7 +972,7 @@ execute_put (struct GNUNET_SERVER_Client *client,
 #endif
     }
   transmit_status (client, 
-		   (GNUNET_SYSERR == ret) ? GNUNET_SYSERR : GNUNET_OK, 
+		   ret,
 		   msg);
   GNUNET_free_non_null (msg);
   if (quota - reserved - cache_size < payload)
@@ -1026,7 +1026,7 @@ check_present (void *cls,
   if (key == NULL)
     {
       if (pc->is_present == GNUNET_YES)	
-	transmit_status (pc->client, GNUNET_OK, NULL);
+	transmit_status (pc->client, GNUNET_NO, NULL);
       else
 	execute_put (pc->client, dm);
       GNUNET_SERVER_client_drop (pc->client);
