@@ -541,6 +541,7 @@ run (void *cls,
 	}
     }
   emsg = NULL;
+  GNUNET_assert (NULL != args[0]);
   if (0 != STAT (args[0], &sbuf))
     {
       GNUNET_asprintf (&emsg,
