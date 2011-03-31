@@ -5574,6 +5574,14 @@ struct ATS_peer
 	int	t;
 };
 
+struct ATS_result
+{
+	int c_mechs;
+	int c_peers;
+	int solution;
+};
+
+
 #define DEBUG_ATS GNUNET_NO
 #define VERBOSE_ATS GNUNET_NO
 
@@ -5585,9 +5593,10 @@ struct ATS_peer
  * @param R weight for relativity
  * @param v_b_min minimal bandwidth per peer
  * @param v_n_min minimum number of connections
+ * @param res result struct
  * @return GNUNET_SYSERR if glpk is not available, number of mechanisms used
  */
-static int ats_create_problem (int max_it, int max_dur , double D, double U, double R, int v_b_min, int v_n_min)
+static int ats_create_problem (int max_it, int max_dur , double D, double U, double R, int v_b_min, int v_n_min, struct ATS_result *res)
 {
 #if !HAVE_LIBGLPK
 	if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "no glpk installed\n");
@@ -5934,7 +5943,9 @@ static int ats_create_problem (int max_it, int max_dur , double D, double U, dou
 	ia[array_index] = row_index;
 	ja[array_index] = (2*c_mechs) + 2;
 	ar[array_index] = -1;
-	if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
+#if VERBOSE_ATS
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
+#endif
 
 	array_index++;
 	row_index ++;
@@ -6019,7 +6030,7 @@ static int ats_create_problem (int max_it, int max_dur , double D, double U, dou
 	case GLP_EOBJLL :    /* objective lower limit reached */
 	case GLP_EOBJUL :    /* objective upper limit reached */
 	case GLP_EROOT  :    /* root LP optimum not provided */
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid Input data\n");
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid Input data: %i\n", result);
 	break;
 
 	break;
@@ -6027,7 +6038,7 @@ static int ats_create_problem (int max_it, int max_dur , double D, double U, dou
 			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Problem has been solved\n");
 	break;
 	}
-
+#if VERBOSE_ATS
 	switch (solution) {
 		case GLP_UNDEF:
 			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MIP solution is undeﬁned\n");
@@ -6057,11 +6068,17 @@ static int ats_create_problem (int max_it, int max_dur , double D, double U, dou
 	old = debug_solution;
 	GNUNET_asprintf(&debug_solution, "%s z = %g; \n", debug_solution,  glp_get_obj_val(prob));
 	if (old!=NULL) GNUNET_free(old);
-	if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s \n",debug_solution);
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s \n",debug_solution);
+	GNUNET_free(debug_solution);
+#endif
+
+	res->c_mechs = c_mechs;
+	res->c_peers = c_peers;
+	res->solution = solution;
 
 	/* clean up */
 
-	GNUNET_free(debug_solution);
+
 	glp_delete_prob(prob);
 
 	GNUNET_free (ja);
@@ -6082,16 +6099,25 @@ void ats_benchmark (int peers, int transports, int start_peers, int end_peers)
 	struct GNUNET_TIME_Absolute start;
 	struct GNUNET_TIME_Relative duration;
 	int c_mechs = 0;
+	struct ATS_result result;
 
 	if (glpk==GNUNET_YES)
 	{
 		start = GNUNET_TIME_absolute_get();
-		c_mechs = ats_create_problem(5000, 5000, 1.0, 1.0, 1.0, 1000, 5);
-		if (c_mechs >= 0)
-		{
+		c_mechs = ats_create_problem(5000, 5000, 1.0, 1.0, 1.0, 1000, 5, &result);
 		duration = GNUNET_TIME_absolute_get_difference(start,GNUNET_TIME_absolute_get());
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP execution time in [ms] for %i mechanisms: %llu\n", c_mechs, duration.rel_value);
-		//GNUNET_STATISTICS_set (stats, "ATS execution time 100 peers", duration.rel_value, GNUNET_NO);
+		if (c_mechs > 0)
+		{
+			if (DEBUG_ATS) {GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP execution time in [ms] for %i mechanisms: %llu\n", c_mechs, duration.rel_value);}
+			GNUNET_STATISTICS_set (stats, "ATS duration", duration.rel_value, GNUNET_NO);
+			GNUNET_STATISTICS_set (stats, "ATS mechanisms", result.c_mechs, GNUNET_NO);
+			GNUNET_STATISTICS_set (stats, "ATS peers", result.c_peers, GNUNET_NO);
+			GNUNET_STATISTICS_set (stats, "ATS solution", result.solution, GNUNET_NO);
+			GNUNET_STATISTICS_set (stats, "ATS timestamp", start.abs_value, GNUNET_NO);
+		}
+		else if (c_mechs == 0)
+		{
+			if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP not executed: no addresses\n");
 		}
 		else glpk = GNUNET_NO;
 	}

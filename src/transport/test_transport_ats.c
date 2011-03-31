@@ -25,11 +25,12 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_scheduler_lib.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
-#define NUM_PEERS 2
+#define NUM_PEERS 11
+#define MEASUREMENTS 5
 
-#define DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 
@@ -39,12 +40,27 @@ static int peers_left;
 
 static int failed_peers;
 
+static int measurement_started;
+
 static struct GNUNET_TESTING_PeerGroup *pg;
 
-static  GNUNET_SCHEDULER_TaskIdentifier task;
+static  GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+static  GNUNET_SCHEDULER_TaskIdentifier stats_task;
 
 struct GNUNET_TESTING_Daemon * master_deamon;
 
+struct GNUNET_STATISTICS_Handle * stats;
+
+struct ATS_result
+{
+	uint64_t timestamp;
+	int mechs;
+	int peers;
+	int solution;
+};
+
+//static int index;
+static struct ATS_result results[MEASUREMENTS];
 
 /**
  * Check whether peers successfully shut down.
@@ -71,26 +87,94 @@ shutdown_callback (void *cls, const char *emsg)
 
 static void shutdown_peers()
 {
+	if (shutdown_task != GNUNET_SCHEDULER_NO_TASK)
+		GNUNET_SCHEDULER_cancel(shutdown_task);
+	if (stats_task != GNUNET_SCHEDULER_NO_TASK)
+		GNUNET_SCHEDULER_cancel(stats_task);
+
     GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
 }
 
+int stats_cb (void *cls,
+			   const char *subsystem,
+			   const char *name,
+			   uint64_t value,
+			   int is_persistent)
+{
+    if ((measurement_started == GNUNET_NO) && (0 == strcmp (name, "ATS peers")) && (value == NUM_PEERS-1))
+    {
+		measurement_started = GNUNET_YES;
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+					"All %llu peers connected\n", value);
+    }
+    if (measurement_started == GNUNET_YES)
+    {
+		if (0 == strcmp (name,"ATS timestamp"))
+		{
+			GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+						"ATS timestamp: %s %llu \n",name, value);
+		}
+		if (0 == strcmp (name,"ATS solution"))
+		{
+			GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+						"ATS solution: %s %llu \n",name, value);
+		}
+		if (0 == strcmp (name,"ATS peers"))
+		{
+			GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+						"ATS peers: %s %llu \n",name, value);
+		}
+		if (0 == strcmp (name,"ATS mechanisms"))
+		{
+			GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+						"ATS mechanisms: %s %llu \n",name, value);
+		}
+		if (0 == strcmp (name,"ATS duration"))
+		{
+			GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+						"ATS duration: %s %llu \n",name, value);
+		}
+    }
+
+    return GNUNET_OK;
+}
+
+
 void
-delay_task (void *cls,
+stats_get_task (void *cls,
 			  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-	task = GNUNET_SCHEDULER_NO_TASK;
+	stats_task = GNUNET_SCHEDULER_NO_TASK;
+	if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+	    return;
+
+	GNUNET_STATISTICS_get (stats, "transport", "ATS timestamp", TIMEOUT, NULL, &stats_cb, NULL);
+	GNUNET_STATISTICS_get (stats, "transport", "ATS solution", TIMEOUT, NULL, &stats_cb, NULL);
+	GNUNET_assert (NULL != GNUNET_STATISTICS_get (stats, "transport","ATS duration", TIMEOUT, NULL, &stats_cb, NULL));
+	GNUNET_STATISTICS_get (stats, "transport", "ATS peers", TIMEOUT, NULL, &stats_cb, NULL);
+	GNUNET_STATISTICS_get (stats, "transport", "ATS mechanisms", TIMEOUT, NULL, &stats_cb, NULL);
+
+	stats_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1), &stats_get_task, NULL);
+}
+
+void
+delay (void *cls,
+			  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+	shutdown_task = GNUNET_SCHEDULER_NO_TASK;
 	if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
 	    return;
 
 #if VERBOSE
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Delay over\n");
 #endif
+	GNUNET_STATISTICS_destroy(stats, GNUNET_NO);
 	shutdown_peers ();
 }
 
 static void connect_peers()
 {
-    task = GNUNET_SCHEDULER_add_delayed(DELAY, &delay_task, NULL);
+    shutdown_task = GNUNET_SCHEDULER_add_delayed(DELAY, &delay, NULL);
 
 }
 
@@ -104,7 +188,13 @@ void daemon_connect_cb(void *cls,
 						struct GNUNET_TESTING_Daemon *second_daemon,
 						const char *emsg)
 {
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected peer `%s' \n", GNUNET_i2s(first), GNUNET_i2s(second));
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected peers `%s'<->`%s': `%s' \n", GNUNET_i2s(first), GNUNET_i2s(second), (emsg==NULL) ? "OK" : emsg);
+}
+
+void cont_cb (void *cls, int success)
+{
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "STATS cont_cb: %i\n", success);
 }
 
 static void
@@ -124,7 +214,7 @@ daemon_start_cb (void *cls,
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Too many peers failed, ending test!\n");
           ok = 1;
-          GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
+      	shutdown_peers ();
         }
       return;
     }
@@ -132,13 +222,17 @@ daemon_start_cb (void *cls,
 
   if (master_deamon == NULL)
   {
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Master peer `%s'\n", GNUNET_i2s(id));
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Master peer `%s' '%s'\n", GNUNET_i2s(id), d->cfgfile);
+
 	  master_deamon = d;
+	  stats = GNUNET_STATISTICS_create("transport", master_deamon->cfg);
+	  GNUNET_assert (stats != NULL);
+	  stats_task = GNUNET_SCHEDULER_add_now(&stats_get_task, NULL);
   }
   else
   {
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting peer `%s'\n", GNUNET_i2s(id));
-	  GNUNET_TESTING_daemons_connect(master_deamon, d, TIMEOUT, 10, GNUNET_YES,&daemon_connect_cb, NULL);
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting peer `%s'\n", GNUNET_i2s(id), GNUNET_i2s(&master_deamon->id));
+	  GNUNET_TESTING_daemons_connect(d, master_deamon, TIMEOUT, 0, GNUNET_YES,&daemon_connect_cb, NULL);
   }
 
   if (peers_left == 0)
@@ -164,6 +258,7 @@ run (void *cls,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   ok = 1;
+  measurement_started = GNUNET_NO;
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting %i peers.\n", NUM_PEERS);
 #endif
@@ -183,7 +278,7 @@ check ()
 {
   char *const argv[] = { "test-testing",
     "-c",
-    "test_testing_data.conf",
+    "test_transport_ats.conf",
 #if VERBOSE
     "-L", "DEBUG",
 #endif
