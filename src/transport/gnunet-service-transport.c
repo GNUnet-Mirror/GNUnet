@@ -6005,7 +6005,9 @@ static int ats_create_problem (int max_it, int max_dur , double D, double U, dou
 	result = glp_intopt (prob, &opt_mlp);
 	solution =  glp_mip_status (prob);
 
+#if VERBOSE_ATS
 	if (VERBOSE_ATS) glp_write_lp(prob, NULL, "ats_mlp.lp");
+
 	switch (result) {
 	case GLP_ESTOP  :    /* search terminated by application */
 		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Search terminated by application ");
@@ -6038,7 +6040,7 @@ static int ats_create_problem (int max_it, int max_dur , double D, double U, dou
 			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Problem has been solved\n");
 	break;
 	}
-#if VERBOSE_ATS
+
 	switch (solution) {
 		case GLP_UNDEF:
 			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MIP solution is undeﬁned\n");
