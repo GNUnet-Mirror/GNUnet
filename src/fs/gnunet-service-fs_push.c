@@ -525,9 +525,11 @@ process_migration_content (void *cls,
     }
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Retrieved block `%s' of type %u for migration\n",
+	      "Retrieved block `%s' of type %u for migration (queue size: %u/%u)\n",
 	      GNUNET_h2s (key),
-	      type);
+	      type,
+	      mig_size + 1,
+	      MIGRATION_LIST_SIZE);
 #endif
   mb = GNUNET_malloc (sizeof (struct MigrationReadyBlock) + size);
   mb->query = *key;
@@ -570,6 +572,8 @@ gather_migration_blocks (void *cls,
 			 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   mig_task = GNUNET_SCHEDULER_NO_TASK;
+  if (mig_size >= MAX_MIGRATION_QUEUE)  
+    return;
   if (GSF_dsh != NULL)
     {
       mig_qe = GNUNET_DATASTORE_get_random (GSF_dsh, 

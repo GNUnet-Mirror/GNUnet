@@ -760,6 +760,30 @@ process_reply (void *cls,
 
 
 /**
+ * Context for the 'put_migration_continuation'.
+ */
+struct PutMigrationContext
+{
+
+  /**
+   * Start time for the operation.
+   */
+  struct GNUNET_TIME_Absolute start;
+
+  /**
+   * Request origin.
+   */
+  struct GNUNET_PeerIdentity origin;
+
+  /**
+   * GNUNET_YES if we had a matching request for this block,
+   * GNUNET_NO if not.
+   */
+  int requested;
+};
+
+
+/**
  * Continuation called to notify client about result of the
  * operation.
  *
@@ -772,11 +796,37 @@ put_migration_continuation (void *cls,
 			    int success,
 			    const char *msg)
 {
-  struct GNUNET_TIME_Absolute *start = cls;
+  struct PutMigrationContext *pmc = cls;
   struct GNUNET_TIME_Relative delay;
-  
-  delay = GNUNET_TIME_absolute_get_duration (*start);
-  GNUNET_free (start);
+  struct GNUNET_TIME_Relative block_time;  
+  struct GSF_ConnectedPeer *cp;
+  struct GSF_PeerPerformanceData *ppd;
+			 
+  delay = GNUNET_TIME_absolute_get_duration (pmc->start);
+  cp = GSF_peer_get_ (&pmc->origin);
+  if ( (GNUNET_OK != success) &&
+       (GNUNET_NO == pmc->requested) )
+    {
+      /* block migration for a bit... */
+      if (NULL != cp)
+	{
+	  ppd = GSF_get_peer_performance_data_ (cp);
+	  ppd->migration_duplication++;
+	  block_time = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+						      5 * ppd->migration_duplication + 
+						      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 5));
+	  GSF_block_peer_migration_ (cp, block_time);
+	}
+    }
+  else
+    {
+      if (NULL != cp)
+	{
+	  ppd = GSF_get_peer_performance_data_ (cp);
+	  ppd->migration_duplication = 0; /* reset counter */
+	}
+    }
+  GNUNET_free (pmc);
   /* FIXME: should we really update the load value on failure? */
   GNUNET_LOAD_update (datastore_put_load,
 		      delay.rel_value);
@@ -842,7 +892,7 @@ handle_dht_reply (void *cls,
 {
   struct GSF_PendingRequest *pr = cls;
   struct ProcessReplyClosure prq;
-  struct GNUNET_TIME_Absolute *start;
+  struct PutMigrationContext *pmc;
 
   memset (&prq, 0, sizeof (prq));
   prq.data = data;
@@ -859,8 +909,9 @@ handle_dht_reply (void *cls,
 		  GNUNET_h2s (key),
 		  prq.priority);
 #endif
-      start = GNUNET_malloc (sizeof (struct GNUNET_TIME_Absolute));
-      *start = GNUNET_TIME_absolute_get ();
+      pmc = GNUNET_malloc (sizeof (struct PutMigrationContext));
+      pmc->start = GNUNET_TIME_absolute_get ();
+      pmc->requested = GNUNET_YES;
       GNUNET_DATASTORE_put (GSF_dsh,
 			    0, key, size, data,
 			    type, prq.priority, 1 /* anonymity */, 
@@ -868,7 +919,7 @@ handle_dht_reply (void *cls,
 			    1 + prq.priority, MAX_DATASTORE_QUEUE,
 			    GNUNET_CONSTANTS_SERVICE_TIMEOUT,
 			    &put_migration_continuation, 
-			    start);
+			    pmc);
     }
 }
 
@@ -1124,7 +1175,7 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
   struct ProcessReplyClosure prq;
   struct GNUNET_TIME_Relative block_time;  
   double putl;
-  struct GNUNET_TIME_Absolute *start;
+  struct PutMigrationContext *pmc;
 
   msize = ntohs (message->size);
   if (msize < sizeof (struct PutMessage))
@@ -1178,8 +1229,11 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
 		  GNUNET_h2s (&query),
 		  prq.priority);
 #endif
-      start = GNUNET_malloc (sizeof (struct GNUNET_TIME_Absolute));
-      *start = GNUNET_TIME_absolute_get ();
+      pmc = GNUNET_malloc (sizeof (struct PutMigrationContext));
+      pmc->start = GNUNET_TIME_absolute_get ();
+      pmc->requested = prq.request_found;
+      GNUNET_PEER_resolve (GSF_get_peer_performance_data_ (cp)->pid,
+			   &pmc->origin);
       GNUNET_DATASTORE_put (GSF_dsh,
 			    0, &query, dsize, &put[1],
 			    type, prq.priority, 1 /* anonymity */, 
@@ -1187,7 +1241,7 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
 			    1 + prq.priority, MAX_DATASTORE_QUEUE,
 			    GNUNET_CONSTANTS_SERVICE_TIMEOUT,
 			    &put_migration_continuation, 
-			    start);
+			    pmc);
     }
   else
     {
@@ -1232,6 +1286,9 @@ GSF_pending_request_init_ ()
 		  _("Configuration fails to specify `%s', assuming default value."),
 		  "MAX_PENDING_REQUESTS");
     }
+  active_to_migration = GNUNET_CONFIGURATION_get_value_yesno (GSF_cfg,
+							      "FS",
+							      "CONTENT_CACHING");
   datastore_put_load = GNUNET_LOAD_value_init (DATASTORE_LOAD_AUTODECLINE);
   pr_map = GNUNET_CONTAINER_multihashmap_create (32 * 1024);
   requests_by_expiration_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN); 

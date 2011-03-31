@@ -110,6 +110,10 @@ struct GSF_PeerPerformanceData
    */
   unsigned int pending_replies;
 
+  /**
+   * How many of the last blocks from migration were duplicates?
+   */
+  unsigned int migration_duplication;
 };
 
 
@@ -175,6 +179,7 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
  * Get a handle for a connected peer.
  *
  * @param peer peer's identity
+ * @return NULL if this peer is not currently connected
  */
 struct GSF_ConnectedPeer *
 GSF_peer_get_ (const struct GNUNET_PeerIdentity *peer);

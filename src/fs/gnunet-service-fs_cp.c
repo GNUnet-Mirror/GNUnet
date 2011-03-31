@@ -509,6 +509,7 @@ revive_migration (void *cls,
  * Get a handle for a connected peer.
  *
  * @param peer peer's identity
+ * @return NULL if the peer is not currently connected
  */
 struct GSF_ConnectedPeer *
 GSF_peer_get_ (const struct GNUNET_PeerIdentity *peer)
@@ -548,6 +549,10 @@ GSF_handle_p2p_migration_stop_ (void *cls,
       return GNUNET_OK;
     }
   bt = GNUNET_TIME_relative_ntoh (msm->duration);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      _("Migration of content to peer `%s' blocked for %llu ms\n"),
+	      GNUNET_i2s (other),
+	      (unsigned long long) bt.rel_value);
   cp->ppd.migration_blocked_until = GNUNET_TIME_relative_to_absolute (bt);
   if (cp->mig_revive_task == GNUNET_SCHEDULER_NO_TASK)
     {
