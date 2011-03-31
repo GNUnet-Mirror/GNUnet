@@ -319,7 +319,7 @@ makeEmptyFile (const struct GNUNET_DISK_FileHandle *fh, size_t size)
  * @param bit the current bit
  */
 typedef void (*BitIterator) (void *cls,
-                             const struct GNUNET_CONTAINER_BloomFilter * bf,
+                             const struct GNUNET_CONTAINER_BloomFilter *bf,
                              unsigned int bit);
 
 /**
@@ -333,7 +333,7 @@ typedef void (*BitIterator) (void *cls,
  */
 static void
 iterateBits (const struct GNUNET_CONTAINER_BloomFilter *bf,
-             BitIterator callback, void *arg, const GNUNET_HashCode * key)
+             BitIterator callback, void *arg, const GNUNET_HashCode *key)
 {
   GNUNET_HashCode tmp[2];
   int bitCount;
@@ -349,7 +349,7 @@ iterateBits (const struct GNUNET_CONTAINER_BloomFilter *bf,
         {
           callback (arg,
                     bf,
-                    (((uint32_t *) & tmp[round & 1])[slot]) &
+                    (((uint32_t *) &tmp[round & 1])[slot]) &
                     ((bf->bitArraySize * 8) - 1));
           slot++;
           bitCount--;
