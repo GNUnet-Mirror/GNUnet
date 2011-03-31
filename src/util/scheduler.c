@@ -771,9 +771,9 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
 #if USE_LSOF
 	  char lsof[512];
 	  snprintf (lsof, sizeof (lsof), "lsof -p %d", getpid());
-	  close (1);
-	  dup2 (2, 1);
-	  ret = system (lsof);		  
+	  (void) close (1);
+	  (void) dup2 (2, 1);
+	  (void) system (lsof);		  
 #endif
 #endif
           abort ();
