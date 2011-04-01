@@ -84,7 +84,7 @@ bin_SCRIPTS = \
 gnunet_nat_server_SOURCES = \
  $(NATSERVER)
 
-    
+
 gnunet_transport_wlan_helper_SOURCES = \
  wlan/radiotap-parser.c \
  wlan/helper_common.c \

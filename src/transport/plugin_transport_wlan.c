@@ -974,8 +974,6 @@ check_next_fragment_timeout(struct Plugin * const plugin)
   struct FragmentMessage * fm;
   struct GNUNET_TIME_Relative next_send;
 
-  next_send = GNUNET_TIME_absolute_get_remaining(plugin->beacon_time);
-
   //cancel old task
   if (plugin->server_write_delay_task != GNUNET_SCHEDULER_NO_TASK)
     {
@@ -989,13 +987,17 @@ check_next_fragment_timeout(struct Plugin * const plugin)
   //check if some acks are in the queue
   if (plugin->ack_send_queue_head != NULL)
     {
-      next_send = GNUNET_TIME_relative_get_zero();
+      next_send = GNUNET_TIME_UNIT_ZERO;
     }
   //check if there are some fragments in the queue
-  else if (fm != NULL)
+  else
     {
-      next_send
-          = GNUNET_TIME_relative_min(next_send, get_next_frag_timeout(fm));
+      next_send = GNUNET_TIME_absolute_get_remaining(plugin->beacon_time);
+      if (fm != NULL)
+	{
+	  next_send
+	    = GNUNET_TIME_relative_min(next_send, get_next_frag_timeout(fm));
+	}
     }
   plugin->server_write_delay_task = GNUNET_SCHEDULER_add_delayed(next_send,
       &delay_fragment_task, plugin);
@@ -2014,22 +2016,25 @@ wlan_plugin_address_suggested(void *cls, const void *addr, size_t addrlen)
  * @return string representing the same address 
  */
 static const char*
-wlan_plugin_address_to_string(void *cls, const void *addr, size_t addrlen)
+wlan_plugin_address_to_string (void *cls, 
+			       const void *addr, 
+			       size_t addrlen)
 {
   static char ret[40];
-  const unsigned char * input;
+  const struct MacAddress *mac;
 
-  //GNUNET_assert(cls !=NULL);
-  if (addrlen != 6)
+  if (addrlen != sizeof (struct MacAddress))
     {
-      /* invalid address (MAC addresses have 6 bytes) */
       GNUNET_break (0);
       return NULL;
     }
-  input = (const unsigned char*) addr;
+  mac = addr;
   GNUNET_snprintf(ret, sizeof(ret),
-      "%s Mac-Address %02X:%02X:%02X:%02X:%02X:%02X", PROTOCOL_PREFIX,
-      input[0], input[1], input[2], input[3], input[4], input[5]);
+		  "%s Mac-Address %X:%X:%X:%X:%X:%X", 
+		  PROTOCOL_PREFIX,
+		  mac->mac[0], mac->mac[1],
+		  mac->mac[2], mac->mac[3], 
+		  mac->mac[4], mac->mac[5]);
   return ret;
 }
 
@@ -2692,14 +2697,20 @@ wlan_data_helper(void *cls, struct Session_light * session_light,
 
 }
 
-char *
-macprinter(u_int8_t * mac)
+
+const char *
+macprinter(const u_int8_t * mac)
 {
   static char macstr[20];
-  sprintf(macstr, "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X", mac[0], mac[1], mac[2],
-      mac[3], mac[4], mac[5]);
+
+  GNUNET_snprintf (macstr,
+		   sizeof (macstr),
+		   "%X:%X:%X:%X:%X:%X", 
+		   mac[0], mac[1], mac[2],
+		   mac[3], mac[4], mac[5]);
   return macstr;
 }
+
 
 /**
  * Function used for to process the data from the suid process
@@ -2708,10 +2719,10 @@ macprinter(u_int8_t * mac)
  * @param client client that send the data (not used)
  * @param hdr header of the GNUNET_MessageHeader
  */
-
 static void
-wlan_process_helper(void *cls, void *client,
-    const struct GNUNET_MessageHeader *hdr)
+wlan_process_helper (void *cls, 
+		     void *client,
+		     const struct GNUNET_MessageHeader *hdr)
 {
   struct Plugin *plugin = cls;
   struct ieee80211_frame * wlanIeeeHeader = NULL;
@@ -2721,17 +2732,22 @@ wlan_process_helper(void *cls, void *client,
   int datasize = 0;
   int pos = 0;
 
-  if (ntohs(hdr->type) == GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA)
+  switch (ntohs(hdr->type))
     {
+    case GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA:
 #if DEBUG_wlan
-      GNUNET_log(
-          GNUNET_ERROR_TYPE_DEBUG,
-          "Func wlan_process_helper got  GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA size: %u\n",
-          ntohs(hdr->size));
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+		 "Func wlan_process_helper got  GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA size: %u\n",
+		 ntohs(hdr->size));
 #endif
 
       //call wlan_process_helper with the message inside, later with wlan: analyze signal
-      GNUNET_assert(ntohs(hdr->size) >= sizeof(struct ieee80211_frame) + sizeof(struct GNUNET_MessageHeader));
+      if (ntohs(hdr->size) < sizeof(struct ieee80211_frame) + sizeof(struct GNUNET_MessageHeader))
+	{
+	  GNUNET_break (0);
+	  /* FIXME: restart SUID process */
+	  return;
+	}
       wlanIeeeHeader = (struct ieee80211_frame *) &hdr[1];
 
       //process only if it is an broadcast or for this computer both with the gnunet bssid
@@ -2790,49 +2806,36 @@ wlan_process_helper(void *cls, void *client,
                   wlanIeeeHeader->i_addr2));
 #endif
         }
-
-    }
-
-  else if (ntohs(hdr->type) == GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL)
-    {
-
-#if DEBUG_wlan
-      GNUNET_log(
-          GNUNET_ERROR_TYPE_DEBUG,
-          "Func wlan_process_helper got  GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL size: %u\n",
-          ntohs(hdr->size));
-#endif
-
+      break;
+    case GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL:
       //TODO more control messages
       //TODO use struct wlan_helper_control
-      if (ntohs(hdr->size) == sizeof(struct Wlan_Helper_Control_Message))
+      if (ntohs(hdr->size) != sizeof(struct Wlan_Helper_Control_Message))
         {
-          //plugin->mac_address = GNUNET_malloc(sizeof(struct MacAddress));
-          memcpy(&(plugin->mac_address), &hdr[1], sizeof(struct MacAddress));
-          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-              "Notifying transport of address %s\n",
-              wlan_plugin_address_to_string(cls, &(plugin->mac_address), ntohs(
-                  hdr->size) - sizeof(struct GNUNET_MessageHeader)));
-          plugin->env->notify_address(plugin->env->cls, "wlan",
-              &plugin->mac_address.mac, sizeof(struct MacAddress),
-              GNUNET_TIME_UNIT_FOREVER_REL);
-        }
-      else
-        {
-          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Wrong wlan mac address %s\n",
-              macprinter(plugin->mac_address.mac));
-        }
-
-    }
-
-  else
-    {
-      // TODO Wrong data?
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-          "WLAN helper packet has not the right type\n");
+	  GNUNET_break (0);
+	  /* FIXME: restart SUID process */	  
+	  return;
+	}
+      memcpy (&plugin->mac_address, 
+	      &hdr[1], 
+	      sizeof(struct MacAddress));
+#if DEBUG_WLAN
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Received WLAN_HELPER_CONTROL message with transport of address %s\n",
+		  wlan_plugin_address_to_string (cls, 
+						 &plugin->mac_address, 
+						 sizeof (struct MacAddress)));
+#endif
+      plugin->env->notify_address(plugin->env->cls, "wlan",
+				  &plugin->mac_address, sizeof(struct MacAddress),
+				  GNUNET_TIME_UNIT_FOREVER_REL);
+      break;
+    default:
+      GNUNET_break (0);
       return;
     }
 }
+
 
 /**
  * We have been notified that wlan-helper has written something to stdout.
@@ -2842,7 +2845,6 @@ wlan_process_helper(void *cls, void *client,
  * @param cls the plugin handle
  * @param tc the scheduling context
  */
-
 static void
 wlan_plugin_helper_read(void *cls,
     const struct GNUNET_SCHEDULER_TaskContext *tc)

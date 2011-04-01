@@ -2248,7 +2248,8 @@ plugin_env_notify_address (void *cls,
   al = p->addresses;
   while (al != NULL)
     {
-      if ((addrlen == al->addrlen) && (0 == memcmp (addr, &al[1], addrlen)))
+      if ( (addrlen == al->addrlen) && 
+	   (0 == memcmp (addr, &al[1], addrlen)) )
         {	      
 	  al->expires = abex;
 	  update_addresses (p, GNUNET_NO);
@@ -2256,7 +2257,6 @@ plugin_env_notify_address (void *cls,
         }
       al = al->next;
     }
-
   al = GNUNET_malloc (sizeof (struct OwnAddressList) + addrlen);
   al->next = p->addresses;
   p->addresses = al;

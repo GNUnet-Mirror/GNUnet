@@ -40,7 +40,7 @@ struct MacAddress
 struct Wlan_Helper_Control_Message
 {
   struct GNUNET_MessageHeader hdr;
-  struct MacAddress mac ;
+  struct MacAddress mac;
 };
 
 
