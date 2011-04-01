@@ -5629,7 +5629,7 @@ struct ATS_info
 	struct ATS_plugin * tail;
 };
 
-#define DEBUG_ATS GNUNET_YES
+#define DEBUG_ATS GNUNET_NO
 #define VERBOSE_ATS GNUNET_NO
 
 /** solve the bandwidth distribution problem
