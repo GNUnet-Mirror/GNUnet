@@ -25,7 +25,7 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_scheduler_lib.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define NUM_PEERS 11
 #define MEASUREMENTS 5
