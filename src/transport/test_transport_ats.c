@@ -25,7 +25,7 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_scheduler_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define NUM_PEERS 11
 #define MEASUREMENTS 5
@@ -85,6 +85,9 @@ shutdown_callback (void *cls, const char *emsg)
 #if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "All peers successfully shut down!\n");
+      	if (stats != NULL)
+      		GNUNET_STATISTICS_destroy(stats, GNUNET_NO);
+      	stats = NULL;
 #endif
     }
 }
@@ -92,9 +95,15 @@ shutdown_callback (void *cls, const char *emsg)
 static void shutdown_peers()
 {
 	if (shutdown_task != GNUNET_SCHEDULER_NO_TASK)
+	{
 		GNUNET_SCHEDULER_cancel(shutdown_task);
+		shutdown_task = GNUNET_SCHEDULER_NO_TASK;
+	}
 	if (stats_task != GNUNET_SCHEDULER_NO_TASK)
+	{
 		GNUNET_SCHEDULER_cancel(stats_task);
+		stats_task = GNUNET_SCHEDULER_NO_TASK;
+	}
 
     GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
 }
@@ -206,7 +215,6 @@ delay (void *cls,
 #if VERBOSE
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Delay over\n");
 #endif
-	GNUNET_STATISTICS_destroy(stats, GNUNET_NO);
 	shutdown_peers ();
 }
 
