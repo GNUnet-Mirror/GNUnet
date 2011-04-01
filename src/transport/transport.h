@@ -31,37 +31,10 @@
 #include "gnunet_transport_service.h"
 
 /* Minimum time between to calculations*/
-#define ATS_MIN_INTERVAL  GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1)
-#define ATS_EXEC_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 2)
+#define ATS_MIN_INTERVAL  GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 1000)
+#define ATS_EXEC_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 1500)
 #define ATS_MAX_EXEC_DURATION GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100)
 #define ATS_MAX_ITERATIONS INT_MAX
-
-struct ATS_info
-{
-	struct GNUNET_CONTAINER_MultiHashMap * peers;
-	/**
-	 * Time of last execution
-	 */
-	struct GNUNET_TIME_Absolute last;
-	/**
-	 * Minimum intervall between two executions
-	 */
-	struct GNUNET_TIME_Relative min_delta;
-	/**
-	 * Regular intervall when execution is triggered
-	 */
-	struct GNUNET_TIME_Relative exec_intervall;
-	/**
-	 * Maximum execution time per calculation
-	 */
-	struct GNUNET_TIME_Relative max_exec_duration;
-	/**
-	 * Maximum number of LP iterations per calculation
-	 */
-	int max_iterations;
-
-	GNUNET_SCHEDULER_TaskIdentifier ats_task;
-};
 
 #define DEBUG_TRANSPORT GNUNET_NO
 #define DEBUG_TRANSPORT_TIMEOUT GNUNET_NO

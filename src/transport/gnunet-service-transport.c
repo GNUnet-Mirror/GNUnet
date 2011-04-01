@@ -5557,8 +5557,7 @@ struct ATS_mechanism
 	struct ATS_peer * peer;
 	int col_index;
 	int	id;
-	double c_max;
-	double c_1;
+	struct ATS_ressource_cost * rc;
 };
 
 struct ATS_peer
@@ -5581,8 +5580,56 @@ struct ATS_result
 	int solution;
 };
 
+struct ATS_plugin
+{
+	struct ATS_plugin * prev;
+	struct ATS_plugin * next;
+	char * short_name;
+	struct ATS_ressource_cost * head;
+	struct ATS_ressource_cost * tail;
+};
 
-#define DEBUG_ATS GNUNET_NO
+struct ATS_ressource_cost
+{
+	struct ATS_ressource_cost * prev;
+	struct ATS_ressource_cost * next;
+	int atsi_index;
+	double c_r_max;
+	double c_1;
+};
+
+
+struct ATS_info
+{
+	struct GNUNET_CONTAINER_MultiHashMap * peers;
+	/**
+	 * Time of last execution
+	 */
+	struct GNUNET_TIME_Absolute last;
+	/**
+	 * Minimum intervall between two executions
+	 */
+	struct GNUNET_TIME_Relative min_delta;
+	/**
+	 * Regular intervall when execution is triggered
+	 */
+	struct GNUNET_TIME_Relative exec_intervall;
+	/**
+	 * Maximum execution time per calculation
+	 */
+	struct GNUNET_TIME_Relative max_exec_duration;
+	/**
+	 * Maximum number of LP iterations per calculation
+	 */
+	int max_iterations;
+
+	GNUNET_SCHEDULER_TaskIdentifier ats_task;
+
+	struct ATS_plugin * head;
+	struct ATS_plugin * tail;
+};
+
+#define DEBUG_ATS GNUNET_YES
 #define VERBOSE_ATS GNUNET_NO
 
 /** solve the bandwidth distribution problem
@@ -5670,13 +5717,14 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 			struct ForeignAddressList * a_next = r_next->addresses;
 			while (a_next != NULL)
 			{
-				if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%i Peer: `%s' %x:\n", c_mechs, GNUNET_i2s(&next->id),
-												a_next);
+				//if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%i Peer: `%s' %x:\n", c_mechs, GNUNET_i2s(&next->id),a_next);
 				mechanisms[c_mechs].addr = a_next;
 				mechanisms[c_mechs].col_index = c_mechs;
 				mechanisms[c_mechs].peer = &peers[c_peers];
 				mechanisms[c_mechs].next = NULL;
 				mechanisms[c_mechs].plugin = r_next->plugin;
+
+				//a_next.latency.rel_value;
 
 				GNUNET_CONTAINER_DLL_insert_tail(peers[c_peers].m_head, peers[c_peers].m_tail, &mechanisms[c_mechs]);
 				c_mechs++;
@@ -6112,7 +6160,7 @@ void ats_calculate_bandwidth_distribution ()
 	if (delta.rel_value < ats->min_delta.rel_value)
 	{
 #if DEBUG_ATS
-		GNUNET_log (GNUNET_ERROR_TYPE_BULK, "Minimum time between cycles not reached\n");
+		//GNUNET_log (GNUNET_ERROR_TYPE_BULK, "Minimum time between cycles not reached\n");
 #endif
 		return;
 	}
@@ -6188,6 +6236,7 @@ int ats_map_remove_peer (void *cls,
 }
 
 
+
 struct ATS_info * ats_init ()
 {
 	struct ATS_info * ats;
@@ -6202,15 +6251,36 @@ struct ATS_info * ats_init ()
 	ats->exec_intervall = ATS_EXEC_INTERVAL;
 	ats->max_exec_duration = ATS_MAX_EXEC_DURATION;
 	ats->max_iterations = ATS_MAX_ITERATIONS;
-
 	ats->ats_task = GNUNET_SCHEDULER_NO_TASK;
-/*
-	ats->ats_task = GNUNET_SCHEDULER_add_delayed (ats->reg_delta,
-	                                &schedule_calculation, NULL);
 
-	ats->ats_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-	                                &schedule_calculation, NULL);
-*/
+	char * option = "GNUNET_TRANSPORT_ATS_COST_NETWORK_OVERHEAD";
+
+	/* loading cost ressources */
+	char * section;
+	struct TransportPlugin * cur = plugins;
+	struct ATS_ressource_cost * rc;
+	struct ATS_plugin * p;
+	unsigned long long  value;
+
+	while (cur != NULL)
+	{
+		if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Loading ressource cost %s for plugin `%s'\n", option, cur->short_name);
+		p = GNUNET_malloc(sizeof (struct ATS_plugin));
+		GNUNET_CONTAINER_DLL_insert_tail(ats->head,ats->tail, p);
+
+		GNUNET_asprintf(&section,"transport-%s",cur->short_name);
+		p->short_name = strdup(cur->short_name);
+
+		if (GNUNET_CONFIGURATION_have_value(cfg,section, option))
+		{
+			rc = GNUNET_malloc(sizeof (struct ATS_ressource_cost));
+			GNUNET_CONFIGURATION_get_value_number(cfg,section, option, &value);
+			rc->atsi_index = GNUNET_TRANSPORT_ATS_COST_NETWORK_OVERHEAD;
+			GNUNET_CONTAINER_DLL_insert_tail(p->head,p->tail, rc);
+		}
+		cur = cur->next;
+	}
+
 	ats->ats_task = GNUNET_SCHEDULER_add_now(&ats_schedule_calculation, ats);
 
 	return ats;
@@ -6225,6 +6295,24 @@ void ats_shutdown ()
 	if (ats->ats_task != GNUNET_SCHEDULER_NO_TASK)
 		GNUNET_SCHEDULER_cancel(ats->ats_task);
 	ats->ats_task = GNUNET_SCHEDULER_NO_TASK;
+
+	struct ATS_plugin * p;
+	struct ATS_ressource_cost * rc;
+
+	p = ats->head;
+	{
+		GNUNET_CONTAINER_DLL_remove (ats->head,ats->tail, p);
+		rc = p->head;
+		while (p != NULL)
+		{
+			GNUNET_CONTAINER_DLL_remove (p->head,p->tail, rc);
+			GNUNET_free(rc);
+			rc = p->head;
+		}
+		GNUNET_free(p->short_name);
+		GNUNET_free(p);
+		p = ats->head;
+	}
 
 	GNUNET_CONTAINER_multihashmap_iterate (ats->peers,ats_map_remove_peer,NULL);
 	GNUNET_CONTAINER_multihashmap_destroy (ats->peers);
@@ -6369,7 +6457,6 @@ run (void *cls,
       return;
     }
 
-  ats = ats_init();
   max_connect_per_transport = (uint32_t) tneigh;
   peerinfo = GNUNET_PEERINFO_connect (cfg);
   if (peerinfo == NULL)
@@ -6431,6 +6518,8 @@ run (void *cls,
                                 &shutdown_task, NULL);
   if (no_transports)
     refresh_hello ();
+
+  ats = ats_init();
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Transport service ready.\n"));
