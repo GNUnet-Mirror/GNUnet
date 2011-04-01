@@ -30,7 +30,6 @@
 #include "gnunet-service-dns-p.h"
 #include "gnunet_protocols.h"
 #include "gnunet-vpn-packet.h"
-#include "gnunet-vpn-pretty-print.h"
 #include "gnunet_container_lib.h"
 #include "gnunet-dns-parser.h"
 #include "gnunet_dht_service.h"

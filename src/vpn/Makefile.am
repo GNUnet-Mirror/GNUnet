@@ -33,7 +33,6 @@ gnunet_helper_hijack_dns_SOURCES = \
 
 gnunet_daemon_vpn_SOURCES = \
  gnunet-daemon-vpn.c gnunet-daemon-vpn.h \
- gnunet-vpn-pretty-print.c gnunet-vpn-pretty-print.h \
  gnunet-dns-parser.c gnunet-dns-parser.h \
  gnunet-daemon-vpn-helper.c gnunet-daemon-vpn-helper.h \
  gnunet-daemon-vpn-dns.c gnunet-daemon-vpn-dns.h \
@@ -48,7 +47,6 @@ gnunet_daemon_vpn_LDADD = \
 
 gnunet_service_dns_SOURCES = \
  gnunet-service-dns.c gnunet-service-dns-p.h \
- gnunet-vpn-pretty-print.c gnunet-vpn-pretty-print.h \
  gnunet-dns-parser.c gnunet-dns-parser.h
 gnunet_service_dns_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la \
