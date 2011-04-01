@@ -506,6 +506,41 @@ out:
     GNUNET_SERVER_receive_done(client, GNUNET_OK);
 }
 
+static void read_response (void *cls,
+                           const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+static void
+open_port ()
+{
+  struct sockaddr_in addr;
+
+  dnsout = GNUNET_NETWORK_socket_create (AF_INET, SOCK_DGRAM, 0);
+  if (dnsout == NULL)
+    return;
+  memset (&addr, 0, sizeof (struct sockaddr_in));
+
+  int err = GNUNET_NETWORK_socket_bind (dnsout,
+                                        (struct sockaddr *) &addr,
+                                        sizeof (struct sockaddr_in));
+
+  if (err != GNUNET_YES)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Could not bind a port, exiting\n");
+      return;
+    }
+
+  /* Read the port we bound to */
+  socklen_t addrlen = sizeof (struct sockaddr_in);
+  err = getsockname (GNUNET_NETWORK_get_fd (dnsout),
+                     (struct sockaddr *) &addr, &addrlen);
+
+  dnsoutport = htons (addr.sin_port);
+
+  GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, dnsout,
+                                 &read_response, NULL);
+}
+
 /**
  * Read a response-packet of the UDP-Socket
  */
@@ -528,7 +563,13 @@ read_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
 				       (struct sockaddr*)&addr,
 				       &addrlen);
 
-    /* if (r < 0) FIXME */
+    if (r < 0)
+      {
+        unhijack(dnsoutport);
+        open_port();
+        GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS, hijack, NULL);
+        return;
+      }
 
     if (query_states[dns->s.id].valid == GNUNET_YES) {
 	query_states[dns->s.id].valid = GNUNET_NO;
@@ -821,33 +862,9 @@ run (void *cls,
 
   dht = GNUNET_DHT_connect(cfg, 1024);
 
-  struct sockaddr_in addr;
-
-  dnsout = GNUNET_NETWORK_socket_create (AF_INET, SOCK_DGRAM, 0);
-  if (dnsout == NULL)
-    return;
-  memset(&addr, 0, sizeof(struct sockaddr_in));
-
-  int err = GNUNET_NETWORK_socket_bind (dnsout,
-					(struct sockaddr*)&addr,
-					sizeof(struct sockaddr_in));
-
-  if (err != GNUNET_YES) {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not bind a port, exiting\n");
-      return;
-  }
-
-  /* Read the port we bound to */
-  socklen_t addrlen = sizeof(struct sockaddr_in);
-  err = getsockname(GNUNET_NETWORK_get_fd(dnsout),
-		    (struct sockaddr*) &addr,
-		    &addrlen);
-
-  dnsoutport = htons(addr.sin_port);
+  open_port();
 
   GNUNET_SCHEDULER_add_now (publish_names, NULL);
-
-  GNUNET_SCHEDULER_add_read_net(GNUNET_TIME_UNIT_FOREVER_REL, dnsout, &read_response, NULL);
 
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
