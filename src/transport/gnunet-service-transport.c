@@ -5596,7 +5596,7 @@ struct ATS_result
  * @param res result struct
  * @return GNUNET_SYSERR if glpk is not available, number of mechanisms used
  */
-static int ats_create_problem (int max_it, int max_dur , double D, double U, double R, int v_b_min, int v_n_min, struct ATS_result *res)
+static int ats_solve_problem (int max_it, int max_dur , double D, double U, double R, int v_b_min, int v_n_min, struct ATS_result *res)
 {
 #if !HAVE_LIBGLPK
 	if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "no glpk installed\n");
@@ -6094,19 +6094,35 @@ static int ats_create_problem (int max_it, int max_dur , double D, double U, dou
 #endif
 }
 
-/* To remove: just for testing */
-void ats_benchmark (int peers, int transports, int start_peers, int end_peers)
+void ats_calculate_bandwidth_distribution ()
 {
 	static int glpk = GNUNET_YES;
 	struct GNUNET_TIME_Absolute start;
 	struct GNUNET_TIME_Relative duration;
-	int c_mechs = 0;
 	struct ATS_result result;
+	int c_mechs = 0;
+
+	struct GNUNET_TIME_Relative delta = GNUNET_TIME_absolute_get_difference(ats->last,GNUNET_TIME_absolute_get());
+	if (delta.rel_value < ats->min_delta.rel_value)
+	{
+#if DEBUG_ATS
+		GNUNET_log (GNUNET_ERROR_TYPE_BULK, "Minimum time between cycles not reached\n");
+#endif
+		return;
+	}
+
+	int dur = 500;
+	if (INT_MAX < ats->max_exec_duration.rel_value)
+		dur = INT_MAX;
+	else
+		dur = (int) ats->max_exec_duration.rel_value;
+
+	start = GNUNET_TIME_absolute_get();
 
 	if (glpk==GNUNET_YES)
 	{
 		start = GNUNET_TIME_absolute_get();
-		c_mechs = ats_create_problem(5000, 5000, 1.0, 1.0, 1.0, 1000, 5, &result);
+		c_mechs = ats_solve_problem(5000, 5000, 1.0, 1.0, 1.0, 1000, 5, &result);
 		duration = GNUNET_TIME_absolute_get_difference(start,GNUNET_TIME_absolute_get());
 		if (c_mechs > 0)
 		{
@@ -6123,48 +6139,6 @@ void ats_benchmark (int peers, int transports, int start_peers, int end_peers)
 		}
 		else glpk = GNUNET_NO;
 	}
-}
-
-void ats_calculate_bandwidth_distribution ()
-{
-	struct GNUNET_TIME_Relative delta = GNUNET_TIME_absolute_get_difference(ats->last,GNUNET_TIME_absolute_get());
-	if (delta.rel_value < ats->min_delta.rel_value)
-	{
-#if DEBUG_ATS
-		GNUNET_log (GNUNET_ERROR_TYPE_BULK, "Minimum time between cycles not reached\n");
-#endif
-		return;
-	}
-
-	struct GNUNET_TIME_Absolute start;
-	/*
-	int mlp = GNUNET_NO;
-	int peers;
-	int transports;
-
-	double b_min;
-	double b_max;
-	double r;
-	double R;
-
-	int it = ATS_MAX_ITERATIONS;
-	*/
-	int dur = 500;
-	if (INT_MAX < ats->max_exec_duration.rel_value)
-		dur = INT_MAX;
-	else
-		dur = (int) ats->max_exec_duration.rel_value;
-
-	struct ATS_mechanism * tl = NULL;
-	struct ATS_peer * pl = NULL;
-
-	start = GNUNET_TIME_absolute_get();
-	ats_benchmark(100,3,100,100);
-	//ats_create_problem(peers, transports, b_min, b_max, r, R, pl, tl, it, dur, mlp);
-
-	GNUNET_free_non_null (pl);
-	GNUNET_free_non_null (tl);
-
 	ats->last = GNUNET_TIME_absolute_get();
 }
 
