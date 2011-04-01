@@ -5603,7 +5603,7 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 	return GNUNET_SYSERR;
 #else
 	if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "glpk installed\n");
-
+#endif
 
 	glp_prob *prob;
 
@@ -5676,6 +5676,7 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 				mechanisms[c_mechs].col_index = c_mechs;
 				mechanisms[c_mechs].peer = &peers[c_peers];
 				mechanisms[c_mechs].next = NULL;
+				mechanisms[c_mechs].plugin = r_next->plugin;
 
 				GNUNET_CONTAINER_DLL_insert_tail(peers[c_peers].m_head, peers[c_peers].m_tail, &mechanisms[c_mechs]);
 				c_mechs++;
@@ -6058,22 +6059,27 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 		default:
 			break;
 	}
-
-	char * debug_solution = NULL;
-	char * old = NULL;
-	for (c=1; c<= (2*c_mechs) +3; c++ )
-	{
-		old = debug_solution;
-		GNUNET_asprintf(&debug_solution, "%s %s = %g;", (debug_solution!=NULL) ? debug_solution : "", glp_get_col_name(prob,c), glp_get_col_prim(prob, c));
-		if (old!=NULL) GNUNET_free(old);
-	}
-	old = debug_solution;
-	GNUNET_asprintf(&debug_solution, "%s z = %g; \n", debug_solution,  glp_get_obj_val(prob));
-	if (old!=NULL) GNUNET_free(old);
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s \n",debug_solution);
-	GNUNET_free(debug_solution);
 #endif
-
+	int check;
+	double bw;
+	struct ATS_mechanism *t = NULL;
+	for (c=1; c<= (c_peers); c++ )
+	{
+		check = GNUNET_NO;
+		t = peers[c].m_head;
+		while (t!=NULL)
+		{
+			bw = glp_get_col_prim(prob, t->col_index);
+			GNUNET_assert (1);
+			if (bw != 0)
+			{
+				GNUNET_assert (check != GNUNET_YES);
+				check = GNUNET_YES;
+				if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[%i][%i] `%s' %s %s %f\n", c, t->col_index, GNUNET_h2s(&peers[c].peer.hashPubKey), t->plugin->short_name, glp_get_col_name(prob,t->col_index), bw);
+			}
+			t = t->next;
+		}
+	}
 	res->c_mechs = c_mechs;
 	res->c_peers = c_peers;
 	res->solution = solution;
@@ -6091,7 +6097,7 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 	GNUNET_free(peers);
 
 	return c_mechs;
-#endif
+
 }
 
 void ats_calculate_bandwidth_distribution ()

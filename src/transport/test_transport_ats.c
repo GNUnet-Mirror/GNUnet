@@ -46,7 +46,6 @@ static struct GNUNET_TESTING_PeerGroup *pg;
 
 static  GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
 static  GNUNET_SCHEDULER_TaskIdentifier stats_task;
-
 struct GNUNET_TESTING_Daemon * master_deamon;
 
 struct GNUNET_STATISTICS_Handle * stats;
@@ -65,6 +64,11 @@ static int r_index;
 static int peers;
 static struct TEST_result results[MEASUREMENTS];
 
+struct GNUNET_STATISTICS_GetHandle * s_solution;
+struct GNUNET_STATISTICS_GetHandle * s_time;
+struct GNUNET_STATISTICS_GetHandle * s_peers;
+struct GNUNET_STATISTICS_GetHandle * s_mechs;
+struct GNUNET_STATISTICS_GetHandle * s_duration;
 
 /**
  * Check whether peers successfully shut down.
@@ -105,6 +109,33 @@ static void shutdown_peers()
 		stats_task = GNUNET_SCHEDULER_NO_TASK;
 	}
 
+	if (s_time != NULL)
+	{
+		GNUNET_STATISTICS_get_cancel(s_time);
+		s_time = NULL;
+	}
+	if (s_peers != NULL)
+	{
+		GNUNET_STATISTICS_get_cancel(s_peers);
+		s_peers = NULL;
+	}
+	if (s_mechs != NULL)
+	{
+		GNUNET_STATISTICS_get_cancel(s_mechs);
+		s_mechs = NULL;
+	}
+	if (s_solution != NULL)
+	{
+		GNUNET_STATISTICS_get_cancel(s_solution);
+		s_solution = NULL;
+	}
+	if (s_duration != NULL)
+	{
+		GNUNET_STATISTICS_get_cancel(s_duration);
+		s_duration = NULL;
+	}
+
+
     GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
 }
 
@@ -120,6 +151,8 @@ static void evaluate_measurements()
 		output = temp;
 	}
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"%s\n",output);
+
+
 	shutdown_peers();
 }
 
@@ -129,6 +162,30 @@ int stats_cb (void *cls,
 			   uint64_t value,
 			   int is_persistent)
 {
+	if (0 == strcmp (name,"ATS solution"))
+	{
+		s_solution = NULL;
+	}
+
+	if (0 == strcmp (name,"ATS peers"))
+	{
+		s_peers = NULL;
+	}
+
+	if (0 == strcmp (name,"ATS mechanisms"))
+	{
+		s_mechs = NULL;
+	}
+
+	if (0 == strcmp (name,"ATS duration"))
+	{
+		s_duration = NULL;
+	}
+	if (0 == strcmp (name,"ATS timestamp"))
+	{
+		s_time = NULL;
+	}
+
     if ((measurement_started == GNUNET_NO) && (0 == strcmp (name, "ATS peers")) && (value == peers-1))
     {
 		measurement_started = GNUNET_YES;
@@ -147,6 +204,11 @@ int stats_cb (void *cls,
 				r_index++;
 				if (r_index >= MEASUREMENTS)
 				{
+					if (stats_task != GNUNET_SCHEDULER_NO_TASK)
+					{
+						GNUNET_SCHEDULER_cancel(stats_task);
+						stats_task = GNUNET_SCHEDULER_NO_TASK;
+					}
 					evaluate_measurements();
 					return GNUNET_NO;
 				}
@@ -195,11 +257,11 @@ stats_get_task (void *cls,
 	if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
 	    return;
 
-	GNUNET_STATISTICS_get (stats, "transport", "ATS timestamp", TIMEOUT, NULL, &stats_cb, NULL);
-	GNUNET_STATISTICS_get (stats, "transport", "ATS solution", TIMEOUT, NULL, &stats_cb, NULL);
-	GNUNET_assert (NULL != GNUNET_STATISTICS_get (stats, "transport","ATS duration", TIMEOUT, NULL, &stats_cb, NULL));
-	GNUNET_STATISTICS_get (stats, "transport", "ATS peers", TIMEOUT, NULL, &stats_cb, NULL);
-	GNUNET_STATISTICS_get (stats, "transport", "ATS mechanisms", TIMEOUT, NULL, &stats_cb, NULL);
+	s_time = GNUNET_STATISTICS_get (stats, "transport", "ATS timestamp", TIMEOUT, NULL, &stats_cb, NULL);
+	s_solution = GNUNET_STATISTICS_get (stats, "transport", "ATS solution", TIMEOUT, NULL, &stats_cb, NULL);
+	s_duration = GNUNET_STATISTICS_get (stats, "transport","ATS duration", TIMEOUT, NULL, &stats_cb, NULL);
+	s_peers = GNUNET_STATISTICS_get (stats, "transport", "ATS peers", TIMEOUT, NULL, &stats_cb, NULL);
+	s_mechs = GNUNET_STATISTICS_get (stats, "transport", "ATS mechanisms", TIMEOUT, NULL, &stats_cb, NULL);
 
 	stats_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250), &stats_get_task, NULL);
 }
