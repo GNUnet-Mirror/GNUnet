@@ -1561,6 +1561,10 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
 	  GNUNET_break (handle->queue_size != 0);
 	  GNUNET_break (pr->queue_size == 1);
 	  GNUNET_free(th);
+#if DEBUG_CORE
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Dropping transmission request: cannot drop queue head and limit is one\n");
+#endif
 	  return NULL;
 	}
       if (priority <= minp->priority)
