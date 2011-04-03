@@ -1217,7 +1217,7 @@ check_finished_fragment(struct Plugin * plugin, struct FragmentMessage * fm)
   //maxack = size of message / max packet size, eg 12 / 5 = 2 start at 0 so ack numbers are 0,1,2
   unsigned int maxack = 63 - ((fm->message_size - 1) / (WLAN_MTU
       - sizeof(struct FragmentationHeader)));
-  uint64_t tmpfield = 0xFFFFFFFFFFFFFFFF;
+  uint64_t tmpfield = UINT64_MAX;
   tmpfield = tmpfield >> maxack;
 
   //#if DEBUG_wlan

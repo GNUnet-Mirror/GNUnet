@@ -5660,7 +5660,7 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 	int result;
 	int solution;
 
-	int c_c_ressources = 0;
+	//int c_c_ressources = 0;
 	int c_q_metrics = 0;
 
 	//double M = 10000000000; // ~10 GB
