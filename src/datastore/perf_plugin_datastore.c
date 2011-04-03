@@ -125,9 +125,10 @@ putValue (struct GNUNET_DATASTORE_PluginFunctions * api, int i, int k)
 			     &key, 
 			     size,
 			     value,
-			     i,
+			     i /* type */,
 			     prio,
-			     i,
+			     i /* anonymity */,
+			     0 /* replication */,
 			     GNUNET_TIME_relative_to_absolute 
 			     (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
 							     60 * 60 * 60 * 1000 +

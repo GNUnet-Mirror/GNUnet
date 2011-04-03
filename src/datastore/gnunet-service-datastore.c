@@ -953,6 +953,7 @@ execute_put (struct GNUNET_SERVER_Client *client,
 			  ntohl(dm->type),
 			  ntohl(dm->priority),
 			  ntohl(dm->anonymity),
+			  0 /* FIXME: replication */,
 			  GNUNET_TIME_absolute_ntoh(dm->expiration),
 			  &msg);
   if (GNUNET_OK == ret)

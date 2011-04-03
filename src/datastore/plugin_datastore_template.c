@@ -64,6 +64,7 @@ static unsigned long long template_plugin_get_size (void *cls)
  * @param type type of the content
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
+ * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param msg set to error message
  * @return GNUNET_OK on success
@@ -76,6 +77,7 @@ template_plugin_put (void *cls,
 		     enum GNUNET_BLOCK_Type type,
 		     uint32_t priority,
 		     uint32_t anonymity,
+		     uint32_t replication,
 		     struct GNUNET_TIME_Absolute expiration,
 		     char **msg)
 {
@@ -128,6 +130,25 @@ template_plugin_get (void *cls,
 		     const GNUNET_HashCode * vhash,
 		     enum GNUNET_BLOCK_Type type,
 		     PluginIterator iter, void *iter_cls)
+{
+  GNUNET_break (0);
+}
+
+
+
+/**
+ * Get a random item for replication.  Returns a single, not expired, random item
+ * from those with the highest replication counters.  The item's 
+ * replication counter is decremented by one IF it was positive before.
+ * Call 'iter' with all values ZERO or NULL if the datastore is empty.
+ *
+ * @param cls closure
+ * @param iter function to call the value (once only).
+ * @param iter_cls closure for iter
+ */
+static void
+template_plugin_replication_get (void *cls,
+				 PluginIterator iter, void *iter_cls)
 {
   GNUNET_break (0);
 }
@@ -308,6 +329,7 @@ libgnunet_plugin_datastore_template_init (void *cls)
   api->put = &template_plugin_put;
   api->next_request = &template_plugin_next_request;
   api->get = &template_plugin_get;
+  api->replication_get = &template_plugin_replication_get;
   api->update = &template_plugin_update;
   api->iter_low_priority = &template_plugin_iter_low_priority;
   api->iter_zero_anonymity = &template_plugin_iter_zero_anonymity;

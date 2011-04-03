@@ -1348,6 +1348,7 @@ mysql_plugin_get_size (void *cls)
  * @param type type of the content
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
+ * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param msg set to error message
  * @return GNUNET_OK on success
@@ -1360,6 +1361,7 @@ mysql_plugin_put (void *cls,
 		  enum GNUNET_BLOCK_Type type,
 		  uint32_t priority,
 		  uint32_t anonymity,
+		  uint32_t replication,
 		  struct GNUNET_TIME_Absolute expiration,
 		  char **msg)
 {
@@ -1688,6 +1690,26 @@ mysql_plugin_get (void *cls,
 
 
 /**
+ * Get a random item for replication.  Returns a single, not expired, random item
+ * from those with the highest replication counters.  The item's 
+ * replication counter is decremented by one IF it was positive before.
+ * Call 'iter' with all values ZERO or NULL if the datastore is empty.
+ *
+ * @param cls closure
+ * @param iter function to call the value (once only).
+ * @param iter_cls closure for iter
+ */
+static void
+mysql_plugin_replication_get (void *cls,
+			      PluginIterator iter, void *iter_cls)
+{
+  /* FIXME: not implemented! */
+  iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, 
+	GNUNET_TIME_UNIT_ZERO_ABS, 0);
+}
+
+
+/**
  * Update the priority for a particular key in the datastore.  If
  * the expiration time in value is different than the time found in
  * the datastore, the higher value should be kept.  For the
@@ -1940,6 +1962,7 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
   api->put = &mysql_plugin_put;
   api->next_request = &mysql_plugin_next_request;
   api->get = &mysql_plugin_get;
+  api->replication_get = &mysql_plugin_replication_get;
   api->update = &mysql_plugin_update;
   api->iter_low_priority = &mysql_plugin_iter_low_priority;
   api->iter_zero_anonymity = &mysql_plugin_iter_zero_anonymity;

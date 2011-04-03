@@ -587,6 +587,7 @@ postgres_plugin_get_size (void *cls)
  * @param type type of the content
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
+ * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param msg set to error message
  * @return GNUNET_OK on success
@@ -599,6 +600,7 @@ postgres_plugin_put (void *cls,
 		     enum GNUNET_BLOCK_Type type,
 		     uint32_t priority,
 		     uint32_t anonymity,
+		     uint32_t replication,
 		     struct GNUNET_TIME_Absolute expiration,
 		     char **msg)
 {
@@ -1198,6 +1200,26 @@ postgres_plugin_get (void *cls,
 
 
 /**
+ * Get a random item for replication.  Returns a single, not expired, random item
+ * from those with the highest replication counters.  The item's 
+ * replication counter is decremented by one IF it was positive before.
+ * Call 'iter' with all values ZERO or NULL if the datastore is empty.
+ *
+ * @param cls closure
+ * @param iter function to call the value (once only).
+ * @param iter_cls closure for iter
+ */
+static void
+postgres_plugin_replication_get (void *cls,
+				 PluginIterator iter, void *iter_cls)
+{
+  /* FIXME: not implemented! */
+  iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, 
+	GNUNET_TIME_UNIT_ZERO_ABS, 0);
+}
+
+
+/**
  * Select a subset of the items in the datastore and call
  * the given iterator for each of them.
  *
@@ -1333,6 +1355,7 @@ libgnunet_plugin_datastore_postgres_init (void *cls)
   api->put = &postgres_plugin_put;
   api->next_request = &postgres_plugin_next_request;
   api->get = &postgres_plugin_get;
+  api->replication_get = &postgres_plugin_replication_get;
   api->update = &postgres_plugin_update;
   api->iter_low_priority = &postgres_plugin_iter_low_priority;
   api->iter_zero_anonymity = &postgres_plugin_iter_zero_anonymity;

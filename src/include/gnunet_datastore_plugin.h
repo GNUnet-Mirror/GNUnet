@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -136,8 +136,8 @@ typedef unsigned long long (*PluginGetSize) (void *cls);
 
 /**
  * Store an item in the datastore.  If the item is already present,
- * the priorities are summed up and the higher expiration time and
- * lower anonymity level is used.
+ * the priorities and replication levels are summed up and the higher
+ * expiration time and lower anonymity level is used.
  *
  * @param cls closure
  * @param key key for the item
@@ -146,6 +146,7 @@ typedef unsigned long long (*PluginGetSize) (void *cls);
  * @param type type of the content
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
+ * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param msg set to an error message (on failure)
  * @return GNUNET_OK on success, GNUNET_NO if the content
@@ -159,6 +160,7 @@ typedef int (*PluginPut) (void *cls,
 			  enum GNUNET_BLOCK_Type type,
 			  uint32_t priority,
 			  uint32_t anonymity,
+			  uint32_t replication,
 			  struct GNUNET_TIME_Absolute expiration,
 			   char **msg);
 
@@ -189,6 +191,22 @@ typedef void (*PluginGet) (void *cls,
 			   const GNUNET_HashCode * vhash,
 			   enum GNUNET_BLOCK_Type type,
 			   PluginIterator iter, void *iter_cls);
+
+
+
+/**
+ * Get a random item for replication.  Returns a single, 
+ * not expired, random item
+ * from those with the highest replication counters.  The item's 
+ * replication counter is decremented by one IF it was positive before.
+ * Call 'iter' with all values ZERO or NULL if the datastore is empty.
+ *
+ * @param cls closure
+ * @param iter function to call the value (once only).
+ * @param iter_cls closure for iter
+ */
+typedef void (*PluginReplicationGet) (void *cls,
+				      PluginIterator iter, void *iter_cls);
 
 
 /**
@@ -286,6 +304,12 @@ struct GNUNET_DATASTORE_PluginFunctions
    * in the datastore.
    */
   PluginGet get;
+
+  /**
+   * Function to get a random item with high replication score from
+   * the database, lowering the item's replication score.
+   */
+  PluginReplicationGet replication_get;
 
   /**
    * Update the priority for a particular key in the datastore.  If
