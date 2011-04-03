@@ -109,7 +109,7 @@ static void
 dht_put_continuation (void *cls,
 		      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_DATASTORE_get_next (GSF_dsh);
+  GNUNET_DATASTORE_iterate_get_next (GSF_dsh);
 }
 
 
@@ -198,11 +198,11 @@ gather_dht_put_blocks (void *cls,
     return;
   if (dht_put_type == GNUNET_BLOCK_TYPE_FS_ONDEMAND)
     dht_put_type = GNUNET_BLOCK_TYPE_FS_KBLOCK;
-  dht_qe = GNUNET_DATASTORE_get_zero_anonymity (GSF_dsh, 
-						0, UINT_MAX,
-						GNUNET_TIME_UNIT_FOREVER_REL,
-						dht_put_type++,
-						&process_dht_put_content, NULL);
+  dht_qe = GNUNET_DATASTORE_iterate_zero_anonymity (GSF_dsh, 
+						    0, UINT_MAX,
+						    GNUNET_TIME_UNIT_FOREVER_REL,
+						    dht_put_type++,
+						    &process_dht_put_content, NULL);
   GNUNET_assert (dht_qe != NULL);
 }
 

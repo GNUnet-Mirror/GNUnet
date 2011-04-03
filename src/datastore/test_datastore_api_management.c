@@ -181,7 +181,7 @@ check_value (void *cls,
   GNUNET_assert (priority == get_priority (i));
   GNUNET_assert (anonymity == get_anonymity(i));
   GNUNET_assert (expiration.abs_value == get_expiration(i).abs_value);
-  GNUNET_DATASTORE_get_next (datastore);
+  GNUNET_DATASTORE_iterate_get_next (datastore);
 }
 
 
@@ -254,12 +254,12 @@ run_continuation (void *cls,
 		  crc->i);
 #endif
       GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
-      GNUNET_DATASTORE_get (datastore, 
-			    &crc->key,
-			    get_type (crc->i),
-			    1, 1, TIMEOUT,
-			    &check_value,
-			    crc);
+      GNUNET_DATASTORE_iterate_key (datastore, 
+				    &crc->key,
+				    get_type (crc->i),
+				    1, 1, TIMEOUT,
+				    &check_value,
+				    crc);
       break;
     case RP_GET_FAIL:
 #if VERBOSE
@@ -269,12 +269,12 @@ run_continuation (void *cls,
 		  crc->i);
 #endif
       GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
-      GNUNET_DATASTORE_get (datastore, 
-			    &crc->key,
-			    get_type (crc->i),
-			    1, 1, TIMEOUT,
-			    &check_nothing,
-			    crc);
+      GNUNET_DATASTORE_iterate_key (datastore, 
+				    &crc->key,
+				    get_type (crc->i),
+				    1, 1, TIMEOUT,
+				    &check_nothing,
+				    crc);
       break;
     case RP_DONE:
       GNUNET_assert (0 == crc->i);

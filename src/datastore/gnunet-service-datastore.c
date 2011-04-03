@@ -42,6 +42,13 @@
  */
 #define MAX_EXPIRE_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
 
+/**
+ * How fast are we allowed to query the database for deleting
+ * expired content? (1 item per second).
+ */
+#define MIN_EXPIRE_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+
+
 #define QUOTA_STAT_NAME gettext_noop ("# bytes used in file-sharing datastore")
 
 /**
@@ -348,10 +355,12 @@ expired_processor (void *cls,
   if (expiration.abs_value > now.abs_value)
     {
       /* finished processing */
-      plugin->api->next_request (next_cls, GNUNET_YES);
+      expired_kill_task 
+	= GNUNET_SCHEDULER_add_delayed (MAX_EXPIRE_DELAY,
+					&delete_expired,
+					NULL);
       return GNUNET_SYSERR;
     }
-  plugin->api->next_request (next_cls, GNUNET_NO);
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Deleting content `%s' of type %u that expired %llu ms ago\n",
@@ -365,7 +374,11 @@ expired_processor (void *cls,
 			    GNUNET_YES);
   GNUNET_CONTAINER_bloomfilter_remove (filter,
 				       key);
-  return GNUNET_NO; /* delete */
+  expired_kill_task 
+    = GNUNET_SCHEDULER_add_delayed (MIN_EXPIRE_DELAY,
+				    &delete_expired,
+				    NULL);
+  return GNUNET_NO;
 }
 
 
@@ -383,15 +396,15 @@ delete_expired (void *cls,
 		const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   expired_kill_task = GNUNET_SCHEDULER_NO_TASK;
-  plugin->api->iter_ascending_expiration (plugin->api->cls, 
-					  0,
-					  &expired_processor,
-					  NULL);
+  plugin->api->expiration_get (plugin->api->cls, 
+			       &expired_processor,
+			       NULL);
 }
 
 
 /**
- * An iterator over a set of items stored in the datastore.
+ * An iterator over a set of items stored in the datastore
+ * that deletes until we're happy with respect to our quota.
  *
  * @param cls closure
  * @param next_cls closure to pass to the "next" function.
@@ -410,31 +423,21 @@ delete_expired (void *cls,
  *         GNUNET_NO to delete the item and continue (if supported)
  */
 static int 
-manage (void *cls,
-	void *next_cls,
-	const GNUNET_HashCode * key,
-	uint32_t size,
-	const void *data,
-	enum GNUNET_BLOCK_Type type,
-	uint32_t priority,
-	uint32_t anonymity,
-	struct GNUNET_TIME_Absolute
-	expiration, 
-	uint64_t uid)
+quota_processor (void *cls,
+		 void *next_cls,
+		 const GNUNET_HashCode * key,
+		 uint32_t size,
+		 const void *data,
+		 enum GNUNET_BLOCK_Type type,
+		 uint32_t priority,
+		 uint32_t anonymity,
+		 struct GNUNET_TIME_Absolute expiration, 
+		 uint64_t uid)
 {
   unsigned long long *need = cls;
 
   if (NULL == key)
-    {
-      GNUNET_free (need);
-      return GNUNET_SYSERR;
-    }
-  if (size + GNUNET_DATASTORE_ENTRY_OVERHEAD > *need)
-    *need = 0;
-  else
-    *need -= size + GNUNET_DATASTORE_ENTRY_OVERHEAD;
-  plugin->api->next_request (next_cls, 
-			     (0 == *need) ? GNUNET_YES : GNUNET_NO);
+    return GNUNET_SYSERR;    
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Deleting %llu bytes of low-priority content `%s' of type %u (still trying to free another %llu bytes)\n",
@@ -443,6 +446,10 @@ manage (void *cls,
 	      type,
 	      *need);
 #endif
+  if (size + GNUNET_DATASTORE_ENTRY_OVERHEAD > *need)
+    *need = 0;
+  else
+    *need -= size + GNUNET_DATASTORE_ENTRY_OVERHEAD;
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# bytes purged (low-priority)"),
 			    size,
@@ -468,19 +475,22 @@ manage (void *cls,
 static void
 manage_space (unsigned long long need)
 {
-  unsigned long long *n;
+  unsigned long long last;
 
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Asked to free up %llu bytes of cache space\n",
 	      need);
 #endif
-  n = GNUNET_malloc (sizeof(unsigned long long));
-  *n = need;
-  plugin->api->iter_low_priority (plugin->api->cls,
-				  0,
-				  &manage,
-				  n);
+  last = 0;
+  while ( (need > 0) &&
+	  (last != need) )
+    {
+      last = need;
+      plugin->api->expiration_get (plugin->api->cls,
+				   &quota_processor,
+				   &need);    
+    }
 }
 
 
@@ -1250,10 +1260,9 @@ handle_get_random (void *cls,
 			    1,
 			    GNUNET_NO);
   GNUNET_SERVER_client_keep (client);
-  plugin->api->iter_migration_order (plugin->api->cls,
-				     GNUNET_BLOCK_TYPE_ANY,
-				     &transmit_item,
-				     client);  
+  plugin->api->replication_get (plugin->api->cls,
+				&transmit_item,
+				client);  
 }
 
 /**

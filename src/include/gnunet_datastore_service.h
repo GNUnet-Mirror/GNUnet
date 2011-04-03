@@ -82,11 +82,11 @@ void GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
  * @param cls closure
  * @param success GNUNET_SYSERR on failure, 
  *                GNUNET_NO on timeout/queue drop
- *                GNUNET_YES on success
+ *                GNUNET_YES (or other positive value) on success
  * @param msg NULL on success, otherwise an error message
  */
 typedef void (*GNUNET_DATASTORE_ContinuationWithStatus)(void *cls,
-							int success,
+							int32_t success,
 							const char *msg);
 
 
@@ -148,7 +148,7 @@ GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h,
  */
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
-		      int rid,
+		      uint32_t rid,
                       const GNUNET_HashCode * key,
                       size_t size,
                       const void *data,
@@ -187,7 +187,7 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
  */
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_release_reserve (struct GNUNET_DATASTORE_Handle *h,
-				  int rid,
+				  uint32_t rid,
 				  unsigned int queue_priority,
 				  unsigned int max_queue_size,
 				  struct GNUNET_TIME_Relative timeout,
@@ -214,7 +214,7 @@ GNUNET_DATASTORE_release_reserve (struct GNUNET_DATASTORE_Handle *h,
  */
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h,
-			 unsigned long long uid,
+			 uint64_t uid,
 			 uint32_t priority,
 			 struct GNUNET_TIME_Absolute expiration,
 			 unsigned int queue_priority,
@@ -287,7 +287,7 @@ typedef void (*GNUNET_DATASTORE_Iterator) (void *cls,
  * in the datastore.  The iterator will only be called
  * once initially; if the first call did contain a
  * result, further results can be obtained by calling
- * "GNUNET_DATASTORE_get_next" with the given argument.
+ * "GNUNET_DATASTORE_iterate_get_next" with the given argument.
  *
  * @param h handle to the datastore
  * @param key maybe NULL (to match all entries)
@@ -304,24 +304,54 @@ typedef void (*GNUNET_DATASTORE_Iterator) (void *cls,
  *         (or rather, will already have been invoked)
  */
 struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_get (struct GNUNET_DATASTORE_Handle *h,
-                      const GNUNET_HashCode * key,
-		      enum GNUNET_BLOCK_Type type,
-		      unsigned int queue_priority,
-		      unsigned int max_queue_size,
-		      struct GNUNET_TIME_Relative timeout,
-                      GNUNET_DATASTORE_Iterator iter, 
-		      void *iter_cls);
+GNUNET_DATASTORE_iterate_key (struct GNUNET_DATASTORE_Handle *h,
+			      const GNUNET_HashCode * key,
+			      enum GNUNET_BLOCK_Type type,
+			      unsigned int queue_priority,
+			      unsigned int max_queue_size,
+			      struct GNUNET_TIME_Relative timeout,
+			      GNUNET_DATASTORE_Iterator iter, 
+			      void *iter_cls);
+
+
+/**
+ * Get all zero-anonymity values from the datastore.
+ *
+ * @param h handle to the datastore
+ * @param queue_priority ranking of this request in the priority queue
+ * @param max_queue_size at what queue size should this request be dropped
+ *        (if other requests of higher priority are in the queue)
+ * @param timeout how long to wait at most for a response
+ * @param type allowed type for the operation (ANY for 'all types')
+ * @param iter function to call on a random value; it
+ *        will be called once with a value (if available)
+ *        and always once with a value of NULL at the end.
+ * @param iter_cls closure for iter
+ * @return NULL if the entry was not queued, otherwise a handle that can be used to
+ *         cancel; note that even if NULL is returned, the callback will be invoked
+ *         (or rather, will already have been invoked)
+ */
+struct GNUNET_DATASTORE_QueueEntry *
+GNUNET_DATASTORE_iterate_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
+					 unsigned int queue_priority,
+					 unsigned int max_queue_size,
+					 struct GNUNET_TIME_Relative timeout,
+					 enum GNUNET_BLOCK_Type type,
+					 GNUNET_DATASTORE_Iterator iter, 
+					 void *iter_cls);
 
 
 /**
  * Function called to trigger obtaining the next result
- * from the datastore.
+ * from the datastore.  ONLY applies for 'GNUNET_DATASTORE_iterate_*'
+ * calls, not for 'get' calls.  FIXME: how much mixing of iterate
+ * calls with other operations can we permit!?  Should we pass
+ * the 'QueueEntry' instead of the datastore handle here instead?
  * 
  * @param h handle to the datastore
  */
 void
-GNUNET_DATASTORE_get_next (struct GNUNET_DATASTORE_Handle *h);
+GNUNET_DATASTORE_iterate_get_next (struct GNUNET_DATASTORE_Handle *h);
 
 
 /**
@@ -352,32 +382,6 @@ GNUNET_DATASTORE_get_for_replication (struct GNUNET_DATASTORE_Handle *h,
 				      GNUNET_DATASTORE_Iterator iter, 
 				      void *iter_cls);
 
-
-/**
- * Get a zero-anonymity value from the datastore.
- *
- * @param h handle to the datastore
- * @param queue_priority ranking of this request in the priority queue
- * @param max_queue_size at what queue size should this request be dropped
- *        (if other requests of higher priority are in the queue)
- * @param timeout how long to wait at most for a response
- * @param type allowed type for the operation
- * @param iter function to call on a random value; it
- *        will be called once with a value (if available)
- *        and always once with a value of NULL.
- * @param iter_cls closure for iter
- * @return NULL if the entry was not queued, otherwise a handle that can be used to
- *         cancel; note that even if NULL is returned, the callback will be invoked
- *         (or rather, will already have been invoked)
- */
-struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_get_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
-				     unsigned int queue_priority,
-				     unsigned int max_queue_size,
-				     struct GNUNET_TIME_Relative timeout,
-				     enum GNUNET_BLOCK_Type type,
-				     GNUNET_DATASTORE_Iterator iter, 
-				     void *iter_cls);
 
 
 /**

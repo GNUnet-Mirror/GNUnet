@@ -210,7 +210,7 @@ check_value (void *cls,
   GNUNET_assert (priority == get_priority (i));
   GNUNET_assert (anonymity == get_anonymity(i));
   GNUNET_assert (expiration.abs_value == get_expiration(i).abs_value);
-  GNUNET_DATASTORE_get_next (datastore);
+  GNUNET_DATASTORE_iterate_get_next (datastore);
 }
 
 
@@ -249,7 +249,7 @@ delete_value (void *cls,
   crc->key = *key;
   crc->data = GNUNET_malloc (size);
   memcpy (crc->data, data, size);
-  GNUNET_DATASTORE_get_next (datastore);
+  GNUNET_DATASTORE_iterate_get_next (datastore);
 }
 
 
@@ -329,7 +329,7 @@ check_multiple (void *cls,
 #endif
   if (priority == get_priority (42))
     crc->uid = uid;
-  GNUNET_DATASTORE_get_next (datastore);
+  GNUNET_DATASTORE_iterate_get_next (datastore);
 }
 
 
@@ -370,7 +370,7 @@ check_update (void *cls,
     }
   else
     GNUNET_assert (size == get_size (43));
-  GNUNET_DATASTORE_get_next (datastore);
+  GNUNET_DATASTORE_iterate_get_next (datastore);
 }
 
 
@@ -420,12 +420,12 @@ run_continuation (void *cls,
 		  crc->i);
 #endif
       GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
-      GNUNET_DATASTORE_get (datastore, 
-			    &crc->key,
-			    get_type (crc->i),
-			    1, 1, TIMEOUT,
-			    &check_value,
-			    crc);
+      GNUNET_DATASTORE_iterate_key (datastore, 
+				    &crc->key,
+				    get_type (crc->i),
+				    1, 1, TIMEOUT,
+				    &check_value,
+				    crc);
       break;
     case RP_DEL:
       crc->i--;
@@ -437,12 +437,12 @@ run_continuation (void *cls,
 #endif
       crc->data = NULL;
       GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
-      GNUNET_DATASTORE_get (datastore, 
-			    &crc->key,
-			    get_type (crc->i),
-			    1, 1, TIMEOUT,
-			    &delete_value,
-			    crc);
+      GNUNET_DATASTORE_iterate_key (datastore, 
+				    &crc->key,
+				    get_type (crc->i),
+				    1, 1, TIMEOUT,
+				    &delete_value,
+				    crc);
       break;
     case RP_DO_DEL:
 #if VERBOSE
@@ -477,12 +477,12 @@ run_continuation (void *cls,
 		  crc->i);
 #endif
       GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
-      GNUNET_DATASTORE_get (datastore, 
-			    &crc->key,
-			    get_type (crc->i),
-			    1, 1, TIMEOUT,
-			    &check_nothing,
-			    crc);
+      GNUNET_DATASTORE_iterate_key (datastore, 
+				    &crc->key,
+				    get_type (crc->i),
+				    1, 1, TIMEOUT,
+				    &check_nothing,
+				    crc);
       break;
     case RP_RESERVE:
       crc->phase = RP_PUT_MULTIPLE;
@@ -526,12 +526,12 @@ run_continuation (void *cls,
 			    crc);
       break;
     case RP_GET_MULTIPLE:
-      GNUNET_DATASTORE_get (datastore,
-			    &crc->key, 
-			    get_type (42),
-			    1, 1, TIMEOUT,
-			    &check_multiple,
-			    crc);
+      GNUNET_DATASTORE_iterate_key (datastore,
+				    &crc->key, 
+				    get_type (42),
+				    1, 1, TIMEOUT,
+				    &check_multiple,
+				    crc);
       break;
     case RP_GET_MULTIPLE_NEXT:
     case RP_GET_MULTIPLE_DONE:
@@ -549,12 +549,12 @@ run_continuation (void *cls,
 			       crc);
       break;
     case RP_UPDATE_VALIDATE:
-      GNUNET_DATASTORE_get (datastore,
-			    &crc->key, 
-			    get_type (42),
-			    1, 1, TIMEOUT,
-			    &check_update,
-			    crc);   
+      GNUNET_DATASTORE_iterate_key (datastore,
+				    &crc->key, 
+				    get_type (42),
+				    1, 1, TIMEOUT,
+				    &check_update,
+				    crc);   
       break;
     case RP_UPDATE_DONE:
       GNUNET_assert (0);

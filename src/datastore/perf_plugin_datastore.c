@@ -62,7 +62,6 @@ enum RunPhase
     RP_LP_GET,
     RP_AE_GET,
     RP_ZA_GET,
-    RP_MO_GET,
     RP_AN_GET
   };
 
@@ -183,8 +182,9 @@ iterateDummy (void *cls,
 	  else
 	    crc->phase = RP_PUT;
 	}
-      GNUNET_SCHEDULER_add_after (GNUNET_SCHEDULER_NO_TASK,
-				  &test, crc);
+      crc->cnt = 0;
+      crc->start = GNUNET_TIME_absolute_get ();      
+      GNUNET_SCHEDULER_add_now (&test, crc);
       return GNUNET_OK;
     }
 #if VERBOSE
@@ -199,6 +199,37 @@ iterateDummy (void *cls,
 }
 
 
+
+static int
+dummy_get (void *cls,
+	   void *next_cls,
+	   const GNUNET_HashCode * key,
+	   uint32_t size,
+	   const void *data,
+	   enum GNUNET_BLOCK_Type type,
+	   uint32_t priority,
+	   uint32_t anonymity,
+	   struct GNUNET_TIME_Absolute
+	   expiration, 
+	   uint64_t uid)
+{
+  struct CpsRunContext *crc = cls;
+
+  crc->cnt++;
+  if (1000 == crc->cnt)
+    {
+      crc->end = GNUNET_TIME_absolute_get();
+      printf (crc->msg,
+	      crc->i,
+	      (unsigned long long) (crc->end.abs_value - crc->start.abs_value),
+	      crc->cnt);
+      crc->phase++;
+      crc->cnt = 0;
+      crc->start = GNUNET_TIME_absolute_get ();      
+    }
+  GNUNET_SCHEDULER_add_now (&test, crc);
+  return GNUNET_OK;
+}
 
 /**
  * Function called when the service shuts
@@ -265,46 +296,31 @@ test (void *cls,
 	      (unsigned long long) (crc->end.abs_value - crc->start.abs_value),
 	      (unsigned int) PUT_10);
       crc->i++;
+      crc->start = GNUNET_TIME_absolute_get ();      
       crc->phase = RP_LP_GET;
       GNUNET_SCHEDULER_add_after (GNUNET_SCHEDULER_NO_TASK,
 				  &test, crc);
       break;
     case RP_LP_GET:
-      crc->cnt = 0;
-      crc->start = GNUNET_TIME_absolute_get ();      
-      crc->msg = "%3u low priority iteration took         %20llums for %u\n";
-      crc->api->iter_low_priority (crc->api->cls, 0, 
-				   &iterateDummy,
-				   crc);
+      crc->msg = "%3u replication iteration took %20llums for %u\n";
+      crc->api->replication_get (crc->api->cls, 
+				 &dummy_get,
+				 crc);
       break;
     case RP_AE_GET:
-      crc->cnt = 0;
-      crc->start = GNUNET_TIME_absolute_get ();      
-      crc->msg = "%3u ascending expiration iteration took %20llums for %u\n";
-      crc->api->iter_ascending_expiration (crc->api->cls, 0, 
-				      &iterateDummy,
-				      crc);
+      crc->msg = "%3u expiration iteration took %20llums for %u\n";
+      crc->api->expiration_get (crc->api->cls, 
+				&dummy_get,
+				crc);
       break;
     case RP_ZA_GET:
-      crc->cnt = 0;
-      crc->start = GNUNET_TIME_absolute_get ();      
-      crc->msg = "%3u zero anonymity iteration took       %20llums for %u\n";
+      crc->msg = "%3u zero anonymity iteration took %20llums for %u\n";
       crc->api->iter_zero_anonymity (crc->api->cls, 0, 
 				     &iterateDummy,
 				     crc);
       break;
-    case RP_MO_GET:
-      crc->cnt = 0;
-      crc->start = GNUNET_TIME_absolute_get ();      
-      crc->msg = "%3u migration order iteration took      %20llums for %u\n";
-      crc->api->iter_migration_order (crc->api->cls, 0, 
-				      &iterateDummy,
-				      crc);
-      break;
     case RP_AN_GET:
-      crc->cnt = 0;
-      crc->start = GNUNET_TIME_absolute_get ();      
-      crc->msg = "%3u all now iteration took              %20llums for %u\n";
+      crc->msg = "%3u all now iteration took %20llums for %u\n";
       crc->api->iter_all_now (crc->api->cls, 0,
 			      &iterateDummy,
 			      crc);
@@ -312,7 +328,7 @@ test (void *cls,
     case RP_DONE:
       crc->api->drop (crc->api->cls);
       GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
-				    &cleaning_task, crc);
+					  &cleaning_task, crc);
       break;
     }
 }

@@ -37,12 +37,14 @@ gnunet_service_datastore_LDADD = \
   $(GN_LIBINTL)
 
 if HAVE_MYSQL
+if HAVE_EXPERIMENTAL
  MYSQL_PLUGIN = libgnunet_plugin_datastore_mysql.la
  MYSQL_TESTS = \
   test_datastore_api_mysql \
   test_datastore_api_management_mysql \
   perf_datastore_api_mysql \
   perf_plugin_datastore_mysql
+endif
 endif
 if HAVE_SQLITE
  SQLITE_PLUGIN = libgnunet_plugin_datastore_sqlite.la
@@ -53,12 +55,14 @@ if HAVE_SQLITE
   perf_plugin_datastore_sqlite
 endif
 if HAVE_POSTGRES
+if HAVE_EXPERIMENTAL
  POSTGRES_PLUGIN = libgnunet_plugin_datastore_postgres.la
  POSTGRES_TESTS = \
   test_datastore_api_postgres \
   test_datastore_api_management_postgres \
   perf_datastore_api_postgres \
   perf_plugin_datastore_postgres
+endif
 endif
 
 plugin_LTLIBRARIES = \

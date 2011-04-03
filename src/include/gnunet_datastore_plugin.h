@@ -162,7 +162,7 @@ typedef int (*PluginPut) (void *cls,
 			  uint32_t anonymity,
 			  uint32_t replication,
 			  struct GNUNET_TIME_Absolute expiration,
-			   char **msg);
+			  char **msg);
 
 
 /**
@@ -187,26 +187,25 @@ typedef int (*PluginPut) (void *cls,
  * @param iter_cls closure for iter
  */
 typedef void (*PluginGet) (void *cls,
-			   const GNUNET_HashCode * key,
-			   const GNUNET_HashCode * vhash,
+			   const GNUNET_HashCode *key,
+			   const GNUNET_HashCode *vhash,
 			   enum GNUNET_BLOCK_Type type,
 			   PluginIterator iter, void *iter_cls);
 
 
 
 /**
- * Get a random item for replication.  Returns a single, 
- * not expired, random item
- * from those with the highest replication counters.  The item's 
- * replication counter is decremented by one IF it was positive before.
- * Call 'iter' with all values ZERO or NULL if the datastore is empty.
+ * Get a random item (additional constraints may apply depending on
+ * the specific implementation).  Calls 'iter' with all values ZERO or
+ * NULL if no item applies, otherwise 'iter' is called once and only
+ * once with an item, with the 'next_cls' argument being NULL.
  *
  * @param cls closure
  * @param iter function to call the value (once only).
  * @param iter_cls closure for iter
  */
-typedef void (*PluginReplicationGet) (void *cls,
-				      PluginIterator iter, void *iter_cls);
+typedef void (*PluginRandomGet) (void *cls,
+				 PluginIterator iter, void *iter_cls);
 
 
 /**
@@ -234,13 +233,16 @@ typedef void (*PluginReplicationGet) (void *cls,
  */
 typedef int (*PluginUpdate) (void *cls,
 			     uint64_t uid,
-			     int delta, struct GNUNET_TIME_Absolute expire,
+			     int delta, 
+			     struct GNUNET_TIME_Absolute expire,
 			     char **msg);
 
 
 /**
- * Select a subset of the items in the datastore and call
- * the given iterator for each of them.
+ * Select a subset of the items in the datastore and call the given
+ * iterator for the first item; then allow getting more items by
+ * calling the 'next_request' callback with the given 'next_cls'
+ * argument passed to 'iter'.
  *
  * @param cls closure
  * @param type entries of which type should be considered?
@@ -257,6 +259,7 @@ typedef void (*PluginSelector) (void *cls,
                                 enum GNUNET_BLOCK_Type type,
                                 PluginIterator iter,
                                 void *iter_cls);
+
 
 /**
  * Drop database.
@@ -307,9 +310,18 @@ struct GNUNET_DATASTORE_PluginFunctions
 
   /**
    * Function to get a random item with high replication score from
-   * the database, lowering the item's replication score.
+   * the database, lowering the item's replication score.  Returns a
+   * single, not expired, random item from those with the highest
+   * replication counters.  The item's replication counter is
+   * decremented by one IF it was positive before.
    */
-  PluginReplicationGet replication_get;
+  PluginRandomGet replication_get;
+
+  /**
+   * Function to get a random expired item or, if none are expired, one
+   * with a low priority.
+   */
+  PluginRandomGet expiration_get;
 
   /**
    * Update the priority for a particular key in the datastore.  If
@@ -322,29 +334,9 @@ struct GNUNET_DATASTORE_PluginFunctions
   PluginUpdate update;
 
   /**
-   * Iterate over the items in the datastore in ascending
-   * order of priority.
-   */
-  PluginSelector iter_low_priority;
-
-  /**
-   * Iterate over content with anonymity zero.
+   * Iterate over content with anonymity level zero.
    */
   PluginSelector iter_zero_anonymity;
-
-  /**
-   * Iterate over the items in the datastore in ascending order of
-   * expiration time. 
-   */
-  PluginSelector iter_ascending_expiration;
-
-  /**
-   * Iterate over the items in the datastore in migration
-   * order.  Call the given function on the next item only
-   * (and then signal 'end' with a second call).  This is
-   * a significant difference from all the other iterators!
-   */
-  PluginSelector iter_migration_order;
 
   /**
    * Iterate over all the items in the datastore

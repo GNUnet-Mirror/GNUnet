@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2004, 2005, 2006, 2007, 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2004, 2005, 2006, 2007, 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -305,8 +305,9 @@ transmit_drop (void *cls,
  * @param h handle to the datastore
  * @param drop set to GNUNET_YES to delete all data in datastore (!)
  */
-void GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
-				  int drop)
+void
+GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
+			     int drop)
 {
   struct GNUNET_DATASTORE_QueueEntry *qe;
 
@@ -668,7 +669,7 @@ process_queue (struct GNUNET_DATASTORE_Handle *h)
  * @param emsg error message
  */
 static void
-drop_status_cont (void *cls, int result, const char *emsg)
+drop_status_cont (void *cls, int32_t result, const char *emsg)
 {
   /* do nothing */
 }
@@ -806,7 +807,7 @@ process_status_message (void *cls,
  */
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
-		      int rid,
+		      uint32_t rid,
                       const GNUNET_HashCode * key,
                       size_t size,
                       const void *data,
@@ -959,7 +960,7 @@ GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h,
  */
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_release_reserve (struct GNUNET_DATASTORE_Handle *h,
-				  int rid,
+				  uint32_t rid,
 				  unsigned int queue_priority,
 				  unsigned int max_queue_size,
 				  struct GNUNET_TIME_Relative timeout,
@@ -1022,7 +1023,7 @@ GNUNET_DATASTORE_release_reserve (struct GNUNET_DATASTORE_Handle *h,
  */
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h,
-			 unsigned long long uid,
+			 uint64_t uid,
 			 uint32_t priority,
 			 struct GNUNET_TIME_Absolute expiration,
 			 unsigned int queue_priority,
@@ -1250,7 +1251,7 @@ process_result_message (void *cls,
 	  do_disconnect (h);	  
 	  return;
 	}
-      GNUNET_DATASTORE_get_next (h);
+      GNUNET_DATASTORE_iterate_get_next (h);
       return;
     }
   dm = (const struct DataMessage*) msg;
@@ -1355,13 +1356,13 @@ GNUNET_DATASTORE_get_for_replication (struct GNUNET_DATASTORE_Handle *h,
  *         (or rather, will already have been invoked)
  */
 struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_get_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
-				     unsigned int queue_priority,
-				     unsigned int max_queue_size,
-				     struct GNUNET_TIME_Relative timeout,
-				     enum GNUNET_BLOCK_Type type,
-				     GNUNET_DATASTORE_Iterator iter, 
-				     void *iter_cls)
+GNUNET_DATASTORE_iterate_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
+					 unsigned int queue_priority,
+					 unsigned int max_queue_size,
+					 struct GNUNET_TIME_Relative timeout,
+					 enum GNUNET_BLOCK_Type type,
+					 GNUNET_DATASTORE_Iterator iter, 
+					 void *iter_cls)
 {
   struct GNUNET_DATASTORE_QueueEntry *qe;
   struct GetZeroAnonymityMessage *m;
@@ -1404,7 +1405,7 @@ GNUNET_DATASTORE_get_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
  * in the datastore.  The iterator will only be called
  * once initially; if the first call did contain a
  * result, further results can be obtained by calling
- * "GNUNET_DATASTORE_get_next" with the given argument.
+ * "GNUNET_DATASTORE_iterate_get_next" with the given argument.
  *
  * @param h handle to the datastore
  * @param key maybe NULL (to match all entries)
@@ -1421,14 +1422,14 @@ GNUNET_DATASTORE_get_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
  *         (or rather, will already have been invoked)
  */
 struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_get (struct GNUNET_DATASTORE_Handle *h,
-                      const GNUNET_HashCode * key,
-		      enum GNUNET_BLOCK_Type type,
-		      unsigned int queue_priority,
-		      unsigned int max_queue_size,
-		      struct GNUNET_TIME_Relative timeout,
-                      GNUNET_DATASTORE_Iterator iter, 
-		      void *iter_cls)
+GNUNET_DATASTORE_iterate_key (struct GNUNET_DATASTORE_Handle *h,
+			      const GNUNET_HashCode * key,
+			      enum GNUNET_BLOCK_Type type,
+			      unsigned int queue_priority,
+			      unsigned int max_queue_size,
+			      struct GNUNET_TIME_Relative timeout,
+			      GNUNET_DATASTORE_Iterator iter, 
+			      void *iter_cls)
 {
   struct GNUNET_DATASTORE_QueueEntry *qe;
   struct GetMessage *gm;
@@ -1482,7 +1483,7 @@ GNUNET_DATASTORE_get (struct GNUNET_DATASTORE_Handle *h,
  * @param h handle to the datastore
  */
 void 
-GNUNET_DATASTORE_get_next (struct GNUNET_DATASTORE_Handle *h)
+GNUNET_DATASTORE_iterate_get_next (struct GNUNET_DATASTORE_Handle *h)
 {
   struct GNUNET_DATASTORE_QueueEntry *qe = h->queue_head;
 
