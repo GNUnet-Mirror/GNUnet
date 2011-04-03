@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2004, 2005, 2006, 2007, 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2004, 2005, 2006, 2007, 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -122,8 +122,8 @@ GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h,
 
 /**
  * Store an item in the datastore.  If the item is already present,
- * the priorities are summed up and the higher expiration time and
- * lower anonymity level is used.
+ * the priorities and replication values are summed up and the higher
+ * expiration time and lower anonymity level is used.
  *
  * @param h handle to the datastore
  * @param rid reservation ID to use (from "reserve"); use 0 if no
@@ -134,6 +134,7 @@ GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h,
  * @param type type of the content
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
+ * @param replication how often should the content be replicated to other peers?
  * @param expiration expiration time for the content
  * @param queue_priority ranking of this request in the priority queue
  * @param max_queue_size at what queue size should this request be dropped
@@ -154,6 +155,7 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
                       enum GNUNET_BLOCK_Type type,
                       uint32_t priority,
                       uint32_t anonymity,
+		      uint32_t replication,
                       struct GNUNET_TIME_Absolute expiration,
 		      unsigned int queue_priority,
 		      unsigned int max_queue_size,
@@ -323,7 +325,11 @@ GNUNET_DATASTORE_get_next (struct GNUNET_DATASTORE_Handle *h);
 
 
 /**
- * Get a random value from the datastore.
+ * Get a random value from the datastore for content replication.
+ * Returns a single, random value among those with the highest
+ * replication score, lowering positive replication scores by one for
+ * the chosen value (if only content with a replication score exists,
+ * a random value is returned and replication scores are not changed).
  *
  * @param h handle to the datastore
  * @param queue_priority ranking of this request in the priority queue
@@ -339,12 +345,12 @@ GNUNET_DATASTORE_get_next (struct GNUNET_DATASTORE_Handle *h);
  *         (or rather, will already have been invoked)
  */
 struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_get_random (struct GNUNET_DATASTORE_Handle *h,
-			     unsigned int queue_priority,
-			     unsigned int max_queue_size,
-			     struct GNUNET_TIME_Relative timeout,
-                             GNUNET_DATASTORE_Iterator iter, 
-			     void *iter_cls);
+GNUNET_DATASTORE_get_for_replication (struct GNUNET_DATASTORE_Handle *h,
+				      unsigned int queue_priority,
+				      unsigned int max_queue_size,
+				      struct GNUNET_TIME_Relative timeout,
+				      GNUNET_DATASTORE_Iterator iter, 
+				      void *iter_cls);
 
 
 /**

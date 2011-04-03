@@ -78,6 +78,10 @@ Set the priority of the published content (default: 365).  If the local database
 For the top\-level directory or file, create an SBlock that places the file into the namespace specified by the pseudonym NAME.
 
 .TP
+\fB\-r \fILEVEL\fR, \fB\-\-replication=\fILEVEL\fR
+Set the desired replication level.  If CONTENT_PUSHING is set to YES, GNUnet will push each block (for the file) LEVEL times to other peers before doing nomral "random" replication of all content.  This option can be used to push some content out into the network harder. Note that pushing content LEVEL times into the network does not guarantee that there will actually be LEVEL replicas.
+
+.TP
 \fB\-s\fR, \fB\-\-simulate-only\fR
 When this option is used, gnunet\-publish will not actually publish the file but just simulate what would be done.  This can be used to compute the GNUnet URI for a file without actually sharing it.
 

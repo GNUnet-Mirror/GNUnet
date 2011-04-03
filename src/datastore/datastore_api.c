@@ -792,6 +792,7 @@ process_status_message (void *cls,
  * @param type type of the content
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
+ * @param replication how often should the content be replicated to other peers?
  * @param expiration expiration time for the content
  * @param queue_priority ranking of this request in the priority queue
  * @param max_queue_size at what queue size should this request be dropped
@@ -812,6 +813,7 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
                       enum GNUNET_BLOCK_Type type,
                       uint32_t priority,
                       uint32_t anonymity,
+		      uint32_t replication,
                       struct GNUNET_TIME_Absolute expiration,
 		      unsigned int queue_priority,
 		      unsigned int max_queue_size,
@@ -1274,7 +1276,11 @@ process_result_message (void *cls,
 
 
 /**
- * Get a random value from the datastore.
+ * Get a random value from the datastore for content replication.
+ * Returns a single, random value among those with the highest
+ * replication score, lowering positive replication scores by one for
+ * the chosen value (if only content with a replication score exists,
+ * a random value is returned and replication scores are not changed).
  *
  * @param h handle to the datastore
  * @param queue_priority ranking of this request in the priority queue
@@ -1290,12 +1296,12 @@ process_result_message (void *cls,
  *         (or rather, will already have been invoked)
  */
 struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_get_random (struct GNUNET_DATASTORE_Handle *h,
-			     unsigned int queue_priority,
-			     unsigned int max_queue_size,
-			     struct GNUNET_TIME_Relative timeout,
-                             GNUNET_DATASTORE_Iterator iter, 
-			     void *iter_cls)
+GNUNET_DATASTORE_get_for_replication (struct GNUNET_DATASTORE_Handle *h,
+				      unsigned int queue_priority,
+				      unsigned int max_queue_size,
+				      struct GNUNET_TIME_Relative timeout,
+				      GNUNET_DATASTORE_Iterator iter, 
+				      void *iter_cls)
 {
   struct GNUNET_DATASTORE_QueueEntry *qe;
   struct GNUNET_MessageHeader *m;

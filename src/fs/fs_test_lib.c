@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2010 Christian Grothoff (and other contributing authors)
+     (C) 2010, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -637,12 +637,17 @@ GNUNET_FS_TEST_publish (struct GNUNET_FS_TestDaemon *daemon,
   uint64_t off;
   char buf[DBLOCK_SIZE];
   size_t bsize;
-
+  struct GNUNET_FS_BlockOptions bo;
+ 
   GNUNET_assert (daemon->publish_cont == NULL);
   daemon->publish_cont = cont;
   daemon->publish_cont_cls = cont_cls;
   daemon->publish_seed = seed;
   daemon->verbose = verbose;
+  bo.expiration_time = GNUNET_TIME_relative_to_absolute (CONTENT_LIFETIME);
+  bo.anonymity_level = anonymity;
+  bo.content_priority = 42;
+  bo.replication_level = 1;
   if (GNUNET_YES == do_index)
     {
       GNUNET_assert (daemon->publish_tmp_file == NULL);
@@ -678,9 +683,7 @@ GNUNET_FS_TEST_publish (struct GNUNET_FS_TestDaemon *daemon,
 							daemon->publish_tmp_file,
 							NULL, NULL,
 							do_index,
-							anonymity,
-							42 /* priority */,
-							GNUNET_TIME_relative_to_absolute (CONTENT_LIFETIME));
+							&bo);
     }
   else
     {
@@ -692,9 +695,7 @@ GNUNET_FS_TEST_publish (struct GNUNET_FS_TestDaemon *daemon,
 							  NULL,
 							  NULL,
 							  do_index,
-							  anonymity,
-							  42 /* priority */,
-							  GNUNET_TIME_relative_to_absolute (CONTENT_LIFETIME));
+							  &bo);
     }
   daemon->publish_context = GNUNET_FS_publish_start (daemon->fs,
 						     fi,

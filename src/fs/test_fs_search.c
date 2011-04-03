@@ -226,6 +226,7 @@ run (void *cls,
   char *buf;
   struct GNUNET_CONTAINER_MetaData *meta;
   struct GNUNET_FS_Uri *kuri;
+  struct GNUNET_FS_BlockOptions bo;
   struct GNUNET_FS_FileInformation *fi;
   size_t i;
 
@@ -242,6 +243,10 @@ run (void *cls,
     buf[i] = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 256);
   meta = GNUNET_CONTAINER_meta_data_create ();
   kuri = GNUNET_FS_uri_ksk_create_from_args (2, keywords);
+  bo.content_priority = 42;
+  bo.anonymity_level = 1;
+  bo.replication_level = 0;
+  bo.expiration_time = GNUNET_TIME_relative_to_absolute (LIFETIME);
   fi = GNUNET_FS_file_information_create_from_data (fs,
 						    "publish-context",
 						    FILESIZE,
@@ -249,9 +254,7 @@ run (void *cls,
 						    kuri,
 						    meta,
 						    GNUNET_NO,
-						    1,
-						    42,
-						    GNUNET_TIME_relative_to_absolute (LIFETIME)); 
+						    &bo);
   GNUNET_FS_uri_destroy (kuri);
   GNUNET_CONTAINER_meta_data_destroy (meta);
   GNUNET_assert (NULL != fi);

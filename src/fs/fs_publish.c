@@ -95,7 +95,7 @@ GNUNET_FS_publish_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
 				 pi->value.publish.size);
   pi->value.publish.completed = offset;
   pi->value.publish.duration = GNUNET_TIME_absolute_get_duration (p->start_time);
-  pi->value.publish.anonymity = p->anonymity;
+  pi->value.publish.anonymity = p->bo.anonymity_level;
   return sc->h->upcb (sc->h->upcb_cls,
 		      pi);
 }
@@ -324,9 +324,7 @@ publish_sblock (struct GNUNET_FS_PublishContext *sc)
 			   sc->nuid,
 			   sc->fi->meta,
 			   sc->fi->chk_uri,
-			   sc->fi->expirationTime,
-			   sc->fi->anonymity,
-			   sc->fi->priority,
+			   &sc->fi->bo,
 			   sc->options,
 			   &publish_sblocks_cont,
 			   sc);
@@ -569,9 +567,10 @@ block_proc (void *cls,
 			    sizeof (struct OnDemandBlock),
 			    &odb,
 			    GNUNET_BLOCK_TYPE_FS_ONDEMAND,
-			    p->priority,
-			    p->anonymity,
-			    p->expirationTime,
+			    p->bo.content_priority,
+			    p->bo.anonymity_level,
+			    p->bo.replication_level,
+			    p->bo.expiration_time,
 			    -2, 1,
 			    GNUNET_CONSTANTS_SERVICE_TIMEOUT,
 			    &ds_put_cont,
@@ -591,9 +590,10 @@ block_proc (void *cls,
 			block_size,
 			block,
 			type,
-			p->priority,
-			p->anonymity,
-			p->expirationTime,
+			p->bo.content_priority,
+			p->bo.anonymity_level,
+			p->bo.replication_level,
+			p->bo.expiration_time,
 			-2, 1,
 			GNUNET_CONSTANTS_SERVICE_TIMEOUT,
 			&ds_put_cont,
@@ -990,12 +990,12 @@ GNUNET_FS_publish_main_ (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "File upload complete, now publishing KSK blocks.\n");
 #endif
-      if (0 == p->anonymity)
+      if (0 == p->bo.anonymity_level)
 	{
 	  /* zero anonymity, box CHK URI in LOC URI */
 	  loc = GNUNET_FS_uri_loc_create (p->chk_uri,
 					  pc->h->cfg,
-					  p->expirationTime);
+					  p->bo.expiration_time);
 	  GNUNET_FS_uri_destroy (p->chk_uri);
 	  p->chk_uri = loc;
 	}
@@ -1007,9 +1007,7 @@ GNUNET_FS_publish_main_ (void *cls,
 				 p->keywords,
 				 p->meta,
 				 p->chk_uri,
-				 p->expirationTime,
-				 p->anonymity,
-				 p->priority,
+				 &p->bo,
 				 pc->options,
 				 &publish_kblocks_cont,
 				 pc);
@@ -1065,10 +1063,8 @@ GNUNET_FS_publish_main_ (void *cls,
  * @param length length of the file or directory
  * @param meta metadata for the file or directory (can be modified)
  * @param uri pointer to the keywords that will be used for this entry (can be modified)
- * @param anonymity pointer to selected anonymity level (can be modified)
- * @param priority pointer to selected priority (can be modified)
+ * @param bo block options
  * @param do_index should we index?
- * @param expirationTime pointer to selected expiration time (can be modified)
  * @param client_info pointer to client context set upon creation (can be modified)
  * @return GNUNET_OK to continue (always)
  */
@@ -1078,10 +1074,8 @@ fip_signal_start(void *cls,
 		 uint64_t length,
 		 struct GNUNET_CONTAINER_MetaData *meta,
 		 struct GNUNET_FS_Uri **uri,
-		 uint32_t *anonymity,
-		 uint32_t *priority,
+		 struct GNUNET_FS_BlockOptions *bo,
 		 int *do_index,
-		 struct GNUNET_TIME_Absolute *expirationTime,
 		 void **client_info)
 {
   struct GNUNET_FS_PublishContext *sc = cls;
@@ -1134,10 +1128,8 @@ fip_signal_start(void *cls,
  * @param length length of the file or directory
  * @param meta metadata for the file or directory (can be modified)
  * @param uri pointer to the keywords that will be used for this entry (can be modified)
- * @param anonymity pointer to selected anonymity level (can be modified)
- * @param priority pointer to selected priority (can be modified)
+ * @param bo block options
  * @param do_index should we index?
- * @param expirationTime pointer to selected expiration time (can be modified)
  * @param client_info pointer to client context set upon creation (can be modified)
  * @return GNUNET_OK to continue (always)
  */
@@ -1147,10 +1139,8 @@ fip_signal_suspend(void *cls,
 		   uint64_t length,
 		   struct GNUNET_CONTAINER_MetaData *meta,
 		   struct GNUNET_FS_Uri **uri,
-		   uint32_t *anonymity,
-		   uint32_t *priority,
+		   struct GNUNET_FS_BlockOptions *bo,
 		   int *do_index,
-		   struct GNUNET_TIME_Absolute *expirationTime,
 		   void **client_info)
 {
   struct GNUNET_FS_PublishContext*sc = cls;
@@ -1322,10 +1312,8 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
  * @param length length of the file or directory
  * @param meta metadata for the file or directory (can be modified)
  * @param uri pointer to the keywords that will be used for this entry (can be modified)
- * @param anonymity pointer to selected anonymity level (can be modified)
- * @param priority pointer to selected priority (can be modified)
+ * @param bo block options (can be modified)
  * @param do_index should we index?
- * @param expirationTime pointer to selected expiration time (can be modified)
  * @param client_info pointer to client context set upon creation (can be modified)
  * @return GNUNET_OK to continue (always)
  */
@@ -1335,10 +1323,8 @@ fip_signal_stop(void *cls,
 		uint64_t length,
 		struct GNUNET_CONTAINER_MetaData *meta,
 		struct GNUNET_FS_Uri **uri,
-		uint32_t *anonymity,
-		uint32_t *priority,
+		struct GNUNET_FS_BlockOptions *bo,
 		int *do_index,
-		struct GNUNET_TIME_Absolute *expirationTime,
 		void **client_info)
 {
   struct GNUNET_FS_PublishContext*sc = cls;
@@ -1454,7 +1440,7 @@ struct PublishKskContext
   /**
    * When should the KBlocks expire?
    */
-  struct GNUNET_TIME_Absolute expirationTime;
+  struct GNUNET_FS_BlockOptions bo;
 
   /**
    * Size of the serialized metadata.
@@ -1471,15 +1457,6 @@ struct PublishKskContext
    */
   unsigned int i;
 
-  /**
-   * Anonymity level for the KBlocks.
-   */
-  uint32_t anonymity;
-
-  /**
-   * Priority for the KBlocks.
-   */
-  uint32_t priority;
 };
 
 
@@ -1604,9 +1581,10 @@ publish_ksk_cont (void *cls,
 			pkc->slen,
 			pkc->cpy,
 			GNUNET_BLOCK_TYPE_FS_KBLOCK, 
-			pkc->priority,
-			pkc->anonymity,
-			pkc->expirationTime,
+			pkc->bo.content_priority,
+			pkc->bo.anonymity_level,
+			pkc->bo.replication_level,
+			pkc->bo.expiration_time,
 			-2, 1,
 			GNUNET_CONSTANTS_SERVICE_TIMEOUT,
 			&kb_put_cont,
@@ -1621,9 +1599,7 @@ publish_ksk_cont (void *cls,
  * @param ksk_uri keywords to use
  * @param meta metadata to use
  * @param uri URI to refer to in the KBlock
- * @param expirationTime when the KBlock expires
- * @param anonymity anonymity level for the KBlock
- * @param priority priority for the KBlock
+ * @param bo per-block options
  * @param options publication options
  * @param cont continuation
  * @param cont_cls closure for cont
@@ -1633,9 +1609,7 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
 		       const struct GNUNET_FS_Uri *ksk_uri,
 		       const struct GNUNET_CONTAINER_MetaData *meta,
 		       const struct GNUNET_FS_Uri *uri,
-		       struct GNUNET_TIME_Absolute expirationTime,
-		       uint32_t anonymity,
-		       uint32_t priority,
+		       const struct GNUNET_FS_BlockOptions *bo,
 		       enum GNUNET_FS_PublishOptions options,
 		       GNUNET_FS_PublishContinuation cont,
 		       void *cont_cls)
@@ -1649,9 +1623,7 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
   GNUNET_assert (NULL != uri);
   pkc = GNUNET_malloc (sizeof (struct PublishKskContext));
   pkc->h = h;
-  pkc->expirationTime = expirationTime;
-  pkc->anonymity = anonymity;
-  pkc->priority = priority;
+  pkc->bo = *bo;
   pkc->cont = cont;
   pkc->cont_cls = cont_cls;
   if (0 == (options & GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY))

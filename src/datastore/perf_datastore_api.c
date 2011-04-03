@@ -269,7 +269,7 @@ run_continuation (void *cls,
 			    data,
 			    i+1,
 			    GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100),
-			    i,
+			    i, 0,
 			    GNUNET_TIME_relative_to_absolute 
 			    (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
 							    GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 1000))),
@@ -279,10 +279,10 @@ run_continuation (void *cls,
       break;
     case RP_CUT:
       /* trim down below MAX_SIZE again */
-      GNUNET_DATASTORE_get_random (datastore, 
-				   1, 1, TIMEOUT,
-				   &delete_value,
-				   crc);
+      GNUNET_DATASTORE_get_for_replication (datastore, 
+					    1, 1, TIMEOUT,
+					    &delete_value,
+					    crc);
       break;
     case RP_REPORT:
       printf (
@@ -355,7 +355,7 @@ run (void *cls,
       GNUNET_DATASTORE_put (datastore, 0,
 			    &zkey, 4, "TEST",
 			    GNUNET_BLOCK_TYPE_TEST,
-			    0, 0, GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_SECONDS),
+			    0, 0, 0, GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_SECONDS),
 			    0, 1, GNUNET_TIME_UNIT_MINUTES,
 			    &run_tests, crc))
     {

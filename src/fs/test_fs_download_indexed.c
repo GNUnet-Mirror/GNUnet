@@ -294,6 +294,7 @@ run (void *cls,
   struct GNUNET_CONTAINER_MetaData *meta;
   struct GNUNET_FS_Uri *kuri;
   struct GNUNET_FS_FileInformation *fi;
+  struct GNUNET_FS_BlockOptions bo;
   size_t i;
 
   setup_peer (&p1, "test_fs_download_data.conf");
@@ -317,15 +318,17 @@ run (void *cls,
   GNUNET_free (buf);
   meta = GNUNET_CONTAINER_meta_data_create ();
   kuri = GNUNET_FS_uri_ksk_create_from_args (2, keywords);
+  bo.content_priority = 42;
+  bo.anonymity_level = 1;
+  bo.replication_level = 0;
+  bo.expiration_time = GNUNET_TIME_relative_to_absolute (LIFETIME); 
   fi = GNUNET_FS_file_information_create_from_file (fs,
 						    "publish-context",
 						    fn1,
 						    kuri,
 						    meta,
 						    GNUNET_YES,
-						    1,
-						    42,
-						    GNUNET_TIME_relative_to_absolute (LIFETIME)); 
+						    &bo);
   GNUNET_FS_uri_destroy (kuri);
   GNUNET_CONTAINER_meta_data_destroy (meta);
   GNUNET_assert (NULL != fi);

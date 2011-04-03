@@ -1574,6 +1574,52 @@ enum GNUNET_FS_OPTIONS
 
 
 /**
+ * Settings for publishing a block (which may of course also
+ * apply to an entire directory or file).
+ */
+struct GNUNET_FS_BlockOptions
+{
+
+  /**
+   * At what time should the block expire?  Data blocks (DBLOCKS and
+   * IBLOCKS) may still be used even if they are expired (however,
+   * they'd be removed quickly from the datastore if we are short on
+   * space), all other types of blocks will no longer be returned
+   * after they expire.
+   */
+  struct GNUNET_TIME_Absolute expiration_time;
+
+  /**
+   * At which anonymity level should the block be shared?
+   * (0: no anonymity, 1: normal GAP, >1: with cover traffic).
+   */
+  uint32_t anonymity_level;
+
+  /**
+   * How important is it for us to store the block?  If we run
+   * out of space, the highest-priority, non-expired blocks will
+   * be kept.
+   */
+  uint32_t content_priority;
+
+  /**
+   * How often should we try to migrate the block to other peers?
+   * Only used if "CONTENT_PUSHING" is set to YES, in which case we
+   * first push each block to other peers according to their
+   * replication levels.  Once each block has been pushed that many
+   * times to other peers, blocks are chosen for migration at random.
+   * Naturally, there is no guarantee that the other peers will keep
+   * these blocks for any period of time (since they won't have any
+   * priority or might be too busy to even store the block in the
+   * first place).
+   */
+  uint32_t replication_level;
+
+};
+
+
+
+/**
  * Handle to the file-sharing service.
  */
 struct GNUNET_FS_Handle;
@@ -1635,10 +1681,8 @@ GNUNET_FS_meta_data_extract_from_file (struct
  * @param length length of the file or directory
  * @param meta metadata for the file or directory (can be modified)
  * @param uri pointer to the keywords that will be used for this entry (can be modified)
- * @param anonymity pointer to selected anonymity level (can be modified)
- * @param priority pointer to selected priority (can be modified)
+ * @param bo block options (can be modified)
  * @param do_index should we index (can be modified)
- * @param expirationTime pointer to selected expiration time (can be modified)
  * @param client_info pointer to client context set upon creation (can be modified)
  * @return GNUNET_OK to continue, GNUNET_NO to remove
  *         this entry from the directory, GNUNET_SYSERR
@@ -1649,10 +1693,8 @@ typedef int (*GNUNET_FS_FileInformationProcessor)(void *cls,
 						  uint64_t length,
 						  struct GNUNET_CONTAINER_MetaData *meta,
 						  struct GNUNET_FS_Uri **uri,
-						  uint32_t *anonymity,
-						  uint32_t *priority,
+						  struct GNUNET_FS_BlockOptions *bo,
 						  int *do_index,
-						  struct GNUNET_TIME_Absolute *expirationTime,
 						  void **client_info);
 
 
@@ -1682,11 +1724,7 @@ GNUNET_FS_file_information_get_id (struct GNUNET_FS_FileInformation *s);
  * @param meta metadata for the file
  * @param do_index GNUNET_YES for index, GNUNET_NO for insertion,
  *                GNUNET_SYSERR for simulation
- * @param anonymity what is the desired anonymity level for sharing?
- * @param priority what is the priority for OUR node to
- *   keep this file available?  Use 0 for maximum anonymity and
- *   minimum reliability...
- * @param expirationTime when should this content expire?
+ * @param bo block options
  * @return publish structure entry for the file
  */
 struct GNUNET_FS_FileInformation *
@@ -1696,9 +1734,7 @@ GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
 					     const struct GNUNET_FS_Uri *keywords,
 					     const struct GNUNET_CONTAINER_MetaData *meta,
 					     int do_index,
-					     uint32_t anonymity,
-					     uint32_t priority,
-					     struct GNUNET_TIME_Absolute expirationTime);
+					     const struct GNUNET_FS_BlockOptions *bo);
 
 
 /**
@@ -1714,11 +1750,7 @@ GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
  * @param meta metadata for the file
  * @param do_index GNUNET_YES for index, GNUNET_NO for insertion,
  *                GNUNET_SYSERR for simulation
- * @param anonymity what is the desired anonymity level for sharing?
- * @param priority what is the priority for OUR node to
- *   keep this file available?  Use 0 for maximum anonymity and
- *   minimum reliability...
- * @param expirationTime when should this content expire?
+ * @param bo block options
  * @return publish structure entry for the file
  */
 struct GNUNET_FS_FileInformation *
@@ -1729,9 +1761,7 @@ GNUNET_FS_file_information_create_from_data (struct GNUNET_FS_Handle *h,
 					     const struct GNUNET_FS_Uri *keywords,
 					     const struct GNUNET_CONTAINER_MetaData *meta,
 					     int do_index,
-					     uint32_t anonymity,
-					     uint32_t priority,
-					     struct GNUNET_TIME_Absolute expirationTime);
+					     const struct GNUNET_FS_BlockOptions *bo);
 
 
 /**
@@ -1770,11 +1800,7 @@ typedef size_t (*GNUNET_FS_DataReader)(void *cls,
  * @param meta metadata for the file
  * @param do_index GNUNET_YES for index, GNUNET_NO for insertion,
  *                GNUNET_SYSERR for simulation
- * @param anonymity what is the desired anonymity level for sharing?
- * @param priority what is the priority for OUR node to
- *   keep this file available?  Use 0 for maximum anonymity and
- *   minimum reliability...
- * @param expirationTime when should this content expire?
+ * @param bo block options
  * @return publish structure entry for the file
  */
 struct GNUNET_FS_FileInformation *
@@ -1786,9 +1812,7 @@ GNUNET_FS_file_information_create_from_reader (struct GNUNET_FS_Handle *h,
 					       const struct GNUNET_FS_Uri *keywords,
 					       const struct GNUNET_CONTAINER_MetaData *meta,
 					       int do_index,
-					       uint32_t anonymity,
-					       uint32_t priority,
-					       struct GNUNET_TIME_Absolute expirationTime);
+					       const struct GNUNET_FS_BlockOptions *bo);
 
 
 /**
@@ -1813,9 +1837,7 @@ typedef void (*GNUNET_FS_FileProcessor)(void *cls,
  * @param h handle to the file sharing subsystem
  * @param dirname name of the directory to scan
  * @param do_index should files be indexed or inserted
- * @param anonymity desired anonymity level
- * @param priority priority for publishing
- * @param expirationTime expiration for publication
+ * @param bo block options
  * @param proc function to call on each entry
  * @param proc_cls closure for proc
  * @param emsg where to store an error message (on errors)
@@ -1825,9 +1847,7 @@ typedef int (*GNUNET_FS_DirectoryScanner)(void *cls,
 					  struct GNUNET_FS_Handle *h,
 					  const char *dirname,
 					  int do_index,
-					  uint32_t anonymity,
-					  uint32_t priority,
-					  struct GNUNET_TIME_Absolute expirationTime,
+					  const struct GNUNET_FS_BlockOptions *bo,
 					  GNUNET_FS_FileProcessor proc,
 					  void *proc_cls,
 					  char **emsg);
@@ -1849,9 +1869,7 @@ typedef int (*GNUNET_FS_DirectoryScanner)(void *cls,
  * @param h handle to the file sharing subsystem
  * @param dirname name of the directory to scan
  * @param do_index should files be indexed or inserted
- * @param anonymity desired anonymity level
- * @param priority priority for publishing
- * @param expirationTime expiration for publication
+ * @param bo block options
  * @param proc function called on each entry
  * @param proc_cls closure for proc
  * @param emsg where to store an error message (on errors)
@@ -1862,9 +1880,7 @@ GNUNET_FS_directory_scanner_default (void *cls,
 				     struct GNUNET_FS_Handle *h,
 				     const char *dirname,
 				     int do_index,
-				     uint32_t anonymity,
-				     uint32_t priority,
-				     struct GNUNET_TIME_Absolute expirationTime,
+				     const struct GNUNET_FS_BlockOptions *bo,
 				     GNUNET_FS_FileProcessor proc,
 				     void *proc_cls,
 				     char **emsg);
@@ -1886,11 +1902,7 @@ GNUNET_FS_directory_scanner_default (void *cls,
  * @param scanner function used to get a list of files in a directory
  * @param scanner_cls closure for scanner
  * @param do_index should files in the hierarchy be indexed?
- * @param anonymity what is the desired anonymity level for sharing?
- * @param priority what is the priority for OUR node to
- *   keep this file available?  Use 0 for maximum anonymity and
- *   minimum reliability...
- * @param expirationTime when should this content expire?
+ * @param bo block options
  * @param emsg where to store an error message
  * @return publish structure entry for the directory, NULL on error
  */
@@ -1901,9 +1913,7 @@ GNUNET_FS_file_information_create_from_directory (struct GNUNET_FS_Handle *h,
 						  GNUNET_FS_DirectoryScanner scanner,
 						  void *scanner_cls,
 						  int do_index,
-						  uint32_t anonymity,
-						  uint32_t priority,
-						  struct GNUNET_TIME_Absolute expirationTime,
+						  const struct GNUNET_FS_BlockOptions *bo,
 						  char **emsg);
 
 
@@ -1918,11 +1928,7 @@ GNUNET_FS_file_information_create_from_directory (struct GNUNET_FS_Handle *h,
  * @param keywords under which keywords should this directory be available
  *         directly; can be NULL
  * @param meta metadata for the directory
- * @param anonymity what is the desired anonymity level for sharing?
- * @param priority what is the priority for OUR node to
- *   keep this file available?  Use 0 for maximum anonymity and
- *   minimum reliability...
- * @param expirationTime when should this content expire?
+ * @param bo block options
  * @return publish structure entry for the directory , NULL on error
  */
 struct GNUNET_FS_FileInformation *
@@ -1930,9 +1936,7 @@ GNUNET_FS_file_information_create_empty_directory (struct GNUNET_FS_Handle *h,
 						   void *client_info,
 						   const struct GNUNET_FS_Uri *keywords,
 						   const struct GNUNET_CONTAINER_MetaData *meta,
-						   uint32_t anonymity,
-						   uint32_t priority,
-						   struct GNUNET_TIME_Absolute expirationTime);
+						   const struct GNUNET_FS_BlockOptions *bo);
 
 
 /**
@@ -2069,9 +2073,8 @@ typedef void (*GNUNET_FS_PublishContinuation)(void *cls,
  * @param ksk_uri keywords to use
  * @param meta metadata to use
  * @param uri URI to refer to in the KBlock
- * @param expirationTime when the KBlock expires
- * @param anonymity anonymity level for the KBlock
- * @param priority priority for the KBlock
+ * @param bo block options
+ * @param options publication options
  * @param cont continuation
  * @param cont_cls closure for cont
  */
@@ -2080,9 +2083,7 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
 		       const struct GNUNET_FS_Uri *ksk_uri,
 		       const struct GNUNET_CONTAINER_MetaData *meta,
 		       const struct GNUNET_FS_Uri *uri,
-		       struct GNUNET_TIME_Absolute expirationTime,
-		       uint32_t anonymity,
-		       uint32_t priority,
+		       const struct GNUNET_FS_BlockOptions *bo,
 		       enum GNUNET_FS_PublishOptions options,
 		       GNUNET_FS_PublishContinuation cont,
 		       void *cont_cls);
@@ -2097,9 +2098,8 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
  * @param update update identifier to use
  * @param meta metadata to use
  * @param uri URI to refer to in the SBlock
- * @param expirationTime when the SBlock expires
- * @param anonymity anonymity level for the SBlock
- * @param priority priority for the SBlock
+ * @param bo block options
+ * @param options publication options
  * @param cont continuation
  * @param cont_cls closure for cont
  */
@@ -2110,9 +2110,7 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
 		       const char *update,
 		       const struct GNUNET_CONTAINER_MetaData *meta,
 		       const struct GNUNET_FS_Uri *uri,
-		       struct GNUNET_TIME_Absolute expirationTime,
-		       uint32_t anonymity,
-		       uint32_t priority,
+		       const struct GNUNET_FS_BlockOptions *bo,
 		       enum GNUNET_FS_PublishOptions options,
 		       GNUNET_FS_PublishContinuation cont,
 		       void *cont_cls);
@@ -2180,9 +2178,7 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc);
  * @param ksk_uri keywords to use for advertisment
  * @param namespace handle for the namespace that should be advertised
  * @param meta meta-data for the namespace advertisement
- * @param anonymity for the namespace advertismement
- * @param priority for the namespace advertisement
- * @param expiration for the namespace advertisement
+ * @param bo block options
  * @param rootEntry name of the root of the namespace
  * @param cont continuation
  * @param cont_cls closure for cont
@@ -2192,9 +2188,7 @@ GNUNET_FS_namespace_advertise (struct GNUNET_FS_Handle *h,
 			       struct GNUNET_FS_Uri *ksk_uri,
 			       struct GNUNET_FS_Namespace *namespace,
 			       const struct GNUNET_CONTAINER_MetaData *meta,
-			       uint32_t anonymity,
-			       uint32_t priority,
-			       struct GNUNET_TIME_Absolute expiration,
+			       const struct GNUNET_FS_BlockOptions *bo,
 			       const char *rootEntry,
 			       GNUNET_FS_PublishContinuation cont,
 			       void *cont_cls);

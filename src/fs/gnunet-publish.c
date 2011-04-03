@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2004, 2005, 2006, 2007, 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2001, 2002, 2004, 2005, 2006, 2007, 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -28,8 +28,6 @@
 #include "platform.h"
 #include "gnunet_fs_service.h"
 
-#define DEFAULT_EXPIRATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_YEARS, 2)
-
 static int ret;
 
 static int verbose;
@@ -46,9 +44,7 @@ static struct GNUNET_FS_Uri *topKeywords;
 
 static struct GNUNET_FS_Uri *uri;
 
-static unsigned int anonymity = 1;
-
-static unsigned int priority = 365;
+static struct GNUNET_FS_BlockOptions bo = { { 2 * 365 * 24 * 60 * 60 * 1000LL  }, 1, 365, 1 };
 
 static char *uri_string;
 
@@ -240,10 +236,8 @@ keyword_printer (void *cls,
  * @param length length of the file or directory
  * @param m metadata for the file or directory (can be modified)
  * @param uri pointer to the keywords that will be used for this entry (can be modified)
- * @param anonymity pointer to selected anonymity level (can be modified)
- * @param priority pointer to selected priority (can be modified)
+ * @param bo block options
  * @param do_index should we index?
- * @param expirationTime pointer to selected expiration time (can be modified)
  * @param client_info pointer to client context set upon creation (can be modified)
  * @return GNUNET_OK to continue, GNUNET_NO to remove
  *         this entry from the directory, GNUNET_SYSERR
@@ -255,10 +249,8 @@ publish_inspector (void *cls,
 		   uint64_t length,
 		   struct GNUNET_CONTAINER_MetaData *m,
 		   struct GNUNET_FS_Uri **uri,
-		   unsigned int *anonymity,
-		   unsigned int *priority,
+		   struct GNUNET_FS_BlockOptions *bo,
 		   int *do_index,
-		   struct GNUNET_TIME_Absolute *expirationTime,
 		   void **client_info)
 {
   char *fn;
@@ -375,9 +367,7 @@ uri_ksk_continuation (void *cls,
 				 next_id,
 				 meta,
 				 uri,
-				 GNUNET_TIME_relative_to_absolute (DEFAULT_EXPIRATION),
-				 anonymity,
-				 priority,
+				 &bo,
 				 GNUNET_FS_PUBLISH_OPTION_NONE,
 				 uri_sks_continuation,
 				 NULL);
@@ -517,9 +507,7 @@ run (void *cls,
 			     topKeywords,
 			     meta,
 			     uri,
-			     GNUNET_TIME_relative_to_absolute (DEFAULT_EXPIRATION),
-			     anonymity,
-			     priority,
+			     &bo,
 			     GNUNET_FS_PUBLISH_OPTION_NONE,
 			     &uri_ksk_continuation,
 			     NULL);
@@ -557,9 +545,7 @@ run (void *cls,
 							     &GNUNET_FS_directory_scanner_default,
 							     plugins,
 							     !do_insert,
-							     anonymity,
-							     priority,
-							     GNUNET_TIME_relative_to_absolute (DEFAULT_EXPIRATION),
+							     &bo,
 							     &emsg);
     }
   else
@@ -576,9 +562,7 @@ run (void *cls,
 							keywords,
 							NULL,
 							!do_insert,
-							anonymity,
-							priority,
-							GNUNET_TIME_relative_to_absolute (DEFAULT_EXPIRATION));
+							&bo);
       GNUNET_break (fi != NULL);
       GNUNET_FS_uri_destroy (keywords);
     }
@@ -644,7 +628,7 @@ main (int argc, char *const *argv)
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'a', "anonymity", "LEVEL",
      gettext_noop ("set the desired LEVEL of sender-anonymity"),
-     1, &GNUNET_GETOPT_set_uint, &anonymity},
+     1, &GNUNET_GETOPT_set_uint, &bo.anonymity_level},
     {'d', "disable-creation-time", NULL,
      gettext_noop
      ("disable adding the creation time to the metadata of the uploaded file"),
@@ -676,11 +660,14 @@ main (int argc, char *const *argv)
      1, &GNUNET_GETOPT_set_string, &next_id},
     {'p', "priority", "PRIORITY",
      gettext_noop ("specify the priority of the content"),
-     1, &GNUNET_GETOPT_set_uint, &priority},
+     1, &GNUNET_GETOPT_set_uint, &bo.content_priority},
     {'P', "pseudonym", "NAME",
      gettext_noop
      ("publish the files under the pseudonym NAME (place file into namespace)"),
      1, &GNUNET_GETOPT_set_string, &pseudonym},
+    {'r', "replication", "LEVEL",
+     gettext_noop ("set the desired replication LEVEL"),
+     0, &GNUNET_GETOPT_set_uint, &bo.replication_level},
     {'s', "simulate-only", NULL,
      gettext_noop ("only simulate the process but do not do any "
 		   "actual publishing (useful to compute URIs)"),

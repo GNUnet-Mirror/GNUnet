@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2008, 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2008, 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -769,17 +769,19 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
 	   (GNUNET_YES !=
 	    GNUNET_FS_uri_test_chk (ret->chk_uri)) ) ) ||
        (GNUNET_OK !=
-	GNUNET_BIO_read_int64 (rh, &ret->expirationTime.abs_value)) ||
-       (GNUNET_OK !=
 	read_start_time (rh, &ret->start_time)) ||
        (GNUNET_OK !=
 	GNUNET_BIO_read_string (rh, "emsg", &ret->emsg, 16*1024)) ||
        (GNUNET_OK !=
 	GNUNET_BIO_read_string (rh, "fn", &ret->filename, 16*1024)) ||
        (GNUNET_OK !=
-	GNUNET_BIO_read_int32 (rh, &ret->anonymity)) ||
+	GNUNET_BIO_read_int64 (rh, &ret->bo.expiration_time.abs_value)) ||
        (GNUNET_OK !=
-	GNUNET_BIO_read_int32 (rh, &ret->priority)) )
+	GNUNET_BIO_read_int32 (rh, &ret->bo.anonymity_level)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int32 (rh, &ret->bo.content_priority)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_read_int32 (rh, &ret->bo.replication_level)) )
     {
       GNUNET_break (0);      
       goto cleanup;
@@ -1181,17 +1183,19 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation * fi)
        (GNUNET_OK !=
 	GNUNET_BIO_write_string (wh, chks)) ||
        (GNUNET_OK != 
-	GNUNET_BIO_write_int64 (wh, fi->expirationTime.abs_value)) ||
-       (GNUNET_OK != 
 	write_start_time (wh, fi->start_time)) ||
        (GNUNET_OK !=
 	GNUNET_BIO_write_string (wh, fi->emsg)) ||
        (GNUNET_OK !=
 	GNUNET_BIO_write_string (wh, fi->filename)) ||
        (GNUNET_OK != 
-	GNUNET_BIO_write_int32 (wh, fi->anonymity)) ||
+	GNUNET_BIO_write_int64 (wh, fi->bo.expiration_time.abs_value)) ||
        (GNUNET_OK != 
-	GNUNET_BIO_write_int32 (wh, fi->priority)) )
+	GNUNET_BIO_write_int32 (wh, fi->bo.anonymity_level)) ||
+       (GNUNET_OK != 
+	GNUNET_BIO_write_int32 (wh, fi->bo.content_priority)) ||
+       (GNUNET_OK != 
+	GNUNET_BIO_write_int32 (wh, fi->bo.replication_level)) )
     {
       GNUNET_break (0);
       goto cleanup;
@@ -1340,10 +1344,8 @@ find_file_position (struct GNUNET_FS_FileInformation *pos,
  * @param length length of the file or directory
  * @param meta metadata for the file or directory (can be modified)
  * @param uri pointer to the keywords that will be used for this entry (can be modified)
- * @param anonymity pointer to selected anonymity level (can be modified)
- * @param priority pointer to selected priority (can be modified)
+ * @param bo block options (can be modified)
  * @param do_index should we index?
- * @param expirationTime pointer to selected expiration time (can be modified)
  * @param client_info pointer to client context set upon creation (can be modified)
  * @return GNUNET_OK to continue (always)
  */
@@ -1353,10 +1355,8 @@ fip_signal_resume(void *cls,
 		  uint64_t length,
 		  struct GNUNET_CONTAINER_MetaData *meta,
 		  struct GNUNET_FS_Uri **uri,
-		  uint32_t *anonymity,
-		  uint32_t *priority,
+		  struct GNUNET_FS_BlockOptions *bo,
 		  int *do_index,
-		  struct GNUNET_TIME_Absolute *expirationTime,
 		  void **client_info)
 {
   struct GNUNET_FS_PublishContext *sc = cls;

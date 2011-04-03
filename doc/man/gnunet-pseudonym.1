@@ -55,7 +55,11 @@ Set the priority of the namespace advertisement (default: 365).  If the local da
 Do not print the list of pseudonyms (only perform create or delete operation).
 
 .TP
-\fB\-r IDENTIFIER\fR, \fB\-\-root=IDENTIFIER\fR
+\fB\-r \fILEVEL\fR, \fB\-\-replication=\fILEVEL\fR
+Set the desired replication level.  If CONTENT_PUSHING is set to YES, GNUnet will push each block (for the file) LEVEL times to other peers before doing nomral "random" replication of all content.  This option can be used to push some content out into the network harder. Note that pushing content LEVEL times into the network does not guarantee that there will actually be LEVEL replicas.
+
+.TP
+\fB\-R IDENTIFIER\fR, \fB\-\-root=IDENTIFIER\fR
 Specify the identifier for the root of the namespace.  Used in the namespace advertisement to tell users that find the namespace advertisement about an entry\-point into the namespace (use with \-C).  Advertisements are only created if "\-C" and "\-r" are specified.
 
 .TP

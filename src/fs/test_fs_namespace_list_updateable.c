@@ -40,13 +40,13 @@ static int err;
 
 static struct GNUNET_FS_Namespace *ns;
 
-static struct GNUNET_TIME_Absolute expiration;
-
 static struct GNUNET_CONTAINER_MetaData *meta;
 
 static struct GNUNET_FS_Uri *uri_this;
 
 static struct GNUNET_FS_Uri *uri_next;
+
+static struct GNUNET_FS_BlockOptions bo;
 
 
 struct PeerContext
@@ -172,6 +172,7 @@ sks_cont_this (void *cls,
 	       const struct GNUNET_FS_Uri *uri,
 	       const char *emsg)
 {
+
   GNUNET_assert (NULL == emsg);
   err = 1;
   GNUNET_FS_namespace_list_updateable (ns,
@@ -184,8 +185,7 @@ sks_cont_this (void *cls,
 			 "future",
 			 meta,
 			 uri_next,
-			 expiration,
-			 1, 1,
+			 &bo,
 			 GNUNET_FS_PUBLISH_OPTION_NONE,
 			 &sks_cont_next,
 			 NULL);
@@ -201,7 +201,10 @@ testNamespace ()
   ns = GNUNET_FS_namespace_create (fs,
 				   "testNamespace");
   GNUNET_assert (NULL != ns);
-  expiration = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
+  bo.content_priority = 1;
+  bo.anonymity_level = 1;
+  bo.replication_level = 0;
+  bo.expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
   meta = GNUNET_CONTAINER_meta_data_create ();
 
   uri_this =
@@ -214,8 +217,7 @@ testNamespace ()
 			 "next",
 			 meta,
 			 uri_this,
-			 expiration,
-			 1, 1,
+			 &bo,
 			 GNUNET_FS_PUBLISH_OPTION_NONE,
 			 &sks_cont_this,
 			 NULL);

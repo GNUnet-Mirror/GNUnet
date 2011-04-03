@@ -275,22 +275,24 @@ sks_cont (void *cls,
 	  const char *emsg)
 {
   struct GNUNET_CONTAINER_MetaData *meta;
-  struct GNUNET_TIME_Absolute expiration;
   struct GNUNET_FS_Uri *ksk_uri;
   char * msg;
+  struct GNUNET_FS_BlockOptions bo;
 
-  expiration = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
   meta = GNUNET_CONTAINER_meta_data_create ();
   msg = NULL;
   ksk_uri = GNUNET_FS_uri_parse ("gnunet://fs/ksk/ns-search", &msg);
   GNUNET_assert (NULL == msg);
   ksk_expect_uri = GNUNET_FS_uri_dup (uri);
+  bo.content_priority = 1;
+  bo.anonymity_level = 1;
+  bo.replication_level = 0;
+  bo.expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
   GNUNET_FS_publish_ksk (fs,
 			 ksk_uri,
 			 meta,
 			 uri,
-			 expiration,
-			 1, 1,
+			 &bo,
 			 GNUNET_FS_PUBLISH_OPTION_NONE,
 			 &publish_cont,
 			 NULL);
@@ -306,7 +308,7 @@ adv_cont (void *cls,
 {
   struct GNUNET_CONTAINER_MetaData *meta;
   struct GNUNET_FS_Namespace *ns;
-  struct GNUNET_TIME_Absolute expiration;
+  struct GNUNET_FS_BlockOptions bo;
 
   if (NULL != emsg)
     {
@@ -315,21 +317,23 @@ adv_cont (void *cls,
       GNUNET_FS_stop (fs);
       return;
     }
-  expiration = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
   ns = GNUNET_FS_namespace_create (fs,
 				   "testNamespace");
   GNUNET_assert (NULL != ns);
   meta = GNUNET_CONTAINER_meta_data_create ();
   GNUNET_assert (NULL == emsg);
   sks_expect_uri = GNUNET_FS_uri_dup (uri);
+  bo.content_priority = 1;
+  bo.anonymity_level = 1;
+  bo.replication_level = 0;
+  bo.expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
   GNUNET_FS_publish_sks (fs,
 			 ns,
 			 "this",
 			 "next",
 			 meta,
 			 uri, /* FIXME: this is non-sense (use CHK URI!?) */
-			 expiration,
-			 1, 1,
+			 &bo,
 			 GNUNET_FS_PUBLISH_OPTION_NONE,
 			 &sks_cont,
 			 NULL);
@@ -357,7 +361,7 @@ static void
 testNamespace ()
 {
   struct GNUNET_FS_Namespace *ns;
-  struct GNUNET_TIME_Absolute expiration;
+  struct GNUNET_FS_BlockOptions bo;
   struct GNUNET_CONTAINER_MetaData *meta;
   struct GNUNET_FS_Uri *ksk_uri;
   int ok;
@@ -375,15 +379,17 @@ testNamespace ()
       err = 1;
       return;
     }
-  expiration = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
   meta = GNUNET_CONTAINER_meta_data_create ();
   ksk_uri = GNUNET_FS_uri_parse ("gnunet://fs/ksk/testnsa", NULL);
+  bo.content_priority = 1;
+  bo.anonymity_level = 1;
+  bo.replication_level = 0;
+  bo.expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
   GNUNET_FS_namespace_advertise (fs,
 				 ksk_uri,
 				 ns,
 				 meta,
-				 1, 1,
-				 expiration,					   
+				 &bo,
 				 "root",
 				 &adv_cont, NULL);
   kill_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,

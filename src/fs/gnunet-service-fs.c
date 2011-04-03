@@ -1432,9 +1432,9 @@ gather_migration_blocks (void *cls,
   mig_task = GNUNET_SCHEDULER_NO_TASK;
   if (dsh != NULL)
     {
-      mig_qe = GNUNET_DATASTORE_get_random (dsh, 0, UINT_MAX,
-					    GNUNET_TIME_UNIT_FOREVER_REL,
-					    &process_migration_content, NULL);
+      mig_qe = GNUNET_DATASTORE_get_for_replication (dsh, 0, UINT_MAX,
+						     GNUNET_TIME_UNIT_FOREVER_REL,
+						     &process_migration_content, NULL);
       GNUNET_assert (mig_qe != NULL);
     }
 }
@@ -3764,8 +3764,10 @@ handle_p2p_put (void *cls,
       GNUNET_DATASTORE_put (dsh,
 			    0, &query, dsize, &put[1],
 			    type, prq.priority, 1 /* anonymity */, 
+			    0 /* replication */,
 			    expiration, 
-			    1 + prq.priority, MAX_DATASTORE_QUEUE,
+			    1 + prq.priority, 
+			    MAX_DATASTORE_QUEUE,
 			    GNUNET_CONSTANTS_SERVICE_TIMEOUT,
 			    &put_migration_continuation, 
 			    start);

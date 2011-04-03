@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -132,11 +132,7 @@ GNUNET_FS_file_information_get_id (struct GNUNET_FS_FileInformation *s)
  * @param meta metadata for the file
  * @param do_index GNUNET_YES for index, GNUNET_NO for insertion,
  *                GNUNET_SYSERR for simulation
- * @param anonymity what is the desired anonymity level for sharing?
- * @param priority what is the priority for OUR node to
- *   keep this file available?  Use 0 for maximum anonymity and
- *   minimum reliability...
- * @param expirationTime when should this content expire?
+ * @param bo block options
  * @return publish structure entry for the file
  */
 struct GNUNET_FS_FileInformation *
@@ -146,9 +142,7 @@ GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
 					     const struct GNUNET_FS_Uri *keywords,
 					     const struct GNUNET_CONTAINER_MetaData *meta,
 					     int do_index,
-					     uint32_t anonymity,
-					     uint32_t priority,
-					     struct GNUNET_TIME_Absolute expirationTime)
+					     const struct GNUNET_FS_BlockOptions *bo)
 {
   struct FileInfo *fi;
   struct stat sbuf;
@@ -177,9 +171,7 @@ GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
 						       keywords,
 						       meta,
 						       do_index,
-						       anonymity,
-						       priority,
-						       expirationTime);
+						       bo);
   if (ret == NULL)
     return NULL;
   ret->h = h;
@@ -212,11 +204,7 @@ GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
  * @param meta metadata for the file
  * @param do_index GNUNET_YES for index, GNUNET_NO for insertion,
  *                GNUNET_SYSERR for simulation
- * @param anonymity what is the desired anonymity level for sharing?
- * @param priority what is the priority for OUR node to
- *   keep this file available?  Use 0 for maximum anonymity and
- *   minimum reliability...
- * @param expirationTime when should this content expire?
+ * @param bo block options
  * @return publish structure entry for the file
  */
 struct GNUNET_FS_FileInformation *
@@ -227,9 +215,7 @@ GNUNET_FS_file_information_create_from_data (struct GNUNET_FS_Handle *h,
 					     const struct GNUNET_FS_Uri *keywords,
 					     const struct GNUNET_CONTAINER_MetaData *meta,
 					     int do_index,
-					     uint32_t anonymity,
-					     uint32_t priority,
-					     struct GNUNET_TIME_Absolute expirationTime)
+					     const struct GNUNET_FS_BlockOptions *bo)
 {
   if (GNUNET_YES == do_index)        
     {
@@ -244,9 +230,7 @@ GNUNET_FS_file_information_create_from_data (struct GNUNET_FS_Handle *h,
 							keywords,
 							meta,
 							do_index,
-							anonymity,
-							priority,
-							expirationTime);
+							bo);
 }
 
 
@@ -263,11 +247,7 @@ GNUNET_FS_file_information_create_from_data (struct GNUNET_FS_Handle *h,
  * @param meta metadata for the file
  * @param do_index GNUNET_YES for index, GNUNET_NO for insertion,
  *                GNUNET_SYSERR for simulation
- * @param anonymity what is the desired anonymity level for sharing?
- * @param priority what is the priority for OUR node to
- *   keep this file available?  Use 0 for maximum anonymity and
- *   minimum reliability...
- * @param expirationTime when should this content expire?
+ * @param bo block options
  * @return publish structure entry for the file
  */
 struct GNUNET_FS_FileInformation *
@@ -279,9 +259,7 @@ GNUNET_FS_file_information_create_from_reader (struct GNUNET_FS_Handle *h,
 					       const struct GNUNET_FS_Uri *keywords,
 					       const struct GNUNET_CONTAINER_MetaData *meta,
 					       int do_index,
-					       uint32_t anonymity,
-					       uint32_t priority,
-					       struct GNUNET_TIME_Absolute expirationTime)
+					       const struct GNUNET_FS_BlockOptions *bo)
 {
   struct GNUNET_FS_FileInformation *ret;
 
@@ -298,13 +276,11 @@ GNUNET_FS_file_information_create_from_reader (struct GNUNET_FS_Handle *h,
   if (ret->meta == NULL)
     ret->meta = GNUNET_CONTAINER_meta_data_create ();
   ret->keywords = (keywords == NULL) ? NULL : GNUNET_FS_uri_dup (keywords);
-  ret->expirationTime = expirationTime;
   ret->data.file.reader = reader; 
   ret->data.file.reader_cls = reader_cls;
   ret->data.file.do_index = do_index;
   ret->data.file.file_size = length;
-  ret->anonymity = anonymity;
-  ret->priority = priority;
+  ret->bo = *bo;
   return ret;
 }
 
@@ -350,24 +326,15 @@ struct DirScanCls
   char *emsg; 
 
   /**
+   * Block options.
+   */
+  const struct GNUNET_FS_BlockOptions *bo;
+
+  /**
    * Should files be indexed?
    */ 
   int do_index;
 
-  /**
-   * Desired anonymity level.
-   */
-  uint32_t anonymity;
-
-  /**
-   * Desired publishing priority.
-   */
-  uint32_t priority;
-
-  /**
-   * Expiration time for publication.
-   */
-  struct GNUNET_TIME_Absolute expiration;
 };
 
 
@@ -406,9 +373,7 @@ dir_scan_cb (void *cls,
 							     dsc->scanner,
 							     dsc->scanner_cls,
 							     dsc->do_index,
-							     dsc->anonymity,
-							     dsc->priority,
-							     dsc->expiration,
+							     dsc->bo,
 							     &dsc->emsg);
       if (NULL == fi)
 	{
@@ -430,9 +395,7 @@ dir_scan_cb (void *cls,
 							ksk_uri,
 							meta,
 							dsc->do_index,
-							dsc->anonymity,
-							dsc->priority,
-							dsc->expiration);
+							dsc->bo);
       GNUNET_CONTAINER_meta_data_destroy (meta);
       GNUNET_FS_uri_destroy (keywords);
       GNUNET_FS_uri_destroy (ksk_uri);
@@ -459,9 +422,7 @@ dir_scan_cb (void *cls,
  * @param h handle to the file sharing subsystem
  * @param dirname name of the directory to scan
  * @param do_index should files be indexed or inserted
- * @param anonymity desired anonymity level
- * @param priority priority for publishing
- * @param expirationTime expiration for publication
+ * @param bo block options
  * @param proc function called on each entry
  * @param proc_cls closure for proc
  * @param emsg where to store an error message (on errors)
@@ -472,9 +433,7 @@ GNUNET_FS_directory_scanner_default (void *cls,
 				     struct GNUNET_FS_Handle *h,
 				     const char *dirname,
 				     int do_index,
-				     uint32_t anonymity,
-				     uint32_t priority,
-				     struct GNUNET_TIME_Absolute expirationTime,
+				     const struct GNUNET_FS_BlockOptions *bo,
 				     GNUNET_FS_FileProcessor proc,
 				     void *proc_cls,
 				     char **emsg)
@@ -489,9 +448,7 @@ GNUNET_FS_directory_scanner_default (void *cls,
   dsc.scanner = &GNUNET_FS_directory_scanner_default;
   dsc.scanner_cls = cls;
   dsc.do_index = do_index;
-  dsc.anonymity = anonymity;
-  dsc.priority = priority;
-  dsc.expiration = expirationTime;
+  dsc.bo = bo;
   if (-1 == GNUNET_DISK_directory_scan (dirname,
 					&dir_scan_cb,
 					&dsc))
@@ -555,11 +512,7 @@ dirproc (void *cls,
  * @param scanner function used to get a list of files in a directory
  * @param scanner_cls closure for scanner
  * @param do_index should files in the hierarchy be indexed?
- * @param anonymity what is the desired anonymity level for sharing?
- * @param priority what is the priority for OUR node to
- *   keep this file available?  Use 0 for maximum anonymity and
- *   minimum reliability...
- * @param expirationTime when should this content expire?
+ * @param bo block options
  * @param emsg where to store an error message
  * @return publish structure entry for the directory, NULL on error
  */
@@ -570,9 +523,7 @@ GNUNET_FS_file_information_create_from_directory (struct GNUNET_FS_Handle *h,
 						  GNUNET_FS_DirectoryScanner scanner,
 						  void *scanner_cls,
 						  int do_index,
-						  uint32_t anonymity,
-						  uint32_t priority,
-						  struct GNUNET_TIME_Absolute expirationTime,
+						  const struct GNUNET_FS_BlockOptions *bo,
 						  char **emsg)
 {
   struct GNUNET_FS_FileInformation *ret;
@@ -590,9 +541,7 @@ GNUNET_FS_file_information_create_from_directory (struct GNUNET_FS_Handle *h,
 	   h,
 	   filename,
 	   do_index,
-	   anonymity,
-	   priority,
-	   expirationTime,
+	   bo,
 	   &dirproc,
 	   &dc,
 	   emsg);
@@ -602,9 +551,7 @@ GNUNET_FS_file_information_create_from_directory (struct GNUNET_FS_Handle *h,
 							   client_info,
 							   ksk,
 							   meta,
-							   anonymity,
-							   priority,
-							   expirationTime);
+							   bo);
   GNUNET_CONTAINER_meta_data_destroy (meta);
   ret->data.dir.entries = dc.entries;
   while (dc.entries != NULL)
@@ -657,11 +604,7 @@ GNUNET_FS_file_information_is_directory (struct GNUNET_FS_FileInformation *ent)
  * @param meta metadata for the directory
  * @param keywords under which keywords should this directory be available
  *         directly; can be NULL
- * @param anonymity what is the desired anonymity level for sharing?
- * @param priority what is the priority for OUR node to
- *   keep this file available?  Use 0 for maximum anonymity and
- *   minimum reliability...
- * @param expirationTime when should this content expire?
+ * @param bo block options
  * @return publish structure entry for the directory , NULL on error
  */
 struct GNUNET_FS_FileInformation *
@@ -669,9 +612,7 @@ GNUNET_FS_file_information_create_empty_directory (struct GNUNET_FS_Handle *h,
 						   void *client_info,
 						   const struct GNUNET_FS_Uri *keywords,
 						   const struct GNUNET_CONTAINER_MetaData *meta,
-						   uint32_t anonymity,
-						   uint32_t priority,
-						   struct GNUNET_TIME_Absolute expirationTime)
+						   const struct GNUNET_FS_BlockOptions *bo)
 {
   struct GNUNET_FS_FileInformation *ret;
 
@@ -680,10 +621,8 @@ GNUNET_FS_file_information_create_empty_directory (struct GNUNET_FS_Handle *h,
   ret->client_info = client_info;
   ret->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
   ret->keywords = GNUNET_FS_uri_dup (keywords);
-  ret->expirationTime = expirationTime;
+  ret->bo = *bo;
   ret->is_directory = GNUNET_YES;
-  ret->anonymity = anonymity;
-  ret->priority = priority;
   return ret;
 }
 
@@ -747,10 +686,8 @@ GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
 	    (dir->is_directory) ? dir->data.dir.dir_size : dir->data.file.file_size,
 	    dir->meta,
 	    &dir->keywords,
-	    &dir->anonymity,
-	    &dir->priority,
+	    &dir->bo,
 	    (dir->is_directory) ? &no : &dir->data.file.do_index,
-	    &dir->expirationTime,
 	    &dir->client_info))
     return;
   if (! dir->is_directory)
@@ -765,10 +702,8 @@ GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
 		(pos->is_directory) ? pos->data.dir.dir_size : pos->data.file.file_size,
 		pos->meta,
 		&pos->keywords,
-		&pos->anonymity,
-		&pos->priority,
+		&pos->bo,
 		(dir->is_directory) ? &no : &dir->data.file.do_index,
-		&pos->expirationTime,
 		&pos->client_info))
 	break;
       pos = pos->next;
@@ -810,10 +745,8 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
 		 fi->data.dir.dir_size,
 		 fi->meta,
 		 &fi->keywords,
-		 &fi->anonymity,
-		 &fi->priority,
+		 &fi->bo,
 		 &no,
-		 &fi->expirationTime,
 		 &fi->client_info);
       GNUNET_free_non_null (fi->data.dir.dir_data);
     }
@@ -830,10 +763,8 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
 		 fi->data.file.file_size,
 		 fi->meta,
 		 &fi->keywords,
-		 &fi->anonymity,
-		 &fi->priority,
+		 &fi->bo,
 		 &fi->data.file.do_index,
-		 &fi->expirationTime,
 		 &fi->client_info);
     }
   GNUNET_free_non_null (fi->filename);

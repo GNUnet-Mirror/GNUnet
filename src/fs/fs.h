@@ -438,9 +438,9 @@ struct GNUNET_FS_FileInformation
   struct GNUNET_FS_Uri *chk_uri;
 
   /**
-   * At what time should the content expire?
+   * Block options for the file.
    */
-  struct GNUNET_TIME_Absolute expirationTime;
+  struct GNUNET_FS_BlockOptions bo;
 
   /**
    * At what time did we start this upload?
@@ -546,16 +546,6 @@ struct GNUNET_FS_FileInformation
     } dir;
 
   } data;
-
-  /**
-   * Desired anonymity level.
-   */
-  uint32_t anonymity;
-
-  /**
-   * Desired priority (for keeping the content in the DB).
-   */
-  uint32_t priority;
 
   /**
    * Is this struct for a file or directory?

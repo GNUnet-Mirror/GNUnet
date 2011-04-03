@@ -523,7 +523,7 @@ main_init (struct GNUNET_SERVER_Handle *server,
   };
 
   GSF_core = GNUNET_CORE_connect (GSF_cfg,
-				  1, /* larger? */
+				  2, /* larger? */
 				  NULL,
 				  &peer_init_handler,
 				  &peer_connect_handler,

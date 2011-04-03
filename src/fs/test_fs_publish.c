@@ -225,6 +225,7 @@ run (void *cls,
   struct GNUNET_FS_FileInformation *fi2;
   struct GNUNET_FS_FileInformation *fidir;
   size_t i;
+  struct GNUNET_FS_BlockOptions bo;
 
   setup_peer (&p1, "test_fs_publish_data.conf");
   fs = GNUNET_FS_start (cfg,
@@ -258,33 +259,35 @@ run (void *cls,
 
   meta = GNUNET_CONTAINER_meta_data_create ();
   kuri = GNUNET_FS_uri_ksk_create_from_args (2, keywords);
+  bo.content_priority = 42;
+  bo.anonymity_level = 1;
+  bo.replication_level = 0;
+  bo.expiration_time = GNUNET_TIME_relative_to_absolute (LIFETIME);
+
   fi1 = GNUNET_FS_file_information_create_from_file (fs,
 						     "publish-context1",
 						     fn1,
 						     kuri,
 						     meta,
 						     GNUNET_YES,
-						     1,
-						     42,
-						     GNUNET_TIME_relative_to_absolute (LIFETIME)); 
+						     &bo);
+						     
   GNUNET_assert (NULL != fi1);
+  bo.anonymity_level = 2;
   fi2 = GNUNET_FS_file_information_create_from_file (fs,
 						     "publish-context2",
 						     fn2,
 						     kuri,
 						     meta,
 						     GNUNET_YES,
-						     2,
-						     42,
-						     GNUNET_TIME_relative_to_absolute (LIFETIME)); 
+						     &bo);
   GNUNET_assert (NULL != fi2);
+  bo.anonymity_level = 3;
   fidir = GNUNET_FS_file_information_create_empty_directory (fs,
 							     "publish-context-dir",
 							     kuri,
 							     meta,
-							     3,
-							     42,
-							     GNUNET_TIME_relative_to_absolute (LIFETIME)); 
+							     &bo);
   GNUNET_assert (GNUNET_OK == GNUNET_FS_file_information_add (fidir, fi1));
   GNUNET_assert (GNUNET_OK == GNUNET_FS_file_information_add (fidir, fi2));
   GNUNET_FS_uri_destroy (kuri);

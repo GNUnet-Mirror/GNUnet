@@ -26,11 +26,6 @@
 #include "gnunet_fs_service.h"
 
 /**
- * -a optiton.
- */
-static unsigned int anonymity;
-
-/**
  * -C option
  */
 static char *create_ns;
@@ -56,9 +51,9 @@ static int print_local_only;
 static struct GNUNET_CONTAINER_MetaData *adv_metadata;
 
 /**
- * -p option.
+ * Our block options (-p, -r, -a).
  */
-static unsigned int priority = 365;
+static struct GNUNET_FS_BlockOptions bo = { { 2 * 365 * 24 * 60 * 60 * 1000LL  }, 1, 365, 1 };
 
 /**
  * -q option given.
@@ -279,9 +274,7 @@ run (void *cls,
 					     ksk_uri,
 					     ns,
 					     adv_metadata,
-					     anonymity,
-					     priority,					     
-					     expiration,
+					     &bo,
 					     root_identifier,
 					     &post_advertising,
 					     NULL);
@@ -307,7 +300,8 @@ run (void *cls,
 
 
 /**
- * The main function to inspect GNUnet directories.
+ * The main function to manipulate GNUnet pseudonyms (and publish
+ * to namespaces).
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments
@@ -319,7 +313,7 @@ main (int argc, char *const *argv)
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'a', "anonymity", "LEVEL",
      gettext_noop ("set the desired LEVEL of sender-anonymity"),
-     1, &GNUNET_GETOPT_set_uint, &anonymity},
+     1, &GNUNET_GETOPT_set_uint, &bo.anonymity_level},
     {'C', "create", "NAME",
      gettext_noop
      ("create or advertise namespace NAME"),
@@ -341,11 +335,14 @@ main (int argc, char *const *argv)
      0, &GNUNET_GETOPT_set_one, &print_local_only},
     {'p', "priority", "PRIORITY",
      gettext_noop ("use the given PRIORITY for the advertisments"),
-     1, &GNUNET_GETOPT_set_uint, &priority},
+     1, &GNUNET_GETOPT_set_uint, &bo.content_priority},
     {'q', "quiet", NULL,
      gettext_noop ("do not print names of remote namespaces"),
      0, &GNUNET_GETOPT_set_one, &no_remote_printing},
-    {'r', "root", "ID",
+    {'r', "replication", "LEVEL",
+     gettext_noop ("set the desired replication LEVEL"),
+     0, &GNUNET_GETOPT_set_uint, &bo.replication_level},
+    {'R', "root", "ID",
      gettext_noop
      ("specify ID of the root of the namespace"),
      1, &GNUNET_GETOPT_set_string, &root_identifier},

@@ -55,10 +55,8 @@ mycleaner(void *cls,
 	  uint64_t length,
 	  struct GNUNET_CONTAINER_MetaData *meta,
 	  struct GNUNET_FS_Uri **uri,
-	  uint32_t *anonymity,
-	  uint32_t *priority,
+	  struct GNUNET_FS_BlockOptions *bo,
 	  int *do_index,
-	  struct GNUNET_TIME_Absolute *expirationTime,
 	  void **client_info)
 {
   return GNUNET_OK;
@@ -85,6 +83,7 @@ run (void *cls,
   struct GNUNET_FS_FileInformation *fidir;
   struct GNUNET_FS_Handle *fs;
   size_t i;
+  struct GNUNET_FS_BlockOptions bo;
 
   fs = GNUNET_FS_start (cfg, "test-fs-file-information", NULL, NULL,
 			GNUNET_FS_FLAGS_NONE,
@@ -112,16 +111,18 @@ run (void *cls,
   GNUNET_free (buf);
 
   meta = GNUNET_CONTAINER_meta_data_create ();
-  kuri = GNUNET_FS_uri_ksk_create_from_args (2, keywords);
+  kuri = GNUNET_FS_uri_ksk_create_from_args (2, keywords); 
+  bo.content_priority = 42;
+  bo.anonymity_level = 1;
+  bo.replication_level = 0;
+  bo.expiration_time = GNUNET_TIME_relative_to_absolute (LIFETIME); 
   fi1 = GNUNET_FS_file_information_create_from_file (fs,
 						     "file_information-context1",
 						     fn1,
 						     kuri,
 						     meta,
 						     GNUNET_YES,
-						     1,
-						     42,
-						     GNUNET_TIME_relative_to_absolute (LIFETIME)); 
+						     &bo);
   GNUNET_assert (fi1 != NULL);
   fi2 = GNUNET_FS_file_information_create_from_file (fs,
 						     "file_information-context2",
@@ -129,17 +130,13 @@ run (void *cls,
 						     kuri,
 						     meta,
 						     GNUNET_YES,
-						     1,
-						     42,
-						     GNUNET_TIME_relative_to_absolute (LIFETIME)); 
+						     &bo);
   GNUNET_assert (fi2 != NULL);
   fidir = GNUNET_FS_file_information_create_empty_directory (fs,
 							     "file_information-context-dir",
 							     kuri,
 							     meta,
-							     1,
-							     42,
-							     GNUNET_TIME_relative_to_absolute (LIFETIME)); 
+							     &bo);
   GNUNET_assert (GNUNET_OK == GNUNET_FS_file_information_add (fidir, fi1));
   GNUNET_assert (GNUNET_OK == GNUNET_FS_file_information_add (fidir, fi2));
   GNUNET_FS_uri_destroy (kuri);

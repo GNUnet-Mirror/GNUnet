@@ -576,10 +576,10 @@ gather_migration_blocks (void *cls,
     return;
   if (GSF_dsh != NULL)
     {
-      mig_qe = GNUNET_DATASTORE_get_random (GSF_dsh, 
-					    0, UINT_MAX,
-					    GNUNET_TIME_UNIT_FOREVER_REL,
-					    &process_migration_content, NULL);
+      mig_qe = GNUNET_DATASTORE_get_for_replication (GSF_dsh, 
+						     0, UINT_MAX,
+						     GNUNET_TIME_UNIT_FOREVER_REL,
+						     &process_migration_content, NULL);
       GNUNET_assert (mig_qe != NULL);
     }
 }

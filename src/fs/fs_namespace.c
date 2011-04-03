@@ -285,24 +285,14 @@ struct AdvertisementContext
   struct GNUNET_FS_Namespace *ns;
 
   /**
-   * Expiration time.
+   * Block options.
    */
-  struct GNUNET_TIME_Absolute expiration;
+  struct GNUNET_FS_BlockOptions bo;
 
   /**
    * Number of bytes of plaintext.
    */ 
   size_t pt_size;
-
-  /**
-   * Anonymity level.
-   */
-  uint32_t anonymity;
-
-  /**
-   * Content priority.
-   */
-  uint32_t priority;
 
   /**
    * Current keyword offset.
@@ -410,9 +400,10 @@ advertisement_cont (void *cls,
 			ac->pt_size + sizeof (struct NBlock),
 			ac->nb,
 			GNUNET_BLOCK_TYPE_FS_NBLOCK,
-			ac->priority,
-			ac->anonymity,
-			ac->expiration,
+			ac->bo.content_priority,
+			ac->bo.anonymity_level,
+			ac->bo.replication_level,
+			ac->bo.expiration_time,
 			-2, 1,
 			GNUNET_CONSTANTS_SERVICE_TIMEOUT, 
 			&advertisement_cont,
@@ -427,9 +418,7 @@ advertisement_cont (void *cls,
  * @param ksk_uri keywords to use for advertisment
  * @param namespace handle for the namespace that should be advertised
  * @param meta meta-data for the namespace advertisement
- * @param anonymity for the namespace advertismement
- * @param priority for the namespace advertisement
- * @param expiration for the namespace advertisement
+ * @param bo block options
  * @param rootEntry name of the root of the namespace
  * @param cont continuation
  * @param cont_cls closure for cont
@@ -439,9 +428,7 @@ GNUNET_FS_namespace_advertise (struct GNUNET_FS_Handle *h,
 			       struct GNUNET_FS_Uri *ksk_uri,
 			       struct GNUNET_FS_Namespace *namespace,
 			       const struct GNUNET_CONTAINER_MetaData *meta,
-			       uint32_t anonymity,
-			       uint32_t priority,
-			       struct GNUNET_TIME_Absolute expiration,
+			       const struct GNUNET_FS_BlockOptions *bo,
 			       const char *rootEntry,
 			       GNUNET_FS_PublishContinuation cont,
 			       void *cont_cls)
@@ -512,9 +499,7 @@ GNUNET_FS_namespace_advertise (struct GNUNET_FS_Handle *h,
   ctx->pt_size = mdsize + reslen;
   ctx->ns = namespace;
   ctx->ns->rc++;
-  ctx->anonymity = anonymity;
-  ctx->priority = priority;
-  ctx->expiration = expiration;
+  ctx->bo = *bo;
   advertisement_cont (ctx, GNUNET_OK, NULL);
 }
 
@@ -828,9 +813,7 @@ sb_put_cont (void *cls,
  * @param update update identifier to use
  * @param meta metadata to use
  * @param uri URI to refer to in the SBlock
- * @param expirationTime when the SBlock expires
- * @param anonymity anonymity level for the SBlock
- * @param priority priority for the SBlock
+ * @param bo block options
  * @param options publication options
  * @param cont continuation
  * @param cont_cls closure for cont
@@ -842,9 +825,7 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
 		       const char *update,
 		       const struct GNUNET_CONTAINER_MetaData *meta,
 		       const struct GNUNET_FS_Uri *uri,
-		       struct GNUNET_TIME_Absolute expirationTime,
-		       uint32_t anonymity,
-		       uint32_t priority,
+		       const struct GNUNET_FS_BlockOptions *bo,
 		       enum GNUNET_FS_PublishOptions options,
 		       GNUNET_FS_PublishContinuation cont,
 		       void *cont_cls)
@@ -975,9 +956,10 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
 			size,
 			sb_enc,
 			GNUNET_BLOCK_TYPE_FS_SBLOCK, 
-			priority,
-			anonymity,
-			expirationTime,
+			bo->content_priority,
+			bo->anonymity_level,
+			bo->replication_level,
+			bo->expiration_time,
 			-2, 1,
 			GNUNET_CONSTANTS_SERVICE_TIMEOUT,
 			&sb_put_cont,
