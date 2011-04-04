@@ -322,7 +322,7 @@ GNUNET_DATASTORE_iterate_key (struct GNUNET_DATASTORE_Handle *h,
  * @param max_queue_size at what queue size should this request be dropped
  *        (if other requests of higher priority are in the queue)
  * @param timeout how long to wait at most for a response
- * @param type allowed type for the operation (ANY for 'all types')
+ * @param type allowed type for the operation (never zero)
  * @param iter function to call on a random value; it
  *        will be called once with a value (if available)
  *        and always once with a value of NULL at the end.

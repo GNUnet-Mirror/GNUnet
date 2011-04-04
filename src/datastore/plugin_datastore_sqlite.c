@@ -1028,12 +1028,14 @@ sqlite_plugin_iter_zero_anonymity (void *cls,
   sqlite3_stmt *stmt_2;
   char *q;
 
+  GNUNET_assert (type != GNUNET_BLOCK_TYPE_ANY);
   now = GNUNET_TIME_absolute_get ();
   GNUNET_asprintf (&q, 
 		   "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn090 "
-		   "WHERE (prio = ?1 AND expire > %llu AND anonLevel = 0 AND hash < ?2) "
+		   "WHERE (prio = ?1 AND expire > %llu AND anonLevel = 0 AND type=%d AND hash < ?2) "
 		   "ORDER BY hash DESC LIMIT 1",
-		   (unsigned long long) now.abs_value);
+		   (unsigned long long) now.abs_value,
+		   type);
   if (sq_prepare (plugin->dbh, q, &stmt_1) != SQLITE_OK)
     {
       LOG_SQLITE (plugin, NULL,
@@ -1046,9 +1048,10 @@ sqlite_plugin_iter_zero_anonymity (void *cls,
   GNUNET_free (q);
   GNUNET_asprintf (&q, 
 		   "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn090 "
-		   "WHERE (prio < ?1 AND expire > %llu AND anonLevel = 0) "
+		   "WHERE (prio < ?1 AND expire > %llu AND anonLevel = 0 AND type=%d) "
 		   "ORDER BY prio DESC, hash DESC LIMIT 1",
-		   (unsigned long long) now.abs_value);
+		   (unsigned long long) now.abs_value,
+		   type);
   if (sq_prepare (plugin->dbh, q, &stmt_2) != SQLITE_OK)
     {
       LOG_SQLITE (plugin, NULL,

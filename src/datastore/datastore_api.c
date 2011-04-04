@@ -166,7 +166,13 @@ struct GNUNET_DATASTORE_QueueEntry
    * Note that the overall struct should end at a 
    * multiple of 64 bits.
    */
-  int32_t was_transmitted;
+  int was_transmitted;
+  
+  /**
+   * Are we expecting a single message in response to this
+   * request (and, if it is data, no 'END' message)?
+   */
+  int one_shot; 
   
 };
 
@@ -1251,7 +1257,10 @@ process_result_message (void *cls,
 	  do_disconnect (h);	  
 	  return;
 	}
-      GNUNET_DATASTORE_iterate_get_next (h);
+      if (GNUNET_YES == qe->one_shot)
+	free_queue_entry (qe);
+      else
+	GNUNET_DATASTORE_iterate_get_next (h);
       return;
     }
   dm = (const struct DataMessage*) msg;
@@ -1273,6 +1282,8 @@ process_result_message (void *cls,
 	   ntohl(dm->anonymity),
 	   GNUNET_TIME_absolute_ntoh(dm->expiration),	
 	   GNUNET_ntohll(dm->uid));
+  if (GNUNET_YES == qe->one_shot)
+    free_queue_entry (qe);
 }
 
 
@@ -1310,7 +1321,7 @@ GNUNET_DATASTORE_get_for_replication (struct GNUNET_DATASTORE_Handle *h,
 
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Asked to get random entry in %llu ms\n",
+	      "Asked to get replication entry in %llu ms\n",
 	      (unsigned long long) timeout.rel_value);
 #endif
   qc.rc.iter = iter;
@@ -1322,16 +1333,17 @@ GNUNET_DATASTORE_get_for_replication (struct GNUNET_DATASTORE_Handle *h,
     {
 #if DEBUG_DATASTORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Could not create queue entry for GET RANDOM\n");
+		  "Could not create queue entry for GET REPLICATION\n");
 #endif
       return NULL;    
     }
+  qe->one_shot = GNUNET_YES;
   GNUNET_STATISTICS_update (h->stats,
-			    gettext_noop ("# GET RANDOM requests executed"),
+			    gettext_noop ("# GET REPLICATION requests executed"),
 			    1,
 			    GNUNET_NO);
   m = (struct GNUNET_MessageHeader*) &qe[1];
-  m->type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_GET_RANDOM);
+  m->type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_GET_REPLICATION);
   m->size = htons(sizeof (struct GNUNET_MessageHeader));
   process_queue (h);
   return qe;
@@ -1368,6 +1380,7 @@ GNUNET_DATASTORE_iterate_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
   struct GetZeroAnonymityMessage *m;
   union QueueContext qc;
 
+  GNUNET_assert (type != GNUNET_BLOCK_TYPE_ANY);
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Asked to get zero-anonymity entry in %llu ms\n",

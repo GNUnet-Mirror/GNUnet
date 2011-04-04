@@ -452,7 +452,7 @@ extern "C"
 /**
  * Message sent by datastore client to get random data.
  */
-#define GNUNET_MESSAGE_TYPE_DATASTORE_GET_RANDOM 98
+#define GNUNET_MESSAGE_TYPE_DATASTORE_GET_REPLICATION 98
 
 /**
  * Message sent by datastore client to get random data.

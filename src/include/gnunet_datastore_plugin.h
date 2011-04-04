@@ -245,7 +245,7 @@ typedef int (*PluginUpdate) (void *cls,
  *
  * @param cls closure
  * @param type entries of which type should be considered?
- *        Use 0 for any type.
+ *        Myst not be zero (ANY).
  * @param iter function to call on each matching value; however,
  *        after the first call to "iter", the plugin must wait
  *        until "NextRequest" was called before giving the iterator
@@ -294,6 +294,16 @@ struct GNUNET_DATASTORE_PluginFunctions
   PluginPut put;
 
   /**
+   * Update the priority for a particular key in the datastore.  If
+   * the expiration time in value is different than the time found in
+   * the datastore, the higher value should be kept.  For the
+   * anonymity level, the lower value is to be used.  The specified
+   * priority should be added to the existing priority, ignoring the
+   * priority in value.
+   */
+  PluginUpdate update;
+
+  /**
    * Function called by iterators whenever they want the next value;
    * note that unlike all of the other callbacks, this one does get a
    * the "next_cls" closure which is usually different from the "cls"
@@ -306,6 +316,11 @@ struct GNUNET_DATASTORE_PluginFunctions
    * in the datastore.
    */
   PluginGet get;
+
+  /**
+   * Iterate over content with anonymity level zero.
+   */
+  PluginSelector iter_zero_anonymity;
 
   /**
    * Function to get a random item with high replication score from
@@ -321,21 +336,6 @@ struct GNUNET_DATASTORE_PluginFunctions
    * with a low priority.
    */
   PluginRandomGet expiration_get;
-
-  /**
-   * Update the priority for a particular key in the datastore.  If
-   * the expiration time in value is different than the time found in
-   * the datastore, the higher value should be kept.  For the
-   * anonymity level, the lower value is to be used.  The specified
-   * priority should be added to the existing priority, ignoring the
-   * priority in value.
-   */
-  PluginUpdate update;
-
-  /**
-   * Iterate over content with anonymity level zero.
-   */
-  PluginSelector iter_zero_anonymity;
 
   /**
    * Delete the database.  The next operation is

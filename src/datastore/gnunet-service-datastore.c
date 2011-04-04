@@ -1240,24 +1240,24 @@ handle_update (void *cls,
 
 
 /**
- * Handle GET_RANDOM-message.
+ * Handle GET_REPLICATION-message.
  *
  * @param cls closure
  * @param client identification of the client
  * @param message the actual message
  */
 static void
-handle_get_random (void *cls,
-		   struct GNUNET_SERVER_Client *client,
-		   const struct GNUNET_MessageHeader *message)
+handle_get_replication (void *cls,
+			struct GNUNET_SERVER_Client *client,
+			const struct GNUNET_MessageHeader *message)
 {
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Processing `%s' request\n",
-	      "GET_RANDOM");
+	      "GET_REPLICATION");
 #endif
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# GET RANDOM requests received"),
+			    gettext_noop ("# GET REPLICATION requests received"),
 			    1,
 			    GNUNET_NO);
   GNUNET_SERVER_client_keep (client);
@@ -1282,6 +1282,12 @@ handle_get_zero_anonymity (void *cls,
   enum GNUNET_BLOCK_Type type;
 
   type = (enum GNUNET_BLOCK_Type) ntohl (msg->type);
+  if (type == GNUNET_BLOCK_TYPE_ANY)
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Processing `%s' request\n",
@@ -1706,7 +1712,7 @@ run (void *cls,
     {&handle_update, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_UPDATE, 
      sizeof (struct UpdateMessage) }, 
     {&handle_get, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_GET, 0 }, 
-    {&handle_get_random, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_GET_RANDOM, 
+    {&handle_get_replication, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_GET_REPLICATION, 
      sizeof(struct GNUNET_MessageHeader) }, 
     {&handle_get_zero_anonymity, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_GET_ZERO_ANONYMITY, 
      sizeof(struct GetZeroAnonymityMessage) }, 
