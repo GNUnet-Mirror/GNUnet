@@ -5598,6 +5598,23 @@ struct ATS_ressource_cost
 	double c_1;
 };
 
+struct ATS_ressource
+{
+	int atis_index;
+	char * config_parameter;
+};
+
+static struct ATS_ressource ressources[] =
+{
+		{1, "COST_FINANCIAL_PER_VOLUME"},
+		{2, "COST_FINANCIAL_PER_TIME"},
+		{3, "COST_COMPUTATIONAL"},
+		{4, "COST_ENERGY_CONSUMPTION"},
+		{5, "COST_CONNECT"},
+		{6, "COST_BANDWITH_AVAILABLE"},
+		{7, "COST_NETWORK_OVERHEAD"},
+};
+static int available_ressources = 7;
 
 struct ATS_info
 {
@@ -5650,7 +5667,6 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 	return GNUNET_SYSERR;
 #else
 	if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "glpk installed\n");
-#endif
 
 	glp_prob *prob;
 
@@ -5692,7 +5708,7 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 
 	if (c_mechs==0)
 	{
-		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No addresses for bw distribution available\n", c_peers);
+		if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No addresses for bw distribution available\n", c_peers);
 		return 0;
 	}
 
@@ -6145,7 +6161,7 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 	GNUNET_free(peers);
 
 	return c_mechs;
-
+#endif
 }
 
 void ats_calculate_bandwidth_distribution ()
@@ -6520,6 +6536,8 @@ run (void *cls,
     refresh_hello ();
 
   ats = ats_init();
+
+  struct ATS_ressource_cost test = {NULL,NULL, 1,1.5,1.5};
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Transport service ready.\n"));
