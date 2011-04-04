@@ -1818,28 +1818,6 @@ mysql_plugin_iter_zero_anonymity (void *cls,
 
 
 /**
- * Select a subset of the items in the datastore and call
- * the given iterator for each of them.
- *
- * @param cls our "struct Plugin*"
- * @param type entries of which type should be considered?
- *        Use 0 for any type.
- * @param iter function to call on each matching value;
- *        will be called once with a NULL value at the end
- * @param iter_cls closure for iter
- */
-static void
-mysql_plugin_iter_all_now (void *cls,
-			   enum GNUNET_BLOCK_Type type,
-			   PluginIterator iter,
-			   void *iter_cls)
-{
-  struct Plugin *plugin = cls;
-  iterateHelper (plugin, 0, GNUNET_YES, 0, iter, iter_cls);
-}
-
-
-/**
  * Drop database.
  */
 static void 
@@ -1941,7 +1919,6 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
   api->expiration_get = &mysql_plugin_expiration_get;
   api->update = &mysql_plugin_update;
   api->iter_zero_anonymity = &mysql_plugin_iter_zero_anonymity;
-  api->iter_all_now = &mysql_plugin_iter_all_now;
   api->drop = &mysql_plugin_drop;
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
                    "mysql", _("Mysql database running\n"));

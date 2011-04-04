@@ -227,27 +227,6 @@ template_plugin_iter_zero_anonymity (void *cls,
 
 
 /**
- * Select a subset of the items in the datastore and call
- * the given iterator for each of them.
- *
- * @param cls our "struct Plugin*"
- * @param type entries of which type should be considered?
- *        Use 0 for any type.
- * @param iter function to call on each matching value;
- *        will be called once with a NULL value at the end
- * @param iter_cls closure for iter
- */
-static void
-template_plugin_iter_all_now (void *cls,
-			      enum GNUNET_BLOCK_Type type,
-			      PluginIterator iter,
-			      void *iter_cls)
-{
-  GNUNET_break (0);
-}
-
-
-/**
  * Drop database.
  */
 static void 
@@ -282,7 +261,6 @@ libgnunet_plugin_datastore_template_init (void *cls)
   api->expiration_get = &template_plugin_expiration_get;
   api->update = &template_plugin_update;
   api->iter_zero_anonymity = &template_plugin_iter_zero_anonymity;
-  api->iter_all_now = &template_plugin_iter_all_now;
   api->drop = &template_plugin_drop;
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
                    "template", _("Template database running\n"));

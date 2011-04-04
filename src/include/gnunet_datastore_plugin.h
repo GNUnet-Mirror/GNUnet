@@ -338,14 +338,6 @@ struct GNUNET_DATASTORE_PluginFunctions
   PluginSelector iter_zero_anonymity;
 
   /**
-   * Iterate over all the items in the datastore
-   * as fast as possible in a single transaction
-   * (can lock datastore while this happens, focus
-   * is on doing it fast).
-   */
-  PluginSelector iter_all_now;
-
-  /**
    * Delete the database.  The next operation is
    * guaranteed to be unloading of the module.
    */

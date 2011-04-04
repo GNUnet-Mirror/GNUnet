@@ -61,8 +61,7 @@ enum RunPhase
     RP_PUT,
     RP_LP_GET,
     RP_AE_GET,
-    RP_ZA_GET,
-    RP_AN_GET
+    RP_ZA_GET
   };
 
 
@@ -171,7 +170,7 @@ iterateDummy (void *cls,
 	      crc->i,
 	      (unsigned long long) (crc->end.abs_value - crc->start.abs_value),
 	      crc->cnt);
-      if (crc->phase != RP_AN_GET)
+      if (crc->phase != RP_ZA_GET)
 	{
 	  crc->phase++;
 	}
@@ -323,12 +322,6 @@ test (void *cls,
       crc->api->iter_zero_anonymity (crc->api->cls, 0, 
 				     &iterateDummy,
 				     crc);
-      break;
-    case RP_AN_GET:
-      crc->msg = "%3u all now iteration took %20llums for %u\n";
-      crc->api->iter_all_now (crc->api->cls, 0,
-			      &iterateDummy,
-			      crc);
       break;
     case RP_DONE:
       crc->api->drop (crc->api->cls);
