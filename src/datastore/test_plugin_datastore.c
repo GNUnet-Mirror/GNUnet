@@ -38,12 +38,12 @@
  */
 #define MAX_SIZE 1024LL * 1024 * 128
 
-#define ITERATIONS 10
+#define ITERATIONS 2
 
 /**
- * Number of put operations equivalent to 1/10th of MAX_SIZE
+ * Number of put operations to perform.
  */
-#define PUT_10 (MAX_SIZE / 32 / 1024 / ITERATIONS)
+#define PUT_10 10
 
 static unsigned long long stored_bytes;
 
@@ -57,24 +57,24 @@ static int ok;
 
 enum RunPhase
   {
-    RP_DONE = 0,
+    RP_ERROR = 0,
     RP_PUT,
-    RP_LP_GET,
-    RP_AE_GET,
-    RP_ZA_GET
+    RP_GET,
+    RP_UPDATE,
+    RP_ITER_ZERO,
+    RP_REPL_GET,
+    RP_EXPI_GET,
+    RP_DROP
   };
 
 
 struct CpsRunContext
 {
-  unsigned int i;
-  struct GNUNET_TIME_Absolute start;
-  struct GNUNET_TIME_Absolute end;
   const struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_DATASTORE_PluginFunctions * api;
-  const char *msg;
   enum RunPhase phase;
   unsigned int cnt;
+  unsigned int i;
 };
 
 
@@ -90,16 +90,28 @@ static void
 disk_utilization_change_cb (void *cls,
 			    int delta)
 {
+  /* do nothing */
+}
+
+
+static void
+gen_key (int i,
+	 GNUNET_HashCode *key)
+{
+  memset (key, 0, sizeof (GNUNET_HashCode));
+  key->bits[0] = (unsigned int) i;
+  GNUNET_CRYPTO_hash (key, sizeof (GNUNET_HashCode), key);
 }
 
 	     
 static void
-putValue (struct GNUNET_DATASTORE_PluginFunctions * api, int i, int k)
+put_value (struct GNUNET_DATASTORE_PluginFunctions * api,
+	   int i, 
+	   int k)
 {
   char value[65536];
   size_t size;
-  static GNUNET_HashCode key;
-  static int ic;
+  GNUNET_HashCode key;
   char *msg;
   unsigned int prio;
 
@@ -111,8 +123,7 @@ putValue (struct GNUNET_DATASTORE_PluginFunctions * api, int i, int k)
   size = size - (size & 7);     /* always multiple of 8 */
 
   /* generate random key */
-  key.bits[0] = (unsigned int) GNUNET_TIME_absolute_get ().abs_value;
-  GNUNET_CRYPTO_hash (&key, sizeof (GNUNET_HashCode), &key);
+  gen_key (i, &key);
   memset (value, i, size);
   if (i > 255)
     memset (value, i - 255, size / 2);
@@ -123,7 +134,7 @@ putValue (struct GNUNET_DATASTORE_PluginFunctions * api, int i, int k)
 			     &key, 
 			     size,
 			     value,
-			     i /* type */,
+			     i + 1 /* type */,
 			     prio,
 			     i /* anonymity */,
 			     0 /* replication */,
@@ -137,11 +148,11 @@ putValue (struct GNUNET_DATASTORE_PluginFunctions * api, int i, int k)
       GNUNET_free_non_null (msg);
       return;
     }
-  ic++;
   stored_bytes += size;
   stored_ops++;
   stored_entries++;
 }
+
 
 static void
 test (void *cls,
@@ -149,45 +160,61 @@ test (void *cls,
 
 
 static int
-iterateDummy (void *cls,
-	      void *next_cls,
-	      const GNUNET_HashCode * key,
-	      uint32_t size,
-	      const void *data,
-	      enum GNUNET_BLOCK_Type type,
-	      uint32_t priority,
-	      uint32_t anonymity,
-	      struct GNUNET_TIME_Absolute
-	      expiration, 
-	      uint64_t uid)
+iterate_one_shot (void *cls,
+		  void *next_cls,
+		  const GNUNET_HashCode * key,
+		  uint32_t size,
+		  const void *data,
+		  enum GNUNET_BLOCK_Type type,
+		  uint32_t priority,
+		  uint32_t anonymity,
+		  struct GNUNET_TIME_Absolute
+		  expiration, 
+		  uint64_t uid)
+{
+  struct CpsRunContext *crc = cls;
+  
+  GNUNET_assert (NULL == next_cls);
+  GNUNET_assert (key != NULL);
+  crc->phase++;
+#if VERBOSE
+  fprintf (stderr,
+	   "Found result type=%u, priority=%u, size=%u, expire=%llu\n",
+	   type, priority, size,
+	   (unsigned long long) expiration.abs_value);
+#endif    
+  GNUNET_SCHEDULER_add_now (&test, crc);
+  return GNUNET_OK;
+}
+
+
+static uint64_t guid;
+
+static int
+iterate_with_next (void *cls,
+		   void *next_cls,
+		   const GNUNET_HashCode * key,
+		   uint32_t size,
+		   const void *data,
+		   enum GNUNET_BLOCK_Type type,
+		   uint32_t priority,
+		   uint32_t anonymity,
+		   struct GNUNET_TIME_Absolute
+		   expiration, 
+		   uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
   
   if (key == NULL)
     {
-      crc->end = GNUNET_TIME_absolute_get();
-      printf (crc->msg,
-	      crc->i,
-	      (unsigned long long) (crc->end.abs_value - crc->start.abs_value),
-	      crc->cnt);
-      if (crc->phase != RP_ZA_GET)
-	{
-	  crc->phase++;
-	}
-      else
-	{
-	  if (crc->i == ITERATIONS)
-	    crc->phase = RP_DONE;
-	  else
-	    crc->phase = RP_PUT;
-	}
-      crc->cnt = 0;
-      crc->start = GNUNET_TIME_absolute_get ();      
+      crc->phase++;
       GNUNET_SCHEDULER_add_now (&test, crc);
       return GNUNET_OK;
     }
+  guid = uid;
 #if VERBOSE
-  fprintf (stderr, "Found result type=%u, priority=%u, size=%u, expire=%llu\n",
+  fprintf (stderr,
+	   "Found result type=%u, priority=%u, size=%u, expire=%llu\n",
 	   type, priority, size,
 	   (unsigned long long) expiration.abs_value);
 #endif
@@ -197,38 +224,6 @@ iterateDummy (void *cls,
   return GNUNET_OK;
 }
 
-
-
-static int
-dummy_get (void *cls,
-	   void *next_cls,
-	   const GNUNET_HashCode * key,
-	   uint32_t size,
-	   const void *data,
-	   enum GNUNET_BLOCK_Type type,
-	   uint32_t priority,
-	   uint32_t anonymity,
-	   struct GNUNET_TIME_Absolute
-	   expiration, 
-	   uint64_t uid)
-{
-  struct CpsRunContext *crc = cls;
-
-  crc->cnt++;
-  if (1000 == crc->cnt)
-    {
-      crc->end = GNUNET_TIME_absolute_get();
-      printf (crc->msg,
-	      crc->i,
-	      (unsigned long long) (crc->end.abs_value - crc->start.abs_value),
-	      crc->cnt);
-      crc->phase++;
-      crc->cnt = 0;
-      crc->start = GNUNET_TIME_absolute_get ();      
-    }
-  GNUNET_SCHEDULER_add_now (&test, crc);
-  return GNUNET_OK;
-}
 
 /**
  * Function called when the service shuts
@@ -267,7 +262,8 @@ unload_plugin (struct GNUNET_DATASTORE_PluginFunctions * api,
  * the transport and core.
  */
 static void
-cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleaning_task (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct CpsRunContext *crc = cls;
 
@@ -282,51 +278,85 @@ test (void *cls,
 {  
   struct CpsRunContext *crc = cls;
   int j;
+  unsigned long long os;
+  unsigned long long cs;
+  GNUNET_HashCode key;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     {
-      crc->phase = RP_DONE;
+      crc->phase = RP_ERROR;
       ok = 1;
     }
   switch (crc->phase)
     {
+    case RP_ERROR:
+      GNUNET_break (0); 
+      crc->api->drop (crc->api->cls);
+      GNUNET_SCHEDULER_add_now (&cleaning_task, crc);
+      break;
     case RP_PUT:      
-      crc->start = GNUNET_TIME_absolute_get ();
+      os = 0;
       for (j=0;j<PUT_10;j++)
-	putValue (crc->api, j, crc->i);
-      crc->end = GNUNET_TIME_absolute_get ();
-      printf ("%3u insertion took                      %20llums for %u\n",
-	      crc->i,
-	      (unsigned long long) (crc->end.abs_value - crc->start.abs_value),
-	      (unsigned int) PUT_10);
-      crc->i++;
-      crc->start = GNUNET_TIME_absolute_get ();      
-      crc->phase = RP_LP_GET;
-      GNUNET_SCHEDULER_add_after (GNUNET_SCHEDULER_NO_TASK,
-				  &test, crc);
+	{
+	  put_value (crc->api, j, crc->i);
+	  cs = crc->api->get_size (crc->api->cls);
+	  GNUNET_assert (os < cs);
+	  os = cs;
+	}
+      crc->phase++;
+      GNUNET_SCHEDULER_add_now (&test, crc);
       break;
-    case RP_LP_GET:
-      crc->msg = "%3u replication iteration took %20llums for %u\n";
-      crc->api->replication_get (crc->api->cls, 
-				 &dummy_get,
-				 crc);
+    case RP_GET:
+      if (crc->cnt == 1)
+	{
+	  crc->cnt = 0;
+	  crc->phase++;
+	  GNUNET_SCHEDULER_add_now (&test, crc);
+	  break;
+	}
+      gen_key (5, &key);
+      crc->api->get (crc->api->cls,
+		     &key, NULL, 
+		     GNUNET_BLOCK_TYPE_ANY,
+		     &iterate_with_next,
+		     crc);
       break;
-    case RP_AE_GET:
-      crc->msg = "%3u expiration iteration took %20llums for %u\n";
-      crc->api->expiration_get (crc->api->cls, 
-				&dummy_get,
-				crc);
+    case RP_UPDATE:
+      GNUNET_assert (GNUNET_OK ==
+		     crc->api->update (crc->api->cls,
+				       guid, 1, 
+				       GNUNET_TIME_UNIT_ZERO_ABS,
+				       NULL));
+      crc->phase++;
+      GNUNET_SCHEDULER_add_now (&test, crc);
       break;
-    case RP_ZA_GET:
-      crc->msg = "%3u zero anonymity iteration took %20llums for %u\n";
-      crc->api->iter_zero_anonymity (crc->api->cls, 0, 
-				     &iterateDummy,
+
+    case RP_ITER_ZERO:
+      if (crc->cnt == 1)
+	{
+	  crc->cnt = 0;
+	  crc->phase++;
+	  GNUNET_SCHEDULER_add_now (&test, crc);
+	  break;
+	}
+      crc->api->iter_zero_anonymity (crc->api->cls, 
+				     1, 
+				     &iterate_with_next,
 				     crc);
       break;
-    case RP_DONE:
+    case RP_REPL_GET:
+      crc->api->replication_get (crc->api->cls, 
+				 &iterate_one_shot,
+				 crc);
+      break;
+    case RP_EXPI_GET:
+      crc->api->expiration_get (crc->api->cls, 
+				&iterate_one_shot,
+				crc);
+      break;
+    case RP_DROP:
       crc->api->drop (crc->api->cls);
-      GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
-					  &cleaning_task, crc);
+      GNUNET_SCHEDULER_add_now (&cleaning_task, crc);
       break;
     }
 }
