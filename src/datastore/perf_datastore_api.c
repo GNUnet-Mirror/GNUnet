@@ -99,10 +99,6 @@ struct CpsRunContext
   int j;
   unsigned long long size;
   int i;
-
-  GNUNET_HashCode key;
-  size_t esize;
-  char data[65536];
 };
 
 
@@ -165,31 +161,9 @@ remove_next(void *cls,
   fprintf (stderr, "D");
 #endif
   GNUNET_assert (GNUNET_OK == success);
-  GNUNET_SCHEDULER_add_continuation (&run_continuation,
-				     crc,
-				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_SCHEDULER_add_now (&run_continuation,
+			    crc);
 }
-
-
-
-static void
-do_delete (void *cls,
-	   const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct CpsRunContext *crc = cls;
-
-  stored_bytes -= crc->esize;
-  stored_entries--;
-  stored_ops++;
-  GNUNET_DATASTORE_remove (datastore,
-			   &crc->key,
-			   crc->esize,
-			   crc->data,
-			   1, 1, TIMEOUT,
-			   &remove_next,
-			   crc);
-}
-
 
 
 static void 
@@ -204,32 +178,22 @@ delete_value (void *cls,
 	      expiration, uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
-
-  if (key == NULL)
-    {
-      if (stored_bytes < MAX_SIZE)
-	{
-	  crc->phase = RP_REPORT;
-	  GNUNET_SCHEDULER_add_continuation (&run_continuation,
-					     crc,
-					     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-	  return;     
-	}
-      GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_HIGH,
-					  &do_delete,
-					  crc);
-      return;
-    }
+  
+  GNUNET_assert (NULL != key);
+  stored_ops++;
+  stored_bytes -= size;
+  stored_entries--;
   stored_ops++;
   if (stored_bytes < MAX_SIZE)
-    {
-      GNUNET_DATASTORE_iterate_get_next (datastore);
-      return;     
-    }
-  crc->key = *key;
-  crc->esize = size;
-  memcpy (crc->data, data, size);
-  GNUNET_DATASTORE_iterate_get_next (datastore);
+    crc->phase = RP_PUT;
+  GNUNET_assert (NULL !=
+		 GNUNET_DATASTORE_remove (datastore,
+					  key,
+					  size,
+					  data,
+					  1, 1, TIMEOUT,
+					  &remove_next,
+					  crc));
 }
 
 
@@ -313,7 +277,6 @@ run_continuation (void *cls,
       GNUNET_assert (0);      
     }
 }
-
 
 
 static void
