@@ -29,6 +29,7 @@ AC_CONFIG_HEADERS([gnunet_config.h])
 AH_TOP([#define _GNU_SOURCE  1])
 
 # Checks for programs.
+AC_CANONICAL_TARGET
 AC_CANONICAL_SYSTEM
 AC_PROG_AWK
 AC_PROG_CC
