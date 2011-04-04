@@ -7,6 +7,10 @@ if HAVE_OPENSSL
  MONKEY_DIR = monkey
 endif
 endif
+if HAVE_EXPERIMENTAL
+ DS_exp = datastore
+ FS_exp = fs
+endif
 
 SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
@@ -18,7 +22,7 @@ SUBDIRS = \
   $(MONKEY_DIR) \
   peerinfo \
   datacache \
-  datastore \
+  $(DS_exp) \
   template \
   nat \
   transport \
@@ -29,7 +33,7 @@ SUBDIRS = \
   dht \
   hostlist \
   topology \
-  fs \
+  $(FS_exp) \
   fragmentation \
   mesh \
   vpn \
