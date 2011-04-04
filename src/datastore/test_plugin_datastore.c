@@ -19,7 +19,7 @@
 */
 /*
  * @file test_plugin_datastore.c
- * @brief Profile database plugin directly, focusing on iterators.
+ * @brief Test database plugin directly, calling each API function once
  * @author Christian Grothoff
  */
 
@@ -29,16 +29,6 @@
 #include "gnunet_datastore_plugin.h"
 
 #define VERBOSE GNUNET_NO
-
-/**
- * Target datastore size (in bytes).  Realistic sizes are
- * more like 16 GB (not the default of 16 MB); however,
- * those take too long to run them in the usual "make check"
- * sequence.  Hence the value used for shipping is tiny.
- */
-#define MAX_SIZE 1024LL * 1024 * 128
-
-#define ITERATIONS 2
 
 /**
  * Number of put operations to perform.
