@@ -5603,7 +5603,7 @@ struct ATS_ressource
 	int atis_index;
 	char * config_parameter;
 };
-
+/*
 static struct ATS_ressource ressources[] =
 {
 		{1, "COST_FINANCIAL_PER_VOLUME"},
@@ -5615,7 +5615,7 @@ static struct ATS_ressource ressources[] =
 		{7, "COST_NETWORK_OVERHEAD"},
 };
 static int available_ressources = 7;
-
+*/
 struct ATS_info
 {
 	struct GNUNET_CONTAINER_MultiHashMap * peers;
@@ -6536,8 +6536,6 @@ run (void *cls,
     refresh_hello ();
 
   ats = ats_init();
-
-  struct ATS_ressource_cost test = {NULL,NULL, 1,1.5,1.5};
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Transport service ready.\n"));
