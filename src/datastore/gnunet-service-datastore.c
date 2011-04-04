@@ -672,7 +672,8 @@ get_next(void *next_cls,
 	plugin->api->next_request (next_cls, GNUNET_YES);
       return;
     }
-  plugin->api->next_request (next_cls, GNUNET_NO);
+  if (next_cls != NULL)
+   plugin->api->next_request (next_cls, GNUNET_NO);
 }
 
 

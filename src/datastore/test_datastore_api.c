@@ -188,6 +188,7 @@ check_value (void *cls,
 	     struct GNUNET_TIME_Absolute
 	     expiration, uint64_t uid)
 {
+  static int matched;
   struct CpsRunContext *crc = cls;
   int i;
 
@@ -198,6 +199,8 @@ check_value (void *cls,
 	  crc->phase = RP_DEL;
 	  crc->i = ITERATIONS;
 	}
+      GNUNET_assert (matched == GNUNET_YES);
+      matched = GNUNET_NO;
       GNUNET_SCHEDULER_add_continuation (&run_continuation,
 					 crc,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -210,6 +213,7 @@ check_value (void *cls,
   GNUNET_assert (priority == get_priority (i));
   GNUNET_assert (anonymity == get_anonymity(i));
   GNUNET_assert (expiration.abs_value == get_expiration(i).abs_value);
+  matched = GNUNET_YES;
   GNUNET_DATASTORE_iterate_get_next (datastore);
 }
 
@@ -579,22 +583,32 @@ run_continuation (void *cls,
 
 static void
 run_tests (void *cls,
-	   int success,
+	   int32_t success,
 	   const char *msg)
 {
   struct CpsRunContext *crc = cls;
 
-  if (success != GNUNET_YES)
+  switch (success)
     {
+    case GNUNET_YES:
+      GNUNET_SCHEDULER_add_continuation (&run_continuation,
+					 crc,
+					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      return;
+    case GNUNET_NO:
       fprintf (stderr,
-	       "Test 'put' operation failed with error `%s' database likely not setup, skipping test.",
+	       "Test 'put' operation failed, key already exists (!?)\n");
+      GNUNET_free (crc);
+      return;
+    case GNUNET_SYSERR:
+      fprintf (stderr,
+	       "Test 'put' operation failed with error `%s' database likely not setup, skipping test.\n",
 	       msg);
       GNUNET_free (crc);
       return;
+    default:
+      GNUNET_assert (0);
     }
-  GNUNET_SCHEDULER_add_continuation (&run_continuation,
-				     crc,
-				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 

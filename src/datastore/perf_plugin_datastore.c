@@ -284,6 +284,11 @@ test (void *cls,
   struct CpsRunContext *crc = cls;
   int j;
 
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    {
+      crc->phase = RP_DONE;
+      ok = 1;
+    }
   switch (crc->phase)
     {
     case RP_PUT:      
