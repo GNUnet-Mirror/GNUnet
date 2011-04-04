@@ -80,8 +80,8 @@ void GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
  * operation.
  *
  * @param cls closure
- * @param success GNUNET_SYSERR on failure, 
- *                GNUNET_NO on timeout/queue drop
+ * @param success GNUNET_SYSERR on failure (including timeout/queue drop)
+ *                GNUNET_NO if content was already there
  *                GNUNET_YES (or other positive value) on success
  * @param msg NULL on success, otherwise an error message
  */

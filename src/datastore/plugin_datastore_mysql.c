@@ -1709,6 +1709,25 @@ mysql_plugin_replication_get (void *cls,
 }
 
 
+
+/**
+ * Get a random item for expiration.
+ * Call 'iter' with all values ZERO or NULL if the datastore is empty.
+ *
+ * @param cls closure
+ * @param iter function to call the value (once only).
+ * @param iter_cls closure for iter
+ */
+static void
+mysql_plugin_expiration_get (void *cls,
+			     PluginIterator iter, void *iter_cls)
+{
+  /* FIXME: not implemented! */
+  iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, 
+	GNUNET_TIME_UNIT_ZERO_ABS, 0);
+}
+
+
 /**
  * Update the priority for a particular key in the datastore.  If
  * the expiration time in value is different than the time found in
@@ -1795,50 +1814,6 @@ mysql_plugin_iter_zero_anonymity (void *cls,
 {
   struct Plugin *plugin = cls;
   iterateHelper (plugin, type, GNUNET_NO, 1, iter, iter_cls);
-}
-
-
-/**
- * Select a subset of the items in the datastore and call
- * the given iterator for each of them.
- *
- * @param cls our "struct Plugin*"
- * @param type entries of which type should be considered?
- *        Use 0 for any type.
- * @param iter function to call on each matching value;
- *        will be called once with a NULL value at the end
- * @param iter_cls closure for iter
- */
-static void
-mysql_plugin_iter_ascending_expiration (void *cls,
-					enum GNUNET_BLOCK_Type type,
-					PluginIterator iter,
-					void *iter_cls)
-{
-  struct Plugin *plugin = cls;
-  iterateHelper (plugin, type, GNUNET_YES, 2, iter, iter_cls);
-}
-
-
-/**
- * Select a subset of the items in the datastore and call
- * the given iterator for each of them.
- *
- * @param cls our "struct Plugin*"
- * @param type entries of which type should be considered?
- *        Use 0 for any type.
- * @param iter function to call on each matching value;
- *        will be called once with a NULL value at the end
- * @param iter_cls closure for iter
- */
-static void
-mysql_plugin_iter_migration_order (void *cls,
-				      enum GNUNET_BLOCK_Type type,
-				      PluginIterator iter,
-				      void *iter_cls)
-{
-  struct Plugin *plugin = cls;
-  iterateHelper (plugin, 0, GNUNET_NO, 3, iter, iter_cls);
 }
 
 
@@ -1963,11 +1938,9 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
   api->next_request = &mysql_plugin_next_request;
   api->get = &mysql_plugin_get;
   api->replication_get = &mysql_plugin_replication_get;
+  api->expiration_get = &mysql_plugin_expiration_get;
   api->update = &mysql_plugin_update;
-  api->iter_low_priority = &mysql_plugin_iter_low_priority;
   api->iter_zero_anonymity = &mysql_plugin_iter_zero_anonymity;
-  api->iter_ascending_expiration = &mysql_plugin_iter_ascending_expiration;
-  api->iter_migration_order = &mysql_plugin_iter_migration_order;
   api->iter_all_now = &mysql_plugin_iter_all_now;
   api->drop = &mysql_plugin_drop;
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,

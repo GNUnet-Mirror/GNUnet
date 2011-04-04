@@ -149,8 +149,7 @@ typedef unsigned long long (*PluginGetSize) (void *cls);
  * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param msg set to an error message (on failure)
- * @return GNUNET_OK on success, GNUNET_NO if the content
- *         was already present (and may have been updated);
+ * @return GNUNET_OK on success,
  *         GNUNET_SYSERR on failure
  */
 typedef int (*PluginPut) (void *cls,
