@@ -1098,7 +1098,9 @@ sort_fragment_into_queue(struct Plugin * plugin, struct FragmentMessage * fm)
       if (GNUNET_TIME_absolute_get_difference(fm2->next_ack, fm->next_ack).rel_value
           == 0)
         {
-          break;
+          GNUNET_CONTAINER_DLL_insert_before(plugin->pending_Fragment_Messages_head,
+              plugin->pending_Fragment_Messages_tail,fm2,fm);
+          return;
         }
       else
         {
@@ -1106,8 +1108,8 @@ sort_fragment_into_queue(struct Plugin * plugin, struct FragmentMessage * fm)
         }
     }
 
-  GNUNET_CONTAINER_DLL_insert_after(plugin->pending_Fragment_Messages_head,
-      plugin->pending_Fragment_Messages_tail,fm2,fm);
+  GNUNET_CONTAINER_DLL_insert_tail(plugin->pending_Fragment_Messages_head,
+      plugin->pending_Fragment_Messages_tail,fm);
 }
 
 /**
@@ -1602,7 +1604,6 @@ finish_sending(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (bytes != finish->size)
     {
 
-      finish->plugin = plugin;
       finish->msgheader = finish->msgheader + bytes;
       finish->size = finish->size - bytes;
       plugin->server_write_task = GNUNET_SCHEDULER_add_write_file(
@@ -1623,9 +1624,16 @@ getRadiotapHeader(struct Plugin * plugin, struct Session * session,
     struct Radiotap_Send * header)
 {
 
-  header->rate = session->rate;
-  header->tx_power = session->tx_power;
-  header->antenna = session->antenna;
+  if (session != null){
+    header->rate = session->rate;
+    header->tx_power = session->tx_power;
+    header->antenna = session->antenna;
+  } else {
+    header->rate = 255;
+    header->tx_power = 0;
+    header->antenna = 0;
+  }
+
   return GNUNET_YES;
 }
 ;
@@ -1996,10 +2004,6 @@ wlan_plugin_address_suggested(void *cls, const void *addr, size_t addrlen)
       /* TODO check for bad addresses like multicast, broadcast, etc */
       return GNUNET_OK;
     }
-  else
-    {
-      return GNUNET_SYSERR;
-    }
 
   return GNUNET_SYSERR;
 }
@@ -2090,11 +2094,11 @@ static void
 insert_fragment_in_queue(struct Receive_Message_Queue * rec_message,
     struct Receive_Fragment_Queue * rec_queue)
 {
-  struct Receive_Fragment_Queue * rec_queue2 = rec_message->frag_head;
-  struct WlanHeader * wlanheader = NULL;
-
   GNUNET_assert(rec_message != NULL);
   GNUNET_assert(rec_queue != NULL);
+
+  struct Receive_Fragment_Queue * rec_queue2 = rec_message->frag_head;
+  struct WlanHeader * wlanheader = NULL;
 
   //this is the first fragment of the message (fragment id 0)
   if (rec_queue->num == 0)
@@ -2165,6 +2169,8 @@ check_rec_finished_msg(struct Plugin* plugin,
     struct Session_light * session_light, struct Session * session,
     struct Receive_Message_Queue * rec_message)
 {
+  GNUNET_assert(rec_message !=NULL);
+
   struct Receive_Fragment_Queue * rec_queue = rec_message->frag_head;
   int packetsize = rec_message->rec_size;
   int sum = 0;
@@ -2172,12 +2178,23 @@ check_rec_finished_msg(struct Plugin* plugin,
   uint64_t bitfield = 0;
   char * msg;
 
-  GNUNET_assert(rec_message !=NULL);
   //check if first fragment is present
   if (packetsize == MESSAGE_LENGHT_UNKNOWN)
     {
       return;
     }
+  // test if message has at least the size of the WlanHeader and a GNUNET_MessageHeader
+  else if (packetsize < sizeof(struct WlanHeader)
+      + sizeof(struct GNUNET_MessageHeader))
+    {
+#if DEBUG_wlan
+          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+              "Message not big enough\n");
+#endif
+      free_receive_message(plugin, rec_message);
+      return;
+    }
+
 #if DEBUG_wlan
   check_message_fragment_bitfield(rec_message);
 #endif
@@ -2278,6 +2295,13 @@ wlan_data_massage_handler(struct Plugin * plugin,
           ntohs(hdr->size));
 #endif
 
+      if (ntohs(hdr->size) < sizeof(struct WlanHeader)
+          + sizeof(struct GNUNET_MessageHeader))
+        {
+          //packet not big enought
+          return;
+        }
+
       GNUNET_assert(session_light != NULL);
       if (session_light->session == NULL)
         {
@@ -2285,6 +2309,7 @@ wlan_data_massage_handler(struct Plugin * plugin,
         }
       session = session_light->session;
       wlanheader = (struct WlanHeader *) hdr;
+
       tempmsg = (char*) &wlanheader[1];
       temp_hdr = (const struct GNUNET_MessageHeader *) &wlanheader[1];
 
@@ -2677,7 +2702,7 @@ wlan_data_helper(void *cls, struct Session_light * session_light,
         {
           GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
               "WLAN fragment not in fragment list with id %u of ack\n", ntohl(
-                  fh->message_id));
+                  fah->message_id));
           return;
         }
 
@@ -2794,7 +2819,7 @@ wlan_process_helper (void *cls,
 #if DEBUG_wlan
               GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                   "Func wlan_process_helper got wrong MAC: %s\n", macprinter(
-                       wlanIeeeHeader->i_addr1));
+                      wlanIeeeHeader->i_addr1));
 #endif
             }
         }
@@ -3005,26 +3030,6 @@ libgnunet_plugin_transport_wlan_init(void *cls)
   plugin->server_read_task = GNUNET_SCHEDULER_NO_TASK;
   plugin->server_write_delay_task = GNUNET_SCHEDULER_NO_TASK;
 
-  set_next_beacon_time(plugin);
-
-  if (GNUNET_CONFIGURATION_have_value(env->cfg, "transport-wlan", "TESTMODE"))
-    {
-      if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number(env->cfg,
-          "transport-wlan", "TESTMODE", &testmode))
-        return NULL;
-    }
-
-  if (GNUNET_CONFIGURATION_have_value(env->cfg, "transport-wlan", "INTERFACE"))
-    {
-      if (GNUNET_CONFIGURATION_get_value_string(env->cfg, "transport-wlan",
-          "INTERFACE", &(plugin->interface)) != GNUNET_YES)
-        {
-          libgnunet_plugin_transport_wlan_done(plugin);
-          return NULL;
-        }
-    }
-
-  wlan_transport_start_wlan_helper(plugin, testmode);
   plugin->suid_tokenizer = GNUNET_SERVER_mst_create(&wlan_process_helper,
       plugin);
 
@@ -3040,6 +3045,30 @@ libgnunet_plugin_transport_wlan_init(void *cls)
   api->address_pretty_printer = &wlan_plugin_address_pretty_printer;
   api->check_address = &wlan_plugin_address_suggested;
   api->address_to_string = &wlan_plugin_address_to_string;
+
+  //read config
+
+  if (GNUNET_CONFIGURATION_have_value(env->cfg, "transport-wlan", "TESTMODE"))
+    {
+      if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number(env->cfg,
+          "transport-wlan", "TESTMODE", &testmode))
+        testmode = 0; //default value
+    }
+
+  if (GNUNET_CONFIGURATION_have_value(env->cfg, "transport-wlan", "INTERFACE"))
+    {
+      if (GNUNET_CONFIGURATION_get_value_string(env->cfg, "transport-wlan",
+          "INTERFACE", &(plugin->interface)) != GNUNET_YES)
+        {
+          libgnunet_plugin_transport_wlan_done(api);
+          return NULL;
+        }
+    }
+
+  //start the plugin
+  set_next_beacon_time(plugin);
+
+  wlan_transport_start_wlan_helper(plugin, testmode);
 
   start_next_message_id();
 
