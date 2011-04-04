@@ -42,6 +42,7 @@ if HAVE_EXPERIMENTAL
  MYSQL_TESTS = \
   test_datastore_api_mysql \
   test_datastore_api_management_mysql \
+  test_plugin_datastore_mysql \
   perf_datastore_api_mysql \
   perf_plugin_datastore_mysql
 endif
@@ -51,6 +52,7 @@ if HAVE_SQLITE
  SQLITE_TESTS = \
   test_datastore_api_sqlite \
   test_datastore_api_management_sqlite \
+  test_plugin_datastore_sqlite \
   perf_datastore_api_sqlite \
   perf_plugin_datastore_sqlite
 endif
@@ -60,6 +62,7 @@ if HAVE_EXPERIMENTAL
  POSTGRES_TESTS = \
   test_datastore_api_postgres \
   test_datastore_api_management_postgres \
+  test_plugin_datastore_postgres \
   perf_datastore_api_postgres \
   perf_plugin_datastore_postgres
 endif
@@ -141,6 +144,11 @@ perf_plugin_datastore_sqlite_SOURCES = \
 perf_plugin_datastore_sqlite_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
+test_plugin_datastore_sqlite_SOURCES = \
+ test_plugin_datastore.c
+test_plugin_datastore_sqlite_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
 
 test_datastore_api_mysql_SOURCES = \
  test_datastore_api.c
@@ -158,6 +166,11 @@ perf_datastore_api_mysql_SOURCES = \
  perf_datastore_api.c
 perf_datastore_api_mysql_LDADD = \
  $(top_builddir)/src/datastore/libgnunetdatastore.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+test_plugin_datastore_mysql_SOURCES = \
+ test_plugin_datastore.c
+test_plugin_datastore_mysql_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 perf_plugin_datastore_mysql_SOURCES = \
@@ -182,6 +195,11 @@ perf_datastore_api_postgres_SOURCES = \
  perf_datastore_api.c
 perf_datastore_api_postgres_LDADD = \
  $(top_builddir)/src/datastore/libgnunetdatastore.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+test_plugin_datastore_postgres_SOURCES = \
+ test_plugin_datastore.c
+test_plugin_datastore_postgres_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 perf_plugin_datastore_postgres_SOURCES = \

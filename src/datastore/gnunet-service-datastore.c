@@ -999,7 +999,6 @@ execute_put (struct GNUNET_SERVER_Client *client,
 }
 
 
-
 /**
  * Function that will check if the given datastore entry
  * matches the put and if none match executes the put.
@@ -1265,6 +1264,7 @@ handle_get_replication (void *cls,
 				&transmit_item,
 				client);  
 }
+
 
 /**
  * Handle GET_ZERO_ANONYMITY-message.
@@ -1585,7 +1585,8 @@ unload_plugin (struct DatastorePlugin *plug)
  * statistics.
  */
 static void
-unload_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+unload_task (void *cls,
+	     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unload_plugin (plugin);
   plugin = NULL;
@@ -1614,7 +1615,8 @@ unload_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * the transport and core.
  */
 static void
-cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleaning_task (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct TransmitCallbackContext *tcc;
 
@@ -1655,8 +1657,7 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static void
 cleanup_reservations (void *cls,
-		      struct GNUNET_SERVER_Client
-		      * client)
+		      struct GNUNET_SERVER_Client *client)
 {
   struct ReservationList *pos;
   struct ReservationList *prev;
