@@ -56,7 +56,7 @@ shutdown_callback (void *cls, const char *emsg)
   if (emsg != NULL)
     {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed!\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed (error %s)!\n", emsg);
 #endif
       if (ok == 0)
         ok = 666;

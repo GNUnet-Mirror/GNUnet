@@ -13,7 +13,8 @@ lib_LTLIBRARIES = libgnunettesting.la
 
 libgnunettesting_la_SOURCES = \
   testing.c  \
-  testing_group.c 
+  testing_group.c \
+  testing_peergroup.c
 libgnunettesting_la_LIBADD = $(XLIB) \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
