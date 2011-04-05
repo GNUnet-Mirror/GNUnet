@@ -5718,8 +5718,8 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 	int c_q_metrics = available_quality_metrics;
 
 	//double M = 10000000000; // ~10 GB
-	double M = VERY_BIG_DOUBLE_VALUE;
-
+	//double M = VERY_BIG_DOUBLE_VALUE;
+	double M = 100000;
 	double Q[c_q_metrics+1];
 	for (c=1; c<=c_q_metrics; c++)
 	{
@@ -5827,7 +5827,8 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 
 	if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Creating problem with: %i peers, %i mechanisms, %i resource entries, %i quality metrics \n", c_peers, c_mechs, c_c_ressources, c_q_metrics);
 
-	int size = 1 + 8 *c_mechs +2 + c_mechs + c_peers + (c_q_metrics*c_mechs)+c_q_metrics + 100;// + c_c_ressources ;
+	int size = 1 + 3 + 10 *c_mechs + c_peers + (c_q_metrics*c_mechs)+ c_q_metrics + c_c_ressources ;
+	//int size = 1 + 8 *c_mechs +2 + c_mechs + c_peers + (c_q_metrics*c_mechs)+c_q_metrics + c_c_ressources ;
 	int row_index;
 	int array_index=1;
 	int * ia = GNUNET_malloc (size * sizeof (int));
@@ -5927,7 +5928,7 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 		array_index++;
 		row_index ++;
 	}
-
+	int c2;
 	/* Constraint 4: max ressource capacity */
 	/* V cr: bt * ct_r <= cr_max
 	 * */
@@ -5936,7 +5937,7 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 	glp_add_rows(prob, available_ressources);
 	double ct_max = 0.0;
 	//double ct_1 = 0.0;
-	int c2;
+
 	for (c=0; c<available_ressources; c++)
 	{
 		ct_max = ressources[c].c_max;
@@ -5982,7 +5983,6 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 	glp_set_col_name(prob, (2*c_mechs) + 1, "d");
 	glp_set_obj_coef(prob, (2*c_mechs) + 1, D);
 	glp_set_col_bnds(prob, (2*c_mechs) + 1, GLP_LO, 0.0, 0.0);
-
 	glp_set_col_name(prob, (2*c_mechs) + 2, "u");
 	glp_set_obj_coef(prob, (2*c_mechs) + 2, U);
 	glp_set_col_bnds(prob, (2*c_mechs) + 2, GLP_LO, 0.0, 0.0);
@@ -6011,13 +6011,13 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 		ia[array_index] = row_index;
 		ja[array_index] = c_mechs + mechanisms[c].col_index;
 		ar[array_index] = 1;
-		if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
+		//if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
 		array_index++;
 	}
 	ia[array_index] = row_index;
 	ja[array_index] = (2*c_mechs) + 1;
 	ar[array_index] = -1;
-	if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
+	//if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
 	array_index++;
 	row_index ++;
 
@@ -6038,16 +6038,26 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 			ja[array_index] = c2;
 			if (qm[c-1].atis_index  == GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY)
 			{
-				//value = mechanisms[c2].addr->latency.rel_value;
-				value = 1;
+				if (mechanisms[c2].addr->latency.rel_value == -1)
+					value = 0;
+				if (mechanisms[c2].addr->latency.rel_value == 0)
+					value = 0 ;
+				else
+					value = 100 / (double) mechanisms[c2].addr->latency.rel_value;
+
+				//if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "DELAY VALUE %f %llu\n",value, mechanisms[c2].addr->latency.rel_value);
 			}
 			if (qm[c-1].atis_index  == GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE)
 			{
-				//value = mechanisms[c2].addr->distance;
-				value = 1;
+				if (mechanisms[c2].addr->distance == -1)
+					value = 0;
+				else if (mechanisms[c2].addr->distance == 0)
+					value = 0;
+				else value =  (double) 10 / mechanisms[c2].addr->distance;
+				//if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "DISTANCE VALUE %f %lli\n",value,  mechanisms[c2].addr->distance);
 			}
-			ar[array_index] = 1 * mechanisms[c2].peer->f * value ;
-			if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: %s [%i,%i]=%f \n",array_index, qm[c-1].name, ia[array_index], ja[array_index], ar[array_index]);
+			ar[array_index] = (mechanisms[c2].peer->f) * value ;
+			//if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: %s [%i,%i]=%f \n",array_index, qm[c-1].name, ia[array_index], ja[array_index], ar[array_index]);
 			array_index++;
 		}
 
@@ -6095,20 +6105,19 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 			ia[array_index] = row_index;
 			ja[array_index] = m->col_index;
 			ar[array_index] = 1;
-			if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
+			//if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
 			array_index++;
 			m = m->next;
 		}
 		ia[array_index] = row_index;
 		ja[array_index] = (2*c_mechs) + 3;
 		ar[array_index] = -1;
-		if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
+		//if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
 		array_index++;
 
 		row_index++;
 	}
 	glp_load_matrix(prob, array_index-1, ia, ja, ar);
-
 
 	glp_smcp opt_lp;
 	glp_init_smcp(&opt_lp);
@@ -6186,6 +6195,7 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 	}
 #endif
 	int check;
+	int error = GNUNET_NO;
 	double bw;
 	struct ATS_mechanism *t = NULL;
 	for (c=1; c<= (c_peers); c++ )
@@ -6195,13 +6205,15 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 		while (t!=NULL)
 		{
 			bw = glp_get_col_prim(prob, t->col_index);
-			GNUNET_assert (1);
-			if (bw != 0)
+			if ((bw != 0) && (1 == glp_get_col_prim(prob, t->col_index+c_mechs)))
 			{
-				GNUNET_assert (check != GNUNET_YES);
-				check = GNUNET_YES;
 				if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[%i][%i] `%s' %s %s %f\n", c, t->col_index, GNUNET_h2s(&peers[c].peer.hashPubKey), t->plugin->short_name, glp_get_col_name(prob,t->col_index), bw);
+				if (check ==GNUNET_YES)
+					error = GNUNET_YES;
+				if (check ==GNUNET_NO)
+					check = GNUNET_YES;
 			}
+			GNUNET_assert (error != GNUNET_YES);
 			t = t->next;
 		}
 	}
@@ -6210,6 +6222,9 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 	{
 		if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n", glp_get_col_name(prob,2*c_mechs+3+c), glp_get_col_prim(prob,2*c_mechs+3+c));
 	}
+	if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n", glp_get_col_name(prob,2*c_mechs+1), glp_get_col_prim(prob,2*c_mechs+1));
+	if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n", glp_get_col_name(prob,2*c_mechs+2), glp_get_col_prim(prob,2*c_mechs+2));
+	if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n", glp_get_col_name(prob,2*c_mechs+3), glp_get_col_prim(prob,2*c_mechs+3));
 
 	res->c_mechs = c_mechs;
 	res->c_peers = c_peers;
