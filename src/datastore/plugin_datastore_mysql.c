@@ -212,6 +212,8 @@ struct NextRequestClosure
 
   unsigned long long last_vkey;
 
+  unsigned int last_prio;
+
   int end_it;
 };
 
@@ -320,7 +322,7 @@ struct Plugin
 
 #define SELECT_IT_REPLICATION "SELECT type,prio,anonLevel,expire,hash,vkey FROM gn090 FORCE INDEX(expire) "\
   "WHERE expire > ?"\
-  " ORDER BY repl DESC,RAND() LIMIT 1) "
+  " ORDER BY repl DESC,RAND() LIMIT 1"
   struct GNUNET_MysqlStatementHandle *select_replication;
 
 };
@@ -1025,6 +1027,7 @@ mysql_next_request_cont (void *next_cls,
 				nrc)))
     goto END_SET;
   nrc->last_vkey = vkey;
+  nrc->last_prio = priority;
   GNUNET_assert (nrc->plugin->next_task == GNUNET_SCHEDULER_NO_TASK);
   if ( (rbind[4].buffer_length != sizeof (GNUNET_HashCode)) ||
        (hashSize != sizeof (GNUNET_HashCode)) )
@@ -1591,9 +1594,16 @@ iterator_zero_prepare (void *cls,
 					MYSQL_TYPE_LONGLONG,
 					&nrc->now.abs_value,
 					GNUNET_YES,
-					MYSQL_TYPE_LONG,
-					&nrc->type,
-					GNUNET_YES, -1);
+					MYSQL_TYPE_LONGLONG,
+					&nrc->last_vkey,
+					GNUNET_YES,
+					MYSQL_TYPE_LONGLONG,
+					&nrc->last_prio,
+					GNUNET_YES,
+					MYSQL_TYPE_LONGLONG,
+					&nrc->last_vkey,
+					GNUNET_YES,
+					-1);
 }
 
 
@@ -1624,6 +1634,7 @@ mysql_plugin_iter_zero_anonymity (void *cls,
   nrc->dviter_cls = iter_cls;
   nrc->prep = &iterator_zero_prepare;
   nrc->last_vkey = INT64_MAX; /* MySQL only supports 63 bits, hence signed */
+  nrc->last_prio = INT32_MAX; /* similar issue... */
   mysql_plugin_next_request (nrc, GNUNET_NO);
 }
 
@@ -1693,12 +1704,15 @@ expiration_prepare (void *cls,
 		    struct NextRequestClosure *nrc)
 {
   struct Plugin *plugin = cls;
+  long long nt;
 
+  nt = (long long) nrc->now.abs_value;
   return prepared_statement_run_select
     (plugin,
      plugin->select_expiration, 
      6, nrc->rbind, 
      &return_ok, NULL,
+     MYSQL_TYPE_LONGLONG, &nt, GNUNET_YES, 
      -1);
 }
 
