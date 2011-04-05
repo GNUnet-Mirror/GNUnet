@@ -415,6 +415,8 @@ libgnunet_plugin_datacache_sqlite_init (void *cls)
   GNUNET_free (fn);
 
   SQLITE3_EXEC (dbh, "PRAGMA temp_store=MEMORY");
+  SQLITE3_EXEC (dbh, "PRAGMA locking_mode=EXCLUSIVE");
+  SQLITE3_EXEC (dbh, "PRAGMA journal_mode=OFF");
   SQLITE3_EXEC (dbh, "PRAGMA synchronous=OFF");
   SQLITE3_EXEC (dbh, "PRAGMA count_changes=OFF");
   SQLITE3_EXEC (dbh, "PRAGMA page_size=4092");
