@@ -151,7 +151,7 @@ static void evaluate_measurements()
 	for (c=0; c<MEASUREMENTS;c++)
 	{
 		average += (double) results[c].duration;
-		GNUNET_asprintf(&temp, "%s ,%i,%llu,%llu,%llu,%llu,", (output==NULL) ? "" : output, c, results[c].peers, results[c].mechs, results[c].duration, results[c].solution);
+		GNUNET_asprintf(&temp, "%sm%i,%llu,%llu,%llu,%llu,", (output==NULL) ? "" : output, c, results[c].peers, results[c].mechs, results[c].duration, results[c].solution);
 		GNUNET_free_non_null (output);
 		output = temp;
 	}
@@ -164,7 +164,7 @@ static void evaluate_measurements()
 	stddev /= measure;
 	stddev = sqrt (stddev);
 
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"%s,avg,%f,stddev,%f\n",output,average,stddev);
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"%savg,%f,stddev,%f\n",output,average,stddev);
 	/* only log benchmark time for 10 peers */
 
 	if (results[c].peers == (10))
