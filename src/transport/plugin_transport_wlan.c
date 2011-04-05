@@ -1624,7 +1624,7 @@ getRadiotapHeader(struct Plugin * plugin, struct Session * session,
     struct Radiotap_Send * header)
 {
 
-  if (session != null){
+  if (session != NULL){
     header->rate = session->rate;
     header->tx_power = session->tx_power;
     header->antenna = session->antenna;
