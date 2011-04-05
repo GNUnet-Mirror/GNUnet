@@ -26,7 +26,7 @@
 #include "gnunet_scheduler_lib.h"
 #include "gauger.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define NUM_PEERS 11
 #define MEASUREMENTS 5
@@ -168,8 +168,8 @@ static void evaluate_measurements()
 	/* only log benchmark time for 10 peers */
 	if (results[MEASUREMENTS-1].peers == (10))
 	 	{
-			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Send data to gauger\n");
-	 		GAUGER ("TRANSPORT", "ATS execution time 10 peers", (int) average , "ms");
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Send data to gauger: %f \n", average);
+	 		GAUGER ("TRANSPORT", "ATS execution time 10 peers", average , "ms");
 	 	}
 	shutdown_peers();
 }
