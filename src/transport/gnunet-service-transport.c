@@ -973,7 +973,7 @@ static void disconnect_neighbour (struct NeighbourList *n, int check);
 static void try_transmission_to_peer (struct NeighbourList *n);
 
 
-struct ATS_info * ats_init ();
+void ats_init ();
 
 void ats_shutdown ( );
 
@@ -5657,7 +5657,7 @@ static int available_ressources = 7;
 
 struct ATS_info
 {
-	struct GNUNET_CONTAINER_MultiHashMap * peers;
+
 	/**
 	 * Time of last execution
 	 */
@@ -6336,33 +6336,9 @@ ats_schedule_calculation (void *cls,
 	                                &ats_schedule_calculation, ats);
 }
 
-
-int ats_map_remove_peer (void *cls,
-		const GNUNET_HashCode * key,
-		void *value)
+void ats_init ()
 {
-
-	struct ATS_peer * p =  (struct ATS_peer *) value;
-#if DEBUG_ATS
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "map_remove_peer_it: `%s'\n", GNUNET_i2s(&p->peer));
-#endif
-	/* cleanup peer */
-	GNUNET_free(p);
-
-	return GNUNET_YES;
-}
-
-
-
-struct ATS_info * ats_init ()
-{
-	struct ATS_info * ats;
-#if DEBUG_ATS
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ats_init\n");
-#endif
 	ats = GNUNET_malloc(sizeof (struct ATS_info));
-	ats->peers = GNUNET_CONTAINER_multihashmap_create(10);
-	GNUNET_assert(ats->peers!=NULL);
 
 	ats->min_delta = ATS_MIN_INTERVAL;
 	ats->exec_intervall = ATS_EXEC_INTERVAL;
@@ -6377,6 +6353,7 @@ struct ATS_info * ats_init ()
 	struct ATS_plugin * p;
 	unsigned long long  value;
 	int c = 0;
+
 
 	while (cur != NULL)
 	{
@@ -6411,8 +6388,6 @@ struct ATS_info * ats_init ()
 	}
 
 	ats->ats_task = GNUNET_SCHEDULER_add_now(&ats_schedule_calculation, ats);
-
-	return ats;
 }
 
 
@@ -6443,8 +6418,6 @@ void ats_shutdown ()
 		p = ats->head;
 	}
 
-	GNUNET_CONTAINER_multihashmap_iterate (ats->peers,ats_map_remove_peer,NULL);
-	GNUNET_CONTAINER_multihashmap_destroy (ats->peers);
 	GNUNET_free (ats);
 }
 
@@ -6465,14 +6438,6 @@ void ats_notify_peer_connect (
 #endif
 		c++;
 	}
-	/* check if peer is already known */
-	if (!GNUNET_CONTAINER_multihashmap_contains (ats->peers,&peer->hashPubKey))
-	{
-		struct ATS_peer * p = GNUNET_malloc (sizeof (struct ATS_peer));
-		memcpy(&p->peer, peer, sizeof (struct GNUNET_PeerIdentity));
-		GNUNET_CONTAINER_multihashmap_put(ats->peers, &p->peer.hashPubKey, p, GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
-	}
-
 	ats_calculate_bandwidth_distribution(ats);
 }
 
@@ -6482,13 +6447,6 @@ void ats_notify_peer_disconnect (
 #if DEBUG_ATS
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ats_notify_peer_disconnect: %s\n",GNUNET_i2s(peer));
 #endif
-	/* remove peer */
-	if (GNUNET_CONTAINER_multihashmap_contains (ats->peers, &peer->hashPubKey))
-	{
-		ats_map_remove_peer(NULL, &peer->hashPubKey, GNUNET_CONTAINER_multihashmap_get (ats->peers, &peer->hashPubKey));
-		GNUNET_CONTAINER_multihashmap_remove_all (ats->peers, &peer->hashPubKey);
-	}
-
 	ats_calculate_bandwidth_distribution (ats);
 }
 
@@ -6648,7 +6606,7 @@ run (void *cls,
   if (no_transports)
     refresh_hello ();
 
-  ats = ats_init();
+  ats_init();
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Transport service ready.\n"));
