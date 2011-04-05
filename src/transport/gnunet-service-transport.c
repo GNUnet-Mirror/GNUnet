@@ -940,12 +940,14 @@ static struct GNUNET_STATISTICS_Handle *stats;
  */
 static struct ATS_info *ats;
 
+#if HAVE_LIBGLPK
 static struct ATS_quality_metric qm[] =
 {
 		{1, 1028, "QUALITY_NET_DISTANCE"},
 		{2, 1034, "QUALITY_NET_DELAY"},
 };
 static int available_quality_metrics = 2;
+#endif
 
 /**
  * The peer specified by the given neighbour has timed-out or a plugin
@@ -6140,8 +6142,20 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 	result = glp_intopt (prob, &opt_mlp);
 	solution =  glp_mip_status (prob);
 
+#if WRITE_MLP
+	if (c_peers > 1)
+	{
+		char * filename;
+
+		GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i.mlp",c_peers, c_mechs);
+		if (GNUNET_NO == GNUNET_DISK_file_test(filename))
+			glp_write_lp (prob, NULL, filename);
+		GNUNET_free (filename);
+	}
+#endif
 #if VERBOSE_ATS
-	if (VERBOSE_ATS) glp_write_lp(prob, NULL, "ats_mlp.lp");
+
+
 
 	switch (result) {
 	case GLP_ESTOP  :    /* search terminated by application */

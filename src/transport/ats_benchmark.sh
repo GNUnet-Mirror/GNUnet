@@ -1,6 +1,6 @@
 #/bin/bash
 start=1
-end=10
+end=200
 
 if [ ! $1 = "" ]; then
   start=$1
