@@ -5753,7 +5753,7 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 	return GNUNET_SYSERR;
 #else
 	if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "glpk installed\n");
-#endif
+
 	glp_prob *prob;
 
 	int c;
@@ -6281,7 +6281,7 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 	GNUNET_free(peers);
 
 	return c_mechs;
-
+#endif
 }
 
 void ats_calculate_bandwidth_distribution ()
