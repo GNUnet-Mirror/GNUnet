@@ -166,12 +166,11 @@ static void evaluate_measurements()
 
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"%savg,%f,stddev,%f\n",output,average,stddev);
 	/* only log benchmark time for 10 peers */
-
-	if (results[c].peers == (10))
-	{
-		GAUGER ("TRANSPORT", "ATS execution time 10 peers", (int) average , "ms");
-	}
-
+	if (results[MEASUREMENTS-1].peers == (10))
+	 	{
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Send data to gauger\n");
+	 		GAUGER ("TRANSPORT", "ATS execution time 10 peers", (int) average , "ms");
+	 	}
 	shutdown_peers();
 }
 
@@ -221,8 +220,10 @@ int stats_cb (void *cls,
 			if (results[r_index].timestamp != value)
 			{
 				r_index++;
+				fprintf(stderr, "(%i/%i)", r_index, MEASUREMENTS);
 				if (r_index >= MEASUREMENTS)
 				{
+					fprintf(stderr, "\n");
 					if (stats_task != GNUNET_SCHEDULER_NO_TASK)
 					{
 						GNUNET_SCHEDULER_cancel(stats_task);
@@ -231,37 +232,35 @@ int stats_cb (void *cls,
 					evaluate_measurements();
 					return GNUNET_NO;
 				}
+				fprintf(stderr, "..");
+
 				results[r_index].timestamp = value;
 			}
-
-			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-						"[%i] ATS solution: %s %llu \n", r_index, name, value);
+			//GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] ATS solution: %s %llu \n", r_index, name, value);
 		}
 
 		if (0 == strcmp (name,"ATS solution"))
 		{
 			results[r_index].solution = value;
-			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-						"[%i] ATS solution: %s %llu \n", r_index, name, value);
+			//GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] ATS solution: %s %llu \n", r_index, name, value);
 		}
 
 		if (0 == strcmp (name,"ATS peers"))
 		{
 			results[r_index].peers = value;
-			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-						"[%i] ATS peers: %s %llu \n", r_index, name, value);
+			// GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] ATS peers: %s %llu \n", r_index, name, value);
 		}
 
 		if (0 == strcmp (name,"ATS mechanisms"))
 		{
 			results[r_index].mechs = value;
-			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] ATS mechanisms: %s %llu \n", r_index, name, value);
+			//GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] ATS mechanisms: %s %llu \n", r_index, name, value);
 		}
 
 		if (0 == strcmp (name,"ATS duration"))
 		{
 			results[r_index].duration = value;
-			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] ATS duration: %s %llu \n", r_index, name, value);
+			// GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] ATS duration: %s %llu \n", r_index, name, value);
 		}
     }
     return GNUNET_OK;
@@ -387,7 +386,7 @@ run (void *cls,
   ok = 1;
   measurement_started = GNUNET_NO;
 #if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting %i peers.\n", NUM_PEERS);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting %i peers.\n", peers);
 #endif
   peers_left = peers;
   pg = GNUNET_TESTING_daemons_start (cfg,
