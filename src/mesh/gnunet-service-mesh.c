@@ -422,10 +422,10 @@ handle_mesh_path_create (void *cls,
  */
 static int
 handle_mesh_network_traffic (void *cls,
-                              const struct GNUNET_PeerIdentity *peer,
-                              const struct GNUNET_MessageHeader *message,
-                              const struct GNUNET_TRANSPORT_ATS_Information
-                              *atsi)
+                             const struct GNUNET_PeerIdentity *peer,
+                             const struct GNUNET_MessageHeader *message,
+                             const struct GNUNET_TRANSPORT_ATS_Information
+                             *atsi)
 {
     if(GNUNET_MESSAGE_TYPE_MESH_DATA_GO == ntohs(message->type)) {
         /* Retransmit to next in path of tunnel identified by message */
@@ -449,12 +449,80 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
 /**
  * Functions to handle messages from clients
  */
+/* MESSAGES DEFINED:
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT              272
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ANY     273
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ALL     274
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD     275
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_DEL     276
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_BY_TYPE 277
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_CANCEL  278
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TRANSMIT_READY       279
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATED       280
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROYED     281
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA                 282
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA_BROADCAST       283
+ */
 static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
-  {&handle_local_path_create, NULL, GNUNET_MESSAGE_TYPE_LOCAL_PATH_CREATE, 0},
-  {&handle_local_network_traffic, GNUNET_MESSAGE_TYPE_LOCAL_DATA_GO, 0},
-  {&handle_local_network_traffic, GNUNET_MESSAGE_TYPE_LOCAL_DATA_BACK, 0},
+  {&handle_local_new_client, NULL, GNUNET_MESSAGE_TYPE_LOCAL_CONNECT, 0},
+  {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ANY, 0},
+  {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ALL, 0},
+  {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD, 0},
+  {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_DEL, 0},
+  {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_BY_TYPE, sizeof(struct GNUNET_MESH_ConnectPeerByType)},
+  {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_CANCEL, sizeof(struct GNUNET_MESH_Control)},
+  {&handle_local_network_traffic, NULL, GNUNET_MESSAGE_TYPE_LOCAL_TRANSMIT_READY, sizeof(struct GNUNET_MESH_Control)},
+  {&handle_local_network_traffic, NULL, GNUNET_MESSAGE_TYPE_LOCAL_DATA, 0}, /* FIXME needed? */
+  {&handle_local_network_traffic, NULL, GNUNET_MESSAGE_TYPE_LOCAL_DATA_BROADCAST, 0}, /* FIXME needed? */
   {NULL, NULL, 0, 0}
 };
+
+
+/**
+ * To be called on core init/fail.
+ *
+ * @param cls service closure
+ * @param server handle to the server for this service
+ * @param identity the public identity of this peer
+ * @param publicKey the public key of this peer
+ */
+static void
+core_init (void *cls,
+           struct GNUNET_CORE_Handle *server,
+           const struct GNUNET_PeerIdentity *identity,
+           const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
+{
+    return;
+}
+
+/**
+ * Method called whenever a given peer connects.
+ *
+ * @param cls closure
+ * @param peer peer identity this notification is about
+ * @param atsi performance data for the connection
+ */
+static void
+core_connect (void *cls,
+              const struct GNUNET_PeerIdentity *peer,
+              const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+{
+    return;
+}
+
+/**
+ * Method called whenever a peer disconnects.
+ *
+ * @param cls closure
+ * @param peer peer identity this notification is about
+ */
+static void
+core_disconnect (void *cls,
+                const struct
+                GNUNET_PeerIdentity *peer)
+{
+    return;
+}
 
 /**
  * Process mesh requests. FIXME NON FUNCTIONAL, COPIED FROM DHT!!
@@ -471,24 +539,24 @@ run (void *cls,
   struct GNUNET_TIME_Relative next_send_time;
   unsigned long long temp_config_num;
   char *converge_modifier_buf;
-  GNUNET_CORE_Handle *coreAPI;
+  GNUNET_CORE_Handle *core;
 
   GNUNET_SERVER_add_handlers (server, plugin_handlers);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
-  coreAPI = GNUNET_CORE_connect (c,   /* Main configuration */
-                                 32,       /* queue size */
-                                 NULL,  /* Closure passed to DHT functions */
-                                 NULL,    /* Call core_init once connected */
-                                 NULL,  /* Handle connects */
-                                 NULL,       /* remove peers on disconnects */
-                                 NULL,  /* Do we care about "status" updates? */
-                                 NULL,  /* Don't want notified about all incoming messages */
-                                 GNUNET_NO,     /* For header only inbound notification */
-                                 NULL,  /* Don't want notified about all outbound messages */
-                                 GNUNET_NO,     /* For header only outbound notification */
-                                 core_handlers);        /* Register these handlers */
+  core = GNUNET_CORE_connect (c,   /* Main configuration */
+                            32,       /* queue size */
+                            NULL,  /* Closure passed to MESH functions */
+                            &core_init,    /* Call core_init once connected */
+                            &core_connect,  /* Handle connects */
+                            &core_disconnect,       /* remove peers on disconnects */
+                            NULL,  /* Do we care about "status" updates? */
+                            NULL,  /* Don't want notified about all incoming messages */
+                            GNUNET_NO,     /* For header only inbound notification */
+                            NULL,  /* Don't want notified about all outbound messages */
+                            GNUNET_NO,     /* For header only outbound notification */
+                            core_handlers);        /* Register these handlers */
 
-  if (coreAPI == NULL)
+  if (core == NULL)
     return;
 }
 

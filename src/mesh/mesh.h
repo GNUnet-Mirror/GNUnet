@@ -21,14 +21,13 @@
 /**
  * @author Bartlomiej Polot
  * @file mesh/mesh.h
- *
- * TODO:
- * - API messages!
  */
 
 #ifndef MESH_H_
 #define MESH_H_
 #include <stdint.h>
+
+#include <gnunet_mesh_service.h>
 #include "gnunet_common.h"
 
 /******************************************************************************/
@@ -36,38 +35,30 @@
 /******************************************************************************/
 /* API CALL                         MESSAGE USED
  * --------                         ------------
- * connect                          GNUNET_MESH_Connect    / Server_connect? FIXME
- * disconnect                       GNUNET_MESH_Disconnect / Server_disconnect? FIXME
- * 
+ * connect                          GNUNET_MESH_Connect
+ * disconnect                       Server_disconnect
+ *
  * peer_request_connect_any         GNUNET_MESH_ConnectPeer
  * peer_request_connect_all         GNUNET_MESH_ConnectPeer
  * peer_request_connect_add         GNUNET_MESH_ConnectPeer
  * peer_request_connect_del         GNUNET_MESH_ConnectPeer
  * peer_request_connect_by_type     GNUNET_MESH_ConnectPeerByType
  * peer_request_connect_cancel      GNUNET_MESH_Control
- * 
- * notify_tranmit_ready             GNUNET_MESH_Control? FIXME
- * notify_tranmit_ready_cancel      GNUNET_MESH_Control? FIXME
+ *
+ * notify_transmit_ready            GNUNET_MESH_Control
+ * notify_transmit_ready_cancel     None
  */
 
-// struct GNUNET_MESH_Connect {
-//     /**
-//      * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT
-//      *
-//      * Size: sizeof(struct GNUNET_MESH_Connect) + messages_subscribed * sizeof (message_type)
-//      */
-//     struct GNUNET_MessageHeader header;
-// 
-//     /* uint16_t messages_subscribed[] */
-// };
-//
-// struct GNUNET_MESH_Disconnect {
-//     /**
-//      * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_DISCONNECT
-//      */
-//     struct GNUNET_MessageHeader header;
-//
-// };
+struct GNUNET_MESH_Connect {
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT
+     *
+     * Size: sizeof(struct GNUNET_MESH_Connect) + messages_subscribed * sizeof (message_type)
+     */
+    struct GNUNET_MessageHeader header;
+
+    /* uint16_t messages_subscribed[] */
+};
 
 struct GNUNET_MESH_ConnectPeer {
     /**
@@ -86,19 +77,19 @@ struct GNUNET_MESH_ConnectPeerByType {
      */
     struct GNUNET_MessageHeader header;
 
-    /* FIXME Type specification */
-    uint32_t type;
+    /* Type specification */
+    GNUNET_MESH_ApplicationType type;
 };
 
 struct GNUNET_MESH_Control {
     /**
      * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_CANCEL
-     *       more? transmit_ready?
+     *       GNUNET_MESSAGE_TYPE_MESH_LOCAL_TRANSMIT_READY
      */
     struct GNUNET_MessageHeader header;
 
     uint32_t tunnel_id GNUNET_PACKED;
-    uint32_t variable GNUNET_PACKED; /* Size of data to transmit? */
+    uint32_t variable GNUNET_PACKED; /* Size of data / connection ID */
 };
 
 struct GNUNET_MESH_TunnelEvent {
@@ -121,9 +112,20 @@ struct GNUNET_MESH_Data {
 
     uint32_t tunnel_id GNUNET_PACKED;
 
-    /* FIXME: Broadcast? New Type / NULL destination ? */
-    /* FIXME: Reverese order for alignment? 1st ID, 2nd t_id? */
     struct GNUNET_PeerIdentity destination GNUNET_PACKED;
+
+    /* uint8_t data[] */
+};
+
+struct GNUNET_MESH_DataBroadcast {
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA_BROADCAST
+     *
+     * Size: sizeof(struct GNUNET_MESH_DataBroadcast) + sizeof (data)
+     */
+    struct GNUNET_MessageHeader header;
+
+    uint32_t tunnel_id GNUNET_PACKED;
 
     /* uint8_t data[] */
 };
