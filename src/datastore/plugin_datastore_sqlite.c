@@ -31,7 +31,7 @@
 /**
  * Enable or disable logging debug messages.
  */
-#define DEBUG_SQLITE GNUNET_NO
+#define DEBUG_SQLITE GNUNET_YES
 
 /**
  * We allocate items on the stack at times.  To prevent a stack
@@ -174,14 +174,14 @@ create_indices (sqlite3 * dbh)
   /* create indices */
   sqlite3_exec (dbh,
                 "CREATE INDEX idx_hash ON gn090 (hash)", NULL, NULL, NULL);
-  sqlite3_exec (dbh, "CREATE INDEX idx_prio ON gn090 (prio)", NULL, NULL,
-                NULL);
-  sqlite3_exec (dbh, "CREATE INDEX idx_expire_prio ON gn090 (expire,prio)", NULL, NULL,
-                NULL);
   sqlite3_exec (dbh,
                 "CREATE INDEX idx_hash_vhash ON gn090 (hash,vhash)", NULL,
                 NULL, NULL);
-  sqlite3_exec (dbh, "CREATE INDEX idx_comb ON gn090 (prio,expire,anonLevel,hash)",
+  sqlite3_exec (dbh, "CREATE INDEX idx_expire_repl ON gn090 (expire ASC,repl DESC)", NULL, NULL,
+                NULL);
+  sqlite3_exec (dbh, "CREATE INDEX idx_comb ON gn090 (anonLevel ASC,expire ASC,prio,type,hash)",
+                NULL, NULL, NULL);
+  sqlite3_exec (dbh, "CREATE INDEX expire ON gn090 (expire)",
                 NULL, NULL, NULL);
 }
 
@@ -265,7 +265,13 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
                        "PRAGMA synchronous=OFF", NULL, NULL, ENULL));
   CHECK (SQLITE_OK ==
          sqlite3_exec (plugin->dbh,
+                       "PRAGMA legacy_file_format=OFF", NULL, NULL, ENULL));
+  CHECK (SQLITE_OK ==
+         sqlite3_exec (plugin->dbh,
                        "PRAGMA auto_vacuum=INCREMENTAL", NULL, NULL, ENULL));
+  CHECK (SQLITE_OK ==
+         sqlite3_exec (plugin->dbh,
+                       "PRAGMA locking_mode=EXCLUSIVE", NULL, NULL, ENULL));
   CHECK (SQLITE_OK ==
          sqlite3_exec (plugin->dbh,
                        "PRAGMA count_changes=OFF", NULL, NULL, ENULL));
@@ -322,26 +328,24 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
   sqlite3_finalize (stmt);
 
   if ((sq_prepare (plugin->dbh,
-                   "UPDATE gn090 SET prio = prio + ?, expire = MAX(expire,?) WHERE "
-                   "_ROWID_ = ?",
+                   "UPDATE gn090 SET prio = prio + ?, expire = MAX(expire,?) WHERE _ROWID_ = ?",
                    &plugin->updPrio) != SQLITE_OK) ||
       (sq_prepare (plugin->dbh,
-                   "UPDATE gn090 SET repl = MAX (0, repl - 1) WHERE "
-                   "_ROWID_ = ?",
+                   "UPDATE gn090 SET repl = MAX (0, repl - 1) WHERE _ROWID_ = ?",
                    &plugin->updRepl) != SQLITE_OK) ||
       (sq_prepare (plugin->dbh,
-		   "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn090 WHERE (expire > ?1) "
+		   "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn090 WHERE expire > ?"
 		   " ORDER BY repl DESC, Random() LIMIT 1",
                    &plugin->selRepl) != SQLITE_OK) ||
       (sq_prepare (plugin->dbh,
-		   "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn090 WHERE (expire < ?1) "
-		   " OR NOT EXISTS (SELECT 1 from gn090 WHERE (expire < ?1)) "
+		   "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn090 "
+		   " WHERE NOT EXISTS (SELECT 1 FROM gn090 WHERE expire < ?1 LIMIT 1) OR expire < ?1 "
 		   " ORDER BY prio ASC LIMIT 1",
                    &plugin->selExpi) != SQLITE_OK) ||
       (sq_prepare (plugin->dbh,
                    "INSERT INTO gn090 (repl, type, prio, "
-                   "anonLevel, expire, hash, vhash, value) VALUES "
-                   "(?, ?, ?, ?, ?, ?, ?, ?)",
+                   "anonLevel, expire, hash, vhash, value) "
+                   "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                    &plugin->insertContent) != SQLITE_OK) ||
       (sq_prepare (plugin->dbh,
                    "DELETE FROM gn090 WHERE _ROWID_ = ?",
@@ -1032,7 +1036,7 @@ sqlite_plugin_iter_zero_anonymity (void *cls,
   now = GNUNET_TIME_absolute_get ();
   GNUNET_asprintf (&q, 
 		   "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn090 "
-		   "WHERE (prio = ?1 AND expire > %llu AND anonLevel = 0 AND type=%d AND hash < ?2) "
+		   "WHERE (anonLevel = 0 AND expire > %llu AND prio = ?1 AND type=%d AND hash < ?2) "
 		   "ORDER BY hash DESC LIMIT 1",
 		   (unsigned long long) now.abs_value,
 		   type);
@@ -1048,7 +1052,7 @@ sqlite_plugin_iter_zero_anonymity (void *cls,
   GNUNET_free (q);
   GNUNET_asprintf (&q, 
 		   "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn090 "
-		   "WHERE (prio < ?1 AND expire > %llu AND anonLevel = 0 AND type=%d) "
+		   "WHERE (anonLevel = 0 AND expire > %llu AND prio < ?1 AND type=%d) "
 		   "ORDER BY prio DESC, hash DESC LIMIT 1",
 		   (unsigned long long) now.abs_value,
 		   type);
@@ -1531,10 +1535,6 @@ sqlite_plugin_get_size (void *cls)
 		       _("sqlite version to old to determine size, assuming zero\n"));
       return 0;
     }
-  if (SQLITE_OK !=
-      sqlite3_exec (plugin->dbh,
-		    "VACUUM", NULL, NULL, ENULL))
-    abort ();
   CHECK (SQLITE_OK ==
 	 sqlite3_exec (plugin->dbh,
 		       "VACUUM", NULL, NULL, ENULL));

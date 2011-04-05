@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -151,44 +151,6 @@
 #define LOG_MYSQL(level, cmd, dbh) do { GNUNET_log(level, _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, mysql_error((dbh)->dbf)); } while(0);
 
 
-/* warning, slighly crazy mysql statements ahead.  Essentially, MySQL does not handle
-   "OR" very well, so we need to use UNION instead.  And UNION does not
-   automatically apply a LIMIT on the outermost clause, so we need to
-   repeat ourselves quite a bit.  All hail the performance gods (and thanks
-   to #mysql on freenode) */
-#define SELECT_IT_LOW_PRIORITY "(SELECT type,prio,anonLevel,expire,hash,vkey FROM gn090 FORCE INDEX(prio) WHERE (prio = ? AND vkey > ?) "\
-                               "ORDER BY prio ASC,vkey ASC LIMIT 1) "				\
-                               "UNION "\
-                               "(SELECT type,prio,anonLevel,expire,hash,vkey FROM gn090 FORCE INDEX(prio) WHERE (prio > ? AND vkey != ?)"\
-                               "ORDER BY prio ASC,vkey ASC LIMIT 1)"\
-                               "ORDER BY prio ASC,vkey ASC LIMIT 1"
-
-#define SELECT_IT_NON_ANONYMOUS "(SELECT type,prio,anonLevel,expire,hash,vkey FROM gn090 FORCE INDEX(prio) WHERE (prio = ? AND vkey < ?)"\
-                                " AND anonLevel=0 ORDER BY prio DESC,vkey DESC LIMIT 1) "\
-                                "UNION "\
-                                "(SELECT type,prio,anonLevel,expire,hash,vkey FROM gn090 FORCE INDEX(prio) WHERE (prio < ? AND vkey != ?)"\
-                                " AND anonLevel=0 ORDER BY prio DESC,vkey DESC LIMIT 1) "\
-                                "ORDER BY prio DESC,vkey DESC LIMIT 1"
-
-#define SELECT_IT_EXPIRATION_TIME "(SELECT type,prio,anonLevel,expire,hash,vkey FROM gn090 FORCE INDEX(expire) WHERE (expire = ? AND vkey > ?) "\
-                                  "ORDER BY expire ASC,vkey ASC LIMIT 1) "\
-                                  "UNION "\
-                                  "(SELECT type,prio,anonLevel,expire,hash,vkey FROM gn090 FORCE INDEX(expire) WHERE (expire > ? AND vkey != ?) "\
-                                  "ORDER BY expire ASC,vkey ASC LIMIT 1)"\
-                                  "ORDER BY expire ASC,vkey ASC LIMIT 1"
-
-
-#define SELECT_IT_MIGRATION_ORDER "(SELECT type,prio,anonLevel,expire,hash,vkey FROM gn090 FORCE INDEX(expire) WHERE (expire = ? AND vkey < ?)"\
-                                  " AND expire > ? AND type!=3"\
-                                  " ORDER BY expire DESC,vkey DESC LIMIT 1) "\
-                                  "UNION "\
-                                  "(SELECT type,prio,anonLevel,expire,hash,vkey FROM gn090 FORCE INDEX(expire) WHERE (expire < ? AND vkey != ?)"\
-                                  " AND expire > ? AND type!=3"\
-                                  " ORDER BY expire DESC,vkey DESC LIMIT 1)"\
-                                  "ORDER BY expire DESC,vkey DESC LIMIT 1"
-
-
-
 struct GNUNET_MysqlStatementHandle
 {
   struct GNUNET_MysqlStatementHandle *next;
@@ -242,17 +204,11 @@ struct NextRequestClosure
 
   MYSQL_BIND rbind[6];
 
-  unsigned int type;
-  
-  unsigned int iter_select;
+  enum GNUNET_BLOCK_Type type;
 
   PluginIterator dviter;
 
   void *dviter_cls;
-
-  unsigned int last_prio;
-
-  unsigned long long last_expire;
 
   unsigned long long last_vkey;
 
@@ -306,7 +262,7 @@ struct Plugin
   /**
    * Statements dealing with gn090 table 
    */
-#define INSERT_ENTRY "INSERT INTO gn090 (type,prio,anonLevel,expire,hash,vhash,vkey) VALUES (?,?,?,?,?,?,?)"
+#define INSERT_ENTRY "INSERT INTO gn090 (repl,type,prio,anonLevel,expire,hash,vhash,vkey) VALUES (?,?,?,?,?,?,?,?)"
   struct GNUNET_MysqlStatementHandle *insert_entry;
   
 #define DELETE_ENTRY_BY_VKEY "DELETE FROM gn090 WHERE vkey=?"
@@ -342,7 +298,30 @@ struct Plugin
 #define SELECT_SIZE "SELECT SUM(BIT_LENGTH(value) DIV 8) FROM gn072"
   struct GNUNET_MysqlStatementHandle *get_size;
 
-  struct GNUNET_MysqlStatementHandle *iter[4];
+/* warning, slighly crazy mysql statements ahead.  Essentially, MySQL does not handle
+   "OR" very well, so we need to use UNION instead.  And UNION does not
+   automatically apply a LIMIT on the outermost clause, so we need to
+   repeat ourselves quite a bit.  All hail the performance gods (and thanks
+   to #mysql on freenode) */
+#define SELECT_IT_NON_ANONYMOUS "(SELECT type,prio,anonLevel,expire,hash,vkey FROM gn090 FORCE INDEX(prio) WHERE (prio = ? AND vkey < ?)"\
+  " AND anonLevel=0 ORDER BY prio DESC,vkey DESC LIMIT 1) "\
+  "UNION "\
+  "(SELECT type,prio,anonLevel,expire,hash,vkey FROM gn090 FORCE INDEX(prio) WHERE (prio < ? AND vkey != ?)"\
+  " AND anonLevel=0 ORDER BY prio DESC,vkey DESC LIMIT 1) "\
+  "ORDER BY prio DESC,vkey DESC LIMIT 1"
+  struct GNUNET_MysqlStatementHandle *zero_iter;
+
+#define SELECT_IT_EXPIRATION "(SELECT type,prio,anonLevel,expire,hash,vkey FROM gn090 FORCE INDEX(expire) WHERE (expire < ?) "\
+  "ORDER BY prio ASC LIMIT 1) "\
+  "UNION "\
+  "(SELECT type,prio,anonLevel,expire,hash,vkey FROM gn090 FORCE INDEX(prio) "\
+  "ORDER BY prio ASC LIMIT 1) ORDER BY expire ASC LIMIT 1"
+  struct GNUNET_MysqlStatementHandle *select_expiration;
+
+#define SELECT_IT_REPLICATION "SELECT type,prio,anonLevel,expire,hash,vkey FROM gn090 FORCE INDEX(expire) "\
+  "WHERE expire > ?"\
+  " ORDER BY repl DESC,RAND() LIMIT 1) "
+  struct GNUNET_MysqlStatementHandle *select_replication;
 
 };
 
@@ -731,7 +710,7 @@ init_params (struct Plugin *plugin,
  */
 typedef int (*GNUNET_MysqlDataProcessor) (void *cls,
                                           unsigned int num_values,
-                                          MYSQL_BIND * values);
+                                          MYSQL_BIND *values);
 
 
 /**
@@ -752,12 +731,10 @@ typedef int (*GNUNET_MysqlDataProcessor) (void *cls,
  */
 static int
 prepared_statement_run_select (struct Plugin *plugin,
-			       struct GNUNET_MysqlStatementHandle
-			       *s,
+			       struct GNUNET_MysqlStatementHandle *s,
 			       unsigned int result_size,
-			       MYSQL_BIND * results,
-			       GNUNET_MysqlDataProcessor
-			       processor, void *processor_cls,
+			       MYSQL_BIND *results,
+			       GNUNET_MysqlDataProcessor processor, void *processor_cls,
 			       ...)
 {
   va_list ap;
@@ -988,100 +965,6 @@ return_ok (void *cls,
 
 
 /**
- * Run the prepared statement to get the next data item ready.
- * 
- * @param cls not used
- * @param nrc closure for the next request iterator
- * @return GNUNET_OK on success, GNUNET_NO if there is no additional item
- */
-static int
-iterator_helper_prepare (void *cls,
-			 struct NextRequestClosure *nrc)
-{
-  struct Plugin *plugin;
-  int ret;
-
-  if (nrc == NULL)
-    return GNUNET_NO;
-  plugin = nrc->plugin;
-  ret = GNUNET_SYSERR;
-  switch (nrc->iter_select)
-    {
-    case 0:
-    case 1:
-      ret = prepared_statement_run_select (plugin,
-					   plugin->iter[nrc->iter_select],
-					   6,
-					   nrc->rbind,
-					   &return_ok,
-					   NULL,
-					   MYSQL_TYPE_LONG,
-					   &nrc->last_prio,
-					   GNUNET_YES,
-					   MYSQL_TYPE_LONGLONG,
-					   &nrc->last_vkey,
-					   GNUNET_YES,
-					   MYSQL_TYPE_LONG,
-					   &nrc->last_prio,
-					   GNUNET_YES,
-					   MYSQL_TYPE_LONGLONG,
-					   &nrc->last_vkey,
-					   GNUNET_YES, -1);
-      break;
-    case 2:
-      ret = prepared_statement_run_select (plugin,
-					   plugin->iter[nrc->iter_select],
-					   6,
-					   nrc->rbind,
-					   &return_ok,
-					   NULL,
-					   MYSQL_TYPE_LONGLONG,
-					   &nrc->last_expire,
-					   GNUNET_YES,
-					   MYSQL_TYPE_LONGLONG,
-					   &nrc->last_vkey,
-					   GNUNET_YES,
-					   MYSQL_TYPE_LONGLONG,
-					   &nrc->last_expire,
-					   GNUNET_YES,
-					   MYSQL_TYPE_LONGLONG,
-					   &nrc->last_vkey,
-					   GNUNET_YES, -1);
-      break;
-    case 3:
-      ret = prepared_statement_run_select (plugin,
-					   plugin->iter[nrc->iter_select],
-					   6,
-					   nrc->rbind,
-					   &return_ok,
-					   NULL,
-					   MYSQL_TYPE_LONGLONG,
-					   &nrc->last_expire,
-					   GNUNET_YES,
-					   MYSQL_TYPE_LONGLONG,
-					   &nrc->last_vkey,
-					   GNUNET_YES,
-					   MYSQL_TYPE_LONGLONG,
-					   &nrc->now.abs_value,
-					   GNUNET_YES,
-					   MYSQL_TYPE_LONGLONG,
-					   &nrc->last_expire,
-					   GNUNET_YES,
-					   MYSQL_TYPE_LONGLONG,
-					   &nrc->last_vkey,
-					   GNUNET_YES,
-					   MYSQL_TYPE_LONGLONG,
-					   &nrc->now.abs_value,
-					   GNUNET_YES, -1);
-      break;
-    default:
-      GNUNET_assert (0);
-    }
-  return ret;
-}
-
-
-/**
  * Continuation of "mysql_next_request".
  *
  * @param next_cls the next context
@@ -1141,10 +1024,8 @@ mysql_next_request_cont (void *next_cls,
        (GNUNET_OK != nrc->prep (nrc->prep_cls,
 				nrc)))
     goto END_SET;
-  GNUNET_assert (nrc->plugin->next_task == GNUNET_SCHEDULER_NO_TASK);
   nrc->last_vkey = vkey;
-  nrc->last_prio = priority;
-  nrc->last_expire = exp;
+  GNUNET_assert (nrc->plugin->next_task == GNUNET_SCHEDULER_NO_TASK);
   if ( (rbind[4].buffer_length != sizeof (GNUNET_HashCode)) ||
        (hashSize != sizeof (GNUNET_HashCode)) )
     {
@@ -1264,51 +1145,6 @@ mysql_plugin_next_request (void *next_cls,
 
 
 /**
- * Iterate over the items in the datastore
- * using the given query to select and order
- * the items.
- *
- * @param plugin plugin context
- * @param type entries of which type should be considered?
- * @param iter_select which iterator statement are we using
- * @param is_asc are we using ascending order?
- * @param dviter function to call on each matching item
- * @param dviter_cls closure for dviter
- */
-static void
-iterateHelper (struct Plugin *plugin,
-	       enum GNUNET_BLOCK_Type type,
-               int is_asc,
-               unsigned int iter_select, 
-	       PluginIterator dviter,
-               void *dviter_cls)
-{
-  struct NextRequestClosure *nrc;
-
-  nrc = GNUNET_malloc (sizeof (struct NextRequestClosure));
-  nrc->plugin = plugin;
-  nrc->type = type;  
-  nrc->iter_select = iter_select;
-  nrc->dviter = dviter;
-  nrc->dviter_cls = dviter_cls;
-  nrc->prep = &iterator_helper_prepare;
-  if (is_asc)
-    {
-      nrc->last_prio = 0;
-      nrc->last_vkey = 0;
-      nrc->last_expire = 0;
-    }
-  else
-    {
-      nrc->last_prio = 0x7FFFFFFFL;
-      nrc->last_vkey = 0x7FFFFFFFFFFFFFFFLL; /* MySQL only supports 63 bits */
-      nrc->last_expire = 0x7FFFFFFFFFFFFFFFLL;       /* MySQL only supports 63 bits */
-    }
-  mysql_plugin_next_request (nrc, GNUNET_NO);
-}
-
-
-/**
  * Get an estimate of how much space the database is
  * currently using.
  *
@@ -1366,6 +1202,7 @@ mysql_plugin_put (void *cls,
 		  char **msg)
 {
   struct Plugin *plugin = cls;
+  unsigned int irepl = replication;
   unsigned int itype = type;
   unsigned int ipriority = priority;
   unsigned int ianonymity = anonymity;
@@ -1390,6 +1227,9 @@ mysql_plugin_put (void *cls,
       prepared_statement_run (plugin,
 			      plugin->insert_entry,
 			      NULL,
+			      MYSQL_TYPE_LONG,
+			      &irepl,
+			      GNUNET_YES,
 			      MYSQL_TYPE_LONG,
 			      &itype,
 			      GNUNET_YES,
@@ -1431,25 +1271,69 @@ mysql_plugin_put (void *cls,
 
 
 /**
- * Select a subset of the items in the datastore and call
- * the given iterator for each of them.
+ * Update the priority for a particular key in the datastore.  If
+ * the expiration time in value is different than the time found in
+ * the datastore, the higher value should be kept.  For the
+ * anonymity level, the lower value is to be used.  The specified
+ * priority should be added to the existing priority, ignoring the
+ * priority in value.
+ *
+ * Note that it is possible for multiple values to match this put.
+ * In that case, all of the respective values are updated.
  *
  * @param cls our "struct Plugin*"
- * @param type entries of which type should be considered?
- *        Use 0 for any type.
- * @param iter function to call on each matching value;
- *        will be called once with a NULL value at the end
- * @param iter_cls closure for iter
+ * @param uid unique identifier of the datum
+ * @param delta by how much should the priority
+ *     change?  If priority + delta < 0 the
+ *     priority should be set to 0 (never go
+ *     negative).
+ * @param expire new expiration time should be the
+ *     MAX of any existing expiration time and
+ *     this value
+ * @param msg set to error message
+ * @return GNUNET_OK on success
  */
-static void
-mysql_plugin_iter_low_priority (void *cls,
-				enum GNUNET_BLOCK_Type type,
-				PluginIterator iter,
-				void *iter_cls)
+static int
+mysql_plugin_update (void *cls,
+		     uint64_t uid,
+		     int delta, 
+		     struct GNUNET_TIME_Absolute expire,
+		     char **msg)
 {
   struct Plugin *plugin = cls;
-  iterateHelper (plugin, type, GNUNET_YES, 
-		 0, iter, iter_cls); 
+  unsigned long long vkey = uid;
+  unsigned long long lexpire = expire.abs_value;
+  int ret;
+
+#if DEBUG_MYSQL
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Updating value %llu adding %d to priority and maxing exp at %llu\n",
+	      vkey,
+	      delta,
+	      lexpire);
+#endif
+  ret = prepared_statement_run (plugin,
+				plugin->update_entry,
+				NULL,
+				MYSQL_TYPE_LONG,
+				&delta,
+				GNUNET_NO,
+				MYSQL_TYPE_LONGLONG,
+				&lexpire,
+				GNUNET_YES,
+				MYSQL_TYPE_LONGLONG,
+				&lexpire,
+				GNUNET_YES,
+				MYSQL_TYPE_LONGLONG,
+				&vkey,
+				GNUNET_YES, -1);
+  if (ret != GNUNET_OK)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  "Failed to update value %llu\n",
+		  vkey);
+    }
+  return ret;
 }
 
 
@@ -1577,8 +1461,8 @@ get_statement_prepare (void *cls,
  */
 static void
 mysql_plugin_get (void *cls,
-		  const GNUNET_HashCode * key,
-		  const GNUNET_HashCode * vhash,
+		  const GNUNET_HashCode *key,
+		  const GNUNET_HashCode *vhash,
 		  enum GNUNET_BLOCK_Type type,
 		  PluginIterator iter, void *iter_cls)
 {
@@ -1591,15 +1475,9 @@ mysql_plugin_get (void *cls,
   long long total;
   unsigned long hashSize;
 
+  GNUNET_assert (key != NULL);
   if (iter == NULL) 
     return;
-  if (key == NULL)
-    {
-      mysql_plugin_iter_low_priority (plugin,
-				      type, 
-				      iter, iter_cls);
-      return;
-    }
   hashSize = sizeof (GNUNET_HashCode);
   memset (cbind, 0, sizeof (cbind));
   total = -1;
@@ -1679,13 +1557,98 @@ mysql_plugin_get (void *cls,
   nrc = GNUNET_malloc (sizeof (struct NextRequestClosure));
   nrc->plugin = plugin;
   nrc->type = type;  
-  nrc->iter_select = -1;
   nrc->dviter = iter;
   nrc->dviter_cls = iter_cls;
   nrc->prep = &get_statement_prepare;
   nrc->prep_cls = gc;
   nrc->last_vkey = 0;
   mysql_plugin_next_request (nrc, GNUNET_NO);
+}
+
+
+/**
+ * Run the prepared statement to get the next data item ready.
+ * 
+ * @param cls not used
+ * @param nrc closure for the next request iterator
+ * @return GNUNET_OK on success, GNUNET_NO if there is no additional item
+ */
+static int
+iterator_zero_prepare (void *cls,
+		       struct NextRequestClosure *nrc)
+{
+  struct Plugin *plugin;
+
+  if (nrc == NULL)
+    return GNUNET_NO;
+  plugin = nrc->plugin;
+  return prepared_statement_run_select (plugin,
+					plugin->zero_iter,
+					6,
+					nrc->rbind,
+					&return_ok,
+					NULL,
+					MYSQL_TYPE_LONGLONG,
+					&nrc->now.abs_value,
+					GNUNET_YES,
+					MYSQL_TYPE_LONG,
+					&nrc->type,
+					GNUNET_YES, -1);
+}
+
+
+/**
+ * Select a subset of the items in the datastore and call
+ * the given iterator for each of them.
+ *
+ * @param cls our "struct Plugin*"
+ * @param type entries of which type should be considered?
+ *        Use 0 for any type.
+ * @param iter function to call on each matching value;
+ *        will be called once with a NULL value at the end
+ * @param iter_cls closure for iter
+ */
+static void
+mysql_plugin_iter_zero_anonymity (void *cls,
+				  enum GNUNET_BLOCK_Type type,
+				  PluginIterator iter,
+				  void *iter_cls)
+{
+  struct Plugin *plugin = cls;
+  struct NextRequestClosure *nrc;
+
+  nrc = GNUNET_malloc (sizeof (struct NextRequestClosure));
+  nrc->plugin = plugin;
+  nrc->type = type;  
+  nrc->dviter = iter;
+  nrc->dviter_cls = iter_cls;
+  nrc->prep = &iterator_zero_prepare;
+  nrc->last_vkey = INT64_MAX; /* MySQL only supports 63 bits, hence signed */
+  mysql_plugin_next_request (nrc, GNUNET_NO);
+}
+
+
+/**
+ * Run the SELECT statement for the replication function.
+ * 
+ * @param cls the 'struct Plugin'
+ * @param nrc the context (not used)
+ */
+static int
+replication_prepare (void *cls,
+		     struct NextRequestClosure *nrc)
+{
+  struct Plugin *plugin = cls;
+  long long nt;
+
+  nt = (long long) nrc->now.abs_value;
+  return prepared_statement_run_select
+    (plugin,
+     plugin->select_replication, 
+     6, nrc->rbind, 
+     &return_ok, NULL,
+     MYSQL_TYPE_LONGLONG, &nt, GNUNET_YES, 
+     -1);
 }
 
 
@@ -1703,11 +1666,41 @@ static void
 mysql_plugin_replication_get (void *cls,
 			      PluginIterator iter, void *iter_cls)
 {
-  /* FIXME: not implemented! */
-  iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, 
-	GNUNET_TIME_UNIT_ZERO_ABS, 0);
+  struct Plugin *plugin = cls;
+  struct NextRequestClosure nrc;
+
+  memset (&nrc, 0, sizeof (nrc));
+  nrc.plugin = plugin;
+  nrc.now = GNUNET_TIME_absolute_get ();
+  nrc.prep = &replication_prepare;
+  nrc.prep_cls = plugin;
+  nrc.type = 0;
+  nrc.dviter = iter;
+  nrc.dviter_cls = iter_cls;
+  nrc.end_it = GNUNET_NO;
+  mysql_next_request_cont (&nrc, NULL);
 }
 
+
+/**
+ * Run the SELECT statement for the expiration function.
+ * 
+ * @param cls the 'struct Plugin'
+ * @param nrc the context (not used)
+ */
+static int
+expiration_prepare (void *cls,
+		    struct NextRequestClosure *nrc)
+{
+  struct Plugin *plugin = cls;
+
+  return prepared_statement_run_select
+    (plugin,
+     plugin->select_expiration, 
+     6, nrc->rbind, 
+     &return_ok, NULL,
+     -1);
+}
 
 
 /**
@@ -1722,103 +1715,26 @@ static void
 mysql_plugin_expiration_get (void *cls,
 			     PluginIterator iter, void *iter_cls)
 {
-  /* FIXME: not implemented! */
-  iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, 
-	GNUNET_TIME_UNIT_ZERO_ABS, 0);
-}
-
-
-/**
- * Update the priority for a particular key in the datastore.  If
- * the expiration time in value is different than the time found in
- * the datastore, the higher value should be kept.  For the
- * anonymity level, the lower value is to be used.  The specified
- * priority should be added to the existing priority, ignoring the
- * priority in value.
- *
- * Note that it is possible for multiple values to match this put.
- * In that case, all of the respective values are updated.
- *
- * @param cls our "struct Plugin*"
- * @param uid unique identifier of the datum
- * @param delta by how much should the priority
- *     change?  If priority + delta < 0 the
- *     priority should be set to 0 (never go
- *     negative).
- * @param expire new expiration time should be the
- *     MAX of any existing expiration time and
- *     this value
- * @param msg set to error message
- * @return GNUNET_OK on success
- */
-static int
-mysql_plugin_update (void *cls,
-		     uint64_t uid,
-		     int delta, 
-		     struct GNUNET_TIME_Absolute expire,
-		     char **msg)
-{
   struct Plugin *plugin = cls;
-  unsigned long long vkey = uid;
-  unsigned long long lexpire = expire.abs_value;
-  int ret;
+  struct NextRequestClosure nrc;
 
-#if DEBUG_MYSQL
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Updating value %llu adding %d to priority and maxing exp at %llu\n",
-	      vkey,
-	      delta,
-	      lexpire);
-#endif
-  ret = prepared_statement_run (plugin,
-				plugin->update_entry,
-				NULL,
-				MYSQL_TYPE_LONG,
-				&delta,
-				GNUNET_NO,
-				MYSQL_TYPE_LONGLONG,
-				&lexpire,
-				GNUNET_YES,
-				MYSQL_TYPE_LONGLONG,
-				&lexpire,
-				GNUNET_YES,
-				MYSQL_TYPE_LONGLONG,
-				&vkey,
-				GNUNET_YES, -1);
-  if (ret != GNUNET_OK)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  "Failed to update value %llu\n",
-		  vkey);
-    }
-  return ret;
-}
-
-
-/**
- * Select a subset of the items in the datastore and call
- * the given iterator for each of them.
- *
- * @param cls our "struct Plugin*"
- * @param type entries of which type should be considered?
- *        Use 0 for any type.
- * @param iter function to call on each matching value;
- *        will be called once with a NULL value at the end
- * @param iter_cls closure for iter
- */
-static void
-mysql_plugin_iter_zero_anonymity (void *cls,
-				     enum GNUNET_BLOCK_Type type,
-				     PluginIterator iter,
-				     void *iter_cls)
-{
-  struct Plugin *plugin = cls;
-  iterateHelper (plugin, type, GNUNET_NO, 1, iter, iter_cls);
+  memset (&nrc, 0, sizeof (nrc));
+  nrc.plugin = plugin;
+  nrc.now = GNUNET_TIME_absolute_get ();
+  nrc.prep = &expiration_prepare;
+  nrc.prep_cls = plugin;
+  nrc.type = 0;
+  nrc.dviter = iter;
+  nrc.dviter_cls = iter_cls;
+  nrc.end_it = GNUNET_NO;
+  mysql_next_request_cont (&nrc, NULL);
 }
 
 
 /**
  * Drop database.
+ *
+ * @param cls the "struct Plugin*"
  */
 static void 
 mysql_plugin_drop (void *cls)
@@ -1860,6 +1776,7 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
 #define MRUNS(a) (GNUNET_OK != run_statement (plugin, a) )
 #define PINIT(a,b) (NULL == (a = prepared_statement_create(plugin, b)))
   if (MRUNS ("CREATE TABLE IF NOT EXISTS gn090 ("
+             " repl INT(11) UNSIGNED NOT NULL DEFAULT 0,"
              " type INT(11) UNSIGNED NOT NULL DEFAULT 0,"
              " prio INT(11) UNSIGNED NOT NULL DEFAULT 0,"
              " anonLevel INT(11) UNSIGNED NOT NULL DEFAULT 0,"
@@ -1896,10 +1813,9 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
       || PINIT (plugin->count_entry_by_hash_vhash_and_type,
                 COUNT_ENTRY_BY_HASH_VHASH_AND_TYPE)
       || PINIT (plugin->update_entry, UPDATE_ENTRY)
-      || PINIT (plugin->iter[0], SELECT_IT_LOW_PRIORITY)
-      || PINIT (plugin->iter[1], SELECT_IT_NON_ANONYMOUS)
-      || PINIT (plugin->iter[2], SELECT_IT_EXPIRATION_TIME)
-      || PINIT (plugin->iter[3], SELECT_IT_MIGRATION_ORDER))
+      || PINIT (plugin->zero_iter, SELECT_IT_NON_ANONYMOUS) 
+      || PINIT (plugin->select_expiration, SELECT_IT_EXPIRATION) 
+      || PINIT (plugin->select_replication, SELECT_IT_REPLICATION) )
     {
       iclose (plugin);
       GNUNET_free_non_null (plugin->cnffile);
