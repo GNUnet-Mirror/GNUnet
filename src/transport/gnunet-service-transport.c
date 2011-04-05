@@ -6205,7 +6205,7 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 		while (t!=NULL)
 		{
 			bw = glp_get_col_prim(prob, t->col_index);
-			if ((bw != 0) && (1 == glp_get_col_prim(prob, t->col_index+c_mechs)))
+			if (bw > 1.0)
 			{
 				if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[%i][%i] `%s' %s %s %f\n", c, t->col_index, GNUNET_h2s(&peers[c].peer.hashPubKey), t->plugin->short_name, glp_get_col_name(prob,t->col_index), bw);
 				if (check ==GNUNET_YES)
