@@ -970,6 +970,55 @@ GNUNET_TESTING_daemons_vary (struct GNUNET_TESTING_PeerGroup *pg,
 			     GNUNET_TESTING_NotifyCompletion cb,
 			     void *cb_cls);
 
+/**
+ * Start count gnunet instances with the same set of transports and
+ * applications.  The port numbers (any option called "PORT") will be
+ * adjusted to ensure that no two peers running on the same system
+ * have the same port(s) in their respective configurations.
+ *
+ * @param cfg configuration template to use
+ * @param total number of daemons to start
+ * @param max_concurrent_connections for testing, how many peers can
+*                                   we connect to simultaneously
+ * @param max_concurrent_ssh when starting with ssh, how many ssh
+ *        connections will we allow at once (based on remote hosts allowed!)
+ * @param timeout total time allowed for peers to start
+ * @param connect_cb function to call each time two daemons are connected
+ * @param connect_cb_cls closure for connect_callback
+ * @param peergroup_cb function to call once all peers are up and connected
+ * @param peergroup_cb_cls closure for peergroup_cb
+ * @param hostnames linked list of host structs to use to start peers on
+ *                  (NULL to run on localhost only)
+ * @param topology allowed overlay topology
+ * @param restrict_topology blacklist connections to this topology
+ * @param restrict_transports specific transports to blacklist
+ * @param connect_topology topology to connect peers in (defaults to allowed
+ *        topology)
+ * @param connect_topology_options options for connect topology
+ * @param connect_topology_option_modifier option modifier for connect topology
+ * @param verbose GNUNET_YES to print progress bars, GNUNET_NO otherwise
+ *
+ * @return NULL on error, otherwise handle to control peer group
+ */
+struct GNUNET_TESTING_PeerGroup *
+GNUNET_TESTING_PeerGroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                unsigned int total,
+                                unsigned int max_concurrent_connections,
+                                unsigned int max_concurrent_ssh,
+                                struct GNUNET_TIME_Relative timeout,
+                                GNUNET_TESTING_NotifyConnection
+                                connect_cb, void *connect_cb_cls,
+                                GNUNET_TESTING_NotifyCompletion peergroup_cb,
+                                void *peergroup_cb_cls,
+                                const struct GNUNET_TESTING_Host *hostnames,
+                                enum GNUNET_TESTING_Topology topology,
+                                enum GNUNET_TESTING_Topology restrict_topology,
+                                const char *restrict_transports,
+                                enum GNUNET_TESTING_Topology connect_topology,
+                                enum GNUNET_TESTING_TopologyOption connect_topology_options,
+                                double connect_topology_option_modifier,
+                                int verbose);
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
