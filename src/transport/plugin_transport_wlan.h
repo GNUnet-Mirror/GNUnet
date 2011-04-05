@@ -43,7 +43,55 @@ struct Wlan_Helper_Control_Message
   struct MacAddress mac;
 };
 
+/**
+ * Header for messages which need fragmentation
+ */
+struct FragmentationHeader
+{
 
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * ID of message, to distinguish between the messages, picked randomly.
+   */
+  uint32_t message_id GNUNET_PACKED;
+
+  /**
+   * Offset or number of this fragment, for fragmentation/segmentation (design choice, TBD)
+   */
+  uint16_t fragment_off_or_num GNUNET_PACKED;
+
+  /**
+   * CRC of fragment (for error checking)
+   */
+  uint16_t message_crc GNUNET_PACKED;
+
+// followed by payload
+
+};
+
+/**
+ * Header for messages which need fragmentation
+ */
+struct WlanHeader
+{
+
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * checksum/error correction
+   */
+  uint32_t crc GNUNET_PACKED;
+
+  /**
+   * To whom are we talking to (set to our identity
+   * if we are still waiting for the welcome message)
+   */
+  struct GNUNET_PeerIdentity target;
+
+// followed by payload
+
+};
 
 /* Wlan IEEE80211 header default */
 //Informations (in German) http://www.umtslink.at/content/WLAN_macheader-196.html
@@ -104,7 +152,18 @@ struct Radiotap_Send
     uint16_t tx_power;
 };
 
-struct rx_info {
+// bit field defines for ri_present
+
+#define has_noise 1
+#define has_power 2
+#define has_channel 4
+
+/**
+ * struct to represent infos gathered form the radiotap fields
+ */
+
+struct Radiotap_rx {
+        uint32_t ri_present;
         uint64_t ri_mactime;
         int32_t ri_power;
         int32_t ri_noise;

@@ -259,14 +259,6 @@ usage()
   exit(1);
 }
 
-void
-packet_callback(unsigned char *Args, const struct pcap_pkthdr* Pkthdr,
-    unsigned char *Packet)
-{
-  fprintf(stderr, "+");
-  fflush(stderr);
-}
-
 unsigned long
 calc_crc_osdep(unsigned char * buf, int len)
 {
@@ -410,7 +402,7 @@ linux_get_channel(struct Hardware_Infos *dev)
 
 static int
 linux_read(struct Hardware_Infos * dev, unsigned char *buf, int count,
-    struct rx_info * ri)
+    struct Radiotap_rx * ri)
 {
   unsigned char tmpbuf[4096];
 
@@ -867,12 +859,62 @@ wlaninit(struct Hardware_Infos * dev, char *iface)
   return 1;
 }
 
+/**
+ * function to test incoming packets mac
+ * @param buf buffer of the packet
+ * @param dev pointer to the Hardware_Infos struct
+ * @return 0 if macs are okay, 1 if macs are wrong
+ */
+
+static int
+mac_test(unsigned char * buf, struct Hardware_Infos * dev)
+{
+  struct ieee80211_frame * u8aIeeeHeader;
+  u8aIeeeHeader = (struct ieee80211_frame *) buf;
+  if (0 == memcmp(u8aIeeeHeader->i_addr3, mac_bssid, 6))
+    {
+      if (0 == memcmp(u8aIeeeHeader->i_addr2, dev->pl_mac, 6))
+        {
+          return 0;
+        }
+
+      if (0 == memcmp(u8aIeeeHeader->i_addr2, bc_all_mac, 6))
+        {
+          return 0;
+        }
+    }
+
+  return 1;
+}
+
+/**
+ * function to set the wlan header to make attacks more difficult
+ * @param buf buffer of the packet
+ * @param dev pointer to the Hardware_Infos struct
+ */
+
+static void
+mac_set(unsigned char * buf, struct Hardware_Infos * dev)
+{
+  struct ieee80211_frame * u8aIeeeHeader;
+  u8aIeeeHeader = (struct ieee80211_frame *) buf;
+
+  u8aIeeeHeader->i_fc[0] = 0x80;
+  u8aIeeeHeader->i_fc[1] = 0x00;
+
+  memcpy(u8aIeeeHeader->i_addr2, dev->pl_mac, 6);
+  memcpy(u8aIeeeHeader->i_addr3, mac_bssid, 6);
+
+}
+
 static void
 stdin_send_hw(void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 {
   struct Hardware_Infos * dev = cls;
   struct sendbuf *write_pout = dev->write_pout;
   struct Radiotap_Send * header = (struct Radiotap_Send *) &hdr[1];
+  unsigned char * wlanheader;
+
   int sendsize;
 
   unsigned char u8aRadiotap[] =
@@ -899,6 +941,15 @@ stdin_send_hw(void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
       exit(1);
     }
 
+  if (sendsize < sizeof(struct ieee80211_frame) + sizeof(struct WlanHeader)
+      + sizeof(struct FragmentationHeader)
+      + sizeof(struct GNUNET_MessageHeader))
+    {
+      fprintf(stderr, "Function stdin_send: packet too small\n");
+      exit(1);
+    }
+
+  u8aRadiotap[2] = htole16(sizeof(u8aRadiotap));
   u8aRadiotap[8] = header->rate;
 
   switch (dev->drivertype)
@@ -909,9 +960,12 @@ stdin_send_hw(void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
     memcpy(write_pout->buf + sizeof(u8aRadiotap), write_pout->buf
         + sizeof(struct Radiotap_Send) + sizeof(struct GNUNET_MessageHeader),
         sendsize);
+
+    wlanheader =  write_pout->buf + sizeof(u8aRadiotap);
+    mac_set(wlanheader, dev);
+
     sendsize += sizeof(u8aRadiotap);
 
-    //usedrtap = 1;
     break;
   default:
     break;
@@ -956,7 +1010,7 @@ maketest(unsigned char * buf, struct Hardware_Infos * dev)
    0x01, // <-- antenna
    };*/
 
-  u8aRadiotap[8] = (rate/500000);
+  u8aRadiotap[8] = (rate / 500000);
   u8aRadiotap[2] = htole16(sizeof(u8aRadiotap));
 
   static struct ieee80211_frame u8aIeeeHeader;
@@ -982,7 +1036,8 @@ maketest(unsigned char * buf, struct Hardware_Infos * dev)
     }
 
   tmp16 = (uint16_t*) u8aIeeeHeader.i_dur;
-  *tmp16 = (uint16_t) htole16((sizeof(txt) + sizeof(struct ieee80211_frame) * 1000000) / rate + 290);
+  *tmp16
+      = (uint16_t) htole16((sizeof(txt) + sizeof(struct ieee80211_frame) * 1000000) / rate + 290);
   tmp16 = (uint16_t*) u8aIeeeHeader.i_seq;
   *tmp16 = (*tmp16 & IEEE80211_SEQ_FRAG_MASK) | (htole16(seqenz)
       << IEEE80211_SEQ_SEQ_SHIFT);
@@ -1001,7 +1056,7 @@ hardwaremode(int argc, char *argv[])
 
   struct Hardware_Infos dev;
   struct ifreq ifreq;
-  struct rx_info * rxinfo;
+  struct Radiotap_rx * rxinfo;
   uint8_t * mac = dev.pl_mac;
   int fdpin, fdpout;
 
@@ -1019,6 +1074,7 @@ hardwaremode(int argc, char *argv[])
 
   //return 0;
 
+  unsigned char * datastart;
   char readbuf[MAXLINE];
   int readsize = 0;
   struct sendbuf write_std;
@@ -1134,8 +1190,6 @@ hardwaremode(int argc, char *argv[])
         {
 
           ret = linux_write(&dev, write_pout.buf, write_pout.size);
-          //ret = write(fdpout, write_pout.buf + write_pout.pos, write_pout.size
-          //    - write_pout.pos);
 
           if (0 > ret)
             {
@@ -1186,13 +1240,14 @@ hardwaremode(int argc, char *argv[])
 
       if (FD_ISSET(fdpin, &rfds))
         {
-          rxinfo = (struct rx_info *) (write_pout.buf
+          rxinfo = (struct Radiotap_rx *) (write_pout.buf
               + sizeof(struct GNUNET_MessageHeader));
-          readsize = linux_read(&dev, (unsigned char *) readbuf
-              + sizeof(struct rx_info) + sizeof(struct GNUNET_MessageHeader),
-              sizeof(readbuf) - sizeof(struct rx_info)
-                  - sizeof(struct GNUNET_MessageHeader), rxinfo);
-          //readsize = read(fdpin, readbuf, sizeof(readbuf));
+          datastart = (unsigned char *) readbuf + sizeof(struct Radiotap_rx)
+              + sizeof(struct GNUNET_MessageHeader);
+
+          readsize = linux_read(&dev, datastart, sizeof(readbuf)
+              - sizeof(struct Radiotap_rx)
+              - sizeof(struct GNUNET_MessageHeader), rxinfo);
 
           if (0 > readsize)
             {
@@ -1202,7 +1257,12 @@ hardwaremode(int argc, char *argv[])
             }
           else if (0 < readsize)
             {
-
+              if (1 == mac_test(datastart, &dev))
+                {
+                  // mac wrong
+                  write_pout.pos = 0;
+                  write_pout.size = 0;
+                }
             }
           else
             {
@@ -1236,7 +1296,7 @@ main(int argc, char *argv[])
     }
   else
     {
-      hardwaremode(argc, argv);
+      return hardwaremode(argc, argv);
     }
 
 #if 0

@@ -45,8 +45,12 @@ stdin_send(void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   struct sendbuf *write_pout = cls;
   int sendsize;
   struct GNUNET_MessageHeader newheader;
-  unsigned char * from;
-  unsigned char * to;
+  unsigned char * from_data;
+  unsigned char * to_data;
+  //unsigned char * from_radiotap;
+  unsigned char * to_radiotap;
+  //unsigned char * from_start;
+  unsigned char * to_start;
 
   sendsize = ntohs(hdr->size) - sizeof(struct Radiotap_Send);
 
@@ -64,14 +68,20 @@ stdin_send(void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   newheader.size = htons(sendsize);
   newheader.type = htons(GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
 
-  to = write_pout->buf + write_pout->size;
-  memcpy(to, &newheader, sizeof(struct GNUNET_MessageHeader));
+  to_start = write_pout->buf + write_pout->size;
+  to_radiotap = to_start + sizeof(struct GNUNET_MessageHeader);
+  to_data = to_radiotap + sizeof(struct Radiotap_rx);
+
+  from_data = ((unsigned char *) hdr) + sizeof(struct Radiotap_Send)
+        + sizeof(struct GNUNET_MessageHeader);
+
+
+  memcpy(to_start, &newheader, sizeof(struct GNUNET_MessageHeader));
   write_pout->size += sizeof(struct GNUNET_MessageHeader);
 
-  from = ((unsigned char *) hdr) + sizeof(struct Radiotap_Send)
-      + sizeof(struct GNUNET_MessageHeader);
-  to = write_pout->buf + write_pout->size;
-  memcpy(to, from, sendsize - sizeof(struct GNUNET_MessageHeader));
+  write_pout->size += sizeof(struct Radiotap_rx);
+
+  memcpy(to_data, from_data, sendsize - sizeof(struct GNUNET_MessageHeader));
   write_pout->size += sendsize - sizeof(struct GNUNET_MessageHeader);
 }
 
