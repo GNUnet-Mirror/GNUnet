@@ -188,7 +188,7 @@ struct ForeignAddressList
    */
   struct Session *session;
 
-  struct ATS_ressource_cost * ressources;
+  struct ATS_ressource_entry * ressources;
 
   /**
    * What was the last latency observed for this address, plugin and peer?
@@ -837,24 +837,6 @@ struct CheckHelloValidatedContext
   unsigned int ve_count;
 };
 
-struct ATS_ressource_cost
-{
-	int index;
-	int atsi_index;
-	struct ATS_ressource_cost * prev;
-	struct ATS_ressource_cost * next;
-	double c_1;
-};
-
-struct ATS_plugin
-{
-	struct ATS_plugin * prev;
-	struct ATS_plugin * next;
-	char * short_name;
-	struct ATS_ressource_cost * head;
-	struct ATS_ressource_cost * tail;
-};
-
 struct ATS_quality_metric
 {
 	int index;
@@ -862,6 +844,118 @@ struct ATS_quality_metric
 	char * name;
 };
 
+struct ATS_mechanism
+{
+	struct ATS_mechanism * prev;
+	struct ATS_mechanism * next;
+	struct ForeignAddressList * addr;
+	struct TransportPlugin * plugin;
+	struct ATS_peer * peer;
+	int col_index;
+	int	id;
+	struct ATS_ressource_cost * rc;
+};
+
+struct ATS_peer
+{
+	int id;
+	struct GNUNET_PeerIdentity peer;
+	struct NeighbourList * n;
+	struct ATS_mechanism * m_head;
+	struct ATS_mechanism * m_tail;
+
+	/* preference value f */
+	double f;
+	int	t;
+};
+
+struct ATS_result
+{
+	int c_mechs;
+	int c_peers;
+	int solution;
+};
+
+struct ATS_ressource_entry
+{
+	/* index in ressources array */
+	int index;
+	/* depending ATSi parameter to calculcate limits */
+	int atis_index;
+	/* lower bound */
+	double c;
+};
+
+
+struct ATS_ressource
+{
+	/* index in ressources array */
+	int index;
+	/* depending ATSi parameter to calculcate limits */
+	int atis_index;
+	/* cfg option to load limits */
+	char * cfg_param;
+	/* lower bound */
+	double c_min;
+	/* upper bound */
+	double c_max;
+
+	/* cofficients for the specific plugins */
+	double c_unix;
+	double c_tcp;
+	double c_udp;
+	double c_http;
+	double c_https;
+	double c_wlan;
+	double c_default;
+};
+
+static struct ATS_ressource ressources[] =
+{
+		/* FIXME: the coefficients for the specific plugins */
+		{1, 7, "LAN_BW_LIMIT", 0, VERY_BIG_DOUBLE_VALUE, 0, 1, 1, 2, 2, 1, 3},
+		{2, 7, "WAN_BW_LIMIT", 0, VERY_BIG_DOUBLE_VALUE, 0, 1, 1, 2, 2, 2, 3},
+		{3, 4, "WLAN_ENERGY_LIMIT", 0, VERY_BIG_DOUBLE_VALUE, 0, 0, 0, 0, 0, 2, 1}
+/*
+		{4, 4, "COST_ENERGY_CONSUMPTION", VERY_BIG_DOUBLE_VALUE},
+		{5, 5, "COST_CONNECT", VERY_BIG_DOUBLE_VALUE},
+		{6, 6, "COST_BANDWITH_AVAILABLE", VERY_BIG_DOUBLE_VALUE},
+		{7, 7, "COST_NETWORK_OVERHEAD", VERY_BIG_DOUBLE_VALUE},*/
+};
+
+static int available_ressources = 3;
+
+
+
+struct ATS_info
+{
+
+	/**
+	 * Time of last execution
+	 */
+	struct GNUNET_TIME_Absolute last;
+	/**
+	 * Minimum intervall between two executions
+	 */
+	struct GNUNET_TIME_Relative min_delta;
+	/**
+	 * Regular intervall when execution is triggered
+	 */
+	struct GNUNET_TIME_Relative exec_intervall;
+	/**
+	 * Maximum execution time per calculation
+	 */
+	struct GNUNET_TIME_Relative max_exec_duration;
+	/**
+	 * Maximum number of LP iterations per calculation
+	 */
+	int max_iterations;
+
+	GNUNET_SCHEDULER_TaskIdentifier ats_task;
+
+	struct ATS_plugin * head;
+	struct ATS_plugin * tail;
+};
 
 
 /**
@@ -2464,6 +2558,7 @@ add_peer_address (struct NeighbourList *neighbour,
 {
   struct ReadyList *head;
   struct ForeignAddressList *ret;
+  int c;
 
   ret = find_peer_address (neighbour, tname, session, addr, addrlen);
   if (ret != NULL)
@@ -2489,7 +2584,53 @@ add_peer_address (struct NeighbourList *neighbour,
     {
       ret->addr = NULL;
     }
-  ret->ressources = NULL;
+
+  ret->ressources = GNUNET_malloc(available_ressources * sizeof (struct ATS_ressource_entry));
+  int plugin;
+  for (c=0; c<available_ressources; c++)
+  {
+	  struct ATS_ressource_entry *r = ret->ressources;
+	  r[c].index = c;
+	  r[c].atis_index = ressources[c].atis_index;
+	  if (0 == strcmp(neighbour->plugins->plugin->short_name,"unix"))
+	  {
+		  r[c].c = ressources[c].c_unix;
+		  plugin = 1;
+	  }
+	  else if (0 == strcmp(neighbour->plugins->plugin->short_name,"udp"))
+	  {
+		  r[c].c = ressources[c].c_udp;
+		  plugin = 2;
+	  }
+	  else if (0 == strcmp(neighbour->plugins->plugin->short_name,"tcp"))
+	  {
+		  r[c].c = ressources[c].c_tcp;
+		  plugin = 3;
+	  }
+	  else if (0 == strcmp(neighbour->plugins->plugin->short_name,"http"))
+	  {
+		  r[c].c = ressources[c].c_http;
+		  plugin = 4;
+	  }
+	  else if (0 == strcmp(neighbour->plugins->plugin->short_name,"https"))
+	  {
+		  r[c].c = ressources[c].c_https;
+		  plugin = 5;
+	  }
+	  else if (0 == strcmp(neighbour->plugins->plugin->short_name,"wlan"))
+	  {
+		  r[c].c = ressources[c].c_wlan;
+		  plugin = 6;
+	  }
+	  else
+	  {
+		plugin = -1;
+		r[c].c = ressources[c].c_default;
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"Assigning default cost to peer `%s' addr plugin `%s'! This should not happen!",
+				GNUNET_i2s(&neighbour->peer), neighbour->plugins->plugin->short_name);
+	  }
+  }
+
   ret->addrlen = addrlen;
   ret->expires = GNUNET_TIME_relative_to_absolute
     (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
@@ -4496,6 +4637,7 @@ disconnect_neighbour (struct NeighbourList *n, int check)
 	      GNUNET_SCHEDULER_cancel (peer_pos->revalidate_task);
 	      peer_pos->revalidate_task = GNUNET_SCHEDULER_NO_TASK;
 	    }
+		  GNUNET_free(peer_pos->ressources);
           GNUNET_free(peer_pos);
         }
       GNUNET_free (rpos);
@@ -5510,7 +5652,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct TransportPlugin *plug;
   struct OwnAddressList *al;
   struct CheckHelloValidatedContext *chvc;
-  struct ATS_plugin * rc;
 
   while (neighbours != NULL)
     {
@@ -5539,16 +5680,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           plug->addresses = al->next;
           GNUNET_free (al);
         }
-      rc = plug->rc;
-      struct ATS_ressource_cost * t;
-      while (rc->head != NULL)
-      {
-    	  t = rc->head;
-    	  GNUNET_CONTAINER_DLL_remove(rc->head, rc->tail, rc->head);
-    	  GNUNET_free(t);
-      }
-
-      GNUNET_free(plug->rc);
       GNUNET_free (plug);
     }
   if (my_private_key != NULL)
@@ -5598,109 +5729,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_break (bc_head == NULL);
 }
 
-struct ATS_mechanism
-{
-	struct ATS_mechanism * prev;
-	struct ATS_mechanism * next;
-	struct ForeignAddressList * addr;
-	struct TransportPlugin * plugin;
-	struct ATS_peer * peer;
-	int col_index;
-	int	id;
-	struct ATS_ressource_cost * rc;
-};
-
-struct ATS_peer
-{
-	int id;
-	struct GNUNET_PeerIdentity peer;
-	struct NeighbourList * n;
-	struct ATS_mechanism * m_head;
-	struct ATS_mechanism * m_tail;
-
-	/* preference value f */
-	double f;
-	int	t;
-};
-
-struct ATS_result
-{
-	int c_mechs;
-	int c_peers;
-	int solution;
-};
-
-struct ATS_ressource
-{
-	/* index in ressources array */
-	int index;
-	/* depending ATSi parameter to calculcate limits */
-	int atis_index;
-	/* cfg option to load limits */
-	char * cfg_param;
-	/* lower bound */
-	double c_min;
-	/* upper bound */
-	double c_max;
-
-	/* cofficients for the specific plugins */
-	double c_unix;
-	double c_tcp;
-	double c_udp;
-	double c_http;
-	double c_https;
-	double c_wlan;
-	double c_default;
-};
-
-static struct ATS_ressource ressources[] =
-{
-		/* FIXME: the coefficients for the specific plugins */
-		{1, 7, "LAN_BW_LIMIT", 0, VERY_BIG_DOUBLE_VALUE, 0, 1, 1, 2, 2, 1, 3},
-		{2, 7, "WAN_BW_LIMIT", 0, VERY_BIG_DOUBLE_VALUE, 0, 1, 1, 2, 2, 2, 3},
-		{3, 4, "WLAN_ENERGY_LIMIT", VERY_BIG_DOUBLE_VALUE, 0, 0, 0, 0, 0, 2, 1}
-/*
-		{4, 4, "COST_ENERGY_CONSUMPTION", VERY_BIG_DOUBLE_VALUE},
-		{5, 5, "COST_CONNECT", VERY_BIG_DOUBLE_VALUE},
-		{6, 6, "COST_BANDWITH_AVAILABLE", VERY_BIG_DOUBLE_VALUE},
-		{7, 7, "COST_NETWORK_OVERHEAD", VERY_BIG_DOUBLE_VALUE},*/
-};
-
-static int available_ressources = 3;
 
 
-
-struct ATS_info
-{
-
-	/**
-	 * Time of last execution
-	 */
-	struct GNUNET_TIME_Absolute last;
-	/**
-	 * Minimum intervall between two executions
-	 */
-	struct GNUNET_TIME_Relative min_delta;
-	/**
-	 * Regular intervall when execution is triggered
-	 */
-	struct GNUNET_TIME_Relative exec_intervall;
-	/**
-	 * Maximum execution time per calculation
-	 */
-	struct GNUNET_TIME_Relative max_exec_duration;
-	/**
-	 * Maximum number of LP iterations per calculation
-	 */
-	int max_iterations;
-
-	GNUNET_SCHEDULER_TaskIdentifier ats_task;
-
-	struct ATS_plugin * head;
-	struct ATS_plugin * tail;
-};
-
-#define DEBUG_ATS GNUNET_YES
+#define DEBUG_ATS GNUNET_NO
 #define VERBOSE_ATS GNUNET_NO
 
 
@@ -5731,7 +5762,7 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 	int result;
 	int solution;
 
-	int c_c_ressources = 0;
+	int c_c_ressources = available_ressources;
 	int c_q_metrics = available_quality_metrics;
 
 	//double M = 10000000000; // ~10 GB
@@ -5788,40 +5819,12 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 			struct ForeignAddressList * a_next = r_next->addresses;
 			while (a_next != NULL)
 			{
-				//struct ATS_ressource_cost *rc;
-
 				if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%i Peer: `%s' plugin `%s' %x:\n", c_mechs, GNUNET_i2s(&next->id), r_next->plugin->short_name, a_next);
 				mechanisms[c_mechs].addr = a_next;
 				mechanisms[c_mechs].col_index = c_mechs;
 				mechanisms[c_mechs].peer = &peers[c_peers];
 				mechanisms[c_mechs].next = NULL;
 				mechanisms[c_mechs].plugin = r_next->plugin;
-				mechanisms[c_mechs].rc = GNUNET_malloc (available_ressources * sizeof (struct ATS_ressource_cost));
-
-				//rc = a_next->ressources;
-				/* get address specific ressource costs */
-				/*
-				while (rc != NULL)
-				{
-					memcpy(&mechanisms[c_mechs].rc[rc->index], rc, sizeof (struct ATS_ressource_cost));
-					if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Set address specific rc %s = %f \n", ressources[rc->index].cfg_param, mechanisms[c_mechs].rc[rc->index].c_1);
-					c_c_ressources ++;
-					rc = rc->next;
-				}
-				// get plugin specific ressourc costs
-
-
-				rc = mechanisms[c_mechs].plugin->rc->head;
-				while (rc != NULL)
-				{
-					if ((mechanisms[c_mechs].rc[rc->index].c_1 == 0) && (rc->c_1 != 0))
-					{
-						memcpy(&mechanisms[c_mechs].rc[rc->index], rc, sizeof (struct ATS_ressource_cost));
-						c_c_ressources++;
-					}
-					if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Set plugin specific rc %s = %f \n", ressources[rc->index].cfg_param, mechanisms[c_mechs].rc[rc->index].c_1);
-					rc = rc->next;
-				}*/
 
 				GNUNET_CONTAINER_DLL_insert_tail(peers[c_peers].m_head, peers[c_peers].m_tail, &mechanisms[c_mechs]);
 				c_mechs++;
@@ -5845,7 +5848,7 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 
 	if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Creating problem with: %i peers, %i mechanisms, %i resource entries, %i quality metrics \n", c_peers, c_mechs, c_c_ressources, c_q_metrics);
 
-	int size = 1 + 3 + 10 *c_mechs + c_peers + (c_q_metrics*c_mechs)+ c_q_metrics + c_c_ressources ;
+	int size = 1 + 3 + 10 *c_mechs + c_peers + (c_q_metrics*c_mechs)+ c_q_metrics + c_c_ressources + 1000;
 	//int size = 1 + 8 *c_mechs +2 + c_mechs + c_peers + (c_q_metrics*c_mechs)+c_q_metrics + c_c_ressources ;
 	int row_index;
 	int array_index=1;
@@ -5953,28 +5956,28 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 
 	if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Constraint 4\n");
 	glp_add_rows(prob, available_ressources);
-	//double ct_max = 0.0;
-	//double ct_1 = 0.0;
-/*
+	double ct_max = VERY_BIG_DOUBLE_VALUE;
+	double ct_min = 0.0;
+
 	for (c=0; c<available_ressources; c++)
 	{
 		ct_max = ressources[c].c_max;
-		if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bounds [row]=[%i] %f\n",row_index, ct_max);
-		glp_set_row_bnds(prob, row_index, GLP_DB, 0.0, ct_max);
+		ct_min = ressources[c].c_min;
+		if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bounds [row]=[%i] %f..%f\n",row_index, ct_min, ct_max);
+		glp_set_row_bnds(prob, row_index, GLP_DB, ct_min, ct_max);
 
 		for (c2=1; c2<=c_mechs; c2++)
 		{
-			if (mechanisms[c2].rc[c].c_1 != 0)
-			{
+			double value = 0;
 			ia[array_index] = row_index;
-			ja[array_index] = mechanisms[c2].col_index;
-			ar[array_index] = mechanisms[c2].rc[c].c_1;
+			ja[array_index] = c2;
+			value = mechanisms[c2].addr->ressources[c].c;
+			ar[array_index] = value;
 			if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
 			array_index++;
-			}
 		}
 		row_index ++;
-	}*/
+	}
 
 	/* Constraint 5: min number of connections*/
 	if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Constraint 5\n");
@@ -6311,6 +6314,7 @@ void ats_calculate_bandwidth_distribution ()
 		start = GNUNET_TIME_absolute_get();
 		c_mechs = ats_solve_problem(5000, 5000, 1.0, 1.0, 1.0, 1000, 5, &result);
 		duration = GNUNET_TIME_absolute_get_difference(start,GNUNET_TIME_absolute_get());
+
 		if (c_mechs > 0)
 		{
 			if (DEBUG_ATS) {GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP execution time in [ms] for %i mechanisms: %llu\n", c_mechs, duration.rel_value);}
