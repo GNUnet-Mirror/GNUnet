@@ -112,7 +112,7 @@ struct GNUNET_MESH_Data {
 
     uint32_t tunnel_id GNUNET_PACKED;
 
-    struct GNUNET_PeerIdentity destination GNUNET_PACKED;
+    struct GNUNET_PeerIdentity destination;
 
     /* uint8_t data[] */
 };

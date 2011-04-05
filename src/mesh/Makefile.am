@@ -9,6 +9,8 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
+bin_PROGRAMS = $(STUD_PROGS) \
+ gnunet-service-mesh
 
 lib_LTLIBRARIES = \
   libgnunetmesh.la
@@ -22,3 +24,11 @@ libgnunetmesh_la_LIBADD = \
 libgnunetmesh_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:0:0
+
+gnunet_service_mesh_SOURCES = \
+ gnunet-service-mesh.c         
+
+gnunet_service_mesh_LDADD = \
+  $(top_builddir)/src/core/libgnunetcore.la
+#  $(top_builddir)/src/transport/libgnunettransport.la \
+#  $(top_builddir)/src/util/libgnunetutil.la

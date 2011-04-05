@@ -31,11 +31,12 @@
  * - speed requirement specification (change?) in mesh API -- API call
  */
 
-#include <stdint.h>
+#include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_core_service.h"
-#include <netinet/in.h>
+#include "gnunet_protocols.h"
+#include "mesh.h"
 
 
 /******************************************************************************/
@@ -244,7 +245,7 @@ struct PeerInfo
     /**
      * Is the peer reachable? Is the peer even connected?
      */
-    struct PeerState state;
+    enum PeerState state;
 
     /**
      * Who to send the data to
@@ -275,7 +276,7 @@ struct Path
     /**
      * List of all the peers that form the path from origin to target
      */
-    PeerInfo *peers;
+    struct PeerInfo *peers;
 };
 
 /**
@@ -356,35 +357,11 @@ struct Clients
     int fixme;
 };
 
-/**
- * Handler for requests of creating new path
- * type: struct GNUNET_CORE_MessageHandler
- *
- * @param cls closure
- * @param client the client this message is from
- * @param message the message received
- */
-static void
-handle_mesh_path_create (void *cls,
-                         struct GNUNET_SERVER_Client *client,
-                         const struct GNUNET_MessageHeader *message)
-{
-    return;
-}
 
-/**
- * Handler for client disconnection
- *
- * @param cls closure
- * @param client identification of the client; NULL
- *        for the last call when the server is destroyed
- */
-static void
-handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
-{
-    /* Remove client from list, delete all timers and queues associated */
-    return;
-}
+
+/******************************************************************************/
+/********************      MESH NETWORK HANDLERS     **************************/
+/******************************************************************************/
 
 /**
  * Core handler for path creation
@@ -394,6 +371,8 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
  * @param message message
  * @param peer peer identity this notification is about
  * @param atsi performance data
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
  *
  */
 static int
@@ -418,7 +397,8 @@ handle_mesh_path_create (void *cls,
  * @param message message
  * @param peer peer identity this notification is about
  * @param atsi performance data
- *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 handle_mesh_network_traffic (void *cls,
@@ -440,11 +420,76 @@ handle_mesh_network_traffic (void *cls,
  * Functions to handle messages from core
  */
 static struct GNUNET_CORE_MessageHandler core_handlers[] = {
-  {&handle_mesh_path_create, NULL, GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE, 0},
+  {&handle_mesh_path_create, GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE, 0},
   {&handle_mesh_network_traffic, GNUNET_MESSAGE_TYPE_MESH_DATA_GO, 0},
   {&handle_mesh_network_traffic, GNUNET_MESSAGE_TYPE_MESH_DATA_BACK, 0},
   {NULL, 0, 0}
 };
+
+
+
+/******************************************************************************/
+/*********************       MESH LOCAL HANDLES      **************************/
+/******************************************************************************/
+
+/**
+ * Handler for client disconnection
+ *
+ * @param cls closure
+ * @param client identification of the client; NULL
+ *        for the last call when the server is destroyed
+ */
+static void
+handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
+{
+    /* Remove client from list, delete all timers and queues associated */
+    return;
+}
+
+/**
+ * Handler for new clients
+ * 
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message, which includes messages the client wants
+ */
+static void
+handle_local_new_client (void *cls,
+                         struct GNUNET_SERVER_Client *client,
+                         const struct GNUNET_MessageHeader *message)
+{
+    return;
+}
+
+/**
+ * Handler for connection requests
+ * 
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_local_connect (void *cls,
+                         struct GNUNET_SERVER_Client *client,
+                         const struct GNUNET_MessageHeader *message)
+{
+    return;
+}
+
+/**
+ * Handler for client traffic
+ * 
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_local_network_traffic (void *cls,
+                         struct GNUNET_SERVER_Client *client,
+                         const struct GNUNET_MessageHeader *message)
+{
+    return;
+}
 
 /**
  * Functions to handle messages from clients
@@ -464,16 +509,16 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA_BROADCAST       283
  */
 static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
-  {&handle_local_new_client, NULL, GNUNET_MESSAGE_TYPE_LOCAL_CONNECT, 0},
+  {&handle_local_new_client, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT, 0},
   {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ANY, 0},
   {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ALL, 0},
   {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD, 0},
   {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_DEL, 0},
   {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_BY_TYPE, sizeof(struct GNUNET_MESH_ConnectPeerByType)},
   {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_CANCEL, sizeof(struct GNUNET_MESH_Control)},
-  {&handle_local_network_traffic, NULL, GNUNET_MESSAGE_TYPE_LOCAL_TRANSMIT_READY, sizeof(struct GNUNET_MESH_Control)},
-  {&handle_local_network_traffic, NULL, GNUNET_MESSAGE_TYPE_LOCAL_DATA, 0}, /* FIXME needed? */
-  {&handle_local_network_traffic, NULL, GNUNET_MESSAGE_TYPE_LOCAL_DATA_BROADCAST, 0}, /* FIXME needed? */
+  {&handle_local_network_traffic, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_TRANSMIT_READY, sizeof(struct GNUNET_MESH_Control)},
+  {&handle_local_network_traffic, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA, 0}, /* FIXME needed? */
+  {&handle_local_network_traffic, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA_BROADCAST, 0}, /* FIXME needed? */
   {NULL, NULL, 0, 0}
 };
 
@@ -525,7 +570,7 @@ core_disconnect (void *cls,
 }
 
 /**
- * Process mesh requests. FIXME NON FUNCTIONAL, COPIED FROM DHT!!
+ * Process mesh requests. FIXME NON FUNCTIONAL, SKELETON
  *
  * @param cls closure
  * @param server the initialized server
@@ -536,10 +581,7 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  struct GNUNET_TIME_Relative next_send_time;
-  unsigned long long temp_config_num;
-  char *converge_modifier_buf;
-  GNUNET_CORE_Handle *core;
+  struct GNUNET_CORE_Handle *core;
 
   GNUNET_SERVER_add_handlers (server, plugin_handlers);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
