@@ -5630,28 +5630,43 @@ struct ATS_result
 	int solution;
 };
 
-
-
 struct ATS_ressource
 {
+	/* index in ressources array */
 	int index;
+	/* depending ATSi parameter to calculcate limits */
 	int atis_index;
+	/* cfg option to load limits */
 	char * cfg_param;
+	/* lower bound */
+	double c_min;
+	/* upper bound */
 	double c_max;
+
+	/* cofficients for the specific plugins */
+	double c_unix;
+	double c_tcp;
+	double c_udp;
+	double c_http;
+	double c_https;
+	double c_wlan;
+	double c_default;
 };
 
 static struct ATS_ressource ressources[] =
 {
-		{1, 1, "COST_FINANCIAL_PER_VOLUME",VERY_BIG_DOUBLE_VALUE},
-		{2, 2, "COST_FINANCIAL_PER_TIME", VERY_BIG_DOUBLE_VALUE},
-		{3, 3, "COST_COMPUTATIONAL", VERY_BIG_DOUBLE_VALUE},
+		/* FIXME: the coefficients for the specific plugins */
+		{1, 7, "LAN_BW_LIMIT", 0, VERY_BIG_DOUBLE_VALUE, 0, 1, 1, 2, 2, 1, 3},
+		{2, 7, "WAN_BW_LIMIT", 0, VERY_BIG_DOUBLE_VALUE, 0, 1, 1, 2, 2, 2, 3},
+		{3, 4, "WLAN_ENERGY_LIMIT", VERY_BIG_DOUBLE_VALUE, 0, 0, 0, 0, 0, 2, 1}
+/*
 		{4, 4, "COST_ENERGY_CONSUMPTION", VERY_BIG_DOUBLE_VALUE},
 		{5, 5, "COST_CONNECT", VERY_BIG_DOUBLE_VALUE},
 		{6, 6, "COST_BANDWITH_AVAILABLE", VERY_BIG_DOUBLE_VALUE},
-		{7, 7, "COST_NETWORK_OVERHEAD", VERY_BIG_DOUBLE_VALUE},
+		{7, 7, "COST_NETWORK_OVERHEAD", VERY_BIG_DOUBLE_VALUE},*/
 };
 
-static int available_ressources = 7;
+static int available_ressources = 3;
 
 
 
@@ -5685,7 +5700,7 @@ struct ATS_info
 	struct ATS_plugin * tail;
 };
 
-#define DEBUG_ATS GNUNET_NO
+#define DEBUG_ATS GNUNET_YES
 #define VERBOSE_ATS GNUNET_NO
 
 
@@ -5707,7 +5722,7 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 	return GNUNET_SYSERR;
 #else
 	if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "glpk installed\n");
-
+#endif
 	glp_prob *prob;
 
 	int c;
@@ -5773,7 +5788,7 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 			struct ForeignAddressList * a_next = r_next->addresses;
 			while (a_next != NULL)
 			{
-				struct ATS_ressource_cost *rc;
+				//struct ATS_ressource_cost *rc;
 
 				if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%i Peer: `%s' plugin `%s' %x:\n", c_mechs, GNUNET_i2s(&next->id), r_next->plugin->short_name, a_next);
 				mechanisms[c_mechs].addr = a_next;
@@ -5783,8 +5798,9 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 				mechanisms[c_mechs].plugin = r_next->plugin;
 				mechanisms[c_mechs].rc = GNUNET_malloc (available_ressources * sizeof (struct ATS_ressource_cost));
 
-				rc = a_next->ressources;
+				//rc = a_next->ressources;
 				/* get address specific ressource costs */
+				/*
 				while (rc != NULL)
 				{
 					memcpy(&mechanisms[c_mechs].rc[rc->index], rc, sizeof (struct ATS_ressource_cost));
@@ -5792,7 +5808,7 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 					c_c_ressources ++;
 					rc = rc->next;
 				}
-				/* get plugin specific ressourc costs */
+				// get plugin specific ressourc costs
 
 
 				rc = mechanisms[c_mechs].plugin->rc->head;
@@ -5805,7 +5821,7 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 					}
 					if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Set plugin specific rc %s = %f \n", ressources[rc->index].cfg_param, mechanisms[c_mechs].rc[rc->index].c_1);
 					rc = rc->next;
-				}
+				}*/
 
 				GNUNET_CONTAINER_DLL_insert_tail(peers[c_peers].m_head, peers[c_peers].m_tail, &mechanisms[c_mechs]);
 				c_mechs++;
@@ -5937,9 +5953,9 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 
 	if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Constraint 4\n");
 	glp_add_rows(prob, available_ressources);
-	double ct_max = 0.0;
+	//double ct_max = 0.0;
 	//double ct_1 = 0.0;
-
+/*
 	for (c=0; c<available_ressources; c++)
 	{
 		ct_max = ressources[c].c_max;
@@ -5958,7 +5974,7 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 			}
 		}
 		row_index ++;
-	}
+	}*/
 
 	/* Constraint 5: min number of connections*/
 	if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Constraint 5\n");
@@ -6262,7 +6278,7 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 	GNUNET_free(peers);
 
 	return c_mechs;
-#endif
+
 }
 
 void ats_calculate_bandwidth_distribution ()
@@ -6346,45 +6362,28 @@ void ats_init ()
 	ats->max_iterations = ATS_MAX_ITERATIONS;
 	ats->ats_task = GNUNET_SCHEDULER_NO_TASK;
 
-	/* loading cost ressources */
-	char * section;
-	struct TransportPlugin * cur = plugins;
-	struct ATS_ressource_cost * rc;
-	struct ATS_plugin * p;
-	unsigned long long  value;
 	int c = 0;
-
-
-	while (cur != NULL)
+	unsigned long long  value;
+	char * section;
+	/* loading cost ressources */
+	for (c=0; c<available_ressources; c++)
 	{
-		if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Loading resource cost for plugin `%s'\n", cur->short_name);
-		p = GNUNET_malloc(sizeof (struct ATS_plugin));
-		GNUNET_CONTAINER_DLL_insert_tail(ats->head,ats->tail, p);
-
-		GNUNET_asprintf(&section,"transport-%s",cur->short_name);
-		p->short_name = strdup(cur->short_name);
-		c = 0;
-		while (c < available_ressources)
+		GNUNET_asprintf(&section,"%s_UP",ressources[c].cfg_param);
+		if (GNUNET_CONFIGURATION_have_value(cfg, "transport", section))
 		{
-			if (GNUNET_CONFIGURATION_have_value(cfg,section, ressources[c].cfg_param))
-			{
-				GNUNET_CONFIGURATION_get_value_number(cfg,section, ressources[c].cfg_param, &value);
-				if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Found ressource cost: [%s] = %llu\n", ressources[c].cfg_param, value);
-				if (value != 0)
-				{
-					rc = GNUNET_malloc(sizeof (struct ATS_ressource_cost));
-					rc->index = c;
-					rc->atsi_index = ressources[c].atis_index;
-					rc->c_1 = value;
-					GNUNET_CONTAINER_DLL_insert_tail(p->head,p->tail, rc);
-				}
-			}
-			// else
-				//if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "NOT Found ressource cost: [%s] = %llu \n", ressources[c].cfg_param, value);
-			c++;
+			GNUNET_CONFIGURATION_get_value_number(cfg, "transport",section, &value);
+			if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Found ressource cost: [%s] = %llu\n", section, value);
+			ressources[c].c_max = value;
 		}
-		cur->rc = p;
-		cur = cur->next;
+		GNUNET_free (section);
+		GNUNET_asprintf(&section,"%s_DOWN",ressources[c].cfg_param);
+		if (GNUNET_CONFIGURATION_have_value(cfg, "transport", section))
+		{
+			GNUNET_CONFIGURATION_get_value_number(cfg, "transport",section, &value);
+			if (DEBUG_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Found ressource cost: [%s] = %llu\n", section, value);
+			ressources[c].c_min = value;
+		}
+		GNUNET_free (section);
 	}
 
 	ats->ats_task = GNUNET_SCHEDULER_add_now(&ats_schedule_calculation, ats);
@@ -6399,7 +6398,7 @@ void ats_shutdown ()
 	if (ats->ats_task != GNUNET_SCHEDULER_NO_TASK)
 		GNUNET_SCHEDULER_cancel(ats->ats_task);
 	ats->ats_task = GNUNET_SCHEDULER_NO_TASK;
-
+/*
 	struct ATS_plugin * p;
 	struct ATS_ressource_cost * rc;
 
@@ -6417,7 +6416,7 @@ void ats_shutdown ()
 		GNUNET_free(p);
 		p = ats->head;
 	}
-
+*/
 	GNUNET_free (ats);
 }
 
