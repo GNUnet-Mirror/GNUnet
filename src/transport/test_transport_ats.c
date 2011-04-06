@@ -314,7 +314,11 @@ void daemon_connect_cb(void *cls,
 						struct GNUNET_TESTING_Daemon *second_daemon,
 						const char *emsg)
 {
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected peers `%s'<->`%s': `%s' \n", GNUNET_i2s(first), GNUNET_i2s(second), (emsg==NULL) ? "OK" : emsg);
+	char * firstc =  strdup(GNUNET_i2s(first));
+	char * secondc =  strdup(GNUNET_i2s(second));
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected peers `%s'<->`%s'\n", firstc, secondc);
+	GNUNET_free(firstc);
+	GNUNET_free(secondc);
 }
 
 void cont_cb (void *cls, int success)
@@ -414,7 +418,7 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-testing-group", "nohelp",
+                      argv, "test-transport-ats", "nohelp",
                       options, &run, &ok);
   return ok;
 }
