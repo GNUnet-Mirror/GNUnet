@@ -71,7 +71,7 @@ struct icmp_hdr {
 
 // DNS-Stuff
 struct dns_static {
-	unsigned short id GNUNET_PACKED;
+        uint16_t id GNUNET_PACKED;
 
 	unsigned rd:1 GNUNET_PACKED; // recursion desired (client -> server)
 	unsigned tc:1 GNUNET_PACKED; // message is truncated
@@ -88,10 +88,10 @@ struct dns_static {
 	unsigned z:3 GNUNET_PACKED;  // reserved
 	unsigned ra:1 GNUNET_PACKED; // recursion available (server -> client)
 
-	unsigned short qdcount GNUNET_PACKED; // number of questions
-	unsigned short ancount GNUNET_PACKED; // number of answers
-	unsigned short nscount GNUNET_PACKED; // number of authority-records
-	unsigned short arcount GNUNET_PACKED; // number of additional records
+	uint16_t qdcount GNUNET_PACKED; // number of questions
+        uint16_t ancount GNUNET_PACKED; // number of answers
+	uint16_t nscount GNUNET_PACKED; // number of authority-records
+	uint16_t arcount GNUNET_PACKED; // number of additional records
 };
 
 struct dns_pkt {

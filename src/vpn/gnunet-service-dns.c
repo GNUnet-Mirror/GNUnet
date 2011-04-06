@@ -75,7 +75,7 @@ static struct answer_packet_list *head;
 static struct answer_packet_list *tail;
 
 /**
- * A structure containing a mapping from network-byte-ordered DNS-id to
+ * A structure containing a mapping from network-byte-ordered DNS-id (16 bit) to
  * some information needed to handle this query
  *
  * It currently allocates at least
@@ -86,12 +86,12 @@ static struct answer_packet_list *tail;
 static struct {
     unsigned valid:1;
     struct GNUNET_SERVER_Client* client;
-    unsigned local_ip:32;
-    unsigned remote_ip:32;
-    unsigned local_port:16;
+    uint32_t local_ip;
+    uint32_t remote_ip;
+    uint16_t local_port;
     char* name;
-    unsigned namelen:8;
-} query_states[65536];
+    uint8_t namelen;
+} query_states[UINT16_MAX];
 
 /**
  * A struct used to give more than one value as

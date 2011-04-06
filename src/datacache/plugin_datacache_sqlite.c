@@ -440,6 +440,7 @@ libgnunet_plugin_datacache_sqlite_init (void *cls)
                    "sqlite", _("Sqlite datacache running\n"));
   return api;
 }
+// explain SELECT type FROM gn090 WHERE NOT EXISTS (SELECT 1 from gn090 WHERE expire < 42 LIMIT 1) OR expire < 42 ORDER BY repl DESC, Random() LIMIT 1;
 
 
 /**

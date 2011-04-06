@@ -169,7 +169,7 @@ typedef int (*PluginPut) (void *cls,
  * in the datastore.
  *
  * @param cls closure
- * @param key maybe NULL (to match all entries)
+ * @param key key to match, never NULL
  * @param vhash hash of the value, maybe NULL (to
  *        match all values that have the right key).
  *        Note that for DBlocks there is no difference
