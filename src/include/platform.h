@@ -173,9 +173,7 @@
 #include <vfork.h>
 #endif
 
-#if HAVE_CTYPE_H
 #include <ctype.h>
-#endif
 #if HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
 #endif
