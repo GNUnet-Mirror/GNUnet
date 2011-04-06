@@ -2832,8 +2832,6 @@ wlan_transport_start_wlan_helper(struct Plugin *plugin, int testmode)
       "Adding server_read_task for the wlan-helper\n");
 #endif
 
-  sleep(2);
-
   plugin->server_read_task = GNUNET_SCHEDULER_add_read_file(
       GNUNET_TIME_UNIT_FOREVER_REL, plugin->server_stdout_handle,
       &wlan_plugin_helper_read, plugin);
