@@ -251,7 +251,7 @@ Dump(u8 * pu8, int nLength)
 void
 usage()
 {
-  printf("Usage: interface-name optins\n"
+  printf("Usage: interface-name options\n"
     "options: 0 = with hardware\n"
     "1 = first loopback file\n"
     "2 = second loopback file\n"
@@ -871,14 +871,14 @@ mac_test(unsigned char * buf, struct Hardware_Infos * dev)
 {
   struct ieee80211_frame * u8aIeeeHeader;
   u8aIeeeHeader = (struct ieee80211_frame *) buf;
-  if (0 == memcmp(u8aIeeeHeader->i_addr3, mac_bssid, 6))
+  if (0 == memcmp(u8aIeeeHeader->i_addr3, &mac_bssid, 6))
     {
       if (0 == memcmp(u8aIeeeHeader->i_addr2, dev->pl_mac, 6))
         {
           return 0;
         }
 
-      if (0 == memcmp(u8aIeeeHeader->i_addr2, bc_all_mac, 6))
+      if (0 == memcmp(u8aIeeeHeader->i_addr2, &bc_all_mac, 6))
         {
           return 0;
         }
@@ -903,7 +903,7 @@ mac_set(unsigned char * buf, struct Hardware_Infos * dev)
   u8aIeeeHeader->i_fc[1] = 0x00;
 
   memcpy(u8aIeeeHeader->i_addr2, dev->pl_mac, 6);
-  memcpy(u8aIeeeHeader->i_addr3, mac_bssid, 6);
+  memcpy(u8aIeeeHeader->i_addr3, &mac_bssid, 6);
 
 }
 

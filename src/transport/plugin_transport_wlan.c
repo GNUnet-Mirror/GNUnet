@@ -411,7 +411,7 @@ struct Session_light
   /**
    * peer mac address
    */
-  uint8_t addr[6];
+  struct MacAddress addr;
 };
 
 /**
@@ -451,7 +451,7 @@ struct Session
   /**
    * peer mac address
    */
-  char addr[6];
+  struct MacAddress addr;
 
   /**
    * Address of the other peer (either based on our 'connect'
@@ -564,71 +564,11 @@ struct FragmentationAckHeader
 
 };
 
-int
-getRadiotapHeader(struct Plugin * plugin, struct Session * session,
-    struct Radiotap_Send * Header);
-
-int
-getWlanHeader(struct ieee80211_frame * Header, const char * to_mac_addr,
-    struct Plugin * plugin);
-
-static int
-wlan_plugin_address_suggested(void *cls, const void *addr, size_t addrlen);
-
-uint16_t
-getcrc16(const char *msgbuf, size_t msgbuf_size);
-
 static void
-do_transmit(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+do_transmit(void *cls, 
+	    const struct GNUNET_SCHEDULER_TaskContext *tc);
 
-static void
-check_fragment_queue(struct Plugin * plugin);
 
-uint32_t
-getcrc32(const char *msgbuf, size_t msgbuf_size);
-
-static void
-free_receive_message(struct Plugin* plugin,
-    struct Receive_Message_Queue * rx_message);
-
-struct Receive_Message_Queue *
-get_receive_message_from_session(struct Plugin * plugin,
-    struct Session * session);
-
-static void
-wlan_data_helper(void *cls, struct Session_light * session_light,
-    const struct GNUNET_MessageHeader * hdr, const struct Radiotap_rx * rxinfo);
-
-static void
-wlan_process_helper(void *cls, void *client,
-    const struct GNUNET_MessageHeader *hdr);
-
-static void
-finish_sending(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
-
-static void
-wlan_data_massage_handler(struct Plugin * plugin,
-    struct Session_light * session_light,
-    const struct GNUNET_MessageHeader * hdr);
-
-static const char *
-wlan_plugin_address_to_string(void *cls, const void *addr, size_t addrlen);
-
-struct Receive_Message_Queue *
-get_receive_message(struct Plugin * plugin, struct Session * session,
-    uint32_t message_id);
-
-static uint64_t
-htonll(uint64_t input)
-{
-  return input;
-}
-
-static uint64_t
-ntohll(uint64_t input)
-{
-  return input;
-}
 
 /**
  * Sets a bit active in the bitArray. Increment bit-specific
@@ -648,23 +588,6 @@ setBit(char *bitArray, unsigned int bitIdx)
   bitArray[arraySlot] |= targetBit;
 }
 
-/**
- * Clears a bit from bitArray. Bit is cleared from the array
- * only if the respective usage counter on the disk hits/is zero.
- *
- * @param bitArray memory area to set the bit in
- * @param bitIdx which bit to unset
- */
-/*static void
- clearBit(char *bitArray, unsigned int bitIdx)
- {
- size_t slot;
- unsigned int targetBit;
-
- slot = bitIdx / 8;
- targetBit = (1L << (bitIdx % 8));
- bitArray[slot] = bitArray[slot] & (~targetBit);
- }*/
 
 /**
  * Checks if a bit is active in the bitArray
@@ -683,29 +606,19 @@ testBit(char *bitArray, unsigned int bitIdx)
   targetBit = (1L << (bitIdx % 8));
   if (bitArray[slot] & targetBit)
     return GNUNET_YES;
-  else
-    return GNUNET_NO;
+  return GNUNET_NO;
 }
 
 /**
  * get the next message number, at the moment just a random one
  * @return returns the next valid message-number for sending packets
  */
-uint32_t
+static uint32_t
 get_next_message_id()
 {
-  return GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
+  return GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
 }
 
-/**
- * start next message number generator
- * (not necessary at the moment)
- */
-void
-start_next_message_id()
-{
-  //GNUNET_CRYPTO_random_init;
-}
 
 /**
  * search for a session with the addr
@@ -714,26 +627,17 @@ start_next_message_id()
  * @param addr pointer to the mac address of the peer
  * @return returns the session
  */
-
 static struct Session *
-search_session(struct Plugin *plugin, const uint8_t * addr)
+search_session(struct Plugin *plugin, 
+	       const struct MacAddress *addr)
 {
   struct Sessionqueue * queue = plugin->sessions;
-  struct Sessionqueue * lastitem = NULL;
 
-  //just look at all the session for the needed one
   while (queue != NULL)
     {
-      // content is never NULL
       GNUNET_assert (queue->content != NULL);
-      char * addr2 = queue->content->addr;
-      if (memcmp(addr, addr2, 6) == 0)
-        {
-          //sesion found
-          return queue->content;
-        }
-      // try next
-      lastitem = queue;
+      if (memcmp(addr, &queue->content->addr, sizeof (struct MacAddress)) == 0)
+	return queue->content; /* session found */
       queue = queue->next;
     }
   return NULL;
@@ -748,7 +652,8 @@ search_session(struct Plugin *plugin, const uint8_t * addr)
  */
 
 static struct Session *
-create_session(struct Plugin *plugin, const uint8_t * addr)
+create_session(struct Plugin *plugin,
+	       const struct MacAddress * addr)
 {
   struct Sessionqueue * queue = GNUNET_malloc (sizeof (struct Sessionqueue));
 
@@ -756,7 +661,7 @@ create_session(struct Plugin *plugin, const uint8_t * addr)
 
   queue->content = GNUNET_malloc (sizeof (struct Session));
   queue->content->plugin = plugin;
-  memcpy(queue->content->addr, addr, 6);
+  queue->content->addr = *addr;
   queue->content->fragment_messages_out_count = 0;
   queue->content->fragment_messages_in_count = 0;
 
@@ -770,44 +675,24 @@ create_session(struct Plugin *plugin, const uint8_t * addr)
   return queue->content;
 }
 
+
 /**
- * get Session from address, create if no session exists
+ * Get session from address, create if no session exists
  *
  * @param plugin pointer to the plugin struct
  * @param addr pointer to the mac address of the peer
  * @return returns the session
  */
-//TODO add other possibilities to find the right session (are there other?)
 static struct Session *
-get_Session(struct Plugin *plugin, const uint8_t * addr)
+get_Session (struct Plugin *plugin, 
+	     const struct MacAddress *addr)
 {
   struct Session * session = search_session(plugin, addr);
   if (session != NULL)
-    {
-      return session;
-    }
-  // new session
+    return session;
   return create_session(plugin, addr);
-
-  /* -- not needed, layer above already has it--
-   //queue welcome message for new sessions, not realy needed
-   //struct WelcomeMessage welcome;
-   struct PendingMessage *pm;
-   pm = GNUNET_malloc (sizeof (struct PendingMessage));
-   pm->msg = GNUNET_malloc(GNUNET_HELLO_size(* (plugin->env->our_hello)));
-   pm->message_size = GNUNET_HELLO_size(* (plugin->env->our_hello));
-   //welcome.header.size = htons (GNUNET_HELLO_size(* (plugin->env->our_hello)));
-   //welcome.header.type = htons (GNUNET_MESSAGE_TYPE_WLAN_ADVERTISEMENT);
-   //welcome.clientIdentity = *plugin->env->my_identity;
-   memcpy ( (pm->msg), * plugin->env->our_hello, GNUNET_HELLO_size(* (plugin->env->our_hello)));
-   pm->timeout = GNUNET_TIME_UNIT_FOREVER_ABS;
-   queue->content->pending_message = pm;
-   plugin->pendingsessions ++;
-   GNUNET_CONTAINER_DLL_insert_tail(plugin->pending_Sessions, plugin->pending_Sessions_tail, queue);
-
-   check_fragment_queue(plugin);
-   */
 }
+
 
 /**
  * Queue the session to send data
@@ -1203,7 +1088,7 @@ check_finished_fragment(struct Plugin * plugin, struct FragmentMessage * fm)
  * @param fm use this FragmentMessage
  */
 
-void
+static void
 set_next_message_fragment_pos(struct FragmentMessage * fm)
 {
 
@@ -1226,7 +1111,82 @@ set_next_message_fragment_pos(struct FragmentMessage * fm)
 
 }
 
-void
+int
+getRadiotapHeader(struct Plugin * plugin, struct Session * session,
+    struct Radiotap_Send * header)
+{
+
+  if (session != NULL)
+    {
+      header->rate = session->rate;
+      header->tx_power = session->tx_power;
+      header->antenna = session->antenna;
+    }
+  else
+    {
+      header->rate = 255;
+      header->tx_power = 0;
+      header->antenna = 0;
+    }
+
+  return GNUNET_YES;
+}
+
+
+/**
+ * function to generate the wlan hardware header for one packet
+ * @param Header address to write the header to
+ * @param to_mac_addr address of the recipient
+ * @param plugin pointer to the plugin struct
+ * @return GNUNET_YES if there was no error
+ */
+int
+getWlanHeader(struct ieee80211_frame * Header, 
+	      const struct MacAddress * to_mac_addr,
+	      struct Plugin * plugin)
+{
+  Header->i_fc[0] = 0x80;
+  Header->i_fc[1] = 0x00;
+  memcpy(&Header->i_addr3, &mac_bssid, sizeof(mac_bssid));
+  memcpy(&Header->i_addr2, plugin->mac_address.mac, sizeof(plugin->mac_address));
+  memcpy(&Header->i_addr1, to_mac_addr, sizeof(plugin->mac_address));
+  return GNUNET_YES;
+}
+
+/**
+ * 32bit CRC
+ *
+ * @param msgbuf pointer tor the data
+ * @param msgbuf_size size of the data
+ *
+ * @return 32bit crc value
+ */
+
+uint32_t
+getcrc32(const char *msgbuf, size_t msgbuf_size)
+{
+  //TODO calc some crc
+  return 0;
+}
+
+/**
+ * 16bit CRC
+ *
+ * @param msgbuf pointer tor the data
+ * @param msgbuf_size size of the data
+ *
+ * @return 16bit crc value
+ */
+
+uint16_t
+getcrc16(const char *msgbuf, size_t msgbuf_size)
+{
+  //TODO calc some crc
+  return 0;
+}
+
+
+static void
 send_hello_beacon(struct Plugin * plugin)
 {
 
@@ -1254,7 +1214,7 @@ send_hello_beacon(struct Plugin * plugin)
   radioHeader = (struct Radiotap_Send*) &msgheader[1];
   getRadiotapHeader(plugin, NULL, radioHeader);
   ieeewlanheader = (struct ieee80211_frame*) &radioHeader[1];
-  getWlanHeader(ieeewlanheader, bc_all_mac, plugin);
+  getWlanHeader(ieeewlanheader, &bc_all_mac, plugin);
 
   msgheader2 = (struct GNUNET_MessageHeader*) &ieeewlanheader[1];
   msgheader2->size = htons(GNUNET_HELLO_size(*(plugin->env->our_hello))
@@ -1311,13 +1271,13 @@ send_ack(struct Plugin * plugin, struct AckSendQueue * ack)
   radioHeader = (struct Radiotap_Send*) &msgheader[1];
   getRadiotapHeader(plugin, ack->session, radioHeader);
   ieeewlanheader = (struct ieee80211_frame*) &radioHeader[1];
-  getWlanHeader(ieeewlanheader, ack->session->addr, plugin);
+  getWlanHeader(ieeewlanheader, &ack->session->addr, plugin);
 
   msgheader2 = (struct FragmentationAckHeader*) &ieeewlanheader[1];
   msgheader2->header.size = htons(sizeof(struct FragmentationAckHeader));
   msgheader2->header.type = htons(GNUNET_MESSAGE_TYPE_WLAN_FRAGMENT_ACK);
   msgheader2->message_id = htonl(ack->message_id);
-  msgheader2->fragment_field = htonll(ack->fragments_field);
+  msgheader2->fragment_field = GNUNET_htonll(ack->fragments_field);
 
   bytes = GNUNET_DISK_file_write(plugin->server_stdin_handle, msgheader, size);
   if (bytes == GNUNET_SYSERR)
@@ -1333,13 +1293,49 @@ send_ack(struct Plugin * plugin, struct AckSendQueue * ack)
   check_next_fragment_timeout(plugin);
 }
 
+static void
+finish_sending(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Finish_send * finish;
+  struct Plugin * plugin;
+  ssize_t bytes;
+
+  finish = cls;
+  plugin = finish->plugin;
+
+  plugin->server_write_task = GNUNET_SCHEDULER_NO_TASK;
+
+  bytes = GNUNET_DISK_file_write(plugin->server_stdin_handle,
+      finish->msgheader, finish->size);
+  GNUNET_assert(bytes != GNUNET_SYSERR);
+
+  GNUNET_assert(plugin->server_write_task == GNUNET_SCHEDULER_NO_TASK);
+  if (bytes != finish->size)
+    {
+
+      finish->msgheader = finish->msgheader + bytes;
+      finish->size = finish->size - bytes;
+      plugin->server_write_task = GNUNET_SCHEDULER_add_write_file(
+          GNUNET_TIME_UNIT_FOREVER_REL, plugin->server_stdin_handle,
+          &finish_sending, finish);
+    }
+  else
+    {
+      GNUNET_free(finish->msgstart);
+      GNUNET_free(finish);
+      check_next_fragment_timeout(plugin);
+    }
+
+}
+
+
+
 /**
  * Function called when wlan helper is ready to get some data
  *
  * @param cls closure
  * @param tc GNUNET_SCHEDULER_TaskContext
  */
-
 static void
 do_transmit(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -1467,7 +1463,7 @@ do_transmit(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           getRadiotapHeader(plugin, session, radioHeader);
 
           ieeewlanheader = (struct ieee80211_frame *) &radioHeader[1];
-          getWlanHeader(ieeewlanheader, fm->session->addr, plugin);
+          getWlanHeader(ieeewlanheader, &fm->session->addr, plugin);
 
           //could be faster if content is just send and not copyed before
           //fragmentheader is needed
@@ -1541,114 +1537,40 @@ do_transmit(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       "do_transmit did nothing, should not happen!\n");
 }
 
-static void
-finish_sending(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct Finish_send * finish;
-  struct Plugin * plugin;
-  ssize_t bytes;
-
-  finish = cls;
-  plugin = finish->plugin;
-
-  plugin->server_write_task = GNUNET_SCHEDULER_NO_TASK;
-
-  bytes = GNUNET_DISK_file_write(plugin->server_stdin_handle,
-      finish->msgheader, finish->size);
-  GNUNET_assert(bytes != GNUNET_SYSERR);
-
-  GNUNET_assert(plugin->server_write_task == GNUNET_SCHEDULER_NO_TASK);
-  if (bytes != finish->size)
-    {
-
-      finish->msgheader = finish->msgheader + bytes;
-      finish->size = finish->size - bytes;
-      plugin->server_write_task = GNUNET_SCHEDULER_add_write_file(
-          GNUNET_TIME_UNIT_FOREVER_REL, plugin->server_stdin_handle,
-          &finish_sending, finish);
-    }
-  else
-    {
-      GNUNET_free(finish->msgstart);
-      GNUNET_free(finish);
-      check_next_fragment_timeout(plugin);
-    }
-
-}
-
-int
-getRadiotapHeader(struct Plugin * plugin, struct Session * session,
-    struct Radiotap_Send * header)
-{
-
-  if (session != NULL)
-    {
-      header->rate = session->rate;
-      header->tx_power = session->tx_power;
-      header->antenna = session->antenna;
-    }
-  else
-    {
-      header->rate = 255;
-      header->tx_power = 0;
-      header->antenna = 0;
-    }
-
-  return GNUNET_YES;
-}
-;
 
 /**
- * function to generate the wlan hardware header for one packet
- * @param Header address to write the header to
- * @param to_mac_addr address of the recipient
- * @param plugin pointer to the plugin struct
- * @return GNUNET_YES if there was no error
+ * Another peer has suggested an address for this
+ * peer and transport plugin.  Check that this could be a valid
+ * address.  If so, consider adding it to the list
+ * of addresses.
+ *
+ * @param cls closure
+ * @param addr pointer to the address
+ * @param addrlen length of addr
+ * @return GNUNET_OK if this is a plausible address for this peer
+ *         and transport
  */
-
-int
-getWlanHeader(struct ieee80211_frame * Header, const char * const to_mac_addr,
-    struct Plugin * plugin)
+static int
+wlan_plugin_address_suggested(void *cls, const void *addr, size_t addrlen)
 {
-  Header->i_fc[0] = 0x80;
-  Header->i_fc[1] = 0x00;
-  memcpy(&Header->i_addr3, mac_bssid, sizeof(mac_bssid));
-  memcpy(&Header->i_addr2, plugin->mac_address.mac, sizeof(plugin->mac_address));
-  memcpy(&Header->i_addr1, to_mac_addr, sizeof(plugin->mac_address));
-  return GNUNET_YES;
+  //struct Plugin *plugin = cls;
+
+  /* check if the address is plausible; if so,
+   add it to our list! */
+
+  GNUNET_assert(cls !=NULL);
+  //FIXME mitm is not checked
+  //Mac Address has 6 bytes
+  if (addrlen == 6)
+    {
+      /* TODO check for bad addresses like multicast, broadcast, etc */
+      return GNUNET_OK;
+    }
+
+  return GNUNET_SYSERR;
 }
 
-/**
- * 32bit CRC
- *
- * @param msgbuf pointer tor the data
- * @param msgbuf_size size of the data
- *
- * @return 32bit crc value
- */
 
-uint32_t
-getcrc32(const char *msgbuf, size_t msgbuf_size)
-{
-  //TODO calc some crc
-  return 0;
-}
-
-/**
- * 16bit CRC
- *
- * @param msgbuf pointer tor the data
- * @param msgbuf_size size of the data
- *
- * @return 16bit crc value
- */
-
-uint16_t
-getcrc16(const char *msgbuf, size_t msgbuf_size)
-{
-  //TODO calc some crc
-  return 0;
-}
 
 /**
  * Function that can be used by the transport service to transmit
@@ -1819,6 +1741,60 @@ get_fragment_message_from_session_and_id(struct Session * session,
   return NULL;
 }
 
+
+/**
+ * function to get the receive message of a session
+ * @param plugin pointer to the plugin struct
+ * @param session session this fragment belongs to
+ */
+struct Receive_Message_Queue *
+get_receive_message_from_session(struct Plugin * plugin,
+    struct Session * session)
+{
+  struct Receive_Message_Queue * rec_message = plugin->receive_messages_head;
+  while (rec_message != NULL)
+    {
+      if (rec_message->session == session)
+        {
+          return rec_message;
+        }
+      rec_message = rec_message->next;
+    }
+  return NULL;
+}
+
+
+/**
+ * Function to dispose the fragments received for a message and the message
+ * @param plugin pointer to the plugin struct
+ * @param rec_message pointer to the struct holding the message which should be freed
+ */
+static void
+free_receive_message(struct Plugin* plugin,
+    struct Receive_Message_Queue * rx_message)
+{
+  GNUNET_assert(rx_message !=NULL);
+  struct Receive_Fragment_Queue * rec_queue = rx_message->frag_head;
+  struct Receive_Fragment_Queue * rec_queue2;
+
+  while (rec_queue != NULL)
+    {
+      rec_queue2 = rec_queue;
+      rec_queue = rec_queue->next;
+      GNUNET_free(rec_queue2);
+    }
+
+  GNUNET_CONTAINER_DLL_remove(plugin->receive_messages_head,plugin->receive_messages_teil, rx_message);
+
+  GNUNET_assert(plugin->pending_receive_messages > 0);
+  GNUNET_assert(rx_message->session->fragment_messages_in_count > 0);
+
+  plugin->pending_receive_messages--;
+  rx_message->session->fragment_messages_in_count--;
+  GNUNET_free(rx_message);
+}
+
+
 /**
  * Function that can be used to force the plugin to disconnect
  * from the given peer and cancel all previous transmissions
@@ -1937,38 +1913,7 @@ wlan_plugin_address_pretty_printer(void *cls, const char *type,
   asc(asc_cls, ret);
 }
 
-/**
- * Another peer has suggested an address for this
- * peer and transport plugin.  Check that this could be a valid
- * address.  If so, consider adding it to the list
- * of addresses.
- *
- * @param cls closure
- * @param addr pointer to the address
- * @param addrlen length of addr
- * @return GNUNET_OK if this is a plausible address for this peer
- *         and transport
- */
 
-static int
-wlan_plugin_address_suggested(void *cls, const void *addr, size_t addrlen)
-{
-  //struct Plugin *plugin = cls;
-
-  /* check if the address is plausible; if so,
-   add it to our list! */
-
-  GNUNET_assert(cls !=NULL);
-  //FIXME mitm is not checked
-  //Mac Address has 6 bytes
-  if (addrlen == 6)
-    {
-      /* TODO check for bad addresses like multicast, broadcast, etc */
-      return GNUNET_OK;
-    }
-
-  return GNUNET_SYSERR;
-}
 
 /**
  * Function called for a quick conversion of the binary address to
@@ -2084,36 +2029,133 @@ insert_fragment_in_queue(struct Receive_Message_Queue * rx_message,
   setBit((char *) &rx_message->received_fragments, rx_frag->num);
 }
 
+
+
+
+
 /**
- * Function to dispose the fragments received for a message and the message
- * @param plugin pointer to the plugin struct
- * @param rec_message pointer to the struct holding the message which should be freed
+ * handels the data after all fragments are put together
+ * @param plugin
+ * @param session_light
+ * @param hdr pointer to the data
  */
-
 static void
-free_receive_message(struct Plugin* plugin,
-    struct Receive_Message_Queue * rx_message)
+wlan_data_massage_handler(struct Plugin * plugin,
+    struct Session_light * session_light,
+    const struct GNUNET_MessageHeader * hdr)
 {
-  GNUNET_assert(rx_message !=NULL);
-  struct Receive_Fragment_Queue * rec_queue = rx_message->frag_head;
-  struct Receive_Fragment_Queue * rec_queue2;
+  struct WlanHeader * wlanheader = NULL;
+  struct Session * session = NULL;
+  const char * tempmsg = NULL;
+  const struct GNUNET_MessageHeader * temp_hdr = NULL;
+  struct GNUNET_PeerIdentity tmptarget;
 
-  while (rec_queue != NULL)
+  if (ntohs(hdr->type) == GNUNET_MESSAGE_TYPE_WLAN_DATA)
     {
-      rec_queue2 = rec_queue;
-      rec_queue = rec_queue->next;
-      GNUNET_free(rec_queue2);
+
+#if DEBUG_wlan
+      GNUNET_log(
+          GNUNET_ERROR_TYPE_DEBUG,
+          "Func wlan_data_massage_handler got GNUNET_MESSAGE_TYPE_WLAN_DATA size: %u\n",
+          ntohs(hdr->size));
+#endif
+
+      if (ntohs(hdr->size) < sizeof(struct WlanHeader)
+          + sizeof(struct GNUNET_MessageHeader))
+        {
+          //packet not big enought
+          return;
+        }
+
+      GNUNET_assert(session_light != NULL);
+      if (session_light->session == NULL)
+        {
+          session_light->session = search_session(plugin, &session_light->addr);
+        }
+      session = session_light->session;
+      wlanheader = (struct WlanHeader *) hdr;
+
+      tempmsg = (char*) &wlanheader[1];
+      temp_hdr = (const struct GNUNET_MessageHeader *) &wlanheader[1];
+
+      if (getcrc32(tempmsg, ntohs(wlanheader->header.size)) != ntohl(
+          wlanheader->crc))
+        {
+          //wrong crc, dispose message
+          GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+              "Wlan message Header crc was wrong\n");
+          return;
+        }
+
+      //if not in session list
+      if (session == NULL)
+        {
+#if DEBUG_wlan
+          GNUNET_log(
+              GNUNET_ERROR_TYPE_DEBUG,
+              "WLAN client not in session list: packet size = %u, inner size = %u, header size = %u\n",
+              ntohs(wlanheader->header.size), ntohs(temp_hdr->size),
+              sizeof(struct WlanHeader));
+#endif
+          //try if it is a hello message
+          if (ntohs(wlanheader->header.size) >= ntohs(temp_hdr->size)
+              + sizeof(struct WlanHeader))
+            {
+              if (ntohs(temp_hdr->type) == GNUNET_MESSAGE_TYPE_HELLO)
+                {
+                  if (GNUNET_HELLO_get_id(
+                      (const struct GNUNET_HELLO_Message *) temp_hdr,
+                      &tmptarget) == GNUNET_OK)
+                    {
+                      session = create_session(plugin, &session_light->addr);
+                      session_light->session = session;
+                      memcpy(&session->target, &tmptarget,
+                          sizeof(struct GNUNET_PeerIdentity));
+                    }
+                  else
+                    {
+                      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                          "WLAN client not in session list and hello message not okay\n");
+                      return;
+                    }
+
+                }
+              else
+                {
+                  GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                      "WLAN client not in session list and not a hello message\n");
+                  return;
+                }
+            }
+          else
+            {
+              GNUNET_log(
+                  GNUNET_ERROR_TYPE_WARNING,
+                  "WLAN client not in session list and message size in does not fit\npacket size = %u, inner size = %u, header size = %u\n",
+                  ntohs(wlanheader->header.size), ntohs(temp_hdr->size),
+                  sizeof(struct WlanHeader));
+              return;
+            }
+        }
+
+      //"receive" the message
+
+
+      GNUNET_SERVER_mst_receive(plugin->data_tokenizer, session,
+          (const char *) temp_hdr,
+          ntohs(hdr->size) - sizeof(struct WlanHeader), GNUNET_YES, GNUNET_NO);
+
+      return;
     }
-
-  GNUNET_CONTAINER_DLL_remove(plugin->receive_messages_head,plugin->receive_messages_teil, rx_message);
-
-  GNUNET_assert(plugin->pending_receive_messages > 0);
-  GNUNET_assert(rx_message->session->fragment_messages_in_count > 0);
-
-  plugin->pending_receive_messages--;
-  rx_message->session->fragment_messages_in_count--;
-  GNUNET_free(rx_message);
+  else
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+          "wlan_data_massage_handler got wrong message type\n");
+      return;
+    }
 }
+
+
 
 /**
  * Function to check if all fragments of a message have been received
@@ -2226,130 +2268,8 @@ process_data(void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 #endif
 
   plugin->env->receive(plugin->env->cls, &(session->target), hdr,
-      (const struct GNUNET_TRANSPORT_ATS_Information *) &distance, 2, session,
-      session->addr, sizeof(session->addr));
-}
-
-/**
- * handels the data after all fragments are put together
- * @param plugin
- * @param session_light
- * @param hdr pointer to the data
- */
-static void
-wlan_data_massage_handler(struct Plugin * plugin,
-    struct Session_light * session_light,
-    const struct GNUNET_MessageHeader * hdr)
-{
-  struct WlanHeader * wlanheader = NULL;
-  struct Session * session = NULL;
-  const char * tempmsg = NULL;
-  const struct GNUNET_MessageHeader * temp_hdr = NULL;
-  struct GNUNET_PeerIdentity tmptarget;
-
-  if (ntohs(hdr->type) == GNUNET_MESSAGE_TYPE_WLAN_DATA)
-    {
-
-#if DEBUG_wlan
-      GNUNET_log(
-          GNUNET_ERROR_TYPE_DEBUG,
-          "Func wlan_data_massage_handler got GNUNET_MESSAGE_TYPE_WLAN_DATA size: %u\n",
-          ntohs(hdr->size));
-#endif
-
-      if (ntohs(hdr->size) < sizeof(struct WlanHeader)
-          + sizeof(struct GNUNET_MessageHeader))
-        {
-          //packet not big enought
-          return;
-        }
-
-      GNUNET_assert(session_light != NULL);
-      if (session_light->session == NULL)
-        {
-          session_light->session = search_session(plugin, session_light->addr);
-        }
-      session = session_light->session;
-      wlanheader = (struct WlanHeader *) hdr;
-
-      tempmsg = (char*) &wlanheader[1];
-      temp_hdr = (const struct GNUNET_MessageHeader *) &wlanheader[1];
-
-      if (getcrc32(tempmsg, ntohs(wlanheader->header.size)) != ntohl(
-          wlanheader->crc))
-        {
-          //wrong crc, dispose message
-          GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-              "Wlan message Header crc was wrong\n");
-          return;
-        }
-
-      //if not in session list
-      if (session == NULL)
-        {
-#if DEBUG_wlan
-          GNUNET_log(
-              GNUNET_ERROR_TYPE_DEBUG,
-              "WLAN client not in session list: packet size = %u, inner size = %u, header size = %u\n",
-              ntohs(wlanheader->header.size), ntohs(temp_hdr->size),
-              sizeof(struct WlanHeader));
-#endif
-          //try if it is a hello message
-          if (ntohs(wlanheader->header.size) >= ntohs(temp_hdr->size)
-              + sizeof(struct WlanHeader))
-            {
-              if (ntohs(temp_hdr->type) == GNUNET_MESSAGE_TYPE_HELLO)
-                {
-                  if (GNUNET_HELLO_get_id(
-                      (const struct GNUNET_HELLO_Message *) temp_hdr,
-                      &tmptarget) == GNUNET_OK)
-                    {
-                      session = create_session(plugin, session_light->addr);
-                      session_light->session = session;
-                      memcpy(&session->target, &tmptarget,
-                          sizeof(struct GNUNET_PeerIdentity));
-                    }
-                  else
-                    {
-                      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                          "WLAN client not in session list and hello message not okay\n");
-                      return;
-                    }
-
-                }
-              else
-                {
-                  GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                      "WLAN client not in session list and not a hello message\n");
-                  return;
-                }
-            }
-          else
-            {
-              GNUNET_log(
-                  GNUNET_ERROR_TYPE_WARNING,
-                  "WLAN client not in session list and message size in does not fit\npacket size = %u, inner size = %u, header size = %u\n",
-                  ntohs(wlanheader->header.size), ntohs(temp_hdr->size),
-                  sizeof(struct WlanHeader));
-              return;
-            }
-        }
-
-      //"receive" the message
-
-
-      GNUNET_SERVER_mst_receive(plugin->data_tokenizer, session,
-          (const char *) temp_hdr,
-          ntohs(hdr->size) - sizeof(struct WlanHeader), GNUNET_YES, GNUNET_NO);
-
-      return;
-    }
-  else
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-          "wlan_data_massage_handler got wrong message type\n");
-      return;
-    }
+		       (const struct GNUNET_TRANSPORT_ATS_Information *) &distance, 2, session,
+		       (const char*) &session->addr, sizeof(session->addr));
 }
 
 /**
@@ -2404,27 +2324,7 @@ get_receive_message(struct Plugin * plugin, struct Session * session,
   return NULL;
 }
 
-/**
- * function to get the receive message of a session
- * @param plugin pointer to the plugin struct
- * @param session session this fragment belongs to
- */
 
-struct Receive_Message_Queue *
-get_receive_message_from_session(struct Plugin * plugin,
-    struct Session * session)
-{
-  struct Receive_Message_Queue * rec_message = plugin->receive_messages_head;
-  while (rec_message != NULL)
-    {
-      if (rec_message->session == session)
-        {
-          return rec_message;
-        }
-      rec_message = rec_message->next;
-    }
-  return NULL;
-}
 
 /**
  * function to insert a received fragment into the right fragment queue of the right message
@@ -2567,7 +2467,7 @@ wlan_data_helper(void *cls, struct Session_light * session_light,
 
       if (session_light->session == NULL)
         {
-          session_light->session = get_Session(plugin, session_light->addr);
+          session_light->session = get_Session(plugin, &session_light->addr);
         }
       GNUNET_assert(GNUNET_HELLO_get_id(
               (const struct GNUNET_HELLO_Message *) &hdr[1],
@@ -2582,7 +2482,7 @@ wlan_data_helper(void *cls, struct Session_light * session_light,
       GNUNET_assert(session_light != NULL);
       if (session_light->session == NULL)
         {
-          session_light->session = search_session(plugin, session_light->addr);
+          session_light->session = search_session(plugin, &session_light->addr);
         }
       session = session_light->session;
 
@@ -2649,7 +2549,7 @@ wlan_data_helper(void *cls, struct Session_light * session_light,
       GNUNET_assert(session_light != NULL);
       if (session_light->session == NULL)
         {
-          session_light->session = search_session(plugin, session_light->addr);
+          session_light->session = search_session(plugin, &session_light->addr);
           GNUNET_assert(session_light->session != NULL);
         }
       session = session_light->session;
@@ -2659,7 +2559,7 @@ wlan_data_helper(void *cls, struct Session_light * session_light,
       if (fm != NULL)
         {
 
-          fm->ack_bitfield = fm->ack_bitfield | ntohll(fah->fragment_field);
+          fm->ack_bitfield = fm->ack_bitfield | GNUNET_ntohll(fah->fragment_field);
           check_finished_fragment(plugin, fm);
         }
       else
@@ -2749,11 +2649,11 @@ wlan_process_helper(void *cls, void *client,
     //process only if it is an broadcast or for this computer both with the gnunet bssid
 
     //check for bssid
-    if (memcmp(&(wlanIeeeHeader->i_addr3), mac_bssid, sizeof(struct MacAddress))
+    if (memcmp(&(wlanIeeeHeader->i_addr3), &mac_bssid, sizeof(struct MacAddress))
         == 0)
       {
         //check for broadcast or mac
-        if (memcmp(&(wlanIeeeHeader->i_addr1), bc_all_mac,
+        if (memcmp(&(wlanIeeeHeader->i_addr1), &bc_all_mac,
             sizeof(struct MacAddress) == 0) || memcmp(
             &(wlanIeeeHeader->i_addr1), &(plugin->mac_address),
             sizeof(struct MacAddress)) == 0)
@@ -2767,8 +2667,8 @@ wlan_process_helper(void *cls, void *client,
                 - sizeof(struct Radiotap_rx);
 
             session_light = GNUNET_malloc(sizeof(struct Session_light));
-            memcpy(session_light->addr, &(wlanIeeeHeader->i_addr2),
-                sizeof(struct MacAddress));
+            memcpy(&session_light->addr, &(wlanIeeeHeader->i_addr2),
+		   sizeof(struct MacAddress));
             //session_light->session = search_session(plugin,session_light->addr);
 
             pos = 0;
@@ -3036,8 +2936,6 @@ libgnunet_plugin_transport_wlan_init(void *cls)
   set_next_beacon_time(plugin);
 
   wlan_transport_start_wlan_helper(plugin, testmode);
-
-  start_next_message_id();
 
 #if DEBUG_wlan
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "wlan init finished\n");

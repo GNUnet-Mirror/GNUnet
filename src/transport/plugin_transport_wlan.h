@@ -108,12 +108,12 @@ static const uint8_t u8aIeeeHeader[] =
   };
 
 // gnunet bssid
-static const char mac_bssid[] =
-  { 0x13, 0x22, 0x33, 0x44, 0x55, 0x66 };
+static const struct MacAddress mac_bssid =
+  {  { 0x13, 0x22, 0x33, 0x44, 0x55, 0x66 } } ; 
 
 // broadcast mac
-static const char bc_all_mac[] =
-   { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+static const struct MacAddress bc_all_mac =
+  { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF } };
 
 
 /* this is the template radiotap header we send packets out with */
