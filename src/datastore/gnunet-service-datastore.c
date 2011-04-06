@@ -540,6 +540,10 @@ transmit_callback (void *cls,
     tcc->tc (tcc->tc_cls, GNUNET_OK);
   if (GNUNET_YES == tcc->end)
     {
+#if DEBUG_DATASTORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Done processing client request\n");
+#endif
       GNUNET_SERVER_receive_done (tcc->client, GNUNET_OK);
     }
   else
@@ -750,7 +754,8 @@ transmit_item (void *cls,
 			    gettext_noop ("# results found"),
 			    1,
 			    GNUNET_NO);
-  transmit (client, &dm->header, &get_next, next_cls, GNUNET_NO);
+  transmit (client, &dm->header, &get_next, next_cls, 
+	    (next_cls != NULL) ? GNUNET_NO : GNUNET_YES);
   return GNUNET_OK;
 }
 

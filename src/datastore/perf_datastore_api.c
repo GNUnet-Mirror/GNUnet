@@ -226,27 +226,29 @@ run_continuation (void *cls,
       if (i > 255)
 	memset (data, i - 255, size / 2);
       data[0] = k;
-      GNUNET_DATASTORE_put (datastore,
-			    0,
-			    &key,
-			    size,
-			    data,
-			    i+1,
-			    GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100),
-			    i, 0,
-			    GNUNET_TIME_relative_to_absolute 
-			    (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-							    GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 1000))),
-			    1, 1, TIMEOUT,
-			    &check_success, 
-			    crc);
+      GNUNET_assert (NULL !=
+		     GNUNET_DATASTORE_put (datastore,
+					   0,
+					   &key,
+					   size,
+					   data,
+					   i+1,
+					   GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100),
+					   i, 0,
+					   GNUNET_TIME_relative_to_absolute 
+					   (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+									   GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 1000))),
+					   1, 1, TIMEOUT,
+					   &check_success, 
+					   crc));
       break;
     case RP_CUT:
       /* trim down below MAX_SIZE again */
-      GNUNET_DATASTORE_get_for_replication (datastore, 
-					    1, 1, TIMEOUT,
-					    &delete_value,
-					    crc);
+      GNUNET_assert (NULL !=
+		     GNUNET_DATASTORE_get_for_replication (datastore, 
+							   1, 1, TIMEOUT,
+							   &delete_value,
+							   crc));
       break;
     case RP_REPORT:
       printf (

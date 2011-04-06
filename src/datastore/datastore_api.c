@@ -1272,6 +1272,8 @@ process_result_message (void *cls,
 	      ntohl(dm->size),
 	      GNUNET_h2s(&dm->key));
 #endif
+  if (GNUNET_YES == qe->one_shot)
+    free_queue_entry (qe);
   h->retry_time.rel_value = 0;
   rc.iter (rc.iter_cls,
 	   &dm->key,
@@ -1282,8 +1284,6 @@ process_result_message (void *cls,
 	   ntohl(dm->anonymity),
 	   GNUNET_TIME_absolute_ntoh(dm->expiration),	
 	   GNUNET_ntohll(dm->uid));
-  if (GNUNET_YES == qe->one_shot)
-    free_queue_entry (qe);
 }
 
 
