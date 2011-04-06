@@ -2360,27 +2360,27 @@ http_plugin_send (void *cls,
 	//return GNUNET_SYSERR;
   }
 
-	/* create msg */
-	msg = GNUNET_malloc (sizeof (struct HTTP_Message) + msgbuf_size);
-	msg->next = NULL;
-	msg->size = msgbuf_size;
-	msg->pos = 0;
-	msg->buf = (char *) &msg[1];
-	msg->transmit_cont = cont;
-	msg->transmit_cont_cls = cont_cls;
-	memcpy (msg->buf,msgbuf, msgbuf_size);
-
-	GNUNET_CONTAINER_DLL_insert(ps->pending_msgs_head,ps->pending_msgs_tail,msg);
-	ps->queue_length_cur += msgbuf_size;
-
-	if (send_check_connections (plugin, ps) == GNUNET_SYSERR)
-	  return GNUNET_SYSERR;
-	  if (force_address != GNUNET_YES)
-		  pc->last_session = ps;
-
-	  if (pc->last_session==NULL)
-		  pc->last_session = ps;
-	  return msg->size;
+  /* create msg */
+  msg = GNUNET_malloc (sizeof (struct HTTP_Message) + msgbuf_size);
+  msg->next = NULL;
+  msg->size = msgbuf_size;
+  msg->pos = 0;
+  msg->buf = (char *) &msg[1];
+  msg->transmit_cont = cont;
+  msg->transmit_cont_cls = cont_cls;
+  memcpy (msg->buf,msgbuf, msgbuf_size);  
+  GNUNET_CONTAINER_DLL_insert (ps->pending_msgs_head,
+			       ps->pending_msgs_tail,
+			       msg);
+  ps->queue_length_cur += msgbuf_size;
+  if (send_check_connections (plugin, ps) == GNUNET_SYSERR)
+    return GNUNET_SYSERR;
+  if (force_address != GNUNET_YES)
+    pc->last_session = ps;
+  
+  if (pc->last_session==NULL)
+    pc->last_session = ps;
+  return msg->size;
 }
 
 
