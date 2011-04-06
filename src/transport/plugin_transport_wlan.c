@@ -112,19 +112,16 @@ struct Plugin
   /**
    * Number of sessions
    */
-
-  int session_count;
+  unsigned int session_count;
 
   /**
    * encapsulation of data from the local wlan helper program
    */
-
   struct GNUNET_SERVER_MessageStreamTokenizer * suid_tokenizer;
 
   /**
    * encapsulation of packets received
    */
-
   struct GNUNET_SERVER_MessageStreamTokenizer * data_tokenizer;
 
   /**
@@ -197,55 +194,46 @@ struct Plugin
   /**
    * Messages in the fragmentation queue, head
    */
-
   struct FragmentMessage * pending_Fragment_Messages_head;
 
   /**
    * Messages in the fragmentation queue, tail
    */
-
   struct FragmentMessage * pending_Fragment_Messages_tail;
 
   /**
    * number of pending fragment message
    */
-
   unsigned int pending_fragment_messages;
 
   /**
    * Messages in the in Queue, head
    */
-
   struct Receive_Message_Queue * receive_messages_head;
 
   /**
    * Messages in the in Queue, tail
    */
-
   struct Receive_Message_Queue * receive_messages_teil;
 
   /**
    * number of messages in the in queue
    */
-
   unsigned int pending_receive_messages;
 
   /**
    * time of the next "hello-beacon"
    */
-
   struct GNUNET_TIME_Absolute beacon_time;
 
   /**
    * queue to send acks for received fragments (head)
    */
-
   struct AckSendQueue * ack_send_queue_head;
 
   /**
    * queue to send acks for received fragments (tail)
    */
-
   struct AckSendQueue * ack_send_queue_tail;
 
 };
@@ -275,7 +263,6 @@ struct Sessionqueue
 /**
  * Queue for the fragments received
  */
-
 struct Receive_Fragment_Queue
 {
   struct Receive_Fragment_Queue * next;
@@ -286,10 +273,10 @@ struct Receive_Fragment_Queue
   struct Radiotap_rx rxinfo;
 };
 
+
 /**
  * Queue for the fragments received
  */
-
 struct Receive_Message_Queue
 {
   struct Receive_Message_Queue * next;
@@ -306,7 +293,6 @@ struct Receive_Message_Queue
    * MESSAGE_LENGHT_UNKNOWN means that the size is not known,
    * NO_MESSAGE_OR_MESSAGE_FINISHED means no message received
    */
-
   int rec_size;
 
   /**
