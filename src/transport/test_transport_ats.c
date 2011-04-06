@@ -41,7 +41,7 @@ static int peers_left;
 
 static int failed_peers;
 
-static int measurement_started;
+static int measurement_started = GNUNET_NO;
 
 static struct GNUNET_TESTING_PeerGroup *pg;
 
@@ -62,6 +62,7 @@ struct TEST_result
 
 static int r_index;
 //static int measurements;
+static int connected;
 static int peers;
 static struct TEST_result results[MEASUREMENTS];
 
@@ -136,6 +137,11 @@ static void shutdown_peers()
 		GNUNET_STATISTICS_get_cancel(s_duration);
 		s_duration = NULL;
 	}
+	if (s_invalid != NULL)
+	{
+		GNUNET_STATISTICS_get_cancel(s_invalid);
+		s_invalid = NULL;
+	}
 
     GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
 }
@@ -180,7 +186,6 @@ int stats_cb (void *cls,
 			   uint64_t value,
 			   int is_persistent)
 {
-
 	if (0 == strcmp (name,"ATS invalid solutions"))
 	{
 		if (stats_task != GNUNET_SCHEDULER_NO_TASK)
@@ -192,7 +197,6 @@ int stats_cb (void *cls,
 		shutdown_peers();
 		return GNUNET_SYSERR;
 	}
-
 
 	if (0 == strcmp (name,"ATS solution"))
 	{
@@ -224,6 +228,7 @@ int stats_cb (void *cls,
 		r_index = 0;
 		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All %llu peers connected\n", value);
     }
+
     if (measurement_started == GNUNET_YES)
     {
 		// GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s == %llu\n", name ,value);
@@ -244,38 +249,37 @@ int stats_cb (void *cls,
 						stats_task = GNUNET_SCHEDULER_NO_TASK;
 					}
 					evaluate_measurements();
-					return GNUNET_NO;
+					return GNUNET_SYSERR;
 				}
 				fprintf(stderr, "..");
 
 				results[r_index].timestamp = value;
-				return GNUNET_SYSERR;
+				return GNUNET_OK;
 			}
-			//GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] ATS solution: %s %llu \n", r_index, name, value);
 		}
 
 		if (0 == strcmp (name,"ATS solution"))
 		{
 			results[r_index].solution = value;
-			//GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] ATS solution: %s %llu \n", r_index, name, value);
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] ATS solution: %s %llu \n", r_index, name, value);
 		}
 
 		if (0 == strcmp (name,"ATS peers"))
 		{
 			results[r_index].peers = value;
-			// GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] ATS peers: %s %llu \n", r_index, name, value);
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] ATS peers: %s %llu \n", r_index, name, value);
 		}
 
 		if (0 == strcmp (name,"ATS mechanisms"))
 		{
 			results[r_index].mechs = value;
-			//GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] ATS mechanisms: %s %llu \n", r_index, name, value);
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] ATS mechanisms: %s %llu \n", r_index, name, value);
 		}
 
 		if (0 == strcmp (name,"ATS duration"))
 		{
 			results[r_index].duration = value;
-			// GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] ATS duration: %s %llu \n", r_index, name, value);
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] ATS duration: %s %llu \n", r_index, name, value);
 		}
     }
     return GNUNET_OK;
@@ -295,7 +299,7 @@ stats_get_task (void *cls,
 	s_duration = GNUNET_STATISTICS_get (stats, "transport","ATS duration", TIMEOUT, NULL, &stats_cb, NULL);
 	s_peers = GNUNET_STATISTICS_get (stats, "transport", "ATS peers", TIMEOUT, NULL, &stats_cb, NULL);
 	s_mechs = GNUNET_STATISTICS_get (stats, "transport", "ATS mechanisms", TIMEOUT, NULL, &stats_cb, NULL);
-	s_mechs = GNUNET_STATISTICS_get (stats, "transport", "ATS invalid solutions", TIMEOUT, NULL, &stats_cb, NULL);
+	s_invalid = GNUNET_STATISTICS_get (stats, "transport", "ATS invalid solutions", TIMEOUT, NULL, &stats_cb, NULL);
 
 
 	stats_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250), &stats_get_task, NULL);
@@ -333,7 +337,8 @@ void daemon_connect_cb(void *cls,
 {
 	char * firstc =  strdup(GNUNET_i2s(first));
 	char * secondc =  strdup(GNUNET_i2s(second));
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected peers `%s'<->`%s'\n", firstc, secondc);
+	connected++;
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected peers `%s'<->`%s' (%i/%i)\n", firstc, secondc, connected, peers-1);
 	GNUNET_free(firstc);
 	GNUNET_free(secondc);
 }
@@ -459,8 +464,6 @@ main (int argc, char *argv[])
   {
 	  peers = atoi(argv[1]);
 	  peers++;
-	  if(peers <1)
-		  peers = NUM_PEERS;
   }
   ret = check ();
   /**
