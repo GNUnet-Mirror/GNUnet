@@ -190,6 +190,8 @@ struct ForeignAddressList
 
   struct ATS_ressource_entry * ressources;
 
+  struct ATS_quality_entry * quality;
+
   /**
    * What was the last latency observed for this address, plugin and peer?
    */
@@ -1034,14 +1036,21 @@ static struct GNUNET_STATISTICS_Handle *stats;
  */
 static struct ATS_info *ats;
 
-#if HAVE_LIBGLPK
+struct ATS_quality_entry
+{
+	int index;
+	int atsi_index;
+	uint32_t values[3];
+	int current;
+};
+
 static struct ATS_quality_metric qm[] =
 {
 		{1, 1028, "QUALITY_NET_DISTANCE"},
 		{2, 1034, "QUALITY_NET_DELAY"},
 };
 static int available_quality_metrics = 2;
-#endif
+
 
 /**
  * The peer specified by the given neighbour has timed-out or a plugin
@@ -1101,6 +1110,36 @@ find_neighbour (const struct GNUNET_PeerIdentity *key)
   return head;
 }
 
+static void update_addr_ats (struct ForeignAddressList *fal, const struct GNUNET_TRANSPORT_ATS_Information *ats_data, int ats_count)
+{
+	int c1, c2;
+	for (c1=0; c1<ats_count; c1++)
+	{
+		  for (c2=0; c2<available_quality_metrics; c2++)
+		  {
+			  if (ntohl(ats_data[c1].type) == qm[c2].atis_index)
+			  {
+				  fal->quality[c2].values[0] = fal->quality[c2].values[1];
+				  fal->quality[c2].values[1] = fal->quality[c2].values[2];
+				  fal->quality[c2].values[2] = ntohl(ats_data[c1].value);
+			  }
+		  }
+	}
+}
+
+static void update_addr_value (struct ForeignAddressList *fal, uint32_t value , int ats_index)
+{
+	int c;
+	for (c=0; c<available_quality_metrics; c++)
+	{
+	  if (ats_index == qm[c].atis_index)
+	  {
+		  fal->quality[c].values[0] = fal->quality[c].values[1];
+		  fal->quality[c].values[1] = fal->quality[c].values[2];
+		  fal->quality[c].values[2] = value;
+	  }
+	}
+}
 
 /**
  * Find an entry in the transport list for a particular transport.
@@ -1797,7 +1836,7 @@ try_transmission_to_peer (struct NeighbourList *n)
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Transmission queue for `%4s' is empty\n",
-		  GNUNET_i2s (&neighbour->id));
+		  GNUNET_i2s (&n->id));
 #endif
       return;                     /* nothing to do */
     }
@@ -1878,7 +1917,7 @@ try_transmission_to_peer (struct NeighbourList *n)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending message of size %u for `%4s' to `%s' via plugin `%s'\n",
               mq->message_buf_size,
-              GNUNET_i2s (&neighbour->id),
+              GNUNET_i2s (&n->id),
 	      (mq->specific_address->addr != NULL)
 	      ? a2s (mq->plugin->short_name,
 		     mq->specific_address->addr,
@@ -2631,6 +2670,7 @@ add_peer_address (struct NeighbourList *neighbour,
 	  }
   }
 
+  ret->quality = GNUNET_malloc (available_quality_metrics * sizeof (struct ATS_quality_entry));
   ret->addrlen = addrlen;
   ret->expires = GNUNET_TIME_relative_to_absolute
     (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
@@ -3947,6 +3987,8 @@ check_pending_validation (void *cls,
 				1,
 				GNUNET_NO);
       fal->latency = GNUNET_TIME_absolute_get_duration (ve->send_time);
+      update_addr_value (fal, GNUNET_TIME_absolute_get_duration (ve->send_time).rel_value, GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY);
+
       schedule_next_ping (fal);
       if (n->latency.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
 	n->latency = fal->latency;
@@ -4638,6 +4680,7 @@ disconnect_neighbour (struct NeighbourList *n, int check)
 	      peer_pos->revalidate_task = GNUNET_SCHEDULER_NO_TASK;
 	    }
 		  GNUNET_free(peer_pos->ressources);
+		  GNUNET_free(peer_pos->quality);
           GNUNET_free(peer_pos);
         }
       GNUNET_free (rpos);
@@ -4948,6 +4991,9 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
 }
 
 
+
+
+
 /**
  * Function called by the plugin for each received message.
  * Update data volumes, possibly notify plugins about
@@ -4995,6 +5041,7 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_assert ((plugin->api->send == NULL) || (service_context != NULL));
   peer_address = NULL;
   distance = 1;
+
   for (c=0; c<ats_count; c++)
   {
 	  if (ntohl(ats_data[c].type) == GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE)
@@ -5003,7 +5050,7 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 	  }
   }
   /* notify ATS about incoming data */
-  ats_notify_ats_data(peer, ats_data);
+  //ats_notify_ats_data(peer, ats_data);
 
   if (message != NULL)
     {
@@ -5016,7 +5063,11 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 					 sender_address_len);
       if (peer_address != NULL)
 	{
-	  peer_address->distance = distance;
+
+      update_addr_ats(peer_address, ats_data, ats_count);
+      update_addr_value(peer_address, distance, GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+
+      peer_address->distance = distance;
 	  if (GNUNET_YES == peer_address->validated)
 	    mark_address_connected (peer_address);
 	  peer_address->timeout
@@ -6059,23 +6110,30 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 			ja[array_index] = c2;
 			if (qm[c-1].atis_index  == GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY)
 			{
-				if (mechanisms[c2].addr->latency.rel_value == -1)
-					value = 0;
-				if (mechanisms[c2].addr->latency.rel_value == 0)
-					value = 0 ;
-				else
-					value = 100 / (double) mechanisms[c2].addr->latency.rel_value;
-
-				//if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "DELAY VALUE %f %llu\n",value, mechanisms[c2].addr->latency.rel_value);
+				double v0, v1, v2;
+				v0 = mechanisms[c2].addr->quality[c-1].values[0];
+				if (v1 < 1) v0 = 0.1;
+				v1 = mechanisms[c2].addr->quality[c-1].values[1];
+				if (v1 < 1) v0 = 0.1;
+				v2 = mechanisms[c2].addr->quality[c-1].values[2];
+				if (v1 < 1) v0 = 0.1;
+				value = 100.0 / ((v0 + 2 * v1 + 3 * v2) / 6.0);
 			}
 			if (qm[c-1].atis_index  == GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE)
 			{
-				if (mechanisms[c2].addr->distance == -1)
-					value = 0;
-				else if (mechanisms[c2].addr->distance == 0)
-					value = 0;
-				else value =  (double) 10 / mechanisms[c2].addr->distance;
-				//if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "DISTANCE VALUE %f %lli\n",value,  mechanisms[c2].addr->distance);
+				double v0, v1, v2;
+				v0 = mechanisms[c2].addr->quality[c-1].values[0];
+				if (v0 < 1) v0 = 1;
+				v1 = mechanisms[c2].addr->quality[c-1].values[1];
+				if (v1 < 1) v1 = 1;
+				v2 = mechanisms[c2].addr->quality[c-1].values[2];
+				if (v2 < 1) v2 = 1;
+				value =  (v0 + 2 * v1 + 3 * v2) / 6.0;
+				if (value >= 1)
+					value =  (double) 10 / value;
+				else
+					value = 10;
+				if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "DISTANCE VALUE %f\n",value);
 			}
 			ar[array_index] = (mechanisms[c2].peer->f) * value ;
 			//if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: %s [%i,%i]=%f \n",array_index, qm[c-1].name, ia[array_index], ja[array_index], ar[array_index]);
