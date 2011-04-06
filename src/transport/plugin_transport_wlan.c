@@ -1245,12 +1245,12 @@ static void
 send_ack(struct Plugin * plugin, struct AckSendQueue * ack)
 {
 
-  uint16_t size = 0;
+  uint16_t size;
   ssize_t bytes;
-  struct GNUNET_MessageHeader * msgheader = NULL;
-  struct ieee80211_frame * ieeewlanheader = NULL;
-  struct Radiotap_Send * radioHeader = NULL;
-  struct FragmentationAckHeader * msgheader2 = NULL;
+  struct GNUNET_MessageHeader * msgheader;
+  struct ieee80211_frame * ieeewlanheader;
+  struct Radiotap_Send * radioHeader;
+  struct FragmentationAckHeader * msgheader2;
 
   GNUNET_assert(sizeof(struct FragmentationAckHeader) <= WLAN_MTU);
 
