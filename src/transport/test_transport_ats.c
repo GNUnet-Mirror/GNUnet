@@ -26,7 +26,7 @@
 #include "gnunet_scheduler_lib.h"
 #include "gauger.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define NUM_PEERS 11
 #define MEASUREMENTS 5
@@ -70,6 +70,7 @@ struct GNUNET_STATISTICS_GetHandle * s_time;
 struct GNUNET_STATISTICS_GetHandle * s_peers;
 struct GNUNET_STATISTICS_GetHandle * s_mechs;
 struct GNUNET_STATISTICS_GetHandle * s_duration;
+struct GNUNET_STATISTICS_GetHandle * s_invalid;
 
 /**
  * Check whether peers successfully shut down.
@@ -136,7 +137,6 @@ static void shutdown_peers()
 		s_duration = NULL;
 	}
 
-
     GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
 }
 
@@ -180,6 +180,20 @@ int stats_cb (void *cls,
 			   uint64_t value,
 			   int is_persistent)
 {
+
+	if (0 == strcmp (name,"ATS invalid solutions"))
+	{
+		if (stats_task != GNUNET_SCHEDULER_NO_TASK)
+		{
+			GNUNET_SCHEDULER_cancel(stats_task);
+			stats_task = GNUNET_SCHEDULER_NO_TASK;
+		}
+		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"MLP produced invalid %llu result(s)!\n", value);
+		shutdown_peers();
+		return GNUNET_SYSERR;
+	}
+
+
 	if (0 == strcmp (name,"ATS solution"))
 	{
 		s_solution = NULL;
@@ -235,6 +249,7 @@ int stats_cb (void *cls,
 				fprintf(stderr, "..");
 
 				results[r_index].timestamp = value;
+				return GNUNET_SYSERR;
 			}
 			//GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] ATS solution: %s %llu \n", r_index, name, value);
 		}
@@ -280,6 +295,8 @@ stats_get_task (void *cls,
 	s_duration = GNUNET_STATISTICS_get (stats, "transport","ATS duration", TIMEOUT, NULL, &stats_cb, NULL);
 	s_peers = GNUNET_STATISTICS_get (stats, "transport", "ATS peers", TIMEOUT, NULL, &stats_cb, NULL);
 	s_mechs = GNUNET_STATISTICS_get (stats, "transport", "ATS mechanisms", TIMEOUT, NULL, &stats_cb, NULL);
+	s_mechs = GNUNET_STATISTICS_get (stats, "transport", "ATS invalid solutions", TIMEOUT, NULL, &stats_cb, NULL);
+
 
 	stats_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250), &stats_get_task, NULL);
 }
@@ -376,7 +393,7 @@ daemon_start_cb (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Too many peers failed, ending test!\n");
-      GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
+      shutdown_peers();
       ok = 1;
     }
 }
@@ -435,6 +452,7 @@ main (int argc, char *argv[])
                     "WARNING",
 #endif
                     NULL);
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-testing");
 
   peers = NUM_PEERS;
   if (argc >= 2)

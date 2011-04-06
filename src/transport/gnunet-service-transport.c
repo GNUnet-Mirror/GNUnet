@@ -6242,11 +6242,15 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 			{
 				if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[%i][%i] `%s' %s %s %f\n", c, t->col_index, GNUNET_h2s(&peers[c].peer.hashPubKey), t->plugin->short_name, glp_get_col_name(prob,t->col_index), bw);
 				if (check ==GNUNET_YES)
+				{
+					glp_write_sol(prob, "invalid_solution.mlp");
+					GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid solution, check invalid_solution.mlp");
+					GNUNET_STATISTICS_update (stats, "ATS invalid solutions", 1, GNUNET_NO);
 					error = GNUNET_YES;
+				}
 				if (check ==GNUNET_NO)
 					check = GNUNET_YES;
 			}
-			GNUNET_assert (error != GNUNET_YES);
 			t = t->next;
 		}
 	}
