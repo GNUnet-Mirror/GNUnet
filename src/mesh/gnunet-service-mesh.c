@@ -34,6 +34,7 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_peer_lib.h"
 #include "gnunet_core_service.h"
 #include "gnunet_protocols.h"
 #include "mesh.h"
@@ -56,7 +57,7 @@ struct GNUNET_MESH_ManipulatePath
     struct GNUNET_MessageHeader header;
 
     /**
-     * Id of the tunnel this path belongs to, unique in conjunction with the origin.
+     * (global) Id of the tunnel this path belongs to, unique in conjunction with the origin.
      */
     uint32_t tid GNUNET_PACKED;
 
@@ -65,6 +66,11 @@ struct GNUNET_MESH_ManipulatePath
      * minimum bandwidth, packets are to be dropped.
      */
     uint32_t speed_min GNUNET_PACKED;
+
+    /**
+     * 64-bit alignment.
+     */
+    uint32_t reserved GNUNET_PACKED;
 
     /**
      * path_length structs defining the *whole* path from the origin [0] to the
@@ -92,11 +98,6 @@ struct GNUNET_MESH_OriginMulticast
      * OID of the tunnel
      */
     struct GNUNET_PeerIdentity oid;
-
-    /**
-     * FIXME: Some form of authentication
-     */
-    // uint32_t token;
 
     /**
      * Payload follows
@@ -130,11 +131,6 @@ struct GNUNET_MESH_DataMessageFromOrigin
     struct GNUNET_PeerIdentity destination;
 
     /**
-     * FIXME: Some form of authentication
-     */
-    // uint32_t token;
-
-    /**
      * Payload follows
      */
 };
@@ -164,11 +160,6 @@ struct GNUNET_MESH_DataMessageToOrigin
      * Sender of the message.
      */
     struct GNUNET_PeerIdentity sender;
-
-    /**
-     * FIXME: Some form of authentication
-     */
-    // uint32_t token;
 
     /**
      * Payload follows
@@ -240,7 +231,7 @@ struct PeerInfo
     /**
      * ID of the peer
      */
-    struct GNUNET_PeerIdentity id;
+    GNUNET_PEER_Id id;
 
     /**
      * Is the peer reachable? Is the peer even connected?
@@ -248,9 +239,9 @@ struct PeerInfo
     enum PeerState state;
 
     /**
-     * Who to send the data to
+     * Who to send the data to --- what about multiple (alternate) paths?
      */
-    uint32_t first_hop;
+    GNUNET_PEER_Id first_hop;
 
     /**
      * Max data rate to this peer
@@ -276,7 +267,7 @@ struct Path
     /**
      * List of all the peers that form the path from origin to target
      */
-    struct PeerInfo *peers;
+    GNUNET_PEER_Id *peers;
 };
 
 /**
@@ -290,10 +281,15 @@ struct Path
  */
 struct MESH_tunnel
 {
+
+  struct MESH_tunnel *next;
+
+  struct MESH_tunnel *prev;
+
     /**
      * Origin ID: Node that created the tunnel
      */
-    struct GNUNET_PeerIdentity oid;
+    GNUNET_PEER_Id oid;
 
     /**
      * Tunnel number (unique for a given oid)
@@ -301,7 +297,7 @@ struct MESH_tunnel
     uint32_t tid;
 
     /**
-     * Whether the tunnel is in state to transmit data
+     * Whether the tunnel is in  a state to transmit data
      */
     int ready;
 
@@ -331,31 +327,51 @@ struct MESH_tunnel
     struct Path *paths;
 
     /**
-     * Messages ready to transmit
+     * Messages ready to transmit??? -- real queues needed
      */
     struct GNUNET_MessageHeader *msg_out;
 
     /**
-     * Messages received and not processed
+     * Messages received and not processed??? -- real queues needed
      */
     struct GNUNET_MessageHeader *msg_in;
 
     /**
-     * FIXME Clients. Is anyone to be notified for traffic here?
+     * If this tunnel was created by a local client, what's its handle?
      */
+    struct GNUNET_SERVER_Client *initiator;
 };
 
 /**
  * So, I'm an endpoint. Why am I receiveing traffic?
  * Who is interested in this? How to communicate with them?
  */
-struct Clients
+struct Client
 {
+
+  struct Client *next;
+
+  struct Client *prev;
+
+  struct MESH_tunnel *my_tunnels_head;
+
+  struct MESH_tunnel *my_tunnels_tail;
+
     /**
-     * FIXME add structures needed to handle client connections
+     * If this tunnel was created by a local client, what's its handle?
      */
-    int fixme;
+    struct GNUNET_SERVER_Client *handle;
+
+  unsigned int messages_subscribed_counter;
+
+  uint16_t *messages_subscribed;
+
 };
+
+
+static struct MESH_tunnel *tunnel_participation_head;
+
+static struct MESH_tunnel *tunnel_participation_tail;
 
 
 
@@ -382,6 +398,28 @@ handle_mesh_path_create (void *cls,
                               const struct GNUNET_TRANSPORT_ATS_Information
                               *atsi)
 {
+  /*
+   * EXAMPLE OF USING THE API
+   * NOT ACTUAL CODE!!!!!
+   */
+  /*client *c;
+  tunnel *t;
+
+  t = new;
+  GNUNET_CONTAINER_DLL_insert (c->my_tunnels_head,
+			       c->my_tunnels_tail,
+			       t);
+
+  while (NULL != (t = c->my_tunnels_head))
+    {
+      GNUNET_CONTAINER_DLL_remove (c->my_tunnels_head,
+				   c->my_tunnels_tail,
+				   t);
+      GNUNET_free (t);
+    }
+  */
+
+
     /* Extract path */
     /* Find origin & self */
     /* Search for origin in local tunnels */
@@ -515,8 +553,8 @@ static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
   {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD, 0},
   {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_DEL, 0},
   {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_BY_TYPE, sizeof(struct GNUNET_MESH_ConnectPeerByType)},
-  {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_CANCEL, sizeof(struct GNUNET_MESH_Control)},
-  {&handle_local_network_traffic, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_TRANSMIT_READY, sizeof(struct GNUNET_MESH_Control)},
+  {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_CANCEL, 0},
+  {&handle_local_network_traffic, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_TRANSMIT_READY, 0},
   {&handle_local_network_traffic, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA, 0}, /* FIXME needed? */
   {&handle_local_network_traffic, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA_BROADCAST, 0}, /* FIXME needed? */
   {NULL, NULL, 0, 0}

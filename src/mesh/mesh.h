@@ -36,18 +36,19 @@
 /* API CALL                         MESSAGE USED
  * --------                         ------------
  * connect                          GNUNET_MESH_Connect
- * disconnect                       Server_disconnect
+ * disconnect                       None (network level disconnect)
  *
- * peer_request_connect_any         GNUNET_MESH_ConnectPeer
- * peer_request_connect_all         GNUNET_MESH_ConnectPeer
+ * tunnel_create                    GNUNET_MESH_TunnelMessage
+ * tunnel_destroy                   GNUNET_MESH_TunnelMessage
+ *
  * peer_request_connect_add         GNUNET_MESH_ConnectPeer
  * peer_request_connect_del         GNUNET_MESH_ConnectPeer
  * peer_request_connect_by_type     GNUNET_MESH_ConnectPeerByType
- * peer_request_connect_cancel      GNUNET_MESH_Control
  *
  * notify_transmit_ready            GNUNET_MESH_Control
  * notify_transmit_ready_cancel     None
  */
+
 
 struct GNUNET_MESH_Connect {
     /**
@@ -60,16 +61,46 @@ struct GNUNET_MESH_Connect {
     /* uint16_t messages_subscribed[] */
 };
 
-struct GNUNET_MESH_ConnectPeer {
+
+/**
+ *
+ */
+struct GNUNET_MESH_TunnelMessage {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_[ANY|ALL|ADD|DEL]
-     * 
-     * Size: sizeof(struct GNUNET_MESH_ConnectPeer) + npeers * sizeof (struct GNUNET_PeerIdentity)
+     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_[CREATE|DESTROY]
      */
     struct GNUNET_MessageHeader header;
 
-    /* struct GNUNET_PeerIdentity peers[] */
+  /**
+   * ID of a tunnel controlled by this client.
+   */
+    uint32_t tunnel_id GNUNET_PACKED;
 };
+
+
+struct GNUNET_MESH_PeerControl {
+
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_[ADD|DEL] (client to service, client created tunnel)
+   * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_NOTIFY[CONNECT|DISCONNECT] (service to client)
+   * 
+   * Size: sizeof(struct GNUNET_MESH_PeerControl) 
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * ID of a tunnel controlled by this client.
+   */
+    uint32_t tunnel_id GNUNET_PACKED;
+  
+  /**
+   * Peer to connect/disconnect.
+   */
+  struct GNUNET_PeerIdentity peer;
+};
+
+
+
 
 struct GNUNET_MESH_ConnectPeerByType {
     /**
@@ -77,57 +108,90 @@ struct GNUNET_MESH_ConnectPeerByType {
      */
     struct GNUNET_MessageHeader header;
 
-    /* Type specification */
+  /**
+   * ID of a tunnel controlled by this client.
+   */
+    uint32_t tunnel_id GNUNET_PACKED;
+ 
+  /**
+   * Type specification 
+   */
     GNUNET_MESH_ApplicationType type;
 };
 
-struct GNUNET_MESH_Control {
+
+struct GNUNET_MESH_RequestTransmitReady {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_CANCEL
-     *       GNUNET_MESSAGE_TYPE_MESH_LOCAL_TRANSMIT_READY
+     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_REQUEST_TRANSMIT_READY
      */
     struct GNUNET_MessageHeader header;
 
+  /**
+   * ID of a tunnel controlled by this client.
+   */
     uint32_t tunnel_id GNUNET_PACKED;
-    uint32_t variable GNUNET_PACKED; /* Size of data / connection ID */
+
+  /**
+   * Size of message we would like to transmit to this tunnel
+   */
+    uint32_t msg_size GNUNET_PACKED; 
 };
 
-struct GNUNET_MESH_TunnelEvent {
+struct GNUNET_MESH_NotifyTransmitReady {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_[CREATED\DESTROYED]
+     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_NOTIFY_TRANSMIT_READY
      */
     struct GNUNET_MessageHeader header;
 
+  /**
+   * ID of a tunnel controlled by this client.
+   */
     uint32_t tunnel_id GNUNET_PACKED;
-    uint32_t reason GNUNET_PACKED; /* incoming, connect, timeout, disconnect */
+
+  /**
+   * Size of message we can now transmit to this tunnel
+   */
+    uint32_t msg_size GNUNET_PACKED; 
 };
+
 
 struct GNUNET_MESH_Data {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA
+     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA (client to service, or service to client)
      *
      * Size: sizeof(struct GNUNET_MESH_Data) + sizeof (data)
      */
     struct GNUNET_MessageHeader header;
 
+  /**
+   * ID of a tunnel controlled by this client.
+   */
     uint32_t tunnel_id GNUNET_PACKED;
 
+  /**
+   * Source or destination of the message (depending on direction).
+   */
     struct GNUNET_PeerIdentity destination;
 
     /* uint8_t data[] */
 };
 
+
 struct GNUNET_MESH_DataBroadcast {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA_BROADCAST
+     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA_BROADCAST (client to service only, client created tunnel)
      *
      * Size: sizeof(struct GNUNET_MESH_DataBroadcast) + sizeof (data)
      */
     struct GNUNET_MessageHeader header;
 
+  /**
+   * ID of a tunnel controlled by this client.
+   */
     uint32_t tunnel_id GNUNET_PACKED;
 
     /* uint8_t data[] */
 };
+
 
 #endif
