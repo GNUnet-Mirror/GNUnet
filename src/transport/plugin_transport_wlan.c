@@ -784,7 +784,7 @@ set_next_beacon_time(struct Plugin * const plugin)
 }
 
 //TODO doxigen
-struct GNUNET_TIME_Relative
+static struct GNUNET_TIME_Relative
 get_next_frag_timeout(struct FragmentMessage * fm)
 {
   return GNUNET_TIME_relative_min(GNUNET_TIME_absolute_get_remaining(
@@ -796,7 +796,7 @@ get_next_frag_timeout(struct FragmentMessage * fm)
  * Function to get the timeout value for acks for this session
  */
 
-struct GNUNET_TIME_Relative
+static struct GNUNET_TIME_Relative
 get_ack_timeout(struct FragmentMessage * fm)
 {
   return FRAGMENT_TIMEOUT;
@@ -1111,7 +1111,7 @@ set_next_message_fragment_pos(struct FragmentMessage * fm)
 
 }
 
-int
+static int
 getRadiotapHeader(struct Plugin * plugin, struct Session * session,
     struct Radiotap_Send * header)
 {
@@ -1140,7 +1140,7 @@ getRadiotapHeader(struct Plugin * plugin, struct Session * session,
  * @param plugin pointer to the plugin struct
  * @return GNUNET_YES if there was no error
  */
-int
+static int
 getWlanHeader(struct ieee80211_frame * Header, 
 	      const struct MacAddress * to_mac_addr,
 	      struct Plugin * plugin)
@@ -1194,12 +1194,12 @@ send_hello_beacon(struct Plugin * plugin)
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sending hello beacon\n");
 #endif
 
-  uint16_t size = 0;
+  uint16_t size;
   ssize_t bytes;
-  struct GNUNET_MessageHeader * msgheader = NULL;
-  struct ieee80211_frame * ieeewlanheader = NULL;
-  struct Radiotap_Send * radioHeader = NULL;
-  struct GNUNET_MessageHeader * msgheader2 = NULL;
+  struct GNUNET_MessageHeader * msgheader;
+  struct ieee80211_frame * ieeewlanheader;
+  struct Radiotap_Send * radioHeader;
+  struct GNUNET_MessageHeader * msgheader2;
 
   GNUNET_assert(sizeof(struct WlanHeader) + GNUNET_HELLO_size(
           *(plugin->env->our_hello)) <= WLAN_MTU);
