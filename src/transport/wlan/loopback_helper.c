@@ -1,5 +1,3 @@
-
-
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
@@ -52,7 +50,8 @@ stdin_send(void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   //unsigned char * from_start;
   unsigned char * to_start;
 
-  sendsize = ntohs(hdr->size) - sizeof(struct Radiotap_Send);
+  sendsize = ntohs(hdr->size) - sizeof(struct Radiotap_Send)
+      + sizeof(struct Radiotap_rx);
 
   if (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA != ntohs(hdr->type))
     {
@@ -73,16 +72,17 @@ stdin_send(void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   to_data = to_radiotap + sizeof(struct Radiotap_rx);
 
   from_data = ((unsigned char *) hdr) + sizeof(struct Radiotap_Send)
-        + sizeof(struct GNUNET_MessageHeader);
-
+      + sizeof(struct GNUNET_MessageHeader);
 
   memcpy(to_start, &newheader, sizeof(struct GNUNET_MessageHeader));
   write_pout->size += sizeof(struct GNUNET_MessageHeader);
 
   write_pout->size += sizeof(struct Radiotap_rx);
 
-  memcpy(to_data, from_data, sendsize - sizeof(struct GNUNET_MessageHeader));
-  write_pout->size += sendsize - sizeof(struct GNUNET_MessageHeader);
+  memcpy(to_data, from_data, ntohs(hdr->size) - sizeof(struct Radiotap_Send)
+      - sizeof(struct GNUNET_MessageHeader));
+  write_pout->size += ntohs(hdr->size) - sizeof(struct Radiotap_Send)
+      - sizeof(struct GNUNET_MessageHeader);
 }
 
 static void
@@ -130,8 +130,20 @@ testmode(int argc, char *argv[])
         }
 
       umask(0);
+      //unlink(FIFO_FILE1);
+      //unlink(FIFO_FILE2);
       erg = mknod(FIFO_FILE1, S_IFIFO | 0666, 0);
+      if (0 != erg)
+        {
+          fprintf(stderr, "Error at mknode1 \n");
+          //exit(1);
+        }
       erg = mknod(FIFO_FILE2, S_IFIFO | 0666, 0);
+      if (0 != erg)
+        {
+          fprintf(stderr, "Error at mknode2 \n");
+          //exit(1);
+        }
 
     }
   else
@@ -153,12 +165,13 @@ testmode(int argc, char *argv[])
       if (NULL == fpin)
         {
           fprintf(stderr, "fopen of read FIFO_FILE1\n");
-          exit(1);
+          goto end2;
         }
-      if (NULL == (fpout = fopen(FIFO_FILE2, "w")))
+      fpout = fopen(FIFO_FILE2, "w");
+      if (NULL == fpout)
         {
           fprintf(stderr, "fopen of write FIFO_FILE2\n");
-          exit(1);
+          goto end1;
         }
 
     }
@@ -166,16 +179,19 @@ testmode(int argc, char *argv[])
     {
       first = 0;
       //fprintf(stderr, "Second\n");
-      if (NULL == (fpout = fopen(FIFO_FILE1, "w")))
+      fpout = fopen(FIFO_FILE1, "w");
+      if (NULL == fpout)
         {
           fprintf(stderr, "fopen of write FIFO_FILE1\n");
-          exit(1);
+          goto end1;
         }
-      if (NULL == (fpin = fopen(FIFO_FILE2, "r")))
+      fpin = fopen(FIFO_FILE2, "r");
+      if (NULL == fpin)
         {
           fprintf(stderr, "fopen of read FIFO_FILE2\n");
-          exit(1);
+          goto end1;
         }
+
 
     }
 
@@ -426,8 +442,11 @@ testmode(int argc, char *argv[])
     }
 
   //clean up
-  fclose(fpout);
-  fclose(fpin);
+
+  GNUNET_SERVER_mst_destroy(stdin_mst);
+  GNUNET_SERVER_mst_destroy(file_in_mst);
+  end1: fclose(fpout);
+  end2: fclose(fpin);
 
   if (1 == first)
     {

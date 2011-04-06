@@ -1273,6 +1273,7 @@ hardwaremode(int argc, char *argv[])
 
     }
 
+  GNUNET_SERVER_mst_destroy(stdin_mst);
   return 0;
 
 }
