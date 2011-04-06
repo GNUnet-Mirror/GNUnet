@@ -5848,7 +5848,7 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 
 	if (VERBOSE_ATS) GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Creating problem with: %i peers, %i mechanisms, %i resource entries, %i quality metrics \n", c_peers, c_mechs, c_c_ressources, c_q_metrics);
 
-	int size = 1 + 3 + 10 *c_mechs + c_peers + (c_q_metrics*c_mechs)+ c_q_metrics + c_c_ressources + 1000;
+	int size =  1 + 3 + 10 *c_mechs + c_peers + (c_q_metrics*c_mechs)+ c_q_metrics + c_c_ressources * c_mechs ;
 	//int size = 1 + 8 *c_mechs +2 + c_mechs + c_peers + (c_q_metrics*c_mechs)+c_q_metrics + c_c_ressources ;
 	int row_index;
 	int array_index=1;
