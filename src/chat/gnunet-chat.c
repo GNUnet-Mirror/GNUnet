@@ -122,7 +122,7 @@ receive_cb (void *cls,
   else
     nick = GNUNET_strdup (_("anonymous"));
   fmt = NULL;
-  switch (options)
+  switch ( (int) options)
     {
     case GNUNET_CHAT_MSG_OPTION_NONE:
     case GNUNET_CHAT_MSG_ANONYMOUS:
