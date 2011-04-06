@@ -37,6 +37,10 @@
 
 0.9.1:
 * TRANSPORT: [MW]
+  - 'TransmitFunction' requires plugins to have "unbounded" queue (or at least 
+    queue of size > 2), might be better to have at MOST one message pending
+    per plugin/target and only send the next one after the continuation was
+    called (or use 'notify_transmit_ready-style API?)
   - WiFi transport backend [DB]
   - Implement method of learning our external addresses from
     other peers; need some kind of threshold-based
