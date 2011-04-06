@@ -2361,7 +2361,7 @@ create_clique(struct GNUNET_TESTING_PeerGroup *pg,
   connect_attempts = 0;
 
   conn_meter = create_meter ((((pg->total * pg->total) + pg->total) / 2)
-      - pg->total, "Create Clique ", GNUNET_YES);
+      - pg->total, "Create Clique ", GNUNET_NO);
   for (outer_count = 0; outer_count < pg->total - 1; outer_count++)
     {
       for (inner_count = outer_count + 1; inner_count < pg->total; inner_count++)
@@ -2375,8 +2375,6 @@ create_clique(struct GNUNET_TESTING_PeerGroup *pg,
           update_meter (conn_meter);
         }
     }
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Meter has %d left\n",
-              conn_meter->total - conn_meter->completed);
   reset_meter (conn_meter);
   free_meter (conn_meter);
   return connect_attempts;
@@ -5922,7 +5920,7 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
           else
             {
               total_hostkeys = fs / HOSTKEYFILESIZE;
-              GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                           "Will read %llu hostkeys from file\n", total_hostkeys);
               pg->hostkey_data = GNUNET_malloc_large (fs);
               GNUNET_assert (fs == GNUNET_DISK_file_read (fd, pg->hostkey_data, fs));

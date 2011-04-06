@@ -27,6 +27,7 @@ check_PROGRAMS = \
  test_testing_connect \
  test_testing_reconnect \
  test_testing_group \
+ test_testing_peergroup \
  test_testing_topology_stability \
  test_testing_topology_clique \
  test_testing_topology_clique_random \
@@ -51,6 +52,7 @@ TESTS = \
  test_testing_connect \
  test_testing_reconnect \
  test_testing_group \
+ test_testing_peergroup \
  test_testing_topology_clique
 # test_testing_topology_stability \
 # test_testing_topology_clique_random \
@@ -92,6 +94,12 @@ test_testing_group_SOURCES = \
 test_testing_group_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la  
+ 
+test_testing_peergroup_SOURCES = \
+ test_testing_peergroup.c
+test_testing_peergroup_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la 
 
 test_testing_topology_clique_SOURCES = \
  test_testing_topology.c
