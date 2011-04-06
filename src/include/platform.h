@@ -180,6 +180,13 @@
 #include <sys/resource.h>
 #endif
 
+#if HAVE_ENDIAN_H
+#include <endian.h>
+#endif
+#if HAVE_SYS_ENDIAN_H
+#include <sys/endian.h>
+#endif
+
 #include "plibc.h"
 
 #include <locale.h>
