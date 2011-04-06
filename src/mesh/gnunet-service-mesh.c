@@ -369,9 +369,10 @@ struct Client
 };
 
 
-static struct MESH_tunnel *tunnel_participation_head;
+// static struct MESH_tunnel *tunnel_participation_head;
 
-static struct MESH_tunnel *tunnel_participation_tail;
+// static struct MESH_tunnel *tunnel_participation_tail;
+
 
 
 
