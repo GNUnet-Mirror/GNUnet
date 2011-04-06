@@ -21,20 +21,20 @@
 #
 #
 AC_PREREQ(2.61)
+# Checks for programs.
 AC_INIT([gnunet], [0.9.0pre2],[bug-gnunet@gnu.org])
+
+AC_CANONICAL_TARGET
+AC_CANONICAL_HOST
+AC_CANONICAL_SYSTEM
+
 AM_INIT_AUTOMAKE([gnunet], [0.9.0pre2])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_CONFIG_HEADERS([gnunet_config.h])
-
 AH_TOP([#define _GNU_SOURCE  1])
 
-# Checks for programs.
-AC_CANONICAL_TARGET
-AC_CANONICAL_SYSTEM
 AC_PROG_AWK
 AC_PROG_CC
-gl_EARLY
-gl_INIT
 AC_PROG_CPP
 AC_PROG_CXX
 AC_PROG_OBJC
@@ -42,7 +42,6 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AM_PROG_CC_C_O
-AC_CANONICAL_HOST
 LT_INIT([disable-static dlopen win32-dll])
 LTDL_INIT
 AC_SUBST(LTDLINCL)

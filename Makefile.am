@@ -8,5 +8,8 @@ EXTRA_DIST = \
  HACKING \
  acinclude.m4
 
+gnunetincludedir = $(includedir)/gnunet
+gnunetinclude_HEADERS = gnunet_config.h
+
 ACLOCAL_AMFLAGS = -I m4
 
