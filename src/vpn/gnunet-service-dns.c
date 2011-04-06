@@ -98,7 +98,7 @@ static struct {
  * closure to receive_dht
  */
 struct receive_dht_cls {
-    unsigned short id;
+    uint16_t id;
     struct GNUNET_DHT_GetHandle* handle;
 };
 
@@ -545,53 +545,70 @@ open_port ()
  */
 static void
 read_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
-    unsigned char buf[65536];
-    struct dns_pkt* dns = (struct dns_pkt*)buf;
+    struct sockaddr_in addr;
+    socklen_t addrlen = sizeof (addr);
+    int r;
+    int len;
 
     if (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)
       return;
 
-    struct sockaddr_in addr;
     memset(&addr, 0, sizeof addr);
-    socklen_t addrlen = sizeof addr;
 
-    int r;
-    r = GNUNET_NETWORK_socket_recvfrom(dnsout,
-				       buf,
-				       65536,
-				       (struct sockaddr*)&addr,
-				       &addrlen);
-
-    if (r < 0)
+#ifndef MINGW
+    if (0 != ioctl (GNUNET_NETWORK_get_fd (dnsout), 
+		    FIONREAD, &len))
       {
         unhijack(dnsoutport);
         open_port();
         GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS, hijack, NULL);
         return;
       }
+#else
+    /* port the code above? */
+    len = 65536;
+#endif
+    {
+      unsigned char buf[len];
+      struct dns_pkt* dns = (struct dns_pkt*)buf;
 
-    if (query_states[dns->s.id].valid == GNUNET_YES) {
-	query_states[dns->s.id].valid = GNUNET_NO;
-
-	size_t len = sizeof(struct answer_packet) + r - 1; /* 1 for the unsigned char data[1]; */
-	struct answer_packet_list* answer = GNUNET_malloc(len + 2*sizeof(struct answer_packet_list*));
-	answer->pkt.hdr.type = htons(GNUNET_MESSAGE_TYPE_LOCAL_RESPONSE_DNS);
-	answer->pkt.hdr.size = htons(len);
-	answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_IP;
-	answer->pkt.from = addr.sin_addr.s_addr;
-	answer->pkt.to = query_states[dns->s.id].local_ip;
-	answer->pkt.dst_port = query_states[dns->s.id].local_port;
-	memcpy(answer->pkt.data, buf, r);
-
-	GNUNET_CONTAINER_DLL_insert_after(head, tail, tail, answer);
-
-	GNUNET_SERVER_notify_transmit_ready(query_states[dns->s.id].client,
-					    len,
-					    GNUNET_TIME_UNIT_FOREVER_REL,
-					    &send_answer,
-					    query_states[dns->s.id].client);
+      r = GNUNET_NETWORK_socket_recvfrom (dnsout,
+					  buf,
+					  sizeof (buf),
+					  (struct sockaddr*)&addr,
+					  &addrlen);
+      
+      if (r < 0)
+	{
+	  unhijack(dnsoutport);
+	  open_port();
+	  GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS, hijack, NULL);
+	  return;
+	}
+      
+      if (query_states[dns->s.id].valid == GNUNET_YES) 
+	{
+	  query_states[dns->s.id].valid = GNUNET_NO;
+	  
+	  size_t len = sizeof(struct answer_packet) + r - 1; /* 1 for the unsigned char data[1]; */
+	  struct answer_packet_list* answer = GNUNET_malloc(len + 2*sizeof(struct answer_packet_list*));
+	  answer->pkt.hdr.type = htons(GNUNET_MESSAGE_TYPE_LOCAL_RESPONSE_DNS);
+	  answer->pkt.hdr.size = htons(len);
+	  answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_IP;
+	  answer->pkt.from = addr.sin_addr.s_addr;
+	  answer->pkt.to = query_states[dns->s.id].local_ip;
+	  answer->pkt.dst_port = query_states[dns->s.id].local_port;
+	  memcpy(answer->pkt.data, buf, r);
+	  
+	  GNUNET_CONTAINER_DLL_insert_after(head, tail, tail, answer);
+	  
+	  GNUNET_SERVER_notify_transmit_ready(query_states[dns->s.id].client,
+					      len,
+					      GNUNET_TIME_UNIT_FOREVER_REL,
+					      &send_answer,
+					      query_states[dns->s.id].client);
+	}
     }
-
     GNUNET_SCHEDULER_add_read_net(GNUNET_TIME_UNIT_FOREVER_REL,
 				  dnsout,
 				  &read_response,
