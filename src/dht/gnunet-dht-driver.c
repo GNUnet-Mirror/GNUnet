@@ -426,6 +426,16 @@ static struct GNUNET_TIME_Absolute connect_start_time;
 static struct GNUNET_TIME_Absolute connect_last_time;
 
 /**
+ * At what time did we start the hostkey creation process.
+ */
+static struct GNUNET_TIME_Absolute hostkey_start_time;
+
+/**
+ * At what time did we start the peer startup process.
+ */
+static struct GNUNET_TIME_Absolute peer_start_time;
+
+/**
  * Boolean value, should the driver issue find peer requests
  * (GNUNET_YES) or should it be left to the service (GNUNET_NO)
  */
@@ -3203,7 +3213,7 @@ peers_started_callback(void *cls, const struct GNUNET_PeerIdentity *id,
                    expected_connections);
         }
 
-      if (expected_connections == GNUNET_SYSERR)
+      if (expected_connections == 0)
         {
           die_task
               = GNUNET_SCHEDULER_add_now (&end_badly,
@@ -3265,6 +3275,7 @@ static void
 hostkey_callback(void *cls, const struct GNUNET_PeerIdentity *id,
     struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
+  char * revision_str;
   if (emsg != NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -3283,6 +3294,15 @@ hostkey_callback(void *cls, const struct GNUNET_PeerIdentity *id,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "All %d hostkeys created, now creating topology!\n",
                   num_peers);
+
+      GNUNET_asprintf (&revision_str, "%llu", revision);
+      if (GNUNET_YES == insert_gauger_data)
+        GAUGER_ID("DHT_TESTING",
+                  "HOSTKEY_GENERATION",
+                  GNUNET_TIME_absolute_get_duration(hostkey_start_time).rel_value / (double)num_peers,
+                  "ms/hostkey", revision_str);
+      GNUNET_free(revision_str);
+
       GNUNET_SCHEDULER_cancel (die_task);
       /* Set up task in case topology creation doesn't finish
        * within a reasonable amount of time */
@@ -3803,7 +3823,7 @@ run(void *cls, char * const *args, const char *cfgfile,
                                                          "do_find_peer"))
     do_find_peer = GNUNET_YES;
 
-  if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_yesno (cfg, "dht",
+  if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_yesno (cfg, "dht_testing",
                                                            "insert_gauger_data"))
     insert_gauger_data = GNUNET_YES;
 
@@ -4017,6 +4037,7 @@ run(void *cls, char * const *args, const char *cfgfile,
 
   put_meter = create_meter (num_puts, "Puts completed ", GNUNET_YES);
   get_meter = create_meter (num_gets, "Gets completed ", GNUNET_YES);
+  hostkey_start_time = GNUNET_TIME_absolute_get();
   pg
       = GNUNET_TESTING_daemons_start (
                                       cfg,
