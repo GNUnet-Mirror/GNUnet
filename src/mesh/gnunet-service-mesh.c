@@ -23,6 +23,14 @@
  * @brief GNUnet MESH service
  * @author Bartlomiej Polot
  *
+ * STRUCTURE:
+ * - MESH NETWORK MESSAGES
+ * - DATA STRUCTURES
+ * - GLOBAL VARIABLES
+ * - MESH NETWORK HANDLES
+ * - MESH LOCAL HANDLES
+ * - MAIN FUNCTIONS (main & run)
+ * 
  * TODO:
  * - soft stateing (keep-alive (CHANGE?) / timeout / disconnect) -- not a message issue
  * - error reporting (CREATE/CHANGE/ADD/DEL?) -- new message!
@@ -52,12 +60,14 @@ struct GNUNET_MESH_ManipulatePath
     /**
      * Type: GNUNET_MESSAGE_TYPE_MESH_PATH_[CREATE|CHANGE|ADD|DEL]
      *
-     * Size: sizeof(struct GNUNET_MESH_ManipulatePath) + path_length * sizeof (struct GNUNET_PeerIdentity)
+     * Size: sizeof(struct GNUNET_MESH_ManipulatePath) +
+     *       path_length * sizeof (struct GNUNET_PeerIdentity)
      */
     struct GNUNET_MessageHeader header;
 
     /**
-     * (global) Id of the tunnel this path belongs to, unique in conjunction with the origin.
+     * Global id of the tunnel this path belongs to,
+     * unique in conjunction with the origin.
      */
     uint32_t tid GNUNET_PACKED;
 
@@ -76,7 +86,7 @@ struct GNUNET_MESH_ManipulatePath
      * path_length structs defining the *whole* path from the origin [0] to the
      * final destination [path_length-1].
      */
-  // struct GNUNET_PeerIdentity peers[path_length];
+    /* struct GNUNET_PeerIdentity peers[path_length]; */
 };
 
 /**
@@ -215,12 +225,8 @@ enum PeerState
     /**
      * Peer connected previosly but not responding
      */
-    MESH_PEER_UNAVAILABLE,
+    MESH_PEER_RECONNECTING,
 
-    /**
-     * Peer requested but not ever connected
-     */
-    MESH_PEER_UNREACHABLE
 };
 
 /**
@@ -231,7 +237,7 @@ struct PeerInfo
     /**
      * ID of the peer
      */
-    GNUNET_PEER_Id id;
+    GNUNET_PEER_Id              id;
 
     /**
      * Is the peer reachable? Is the peer even connected?
@@ -241,14 +247,15 @@ struct PeerInfo
     /**
      * Who to send the data to --- what about multiple (alternate) paths?
      */
-    GNUNET_PEER_Id first_hop;
+    GNUNET_PEER_Id              first_hop;
 
     /**
      * Max data rate to this peer
      */
-    uint32_t max_speed;
+    uint32_t                    max_speed;
 };
 
+typedef uint32_t MESH_PathID;
 /**
  * Information regarding a path
  */
@@ -257,19 +264,20 @@ struct Path
     /**
      * Id of the path, in case it's needed
      */
-    uint32_t id;
+    MESH_PathID                 id;
 
     /**
      * Whether the path is serving traffic in a tunnel or is a backup
      */
-    int in_use;
+    int                         in_use;
 
     /**
      * List of all the peers that form the path from origin to target
      */
-    GNUNET_PEER_Id *peers;
+    GNUNET_PEER_Id              *peers;
 };
 
+typedef uint32_t MESH_TunnelID;
 /**
  * Struct containing all information regarding a tunnel
  * For an intermediate node the improtant info used will be:
@@ -282,34 +290,36 @@ struct Path
 struct MESH_tunnel
 {
 
-  struct MESH_tunnel *next;
-
-  struct MESH_tunnel *prev;
+    /**
+     * Double linked list
+     */
+    struct MESH_tunnel          *next;
+    struct MESH_tunnel          *prev;
 
     /**
      * Origin ID: Node that created the tunnel
      */
-    GNUNET_PEER_Id oid;
+    GNUNET_PEER_Id              oid;
 
     /**
      * Tunnel number (unique for a given oid)
      */
-    uint32_t tid;
+    MESH_TunnelID               tid;
 
     /**
-     * Whether the tunnel is in  a state to transmit data
+     * Whether the tunnel is in a state to transmit data
      */
-    int ready;
+    int                         ready;
 
     /**
      * Minimal speed for this tunnel in kb/s
      */
-    uint32_t speed_min;
+    uint32_t                    speed_min;
 
     /**
      * Maximal speed for this tunnel in kb/s
      */
-    uint32_t speed_max;
+    uint32_t                    speed_max;
 
     /**
      * Last time the tunnel was used
@@ -319,20 +329,20 @@ struct MESH_tunnel
     /**
      * Peers in the tunnel, for future optimizations
      */
-    struct PeerInfo *peers;
+    struct PeerInfo             *peers;
 
     /**
      * Paths (used and backup)
      */
-    struct Path *paths;
+    struct Path                 *paths;
 
     /**
-     * Messages ready to transmit??? -- real queues needed
+     * Messages ready to transmit??? -- FIXME real queues needed
      */
     struct GNUNET_MessageHeader *msg_out;
 
     /**
-     * Messages received and not processed??? -- real queues needed
+     * Messages received and not processed??? -- FIXME real queues needed
      */
     struct GNUNET_MessageHeader *msg_in;
 
@@ -348,32 +358,46 @@ struct MESH_tunnel
  */
 struct Client
 {
+    /**
+     * Double linked list
+     */
+    struct Client               *next;
+    struct Client               *prev;
 
-  struct Client *next;
-
-  struct Client *prev;
-
-  struct MESH_tunnel *my_tunnels_head;
-
-  struct MESH_tunnel *my_tunnels_tail;
+    /**
+     * Tunnels that belong to this client
+     */
+    struct MESH_tunnel          *my_tunnels_head;
+    struct MESH_tunnel          *my_tunnels_tail;
 
     /**
      * If this tunnel was created by a local client, what's its handle?
      */
     struct GNUNET_SERVER_Client *handle;
 
-  unsigned int messages_subscribed_counter;
-
-  uint16_t *messages_subscribed;
+    /**
+     * Messages that this client has declared interest in
+     */
+    uint16_t                    *messages_subscribed;
+    unsigned int                messages_subscribed_counter;
 
 };
 
+/******************************************************************************/
+/***********************      GLOBAL VARIABLES     ****************************/
+/******************************************************************************/
 
-// static struct MESH_tunnel *tunnel_participation_head;
+/**
+ * All the clients
+ */
+// static struct Client            clients_head;
+// static struct Client            clients_tail;
 
-// static struct MESH_tunnel *tunnel_participation_tail;
-
-
+/**
+ * All the tunnels
+ */
+// static struct MESH_tunnel       *tunnel_participation_head;
+// static struct MESH_tunnel       *tunnel_participation_tail;
 
 
 /******************************************************************************/
@@ -549,8 +573,6 @@ handle_local_network_traffic (void *cls,
  */
 static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
   {&handle_local_new_client, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT, 0},
-  {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ANY, 0},
-  {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ALL, 0},
   {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD, 0},
   {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_DEL, 0},
   {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_BY_TYPE, sizeof(struct GNUNET_MESH_ConnectPeerByType)},
@@ -608,6 +630,10 @@ core_disconnect (void *cls,
     return;
 }
 
+/******************************************************************************/
+/************************      MAIN FUNCTIONS      ****************************/
+/******************************************************************************/
+
 /**
  * Process mesh requests. FIXME NON FUNCTIONAL, SKELETON
  *
@@ -624,17 +650,17 @@ run (void *cls,
 
   GNUNET_SERVER_add_handlers (server, plugin_handlers);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
-  core = GNUNET_CORE_connect (c,   /* Main configuration */
-                            32,       /* queue size */
-                            NULL,  /* Closure passed to MESH functions */
-                            &core_init,    /* Call core_init once connected */
-                            &core_connect,  /* Handle connects */
-                            &core_disconnect,       /* remove peers on disconnects */
-                            NULL,  /* Do we care about "status" updates? */
-                            NULL,  /* Don't want notified about all incoming messages */
-                            GNUNET_NO,     /* For header only inbound notification */
-                            NULL,  /* Don't want notified about all outbound messages */
-                            GNUNET_NO,     /* For header only outbound notification */
+  core = GNUNET_CORE_connect (c,                        /* Main configuration */
+                            32,                                 /* queue size */
+                            NULL,         /* Closure passed to MESH functions */
+                            &core_init,      /* Call core_init once connected */
+                            &core_connect,                 /* Handle connects */
+                            &core_disconnect,  /* remove peers on disconnects */
+                            NULL,       /* Do we care about "status" updates? */
+                            NULL, /* Don't notify about all incoming messages */
+                            GNUNET_NO,     /* For header only in notification */
+                            NULL, /* Don't notify about all outbound messages */
+                            GNUNET_NO,    /* For header-only out notification */
                             core_handlers);        /* Register these handlers */
 
   if (core == NULL)
