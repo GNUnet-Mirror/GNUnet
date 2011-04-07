@@ -980,12 +980,10 @@ GNUNET_TESTING_daemons_vary (struct GNUNET_TESTING_PeerGroup *pg,
  * @param total number of daemons to start
  * @param timeout total time allowed for peers to start
  * @param connect_cb function to call each time two daemons are connected
- * @param connect_cb_cls closure for connect_callback
  * @param peergroup_cb function to call once all peers are up and connected
- * @param peergroup_cb_cls closure for peergroup_cb
+ * @param peergroup_cls closure for peergroup callbacks
  * @param hostnames linked list of host structs to use to start peers on
  *                  (NULL to run on localhost only)
- * @param verbose GNUNET_YES to print progress bars, GNUNET_NO otherwise
  *
  * @return NULL on error, otherwise handle to control peer group
  */
@@ -995,11 +993,9 @@ GNUNET_TESTING_peergroup_start(
                                unsigned int total,
                                struct GNUNET_TIME_Relative timeout,
                                GNUNET_TESTING_NotifyConnection connect_cb,
-                               void *connect_cb_cls,
                                GNUNET_TESTING_NotifyCompletion peergroup_cb,
-                               void *peergroup_cb_cls,
-                               const struct GNUNET_TESTING_Host *hostnames,
-                               int verbose);
+                               void *peergroup_cls,
+                               const struct GNUNET_TESTING_Host *hostnames);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
