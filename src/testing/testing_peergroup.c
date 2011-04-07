@@ -49,9 +49,13 @@ struct PeerGroupStartupContext
   unsigned long long max_concurrent_ssh;
   struct GNUNET_TIME_Absolute timeout;
   GNUNET_TESTING_NotifyConnection connect_cb;
-  void *connect_cb_cls;
   GNUNET_TESTING_NotifyCompletion peergroup_cb;
-  void *peergroup_cb_cls;
+
+  /**
+   * Closure for all peergroup callbacks.
+   */
+  void *cls;
+
   const struct GNUNET_TESTING_Host *hostnames;
   enum GNUNET_TESTING_Topology topology;
 
@@ -243,9 +247,9 @@ internal_shutdown_callback(void *cls, const char *emsg)
 {
   struct PeerGroupStartupContext *pg_start_ctx = cls;
   if (emsg != NULL)
-    pg_start_ctx->peergroup_cb(pg_start_ctx->peergroup_cb_cls, emsg);
+    pg_start_ctx->peergroup_cb(pg_start_ctx->cls, emsg);
   else
-    pg_start_ctx->peergroup_cb(pg_start_ctx->peergroup_cb_cls, pg_start_ctx->fail_reason);
+    pg_start_ctx->peergroup_cb(pg_start_ctx->cls, pg_start_ctx->fail_reason);
 }
 
 /**
@@ -371,7 +375,7 @@ internal_topology_callback(
 
   GNUNET_assert(pg_start_ctx->connect_meter != NULL);
   if (pg_start_ctx->connect_cb != NULL)
-    pg_start_ctx->connect_cb(pg_start_ctx->connect_cb_cls, first,
+    pg_start_ctx->connect_cb(pg_start_ctx->cls, first,
                              second,
                              distance,
                              first_cfg,
@@ -408,7 +412,7 @@ internal_topology_callback(
 
       /* Call final callback, signifying that the peer group has been started and connected */
       if (pg_start_ctx->peergroup_cb != NULL)
-        pg_start_ctx->peergroup_cb(pg_start_ctx->peergroup_cb_cls, NULL);
+        pg_start_ctx->peergroup_cb(pg_start_ctx->cls, NULL);
     }
 }
 
@@ -556,12 +560,10 @@ internal_hostkey_callback(void *cls, const struct GNUNET_PeerIdentity *id,
  * @param total number of daemons to start
  * @param timeout total time allowed for peers to start
  * @param connect_cb function to call each time two daemons are connected
- * @param connect_cb_cls closure for connect_callback
  * @param peergroup_cb function to call once all peers are up and connected
- * @param peergroup_cb_cls closure for peergroup_cb
+ * @param peergroup_cls closure for peergroup callbacks
  * @param hostnames linked list of host structs to use to start peers on
  *                  (NULL to run on localhost only)
- * @param verbose GNUNET_YES to print progress bars, GNUNET_NO otherwise
  *
  * @return NULL on error, otherwise handle to control peer group
  */
@@ -571,11 +573,9 @@ GNUNET_TESTING_peergroup_start(
                                unsigned int total,
                                struct GNUNET_TIME_Relative timeout,
                                GNUNET_TESTING_NotifyConnection connect_cb,
-                               void *connect_cb_cls,
                                GNUNET_TESTING_NotifyCompletion peergroup_cb,
-                               void *peergroup_cb_cls,
-                               const struct GNUNET_TESTING_Host *hostnames,
-                               int verbose)
+                               void *peergroup_cls,
+                               const struct GNUNET_TESTING_Host *hostnames)
 {
   struct PeerGroupStartupContext *pg_start_ctx;
   unsigned long long temp_config_number;
@@ -612,6 +612,15 @@ GNUNET_TESTING_peergroup_start(
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n",
                   "testing", "max_concurrent_ssh");
+      GNUNET_free(pg_start_ctx);
+      return NULL;
+    }
+
+  if (GNUNET_SYSERR == (pg_start_ctx->verbose = GNUNET_CONFIGURATION_get_value_yesno (cfg, "testing",
+                                                          "use_progressbars")))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n",
+                  "testing", "use_progressbars");
       GNUNET_free(pg_start_ctx);
       return NULL;
     }
@@ -739,11 +748,10 @@ GNUNET_TESTING_peergroup_start(
   pg_start_ctx->cfg = cfg;
   pg_start_ctx->total = total;
   pg_start_ctx->peers_left = total;
-  pg_start_ctx->connect_cb = connect_cb_cls;
+  pg_start_ctx->connect_cb = connect_cb;
   pg_start_ctx->peergroup_cb = peergroup_cb;
-  pg_start_ctx->peergroup_cb_cls = peergroup_cb_cls;
+  pg_start_ctx->cls = peergroup_cls;
   pg_start_ctx->hostnames = hostnames;
-  pg_start_ctx->verbose = verbose;
   pg_start_ctx->hostkey_meter = create_meter (pg_start_ctx->peers_left, "Hostkeys created ", pg_start_ctx->verbose);
   pg_start_ctx->peer_start_meter = create_meter (pg_start_ctx->peers_left, "Peers started ", pg_start_ctx->verbose);
   /* Make compilers happy */
