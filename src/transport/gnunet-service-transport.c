@@ -957,6 +957,9 @@ struct ATS_info
 	 */
 	int max_iterations;
 
+	int save_mlp;
+	int save_solution;
+
 	GNUNET_SCHEDULER_TaskIdentifier ats_task;
 
 	struct ATS_plugin * head;
@@ -5976,7 +5979,8 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 	/* adding b_t cols */
 	for (c=1; c <= c_mechs; c++)
 	{
-		GNUNET_asprintf(&name, "b%i",c);
+
+		GNUNET_asprintf(&name, "p_%s_b%i",GNUNET_i2s(&(mechanisms[c].peer->peer)), c);
 		glp_set_col_name(prob, c, name);
 		GNUNET_free (name);
 		glp_set_col_bnds(prob, c, GLP_LO, 0.0, 0.0);
@@ -5986,7 +5990,7 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 	/* adding n_t cols */
 	for (c=c_mechs+1; c <= 2*c_mechs; c++)
 	{
-		GNUNET_asprintf(&name, "n%i",(c-c_mechs));
+		GNUNET_asprintf(&name, "p_%s_n%i",GNUNET_i2s(&(mechanisms[c-c_mechs].peer->peer)),(c-c_mechs));
 		glp_set_col_name(prob, c, name);
 		GNUNET_free (name);
 		glp_set_col_bnds(prob, c, GLP_DB, 0.0, 1.0);
@@ -6318,17 +6322,22 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 		ats_evaluate_results(result, solution, "MLP");
 	/* done */
 	}
-#if WRITE_MLP
-	if (c_peers > 1)
+	if ((ats->save_mlp == GNUNET_YES) && (c_peers > 1))
 	{
 		char * filename;
-
-		GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i.mlp",c_peers, c_mechs);
+		GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i_llu.mlp",c_peers, c_mechs, GNUNET_TIME_absolute_get().abs_value);
 		if (GNUNET_NO == GNUNET_DISK_file_test(filename))
 			glp_write_lp (prob, NULL, filename);
 		GNUNET_free (filename);
 	}
-#endif
+	if ((ats->save_solution == GNUNET_YES) && (c_peers > 1))
+	{
+		char * filename;
+		GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i_%llu.sol",c_peers, c_mechs, GNUNET_TIME_absolute_get().abs_value);
+		if (GNUNET_NO == GNUNET_DISK_file_test(filename))
+			glp_print_sol (prob, filename);
+		GNUNET_free (filename);
+	}
 
 	int check;
 	int error = GNUNET_NO;
@@ -6510,6 +6519,12 @@ void ats_init ()
 		}
 		GNUNET_free (section);
 	}
+
+	if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "DUMP_MLP"))
+		ats->save_mlp = GNUNET_CONFIGURATION_get_value_yesno (cfg, "transport","DUMP_MLP");
+
+	if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "DUMP_SOLUTION"))
+		ats->save_solution = GNUNET_CONFIGURATION_get_value_yesno (cfg, "transport","DUMP_SOLUTION");
 
 	ats->ats_task = GNUNET_SCHEDULER_add_now(&ats_schedule_calculation, ats);
 }
