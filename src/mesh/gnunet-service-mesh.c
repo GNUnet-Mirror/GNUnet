@@ -255,6 +255,7 @@ struct PeerInfo
     uint32_t                    max_speed;
 };
 
+
 typedef uint32_t MESH_PathID;
 /**
  * Information regarding a path
@@ -277,7 +278,7 @@ struct Path
     GNUNET_PEER_Id              *peers;
 };
 
-typedef uint32_t MESH_TunnelID;
+
 /**
  * Struct containing all information regarding a tunnel
  * For an intermediate node the improtant info used will be:
