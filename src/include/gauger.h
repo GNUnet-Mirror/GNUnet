@@ -11,6 +11,8 @@
 #ifndef __GAUGER_H__
 #define __GAUGER_H__
 
+#ifndef WINDOWS
+
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/wait.h>
@@ -74,5 +76,12 @@
         waitpid(__gauger_p,NULL,0);\
     }\
 }
+
+#else
+
+#define GAUGER_ID(category, counter, value, unit, id) {}
+#define GAUGER(category, counter, value, unit) {}
+
+#endif // WINDOWS
 
 #endif
