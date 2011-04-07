@@ -981,7 +981,7 @@ finish_testing(void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
     free_meter (get_meter);
 
   GNUNET_asprintf (&temp_get_string,
-                   "DHT Successful GETs (trial %d)", trial_to_run);
+                   "DHT Successful GETs", trial_to_run);
   GNUNET_asprintf (&revision_str, "%llu", revision);
   if (GNUNET_YES == insert_gauger_data)
     GAUGER_ID("DHT_TESTING", temp_get_string, cumulative_successful_gets / (double)cumulative_num_gets, "percent successful", revision_str);
@@ -3106,10 +3106,10 @@ topology_callback(void *cls, const struct GNUNET_PeerIdentity *first,
                   conns_per_sec_total, failed_conns_per_sec_total);
 
       GNUNET_asprintf (&temp_conn_string,
-                       "DHT Profiler Connection (trial %d)",
+                       "DHT Profiler Connection/s",
                        trial_to_run);
       GNUNET_asprintf (&temp_conn_failed_string,
-                       "DHT Profiler Connection failed (trial %d)",
+                       "DHT Profiler Connection/s failed",
                        trial_to_run);
       GNUNET_asprintf (&revision_str, "%llu", revision);
 
@@ -3121,11 +3121,11 @@ topology_callback(void *cls, const struct GNUNET_PeerIdentity *first,
       GNUNET_free(temp_conn_string);
       GNUNET_free(temp_conn_failed_string);
       GNUNET_asprintf (&temp_conn_string,
-                       "DHT Profiler Total Connections (trial %d)",
+                       "DHT Profiler Total Connections",
                        trial_to_run);
       GNUNET_asprintf (
                        &temp_conn_failed_string,
-                       "DHT Profiler Total Connections failed (trial %d)",
+                       "DHT Profiler Total Connections failed",
                        trial_to_run);
       if (GNUNET_YES == insert_gauger_data)
         GAUGER_ID("DHT_TESTING", temp_conn_string, total_connections, "conns", revision_str);
@@ -3823,7 +3823,7 @@ run(void *cls, char * const *args, const char *cfgfile,
                                                          "do_find_peer"))
     do_find_peer = GNUNET_YES;
 
-  if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_yesno (cfg, "dht_testing",
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (cfg, "dht_testing",
                                                            "insert_gauger_data"))
     insert_gauger_data = GNUNET_YES;
 
