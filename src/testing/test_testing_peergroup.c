@@ -80,6 +80,22 @@ my_cb (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer Group started successfully, ending test!\n");
+  /**
+   * If something is to actually be DONE with the testcase, it should
+   * be put in here.  Usually there will be a struct declared (or global
+   * variables can be used) to keep track of the state, statistics,
+   * handles to peers, etc.  The example here is the opaque "TestCaseData"
+   * struct that could be passed into a function "additional_code_for_testing"
+   * which can be used to perform actions on the peers in the peergroup.
+   * Also, the GNUNET_TESTING_daemons_stop call would need to be removed,
+   * and only called once all of the testing is complete.
+   */
+
+  /**
+   * struct TestcaseData *state_closure;
+   * GNUNET_SCHEDULER_add_now(&additional_code_for_testing, state_closure);
+   */
+
   GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
 }
 
