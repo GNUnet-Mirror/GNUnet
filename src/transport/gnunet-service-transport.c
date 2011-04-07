@@ -960,6 +960,12 @@ struct ATS_info
 	int save_mlp;
 	int save_solution;
 
+	double D;
+	double U;
+	double R;
+	int v_b_min;
+	int v_n_min;
+
 	GNUNET_SCHEDULER_TaskIdentifier ats_task;
 
 	struct ATS_plugin * head;
@@ -6295,12 +6301,12 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 	glp_smcp opt_lp;
 	glp_init_smcp(&opt_lp);
 
-
 #if VERBOSE_ATS
 		opt_lp.msg_lev = GLP_MSG_ALL;
 #else
 		opt_lp.msg_lev = GLP_MSG_OFF;
 #endif
+	opt_lp.presolve = GLP_ON;
 	result = glp_simplex(prob, &opt_lp);
 	solution =  glp_get_status (prob);
 
@@ -6327,7 +6333,7 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 		char * filename;
 		GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i_llu.mlp",c_peers, c_mechs, GNUNET_TIME_absolute_get().abs_value);
 		if (GNUNET_NO == GNUNET_DISK_file_test(filename))
-			glp_write_lp (prob, NULL, filename);
+			glp_write_mip (prob, filename);
 		GNUNET_free (filename);
 	}
 	if ((ats->save_solution == GNUNET_YES) && (c_peers > 1))
@@ -6372,9 +6378,7 @@ static int ats_solve_problem (int max_it, int max_dur , double D, double U, doub
 #if VERBOSE_ATS
 	for (c=1; c<= c_q_metrics; c++ )
 	{
-
 		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n", glp_get_col_name(prob,2*c_mechs+3+c), glp_get_col_prim(prob,2*c_mechs+3+c));
-
 	}
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n", glp_get_col_name(prob,2*c_mechs+1), glp_get_col_prim(prob,2*c_mechs+1));
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n", glp_get_col_name(prob,2*c_mechs+2), glp_get_col_prim(prob,2*c_mechs+2));
@@ -6425,7 +6429,7 @@ void ats_calculate_bandwidth_distribution ()
 		dur = (int) ats->max_exec_duration.rel_value;
 
 	start = GNUNET_TIME_absolute_get();
-	c_mechs = ats_solve_problem(5000, 5000, 1.0, 1.0, 1.0, 1000, 5, &result);
+	c_mechs = ats_solve_problem(ats->max_iterations, ats->max_exec_duration.rel_value, ats->D, ats->U, ats->R, ats->v_b_min, ats->v_n_min, &result);
 	duration = GNUNET_TIME_absolute_get_difference(start,GNUNET_TIME_absolute_get());
 
 	if (c_mechs > 0)
@@ -6487,6 +6491,11 @@ void ats_init ()
 	return;
 #endif
 
+	ats->D = 1.0;
+	ats->U = 1.0;
+	ats->R = 1.0;
+	ats->v_b_min = 64000;
+	ats->v_n_min = 10;
 
 	int c = 0;
 	unsigned long long  value;
