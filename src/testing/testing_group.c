@@ -5791,6 +5791,7 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
   uint64_t total_hostkeys;
   struct GNUNET_OS_Process *proc;
 
+  username = NULL;
   if (0 == total)
     {
       GNUNET_break (0);
