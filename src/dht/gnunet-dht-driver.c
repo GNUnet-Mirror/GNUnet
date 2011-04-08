@@ -3170,6 +3170,7 @@ peers_started_callback(void *cls, const struct GNUNET_PeerIdentity *id,
     const struct GNUNET_CONFIGURATION_Handle *cfg,
     struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
+  char *revision_str;
   if (emsg != NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -3193,6 +3194,14 @@ peers_started_callback(void *cls, const struct GNUNET_PeerIdentity *id,
           num_peers);
 #endif
       GNUNET_SCHEDULER_cancel (die_task);
+
+      GNUNET_asprintf (&revision_str, "%llu", revision);
+      if (GNUNET_YES == insert_gauger_data)
+        GAUGER_ID("DHT_TESTING",
+                  "peer_startup_time",
+                  GNUNET_TIME_absolute_get_duration(peer_start_time).rel_value / (double)num_peers,
+                  "ms/peer", revision_str);
+      GNUNET_free(revision_str);
 
       expected_connections = UINT_MAX;
       if ((pg != NULL) && (peers_left == 0))
