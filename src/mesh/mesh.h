@@ -116,7 +116,7 @@ struct GNUNET_MESH_PeerControl {
   /**
    * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_[ADD|DEL]
    *       (client to service, client created tunnel)
-   *       GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_NOTIFY[CONNECT|DISCONNECT]
+   *       GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_[CONNECTED|DISCONNECTED]
    *       (service to client)
    * 
    * Size: sizeof(struct GNUNET_MESH_PeerControl) 

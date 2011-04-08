@@ -542,32 +542,39 @@ handle_local_new_client (void *cls,
 {
     struct Client               *c;
     unsigned int                payload_size;
+//     FIXME: is this needed? should we delete the GNUNET_MESH_Connect struct?
 //     struct GNUNET_MESH_Connect  *connect_msg;
 // 
 //     connect_msg = (struct GNUNET_MESH_Connect *) message;
+    
+    /* FIXME: is this a good idea? */
+    GNUNET_assert(GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT == message->type);
 
-    /* FIXME: check if already exists? NO (optimization) */
+    /* Check data sanity */
     payload_size = message->size - sizeof(struct GNUNET_MessageHeader);
-    /* FIXME: is this way correct? NO */
-    GNUNET_assert(0 == payload_size % sizeof(GNUNET_MESH_ApplicationType));
-    /* GNUNET_break */
-    /* notify done with syserr */
-    /* return */
-    /* Create new client structure */
+    if (0 != payload_size % sizeof(GNUNET_MESH_ApplicationType)) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
 
+    /* Create new client structure */
     c = GNUNET_malloc(sizeof(struct Client));
     c->handle = client;
     c->tunnels_head = NULL;
     c->tunnels_tail = NULL;
-
-    c->messages_subscribed = GNUNET_malloc(payload_size);
-    memcpy(c->messages_subscribed, &message[1], payload_size);
-    c->subscription_counter = payload_size / sizeof(GNUNET_MESH_ApplicationType);
+    if(payload_size != 0) {
+        c->messages_subscribed = GNUNET_malloc(payload_size);
+        memcpy(c->messages_subscribed, &message[1], payload_size);
+    } else {
+        c->messages_subscribed = NULL;
+    }
+    c->subscription_counter = payload_size/sizeof(GNUNET_MESH_ApplicationType);
 
     /* Insert new client in DLL */
     GNUNET_CONTAINER_DLL_insert (clients_head, clients_tail, c);
 
-    /* FIXME: notify done */
+    GNUNET_SERVER_receive_done(client, GNUNET_OK);
 }
 
 /**
