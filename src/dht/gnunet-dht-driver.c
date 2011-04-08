@@ -3245,6 +3245,7 @@ create_topology()
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Topology set up, have %u expected connections, now starting peers!\n", create_expected_connections);
       GNUNET_TESTING_daemons_continue_startup (pg);
+      peer_start_time = GNUNET_TIME_absolute_get();
     }
   else
     {
