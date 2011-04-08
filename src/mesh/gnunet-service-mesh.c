@@ -410,8 +410,8 @@ static struct Client            *clients_tail;
 /**
  * All the tunnels
  */
-// static struct MESH_tunnel       *tunnel_participation_head;
-// static struct MESH_tunnel       *tunnel_participation_tail;
+static struct MESH_tunnel       *tunnels_head;
+static struct MESH_tunnel       *tunnels_tail;
 
 /**
  * All the paths (for future path optimization)
@@ -524,7 +524,31 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
 static void
 handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 {
-    /* Remove client from list, delete all timers and queues associated */
+    struct Client       *c, *next;
+    struct MESH_tunnel  *t;
+
+    /* If there are no clients registered, something is wrong... or is it?
+     * FIXME: what happens if a client connects, doesn't send a MESH_Connect
+     * and disconnects? Does the service get a disconnect notification anyway?
+     */
+    GNUNET_assert(NULL != clients_head);
+    for (c = clients_head; c != clients_head; c = next) {
+        if (c->handle == client) {
+            GNUNET_CONTAINER_DLL_remove (clients_head, clients_tail, c);
+            while (NULL != (t = c->tunnels_head)) {
+                GNUNET_CONTAINER_DLL_remove (c->tunnels_head, c->tunnels_tail, t);
+                GNUNET_CONTAINER_DLL_remove (tunnels_head, tunnels_tail, t);
+                /* TODO free paths and other tunnel dynamic structures */
+                GNUNET_free (t);
+            }
+            GNUNET_free (c->messages_subscribed);
+            next = c->next;
+            GNUNET_free (c);
+        } else {
+            next = c->next;
+        }
+    }
+
     return;
 }
 
@@ -546,7 +570,7 @@ handle_local_new_client (void *cls,
 //     struct GNUNET_MESH_Connect  *connect_msg;
 // 
 //     connect_msg = (struct GNUNET_MESH_Connect *) message;
-    
+
     /* FIXME: is this a good idea? */
     GNUNET_assert(GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT == message->type);
 
@@ -578,7 +602,82 @@ handle_local_new_client (void *cls,
 }
 
 /**
- * Handler for connection requests
+ * Handler for requests of new tunnels
+ * 
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_local_tunnel_create (void *cls,
+                            struct GNUNET_SERVER_Client *client,
+                            const struct GNUNET_MessageHeader *message)
+{
+    struct Client                       *c;
+    struct GNUNET_MESH_TunnelMessage    *tunnel_msg;
+    struct MESH_tunnel                  *t;
+
+    /* Sanity check for client registration */
+    /* TODO: refactor into new function */
+    for (c = clients_head; c != clients_head; c = c->next) {
+        if(c->handle == client) break;
+    }
+    if(c->handle != client) { /* Client hasn't registered, not a good thing */
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
+
+    /* Message sanity check */
+    /* FIXME: two different checks, to know why it fails? */
+    if(sizeof(struct GNUNET_MESH_TunnelMessage) != message->size ||
+      GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE != message->type) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
+
+    tunnel_msg = (struct GNUNET_MESH_TunnelMessage *) message;
+    /* Sanity check for tunnel numbering */
+    if(0 == (tunnel_msg->tunnel_id & 0x80000000)) {
+            GNUNET_break(0);
+            GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+            return;
+        }
+    /* Sanity check for duplicate tunnel IDs */
+    for (t = tunnels_head; t != tunnels_head; t = t->next) {
+        /* TODO - maybe this is not enough, need to consider the whole
+         * local/global numbering system, but probably it's ok (WiP)
+         */
+        if(t->tid == tunnel_msg->tunnel_id) {
+            GNUNET_break(0);
+            GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+            return;
+        }
+    }
+    //tunnel_msg->tunnel_id;
+    
+    
+    return;
+}
+
+/**
+ * Handler for requests of deleting tunnels
+ * 
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_local_tunnel_destroy (void *cls,
+                             struct GNUNET_SERVER_Client *client,
+                             const struct GNUNET_MessageHeader *message)
+{
+    return;
+}
+
+/**
+ * Handler for connection requests to new peers
  * 
  * @param cls closure
  * @param client identification of the client
@@ -612,6 +711,10 @@ handle_local_network_traffic (void *cls,
  */
 static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
   {&handle_local_new_client, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT, 0},
+  {&handle_local_tunnel_create, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE, 0},
+  {&handle_local_tunnel_destroy, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY, 0},
   {&handle_local_connect, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD, 0},
   {&handle_local_connect, NULL,
@@ -621,8 +724,6 @@ static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
    sizeof(struct GNUNET_MESH_ConnectPeerByType)},
   {&handle_local_connect, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_CANCEL, 0},
-  {&handle_local_network_traffic, NULL,
-   GNUNET_MESSAGE_TYPE_MESH_LOCAL_TRANSMIT_READY, 0},
   {&handle_local_network_traffic, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA, 0}, /* FIXME needed? */
   {&handle_local_network_traffic, NULL,
