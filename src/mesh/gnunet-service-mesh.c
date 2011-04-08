@@ -404,8 +404,8 @@ struct Client
 /**
  * All the clients
  */
-static struct Client            clients_head;
-static struct Client            clients_tail;
+static struct Client            *clients_head;
+static struct Client            *clients_tail;
 
 /**
  * All the tunnels
@@ -547,7 +547,7 @@ handle_local_new_client (void *cls,
 //     connect_msg = (struct GNUNET_MESH_Connect *) message;
 
     /* FIXME: check if already exists? NO (optimization) */
-
+    payload_size = message->size - sizeof(struct GNUNET_MessageHeader);
     /* FIXME: is this way correct? NO */
     GNUNET_assert(0 == payload_size % sizeof(GNUNET_MESH_ApplicationType));
     /* GNUNET_break */
@@ -559,7 +559,6 @@ handle_local_new_client (void *cls,
     c->handle = client;
     c->tunnels_head = NULL;
     c->tunnels_tail = NULL;
-    payload_size = message->size - sizeof(GNUNET_MessageHeader);
 
     c->messages_subscribed = GNUNET_malloc(payload_size);
     memcpy(c->messages_subscribed, &message[1], payload_size);
