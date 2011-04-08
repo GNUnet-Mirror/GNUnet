@@ -279,6 +279,7 @@ struct Path
 };
 
 
+struct Client; /* FWD declaration */
 /**
  * Struct containing all information regarding a tunnel
  * For an intermediate node the improtant info used will be:
@@ -338,6 +339,11 @@ struct MESH_tunnel
     struct Path                 *paths;
 
     /**
+     * If this tunnel was created by a local client, what's its handle?
+     */
+    struct Client               *client;
+
+    /**
      * Messages ready to transmit??? -- FIXME real queues needed
      */
     struct GNUNET_MessageHeader *msg_out;
@@ -347,10 +353,6 @@ struct MESH_tunnel
      */
     struct GNUNET_MessageHeader *msg_in;
 
-    /**
-     * If this tunnel was created by a local client, what's its handle?
-     */
-    struct GNUNET_SERVER_Client *initiator;
 };
 
 /**
@@ -391,8 +393,8 @@ struct Client
 /**
  * All the clients
  */
-// static struct Client            clients_head;
-// static struct Client            clients_tail;
+//static struct Client            clients_head;
+//static struct Client            clients_tail;
 
 /**
  * All the tunnels
@@ -522,7 +524,20 @@ handle_local_new_client (void *cls,
                          struct GNUNET_SERVER_Client *client,
                          const struct GNUNET_MessageHeader *message)
 {
-    return;
+    struct Client *c;
+    c = GNUNET_malloc(sizeof(struct Client));
+    c->handle = client;
+    //c->messages_subscribed = message->;
+    
+      /*client *c;
+  tunnel *t;
+
+  t = new;
+  GNUNET_CONTAINER_DLL_insert (c->my_tunnels_head,
+                               c->my_tunnels_tail,
+                               t);*/
+
+
 }
 
 /**
@@ -558,29 +573,23 @@ handle_local_network_traffic (void *cls,
 /**
  * Functions to handle messages from clients
  */
-/* MESSAGES DEFINED:
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT              272
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ANY     273
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ALL     274
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD     275
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_DEL     276
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_BY_TYPE 277
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_CANCEL  278
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TRANSMIT_READY       279
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATED       280
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROYED     281
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA                 282
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA_BROADCAST       283
- */
 static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
   {&handle_local_new_client, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT, 0},
-  {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD, 0},
-  {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_DEL, 0},
-  {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_BY_TYPE, sizeof(struct GNUNET_MESH_ConnectPeerByType)},
-  {&handle_local_connect, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_CANCEL, 0},
-  {&handle_local_network_traffic, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_TRANSMIT_READY, 0},
-  {&handle_local_network_traffic, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA, 0}, /* FIXME needed? */
-  {&handle_local_network_traffic, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA_BROADCAST, 0}, /* FIXME needed? */
+  {&handle_local_connect, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD, 0},
+  {&handle_local_connect, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_DEL, 0},
+  {&handle_local_connect, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_BY_TYPE,
+   sizeof(struct GNUNET_MESH_ConnectPeerByType)},
+  {&handle_local_connect, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_CANCEL, 0},
+  {&handle_local_network_traffic, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_TRANSMIT_READY, 0},
+  {&handle_local_network_traffic, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA, 0}, /* FIXME needed? */
+  {&handle_local_network_traffic, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA_BROADCAST, 0}, /* FIXME needed? */
   {NULL, NULL, 0, 0}
 };
 
@@ -678,12 +687,13 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  int ret;
+    int ret;
 
-  ret = (GNUNET_OK ==
-         GNUNET_SERVICE_run (argc,
-                             argv,
-                             "mesh",
-                             GNUNET_SERVICE_OPTION_NONE, &run, NULL)) ? 0 : 1;
-  return ret;
-}
+    ret = (GNUNET_OK ==
+           GNUNET_SERVICE_run (argc,
+                               argv,
+                               "mesh",
+                               GNUNET_SERVICE_OPTION_NONE,
+                               &run, NULL)) ? 0 : 1;
+    return ret;
+    }

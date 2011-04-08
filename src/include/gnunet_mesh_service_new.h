@@ -73,7 +73,8 @@ typedef int
 				  void **tunnel_ctx,
 				  const struct GNUNET_PeerIdentity *sender,
                                   const struct GNUNET_MessageHeader *message,
-				  const struct GNUNET_TRANSPORT_ATS_Information *atsi);
+				  const struct GNUNET_TRANSPORT_ATS_Information
+				  *atsi);
 
 
 /**
@@ -108,10 +109,12 @@ struct GNUNET_MESH_MessageHandler
  *
  * @param cls closure (set from GNUNET_MESH_connect)
  * @param tunnel connection to the other end (henceforth invalid)
- * @param tunnel_ctx place where local state associated with the tunnel is stored
+ * @param tunnel_ctx place where local state associated
+ *                   with the tunnel is stored
  */
 typedef void (GNUNET_MESH_TunnelEndHandler)(void *cls,
-					    const struct GNUNET_MESH_Tunnel *tunnel,
+					    const struct GNUNET_MESH_Tunnel
+					    *tunnel,
 					    void **tunnel_ctx);
 
 
@@ -125,14 +128,15 @@ typedef uint32_t GNUNET_MESH_ApplicationType;
  * Connect to the mesh service.
  *
  * @param cfg configuration to use
- * @param cls closure for the various callbacks that follow (including handlers in the handlers array)
+ * @param cls closure for the various callbacks that follow
+ *            (including handlers in the handlers array)
  * @param cleaner function called when an *inbound* tunnel is destroyed
  * @param handlers callbacks for messages we care about, NULL-terminated
- *                note that the mesh is allowed to drop notifications about inbound
- *                messages if the client does not process them fast enough (for this
- *                notification type, a bounded queue is used)
- * @return handle to the mesh service 
- *           NULL on error (in this case, init is never called)
+ *                note that the mesh is allowed to drop notifications about
+ *                inbound messages if the client does not process them fast
+ *                enough (for this notification type, a bounded queue is used)
+ * @return handle to the mesh service NULL on error
+ *         (in this case, init is never called)
  */
 struct GNUNET_MESH_Handle *
 GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -157,7 +161,7 @@ void GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle);
  * @param peer peer identity the tunnel stopped working with
  */
 typedef void (*GNUNET_MESH_TunnelDisconnectHandler) (void *cls,
-						     const struct GNUNET_PeerIdentity *peer);
+                                        const struct GNUNET_PeerIdentity *peer);
 
 
 /**
@@ -168,14 +172,14 @@ typedef void (*GNUNET_MESH_TunnelDisconnectHandler) (void *cls,
  * @param atsi performance data for the connection
  */
 typedef void (*GNUNET_MESH_TunnelConnectHandler) (void *cls,
-						  const struct GNUNET_PeerIdentity *peer,
-						  const struct GNUNET_TRANSPORT_ATS_Information *atsi);
+                           const struct GNUNET_PeerIdentity *peer,
+                           const struct GNUNET_TRANSPORT_ATS_Information *atsi);
 
 
 
 /**
- * Create a new tunnel (we're initiator and will be allowed to add/remove peers and
- * to broadcast).
+ * Create a new tunnel (we're initiator and will be allowed to add/remove peers
+ * and to broadcast).
  *
  * @param h mesh handle
  * @param connect_handler function to call when peers are actually connected
@@ -184,9 +188,11 @@ typedef void (*GNUNET_MESH_TunnelConnectHandler) (void *cls,
  */
 struct GNUNET_MESH_Tunnel *
 GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
-			   GNUNET_MESH_TunnelConnectHandler connect_handler,
-			   GNUNET_MESH_TunnelDisconnectHandler disconnect_handler,
-			   void *handler_cls);
+                           GNUNET_MESH_TunnelConnectHandler
+                           connect_handler,
+                           GNUNET_MESH_TunnelDisconnectHandler
+                           disconnect_handler,
+                           void *handler_cls);
 
 /**
  * Destroy an existing tunnel.
@@ -229,8 +235,8 @@ GNUNET_MESH_peer_request_connect_del (struct GNUNET_MESH_Tunnel *tunnel,
  *
  * @param tunnel handle to existing tunnel
  * @param timeout how long to try to establish a connection
- * @param app_type application type that must be supported by the peer (MESH should
- *                discover peer in proximity handling this type)
+ * @param app_type application type that must be supported by the peer
+ *                 (MESH should discover peer in proximity handling this type)
  */
 void
 GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Tunnel *tunnel,
@@ -254,7 +260,8 @@ struct GNUNET_MESH_TransmitHandle;
  * @param cork is corking allowed for this transmission?
  * @param priority how important is the message?
  * @param maxdelay how long can the message wait?
- * @param target destination for the message, NULL for multicast to all tunnel targets 
+ * @param target destination for the message
+ *               NULL for multicast to all tunnel targets 
  * @param notify_size how many bytes of buffer space does notify want?
  * @param notify function to call when buffer space is available;
  *        will be called with NULL on timeout or if the overall queue
