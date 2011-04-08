@@ -1573,6 +1573,7 @@ handle_client_request_info (void *cls,
   unsigned long long old_preference;
   struct GNUNET_TIME_Relative rdelay;
 
+  rdelay = GNUNET_TIME_relative_get_zero();
 #if DEBUG_CORE_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core service receives `%s' request.\n", "REQUEST_INFO");
