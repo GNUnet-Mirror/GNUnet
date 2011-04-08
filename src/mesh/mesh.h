@@ -84,7 +84,7 @@ struct GNUNET_MESH_Connect {
      */
     struct GNUNET_MessageHeader header;
 
-    /* uint16_t messages_subscribed[] */
+    /* GNUNET_MESH_ApplicationType messages_subscribed[] */
 };
 
 

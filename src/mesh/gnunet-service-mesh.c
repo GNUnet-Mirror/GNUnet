@@ -242,10 +242,10 @@ struct PeerInfo
     /**
      * Is the peer reachable? Is the peer even connected?
      */
-    enum PeerState state;
+    enum PeerState              state;
 
     /**
-     * Who to send the data to --- what about multiple (alternate) paths?
+     * Who to send the data to --- FIXME what about multiple (alternate) paths?
      */
     GNUNET_PEER_Id              first_hop;
 
@@ -262,6 +262,11 @@ typedef uint32_t MESH_PathID;
  */
 struct Path
 {
+    /**
+     * Double linked list
+     */
+    struct Path                 *next;
+    struct Path                 *prev;
     /**
      * Id of the path, in case it's needed
      */
@@ -309,11 +314,6 @@ struct MESH_tunnel
     MESH_TunnelID               tid;
 
     /**
-     * Whether the tunnel is in a state to transmit data
-     */
-    int                         ready;
-
-    /**
      * Minimal speed for this tunnel in kb/s
      */
     uint32_t                    speed_min;
@@ -331,12 +331,24 @@ struct MESH_tunnel
     /**
      * Peers in the tunnel, for future optimizations
      */
-    struct PeerInfo             *peers;
+    struct PeerInfo             *peers_head;
+    struct PeerInfo             *peers_tail;
+
+    /**
+     * Number of peers that are connected and potentially ready to receive data
+     */
+    unsigned int                peers_ready;
+
+    /**
+     * Number of peers that have been added to the tunnel
+     */
+    unsigned int                peers_total;
 
     /**
      * Paths (used and backup)
      */
-    struct Path                 *paths;
+    struct Path                 *paths_head;
+    struct Path                 *paths_tail;
 
     /**
      * If this tunnel was created by a local client, what's its handle?
@@ -356,8 +368,7 @@ struct MESH_tunnel
 };
 
 /**
- * So, I'm an endpoint. Why am I receiveing traffic?
- * Who is interested in this? How to communicate with them?
+ * Struct containing information about a client of the service
  */
 struct Client
 {
@@ -368,21 +379,21 @@ struct Client
     struct Client               *prev;
 
     /**
-     * Tunnels that belong to this client
+     * Tunnels that belong to this client, for convenience on disconnect
      */
-    struct MESH_tunnel          *my_tunnels_head;
-    struct MESH_tunnel          *my_tunnels_tail;
+    struct MESH_tunnel          *tunnels_head;
+    struct MESH_tunnel          *tunnels_tail;
 
     /**
-     * If this tunnel was created by a local client, what's its handle?
+     * Handle to communicate with the client
      */
     struct GNUNET_SERVER_Client *handle;
 
     /**
      * Messages that this client has declared interest in
      */
-    uint16_t                    *messages_subscribed;
-    unsigned int                messages_subscribed_counter;
+    GNUNET_MESH_ApplicationType *messages_subscribed;
+    unsigned int                subscription_counter;
 
 };
 
@@ -393,8 +404,8 @@ struct Client
 /**
  * All the clients
  */
-//static struct Client            clients_head;
-//static struct Client            clients_tail;
+static struct Client            clients_head;
+static struct Client            clients_tail;
 
 /**
  * All the tunnels
@@ -402,6 +413,11 @@ struct Client
 // static struct MESH_tunnel       *tunnel_participation_head;
 // static struct MESH_tunnel       *tunnel_participation_tail;
 
+/**
+ * All the paths (for future path optimization)
+ */
+// static struct Path             *paths_head;
+// static struct Path             *paths_tail;
 
 /******************************************************************************/
 /********************      MESH NETWORK HANDLERS     **************************/
@@ -524,20 +540,35 @@ handle_local_new_client (void *cls,
                          struct GNUNET_SERVER_Client *client,
                          const struct GNUNET_MessageHeader *message)
 {
-    struct Client *c;
+    struct Client               *c;
+    unsigned int                payload_size;
+//     struct GNUNET_MESH_Connect  *connect_msg;
+// 
+//     connect_msg = (struct GNUNET_MESH_Connect *) message;
+
+    /* FIXME: check if already exists? NO (optimization) */
+
+    /* FIXME: is this way correct? NO */
+    GNUNET_assert(0 == payload_size % sizeof(GNUNET_MESH_ApplicationType));
+    /* GNUNET_break */
+    /* notify done with syserr */
+    /* return */
+    /* Create new client structure */
+
     c = GNUNET_malloc(sizeof(struct Client));
     c->handle = client;
-    //c->messages_subscribed = message->;
-    
-      /*client *c;
-  tunnel *t;
+    c->tunnels_head = NULL;
+    c->tunnels_tail = NULL;
+    payload_size = message->size - sizeof(GNUNET_MessageHeader);
 
-  t = new;
-  GNUNET_CONTAINER_DLL_insert (c->my_tunnels_head,
-                               c->my_tunnels_tail,
-                               t);*/
+    c->messages_subscribed = GNUNET_malloc(payload_size);
+    memcpy(c->messages_subscribed, &message[1], payload_size);
+    c->subscription_counter = payload_size / sizeof(GNUNET_MESH_ApplicationType);
 
+    /* Insert new client in DLL */
+    GNUNET_CONTAINER_DLL_insert (clients_head, clients_tail, c);
 
+    /* FIXME: notify done */
 }
 
 /**
