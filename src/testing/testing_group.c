@@ -6305,6 +6305,11 @@ GNUNET_TESTING_daemons_churn(struct GNUNET_TESTING_PeerGroup *pg,
   unsigned int *running_permute;
   unsigned int *stopped_permute;
 
+  shutdown_ctx = NULL;
+  peer_shutdown_ctx = NULL;
+  peer_restart_ctx = NULL;
+  churn_startup_ctx = NULL;
+
   running = 0;
   stopped = 0;
 
