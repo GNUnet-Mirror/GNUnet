@@ -197,6 +197,7 @@ udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen,
   u_i.pt = udp->dpt;
 
   /* get tunnel and service-descriptor from this */
+  /* FIXME better hashing */
   GNUNET_HashCode hash;
   GNUNET_CRYPTO_hash (&u_i, sizeof (struct redirect_info), &hash);
   struct redirect_state *state =
@@ -273,6 +274,7 @@ tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
   memcpy (&u_i.addr, dadr, addrlen);
   u_i.pt = tcp->dpt;
 
+  /* FIXME better hashing */
   /* get tunnel and service-descriptor from this */
   GNUNET_HashCode hash;
   GNUNET_CRYPTO_hash (&u_i, sizeof (struct redirect_info), &hash);
@@ -827,6 +829,7 @@ receive_tcp_service (void *cls,
       break;
     }
 
+  /* FIXME better hashing */
   GNUNET_CRYPTO_hash (&state->redirect_info, sizeof (struct redirect_info), &hash);
 
   if (GNUNET_NO ==
@@ -917,6 +920,7 @@ receive_udp_service (void *cls,
       break;
     }
 
+  /* FIXME better hashing */
   GNUNET_CRYPTO_hash (&state->redirect_info, sizeof (struct redirect_info), &hash);
 
   if (GNUNET_NO ==
