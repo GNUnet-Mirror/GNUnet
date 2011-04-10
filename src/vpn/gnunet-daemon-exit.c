@@ -61,8 +61,8 @@ static int ret;
 static struct GNUNET_MESH_Handle *mesh_handle;
 
 /**
- * This hashmap contains the mapping from peer, service-descriptor,
- * source-port and destination-port to a socket
+ * This hashmaps contains the mapping from peer, service-descriptor,
+ * source-port and destination-port to a struct redirect_state
  */
 static struct GNUNET_CONTAINER_MultiHashMap *udp_connections;
 static struct GNUNET_CONTAINER_MultiHashMap *tcp_connections;
