@@ -247,9 +247,9 @@ udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen,
                                      42,
                                      GNUNET_TIME_relative_divide
                                      (GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
-                                     (const struct GNUNET_PeerIdentity *)NULL,
-                                     len, send_udp_to_peer_notify_callback,
-                                     msg);
+                                     (const struct GNUNET_PeerIdentity *)
+                                     NULL, len,
+                                     send_udp_to_peer_notify_callback, msg);
 }
 
 /**
@@ -757,17 +757,17 @@ static int
 receive_tcp_service (void *cls,
                      struct GNUNET_MESH_Tunnel *tunnel,
                      void **tunnel_ctx,
-		     const struct GNUNET_PeerIdentity *sender,
+                     const struct GNUNET_PeerIdentity *sender,
                      const struct GNUNET_MessageHeader *message,
                      const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received TCP-Packet\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received TCP-Packet\n");
   GNUNET_HashCode hash;
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct tcp_pkt *pkt = (struct tcp_pkt *) (desc + 1);
-  unsigned int pkt_len = ntohs(message->size) - sizeof (struct
-                                                        GNUNET_MessageHeader) -
-    sizeof(GNUNET_HashCode);
+  unsigned int pkt_len = ntohs (message->size) - sizeof (struct
+                                                         GNUNET_MessageHeader)
+    - sizeof (GNUNET_HashCode);
 
   /** Get the configuration from the services-hashmap.
    *
@@ -783,8 +783,8 @@ receive_tcp_service (void *cls,
     GNUNET_CONTAINER_multihashmap_get (tcp_services, &hash);
   if (NULL == serv)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "No service found for TCP dpt %d!\n",
-                  *tcp_desc);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "No service found for TCP dpt %d!\n", *tcp_desc);
       return GNUNET_YES;
     }
 
@@ -801,7 +801,8 @@ receive_tcp_service (void *cls,
    * This will be saved in the hashmap, so that the receiving procedure knows
    * through which tunnel this connection has to be routed.
    */
-  struct redirect_state *state = GNUNET_malloc (sizeof (struct redirect_state));
+  struct redirect_state *state =
+    GNUNET_malloc (sizeof (struct redirect_state));
   memset (state, 0, sizeof (struct redirect_state));
   state->tunnel = tunnel;
   state->serv = serv;
@@ -816,12 +817,12 @@ receive_tcp_service (void *cls,
   switch (serv->version)
     {
     case 4:
-      prepare_ipv4_packet (len, pkt_len, pkt, 0x06,    /* TCP */
+      prepare_ipv4_packet (len, pkt_len, pkt, 0x06,     /* TCP */
                            &serv->v4.ip4address,
                            tunnel, state, (struct ip_pkt *) buf);
       break;
     case 6:
-      prepare_ipv6_packet (len, pkt_len, pkt, 0x06,    /* TCP */
+      prepare_ipv6_packet (len, pkt_len, pkt, 0x06,     /* TCP */
                            &serv->v6.ip6address,
                            tunnel, state, (struct ip6_pkt *) buf);
 
@@ -853,7 +854,7 @@ static int
 receive_udp_service (void *cls,
                      struct GNUNET_MESH_Tunnel *tunnel,
                      void **tunnel_ctx,
-		     const struct GNUNET_PeerIdentity *sender,
+                     const struct GNUNET_PeerIdentity *sender,
                      const struct GNUNET_MessageHeader *message,
                      const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
@@ -875,8 +876,8 @@ receive_udp_service (void *cls,
     GNUNET_CONTAINER_multihashmap_get (udp_services, &hash);
   if (NULL == serv)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "No service found for UDP dpt %d!\n",
-                  *udp_desc);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "No service found for UDP dpt %d!\n", *udp_desc);
       return GNUNET_YES;
     }
 
@@ -949,19 +950,14 @@ receive_udp_service (void *cls,
 static void
 run (void *cls,
      char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg_)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
   const static struct GNUNET_MESH_MessageHandler handlers[] = {
-	{receive_udp_service, GNUNET_MESSAGE_TYPE_SERVICE_UDP, 0},
-	{receive_tcp_service, GNUNET_MESSAGE_TYPE_SERVICE_TCP, 0},
-	{NULL, 0, 0}
+    {receive_udp_service, GNUNET_MESSAGE_TYPE_SERVICE_UDP, 0},
+    {receive_tcp_service, GNUNET_MESSAGE_TYPE_SERVICE_TCP, 0},
+    {NULL, 0, 0}
   };
-  mesh_handle = GNUNET_MESH_connect(cfg_,
-				    NULL,
-				    NULL,
-				    handlers,
-                                    NULL);
+  mesh_handle = GNUNET_MESH_connect (cfg_, NULL, NULL, handlers, NULL);
 
   cfg = cfg_;
   udp_connections = GNUNET_CONTAINER_multihashmap_create(65536);
@@ -970,18 +966,18 @@ run (void *cls,
   tcp_services = GNUNET_CONTAINER_multihashmap_create(65536);
 
   char *services;
-  GNUNET_CONFIGURATION_get_value_filename(cfg, "dns", "SERVICES", &services);
-  servicecfg = GNUNET_CONFIGURATION_create();
-  if (GNUNET_OK == GNUNET_CONFIGURATION_parse(servicecfg, services))
+  GNUNET_CONFIGURATION_get_value_filename (cfg, "dns", "SERVICES", &services);
+  servicecfg = GNUNET_CONFIGURATION_create ();
+  if (GNUNET_OK == GNUNET_CONFIGURATION_parse (servicecfg, services))
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Parsing services %s\n", services);
-      GNUNET_CONFIGURATION_iterate(servicecfg, read_service_conf, NULL);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Parsing services %s\n", services);
+      GNUNET_CONFIGURATION_iterate (servicecfg, read_service_conf, NULL);
     }
   if (NULL != services)
-    GNUNET_free(services);
+    GNUNET_free (services);
 
   GNUNET_SCHEDULER_add_now (start_helper_and_schedule, NULL);
-  GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);
 }
 
 /**
