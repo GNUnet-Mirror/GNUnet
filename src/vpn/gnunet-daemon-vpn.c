@@ -171,6 +171,10 @@ send_pkt_to_peer (void *cls,
   struct GNUNET_MESH_Tunnel **tunnel = cls;
   struct GNUNET_MessageHeader *hdr =
     (struct GNUNET_MessageHeader *) (tunnel + 1);
+
+  GNUNET_assert(NULL != tunnel);
+  GNUNET_assert(NULL != *tunnel);
+
   GNUNET_MESH_notify_transmit_ready (*tunnel,
 				     GNUNET_NO,
 				     42,

@@ -142,6 +142,17 @@ send_self_connect(void* cls,
 }
 
 static void
+call_connect_handler (void *cls,
+                      const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_MESH_Tunnel *tunnel = cls;
+
+  tunnel->connect_handler (tunnel->handler_cls, &tunnel->peer,
+                           NULL);
+  GNUNET_SCHEDULER_add_now (send_end_connect, tunnel);
+}
+
+static void
 core_startup (void *cls,
 	      struct GNUNET_CORE_Handle *core,
 	      const struct GNUNET_PeerIdentity *my_identity,
@@ -171,8 +182,7 @@ send_hello_message (void *cls, size_t size, void *buf)
 /**
  * Core calls this if we are connected to a new peer.
  *
- * If core tells us that we are connected to ourself, we ignore it. Otherwise, the
- * peer is added to the connected_peers-list.
+ * The peer is added to the connected_peers-list.
  *
  */
 static void
@@ -192,18 +202,14 @@ core_connect (void *cls,
                                     &send_hello_message,
                                     cls);
 
-  /* Check for connect-to-self-message, which we ignore */
-  if (0 ==
-      memcmp (peer, &handle->myself, sizeof (struct GNUNET_PeerIdentity)))
-    return;
-
-
   /* put the new peer into the list of connected peers */
   struct peer_list_element *element =
     GNUNET_malloc (sizeof (struct peer_list_element));
   memcpy (&element->peer, peer, sizeof (struct GNUNET_PeerIdentity));
-  memcpy (&element->atsi, atsi,
-	  sizeof (struct GNUNET_TRANSPORT_ATS_Information));
+
+  if (NULL != atsi)
+    memcpy (&element->atsi, atsi,
+            sizeof (struct GNUNET_TRANSPORT_ATS_Information));
 
   GNUNET_CONTAINER_DLL_insert_after (handle->connected_peers.head,
 				     handle->connected_peers.tail,
@@ -315,7 +321,6 @@ receive_hello (void *cls,
       element = element->next;
     }
 
-  /* TODO: handle self */
   /* TODO: add, not replace! */
   /* TODO: if this changes anything: send new hello */
   element->num_types = *num;
@@ -517,7 +522,7 @@ GNUNET_MESH_peer_request_connect_all (struct GNUNET_MESH_Handle *handle,
 					 handle->established_tunnels.tail,
 					 handle->established_tunnels.tail,
 					 tunnel);
-      connect_handler (handler_cls, &element->peer, &element->atsi);
+      GNUNET_SCHEDULER_add_now(call_connect_handler, tunnel);
     }
   else if (0 ==
 	   memcmp (peers, &handle->myself,
@@ -540,7 +545,7 @@ GNUNET_MESH_peer_request_connect_all (struct GNUNET_MESH_Handle *handle,
       (void) GNUNET_CORE_peer_request_connect (handle->core,
 					       timeout,
 					       peers,
-					       NULL, NULL);					
+					       NULL, NULL);
     }
 
   return &tunnel->tunnel;
@@ -630,6 +635,23 @@ GNUNET_MESH_notify_transmit_ready (struct
   return (struct GNUNET_MESH_TransmitHandle*) 1;
 }
 
+void build_hello_message(struct GNUNET_MESH_Handle* handle, int num)
+{
+  handle->hello_message_size = sizeof(uint16_t) + /* For the number of types */
+    num * sizeof(uint16_t); /* For the types */
+
+  uint16_t *nums = GNUNET_malloc(handle->hello_message_size);
+  uint16_t *types = nums + 1;
+
+  *nums = num;
+
+  unsigned int i;
+  for(i = 0; i < num; i++)
+    types[i] = handle->handlers[i].type;
+
+  handle->hello_message = nums;
+}
+
 
 struct GNUNET_MESH_Handle *
 GNUNET_MESH_connect (const struct
@@ -662,7 +684,7 @@ GNUNET_MESH_connect (const struct
   memcpy (ret->handlers, handlers,
 	  len * sizeof (struct GNUNET_MESH_MessageHandler));
 
-  /* TODO: build hello */
+  build_hello_message(ret, len);
 
   const static struct GNUNET_CORE_MessageHandler core_handlers[] = {
     {&core_receive, GNUNET_MESSAGE_TYPE_MESH, 0},
@@ -686,12 +708,14 @@ void
 GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
 {
   GNUNET_free (handle->handlers);
+  GNUNET_free (handle->hello_message);
   GNUNET_CORE_disconnect (handle->core);
 
   struct peer_list_element *element = handle->connected_peers.head;
   while (element != NULL)
     {
       struct peer_list_element *next = element->next;
+      GNUNET_free_non_null(element->types);
       GNUNET_free (element);
       element = next;
     }
