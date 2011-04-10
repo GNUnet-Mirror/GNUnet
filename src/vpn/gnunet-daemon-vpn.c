@@ -255,6 +255,7 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 
         memset(value->additional_ports, 0, 8192);
 
+        /* FIXME save this to heap, too */
         if (GNUNET_NO ==
             GNUNET_CONTAINER_multihashmap_contains (hashmap, &key))
           GNUNET_CONTAINER_multihashmap_put (hashmap, &key, value,
@@ -290,6 +291,7 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 	      k[i] += 16*(c2 - 87);
 	  }
 
+        /* FIXME: update costs in heap */
 	struct map_entry* map_entry = GNUNET_CONTAINER_multihashmap_get(hashmap, &key);
 	uint16_t offset = ntohs(pkt->addroffset);
 
@@ -450,6 +452,7 @@ receive_udp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
   GNUNET_HashCode* key = address_mapping_exists(pkt6->ip6_hdr.sadr);
   GNUNET_assert (key != NULL);
 
+  /* FIXME: update costs in heap */
   struct map_entry *me = GNUNET_CONTAINER_multihashmap_get(hashmap, key);
 
   GNUNET_free(key);
@@ -523,6 +526,7 @@ receive_tcp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
   GNUNET_HashCode* key = address_mapping_exists(pkt6->ip6_hdr.sadr);
   GNUNET_assert (key != NULL);
 
+  /* FIXME: update costs in heap */
   struct map_entry *me = GNUNET_CONTAINER_multihashmap_get(hashmap, key);
 
   GNUNET_free(key);

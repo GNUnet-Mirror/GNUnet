@@ -200,6 +200,7 @@ udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen,
   /* FIXME better hashing */
   GNUNET_HashCode hash;
   GNUNET_CRYPTO_hash (&u_i, sizeof (struct redirect_info), &hash);
+  /* FIXME: update costs in heap */
   struct redirect_state *state =
     GNUNET_CONTAINER_multihashmap_get (udp_connections, &hash);
 
@@ -278,6 +279,7 @@ tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
   /* get tunnel and service-descriptor from this */
   GNUNET_HashCode hash;
   GNUNET_CRYPTO_hash (&u_i, sizeof (struct redirect_info), &hash);
+  /* FIXME: update costs in heap */
   struct redirect_state *state =
     GNUNET_CONTAINER_multihashmap_get (tcp_connections, &hash);
 
@@ -832,6 +834,7 @@ receive_tcp_service (void *cls,
   /* FIXME better hashing */
   GNUNET_CRYPTO_hash (&state->redirect_info, sizeof (struct redirect_info), &hash);
 
+  /* FIXME save this to heap, too */
   if (GNUNET_NO ==
       GNUNET_CONTAINER_multihashmap_contains (tcp_connections, &hash))
     GNUNET_CONTAINER_multihashmap_put (tcp_connections, &hash, state,
@@ -923,6 +926,7 @@ receive_udp_service (void *cls,
   /* FIXME better hashing */
   GNUNET_CRYPTO_hash (&state->redirect_info, sizeof (struct redirect_info), &hash);
 
+  /* FIXME save this to heap, too */
   if (GNUNET_NO ==
       GNUNET_CONTAINER_multihashmap_contains (udp_connections, &hash))
     GNUNET_CONTAINER_multihashmap_put (udp_connections, &hash, state,
