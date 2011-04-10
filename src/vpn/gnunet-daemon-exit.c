@@ -785,7 +785,10 @@ receive_tcp_service (void *cls,
     }
 
   pkt->dpt = htons (serv->remote_port);
-  /* FIXME -> check acl etc */
+
+  /*
+   * At this point it would be possible to check against some kind of ACL.
+   */
 
   char *buf;
   size_t len;
@@ -872,7 +875,10 @@ receive_udp_service (void *cls,
     }
 
   pkt->dpt = htons (serv->remote_port);
-  /* FIXME -> check acl etc */
+
+  /*
+   * At this point it would be possible to check against some kind of ACL.
+   */
 
   char *buf;
   size_t len;
