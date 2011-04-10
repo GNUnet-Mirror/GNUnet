@@ -226,7 +226,6 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
      * It contains an almost complete DNS-Response, we have to fill in the ip
      * at the offset pkt->addroffset
      */
-    //FIXME htons?
     if (pkt->subtype == GNUNET_DNS_ANSWER_TYPE_SERVICE)
       {
 	pkt->subtype = GNUNET_DNS_ANSWER_TYPE_IP;
