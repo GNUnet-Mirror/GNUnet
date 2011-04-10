@@ -245,7 +245,12 @@ send_rev_query(void * cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
     struct dns_record_line *drec_data = (struct dns_record_line*)(dpkt->data+(query_states[id].namelen)+sizeof(struct dns_query_line)+2);
     drec_data->type = htons(12); /* AAAA */
     drec_data->class = htons(1); /* IN */
-    drec_data->ttl = htonl(3600); /* FIXME: read from block */
+    /* FIXME: read the TTL from block:
+     * GNUNET_TIME_absolute_get_remaining(rec->expiration_time)
+     *
+     * But how to get the seconds out of this?
+     */
+    drec_data->ttl = htonl(3600);
 
     /* Calculate at which offset in the packet the length of the name and the
      * name, it is filled in by the daemon-vpn */
@@ -350,7 +355,13 @@ receive_dht(void *cls,
     struct dns_record_line *drec_data = (struct dns_record_line*)(dpkt->data+(query_states[id].namelen)+sizeof(struct dns_query_line)+2);
     drec_data->type = htons(28); /* AAAA */
     drec_data->class = htons(1); /* IN */
-    drec_data->ttl = htonl(3600); /* FIXME: read from block */
+
+    /* FIXME: read the TTL from block:
+     * GNUNET_TIME_absolute_get_remaining(rec->expiration_time)
+     *
+     * But how to get the seconds out of this?
+     */
+    drec_data->ttl = htonl(3600);
     drec_data->data_len = htons(16);
 
     /* Calculate at which offset in the packet the IPv6-Address belongs, it is
