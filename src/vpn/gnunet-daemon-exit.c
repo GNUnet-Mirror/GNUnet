@@ -65,7 +65,19 @@ static struct GNUNET_MESH_Handle *mesh_handle;
  * source-port and destination-port to a struct redirect_state
  */
 static struct GNUNET_CONTAINER_MultiHashMap *udp_connections;
+static struct GNUNET_CONTAINER_Heap *udp_connections_heap;
 static struct GNUNET_CONTAINER_MultiHashMap *tcp_connections;
+static struct GNUNET_CONTAINER_Heap *tcp_connections_heap;
+
+/**
+ * If there are at least this many udp-Connections, old ones will be removed
+ */
+static long long unsigned int max_udp_connections = 200;
+
+/**
+ * If there are at least this many tcp-Connections, old ones will be removed
+ */
+static long long unsigned int max_tcp_connections = 200;
 
 /**
  * This struct is saved into the services-hashmap
@@ -114,6 +126,10 @@ struct redirect_state
   GNUNET_HashCode desc;
   struct redirect_service *serv;
 
+  struct GNUNET_CONTAINER_HeapNode* heap_node;
+  struct GNUNET_CONTAINER_MultiHashMap *hashmap;
+  GNUNET_HashCode hash;
+
   /**
    * The source-address and -port of this connection
    */
@@ -158,6 +174,26 @@ cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
       }
 }
 
+static void
+collect_connections(void* cls, const struct GNUNET_SCHEDULER_TaskContext* t) {
+    if (GNUNET_SCHEDULER_REASON_SHUTDOWN == t->reason)
+      return;
+
+
+    struct GNUNET_CONTAINER_Heap *heap = cls;
+
+    struct redirect_state* state = GNUNET_CONTAINER_heap_remove_root(heap);
+
+    /* This is free()ed memory! */
+    state->heap_node = NULL;
+
+    /* FIXME! GNUNET_MESH_close_tunnel(state->tunnel); */
+
+    GNUNET_CONTAINER_multihashmap_remove(state->hashmap, &state->hash, state);
+
+    GNUNET_free(state);
+}
+
 /**
  * cls is the pointer to a GNUNET_MessageHeader that is
  * followed by the service-descriptor and the udp-packet that should be sent;
@@ -200,9 +236,13 @@ udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen,
   /* FIXME better hashing */
   GNUNET_HashCode hash;
   GNUNET_CRYPTO_hash (&u_i, sizeof (struct redirect_info), &hash);
-  /* FIXME: update costs in heap */
+
   struct redirect_state *state =
     GNUNET_CONTAINER_multihashmap_get (udp_connections, &hash);
+
+  /* Mark this connection as freshly used */
+  GNUNET_CONTAINER_heap_update_cost (udp_connections_heap, state->heap_node,
+                                     GNUNET_TIME_absolute_get ().abs_value);
 
   tunnel = state->tunnel;
 
@@ -228,6 +268,7 @@ udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen,
                      GNUNET_CONTAINER_multihashmap_put (udp_services,
                                                         &hash, serv,
                                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+
       state->serv = serv;
     }
   /* send udp-packet back */
@@ -279,9 +320,12 @@ tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
   /* get tunnel and service-descriptor from this */
   GNUNET_HashCode hash;
   GNUNET_CRYPTO_hash (&u_i, sizeof (struct redirect_info), &hash);
-  /* FIXME: update costs in heap */
   struct redirect_state *state =
     GNUNET_CONTAINER_multihashmap_get (tcp_connections, &hash);
+
+  /* Mark this connection as freshly used */
+  GNUNET_CONTAINER_heap_update_cost (tcp_connections_heap, state->heap_node,
+                                     GNUNET_TIME_absolute_get ().abs_value);
 
   tunnel = state->tunnel;
 
@@ -295,7 +339,7 @@ tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
       // This is an illegal packet.
       GNUNET_assert (0);
     }
-  /* send udp-packet back */
+  /* send tcp-packet back */
   len =
     sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) + pktlen;
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "len: %d\n", pktlen);
@@ -806,6 +850,7 @@ receive_tcp_service (void *cls,
   memset (state, 0, sizeof (struct redirect_state));
   state->tunnel = tunnel;
   state->serv = serv;
+  state->hashmap = tcp_connections;
   memcpy (&state->desc, desc, sizeof (GNUNET_HashCode));
 
   len = sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) +
@@ -833,13 +878,22 @@ receive_tcp_service (void *cls,
     }
 
   /* FIXME better hashing */
-  GNUNET_CRYPTO_hash (&state->redirect_info, sizeof (struct redirect_info), &hash);
+  GNUNET_CRYPTO_hash (&state->redirect_info, sizeof (struct redirect_info),
+                      &state->hash);
 
-  /* FIXME save this to heap, too */
   if (GNUNET_NO ==
-      GNUNET_CONTAINER_multihashmap_contains (tcp_connections, &hash))
-    GNUNET_CONTAINER_multihashmap_put (tcp_connections, &hash, state,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+      GNUNET_CONTAINER_multihashmap_contains (tcp_connections, &state->hash))
+    {
+      GNUNET_CONTAINER_multihashmap_put (tcp_connections, &state->hash, state,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+
+      state->heap_node =
+        GNUNET_CONTAINER_heap_insert (tcp_connections_heap, state,
+                                      GNUNET_TIME_absolute_get ().abs_value);
+
+      if (GNUNET_CONTAINER_heap_get_size(tcp_connections_heap) > max_tcp_connections)
+        GNUNET_SCHEDULER_add_now(collect_connections, tcp_connections_heap);
+    }
   else
     GNUNET_free (state);
 
@@ -894,10 +948,12 @@ receive_udp_service (void *cls,
    * This will be saved in the hashmap, so that the receiving procedure knows
    * through which tunnel this connection has to be routed.
    */
-  struct redirect_state *state = GNUNET_malloc (sizeof (struct redirect_state));
+  struct redirect_state *state =
+    GNUNET_malloc (sizeof (struct redirect_state));
   memset (state, 0, sizeof (struct redirect_state));
   state->tunnel = tunnel;
   state->serv = serv;
+  state->hashmap = udp_connections;
   memcpy (&state->desc, desc, sizeof (GNUNET_HashCode));
 
   len = sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) +
@@ -925,13 +981,22 @@ receive_udp_service (void *cls,
     }
 
   /* FIXME better hashing */
-  GNUNET_CRYPTO_hash (&state->redirect_info, sizeof (struct redirect_info), &hash);
+  GNUNET_CRYPTO_hash (&state->redirect_info, sizeof (struct redirect_info),
+                      &state->hash);
 
-  /* FIXME save this to heap, too */
   if (GNUNET_NO ==
-      GNUNET_CONTAINER_multihashmap_contains (udp_connections, &hash))
-    GNUNET_CONTAINER_multihashmap_put (udp_connections, &hash, state,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+      GNUNET_CONTAINER_multihashmap_contains (udp_connections, &state->hash))
+    {
+      GNUNET_CONTAINER_multihashmap_put (udp_connections, &state->hash, state,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+
+      state->heap_node =
+        GNUNET_CONTAINER_heap_insert (udp_connections_heap, state,
+                                      GNUNET_TIME_absolute_get ().abs_value);
+
+      if (GNUNET_CONTAINER_heap_get_size(udp_connections_heap) > max_udp_connections)
+        GNUNET_SCHEDULER_add_now(collect_connections, udp_connections_heap);
+    }
   else
     GNUNET_free (state);
 
@@ -960,10 +1025,19 @@ run (void *cls,
   mesh_handle = GNUNET_MESH_connect (cfg_, NULL, NULL, handlers, NULL);
 
   cfg = cfg_;
-  udp_connections = GNUNET_CONTAINER_multihashmap_create(65536);
-  tcp_connections = GNUNET_CONTAINER_multihashmap_create(65536);
-  udp_services = GNUNET_CONTAINER_multihashmap_create(65536);
-  tcp_services = GNUNET_CONTAINER_multihashmap_create(65536);
+  udp_connections = GNUNET_CONTAINER_multihashmap_create (65536);
+  udp_connections_heap =
+    GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
+  tcp_connections = GNUNET_CONTAINER_multihashmap_create (65536);
+  tcp_connections_heap =
+    GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
+  udp_services = GNUNET_CONTAINER_multihashmap_create (65536);
+  tcp_services = GNUNET_CONTAINER_multihashmap_create (65536);
+
+  GNUNET_CONFIGURATION_get_value_number (cfg, "exit", "MAX_UDP_CONNECTIONS",
+                                         &max_udp_connections);
+  GNUNET_CONFIGURATION_get_value_number (cfg, "exit", "MAX_TCP_CONNECTIONS",
+                                         &max_tcp_connections);
 
   char *services;
   GNUNET_CONFIGURATION_get_value_filename (cfg, "dns", "SERVICES", &services);
