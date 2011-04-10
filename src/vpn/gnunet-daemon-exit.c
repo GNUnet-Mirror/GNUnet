@@ -462,7 +462,7 @@ read_service_conf (void *cls, const char *section, const char *option,
             }
           else
             {
-              // Lookup, yadayadayada
+              // TODO Lookup, yadayadayada
               GNUNET_assert (0);
             }
           serv->remote_port = atoi (hostport);

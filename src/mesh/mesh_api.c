@@ -313,6 +313,9 @@ receive_hello (void *cls,
       element = element->next;
     }
 
+  /* TODO: handle self */
+  /* TODO: add, not replace! */
+  /* TODO: if this changes anything: send new hello */
   element->num_types = *num;
   element->types = GNUNET_malloc (*num * sizeof (GNUNET_MESH_ApplicationType));
 
@@ -656,6 +659,8 @@ GNUNET_MESH_connect (const struct
   memset(ret->handlers, 0, len * sizeof(struct GNUNET_MESH_MessageHandler));
   memcpy (ret->handlers, handlers,
 	  len * sizeof (struct GNUNET_MESH_MessageHandler));
+
+  /* TODO: build hello */
 
   const static struct GNUNET_CORE_MessageHandler core_handlers[] = {
     {&core_receive, GNUNET_MESSAGE_TYPE_MESH, 0},
