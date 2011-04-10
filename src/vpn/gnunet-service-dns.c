@@ -263,12 +263,6 @@ send_rev_query(void * cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
 					GNUNET_TIME_UNIT_FOREVER_REL,
 					&send_answer,
 					query_states[id].client);
-
-    /*
-     * build
-     * complete dns-packet with empty name in the answer
-     * provide offsett of the name
-     */
 }
 
 /**
