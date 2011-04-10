@@ -181,6 +181,17 @@ core_connect (void *cls,
 	      const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct GNUNET_MESH_Handle *handle = cls;
+
+  /* Send a hello to this peer */
+  GNUNET_CORE_notify_transmit_ready(handle->core,
+                                    GNUNET_NO,
+                                    42,
+                                    GNUNET_TIME_UNIT_SECONDS,
+                                    peer,
+                                    sizeof(struct GNUNET_MessageHeader) + handle->hello_message_size,
+                                    &send_hello_message,
+                                    cls);
+
   /* Check for connect-to-self-message, which we ignore */
   if (0 ==
       memcmp (peer, &handle->myself, sizeof (struct GNUNET_PeerIdentity)))
@@ -220,15 +231,6 @@ core_connect (void *cls,
       else
 	tunnel = tunnel->next;
     }
-  GNUNET_CORE_notify_transmit_ready(handle->core,
-                                    GNUNET_NO,
-                                    42,
-                                    GNUNET_TIME_UNIT_SECONDS,
-                                    peer,
-                                    sizeof(struct GNUNET_MessageHeader) + handle->hello_message_size,
-                                    &send_hello_message,
-                                    cls);
-
 }
 
 /**
