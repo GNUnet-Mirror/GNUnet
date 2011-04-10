@@ -76,8 +76,19 @@ helper_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tsdkctx)
       return;
     }
 
-  /* FIXME */ GNUNET_SERVER_mst_receive (handle->mst, handle->client, buf, t,
-                                         0, 0);
+  if (GNUNET_SYSERR ==
+      GNUNET_SERVER_mst_receive (handle->mst, handle->client, buf, t, 0, 0))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "SYSERR from mst\n");
+      stop_helper (handle);
+
+      /* Restart the helper */
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                    handle->restart_task, handle);
+      return;
+
+    }
 
   GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                   handle->fh_from_helper, &helper_read,

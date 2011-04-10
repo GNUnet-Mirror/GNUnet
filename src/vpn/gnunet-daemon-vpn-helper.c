@@ -40,6 +40,7 @@
 #include "gnunet-service-dns-p.h"
 #include "gnunet-vpn-packet.h"
 #include "gnunet-vpn-checksum.h"
+#include "gnunet-helper-vpn-api.h"
 
 struct GNUNET_VPN_HELPER_Handle *helper_handle;
 
@@ -185,7 +186,12 @@ helper_write(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
     GNUNET_CONTAINER_DLL_remove (answer_proc_head, answer_proc_tail, ans);
     GNUNET_free(ans);
 
-    /* FIXME */ GNUNET_DISK_file_write(helper_handle->fh_to_helper, pkt, pkt_len);
+    if (GNUNET_DISK_file_write(helper_handle->fh_to_helper, pkt, pkt_len) < 0)
+      {
+        cleanup_helper(helper_handle);
+        GNUNET_SCHEDULER_add_now(start_helper_and_schedule, NULL);
+        return;
+      }
 
     /* if more packets are available, reschedule */
     if (answer_proc_head != NULL)
