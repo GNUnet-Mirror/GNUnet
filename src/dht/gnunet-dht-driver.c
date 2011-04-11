@@ -3307,10 +3307,24 @@ hostkey_callback(void *cls, const struct GNUNET_PeerIdentity *id,
 
       GNUNET_asprintf (&revision_str, "%llu", revision);
       if (GNUNET_YES == insert_gauger_data)
-        GAUGER_ID("DHT_TESTING",
-                  "HOSTKEY_GENERATION",
-                  GNUNET_TIME_absolute_get_duration(hostkey_start_time).rel_value / (double)num_peers,
-                  "ms/hostkey", revision_str);
+        {
+          if (GNUNET_YES == GNUNET_CONFIGURATION_have_value (config, "TESTING",
+                                                                   "HOSTKEYSFILE"))
+            {
+              GAUGER_ID("DHT_TESTING",
+                        "HOSTKEY_GENERATION",
+                        GNUNET_TIME_absolute_get_duration(hostkey_start_time).rel_value / (double)num_peers,
+                        "ms/hostkey", revision_str);
+            }
+          else
+            {
+              GAUGER_ID("DHT_TESTING",
+                        "HOSTKEY_GENERATION_REAL",
+                        GNUNET_TIME_absolute_get_duration(hostkey_start_time).rel_value / (double)num_peers,
+                        "ms/hostkey", revision_str);
+            }
+        }
+
       GNUNET_free(revision_str);
 
       GNUNET_SCHEDULER_cancel (die_task);
