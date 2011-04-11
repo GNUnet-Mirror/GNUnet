@@ -3016,7 +3016,7 @@ topology_callback(void *cls, const struct GNUNET_PeerIdentity *first,
       GNUNET_log (
                   GNUNET_ERROR_TYPE_WARNING,
                   "Recent: %.2f/s, Total: %.2f/s, Recent failed: %.2f/s, total failed %.2f/s\n",
-                  conns_per_sec_recent, CONN_UPDATE_DURATION,
+                  conns_per_sec_recent,
                   conns_per_sec_total, failed_conns_per_sec_recent,
                   failed_conns_per_sec_total);
       connect_last_time = GNUNET_TIME_absolute_get ();
