@@ -5871,7 +5871,9 @@ return cont;
 static int ats_solve_problem (int max_it, int max_dur , double D, double U, double R, int v_b_min, int v_n_min, struct ATS_result *res)
 {
 #if !HAVE_LIBGLPK
+#if DEBUG_ATS
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "no glpk installed\n");
+#endif
 	return GNUNET_SYSERR;
 #else
 #if DEBUG_ATS
@@ -6487,7 +6489,9 @@ void ats_init ()
 	ats->ats_task = GNUNET_SCHEDULER_NO_TASK;
 
 #if !HAVE_LIBGLPK
+#if DEBUG_ATS
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "GLPK not installed, ATS not active");
+#endif
 	return;
 #endif
 
