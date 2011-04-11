@@ -39,7 +39,7 @@
  * 
  * API CALL (GNUNET_MESH_*)             MESSAGE USED
  * ------------------------             ------------
- * connect                              GNUNET_MESH_Connect
+ * connect                              None (Header + [types])
  * disconnect                           None (network level disconnect)
  *
  * tunnel_create                        GNUNET_MESH_TunnelMessage
@@ -70,23 +70,6 @@
  * - Global tunnel numbers are < 0x80000000
  */
 typedef uint32_t MESH_TunnelID;
-
-
-/**
- * Message for connecting to the msh service. Specifies the messages the client
- * is interested in.
- */
-struct GNUNET_MESH_Connect {
-    /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT
-     * Size: sizeof(struct GNUNET_MESH_Connect) +
-     *       messages_subscribed * sizeof (message_type)
-     */
-    struct GNUNET_MessageHeader header;
-
-    /* GNUNET_MESH_ApplicationType messages_subscribed[] */
-};
-
 
 /**
  * Message for a client to create and destroy tunnels.

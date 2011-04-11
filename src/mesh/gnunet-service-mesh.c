@@ -566,13 +566,6 @@ handle_local_new_client (void *cls,
 {
     struct Client               *c;
     unsigned int                payload_size;
-//     FIXME: is this needed? should we delete the GNUNET_MESH_Connect struct?
-//     struct GNUNET_MESH_Connect  *connect_msg;
-// 
-//     connect_msg = (struct GNUNET_MESH_Connect *) message;
-
-    /* FIXME: is this a good idea? */
-    GNUNET_assert(GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT == message->type);
 
     /* Check data sanity */
     payload_size = message->size - sizeof(struct GNUNET_MessageHeader);
@@ -629,9 +622,7 @@ handle_local_tunnel_create (void *cls,
     }
 
     /* Message sanity check */
-    /* FIXME: two different checks, to know why it fails? */
-    if(sizeof(struct GNUNET_MESH_TunnelMessage) != message->size ||
-      GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE != message->type) {
+    if(sizeof(struct GNUNET_MESH_TunnelMessage) != ntohs(message->size)) {
         GNUNET_break(0);
         GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
         return;
@@ -639,7 +630,7 @@ handle_local_tunnel_create (void *cls,
 
     tunnel_msg = (struct GNUNET_MESH_TunnelMessage *) message;
     /* Sanity check for tunnel numbering */
-    if(0 == (tunnel_msg->tunnel_id & 0x80000000)) {
+    if(0 == (ntohl(tunnel_msg->tunnel_id) & 0x80000000)) {
             GNUNET_break(0);
             GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
             return;
