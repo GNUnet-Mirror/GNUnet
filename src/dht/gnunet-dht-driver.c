@@ -2954,10 +2954,10 @@ topology_callback(void *cls, const struct GNUNET_PeerIdentity *first,
   unsigned long long total_duration;
   unsigned int new_connections;
   unsigned int new_failed_connections;
-  double conns_per_sec_recent;
-  double conns_per_sec_total;
-  double failed_conns_per_sec_recent;
-  double failed_conns_per_sec_total;
+  long double conns_per_sec_recent;
+  long double conns_per_sec_total;
+  long double failed_conns_per_sec_recent;
+  long double failed_conns_per_sec_total;
   char *temp_conn_string;
   char *temp_conn_failed_string;
   char *revision_str;
@@ -3009,10 +3009,10 @@ topology_callback(void *cls, const struct GNUNET_PeerIdentity *first,
                                                  GNUNET_TIME_absolute_get ()).rel_value
               / 1000;
 
-      failed_conns_per_sec_recent = (double) new_failed_connections / duration;
-      failed_conns_per_sec_total = (double) failed_connections / total_duration;
-      conns_per_sec_recent = (double) new_connections / duration;
-      conns_per_sec_total = (double) total_connections / total_duration;
+      failed_conns_per_sec_recent = (long double) new_failed_connections / duration;
+      failed_conns_per_sec_total = (long double) failed_connections / total_duration;
+      conns_per_sec_recent = (long double) new_connections / duration;
+      conns_per_sec_total = (long double) total_connections / total_duration;
       GNUNET_log (
                   GNUNET_ERROR_TYPE_WARNING,
                   "Recent: %.2f/s, Total: %.2f/s, Recent failed: %.2f/s, total failed %.2f/s\n",
@@ -3095,8 +3095,8 @@ topology_callback(void *cls, const struct GNUNET_PeerIdentity *first,
           = GNUNET_TIME_absolute_get_difference (connect_start_time,
                                                  GNUNET_TIME_absolute_get ()).rel_value
               / 1000;
-      failed_conns_per_sec_total = (double) failed_connections / total_duration;
-      conns_per_sec_total = (double) total_connections / total_duration;
+      failed_conns_per_sec_total = (long double) failed_connections / total_duration;
+      conns_per_sec_total = (long double) total_connections / total_duration;
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Overall connection info --- Total: %u, Total Failed %u/s\n",
                   total_connections, failed_connections);
@@ -3114,9 +3114,9 @@ topology_callback(void *cls, const struct GNUNET_PeerIdentity *first,
       GNUNET_asprintf (&revision_str, "%llu", revision);
 
       if (GNUNET_YES == insert_gauger_data)
-        GAUGER_ID("DHT_TESTING", temp_conn_string, conns_per_sec_total, "conns/s", revision_str);
+        GAUGER_ID("DHT_TESTING", temp_conn_string, (float)conns_per_sec_total, "conns/s", revision_str);
       if (GNUNET_YES == insert_gauger_data)
-        GAUGER_ID("DHT_TESTING", temp_conn_failed_string, failed_conns_per_sec_total, "failed_conns", revision_str);
+        GAUGER_ID("DHT_TESTING", temp_conn_failed_string, (float)failed_conns_per_sec_total, "failed_conns", revision_str);
 
       GNUNET_free(temp_conn_string);
       GNUNET_free(temp_conn_failed_string);
