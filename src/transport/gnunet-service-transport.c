@@ -6441,6 +6441,7 @@ static int ats_create_problem (double D, double U, double R, int v_b_min, int v_
 
 void ats_calculate_bandwidth_distribution ()
 {
+#if HAVE_LIBGLPK
 	struct GNUNET_TIME_Absolute start;
 	struct GNUNET_TIME_Relative duration;
 
@@ -6459,7 +6460,7 @@ void ats_calculate_bandwidth_distribution ()
 	else
 		dur = (int) ats->max_exec_duration.rel_value;
 
-#if HAVE_LIBGLPK
+
 
 	start = GNUNET_TIME_absolute_get();
 	if ((ats->modified_addr == GNUNET_YES) || (ats->prob==NULL))
@@ -6565,7 +6566,9 @@ void ats_init ()
 	ats->R = 1.0;
 	ats->v_b_min = 64000;
 	ats->v_n_min = 10;
+#if HAVE_LIBGLPK
 	ats->prob = NULL;
+#endif
 
 	int c = 0;
 	unsigned long long  value;
