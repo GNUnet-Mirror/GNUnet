@@ -1,6 +1,7 @@
 #/bin/bash
 start=1
 end=500
+rm test.ats
 
 if [ ! $1 = "" ]; then
   start=$1
@@ -20,5 +21,6 @@ do
   killall -s 31 gnunet-service-core 2> /dev/null
   killall -s 31 gnunet-service-peerinfo 2> /dev/null
   #sleep 1
-  ./test_transport_ats $c
+  echo "$c peers"
+  ./test_transport_ats $c 2>> test.ats
 done

@@ -31,8 +31,8 @@
 #include "gnunet_transport_service.h"
 
 /* Minimum time between to calculations*/
-#define ATS_MIN_INTERVAL  GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 1000)
-#define ATS_EXEC_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 1500)
+#define ATS_MIN_INTERVAL  GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1)
+#define ATS_EXEC_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 2)
 #define ATS_MAX_EXEC_DURATION GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100)
 #define ATS_MAX_ITERATIONS INT_MAX
 
