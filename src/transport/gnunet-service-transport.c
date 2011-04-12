@@ -5877,9 +5877,10 @@ return cont;
 
 static void ats_solve_problem (unsigned int max_it, unsigned int  max_dur, unsigned int c_peers, unsigned int  c_mechs, struct ATS_result *res)
 {
+#if HAVE_LIBGLPK
 	int result;
 	int solution;
-#if HAVE_LIBGLPK
+
 	// Solving simplex
 	glp_prob *prob = ats->prob;
 	/*
@@ -6458,6 +6459,8 @@ void ats_calculate_bandwidth_distribution ()
 	else
 		dur = (int) ats->max_exec_duration.rel_value;
 
+#if HAVE_LIBGLPK
+
 	start = GNUNET_TIME_absolute_get();
 	if ((ats->modified_addr == GNUNET_YES) || (ats->prob==NULL))
 	{
@@ -6514,6 +6517,8 @@ void ats_calculate_bandwidth_distribution ()
 	ats->modified_addr = GNUNET_NO;
 	ats->modified_resources = GNUNET_NO;
 	ats->modified_quality = GNUNET_NO;
+
+#endif
 }
 
 
@@ -6612,13 +6617,13 @@ void ats_shutdown ()
 	if (ats->ats_task != GNUNET_SCHEDULER_NO_TASK)
 		GNUNET_SCHEDULER_cancel(ats->ats_task);
 	ats->ats_task = GNUNET_SCHEDULER_NO_TASK;
-
+#if HAVE_LIBGLPK
 	if (ats->prob != NULL)
 	{
 		glp_delete_prob(ats->prob);
 		ats->prob = NULL;
 	}
-
+#endif
 	GNUNET_free (ats);
 }
 
