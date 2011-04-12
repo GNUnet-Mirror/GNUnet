@@ -27,7 +27,7 @@
 #include "loopback_helper.h"
 #include "helper_common.h"
 
-extern int first;
+int first;
 
 static void
 sigfunc(int sig)
@@ -114,8 +114,8 @@ testmode(int argc, char *argv[])
   struct stat st;
   int erg;
 
-  FILE *fpin;
-  FILE *fpout;
+  FILE *fpin = NULL;
+  FILE *fpout = NULL;
 
   int fdpin;
   int fdpout;
@@ -165,13 +165,13 @@ testmode(int argc, char *argv[])
       if (NULL == fpin)
         {
           fprintf(stderr, "fopen of read FIFO_FILE1\n");
-          goto end2;
+          goto end;
         }
       fpout = fopen(FIFO_FILE2, "w");
       if (NULL == fpout)
         {
           fprintf(stderr, "fopen of write FIFO_FILE2\n");
-          goto end1;
+          goto end;
         }
 
     }
@@ -183,34 +183,35 @@ testmode(int argc, char *argv[])
       if (NULL == fpout)
         {
           fprintf(stderr, "fopen of write FIFO_FILE1\n");
-          goto end1;
+          goto end;
         }
       fpin = fopen(FIFO_FILE2, "r");
       if (NULL == fpin)
         {
           fprintf(stderr, "fopen of read FIFO_FILE2\n");
-          goto end1;
+          goto end;
         }
-
 
     }
 
   fdpin = fileno(fpin);
+  GNUNET_assert(fpin >= 0);
+
   if (fdpin >= FD_SETSIZE)
     {
       fprintf(stderr, "File fdpin number too large (%d > %u)\n", fdpin,
           (unsigned int) FD_SETSIZE);
-      close(fdpin);
-      return -1;
+      goto end;
     }
 
   fdpout = fileno(fpout);
+  GNUNET_assert(fdpout >= 0 );
+
   if (fdpout >= FD_SETSIZE)
     {
       fprintf(stderr, "File fdpout number too large (%d > %u)\n", fdpout,
           (unsigned int) FD_SETSIZE);
-      close(fdpout);
-      return -1;
+      goto end;
 
     }
 
@@ -300,7 +301,7 @@ testmode(int argc, char *argv[])
   //wait
   tv.tv_sec = 2;
   tv.tv_usec = 0;
-  retval = select(0, NULL, NULL, NULL, &tv);
+  select(0, NULL, NULL, NULL, &tv);
 
   while (0 == closeprog)
     {
@@ -346,7 +347,8 @@ testmode(int argc, char *argv[])
       if (0 > retval)
         {
           fprintf(stderr, "select failed: %s\n", strerror(errno));
-          exit(1);
+          closeprog = 1;
+          break;
         }
 
       if (FD_ISSET(STDOUT_FILENO, &wfds))
@@ -358,7 +360,7 @@ testmode(int argc, char *argv[])
             {
               closeprog = 1;
               fprintf(stderr, "Write ERROR to STDOUT\n");
-              exit(1);
+              break;
             }
           else
             {
@@ -424,7 +426,7 @@ testmode(int argc, char *argv[])
             {
               closeprog = 1;
               fprintf(stderr, "Read ERROR to fdpin: %s\n", strerror(errno));
-              closeprog = 1;
+              break;
             }
           else if (0 < readsize)
             {
@@ -445,8 +447,11 @@ testmode(int argc, char *argv[])
 
   GNUNET_SERVER_mst_destroy(stdin_mst);
   GNUNET_SERVER_mst_destroy(file_in_mst);
-  end1: fclose(fpout);
-  end2: fclose(fpin);
+
+  end: if (fpout != NULL)
+    fclose(fpout);
+  if (fpin != NULL)
+    fclose(fpin);
 
   if (1 == first)
     {

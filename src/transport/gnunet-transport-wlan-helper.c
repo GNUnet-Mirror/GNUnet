@@ -92,7 +92,6 @@
 #define ARPHRD_IEEE80211_PRISM  802
 #define ARPHRD_IEEE80211_FULL   803
 
-int first;
 int closeprog;
 
 #include "wlan/helper_common.h"
@@ -130,125 +129,129 @@ struct Hardware_Infos
 
   struct sendbuf *write_pout;
   int fd_in, arptype_in;
-  int fd_out, arptype_out;
-  int fd_main;
-  int fd_rtc;
+  int fd_out;
+  //int arptype_out;
+  //int fd_main;
+  //int fd_rtc;
 
   DRIVER_TYPE drivertype; /* inited to DT_UNKNOWN on allocation by wi_alloc */
 
-  FILE *f_cap_in;
+  //FILE *f_cap_in;
 
-  struct pcap_file_header pfh_in;
+  //struct pcap_file_header pfh_in;
 
-  int sysfs_inject;
-  int channel;
-  int freq;
-  int rate;
-  int tx_power;
-  char *wlanctlng; /* XXX never set */
-  char *iwpriv;
-  char *iwconfig;
-  char *ifconfig;
+  //int sysfs_inject;
+  //int channel;
+  //int freq;
+  //int rate;
+  //int tx_power;
+  //char *wlanctlng; /* XXX never set */
+  //char *iwpriv;
+  //char *iwconfig;
+  //char *ifconfig;
   char *iface;
-  char *main_if;
+  //char *main_if;
   unsigned char pl_mac[6];
-  int inject_wlanng;
+//int inject_wlanng;
 };
 
 //#include "radiotap.h"
 
 // mac of this node
-char mac[] =
-  { 0x13, 0x22, 0x33, 0x44, 0x55, 0x66 };
-
+/*char mac[] =
+ { 0x13, 0x22, 0x33, 0x44, 0x55, 0x66 };
+ */
 /* wifi bitrate to use in 500kHz units */
 
-static const u8 u8aRatesToUse[] =
-  {
+/*
+ static const u8 u8aRatesToUse[] =
+ {
 
-  54 * 2, 48 * 2, 36 * 2, 24 * 2, 18 * 2, 12 * 2, 9 * 2, 11 * 2, 11, // 5.5
-      2 * 2, 1 * 2 };
+ 54 * 2, 48 * 2, 36 * 2, 24 * 2, 18 * 2, 12 * 2, 9 * 2, 11 * 2, 11, // 5.5
+ 2 * 2, 1 * 2 };
 
-#define	OFFSET_FLAGS 0x10
-#define	OFFSET_RATE 0x11
-
+ #define	OFFSET_FLAGS 0x10
+ #define	OFFSET_RATE 0x11
+ */
 // this is where we store a summary of the
 // information from the radiotap header
 
-typedef struct
-{
-  int m_nChannel;
-  int m_nChannelFlags;
-  int m_nRate;
-  int m_nAntenna;
-  int m_nRadiotapFlags;
-}__attribute__((packed)) PENUMBRA_RADIOTAP_DATA;
-
+/*
+ typedef struct
+ {
+ int m_nChannel;
+ int m_nChannelFlags;
+ int m_nRate;
+ int m_nAntenna;
+ int m_nRadiotapFlags;
+ }__attribute__((packed)) PENUMBRA_RADIOTAP_DATA;
+ */
 static void
 sigfunc_hw(int sig)
 {
   closeprog = 1;
 }
 
-void
-Dump(u8 * pu8, int nLength)
-{
-  char sz[256], szBuf[512], szChar[17], *buf, fFirst = 1;
-  unsigned char baaLast[2][16];
-  uint n, nPos = 0, nStart = 0, nLine = 0, nSameCount = 0;
+/*
+ void
+ Dump(u8 * pu8, int nLength)
+ {
+ char sz[256], szBuf[512], szChar[17], *buf, fFirst = 1;
+ unsigned char baaLast[2][16];
+ uint n, nPos = 0, nStart = 0, nLine = 0, nSameCount = 0;
 
-  buf = szBuf;
-  szChar[0] = '\0';
+ buf = szBuf;
+ szChar[0] = '\0';
 
-  for (n = 0; n < nLength; n++)
-    {
-      baaLast[(nLine & 1) ^ 1][n & 0xf] = pu8[n];
-      if ((pu8[n] < 32) || (pu8[n] >= 0x7f))
-        szChar[n & 0xf] = '.';
-      else
-        szChar[n & 0xf] = pu8[n];
-      szChar[(n & 0xf) + 1] = '\0';
-      nPos += sprintf(&sz[nPos], "%02X ", baaLast[(nLine & 1) ^ 1][n & 0xf]);
-      if ((n & 15) != 15)
-        continue;
-      if ((memcmp(baaLast[0], baaLast[1], 16) == 0) && (!fFirst))
-        {
-          nSameCount++;
-        }
-      else
-        {
-          if (nSameCount)
-            buf += sprintf(buf, "(repeated %d times)\n", nSameCount);
-          buf += sprintf(buf, "%04x: %s %s\n", nStart, sz, szChar);
-          nSameCount = 0;
-          printf("%s", szBuf);
-          buf = szBuf;
-        }
-      nPos = 0;
-      nStart = n + 1;
-      nLine++;
-      fFirst = 0;
-      sz[0] = '\0';
-      szChar[0] = '\0';
-    }
-  if (nSameCount)
-    buf += sprintf(buf, "(repeated %d times)\n", nSameCount);
+ for (n = 0; n < nLength; n++)
+ {
+ baaLast[(nLine & 1) ^ 1][n & 0xf] = pu8[n];
+ if ((pu8[n] < 32) || (pu8[n] >= 0x7f))
+ szChar[n & 0xf] = '.';
+ else
+ szChar[n & 0xf] = pu8[n];
+ szChar[(n & 0xf) + 1] = '\0';
+ nPos += sprintf(&sz[nPos], "%02X ", baaLast[(nLine & 1) ^ 1][n & 0xf]);
+ if ((n & 15) != 15)
+ continue;
+ if ((memcmp(baaLast[0], baaLast[1], 16) == 0) && (!fFirst))
+ {
+ nSameCount++;
+ }
+ else
+ {
+ if (nSameCount)
+ buf += sprintf(buf, "(repeated %d times)\n", nSameCount);
+ buf += sprintf(buf, "%04x: %s %s\n", nStart, sz, szChar);
+ nSameCount = 0;
+ printf("%s", szBuf);
+ buf = szBuf;
+ }
+ nPos = 0;
+ nStart = n + 1;
+ nLine++;
+ fFirst = 0;
+ sz[0] = '\0';
+ szChar[0] = '\0';
+ }
+ if (nSameCount)
+ buf += sprintf(buf, "(repeated %d times)\n", nSameCount);
 
-  buf += sprintf(buf, "%04x: %s", nStart, sz);
-  if (n & 0xf)
-    {
-      *buf++ = ' ';
-      while (n & 0xf)
-        {
-          buf += sprintf(buf, "   ");
-          n++;
-        }
-    }
-  buf += sprintf(buf, "%s\n", szChar);
-  printf("%s", szBuf);
-}
-
-void
+ buf += sprintf(buf, "%04x: %s", nStart, sz);
+ if (n & 0xf)
+ {
+ *buf++ = ' ';
+ while (n & 0xf)
+ {
+ buf += sprintf(buf, "   ");
+ n++;
+ }
+ }
+ buf += sprintf(buf, "%s\n", szChar);
+ printf("%s", szBuf);
+ }
+ */
+static void
 usage()
 {
   printf("Usage: interface-name options\n"
@@ -259,7 +262,7 @@ usage()
   exit(1);
 }
 
-unsigned long
+static unsigned long
 calc_crc_osdep(unsigned char * buf, int len)
 {
   unsigned long crc = 0xFFFFFFFF;
@@ -272,7 +275,7 @@ calc_crc_osdep(unsigned char * buf, int len)
 
 /* CRC checksum verification routine */
 
-int
+static int
 check_crc_buf_osdep(unsigned char *buf, int len)
 {
   unsigned long crc;
@@ -287,83 +290,86 @@ check_crc_buf_osdep(unsigned char *buf, int len)
 }
 
 /* Search a file recursively */
-static char *
-searchInside(const char * dir, const char * filename)
-{
-  char * ret;
-  char * curfile;
-  struct stat sb;
-  int len, lentot;
-  DIR *dp;
-  struct dirent *ep;
+/*
+ static char *
+ searchInside(const char * dir, const char * filename)
+ {
+ char * ret;
+ char * curfile;
+ struct stat sb;
+ int len, lentot;
+ DIR *dp;
+ struct dirent *ep;
 
-  dp = opendir(dir);
-  if (dp == NULL)
-    {
-      return NULL;
-    }
+ dp = opendir(dir);
+ if (dp == NULL)
+ {
+ return NULL;
+ }
 
-  len = strlen(filename);
-  lentot = strlen(dir) + 256 + 2;
-  curfile = (char *) calloc(1, lentot);
+ len = strlen(filename);
+ lentot = strlen(dir) + 256 + 2;
+ curfile = (char *) calloc(1, lentot);
 
-  while ((ep = readdir(dp)) != NULL)
-    {
+ while ((ep = readdir(dp)) != NULL)
+ {
 
-      memset(curfile, 0, lentot);
-      sprintf(curfile, "%s/%s", dir, ep->d_name);
+ memset(curfile, 0, lentot);
+ sprintf(curfile, "%s/%s", dir, ep->d_name);
 
-      //Checking if it's the good file
-      if ((int) strlen(ep->d_name) == len && !strcmp(ep->d_name, filename))
-        {
-          (void) closedir(dp);
-          return curfile;
-        }
-      lstat(curfile, &sb);
+ //Checking if it's the good file
+ if ((int) strlen(ep->d_name) == len && !strcmp(ep->d_name, filename))
+ {
+ (void) closedir(dp);
+ return curfile;
+ }
+ lstat(curfile, &sb);
 
-      //If it's a directory and not a link, try to go inside to search
-      if (S_ISDIR(sb.st_mode) && !S_ISLNK(sb.st_mode))
-        {
-          //Check if the directory isn't "." or ".."
-          if (strcmp(".", ep->d_name) && strcmp("..", ep->d_name))
-            {
-              //Recursive call
-              ret = searchInside(curfile, filename);
-              if (ret != NULL)
-                {
-                  (void) closedir(dp);
-                  free(curfile);
-                  return ret;
-                }
-            }
-        }
-    }
-  (void) closedir(dp);
-  free(curfile);
-  return NULL;
-}
-
+ //If it's a directory and not a link, try to go inside to search
+ if (S_ISDIR(sb.st_mode) && !S_ISLNK(sb.st_mode))
+ {
+ //Check if the directory isn't "." or ".."
+ if (strcmp(".", ep->d_name) && strcmp("..", ep->d_name))
+ {
+ //Recursive call
+ ret = searchInside(curfile, filename);
+ if (ret != NULL)
+ {
+ (void) closedir(dp);
+ free(curfile);
+ return ret;
+ }
+ }
+ }
+ }
+ (void) closedir(dp);
+ free(curfile);
+ return NULL;
+ }
+ */
 /* Search a wireless tool and return its path */
-static char *
-wiToolsPath(const char * tool)
-{
-  char * path;
-  int i, nbelems;
-  static const char * paths[] =
-    { "/sbin", "/usr/sbin", "/usr/local/sbin", "/bin", "/usr/bin",
-        "/usr/local/bin", "/tmp" };
+/*
+ static char *
+ wiToolsPath(const char * tool)
+ {
+ char * path;
+ int i, nbelems;
+ static const char * paths[] =
+ { "/sbin", "/usr/sbin", "/usr/local/sbin", "/bin", "/usr/bin",
+ "/usr/local/bin", "/tmp" };
 
-  nbelems = sizeof(paths) / sizeof(char *);
+ nbelems = sizeof(paths) / sizeof(char *);
 
-  for (i = 0; i < nbelems; i++)
-    {
-      path = searchInside(paths[i], tool);
-      if (path != NULL)
-        return path;
-    }
+ for (i = 0; i < nbelems; i++)
+ {
+ path = searchInside(paths[i], tool);
+ if (path != NULL)
+ return path;
+ }
 
-  return NULL;
-}
+ return NULL;
+ }
+ */
 
 static int
 linux_get_channel(struct Hardware_Infos *dev)
@@ -374,15 +380,17 @@ linux_get_channel(struct Hardware_Infos *dev)
 
   memset(&wrq, 0, sizeof(struct iwreq));
 
-  if (dev->main_if)
-    strncpy(wrq.ifr_name, dev->main_if, IFNAMSIZ );
-  else
-    strncpy(wrq.ifr_name, dev->iface, IFNAMSIZ );
+  /*
+   if (dev->main_if)
+   strncpy(wrq.ifr_name, dev->main_if, IFNAMSIZ );
+   else*/
+  strncpy(wrq.ifr_name, dev->iface, IFNAMSIZ );
 
   fd = dev->fd_in;
-  if (dev->drivertype == DT_IPW2200)
-    fd = dev->fd_main;
-
+  /*
+   if (dev->drivertype == DT_IPW2200)
+   fd = dev->fd_main;
+   */
   if (ioctl(fd, SIOCGIWFREQ, &wrq) < 0)
     return (-1);
 
@@ -770,43 +778,45 @@ int
 wlaninit(struct Hardware_Infos * dev, char *iface)
 {
 
-  char *iwpriv;
+  //char *iwpriv;
   char strbuf[512];
-  dev->inject_wlanng = 1;
-  dev->rate = 2; /* default to 1Mbps if nothing is set */
+  //dev->inject_wlanng = 1;
+  //dev->rate = 2; /* default to 1Mbps if nothing is set */
 
   /* open raw socks */
-  dev->fd_in = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
-  if (0 > dev->fd_in)
-    {
-      perror("socket(PF_PACKET) failed at fd_in");
-      if (getuid() != 0)
-        fprintf(stderr, "This program requires root privileges.\n");
-      return (1);
-    }
-
-  dev->fd_main = socket(PF_PACKET, SOCK_RAW, htons( ETH_P_ALL ) );
-  if (0 > dev->fd_main)
-    {
-      perror("socket(PF_PACKET) failed at fd_main");
-      if (getuid() != 0)
-        fprintf(stderr, "This program requires root privileges.\n");
-      return (1);
-    }
-
+  /*
+   dev->fd_in = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+   if (0 > dev->fd_in)
+   {
+   perror("socket(PF_PACKET) failed at fd_in");
+   if (getuid() != 0)
+   fprintf(stderr, "This program requires root privileges.\n");
+   return (1);
+   }
+   */
+  /*
+   dev->fd_main = socket(PF_PACKET, SOCK_RAW, htons( ETH_P_ALL ) );
+   if (0 > dev->fd_main)
+   {
+   perror("socket(PF_PACKET) failed at fd_main");
+   if (getuid() != 0)
+   fprintf(stderr, "This program requires root privileges.\n");
+   return (1);
+   }
+   */
   /* Check iwpriv existence */
+  /*
+   iwpriv = wiToolsPath("iwpriv");
+   dev->iwpriv = iwpriv;
+   dev->iwconfig = wiToolsPath("iwconfig");
+   dev->ifconfig = wiToolsPath("ifconfig");
 
-  iwpriv = wiToolsPath("iwpriv");
-  dev->iwpriv = iwpriv;
-  dev->iwconfig = wiToolsPath("iwconfig");
-  dev->ifconfig = wiToolsPath("ifconfig");
-
-  if (!iwpriv)
-    {
-      fprintf(stderr, "Can't find wireless tools, exiting.\n");
-      goto close_in;
-    }
-
+   if (!iwpriv)
+   {
+   fprintf(stderr, "Can't find wireless tools, exiting.\n");
+   goto close_in;
+   }
+   */
   dev->fd_out = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
   if (0 > dev->fd_out)
     {
@@ -836,6 +846,7 @@ wlaninit(struct Hardware_Infos * dev, char *iface)
   else
     {
       // At the moment only mac80211 tested
+      fprintf(stderr, "only mac80211 stack supported, exiting.\n");
       return 1;
     }
 
@@ -844,14 +855,16 @@ wlaninit(struct Hardware_Infos * dev, char *iface)
       szaDriverTypes[dev->drivertype]);
 #endif
 
-  if (openraw(dev, iface, dev->fd_out, &dev->arptype_out, dev->pl_mac) != 0)
+  if (openraw(dev, iface, dev->fd_out, &dev->arptype_in, dev->pl_mac) != 0)
     {
       goto close_out;
     }
 
   dev->fd_in = dev->fd_out;
+  dev->iface = GNUNET_malloc(sizeof(char) *6);
+  strncpy(dev->iface, iface, sizeof(char) * 6);
 
-  dev->arptype_in = dev->arptype_out;
+  //dev->arptype_out = dev->arptype_in;
 
   return 0;
   close_out: close(dev->fd_out);
@@ -961,7 +974,7 @@ stdin_send_hw(void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
         + sizeof(struct Radiotap_Send) + sizeof(struct GNUNET_MessageHeader),
         sendsize);
 
-    wlanheader =  write_pout->buf + sizeof(u8aRadiotap);
+    wlanheader = write_pout->buf + sizeof(u8aRadiotap);
     mac_set(wlanheader, dev);
 
     sendsize += sizeof(u8aRadiotap);
@@ -974,7 +987,7 @@ stdin_send_hw(void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   write_pout->size = sendsize;
 }
 
-int
+static int
 maketest(unsigned char * buf, struct Hardware_Infos * dev)
 {
   uint16_t * tmp16;
@@ -1024,8 +1037,8 @@ maketest(unsigned char * buf, struct Hardware_Infos * dev)
         //0x00, 0x1f, 0x3f, 0xd1, 0x8e, 0xe6, // mac1 - in this case receiver
         0x00, 0x1d, 0xe0, 0xb0, 0x17, 0xdf, // mac1 - in this case receiver
         0xC0, 0x3F, 0x0E, 0x44, 0x2D, 0x51, // mac2 - in this case sender
-        0x02, 0x1d, 0xe0, 0x00, 0x01, 0xc4,
-        //0x13, 0x22, 0x33, 0x44, 0x55, 0x66, // mac3 - in this case bssid
+        //0x02, 0x1d, 0xe0, 0x00, 0x01, 0xc4,
+        0x13, 0x22, 0x33, 0x44, 0x55, 0x66, // mac3 - in this case bssid
         0x10, 0x86, //Sequence Control
       };
   if (first == 0)
@@ -1117,7 +1130,7 @@ hardwaremode(int argc, char *argv[])
       write_pout.size = maketest(write_pout.buf, &dev);
       tv.tv_sec = 2;
       tv.tv_usec = 0;
-      retval = select(0, NULL, NULL, NULL, &tv);
+      select(0, NULL, NULL, NULL, &tv);
 
       maxfd = 0;
 
@@ -1172,7 +1185,7 @@ hardwaremode(int argc, char *argv[])
             {
               closeprog = 1;
               fprintf(stderr, "Write ERROR to STDOUT\n");
-              exit(1);
+              goto end;
             }
           else
             {
@@ -1275,6 +1288,9 @@ hardwaremode(int argc, char *argv[])
 
   GNUNET_SERVER_mst_destroy(stdin_mst);
   return 0;
+
+  end: GNUNET_SERVER_mst_destroy(stdin_mst);
+  return 1;
 
 }
 
