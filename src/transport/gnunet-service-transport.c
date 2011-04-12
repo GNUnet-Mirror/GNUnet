@@ -1107,18 +1107,18 @@ static void disconnect_neighbour (struct NeighbourList *n, int check);
 static void try_transmission_to_peer (struct NeighbourList *n);
 
 
-void ats_init ();
+static void ats_init ();
 
-void ats_shutdown ( );
+static void ats_shutdown ( );
 
-void ats_notify_peer_connect (
+static void ats_notify_peer_connect (
 		const struct GNUNET_PeerIdentity *peer,
 		const struct GNUNET_TRANSPORT_ATS_Information *ats_data);
 
-void ats_notify_peer_disconnect (
+static void ats_notify_peer_disconnect (
 		const struct GNUNET_PeerIdentity *peer);
 
-void ats_notify_ats_data (
+static void ats_notify_ats_data (
 		const struct GNUNET_PeerIdentity *peer,
 		const struct GNUNET_TRANSPORT_ATS_Information *ats_data);
 
@@ -5875,9 +5875,9 @@ return cont;
 }
 #endif
 
+#if HAVE_LIBGLPK
 static void ats_solve_problem (unsigned int max_it, unsigned int  max_dur, unsigned int c_peers, unsigned int  c_mechs, struct ATS_result *res)
 {
-#if HAVE_LIBGLPK
 	int result;
 	int solution;
 
@@ -5975,10 +5975,11 @@ static void ats_solve_problem (unsigned int max_it, unsigned int  max_dur, unsig
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n", glp_get_col_name(prob,2*c_mechs+2), glp_get_col_prim(prob,2*c_mechs+2));
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n", glp_get_col_name(prob,2*c_mechs+3), glp_get_col_prim(prob,2*c_mechs+3));
 #endif
+}
 #endif
 
-}
 
+#if HAVE_LIBGLPK
 /** solve the bandwidth distribution problem
  * @param max_it maximum iterations
  * @param max_dur maximum duration in ms
@@ -6438,6 +6439,7 @@ static int ats_create_problem (double D, double U, double R, int v_b_min, int v_
 	return GNUNET_OK;
 #endif
 }
+#endif
 
 void ats_calculate_bandwidth_distribution ()
 {
@@ -6524,7 +6526,7 @@ void ats_calculate_bandwidth_distribution ()
 
 
 
-void
+static void
 ats_schedule_calculation (void *cls,
 			  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -6612,7 +6614,7 @@ void ats_init ()
 }
 
 
-void ats_shutdown ()
+static void ats_shutdown ()
 {
 #if DEBUG_ATS
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ats_destroy\n");
@@ -6664,7 +6666,7 @@ void ats_notify_peer_disconnect (
 	ats_calculate_bandwidth_distribution (ats);
 }
 
-
+#if HAVE_LIBGLPK
 void ats_notify_ats_data (
 		const struct GNUNET_PeerIdentity *peer,
 		const struct GNUNET_TRANSPORT_ATS_Information *ats_data)
@@ -6674,6 +6676,7 @@ void ats_notify_ats_data (
 #endif
 	ats_calculate_bandwidth_distribution(ats);
 }
+#endif
 
 struct ForeignAddressList * ats_get_preferred_address (
 		struct NeighbourList *n)
