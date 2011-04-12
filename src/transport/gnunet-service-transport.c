@@ -5879,7 +5879,7 @@ static void ats_solve_problem (unsigned int max_it, unsigned int  max_dur, unsig
 {
 	int result;
 	int solution;
-
+#if HAVE_LIBGLPK
 	// Solving simplex
 	glp_prob *prob = ats->prob;
 	/*
@@ -5973,6 +5973,7 @@ static void ats_solve_problem (unsigned int max_it, unsigned int  max_dur, unsig
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n", glp_get_col_name(prob,2*c_mechs+1), glp_get_col_prim(prob,2*c_mechs+1));
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n", glp_get_col_name(prob,2*c_mechs+2), glp_get_col_prim(prob,2*c_mechs+2));
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n", glp_get_col_name(prob,2*c_mechs+3), glp_get_col_prim(prob,2*c_mechs+3));
+#endif
 #endif
 
 }
@@ -6364,7 +6365,7 @@ static int ats_create_problem (double D, double U, double R, int v_b_min, int v_
 	glp_add_rows(ats->prob, 1);
 #if VERBOSE_ATS
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bounds [row]=[%i] \n",row_index);
-#endif#endif
+#endif
 	glp_set_row_bnds(ats->prob, row_index, GLP_FX, 0.0, 0.0);
 	for (c=1; c<=c_mechs; c++)
 	{
