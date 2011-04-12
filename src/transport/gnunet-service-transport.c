@@ -879,6 +879,13 @@ struct ATS_result
 {
 	int c_mechs;
 	int c_peers;
+
+	int begin_qm;
+	int end_qm;
+
+	int begin_cr;
+	int end_cr;
+
 	int solution;
 	int valid;
 };
@@ -5883,7 +5890,7 @@ static void ats_solve_problem (unsigned int max_it, unsigned int  max_dur, unsig
 
 	// Solving simplex
 	glp_prob *prob = ats->prob;
-	/*
+
 	glp_smcp opt_lp;
 	glp_init_smcp(&opt_lp);
 #if VERBOSE_ATS
@@ -5891,17 +5898,17 @@ static void ats_solve_problem (unsigned int max_it, unsigned int  max_dur, unsig
 #else
 	opt_lp.msg_lev = GLP_MSG_OFF;
 #endif
-	opt_lp.presolve = GLP_ON;
+	//opt_lp.presolve = GLP_ON;
 	result = glp_simplex(prob, &opt_lp);
 	solution =  glp_get_status (prob);
 
 	if (GNUNET_YES == ats_evaluate_results(result, solution, "LP"))
-	{*/
+	{
 		/* Solving mlp */
 		glp_iocp opt_mlp;
 		glp_init_iocp(&opt_mlp);
 		/* maximum duration */
-		opt_mlp.presolve = GLP_ON;
+		//opt_mlp.presolve = GLP_ON;
 		opt_mlp.tm_lim = max_dur;
 		/* output level */
 #if VERBOSE_ATS
@@ -5916,14 +5923,14 @@ static void ats_solve_problem (unsigned int max_it, unsigned int  max_dur, unsig
 		if (ats_evaluate_results(result, solution, "MLP") == GNUNET_YES)
 			res->valid = GNUNET_YES;
 	/* done */
-	//}
+	}
 
 	if ((ats->save_mlp == GNUNET_YES) && (c_peers > 1))
 	{
 		char * filename;
-		GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i_llu.mlp",c_peers, c_mechs, GNUNET_TIME_absolute_get().abs_value);
+		GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i_%llu.mlp",c_peers, c_mechs, GNUNET_TIME_absolute_get().abs_value);
 		if (GNUNET_NO == GNUNET_DISK_file_test(filename))
-			glp_write_mip (prob, filename);
+			glp_write_lp (prob, NULL, filename);
 		GNUNET_free (filename);
 	}
 	if ((ats->save_solution == GNUNET_YES) && (c_peers > 1))
@@ -6205,11 +6212,13 @@ static int ats_create_problem (double D, double U, double R, int v_b_min, int v_
 	}
 	int c2;
 	/* Constraint 4: max ressource capacity */
-	/* V cr: bt * ct_r <= cr_maxsolution
+	/* V cr: bt * ct_r <= cr_max
 	 * */
 	glp_add_rows(ats->prob, available_ressources);
 	double ct_max = VERY_BIG_DOUBLE_VALUE;
 	double ct_min = 0.0;
+
+	res->begin_cr = array_index;
 
 	for (c=0; c<available_ressources; c++)
 	{
@@ -6234,6 +6243,7 @@ static int ats_create_problem (double D, double U, double R, int v_b_min, int v_
 		}
 		row_index ++;
 	}
+	res->end_cr = array_index--;
 
 	/* Constraint 5: min number of connections*/
 	glp_add_rows(ats->prob, 1);
@@ -6308,6 +6318,7 @@ static int ats_create_problem (double D, double U, double R, int v_b_min, int v_
 
 	// Constraint 7: optimize for quality
     glp_add_rows(ats->prob, available_quality_metrics);
+	res->begin_qm = array_index;
 	for (c=1; c <= c_q_metrics; c++)
 	{
 #if VERBOSE_ATS
@@ -6362,6 +6373,7 @@ static int ats_create_problem (double D, double U, double R, int v_b_min, int v_
 		array_index++;
 		row_index++;
 	}
+	res->end_qm = array_index--;
 
 	// Constraint 8: optimize bandwidth utility
 	glp_add_rows(ats->prob, 1);
