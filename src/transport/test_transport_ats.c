@@ -64,14 +64,15 @@ static int r_index;
 //static int measurements;
 static int connected;
 static int peers;
+
 static struct TEST_result results[MEASUREMENTS];
 
-struct GNUNET_STATISTICS_GetHandle * s_solution;
-struct GNUNET_STATISTICS_GetHandle * s_time;
-struct GNUNET_STATISTICS_GetHandle * s_peers;
-struct GNUNET_STATISTICS_GetHandle * s_mechs;
-struct GNUNET_STATISTICS_GetHandle * s_duration;
-struct GNUNET_STATISTICS_GetHandle * s_invalid;
+static struct GNUNET_STATISTICS_GetHandle * s_solution;
+static struct GNUNET_STATISTICS_GetHandle * s_time;
+static struct GNUNET_STATISTICS_GetHandle * s_peers;
+static struct GNUNET_STATISTICS_GetHandle * s_mechs;
+static struct GNUNET_STATISTICS_GetHandle * s_duration;
+static struct GNUNET_STATISTICS_GetHandle * s_invalid;
 
 /**
  * Check whether peers successfully shut down.
@@ -239,10 +240,10 @@ int stats_cb (void *cls,
 			if (results[r_index].timestamp != value)
 			{
 				r_index++;
-				fprintf(stderr, "(%i/%i)", r_index, MEASUREMENTS);
+				fprintf(stdout, "(%i/%i)", r_index, MEASUREMENTS);
 				if (r_index >= MEASUREMENTS)
 				{
-					fprintf(stderr, "\n");
+					fprintf(stdout, "\n");
 					if (stats_task != GNUNET_SCHEDULER_NO_TASK)
 					{
 						GNUNET_SCHEDULER_cancel(stats_task);
@@ -251,7 +252,7 @@ int stats_cb (void *cls,
 					evaluate_measurements();
 					return GNUNET_SYSERR;
 				}
-				fprintf(stderr, "..");
+				fprintf(stdout, "..");
 
 				results[r_index].timestamp = value;
 				return GNUNET_OK;
@@ -454,17 +455,18 @@ main (int argc, char *argv[])
 #if VERBOSE
                     "DEBUG",
 #else
-                    "WARNING",
+                    "INFO",
 #endif
                     NULL);
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-testing");
 
   peers = NUM_PEERS;
-  if (argc >= 2)
+  if (argc == 2)
   {
 	  peers = atoi(argv[1]);
 	  peers++;
   }
+
   ret = check ();
   /**
    * Still need to remove the base testing directory here,
