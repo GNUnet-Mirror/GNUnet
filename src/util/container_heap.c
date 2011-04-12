@@ -188,6 +188,18 @@ GNUNET_CONTAINER_heap_get_size (const struct GNUNET_CONTAINER_Heap *heap)
 
 
 /**
+ * Get the current cost of the node
+ *
+ * @param node the node to get the cost of
+ * @return cost of the node
+ */
+GNUNET_CONTAINER_HeapCostType
+GNUNET_CONTAINER_node_get_cost (const struct GNUNET_CONTAINER_HeapNode *node)
+{
+  return node->cost;
+}
+
+/**
  * Iterate over the children of the given node.
  *
  * @param heap argument to give to iterator
