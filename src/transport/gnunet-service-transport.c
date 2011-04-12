@@ -985,8 +985,9 @@ struct ATS_info
 	GNUNET_SCHEDULER_TaskIdentifier ats_task;
 
 	struct ATS_result res;
-
+#if HAVE_LIBGLPK
 	glp_prob *prob;
+#endif
 };
 
 
@@ -5874,7 +5875,7 @@ return cont;
 }
 #endif
 
-static void ats_solve_problem (unsigned int  max_it, unsigned int  max_dur, unsigned int c_peers, unsigned int  c_mechs, struct ATS_result *res)
+static void ats_solve_problem (unsigned int max_it, unsigned int  max_dur, unsigned int c_peers, unsigned int  c_mechs, struct ATS_result *res)
 {
 	int result;
 	int solution;
