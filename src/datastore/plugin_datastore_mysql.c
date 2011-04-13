@@ -106,7 +106,6 @@
  *   2) by executing (inside of mysql using the GNUnet database):
  * @verbatim
      mysql> REPAIR TABLE gn090;
-     mysql> REPAIR TABLE gn072;
    @endverbatim
  *
  * PROBLEMS?
@@ -115,10 +114,6 @@
  * friend is probably the mysql manual. The first thing to check
  * is that mysql is basically operational, that you can connect
  * to it, create tables, issue queries etc.
- *
- * TODO:
- * - use FOREIGN KEY for 'uid/vkey'
- * - consistent naming of uid/vkey
  */
 
 #include "platform.h"
@@ -202,7 +197,7 @@ struct NextRequestClosure
    */
   void *prep_cls;
 
-  MYSQL_BIND rbind[6];
+  MYSQL_BIND rbind[7];
 
   enum GNUNET_BLOCK_Type type;
 
@@ -210,9 +205,7 @@ struct NextRequestClosure
 
   void *dviter_cls;
 
-  unsigned long long last_vkey;
-
-  unsigned int last_prio;
+  unsigned int count;
 
   int end_it;
 };
@@ -228,10 +221,19 @@ struct Plugin
    */
   struct GNUNET_DATASTORE_PluginEnvironment *env;
 
+  /**
+   * Handle to talk to MySQL.
+   */
   MYSQL *dbf;
   
+  /**
+   * We keep all prepared statements in a DLL.  This is the head.
+   */
   struct GNUNET_MysqlStatementHandle *shead;
 
+  /**
+   * We keep all prepared statements in a DLL.  This is the tail.
+   */
   struct GNUNET_MysqlStatementHandle *stail;
 
   /**
@@ -250,79 +252,54 @@ struct Plugin
   GNUNET_SCHEDULER_TaskIdentifier next_task;
 
   /**
-   * Statements dealing with gn072 table 
+   * Prepared statements.
    */
-#define SELECT_VALUE "SELECT value FROM gn072 WHERE vkey=?"
-  struct GNUNET_MysqlStatementHandle *select_value;
-
-#define DELETE_VALUE "DELETE FROM gn072 WHERE vkey=?"
-  struct GNUNET_MysqlStatementHandle *delete_value;
-
-#define INSERT_VALUE "INSERT INTO gn072 (value) VALUES (?)"
-  struct GNUNET_MysqlStatementHandle *insert_value;
-
-  /**
-   * Statements dealing with gn090 table 
-   */
-#define INSERT_ENTRY "INSERT INTO gn090 (repl,type,prio,anonLevel,expire,hash,vhash,vkey) VALUES (?,?,?,?,?,?,?,?)"
+#define INSERT_ENTRY "INSERT INTO gn090 (repl,type,prio,anonLevel,expire,hash,vhash,value) VALUES (?,?,?,?,?,?,?,?)"
   struct GNUNET_MysqlStatementHandle *insert_entry;
   
-#define DELETE_ENTRY_BY_VKEY "DELETE FROM gn090 WHERE vkey=?"
-  struct GNUNET_MysqlStatementHandle *delete_entry_by_vkey;
-  
-#define SELECT_ENTRY_BY_HASH "SELECT type,prio,anonLevel,expire,hash,vkey FROM gn090 FORCE INDEX (hash_vkey) WHERE hash=? AND vkey > ? ORDER BY vkey ASC LIMIT 1 OFFSET ?"
-  struct GNUNET_MysqlStatementHandle *select_entry_by_hash;
-  
-#define SELECT_ENTRY_BY_HASH_AND_VHASH "SELECT type,prio,anonLevel,expire,hash,vkey FROM gn090 FORCE INDEX (hash_vhash_vkey) WHERE hash=? AND vhash=? AND vkey > ? ORDER BY vkey ASC LIMIT 1 OFFSET ?"
-  struct GNUNET_MysqlStatementHandle *select_entry_by_hash_and_vhash;
+#define DELETE_ENTRY_BY_UID "DELETE FROM gn090 WHERE uid=?"
+  struct GNUNET_MysqlStatementHandle *delete_entry_by_uid;
 
-#define SELECT_ENTRY_BY_HASH_AND_TYPE "SELECT type,prio,anonLevel,expire,hash,vkey FROM gn090 FORCE INDEX (hash_vkey) WHERE hash=? AND vkey > ? AND type=? ORDER BY vkey ASC LIMIT 1 OFFSET ?"
-  struct GNUNET_MysqlStatementHandle *select_entry_by_hash_and_type;
-  
-#define SELECT_ENTRY_BY_HASH_VHASH_AND_TYPE "SELECT type,prio,anonLevel,expire,hash,vkey FROM gn090 FORCE INDEX (hash_vhash_vkey) WHERE hash=? AND vhash=? AND vkey > ? AND type=? ORDER BY vkey ASC LIMIT 1 OFFSET ?"
-  struct GNUNET_MysqlStatementHandle *select_entry_by_hash_vhash_and_type;
-  
-#define COUNT_ENTRY_BY_HASH "SELECT count(*) FROM gn090 FORCE INDEX (hash) WHERE hash=?"
+#define COUNT_ENTRY_BY_HASH "SELECT count(*) FROM gn090 FORCE INDEX (idx_hash) WHERE hash=?"
   struct GNUNET_MysqlStatementHandle *count_entry_by_hash;
+  
+#define SELECT_ENTRY_BY_HASH "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX (idx_hash_uid) WHERE hash=? ORDER BY uid LIMIT 1 OFFSET ?"
+  struct GNUNET_MysqlStatementHandle *select_entry_by_hash;
 
-#define COUNT_ENTRY_BY_HASH_AND_VHASH "SELECT count(*) FROM gn090 FORCE INDEX (hash_vhash_vkey) WHERE hash=? AND vhash=?"
+#define COUNT_ENTRY_BY_HASH_AND_VHASH "SELECT count(*) FROM gn090 FORCE INDEX (idx_hash_vhash) WHERE hash=? AND vhash=?"
   struct GNUNET_MysqlStatementHandle *count_entry_by_hash_and_vhash;
 
-#define COUNT_ENTRY_BY_HASH_AND_TYPE "SELECT count(*) FROM gn090 FORCE INDEX (hash) WHERE hash=? AND type=?"
+#define SELECT_ENTRY_BY_HASH_AND_VHASH "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX (idx_hash_vhash) WHERE hash=? AND vhash=? ORDER BY uid LIMIT 1 OFFSET ?"
+  struct GNUNET_MysqlStatementHandle *select_entry_by_hash_and_vhash;
+ 
+#define COUNT_ENTRY_BY_HASH_AND_TYPE "SELECT count(*) FROM gn090 FORCE INDEX (idx_hash_type_uid) WHERE hash=? AND type=?"
   struct GNUNET_MysqlStatementHandle *count_entry_by_hash_and_type;
 
-#define COUNT_ENTRY_BY_HASH_VHASH_AND_TYPE "SELECT count(*) FROM gn090 FORCE INDEX (hash_vhash) WHERE hash=? AND vhash=? AND type=?"
+#define SELECT_ENTRY_BY_HASH_AND_TYPE "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX (idx_hash_type_uid) WHERE hash=? AND type=? ORDER BY uid LIMIT 1 OFFSET ?"
+  struct GNUNET_MysqlStatementHandle *select_entry_by_hash_and_type;
+ 
+#define COUNT_ENTRY_BY_HASH_VHASH_AND_TYPE "SELECT count(*) FROM gn090 FORCE INDEX (idx_hash_vhash) WHERE hash=? AND vhash=? AND type=?"
   struct GNUNET_MysqlStatementHandle *count_entry_by_hash_vhash_and_type;
+  
+#define SELECT_ENTRY_BY_HASH_VHASH_AND_TYPE "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX (idx_hash_vhash) WHERE hash=? AND vhash=? AND type=? ORDER BY uid ASC LIMIT 1 OFFSET ?"
+  struct GNUNET_MysqlStatementHandle *select_entry_by_hash_vhash_and_type;
 
-#define UPDATE_ENTRY "UPDATE gn090 SET prio=prio+?,expire=IF(expire>=?,expire,?) WHERE vkey=?"
+#define UPDATE_ENTRY "UPDATE gn090 FORCE INDEX (uid) SET prio=prio+?,expire=IF(expire>=?,expire,?) WHERE uid=? LIMIT 1"
   struct GNUNET_MysqlStatementHandle *update_entry;
 
-#define SELECT_SIZE "SELECT SUM(BIT_LENGTH(value) DIV 8) FROM gn072"
+#define SELECT_SIZE "SELECT SUM(BIT_LENGTH(value) DIV 8) FROM gn090"
   struct GNUNET_MysqlStatementHandle *get_size;
 
-/* warning, slighly crazy mysql statements ahead.  Essentially, MySQL does not handle
-   "OR" very well, so we need to use UNION instead.  And UNION does not
-   automatically apply a LIMIT on the outermost clause, so we need to
-   repeat ourselves quite a bit.  All hail the performance gods (and thanks
-   to #mysql on freenode) */
-#define SELECT_IT_NON_ANONYMOUS "(SELECT type,prio,anonLevel,expire,hash,vkey FROM gn090 FORCE INDEX(prio) WHERE (prio = ? AND vkey < ?)"\
-  " AND anonLevel=0 ORDER BY prio DESC,vkey DESC LIMIT 1) "\
-  "UNION "\
-  "(SELECT type,prio,anonLevel,expire,hash,vkey FROM gn090 FORCE INDEX(prio) WHERE (prio < ? AND vkey != ?)"\
-  " AND anonLevel=0 ORDER BY prio DESC,vkey DESC LIMIT 1) "\
-  "ORDER BY prio DESC,vkey DESC LIMIT 1"
+#define SELECT_IT_NON_ANONYMOUS "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX(idx_anonLevel_uid) WHERE anonLevel=0 ORDER BY uid DESC LIMIT 1 OFFSET ?"
   struct GNUNET_MysqlStatementHandle *zero_iter;
 
-#define SELECT_IT_EXPIRATION "(SELECT type,prio,anonLevel,expire,hash,vkey FROM gn090 FORCE INDEX(expire) WHERE (expire < ?) "\
-  "ORDER BY prio ASC LIMIT 1) "\
+#define SELECT_IT_EXPIRATION "(SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX(idx_expire_prio) WHERE expire < ? ORDER BY prio ASC LIMIT 1) "\
   "UNION "\
-  "(SELECT type,prio,anonLevel,expire,hash,vkey FROM gn090 FORCE INDEX(prio) "\
-  "ORDER BY prio ASC LIMIT 1) ORDER BY expire ASC LIMIT 1"
+  "(SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX(idx_prio) ORDER BY prio ASC LIMIT 1) "\
+  "ORDER BY expire ASC LIMIT 1"
   struct GNUNET_MysqlStatementHandle *select_expiration;
 
-#define SELECT_IT_REPLICATION "SELECT type,prio,anonLevel,expire,hash,vkey FROM gn090 FORCE INDEX(expire) "\
-  "WHERE expire > ?"\
-  " ORDER BY repl DESC,RAND() LIMIT 1"
+#define SELECT_IT_REPLICATION "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX(idx_repl) ORDER BY repl DESC,RAND() LIMIT 1"
   struct GNUNET_MysqlStatementHandle *select_replication;
 
 };
@@ -837,114 +814,33 @@ prepared_statement_run (struct Plugin *plugin,
 
 
 /**
- * Delete an value from the gn072 table.
- *
- * @param plugin plugin context
- * @param vkey vkey identifying the value to delete
- * @return GNUNET_OK on success, GNUNET_NO if no such value exists, GNUNET_SYSERR on error
- */
-static int
-do_delete_value (struct Plugin *plugin,
-		 unsigned long long vkey)
-{
-  int ret;
-
-#if DEBUG_MYSQL
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Deleting value %llu from gn072 table\n",
-	      vkey);
-#endif
-  ret = prepared_statement_run (plugin,
-				plugin->delete_value,
-				NULL,
-				MYSQL_TYPE_LONGLONG,
-				&vkey, GNUNET_YES, -1);
-  if (ret > 0)
-    {
-      ret = GNUNET_OK;
-    }
-  else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  "Deleting value %llu from gn072 table failed\n",
-		  vkey);
-    }
-  return ret;
-}
-
-/**
- * Insert a value into the gn072 table.
- *
- * @param plugin plugin context
- * @param value the value to insert
- * @param size size of the value
- * @param vkey vkey identifying the value henceforth (set)
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
- */
-static int
-do_insert_value (struct Plugin *plugin,
-		 const void *value, unsigned int size,
-                 unsigned long long *vkey)
-{
-  unsigned long length = size;
-  int ret;
-
-  ret = prepared_statement_run (plugin,
-				plugin->insert_value,
-				vkey,
-				MYSQL_TYPE_BLOB,
-				value, length, &length, -1);
-  if (ret == GNUNET_OK)
-    {
-#if DEBUG_MYSQL
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Inserted value number %llu with length %u into gn072 table\n",
-		  *vkey,
-		  size);
-#endif
-    }
-  else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  "Failed to insert %u byte value into gn072 table\n",
-		  size);
-    }
-  return ret;
-}
-
-/**
  * Delete an entry from the gn090 table.
  *
  * @param plugin plugin context
- * @param vkey vkey identifying the entry to delete
+ * @param uid unique ID of the entry to delete
  * @return GNUNET_OK on success, GNUNET_NO if no such value exists, GNUNET_SYSERR on error
  */
 static int
-do_delete_entry_by_vkey (struct Plugin *plugin,
-			 unsigned long long vkey)
+do_delete_entry (struct Plugin *plugin,
+		 unsigned long long uid)
 {
   int ret;
-
+ 
 #if DEBUG_MYSQL
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Deleting value %llu from gn090 table\n",
-	      vkey);
+	      uid);
 #endif
   ret = prepared_statement_run (plugin,
-				plugin->delete_entry_by_vkey,
+				plugin->delete_entry_by_uid,
 				NULL,
-				MYSQL_TYPE_LONGLONG,
-				&vkey, GNUNET_YES, -1);
+				MYSQL_TYPE_LONGLONG, uid, GNUNET_YES,
+				-1);
   if (ret > 0)
-    {
-      ret = GNUNET_OK;
-    }
-  else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  "Deleting value %llu from gn090 table failed\n",
-		  vkey);
-    }
+    return GNUNET_OK;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+	      "Deleting value %llu from gn090 table failed\n",
+	      uid);
   return ret;
 }
 
@@ -983,20 +879,20 @@ mysql_next_request_cont (void *next_cls,
   unsigned int priority;
   unsigned int anonymity;
   unsigned long long exp;
-  unsigned long long vkey;
   unsigned long hashSize;
+  unsigned long size;
+  unsigned long long uid;
+  char value[GNUNET_DATASTORE_MAX_VALUE_SIZE];
   GNUNET_HashCode key;
   struct GNUNET_TIME_Absolute expiration;
-  unsigned long length;
-  MYSQL_BIND *rbind; /* size 7 */
-  MYSQL_BIND dbind[1];
-  char datum[GNUNET_SERVER_MAX_MESSAGE_SIZE];
+  MYSQL_BIND *rbind = nrc->rbind;
 
   plugin = nrc->plugin;
   plugin->next_task = GNUNET_SCHEDULER_NO_TASK;
   plugin->next_task_nc = NULL;
 
- AGAIN: 
+  if (GNUNET_YES == nrc->end_it) 
+    goto END_SET;
   GNUNET_assert (nrc->plugin->next_task == GNUNET_SCHEDULER_NO_TASK);
   nrc->now = GNUNET_TIME_absolute_get ();
   hashSize = sizeof (GNUNET_HashCode);
@@ -1018,17 +914,19 @@ mysql_next_request_cont (void *next_cls,
   rbind[4].buffer = &key;
   rbind[4].buffer_length = hashSize;
   rbind[4].length = &hashSize;
-  rbind[5].buffer_type = MYSQL_TYPE_LONGLONG;
-  rbind[5].buffer = &vkey;
-  rbind[5].is_unsigned = GNUNET_YES;
+  rbind[5].buffer_type = MYSQL_TYPE_BLOB;
+  rbind[5].buffer = value;
+  rbind[5].buffer_length = size = sizeof (value);
+  rbind[5].length = &size;
+  rbind[6].buffer_type = MYSQL_TYPE_LONGLONG;
+  rbind[6].buffer = &uid;
+  rbind[6].is_unsigned = 1;
 
-  if ( (GNUNET_YES == nrc->end_it) ||
-       (GNUNET_OK != nrc->prep (nrc->prep_cls,
-				nrc)))
+  if (GNUNET_OK != nrc->prep (nrc->prep_cls,
+			      nrc))
     goto END_SET;
-  nrc->last_vkey = vkey;
-  nrc->last_prio = priority;
   GNUNET_assert (nrc->plugin->next_task == GNUNET_SCHEDULER_NO_TASK);
+  GNUNET_assert (size <= sizeof(value));
   if ( (rbind[4].buffer_length != sizeof (GNUNET_HashCode)) ||
        (hashSize != sizeof (GNUNET_HashCode)) )
     {
@@ -1037,63 +935,19 @@ mysql_next_request_cont (void *next_cls,
     }	  
 #if DEBUG_MYSQL
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Found value %llu with prio %u, anon %u, expire %llu selecting from gn090 table\n",
-	      vkey,	      
-	      priority,
-	      anonymity,
-	      exp);
-#endif
-  /* now do query on gn072 */
-  length = sizeof (datum);
-  memset (dbind, 0, sizeof (dbind));
-  dbind[0].buffer_type = MYSQL_TYPE_BLOB;
-  dbind[0].buffer_length = length;
-  dbind[0].length = &length;
-  dbind[0].buffer = datum;
-  ret = prepared_statement_run_select (plugin,
-				       plugin->select_value,
-				       1,
-				       dbind,
-				       &return_ok,
-				       NULL,
-				       MYSQL_TYPE_LONGLONG,
-				       &vkey, GNUNET_YES, -1);
-  GNUNET_break (ret <= 1);     /* should only have one rbind! */
-  if (ret > 0)
-    ret = GNUNET_OK;
-  if (ret != GNUNET_OK) 
-    {
-      GNUNET_break (0);
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
-		  _("Failed to obtain value %llu from table `%s'\n"),
-		  vkey,
-		  "gn072");
-      goto AGAIN;
-    }
-  GNUNET_break (length <= sizeof(datum));
-#if DEBUG_MYSQL
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Calling iterator with value `%s' number %llu of size %u with type %u, priority %u, anonymity %u and expiration %llu\n",
+	      "Found %u-byte value under key `%s' with prio %u, anon %u, expire %llu selecting from gn090 table\n",
+	      (unsigned int) size,
 	      GNUNET_h2s (&key),
-	      vkey,	      
-	      length,
-	      type,
 	      priority,
 	      anonymity,
 	      exp);
 #endif
-  GNUNET_assert (nrc->plugin->next_task == GNUNET_SCHEDULER_NO_TASK);
   expiration.abs_value = exp;
-  ret = nrc->dviter (nrc->dviter_cls,
-		     nrc,
+  ret = nrc->dviter (nrc->dviter_cls, nrc,
 		     &key,
-		     length,
-		     datum,
-		     type,
-		     priority,
-		     anonymity,
-		     expiration,
-		     vkey);
+		     size, value,
+		     type, priority, anonymity, expiration,
+		     uid);
   if (ret == GNUNET_SYSERR)
     {
       nrc->end_it = GNUNET_YES;
@@ -1101,11 +955,10 @@ mysql_next_request_cont (void *next_cls,
     }
   if (ret == GNUNET_NO)
     {
-      do_delete_value (plugin, vkey);
-      do_delete_entry_by_vkey (plugin, vkey);
-      if (length != 0)
+      do_delete_entry (plugin, uid);
+      if (size != 0)
 	plugin->env->duc (plugin->env->cls,
-			  - length);
+			  - size);
     }
   return;
  END_SET:
@@ -1212,7 +1065,7 @@ mysql_plugin_put (void *cls,
   unsigned long long lexpiration = expiration.abs_value;
   unsigned long hashSize;
   unsigned long hashSize2;
-  unsigned long long vkey;
+  unsigned long lsize;
   GNUNET_HashCode vhash;
 
   if (size > MAX_DATUM_SIZE)
@@ -1222,48 +1075,26 @@ mysql_plugin_put (void *cls,
     }
   hashSize = sizeof (GNUNET_HashCode);
   hashSize2 = sizeof (GNUNET_HashCode);
+  lsize = size;
   GNUNET_CRYPTO_hash (data, size, &vhash);
-  if (GNUNET_OK != do_insert_value (plugin,
-				    data, size, &vkey))
-    return GNUNET_SYSERR;
   if (GNUNET_OK !=
       prepared_statement_run (plugin,
 			      plugin->insert_entry,
 			      NULL,
-			      MYSQL_TYPE_LONG,
-			      &irepl,
-			      GNUNET_YES,
-			      MYSQL_TYPE_LONG,
-			      &itype,
-			      GNUNET_YES,
-			      MYSQL_TYPE_LONG,
-			      &ipriority,
-			      GNUNET_YES,
-			      MYSQL_TYPE_LONG,
-			      &ianonymity,
-			      GNUNET_YES,
-			      MYSQL_TYPE_LONGLONG,
-			      &lexpiration,
-			      GNUNET_YES,
-			      MYSQL_TYPE_BLOB,
-			      key,
-			      hashSize,
-			      &hashSize,
-			      MYSQL_TYPE_BLOB,
-			      &vhash,
-			      hashSize2,
-			      &hashSize2,
-			      MYSQL_TYPE_LONGLONG,
-			      &vkey, GNUNET_YES, -1))
-    {
-      do_delete_value (plugin, vkey);
-      return GNUNET_SYSERR;
-    }
+			      MYSQL_TYPE_LONG, &irepl, GNUNET_YES,
+			      MYSQL_TYPE_LONG, &itype, GNUNET_YES,
+			      MYSQL_TYPE_LONG, &ipriority, GNUNET_YES,
+			      MYSQL_TYPE_LONG, &ianonymity, GNUNET_YES,
+			      MYSQL_TYPE_LONGLONG, &lexpiration, GNUNET_YES,
+			      MYSQL_TYPE_BLOB, key, hashSize, &hashSize,
+			      MYSQL_TYPE_BLOB, &vhash, hashSize2, &hashSize2,
+			      MYSQL_TYPE_BLOB, data, lsize, &lsize, 
+			      -1))
+    return GNUNET_SYSERR;    
 #if DEBUG_MYSQL
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Inserted value `%s' number %llu with size %u into gn090 table\n",
+	      "Inserted value `%s' with size %u into gn090 table\n",
 	      GNUNET_h2s (key),
-	      vkey,
 	      (unsigned int) size);
 #endif
   if (size > 0)
@@ -1318,18 +1149,11 @@ mysql_plugin_update (void *cls,
   ret = prepared_statement_run (plugin,
 				plugin->update_entry,
 				NULL,
-				MYSQL_TYPE_LONG,
-				&delta,
-				GNUNET_NO,
-				MYSQL_TYPE_LONGLONG,
-				&lexpire,
-				GNUNET_YES,
-				MYSQL_TYPE_LONGLONG,
-				&lexpire,
-				GNUNET_YES,
-				MYSQL_TYPE_LONGLONG,
-				&vkey,
-				GNUNET_YES, -1);
+				MYSQL_TYPE_LONG, &delta, GNUNET_NO,
+				MYSQL_TYPE_LONGLONG, &lexpire, GNUNET_YES,
+				MYSQL_TYPE_LONGLONG, &lexpire, GNUNET_YES,
+				MYSQL_TYPE_LONGLONG, &vkey, GNUNET_YES, 
+				-1);
   if (ret != GNUNET_OK)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -1350,8 +1174,8 @@ struct GetContext
   unsigned long long expiration;
   unsigned long long vkey;
   unsigned long long total;
-  int off;
-  int count;
+  unsigned int off;
+  unsigned int count;
   int have_vhash;
 };
 
@@ -1363,9 +1187,8 @@ get_statement_prepare (void *cls,
   struct GetContext *gc = cls;
   struct Plugin *plugin;
   int ret;
-  unsigned int limit_off;
   unsigned long hashSize;
-
+  
   if (NULL == nrc)
     {
       GNUNET_free (gc);
@@ -1375,45 +1198,41 @@ get_statement_prepare (void *cls,
     return GNUNET_NO;
   plugin = nrc->plugin;
   hashSize = sizeof (GNUNET_HashCode);
-  if (gc->count + gc->off == gc->total)
-    nrc->last_vkey = 0;          /* back to start */
-  if (gc->count == 0)
-    limit_off = gc->off;
-  else
-    limit_off = 0;
+  if (++gc->off >= gc->total)
+    gc->off = 0;
 #if DEBUG_MYSQL
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Obtaining result number %d/%lld at offset %d with lvc %llu for GET `%s'\n",
+	      "Obtaining result number %d/%lld at offset %u for GET `%s'\n",
 	      gc->count+1,
 	      gc->total,
-	      limit_off,
-	      nrc->last_vkey,
+	      gc->off,
 	      GNUNET_h2s (&gc->key));  
 #endif
   if (nrc->type != 0)
     {
       if (gc->have_vhash)
 	{
-	  ret =
-	    prepared_statement_run_select
-	    (plugin,
-	     plugin->select_entry_by_hash_vhash_and_type, 6, nrc->rbind, &return_ok,
-	     NULL, MYSQL_TYPE_BLOB, &gc->key, hashSize, &hashSize,
-	     MYSQL_TYPE_BLOB, &gc->vhash, hashSize, &hashSize,
-	     MYSQL_TYPE_LONGLONG, &nrc->last_vkey, GNUNET_YES, MYSQL_TYPE_LONG,
-	     &nrc->type, GNUNET_YES, MYSQL_TYPE_LONG, &limit_off, GNUNET_YES,
-	     -1);
+	  ret = prepared_statement_run_select (plugin,
+					       plugin->select_entry_by_hash_vhash_and_type, 
+					       7, nrc->rbind, 
+					       &return_ok, NULL, 
+					       MYSQL_TYPE_BLOB, &gc->key, hashSize, &hashSize,
+					       MYSQL_TYPE_BLOB, &gc->vhash, hashSize, &hashSize,
+					       MYSQL_TYPE_LONG, &nrc->type, GNUNET_YES, 
+					       MYSQL_TYPE_LONG, &gc->off, GNUNET_YES,
+					       -1);
 	}
       else
 	{
 	  ret =
-	    prepared_statement_run_select
-	    (plugin,
-	     plugin->select_entry_by_hash_and_type, 6, nrc->rbind, &return_ok, NULL,
-	     MYSQL_TYPE_BLOB, &gc->key, hashSize, &hashSize,
-	     MYSQL_TYPE_LONGLONG, &nrc->last_vkey, GNUNET_YES, MYSQL_TYPE_LONG,
-	     &nrc->type, GNUNET_YES, MYSQL_TYPE_LONG, &limit_off, GNUNET_YES,
-	     -1);
+	    prepared_statement_run_select (plugin,
+					   plugin->select_entry_by_hash_and_type, 
+					   7, nrc->rbind, 
+					   &return_ok, NULL,
+					   MYSQL_TYPE_BLOB, &gc->key, hashSize, &hashSize,
+					   MYSQL_TYPE_LONG, &nrc->type, GNUNET_YES, 
+					   MYSQL_TYPE_LONG, &gc->off, GNUNET_YES,
+					   -1);
 	}
     }
   else
@@ -1421,23 +1240,25 @@ get_statement_prepare (void *cls,
       if (gc->have_vhash)
 	{
 	  ret =
-	    prepared_statement_run_select
-	    (plugin,
-	     plugin->select_entry_by_hash_and_vhash, 6, nrc->rbind, &return_ok, NULL,
-	     MYSQL_TYPE_BLOB, &gc->key, hashSize, &hashSize, MYSQL_TYPE_BLOB,
-	     &gc->vhash, hashSize, &hashSize, MYSQL_TYPE_LONGLONG,
-	     &nrc->last_vkey, GNUNET_YES, MYSQL_TYPE_LONG, &limit_off,
-	     GNUNET_YES, -1);
+	    prepared_statement_run_select (plugin,
+					   plugin->select_entry_by_hash_and_vhash, 
+					   7, nrc->rbind, 
+					   &return_ok, NULL,
+					   MYSQL_TYPE_BLOB, &gc->key, hashSize, &hashSize, 
+					   MYSQL_TYPE_BLOB, &gc->vhash, hashSize, &hashSize, 
+					   MYSQL_TYPE_LONG, &gc->off, GNUNET_YES, 
+					   -1);
 	}
       else
 	{
 	  ret =
-	    prepared_statement_run_select
-	    (plugin,
-	     plugin->select_entry_by_hash, 6, nrc->rbind, &return_ok, NULL,
-	     MYSQL_TYPE_BLOB, &gc->key, hashSize, &hashSize,
-	     MYSQL_TYPE_LONGLONG, &nrc->last_vkey, GNUNET_YES, MYSQL_TYPE_LONG,
-	     &limit_off, GNUNET_YES, -1);
+	    prepared_statement_run_select (plugin,
+					   plugin->select_entry_by_hash, 
+					   7, nrc->rbind, 
+					   &return_ok, NULL,
+					   MYSQL_TYPE_BLOB, &gc->key, hashSize, &hashSize,
+					   MYSQL_TYPE_LONG, &gc->off, GNUNET_YES, 
+					   -1);
 	}
     }
   gc->count++;
@@ -1446,8 +1267,7 @@ get_statement_prepare (void *cls,
 
 
 /**
- * Iterate over the results for a particular key
- * in the datastore.
+ * Iterate over the results for a particular key in the datastore.
  *
  * @param cls closure
  * @param key maybe NULL (to match all entries)
@@ -1457,7 +1277,7 @@ get_statement_prepare (void *cls,
  *        betwen key and vhash, but for other blocks
  *        there may be!
  * @param type entries of which type are relevant?
- *     Use 0 for any type.
+ *        Use 0 for any type.
  * @param iter function to call on each matching value;
  *        will be called once with a NULL value at the end
  * @param iter_cls closure for iter
@@ -1492,22 +1312,25 @@ mysql_plugin_get (void *cls,
       if (vhash != NULL)
         {
           ret =
-            prepared_statement_run_select
-            (plugin,
-	     plugin->count_entry_by_hash_vhash_and_type, 1, cbind, &return_ok, NULL,
-             MYSQL_TYPE_BLOB, key, hashSize, &hashSize, MYSQL_TYPE_BLOB,
-             vhash, hashSize, &hashSize, MYSQL_TYPE_LONG, &itype, GNUNET_YES,
-             -1);
+            prepared_statement_run_select (plugin,
+					   plugin->count_entry_by_hash_vhash_and_type, 
+					   1, cbind, 
+					   &return_ok, NULL,
+					   MYSQL_TYPE_BLOB, key, hashSize, &hashSize, 
+					   MYSQL_TYPE_BLOB, vhash, hashSize, &hashSize, 
+					   MYSQL_TYPE_LONG, &itype, GNUNET_YES,
+					   -1);
         }
       else
         {
           ret =
-            prepared_statement_run_select
-            (plugin,
-	     plugin->count_entry_by_hash_and_type, 1, cbind, &return_ok, NULL,
-             MYSQL_TYPE_BLOB, key, hashSize, &hashSize, MYSQL_TYPE_LONG,
-             &itype, GNUNET_YES, -1);
-
+            prepared_statement_run_select (plugin,
+					   plugin->count_entry_by_hash_and_type, 
+					   1, cbind, 
+					   &return_ok, NULL,
+					   MYSQL_TYPE_BLOB, key, hashSize, &hashSize, 
+					   MYSQL_TYPE_LONG, &itype, GNUNET_YES,
+					   -1);
         }
     }
   else
@@ -1515,11 +1338,13 @@ mysql_plugin_get (void *cls,
       if (vhash != NULL)
         {
           ret =
-            prepared_statement_run_select
-            (plugin,
-	     plugin->count_entry_by_hash_and_vhash, 1, cbind, &return_ok, NULL,
-             MYSQL_TYPE_BLOB, key, hashSize, &hashSize, MYSQL_TYPE_BLOB,
-             vhash, hashSize, &hashSize, -1);
+            prepared_statement_run_select (plugin,
+					   plugin->count_entry_by_hash_and_vhash, 
+					   1, cbind,
+					   &return_ok, NULL,
+					   MYSQL_TYPE_BLOB, key, hashSize, &hashSize, 
+					   MYSQL_TYPE_BLOB, vhash, hashSize, &hashSize, 
+					   -1);
 
         }
       else
@@ -1527,10 +1352,10 @@ mysql_plugin_get (void *cls,
           ret =
             prepared_statement_run_select (plugin,
 					   plugin->count_entry_by_hash,
-					   1, cbind, &return_ok,
-					   NULL, MYSQL_TYPE_BLOB,
-					   key, hashSize,
-					   &hashSize, -1);
+					   1, cbind, 
+					   &return_ok, NULL, 
+					   MYSQL_TYPE_BLOB, key, hashSize, &hashSize, 
+					   -1);
         }
     }
   if ((ret != GNUNET_OK) || (0 >= total))
@@ -1564,7 +1389,6 @@ mysql_plugin_get (void *cls,
   nrc->dviter_cls = iter_cls;
   nrc->prep = &get_statement_prepare;
   nrc->prep_cls = gc;
-  nrc->last_vkey = 0;
   mysql_plugin_next_request (nrc, GNUNET_NO);
 }
 
@@ -1581,29 +1405,19 @@ iterator_zero_prepare (void *cls,
 		       struct NextRequestClosure *nrc)
 {
   struct Plugin *plugin;
+  int ret;
 
   if (nrc == NULL)
     return GNUNET_NO;
   plugin = nrc->plugin;
-  return prepared_statement_run_select (plugin,
-					plugin->zero_iter,
-					6,
-					nrc->rbind,
-					&return_ok,
-					NULL,
-					MYSQL_TYPE_LONGLONG,
-					&nrc->now.abs_value,
-					GNUNET_YES,
-					MYSQL_TYPE_LONGLONG,
-					&nrc->last_vkey,
-					GNUNET_YES,
-					MYSQL_TYPE_LONGLONG,
-					&nrc->last_prio,
-					GNUNET_YES,
-					MYSQL_TYPE_LONGLONG,
-					&nrc->last_vkey,
-					GNUNET_YES,
-					-1);
+  ret = prepared_statement_run_select (plugin,
+				       plugin->zero_iter,
+				       7, nrc->rbind,
+				       &return_ok, NULL,
+				       MYSQL_TYPE_LONG, &nrc->count, GNUNET_YES,
+				       -1);
+  nrc->count++;
+  return ret;
 }
 
 
@@ -1633,8 +1447,6 @@ mysql_plugin_iter_zero_anonymity (void *cls,
   nrc->dviter = iter;
   nrc->dviter_cls = iter_cls;
   nrc->prep = &iterator_zero_prepare;
-  nrc->last_vkey = INT64_MAX; /* MySQL only supports 63 bits, hence signed */
-  nrc->last_prio = INT32_MAX; /* similar issue... */
   mysql_plugin_next_request (nrc, GNUNET_NO);
 }
 
@@ -1650,16 +1462,15 @@ replication_prepare (void *cls,
 		     struct NextRequestClosure *nrc)
 {
   struct Plugin *plugin = cls;
-  long long nt;
+  unsigned long long nt;
 
-  nt = (long long) nrc->now.abs_value;
-  return prepared_statement_run_select
-    (plugin,
-     plugin->select_replication, 
-     6, nrc->rbind, 
-     &return_ok, NULL,
-     MYSQL_TYPE_LONGLONG, &nt, GNUNET_YES, 
-     -1);
+  nt = (unsigned long long) nrc->now.abs_value;
+  return prepared_statement_run_select (plugin,
+					plugin->select_replication, 
+					6, nrc->rbind, 
+					&return_ok, NULL,
+					MYSQL_TYPE_LONGLONG, &nt, GNUNET_YES, 
+					-1);
 }
 
 
@@ -1797,24 +1608,21 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
              " expire BIGINT UNSIGNED NOT NULL DEFAULT 0,"
              " hash BINARY(64) NOT NULL DEFAULT '',"
              " vhash BINARY(64) NOT NULL DEFAULT '',"
-             " vkey BIGINT UNSIGNED NOT NULL DEFAULT 0,"
-             " INDEX hash (hash(64)),"
-             " INDEX hash_vhash_vkey (hash(64),vhash(64),vkey),"
-             " INDEX hash_vkey (hash(64),vkey),"
-             " INDEX vkey (vkey),"
-             " INDEX prio (prio,vkey),"
-             " INDEX expire (expire,vkey,type),"
-             " INDEX anonLevel (anonLevel,prio,vkey,type)"
+             " value BLOB NOT NULL DEFAULT ''"
+             " uid BIGINT NOT NULL AUTO_INCREMENT"
+             " PRIMARY KEY (uid)"
+             " INDEX idx_hash (hash(64)),"
+             " INDEX idx_hash_uid (hash(64),uid),"
+             " INDEX idx_hash_vhash (hash(64),vhash(64)),"
+             " INDEX idx_hash_type_uid (hash(64),type,uid),"
+             " INDEX idx_prio (prio),"
+             " INDEX idx_repl (repl),"
+             " INDEX idx_expire_prio (expire,prio),"
+             " INDEX idx_anonLevel_uid (anonLevel,uid)"
              ") ENGINE=InnoDB") ||
-      MRUNS ("CREATE TABLE IF NOT EXISTS gn072 ("
-             " vkey BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,"
-             " value BLOB NOT NULL DEFAULT '') ENGINE=MyISAM") ||
       MRUNS ("SET AUTOCOMMIT = 1") ||
-      PINIT (plugin->select_value, SELECT_VALUE) ||
-      PINIT (plugin->delete_value, DELETE_VALUE) ||
-      PINIT (plugin->insert_value, INSERT_VALUE) ||
       PINIT (plugin->insert_entry, INSERT_ENTRY) ||
-      PINIT (plugin->delete_entry_by_vkey, DELETE_ENTRY_BY_VKEY) ||
+      PINIT (plugin->delete_entry_by_uid, DELETE_ENTRY_BY_UID) ||
       PINIT (plugin->select_entry_by_hash, SELECT_ENTRY_BY_HASH) ||
       PINIT (plugin->select_entry_by_hash_and_vhash, SELECT_ENTRY_BY_HASH_AND_VHASH)
       || PINIT (plugin->select_entry_by_hash_and_type, SELECT_ENTRY_BY_HASH_AND_TYPE)

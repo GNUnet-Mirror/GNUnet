@@ -181,7 +181,9 @@ create_indices (sqlite3 * dbh)
                 NULL);
   sqlite3_exec (dbh, "CREATE INDEX idx_comb ON gn090 (anonLevel ASC,expire ASC,prio,type,hash)",
                 NULL, NULL, NULL);
-  sqlite3_exec (dbh, "CREATE INDEX expire ON gn090 (expire)",
+  sqlite3_exec (dbh, "CREATE INDEX idx_expire ON gn090 (expire)",
+                NULL, NULL, NULL);
+  sqlite3_exec (dbh, "CREATE INDEX idx_repl ON gn090 (repl)",
                 NULL, NULL, NULL);
 }
 
@@ -309,24 +311,6 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
   sqlite3_finalize (stmt);
   create_indices (plugin->dbh);
 
-  CHECK (SQLITE_OK ==
-         sq_prepare (plugin->dbh,
-                     "SELECT 1 FROM sqlite_master WHERE tbl_name = 'gn071'",
-                     &stmt));
-  if ( (sqlite3_step (stmt) == SQLITE_DONE) &&
-       (sqlite3_exec (plugin->dbh,
-		      "CREATE TABLE gn071 ("
-		      "  key TEXT NOT NULL DEFAULT '',"
-		      "  value INTEGER NOT NULL DEFAULT 0)", NULL, NULL,
-		      NULL) != SQLITE_OK) )
-    {
-      LOG_SQLITE (plugin, NULL,
-		  GNUNET_ERROR_TYPE_ERROR, "sqlite3_exec");
-      sqlite3_finalize (stmt);
-      return GNUNET_SYSERR;
-    }
-  sqlite3_finalize (stmt);
-
   if ((sq_prepare (plugin->dbh,
                    "UPDATE gn090 SET prio = prio + ?, expire = MAX(expire,?) WHERE _ROWID_ = ?",
                    &plugin->updPrio) != SQLITE_OK) ||
@@ -334,7 +318,7 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
                    "UPDATE gn090 SET repl = MAX (0, repl - 1) WHERE _ROWID_ = ?",
                    &plugin->updRepl) != SQLITE_OK) ||
       (sq_prepare (plugin->dbh,
-		   "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn090 WHERE expire > ?"
+		   "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn090"
 		   " ORDER BY repl DESC, Random() LIMIT 1",
                    &plugin->selRepl) != SQLITE_OK) ||
       (sq_prepare (plugin->dbh,
@@ -1419,7 +1403,95 @@ execute_get (struct Plugin *plugin,
 
 
 /**
- * Get a random item for replication.  Returns a single, not expired, random item
+ * Context for 'repl_iter' function.
+ */
+struct ReplCtx
+{
+  
+  /**
+   * Plugin handle.
+   */
+  struct Plugin *plugin;
+  
+  /**
+   * Function to call for the result (or the NULL).
+   */
+  PluginIterator iter;
+  
+  /**
+   * Closure for iter.
+   */
+  void *iter_cls;
+};
+
+
+/**
+ * Wrapper for the iterator for 'sqlite_plugin_replication_get'.
+ * Decrements the replication counter and calls the original
+ * iterator.
+ *
+ * @param cls closure
+ * @param next_cls closure to pass to the "next" function.
+ * @param key key for the content
+ * @param size number of bytes in data
+ * @param data content stored
+ * @param type type of the content
+ * @param priority priority of the content
+ * @param anonymity anonymity-level for the content
+ * @param expiration expiration time for the content
+ * @param uid unique identifier for the datum;
+ *        maybe 0 if no unique identifier is available
+ *
+ * @return GNUNET_SYSERR to abort the iteration, GNUNET_OK to continue
+ *         (continue on call to "next", of course),
+ *         GNUNET_NO to delete the item and continue (if supported)
+ */
+static int
+repl_iter (void *cls,
+	   void *next_cls,
+	   const GNUNET_HashCode *key,
+	   uint32_t size,
+	   const void *data,
+	   enum GNUNET_BLOCK_Type type,
+	   uint32_t priority,
+	   uint32_t anonymity,
+	   struct GNUNET_TIME_Absolute expiration, 
+	   uint64_t uid)
+{
+  struct ReplCtx *rc = cls;
+  struct Plugin *plugin = rc->plugin;
+  int ret;
+
+  ret = rc->iter (rc->iter_cls,
+		  next_cls, key,
+		  size, data, 
+		  type, priority, anonymity, expiration,
+		  uid);
+  if (NULL != key)
+    {
+      sqlite3_bind_int64 (plugin->updRepl, 1, uid);
+      if (SQLITE_DONE != sqlite3_step (plugin->updRepl))
+	{
+	  LOG_SQLITE (plugin, NULL,
+		      GNUNET_ERROR_TYPE_ERROR |
+		      GNUNET_ERROR_TYPE_BULK, "sqlite3_step");
+	  if (SQLITE_OK != sqlite3_reset (plugin->updRepl))
+	    LOG_SQLITE (plugin, NULL,
+			GNUNET_ERROR_TYPE_ERROR |
+			GNUNET_ERROR_TYPE_BULK, "sqlite3_reset");
+	  return GNUNET_SYSERR;
+	}
+      if (SQLITE_OK != sqlite3_reset (plugin->delRow))
+	LOG_SQLITE (plugin, NULL,
+		    GNUNET_ERROR_TYPE_ERROR |
+		    GNUNET_ERROR_TYPE_BULK, "sqlite3_reset");
+    }
+  return ret;
+}
+
+
+/**
+ * Get a random item for replication.  Returns a single random item
  * from those with the highest replication counters.  The item's 
  * replication counter is decremented by one IF it was positive before.
  * Call 'iter' with all values ZERO or NULL if the datastore is empty.
@@ -1433,28 +1505,17 @@ sqlite_plugin_replication_get (void *cls,
 			       PluginIterator iter, void *iter_cls)
 {
   struct Plugin *plugin = cls;
-  sqlite3_stmt *stmt;
-  struct GNUNET_TIME_Absolute now;
+  struct ReplCtx rc;
 
 #if DEBUG_SQLITE
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "sqlite",
 		   "Getting random block based on replication order.\n");
 #endif
-  stmt = plugin->selRepl;
-  now = GNUNET_TIME_absolute_get ();
-  if (SQLITE_OK != sqlite3_bind_int64 (stmt, 1, now.abs_value))
-    {
-      LOG_SQLITE (plugin, NULL,		  
-                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "sqlite3_bind_XXXX");
-      if (SQLITE_OK != sqlite3_reset (stmt))
-        LOG_SQLITE (plugin, NULL,
-                    GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "sqlite3_reset");
-      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, 
-	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
-      return;
-    }
-  execute_get (plugin, stmt, iter, iter_cls);
+  rc.plugin = plugin;
+  rc.iter = iter;
+  rc.iter_cls = iter_cls;
+  execute_get (plugin, plugin->selRepl, &repl_iter, &rc);
 }
 
 
