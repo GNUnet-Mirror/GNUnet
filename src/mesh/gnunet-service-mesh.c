@@ -267,6 +267,7 @@ struct Path
      */
     struct Path                 *next;
     struct Path                 *prev;
+
     /**
      * Id of the path, in case it's needed
      */
@@ -281,6 +282,30 @@ struct Path
      * List of all the peers that form the path from origin to target
      */
     GNUNET_PEER_Id              *peers;
+};
+
+struct MESH_queue
+{
+    /**
+     * Double linked list
+     */
+    struct MESH_queue          *next;
+    struct MESH_queue          *prev;
+
+    /**
+     * Size of the message to transmit
+     */
+    unsigned int                size;
+    
+    /**
+     * How old is the data?
+     */
+    struct GNUNET_TIME_Absolute timestamp;
+    
+    /**
+     * Data itself
+     */
+    struct GNUNET_MessageHeader *data;
 };
 
 
@@ -356,14 +381,16 @@ struct MESH_tunnel
     struct Client               *client;
 
     /**
-     * Messages ready to transmit??? -- FIXME real queues needed
+     * Messages ready to transmit
      */
-    struct GNUNET_MessageHeader *msg_out;
+    struct MESH_queue           *out_head;
+    struct MESH_queue           *out_tail;
 
     /**
-     * Messages received and not processed??? -- FIXME real queues needed
+     * Messages received and not processed
      */
-    struct GNUNET_MessageHeader *msg_in;
+    struct MESH_queue           *in_head;
+    struct MESH_queue           *in_tail;
 
 };
 
@@ -637,18 +664,28 @@ handle_local_tunnel_create (void *cls,
         }
     /* Sanity check for duplicate tunnel IDs */
     for (t = tunnels_head; t != tunnels_head; t = t->next) {
-        /* TODO - maybe this is not enough, need to consider the whole
-         * local/global numbering system, but probably it's ok (WiP)
-         */
-        if(t->tid == tunnel_msg->tunnel_id) {
+        if(t->tid == ntohl(tunnel_msg->tunnel_id)) {
             GNUNET_break(0);
             GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
             return;
         }
     }
-    //tunnel_msg->tunnel_id;
+    /* FIXME: calloc? is NULL != 0 on any platform? */
+    t = GNUNET_malloc(sizeof(MESH_tunnel));
+    t->tid = ntohl(tunnel_msg->tunnel_id);
+    /* FIXME: t->oid = selfid;*/
+    t->peers_ready = 0;
+    t->peers_total = 0;
+    t->peers_head = NULL;
+    t->peers_tail = NULL;
+    t->paths_head = NULL;
+    t->paths_tail = NULL;
+    t->in_head = NULL;
+    t->in_tail = NULL;
+    t->out_head = NULL;
+    t->out_tail = NULL;
     
-    
+    GNUNET_SERVER_receive_done(client, GNUNET_OK);
     return;
 }
 
