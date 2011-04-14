@@ -304,6 +304,11 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME 60
 
 /**
+ * Message to force transport to update bandwidth assignment
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_ATS 61
+
+/**
  * Initial setup message from core client to core.
  */
 #define GNUNET_MESSAGE_TYPE_CORE_INIT 64
