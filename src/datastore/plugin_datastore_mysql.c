@@ -946,7 +946,7 @@ mysql_next_request_cont (void *next_cls,
 	      exp);
 #endif
   expiration.abs_value = exp;
-  ret = nrc->dviter (nrc->dviter_cls, nrc,
+  ret = nrc->dviter (nrc->dviter_cls, (nrc->end_it == GNUNET_YES) ? NULL : nrc,
 		     &key,
 		     size, value,
 		     type, priority, anonymity, expiration,
@@ -1466,6 +1466,7 @@ replication_prepare (void *cls,
 {
   struct Plugin *plugin = cls;
 
+  nrc->end_it = GNUNET_YES;
   return prepared_statement_run_select (plugin,
 					plugin->select_replication, 
 					7, nrc->rbind, 
@@ -1521,6 +1522,7 @@ expiration_prepare (void *cls,
 
   if (NULL == nrc)
     return GNUNET_NO;
+  nrc->end_it = GNUNET_YES;
   nt = (long long) nrc->now.abs_value;
   return prepared_statement_run_select
     (plugin,
