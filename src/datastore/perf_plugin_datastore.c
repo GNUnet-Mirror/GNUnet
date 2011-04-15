@@ -246,7 +246,7 @@ expiration_get (void *cls,
   memcpy (&i, &cdata[4], sizeof (i));
   hits[i/8] |= (1 << (i % 8));
   crc->cnt++;
-  if (PUT_10 == crc->cnt)
+  if (PUT_10 <= crc->cnt)
     {
       char buf[256];
       unsigned int bc;
@@ -301,7 +301,7 @@ replication_get (void *cls,
   memcpy (&i, &cdata[4], sizeof (i));
   hits[i/8] |= (1 << (i % 8));
   crc->cnt++;
-  if (PUT_10 == crc->cnt)
+  if (PUT_10 <= crc->cnt)
     {
       char buf[256];
       unsigned int bc;

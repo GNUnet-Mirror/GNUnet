@@ -127,7 +127,7 @@ check_success (void *cls,
   stored_ops++;
   stored_entries++;
   crc->j++;
-  if (crc->j == PUT_10)
+  if (crc->j >= PUT_10)
     {
       crc->j = 0;
       crc->i++;
