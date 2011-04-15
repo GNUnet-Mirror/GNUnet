@@ -1033,6 +1033,11 @@ struct ATS_info
 
 
 	/**
+	 * Use built-in MLP presolver or simplex
+	 */
+	int builtin_mlp_presolver;
+
+	/**
 	 * Maximum number of LP iterations per calculation
 	 */
 	int max_iterations;
@@ -6017,7 +6022,7 @@ static int ats_evaluate_results (int result, int solution, char * problem)
 	}
 return cont;
 }
-
+#endif
 
 static void ats_solve_problem (unsigned int max_it, unsigned int  max_dur, unsigned int c_peers, unsigned int  c_mechs, struct ATS_stat *stat)
 {
@@ -6025,27 +6030,26 @@ static void ats_solve_problem (unsigned int max_it, unsigned int  max_dur, unsig
 	int solution;
 
 	// Solving simplex
-	glp_prob *prob = ats->prob;
-
-	glp_smcp opt_lp;
-	glp_init_smcp(&opt_lp);
-
+	if (ats->builtin_mlp_presolver == GNUNET_NO)
+	{
+		glp_smcp opt_lp;
+		glp_init_smcp(&opt_lp);
 #if VERBOSE_ATS
 	opt_lp.msg_lev = GLP_MSG_ALL;
 #else
 	opt_lp.msg_lev = GLP_MSG_OFF;
 #endif
-	//opt_lp.presolve = GLP_ON;
-	result = glp_simplex(prob, &opt_lp);
-	solution =  glp_get_status (prob);
-
-	if (GNUNET_YES == ats_evaluate_results(result, solution, "LP"))
+		result = glp_simplex(ats->prob, &opt_lp);
+		solution =  glp_get_status (ats->prob);
+	}
+	if (((ats->builtin_mlp_presolver == GNUNET_NO) && (GNUNET_YES == ats_evaluate_results(result, solution, "LP"))) || (ats->builtin_mlp_presolver == GNUNET_YES))
 	{
 		/* Solving mlp */
 		glp_iocp opt_mlp;
 		glp_init_iocp(&opt_mlp);
 		/* maximum duration */
-		//opt_mlp.presolve = GLP_ON;
+		if (ats->builtin_mlp_presolver == GNUNET_YES)
+			opt_mlp.presolve = GLP_ON;
 		opt_mlp.tm_lim = max_dur;
 		/* output level */
 #if VERBOSE_ATS
@@ -6053,13 +6057,12 @@ static void ats_solve_problem (unsigned int max_it, unsigned int  max_dur, unsig
 #else
 			opt_mlp.msg_lev = GLP_MSG_OFF;
 #endif
-		result = glp_intopt (prob, &opt_mlp);
-		solution =  glp_mip_status (prob);
+		result = glp_intopt (ats->prob, &opt_mlp);
+		solution =  glp_mip_status (ats->prob);
 		stat->solution = solution;
 		stat->valid = GNUNET_NO;
 		if (ats_evaluate_results(result, solution, "MLP") == GNUNET_YES)
 			stat->valid = GNUNET_YES;
-	/* done */
 	}
 
 	/*
@@ -6108,7 +6111,7 @@ static void ats_solve_problem (unsigned int max_it, unsigned int  max_dur, unsig
 	}
 #endif
 }
-
+#if HAVE_LIBGLPK
 static void ats_delete_problem ()
 {
 	int c;
@@ -6955,6 +6958,12 @@ void ats_init ()
 
 	if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "DUMP_SOLUTION"))
 		ats->save_solution = GNUNET_CONFIGURATION_get_value_yesno (cfg, "transport","DUMP_SOLUTION");
+
+	ats->builtin_mlp_presolver = GNUNET_YES;
+	if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "BUILTIN_PRESOLVER"))
+	{
+		ats->builtin_mlp_presolver = GNUNET_CONFIGURATION_get_value_yesno (cfg, "transport","BUILTIN_PRESOLVER");
+	}
 
 	ats->ats_task = GNUNET_SCHEDULER_add_now(&ats_schedule_calculation, ats);
 }
