@@ -657,7 +657,7 @@ init_params (struct Plugin *plugin,
     }
   if (! ( (pc == 0) && (-1 != (int) ft) && (va_arg (ap, int) == -1) ) )
     {
-      GNUNET_break (0);
+      GNUNET_assert (0);
       return GNUNET_SYSERR;
     }
   if (mysql_stmt_bind_param (s->statement, qbind))
@@ -1465,14 +1465,11 @@ replication_prepare (void *cls,
 		     struct NextRequestClosure *nrc)
 {
   struct Plugin *plugin = cls;
-  unsigned long long nt;
 
-  nt = (unsigned long long) nrc->now.abs_value;
   return prepared_statement_run_select (plugin,
 					plugin->select_replication, 
-					6, nrc->rbind, 
+					7, nrc->rbind, 
 					&return_ok, NULL,
-					MYSQL_TYPE_LONGLONG, &nt, GNUNET_YES, 
 					-1);
 }
 
