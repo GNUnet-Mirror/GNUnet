@@ -384,7 +384,7 @@ int stats_cb (void *cls,
 				count ++;
 
 				GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "(new: %i / modified: %i / unmodified: %i) of %i \n", c_new, c_modified, c_unmodified , MEASUREMENTS);
-				if ((count > MEASUREMENTS * 5) || ((c_modified >= MEASUREMENTS) && (c_new >= MEASUREMENTS) && (c_unmodified >= MEASUREMENTS)))
+				if ((count > MEASUREMENTS * 10) || ((c_modified >= MEASUREMENTS) && (c_new >= MEASUREMENTS) && (c_unmodified >= MEASUREMENTS)))
 				{
 #if !VERBOSE
 					if (!machine_parsable) fprintf(stdout, "\n");
