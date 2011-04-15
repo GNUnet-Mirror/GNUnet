@@ -8,7 +8,6 @@ if HAVE_OPENSSL
 endif
 endif
 if HAVE_EXPERIMENTAL
- DS_exp = datastore
  FS_exp = fs
 endif
 
@@ -22,7 +21,7 @@ SUBDIRS = \
   $(MONKEY_DIR) \
   peerinfo \
   datacache \
-  $(DS_exp) \
+  datastore \
   template \
   nat \
   transport \

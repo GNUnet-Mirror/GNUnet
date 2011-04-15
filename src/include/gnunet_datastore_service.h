@@ -52,6 +52,10 @@ struct GNUNET_DATASTORE_QueueEntry;
  */
 struct GNUNET_DATASTORE_Handle;
 
+/**
+ * Maximum size of a value that can be stored in the datastore.
+ */
+#define GNUNET_DATASTORE_MAX_VALUE_SIZE 65536
 
 /**
  * Connect to the datastore service.

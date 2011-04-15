@@ -325,9 +325,9 @@ struct GNUNET_DATASTORE_PluginFunctions
   /**
    * Function to get a random item with high replication score from
    * the database, lowering the item's replication score.  Returns a
-   * single, not expired, random item from those with the highest
-   * replication counters.  The item's replication counter is
-   * decremented by one IF it was positive before.
+   * single random item from those with the highest replication
+   * counters.  The item's replication counter is decremented by one
+   * IF it was positive before.
    */
   PluginRandomGet replication_get;
 
