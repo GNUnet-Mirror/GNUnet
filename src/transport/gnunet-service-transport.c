@@ -6022,7 +6022,6 @@ static int ats_evaluate_results (int result, int solution, char * problem)
 	}
 return cont;
 }
-#endif
 
 static void ats_solve_problem (unsigned int max_it, unsigned int  max_dur, unsigned int c_peers, unsigned int  c_mechs, struct ATS_stat *stat)
 {
@@ -6111,7 +6110,7 @@ static void ats_solve_problem (unsigned int max_it, unsigned int  max_dur, unsig
 	}
 #endif
 }
-#if HAVE_LIBGLPK
+
 static void ats_delete_problem ()
 {
 	int c;
