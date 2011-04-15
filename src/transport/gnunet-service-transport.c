@@ -6771,7 +6771,6 @@ static void
 ats_calculate_bandwidth_distribution ()
 {
 #if HAVE_LIBGLPK
-#endif
 	struct GNUNET_TIME_Absolute start;
 	struct GNUNET_TIME_Relative creation;
 	struct GNUNET_TIME_Relative solving;
@@ -6858,6 +6857,7 @@ ats_calculate_bandwidth_distribution ()
 	ats->modified_addr = GNUNET_NO;
 	ats->modified_resources = GNUNET_NO;
 	ats->modified_quality = GNUNET_NO;
+#endif
 }
 
 
