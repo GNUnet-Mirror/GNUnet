@@ -262,28 +262,28 @@ struct Plugin
 #define DELETE_ENTRY_BY_UID "DELETE FROM gn090 WHERE uid=?"
   struct GNUNET_MysqlStatementHandle *delete_entry_by_uid;
 
-#define COUNT_ENTRY_BY_HASH "SELECT count(*) FROM gn090 FORCE INDEX (idx_hash) WHERE hash=?"
+#define COUNT_ENTRY_BY_HASH "SELECT count(*) FROM gn090 WHERE hash=?"
   struct GNUNET_MysqlStatementHandle *count_entry_by_hash;
   
-#define SELECT_ENTRY_BY_HASH "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX (idx_hash_uid) WHERE hash=? ORDER BY uid LIMIT 1 OFFSET ?"
+#define SELECT_ENTRY_BY_HASH "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 WHERE hash=? ORDER BY uid LIMIT 1 OFFSET ?"
   struct GNUNET_MysqlStatementHandle *select_entry_by_hash;
 
-#define COUNT_ENTRY_BY_HASH_AND_VHASH "SELECT count(*) FROM gn090 FORCE INDEX (idx_hash_vhash) WHERE hash=? AND vhash=?"
+#define COUNT_ENTRY_BY_HASH_AND_VHASH "SELECT count(*) FROM gn090 WHERE hash=? AND vhash=?"
   struct GNUNET_MysqlStatementHandle *count_entry_by_hash_and_vhash;
 
-#define SELECT_ENTRY_BY_HASH_AND_VHASH "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX (idx_hash_vhash) WHERE hash=? AND vhash=? ORDER BY uid LIMIT 1 OFFSET ?"
+#define SELECT_ENTRY_BY_HASH_AND_VHASH "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 WHERE hash=? AND vhash=? ORDER BY uid LIMIT 1 OFFSET ?"
   struct GNUNET_MysqlStatementHandle *select_entry_by_hash_and_vhash;
  
-#define COUNT_ENTRY_BY_HASH_AND_TYPE "SELECT count(*) FROM gn090 FORCE INDEX (idx_hash_type_uid) WHERE hash=? AND type=?"
+#define COUNT_ENTRY_BY_HASH_AND_TYPE "SELECT count(*) FROM gn090 WHERE hash=? AND type=?"
   struct GNUNET_MysqlStatementHandle *count_entry_by_hash_and_type;
 
-#define SELECT_ENTRY_BY_HASH_AND_TYPE "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX (idx_hash_type_uid) WHERE hash=? AND type=? ORDER BY uid LIMIT 1 OFFSET ?"
+#define SELECT_ENTRY_BY_HASH_AND_TYPE "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 WHERE hash=? AND type=? ORDER BY uid LIMIT 1 OFFSET ?"
   struct GNUNET_MysqlStatementHandle *select_entry_by_hash_and_type;
  
-#define COUNT_ENTRY_BY_HASH_VHASH_AND_TYPE "SELECT count(*) FROM gn090 FORCE INDEX (idx_hash_vhash) WHERE hash=? AND vhash=? AND type=?"
+#define COUNT_ENTRY_BY_HASH_VHASH_AND_TYPE "SELECT count(*) FROM gn090 WHERE hash=? AND vhash=? AND type=?"
   struct GNUNET_MysqlStatementHandle *count_entry_by_hash_vhash_and_type;
   
-#define SELECT_ENTRY_BY_HASH_VHASH_AND_TYPE "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX (idx_hash_vhash) WHERE hash=? AND vhash=? AND type=? ORDER BY uid ASC LIMIT 1 OFFSET ?"
+#define SELECT_ENTRY_BY_HASH_VHASH_AND_TYPE "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 WHERE hash=? AND vhash=? AND type=? ORDER BY uid ASC LIMIT 1 OFFSET ?"
   struct GNUNET_MysqlStatementHandle *select_entry_by_hash_vhash_and_type;
 
 #define UPDATE_ENTRY "UPDATE gn090 SET prio=prio+?,expire=IF(expire>=?,expire,?) WHERE uid=?"
@@ -295,16 +295,16 @@ struct Plugin
 #define SELECT_SIZE "SELECT SUM(BIT_LENGTH(value) DIV 8) FROM gn090"
   struct GNUNET_MysqlStatementHandle *get_size;
 
-#define SELECT_IT_NON_ANONYMOUS "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX(idx_anonLevel_uid) WHERE anonLevel=0 ORDER BY uid DESC LIMIT 1 OFFSET ?"
+#define SELECT_IT_NON_ANONYMOUS "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 WHERE anonLevel=0 ORDER BY uid DESC LIMIT 1 OFFSET ?"
   struct GNUNET_MysqlStatementHandle *zero_iter;
 
-#define SELECT_IT_EXPIRATION "(SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX(idx_expire_prio) WHERE expire < ? ORDER BY prio ASC LIMIT 1) "\
+#define SELECT_IT_EXPIRATION "(SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 WHERE expire < ? ORDER BY prio ASC LIMIT 1) "\
   "UNION "\
-  "(SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX(idx_prio) ORDER BY prio ASC LIMIT 1) "\
+  "(SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 ORDER BY prio ASC LIMIT 1) "\
   "ORDER BY expire ASC LIMIT 1"
   struct GNUNET_MysqlStatementHandle *select_expiration;
 
-#define SELECT_IT_REPLICATION "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX(idx_repl) ORDER BY repl DESC,RAND() LIMIT 1"
+#define SELECT_IT_REPLICATION "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 ORDER BY repl DESC,RAND() LIMIT 1"
   struct GNUNET_MysqlStatementHandle *select_replication;
 
 };
@@ -866,7 +866,6 @@ return_ok (void *cls,
 	   unsigned int num_values, 
 	   MYSQL_BIND *values)
 {
-  fprintf (stderr, "Here: %u\n", num_values);
   return GNUNET_OK;
 }
 
@@ -948,16 +947,6 @@ mysql_plugin_put (void *cls,
   hashSize2 = sizeof (GNUNET_HashCode);
   lsize = size;
   GNUNET_CRYPTO_hash (data, size, &vhash);
-  {
-  fprintf (stderr,
-	   "inserting content with key `%s'\n",
-	   GNUNET_h2s (key));
-  fprintf (stderr,
-	   "inserting %u-byte content with vhash `%s'\n",
-	   (unsigned int) size,
-	   GNUNET_h2s (&vhash));
-  }
-
   if (GNUNET_OK !=
       prepared_statement_run (plugin,
 			      plugin->insert_entry,
@@ -1128,19 +1117,6 @@ mysql_next_request_cont (void *next_cls,
 	      exp);
 #endif
   expiration.abs_value = exp;
-
-  {
-  GNUNET_HashCode vh;
-  
-  GNUNET_CRYPTO_hash (value, size, &vh);
-  fprintf (stderr,
-	   "found content under with key `%s'\n",
-	   GNUNET_h2s (&key));
-  fprintf (stderr,
-	   "found %u-byte content with vhash `%s'\n",
-	   (unsigned int) size,
-	   GNUNET_h2s (&vh));
-}
   ret = nrc->dviter (nrc->dviter_cls, 
 		     (nrc->one_shot == GNUNET_YES) ? NULL : nrc,
 		     &key,
@@ -1279,12 +1255,6 @@ get_statement_prepare (void *cls,
     {
       if (gc->have_vhash)
 	{
-	  fprintf (stderr,
-		   "Select by key `%s'\n",
-		   GNUNET_h2s (&gc->key));
-	  fprintf (stderr,
-		   "Select by vhash `%s'\n",
-		   GNUNET_h2s (&gc->vhash));
 	  ret =
 	    prepared_statement_run_select (plugin,
 					   plugin->select_entry_by_hash_and_vhash, 
@@ -1385,12 +1355,6 @@ mysql_plugin_get (void *cls,
     {
       if (vhash != NULL)
         {
-	  fprintf (stderr,
-		   "Count by key `%s'\n",
-		   GNUNET_h2s (key));
-	  fprintf (stderr,
-		   "Count by vhash `%s'\n",
-		   GNUNET_h2s (vhash));
           ret =
             prepared_statement_run_select (plugin,
 					   plugin->count_entry_by_hash_and_vhash, 
@@ -1412,12 +1376,6 @@ mysql_plugin_get (void *cls,
 					   -1);
         }
     }
-  fprintf (stderr,
-	   "Got %u results (ret: %d / `%s')\n",
-	   (unsigned int) total,
-	   ret,
-	   mysql_error (plugin->dbf));
-
   if ((ret != GNUNET_OK) || (0 >= total))
     {
       iter (iter_cls, 
@@ -1592,6 +1550,7 @@ repl_iter (void *cls,
   struct Plugin *plugin = rc->plugin;
   unsigned long long oid;
   int ret;
+  int iret;
 
   ret = rc->iter (rc->iter_cls,
 		  next_cls, key,
@@ -1601,12 +1560,12 @@ repl_iter (void *cls,
   if (NULL != key)
     {
       oid = (unsigned long long) uid;
-      ret = prepared_statement_run (plugin,
+      iret = prepared_statement_run (plugin,
 				    plugin->dec_repl,
 				    NULL,
 				    MYSQL_TYPE_LONGLONG, &oid, GNUNET_YES, 
 				    -1);
-      if (ret == GNUNET_SYSERR)
+      if (iret == GNUNET_SYSERR)
 	{
 	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		      "Failed to reduce replication counter\n");
@@ -1761,7 +1720,8 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
              " vhash BINARY(64) NOT NULL DEFAULT '',"
              " value BLOB NOT NULL DEFAULT '',"
              " uid BIGINT NOT NULL AUTO_INCREMENT,"
-             " PRIMARY KEY (uid),"
+             " PRIMARY KEY (uid)"
+#if 0
              " INDEX idx_hash (hash(64)),"
              " INDEX idx_hash_uid (hash(64),uid),"
              " INDEX idx_hash_vhash (hash(64),vhash(64)),"
@@ -1770,6 +1730,7 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
              " INDEX idx_repl (repl),"
              " INDEX idx_expire_prio (expire,prio),"
              " INDEX idx_anonLevel_uid (anonLevel,uid)"
+#endif
              ") ENGINE=InnoDB") ||
       MRUNS ("SET AUTOCOMMIT = 1") ||
       PINIT (plugin->insert_entry, INSERT_ENTRY) ||

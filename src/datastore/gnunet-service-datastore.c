@@ -1345,9 +1345,6 @@ remove_callback (void *cls,
 {
   struct RemoveContext *rc = cls;
 
-  fprintf (stderr,
-	   "remove called with key %p\n",
-	   key);
   if (key == NULL)
     {
 #if DEBUG_DATASTORE
@@ -1422,13 +1419,6 @@ handle_remove (void *cls,
   GNUNET_CRYPTO_hash (&dm[1],
 		      ntohl(dm->size),
 		      &vhash);
-  fprintf (stderr,
-	   "remove does get for key %s\n",
-	   GNUNET_h2s (&dm->key));
-  fprintf (stderr,
-	   "remove does get for %u vhash %s\n",
-	   ntohl (dm->type),
-	   GNUNET_h2s (&vhash));
   plugin->api->get (plugin->api->cls,
 		    &dm->key,
 		    &vhash,

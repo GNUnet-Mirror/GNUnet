@@ -88,7 +88,8 @@ enum RunPhase
     RP_DONE = 0,
     RP_PUT,
     RP_CUT,
-    RP_REPORT
+    RP_REPORT,
+    RP_ERROR
   };
 
 
@@ -116,10 +117,16 @@ check_success (void *cls,
 	       const char *msg)
 {
   struct CpsRunContext *crc = cls;
+
   if (GNUNET_OK != success)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"%s\n", msg);
-  GNUNET_assert (GNUNET_OK == success);
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Check success failed: `%s'\n", msg);
+      crc->phase = RP_ERROR;
+      GNUNET_SCHEDULER_add_now (&run_continuation,
+				crc);
+      return;
+    }
 #if REPORT_ID
   fprintf (stderr, "I");
 #endif
@@ -157,6 +164,15 @@ remove_next(void *cls,
 {
   struct CpsRunContext *crc = cls;
 
+  if (GNUNET_OK != success)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "remove_next failed: `%s'\n", msg);
+      crc->phase = RP_ERROR;
+      GNUNET_SCHEDULER_add_now (&run_continuation,
+				crc);
+      return;
+    }
 #if REPORT_ID
   fprintf (stderr, "D");
 #endif
@@ -168,7 +184,7 @@ remove_next(void *cls,
 
 static void 
 delete_value (void *cls,
-	      const GNUNET_HashCode * key,
+	      const GNUNET_HashCode *key,
 	      size_t size,
 	      const void *data,
 	      enum GNUNET_BLOCK_Type type,
@@ -178,7 +194,7 @@ delete_value (void *cls,
 	      expiration, uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
-  
+
   GNUNET_assert (NULL != key);
   stored_ops++;
   stored_bytes -= size;
@@ -274,6 +290,11 @@ run_continuation (void *cls,
       GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
       GNUNET_free (crc);
       ok = 0;
+      break;
+    case RP_ERROR:
+      GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
+      GNUNET_free (crc);
+      ok = 1;
       break;
     default:
       GNUNET_assert (0);      
@@ -383,7 +404,6 @@ main (int argc, char *argv[])
   char *pos;
   char dir_name[128];
 
-  if (1) return 0;
   /* determine name of plugin to use */
   plugin_name = argv[0];
   while (NULL != (pos = strstr(plugin_name, "_")))
