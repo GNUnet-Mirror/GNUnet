@@ -101,8 +101,8 @@ GNUNET_MONKEY_EDB_get_expression_scope_end(struct GNUNET_MONKEY_EDB_Context *cnt
 	char *errMsg;
 	char *query;
 
-	if (asprintf(&query, "select end_lineno from Expression where file_name LIKE \'\%/%s\' and start_lineno = %d", file_name, start_line_no) == -1) {
-		GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Memory allocation problem occurred during creating database query!\n");
+	if (asprintf(&query, "select end_lineno from Expression where file_name LIKE \'%%/%s\' and start_lineno = %d", file_name, start_line_no) == -1) {
+	  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Memory allocation problem occurred during creating database query!\n");
 		return GNUNET_NO;
 	}
 
@@ -141,7 +141,7 @@ GNUNET_MONKEY_EDB_get_expressions (struct GNUNET_MONKEY_EDB_Context *cntxt,
   char *query;
   if (asprintf
       (&query,
-       "select expr_syntax, start_lineno from Expression where file_name LIKE \'\%/%s\' and start_lineno <= %d and end_lineno = %d",
+       "select expr_syntax, start_lineno from Expression where file_name LIKE \'%%/%s\' and start_lineno <= %d and end_lineno = %d",
        file_name, start_line_no, end_line_no) == -1)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
