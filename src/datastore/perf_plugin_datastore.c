@@ -39,7 +39,7 @@
  */
 #define MAX_SIZE 1024LL * 1024 * 128
 
-#define ITERATIONS 10
+#define ITERATIONS 2
 
 /**
  * Number of put operations equivalent to 1/10th of MAX_SIZE
@@ -80,6 +80,7 @@ struct CpsRunContext
   struct GNUNET_DATASTORE_PluginFunctions * api;
   enum RunPhase phase;
   unsigned int cnt;
+  unsigned int iter;
 };
 
 
@@ -199,9 +200,12 @@ iterate_zeros (void *cls,
 	  GNUNET_break (0);
 	  crc->phase = RP_ERROR;
 	}
-      crc->phase++;
-      crc->cnt = 0;
-      crc->start = GNUNET_TIME_absolute_get ();      
+      else
+	{
+	  crc->phase++;
+	  crc->cnt = 0;
+	  crc->start = GNUNET_TIME_absolute_get ();      
+	}
       GNUNET_SCHEDULER_add_now (&test, crc);
       return GNUNET_OK;
     }
@@ -263,7 +267,10 @@ expiration_get (void *cls,
 	      (unsigned int) PUT_10);
       GAUGER (category, buf, crc->end.abs_value - crc->start.abs_value, "ms");
       memset (hits, 0, sizeof (hits));
-      crc->phase++;
+      if (++crc->iter == ITERATIONS)
+	crc->phase++;
+      else
+	crc->phase = RP_PUT;
       crc->cnt = 0;      
       crc->start = GNUNET_TIME_absolute_get ();      
     }  

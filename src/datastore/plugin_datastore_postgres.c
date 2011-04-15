@@ -998,6 +998,7 @@ postgres_plugin_iter_zero_anonymity (void *cls,
   struct NextRequestClosure *nrc;
 
   nrc = GNUNET_malloc (sizeof (struct NextRequestClosure));
+  nrc->total = UINT32_MAX;
   nrc->btype = htonl ((uint32_t) type);
   nrc->plugin = plugin;
   nrc->iter = iter;
@@ -1125,6 +1126,7 @@ postgres_plugin_replication_get (void *cls,
   rc.iter_cls = iter_cls;
   nrc = GNUNET_malloc (sizeof (struct NextRequestClosure));
   nrc->one_shot = GNUNET_YES;
+  nrc->total = 1;
   nrc->plugin = plugin;
   nrc->iter = &repl_iter;
   nrc->iter_cls = &rc;
@@ -1153,6 +1155,7 @@ postgres_plugin_expiration_get (void *cls,
   btime = GNUNET_htonll (GNUNET_TIME_absolute_get ().abs_value);
   nrc = GNUNET_malloc (sizeof (struct NextRequestClosure));
   nrc->one_shot = GNUNET_YES;
+  nrc->total = 1;
   nrc->plugin = plugin;
   nrc->iter = iter;
   nrc->iter_cls = iter_cls;
