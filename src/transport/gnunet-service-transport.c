@@ -6062,23 +6062,6 @@ static void ats_solve_problem (unsigned int max_it, unsigned int  max_dur, unsig
 	/* done */
 	}
 
-	if ((ats->save_mlp == GNUNET_YES) && (c_peers > 1))
-	{
-		char * filename;
-		GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i_%llu.mlp",c_peers, c_mechs, GNUNET_TIME_absolute_get().abs_value);
-		//if (GNUNET_NO == GNUNET_DISK_file_test(filename))
-			glp_write_lp (prob, NULL, filename);
-		GNUNET_free (filename);
-	}
-	if ((ats->save_solution == GNUNET_YES) && (c_peers > 1))
-	{
-		char * filename;
-		GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i_%llu.sol",c_peers, c_mechs, GNUNET_TIME_absolute_get().abs_value);
-		//if (GNUNET_NO == GNUNET_DISK_file_test(filename))
-			glp_print_sol (prob, filename);
-		GNUNET_free (filename);
-	}
-
 	/*
 	int check;
 	int error = GNUNET_NO;
@@ -6774,6 +6757,7 @@ ats_calculate_bandwidth_distribution ()
 	struct GNUNET_TIME_Absolute start;
 	struct GNUNET_TIME_Relative creation;
 	struct GNUNET_TIME_Relative solving;
+	char *text = "unmodified";
 
 	struct GNUNET_TIME_Relative delta = GNUNET_TIME_absolute_get_difference(ats->last,GNUNET_TIME_absolute_get());
 	if (delta.rel_value < ats->min_delta.rel_value)
@@ -6793,19 +6777,22 @@ ats_calculate_bandwidth_distribution ()
 	start = GNUNET_TIME_absolute_get();
 	if ((ats->modified_addr == GNUNET_YES) || (ats->prob==NULL))
 	{
+		text = "new";
 		ats_delete_problem ();
 		ats_create_problem (ats->D, ats->U, ats->R, ats->v_b_min, ats->v_n_min, &ats->stat);
 #if DEBUG_ATS
 		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peers/Addresses were modified... new problem: %i peer, %i mechs\n", ats->stat.c_peers, ats->stat.c_mechs);
 #endif
 	}
-	else if (ats->modified_resources == GNUNET_YES)
+	else if ((ats->modified_addr == GNUNET_NO) && (ats->modified_resources == GNUNET_YES))
 	{
 		ats_update_problem_cr();
+		text = "modified resources";
 	}
-	else if (ats->modified_quality == GNUNET_YES)
+	else if ((ats->modified_addr == GNUNET_NO) && (ats->modified_quality == GNUNET_YES))
 	{
 		ats_update_problem_qm();
+		text = "modified quality";
 	}
 #if DEBUG_ATS
 	else GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Problem is unmodified\n");
@@ -6818,8 +6805,8 @@ ats_calculate_bandwidth_distribution ()
 	{
 		ats->stat.solution = GNUNET_SYSERR;
 		ats_solve_problem(ats->max_iterations, ats->max_exec_duration.rel_value, ats->stat.c_peers, ats->stat.c_mechs, &ats->stat);
-		if (ats->stat.solution != 5)
-			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Problem solution is not optimal: %i\n", ats->stat.solution);
+		//if (ats->stat.solution != 5)
+			//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Problem solution is not optimal: %i\n", ats->stat.solution);
 	}
 
 	solving = GNUNET_TIME_absolute_get_difference(start,GNUNET_TIME_absolute_get());
@@ -6827,7 +6814,11 @@ ats_calculate_bandwidth_distribution ()
 	if (ats->stat.valid == GNUNET_YES)
 	{
 #if DEBUG_ATS
-			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP: creation time in [ms] %llu execution time in [ms] %llu for %i mechanisms\n", creation.rel_value, solving.rel_value, ats->stat.c_mechs);
+
+		//if (ats->stat.c_peers > 1)
+		//{
+			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP %s: creation time in [ms] %llu execution time in [ms] %llu for %i mechanisms\n", text, creation.rel_value, solving.rel_value, ats->stat.c_mechs);
+		//}
 #endif
 		GNUNET_STATISTICS_set (stats, "ATS duration", solving.rel_value + creation.rel_value, GNUNET_NO);
 		GNUNET_STATISTICS_set (stats, "ATS mechanisms", ats->stat.c_mechs, GNUNET_NO);
@@ -6852,6 +6843,24 @@ ats_calculate_bandwidth_distribution ()
 		 GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP not executed: no addresses\n");
 	}
 #endif
+
+	if ((ats->save_mlp == GNUNET_YES) && (ats->stat.c_peers > 1))
+	{
+		char * filename;
+		GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i_%llu.mlp",ats->stat.c_peers, ats->stat.c_mechs, GNUNET_TIME_absolute_get().abs_value);
+		//if (GNUNET_NO == GNUNET_DISK_file_test(filename))
+			glp_write_lp (ats->prob, NULL, filename);
+		GNUNET_free (filename);
+	}
+	if ((ats->save_solution == GNUNET_YES) && (ats->stat.c_peers > 1))
+	{
+		char * filename;
+		GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i_%llu.sol", ats->stat.c_peers, ats->stat.c_mechs, GNUNET_TIME_absolute_get().abs_value);
+		//if (GNUNET_NO == GNUNET_DISK_file_test(filename))
+			glp_print_sol (ats->prob, filename);
+		GNUNET_free (filename);
+	}
+
 	ats->last = GNUNET_TIME_absolute_get();
 
 	ats->modified_addr = GNUNET_NO;

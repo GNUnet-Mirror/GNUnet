@@ -49,6 +49,7 @@ static int peers_left;
 static int failed_peers;
 
 static int measurement_started = GNUNET_NO;
+static char * config_file;
 
 static struct GNUNET_TESTING_PeerGroup *pg;
 
@@ -87,6 +88,7 @@ static int peers;
 static int force_q_updates;
 static int force_rebuild;
 static int send_msg;
+static int machine_parsable;
 
 static struct TEST_result results_new       [MEASUREMENTS+1];
 static struct TEST_result results_modified  [MEASUREMENTS+1];
@@ -198,62 +200,74 @@ static void shutdown_peers()
 static void evaluate_measurements()
 {
 	int c;
-	double average ;
-	double stddev;
-
+	//int mechs = 0;
+	double average[3];
+	double stddev[3];
+	//char * output;
 	c = 1;
 
-	average = 0.0;
+	//GNUNET_asprintf(&output, "p,%i,m,%i,",peers, MEASUREMENTS, results_modified[0].mechs,
+
+	average[0] = 0.0;
 	for (c=0; c<c_new;c++)
 	{
-		average += (double) results_new[c].duration;
+		average[0] += (double) results_new[c].duration;
 	}
-	average /= c_new;
+	average[0] /= c_new;
 
-	stddev = 0.0;
+	stddev[0] = 0.0;
 	for (c=0; c<c_new;c++)
 	{
-		stddev += (results_new[c].duration - average) * (results_new[c].duration - average);
+		stddev[0] += (results_new[c].duration - average[0]) * (results_new[c].duration - average[0]);
 	}
-	stddev /= c_new;
-	stddev = sqrt (stddev);
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"new average: %f stddev: %f\n", average, stddev);
+	stddev[0] /= c_new;
+	stddev[0] = sqrt (stddev[0]);
+	if (!machine_parsable) GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"new, %i measurements, average: %f stddev: %f\n",
+			c_new, average[0], stddev[0]);
 
-	average = 0.0;
+	average[1] = 0.0;
 	for (c=0; c<c_modified;c++)
 	{
-		average += (double) results_modified[c].duration;
+		average[1] += (double) results_modified[c].duration;
 	}
-	average /= c_modified;
+	average[1] /= c_modified;
 
-	stddev = 0.0;
+	stddev[1] = 0.0;
 	for (c=0; c<c_modified;c++)
 	{
-		stddev += (results_modified[c].duration - average) * (results_modified[c].duration - average);
+		stddev[1] += (results_modified[c].duration - average[1]) * (results_modified[c].duration - average[1]);
 	}
-	stddev /= c_modified;
-	stddev = sqrt (stddev);
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"modified average: %f stddev: %f\n", average, stddev);
+	stddev[1] /= c_modified;
+	stddev[1] = sqrt (stddev[1]);
+	if (!machine_parsable) GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"modified, %i measurements, average: %f stddev: %f\n",
+			c_modified, average[1], stddev[1]);
 
-	average = 0.0;
+	average[2] = 0.0;
 	for (c=0; c<c_unmodified;c++)
 	{
-		average += (double) results_unmodified[c].duration;
+		average[2] += (double) results_unmodified[c].duration;
 	}
-	average /= c_unmodified;
-	stddev = 0.0;
+	average[2] /= c_unmodified;
+	stddev[2] = 0.0;
 	for (c=0; c<c_unmodified;c++)
 	{
-		stddev += (results_unmodified[c].duration - average) * (results_unmodified[c].duration - average);
+		stddev[2] += (results_unmodified[c].duration - average[2]) * (results_unmodified[c].duration - average[2]);
 	}
-	stddev /= c_unmodified;
-	stddev = sqrt (stddev);
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"unmodified average: %f stddev: %f\n", average, stddev);
+	stddev[2] /= c_unmodified;
+	stddev[2] = sqrt (stddev[2]);
 
+	if (!machine_parsable) GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"unmodified, %i measurements, average: %f stddev: %f\n",
+			c_unmodified, average[2], stddev[2]);
 
-
-
-
+	if (machine_parsable)
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,",peers,%i,mechs,%i,"
+					"new,%i,%f,%f,"
+					"mod,%i,%f,%f,"
+					"unmod,%i,%f,%f\n",
+					peers-1, results_unmodified[0].mechs,
+					c_new, average[0], stddev[0],
+					c_modified, average[1], stddev[1],
+					c_unmodified, average[2], stddev[2]);
 	shutdown_peers();
 }
 
@@ -310,6 +324,9 @@ int stats_cb (void *cls,
 		measurement_started = GNUNET_YES;
 		count = 1;
 		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All %llu peers connected\n", value);
+#if !VERBOSE
+		if (!machine_parsable)	fprintf(stderr, "%i", count);
+#endif
     }
 
     if (measurement_started == GNUNET_YES)
@@ -367,9 +384,11 @@ int stats_cb (void *cls,
 				count ++;
 
 				GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "(new: %i / modified: %i / unmodified: %i) of %i \n", c_new, c_modified, c_unmodified , MEASUREMENTS);
-				if ((count > MEASUREMENTS * 4) || ((c_modified >= MEASUREMENTS) && (c_new >= MEASUREMENTS) && (c_unmodified >= MEASUREMENTS)))
+				if ((count > MEASUREMENTS * 5) || ((c_modified >= MEASUREMENTS) && (c_new >= MEASUREMENTS) && (c_unmodified >= MEASUREMENTS)))
 				{
-					fprintf(stdout, "\n");
+#if !VERBOSE
+					if (!machine_parsable) fprintf(stdout, "\n");
+#endif
 					if (stats_task != GNUNET_SCHEDULER_NO_TASK)
 					{
 						GNUNET_SCHEDULER_cancel(stats_task);
@@ -381,6 +400,9 @@ int stats_cb (void *cls,
 
 				printed = GNUNET_NO;
 				current.timestamp = value;
+#if !VERBOSE
+				if (!machine_parsable) fprintf(stderr, "..%i", count);
+#endif
 				return GNUNET_OK;
 			}
 		}
@@ -628,7 +650,7 @@ check ()
 {
   char *const argv[] = { "test-testing",
     "-c",
-    "test_transport_ats.conf",
+    config_file,
 #if VERBOSE
     "-L", "DEBUG",
 #endif
@@ -662,12 +684,35 @@ main (int argc, char *argv[])
                     NULL);
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-testing");
 
+  machine_parsable = GNUNET_NO;
   peers = NUM_PEERS;
-  if (argc == 2)
+  config_file = "test_transport_ats_1addr.conf";
+
+  int c = 0;
+  if (argc >= 2)
   {
-	  peers = atoi(argv[1]);
-	  peers++;
+	 for (c=0; c<argc; c++)
+	 {
+		 /* set peers */
+		 if ((strcmp(argv[c], "-p") == 0) && c < (argc-1))
+		 {
+			  peers = atoi(argv[c+1]);
+			  peers++;
+		 }
+		 /* set machine parsable */
+		 if (strcmp(argv[c], "-m") == 0)
+		 {
+			 machine_parsable = GNUNET_YES;
+		 }
+		 /* set config file */
+		 if ((strcmp(argv[c], "-c") == 0) && c < (argc-1))
+		 {
+			 config_file = argv[c+1];
+		 }
+	 }
   }
+
+
 
   ret = check ();
   /**
