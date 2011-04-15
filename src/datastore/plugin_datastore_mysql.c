@@ -1720,7 +1720,7 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
              " vhash BINARY(64) NOT NULL DEFAULT '',"
              " value BLOB NOT NULL DEFAULT '',"
              " uid BIGINT NOT NULL AUTO_INCREMENT,"
-             " PRIMARY KEY (uid)"
+             " PRIMARY KEY (uid),"
              " INDEX idx_hash (hash(64)),"
              " INDEX idx_hash_uid (hash(64),uid),"
              " INDEX idx_hash_vhash (hash(64),vhash(64)),"
