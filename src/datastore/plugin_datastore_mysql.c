@@ -844,7 +844,7 @@ do_delete_entry (struct Plugin *plugin,
 				NULL,
 				MYSQL_TYPE_LONGLONG, &uid, GNUNET_YES,
 				-1);
-  if (ret > 0)
+  if (ret >= 0)
     return GNUNET_OK;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 	      "Deleting value %llu from gn090 table failed\n",
@@ -864,8 +864,9 @@ do_delete_entry (struct Plugin *plugin,
 static int
 return_ok (void *cls, 
 	   unsigned int num_values, 
-	   MYSQL_BIND * values)
+	   MYSQL_BIND *values)
 {
+  fprintf (stderr, "Here: %u\n", num_values);
   return GNUNET_OK;
 }
 
@@ -947,6 +948,16 @@ mysql_plugin_put (void *cls,
   hashSize2 = sizeof (GNUNET_HashCode);
   lsize = size;
   GNUNET_CRYPTO_hash (data, size, &vhash);
+  {
+  fprintf (stderr,
+	   "inserting content with key `%s'\n",
+	   GNUNET_h2s (key));
+  fprintf (stderr,
+	   "inserting %u-byte content with vhash `%s'\n",
+	   (unsigned int) size,
+	   GNUNET_h2s (&vhash));
+  }
+
   if (GNUNET_OK !=
       prepared_statement_run (plugin,
 			      plugin->insert_entry,
@@ -1117,6 +1128,19 @@ mysql_next_request_cont (void *next_cls,
 	      exp);
 #endif
   expiration.abs_value = exp;
+
+  {
+  GNUNET_HashCode vh;
+  
+  GNUNET_CRYPTO_hash (value, size, &vh);
+  fprintf (stderr,
+	   "found content under with key `%s'\n",
+	   GNUNET_h2s (&key));
+  fprintf (stderr,
+	   "found %u-byte content with vhash `%s'\n",
+	   (unsigned int) size,
+	   GNUNET_h2s (&vh));
+}
   ret = nrc->dviter (nrc->dviter_cls, 
 		     (nrc->one_shot == GNUNET_YES) ? NULL : nrc,
 		     &key,
@@ -1255,6 +1279,12 @@ get_statement_prepare (void *cls,
     {
       if (gc->have_vhash)
 	{
+	  fprintf (stderr,
+		   "Select by key `%s'\n",
+		   GNUNET_h2s (&gc->key));
+	  fprintf (stderr,
+		   "Select by vhash `%s'\n",
+		   GNUNET_h2s (&gc->vhash));
 	  ret =
 	    prepared_statement_run_select (plugin,
 					   plugin->select_entry_by_hash_and_vhash, 
@@ -1313,11 +1343,13 @@ mysql_plugin_get (void *cls,
   struct NextRequestClosure *nrc;
   long long total;
   unsigned long hashSize;
+  unsigned long hashSize2;
 
   GNUNET_assert (key != NULL);
   if (iter == NULL) 
     return;
   hashSize = sizeof (GNUNET_HashCode);
+  hashSize2 = sizeof (GNUNET_HashCode);
   memset (cbind, 0, sizeof (cbind));
   total = -1;
   cbind[0].buffer_type = MYSQL_TYPE_LONGLONG;
@@ -1333,7 +1365,7 @@ mysql_plugin_get (void *cls,
 					   1, cbind, 
 					   &return_ok, NULL,
 					   MYSQL_TYPE_BLOB, key, hashSize, &hashSize, 
-					   MYSQL_TYPE_BLOB, vhash, hashSize, &hashSize, 
+					   MYSQL_TYPE_BLOB, vhash, hashSize2, &hashSize2, 
 					   MYSQL_TYPE_LONG, &itype, GNUNET_YES,
 					   -1);
         }
@@ -1353,13 +1385,19 @@ mysql_plugin_get (void *cls,
     {
       if (vhash != NULL)
         {
+	  fprintf (stderr,
+		   "Count by key `%s'\n",
+		   GNUNET_h2s (key));
+	  fprintf (stderr,
+		   "Count by vhash `%s'\n",
+		   GNUNET_h2s (vhash));
           ret =
             prepared_statement_run_select (plugin,
 					   plugin->count_entry_by_hash_and_vhash, 
 					   1, cbind,
 					   &return_ok, NULL,
 					   MYSQL_TYPE_BLOB, key, hashSize, &hashSize, 
-					   MYSQL_TYPE_BLOB, vhash, hashSize, &hashSize, 
+					   MYSQL_TYPE_BLOB, vhash, hashSize2, &hashSize2, 
 					   -1);
 
         }
@@ -1374,6 +1412,12 @@ mysql_plugin_get (void *cls,
 					   -1);
         }
     }
+  fprintf (stderr,
+	   "Got %u results (ret: %d / `%s')\n",
+	   (unsigned int) total,
+	   ret,
+	   mysql_error (plugin->dbf));
+
   if ((ret != GNUNET_OK) || (0 >= total))
     {
       iter (iter_cls, 
