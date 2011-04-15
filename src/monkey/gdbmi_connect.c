@@ -555,11 +555,18 @@ int mi_send(mi_h *h, const char *format, ...)
  va_start(argptr,format);
  ret=vasprintf(&str,format,argptr);
  va_end(argptr);
- fputs(str,h->to);
- fflush(h->to);
- if (h->to_gdb_echo)
-    h->to_gdb_echo(str,h->to_gdb_echo_data);
- free(str);
+ if (-1 != ret)
+   {
+     fputs(str,h->to);
+     fflush(h->to);
+     if (h->to_gdb_echo)
+       h->to_gdb_echo(str,h->to_gdb_echo_data);
+     free(str);
+   }
+ else
+   {
+     abort ();
+   }
 
  return ret;
 }
