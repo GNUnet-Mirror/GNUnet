@@ -37,7 +37,6 @@ gnunet_service_datastore_LDADD = \
   $(GN_LIBINTL)
 
 if HAVE_MYSQL
-if HAVE_EXPERIMENTAL
  MYSQL_PLUGIN = libgnunet_plugin_datastore_mysql.la
  MYSQL_TESTS = \
   test_datastore_api_mysql \
@@ -45,7 +44,6 @@ if HAVE_EXPERIMENTAL
   test_plugin_datastore_mysql \
   perf_datastore_api_mysql \
   perf_plugin_datastore_mysql
-endif
 endif
 if HAVE_SQLITE
  SQLITE_PLUGIN = libgnunet_plugin_datastore_sqlite.la
