@@ -6959,7 +6959,7 @@ void ats_init ()
 	if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "DUMP_SOLUTION"))
 		ats->save_solution = GNUNET_CONFIGURATION_get_value_yesno (cfg, "transport","DUMP_SOLUTION");
 
-	ats->builtin_mlp_presolver = GNUNET_YES;
+	ats->builtin_mlp_presolver = GNUNET_NO;
 	if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "BUILTIN_PRESOLVER"))
 	{
 		ats->builtin_mlp_presolver = GNUNET_CONFIGURATION_get_value_yesno (cfg, "transport","BUILTIN_PRESOLVER");
