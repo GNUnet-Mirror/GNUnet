@@ -284,7 +284,7 @@ struct Plugin
 #define SELECT_ENTRY_BY_HASH_VHASH_AND_TYPE "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX (idx_hash_vhash) WHERE hash=? AND vhash=? AND type=? ORDER BY uid ASC LIMIT 1 OFFSET ?"
   struct GNUNET_MysqlStatementHandle *select_entry_by_hash_vhash_and_type;
 
-#define UPDATE_ENTRY "UPDATE gn090 FORCE INDEX (uid) SET prio=prio+?,expire=IF(expire>=?,expire,?) WHERE uid=? LIMIT 1"
+#define UPDATE_ENTRY "UPDATE gn090 SET prio=prio+?,expire=IF(expire>=?,expire,?) WHERE uid=? LIMIT 1"
   struct GNUNET_MysqlStatementHandle *update_entry;
 
 #define SELECT_SIZE "SELECT SUM(BIT_LENGTH(value) DIV 8) FROM gn090"
@@ -488,8 +488,11 @@ iopen (struct Plugin *ret)
     }
 
   GNUNET_assert (mysql_dbname != NULL);
-  mysql_real_connect (ret->dbf, mysql_server, mysql_user, mysql_password,
-                      mysql_dbname, (unsigned int) mysql_port, NULL,
+  mysql_real_connect (ret->dbf, 
+		      mysql_server, 
+		      mysql_user, mysql_password,
+                      mysql_dbname, 
+		      (unsigned int) mysql_port, NULL,
 		      CLIENT_IGNORE_SIGPIPE);
   GNUNET_free_non_null (mysql_server);
   GNUNET_free_non_null (mysql_user);
@@ -834,7 +837,7 @@ do_delete_entry (struct Plugin *plugin,
   ret = prepared_statement_run (plugin,
 				plugin->delete_entry_by_uid,
 				NULL,
-				MYSQL_TYPE_LONGLONG, uid, GNUNET_YES,
+				MYSQL_TYPE_LONGLONG, &uid, GNUNET_YES,
 				-1);
   if (ret > 0)
     return GNUNET_OK;
@@ -1509,6 +1512,8 @@ mysql_plugin_replication_get (void *cls,
  * 
  * @param cls the 'struct Plugin'
  * @param nrc the context (not used)
+ * @return GNUNET_OK on success, GNUNET_NO if there are
+ *         no more values, GNUNET_SYSERR on error
  */
 static int
 expiration_prepare (void *cls,
@@ -1517,11 +1522,13 @@ expiration_prepare (void *cls,
   struct Plugin *plugin = cls;
   long long nt;
 
+  if (NULL == nrc)
+    return GNUNET_NO;
   nt = (long long) nrc->now.abs_value;
   return prepared_statement_run_select
     (plugin,
      plugin->select_expiration, 
-     6, nrc->rbind, 
+     7, nrc->rbind, 
      &return_ok, NULL,
      MYSQL_TYPE_LONGLONG, &nt, GNUNET_YES, 
      -1);
@@ -1566,10 +1573,8 @@ mysql_plugin_drop (void *cls)
 {
   struct Plugin *plugin = cls;
 
-  if ((GNUNET_OK != run_statement (plugin,
-				   "DROP TABLE gn090")) ||
-      (GNUNET_OK != run_statement (plugin,
-				   "DROP TABLE gn072")))
+  if (GNUNET_OK != run_statement (plugin,
+				  "DROP TABLE gn090"))
     return;           /* error */
   plugin->env->duc (plugin->env->cls, 0);
 }
@@ -1608,9 +1613,9 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
              " expire BIGINT UNSIGNED NOT NULL DEFAULT 0,"
              " hash BINARY(64) NOT NULL DEFAULT '',"
              " vhash BINARY(64) NOT NULL DEFAULT '',"
-             " value BLOB NOT NULL DEFAULT ''"
-             " uid BIGINT NOT NULL AUTO_INCREMENT"
-             " PRIMARY KEY (uid)"
+             " value BLOB NOT NULL DEFAULT '',"
+             " uid BIGINT NOT NULL AUTO_INCREMENT,"
+             " PRIMARY KEY (uid),"
              " INDEX idx_hash (hash(64)),"
              " INDEX idx_hash_uid (hash(64),uid),"
              " INDEX idx_hash_vhash (hash(64),vhash(64)),"

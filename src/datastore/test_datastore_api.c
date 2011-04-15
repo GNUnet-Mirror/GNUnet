@@ -148,8 +148,11 @@ check_success (void *cls,
     {
       ok = 42;
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "%s\n", msg);
-      GNUNET_SCHEDULER_shutdown ();
+		  "Operation not successfull: `%s'\n", msg);
+      crc->phase = RP_ERROR;
+      GNUNET_SCHEDULER_add_continuation (&run_continuation,
+					 crc,
+					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
       return;
     }
   GNUNET_free_non_null (crc->data);
