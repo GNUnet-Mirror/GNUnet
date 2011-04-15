@@ -1721,7 +1721,6 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
              " value BLOB NOT NULL DEFAULT '',"
              " uid BIGINT NOT NULL AUTO_INCREMENT,"
              " PRIMARY KEY (uid)"
-#if 0
              " INDEX idx_hash (hash(64)),"
              " INDEX idx_hash_uid (hash(64),uid),"
              " INDEX idx_hash_vhash (hash(64),vhash(64)),"
@@ -1730,7 +1729,6 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
              " INDEX idx_repl (repl),"
              " INDEX idx_expire_prio (expire,prio),"
              " INDEX idx_anonLevel_uid (anonLevel,uid)"
-#endif
              ") ENGINE=InnoDB") ||
       MRUNS ("SET AUTOCOMMIT = 1") ||
       PINIT (plugin->insert_entry, INSERT_ENTRY) ||
