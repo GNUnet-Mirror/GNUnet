@@ -60,6 +60,24 @@ typedef int (*GNUNET_MONKEY_ExpressionIterator) (void *, int, char **,
 						 char **);
 
 
+
+/**
+ * Return the line number of the end-of-scope for the expression indicated by start_line_no
+ *
+ * @param cntxt context containing the Expression Database handle
+ * @param file_name path to the file in which the expression in question exists
+ * @param start_line_no expression's line
+ * @param iter callback function, iterator for values returned from the Database
+ * @param iter_cls closure for the expression iterator, will contain the scope-end line number
+ * @return GNUNET_OK on success, GNUNET_NO on failure
+ */
+int
+GNUNET_MONKEY_EDB_get_expression_scope_end(struct GNUNET_MONKEY_EDB_Context *cntxt,
+				  const char *file_name, int start_line_no,
+				  GNUNET_MONKEY_ExpressionIterator iter,
+				  void *iter_cls);
+
+
 /**
  * Run an SQLite query to retrieve those expressions that are previous to
  * given expression and are in the same scope of the given expression

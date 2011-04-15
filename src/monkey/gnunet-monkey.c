@@ -34,6 +34,8 @@ static const char* mode;
 static const char* dumpFileName;
 static const char* binaryName;
 static const char* emailAddress;
+static const char* edbFilePath;
+static const char* gdbBinaryPath;
 static int ret = 0;
 
 /**
@@ -51,7 +53,7 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
 	int result;
-	struct GNUNET_MONKEY_ACTION_Context* cntxt;
+	struct GNUNET_MONKEY_ACTION_Context *cntxt;
 
 	if (strcasecmp(mode, "email") == 0) {
 		if (NULL == emailAddress) {
@@ -67,8 +69,12 @@ run (void *cls,
 		}
 	}
 
+	/* Initialize context for the Action API */
 	cntxt = GNUNET_malloc(sizeof(struct GNUNET_MONKEY_ACTION_Context));
 	cntxt->binary_name = binaryName;
+	cntxt->expression_database_path = edbFilePath;
+	cntxt->gdb_binary_path = gdbBinaryPath;
+
 	result = GNUNET_MONKEY_ACTION_rerun_with_gdb(cntxt);
 	switch (result) {
 	case GDB_STATE_ERROR:
@@ -79,6 +85,11 @@ run (void *cls,
 		break;
 	case GDB_STATE_STOPPED:
 		/*FIXME: Expression Database should be inspected here (before writing the report) */
+		if (GNUNET_OK != GNUNET_MONKEY_ACTION_inspect_expression_database(cntxt)) {
+			GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Error using Expression Database!\n");
+			ret = 1;
+			break;
+		}
 		if(GNUNET_OK != GNUNET_MONKEY_ACTION_format_report(cntxt)){
 			GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Error in generating debug report!\n");
 			ret = 1;
@@ -113,6 +124,10 @@ int main(int argc, char *argv[])
       GNUNET_YES, &GNUNET_GETOPT_set_string, &dumpFileName},
      {'a', "address", NULL, gettext_noop ("address to send email to in case of email mode"),
           GNUNET_YES, &GNUNET_GETOPT_set_string, &emailAddress},
+     {'d', "database", NULL, gettext_noop ("path to Expression Database file"),
+                    GNUNET_YES, &GNUNET_GETOPT_set_string, &edbFilePath},
+     {'g', "gdb", NULL, gettext_noop ("path to gdb binary in use; default is /usr/bin/gdb"),
+                    GNUNET_YES, &GNUNET_GETOPT_set_string, &gdbBinaryPath},
       GNUNET_GETOPT_OPTION_END
    };
  
@@ -133,3 +148,4 @@ int main(int argc, char *argv[])
 
      return 1;
 }
+

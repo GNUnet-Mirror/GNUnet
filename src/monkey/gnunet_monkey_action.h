@@ -53,17 +53,23 @@ struct GNUNET_MONKEY_ACTION_Context
 {
 	const char* binary_name;
 	const char* email_address;
+	const char* expression_database_path;
+	const char* gdb_binary_path;
 	int debug_mode;
 	char* debug_report;
 
 	/* gdb debugging attributes */
+	mi_h *gdb_handle;
+	const char* gdb_in_use;
 	mi_stop* gdb_stop_reason;
 	mi_frames* gdb_frames;
 };
 
+
 int GNUNET_MONKEY_ACTION_report_file(struct GNUNET_MONKEY_ACTION_Context* cntxt, const char* dumpFileName);
 int GNUNET_MONKEY_ACTION_report_email(struct GNUNET_MONKEY_ACTION_Context* cntxt);
 int GNUNET_MONKEY_ACTION_rerun_with_valgrind(void);
+int GNUNET_MONKEY_ACTION_inspect_expression_database(struct GNUNET_MONKEY_ACTION_Context* cntxt);
 int GNUNET_MONKEY_ACTION_rerun_with_gdb(struct GNUNET_MONKEY_ACTION_Context* cntxt);
 int GNUNET_MONKEY_ACTION_format_report(struct GNUNET_MONKEY_ACTION_Context* cntxt);
 int GNUNET_MONKEY_ACTION_check_bug_redundancy(void);

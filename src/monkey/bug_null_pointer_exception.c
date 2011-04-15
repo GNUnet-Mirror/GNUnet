@@ -1,13 +1,17 @@
 #include <stdio.h>
 #include <string.h>
 
+
+struct CrashStruct {
+	const char *crashValue;
+};
+
 void crashFunction() 
 {
-	char *nullString = NULL;
+	struct CrashStruct *crashStruct;
+	crashStruct = NULL;
 	printf("Now the program will crash!\n");
-	if (strcmp(nullString, "A string to compare with") == 0) {
-		printf("How come?! It had to crash!\n");
-	}
+	crashStruct->crashValue = "hello!";
 }
 
 int main(int argc, char *argv[]) 
