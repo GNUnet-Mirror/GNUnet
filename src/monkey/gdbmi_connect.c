@@ -330,9 +330,9 @@ void mi_send_commands(mi_h *h, const char *file)
    {
     if (fgets(b,PATH_MAX,f))
       {
-       //printf("Send: %s\n",b);
-       mi_send(h,b);
-       mi_res_simple_done(h);
+	//printf("Send: %s\n",b);
+	mi_send (h, "%s", b);
+	mi_res_simple_done(h);
       }
    }
  fclose(f);
