@@ -6097,16 +6097,16 @@ static void ats_solve_problem (unsigned int max_it, unsigned int  max_dur, unsig
 	}*/
 
 #if VERBOSE_ATS
-	if (glp_get_col_prim(prob,2*c_mechs+1) != 1)
+	if (glp_get_col_prim(ats->prob,2*c_mechs+1) != 1)
 	{
 	int c;
 	for (c=1; c<= available_quality_metrics; c++ )
 	{
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n", glp_get_col_name(prob,2*c_mechs+3+c), glp_get_col_prim(prob,2*c_mechs+3+c));
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n", glp_get_col_name(ats->prob,2*c_mechs+3+c), glp_get_col_prim(ats->prob,2*c_mechs+3+c));
 	}
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n", glp_get_col_name(prob,2*c_mechs+1), glp_get_col_prim(prob,2*c_mechs+1));
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n", glp_get_col_name(prob,2*c_mechs+2), glp_get_col_prim(prob,2*c_mechs+2));
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n", glp_get_col_name(prob,2*c_mechs+3), glp_get_col_prim(prob,2*c_mechs+3));
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n", glp_get_col_name(ats->prob,2*c_mechs+1), glp_get_col_prim(ats->prob,2*c_mechs+1));
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n", glp_get_col_name(ats->prob,2*c_mechs+2), glp_get_col_prim(ats->prob,2*c_mechs+2));
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n", glp_get_col_name(ats->prob,2*c_mechs+3), glp_get_col_prim(ats->prob,2*c_mechs+3));
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "objective value:  %f\n", glp_mip_obj_val(ats->prob));
 	}
 #endif
@@ -6268,6 +6268,53 @@ static void ats_update_problem_cr ()
 	GNUNET_free_non_null (ar);
 }
 
+static void ats_update_problem_qm_TEST ()
+{
+	int row_index;
+	int c, c2;
+
+	int old_ja[ats->stat.c_mechs + 2];
+	double old_ar[ats->stat.c_mechs + 2];
+	int c_old;
+	int changed = 0;
+
+	int *ja    = GNUNET_malloc ((1 + ats->stat.c_mechs*2 + 3 + available_quality_metrics) * sizeof (int));
+	double *ar = GNUNET_malloc ((1 + ats->stat.c_mechs*2 + 3 + available_quality_metrics) * sizeof (double));
+#if DEBUG_ATS
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Updating problem quality metrics TEST\n");
+#endif
+	row_index = ats->stat.begin_qm;
+
+	for (c=0; c<available_quality_metrics; c++)
+	{
+
+		c_old = glp_get_mat_row (ats->prob, row_index, old_ja, old_ar);
+
+		glp_set_row_bnds(ats->prob, row_index, GLP_FX, 0.0, 0.0);
+
+		for (c2=1; c2<=c_old; c2++)
+		{
+			ja[c2] = old_ja[c2];
+			if ((changed < 3) && (c2>2))
+			{
+				ar[c2] = old_ar[c2] + 500 - changed;
+				changed ++;
+			}
+			else
+				ar[c2] = old_ar[c2];
+#if VERBOSE_ATS
+			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: old [%i,%i]=%f  new [%i,%i]=%f\n",c2, row_index, old_ja[c2], old_ar[c2], row_index, ja[c2], ar[c2]);
+#endif
+		}
+		glp_set_mat_row (ats->prob, row_index, c_old, ja, ar);
+
+		row_index ++;
+	}
+
+
+	GNUNET_free_non_null (ja);
+	GNUNET_free_non_null (ar);
+}
 
 /** solve the bandwidth distribution problem
  * @param max_it maximum iterations
@@ -6795,6 +6842,7 @@ ats_calculate_bandwidth_distribution ()
 	else if ((ats->modified_addr == GNUNET_NO) && (ats->modified_quality == GNUNET_YES))
 	{
 		ats_update_problem_qm();
+		ats_update_problem_qm_TEST ();
 		text = "modified quality";
 	}
 #if DEBUG_ATS
