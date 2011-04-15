@@ -671,7 +671,7 @@ handle_local_tunnel_create (void *cls,
         }
     }
     /* FIXME: calloc? is NULL != 0 on any platform? */
-    t = GNUNET_malloc(sizeof(MESH_tunnel));
+    t = GNUNET_malloc(sizeof(struct MESH_tunnel));
     t->tid = ntohl(tunnel_msg->tunnel_id);
     /* FIXME: t->oid = selfid;*/
     t->peers_ready = 0;
