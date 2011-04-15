@@ -55,7 +55,6 @@ if HAVE_SQLITE
   perf_plugin_datastore_sqlite
 endif
 if HAVE_POSTGRES
-if HAVE_EXPERIMENTAL
  POSTGRES_PLUGIN = libgnunet_plugin_datastore_postgres.la
  POSTGRES_TESTS = \
   test_datastore_api_postgres \
@@ -63,7 +62,6 @@ if HAVE_EXPERIMENTAL
   test_plugin_datastore_postgres \
   perf_datastore_api_postgres \
   perf_plugin_datastore_postgres
-endif
 endif
 
 plugin_LTLIBRARIES = \
