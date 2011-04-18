@@ -240,7 +240,7 @@ send_rev_query(void * cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
     dque->class = htons(1); /* IN */
 
     char* anname = (char*)(dpkt->data+(query_states[id].namelen)+sizeof(struct dns_query_line));
-    memcpy(anname, (char[]){0xc0, 0x0c}, 2);
+    memcpy(anname, "\xc0\x0c", 2);
 
     struct dns_record_line *drec_data = (struct dns_record_line*)(dpkt->data+(query_states[id].namelen)+sizeof(struct dns_query_line)+2);
     drec_data->type = htons(12); /* AAAA */
@@ -344,7 +344,7 @@ receive_dht(void *cls,
     dque->class = htons(1); /* IN */
 
     char* anname = (char*)(dpkt->data+(query_states[id].namelen)+sizeof(struct dns_query_line));
-    memcpy(anname, (char[]){0xc0, 0x0c}, 2);
+    memcpy(anname, "\xc0\x0c", 2);
 
     struct dns_record_line *drec_data = (struct dns_record_line*)(dpkt->data+(query_states[id].namelen)+sizeof(struct dns_query_line)+2);
     drec_data->type = htons(28); /* AAAA */
