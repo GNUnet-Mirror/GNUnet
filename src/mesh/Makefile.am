@@ -30,5 +30,6 @@ gnunet_service_mesh_SOURCES = \
 
 gnunet_service_mesh_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la\
+  $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/util/libgnunetutil.la
 

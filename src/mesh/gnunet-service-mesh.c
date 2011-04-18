@@ -45,8 +45,9 @@
 #include "gnunet_peer_lib.h"
 #include "gnunet_core_service.h"
 #include "gnunet_protocols.h"
-#include "mesh.h"
 
+#include "mesh.h"
+#include "gnunet_dht_service.h"
 
 /******************************************************************************/
 /********************      MESH NETWORK MESSAGES     **************************/
@@ -431,20 +432,35 @@ struct Client
 /**
  * All the clients
  */
-static struct Client            *clients_head;
-static struct Client            *clients_tail;
+static struct Client                    *clients_head;
+static struct Client                    *clients_tail;
 
 /**
  * All the tunnels
  */
-static struct MESH_tunnel       *tunnels_head;
-static struct MESH_tunnel       *tunnels_tail;
+static struct MESH_tunnel               *tunnels_head;
+static struct MESH_tunnel               *tunnels_tail;
 
 /**
  * All the paths (for future path optimization)
  */
-// static struct Path             *paths_head;
-// static struct Path             *paths_tail;
+// static struct Path                   *paths_head;
+// static struct Path                   *paths_tail;
+
+/**
+ * Handle to communicate with core
+ */
+static struct GNUNET_CORE_Handle        *core_handle;
+
+/**
+ * Handle to use DHT
+ */
+static struct GNUNET_DHT_Handle         *dht_handle;
+
+/**
+ * Local peer own ID (memory efficient handle)
+ */
+static GNUNET_PEER_Id                   myid;
 
 /******************************************************************************/
 /********************      MESH NETWORK HANDLERS     **************************/
@@ -469,28 +485,6 @@ handle_mesh_path_create (void *cls,
                               const struct GNUNET_TRANSPORT_ATS_Information
                               *atsi)
 {
-  /*
-   * EXAMPLE OF USING THE API
-   * NOT ACTUAL CODE!!!!!
-   */
-  /*client *c;
-  tunnel *t;
-
-  t = new;
-  GNUNET_CONTAINER_DLL_insert (c->my_tunnels_head,
-			       c->my_tunnels_tail,
-			       t);
-
-  while (NULL != (t = c->my_tunnels_head))
-    {
-      GNUNET_CONTAINER_DLL_remove (c->my_tunnels_head,
-				   c->my_tunnels_tail,
-				   t);
-      GNUNET_free (t);
-    }
-  */
-
-
     /* Extract path */
     /* Find origin & self */
     /* Search for origin in local tunnels */
@@ -542,17 +536,17 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
 /******************************************************************************/
 
 /**
- * Client exisits
+ * Check if client has registered with the service and has not disconnected
  * @param client the client to check
- * @return non-zero if client exists in the global DLL
+ * @return non-NULL if client exists in the global DLL
  */
-int
-client_exists (struct GNUNET_SERVER_Client *client) {
+struct Client *
+client_retrieve (struct GNUNET_SERVER_Client *client) {
     struct Client       *c;
     for (c = clients_head; c != clients_head; c = c->next) {
-        if(c->handle == client) return 1;
+        if(c->handle == client) return c;
     }
-    return 0;
+    return NULL;
 }
 
 /**
@@ -651,7 +645,7 @@ handle_local_tunnel_create (void *cls,
     struct MESH_tunnel                  *t;
 
     /* Sanity check for client registration */
-    if(!client_exists(client)) {
+    if(NULL == client_retrieve(client)) {
         GNUNET_break(0);
         GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
         return;
@@ -682,7 +676,7 @@ handle_local_tunnel_create (void *cls,
     /* FIXME: calloc? is NULL != 0 on any platform? */
     t = GNUNET_malloc(sizeof(struct MESH_tunnel));
     t->tid = ntohl(tunnel_msg->tunnel_id);
-    /* FIXME: t->oid = selfid;*/
+    t->oid = myid;
     t->peers_ready = 0;
     t->peers_total = 0;
     t->peers_head = NULL;
@@ -710,12 +704,17 @@ handle_local_tunnel_destroy (void *cls,
                              struct GNUNET_SERVER_Client *client,
                              const struct GNUNET_MessageHeader *message)
 {
+    struct GNUNET_MESH_TunnelMessage    *tunnel_msg;
+
     /* Sanity check for client registration */
-    if(!client_exists(client)) {
+    if(NULL == client_retrieve(client)) {
         GNUNET_break(0);
         GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
         return;
     }
+    tunnel_msg = (struct GNUNET_MESH_TunnelMessage *) message;
+    
+    GNUNET_SERVER_receive_done(client, GNUNET_OK);
     return;
 }
 
@@ -732,11 +731,12 @@ handle_local_connect_add (void *cls,
                           const struct GNUNET_MessageHeader *message)
 {
     /* Sanity check for client registration */
-    if(!client_exists(client)) {
+    if(NULL == client_retrieve(client)) {
         GNUNET_break(0);
         GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
         return;
     }
+    GNUNET_SERVER_receive_done(client, GNUNET_OK);
     return;
 }
 
@@ -753,6 +753,13 @@ handle_local_connect_del (void *cls,
                           struct GNUNET_SERVER_Client *client,
                           const struct GNUNET_MessageHeader *message)
 {
+    /* Sanity check for client registration */
+    if(NULL == client_retrieve(client)) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
+    GNUNET_SERVER_receive_done(client, GNUNET_OK);
     return;
 }
 
@@ -769,12 +776,19 @@ handle_local_connect_by_type (void *cls,
                               struct GNUNET_SERVER_Client *client,
                               const struct GNUNET_MessageHeader *message)
 {
+    /* Sanity check for client registration */
+    if(NULL == client_retrieve(client)) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
+    GNUNET_SERVER_receive_done(client, GNUNET_OK);
     return;
 }
 
 
 /**
- * Handler for client traffic
+ * Handler for client traffic directed to one peer
  * 
  * @param cls closure
  * @param client identification of the client
@@ -785,6 +799,35 @@ handle_local_network_traffic (void *cls,
                          struct GNUNET_SERVER_Client *client,
                          const struct GNUNET_MessageHeader *message)
 {
+    /* Sanity check for client registration */
+    if(NULL == client_retrieve(client)) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
+    GNUNET_SERVER_receive_done(client, GNUNET_OK);
+    return;
+}
+
+/**
+ * Handler for client traffic directed to all peers in a tunnel
+ * 
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_local_network_traffic_bcast (void *cls,
+                                    struct GNUNET_SERVER_Client *client,
+                                    const struct GNUNET_MessageHeader *message)
+{
+    /* Sanity check for client registration */
+    if(NULL == client_retrieve(client)) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
+    GNUNET_SERVER_receive_done(client, GNUNET_OK);
     return;
 }
 
@@ -805,9 +848,9 @@ static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_BY_TYPE,
    sizeof(struct GNUNET_MESH_ConnectPeerByType)},
   {&handle_local_network_traffic, NULL,
-   GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA, 0}, /* FIXME needed? */
-  {&handle_local_network_traffic, NULL,
-   GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA_BROADCAST, 0}, /* FIXME needed? */
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA, 0},
+  {&handle_local_network_traffic_bcast, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA_BROADCAST, 0},
   {NULL, NULL, 0, 0}
 };
 
@@ -826,6 +869,8 @@ core_init (void *cls,
            const struct GNUNET_PeerIdentity *identity,
            const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
 {
+    core_handle = server;
+    myid = GNUNET_PEER_intern(identity);
     return;
 }
 
@@ -874,11 +919,10 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  struct GNUNET_CORE_Handle *core;
 
   GNUNET_SERVER_add_handlers (server, plugin_handlers);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
-  core = GNUNET_CORE_connect (c,                        /* Main configuration */
+  core_handle = GNUNET_CORE_connect (c,                 /* Main configuration */
                             32,                                 /* queue size */
                             NULL,         /* Closure passed to MESH functions */
                             &core_init,      /* Call core_init once connected */
@@ -891,8 +935,14 @@ run (void *cls,
                             GNUNET_NO,    /* For header-only out notification */
                             core_handlers);        /* Register these handlers */
 
-  if (core == NULL)
-    return;
+  if (core_handle == NULL) {
+      GNUNET_break(0);
+  }
+  
+  dht_handle = GNUNET_DHT_connect(c, 100); /* FIXME ht len correct size? */
+  if (dht_handle == NULL) {
+      GNUNET_break(0);
+  }
 }
 
 /**
