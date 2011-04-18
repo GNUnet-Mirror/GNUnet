@@ -53,9 +53,9 @@ static char * config_file;
 
 static struct GNUNET_TESTING_PeerGroup *pg;
 
-static  GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
-static  GNUNET_SCHEDULER_TaskIdentifier stats_task;
-static  GNUNET_SCHEDULER_TaskIdentifier send_task;
+static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+static GNUNET_SCHEDULER_TaskIdentifier stats_task;
+static GNUNET_SCHEDULER_TaskIdentifier send_task;
 struct GNUNET_TESTING_Daemon * master_deamon;
 struct GNUNET_TESTING_Daemon * ping_deamon;
 
@@ -384,7 +384,7 @@ int stats_cb (void *cls,
 				count ++;
 
 				GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "(new: %i / modified: %i / unmodified: %i) of %i \n", c_new, c_modified, c_unmodified , MEASUREMENTS);
-				if ((count > MEASUREMENTS * 10) || ((c_modified >= MEASUREMENTS) && (c_new >= MEASUREMENTS) && (c_unmodified >= MEASUREMENTS)))
+				if ((c_modified >= MEASUREMENTS) && (c_new >= MEASUREMENTS) && (c_unmodified >= MEASUREMENTS))
 				{
 #if !VERBOSE
 					if (!machine_parsable) fprintf(stdout, "\n");
@@ -467,7 +467,7 @@ stats_get_task (void *cls,
 	s_invalid = GNUNET_STATISTICS_get (stats, "transport", "ATS invalid solutions", TIMEOUT, NULL, &stats_cb, NULL);
 	s_state = GNUNET_STATISTICS_get (stats, "transport", "ATS state", TIMEOUT, NULL, &stats_cb, NULL);
 
-	stats_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250), &stats_get_task, NULL);
+	stats_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 100), &stats_get_task, NULL);
 }
 
 void
@@ -686,7 +686,7 @@ main (int argc, char *argv[])
 
   machine_parsable = GNUNET_NO;
   peers = NUM_PEERS;
-  config_file = "test_transport_ats_1addr.conf";
+  config_file = "test_transport_ats_4addr.conf";
 
   int c = 0;
   if (argc >= 2)
