@@ -542,6 +542,20 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
 /******************************************************************************/
 
 /**
+ * Client exisits
+ * @param client the client to check
+ * @return non-zero if client exists in the global DLL
+ */
+int
+client_exists (struct GNUNET_SERVER_Client *client) {
+    struct Client       *c;
+    for (c = clients_head; c != clients_head; c = c->next) {
+        if(c->handle == client) return 1;
+    }
+    return 0;
+}
+
+/**
  * Handler for client disconnection
  *
  * @param cls closure
@@ -633,16 +647,11 @@ handle_local_tunnel_create (void *cls,
                             struct GNUNET_SERVER_Client *client,
                             const struct GNUNET_MessageHeader *message)
 {
-    struct Client                       *c;
     struct GNUNET_MESH_TunnelMessage    *tunnel_msg;
     struct MESH_tunnel                  *t;
 
     /* Sanity check for client registration */
-    /* TODO: refactor into new function */
-    for (c = clients_head; c != clients_head; c = c->next) {
-        if(c->handle == client) break;
-    }
-    if(c->handle != client) { /* Client hasn't registered, not a good thing */
+    if(!client_exists(client)) {
         GNUNET_break(0);
         GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
         return;
@@ -684,7 +693,7 @@ handle_local_tunnel_create (void *cls,
     t->in_tail = NULL;
     t->out_head = NULL;
     t->out_tail = NULL;
-    
+
     GNUNET_SERVER_receive_done(client, GNUNET_OK);
     return;
 }
@@ -701,6 +710,12 @@ handle_local_tunnel_destroy (void *cls,
                              struct GNUNET_SERVER_Client *client,
                              const struct GNUNET_MessageHeader *message)
 {
+    /* Sanity check for client registration */
+    if(!client_exists(client)) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
     return;
 }
 
@@ -709,15 +724,54 @@ handle_local_tunnel_destroy (void *cls,
  * 
  * @param cls closure
  * @param client identification of the client
- * @param message the actual message
+ * @param message the actual message (PeerControl)
  */
 static void
-handle_local_connect (void *cls,
-                         struct GNUNET_SERVER_Client *client,
-                         const struct GNUNET_MessageHeader *message)
+handle_local_connect_add (void *cls,
+                          struct GNUNET_SERVER_Client *client,
+                          const struct GNUNET_MessageHeader *message)
+{
+    /* Sanity check for client registration */
+    if(!client_exists(client)) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
+    return;
+}
+
+
+/**
+ * Handler for disconnection requests of peers in a tunnel
+ * 
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message (PeerControl)
+ */
+static void
+handle_local_connect_del (void *cls,
+                          struct GNUNET_SERVER_Client *client,
+                          const struct GNUNET_MessageHeader *message)
 {
     return;
 }
+
+
+/**
+ * Handler for connection requests to new peers by type
+ * 
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message (ConnectPeerByType)
+ */
+static void
+handle_local_connect_by_type (void *cls,
+                              struct GNUNET_SERVER_Client *client,
+                              const struct GNUNET_MessageHeader *message)
+{
+    return;
+}
+
 
 /**
  * Handler for client traffic
@@ -743,15 +797,13 @@ static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE, 0},
   {&handle_local_tunnel_destroy, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY, 0},
-  {&handle_local_connect, NULL,
+  {&handle_local_connect_add, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD, 0},
-  {&handle_local_connect, NULL,
+  {&handle_local_connect_del, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_DEL, 0},
-  {&handle_local_connect, NULL,
+  {&handle_local_connect_by_type, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_BY_TYPE,
    sizeof(struct GNUNET_MESH_ConnectPeerByType)},
-  {&handle_local_connect, NULL,
-   GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_CANCEL, 0},
   {&handle_local_network_traffic, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA, 0}, /* FIXME needed? */
   {&handle_local_network_traffic, NULL,
