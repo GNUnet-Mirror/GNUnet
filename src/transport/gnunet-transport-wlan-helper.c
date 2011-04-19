@@ -31,6 +31,7 @@
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
+#include <unistd.h>
 #include <sys/wait.h>
 #include <sys/time.h>
 #include <sys/stat.h>
@@ -259,7 +260,6 @@ usage()
     "1 = first loopback file\n"
     "2 = second loopback file\n"
     "\n");
-  exit(1);
 }
 
 static unsigned long
@@ -412,7 +412,7 @@ static int
 linux_read(struct Hardware_Infos * dev, unsigned char *buf, int count,
     struct Radiotap_rx * ri)
 {
-  unsigned char tmpbuf[4096];
+  unsigned char tmpbuf[4096 * 4];
 
   int caplen, n, got_signal, got_noise, got_channel, fcs_removed;
 
@@ -604,14 +604,15 @@ linux_read(struct Hardware_Infos * dev, unsigned char *buf, int count,
 static int
 linux_write(struct Hardware_Infos * dev, unsigned char *buf, unsigned int count)
 {
-  int ret, usedrtap = 0;
-  unsigned short int *p_rtlen;
+  int ret;
+  //int usedrtap;
+  //unsigned short int *p_rtlen;
 
-  unsigned char * u8aRadiotap = buf;
+  //unsigned char * u8aRadiotap = buf;
 
   /* Pointer to the radiotap header length field for later use. */
-  p_rtlen = (unsigned short int*) (u8aRadiotap + 2);
-  usedrtap = 0;
+  //p_rtlen = (unsigned short int*) (u8aRadiotap + 2);
+  //usedrtap = 0;
   ret = write(dev->fd_out, buf, count);
 
   if (ret < 0)
@@ -628,21 +629,21 @@ linux_write(struct Hardware_Infos * dev, unsigned char *buf, unsigned int count)
     }
 
   /* radiotap header length is stored little endian on all systems */
-  if (usedrtap)
-    ret -= letoh16(*p_rtlen);
+  /*if (usedrtap)
+   ret -= letoh16(*p_rtlen);
 
-  if (ret < 0)
-    {
-      if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOBUFS || errno
-          == ENOMEM)
-        {
-          usleep(10000);
-          return (0);
-        }
+   if (ret < 0)
+   {
+   if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOBUFS || errno
+   == ENOMEM)
+   {
+   usleep(10000);
+   return (0);
+   }
 
-      perror("write failed");
-      return (-1);
-    }
+   perror("write failed");
+   return (-1);
+   }*/
 
   return (ret);
 }
@@ -672,12 +673,7 @@ openraw(struct Hardware_Infos * dev, char * iface, int fd, int * arptype,
   sll.sll_family = AF_PACKET;
   sll.sll_ifindex = ifr.ifr_ifindex;
 
-  switch (dev->drivertype)
-    {
-  default:
-    sll.sll_protocol = htons(ETH_P_ALL);
-    break;
-    }
+  sll.sll_protocol = htons(ETH_P_ALL);
 
   /* lookup the hardware type */
 
@@ -886,12 +882,12 @@ mac_test(unsigned char * buf, struct Hardware_Infos * dev)
   u8aIeeeHeader = (struct ieee80211_frame *) buf;
   if (0 == memcmp(u8aIeeeHeader->i_addr3, &mac_bssid, 6))
     {
-      if (0 == memcmp(u8aIeeeHeader->i_addr2, dev->pl_mac, 6))
+      if (0 == memcmp(u8aIeeeHeader->i_addr1, dev->pl_mac, 6))
         {
           return 0;
         }
 
-      if (0 == memcmp(u8aIeeeHeader->i_addr2, &bc_all_mac, 6))
+      if (0 == memcmp(u8aIeeeHeader->i_addr1, &bc_all_mac, 6))
         {
           return 0;
         }
@@ -912,7 +908,7 @@ mac_set(unsigned char * buf, struct Hardware_Infos * dev)
   struct ieee80211_frame * u8aIeeeHeader;
   u8aIeeeHeader = (struct ieee80211_frame *) buf;
 
-  u8aIeeeHeader->i_fc[0] = 0x80;
+  u8aIeeeHeader->i_fc[0] = 0x08;
   u8aIeeeHeader->i_fc[1] = 0x00;
 
   memcpy(u8aIeeeHeader->i_addr2, dev->pl_mac, 6);
@@ -954,8 +950,7 @@ stdin_send_hw(void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
       exit(1);
     }
 
-  if (sendsize < sizeof(struct ieee80211_frame) + sizeof(struct WlanHeader)
-      + sizeof(struct FragmentationHeader)
+  if (sendsize < sizeof(struct ieee80211_frame)
       + sizeof(struct GNUNET_MessageHeader))
     {
       fprintf(stderr, "Function stdin_send: packet too small\n");
@@ -970,9 +965,7 @@ stdin_send_hw(void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 
   case DT_MAC80211_RT:
     memcpy(write_pout->buf, u8aRadiotap, sizeof(u8aRadiotap));
-    memcpy(write_pout->buf + sizeof(u8aRadiotap), write_pout->buf
-        + sizeof(struct Radiotap_Send) + sizeof(struct GNUNET_MessageHeader),
-        sendsize);
+    memcpy(write_pout->buf + sizeof(u8aRadiotap), &header[1], sendsize);
 
     wlanheader = write_pout->buf + sizeof(u8aRadiotap);
     mac_set(wlanheader, dev);
@@ -1067,11 +1060,14 @@ int
 hardwaremode(int argc, char *argv[])
 {
 
+  uid_t uid;
   struct Hardware_Infos dev;
-  struct ifreq ifreq;
+  //struct ifreq ifreq;
   struct Radiotap_rx * rxinfo;
   uint8_t * mac = dev.pl_mac;
   int fdpin, fdpout;
+
+  struct GNUNET_MessageHeader * header;
 
   signal(SIGINT, &sigfunc_hw);
   signal(SIGTERM, &sigfunc_hw);
@@ -1081,9 +1077,16 @@ hardwaremode(int argc, char *argv[])
       return 1;
     }
 
-  printf("Device %s -> Ethernet %02x:%02x:%02x:%02x:%02x:%02x\n",
-      ifreq.ifr_name, (int) mac[0], (int) mac[1], (int) mac[2], (int) mac[3],
-      (int) mac[4], (int) mac[5]);
+  uid = getuid();
+  //if (0 != setresuid(uid, uid, uid))
+  //{
+  //  fprintf(stderr, "Failed to setresuid: %s\n", strerror(errno));
+  /* not critical, continue anyway */
+  //}
+
+  /*printf("Device %s -> Ethernet %02x:%02x:%02x:%02x:%02x:%02x\n",
+   ifreq.ifr_name, (int) mac[0], (int) mac[1], (int) mac[2], (int) mac[3],
+   (int) mac[4], (int) mac[5]);*/
 
   //return 0;
 
@@ -1127,10 +1130,10 @@ hardwaremode(int argc, char *argv[])
   while (0 == closeprog)
     {
 
-      write_pout.size = maketest(write_pout.buf, &dev);
-      tv.tv_sec = 2;
-      tv.tv_usec = 0;
-      select(0, NULL, NULL, NULL, &tv);
+      //write_pout.size = maketest(write_pout.buf, &dev);
+      //tv.tv_sec = 2;
+      //tv.tv_usec = 0;
+      //select(0, NULL, NULL, NULL, &tv);
 
       maxfd = 0;
 
@@ -1147,8 +1150,8 @@ hardwaremode(int argc, char *argv[])
         }
       if (0 == write_std.size)
         {
-          //FD_SET(fdpin, &rfds);
-          //maxfd = fdpin;
+          FD_SET(fdpin, &rfds);
+          maxfd = fdpin;
         }
       FD_ZERO(&wfds);
       // if there is something to write
@@ -1253,12 +1256,13 @@ hardwaremode(int argc, char *argv[])
 
       if (FD_ISSET(fdpin, &rfds))
         {
-          rxinfo = (struct Radiotap_rx *) (write_pout.buf
+          rxinfo = (struct Radiotap_rx *) (write_std.buf
               + sizeof(struct GNUNET_MessageHeader));
-          datastart = (unsigned char *) readbuf + sizeof(struct Radiotap_rx)
+          datastart = (unsigned char *) write_std.buf
+              + sizeof(struct Radiotap_rx)
               + sizeof(struct GNUNET_MessageHeader);
 
-          readsize = linux_read(&dev, datastart, sizeof(readbuf)
+          readsize = linux_read(&dev, datastart, sizeof(write_std.buf)
               - sizeof(struct Radiotap_rx)
               - sizeof(struct GNUNET_MessageHeader), rxinfo);
 
@@ -1273,8 +1277,20 @@ hardwaremode(int argc, char *argv[])
               if (1 == mac_test(datastart, &dev))
                 {
                   // mac wrong
-                  write_pout.pos = 0;
-                  write_pout.size = 0;
+                  write_std.pos = 0;
+                  write_std.size = 0;
+                }
+              else
+                {
+                  header = (struct GNUNET_MessageHeader *) write_std.buf;
+                  write_std.size = readsize
+                      + sizeof(struct GNUNET_MessageHeader)
+                      + sizeof(struct Radiotap_rx);
+                  header->size = htons(write_std.size);
+                  header->type = htons(GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
+                  fprintf(stderr, "Got packet with size: %u, size std %u\n",
+                      readsize, write_std.size);
+
                 }
             }
           else
@@ -1297,6 +1313,7 @@ hardwaremode(int argc, char *argv[])
 int
 main(int argc, char *argv[])
 {
+  int ret = 0;
   if (3 != argc)
     {
       fprintf(
@@ -1309,11 +1326,12 @@ main(int argc, char *argv[])
   if (strstr(argv[2], "1") || strstr(argv[2], "2"))
     {
 
-      return testmode(argc, argv);
+      ret = testmode(argc, argv);
     }
   else
     {
-      return hardwaremode(argc, argv);
+
+      ret = hardwaremode(argc, argv);
     }
 
 #if 0
@@ -1578,6 +1596,8 @@ main(int argc, char *argv[])
     }
 
 #endif
-  return (0);
+
+  return ret;
+  maketest(NULL, NULL);
 }
 
