@@ -485,7 +485,7 @@ consider_gathering ()
  */
 static void
 process_migration_content (void *cls,
-			   const GNUNET_HashCode * key,
+			   const GNUNET_HashCode *key,
 			   size_t size,
 			   const void *data,
 			   enum GNUNET_BLOCK_Type type,
@@ -497,17 +497,17 @@ process_migration_content (void *cls,
   struct MigrationReadyBlock *mb;
   struct MigrationReadyPeer *pos;
   
+  mig_qe = NULL;
   if (key == NULL)
     {
-      mig_qe = NULL;
       consider_gathering ();
       return;
     }
   if (GNUNET_TIME_absolute_get_remaining (expiration).rel_value < 
       MIN_MIGRATION_CONTENT_LIFETIME.rel_value)
     {
-      /* content will expire soon, don't bother */
-      GNUNET_DATASTORE_iterate_get_next (GSF_dsh);
+      /* content will expire soon, don't bother */      
+      consider_gathering ();
       return;
     }
   if (type == GNUNET_BLOCK_TYPE_FS_ONDEMAND)
@@ -517,10 +517,8 @@ process_migration_content (void *cls,
 					    type, priority, anonymity,
 					    expiration, uid, 
 					    &process_migration_content,
-					    NULL))
-	{
-	  GNUNET_DATASTORE_iterate_get_next (GSF_dsh);
-	}
+					    NULL))	
+	consider_gathering ();	
       return;
     }
 #if DEBUG_FS
@@ -556,7 +554,7 @@ process_migration_content (void *cls,
 	}
       pos = pos->next;
     }
-  GNUNET_DATASTORE_iterate_get_next (GSF_dsh);
+  consider_gathering ();
 }
 
 
