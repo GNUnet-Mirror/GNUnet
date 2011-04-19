@@ -31,6 +31,8 @@
 #include "gnunet-service-fs_push.h"
 
 
+#define DEBUG_FS_MIGRATION GNUNET_NO
+
 /**
  * How long must content remain valid for us to consider it for migration?  
  * If content will expire too soon, there is clearly no point in pushing
@@ -219,7 +221,7 @@ transmit_message (void *cls,
   peer->msg = NULL;
   if (buf == NULL)
     {
-#if DEBUG_FS
+#if DEBUG_FS_MIGRATION
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Failed to migrate content to another peer (disconnect)\n");
 #endif
@@ -230,7 +232,7 @@ transmit_message (void *cls,
   GNUNET_assert (msize <= buf_size);
   memcpy (buf, msg, msize);
   GNUNET_free (msg);
-#if DEBUG_FS
+#if DEBUG_FS_MIGRATION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Pushing %u bytes to another peer\n",
 	      msize);
@@ -287,7 +289,7 @@ transmit_content (struct MigrationReadyPeer *peer,
     {
       ret = GNUNET_NO;
     }
-#if DEBUG_FS
+#if DEBUG_FS_MIGRATION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Asking for transmission of %u bytes for migration\n",
 	      msize);
@@ -391,13 +393,13 @@ find_content (struct MigrationReadyPeer *mrp)
     {
       if (mig_size < MAX_MIGRATION_QUEUE)
 	{
-#if DEBUG_FS
+#if DEBUG_FS_MIGRATION
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "No content found for pushing, waiting for queue to fill\n");
 #endif
 	  return; /* will fill up eventually... */
 	}
-#if DEBUG_FS
+#if DEBUG_FS_MIGRATION
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "No suitable content found, purging content from full queue\n");
 #endif
@@ -420,7 +422,7 @@ find_content (struct MigrationReadyPeer *mrp)
       consider_gathering ();
       return;
     }
-#if DEBUG_FS
+#if DEBUG_FS_MIGRATION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Preparing to push best content to peer\n");
 #endif
@@ -463,6 +465,11 @@ consider_gathering ()
 				       MAX_MIGRATION_QUEUE);
   delay = GNUNET_TIME_relative_max (delay,
 				    min_migration_delay);
+#if DEBUG_FS_MIGRATION
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Scheduling gathering task (queue size: %u)\n",
+	      mig_size);
+#endif
   mig_task = GNUNET_SCHEDULER_add_delayed (delay,
 					   &gather_migration_blocks,
 					   NULL);
@@ -500,6 +507,10 @@ process_migration_content (void *cls,
   mig_qe = NULL;
   if (key == NULL)
     {
+#if DEBUG_FS_MIGRATION
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "No content found for migration...\n");
+#endif
       consider_gathering ();
       return;
     }
@@ -521,13 +532,13 @@ process_migration_content (void *cls,
 	consider_gathering ();	
       return;
     }
-#if DEBUG_FS
+#if DEBUG_FS_MIGRATION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Retrieved block `%s' of type %u for migration (queue size: %u/%u)\n",
 	      GNUNET_h2s (key),
 	      type,
 	      mig_size + 1,
-	      MIGRATION_LIST_SIZE);
+	      MAX_MIGRATION_QUEUE);
 #endif
   mb = GNUNET_malloc (sizeof (struct MigrationReadyBlock) + size);
   mb->query = *key;
@@ -545,7 +556,7 @@ process_migration_content (void *cls,
     {
       if (NULL == pos->th)
 	{
-#if DEBUG_FS
+#if DEBUG_FS_MIGRATION
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Preparing to push best content to peer\n");
 #endif
@@ -574,6 +585,11 @@ gather_migration_blocks (void *cls,
     return;
   if (GSF_dsh != NULL)
     {
+#if DEBUG_FS_MIGRATION
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Asking datastore for content for replication (queue size: %u)\n",
+		  mig_size);
+#endif
       mig_qe = GNUNET_DATASTORE_get_for_replication (GSF_dsh, 
 						     0, UINT_MAX,
 						     GNUNET_TIME_UNIT_FOREVER_REL,

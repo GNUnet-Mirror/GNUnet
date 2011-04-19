@@ -658,7 +658,7 @@ handle_p2p_reply (void *cls,
     }
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Transmitting result for query `%s'\n",
+	      "Transmitting result for query `%s' to peer\n",
 	      GNUNET_h2s (&prd->query));
 #endif  
   GNUNET_STATISTICS_update (GSF_stats,
@@ -859,8 +859,9 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
   gm = (const struct GetMessage*) message;
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received request for `%s'\n",
-	      GNUNET_h2s (&gm->query));
+	      "Received request for `%s' from `%s'\n",
+	      GNUNET_h2s (&gm->query),
+	      GNUNET_i2s (other));
 #endif
   type = ntohl (gm->type);
   bm = ntohl (gm->hash_bitmap);
@@ -1548,14 +1549,14 @@ GSF_block_peer_migration_ (struct GSF_ConnectedPeer *cp,
 {
   if (GNUNET_TIME_absolute_get_remaining (cp->last_migration_block).rel_value > block_time.rel_value)
     {
-#if DEBUG_FS
+#if DEBUG_FS && 0
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Migration already blocked for another %llu ms\n",
 		  (unsigned long long) GNUNET_TIME_absolute_get_remaining (cp->last_migration_block).rel_value);
 #endif
       return; /* already blocked */
     }
-#if DEBUG_FS
+#if DEBUG_FS && 0
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Asking to stop migration for %llu ms\n",
 	      (unsigned long long) block_time.rel_value);

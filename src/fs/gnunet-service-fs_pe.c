@@ -200,6 +200,12 @@ transmit_message_callback (void *cls,
   rp->hn = NULL;
   rp->last_transmission = GNUNET_TIME_absolute_get ();
   rp->transmission_counter++;
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Executing plan %p executed %u times, planning retransmission\n",
+	      rp,
+	      rp->transmission_counter);
+#endif    
   plan (pp, rp);
   return msize;
 }
@@ -243,6 +249,11 @@ schedule_peer_transmission (void *cls,
     }
   /* process from priority heap */
   rp = GNUNET_CONTAINER_heap_peek (pp->priority_heap);
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Executing query plan %p\n",
+	      rp);
+#endif    
   GNUNET_assert (NULL != rp);
   msize = GSF_pending_request_get_message_ (rp->pr, 0, NULL);					   
   pp->pth = GSF_peer_transmit_ (pp->cp,
@@ -270,7 +281,7 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
   struct PeerPlan *pp;
   struct GSF_PendingRequestData *prd;
   struct GSF_RequestPlan *rp;
-  
+
   GSF_connected_peer_get_identity_ (cp, &id);
   pp = GNUNET_CONTAINER_multihashmap_get (plans,
 					  &id.hashPubKey);
@@ -287,6 +298,13 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
     }
   prd = GSF_pending_request_get_data_ (pr);
   rp = GNUNET_malloc (sizeof (struct GSF_RequestPlan));
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Planning transmission of query `%s' to peer `%s' (%p)\n",
+	      GNUNET_h2s (&prd->query),
+	      GNUNET_i2s (&id), 
+	      rp);
+#endif    
   rp->pr = pr;
   GNUNET_CONTAINER_DLL_insert (prd->rp_head,
 			       prd->rp_tail,

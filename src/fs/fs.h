@@ -62,7 +62,7 @@
 /**
  * Maximum number of blocks we keep in memory for migration.
  */
-#define MAX_MIGRATION_QUEUE 32
+#define MAX_MIGRATION_QUEUE 8
 
 /**
  * Blocks are at most migrated to this number of peers
