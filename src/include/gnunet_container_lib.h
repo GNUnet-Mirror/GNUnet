@@ -925,7 +925,7 @@ GNUNET_CONTAINER_heap_get_size (const struct GNUNET_CONTAINER_Heap *heap);
  * @return cost of the node
  */
 GNUNET_CONTAINER_HeapCostType
-GNUNET_CONTAINER_node_get_cost (const struct GNUNET_CONTAINER_HeapNode *node);
+GNUNET_CONTAINER_heap_node_get_cost (const struct GNUNET_CONTAINER_HeapNode *node);
 
 /**
  * Iterator for heap
