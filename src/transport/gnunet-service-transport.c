@@ -6312,6 +6312,7 @@ static void ats_update_problem_cr ()
 	GNUNET_free_non_null (ar);
 }
 
+
 #if 0
 static void ats_update_problem_qm_TEST ()
 {
@@ -6837,7 +6838,7 @@ static int ats_create_problem (double D, double U, double R, int v_b_min, int v_
 	return GNUNET_OK;
 
 }
-#if 0
+
 void ats_notify_ats_data (
 		const struct GNUNET_PeerIdentity *peer,
 		const struct GNUNET_TRANSPORT_ATS_Information *ats_data)
@@ -6847,8 +6848,7 @@ void ats_notify_ats_data (
 #endif
 	ats_calculate_bandwidth_distribution();
 }
-#endif
-#endif
+#endif //END: HAVE_LIBGLPK
 
 static void
 ats_calculate_bandwidth_distribution ()
@@ -6964,9 +6964,8 @@ ats_calculate_bandwidth_distribution ()
 	ats->modified_addr = GNUNET_NO;
 	ats->modified_resources = GNUNET_NO;
 	ats->modified_quality = GNUNET_NO;
-}
 #endif
-
+}
 
 static void
 ats_schedule_calculation (void *cls,
