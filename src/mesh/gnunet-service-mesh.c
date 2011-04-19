@@ -236,6 +236,12 @@ enum PeerState
 struct PeerInfo
 {
     /**
+     * Double linked list
+     */
+    struct PeerInfo             *next;
+    struct PeerInfo             *prev;
+
+    /**
      * ID of the peer
      */
     GNUNET_PEER_Id              id;
@@ -244,6 +250,11 @@ struct PeerInfo
      * Is the peer reachable? Is the peer even connected?
      */
     enum PeerState              state;
+
+    /**
+     * When to try to establish contact again?
+     */
+    struct GNUNET_TIME_Absolute next_reconnect_attempt;
 
     /**
      * Who to send the data to --- FIXME what about multiple (alternate) paths?
@@ -643,9 +654,10 @@ handle_local_tunnel_create (void *cls,
 {
     struct GNUNET_MESH_TunnelMessage    *tunnel_msg;
     struct MESH_tunnel                  *t;
+    struct Client                       *c;
 
     /* Sanity check for client registration */
-    if(NULL == client_retrieve(client)) {
+    if(NULL == (c = client_retrieve(client))) {
         GNUNET_break(0);
         GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
         return;
@@ -661,10 +673,10 @@ handle_local_tunnel_create (void *cls,
     tunnel_msg = (struct GNUNET_MESH_TunnelMessage *) message;
     /* Sanity check for tunnel numbering */
     if(0 == (ntohl(tunnel_msg->tunnel_id) & 0x80000000)) {
-            GNUNET_break(0);
-            GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
-            return;
-        }
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
     /* Sanity check for duplicate tunnel IDs */
     for (t = tunnels_head; t != tunnels_head; t = t->next) {
         if(t->tid == ntohl(tunnel_msg->tunnel_id)) {
@@ -673,7 +685,7 @@ handle_local_tunnel_create (void *cls,
             return;
         }
     }
-    /* FIXME: calloc? is NULL != 0 on any platform? */
+    /* FIXME: calloc? Is NULL != 0 on any platform? */
     t = GNUNET_malloc(sizeof(struct MESH_tunnel));
     t->tid = ntohl(tunnel_msg->tunnel_id);
     t->oid = myid;
@@ -687,6 +699,10 @@ handle_local_tunnel_create (void *cls,
     t->in_tail = NULL;
     t->out_head = NULL;
     t->out_tail = NULL;
+    t->client = c;
+
+    GNUNET_CONTAINER_DLL_insert(tunnels_head, tunnels_tail, t);
+    GNUNET_CONTAINER_DLL_insert(c->tunnels_head, c->tunnels_tail, t);
 
     GNUNET_SERVER_receive_done(client, GNUNET_OK);
     return;
@@ -705,15 +721,48 @@ handle_local_tunnel_destroy (void *cls,
                              const struct GNUNET_MessageHeader *message)
 {
     struct GNUNET_MESH_TunnelMessage    *tunnel_msg;
+    struct Client                       *c;
+    struct MESH_tunnel                  *t;
+    MESH_TunnelID                       tid;
+    struct PeerInfo                     *pi;
 
     /* Sanity check for client registration */
-    if(NULL == client_retrieve(client)) {
+    if(NULL == (c = client_retrieve(client))) {
         GNUNET_break(0);
         GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
         return;
     }
+    /* Message sanity check */
+    if(sizeof(struct GNUNET_MESH_TunnelMessage) != ntohs(message->size)) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
+
+    /* Tunnel exists? */
     tunnel_msg = (struct GNUNET_MESH_TunnelMessage *) message;
-    
+    tid = ntohl(tunnel_msg->tunnel_id);
+    for (t = tunnels_head; t != tunnels_head; t = t->next) {
+        if(t->tid == tid) {
+            break;
+        }
+    }
+    if(t->tid != tid) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
+
+    GNUNET_CONTAINER_DLL_remove(tunnels_head, tunnels_tail, t);
+    GNUNET_CONTAINER_DLL_remove(c->tunnels_head, c->tunnels_tail, t);
+
+    for(pi = t->peers_head; pi != t->peers_tail; pi = t->peers_head) {
+        GNUNET_PEER_change_rc(pi->id, -1);
+        GNUNET_CONTAINER_DLL_remove(t->peers_head, t->peers_tail, pi);
+        GNUNET_free(pi);
+    }
+    GNUNET_free(t);
+
     GNUNET_SERVER_receive_done(client, GNUNET_OK);
     return;
 }
@@ -730,12 +779,62 @@ handle_local_connect_add (void *cls,
                           struct GNUNET_SERVER_Client *client,
                           const struct GNUNET_MessageHeader *message)
 {
+    struct GNUNET_MESH_PeerControl      *peer_msg;
+    struct Client                       *c;
+    struct MESH_tunnel                  *t;
+    MESH_TunnelID                       tid;
+    struct PeerInfo                     *peer_info;
+
+
     /* Sanity check for client registration */
-    if(NULL == client_retrieve(client)) {
+    if(NULL == (c = client_retrieve(client))) {
         GNUNET_break(0);
         GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
         return;
     }
+
+    peer_msg = (struct GNUNET_MESH_PeerControl *)message;
+    /* Sanity check for message size */
+    if(sizeof(struct GNUNET_MESH_PeerControl) != ntohs(peer_msg->header.size)) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
+
+    /* Does tunnel exist? */
+    tid = ntohl(peer_msg->tunnel_id);
+    for(t = c->tunnels_head; t != c->tunnels_head; t = t->next) {
+        if(t->tid == tid) {
+            break;
+        }
+    }
+    if(NULL == t) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    } else {
+        if(t->tid != tid) {
+            GNUNET_break(0);
+            GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+            return;
+        }
+    }
+
+    /* Does client own tunnel? */
+    if(t->client->handle != client) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
+
+    /* Ok, add peer to tunnel */
+    peer_info = (struct PeerInfo *) GNUNET_malloc(sizeof(struct PeerInfo));
+    peer_info->id = GNUNET_PEER_intern(&peer_msg->peer);
+    peer_info->state = MESH_PEER_WAITING;
+    t->peers_total++;
+    GNUNET_CONTAINER_DLL_insert(t->peers_head, t->peers_tail, peer_info);
+    /* TODO MESH SEARCH FOR PEER */
+
     GNUNET_SERVER_receive_done(client, GNUNET_OK);
     return;
 }
