@@ -308,12 +308,12 @@ struct MESH_queue
      * Size of the message to transmit
      */
     unsigned int                size;
-    
+
     /**
      * How old is the data?
      */
     struct GNUNET_TIME_Absolute timestamp;
-    
+
     /**
      * Data itself
      */
@@ -447,18 +447,6 @@ static struct Client                    *clients_head;
 static struct Client                    *clients_tail;
 
 /**
- * All the tunnels
- */
-static struct MESH_tunnel               *tunnels_head;
-static struct MESH_tunnel               *tunnels_tail;
-
-/**
- * All the paths (for future path optimization)
- */
-// static struct Path                   *paths_head;
-// static struct Path                   *paths_tail;
-
-/**
  * Handle to communicate with core
  */
 static struct GNUNET_CORE_Handle        *core_handle;
@@ -554,8 +542,13 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
 struct Client *
 client_retrieve (struct GNUNET_SERVER_Client *client) {
     struct Client       *c;
-    for (c = clients_head; c != clients_head; c = c->next) {
+    c = clients_head; 
+    while(NULL != c) {
         if(c->handle == client) return c;
+        if(c == clients_tail)
+            return NULL;
+        else
+            c = c->next;
     }
     return NULL;
 }
@@ -578,23 +571,24 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
      * and disconnects? Does the service get a disconnect notification anyway?
      */
     GNUNET_assert(NULL != clients_head);
-    for (c = clients_head; c != clients_head; c = next) {
+    c = clients_head;
+    while(NULL != c) {
         if (c->handle == client) {
             GNUNET_CONTAINER_DLL_remove (clients_head, clients_tail, c);
             while (NULL != (t = c->tunnels_head)) {
                 GNUNET_CONTAINER_DLL_remove (c->tunnels_head, c->tunnels_tail, t);
-                GNUNET_CONTAINER_DLL_remove (tunnels_head, tunnels_tail, t);
                 /* TODO free paths and other tunnel dynamic structures */
                 GNUNET_free (t);
             }
             GNUNET_free (c->messages_subscribed);
             next = c->next;
             GNUNET_free (c);
+            c = next;
         } else {
-            next = c->next;
+            c = c->next;
         }
+        if(c == clients_head) return; /* Tail already processed? */
     }
-
     return;
 }
 
@@ -678,12 +672,15 @@ handle_local_tunnel_create (void *cls,
         return;
     }
     /* Sanity check for duplicate tunnel IDs */
-    for (t = tunnels_head; t != tunnels_head; t = t->next) {
+    t = c->tunnels_head;
+    while(NULL != t) {
         if(t->tid == ntohl(tunnel_msg->tunnel_id)) {
             GNUNET_break(0);
             GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
             return;
         }
+        if(t == c->tunnels_tail) break;
+        t = t->next;
     }
     /* FIXME: calloc? Is NULL != 0 on any platform? */
     t = GNUNET_malloc(sizeof(struct MESH_tunnel));
@@ -701,7 +698,6 @@ handle_local_tunnel_create (void *cls,
     t->out_tail = NULL;
     t->client = c;
 
-    GNUNET_CONTAINER_DLL_insert(tunnels_head, tunnels_tail, t);
     GNUNET_CONTAINER_DLL_insert(c->tunnels_head, c->tunnels_tail, t);
 
     GNUNET_SERVER_receive_done(client, GNUNET_OK);
@@ -739,24 +735,30 @@ handle_local_tunnel_destroy (void *cls,
         return;
     }
 
-    /* Tunnel exists? */
     tunnel_msg = (struct GNUNET_MESH_TunnelMessage *) message;
+
+    /* Tunnel exists? */
     tid = ntohl(tunnel_msg->tunnel_id);
-    for (t = tunnels_head; t != tunnels_head; t = t->next) {
-        if(t->tid == tid) {
-            break;
-        }
-    }
-    if(t->tid != tid) {
+    if(NULL == (t = c->tunnels_head)) {
         GNUNET_break(0);
         GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
         return;
     }
+    while(NULL != t) {
+        if(t->tid == tid) {
+            break;
+        }
+        if(t == c->tunnels_tail) {
+            GNUNET_break(0);
+            GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+            return;
+        }
+        t = t->next;
+    }
 
-    GNUNET_CONTAINER_DLL_remove(tunnels_head, tunnels_tail, t);
     GNUNET_CONTAINER_DLL_remove(c->tunnels_head, c->tunnels_tail, t);
 
-    for(pi = t->peers_head; pi != t->peers_tail; pi = t->peers_head) {
+    for(pi = t->peers_head; pi != NULL; pi = t->peers_head) {
         GNUNET_PEER_change_rc(pi->id, -1);
         GNUNET_CONTAINER_DLL_remove(t->peers_head, t->peers_tail, pi);
         GNUNET_free(pi);
@@ -801,23 +803,23 @@ handle_local_connect_add (void *cls,
         return;
     }
 
-    /* Does tunnel exist? */
+    /* Tunnel exists? */
     tid = ntohl(peer_msg->tunnel_id);
-    for(t = c->tunnels_head; t != c->tunnels_head; t = t->next) {
-        if(t->tid == tid) {
-            break;
-        }
-    }
-    if(NULL == t) {
+    if(NULL == (t = c->tunnels_head)) {
         GNUNET_break(0);
         GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
         return;
-    } else {
-        if(t->tid != tid) {
+    }
+    while(NULL != t) {
+        if(t->tid == tid) {
+            break;
+        }
+        if(t == c->tunnels_tail) {
             GNUNET_break(0);
             GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
             return;
         }
+        t = t->next;
     }
 
     /* Does client own tunnel? */
