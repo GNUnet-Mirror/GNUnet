@@ -7003,7 +7003,7 @@ void ats_init ()
 	ats->ats_task = GNUNET_SCHEDULER_NO_TASK;
 
 #if !HAVE_LIBGLPK
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "GLPK not installed, ATS not active\n");
+	GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "GLPK not installed, ATS not active\n");
 	return;
 #endif
 
