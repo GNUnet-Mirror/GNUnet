@@ -2336,7 +2336,7 @@ tcp_plugin_server_read (void *cls,
   struct TCPProbeContext *tcp_probe_ctx;
   struct GNUNET_CONNECTION_Handle *sock;
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
   memset (mybuf, 0, sizeof(mybuf));
   bytes = GNUNET_DISK_file_read(plugin->server_stdout_handle, 

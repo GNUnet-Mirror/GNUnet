@@ -476,7 +476,7 @@ void retry_send_message (void *cls,
 {
   struct RetrySendContext *retry_ctx = cls;
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     {
       GNUNET_free(retry_ctx->msg);
       GNUNET_free(retry_ctx->addr);
@@ -817,7 +817,7 @@ unix_plugin_select (void *cls,
   uint16_t csize;
 
   plugin->select_task = GNUNET_SCHEDULER_NO_TASK;
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 
   addrlen = sizeof(un);

@@ -780,7 +780,7 @@ delay_fragment_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct Plugin * plugin = cls;
   plugin->server_write_delay_task = GNUNET_SCHEDULER_NO_TASK;
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 
   // GNUNET_TIME_UNIT_FOREVER_REL is needed to clean up old msg
@@ -2884,7 +2884,7 @@ wlan_plugin_helper_read(void *cls,
   struct Plugin *plugin = cls;
   plugin->server_read_task = GNUNET_SCHEDULER_NO_TASK;
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 
   char mybuf[WLAN_MTU + sizeof(struct GNUNET_MessageHeader)];

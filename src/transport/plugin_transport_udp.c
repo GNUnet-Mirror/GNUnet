@@ -1167,7 +1167,7 @@ udp_plugin_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   char *port_start;
   struct IPv4UdpAddress a4;
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 
   bytes = GNUNET_DISK_file_read(plugin->server_stdout_handle, &mybuf, sizeof(mybuf));
@@ -1524,7 +1524,7 @@ udp_plugin_select (void *cls,
   uint16_t csize;
 
   plugin->select_task = GNUNET_SCHEDULER_NO_TASK;
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
   udp_sock = NULL;
   if (GNUNET_NETWORK_fdset_isset (tc->read_ready,
