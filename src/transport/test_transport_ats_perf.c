@@ -269,13 +269,13 @@ int main (int argc, char *argv[])
   bench_mlp_with_optimization (file, executions);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Simplex no optimization average: %llu\n", sim_no_opt_avg  / EXECS);
-  GAUGER ("TRANSPORT","GLPK simplex 500 peers 2000 addresses no optimization", sim_no_opt_avg  / EXECS, "ms");
+  GAUGER ("TRANSPORT","GLPK simplex 100 peers 400 addresses no optimization", sim_no_opt_avg  / EXECS, "ms");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Simplex optimization average: %llu\n", sim_with_opt_avg / EXECS);
-  GAUGER ("TRANSPORT","GLPK simplex 500 peers 2000 addresses with optimization", sim_with_opt_avg  / EXECS, "ms");
+  GAUGER ("TRANSPORT","GLPK simplex 100 peers 400 addresses with optimization", sim_with_opt_avg  / EXECS, "ms");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MLP no optimization average: %llu\n", mlp_no_opt_avg  / EXECS);
-  GAUGER ("TRANSPORT","GLPK MLP 500 peers 2000 addresses no optimization", mlp_no_opt_avg  / EXECS, "ms");
+  GAUGER ("TRANSPORT","GLPK MLP 100 peers 400 addresses no optimization", mlp_no_opt_avg  / EXECS, "ms");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MLP optimization average: %llu\n", mlp_with_opt_avg / EXECS);
-  GAUGER ("TRANSPORT","GLPK MLP 500 peers 2000 addresses with optimization", mlp_with_opt_avg  / EXECS, "ms");
+  GAUGER ("TRANSPORT","GLPK MLP 100 peers 400 addresses with optimization", mlp_with_opt_avg  / EXECS, "ms");
 
   return ret;
 }
