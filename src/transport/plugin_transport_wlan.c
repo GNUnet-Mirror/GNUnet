@@ -780,7 +780,7 @@ delay_fragment_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct Plugin * plugin = cls;
   plugin->server_write_delay_task = GNUNET_SCHEDULER_NO_TASK;
 
-  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
   // GNUNET_TIME_UNIT_FOREVER_REL is needed to clean up old msg
@@ -893,8 +893,9 @@ set_next_send(struct Plugin * const plugin)
     }
   else
     {
-      plugin->server_write_delay_task = GNUNET_SCHEDULER_add_delayed(next_send,
-          &delay_fragment_task, plugin);
+      plugin->server_write_delay_task 
+	= GNUNET_SCHEDULER_add_delayed(next_send,
+				       &delay_fragment_task, plugin);
     }
 }
 
@@ -1353,39 +1354,42 @@ send_ack(struct Plugin * plugin, struct AckSendQueue * ack)
 
 //TODO DOXIGEN
 static void
-finish_sending(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+finish_sending(void *cls, 
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct Finish_send * finish;
+  struct Finish_send * finish = cls;
   struct Plugin * plugin;
   ssize_t bytes;
 
-  finish = cls;
   plugin = finish->plugin;
-
   plugin->server_write_task = GNUNET_SCHEDULER_NO_TASK;
 
-  bytes = GNUNET_DISK_file_write(plugin->server_stdin_handle,
-      finish->msgheader, finish->size);
-  GNUNET_assert(bytes != GNUNET_SYSERR);
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+    {
+      GNUNET_free (finish->msgstart);
+      GNUNET_free (finish);
+      return;
+    }
+  bytes = GNUNET_DISK_file_write (plugin->server_stdin_handle,
+				  finish->msgheader, 
+				  finish->size);
+  GNUNET_assert (bytes != GNUNET_SYSERR);
 
   if (bytes != finish->size)
     {
-
       finish->msgheader = finish->msgheader + bytes;
       finish->size = finish->size - bytes;
-      plugin->server_write_task = GNUNET_SCHEDULER_add_write_file(
-          GNUNET_TIME_UNIT_FOREVER_REL, plugin->server_stdin_handle,
-          &finish_sending, finish);
+      plugin->server_write_task 
+	= GNUNET_SCHEDULER_add_write_file(GNUNET_TIME_UNIT_FOREVER_REL,
+					  plugin->server_stdin_handle,
+					  &finish_sending, finish);
     }
   else
     {
       GNUNET_free(finish->msgstart);
       GNUNET_free(finish);
-
       set_next_send(plugin);
-
     }
-
 }
 
 /**
@@ -1397,11 +1401,10 @@ finish_sending(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 do_transmit(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-
   struct Plugin * plugin = cls;
-  plugin->server_write_task = GNUNET_SCHEDULER_NO_TASK;
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  plugin->server_write_task = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
   struct Session * session;
@@ -1409,7 +1412,6 @@ do_transmit(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct ieee80211_frame * ieeewlanheader;
   struct Radiotap_Send * radioHeader;
   struct GNUNET_MessageHeader * msgheader;
-
   struct FragmentationHeader fragheader;
   struct FragmentationHeader * fragheaderptr;
   struct Finish_send * finish;
@@ -1435,9 +1437,7 @@ do_transmit(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (GNUNET_TIME_absolute_get_remaining(plugin->beacon_time).rel_value == 0)
     {
       send_hello_beacon(plugin);
-
       return;
-
     }
 
   fm = GNUNET_CONTAINER_heap_peek(plugin->pending_Fragment_Messages);
@@ -1920,20 +1920,14 @@ free_session(struct Plugin * plugin, struct Sessionqueue * queue)
         {
           plugin->pendingsessions--;
           GNUNET_CONTAINER_DLL_remove (plugin->pending_Sessions_head,
-              plugin->pending_Sessions_tail, pendingsession);
+				       plugin->pending_Sessions_tail, 
+				       pendingsession);
           GNUNET_free(pendingsession);
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "Remove session %p from pending session queue\n", queue->content
-      );
-
-
-          if (check == 1)
-            {
-              GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                  "Session is more then once in pending session\n");
-            }
-
+	  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+		     "Remove session %p from pending session queue\n", 
+		     queue->content);
+          GNUNET_assert (check == 0);
           check = 1;
         }
       pendingsession = pendingsession_tmp;
@@ -1969,13 +1963,13 @@ free_session(struct Plugin * plugin, struct Sessionqueue * queue)
       GNUNET_free(pm);
     }
 
-  GNUNET_CONTAINER_DLL_remove(plugin->sessions, plugin->sessions_tail, queue);
+  GNUNET_CONTAINER_DLL_remove(plugin->sessions, 
+			      plugin->sessions_tail, 
+			      queue);
   GNUNET_free(queue->content);
   GNUNET_free(queue);
   plugin->session_count--;
-
   check_fragment_queue(plugin);
-
 }
 
 /**
@@ -2046,25 +2040,6 @@ wlan_plugin_address_pretty_printer(void *cls, const char *type,
   asc(asc_cls, ret);
 }
 
-/**
- * function to check if bitfield is representation of fragments of the message
- * @param rec_message message to check
- */
-
-void
-check_message_fragment_bitfield(struct Receive_Message_Queue * rx_msg)
-{
-  uint64_t checkfragments = 0;
-  struct Receive_Fragment_Queue * rx_frag = rx_msg->frag_head;
-
-  while (rx_frag != NULL)
-    {
-      setBit((char*) &checkfragments, rx_frag->num);
-      rx_frag = rx_frag->next;
-
-    }
-  GNUNET_assert(checkfragments == rx_msg->received_fragments);
-}
 
 /**
  * Function to test if fragment number already exists in the fragments received
@@ -2073,8 +2048,7 @@ check_message_fragment_bitfield(struct Receive_Message_Queue * rx_msg)
  * @param fh Fragmentheader of the fragment
  * @return GNUNET_YES if fragment exists already, GNUNET_NO if it does not exists in the queue of the session
  */
-
-static const int
+static int
 is_double_msg(struct Receive_Message_Queue * rx_msg,
     struct FragmentationHeader * fh)
 {
@@ -2093,7 +2067,6 @@ is_double_msg(struct Receive_Message_Queue * rx_msg,
  * @param session session the fragment belongs to
  * @param rec_queue fragment to add
  */
-
 static void
 insert_fragment_in_queue(struct Receive_Message_Queue * rx_message,
     struct Receive_Fragment_Queue * rx_frag)
@@ -2884,7 +2857,7 @@ wlan_plugin_helper_read(void *cls,
   struct Plugin *plugin = cls;
   plugin->server_read_task = GNUNET_SCHEDULER_NO_TASK;
 
-  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
   char mybuf[WLAN_MTU + sizeof(struct GNUNET_MessageHeader)];
@@ -2993,7 +2966,31 @@ libgnunet_plugin_transport_wlan_done(void *cls)
       "libgnunet_plugin_transport_wlan_done started\n");
 #endif
 
-  GNUNET_assert(cls !=NULL);
+  GNUNET_assert (cls !=NULL);
+  //free sessions
+  while (queue != NULL)
+    {
+      queue_next = queue->next;
+      free_session(plugin, queue);
+      queue = queue_next;
+
+    }
+  if (plugin->server_write_delay_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel(plugin->server_write_delay_task);
+      plugin->server_write_delay_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  if (plugin->server_write_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel(plugin->server_write_task);
+      plugin->server_write_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  if (plugin->server_read_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel(plugin->server_read_task);
+      plugin->server_read_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+
 
   if (plugin->suid_tokenizer != NULL)
     GNUNET_SERVER_mst_destroy(plugin->suid_tokenizer);
@@ -3012,15 +3009,6 @@ libgnunet_plugin_transport_wlan_done(void *cls)
       free_fragment_message(plugin, fm);
       fm = (struct FragmentMessage *) GNUNET_CONTAINER_heap_peek(
           plugin->pending_Fragment_Messages);
-    }
-
-  //free sessions
-  while (queue != NULL)
-    {
-      queue_next = queue->next;
-      free_session(plugin, queue);
-      queue = queue_next;
-
     }
 
   GNUNET_free_non_null(plugin->interface);
