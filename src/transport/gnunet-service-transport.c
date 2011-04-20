@@ -1047,6 +1047,21 @@ struct ATS_info
 	int save_solution;
 
 	/**
+	 * Dump solution when minimum peers:
+	 */
+	int dump_min_peers;
+
+	/**
+	 * Dump solution when minimum addresses:
+	 */
+	int dump_min_addr;
+
+	/**
+	 * Dump solution overwrite file:
+	 */
+	int dump_overwrite;
+
+	/**
 	 * Ressource costs or quality metrics changed
 	 * update problem before solving
 	 */
@@ -6945,30 +6960,46 @@ ats_calculate_bandwidth_distribution ()
 		else if (ats->simplex_rerun_required == GNUNET_NO)
 			GNUNET_STATISTICS_set (stats, "ATS state", ATS_UNMODIFIED, GNUNET_NO);
 	}
-
-	if (ats->save_mlp == GNUNET_YES)
+#endif
+	if ((ats->save_mlp == GNUNET_YES) && (ats->stat.c_mechs >= ats->dump_min_peers) && (ats->stat.c_mechs >= ats->dump_min_addr))
 	{
 		char * filename;
-		GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i_%llu.mlp",
-				ats->stat.c_peers, ats->stat.c_mechs, GNUNET_TIME_absolute_get().abs_value);
-		//if (GNUNET_NO == GNUNET_DISK_file_test(filename))
+		if (ats->dump_overwrite == GNUNET_NO)
+		{
+			GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i_%llu.mlp",
+			ats->stat.c_peers, ats->stat.c_mechs, GNUNET_TIME_absolute_get().abs_value);
 			glp_write_lp (ats->prob, NULL, filename);
+		}
+		else
+		{
+			GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i.mlp",
+			ats->stat.c_peers, ats->stat.c_mechs );
+			glp_write_lp (ats->prob, NULL, filename);
+		}
 		GNUNET_free (filename);
 	}
-	if (ats->save_solution == GNUNET_YES)
+	if ((ats->save_solution == GNUNET_YES) && (ats->stat.c_mechs >= ats->dump_min_peers) && (ats->stat.c_mechs >= ats->dump_min_addr))
 	{
 		char * filename;
-		GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i_%llu.sol",
-				ats->stat.c_peers, ats->stat.c_mechs, GNUNET_TIME_absolute_get().abs_value);
-		//if (GNUNET_NO == GNUNET_DISK_file_test(filename))
+		if (ats->dump_overwrite == GNUNET_NO)
+		{
+			GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i_%llu.sol",
+			ats->stat.c_peers, ats->stat.c_mechs, GNUNET_TIME_absolute_get().abs_value);
 			glp_print_sol (ats->prob, filename);
+		}
+		else
+		{
+			GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i.sol",
+			ats->stat.c_peers, ats->stat.c_mechs);
+			glp_print_sol (ats->prob, filename);
+		}
 		GNUNET_free (filename);
 	}
 	ats->last = GNUNET_TIME_absolute_get();
 	ats->modified_addr = GNUNET_NO;
 	ats->modified_resources = GNUNET_NO;
 	ats->modified_quality = GNUNET_NO;
-#endif
+
 }
 
 static void
@@ -7016,6 +7047,10 @@ void ats_init ()
 	ats->R = 1.0;
 	ats->v_b_min = 64000;
 	ats->v_n_min = 10;
+	ats->dump_min_peers = 1;
+	ats->dump_min_addr = 1;
+	ats->dump_overwrite = GNUNET_NO;
+
 #if HAVE_LIBGLPK
 	ats->prob = NULL;
 #endif
@@ -7054,6 +7089,29 @@ void ats_init ()
 
 	if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "DUMP_SOLUTION"))
 		ats->save_solution = GNUNET_CONFIGURATION_get_value_yesno (cfg, "transport","DUMP_SOLUTION");
+	if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "DUMP_OVERWRITE"))
+		ats->dump_overwrite = GNUNET_CONFIGURATION_get_value_yesno (cfg, "transport","DUMP_OVERWRITE");
+	if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "DUMP_MIN_PEERS"))
+	{
+		GNUNET_CONFIGURATION_get_value_number(cfg, "transport","DUMP_MIN_PEERS", &value);
+		ats->dump_min_peers= value;
+	}
+	if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "DUMP_MIN_ADDRS"))
+	{
+		GNUNET_CONFIGURATION_get_value_number(cfg, "transport","DUMP_MIN_ADDRS", &value);
+		ats->dump_min_addr= value;
+	}
+	if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "DUMP_OVERWRITE"))
+	{
+		GNUNET_CONFIGURATION_get_value_number(cfg, "transport","DUMP_OVERWRITE", &value);
+		ats->min_delta.rel_value = value;
+	}
+
+	if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "ATS_MIN_INTERVAL"))
+	{
+		GNUNET_CONFIGURATION_get_value_number(cfg, "transport","ATS_MIN_INTERVAL", &value);
+		ats->min_delta.rel_value = value;
+	}
 
 	if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "ATS_EXEC_INTERVAL"))
 	{
