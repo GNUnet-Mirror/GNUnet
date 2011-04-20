@@ -1,6 +1,6 @@
 /*
  This file is part of GNUnet.
- (C) 2010 Christian Grothoff (and other contributing authors)
+ (C) 2010, 2011 Christian Grothoff (and other contributing authors)
 
  GNUnet is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published
@@ -100,31 +100,6 @@ int closeprog;
 
 #define DEBUG 1
 
-typedef enum
-{
-  DT_NULL = 0,
-  DT_WLANNG,
-  DT_HOSTAP,
-  DT_MADWIFI,
-  DT_MADWIFING,
-  DT_BCM43XX,
-  DT_ORINOCO,
-  DT_ZD1211RW,
-  DT_ACX,
-  DT_MAC80211_RT,
-  DT_AT76USB,
-  DT_IPW2200
-
-} DRIVER_TYPE;
-
-static const char * szaDriverTypes[] =
-  { [DT_NULL] = "Unknown", [DT_WLANNG] = "Wlan-NG", [DT_HOSTAP] = "HostAP",
-      [DT_MADWIFI] = "Madwifi", [DT_MADWIFING] = "Madwifi-NG",
-      [DT_BCM43XX] = "BCM43xx", [DT_ORINOCO] = "Orinoco",
-      [DT_ZD1211RW] = "ZD1211RW", [DT_ACX] = "ACX",
-      [DT_MAC80211_RT] = "Mac80211-Radiotap", [DT_AT76USB] = "Atmel 76_usb",
-      [DT_IPW2200] = "ipw2200" };
-
 struct Hardware_Infos
 {
 
@@ -132,23 +107,12 @@ struct Hardware_Infos
   int fd_in, arptype_in;
   int fd_out;
 
-  DRIVER_TYPE drivertype; /* inited to DT_UNKNOWN on allocation by wi_alloc */
-
   char *iface;
   unsigned char pl_mac[6];
 };
 
 
-/* wifi bitrate to use in 500kHz units */
 
-/*
- static const u8 u8aRatesToUse[] =
- {
-
- 54 * 2, 48 * 2, 36 * 2, 24 * 2, 18 * 2, 12 * 2, 9 * 2, 11 * 2, 11, // 5.5
- 2 * 2, 1 * 2 };
-
-*/
 static void
 sigfunc_hw(int sig)
 {
@@ -461,7 +425,8 @@ linux_write(struct Hardware_Infos * dev, unsigned char *buf, unsigned int count)
 }
 
 static int
-openraw(struct Hardware_Infos * dev, char * iface, int fd, int * arptype,
+openraw(struct Hardware_Infos * dev, 
+	const char * iface, int fd, int * arptype,
     uint8_t *mac)
 {
   struct ifreq ifr;
@@ -582,10 +547,12 @@ openraw(struct Hardware_Infos * dev, char * iface, int fd, int * arptype,
   return (0);
 }
 
-int
-wlaninit(struct Hardware_Infos * dev, char *iface)
+static int
+wlaninit(struct Hardware_Infos * dev, const char *iface)
 {
   char strbuf[512];
+  struct stat sbuf;
+  int ret;
 
   dev->fd_out = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
   if (0 > dev->fd_out)
@@ -606,24 +573,19 @@ wlaninit(struct Hardware_Infos * dev, char *iface)
    */
 
   /* mac80211 stack detection */
-  memset(strbuf, 0, sizeof(strbuf));
-  snprintf(strbuf, sizeof(strbuf) - 1,
-      "ls /sys/class/net/%s/phy80211/subsystem >/dev/null 2>/dev/null", iface);
-
-  if (0 == system(strbuf))
-    dev->drivertype = DT_MAC80211_RT;
-
-  else
+  ret = snprintf(strbuf, 
+		 sizeof(strbuf),
+		 "/sys/class/net/%s/phy80211/subsystem", 
+		 iface);
+  if ( (ret < 0) ||
+       (ret >= sizeof (strbuf)) ||
+       (0 != stat(strbuf, &sbuf)) )
     {
-      // At the moment only mac80211 tested
-      fprintf(stderr, "only mac80211 stack supported, exiting.\n");
+      fprintf(stderr, 
+	      "Did not find 802.11 interface `%s'. Exiting.\n",
+	      iface);
       return 1;
     }
-
-#ifdef DEBUG
-  fprintf(stderr, "Interface %s -> driver: %s\n", iface,
-      szaDriverTypes[dev->drivertype]);
-#endif
 
   if (openraw(dev, iface, dev->fd_out, &dev->arptype_in, dev->pl_mac) != 0)
     {
@@ -733,23 +695,13 @@ stdin_send_hw(void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   u8aRadiotap[2] = htole16(sizeof(u8aRadiotap));
   u8aRadiotap[8] = header->rate;
 
-  switch (dev->drivertype)
-    {
-
-  case DT_MAC80211_RT:
-    memcpy(write_pout->buf, u8aRadiotap, sizeof(u8aRadiotap));
-    memcpy(write_pout->buf + sizeof(u8aRadiotap), &header[1], sendsize);
-
-    wlanheader = write_pout->buf + sizeof(u8aRadiotap);
-    mac_set(wlanheader, dev);
-
-    sendsize += sizeof(u8aRadiotap);
-
-    break;
-  default:
-    break;
-    }
-
+  memcpy(write_pout->buf, u8aRadiotap, sizeof(u8aRadiotap));
+  memcpy(write_pout->buf + sizeof(u8aRadiotap), &header[1], sendsize);
+  
+  wlanheader = write_pout->buf + sizeof(u8aRadiotap);
+  mac_set(wlanheader, dev);
+  
+  sendsize += sizeof(u8aRadiotap);
   write_pout->size = sendsize;
 }
 
