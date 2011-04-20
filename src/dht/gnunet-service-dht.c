@@ -1056,7 +1056,7 @@ try_core_send (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   peer->send_task = GNUNET_SCHEDULER_NO_TASK;
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 
   if (peer->th != NULL)
@@ -1491,7 +1491,7 @@ update_core_preference (void *cls,
   struct PeerInfo *peer = cls;
   uint64_t preference;
   unsigned int matching;
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     {
       return;
     }
@@ -1843,7 +1843,7 @@ periodic_ping_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_MessageHeader ping_message;
   struct DHT_MessageContext msg_ctx;
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 
   ping_message.size = htons (sizeof (struct GNUNET_MessageHeader));
@@ -3741,7 +3741,7 @@ remove_recent (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_free (req);
 
   /*
-     if ((tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN) && (0 == GNUNET_CONTAINER_multihashmap_size(recent.hashmap)) && (0 == GNUNET_CONTAINER_heap_get_size(recent.minHeap)))
+       if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0) && (0 == GNUNET_CONTAINER_multihashmap_size(recent.hashmap)) && (0 == GNUNET_CONTAINER_heap_get_size(recent.minHeap)))
      {
      GNUNET_CONTAINER_multihashmap_destroy(recent.hashmap);
      GNUNET_CONTAINER_heap_destroy(recent.minHeap);
@@ -4199,7 +4199,7 @@ republish_content (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   unsigned int results;
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     {
       GNUNET_free (put_context);
       return;
@@ -4358,7 +4358,7 @@ malicious_put_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   static GNUNET_HashCode key;
   uint32_t random_key;
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
   put_message.header.size = htons (sizeof (struct GNUNET_DHT_PutMessage));
   put_message.header.type = htons (GNUNET_MESSAGE_TYPE_DHT_PUT);
@@ -4409,7 +4409,7 @@ malicious_get_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   static GNUNET_HashCode key;
   uint32_t random_key;
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 
   get_message.header.size = htons (sizeof (struct GNUNET_DHT_GetMessage));
@@ -4486,7 +4486,7 @@ send_find_peer_message (void *cls,
   double multiplier;
   double count_per_interval;
 #endif
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 
   if ((newly_found_peers > bucket_size) && (GNUNET_YES == do_find_peer))        /* If we are finding peers already, no need to send out our request right now! */
