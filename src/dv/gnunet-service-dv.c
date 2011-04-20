@@ -1631,7 +1631,7 @@ neighbor_send_task (void *cls,
   p2p_dv_MESSAGE_NeighborInfo *message;
   struct PendingMessage *pending_message;
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     {
 #if DEBUG_DV_GOSSIP
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
