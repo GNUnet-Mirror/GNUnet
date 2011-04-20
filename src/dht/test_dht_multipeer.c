@@ -364,7 +364,7 @@ get_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   memset(original_data, test_get->uid, sizeof(original_data));
   GNUNET_CRYPTO_hash(original_data, TEST_DATA_SIZE, &search_key);
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_TIMEOUT)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT) != 0)
     {
       gets_failed++;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Get from peer %s for key %s failed!\n", test_get->daemon->shortname, GNUNET_h2s(&search_key));

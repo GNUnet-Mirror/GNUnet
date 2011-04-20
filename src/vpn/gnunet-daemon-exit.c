@@ -176,7 +176,7 @@ cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
 
 static void
 collect_connections(void* cls, const struct GNUNET_SCHEDULER_TaskContext* t) {
-    if (GNUNET_SCHEDULER_REASON_SHUTDOWN == t->reason)
+	  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
       return;
 
 
