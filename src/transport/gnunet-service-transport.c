@@ -2509,6 +2509,8 @@ plugin_env_session_end  (void *cls,
       GNUNET_SCHEDULER_cancel (pos->revalidate_task);
       pos->revalidate_task = GNUNET_SCHEDULER_NO_TASK;
     }
+  GNUNET_free_non_null(pos->ressources);
+  GNUNET_free_non_null(pos->quality);
   GNUNET_free (pos);
   if (nl->received_pong == GNUNET_NO)
     return; /* nothing to do, never connected... */
@@ -4832,7 +4834,7 @@ disconnect_neighbour (struct NeighbourList *n, int check)
 		  peer_pos->ressources = NULL;
 		  GNUNET_free(peer_pos->quality);
 		  peer_pos->ressources = NULL;
-          GNUNET_free(peer_pos);
+		  GNUNET_free(peer_pos);
         }
       GNUNET_free (rpos);
     }
