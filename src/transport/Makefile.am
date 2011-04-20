@@ -210,6 +210,7 @@ libgnunet_plugin_transport_https_la_CFLAGS = \
 
 check_PROGRAMS = \
  test_transport_ats \
+ test_transport_ats_perf \
  test_transport_api_tcp \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
@@ -241,6 +242,7 @@ check_PROGRAMS = \
 if !DISABLE_TEST_RUN
 TESTS = \
  test_transport_ats \
+ test_transport_ats_perf \
  test_transport_api_tcp \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
@@ -271,6 +273,13 @@ test_transport_ats_SOURCES = \
  test_transport_ats.c
 test_transport_ats_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+test_transport_ats_perf_SOURCES = \
+ test_transport_ats_perf.c
+test_transport_ats_perf_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(GN_GLPK) \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_transport_api_tcp_SOURCES = \
