@@ -3659,7 +3659,7 @@ send_periodic_ping (void *cls,
   size_t tsize;
 
   peer_address->revalidate_task = GNUNET_SCHEDULER_NO_TASK;
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
   tp = peer_address->ready_list->plugin;
   neighbour = peer_address->ready_list->neighbour;
@@ -4829,7 +4829,9 @@ disconnect_neighbour (struct NeighbourList *n, int check)
 	      peer_pos->revalidate_task = GNUNET_SCHEDULER_NO_TASK;
 	    }
 		  GNUNET_free(peer_pos->ressources);
+		  peer_pos->ressources = NULL;
 		  GNUNET_free(peer_pos->quality);
+		  peer_pos->ressources = NULL;
           GNUNET_free(peer_pos);
         }
       GNUNET_free (rpos);
