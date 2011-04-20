@@ -60,7 +60,7 @@
 
 #define HALLO_BEACON_SCALING_FACTOR 900
 
-#define DEBUG_wlan GNUNET_YES
+#define DEBUG_wlan GNUNET_NO
 #define DEBUG_wlan_retransmission GNUNET_NO
 
 #define MESSAGE_LENGHT_UNKNOWN -1
@@ -121,9 +121,13 @@ struct Plugin
   struct GNUNET_SERVER_MessageStreamTokenizer * suid_tokenizer;
 
   /**
-   * encapsulation of packets received
+   * encapsulation of packets received from the wlan helper
    */
   struct GNUNET_SERVER_MessageStreamTokenizer * data_tokenizer;
+  /**
+   * encapsulation of packets received
+   */
+  struct GNUNET_SERVER_MessageStreamTokenizer * fragment_tokenizer;
 
   /**
    * stdout pipe handle for the gnunet-wlan-helper process
@@ -179,7 +183,7 @@ struct Plugin
    * Sessions currently pending for transmission
    * to this peer, if any.
    */
-  struct Sessionqueue * pending_Sessions;
+  struct Sessionqueue * pending_Sessions_head;
 
   /**
    * Sessions currently pending for transmission
@@ -244,7 +248,7 @@ struct Finish_send
 /**
  * Queue of sessions, for the general session queue and the pending session queue
  */
-
+//TODO DOXIGEN
 struct Sessionqueue
 {
   struct Sessionqueue * next;
@@ -255,6 +259,7 @@ struct Sessionqueue
 /**
  * Queue for the fragments received
  */
+//TODO DOXIGEN
 struct Receive_Fragment_Queue
 {
   struct Receive_Fragment_Queue * next;
@@ -265,12 +270,15 @@ struct Receive_Fragment_Queue
   struct Radiotap_rx rxinfo;
 };
 
-struct Session_id_pair
+//TODO DOXIGEN
+struct Session_id_fragment_triple
 {
   struct Session * session;
   uint32_t message_id;
+  struct FragmentMessage * fm;
 };
 
+//TODO DOXIGEN
 struct Plugin_Session_pair
 {
   struct Plugin * plugin;
@@ -367,13 +375,20 @@ struct PendingMessage
 /**
  * Queue for acks to send for fragments recived
  */
-//TODO comments
 struct AckSendQueue
 {
 
+  /**
+   * next ack in the ack send queue
+   */
   struct AckSendQueue * next;
+  /**
+   * previous ack in the ack send queue
+   */
   struct AckSendQueue * prev;
-
+  /**
+   * pointer to the session this ack belongs to
+   */
   struct Session * session;
   /**
    * ID of message, to distinguish between the messages, picked randomly.
@@ -565,8 +580,6 @@ struct FragmentationAckHeader
 
 };
 
-static struct FragmentMessage * return_val;
-
 static void
 do_transmit(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
@@ -726,8 +739,7 @@ get_session(struct Plugin *plugin, const struct MacAddress *addr)
 static void
 queue_session(struct Plugin *plugin, struct Session * session)
 {
-  struct Sessionqueue * queue = plugin->pending_Sessions;
-  struct Sessionqueue * lastitem = NULL;
+  struct Sessionqueue * queue = plugin->pending_Sessions_head;
 
   if (session->pending_message != NULL)
     {
@@ -741,7 +753,6 @@ queue_session(struct Plugin *plugin, struct Session * session)
               return;
             }
           // try next
-          lastitem = queue;
           queue = queue->next;
         }
 
@@ -751,16 +762,17 @@ queue_session(struct Plugin *plugin, struct Session * session)
       queue->content = session;
 
       //insert at the tail
-      GNUNET_CONTAINER_DLL_insert_tail(plugin->pending_Sessions,
+      GNUNET_CONTAINER_DLL_insert_tail(plugin->pending_Sessions_head,
           plugin->pending_Sessions_tail, queue);
       plugin->pendingsessions++;
     }
 
 }
 
-//TODO doxigen
 /**
  * Function to schedule the write task, executed after a delay
+ * @param cls pointer to the plugin struct
+ * @param tc GNUNET_SCHEDULER_TaskContext pointer
  */
 static void
 delay_fragment_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -780,10 +792,11 @@ delay_fragment_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
 }
 
-//TODO doxigen
 /**
  * Function to calculate the time of the next periodic "hello-beacon"
+ * @param plugin pointer to the plugin struct
  */
+
 static void
 set_next_beacon_time(struct Plugin * const plugin)
 {
@@ -810,21 +823,11 @@ set_next_beacon_time(struct Plugin * const plugin)
     }
 }
 
-//TODO doxigen
-/*
- static struct GNUNET_TIME_Relative
- get_next_frag_timeout(struct FragmentMessage * fm)
- {
- return GNUNET_TIME_relative_min(GNUNET_TIME_absolute_get_remaining(
- fm->next_ack), GNUNET_TIME_absolute_get_remaining(fm->timeout));
- }
- */
-
-//TODO doxigen
 /**
  * Function to get the timeout value for acks for this session
+ * @param fm pointer to the FragmentMessage to get the next timeout
+ * @return time until the next ack should be received, in GNUNET_TIME_Relative
  */
-
 static struct GNUNET_TIME_Relative
 get_ack_timeout(struct FragmentMessage * fm)
 {
@@ -879,9 +882,20 @@ set_next_send(struct Plugin * const plugin)
 
 #endif
 
-  plugin->server_write_delay_task = GNUNET_SCHEDULER_add_delayed(next_send,
-      &delay_fragment_task, plugin);
-
+  if (next_send.rel_value == GNUNET_TIME_UNIT_ZERO.rel_value)
+    {
+      if (plugin->server_write_task == GNUNET_SCHEDULER_NO_TASK)
+        {
+          plugin->server_write_task = GNUNET_SCHEDULER_add_write_file(
+              GNUNET_TIME_UNIT_FOREVER_REL, plugin->server_stdin_handle,
+              &do_transmit, plugin);
+        }
+    }
+  else
+    {
+      plugin->server_write_delay_task = GNUNET_SCHEDULER_add_delayed(next_send,
+          &delay_fragment_task, plugin);
+    }
 }
 
 /**
@@ -896,14 +910,18 @@ get_next_queue_session(struct Plugin * plugin)
   struct Sessionqueue * sessionqueue;
   struct Sessionqueue * sessionqueue_alt;
   struct PendingMessage * pm;
-  sessionqueue = plugin->pending_Sessions;
+  sessionqueue = plugin->pending_Sessions_head;
 
   while (sessionqueue != NULL)
     {
       session = sessionqueue->content;
 
       GNUNET_assert(session != NULL);
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "Found session %p from pending session queue\n", session
+          );
       pm = session->pending_message;
+
 
 #if DEBUG_wlan
       if (pm == NULL)
@@ -924,7 +942,7 @@ get_next_queue_session(struct Plugin * plugin)
               < FRAGMENT_QUEUE_MESSAGES_OUT_PER_SESSION)
             {
               plugin->pendingsessions--;
-              GNUNET_CONTAINER_DLL_remove (plugin->pending_Sessions,
+              GNUNET_CONTAINER_DLL_remove (plugin->pending_Sessions_head,
                   plugin->pending_Sessions_tail, sessionqueue);
               GNUNET_free(sessionqueue);
 
@@ -953,7 +971,7 @@ get_next_queue_session(struct Plugin * plugin)
               sessionqueue_alt = sessionqueue;
               sessionqueue = sessionqueue->next;
               plugin->pendingsessions--;
-              GNUNET_CONTAINER_DLL_remove (plugin->pending_Sessions,
+              GNUNET_CONTAINER_DLL_remove (plugin->pending_Sessions_head,
                   plugin->pending_Sessions_tail, sessionqueue_alt);
 
               GNUNET_free(sessionqueue_alt);
@@ -1082,9 +1100,9 @@ check_finished_fragment(struct Plugin * plugin, struct FragmentMessage * fm)
 
 #if DEBUG_wlan
   if (maxack != 63)
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-        "Test bitfields %X and %X, maxack is %u, fm size %u\n",
-        fm->ack_bitfield, tmpfield, maxack, fm->message_size);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+      "Test bitfields %X and %X, maxack is %u, fm size %u\n",
+      fm->ack_bitfield, tmpfield, maxack, fm->message_size);
 #endif
 
   if (fm->ack_bitfield == tmpfield)
@@ -1143,6 +1161,7 @@ set_next_message_fragment_pos(struct Plugin * plugin,
 
 }
 
+//TODO DOXIGEN
 static int
 getRadiotapHeader(struct Plugin * plugin, struct Session * session,
     struct Radiotap_Send * header)
@@ -1223,6 +1242,7 @@ getcrc16(const char *msgbuf, size_t msgbuf_size)
   return 0;
 }
 
+//TODO DOXIGEN
 static void
 send_hello_beacon(struct Plugin * plugin)
 {
@@ -1278,6 +1298,7 @@ send_hello_beacon(struct Plugin * plugin)
   set_next_send(plugin);
 }
 
+//TODO DOXIGEN
 static void
 send_ack(struct Plugin * plugin, struct AckSendQueue * ack)
 {
@@ -1298,7 +1319,7 @@ send_ack(struct Plugin * plugin, struct AckSendQueue * ack)
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
       "Sending ack for message_id %u with fragment field %u, size %u\n",
       ack->message_id, ack->fragments_field, size
-          - sizeof(struct Radiotap_Send));
+      - sizeof(struct Radiotap_Send));
 #endif
 
   msgheader = GNUNET_malloc(size);
@@ -1330,6 +1351,7 @@ send_ack(struct Plugin * plugin, struct AckSendQueue * ack)
   set_next_send(plugin);
 }
 
+//TODO DOXIGEN
 static void
 finish_sending(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -1459,7 +1481,7 @@ do_transmit(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               GNUNET_ERROR_TYPE_DEBUG,
               "Sending GNUNET_MESSAGE_TYPE_WLAN_FRAGMENT with message_id %u with fragment number %i, size: %u, offset %u, time until timeout %u\n",
               fm->message_id_out, fm->message_pos, copysize
-                  + sizeof(struct FragmentationHeader), copyoffset,
+              + sizeof(struct FragmentationHeader), copyoffset,
               GNUNET_TIME_absolute_get_remaining(fm->timeout));
 #endif
 
@@ -1473,20 +1495,10 @@ do_transmit(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   fm->message_pos);
             }
           GNUNET_assert(copyoffset < fm->message_size);
-          //FIXME remove later
-          GNUNET_assert(copystart < fm->msg + fm->message_size);
 
           fragheader.header.size = htons(copysize
               + sizeof(struct FragmentationHeader));
           fragheader.header.type = htons(GNUNET_MESSAGE_TYPE_WLAN_FRAGMENT);
-
-          /* }
-           else
-           {
-           // there is no need to split
-           copystart = fm->msg;
-           copysize = fm->message_size;
-           }*/
 
           size += copysize;
           size += sizeof(struct Radiotap_Send) + sizeof(struct ieee80211_frame)
@@ -1503,18 +1515,11 @@ do_transmit(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
           //could be faster if content is just send and not copyed before
           //fragmentheader is needed
-          //if (fm->message_size > WLAN_MTU)
-          // {
           fragheader.message_crc = htons(getcrc16(copystart, copysize));
           memcpy(&ieeewlanheader[1], &fragheader,
               sizeof(struct FragmentationHeader));
           fragheaderptr = (struct FragmentationHeader *) &ieeewlanheader[1];
           memcpy(&fragheaderptr[1], copystart, copysize);
-          /* }
-           else
-           {
-           memcpy(&ieeewlanheader[1], copystart, copysize);
-           }*/
 
           bytes = GNUNET_DISK_file_write(plugin->server_stdin_handle,
               msgheader, size);
@@ -1581,6 +1586,7 @@ do_transmit(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         }
       return;
     }
+
   GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
       "do_transmit did nothing, should not happen!\n");
 }
@@ -1786,13 +1792,14 @@ search_fragment_message_from_session_and_id(void *cls,
     struct GNUNET_CONTAINER_HeapNode *node, void *element,
     GNUNET_CONTAINER_HeapCostType cost)
 {
-  struct Session_id_pair * pair = (struct Session_id_pair *) cls;
+  struct Session_id_fragment_triple * triple =
+      (struct Session_id_fragment_triple *) cls;
   struct FragmentMessage * fm = (struct FragmentMessage*) element;
 
-  if ((fm->session == pair->session)
-      && (fm->message_id_out == pair->message_id))
+  if ((fm->session == triple->session) && (fm->message_id_out
+      == triple->message_id))
     {
-      return_val = fm;
+      triple->fm = fm;
       return GNUNET_NO;
     }
   return GNUNET_YES;
@@ -1809,12 +1816,12 @@ static struct FragmentMessage *
 get_fragment_message_from_session_and_id(struct Plugin * plugin,
     struct Session * session, uint32_t message_id)
 {
-  struct Session_id_pair pair;
-  pair.session = session;
-  pair.message_id = message_id;
+  struct Session_id_fragment_triple triple;
+  triple.session = session;
+  triple.message_id = message_id;
   GNUNET_CONTAINER_heap_iterate(plugin->pending_Fragment_Messages,
-      &search_fragment_message_from_session_and_id, &pair);
-  return return_val;
+      &search_fragment_message_from_session_and_id, &triple);
+  return triple.fm;
 }
 
 /**
@@ -1822,7 +1829,7 @@ get_fragment_message_from_session_and_id(struct Plugin * plugin,
  * @param plugin pointer to the plugin struct
  * @param session session this fragment belongs to
  */
-struct Receive_Message_Queue *
+static struct Receive_Message_Queue *
 get_receive_message_from_session(struct Plugin * plugin,
     struct Session * session)
 {
@@ -1868,27 +1875,58 @@ free_receive_message(struct Plugin* plugin,
   GNUNET_free(rx_message);
 }
 
+/**
+ * function to get the receive message of a session
+ * @param plugin pointer to the plugin struct
+ * @param session session this fragment belongs to
+ */
+static void
+check_receive_message_timeouts(struct Plugin * plugin, struct Session * session)
+{
+  struct Receive_Message_Queue * rec_message = plugin->receive_messages_head;
+  while (rec_message != NULL)
+    {
+      if (GNUNET_TIME_absolute_get_remaining(rec_message->timeout).rel_value
+          == 0)
+        {
+          free_receive_message(plugin, rec_message);
+        }
+      rec_message = rec_message->next;
+    }
+
+}
+
+//TODO DOXIGEN
 static void
 free_session(struct Plugin * plugin, struct Sessionqueue * queue)
 {
-  struct Sessionqueue * pendingsession = plugin->pending_Sessions;
+  struct Sessionqueue * pendingsession;
+  struct Sessionqueue * pendingsession_tmp;
   struct PendingMessage * pm;
   struct Receive_Message_Queue * receive_queue;
   struct Plugin_Session_pair pair;
   int check = 0;
 
   GNUNET_assert(queue != NULL);
+  GNUNET_assert(queue->content != NULL);
 
   //session found
   //is this session pending for send
+  pendingsession = plugin->pending_Sessions_head;
   while (pendingsession != NULL)
     {
+      pendingsession_tmp = pendingsession->next;
       if (pendingsession->content == queue->content)
         {
           plugin->pendingsessions--;
-          GNUNET_CONTAINER_DLL_remove (plugin->pending_Sessions,
+          GNUNET_CONTAINER_DLL_remove (plugin->pending_Sessions_head,
               plugin->pending_Sessions_tail, pendingsession);
           GNUNET_free(pendingsession);
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+      "Remove session %p from pending session queue\n", queue->content
+      );
+
 
           if (check == 1)
             {
@@ -1898,7 +1936,7 @@ free_session(struct Plugin * plugin, struct Sessionqueue * queue)
 
           check = 1;
         }
-      pendingsession = pendingsession->next;
+      pendingsession = pendingsession_tmp;
     }
 
   //is something of this session in the fragment queue?
@@ -2099,10 +2137,11 @@ insert_fragment_in_queue(struct Receive_Message_Queue * rx_message,
  * @param hdr pointer to the data
  */
 static void
-wlan_data_message_handler(struct Plugin * plugin,
-    struct Session_light * session_light,
-    const struct GNUNET_MessageHeader * hdr)
+wlan_data_message_handler(void *cls, void *client,
+    const struct GNUNET_MessageHeader *hdr)
 {
+  struct Plugin * plugin = (struct Plugin*) cls;
+  struct Session_light * session_light = (struct Session_light *) client;
   struct WlanHeader * wlanheader;
   struct Session * session;
   const char * tempmsg;
@@ -2232,9 +2271,10 @@ check_rx_finished_msg(struct Plugin* plugin,
   struct Receive_Fragment_Queue * rx_frag = rx_message->frag_head;
   int packetsize = rx_message->rec_size;
   int sum;
-  int aktnum;
+  //TODO CLEANUP
+  //int aktnum;
   uint64_t bitfield = 0;
-  char * msg;
+  //char * msg;
 
   //check if first fragment is present
   if (packetsize == MESSAGE_LENGHT_UNKNOWN)
@@ -2279,31 +2319,50 @@ check_rx_finished_msg(struct Plugin* plugin,
               "check_rec_finished_msg: A message for %p is complete\n", session);
 #endif
 
-          //TODO use mst
+          //TODO cleanup
+
           //copy fragments together
-          msg = GNUNET_malloc(packetsize);
+          //msg = GNUNET_malloc(packetsize);
           rx_frag = rx_message->frag_head;
-          aktnum = 0;
+          //aktnum = 0;
+          /*while (rx_frag != NULL)
+           {
+           //TODO SAVE SOME COPY OPS AND CHECK CRC WITHOUT COPY
+           memcpy(msg + aktnum, rx_frag->msg, rx_frag->size);
+           aktnum += rx_frag->size;
+           rx_frag = rx_frag->next;
+           }*/
+
           while (rx_frag != NULL)
             {
-              //TODO SAVE SOME COPY OPS AND CHECK CRC WITHOUT COPY
-              memcpy(msg + aktnum, rx_frag->msg, rx_frag->size);
-              aktnum += rx_frag->size;
+              if (rx_frag->next != NULL)
+                {
+                  GNUNET_SERVER_mst_receive(plugin->fragment_tokenizer,
+                      session_light, rx_frag->msg, rx_frag->size, GNUNET_NO,
+                      GNUNET_NO);
+                }
+              else
+                {
+                  //if it is the last fragment just kill all leftover
+                  GNUNET_SERVER_mst_receive(plugin->fragment_tokenizer,
+                      session_light, rx_frag->msg, rx_frag->size, GNUNET_YES,
+                      GNUNET_NO);
+                }
               rx_frag = rx_frag->next;
             }
-
           free_receive_message(plugin, rx_message);
           //call wlan_process_helper to process the message
-          wlan_data_message_handler(plugin, session_light,
-              (struct GNUNET_MessageHeader*) msg);
+          //wlan_data_message_handler(plugin, session_light,
+          //   (struct GNUNET_MessageHeader*) msg);
           //wlan_data_helper (plugin, session_light, (struct GNUNET_MessageHeader*) msg);
 
-          GNUNET_free(msg);
+          //GNUNET_free(msg);
         }
     }
   //    }
 }
 
+//TODO DOXIGEN
 static void
 process_data(void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 {
@@ -2412,14 +2471,17 @@ insert_fragment_in_in_message_queue(struct Plugin * plugin,
     {
       if (session->fragment_messages_in_count < MESSAGES_IN_QUEUE_PER_SESSION)
         {
+          check_receive_message_timeouts(plugin, session);
+        }
+
+      if (session->fragment_messages_in_count < MESSAGES_IN_QUEUE_PER_SESSION)
+        {
 
           //new message incoming
           rx_message = GNUNET_malloc(sizeof (struct Receive_Message_Queue));
           rx_message->message_id_in = ntohl(fh->message_id);
           rx_message->rec_size = MESSAGE_LENGHT_UNKNOWN;
           rx_message->session = session;
-          rx_message->timeout = GNUNET_TIME_absolute_add(
-              GNUNET_TIME_absolute_get(), MESSAGE_IN_TIMEOUT);
           rx_message->received_fragments = 0;
 
           GNUNET_CONTAINER_DLL_insert(plugin->receive_messages_head, plugin->receive_messages_teil, rx_message);
@@ -2446,6 +2508,11 @@ insert_fragment_in_in_message_queue(struct Plugin * plugin,
           return retval;
         }
     }
+
+  //reset timeout
+  rx_message->timeout = GNUNET_TIME_absolute_add(
+  GNUNET_TIME_absolute_get(),
+      MESSAGE_IN_TIMEOUT);
 
   if (is_double_msg(rx_message, fh) != GNUNET_YES)
     {
@@ -2576,8 +2643,12 @@ wlan_data_helper(void *cls, struct Session_light * session_light,
               GNUNET_ERROR_TYPE_INFO,
               "WLAN client not in session list, fragment num %u, message id %u\n",
               ntohs(fh->fragment_off_or_num), ntohl(fh->message_id));
-          wlan_data_message_handler(plugin, session_light,
-              (struct GNUNET_MessageHeader *) tempmsg);
+
+          GNUNET_SERVER_mst_receive(plugin->fragment_tokenizer, session_light,
+              tempmsg, ntohs(hdr->size) - sizeof(struct FragmentationHeader),
+              GNUNET_YES, GNUNET_NO);
+          //wlan_data_message_handler(plugin, session_light,
+          //    (struct GNUNET_MessageHeader *) tempmsg);
           session = session_light->session;
           //test if a session was created
           if (session == NULL)
@@ -2658,6 +2729,7 @@ wlan_data_helper(void *cls, struct Session_light * session_light,
 
 }
 
+//TODO DOXIGEN
 const char *
 macprinter(const u_int8_t * mac)
 {
@@ -2706,7 +2778,7 @@ wlan_process_helper(void *cls, void *client,
         GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
             "Size of packet is too small; size: %u min size: %u\n", ntohs(
                 hdr->size), sizeof(struct ieee80211_frame)
-                + sizeof(struct GNUNET_MessageHeader));
+            + sizeof(struct GNUNET_MessageHeader));
 #endif
         //GNUNET_break (0);
         /* FIXME: restart SUID process */
@@ -2812,12 +2884,6 @@ wlan_plugin_helper_read(void *cls,
   struct Plugin *plugin = cls;
   plugin->server_read_task = GNUNET_SCHEDULER_NO_TASK;
 
-  /*
-   #if DEBUG_wlan
-   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-   "Start reading from STDIN\n");
-   #endif
-   */
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     return;
 
@@ -2935,6 +3001,9 @@ libgnunet_plugin_transport_wlan_done(void *cls)
   if (plugin->data_tokenizer != NULL)
     GNUNET_SERVER_mst_destroy(plugin->data_tokenizer);
 
+  if (plugin->fragment_tokenizer != NULL)
+    GNUNET_SERVER_mst_destroy(plugin->fragment_tokenizer);
+
   fm = (struct FragmentMessage *) GNUNET_CONTAINER_heap_peek(
       plugin->pending_Fragment_Messages);
 
@@ -2992,9 +3061,11 @@ libgnunet_plugin_transport_wlan_init(void *cls)
       plugin);
 
   plugin->data_tokenizer = GNUNET_SERVER_mst_create(&process_data, plugin);
+  plugin->fragment_tokenizer = GNUNET_SERVER_mst_create(
+      &wlan_data_message_handler, plugin);
 
   //plugin->sessions = GNUNET_malloc (sizeof (struct Sessionqueue));
-  //plugin->pending_Sessions = GNUNET_malloc (sizeof (struct Sessionqueue));
+  //plugin->pending_Sessions_head = GNUNET_malloc (sizeof (struct Sessionqueue));
 
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;

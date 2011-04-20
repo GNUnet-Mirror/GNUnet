@@ -131,37 +131,14 @@ struct Hardware_Infos
   struct sendbuf *write_pout;
   int fd_in, arptype_in;
   int fd_out;
-  //int arptype_out;
-  //int fd_main;
-  //int fd_rtc;
 
   DRIVER_TYPE drivertype; /* inited to DT_UNKNOWN on allocation by wi_alloc */
 
-  //FILE *f_cap_in;
-
-  //struct pcap_file_header pfh_in;
-
-  //int sysfs_inject;
-  //int channel;
-  //int freq;
-  //int rate;
-  //int tx_power;
-  //char *wlanctlng; /* XXX never set */
-  //char *iwpriv;
-  //char *iwconfig;
-  //char *ifconfig;
   char *iface;
-  //char *main_if;
   unsigned char pl_mac[6];
-//int inject_wlanng;
 };
 
-//#include "radiotap.h"
 
-// mac of this node
-/*char mac[] =
- { 0x13, 0x22, 0x33, 0x44, 0x55, 0x66 };
- */
 /* wifi bitrate to use in 500kHz units */
 
 /*
@@ -171,87 +148,13 @@ struct Hardware_Infos
  54 * 2, 48 * 2, 36 * 2, 24 * 2, 18 * 2, 12 * 2, 9 * 2, 11 * 2, 11, // 5.5
  2 * 2, 1 * 2 };
 
- #define	OFFSET_FLAGS 0x10
- #define	OFFSET_RATE 0x11
- */
-// this is where we store a summary of the
-// information from the radiotap header
-
-/*
- typedef struct
- {
- int m_nChannel;
- int m_nChannelFlags;
- int m_nRate;
- int m_nAntenna;
- int m_nRadiotapFlags;
- }__attribute__((packed)) PENUMBRA_RADIOTAP_DATA;
- */
+*/
 static void
 sigfunc_hw(int sig)
 {
   closeprog = 1;
 }
 
-/*
- void
- Dump(u8 * pu8, int nLength)
- {
- char sz[256], szBuf[512], szChar[17], *buf, fFirst = 1;
- unsigned char baaLast[2][16];
- uint n, nPos = 0, nStart = 0, nLine = 0, nSameCount = 0;
-
- buf = szBuf;
- szChar[0] = '\0';
-
- for (n = 0; n < nLength; n++)
- {
- baaLast[(nLine & 1) ^ 1][n & 0xf] = pu8[n];
- if ((pu8[n] < 32) || (pu8[n] >= 0x7f))
- szChar[n & 0xf] = '.';
- else
- szChar[n & 0xf] = pu8[n];
- szChar[(n & 0xf) + 1] = '\0';
- nPos += sprintf(&sz[nPos], "%02X ", baaLast[(nLine & 1) ^ 1][n & 0xf]);
- if ((n & 15) != 15)
- continue;
- if ((memcmp(baaLast[0], baaLast[1], 16) == 0) && (!fFirst))
- {
- nSameCount++;
- }
- else
- {
- if (nSameCount)
- buf += sprintf(buf, "(repeated %d times)\n", nSameCount);
- buf += sprintf(buf, "%04x: %s %s\n", nStart, sz, szChar);
- nSameCount = 0;
- printf("%s", szBuf);
- buf = szBuf;
- }
- nPos = 0;
- nStart = n + 1;
- nLine++;
- fFirst = 0;
- sz[0] = '\0';
- szChar[0] = '\0';
- }
- if (nSameCount)
- buf += sprintf(buf, "(repeated %d times)\n", nSameCount);
-
- buf += sprintf(buf, "%04x: %s", nStart, sz);
- if (n & 0xf)
- {
- *buf++ = ' ';
- while (n & 0xf)
- {
- buf += sprintf(buf, "   ");
- n++;
- }
- }
- buf += sprintf(buf, "%s\n", szChar);
- printf("%s", szBuf);
- }
- */
 static void
 usage()
 {
@@ -280,7 +183,7 @@ check_crc_buf_osdep(unsigned char *buf, int len)
 {
   unsigned long crc;
 
-  if (len < 0)
+  if (0 > len)
     return 0;
 
   crc = calc_crc_osdep(buf, len);
@@ -288,88 +191,6 @@ check_crc_buf_osdep(unsigned char *buf, int len)
   return (((crc) & 0xFF) == buf[0] && ((crc >> 8) & 0xFF) == buf[1] && ((crc
       >> 16) & 0xFF) == buf[2] && ((crc >> 24) & 0xFF) == buf[3]);
 }
-
-/* Search a file recursively */
-/*
- static char *
- searchInside(const char * dir, const char * filename)
- {
- char * ret;
- char * curfile;
- struct stat sb;
- int len, lentot;
- DIR *dp;
- struct dirent *ep;
-
- dp = opendir(dir);
- if (dp == NULL)
- {
- return NULL;
- }
-
- len = strlen(filename);
- lentot = strlen(dir) + 256 + 2;
- curfile = (char *) calloc(1, lentot);
-
- while ((ep = readdir(dp)) != NULL)
- {
-
- memset(curfile, 0, lentot);
- sprintf(curfile, "%s/%s", dir, ep->d_name);
-
- //Checking if it's the good file
- if ((int) strlen(ep->d_name) == len && !strcmp(ep->d_name, filename))
- {
- (void) closedir(dp);
- return curfile;
- }
- lstat(curfile, &sb);
-
- //If it's a directory and not a link, try to go inside to search
- if (S_ISDIR(sb.st_mode) && !S_ISLNK(sb.st_mode))
- {
- //Check if the directory isn't "." or ".."
- if (strcmp(".", ep->d_name) && strcmp("..", ep->d_name))
- {
- //Recursive call
- ret = searchInside(curfile, filename);
- if (ret != NULL)
- {
- (void) closedir(dp);
- free(curfile);
- return ret;
- }
- }
- }
- }
- (void) closedir(dp);
- free(curfile);
- return NULL;
- }
- */
-/* Search a wireless tool and return its path */
-/*
- static char *
- wiToolsPath(const char * tool)
- {
- char * path;
- int i, nbelems;
- static const char * paths[] =
- { "/sbin", "/usr/sbin", "/usr/local/sbin", "/bin", "/usr/bin",
- "/usr/local/bin", "/tmp" };
-
- nbelems = sizeof(paths) / sizeof(char *);
-
- for (i = 0; i < nbelems; i++)
- {
- path = searchInside(paths[i], tool);
- if (path != NULL)
- return path;
- }
-
- return NULL;
- }
- */
 
 static int
 linux_get_channel(struct Hardware_Infos *dev)
@@ -380,27 +201,19 @@ linux_get_channel(struct Hardware_Infos *dev)
 
   memset(&wrq, 0, sizeof(struct iwreq));
 
-  /*
-   if (dev->main_if)
-   strncpy(wrq.ifr_name, dev->main_if, IFNAMSIZ );
-   else*/
   strncpy(wrq.ifr_name, dev->iface, IFNAMSIZ );
 
   fd = dev->fd_in;
-  /*
-   if (dev->drivertype == DT_IPW2200)
-   fd = dev->fd_main;
-   */
-  if (ioctl(fd, SIOCGIWFREQ, &wrq) < 0)
+  if (0 > ioctl(fd, SIOCGIWFREQ, &wrq))
     return (-1);
 
   frequency = wrq.u.freq.m;
-  if (frequency > 100000000)
+  if (100000000 < frequency  )
     frequency /= 100000;
-  else if (frequency > 1000000)
+  else if (1000000 < frequency )
     frequency /= 1000;
 
-  if (frequency > 1000)
+  if (1000 < frequency)
     chan = getChannelFromFrequency(frequency);
   else
     chan = frequency;
@@ -423,7 +236,7 @@ linux_read(struct Hardware_Infos * dev, unsigned char *buf, int count,
   caplen = read(dev->fd_in, tmpbuf, count);
   if (0 > caplen)
     {
-      if (errno == EAGAIN)
+      if (EAGAIN == errno)
         return (0);
 
       perror("read failed");
@@ -432,11 +245,10 @@ linux_read(struct Hardware_Infos * dev, unsigned char *buf, int count,
 
   memset(buf, 0, sizeof(buf));
 
-  /* XXX */
   if (ri)
     memset(ri, 0, sizeof(*ri));
 
-  if (dev->arptype_in == ARPHRD_IEEE80211_PRISM)
+  if (ARPHRD_IEEE80211_PRISM == dev->arptype_in )
     {
       /* skip the prism header */
       if (tmpbuf[7] == 0x40)
@@ -476,7 +288,7 @@ linux_read(struct Hardware_Infos * dev, unsigned char *buf, int count,
         return (0);
     }
 
-  if (dev->arptype_in == ARPHRD_IEEE80211_FULL)
+  if (ARPHRD_IEEE80211_FULL == dev->arptype_in)
     {
       struct ieee80211_radiotap_iterator iterator;
       struct ieee80211_radiotap_header *rthdr;
@@ -588,7 +400,7 @@ linux_read(struct Hardware_Infos * dev, unsigned char *buf, int count,
   caplen -= n;
 
   //detect fcs at the end, even if the flag wasn't set and remove it
-  if (fcs_removed == 0 && check_crc_buf_osdep(tmpbuf + n, caplen - 4) == 1)
+  if (0 == fcs_removed && 1== check_crc_buf_osdep(tmpbuf + n, caplen - 4))
     {
       caplen -= 4;
     }
@@ -615,7 +427,7 @@ linux_write(struct Hardware_Infos * dev, unsigned char *buf, unsigned int count)
   //usedrtap = 0;
   ret = write(dev->fd_out, buf, count);
 
-  if (ret < 0)
+  if (0 > ret)
     {
       if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOBUFS || errno
           == ENOMEM)
@@ -632,7 +444,7 @@ linux_write(struct Hardware_Infos * dev, unsigned char *buf, unsigned int count)
   /*if (usedrtap)
    ret -= letoh16(*p_rtlen);
 
-   if (ret < 0)
+   if (0 > ret)
    {
    if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOBUFS || errno
    == ENOMEM)
@@ -662,7 +474,7 @@ openraw(struct Hardware_Infos * dev, char * iface, int fd, int * arptype,
   memset(&ifr, 0, sizeof(ifr));
   strncpy(ifr.ifr_name, iface, sizeof(ifr.ifr_name) - 1);
 
-  if (ioctl(fd, SIOCGIFINDEX, &ifr) < 0)
+  if (0 > ioctl(fd, SIOCGIFINDEX, &ifr))
     {
       printf("Interface %s: \n", iface);
       perror("ioctl(SIOCGIFINDEX) failed");
@@ -677,7 +489,7 @@ openraw(struct Hardware_Infos * dev, char * iface, int fd, int * arptype,
 
   /* lookup the hardware type */
 
-  if (ioctl(fd, SIOCGIFHWADDR, &ifr) < 0)
+  if (0 > ioctl(fd, SIOCGIFHWADDR, &ifr))
     {
       printf("Interface %s: \n", iface);
       perror("ioctl(SIOCGIFHWADDR) failed");
@@ -688,7 +500,7 @@ openraw(struct Hardware_Infos * dev, char * iface, int fd, int * arptype,
   memset(&wrq, 0, sizeof(struct iwreq));
   strncpy(wrq.ifr_name, iface, IFNAMSIZ);
 
-  if (ioctl(fd, SIOCGIWMODE, &wrq) < 0)
+  if (0 > ioctl(fd, SIOCGIWMODE, &wrq))
     {
       /* most probably not supported (ie for rtap ipw interface) *
        * so just assume its correctly set...                     */
@@ -717,7 +529,7 @@ openraw(struct Hardware_Infos * dev, char * iface, int fd, int * arptype,
     }
   /* bind the raw socket to the interface */
 
-  if (bind(fd, (struct sockaddr *) &sll, sizeof(sll)) < 0)
+  if (0 > bind(fd, (struct sockaddr *) &sll, sizeof(sll)))
     {
       printf("Interface %s: \n", iface);
       perror("bind(ETH_P_ALL) failed");
@@ -726,7 +538,7 @@ openraw(struct Hardware_Infos * dev, char * iface, int fd, int * arptype,
 
   /* lookup the hardware type */
 
-  if (ioctl(fd, SIOCGIFHWADDR, &ifr) < 0)
+  if (0 > ioctl(fd, SIOCGIFHWADDR, &ifr))
     {
       printf("Interface %s: \n", iface);
       perror("ioctl(SIOCGIFHWADDR) failed");
@@ -741,7 +553,7 @@ openraw(struct Hardware_Infos * dev, char * iface, int fd, int * arptype,
       != ARPHRD_IEEE80211_PRISM && ifr.ifr_hwaddr.sa_family
       != ARPHRD_IEEE80211_FULL)
     {
-      if (ifr.ifr_hwaddr.sa_family == 1)
+      if (1 == ifr.ifr_hwaddr.sa_family)
         fprintf(stderr, "\nARP linktype is set to 1 (Ethernet) ");
       else
         fprintf(stderr, "\nUnsupported hardware link type %4d ",
@@ -773,46 +585,8 @@ openraw(struct Hardware_Infos * dev, char * iface, int fd, int * arptype,
 int
 wlaninit(struct Hardware_Infos * dev, char *iface)
 {
-
-  //char *iwpriv;
   char strbuf[512];
-  //dev->inject_wlanng = 1;
-  //dev->rate = 2; /* default to 1Mbps if nothing is set */
 
-  /* open raw socks */
-  /*
-   dev->fd_in = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
-   if (0 > dev->fd_in)
-   {
-   perror("socket(PF_PACKET) failed at fd_in");
-   if (getuid() != 0)
-   fprintf(stderr, "This program requires root privileges.\n");
-   return (1);
-   }
-   */
-  /*
-   dev->fd_main = socket(PF_PACKET, SOCK_RAW, htons( ETH_P_ALL ) );
-   if (0 > dev->fd_main)
-   {
-   perror("socket(PF_PACKET) failed at fd_main");
-   if (getuid() != 0)
-   fprintf(stderr, "This program requires root privileges.\n");
-   return (1);
-   }
-   */
-  /* Check iwpriv existence */
-  /*
-   iwpriv = wiToolsPath("iwpriv");
-   dev->iwpriv = iwpriv;
-   dev->iwconfig = wiToolsPath("iwconfig");
-   dev->ifconfig = wiToolsPath("ifconfig");
-
-   if (!iwpriv)
-   {
-   fprintf(stderr, "Can't find wireless tools, exiting.\n");
-   goto close_in;
-   }
-   */
   dev->fd_out = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
   if (0 > dev->fd_out)
     {
@@ -836,7 +610,7 @@ wlaninit(struct Hardware_Infos * dev, char *iface)
   snprintf(strbuf, sizeof(strbuf) - 1,
       "ls /sys/class/net/%s/phy80211/subsystem >/dev/null 2>/dev/null", iface);
 
-  if (system(strbuf) == 0)
+  if (0 == system(strbuf))
     dev->drivertype = DT_MAC80211_RT;
 
   else
@@ -860,7 +634,6 @@ wlaninit(struct Hardware_Infos * dev, char *iface)
   dev->iface = GNUNET_malloc(sizeof(char) *6);
   strncpy(dev->iface, iface, sizeof(char) * 6);
 
-  //dev->arptype_out = dev->arptype_in;
 
   return 0;
   close_out: close(dev->fd_out);
@@ -938,7 +711,7 @@ stdin_send_hw(void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   sendsize = ntohs(hdr->size) - sizeof(struct Radiotap_Send)
       - sizeof(struct GNUNET_MessageHeader);
 
-  if ((sendsize) > MAXLINE * 2)
+  if (MAXLINE * 2 < sendsize)
     {
       fprintf(stderr, "Function stdin_send: Packet too big for buffer\n");
       exit(1);
@@ -950,8 +723,8 @@ stdin_send_hw(void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
       exit(1);
     }
 
-  if (sendsize < sizeof(struct ieee80211_frame)
-      + sizeof(struct GNUNET_MessageHeader))
+  if ( sizeof(struct ieee80211_frame)
+      + sizeof(struct GNUNET_MessageHeader) > sendsize)
     {
       fprintf(stderr, "Function stdin_send: packet too small\n");
       exit(1);
@@ -1034,7 +807,7 @@ maketest(unsigned char * buf, struct Hardware_Infos * dev)
         0x13, 0x22, 0x33, 0x44, 0x55, 0x66, // mac3 - in this case bssid
         0x10, 0x86, //Sequence Control
       };
-  if (first == 0)
+  if (0 == first)
     {
       memcpy(&u8aIeeeHeader, u8aIeeeHeader_def, sizeof(struct ieee80211_frame));
       memcpy(u8aIeeeHeader.i_addr2, dev->pl_mac, 6);
@@ -1062,7 +835,6 @@ hardwaremode(int argc, char *argv[])
 
   uid_t uid;
   struct Hardware_Infos dev;
-  //struct ifreq ifreq;
   struct Radiotap_rx * rxinfo;
   uint8_t * mac = dev.pl_mac;
   int fdpin, fdpout;
@@ -1083,12 +855,6 @@ hardwaremode(int argc, char *argv[])
   //  fprintf(stderr, "Failed to setresuid: %s\n", strerror(errno));
   /* not critical, continue anyway */
   //}
-
-  /*printf("Device %s -> Ethernet %02x:%02x:%02x:%02x:%02x:%02x\n",
-   ifreq.ifr_name, (int) mac[0], (int) mac[1], (int) mac[2], (int) mac[3],
-   (int) mac[4], (int) mac[5]);*/
-
-  //return 0;
 
   unsigned char * datastart;
   char readbuf[MAXLINE];
@@ -1293,11 +1059,6 @@ hardwaremode(int argc, char *argv[])
 
                 }
             }
-          else
-            {
-              //eof
-              //closeprog = 1;
-            }
         }
 
     }
@@ -1333,269 +1094,6 @@ main(int argc, char *argv[])
 
       ret = hardwaremode(argc, argv);
     }
-
-#if 0
-  u8 u8aSendBuffer[500];
-  char szErrbuf[PCAP_ERRBUF_SIZE];
-  int nCaptureHeaderLength = 0, n80211HeaderLength = 0, nLinkEncap = 0;
-  int nOrdinal = 0, r, nDelay = 100000;
-  int nRateIndex = 0, retval, bytes;
-  pcap_t *ppcap = NULL;
-  struct bpf_program bpfprogram;
-  char * szProgram = "", fBrokenSocket = 0;
-  u16 u16HeaderLen;
-  char szHostname[PATH_MAX];
-
-  if (gethostname(szHostname, sizeof (szHostname) - 1))
-    {
-      perror("unable to get hostname");
-    }
-  szHostname[sizeof (szHostname) - 1] = '\0';
-
-  printf("Packetspammer (c)2007 Andy Green <andy@warmcat.com>  GPL2\n");
-
-  while (1)
-    {
-      int nOptionIndex;
-      static const struct option optiona[] =
-        {
-            { "delay", required_argument, NULL, 'd'},
-            { "fcs", no_argument, &flagMarkWithFCS, 1},
-            { "help", no_argument, &flagHelp, 1},
-            { "verbose", no_argument, &flagVerbose, 1},
-            { 0, 0, 0, 0}
-        };
-      int c = getopt_long(argc, argv, "d:hf",
-          optiona, &nOptionIndex);
-
-      if (c == -1)
-      break;
-      switch (c)
-        {
-          case 0: // long option
-          break;
-
-          case 'h': // help
-          usage();
-
-          case 'd': // delay
-          nDelay = atoi(optarg);
-          break;
-
-          case 'f': // mark as FCS attached
-          flagMarkWithFCS = 1;
-          break;
-
-          case 'v': //Verbose / readable output to cout
-          flagVerbose = 1;
-          break;
-
-          default:
-          printf("unknown switch %c\n", c);
-          usage();
-          break;
-        }
-    }
-
-  if (optind >= argc)
-  usage();
-
-  // open the interface in pcap
-
-  szErrbuf[0] = '\0';
-  ppcap = pcap_open_live(argv[optind], 800, 1, 20, szErrbuf);
-  if (ppcap == NULL)
-    {
-      printf("Unable to open interface %s in pcap: %s\n",
-          argv[optind], szErrbuf);
-      return (1);
-    }
-
-  //get mac from interface
-
-  /*int sock, j, k;
-   char mac[32];
-
-   sock=socket(PF_INET, SOCK_STREAM, 0);
-   if (-1==sock) {
-   perror("can not open socket\n");
-   return 1;
-   }
-
-   if (-1==ioctl(sock, SIOCGIFHWADDR, &ifr)) {
-   perror("ioctl(SIOCGIFHWADDR) ");
-   return 1;
-   }
-   for (j=0, k=0; j<6; j++) {
-   k+=snprintf(mac+k, sizeof(mac)-k-1, j ? ":%02X" : "%02X",
-   (int)(unsigned int)(unsigned char)ifr.ifr_hwaddr.sa_data[j]);
-   }
-   mac[sizeof(mac)-1]='\0';
-   */
-
-  //get header type
-  nLinkEncap = pcap_datalink(ppcap);
-  nCaptureHeaderLength = 0;
-
-  switch (nLinkEncap)
-    {
-
-      case DLT_PRISM_HEADER:
-      printf("DLT_PRISM_HEADER Encap\n");
-      nCaptureHeaderLength = 0x40;
-      n80211HeaderLength = 0x20; // ieee80211 comes after this
-      szProgram = "radio[0x4a:4]==0x13223344";
-      break;
-
-      case DLT_IEEE802_11_RADIO:
-      printf("DLT_IEEE802_11_RADIO Encap\n");
-      nCaptureHeaderLength = 0x40;
-      n80211HeaderLength = 0x18; // ieee80211 comes after this
-      szProgram = "ether[0x0a:4]==0x13223344";
-      break;
-
-      default:
-      printf("!!! unknown encapsulation on %s !\n", argv[1]);
-      return (1);
-
-    }
-
-  if (pcap_compile(ppcap, &bpfprogram, szProgram, 1, 0) == -1)
-    {
-      puts(szProgram);
-      puts(pcap_geterr(ppcap));
-      return (1);
-    }
-  else
-    {
-      if (pcap_setfilter(ppcap, &bpfprogram) == -1)
-        {
-          puts(szProgram);
-          puts(pcap_geterr(ppcap));
-        }
-      else
-        {
-          printf("RX Filter applied\n");
-        }
-      pcap_freecode(&bpfprogram);
-    }
-
-  pcap_setnonblock(ppcap, 1, szErrbuf);
-
-  printf("   (delay between packets %dus)\n", nDelay);
-
-  memset(u8aSendBuffer, 0, sizeof(u8aSendBuffer));
-
-  while (!fBrokenSocket)
-    {
-      u8 * pu8 = u8aSendBuffer;
-      struct pcap_pkthdr * ppcapPacketHeader = NULL;
-      struct ieee80211_radiotap_iterator rti;
-      PENUMBRA_RADIOTAP_DATA prd;
-      //init of the values
-      prd.m_nRate = 255;
-      prd.m_nChannel = 255;
-      prd.m_nAntenna = 255;
-      prd.m_nRadiotapFlags = 255;
-      u8 * pu8Payload = u8aSendBuffer;
-      int n, nRate;
-
-      // receive
-
-      retval = pcap_next_ex(ppcap, &ppcapPacketHeader,
-          (const u_char**) &pu8Payload);
-
-      if (retval < 0)
-        {
-          fBrokenSocket = 1;
-          continue;
-        }
-
-      if (retval != 1)
-      goto do_tx;
-
-      u16HeaderLen = (pu8Payload[2] + (pu8Payload[3] << 8));
-
-      printf("rtap: ");
-      Dump(pu8Payload, u16HeaderLen);
-
-      if (ppcapPacketHeader->len < (u16HeaderLen + n80211HeaderLength))
-      continue;
-
-      bytes = ppcapPacketHeader->len - (u16HeaderLen + n80211HeaderLength);
-      if (bytes < 0)
-      continue;
-
-      if (ieee80211_radiotap_iterator_init(&rti,
-              (struct ieee80211_radiotap_header *) pu8Payload, bytes) < 0)
-      continue;
-
-      while ((n = ieee80211_radiotap_iterator_next(&rti)) == 0)
-        {
-
-          switch (rti.this_arg_index)
-            {
-              case IEEE80211_RADIOTAP_RATE:
-              prd.m_nRate = (*rti.this_arg);
-              break;
-
-              case IEEE80211_RADIOTAP_CHANNEL:
-              prd.m_nChannel = le16_to_cpu(*((u16 *)rti.this_arg));
-              prd.m_nChannelFlags = le16_to_cpu(*((u16 *)(rti.this_arg + 2)));
-              break;
-
-              case IEEE80211_RADIOTAP_ANTENNA:
-              prd.m_nAntenna = (*rti.this_arg) + 1;
-              break;
-
-              case IEEE80211_RADIOTAP_FLAGS:
-              prd.m_nRadiotapFlags = *rti.this_arg;
-              break;
-
-            }
-        }
-
-      pu8Payload += u16HeaderLen + n80211HeaderLength;
-
-      if (prd.m_nRadiotapFlags & IEEE80211_RADIOTAP_F_FCS)
-      bytes -= 4;
-
-      printf("RX: Rate: %2d.%dMbps, Freq: %d.%dGHz, "
-          "Ant: %d, Flags: 0x%X\n", prd.m_nRate / 2, 5 * (prd.m_nRate & 1),
-          prd.m_nChannel / 1000, prd.m_nChannel - ((prd.m_nChannel / 1000)
-              * 1000), prd.m_nAntenna, prd.m_nRadiotapFlags);
-
-      Dump(pu8Payload, bytes);
-
-      do_tx:
-
-      // transmit
-
-      memcpy(u8aSendBuffer, u8aRadiotapHeader, sizeof(u8aRadiotapHeader));
-      if (flagMarkWithFCS)
-      pu8[OFFSET_FLAGS] |= IEEE80211_RADIOTAP_F_FCS;
-      nRate = pu8[OFFSET_RATE] = u8aRatesToUse[nRateIndex++];
-      if (nRateIndex >= sizeof(u8aRatesToUse))
-      nRateIndex = 0;
-      pu8 += sizeof(u8aRadiotapHeader);
-
-      memcpy(pu8, u8aIeeeHeader, sizeof(u8aIeeeHeader));
-      pu8 += sizeof(u8aIeeeHeader);
-
-      pu8 += sprintf((char *) u8aSendBuffer, "Packetspammer %02d"
-          "broadcast packet"
-          "#%05d -- :-D --%s ----", nRate / 2, nOrdinal++, szHostname);
-      r = pcap_inject(ppcap, u8aSendBuffer, pu8 - u8aSendBuffer);
-      if (r != (pu8 - u8aSendBuffer))
-        {
-          perror("Trouble injecting packet");
-          return (1);
-        }
-      if (nDelay)
-      usleep(nDelay);
-    }
-
-#endif
 
   return ret;
   maketest(NULL, NULL);
