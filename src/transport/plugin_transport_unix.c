@@ -897,10 +897,8 @@ static int
 unix_transport_server_start (void *cls)
 {
   struct Plugin *plugin = cls;
-
   struct sockaddr *serverAddr;
   socklen_t addrlen;
-  int sockets_created;
   struct sockaddr_un un;
   size_t slen;
 
@@ -914,7 +912,6 @@ unix_transport_server_start (void *cls)
   slen += sizeof (sa_family_t);
   serverAddr = (struct sockaddr*) &un;
   addrlen = slen;
-  sockets_created = 0;
 #if LINUX
   un.sun_path[0] = '\0';
 #endif
@@ -922,24 +919,23 @@ unix_transport_server_start (void *cls)
   plugin->unix_sock.desc = GNUNET_NETWORK_socket_create (AF_UNIX, SOCK_DGRAM, 0);
   if (NULL == plugin->unix_sock.desc)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "socket");
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
+      return GNUNET_SYSERR;
     }
-  else
+  if (GNUNET_NETWORK_socket_bind (plugin->unix_sock.desc, serverAddr, addrlen) !=
+      GNUNET_OK)
     {
-      if (GNUNET_NETWORK_socket_bind (plugin->unix_sock.desc, serverAddr, addrlen) !=
-	     GNUNET_OK)
-	{
-#if DEBUG_UNIX
-	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-			   "UNIX Binding failed!\n");
-#endif
-	}
-      else
-        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Bound to `%s'\n", &un.sun_path[0]);
-      if (plugin->unix_sock.desc != NULL)
-        sockets_created++;
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
+      GNUNET_NETWORK_socket_close (plugin->unix_sock.desc);
+      plugin->unix_sock.desc = NULL;
+      return GNUNET_SYSERR;
     }
-
+#if DEBUG_UNIX
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, 
+		   "unix",
+		   "Bound to `%s'\n",
+		   &un.sun_path[0]);
+#endif
   plugin->rs = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_zero (plugin->rs);
   GNUNET_NETWORK_fdset_set (plugin->rs,
@@ -950,7 +946,7 @@ unix_transport_server_start (void *cls)
                                  GNUNET_SCHEDULER_NO_TASK,
                                  GNUNET_TIME_UNIT_FOREVER_REL, plugin->rs,
                                  NULL, &unix_plugin_select, plugin);
-  return sockets_created;
+  return 1;
 }
 
 
