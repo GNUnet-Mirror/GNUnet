@@ -54,17 +54,6 @@ void solve_mlp(int presolve)
 
 	glp_iocp opt_mlp;
 	glp_init_iocp(&opt_mlp);
-
-	if (presolve == GNUNET_YES) opt_mlp.presolve = GLP_ON;
-	else
-	{
-		glp_smcp opt_lp;
-		glp_init_smcp(&opt_lp);
-
-		opt_lp.presolve = GLP_OFF;
-		opt_lp.msg_lev = GLP_MSG_OFF;
-		result = glp_simplex(prob, &opt_lp);
-	}
 	opt_mlp.msg_lev = GLP_MSG_OFF;
 
 	result = glp_intopt (prob, &opt_mlp);
@@ -152,7 +141,7 @@ void bench_mlp_no_optimization(char * file, int executions)
 		exec_time[c] = GNUNET_TIME_absolute_get_difference(start, end).rel_value;
 
 		mlp_no_opt_avg += exec_time[c];
-		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MLP iterations no optimization%i: %llu \n",  c, exec_time[c]);
+		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MLP iterations no optimization %i: %llu \n",  c, exec_time[c]);
 	}
 
 	glp_delete_prob(prob);
@@ -273,8 +262,7 @@ int main (int argc, char *argv[])
 
   int ret = 0;
 
-  char * file = "ats_mlp_p500_m2000.problem";
-
+  char * file = "ats_mlp_p100_m400.problem";
   bench_simplex_no_optimization (file, executions);
   bench_simplex_optimization (file, executions);
   bench_mlp_no_optimization (file, executions);
