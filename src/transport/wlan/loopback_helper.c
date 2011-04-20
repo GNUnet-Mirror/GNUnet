@@ -108,6 +108,10 @@ file_in_send(void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   write_std->size += sendsize;
 }
 
+int closeprog;
+
+
+
 int
 testmode(int argc, char *argv[])
 {

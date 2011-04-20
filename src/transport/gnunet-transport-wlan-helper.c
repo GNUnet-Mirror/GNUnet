@@ -28,6 +28,7 @@
  * gnunet
  */
 
+#define _GNU_SOURCE
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
@@ -45,7 +46,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <dirent.h>
@@ -56,7 +56,6 @@
  //#include <resolv.h>
  #include <string.h>
  #include <utime.h>
- //#include <unistd.h>
  #include <getopt.h>
  */
 //#include "platform.h"
@@ -69,11 +68,6 @@
 #include "gnunet_common.h"
 #include "gnunet-transport-wlan-helper.h"
 #include "gnunet_crypto_lib.h"
-
-#include <pcap.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/stat.h>
 
 #include "wlan/radiotap-parser.h"
 /* radiotap-parser defines types like u8 that
@@ -93,42 +87,30 @@
 #define ARPHRD_IEEE80211_PRISM  802
 #define ARPHRD_IEEE80211_FULL   803
 
-int closeprog;
-
-#include "wlan/helper_common.h"
 #include "wlan/loopback_helper.h"
 
 #define DEBUG 1
 
+#define MAC_ADDR_SIZE 6
+
 struct Hardware_Infos
 {
 
-  struct sendbuf *write_pout;
-  int fd_in, arptype_in;
-  int fd_out;
+  struct sendbuf write_pout;
+  int fd_raw;
+  int arptype_in;
 
-  char *iface;
-  unsigned char pl_mac[6];
+  /**
+   * Name of the interface, not necessarily 0-terminated (!).
+   */
+  char iface[IFNAMSIZ];
+  unsigned char pl_mac[MAC_ADDR_SIZE];
 };
 
+// FIXME: inline?
+int getChannelFromFrequency(int frequency);
 
-
-static void
-sigfunc_hw(int sig)
-{
-  closeprog = 1;
-}
-
-static void
-usage()
-{
-  printf("Usage: interface-name options\n"
-    "options: 0 = with hardware\n"
-    "1 = first loopback file\n"
-    "2 = second loopback file\n"
-    "\n");
-}
-
+// FIXME: make nice...
 static unsigned long
 calc_crc_osdep(unsigned char * buf, int len)
 {
@@ -142,6 +124,7 @@ calc_crc_osdep(unsigned char * buf, int len)
 
 /* CRC checksum verification routine */
 
+// FIXME: make nice...
 static int
 check_crc_buf_osdep(unsigned char *buf, int len)
 {
@@ -156,6 +139,8 @@ check_crc_buf_osdep(unsigned char *buf, int len)
       >> 16) & 0xFF) == buf[2] && ((crc >> 24) & 0xFF) == buf[3]);
 }
 
+
+// FIXME: make nice...
 static int
 linux_get_channel(struct Hardware_Infos *dev)
 {
@@ -167,7 +152,7 @@ linux_get_channel(struct Hardware_Infos *dev)
 
   strncpy(wrq.ifr_name, dev->iface, IFNAMSIZ );
 
-  fd = dev->fd_in;
+  fd = dev->fd_raw;
   if (0 > ioctl(fd, SIOCGIWFREQ, &wrq))
     return (-1);
 
@@ -185,249 +170,202 @@ linux_get_channel(struct Hardware_Infos *dev)
   return chan;
 }
 
-static int
-linux_read(struct Hardware_Infos * dev, unsigned char *buf, int count,
-    struct Radiotap_rx * ri)
+
+// FIXME: make nice...
+static ssize_t
+linux_read (struct Hardware_Infos *dev,
+	    unsigned char *buf,  /* FIXME: void*? */
+	    size_t buf_size,
+	    struct Radiotap_rx *ri)
 {
-  unsigned char tmpbuf[4096 * 4];
+  unsigned char tmpbuf[buf_size];
+  ssize_t caplen;
+  int n, got_signal, got_noise, got_channel, fcs_removed;
 
-  int caplen, n, got_signal, got_noise, got_channel, fcs_removed;
+  n = got_signal = got_noise = got_channel = fcs_removed = 0;
 
-  caplen = n = got_signal = got_noise = got_channel = fcs_removed = 0;
-
-  if ((unsigned) count > sizeof(tmpbuf))
-    return (-1);
-  caplen = read(dev->fd_in, tmpbuf, count);
+  caplen = read(dev->fd_raw, tmpbuf, buf_size);
   if (0 > caplen)
     {
       if (EAGAIN == errno)
-        return (0);
-
-      perror("read failed");
-      return (-1);
+        return 0;
+      fprintf (stderr,
+	       "Failed to read from RAW socket: %s\n",
+	       strerror (errno));
+      return -1;
     }
 
-  memset(buf, 0, sizeof(buf));
+  memset(buf, 0, buf_size);
+  memset(ri, 0, sizeof(*ri));
 
-  if (ri)
-    memset(ri, 0, sizeof(*ri));
-
-  if (ARPHRD_IEEE80211_PRISM == dev->arptype_in )
+  switch (dev->arptype_in)
     {
-      /* skip the prism header */
-      if (tmpbuf[7] == 0x40)
-        {
-          /* prism54 uses a different format */
-          if (ri)
-            {
-              ri->ri_power = tmpbuf[0x33];
-              ri->ri_noise = *(unsigned int *) (tmpbuf + 0x33 + 12);
-              ri->ri_rate = (*(unsigned int *) (tmpbuf + 0x33 + 24)) * 500000;
+    case ARPHRD_IEEE80211_PRISM:
+      {
+	/* skip the prism header */
+	if (tmpbuf[7] == 0x40)
+	  {
+	    /* prism54 uses a different format */
+	    ri->ri_power = tmpbuf[0x33];
+	    ri->ri_noise = *(unsigned int *) (tmpbuf + 0x33 + 12);
+	    ri->ri_rate = (*(unsigned int *) (tmpbuf + 0x33 + 24)) * 500000;
+	    got_signal = 1;
+	    got_noise = 1;
+	    n = 0x40;
+	  }
+	else
+	  {
+	    ri->ri_mactime = *(u_int64_t*) (tmpbuf + 0x5C - 48);
+	    ri->ri_channel = *(unsigned int *) (tmpbuf + 0x5C - 36);
+	    ri->ri_power = *(unsigned int *) (tmpbuf + 0x5C);
+	    ri->ri_noise = *(unsigned int *) (tmpbuf + 0x5C + 12);
+	    ri->ri_rate = (*(unsigned int *) (tmpbuf + 0x5C + 24)) * 500000;
+	    got_channel = 1;
+	    got_signal = 1;
+	    got_noise = 1;
+	    n = *(int *) (tmpbuf + 4);
+	  }
+	
+	if (n < 8 || n >= caplen)
+	  return (0);
+      }
+      break;
 
-              got_signal = 1;
-              got_noise = 1;
-            }
-
-          n = 0x40;
-        }
-      else
-        {
-          if (ri)
-            {
-              ri->ri_mactime = *(u_int64_t*) (tmpbuf + 0x5C - 48);
-              ri->ri_channel = *(unsigned int *) (tmpbuf + 0x5C - 36);
-              ri->ri_power = *(unsigned int *) (tmpbuf + 0x5C);
-              ri->ri_noise = *(unsigned int *) (tmpbuf + 0x5C + 12);
-              ri->ri_rate = (*(unsigned int *) (tmpbuf + 0x5C + 24)) * 500000;
-
-              got_channel = 1;
-              got_signal = 1;
-              got_noise = 1;
-            }
-
-          n = *(int *) (tmpbuf + 4);
-        }
-
-      if (n < 8 || n >= caplen)
-        return (0);
-    }
-
-  if (ARPHRD_IEEE80211_FULL == dev->arptype_in)
-    {
-      struct ieee80211_radiotap_iterator iterator;
-      struct ieee80211_radiotap_header *rthdr;
-
-      rthdr = (struct ieee80211_radiotap_header *) tmpbuf;
-
-      if (ieee80211_radiotap_iterator_init(&iterator, rthdr, caplen) < 0)
-        return (0);
-
-      /* go through the radiotap arguments we have been given
-       * by the driver
-       */
-
-      while (ri && (ieee80211_radiotap_iterator_next(&iterator) >= 0))
-        {
-
-          switch (iterator.this_arg_index)
-            {
-
-          case IEEE80211_RADIOTAP_TSFT:
-            ri->ri_mactime = le64_to_cpu(*((uint64_t*) iterator.this_arg));
-            break;
-
-          case IEEE80211_RADIOTAP_DBM_ANTSIGNAL:
-            if (!got_signal)
-              {
-                if (*iterator.this_arg < 127)
-                  ri->ri_power = *iterator.this_arg;
-                else
-                  ri->ri_power = *iterator.this_arg - 255;
-
-                got_signal = 1;
-              }
-            break;
-
-          case IEEE80211_RADIOTAP_DB_ANTSIGNAL:
-            if (!got_signal)
-              {
-                if (*iterator.this_arg < 127)
-                  ri->ri_power = *iterator.this_arg;
-                else
-                  ri->ri_power = *iterator.this_arg - 255;
-
-                got_signal = 1;
-              }
-            break;
-
-          case IEEE80211_RADIOTAP_DBM_ANTNOISE:
-            if (!got_noise)
-              {
-                if (*iterator.this_arg < 127)
-                  ri->ri_noise = *iterator.this_arg;
-                else
-                  ri->ri_noise = *iterator.this_arg - 255;
-
-                got_noise = 1;
-              }
-            break;
-
-          case IEEE80211_RADIOTAP_DB_ANTNOISE:
-            if (!got_noise)
-              {
-                if (*iterator.this_arg < 127)
-                  ri->ri_noise = *iterator.this_arg;
-                else
-                  ri->ri_noise = *iterator.this_arg - 255;
-
-                got_noise = 1;
-              }
-            break;
-
-          case IEEE80211_RADIOTAP_ANTENNA:
-            ri->ri_antenna = *iterator.this_arg;
-            break;
-
-          case IEEE80211_RADIOTAP_CHANNEL:
-            ri->ri_channel = *iterator.this_arg;
-            got_channel = 1;
-            break;
-
-          case IEEE80211_RADIOTAP_RATE:
-            ri->ri_rate = (*iterator.this_arg) * 500000;
-            break;
-
-          case IEEE80211_RADIOTAP_FLAGS:
-            /* is the CRC visible at the end?
-             * remove
-             */
-            if (*iterator.this_arg & IEEE80211_RADIOTAP_F_FCS)
-              {
-                fcs_removed = 1;
-                caplen -= 4;
-              }
-
-            if (*iterator.this_arg & IEEE80211_RADIOTAP_F_RX_BADFCS)
-              return (0);
-
-            break;
-
-            }
-        }
-
-      n = le16_to_cpu(rthdr->it_len);
-
-      if (n <= 0 || n >= caplen)
-        return (0);
+    case ARPHRD_IEEE80211_FULL:
+      {
+	struct ieee80211_radiotap_iterator iterator;
+	struct ieee80211_radiotap_header *rthdr;
+	
+	rthdr = (struct ieee80211_radiotap_header *) tmpbuf;
+	
+	if (ieee80211_radiotap_iterator_init(&iterator, rthdr, caplen) < 0)
+	  return (0);
+	
+	/* go through the radiotap arguments we have been given
+	 * by the driver
+	 */
+	
+	while (ieee80211_radiotap_iterator_next(&iterator) >= 0)
+	  {
+	    
+	    switch (iterator.this_arg_index)
+	      {
+		
+	      case IEEE80211_RADIOTAP_TSFT:
+		ri->ri_mactime = le64_to_cpu(*((uint64_t*) iterator.this_arg));
+		break;
+		
+	      case IEEE80211_RADIOTAP_DBM_ANTSIGNAL:
+		if (!got_signal)
+		  {
+		    if (*iterator.this_arg < 127)
+		      ri->ri_power = *iterator.this_arg;
+		    else
+		      ri->ri_power = *iterator.this_arg - 255;
+		    
+		    got_signal = 1;
+		  }
+		break;
+		
+	      case IEEE80211_RADIOTAP_DB_ANTSIGNAL:
+		if (!got_signal)
+		  {
+		    if (*iterator.this_arg < 127)
+		      ri->ri_power = *iterator.this_arg;
+		    else
+		      ri->ri_power = *iterator.this_arg - 255;
+		    
+		    got_signal = 1;
+		  }
+		break;
+		
+	      case IEEE80211_RADIOTAP_DBM_ANTNOISE:
+		if (!got_noise)
+		  {
+		    if (*iterator.this_arg < 127)
+		      ri->ri_noise = *iterator.this_arg;
+		    else
+		      ri->ri_noise = *iterator.this_arg - 255;
+		    
+		    got_noise = 1;
+		  }
+		break;
+		
+	      case IEEE80211_RADIOTAP_DB_ANTNOISE:
+		if (!got_noise)
+		  {
+		    if (*iterator.this_arg < 127)
+		      ri->ri_noise = *iterator.this_arg;
+		    else
+		      ri->ri_noise = *iterator.this_arg - 255;
+		    
+		    got_noise = 1;
+		  }
+		break;
+		
+	      case IEEE80211_RADIOTAP_ANTENNA:
+		ri->ri_antenna = *iterator.this_arg;
+		break;
+		
+	      case IEEE80211_RADIOTAP_CHANNEL:
+		ri->ri_channel = *iterator.this_arg;
+		got_channel = 1;
+		break;
+		
+	      case IEEE80211_RADIOTAP_RATE:
+		ri->ri_rate = (*iterator.this_arg) * 500000;
+		break;
+		
+	      case IEEE80211_RADIOTAP_FLAGS:
+		/* is the CRC visible at the end?
+		 * remove
+		 */
+		if (*iterator.this_arg & IEEE80211_RADIOTAP_F_FCS)
+		  {
+		    fcs_removed = 1;
+		    caplen -= 4;
+		  }
+		
+		if (*iterator.this_arg & IEEE80211_RADIOTAP_F_RX_BADFCS)
+		  return (0);
+		
+		break;	    
+	      }
+	  }	
+	n = le16_to_cpu(rthdr->it_len);	
+	if (n <= 0 || n >= caplen)
+	  return 0;
+      }
+      break;
+    case ARPHRD_IEEE80211:
+      /* do nothing? */
+      break;
+    default:
+      errno = ENOTSUP;
+      return -1;
     }
 
   caplen -= n;
 
   //detect fcs at the end, even if the flag wasn't set and remove it
-  if (0 == fcs_removed && 1== check_crc_buf_osdep(tmpbuf + n, caplen - 4))
+  if ( (0 == fcs_removed) && 
+       (1 == check_crc_buf_osdep(tmpbuf + n, caplen - 4)) )
     {
       caplen -= 4;
     }
-
   memcpy(buf, tmpbuf + n, caplen);
-
-  if (ri && !got_channel)
+  if (! got_channel)
     ri->ri_channel = linux_get_channel(dev);
 
-  return (caplen);
+  return caplen;
 }
 
+
+/**
+ * @return 0 on success
+ */
 static int
-linux_write(struct Hardware_Infos * dev, unsigned char *buf, unsigned int count)
-{
-  int ret;
-  //int usedrtap;
-  //unsigned short int *p_rtlen;
-
-  //unsigned char * u8aRadiotap = buf;
-
-  /* Pointer to the radiotap header length field for later use. */
-  //p_rtlen = (unsigned short int*) (u8aRadiotap + 2);
-  //usedrtap = 0;
-  ret = write(dev->fd_out, buf, count);
-
-  if (0 > ret)
-    {
-      if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOBUFS || errno
-          == ENOMEM)
-        {
-          usleep(10000);
-          return (0);
-        }
-
-      perror("write failed");
-      return (-1);
-    }
-
-  /* radiotap header length is stored little endian on all systems */
-  /*if (usedrtap)
-   ret -= letoh16(*p_rtlen);
-
-   if (0 > ret)
-   {
-   if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOBUFS || errno
-   == ENOMEM)
-   {
-   usleep(10000);
-   return (0);
-   }
-
-   perror("write failed");
-   return (-1);
-   }*/
-
-  return (ret);
-}
-
-static int
-openraw(struct Hardware_Infos * dev, 
-	const char * iface, int fd, int * arptype,
-    uint8_t *mac)
+openraw (struct Hardware_Infos *dev)
 {
   struct ifreq ifr;
   struct iwreq wrq;
@@ -435,49 +373,53 @@ openraw(struct Hardware_Infos * dev,
   struct sockaddr_ll sll;
 
   /* find the interface index */
-
   memset(&ifr, 0, sizeof(ifr));
-  strncpy(ifr.ifr_name, iface, sizeof(ifr.ifr_name) - 1);
-
-  if (0 > ioctl(fd, SIOCGIFINDEX, &ifr))
+  strncpy(ifr.ifr_name, dev->iface, IFNAMSIZ);
+  if (-1 == ioctl(dev->fd_raw, SIOCGIFINDEX, &ifr))
     {
-      printf("Interface %s: \n", iface);
-      perror("ioctl(SIOCGIFINDEX) failed");
-      return (1);
+      fprintf (stderr,
+	       "ioctl(SIOCGIFINDEX) on interface `%.*s' failed: %s\n",
+	       IFNAMSIZ,
+	       dev->iface,
+	       strerror (errno));
+      return 1;
     }
 
-  memset(&sll, 0, sizeof(sll));
+  /* lookup the hardware type */
+  memset (&sll, 0, sizeof(sll));
   sll.sll_family = AF_PACKET;
   sll.sll_ifindex = ifr.ifr_ifindex;
-
   sll.sll_protocol = htons(ETH_P_ALL);
-
-  /* lookup the hardware type */
-
-  if (0 > ioctl(fd, SIOCGIFHWADDR, &ifr))
+  if (-1 == ioctl(dev->fd_raw, SIOCGIFHWADDR, &ifr))
     {
-      printf("Interface %s: \n", iface);
-      perror("ioctl(SIOCGIFHWADDR) failed");
-      return (1);
+      fprintf (stderr,
+	       "ioctl(SIOCGIFHWADDR) on interface `%.*s' failed: %s\n",
+	       IFNAMSIZ,
+	       dev->iface,
+	       strerror (errno));
+      return 1;
     }
 
   /* lookup iw mode */
   memset(&wrq, 0, sizeof(struct iwreq));
-  strncpy(wrq.ifr_name, iface, IFNAMSIZ);
-
-  if (0 > ioctl(fd, SIOCGIWMODE, &wrq))
+  strncpy(wrq.ifr_name, dev->iface, IFNAMSIZ);
+  if (-1 == ioctl(dev->fd_raw, SIOCGIWMODE, &wrq))
     {
       /* most probably not supported (ie for rtap ipw interface) *
        * so just assume its correctly set...                     */
       wrq.u.mode = IW_MODE_MONITOR;
     }
 
-  if ((ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211 && ifr.ifr_hwaddr.sa_family
-      != ARPHRD_IEEE80211_PRISM && ifr.ifr_hwaddr.sa_family
-      != ARPHRD_IEEE80211_FULL) || (wrq.u.mode != IW_MODE_MONITOR))
+  if ( ( (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211) && 
+	 (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211_PRISM) && 
+	 (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211_FULL) ) || 
+       (wrq.u.mode != IW_MODE_MONITOR) )
     {
-      printf("Error: %s not in monitor mode\n", iface);
-      return (1);
+      fprintf (stderr,
+	       "Error: interface `%.*s' is not in monitor mode\n", 
+	       IFNAMSIZ,
+	       dev->iface);
+      return 1;
     }
 
   /* Is interface st to up, broadcast & running ? */
@@ -486,91 +428,99 @@ openraw(struct Hardware_Infos * dev,
       /* Bring interface up*/
       ifr.ifr_flags |= IFF_UP | IFF_BROADCAST | IFF_RUNNING;
 
-      if (ioctl(fd, SIOCSIFFLAGS, &ifr) < 0)
+      if (-1 != ioctl(dev->fd_raw, SIOCSIFFLAGS, &ifr))
         {
-          perror("ioctl(SIOCSIFFLAGS) failed");
-          return (1);
+	  fprintf (stderr,
+		   "ioctl(SIOCSIFFLAGS) on interface `%.*s' failed: %s\n",
+		   IFNAMSIZ,
+		   dev->iface,
+		   strerror (errno));
+          return 1;
         }
     }
-  /* bind the raw socket to the interface */
 
-  if (0 > bind(fd, (struct sockaddr *) &sll, sizeof(sll)))
+  /* bind the raw socket to the interface */
+  if (-1 == bind(dev->fd_raw, (struct sockaddr *) &sll, sizeof(sll)))
     {
-      printf("Interface %s: \n", iface);
-      perror("bind(ETH_P_ALL) failed");
-      return (1);
+      fprintf (stderr,
+	       "Failed to bind interface `%.*s': %s\n",
+	       IFNAMSIZ,
+	       dev->iface,
+	       strerror (errno));
+      return 1;
     }
 
   /* lookup the hardware type */
-
-  if (0 > ioctl(fd, SIOCGIFHWADDR, &ifr))
+  if (-1 != ioctl(dev->fd_raw, SIOCGIFHWADDR, &ifr))
     {
-      printf("Interface %s: \n", iface);
-      perror("ioctl(SIOCGIFHWADDR) failed");
-      return (1);
+      fprintf (stderr,
+	       "ioctl(SIOCGIFHWADDR) on interface `%.*s' failed: %s\n",
+	       IFNAMSIZ,
+	       dev->iface,
+	       strerror (errno));
+      return 1;
     }
 
-  memcpy(mac, (unsigned char*) ifr.ifr_hwaddr.sa_data, 6);
-
-  *arptype = ifr.ifr_hwaddr.sa_family;
-
-  if (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211 && ifr.ifr_hwaddr.sa_family
-      != ARPHRD_IEEE80211_PRISM && ifr.ifr_hwaddr.sa_family
-      != ARPHRD_IEEE80211_FULL)
+  memcpy (dev->pl_mac, 
+	  ifr.ifr_hwaddr.sa_data, 
+	  MAC_ADDR_SIZE);
+  dev->arptype_in = ifr.ifr_hwaddr.sa_family;
+  if ( (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211) && 
+       (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211_PRISM) && 
+       (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211_FULL) )
     {
-      if (1 == ifr.ifr_hwaddr.sa_family)
-        fprintf(stderr, "\nARP linktype is set to 1 (Ethernet) ");
-      else
-        fprintf(stderr, "\nUnsupported hardware link type %4d ",
-            ifr.ifr_hwaddr.sa_family);
-
-      fprintf(stderr, "- expected ARPHRD_IEEE80211,\nARPHRD_IEEE80211_"
-        "FULL or ARPHRD_IEEE80211_PRISM instead.  Make\n"
-        "sure RFMON is enabled: run 'airmon-ng start %s"
-        " <#>'\nSysfs injection support was not found "
-        "either.\n\n", iface);
-      return (1);
+      fprintf (stderr,
+	       "Unsupported hardware link type %d on interface `%.*s'\n",
+	       ifr.ifr_hwaddr.sa_family,
+	       IFNAMSIZ,
+	       dev->iface);
+      return 1;
     }
 
   /* enable promiscuous mode */
-
   memset(&mr, 0, sizeof(mr));
   mr.mr_ifindex = sll.sll_ifindex;
   mr.mr_type = PACKET_MR_PROMISC;
-
-  if (setsockopt(fd, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mr, sizeof(mr)) < 0)
+  if (0 != setsockopt(dev->fd_raw, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mr, sizeof(mr)))
     {
-      perror("setsockopt(PACKET_MR_PROMISC) failed");
-      return (1);
+      fprintf (stderr,
+	       "Failed to enable promiscuous mode on interface `%.*s'\n",
+	       IFNAMSIZ,
+	       dev->iface);
+      return 1;
     }
 
-  return (0);
+  return 0;
 }
 
+/**
+ * @return 0 on success
+ */
 static int
-wlaninit(struct Hardware_Infos * dev, const char *iface)
+wlaninit (struct Hardware_Infos *dev, 
+	  const char *iface)
 {
   char strbuf[512];
   struct stat sbuf;
   int ret;
 
-  dev->fd_out = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
-  if (0 > dev->fd_out)
+  dev->fd_raw = socket (PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+  if (0 > dev->fd_raw)
     {
-      perror("socket(PF_PACKET) failed at fd_out");
-      goto close_in;
+      fprintf (stderr,
+	       "Failed to create raw socket: %s\n",
+	       strerror (errno));
+      return 1;
     }
-
-  /* figure out device type */
-
-  /* mac80211 radiotap injection
-   * detected based on interface called mon...
-   * since mac80211 allows multiple virtual interfaces
-   *
-   * note though that the virtual interfaces are ultimately using a
-   * single physical radio: that means for example they must all
-   * operate on the same channel
-   */
+  if (dev->fd_raw >= FD_SETSIZE)
+    {
+      fprintf (stderr,
+	       "File descriptor too large for select (%d > %d)\n",
+	       dev->fd_raw,
+	       FD_SETSIZE);
+      close (dev->fd_raw);
+      return 1;
+    }
 
   /* mac80211 stack detection */
   ret = snprintf(strbuf, 
@@ -584,127 +534,115 @@ wlaninit(struct Hardware_Infos * dev, const char *iface)
       fprintf(stderr, 
 	      "Did not find 802.11 interface `%s'. Exiting.\n",
 	      iface);
+      close (dev->fd_raw);
       return 1;
     }
-
-  if (openraw(dev, iface, dev->fd_out, &dev->arptype_in, dev->pl_mac) != 0)
+  strncpy(dev->iface, iface, IFNAMSIZ);
+  if (0 != openraw(dev))
     {
-      goto close_out;
+      close(dev->fd_raw);
+      return 1;
     }
-
-  dev->fd_in = dev->fd_out;
-  dev->iface = GNUNET_malloc(sizeof(char) *6);
-  strncpy(dev->iface, iface, sizeof(char) * 6);
-
-
   return 0;
-  close_out: close(dev->fd_out);
-  close_in: close(dev->fd_in);
-  return 1;
 }
+
 
 /**
- * function to test incoming packets mac
- * @param buf buffer of the packet
- * @param dev pointer to the Hardware_Infos struct
- * @return 0 if macs are okay, 1 if macs are wrong
+ * Function to test incoming packets mac for being our own.
+ *
+ * @param u8aIeeeHeader buffer of the packet
+ * @param dev the Hardware_Infos struct
+ * @return 0 if mac belongs to us, 1 if mac is for another target
  */
-
 static int
-mac_test(unsigned char * buf, struct Hardware_Infos * dev)
+mac_test (const struct ieee80211_frame *u8aIeeeHeader, 
+	  const struct Hardware_Infos *dev)
 {
-  struct ieee80211_frame * u8aIeeeHeader;
-  u8aIeeeHeader = (struct ieee80211_frame *) buf;
-  if (0 == memcmp(u8aIeeeHeader->i_addr3, &mac_bssid, 6))
-    {
-      if (0 == memcmp(u8aIeeeHeader->i_addr1, dev->pl_mac, 6))
-        {
-          return 0;
-        }
-
-      if (0 == memcmp(u8aIeeeHeader->i_addr1, &bc_all_mac, 6))
-        {
-          return 0;
-        }
-    }
-
+  if (0 != memcmp(u8aIeeeHeader->i_addr3, &mac_bssid, MAC_ADDR_SIZE))
+    return 1;
+  if (0 == memcmp(u8aIeeeHeader->i_addr1, dev->pl_mac, MAC_ADDR_SIZE))
+    return 0;
+  if (0 == memcmp(u8aIeeeHeader->i_addr1, &bc_all_mac, MAC_ADDR_SIZE))
+    return 0;
   return 1;
 }
+
 
 /**
  * function to set the wlan header to make attacks more difficult
  * @param buf buffer of the packet
  * @param dev pointer to the Hardware_Infos struct
  */
-
 static void
-mac_set(unsigned char * buf, struct Hardware_Infos * dev)
+mac_set (struct ieee80211_frame *u8aIeeeHeader, 
+	 const struct Hardware_Infos * dev)
 {
-  struct ieee80211_frame * u8aIeeeHeader;
-  u8aIeeeHeader = (struct ieee80211_frame *) buf;
-
   u8aIeeeHeader->i_fc[0] = 0x08;
   u8aIeeeHeader->i_fc[1] = 0x00;
-
-  memcpy(u8aIeeeHeader->i_addr2, dev->pl_mac, 6);
-  memcpy(u8aIeeeHeader->i_addr3, &mac_bssid, 6);
+  memcpy(u8aIeeeHeader->i_addr2, 
+	 dev->pl_mac, 
+	 MAC_ADDR_SIZE);
+  memcpy(u8aIeeeHeader->i_addr3, 
+	 &mac_bssid, 
+	 MAC_ADDR_SIZE);
 
 }
 
+
 static void
-stdin_send_hw(void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
+stdin_send_hw (void *cls, 
+	       void *client, 
+	       const struct GNUNET_MessageHeader *hdr)
 {
   struct Hardware_Infos * dev = cls;
-  struct sendbuf *write_pout = dev->write_pout;
+  struct sendbuf *write_pout = &dev->write_pout;
   struct Radiotap_Send * header = (struct Radiotap_Send *) &hdr[1];
-  unsigned char * wlanheader;
+  struct ieee80211_frame * wlanheader;
+  size_t sendsize;
 
-  int sendsize;
-
+  // struct? // FIXME: make nice...
   unsigned char u8aRadiotap[] =
     { 0x00, 0x00, // <-- radiotap version
-        0x0c, 0x00, // <- radiotap header length
-        0x04, 0x80, 0x00, 0x00, // <-- bitmap
-        0x00, // <-- rate
-        0x00, // <-- padding for natural alignment
-        0x18, 0x00, // <-- TX flags
-      };
+      0x0c, 0x00, // <- radiotap header length
+      0x04, 0x80, 0x00, 0x00, // <-- bitmap
+      0x00, // <-- rate
+      0x00, // <-- padding for natural alignment
+      0x18, 0x00, // <-- TX flags
+    };
 
-  sendsize = ntohs(hdr->size) - sizeof(struct Radiotap_Send)
-      - sizeof(struct GNUNET_MessageHeader);
-
-  if (MAXLINE * 2 < sendsize)
+  sendsize = ntohs(hdr->size);
+  if (sendsize < sizeof(struct Radiotap_Send) + sizeof(struct GNUNET_MessageHeader))
     {
-      fprintf(stderr, "Function stdin_send: Packet too big for buffer\n");
+      fprintf(stderr, 
+	      "Function stdin_send_hw: mailformed packet (too small)\n");
+      exit (1);
+    }
+  sendsize -= sizeof(struct Radiotap_Send) + sizeof(struct GNUNET_MessageHeader);
+
+  if (MAXLINE < sendsize)
+    {
+      fprintf(stderr, 
+	      "Function stdin_send_hw: Packet too big for buffer\n");
       exit(1);
     }
-
   if (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA != ntohs(hdr->type))
     {
       fprintf(stderr, "Function stdin_send: wrong packet type\n");
       exit(1);
     }
 
-  if ( sizeof(struct ieee80211_frame)
-      + sizeof(struct GNUNET_MessageHeader) > sendsize)
-    {
-      fprintf(stderr, "Function stdin_send: packet too small\n");
-      exit(1);
-    }
-
-  u8aRadiotap[2] = htole16(sizeof(u8aRadiotap));
+  u8aRadiotap[2] = htole16(sizeof(u8aRadiotap)); // WTF?
   u8aRadiotap[8] = header->rate;
-
   memcpy(write_pout->buf, u8aRadiotap, sizeof(u8aRadiotap));
   memcpy(write_pout->buf + sizeof(u8aRadiotap), &header[1], sendsize);
-  
-  wlanheader = write_pout->buf + sizeof(u8aRadiotap);
+  /* payload contains MAC address, but we don't trust it, so we'll 
+     overwrite it with OUR MAC address again to prevent mischief */
+  wlanheader = (struct ieee80211_frame *) (write_pout->buf + sizeof(u8aRadiotap));
   mac_set(wlanheader, dev);
-  
-  sendsize += sizeof(u8aRadiotap);
-  write_pout->size = sendsize;
+  write_pout->size = sendsize + sizeof(u8aRadiotap);
 }
 
+#if 0
 static int
 maketest(unsigned char * buf, struct Hardware_Infos * dev)
 {
@@ -762,7 +700,7 @@ maketest(unsigned char * buf, struct Hardware_Infos * dev)
   if (0 == first)
     {
       memcpy(&u8aIeeeHeader, u8aIeeeHeader_def, sizeof(struct ieee80211_frame));
-      memcpy(u8aIeeeHeader.i_addr2, dev->pl_mac, 6);
+      memcpy(u8aIeeeHeader.i_addr2, dev->pl_mac, MAC_ADDR_SIZE);
       first = 1;
     }
 
@@ -780,274 +718,231 @@ maketest(unsigned char * buf, struct Hardware_Infos * dev)
   return sizeof(u8aRadiotap) + sizeof(u8aIeeeHeader) + sizeof(txt);
 
 }
+#endif
 
-int
-hardwaremode(int argc, char *argv[])
+
+/**
+ * function to create GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL message for plugin
+ * @param buffer pointer to buffer for the message
+ * @param mac pointer to the mac address
+ * @return number of bytes written
+ */
+// FIXME: use 'struct MacAddress' for 'mac' (everywhere in this file)
+static int
+send_mac_to_plugin(char * buffer, uint8_t * mac)
 {
+  struct Wlan_Helper_Control_Message macmsg;
 
+  macmsg.hdr.size = htons(sizeof(struct Wlan_Helper_Control_Message));
+  macmsg.hdr.type = htons(GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL);
+  memcpy(macmsg.mac.mac, mac, sizeof(struct MacAddress));
+  memcpy(buffer, &macmsg, sizeof(struct Wlan_Helper_Control_Message));
+  return sizeof(struct Wlan_Helper_Control_Message);
+}
+
+
+static int
+hardwaremode (int argc, 
+	      char *argv[])
+{
   uid_t uid;
   struct Hardware_Infos dev;
-  struct Radiotap_rx * rxinfo;
-  uint8_t * mac = dev.pl_mac;
-  int fdpin, fdpout;
-
-  struct GNUNET_MessageHeader * header;
-
-  signal(SIGINT, &sigfunc_hw);
-  signal(SIGTERM, &sigfunc_hw);
-
-  if (wlaninit(&dev, argv[1]))
-    {
-      return 1;
-    }
-
-  uid = getuid();
-  //if (0 != setresuid(uid, uid, uid))
-  //{
-  //  fprintf(stderr, "Failed to setresuid: %s\n", strerror(errno));
-  /* not critical, continue anyway */
-  //}
-
-  unsigned char * datastart;
   char readbuf[MAXLINE];
-  int readsize = 0;
   struct sendbuf write_std;
-  write_std.size = 0;
-  write_std.pos = 0;
-
-  struct sendbuf write_pout;
-  write_pout.size = 0;
-  write_pout.pos = 0;
-
-  dev.write_pout = &write_pout;
-
-  int ret = 0;
-  int maxfd = 0;
-
+  ssize_t ret;
+  int maxfd;
   fd_set rfds;
   fd_set wfds;
-  struct timeval tv;
   int retval;
-
+  int stdin_open;
   struct GNUNET_SERVER_MessageStreamTokenizer * stdin_mst;
 
-  fdpin = dev.fd_in;
-  fdpout = dev.fd_out;
-
-  stdin_mst = GNUNET_SERVER_mst_create(&stdin_send_hw, &dev);
-
-  //send mac first
-
-  write_std.size = send_mac_to_plugin((char *) &write_std.buf, mac);
-
-  //wait
-  tv.tv_sec = 2;
-  tv.tv_usec = 0;
-  retval = select(0, NULL, NULL, NULL, &tv);
-
-  while (0 == closeprog)
+  if (2 != argc)
     {
+      fprintf (stderr,
+	       "This program must be started with the interface argument.\n");
+      fprintf (stderr,
+	       "Usage: interface-name\n");
+      return 1;
+    }
+  if (0 != wlaninit(&dev, argv[1]))
+    return 1;    
+  uid = getuid();
+  if (0 != setresuid(uid, uid, uid))
+    {
+      fprintf(stderr, 
+	      "Failed to setresuid: %s\n",
+	      strerror(errno));
+      /* not critical, continue anyway */
+    }
 
-      //write_pout.size = maketest(write_pout.buf, &dev);
-      //tv.tv_sec = 2;
-      //tv.tv_usec = 0;
-      //select(0, NULL, NULL, NULL, &tv);
+  dev.write_pout.size = 0;
+  dev.write_pout.pos = 0;
+  stdin_mst = GNUNET_SERVER_mst_create (&stdin_send_hw, &dev);
 
-      maxfd = 0;
+  /* send mac to STDOUT first */
+  write_std.pos = 0;
+  write_std.size = send_mac_to_plugin((char *) &write_std.buf, dev.pl_mac);
+  stdin_open = 1;
 
-      //set timeout
-      tv.tv_sec = 5;
-      tv.tv_usec = 0;
-
-      FD_ZERO(&rfds);
-      // if output queue is empty
-      if (0 == write_pout.size)
-        {
-          FD_SET(STDIN_FILENO, &rfds);
-
-        }
+  while (1)
+    {
+      maxfd = -1;
+      FD_ZERO (&rfds);
+      if ( (0 == dev.write_pout.size) &&
+	   (1 == stdin_open) )
+	{
+	  FD_SET (STDIN_FILENO, &rfds);
+	  maxfd = MAX (maxfd, STDIN_FILENO);
+	}
       if (0 == write_std.size)
         {
-          FD_SET(fdpin, &rfds);
-          maxfd = fdpin;
+          FD_SET (dev.fd_raw, &rfds);
+          maxfd = MAX(maxfd, dev.fd_raw);
         }
       FD_ZERO(&wfds);
-      // if there is something to write
       if (0 < write_std.size)
         {
-          FD_SET(STDOUT_FILENO, &wfds);
+          FD_SET (STDOUT_FILENO, &wfds);
           maxfd = MAX(maxfd, STDOUT_FILENO);
         }
-
-      if (0 < write_pout.size)
+      if (0 < dev.write_pout.size)
         {
-          FD_SET(fdpout, &wfds);
-          maxfd = MAX(maxfd, fdpout);
+          FD_SET(dev.fd_raw, &wfds);
+          maxfd = MAX(maxfd, dev.fd_raw);
         }
-
-      retval = select(maxfd + 1, &rfds, &wfds, NULL, &tv);
-
-      if (-1 == retval && EINTR == errno)
-        {
-          continue;
-        }
+      retval = select(maxfd + 1, &rfds, &wfds, NULL, NULL);
+      if ( (-1 == retval) && 
+	   (EINTR == errno) )        
+	continue;        
       if (0 > retval)
         {
-          fprintf(stderr, "select failed: %s\n", strerror(errno));
-          exit(1);
+          fprintf(stderr, 
+		  "select failed: %s\n", 
+		  strerror(errno));
+          break;
         }
 
       if (FD_ISSET(STDOUT_FILENO, &wfds))
         {
-          ret = write(STDOUT_FILENO, write_std.buf + write_std.pos,
-              write_std.size - write_std.pos);
-
+          ret = write(STDOUT_FILENO, 
+		      write_std.buf + write_std.pos,
+		      write_std.size - write_std.pos);
           if (0 > ret)
             {
-              closeprog = 1;
-              fprintf(stderr, "Write ERROR to STDOUT\n");
-              goto end;
+              fprintf (stderr, 
+		       "Failed to write to STDOUT: %s\n",
+		       strerror (errno));
+              break;
             }
-          else
-            {
-              write_std.pos += ret;
-              // check if finished
-              if (write_std.pos == write_std.size)
-                {
-                  write_std.pos = 0;
-                  write_std.size = 0;
-                }
-            }
-        }
+	  write_std.pos += ret;
+	  if (write_std.pos == write_std.size)
+	    {
+	      write_std.pos = 0;
+	      write_std.size = 0;
+	    }
+	}        
 
-      if (FD_ISSET(fdpout, &wfds))
+      if (FD_ISSET(dev.fd_raw, &wfds))
         {
-
-          ret = linux_write(&dev, write_pout.buf, write_pout.size);
-
-          if (0 > ret)
-            {
-              closeprog = 1;
-              fprintf(stderr, "Write ERROR to fdpout\n");
-            }
-          else
-            {
-              write_pout.pos += ret;
-              // check if finished
-              if (write_pout.pos != write_pout.size && ret != 0)
-                {
-                  closeprog = 1;
-                  fprintf(stderr,
-                      "Write ERROR packet not in one piece send: %u, %u\n",
-                      write_pout.pos, write_pout.size);
-                }
-              else if (write_pout.pos == write_pout.size)
-                {
-                  write_pout.pos = 0;
-                  write_pout.size = 0;
-                }
-
-            }
+	  ret = write (dev.fd_raw, 
+		       dev.write_pout.buf, 
+		       dev.write_pout.size);
+	  if (0 > ret)
+	    {
+	      fprintf (stderr, 
+		       "Failed to write to WLAN device: %s\n",
+		       strerror (errno));
+              break;
+	    }
+	  dev.write_pout.pos += ret;
+	  if ( (dev.write_pout.pos != dev.write_pout.size) && 
+	       (ret != 0) )
+	    {
+	      fprintf(stderr,
+                      "Write error, partial send: %u/%u\n",
+		      dev.write_pout.pos, dev.write_pout.size);
+	      break;
+	    }
+	  if (dev.write_pout.pos == dev.write_pout.size)
+	    {
+	      dev.write_pout.pos = 0;
+	      dev.write_pout.size = 0;
+	    }
         }
 
       if (FD_ISSET(STDIN_FILENO, &rfds))
         {
-          readsize = read(STDIN_FILENO, readbuf, sizeof(readbuf));
-
-          if (0 > readsize)
+          ret = read(STDIN_FILENO, readbuf, sizeof(readbuf));
+          if (0 > ret)
             {
-              closeprog = 1;
-              fprintf(stderr, "Read ERROR to STDIN_FILENO\n");
+              fprintf(stderr, 
+		      "Read error from STDIN: %s\n",
+		      strerror (errno));
+	      break;
             }
-          else if (0 < readsize)
-            {
-              GNUNET_SERVER_mst_receive(stdin_mst, NULL, readbuf, readsize,
-                  GNUNET_NO, GNUNET_NO);
-
-            }
-          else
-            {
-              //eof
-              closeprog = 1;
-            }
+	  if (0 == ret)
+	    {
+	      /* stop reading... */
+	      stdin_open = 0;
+	    }
+	  GNUNET_SERVER_mst_receive (stdin_mst, NULL, 
+				     readbuf, ret,
+				     GNUNET_NO, GNUNET_NO);
         }
 
-      if (FD_ISSET(fdpin, &rfds))
+      if (FD_ISSET(dev.fd_raw, &rfds))
         {
-          rxinfo = (struct Radiotap_rx *) (write_std.buf
-              + sizeof(struct GNUNET_MessageHeader));
-          datastart = (unsigned char *) write_std.buf
-              + sizeof(struct Radiotap_rx)
-              + sizeof(struct GNUNET_MessageHeader);
+	  struct GNUNET_MessageHeader * header;
+	  struct Radiotap_rx * rxinfo;
+	  struct ieee80211_frame * datastart;
 
-          readsize = linux_read(&dev, datastart, sizeof(write_std.buf)
-              - sizeof(struct Radiotap_rx)
-              - sizeof(struct GNUNET_MessageHeader), rxinfo);
-
-          if (0 > readsize)
+	  header = (struct GNUNET_MessageHeader *) write_std.buf;
+          rxinfo = (struct Radiotap_rx *) &header[1];
+          datastart = (struct ieee80211_frame *) &rxinfo[1];
+          ret = linux_read (&dev,
+			    (unsigned char *) datastart,
+			    sizeof(write_std.buf) - sizeof(struct Radiotap_rx) - sizeof(struct GNUNET_MessageHeader), 
+			    rxinfo);
+          if (0 > ret)
             {
-              closeprog = 1;
-              fprintf(stderr, "Read ERROR to fdpin: %s\n", strerror(errno));
-              closeprog = 1;
+              fprintf(stderr, 
+		      "Read error from raw socket: %s\n", 
+		      strerror(errno));
+              break;
             }
-          else if (0 < readsize)
-            {
-              if (1 == mac_test(datastart, &dev))
-                {
-                  // mac wrong
-                  write_std.pos = 0;
-                  write_std.size = 0;
-                }
-              else
-                {
-                  header = (struct GNUNET_MessageHeader *) write_std.buf;
-                  write_std.size = readsize
-                      + sizeof(struct GNUNET_MessageHeader)
-                      + sizeof(struct Radiotap_rx);
-                  header->size = htons(write_std.size);
-                  header->type = htons(GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
-                  fprintf(stderr, "Got packet with size: %u, size std %u\n",
-                      readsize, write_std.size);
-
-                }
+	  if ( (0 < ret) &&
+	       (0 == mac_test(datastart, &dev)) )
+	    {
+	      write_std.size = ret + sizeof(struct GNUNET_MessageHeader) + sizeof(struct Radiotap_rx);
+	      header->size = htons(write_std.size);
+	      header->type = htons(GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
             }
         }
 
     }
-
+  /* Error handling, try to clean up a bit at least */
   GNUNET_SERVER_mst_destroy(stdin_mst);
-  return 0;
-
-  end: GNUNET_SERVER_mst_destroy(stdin_mst);
-  return 1;
-
+  close (dev.fd_raw);
+  return 1; 
 }
 
 int
 main(int argc, char *argv[])
 {
-  int ret = 0;
   if (3 != argc)
     {
-      fprintf(
-          stderr,
-          "This program must be started with the interface and the operating mode as argument.\n");
-      usage();
+      fprintf (stderr,
+	       "This program must be started with the interface and the operating mode as argument.\n");
+      fprintf (stderr,
+	       "Usage: interface-name options\n"
+	       "options: 0 = with hardware\n"
+	       "1 = first loopback file\n"
+	       "2 = second loopback file\n"
+	       "\n");
       return 1;
     }
-
   if (strstr(argv[2], "1") || strstr(argv[2], "2"))
-    {
-
-      ret = testmode(argc, argv);
-    }
-  else
-    {
-
-      ret = hardwaremode(argc, argv);
-    }
-
-  return ret;
-  maketest(NULL, NULL);
+    return testmode(argc, argv);
+  return hardwaremode(argc - 1, argv);
 }
-
