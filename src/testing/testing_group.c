@@ -3388,7 +3388,7 @@ hello_sent_callback (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     struct SendHelloContext *send_hello_context = cls;
     //unsigned int pg_iter;
-    if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+    if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
       {
         GNUNET_free(send_hello_context);
         return;
@@ -3446,7 +3446,7 @@ static void schedule_send_hellos (void *cls, const struct GNUNET_SCHEDULER_TaskC
     struct SendHelloContext *send_hello_context = cls;
     struct GNUNET_TESTING_PeerGroup *pg = send_hello_context->pg;
 
-    if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+    if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
       {
         GNUNET_free(send_hello_context);
         return;
@@ -3574,7 +3574,7 @@ schedule_connect(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct ConnectContext *connect_context = cls;
   struct GNUNET_TESTING_PeerGroup *pg = connect_context->ct_ctx->pg;
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 
   if ((pg->outstanding_connects > pg->max_outstanding_connections)
@@ -4801,7 +4801,7 @@ schedule_get_topology(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct CoreContext *core_context = cls;
   struct TopologyIterateContext *topology_context =
       (struct TopologyIterateContext *) core_context->iter_context;
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 
   if (topology_context->connected
@@ -4945,7 +4945,7 @@ schedule_get_statistics(void *cls,
   struct StatsIterateContext *stats_context =
       (struct StatsIterateContext *) core_context->iter_context;
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 
   if (stats_context->connected > stats_context->pg->max_outstanding_connections)
@@ -5427,7 +5427,7 @@ internal_continue_startup(void *cls,
 {
   struct InternalStartContext *internal_context = cls;
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     {
       return;
     }
@@ -5540,7 +5540,7 @@ internal_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct InternalStartContext *internal_context = cls;
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     {
       return;
     }

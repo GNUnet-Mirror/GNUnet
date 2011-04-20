@@ -635,7 +635,7 @@ send_test_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       topology_connections = 0;
       GNUNET_TESTING_get_topology (pg, &topology_cb, NULL);
     }
-  if ((tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN) || (cls == NULL))
+  if (( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)|| (cls == NULL))
     return;
 
   if (die_task == GNUNET_SCHEDULER_NO_TASK)

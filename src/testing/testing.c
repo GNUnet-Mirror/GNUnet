@@ -1617,7 +1617,7 @@ notify_connect_result (void *cls,
       ctx->connect_request_handle = NULL;
     }
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     {
       if (ctx->d1th != NULL)
         GNUNET_TRANSPORT_disconnect (ctx->d1th);
@@ -1765,7 +1765,7 @@ send_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct ConnectContext *ctx = cls;
   struct GNUNET_MessageHeader *hello;
   ctx->hello_send_task = GNUNET_SCHEDULER_NO_TASK;
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
   if ((ctx->d1core_ready == GNUNET_YES) && (ctx->d2->hello != NULL)
       && (NULL != GNUNET_HELLO_get_header (ctx->d2->hello))
@@ -1844,7 +1844,7 @@ reattempt_daemons_connect (void *cls,
                            const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ConnectContext *ctx = cls;
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     {
       GNUNET_free(ctx);
       return;
