@@ -918,9 +918,6 @@ get_next_queue_session(struct Plugin * plugin)
       session = sessionqueue->content;
 
       GNUNET_assert(session != NULL);
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "Found session %p from pending session queue\n", session
-          );
       pm = session->pending_message;
 
 
@@ -1924,9 +1921,6 @@ free_session(struct Plugin * plugin, struct Sessionqueue * queue)
 				       pendingsession);
           GNUNET_free(pendingsession);
 
-	  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-		     "Remove session %p from pending session queue\n", 
-		     queue->content);
           GNUNET_assert (check == 0);
           check = 1;
         }
@@ -2965,6 +2959,11 @@ libgnunet_plugin_transport_wlan_done(void *cls)
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
       "libgnunet_plugin_transport_wlan_done started\n");
 #endif
+
+
+  GNUNET_OS_process_close(plugin->server_proc);
+  GNUNET_DISK_pipe_close(plugin->server_stdout);
+  GNUNET_DISK_pipe_close(plugin->server_stdin);
 
   GNUNET_assert (cls !=NULL);
   //free sessions
