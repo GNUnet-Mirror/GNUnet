@@ -6890,12 +6890,12 @@ ats_calculate_bandwidth_distribution ()
 		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peers/Addresses were modified... new problem: %i peer, %i mechs\n", ats->stat.c_peers, ats->stat.c_mechs);
 #endif
 	}
-	else if ((ats->modified_addr == GNUNET_NO) && (ats->modified_resources == GNUNET_YES))
+	else if ((ats->modified_addr == GNUNET_NO) && (ats->modified_resources == GNUNET_YES) && (ats->stat.valid == GNUNET_YES))
 	{
 		ats_update_problem_cr();
 		text = "modified resources";
 	}
-	else if ((ats->modified_addr == GNUNET_NO) && (ats->modified_quality == GNUNET_YES))
+	else if ((ats->modified_addr == GNUNET_NO) && (ats->modified_quality == GNUNET_YES) && (ats->stat.valid == GNUNET_YES))
 	{
 		ats_update_problem_qm();
 		//ats_update_problem_qm_TEST ();
