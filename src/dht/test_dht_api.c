@@ -169,7 +169,7 @@ test_find_peer_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct PeerContext *peer = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Called test_find_peer_stop!\n");
-  if (tc->reason == GNUNET_SCHEDULER_REASON_TIMEOUT)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT) != 0)
     {
       GNUNET_break (0);
       GNUNET_SCHEDULER_cancel (die_task);
@@ -348,7 +348,7 @@ test_get_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct PeerContext *peer = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Called test_get_stop!\n");
-  if (tc->reason == GNUNET_SCHEDULER_REASON_TIMEOUT)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT) != 0)
     {
       GNUNET_break (0);
       GNUNET_SCHEDULER_cancel (die_task);

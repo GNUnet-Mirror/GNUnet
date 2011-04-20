@@ -2042,7 +2042,7 @@ get_stop_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   struct TestGetContext *test_get = cls;
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_TIMEOUT)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT) != 0)
     gets_failed++;
   else
     cumulative_successful_gets++;
@@ -2180,7 +2180,7 @@ put_finished(void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   outstanding_puts--;
   puts_completed++;
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_TIMEOUT)
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT) != 0)
     fprintf (stderr, "PUT Request failed!\n");
 
   /* Reset the daemon (which peer to insert at) for later put request iterations */
