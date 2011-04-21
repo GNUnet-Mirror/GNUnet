@@ -616,6 +616,7 @@ copy_reply (void *cls,
  *
  * @param cls 'struct GSF_ConnectedPeer' of the peer that would
  *            have liked an answer to the request
+ * @param eval evaluation of the result
  * @param pr handle to the original pending request
  * @param expiration when does 'data' expire?
  * @param type type of the block
@@ -624,6 +625,7 @@ copy_reply (void *cls,
  */
 static void
 handle_p2p_reply (void *cls,
+		  enum GNUNET_BLOCK_EvaluationResult eval,
 		  struct GSF_PendingRequest *pr,
 		  struct GNUNET_TIME_Absolute expiration,
 		  enum GNUNET_BLOCK_Type type,
@@ -683,6 +685,17 @@ handle_p2p_reply (void *cls,
 			     msize,
 			     &copy_reply,
 			     pm);
+  if (eval != GNUNET_BLOCK_EVALUATION_OK_LAST)
+    return;
+  GNUNET_STATISTICS_update (GSF_stats,
+			    gettext_noop ("# P2P searches active"),
+			    -1,
+			    GNUNET_NO);
+  GNUNET_break (GNUNET_OK ==
+		GNUNET_CONTAINER_multihashmap_remove (cp->request_map,
+						      &prd->query,
+						      pr));
+  GSF_pending_request_cancel_ (pr);
 }
 
 

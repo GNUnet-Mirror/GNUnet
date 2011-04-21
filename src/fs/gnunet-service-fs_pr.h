@@ -158,6 +158,7 @@ struct GSF_PendingRequestData
  * expiration.
  *
  * @param cls user-specified closure
+ * @param eval evaluation of the result
  * @param pr handle to the original pending request
  * @param expiration when does 'data' expire?
  * @param type type of the block
@@ -165,6 +166,7 @@ struct GSF_PendingRequestData
  * @param data_len number of bytes in data
  */
 typedef void (*GSF_PendingRequestReplyHandler)(void *cls,
+					       enum GNUNET_BLOCK_EvaluationResult eval,
 					       struct GSF_PendingRequest *pr,
 					       struct GNUNET_TIME_Absolute expiration,
 					       enum GNUNET_BLOCK_Type type,

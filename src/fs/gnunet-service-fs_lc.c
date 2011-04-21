@@ -188,6 +188,7 @@ GSF_local_client_lookup_ (struct GNUNET_SERVER_Client *client)
  * expiration.
  *
  * @param cls user-specified closure
+ * @param eval evaluation of the result
  * @param pr handle to the original pending request
  * @param expiration when does 'data' expire? 
  * @param type type of the block
@@ -196,6 +197,7 @@ GSF_local_client_lookup_ (struct GNUNET_SERVER_Client *client)
  */
 static void
 client_response_handler (void *cls,
+			 enum GNUNET_BLOCK_EvaluationResult eval,
 			 struct GSF_PendingRequest *pr,
 			 struct GNUNET_TIME_Absolute expiration,
 			 enum GNUNET_BLOCK_Type type,
@@ -242,6 +244,18 @@ client_response_handler (void *cls,
 	      GNUNET_h2s (&prd->query),
 	      (unsigned int) prd->type);
 #endif
+  if (eval != GNUNET_BLOCK_EVALUATION_OK_LAST)
+    return;
+  GNUNET_CONTAINER_DLL_remove (lc->cr_head,
+			       lc->cr_tail,
+			       cr);
+  GSF_pending_request_cancel_ (cr->pr);
+  GNUNET_STATISTICS_update (GSF_stats,
+			    gettext_noop ("# client searches active"),
+			    - 1,
+			    GNUNET_NO);
+  GNUNET_free (cr);
+
 }
 
 

@@ -338,6 +338,7 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
 	  if (pr == dpr)
 	    break; /* let the request live briefly... */
 	  dpr->rh (dpr->rh_cls,
+		   GNUNET_BLOCK_EVALUATION_REQUEST_VALID,
 		   dpr,
 		   GNUNET_TIME_UNIT_FOREVER_ABS,
 		   GNUNET_BLOCK_TYPE_ANY,
@@ -705,11 +706,11 @@ process_reply (void *cls,
 			  GNUNET_TIME_absolute_get_duration (pr->public_data.start_time).rel_value);
       /* pass on to other peers / local clients */
       pr->rh (pr->rh_cls, 	      
+	      prq->eval,
 	      pr,
 	      prq->expiration,
 	      prq->type,
 	      prq->data, prq->size);
-      GSF_pending_request_cancel_ (pr);
       return GNUNET_YES;
     case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
       GNUNET_STATISTICS_update (GSF_stats,
@@ -764,6 +765,7 @@ process_reply (void *cls,
   prq->request_found = GNUNET_YES;
   /* finally, pass on to other peer / local client */
   pr->rh (pr->rh_cls,
+	  prq->eval,
 	  pr, 
 	  prq->expiration,
 	  prq->type,
