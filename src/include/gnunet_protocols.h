@@ -749,6 +749,10 @@ extern "C"
  * Type of messages to instruct the local service-dns to rehijack the dns
  */
 #define GNUNET_MESSAGE_TYPE_REHIJACK 207
+/**
+ * Type of messages to send a DNS-query to another peer
+ */
+#define GNUNET_MESSAGE_TYPE_REMOTE_QUERY_DNS 208
 
 
 /**

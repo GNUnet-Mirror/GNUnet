@@ -29,6 +29,7 @@
 #include "gnunet_os_lib.h"
 #include "gnunet-service-dns-p.h"
 #include "gnunet_protocols.h"
+#include "gnunet_applications.h"
 #include "gnunet-vpn-packet.h"
 #include "gnunet_container_lib.h"
 #include "gnunet-dns-parser.h"
@@ -36,7 +37,10 @@
 #include "gnunet_block_lib.h"
 #include "block_dns.h"
 #include "gnunet_crypto_lib.h"
+#include "gnunet_mesh_service.h"
 #include "gnunet_signatures.h"
+
+struct GNUNET_MESH_Handle *mesh_handle;
 
 /**
  * The UDP-Socket through which DNS-Resolves will be sent if they are not to be
@@ -188,6 +192,67 @@ send_answer(void* cls, size_t size, void* buf) {
 					  cls);
 
     return len;
+}
+
+struct tunnel_cls {
+    struct GNUNET_MESH_Tunnel *tunnel;
+    struct GNUNET_MessageHeader hdr;
+    struct dns_pkt dns;
+};
+
+struct tunnel_cls *remote_pending[UINT16_MAX];
+
+
+static size_t
+mesh_send (void *cls, size_t size, void *buf)
+{
+  struct tunnel_cls *cls_ = (struct tunnel_cls *) cls;
+
+  GNUNET_assert(cls_->hdr.size <= size);
+
+  size = cls_->hdr.size;
+  cls_->hdr.size = htons(cls_->hdr.size);
+
+  memcpy(buf, &cls_->hdr, size);
+  return size;
+}
+
+
+void mesh_connect (void* cls, const struct GNUNET_PeerIdentity* peer, const struct GNUNET_TRANSPORT_ATS_Information *atsi) {
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connected to peer %x\n", *((unsigned long*)peer));
+  struct tunnel_cls *cls_ = (struct tunnel_cls*)cls;
+
+  GNUNET_MESH_notify_transmit_ready(cls_->tunnel,
+                                    GNUNET_YES,
+                                    42,
+                                    GNUNET_TIME_UNIT_MINUTES,
+                                    NULL,
+                                    cls_->hdr.size,
+                                    mesh_send,
+                                    cls);
+}
+
+
+static void
+send_mesh_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+
+  struct tunnel_cls *cls_ = (struct tunnel_cls*)cls;
+
+  cls_->tunnel = GNUNET_MESH_peer_request_connect_by_type(mesh_handle,
+                                           GNUNET_TIME_UNIT_HOURS,
+                                           GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER,
+                                           mesh_connect,
+                                           NULL,
+                                           cls_);
+
+  remote_pending[cls_->dns.s.id] = cls_;
+
+  /* TODO
+   * at receive: walk through pending list, send answer
+   */
 }
 
 static void
@@ -489,6 +554,46 @@ receive_query(void *cls,
             goto out;
           }
       }
+
+    char* virt_dns;
+    int virt_dns_bytes;
+    if (GNUNET_SYSERR ==
+        GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "VIRTDNS",
+                                               &virt_dns))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "No entry 'VIRTDNS' in configuration!\n");
+        exit (1);
+      }
+
+    if (1 != inet_pton (AF_INET, virt_dns, &virt_dns_bytes))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Error parsing 'VIRTDNS': %s; %m!\n", virt_dns);
+        exit(1);
+      }
+
+    GNUNET_free(virt_dns);
+
+    if (virt_dns_bytes == pkt->orig_to)
+      {
+        /* This is a packet that was sent directly to the virtual dns-server
+         *
+         * This means we have to send this query over gnunet
+         */
+
+        size_t size = sizeof(struct GNUNET_MESH_Tunnel*) + sizeof(struct GNUNET_MessageHeader) + (ntohs(message->size) - sizeof(struct query_packet) + 1);
+        struct tunnel_cls *cls_ =  GNUNET_malloc(size);
+        cls_->hdr.size = size - sizeof(struct GNUNET_MESH_Tunnel*);
+
+        cls_->hdr.type = ntohs(GNUNET_MESSAGE_TYPE_REMOTE_QUERY_DNS);
+
+        memcpy(&cls_->dns, dns, cls_->hdr.size);
+        GNUNET_SCHEDULER_add_now(send_mesh_query, cls_);
+
+        goto out;
+      }
+
 
     /* The query should be sent to the network */
 
@@ -873,6 +978,19 @@ run (void *cls,
 	{&rehijack, NULL, GNUNET_MESSAGE_TYPE_REHIJACK, sizeof(struct GNUNET_MessageHeader)},
 	{NULL, NULL, 0, 0}
   };
+
+
+  const static struct GNUNET_MESH_MessageHandler mesh_handlers[] = {
+    //{receive_mesh_qery, GNUNET_MESSAGE_TYPE_REMOTE_QUERY_DNS, 0},
+    {NULL, 0, 0}
+  };
+
+  const static GNUNET_MESH_ApplicationType apptypes[] =
+    { GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER,
+    GNUNET_APPLICATION_TYPE_END
+  };
+
+  mesh_handle = GNUNET_MESH_connect (cfg_, NULL, NULL, mesh_handlers, apptypes);
 
   cfg = cfg_;
 
