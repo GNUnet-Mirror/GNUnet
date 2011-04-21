@@ -26,12 +26,12 @@
 #include "gauger.h"
 #include <glpk.h>
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define EXECS 5
 
 
-
+#if HAVE_LIBGLPK
 static int executions = EXECS;
 static uint64_t exec_time[EXECS];
 
@@ -39,8 +39,6 @@ static uint64_t sim_no_opt_avg;
 static uint64_t sim_with_opt_avg;
 static uint64_t mlp_no_opt_avg;
 static uint64_t mlp_with_opt_avg;
-
-#if HAVE_LIBGLPK
 
 static glp_prob * prob;
 
@@ -55,6 +53,7 @@ void solve_mlp(int presolve)
 	glp_iocp opt_mlp;
 	glp_init_iocp(&opt_mlp);
 	opt_mlp.msg_lev = GLP_MSG_OFF;
+	opt_mlp.presolve = GLP_OFF;
 
 	result = glp_intopt (prob, &opt_mlp);
 	solution =  glp_mip_status (prob);
@@ -70,11 +69,38 @@ void solve_lp(int presolve)
 
 	opt_lp.msg_lev = GLP_MSG_OFF;
 	if (presolve==GNUNET_YES) opt_lp.presolve = GLP_ON;
+	else opt_lp.presolve = GLP_OFF;
 
 	result = glp_simplex(prob, &opt_lp);
 	solution =  glp_get_status (prob);
 	GNUNET_assert ((solution == 5) && (result==0));
 }
+
+/* Modify quality constraint */
+void modify_qm(int start, int length, int values_to_change)
+{
+	//int * ind = GNUNET_malloc (length * sizeof (int));
+	//double *val = GNUNET_malloc (length * sizeof (double));
+	int ind[1000];
+	double val[1000];
+
+	int res = 0;
+	int c = start, c2=1;
+	while (c<=(start+values_to_change))
+	{
+		res = glp_get_mat_row(prob, c, ind, val);
+
+		printf("%i %i \n", c, res);
+		for (c2=0; c2<res; c2++)
+		{
+			printf("%i = %f \n", ind[c2], val[c2]);
+		}
+
+		c++;
+	}
+	//glp_set_mat_row(prob, start, length, ind, val);
+}
+
 
 
 void bench_simplex_optimization(char * file, int executions)
@@ -148,7 +174,7 @@ void bench_mlp_no_optimization(char * file, int executions)
 }
 
 
-void bench_mlp_with_optimization(char * file, int executions)
+void bench_mlp_with_optimization(char * file, int executions, int changes)
 {
 	int c;
 	prob = glp_create_prob();
@@ -159,6 +185,7 @@ void bench_mlp_with_optimization(char * file, int executions)
 	for (c=0; c<executions;c++)
 	{
 		start = GNUNET_TIME_absolute_get();
+		//modify_qm(906, 0, 0);
 		solve_lp(GNUNET_NO);
 		solve_mlp (GNUNET_NO);
 		end = GNUNET_TIME_absolute_get();
@@ -172,31 +199,7 @@ void bench_mlp_with_optimization(char * file, int executions)
 	glp_delete_prob(prob);
 }
 
-/* Modify quality constraint */
-void modify_qm(int start, int length, int count)
-{
-	//int * ind = GNUNET_malloc (length * sizeof (int));
-	//double *val = GNUNET_malloc (length * sizeof (double));
-	int ind[1000];
-	double val[1000];
-
-	int res = 0;
-	int c = start, c2=1;
-	while (c<=(start+count))
-	{
-		res = glp_get_mat_row(prob, c, ind, val);
-
-		printf("%i %i \n", c, res);
-		for (c2=0; c2<res; c2++)
-		{
-			printf("%i = %f \n", ind[c2], val[c2]);
-		}
-
-		c++;
-	}
-	//glp_set_mat_row(prob, start, length, ind, val);
-}
-
+#if 0
 void modify_cr (int start, int length, int count)
 {
 	//int * ind = GNUNET_malloc (length * sizeof (int));
@@ -219,35 +222,13 @@ void modify_cr (int start, int length, int count)
 	}
 	//glp_set_mat_row(prob, start, length, ind, val);
 }
-/*
-void test_mlp(char * file)
-{
-	int c =0;
-	prob = glp_create_prob();
-	glp_read_lp(prob, NULL, file);
-#if VERBOSE
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%i iterations simplex, presolve: YES, keep problem: YES!\n", executions, exec_time[c]);
 #endif
-
-	mlp_w_ps_w_keep_avg = 0;
-	for (c=0; c<executions;c++)
-	{
-	  start = GNUNET_TIME_absolute_get();
-	  solve_mlp(GNUNET_NO);
-	  //modify_qm (906,10,2);
-	  modify_cr (901,10,3);
-	  end = GNUNET_TIME_absolute_get();
-
-	  exec_time[c] = GNUNET_TIME_absolute_get_difference(start, end).rel_value;
-	  mlp_wo_ps_w_keep_avg += exec_time[c];
-	}
-}*/
-
 #endif
 
 int main (int argc, char *argv[])
 {
-  GNUNET_log_setup ("test-transport-ats",
+	int ret = 0;
+	GNUNET_log_setup ("test-transport-ats",
 #if VERBOSE
                     "DEBUG",
 #else
@@ -258,15 +239,14 @@ int main (int argc, char *argv[])
 #if !HAVE_LIBGLPK
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "GLPK not installed, exiting testcase\n");
 	return 0;
-#endif
-
-  int ret = 0;
+#else
 
   char * file = "ats_mlp_p100_m400.problem";
+ // char * file = "mlps/ats_mlp_p500_m2000.problem";
   bench_simplex_no_optimization (file, executions);
   bench_simplex_optimization (file, executions);
   bench_mlp_no_optimization (file, executions);
-  bench_mlp_with_optimization (file, executions);
+  bench_mlp_with_optimization (file, executions, 0);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Simplex no optimization average: %llu\n", sim_no_opt_avg  / EXECS);
   GAUGER ("TRANSPORT","GLPK simplex 100 peers 400 addresses no optimization", sim_no_opt_avg  / EXECS, "ms");
@@ -277,6 +257,7 @@ int main (int argc, char *argv[])
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MLP optimization average: %llu\n", mlp_with_opt_avg / EXECS);
   GAUGER ("TRANSPORT","GLPK MLP 100 peers 400 addresses with optimization", mlp_with_opt_avg  / EXECS, "ms");
 
+#endif
   return ret;
 }
 
