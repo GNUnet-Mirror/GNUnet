@@ -857,12 +857,6 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
       return NULL;
     }
   gm = (const struct GetMessage*) message;
-#if DEBUG_FS
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received request for `%s' from `%s'\n",
-	      GNUNET_h2s (&gm->query),
-	      GNUNET_i2s (other));
-#endif
   type = ntohl (gm->type);
   bm = ntohl (gm->hash_bitmap);
   bits = 0;
@@ -1551,7 +1545,7 @@ GSF_block_peer_migration_ (struct GSF_ConnectedPeer *cp,
     {
 #if DEBUG_FS && 0
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Migration already blocked for another %llu ms\n",
+	  "Migration already blocked for another %llu ms\n",
 		  (unsigned long long) GNUNET_TIME_absolute_get_remaining (cp->last_migration_block).rel_value);
 #endif
       return; /* already blocked */

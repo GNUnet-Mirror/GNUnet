@@ -266,6 +266,12 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
   struct GSF_PendingRequest *pr;
   struct GSF_PendingRequest *dpr;
   
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Creating request handle for `%s' of type %d\n",
+	      GNUNET_h2s (query),
+	      type);
+#endif 
   pr = GNUNET_malloc (sizeof (struct GSF_PendingRequest));
   pr->public_data.query = *query;
   if (GNUNET_BLOCK_TYPE_FS_SBLOCK == type)
@@ -446,7 +452,13 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
   int64_t ttl;
   int do_route;
 
-
+#if DEBUG_FS
+  if (buf_size > 0)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Building request message for `%s' of type %d\n",
+		GNUNET_h2s (&pr->public_data.query),
+		pr->public_data.type);
+#endif 
   k = 0;
   bm = 0;
   do_route = (0 == (pr->public_data.options & GSF_PRO_FORWARD_ONLY));
@@ -697,6 +709,7 @@ process_reply (void *cls,
 	      prq->expiration,
 	      prq->type,
 	      prq->data, prq->size);
+      GSF_pending_request_cancel_ (pr);
       return GNUNET_YES;
     case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
       GNUNET_STATISTICS_update (GSF_stats,

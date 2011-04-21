@@ -134,7 +134,19 @@ plan (struct PeerPlan *pp,
 
   prd = GSF_pending_request_get_data_ (rp->pr);
   // FIXME: calculate 'rp->earliest_transmission'!
-  // fIXME: claculate 'rp->priority'! 
+  // FIXME: claculate 'rp->priority'! 
+  rp->earliest_transmission 
+    = GNUNET_TIME_relative_to_absolute 
+    (GNUNET_TIME_relative_multiply 
+     (GNUNET_TIME_UNIT_SECONDS,
+      rp->transmission_counter));
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Earliest (re)transmission for `%s' in %us\n",
+	      GNUNET_h2s (&prd->query),
+	      rp->transmission_counter);
+#endif 
+
 
   if (GNUNET_TIME_absolute_get_remaining (rp->earliest_transmission).rel_value == 0)
     rp->hn = GNUNET_CONTAINER_heap_insert (pp->priority_heap,
