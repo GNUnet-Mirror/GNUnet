@@ -569,7 +569,7 @@ daemon_start_cb (void *cls,
        const struct GNUNET_CONFIGURATION_Handle *cfg,
        struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
-  if (id == NULL)
+  if (id#if HAVE_LIBGLPK == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Start callback called with error (too long starting peers), aborting test!\n");
@@ -668,11 +668,6 @@ check ()
 int
 main (int argc, char *argv[])
 {
-#if !HAVE_LIBGLPK
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "GLPK not installed, exiting testcase\n");
-	return 0;
-#endif
-
   int ret;
 
   GNUNET_log_setup ("test-transport-ats",
@@ -682,6 +677,12 @@ main (int argc, char *argv[])
                     "INFO",
 #endif
                     NULL);
+
+#if !HAVE_LIBGLPK
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "GLPK not installed, exiting testcase\n");
+	return 0;
+#endif
+
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-testing");
 
   machine_parsable = GNUNET_NO;
