@@ -569,7 +569,7 @@ daemon_start_cb (void *cls,
        const struct GNUNET_CONFIGURATION_Handle *cfg,
        struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
-  if (id#if HAVE_LIBGLPK == NULL)
+  if (id == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Start callback called with error (too long starting peers), aborting test!\n");
@@ -668,6 +668,7 @@ check ()
 int
 main (int argc, char *argv[])
 {
+
   int ret;
 
   GNUNET_log_setup ("test-transport-ats",
@@ -684,6 +685,7 @@ main (int argc, char *argv[])
 #endif
 
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-testing");
+
 
   machine_parsable = GNUNET_NO;
   peers = NUM_PEERS;
