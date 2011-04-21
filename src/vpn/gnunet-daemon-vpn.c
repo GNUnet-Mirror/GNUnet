@@ -560,14 +560,6 @@ receive_tcp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
   return GNUNET_OK;
 }
 
-void init_mesh (void* cls, struct GNUNET_MESH_Handle* server, const struct GNUNET_PeerIdentity* my_identity, const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pubkey) {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connected to MESH, I am %x\n", *((unsigned long*)my_identity));
-}
-
-void connect_mesh (void* cls, const struct GNUNET_PeerIdentity* peer, const struct GNUNET_TRANSPORT_ATS_Information *atsi) {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connected to peer %x\n", *((unsigned long*)peer));
-}
-
 /**
  * Main function that will be run by the scheduler.
  *

@@ -257,6 +257,9 @@ send_mesh_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 send_rev_query(void * cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
+    if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+      return;
+
     struct dns_pkt_parsed* pdns = (struct dns_pkt_parsed*) cls;
 
     unsigned short id = pdns->s.id;
@@ -504,7 +507,8 @@ receive_query(void *cls,
       }
 
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Query for '%s'; namelen=%d\n", pdns->queries[0]->name, pdns->queries[0]->namelen);
-    /* The query is for a PTR of a previosly resolved virtual IP */
+
+    /* This is a PTR-Query. Check if it is for "our" network */
     if (htons(pdns->queries[0]->qtype) == 12 &&
 	74 == pdns->queries[0]->namelen)
       {
@@ -973,10 +977,11 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-      /* callback, cls, type, size */
-	{&receive_query, NULL, GNUNET_MESSAGE_TYPE_LOCAL_QUERY_DNS, 0},
-	{&rehijack, NULL, GNUNET_MESSAGE_TYPE_REHIJACK, sizeof(struct GNUNET_MessageHeader)},
-	{NULL, NULL, 0, 0}
+    /* callback, cls, type, size */
+    {&receive_query, NULL, GNUNET_MESSAGE_TYPE_LOCAL_QUERY_DNS, 0},
+    {&rehijack, NULL, GNUNET_MESSAGE_TYPE_REHIJACK,
+     sizeof (struct GNUNET_MessageHeader)},
+    {NULL, NULL, 0, 0}
   };
 
 
@@ -995,20 +1000,20 @@ run (void *cls,
   cfg = cfg_;
 
   unsigned int i;
-  for (i = 0; i < 65536; i++) {
+  for (i = 0; i < 65536; i++)
+    {
       query_states[i].valid = GNUNET_NO;
-  }
+    }
 
-  dht = GNUNET_DHT_connect(cfg, 1024);
+  dht = GNUNET_DHT_connect (cfg, 1024);
 
-  open_port();
+  open_port ();
 
   GNUNET_SCHEDULER_add_now (publish_names, NULL);
 
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&cleanup_task,
-				cls);
+                                &cleanup_task, cls);
 }
 
 /**
