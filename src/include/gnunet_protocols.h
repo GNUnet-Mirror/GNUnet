@@ -753,6 +753,10 @@ extern "C"
  * Type of messages to send a DNS-query to another peer
  */
 #define GNUNET_MESSAGE_TYPE_REMOTE_QUERY_DNS 208
+/**
+ * Type of messages to send a DNS-answer to another peer
+ */
+#define GNUNET_MESSAGE_TYPE_REMOTE_ANSWER_DNS 209
 
 
 /**

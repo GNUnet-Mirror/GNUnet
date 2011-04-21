@@ -255,6 +255,116 @@ send_mesh_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    */
 }
 
+static int
+receive_mesh_query (void *cls,
+                    struct GNUNET_MESH_Tunnel *tunnel,
+                    void **ctx,
+                    const struct GNUNET_PeerIdentity *sender,
+                    const struct GNUNET_MessageHeader *message,
+                    const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+{
+  return GNUNET_SYSERR;
+}
+
+static int
+receive_mesh_answer (void *cls,
+                     struct GNUNET_MESH_Tunnel *tunnel,
+                     void **ctx,
+                     const struct GNUNET_PeerIdentity *sender,
+                     const struct GNUNET_MessageHeader *message,
+                     const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+{
+  /* TODo: size check */
+  struct dns_pkt *dns = (struct dns_pkt *) (message + 1);
+
+  /* They sent us a packet we were not waiting for */
+  if (remote_pending[dns->s.id] == NULL
+      || remote_pending[dns->s.id]->tunnel != tunnel)
+    return GNUNET_SYSERR;
+  if (query_states[dns->s.id].valid != GNUNET_YES)
+    return GNUNET_SYSERR;
+  query_states[dns->s.id].valid = GNUNET_NO;
+
+  size_t len = sizeof (struct answer_packet) - 1 + sizeof (struct dns_static) + query_states[dns->s.id].namelen + sizeof (struct dns_query_line) + 2    /* To hold the pointer (as defined in RFC1035) to the name */
+    + sizeof (struct dns_record_line) - 1 + 16; /* To hold the IPv6-Address */
+
+  struct answer_packet_list *answer =
+    GNUNET_malloc (len + 2 * sizeof (struct answer_packet_list *));
+  memset (answer, 0, len + 2 * sizeof (struct answer_packet_list *));
+
+  answer->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_LOCAL_RESPONSE_DNS);
+  answer->pkt.hdr.size = htons (len);
+  answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_REMOTE;
+
+  struct dns_pkt_parsed* pdns = parse_dns_packet(dns);
+
+  if (ntohs(pdns->s.ancount) < 1)
+    {
+      free_parsed_dns_packet(pdns);
+      return GNUNET_OK;
+    }
+
+  answer->pkt.addrsize = pdns->answers[0]->data_len;
+  memcpy(answer->pkt.addr, pdns->answers[0]->data, ntohs(pdns->answers[0]->data_len));
+
+  answer->pkt.from = query_states[dns->s.id].remote_ip;
+
+  answer->pkt.to = query_states[dns->s.id].local_ip;
+  answer->pkt.dst_port = query_states[dns->s.id].local_port;
+
+  struct dns_pkt *dpkt = (struct dns_pkt *) answer->pkt.data;
+
+  dpkt->s.id = dns->s.id;
+  dpkt->s.aa = 1;
+  dpkt->s.qr = 1;
+  dpkt->s.ra = 1;
+  dpkt->s.qdcount = htons (1);
+  dpkt->s.ancount = htons (1);
+
+  memcpy (dpkt->data, query_states[dns->s.id].name,
+          query_states[dns->s.id].namelen);
+  GNUNET_free (query_states[dns->s.id].name);
+
+  struct dns_query_line *dque =
+    (struct dns_query_line *) (dpkt->data +
+                               (query_states[dns->s.id].namelen));
+  dque->type = htons (28);      /* AAAA */
+  dque->class = htons (1);      /* IN */
+
+  char *anname =
+    (char *) (dpkt->data + (query_states[dns->s.id].namelen) +
+              sizeof (struct dns_query_line));
+  memcpy (anname, "\xc0\x0c", 2);
+
+  struct dns_record_line *drec_data =
+    (struct dns_record_line *) (dpkt->data +
+                                (query_states[dns->s.id].namelen) +
+                                sizeof (struct dns_query_line) + 2);
+  drec_data->type = htons (28); /* AAAA */
+  drec_data->class = htons (1); /* IN */
+
+  drec_data->ttl = pdns->answers[0]->ttl;
+  drec_data->data_len = htons (16);
+
+  /* Calculate at which offset in the packet the IPv6-Address belongs, it is
+   * filled in by the daemon-vpn */
+  answer->pkt.addroffset =
+    htons ((unsigned short) ((unsigned long) (&drec_data->data) -
+                             (unsigned long) (&answer->pkt)));
+
+  GNUNET_CONTAINER_DLL_insert_after (head, tail, tail, answer);
+
+  GNUNET_SERVER_notify_transmit_ready (query_states[dns->s.id].client,
+                                       len,
+                                       GNUNET_TIME_UNIT_FOREVER_REL,
+                                       &send_answer,
+                                       query_states[dns->s.id].client);
+
+  free_parsed_dns_packet(pdns);
+  return GNUNET_OK;
+}
+
+
 static void
 send_rev_query(void * cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
     if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
@@ -984,11 +1094,18 @@ run (void *cls,
     {NULL, NULL, 0, 0}
   };
 
+  static struct GNUNET_MESH_MessageHandler *mesh_handlers;
 
-  const static struct GNUNET_MESH_MessageHandler mesh_handlers[] = {
-    //{receive_mesh_qery, GNUNET_MESSAGE_TYPE_REMOTE_QUERY_DNS, 0},
-    {NULL, 0, 0}
-  };
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(cfg_, "dns", "PROVIDE_EXIT"))
+    mesh_handlers = (struct GNUNET_MESH_MessageHandler[]) {
+          {receive_mesh_query, GNUNET_MESSAGE_TYPE_REMOTE_QUERY_DNS, 0},
+          {NULL, 0, 0}
+    };
+  else
+    mesh_handlers = (struct GNUNET_MESH_MessageHandler[]) {
+          {receive_mesh_answer, GNUNET_MESSAGE_TYPE_REMOTE_ANSWER_DNS, 0},
+          {NULL, 0, 0}
+    };
 
   const static GNUNET_MESH_ApplicationType apptypes[] =
     { GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER,

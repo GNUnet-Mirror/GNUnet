@@ -44,7 +44,13 @@ enum GNUNET_DNS_ANSWER_Subtype {
      * Answers of this type contain an incomplete dns-packet as answer to a
      * PTR-Query. The resolved name is not allocated. The addroffset points to it.
      */
-    GNUNET_DNS_ANSWER_TYPE_REV
+    GNUNET_DNS_ANSWER_TYPE_REV,
+
+    /**
+     * Answers of this type contains an IP-Address but traffic to this IP should
+     * be routed through the GNUNet.
+     */
+    GNUNET_DNS_ANSWER_TYPE_REMOTE
 };
 
 struct GNUNET_vpn_service_descriptor {
@@ -55,19 +61,30 @@ struct GNUNET_vpn_service_descriptor {
 };
 
 struct answer_packet {
+    /* General data */
     struct GNUNET_MessageHeader hdr;
     enum GNUNET_DNS_ANSWER_Subtype subtype GNUNET_PACKED;
 
     unsigned from:32 GNUNET_PACKED;
     unsigned to:32 GNUNET_PACKED;
     unsigned dst_port:16 GNUNET_PACKED;
+    /* -- */
 
-    /* Only sensible when subtype == GNUNET_DNS_ANSWER_TYPE_SERVICE */
+    /* Data for GNUNET_DNS_ANSWER_TYPE_SERVICE */
     struct GNUNET_vpn_service_descriptor service_descr;
+    /* -- */
 
+    /* Data for GNUNET_DNS_ANSWER_TYPE_REV */
     /* The offsett in octets from the beginning of the struct to the field
      * in data where the IP-Address has to go. */
-    unsigned addroffset:16 GNUNET_PACKED;
+    uint16_t addroffset GNUNET_PACKED;
+    /* -- */
+
+    /* Data for GNUNET_DNS_ANSWER_TYPE_REMOTE */
+    /* either 4 or 16 */
+    char addrsize;
+    unsigned char addr[16];
+    /* -- */
 
     unsigned char data[1];
 };
