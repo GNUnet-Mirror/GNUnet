@@ -6960,14 +6960,14 @@ ats_calculate_bandwidth_distribution ()
 		else if (ats->simplex_rerun_required == GNUNET_NO)
 			GNUNET_STATISTICS_set (stats, "ATS state", ATS_UNMODIFIED, GNUNET_NO);
 	}
-#endif
+
 	if ((ats->save_mlp == GNUNET_YES) && (ats->stat.c_mechs >= ats->dump_min_peers) && (ats->stat.c_mechs >= ats->dump_min_addr))
 	{
 		char * filename;
 		if (ats->dump_overwrite == GNUNET_NO)
 		{
-			GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i_%llu.mlp",
-			ats->stat.c_peers, ats->stat.c_mechs, GNUNET_TIME_absolute_get().abs_value);
+			GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i_%s_%llu.mlp",
+			ats->stat.c_peers, ats->stat.c_mechs, text, GNUNET_TIME_absolute_get().abs_value);
 			glp_write_lp (ats->prob, NULL, filename);
 		}
 		else
@@ -6983,8 +6983,8 @@ ats_calculate_bandwidth_distribution ()
 		char * filename;
 		if (ats->dump_overwrite == GNUNET_NO)
 		{
-			GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i_%llu.sol",
-			ats->stat.c_peers, ats->stat.c_mechs, GNUNET_TIME_absolute_get().abs_value);
+			GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i_%s_%llu.sol",
+			ats->stat.c_peers, ats->stat.c_mechs, text, GNUNET_TIME_absolute_get().abs_value);
 			glp_print_sol (ats->prob, filename);
 		}
 		else
@@ -6999,7 +6999,7 @@ ats_calculate_bandwidth_distribution ()
 	ats->modified_addr = GNUNET_NO;
 	ats->modified_resources = GNUNET_NO;
 	ats->modified_quality = GNUNET_NO;
-
+#endif
 }
 
 static void
