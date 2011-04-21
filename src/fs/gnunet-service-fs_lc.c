@@ -58,6 +58,11 @@ struct ClientRequest
    */
   struct GSF_LocalClient *lc;
 
+  /**
+   * Task scheduled to destroy the request.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier kill_task;
+
 };
 
 
@@ -180,6 +185,33 @@ GSF_local_client_lookup_ (struct GNUNET_SERVER_Client *client)
 
 
 /**
+ * Free the given client request.
+ *
+ * @param cls the client request to free
+ * @param tc task context
+ */ 
+static void
+client_request_destroy (void *cls,
+			const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct ClientRequest *cr = cls;
+  struct GSF_LocalClient *lc;
+
+  cr->kill_task = GNUNET_SCHEDULER_NO_TASK;
+  lc = cr->lc;
+  GNUNET_CONTAINER_DLL_remove (lc->cr_head,
+			       lc->cr_tail,
+			       cr);
+  GSF_pending_request_cancel_ (cr->pr);
+  GNUNET_STATISTICS_update (GSF_stats,
+			    gettext_noop ("# client searches active"),
+			    - 1,
+			    GNUNET_NO);
+  GNUNET_free (cr);
+}
+
+
+/**
  * Handle a reply to a pending request.  Also called if a request
  * expires (then with data == NULL).  The handler may be called
  * many times (depending on the request type), but will not be
@@ -246,16 +278,8 @@ client_response_handler (void *cls,
 #endif
   if (eval != GNUNET_BLOCK_EVALUATION_OK_LAST)
     return;
-  GNUNET_CONTAINER_DLL_remove (lc->cr_head,
-			       lc->cr_tail,
-			       cr);
-  GSF_pending_request_cancel_ (cr->pr);
-  GNUNET_STATISTICS_update (GSF_stats,
-			    gettext_noop ("# client searches active"),
-			    - 1,
-			    GNUNET_NO);
-  GNUNET_free (cr);
-
+  cr->kill_task = GNUNET_SCHEDULER_add_now (&client_request_destroy,
+					    cr);
 }
 
 
@@ -489,6 +513,8 @@ GSF_client_disconnect_handler_ (void *cls,
 				gettext_noop ("# client searches active"),
 				- 1,
 				GNUNET_NO);
+      if (GNUNET_SCHEDULER_NO_TASK != cr->kill_task)
+	GNUNET_SCHEDULER_cancel (cr->kill_task);
       GNUNET_free (cr);
     }
   while (NULL != (res = pos->res_head))

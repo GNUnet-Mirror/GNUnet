@@ -121,6 +121,17 @@ static struct GNUNET_CONTAINER_MultiHashMap *plans;
 
 
 /**
+ * Figure out when and how to transmit to the given peer.
+ *
+ * @param cls the 'struct GSF_ConnectedPeer' for transmission
+ * @param tc scheduler context
+ */
+static void
+schedule_peer_transmission (void *cls,
+			    const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
  * Insert the given request plan into the heap with the appropriate weight.
  *
  * @param pp associated peer's plan
@@ -156,18 +167,10 @@ plan (struct PeerPlan *pp,
     rp->hn = GNUNET_CONTAINER_heap_insert (pp->delay_heap,
 					   rp,
 					   rp->earliest_transmission.abs_value);
+  if (GNUNET_SCHEDULER_NO_TASK != pp->task)
+    GNUNET_SCHEDULER_cancel (pp->task);
+  pp->task = GNUNET_SCHEDULER_add_now (&schedule_peer_transmission, pp);
 }
-
-
-/**
- * Figure out when and how to transmit to the given peer.
- *
- * @param cls the 'struct GSF_ConnectedPeer' for transmission
- * @param tc scheduler context
- */
-static void
-schedule_peer_transmission (void *cls,
-			    const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -238,7 +241,11 @@ schedule_peer_transmission (void *cls,
   size_t msize;
 
   pp->task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_assert (NULL == pp->pth);
+  if (pp->pth != NULL)
+    {
+      GSF_peer_transmit_cancel_ (pp->pth);
+      pp->pth = NULL;
+    }
   /* move ready requests to priority queue */
   while ( (NULL != (rp = GNUNET_CONTAINER_heap_peek (pp->delay_heap))) &&
 	  (GNUNET_TIME_absolute_get_remaining (rp->earliest_transmission).rel_value == 0) )
@@ -253,7 +260,20 @@ schedule_peer_transmission (void *cls,
       /* priority heap (still) empty, check for delay... */
       rp = GNUNET_CONTAINER_heap_peek (pp->delay_heap);
       if (NULL == rp)
-	return; /* both queues empty */
+	{
+#if DEBUG_FS
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "No active requests for plan %p.\n",
+		      pp);
+#endif
+	  return; /* both queues empty */
+	}
+#if DEBUG_FS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Sleeping for %llu ms before retrying requests on plan %p.\n",
+		  (unsigned long long) GNUNET_TIME_absolute_get_remaining (rp->earliest_transmission).rel_value,
+		  pp);
+#endif
       pp->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining (rp->earliest_transmission),
 					       &schedule_peer_transmission,
 					       pp);
@@ -267,7 +287,7 @@ schedule_peer_transmission (void *cls,
 	      rp);
 #endif    
   GNUNET_assert (NULL != rp);
-  msize = GSF_pending_request_get_message_ (rp->pr, 0, NULL);					   
+  msize = GSF_pending_request_get_message_ (rp->pr, 0, NULL);
   pp->pth = GSF_peer_transmit_ (pp->cp,
 				GNUNET_YES,
 				rp->priority,
@@ -322,31 +342,6 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
 			       prd->rp_tail,
 			       rp);
   plan (pp, rp);
-  if (0 == GNUNET_CONTAINER_heap_get_size (pp->priority_heap))
-    {
-      /* no request that should be done immediately, figure out delay */
-      if (rp != GNUNET_CONTAINER_heap_peek (pp->delay_heap))
-	return; /* did not change delay heap top, no need to do anything */
-      GNUNET_assert (NULL == pp->pth);
-      if (GNUNET_SCHEDULER_NO_TASK != pp->task)
-	GNUNET_SCHEDULER_cancel (pp->task);
-      pp->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining (rp->earliest_transmission),
-					       &schedule_peer_transmission,
-					       pp);
-      return;
-    }
-
-  if (pp->pth != NULL)
-    {
-      if (rp != GNUNET_CONTAINER_heap_peek (pp->priority_heap))
-	return; /* did not change priority heap top, no need to do anyhing */
-      GSF_peer_transmit_cancel_ (pp->pth);
-      pp->pth = NULL;
-    }
-  if (GNUNET_SCHEDULER_NO_TASK != pp->task)
-    GNUNET_SCHEDULER_cancel (pp->task);
-  pp->task = GNUNET_SCHEDULER_add_now (&schedule_peer_transmission,
-				       pp);
 }
 
 

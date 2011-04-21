@@ -1008,7 +1008,7 @@ GSF_dht_lookup_ (struct GSF_PendingRequest *pr)
  */
 static void
 process_local_reply (void *cls,
-		     const GNUNET_HashCode * key,
+		     const GNUNET_HashCode *key,
 		     size_t size,
 		     const void *data,
 		     enum GNUNET_BLOCK_Type type,
