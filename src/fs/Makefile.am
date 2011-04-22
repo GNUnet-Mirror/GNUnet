@@ -173,7 +173,8 @@ check_SCRIPTS = \
  test_gnunet_fs_idx.py
 endif
 
-if !DISABLE_TEST_RUN
+#if !DISABLE_TEST_RUN
+if 0 
 TESTS = \
  test_fs_directory \
  test_fs_download \
@@ -196,6 +197,8 @@ TESTS = \
  test_gnunet_service_fs_p2p \
  $(check_SCRIPTS)  
 endif
+
+
 
 
 test_fs_directory_SOURCES = \
