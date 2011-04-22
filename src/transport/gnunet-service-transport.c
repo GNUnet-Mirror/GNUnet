@@ -2527,6 +2527,7 @@ plugin_env_session_end  (void *cls,
   GNUNET_free_non_null(pos->ressources);
   GNUNET_free_non_null(pos->quality);
   GNUNET_free (pos);
+  ats->modified_addr = GNUNET_YES;
   if (nl->received_pong == GNUNET_NO)
     return; /* nothing to do, never connected... */
   /* check if we have any validated addresses left */
