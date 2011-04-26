@@ -6240,7 +6240,7 @@ static void ats_update_problem_qm ()
 
 			if (qm[c-1].atis_index  == GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY)
 			{
-				double v0, v1, v2;
+				double v0 = 0, v1 = 0, v2 = 0;
 				v0 = ats->mechanisms[c2].addr->quality[c-1].values[0];
 				if (v1 < 1) v0 = 0.1;
 				v1 = ats->mechanisms[c2].addr->quality[c-1].values[1];
@@ -6252,7 +6252,7 @@ static void ats_update_problem_qm ()
 			}
 			if (qm[c-1].atis_index  == GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE)
 			{
-				double v0, v1, v2;
+				double v0 = 0, v1 = 0, v2 = 0;
 				v0 = ats->mechanisms[c2].addr->quality[c-1].values[0];
 				if (v0 < 1) v0 = 1;
 				v1 = ats->mechanisms[c2].addr->quality[c-1].values[1];
@@ -6729,7 +6729,7 @@ static int ats_create_problem (double D, double U, double R, int v_b_min, int v_
 			ja[array_index] = c2;
 			if (qm[c-1].atis_index  == GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY)
 			{
-				double v0, v1, v2;
+				double v0 = 0, v1 = 0, v2 = 0;
 				v0 = mechanisms[c2].addr->quality[c-1].values[0];
 				if (v1 < 1) v0 = 0.1;
 				v1 = mechanisms[c2].addr->quality[c-1].values[1];
@@ -6741,7 +6741,7 @@ static int ats_create_problem (double D, double U, double R, int v_b_min, int v_
 			}
 			if (qm[c-1].atis_index  == GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE)
 			{
-				double v0, v1, v2;
+				double v0 = 0, v1 = 0, v2 = 0;
 				v0 = mechanisms[c2].addr->quality[c-1].values[0];
 				if (v0 < 1) v0 = 1;
 				v1 = mechanisms[c2].addr->quality[c-1].values[1];
@@ -6901,6 +6901,7 @@ ats_calculate_bandwidth_distribution ()
 		text = "new";
 		ats->modified_addr = GNUNET_YES;
 		ats_delete_problem ();
+
 		ats_create_problem (ats->D, ats->U, ats->R, ats->v_b_min, ats->v_n_min, &ats->stat);
 #if DEBUG_ATS
 		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peers/Addresses were modified... new problem: %i peer, %i mechs\n", ats->stat.c_peers, ats->stat.c_mechs);
@@ -7137,8 +7138,10 @@ static void ats_shutdown ()
 	if (ats->ats_task != GNUNET_SCHEDULER_NO_TASK)
 		GNUNET_SCHEDULER_cancel(ats->ats_task);
 	ats->ats_task = GNUNET_SCHEDULER_NO_TASK;
+
 #if HAVE_LIBGLPK
 	ats_delete_problem ();
+	glp_free_env();
 #endif
 	GNUNET_free (ats);
 }
@@ -7151,7 +7154,6 @@ void ats_notify_peer_connect (
 #if DEBUG_ATS
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ats_notify_peer_connect: %s\n",GNUNET_i2s(peer));
 #endif
-
 	//update_addr_ats();
 	ats->modified_addr = GNUNET_YES;
 
