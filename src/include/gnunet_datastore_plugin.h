@@ -78,26 +78,9 @@ struct GNUNET_DATASTORE_PluginEnvironment
 
 
 /**
- * Function invoked on behalf of a "PluginIterator"
- * asking the database plugin to call the iterator
- * with the next item.
- *
- * @param next_cls whatever argument was given
- *        to the PluginIterator as "next_cls".
- * @param end_it set to GNUNET_YES if we
- *        should terminate the iteration early
- *        (iterator should be still called once more
- *         to signal the end of the iteration).
- */
-typedef void (*PluginNextRequest)(void *next_cls,
-				  int end_it);
-
-
-/**
- * An iterator over a set of items stored in the datastore.
+ * An processor over a set of items stored in the datastore.
  *
  * @param cls closure
- * @param next_cls closure to pass to the "next" function.
  * @param key key for the content
  * @param size number of bytes in data
  * @param data content stored
@@ -105,24 +88,21 @@ typedef void (*PluginNextRequest)(void *next_cls,
  * @param priority priority of the content
  * @param anonymity anonymity-level for the content
  * @param expiration expiration time for the content
- * @param uid unique identifier for the datum;
- *        maybe 0 if no unique identifier is available
+ * @param uid unique identifier for the datum
  *
- * @return GNUNET_SYSERR to abort the iteration, GNUNET_OK to continue
- *         (continue on call to "next", of course),
- *         GNUNET_NO to delete the item and continue (if supported)
+ * @return GNUNET_OK to keep the item
+ *         GNUNET_NO to delete the item
  */
-typedef int (*PluginIterator) (void *cls,
-			       void *next_cls,
-			       const GNUNET_HashCode * key,
-			       uint32_t size,
-			       const void *data,
-			       enum GNUNET_BLOCK_Type type,
-			       uint32_t priority,
-			       uint32_t anonymity,
-			       struct GNUNET_TIME_Absolute
-			       expiration, 
-			       uint64_t uid);
+typedef int (*PluginDatumProcessor) (void *cls,
+				     const GNUNET_HashCode * key,
+				     uint32_t size,
+				     const void *data,
+				     enum GNUNET_BLOCK_Type type,
+				     uint32_t priority,
+				     uint32_t anonymity,
+				     struct GNUNET_TIME_Absolute
+				     expiration, 
+				     uint64_t uid);
 
 /**
  * Get an estimate of how much space the database is
@@ -131,7 +111,7 @@ typedef int (*PluginIterator) (void *cls,
  * @param cls closure
  * @return number of bytes used on disk
  */
-typedef unsigned long long (*PluginGetSize) (void *cls);
+typedef unsigned long long (*PluginEstimateSize) (void *cls);
 
 
 /**
@@ -165,10 +145,11 @@ typedef int (*PluginPut) (void *cls,
 
 
 /**
- * Iterate over the results for a particular key
- * in the datastore.
+ * Get one of the results for a particular key in the datastore.
  *
  * @param cls closure
+ * @param offset offset of the result (mod #num-results); 
+ *               specific ordering does not matter for the offset
  * @param key key to match, never NULL
  * @param vhash hash of the value, maybe NULL (to
  *        match all values that have the right key).
@@ -177,34 +158,31 @@ typedef int (*PluginPut) (void *cls,
  *        there may be!
  * @param type entries of which type are relevant?
  *     Use 0 for any type.
- * @param iter function to call on each matching value; however,
- *        after the first call to "iter", the plugin must wait
- *        until "NextRequest" was called before giving the iterator
- *        the next item; finally, the "iter" should be called once
- *        once with a NULL value at the end ("next_cls" should be NULL
- *        for that last call)
- * @param iter_cls closure for iter
+ * @param proc function to call on the matching value; 
+ *        proc should be called with NULL if there is no result
+ * @param proc_cls closure for proc
  */
-typedef void (*PluginGet) (void *cls,
-			   const GNUNET_HashCode *key,
-			   const GNUNET_HashCode *vhash,
-			   enum GNUNET_BLOCK_Type type,
-			   PluginIterator iter, void *iter_cls);
+typedef void (*PluginGetKey) (void *cls,
+			      uint64_t offset,
+			      const GNUNET_HashCode *key,
+			      const GNUNET_HashCode *vhash,
+			      enum GNUNET_BLOCK_Type type,
+			      PluginDatumProcessor proc, void *proc_cls);
 
 
 
 /**
  * Get a random item (additional constraints may apply depending on
- * the specific implementation).  Calls 'iter' with all values ZERO or
- * NULL if no item applies, otherwise 'iter' is called once and only
+ * the specific implementation).  Calls 'proc' with all values ZERO or
+ * NULL if no item applies, otherwise 'proc' is called once and only
  * once with an item, with the 'next_cls' argument being NULL.
  *
  * @param cls closure
- * @param iter function to call the value (once only).
- * @param iter_cls closure for iter
+ * @param proc function to call the value (once only).
+ * @param proc_cls closure for proc
  */
-typedef void (*PluginRandomGet) (void *cls,
-				 PluginIterator iter, void *iter_cls);
+typedef void (*PluginGetRandom) (void *cls,
+				 PluginDatumProcessor proc, void *proc_cls);
 
 
 /**
@@ -238,26 +216,22 @@ typedef int (*PluginUpdate) (void *cls,
 
 
 /**
- * Select a subset of the items in the datastore and call the given
- * iterator for the first item; then allow getting more items by
- * calling the 'next_request' callback with the given 'next_cls'
- * argument passed to 'iter'.
+ * Select a single item from the datastore at the specified offset
+ * (among those applicable). 
  *
  * @param cls closure
+ * @param offset offset of the result (mod #num-results); 
+ *               specific ordering does not matter for the offset
  * @param type entries of which type should be considered?
- *        Myst not be zero (ANY).
- * @param iter function to call on each matching value; however,
- *        after the first call to "iter", the plugin must wait
- *        until "NextRequest" was called before giving the iterator
- *        the next item; finally, the "iter" should be called once
- *        once with a NULL value at the end ("next_cls" should be NULL
- *        for that last call)
- * @param iter_cls closure for iter
+ *        Must not be zero (ANY).
+ * @param proc function to call on the matching value
+ * @param proc_cls closure for proc
  */
-typedef void (*PluginSelector) (void *cls,
-                                enum GNUNET_BLOCK_Type type,
-                                PluginIterator iter,
-                                void *iter_cls);
+typedef void (*PluginGetType) (void *cls,
+			       uint64_t offset,
+			       enum GNUNET_BLOCK_Type type,
+			       PluginDatumProcessor proc,
+			       void *proc_cls);
 
 
 /**
@@ -283,10 +257,10 @@ struct GNUNET_DATASTORE_PluginFunctions
   void *cls;
 
   /**
-   * Get the current on-disk size of the SQ store.  Estimates are
-   * fine, if that's the only thing available.
+   * Calculate the current on-disk size of the SQ store.  Estimates
+   * are fine, if that's the only thing available.
    */
-  PluginGetSize get_size;
+  PluginEstimateSize estimate_size;
 
   /**
    * Function to store an item in the datastore.
@@ -304,23 +278,14 @@ struct GNUNET_DATASTORE_PluginFunctions
   PluginUpdate update;
 
   /**
-   * Function called by iterators whenever they want the next value;
-   * note that unlike all of the other callbacks, this one does get a
-   * the "next_cls" closure which is usually different from the "cls"
-   * member of this struct!
+   * Get a particular datum matching a given hash from the datastore.
    */
-  PluginNextRequest next_request;
+  PluginGetKey get_key;
 
   /**
-   * Function to iterate over the results for a particular key
-   * in the datastore.
+   * Get datum (of the specified type) with anonymity level zero.
    */
-  PluginGet get;
-
-  /**
-   * Iterate over content with anonymity level zero.
-   */
-  PluginSelector iter_zero_anonymity;
+  PluginGetType get_zero_anonymity;
 
   /**
    * Function to get a random item with high replication score from
@@ -329,13 +294,13 @@ struct GNUNET_DATASTORE_PluginFunctions
    * counters.  The item's replication counter is decremented by one
    * IF it was positive before.
    */
-  PluginRandomGet replication_get;
+  PluginGetRandom get_replication;
 
   /**
    * Function to get a random expired item or, if none are expired, one
    * with a low priority.
    */
-  PluginRandomGet expiration_get;
+  PluginGetRandom get_expiration;
 
   /**
    * Delete the database.  The next operation is

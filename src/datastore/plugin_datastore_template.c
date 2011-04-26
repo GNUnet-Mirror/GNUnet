@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -47,7 +47,8 @@ struct Plugin
  * @param cls our "struct Plugin*"
  * @return number of bytes used on disk
  */
-static unsigned long long template_plugin_get_size (void *cls)
+static unsigned long long 
+template_plugin_estimate_size (void *cls)
 {
   GNUNET_break (0);
   return 0;
@@ -88,30 +89,11 @@ template_plugin_put (void *cls,
 
 
 /**
- * Function invoked on behalf of a "PluginIterator"
- * asking the database plugin to call the iterator
- * with the next item.
- *
- * @param next_cls whatever argument was given
- *        to the PluginIterator as "next_cls".
- * @param end_it set to GNUNET_YES if we
- *        should terminate the iteration early
- *        (iterator should be still called once more
- *         to signal the end of the iteration).
- */
-static void 
-template_plugin_next_request (void *next_cls,
-		       int end_it)
-{
-  GNUNET_break (0);
-}
-
-
-/**
- * Iterate over the results for a particular key
- * in the datastore.
+ * Get one of the results for a particular key in the datastore.
  *
  * @param cls closure
+ * @param offset offset of the result (mod #num-results); 
+ *               specific ordering does not matter for the offset
  * @param key maybe NULL (to match all entries)
  * @param vhash hash of the value, maybe NULL (to
  *        match all values that have the right key).
@@ -120,16 +102,17 @@ template_plugin_next_request (void *next_cls,
  *        there may be!
  * @param type entries of which type are relevant?
  *     Use 0 for any type.
- * @param iter function to call on each matching value;
- *        will be called once with a NULL value at the end
- * @param iter_cls closure for iter
+ * @param proc function to call on each matching value;
+ *        will be called with NULL if nothing matches
+ * @param proc_cls closure for proc
  */
 static void
-template_plugin_get (void *cls,
-		     const GNUNET_HashCode * key,
-		     const GNUNET_HashCode * vhash,
-		     enum GNUNET_BLOCK_Type type,
-		     PluginIterator iter, void *iter_cls)
+template_plugin_get_key (void *cls,
+			 uint64_t offset,
+			 const GNUNET_HashCode * key,
+			 const GNUNET_HashCode * vhash,
+			 enum GNUNET_BLOCK_Type type,
+			 PluginDatumProcessor proc, void *proc_cls)
 {
   GNUNET_break (0);
 }
@@ -137,34 +120,35 @@ template_plugin_get (void *cls,
 
 
 /**
- * Get a random item for replication.  Returns a single, not expired, random item
- * from those with the highest replication counters.  The item's 
- * replication counter is decremented by one IF it was positive before.
- * Call 'iter' with all values ZERO or NULL if the datastore is empty.
+ * Get a random item for replication.  Returns a single, not expired,
+ * random item from those with the highest replication counters.  The
+ * item's replication counter is decremented by one IF it was positive
+ * before.  Call 'proc' with all values ZERO or NULL if the datastore
+ * is empty.
  *
  * @param cls closure
- * @param iter function to call the value (once only).
- * @param iter_cls closure for iter
+ * @param proc function to call the value (once only).
+ * @param proc_cls closure for proc
  */
 static void
-template_plugin_replication_get (void *cls,
-				 PluginIterator iter, void *iter_cls)
+template_plugin_get_replication (void *cls,
+				 PluginDatumProcessor proc, void *proc_cls)
 {
   GNUNET_break (0);
 }
 
 
 /**
- * Get a random item for expiration.
- * Call 'iter' with all values ZERO or NULL if the datastore is empty.
+ * Get a random item for expiration.  Call 'proc' with all values ZERO
+ * or NULL if the datastore is empty.
  *
  * @param cls closure
- * @param iter function to call the value (once only).
- * @param iter_cls closure for iter
+ * @param proc function to call the value (once only).
+ * @param proc_cls closure for proc
  */
 static void
-template_plugin_expiration_get (void *cls,
-				PluginIterator iter, void *iter_cls)
+template_plugin_get_expiration (void *cls,
+				PluginDatumProcessor proc, void *proc_cls)
 {
   GNUNET_break (0);
 }
@@ -196,7 +180,8 @@ template_plugin_expiration_get (void *cls,
 static int
 template_plugin_update (void *cls,
 			uint64_t uid,
-			int delta, struct GNUNET_TIME_Absolute expire,
+			int delta, 
+			struct GNUNET_TIME_Absolute expire,
 			char **msg)
 {
   GNUNET_break (0);
@@ -206,21 +191,23 @@ template_plugin_update (void *cls,
 
 
 /**
- * Select a subset of the items in the datastore and call
- * the given iterator for each of them.
+ * Call the given processor on an item with zero anonymity.
  *
  * @param cls our "struct Plugin*"
+ * @param offset offset of the result (mod #num-results); 
+ *               specific ordering does not matter for the offset
  * @param type entries of which type should be considered?
  *        Use 0 for any type.
- * @param iter function to call on each matching value;
- *        will be called once with a NULL value at the end
- * @param iter_cls closure for iter
+ * @param proc function to call on each matching value;
+ *        will be called  with NULL if no value matches
+ * @param proc_cls closure for proc
  */
 static void
-template_plugin_iter_zero_anonymity (void *cls,
-				     enum GNUNET_BLOCK_Type type,
-				     PluginIterator iter,
-				     void *iter_cls)
+template_plugin_get_zero_anonymity (void *cls,
+				    uint64_t offset,
+				    enum GNUNET_BLOCK_Type type,
+				    PluginDatumProcessor proc,
+				    void *proc_cls)
 {
   GNUNET_break (0);
 }
@@ -253,14 +240,13 @@ libgnunet_plugin_datastore_template_init (void *cls)
   plugin->env = env;
   api = GNUNET_malloc (sizeof (struct GNUNET_DATASTORE_PluginFunctions));
   api->cls = plugin;
-  api->get_size = &template_plugin_get_size;
+  api->estimate_size = &template_plugin_estimate_size;
   api->put = &template_plugin_put;
-  api->next_request = &template_plugin_next_request;
-  api->get = &template_plugin_get;
-  api->replication_get = &template_plugin_replication_get;
-  api->expiration_get = &template_plugin_expiration_get;
   api->update = &template_plugin_update;
-  api->iter_zero_anonymity = &template_plugin_iter_zero_anonymity;
+  api->get_key = &template_plugin_get_key;
+  api->get_replication = &template_plugin_get_replication;
+  api->get_expiration = &template_plugin_get_expiration;
+  api->get_zero_anonymity = &template_plugin_get_zero_anonymity;
   api->drop = &template_plugin_drop;
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
                    "template", _("Template database running\n"));

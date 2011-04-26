@@ -1842,6 +1842,7 @@ change_preference_send_continuation (void *cls,
   struct GNUNET_CORE_InformationRequestContext *irc = cls;
 
   irc->cm = NULL;
+  // FIXME: who frees 'irc'?
 }
 
 
@@ -1901,6 +1902,7 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
   irc = GNUNET_malloc (sizeof (struct GNUNET_CORE_InformationRequestContext));
   irc->h = h;
   irc->pr = pr;
+  // FIXME: who frees 'irc'? (if not cancelled?)
   cm = GNUNET_malloc (sizeof (struct ControlMessage) +
 		      sizeof (struct RequestInfoMessage));
   cm->cont = &change_preference_send_continuation;

@@ -209,18 +209,6 @@ sync_stats ()
 
 
 
-
-/**
- * Function called once the transmit operation has
- * either failed or succeeded.
- *
- * @param cls closure
- * @param status GNUNET_OK on success, GNUNET_SYSERR on error
- */
-typedef void (*TransmitContinuation)(void *cls,
-				     int status);
-
-
 /**
  * Context for transmitting replies to clients.
  */
@@ -252,22 +240,6 @@ struct TransmitCallbackContext
    */
   struct GNUNET_SERVER_Client *client;
 
-  /**
-   * Function to call once msg has been transmitted
-   * (or at least added to the buffer).
-   */
-  TransmitContinuation tc;
-
-  /**
-   * Closure for tc.
-   */
-  void *tc_cls;
-
-  /**
-   * GNUNET_YES if we are supposed to signal the server
-   * completion of the client's request.
-   */
-  int end;
 };
 
   
@@ -330,7 +302,6 @@ delete_expired (void *cls,
  */
 static int 
 expired_processor (void *cls,
-		   void *next_cls,
 		   const GNUNET_HashCode * key,
 		   uint32_t size,
 		   const void *data,
@@ -396,7 +367,7 @@ delete_expired (void *cls,
 		const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   expired_kill_task = GNUNET_SCHEDULER_NO_TASK;
-  plugin->api->expiration_get (plugin->api->cls, 
+  plugin->api->get_expiration (plugin->api->cls, 
 			       &expired_processor,
 			       NULL);
 }
@@ -424,7 +395,6 @@ delete_expired (void *cls,
  */
 static int 
 quota_processor (void *cls,
-		 void *next_cls,
 		 const GNUNET_HashCode * key,
 		 uint32_t size,
 		 const void *data,
@@ -487,7 +457,7 @@ manage_space (unsigned long long need)
 	  (last != need) )
     {
       last = need;
-      plugin->api->expiration_get (plugin->api->cls,
+      plugin->api->get_expiration (plugin->api->cls,
 				   &quota_processor,
 				   &need);    
     }
@@ -521,14 +491,7 @@ transmit_callback (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Transmission to client failed!\n"));
-      if (tcc->tc != NULL)
-	tcc->tc (tcc->tc_cls, GNUNET_SYSERR);
-      if (GNUNET_YES == tcc->end)
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		      _("Disconnecting client due to transmission failure!\n"));
-	  GNUNET_SERVER_receive_done (tcc->client, GNUNET_SYSERR);       
-	}
+      GNUNET_SERVER_receive_done (tcc->client, GNUNET_SYSERR);       
       GNUNET_SERVER_client_drop (tcc->client);
       GNUNET_free (tcc->msg);
       GNUNET_free (tcc);
@@ -536,23 +499,7 @@ transmit_callback (void *cls,
     }
   GNUNET_assert (size >= msize);
   memcpy (buf, tcc->msg, msize);
-  if (tcc->tc != NULL)
-    tcc->tc (tcc->tc_cls, GNUNET_OK);
-  if (GNUNET_YES == tcc->end)
-    {
-#if DEBUG_DATASTORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Done processing client request\n");
-#endif
-      GNUNET_SERVER_receive_done (tcc->client, GNUNET_OK);
-    }
-  else
-    {
-#if DEBUG_DATASTORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Response transmitted, more pending!\n");
-#endif
-    }
+  GNUNET_SERVER_receive_done (tcc->client, GNUNET_OK);
   GNUNET_SERVER_client_drop (tcc->client);
   GNUNET_free (tcc->msg);
   GNUNET_free (tcc);
@@ -567,16 +514,10 @@ transmit_callback (void *cls,
  * @param msg message to transmit, will be freed!
  * @param tc function to call afterwards
  * @param tc_cls closure for tc
- * @param end is this the last response (and we should
- *        signal the server completion accodingly after
- *        transmitting this message)?
  */
 static void
 transmit (struct GNUNET_SERVER_Client *client,
-	  struct GNUNET_MessageHeader *msg,
-	  TransmitContinuation tc,
-	  void *tc_cls,
-	  int end)
+	  struct GNUNET_MessageHeader *msg)
 {
   struct TransmitCallbackContext *tcc;
 
@@ -586,17 +527,13 @@ transmit (struct GNUNET_SERVER_Client *client,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  "Shutdown in progress, aborting transmission.\n");
 #endif
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       GNUNET_free (msg);
-      if (NULL != tc)
-	tc (tc_cls, GNUNET_SYSERR);
       return;
     }
   tcc = GNUNET_malloc (sizeof(struct TransmitCallbackContext));
   tcc->msg = msg;
   tcc->client = client;
-  tcc->tc = tc;
-  tcc->tc_cls = tc_cls;
-  tcc->end = end;
   if (NULL ==
       (tcc->th = GNUNET_SERVER_notify_transmit_ready (client,
 						      ntohs(msg->size),
@@ -605,14 +542,7 @@ transmit (struct GNUNET_SERVER_Client *client,
 						      tcc)))
     {
       GNUNET_break (0);
-      if (GNUNET_YES == end)
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		      _("Forcefully disconnecting client.\n"));
-	  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-	}
-      if (NULL != tc)
-	tc (tc_cls, GNUNET_SYSERR);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       GNUNET_free (msg);
       GNUNET_free (tcc);
       return;
@@ -653,32 +583,9 @@ transmit_status (struct GNUNET_SERVER_Client *client,
   sm->status = htonl(code);
   if (slen > 0)
     memcpy (&sm[1], msg, slen);  
-  transmit (client, &sm->header, NULL, NULL, GNUNET_YES);
+  transmit (client, &sm->header);
 }
 
-
-/**
- * Function called once the transmit operation has
- * either failed or succeeded.
- *
- * @param next_cls closure for calling "next_request" callback
- * @param status GNUNET_OK on success, GNUNET_SYSERR on error
- */
-static void 
-get_next(void *next_cls,
-	 int status)
-{
-  if (status != GNUNET_OK)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  _("Failed to transmit an item to the client; aborting iteration.\n"));
-      if (plugin != NULL)
-	plugin->api->next_request (next_cls, GNUNET_YES);
-      return;
-    }
-  if (next_cls != NULL)
-   plugin->api->next_request (next_cls, GNUNET_NO);
-}
 
 
 /**
@@ -702,7 +609,6 @@ get_next(void *next_cls,
  */
 static int
 transmit_item (void *cls,
-	       void *next_cls,
 	       const GNUNET_HashCode * key,
 	       uint32_t size,
 	       const void *data,
@@ -727,10 +633,11 @@ transmit_item (void *cls,
       end = GNUNET_malloc (sizeof(struct GNUNET_MessageHeader));
       end->size = htons(sizeof(struct GNUNET_MessageHeader));
       end->type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END);
-      transmit (client, end, NULL, NULL, GNUNET_YES);
+      transmit (client, end);
       GNUNET_SERVER_client_drop (client);
       return GNUNET_OK;
     }
+  GNUNET_assert (sizeof (struct DataMessage) + size < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   dm = GNUNET_malloc (sizeof(struct DataMessage) + size);
   dm->header.size = htons(sizeof(struct DataMessage) + size);
   dm->header.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_DATA);
@@ -754,8 +661,7 @@ transmit_item (void *cls,
 			    gettext_noop ("# results found"),
 			    1,
 			    GNUNET_NO);
-  transmit (client, &dm->header, &get_next, next_cls, 
-	    (next_cls != NULL) ? GNUNET_NO : GNUNET_YES);
+  transmit (client, &dm->header);
   return GNUNET_OK;
 }
 
@@ -939,11 +845,6 @@ struct PutContext
    * Client to notify on completion.
    */
   struct GNUNET_SERVER_Client *client;
-
-  /**
-   * Did we find the data already in the database?
-   */
-  int is_present;
   
   /* followed by the 'struct DataMessage' */
 };
@@ -1009,7 +910,6 @@ execute_put (struct GNUNET_SERVER_Client *client,
  * matches the put and if none match executes the put.
  *
  * @param cls closure, pointer to the client (of type 'struct PutContext').
- * @param next_cls closure to use to ask for the next item
  * @param key key for the content
  * @param size number of bytes in data
  * @param data content stored
@@ -1020,12 +920,11 @@ execute_put (struct GNUNET_SERVER_Client *client,
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
  *
- * @return GNUNET_SYSERR to abort the iteration, GNUNET_OK to continue,
- *         GNUNET_NO to delete the item and continue (if supported)
+ * @return GNUNET_OK usually
+ *         GNUNET_NO to delete the item 
  */
 static int
 check_present (void *cls,
-	       void *next_cls,
 	       const GNUNET_HashCode * key,
 	       uint32_t size,
 	       const void *data,
@@ -1041,13 +940,10 @@ check_present (void *cls,
   dm = (const struct DataMessage*) &pc[1];
   if (key == NULL)
     {
-      if (pc->is_present == GNUNET_YES)	
-	transmit_status (pc->client, GNUNET_NO, NULL);
-      else
-	execute_put (pc->client, dm);
+      execute_put (pc->client, dm);
       GNUNET_SERVER_client_drop (pc->client);
       GNUNET_free (pc);
-      return GNUNET_SYSERR;
+      return GNUNET_OK;
     }
   if ( (GNUNET_BLOCK_TYPE_FS_DBLOCK == type) ||
        (GNUNET_BLOCK_TYPE_FS_IBLOCK == type) ||
@@ -1056,12 +952,19 @@ check_present (void *cls,
 		       data,
 		       size)) ) )
     {
-      pc->is_present = GNUNET_YES;
-      plugin->api->next_request (next_cls, GNUNET_YES);
+#if DEBUG_MYSQL
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Result already present in datastore\n");
+#endif
+      transmit_status (pc->client, GNUNET_NO, NULL);
+      GNUNET_SERVER_client_drop (pc->client);
+      GNUNET_free (pc);
     }
   else
     {
-      plugin->api->next_request (next_cls, GNUNET_NO);
+      execute_put (pc->client, dm);
+      GNUNET_SERVER_client_drop (pc->client);
+      GNUNET_free (pc);
     }
   return GNUNET_OK;
 }
@@ -1083,6 +986,7 @@ handle_put (void *cls,
   int rid;
   struct ReservationList *pos;
   struct PutContext *pc;
+  GNUNET_HashCode vhash;
   uint32_t size;
 
   if ( (dm == NULL) ||
@@ -1124,16 +1028,18 @@ handle_put (void *cls,
   if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (filter,
 						       &dm->key))
     {
+      GNUNET_CRYPTO_hash (&dm[1], size, &vhash);
       pc = GNUNET_malloc (sizeof (struct PutContext) + size + sizeof (struct DataMessage));
       pc->client = client;
       GNUNET_SERVER_client_keep (client);
       memcpy (&pc[1], dm, size + sizeof (struct DataMessage));
-      plugin->api->get (plugin->api->cls,
-			&dm->key,
-			NULL,
-			ntohl (dm->type),
-			&check_present,
-			pc);      
+      plugin->api->get_key (plugin->api->cls,
+			    0,
+			    &dm->key,
+			    &vhash,
+			    ntohl (dm->type),
+			    &check_present,
+			    pc);      
       return;
     }
   execute_put (client, dm);
@@ -1192,16 +1098,17 @@ handle_get (void *cls,
 				1,
 				GNUNET_NO);
       transmit_item (client,
-		     NULL, NULL, 0, NULL, 0, 0, 0, 
+		     NULL, 0, NULL, 0, 0, 0, 
 		     GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
-  plugin->api->get (plugin->api->cls,
-		    ((size == sizeof(struct GetMessage)) ? &msg->key : NULL),
-		    NULL,
-		    ntohl(msg->type),
-		    &transmit_item,
-		    client);    
+  plugin->api->get_key (plugin->api->cls,
+			GNUNET_ntohll (msg->offset),
+			((size == sizeof(struct GetMessage)) ? &msg->key : NULL),
+			NULL,
+			ntohl(msg->type),
+			&transmit_item,
+			client);    
 }
 
 
@@ -1265,7 +1172,7 @@ handle_get_replication (void *cls,
 			    1,
 			    GNUNET_NO);
   GNUNET_SERVER_client_keep (client);
-  plugin->api->replication_get (plugin->api->cls,
+  plugin->api->get_replication (plugin->api->cls,
 				&transmit_item,
 				client);  
 }
@@ -1303,28 +1210,12 @@ handle_get_zero_anonymity (void *cls,
 			    1,
 			    GNUNET_NO);
   GNUNET_SERVER_client_keep (client);
-  plugin->api->iter_zero_anonymity (plugin->api->cls,
-				    type,
-				    &transmit_item,
-				    client);  
+  plugin->api->get_zero_anonymity (plugin->api->cls,
+				   GNUNET_ntohll (msg->offset),
+				   type,
+				   &transmit_item,
+				   client);  
 }
-
-
-/**
- * Context for the 'remove_callback'.
- */
-struct RemoveContext 
-{
-  /**
-   * Client for whom we're doing the remvoing.
-   */
-  struct GNUNET_SERVER_Client *client;
-
-  /**
-   * GNUNET_YES if we managed to remove something.
-   */
-  int found;
-};
 
 
 /**
@@ -1333,7 +1224,6 @@ struct RemoveContext
  */
 static int
 remove_callback (void *cls,
-		 void *next_cls,
 		 const GNUNET_HashCode * key,
 		 uint32_t size,
 		 const void *data,
@@ -1343,7 +1233,7 @@ remove_callback (void *cls,
 		 struct GNUNET_TIME_Absolute
 		 expiration, uint64_t uid)
 {
-  struct RemoveContext *rc = cls;
+  struct GNUNET_SERVER_Client *client = cls;
 
   if (key == NULL)
     {
@@ -1352,15 +1242,10 @@ remove_callback (void *cls,
 		  "No further matches for `%s' request.\n",
 		  "REMOVE");
 #endif	
-      if (GNUNET_YES == rc->found)
-	transmit_status (rc->client, GNUNET_OK, NULL);       
-      else
-	transmit_status (rc->client, GNUNET_NO, _("Content not found"));       	
-      GNUNET_SERVER_client_drop (rc->client);
-      GNUNET_free (rc);
+      transmit_status (client, GNUNET_NO, _("Content not found"));       	
+      GNUNET_SERVER_client_drop (client);
       return GNUNET_OK; /* last item */
     }
-  rc->found = GNUNET_YES;
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Item %llu matches `%s' request for key `%s' and type %u.\n",
@@ -1375,7 +1260,8 @@ remove_callback (void *cls,
 			    GNUNET_YES);
   GNUNET_CONTAINER_bloomfilter_remove (filter,
 				       key);
-  plugin->api->next_request (next_cls, GNUNET_YES);
+  transmit_status (client, GNUNET_OK, NULL);       
+  GNUNET_SERVER_client_drop (client);
   return GNUNET_NO;
 }
 
@@ -1394,7 +1280,6 @@ handle_remove (void *cls,
 {
   const struct DataMessage *dm = check_data (message);
   GNUNET_HashCode vhash;
-  struct RemoveContext *rc;
 
   if (dm == NULL)
     {
@@ -1413,18 +1298,17 @@ handle_remove (void *cls,
 			    gettext_noop ("# REMOVE requests received"),
 			    1,
 			    GNUNET_NO);
-  rc = GNUNET_malloc (sizeof(struct RemoveContext));
   GNUNET_SERVER_client_keep (client);
-  rc->client = client;
   GNUNET_CRYPTO_hash (&dm[1],
 		      ntohl(dm->size),
 		      &vhash);
-  plugin->api->get (plugin->api->cls,
-		    &dm->key,
-		    &vhash,
-		    (enum GNUNET_BLOCK_Type) ntohl(dm->type),
-		    &remove_callback,
-		    rc);
+  plugin->api->get_key (plugin->api->cls,
+			0,
+			&dm->key,
+			&vhash,
+			(enum GNUNET_BLOCK_Type) ntohl(dm->type),
+			&remove_callback,
+			client);
 }
 
 
@@ -1469,7 +1353,7 @@ disk_utilization_change_cb (void *cls,
 		  _("Datastore payload inaccurate (%lld < %lld).  Trying to fix.\n"),
 		  (long long) payload,
 		  (long long) -delta);
-      payload = plugin->api->get_size (plugin->api->cls);
+      payload = plugin->api->estimate_size (plugin->api->cls);
       sync_stats ();
       return;
     }
@@ -1518,7 +1402,7 @@ process_stat_done (void *cls,
 
   stat_get = NULL;
   if (stats_worked == GNUNET_NO) 
-    payload = plugin->api->get_size (plugin->api->cls);
+    payload = plugin->api->estimate_size (plugin->api->cls);
 }
 
 
@@ -1636,8 +1520,6 @@ cleaning_task (void *cls,
 	  GNUNET_CONNECTION_notify_transmit_ready_cancel (tcc->th);
 	  GNUNET_SERVER_client_drop (tcc->client);
 	}
-      if (NULL != tcc->tc)
-	tcc->tc (tcc->tc_cls, GNUNET_SYSERR);
       GNUNET_free (tcc->msg);
       GNUNET_free (tcc);
     }

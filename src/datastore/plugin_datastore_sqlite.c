@@ -108,19 +108,14 @@ struct Plugin
   sqlite3_stmt *selExpi;
 
   /**
+   * Precompiled SQL for expiration selection.
+   */
+  sqlite3_stmt *selZeroAnon;
+
+  /**
    * Precompiled SQL for insertion.
    */
   sqlite3_stmt *insertContent;
-
-  /**
-   * Closure of the 'next_task' (must be freed if 'next_task' is cancelled).
-   */
-  struct NextContext *next_task_nc;
-
-  /**
-   * Pending task with scheduler for running the next request.
-   */
-  GNUNET_SCHEDULER_TaskIdentifier next_task;
 
   /**
    * Should the database be dropped on shutdown?
@@ -326,6 +321,11 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
 		   " WHERE NOT EXISTS (SELECT 1 FROM gn090 WHERE expire < ?1 LIMIT 1) OR expire < ?1 "
 		   " ORDER BY prio ASC LIMIT 1",
                    &plugin->selExpi) != SQLITE_OK) ||
+      (sq_prepare (plugin->dbh, 
+		   "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn090 "
+		   "WHERE (anonLevel = 0 AND type=?1) "
+		   "ORDER BY hash DESC LIMIT 1 OFFSET ?2",
+		   &plugin->selZeroAnon) != SQLITE_OK) ||
       (sq_prepare (plugin->dbh,
                    "INSERT INTO gn090 (repl, type, prio, "
                    "anonLevel, expire, hash, vhash, value) "
@@ -367,6 +367,8 @@ database_shutdown (struct Plugin *plugin)
     sqlite3_finalize (plugin->selRepl);
   if (plugin->selExpi != NULL)
     sqlite3_finalize (plugin->selExpi);
+  if (plugin->selZeroAnon != NULL)
+    sqlite3_finalize (plugin->selZeroAnon);
   if (plugin->insertContent != NULL)
     sqlite3_finalize (plugin->insertContent);
   result = sqlite3_close(plugin->dbh);
@@ -432,247 +434,6 @@ delete_by_rowid (struct Plugin* plugin,
 		GNUNET_ERROR_TYPE_ERROR |
 		GNUNET_ERROR_TYPE_BULK, "sqlite3_reset");
   return GNUNET_OK;
-}
-
-
-/**
- * Context for the universal iterator.
- */
-struct NextContext;
-
-/**
- * Type of a function that will prepare
- * the next iteration.
- *
- * @param cls closure
- * @param nc the next context; NULL for the last
- *         call which gives the callback a chance to
- *         clean up the closure
- * @return GNUNET_OK on success, GNUNET_NO if there are
- *         no more values, GNUNET_SYSERR on error
- */
-typedef int (*PrepareFunction)(void *cls,
-			       struct NextContext *nc);
-
-
-/**
- * Context we keep for the "next request" callback.
- */
-struct NextContext
-{
-  /**
-   * Internal state.
-   */ 
-  struct Plugin *plugin;
-
-  /**
-   * Function to call on the next value.
-   */
-  PluginIterator iter;
-
-  /**
-   * Closure for iter.
-   */
-  void *iter_cls;
-
-  /**
-   * Function to call to prepare the next
-   * iteration.
-   */
-  PrepareFunction prep;
-
-  /**
-   * Closure for prep.
-   */
-  void *prep_cls;
-
-  /**
-   * Statement that the iterator will get the data
-   * from (updated or set by prep).
-   */ 
-  sqlite3_stmt *stmt;
-
-  /**
-   * Row ID of the last result.
-   */
-  unsigned long long last_rowid;
-
-  /**
-   * Key of the last result.
-   */
-  GNUNET_HashCode lastKey;  
-
-  /**
-   * Priority of the last value visited.
-   */ 
-  unsigned int lastPriority; 
-
-  /**
-   * Number of results processed so far.
-   */
-  unsigned int count;
-
-  /**
-   * Set to GNUNET_YES if we must stop now.
-   */
-  int end_it;
-};
-
-
-/**
- * Continuation of "sqlite_next_request".
- *
- * @param cls the 'struct NextContext*'
- * @param tc the task context (unused)
- */
-static void 
-sqlite_next_request_cont (void *cls,
-			  const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct NextContext * nc = cls;
-  struct Plugin *plugin;
-  unsigned long long rowid;
-  int ret;
-  unsigned int size;
-  unsigned int hsize;
-  uint32_t anonymity;
-  uint32_t priority;
-  enum GNUNET_BLOCK_Type type;
-  const GNUNET_HashCode *key;
-  struct GNUNET_TIME_Absolute expiration;
-  
-  plugin = nc->plugin;
-  plugin->next_task = GNUNET_SCHEDULER_NO_TASK;
-  plugin->next_task_nc = NULL;
-  if ( (GNUNET_YES == nc->end_it) ||
-       (GNUNET_OK != (nc->prep(nc->prep_cls,
-			       nc))) )
-    {
-#if DEBUG_SQLITE
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		       "sqlite",
-		       "Iteration completes after %u results\n",
-		       nc->count);
-#endif
-    END:
-      nc->iter (nc->iter_cls, 
-		NULL, NULL, 0, NULL, 0, 0, 0, 
-		GNUNET_TIME_UNIT_ZERO_ABS, 0);
-      nc->prep (nc->prep_cls, NULL);
-      GNUNET_free (nc);
-      return;
-    }
-
-  type = sqlite3_column_int (nc->stmt, 0);
-  priority = sqlite3_column_int (nc->stmt, 1);
-  anonymity = sqlite3_column_int (nc->stmt, 2);
-  expiration.abs_value = sqlite3_column_int64 (nc->stmt, 3);
-  hsize = sqlite3_column_bytes (nc->stmt, 4);
-  key = sqlite3_column_blob (nc->stmt, 4);
-  size = sqlite3_column_bytes (nc->stmt, 5);
-  rowid = sqlite3_column_int64 (nc->stmt, 6);
-  if (hsize != sizeof (GNUNET_HashCode))
-    {
-      GNUNET_break (0);
-      if (SQLITE_OK != sqlite3_reset (nc->stmt))
-	LOG_SQLITE (plugin, NULL,
-		    GNUNET_ERROR_TYPE_ERROR |
-		    GNUNET_ERROR_TYPE_BULK, "sqlite3_reset");
-      if (GNUNET_OK == delete_by_rowid (plugin, rowid))
-	plugin->env->duc (plugin->env->cls,
-			  - (size + GNUNET_DATASTORE_ENTRY_OVERHEAD));      
-      goto END;
-    }
-#if DEBUG_SQLITE
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		   "sqlite",
-		   "Iterator returns value with type %u/key `%s'/priority %u/expiration %llu (%lld).\n",
-		   type, 
-		   GNUNET_h2s(key),
-		   priority,
-		   (unsigned long long) GNUNET_TIME_absolute_get_remaining (expiration).rel_value,
-		   (long long) expiration.abs_value);
-#endif
-  if (size > MAX_ITEM_SIZE)
-    {
-      GNUNET_break (0);
-      if (SQLITE_OK != sqlite3_reset (nc->stmt))
-	LOG_SQLITE (plugin, NULL,
-		    GNUNET_ERROR_TYPE_ERROR |
-		    GNUNET_ERROR_TYPE_BULK, "sqlite3_reset");
-      if (GNUNET_OK == delete_by_rowid (plugin, rowid))
-	plugin->env->duc (plugin->env->cls,
-			  - (size + GNUNET_DATASTORE_ENTRY_OVERHEAD)); 
-      goto END;
-    }
-  {
-    char data[size];
-    
-    memcpy (data, sqlite3_column_blob (nc->stmt, 5), size);
-    nc->count++;
-    nc->last_rowid = rowid;
-    nc->lastPriority = priority;
-    nc->lastKey = *key;
-    if (SQLITE_OK != sqlite3_reset (nc->stmt))
-      LOG_SQLITE (plugin, NULL,
-		  GNUNET_ERROR_TYPE_ERROR |
-		  GNUNET_ERROR_TYPE_BULK, "sqlite3_reset");
-    ret = nc->iter (nc->iter_cls, nc,
-		    &nc->lastKey,
-		    size, data,
-		    type, priority,
-		    anonymity, expiration,
-		    rowid);
-  }
-  switch (ret)
-    {
-    case GNUNET_SYSERR:
-      nc->end_it = GNUNET_YES;
-      break;
-    case GNUNET_NO:
-      if (GNUNET_OK == delete_by_rowid (plugin, rowid))
-	{
-#if DEBUG_SQLITE
-	  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-			   "sqlite",
-			   "Removed entry %llu (%u bytes)\n",
-			   (unsigned long long) rowid,
-			   size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
-#endif
-	  plugin->env->duc (plugin->env->cls,
-			    - (size + GNUNET_DATASTORE_ENTRY_OVERHEAD));
-	}
-      break;
-    case GNUNET_YES:
-      break;
-    default:
-      GNUNET_break (0);
-    }
-}
-
-
-/**
- * Function invoked on behalf of a "PluginIterator" asking the
- * database plugin to call the iterator with the next item.
- *
- * @param next_cls whatever argument was given
- *        to the PluginIterator as "next_cls".
- * @param end_it set to GNUNET_YES if we
- *        should terminate the iteration early
- *        (iterator should be still called once more
- *         to signal the end of the iteration).
- */
-static void 
-sqlite_next_request (void *next_cls,
-		     int end_it)
-{
-  struct NextContext * nc= next_cls;
-
-  if (GNUNET_YES == end_it)
-    nc->end_it = GNUNET_YES;
-  nc->plugin->next_task_nc = nc;
-  nc->plugin->next_task = GNUNET_SCHEDULER_add_now (&sqlite_next_request_cont,
-						    nc);
 }
 
 
@@ -849,482 +610,18 @@ sqlite_plugin_update (void *cls,
 
 
 /**
- * Internal context for an iteration.
- */
-struct ZeroIterContext
-{
-  /**
-   * First iterator statement for zero-anonymity iteration.
-   */
-  sqlite3_stmt *stmt_1;
-
-  /**
-   * Second iterator statement for zero-anonymity iteration.
-   */
-  sqlite3_stmt *stmt_2;
-
-  /**
-   * Desired type for blocks returned by this iterator.
-   */
-  enum GNUNET_BLOCK_Type type;
-};
-
-
-/**
- * Prepare our SQL query to obtain the next record from the database.
- *
- * @param cls our "struct ZeroIterContext"
- * @param nc NULL to terminate the iteration, otherwise our context for
- *           getting the next result.
- * @return GNUNET_OK on success, GNUNET_NO if there are no more results,
- *         GNUNET_SYSERR on error (or end of iteration)
- */
-static int
-zero_iter_next_prepare (void *cls,
-			struct NextContext *nc)
-{
-  struct ZeroIterContext *ic = cls;
-  struct Plugin *plugin;
-  int ret;
-
-  if (nc == NULL)
-    {
-#if DEBUG_SQLITE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Asked to clean up iterator state.\n");
-#endif
-      sqlite3_finalize (ic->stmt_1);
-      sqlite3_finalize (ic->stmt_2);
-      return GNUNET_SYSERR;
-    }
-  plugin = nc->plugin;
-
-  /* first try iter 1 */
-#if DEBUG_SQLITE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Restricting to results larger than the last priority %u and key `%s'\n",
-	      nc->lastPriority,
-	      GNUNET_h2s (&nc->lastKey));
-#endif
-  if ( (SQLITE_OK != sqlite3_bind_int (ic->stmt_1, 1, nc->lastPriority)) ||
-       (SQLITE_OK != sqlite3_bind_blob (ic->stmt_1, 2, 
-					&nc->lastKey, 
-					sizeof (GNUNET_HashCode),
-					SQLITE_TRANSIENT)) )
-    {
-      LOG_SQLITE (plugin, NULL,
-                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "sqlite3_bind_XXXX");
-      if (SQLITE_OK != sqlite3_reset (ic->stmt_1))
-	LOG_SQLITE (plugin, NULL,
-		    GNUNET_ERROR_TYPE_ERROR | 
-		    GNUNET_ERROR_TYPE_BULK, 
-		    "sqlite3_reset");  
-      return GNUNET_SYSERR;
-    }
-  if (SQLITE_ROW == (ret = sqlite3_step (ic->stmt_1)))
-    {      
-#if DEBUG_SQLITE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Result found using iterator 1\n");
-#endif
-      nc->stmt = ic->stmt_1;
-      return GNUNET_OK;
-    }
-  if (ret != SQLITE_DONE)
-    {
-      LOG_SQLITE (plugin, NULL,
-		  GNUNET_ERROR_TYPE_ERROR |
-		  GNUNET_ERROR_TYPE_BULK,
-		  "sqlite3_step");
-      if (SQLITE_OK != sqlite3_reset (ic->stmt_1))
-	LOG_SQLITE (plugin, NULL,
-		    GNUNET_ERROR_TYPE_ERROR | 
-		    GNUNET_ERROR_TYPE_BULK, 
-		    "sqlite3_reset");  
-      return GNUNET_SYSERR;
-    }
-  if (SQLITE_OK != sqlite3_reset (ic->stmt_1))
-    LOG_SQLITE (plugin, NULL,
-		GNUNET_ERROR_TYPE_ERROR | 
-		GNUNET_ERROR_TYPE_BULK, 
-		"sqlite3_reset");  
-
-  /* now try iter 2 */
-  if (SQLITE_OK != sqlite3_bind_int (ic->stmt_2, 1, nc->lastPriority))
-    {
-      LOG_SQLITE (plugin, NULL,		  
-                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "sqlite3_bind_XXXX");
-      return GNUNET_SYSERR;
-    }
-  if (SQLITE_ROW == (ret = sqlite3_step (ic->stmt_2))) 
-    {
-#if DEBUG_SQLITE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Result found using iterator 2\n");
-#endif
-      nc->stmt = ic->stmt_2;
-      return GNUNET_OK;
-    }
-  if (ret != SQLITE_DONE)
-    {
-      LOG_SQLITE (plugin, NULL,
-		  GNUNET_ERROR_TYPE_ERROR |
-		  GNUNET_ERROR_TYPE_BULK,
-		  "sqlite3_step");
-      if (SQLITE_OK != sqlite3_reset (ic->stmt_2))
-	LOG_SQLITE (plugin, NULL,
-		    GNUNET_ERROR_TYPE_ERROR |
-		    GNUNET_ERROR_TYPE_BULK,
-		    "sqlite3_reset");
-      return GNUNET_SYSERR;
-    }
-  if (SQLITE_OK != sqlite3_reset (ic->stmt_2))
-    LOG_SQLITE (plugin, NULL,
-		GNUNET_ERROR_TYPE_ERROR |
-		GNUNET_ERROR_TYPE_BULK,
-		"sqlite3_reset");
-#if DEBUG_SQLITE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "No result found using either iterator\n");
-#endif
-  return GNUNET_NO;
-}
-
-
-/**
- * Select a subset of the items in the datastore and call
- * the given iterator for each of them.
- *
- * @param cls our plugin context
- * @param type entries of which type should be considered?
- *        Use 0 for any type.
- * @param iter function to call on each matching value;
- *        will be called once with a NULL value at the end
- * @param iter_cls closure for iter
- */
-static void
-sqlite_plugin_iter_zero_anonymity (void *cls,
-				   enum GNUNET_BLOCK_Type type,
-				   PluginIterator iter,
-				   void *iter_cls)
-{
-  struct Plugin *plugin = cls;
-  struct GNUNET_TIME_Absolute now;
-  struct NextContext *nc;
-  struct ZeroIterContext *ic;
-  sqlite3_stmt *stmt_1;
-  sqlite3_stmt *stmt_2;
-  char *q;
-
-  GNUNET_assert (type != GNUNET_BLOCK_TYPE_ANY);
-  now = GNUNET_TIME_absolute_get ();
-  GNUNET_asprintf (&q, 
-		   "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn090 "
-		   "WHERE (anonLevel = 0 AND expire > %llu AND prio = ?1 AND type=%d AND hash < ?2) "
-		   "ORDER BY hash DESC LIMIT 1",
-		   (unsigned long long) now.abs_value,
-		   type);
-  if (sq_prepare (plugin->dbh, q, &stmt_1) != SQLITE_OK)
-    {
-      LOG_SQLITE (plugin, NULL,
-                  GNUNET_ERROR_TYPE_ERROR |
-                  GNUNET_ERROR_TYPE_BULK, "sqlite3_prepare_v2");
-      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
-      GNUNET_free (q);
-      return;
-    }
-  GNUNET_free (q);
-  GNUNET_asprintf (&q, 
-		   "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn090 "
-		   "WHERE (anonLevel = 0 AND expire > %llu AND prio < ?1 AND type=%d) "
-		   "ORDER BY prio DESC, hash DESC LIMIT 1",
-		   (unsigned long long) now.abs_value,
-		   type);
-  if (sq_prepare (plugin->dbh, q, &stmt_2) != SQLITE_OK)
-    {
-      LOG_SQLITE (plugin, NULL,
-                  GNUNET_ERROR_TYPE_ERROR |
-                  GNUNET_ERROR_TYPE_BULK, "sqlite3_prepare_v2");
-      sqlite3_finalize (stmt_1);
-      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
-      GNUNET_free (q);
-      return;
-    }
-  GNUNET_free (q);
-  nc = GNUNET_malloc (sizeof(struct NextContext) + 
-		      sizeof(struct ZeroIterContext));
-  nc->plugin = plugin;
-  nc->iter = iter;
-  nc->iter_cls = iter_cls;
-  nc->stmt = NULL;
-  ic = (struct ZeroIterContext*) &nc[1];
-  ic->stmt_1 = stmt_1;
-  ic->stmt_2 = stmt_2;
-  ic->type = type;
-  nc->prep = &zero_iter_next_prepare;
-  nc->prep_cls = ic;
-  nc->lastPriority = INT32_MAX;
-  memset (&nc->lastKey, 255, sizeof (GNUNET_HashCode));
-  sqlite_next_request (nc, GNUNET_NO);
-}
-
-
-/**
- * Context for get_next_prepare.
- */
-struct GetNextContext
-{
-
-  /**
-   * Our prepared statement.
-   */
-  sqlite3_stmt *stmt;
-
-  /**
-   * Plugin handle.
-   */
-  struct Plugin *plugin;
-
-  /**
-   * Key for the query.
-   */
-  GNUNET_HashCode key;
-
-  /**
-   * Vhash for the query.
-   */
-  GNUNET_HashCode vhash;
-
-  /**
-   * Expected total number of results.
-   */
-  unsigned int total;
-
-  /**
-   * Offset to add for the selected result.
-   */
-  unsigned int off;
-
-  /**
-   * Is vhash set?
-   */
-  int have_vhash;
-
-  /**
-   * Desired block type.
-   */
-  enum GNUNET_BLOCK_Type type;
-
-};
-
-
-/**
- * Prepare the stmt in 'nc' for the next round of execution, selecting the
- * next return value.
- *
- * @param cls our "struct GetNextContext*"
- * @param nc the general context
- * @return GNUNET_YES if there are more results, 
- *         GNUNET_NO if there are no more results,
- *         GNUNET_SYSERR on internal error
- */
-static int
-get_next_prepare (void *cls,
-		  struct NextContext *nc)
-{
-  struct GetNextContext *gnc = cls;
-  int ret;
-  int limit_off;
-  unsigned int sqoff;
-
-  if (nc == NULL)
-    {
-      sqlite3_finalize (gnc->stmt);
-      return GNUNET_SYSERR;
-    }
-  if (nc->count == gnc->total)
-    return GNUNET_NO;
-  if (nc->count + gnc->off == gnc->total)
-    nc->last_rowid = 0;
-  if (nc->count == 0)
-    limit_off = gnc->off;
-  else
-    limit_off = 0;
-  sqlite3_reset (nc->stmt);
-  sqoff = 1;
-  ret = sqlite3_bind_blob (nc->stmt,
-			   sqoff++,
-			   &gnc->key, 
-			   sizeof (GNUNET_HashCode),
-			   SQLITE_TRANSIENT);
-  if ((gnc->have_vhash) && (ret == SQLITE_OK))
-    ret = sqlite3_bind_blob (nc->stmt,
-			     sqoff++,
-			     &gnc->vhash,
-			     sizeof (GNUNET_HashCode), SQLITE_TRANSIENT);
-  if ((gnc->type != 0) && (ret == SQLITE_OK))
-    ret = sqlite3_bind_int (nc->stmt, sqoff++, gnc->type);
-  if (ret == SQLITE_OK)
-    ret = sqlite3_bind_int64 (nc->stmt, sqoff++, limit_off);
-  if (ret != SQLITE_OK)
-    return GNUNET_SYSERR;
-#if DEBUG_SQLITE 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		   "sqlite",
-                   "Preparing to GET for key `%s' with type %d at offset %u\n",
-		   GNUNET_h2s (&gnc->key),
-		   gnc->type,
-		   limit_off);
-#endif
-  ret = sqlite3_step (nc->stmt);
-  switch (ret)
-    {
-    case SQLITE_ROW:
-      return GNUNET_OK;  
-    case SQLITE_DONE:
-      return GNUNET_NO;
-    default:
-      LOG_SQLITE (gnc->plugin, NULL,
-		  GNUNET_ERROR_TYPE_ERROR |
-		  GNUNET_ERROR_TYPE_BULK,
-		  "sqlite3_step");
-      return GNUNET_SYSERR;
-    }
-}
-
-
-/**
- * Iterate over the results for a particular key
- * in the datastore.
- *
- * @param cls closure
- * @param key key to match, never NULL
- * @param vhash hash of the value, maybe NULL (to
- *        match all values that have the right key).
- *        Note that for DBlocks there is no difference
- *        betwen key and vhash, but for other blocks
- *        there may be!
- * @param type entries of which type are relevant?
- *     Use 0 for any type.
- * @param iter function to call on each matching value;
- *        will be called once with a NULL value at the end
- * @param iter_cls closure for iter
- */
-static void
-sqlite_plugin_get (void *cls,
-		   const GNUNET_HashCode *key,
-		   const GNUNET_HashCode *vhash,
-		   enum GNUNET_BLOCK_Type type,
-		   PluginIterator iter, void *iter_cls)
-{
-  struct Plugin *plugin = cls;
-  struct GetNextContext *gnc;
-  struct NextContext *nc;
-  int ret;
-  int total;
-  sqlite3_stmt *stmt;
-  char scratch[256];
-  unsigned int sqoff;
-
-  GNUNET_assert (iter != NULL);
-  GNUNET_assert (key != NULL);
-  GNUNET_snprintf (scratch, sizeof (scratch),
-                   "SELECT count(*) FROM gn090 WHERE hash=?%s%s",
-                   vhash == NULL ? "" : " AND vhash=?",
-                   type  == 0    ? "" : " AND type=?");
-  if (sq_prepare (plugin->dbh, scratch, &stmt) != SQLITE_OK)
-    {
-      LOG_SQLITE (plugin, NULL,
-                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "sqlite_prepare");
-      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
-      return;
-    }
-  sqoff = 1;
-  ret = sqlite3_bind_blob (stmt, sqoff++,
-                           key, sizeof (GNUNET_HashCode), SQLITE_TRANSIENT);
-  if ((vhash != NULL) && (ret == SQLITE_OK))
-    ret = sqlite3_bind_blob (stmt, sqoff++,
-                             vhash,
-                             sizeof (GNUNET_HashCode), SQLITE_TRANSIENT);
-  if ((type != 0) && (ret == SQLITE_OK))
-    ret = sqlite3_bind_int (stmt, sqoff++, type);
-  if (SQLITE_OK != ret)
-    {
-      LOG_SQLITE (plugin, NULL,
-                  GNUNET_ERROR_TYPE_ERROR, "sqlite_bind");
-      sqlite3_finalize (stmt);
-      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
-      return;
-    }
-  ret = sqlite3_step (stmt);
-  if (ret != SQLITE_ROW)
-    {
-      LOG_SQLITE (plugin, NULL,
-                  GNUNET_ERROR_TYPE_ERROR| GNUNET_ERROR_TYPE_BULK, 
-		  "sqlite_step");
-      sqlite3_finalize (stmt);
-      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
-      return;
-    }
-  total = sqlite3_column_int (stmt, 0);
-  sqlite3_finalize (stmt);
-  if (0 == total)
-    {
-      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
-      return;
-    }
-  GNUNET_snprintf (scratch, sizeof (scratch),
-                   "SELECT type, prio, anonLevel, expire, hash, value, _ROWID_ "
-                   "FROM gn090 WHERE hash=?%s%s "
-                   "ORDER BY _ROWID_ ASC LIMIT 1 OFFSET ?",
-                   vhash == NULL ? "" : " AND vhash=?",
-                   type == 0 ? "" : " AND type=?");
-
-  if (sq_prepare (plugin->dbh, scratch, &stmt) != SQLITE_OK)
-    {
-      LOG_SQLITE (plugin, NULL,
-                  GNUNET_ERROR_TYPE_ERROR |
-                  GNUNET_ERROR_TYPE_BULK, "sqlite_prepare");
-      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
-      return;
-    }
-  nc = GNUNET_malloc (sizeof(struct NextContext) + 
-		      sizeof(struct GetNextContext));
-  nc->plugin = plugin;
-  nc->iter = iter;
-  nc->iter_cls = iter_cls;
-  nc->stmt = stmt;
-  gnc = (struct GetNextContext*) &nc[1];
-  gnc->total = total;
-  gnc->type = type;
-  gnc->key = *key;
-  gnc->plugin = plugin;
-  gnc->stmt = stmt; /* alias used for freeing at the end! */
-  if (NULL != vhash)
-    {
-      gnc->have_vhash = GNUNET_YES;
-      gnc->vhash = *vhash;
-    }
-  gnc->off = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, total);
-  nc->prep = &get_next_prepare;
-  nc->prep_cls = gnc;
-  sqlite_next_request (nc, GNUNET_NO);
-}
-
-
-/**
  * Execute statement that gets a row and call the callback
  * with the result.  Resets the statement afterwards.
  *
  * @param plugin the plugin
  * @param stmt the statement
- * @param iter iterator to call
- * @param iter_cls closure for 'iter'
+ * @param proc processor to call
+ * @param proc_cls closure for 'proc'
  */
 static void
 execute_get (struct Plugin *plugin,
 	     sqlite3_stmt *stmt,
-	     PluginIterator iter, void *iter_cls)
+	     PluginDatumProcessor proc, void *proc_cls)
 {
   int n;
   struct GNUNET_TIME_Absolute expiration;
@@ -1353,8 +650,7 @@ execute_get (struct Plugin *plugin,
 	  break;
 	}
       expiration.abs_value = sqlite3_column_int64 (stmt, 3);
-      ret = iter (iter_cls,
-		  NULL,
+      ret = proc (proc_cls,
 		  sqlite3_column_blob (stmt, 4) /* key */,
 		  size,
 		  sqlite3_column_blob (stmt, 5) /* data */, 
@@ -1397,13 +693,187 @@ execute_get (struct Plugin *plugin,
 		      plugin);
       break;
     }
-  iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, 	    
+  if (SQLITE_OK != sqlite3_reset (stmt))
+    LOG_SQLITE (plugin, NULL,
+		GNUNET_ERROR_TYPE_ERROR |
+		GNUNET_ERROR_TYPE_BULK, "sqlite3_reset");
+  proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 	    
 	GNUNET_TIME_UNIT_ZERO_ABS, 0);
 }
 
 
+
 /**
- * Context for 'repl_iter' function.
+ * Select a subset of the items in the datastore and call
+ * the given processor for the item.
+ *
+ * @param cls our plugin context
+ * @param type entries of which type should be considered?
+ *        Use 0 for any type.
+ * @param proc function to call on each matching value;
+ *        will be called once with a NULL value at the end
+ * @param proc_cls closure for proc
+ */
+static void
+sqlite_plugin_get_zero_anonymity (void *cls,
+				  uint64_t offset,
+				  enum GNUNET_BLOCK_Type type,
+				  PluginDatumProcessor proc,
+				  void *proc_cls)
+{
+  struct Plugin *plugin = cls;
+  sqlite3_stmt *stmt;
+
+  GNUNET_assert (type != GNUNET_BLOCK_TYPE_ANY);
+  stmt = plugin->selZeroAnon;
+  if ( (SQLITE_OK != sqlite3_bind_int (stmt, 1, type)) ||
+       (SQLITE_OK != sqlite3_bind_int64 (stmt, 2, offset)) )
+    {
+      LOG_SQLITE (plugin, NULL,
+                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, 
+		  "sqlite3_bind_XXXX");
+      if (SQLITE_OK != sqlite3_reset (stmt))
+	LOG_SQLITE (plugin, NULL,
+		    GNUNET_ERROR_TYPE_ERROR | 
+		    GNUNET_ERROR_TYPE_BULK, 
+		    "sqlite3_reset");
+      proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 	    
+	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
+      return;
+    }
+  execute_get (plugin, stmt, proc, proc_cls);
+}
+
+
+
+/**
+ * Get results for a particular key in the datastore.
+ *
+ * @param cls closure
+ * @param offset offset (mod count).
+ * @param key key to match, never NULL
+ * @param vhash hash of the value, maybe NULL (to
+ *        match all values that have the right key).
+ *        Note that for DBlocks there is no difference
+ *        betwen key and vhash, but for other blocks
+ *        there may be!
+ * @param type entries of which type are relevant?
+ *     Use 0 for any type.
+ * @param proc function to call on each matching value;
+ *        will be called once with a NULL value at the end
+ * @param proc_cls closure for proc
+ */
+static void
+sqlite_plugin_get_key (void *cls,
+		       uint64_t offset,
+		       const GNUNET_HashCode *key,
+		       const GNUNET_HashCode *vhash,
+		       enum GNUNET_BLOCK_Type type,
+		       PluginDatumProcessor proc, void *proc_cls)
+{
+  struct Plugin *plugin = cls;
+  int ret;
+  int total;
+  int limit_off;
+  unsigned int sqoff;
+  sqlite3_stmt *stmt;
+  char scratch[256];
+
+  GNUNET_assert (proc != NULL);
+  GNUNET_assert (key != NULL);
+  GNUNET_snprintf (scratch, sizeof (scratch),
+                   "SELECT count(*) FROM gn090 WHERE hash=?%s%s",
+                   vhash == NULL ? "" : " AND vhash=?",
+                   type  == 0    ? "" : " AND type=?");
+  if (sq_prepare (plugin->dbh, scratch, &stmt) != SQLITE_OK)
+    {
+      LOG_SQLITE (plugin, NULL,
+                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "sqlite_prepare");
+      proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+      return;
+    }
+  sqoff = 1;
+  ret = sqlite3_bind_blob (stmt, sqoff++,
+                           key, sizeof (GNUNET_HashCode), SQLITE_TRANSIENT);
+  if ((vhash != NULL) && (ret == SQLITE_OK))
+    ret = sqlite3_bind_blob (stmt, sqoff++,
+                             vhash,
+                             sizeof (GNUNET_HashCode), SQLITE_TRANSIENT);
+  if ((type != 0) && (ret == SQLITE_OK))
+    ret = sqlite3_bind_int (stmt, sqoff++, type);
+  if (SQLITE_OK != ret)
+    {
+      LOG_SQLITE (plugin, NULL,
+                  GNUNET_ERROR_TYPE_ERROR, "sqlite_bind");
+      sqlite3_finalize (stmt);
+      proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+      return;
+    }
+  ret = sqlite3_step (stmt);
+  if (ret != SQLITE_ROW)
+    {
+      LOG_SQLITE (plugin, NULL,
+                  GNUNET_ERROR_TYPE_ERROR| GNUNET_ERROR_TYPE_BULK, 
+		  "sqlite_step");
+      sqlite3_finalize (stmt);
+      proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+      return;
+    }
+  total = sqlite3_column_int (stmt, 0);
+  sqlite3_finalize (stmt);
+  if (0 == total)
+    {
+      proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+      return;
+    }
+  limit_off = (int) (offset % total);
+  if (limit_off < 0)
+    limit_off += total;
+  GNUNET_snprintf (scratch, sizeof (scratch),
+                   "SELECT type, prio, anonLevel, expire, hash, value, _ROWID_ "
+                   "FROM gn090 WHERE hash=?%s%s "
+                   "ORDER BY _ROWID_ ASC LIMIT 1 OFFSET ?",
+                   vhash == NULL ? "" : " AND vhash=?",
+                   type == 0 ? "" : " AND type=?");
+  if (sq_prepare (plugin->dbh, scratch, &stmt) != SQLITE_OK)
+    {
+      LOG_SQLITE (plugin, NULL,
+                  GNUNET_ERROR_TYPE_ERROR |
+                  GNUNET_ERROR_TYPE_BULK, "sqlite_prepare");
+      proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+      return;
+    }
+  sqoff = 1;
+  ret = sqlite3_bind_blob (stmt,
+			   sqoff++,
+			   key, 
+			   sizeof (GNUNET_HashCode),
+			   SQLITE_TRANSIENT);
+  if ((vhash != NULL) && (ret == SQLITE_OK))
+    ret = sqlite3_bind_blob (stmt,
+			     sqoff++,
+			     vhash,
+			     sizeof (GNUNET_HashCode), SQLITE_TRANSIENT);
+  if ((type != 0) && (ret == SQLITE_OK))
+    ret = sqlite3_bind_int (stmt, sqoff++, type);
+  if (ret == SQLITE_OK)
+    ret = sqlite3_bind_int64 (stmt, sqoff++, limit_off);
+  if (ret != SQLITE_OK)
+    {
+      LOG_SQLITE (plugin, NULL,
+                  GNUNET_ERROR_TYPE_ERROR |
+                  GNUNET_ERROR_TYPE_BULK, "sqlite_bind");
+      proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+      return;
+    }
+  execute_get (plugin, stmt, proc, proc_cls);
+  sqlite3_finalize (stmt);
+}
+
+
+
+/**
+ * Context for 'repl_proc' function.
  */
 struct ReplCtx
 {
@@ -1416,22 +886,21 @@ struct ReplCtx
   /**
    * Function to call for the result (or the NULL).
    */
-  PluginIterator iter;
+  PluginDatumProcessor proc;
   
   /**
-   * Closure for iter.
+   * Closure for proc.
    */
-  void *iter_cls;
+  void *proc_cls;
 };
 
 
 /**
- * Wrapper for the iterator for 'sqlite_plugin_replication_get'.
+ * Wrapper for the processor for 'sqlite_plugin_replication_get'.
  * Decrements the replication counter and calls the original
- * iterator.
+ * processor.
  *
  * @param cls closure
- * @param next_cls closure to pass to the "next" function.
  * @param key key for the content
  * @param size number of bytes in data
  * @param data content stored
@@ -1442,13 +911,11 @@ struct ReplCtx
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
  *
- * @return GNUNET_SYSERR to abort the iteration, GNUNET_OK to continue
- *         (continue on call to "next", of course),
- *         GNUNET_NO to delete the item and continue (if supported)
+ * @return GNUNET_OK for normal return,
+ *         GNUNET_NO to delete the item
  */
 static int
-repl_iter (void *cls,
-	   void *next_cls,
+repl_proc (void *cls,
 	   const GNUNET_HashCode *key,
 	   uint32_t size,
 	   const void *data,
@@ -1462,8 +929,8 @@ repl_iter (void *cls,
   struct Plugin *plugin = rc->plugin;
   int ret;
 
-  ret = rc->iter (rc->iter_cls,
-		  next_cls, key,
+  ret = rc->proc (rc->proc_cls,
+		  key,
 		  size, data, 
 		  type, priority, anonymity, expiration,
 		  uid);
@@ -1494,15 +961,15 @@ repl_iter (void *cls,
  * Get a random item for replication.  Returns a single random item
  * from those with the highest replication counters.  The item's 
  * replication counter is decremented by one IF it was positive before.
- * Call 'iter' with all values ZERO or NULL if the datastore is empty.
+ * Call 'proc' with all values ZERO or NULL if the datastore is empty.
  *
  * @param cls closure
- * @param iter function to call the value (once only).
- * @param iter_cls closure for iter
+ * @param proc function to call the value (once only).
+ * @param proc_cls closure for proc
  */
 static void
-sqlite_plugin_replication_get (void *cls,
-			       PluginIterator iter, void *iter_cls)
+sqlite_plugin_get_replication (void *cls,
+			       PluginDatumProcessor proc, void *proc_cls)
 {
   struct Plugin *plugin = cls;
   struct ReplCtx rc;
@@ -1513,24 +980,24 @@ sqlite_plugin_replication_get (void *cls,
 		   "Getting random block based on replication order.\n");
 #endif
   rc.plugin = plugin;
-  rc.iter = iter;
-  rc.iter_cls = iter_cls;
-  execute_get (plugin, plugin->selRepl, &repl_iter, &rc);
+  rc.proc = proc;
+  rc.proc_cls = proc_cls;
+  execute_get (plugin, plugin->selRepl, &repl_proc, &rc);
 }
 
 
 
 /**
  * Get a random item that has expired or has low priority.
- * Call 'iter' with all values ZERO or NULL if the datastore is empty.
+ * Call 'proc' with all values ZERO or NULL if the datastore is empty.
  *
  * @param cls closure
- * @param iter function to call the value (once only).
- * @param iter_cls closure for iter
+ * @param proc function to call the value (once only).
+ * @param proc_cls closure for proc
  */
 static void
-sqlite_plugin_expiration_get (void *cls,
-			      PluginIterator iter, void *iter_cls)
+sqlite_plugin_get_expiration (void *cls,
+			      PluginDatumProcessor proc, void *proc_cls)
 {
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt;
@@ -1550,11 +1017,11 @@ sqlite_plugin_expiration_get (void *cls,
       if (SQLITE_OK != sqlite3_reset (stmt))
         LOG_SQLITE (plugin, NULL,
                     GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "sqlite3_reset");
-      iter (iter_cls, NULL, NULL, 0, NULL, 0, 0, 0, 
+      proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 
 	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
-  execute_get (plugin, stmt, iter, iter_cls);
+  execute_get (plugin, stmt, proc, proc_cls);
 }
 
 
@@ -1579,7 +1046,7 @@ sqlite_plugin_drop (void *cls)
  * @return the size of the database on disk (estimate)
  */
 static unsigned long long
-sqlite_plugin_get_size (void *cls)
+sqlite_plugin_estimate_size (void *cls)
 {
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt;
@@ -1653,14 +1120,13 @@ libgnunet_plugin_datastore_sqlite_init (void *cls)
     }
   api = GNUNET_malloc (sizeof (struct GNUNET_DATASTORE_PluginFunctions));
   api->cls = &plugin;
-  api->get_size = &sqlite_plugin_get_size;
+  api->estimate_size = &sqlite_plugin_estimate_size;
   api->put = &sqlite_plugin_put;
-  api->next_request = &sqlite_next_request;
-  api->get = &sqlite_plugin_get;
-  api->replication_get = &sqlite_plugin_replication_get;
-  api->expiration_get = &sqlite_plugin_expiration_get;
   api->update = &sqlite_plugin_update;
-  api->iter_zero_anonymity = &sqlite_plugin_iter_zero_anonymity;
+  api->get_key = &sqlite_plugin_get_key;
+  api->get_replication = &sqlite_plugin_get_replication;
+  api->get_expiration = &sqlite_plugin_get_expiration;
+  api->get_zero_anonymity = &sqlite_plugin_get_zero_anonymity;
   api->drop = &sqlite_plugin_drop;
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
                    "sqlite", _("Sqlite database running\n"));
@@ -1684,27 +1150,9 @@ libgnunet_plugin_datastore_sqlite_done (void *cls)
 #if DEBUG_SQLITE
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "sqlite",
-		   "sqlite plugin is doneing\n");
+		   "sqlite plugin is done\n");
 #endif
 
-  if (plugin->next_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-#if DEBUG_SQLITE
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		       "sqlite",
-		       "Canceling next task\n");
-#endif
-      GNUNET_SCHEDULER_cancel (plugin->next_task);
-      plugin->next_task = GNUNET_SCHEDULER_NO_TASK;
-#if DEBUG_SQLITE
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		       "sqlite",
-		       "Prep'ing next task\n");
-#endif
-      plugin->next_task_nc->prep (plugin->next_task_nc->prep_cls, NULL);
-      GNUNET_free (plugin->next_task_nc);
-      plugin->next_task_nc = NULL;
-    }
   fn = NULL;
   if (plugin->drop_on_shutdown)
     fn = GNUNET_strdup (plugin->fn);

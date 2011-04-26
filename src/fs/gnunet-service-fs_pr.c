@@ -100,6 +100,20 @@ struct GSF_PendingRequest
   GNUNET_PEER_Id sender_pid;
 
   /**
+   * Current offset for querying our local datastore for results.
+   * Starts at a random value, incremented until we get the same
+   * UID again (detected using 'first_uid'), which is then used
+   * to termiante the iteration.
+   */
+  uint64_t local_result_offset;
+
+  /**
+   * Unique ID of the first result from the local datastore;
+   * used to detect wrap-around of the offset.
+   */
+  uint64_t first_uid;
+
+  /**
    * Number of valid entries in the 'replies_seen' array.
    */
   unsigned int replies_seen_count;
@@ -113,7 +127,7 @@ struct GSF_PendingRequest
    * Mingle value we currently use for the bf.
    */
   uint32_t mingle;
-			    
+
 };
 
 
@@ -273,6 +287,8 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
 	      type);
 #endif 
   pr = GNUNET_malloc (sizeof (struct GSF_PendingRequest));
+  pr->local_result_offset = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+						      UINT64_MAX);							 
   pr->public_data.query = *query;
   if (GNUNET_BLOCK_TYPE_FS_SBLOCK == type)
     {
@@ -535,7 +551,20 @@ clean_request (void *cls,
 	       void *value)
 {
   struct GSF_PendingRequest *pr = value;
-  
+  GSF_LocalLookupContinuation cont;
+
+#if DEBUG_FS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Cleaning up pending request for `%s'.\n",
+	      GNUNET_h2s (key));
+#endif  
+  if (NULL != (cont = pr->llc_cont))
+    {
+      pr->llc_cont = NULL;
+      cont (pr->llc_cont_cls,
+	    pr,
+	    pr->local_result);
+    } 
   GSF_plan_notify_request_done_ (pr);
   GNUNET_free_non_null (pr->replies_seen);
   if (NULL != pr->bf)
@@ -560,6 +589,7 @@ clean_request (void *cls,
 void
 GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr)
 {
+  if (NULL == pr_map) return; /* already cleaned up! */
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CONTAINER_multihashmap_remove (pr_map,
 						       &pr->public_data.query,
@@ -1023,13 +1053,22 @@ process_local_reply (void *cls,
   GNUNET_HashCode query;
   unsigned int old_rf;
   
+  pr->qe = NULL;
+  if (0 == pr->replies_seen_count)
+    {
+      pr->first_uid = uid;
+    }
+  else
+    {
+      if (uid == pr->first_uid)
+	key = NULL; /* all replies seen! */
+    }
   if (NULL == key)
     {
 #if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "No further local responses available.\n");
 #endif
-      pr->qe = NULL;
       if (NULL != (cont = pr->llc_cont))
 	{
 	  pr->llc_cont = NULL;
@@ -1041,9 +1080,10 @@ process_local_reply (void *cls,
     }
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "New local response to `%s' of type %u.\n",
+	      "Received reply for `%s' of type %d with UID %llu from datastore.\n",
 	      GNUNET_h2s (key),
-	      type);
+	      type,
+	      (unsigned long long) uid);
 #endif
   if (type == GNUNET_BLOCK_TYPE_FS_ONDEMAND)
     {
@@ -1061,8 +1101,22 @@ process_local_reply (void *cls,
 					    &process_local_reply,
 					    pr))
 	{
-	  if (pr->qe != NULL)
-	    GNUNET_DATASTORE_iterate_get_next (GSF_dsh);
+	  pr->qe = GNUNET_DATASTORE_get_key (GSF_dsh,
+					     pr->local_result_offset - 1,
+					     &pr->public_data.query,
+					     pr->public_data.type == GNUNET_BLOCK_TYPE_FS_DBLOCK 
+					     ? GNUNET_BLOCK_TYPE_ANY 
+					     : pr->public_data.type, 
+					     (0 != (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.options))
+					     ? UINT_MAX
+					     : 1 /* queue priority */,
+					     (0 != (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.options))
+					     ? UINT_MAX
+					     : 1 /* max queue size */,
+					     GNUNET_TIME_UNIT_FOREVER_REL,
+					     &process_local_reply,
+					     pr);
+	  GNUNET_assert (NULL != pr->qe);
 	}
       return;
     }
@@ -1085,7 +1139,22 @@ process_local_reply (void *cls,
 			       -1, -1, 
 			       GNUNET_TIME_UNIT_FOREVER_REL,
 			       NULL, NULL);
-      GNUNET_DATASTORE_iterate_get_next (GSF_dsh);
+      pr->qe = GNUNET_DATASTORE_get_key (GSF_dsh,
+					 pr->local_result_offset - 1,
+					 &pr->public_data.query,
+					 pr->public_data.type == GNUNET_BLOCK_TYPE_FS_DBLOCK 
+					 ? GNUNET_BLOCK_TYPE_ANY 
+					 : pr->public_data.type, 
+					 (0 != (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.options))
+					 ? UINT_MAX
+					 : 1 /* queue priority */,
+					 (0 != (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.options))
+					 ? UINT_MAX
+					 : 1 /* max queue size */,
+					 GNUNET_TIME_UNIT_FOREVER_REL,
+					 &process_local_reply,
+					 pr);
+      GNUNET_assert (NULL != pr->qe);
       return;
     }
   prq.type = type;
@@ -1097,12 +1166,16 @@ process_local_reply (void *cls,
     GSF_update_datastore_delay_ (pr->public_data.start_time);
   process_reply (&prq, key, pr);
   pr->local_result = prq.eval;
-  if (pr->qe == NULL)
+  if (prq.eval == GNUNET_BLOCK_EVALUATION_OK_LAST)
     {
-#if DEBUG_FS
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Request cancelled, not asking datastore for more\n");
-#endif
+      if (NULL != (cont = pr->llc_cont))
+	{
+	  pr->llc_cont = NULL;
+	  cont (pr->llc_cont_cls,
+		pr,
+		pr->local_result);
+	}      
+      return;
     }
   if ( (0 == (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.options)) &&
        ( (GNUNET_YES == GSF_test_get_load_too_high_ (0)) ||
@@ -1116,8 +1189,6 @@ process_local_reply (void *cls,
 				gettext_noop ("# processing result set cut short due to load"),
 				1,
 				GNUNET_NO);
-      GNUNET_DATASTORE_cancel (pr->qe);
-      pr->qe = NULL;
       if (NULL != (cont = pr->llc_cont))
 	{
 	  pr->llc_cont = NULL;
@@ -1127,7 +1198,22 @@ process_local_reply (void *cls,
 	}
       return;
     }
-  GNUNET_DATASTORE_iterate_get_next (GSF_dsh);
+  pr->qe = GNUNET_DATASTORE_get_key (GSF_dsh,
+				     pr->local_result_offset++,
+				     &pr->public_data.query,
+				     pr->public_data.type == GNUNET_BLOCK_TYPE_FS_DBLOCK 
+				     ? GNUNET_BLOCK_TYPE_ANY 
+				     : pr->public_data.type, 
+				     (0 != (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.options))
+				     ? UINT_MAX
+				     : 1 /* queue priority */,
+				     (0 != (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.options))
+				     ? UINT_MAX
+				     : 1 /* max queue size */,
+				     GNUNET_TIME_UNIT_FOREVER_REL,
+				     &process_local_reply,
+				     pr);
+  GNUNET_assert (NULL != pr->qe);
 }
 
 
@@ -1147,20 +1233,21 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
   GNUNET_assert (NULL == pr->llc_cont);
   pr->llc_cont = cont;
   pr->llc_cont_cls = cont_cls;
-  pr->qe = GNUNET_DATASTORE_iterate_key (GSF_dsh,
-					 &pr->public_data.query,
-					 pr->public_data.type == GNUNET_BLOCK_TYPE_FS_DBLOCK 
-					 ? GNUNET_BLOCK_TYPE_ANY 
-					 : pr->public_data.type, 
-					 (0 != (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.options))
-					 ? UINT_MAX
-					 : 1 /* queue priority */,
-					 (0 != (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.options))
-					 ? UINT_MAX
-					 : 1 /* max queue size */,
-					 GNUNET_TIME_UNIT_FOREVER_REL,
-					 &process_local_reply,
-					 pr);
+  pr->qe = GNUNET_DATASTORE_get_key (GSF_dsh,
+				     pr->local_result_offset++,
+				     &pr->public_data.query,
+				     pr->public_data.type == GNUNET_BLOCK_TYPE_FS_DBLOCK 
+				     ? GNUNET_BLOCK_TYPE_ANY 
+				     : pr->public_data.type, 
+				     (0 != (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.options))
+				     ? UINT_MAX
+				     : 1 /* queue priority */,
+				     (0 != (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.options))
+				     ? UINT_MAX
+				     : 1 /* max queue size */,
+				     GNUNET_TIME_UNIT_FOREVER_REL,
+				     &process_local_reply,
+				     pr);
 }
 
 

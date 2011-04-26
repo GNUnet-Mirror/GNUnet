@@ -262,7 +262,7 @@ GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
 
 
 /**
- * An iterator over a set of items stored in the datastore.
+ * Process a datum that was stored in the datastore.
  *
  * @param cls closure
  * @param key key for the content
@@ -275,87 +275,79 @@ GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
  */
-typedef void (*GNUNET_DATASTORE_Iterator) (void *cls,
-					   const GNUNET_HashCode * key,
-					   size_t size,
-					   const void *data,
-					   enum GNUNET_BLOCK_Type type,
-					   uint32_t priority,
-					   uint32_t anonymity,
-					   struct GNUNET_TIME_Absolute
-					   expiration, uint64_t uid);
+typedef void (*GNUNET_DATASTORE_DatumProcessor) (void *cls,
+						 const GNUNET_HashCode * key,
+						 size_t size,
+						 const void *data,
+						 enum GNUNET_BLOCK_Type type,
+						 uint32_t priority,
+						 uint32_t anonymity,
+						 struct GNUNET_TIME_Absolute
+						 expiration, uint64_t uid);
 
 
 /**
- * Iterate over the results for a particular key
- * in the datastore.  The iterator will only be called
- * once initially; if the first call did contain a
- * result, further results can be obtained by calling
- * "GNUNET_DATASTORE_iterate_get_next" with the given argument.
+ * Get a result for a particular key from the datastore.  The processor
+ * will only be called once.
  *
  * @param h handle to the datastore
+ * @param offset offset of the result (mod #num-results); set to
+ *               a random 64-bit value initially; then increment by
+ *               one each time; detect that all results have been found by uid
+ *               being again the first uid ever returned.
  * @param key maybe NULL (to match all entries)
  * @param type desired type, 0 for any
  * @param queue_priority ranking of this request in the priority queue
  * @param max_queue_size at what queue size should this request be dropped
  *        (if other requests of higher priority are in the queue)
  * @param timeout how long to wait at most for a response
- * @param iter function to call on each matching value;
+ * @param proc function to call on each matching value;
  *        will be called once with a NULL value at the end
- * @param iter_cls closure for iter
+ * @param proc_cls closure for proc
  * @return NULL if the entry was not queued, otherwise a handle that can be used to
- *         cancel; note that even if NULL is returned, the callback will be invoked
- *         (or rather, will already have been invoked)
+ *         cancel
  */
 struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_iterate_key (struct GNUNET_DATASTORE_Handle *h,
-			      const GNUNET_HashCode * key,
-			      enum GNUNET_BLOCK_Type type,
-			      unsigned int queue_priority,
-			      unsigned int max_queue_size,
-			      struct GNUNET_TIME_Relative timeout,
-			      GNUNET_DATASTORE_Iterator iter, 
-			      void *iter_cls);
+GNUNET_DATASTORE_get_key (struct GNUNET_DATASTORE_Handle *h,
+			  uint64_t offset,
+			  const GNUNET_HashCode * key,
+			  enum GNUNET_BLOCK_Type type,
+			  unsigned int queue_priority,
+			  unsigned int max_queue_size,
+			  struct GNUNET_TIME_Relative timeout,
+			  GNUNET_DATASTORE_DatumProcessor proc, 
+			  void *proc_cls);
 
 
 /**
- * Get all zero-anonymity values from the datastore.
+ * Get a single zero-anonymity value from the datastore.
  *
  * @param h handle to the datastore
+ * @param offset offset of the result (mod #num-results); set to
+ *               a random 64-bit value initially; then increment by
+ *               one each time; detect that all results have been found by uid
+ *               being again the first uid ever returned.
  * @param queue_priority ranking of this request in the priority queue
  * @param max_queue_size at what queue size should this request be dropped
  *        (if other requests of higher priority are in the queue)
  * @param timeout how long to wait at most for a response
  * @param type allowed type for the operation (never zero)
- * @param iter function to call on a random value; it
+ * @param proc function to call on a random value; it
  *        will be called once with a value (if available)
- *        and always once with a value of NULL at the end.
- * @param iter_cls closure for iter
+ *        or with NULL if none value exists.
+ * @param proc_cls closure for proc
  * @return NULL if the entry was not queued, otherwise a handle that can be used to
- *         cancel; note that even if NULL is returned, the callback will be invoked
- *         (or rather, will already have been invoked)
+ *         cancel
  */
 struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_iterate_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
-					 unsigned int queue_priority,
-					 unsigned int max_queue_size,
-					 struct GNUNET_TIME_Relative timeout,
-					 enum GNUNET_BLOCK_Type type,
-					 GNUNET_DATASTORE_Iterator iter, 
-					 void *iter_cls);
-
-
-/**
- * Function called to trigger obtaining the next result
- * from the datastore.  ONLY applies for 'GNUNET_DATASTORE_iterate_*'
- * calls, not for 'get' calls.  FIXME: how much mixing of iterate
- * calls with other operations can we permit!?  Should we pass
- * the 'QueueEntry' instead of the datastore handle here instead?
- * 
- * @param h handle to the datastore
- */
-void
-GNUNET_DATASTORE_iterate_get_next (struct GNUNET_DATASTORE_Handle *h);
+GNUNET_DATASTORE_get_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
+				     uint64_t offset,
+				     unsigned int queue_priority,
+				     unsigned int max_queue_size,
+				     struct GNUNET_TIME_Relative timeout,
+				     enum GNUNET_BLOCK_Type type,
+				     GNUNET_DATASTORE_DatumProcessor proc, 
+				     void *proc_cls);
 
 
 /**
@@ -370,21 +362,20 @@ GNUNET_DATASTORE_iterate_get_next (struct GNUNET_DATASTORE_Handle *h);
  * @param max_queue_size at what queue size should this request be dropped
  *        (if other requests of higher priority are in the queue)
  * @param timeout how long to wait at most for a response
- * @param iter function to call on a random value; it
+ * @param proc function to call on a random value; it
  *        will be called once with a value (if available)
  *        and always once with a value of NULL.
- * @param iter_cls closure for iter
+ * @param proc_cls closure for proc
  * @return NULL if the entry was not queued, otherwise a handle that can be used to
- *         cancel; note that even if NULL is returned, the callback will be invoked
- *         (or rather, will already have been invoked)
+ *         cancel
  */
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_get_for_replication (struct GNUNET_DATASTORE_Handle *h,
 				      unsigned int queue_priority,
 				      unsigned int max_queue_size,
 				      struct GNUNET_TIME_Relative timeout,
-				      GNUNET_DATASTORE_Iterator iter, 
-				      void *iter_cls);
+				      GNUNET_DATASTORE_DatumProcessor proc, 
+				      void *proc_cls);
 
 
 

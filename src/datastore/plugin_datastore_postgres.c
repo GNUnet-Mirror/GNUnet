@@ -44,103 +44,6 @@
 
 
 /**
- * Closure for 'postgres_next_request_cont'.
- */
-struct NextRequestClosure
-{
-  /**
-   * Global plugin data.
-   */
-  struct Plugin *plugin;
-  
-  /**
-   * Function to call for each matching entry.
-   */
-  PluginIterator iter;
-  
-  /**
-   * Closure for 'iter'.
-   */
-  void *iter_cls;
-  
-  /**
-   * Parameters for the prepared statement.
-   */
-  const char *paramValues[5];
-  
-  /**
-   * Name of the prepared statement to run.
-   */
-  const char *pname;
-  
-  /**
-   * Size of values pointed to by paramValues.
-   */
-  int paramLengths[5];
-  
-  /**
-   * Number of paramters in paramValues/paramLengths.
-   */
-  int nparams; 
-  
-  /**
-   * Current time (possible parameter), big-endian.
-   */
-  uint64_t bnow;
-  
-  /**
-   * Key (possible parameter)
-   */
-  GNUNET_HashCode key;
-  
-  /**
-   * Hash of value (possible parameter)
-   */
-  GNUNET_HashCode vhash;
-  
-  /**
-   * Number of entries found so far
-   */
-  unsigned long long count;
-  
-  /**
-   * Offset this iteration starts at.
-   */
-  uint64_t off;
-  
-  /**
-   * Current offset to use in query, big-endian.
-   */
-  uint64_t blimit_off;
-  
-  /**
-   * Current total number of entries found so far, big-endian.
-   */
-  uint64_t bcount;
-  
-  /**
-   *  Overall number of matching entries.
-   */
-  unsigned long long total;
-  
-  /**
-   * Type of block (possible paramter), big-endian.
-   */
-  uint32_t btype;
-  
-  /**
-   * Flag set to GNUNET_YES to stop iteration.
-   */
-  int end_it;
-
-  /**
-   * Flag to indicate that there should only be one result.
-   */
-  int one_shot;
-};
-
-
-/**
  * Context for all functions in this plugin.
  */
 struct Plugin 
@@ -154,16 +57,6 @@ struct Plugin
    * Native Postgres database handle.
    */
   PGconn *dbh;
-
-  /**
-   * Closure of the 'next_task' (must be freed if 'next_task' is cancelled).
-   */
-  struct NextRequestClosure *next_task_nc;
-
-  /**
-   * Pending task with scheduler for running the next request.
-   */
-  GNUNET_SCHEDULER_TaskIdentifier next_task;
 
 };
 
@@ -434,7 +327,7 @@ init_connection (struct Plugin *plugin)
        pq_prepare (plugin,
 		   "select_non_anonymous",
 		   "SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "
-		   "WHERE anonLevel = 0 ORDER BY oid DESC LIMIT 1 OFFSET $1",
+		   "WHERE anonLevel = 0 AND type = $1 ORDER BY oid DESC LIMIT 1 OFFSET $2",
                    1,
                    __LINE__)) ||
       (GNUNET_OK !=
@@ -482,11 +375,13 @@ static int
 delete_by_rowid (struct Plugin *plugin,
 		 unsigned int rowid)
 {
-  const char *paramValues[] = { (const char *) &rowid };
-  int paramLengths[] = { sizeof (rowid) };
+  uint32_t browid;
+  const char *paramValues[] = { (const char *) &browid };
+  int paramLengths[] = { sizeof (browid) };
   const int paramFormats[] = { 1 };
   PGresult *ret;
 
+  browid = htonl (rowid);
   ret = PQexecPrepared (plugin->dbh,
                         "delrow",
                         1, paramValues, paramLengths, paramFormats, 1);
@@ -510,7 +405,7 @@ delete_by_rowid (struct Plugin *plugin,
  * @return number of bytes used on disk
  */
 static unsigned long long
-postgres_plugin_get_size (void *cls)
+postgres_plugin_estimate_size (void *cls)
 {
   struct Plugin *plugin = cls;
   unsigned long long total;
@@ -619,22 +514,20 @@ postgres_plugin_put (void *cls,
 
 
 /**
- * Function invoked on behalf of a "PluginIterator"
- * asking the database plugin to call the iterator
- * with the next item.
+ * Function invoked to process the result and call
+ * the processor.
  *
- * @param next_cls the 'struct NextRequestClosure'
- * @param tc scheduler context
+ * @param plugin global plugin data
+ * @param proc function to call the value (once only).
+ * @param proc_cls closure for proc
+ * @param res result from exec
  */
 static void 
-postgres_next_request_cont (void *next_cls,
-			    const struct GNUNET_SCHEDULER_TaskContext *tc)
+process_result (struct Plugin *plugin,
+		PluginDatumProcessor proc, void *proc_cls,
+		PGresult *res)
 {
-  struct NextRequestClosure *nrc = next_cls;
-  struct Plugin *plugin = nrc->plugin;
-  const int paramFormats[] = { 1, 1, 1, 1, 1 };
   int iret;
-  PGresult *res;
   enum GNUNET_BLOCK_Type type;
   uint32_t anonymity;
   uint32_t priority;
@@ -643,38 +536,11 @@ postgres_next_request_cont (void *next_cls,
   struct GNUNET_TIME_Absolute expiration_time;
   GNUNET_HashCode key;
 
-  plugin->next_task = GNUNET_SCHEDULER_NO_TASK;
-  plugin->next_task_nc = NULL;
-  if ( (GNUNET_YES == nrc->end_it) ||
-       (nrc->count == nrc->total) )
-    {
-#if DEBUG_POSTGRES
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		       "datastore-postgres",
-		       "Ending iteration (%s)\n",
-		       (GNUNET_YES == nrc->end_it) ? "client requested it" : "completed result set");
-#endif
-      nrc->iter (nrc->iter_cls, 
-		 NULL, NULL, 0, NULL, 0, 0, 0, 
-		 GNUNET_TIME_UNIT_ZERO_ABS, 0);
-      GNUNET_free (nrc);
-      return;
-    }  
-  if (nrc->off == nrc->total)
-    nrc->off = 0;
-  nrc->blimit_off = GNUNET_htonll (nrc->off);
-  nrc->bcount = GNUNET_htonll ((uint64_t) nrc->count);
-  res = PQexecPrepared (plugin->dbh,
-			nrc->pname,
-			nrc->nparams,
-			nrc->paramValues, 
-			nrc->paramLengths,
-			paramFormats, 1);
   if (GNUNET_OK != check_result (plugin,
 				 res,
 				 PGRES_TUPLES_OK,
 				 "PQexecPrepared",
-				 nrc->pname,
+				 "select",
 				 __LINE__))
     {
 #if DEBUG_POSTGRES
@@ -682,10 +548,9 @@ postgres_next_request_cont (void *next_cls,
 		       "datastore-postgres",
 		       "Ending iteration (postgres error)\n");
 #endif
-      nrc->iter (nrc->iter_cls, 
-		 NULL, NULL, 0, NULL, 0, 0, 0, 
-		 GNUNET_TIME_UNIT_ZERO_ABS, 0);
-      GNUNET_free (nrc);
+      proc (proc_cls, 
+	    NULL, 0, NULL, 0, 0, 0, 
+	    GNUNET_TIME_UNIT_ZERO_ABS, 0);      
       return;
     }
 
@@ -697,11 +562,10 @@ postgres_next_request_cont (void *next_cls,
 		       "datastore-postgres",
 		       "Ending iteration (no more results)\n");
 #endif
-      nrc->iter (nrc->iter_cls, 
-		 NULL, NULL, 0, NULL, 0, 0, 0, 
-		 GNUNET_TIME_UNIT_ZERO_ABS, 0);
+      proc (proc_cls, 
+	    NULL, 0, NULL, 0, 0, 0, 
+	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
       PQclear (res);
-      GNUNET_free (nrc);
       return; 
     }
   if ((1 != PQntuples (res)) ||
@@ -710,11 +574,10 @@ postgres_next_request_cont (void *next_cls,
       (sizeof (uint32_t) != PQfsize (res, 6)))
     {
       GNUNET_break (0);
-      nrc->iter (nrc->iter_cls, 
-		 NULL, NULL, 0, NULL, 0, 0, 0, 
-		 GNUNET_TIME_UNIT_ZERO_ABS, 0);
+      proc (proc_cls, 
+	    NULL, 0, NULL, 0, 0, 0, 
+	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
       PQclear (res);
-      GNUNET_free (nrc);
       return;
     }
   rowid = ntohl (*(uint32_t *) PQgetvalue (res, 0, 6));
@@ -727,10 +590,9 @@ postgres_next_request_cont (void *next_cls,
       GNUNET_break (0);
       PQclear (res);
       delete_by_rowid (plugin, rowid);
-      nrc->iter (nrc->iter_cls, 
-		 NULL, NULL, 0, NULL, 0, 0, 0, 
-		 GNUNET_TIME_UNIT_ZERO_ABS, 0);
-      GNUNET_free (nrc);
+      proc (proc_cls, 
+	    NULL, 0, NULL, 0, 0, 0, 
+	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
 
@@ -749,33 +611,23 @@ postgres_next_request_cont (void *next_cls,
 		   (unsigned int) size,
 		   (unsigned int) type);
 #endif
-  iret = nrc->iter (nrc->iter_cls,
-		    (nrc->one_shot == GNUNET_YES) ? NULL : nrc,
-		    &key,
-		    size,
-		    PQgetvalue (res, 0, 5),
-		    (enum GNUNET_BLOCK_Type) type,
-		    priority,
-		    anonymity,
-		    expiration_time,
-		    rowid);
+  iret = proc (proc_cls,
+	       &key,
+	       size,
+	       PQgetvalue (res, 0, 5),
+	       (enum GNUNET_BLOCK_Type) type,
+	       priority,
+	       anonymity,
+	       expiration_time,
+	       rowid);
   PQclear (res);
-  if (iret != GNUNET_NO)
-    {
-      nrc->count++;
-      nrc->off++;
-    }
-  if (iret == GNUNET_SYSERR)
-    {
-#if DEBUG_POSTGRES
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		       "datastore-postgres",
-		       "Ending iteration (client error)\n");
-#endif
-      return;
-    }
   if (iret == GNUNET_NO)
     {
+#if DEBUG_POSTGRES
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Processor asked for item %u to be removed.\n",
+		  rowid);
+#endif
       if (GNUNET_OK == delete_by_rowid (plugin, rowid))
 	{
 #if DEBUG_POSTGRES
@@ -794,34 +646,6 @@ postgres_next_request_cont (void *next_cls,
 #endif
 	}
     }
-  if (nrc->one_shot == GNUNET_YES) 
-    GNUNET_free (nrc);
-}
-
-
-/**
- * Function invoked on behalf of a "PluginIterator"
- * asking the database plugin to call the iterator
- * with the next item.
- *
- * @param next_cls whatever argument was given
- *        to the PluginIterator as "next_cls".
- * @param end_it set to GNUNET_YES if we
- *        should terminate the iteration early
- *        (iterator should be still called once more
- *         to signal the end of the iteration).
- */
-static void 
-postgres_plugin_next_request (void *next_cls,
-			      int end_it)
-{
-  struct NextRequestClosure *nrc = next_cls;
-
-  if (GNUNET_YES == end_it)
-    nrc->end_it = GNUNET_YES;
-  nrc->plugin->next_task_nc = nrc;
-  nrc->plugin->next_task = GNUNET_SCHEDULER_add_now (&postgres_next_request_cont,
-						     nrc);
 }
 
 
@@ -843,62 +667,62 @@ postgres_plugin_next_request (void *next_cls,
  * @param iter_cls closure for iter
  */
 static void
-postgres_plugin_get (void *cls,
-		     const GNUNET_HashCode * key,
-		     const GNUNET_HashCode * vhash,
-		     enum GNUNET_BLOCK_Type type,
-		     PluginIterator iter, void *iter_cls)
+postgres_plugin_get_key (void *cls,
+			 uint64_t offset,
+			 const GNUNET_HashCode *key,
+			 const GNUNET_HashCode *vhash,
+			 enum GNUNET_BLOCK_Type type,
+			 PluginDatumProcessor proc, void *proc_cls)
 {
   struct Plugin *plugin = cls;
-  struct NextRequestClosure *nrc;
   const int paramFormats[] = { 1, 1, 1, 1, 1 };
+  int paramLengths[4];
+  const char *paramValues[4];
+  int nparams;
+  const char *pname;
   PGresult *ret;
+  uint64_t total;
+  uint64_t blimit_off;
+  uint32_t btype;
 
   GNUNET_assert (key != NULL);
-  nrc = GNUNET_malloc (sizeof (struct NextRequestClosure));
-  nrc->plugin = plugin;
-  nrc->iter = iter;
-  nrc->iter_cls = iter_cls;
-  nrc->key = *key;
-  if (vhash != NULL)
-    nrc->vhash = *vhash;
-  nrc->paramValues[0] = (const char*) &nrc->key;
-  nrc->paramLengths[0] = sizeof (GNUNET_HashCode);
-  nrc->btype = htonl (type);
+  paramValues[0] = (const char*) key;
+  paramLengths[0] = sizeof (GNUNET_HashCode);
+  btype = htonl (type);
   if (type != 0)
     {
       if (vhash != NULL)
         {
-          nrc->paramValues[1] = (const char *) &nrc->vhash;
-          nrc->paramLengths[1] = sizeof (nrc->vhash);
-          nrc->paramValues[2] = (const char *) &nrc->btype;
-          nrc->paramLengths[2] = sizeof (nrc->btype);
-          nrc->paramValues[3] = (const char *) &nrc->blimit_off;
-          nrc->paramLengths[3] = sizeof (nrc->blimit_off);
-          nrc->nparams = 4;
-          nrc->pname = "getvt";
+          paramValues[1] = (const char *) vhash;
+          paramLengths[1] = sizeof (GNUNET_HashCode);
+          paramValues[2] = (const char *) &btype;
+          paramLengths[2] = sizeof (btype);
+          paramValues[3] = (const char *) &blimit_off;
+          paramLengths[3] = sizeof (blimit_off);
+          nparams = 4;
+          pname = "getvt";
           ret = PQexecParams (plugin->dbh,
                               "SELECT count(*) FROM gn090 WHERE hash=$1 AND vhash=$2 AND type=$3",
                               3,
                               NULL,
-                              nrc->paramValues, 
-			      nrc->paramLengths,
+                              paramValues, 
+			      paramLengths,
 			      paramFormats, 1);
         }
       else
         {
-          nrc->paramValues[1] = (const char *) &nrc->btype;
-          nrc->paramLengths[1] = sizeof (nrc->btype);
-          nrc->paramValues[2] = (const char *) &nrc->blimit_off;
-          nrc->paramLengths[2] = sizeof (nrc->blimit_off);
-          nrc->nparams = 3;
-          nrc->pname = "gett";
+          paramValues[1] = (const char *) &btype;
+          paramLengths[1] = sizeof (btype);
+          paramValues[2] = (const char *) &blimit_off;
+          paramLengths[2] = sizeof (blimit_off);
+          nparams = 3;
+          pname = "gett";
           ret = PQexecParams (plugin->dbh,
                               "SELECT count(*) FROM gn090 WHERE hash=$1 AND type=$2",
                               2,
                               NULL,
-                              nrc->paramValues, 
-			      nrc->paramLengths, 
+                              paramValues, 
+			      paramLengths, 
 			      paramFormats, 1);
         }
     }
@@ -906,32 +730,32 @@ postgres_plugin_get (void *cls,
     {
       if (vhash != NULL)
         {
-          nrc->paramValues[1] = (const char *) &nrc->vhash;
-          nrc->paramLengths[1] = sizeof (nrc->vhash);
-          nrc->paramValues[2] = (const char *) &nrc->blimit_off;
-          nrc->paramLengths[2] = sizeof (nrc->blimit_off);
-          nrc->nparams = 3;
-          nrc->pname = "getv";
+          paramValues[1] = (const char *) vhash;
+          paramLengths[1] = sizeof (GNUNET_HashCode);
+          paramValues[2] = (const char *) &blimit_off;
+          paramLengths[2] = sizeof (blimit_off);
+          nparams = 3;
+          pname = "getv";
           ret = PQexecParams (plugin->dbh,
                               "SELECT count(*) FROM gn090 WHERE hash=$1 AND vhash=$2",
                               2,
                               NULL,
-                              nrc->paramValues, 
-			      nrc->paramLengths,
+                              paramValues, 
+			      paramLengths,
 			      paramFormats, 1);
         }
       else
         {
-          nrc->paramValues[1] = (const char *) &nrc->blimit_off;
-          nrc->paramLengths[1] = sizeof (nrc->blimit_off);
-          nrc->nparams = 2;
-          nrc->pname = "get";
+          paramValues[1] = (const char *) &blimit_off;
+          paramLengths[1] = sizeof (blimit_off);
+          nparams = 2;
+          pname = "get";
           ret = PQexecParams (plugin->dbh,
                               "SELECT count(*) FROM gn090 WHERE hash=$1",
                               1,
                               NULL,
-                              nrc->paramValues, 
-			      nrc->paramLengths,
+                              paramValues, 
+			      paramLengths,
 			      paramFormats, 1);
         }
     }
@@ -939,13 +763,12 @@ postgres_plugin_get (void *cls,
 				 ret,
                                  PGRES_TUPLES_OK,
                                  "PQexecParams",
-				 nrc->pname,
+				 pname,
 				 __LINE__))
     {
-      iter (iter_cls, 
-	    NULL, NULL, 0, NULL, 0, 0, 0, 
+      proc (proc_cls, 
+	    NULL, 0, NULL, 0, 0, 0, 
 	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
-      GNUNET_free (nrc);
       return;
     }
   if ((PQntuples (ret) != 1) ||
@@ -954,26 +777,30 @@ postgres_plugin_get (void *cls,
     {
       GNUNET_break (0);
       PQclear (ret);
-      iter (iter_cls, 
-	    NULL, NULL, 0, NULL, 0, 0, 0, 
+      proc (proc_cls, 
+	    NULL, 0, NULL, 0, 0, 0, 
 	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
-      GNUNET_free (nrc);
       return;
     }
-  nrc->total = GNUNET_ntohll (*(const unsigned long long *) PQgetvalue (ret, 0, 0));
+  total = GNUNET_ntohll (*(const unsigned long long *) PQgetvalue (ret, 0, 0));
   PQclear (ret);
-  if (nrc->total == 0)
+  if (total == 0)
     {
-      iter (iter_cls, 
-	    NULL, NULL, 0, NULL, 0, 0, 0, 
+      proc (proc_cls, 
+	    NULL, 0, NULL, 0, 0, 0, 
 	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
-      GNUNET_free (nrc);
       return;
     }
-  nrc->off = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
-				       nrc->total);
-  postgres_plugin_next_request (nrc,
-				GNUNET_NO);
+  blimit_off = GNUNET_htonll (offset % total);
+  ret = PQexecPrepared (plugin->dbh,
+			pname,
+			nparams,
+			paramValues, 
+			paramLengths,
+			paramFormats, 1);
+  process_result (plugin,
+		  proc, proc_cls,
+		  ret);
 }
 
 
@@ -989,27 +816,32 @@ postgres_plugin_get (void *cls,
  * @param iter_cls closure for iter
  */
 static void
-postgres_plugin_iter_zero_anonymity (void *cls,
-				     enum GNUNET_BLOCK_Type type,
-				     PluginIterator iter,
-				     void *iter_cls)
+postgres_plugin_get_zero_anonymity (void *cls,
+				    uint64_t offset,
+				    enum GNUNET_BLOCK_Type type,
+				    PluginDatumProcessor proc, void *proc_cls)
 {
   struct Plugin *plugin = cls;
-  struct NextRequestClosure *nrc;
+  uint32_t btype;
+  uint64_t boff;
+  const int paramFormats[] = { 1, 1 };
+  int paramLengths[] = { sizeof (btype), sizeof (boff) };
+  const char *paramValues[] = { (const char*) &btype, (const char*) &boff };
+  PGresult *ret;
 
-  nrc = GNUNET_malloc (sizeof (struct NextRequestClosure));
-  nrc->total = UINT32_MAX;
-  nrc->btype = htonl ((uint32_t) type);
-  nrc->plugin = plugin;
-  nrc->iter = iter;
-  nrc->iter_cls = iter_cls;
-  nrc->pname = "select_non_anonymous";
-  nrc->nparams = 1;
-  nrc->paramLengths[0] = sizeof (nrc->bcount);
-  nrc->paramValues[0] = (const char*) &nrc->bcount;
-  postgres_plugin_next_request (nrc,
-				GNUNET_NO);
+  btype = htonl ((uint32_t) type);
+  boff = GNUNET_htonll (offset);
+  ret = PQexecPrepared (plugin->dbh,
+			"select_non_anonymous",
+			2,
+			paramValues, 
+			paramLengths,
+			paramFormats, 1);
+  process_result (plugin,
+		  proc, proc_cls,
+		  ret);
 }
+
 
 /**
  * Context for 'repl_iter' function.
@@ -1025,12 +857,12 @@ struct ReplCtx
   /**
    * Function to call for the result (or the NULL).
    */
-  PluginIterator iter;
+  PluginDatumProcessor proc;
   
   /**
-   * Closure for iter.
+   * Closure for proc.
    */
-  void *iter_cls;
+  void *proc_cls;
 };
 
 
@@ -1056,8 +888,7 @@ struct ReplCtx
  *         GNUNET_NO to delete the item and continue (if supported)
  */
 static int
-repl_iter (void *cls,
-	   void *next_cls,
+repl_proc (void *cls,
 	   const GNUNET_HashCode *key,
 	   uint32_t size,
 	   const void *data,
@@ -1073,8 +904,8 @@ repl_iter (void *cls,
   PGresult *qret;
   uint32_t boid;
 
-  ret = rc->iter (rc->iter_cls,
-		  next_cls, key,
+  ret = rc->proc (rc->proc_cls,
+		  key,
 		  size, data, 
 		  type, priority, anonymity, expiration,
 		  uid);
@@ -1107,32 +938,30 @@ repl_iter (void *cls,
  * Get a random item for replication.  Returns a single, not expired, random item
  * from those with the highest replication counters.  The item's 
  * replication counter is decremented by one IF it was positive before.
- * Call 'iter' with all values ZERO or NULL if the datastore is empty.
+ * Call 'proc' with all values ZERO or NULL if the datastore is empty.
  *
  * @param cls closure
- * @param iter function to call the value (once only).
- * @param iter_cls closure for iter
+ * @param proc function to call the value (once only).
+ * @param proc_cls closure for iter
  */
 static void
-postgres_plugin_replication_get (void *cls,
-				 PluginIterator iter, void *iter_cls)
+postgres_plugin_get_replication (void *cls,
+				 PluginDatumProcessor proc, void *proc_cls)
 {
   struct Plugin *plugin = cls;
-  struct NextRequestClosure *nrc;
   struct ReplCtx rc;
+  PGresult *ret;
 
   rc.plugin = plugin;
-  rc.iter = iter;
-  rc.iter_cls = iter_cls;
-  nrc = GNUNET_malloc (sizeof (struct NextRequestClosure));
-  nrc->one_shot = GNUNET_YES;
-  nrc->total = 1;
-  nrc->plugin = plugin;
-  nrc->iter = &repl_iter;
-  nrc->iter_cls = &rc;
-  nrc->pname = "select_replication_order";
-  nrc->nparams = 0;
-  postgres_next_request_cont (nrc, NULL);
+  rc.proc = proc;
+  rc.proc_cls = proc_cls;
+  ret = PQexecPrepared (plugin->dbh,
+			"select_replication_order",
+			0,
+			NULL, NULL, NULL, 1);
+  process_result (plugin,
+		  &repl_proc, &rc,
+		  ret);
 }
 
 
@@ -1141,29 +970,31 @@ postgres_plugin_replication_get (void *cls,
  * Call 'iter' with all values ZERO or NULL if the datastore is empty.
  *
  * @param cls closure
- * @param iter function to call the value (once only).
- * @param iter_cls closure for iter
+ * @param proc function to call the value (once only).
+ * @param proc_cls closure for iter
  */
 static void
-postgres_plugin_expiration_get (void *cls,
-				PluginIterator iter, void *iter_cls)
+postgres_plugin_get_expiration (void *cls,
+				PluginDatumProcessor proc, void *proc_cls)
 {
   struct Plugin *plugin = cls;
-  struct NextRequestClosure *nrc;
   uint64_t btime;
+  const int paramFormats[] = { 1 };
+  int paramLengths[] = { sizeof (btime) };
+  const char *paramValues[] = { (const char*) &btime };
+  PGresult *ret;
   
   btime = GNUNET_htonll (GNUNET_TIME_absolute_get ().abs_value);
-  nrc = GNUNET_malloc (sizeof (struct NextRequestClosure));
-  nrc->one_shot = GNUNET_YES;
-  nrc->total = 1;
-  nrc->plugin = plugin;
-  nrc->iter = iter;
-  nrc->iter_cls = iter_cls;
-  nrc->pname = "select_expiration_order";
-  nrc->nparams = 1;
-  nrc->paramValues[0] = (const char *) &btime;
-  nrc->paramLengths[0] = sizeof (btime);
-  postgres_next_request_cont (nrc, NULL);
+  ret = PQexecPrepared (plugin->dbh,
+			"select_expiration_order",
+			1,
+			paramValues,
+			paramLengths,
+			paramFormats, 
+			1);
+  process_result (plugin,
+		  proc, proc_cls,
+		  ret);
 }
 
 
@@ -1260,14 +1091,13 @@ libgnunet_plugin_datastore_postgres_init (void *cls)
     }
   api = GNUNET_malloc (sizeof (struct GNUNET_DATASTORE_PluginFunctions));
   api->cls = plugin;
-  api->get_size = &postgres_plugin_get_size;
+  api->estimate_size = &postgres_plugin_estimate_size;
   api->put = &postgres_plugin_put;
-  api->next_request = &postgres_plugin_next_request;
-  api->get = &postgres_plugin_get;
-  api->replication_get = &postgres_plugin_replication_get;
-  api->expiration_get = &postgres_plugin_expiration_get;
   api->update = &postgres_plugin_update;
-  api->iter_zero_anonymity = &postgres_plugin_iter_zero_anonymity;
+  api->get_key = &postgres_plugin_get_key;
+  api->get_replication = &postgres_plugin_get_replication;
+  api->get_expiration = &postgres_plugin_get_expiration;
+  api->get_zero_anonymity = &postgres_plugin_get_zero_anonymity;
   api->drop = &postgres_plugin_drop;
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
                    "datastore-postgres",
@@ -1287,13 +1117,6 @@ libgnunet_plugin_datastore_postgres_done (void *cls)
   struct GNUNET_DATASTORE_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
   
-  if (plugin->next_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (plugin->next_task);
-      plugin->next_task = GNUNET_SCHEDULER_NO_TASK;
-      GNUNET_free (plugin->next_task_nc);
-      plugin->next_task_nc = NULL;
-    }
   PQfinish (plugin->dbh);
   GNUNET_free (plugin);
   GNUNET_free (api);

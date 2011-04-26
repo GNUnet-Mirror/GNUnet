@@ -114,6 +114,11 @@ struct GetMessage
   uint32_t type GNUNET_PACKED;
 
   /**
+   * Offset of the result.
+   */
+  uint64_t offset GNUNET_PACKED;
+
+  /**
    * Desired key (optional).  Check the "size" of the
    * header to see if the key is actually present.
    */
@@ -137,6 +142,11 @@ struct GetZeroAnonymityMessage
    * Desired content type (actually an enum GNUNET_BLOCK_Type)
    */
   uint32_t type GNUNET_PACKED;
+
+  /**
+   * Offset of the result.
+   */
+  uint64_t offset GNUNET_PACKED;
 
 };
 

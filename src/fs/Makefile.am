@@ -1,4 +1,3 @@
-
 INCLUDES = -I$(top_srcdir)/src/include
 
 if MINGW
@@ -173,8 +172,7 @@ check_SCRIPTS = \
  test_gnunet_fs_idx.py
 endif
 
-#if !DISABLE_TEST_RUN
-if 0 
+if !DISABLE_TEST_RUN
 TESTS = \
  test_fs_directory \
  test_fs_download \

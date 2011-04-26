@@ -341,7 +341,7 @@ main (int argc, char *const *argv)
      0, &GNUNET_GETOPT_set_one, &no_remote_printing},
     {'r', "replication", "LEVEL",
      gettext_noop ("set the desired replication LEVEL"),
-     0, &GNUNET_GETOPT_set_uint, &bo.replication_level},
+     1, &GNUNET_GETOPT_set_uint, &bo.replication_level},
     {'R', "root", "ID",
      gettext_noop
      ("specify ID of the root of the namespace"),

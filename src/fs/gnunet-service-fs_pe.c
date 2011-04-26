@@ -158,7 +158,7 @@ plan (struct PeerPlan *pp,
 	      rp->transmission_counter);
 #endif 
 
-
+  GNUNET_assert (rp->hn == NULL);
   if (GNUNET_TIME_absolute_get_remaining (rp->earliest_transmission).rel_value == 0)
     rp->hn = GNUNET_CONTAINER_heap_insert (pp->priority_heap,
 					   rp,

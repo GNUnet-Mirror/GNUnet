@@ -704,9 +704,9 @@ copy_reply (void *cls,
 
 
 /**
- * Free the given client request.
+ * Free the given request.
  *
- * @param cls the client request to free
+ * @param cls the request to free
  * @param tc task context
  */ 
 static void
@@ -1182,6 +1182,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
 				    NULL, 0, /* replies_seen */
 				    &handle_p2p_reply,
 				    peerreq);
+  GNUNET_assert (NULL != pr);
   peerreq->pr = pr;
   GNUNET_break (GNUNET_OK ==
 		GNUNET_CONTAINER_multihashmap_put (cp->request_map,
@@ -1427,7 +1428,7 @@ cancel_pending_request (void *cls,
 			const GNUNET_HashCode *query,
 			void *value)
 {
-  struct PeerRequest *peerreq = cls;
+  struct PeerRequest *peerreq = value;
   struct GSF_PendingRequest *pr = peerreq->pr;
 
   GSF_pending_request_cancel_ (pr);

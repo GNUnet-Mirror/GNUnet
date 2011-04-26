@@ -63,7 +63,7 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key,
 				  uint32_t anonymity,
 				  struct GNUNET_TIME_Absolute
 				  expiration, uint64_t uid,
-				  GNUNET_DATASTORE_Iterator cont,
+				  GNUNET_DATASTORE_DatumProcessor cont,
 				  void *cont_cls);
 
 /**

@@ -1,23 +1,31 @@
 0.9.0pre3: [2'11]
-* DATASTORE:
-  - postgres support currently not implemented
-* NAT/UPNP: [Milan / Ayush / MW]
+* NAT/UPNP: [Milan / MW]
   - [#1609] code clean up
   - testing
   - integration with transport service:
     + test TCP
     + implement UDP, HTTP/HTTPS 
 * Transport:
-  - UDP fragmentation
-* FS/CORE [CG]
-  - adjust service to deal with new datastore API (also crashes all over the place still,
-    likely related).
+  - ATS crashes [MW]
+  - UDP fragmentation [MW]
+* CORE:
+  - Core API's peer_change_preference leaks 'irc' and
+    Core API's notify_transmit_ready leaks 'th'!
+* FS [CG]
+  - test*.py fail
   - download of 100 MB file from 'leach' peer hung due to 
     failure of core-api to call back after a change preference request
     (structs indicate request was transmitted but reply never received?)
+    => try again!
+  - test_gnunet_service_fs_p2p:
+    => sometimes DATASTORE get operation fails to queue on target (why?)
+    => do we need to just make the queue larger?
+  - with core queue size of 1, we get notify_transmit_ready
+    from core API returning NULL (why? ok? just have larger queue?)
   - other runs (-L DEBUG) with downloads using the new 'trust' test show
     non-deterministic results (for any set of peers)
-* FS: [CG]
+  - implement 'SUPPORT_DELAYS'
+  - consider re-issue GSF_dht_lookup_ after non-DHT reply received 
   - implement multi-peer FS performance tests + gauger them!
     + insert
     + download
@@ -59,6 +67,8 @@
       => If MiM attacker uses vetoed address, blacklist the specific IP for
          the presumed neighbour!
   - need to periodically probe latency/transport cost changes & possibly switch transport
+* DATASTORE: [CG]
+  - check indexes / SQL for performance
 * DV: [Nate?]
   - proper bandwidth allocation
   - performance tests

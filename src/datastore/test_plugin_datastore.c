@@ -65,6 +65,7 @@ struct CpsRunContext
   enum RunPhase phase;
   unsigned int cnt;
   unsigned int i;
+  uint64_t offset;
 };
 
 
@@ -120,6 +121,11 @@ put_value (struct GNUNET_DATASTORE_PluginFunctions * api,
   value[0] = k;
   msg = NULL;
   prio = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100);
+#if VERBOSE
+  fprintf (stderr, 
+	   "putting type %u, anon %u under key %s\n",
+	   i+1, i, GNUNET_h2s (&key));
+#endif
   if (GNUNET_OK != api->put (api->cls,
 			     &key, 
 			     size,
@@ -149,9 +155,11 @@ test (void *cls,
       const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
+static uint64_t guid;
+
+
 static int
 iterate_one_shot (void *cls,
-		  void *next_cls,
 		  const GNUNET_HashCode * key,
 		  uint32_t size,
 		  const void *data,
@@ -164,53 +172,17 @@ iterate_one_shot (void *cls,
 {
   struct CpsRunContext *crc = cls;
   
-  GNUNET_assert (NULL == next_cls);
   GNUNET_assert (key != NULL);
+  guid = uid;
   crc->phase++;
 #if VERBOSE
   fprintf (stderr,
-	   "Found result type=%u, priority=%u, size=%u, expire=%llu\n",
+	   "Found result type=%u, priority=%u, size=%u, expire=%llu, key %s\n",
 	   type, priority, size,
-	   (unsigned long long) expiration.abs_value);
+	   (unsigned long long) expiration.abs_value,
+	   GNUNET_h2s (key));
 #endif    
   GNUNET_SCHEDULER_add_now (&test, crc);
-  return GNUNET_OK;
-}
-
-
-static uint64_t guid;
-
-static int
-iterate_with_next (void *cls,
-		   void *next_cls,
-		   const GNUNET_HashCode * key,
-		   uint32_t size,
-		   const void *data,
-		   enum GNUNET_BLOCK_Type type,
-		   uint32_t priority,
-		   uint32_t anonymity,
-		   struct GNUNET_TIME_Absolute
-		   expiration, 
-		   uint64_t uid)
-{
-  struct CpsRunContext *crc = cls;
-  
-  if (key == NULL)
-    {
-      crc->phase++;
-      GNUNET_SCHEDULER_add_now (&test, crc);
-      return GNUNET_OK;
-    }
-  guid = uid;
-#if VERBOSE
-  fprintf (stderr,
-	   "Found result type=%u, priority=%u, size=%u, expire=%llu\n",
-	   type, priority, size,
-	   (unsigned long long) expiration.abs_value);
-#endif
-  crc->cnt++;
-  crc->api->next_request (next_cls,
-			  GNUNET_NO);
   return GNUNET_OK;
 }
 
@@ -274,12 +246,19 @@ test (void *cls,
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  "Test aborted.\n");
       crc->phase = RP_ERROR;
-      ok = 1;
     }
+#if VERBOSE
+  fprintf (stderr, "In phase %d, iteration %u\n",
+	   crc->phase,
+	   crc->cnt);
+#endif
   switch (crc->phase)
     {
     case RP_ERROR:
+      ok = 1;
       GNUNET_break (0); 
       crc->api->drop (crc->api->cls);
       GNUNET_SCHEDULER_add_now (&cleaning_task, crc);
@@ -289,7 +268,7 @@ test (void *cls,
       for (j=0;j<PUT_10;j++)
 	{
 	  put_value (crc->api, j, crc->i);
-	  cs = crc->api->get_size (crc->api->cls);
+	  cs = crc->api->estimate_size (crc->api->cls);
 	  GNUNET_assert (os < cs);
 	  os = cs;
 	}
@@ -305,11 +284,12 @@ test (void *cls,
 	  break;
 	}
       gen_key (5, &key);
-      crc->api->get (crc->api->cls,
-		     &key, NULL, 
-		     GNUNET_BLOCK_TYPE_ANY,
-		     &iterate_with_next,
-		     crc);
+      crc->api->get_key (crc->api->cls,
+			 crc->offset++,
+			 &key, NULL, 
+			 GNUNET_BLOCK_TYPE_ANY,
+			 &iterate_one_shot,
+			 crc);
       break;
     case RP_UPDATE:
       GNUNET_assert (GNUNET_OK ==
@@ -329,18 +309,19 @@ test (void *cls,
 	  GNUNET_SCHEDULER_add_now (&test, crc);
 	  break;
 	}
-      crc->api->iter_zero_anonymity (crc->api->cls, 
-				     1, 
-				     &iterate_with_next,
-				     crc);
+      crc->api->get_zero_anonymity (crc->api->cls, 
+				    0,
+				    1, 
+				    &iterate_one_shot,
+				    crc);
       break;
     case RP_REPL_GET:
-      crc->api->replication_get (crc->api->cls, 
+      crc->api->get_replication (crc->api->cls, 
 				 &iterate_one_shot,
 				 crc);
       break;
     case RP_EXPI_GET:
-      crc->api->expiration_get (crc->api->cls, 
+      crc->api->get_expiration (crc->api->cls, 
 				&iterate_one_shot,
 				crc);
       break;

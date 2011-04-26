@@ -37,7 +37,7 @@
  * those take too long to run them in the usual "make check"
  * sequence.  Hence the value used for shipping is tiny.
  */
-#define MAX_SIZE 1024LL * 1024 * 128
+#define MAX_SIZE 1024LL * 1024 * 32
 
 #define ITERATIONS 2
 
@@ -81,6 +81,7 @@ struct CpsRunContext
   enum RunPhase phase;
   unsigned int cnt;
   unsigned int iter;
+  uint64_t offset;
 };
 
 
@@ -100,7 +101,8 @@ disk_utilization_change_cb (void *cls,
 
 	     
 static void
-putValue (struct GNUNET_DATASTORE_PluginFunctions * api, int i, int k)
+putValue (struct GNUNET_DATASTORE_PluginFunctions * api, 
+	  int i, int k)
 {
   char value[65536];
   size_t size;
@@ -156,7 +158,6 @@ test (void *cls,
 
 static int
 iterate_zeros (void *cls,
-	      void *next_cls,
 	      const GNUNET_HashCode * key,
 	      uint32_t size,
 	      const void *data,
@@ -171,7 +172,18 @@ iterate_zeros (void *cls,
   int i;
   const char *cdata = data;
 
-  if (key == NULL)
+  GNUNET_assert (key != NULL);
+  GNUNET_assert (size >= 8);
+  memcpy (&i, &cdata[4], sizeof (i));
+  hits[i/8] |= (1 << (i % 8)); 
+
+#if VERBOSE 
+  fprintf (stderr, "Found result type=%u, priority=%u, size=%u, expire=%llu\n",
+	   type, priority, size,
+	   (unsigned long long) expiration.abs_value);
+#endif
+  crc->cnt++;
+  if (crc->cnt == PUT_10 / 4 - 1)
     {
       char buf[256];
       unsigned int bc;
@@ -192,42 +204,17 @@ iterate_zeros (void *cls,
 	      crc->cnt);
       GAUGER (category, buf, crc->end.abs_value - crc->start.abs_value, "ms");
       memset (hits, 0, sizeof (hits));
-      if ( (int) (PUT_10 / 4 - crc->cnt) > 2)
-	{
-	  fprintf (stderr,
-		   "Got %d items, expected %d\n",
-		   (int) crc->cnt, (int) PUT_10 / 4);
-	  GNUNET_break (0);
-	  crc->phase = RP_ERROR;
-	}
-      else
-	{
-	  crc->phase++;
-	  crc->cnt = 0;
-	  crc->start = GNUNET_TIME_absolute_get ();      
-	}
-      GNUNET_SCHEDULER_add_now (&test, crc);
-      return GNUNET_OK;
+      crc->phase++;
+      crc->cnt = 0;
+      crc->start = GNUNET_TIME_absolute_get ();      
     }
-  GNUNET_assert (size >= 8);
-  memcpy (&i, &cdata[4], sizeof (i));
-  hits[i/8] |= (1 << (i % 8)); 
-
-#if VERBOSE 
-  fprintf (stderr, "Found result type=%u, priority=%u, size=%u, expire=%llu\n",
-	   type, priority, size,
-	   (unsigned long long) expiration.abs_value);
-#endif
-  crc->cnt++;
-  crc->api->next_request (next_cls,
-			  GNUNET_NO);
+  GNUNET_SCHEDULER_add_now (&test, crc);
   return GNUNET_OK;
 }
 
 
 static int
 expiration_get (void *cls,
-		void *next_cls,
 		const GNUNET_HashCode * key,
 		uint32_t size,
 		const void *data,
@@ -281,7 +268,6 @@ expiration_get (void *cls,
 
 static int
 replication_get (void *cls,
-		 void *next_cls,
 		 const GNUNET_HashCode * key,
 		 uint32_t size,
 		 const void *data,
@@ -323,6 +309,7 @@ replication_get (void *cls,
       GAUGER (category, buf, crc->end.abs_value - crc->start.abs_value, "ms");
       memset (hits, 0, sizeof (hits));
       crc->phase++;
+      crc->offset = 0;
       crc->cnt = 0;      
       crc->start = GNUNET_TIME_absolute_get ();      
     }
@@ -386,7 +373,15 @@ test (void *cls,
   int j;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    crc->phase = RP_ERROR;        
+    {
+      GNUNET_break (0);
+      crc->phase = RP_ERROR;        
+    }
+#if VERBOSE
+  fprintf (stderr, "In phase %d, iteration %u\n",
+	   crc->phase,
+	   crc->cnt);
+#endif
   switch (crc->phase)
     {
     case RP_ERROR:
@@ -419,17 +414,19 @@ test (void *cls,
       GNUNET_SCHEDULER_add_now (&test, crc);
       break;
     case RP_REP_GET:
-      crc->api->replication_get (crc->api->cls, 
+      crc->api->get_replication (crc->api->cls, 
 				 &replication_get,
 				 crc);
       break;
     case RP_ZA_GET:
-      crc->api->iter_zero_anonymity (crc->api->cls, 1, 
-				     &iterate_zeros,
-				     crc);
+      crc->api->get_zero_anonymity (crc->api->cls, 
+				    crc->offset++,
+				    1, 
+				    &iterate_zeros,
+				    crc);
       break;
     case RP_EXP_GET:
-      crc->api->expiration_get (crc->api->cls, 
+      crc->api->get_expiration (crc->api->cls, 
 				&expiration_get,
 				crc);
       break;
@@ -549,7 +546,6 @@ main (int argc, char *argv[])
   char *pos;
   char dir_name[128];
 
-  if (1) return 0;
   /* determine name of plugin to use */
   plugin_name = argv[0];
   while (NULL != (pos = strstr(plugin_name, "_")))

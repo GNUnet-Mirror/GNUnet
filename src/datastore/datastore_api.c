@@ -63,14 +63,14 @@ struct StatusContext
 struct ResultContext
 {
   /**
-   * Iterator to call with the result.
+   * Function to call with the result.
    */
-  GNUNET_DATASTORE_Iterator iter;
+  GNUNET_DATASTORE_DatumProcessor proc;
 
   /**
-   * Closure for iter.
+   * Closure for proc.
    */
-  void *iter_cls;
+  void *proc_cls;
 
 };
 
@@ -168,12 +168,6 @@ struct GNUNET_DATASTORE_QueueEntry
    */
   int was_transmitted;
   
-  /**
-   * Are we expecting a single message in response to this
-   * request (and, if it is data, no 'END' message)?
-   */
-  int one_shot; 
-  
 };
 
 /**
@@ -241,10 +235,9 @@ struct GNUNET_DATASTORE_Handle
   int in_receive;
 
   /**
-   * We should either receive (and ignore) an 'END' message or force a
-   * disconnect for the next message from the service.
+   * We should ignore the next message(s) from the service.
    */
-  unsigned int expect_end_or_disconnect;
+  unsigned int skip_next_messages;
 
 };
 
@@ -335,7 +328,7 @@ GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
   while (NULL != (qe = h->queue_head))
     {
       GNUNET_assert (NULL != qe->response_proc);
-      qe->response_proc (qe, NULL);
+      qe->response_proc (h, NULL);
     }
   if (GNUNET_YES == drop) 
     {
@@ -378,7 +371,7 @@ timeout_queue_entry (void *cls,
 			    GNUNET_NO);
   qe->task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (qe->was_transmitted == GNUNET_NO);
-  qe->response_proc (qe, NULL);
+  qe->response_proc (qe->h, NULL);
 }
 
 
@@ -394,7 +387,7 @@ timeout_queue_entry (void *cls,
  * @param timeout timeout for the operation
  * @param response_proc function to call with replies (can be NULL)
  * @param qc client context (NOT a closure for response_proc)
- * @return NULL if the queue is full (and this entry was dropped)
+ * @return NULL if the queue is full 
  */
 static struct GNUNET_DATASTORE_QueueEntry *
 make_queue_entry (struct GNUNET_DATASTORE_Handle *h,
@@ -417,6 +410,14 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h,
     {
       c++;
       pos = pos->next;
+    }
+  if (c >= max_queue_size)
+    {
+      GNUNET_STATISTICS_update (h->stats,
+				gettext_noop ("# queue overflows"),
+				1,
+				GNUNET_NO);
+      return NULL;
     }
   ret = GNUNET_malloc (sizeof (struct GNUNET_DATASTORE_QueueEntry) + msize);
   ret->h = h;
@@ -451,15 +452,6 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h,
 				     pos,
 				     ret);
   h->queue_size++;
-  if (c > max_queue_size)
-    {
-      GNUNET_STATISTICS_update (h->stats,
-				gettext_noop ("# queue overflows"),
-				1,
-				GNUNET_NO);
-      response_proc (ret, NULL);
-      return NULL;
-    }
   ret->task = GNUNET_SCHEDULER_add_delayed (timeout,
 					    &timeout_queue_entry,
 					    ret);
@@ -469,7 +461,15 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h,
       if (pos->max_queue < h->queue_size)
 	{
 	  GNUNET_assert (pos->response_proc != NULL);
-	  pos->response_proc (pos, NULL);
+	  /* move 'pos' element to head so that it will be 
+	     killed on 'NULL' call below */
+	  GNUNET_CONTAINER_DLL_remove (h->queue_head,
+				       h->queue_tail,
+				       pos);
+	  GNUNET_CONTAINER_DLL_insert (h->queue_head,
+				       h->queue_tail,
+				       pos);
+	  pos->response_proc (h, NULL);
 	  break;
 	}
       pos = pos->next;
@@ -550,6 +550,7 @@ do_disconnect (struct GNUNET_DATASTORE_Handle *h)
 			    GNUNET_NO);
 #endif
   GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+  h->skip_next_messages = 0;
   h->client = NULL;
   h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->retry_time,
 						    &try_reconnect,
@@ -700,6 +701,7 @@ free_queue_entry (struct GNUNET_DATASTORE_QueueEntry *qe)
       qe->task = GNUNET_SCHEDULER_NO_TASK;
     }
   h->queue_size--;
+  qe->was_transmitted = GNUNET_SYSERR; /* use-after-free warning */
   GNUNET_free (qe);
 }
 
@@ -724,16 +726,22 @@ process_status_message (void *cls,
   int was_transmitted;
 
   h->in_receive = GNUNET_NO;
+  if (h->skip_next_messages > 0)
+    {
+      h->skip_next_messages--;
+      process_queue (h);
+      return;
+   } 
   if (NULL == (qe = h->queue_head))
     {
       GNUNET_break (0);
       do_disconnect (h);
       return;
     }
-  was_transmitted = qe->was_transmitted;
   rc = qe->qc.sc;
   if (msg == NULL)
     {      
+      was_transmitted = qe->was_transmitted;
       free_queue_entry (qe);
       if (NULL == h->client)
 	return; /* forced disconnect */
@@ -1114,7 +1122,7 @@ GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h,
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
                          const GNUNET_HashCode *key,
-                         size_t size, 
+			 size_t size,
 			 const void *data,
 			 unsigned int queue_priority,
 			 unsigned int max_queue_size,
@@ -1186,45 +1194,35 @@ process_result_message (void *cls,
   struct GNUNET_DATASTORE_QueueEntry *qe;
   struct ResultContext rc;
   const struct DataMessage *dm;
-  int was_transmitted;
 
   h->in_receive = GNUNET_NO;
+  if (h->skip_next_messages > 0)
+    {
+      h->skip_next_messages--;
+      process_queue (h);
+      return;
+    }
   if (msg == NULL)
     {
-      if (NULL != (qe = h->queue_head))
+      qe = h->queue_head;
+      GNUNET_assert (NULL != qe);
+      if (qe->was_transmitted == GNUNET_YES)
 	{
-	  was_transmitted = qe->was_transmitted;
-	  free_queue_entry (qe);
 	  rc = qe->qc.rc;
-	  if (was_transmitted == GNUNET_YES)
-	    {
-	      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-			  _("Failed to receive response from database.\n"));
-	      do_disconnect (h);
-	    }	
-	  else
-	    {
-#if DEBUG_DATASTORE
-	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-			  "Request dropped due to finite datastore queue length.\n");
-#endif
-	    }	
-	  if (rc.iter != NULL)
-	    rc.iter (rc.iter_cls,
-		     NULL, 0, NULL, 0, 0, 0, 
-		     GNUNET_TIME_UNIT_ZERO_ABS, 0);
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		      _("Failed to receive response from database.\n"));
+	  do_disconnect (h);
 	}
+      free_queue_entry (qe);
+      if (rc.proc != NULL)
+	rc.proc (rc.proc_cls,
+		 NULL, 0, NULL, 0, 0, 0, 
+		 GNUNET_TIME_UNIT_ZERO_ABS, 0);    
       return;
     }
   if (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END) 
     {
       GNUNET_break (ntohs(msg->size) == sizeof(struct GNUNET_MessageHeader));
-      if (h->expect_end_or_disconnect > 0)
-	{
-	  h->expect_end_or_disconnect--;
-	  process_queue (h);
-	  return;
-	}
       qe = h->queue_head;
       rc = qe->qc.rc;
       GNUNET_assert (GNUNET_YES == qe->was_transmitted);
@@ -1234,20 +1232,13 @@ process_result_message (void *cls,
 		  "Received end of result set, new queue size is %u\n",
 		  h->queue_size);
 #endif
-      if (rc.iter != NULL)
-	rc.iter (rc.iter_cls,
+      if (rc.proc != NULL)
+	rc.proc (rc.proc_cls,
 		 NULL, 0, NULL, 0, 0, 0, 
 		 GNUNET_TIME_UNIT_ZERO_ABS, 0);	
       h->retry_time.rel_value = 0;
       h->result_count = 0;
       process_queue (h);
-      return;
-    }
-  if (h->expect_end_or_disconnect > 0)
-    {
-      /* only 'END' allowed, must reconnect */
-      h->retry_time = GNUNET_TIME_UNIT_ZERO;
-      do_disconnect (h);
       return;
     }
   qe = h->queue_head;
@@ -1261,40 +1252,16 @@ process_result_message (void *cls,
       free_queue_entry (qe);
       h->retry_time = GNUNET_TIME_UNIT_ZERO;
       do_disconnect (h);
-      if (rc.iter != NULL)
-	rc.iter (rc.iter_cls,
+      if (rc.proc != NULL)
+	rc.proc (rc.proc_cls,
 		 NULL, 0, NULL, 0, 0, 0, 
-		 GNUNET_TIME_UNIT_ZERO_ABS, 0);	
+		 GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
   GNUNET_STATISTICS_update (h->stats,
 			    gettext_noop ("# Results received"),
 			    1,
 			    GNUNET_NO);
-  if (rc.iter == NULL)
-    {
-      h->result_count++;
-      GNUNET_STATISTICS_update (h->stats,
-				gettext_noop ("# Excess results received"),
-				1,
-				GNUNET_NO);
-      if (h->result_count > MAX_EXCESS_RESULTS)
-	{
-	  free_queue_entry (qe);
-	  GNUNET_STATISTICS_update (h->stats,
-				    gettext_noop ("# Forced database connection resets"),
-				    1,
-				    GNUNET_NO);
-	  h->retry_time = GNUNET_TIME_UNIT_ZERO;
-	  do_disconnect (h);	  
-	  return;
-	}
-      if (GNUNET_YES == qe->one_shot)
-	free_queue_entry (qe);
-      else
-	GNUNET_DATASTORE_iterate_get_next (h);
-      return;
-    }
   dm = (const struct DataMessage*) msg;
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1304,10 +1271,9 @@ process_result_message (void *cls,
 	      ntohl(dm->size),
 	      GNUNET_h2s(&dm->key));
 #endif
-  if (GNUNET_YES == qe->one_shot)
-    free_queue_entry (qe);
+  free_queue_entry (qe);
   h->retry_time.rel_value = 0;
-  rc.iter (rc.iter_cls,
+  rc.proc (rc.proc_cls,
 	   &dm->key,
 	   ntohl(dm->size),
 	   &dm[1],
@@ -1331,33 +1297,33 @@ process_result_message (void *cls,
  * @param max_queue_size at what queue size should this request be dropped
  *        (if other requests of higher priority are in the queue)
  * @param timeout how long to wait at most for a response
- * @param iter function to call on a random value; it
+ * @param proc function to call on a random value; it
  *        will be called once with a value (if available)
  *        and always once with a value of NULL.
- * @param iter_cls closure for iter
+ * @param proc_cls closure for proc
  * @return NULL if the entry was not queued, otherwise a handle that can be used to
- *         cancel; note that even if NULL is returned, the callback will be invoked
- *         (or rather, will already have been invoked)
+ *         cancel
  */
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_get_for_replication (struct GNUNET_DATASTORE_Handle *h,
 				      unsigned int queue_priority,
 				      unsigned int max_queue_size,
 				      struct GNUNET_TIME_Relative timeout,
-				      GNUNET_DATASTORE_Iterator iter, 
-				      void *iter_cls)
+				      GNUNET_DATASTORE_DatumProcessor proc, 
+				      void *proc_cls)
 {
   struct GNUNET_DATASTORE_QueueEntry *qe;
   struct GNUNET_MessageHeader *m;
   union QueueContext qc;
 
+  GNUNET_assert (NULL != proc);
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Asked to get replication entry in %llu ms\n",
 	      (unsigned long long) timeout.rel_value);
 #endif
-  qc.rc.iter = iter;
-  qc.rc.iter_cls = iter_cls;
+  qc.rc.proc = proc;
+  qc.rc.proc_cls = proc_cls;
   qe = make_queue_entry (h, sizeof(struct GNUNET_MessageHeader),
 			 queue_priority, max_queue_size, timeout,
 			 &process_result_message, &qc);
@@ -1369,7 +1335,6 @@ GNUNET_DATASTORE_get_for_replication (struct GNUNET_DATASTORE_Handle *h,
 #endif
       return NULL;    
     }
-  qe->one_shot = GNUNET_YES;
   GNUNET_STATISTICS_update (h->stats,
 			    gettext_noop ("# GET REPLICATION requests executed"),
 			    1,
@@ -1383,43 +1348,50 @@ GNUNET_DATASTORE_get_for_replication (struct GNUNET_DATASTORE_Handle *h,
 
 
 /**
- * Get a zero-anonymity value from the datastore.
+ * Get a single zero-anonymity value from the datastore.
  *
  * @param h handle to the datastore
+ * @param offset offset of the result (mod #num-results); set to
+ *               a random 64-bit value initially; then increment by
+ *               one each time; detect that all results have been found by uid
+ *               being again the first uid ever returned.
  * @param queue_priority ranking of this request in the priority queue
  * @param max_queue_size at what queue size should this request be dropped
  *        (if other requests of higher priority are in the queue)
  * @param timeout how long to wait at most for a response
- * @param type allowed type for the operation
- * @param iter function to call on a random value; it
+ * @param type allowed type for the operation (never zero)
+ * @param proc function to call on a random value; it
  *        will be called once with a value (if available)
- *        and always once with a value of NULL.
- * @param iter_cls closure for iter
+ *        or with NULL if none value exists.
+ * @param proc_cls closure for proc
  * @return NULL if the entry was not queued, otherwise a handle that can be used to
- *         cancel; note that even if NULL is returned, the callback will be invoked
- *         (or rather, will already have been invoked)
+ *         cancel
  */
 struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_iterate_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
-					 unsigned int queue_priority,
-					 unsigned int max_queue_size,
-					 struct GNUNET_TIME_Relative timeout,
-					 enum GNUNET_BLOCK_Type type,
-					 GNUNET_DATASTORE_Iterator iter, 
-					 void *iter_cls)
+GNUNET_DATASTORE_get_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
+				     uint64_t offset,
+				     unsigned int queue_priority,
+				     unsigned int max_queue_size,
+				     struct GNUNET_TIME_Relative timeout,
+				     enum GNUNET_BLOCK_Type type,
+				     GNUNET_DATASTORE_DatumProcessor proc, 
+				     void *proc_cls)
 {
   struct GNUNET_DATASTORE_QueueEntry *qe;
   struct GetZeroAnonymityMessage *m;
   union QueueContext qc;
 
+  GNUNET_assert (NULL != proc);
   GNUNET_assert (type != GNUNET_BLOCK_TYPE_ANY);
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Asked to get zero-anonymity entry in %llu ms\n",
+	      "Asked to get %llu-th zero-anonymity entry of type %d in %llu ms\n",
+	      (unsigned long long) offset,
+	      type,
 	      (unsigned long long) timeout.rel_value);
 #endif
-  qc.rc.iter = iter;
-  qc.rc.iter_cls = iter_cls;
+  qc.rc.proc = proc;
+  qc.rc.proc_cls = proc_cls;
   qe = make_queue_entry (h, sizeof(struct GetZeroAnonymityMessage),
 			 queue_priority, max_queue_size, timeout,
 			 &process_result_message, &qc);
@@ -1427,7 +1399,7 @@ GNUNET_DATASTORE_iterate_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
     {
 #if DEBUG_DATASTORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Could not create queue entry for zero-anonymity iteration\n");
+		  "Could not create queue entry for zero-anonymity procation\n");
 #endif
       return NULL;    
     }
@@ -1439,55 +1411,57 @@ GNUNET_DATASTORE_iterate_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
   m->header.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_GET_ZERO_ANONYMITY);
   m->header.size = htons(sizeof (struct GetZeroAnonymityMessage));
   m->type = htonl ((uint32_t) type);
+  m->offset = GNUNET_htonll (offset);
   process_queue (h);
   return qe;
 }
 
 
-
 /**
- * Iterate over the results for a particular key
- * in the datastore.  The iterator will only be called
- * once initially; if the first call did contain a
- * result, further results can be obtained by calling
- * "GNUNET_DATASTORE_iterate_get_next" with the given argument.
+ * Get a result for a particular key from the datastore.  The processor
+ * will only be called once.
  *
  * @param h handle to the datastore
+ * @param offset offset of the result (mod #num-results); set to
+ *               a random 64-bit value initially; then increment by
+ *               one each time; detect that all results have been found by uid
+ *               being again the first uid ever returned.
  * @param key maybe NULL (to match all entries)
  * @param type desired type, 0 for any
  * @param queue_priority ranking of this request in the priority queue
  * @param max_queue_size at what queue size should this request be dropped
  *        (if other requests of higher priority are in the queue)
  * @param timeout how long to wait at most for a response
- * @param iter function to call on each matching value;
+ * @param proc function to call on each matching value;
  *        will be called once with a NULL value at the end
- * @param iter_cls closure for iter
+ * @param proc_cls closure for proc
  * @return NULL if the entry was not queued, otherwise a handle that can be used to
- *         cancel; note that even if NULL is returned, the callback will be invoked
- *         (or rather, will already have been invoked)
+ *         cancel
  */
 struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_iterate_key (struct GNUNET_DATASTORE_Handle *h,
-			      const GNUNET_HashCode * key,
-			      enum GNUNET_BLOCK_Type type,
-			      unsigned int queue_priority,
-			      unsigned int max_queue_size,
-			      struct GNUNET_TIME_Relative timeout,
-			      GNUNET_DATASTORE_Iterator iter, 
-			      void *iter_cls)
+GNUNET_DATASTORE_get_key (struct GNUNET_DATASTORE_Handle *h,
+			  uint64_t offset,
+			  const GNUNET_HashCode * key,
+			  enum GNUNET_BLOCK_Type type,
+			  unsigned int queue_priority,
+			  unsigned int max_queue_size,
+			  struct GNUNET_TIME_Relative timeout,
+			  GNUNET_DATASTORE_DatumProcessor proc, 
+			  void *proc_cls)
 {
   struct GNUNET_DATASTORE_QueueEntry *qe;
   struct GetMessage *gm;
   union QueueContext qc;
 
+  GNUNET_assert (NULL != proc);
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Asked to look for data of type %u under key `%s'\n",
 	      (unsigned int) type,
 	      GNUNET_h2s (key));
 #endif
-  qc.rc.iter = iter;
-  qc.rc.iter_cls = iter_cls;
+  qc.rc.proc = proc;
+  qc.rc.proc_cls = proc_cls;
   qe = make_queue_entry (h, sizeof(struct GetMessage),
 			 queue_priority, max_queue_size, timeout,
 			 &process_result_message, &qc);
@@ -1507,6 +1481,7 @@ GNUNET_DATASTORE_iterate_key (struct GNUNET_DATASTORE_Handle *h,
   gm = (struct GetMessage*) &qe[1];
   gm->header.type = htons(GNUNET_MESSAGE_TYPE_DATASTORE_GET);
   gm->type = htonl(type);
+  gm->offset = GNUNET_htonll (offset);
   if (key != NULL)
     {
       gm->header.size = htons(sizeof (struct GetMessage));
@@ -1522,25 +1497,6 @@ GNUNET_DATASTORE_iterate_key (struct GNUNET_DATASTORE_Handle *h,
 
 
 /**
- * Function called to trigger obtaining the next result
- * from the datastore.
- * 
- * @param h handle to the datastore
- */
-void 
-GNUNET_DATASTORE_iterate_get_next (struct GNUNET_DATASTORE_Handle *h)
-{
-  struct GNUNET_DATASTORE_QueueEntry *qe = h->queue_head;
-
-  h->in_receive = GNUNET_YES;
-  GNUNET_CLIENT_receive (h->client,
-			 &process_result_message,
-			 h,
-			 GNUNET_TIME_absolute_get_remaining (qe->timeout));
-}
-
-
-/**
  * Cancel a datastore operation.  The final callback from the
  * operation must not have been done yet.
  * 
@@ -1551,6 +1507,7 @@ GNUNET_DATASTORE_cancel (struct GNUNET_DATASTORE_QueueEntry *qe)
 {
   struct GNUNET_DATASTORE_Handle *h;
 
+  GNUNET_assert (GNUNET_SYSERR != qe->was_transmitted);
   h = qe->h;
 #if DEBUG_DATASTORE
   GNUNET_log  (GNUNET_ERROR_TYPE_DEBUG,
@@ -1562,7 +1519,7 @@ GNUNET_DATASTORE_cancel (struct GNUNET_DATASTORE_QueueEntry *qe)
   if (GNUNET_YES == qe->was_transmitted) 
     {
       free_queue_entry (qe);
-      h->expect_end_or_disconnect++;
+      h->skip_next_messages++;
       return;
     }
   free_queue_entry (qe);

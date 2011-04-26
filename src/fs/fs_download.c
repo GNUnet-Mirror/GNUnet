@@ -756,10 +756,12 @@ try_top_down_reconstruction (struct GNUNET_FS_DownloadContext *dc,
       child_block_size = GNUNET_FS_tree_compute_tree_size (drc->depth);
       GNUNET_assert (0 == (drc->offset - dr->offset) % child_block_size);
       chk_off = (drc->offset - dr->offset) / child_block_size;
-      GNUNET_assert (drc->state == BRS_INIT);
-      drc->state = BRS_CHK_SET;
-      drc->chk = chks[chk_off];
-      try_top_down_reconstruction (dc, drc);
+      if (drc->state == BRS_INIT)	
+	{
+	  drc->state = BRS_CHK_SET;
+	  drc->chk = chks[chk_off];
+	  try_top_down_reconstruction (dc, drc);
+	}
       if (drc->state != BRS_DOWNLOAD_UP)
 	up_done = GNUNET_NO; /* children not all done */
     } 
@@ -815,10 +817,11 @@ schedule_block_download (struct GNUNET_FS_DownloadContext *dc,
 	      dr->depth,
 	      GNUNET_h2s (&dr->chk.query));
 #endif
-  GNUNET_assert (GNUNET_NO ==
-		 GNUNET_CONTAINER_multihashmap_contains_value (dc->active,
-							       &dr->chk.query,
-							       dr));
+  if (GNUNET_NO !=
+      GNUNET_CONTAINER_multihashmap_contains_value (dc->active,
+						    &dr->chk.query,
+						    dr))
+    return; /* already active */
   GNUNET_CONTAINER_multihashmap_put (dc->active,
 				     &dr->chk.query,
 				     dr,

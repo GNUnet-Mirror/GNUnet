@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2004, 2005, 2006, 2007, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2004, 2005, 2006, 2007, 2009, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -97,9 +97,9 @@ get_expiration (int i)
 
 enum RunPhase
   {
-    RP_DONE = 0,
     RP_PUT,
     RP_GET,
+    RP_DONE,
     RP_GET_FAIL
   };
 
@@ -112,6 +112,7 @@ struct CpsRunContext
   const struct GNUNET_CONFIGURATION_Handle *cfg;
   void *data;
   enum RunPhase phase;
+  uint64_t offset;
 };
 
 
@@ -146,42 +147,26 @@ check_value (void *cls,
 	     enum GNUNET_BLOCK_Type type,
 	     uint32_t priority,
 	     uint32_t anonymity,
-	     struct GNUNET_TIME_Absolute
-	     expiration, uint64_t uid)
+	     struct GNUNET_TIME_Absolute expiration, 
+	     uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
   int i;
 
-  if (key == NULL)
-    {
-      crc->i--;
-      if (crc->found == GNUNET_YES)
-	{
-	  crc->phase = RP_GET;
-	  crc->found = GNUNET_NO;
-	}
-      else
-	{
-	  fprintf (stderr,
-		   "First not found was %u\n", crc->i);
-	  crc->phase = RP_GET_FAIL;
-	}
-      if (0 == crc->i)
-	crc->phase = RP_DONE;
-      GNUNET_SCHEDULER_add_continuation (&run_continuation,
-					 crc,
-					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-      return;
-    }
   i = crc->i;
-  crc->found = GNUNET_YES;
   GNUNET_assert (size == get_size (i));
   GNUNET_assert (0 == memcmp (data, get_data(i), size));
   GNUNET_assert (type == get_type (i));
   GNUNET_assert (priority == get_priority (i));
   GNUNET_assert (anonymity == get_anonymity(i));
   GNUNET_assert (expiration.abs_value == get_expiration(i).abs_value);
-  GNUNET_DATASTORE_iterate_get_next (datastore);
+  crc->offset++;
+  crc->i--;
+  if (crc->i == 0)
+    crc->phase = RP_DONE;
+  GNUNET_SCHEDULER_add_continuation (&run_continuation,
+				     crc,
+				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
@@ -241,7 +226,7 @@ run_continuation (void *cls,
 	{
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		      "Sleeping to give datastore time to clean up\n");
-	  sleep (5);
+	  sleep (1);
 	  crc->phase = RP_GET;
 	  crc->i--;
 	}
@@ -254,12 +239,13 @@ run_continuation (void *cls,
 		  crc->i);
 #endif
       GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
-      GNUNET_DATASTORE_iterate_key (datastore, 
-				    &crc->key,
-				    get_type (crc->i),
-				    1, 1, TIMEOUT,
-				    &check_value,
-				    crc);
+      GNUNET_DATASTORE_get_key (datastore, 
+				crc->offset++,
+				&crc->key,
+				get_type (crc->i),
+				1, 1, TIMEOUT,
+				&check_value,
+				crc);
       break;
     case RP_GET_FAIL:
 #if VERBOSE
@@ -269,12 +255,13 @@ run_continuation (void *cls,
 		  crc->i);
 #endif
       GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
-      GNUNET_DATASTORE_iterate_key (datastore, 
-				    &crc->key,
-				    get_type (crc->i),
-				    1, 1, TIMEOUT,
-				    &check_nothing,
-				    crc);
+      GNUNET_DATASTORE_get_key (datastore, 
+				crc->offset++,
+				&crc->key,
+				get_type (crc->i),
+				1, 1, TIMEOUT,
+				&check_nothing,
+				crc);
       break;
     case RP_DONE:
       GNUNET_assert (0 == crc->i);
@@ -372,6 +359,7 @@ check ()
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "test-datastore-api", "nohelp",
                       options, &run, NULL);
+  sleep (1); /* give datastore chance to process 'DROP' request */
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
