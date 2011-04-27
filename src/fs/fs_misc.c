@@ -162,4 +162,54 @@ GNUNET_FS_meta_data_suggest_filename (const struct GNUNET_CONTAINER_MetaData *md
   return ret;
 }
 
+
+/**
+ * Return the current year (i.e. '2011').
+ */
+unsigned int
+GNUNET_FS_get_current_year ()
+{ 
+  time_t tp;
+
+  tp = time (NULL);
+  t = gmtime (&tp);
+  if (t == NULL)
+    return 0;
+  return t->tm_year + 1900;
+}
+
+
+/**
+ * Convert a year to an expiration time of January 1st of that year.
+ *
+ * @param year a year (after 1970, please ;-)).
+ * @return absolute time for January 1st of that year.
+ */
+struct GNUNET_TIME_Absolute
+GNUNET_FS_year_to_time (unsigned int year)
+{
+  struct GNUNET_TIME_Absolute ret;
+  time_t tp;
+  struct tm t;
+
+  memset (&t, 0, sizeof (t));
+  if (year < 1900)
+    {
+      GNUNET_break (0);
+      return GNUNET_TIME_absolute_get (); /* now */
+    }
+  t.tm_year = year - 1900;
+  t.tm_mday = 1;
+  t.tm_mon = 1;
+  t.tm_wday = 1;
+  t.tm_yday = 1;
+  tp = mktime (&t);
+  GNUNET_break (tp != (time_t) -1);
+  ret.abs_value = tp * 1000LL; /* seconds to ms */
+  return ret;
+}
+
+
+
+
 /* end of fs_misc.c */
