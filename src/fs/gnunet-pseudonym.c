@@ -53,7 +53,7 @@ static struct GNUNET_CONTAINER_MetaData *adv_metadata;
 /**
  * Our block options (-p, -r, -a).
  */
-static struct GNUNET_FS_BlockOptions bo = { { 2 * 365 * 24 * 60 * 60 * 1000LL  }, 1, 365, 1 };
+static struct GNUNET_FS_BlockOptions bo = { { 0LL  }, 1, 365, 1 };
 
 /**
  * -q option given.
@@ -352,6 +352,7 @@ main (int argc, char *const *argv)
      1, &GNUNET_GETOPT_set_string, &rating_change},
     GNUNET_GETOPT_OPTION_END
   };
+  bo.expiration_time = GNUNET_FS_year_to_time (GNUNET_FS_get_current_year () + 2);
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc,
                               argv,

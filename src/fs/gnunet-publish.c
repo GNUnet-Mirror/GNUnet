@@ -44,7 +44,7 @@ static struct GNUNET_FS_Uri *topKeywords;
 
 static struct GNUNET_FS_Uri *uri;
 
-static struct GNUNET_FS_BlockOptions bo = { { 2 * 365 * 24 * 60 * 60 * 1000LL  }, 1, 365, 1 };
+static struct GNUNET_FS_BlockOptions bo = { { 0LL  }, 1, 365, 1 };
 
 static char *uri_string;
 
@@ -685,6 +685,7 @@ main (int argc, char *const *argv)
      0, &GNUNET_GETOPT_set_one, &verbose},
     GNUNET_GETOPT_OPTION_END
   };
+  bo.expiration_time = GNUNET_FS_year_to_time (GNUNET_FS_get_current_year () + 2);
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc,
                               argv,
