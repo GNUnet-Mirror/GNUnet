@@ -3514,6 +3514,8 @@ internal_connect_notify(void *cls, const struct GNUNET_PeerIdentity *first,
   struct ConnectTopologyContext *ct_ctx = connect_ctx->ct_ctx;
   struct GNUNET_TESTING_PeerGroup *pg = ct_ctx->pg;
   struct PeerConnection *connection;
+
+  GNUNET_assert (0 < pg->outstanding_connects);
   pg->outstanding_connects--;
 
   /*
@@ -3535,6 +3537,7 @@ internal_connect_notify(void *cls, const struct GNUNET_PeerIdentity *first,
 
   if (connection != NULL) /* Can safely remove! */
     {
+      GNUNET_assert (0 < ct_ctx->remaining_connections);
       ct_ctx->remaining_connections--;
       if (pg->notify_connection != NULL) /* Notify of reverse connection */
         pg->notify_connection (pg->notify_connection_cls, second, first,
@@ -3548,7 +3551,10 @@ internal_connect_notify(void *cls, const struct GNUNET_PeerIdentity *first,
   if (ct_ctx->remaining_connections == 0)
     {
       if (ct_ctx->notify_connections_done != NULL)
-        ct_ctx->notify_connections_done (ct_ctx->notify_cls, NULL);
+	{
+	  ct_ctx->notify_connections_done (ct_ctx->notify_cls, NULL);
+	  ct_ctx->notify_connections_done = NULL;
+	}
     }
   else
     preschedule_connect (pg);
