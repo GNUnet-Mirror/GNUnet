@@ -1600,8 +1600,8 @@ activate_fs_download (void *cls,
 			 GNUNET_TIME_UNIT_FOREVER_REL);
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_ACTIVE;
   GNUNET_FS_download_make_status_ (&pi, dc);
-  GNUNET_assert (dc->pending_head == NULL);
-  GNUNET_assert (dc->pending_tail == NULL);
+  dc->pending_head = NULL;
+  dc->pending_tail = NULL;
   GNUNET_CONTAINER_multihashmap_iterate (dc->active,
 					 &retry_entry,
 					 dc);

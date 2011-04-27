@@ -40,6 +40,7 @@
 static void
 start_job (struct GNUNET_FS_QueueEntry *qe)
 {
+  GNUNET_assert (NULL == qe->client);
   qe->client = GNUNET_CLIENT_connect ("fs", qe->h->cfg);
   if (qe->client == NULL)
     {
