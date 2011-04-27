@@ -1215,12 +1215,12 @@ process_result_message (void *cls,
 	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		      _("Failed to receive response from database.\n"));
 	  do_disconnect (h);
+	  free_queue_entry (qe);
+	  if (rc.proc != NULL)
+	    rc.proc (rc.proc_cls,
+		     NULL, 0, NULL, 0, 0, 0, 
+		     GNUNET_TIME_UNIT_ZERO_ABS, 0);    
 	}
-      free_queue_entry (qe);
-      if (rc.proc != NULL)
-	rc.proc (rc.proc_cls,
-		 NULL, 0, NULL, 0, 0, 0, 
-		 GNUNET_TIME_UNIT_ZERO_ABS, 0);    
       return;
     }
   if (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END) 
