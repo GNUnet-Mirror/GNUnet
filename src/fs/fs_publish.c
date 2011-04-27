@@ -162,7 +162,7 @@ ds_put_cont (void *cls,
     }
   GNUNET_assert (GNUNET_YES == pcc->sc->in_network_wait);
   pcc->sc->in_network_wait = GNUNET_NO;
-  if (GNUNET_OK != success)
+  if (GNUNET_SYSERR == success)
     {
       GNUNET_asprintf (&pcc->p->emsg, 
 		       _("Publishing failed: %s"),
