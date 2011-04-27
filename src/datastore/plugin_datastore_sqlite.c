@@ -31,7 +31,7 @@
 /**
  * Enable or disable logging debug messages.
  */
-#define DEBUG_SQLITE GNUNET_NO
+#define DEBUG_SQLITE GNUNET_YES
 
 /**
  * We allocate items on the stack at times.  To prevent a stack
@@ -475,7 +475,7 @@ sqlite_plugin_put (void *cls,
 #if DEBUG_SQLITE
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "sqlite",
-		   "Storing in database block with type %u/key `%s'/priority %u/expiration %llu (%lld).\n",
+		   "Storing in database block with type %u/key `%s'/priority %u/expiration in %llu ms (%lld).\n",
 		   type, 
 		   GNUNET_h2s(key),
 		   priority,
@@ -650,6 +650,12 @@ execute_get (struct Plugin *plugin,
 	  break;
 	}
       expiration.abs_value = sqlite3_column_int64 (stmt, 3);
+#if DEBUG_SQLITE
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, 
+		       "sqlite",
+		       "Found reply in database with expiration %llu\n",
+		       (unsigned long long) expiration.abs_value);
+#endif
       ret = proc (proc_cls,
 		  sqlite3_column_blob (stmt, 4) /* key */,
 		  size,
@@ -1175,7 +1181,7 @@ libgnunet_plugin_datastore_sqlite_done (void *cls)
 #if DEBUG_SQLITE
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "sqlite",
-		   "sqlite plugin is finished doneing\n");
+		   "sqlite plugin is finished\n");
 #endif
   return NULL;
 }

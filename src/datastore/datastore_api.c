@@ -854,9 +854,10 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
 
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Asked to put %u bytes of data under key `%s'\n",
+	      "Asked to put %u bytes of data under key `%s' for %llu ms\n",
 	      size,
-	      GNUNET_h2s (key));
+	      GNUNET_h2s (key),
+	      GNUNET_TIME_absolute_get_remaining (expiration).rel_value);
 #endif
   msize = sizeof(struct DataMessage) + size;
   GNUNET_assert (msize < GNUNET_SERVER_MAX_MESSAGE_SIZE);
@@ -885,6 +886,8 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
   dm->type = htonl(type);
   dm->priority = htonl(priority);
   dm->anonymity = htonl(anonymity);
+  dm->replication = htonl (replication);
+  dm->reserved = htonl (0);
   dm->uid = GNUNET_htonll(0);
   dm->expiration = GNUNET_TIME_absolute_hton(expiration);
   dm->key = *key;

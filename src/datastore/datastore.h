@@ -220,6 +220,16 @@ struct DataMessage
   uint32_t anonymity GNUNET_PACKED;
 
   /**
+   * Desired replication level. 0 from service to API.
+   */
+  uint32_t replication GNUNET_PACKED;
+
+  /**
+   * For alignment.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
    * Unique ID for the content (can be used for UPDATE);
    * can be zero for remove (which indicates that
    * the datastore should use whatever UID matches

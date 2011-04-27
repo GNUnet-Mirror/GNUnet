@@ -646,16 +646,20 @@ transmit_item (void *cls,
   dm->type = htonl(type);
   dm->priority = htonl(priority);
   dm->anonymity = htonl(anonymity);
+  dm->replication = htonl (0);
+  dm->reserved = htonl (0);
   dm->expiration = GNUNET_TIME_absolute_hton(expiration);
   dm->uid = GNUNET_htonll(uid);
   dm->key = *key;
   memcpy (&dm[1], data, size);
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Transmitting `%s' message for `%s' of type %u\n",
+	      "Transmitting `%s' message for `%s' of type %u with expiration %llu (now: %llu)\n",
 	      "DATA",
 	      GNUNET_h2s (key),
-	      type);
+	      type,
+	      (unsigned long long) expiration.abs_value,
+	      (unsigned long long) GNUNET_TIME_absolute_get ().abs_value);
 #endif
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# results found"),
@@ -870,7 +874,7 @@ execute_put (struct GNUNET_SERVER_Client *client,
 			  ntohl(dm->type),
 			  ntohl(dm->priority),
 			  ntohl(dm->anonymity),
-			  0 /* FIXME: replication */,
+			  ntohl(dm->replication),
 			  GNUNET_TIME_absolute_ntoh(dm->expiration),
 			  &msg);
   if (GNUNET_OK == ret)
@@ -956,6 +960,15 @@ check_present (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Result already present in datastore\n");
 #endif
+      /* FIXME: change API to allow increasing 'replication' counter */
+      if ( (ntohl (dm->priority) > 0) ||
+	   (GNUNET_TIME_absolute_ntoh(dm->expiration).abs_value >
+	    expiration.abs_value) )
+	plugin->api->update (plugin->api->cls,
+			     uid,
+			     (int32_t) ntohl(dm->priority),
+			     GNUNET_TIME_absolute_ntoh(dm->expiration),
+			     NULL);
       transmit_status (pc->client, GNUNET_NO, NULL);
       GNUNET_SERVER_client_drop (pc->client);
       GNUNET_free (pc);
