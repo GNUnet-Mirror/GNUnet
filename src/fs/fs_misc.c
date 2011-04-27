@@ -170,6 +170,7 @@ unsigned int
 GNUNET_FS_get_current_year ()
 { 
   time_t tp;
+  struct tm *t;
 
   tp = time (NULL);
   t = gmtime (&tp);
