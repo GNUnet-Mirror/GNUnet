@@ -83,6 +83,11 @@ struct PeerRecord
   void *pcic_cls;
 
   /**
+   * Pointer to free when we call pcic.
+   */
+  void *pcic_ptr;
+
+  /**
    * Request information ID for the given pcic (needed in case a
    * request is cancelled after being submitted to core and a new
    * one is generated; in this case, we need to avoid matching the
@@ -419,6 +424,8 @@ disconnect_and_free_peer_entry (void *cls,
   if (NULL != (pcic = pr->pcic))
     {
       pr->pcic = NULL;
+      GNUNET_free_non_null (pr->pcic_ptr);
+      pr->pcic_ptr = NULL;
       pcic (pr->pcic_cls,
 	    &pr->peer,
 	    zero,
@@ -1250,6 +1257,8 @@ main_notify_handler (void *cls,
 	}
       pcic = pr->pcic;
       pr->pcic = NULL;
+      GNUNET_free_non_null (pr->pcic_ptr);
+      pr->pcic_ptr = NULL;
       if (pcic != NULL)
 	pcic (pr->pcic_cls,
 	      &pr->peer,
@@ -1902,7 +1911,6 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
   irc = GNUNET_malloc (sizeof (struct GNUNET_CORE_InformationRequestContext));
   irc->h = h;
   irc->pr = pr;
-  // FIXME: who frees 'irc'? (if not cancelled?)
   cm = GNUNET_malloc (sizeof (struct ControlMessage) +
 		      sizeof (struct RequestInfoMessage));
   cm->cont = &change_preference_send_continuation;
@@ -1925,6 +1933,7 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
 				    cm); 
   pr->pcic = info;
   pr->pcic_cls = info_cls;
+  pr->pcic_ptr = irc; /* for free'ing irc */
   if (h->control_pending_head == cm)
     trigger_next_request (h, GNUNET_NO);
   return irc;
@@ -1948,6 +1957,7 @@ GNUNET_CORE_peer_change_preference_cancel (struct GNUNET_CORE_InformationRequest
   struct GNUNET_CORE_Handle *h = irc->h;
   struct PeerRecord *pr = irc->pr;
 
+  GNUNET_assert (pr->pcic_ptr == irc);
   if (irc->cm != NULL)
     {
       GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
@@ -1957,6 +1967,7 @@ GNUNET_CORE_peer_change_preference_cancel (struct GNUNET_CORE_InformationRequest
     }
   pr->pcic = NULL;
   pr->pcic_cls = NULL;
+  pr->pcic_ptr = NULL;
   GNUNET_free (irc);
 }
 

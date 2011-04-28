@@ -9,8 +9,7 @@
   - ATS crashes [MW]
   - UDP fragmentation [MW]
 * CORE:
-  - Core API's peer_change_preference leaks 'irc' and
-    Core API's notify_transmit_ready leaks 'th'!
+  - Core API's notify_transmit_ready leaks 'th'!
 * FS [CG]
   - download of 100 MB file from 'leach' peer hung due to 
     failure of core-api to call back after a change preference request
@@ -125,7 +124,6 @@
   - testcase would be nice
   - generic block support for DHT
 * STATISTICS:
-  - test notification-based statistics API
   - implement statistics GUI (=> start from gnunet-gtk by button!)
 * PEERINFO: [NN]
   - move peerinfo to new GUI (=> start from gnunet-gtk by button!)
