@@ -24,7 +24,9 @@
 #include "platform.h"
 #include "gnunet_time_lib.h"
 #include "gauger.h"
+#if HAVE_LIBGLPK
 #include <glpk.h>
+#endif
 
 #define VERBOSE GNUNET_YES
 
