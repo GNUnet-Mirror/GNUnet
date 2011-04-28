@@ -736,7 +736,8 @@ transmit_message (void *cls,
 #endif
 	  /* client decided to send nothing! */
 	  request_next_transmission (pr);
-	  return 0;	  
+	  GNUNET_free (th);
+   	  return 0;	  
 	}
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -748,7 +749,8 @@ transmit_message (void *cls,
 	{
 	  GNUNET_break (0);
 	  request_next_transmission (pr);
-	  return 0;
+	  GNUNET_free (th);
+   	  return 0;
 	}
       ret += sizeof (struct SendMessage);
       sm->header.size = htons (ret);
@@ -1582,6 +1584,7 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Dropping transmission request: priority too low\n");
 #endif
+	  GNUNET_free(th);
 	  return NULL; /* priority too low */
 	}
       GNUNET_CONTAINER_DLL_remove (pr->pending_head,
@@ -1762,7 +1765,8 @@ GNUNET_CORE_peer_request_connect (struct GNUNET_CORE_Handle *h,
                                           &peer->hashPubKey))
     {
 #if DEBUG_CORE
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Peers are already connected!\n");
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
+		 "Peers are already connected!\n");
 #endif
       return NULL;
     }
@@ -1851,7 +1855,6 @@ change_preference_send_continuation (void *cls,
   struct GNUNET_CORE_InformationRequestContext *irc = cls;
 
   irc->cm = NULL;
-  // FIXME: who frees 'irc'?
 }
 
 
