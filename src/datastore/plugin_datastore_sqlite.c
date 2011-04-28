@@ -31,7 +31,7 @@
 /**
  * Enable or disable logging debug messages.
  */
-#define DEBUG_SQLITE GNUNET_YES
+#define DEBUG_SQLITE GNUNET_NO
 
 /**
  * We allocate items on the stack at times.  To prevent a stack
