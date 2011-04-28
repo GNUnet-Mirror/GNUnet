@@ -197,11 +197,7 @@ process_downloads (void *cls,
 		   uint64_t value,
 		   int is_persistent)
 {
-  fprintf (stderr,
-	   "New stat: %s has value %llu\n",
-	   name,
-	   (unsigned long long) value);
-  if ( (value == 2) && 
+  if ( (value >= 2) && 
        (learned_hostlist_downloaded == GNUNET_NO) )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
