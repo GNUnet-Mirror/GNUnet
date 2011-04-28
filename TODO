@@ -1,14 +1,6 @@
 0.9.0pre3:
-* NAT/UPNP: [Milan / MW]
-  - [#1609] code clean up
-  - testing
-  - integration with transport service:
-    + test TCP
-    + implement UDP, HTTP/HTTPS 
-* Transport:
-  - ATS crashes [MW]
-  - UDP fragmentation [MW]
 * FS [CG]
+  - fix large memory leak
   - perf_gnunet_service_fs_p2p_trust causes fs service to segfault
   - download of 100 MB file from 'leach' peer hung due to 
     failure of core-api to call back after a change preference request
@@ -22,22 +14,30 @@
   - other runs (-L DEBUG) with downloads using the new 'trust' test show
     non-deterministic results (for any set of peers)
   - implement 'SUPPORT_DELAYS'
-  - consider re-issue GSF_dht_lookup_ after non-DHT reply received 
-  - implement multi-peer FS performance tests + gauger them!
-    + insert
-    + download
-    + search
-* GNUNET-GTK: [CG]
-  - figure out where in the GUI we should show active upload operations and allow aborts
-  - handle events:
-    + search error
-    + publish error
-* Determine RC bugs and fix those (release should have no known real bugs)
 
 0.9.0:
 * new webpage:
   - write chapter on DHT/block [Nate] 
   - make a NICE download page 
+* Transport:
+  - UDP fragmentation [MW]
+* NAT/UPNP: [MW]
+  - [#1609] code clean up
+  - testing
+  - integration with transport service:
+    + test TCP
+    + implement UDP, HTTP/HTTPS 
+* GNUNET-GTK: [CG]
+  - figure out where in the GUI we should show active upload operations and allow aborts
+  - handle events:
+    + search error
+    + publish error
+* FS [CG]
+  - consider re-issue GSF_dht_lookup_ after non-DHT reply received 
+  - implement multi-peer FS performance tests + gauger them!
+    + insert
+    + download
+    + search
 * big code review
 * Determine RC bugs and fix those  (release should have no known real bugs)
 
@@ -66,7 +66,7 @@
   - need to periodically probe latency/transport cost changes & possibly switch transport
 * DATASTORE: [CG]
   - check indexes / SQL for performance
-* DV: [Nate?]
+* DV: 
   - proper bandwidth allocation
   - performance tests
 * PEERINFO:	
@@ -95,7 +95,7 @@
     + normalize keywords (edit subdialog)
   - implement download by URI dialog; figure out where to display those downloads!
   - add combo box to select desired mime type for search
-* ARM: [CG/Safey]
+* ARM: [CG]
   - better tracking of which config changes actually need to cause process restarts by ARM.
   - handle gnunet-arm -k in combination with auto-start magic (what is the right thing here?)
   - discover dependencies between services
@@ -121,7 +121,6 @@
     * energy cost in ATS [MW]
 * BLOCKS:
   - testcase would be nice
-  - generic block support for DHT
 * STATISTICS:
   - implement statistics GUI (=> start from gnunet-gtk by button!)
 * PEERINFO: [NN]
@@ -136,9 +135,9 @@
   - rate limiting
   - improved batching
   - resource limit integration with ATS
-* VPN [PT]
+* VPN 
   - TCP entry/exit
   - internal services
-  - integration with DHT routing
-  - optimized routes (beyond DHT/DV)
   - "DNS" .gnunet
+* MESH:
+  - optimized routes (beyond DHT/DV)
