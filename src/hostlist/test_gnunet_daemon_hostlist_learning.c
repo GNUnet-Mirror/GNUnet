@@ -507,12 +507,6 @@ check ()
 		  "Testcase timeout\n");
       failed = GNUNET_YES;
     }
-  if (learned_hostlist_downloaded == GNUNET_YES)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Failed to download learned hostlist\n");
-      failed = GNUNET_YES;
-    }
   if (adv_arrived != GNUNET_YES)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
