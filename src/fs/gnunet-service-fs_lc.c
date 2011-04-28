@@ -263,13 +263,17 @@ client_response_handler (void *cls,
   GNUNET_assert (pr == cr->pr);
   lc = cr->lc;
   msize = sizeof (struct PutMessage) + data_len;
-  pm = GNUNET_malloc (msize);
-  pm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_PUT);
-  pm->header.size = htons (msize);
-  pm->type = htonl (type);
-  pm->expiration = GNUNET_TIME_absolute_hton (expiration);
-  memcpy (&pm[1], data, data_len);      
-  GSF_local_client_transmit_ (lc, &pm->header);
+  {
+    char buf[msize];
+    
+    pm = (struct PutMessage*) buf;
+    pm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_PUT);
+    pm->header.size = htons (msize);
+    pm->type = htonl (type);
+    pm->expiration = GNUNET_TIME_absolute_hton (expiration);
+    memcpy (&pm[1], data, data_len);      
+    GSF_local_client_transmit_ (lc, &pm->header);
+  }
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Queued reply to query `%s' for local client\n",
