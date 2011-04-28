@@ -46,7 +46,8 @@ gnunet_service_statistics_DEPENDENCIES = \
 
 check_PROGRAMS = \
  test_statistics_api \
- test_statistics_api_loop
+ test_statistics_api_loop \
+ test_statistics_api_watch 
 
 if !DISABLE_TEST_RUN
 TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
@@ -61,6 +62,12 @@ test_statistics_api_LDADD = \
 test_statistics_api_loop_SOURCES = \
  test_statistics_api_loop.c
 test_statistics_api_loop_LDADD = \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la  
+
+test_statistics_api_watch_SOURCES = \
+ test_statistics_api_watch.c
+test_statistics_api_watch_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la  
 

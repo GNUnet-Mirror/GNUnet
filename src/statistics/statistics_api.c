@@ -620,6 +620,11 @@ transmit_watch (struct GNUNET_STATISTICS_Handle *handle, size_t size, void *buf)
       finish (handle, GNUNET_SYSERR);
       return 0;
     }
+#if DEBUG_STATISTICS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmitting watch request for `%s'\n",
+	      handle->current->name);
+#endif
   slen1 = strlen (handle->current->subsystem) + 1;
   slen2 = strlen (handle->current->name) + 1;
   msize = slen1 + slen2 + sizeof (struct GNUNET_MessageHeader);
@@ -633,7 +638,7 @@ transmit_watch (struct GNUNET_STATISTICS_Handle *handle, size_t size, void *buf)
                                              2,
                                              handle->current->subsystem,
                                              handle->current->name));
-  if (! handle->receiving)
+  if (GNUNET_YES != handle->receiving)
     {
       handle->receiving = GNUNET_YES;
       GNUNET_CLIENT_receive (handle->client,
@@ -641,6 +646,7 @@ transmit_watch (struct GNUNET_STATISTICS_Handle *handle, size_t size, void *buf)
 			     handle,
 			     GNUNET_TIME_UNIT_FOREVER_REL);
     }
+  finish (handle, GNUNET_OK);
   return msize;
 }
 

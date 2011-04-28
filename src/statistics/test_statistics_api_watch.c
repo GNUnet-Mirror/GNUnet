@@ -29,7 +29,7 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_statistics_service.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define START_SERVICE GNUNET_YES
 
@@ -53,6 +53,14 @@ force_shutdown (void *cls,
   ok = 7;
 }
 
+static void
+normal_shutdown (void *cls,
+		 const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_STATISTICS_destroy (h, GNUNET_NO);
+  GNUNET_STATISTICS_destroy (h2, GNUNET_NO);
+}
+
 static int
 watch_1 (void *cls, 
 	 const char *subsystem,
@@ -66,9 +74,8 @@ watch_1 (void *cls,
   ok &= ~1;
   if (0 == ok)
     {
-      GNUNET_STATISTICS_destroy (h, GNUNET_NO);
-      GNUNET_STATISTICS_destroy (h2, GNUNET_NO);
       GNUNET_SCHEDULER_cancel (shutdown_task);
+      GNUNET_SCHEDULER_add_now (&normal_shutdown, NULL);
     }  
   return GNUNET_OK;
 }
@@ -86,9 +93,8 @@ watch_2 (void *cls,
   ok &= ~2;
   if (0 == ok)
     {
-      GNUNET_STATISTICS_destroy (h, GNUNET_NO);
-      GNUNET_STATISTICS_destroy (h2, GNUNET_NO);
       GNUNET_SCHEDULER_cancel (shutdown_task);
+      GNUNET_SCHEDULER_add_now (&normal_shutdown, NULL);
     }  
   return GNUNET_OK;
 }
