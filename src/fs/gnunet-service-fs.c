@@ -405,6 +405,7 @@ shutdown_task (void *cls,
   GNUNET_CONFIGURATION_destroy (block_cfg);
   block_cfg = NULL;
   GNUNET_STATISTICS_destroy (GSF_stats, GNUNET_NO);
+  GSF_stats = NULL;
   if (GNUNET_SCHEDULER_NO_TASK != cover_age_task)
     {
       GNUNET_SCHEDULER_cancel (cover_age_task);

@@ -193,6 +193,8 @@ TESTS = \
  test_fs_test_lib \
  test_gnunet_service_fs_migration \
  test_gnunet_service_fs_p2p \
+ perf_gnunet_service_fs_p2p \
+ perf_gnunet_service_fs_p2p_index \
  $(check_SCRIPTS)  
 endif
 
