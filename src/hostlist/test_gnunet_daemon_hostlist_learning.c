@@ -30,9 +30,10 @@
 #include "gnunet_resolver_service.h"
 #include "gnunet_statistics_service.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define START_ARM GNUNET_YES
+
 #define MAX_URL_LEN 1000
 
 /**
@@ -41,19 +42,6 @@
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 180)
 #define CHECK_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
-static int timeout;
-static int adv_sent;
-static int adv_arrived;
-
-static int learned_hostlist_saved;
-static int learned_hostlist_downloaded;
-
-static char * current_adv_uri;
-
-static const struct GNUNET_CONFIGURATION_Handle *cfg;
-
-static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
-static GNUNET_SCHEDULER_TaskIdentifier check_task;
     
 struct PeerContext
 {
@@ -67,69 +55,85 @@ struct PeerContext
 #endif
 };
 
+static int timeout;
+
+static int adv_sent;
+
+static int adv_arrived;
+
+static int learned_hostlist_saved;
+
+static int learned_hostlist_downloaded;
+
+static char * current_adv_uri;
+
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+static GNUNET_SCHEDULER_TaskIdentifier check_task;
+
 static struct PeerContext adv_peer;
 
 static struct PeerContext learn_peer;
 
 static struct GNUNET_STATISTICS_GetHandle * download_stats;
+
 static struct GNUNET_STATISTICS_GetHandle * urisrecv_stat;
+
 static struct GNUNET_STATISTICS_GetHandle * advsent_stat;
 
 static void shutdown_testcase()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown testcase....\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping Timeout Task.\n");
-  if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (timeout_task);
-    timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping Statistics Task.\n");
-/*
-  if ((NULL != learn_peer.stats) && (NULL != download_stats))
-    GNUNET_STATISTICS_get_cancel (download_stats);
-  if ((NULL != learn_peer.stats) && (NULL != urisrecv_stat))
-    GNUNET_STATISTICS_get_cancel (urisrecv_stat);
-  if ((NULL != adv_peer.stats) && (NULL != advsent_stat))
-    GNUNET_STATISTICS_get_cancel (advsent_stat);
-*/
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping Statistics Check Task.\n");
-  if (check_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (check_task);
-    check_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Freeing uri\n");
-  if ( NULL != current_adv_uri ) GNUNET_free (current_adv_uri);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from Transport.\n");
-  if (adv_peer.th != NULL)
-  {
-    GNUNET_TRANSPORT_disconnect (adv_peer.th);
-    adv_peer.th = NULL;
-  }
-  if (learn_peer.th != NULL)
-  {
-    GNUNET_TRANSPORT_disconnect (learn_peer.th);
-    learn_peer.th = NULL;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from Core.\n");
-  if (adv_peer.core != NULL)
-  {
-    GNUNET_CORE_disconnect (adv_peer.core);
-    adv_peer.core = NULL;
-  }
-  if (learn_peer.core != NULL)
-  {
-    GNUNET_CORE_disconnect (learn_peer.core);
-    learn_peer.core = NULL;
-  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Asking ARM to stop core services\n");
-
-
+	      "Shutdown testcase....\n");
+  if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (timeout_task);
+      timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  if (NULL != download_stats)
+    {
+      GNUNET_STATISTICS_get_cancel (download_stats);
+      download_stats = NULL;
+    }
+  if (NULL != urisrecv_stat)
+    {
+      GNUNET_STATISTICS_get_cancel (urisrecv_stat);
+      urisrecv_stat = NULL;
+    }
+  if (NULL != advsent_stat)
+    {
+      GNUNET_STATISTICS_get_cancel (advsent_stat);
+      advsent_stat = NULL;
+    }
+  if (check_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (check_task);
+      check_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  GNUNET_free_non_null (current_adv_uri);
+  current_adv_uri = NULL;
+  if (adv_peer.th != NULL)
+    {
+      GNUNET_TRANSPORT_disconnect (adv_peer.th);
+      adv_peer.th = NULL;
+    }
+  if (learn_peer.th != NULL)
+    {
+      GNUNET_TRANSPORT_disconnect (learn_peer.th);
+      learn_peer.th = NULL;
+    }
+  if (adv_peer.core != NULL)
+    {
+      GNUNET_CORE_disconnect (adv_peer.core);
+      adv_peer.core = NULL;
+    }
+  if (learn_peer.core != NULL)
+    {
+      GNUNET_CORE_disconnect (learn_peer.core);
+      learn_peer.core = NULL;
+    }
 #if START_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Killing hostlist server ARM process.\n");
@@ -137,30 +141,19 @@ static void shutdown_testcase()
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   if (GNUNET_OS_process_wait(adv_peer.arm_proc) != GNUNET_OK)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Hostlist server ARM process %u stopped\n", GNUNET_OS_process_get_pid (adv_peer.arm_proc));
   GNUNET_OS_process_close (adv_peer.arm_proc);
   adv_peer.arm_proc = NULL;
-#endif
-  
-
-#if START_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Killing hostlist client ARM process.\n");
   if (0 != GNUNET_OS_process_kill (learn_peer.arm_proc, SIGTERM))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   if (GNUNET_OS_process_wait(learn_peer.arm_proc) != GNUNET_OK)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Hostlist client ARM process %u stopped\n", GNUNET_OS_process_get_pid (learn_peer.arm_proc));
   GNUNET_OS_process_close (learn_peer.arm_proc);
   learn_peer.arm_proc = NULL;
 #endif
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down scheduler\n");
-  GNUNET_SCHEDULER_shutdown ();
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown complete....\n");
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Shutdown complete....\n");
 }
 
 /**
@@ -178,6 +171,7 @@ timeout_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   shutdown_testcase();
 }
 
+
 static int
 process_downloads (void *cls,
               const char *subsystem,
@@ -186,15 +180,19 @@ process_downloads (void *cls,
               int is_persistent)
 {
   download_stats = NULL;
-  if ( (value == 2) && (learned_hostlist_downloaded == GNUNET_NO) )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Peer has successfully downloaded advertised URI \n"));
-    learned_hostlist_downloaded = GNUNET_YES;
-    shutdown_testcase();
-  }
+  if ( (value == 2) && 
+       (learned_hostlist_downloaded == GNUNET_NO) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Peer has successfully downloaded advertised URI\n"));
+      learned_hostlist_downloaded = GNUNET_YES;
+      if ( (learned_hostlist_saved == GNUNET_YES) &&
+	   (adv_sent == GNUNET_YES) )
+	shutdown_testcase();
+    }
   return GNUNET_OK;
 }
+
 
 static int
 process_uris_recv (void *cls,
@@ -204,14 +202,20 @@ process_uris_recv (void *cls,
               int is_persistent)
 {
   urisrecv_stat = NULL;
-  if ( ((struct PeerContext *) cls == &learn_peer) && (value == 1) && (learned_hostlist_saved == GNUNET_NO))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Peer has successfully saved advertised URI \n"));
-    learned_hostlist_saved = GNUNET_YES;
-  }
+  if ( ((struct PeerContext *) cls == &learn_peer) && 
+       (value == 1) && 
+       (learned_hostlist_saved == GNUNET_NO) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Peer has successfully saved advertised URI \n"));
+      learned_hostlist_saved = GNUNET_YES;
+      if ( (learned_hostlist_downloaded == GNUNET_YES) &&
+	   (adv_sent == GNUNET_YES) )
+	shutdown_testcase();
+    }
   return GNUNET_OK;
 }
+
 
 static int
 process_adv_sent (void *cls,
@@ -222,11 +226,14 @@ process_adv_sent (void *cls,
 {
   advsent_stat = NULL;
   if ( (value >= 1) && (adv_sent == GNUNET_NO))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Server has successfully sent advertisement\n"));
-    adv_sent = GNUNET_YES;
-  }
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Server has successfully sent advertisement\n"));
+      adv_sent = GNUNET_YES;
+      if ( (learned_hostlist_downloaded == GNUNET_YES) &&
+	   (learned_hostlist_saved == GNUNET_YES) )
+	shutdown_testcase();
+    }
   return GNUNET_OK;
 }
 
@@ -235,50 +242,51 @@ process_adv_sent (void *cls,
  * Check the server statistics regularly
  */
 static void
-check_statistics (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+check_statistics (void *cls, 
+		  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   char *stat;
 
   check_task = GNUNET_SCHEDULER_NO_TASK;
     if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
       return;
-
-  GNUNET_asprintf (&stat,
+    GNUNET_asprintf (&stat,
                    gettext_noop("# advertised URI `%s' downloaded"),
                    current_adv_uri);
   if ( NULL != learn_peer.stats)
-  {
-    download_stats = GNUNET_STATISTICS_get (learn_peer.stats,
-                           "hostlist",
-                           stat,
-                           GNUNET_TIME_UNIT_MINUTES,
-                           NULL,
-                           &process_downloads,
-                           &learn_peer);
-
-    urisrecv_stat = GNUNET_STATISTICS_get (learn_peer.stats,
-                           "hostlist",
-                           gettext_noop("# advertised hostlist URIs"),
-                           GNUNET_TIME_UNIT_MINUTES,
-                           NULL,
-                           &process_uris_recv,
-                           &learn_peer);
-  }
+    {
+      download_stats = GNUNET_STATISTICS_get (learn_peer.stats,
+					      "hostlist",
+					      stat,
+					      GNUNET_TIME_UNIT_MINUTES,
+					      NULL,
+					      &process_downloads,
+					      &learn_peer);
+      
+      urisrecv_stat = GNUNET_STATISTICS_get (learn_peer.stats,
+					     "hostlist",
+					     gettext_noop("# advertised hostlist URIs"),
+					     GNUNET_TIME_UNIT_MINUTES,
+					     NULL,
+					     &process_uris_recv,
+					     &learn_peer);
+    }
   GNUNET_free (stat);
   if ( NULL != adv_peer.stats)
-  {
-    advsent_stat = GNUNET_STATISTICS_get (adv_peer.stats,
-                           "hostlist",
-                           gettext_noop("# hostlist advertisements send"),
-                           GNUNET_TIME_UNIT_MINUTES,
-                           NULL,
-                           &process_adv_sent,
-                           NULL);
-  }
+    {
+      advsent_stat = GNUNET_STATISTICS_get (adv_peer.stats,
+					    "hostlist",
+					    gettext_noop("# hostlist advertisements send"),
+					    GNUNET_TIME_UNIT_MINUTES,
+					    NULL,
+					    &process_adv_sent,
+					    NULL);
+    }
   check_task = GNUNET_SCHEDULER_add_delayed (CHECK_INTERVALL,
-                                &check_statistics,
-                                NULL);
+					     &check_statistics,
+					     NULL);
 }
+
 
 /**
  * Core handler for p2p hostlist advertisements
@@ -305,11 +313,10 @@ ad_arrive_handler (void *cls,
     }
 
   if ( GNUNET_SYSERR  == GNUNET_CONFIGURATION_get_value_string (adv_peer.cfg,
-                                                   "HOSTLIST",
-                                                   "EXTERNAL_DNS_NAME",
-                                                   &hostname))
+								"HOSTLIST",
+								"EXTERNAL_DNS_NAME",
+								&hostname))
     hostname = GNUNET_RESOLVER_local_fqdn_get ();
-
   GNUNET_asprintf (&expected_uri,
 		   "http://%s:%u/",
 		   hostname != NULL ? hostname : "localhost",
@@ -319,17 +326,21 @@ ad_arrive_handler (void *cls,
   if ( 0 == strcmp( expected_uri, current_adv_uri ) )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  "Recieved hostlist advertisement with URI `%s' as expected\n", current_adv_uri);
+		  "Recieved hostlist advertisement with URI `%s' as expected\n",
+		  current_adv_uri);
       adv_arrived = GNUNET_YES;
       adv_sent = GNUNET_YES;
     }
   else
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Expected URI `%s' and recieved URI `%s' differ\n", expected_uri, current_adv_uri);
+                "Expected URI `%s' and recieved URI `%s' differ\n",
+		expected_uri,
+		current_adv_uri);
   GNUNET_free (expected_uri);
   GNUNET_free_non_null (hostname);
   return GNUNET_OK;
 }
+
 
 /**
  * List of handlers if we are learning.
@@ -338,6 +349,7 @@ static struct GNUNET_CORE_MessageHandler learn_handlers[] = {
   { &ad_arrive_handler, GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT, 0},
   { NULL, 0, 0 }
 };
+
 
 static void
 setup_learn_peer (struct PeerContext *p, const char *cfgname)
@@ -448,22 +460,24 @@ check ()
                       "nohelp", options, &run, NULL);
 
   failed = GNUNET_NO;
-
-  if (learned_hostlist_downloaded == GNUNET_YES)
-    return GNUNET_NO;
-
   if (timeout == GNUNET_YES)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Testcase could not set up two communicating peers, timeout\n");
-    failed = GNUNET_YES;
-  }
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Testcase could not set up two communicating peers, timeout\n");
+      failed = GNUNET_YES;
+    }
+  if (learned_hostlist_downloaded == GNUNET_YES)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Failed to download learned hostlist\n");
+      failed = GNUNET_YES;
+    }
   if (adv_arrived != GNUNET_YES)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Learning peer did not receive advertisement from server\n");
-    failed = GNUNET_YES;
-  }
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Learning peer did not receive advertisement from server\n");
+      failed = GNUNET_YES;
+    }
   if ( learned_hostlist_saved == GNUNET_NO )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -471,21 +485,20 @@ check ()
       failed = GNUNET_YES;
     }
   if (learned_hostlist_downloaded == GNUNET_NO)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Peer1: Advertised hostlist could not be downloaded from server\n");
-    failed = GNUNET_YES;
-  }
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Peer1: Advertised hostlist could not be downloaded from server\n");
+      failed = GNUNET_YES;
+    }
   if (adv_sent == GNUNET_NO)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Advertised was not sent from server to client\n");
-    failed = GNUNET_YES;
-  }
-  if ( GNUNET_YES == failed )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Advertised was not sent from server to client\n");
+      failed = GNUNET_YES;
+    }
+  if (GNUNET_YES == failed)
     return GNUNET_YES;
-  else
-    return GNUNET_NO;
+  return GNUNET_NO;
 }
 
 int
