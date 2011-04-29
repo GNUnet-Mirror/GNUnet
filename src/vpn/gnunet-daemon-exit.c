@@ -274,12 +274,9 @@ udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen,
       memcpy ((GNUNET_HashCode *) (desc + 1), &state->desc,
               sizeof (GNUNET_HashCode));
       *desc = ntohs (udp->spt);
-      GNUNET_HashCode hash;
-      //FIXME better hashing
-      GNUNET_CRYPTO_hash (desc, sizeof (GNUNET_HashCode) + 2, &hash);
       GNUNET_assert (GNUNET_OK ==
                      GNUNET_CONTAINER_multihashmap_put (udp_services,
-                                                        &hash, serv,
+                                                        (GNUNET_HashCode*)desc, serv,
                                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 
       state->serv = serv;
@@ -484,8 +481,6 @@ read_service_conf (void *cls, const char *section, const char *option,
 
           *desc = local_port;
 
-          GNUNET_CRYPTO_hash (desc, sizeof (GNUNET_HashCode) + 2, &hash);
-
           struct redirect_service *serv =
             GNUNET_malloc (sizeof (struct redirect_service));
           memset (serv, 0, sizeof (struct redirect_service));
@@ -531,16 +526,15 @@ read_service_conf (void *cls, const char *section, const char *option,
                       *((unsigned long long *) (desc + 1)));
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Store with key2 %x\n",
                       *((unsigned long long *) &hash));
-          //FIXME better hashing
           if (UDP == proto)
             GNUNET_assert (GNUNET_OK ==
                            GNUNET_CONTAINER_multihashmap_put (udp_services,
-                                                              &hash, serv,
+                                                              (GNUNET_HashCode*)desc, serv,
                                                               GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
           else
             GNUNET_assert (GNUNET_OK ==
                            GNUNET_CONTAINER_multihashmap_put (tcp_services,
-                                                              &hash, serv,
+                                                              (GNUNET_HashCode*)desc, serv,
                                                               GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 
         }
@@ -836,10 +830,8 @@ receive_tcp_service (void *cls,
 
   memcpy (tcp_desc + 1, desc, sizeof (GNUNET_HashCode));
   *tcp_desc = ntohs (pkt->dpt);
-  //FIXME better hashing
-  GNUNET_CRYPTO_hash (tcp_desc, sizeof (GNUNET_HashCode) + 2, &hash);
   struct redirect_service *serv =
-    GNUNET_CONTAINER_multihashmap_get (tcp_services, &hash);
+    GNUNET_CONTAINER_multihashmap_get (tcp_services, (GNUNET_HashCode*)tcp_desc);
   if (NULL == serv)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -938,10 +930,8 @@ receive_udp_service (void *cls,
   uint16_t *udp_desc = alloca (sizeof (GNUNET_HashCode) + 2);
   memcpy (udp_desc + 1, desc, sizeof (GNUNET_HashCode));
   *udp_desc = ntohs (pkt->dpt);
-  //FIXME better hashing
-  GNUNET_CRYPTO_hash (udp_desc, sizeof (GNUNET_HashCode) + 2, &hash);
   struct redirect_service *serv =
-    GNUNET_CONTAINER_multihashmap_get (udp_services, &hash);
+    GNUNET_CONTAINER_multihashmap_get (udp_services, (GNUNET_HashCode*)udp_desc);
   if (NULL == serv)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
