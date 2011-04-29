@@ -42,6 +42,12 @@
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 struct GNUNET_MESH_Handle *mesh_handle;
 struct GNUNET_CONTAINER_MultiHashMap* hashmap;
+static struct GNUNET_CONTAINER_Heap *heap;
+
+/**
+ * If there are at least this many address-mappings, old ones will be removed
+ */
+static long long unsigned int max_mappings = 200;
 
 /**
  * Final status code.
@@ -99,6 +105,23 @@ address_mapping_exists(unsigned char addr[]) {
 	GNUNET_free(key);
 	return NULL;
       }
+}
+
+static void
+collect_mappings(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
+    if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+      return;
+
+    struct map_entry* me = GNUNET_CONTAINER_heap_remove_root(heap);
+
+    /* This is free()ed memory! */
+    me->heap_node = NULL;
+
+    /* FIXME! GNUNET_MESH_close_tunnel(state->tunnel); */
+
+    GNUNET_CONTAINER_multihashmap_remove(hashmap, &me->hash, me);
+
+    GNUNET_free(me);
 }
 
 void
@@ -259,11 +282,19 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 
         memset(value->additional_ports, 0, 8192);
 
-        /* FIXME save this to heap, too */
+        memcpy(&value->hash, &key, sizeof(GNUNET_HashCode));
+
         if (GNUNET_NO ==
             GNUNET_CONTAINER_multihashmap_contains (hashmap, &key))
-          GNUNET_CONTAINER_multihashmap_put (hashmap, &key, value,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+          {
+            GNUNET_CONTAINER_multihashmap_put (hashmap, &key, value,
+                                               GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+
+            value->heap_node = GNUNET_CONTAINER_heap_insert (heap, value,
+                                                             GNUNET_TIME_absolute_get ().abs_value);
+            if (GNUNET_CONTAINER_heap_get_size(heap) > max_mappings)
+              GNUNET_SCHEDULER_add_now(collect_mappings, NULL);
+          }
         else
           GNUNET_free(value);
 
@@ -295,8 +326,10 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 	      k[i] += 16*(c2 - 87);
 	  }
 
-        /* FIXME: update costs in heap */
 	struct map_entry* map_entry = GNUNET_CONTAINER_multihashmap_get(hashmap, &key);
+        GNUNET_CONTAINER_heap_update_cost (heap, map_entry->heap_node,
+                                           GNUNET_TIME_absolute_get ().abs_value);
+
 	uint16_t offset = ntohs(pkt->addroffset);
 
 	if (map_entry == NULL)
@@ -457,8 +490,9 @@ receive_udp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
   GNUNET_HashCode* key = address_mapping_exists(pkt6->ip6_hdr.sadr);
   GNUNET_assert (key != NULL);
 
-  /* FIXME: update costs in heap */
   struct map_entry *me = GNUNET_CONTAINER_multihashmap_get(hashmap, key);
+  GNUNET_CONTAINER_heap_update_cost (heap, me->heap_node,
+                                     GNUNET_TIME_absolute_get ().abs_value);
 
   GNUNET_free(key);
 
@@ -531,8 +565,9 @@ receive_tcp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
   GNUNET_HashCode* key = address_mapping_exists(pkt6->ip6_hdr.sadr);
   GNUNET_assert (key != NULL);
 
-  /* FIXME: update costs in heap */
   struct map_entry *me = GNUNET_CONTAINER_multihashmap_get(hashmap, key);
+  GNUNET_CONTAINER_heap_update_cost (heap, me->heap_node,
+                                     GNUNET_TIME_absolute_get ().abs_value);
 
   GNUNET_free(key);
 
@@ -588,6 +623,9 @@ run (void *cls,
     cfg = cfg_;
     restart_hijack = 0;
     hashmap = GNUNET_CONTAINER_multihashmap_create(65536);
+    heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
+    GNUNET_CONFIGURATION_get_value_number (cfg, "vpn", "MAX_MAPPINGg",
+                                           &max_mappings);
     udp_connections = GNUNET_CONTAINER_multihashmap_create(65536);
     GNUNET_SCHEDULER_TaskIdentifier conn_task = GNUNET_SCHEDULER_add_now (connect_to_service_dns, NULL);
     GNUNET_SCHEDULER_add_after (conn_task, start_helper_and_schedule, NULL);

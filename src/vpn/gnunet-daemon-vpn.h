@@ -73,6 +73,9 @@ struct map_entry {
     struct GNUNET_MESH_Tunnel *tunnel;
     uint16_t namelen;
     char additional_ports[8192];
+
+    struct GNUNET_CONTAINER_HeapNode* heap_node;
+    GNUNET_HashCode hash;
     /**
      * After this struct the name is located in DNS-Format!
      */
