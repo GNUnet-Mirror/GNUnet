@@ -249,9 +249,6 @@ send_mesh_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                            cls_);
 
   remote_pending[cls_->dns.s.id] = cls_;
-
-  /* TODO at receive: walk through pending list, send answer
-   */
 }
 
 static int
