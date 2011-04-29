@@ -338,7 +338,7 @@ tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
   else
     {
       // This is an illegal packet.
-      GNUNET_assert (0);
+      return;
     }
   /* send tcp-packet back */
   len =
