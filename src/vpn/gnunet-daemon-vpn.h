@@ -70,6 +70,10 @@ extern struct GNUNET_CONTAINER_MultiHashMap* hashmap;
 
 struct map_entry {
     struct GNUNET_vpn_service_descriptor desc;
+
+    char addrlen;
+    char addr[16];
+
     struct GNUNET_MESH_Tunnel *tunnel;
     uint16_t namelen;
     char additional_ports[8192];
