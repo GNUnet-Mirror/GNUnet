@@ -194,6 +194,19 @@ collect_connections(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
     GNUNET_free(state);
 }
 
+static void
+hash_redirect_info(GNUNET_HashCode* hash, struct redirect_info* u_i, size_t addrlen)
+{
+
+  /* the gnunet hashmap only uses the first 32bit of the hash
+   *
+   * build the hash out of the last two bytes of the address and the 2 bytes of
+   * the port
+   */
+  memcpy(&hash, &u_i->pt, sizeof(u_i->pt));
+  memcpy(((unsigned char*)&hash)+2, u_i->addr+(addrlen-2), 2);
+}
+
 /**
  * cls is the pointer to a GNUNET_MessageHeader that is
  * followed by the service-descriptor and the udp-packet that should be sent;
@@ -233,9 +246,8 @@ udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen,
   u_i.pt = udp->dpt;
 
   /* get tunnel and service-descriptor from this */
-  /* FIXME better hashing */
   GNUNET_HashCode hash;
-  GNUNET_CRYPTO_hash (&u_i, sizeof (struct redirect_info), &hash);
+  hash_redirect_info(&hash, &u_i, addrlen);
 
   struct redirect_state *state =
     GNUNET_CONTAINER_multihashmap_get (udp_connections, &hash);
@@ -317,10 +329,10 @@ tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
   memcpy (&u_i.addr, dadr, addrlen);
   u_i.pt = tcp->dpt;
 
-  /* FIXME better hashing */
   /* get tunnel and service-descriptor from this */
   GNUNET_HashCode hash;
-  GNUNET_CRYPTO_hash (&u_i, sizeof (struct redirect_info), &hash);
+  hash_redirect_info(&hash, &u_i, addrlen);
+
   struct redirect_state *state =
     GNUNET_CONTAINER_multihashmap_get (tcp_connections, &hash);
 
@@ -880,9 +892,7 @@ receive_tcp_service (void *cls,
       break;
     }
 
-  /* FIXME better hashing */
-  GNUNET_CRYPTO_hash (&state->redirect_info, sizeof (struct redirect_info),
-                      &state->hash);
+  hash_redirect_info(&state->hash, &state->redirect_info, serv->version == 4 ? 4 : 16);
 
   if (GNUNET_NO ==
       GNUNET_CONTAINER_multihashmap_contains (tcp_connections, &state->hash))
@@ -984,9 +994,7 @@ receive_udp_service (void *cls,
       break;
     }
 
-  /* FIXME better hashing */
-  GNUNET_CRYPTO_hash (&state->redirect_info, sizeof (struct redirect_info),
-                      &state->hash);
+  hash_redirect_info(&state->hash, &state->redirect_info, serv->version == 4 ? 4 : 16);
 
   if (GNUNET_NO ==
       GNUNET_CONTAINER_multihashmap_contains (udp_connections, &state->hash))
