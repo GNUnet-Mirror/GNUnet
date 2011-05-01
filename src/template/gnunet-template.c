@@ -52,7 +52,7 @@ run (void *cls,
 
 
 /**
- * The main function to obtain template from gnunetd.
+ * The main function.
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments
