@@ -247,6 +247,11 @@ struct PeerInfo
     GNUNET_PEER_Id              id;
 
     /**
+     * Tunnel this peer belongs to
+     */
+    struct MESH_tunnel          *t;
+
+    /**
      * Is the peer reachable? Is the peer even connected?
      */
     enum PeerState              state;
@@ -265,10 +270,17 @@ struct PeerInfo
      * Max data rate to this peer
      */
     uint32_t                    max_speed;
+
+    /**
+     * Handle to stop the DHT search for a path to this peer
+     */
+    struct GNUNET_DHT_GetHandle        *dhtget;
 };
 
 
 typedef uint32_t MESH_PathID;
+
+
 /**
  * Information regarding a path
  */
@@ -297,6 +309,9 @@ struct Path
     int                         length;
 };
 
+/**
+ * Data scheduled to transmit (to local client or remote peer)
+ */
 struct MESH_queue
 {
     /**
@@ -448,6 +463,12 @@ static struct Client                    *clients_head;
 static struct Client                    *clients_tail;
 
 /**
+ * Tunnels not owned by this node
+ */
+// static struct MESH_Tunnel               *tunnels_head;
+// static struct MESH_Tunnel               *tunnels_tail;
+
+/**
  * Handle to communicate with core
  */
 static struct GNUNET_CORE_Handle        *core_handle;
@@ -555,6 +576,41 @@ client_retrieve (struct GNUNET_SERVER_Client *client) {
 }
 
 /**
+ * Iterator called on each result obtained for a DHT
+ * operation that expects a reply
+ *
+ * @param cls closure
+ * @param exp when will this value expire
+ * @param key key of the result
+ * @param get_path NULL-terminated array of pointers
+ *                 to the peers on reverse GET path (or NULL if not recorded)
+ * @param put_path NULL-terminated array of pointers
+ *                 to the peers on the PUT path (or NULL if not recorded)
+ * @param type type of the result
+ * @param size number of bytes in data
+ * @param data pointer to the result data
+ */
+void dht_get_response_handler(void *cls,
+                                struct GNUNET_TIME_Absolute exp,
+                                const GNUNET_HashCode * key,
+                                const struct GNUNET_PeerIdentity * const *get_path,
+                                const struct GNUNET_PeerIdentity * const *put_path,
+                                enum GNUNET_BLOCK_Type type,
+                                size_t size,
+                                const void *data)
+{
+    struct PeerInfo             *peer_info;
+    struct MESH_tunnel          *t;
+    struct Path                 *p;
+
+    peer_info = (struct PeerInfo *)cls;
+    t = peer_info->t;
+    p = GNUNET_malloc(sizeof(struct Path));
+    GNUNET_CONTAINER_DLL_insert(t->paths_head, t->paths_tail, p);
+    return;
+}
+
+/**
  * Handler for client disconnection
  *
  * @param cls closure
@@ -567,11 +623,6 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     struct Client       *c, *next;
     struct MESH_tunnel  *t;
 
-    /* If there are no clients registered, something is wrong... or is it?
-     * FIXME: what happens if a client connects, doesn't send a MESH_Connect
-     * and disconnects? Does the service get a disconnect notification anyway?
-     */
-    GNUNET_assert(NULL != clients_head);
     c = clients_head;
     while(NULL != c) {
         if (c->handle == client) {
@@ -788,6 +839,8 @@ handle_local_connect_add (void *cls,
     MESH_TunnelID                       tid;
     struct PeerInfo                     *peer_info;
 
+    GNUNET_HashCode                     key;
+
 
     /* Sanity check for client registration */
     if(NULL == (c = client_retrieve(client))) {
@@ -834,9 +887,23 @@ handle_local_connect_add (void *cls,
     peer_info = (struct PeerInfo *) GNUNET_malloc(sizeof(struct PeerInfo));
     peer_info->id = GNUNET_PEER_intern(&peer_msg->peer);
     peer_info->state = MESH_PEER_WAITING;
+    peer_info->t = t;
     t->peers_total++;
     GNUNET_CONTAINER_DLL_insert(t->peers_head, t->peers_tail, peer_info);
-    /* TODO MESH SEARCH FOR PEER */
+    /* start dht search */
+    // FIXME key = hash (peerid + salt);
+    peer_info->dhtget = GNUNET_DHT_get_start(dht_handle,
+                                            GNUNET_TIME_relative_get_forever(),
+                                            GNUNET_BLOCK_TYPE_ANY,
+                                            &key,
+                                            4,    /* replication level */
+                                            GNUNET_DHT_RO_RECORD_ROUTE,
+                                            NULL, /* bloom filter */
+                                            0,    /* mutator */
+                                            NULL, /* xquery */
+                                            0,    /* xquery bits */
+                                            dht_get_response_handler,
+                                            (void *)peer_info);
 
     GNUNET_SERVER_receive_done(client, GNUNET_OK);
     return;
@@ -906,12 +973,12 @@ handle_local_connect_del (void *cls,
     }
 
     /* Ok, delete peer from tunnel */
-    p = t->paths_head;
     peer_id = GNUNET_PEER_intern(&peer_msg->peer);
 
     /* Delete paths */
+    p = t->paths_head;
     while(p != NULL) {
-        if(p->peers[p->length-1] == peer_id) {
+        if(p->peers[p->length-1] == peer_id) { /* one path per destination */
             GNUNET_CONTAINER_DLL_remove(t->paths_head, t->paths_tail, p);
             GNUNET_PEER_decrement_rcs(p->peers, p->length);
             aux_path = p;
@@ -962,12 +1029,57 @@ handle_local_connect_by_type (void *cls,
                               struct GNUNET_SERVER_Client *client,
                               const struct GNUNET_MessageHeader *message)
 {
+    struct GNUNET_MESH_ConnectPeerByType        *connect_msg;
+    MESH_TunnelID                               tid;
+    GNUNET_MESH_ApplicationType                 application;
+    struct Client                               *c;
+    struct MESH_tunnel                          *t;
+
     /* Sanity check for client registration */
-    if(NULL == client_retrieve(client)) {
+    if(NULL == (c = client_retrieve(client))) {
         GNUNET_break(0);
         GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
         return;
     }
+
+    connect_msg = (struct GNUNET_MESH_ConnectPeerByType *)message;
+    /* Sanity check for message size */
+    if(sizeof(struct GNUNET_MESH_PeerControl) != ntohs(connect_msg->header.size)) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
+
+    /* Tunnel exists? */
+    tid = ntohl(connect_msg->tunnel_id);
+    if(NULL == (t = c->tunnels_head)) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
+    while(NULL != t) {
+        if(t->tid == tid) {
+            break;
+        }
+        if(t == c->tunnels_tail) {
+            GNUNET_break(0);
+            GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+            return;
+        }
+        t = t->next;
+    }
+
+    /* Does client own tunnel? */
+    if(t->client->handle != client) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
+
+    /* Ok, lets find a peer offering the service */
+    application = ntohl(connect_msg->type);
+    application++; // FIXME silence warnings
+
     GNUNET_SERVER_receive_done(client, GNUNET_OK);
     return;
 }
@@ -985,12 +1097,53 @@ handle_local_network_traffic (void *cls,
                          struct GNUNET_SERVER_Client *client,
                          const struct GNUNET_MessageHeader *message)
 {
+    struct Client                               *c;
+    struct MESH_tunnel                          *t;
+    struct GNUNET_MESH_Data                     *data_msg;
+    MESH_TunnelID                               tid;
+
     /* Sanity check for client registration */
-    if(NULL == client_retrieve(client)) {
+    if(NULL == (c = client_retrieve(client))) {
         GNUNET_break(0);
         GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
         return;
     }
+    data_msg = (struct GNUNET_MESH_Data *)message;
+    /* Sanity check for message size */
+    if(sizeof(struct GNUNET_MESH_PeerControl) != ntohs(data_msg->header.size)) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
+
+    /* Tunnel exists? */
+    tid = ntohl(data_msg->tunnel_id);
+    if(NULL == (t = c->tunnels_head)) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
+    while(NULL != t) {
+        if(t->tid == tid) {
+            break;
+        }
+        if(t == c->tunnels_tail) {
+            GNUNET_break(0);
+            GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+            return;
+        }
+        t = t->next;
+    }
+
+    /* Does client own tunnel? */
+    if(t->client->handle != client) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
+
+    /* TODO */
+
     GNUNET_SERVER_receive_done(client, GNUNET_OK);
     return;
 }
@@ -1007,12 +1160,53 @@ handle_local_network_traffic_bcast (void *cls,
                                     struct GNUNET_SERVER_Client *client,
                                     const struct GNUNET_MessageHeader *message)
 {
+    struct Client                               *c;
+    struct MESH_tunnel                          *t;
+    struct GNUNET_MESH_DataBroadcast            *data_msg;
+    MESH_TunnelID                               tid;
+
     /* Sanity check for client registration */
-    if(NULL == client_retrieve(client)) {
+    if(NULL == (c = client_retrieve(client))) {
         GNUNET_break(0);
         GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
         return;
     }
+    data_msg = (struct GNUNET_MESH_DataBroadcast *)message;
+    /* Sanity check for message size */
+    if(sizeof(struct GNUNET_MESH_PeerControl) != ntohs(data_msg->header.size)) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
+
+    /* Tunnel exists? */
+    tid = ntohl(data_msg->tunnel_id);
+    if(NULL == (t = c->tunnels_head)) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
+    while(NULL != t) {
+        if(t->tid == tid) {
+            break;
+        }
+        if(t == c->tunnels_tail) {
+            GNUNET_break(0);
+            GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+            return;
+        }
+        t = t->next;
+    }
+
+    /* Does client own tunnel? */
+    if(t->client->handle != client) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
+
+    /*  TODO */
+
     GNUNET_SERVER_receive_done(client, GNUNET_OK);
     return;
 }
@@ -1106,9 +1300,9 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
 
-  GNUNET_SERVER_add_handlers (server, plugin_handlers);
-  GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
-  core_handle = GNUNET_CORE_connect (c,                 /* Main configuration */
+    GNUNET_SERVER_add_handlers (server, plugin_handlers);
+    GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
+    core_handle = GNUNET_CORE_connect (c,               /* Main configuration */
                             32,                                 /* queue size */
                             NULL,         /* Closure passed to MESH functions */
                             &core_init,      /* Call core_init once connected */
@@ -1121,14 +1315,14 @@ run (void *cls,
                             GNUNET_NO,    /* For header-only out notification */
                             core_handlers);        /* Register these handlers */
 
-  if (core_handle == NULL) {
-      GNUNET_break(0);
-  }
-  
-  dht_handle = GNUNET_DHT_connect(c, 100); /* FIXME ht len correct size? */
-  if (dht_handle == NULL) {
-      GNUNET_break(0);
-  }
+    if (core_handle == NULL) {
+        GNUNET_break(0);
+    }
+
+    dht_handle = GNUNET_DHT_connect(c, 100); /* FIXME ht len correct size? */
+    if (dht_handle == NULL) {
+        GNUNET_break(0);
+    }
 }
 
 /**
