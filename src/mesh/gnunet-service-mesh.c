@@ -859,11 +859,11 @@ handle_local_connect_del (void *cls,
     struct Client                       *c;
     struct MESH_tunnel                  *t;
     struct Path                         *p;
-    struct Path                         *aux;
+    struct Path                         *aux_path;
     MESH_TunnelID                       tid;
     GNUNET_PEER_Id                      peer_id;
     struct PeerInfo                     *peer_info;
-    int                                 i;
+    struct PeerInfo                     *aux_peer_info;
 
     /* Sanity check for client registration */
     if(NULL == (c = client_retrieve(client))) {
@@ -905,18 +905,18 @@ handle_local_connect_del (void *cls,
         return;
     }
 
-    /* Ok, delete peer from tunnel */   
+    /* Ok, delete peer from tunnel */
     p = t->paths_head;
     peer_id = GNUNET_PEER_intern(&peer_msg->peer);
+
+    /* Delete paths */
     while(p != NULL) {
         if(p->peers[p->length-1] == peer_id) {
             GNUNET_CONTAINER_DLL_remove(t->paths_head, t->paths_tail, p);
-            for(i = 0; i < p->length; i++) {
-                GNUNET_PEER_change_rc(p->peers[i], -1);
-            }
-            aux = p;
+            GNUNET_PEER_decrement_rcs(p->peers, p->length);
+            aux_path = p;
             p = p->next;
-            GNUNET_free(aux);
+            GNUNET_free(aux_path);
         } else {
             p = p->next;
         }
@@ -924,6 +924,25 @@ handle_local_connect_del (void *cls,
             break;
         }
     }
+
+    /*Delete peer info */
+    peer_info = t->peers_head;
+    while(peer_info != NULL) {
+        if(peer_info->id == peer_id) {
+            GNUNET_CONTAINER_DLL_remove(t->peers_head,
+                                        t->peers_tail,
+                                        peer_info);
+            aux_peer_info = peer_info;
+            peer_info = peer_info->next;
+            GNUNET_free(aux_peer_info);
+        } else {
+            peer_info = peer_info->next;
+        }
+        if(peer_info == t->peers_head) {
+            break;
+        }
+    }
+
     GNUNET_PEER_change_rc(peer_id, -1);
 
     GNUNET_SERVER_receive_done(client, GNUNET_OK);
