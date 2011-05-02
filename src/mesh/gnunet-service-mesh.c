@@ -294,6 +294,7 @@ struct Path
      * List of all the peers that form the path from origin to target
      */
     GNUNET_PEER_Id              *peers;
+    int                         length;
 };
 
 struct MESH_queue
@@ -854,12 +855,77 @@ handle_local_connect_del (void *cls,
                           struct GNUNET_SERVER_Client *client,
                           const struct GNUNET_MessageHeader *message)
 {
+    struct GNUNET_MESH_PeerControl      *peer_msg;
+    struct Client                       *c;
+    struct MESH_tunnel                  *t;
+    struct Path                         *p;
+    struct Path                         *aux;
+    MESH_TunnelID                       tid;
+    GNUNET_PEER_Id                      peer_id;
+    struct PeerInfo                     *peer_info;
+    int                                 i;
+
     /* Sanity check for client registration */
-    if(NULL == client_retrieve(client)) {
+    if(NULL == (c = client_retrieve(client))) {
         GNUNET_break(0);
         GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
         return;
     }
+    peer_msg = (struct GNUNET_MESH_PeerControl *)message;
+    /* Sanity check for message size */
+    if(sizeof(struct GNUNET_MESH_PeerControl) != ntohs(peer_msg->header.size)) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
+
+    /* Tunnel exists? */
+    tid = ntohl(peer_msg->tunnel_id);
+    if(NULL == (t = c->tunnels_head)) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
+    while(NULL != t) {
+        if(t->tid == tid) {
+            break;
+        }
+        if(t == c->tunnels_tail) {
+            GNUNET_break(0);
+            GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+            return;
+        }
+        t = t->next;
+    }
+
+    /* Does client own tunnel? */
+    if(t->client->handle != client) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
+
+    /* Ok, delete peer from tunnel */   
+    p = t->paths_head;
+    peer_id = GNUNET_PEER_intern(&peer_msg->peer);
+    while(p != NULL) {
+        if(p->peers[p->length-1] == peer_id) {
+            GNUNET_CONTAINER_DLL_remove(t->paths_head, t->paths_tail, p);
+            for(i = 0; i < p->length; i++) {
+                GNUNET_PEER_change_rc(p->peers[i], -1);
+            }
+            aux = p;
+            p = p->next;
+            GNUNET_free(aux);
+        } else {
+            p = p->next;
+        }
+        if(p == t->paths_head) {
+            break;
+        }
+    }
+    GNUNET_PEER_change_rc(peer_id, -1);
+
     GNUNET_SERVER_receive_done(client, GNUNET_OK);
     return;
 }
