@@ -226,8 +226,7 @@ enum PeerState
     /**
      * Peer connected previosly but not responding
      */
-    MESH_PEER_RECONNECTING,
-
+    MESH_PEER_RECONNECTING
 };
 
 /**
@@ -489,7 +488,7 @@ static GNUNET_PEER_Id                   myid;
 
 /**
  * Function called to notify a client about the socket
- * begin ready to queue more data.  "buf" will be
+ * being ready to queue more data.  "buf" will be
  * NULL and "size" zero if the socket was closed for
  * writing in the meantime.
  *
@@ -498,15 +497,38 @@ static GNUNET_PEER_Id                   myid;
  * @param buf where the callee should write the message
  * @return number of bytes written to buf
  */
-size_t feed_data_to_core (void *cls, size_t size, void *buf) {
-    size_t              size_used;
-    struct PeerInfo     *peer_info;
+size_t send_core_create_path_for_peer (void *cls, size_t size, void *buf) {
+    size_t                              size_used;
+    struct PeerInfo                     *peer_info;
+    struct GNUNET_MESH_ManipulatePath   *msg;
+    struct Path                         *p;
 
-    if(0 == size && NULL == buf) {
-        // FIXME retry? cancel?
+    if((0 == size && NULL == buf) ||
+        size < sizeof(struct GNUNET_MESH_ManipulatePath))
+    {
+        // TODO retry? cancel?
+        return 0;
     }
     size_used = 0;
     peer_info = (struct PeerInfo *)cls;
+    peer_info->dhtget = NULL;
+    p = peer_info->t->paths_head;
+    while(NULL != p) {
+        if(p->peers[p->length-1] == peer_info->id) {
+            break;
+        }
+        if(p != peer_info->t->paths_tail) {
+            p = p->next;
+        } else {
+            // TODO ERROR Path not found
+        }
+    }
+
+    msg = (struct GNUNET_MESH_ManipulatePath *) buf;
+    msg->header.size = htons(sizeof(struct GNUNET_MESH_ManipulatePath));
+    msg->header.type = htons(GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE);
+    
+    
 
     return size_used;
 }
@@ -601,6 +623,22 @@ client_retrieve (struct GNUNET_SERVER_Client *client) {
 }
 
 /**
+ * Function called to notify a client about the socket
+ * begin ready to queue more data.  "buf" will be
+ * NULL and "size" zero if the socket was closed for
+ * writing in the meantime.
+ *
+ * @param cls closure
+ * @param size number of bytes available in buf
+ * @param buf where the callee should write the message
+ * @return number of bytes written to buf
+ */
+size_t notify_client_connection_failure (void *cls, size_t size, void *buf) {
+    return 0;
+}
+
+
+/**
  * Iterator called on each result obtained for a DHT
  * operation that expects a reply
  *
@@ -631,6 +669,18 @@ void dht_get_response_handler(void *cls,
 
     peer_info = (struct PeerInfo *)cls;
     t = peer_info->t;
+
+    if(NULL == get_path || NULL == put_path) {
+        // TODO: find ourselves some alternate first path to the destination
+        GNUNET_SERVER_notify_transmit_ready(
+            t->client->handle,
+            sizeof(struct GNUNET_MESH_PeerControl),
+            GNUNET_TIME_relative_get_forever(),
+            &notify_client_connection_failure,
+            peer_info
+        );
+    }
+    
     p = GNUNET_malloc(sizeof(struct Path));
     GNUNET_CONTAINER_DLL_insert(t->paths_head, t->paths_tail, p);
     for(i = 0; get_path[i] != NULL; i++) {
@@ -656,7 +706,7 @@ void dht_get_response_handler(void *cls,
                                       sizeof(struct GNUNET_MESH_ManipulatePath)
                                         + (p->length
                                         * sizeof (struct GNUNET_PeerIdentity)),
-                                      feed_data_to_core,
+                                      &send_core_create_path_for_peer,
                                       peer_info
                                      );
     return;
@@ -1271,13 +1321,17 @@ handle_local_network_traffic_bcast (void *cls,
 static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
   {&handle_local_new_client, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT, 0},
   {&handle_local_tunnel_create, NULL,
-   GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE, 0},
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE,
+   sizeof(struct GNUNET_MESH_TunnelMessage)},
   {&handle_local_tunnel_destroy, NULL,
-   GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY, 0},
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY,
+   sizeof(struct GNUNET_MESH_TunnelMessage)},
   {&handle_local_connect_add, NULL,
-   GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD, 0},
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD,
+   sizeof(struct GNUNET_MESH_PeerControl)},
   {&handle_local_connect_del, NULL,
-   GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_DEL, 0},
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_DEL,
+   sizeof(struct GNUNET_MESH_PeerControl)},
   {&handle_local_connect_by_type, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_BY_TYPE,
    sizeof(struct GNUNET_MESH_ConnectPeerByType)},

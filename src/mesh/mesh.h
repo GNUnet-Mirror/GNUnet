@@ -77,6 +77,8 @@ typedef uint32_t MESH_TunnelID;
 struct GNUNET_MESH_TunnelMessage {
     /**
      * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_[CREATE|DESTROY]
+     *
+     * Size: sizeof(struct GNUNET_MESH_TunnelMessage)
      */
     struct GNUNET_MessageHeader header;
 
