@@ -29,8 +29,7 @@ libgnunetnat_la_LIBADD = \
 
 libgnunetnat_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
-  -version-info 0:0:0		\
-  @LIBCURL@ -lcurl
+  -version-info 0:0:0		
 
 check_PROGRAMS = \
   test-nat
