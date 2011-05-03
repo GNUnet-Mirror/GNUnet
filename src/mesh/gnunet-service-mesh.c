@@ -500,7 +500,7 @@ static GNUNET_PEER_Id                   myid;
  */
 size_t feed_data_to_core (void *cls, size_t size, void *buf) {
     size_t              size_used;
-    PeerInfo            *peer_info;
+    struct PeerInfo     *peer_info;
 
     if(0 == size && NULL == buf) {
         // FIXME retry? cancel?
@@ -616,13 +616,13 @@ client_retrieve (struct GNUNET_SERVER_Client *client) {
  * @param data pointer to the result data
  */
 void dht_get_response_handler(void *cls,
-                                struct GNUNET_TIME_Absolute exp,
-                                const GNUNET_HashCode * key,
-                                const struct GNUNET_PeerIdentity * const *get_path,
-                                const struct GNUNET_PeerIdentity * const *put_path,
-                                enum GNUNET_BLOCK_Type type,
-                                size_t size,
-                                const void *data)
+                            struct GNUNET_TIME_Absolute exp,
+                            const GNUNET_HashCode * key,
+                            const struct GNUNET_PeerIdentity * const *get_path,
+                            const struct GNUNET_PeerIdentity * const *put_path,
+                            enum GNUNET_BLOCK_Type type,
+                            size_t size,
+                            const void *data)
 {
     struct PeerInfo             *peer_info;
     struct MESH_tunnel          *t;
@@ -680,7 +680,9 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
         if (c->handle == client) {
             GNUNET_CONTAINER_DLL_remove (clients_head, clients_tail, c);
             while (NULL != (t = c->tunnels_head)) {
-                GNUNET_CONTAINER_DLL_remove (c->tunnels_head, c->tunnels_tail, t);
+                GNUNET_CONTAINER_DLL_remove (c->tunnels_head,
+                                             c->tunnels_tail,
+                                             t);
                 /* TODO free paths and other tunnel dynamic structures */
                 GNUNET_free (t);
             }
@@ -1340,7 +1342,7 @@ core_disconnect (void *cls,
 /******************************************************************************/
 
 /**
- * Process mesh requests. FIXME NON FUNCTIONAL, SKELETON
+ * Process mesh requests.
  *
  * @param cls closure
  * @param server the initialized server
