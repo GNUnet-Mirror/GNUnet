@@ -214,6 +214,11 @@ struct GNUNET_MESH_SpeedNotify
 enum PeerState
 {
     /**
+     * Path to the peer not known yet
+     */
+    MESH_PEER_SEARCHING,
+
+    /**
      * Request sent, not yet answered.
      */
     MESH_PEER_WAITING,
@@ -498,18 +503,18 @@ static GNUNET_PEER_Id                   myid;
  * @return number of bytes written to buf
  */
 size_t send_core_create_path_for_peer (void *cls, size_t size, void *buf) {
-    size_t                              size_used;
+    size_t                              size_needed;
     struct PeerInfo                     *peer_info;
     struct GNUNET_MESH_ManipulatePath   *msg;
     struct Path                         *p;
+    struct GNUNET_PeerIdentity          peer_id;
+    struct GNUNET_PeerIdentity          *peer_ptr;
+    int                                 i;
 
-    if((0 == size && NULL == buf) ||
-        size < sizeof(struct GNUNET_MESH_ManipulatePath))
-    {
+    if(0 == size && NULL == buf) {
         // TODO retry? cancel?
         return 0;
     }
-    size_used = 0;
     peer_info = (struct PeerInfo *)cls;
     peer_info->dhtget = NULL;
     p = peer_info->t->paths_head;
@@ -524,13 +529,27 @@ size_t send_core_create_path_for_peer (void *cls, size_t size, void *buf) {
         }
     }
 
+    size_needed = sizeof(struct GNUNET_MESH_ManipulatePath)
+                  + p->length * sizeof(struct GNUNET_PeerIdentity);
+    if(size < size_needed) {
+        // TODO retry? cancel?
+        return 0;
+    }
+
     msg = (struct GNUNET_MESH_ManipulatePath *) buf;
     msg->header.size = htons(sizeof(struct GNUNET_MESH_ManipulatePath));
     msg->header.type = htons(GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE);
-    
-    
+    msg->speed_min = 0;
 
-    return size_used;
+    peer_ptr = (struct GNUNET_PeerIdentity *) &msg[1];
+    for(i = 0; i < p->length; i++) {
+        GNUNET_PEER_resolve(p->peers[i], &peer_id);
+        memcpy(&peer_ptr[i], &peer_id, sizeof(struct GNUNET_PeerIdentity));
+    }
+
+    peer_info->state = MESH_PEER_WAITING;
+
+    return size_needed;
 }
 
 
@@ -623,10 +642,10 @@ client_retrieve (struct GNUNET_SERVER_Client *client) {
 }
 
 /**
- * Function called to notify a client about the socket
- * begin ready to queue more data.  "buf" will be
- * NULL and "size" zero if the socket was closed for
- * writing in the meantime.
+ * notify_client_connection_failure: notify a client that the connection to the
+ * requested remote peer is not possible (for instance, no route found)
+ * Function called when the socket is ready to queue more data."buf" will be
+ * NULL and "size" zero if the socket was closed for writing in the meantime.
  *
  * @param cls closure
  * @param size number of bytes available in buf
@@ -634,7 +653,26 @@ client_retrieve (struct GNUNET_SERVER_Client *client) {
  * @return number of bytes written to buf
  */
 size_t notify_client_connection_failure (void *cls, size_t size, void *buf) {
-    return 0;
+    int                                 size_needed;
+    struct PeerInfo                     *peer_info;
+    struct GNUNET_MESH_PeerControl      *msg;
+    struct GNUNET_PeerIdentity          id;
+
+    if(0 == size && NULL == buf) {
+        // TODO retry? cancel?
+        return 0;
+    }
+
+    size_needed = sizeof(struct GNUNET_MESH_PeerControl);
+    peer_info = (struct PeerInfo *) cls;
+    msg = (struct GNUNET_MESH_PeerControl *) buf;
+    msg->header.size = htons(sizeof(struct GNUNET_MESH_PeerControl));
+    msg->header.type = htons(GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_DISCONNECTED);
+    msg->tunnel_id = htonl(peer_info->t->tid);
+    GNUNET_PEER_resolve(peer_info->id, &id);
+    memcpy(&msg->peer, &id, sizeof(struct GNUNET_PeerIdentity));
+
+    return size_needed;
 }
 
 
@@ -671,7 +709,7 @@ void dht_get_response_handler(void *cls,
     t = peer_info->t;
 
     if(NULL == get_path || NULL == put_path) {
-        // TODO: find ourselves some alternate first path to the destination
+        // TODO: find ourselves some alternate initial path to the destination
         GNUNET_SERVER_notify_transmit_ready(
             t->client->handle,
             sizeof(struct GNUNET_MESH_PeerControl),
@@ -680,7 +718,7 @@ void dht_get_response_handler(void *cls,
             peer_info
         );
     }
-    
+
     p = GNUNET_malloc(sizeof(struct Path));
     GNUNET_CONTAINER_DLL_insert(t->paths_head, t->paths_tail, p);
     for(i = 0; get_path[i] != NULL; i++) {
@@ -990,7 +1028,7 @@ handle_local_connect_add (void *cls,
     /* Ok, add peer to tunnel */
     peer_info = (struct PeerInfo *) GNUNET_malloc(sizeof(struct PeerInfo));
     peer_info->id = GNUNET_PEER_intern(&peer_msg->peer);
-    peer_info->state = MESH_PEER_WAITING;
+    peer_info->state = MESH_PEER_SEARCHING;
     peer_info->t = t;
     t->peers_total++;
     GNUNET_CONTAINER_DLL_insert(t->peers_head, t->peers_tail, peer_info);
