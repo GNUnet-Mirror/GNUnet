@@ -488,6 +488,31 @@ static GNUNET_PEER_Id                   myid;
 /******************************************************************************/
 
 /**
+ * Function called to notify a client about the socket
+ * begin ready to queue more data.  "buf" will be
+ * NULL and "size" zero if the socket was closed for
+ * writing in the meantime.
+ *
+ * @param cls closure
+ * @param size number of bytes available in buf
+ * @param buf where the callee should write the message
+ * @return number of bytes written to buf
+ */
+size_t feed_data_to_core (void *cls, size_t size, void *buf) {
+    size_t              size_used;
+    PeerInfo            *peer_info;
+
+    if(0 == size && NULL == buf) {
+        // FIXME retry? cancel?
+    }
+    size_used = 0;
+    peer_info = (struct PeerInfo *)cls;
+
+    return size_used;
+}
+
+
+/**
  * Core handler for path creation
  * struct GNUNET_CORE_MessageHandler
  *
@@ -602,11 +627,38 @@ void dht_get_response_handler(void *cls,
     struct PeerInfo             *peer_info;
     struct MESH_tunnel          *t;
     struct Path                 *p;
+    int                         i;
 
     peer_info = (struct PeerInfo *)cls;
     t = peer_info->t;
     p = GNUNET_malloc(sizeof(struct Path));
     GNUNET_CONTAINER_DLL_insert(t->paths_head, t->paths_tail, p);
+    for(i = 0; get_path[i] != NULL; i++) {
+        p->peers = GNUNET_realloc(p->peers,
+                                   sizeof(GNUNET_PEER_Id) * (p->length + 1));
+        p->peers[p->length] = GNUNET_PEER_intern(get_path[i]);
+        p->length++;
+    }
+    for(i = 0; put_path[i] != NULL; i++) {
+        p->peers = GNUNET_realloc(p->peers,
+                                  sizeof(GNUNET_PEER_Id) * (p->length + 1));
+        p->peers[p->length] = GNUNET_PEER_intern(put_path[i]);
+        p->length++;
+    }
+    // p->id = 0; // FIXME generate ID or remove field
+    p->in_use = 0;
+    // peer_info->first_hop = p->peers[1]; // FIXME do this on path completion
+    GNUNET_CORE_notify_transmit_ready(core_handle,
+                                      0,
+                                      0,
+                                      GNUNET_TIME_relative_get_forever(),
+                                      get_path[1],
+                                      sizeof(struct GNUNET_MESH_ManipulatePath)
+                                        + (p->length
+                                        * sizeof (struct GNUNET_PeerIdentity)),
+                                      feed_data_to_core,
+                                      peer_info
+                                     );
     return;
 }
 
