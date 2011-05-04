@@ -242,7 +242,6 @@ struct Finish_send
   char * msgheader;
   struct GNUNET_MessageHeader * msgstart;
   ssize_t size;
-  struct GNUNET_TIME_Absolute next_send;
 };
 
 /**
@@ -1418,7 +1417,6 @@ do_transmit(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   const char * copystart;
   uint16_t copysize;
   uint copyoffset;
-  struct GNUNET_TIME_Absolute next_send;
 
   if (plugin->ack_send_queue_head != NULL)
     {
@@ -1565,7 +1563,6 @@ do_transmit(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               finish->msgheader = (char *) msgheader + bytes;
               finish->size = size - bytes;
               finish->msgstart = msgheader;
-              finish ->next_send = next_send;
 
               GNUNET_assert(plugin->server_write_task == GNUNET_SCHEDULER_NO_TASK);
 
