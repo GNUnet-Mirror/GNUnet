@@ -525,6 +525,10 @@ prepare_statement (struct Plugin *plugin,
 			  ret->query,
 			  strlen (ret->query)))
     {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+		       "mysql",
+		       _("Failed to prepare statement `%s'\n"),
+		       ret->query);
       LOG_MYSQL (GNUNET_ERROR_TYPE_ERROR,
                  "mysql_stmt_prepare", 
 		 plugin);
