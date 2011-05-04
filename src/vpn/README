@@ -1,0 +1,75 @@
+For Users
+=========
+
+To use the gnunet-vpn you have to have at least the following configuration in
+your ~/.gnunet/gnunet.conf:
+
+#v+
+TODO
+#v-
+
+If you start gnunet now, you will get a new network-interface called
+gnunet-vpn (or however you named it) with the IP addresses you configured. You
+"normal" internet-usage should not be impaired (check that!) but you should be
+able to point your web browser to something like http://gnunet.gnunet/ and the
+the gnunet webpage! That's it, you are set to use gnunet to access legacy
+services!
+
+If you want to offer services such as your webpage vi gnunet you have to have
+a file ~/.gnunet/dns.conf with the following content:
+
+#v+
+TODO
+#v-
+
+Also you will have to configure and start the exit-daemon:
+
+#v+
+TODO
+#v-
+
+Now point you computer (or any other computer in the gnunet) to
+http://yourwebsite.gnunet/ and you will get your website.
+
+Add the following options if you want to resolve DNS-queries for other users
+of gnunet:
+
+#v+
+TODO
+#v-
+
+Add the following options if you want to provide access to your internet
+connection to other users of gnunet:
+
+#v+
+TODO
+#v-
+
+Be aware, that this enables people to use your internet connection for
+nefarious things which might make you liable!
+
+For Developers
+==============
+
+The gnunet-vpn is a combination of three programs:
+
+- gnunet-daemon-vpn opens a tap-interface, configures it and controls the
+  network
+- gnunet-service-dns configures a hijack for outgoing DNS-requests, so that
+  they get sent to gnunet-daemon-vpn, which sends them on to
+  gnunet-service-dns which sends them on, either to their original destination
+  or to gnunet. It also publishes names from dns.conf to the dht.
+- gnunet-daemon-exit takes gets connections from the gnunet and sends them on
+  to the legacy internet.
+
+The gnunet-service-dns decides where to send the query with an easy check:
+
+- it is a query for something.gnunet: it gets sent to the dht
+- it is a query sent to the configured VIRT_DNS: it gets sent on to some other
+  gnunet-service-dns somewhere in the gnunet (anyone having configured
+  DNS_EXIT TODO)
+- else: it gets sent to the original destination
+
+These programs exchange whole TCP- or UDP-packets, they only strip of the
+IP-header. This way gnunet achieves translation between IPv6-services and
+IPv4-clients and vice versa!
