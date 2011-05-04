@@ -814,7 +814,6 @@ receive_tcp_service (void *cls,
                      const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received TCP-Packet\n");
-  GNUNET_HashCode hash;
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct tcp_pkt *pkt = (struct tcp_pkt *) (desc + 1);
   unsigned int pkt_len = ntohs (message->size) - sizeof (struct
@@ -917,7 +916,6 @@ receive_udp_service (void *cls,
                      const struct GNUNET_MessageHeader *message,
                      const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
-  GNUNET_HashCode hash;
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
 

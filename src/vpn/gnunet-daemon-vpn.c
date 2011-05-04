@@ -236,6 +236,12 @@ new_ip6addr(unsigned char* buf, const GNUNET_HashCode *peer, const GNUNET_HashCo
 }
 /*}}}*/
 
+char
+max (char a, char b)
+{
+  return a > b ? a : b;
+}
+
 /**
  * Create a new Address from an answer-packet
  */
@@ -396,7 +402,7 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 	memset(&key, 0, sizeof(GNUNET_HashCode));
 
 	unsigned char* c = ((unsigned char*)pkt)+ntohs(pkt->addroffset);
-        new_ip6addr_remote(c, &pkt->addr, pkt->addrsize);
+        new_ip6addr_remote(c, pkt->addr, pkt->addrsize);
 	unsigned char* k = (unsigned char*)&key;
 	/*
 	 * Copy the newly generated ip-address to the key backwards (as only the first part is used in the hash-table)
