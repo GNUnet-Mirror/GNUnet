@@ -261,7 +261,7 @@ AC_CHECK_HEADERS(glpk.h, ,[gplk=false])
 AC_CHECK_LIB([glpk],[glp_create_prob], , [gplk=false])
 # GLPK must support atm MLP presolving, version >= 4.32
 AC_CHECK_MEMBERS(glp_iocp.presolve, ,[gplk=false],[[#include <glpk.h>]])
-if test $gplk == false
+if test x$gplk = xfalse
 then
 	AM_CONDITIONAL(HAVE_GLPK, [test x$gplk = xtrue])
 	AM_CONDITIONAL(HAVE_LIBGLPK, [test x$gplk != x$gplk])
