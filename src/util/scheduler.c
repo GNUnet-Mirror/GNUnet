@@ -773,7 +773,8 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
 	  snprintf (lsof, sizeof (lsof), "lsof -p %d", getpid());
 	  (void) close (1);
 	  (void) dup2 (2, 1);
-	  (void) system (lsof);		  
+	  if (0 != system (lsof))
+	    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "system");	  
 #endif
 #endif
           abort ();
