@@ -7,9 +7,6 @@ if HAVE_OPENSSL
  MONKEY_DIR = monkey
 endif
 endif
-if HAVE_EXPERIMENTAL
- FS_exp = fs
-endif
 
 SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
@@ -32,7 +29,7 @@ SUBDIRS = \
   dht \
   hostlist \
   topology \
-  $(FS_exp) \
+  fs \
   fragmentation \
   mesh \
   vpn \
