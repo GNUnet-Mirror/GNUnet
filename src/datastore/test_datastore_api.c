@@ -677,6 +677,7 @@ main (int argc, char *argv[])
   char *pos;
   char dir_name[128];
 
+  sleep (1);
   /* determine name of plugin to use */
   plugin_name = argv[0];
   while (NULL != (pos = strstr(plugin_name, "_")))
