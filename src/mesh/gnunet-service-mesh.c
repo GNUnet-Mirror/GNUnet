@@ -1083,8 +1083,10 @@ handle_local_connect_add (void *cls,
     peer_info->t = t;
     t->peers_total++;
     GNUNET_CONTAINER_DLL_insert(t->peers_head, t->peers_tail, peer_info);
-    /* start dht search */
-    // FIXME key = hash (peerid + salt);
+    /* Start DHT search */
+    GNUNET_CRYPTO_hash (&peer_msg->peer,
+                        sizeof(struct GNUNET_PeerIdentity),
+                        &key);
     peer_info->dhtget = GNUNET_DHT_get_start(dht_handle,
                                             GNUNET_TIME_relative_get_forever(),
                                             GNUNET_BLOCK_TYPE_ANY,
