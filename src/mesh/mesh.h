@@ -39,7 +39,7 @@
  * 
  * API CALL (GNUNET_MESH_*)             MESSAGE USED
  * ------------------------             ------------
- * connect                              None (Header + [types])
+ * connect                              GNUNET_MESH_ClientConnect
  * disconnect                           None (network level disconnect)
  *
  * tunnel_create                        GNUNET_MESH_TunnelMessage
@@ -63,6 +63,23 @@
  * peer connects to a tunnel            GNUNET_MESH_PeerControl
  * peer disconnects from a tunnel       GNUNET_MESH_PeerControl
  */
+
+/**
+ * Message for a client to register to the service
+ */
+struct GNUNET_MESH_ClientConnect {
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT
+     *
+     * Size: sizeof(struct GNUNET_MESH_ClientConnect) +
+     *       sizeof(uint16_t) * types +
+     *       sizeof(MESH_ApplicationType) * applications
+     */
+    struct GNUNET_MessageHeader header;
+    uint16_t                    types;
+    uint16_t                    applications;
+};
+
 
 /**
  * Type for tunnel numbering.

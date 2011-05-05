@@ -72,6 +72,7 @@ struct GNUNET_MESH_Tunnel {
  *                 note that the mesh is allowed to drop notifications about
  *                 inbound messages if the client does not process them fast
  *                 enough (for this notification type, a bounded queue is used)
+ * @param stypes Application Types the client claims to offer
  * @return handle to the mesh service 
  *         NULL on error (in this case, init is never called)
  */
@@ -79,7 +80,7 @@ struct GNUNET_MESH_Handle *
 GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      void *cls,
                      GNUNET_MESH_TunnelEndHandler cleaner,
-                     const struct GNUNET_MESH_MessageHandler *handlers, 
+                     const struct GNUNET_MESH_MessageHandler *handlers,
                      const GNUNET_MESH_ApplicationType *stypes) {
     GNUNET_MESH_Handle                  *h;
     struct GNUNET_MESH_MessageHandler   *aux;
