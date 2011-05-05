@@ -259,7 +259,7 @@ run_continuation (void *cls,
 #if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Executing `%s' number %u\n",
-		  "GET",
+		  "GET(f)",
 		  crc->i);
 #endif
       GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
