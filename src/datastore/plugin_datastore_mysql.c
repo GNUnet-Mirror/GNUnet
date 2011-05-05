@@ -620,8 +620,9 @@ init_params (struct Plugin *plugin,
   if (mysql_stmt_execute (s->statement))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("`%s' failed at %s:%d with error: %s\n"),
+		  _("`%s' for `%s' failed at %s:%d with error: %s\n"),
 		  "mysql_stmt_execute",
+		  s->query,
 		  __FILE__, __LINE__, mysql_stmt_error (s->statement));
       iclose (plugin);
       return GNUNET_SYSERR;
