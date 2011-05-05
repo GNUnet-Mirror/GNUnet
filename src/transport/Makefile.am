@@ -271,7 +271,8 @@ endif
 
 test_transport_ats_SOURCES = \
  test_transport_ats.c
-test_transport_ats_LDADD = \
+test_transport_ats_LDADD = -lm \
+ $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la  
@@ -279,6 +280,7 @@ test_transport_ats_LDADD = \
 test_transport_ats_perf_SOURCES = \
  test_transport_ats_perf.c
 test_transport_ats_perf_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(GN_GLPK) \
