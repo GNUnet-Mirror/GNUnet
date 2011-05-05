@@ -153,6 +153,14 @@ check_value (void *cls,
   struct CpsRunContext *crc = cls;
   int i;
 
+  if (NULL == key)
+    {
+      crc->phase = RP_GET_FAIL;
+      GNUNET_SCHEDULER_add_continuation (&run_continuation,
+					 crc,
+					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      return;
+    }
   i = crc->i;
   GNUNET_assert (size == get_size (i));
   GNUNET_assert (0 == memcmp (data, get_data(i), size));
@@ -357,7 +365,7 @@ check ()
                                  "-c", cfg_name, NULL);
   GNUNET_assert (NULL != proc);
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-datastore-api", "nohelp",
+                      argv, "test-datastore-api-management", "nohelp",
                       options, &run, NULL);
   sleep (1); /* give datastore chance to process 'DROP' request */
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
