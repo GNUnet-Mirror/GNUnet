@@ -885,11 +885,6 @@ struct ReplCtx
 {
   
   /**
-   * Plugin handle.
-   */
-  struct Plugin *plugin;
-  
-  /**
    * Function to call for the result (or the NULL).
    */
   PluginDatumProcessor proc;
@@ -898,6 +893,16 @@ struct ReplCtx
    * Closure for proc.
    */
   void *proc_cls;
+
+  /**
+   * UID to use.
+   */
+  uint64_t uid;
+
+  /**
+   * Yes if UID was set.
+   */
+  int have_uid;
 };
 
 
@@ -932,7 +937,6 @@ repl_proc (void *cls,
 	   uint64_t uid)
 {
   struct ReplCtx *rc = cls;
-  struct Plugin *plugin = rc->plugin;
   int ret;
 
   ret = rc->proc (rc->proc_cls,
@@ -940,24 +944,10 @@ repl_proc (void *cls,
 		  size, data, 
 		  type, priority, anonymity, expiration,
 		  uid);
-  if (NULL != key)
+  if (key != NULL)
     {
-      sqlite3_bind_int64 (plugin->updRepl, 1, uid);
-      if (SQLITE_DONE != sqlite3_step (plugin->updRepl))
-	{
-	  LOG_SQLITE (plugin, NULL,
-		      GNUNET_ERROR_TYPE_ERROR |
-		      GNUNET_ERROR_TYPE_BULK, "sqlite3_step");
-	  if (SQLITE_OK != sqlite3_reset (plugin->updRepl))
-	    LOG_SQLITE (plugin, NULL,
-			GNUNET_ERROR_TYPE_ERROR |
-			GNUNET_ERROR_TYPE_BULK, "sqlite3_reset");
-	  return GNUNET_SYSERR;
-	}
-      if (SQLITE_OK != sqlite3_reset (plugin->delRow))
-	LOG_SQLITE (plugin, NULL,
-		    GNUNET_ERROR_TYPE_ERROR |
-		    GNUNET_ERROR_TYPE_BULK, "sqlite3_reset");
+      rc->uid = uid;
+      rc->have_uid = GNUNET_YES;
     }
   return ret;
 }
@@ -985,10 +975,22 @@ sqlite_plugin_get_replication (void *cls,
 		   "sqlite",
 		   "Getting random block based on replication order.\n");
 #endif
-  rc.plugin = plugin;
+  rc.have_uid = GNUNET_NO;
   rc.proc = proc;
   rc.proc_cls = proc_cls;
-  execute_get (plugin, plugin->selRepl, &repl_proc, &rc);
+  execute_get (plugin, plugin->selRepl, &repl_proc, &rc); 
+  if (GNUNET_YES == rc.have_uid)
+    {
+      sqlite3_bind_int64 (plugin->updRepl, 1, rc.uid);
+      if (SQLITE_DONE != sqlite3_step (plugin->updRepl))	
+	LOG_SQLITE (plugin, NULL,
+		    GNUNET_ERROR_TYPE_ERROR |
+		    GNUNET_ERROR_TYPE_BULK, "sqlite3_step");
+      if (SQLITE_OK != sqlite3_reset (plugin->updRepl))
+	LOG_SQLITE (plugin, NULL,
+		    GNUNET_ERROR_TYPE_ERROR |
+		    GNUNET_ERROR_TYPE_BULK, "sqlite3_reset");
+    }
 }
 
 
