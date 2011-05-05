@@ -180,7 +180,7 @@ testEncryptDecryptSK ()
           continue;
         }
     }
-  printf ("%d RSA encrypt/decrypt SK operations %llus (%d failures)\n",
+  printf ("%d RSA encrypt/decrypt SK operations %llums (%d failures)\n",
           ITER,
           (unsigned long long)
           GNUNET_TIME_absolute_get_duration (start).rel_value, ok);
