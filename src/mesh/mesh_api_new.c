@@ -41,9 +41,11 @@ extern "C"
  * Opaque handle to the service.
  */
 struct GNUNET_MESH_Handle {
+    GNUNET_CLIENT_Connection            *mesh;
     struct GNUNET_MESH_Tunnel           *head;
     struct GNUNET_MESH_Tunnel           *tail;
     GNUNET_MESH_TunnelEndHandler        cleaner;
+    void                                *cls;
 };
 
 /**
@@ -79,10 +81,22 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      GNUNET_MESH_TunnelEndHandler cleaner,
                      const struct GNUNET_MESH_MessageHandler *handlers, 
                      const GNUNET_MESH_ApplicationType *stypes) {
-    GNUNET_MESH_Handle *h;
+    GNUNET_MESH_Handle                  *h;
+    struct GNUNET_MESH_MessageHandler   *aux;
+    int                                 i;
+    uint16_t                            *types;
+
     h = GNUNET_malloc(sizeof(GNUNET_MESH_Handle));
 
     h->cleaner = cleaner;
+    h->mesh = GNUNET_CLIENT_connect("mesh", cfg);
+    h->cls = cls;
+
+    aux = handlers;
+    for(i = 0; handlers[i].type; i++) {
+        
+    }
+    
     return h;
 }
 
