@@ -528,6 +528,7 @@ GNUNET_FS_TEST_daemons_stop (unsigned int total,
   unsigned int i;
   struct GNUNET_TESTING_PeerGroup *pg;
   struct GNUNET_CONFIGURATION_Handle *gcfg;
+  struct GNUNET_FS_TestDaemon *daemon;
 
   GNUNET_assert (total > 0);
   GNUNET_assert (daemons[0] != NULL);
@@ -535,18 +536,34 @@ GNUNET_FS_TEST_daemons_stop (unsigned int total,
   gcfg = daemons[0]->gcfg;
   for (i=0;i<total;i++)
     {
-      if (daemons[i]->fs != NULL)
-	GNUNET_FS_stop (daemons[i]->fs);
-      if (daemons[i]->cfg != NULL)
-	GNUNET_CONFIGURATION_destroy (daemons[i]->cfg);
-      if (NULL != daemons[i]->publish_tmp_file)
+      daemon = daemons[i];
+      if (daemon->download_timeout_task != GNUNET_SCHEDULER_NO_TASK)
+	{
+	  GNUNET_SCHEDULER_cancel (daemon->download_timeout_task);
+	  daemon->download_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+	}
+      if (daemon->publish_timeout_task != GNUNET_SCHEDULER_NO_TASK)
+	{
+	  GNUNET_SCHEDULER_cancel (daemon->publish_timeout_task);
+	  daemon->publish_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+	}
+      if (NULL != daemon->download_context)
+	{
+	  GNUNET_FS_download_stop (daemon->download_context, GNUNET_YES);
+	  daemon->download_context = NULL;
+	}
+      if (daemon->fs != NULL)
+	GNUNET_FS_stop (daemon->fs);
+      if (daemon->cfg != NULL)
+	GNUNET_CONFIGURATION_destroy (daemon->cfg);
+      if (NULL != daemon->publish_tmp_file)
 	{
 	  GNUNET_break (GNUNET_OK ==
-			GNUNET_DISK_directory_remove (daemons[i]->publish_tmp_file));
-	  GNUNET_free (daemons[i]->publish_tmp_file);
-	  daemons[i]->publish_tmp_file = NULL;
+			GNUNET_DISK_directory_remove (daemon->publish_tmp_file));
+	  GNUNET_free (daemon->publish_tmp_file);
+	  daemon->publish_tmp_file = NULL;
 	}
-      GNUNET_free (daemons[i]);
+      GNUNET_free (daemon);
       daemons[i] = NULL;
     }  
   GNUNET_TESTING_daemons_stop (pg, 
