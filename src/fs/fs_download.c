@@ -1298,6 +1298,7 @@ process_result_with_request (void *cls,
       dc->th = NULL;
     }
   GNUNET_CLIENT_disconnect (dc->client, GNUNET_NO);
+  dc->in_receive = GNUNET_NO;
   dc->client = NULL;
   GNUNET_FS_free_download_request_ (dc->top_request);
   dc->top_request = NULL;
@@ -1459,6 +1460,14 @@ transmit_download_request (void *cls,
 						    dc); 
       GNUNET_assert (dc->th != NULL);
     }
+  if (GNUNET_NO == dc->in_receive)
+    {
+      dc->in_receive = GNUNET_YES;
+      GNUNET_CLIENT_receive (dc->client,
+			     &receive_results,
+			     dc,
+			     GNUNET_TIME_UNIT_FOREVER_REL);
+    }
   return msize;
 }
 
@@ -1498,10 +1507,6 @@ do_reconnect (void *cls,
 						    dc);
       GNUNET_assert (dc->th != NULL);
     }
-  GNUNET_CLIENT_receive (client,
-			 &receive_results,
-			 dc,
-			 GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 
@@ -1560,6 +1565,7 @@ try_reconnect (struct GNUNET_FS_DownloadContext *dc)
 					     &retry_entry,
 					     dc);
       GNUNET_CLIENT_disconnect (dc->client, GNUNET_NO);
+      dc->in_receive = GNUNET_NO;
       dc->client = NULL;
     }
 #if DEBUG_DOWNLOAD
@@ -1594,10 +1600,6 @@ activate_fs_download (void *cls,
   GNUNET_assert (dc->client == NULL);
   GNUNET_assert (dc->th == NULL);
   dc->client = client;
-  GNUNET_CLIENT_receive (client,
-			 &receive_results,
-			 dc,
-			 GNUNET_TIME_UNIT_FOREVER_REL);
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_ACTIVE;
   GNUNET_FS_download_make_status_ (&pi, dc);
   dc->pending_head = NULL;
@@ -1645,6 +1647,7 @@ deactivate_fs_download (void *cls)
   if (NULL != dc->client)
     {
       GNUNET_CLIENT_disconnect (dc->client, GNUNET_NO);
+      dc->in_receive = GNUNET_NO;
       dc->client = NULL;
     }
   dc->pending_head = NULL;

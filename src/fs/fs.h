@@ -1980,6 +1980,11 @@ struct GNUNET_FS_DownloadContext
    */
   int has_finished;
 
+  /**
+   * Have we started the receive continuation yet?
+   */
+  int in_receive;
+
 };
 
 
