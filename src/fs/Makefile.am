@@ -192,12 +192,13 @@ TESTS = \
  test_fs_unindex_persistence \
  test_fs_uri \
  test_fs_test_lib \
- test_gnunet_service_fs_migration \
- test_gnunet_service_fs_p2p \
- perf_gnunet_service_fs_p2p \
- perf_gnunet_service_fs_p2p_index \
- $(check_SCRIPTS)  
+ test_gnunet_service_fs_migration 
 endif
+# test_gnunet_service_fs_p2p \
+# perf_gnunet_service_fs_p2p \
+# perf_gnunet_service_fs_p2p_index \
+# $(check_SCRIPTS)  
+#endif
 
 
 
