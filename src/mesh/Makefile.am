@@ -55,3 +55,4 @@ test_mesh_api_LDADD = \
 test_mesh_api_DEPENDENCIES = \
   libgnunetmeshnew.la
 
+TESTS = test_mesh_api
