@@ -348,10 +348,7 @@ retrieve_client (struct GNUNET_SERVER_Client *client) {
     c = clients_head; 
     while(NULL != c) {
         if(c->handle == client) return c;
-        if(c == clients_tail)
-            return NULL;
-        else
-            c = c->next;
+        c = c->next;
     }
     return NULL;
 }
@@ -445,12 +442,9 @@ send_core_create_path_for_peer (void *cls, size_t size, void *buf) {
         if(p->peers[p->length-1] == peer_info->id) {
             break;
         }
-        if(p != peer_info->t->paths_tail) {
-            p = p->next;
-        } else {
-            // TODO ERROR Path not found
-        }
+        p = p->next;
     }
+    if(p == NULL) return 0; // TODO Notify ERROR Path not found
 
     size_needed = sizeof(struct GNUNET_MESH_ManipulatePath)
                   + p->length * sizeof(struct GNUNET_PeerIdentity);
@@ -686,7 +680,6 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
         } else {
             c = c->next;
         }
-        if(c == clients_head) return; /* Tail already processed? */
     }
     return;
 }
@@ -778,7 +771,6 @@ handle_local_tunnel_create (void *cls,
             GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
             return;
         }
-        if(t == c->tunnels_tail) break;
         t = t->next;
     }
     /* FIXME: calloc? Is NULL != 0 on any platform? */
@@ -898,21 +890,17 @@ handle_local_connect_add (void *cls,
 
     /* Tunnel exists? */
     tid = ntohl(peer_msg->tunnel_id);
-    if(NULL == (t = c->tunnels_head)) {
-        GNUNET_break(0);
-        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
-        return;
-    }
+    t = c->tunnels_head;
     while(NULL != t) {
         if(t->tid == tid) {
             break;
         }
-        if(t == c->tunnels_tail) {
-            GNUNET_break(0);
-            GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
-            return;
-        }
         t = t->next;
+    }
+    if(NULL == t) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
     }
 
     /* Does client own tunnel? */
@@ -1005,6 +993,11 @@ handle_local_connect_del (void *cls,
         }
         t = t->next;
     }
+    if(NULL == t) {
+            GNUNET_break(0);
+            GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+            return;
+        }
 
     /* Does client own tunnel? */
     if(t->client->handle != client) {
@@ -1028,9 +1021,6 @@ handle_local_connect_del (void *cls,
         } else {
             p = p->next;
         }
-        if(p == t->paths_head) {
-            break;
-        }
     }
 
     /*Delete peer info */
@@ -1045,9 +1035,6 @@ handle_local_connect_del (void *cls,
             GNUNET_free(aux_peer_info);
         } else {
             peer_info = peer_info->next;
-        }
-        if(peer_info == t->peers_head) {
-            break;
         }
     }
 
@@ -1093,21 +1080,17 @@ handle_local_connect_by_type (void *cls,
 
     /* Tunnel exists? */
     tid = ntohl(connect_msg->tunnel_id);
-    if(NULL == (t = c->tunnels_head)) {
-        GNUNET_break(0);
-        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
-        return;
-    }
+    t = c->tunnels_head;
     while(NULL != t) {
         if(t->tid == tid) {
             break;
         }
-        if(t == c->tunnels_tail) {
-            GNUNET_break(0);
-            GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
-            return;
-        }
         t = t->next;
+    }
+    if(NULL == t) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
     }
 
     /* Does client own tunnel? */
@@ -1159,21 +1142,17 @@ handle_local_network_traffic (void *cls,
 
     /* Tunnel exists? */
     tid = ntohl(data_msg->tunnel_id);
-    if(NULL == (t = c->tunnels_head)) {
-        GNUNET_break(0);
-        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
-        return;
-    }
+    t = c->tunnels_head;
     while(NULL != t) {
         if(t->tid == tid) {
             break;
         }
-        if(t == c->tunnels_tail) {
-            GNUNET_break(0);
-            GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
-            return;
-        }
         t = t->next;
+    }
+    if(NULL == t) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
     }
 
     /* Does client own tunnel? */
@@ -1222,21 +1201,17 @@ handle_local_network_traffic_bcast (void *cls,
 
     /* Tunnel exists? */
     tid = ntohl(data_msg->tunnel_id);
-    if(NULL == (t = c->tunnels_head)) {
-        GNUNET_break(0);
-        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
-        return;
-    }
+    t = c->tunnels_head;
     while(NULL != t) {
         if(t->tid == tid) {
             break;
         }
-        if(t == c->tunnels_tail) {
-            GNUNET_break(0);
-            GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
-            return;
-        }
         t = t->next;
+    }
+    if(NULL == t) {
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
     }
 
     /* Does client own tunnel? */

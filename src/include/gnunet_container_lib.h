@@ -715,6 +715,7 @@ int GNUNET_CONTAINER_multihashmap_get_multiple (const struct
 
 
 /* ******************** doubly-linked list *************** */
+/* To avoid mistakes: head->prev == tail->next == NULL     */
 
 /**
  * Insert an element at the head of a DLL. Assumes that head, tail and
