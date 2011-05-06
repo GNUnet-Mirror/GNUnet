@@ -13,7 +13,8 @@ bin_PROGRAMS = $(STUD_PROGS) \
  gnunet-service-mesh
 
 lib_LTLIBRARIES = \
-  libgnunetmesh.la
+  libgnunetmesh.la \
+  libgnunetmeshnew.la
 
 libgnunetmesh_la_SOURCES = \
   mesh_api.c
@@ -26,10 +27,31 @@ libgnunetmesh_la_LDFLAGS = \
   -version-info 0:0:0
 
 gnunet_service_mesh_SOURCES = \
- gnunet-service-mesh.c         
+ gnunet-service-mesh.c
 
 gnunet_service_mesh_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la\
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/util/libgnunetutil.la
+
+
+libgnunetmeshnew_la_SOURCES = \
+  mesh_api_new.c mesh.h
+libgnunetmeshnew_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(XLIB)
+libgnunetmeshnew_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  -version-info 0:0:0
+
+check_PROGRAMS = $(STUD_TESTS) \
+ test_mesh_api
+
+test_mesh_api_SOURCES = \
+ test_mesh_api.c
+test_mesh_api_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/mesh/libgnunetmeshnew.la
+test_mesh_api_DEPENDENCIES = \
+  libgnunetmeshnew.la
 

@@ -34,17 +34,23 @@ extern "C"
 #endif
 
 
-#include <stdint.h>
-#include "gnunet_mesh_service.h"
+#include "platform.h"
+#include "gnunet_common.h"
+#include "gnunet_client_lib.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_mesh_service_new.h"
+#include "mesh.h"
 
 /**
  * Opaque handle to the service.
  */
 struct GNUNET_MESH_Handle {
-    GNUNET_CLIENT_Connection            *mesh;
+    struct GNUNET_CLIENT_Connection     *mesh;
+    struct GNUNET_MESH_MessageHandler   *message_handlers;
+    GNUNET_MESH_ApplicationType         *applications;
     struct GNUNET_MESH_Tunnel           *head;
     struct GNUNET_MESH_Tunnel           *tail;
-    GNUNET_MESH_TunnelEndHandler        cleaner;
+    GNUNET_MESH_TunnelEndHandler        *cleaner;
     void                                *cls;
 };
 
@@ -59,6 +65,40 @@ struct GNUNET_MESH_Tunnel {
     GNUNET_PEER_Id                              *peers;
     void                                        *cls;
 };
+
+
+/**
+ * Function called to notify a client about the socket
+ * begin ready to queue more data.  "buf" will be
+ * NULL and "size" zero if the socket was closed for
+ * writing in the meantime.
+ *
+ * @param cls closure
+ * @param size number of bytes available in buf
+ * @param buf where the callee should write the message
+ * @return number of bytes written to buf
+ */
+size_t 
+send_connect_packet (void *cls, size_t size, void *buf) {
+    struct GNUNET_MESH_Handle           *h;
+    struct GNUNET_MESH_ClientConnect    *msg;
+    int                                 *types;
+    int                                 ntypes;
+    int                                 *applications;
+    int                                 napplications;
+
+    msg = (struct GNUNET_MESH_ClientConnect *) buf;
+    h = (struct GNUNET_MESH_Handle *) cls;
+    msg->header.type = GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT;
+    for(ntypes = 0, types = NULL; h->message_handlers[ntypes].type; ntypes++) {
+        types = GNUNET_realloc(types, sizeof(uint16_t) * (ntypes + 1));
+        types[ntypes] = h->message_handlers[ntypes].type;
+    }
+    msg->header.size = sizeof(struct GNUNET_MESH_ClientConnect) +
+                        sizeof(uint16_t) * ntypes +
+                        sizeof(GNUNET_MESH_ApplicationType) * napplications;
+}
+
 
 
 /**
@@ -82,22 +122,26 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      GNUNET_MESH_TunnelEndHandler cleaner,
                      const struct GNUNET_MESH_MessageHandler *handlers,
                      const GNUNET_MESH_ApplicationType *stypes) {
-    GNUNET_MESH_Handle                  *h;
-    struct GNUNET_MESH_MessageHandler   *aux;
+    struct GNUNET_MESH_Handle           *h;
     int                                 i;
     uint16_t                            *types;
 
-    h = GNUNET_malloc(sizeof(GNUNET_MESH_Handle));
+    h = GNUNET_malloc(sizeof(struct GNUNET_MESH_Handle));
 
     h->cleaner = cleaner;
     h->mesh = GNUNET_CLIENT_connect("mesh", cfg);
     h->cls = cls;
+    h->message_handlers = handlers;
+    h->applications = h->applications;
 
-    aux = handlers;
-    for(i = 0; handlers[i].type; i++) {
-        
-    }
-    
+    GNUNET_CLIENT_notify_transmit_ready(h->mesh,
+                                        sizeof(int),
+                                        GNUNET_TIME_relative_get_forever(),
+                                        GNUNET_YES,
+                                        &send_connect_packet,
+                                        (void *)h
+                                       );
+
     return h;
 }
 
@@ -130,8 +174,9 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
                            GNUNET_MESH_TunnelDisconnectHandler
                            disconnect_handler,
                            void *handler_cls) {
-    GNUNET_MESH_Tunnel *tunnel;
-    tunnel = GNUNET_malloc(sizeof(GNUNET_MESH_Tunnel));
+    struct GNUNET_MESH_Tunnel           *tunnel;
+
+    tunnel = GNUNET_malloc(sizeof(struct GNUNET_MESH_Tunnel));
 
     tunnel->connect_handler = connect_handler;
     tunnel->disconnect_handler = disconnect_handler;
@@ -234,7 +279,7 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel,
                                    void *notify_cls) {
     struct GNUNET_MESH_Handle   *handle;
 
-    handle = GNUNET_malloc(sizeof(GNUNET_MESH_Handle));
+    handle = GNUNET_malloc(sizeof(struct GNUNET_MESH_Handle));
 
     return handle;
 }
