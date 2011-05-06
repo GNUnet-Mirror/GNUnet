@@ -145,6 +145,11 @@ static struct GNUNET_CONTAINER_BloomFilter *filter;
 static unsigned long long quota;
 
 /**
+ * Should the database be dropped on exit?
+ */
+static int do_drop;
+
+/**
  * How much space are we using for the cache?  (space available for
  * insertions that will be instantly reclaimed by discarding less
  * important content --- or possibly whatever we just inserted into
@@ -1342,7 +1347,7 @@ handle_drop (void *cls,
 	      "Processing `%s' request\n",
 	      "DROP");
 #endif
-  plugin->api->drop (plugin->api->cls);
+  do_drop = GNUNET_YES;
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -1490,6 +1495,8 @@ static void
 unload_task (void *cls,
 	     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (GNUNET_YES == do_drop)
+    plugin->api->drop (plugin->api->cls);
   unload_plugin (plugin);
   plugin = NULL;
   if (filter != NULL)

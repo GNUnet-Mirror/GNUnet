@@ -525,7 +525,8 @@ postgres_plugin_put (void *cls,
 static void 
 process_result (struct Plugin *plugin,
 		PluginDatumProcessor proc, void *proc_cls,
-		PGresult *res)
+		PGresult *res,
+		int line)
 {
   int iret;
   enum GNUNET_BLOCK_Type type;
@@ -541,7 +542,7 @@ process_result (struct Plugin *plugin,
 				 PGRES_TUPLES_OK,
 				 "PQexecPrepared",
 				 "select",
-				 __LINE__))
+				 line))
     {
 #if DEBUG_POSTGRES
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
@@ -800,7 +801,7 @@ postgres_plugin_get_key (void *cls,
 			paramFormats, 1);
   process_result (plugin,
 		  proc, proc_cls,
-		  ret);
+		  ret, __LINE__);
 }
 
 
@@ -839,7 +840,7 @@ postgres_plugin_get_zero_anonymity (void *cls,
 			paramFormats, 1);
   process_result (plugin,
 		  proc, proc_cls,
-		  ret);
+		  ret, __LINE__);
 }
 
 
@@ -961,7 +962,7 @@ postgres_plugin_get_replication (void *cls,
 			NULL, NULL, NULL, 1);
   process_result (plugin,
 		  &repl_proc, &rc,
-		  ret);
+		  ret, __LINE__);
 }
 
 
@@ -994,7 +995,7 @@ postgres_plugin_get_expiration (void *cls,
 			1);
   process_result (plugin,
 		  proc, proc_cls,
-		  ret);
+		  ret, __LINE__);
 }
 
 
