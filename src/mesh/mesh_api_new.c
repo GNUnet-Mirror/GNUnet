@@ -54,6 +54,7 @@ struct GNUNET_MESH_Handle {
      * Set of handlers used for processing incoming messages in the tunnels
      */
     const struct GNUNET_MESH_MessageHandler     *message_handlers;
+    int                                         n_handlers;
 
     /**
      * Set of applications that should be claimed to be offered at this node.
@@ -62,6 +63,7 @@ struct GNUNET_MESH_Handle {
      * client application.
      */
     const GNUNET_MESH_ApplicationType           *applications;
+    int                                         n_applications;
 
     /**
      * Double linked list of the tunnels this client is connected to.
@@ -111,7 +113,7 @@ struct GNUNET_MESH_Tunnel {
 };
 
 struct GNUNET_MESH_TransmitHandle {
-    
+    // TODO
 };
 
 
@@ -193,22 +195,36 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      const struct GNUNET_MESH_MessageHandler *handlers,
                      const GNUNET_MESH_ApplicationType *stypes) {
     struct GNUNET_MESH_Handle           *h;
+    size_t                              size;
 
     h = GNUNET_malloc(sizeof(struct GNUNET_MESH_Handle));
 
+
     h->cleaner = cleaner;
     h->mesh = GNUNET_CLIENT_connect("mesh", cfg);
+    if(h->mesh == NULL) {
+        GNUNET_free(h);
+        return NULL;
+    }
     h->cls = cls;
     h->message_handlers = handlers;
     h->applications = stypes;
 
+    for(h->n_handlers = 0; handlers[h->n_handlers].type; h->n_handlers++);
+    for(h->n_applications = 0; stypes[h->n_applications]; h->n_applications++);
+    h->n_handlers--;
+    h->n_applications--;
+
+    size = sizeof(struct GNUNET_MESH_ClientConnect);
+    size += h->n_handlers * sizeof(uint16_t);
+    size += h->n_applications * sizeof(GNUNET_MESH_ApplicationType);
+
     GNUNET_CLIENT_notify_transmit_ready(h->mesh,
-                                        sizeof(int),
+                                        size,
                                         GNUNET_TIME_relative_get_forever(),
                                         GNUNET_YES,
                                         &send_connect_packet,
-                                        (void *)h
-                                       );
+                                        (void *)h);
 
     return h;
 }
