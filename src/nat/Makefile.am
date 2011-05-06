@@ -25,6 +25,7 @@ libgnunetnat_la_CFLAGS = \
 
 libgnunetnat_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  @LIBCURL@ \
   $(GN_LIBINTL) @EXT_LIBS@ 
 
 libgnunetnat_la_LDFLAGS = \
