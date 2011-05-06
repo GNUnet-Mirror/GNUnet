@@ -28,7 +28,7 @@
 #include <glpk.h>
 #endif
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define EXECS 5
 
