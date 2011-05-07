@@ -226,7 +226,6 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  struct GNUNET_TIME_Absolute expiration;
   char *emsg;
 
   cfg = c;
@@ -263,7 +262,6 @@ run (void *cls,
 	{
 	  if (NULL != root_identifier)
 	    {
-	      expiration = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_YEARS);
 	      if (ksk_uri == NULL)
 		{
 		  emsg = NULL;

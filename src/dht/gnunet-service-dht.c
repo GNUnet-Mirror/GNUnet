@@ -2154,8 +2154,9 @@ route_result_message (struct GNUNET_MessageHeader *msg,
   struct DHTRouteSource *pos;
   struct PeerInfo *peer_info;
   const struct GNUNET_MessageHeader *hello_msg;
+#if DEBUG_DHT > 1
   unsigned int i;
-  char *path_offset;
+#endif
 
   increment_stats (STAT_RESULTS);
   /**
@@ -2271,14 +2272,18 @@ route_result_message (struct GNUNET_MessageHeader *msg,
           increment_stats (STAT_RESULTS_TO_CLIENT);
           if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_DHT_GET_RESULT)
             increment_stats (STAT_GET_REPLY);
-
+#if DEBUG_DHT > 1
           for (i = 0; i < msg_ctx->path_history_len; i++)
             {
+	      char *path_offset;
+
               path_offset = &msg_ctx->path_history[i * sizeof(struct GNUNET_PeerIdentity)];
-#if DEBUG_DHT > 1
-              GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "(before client) Key %s Found peer %d:%s\n", GNUNET_h2s(&msg_ctx->key), i, GNUNET_i2s((struct GNUNET_PeerIdentity *)path_offset));
-#endif
+              GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
+			 "(before client) Key %s Found peer %d:%s\n",
+			 GNUNET_h2s(&msg_ctx->key), i, 
+			 GNUNET_i2s((struct GNUNET_PeerIdentity *)path_offset));
             }
+#endif
           send_reply_to_client (pos->client, msg, msg_ctx);
         }
       else                      /* Send to peer */
@@ -3382,7 +3387,6 @@ select_peer (const GNUNET_HashCode * target,
   unsigned int i;
   unsigned int count;
   unsigned int offset;
-  unsigned int my_matching_bits;
   int closest_bucket;
   struct PeerInfo *pos;
   struct PeerInfo *sorted_closest[bucket_size];
@@ -3397,9 +3401,6 @@ select_peer (const GNUNET_HashCode * target,
   unsigned int distance;
   unsigned int largest_distance;
   struct PeerInfo *chosen;
-
-  my_matching_bits =
-    GNUNET_CRYPTO_hash_matching_bits (target, &my_identity.hashPubKey);
 
   total_distance = 0;
   /** If we are doing kademlia routing, or converge is binary (saves some cycles) */

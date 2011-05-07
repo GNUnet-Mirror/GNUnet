@@ -2625,7 +2625,6 @@ deserialize_download (struct GNUNET_FS_Handle *h,
 		      const char *serialization)
 {
   struct GNUNET_FS_DownloadContext *dc;
-  struct DownloadRequest *dr;
   char *emsg;
   char *uris;
   char *dn;
@@ -2634,7 +2633,6 @@ deserialize_download (struct GNUNET_FS_Handle *h,
 
   uris = NULL;
   emsg = NULL;
-  dr = NULL;
   dc = GNUNET_malloc (sizeof (struct GNUNET_FS_DownloadContext));
   dc->parent = parent;
   dc->h = h;

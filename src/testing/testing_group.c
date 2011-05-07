@@ -2424,16 +2424,17 @@ static unsigned int
 copy_allowed(struct GNUNET_TESTING_PeerGroup *pg,
              GNUNET_TESTING_ConnectionProcessor proc)
 {
-  struct UnblacklistContext un_ctx;
   unsigned int count;
   unsigned int total;
   struct PeerConnection *iter;
+#if !OLD
+  struct UnblacklistContext un_ctx;
 
   un_ctx.pg = pg;
+#endif
   total = 0;
   for (count = 0; count < pg->total - 1; count++)
     {
-      un_ctx.first_uid = count;
 #if OLD
       iter = pg->peers[count].allowed_peers_head;
       while (iter != NULL)
@@ -2443,10 +2444,15 @@ copy_allowed(struct GNUNET_TESTING_PeerGroup *pg,
           iter = iter->next;
         }
 #else
-      total += GNUNET_CONTAINER_multihashmap_iterate(pg->peers[count].allowed_peers, &unblacklist_iterator, &un_ctx);
+      un_ctx.first_uid = count;
+      total += GNUNET_CONTAINER_multihashmap_iterate(pg->peers[count].allowed_peers, 
+						     &unblacklist_iterator,
+						     &un_ctx);
 #endif
     }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Unblacklisted %u peers\n", total);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Unblacklisted %u peers\n", 
+	      total);
   return total;
 }
 
@@ -2467,16 +2473,16 @@ create_line(struct GNUNET_TESTING_PeerGroup *pg,
             GNUNET_TESTING_ConnectionProcessor proc, enum PeerLists list)
 {
   unsigned int count;
-  int connect_attempts;
+  unsigned int connect_attempts;
 
   connect_attempts = 0;
-
   /* Connect each peer to the next highest numbered peer */
   for (count = 0; count < pg->total - 1; count++)
     {
 #if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-          "Connecting peer %d to peer %d\n", count, count + 1);
+		  "Connecting peer %d to peer %d\n", 
+		  count, count + 1);
 #endif
       connect_attempts += proc (pg, count, count + 1, list, GNUNET_YES);
     }
@@ -2504,15 +2510,14 @@ create_from_file(struct GNUNET_TESTING_PeerGroup *pg, char *filename,
   int connect_attempts;
   unsigned int first_peer_index;
   unsigned int second_peer_index;
-  connect_attempts = 0;
   struct stat frstat;
   int count;
   char *data;
   char *buf;
   unsigned int total_peers;
-
   enum States curr_state;
 
+  connect_attempts = 0;
   if (GNUNET_OK != GNUNET_DISK_file_test (filename))
     GNUNET_DISK_fn_write (filename, NULL, 0, GNUNET_DISK_PERM_USER_READ);
 
@@ -4272,22 +4277,17 @@ void
 choose_random_connections(struct GNUNET_TESTING_PeerGroup *pg,
                           double percentage)
 {
-  struct RandomContext random_ctx;
   uint32_t pg_iter;
 #if OLD
-  struct PeerConnection *temp_peers;
   struct PeerConnection *conn_iter;
   double random_number;
+#else
+  struct RandomContext random_ctx;
 #endif
 
   for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
     {
-      random_ctx.first_uid = pg_iter;
-      random_ctx.first = &pg->peers[pg_iter];
-      random_ctx.percentage = percentage;
-      random_ctx.pg = pg;
 #if OLD
-      temp_peers = NULL;
       conn_iter = pg->peers[pg_iter].connect_peers_head;
       while (conn_iter != NULL)
         {
@@ -4303,17 +4303,21 @@ choose_random_connections(struct GNUNET_TESTING_PeerGroup *pg,
           conn_iter = conn_iter->next;
         }
 #else
-      pg->peers[pg_iter].connect_peers_working_set =
-      GNUNET_CONTAINER_multihashmap_create (pg->total);
+      random_ctx.first_uid = pg_iter;
+      random_ctx.first = &pg->peers[pg_iter];
+      random_ctx.percentage = percentage;
+      random_ctx.pg = pg;
+      pg->peers[pg_iter].connect_peers_working_set 
+	= GNUNET_CONTAINER_multihashmap_create (pg->total);
       GNUNET_CONTAINER_multihashmap_iterate (pg->peers[pg_iter].connect_peers,
-          &random_connect_iterator,
-          &random_ctx);
+					     &random_connect_iterator,
+					     &random_ctx);
       /* Now remove the old connections */
       GNUNET_CONTAINER_multihashmap_destroy (pg->
-          peers[pg_iter].connect_peers);
+					     peers[pg_iter].connect_peers);
       /* And replace with the random set */
-      pg->peers[pg_iter].connect_peers =
-      pg->peers[pg_iter].connect_peers_working_set;
+      pg->peers[pg_iter].connect_peers 
+	= pg->peers[pg_iter].connect_peers_working_set;
 #endif
     }
 

@@ -63,18 +63,22 @@ static struct GNUNET_CORE_MessageHandler no_handlers[] = { {NULL, 0, 0} };
  * @param message HELLO message of peer
  */
 static void
-process_hello (void *cls, const struct GNUNET_MessageHeader *message)
+process_hello (void *cls, 
+	       const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_TESTING_Daemon *daemon = cls;
+#if WAIT_FOR_HELLO
   GNUNET_TESTING_NotifyDaemonRunning cb;
+#endif
 
   int msize;
   if (daemon == NULL)
     return;
 
   GNUNET_assert (daemon->phase == SP_GET_HELLO || daemon->phase == SP_START_DONE);
-
+#if WAIT_FOR_HELLO
   cb = daemon->cb;
+#endif
   daemon->cb = NULL;
   if (daemon->task != GNUNET_SCHEDULER_NO_TASK) /* Assertion here instead? */
     GNUNET_SCHEDULER_cancel(daemon->task);
@@ -119,7 +123,10 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
 
 #if WAIT_FOR_HELLO
   if (NULL != cb) /* FIXME: what happens when this callback calls GNUNET_TESTING_daemon_stop? */
-    cb (daemon->cb_cls, &daemon->id, daemon->cfg, daemon, NULL);
+    cb (daemon->cb_cls, 
+	&daemon->id, 
+	daemon->cfg, 
+	daemon, NULL);
 #endif
 }
 
