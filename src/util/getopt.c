@@ -506,7 +506,6 @@ GN_getopt_internal (int argc,
 {
   static int __getopt_initialized = 0;
   static int GNopterr = 1;
-  static int GNoptopt = '?';
 
   GNoptarg = NULL;
 
@@ -670,7 +669,6 @@ GN_getopt_internal (int argc,
                      argv[0], argv[GNoptind]);
           nextchar += strlen (nextchar);
           GNoptind++;
-          GNoptopt = 0;
           return '?';
         }
 
@@ -703,8 +701,6 @@ GN_getopt_internal (int argc,
                                  pfound->name);
                     }
                   nextchar += strlen (nextchar);
-
-                  GNoptopt = pfound->val;
                   return '?';
                 }
             }
@@ -723,7 +719,6 @@ GN_getopt_internal (int argc,
                                argv[0], argv[GNoptind - 1]);
                     }
                   nextchar += strlen (nextchar);
-                  GNoptopt = pfound->val;
                   return (optstring[0] == ':') ? ':' : '?';
                 }
             }
@@ -758,7 +753,6 @@ GN_getopt_internal (int argc,
             }
           nextchar = (char *) "";
           GNoptind++;
-          GNoptopt = 0;
           return '?';
         }
     }
@@ -783,7 +777,6 @@ GN_getopt_internal (int argc,
             else
               fprintf (stderr, _("%s: invalid option -- %c\n"), argv[0], c);
           }
-        GNoptopt = c;
         return '?';
       }
     /* Convenience. Treat POSIX -W foo same as long option --foo */
@@ -813,7 +806,6 @@ GN_getopt_internal (int argc,
                 fprintf (stderr, _("%s: option requires an argument -- %c\n"),
                          argv[0], c);
               }
-            GNoptopt = c;
             if (optstring[0] == ':')
               c = ':';
             else
@@ -944,7 +936,6 @@ GN_getopt_internal (int argc,
                              _("%s: option requires an argument -- %c\n"),
                              argv[0], c);
                   }
-                GNoptopt = c;
                 if (optstring[0] == ':')
                   c = ':';
                 else
