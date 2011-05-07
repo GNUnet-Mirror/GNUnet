@@ -188,6 +188,7 @@ test_testing_topology_small_world_torus_SOURCES = \
   test_testing_topology.c
 test_testing_topology_small_world_torus_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_testing_topology_internat_SOURCES = \
