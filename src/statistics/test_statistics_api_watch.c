@@ -68,7 +68,6 @@ watch_1 (void *cls,
 	 uint64_t value,
 	 int is_persistent)
 {
-  fprintf (stderr, "Value `%s' seen\n", name);
   GNUNET_assert (value == 42);
   GNUNET_assert (0 == strcmp (name, "test-1"));
   ok &= ~1;
@@ -87,7 +86,6 @@ watch_2 (void *cls,
 	 uint64_t value,
 	 int is_persistent)
 {
-  fprintf (stderr, "Value `%s' seen\n", name);
   GNUNET_assert (value == 43);
   GNUNET_assert (0 == strcmp (name, "test-2"));
   ok &= ~2;

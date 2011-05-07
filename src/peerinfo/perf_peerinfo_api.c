@@ -94,9 +94,7 @@ add_peer (size_t i)
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
   struct GNUNET_PeerIdentity pid;
   struct GNUNET_HELLO_Message *h2;
-  size_t agc;
 
-  agc = 2;
   memset (&pkey, i, sizeof (pkey));
   GNUNET_CRYPTO_hash (&pkey, sizeof (pkey), &pid.hashPubKey);
   h2 = GNUNET_HELLO_create (&pkey, &address_generator, &i);
