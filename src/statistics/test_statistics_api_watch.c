@@ -43,6 +43,7 @@ static struct GNUNET_STATISTICS_Handle *h2;
 
 static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
 
+
 static void
 force_shutdown (void *cls,
 		const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -53,6 +54,7 @@ force_shutdown (void *cls,
   ok = 7;
 }
 
+
 static void
 normal_shutdown (void *cls,
 		 const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -60,6 +62,7 @@ normal_shutdown (void *cls,
   GNUNET_STATISTICS_destroy (h, GNUNET_NO);
   GNUNET_STATISTICS_destroy (h2, GNUNET_NO);
 }
+
 
 static int
 watch_1 (void *cls, 
@@ -79,6 +82,7 @@ watch_1 (void *cls,
   return GNUNET_OK;
 }
 
+
 static int
 watch_2 (void *cls, 
 	 const char *subsystem,
@@ -96,6 +100,7 @@ watch_2 (void *cls,
     }  
   return GNUNET_OK;
 }
+
 
 static void
 run (void *cls,
