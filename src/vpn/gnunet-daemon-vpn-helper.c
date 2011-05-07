@@ -33,6 +33,7 @@
 #include <gnunet_container_lib.h>
 #include <block_dns.h>
 #include <gnunet_configuration_lib.h>
+#include <gnunet_applications.h>
 
 #include "gnunet-daemon-vpn-dns.h"
 #include "gnunet-daemon-vpn.h"
@@ -43,6 +44,13 @@
 #include "gnunet-helper-vpn-api.h"
 
 struct GNUNET_VPN_HELPER_Handle *helper_handle;
+
+struct remote_addr
+{
+  char addrlen;
+  unsigned char addr[16];
+  char proto;
+};
 
 /**
  * Start the helper-process
@@ -250,63 +258,102 @@ message_token (void *cls,
                                  sizeof (GNUNET_HashCode) +
                                  ntohs (pkt6->ip6_hdr.paylgth));
 
-              memcpy (hc, &me->desc.service_descriptor,
-                      sizeof (GNUNET_HashCode));
-
-              if (0x11 == pkt6->ip6_hdr.nxthdr
-                  && (me->desc.
-                      service_type & htonl (GNUNET_DNS_SERVICE_TYPE_UDP))
-                  && (port_in_ports (me->desc.ports, pkt6_udp->udp_hdr.dpt)
-                      || testBit (me->additional_ports,
-                                  ntohs (pkt6_udp->udp_hdr.dpt))))
+              GNUNET_MESH_ApplicationType app_type;
+              if (me->addrlen == 0)
                 {
-                  hdr->type = ntohs (GNUNET_MESSAGE_TYPE_SERVICE_UDP);
+                  /* This is a mapping to a gnunet-service */
+                  memcpy (hc, &me->desc.service_descriptor,
+                          sizeof (GNUNET_HashCode));
 
-                  memcpy (hc + 1, &pkt6_udp->udp_hdr,
-                          ntohs (pkt6_udp->udp_hdr.len));
+                  if (0x11 == pkt6->ip6_hdr.nxthdr
+                      && (me->desc.
+                          service_type & htonl (GNUNET_DNS_SERVICE_TYPE_UDP))
+                      && (port_in_ports (me->desc.ports, pkt6_udp->udp_hdr.dpt)
+                          || testBit (me->additional_ports,
+                                      ntohs (pkt6_udp->udp_hdr.dpt))))
+                    {
+                      hdr->type = ntohs (GNUNET_MESSAGE_TYPE_SERVICE_UDP);
 
-                }
-              else if (0x06 == pkt6->ip6_hdr.nxthdr
-                       && (me->desc.
-                           service_type & htonl (GNUNET_DNS_SERVICE_TYPE_TCP))
-                       &&
-                       (port_in_ports (me->desc.ports, pkt6_tcp->tcp_hdr.dpt)))
-                {
-                  hdr->type = ntohs (GNUNET_MESSAGE_TYPE_SERVICE_TCP);
+                      memcpy (hc + 1, &pkt6_udp->udp_hdr,
+                              ntohs (pkt6_udp->udp_hdr.len));
 
-                  memcpy (hc + 1, &pkt6_tcp->tcp_hdr,
-                          ntohs (pkt6->ip6_hdr.paylgth));
+                    }
+                  else if (0x06 == pkt6->ip6_hdr.nxthdr
+                           && (me->desc.
+                               service_type & htonl (GNUNET_DNS_SERVICE_TYPE_TCP))
+                           &&
+                           (port_in_ports (me->desc.ports, pkt6_tcp->tcp_hdr.dpt)))
+                    {
+                      hdr->type = ntohs (GNUNET_MESSAGE_TYPE_SERVICE_TCP);
 
+                      memcpy (hc + 1, &pkt6_tcp->tcp_hdr,
+                              ntohs (pkt6->ip6_hdr.paylgth));
+
+                    }
+                  if (me->tunnel == NULL && NULL != cls)
+                    {
+                      *cls =
+                        GNUNET_MESH_peer_request_connect_all (mesh_handle,
+                                                              GNUNET_TIME_UNIT_FOREVER_REL,
+                                                              1,
+                                                              (struct
+                                                               GNUNET_PeerIdentity
+                                                               *) &me->desc.peer,
+                                                              send_pkt_to_peer,
+                                                              NULL, cls);
+                      me->tunnel = *cls;
+                    }
+                  else if (NULL != cls)
+                    {
+                      *cls = me->tunnel;
+                      send_pkt_to_peer (cls, (struct GNUNET_PeerIdentity *) 1,
+                                        NULL);
+                      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                                  "Queued to send to peer %x, type %d\n",
+                                  *((unsigned int *) &me->desc.peer), ntohs(hdr->type));
+                    }
                 }
               else
                 {
-                  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Dropping packet. nxthdr=%d, type=%d, dpt=%x, flg=%d, ports=%x\n",
-                             pkt6->ip6_hdr.nxthdr, ntohl(me->desc.service_type),
-                             ntohs(pkt6_tcp->tcp_hdr.dpt), pkt6_tcp->tcp_hdr.flg, me->desc.ports);
-                  GNUNET_free (cls);
-                  cls = NULL;
+                  /* This is a mapping to a "real" address */
+                 struct remote_addr *s = (struct remote_addr*) hc;
+                 s->addrlen = me->addrlen;
+                 memcpy(s->addr, me->addr, me->addrlen);
+                 s->proto= pkt6->ip6_hdr.nxthdr;
+                 if (s->proto == 0x11)
+                   {
+                     hdr->type = GNUNET_MESSAGE_TYPE_REMOTE_UDP;
+                     memcpy (hc + 1, &pkt6_udp->udp_hdr,
+                             ntohs (pkt6_udp->udp_hdr.len));
+                     app_type = GNUNET_APPLICATION_TYPE_INTERNET_UDP_GATEWAY;
+                   }
+                 else if (s->proto == 0x06)
+                   {
+                     hdr->type = GNUNET_MESSAGE_TYPE_REMOTE_TCP;
+                     memcpy (hc + 1, &pkt6_tcp->tcp_hdr,
+                              ntohs (pkt6->ip6_hdr.paylgth));
+                     if (ntohs(pkt6_tcp->tcp_hdr.dpt) == 443)
+                       app_type = GNUNET_APPLICATION_TYPE_INTERNET_HTTPS_GATEWAY;
+                     else if (ntohs(pkt6_tcp->tcp_hdr.dpt) == 80)
+                       app_type = GNUNET_APPLICATION_TYPE_INTERNET_HTTP_GATEWAY;
+                     else
+                       app_type = GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY;
+                   }
                 }
               if (me->tunnel == NULL && NULL != cls)
                 {
-                  *cls =
-                    GNUNET_MESH_peer_request_connect_all (mesh_handle,
-                                                          GNUNET_TIME_UNIT_FOREVER_REL,
-                                                          1,
-                                                          (struct
-                                                           GNUNET_PeerIdentity
-                                                           *) &me->desc.peer,
-                                                          send_pkt_to_peer,
-                                                          NULL, cls);
+                  *cls = GNUNET_MESH_peer_request_connect_by_type(mesh_handle,
+                                                                  GNUNET_TIME_UNIT_FOREVER_REL,
+                                                                  app_type,
+                                                                  send_pkt_to_peer,
+                                                                  NULL,
+                                                                  cls);
                   me->tunnel = *cls;
                 }
               else if (NULL != cls)
                 {
                   *cls = me->tunnel;
-                  send_pkt_to_peer (cls, (struct GNUNET_PeerIdentity *) 1,
-                                    NULL);
-                  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                              "Queued to send to peer %x, type %d\n",
-                              *((unsigned int *) &me->desc.peer), ntohs(hdr->type));
+                  send_pkt_to_peer(cls, (struct GNUNET_PeerIdentity*) 1, NULL);
                 }
             }
           break;

@@ -699,6 +699,26 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_SERVICE_TCP_BACK 189
 
+/**
+ * Type of messages containing an UDP packet for a remote host
+ */
+#define GNUNET_MESSAGE_TYPE_REMOTE_UDP 190
+
+/**
+ * Type of messages containing an UDP packet from a remote host
+ */
+#define GNUNET_MESSAGE_TYPE_REMOTE_UDP_BACK 191
+
+/**
+ * Type of messages containing an TCP packet for a remote host
+ */
+#define GNUNET_MESSAGE_TYPE_REMOTE_TCP 192
+
+/**
+ * Type of messages containing an TCP packet from a remote host
+ */
+#define GNUNET_MESSAGE_TYPE_REMOTE_TCP_BACK 193
+
 
 /**
  * Type of messages between the gnunet-wlan-helper and the daemon
