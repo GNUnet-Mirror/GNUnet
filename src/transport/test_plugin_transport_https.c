@@ -18,8 +18,8 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file transport/test_gnunet_transport_plugin.https.c
- * @brief testcase for gnunet_transport_plugin.https.c
+ * @file transport/test_plugin_transport_https.c
+ * @brief testcase for plugin_transport_https.c
  * @author Matthias Wachs
  */
 
@@ -395,7 +395,6 @@ static char * cert_file;
 static void
 shutdown_clean ()
 {
-  struct Plugin_Address * cur;
   struct Plugin_Address * tmp;
 
   /* Evaluate results  */
@@ -435,7 +434,6 @@ shutdown_clean ()
   /* cleaning addresses */
   while (addr_head != NULL)
   {
-    cur = addr_head;
     tmp = addr_head->next;
     GNUNET_free (addr_head->addr);
     GNUNET_free (addr_head);
@@ -504,9 +502,6 @@ static void task_send_cont (void *cls,
                             const struct GNUNET_PeerIdentity * target,
                             int result)
 {
-  struct Plugin_Address * tmp_addr;
-  tmp_addr = addr_head;
-
   if ((cls == &fail_msg_transmited_bigger_max_size) && (result == GNUNET_SYSERR))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message bigger max msg size was not sent!\n");
@@ -1261,8 +1256,6 @@ run (void *cls,
 
   /* assertions before start */
   GNUNET_assert ((port > 0) && (port <= 65535));
-  GNUNET_assert(&my_public_key != NULL);
-  GNUNET_assert(&my_identity.hashPubKey != NULL);
 
   /* load plugins... */
   setup_plugin_environment ();
@@ -1401,9 +1394,10 @@ main (int argc, char *const *argv)
                              "test_gnunet_transport_plugin.https",
                              "testcase", options, &run, NULL)) ? GNUNET_NO : GNUNET_YES;
 
-    GNUNET_DISK_directory_remove ("/tmp/test_gnunet_transport_plugin.https");
-
+  GNUNET_DISK_directory_remove ("/tmp/test_gnunet_transport_plugin.https");
+  if (GNUNET_OK != ret)
+    return 1;
   return fail;
 }
 
-/* end of test_gnunet_transport_plugin.http.c */
+/* end of test_plugin_transport_https.c */

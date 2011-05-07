@@ -236,7 +236,7 @@ struct TestMessage
 };
 
 static unsigned int
-get_size (void)
+get_size ()
 {
   return MEASUREMENT_MSG_SIZE + sizeof (struct TestMessage);
 }
@@ -247,11 +247,9 @@ notify_receive_new (void *cls,
                 const struct GNUNET_MessageHeader *message,
                 const struct GNUNET_TRANSPORT_ATS_Information *ats, uint32_t ats_count)
 {
-  unsigned int s;
   const struct TestMessage *hdr;
 
   hdr = (const struct TestMessage*) message;
-  s = get_size ();
   if (measurement_running == GNUNET_NO)
 	  return;
   if (MTYPE != ntohs (message->type))

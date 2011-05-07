@@ -392,7 +392,6 @@ static GNUNET_SCHEDULER_TaskIdentifier http_task_send;
 static void
 shutdown_clean ()
 {
-  struct Plugin_Address * cur;
   struct Plugin_Address * tmp;
 
   /* Evaluate results  */
@@ -432,7 +431,6 @@ shutdown_clean ()
   /* cleaning addresses */
   while (addr_head != NULL)
   {
-    cur = addr_head;
     tmp = addr_head->next;
     GNUNET_free (addr_head->addr);
     GNUNET_free (addr_head);
@@ -481,9 +479,6 @@ static void task_send_cont (void *cls,
                             const struct GNUNET_PeerIdentity * target,
                             int result)
 {
-  struct Plugin_Address * tmp_addr;
-  tmp_addr = addr_head;
-
   if ((cls == &fail_msg_transmited_bigger_max_size) && (result == GNUNET_SYSERR))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message bigger max msg size was not sent!\n");
@@ -1195,13 +1190,13 @@ run (void *cls,
 
   /* assertions before start */
   GNUNET_assert ((port > 0) && (port <= 65535));
-  GNUNET_assert(&my_public_key != NULL);
-  GNUNET_assert(&my_identity.hashPubKey != NULL);
 
   /* load plugins... */
   setup_plugin_environment ();
   GNUNET_asprintf (&libname, "libgnunet_plugin_transport_http");
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading HTTP transport plugin `%s'\n"),libname);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+	      _("Loading HTTP transport plugin `%s'\n"),
+	      libname);
   api = GNUNET_PLUGIN_load (libname, &env);
   GNUNET_free (libname);
   if (api == NULL)
@@ -1217,14 +1212,17 @@ run (void *cls,
 
   /* testing plugin functionality */
   GNUNET_assert (0!=fail_notify_address_count);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transport plugin returned %u addresses to connect to\n",  fail_notify_address_count);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Transport plugin returned %u addresses to connect to\n", 
+	      fail_notify_address_count);
 
   /* testing pretty printer with all addresses obtained from the plugin*/
   cur = addr_head;
   while (cur != NULL)
   {
-
-    api->address_pretty_printer (api->cls, "http",cur->addr,cur->addrlen, GNUNET_NO,TEST_TIMEOUT, &pretty_printer_cb,NULL);
+    api->address_pretty_printer (api->cls, "http",
+				 cur->addr,cur->addrlen, GNUNET_NO,TEST_TIMEOUT, 
+				 &pretty_printer_cb, NULL);
     addr_str = api->address_to_string (api->cls, cur->addr, cur->addrlen);
     suggest_res = api->check_address (api->cls, cur->addr, cur->addrlen);
 
@@ -1337,7 +1335,8 @@ main (int argc, char *const *argv)
                              "testcase", options, &run, NULL)) ? GNUNET_NO : GNUNET_YES;
 
   GNUNET_DISK_directory_remove ("/tmp/test_gnunet_transport_plugin_http");
-
+  if (ret != GNUNET_OK)
+    return 1;
   return fail;
 }
 
