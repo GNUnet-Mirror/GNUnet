@@ -23,6 +23,8 @@
     char __gauger_s[32];\
     pid_t __gauger_p;\
     if(!(__gauger_p=fork())){\
+        close (1);	     \
+        close (2);	     \
         if(!fork()){\
             sprintf(__gauger_s,"%Lf", (long double) (value));\
             __gauger_v[0] = "gauger-cli.py";\
@@ -36,7 +38,6 @@
             __gauger_v[8] = category;\
             __gauger_v[9] = (char *)NULL;\
             execvp("gauger-cli.py",__gauger_v);\
-            perror("gauger");\
             _exit(1);\
         }else{\
             _exit(0);\
@@ -52,6 +53,8 @@
     char __gauger_s[32];\
     pid_t __gauger_p;\
     if(!(__gauger_p=fork())){\
+        close (1);	     \
+        close (2);	     \
         if(!fork()){\
             sprintf(__gauger_s,"%Lf", (long double) (value));\
             __gauger_v[0] = "gauger-cli.py";\
@@ -67,7 +70,6 @@
             __gauger_v[10] = category;\
             __gauger_v[11] = (char *)NULL;\
             execvp("gauger-cli.py",__gauger_v);\
-            perror("gauger");\
             _exit(1);\
         }else{\
             _exit(0);\

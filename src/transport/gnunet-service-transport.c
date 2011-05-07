@@ -2792,50 +2792,44 @@ add_peer_address (struct NeighbourList *neighbour,
     }
 
   ret->ressources = GNUNET_malloc(available_ressources * sizeof (struct ATS_ressource_entry));
-  int plugin;
   for (c=0; c<available_ressources; c++)
-  {
-	  struct ATS_ressource_entry *r = ret->ressources;
-	  r[c].index = c;
-	  r[c].atis_index = ressources[c].atis_index;
-	  if (0 == strcmp(neighbour->plugins->plugin->short_name,"unix"))
-	  {
-		  r[c].c = ressources[c].c_unix;
-		  plugin = 1;
-	  }
-	  else if (0 == strcmp(neighbour->plugins->plugin->short_name,"udp"))
-	  {
-		  r[c].c = ressources[c].c_udp;
-		  plugin = 2;
-	  }
-	  else if (0 == strcmp(neighbour->plugins->plugin->short_name,"tcp"))
-	  {
-		  r[c].c = ressources[c].c_tcp;
-		  plugin = 3;
-	  }
-	  else if (0 == strcmp(neighbour->plugins->plugin->short_name,"http"))
-	  {
-		  r[c].c = ressources[c].c_http;
-		  plugin = 4;
-	  }
-	  else if (0 == strcmp(neighbour->plugins->plugin->short_name,"https"))
-	  {
-		  r[c].c = ressources[c].c_https;
-		  plugin = 5;
-	  }
-	  else if (0 == strcmp(neighbour->plugins->plugin->short_name,"wlan"))
-	  {
-		  r[c].c = ressources[c].c_wlan;
-		  plugin = 6;
-	  }
-	  else
-	  {
-		plugin = -1;
-		r[c].c = ressources[c].c_default;
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"Assigning default cost to peer `%s' addr plugin `%s'! This should not happen!",
-				GNUNET_i2s(&neighbour->peer), neighbour->plugins->plugin->short_name);
-	  }
-  }
+    {
+      struct ATS_ressource_entry *r = ret->ressources;
+      r[c].index = c;
+      r[c].atis_index = ressources[c].atis_index;
+      if (0 == strcmp(neighbour->plugins->plugin->short_name,"unix"))
+	{
+	  r[c].c = ressources[c].c_unix;
+	}
+      else if (0 == strcmp(neighbour->plugins->plugin->short_name,"udp"))
+	{
+	  r[c].c = ressources[c].c_udp;
+	}
+      else if (0 == strcmp(neighbour->plugins->plugin->short_name,"tcp"))
+	{
+	  r[c].c = ressources[c].c_tcp;
+	}
+      else if (0 == strcmp(neighbour->plugins->plugin->short_name,"http"))
+	{
+	  r[c].c = ressources[c].c_http;
+	}
+      else if (0 == strcmp(neighbour->plugins->plugin->short_name,"https"))
+	{
+	  r[c].c = ressources[c].c_https;
+	}
+      else if (0 == strcmp(neighbour->plugins->plugin->short_name,"wlan"))
+	{
+	  r[c].c = ressources[c].c_wlan;
+	}
+      else
+	{
+	  r[c].c = ressources[c].c_default;
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      "Assigning default cost to peer `%s' addr plugin `%s'! This should not happen!\n",
+		      GNUNET_i2s(&neighbour->peer), 
+		      neighbour->plugins->plugin->short_name);
+	}
+    }
 
   ret->quality = GNUNET_malloc (available_quality_metrics * sizeof (struct ATS_quality_entry));
   ret->addrlen = addrlen;

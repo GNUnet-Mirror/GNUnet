@@ -339,9 +339,6 @@ prepared_statement_destroy (struct Plugin *plugin,
 static int
 iclose (struct Plugin *plugin)
 {
-  struct GNUNET_MysqlStatementHandle *spos;
-
-  spos = plugin->shead;
   while (NULL != plugin->shead)
     prepared_statement_destroy (plugin,
 				plugin->shead);
