@@ -117,7 +117,7 @@ collect_mappings(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
     /* This is free()ed memory! */
     me->heap_node = NULL;
 
-    /* FIXME! GNUNET_MESH_close_tunnel(state->tunnel); */
+    /* FIXME! GNUNET_MESH_close_tunnel(me->tunnel); */
 
     GNUNET_CONTAINER_multihashmap_remove(hashmap, &me->hash, me);
 
