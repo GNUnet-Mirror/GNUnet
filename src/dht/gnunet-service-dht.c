@@ -5579,10 +5579,22 @@ main (int argc, char *const *argv)
                              argv,
                              "dht",
                              GNUNET_SERVICE_OPTION_NONE, &run, NULL)) ? 0 : 1;
-  GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (recent.hashmap));
-  GNUNET_assert (0 == GNUNET_CONTAINER_heap_get_size (recent.minHeap));
-  GNUNET_CONTAINER_multihashmap_destroy (recent_find_peer_requests);
-  GNUNET_CONTAINER_multihashmap_destroy (recent.hashmap);
-  GNUNET_CONTAINER_heap_destroy (recent.minHeap);
-  return ret;
+  if (NULL != recent.hashmap)
+    {
+      GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (recent.hashmap));
+      GNUNET_CONTAINER_multihashmap_destroy (recent.hashmap);
+      recent.hashmap = NULL;
+    }
+  if (NULL != recent.minHeap)
+    {
+      GNUNET_assert (0 == GNUNET_CONTAINER_heap_get_size (recent.minHeap));
+      GNUNET_CONTAINER_heap_destroy (recent.minHeap); 
+      recent.minHeap = NULL;
+    }
+  if (NULL != recent_find_peer_requests)
+    {
+      GNUNET_CONTAINER_multihashmap_destroy (recent_find_peer_requests);
+      recent_find_peer_requests = NULL;
+    }
+ return ret;
 }
