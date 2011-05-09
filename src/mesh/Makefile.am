@@ -51,7 +51,8 @@ test_mesh_api_SOURCES = \
  test_mesh_api.c
 test_mesh_api_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/mesh/libgnunetmeshnew.la
+ $(top_builddir)/src/mesh/libgnunetmeshnew.la \
+ $(top_builddir)/src/dht/libgnunetdht.la
 test_mesh_api_DEPENDENCIES = \
   libgnunetmeshnew.la
 
