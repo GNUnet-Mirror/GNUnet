@@ -4047,6 +4047,10 @@ check_pending_validation (void *cls,
 			 &my_identity,
 			 sizeof (struct GNUNET_PeerIdentity)))
 	{
+    	  char * peer1;
+    	  GNUNET_asprintf(&peer1, "%s",GNUNET_i2s (&pong->pid));
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Received PONG for different identity : %s %s\n",GNUNET_i2s (&my_identity), peer1 );
 	  GNUNET_break_op (0);
 	  return GNUNET_NO;
 	}
