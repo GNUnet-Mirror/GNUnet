@@ -3534,6 +3534,11 @@ handle_ping (struct Neighbour *n,
   if (0 != memcmp (&t.target,
                    &my_identity, sizeof (struct GNUNET_PeerIdentity)))
     {
+      char * peer;
+    	  GNUNET_asprintf(&peer, "%s",GNUNET_i2s (&t.target));
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Received PING for different identity : I am %s, PONG identity: %s\n",GNUNET_i2s (&my_identity), peer );
+	  GNUNET_free (peer);
       GNUNET_break_op (0);
       return;
     }
