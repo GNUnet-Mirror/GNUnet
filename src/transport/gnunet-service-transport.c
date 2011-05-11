@@ -4049,10 +4049,9 @@ check_pending_validation (void *cls,
 	{
       char * peer;
     	  GNUNET_asprintf(&peer, "%s",GNUNET_i2s (&pong->pid));
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Received PONG for different identity : I am %s, PONG identity: %s\n",GNUNET_i2s (&my_identity), peer );
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Received PONG for different identity: I am `%s', PONG identity: `%s'\n",GNUNET_i2s (&my_identity), peer );
 	  GNUNET_free (peer);
-	  GNUNET_break_op (0);
 	  return GNUNET_NO;
 	}
       if (ve->addrlen != 0)
