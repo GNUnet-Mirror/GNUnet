@@ -1031,6 +1031,10 @@ struct ATS_info
 	 */
 	struct ATS_peer * peers;
 
+	int successful_executions;
+
+	int invalid_executions;
+
 	/**
 	 * Maximum number of LP iterations per calculation
 	 */
@@ -5984,18 +5988,18 @@ static int ats_evaluate_results (int result, int solution, char * problem)
 
 	switch (result) {
 	case GLP_ESTOP  :    /* search terminated by application */
-		GNUNET_log (error_kind, "%s , Search terminated by application ", problem);
+		GNUNET_log (error_kind, "%s , Search terminated by application\n", problem);
 		break;
 	case GLP_EITLIM :    /* iteration limit exceeded */
-		GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%s Iteration limit exceeded ", problem);
+		GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%s Iteration limit exceeded\n", problem);
 		break;
 	break;
 	case GLP_ETMLIM :    /* time limit exceeded */
-		GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%s Time limit exceeded ", problem);
+		GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%s Time limit exceeded\n", problem);
 	break;
 	case GLP_ENOPFS :    /* no primal feasible solution */
 	case GLP_ENODFS :    /* no dual feasible solution */
-		GNUNET_log (error_kind, "%s No feasible solution", problem);
+		GNUNET_log (error_kind, "%s No feasible solution\n", problem);
 	break;
 
 	case GLP_EBADB  :    /* invalid basis */
@@ -6872,6 +6876,7 @@ static void
 ats_calculate_bandwidth_distribution ()
 {
 #if HAVE_LIBGLPK
+#endif
 	struct GNUNET_TIME_Absolute start;
 	struct GNUNET_TIME_Relative creation;
 	struct GNUNET_TIME_Relative solving;
@@ -6894,7 +6899,7 @@ ats_calculate_bandwidth_distribution ()
 	ats->simplex_rerun_required = GNUNET_NO;
 
 	start = GNUNET_TIME_absolute_get();
-	if ((ats->modified_addr == GNUNET_YES) || (ats->prob==NULL))
+	if ((ats->modified_addr == GNUNET_YES) || (ats->prob==NULL) || (ats->stat.valid == GNUNET_NO))
 	{
 		text = "new";
 		ats->modified_addr = GNUNET_YES;
@@ -6938,6 +6943,8 @@ ats_calculate_bandwidth_distribution ()
 					ats->stat.c_mechs,
 					(ats->simplex_rerun_required == GNUNET_NO) ? " NO" : "YES");
 #endif
+		ats->successful_executions ++;
+		GNUNET_STATISTICS_set (stats, "# ATS successful executions", ats->successful_executions, GNUNET_NO);
 		GNUNET_STATISTICS_set (stats, "ATS duration", solving.rel_value + creation.rel_value, GNUNET_NO);
 		GNUNET_STATISTICS_set (stats, "ATS mechanisms", ats->stat.c_mechs, GNUNET_NO);
 		GNUNET_STATISTICS_set (stats, "ATS peers", ats->stat.c_peers, GNUNET_NO);
@@ -6959,6 +6966,11 @@ ats_calculate_bandwidth_distribution ()
 			GNUNET_STATISTICS_set (stats, "ATS state", ATS_QC_UPDATED, GNUNET_NO);
 		else if (ats->simplex_rerun_required == GNUNET_NO)
 			GNUNET_STATISTICS_set (stats, "ATS state", ATS_UNMODIFIED, GNUNET_NO);
+	}
+	else
+	{
+		ats->invalid_executions ++;
+		GNUNET_STATISTICS_set (stats, "# ATS invalid executions", ats->invalid_executions, GNUNET_NO);
 	}
 
 	if ((ats->save_mlp == GNUNET_YES) && (ats->stat.c_mechs >= ats->dump_min_peers) && (ats->stat.c_mechs >= ats->dump_min_addr))
@@ -6999,7 +7011,7 @@ ats_calculate_bandwidth_distribution ()
 	ats->modified_addr = GNUNET_NO;
 	ats->modified_resources = GNUNET_NO;
 	ats->modified_quality = GNUNET_NO;
-#endif
+
 }
 
 static void
@@ -7123,7 +7135,8 @@ void ats_init ()
 		GNUNET_CONFIGURATION_get_value_number(cfg, "transport","ATS_MIN_INTERVAL", &value);
 		ats->min_delta.rel_value = value;
 	}
-
+	ats->successful_executions = 0;
+	ats->invalid_executions = 0;
 	ats->ats_task = GNUNET_SCHEDULER_add_now(&ats_schedule_calculation, ats);
 }
 
