@@ -169,6 +169,16 @@ struct GNUNET_SERVER_Client
   GNUNET_SCHEDULER_TaskIdentifier restart_task;
 
   /**
+   * Task that warns about missing calls to 'GNUNET_SERVER_receive_done'.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier warn_task;
+
+  /**
+   * Time when the warn task was started.
+   */
+  struct GNUNET_TIME_Absolute warn_start;
+
+  /**
    * Last activity on this socket (used to time it out
    * if reference_count == 0).
    */
@@ -216,6 +226,11 @@ struct GNUNET_SERVER_Client
    * be used in special cases!
    */
   int persist;
+  
+  /**
+   * Type of last message processed (for warn_no_receive_done).
+   */
+  uint16_t warn_type;
 };
 
 
@@ -557,6 +572,29 @@ GNUNET_SERVER_add_handlers (struct GNUNET_SERVER_Handle *server,
 
 
 /**
+ * Task run to warn about missing calls to 'GNUNET_SERVER_receive_done'.
+ *
+ * @param cls our 'struct GNUNET_SERVER_Client*' to process more requests from
+ * @param tc scheduler context (unused)
+ */
+static void
+warn_no_receive_done (void *cls, 
+		      const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_SERVER_Client *client = cls;
+
+  client->warn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+						    &warn_no_receive_done,
+						    client);
+  if (0 == (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("Processing code for message of type %u did not call GNUNET_SERVER_receive_done after %llums\n"),
+		(unsigned int) client->warn_type,
+		(unsigned long long) GNUNET_TIME_absolute_get_duration (client->warn_start).rel_value);
+}
+
+
+/**
  * Inject a message into the server, pretend it came
  * from the specified client.  Delivery of the message
  * will happen instantly (if a handler is installed;
@@ -614,7 +652,17 @@ GNUNET_SERVER_inject (struct GNUNET_SERVER_Handle *server,
                   return GNUNET_SYSERR;
                 }
               if (sender != NULL)
-                sender->suspended++;
+		{
+		  if (0 == sender->suspended)
+		    {
+		      sender->warn_start = GNUNET_TIME_absolute_get ();
+		      sender->warn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+									&warn_no_receive_done,
+									sender);
+		      sender->warn_type = type;
+		    }
+		  sender->suspended++;
+		}
               mh->callback (mh->callback_cls, sender, message);
               found = GNUNET_YES;
             }
@@ -1012,6 +1060,11 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
       GNUNET_SCHEDULER_cancel (client->restart_task);
       client->restart_task = GNUNET_SCHEDULER_NO_TASK;
     }
+  if (client->warn_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (client->warn_task);
+      client->warn_task = GNUNET_SCHEDULER_NO_TASK;
+    }
   if (GNUNET_YES == client->receive_pending)
     {
       GNUNET_CONNECTION_receive_cancel (client->connection);
@@ -1040,6 +1093,11 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
 	{
 	  GNUNET_SCHEDULER_cancel (client->restart_task);
 	  client->restart_task = GNUNET_SCHEDULER_NO_TASK;
+	}
+      if (client->warn_task != GNUNET_SCHEDULER_NO_TASK)
+	{
+	  GNUNET_SCHEDULER_cancel (client->warn_task);
+	  client->warn_task = GNUNET_SCHEDULER_NO_TASK;
 	}
       n = server->disconnect_notify_list;
       while (n != NULL)
@@ -1147,6 +1205,11 @@ GNUNET_SERVER_receive_done (struct GNUNET_SERVER_Client *client, int success)
 		  "GNUNET_SERVER_receive_done called, but more clients pending\n");
 #endif
       return;
+    }
+  if (GNUNET_SCHEDULER_NO_TASK != client->warn_task)
+    {
+      GNUNET_SCHEDULER_cancel (client->warn_task);
+      client->warn_task = GNUNET_SCHEDULER_NO_TASK;
     }
   if (client->in_process_client_buffer == GNUNET_YES)
     {
