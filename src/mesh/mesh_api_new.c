@@ -137,26 +137,30 @@ send_connect_packet (void *cls, size_t size, void *buf) {
     int                                 napps;
 
     if(0 == size || buf == NULL) {
-        /* TODO treat error / retry */
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Send: buffer size 0 or buffer invalid\n");
         return 0;
     }
     if(sizeof(struct GNUNET_MessageHeader) > size) {
-        /* TODO treat error / retry */
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Send: buffer size too small\n");
         return 0;
     }
+
     msg = (struct GNUNET_MESH_ClientConnect *) buf;
     h = (struct GNUNET_MESH_Handle *) cls;
     msg->header.type = GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT;
+
     for(ntypes = 0, types = NULL; h->message_handlers[ntypes].type; ntypes++) {
         types = GNUNET_realloc(types, sizeof(uint16_t) * (ntypes + 1));
         types[ntypes] = h->message_handlers[ntypes].type;
     }
+
     for(napps = 0, apps = NULL; h->applications[napps]; napps++) {
         apps = GNUNET_realloc(apps,
                               sizeof(GNUNET_MESH_ApplicationType) *
                                 (napps + 1));
         apps[napps] = h->applications[napps];
     }
+
     msg->header.size = sizeof(struct GNUNET_MESH_ClientConnect) +
                         sizeof(uint16_t) * ntypes +
                         sizeof(GNUNET_MESH_ApplicationType) * napps;
@@ -164,14 +168,36 @@ send_connect_packet (void *cls, size_t size, void *buf) {
         /* TODO treat error / retry */
         return 0;
     }
+
     memcpy(&msg[1], types, sizeof(uint16_t) * ntypes);
     memcpy(&msg[1] + sizeof(uint16_t) * ntypes,
            apps,
            sizeof(GNUNET_MESH_ApplicationType) * napps);
+
     return msg->header.size;
 }
 
-
+/**
+ * Type of a function to call when we receive a message
+ * from the service.
+ *
+ * @param cls closure
+ * @param msg message received, NULL on timeout or fatal error
+ */
+void msg_received (void *cls,
+                                              const struct
+                                              GNUNET_MessageHeader * msg) {
+    uint16_t t;
+    if(msg != NULL){
+        t = ntohs(msg->type);
+    } else {
+        t = 0;
+    }
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "received a message from mesh (of size %d)\n",
+               t);
+    return;
+}
 
 /**
  * Connect to the mesh service.
@@ -199,21 +225,23 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
     h = GNUNET_malloc(sizeof(struct GNUNET_MESH_Handle));
 
-
     h->cleaner = cleaner;
     h->mesh = GNUNET_CLIENT_connect("mesh", cfg);
+    GNUNET_CLIENT_receive (h->mesh,
+                         &msg_received,
+                         h, 
+                         GNUNET_TIME_UNIT_FOREVER_REL);
     if(h->mesh == NULL) {
         GNUNET_free(h);
         return NULL;
     }
+
     h->cls = cls;
     h->message_handlers = handlers;
     h->applications = stypes;
 
     for(h->n_handlers = 0; handlers[h->n_handlers].type; h->n_handlers++);
     for(h->n_applications = 0; stypes[h->n_applications]; h->n_applications++);
-    h->n_handlers--;
-    h->n_applications--;
 
     size = sizeof(struct GNUNET_MESH_ClientConnect);
     size += h->n_handlers * sizeof(uint16_t);
@@ -221,8 +249,8 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
     GNUNET_CLIENT_notify_transmit_ready(h->mesh,
                                         size,
-                                        GNUNET_TIME_relative_get_forever(),
-                                        GNUNET_YES,
+                                        GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
+                                        GNUNET_NO,
                                         &send_connect_packet,
                                         (void *)h);
 
@@ -236,7 +264,7 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param handle connection to mesh to disconnect
  */
 void GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle) {
-    
+
     GNUNET_free(handle);
     return;
 }

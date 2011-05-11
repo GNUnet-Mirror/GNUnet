@@ -710,8 +710,6 @@ handle_local_new_client (void *cls,
     /* Create new client structure */
     c = GNUNET_malloc(sizeof(struct Client));
     c->handle = client;
-    c->tunnels_head = NULL;
-    c->tunnels_tail = NULL;
     if(payload_size != 0) {
         c->messages_subscribed = GNUNET_malloc(payload_size);
         memcpy(c->messages_subscribed, &message[1], payload_size);
@@ -724,6 +722,7 @@ handle_local_new_client (void *cls,
     GNUNET_CONTAINER_DLL_insert (clients_head, clients_tail, c);
 
     GNUNET_SERVER_receive_done(client, GNUNET_OK);
+
 }
 
 /**
@@ -777,16 +776,6 @@ handle_local_tunnel_create (void *cls,
     t = GNUNET_malloc(sizeof(struct MESH_tunnel));
     t->tid = ntohl(tunnel_msg->tunnel_id);
     t->oid = myid;
-    t->peers_ready = 0;
-    t->peers_total = 0;
-    t->peers_head = NULL;
-    t->peers_tail = NULL;
-    t->paths_head = NULL;
-    t->paths_tail = NULL;
-    t->in_head = NULL;
-    t->in_tail = NULL;
-    t->out_head = NULL;
-    t->out_tail = NULL;
     t->client = c;
 
     GNUNET_CONTAINER_DLL_insert(c->tunnels_head, c->tunnels_tail, t);
@@ -1319,7 +1308,7 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-
+GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "******* MESH DEBUG MESSAGE 3 ********\n");
     GNUNET_SERVER_add_handlers (server, plugin_handlers);
     GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
     core_handle = GNUNET_CORE_connect (c,               /* Main configuration */
@@ -1334,11 +1323,10 @@ run (void *cls,
                             NULL, /* Don't notify about all outbound messages */
                             GNUNET_NO,    /* For header-only out notification */
                             core_handlers);        /* Register these handlers */
-
+GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "******* MESH DEBUG MESSAGE 4 ********\n");
     if (core_handle == NULL) {
         GNUNET_break(0);
     }
-
     dht_handle = GNUNET_DHT_connect(c, 100); /* FIXME ht len correct size? */
     if (dht_handle == NULL) {
         GNUNET_break(0);
@@ -1356,12 +1344,13 @@ int
 main (int argc, char *const *argv)
 {
     int ret;
-
+GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "******* MESH DEBUG MESSAGE 1 ********\n");
     ret = (GNUNET_OK ==
            GNUNET_SERVICE_run (argc,
                                argv,
                                "mesh",
                                GNUNET_SERVICE_OPTION_NONE,
                                &run, NULL)) ? 0 : 1;
+GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "******* MESH DEBUG MESSAGE 2 ********\n");
     return ret;
-    }
+}

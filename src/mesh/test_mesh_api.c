@@ -7,6 +7,7 @@ static struct GNUNET_MESH_MessageHandler handlers[] = {
     {NULL, 0, 0}
 };
 
+
 static void
 run (void *cls,
      char *const *args,
@@ -14,37 +15,30 @@ run (void *cls,
     struct GNUNET_OS_Process            *arm_pid;
     struct GNUNET_MESH_Handle           *mesh;
     struct GNUNET_DHT_Handle            *dht;
-//     struct GNUNET_MESH_Tunnel           *t;
+    GNUNET_MESH_ApplicationType         app;
+    char                                buffer[2048];
 
 
     arm_pid = GNUNET_OS_start_process (NULL, NULL,
                                        "gnunet-service-arm",
                                        "gnunet-service-arm",
                                        "-L", "DEBUG",
-                                       "-c", "test_dht_api_data.conf",
+                                       "-c", "test_mesh.conf",
                                        NULL);
-//     sleep(1);
-//     printf("%d\n", fopen( "test_mesh.conf", "r"));
-//     GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (cfg, "test_mesh.conf"));
-    //printf("%d\n", GNUNET_CONFIGURATION_load (cfg, NULL));
-//     printf("%d\n", GNUNET_CONFIGURATION_load (cfg, "test_dht_api_data.conf"));
     dht = GNUNET_DHT_connect(cfg, 100);
     if(NULL == dht) {
-//         fprintf(stderr, "Couldn't connect to dht :(\n");
-//         return 1; // succeed anyway
+        GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Couldn't connect to dht :(\n");
     } else {
-//         fprintf(stderr, "YAY! CONNECTED TO DHT :D\n");
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "YAY! CONNECTED TO DHT :D\n");
     }
-//     mesh = GNUNET_MESH_connect(cfg, NULL, NULL, handlers, NULL);
-//     if(NULL == mesh) {
-//         fprintf(stderr, "Couldn't connect to mesh :(\n");
-//         return 1; // succeed anyway
-//     } else {
-//         fprintf(stderr, "YAY! CONNECTED TO MESH :D\n");
-//     }
-//     mesh = realloc(mesh, 0); // don't complain about *mesh
-//     printf("MESH TEST\n");
-//     t = GNUNET_MESH_tunnel_create(mesh, );
+
+    app = 0;
+    mesh = GNUNET_MESH_connect(cfg, NULL, NULL, handlers, &app);
+    if(NULL == mesh) {
+        GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Couldn't connect to mesh :(\n");
+    } else {
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "YAY! CONNECTED TO MESH :D\n");
+    }
 
     /* do real test work here */
     if (0 != GNUNET_OS_process_kill (arm_pid, SIGTERM))
@@ -55,33 +49,24 @@ run (void *cls,
     return;
 }
 
-static int
-check ()
-{
-  int ret;
-  char *const argv[] = {"test-mesh-api",
-    "-c",
-    "test_dht_api_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
-    NULL
-  };
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
-  ret = GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-mesh-api", "nohelp",
-                      options, &run, NULL);
-  if (ret != GNUNET_OK)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "test-mesh-api': Failed with error code %d\n", ret);
-    }
-  return GNUNET_OK;
-}
+
 
 int main (int argc, char *argv[]) {
-    if(GNUNET_OK == check())
-        return 0;
-    else return 1;
+    int ret;
+    char *const argv2[] = {"test-mesh-api",
+        "-c", "test_mesh.conf",
+        "-L", "DEBUG",
+        NULL
+    };
+    struct GNUNET_GETOPT_CommandLineOption options[] = {
+        GNUNET_GETOPT_OPTION_END
+    };
+      GNUNET_log_setup ("test-dht-api","DEBUG", NULL);
+    ret = GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1,
+                        argv2, "test-mesh-api", "nohelp",
+                        options, &run, NULL);
+    if (ret != GNUNET_OK) {
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "test-mesh-api': Failed with error code %d\n", ret);
+    }
+    return 0;
 }
