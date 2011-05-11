@@ -9,7 +9,7 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
-bin_PROGRAMS = $(STUD_PROGS) \
+bin_PROGRAMS = \
  gnunet-service-mesh
 
 lib_LTLIBRARIES = \
@@ -44,7 +44,7 @@ libgnunetmeshnew_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:0:0
 
-check_PROGRAMS = $(STUD_TESTS) \
+check_PROGRAMS = \
  test_mesh_api
 
 test_mesh_api_SOURCES = \

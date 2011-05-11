@@ -80,7 +80,7 @@ libgnunetdht_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:0:0
 
-bin_PROGRAMS = $(STUD_PROGS) \
+bin_PROGRAMS = \
  gnunet-service-dht \
  gnunet-dht-get \
  gnunet-dht-get-peer \
@@ -147,7 +147,7 @@ gnunet_dht_driver_DEPENDENCIES = \
   libgnunetdhtlog.la  
 
 
-check_PROGRAMS = $(STUD_TESTS) \
+check_PROGRAMS = \
  test_dht_api \
  test_dht_twopeer \
  test_dht_twopeer_put_get \
