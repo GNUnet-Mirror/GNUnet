@@ -49,8 +49,8 @@ UNIX_QUOTA_TEST = test_quota_compliance_unix \
      test_quota_compliance_unix_asymmetric_recv_constant
 NATBIN = gnunet-nat-server gnunet-nat-client
 install-exec-hook:
-	chown root $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client $(bindir)/gnunet-wlan || true
-	chmod u+s $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client $(bindir)/gnunet-wlan || true
+	chown root $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client $(bindir)/gnunet-transport-wlan-helper || true
+	chmod u+s $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client $(bindir)/gnunet-transport-wlan-helper || true
 else
 install-exec-hook:
 endif

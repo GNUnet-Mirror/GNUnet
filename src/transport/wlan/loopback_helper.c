@@ -136,7 +136,8 @@ testmode(int argc, char *argv[])
       umask(0);
       //unlink(FIFO_FILE1);
       //unlink(FIFO_FILE2);
-      erg = mknod(FIFO_FILE1, S_IFIFO | 0666, 0);
+      // FIXME: use mkfifo!
+     erg = mknod(FIFO_FILE1, S_IFIFO | 0666, 0);
       if (0 != erg)
         {
           fprintf(stderr, "Error at mknode1 \n");
