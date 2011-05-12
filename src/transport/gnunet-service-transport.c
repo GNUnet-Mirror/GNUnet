@@ -6977,7 +6977,7 @@ ats_calculate_bandwidth_distribution ()
 	creation = GNUNET_TIME_absolute_get_difference(start,GNUNET_TIME_absolute_get());
 	start = GNUNET_TIME_absolute_get();
 
-	ats->stat.solution = GNUNET_SYSERR;
+	ats->stat.solution = GLP_UNDEF;
 	if (ats->stat.valid == GNUNET_YES)
 	{
 		ats_solve_problem(ats->max_iterations, ats->max_exec_duration.rel_value, ats->stat.c_peers, ats->stat.c_mechs, &ats->stat);
