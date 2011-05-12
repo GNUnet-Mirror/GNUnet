@@ -38,7 +38,7 @@
 #include "gnunet_transport_plugin.h"
 #include "transport.h"
 
-#define DEBUG_TCP GNUNET_NO
+#define DEBUG_TCP GNUNET_YES
 
 #define DEBUG_TCP_NAT GNUNET_NO
 
@@ -1547,6 +1547,10 @@ tcp_plugin_disconnect (void *cls,
 	  pm->transmit_cont_cls = NULL;
 	  pm = pm->next;
 	}
+      GNUNET_STATISTICS_update (session->plugin->env->stats,
+				gettext_noop ("# transport-service disconnect requests for TCP"),
+				1,
+				GNUNET_NO);
       disconnect_session (session);
     }
 }
@@ -2127,6 +2131,10 @@ disconnect_notify (void *cls,
 					  session->connect_addr,
 					  session->connect_alen) : "*");
 #endif
+  GNUNET_STATISTICS_update (session->plugin->env->stats,
+			    gettext_noop ("# network-level TCP disconnect events"),
+			    1,
+			    GNUNET_NO);
   disconnect_session (session);
 }
 

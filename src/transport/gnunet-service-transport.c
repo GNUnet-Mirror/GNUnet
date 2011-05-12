@@ -1323,15 +1323,18 @@ static int update_addr_value (struct ForeignAddressList *fal, uint32_t value , i
 	return set;
 }
 
-static int update_addr_ats (struct ForeignAddressList *fal, const struct GNUNET_TRANSPORT_ATS_Information *ats_data, int ats_count)
+static int
+update_addr_ats (struct ForeignAddressList *fal, 
+		 const struct GNUNET_TRANSPORT_ATS_Information *ats_data, 
+		 int ats_count)
 {
-	int c1, set;
-	set = GNUNET_NO;
-	for (c1=0; c1<ats_count; c1++)
-	{
-		  set = update_addr_value(fal, ntohl(ats_data[c1].value), ntohl(ats_data[c1].type));
-	}
-	return set;
+  int c1, set;
+  set = GNUNET_NO;
+  for (c1=0; c1<ats_count; c1++)
+    {
+      set = update_addr_value(fal, ntohl(ats_data[c1].value), ntohl(ats_data[c1].type));
+    }
+  return set;
 }
 
 /**
@@ -1380,13 +1383,20 @@ is_blacklisted (const struct GNUNET_PeerIdentity *peer, struct TransportPlugin *
 
 
 static void
-add_peer_to_blacklist (struct GNUNET_PeerIdentity *peer, char *transport_name)
+add_peer_to_blacklist (struct GNUNET_PeerIdentity *peer, 
+		       char *transport_name)
 {
   struct TransportPlugin *plugin;
 
   plugin = find_transport(transport_name);
   if (plugin == NULL) /* Nothing to do */
     return;
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Adding peer `%s' with plugin `%s' to blacklist\n",
+	      GNUNET_i2s (peer),
+	      transport_name);
+#endif
   if (plugin->blacklist == NULL)
     plugin->blacklist = GNUNET_CONTAINER_multihashmap_create(TRANSPORT_BLACKLIST_HT_SIZE);
   GNUNET_assert(plugin->blacklist != NULL);
@@ -2449,6 +2459,8 @@ try_fast_reconnect (struct TransportPlugin *p,
 		    struct NeighbourList *nl)
 {
   /* FIXME-MW: fast reconnect / transport switching not implemented... */
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "try_fast_reconnect not implemented!\n");
   /* Note: the idea here is to hide problems with transports (or
      switching between plugins) from the core to eliminate the need to
      re-negotiate session keys and the like; OTOH, we should tell core
@@ -2482,9 +2494,11 @@ try_fast_reconnect (struct TransportPlugin *p,
    */
 
   /* No reconnect, signal disconnect instead! */
+#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
             "Disconnecting peer `%4s', %s\n", GNUNET_i2s(&nl->id),
             "try_fast_reconnect");
+#endif
   disconnect_neighbour (nl, GNUNET_YES);
 }
 
@@ -2511,12 +2525,25 @@ plugin_env_session_end  (void *cls,
   struct ForeignAddressList *pos;
   struct ForeignAddressList *prev;
 
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Session ended with peer `%4s', %s\n", 
+	      GNUNET_i2s(&nl->id),
+	      "plugin_env_session_end");
+#endif
   GNUNET_CONTAINER_multihashmap_iterate (validation_map,
 					 &remove_session_validations,
 					 session);
   nl = find_neighbour (peer);
   if (nl == NULL)
-    return; /* was never marked as connected */
+    {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "No neighbour record found for peer `%4s'\n", 
+		  GNUNET_i2s(&nl->id));
+#endif
+      return; /* was never marked as connected */
+    }
   rl = nl->plugins;
   while (rl != NULL)
     {
@@ -2525,7 +2552,15 @@ plugin_env_session_end  (void *cls,
       rl = rl->next;
     }
   if (rl == NULL)
-    return; /* was never marked as connected */
+    {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Plugin was associated with peer `%4s'\n", 
+		  GNUNET_i2s(&nl->id));
+#endif
+      disconnect_neighbour (nl, GNUNET_YES);
+      return;
+    }
   prev = NULL;
   pos = rl->addresses;
   while ( (pos != NULL) &&
@@ -2535,12 +2570,22 @@ plugin_env_session_end  (void *cls,
       pos = pos->next;
     }
   if (pos == NULL)
-    return; /* was never marked as connected */
+    {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Session was never marked as ready for peer `%4s'\n", 
+		  GNUNET_i2s(&nl->id));
+#endif
+      disconnect_neighbour (nl, GNUNET_YES);
+      return; /* was never marked as connected */
+    }
   pos->session = NULL;
   if (pos->addrlen != 0)
     {
       if (nl->received_pong != GNUNET_NO)
 	try_fast_reconnect (p, nl);
+      else
+	disconnect_neighbour (nl, GNUNET_YES);
       return;
     }
   /* was inbound connection, free 'pos' */
@@ -2558,7 +2603,10 @@ plugin_env_session_end  (void *cls,
   GNUNET_free (pos);
   ats->stat.recreate_problem = GNUNET_YES;
   if (nl->received_pong == GNUNET_NO)
-    return; /* nothing to do, never connected... */
+    {
+      disconnect_neighbour (nl, GNUNET_YES);
+      return; /* nothing to do, never connected... */
+    }
   /* check if we have any validated addresses left */
   pos = rl->addresses;
   while (pos != NULL)
@@ -2572,12 +2620,15 @@ plugin_env_session_end  (void *cls,
     }
   /* no valid addresses left, signal disconnect! */
 
+#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-            "Disconnecting peer `%4s', %s\n", GNUNET_i2s(&nl->id),
-            "plugin_env_session_end");
+	      "Disconnecting peer `%4s', %s\n", 
+	      GNUNET_i2s(&nl->id),
+	      "plugin_env_session_end");
+#endif
   /* FIXME: This doesn't mean there are no addresses left for this PEER,
    * it means there aren't any left for this PLUGIN/PEER combination! So
-   * calling disconnect_neighbor here with GNUNET_NO forces disconnect
+   * calling disconnect_neighbour here with GNUNET_NO forces disconnect
    * when it isn't necessary. Using GNUNET_YES at least checks to see
    * if there are any addresses that work first, so as not to overdo it.
    * --NE
@@ -3151,9 +3202,11 @@ add_to_foreign_address_list (void *cls,
     }
   if (fal == NULL)
     {
+#if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Failed to add new address for `%4s'\n",
 		  GNUNET_i2s (&n->id));
+#endif
       return GNUNET_OK;
     }
   if (fal->validated == GNUNET_NO)
@@ -3166,8 +3219,10 @@ add_to_foreign_address_list (void *cls,
     }
   if (try == GNUNET_YES)
     {
+#if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Have new addresses, will try to trigger transmissions.\n");
+#endif
       try_transmission_to_peer (n);
     }
   return GNUNET_OK;
@@ -3192,12 +3247,15 @@ add_hello_for_peer (void *cls,
   struct NeighbourList *n = cls;
 
   if (err_msg != NULL)
-  {
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      _("Error in communication with PEERINFO service\n"));
-	/* return; */
-  }
-  if ((peer == NULL))
+    {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  _("Error in communication with PEERINFO service: %s\n"),
+		  err_msg);
+#endif
+      /* return; */
+    }
+  if (peer == NULL)
     {
       GNUNET_STATISTICS_update (stats,
                                 gettext_noop ("# outstanding peerinfo iterate requests"),
@@ -3457,8 +3515,16 @@ transmit_blacklist_message (void *cls,
       GNUNET_assert (bc->task == GNUNET_SCHEDULER_NO_TASK);
       bc->task = GNUNET_SCHEDULER_add_now (&do_blacklist_check,
 					   bc);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  "Failed to send blacklist test for peer `%s' to client\n",
+		  GNUNET_i2s (&bc->peer));
       return 0;
     }
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending blacklist test for peer `%s' to client\n",
+	      GNUNET_i2s (&bc->peer));
+#endif
   bl = bc->bl_pos;
   bm.header.size = htons (sizeof (struct BlacklistMessage));
   bm.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY);
@@ -3487,6 +3553,11 @@ do_blacklist_check (void *cls,
   bl = bc->bl_pos;
   if (bl == NULL)
     {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "No blacklist clients active, will now setup neighbour record for peer `%s'\n",
+		  GNUNET_i2s (&bc->peer));
+#endif
       bc->cont (bc->cont_cls,
 		setup_new_neighbour (&bc->peer, bc->do_hello));
       GNUNET_free (bc);
@@ -3528,6 +3599,11 @@ setup_peer_check_blacklist (const struct GNUNET_PeerIdentity *peer,
   n = find_neighbour(peer);
   if (n != NULL)
     {
+#if DEBUG_TRANSPORT
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
+		 "Neighbour record exists for peer `%s'\n", 
+		 GNUNET_i2s(peer));
+#endif
       if (cont != NULL)
         cont (cont_cls, n);
       return;
@@ -3567,9 +3643,11 @@ confirm_or_drop_neighbour (void *cls,
 
   if (n == NULL)
     {
+#if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Disconnecting peer `%4s', %s\n", GNUNET_i2s(&orig->id),
               "confirm_or_drop_neighboUr");
+#endif
       disconnect_neighbour (orig, GNUNET_NO);
     }
 }
@@ -3648,6 +3726,11 @@ handle_blacklist_reply (void *cls,
     bl = bl->next;
   if (bl == NULL)
     {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Blacklist client disconnected\n");
+#endif
+      /* FIXME: other error handling here!? */
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
@@ -3655,12 +3738,20 @@ handle_blacklist_reply (void *cls,
   bl->bc = NULL;
   if (ntohl (msg->is_allowed) == GNUNET_SYSERR)
     {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Blacklist check failed, peer not allowed\n");
+#endif
       bc->cont (bc->cont_cls, NULL);
       GNUNET_CONTAINER_DLL_remove (bc_head, bc_tail, bc);
       GNUNET_free (bc);
     }
   else
     {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Blacklist check succeeded, continuing with checks\n");
+#endif
       bc->bl_pos = bc->bl_pos->next;
       bc->task = GNUNET_SCHEDULER_add_now (&do_blacklist_check,
 					   bc);
@@ -3905,11 +3996,13 @@ handle_payload_message (const struct GNUNET_MessageHeader *message,
   msize = ntohs (message->size);
   if (n->received_pong == GNUNET_NO)
     {
+#if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Received message of type %u and size %u from `%4s', but no pong yet!!\n",
                   ntohs (message->type),
                   ntohs (message->size),
                   GNUNET_i2s (&n->id));
+#endif
       GNUNET_free_non_null (n->pre_connect_message_buffer);
       n->pre_connect_message_buffer = GNUNET_malloc (msize);
       memcpy (n->pre_connect_message_buffer, message, msize);
@@ -4078,8 +4171,12 @@ check_pending_validation (void *cls,
 	{
       char * peer;
     	  GNUNET_asprintf(&peer, "%s",GNUNET_i2s (&pong->pid));
+#if DEBUG_TRANSPORT
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Received PONG for different identity: I am `%s', PONG identity: `%s'\n",GNUNET_i2s (&my_identity), peer );
+		      "Received PONG for different identity: I am `%s', PONG identity: `%s'\n",
+		      GNUNET_i2s (&my_identity), 
+		      peer );
+#endif
 	  GNUNET_free (peer);
 	  return GNUNET_NO;
 	}
@@ -4529,10 +4626,13 @@ check_hello_validated (void *cls,
   struct NeighbourList *n;
 
   if (err_msg != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Error in communication with PEERINFO service\n"));
-   /* return; */
+    {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  _("Error in communication with PEERINFO service: %s\n"),
+		  err_msg);
+#endif
+      /* return; */
   }
 
   if (peer == NULL)
@@ -4748,6 +4848,7 @@ process_hello (struct TransportPlugin *plugin,
   if (plugin != NULL)
     {
       my_id = GNUNET_strdup(GNUNET_i2s(plugin->env.my_identity));
+#if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "%s: Starting validation of `%s' message for `%4s' via '%s' of size %u\n",
                   my_id,
@@ -4755,6 +4856,7 @@ process_hello (struct TransportPlugin *plugin,
                   GNUNET_i2s (&target),
                   plugin->short_name,
                   GNUNET_HELLO_size(hello));
+#endif
       GNUNET_free(my_id);
     }
 #endif
@@ -4816,9 +4918,11 @@ disconnect_neighbour (struct NeighbourList *n, int check)
             {
               if (GNUNET_YES == peer_addresses->connected)
                 {
+#if DEBUG_TRANSPORT
                   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                            "NOT Disconnecting from `%4s', still have live addresses!\n",
-                            GNUNET_i2s (&n->id));
+			      "NOT Disconnecting from `%4s', still have live addresses!\n",
+			      GNUNET_i2s (&n->id));
+#endif
                   return;             /* still connected */
                 }
               peer_addresses = peer_addresses->next;
@@ -4873,12 +4977,12 @@ disconnect_neighbour (struct NeighbourList *n, int check)
 	      GNUNET_SCHEDULER_cancel (peer_pos->revalidate_task);
 	      peer_pos->revalidate_task = GNUNET_SCHEDULER_NO_TASK;
 	    }
-		  GNUNET_free(peer_pos->ressources);
-		  peer_pos->ressources = NULL;
-		  GNUNET_free(peer_pos->quality);
-		  peer_pos->ressources = NULL;
-		  GNUNET_free(peer_pos);
-		  ats->stat.recreate_problem = GNUNET_YES;
+	  GNUNET_free(peer_pos->ressources);
+	  peer_pos->ressources = NULL;
+	  GNUNET_free(peer_pos->quality);
+	  peer_pos->ressources = NULL;
+	  GNUNET_free(peer_pos);
+	  ats->stat.recreate_problem = GNUNET_YES;
         }
       GNUNET_free (rpos);
     }
@@ -4965,6 +5069,7 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
                    plugin->env.my_identity,
                    sizeof (struct GNUNET_PeerIdentity)))
     {
+#if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Received `%s' message from `%s' destined for `%s' which is not me!\n"),
 		  "PING",
@@ -4974,6 +5079,7 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
 			 sender_address_len)
 		  : "<inbound>",
 		  GNUNET_i2s (&ping->target));
+#endif
       return GNUNET_SYSERR;
     }
 #if DEBUG_PING_PONG
@@ -5359,11 +5465,13 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   ret = GNUNET_BANDWIDTH_tracker_get_delay (&n->in_tracker, 0);
   if (ret.rel_value > 0)
     {
+#if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Throttling read (%llu bytes excess at %u b/s), waiting %llums before reading more.\n",
 		  (unsigned long long) n->in_tracker.consumption_since_last_update__,
 		  (unsigned int) n->in_tracker.available_bytes_per_s__,
 		  (unsigned long long) ret.rel_value);
+#endif
       GNUNET_STATISTICS_update (stats,
 				gettext_noop ("# ms throttling suggested"),
 				(int64_t) ret.rel_value,
@@ -5580,13 +5688,13 @@ handle_send (void *cls,
   obm = (const struct OutboundMessage *) message;
   obmm = (const struct GNUNET_MessageHeader *) &obm[1];
   msize = size - sizeof (struct OutboundMessage);
-
+#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' request from client with target `%4s' and message of type %u and size %u\n",
               "SEND", GNUNET_i2s (&obm->peer),
               ntohs (obmm->type),
               msize);
-
+#endif
   tcmc = GNUNET_malloc (sizeof (struct TransmitClientMessageContext) + msize);
   tcmc->client = client;
   tcmc->priority = ntohl (obm->priority);
@@ -5620,11 +5728,16 @@ handle_request_connect (void *cls,
                             gettext_noop ("# REQUEST CONNECT messages received"),
                             1,
                             GNUNET_NO);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received a request connect message for peer %s\n", GNUNET_i2s(&trcm->peer));
+#if DEBUG_TRANSPORT
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
+	     "Received a request connect message for peer `%s'\n", 
+	     GNUNET_i2s(&trcm->peer));
+#endif
   setup_peer_check_blacklist (&trcm->peer, GNUNET_YES,
                               NULL, NULL);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
+
 
 /**
  * Handle SET_QUOTA-message.
@@ -5668,9 +5781,11 @@ handle_set_quota (void *cls,
 					 qsm->quota);
   if (0 == ntohl (qsm->quota.value__))
     {
+#if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Disconnecting peer `%4s', %s\n", GNUNET_i2s(&n->id),
                 "SET_QUOTA");
+#endif
       disconnect_neighbour (n, GNUNET_NO);
     }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -5929,9 +6044,11 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   while (neighbours != NULL)
     {
+#if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Disconnecting peer `%4s', %s\n", GNUNET_i2s(&neighbours->id),
-              "SHUTDOWN_TASK");
+		  "Disconnecting peer `%4s', %s\n", GNUNET_i2s(&neighbours->id),
+		  "SHUTDOWN_TASK");
+#endif
       disconnect_neighbour (neighbours, GNUNET_NO);
     }
 #if DEBUG_TRANSPORT
