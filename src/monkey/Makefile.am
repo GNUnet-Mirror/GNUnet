@@ -40,7 +40,8 @@ bin_PROGRAMS = \
  gnunet-service-monkey 
 
 noinst_PROGRAMS = \
- bug_null_pointer_exception 
+ bug_null_pointer_exception \
+ bug_bad_memory_access
 
 gnunet_monkey_SOURCES = \
  gdbmi.h \
@@ -79,6 +80,9 @@ gnunet_service_monkey_LDADD = \
 
 bug_null_pointer_exception:
 	gcc -g -O0 -o bug_null_pointer_exception bug_null_pointer_exception.c
+
+bug_bad_memory_access:
+	gcc -g -O0 -o bug_bad_memory_access bug_bad_memory_access.c	
 
 check_PROGRAMS = \
     test_monkey_edb

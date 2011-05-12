@@ -63,14 +63,18 @@ struct GNUNET_MONKEY_ACTION_Context
 	const char* gdb_in_use;
 	mi_stop* gdb_stop_reason;
 	mi_frames* gdb_frames;
+	const char* gdb_null_variable;
+
+	/* Valgrind memcheck attributes */
+	char* valgrind_output;
 };
 
 
 int GNUNET_MONKEY_ACTION_report_file(struct GNUNET_MONKEY_ACTION_Context* cntxt, const char* dumpFileName);
 int GNUNET_MONKEY_ACTION_report_email(struct GNUNET_MONKEY_ACTION_Context* cntxt);
-int GNUNET_MONKEY_ACTION_rerun_with_valgrind(void);
 int GNUNET_MONKEY_ACTION_inspect_expression_database(struct GNUNET_MONKEY_ACTION_Context* cntxt);
 int GNUNET_MONKEY_ACTION_rerun_with_gdb(struct GNUNET_MONKEY_ACTION_Context* cntxt);
+int GNUNET_MONKEY_ACTION_rerun_with_valgrind(struct GNUNET_MONKEY_ACTION_Context* cntxt);
 int GNUNET_MONKEY_ACTION_format_report(struct GNUNET_MONKEY_ACTION_Context* cntxt);
 int GNUNET_MONKEY_ACTION_check_bug_redundancy(void);
 

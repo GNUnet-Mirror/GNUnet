@@ -77,6 +77,7 @@ run (void *cls,
 
 	result = GNUNET_MONKEY_ACTION_rerun_with_gdb(cntxt);
 	switch (result) {
+	int retVal;
 	case GDB_STATE_ERROR:
 		break;
 	case GDB_STATE_EXIT_NORMALLY:
@@ -85,10 +86,19 @@ run (void *cls,
 		break;
 	case GDB_STATE_STOPPED:
 		/*FIXME: Expression Database should be inspected here (before writing the report) */
-		if (GNUNET_OK != GNUNET_MONKEY_ACTION_inspect_expression_database(cntxt)) {
+		retVal = GNUNET_MONKEY_ACTION_inspect_expression_database(cntxt);
+		if (GNUNET_NO == retVal) {
 			GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Error using Expression Database!\n");
 			ret = 1;
 			break;
+		} else if (GDB_STATE_ERROR == retVal) {
+			/* GDB could not locate a NULL value expression, launch Valgrind */
+			retVal = GNUNET_MONKEY_ACTION_rerun_with_valgrind(cntxt);
+			if (GNUNET_NO == retVal) {
+				GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Error using Valgrind!\n");
+				ret = 1;
+				break;
+			}
 		}
 		if(GNUNET_OK != GNUNET_MONKEY_ACTION_format_report(cntxt)){
 			GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Error in generating debug report!\n");
