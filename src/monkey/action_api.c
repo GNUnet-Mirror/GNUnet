@@ -241,12 +241,13 @@ int GNUNET_MONKEY_ACTION_inspect_expression_database(struct GNUNET_MONKEY_ACTION
 int GNUNET_MONKEY_ACTION_rerun_with_valgrind(struct GNUNET_MONKEY_ACTION_Context* cntxt) {
 	FILE* valgrindPipe;
 	int size;
-	const char* valgrindCommand;
+	char* valgrindCommand;
 	cntxt->debug_mode = DEBUG_MODE_VALGRIND;
-	asprintf(&valgrindCommand, "valgrind --leak-check=yes %s", cntxt->binary_name);
+	GNUNET_asprintf(&valgrindCommand, "valgrind --leak-check=yes %s", cntxt->binary_name);
 	valgrindPipe = popen(valgrindCommand, "r");
 	if (NULL == valgrindPipe) {
 		GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Error in running Valgrind!\n");
+		GNUNET_free (valgrindCommand);
 		return GNUNET_NO;
 	}
 
@@ -255,6 +256,7 @@ int GNUNET_MONKEY_ACTION_rerun_with_valgrind(struct GNUNET_MONKEY_ACTION_Context
 	/* Read Valgrind stream */
 	cntxt->valgrind_output = GNUNET_malloc(size);
 	fscanf(valgrindPipe, "%s", cntxt->valgrind_output);
+	GNUNET_free (valgrindCommand);
 	if (0 != pclose(valgrindPipe)) {
 		GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Error while closing Valgrind pipe!\n");
 		return GNUNET_NO;
