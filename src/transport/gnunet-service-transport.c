@@ -890,6 +890,29 @@ struct ATS_stat
 	int solution;
 
 	/**
+	 * Ressource costs or quality metrics changed
+	 * update problem before solving
+	 */
+	int modified_resources;
+
+	/**
+	 * Ressource costs or quality metrics changed, update matrix
+	 * update problem before solving
+	 */
+	int modified_quality;
+
+	/**
+	 * Peers have connected or disconnected
+	 * problem has to be recreated
+	 */
+	int recreate_problem;
+
+	/**
+	 * Was the available basis invalid and we needed to rerun simplex?
+	 */
+	int simplex_rerun_required;
+
+	/**
 	 * is problem currently valid and can it be solved
 	 */
 	int valid;
@@ -924,10 +947,29 @@ struct ATS_stat
 	 */
 	int end_cr;
 
+	/**
+	 * column index for objective function value d
+	 */
 	int col_d;
+	
+	/**
+	 * column index for objective function value u
+	 */
 	int col_u;
+	
+	/**
+	 * column index for objective function value r
+	 */
 	int col_r;
+	
+	/**
+	 * column index for objective function value quality metrics
+	 */
 	int col_qm;
+	
+	/**
+	 * column index for objective function value cost ressources
+	 */
 	int col_cr;
 };
 
@@ -1031,8 +1073,14 @@ struct ATS_info
 	 */
 	struct ATS_peer * peers;
 
+	/**
+	 * number of successful executions
+	 */
 	int successful_executions;
 
+	/**
+	 * number with an invalid result
+	 */
 	int invalid_executions;
 
 	/**
@@ -1064,29 +1112,6 @@ struct ATS_info
 	 * Dump solution overwrite file:
 	 */
 	int dump_overwrite;
-
-	/**
-	 * Ressource costs or quality metrics changed
-	 * update problem before solving
-	 */
-	int modified_resources;
-
-	/**
-	 * Ressource costs or quality metrics changed, update matrix
-	 * update problem before solving
-	 */
-	int modified_quality;
-
-	/**
-	 * Peers have connected or disconnected
-	 * problem has to be recreated
-	 */
-	int modified_addr;
-
-	/**
-	 * Was the available basis invalid and we needed to rerun simplex?
-	 */
-	int simplex_rerun_required;
 
 	/**
 	 * Diversity weight
@@ -1279,7 +1304,7 @@ static int update_addr_value (struct ForeignAddressList *fal, uint32_t value , i
 		  fal->quality[c].values[1] = fal->quality[c].values[2];
 		  fal->quality[c].values[2] = value;
 		  set = GNUNET_YES;
-		  ats->modified_quality = GNUNET_YES;
+		  ats->stat.modified_quality = GNUNET_YES;
 	  }
 	}
 	if (set == GNUNET_NO)
@@ -1290,7 +1315,7 @@ static int update_addr_value (struct ForeignAddressList *fal, uint32_t value , i
 		  {
 			  fal->ressources[c].c = value;
 			  set = GNUNET_YES;
-			  ats->modified_resources = GNUNET_YES;
+			  ats->stat.modified_resources = GNUNET_YES;
 		  }
 	  }
 	}
@@ -2531,7 +2556,7 @@ plugin_env_session_end  (void *cls,
   GNUNET_free_non_null(pos->ressources);
   GNUNET_free_non_null(pos->quality);
   GNUNET_free (pos);
-  ats->modified_addr = GNUNET_YES;
+  ats->stat.recreate_problem = GNUNET_YES;
   if (nl->received_pong == GNUNET_NO)
     return; /* nothing to do, never connected... */
   /* check if we have any validated addresses left */
@@ -4853,6 +4878,7 @@ disconnect_neighbour (struct NeighbourList *n, int check)
 		  GNUNET_free(peer_pos->quality);
 		  peer_pos->ressources = NULL;
 		  GNUNET_free(peer_pos);
+		  ats->stat.recreate_problem = GNUNET_YES;
         }
       GNUNET_free (rpos);
     }
@@ -5287,18 +5313,18 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     	/* Force ressource and quality update */
     	if (value == 4)
     	{
-    		ats->modified_resources = GNUNET_YES;
-    		ats->modified_quality = GNUNET_YES;
+    		ats->stat.modified_resources = GNUNET_YES;
+    		ats->stat.modified_quality = GNUNET_YES;
     	}
     	/* Force cost update */
     	if (value == 3)
-    		ats->modified_resources = GNUNET_YES;
+    		ats->stat.modified_resources = GNUNET_YES;
     	/* Force quality update */
     	if (value == 2)
-    		ats->modified_quality = GNUNET_YES;
+    		ats->stat.modified_quality = GNUNET_YES;
     	/* Force full rebuild */
     	if (value == 1)
-    		ats->modified_addr = GNUNET_YES;
+    		ats->stat.recreate_problem = GNUNET_YES;
     }
 
 #if DEBUG_PING_PONG
@@ -6065,7 +6091,7 @@ static void ats_solve_problem (unsigned int max_it, unsigned int  max_dur, unsig
 	// maximum duration
 	opt_lp.tm_lim = max_dur;
 
-	if (ats->modified_addr == GNUNET_YES)
+	if (ats->stat.recreate_problem == GNUNET_YES)
 		opt_lp.presolve = GLP_ON;
 	result = glp_simplex(ats->prob, &opt_lp);
 	lp_solution =  glp_get_status (ats->prob);
@@ -6083,13 +6109,13 @@ static void ats_solve_problem (unsigned int max_it, unsigned int  max_dur, unsig
 	}
 	else
 	{
-		ats->simplex_rerun_required = GNUNET_YES;
+		ats->stat.simplex_rerun_required = GNUNET_YES;
 		opt_lp.presolve = GLP_ON;
 		result = glp_simplex(ats->prob, &opt_lp);
 		lp_solution =  glp_get_status (ats->prob);
 
 		// TODO: Remove if this does not appear until release
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "EXECUTED SIMPLEX WITH PRESOLVER! %i", lp_solution);
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "EXECUTED SIMPLEX WITH PRESOLVER! %i \n", lp_solution);
 
 		if (ats_evaluate_results(result, lp_solution, "LP") != GNUNET_YES)
 		{
@@ -6099,6 +6125,7 @@ static void ats_solve_problem (unsigned int max_it, unsigned int  max_dur, unsig
 			glp_write_lp (ats->prob, NULL, filename);
 			GNUNET_free (filename);
 			stat->valid = GNUNET_NO;
+			ats->stat.recreate_problem = GNUNET_YES;
 			return;
 		}
 		stat->valid = GNUNET_YES;
@@ -6180,16 +6207,21 @@ static void ats_solve_problem (unsigned int max_it, unsigned int  max_dur, unsig
 
 static void ats_delete_problem ()
 {
+#if DEBUG_ATS
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Deleting problem\n");
+#endif
 	int c;
 
 	for (c=0; c< (ats->stat).c_mechs; c++)
 		GNUNET_free_non_null (ats->mechanisms[c].rc);
+
 
 	if (ats->mechanisms!=NULL)
 	{
 		GNUNET_free(ats->mechanisms);
 		ats->mechanisms = NULL;
 	}
+
 	if (ats->peers!=NULL)
 	{
 		GNUNET_free(ats->peers);
@@ -6240,9 +6272,13 @@ static void ats_update_problem_qm ()
 		{
 			ja[array_index] = c2;
 
+			GNUNET_assert (ats->mechanisms[c2].addr != NULL);
+			GNUNET_assert (ats->mechanisms[c2].peer != NULL);
+
 			if (qm[c-1].atis_index  == GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY)
 			{
 				double v0 = 0, v1 = 0, v2 = 0;
+
 				v0 = ats->mechanisms[c2].addr->quality[c-1].values[0];
 				if (v1 < 1) v0 = 0.1;
 				v1 = ats->mechanisms[c2].addr->quality[c-1].values[1];
@@ -6278,7 +6314,7 @@ static void ats_update_problem_qm ()
 
 #if VERBOSE_ATS
 		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, row_index, ja[array_index], ar[array_index]);
-		#endif
+#endif
 		glp_set_mat_row (ats->prob, row_index, array_index, ja, ar);
 
 		array_index = 1;
@@ -6316,6 +6352,10 @@ static void ats_update_problem_cr ()
 		for (c2=1; c2<=ats->stat.c_mechs; c2++)
 		{
 			double value = 0;
+
+			GNUNET_assert (ats->mechanisms[c2].addr != NULL);
+			GNUNET_assert (ats->mechanisms[c2].peer != NULL);
+
 			ja[array_index] = c2;
 			value = ats->mechanisms[c2].addr->ressources[c].c;
 			ar[array_index] = value;
@@ -6386,8 +6426,7 @@ static void ats_update_problem_qm_TEST ()
 	GNUNET_free_non_null (ja);
 	GNUNET_free_non_null (ar);
 }
-#endif
-
+#endif //END: HAVE_LIBGLPK
 
 /** solve the bandwidth distribution problem
  * @param max_it maximum iterations
@@ -6402,9 +6441,6 @@ static void ats_update_problem_qm_TEST ()
  */
 static int ats_create_problem (double D, double U, double R, int v_b_min, int v_n_min, struct ATS_stat *stat)
 {
-	if (ats->prob != NULL)
-		glp_delete_prob(ats->prob);
-
 	ats->prob = glp_create_prob();
 
 	int c;
@@ -6424,6 +6460,7 @@ static int ats_create_problem (double D, double U, double R, int v_b_min, int v_
 	struct NeighbourList *next = neighbours;
 	while (next!=NULL)
 	{
+		int found_addresses = GNUNET_NO;
 		struct ReadyList *r_next = next->plugins;
 		while (r_next != NULL)
 		{
@@ -6431,12 +6468,13 @@ static int ats_create_problem (double D, double U, double R, int v_b_min, int v_
 			while (a_next != NULL)
 			{
 				c_mechs++;
+				found_addresses = GNUNET_YES;
 				a_next = a_next->next;
 			}
 			r_next = r_next->next;
 		}
+		if (found_addresses) c_peers++;
 		next = next->next;
-		c_peers++;
 	}
 
 	if (c_mechs==0)
@@ -6458,21 +6496,25 @@ static int ats_create_problem (double D, double U, double R, int v_b_min, int v_
 
 	c_mechs = 1;
 	c_peers = 1;
+
 	next = neighbours;
 	while (next!=NULL)
 	{
-		peers[c_peers].peer = next->id;
-		peers[c_peers].m_head = NULL;
-		peers[c_peers].m_tail = NULL;
-		// FIXME
-		peers[c_peers].f = 1.0 / c_mechs;
-
+		int found_addresses = GNUNET_NO;
 		struct ReadyList *r_next = next->plugins;
 		while (r_next != NULL)
 		{
 			struct ForeignAddressList * a_next = r_next->addresses;
 			while (a_next != NULL)
 			{
+				if (found_addresses == GNUNET_NO)
+				{
+					peers[c_peers].peer = next->id;
+					peers[c_peers].m_head = NULL;
+					peers[c_peers].m_tail = NULL;
+					peers[c_peers].f = 1.0 / c_mechs;
+				}
+
 				mechanisms[c_mechs].addr = a_next;
 				mechanisms[c_mechs].col_index = c_mechs;
 				mechanisms[c_mechs].peer = &peers[c_peers];
@@ -6480,12 +6522,15 @@ static int ats_create_problem (double D, double U, double R, int v_b_min, int v_
 				mechanisms[c_mechs].plugin = r_next->plugin;
 
 				GNUNET_CONTAINER_DLL_insert_tail(peers[c_peers].m_head, peers[c_peers].m_tail, &mechanisms[c_mechs]);
+				found_addresses = GNUNET_YES;
 				c_mechs++;
+
 				a_next = a_next->next;
 			}
 			r_next = r_next->next;
 		}
-		c_peers++;
+		if (found_addresses == GNUNET_YES)
+			c_peers++;
 		next = next->next;
 	}
 	c_mechs--;
@@ -6539,6 +6584,9 @@ static int ats_create_problem (double D, double U, double R, int v_b_min, int v_
 	glp_add_rows(ats->prob, c_peers);
 	for (c=1; c<=c_peers; c++)
 	{
+#if VERBOSE_ATS
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bounds [row]=[%i] \n",row_index);
+#endif
 		glp_set_row_bnds(ats->prob, row_index, GLP_FX, 1.0, 1.0);
 
 		struct ATS_mechanism *m = peers[c].m_head;
@@ -6896,30 +6944,31 @@ ats_calculate_bandwidth_distribution ()
 		dur = INT_MAX;
 	else
 		dur = (int) ats->max_exec_duration.rel_value;
-	ats->simplex_rerun_required = GNUNET_NO;
 
+	ats->stat.simplex_rerun_required = GNUNET_NO;
 	start = GNUNET_TIME_absolute_get();
-	if ((ats->modified_addr == GNUNET_YES) || (ats->prob==NULL) || (ats->stat.valid == GNUNET_NO))
+	if ((ats->stat.recreate_problem == GNUNET_YES) || (ats->prob==NULL) || (ats->stat.valid == GNUNET_NO))
 	{
 		text = "new";
-		ats->modified_addr = GNUNET_YES;
+		ats->stat.recreate_problem = GNUNET_YES;
 		ats_delete_problem ();
-
 		ats_create_problem (ats->D, ats->U, ats->R, ats->v_b_min, ats->v_n_min, &ats->stat);
 #if DEBUG_ATS
 		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peers/Addresses were modified... new problem: %i peer, %i mechs\n", ats->stat.c_peers, ats->stat.c_mechs);
 #endif
 	}
-	else if ((ats->modified_addr == GNUNET_NO) && (ats->modified_resources == GNUNET_YES) && (ats->stat.valid == GNUNET_YES))
+
+	else if ((ats->stat.recreate_problem == GNUNET_NO) && (ats->stat.modified_resources == GNUNET_YES) && (ats->stat.valid == GNUNET_YES))
 	{
-		ats_update_problem_cr();
 		text = "modified resources";
+		ats_update_problem_cr();
 	}
-	else if ((ats->modified_addr == GNUNET_NO) && (ats->modified_quality == GNUNET_YES) && (ats->stat.valid == GNUNET_YES))
+	else if ((ats->stat.recreate_problem == GNUNET_NO) && (ats->stat.modified_quality == GNUNET_YES) && (ats->stat.valid == GNUNET_YES))
 	{
+		text = "modified quality";
 		ats_update_problem_qm();
 		//ats_update_problem_qm_TEST ();
-		text = "modified quality";
+
 	}
 #if DEBUG_ATS
 	else GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Problem is unmodified\n");
@@ -6928,50 +6977,60 @@ ats_calculate_bandwidth_distribution ()
 	creation = GNUNET_TIME_absolute_get_difference(start,GNUNET_TIME_absolute_get());
 	start = GNUNET_TIME_absolute_get();
 
+	ats->stat.solution = GNUNET_SYSERR;
 	if (ats->stat.valid == GNUNET_YES)
 	{
-		ats->stat.solution = GNUNET_SYSERR;
 		ats_solve_problem(ats->max_iterations, ats->max_exec_duration.rel_value, ats->stat.c_peers, ats->stat.c_mechs, &ats->stat);
 	}
 	solving = GNUNET_TIME_absolute_get_difference(start,GNUNET_TIME_absolute_get());
 
 	if (ats->stat.valid == GNUNET_YES)
 	{
+		int msg_type = GNUNET_ERROR_TYPE_DEBUG;
 #if DEBUG_ATS
-			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP %s: creation time in [ms] %llu execution time in [ms] %llu for %i mechanisms: simplex rerun: %s\n",
-					text, creation.rel_value, solving.rel_value,
-					ats->stat.c_mechs,
-					(ats->simplex_rerun_required == GNUNET_NO) ? " NO" : "YES");
+		msg_type = GNUNET_ERROR_TYPE_ERROR;
 #endif
+		GNUNET_log (msg_type, "MLP %s: creation time: %llu, execution time: %llu, %i mechanisms, simplex rerun: %s, solution %s\n",
+				text, creation.rel_value, solving.rel_value,
+				ats->stat.c_mechs,
+				(ats->stat.simplex_rerun_required == GNUNET_NO) ? "NO" : "YES", (ats->stat.solution == 5) ? "OPTIMAL" : "INVALID");
 		ats->successful_executions ++;
 		GNUNET_STATISTICS_set (stats, "# ATS successful executions", ats->successful_executions, GNUNET_NO);
-		GNUNET_STATISTICS_set (stats, "ATS duration", solving.rel_value + creation.rel_value, GNUNET_NO);
-		GNUNET_STATISTICS_set (stats, "ATS mechanisms", ats->stat.c_mechs, GNUNET_NO);
-		GNUNET_STATISTICS_set (stats, "ATS peers", ats->stat.c_peers, GNUNET_NO);
-		GNUNET_STATISTICS_set (stats, "ATS solution", ats->stat.solution, GNUNET_NO);
-		GNUNET_STATISTICS_set (stats, "ATS timestamp", start.abs_value, GNUNET_NO);
 
-		if ((ats->modified_addr == GNUNET_YES) || (ats->prob==NULL))
+		if ((ats->stat.recreate_problem == GNUNET_YES) || (ats->prob==NULL))
 			GNUNET_STATISTICS_set (stats, "ATS state",ATS_NEW, GNUNET_NO);
-		else if ((ats->modified_resources == GNUNET_YES) &&
-				(ats->modified_quality == GNUNET_NO))
+		else if ((ats->stat.modified_resources == GNUNET_YES) &&
+				(ats->stat.modified_quality == GNUNET_NO))
 			GNUNET_STATISTICS_set (stats, "ATS state", ATS_C_UPDATED, GNUNET_NO);
-		else if ((ats->modified_resources == GNUNET_NO) &&
-				(ats->modified_quality == GNUNET_YES) &&
-				(ats->simplex_rerun_required == GNUNET_NO))
+		else if ((ats->stat.modified_resources == GNUNET_NO) &&
+				(ats->stat.modified_quality == GNUNET_YES) &&
+				(ats->stat.simplex_rerun_required == GNUNET_NO))
 			GNUNET_STATISTICS_set (stats, "ATS state", ATS_Q_UPDATED, GNUNET_NO);
-		else if ((ats->modified_resources == GNUNET_YES) &&
-				(ats->modified_quality == GNUNET_YES) &&
-				(ats->simplex_rerun_required == GNUNET_NO))
+		else if ((ats->stat.modified_resources == GNUNET_YES) &&
+				(ats->stat.modified_quality == GNUNET_YES) &&
+				(ats->stat.simplex_rerun_required == GNUNET_NO))
 			GNUNET_STATISTICS_set (stats, "ATS state", ATS_QC_UPDATED, GNUNET_NO);
-		else if (ats->simplex_rerun_required == GNUNET_NO)
+		else if (ats->stat.simplex_rerun_required == GNUNET_NO)
 			GNUNET_STATISTICS_set (stats, "ATS state", ATS_UNMODIFIED, GNUNET_NO);
 	}
 	else
 	{
-		ats->invalid_executions ++;
-		GNUNET_STATISTICS_set (stats, "# ATS invalid executions", ats->invalid_executions, GNUNET_NO);
+		if (ats->stat.c_peers != 0)
+		{
+			ats->invalid_executions ++;
+			GNUNET_STATISTICS_set (stats, "# ATS invalid executions", ats->invalid_executions, GNUNET_NO);
+		}
+		else
+		{
+			GNUNET_STATISTICS_set (stats, "# ATS successful executions", ats->successful_executions, GNUNET_NO);
+		}
 	}
+
+	GNUNET_STATISTICS_set (stats, "ATS duration", solving.rel_value + creation.rel_value, GNUNET_NO);
+	GNUNET_STATISTICS_set (stats, "ATS mechanisms", ats->stat.c_mechs, GNUNET_NO);
+	GNUNET_STATISTICS_set (stats, "ATS peers", ats->stat.c_peers, GNUNET_NO);
+	GNUNET_STATISTICS_set (stats, "ATS solution", ats->stat.solution, GNUNET_NO);
+	GNUNET_STATISTICS_set (stats, "ATS timestamp", start.abs_value, GNUNET_NO);
 
 	if ((ats->save_mlp == GNUNET_YES) && (ats->stat.c_mechs >= ats->dump_min_peers) && (ats->stat.c_mechs >= ats->dump_min_addr))
 	{
@@ -7007,10 +7066,11 @@ ats_calculate_bandwidth_distribution ()
 		}
 		GNUNET_free (filename);
 	}
+
 	ats->last = GNUNET_TIME_absolute_get();
-	ats->modified_addr = GNUNET_NO;
-	ats->modified_resources = GNUNET_NO;
-	ats->modified_quality = GNUNET_NO;
+	ats->stat.recreate_problem = GNUNET_NO;
+	ats->stat.modified_resources = GNUNET_NO;
+	ats->stat.modified_quality = GNUNET_NO;
 #endif
 }
 
@@ -7062,6 +7122,10 @@ void ats_init ()
 	ats->dump_min_peers = 1;
 	ats->dump_min_addr = 1;
 	ats->dump_overwrite = GNUNET_NO;
+	ats->mechanisms = NULL;
+	ats->peers = NULL;
+	ats->successful_executions = 0;
+	ats->invalid_executions = 0;
 
 #if HAVE_LIBGLPK
 	ats->prob = NULL;
@@ -7135,8 +7199,7 @@ void ats_init ()
 		GNUNET_CONFIGURATION_get_value_number(cfg, "transport","ATS_MIN_INTERVAL", &value);
 		ats->min_delta.rel_value = value;
 	}
-	ats->successful_executions = 0;
-	ats->invalid_executions = 0;
+
 	ats->ats_task = GNUNET_SCHEDULER_add_now(&ats_schedule_calculation, ats);
 }
 
@@ -7166,8 +7229,7 @@ void ats_notify_peer_connect (
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ats_notify_peer_connect: %s\n",GNUNET_i2s(peer));
 #endif
 	//update_addr_ats();
-	ats->modified_addr = GNUNET_YES;
-
+	ats->stat.recreate_problem = GNUNET_YES;
 	ats_calculate_bandwidth_distribution(ats);
 }
 
@@ -7177,9 +7239,7 @@ void ats_notify_peer_disconnect (
 #if DEBUG_ATS
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ats_notify_peer_disconnect: %s\n",GNUNET_i2s(peer));
 #endif
-
-	ats->modified_addr = GNUNET_YES;
-
+	ats->stat.recreate_problem = GNUNET_YES;
 	ats_calculate_bandwidth_distribution (ats);
 }
 
