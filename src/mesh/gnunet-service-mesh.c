@@ -657,8 +657,7 @@ dht_get_response_handler(void *cls,
                                         + (p->length
                                         * sizeof (struct GNUNET_PeerIdentity)),
                                       &send_core_create_path_for_peer,
-                                      peer_info
-                                     );
+                                      peer_info);
     return;
 }
 
@@ -676,9 +675,13 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     struct MeshClient   *c, *next;
     struct MESH_tunnel  *t;
 
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "MESH: client disconnected\n");
     c = clients_head;
     while (NULL != c) {
         if (c->handle == client) {
+            GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "MESH: cleaning client structures\n");
             GNUNET_CONTAINER_DLL_remove (clients_head, clients_tail, c);
             while (NULL != (t = c->tunnels_head)) {
                 destroy_tunnel(c, t);
@@ -710,8 +713,10 @@ handle_local_new_client (void *cls,
     struct MeshClient           *c;
     unsigned int                payload_size;
 
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "MESH: new client connected\n");
     /* Check data sanity */
-    payload_size = message->size - sizeof(struct GNUNET_MessageHeader);
+    payload_size = ntohs(message->size) - sizeof(struct GNUNET_MessageHeader);
     if (0 != payload_size % sizeof(GNUNET_MESH_ApplicationType)) {
         GNUNET_break(0);
         GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
@@ -728,6 +733,8 @@ handle_local_new_client (void *cls,
         c->messages_subscribed = NULL;
     }
     c->subscription_counter = payload_size/sizeof(GNUNET_MESH_ApplicationType);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "MESH:  client has %u subscriptions\n", c->subscription_counter);
 
     /* Insert new client in DLL */
     GNUNET_CONTAINER_DLL_insert (clients_head, clients_tail, c);

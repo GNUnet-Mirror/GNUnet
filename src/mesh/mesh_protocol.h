@@ -55,18 +55,18 @@ struct GNUNET_MESH_ManipulatePath
      * Global id of the tunnel this path belongs to,
      * unique in conjunction with the origin.
      */
-    uint32_t tid GNUNET_PACKED;
+    uint32_t                    tid GNUNET_PACKED;
 
     /**
      * Information about speed requirements.  If the tunnel cannot sustain the 
      * minimum bandwidth, packets are to be dropped.
      */
-    uint32_t speed_min GNUNET_PACKED;
+    uint32_t                    speed_min GNUNET_PACKED;
 
     /**
      * 64-bit alignment.
      */
-    uint32_t reserved GNUNET_PACKED;
+    uint32_t                    reserved GNUNET_PACKED;
 
     /**
      * path_length structs defining the *whole* path from the origin [0] to the
@@ -88,12 +88,12 @@ struct GNUNET_MESH_OriginMulticast
     /**
      * TID of the tunnel
      */
-    uint32_t tid GNUNET_PACKED;
+    uint32_t                    tid GNUNET_PACKED;
 
     /**
      * OID of the tunnel
      */
-    struct GNUNET_PeerIdentity oid;
+    struct GNUNET_PeerIdentity  oid;
 
     /**
      * Payload follows
@@ -114,17 +114,17 @@ struct GNUNET_MESH_DataMessageFromOrigin
     /**
      * TID of the tunnel
      */
-    uint32_t tid GNUNET_PACKED;
+    uint32_t                    tid GNUNET_PACKED;
 
     /**
      * OID of the tunnel
      */
-    struct GNUNET_PeerIdentity oid;
+    struct GNUNET_PeerIdentity  oid;
 
     /**
      * Destination.
      */
-    struct GNUNET_PeerIdentity destination;
+    struct GNUNET_PeerIdentity  destination;
 
     /**
      * Payload follows
@@ -145,17 +145,17 @@ struct GNUNET_MESH_DataMessageToOrigin
     /**
      * TID of the tunnel
      */
-    uint32_t tid GNUNET_PACKED;
+    uint32_t                    tid GNUNET_PACKED;
 
     /**
      * OID of the tunnel
      */
-    struct GNUNET_PeerIdentity oid;
+    struct GNUNET_PeerIdentity  oid;
 
     /**
      * Sender of the message.
      */
-    struct GNUNET_PeerIdentity sender;
+    struct GNUNET_PeerIdentity  sender;
 
     /**
      * Payload follows
@@ -175,17 +175,17 @@ struct GNUNET_MESH_SpeedNotify
     /**
      * TID of the tunnel
      */
-    uint32_t tid GNUNET_PACKED;
+    uint32_t                    tid GNUNET_PACKED;
 
     /**
      * OID of the tunnel
      */
-    struct GNUNET_PeerIdentity oid;
+    struct GNUNET_PeerIdentity  oid;
 
     /**
      * Slowest link down the path (above minimum speed requirement).
      */
-    uint32_t speed_min;
+    uint32_t                    speed_min;
 
 };
 

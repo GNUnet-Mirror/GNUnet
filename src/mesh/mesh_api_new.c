@@ -133,34 +133,35 @@ struct GNUNET_MESH_TransmitHandle {
  * @return number of bytes written to buf
  */
 static size_t 
-send_connect_packet (void *cls, size_t size, void *buf) {
+send_connect_packet (void *cls, size_t size, void *buf)
+{
     struct GNUNET_MESH_Handle           *h = cls;
     struct GNUNET_MESH_ClientConnect    *msg;
     uint16_t                            *types;
-    int                                 ntypes;
+    uint16_t                            ntypes;
     GNUNET_MESH_ApplicationType         *apps;
-    int                                 napps;
+    uint16_t                            napps;
 
     h->th = NULL;
     if (0 == size || buf == NULL) {
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    "Send: buffer size 0 or buffer invalid\n");
+                    "Send connect packet: buffer size 0 or buffer invalid\n");
 	// FIXME: disconnect, reconnect, retry!
         return 0;
     }
     if (sizeof(struct GNUNET_MessageHeader) > size) {
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    "Send: buffer size too small\n");
+                    "Send connect packet: buffer size too small\n");
 	// FIXME: disconnect, reconnect, retry!
         return 0;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sending into %lu bytes buffer\n",
+                "Send connect packet: %lu bytes buffer\n",
                 size);
     msg = (struct GNUNET_MESH_ClientConnect *) buf;
-    msg->header.type = GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT;
+    msg->header.type = htons(GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT);
 
-    for(ntypes = 0, types = NULL; h->message_handlers[ntypes].type; ntypes++) {
+    for (ntypes = 0, types = NULL; h->message_handlers[ntypes].type; ntypes++) {
         types = GNUNET_realloc(types, sizeof(uint16_t) * (ntypes + 1));
         types[ntypes] = h->message_handlers[ntypes].type;
     }
@@ -172,20 +173,24 @@ send_connect_packet (void *cls, size_t size, void *buf) {
         apps[napps] = h->applications[napps];
     }
 
-    msg->header.size = sizeof(struct GNUNET_MESH_ClientConnect) +
-                        sizeof(uint16_t) * ntypes +
-                        sizeof(GNUNET_MESH_ApplicationType) * napps;
-    if(msg->header.size > size) {
-        /* TODO treat error / retry */
-        return 0;
-    }
+    msg->header.size = htons(sizeof(struct GNUNET_MESH_ClientConnect) +
+                             sizeof(uint16_t) * ntypes +
+                             sizeof(GNUNET_MESH_ApplicationType) * napps);
 
     memcpy(&msg[1], types, sizeof(uint16_t) * ntypes);
     memcpy(&msg[1] + sizeof(uint16_t) * ntypes,
            apps,
            sizeof(GNUNET_MESH_ApplicationType) * napps);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sent %lu bytes long message %d types and %d apps\n",
+                ntohs(msg->header.size),
+                ntypes,
+                napps
+               );
+    msg->applications = htons(napps);
+    msg->types = htons(ntypes);
 
-    return msg->header.size;
+    return ntohs(msg->header.size);
 }
 
 
