@@ -279,6 +279,14 @@ add_request_to_pending (void *cls,
 
 
 /**
+ * Try to send messages from list of messages to send
+ * @param handle DHT_Handle
+ */
+static void
+process_pending_messages (struct GNUNET_DHT_Handle *handle);
+
+
+/**
  * Try reconnecting to the dht service.
  *
  * @param cls GNUNET_DHT_Handle
@@ -289,6 +297,7 @@ try_reconnect (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_DHT_Handle *handle = cls;
+
   handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   if (handle->retry_time.rel_value < GNUNET_CONSTANTS_SERVICE_RETRY.rel_value)
     handle->retry_time = GNUNET_CONSTANTS_SERVICE_RETRY;
@@ -304,19 +313,10 @@ try_reconnect (void *cls,
                   "dht reconnect failed(!)\n");
       return;
     }
-
   GNUNET_CONTAINER_multihashmap_iterate (handle->active_requests,
                                          &add_request_to_pending,
                                          handle);
-  if (handle->pending_head == NULL)
-    return;
-
-  GNUNET_CLIENT_notify_transmit_ready (handle->client,
-                                       ntohs(handle->pending_head->msg->size),
-                                       GNUNET_TIME_UNIT_FOREVER_REL,
-                                       GNUNET_NO,
-                                       &transmit_pending,
-                                       handle);
+  process_pending_messages (handle);
 }
 
 
