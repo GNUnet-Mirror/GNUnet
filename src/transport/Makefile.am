@@ -252,7 +252,6 @@ TESTS = \
  $(HTTP_API_TEST) \
  $(HTTPS_PLUGIN_TEST) \
  $(HTTPS_API_TEST) \
- $(WLAN_API_TEST) \
  test_transport_api_multi \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
