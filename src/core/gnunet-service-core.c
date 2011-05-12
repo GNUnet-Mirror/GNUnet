@@ -1642,12 +1642,13 @@ handle_client_request_info (void *cls,
 	  n->current_preference = ULLONG_MAX;
 	}
       update_preference_sum (n->current_preference - old_preference);
-#if DEBUG_CORE_QUOTA
+#if DEBUG_CORE_QUOTA 
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Received reservation request for %d bytes for peer `%4s', reserved %d bytes\n",
+		  "Received reservation request for %d bytes for peer `%4s', reserved %d bytes, suggesting delay of %llu ms\n",
 		  (int) want_reserv,
 		  GNUNET_i2s (&rcm->peer),
-		  (int) got_reserv);
+		  (int) got_reserv,
+		  (unsigned long long) rdelay.rel_value);
 #endif
       cim.reserved_amount = htonl (got_reserv);
       cim.reserve_delay = GNUNET_TIME_relative_hton (rdelay);

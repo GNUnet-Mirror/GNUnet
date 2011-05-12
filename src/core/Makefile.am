@@ -40,6 +40,7 @@ gnunet_service_core_LDADD = \
 check_PROGRAMS = \
  test_core_api_start_only \
  test_core_api \
+ test_core_api_preferences \
  test_core_api_reliability \
  test_core_quota_compliance_symmetric \
  test_core_quota_compliance_asymmetric_send_limited \
@@ -64,6 +65,13 @@ test_core_api_reliability_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
+test_core_api_preferences_SOURCES = \
+ test_core_api_preferences.c
+test_core_api_preferences_LDADD = \
+ $(top_builddir)/src/core/libgnunetcore.la \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+
 test_core_api_send_to_self_SOURCES = \
  test_core_api_send_to_self.c
 test_core_api_send_to_self_LDADD = \
@@ -76,7 +84,7 @@ test_core_api_start_only_SOURCES = \
 test_core_api_start_only_LDADD = \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/util/libgnunetutil.la
- 
+
 test_core_quota_compliance_symmetric_SOURCES = \
  test_core_quota_compliance.c
 test_core_quota_compliance_symmetric_LDADD = \
