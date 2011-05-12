@@ -812,7 +812,8 @@ delayed_restart_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param tc context
  */
 static void
-maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+maint_child_death (void *cls,
+		   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ServiceList *pos;
   struct ServiceList *prev;
@@ -890,7 +891,8 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	  free_entry (pos);
 	  continue;
 	}
-      if (GNUNET_YES != in_shutdown)
+      if ( (GNUNET_YES != in_shutdown) &&
+	   (0 == (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)) )
 	{
 	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		      _
