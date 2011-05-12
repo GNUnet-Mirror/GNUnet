@@ -492,7 +492,11 @@ receive_helper (void *cls,
     {
       /* signal timeout! */
 #if DEBUG_CLIENT
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "timeout in receive_helper, available %d, conn->sock %s, errCode %d\n", available, conn->sock == NULL ? "NULL" : "non-NULL", errCode);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		  "Timeout in receive_helper, available %u, conn->sock %s, errCode `%s'\n", 
+		  (unsigned int) available, 
+		  conn->sock == NULL ? "NULL" : "non-NULL", 
+		  STRERROR (errCode));
 #endif
       if (NULL != (receive_handler = conn->receiver_handler))
         {
