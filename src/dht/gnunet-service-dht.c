@@ -1510,10 +1510,9 @@ update_core_preference (void *cls,
   preference = 1LL << matching;
   peer->info_ctx = GNUNET_CORE_peer_change_preference (coreAPI,
                                                        &peer->id,
-                                                       GNUNET_TIME_relative_get_forever
-                                                       (),
-                                                       GNUNET_BANDWIDTH_value_init
-                                                       (UINT32_MAX), 0,
+                                                       GNUNET_TIME_UNIT_FOREVER_REL,
+                                                       GNUNET_BANDWIDTH_VALUE_MAX, 
+						       0,
                                                        preference,
                                                        &update_core_preference_finish,
                                                        peer);
