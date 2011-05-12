@@ -7,16 +7,31 @@ static struct GNUNET_MESH_MessageHandler handlers[] = {
     {NULL, 0, 0}
 };
 
+static struct GNUNET_OS_Process            *arm_pid;
+
+static struct GNUNET_MESH_Handle           *mesh;
+
+static struct GNUNET_DHT_Handle            *dht;
+
+static void
+  do_shutdown (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if (NULL != mesh)
+    GNUNET_MESH_disconnect (mesh);
+    if (0 != GNUNET_OS_process_kill (arm_pid, SIGTERM))
+        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+    GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (arm_pid));
+    GNUNET_OS_process_close (arm_pid);
+}
+
 
 static void
 run (void *cls,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg) {
-    struct GNUNET_OS_Process            *arm_pid;
-    struct GNUNET_MESH_Handle           *mesh;
-    struct GNUNET_DHT_Handle            *dht;
     GNUNET_MESH_ApplicationType         app;
-    char                                buffer[2048];
+    // char                                buffer[2048];
 
 
     arm_pid = GNUNET_OS_start_process (NULL, NULL,
@@ -41,13 +56,12 @@ run (void *cls,
     }
 
     /* do real test work here */
-    if (0 != GNUNET_OS_process_kill (arm_pid, SIGTERM))
-        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-    GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (arm_pid));
-    GNUNET_OS_process_close (arm_pid);
-
-    return;
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+				  &do_shutdown,
+				  NULL);
 }
+
+
 
 
 

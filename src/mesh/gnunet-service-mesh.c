@@ -1297,6 +1297,27 @@ core_disconnect (void *cls,
 /******************************************************************************/
 
 /**
+ * Task run during shutdown.
+ *
+ * @param cls unused
+ * @param tc unused
+ */
+static void
+shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+ if (core_handle != NULL)
+    {
+      GNUNET_CORE_disconnect (core_handle);
+      core_handle = NULL;
+    }
+ if (dht_handle != NULL)
+    {
+      GNUNET_DHT_disconnect (dht_handle);
+      dht_handle = NULL;
+    } 
+}
+
+/**
  * Process mesh requests.
  *
  * @param cls closure
@@ -1331,6 +1352,11 @@ GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "******* MESH DEBUG MESSAGE 4 ********\n");
     if (dht_handle == NULL) {
         GNUNET_break(0);
     }
+
+  /* Scheduled the task to clean up when shutdown is called */
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+				  &shutdown_task, NULL);
+
 }
 
 /**
