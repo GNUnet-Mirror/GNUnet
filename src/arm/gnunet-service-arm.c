@@ -688,10 +688,16 @@ clean_up_running ()
 static void
 do_shutdown ()
 {
-  GNUNET_SERVER_destroy (server);
-  server = NULL;
-  GNUNET_SCHEDULER_cancel (child_death_task);
-  child_death_task = GNUNET_SCHEDULER_NO_TASK;
+  if (NULL != server)
+    {
+      GNUNET_SERVER_destroy (server);
+      server = NULL;
+    }
+  if (GNUNET_SCHEDULER_NO_TASK != child_death_task)
+    {
+      GNUNET_SCHEDULER_cancel (child_death_task);
+      child_death_task = GNUNET_SCHEDULER_NO_TASK;
+    }
 }
 
 #if DELAY_SHUTDOWN
