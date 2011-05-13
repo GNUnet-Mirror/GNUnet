@@ -57,7 +57,7 @@
  * EVENT                                MESSAGE USED
  * -----                                ------------
  * notify_transmit_ready reply          GNUNET_MESH_TransmitReady
- * notify_transmit_ready data           GNUNET_MESH_Data or
+ * notify_transmit_ready data           GNUNET_MESH_Data OR
  *                                      GNUNET_MESH_DataBroadcast
  * new incoming tunnel                  GNUNET_MESH_PeerControl
  * peer connects to a tunnel            GNUNET_MESH_PeerControl

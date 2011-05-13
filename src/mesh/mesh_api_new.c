@@ -269,20 +269,29 @@ msg_received (void *cls, const struct GNUNET_MessageHeader * msg)
     }
 
     switch (ntohs(msg->type)) {
+        /* Notify of a new incoming tunnel */
+        case GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE:
+            /* */
+            break;
+        /* Notify of a new peer in the tunnel */
         case GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_CONNECTED:
             break;
+        /* Notify of a peer leaving the tunnel */
+        case GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_DISCONNECTED:
+            break;
+        /* Notify of a new data packet in the tunnel */
         case GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA:
             payload = &msg[1];
             for (i = 0, type = ntohs(payload->type); i < h->n_handlers; i++) {
                 handler = &h->message_handlers[i];
                 if (handler->type == type) {
-                    if (GNUNET_OK == handler->callback (cls,
+                    /* FIXME */
+                    if (GNUNET_OK == handler->callback (h->cls,
                                                         NULL,
                                                         NULL,
                                                         NULL,
                                                         NULL,
-                                                        NULL
-                        ))
+                                                        NULL))
                     {
                         GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                                     "MESH: callback completed successfully\n");
@@ -294,14 +303,19 @@ msg_received (void *cls, const struct GNUNET_MessageHeader * msg)
                 }
             }
             break;
+        /* We shouldn't get any other packages, log and ignore */
         default:
             GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                        "MESH: unsolited message form service (type %d)\n",
+                        "MESH: unsolicited message form service (type %d)\n",
                         ntohs(msg->type));
     }
 
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "received a message from mesh\n");
+    GNUNET_CLIENT_receive (h->client,
+                        &msg_received,
+                        h, 
+                        GNUNET_TIME_UNIT_FOREVER_REL);
     return;
 }
 
