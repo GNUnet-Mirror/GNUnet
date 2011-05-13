@@ -1,20 +1,47 @@
+/*
+     This file is part of GNUnet.
+     (C) 2011 Christian Grothoff (and other contributing authors)
+
+     GNUnet is free software; you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published
+     by the Free Software Foundation; either version 3, or (at your
+     option) any later version.
+
+     GNUnet is distributed in the hope that it will be useful, but
+     WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     General Public License for more details.
+
+     You should have received a copy of the GNU General Public License
+     along with GNUnet; see the file COPYING.  If not, write to the
+     Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+     Boston, MA 02111-1307, USA.
+*/
+
+/**
+ * @file mesh/test_mesh_api.c
+ * @brief test mesh api: dummy test of callbacks
+ * @author Bartlomiej Polot
+ */
+
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_mesh_service_new.h"
 
-static struct GNUNET_MESH_MessageHandler handlers[] = {
-    {NULL, 0, 0}
-};
-
-static struct GNUNET_OS_Process            *arm_pid;
-
-static struct GNUNET_MESH_Handle           *mesh;
+static struct GNUNET_MESH_MessageHandler        handlers[] = {{NULL, 0, 0}};
+static struct GNUNET_OS_Process                 *arm_pid;
+static struct GNUNET_MESH_Handle                *mesh;
+static int                                      result;
+GNUNET_SCHEDULER_TaskIdentifier                 abort_task;
+GNUNET_SCHEDULER_TaskIdentifier                 test_task;
 
 static void
-do_shutdown (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+    if (0 != abort_task) {
+        GNUNET_SCHEDULER_cancel(abort_task);
+    }
     if (NULL != mesh) {
         GNUNET_MESH_disconnect (mesh);
     }
@@ -25,50 +52,67 @@ do_shutdown (void *cls,
     GNUNET_OS_process_close (arm_pid);
 }
 
+static void
+do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+    if (0 != test_task) {
+        GNUNET_SCHEDULER_cancel(test_task);
+    }
+    result = GNUNET_SYSERR;
+    abort_task = 0;
+    do_shutdown(cls, tc);
+}
 
 static void
-error_shutdown (void *cls,
-                const struct GNUNET_SCHEDULER_TaskContext *tc)
+test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-    if (NULL != mesh) {
-        GNUNET_MESH_disconnect (mesh);
+    struct GNUNET_CONFIGURATION_Handle  *cfg = cls;
+    GNUNET_MESH_ApplicationType         app;
+
+    test_task = 0;
+    app = 0;
+    mesh = GNUNET_MESH_connect(cfg, NULL, NULL, handlers, &app);
+    if(NULL == mesh) {
+        GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Couldn't connect to mesh :(\n");
+        return;
+    } else {
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "YAY! CONNECTED TO MESH :D\n");
     }
-    if (0 != GNUNET_OS_process_kill (arm_pid, SIGTERM)) {
-        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-    }
-    GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (arm_pid));
-    GNUNET_OS_process_close (arm_pid);
+
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
+                                    GNUNET_TIME_UNIT_SECONDS, 1),
+                                    &do_shutdown,
+                                    NULL);
 }
+
 
 static void
 run (void *cls,
      char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg) {
-    GNUNET_MESH_ApplicationType         app;
-
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
     arm_pid = GNUNET_OS_start_process (NULL, NULL,
                                        "gnunet-service-arm",
                                        "gnunet-service-arm",
                                        "-L", "DEBUG",
                                        "-c", "test_mesh.conf",
                                        NULL);
-    app = 0;
-    mesh = GNUNET_MESH_connect(cfg, NULL, NULL, handlers, &app);
-    if(NULL == mesh) {
-        GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Couldn't connect to mesh :(\n");
-    } else {
-        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "YAY! CONNECTED TO MESH :D\n");
-    }
 
-    /* do real test work here */
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
-                                    GNUNET_TIME_UNIT_SECONDS, 5),
-                                  &do_shutdown,
-                                  NULL);
+    abort_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
+                                                GNUNET_TIME_UNIT_SECONDS, 5),
+                                                &do_abort,
+                                                NULL);
+    test_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
+                                                GNUNET_TIME_UNIT_SECONDS, 1),
+                                                &test,
+                                                (void *)cfg);
+
 }
 
 
-int main (int argc, char *argv[]) {
+int
+main (int argc, char *argv[])
+{
     int ret;
     char *const argv2[] = {"test-mesh-api",
         "-c", "test_mesh.conf",
@@ -82,9 +126,15 @@ int main (int argc, char *argv[]) {
     ret = GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1,
                         argv2, "test-mesh-api", "nohelp",
                         options, &run, NULL);
-    if (ret != GNUNET_OK) {
+
+    if ( GNUNET_OK != ret ) {
         GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                   "test-mesh-api': Failed with error code %d\n", ret);
+                   "test-mesh-api': run failed with error code %d\n", ret);
+        return 1;
+    }
+    if ( GNUNET_SYSERR == result ) {
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                   "test-mesh-api': test failed\n");
         return 1;
     }
     return 0;

@@ -295,10 +295,16 @@ struct MeshClient
     struct GNUNET_SERVER_Client *handle;
 
     /**
+     * Applications that this client has claimed to provide
+     */
+    GNUNET_MESH_ApplicationType *apps;
+    unsigned int                app_counter;
+
+    /**
      * Messages that this client has declared interest in
      */
-    GNUNET_MESH_ApplicationType *messages_subscribed;
-    unsigned int                subscription_counter;
+    uint16_t                    *types;
+    unsigned int                type_counter;
 
 };
 
@@ -681,12 +687,13 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     while (NULL != c) {
         if (c->handle == client) {
             GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "MESH: cleaning client structures\n");
+               "MESH: matching client found, cleaning\n");
             GNUNET_CONTAINER_DLL_remove (clients_head, clients_tail, c);
             while (NULL != (t = c->tunnels_head)) {
                 destroy_tunnel(c, t);
             }
-            GNUNET_free (c->messages_subscribed);
+            if(0 != c->app_counter) GNUNET_free (c->apps);
+            if(0 != c->type_counter) GNUNET_free (c->types);
             next = c->next;
             GNUNET_free (c);
             c = next;
@@ -710,14 +717,23 @@ handle_local_new_client (void *cls,
                          struct GNUNET_SERVER_Client *client,
                          const struct GNUNET_MessageHeader *message)
 {
-    struct MeshClient           *c;
-    unsigned int                payload_size;
+    struct GNUNET_MESH_ClientConnect    *cc_msg;
+    struct MeshClient                   *c;
+    unsigned int                        payload_size;
+    uint16_t                            types;
+    uint16_t                            apps;
 
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "MESH: new client connected\n");
     /* Check data sanity */
-    payload_size = ntohs(message->size) - sizeof(struct GNUNET_MessageHeader);
-    if (0 != payload_size % sizeof(GNUNET_MESH_ApplicationType)) {
+    payload_size = ntohs(message->size)
+                   - sizeof(struct GNUNET_MESH_ClientConnect);
+    cc_msg = (struct GNUNET_MESH_ClientConnect *) message;
+    types = ntohs(cc_msg->types);
+    apps = ntohs(cc_msg->applications);
+    if (payload_size != 
+        types * sizeof(uint16_t) + apps * sizeof(GNUNET_MESH_ApplicationType))
+    {
         GNUNET_break(0);
         GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
         return;
@@ -726,15 +742,22 @@ handle_local_new_client (void *cls,
     /* Create new client structure */
     c = GNUNET_malloc(sizeof(struct MeshClient));
     c->handle = client;
-    if (payload_size != 0) {
-        c->messages_subscribed = GNUNET_malloc(payload_size);
-        memcpy(c->messages_subscribed, &message[1], payload_size);
-    } else {
-        c->messages_subscribed = NULL;
+    if (types != 0) {
+        c->type_counter = types;
+        c->types = GNUNET_malloc(types * sizeof(uint16_t));
+        memcpy(c->types, &message[1], types * sizeof(uint16_t));
     }
-    c->subscription_counter = payload_size/sizeof(GNUNET_MESH_ApplicationType);
+    if (apps != 0) {
+        c->app_counter = apps;
+        c->apps = GNUNET_malloc(apps * sizeof(GNUNET_MESH_ApplicationType));
+        memcpy(c->apps,
+               &message[1] + types * sizeof(uint16_t),
+               apps * sizeof(GNUNET_MESH_ApplicationType));
+    }
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "MESH:  client has %u subscriptions\n", c->subscription_counter);
+               "MESH:  client has %u+%u subscriptions\n",
+               c->type_counter,
+               c->app_counter);
 
     /* Insert new client in DLL */
     GNUNET_CONTAINER_DLL_insert (clients_head, clients_tail, c);

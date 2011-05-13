@@ -78,6 +78,8 @@ struct GNUNET_MESH_ClientConnect {
     struct GNUNET_MessageHeader header;
     uint16_t                    types           GNUNET_PACKED;
     uint16_t                    applications    GNUNET_PACKED;
+    /* uint16_t                 list_types[types]           */
+    /* uint16_t                 list_apps[applications]     */
 };
 
 
