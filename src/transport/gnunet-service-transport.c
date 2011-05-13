@@ -2528,7 +2528,7 @@ plugin_env_session_end  (void *cls,
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Session ended with peer `%4s', %s\n", 
-	      GNUNET_i2s(&nl->id),
+	      GNUNET_i2s(peer),
 	      "plugin_env_session_end");
 #endif
   GNUNET_CONTAINER_multihashmap_iterate (validation_map,
@@ -2540,7 +2540,7 @@ plugin_env_session_end  (void *cls,
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "No neighbour record found for peer `%4s'\n", 
-		  GNUNET_i2s(&nl->id));
+		  GNUNET_i2s(peer));
 #endif
       return; /* was never marked as connected */
     }
@@ -2556,7 +2556,7 @@ plugin_env_session_end  (void *cls,
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Plugin was associated with peer `%4s'\n", 
-		  GNUNET_i2s(&nl->id));
+		  GNUNET_i2s(peer));
 #endif
       disconnect_neighbour (nl, GNUNET_YES);
       return;
@@ -2574,7 +2574,7 @@ plugin_env_session_end  (void *cls,
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Session was never marked as ready for peer `%4s'\n", 
-		  GNUNET_i2s(&nl->id));
+		  GNUNET_i2s(peer));
 #endif
       disconnect_neighbour (nl, GNUNET_YES);
       return; /* was never marked as connected */
@@ -2623,7 +2623,7 @@ plugin_env_session_end  (void *cls,
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Disconnecting peer `%4s', %s\n", 
-	      GNUNET_i2s(&nl->id),
+	      GNUNET_i2s(peer),
 	      "plugin_env_session_end");
 #endif
   /* FIXME: This doesn't mean there are no addresses left for this PEER,
