@@ -38,7 +38,7 @@
 #include "gnunet_transport_plugin.h"
 #include "transport.h"
 
-#define DEBUG_TCP GNUNET_NO
+#define DEBUG_TCP GNUNET_YES
 
 #define DEBUG_TCP_NAT GNUNET_NO
 
@@ -2908,6 +2908,16 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   GNUNET_SERVER_disconnect_notify (plugin->server,
 				   &disconnect_notify,
 				   plugin);    
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_string (env->cfg,
+							   "transport-tcp",
+							   "BINDTO",
+							   &plugin->bind_address))
+	{
+	  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
+			   "tcp",
+			   _("Binding TCP plugin to specific address: `%s'\n"),
+			   plugin->bind_address);
+	}
   GNUNET_OS_network_interfaces_list (&process_interfaces, plugin);
 
   if ( (plugin->behind_nat == GNUNET_YES) &&
@@ -2949,17 +2959,6 @@ libgnunet_plugin_transport_tcp_init (void *cls)
 		     "tcp",
                      _("TCP transport advertises itself as being on port %llu\n"),
                      aport);
-
-  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_string (env->cfg,
-							   "transport-tcp", 
-							   "BINDTO", 
-							   &plugin->bind_address))
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, 
-		       "tcp",
-		       _("Binding TCP plugin to specific address: `%s'\n"), 
-		       plugin->bind_address);
-    }
 
   plugin->hostname_dns = GNUNET_RESOLVER_hostname_resolve (env->cfg,
                                                            AF_UNSPEC,
