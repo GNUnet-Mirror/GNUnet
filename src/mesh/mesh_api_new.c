@@ -22,6 +22,13 @@
  * @file mesh/mesh_api_new.c
  * @brief mesh api: client implementation of mesh service
  * @author Bartlomiej Polot
+ * 
+ * STRUCTURE:
+ * - CONSTANTS
+ * - DATA STRUCTURES
+ * - SEND CALLBACKS
+ * - RECEIVE HANDLERS
+ * - API CALL DEFINITIONS
  */
 
 #ifdef __cplusplus
@@ -40,6 +47,16 @@ extern "C"
 #include "gnunet_util_lib.h"
 #include "gnunet_mesh_service_new.h"
 #include "mesh.h"
+
+/******************************************************************************/
+/**************************       CONSTANTS      ******************************/
+/******************************************************************************/
+
+#define GNUNET_MESH_LOCAL_TUNNEL_ID_MARK 0x80000000
+
+/******************************************************************************/
+/************************      DATA STRUCTURES     ****************************/
+/******************************************************************************/
 
 /**
  * Opaque handle to the service.
@@ -68,8 +85,13 @@ struct GNUNET_MESH_Handle {
     /**
      * Double linked list of the tunnels this client is connected to.
      */
-    struct GNUNET_MESH_Tunnel                   *head;
-    struct GNUNET_MESH_Tunnel                   *tail;
+    struct GNUNET_MESH_Tunnel                   *tunnels_head;
+    struct GNUNET_MESH_Tunnel                   *tunnels_tail;
+
+    /**
+     * tid of the next tunnel to create (to avoid reusing IDs often)
+     */
+    MESH_TunnelID                               next_tid;
 
     /**
      * Callback for tunnel disconnection
@@ -91,10 +113,22 @@ struct GNUNET_MESH_Handle {
  * Opaque handle to a tunnel.
  */
 struct GNUNET_MESH_Tunnel {
+
+    /**
+     * DLL
+     */
+    struct GNUNET_MESH_Tunnel                   *next;
+    struct GNUNET_MESH_Tunnel                   *prev;
+
     /**
      * Owner of the tunnel, either local or remote
      */
     GNUNET_PEER_Id                              owner;
+
+    /**
+     * Local ID of the tunnel
+     */
+    MESH_TunnelID                               tid;
 
     /**
      * Callback to execute when peers connect to the tunnel
@@ -126,15 +160,44 @@ struct GNUNET_MESH_TransmitHandle {
     // TODO
 };
 
+/******************************************************************************/
+/***********************     AUXILIARY FUNCTIONS      *************************/
+/******************************************************************************/
 
 /**
- * Function called to notify a client about the socket begin ready to queue more
- * data.  "buf" will be NULL and "size" zero if the socket was closed for
- * writing in the meantime.
+ * Get the tunnel handler for the tunnel specified by id from the given handle
+ * @param h Mesh handle
+ * @param tid ID of the wanted tunnel
+ * @return handle to the required tunnel or NULL if not found
+ */
+static struct GNUNET_MESH_Tunnel *
+retrieve_tunnel (struct GNUNET_MESH_Handle *h, MESH_TunnelID tid) 
+{
+    struct GNUNET_MESH_Tunnel           *t;
+
+    t = h->tunnels_head;
+    while (t != NULL) {
+        if (t->tid == tid) return t;
+        t = t->next;
+    }
+    return NULL;
+}
+
+
+/******************************************************************************/
+/************************       SEND CALLBACKS     ****************************/
+/******************************************************************************/
+
+
+/**
+ * Function called to send a connect message to the service, specifying the
+ * types and applications that the client is interested in.
+ * "buf" will be NULL and "size" zero if the socket was closed for writing in
+ * the meantime.
  *
- * @param cls closure
+ * @param cls closure, the mesh handle
  * @param size number of bytes available in buf
- * @param buf where the callee should write the message
+ * @param buf where the callee should write the connect message
  * @return number of bytes written to buf
  */
 static size_t 
@@ -200,13 +263,14 @@ send_connect_packet (void *cls, size_t size, void *buf)
 
 
 /**
- * Function called to notify a client about the socket begin ready to queue more
- * data.  "buf" will be NULL and "size" zero if the socket was closed for
+ * Function called to send a create tunnel message, specifying the tunnel
+ * number chosen by the client.
+ * "buf" will be NULL and "size" zero if the socket was closed for
  * writing in the meantime.
  *
- * @param cls closure
+ * @param cls closure, the tunnel handle
  * @param size number of bytes available in buf
- * @param buf where the callee should write the message
+ * @param buf where the callee should write the create tunnel message
  * @return number of bytes written to buf
  */
 static size_t 
@@ -237,6 +301,7 @@ send_tunnel_create_packet (void *cls, size_t size, void *buf)
     msg->header.type = htons(GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT);
 
     msg->header.size = htons(sizeof(struct GNUNET_MESH_TunnelMessage));
+    msg->tunnel_id = htonl(t->tid);
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Sent %lu bytes long message\n",
@@ -246,21 +311,94 @@ send_tunnel_create_packet (void *cls, size_t size, void *buf)
 }
 
 
+/******************************************************************************/
+/***********************      RECEIVE HANDLERS     ****************************/
+/******************************************************************************/
+
 /**
- * Type of a function to call when we receive a message
- * from the service.
+ * Process the new tunnel notification and add it to the tunnels in the handle
+ * 
+ * @param h     The mesh handle
+ * @param msh   A message with the details of the new incoming tunnel
+ */
+static void
+process_tunnel_create(struct GNUNET_MESH_Handle *h, 
+                      const struct GNUNET_MESH_TunnelMessage *msg)
+{
+    struct GNUNET_MESH_Tunnel                   *t;
+    MESH_TunnelID                               tid;
+
+    tid = ntohl(msg->tunnel_id);
+    if (tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_MARK) {
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+            "MESH: received an incoming tunnel with tid in local range (%X)\n",
+            tid);
+        return; //FIXME abort? reconnect?
+    }
+    t = GNUNET_malloc(sizeof(struct GNUNET_MESH_Tunnel));
+    t->cls = h->cls;
+    t->connect_handler = NULL;
+    t->disconnect_handler = NULL;
+    t->mesh = h;
+    t->tid = tid;
+    return;
+}
+
+
+/**
+ * Process the incoming data packets
+ * 
+ * @param h     The mesh handle
+ * @param msh   A message encapsulating the data
+ */
+static void
+process_incoming_data(struct GNUNET_MESH_Handle *h, 
+                      const struct GNUNET_MESH_Data *msg)
+{
+    const struct GNUNET_MESH_Data               *payload;
+    const struct GNUNET_MESH_MessageHandler     *handler;
+    struct GNUNET_MESH_Tunnel                   *t;
+    uint16_t                                    type;
+    int                                         i;
+
+    t = retrieve_tunnel(h, ntohl(msg->tunnel_id));
+
+    payload = (struct GNUNET_MESH_Data *) &msg[1];
+    type = ntohs(payload->header.type);
+    for (i = 0; i < h->n_handlers; i++) {
+        handler = &h->message_handlers[i];
+        if (handler->type == type) {
+            /* FIXME */
+            if (GNUNET_OK == handler->callback (h->cls,
+                                                t,
+                                                NULL,
+                                                NULL,
+                                                NULL,
+                                                NULL))
+            {
+                GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                            "MESH: callback completed successfully\n");
+            } else {
+                GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                            "MESH: callback caused disconnection\n");
+                GNUNET_MESH_disconnect(h);
+            }
+        }
+    }
+    return;
+}
+
+
+/**
+ * Function to process all messages received from the service
  *
  * @param cls closure
  * @param msg message received, NULL on timeout or fatal error
  */
-void
+static void
 msg_received (void *cls, const struct GNUNET_MessageHeader * msg)
 {
     struct GNUNET_MESH_Handle                   *h = cls;
-    const struct GNUNET_MessageHeader           *payload;
-    const struct GNUNET_MESH_MessageHandler     *handler;
-    uint16_t                                    type;
-    int                                         i;
 
     if (msg == NULL) {
         GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -271,7 +409,7 @@ msg_received (void *cls, const struct GNUNET_MessageHeader * msg)
     switch (ntohs(msg->type)) {
         /* Notify of a new incoming tunnel */
         case GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE:
-            /* */
+            process_tunnel_create(h, (struct GNUNET_MESH_TunnelMessage *)msg);
             break;
         /* Notify of a new peer in the tunnel */
         case GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_CONNECTED:
@@ -281,27 +419,7 @@ msg_received (void *cls, const struct GNUNET_MessageHeader * msg)
             break;
         /* Notify of a new data packet in the tunnel */
         case GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA:
-            payload = &msg[1];
-            for (i = 0, type = ntohs(payload->type); i < h->n_handlers; i++) {
-                handler = &h->message_handlers[i];
-                if (handler->type == type) {
-                    /* FIXME */
-                    if (GNUNET_OK == handler->callback (h->cls,
-                                                        NULL,
-                                                        NULL,
-                                                        NULL,
-                                                        NULL,
-                                                        NULL))
-                    {
-                        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                                    "MESH: callback completed successfully\n");
-                    } else {
-                        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                                    "MESH: callback caused disconnection\n");
-                        GNUNET_MESH_disconnect(h);
-                    }
-                }
-            }
+            process_incoming_data(h, (struct GNUNET_MESH_Data *)msg);
             break;
         /* We shouldn't get any other packages, log and ignore */
         default:
@@ -319,6 +437,9 @@ msg_received (void *cls, const struct GNUNET_MessageHeader * msg)
     return;
 }
 
+/******************************************************************************/
+/**********************      API CALL DEFINITIONS     *************************/
+/******************************************************************************/
 
 /**
  * Connect to the mesh service.
@@ -361,6 +482,7 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
     h->cls = cls;
     h->message_handlers = handlers;
     h->applications = stypes;
+    h->next_tid = 0x80000000;
 
     for(h->n_handlers = 0; handlers[h->n_handlers].type; h->n_handlers++);
     for(h->n_applications = 0; stypes[h->n_applications]; h->n_applications++);
@@ -425,6 +547,8 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
     tunnel->disconnect_handler = disconnect_handler;
     tunnel->cls = handler_cls;
     tunnel->mesh = h;
+    tunnel->tid = h->next_tid++;
+    h->next_tid |= GNUNET_MESH_LOCAL_TUNNEL_ID_MARK; // keep in range
 
     h->th = GNUNET_CLIENT_notify_transmit_ready(h->client,
                                     sizeof(struct GNUNET_MESH_TunnelMessage),
