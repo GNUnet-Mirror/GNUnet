@@ -2663,7 +2663,7 @@ process_external_ip (void *cls,
   struct Plugin *plugin = cls;
   const struct sockaddr_in *s;
   struct IPv4TcpAddress t4;
-
+  char buf[INET_ADDRSTRLEN];
 
   plugin->ext_dns = NULL;
   if (addr == NULL)
@@ -2690,9 +2690,29 @@ process_external_ip (void *cls,
 		       plugin->external_address, 
 		       (int) plugin->adv_port);
     }
+
+  if ((plugin->bind_address != NULL) && (plugin->behind_nat == GNUNET_NO))
+  {
+      GNUNET_assert (NULL != inet_ntop(AF_INET,
+				       &t4.ipv4_addr,
+				       buf,
+				       sizeof (buf)));
+      if (0 != strcmp (plugin->bind_address, buf))
+      {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+		       "tcp",
+		       "NAT is not enabled and specific bind address `%s' differs from external address `%s'! Not notifying about external address `%s'\n",
+		       plugin->bind_address,
+		       plugin->external_address,
+		       plugin->external_address);
+      return;
+      }
+  }
+
   add_to_address_list (plugin, 
 		       &t4.ipv4_addr, 
 		       sizeof (struct in_addr));
+
   plugin->env->notify_address (plugin->env->cls,
 			       "tcp",
 			       &t4, sizeof(t4),
