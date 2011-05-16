@@ -6096,9 +6096,10 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                     gettext_noop ("# outstanding peerinfo iterate requests"),
                                     -1,
                                     GNUNET_NO);
+          chvc->ve_count--;
         }
       else
-	GNUNET_break (0);
+    	  GNUNET_break (0);
       GNUNET_assert (chvc->ve_count == 0);
       GNUNET_free (chvc);
     }
