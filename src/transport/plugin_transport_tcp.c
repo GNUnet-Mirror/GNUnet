@@ -2730,6 +2730,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   int enable_upnp;
   char *internal_address;
   char *external_address;
+  char *bind_address;
   struct sockaddr_in in_addr;
   struct GNUNET_TIME_Relative idle_timeout;
 
@@ -2805,6 +2806,18 @@ libgnunet_plugin_transport_tcp_init (void *cls)
       enable_upnp = GNUNET_NO;
     }
 
+  bind_address = NULL;
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_string (env->cfg,
+							   "transport-tcp",
+							   "BINDTO",
+							   &bind_address))
+	{
+	  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
+			   "tcp",
+			   _("Binding TCP plugin to specific address: `%s'\n"),
+			   bind_address);
+	}
+
   internal_address = NULL;
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_have_value (env->cfg,
@@ -2829,6 +2842,19 @@ libgnunet_plugin_transport_tcp_init (void *cls)
       GNUNET_free_non_null(external_address);
       return NULL;
     }
+
+  if ((bind_address != NULL) && (internal_address != NULL))
+  {
+	  if (0 != strcmp(internal_address, bind_address ))
+	  {
+			  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+					  "tcp","Specific bind address `%s' and internal address `%s' must not differ, forcing internal address to bind address!\n", bind_address, internal_address);
+			  GNUNET_free (internal_address);
+			  internal_address = bind_address;
+			  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+					  "tcp","New internal address `%s'\n", internal_address);
+	  }
+  }
 
   aport = 0;
   if ( (GNUNET_OK !=
@@ -2875,6 +2901,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->open_port = bport;
   plugin->adv_port = aport;
+  plugin->bind_address = bind_address;
   plugin->external_address = external_address;
   plugin->internal_address = internal_address;
   plugin->behind_nat = behind_nat;
@@ -2927,16 +2954,6 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   GNUNET_SERVER_disconnect_notify (plugin->server,
 				   &disconnect_notify,
 				   plugin);    
-  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_string (env->cfg,
-							   "transport-tcp",
-							   "BINDTO",
-							   &plugin->bind_address))
-	{
-	  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
-			   "tcp",
-			   _("Binding TCP plugin to specific address: `%s'\n"),
-			   plugin->bind_address);
-	}
   GNUNET_OS_network_interfaces_list (&process_interfaces, plugin);
 
   if ( (plugin->behind_nat == GNUNET_YES) &&
