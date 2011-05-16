@@ -2165,7 +2165,7 @@ process_interfaces (void *cls,
   void *arg;
   uint16_t args;
   void *arg_nat;
-  char buf[INET_ADDRSTRLEN];
+  char buf[INET6_ADDRSTRLEN];
 
   af = addr->sa_family;
   arg_nat = NULL;
@@ -2183,7 +2183,7 @@ process_interfaces (void *cls,
 #if DEBUG_TCP
           GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, 
 			   "tcp",
-			   "Not notifying transport of address `%s' (redundant)\n",
+			   "Not notifying transport of address `%s' (does not match bind address)\n",
 			   GNUNET_a2s (addr, addrlen));
 #endif
           return GNUNET_OK;
@@ -2215,6 +2215,25 @@ process_interfaces (void *cls,
       memcpy (&t6.ipv6_addr,
 	      &((struct sockaddr_in6 *) addr)->sin6_addr,
 	      sizeof (struct in6_addr));
+
+      /* check bind address */
+      GNUNET_assert (NULL != inet_ntop(AF_INET6,
+				       &t6.ipv6_addr,
+				       buf,
+				       sizeof (buf)));
+
+      if ( (plugin->bind_address != NULL) &&
+	   (0 != strcmp(buf, plugin->bind_address)) )
+        {
+#if DEBUG_TCP
+          GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+			   "tcp",
+			   "Not notifying transport of address `%s' (does not match bind address)\n",
+			   GNUNET_a2s (addr, addrlen));
+#endif
+          return GNUNET_OK;
+        }
+
       add_to_address_list (plugin, 
 			   &t6.ipv6_addr, 
 			   sizeof (struct in6_addr));
