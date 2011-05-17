@@ -2576,7 +2576,8 @@ plugin_env_session_end  (void *cls,
 		  "Session was never marked as ready for peer `%4s'\n", 
 		  GNUNET_i2s(peer));
 #endif
-      disconnect_neighbour (nl, GNUNET_YES);
+      //FIXME: This conflicts with inbound tcp connections and tcp nat ... debugging in progress
+      //disconnect_neighbour (nl, GNUNET_YES);
       return; /* was never marked as connected */
     }
   pos->session = NULL;
@@ -6096,7 +6097,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                     gettext_noop ("# outstanding peerinfo iterate requests"),
                                     -1,
                                     GNUNET_NO);
-          chvc->ve_count--;
+          chvc->ve_count --;
         }
       else
     	  GNUNET_break (0);
