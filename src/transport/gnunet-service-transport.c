@@ -2577,7 +2577,7 @@ plugin_env_session_end  (void *cls,
 		  GNUNET_i2s(peer));
 #endif
       //FIXME: This conflicts with inbound tcp connections and tcp nat ... debugging in progress
-      //disconnect_neighbour (nl, GNUNET_YES);
+      disconnect_neighbour (nl, GNUNET_YES);
       return; /* was never marked as connected */
     }
   pos->session = NULL;
@@ -4917,7 +4917,8 @@ disconnect_neighbour (struct NeighbourList *n, int check)
           peer_addresses = rpos->addresses;
           while (peer_addresses != NULL)
             {
-              if (GNUNET_YES == peer_addresses->connected)
+        	  // Do not disconnect if: an address is connected or an inbound address exists
+              if ((GNUNET_YES == peer_addresses->connected) || (peer_addresses->addrlen == 0))
                 {
 #if DEBUG_TRANSPORT
                   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
