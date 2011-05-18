@@ -617,6 +617,7 @@ handle_notify (void *cls,
   GNUNET_CONTAINER_multihashmap_iterate (hostmap,
 					 &do_notify_entry,
 					 client);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
