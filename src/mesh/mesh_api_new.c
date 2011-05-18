@@ -45,6 +45,7 @@ extern "C"
 #include "gnunet_common.h"
 #include "gnunet_client_lib.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_peer_lib.h"
 #include "gnunet_mesh_service_new.h"
 #include "mesh.h"
 
@@ -119,11 +120,6 @@ struct GNUNET_MESH_Tunnel {
      */
     struct GNUNET_MESH_Tunnel                   *next;
     struct GNUNET_MESH_Tunnel                   *prev;
-
-    /**
-     * Owner of the tunnel, either local or remote
-     */
-    GNUNET_PEER_Id                              owner;
 
     /**
      * Local ID of the tunnel
@@ -341,6 +337,7 @@ process_tunnel_create(struct GNUNET_MESH_Handle *h,
     t->disconnect_handler = NULL;
     t->mesh = h;
     t->tid = tid;
+
     return;
 }
 
