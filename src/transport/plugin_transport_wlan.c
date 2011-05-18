@@ -60,7 +60,7 @@
 
 #define HALLO_BEACON_SCALING_FACTOR 900
 
-#define DEBUG_wlan GNUNET_NO
+#define DEBUG_wlan GNUNET_YES
 #define DEBUG_wlan_retransmission GNUNET_NO
 
 #define MESSAGE_LENGHT_UNKNOWN -1
@@ -2043,10 +2043,7 @@ static int
 is_double_msg(struct Receive_Message_Queue * rx_msg,
     struct FragmentationHeader * fh)
 {
-  //test if bitfield is okay
-#if DEBUG_wlan
-  check_message_fragment_bitfield(rx_msg);
-#endif
+
 
   return testBit((char *) &rx_msg->received_fragments, ntohs(
       fh->fragment_off_or_num));
@@ -2256,10 +2253,6 @@ check_rx_finished_msg(struct Plugin* plugin,
       free_receive_message(plugin, rx_message);
       return;
     }
-
-#if DEBUG_wlan
-  check_message_fragment_bitfield(rx_message);
-#endif
 
   //  if (rx_message->frag_tail->num == ffsl(rx_message->received_fragments))
   //    {
