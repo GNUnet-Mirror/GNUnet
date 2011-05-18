@@ -220,8 +220,6 @@ check_PROGRAMS = \
  $(HTTP_API_TEST) \
  $(HTTPS_PLUGIN_TEST) \
  $(HTTPS_API_TEST) \
- $(WLAN_API_TEST) \
- $(WLAN_REL_TEST) \
  test_transport_api_multi \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
@@ -236,7 +234,9 @@ check_PROGRAMS = \
  test_quota_compliance_udp_asymmetric_recv_constant \
  $(UNIX_QUOTA_TEST) \
  $(HTTP_QUOTA_TEST) \
- $(HTTPS_QUOTA_TEST)
+ $(HTTPS_QUOTA_TEST) \
+ $(WLAN_API_TEST) \
+ $(WLAN_REL_TEST)
 # TODO: add tests for nat, etc.
 
 if !DISABLE_TEST_RUN
@@ -265,7 +265,8 @@ TESTS = \
  test_quota_compliance_udp_asymmetric_recv_constant \
  $(UNIX_QUOTA_TEST) \
  $(HTTP_QUOTA_TEST) \
- $(HTTPS_QUOTA_TEST)
+ $(HTTPS_QUOTA_TEST) \
+ $(WLAN_REL_TEST)
 endif
 
 test_transport_ats_SOURCES = \
