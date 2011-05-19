@@ -490,6 +490,31 @@ send_core_create_path_for_peer (void *cls, size_t size, void *buf)
 
 
 /**
+ * Send another peer a notification to destroy a tunnel
+ * @param cls The tunnel to destroy
+ * @param size Size in the buffer
+ * @param buf Memory where to put the data to transmit
+ * @return Size of data put in buffer
+ */
+static size_t
+send_p2p_tunnel_destroy(void *cls, size_t size, void *buf)
+{
+    struct MeshTunnel                   *t = cls;
+    struct MeshClient                   *c;
+    struct GNUNET_MESH_TunnelMessage    *msg;
+
+    c = t->client;
+    msg = buf;
+    msg->header.type = htons(GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY); /*FIXME*/
+    msg->header.size = htons(sizeof(struct GNUNET_MESH_TunnelMessage));
+    msg->tunnel_id = htonl(t->tid);
+
+    destroy_tunnel(c, t);
+    return sizeof(struct GNUNET_MESH_TunnelMessage);
+}
+
+
+/**
  * Core handler for path creation
  * struct GNUNET_CORE_MessageHandler
  *
@@ -636,7 +661,7 @@ dht_get_response_handler(void *cls,
         GNUNET_SERVER_notify_transmit_ready(
             t->client->handle,
             sizeof(struct GNUNET_MESH_PeerControl),
-            GNUNET_TIME_relative_get_forever(),
+            GNUNET_TIME_UNIT_FOREVER_REL,
             &notify_client_connection_failure,
             peer_info
         );
@@ -664,7 +689,7 @@ dht_get_response_handler(void *cls,
     GNUNET_CORE_notify_transmit_ready(core_handle,
                                       0,
                                       0,
-                                      GNUNET_TIME_relative_get_forever(),
+                                      GNUNET_TIME_UNIT_FOREVER_REL,
                                       get_path[1],
                                       sizeof(struct GNUNET_MESH_ManipulatePath)
                                         + (p->length
@@ -885,7 +910,14 @@ handle_local_tunnel_destroy (void *cls,
     GNUNET_CRYPTO_hash(&tid, sizeof(MESH_TunnelID), &hash);
     t = GNUNET_CONTAINER_multihashmap_get(c->tunnel_ids, &hash);
     GNUNET_CONTAINER_multihashmap_remove_all(c->tunnel_ids, &hash);
-    destroy_tunnel(c, t);
+    GNUNET_CORE_notify_transmit_ready(core_handle,
+                                      1,
+                                      1,
+                                      GNUNET_TIME_UNIT_FOREVER_REL,
+                                      NULL,
+                                      sizeof(struct GNUNET_MESH_TunnelMessage),
+                                      &send_p2p_tunnel_destroy,
+                                      t);
 
     GNUNET_SERVER_receive_done(client, GNUNET_OK);
     return;
@@ -961,7 +993,7 @@ handle_local_connect_add (void *cls,
                         sizeof(struct GNUNET_PeerIdentity),
                         &key);
     peer_info->dhtget = GNUNET_DHT_get_start(dht_handle,
-                                            GNUNET_TIME_relative_get_forever(),
+                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                             GNUNET_BLOCK_TYPE_ANY,
                                             &key,
                                             4,    /* replication level */

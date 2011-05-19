@@ -791,9 +791,9 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_HELLO 216
 
 
-/**
+/*******************************************************************************
  * MESH message types (WiP)
- */
+ ******************************************************************************/
 
 /**
  * Request the creation of a path
@@ -831,21 +831,63 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_MESH_SPEED_NOTIFY  262
 
-/* FIXME: Document */
+/**
+ * Connect to the mesh service, specifying subscriptions
+ */
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT                  272
+
+/**
+ * Ask the mesh service to create a new tunnel
+ */
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE            273
+
+/**
+ * Ask the mesh service to destroy a tunnel
+ */
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY           274
 
+/**
+ * Ask the mesh service to add a peer to an existing tunnel
+ */
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD         275
+
+/**
+ * Ask the mesh service to remove a peer from a tunnel
+ */
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_DEL         276
+
+/**
+ * Ask the mesh service to add a peer offering a service to an existing tunnel
+ */
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_BY_TYPE     277
+
+/**
+ * Ask the mesh service to cancel a peer connection request
+ */
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_CANCEL      278
+
+/**
+ * Notify a mesh client that a peer has connected to a tunnel
+ */
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_CONNECTED           279
+
+/**
+ * Notify a mesh client that a peer has disconnected from a tunnel
+ */
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_DISCONNECTED        280
 
+/* FIXME needed? */
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_REQUEST_TRANSMIT_READY   281
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_NOTIFY_TRANSMIT_READY    282
+
+/**
+ * Message client <-> mesh service to transport payload
+ */
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA                     283
+
+/**
+ * Message client->mesh to send data to all peers connected to a tunnel
+ */
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA_BROADCAST           284
 
 /**
@@ -853,9 +895,9 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_MESH_RESERVE_END   288
 
-/**
+/*******************************************************************************
  * MESH message types END
- */
+ ******************************************************************************/
 
 
 
