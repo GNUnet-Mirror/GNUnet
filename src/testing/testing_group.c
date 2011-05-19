@@ -1410,6 +1410,10 @@ make_config(const struct GNUNET_CONFIGURATION_Handle *cfg, uint32_t off,
       GNUNET_CONFIGURATION_set_value_string (uc.ret, "statistics", "UNIXPATH",
                                              "");
 
+      GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport-tcp", "USE_LOCALADDR",
+                                             "YES");
+      GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport-udp", "USE_LOCALADDR",
+                                             "YES");
       GNUNET_free_non_null (control_host);
       GNUNET_free (allowed_hosts);
     }
@@ -1423,6 +1427,10 @@ make_config(const struct GNUNET_CONFIGURATION_Handle *cfg, uint32_t off,
                                              hostname);
       GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport-tcp", "BINDTO",
                                              hostname);
+      GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport-tcp", "USE_LOCALADDR",
+                                             "YES");
+      GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport-udp", "USE_LOCALADDR",
+                                             "YES");
       GNUNET_CONFIGURATION_set_value_string (uc.ret, "arm", "ACCEPT_FROM",
                                              allowed_hosts);
       GNUNET_free (allowed_hosts);
@@ -1433,6 +1441,10 @@ make_config(const struct GNUNET_CONFIGURATION_Handle *cfg, uint32_t off,
                                              "127.0.0.1");
       GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport-udp", "BINDTO",
                                              "127.0.0.1");
+      GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport-tcp", "USE_LOCALADDR",
+                                             "YES");
+      GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport-udp", "USE_LOCALADDR",
+                                             "YES");
     }
 
   *port = (uint16_t) uc.nport;
