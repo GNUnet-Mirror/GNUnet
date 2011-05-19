@@ -464,6 +464,11 @@ struct Plugin
   int use_ipv4;
 
   /**
+   * use local addresses?
+   */
+  int use_localaddresses;
+
+  /**
    * Closure passed by MHD to the mhd_logger function
    */
   void * mhd_log;
@@ -726,6 +731,44 @@ remove_session (struct HTTP_PeerContext * pc,
   return GNUNET_OK;
 }
 
+static int check_localaddress (const struct sockaddr *addr, socklen_t addrlen)
+{
+	uint32_t res = 0;
+	int local = GNUNET_NO;
+	int af = addr->sa_family;
+    switch (af)
+    {
+      case AF_INET:
+      {
+    	  uint32_t netmask = 0x7F000000;
+    	  uint32_t address = ntohl (((struct sockaddr_in *) addr)->sin_addr.s_addr);
+    	  res = (address >> 24) ^ (netmask >> 24);
+    	  if (res != 0)
+    		  local = GNUNET_NO;
+    	  else
+    		  local = GNUNET_YES;
+#if DEBUG_HTTP
+    	    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    			  "Checking IPv4 address `%s': %s\n", GNUNET_a2s (addr, addrlen), (local==GNUNET_YES) ? "local" : "global");
+#endif
+    	    break;
+      }
+      case AF_INET6:
+      {
+    	   if (IN6_IS_ADDR_LOOPBACK  (&((struct sockaddr_in6 *) addr)->sin6_addr) ||
+    		   IN6_IS_ADDR_LINKLOCAL (&((struct sockaddr_in6 *) addr)->sin6_addr))
+    		   local = GNUNET_YES;
+    	   else
+    		   local = GNUNET_NO;
+#if DEBUG_HTTP
+    	   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    			  "Checking IPv6 address `%s' : %s\n", GNUNET_a2s (addr, addrlen), (local==GNUNET_YES) ? "local" : "global");
+#endif
+    	   break;
+      }
+    }
+	return local;
+}
 
 /**
  * Add the IP of our network interface to the list of
@@ -749,40 +792,50 @@ process_interfaces (void *cls,
   struct IPv6HttpAddress * t6;
   int af;
 
+  if (plugin->use_localaddresses == GNUNET_NO)
+  {
+	  if (GNUNET_YES == check_localaddress (addr, addrlen))
+	  {
+#if DEBUG_HTTP
+          GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+        	   PROTOCOL_PREFIX,
+			   "Not notifying transport of address `%s' (local address)\n",
+			   GNUNET_a2s (addr, addrlen));
+#endif
+		  return GNUNET_OK;
+	  }
+  }
+
 
   GNUNET_assert(cls !=NULL);
   af = addr->sa_family;
-  if ( (af == AF_INET) && 
-       (plugin->use_ipv4 == GNUNET_YES) && 
-       (plugin->bind6_address == NULL) )
-    {
-      struct in_addr bnd_cmp = ((struct sockaddr_in *) addr)->sin_addr;
-      t4 = GNUNET_malloc(sizeof(struct IPv4HttpAddress));
-      /* Not skipping loopback addresses
-	 if (INADDR_LOOPBACK == ntohl(((struct sockaddr_in *) addr)->sin_addr.s_addr))
-	 {
+  if ((af == AF_INET) &&
+      (plugin->use_ipv4 == GNUNET_YES) &&
+      (plugin->bind6_address == NULL) ) {
 
-	 return GNUNET_OK;
-      }
-      */
+	  struct in_addr bnd_cmp = ((struct sockaddr_in *) addr)->sin_addr;
+      t4 = GNUNET_malloc(sizeof(struct IPv4HttpAddress));
+     // Not skipping loopback addresses
+
+
       t4->ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
       t4->u_port = htons (plugin->port_inbound);
-      if (plugin->bind4_address != NULL)
-	{
+      if (plugin->bind4_address != NULL) {
     	  if (0 == memcmp(&plugin->bind4_address->sin_addr, &bnd_cmp, sizeof (struct in_addr)))
-	    {
-    	      GNUNET_CONTAINER_DLL_insert(plugin->ipv4_addr_head,plugin->ipv4_addr_tail,t4);
-	      plugin->env->notify_address(plugin->env->cls,
-					  PROTOCOL_PREFIX, 
-					  t4, sizeof (struct IPv4HttpAddress), 
-					  GNUNET_TIME_UNIT_FOREVER_REL);
-	      return GNUNET_OK;
-	    }
-	  GNUNET_free (t4);
-	  return GNUNET_OK;
-	}
+	      {
+    	      GNUNET_CONTAINER_DLL_insert(plugin->ipv4_addr_head,
+										  plugin->ipv4_addr_tail,t4);
+			  plugin->env->notify_address(plugin->env->cls,
+										  PROTOCOL_PREFIX,
+										  t4, sizeof (struct IPv4HttpAddress),
+										  GNUNET_TIME_UNIT_FOREVER_REL);
+			  return GNUNET_OK;
+	      }
+    	  GNUNET_free (t4);
+    	  return GNUNET_OK;
+	  }
       else
-	{
+	  {
           GNUNET_CONTAINER_DLL_insert (plugin->ipv4_addr_head,
 				       plugin->ipv4_addr_tail,
 				       t4);
@@ -791,25 +844,21 @@ process_interfaces (void *cls,
 				       t4, sizeof (struct IPv4HttpAddress), 
 				       GNUNET_TIME_UNIT_FOREVER_REL);
       	  return GNUNET_OK;
-	}
-    }
-  else if ( (af == AF_INET6) && 
+	  }
+   }
+   if ((af == AF_INET6) &&
 	    (plugin->use_ipv6 == GNUNET_YES) && 
-	    (plugin->bind4_address == NULL) )
-    {
-      struct in6_addr bnd_cmp6 = ((struct sockaddr_in6 *) addr)->sin6_addr;
-      if (IN6_IS_ADDR_LINKLOCAL (&((struct sockaddr_in6 *) addr)->sin6_addr))
-        {
-          return GNUNET_OK;
-        }
+	    (plugin->bind4_address == NULL) ) {
+
+	  struct in6_addr bnd_cmp6 = ((struct sockaddr_in6 *) addr)->sin6_addr;
+
       t6 = GNUNET_malloc(sizeof(struct IPv6HttpAddress));
       GNUNET_assert(t6 != NULL);
-      if (plugin->bind6_address != NULL)
-	{
+
+      if (plugin->bind6_address != NULL) {
     	  if (0 == memcmp(&plugin->bind6_address->sin6_addr,
-			  &bnd_cmp6, 
-			  sizeof (struct in6_addr)))
-	    {
+						  &bnd_cmp6,
+						 sizeof (struct in6_addr))) {
     	      memcpy (&t6->ipv6_addr,
     	              &((struct sockaddr_in6 *) addr)->sin6_addr,
     	              sizeof (struct in6_addr));
@@ -821,21 +870,21 @@ process_interfaces (void *cls,
     	      GNUNET_CONTAINER_DLL_insert(plugin->ipv6_addr_head,
 					  plugin->ipv6_addr_tail,
 					  t6);
-	      return GNUNET_OK;
-	    }
+    	      return GNUNET_OK;
+	      }
 	  GNUNET_free (t6);
 	  return GNUNET_OK;
-	}
+	  }
       memcpy (&t6->ipv6_addr,
-	      &((struct sockaddr_in6 *) addr)->sin6_addr,
-	      sizeof (struct in6_addr));
+    		  &((struct sockaddr_in6 *) addr)->sin6_addr,
+    		  sizeof (struct in6_addr));
       t6->u6_port = htons (plugin->port_inbound);
       GNUNET_CONTAINER_DLL_insert(plugin->ipv6_addr_head,plugin->ipv6_addr_tail,t6);
       plugin->env->notify_address(plugin->env->cls,
 				  PROTOCOL_PREFIX,
 				  t6, sizeof (struct IPv6HttpAddress), 
 				  GNUNET_TIME_UNIT_FOREVER_REL);
-    }
+  }
   return GNUNET_OK;
 }
 
@@ -2962,8 +3011,10 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   plugin->env = env;
   plugin->peers = NULL;
   plugin->bind4_address = NULL;
+  plugin->bind6_address = NULL;
   plugin->use_ipv6  = GNUNET_YES;
   plugin->use_ipv4  = GNUNET_YES;
+  plugin->use_localaddresses = GNUNET_NO;
 
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
@@ -2991,6 +3042,15 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
     {
       plugin->use_ipv4 = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
 							       component_name,"USE_IPv4");
+    }
+  /* use local addresses? */
+
+  if (GNUNET_CONFIGURATION_have_value (env->cfg,
+				       component_name, "USE_LOCALADDR"))
+    {
+      plugin->use_localaddresses = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+							       component_name,
+							       "USE_LOCALADDR");
     }
   /* Reading port number from config file */
   if ((GNUNET_OK !=

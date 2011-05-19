@@ -52,7 +52,7 @@
 #include "gnunet_transport_plugin.h"
 #include "transport.h"
 
-#define DEBUG_UDP GNUNET_YES
+#define DEBUG_UDP GNUNET_NO
 
 #define MAX_PROBES 20
 
@@ -461,6 +461,11 @@ struct Plugin
    * ports.
    */
   int only_nat_addresses;
+
+  /**
+   * use local addresses?
+   */
+  int use_localaddresses;
 
   /**
    * The process id of the server process (if behind NAT)
@@ -918,6 +923,45 @@ check_local_addr (struct Plugin *plugin,
   return GNUNET_SYSERR;
 }
 
+static int check_localaddress (const struct sockaddr *addr, socklen_t addrlen)
+{
+	uint32_t res = 0;
+	int local = GNUNET_NO;
+	int af = addr->sa_family;
+    switch (af)
+    {
+      case AF_INET:
+      {
+    	  uint32_t netmask = 0x7F000000;
+    	  uint32_t address = ntohl (((struct sockaddr_in *) addr)->sin_addr.s_addr);
+    	  res = (address >> 24) ^ (netmask >> 24);
+    	  if (res != 0)
+    		  local = GNUNET_NO;
+    	  else
+    		  local = GNUNET_YES;
+#if DEBUG_UDP
+    	    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    			  "Checking IPv4 address `%s': %s\n", GNUNET_a2s (addr, addrlen), (local==GNUNET_YES) ? "local" : "global");
+#endif
+    	    break;
+      }
+      case AF_INET6:
+      {
+    	   if (IN6_IS_ADDR_LOOPBACK  (&((struct sockaddr_in6 *) addr)->sin6_addr) ||
+    		   IN6_IS_ADDR_LINKLOCAL (&((struct sockaddr_in6 *) addr)->sin6_addr))
+    		   local = GNUNET_YES;
+    	   else
+    		   local = GNUNET_NO;
+#if DEBUG_UDP
+    	   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    			  "Checking IPv6 address `%s' : %s\n", GNUNET_a2s (addr, addrlen), (local==GNUNET_YES) ? "local" : "global");
+#endif
+    	   break;
+      }
+    }
+	return local;
+}
+
 
 /**
  * Add the IP of our network interface to the list of
@@ -940,6 +984,20 @@ process_interfaces (void *cls,
 
   addr_nat = NULL;
   af = addr->sa_family;
+
+  if (plugin->use_localaddresses == GNUNET_NO)
+  {
+	  if (GNUNET_YES == check_localaddress (addr, addrlen))
+	  {
+#if DEBUG_UDP
+          GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+        	   "udp",
+			   "Not notifying transport of address `%s' (local address)\n",
+			   GNUNET_a2s (addr, addrlen));
+#endif
+		  return GNUNET_OK;
+	  }
+  }
 
   memset(buf, 0, INET6_ADDRSTRLEN);
   if (af == AF_INET)
@@ -1271,7 +1329,7 @@ udp_demultiplexer(struct Plugin *plugin,
   struct MessageQueue *pending_message;
   struct MessageQueue *pending_message_temp;
   uint16_t incoming_port;
-
+  struct GNUNET_TRANSPORT_ATS_Information distance[2];
   if (memcmp(sender, plugin->env->my_identity, sizeof(struct GNUNET_PeerIdentity)) == 0)
     {
 #if DEBUG_UDP
@@ -1471,12 +1529,13 @@ udp_demultiplexer(struct Plugin *plugin,
       /* If we receive these just ignore! */
       break;
     default:
+
 #if DEBUG_UDP
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Sending message type %d to transport!\n",
                   ntohs(currhdr->type));
 #endif
-      struct GNUNET_TRANSPORT_ATS_Information distance[2];
+
       distance[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
       distance[0].value = htonl (UDP_DIRECT_DISTANCE);
       distance[1].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
@@ -2167,6 +2226,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   int behind_nat;
   int allow_nat;
   int only_nat_addresses;
+  int use_localaddresses;
   char *internal_address;
   char *external_address;
   struct IPv4UdpAddress v4_address;
@@ -2271,6 +2331,15 @@ libgnunet_plugin_transport_udp_init (void *cls)
                 _("MTU %llu for `%s' is probably too low!\n"), mtu,
                 "UDP");
 
+  use_localaddresses = GNUNET_NO;
+  if (GNUNET_CONFIGURATION_have_value (env->cfg,
+		  "transport-udp", "USE_LOCALADDR"))
+    {
+      use_localaddresses = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+								   "transport-udp",
+							       "USE_LOCALADDR");
+    }
+
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->external_address = external_address;
   plugin->internal_address = internal_address;
@@ -2279,6 +2348,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   plugin->allow_nat = allow_nat;
   plugin->only_nat_addresses = only_nat_addresses;
   plugin->env = env;
+  plugin->use_localaddresses = use_localaddresses;
 
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;

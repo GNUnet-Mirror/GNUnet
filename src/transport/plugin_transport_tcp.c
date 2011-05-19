@@ -38,9 +38,9 @@
 #include "gnunet_transport_plugin.h"
 #include "transport.h"
 
-#define DEBUG_TCP GNUNET_YES
+#define DEBUG_TCP GNUNET_NO
 
-#define DEBUG_TCP_NAT GNUNET_NO
+#define DEBUG_TCP_NAT GNUNET_YES
 
 /**
  * How long until we give up on transmitting the welcome message?
@@ -432,6 +432,11 @@ struct Plugin
    * Address given for us to bind to (ONLY).
    */
   char *bind_address;
+
+  /**
+   * use local addresses?
+   */
+  int use_localaddresses;
 
   /**
    * List of our IP addresses.
@@ -2139,6 +2144,45 @@ disconnect_notify (void *cls,
 }
 
 
+static int check_localaddress (const struct sockaddr *addr, socklen_t addrlen)
+{
+	uint32_t res = 0;
+	int local = GNUNET_NO;
+	int af = addr->sa_family;
+    switch (af)
+    {
+      case AF_INET:
+      {
+    	  uint32_t netmask = 0x7F000000;
+    	  uint32_t address = ntohl (((struct sockaddr_in *) addr)->sin_addr.s_addr);
+    	  res = (address >> 24) ^ (netmask >> 24);
+    	  if (res != 0)
+    		  local = GNUNET_NO;
+    	  else
+    		  local = GNUNET_YES;
+#if DEBUG_TCP
+    	    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    			  "Checking IPv4 address `%s': %s\n", GNUNET_a2s (addr, addrlen), (local==GNUNET_YES) ? "local" : "global");
+#endif
+    	    break;
+      }
+      case AF_INET6:
+      {
+    	   if (IN6_IS_ADDR_LOOPBACK  (&((struct sockaddr_in6 *) addr)->sin6_addr) ||
+    		   IN6_IS_ADDR_LINKLOCAL (&((struct sockaddr_in6 *) addr)->sin6_addr))
+    		   local = GNUNET_YES;
+    	   else
+    		   local = GNUNET_NO;
+#if DEBUG_TCP
+    	   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    			  "Checking IPv6 address `%s' : %s\n", GNUNET_a2s (addr, addrlen), (local==GNUNET_YES) ? "local" : "global");
+#endif
+    	   break;
+      }
+    }
+	return local;
+}
+
 /**
  * Add the IP of our network interface to the list of
  * our internal IP addresses.
@@ -2169,6 +2213,21 @@ process_interfaces (void *cls,
 
   af = addr->sa_family;
   arg_nat = NULL;
+
+  if (plugin->use_localaddresses == GNUNET_NO)
+  {
+	  if (GNUNET_YES == check_localaddress (addr, addrlen))
+	  {
+#if DEBUG_TCP
+          GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+        	   "tcp",
+			   "Not notifying transport of address `%s' (local address)\n",
+			   GNUNET_a2s (addr, addrlen));
+#endif
+		  return GNUNET_OK;
+	  }
+  }
+
   switch (af)
     {
     case AF_INET:
@@ -2254,6 +2313,8 @@ process_interfaces (void *cls,
       GNUNET_break (0);
       return GNUNET_OK;
     }
+  if (plugin->adv_port != 0)
+  {
 #if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "tcp",
@@ -2263,6 +2324,7 @@ process_interfaces (void *cls,
   plugin->env->notify_address (plugin->env->cls,
                                "tcp",
                                arg, args, GNUNET_TIME_UNIT_FOREVER_REL);
+  }
 
   if (arg_nat != NULL)
     {
@@ -2497,9 +2559,7 @@ tcp_transport_start_nat_server (struct Plugin *plugin)
 #if DEBUG_TCP_NAT
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "tcp"
-                   "Starting %s %s\n", 
-		   "gnunet-nat-server", 
-		   plugin->internal_address);
+                   "Starting %s %s\n", "gnunet-nat-server", plugin->internal_address);
 #endif
   /* Start the server process */
   plugin->server_proc = GNUNET_OS_start_process (NULL,
@@ -2677,7 +2737,7 @@ process_external_ip (void *cls,
       t4.t_port = htons(0);
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, 
 		       "tcp",
-		       "Notifying transport of address %s:%d\n", 
+		       "Notifying transport of address %s:%d\n",
 		       plugin->external_address,
 		       0);
     }
@@ -2748,6 +2808,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   int enable_nat_client;
   int enable_nat_server;
   int enable_upnp;
+  int use_localaddresses;
   char *internal_address;
   char *external_address;
   char *bind_address;
@@ -2899,6 +2960,15 @@ libgnunet_plugin_transport_tcp_init (void *cls)
       return NULL;
     }
 
+  use_localaddresses = GNUNET_NO;
+  if (GNUNET_CONFIGURATION_have_value (env->cfg,
+		  "transport-tcp", "USE_LOCALADDR"))
+    {
+		  use_localaddresses = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+								   "transport-tcp",
+							       "USE_LOCALADDR");
+    }
+
   if (aport == 0)
     aport = bport;
   if (bport == 0)
@@ -2929,6 +2999,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   plugin->enable_nat_client = enable_nat_client;
   plugin->enable_nat_server = enable_nat_server;
   plugin->enable_upnp = enable_upnp;
+  plugin->use_localaddresses = use_localaddresses;
   plugin->env = env;
   plugin->lsock = NULL;
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
