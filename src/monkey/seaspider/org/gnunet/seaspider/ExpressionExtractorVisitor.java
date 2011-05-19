@@ -411,11 +411,19 @@ public class ExpressionExtractorVisitor extends DepthFirstVisitor {
 		current_expression = new ExpressionBuilder();
 		n.f0.accept(this);
 		if (n.f1.present()) {
+			LineNumberInfo lin = LineNumberInfo.get(n.f0);
+			current_expression.commit(lin.lineEnd);
 			operator = true;
 			NodeSequence ns = (NodeSequence) n.f1.node;
 			ns.nodes.get(0).accept(this);
 			operator = false;
+			ExpressionBuilder tmp = current_expression;
+			current_expression = new ExpressionBuilder();				
 			ns.nodes.get(1).accept(this);
+			lin = LineNumberInfo.get(ns.nodes.get(1));
+			current_expression.commit(lin.lineEnd);
+			tmp.push (current_expression.expression);
+			current_expression = tmp;
 		}
 		old.push(current_expression.expression);
 		current_expression = old;
@@ -427,11 +435,19 @@ public class ExpressionExtractorVisitor extends DepthFirstVisitor {
 		current_expression = new ExpressionBuilder();
 		n.f0.accept(this);
 		if (n.f1.present()) {
+			LineNumberInfo lin = LineNumberInfo.get(n.f0);
+			current_expression.commit(lin.lineEnd);
 			operator = true;
 			NodeSequence ns = (NodeSequence) n.f1.node;
 			ns.nodes.get(0).accept(this);
 			operator = false;
+			ExpressionBuilder tmp = current_expression;
+			current_expression = new ExpressionBuilder();				
 			ns.nodes.get(1).accept(this);
+			lin = LineNumberInfo.get(ns.nodes.get(1));
+			current_expression.commit(lin.lineEnd);
+			tmp.push (current_expression.expression);
+			current_expression = tmp;
 		}
 		old.push(current_expression.expression);
 		current_expression = old;
@@ -443,11 +459,19 @@ public class ExpressionExtractorVisitor extends DepthFirstVisitor {
 		current_expression = new ExpressionBuilder();
 		n.f0.accept(this);
 		if (n.f1.present()) {
+			LineNumberInfo lin = LineNumberInfo.get(n.f0);
+			current_expression.commit(lin.lineEnd);
 			operator = true;
 			NodeSequence ns = (NodeSequence) n.f1.node;
 			ns.nodes.get(0).accept(this);
 			operator = false;
+			ExpressionBuilder tmp = current_expression;
+			current_expression = new ExpressionBuilder();				
 			ns.nodes.get(1).accept(this);
+			lin = LineNumberInfo.get(ns.nodes.get(1));
+			current_expression.commit(lin.lineEnd);
+			tmp.push (current_expression.expression);
+			current_expression = tmp;
 		}
 		old.push(current_expression.expression);
 		current_expression = old;
@@ -503,11 +527,19 @@ public class ExpressionExtractorVisitor extends DepthFirstVisitor {
 		current_expression = new ExpressionBuilder();
 		n.f0.accept(this);
 		if (n.f1.present()) {
+			LineNumberInfo lin = LineNumberInfo.get(n.f0);
+			current_expression.commit(lin.lineEnd);
 			operator = true;
 			NodeSequence ns = (NodeSequence) n.f1.node;
 			ns.nodes.get(0).accept(this);
 			operator = false;
+			ExpressionBuilder tmp = current_expression;
+			current_expression = new ExpressionBuilder();				
 			ns.nodes.get(1).accept(this);
+			lin = LineNumberInfo.get(ns.nodes.get(1));
+			current_expression.commit(lin.lineEnd);
+			tmp.push (current_expression.expression);
+			current_expression = tmp;
 		}
 		old.push(current_expression.expression);
 		current_expression = old;
@@ -519,11 +551,19 @@ public class ExpressionExtractorVisitor extends DepthFirstVisitor {
 		current_expression = new ExpressionBuilder();
 		n.f0.accept(this);
 		if (n.f1.present()) {
+			LineNumberInfo lin = LineNumberInfo.get(n.f0);
+			current_expression.commit(lin.lineEnd);
 			operator = true;
 			NodeSequence ns = (NodeSequence) n.f1.node;
 			ns.nodes.get(0).accept(this);
 			operator = false;
+			ExpressionBuilder tmp = current_expression;
+			current_expression = new ExpressionBuilder();				
 			ns.nodes.get(1).accept(this);
+			lin = LineNumberInfo.get(ns.nodes.get(1));
+			current_expression.commit(lin.lineEnd);
+			tmp.push (current_expression.expression);
+			current_expression = tmp;
 		}
 		old.push(current_expression.expression);
 		current_expression = old;
@@ -535,11 +575,19 @@ public class ExpressionExtractorVisitor extends DepthFirstVisitor {
 		current_expression = new ExpressionBuilder();
 		n.f0.accept(this);
 		if (n.f1.present()) {
+			LineNumberInfo lin = LineNumberInfo.get(n.f0);
+			current_expression.commit(lin.lineEnd);
 			operator = true;
 			NodeSequence ns = (NodeSequence) n.f1.node;
 			ns.nodes.get(0).accept(this);
 			operator = false;
+			ExpressionBuilder tmp = current_expression;
+			current_expression = new ExpressionBuilder();				
 			ns.nodes.get(1).accept(this);
+			lin = LineNumberInfo.get(ns.nodes.get(1));
+			current_expression.commit(lin.lineEnd);
+			tmp.push (current_expression.expression);
+			current_expression = tmp;
 		}
 		old.push(current_expression.expression);
 		current_expression = old;
@@ -634,6 +682,8 @@ public class ExpressionExtractorVisitor extends DepthFirstVisitor {
 			current_expression = new ExpressionBuilder();
 			NodeSequence ns = (NodeSequence) n.f0.choice;
 			ns.elementAt(1).accept(this);
+			LineNumberInfo lin1 = LineNumberInfo.get (ns.elementAt(1));
+			current_expression.commit(lin1.lineEnd);
 			old.push("(");
 			old.push(current_expression.expression);
 			old.push(")");

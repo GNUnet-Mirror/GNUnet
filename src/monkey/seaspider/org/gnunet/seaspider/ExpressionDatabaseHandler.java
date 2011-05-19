@@ -197,7 +197,8 @@ public class ExpressionDatabaseHandler {
 		}
 		
 		String[] fileNameArr = fileName.split("src/");
-		fileName = fileNameArr[1];
+		if (fileNameArr.length > 1)
+			fileName = fileNameArr[1];
 		insertExpression(fileName, expressionSyntax, startLineNo, endLineNo);
 	}
 }
