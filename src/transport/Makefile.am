@@ -43,7 +43,7 @@ endif
 
 if LINUX
 UNIX_PLUGIN_LA = libgnunet_plugin_transport_unix.la
-UNIX_PLUGIN_TEST = test_transport_api_unix
+UNIX_PLUGIN_TEST = test_transport_api_unix 
 UNIX_REL_TEST = test_transport_api_unreliability_unix
 UNIX_QUOTA_TEST = test_quota_compliance_unix \
      test_quota_compliance_unix_asymmetric_recv_constant
@@ -224,7 +224,6 @@ check_PROGRAMS = \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
  test_transport_api_unreliability_udp \
- test_transport_api_unreliability_unix \
  $(UNIX_REL_TEST) \
  $(HTTP_REL_TEST) \
  $(HTTPS_REL_TEST) \
@@ -256,7 +255,7 @@ TESTS = \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
  test_transport_api_unreliability_udp \
- test_transport_api_unreliability_unix \
+ $(UNIX_REL_TEST) \
  $(HTTP_REL_TEST) \
  $(HTTPS_REL_TEST) \
  test_quota_compliance_tcp \
