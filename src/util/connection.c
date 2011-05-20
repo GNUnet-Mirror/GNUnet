@@ -966,8 +966,10 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (const struct
     {
       /* Just return; we expect everything to work eventually so don't fail HARD */
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (ret->sock));
-      ret->sock = NULL;
-      return ret;
+      GNUNET_free (ret->addr);
+      GNUNET_free (ret->write_buffer);
+      GNUNET_free (ret);
+      return NULL;
     }
   connect_success_continuation (ret);
   return ret;
