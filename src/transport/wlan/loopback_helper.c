@@ -261,53 +261,6 @@ testmode(int argc, char *argv[])
 
   write_std.size = send_mac_to_plugin((char *) write_std.buf, macaddr.mac);
 
-  /*
-   //wait
-   tv.tv_sec = 2;
-   tv.tv_usec = 0;
-   retval = select(0, NULL, NULL, NULL, &tv);
-
-
-   tv.tv_sec = 3;
-   tv.tv_usec = 0;
-   // if there is something to write
-   FD_ZERO(&wfds);
-   FD_SET(STDOUT_FILENO, &wfds);
-
-   retval = select(STDOUT_FILENO + 1, NULL, &wfds, NULL, &tv);
-
-   if (FD_ISSET(STDOUT_FILENO, &wfds))
-   {
-   ret = write(STDOUT_FILENO, write_std.buf + write_std.pos, write_std.size
-   - write_std.pos);
-
-   if (0 > ret)
-   {
-   closeprog = 1;
-   fprintf(stderr, "Write ERROR to STDOUT");
-   exit(1);
-   }
-   else
-   {
-   write_std.pos += ret;
-   // check if finished
-   if (write_std.pos == write_std.size)
-   {
-   write_std.pos = 0;
-   write_std.size = 0;
-   }
-   }
-   }
-
-   memcpy(&write_std.buf, &macmsg, sizeof(struct Wlan_Helper_Control_Message));
-   write_std.size = sizeof(struct Wlan_Helper_Control_Message);
-   */
-
-  //wait
-  tv.tv_sec = 2;
-  tv.tv_usec = 0;
-  select(0, NULL, NULL, NULL, &tv);
-
   while (0 == closeprog)
     {
 
