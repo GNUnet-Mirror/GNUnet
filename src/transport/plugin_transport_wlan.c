@@ -34,7 +34,8 @@
 #include "plugin_transport_wlan.h"
 #include "gnunet_common.h"
 #include "gnunet_crypto_lib.h"
-#include "wlan/ieee80211.h"
+//#include "wlan/ieee80211.h"
+//#include  <netinet/ip.h>
 
 #include <string.h>
 
@@ -43,7 +44,7 @@
 /**
  * Max size of packet from helper
  */
-#define WLAN_MTU 3000
+#define WLAN_MTU 2100
 
 /**
  * Time until retransmission of a fragment in ms
@@ -60,8 +61,9 @@
 
 #define HALLO_BEACON_SCALING_FACTOR 900
 
-#define DEBUG_wlan GNUNET_YES
+#define DEBUG_wlan GNUNET_NO
 #define DEBUG_wlan_retransmission GNUNET_NO
+#define DEBUG_wlan_ip_udp_packets_on_air GNUNET_NO
 
 #define MESSAGE_LENGHT_UNKNOWN -1
 //#define NO_MESSAGE_OR_MESSAGE_FINISHED -2
@@ -73,6 +75,68 @@
  */
 #define LEARNED_ADDRESS_EXPIRATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 6)
 
+#define IEEE80211_ADDR_LEN      6               /* size of 802.11 address */
+
+#define IEEE80211_FC0_VERSION_MASK              0x03
+#define IEEE80211_FC0_VERSION_SHIFT             0
+#define IEEE80211_FC0_VERSION_0                 0x00
+#define IEEE80211_FC0_TYPE_MASK                 0x0c
+#define IEEE80211_FC0_TYPE_SHIFT                2
+#define IEEE80211_FC0_TYPE_MGT                  0x00
+#define IEEE80211_FC0_TYPE_CTL                  0x04
+#define IEEE80211_FC0_TYPE_DATA                 0x08
+
+/*
+ * Structure of an internet header, naked of options.
+ */
+struct iph
+  {
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+    unsigned int ip_hl:4;               /* header length */
+    unsigned int ip_v:4;                /* version */
+#endif
+#if __BYTE_ORDER == __BIG_ENDIAN
+    unsigned int ip_v:4;                /* version */
+    unsigned int ip_hl:4;               /* header length */
+#endif
+    u_int8_t ip_tos;                    /* type of service */
+    u_short ip_len;                     /* total length */
+    u_short ip_id;                      /* identification */
+    u_short ip_off;                     /* fragment offset field */
+#define IP_RF 0x8000                    /* reserved fragment flag */
+#define IP_DF 0x4000                    /* dont fragment flag */
+#define IP_MF 0x2000                    /* more fragments flag */
+#define IP_OFFMASK 0x1fff               /* mask for fragmenting bits */
+    u_int8_t ip_ttl;                    /* time to live */
+    u_int8_t ip_p;                      /* protocol */
+    u_short ip_sum;                     /* checksum */
+    struct in_addr ip_src, ip_dst;      /* source and dest address */
+  };
+
+struct udphdr
+{
+  u_int16_t source;
+  u_int16_t dest;
+  u_int16_t len;
+  u_int16_t check;
+};
+
+/*
+ * generic definitions for IEEE 802.11 frames
+ */
+struct ieee80211_frame {
+        u_int8_t        i_fc[2];
+        u_int8_t        i_dur[2];
+        u_int8_t        i_addr1[IEEE80211_ADDR_LEN];
+        u_int8_t        i_addr2[IEEE80211_ADDR_LEN];
+        u_int8_t        i_addr3[IEEE80211_ADDR_LEN];
+        u_int8_t        i_seq[2];
+#if DEBUG_wlan_ip_udp_packets_on_air
+        u_int8_t        llc[4];
+        struct iph ip;
+        struct udphdr udp;
+#endif
+} GNUNET_PACKED;
 /**
  * Initial handshake message for a session.
  */
@@ -583,6 +647,54 @@ static void
 do_transmit(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
+ * Generates a nice hexdump of a memory area.
+ *
+ * \param  mem     pointer to memory to dump
+ * \param  length  how many bytes to dump
+ */
+void hexdump(void *mem, unsigned length)
+{
+  char  line[80];
+  char *src = (char*)mem;
+
+  printf(
+    "dumping %u bytes from %p\r\n"
+    "       0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F    0123456789ABCDEF\r\n"
+    , length, src
+  );
+  unsigned i;
+  int j;
+
+  for (i=0; i<length; i+=16, src+=16) {
+    char *t = line;
+
+    t += sprintf(t, "%04x:  ", i);
+    for ( j=0; j<16; j++) {
+      if (i+j < length)
+        t += sprintf(t, "%02X", src[j] & 0xff);
+      else
+        t += sprintf(t, "  ");
+      t += sprintf(t, j%2 ? " " : "-");
+    }
+
+    t += sprintf(t, "  ");
+    for (j=0; j<16; j++) {
+      if (i+j < length) {
+        if (isprint((unsigned char)src[j]))
+          t += sprintf(t, "%c", src[j]);
+        else
+          t += sprintf(t, ".");
+      } else {
+          t += sprintf(t, " ");
+      }
+    }
+
+    t += sprintf(t, "\r\n");
+    printf("%s", line);
+  }
+}
+
+/**
  * Sets a bit active in the bitArray. Increment bit-specific
  * usage counter on disk only if below 4bit max (==15).
  *
@@ -892,9 +1004,8 @@ set_next_send(struct Plugin * const plugin)
     }
   else
     {
-      plugin->server_write_delay_task 
-	= GNUNET_SCHEDULER_add_delayed(next_send,
-				       &delay_fragment_task, plugin);
+      plugin->server_write_delay_task = GNUNET_SCHEDULER_add_delayed(next_send,
+          &delay_fragment_task, plugin);
     }
 }
 
@@ -918,7 +1029,6 @@ get_next_queue_session(struct Plugin * plugin)
 
       GNUNET_assert(session != NULL);
       pm = session->pending_message;
-
 
 #if DEBUG_wlan
       if (pm == NULL)
@@ -1195,7 +1305,7 @@ getWlanHeader(struct ieee80211_frame * Header,
   uint16_t * tmp16;
   const int rate = 11000000;
 
-  Header->i_fc[0] = 0x08;
+  Header->i_fc[0] = IEEE80211_FC0_TYPE_DATA;
   Header->i_fc[1] = 0x00;
   memcpy(&Header->i_addr3, &mac_bssid, sizeof(mac_bssid));
   memcpy(&Header->i_addr2, plugin->mac_address.mac, sizeof(plugin->mac_address));
@@ -1203,6 +1313,36 @@ getWlanHeader(struct ieee80211_frame * Header,
 
   tmp16 = (uint16_t*) Header->i_dur;
   *tmp16 = (uint16_t) htole16((size * 1000000) / rate + 290);
+
+#if DEBUG_wlan_ip_udp_packets_on_air
+  uint crc = 0;
+  uint16_t * x;
+  int count;
+  Header->ip.ip_dst.s_addr = *((uint32_t*) &to_mac_addr->mac[2]);
+  Header->ip.ip_src.s_addr = *((uint32_t*) &plugin->mac_address.mac[2]);
+  Header->ip.ip_v = 4;
+  Header->ip.ip_hl = 5;
+  Header->ip.ip_p = 17;
+  Header->ip.ip_ttl = 1;
+  Header->ip.ip_len = htons(size + 8);
+  Header->ip.ip_sum = 0;
+  x =(uint16_t *)  &Header->ip;
+  count = sizeof(struct iph);
+  while (count > 1) {
+    /* This is the inner loop */
+    crc += (unsigned short) * x++;
+    count -= 2;
+  }
+  /* Add left-over byte, if any */
+  if( count > 0 )
+    crc += * (unsigned char *) x;
+  crc = (crc & 0xffff) + (crc >> 16);
+  Header->ip.ip_sum = htons(~ (unsigned short) crc);
+  Header->llc[0] = 6;
+  Header->llc[1] = 6;
+  Header->udp.len = htons(size - sizeof(struct ieee80211_frame));
+
+#endif
 
   return GNUNET_YES;
 }
@@ -1219,8 +1359,8 @@ getWlanHeader(struct ieee80211_frame * Header,
 uint32_t
 getcrc32(const char *msgbuf, size_t msgbuf_size)
 {
-  //TODO calc some crc
-  return 0;
+
+  return GNUNET_CRYPTO_crc32_n(msgbuf, msgbuf_size);;
 }
 
 /**
@@ -1350,8 +1490,7 @@ send_ack(struct Plugin * plugin, struct AckSendQueue * ack)
 
 //TODO DOXIGEN
 static void
-finish_sending(void *cls, 
-	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+finish_sending(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Finish_send * finish = cls;
   struct Plugin * plugin;
@@ -1366,19 +1505,17 @@ finish_sending(void *cls,
       GNUNET_free (finish);
       return;
     }
-  bytes = GNUNET_DISK_file_write (plugin->server_stdin_handle,
-				  finish->msgheader, 
-				  finish->size);
+  bytes = GNUNET_DISK_file_write(plugin->server_stdin_handle,
+      finish->msgheader, finish->size);
   GNUNET_assert (bytes != GNUNET_SYSERR);
 
   if (bytes != finish->size)
     {
       finish->msgheader = finish->msgheader + bytes;
       finish->size = finish->size - bytes;
-      plugin->server_write_task 
-	= GNUNET_SCHEDULER_add_write_file(GNUNET_TIME_UNIT_FOREVER_REL,
-					  plugin->server_stdin_handle,
-					  &finish_sending, finish);
+      plugin->server_write_task = GNUNET_SCHEDULER_add_write_file(
+          GNUNET_TIME_UNIT_FOREVER_REL, plugin->server_stdin_handle,
+          &finish_sending, finish);
     }
   else
     {
@@ -1507,6 +1644,7 @@ do_transmit(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
           ieeewlanheader = (struct ieee80211_frame *) &radioHeader[1];
           getWlanHeader(ieeewlanheader, &(fm->session->addr), plugin, size);
+
 
           //could be faster if content is just send and not copyed before
           //fragmentheader is needed
@@ -1710,8 +1848,12 @@ wlan_plugin_send(void *cls, const struct GNUNET_PeerIdentity * target,
   wlanheader->header.size = htons(msgbuf_size + sizeof(struct WlanHeader));
   wlanheader->header.type = htons(GNUNET_MESSAGE_TYPE_WLAN_DATA);
   memcpy(&(wlanheader->target), target, sizeof(struct GNUNET_PeerIdentity));
-  wlanheader->crc = htonl(getcrc32(msgbuf, msgbuf_size));
+  wlanheader->crc = 0;
   memcpy(&wlanheader[1], msgbuf, msgbuf_size);
+  wlanheader->crc = htonl(getcrc32((char*) wlanheader, msgbuf_size + sizeof(struct WlanHeader)));
+  //GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Wlan message Header crc: %u, %u\n",getcrc32((char*) wlanheader, msgbuf_size + sizeof(struct WlanHeader)), wlanheader->crc);
+  //hexdump(newmsg->msg, msgbuf_size + sizeof(struct WlanHeader));
+
   newmsg->transmit_cont = cont;
   newmsg->transmit_cont_cls = cont_cls;
   newmsg->timeout = GNUNET_TIME_relative_to_absolute(timeout);
@@ -1813,6 +1955,7 @@ get_fragment_message_from_session_and_id(struct Plugin * plugin,
   struct Session_id_fragment_triple triple;
   triple.session = session;
   triple.message_id = message_id;
+  triple.fm = NULL;
   GNUNET_CONTAINER_heap_iterate(plugin->pending_Fragment_Messages,
       &search_fragment_message_from_session_and_id, &triple);
   return triple.fm;
@@ -1914,8 +2057,8 @@ free_session(struct Plugin * plugin, struct Sessionqueue * queue)
         {
           plugin->pendingsessions--;
           GNUNET_CONTAINER_DLL_remove (plugin->pending_Sessions_head,
-				       plugin->pending_Sessions_tail, 
-				       pendingsession);
+              plugin->pending_Sessions_tail,
+              pendingsession);
           GNUNET_free(pendingsession);
 
           GNUNET_assert (check == 0);
@@ -1954,9 +2097,9 @@ free_session(struct Plugin * plugin, struct Sessionqueue * queue)
       GNUNET_free(pm);
     }
 
-  GNUNET_CONTAINER_DLL_remove(plugin->sessions, 
-			      plugin->sessions_tail, 
-			      queue);
+  GNUNET_CONTAINER_DLL_remove(plugin->sessions,
+      plugin->sessions_tail,
+      queue);
   GNUNET_free(queue->content);
   GNUNET_free(queue);
   plugin->session_count--;
@@ -2031,7 +2174,6 @@ wlan_plugin_address_pretty_printer(void *cls, const char *type,
   asc(asc_cls, ret);
 }
 
-
 /**
  * Function to test if fragment number already exists in the fragments received
  *
@@ -2043,7 +2185,6 @@ static int
 is_double_msg(struct Receive_Message_Queue * rx_msg,
     struct FragmentationHeader * fh)
 {
-
 
   return testBit((char *) &rx_msg->received_fragments, ntohs(
       fh->fragment_off_or_num));
@@ -2108,6 +2249,7 @@ wlan_data_message_handler(void *cls, void *client,
   const char * tempmsg;
   const struct GNUNET_MessageHeader * temp_hdr;
   struct GNUNET_PeerIdentity tmptarget;
+  int crc;
 
   if (ntohs(hdr->type) == GNUNET_MESSAGE_TYPE_WLAN_DATA)
     {
@@ -2136,13 +2278,14 @@ wlan_data_message_handler(void *cls, void *client,
 
       tempmsg = (char*) &wlanheader[1];
       temp_hdr = (const struct GNUNET_MessageHeader *) &wlanheader[1];
-
-      if (getcrc32(tempmsg, ntohs(wlanheader->header.size)) != ntohl(
-          wlanheader->crc))
+      crc = ntohl(wlanheader->crc);
+      wlanheader->crc = 0;
+      if (getcrc32((char *) wlanheader, ntohs(wlanheader->header.size)) != crc)
         {
           //wrong crc, dispose message
           GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-              "Wlan message Header crc was wrong\n");
+              "Wlan message Header crc was wrong: %u != %u\n",getcrc32((char *) wlanheader, ntohs(wlanheader->header.size)), crc);
+          hexdump((void *)hdr, ntohs(hdr->size));
           return;
         }
 
@@ -2877,7 +3020,8 @@ wlan_plugin_helper_read(void *cls,
 static int
 wlan_transport_start_wlan_helper(struct Plugin *plugin, int testmode)
 {
-  const char * filename = "gnunet-transport-wlan-helper";
+  const char * filenamehw = "gnunet-transport-wlan-helper";
+  const char * filenameloopback = "gnunet-transport-wlan-helper-dummy";
   plugin->server_stdout = GNUNET_DISK_pipe(GNUNET_YES, GNUNET_NO, GNUNET_YES);
   if (plugin->server_stdout == NULL)
     return GNUNET_SYSERR;
@@ -2886,16 +3030,43 @@ wlan_transport_start_wlan_helper(struct Plugin *plugin, int testmode)
   if (plugin->server_stdin == NULL)
     return GNUNET_SYSERR;
 
-#if DEBUG_wlan
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "Starting gnunet-wlan-helper process cmd: %s %s %i\n", filename,
-      plugin->interface, testmode);
-#endif
+
   /* Start the server process */
 
-  plugin->server_proc = GNUNET_OS_start_process(plugin->server_stdin,
-      plugin->server_stdout, filename, filename, plugin->interface, ((testmode
-          == 1) ? "1" : (testmode == 2) ? "2" : "0"), NULL);
+  if (testmode == 0)
+    {
+
+#if DEBUG_wlan
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+      "Starting gnunet-wlan-helper process cmd: %s %s %i\n", filenamehw,
+      plugin->interface, testmode);
+#endif
+
+      plugin->server_proc = GNUNET_OS_start_process(plugin->server_stdin,
+          plugin->server_stdout, filenamehw, filenamehw, plugin->interface, NULL);
+    }
+  else if (testmode == 1)
+    {
+
+#if DEBUG_wlan
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+      "Starting gnunet-wlan-helper loopback 1 process cmd: %s %s %i\n", filenameloopback,
+      plugin->interface, testmode);
+#endif
+
+      plugin->server_proc = GNUNET_OS_start_process(plugin->server_stdin,
+          plugin->server_stdout, filenameloopback, filenameloopback, "1", NULL);
+    }
+  else if (testmode == 2)
+      {
+#if DEBUG_wlan
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+      "Starting gnunet-wlan-helper loopback 2 process cmd: %s %s %i\n", filenameloopback,
+      plugin->interface, testmode);
+#endif
+        plugin->server_proc = GNUNET_OS_start_process(plugin->server_stdin,
+            plugin->server_stdout, filenameloopback, filenameloopback, "2", NULL);
+      }
   if (plugin->server_proc == NULL)
     {
 #if DEBUG_wlan
@@ -2951,9 +3122,11 @@ libgnunet_plugin_transport_wlan_done(void *cls)
 #endif
 
 
-  GNUNET_OS_process_close(plugin->server_proc);
   GNUNET_DISK_pipe_close(plugin->server_stdout);
   GNUNET_DISK_pipe_close(plugin->server_stdin);
+  GNUNET_OS_process_kill(plugin->server_proc,9);
+  GNUNET_OS_process_close(plugin->server_proc);
+
 
   GNUNET_assert (cls !=NULL);
   //free sessions
@@ -2979,7 +3152,6 @@ libgnunet_plugin_transport_wlan_done(void *cls)
       GNUNET_SCHEDULER_cancel(plugin->server_read_task);
       plugin->server_read_task = GNUNET_SCHEDULER_NO_TASK;
     }
-
 
   if (plugin->suid_tokenizer != NULL)
     GNUNET_SERVER_mst_destroy(plugin->suid_tokenizer);
@@ -3051,7 +3223,6 @@ libgnunet_plugin_transport_wlan_init(void *cls)
   api->address_pretty_printer = &wlan_plugin_address_pretty_printer;
   api->check_address = &wlan_plugin_address_suggested;
   api->address_to_string = &wlan_plugin_address_to_string;
-
   //read config
 
   if (GNUNET_CONFIGURATION_have_value(env->cfg, "transport-wlan", "TESTMODE"))

@@ -19,241 +19,447 @@
  */
 /**
  * @file transport/test_transport_wlan_dummy.c
- * @brief helper for the testcase for plugin_transport_wlan.c
+ * @brief helper for the testcases for plugin_transport_wlan.c
  * @author David Brodski
  */
+
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <sys/time.h>
+#include <sys/stat.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <errno.h>
+#include <resolv.h>
+#include <string.h>
+#include <utime.h>
+#include <unistd.h>
+#include <getopt.h>
 
 #include "platform.h"
 #include "gnunet_constants.h"
 #include "gnunet_os_lib.h"
 #include "gnunet_transport_plugin.h"
 #include "transport.h"
+#include "gnunet_util_lib.h"
 #include "plugin_transport_wlan.h"
 #include "gnunet_common.h"
 #include "gnunet-transport-wlan-helper.h"
+#include "gnunet_crypto_lib.h"
+#include "wlan/loopback_helper.h"
+#include "wlan/helper_common.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/stat.h>
+int first;
 
-#define FIFO_FILE1       "MYFIFOin"
-#define FIFO_FILE2       "MYFIFOout"
-#define MAXLINE         5000
-
-int closeprog = 0;
-
-void sigfunc(int sig)
+static void
+sigfunc(int sig)
 {
-
- if(sig != SIGINT || sig != SIGTERM || sig != SIGKILL)
-   return;
- else
-  {
-   closeprog = 1;
-   exit(0);
-   }
+  closeprog = 1;
+  unlink(FIFO_FILE1);
+  unlink(FIFO_FILE2);
 }
 
+static void
+stdin_send(void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
+{
+  struct sendbuf *write_pout = cls;
+  int sendsize;
+  struct GNUNET_MessageHeader newheader;
+  unsigned char * from_data;
+  unsigned char * to_data;
+  //unsigned char * from_radiotap;
+  unsigned char * to_radiotap;
+  //unsigned char * from_start;
+  unsigned char * to_start;
 
+  sendsize = ntohs(hdr->size) - sizeof(struct Radiotap_Send)
+      + sizeof(struct Radiotap_rx);
+
+  if (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA != ntohs(hdr->type))
+    {
+      fprintf(stderr, "Function stdin_send: wrong packet type\n");
+      exit(1);
+    }
+  if ((sendsize + write_pout->size) > MAXLINE * 2)
+    {
+      fprintf(stderr, "Function stdin_send: Packet too big for buffer\n");
+      exit(1);
+    }
+
+  newheader.size = htons(sendsize);
+  newheader.type = htons(GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
+
+  to_start = write_pout->buf + write_pout->size;
+  to_radiotap = to_start + sizeof(struct GNUNET_MessageHeader);
+  to_data = to_radiotap + sizeof(struct Radiotap_rx);
+
+  from_data = ((unsigned char *) hdr) + sizeof(struct Radiotap_Send)
+      + sizeof(struct GNUNET_MessageHeader);
+
+  memcpy(to_start, &newheader, sizeof(struct GNUNET_MessageHeader));
+  write_pout->size += sizeof(struct GNUNET_MessageHeader);
+
+  write_pout->size += sizeof(struct Radiotap_rx);
+
+  memcpy(to_data, from_data, ntohs(hdr->size) - sizeof(struct Radiotap_Send)
+      - sizeof(struct GNUNET_MessageHeader));
+  write_pout->size += ntohs(hdr->size) - sizeof(struct Radiotap_Send)
+      - sizeof(struct GNUNET_MessageHeader);
+}
+
+static void
+file_in_send(void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
+{
+  struct sendbuf * write_std = cls;
+  uint16_t sendsize;
+
+  sendsize = ntohs(hdr->size);
+
+  if (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA != ntohs(hdr->type))
+    {
+      fprintf(stderr, "Function file_in_send: wrong packet type\n");
+      exit(1);
+    }
+  if ((sendsize + write_std->size) > MAXLINE * 2)
+    {
+      fprintf(stderr, "Function file_in_send: Packet too big for buffer\n");
+      exit(1);
+    }
+
+  memcpy(write_std->buf + write_std->size, hdr, sendsize);
+  write_std->size += sendsize;
+}
+
+int closeprog;
 
 
 int
-main(int argc, char *argv[])
+testmode(int argc, char *argv[])
 {
   struct stat st;
-  struct stat st2;
   int erg;
-  int first;
-  FILE *fpin;
-  FILE *fpout;
-  pid_t pid;
 
-  perror("Test");
+  FILE *fpin = NULL;
+  FILE *fpout = NULL;
 
+  int fdpin;
+  int fdpout;
 
   //make the fifos if needed
-  if (stat(FIFO_FILE1, &st) != 0)
+  if (0 != stat(FIFO_FILE1, &st))
     {
-      if (stat(FIFO_FILE2, &st2) == 0)
+      if (0 == stat(FIFO_FILE2, &st))
         {
-          perror("FIFO 2 exists, but FIFO 1 not, blub");
+          fprintf(stderr, "FIFO_FILE2 exists, but FIFO_FILE1 not\n");
           exit(1);
         }
-      first = 1;
-      perror("First");
-      umask(0);
-      erg = mknod(FIFO_FILE1, S_IFIFO | 0666, 0);
-      erg = mknod(FIFO_FILE2, S_IFIFO | 0666, 0);
 
-      if ((fpin = fopen(FIFO_FILE1, "r")) == NULL)
+      umask(0);
+      //unlink(FIFO_FILE1);
+      //unlink(FIFO_FILE2);
+      // FIXME: use mkfifo!
+     erg = mknod(FIFO_FILE1, S_IFIFO | 0666, 0);
+      if (0 != erg)
         {
-          perror("fopen");
+          fprintf(stderr, "Error at mknode1 \n");
+          //exit(1);
+        }
+      erg = mknod(FIFO_FILE2, S_IFIFO | 0666, 0);
+      if (0 != erg)
+        {
+          fprintf(stderr, "Error at mknode2 \n");
+          //exit(1);
+        }
+
+    }
+  else
+    {
+
+      if (0 != stat(FIFO_FILE2, &st))
+        {
+          fprintf(stderr, "FIFO_FILE1 exists, but FIFO_FILE2 not\n");
           exit(1);
         }
-      if ((fpout = fopen(FIFO_FILE2, "w")) == NULL)
+
+    }
+
+  if (strstr(argv[1], "1"))
+    {
+      //fprintf(stderr, "First\n");
+      first = 1;
+      fpin = fopen(FIFO_FILE1, "r");
+      if (NULL == fpin)
         {
-          perror("fopen");
-          exit(1);
+          fprintf(stderr, "fopen of read FIFO_FILE1\n");
+          goto end;
         }
+      fpout = fopen(FIFO_FILE2, "w");
+      if (NULL == fpout)
+        {
+          fprintf(stderr, "fopen of write FIFO_FILE2\n");
+          goto end;
+        }
+
     }
   else
     {
       first = 0;
-      perror("Second");
-      if (stat(FIFO_FILE2, &st2) != 0)
+      //fprintf(stderr, "Second\n");
+      fpout = fopen(FIFO_FILE1, "w");
+      if (NULL == fpout)
         {
-          perror("FIFO 1 exists, but FIFO 2 not, mäh");
-          exit(1);
+          fprintf(stderr, "fopen of write FIFO_FILE1\n");
+          goto end;
         }
-      if ((fpout = fopen(FIFO_FILE1, "w")) == NULL)
+      fpin = fopen(FIFO_FILE2, "r");
+      if (NULL == fpin)
         {
-          perror("fopen");
-          exit(1);
-        }
-      if ((fpin = fopen(FIFO_FILE2, "r")) == NULL)
-        {
-          perror("fopen");
-          exit(1);
+          fprintf(stderr, "fopen of read FIFO_FILE2\n");
+          goto end;
         }
 
     }
 
-  // fork
+  fdpin = fileno(fpin);
+  GNUNET_assert(fpin >= 0);
 
-  if ((pid = fork()) < 0)
+  if (fdpin >= FD_SETSIZE)
     {
-      perror("FORK ERROR");
-
-      //clean up
-      if (first == 1)
-              {
-                unlink(FIFO_FILE1);
-                unlink(FIFO_FILE2);
-              }
-      fclose(fpin);
-      fclose(fpout);
-      return -3;
+      fprintf(stderr, "File fdpin number too large (%d > %u)\n", fdpin,
+          (unsigned int) FD_SETSIZE);
+      goto end;
     }
-  else if (pid == 0) // CHILD PROCESS
+
+  fdpout = fileno(fpout);
+  GNUNET_assert(fdpout >= 0 );
+
+  if (fdpout >= FD_SETSIZE)
     {
-    perror("Child");
-      signal(SIGINT, sigfunc);
-      signal(SIGTERM, sigfunc);
-      signal(SIGKILL, sigfunc);
-      int rv = 0;
-      int readc = 0;
-      int pos = 0;
-      char line[MAXLINE];
+      fprintf(stderr, "File fdpout number too large (%d > %u)\n", fdpout,
+          (unsigned int) FD_SETSIZE);
+      goto end;
 
-      fd_set rfds;
-      fd_set wfds;
-      struct timeval tv;
-      int retval;
+    }
 
+  signal(SIGINT, &sigfunc);
+  signal(SIGTERM, &sigfunc);
 
+  char readbuf[MAXLINE];
+  int readsize = 0;
+  struct sendbuf write_std;
+  write_std.size = 0;
+  write_std.pos = 0;
+
+  struct sendbuf write_pout;
+  write_pout.size = 0;
+  write_pout.pos = 0;
+
+  int ret = 0;
+  int maxfd = 0;
+
+  fd_set rfds;
+  fd_set wfds;
+  struct timeval tv;
+  int retval;
+
+  struct GNUNET_SERVER_MessageStreamTokenizer * stdin_mst;
+  struct GNUNET_SERVER_MessageStreamTokenizer * file_in_mst;
+
+  stdin_mst = GNUNET_SERVER_mst_create(&stdin_send, &write_pout);
+  file_in_mst = GNUNET_SERVER_mst_create(&file_in_send, &write_std);
+
+  //send mac first
+
+  struct MacAddress macaddr;
+
+  //Send random mac address
+  macaddr.mac[0] = 0x13;
+  macaddr.mac[1] = 0x22;
+  macaddr.mac[2] = 0x33;
+  macaddr.mac[3] = 0x44;
+  macaddr.mac[4] = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_STRONG, 256);
+  macaddr.mac[5] = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_NONCE, 256);
+
+  write_std.size = send_mac_to_plugin((char *) write_std.buf, macaddr.mac);
+
+  while (0 == closeprog)
+    {
+
+      maxfd = 0;
+
+      //set timeout
       tv.tv_sec = 5;
       tv.tv_usec = 0;
 
-
       FD_ZERO(&rfds);
-      FD_SET(STDIN_FILENO, &rfds);
+      // if output queue is empty
+      if (0 == write_pout.size)
+        {
+          FD_SET(STDIN_FILENO, &rfds);
 
+        }
+      if (0 == write_std.size)
+        {
+          FD_SET(fdpin, &rfds);
+          maxfd = fdpin;
+        }
       FD_ZERO(&wfds);
-      FD_SET(STDOUT_FILENO, &wfds);
-
-      struct GNUNET_SERVER_MessageStreamTokenizer * stdin_mst;
-      struct GNUNET_SERVER_MessageStreamTokenizer * file_in_mst;
-
-      stdin_mst = GNUNET_SERVER_mst_create(&stdin_send, NULL);
-      file_in_mst = GNUNET_SERVER_mst_create(&file_in_send, NULL);
-
-      while (closeprog == 0)
+      // if there is something to write
+      if (0 < write_std.size)
         {
-          readc = 0;
+          FD_SET(STDOUT_FILENO, &wfds);
+          maxfd = MAX(maxfd, STDOUT_FILENO);
+        }
 
+      if (0 < write_pout.size)
+        {
+          FD_SET(fdpout, &wfds);
+          maxfd = MAX(maxfd, fdpout);
+        }
 
-          while (readc < sizeof( struct RadiotapHeader) + sizeof(struct GNUNET_MessageHeader)){
-            if ((rv = read(STDIN_FILENO, line, MAXLINE)) < 0)
-              {
-                perror("READ ERROR FROM STDIN");
-              }
-            readc += rv;
-          }
+      retval = select(maxfd + 1, &rfds, &wfds, NULL, &tv);
 
-          pos = 0;
+      if (-1 == retval && EINTR == errno)
+        {
+          continue;
+        }
+      if (0 > retval)
+        {
+          fprintf(stderr, "select failed: %s\n", strerror(errno));
+          closeprog = 1;
+          break;
+        }
 
-          //fwrite(&line[pos], 1, sizeof(struct GNUNET_MessageHeader), fpout);
+      if (FD_ISSET(STDOUT_FILENO, &wfds))
+        {
+          ret = write(STDOUT_FILENO, write_std.buf + write_std.pos,
+              write_std.size - write_std.pos);
 
-          //pos += sizeof(struct GNUNET_MessageHeader);
-
-          //do not send radiotap header
-          pos += sizeof( struct RadiotapHeader);
-
-          while (pos < readc)
+          if (0 > ret)
             {
-              pos += fwrite(&line[pos], 1, readc - pos, fpout);
+              closeprog = 1;
+              fprintf(stderr, "Write ERROR to STDOUT\n");
+              break;
+            }
+          else
+            {
+              write_std.pos += ret;
+              // check if finished
+              if (write_std.pos == write_std.size)
+                {
+                  write_std.pos = 0;
+                  write_std.size = 0;
+                }
             }
         }
 
+      if (FD_ISSET(fdpout, &wfds))
+        {
+          ret = write(fdpout, write_pout.buf + write_pout.pos, write_pout.size
+              - write_pout.pos);
 
-      //clean up
-      fclose(fpout);
+          if (0 > ret)
+            {
+              closeprog = 1;
+              fprintf(stderr, "Write ERROR to fdpout\n");
+            }
+          else
+            {
+              write_pout.pos += ret;
+              // check if finished
+              if (write_pout.pos == write_pout.size)
+                {
+                  write_pout.pos = 0;
+                  write_pout.size = 0;
+                }
+            }
+        }
+
+      if (FD_ISSET(STDIN_FILENO, &rfds))
+        {
+          readsize = read(STDIN_FILENO, readbuf, sizeof(readbuf));
+
+          if (0 > readsize)
+            {
+              closeprog = 1;
+              fprintf(stderr, "Read ERROR to STDIN_FILENO\n");
+            }
+          else if (0 < readsize)
+            {
+              GNUNET_SERVER_mst_receive(stdin_mst, NULL, readbuf, readsize,
+                  GNUNET_NO, GNUNET_NO);
+
+            }
+          else
+            {
+              //eof
+              closeprog = 1;
+            }
+        }
+
+      if (FD_ISSET(fdpin, &rfds))
+        {
+          readsize = read(fdpin, readbuf, sizeof(readbuf));
+
+          if (0 > readsize)
+            {
+              closeprog = 1;
+              fprintf(stderr, "Read ERROR to fdpin: %s\n", strerror(errno));
+              break;
+            }
+          else if (0 < readsize)
+            {
+              GNUNET_SERVER_mst_receive(file_in_mst, NULL, readbuf, readsize,
+                  GNUNET_NO, GNUNET_NO);
+
+            }
+          else
+            {
+              //eof
+              closeprog = 1;
+            }
+        }
+
     }
-  else // PARENT PROCESS
+
+  //clean up
+
+  GNUNET_SERVER_mst_destroy(stdin_mst);
+  GNUNET_SERVER_mst_destroy(file_in_mst);
+
+  end: if (fpout != NULL)
+    fclose(fpout);
+  if (fpin != NULL)
+    fclose(fpin);
+
+  if (1 == first)
     {
-    perror("Parent");
-      signal(SIGINT, sigfunc);
-      signal(SIGTERM, sigfunc);
-      signal(SIGKILL, sigfunc);
-      int rv = 0;
-      ssize_t pos = 0;
-      char line[MAXLINE];
-      struct Wlan_Helper_Control_Message macmsg;
-
-
-      //Send random mac address
-      macmsg.mac.mac[0] = 0x13;
-      macmsg.mac.mac[1] = 0x22;
-      macmsg.mac.mac[2] = 0x33;
-      macmsg.mac.mac[3] = 0x44;
-      macmsg.mac.mac[4] = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 255);
-      macmsg.mac.mac[5] = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 255);
-      macmsg.hdr.size = sizeof(struct Wlan_Helper_Control_Message);
-
-      pos = 0;
-      /*
-      while (pos < sizeof(struct Wlan_Helper_Control_Message))
-        {
-          pos += write(STDOUT_FILENO, &macmsg + pos, sizeof(struct Wlan_Helper_Control_Message) - pos);
-        }
-      */
-      while (closeprog == 0)
-        {
-          if ((rv = fread(line, 1, MAXLINE, fpin)) < 0)
-            {
-              perror("READ ERROR FROM fpin");
-            }
-
-          pos = 0;
-          while (pos < rv)
-            {
-              pos += write(STDOUT_FILENO, &line[pos], rv - pos);
-            }
-        }
-
-
-      //clean up
-      fclose(fpin);
-
-      if (first == 1)
-        {
-          unlink(FIFO_FILE1);
-          unlink(FIFO_FILE2);
-        }
+      unlink(FIFO_FILE1);
+      unlink(FIFO_FILE2);
     }
-
-  // Write the input to the output
 
   return (0);
 }
 
+int
+main(int argc, char *argv[])
+{
+  if (2 != argc)
+    {
+      fprintf (stderr,
+               "This program must be started with the operating mode as argument.\n");
+      fprintf (stderr,
+               "Usage: options\n"
+               "options:\n"
+               "1 = first loopback file\n"
+               "2 = second loopback file\n"
+               "\n");
+      return 1;
+    }
+  if (strstr(argv[1], "1") || strstr(argv[1], "2"))
+    return testmode(argc, argv);
+  return 1;
+}

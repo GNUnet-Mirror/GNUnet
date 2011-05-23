@@ -378,7 +378,7 @@ openraw (struct Hardware_Infos *dev)
   if (-1 == ioctl(dev->fd_raw, SIOCGIFINDEX, &ifr))
     {
       fprintf (stderr,
-	       "ioctl(SIOCGIFINDEX) on interface `%.*s' failed: %s\n",
+	       "Line: 381 ioctl(SIOCGIFINDEX) on interface `%.*s' failed: %s\n",
 	       IFNAMSIZ,
 	       dev->iface,
 	       strerror (errno));
@@ -428,10 +428,10 @@ openraw (struct Hardware_Infos *dev)
       /* Bring interface up*/
       ifr.ifr_flags |= IFF_UP | IFF_BROADCAST | IFF_RUNNING;
 
-      if (-1 != ioctl(dev->fd_raw, SIOCSIFFLAGS, &ifr))
+      if (-1 == ioctl(dev->fd_raw, SIOCSIFFLAGS, &ifr))
         {
 	  fprintf (stderr,
-		   "ioctl(SIOCSIFFLAGS) on interface `%.*s' failed: %s\n",
+		   "Line: 434 ioctl(SIOCSIFFLAGS) on interface `%.*s' failed: %s\n",
 		   IFNAMSIZ,
 		   dev->iface,
 		   strerror (errno));
@@ -451,10 +451,10 @@ openraw (struct Hardware_Infos *dev)
     }
 
   /* lookup the hardware type */
-  if (-1 != ioctl(dev->fd_raw, SIOCGIFHWADDR, &ifr))
+  if (-1 == ioctl(dev->fd_raw, SIOCGIFHWADDR, &ifr))
     {
       fprintf (stderr,
-	       "ioctl(SIOCGIFHWADDR) on interface `%.*s' failed: %s\n",
+	       "Line: 457 ioctl(SIOCGIFHWADDR) on interface `%.*s' failed: %s\n",
 	       IFNAMSIZ,
 	       dev->iface,
 	       strerror (errno));
@@ -588,6 +588,13 @@ mac_set (struct ieee80211_frame *u8aIeeeHeader,
 
 }
 
+struct RadioTapheader
+{
+  struct ieee80211_radiotap_header header;
+  u8 rate;
+  u8 pad1;
+  u16 txflags;
+};
 
 static void
 stdin_send_hw (void *cls, 
@@ -601,14 +608,20 @@ stdin_send_hw (void *cls,
   size_t sendsize;
 
   // struct? // FIXME: make nice...
-  unsigned char u8aRadiotap[] =
-    { 0x00, 0x00, // <-- radiotap version
-      0x0c, 0x00, // <- radiotap header length
-      0x04, 0x80, 0x00, 0x00, // <-- bitmap
-      0x00, // <-- rate
-      0x00, // <-- padding for natural alignment
-      0x18, 0x00, // <-- TX flags
-    };
+  struct RadioTapheader rtheader;
+  rtheader.header.it_version = 0;
+  rtheader.header.it_len = htole16(0x0c);
+  rtheader.header.it_present = htole32(0x00008004);
+  rtheader.rate = 0x00;
+  rtheader.txflags = htole16(IEEE80211_RADIOTAP_F_TX_NOACK | IEEE80211_RADIOTAP_F_TX_NOSEQ);
+
+  /*  { 0x00, 0x00, <-- radiotap version
+      0x0c, 0x00, <- radiotap header length
+      0x04, 0x80, 0x00, 0x00,  <-- bitmap
+      0x00,  <-- rate
+      0x00,  <-- padding for natural alignment
+      0x18, 0x00,  <-- TX flags
+    };*/
 
   sendsize = ntohs(hdr->size);
   if (sendsize < sizeof(struct Radiotap_Send) + sizeof(struct GNUNET_MessageHeader))
@@ -631,15 +644,15 @@ stdin_send_hw (void *cls,
       exit(1);
     }
 
-  u8aRadiotap[2] = htole16(sizeof(u8aRadiotap)); // WTF?
-  u8aRadiotap[8] = header->rate;
-  memcpy(write_pout->buf, u8aRadiotap, sizeof(u8aRadiotap));
-  memcpy(write_pout->buf + sizeof(u8aRadiotap), &header[1], sendsize);
+  rtheader.header.it_len = htole16(sizeof(rtheader));
+  rtheader.rate = header->rate;
+  memcpy(write_pout->buf, &rtheader, sizeof(rtheader));
+  memcpy(write_pout->buf + sizeof(rtheader), &header[1], sendsize);
   /* payload contains MAC address, but we don't trust it, so we'll 
      overwrite it with OUR MAC address again to prevent mischief */
-  wlanheader = (struct ieee80211_frame *) (write_pout->buf + sizeof(u8aRadiotap));
+  wlanheader = (struct ieee80211_frame *) (write_pout->buf + sizeof(rtheader));
   mac_set(wlanheader, dev);
-  write_pout->size = sendsize + sizeof(u8aRadiotap);
+  write_pout->size = sendsize + sizeof(rtheader);
 }
 
 #if 0
@@ -757,14 +770,6 @@ hardwaremode (int argc,
   int stdin_open;
   struct GNUNET_SERVER_MessageStreamTokenizer * stdin_mst;
 
-  if (2 != argc)
-    {
-      fprintf (stderr,
-	       "This program must be started with the interface argument.\n");
-      fprintf (stderr,
-	       "Usage: interface-name\n");
-      return 1;
-    }
   if (0 != wlaninit(&dev, argv[1]))
     return 1;    
   uid = getuid();
@@ -930,19 +935,14 @@ hardwaremode (int argc,
 int
 main(int argc, char *argv[])
 {
-  if (3 != argc)
+  if (2 != argc)
     {
       fprintf (stderr,
-	       "This program must be started with the interface and the operating mode as argument.\n");
+	       "This program must be started with the interface as argument.\n");
       fprintf (stderr,
-	       "Usage: interface-name options\n"
-	       "options: 0 = with hardware\n"
-	       "1 = first loopback file\n"
-	       "2 = second loopback file\n"
+	       "Usage: interface-name\n"
 	       "\n");
       return 1;
     }
-  if (strstr(argv[2], "1") || strstr(argv[2], "2"))
-    return testmode(argc, argv);
-  return hardwaremode(argc - 1, argv);
+  return hardwaremode(argc , argv);
 }

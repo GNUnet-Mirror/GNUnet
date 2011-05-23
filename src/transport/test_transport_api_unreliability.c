@@ -88,6 +88,8 @@ static int is_udp;
 
 static int is_unix;
 
+static int is_wlan;
+
 static int connected;
 
 static unsigned long long total_bytes;
@@ -779,6 +781,11 @@ run (void *cls,
       setup_peer (&p1, "test_transport_api_tcp_nat_peer1.conf");
       setup_peer (&p2, "test_transport_api_tcp_nat_peer2.conf");
     }
+  else if (is_wlan)
+    {
+      setup_peer (&p1, "test_transport_api_wlan_peer1.conf");
+      setup_peer (&p2, "test_transport_api_wlan_peer2.conf");
+    }
   else
     GNUNET_assert (0);
   GNUNET_assert(p1.th != NULL);
@@ -903,6 +910,10 @@ main (int argc, char *argv[])
     {
       is_unix = GNUNET_YES;
       GNUNET_asprintf(&test_name, "unix");
+    }
+  else if (strstr(argv[0], "wlan") != NULL)
+    {
+       is_wlan = GNUNET_YES;
     }
   GNUNET_log_setup ("test-transport-api-reliability",
 #if VERBOSE
