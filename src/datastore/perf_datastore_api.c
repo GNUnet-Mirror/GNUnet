@@ -283,10 +283,14 @@ run_continuation (void *cls,
       break;
     case RP_DONE:
       GNUNET_snprintf (gstr, sizeof (gstr),
-		       "PUT operations in %s-datastore",
+		       "DATASTORE-%s",
 		       plugin_name);
-      if (crc->i == ITERATIONS)
-	GAUGER ("DATASTORE", gstr, 1000 * stored_ops / (1 + GNUNET_TIME_absolute_get_duration(start_time).rel_value), "op/s");
+      if ( (crc->i == ITERATIONS) &&
+	   (stored_ops > 0) )
+	GAUGER (gstr,
+		"PUT operation duration", 
+		GNUNET_TIME_absolute_get_duration(start_time).rel_value / stored_ops, 
+		"ms/operation");
       GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
       GNUNET_free (crc);
       ok = 0;

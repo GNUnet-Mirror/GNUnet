@@ -185,7 +185,6 @@ iterate_zeros (void *cls,
   crc->cnt++;
   if (crc->cnt == PUT_10 / 4 - 1)
     {
-      char buf[256];
       unsigned int bc;
 
       bc = 0;
@@ -194,15 +193,15 @@ iterate_zeros (void *cls,
 	  bc++;
       
       crc->end = GNUNET_TIME_absolute_get();
-      GNUNET_snprintf (buf, sizeof (buf),
-		       "Iteration over %u zero-anonymity items",
-		       crc->cnt);
       printf ("%s took %llu ms yielding %u/%u items\n",
-	      buf,
+	      "Select random zero-anonymity item",
 	      (unsigned long long) (crc->end.abs_value - crc->start.abs_value),
 	      bc,
 	      crc->cnt);
-      GAUGER (category, buf, crc->end.abs_value - crc->start.abs_value, "ms");
+      if (crc->cnt > 0)
+	GAUGER (category,
+		"Select random zero-anonymity item",
+		(crc->end.abs_value - crc->start.abs_value) / crc->cnt, "ms/item");
       memset (hits, 0, sizeof (hits));
       crc->phase++;
       crc->cnt = 0;
@@ -235,7 +234,6 @@ expiration_get (void *cls,
   crc->cnt++;
   if (PUT_10 <= crc->cnt)
     {
-      char buf[256];
       unsigned int bc;
 
       bc = 0;
@@ -244,15 +242,16 @@ expiration_get (void *cls,
 	  bc++;
       
       crc->end = GNUNET_TIME_absolute_get();
-      GNUNET_snprintf (buf, sizeof (buf),
-		       "Execution of %u expiration+deletion-GET requests",
-		       PUT_10);
       printf ("%s took %llu ms yielding %u/%u items\n",
-	      buf,
+	      "Selecting and deleting by expiration",
 	      (unsigned long long) (crc->end.abs_value - crc->start.abs_value),
 	      bc,
 	      (unsigned int) PUT_10);
-      GAUGER (category, buf, crc->end.abs_value - crc->start.abs_value, "ms");
+      if (crc->cnt > 0)
+	GAUGER (category, 
+		"Selecting and deleting by expiration",
+		(crc->end.abs_value - crc->start.abs_value) / crc->cnt,
+		"ms/item");
       memset (hits, 0, sizeof (hits));
       if (++crc->iter == ITERATIONS)
 	crc->phase++;
@@ -289,7 +288,6 @@ replication_get (void *cls,
   crc->cnt++;
   if (PUT_10 <= crc->cnt)
     {
-      char buf[256];
       unsigned int bc;
 
       bc = 0;
@@ -298,15 +296,16 @@ replication_get (void *cls,
 	  bc++;
       
       crc->end = GNUNET_TIME_absolute_get();
-      GNUNET_snprintf (buf, sizeof (buf),
-		       "Execution of %u replication-GET requests",
-		       PUT_10);
       printf ("%s took %llu ms yielding %u/%u items\n",
-	      buf,
+	      "Selecting random item for replication",
 	      (unsigned long long) (crc->end.abs_value - crc->start.abs_value),
 	      bc,
 	      (unsigned int) PUT_10);
-      GAUGER (category, buf, crc->end.abs_value - crc->start.abs_value, "ms");
+      if (crc->cnt > 0)
+	GAUGER (category, 
+		"Selecting random item for replication",
+		(crc->end.abs_value - crc->start.abs_value) / crc->cnt, 
+		"ms/item");
       memset (hits, 0, sizeof (hits));
       crc->phase++;
       crc->offset = 0;
@@ -397,16 +396,15 @@ test (void *cls,
 	putValue (crc->api, j, crc->i);
       crc->end = GNUNET_TIME_absolute_get ();
       {
-	char buf[256];      
-
-	GNUNET_snprintf (buf, sizeof (buf),
-			 "Execution of %u PUT requests",
-			 PUT_10);
-	printf ("%s took %llu ms\n",
-		buf,
-		(unsigned long long) (crc->end.abs_value - crc->start.abs_value));
-	GAUGER (category, 
-		buf, crc->end.abs_value - crc->start.abs_value, "ms");
+	printf ("%s took %llu ms for %llu items\n",
+		"Storing an item", 
+		(unsigned long long) (crc->end.abs_value - crc->start.abs_value),
+		PUT_10);
+	if (PUT_10 > 0)
+	  GAUGER (category, 
+		  "Storing an item", 
+		  (crc->end.abs_value - crc->start.abs_value) / PUT_10,
+		  "ms/item");
       }
       crc->i++;
       crc->start = GNUNET_TIME_absolute_get ();      
