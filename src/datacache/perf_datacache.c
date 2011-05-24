@@ -104,10 +104,12 @@ run (void *cls,
 	   ITERATIONS,
 	   (unsigned long long) GNUNET_TIME_absolute_get_duration(start).rel_value);
   GNUNET_snprintf (gstr, sizeof (gstr),
-		   "Time to PUT %u items in %s-datacache",
-		   ITERATIONS,
+		   "DATACACHE-%s",
 		   plugin_name);
-  GAUGER ("DATACACHE", gstr, GNUNET_TIME_absolute_get_duration(start).rel_value, "ms");
+  GAUGER (gstr,
+	  "Time to PUT item in datacache", 
+	  GNUNET_TIME_absolute_get_duration(start).rel_value / ITERATIONS, 
+	  "ms/item");
   start = GNUNET_TIME_absolute_get ();
   memset (&k, 0, sizeof (GNUNET_HashCode));
   for (i = 0; i < ITERATIONS; i++)
@@ -120,16 +122,15 @@ run (void *cls,
       k = n;
     }
   fprintf (stderr, "\n");
-  fprintf (stdout, "Found %u/%u items in %llums (%u were deleted during storage processing)\n",
+  fprintf (stdout, 
+	   "Found %u/%u items in %llums (%u were deleted during storage processing)\n",
 	   found, ITERATIONS,
 	   (unsigned long long) GNUNET_TIME_absolute_get_duration(start).rel_value,
 	   ITERATIONS - found);
-  GNUNET_snprintf (gstr, sizeof (gstr),
-		   "Time to try to GET %u items from %s-datacache",
-		   ITERATIONS,
-		   plugin_name);
-  GAUGER ("DATACACHE", gstr, GNUNET_TIME_absolute_get_duration(start).rel_value, "ms");
-	   
+  if (found > 0)
+    GAUGER (gstr,
+	    "Time to GET item from datacache",
+	    GNUNET_TIME_absolute_get_duration(start).rel_value / found, "ms/item");	   
   GNUNET_DATACACHE_destroy (h);
   ASSERT (ok == 0);
   return;
