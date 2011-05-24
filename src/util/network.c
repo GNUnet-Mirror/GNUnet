@@ -29,7 +29,7 @@
 #include "disk.h"
 #include "gnunet_container_lib.h"
 
-#define DEBUG_NETWORK GNUNET_NO
+#define DEBUG_NETWORK GNUNET_YES
 
 #ifndef INVALID_SOCKET
 #define INVALID_SOCKET -1
@@ -49,6 +49,17 @@ struct GNUNET_NETWORK_Handle
    * Address family / domain.
    */
   int af;
+
+  /**
+   * Number of bytes in addr.
+   */
+  socklen_t addrlen;
+
+  /**
+   * Address we were bound to, or NULL.
+   */
+  struct sockaddr *addr;
+
 };
 
 
@@ -279,23 +290,30 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
 #endif
 #endif
 #endif
+#ifndef LINUX
+#ifndef MINGW
+  if (address->sa_family == AF_UNIX)
+    {
+      const struct sockaddr_un *un = (const struct sockaddr_un*) address;
+      (void) unlink (un->sun_path);
+    }
+#endif
+#endif
   ret = bind (desc->fd, address, address_len);
 #ifdef MINGW
   if (SOCKET_ERROR == ret)
     SetErrnoFromWinsockError (WSAGetLastError ());
-#else
+#endif
+  if (ret != 0)
+	  return GNUNET_SYSERR;
+#ifndef MINGW
 #ifndef LINUX
-  if ( (ret == 0) && (address->sa_family == AF_UNIX))
-    {
-      const struct sockaddr_un *un = (const struct sockaddr_un*) address;
-      if (0 != unlink (un->sun_path))
-	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-				  "unlink",
-				  un->sun_path);
-    }
+  desc->addr = GNUNET_malloc (address_len);
+  memcpy (desc->addr, address, address_len);
+  desc->addrlen = address_len;
 #endif
 #endif
-  return ret == 0 ? GNUNET_OK : GNUNET_SYSERR;
+  return GNUNET_OK;
 }
 
 
@@ -315,6 +333,19 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
 #else
   ret = close (desc->fd);
 #endif
+#ifndef LINUX
+#ifndef MINGW
+  if ( (desc->af == AF_UNIX) && (NULL != desc->addr) )
+    {
+      const struct sockaddr_un *un = (const struct sockaddr_un*) desc->addr;
+      if (0 != unlink (un->sun_path))
+    	  GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+				  "unlink",
+				  un->sun_path);
+    }
+#endif
+#endif
+   GNUNET_free_non_null (desc->addr);
   GNUNET_free (desc);
   return (ret == 0) ? GNUNET_OK : GNUNET_SYSERR;
 }
