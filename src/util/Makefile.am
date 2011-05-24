@@ -16,6 +16,10 @@ libgnunetutilwin_la_LIBADD = \
 WINLIB = libgnunetutilwin.la
 endif
 
+if !MINGW
+ SERVER_CLIENT_UNIX = test_server_with_client_unix
+endif
+
 if USE_COVERAGE
   AM_CFLAGS = --coverage -O0
   XLIB = -lgcov
@@ -150,6 +154,7 @@ check_PROGRAMS = \
  test_server \
  test_server_disconnect \
  test_server_with_client \
+ $(SERVER_CLIENT_UNIX) \
  test_service \
  test_strings \
  test_time \
@@ -361,6 +366,12 @@ test_server_with_client_SOURCES = \
  test_server_with_client.c
 test_server_with_client_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
+
+test_server_with_client_unix_SOURCES = \
+ test_server_with_client_unix.c
+test_server_with_client_unix_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
 
 test_service_SOURCES = \
  test_service.c
