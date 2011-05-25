@@ -769,9 +769,12 @@ add_unixpath (struct sockaddr **saddrs,
 #if LINUX
   un->sun_path[0] = '\0';
   slen = sizeof (struct sockaddr_un);
+#elif FREEBSD
+  slen += sizeof (sa_family_t) + 1 ;
 #else
-  slen += sizeof (sa_family_t);
+  slen += sizeof (sa_family_t) ;
 #endif
+
   *saddrs = (struct sockaddr*) un;
   *saddrlens = slen;
 #else
