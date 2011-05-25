@@ -222,8 +222,10 @@ static void evaluate_measurements()
 	}
 	stddev[0] /= c_new;
 	stddev[0] = sqrt (stddev[0]);
-	if (!machine_parsable) GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"new, %i measurements, average: %f stddev: %f\n",
-			c_new, average[0], stddev[0]);
+	if (!machine_parsable)
+	  fprintf (stderr,
+		   "new, %i measurements, average: %f stddev: %f\n",
+		   c_new, average[0], stddev[0]);
 
 	average[1] = 0.0;
 	for (c=0; c<c_modified;c++)
@@ -239,8 +241,10 @@ static void evaluate_measurements()
 	}
 	stddev[1] /= c_modified;
 	stddev[1] = sqrt (stddev[1]);
-	if (!machine_parsable) GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"modified, %i measurements, average: %f stddev: %f\n",
-			c_modified, average[1], stddev[1]);
+	if (!machine_parsable) 
+	  fprintf (stderr,
+		   "modified, %i measurements, average: %f stddev: %f\n",
+		   c_modified, average[1], stddev[1]);
 
 	average[2] = 0.0;
 	for (c=0; c<c_unmodified;c++)
@@ -256,18 +260,21 @@ static void evaluate_measurements()
 	stddev[2] /= c_unmodified;
 	stddev[2] = sqrt (stddev[2]);
 
-	if (!machine_parsable) GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"unmodified, %i measurements, average: %f stddev: %f\n",
-			c_unmodified, average[2], stddev[2]);
-
+	if (!machine_parsable) 
+	  fprintf (stderr,
+		   "unmodified, %i measurements, average: %f stddev: %f\n",
+		   c_unmodified, average[2], stddev[2]);
+	
 	if (machine_parsable)
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,",peers,%i,mechs,%i,"
-					"new,%i,%f,%f,"
-					"mod,%i,%f,%f,"
-					"unmod,%i,%f,%f\n",
-					peers-1, results_unmodified[0].mechs,
-					c_new, average[0], stddev[0],
-					c_modified, average[1], stddev[1],
-					c_unmodified, average[2], stddev[2]);
+	  fprintf (stderr,
+		   "peers,%i,mechs,%i,"
+		   "new,%i,%f,%f,"
+		   "mod,%i,%f,%f,"
+		   "unmod,%i,%f,%f\n",
+		   peers-1, results_unmodified[0].mechs,
+		   c_new, average[0], stddev[0],
+		   c_modified, average[1], stddev[1],
+		   c_unmodified, average[2], stddev[2]);
 	shutdown_peers();
 }
 
@@ -383,7 +390,9 @@ int stats_cb (void *cls,
 				}
 				count ++;
 
-				GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "(new: %i / modified: %i / unmodified: %i) of %i \n", c_new, c_modified, c_unmodified , MEASUREMENTS);
+				fprintf (stderr,
+					 "(new: %i / modified: %i / unmodified: %i) of %i \n", 
+					 c_new, c_modified, c_unmodified , MEASUREMENTS);
 				if ((c_modified >= MEASUREMENTS) && (c_new >= MEASUREMENTS) && (c_unmodified >= MEASUREMENTS))
 				{
 #if !VERBOSE
@@ -410,25 +419,29 @@ int stats_cb (void *cls,
 		if (0 == strcmp (name,"ATS solution"))
 		{
 			current.solution = value;
-			if (printed == GNUNET_NO) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] %s: %llu \n", count, name, value);
+			if (printed == GNUNET_NO)
+			  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] %s: %llu \n", count, name, value);
 		}
 
 		if (0 == strcmp (name,"ATS peers"))
 		{
 			current.peers = value;
-			if (printed == GNUNET_NO) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] %s: %llu \n", count, name, value);
+			if (printed == GNUNET_NO)
+			  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] %s: %llu \n", count, name, value);
 		}
 
 		if (0 == strcmp (name,"ATS mechanisms"))
 		{
 			current.mechs = value;
-			if (printed == GNUNET_NO) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] %s: %llu \n", count, name, value);
+			if (printed == GNUNET_NO) 
+			  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] %s: %llu \n", count, name, value);
 		}
 
 		if (0 == strcmp (name,"ATS duration"))
 		{
 			current.duration = value;
-			if (printed == GNUNET_NO) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] %s: %llu \n", count, name, value);
+			if (printed == GNUNET_NO) 
+			  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] %s: %llu \n", count, name, value);
 		}
 		if (0 == strcmp (name,"ATS state"))
 		{
@@ -444,7 +457,8 @@ int stats_cb (void *cls,
 				cont = "QC_UPDATED";
 			if (value == ATS_UNMODIFIED)
 				cont = "UNMODIFIED";
-			if (printed == GNUNET_NO) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] ATS state: %s\n", count, cont);
+			if (printed == GNUNET_NO) 
+			  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "[%i] ATS state: %s\n", count, cont);
 		}
     }
     return GNUNET_OK;
@@ -543,7 +557,8 @@ void daemon_connect_cb(void *cls,
 	char * firstc =  strdup(GNUNET_i2s(first));
 	char * secondc =  strdup(GNUNET_i2s(second));
 	connected++;
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected peers `%s'<->`%s' (%i/%i)\n", firstc, secondc, connected, peers-1);
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "Connected peers `%s'<->`%s' (%i/%i)\n", firstc, secondc, connected, peers-1);
 	GNUNET_free(firstc);
 	GNUNET_free(secondc);
 
