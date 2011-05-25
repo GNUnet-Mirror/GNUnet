@@ -238,8 +238,9 @@ main (int argc, char *argv[])
   
   int ret;
 
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-hostlist-peer-1");
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-hostlist-peer-2");
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-1");
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-2");
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-3");
   GNUNET_log_setup ("test-gnunet-daemon-hostlist",
 #if VERBOSE
                     "DEBUG",
@@ -255,9 +256,10 @@ main (int argc, char *argv[])
       ret = check ();
       fprintf (stderr, ".\n");
     }
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-hostlist-peer-1");
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-hostlist-peer-2");
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-1");
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-2");
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-3");
   return ret; 
 }
 
-/* end of test_gnunet_daemon_hostlist.c */
+/* end of test_gnunet_daemon_hostlist_reconnect.c */
