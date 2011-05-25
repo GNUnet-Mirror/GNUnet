@@ -327,7 +327,11 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
     case AF_INET6:
       port = ntohs (((const struct sockaddr_in6 *) serverAddr)->sin6_port);
       break;
+    case AF_UNIX:
+      port = 0;
+      break;
     default:
+      GNUNET_break (0);
       port = 0;
       break;
     }

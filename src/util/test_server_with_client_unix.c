@@ -133,31 +133,28 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
 static void
 task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  char * unixpath = "/tmp/testsock";
-  int slen = strlen (unixpath) + 1;
-
   struct sockaddr_un un;
+  const char * unixpath = "/tmp/testsock";
+  size_t slen = strlen (unixpath);
+  struct sockaddr * sap[2];
+  socklen_t slens[2];
 
   memset(&un, 0, sizeof(un));
   un.sun_family = AF_UNIX;
   memcpy (un.sun_path, unixpath, slen);
   un.sun_path[slen] = '\0';
 #if HAVE_SOCKADDR_IN_SIN_LEN
-  un.sun_len = (u_char) SUN_LEN (&un);
+  un.sun_len = (u_char) sizeof (un);
 #endif
 #if LINUX
   un.sun_path[0] = '\0';
 #endif
 
-  struct sockaddr * sap[2];
-  socklen_t slens[2];
 
   sap[0] = (struct sockaddr*) &un;
   slens[0] = sizeof (un);
-
   sap[1] = NULL;
   slens[1] = 0;
-
   server = GNUNET_SERVER_create (NULL,
                                  NULL,
                                  sap,

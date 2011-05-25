@@ -932,14 +932,14 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (const struct
   GNUNET_assert (0 < strlen (unixpath));        /* sanity check */
   un = GNUNET_malloc (sizeof (struct sockaddr_un));
   un->sun_family = AF_UNIX;
-  slen = strlen (unixpath) + 1;
+  slen = strlen (unixpath);
   if (slen >= sizeof (un->sun_path))
     slen = sizeof (un->sun_path) - 1;
   memcpy (un->sun_path,
 	  unixpath,
 	  slen);
   un->sun_path[slen] = '\0';
-  slen = SUN_LEN (un);
+  slen = sizeof (struct sockaddr_un);
 #if HAVE_SOCKADDR_IN_SIN_LEN
   un->sun_len = (u_char) slen;
 #endif

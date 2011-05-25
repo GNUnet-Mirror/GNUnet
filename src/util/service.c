@@ -766,7 +766,7 @@ add_unixpath (struct sockaddr **saddrs,
 	  unixpath,
 	  slen);
   un->sun_path[slen] = '\0';
-  slen = SUN_LEN (un);
+  slen = sizeof (struct sockaddr_un);
 #if LINUX
   un->sun_path[0] = '\0';
 #endif
