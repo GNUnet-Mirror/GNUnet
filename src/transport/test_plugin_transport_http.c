@@ -1334,7 +1334,7 @@ main (int argc, char *const *argv)
                              "test_gnunet_transport_plugin_http",
                              "testcase", options, &run, NULL)) ? GNUNET_NO : GNUNET_YES;
 
-  GNUNET_DISK_directory_remove ("/tmp/test_gnunet_transport_plugin_http");
+  GNUNET_DISK_directory_remove ("/tmp/test_plugin_transport_http");
   if (ret != GNUNET_OK)
     return 1;
   return fail;
