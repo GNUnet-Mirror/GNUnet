@@ -891,7 +891,10 @@ GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *sock,
   struct GNUNET_CLIENT_TransmitHandle *th;
 
   if (NULL != sock->th)
-    return NULL;
+    {
+      GNUNET_break (0);
+      return NULL;
+    }
   th = GNUNET_malloc (sizeof (struct GNUNET_CLIENT_TransmitHandle));
   th->sock = sock;
   th->size = size;

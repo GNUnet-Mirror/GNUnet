@@ -1630,7 +1630,10 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle
                                          notify, void *notify_cls)
 {
   if (sock->nth.notify_ready != NULL)
-    return NULL;
+    {
+      GNUNET_break (0);
+      return NULL;
+    }
   GNUNET_assert (notify != NULL);
   GNUNET_assert (size < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   GNUNET_assert (sock->write_buffer_off <= sock->write_buffer_size);

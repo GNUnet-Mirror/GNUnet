@@ -909,7 +909,9 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
       if (strlen(unixpath) >= sizeof(s_un.sun_path))
 	{
 	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		      _("UNIXPATH `%s' too long, maximum length is %llu\n"),unixpath, sizeof(s_un.sun_path));
+		      _("UNIXPATH `%s' too long, maximum length is %llu\n"),
+		      unixpath, 
+		      sizeof(s_un.sun_path));
 	  GNUNET_free_non_null (hostname);
 	  GNUNET_free (unixpath);
 	  return GNUNET_SYSERR;
