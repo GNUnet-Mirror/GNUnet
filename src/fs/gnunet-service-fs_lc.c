@@ -274,7 +274,7 @@ client_response_handler (void *cls,
     memcpy (&pm[1], data, data_len);      
     GSF_local_client_transmit_ (lc, &pm->header);
   }
-#if DEBUG_FS
+#if DEBUG_FS_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Queued reply to query `%s' for local client\n",
 	      GNUNET_h2s (&prd->query),
@@ -324,7 +324,7 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
   sc = (msize - sizeof (struct SearchMessage)) / sizeof (GNUNET_HashCode);
   sm = (const struct SearchMessage*) message;
   type = ntohl (sm->type);
-#if DEBUG_FS
+#if DEBUG_FS_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received request for `%s' of type %u from local client\n",
 	      GNUNET_h2s (&sm->query),
@@ -354,7 +354,7 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
 	}
       if (cr != NULL) 	
 	{ 
-#if DEBUG_FS
+#if DEBUG_FS_CLIENT
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Have existing request, merging content-seen lists.\n");
 #endif

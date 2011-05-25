@@ -281,7 +281,7 @@ schedule_peer_transmission (void *cls,
     }
   /* process from priority heap */
   rp = GNUNET_CONTAINER_heap_peek (pp->priority_heap);
-#if DEBUG_FS
+#if DEBUG_FS > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Executing query plan %p\n",
 	      rp);
@@ -314,6 +314,7 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
   struct GSF_PendingRequestData *prd;
   struct GSF_RequestPlan *rp;
 
+  GNUNET_assert (NULL != cp);
   GSF_connected_peer_get_identity_ (cp, &id);
   pp = GNUNET_CONTAINER_multihashmap_get (plans,
 					  &id.hashPubKey);
