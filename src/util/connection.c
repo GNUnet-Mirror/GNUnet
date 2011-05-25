@@ -642,8 +642,7 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
                   h);
 #endif
       h->ccs -= COCO_RECEIVE_AGAIN;
-      h->read_task = GNUNET_SCHEDULER_add_after (GNUNET_SCHEDULER_NO_TASK,
-                                                 &receive_again, h);
+      h->read_task = GNUNET_SCHEDULER_add_now (&receive_again, h);
     }
   if (0 != (h->ccs & COCO_TRANSMIT_READY))
     {
@@ -657,8 +656,7 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
       h->nth.timeout_task = GNUNET_SCHEDULER_NO_TASK;
       h->ccs -= COCO_TRANSMIT_READY;
       GNUNET_assert (h->write_task == GNUNET_SCHEDULER_NO_TASK);
-      h->write_task = GNUNET_SCHEDULER_add_after (GNUNET_SCHEDULER_NO_TASK,
-                                                  &transmit_ready, h);
+      h->write_task = GNUNET_SCHEDULER_add_now (&transmit_ready, h);
     }
   if (0 != (h->ccs & COCO_DESTROY_CONTINUATION))
     {
@@ -698,8 +696,7 @@ connect_success_continuation (struct GNUNET_CONNECTION_Handle *h)
                   h);
 #endif
       h->ccs -= COCO_RECEIVE_AGAIN;
-      h->read_task = GNUNET_SCHEDULER_add_after (GNUNET_SCHEDULER_NO_TASK,
-                                                 &receive_again, h);
+      h->read_task = GNUNET_SCHEDULER_add_now (&receive_again, h);
     }
   if (0 != (h->ccs & COCO_TRANSMIT_READY))
     {

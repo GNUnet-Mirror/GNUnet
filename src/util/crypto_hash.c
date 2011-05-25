@@ -161,8 +161,7 @@ file_hash_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       return;
     }
   fhc->task 
-    = GNUNET_SCHEDULER_add_after (GNUNET_SCHEDULER_NO_TASK,
-				  &file_hash_task, fhc);
+    = GNUNET_SCHEDULER_add_now (&file_hash_task, fhc);
 }
 
 
