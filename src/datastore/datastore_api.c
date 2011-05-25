@@ -659,6 +659,11 @@ process_queue (struct GNUNET_DATASTORE_Handle *h)
 #endif
       return; /* waiting for reconnect */
     }
+  if (GNUNET_YES == h->in_receive)
+    {
+      /* wait for response to previous query */
+      return; 
+    }
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Queueing %u byte request to DATASTORE\n",
