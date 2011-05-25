@@ -35,6 +35,8 @@
 
 #define DEBUG_FS GNUNET_YES
 
+#define DEBUG_FS_CLIENT GNUNET_NO
+
 
 /**
  * Should we introduce random latency in processing?  Required for proper
