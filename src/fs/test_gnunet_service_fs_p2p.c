@@ -26,17 +26,18 @@
 #include "platform.h"
 #include "fs_test_lib.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 /**
  * File-size we use for testing.
  */
-#define FILESIZE (1024 * 1024 * 2)
+#define FILESIZE (1024 * 1024 * 200)
 
 /**
  * How long until we give up on the download?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
+#define TIMEOUT GNUNET_TIME_UNIT_FOREVER_REL
+// GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
 
 #define NUM_DAEMONS 2
 
