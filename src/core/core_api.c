@@ -1201,7 +1201,7 @@ main_notify_handler (void *cls,
         {
 	  /* request must have been cancelled between the original request
 	     and the response from core, ignore core's readiness */
-          return;
+          break;
         }
 
       th = pr->pending_head;
