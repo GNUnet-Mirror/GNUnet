@@ -1,9 +1,19 @@
 0.9.0pre3:
+* DATASTORE [CG]
+  - FS datastore lookups requested but callback never happens (timeout
+    was set to 'forever', but still it should not take many minutes);
+    => new warning "Datastore lookup already took 180000 ms!" generated
+       by current fs p2p trust testcase
+* CORE: (both reproduced using current fs p2p trust testcase after a looong time running):
+  - May 25 22:13:53 core-4801 ERROR Assertion failed at transport_api.c:2063.
+    (notify transmit ready cancel called in transmit_stage state 'TS_NEW')
+  - May 25 22:13:53 fs-4762 ERROR Assertion failed at core_api.c:1254.
+    (ConfigInfoMessage received for peer that is not known to be connected)
 * FS [CG]
   - perf_gnunet_service_fs_p2p_trust causes crashes of the service
     and assertion failures
-  - test_gnunet_fs_ns.py doesn't run
   - implement 'SUPPORT_DELAYS'
+
 
 0.9.0:
 * new webpage:

@@ -2060,7 +2060,7 @@ GNUNET_TRANSPORT_notify_transmit_ready_cancel (struct
   switch (n->transmit_stage)
     {
     case TS_NEW:
-      GNUNET_break (0);
+      GNUNET_assert (0);
       break;
     case TS_QUEUED:
       n->transmit_stage = TS_NEW;
