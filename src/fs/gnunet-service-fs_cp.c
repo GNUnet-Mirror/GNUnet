@@ -419,7 +419,9 @@ peer_transmit_ready_cb (void *cls,
   struct GSF_PeerTransmitHandle *pth = cls;
   struct GSF_ConnectedPeer *cp;
   size_t ret;
-
+  
+  GNUNET_assert ( (NULL == buf) ||
+		  (pth->size <= size) );
   pth->cth = NULL;
   if (pth->timeout_task != GNUNET_SCHEDULER_NO_TASK)
     {
@@ -764,7 +766,7 @@ handle_p2p_reply (void *cls,
   struct PutMessage *pm;
   size_t msize;
 
-  GNUNET_assert (data_len < GNUNET_SERVER_MAX_MESSAGE_SIZE);
+  GNUNET_assert (data_len + sizeof (struct PutMessage) < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   GNUNET_assert (peerreq->pr == pr);
   prd = GSF_pending_request_get_data_ (pr);
   if (NULL == data)

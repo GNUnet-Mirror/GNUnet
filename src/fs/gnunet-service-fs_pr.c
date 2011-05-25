@@ -100,6 +100,16 @@ struct GSF_PendingRequest
   GNUNET_PEER_Id sender_pid;
 
   /**
+   * Time we started the last datastore lookup.
+   */
+  struct GNUNET_TIME_Absolute qe_start;
+
+  /**
+   * Task that warns us if the local datastore lookup takes too long.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier warn_task;
+
+  /**
    * Current offset for querying our local datastore for results.
    * Starts at a random value, incremented until we get the same
    * UID again (detected using 'first_uid'), which is then used
@@ -576,6 +586,8 @@ clean_request (void *cls,
     GNUNET_DATASTORE_cancel (pr->qe);
   if (NULL != pr->gh)
     GNUNET_DHT_get_stop (pr->gh);
+  if (GNUNET_SCHEDULER_NO_TASK != pr->warn_task)
+    GNUNET_SCHEDULER_cancel (pr->warn_task);
   GNUNET_free (pr);
   return GNUNET_YES;
 }
@@ -589,7 +601,8 @@ clean_request (void *cls,
 void
 GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr)
 {
-  if (NULL == pr_map) return; /* already cleaned up! */
+  if (NULL == pr_map) 
+    return; /* already cleaned up! */
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CONTAINER_multihashmap_remove (pr_map,
 						       &pr->public_data.query,
@@ -1019,6 +1032,49 @@ GSF_dht_lookup_ (struct GSF_PendingRequest *pr)
 				 pr);
 }
 
+
+/**
+ * Task that issues a warning if the datastore lookup takes too long.
+ * 
+ * @param cls the 'struct GSF_PendingRequest'
+ * @param tc task context
+ */
+static void
+warn_delay_task (void *cls,
+		 const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GSF_PendingRequest *pr = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+	      _("Datastore lookup already took %llu ms!\n"),
+	      (unsigned long long) GNUNET_TIME_absolute_get_duration (pr->qe_start).rel_value);
+  pr->warn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+						&warn_delay_task,
+						pr);
+}
+
+
+/**
+ * Task that issues a warning if the datastore lookup takes too long.
+ * 
+ * @param cls the 'struct GSF_PendingRequest'
+ * @param tc task context
+ */
+static void
+odc_warn_delay_task (void *cls,
+		     const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GSF_PendingRequest *pr = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+	      _("On-demand lookup already took %llu ms!\n"),
+	      (unsigned long long) GNUNET_TIME_absolute_get_duration (pr->qe_start).rel_value);
+  pr->warn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+						&odc_warn_delay_task,
+						pr);
+}
+
+
 /**
  * We're processing (local) results for a search request
  * from another peer.  Pass applicable results to the
@@ -1054,6 +1110,8 @@ process_local_reply (void *cls,
   unsigned int old_rf;
   
   pr->qe = NULL;
+  GNUNET_SCHEDULER_cancel (pr->warn_task);
+  pr->warn_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 == pr->replies_seen_count)
     {
       pr->first_uid = uid;
@@ -1095,13 +1153,21 @@ process_local_reply (void *cls,
 				gettext_noop ("# on-demand blocks matched requests"),
 				1,
 				GNUNET_NO);
+      pr->qe_start = GNUNET_TIME_absolute_get ();
+      pr->warn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+						    &odc_warn_delay_task,
+						    pr);
       if (GNUNET_OK != 
 	  GNUNET_FS_handle_on_demand_block (key, size, data, type, priority, 
 					    anonymity, expiration, uid, 
 					    &process_local_reply,
 					    pr))
 	{
-	  pr->qe = GNUNET_DATASTORE_get_key (GSF_dsh,
+	  GNUNET_SCHEDULER_cancel (pr->warn_task);
+	  pr->warn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+							&warn_delay_task,
+							pr);
+ 	  pr->qe = GNUNET_DATASTORE_get_key (GSF_dsh,
 					     pr->local_result_offset - 1,
 					     &pr->public_data.query,
 					     pr->public_data.type == GNUNET_BLOCK_TYPE_FS_DBLOCK 
@@ -1139,6 +1205,10 @@ process_local_reply (void *cls,
 			       -1, -1, 
 			       GNUNET_TIME_UNIT_FOREVER_REL,
 			       NULL, NULL);
+      pr->qe_start = GNUNET_TIME_absolute_get ();
+      pr->warn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+						    &warn_delay_task,
+						    pr);
       pr->qe = GNUNET_DATASTORE_get_key (GSF_dsh,
 					 pr->local_result_offset - 1,
 					 &pr->public_data.query,
@@ -1198,6 +1268,10 @@ process_local_reply (void *cls,
 	}
       return;
     }
+  pr->qe_start = GNUNET_TIME_absolute_get ();
+  pr->warn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+						&warn_delay_task,
+						pr);
   pr->qe = GNUNET_DATASTORE_get_key (GSF_dsh,
 				     pr->local_result_offset++,
 				     &pr->public_data.query,
@@ -1233,6 +1307,10 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
   GNUNET_assert (NULL == pr->llc_cont);
   pr->llc_cont = cont;
   pr->llc_cont_cls = cont_cls;
+  pr->qe_start = GNUNET_TIME_absolute_get ();
+  pr->warn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+						&warn_delay_task,
+						pr);
   pr->qe = GNUNET_DATASTORE_get_key (GSF_dsh,
 				     pr->local_result_offset++,
 				     &pr->public_data.query,
