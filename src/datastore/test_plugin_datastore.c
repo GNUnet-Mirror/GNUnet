@@ -446,7 +446,7 @@ main (int argc, char *argv[])
 
   GNUNET_snprintf (dir_name,
 		   sizeof (dir_name),
-		   "/tmp/test-gnunet-datastore-%s",
+		   "/tmp/test-gnunet-datastore-plugin-%s",
 		   plugin_name);
   GNUNET_DISK_directory_remove (dir_name);
   GNUNET_log_setup ("test-plugin-datastore",
