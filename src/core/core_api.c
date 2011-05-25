@@ -578,10 +578,9 @@ request_next_transmission (struct PeerRecord *pr)
   smr->queue_size = htonl (pr->queue_size);
   smr->size = htons (th->msize);
   smr->smr_id = htons (th->smr_id = pr->smr_id_gen++);
-  GNUNET_CONTAINER_DLL_insert_after (h->control_pending_head,
-				     h->control_pending_tail,
-				     h->control_pending_tail,
-				     cm);
+  GNUNET_CONTAINER_DLL_insert_tail (h->control_pending_head,
+				    h->control_pending_tail,
+				    cm);
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Adding SEND REQUEST for peer `%s' to message queue\n",
@@ -726,8 +725,14 @@ transmit_message (void *cls,
       ret = th->get_message (th->get_message_cls,
 			     size - sizeof (struct SendMessage),
 			     &sm[1]);
-
-      if (0 == ret)
+ 
+#if DEBUG_CORE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Transmitting SEND request to `%s' yielded %u bytes.\n",
+		  GNUNET_i2s (&pr->peer),
+		  ret);
+#endif
+     if (0 == ret)
 	{
 #if DEBUG_CORE
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -852,7 +857,7 @@ main_notify_handler (void *cls,
       return;
     }
   msize = ntohs (msg->size);
-#if DEBUG_CORE
+#if DEBUG_CORE > 2
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Processing message of type %u and size %u from core service\n",
               ntohs (msg->type), msize);
@@ -1030,7 +1035,7 @@ main_notify_handler (void *cls,
 	  reconnect_later (h);
 	  return;
         }
-#if DEBUG_CORE
+#if DEBUG_CORE > 1
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Received notification about status change by `%s'.\n",
 		  GNUNET_i2s (&psnm->peer));
@@ -1238,8 +1243,9 @@ main_notify_handler (void *cls,
 	}
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Received notification about configuration update for `%s'.\n",
-		  GNUNET_i2s (&cim->peer));
+		  "Received notification about configuration update for `%s' with RIM %u.\n",
+		  GNUNET_i2s (&cim->peer),
+		  (unsigned int) ntohl (cim->rim_id));
 #endif
       pr = GNUNET_CONTAINER_multihashmap_get (h->peers,
 					      &cim->peer.hashPubKey);
@@ -1793,8 +1799,7 @@ GNUNET_CORE_peer_request_connect (struct GNUNET_CORE_Handle *h,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Queueing REQUEST_CONNECT request\n");
 #endif
-  if (h->control_pending_head == cm)
-    trigger_next_request (h, GNUNET_NO);
+  trigger_next_request (h, GNUNET_NO);
   return ret;
 }
 
@@ -1811,6 +1816,10 @@ GNUNET_CORE_peer_request_connect_cancel (struct GNUNET_CORE_PeerRequestHandle *r
   struct GNUNET_CORE_Handle *h = req->h;
   struct ControlMessage *cm = req->cm;
 
+#if DEBUG_CORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "A CHANGE PREFERENCE request was cancelled!\n");
+#endif
   GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
 			       h->control_pending_tail,
 			       cm);
@@ -1929,7 +1938,9 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
   rim->peer = *peer;
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Queueing CHANGE PREFERENCE request\n");
+	      "Queueing CHANGE PREFERENCE request for peer `%s' with RIM %u\n",
+	      GNUNET_i2s (peer),
+	      (unsigned int) pr->rim_id);
 #endif
   GNUNET_CONTAINER_DLL_insert_tail (h->control_pending_head,
 				    h->control_pending_tail,
@@ -1937,8 +1948,7 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
   pr->pcic = info;
   pr->pcic_cls = info_cls;
   pr->pcic_ptr = irc; /* for free'ing irc */
-  if (h->control_pending_head == cm)
-    trigger_next_request (h, GNUNET_NO);
+  trigger_next_request (h, GNUNET_NO);
   return irc;
 }
 
