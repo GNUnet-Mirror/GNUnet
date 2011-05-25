@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file testing/test_transport_ats_perf.c
+ * @file testing/per_transport_ats.c
  * @brief testcase for ats functionality
  */
 #include "platform.h"
@@ -230,7 +230,7 @@ void modify_cr (int start, int length, int count)
 int main (int argc, char *argv[])
 {
 	int ret = 0;
-	GNUNET_log_setup ("test-transport-ats",
+	GNUNET_log_setup ("perf-transport-ats",
 #if VERBOSE
                     "DEBUG",
 #else
@@ -263,4 +263,4 @@ int main (int argc, char *argv[])
   return ret;
 }
 
-/* end of test_transport_ats_perf.c*/
+/* end of per_transport_ats.c*/

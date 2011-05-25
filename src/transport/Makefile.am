@@ -34,12 +34,10 @@ endif
 
 if HAVE_PCAP
 if LINUX
- WLAN_BIN = gnunet-transport-wlan-helper
- WLAN_BIN_DUMMY = gnunet-transport-wlan-helper-dummy
+ WANBIN = gnunet-transport-wlan-helper
  WLAN_PLUGIN_LA = libgnunet_plugin_transport_wlan.la
  WLAN_API_TEST = test_transport_api_wlan
  WLAN_REL_TEST = test_transport_api_reliability_wlan
- WLAN_UREL_TEST = test_transport_api_unreliability_wlan
 endif
 endif
 
@@ -80,9 +78,8 @@ libgnunettransport_la_LDFLAGS = \
 
 bin_PROGRAMS = \
  gnunet-transport \
- $(WLAN_BIN) \
- gnunet-service-transport $(NATBIN) \
- $(WLAN_BIN_DUMMY)
+ $(WANBIN) \
+ gnunet-service-transport $(NATBIN)
 
 bin_SCRIPTS = \
  gnunet-transport-certificate-creation
@@ -94,21 +91,13 @@ gnunet_nat_server_SOURCES = \
 gnunet_transport_wlan_helper_SOURCES = \
  wlan/radiotap-parser.c \
  wlan/helper_common.c \
+ wlan/loopback_helper.c \
  gnunet-transport-wlan-helper.c
-
-gnunet_transport_wlan_helper_dummy_SOURCES = \
- wlan/radiotap-parser.c \
- wlan/helper_common.c \
- test_plugin_transport_wlan_dummy.c
 
 gnunet_transport_wlan_helper_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
  -lpcap
 
-gnunet_transport_wlan_helper_dummy_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
- -lpcap
- 
 gnunet_nat_client_SOURCES = \
  $(NATCLIENT)         
 
@@ -224,7 +213,7 @@ libgnunet_plugin_transport_https_la_CFLAGS = \
 
 check_PROGRAMS = \
  test_transport_ats \
- test_transport_ats_perf \
+ perf_transport_ats \
  test_transport_api_tcp \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
@@ -249,14 +238,13 @@ check_PROGRAMS = \
  $(HTTP_QUOTA_TEST) \
  $(HTTPS_QUOTA_TEST) \
  $(WLAN_API_TEST) \
- $(WLAN_REL_TEST) \
- $(WLAN_UREL_TEST)
+ $(WLAN_REL_TEST)
 # TODO: add tests for nat, etc.
 
 if !DISABLE_TEST_RUN
 TESTS = \
  test_transport_ats \
- test_transport_ats_perf \
+ perf_transport_ats \
  test_transport_api_tcp \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
@@ -280,11 +268,8 @@ TESTS = \
  $(UNIX_QUOTA_TEST) \
  $(HTTP_QUOTA_TEST) \
  $(HTTPS_QUOTA_TEST) \
- $(WLAN_UREL_TEST)
+ $(WLAN_REL_TEST)
 endif
-
-# $(WLAN_API_TEST) 
-# $(WLAN_REL_TEST) 
 
 test_transport_ats_SOURCES = \
  test_transport_ats.c
@@ -294,9 +279,9 @@ test_transport_ats_LDADD = -lm \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
-test_transport_ats_perf_SOURCES = \
- test_transport_ats_perf.c
-test_transport_ats_perf_LDADD = \
+perf_transport_ats_SOURCES = \
+ perf_transport_ats.c
+perf_transport_ats_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
@@ -337,13 +322,7 @@ test_transport_api_reliability_wlan_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la
- 
-test_transport_api_unreliability_wlan_SOURCES = \
- test_transport_api_unreliability.c
-test_transport_api_unreliability_wlan_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/util/libgnunetutil.la
+
 
 test_transport_api_udp_SOURCES = \
  test_transport_api.c
