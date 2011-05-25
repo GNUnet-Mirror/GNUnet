@@ -168,9 +168,9 @@ if HAVE_PYTHON_PEXPECT
 check_SCRIPTS = \
  test_gnunet_fs_psd.py \
  test_gnunet_fs_rec.py \
- test_gnunet_fs_idx.py
+ test_gnunet_fs_idx.py \
+ test_gnunet_fs_ns.py 
 endif
-# test_gnunet_fs_ns.py 
 
 
 if !DISABLE_TEST_RUN
@@ -198,7 +198,7 @@ TESTS = \
  perf_gnunet_service_fs_p2p_index \
  $(check_SCRIPTS)  
 endif
-# perf_gnunet_service_fs_p2p_trust \
+# perf_gnunet_service_fs_p2p_trust 
 
 
 

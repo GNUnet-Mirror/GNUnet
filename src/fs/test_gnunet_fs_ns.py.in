@@ -26,7 +26,7 @@ import re
 os.system ('rm -rf /tmp/gnunet-test-fs-py-ns/')
 os.system ('gnunet-arm -sq -c test_gnunet_fs_ns_data.conf')
 try:
-  pseu = pexpect.spawn ('gnunet-pseudonym -c test_gnunet_fs_ns_data.conf -C licenses -k gplad -m "description:Free Software Licenses" -r myroot')
+  pseu = pexpect.spawn ('gnunet-pseudonym -c test_gnunet_fs_ns_data.conf -C licenses -k gplad -m "description:Free Software Licenses" -R myroot')
   pseu.expect (pexpect.EOF)
   pseu = pexpect.spawn ('gnunet-pseudonym -c test_gnunet_fs_ns_data.conf -o')
   pseu.expect (re.compile("licenses \(.*\)\r"))
