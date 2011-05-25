@@ -142,6 +142,9 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   un.sun_family = AF_UNIX;
   memcpy (un.sun_path, unixpath, slen);
   un.sun_path[slen] = '\0';
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  un.sun_len = (u_char) SUN_LEN (&un);
+#endif
 #if LINUX
   un.sun_path[0] = '\0';
 #endif

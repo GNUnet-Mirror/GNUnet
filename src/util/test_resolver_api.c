@@ -229,6 +229,9 @@ run(void *cls, char * const *args,
 
   memset(&sa, 0, sizeof(sa));
   sa.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  sa.sin_len = (u_char) sizeof (sa);
+#endif
   sa.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
   GNUNET_RESOLVER_ip_get(cfg, "localhost", AF_INET, timeout, &check_127,
       cls);
@@ -343,6 +346,9 @@ run(void *cls, char * const *args,
 
   memset(&sa, 0, sizeof(sa));
   sa.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  sa.sin_len = (u_char) sizeof (sa);
+#endif
 #ifndef MINGW
   inet_aton(ROOTSERVER_IP, &sa.sin_addr);
 #else

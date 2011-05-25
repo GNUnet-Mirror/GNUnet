@@ -376,6 +376,9 @@ GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck access,
       v4 = GNUNET_malloc (sizeof (struct sockaddr_in));
       memset (v4, 0, sizeof (struct sockaddr_in));
       v4->sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      v4->sin_len = (u_char) sizeof (struct sockaddr_in);
+#endif
       memcpy (&v4->sin_addr,
               &((char *) &v6->sin6_addr)[sizeof (struct in6_addr) -
                                          sizeof (struct in_addr)],
@@ -936,10 +939,12 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (const struct
 	  unixpath,
 	  slen);
   un->sun_path[slen] = '\0';
-  slen += sizeof (sa_family_t);
+  slen = SUN_LEN (un);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  un->sun_len = (u_char) slen;
+#endif
 #if LINUX
   un->sun_path[0] = '\0';
-  slen = sizeof (struct sockaddr_un);
 #endif
   ret = GNUNET_malloc (sizeof (struct GNUNET_CONNECTION_Handle));
   ret->cfg = cfg;

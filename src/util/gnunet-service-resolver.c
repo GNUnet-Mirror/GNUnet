@@ -327,6 +327,9 @@ gethostbyname2_resolve (struct GNUNET_SERVER_TransmitContext *tc,
       GNUNET_assert (hp->h_length == sizeof (struct in_addr));
       memset (&a4, 0, sizeof (a4));
       a4.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      a4.sin_len = (u_char) sizeof (struct sockaddr_in);
+#endif
       memcpy (&a4.sin_addr, hp->h_addr_list[0], hp->h_length);
       GNUNET_SERVER_transmit_context_append_data (tc,
 						  &a4,
@@ -338,6 +341,9 @@ gethostbyname2_resolve (struct GNUNET_SERVER_TransmitContext *tc,
       GNUNET_assert (hp->h_length == sizeof (struct in6_addr));
       memset (&a6, 0, sizeof (a6));
       a6.sin6_family = AF_INET6;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      a6.sin6_len = (u_char) sizeof (struct sockaddr_in6);
+#endif
       memcpy (&a6.sin6_addr, hp->h_addr_list[0], hp->h_length);
       GNUNET_SERVER_transmit_context_append_data (tc,
 						  &a6,
@@ -372,6 +378,9 @@ gethostbyname_resolve (struct GNUNET_SERVER_TransmitContext *tc,
   GNUNET_assert (hp->h_length == sizeof (struct in_addr));
   memset (&addr, 0, sizeof (addr));
   addr.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  addr.sin_len = (u_char) sizeof (struct sockaddr_in);
+#endif
   memcpy (&addr.sin_addr, hp->h_addr_list[0], hp->h_length);
   GNUNET_SERVER_transmit_context_append_data (tc,
 					      &addr,

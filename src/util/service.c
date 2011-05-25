@@ -766,15 +766,13 @@ add_unixpath (struct sockaddr **saddrs,
 	  unixpath,
 	  slen);
   un->sun_path[slen] = '\0';
+  slen = SUN_LEN (un);
 #if LINUX
   un->sun_path[0] = '\0';
-  slen = sizeof (struct sockaddr_un);
-#elif FREEBSD
-  slen += sizeof (sa_family_t) + 1 ;
-#else
-  slen += sizeof (sa_family_t) ;
 #endif
-
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  un->sun_len = (u_char) slen;
+#endif
   *saddrs = (struct sockaddr*) un;
   *saddrlens = slen;
 #else
@@ -909,6 +907,7 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
     {
       /* probe UNIX support */
       struct sockaddr_un s_un;
+
       if (strlen(unixpath) >= sizeof(s_un.sun_path))
 	{
 	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -923,8 +922,8 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
       desc = GNUNET_NETWORK_socket_create (AF_UNIX, SOCK_STREAM, 0);
       if (NULL == desc)
         {
-          if ((errno == ENOBUFS) ||
-              (errno == ENOMEM) || (errno == ENFILE) || (errno == EACCES))
+          if ( (errno == ENOBUFS) ||
+	       (errno == ENOMEM) || (errno == ENFILE) || (errno == EACCES))
             {
               GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
 	      GNUNET_free_non_null (hostname);

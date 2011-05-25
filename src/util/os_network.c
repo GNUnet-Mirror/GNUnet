@@ -148,6 +148,9 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
                 free (pszIfName);
 
               sa.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+	      sa.sin_len = (u_char) sizeof (struct sockaddr_in);
+#endif
               sa.sin_addr.S_un.S_addr = dwIP;
 
               if (GNUNET_OK !=
@@ -256,6 +259,9 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
             {
               memset (&a4, 0, sizeof (a4));
               a4.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+	      a4.sin_len = (u_char) sizeof (struct sockaddr_in);
+#endif
               a4.sin_addr = v4;
               if (GNUNET_OK !=
                   proc (proc_cls,
@@ -270,8 +276,10 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
             {
               memset (&a6, 0, sizeof (a6));
               a6.sin6_family = AF_INET6;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+	      a6.sin6_len = (u_char) sizeof (struct sockaddr_in6);
+#endif
               a6.sin6_addr = v6;
-              fprintf (stderr, "procing %s\n", addrstr);
               if (GNUNET_OK !=
                   proc (proc_cls,
                         ifc,
