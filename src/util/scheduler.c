@@ -911,7 +911,13 @@ GNUNET_SCHEDULER_cancel (GNUNET_SCHEDULER_TaskIdentifier task)
   while (t == NULL)
     {
       p++;
-      GNUNET_assert (p < GNUNET_SCHEDULER_PRIORITY_COUNT);
+      if (p >= GNUNET_SCHEDULER_PRIORITY_COUNT)
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      _("Attempt to cancel dead task %llu!\n"),
+		      (unsigned long long) task);
+	  GNUNET_assert (0);
+	}
       prev = NULL;
       t = ready[p];
       while (t != NULL)
