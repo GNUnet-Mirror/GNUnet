@@ -1232,6 +1232,11 @@ peer_transmit_timeout (void *cls,
     GNUNET_assert (0 < cp->ppd.pending_replies--);
   GNUNET_LOAD_update (cp->ppd.transmission_delay,
 		      UINT64_MAX);
+  if (NULL != pth->cth)
+    {
+      GNUNET_CORE_notify_transmit_ready_cancel (pth->cth);
+      pth->cth = NULL;
+    }
   pth->gmc (pth->gmc_cls, 
 	    0, NULL);
   GNUNET_free (pth);
@@ -1296,7 +1301,6 @@ GSF_peer_transmit_ (struct GSF_ConnectedPeer *cp,
     cp->ppd.pending_queries++;
   else if (GNUNET_NO == is_query)
     cp->ppd.pending_replies++;
-
   pth->timeout_task = GNUNET_SCHEDULER_add_delayed (timeout,
 						    &peer_transmit_timeout,
 						    pth);
