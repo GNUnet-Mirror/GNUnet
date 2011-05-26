@@ -42,7 +42,8 @@
 #include "gnunet_transport_plugin.h"
 #include "transport.h"
 
-#define DEBUG_UNIX GNUNET_YES
+#define DEBUG_UNIX GNUNET_NO
+#define DETAILS GNUNET_NO
 
 #define MAX_PROBES 20
 
@@ -545,6 +546,7 @@ unix_real_send (void *cls,
   struct sockaddr_un un;
   size_t slen;
   struct RetryList *retry_list_entry;
+  int retry;
 
   if (send_handle == NULL)
     {
@@ -581,20 +583,57 @@ unix_real_send (void *cls,
   memset(&un, 0, sizeof(un));
   un.sun_family = AF_UNIX;
   slen = strlen (addr) + 1;
+  if (slen >= sizeof (un.sun_path))
+    slen = sizeof (un.sun_path) - 1;
   sent = 0;
   GNUNET_assert(slen < sizeof(un.sun_path));
   memcpy (un.sun_path, addr, slen);
   un.sun_path[slen] = '\0';
+  slen = sizeof (struct sockaddr_un);
 #if LINUX
   un.sun_path[0] = '\0';
 #endif
-  slen += sizeof (sa_family_t);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  un.sun_len = (u_char) slen;
+#endif
   sb = (struct sockaddr*) &un;
   sbs = slen;
+  retry = GNUNET_NO;
 
   sent = GNUNET_NETWORK_socket_sendto(send_handle, message, ssize, sb, sbs);
 
-  if (GNUNET_SYSERR == sent)
+  if ((GNUNET_SYSERR == sent) && (errno == EAGAIN))
+	  retry = GNUNET_YES;
+
+  if ((GNUNET_SYSERR == sent) && (errno == EMSGSIZE))
+  {
+	  socklen_t size = 0;
+	  socklen_t len = sizeof (size);
+	  GNUNET_NETWORK_socket_getsockopt ((struct GNUNET_NETWORK_Handle * ) send_handle,
+			  SOL_SOCKET,
+			  SO_SNDBUF,
+			  &size, &len);
+
+	  if (size < ssize)
+	  {
+#if DEBUG_UNIX
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Trying to increase socket buffer size from %i to %i for message size %i\n",
+	      size,
+              ((ssize / 1000) + 2) * 1000, ssize);
+#endif
+		  size = ((ssize / 1000) + 2) * 1000;
+		  if (GNUNET_NETWORK_socket_setsockopt ((struct GNUNET_NETWORK_Handle * ) send_handle,
+				  SOL_SOCKET,
+				  SO_SNDBUF,
+				  &size, sizeof(size)) == GNUNET_OK)
+			 retry = GNUNET_YES;
+		  else
+			 GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "setsockopt");
+	  }
+  }
+
+  if (retry == GNUNET_YES)
     {
       if (incoming_retry_context == NULL)
         {
@@ -624,16 +663,8 @@ unix_real_send (void *cls,
           retry_ctx->delay = GNUNET_TIME_relative_multiply(retry_ctx->delay, 2);
         }
       retry_ctx->retry_task = GNUNET_SCHEDULER_add_delayed(retry_ctx->delay, &retry_send_message, retry_ctx);
-#if DETAILS
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Error when trying to send %d byte message to %s\n", retry_ctx->msg_size, &un->sun_path[1]);
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "UNIX transmit %u-byte message to %s (%d: %s)\n",
-                  (unsigned int) ssize,
-                  GNUNET_a2s (sb, sbs),
-                  (int) sent,
-                  (sent < 0) ? STRERROR (errno) : "ok");
-#endif
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_DEBUG, "send");
+
+      //GNUNET_log_strerror (GNUNET_ERROR_TYPE_DEBUG, "send");
       GNUNET_free(message);
       return ssize;
     }
@@ -905,11 +936,16 @@ unix_transport_server_start (void *cls)
   memset(&un, 0, sizeof(un));
   un.sun_family = AF_UNIX;
   slen = strlen (plugin->unix_socket_path) + 1;
+  if (slen >= sizeof (un.sun_path))
+    slen = sizeof (un.sun_path) - 1;
 
-  GNUNET_assert(slen < sizeof(un.sun_path));
   memcpy (un.sun_path, plugin->unix_socket_path, slen);
   un.sun_path[slen] = '\0';
-  slen += sizeof (sa_family_t);
+  slen = sizeof (struct sockaddr_un);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  un.sun_len = (u_char) slen;
+#endif
+
   serverAddr = (struct sockaddr*) &un;
   addrlen = slen;
 #if LINUX
