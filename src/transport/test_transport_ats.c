@@ -267,7 +267,7 @@ static void evaluate_measurements()
 	
 	if (machine_parsable)
 	  fprintf (stderr,
-		   "peers,%i,mechs,%i,"
+		   "peers,%i,mechs,%lu,"
 		   "new,%i,%f,%f,"
 		   "mod,%i,%f,%f,"
 		   "unmod,%i,%f,%f\n",
