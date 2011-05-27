@@ -389,10 +389,11 @@ int stats_cb (void *cls,
 					}
 				}
 				count ++;
-
+#if VERBOSE
 				fprintf (stderr,
 					 "(new: %i / modified: %i / unmodified: %i) of %i \n", 
 					 c_new, c_modified, c_unmodified , MEASUREMENTS);
+#endif
 				if ((c_modified >= MEASUREMENTS) && (c_new >= MEASUREMENTS) && (c_unmodified >= MEASUREMENTS))
 				{
 #if !VERBOSE
