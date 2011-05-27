@@ -417,6 +417,7 @@ peer_transmit_ready_cb (void *cls,
 			void *buf)
 {
   struct GSF_PeerTransmitHandle *pth = cls;
+  struct GSF_PeerTransmitHandle *pos;
   struct GSF_ConnectedPeer *cp;
   size_t ret;
   
@@ -445,9 +446,13 @@ peer_transmit_ready_cb (void *cls,
 		      GNUNET_TIME_absolute_get_duration (pth->transmission_request_start_time).rel_value);
   ret = pth->gmc (pth->gmc_cls, 
 		  size, buf);
+  GNUNET_assert (NULL == pth->cth);
+  for (pos = cp->pth_head; pos != NULL; pos = pos->next)
+    {
+      GNUNET_assert (pos != pth);
+      schedule_transmission (pos);
+    }
   GNUNET_free (pth);
-  for (pth = cp->pth_head; pth != NULL; pth = pth->next)
-    schedule_transmission (pth);
   return ret;
 }
 
@@ -1496,6 +1501,11 @@ GSF_peer_disconnect_handler_ (void *cls,
 	{
 	  GNUNET_CORE_notify_transmit_ready_cancel (pth->cth);
 	  pth->cth = NULL;
+	}
+      if (pth->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+	{
+	  GNUNET_SCHEDULER_cancel (pth->timeout_task);
+	  pth->timeout_task = GNUNET_SCHEDULER_NO_TASK;
 	}
       GNUNET_CONTAINER_DLL_remove (cp->pth_head,
 				   cp->pth_tail,

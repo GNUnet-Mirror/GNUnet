@@ -594,7 +594,8 @@ gather_migration_blocks (void *cls,
 						     0, UINT_MAX,
 						     GNUNET_TIME_UNIT_FOREVER_REL,
 						     &process_migration_content, NULL);
-      GNUNET_assert (mig_qe != NULL);
+      if (NULL == mig_qe)
+	consider_gathering ();
     }
 }
 
