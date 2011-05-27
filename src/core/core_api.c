@@ -102,6 +102,11 @@ struct PeerRecord
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
   /**
+   * ID of task to run 'next_request_transmission'.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier ntr_task;
+
+  /**
    * Current size of the queue of pending requests.
    */
   unsigned int queue_size;
@@ -440,6 +445,11 @@ disconnect_and_free_peer_entry (void *cls,
       GNUNET_SCHEDULER_cancel (pr->timeout_task);
       pr->timeout_task = GNUNET_SCHEDULER_NO_TASK;
     }
+  if (pr->ntr_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (pr->ntr_task);
+      pr->ntr_task = GNUNET_SCHEDULER_NO_TASK;
+    }
   GNUNET_assert (pr->queue_size == 0);
   if ( (pr->prev != NULL) ||
        (pr->next != NULL) ||
@@ -459,6 +469,7 @@ disconnect_and_free_peer_entry (void *cls,
   GNUNET_assert (pr->ch = h);
   GNUNET_assert (pr->queue_size == 0);
   GNUNET_assert (pr->timeout_task == GNUNET_SCHEDULER_NO_TASK);
+  GNUNET_assert (pr->ntr_task == GNUNET_SCHEDULER_NO_TASK);
   GNUNET_free (pr);  
   return GNUNET_YES;
 }
@@ -734,6 +745,7 @@ transmit_message (void *cls,
 		  GNUNET_i2s (&pr->peer),
 		  ret);
 #endif
+      GNUNET_free (th);
      if (0 == ret)
 	{
 #if DEBUG_CORE
@@ -743,7 +755,6 @@ transmit_message (void *cls,
 #endif
 	  /* client decided to send nothing! */
 	  request_next_transmission (pr);
-	  GNUNET_free (th);
    	  return 0;	  
 	}
 #if DEBUG_CORE
@@ -756,13 +767,11 @@ transmit_message (void *cls,
 	{
 	  GNUNET_break (0);
 	  request_next_transmission (pr);
-	  GNUNET_free (th);
    	  return 0;
 	}
       ret += sizeof (struct SendMessage);
       sm->header.size = htons (ret);
       GNUNET_assert (ret <= size);
-      GNUNET_free (th);
       request_next_transmission (pr);
       return ret;
     }
@@ -1507,6 +1516,23 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
 
 
 /**
+ * Task that calls 'request_next_transmission'.
+ *
+ * @param cls the 'struct PeerRecord*'
+ * @param tc scheduler context
+ */
+static void
+run_request_next_transmission (void *cls,
+			       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct PeerRecord *pr = cls;
+
+  pr->ntr_task = GNUNET_SCHEDULER_NO_TASK;
+  request_next_transmission (pr);
+}
+
+
+/**
  * Ask the core to call "notify" once it is ready to transmit the
  * given number of bytes to the specified "target".    Must only be
  * called after a connection to the respective peer has been
@@ -1634,8 +1660,9 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Transmission request added to queue\n");
 #endif
-  if (pr->pending_head == th) 
-    request_next_transmission (pr);
+  if ( (pr->pending_head == th)  &&
+       (pr->ntr_task == GNUNET_SCHEDULER_NO_TASK) )
+    pr->ntr_task = GNUNET_SCHEDULER_add_now (&run_request_next_transmission, pr);
   return th;
 }
 
@@ -1652,7 +1679,7 @@ GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle
   struct PeerRecord *pr = th->peer;
   struct GNUNET_CORE_Handle *h = pr->ch;
   int was_head;
-  
+
   was_head = (pr->pending_head == th);
   GNUNET_CONTAINER_DLL_remove (pr->pending_head,
 			       pr->pending_tail,
