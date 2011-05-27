@@ -419,6 +419,8 @@ disconnect_and_free_peer_entry (void *cls,
       GNUNET_assert (0 == 
 		     th->get_message (th->get_message_cls,
 				      0, NULL));
+      if (th->cm != NULL)
+	th->cm->th = NULL;
       GNUNET_free (th);
     }
   if (NULL != (pcic = pr->pcic))
