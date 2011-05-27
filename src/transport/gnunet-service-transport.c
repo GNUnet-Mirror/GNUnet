@@ -6139,7 +6139,6 @@ static int ats_evaluate_results (int result, int solution, char * problem)
 	case GLP_EITLIM :    /* iteration limit exceeded */
 		GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%s Iteration limit exceeded\n", problem);
 		break;
-	break;
 	case GLP_ETMLIM :    /* time limit exceeded */
 		GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%s Time limit exceeded\n", problem);
 	break;
@@ -6216,7 +6215,7 @@ static void ats_solve_problem (unsigned int max_it, unsigned int  max_dur, unsig
 	result = glp_simplex(ats->prob, &opt_lp);
 	lp_solution =  glp_get_status (ats->prob);
 
-	if ((result == GLP_ETMLIM) || (result == GLP_ETMLIM))
+	if ((result == GLP_ETMLIM) || (result == GLP_EITLIM))
 	{
 		ats->stat.valid = GNUNET_NO;
 		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ATS exceeded time or iteration limit!\n");
