@@ -371,7 +371,10 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
   if (NULL != pp->pth)
     GSF_peer_transmit_cancel_ (pp->pth);
   if (GNUNET_SCHEDULER_NO_TASK != pp->task)
-    GNUNET_SCHEDULER_cancel (pp->task);
+    {
+      GNUNET_SCHEDULER_cancel (pp->task);
+      pp->task = GNUNET_SCHEDULER_NO_TASK;
+    }
   while (NULL != (rp = GNUNET_CONTAINER_heap_remove_root (pp->priority_heap)))
     {
       prd = GSF_pending_request_get_data_ (rp->pr);
