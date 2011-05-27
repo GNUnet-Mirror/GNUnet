@@ -6459,6 +6459,7 @@ static void ats_update_problem_cr ()
 
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Updating problem quality metrics\n");
 	row_index = ats->stat.begin_cr;
+	array_index = 1;
 
 	for (c=0; c<available_ressources; c++)
 	{
