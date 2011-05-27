@@ -692,6 +692,13 @@ drop_status_cont (void *cls, int32_t result, const char *emsg)
 }
 
 
+/**
+ * Free a queue entry.  Removes the given entry from the
+ * queue and releases associated resources.  Does NOT
+ * call the callback.
+ * 
+ * @param qe entry to free.
+ */
 static void
 free_queue_entry (struct GNUNET_DATASTORE_QueueEntry *qe)
 {
@@ -709,6 +716,7 @@ free_queue_entry (struct GNUNET_DATASTORE_QueueEntry *qe)
   qe->was_transmitted = GNUNET_SYSERR; /* use-after-free warning */
   GNUNET_free (qe);
 }
+
 
 /**
  * Type of a function to call when we receive a message
@@ -1281,15 +1289,16 @@ process_result_message (void *cls,
 #endif
   free_queue_entry (qe);
   h->retry_time.rel_value = 0;
-  rc.proc (rc.proc_cls,
-	   &dm->key,
-	   ntohl(dm->size),
-	   &dm[1],
-	   ntohl(dm->type),
-	   ntohl(dm->priority),
-	   ntohl(dm->anonymity),
-	   GNUNET_TIME_absolute_ntoh(dm->expiration),	
-	   GNUNET_ntohll(dm->uid));
+  if (rc.proc != NULL)
+    rc.proc (rc.proc_cls,
+	     &dm->key,
+	     ntohl(dm->size),
+	     &dm[1],
+	     ntohl(dm->type),
+	     ntohl(dm->priority),
+	     ntohl(dm->anonymity),
+	     GNUNET_TIME_absolute_ntoh(dm->expiration),	
+	     GNUNET_ntohll(dm->uid));
 }
 
 
