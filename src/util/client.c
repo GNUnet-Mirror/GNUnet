@@ -597,6 +597,7 @@ GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
   sock->receive_timeout = GNUNET_TIME_relative_to_absolute (timeout);
   if (GNUNET_YES == sock->msg_complete)
     {
+      GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == sock->receive_task);
       sock->receive_task = GNUNET_SCHEDULER_add_now (&receive_task, sock);
     }
   else
