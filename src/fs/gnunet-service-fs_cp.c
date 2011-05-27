@@ -839,9 +839,9 @@ handle_p2p_reply (void *cls,
 			     pm);
   if (eval != GNUNET_BLOCK_EVALUATION_OK_LAST)
     return;
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == peerreq->kill_task);
-  peerreq->kill_task = GNUNET_SCHEDULER_add_now (&peer_request_destroy,
-						 peerreq);
+  if (GNUNET_SCHEDULER_NO_TASK == peerreq->kill_task)
+    peerreq->kill_task = GNUNET_SCHEDULER_add_now (&peer_request_destroy,
+						   peerreq);
 }
 
 
