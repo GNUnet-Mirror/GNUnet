@@ -578,16 +578,31 @@ clean_request (void *cls,
   GSF_plan_notify_request_done_ (pr);
   GNUNET_free_non_null (pr->replies_seen);
   if (NULL != pr->bf)
-    GNUNET_CONTAINER_bloomfilter_free (pr->bf);
+    {
+      GNUNET_CONTAINER_bloomfilter_free (pr->bf);
+      pr->bf = NULL;
+    }
   GNUNET_PEER_change_rc (pr->sender_pid, -1);
   if (NULL != pr->hnode)
-    GNUNET_CONTAINER_heap_remove_node (pr->hnode);
+    {
+      GNUNET_CONTAINER_heap_remove_node (pr->hnode);
+      pr->hnode = NULL;
+    }
   if (NULL != pr->qe)
-    GNUNET_DATASTORE_cancel (pr->qe);
+    {
+      GNUNET_DATASTORE_cancel (pr->qe);
+      pr->qe = NULL;
+    }
   if (NULL != pr->gh)
-    GNUNET_DHT_get_stop (pr->gh);
+    {
+      GNUNET_DHT_get_stop (pr->gh);
+      pr->gh = NULL;
+    }
   if (GNUNET_SCHEDULER_NO_TASK != pr->warn_task)
-    GNUNET_SCHEDULER_cancel (pr->warn_task);
+    {
+      GNUNET_SCHEDULER_cancel (pr->warn_task);
+      pr->warn_task = GNUNET_SCHEDULER_NO_TASK;
+    }
   GNUNET_free (pr);
   return GNUNET_YES;
 }
@@ -970,15 +985,19 @@ handle_dht_reply (void *cls,
       pmc = GNUNET_malloc (sizeof (struct PutMigrationContext));
       pmc->start = GNUNET_TIME_absolute_get ();
       pmc->requested = GNUNET_YES;
-      GNUNET_DATASTORE_put (GSF_dsh,
-			    0, key, size, data,
-			    type, prq.priority, 1 /* anonymity */, 
-			    0 /* replication */,
-			    exp, 
-			    1 + prq.priority, MAX_DATASTORE_QUEUE,
-			    GNUNET_CONSTANTS_SERVICE_TIMEOUT,
-			    &put_migration_continuation, 
-			    pmc);
+      if (NULL == 
+	  GNUNET_DATASTORE_put (GSF_dsh,
+				0, key, size, data,
+				type, prq.priority, 1 /* anonymity */, 
+				0 /* replication */,
+				exp, 
+				1 + prq.priority, MAX_DATASTORE_QUEUE,
+				GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+				&put_migration_continuation, 
+				pmc))
+	{
+	  put_migration_continuation (pmc, GNUNET_NO, NULL);	
+	}
     }
 }
 
@@ -1127,14 +1146,7 @@ process_local_reply (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "No further local responses available.\n");
 #endif
-      if (NULL != (cont = pr->llc_cont))
-	{
-	  pr->llc_cont = NULL;
-	  cont (pr->llc_cont_cls,
-		pr,
-		pr->local_result);
-	}
-      return;
+      goto check_error_and_continue;
     }
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1157,34 +1169,34 @@ process_local_reply (void *cls,
       pr->warn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
 						    &odc_warn_delay_task,
 						    pr);
-      if (GNUNET_OK != 
+      if (GNUNET_OK == 
 	  GNUNET_FS_handle_on_demand_block (key, size, data, type, priority, 
 					    anonymity, expiration, uid, 
 					    &process_local_reply,
 					    pr))
-	{
-	  GNUNET_SCHEDULER_cancel (pr->warn_task);
-	  pr->warn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
-							&warn_delay_task,
-							pr);
- 	  pr->qe = GNUNET_DATASTORE_get_key (GSF_dsh,
-					     pr->local_result_offset - 1,
-					     &pr->public_data.query,
-					     pr->public_data.type == GNUNET_BLOCK_TYPE_FS_DBLOCK 
-					     ? GNUNET_BLOCK_TYPE_ANY 
-					     : pr->public_data.type, 
-					     (0 != (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.options))
-					     ? UINT_MAX
-					     : 1 /* queue priority */,
-					     (0 != (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.options))
-					     ? UINT_MAX
-					     : 1 /* max queue size */,
-					     GNUNET_TIME_UNIT_FOREVER_REL,
-					     &process_local_reply,
-					     pr);
-	  GNUNET_assert (NULL != pr->qe);
-	}
-      return;
+	return; /* we're done */
+      GNUNET_SCHEDULER_cancel (pr->warn_task);
+      pr->warn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+						    &warn_delay_task,
+						    pr);	
+      pr->qe = GNUNET_DATASTORE_get_key (GSF_dsh,
+					 pr->local_result_offset - 1,
+					 &pr->public_data.query,
+					 pr->public_data.type == GNUNET_BLOCK_TYPE_FS_DBLOCK 
+					 ? GNUNET_BLOCK_TYPE_ANY 
+					 : pr->public_data.type, 
+					 (0 != (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.options))
+					 ? UINT_MAX
+					 : 1 /* queue priority */,
+					 (0 != (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.options))
+					 ? UINT_MAX
+					 : 1 /* max queue size */,
+					 GNUNET_TIME_UNIT_FOREVER_REL,
+					 &process_local_reply,
+					 pr);
+      if (NULL != pr->qe)
+	return; /* we're done */	
+      goto check_error_and_continue;
     }
   old_rf = pr->public_data.results_found;
   memset (&prq, 0, sizeof (prq));
@@ -1224,7 +1236,10 @@ process_local_reply (void *cls,
 					 GNUNET_TIME_UNIT_FOREVER_REL,
 					 &process_local_reply,
 					 pr);
-      GNUNET_assert (NULL != pr->qe);
+      if (pr->qe == NULL)
+	{
+	  goto check_error_and_continue;
+	}
       return;
     }
   prq.type = type;
@@ -1237,16 +1252,7 @@ process_local_reply (void *cls,
   process_reply (&prq, key, pr);
   pr->local_result = prq.eval;
   if (prq.eval == GNUNET_BLOCK_EVALUATION_OK_LAST)
-    {
-      if (NULL != (cont = pr->llc_cont))
-	{
-	  pr->llc_cont = NULL;
-	  cont (pr->llc_cont_cls,
-		pr,
-		pr->local_result);
-	}      
-      return;
-    }
+    goto check_error_and_continue;
   if ( (0 == (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.options)) &&
        ( (GNUNET_YES == GSF_test_get_load_too_high_ (0)) ||
 	 (pr->public_data.results_found > 5 + 2 * pr->public_data.priority) ) )
@@ -1259,14 +1265,7 @@ process_local_reply (void *cls,
 				gettext_noop ("# processing result set cut short due to load"),
 				1,
 				GNUNET_NO);
-      if (NULL != (cont = pr->llc_cont))
-	{
-	  pr->llc_cont = NULL;
-	  cont (pr->llc_cont_cls,
-		pr,
-		pr->local_result);
-	}
-      return;
+      goto check_error_and_continue;
     }
   pr->qe_start = GNUNET_TIME_absolute_get ();
   pr->warn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
@@ -1287,7 +1286,23 @@ process_local_reply (void *cls,
 				     GNUNET_TIME_UNIT_FOREVER_REL,
 				     &process_local_reply,
 				     pr);
-  GNUNET_assert (NULL != pr->qe);
+  /* check if we successfully queued another datastore request;
+     if so, return, otherwise call our continuation (if we have
+     any) */
+ check_error_and_continue:
+  if (NULL != pr->qe)
+    return;
+  if (GNUNET_SCHEDULER_NO_TASK != pr->warn_task)
+    {
+      GNUNET_SCHEDULER_cancel (pr->warn_task);
+      pr->warn_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  if (NULL == (cont = pr->llc_cont))
+    return; /* no continuation */      
+  pr->llc_cont = NULL;
+  cont (pr->llc_cont_cls,
+	pr,
+	pr->local_result);
 }
 
 
@@ -1326,6 +1341,13 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
 				     GNUNET_TIME_UNIT_FOREVER_REL,
 				     &process_local_reply,
 				     pr);
+  if (NULL != pr->qe)
+    return;
+  GNUNET_SCHEDULER_cancel (pr->warn_task);
+  pr->warn_task = GNUNET_SCHEDULER_NO_TASK;
+  pr->llc_cont = NULL;
+  if (NULL != cont)
+    cont (cont_cls, pr, pr->local_result);      
 }
 
 
@@ -1415,15 +1437,19 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
       pmc->requested = prq.request_found;
       GNUNET_PEER_resolve (GSF_get_peer_performance_data_ (cp)->pid,
 			   &pmc->origin);
-      GNUNET_DATASTORE_put (GSF_dsh,
-			    0, &query, dsize, &put[1],
-			    type, prq.priority, 1 /* anonymity */, 
-			    0 /* replication */,
-			    expiration, 
-			    1 + prq.priority, MAX_DATASTORE_QUEUE,
-			    GNUNET_CONSTANTS_SERVICE_TIMEOUT,
-			    &put_migration_continuation, 
-			    pmc);
+      if (NULL ==
+	  GNUNET_DATASTORE_put (GSF_dsh,
+				0, &query, dsize, &put[1],
+				type, prq.priority, 1 /* anonymity */, 
+				0 /* replication */,
+				expiration, 
+				1 + prq.priority, MAX_DATASTORE_QUEUE,
+				GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+				&put_migration_continuation, 
+				pmc))
+	{
+	  put_migration_continuation (pmc, GNUNET_NO, NULL);	  
+	}
     }
   else
     {
