@@ -100,6 +100,14 @@ struct GSF_PeerTransmitHandle
   size_t size;
 
   /**
+   * Set to 1 if we're currently in the process of calling
+   * 'GNUNET_CORE_notify_transmit_ready' (so while cth is
+   * NULL, we should not call notify_transmit_ready for this
+   * handle right now).
+   */
+  unsigned int cth_in_progress;
+
+  /**
    * GNUNET_YES if this is a query, GNUNET_NO for content.
    */
   int is_query;
@@ -367,7 +375,8 @@ schedule_transmission (struct GSF_PeerTransmitHandle *pth)
   struct GNUNET_PeerIdentity target;
   uint64_t ip;
 
-  if (NULL != pth->cth)
+  if ( (NULL != pth->cth) ||
+       (0 != pth->cth_in_progress) )
     return; /* already done */
   cp = pth->cp;
   GNUNET_PEER_resolve (cp->ppd.pid,
@@ -392,6 +401,8 @@ schedule_transmission (struct GSF_PeerTransmitHandle *pth)
 						    &core_reserve_callback,
 						    cp);	  
     }
+  GNUNET_assert (pth->cth == NULL);
+  pth->cth_in_progress++;
   pth->cth = GNUNET_CORE_notify_transmit_ready (GSF_core,
 						GNUNET_YES,
 						pth->priority,
@@ -400,6 +411,7 @@ schedule_transmission (struct GSF_PeerTransmitHandle *pth)
 						pth->size,
 						&peer_transmit_ready_cb,
 						pth);
+  GNUNET_assert (0 < pth->cth_in_progress--);
 }
 
 
@@ -420,7 +432,7 @@ peer_transmit_ready_cb (void *cls,
   struct GSF_PeerTransmitHandle *pos;
   struct GSF_ConnectedPeer *cp;
   size_t ret;
-  
+
   GNUNET_assert ( (NULL == buf) ||
 		  (pth->size <= size) );
   pth->cth = NULL;
@@ -452,6 +464,8 @@ peer_transmit_ready_cb (void *cls,
       GNUNET_assert (pos != pth);
       schedule_transmission (pos);
     }
+  GNUNET_assert (pth->cth == NULL);
+  GNUNET_assert (pth->cth_in_progress == 0);
   GNUNET_free (pth);
   return ret;
 }
@@ -524,6 +538,7 @@ core_reserve_callback (void *cls,
        (NULL == pth->cth) )
     {
       /* reservation success, try transmission now! */
+      pth->cth_in_progress++;
       pth->cth = GNUNET_CORE_notify_transmit_ready (GSF_core,
 						    GNUNET_YES,
 						    pth->priority,
@@ -532,6 +547,7 @@ core_reserve_callback (void *cls,
 						    pth->size,
 						    &peer_transmit_ready_cb,
 						    pth);
+      GNUNET_assert (0 < pth->cth_in_progress--);
     }
 }
 
@@ -823,6 +839,7 @@ handle_p2p_reply (void *cls,
 			     pm);
   if (eval != GNUNET_BLOCK_EVALUATION_OK_LAST)
     return;
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == peerreq->kill_task);
   peerreq->kill_task = GNUNET_SCHEDULER_add_now (&peer_request_destroy,
 						 peerreq);
 }
@@ -1167,7 +1184,10 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
 							       &gm->query,
 							       peerreq));
 	  if (peerreq->kill_task != GNUNET_SCHEDULER_NO_TASK)
-	    GNUNET_SCHEDULER_cancel (peerreq->kill_task);
+	    {
+	      GNUNET_SCHEDULER_cancel (peerreq->kill_task);
+	      peerreq->kill_task = GNUNET_SCHEDULER_NO_TASK;
+	    }
 	  GNUNET_free (peerreq);
 	}
     }
@@ -1244,6 +1264,7 @@ peer_transmit_timeout (void *cls,
     }
   pth->gmc (pth->gmc_cls, 
 	    0, NULL);
+  GNUNET_assert (0 == pth->cth_in_progress);
   GNUNET_free (pth);
 }
 
@@ -1342,6 +1363,7 @@ GSF_peer_transmit_cancel_ (struct GSF_PeerTransmitHandle *pth)
     GNUNET_assert (0 < cp->ppd.pending_queries--);    
   else if (GNUNET_NO == pth->is_query)
     GNUNET_assert (0 < cp->ppd.pending_replies--);
+  GNUNET_assert (0 == pth->cth_in_progress);
   GNUNET_free (pth);
 }
 
@@ -1444,7 +1466,10 @@ cancel_pending_request (void *cls,
 
   GSF_pending_request_cancel_ (pr);
   if (peerreq->kill_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (peerreq->kill_task);
+    {
+      GNUNET_SCHEDULER_cancel (peerreq->kill_task);
+      peerreq->kill_task = GNUNET_SCHEDULER_NO_TASK;
+    }
   GNUNET_free (peerreq);
   return GNUNET_OK;
 }
@@ -1510,6 +1535,7 @@ GSF_peer_disconnect_handler_ (void *cls,
       GNUNET_CONTAINER_DLL_remove (cp->pth_head,
 				   cp->pth_tail,
 				   pth);
+      GNUNET_assert (0 == pth->cth_in_progress);
       GNUNET_free (pth);
     }
   GNUNET_PEER_change_rc (cp->ppd.pid, -1);

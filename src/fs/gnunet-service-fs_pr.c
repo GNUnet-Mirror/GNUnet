@@ -1236,10 +1236,8 @@ process_local_reply (void *cls,
 					 GNUNET_TIME_UNIT_FOREVER_REL,
 					 &process_local_reply,
 					 pr);
-      if (pr->qe == NULL)
-	{
-	  goto check_error_and_continue;
-	}
+      if (pr->qe == NULL)	
+	goto check_error_and_continue;	
       return;
     }
   prq.type = type;
