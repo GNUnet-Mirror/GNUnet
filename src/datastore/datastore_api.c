@@ -465,7 +465,8 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h,
   pos = ret->next;
   while (pos != NULL) 
     {
-      if (pos->max_queue < h->queue_size)
+      if ( (pos->max_queue < h->queue_size) &&
+	   (pos->was_transmitted == GNUNET_NO) )
 	{
 	  GNUNET_assert (pos->response_proc != NULL);
 	  /* move 'pos' element to head so that it will be 
