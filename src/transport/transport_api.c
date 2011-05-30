@@ -1246,8 +1246,7 @@ neighbour_disconnect (struct NeighbourList *n)
   if (h->nd_cb != NULL)
     h->nd_cb (h->cls, &n->id);
   if (n->transmit_stage == TS_NEW)    
-    neighbour_free (n);
-    
+    neighbour_free (n);   
 }
 
 
@@ -1981,7 +1980,6 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
                   "Created neighbour entry for peer `%s'\n",
                   GNUNET_i2s (target));
       n = neighbour_add (handle, target);
-
     }
   if (n == NULL)
     {
