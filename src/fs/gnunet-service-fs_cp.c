@@ -1177,6 +1177,10 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
 	      return NULL;
 	    }
 	  /* existing request has lower TTL, drop old one! */
+	  GNUNET_STATISTICS_update (GSF_stats,
+				    gettext_noop ("# P2P searches active"),
+				    -1,
+				    GNUNET_NO);
 	  priority += prd->priority;
 	  GSF_pending_request_cancel_ (pr);
 	  GNUNET_assert (GNUNET_YES ==
@@ -1217,7 +1221,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
 						   peerreq,
 						   GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   GNUNET_STATISTICS_update (GSF_stats,
-			    gettext_noop ("# P2P searches received"),
+			    gettext_noop ("# P2P query messages received and processed"),
 			    1,
 			    GNUNET_NO);
   GNUNET_STATISTICS_update (GSF_stats,

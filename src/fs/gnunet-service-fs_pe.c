@@ -119,6 +119,16 @@ struct PeerPlan
  */
 static struct GNUNET_CONTAINER_MultiHashMap *plans;
 
+/**
+ * Sum of all transmission counters (equals total delay for all plan entries).
+ */
+static unsigned long long total_delay;
+
+/**
+ * Number of plan entries.
+ */
+static unsigned long long plan_count;
+
 
 /**
  * Figure out when and how to transmit to the given peer.
@@ -142,15 +152,19 @@ plan (struct PeerPlan *pp,
       struct GSF_RequestPlan *rp)
 {
   struct GSF_PendingRequestData *prd;
+  struct GNUNET_TIME_Relative delay;
 
+  GNUNET_STATISTICS_set (GSF_stats,
+			 gettext_noop ("# average retransmission delay (ms)"),
+			 total_delay * 1000LL / plan_count,
+			 GNUNET_NO);
   prd = GSF_pending_request_get_data_ (rp->pr);
   // FIXME: calculate 'rp->earliest_transmission'!
-  // FIXME: claculate 'rp->priority'! 
+  // FIXME: claculate 'rp->priority'!  
+  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+					 rp->transmission_counter);
   rp->earliest_transmission 
-    = GNUNET_TIME_relative_to_absolute 
-    (GNUNET_TIME_relative_multiply 
-     (GNUNET_TIME_UNIT_SECONDS,
-      rp->transmission_counter));
+    = GNUNET_TIME_relative_to_absolute (delay);
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Earliest (re)transmission for `%s' in %us\n",
@@ -215,6 +229,7 @@ transmit_message_callback (void *cls,
   rp->hn = NULL;
   rp->last_transmission = GNUNET_TIME_absolute_get ();
   rp->transmission_counter++;
+  total_delay++;
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Executing plan %p executed %u times, planning retransmission\n",
@@ -222,6 +237,10 @@ transmit_message_callback (void *cls,
 	      rp->transmission_counter);
 #endif    
   plan (pp, rp);
+  GNUNET_STATISTICS_update (GSF_stats,
+			    gettext_noop ("# queries messages sent to other peers"),
+			    1,
+			    GNUNET_NO);
   return msize;
 }
 
@@ -330,6 +349,11 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
 					 GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
     }
   prd = GSF_pending_request_get_data_ (pr);
+  plan_count++;
+  GNUNET_STATISTICS_update (GSF_stats,
+			    gettext_noop ("# query plan entries"),
+			    1,
+			    GNUNET_NO);
   rp = GNUNET_malloc (sizeof (struct GSF_RequestPlan));
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -381,6 +405,7 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
       GNUNET_CONTAINER_DLL_remove (prd->rp_head,
 				   prd->rp_tail,
 				   rp);
+      plan_count--;
       GNUNET_free (rp);
     }
   GNUNET_CONTAINER_heap_destroy (pp->priority_heap);
@@ -390,8 +415,14 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
       GNUNET_CONTAINER_DLL_remove (prd->rp_head,
 				   prd->rp_tail,
 				   rp);
+      plan_count--;
       GNUNET_free (rp);
     }
+  GNUNET_STATISTICS_set (GSF_stats,
+			 gettext_noop ("# query plan entries"),
+			 plan_count,
+			 GNUNET_NO);
+
   GNUNET_CONTAINER_heap_destroy (pp->delay_heap);
   GNUNET_free (pp);
 }
@@ -416,8 +447,13 @@ GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr)
       GNUNET_CONTAINER_DLL_remove (prd->rp_head,
 				   prd->rp_tail,
 				   rp);
+      plan_count--;
       GNUNET_free (rp);
     }
+  GNUNET_STATISTICS_set (GSF_stats,
+			 gettext_noop ("# query plan entries"),
+			 plan_count,
+			 GNUNET_NO);  
 }
 
 

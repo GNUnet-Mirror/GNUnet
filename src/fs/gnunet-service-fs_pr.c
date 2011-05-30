@@ -1146,6 +1146,12 @@ process_local_reply (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "No further local responses available.\n");
 #endif
+      if ( (pr->public_data.type == GNUNET_BLOCK_TYPE_FS_DBLOCK) ||
+	   (pr->public_data.type == GNUNET_BLOCK_TYPE_FS_IBLOCK) )
+	GNUNET_STATISTICS_update (GSF_stats,
+				  gettext_noop ("# requested DBLOCK or IBLOCK not found"),
+				  1,
+				  GNUNET_NO);
       goto check_error_and_continue;
     }
 #if DEBUG_FS
@@ -1174,7 +1180,17 @@ process_local_reply (void *cls,
 					    anonymity, expiration, uid, 
 					    &process_local_reply,
 					    pr))
-	return; /* we're done */
+	{
+	  GNUNET_STATISTICS_update (GSF_stats,
+				    gettext_noop ("# on-demand lookups performed successfully"),
+				    1,
+				    GNUNET_NO);
+	  return; /* we're done */
+	}
+      GNUNET_STATISTICS_update (GSF_stats,
+				gettext_noop ("# on-demand lookups failed"),
+				1,
+				GNUNET_NO);
       GNUNET_SCHEDULER_cancel (pr->warn_task);
       pr->warn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
 						    &warn_delay_task,
