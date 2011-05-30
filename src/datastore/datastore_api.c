@@ -325,6 +325,11 @@ GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
       GNUNET_SCHEDULER_cancel (h->reconnect_task);
       h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
     }
+  if (NULL != h->th)
+    {
+      GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
+      h->th = NULL;
+    }
   while (NULL != (qe = h->queue_head))
     {
       GNUNET_assert (NULL != qe->response_proc);
@@ -344,11 +349,13 @@ GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
 						   h))
 	    return;
 	  GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+	  h->client = NULL;
 	}
       GNUNET_break (0);
     }
   GNUNET_STATISTICS_destroy (h->stats,
 			     GNUNET_NO);
+  h->stats = NULL;
   GNUNET_free (h);
 }
 
@@ -603,6 +610,7 @@ transmit_request (void *cls,
   qe->was_transmitted = GNUNET_YES;
   GNUNET_SCHEDULER_cancel (qe->task);
   qe->task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_assert (GNUNET_NO == h->in_receive);
   h->in_receive = GNUNET_YES;
   GNUNET_CLIENT_receive (h->client,
 			 qe->response_proc,
@@ -675,6 +683,8 @@ process_queue (struct GNUNET_DATASTORE_Handle *h)
 					       GNUNET_YES,
 					       &transmit_request,
 					       h);
+  GNUNET_assert (GNUNET_NO == h->in_receive);
+  GNUNET_break (NULL != h->th);
 }
 
 
