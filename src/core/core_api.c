@@ -1977,7 +1977,8 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
   pr->pcic = info;
   pr->pcic_cls = info_cls;
   pr->pcic_ptr = irc; /* for free'ing irc */
-  trigger_next_request (h, GNUNET_NO);
+  if (NULL != h->client)
+    trigger_next_request (h, GNUNET_NO);
   return irc;
 }
 
