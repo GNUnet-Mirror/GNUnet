@@ -371,14 +371,17 @@ timeout_queue_entry (void *cls,
 		     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_DATASTORE_QueueEntry *qe = cls;
+  int in_receive;
 
   GNUNET_STATISTICS_update (qe->h->stats,
 			    gettext_noop ("# queue entry timeouts"),
 			    1,
 			    GNUNET_NO);
   qe->task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_assert (qe->was_transmitted == GNUNET_NO);
+  GNUNET_assert (qe->was_transmitted == GNUNET_NO); 
+  in_receive = qe->h->in_receive;
   qe->response_proc (qe->h, NULL);
+  qe->h->in_receive = in_receive;
 }
 
 
@@ -408,6 +411,7 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h,
   struct GNUNET_DATASTORE_QueueEntry *ret;
   struct GNUNET_DATASTORE_QueueEntry *pos;
   unsigned int c;
+  int in_receive;
 
   c = 0;
   pos = h->queue_head;
@@ -462,6 +466,7 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h,
   ret->task = GNUNET_SCHEDULER_add_delayed (timeout,
 					    &timeout_queue_entry,
 					    ret);
+  in_receive = h->in_receive;
   pos = ret->next;
   while (pos != NULL) 
     {
@@ -486,6 +491,7 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h,
 	}
       pos = pos->next;
     }
+  h->in_receive = in_receive;
   return ret;
 }
 
