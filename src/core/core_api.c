@@ -1662,7 +1662,10 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
 	      "Transmission request added to queue\n");
 #endif
   if ( (pr->pending_head == th)  &&
-       (pr->ntr_task == GNUNET_SCHEDULER_NO_TASK) )
+       (pr->ntr_task == GNUNET_SCHEDULER_NO_TASK) &&
+       (pr->next == NULL) &&
+       (pr->prev == NULL) &&
+       (handle->ready_peer_head != pr) )
     pr->ntr_task = GNUNET_SCHEDULER_add_now (&run_request_next_transmission, pr);
   return th;
 }
