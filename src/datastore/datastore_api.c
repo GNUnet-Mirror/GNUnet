@@ -764,6 +764,8 @@ process_status_message (void *cls,
 		 _("Failed to receive status response from database."));
       if (was_transmitted == GNUNET_YES)
 	do_disconnect (h);
+      else
+	process_queue (h);
       return;
     }
   GNUNET_assert (GNUNET_YES == qe->was_transmitted);
@@ -1234,6 +1236,8 @@ process_result_message (void *cls,
 		     NULL, 0, NULL, 0, 0, 0, 
 		     GNUNET_TIME_UNIT_ZERO_ABS, 0);    
 	}
+      else
+	process_queue (h);
       return;
     }
   if (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END) 
@@ -1289,6 +1293,7 @@ process_result_message (void *cls,
 #endif
   free_queue_entry (qe);
   h->retry_time.rel_value = 0;
+  process_queue (h);
   if (rc.proc != NULL)
     rc.proc (rc.proc_cls,
 	     &dm->key,
