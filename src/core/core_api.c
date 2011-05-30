@@ -639,8 +639,9 @@ transmission_timeout (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Signalling timeout of request for transmission to CORE service\n");
 #endif
-  GNUNET_assert (0 == th->get_message (th->get_message_cls, 0, NULL));
   request_next_transmission (pr);
+  GNUNET_assert (0 == th->get_message (th->get_message_cls, 0, NULL));
+  GNUNET_free (th);
 }
 
 
