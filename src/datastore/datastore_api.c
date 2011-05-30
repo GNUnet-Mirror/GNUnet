@@ -477,6 +477,10 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h,
 	  GNUNET_CONTAINER_DLL_insert (h->queue_head,
 				       h->queue_tail,
 				       pos);
+	  GNUNET_STATISTICS_update (h->stats,
+				    gettext_noop ("# Requests dropped from datastore queue"),
+				    1,
+				    GNUNET_NO);
 	  pos->response_proc (h, NULL);
 	  break;
 	}
