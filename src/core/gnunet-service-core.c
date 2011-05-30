@@ -3025,13 +3025,19 @@ handle_client_request_connect (void *cls,
        (n->th != NULL) )
     {
       if (GNUNET_YES == n->is_connected) 
-	GNUNET_STATISTICS_update (stats, 
-				  gettext_noop ("# connection requests ignored (already connected)"), 
-				  1,
-				  GNUNET_NO);
+	{
+	  GNUNET_STATISTICS_update (stats, 
+				    gettext_noop ("# connection requests ignored (already connected)"), 
+				    1,
+				    GNUNET_NO);
+	}
       else
         {
-          GNUNET_TRANSPORT_notify_transmit_ready_cancel(n->th);
+	  if (NULL != n->th)
+	    {
+	      GNUNET_TRANSPORT_notify_transmit_ready_cancel (n->th);
+	      n->th = NULL;
+	    }
           n->th = GNUNET_TRANSPORT_notify_transmit_ready (transport,
                                                           &cm->peer,
                                                           sizeof (struct GNUNET_MessageHeader), 0,
