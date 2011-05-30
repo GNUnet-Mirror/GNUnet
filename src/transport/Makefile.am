@@ -34,10 +34,12 @@ endif
 
 if HAVE_PCAP
 if LINUX
- WANBIN = gnunet-transport-wlan-helper
+ WLAN_BIN = gnunet-transport-wlan-helper
+ WLAN_BIN_DUMMY = gnunet-transport-wlan-helper-dummy
  WLAN_PLUGIN_LA = libgnunet_plugin_transport_wlan.la
  WLAN_API_TEST = test_transport_api_wlan
  WLAN_REL_TEST = test_transport_api_reliability_wlan
+ WLAN_UREL_TEST = test_transport_api_unreliability_wlan
 endif
 endif
 
@@ -78,8 +80,9 @@ libgnunettransport_la_LDFLAGS = \
 
 bin_PROGRAMS = \
  gnunet-transport \
- $(WANBIN) \
- gnunet-service-transport $(NATBIN)
+ $(WLAN_BIN) \
+ gnunet-service-transport $(NATBIN) \
+ $(WLAN_BIN_DUMMY)
 
 bin_SCRIPTS = \
  gnunet-transport-certificate-creation
@@ -91,10 +94,18 @@ gnunet_nat_server_SOURCES = \
 gnunet_transport_wlan_helper_SOURCES = \
  wlan/radiotap-parser.c \
  wlan/helper_common.c \
- wlan/loopback_helper.c \
  gnunet-transport-wlan-helper.c
 
+gnunet_transport_wlan_helper_dummy_SOURCES = \
+ wlan/radiotap-parser.c \
+ wlan/helper_common.c \
+ test_plugin_transport_wlan_dummy.c
+
 gnunet_transport_wlan_helper_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+ -lpcap
+
+gnunet_transport_wlan_helper_dummy_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
  -lpcap
 
@@ -239,6 +250,7 @@ check_PROGRAMS = \
  $(HTTPS_QUOTA_TEST)
 # $(WLAN_API_TEST)
 # $(WLAN_REL_TEST)
+# $(WLAN_UREL_TEST)
 # TODO: add tests for nat, etc.
 
 if !DISABLE_TEST_RUN
@@ -267,8 +279,10 @@ TESTS = \
  test_quota_compliance_udp_asymmetric_recv_constant \
  $(UNIX_QUOTA_TEST) \
  $(HTTP_QUOTA_TEST) \
- $(HTTPS_QUOTA_TEST)
- #$(WLAN_REL_TEST)
+ $(HTTPS_QUOTA_TEST) \
+ $(WLAN_API_TEST) \
+ $(WLAN_REL_TEST) \
+ $(WLAN_UREL_TEST)
 endif
 
 test_transport_ats_SOURCES = \
@@ -323,6 +337,12 @@ test_transport_api_reliability_wlan_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
+test_transport_api_unreliability_wlan_SOURCES = \
+ test_transport_api_unreliability.c
+test_transport_api_unreliability_wlan_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la
 
 test_transport_api_udp_SOURCES = \
  test_transport_api.c
