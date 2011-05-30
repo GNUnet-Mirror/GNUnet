@@ -856,8 +856,8 @@ hardwaremode (int argc,
 	  if (0 > ret)
 	    {
 	      fprintf (stderr, 
-		       "Failed to write to WLAN device: %s\n",
-		       strerror (errno));
+		       "Line %u: Failed to write to WLAN device: %s, Message-Size: %u\n",__LINE__,
+		       strerror (errno), dev.write_pout.size);
               break;
 	    }
 	  dev.write_pout.pos += ret;
@@ -865,7 +865,7 @@ hardwaremode (int argc,
 	       (ret != 0) )
 	    {
 	      fprintf(stderr,
-                      "Write error, partial send: %u/%u\n",
+                      "Line %u: Write error, partial send: %u/%u\n",__LINE__,
 		      dev.write_pout.pos, dev.write_pout.size);
 	      break;
 	    }
@@ -938,7 +938,7 @@ main(int argc, char *argv[])
   if (2 != argc)
     {
       fprintf (stderr,
-	       "This program must be started with the interface as argument.\n");
+	       "This program must be started with the interface as argument.\nThis program was compiled at ----- %s ----\n", __TIMESTAMP__ );
       fprintf (stderr,
 	       "Usage: interface-name\n"
 	       "\n");

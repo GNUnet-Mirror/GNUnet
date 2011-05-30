@@ -44,21 +44,38 @@
 /**
  * Max size of packet from helper
  */
-#define WLAN_MTU 2100
+#define WLAN_MTU 1450
 
 /**
  * Time until retransmission of a fragment in ms
  */
 #define FRAGMENT_TIMEOUT GNUNET_TIME_UNIT_SECONDS
 
+/**
+ * max size of fragment queue
+ */
 #define FRAGMENT_QUEUE_SIZE 10
+/**
+ * max messages in fragment queue per session/client
+ */
 #define FRAGMENT_QUEUE_MESSAGES_OUT_PER_SESSION 1
 
+/**
+ * time until message in in queue
+ */
 #define MESSAGE_IN_TIMEOUT GNUNET_TIME_UNIT_SECONDS
 
+/**
+ * max messages in in queue
+ */
 #define MESSAGES_IN_QUEUE_SIZE 10
+/**
+ * max messages in in queue per session/client
+ */
 #define MESSAGES_IN_QUEUE_PER_SESSION 1
-
+/**
+ * scaling factor for hello beacon
+ */
 #define HALLO_BEACON_SCALING_FACTOR 900
 
 #define DEBUG_wlan GNUNET_NO
@@ -67,7 +84,10 @@
 
 #define MESSAGE_LENGHT_UNKNOWN -1
 //#define NO_MESSAGE_OR_MESSAGE_FINISHED -2
-
+/**
+ * size of log for recently used incomming messages id
+ */
+#define MESSAGE_ID_BACKLOG_SIZE 5
 /**
  * After how long do we expire an address that we
  * learned from another peer if it is not reconfirmed
@@ -294,7 +314,6 @@ struct Plugin
    * queue to send acks for received fragments (tail)
    */
   struct AckSendQueue * ack_send_queue_tail;
-
 };
 
 /**
@@ -549,6 +568,15 @@ struct Session
   uint16_t tx_power;
   uint8_t antenna;
 
+
+  /**
+   * backlog for incoming message ids
+   */
+  uint32_t message_id_backlog[MESSAGE_ID_BACKLOG_SIZE];
+  /**
+   * position in the backlog
+   */
+  int message_id_backlog_pos;
 };
 
 /**
@@ -813,6 +841,7 @@ create_session(struct Plugin *plugin, const struct MacAddress * addr)
   queue->content->addr = *addr;
   queue->content->fragment_messages_out_count = 0;
   queue->content->fragment_messages_in_count = 0;
+  queue->content->message_id_backlog_pos = 0;
 
   plugin->session_count++;
 
@@ -2246,7 +2275,7 @@ wlan_data_message_handler(void *cls, void *client,
   struct Session_light * session_light = (struct Session_light *) client;
   struct WlanHeader * wlanheader;
   struct Session * session;
-  const char * tempmsg;
+  //const char * tempmsg;
   const struct GNUNET_MessageHeader * temp_hdr;
   struct GNUNET_PeerIdentity tmptarget;
   int crc;
@@ -2276,7 +2305,7 @@ wlan_data_message_handler(void *cls, void *client,
       session = session_light->session;
       wlanheader = (struct WlanHeader *) hdr;
 
-      tempmsg = (char*) &wlanheader[1];
+      //tempmsg = (char*) &wlanheader[1];
       temp_hdr = (const struct GNUNET_MessageHeader *) &wlanheader[1];
       crc = ntohl(wlanheader->crc);
       wlanheader->crc = 0;
@@ -2450,6 +2479,8 @@ check_rx_finished_msg(struct Plugin* plugin,
                 }
               rx_frag = rx_frag->next;
             }
+          session->message_id_backlog[session->message_id_backlog_pos] = rx_message->message_id_in;
+          session->message_id_backlog_pos = (session->message_id_backlog_pos + 1) % MESSAGE_ID_BACKLOG_SIZE;
           free_receive_message(plugin, rx_message);
           //call wlan_process_helper to process the message
           //wlan_data_message_handler(plugin, session_light,
@@ -2560,10 +2591,20 @@ insert_fragment_in_in_message_queue(struct Plugin * plugin,
   struct Receive_Message_Queue * rx_message;
   const char * tempmsg = (char*) &fh[1];
   uint64_t retval = 0;
+  int i;
 
   //TODO fragments do not timeout
   //check if message_id is right or it is a new msg
   GNUNET_assert(fh != NULL);
+
+  //check for receive of old messages
+  for (i = 0; i< MESSAGE_ID_BACKLOG_SIZE; i++)
+  {
+      if (session->message_id_backlog[i] == ntohl(fh->message_id) ){
+          setBit((char *) &retval, ntohs(fh->fragment_off_or_num));
+          return retval;
+      }
+  }
 
   rx_message = get_receive_message(plugin, session, ntohl(fh->message_id));
 
@@ -2804,9 +2845,9 @@ wlan_data_helper(void *cls, struct Session_light * session_light,
         }
       else
         {
-          GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-              "WLAN fragment not in fragment list with id %u of ack\n", ntohl(
-                  fah->message_id));
+          //GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+          //    "WLAN fragment not in fragment list with id %u of ack\n", ntohl(
+           //       fah->message_id));
           return;
         }
 
