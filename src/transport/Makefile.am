@@ -247,10 +247,10 @@ check_PROGRAMS = \
  test_quota_compliance_udp_asymmetric_recv_constant \
  $(UNIX_QUOTA_TEST) \
  $(HTTP_QUOTA_TEST) \
- $(HTTPS_QUOTA_TEST)
-# $(WLAN_API_TEST)
-# $(WLAN_REL_TEST)
-# $(WLAN_UREL_TEST)
+ $(HTTPS_QUOTA_TEST) \
+ $(WLAN_API_TEST) \
+ $(WLAN_REL_TEST) \
+ $(WLAN_UREL_TEST)
 # TODO: add tests for nat, etc.
 
 if !DISABLE_TEST_RUN
