@@ -315,6 +315,11 @@ GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
 {
   struct GNUNET_DATASTORE_QueueEntry *qe;
 
+  if (NULL != h->th)
+    {
+      GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
+      h->th = NULL;
+    }
   if (h->client != NULL)
     {
       GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
@@ -324,11 +329,6 @@ GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
     {
       GNUNET_SCHEDULER_cancel (h->reconnect_task);
       h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
-    }
-  if (NULL != h->th)
-    {
-      GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
-      h->th = NULL;
     }
   while (NULL != (qe = h->queue_head))
     {
