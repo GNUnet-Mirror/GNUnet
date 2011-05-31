@@ -585,6 +585,12 @@ receive_cb (void *cls,
   struct GNUNET_DATASTORE_QueueEntry *qe;
 
   h->in_receive = GNUNET_NO;
+  if (h->skip_next_messages > 0)
+    {
+      h->skip_next_messages--;
+      process_queue (h);
+      return;
+   } 
   if (NULL == (qe = h->queue_head))
     {
       GNUNET_break (0);
@@ -778,12 +784,6 @@ process_status_message (void *cls,
   int32_t status;
   int was_transmitted;
 
-  if (h->skip_next_messages > 0)
-    {
-      h->skip_next_messages--;
-      process_queue (h);
-      return;
-   } 
   if (NULL == (qe = h->queue_head))
     {
       GNUNET_break (0);
@@ -1252,12 +1252,6 @@ process_result_message (void *cls,
   struct ResultContext rc;
   const struct DataMessage *dm;
 
-  if (h->skip_next_messages > 0)
-    {
-      h->skip_next_messages--;
-      process_queue (h);
-      return;
-    }
   if (msg == NULL)
     {
       qe = h->queue_head;
