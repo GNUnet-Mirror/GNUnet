@@ -6133,6 +6133,9 @@ static int ats_evaluate_results (int result, int solution, char * problem)
 #endif
 
 	switch (result) {
+	case GNUNET_SYSERR : /* GNUNET problem, not GLPK related */
+		GNUNET_log (error_kind, "%s , GLPK solving not executed\n", problem);
+		break;
 	case GLP_ESTOP  :    /* search terminated by application */
 		GNUNET_log (error_kind, "%s , Search terminated by application\n", problem);
 		break;
@@ -6191,12 +6194,11 @@ return cont;
 
 static void ats_solve_problem (unsigned int max_it, unsigned int  max_dur, unsigned int c_peers, unsigned int  c_mechs, struct ATS_stat *stat)
 {
-	int result;
-	int lp_solution;
-	int mlp_solution;
+	int result = GNUNET_SYSERR;
+	int lp_solution = GNUNET_SYSERR;
+	int mlp_solution = GNUNET_SYSERR;
 
 	// Solving simplex
-
 	glp_smcp opt_lp;
 	glp_init_smcp(&opt_lp);
 #if VERBOSE_ATS
