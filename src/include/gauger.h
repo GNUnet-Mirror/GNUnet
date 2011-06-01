@@ -27,7 +27,7 @@
         close (2);	     \
         if(!fork()){\
             sprintf(__gauger_s,"%Lf", (long double) (value));\
-            __gauger_v[0] = "gauger-cli.py";\
+            __gauger_v[0] = "gauger";\
             __gauger_v[1] = "-n";\
             __gauger_v[2] = counter;\
             __gauger_v[3] = "-d";\
@@ -57,7 +57,7 @@
         close (2);	     \
         if(!fork()){\
             sprintf(__gauger_s,"%Lf", (long double) (value));\
-            __gauger_v[0] = "gauger-cli.py";\
+            __gauger_v[0] = "gauger";\
             __gauger_v[1] = "-n";\
             __gauger_v[2] = counter;\
             __gauger_v[3] = "-d";\
