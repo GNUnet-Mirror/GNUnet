@@ -513,6 +513,7 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
 				 h->ready_peer_tail,
 				 pr);
   h->currently_down = GNUNET_YES;
+  GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
   h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->retry_backoff,
 						    &reconnect_task,
 						    h);
