@@ -1502,14 +1502,14 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
       GNUNET_CLIENT_disconnect (handle->client, GNUNET_NO);
       handle->client = NULL;
     }
+  GNUNET_CONTAINER_multihashmap_iterate (handle->peers,
+					 &disconnect_and_free_peer_entry,
+					 handle);
   if (handle->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (handle->reconnect_task);
       handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
     }
-  GNUNET_CONTAINER_multihashmap_iterate (handle->peers,
-					 &disconnect_and_free_peer_entry,
-					 handle);
   GNUNET_CONTAINER_multihashmap_destroy (handle->peers);
   GNUNET_break (handle->ready_peer_head == NULL);
   GNUNET_free (handle);
