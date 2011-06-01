@@ -488,6 +488,17 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
   struct PeerRecord *pr;
 
   GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
+  if (h->client != NULL)
+    {
+      GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+      h->client = NULL;
+      h->cth = NULL;
+    }
+  h->currently_down = GNUNET_YES;
+  GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
+  h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->retry_backoff,
+						    &reconnect_task,
+						    h);
   while (NULL != (cm = h->control_pending_head))
     {
       GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
@@ -499,24 +510,13 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
 	cm->cont (cm->cont_cls, GNUNET_NO);
       GNUNET_free (cm);
     }
-  if (h->client != NULL)
-    {
-      GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
-      h->client = NULL;
-      h->cth = NULL;
-      GNUNET_CONTAINER_multihashmap_iterate (h->peers,
-					     &disconnect_and_free_peer_entry,
-					     h);
-    }
+  GNUNET_CONTAINER_multihashmap_iterate (h->peers,
+					 &disconnect_and_free_peer_entry,
+					 h);
   while (NULL != (pr = h->ready_peer_head))    
     GNUNET_CONTAINER_DLL_remove (h->ready_peer_head,
 				 h->ready_peer_tail,
 				 pr);
-  h->currently_down = GNUNET_YES;
-  GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
-  h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->retry_backoff,
-						    &reconnect_task,
-						    h);
   GNUNET_assert (h->control_pending_head == NULL);
   h->retry_backoff = GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_SECONDS,
 					       h->retry_backoff);
