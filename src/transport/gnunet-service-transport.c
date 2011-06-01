@@ -6714,6 +6714,7 @@ static int ats_create_problem (double D, double U, double R, int v_b_min, int v_
 		glp_set_col_name(ats->prob, c, name);
 		GNUNET_free (name);
 		glp_set_col_bnds(ats->prob, c, GLP_LO, 0.0, 0.0);
+		glp_set_col_kind(ats->prob, c, GLP_CV);
 		glp_set_obj_coef(ats->prob, c, 0);
 
 	}
@@ -6881,7 +6882,6 @@ static int ats_create_problem (double D, double U, double R, int v_b_min, int v_
 	glp_set_row_bnds(ats->prob, row_index, GLP_FX, 0.0, 0.0);
 	for (c=1; c<=c_mechs; c++)
 	{
-		// b_t - n_t * b_min >= 0
 		ia[array_index] = row_index;
 		ja[array_index] = c_mechs + mechanisms[c].col_index;
 		ar[array_index] = 1;
