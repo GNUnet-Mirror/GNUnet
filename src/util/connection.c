@@ -1421,8 +1421,9 @@ connect_error (void *cls,
   GNUNET_CONNECTION_TransmitReadyNotify notify;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmission request of size %u fails (%s/%u), connection failed (%p).\n",
+              "Transmission request of size %u fails (%d/%s/%u), connection failed (%p).\n",
               sock->nth.notify_size, 
+	      (sock->sock != NULL) ? *(int*) sock->sock : -1,
 	      sock->hostname,
 	      sock->port,
 	      sock);

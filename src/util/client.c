@@ -831,6 +831,10 @@ client_notify (void *cls, size_t size, void *buf)
           return 0;
         }
       /* auto-retry */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Failed to connect to `%s', automatically trying again.\n",
+		  th->sock->service_name);
+
       GNUNET_CONNECTION_destroy (th->sock->sock, GNUNET_NO);
       th->sock->sock = do_connect (th->sock->service_name,
 				   th->sock->cfg,
@@ -964,7 +968,7 @@ transmit_for_response (void *cls, size_t size, void *buf)
   msize = ntohs (tc->hdr->size);
   if (NULL == buf)
     {
-#if DEBUG_CLIENT
+#if DEBUG_CLIENT 
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  _("Could not submit request, not expecting to receive a response.\n"));
 #endif
