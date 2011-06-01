@@ -267,11 +267,11 @@ static void evaluate_measurements()
 	
 	if (machine_parsable)
 	  fprintf (stderr,
-		   "peers,%i,mechs,%lu,"
+		   "peers,%i,mechs,%llu,"
 		   "new,%i,%f,%f,"
 		   "mod,%i,%f,%f,"
 		   "unmod,%i,%f,%f\n",
-		   peers-1, results_unmodified[0].mechs,
+		   peers-1, (unsigned long long) results_unmodified[0].mechs,
 		   c_new, average[0], stddev[0],
 		   c_modified, average[1], stddev[1],
 		   c_unmodified, average[2], stddev[2]);
