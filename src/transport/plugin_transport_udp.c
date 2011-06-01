@@ -1903,12 +1903,11 @@ udp_check_address (void *cls,
 		   size_t addrlen)
 {
   struct Plugin *plugin = cls;
-  char buf[INET6_ADDRSTRLEN];
+
   const void *sb;
   struct in_addr a4;
   struct in6_addr a6;
   int af;
-  uint16_t port;
   struct IPv4UdpAddress *v4;
   struct IPv6UdpAddress *v6;
 
@@ -1930,7 +1929,6 @@ udp_check_address (void *cls,
 	return GNUNET_SYSERR;
 
       af = AF_INET;
-      port = ntohs (v4->u_port);
       memcpy (&a4, &v4->ipv4_addr, sizeof (a4));
       sb = &a4;
     }
@@ -1950,19 +1948,10 @@ udp_check_address (void *cls,
 	return GNUNET_SYSERR;
 
       af = AF_INET6;
-      port = ntohs (v6->u6_port);
       memcpy (&a6, &v6->ipv6_addr, sizeof (a6));
       sb = &a6;
     }
 
-  inet_ntop (af, sb, buf, INET6_ADDRSTRLEN);
-
-#if DEBUG_UDP
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                   "Informing transport service about my address `%s:%u'\n",
-                   buf,
-                   port);
-#endif
   return GNUNET_OK;
 }
 
