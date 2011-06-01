@@ -6127,27 +6127,39 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static int ats_evaluate_results (int result, int solution, char * problem)
 {
 	int cont = GNUNET_NO;
+#if DEBUG_ATS || VERBOSE_ATS
 	int error_kind = GNUNET_ERROR_TYPE_DEBUG;
-#if DEBUG_ATS
+#endif
+#if VERBOSE_ATS
 	error_kind = GNUNET_ERROR_TYPE_ERROR;
 #endif
 
 	switch (result) {
 	case GNUNET_SYSERR : /* GNUNET problem, not GLPK related */
+#if DEBUG_ATS || VERBOSE_ATS
 		GNUNET_log (error_kind, "%s , GLPK solving not executed\n", problem);
+#endif
 		break;
 	case GLP_ESTOP  :    /* search terminated by application */
+#if DEBUG_ATS || VERBOSE_ATS
 		GNUNET_log (error_kind, "%s , Search terminated by application\n", problem);
+#endif
 		break;
 	case GLP_EITLIM :    /* iteration limit exceeded */
+#if DEBUG_ATS || VERBOSE_ATS
 		GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%s Iteration limit exceeded\n", problem);
+#endif
 		break;
 	case GLP_ETMLIM :    /* time limit exceeded */
+#if DEBUG_ATS || VERBOSE_ATS
 		GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%s Time limit exceeded\n", problem);
+#endif
 	break;
 	case GLP_ENOPFS :    /* no primal feasible solution */
 	case GLP_ENODFS :    /* no dual feasible solution */
+#if DEBUG_ATS || VERBOSE_ATS
 		GNUNET_log (error_kind, "%s No feasible solution\n", problem);
+#endif
 	break;
 
 	case GLP_EBADB  :    /* invalid basis */
@@ -6158,34 +6170,50 @@ static int ats_evaluate_results (int result, int solution, char * problem)
 	case GLP_EOBJLL :    /* objective lower limit reached */
 	case GLP_EOBJUL :    /* objective upper limit reached */
 	case GLP_EROOT  :    /* root LP optimum not provided */
+#if DEBUG_ATS || VERBOSE_ATS
 		GNUNET_log (error_kind, "%s Invalid Input data: %i\n", problem, result);
+#endif
 	break;
 
 	case 0:
+#if DEBUG_ATS || VERBOSE_ATS
 			GNUNET_log (error_kind, "%s Problem has been solved\n", problem);
+#endif
 	break;
 	}
 
 	switch (solution) {
 		case GLP_UNDEF:
+#if DEBUG_ATS || VERBOSE_ATS
 			GNUNET_log (error_kind, "%s solution is undeﬁned\n", problem);
+#endif
 			break;
 		case GLP_OPT:
+#if DEBUG_ATS || VERBOSE_ATS
 			GNUNET_log (error_kind, "%s solution is optimal\n", problem);
+#endif
 			cont=GNUNET_YES;
 			break;
 		case GLP_FEAS:
+#if DEBUG_ATS || VERBOSE_ATS
 			GNUNET_log (error_kind, "%s solution is %s feasible, however, its optimality (or non-optimality) has not been proven, \n", problem, (0==strcmp(problem,"LP")?"":"integer"));
+#endif
 			cont=GNUNET_YES;
 			break;
 		case GLP_NOFEAS:
+#if DEBUG_ATS || VERBOSE_ATS
 			GNUNET_log (error_kind, "%s problem has no %sfeasible solution\n", problem,  (0==strcmp(problem,"LP")?"":"integer "));
+#endif
 			break;
 		case GLP_INFEAS:
+#if DEBUG_ATS || VERBOSE_ATS
 			GNUNET_log (error_kind, "%s problem is infeasible \n", problem);
+#endif
 			break;
 		case GLP_UNBND:
+#if DEBUG_ATS || VERBOSE_ATS
 			GNUNET_log (error_kind, "%s problem is unbounded \n", problem);
+#endif
 		default:
 			break;
 	}
