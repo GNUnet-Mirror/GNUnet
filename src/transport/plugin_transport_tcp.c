@@ -1998,6 +1998,7 @@ handle_tcp_welcome (void *cls,
 			 "tcp",
 			 "Found address `%s' (already have session)\n",
 			 GNUNET_a2s (vaddr, alen));
+	GNUNET_free (vaddr);
       }
 #endif
     }
