@@ -1596,7 +1596,7 @@ transmit_to_client_callback (void *cls, size_t size, void *buf)
   client->th = NULL;
   if (buf == NULL)
     {
-#if DEBUG_TRANSPORT
+#if DEBUG_TRANSPORT 
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Transmission to client failed, closing connection.\n");
 #endif

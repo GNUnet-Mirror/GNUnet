@@ -1411,6 +1411,7 @@ send_transport_request_connect (void *cls, size_t size, void *buf)
 #endif
   GNUNET_assert (size >= sizeof (struct TransportRequestConnectMessage));
   memcpy(buf, trcm, sizeof(struct TransportRequestConnectMessage));
+  GNUNET_free (trcm);
   return sizeof(struct TransportRequestConnectMessage);
 }
 
