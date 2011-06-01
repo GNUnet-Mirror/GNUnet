@@ -37,7 +37,7 @@
             __gauger_v[7] = "-c";\
             __gauger_v[8] = category;\
             __gauger_v[9] = (char *)NULL;\
-            execvp("gauger-cli.py",__gauger_v);\
+            execvp("gauger",__gauger_v);\
             _exit(1);\
         }else{\
             _exit(0);\
@@ -69,7 +69,7 @@
             __gauger_v[9] = "-c";\
             __gauger_v[10] = category;\
             __gauger_v[11] = (char *)NULL;\
-            execvp("gauger-cli.py",__gauger_v);\
+            execvp("gauger",__gauger_v);\
             _exit(1);\
         }else{\
             _exit(0);\
