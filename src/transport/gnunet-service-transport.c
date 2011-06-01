@@ -48,7 +48,7 @@
 
 #define DEBUG_TRANSPORT_HELLO GNUNET_NO
 
-#define DEBUG_ATS GNUNET_NO
+#define DEBUG_ATS GNUNET_YES
 
 #define VERBOSE_ATS GNUNET_NO
 
@@ -1210,6 +1210,11 @@ static struct GNUNET_CONTAINER_MultiHashMap *validation_map;
  * Handle for reporting statistics.
  */
 static struct GNUNET_STATISTICS_Handle *stats;
+
+/**
+ * Is transport service shutting down ?
+ */
+static int shutdown_in_progress;
 
 /**
  * Handle for ats information
@@ -2729,7 +2734,8 @@ notify_clients_connect (const struct GNUNET_PeerIdentity *peer,
   memcpy (&cim->id, peer, sizeof (struct GNUNET_PeerIdentity));
 
   /* notify ats about connecting peer */
-  ats_notify_peer_connect (peer, &(cim->ats), 2);
+  if (shutdown_in_progress == GNUNET_NO)
+	ats_notify_peer_connect (peer, &(cim->ats), 2);
 
   cpos = clients;
   while (cpos != NULL)
@@ -2766,7 +2772,8 @@ notify_clients_disconnect (const struct GNUNET_PeerIdentity *peer)
   memcpy (&dim.peer, peer, sizeof (struct GNUNET_PeerIdentity));
 
   /* notify ats about connecting peer */
-  ats_notify_peer_disconnect (peer);
+  if (shutdown_in_progress == GNUNET_NO)
+	  ats_notify_peer_disconnect (peer);
 
   cpos = clients;
   while (cpos != NULL)
@@ -6044,6 +6051,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct OwnAddressList *al;
   struct CheckHelloValidatedContext *chvc;
 
+  shutdown_in_progress = GNUNET_YES;
   while (neighbours != NULL)
     {
 #if DEBUG_TRANSPORT
@@ -6638,7 +6646,9 @@ static int ats_create_problem (double D, double U, double R, int v_b_min, int v_
 		return GNUNET_SYSERR;
 	}
 
+	GNUNET_assert (ats->mechanisms == NULL);
 	ats->mechanisms = GNUNET_malloc((1+c_mechs) * sizeof (struct ATS_mechanism));
+	GNUNET_assert (ats->peers == NULL);
 	ats->peers =  GNUNET_malloc((1+c_peers) * sizeof (struct ATS_peer));
 
 	struct ATS_mechanism * mechanisms = ats->mechanisms;
@@ -7066,7 +7076,8 @@ void ats_notify_ats_data (
 #if DEBUG_ATS
 	GNUNET_log (GNUNET_ERROR_TYPE_BULK, "ATS_notify_ats_data: %s\n",GNUNET_i2s(peer));
 #endif
-	ats_calculate_bandwidth_distribution();
+	if (shutdown_in_progress == GNUNET_NO)
+		ats_calculate_bandwidth_distribution();
 }
 #endif //END: HAVE_LIBGLPK
 
@@ -7085,6 +7096,14 @@ ats_calculate_bandwidth_distribution ()
 	{
 #if DEBUG_ATS
 		GNUNET_log (GNUNET_ERROR_TYPE_BULK, "Minimum time between cycles not reached\n");
+#endif
+		return;
+	}
+
+	if (shutdown_in_progress == GNUNET_YES)
+	{
+#if DEBUG_ATS
+		GNUNET_log (GNUNET_ERROR_TYPE_BULK, "Transport service is shutting down\n");
 #endif
 		return;
 	}
@@ -7234,6 +7253,9 @@ ats_schedule_calculation (void *cls,
 	ats->ats_task = GNUNET_SCHEDULER_NO_TASK;
 	if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
 	    return;
+
+	if (shutdown_in_progress == GNUNET_YES)
+		return;
 
 #if DEBUG_ATS
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Running scheduled calculation\n");
@@ -7448,6 +7470,7 @@ run (void *cls,
   unsigned long long tneigh;
   char *keyfile;
 
+  shutdown_in_progress = GNUNET_NO;
   cfg = c;
   stats = GNUNET_STATISTICS_create ("transport", cfg);
   validation_map = GNUNET_CONTAINER_multihashmap_create (64);
