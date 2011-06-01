@@ -225,12 +225,12 @@ send_connect_packet (void *cls, size_t size, void *buf)
     msg = (struct GNUNET_MESH_ClientConnect *) buf;
     msg->header.type = htons(GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT);
 
-    for (ntypes = 0, types = NULL; h->message_handlers[ntypes].type; ntypes++) {
+    for (ntypes = 0, types = NULL; ntypes < h->n_handlers; ntypes++) {
         types = GNUNET_realloc(types, sizeof(uint16_t) * (ntypes + 1));
         types[ntypes] = h->message_handlers[ntypes].type;
     }
 
-    for(napps = 0, apps = NULL; h->applications[napps]; napps++) {
+    for(napps = 0, apps = NULL; napps < h->n_applications; napps++) {
         apps = GNUNET_realloc(apps,
                               sizeof(GNUNET_MESH_ApplicationType) *
                                 (napps + 1));
