@@ -69,8 +69,8 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     struct GNUNET_CONFIGURATION_Handle  *cfg = cls;
     GNUNET_MESH_ApplicationType         app;
 
-    test_task = 0;
-    app = 0;
+    test_task = (GNUNET_SCHEDULER_TaskIdentifier) 0;
+    app = (GNUNET_MESH_ApplicationType) 0;
     mesh = GNUNET_MESH_connect(cfg, NULL, NULL, handlers, &app);
     if(NULL == mesh) {
         GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Couldn't connect to mesh :(\n");
