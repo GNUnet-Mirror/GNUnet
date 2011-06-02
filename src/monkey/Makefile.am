@@ -41,7 +41,8 @@ bin_PROGRAMS = \
 
 noinst_PROGRAMS = \
  bug_null_pointer_exception \
- bug_bad_memory_access
+ bug_bad_memory_access \
+ bug_assertion_failure
 
 gnunet_monkey_SOURCES = \
  gdbmi.h \
@@ -84,6 +85,9 @@ bug_null_pointer_exception:
 bug_bad_memory_access:
 	gcc -g -O0 -o bug_bad_memory_access bug_bad_memory_access.c	
 
+bug_assertion_failure:
+	gcc -g -O0 -o bug_assertion_failure bug_assertion_failure.c	
+	
 check_PROGRAMS = \
     test_monkey_edb
     #test_gnunet_monkey	

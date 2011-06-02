@@ -30,12 +30,13 @@
 #include "gnunet_program_lib.h"
 #include "gnunet_monkey_action.h"
 
-static const char* mode;
-static const char* dumpFileName;
-static const char* binaryName;
-static const char* emailAddress;
-static const char* edbFilePath;
-static const char* gdbBinaryPath;
+static const char *mode;
+static const char *dumpFileName;
+static const char *binaryName;
+static const char *emailAddress;
+static const char *edbFilePath;
+static const char *gdbBinaryPath;
+static const char *inspectExpression;
 static int ret = 0;
 
 /**
@@ -49,113 +50,147 @@ static int ret = 0;
 static void
 run (void *cls,
      char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *c)
 {
-	int result;
-	struct GNUNET_MONKEY_ACTION_Context *cntxt;
+  int result;
+  struct GNUNET_MONKEY_ACTION_Context *cntxt;
 
-	if (strcasecmp(mode, "email") == 0) {
-		if (NULL == emailAddress) {
-			GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Working in email mode requires an email address!\n");
-			ret = 1;
-			return;
-		}
-	} else if (strcasecmp(mode, "text") == 0) {
-		if (NULL == dumpFileName) {
-			GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Working in text mode requires a path for the dump file!\n");
-			ret = 1;
-			return;
-		}
+  if (strcasecmp (mode, "email") == 0)
+    {
+      if (NULL == emailAddress)
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      "Working in email mode requires an email address!\n");
+	  ret = 1;
+	  return;
 	}
-
-	/* Initialize context for the Action API */
-	cntxt = GNUNET_malloc(sizeof(struct GNUNET_MONKEY_ACTION_Context));
-	cntxt->binary_name = binaryName;
-	cntxt->expression_database_path = edbFilePath;
-	cntxt->gdb_binary_path = gdbBinaryPath;
-
-	result = GNUNET_MONKEY_ACTION_rerun_with_gdb(cntxt);
-	switch (result) {
-	int retVal;
-	case GDB_STATE_ERROR:
-		break;
-	case GDB_STATE_EXIT_NORMALLY:
-		GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Debug with gdb, program exited normally!\n");
-		/*FIXME: Valgrind should be launched here */
-		break;
-	case GDB_STATE_STOPPED:
-		/*FIXME: Expression Database should be inspected here (before writing the report) */
-		retVal = GNUNET_MONKEY_ACTION_inspect_expression_database(cntxt);
-		if (GNUNET_NO == retVal) {
-			GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Error using Expression Database!\n");
-			ret = 1;
-			break;
-		} else if (GDB_STATE_ERROR == retVal) {
-			/* GDB could not locate a NULL value expression, launch Valgrind */
-			retVal = GNUNET_MONKEY_ACTION_rerun_with_valgrind(cntxt);
-			if (GNUNET_NO == retVal) {
-				GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Error using Valgrind!\n");
-				ret = 1;
-				break;
-			}
-		}
-		if(GNUNET_OK != GNUNET_MONKEY_ACTION_format_report(cntxt)){
-			GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Error in generating debug report!\n");
-			ret = 1;
-		}
-		if (strcasecmp(mode, "email") == 0) {
-			if (GNUNET_OK != GNUNET_MONKEY_ACTION_report_email(cntxt)) {
-				GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Error sending email!\n");
-				ret = 1;
-			}
-		} else {
-			/* text mode */
-			if (GNUNET_OK != GNUNET_MONKEY_ACTION_report_file(cntxt, dumpFileName)) {
-				GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Error in saving debug file!\n");
-				ret = 1;
-			}
-		}
-		break;
-	default:
-		break;
+    }
+  else if (strcasecmp (mode, "text") == 0)
+    {
+      if (NULL == dumpFileName)
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      "Working in text mode requires a path for the dump file!\n");
+	  ret = 1;
+	  return;
 	}
+    }
+
+  /* Initialize context for the Action API */
+  cntxt = GNUNET_malloc (sizeof (struct GNUNET_MONKEY_ACTION_Context));
+  cntxt->binary_name = binaryName;
+  cntxt->expression_database_path = edbFilePath;
+  cntxt->gdb_binary_path = gdbBinaryPath;
+  cntxt->inspect_expression = inspectExpression;
+
+  result = GNUNET_MONKEY_ACTION_rerun_with_gdb (cntxt);
+  switch (result)
+    {
+      int retVal;
+    case GDB_STATE_ERROR:
+      break;
+    case GDB_STATE_EXIT_NORMALLY:
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  "Debug with gdb, program exited normally!\n");
+      /*FIXME: Valgrind should be launched here */
+      break;
+    case GDB_STATE_STOPPED:
+      /*FIXME: Expression Database should be inspected here (before writing the report) */
+      retVal = GNUNET_MONKEY_ACTION_inspect_expression_database (cntxt);
+      if (GNUNET_NO == retVal)
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      "Error using Expression Database!\n");
+	  ret = 1;
+	  break;
+	}
+      else if (GDB_STATE_ERROR == retVal)
+	{
+	  /* GDB could not locate a NULL value expression, launch Valgrind */
+	  retVal = GNUNET_MONKEY_ACTION_rerun_with_valgrind (cntxt);
+	  if (GNUNET_NO == retVal)
+	    {
+	      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error using Valgrind!\n");
+	      ret = 1;
+	      break;
+	    }
+	}
+      if (GNUNET_OK != GNUNET_MONKEY_ACTION_format_report (cntxt))
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      "Error in generating debug report!\n");
+	  ret = 1;
+	}
+      if (strcasecmp (mode, "email") == 0)
+	{
+	  if (GNUNET_OK != GNUNET_MONKEY_ACTION_report_email (cntxt))
+	    {
+	      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error sending email!\n");
+	      ret = 1;
+	    }
+	}
+      else
+	{
+	  /* text mode */
+	  if (GNUNET_OK !=
+	      GNUNET_MONKEY_ACTION_report_file (cntxt, dumpFileName))
+	    {
+	      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+			  "Error in saving debug file!\n");
+	      ret = 1;
+	    }
+	}
+      break;
+    default:
+      break;
+    }
 }
 
 
-int main(int argc, char *argv[])
+int
+main (int argc, char *argv[])
 {
- static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-     {'m', "mode", NULL, gettext_noop ("monkey's mode of operation: options are \"text\" or \"email\""),
-      GNUNET_YES, &GNUNET_GETOPT_set_string, &mode},
-     {'b', "binary", NULL, gettext_noop ("binary for program to debug with monkey"),
-      GNUNET_YES, &GNUNET_GETOPT_set_string, &binaryName},
-     {'o', "output", NULL, gettext_noop ("path to file to dump monkey's output in case of text mode"),
-      GNUNET_YES, &GNUNET_GETOPT_set_string, &dumpFileName},
-     {'a', "address", NULL, gettext_noop ("address to send email to in case of email mode"),
-          GNUNET_YES, &GNUNET_GETOPT_set_string, &emailAddress},
-     {'d', "database", NULL, gettext_noop ("path to Expression Database file"),
-                    GNUNET_YES, &GNUNET_GETOPT_set_string, &edbFilePath},
-     {'g', "gdb", NULL, gettext_noop ("path to gdb binary in use; default is /usr/bin/gdb"),
-                    GNUNET_YES, &GNUNET_GETOPT_set_string, &gdbBinaryPath},
-      GNUNET_GETOPT_OPTION_END
-   };
- 
- if (argc < 2) {
-	 printf("%s", "Monkey should take arguments: Use --help to get a list of options.\n");
-	 return 1;
- }
- 
- if (GNUNET_OK == GNUNET_PROGRAM_run (argc,
-                       argv,
-                       "gnunet-monkey",
-                       gettext_noop
-                       ("Automatically debug a service"),
-                       options, &run, NULL))
-     {
-       return ret;
-     }
+  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    {'m', "mode", NULL,
+     gettext_noop
+     ("monkey's mode of operation: options are \"text\" or \"email\""),
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &mode},
+    {'b', "binary", NULL,
+     gettext_noop ("binary for program to debug with monkey"),
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &binaryName},
+    {'o', "output", NULL,
+     gettext_noop
+     ("path to file to dump monkey's output in case of text mode"),
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &dumpFileName},
+    {'a', "address", NULL,
+     gettext_noop ("address to send email to in case of email mode"),
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &emailAddress},
+    {'d', "database", NULL, gettext_noop ("path to Expression Database file"),
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &edbFilePath},
+    {'g', "gdb", NULL,
+     gettext_noop ("path to gdb binary in use; default is /usr/bin/gdb"),
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &gdbBinaryPath},
+    {'i', "inspect", NULL, gettext_noop ("A custom expression to inspect"),
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &inspectExpression},
+    GNUNET_GETOPT_OPTION_END
+  };
 
-     return 1;
+  if (argc < 2)
+    {
+      printf ("%s",
+	      "Monkey should take arguments: Use --help to get a list of options.\n");
+      return 1;
+    }
+
+  if (GNUNET_OK == GNUNET_PROGRAM_run (argc,
+				       argv,
+				       "gnunet-monkey",
+				       gettext_noop
+				       ("Automatically debug a service"),
+				       options, &run, NULL))
+    {
+      return ret;
+    }
+
+  return 1;
 }
-

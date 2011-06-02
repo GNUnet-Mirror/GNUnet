@@ -44,6 +44,17 @@ extern "C"
 #define GDB_STATE_ERROR 3
 #define DEBUG_MODE_VALGRIND 4
 #define DEBUG_MODE_REPORT_READY 5
+#define BUG_NULL_POINTER 6
+#define BUG_CUSTOM 7
+
+
+struct Variable
+{
+  struct Variable *next;
+  struct Varialble *prev;
+  const char *name;
+  const char *value;
+};
 
 
 /**
@@ -51,32 +62,44 @@ extern "C"
  */
 struct GNUNET_MONKEY_ACTION_Context
 {
-	const char* binary_name;
-	const char* email_address;
-	const char* expression_database_path;
-	const char* gdb_binary_path;
-	int debug_mode;
-	char* debug_report;
+  const char *binary_name;
+  const char *email_address;
+  const char *expression_database_path;
+  const char *gdb_binary_path;
+  const char *inspect_expression;
+  int debug_mode;
+  int bug_detected;
+  char *debug_report;
 
-	/* gdb debugging attributes */
-	mi_h *gdb_handle;
-	const char* gdb_in_use;
-	mi_stop* gdb_stop_reason;
-	mi_frames* gdb_frames;
-	const char* gdb_null_variable;
+  /* gdb debugging attributes */
+  mi_h *gdb_handle;
+  const char *gdb_in_use;
+  mi_stop *gdb_stop_reason;
+  mi_frames *gdb_frames;
+  const char *gdb_null_variable;
+  struct Variable *variable_list_head;
+  struct Variable *variable_list_tail;
 
-	/* Valgrind memcheck attributes */
-	char* valgrind_output;
+  /* Valgrind memcheck attributes */
+  char *valgrind_output;
 };
 
 
-int GNUNET_MONKEY_ACTION_report_file(struct GNUNET_MONKEY_ACTION_Context* cntxt, const char* dumpFileName);
-int GNUNET_MONKEY_ACTION_report_email(struct GNUNET_MONKEY_ACTION_Context* cntxt);
-int GNUNET_MONKEY_ACTION_inspect_expression_database(struct GNUNET_MONKEY_ACTION_Context* cntxt);
-int GNUNET_MONKEY_ACTION_rerun_with_gdb(struct GNUNET_MONKEY_ACTION_Context* cntxt);
-int GNUNET_MONKEY_ACTION_rerun_with_valgrind(struct GNUNET_MONKEY_ACTION_Context* cntxt);
-int GNUNET_MONKEY_ACTION_format_report(struct GNUNET_MONKEY_ACTION_Context* cntxt);
-int GNUNET_MONKEY_ACTION_check_bug_redundancy(void);
+int GNUNET_MONKEY_ACTION_report_file (struct GNUNET_MONKEY_ACTION_Context
+				      *cntxt, const char *dumpFileName);
+int GNUNET_MONKEY_ACTION_report_email (struct GNUNET_MONKEY_ACTION_Context
+				       *cntxt);
+int GNUNET_MONKEY_ACTION_inspect_expression_database (struct
+						      GNUNET_MONKEY_ACTION_Context
+						      *cntxt);
+int GNUNET_MONKEY_ACTION_rerun_with_gdb (struct GNUNET_MONKEY_ACTION_Context
+					 *cntxt);
+int GNUNET_MONKEY_ACTION_rerun_with_valgrind (struct
+					      GNUNET_MONKEY_ACTION_Context
+					      *cntxt);
+int GNUNET_MONKEY_ACTION_format_report (struct GNUNET_MONKEY_ACTION_Context
+					*cntxt);
+int GNUNET_MONKEY_ACTION_check_bug_redundancy (void);
 
 
 #if 0				/* keep Emacsens' auto-indent happy */
