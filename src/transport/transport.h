@@ -182,6 +182,30 @@ struct QuotaSetMessage
 
 
 /**
+ * Message used to ask the transport service to create a connection.
+ */
+struct TryConnectMessage
+{
+
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_TRY_CONNECT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * for alignment
+   */
+  uint32_t reserved;
+
+  /**
+   * About which peer are we talking here?
+   */
+  struct GNUNET_PeerIdentity peer;
+
+};
+
+
+/**
  * Message used to notify the transport API about a message
  * received from the network.  The actual message follows.
  */

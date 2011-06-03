@@ -491,6 +491,18 @@ void GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle);
 
 
 /**
+ * Ask the transport service to establish a connection to 
+ * the given peer.
+ *
+ * @param handle connection to transport service
+ * @param target who we should try to connect to
+ */
+void
+GNUNET_TRANSPORT_try_connect (struct GNUNET_TRANSPORT_Handle *handle,
+			      const struct GNUNET_PeerIdentity *target);
+
+
+/**
  * Set the share of incoming/outgoing bandwidth for the given
  * peer to the specified amount.
  *
@@ -503,9 +515,7 @@ void
 GNUNET_TRANSPORT_set_quota (struct GNUNET_TRANSPORT_Handle *handle,
                             const struct GNUNET_PeerIdentity *target,
                             struct GNUNET_BANDWIDTH_Value32NBO quota_in,
-                            struct GNUNET_BANDWIDTH_Value32NBO quota_out,
-                            struct GNUNET_TIME_Relative timeout,
-                            GNUNET_SCHEDULER_Task cont, void *cont_cls);
+                            struct GNUNET_BANDWIDTH_Value32NBO quota_out);
 
 
 /**

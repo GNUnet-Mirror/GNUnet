@@ -972,7 +972,8 @@ GNUNET_TRANSPORT_set_quota (struct GNUNET_TRANSPORT_Handle *handle,
   sqc->quota_in = quota_in;
   schedule_control_transmit (handle,
                              sizeof (struct QuotaSetMessage),
-                             GNUNET_NO, timeout, &send_set_quota, sqc);
+                             GNUNET_NO, 
+			     GNUNET_TIME_UNIT_FOREVER_REL, &send_set_quota, sqc);
 }
 
 
