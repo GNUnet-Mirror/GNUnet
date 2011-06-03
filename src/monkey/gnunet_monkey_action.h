@@ -51,7 +51,7 @@ extern "C"
 struct Variable
 {
   struct Variable *next;
-  struct Varialble *prev;
+  struct Variable *prev;
   const char *name;
   const char *value;
 };

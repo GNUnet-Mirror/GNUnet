@@ -208,7 +208,6 @@ analyzeSegmentationFault (struct GNUNET_MONKEY_ACTION_Context *cntxt)
 {
   struct Expression *faultyExpression = NULL;
   struct Expression *tmp;
-  int expressionLength = 0;
 
 
   faultyExpression = getFaultyExpression (cntxt);
@@ -448,17 +447,18 @@ GNUNET_MONKEY_ACTION_rerun_with_gdb (struct GNUNET_MONKEY_ACTION_Context
 static const char *
 variableListToString (struct Variable *head)
 {
-  const char *string = GNUNET_malloc (200 * sizeof (char));
-  const char *strTmp;
+  char *string = GNUNET_malloc (200 * sizeof (char));
+  char *strTmp;
   struct Variable *tmp = head;
-  asprintf (&strTmp, "%s = %s\n", tmp->name, tmp->value);
+
+  GNUNET_asprintf (&strTmp, "%s = %s\n", tmp->name, tmp->value);
   strcpy (string, strTmp);
-  free (strTmp);
+  GNUNET_free (strTmp);
   while (NULL != tmp)
     {
-      asprintf (&strTmp, "%s = %s\n", tmp->name, tmp->value);
+      GNUNET_asprintf (&strTmp, "%s = %s\n", tmp->name, tmp->value);
       strcat (string, strTmp);
-      free (strTmp);
+      GNUNET_free (strTmp);
       tmp = tmp->next;
     }
   return string;
