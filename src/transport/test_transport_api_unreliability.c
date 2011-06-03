@@ -438,9 +438,7 @@ notify_connect (void *cls,
       GNUNET_TRANSPORT_set_quota (p1.th,
 				  &p2.id,
 				  GNUNET_BANDWIDTH_value_init (1024 * 1024 * 1024),
-				  GNUNET_BANDWIDTH_value_init (1024 * 1024 * 1024),
-				  GNUNET_TIME_UNIT_FOREVER_REL,
-				  NULL, NULL);
+				  GNUNET_BANDWIDTH_value_init (1024 * 1024 * 1024));
       start_time = GNUNET_TIME_absolute_get ();
       connected++;
     }
@@ -449,9 +447,7 @@ notify_connect (void *cls,
       GNUNET_TRANSPORT_set_quota (p2.th,
 				  &p1.id,
 				  GNUNET_BANDWIDTH_value_init (1024 * 1024 * 1024),
-				  GNUNET_BANDWIDTH_value_init (1024 * 1024 * 1024),
-				  GNUNET_TIME_UNIT_FOREVER_REL,
-				  NULL, NULL);
+				  GNUNET_BANDWIDTH_value_init (1024 * 1024 * 1024));
       connected++;
     }
 

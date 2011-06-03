@@ -516,18 +516,13 @@ static void measure (unsigned long long quota_p1, unsigned long long quota_p2 )
 
 #endif
 		GNUNET_TRANSPORT_set_quota (p1.th,
-			  &p2.id,
-			  GNUNET_BANDWIDTH_value_init (current_quota_p1 ),
-			  GNUNET_BANDWIDTH_value_init (current_quota_p1 ),
-			  GNUNET_TIME_UNIT_FOREVER_REL,
-			  NULL, NULL);
+					    &p2.id,
+					    GNUNET_BANDWIDTH_value_init (current_quota_p1),
+					    GNUNET_BANDWIDTH_value_init (current_quota_p1));
 		GNUNET_TRANSPORT_set_quota (p2.th,
-			  &p1.id,
-			  GNUNET_BANDWIDTH_value_init (current_quota_p2),
-			  GNUNET_BANDWIDTH_value_init (current_quota_p2),
-			  GNUNET_TIME_UNIT_FOREVER_REL,
-			  NULL, NULL);
-
+					    &p1.id,
+					    GNUNET_BANDWIDTH_value_init (current_quota_p2),
+					    GNUNET_BANDWIDTH_value_init (current_quota_p2));
 		GNUNET_SCHEDULER_cancel (die_task);
 		die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 						   &end_badly,

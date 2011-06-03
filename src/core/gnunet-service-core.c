@@ -1611,9 +1611,7 @@ handle_client_request_info (void *cls,
 	      GNUNET_TRANSPORT_set_quota (transport,
 					  &n->peer,
 					  n->bw_in,
-					  n->bw_out,
-					  GNUNET_TIME_UNIT_FOREVER_REL,
-					  NULL, NULL); 
+					  n->bw_out);
 	      handle_peer_status_change (n);
 	    }
 	}
@@ -3704,9 +3702,7 @@ handle_pong (struct Neighbour *n,
 	  GNUNET_TRANSPORT_set_quota (transport,
 				      &n->peer,
 				      n->bw_in,
-				      n->bw_out,
-				      GNUNET_TIME_UNIT_FOREVER_REL,
-				      NULL, NULL); 
+				      n->bw_out);
 	}
 #if DEBUG_CORE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -4226,9 +4222,7 @@ handle_encrypted_message (struct Neighbour *n,
       GNUNET_TRANSPORT_set_quota (transport,
 				  &n->peer,
 				  n->bw_in,
-				  n->bw_out,
-				  GNUNET_TIME_UNIT_FOREVER_REL,
-				  NULL, NULL); 
+				  n->bw_out);
     }
   n->last_activity = GNUNET_TIME_absolute_get ();
   if (n->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)
@@ -4509,9 +4503,7 @@ neighbour_quota_update (void *cls,
 	GNUNET_TRANSPORT_set_quota (transport,
 				    &n->peer,
 				    n->bw_in,
-				    n->bw_out,
-				    GNUNET_TIME_UNIT_FOREVER_REL,
-				    NULL, NULL);
+				    n->bw_out);
       handle_peer_status_change (n);
     }
   schedule_quota_update (n);
@@ -4574,9 +4566,7 @@ handle_transport_notify_connect (void *cls,
   GNUNET_TRANSPORT_set_quota (transport,
 			      &n->peer,
 			      n->bw_in,
-			      n->bw_out,
-			      GNUNET_TIME_UNIT_FOREVER_REL,
-			      NULL, NULL);
+			      n->bw_out);
   send_key (n); 
 }
 

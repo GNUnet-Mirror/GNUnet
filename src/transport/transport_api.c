@@ -925,19 +925,12 @@ send_set_quota (void *cls, size_t size, void *buf)
  * @param target who's bandwidth quota is being changed
  * @param quota_in incoming bandwidth quota in bytes per ms
  * @param quota_out outgoing bandwidth quota in bytes per ms
- * @param timeout how long to wait until signaling failure if
- *        we can not communicate the quota change
- * @param cont continuation to call when done, will be called
- *        either with reason "TIMEOUT" or with reason "PREREQ_DONE"
- * @param cont_cls closure for continuation
  */
 void
 GNUNET_TRANSPORT_set_quota (struct GNUNET_TRANSPORT_Handle *handle,
                             const struct GNUNET_PeerIdentity *target,
                             struct GNUNET_BANDWIDTH_Value32NBO quota_in,
-                            struct GNUNET_BANDWIDTH_Value32NBO quota_out,
-                            struct GNUNET_TIME_Relative timeout,
-                            GNUNET_SCHEDULER_Task cont, void *cont_cls)
+                            struct GNUNET_BANDWIDTH_Value32NBO quota_out)
 {
   struct NeighbourList *n;
   struct SetQuotaContext *sqc;
@@ -973,9 +966,9 @@ GNUNET_TRANSPORT_set_quota (struct GNUNET_TRANSPORT_Handle *handle,
   sqc = GNUNET_malloc (sizeof (struct SetQuotaContext));
   sqc->handle = handle;
   sqc->target = *target;
-  sqc->cont = cont;
-  sqc->cont_cls = cont_cls;
-  sqc->timeout = GNUNET_TIME_relative_to_absolute (timeout);
+  sqc->cont = NULL;
+  sqc->cont_cls = NULL;
+  sqc->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_FOREVER_REL);
   sqc->quota_in = quota_in;
   schedule_control_transmit (handle,
                              sizeof (struct QuotaSetMessage),
