@@ -139,7 +139,7 @@ struct GNUNET_TRANSPORT_TransmitHandle
   /**
    * How important is this message?
    */
-  unsigned int priority;
+  uint32_t priority;
 
 };
 
@@ -1949,7 +1949,7 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle
                                         *handle,
                                         const struct GNUNET_PeerIdentity
                                         *target, size_t size,
-                                        unsigned int priority,
+                                        uint32_t priority,
                                         struct GNUNET_TIME_Relative timeout,
                                         GNUNET_CONNECTION_TransmitReadyNotify
                                         notify, void *notify_cls)
