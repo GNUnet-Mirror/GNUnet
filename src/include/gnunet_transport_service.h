@@ -498,11 +498,6 @@ void GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle);
  * @param target who's bandwidth quota is being changed
  * @param quota_in incoming bandwidth quota
  * @param quota_out outgoing bandwidth quota
- * @param timeout how long to wait until signaling failure if
- *        we can not communicate the quota change
- * @param cont continuation to call when done, will be called
- *        either with reason "TIMEOUT" or with reason "PREREQ_DONE"
- * @param cont_cls closure for continuation
  */
 void
 GNUNET_TRANSPORT_set_quota (struct GNUNET_TRANSPORT_Handle *handle,
