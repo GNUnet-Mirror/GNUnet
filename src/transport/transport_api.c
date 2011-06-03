@@ -978,6 +978,23 @@ GNUNET_TRANSPORT_set_quota (struct GNUNET_TRANSPORT_Handle *handle,
 
 
 /**
+ * Ask the transport service to establish a connection to 
+ * the given peer.
+ *
+ * @param handle connection to transport service
+ * @param target who we should try to connect to
+ */
+void
+GNUNET_TRANSPORT_try_connect (struct GNUNET_TRANSPORT_Handle *handle,
+			      const struct GNUNET_PeerIdentity *target)
+{
+  /* old API does nothing */
+}
+
+
+
+
+/**
  * Obtain the HELLO message for this peer.
  *
  * @param handle connection to transport service
