@@ -83,9 +83,10 @@ struct PeerRecord
   void *pcic_cls;
 
   /**
-   * Pointer to free when we call pcic.
+   * Pointer to free when we call pcic and to use to cancel
+   * preference change on disconnect.
    */
-  void *pcic_ptr;
+  struct GNUNET_CORE_InformationRequestContext *pcic_ptr;
 
   /**
    * Request information ID for the given pcic (needed in case a
@@ -414,6 +415,7 @@ disconnect_and_free_peer_entry (void *cls,
   struct GNUNET_CORE_TransmitHandle *th;
   struct PeerRecord *pr = value;
   GNUNET_CORE_PeerConfigurationInfoCallback pcic;
+  void *pcic_cls;
 
   while (NULL != (th = pr->pending_head))
     {
@@ -430,10 +432,9 @@ disconnect_and_free_peer_entry (void *cls,
     }
   if (NULL != (pcic = pr->pcic))
     {
-      pr->pcic = NULL;
-      GNUNET_free_non_null (pr->pcic_ptr);
-      pr->pcic_ptr = NULL;
-      pcic (pr->pcic_cls,
+      pcic_cls = pr->pcic_cls;
+      GNUNET_CORE_peer_change_preference_cancel (pr->pcic_ptr);
+      pcic (pcic_cls,
 	    &pr->peer,
 	    zero,
 	    0, 
