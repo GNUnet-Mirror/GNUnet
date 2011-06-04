@@ -747,8 +747,8 @@ tcp_address_to_string (void *cls,
     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
 		       "tcp",
-		       _("Unexpected address length: %u\n"),
-		       addrlen);
+		       _("Unexpected address length: %u bytes\n"),
+		       (unsigned int) addrlen);
       GNUNET_break (0);
       return NULL;
     }
