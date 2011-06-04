@@ -1976,21 +1976,21 @@ find_ready_address(struct NeighbourList *neighbour)
       head = head->next;
     }
   if (unix_address != NULL)
-  {
-	  best_address = unix_address;
+    {
+      best_address = unix_address;
 #if DEBUG_TRANSPORT
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Found unix address, forced this address\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		  "Found UNIX address, forced this address\n");
 #endif
-  }
+    }
   if (best_address != NULL)
     {
 #if DEBUG_TRANSPORT
-
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Best address found (`%s') has latency of %llu ms.\n",
 		  (best_address->addrlen > 0)
 		  ? a2s (best_address->ready_list->plugin->short_name,
-		       best_address->addr,
+			 best_address->addr,
 		       best_address->addrlen)
 		  : "<inbound>",
                   best_address->latency.rel_value);
@@ -3314,7 +3314,6 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer,
 	      "Setting up state for neighbour `%4s'\n",
 	      GNUNET_i2s (peer));
 #endif
-  GNUNET_assert (our_hello != NULL);
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# active neighbours"),
 			    1,
@@ -3365,10 +3364,11 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer,
                                 gettext_noop ("# HELLO's sent to new neighbors"),
                                 1,
                                 GNUNET_NO);
-      transmit_to_peer (NULL, NULL, 0,
-			HELLO_ADDRESS_EXPIRATION,
-			(const char *) our_hello, GNUNET_HELLO_size(our_hello),
-			GNUNET_NO, n);
+      if (NULL != our_hello)
+	transmit_to_peer (NULL, NULL, 0,
+			  HELLO_ADDRESS_EXPIRATION,
+			  (const char *) our_hello, GNUNET_HELLO_size(our_hello),
+			  GNUNET_NO, n);
     }
   return n;
 }
