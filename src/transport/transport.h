@@ -150,6 +150,11 @@ struct TransportRequestConnectMessage
   struct GNUNET_MessageHeader header;
 
   /**
+   * For alignment.
+   */
+  uint32_t reserved;
+
+  /**
    * Identity of the peer we would like to connect to.
    */
   struct GNUNET_PeerIdentity peer;
@@ -172,30 +177,6 @@ struct QuotaSetMessage
    * Quota.
    */
   struct GNUNET_BANDWIDTH_Value32NBO quota;
-
-  /**
-   * About which peer are we talking here?
-   */
-  struct GNUNET_PeerIdentity peer;
-
-};
-
-
-/**
- * Message used to ask the transport service to create a connection.
- */
-struct TryConnectMessage
-{
-
-  /**
-   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_TRY_CONNECT
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * for alignment
-   */
-  uint32_t reserved;
 
   /**
    * About which peer are we talking here?
