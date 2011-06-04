@@ -24,8 +24,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - support 'try connect' in transport service
- * - add timeout (see FIXME)
  * - adjust testcases to use new 'try connect' style (should be easy, breaks API compatibility!)
  * - adjust core service to use new 'try connect' style (should be MUCH nicer there as well!)
  * - test test test
@@ -69,7 +67,7 @@ struct GNUNET_TRANSPORT_TransmitHandle
   /**
    * Neighbour for this handle, NULL for control messages.
    */
-  struct NeighbourList *neighbour;
+  struct Neighbour *neighbour;
 
   /**
    * Function to call when notify_size bytes are available
@@ -86,6 +84,12 @@ struct GNUNET_TRANSPORT_TransmitHandle
    * Timeout for this request, 0 for control messages.
    */
   struct GNUNET_TIME_Absolute timeout;
+
+  /**
+   * Task to trigger request timeout if the request is stalled due to 
+   * congestion.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
   /**
    * How many bytes is our notify callback waiting for?
@@ -399,7 +403,7 @@ demultiplexer (void *cls,
   const struct SendOkMessage *okm;
   struct HelloWaitList *hwl;
   struct HelloWaitList *next_hwl;
-  struct NeighbourList *n;
+  struct Neighbour *n;
   struct GNUNET_PeerIdentity me;
   uint16_t size;
   uint32_t ats_count;
@@ -525,6 +529,9 @@ demultiplexer (void *cls,
       if ( (n->th != NULL) &&
 	   (n->hn == NULL) )
 	{
+	  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != n->th->timeout_task);
+	  GNUNET_SCHEDULER_cancel (n->th->timeout_task);
+	  n->th->timeout_task = GNUNET_SCHEDULER_NO_TASK;
 	  /* we've been waiting for this (congestion, not quota, 
 	     caused delayed transmission) */
 	  n->hn = GNUNET_CONTAINER_heap_insert (h->ready_heap,
@@ -581,6 +588,29 @@ demultiplexer (void *cls,
 
 
 /**
+ * A transmission request could not be satisfied because of
+ * network congestion.  Notify the initiator and clean up.
+ *
+ * @param cls the 'struct GNUNET_TRANSPORT_TransmitHandle'
+ * @param tc scheduler context
+ */
+static void
+timeout_request_due_to_congestion (void *cls,
+				   const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_TRANSPORT_TransmitHandle *th = cls;
+  struct Neighbour *n = th->neighbour;
+
+  n->th->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_assert (th == n->th);
+  GNUNET_assert (NULL == n->hn);
+  n->th = NULL;
+  th->notify (th->notify_cls, 0, NULL);
+  GNUNET_free (th);
+}
+
+
+/**
  * Transmit message(s) to service.
  *
  * @param cls handle to transport
@@ -592,11 +622,13 @@ static size_t
 transport_notify_ready (void *cls, size_t size, void *buf)
 {
   struct GNUNET_TRANSPORT_Handle *h = cls;
-  size_t ssize;
   struct GNUNET_TRANSPORT_TransmitHandle *th;
   struct Neighbour *n;
   char *cbuf;
+  struct OutboundMessage obm;
   size_t ret;
+  size_t nret;
+  size_t mret;
 
   GNUNET_assert (NULL != h->client);
   h->cth = NULL;
@@ -637,8 +669,10 @@ transport_notify_ready (void *cls, size_t size, void *buf)
 	  /* peer not ready, wait for notification! */
 	  GNUNET_CONTAINER_heap_remove_node (n->hn);
 	  n->hn = NULL;
-	  /* FIXME: hitting transport-level congestion, add
-	     a timeout task for 'th' in this case! */
+	  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == n->th->timeout_task);
+	  n->th->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining (n->th->timeout),
+							      &timeout_request_due_to_congestion,
+							      n->th);
 	  continue;
 	}
       th = n->th;
@@ -848,7 +882,6 @@ reconnect (void *cls,
 	   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TRANSPORT_Handle *h = cls;
-  struct ControlMessage *pos;
 
   h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
@@ -882,33 +915,35 @@ reconnect (void *cls,
 static void
 disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_Handle *h)
 {
+  struct GNUNET_TRANSPORT_TransmitHandle *th;
+
   GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
   /* Forget about all neighbours that we used to be connected to */
   GNUNET_CONTAINER_multihashmap_iterate(h->neighbours, 
 					&neighbour_delete, 
 					NULL);
-  if (NULL != handle->cth)
+  if (NULL != h->cth)
     {
-      GNUNET_CLIENT_notify_transmit_ready_cancel (handle->cth);
-      handle->cth = NULL;
+      GNUNET_CLIENT_notify_transmit_ready_cancel (h->cth);
+      h->cth = NULL;
     }
-  if (NULL != handle->client)
+  if (NULL != h->client)
     {
-      GNUNET_CLIENT_disconnect (handle->client, GNUNET_YES);
-      handle->client = NULL;
+      GNUNET_CLIENT_disconnect (h->client, GNUNET_YES);
+      h->client = NULL;
     }
   if (h->quota_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (h->quota_task);
       h->quota_task = GNUNET_SCHEDULER_NO_TASK;
     }
-  while ( (NULL != (th = handle->control_head)))
+  while ( (NULL != (th = h->control_head)))
     {
-      GNUNET_CONTAINER_DLL_remove (handle->control_head,
-                                   handle->control_tail,
-                                   cm);
-      cm->notify (cm->notify_cls, 0, NULL);
-      GNUNET_free (cm);
+      GNUNET_CONTAINER_DLL_remove (h->control_head,
+                                   h->control_tail,
+                                   th);
+      th->notify (th->notify_cls, 0, NULL);
+      GNUNET_free (th);
     }
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1037,7 +1072,7 @@ GNUNET_TRANSPORT_set_quota (struct GNUNET_TRANSPORT_Handle *handle,
 
 
 /**
- * Send TRY_CONNECT message to the service.
+ * Send REQUEST_CONNECT message to the service.
  *
  * @param cls the 'struct GNUNET_PeerIdentity'
  * @param size number of bytes available in buf
@@ -1048,7 +1083,7 @@ static size_t
 send_try_connect (void *cls, size_t size, void *buf)
 {
   struct GNUNET_PeerIdentity *pid = cls;
-  struct TryConnectMessage msg;
+  struct TransportRequestConnectMessage msg;
 
   if (buf == NULL)
     {
@@ -1058,17 +1093,17 @@ send_try_connect (void *cls, size_t size, void *buf)
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transmitting `%s' request with respect to `%4s'.\n",
-              "TRY_CONNECT",
+              "REQUEST_CONNECT",
 	      GNUNET_i2s (&sqc->target));
 #endif
-  GNUNET_assert (size >= sizeof (struct TryConnectMessage));
-  msg.header.size = htons (sizeof (struct TryConnectMessage));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_TRY_CONNECT);
+  GNUNET_assert (size >= sizeof (struct TransportRequestConnectMessage));
+  msg.header.size = htons (sizeof (struct TransportRequestConnectMessage));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_CONNECT);
   msg.reserved = htonl (0);
   msg.peer = *pid;
   memcpy (buf, &msg, sizeof (msg));
   GNUNET_free (pid);
-  return sizeof (struct TryConnectMessage);
+  return sizeof (struct TransportRequestConnectMessage);
 }
 
 
@@ -1088,7 +1123,7 @@ GNUNET_TRANSPORT_try_connect (struct GNUNET_TRANSPORT_Handle *handle,
   pid = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
   *pid = *target;
   schedule_control_transmit (handle,
-                             sizeof (struct TryConnectMessage),
+                             sizeof (struct TransportRequestConnectMessage),
                              &send_try_connect, pid);
 }
 
@@ -1272,7 +1307,7 @@ GNUNET_TRANSPORT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ret->reconnect_delay = GNUNET_TIME_UNIT_ZERO;
   ret->neighbours = GNUNET_CONTAINER_multihashmap_create(STARTING_NEIGHBOURS_SIZE);
   ret->ready_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
-  ret->reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect, h);
+  ret->reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect, ret);
   return ret;
 }
 
@@ -1285,8 +1320,6 @@ GNUNET_TRANSPORT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
 {
-  struct GNUNET_TRANSPORT_TransmitHandle *cm;
-
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Transport disconnect called!\n");
@@ -1370,13 +1403,13 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle *handle,
   th->priority = priority;
   n->th = th;
   /* calculate when our transmission should be ready */
-  delay = GNUNET_BANDWIDTH_tracker_get_delay (n->out_tracker, size);
+  delay = GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker, size);
   if (delay.rel_value > timeout.rel_value)
     delay.rel_value = 0; /* notify immediately (with failure) */
-  n->hn = GNUNET_CONTAINER_heap_insert (h->ready_heap,
+  n->hn = GNUNET_CONTAINER_heap_insert (handle->ready_heap,
 					n, 
 					delay.rel_value);
-  schedule_transmission (h);
+  schedule_transmission (handle);
   return th;
 }
 
@@ -1400,6 +1433,12 @@ GNUNET_TRANSPORT_notify_transmit_ready_cancel (struct GNUNET_TRANSPORT_TransmitH
     {
       GNUNET_CONTAINER_heap_remove_node (n->hn);
       n->hn = NULL;
+    }
+  else
+    {
+      GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != th->timeout_task);
+      GNUNET_SCHEDULER_cancel (th->timeout_task);
+      th->timeout_task = GNUNET_SCHEDULER_NO_TASK;
     }
   GNUNET_free (th);                                        
 }
