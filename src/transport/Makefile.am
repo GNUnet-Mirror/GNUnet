@@ -128,11 +128,11 @@ gnunet_nat_client_SOURCES = \
 gnunet_transport_SOURCES = \
  gnunet-transport.c         
 gnunet_transport_LDADD = \
-  $(top_builddir)/src/transport/libgnunettransport.la \
+  $(top_builddir)/src/transport/libgnunettransportnew.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 gnunet_transport_DEPENDENCIES = \
-  libgnunettransport.la				
+  libgnunettransportnew.la				
 
 if HAVE_LIBGLPK
   GN_GLPK = -lglpk
@@ -147,8 +147,6 @@ gnunet_service_transport_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_GLPK) \
   $(GN_LIBINTL)
-gnunet_service_transport_DEPENDENCIES = \
-  libgnunettransport.la				  
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_transport_tcp.la \
@@ -301,7 +299,7 @@ endif
 test_transport_ats_SOURCES = \
  test_transport_ats.c
 test_transport_ats_LDADD = -lm \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la  
@@ -309,9 +307,6 @@ test_transport_ats_LDADD = -lm \
 perf_transport_ats_SOURCES = \
  perf_transport_ats.c
 perf_transport_ats_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/statistics/libgnunetstatistics.la \
- $(top_builddir)/src/testing/libgnunettesting.la \
  $(GN_GLPK) \
  $(top_builddir)/src/util/libgnunetutil.la  
 
@@ -332,28 +327,28 @@ test_transport_api_tcp_nat_LDADD = \
 test_transport_api_reliability_tcp_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_tcp_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_transport_api_reliability_tcp_nat_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_tcp_nat_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la 
 
 test_transport_api_reliability_wlan_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_wlan_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_transport_api_unreliability_wlan_SOURCES = \
  test_transport_api_unreliability.c
 test_transport_api_unreliability_wlan_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
@@ -381,7 +376,6 @@ test_transport_api_unix_LDADD = \
 test_plugin_transport_http_SOURCES = \
  test_plugin_transport_http.c
 test_plugin_transport_http_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  @LIBCURL@ \
  $(top_builddir)/src/hello/libgnunethello.la \
@@ -397,14 +391,13 @@ test_transport_api_http_LDADD = \
 test_transport_api_reliability_http_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_http_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_plugin_transport_https_SOURCES = \
  test_plugin_transport_https.c
 test_plugin_transport_https_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  @LIBCURL@ \
  $(top_builddir)/src/hello/libgnunethello.la \
@@ -420,21 +413,21 @@ test_transport_api_https_LDADD = \
 test_transport_api_reliability_https_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_https_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_transport_api_unreliability_unix_SOURCES = \
  test_transport_api_unreliability.c
 test_transport_api_unreliability_unix_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_transport_api_unreliability_udp_SOURCES = \
  test_transport_api_unreliability.c
 test_transport_api_unreliability_udp_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
@@ -452,94 +445,94 @@ endif
 test_quota_compliance_tcp_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_tcp_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_quota_compliance_tcp_asymmetric_recv_constant_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_tcp_asymmetric_recv_constant_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 #test_quota_compliance_tcp_asymmetric_send_constant_SOURCES = \
 # test_quota_compliance.c
 #test_quota_compliance_tcp_asymmetric_send_constant_LDADD = \
-# $(top_builddir)/src/transport/libgnunettransport.la \
+# $(top_builddir)/src/transport/libgnunettransportnew.la \
 # $(top_builddir)/src/util/libgnunetutil.la
 
 test_quota_compliance_http_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_http_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
  test_quota_compliance_http_asymmetric_recv_constant_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_http_asymmetric_recv_constant_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 #test_quota_compliance_http_asymmetric_send_constant_SOURCES = \
 # test_quota_compliance.c
 #test_quota_compliance_http_asymmetric_send_constant_LDADD = \
-# $(top_builddir)/src/transport/libgnunettransport.la \
+# $(top_builddir)/src/transport/libgnunettransportnew.la \
 # $(top_builddir)/src/util/libgnunetutil.la
 
 test_quota_compliance_https_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_https_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
  test_quota_compliance_https_asymmetric_recv_constant_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_https_asymmetric_recv_constant_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 #test_quota_compliance_https_asymmetric_send_constant_SOURCES = \
 # test_quota_compliance.c
 #test_quota_compliance_https_asymmetric_send_constant_LDADD = \
-# $(top_builddir)/src/transport/libgnunettransport.la \
+# $(top_builddir)/src/transport/libgnunettransportnew.la \
 # $(top_builddir)/src/util/libgnunetutil.la
 
 test_quota_compliance_udp_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_udp_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_quota_compliance_udp_asymmetric_recv_constant_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_udp_asymmetric_recv_constant_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 #test_quota_compliance_udp_asymmetric_send_constant_SOURCES = \
 # test_quota_compliance.c
 #test_quota_compliance_udp_asymmetric_send_constant_LDADD = \
-# $(top_builddir)/src/transport/libgnunettransport.la \
+# $(top_builddir)/src/transport/libgnunettransportnew.la \
 # $(top_builddir)/src/util/libgnunetutil.la 
 
 test_quota_compliance_unix_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_unix_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_quota_compliance_unix_asymmetric_recv_constant_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_unix_asymmetric_recv_constant_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
@@ -552,6 +545,7 @@ test_transport_api_multi_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 EXTRA_DIST = \
   gnunet-transport-certificate-creation \
+  ats_mlp_p100_m400.problem \
   test_transport_api_data.conf \
   test_transport_api_tcp_peer1.conf \
   test_transport_api_tcp_peer2.conf \
