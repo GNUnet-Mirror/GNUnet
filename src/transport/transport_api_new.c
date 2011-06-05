@@ -373,8 +373,9 @@ neighbour_delete (void *cls,
   struct GNUNET_TRANSPORT_Handle *handle = cls;
   struct Neighbour *n = value;
 
-  handle->nd_cb (handle->cls,
-		 &n->id);
+  if (NULL != handle->nd_cb)
+    handle->nd_cb (handle->cls,
+		   &n->id);
   GNUNET_assert (NULL == n->th);
   GNUNET_assert (NULL == n->hn);
   GNUNET_CONTAINER_multihashmap_remove (handle->neighbours,
