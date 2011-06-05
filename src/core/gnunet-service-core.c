@@ -3123,25 +3123,12 @@ send_key (struct Neighbour *n)
     }
   if (GNUNET_YES != n->is_connected)
     {
-#if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Not yet connected to peer `%4s'!\n",
-                  GNUNET_i2s (&n->peer));
-#endif
-      if (NULL == n->th)
-	{
-	  GNUNET_STATISTICS_update (stats, 
-				    gettext_noop ("# Asking transport to connect (for SET_KEY)"), 
-				    1, 
-				    GNUNET_NO);
-	  n->th = GNUNET_TRANSPORT_notify_transmit_ready (transport,
-							  &n->peer,
-							  sizeof (struct SetKeyMessage) + sizeof (struct PingMessage),
-							  0,
-							  GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-							  &notify_encrypted_transmit_ready,
-							  n);
-	}
+      GNUNET_STATISTICS_update (stats, 
+				gettext_noop ("# Asking transport to connect (for SET_KEY)"), 
+				1, 
+				GNUNET_NO);
+      GNUNET_TRANSPORT_try_connect (transport,
+				    &n->peer);
       return; 
     }
 #if DEBUG_CORE
