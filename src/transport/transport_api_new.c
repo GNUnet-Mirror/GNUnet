@@ -625,7 +625,6 @@ transport_notify_ready (void *cls, size_t size, void *buf)
   struct GNUNET_TRANSPORT_TransmitHandle *th;
   struct Neighbour *n;
   char *cbuf;
-  struct GNUNET_TIME_Relative delay;
   struct OutboundMessage obm;
   size_t ret;
   size_t nret;
@@ -663,12 +662,13 @@ transport_notify_ready (void *cls, size_t size, void *buf)
 
   /* then, if possible and no control messages pending, send data messages */
   while ( (NULL == h->control_head) &&
-	  (NULL != (n = GNUNET_CONTAINER_heap_remove_root (h->ready_heap))) )
+	  (NULL != (n = GNUNET_CONTAINER_heap_peek (h->ready_heap))) )
     {
       n->hn = NULL;
       if (GNUNET_YES != n->is_ready)
 	{
 	  /* peer not ready, wait for notification! */
+	  GNUNET_assert (n == GNUNET_CONTAINER_heap_remove_root (h->ready_heap));
 	  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == n->th->timeout_task);
 	  n->th->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining (n->th->timeout),
 							      &timeout_request_due_to_congestion,
@@ -677,15 +677,10 @@ transport_notify_ready (void *cls, size_t size, void *buf)
 	}
       th = n->th;
       if (th->notify_size + sizeof (struct OutboundMessage) > size)
-	{
-	  delay = GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker, size);
-	  if (delay.rel_value > GNUNET_TIME_absolute_get_remaining (n->th->timeout).rel_value)
-	    delay.rel_value = 0; /* notify immediately (with failure) */
-	  n->hn = GNUNET_CONTAINER_heap_insert (h->ready_heap,
-						n, 
-						delay.rel_value);
-	  break; /* does not fit */
-	}
+	break; /* does not fit */
+      if (GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker, th->notify_size).rel_value > 0)
+	break; /* too early */
+      GNUNET_assert (n == GNUNET_CONTAINER_heap_remove_root (h->ready_heap));
       n->th = NULL;
       n->is_ready = GNUNET_NO;
       GNUNET_assert (size >= sizeof (struct OutboundMessage));
