@@ -521,10 +521,7 @@ demultiplexer (void *cls,
 #endif
       n = neighbour_find (h, &okm->peer);
       if (n == NULL)
-	{
-	  GNUNET_break (0);
-	  break;
-	}
+	break;	
       GNUNET_break (GNUNET_NO == n->is_ready);
       n->is_ready = GNUNET_YES;
       if ( (n->th != NULL) &&
