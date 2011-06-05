@@ -625,6 +625,7 @@ transport_notify_ready (void *cls, size_t size, void *buf)
   struct GNUNET_TRANSPORT_TransmitHandle *th;
   struct Neighbour *n;
   char *cbuf;
+  struct GNUNET_TIME_Relative delay;
   struct OutboundMessage obm;
   size_t ret;
   size_t nret;
@@ -676,7 +677,15 @@ transport_notify_ready (void *cls, size_t size, void *buf)
 	}
       th = n->th;
       if (th->notify_size + sizeof (struct OutboundMessage) > size)
-	break; /* does not fit */
+	{
+	  delay = GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker, size);
+	  if (delay.rel_value > GNUNET_TIME_absolute_get_remaining (n->th->timeout).rel_value)
+	    delay.rel_value = 0; /* notify immediately (with failure) */
+	  n->hn = GNUNET_CONTAINER_heap_insert (h->ready_heap,
+						n, 
+						delay.rel_value);
+	  break; /* does not fit */
+	}
       n->th = NULL;
       n->is_ready = GNUNET_NO;
       GNUNET_assert (size >= sizeof (struct OutboundMessage));
