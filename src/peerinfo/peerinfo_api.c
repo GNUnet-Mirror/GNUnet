@@ -385,9 +385,11 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   ic->h->in_receive = GNUNET_NO;
   if (msg == NULL)
     {
-	  char * err_msg;
-	  GNUNET_asprintf(&err_msg,_("Failed to receive response from `%s' service.\n"),"PEERINFO");
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,err_msg);
+      char *err_msg;
+      GNUNET_asprintf(&err_msg,
+		      _("Failed to receive response from `%s' service."), 
+		      "PEERINFO");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s\n", err_msg);
       reconnect (ic->h);
       trigger_transmit (ic->h);
       if (ic->timeout_task != GNUNET_SCHEDULER_NO_TASK)
