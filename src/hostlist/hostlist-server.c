@@ -187,12 +187,14 @@ host_processor (void *cls,
   int has_addr;
   
   if (err_msg != NULL)
-  {
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      _("Error in communication with PEERINFO service:\n `%s'"), err_msg);
-	return;
-  }
-
+    {
+      GNUNET_assert (NULL == peer);
+      pitr = NULL;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  _("Error in communication with PEERINFO service: %s\n"), 
+		  err_msg);
+      return;
+    }
   if (peer == NULL)
     {
       pitr = NULL;
