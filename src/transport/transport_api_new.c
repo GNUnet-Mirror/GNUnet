@@ -1340,13 +1340,14 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
 	      "Transport disconnect called!\n");
 #endif
   /* this disconnects all neighbours... */
-  disconnect_and_schedule_reconnect (handle);
+  if (handle->reconnect_task == GNUNET_SCHEDULER_NO_TASK)
+    disconnect_and_schedule_reconnect (handle);
   /* and now we stop trying to connect again... */
   if (handle->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (handle->reconnect_task);
       handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
-    }
+    }  
   GNUNET_CONTAINER_multihashmap_destroy (handle->neighbours);
   handle->neighbours = NULL;
   if (handle->quota_task != GNUNET_SCHEDULER_NO_TASK)
