@@ -562,7 +562,6 @@ init_notify (void *cls,
                   GNUNET_i2s (&p2.id));
 #endif
       GNUNET_CORE_peer_request_connect (p1.ch,
-					GNUNET_TIME_UNIT_SECONDS,
 					&p2.id,
 					NULL, NULL);
     }

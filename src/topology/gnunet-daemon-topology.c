@@ -268,7 +268,7 @@ whitelist_peers ()
 
 
 /**
- * Function called by core when our attempt to connect succeeded.
+ * Function called by core when our request to connect was transmitted.
  *
  * @param cls the 'struct Peer' for which we issued the connect request
  * @param success was the request transmitted
@@ -414,7 +414,6 @@ attempt_connect (struct Peer *pos)
 			    1,
 			    GNUNET_NO);
   pos->connect_req = GNUNET_CORE_peer_request_connect (handle,
-						       GNUNET_TIME_UNIT_MINUTES,
 						       &pos->pid,
 						       &connect_completed_callback,
 						       pos);
@@ -932,7 +931,7 @@ static void
 process_peer (void *cls,
 	      const struct GNUNET_PeerIdentity *peer,
 	      const struct GNUNET_HELLO_Message *hello,
-          const char *err_msg)
+	      const char *err_msg)
 {
   struct Peer *pos;
 

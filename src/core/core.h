@@ -471,11 +471,6 @@ struct ConnectMessage
   uint32_t reserved GNUNET_PACKED;
 
   /**
-   * When to time out.
-   */
-  struct GNUNET_TIME_RelativeNBO timeout;
-
-  /**
    * Identity of the other peer.
    */
   struct GNUNET_PeerIdentity peer;

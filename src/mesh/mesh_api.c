@@ -543,7 +543,6 @@ GNUNET_MESH_peer_request_connect_all (struct GNUNET_MESH_Handle *handle,
 					 handle->pending_tunnels.tail,
 					 tunnel);
       (void) GNUNET_CORE_peer_request_connect (handle->core,
-					       timeout,
 					       peers,
 					       NULL, NULL);
     }

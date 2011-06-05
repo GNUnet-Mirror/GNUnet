@@ -2188,8 +2188,6 @@ route_result_message (struct GNUNET_MessageHeader *msg,
               increment_stats (STAT_HELLOS_PROVIDED);
               GNUNET_TRANSPORT_offer_hello (transport_handle, hello_msg, NULL, NULL);
               GNUNET_CORE_peer_request_connect (coreAPI,
-                                                GNUNET_TIME_relative_multiply
-                                                (GNUNET_TIME_UNIT_SECONDS, 5),
                                                 &new_peer, NULL, NULL);
             }
         }
@@ -2712,8 +2710,6 @@ handle_dht_find_peer (const struct GNUNET_MessageHeader *find_msg,
           increment_stats (STAT_HELLOS_PROVIDED);
           GNUNET_TRANSPORT_offer_hello (transport_handle, other_hello, NULL, NULL);
           GNUNET_CORE_peer_request_connect (coreAPI,
-                                            GNUNET_TIME_relative_multiply
-                                            (GNUNET_TIME_UNIT_SECONDS, 5),
                                             &peer_id, NULL, NULL);
           route_message (find_msg, msg_ctx);
           GNUNET_free (other_hello);

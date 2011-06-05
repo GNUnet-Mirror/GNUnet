@@ -1783,7 +1783,6 @@ peer_request_connect_cont (void *cls,
  * be called with the TIMEOUT reason code.
  *
  * @param h core handle
- * @param timeout how long to try to talk to core
  * @param peer who should we connect to
  * @param cont function to call once the request has been completed (or timed out)
  * @param cont_cls closure for cont
@@ -1793,7 +1792,6 @@ peer_request_connect_cont (void *cls,
  */
 struct GNUNET_CORE_PeerRequestHandle *
 GNUNET_CORE_peer_request_connect (struct GNUNET_CORE_Handle *h,
-				  struct GNUNET_TIME_Relative timeout,
 				  const struct GNUNET_PeerIdentity * peer,
 				  GNUNET_CORE_ControlContinuation cont,
 				  void *cont_cls)
@@ -1803,7 +1801,7 @@ GNUNET_CORE_peer_request_connect (struct GNUNET_CORE_Handle *h,
   struct ConnectMessage *msg;
 
   if (NULL != GNUNET_CONTAINER_multihashmap_get (h->peers,
-                                          &peer->hashPubKey))
+						 &peer->hashPubKey))
     {
 #if DEBUG_CORE
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
@@ -1818,7 +1816,6 @@ GNUNET_CORE_peer_request_connect (struct GNUNET_CORE_Handle *h,
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_REQUEST_CONNECT);
   msg->header.size = htons (sizeof (struct ConnectMessage));
   msg->reserved = htonl (0);
-  msg->timeout = GNUNET_TIME_relative_hton (timeout);
   msg->peer = *peer;
   GNUNET_CONTAINER_DLL_insert_tail (h->control_pending_head,
 				    h->control_pending_tail,

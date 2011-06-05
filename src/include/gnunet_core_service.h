@@ -266,7 +266,6 @@ typedef void (*GNUNET_CORE_ControlContinuation)(void *cls, int success);
  * be called with the TIMEOUT reason code.
  *
  * @param h core handle
- * @param timeout how long to try to talk to core
  * @param peer who should we connect to
  * @param cont function to call once the request has been completed (or timed out)
  * @param cont_cls closure for cont
@@ -274,7 +273,6 @@ typedef void (*GNUNET_CORE_ControlContinuation)(void *cls, int success);
  */
 struct GNUNET_CORE_PeerRequestHandle *
 GNUNET_CORE_peer_request_connect (struct GNUNET_CORE_Handle *h,
-				  struct GNUNET_TIME_Relative timeout,
 				  const struct GNUNET_PeerIdentity * peer,
 				  GNUNET_CORE_ControlContinuation cont,
 				  void *cont_cls);

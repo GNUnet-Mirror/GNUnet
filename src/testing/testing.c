@@ -1788,7 +1788,6 @@ send_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_assert (ctx->d1core != NULL);
       ctx->connect_request_handle =
         GNUNET_CORE_peer_request_connect (ctx->d1core,
-                                          ctx->relative_timeout,
                                           &ctx->d2->id,
                                           &core_connect_request_cont, ctx);
 
@@ -1831,7 +1830,6 @@ core_init_notify (void *cls,
     {
       connect_ctx->connect_request_handle =
           GNUNET_CORE_peer_request_connect (connect_ctx->d1core,
-                                            connect_ctx->relative_timeout,
                                             &connect_ctx->d2->id,
                                             &core_connect_request_cont, connect_ctx);
       GNUNET_assert(connect_ctx->connect_request_handle != NULL);
@@ -1931,7 +1929,6 @@ reattempt_daemons_connect (void *cls,
     {
       ctx->connect_request_handle =
         GNUNET_CORE_peer_request_connect (ctx->d1core,
-                                          ctx->relative_timeout,
                                           &ctx->d2->id,
                                           &core_connect_request_cont, ctx);
     }

@@ -255,7 +255,6 @@ init_notify (void *cls,
                   "Asking core (1) to connect to peer `%4s'\n",
                   GNUNET_i2s (&p2.id));
       GNUNET_CORE_peer_request_connect (p1.ch,
-					GNUNET_TIME_UNIT_SECONDS,
 					&p2.id,
 					NULL, NULL);
     }

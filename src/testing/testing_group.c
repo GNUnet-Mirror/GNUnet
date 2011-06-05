@@ -3249,7 +3249,6 @@ send_core_connect_requests (void *cls, const struct GNUNET_SCHEDULER_TaskContext
         while (conn != NULL)
           {
             GNUNET_CORE_peer_request_connect(send_hello_context->peer->daemon->server,
-                GNUNET_TIME_relative_get_forever(),
                 &send_hello_context->pg->peers[conn->index].daemon->id,
                 NULL,
                 NULL);

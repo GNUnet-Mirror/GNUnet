@@ -2937,59 +2937,6 @@ handle_client_send (void *cls,
 
 
 /**
- * Function called when the transport service is ready to
- * receive a message.  Only resets 'n->th' to NULL.
- *
- * @param cls neighbour to use message from
- * @param size number of bytes we can transmit
- * @param buf where to copy the message
- * @return number of bytes transmitted
- */
-static size_t
-notify_transport_connect_done (void *cls,
-			       size_t size,
-			       void *buf)
-{
-  struct Neighbour *n = cls;
-
-  n->th = NULL;
-  if (GNUNET_YES != n->is_connected)
-    {
-      /* transport should only call us to transmit a message after
-       * telling us about a successful connection to the respective peer */
-#if DEBUG_CORE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		  "Timeout on notify connect!\n");
-#endif
-      GNUNET_STATISTICS_update (stats, 
-				gettext_noop ("# connection requests timed out in transport"), 
-				1,
-				GNUNET_NO);
-      return 0;
-    }
-  if (buf == NULL)
-    {
-      GNUNET_STATISTICS_update (stats,
-                                gettext_noop ("# connection requests timed out in transport"),
-                                1,
-                                GNUNET_NO);
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  _("Failed to connect to `%4s': transport failed to connect\n"),
-		  GNUNET_i2s (&n->peer));
-      return 0;
-    }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      _("TRANSPORT connection to peer `%4s' is up, trying to establish CORE connection\n"),
-	      GNUNET_i2s (&n->peer));
-  if (n->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (n->retry_set_key_task);
-  n->retry_set_key_task = GNUNET_SCHEDULER_add_now (&set_key_retry_task,
-						    n);
-  return 0;
-}
-
-
-/**
  * Handle CORE_REQUEST_CONNECT request.
  *
  * @param cls unused
@@ -3003,7 +2950,6 @@ handle_client_request_connect (void *cls,
 {
   const struct ConnectMessage *cm = (const struct ConnectMessage*) message;
   struct Neighbour *n;
-  struct GNUNET_TIME_Relative timeout;
 
   if (0 == memcmp (&cm->peer, 
 		   &my_identity, 
@@ -3012,64 +2958,33 @@ handle_client_request_connect (void *cls,
       /* In this case a client has asked us to connect to ourselves, not really an error! */
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return;
-    }
-  timeout = GNUNET_TIME_relative_ntoh (cm->timeout);
+    }  
   GNUNET_break (ntohl (cm->reserved) == 0);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  n = find_neighbour (&cm->peer);
-  if (n == NULL)
-    n = create_neighbour (&cm->peer);
-  if ( (GNUNET_YES == n->is_connected) ||
-       (n->th != NULL) )
-    {
-      if (GNUNET_YES == n->is_connected) 
-	{
-	  GNUNET_STATISTICS_update (stats, 
-				    gettext_noop ("# connection requests ignored (already connected)"), 
-				    1,
-				    GNUNET_NO);
-	}
-      else
-        {
-	  if (NULL != n->th)
-	    {
-	      GNUNET_TRANSPORT_notify_transmit_ready_cancel (n->th);
-	      n->th = NULL;
-	    }
-          n->th = GNUNET_TRANSPORT_notify_transmit_ready (transport,
-                                                          &cm->peer,
-                                                          sizeof (struct GNUNET_MessageHeader), 0,
-                                                          timeout,
-                                                          &notify_transport_connect_done,
-                                                          n);
-          GNUNET_break (NULL != n->th);
-          GNUNET_STATISTICS_update (stats,
-                                    gettext_noop ("# connection requests retried (due to repeat request connect)"),
-                                    1,
-                                    GNUNET_NO);
-        }
-      return; /* already connected, or at least trying */
-    }
-  GNUNET_STATISTICS_update (stats, 
-			    gettext_noop ("# connection requests received"), 
-			    1,
-			    GNUNET_NO);
-
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Core received `%s' request for `%4s', will try to establish connection\n",
 	      "REQUEST_CONNECT",
 	      GNUNET_i2s (&cm->peer));
 #endif
-
-  /* ask transport to connect to the peer */
-  n->th = GNUNET_TRANSPORT_notify_transmit_ready (transport,
-						  &cm->peer,
-						  sizeof (struct GNUNET_MessageHeader), 0,
-						  timeout,
-						  &notify_transport_connect_done,
-						  n);
-  GNUNET_break (NULL != n->th);
+  GNUNET_STATISTICS_update (stats, 
+			    gettext_noop ("# connection requests received"), 
+			    1,
+			    GNUNET_NO);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  n = find_neighbour (&cm->peer);
+  if ( (n == NULL) || 
+       (GNUNET_YES != n->is_connected) )
+    {
+      GNUNET_TRANSPORT_try_connect (transport,
+				    &cm->peer);
+    }
+  else
+    {
+      GNUNET_STATISTICS_update (stats, 
+				gettext_noop ("# connection requests ignored (already connected)"), 
+				1,
+				GNUNET_NO);
+    }
 }
 
 
