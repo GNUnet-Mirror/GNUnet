@@ -194,6 +194,11 @@ static struct GNUNET_STATISTICS_Handle *stats;
 static struct GNUNET_TRANSPORT_Blacklist *blacklist;
 
 /**
+ * Task scheduled to try to add peers.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier add_task;
+
+/**
  * Flag to disallow non-friend connections (pure F2F mode).
  */
 static int friends_only;
@@ -448,7 +453,8 @@ remove_from_greylist (void *cls,
 					pos);
     }
   if ( (GNUNET_NO == pos->is_friend) &&
-       (GNUNET_NO == pos->is_connected) )
+       (GNUNET_NO == pos->is_connected) &&
+       (NULL == pos->hello) )
     {
       free_peer (NULL, &pos->pid.hashPubKey, pos);
       return;
@@ -524,8 +530,6 @@ static size_t
 hello_advertising_ready (void *cls,
 			 size_t size,
 			 void *buf);
-
-
 
 
 /**
@@ -762,6 +766,24 @@ try_add_peers (void *cls,
 
 
 /**
+ * Last task run during shutdown.  Disconnects us from
+ * the transport and core.
+ *
+ * @param cls unused, NULL
+ * @param tc scheduler context
+ */
+static void
+add_peer_task (void *cls, 
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  add_task = GNUNET_SCHEDULER_NO_TASK;
+
+  GNUNET_CONTAINER_multihashmap_iterate (peers,
+					 &try_add_peers,
+					 NULL);
+}
+
+/**
  * Method called whenever a peer disconnects.
  *
  * @param cls closure
@@ -807,11 +829,10 @@ disconnect_notify (void *cls,
 			     friend_count,
 			     GNUNET_NO);
     }
-  if ( (connection_count < target_connection_count) ||
-       (friend_count < minimum_friend_count) )
-    GNUNET_CONTAINER_multihashmap_iterate (peers,
-					   &try_add_peers,
-					   NULL);
+  if ( ( (connection_count < target_connection_count) ||
+	 (friend_count < minimum_friend_count) ) &&
+       (GNUNET_SCHEDULER_NO_TASK == add_task) )
+    add_task = GNUNET_SCHEDULER_add_now (&add_peer_task, NULL);
   if ( (friend_count < minimum_friend_count) &&
        (blacklist == NULL) )
     blacklist = GNUNET_TRANSPORT_blacklist (cfg,
@@ -936,12 +957,15 @@ process_peer (void *cls,
   struct Peer *pos;
 
   if (err_msg != NULL)
-  {
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      _("Error in communication with PEERINFO service\n"));
-	  /* return; */
-  }
-
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  _("Error in communication with PEERINFO service: %s\n"),
+		  err_msg);
+      GNUNET_PEERINFO_notify_cancel (peerinfo_notify);
+      peerinfo_notify = GNUNET_PEERINFO_notify (cfg, &process_peer,
+						NULL);
+      return;
+    }
   GNUNET_assert (peer != NULL);
   if (0 == memcmp (&my_identity,
                    peer, sizeof (struct GNUNET_PeerIdentity)))
@@ -1304,6 +1328,11 @@ cleaning_task (void *cls,
     {
       GNUNET_PEERINFO_notify_cancel (peerinfo_notify);
       peerinfo_notify = NULL;
+    }
+  if (GNUNET_SCHEDULER_NO_TASK != add_task)
+    {
+      GNUNET_SCHEDULER_cancel (add_task);
+      add_task = GNUNET_SCHEDULER_NO_TASK;
     }
   GNUNET_TRANSPORT_disconnect (transport);
   transport = NULL;
