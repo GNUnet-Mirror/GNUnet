@@ -662,8 +662,7 @@ transport_notify_ready (void *cls, size_t size, void *buf)
   while ( (NULL == h->control_head) &&
 	  (NULL != (n = GNUNET_CONTAINER_heap_peek (h->ready_heap))) )
     {
-      n->hn = NULL;
-      if (GNUNET_YES != n->is_ready)
+       if (GNUNET_YES != n->is_ready)
 	{
 	  /* peer not ready, wait for notification! */
 	  GNUNET_assert (n == GNUNET_CONTAINER_heap_remove_root (h->ready_heap));
@@ -679,6 +678,7 @@ transport_notify_ready (void *cls, size_t size, void *buf)
       if (GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker, th->notify_size).rel_value > 0)
 	break; /* too early */
       GNUNET_assert (n == GNUNET_CONTAINER_heap_remove_root (h->ready_heap));
+      n->hn = NULL;
       n->th = NULL;
       n->is_ready = GNUNET_NO;
       GNUNET_assert (size >= sizeof (struct OutboundMessage));
