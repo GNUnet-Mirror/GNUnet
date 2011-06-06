@@ -28,6 +28,9 @@ libgnunetnat_la_LIBADD = \
   @LIBCURL@ \
   $(GN_LIBINTL) @EXT_LIBS@ 
 
+libgnunetnat_la_CPPFLAGS = \
+  @LIBCURL_CPPFLAGS@
+
 libgnunetnat_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:0:0		

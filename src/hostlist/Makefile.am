@@ -25,7 +25,7 @@ gnunet_daemon_hostlist_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBMHD) \
-  @LIBCURL@ -lcurl \
+  @LIBCURL@  \
   $(GN_LIBINTL)
 
 gnunet_daemon_hostlist_CPPFLAGS = \

@@ -243,18 +243,13 @@ AC_RUN_IFELSE(
    fi
   ])
 AC_LANG_POP(C)
+fi	# $build = $target
 
 # libcurl
 LIBCURL_CHECK_CONFIG(,7.20.1,,AC_MSG_ERROR([GNUnet requires libcurl >= 7.20.1]))
 # restore LIBS
 LIBS=$SAVE_LIBS
 
-fi	# $build = $target
-
-# glpk
-#AC_CHECK_HEADERS(glpk.h, glpk=true)
-#AM_CONDITIONAL(HAVE_GLPK, test x$glpk = xtrue)
-#AC_CHECK_LIB([glpk],[glp_create_prob])
 
 glpk=true
 AC_CHECK_HEADERS(glpk.h, ,[gplk=false])
