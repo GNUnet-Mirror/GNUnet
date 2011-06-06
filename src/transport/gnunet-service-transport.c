@@ -1675,6 +1675,14 @@ a2s (const char *plugin,
   p = find_transport (plugin);
   if (p == NULL)
     return NULL;
+  if ((addr_len == 0) || (addr == NULL))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "a2s: malformed address from plugin `%s'\n",
+              p->short_name);
+    GNUNET_assert (addr_len != 0);
+    GNUNET_assert (addr != NULL);
+  }
   return p->api->address_to_string (p->api->cls,
 				    addr,
 				    addr_len);
@@ -6311,7 +6319,7 @@ static void ats_solve_problem (unsigned int max_it, unsigned int  max_dur, unsig
 	else
 	{
 		// TODO: Remove if this does not appear until release
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,  "MLP SOLUTION INVALID: %i\n", lp_solution);
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,  "MLP solution for %i peers, %i mechs is invalid: %i\n", ats->stat.c_peers, ats->stat.c_mechs, mlp_solution);
 		stat->valid = GNUNET_NO;
 	}
 
