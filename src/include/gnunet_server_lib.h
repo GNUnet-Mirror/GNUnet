@@ -226,6 +226,16 @@ GNUNET_SERVER_client_persist_ (struct GNUNET_SERVER_Client *client);
 void
 GNUNET_SERVER_receive_done (struct GNUNET_SERVER_Client *client, int success);
 
+/**
+ * Disable the warning the server issues if a message is not acknowledged
+ * in a timely fashion.  Use this call if a client is intentionally delayed
+ * for a while.  Only applies to the current message.
+ *
+ * @param client client for which to disable the warning
+ */
+void
+GNUNET_SERVER_disable_receive_done_warning (struct GNUNET_SERVER_Client *client);
+
 
 /**
  * Inject a message into the server, pretend it came

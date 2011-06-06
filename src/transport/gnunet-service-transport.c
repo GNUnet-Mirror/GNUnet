@@ -5474,8 +5474,8 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   ret = GNUNET_BANDWIDTH_tracker_get_delay (&n->in_tracker, 0);
   if (ret.rel_value > 0)
     {
-#if DEBUG_TRANSPORT || 1
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+#if DEBUG_TRANSPORT 
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Throttling read (%llu bytes excess at %u b/s), waiting %llu ms before reading more.\n",
 		  (unsigned long long) n->in_tracker.consumption_since_last_update__,
 		  (unsigned int) n->in_tracker.available_bytes_per_s__,
@@ -5778,8 +5778,8 @@ handle_set_quota (void *cls,
 				GNUNET_NO);
       return;
     }
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+#if DEBUG_TRANSPORT || 1
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Received `%s' request (new quota %u, old quota %u) from client for peer `%4s'\n",
               "SET_QUOTA",
 	      (unsigned int) ntohl (qsm->quota.value__),

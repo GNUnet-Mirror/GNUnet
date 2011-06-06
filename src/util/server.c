@@ -599,6 +599,24 @@ warn_no_receive_done (void *cls,
 
 
 /**
+ * Disable the warning the server issues if a message is not acknowledged
+ * in a timely fashion.  Use this call if a client is intentionally delayed
+ * for a while.  Only applies to the current message.
+ *
+ * @param client client for which to disable the warning
+ */
+void
+GNUNET_SERVER_disable_receive_done_warning (struct GNUNET_SERVER_Client *client)
+{
+  if (GNUNET_SCHEDULER_NO_TASK != client->warn_task)
+    {
+      GNUNET_SCHEDULER_cancel (client->warn_task);
+      client->warn_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+}
+
+
+/**
  * Inject a message into the server, pretend it came
  * from the specified client.  Delivery of the message
  * will happen instantly (if a handler is installed;

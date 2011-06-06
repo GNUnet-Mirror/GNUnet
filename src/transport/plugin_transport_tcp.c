@@ -2106,13 +2106,14 @@ handle_tcp_data (void *cls,
     }
   else
     {
-#if DEBUG_TCP || 1
-      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
+#if DEBUG_TCP 
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		       "tcp",
 		       "Throttling receiving from `%s' for %llu ms\n",
 		       GNUNET_i2s (&session->target),
 		       (unsigned long long) delay.rel_value);
 #endif
+      GNUNET_SERVER_disable_receive_done_warning (client);
       session->receive_delay_task =
 	GNUNET_SCHEDULER_add_delayed (delay, &delayed_done, session);
     }
