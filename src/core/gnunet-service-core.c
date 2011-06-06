@@ -4344,7 +4344,7 @@ neighbour_quota_update (void *cls,
     }
   else
     {
-      pref_rel = n->current_preference / preference_sum;
+      pref_rel = (double) n->current_preference / preference_sum;
     }
   need_per_peer = GNUNET_BANDWIDTH_value_get_available_until (MIN_BANDWIDTH_PER_PEER,
 							      GNUNET_TIME_UNIT_SECONDS);  
