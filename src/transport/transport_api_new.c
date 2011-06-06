@@ -666,7 +666,8 @@ transport_notify_ready (void *cls, size_t size, void *buf)
 	{
 	  /* peer not ready, wait for notification! */
 	  GNUNET_assert (n == GNUNET_CONTAINER_heap_remove_root (h->ready_heap));
-	  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == n->th->timeout_task);
+	  n->hn = NULL;
+    	  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == n->th->timeout_task);
 	  n->th->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining (n->th->timeout),
 							      &timeout_request_due_to_congestion,
 							      n->th);
