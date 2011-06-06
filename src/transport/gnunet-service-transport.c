@@ -4003,7 +4003,7 @@ schedule_next_ping (struct ForeignAddressList *fal)
  */
 static void
 handle_payload_message (const struct GNUNET_MessageHeader *message,
-						struct NeighbourList *n)
+			struct NeighbourList *n)
 {
   struct InboundMessage *im;
   struct TransportClient *cpos;
@@ -4014,7 +4014,7 @@ handle_payload_message (const struct GNUNET_MessageHeader *message,
     {
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Received message of type %u and size %u from `%4s', but no pong yet!!\n",
+                  "Received message of type %u and size %u from `%4s', but no pong yet!\n",
                   ntohs (message->type),
                   ntohs (message->size),
                   GNUNET_i2s (&n->id));
@@ -5347,11 +5347,11 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   uint16_t msize;
   struct NeighbourList *n;
   struct GNUNET_TIME_Relative ret;
-  if (is_blacklisted (peer, plugin))
-    return GNUNET_TIME_UNIT_FOREVER_REL;
   uint32_t distance;
   int c;
 
+  if (is_blacklisted (peer, plugin))
+    return GNUNET_TIME_UNIT_FOREVER_REL;
   n = find_neighbour (peer);
   if (n == NULL)
     n = setup_new_neighbour (peer, GNUNET_YES);
@@ -5363,16 +5363,11 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   distance = 1;
 
   for (c=0; c<ats_count; c++)
-  {
-	  if (ntohl(ats_data[c].type) == GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE)
-	  {
-		  distance = ntohl(ats_data[c].value);
-	  }
-  }
-
+    if (ntohl(ats_data[c].type) == GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE)
+      distance = ntohl(ats_data[c].value);
+  
   /* notify ATS about incoming data */
   //ats_notify_ats_data(peer, ats_data);
-
 
   if (message != NULL)
     {
@@ -5385,17 +5380,14 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 					 sender_address_len);
       if (peer_address != NULL)
 	{
-
-      update_addr_ats(peer_address, ats_data, ats_count);
-      update_addr_value(peer_address, distance, GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
-
-      peer_address->distance = distance;
+	  update_addr_ats(peer_address, ats_data, ats_count);
+	  update_addr_value(peer_address, distance, GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+	  
+	  peer_address->distance = distance;
 	  if (GNUNET_YES == peer_address->validated)
 	    mark_address_connected (peer_address);
 	  peer_address->timeout
-	    =
-	    GNUNET_TIME_relative_to_absolute
-	    (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+	    = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
 	  schedule_next_ping (peer_address);
 	}
       /* update traffic received amount ... */
@@ -5430,32 +5422,32 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 	}
     if ((ntohs(message->type) == GNUNET_MESSAGE_TYPE_TRANSPORT_ATS) &&
     	(ntohs(message->size) == (sizeof (struct GNUNET_MessageHeader) + sizeof (uint32_t))))
-    {
+      {
     	uint32_t value =  ntohl(*((uint32_t *) &message[1]));
     	//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "GNUNET_MESSAGE_TYPE_TRANSPORT_ATS: %i \n", value);
     	/* Force ressource and quality update */
     	if (value == 4)
-    	{
-    		ats->stat.modified_resources = GNUNET_YES;
-    		ats->stat.modified_quality = GNUNET_YES;
-    	}
+	  {
+	    ats->stat.modified_resources = GNUNET_YES;
+	    ats->stat.modified_quality = GNUNET_YES;
+	  }
     	/* Force cost update */
     	if (value == 3)
-    		ats->stat.modified_resources = GNUNET_YES;
+	  ats->stat.modified_resources = GNUNET_YES;
     	/* Force quality update */
     	if (value == 2)
-    		ats->stat.modified_quality = GNUNET_YES;
+	  ats->stat.modified_quality = GNUNET_YES;
     	/* Force full rebuild */
     	if (value == 1)
-    		ats->stat.recreate_problem = GNUNET_YES;
-    }
-
+	  ats->stat.recreate_problem = GNUNET_YES;
+      }
+    
 #if DEBUG_PING_PONG
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Received message of type %u and size %u from `%4s', sending to all clients.\n",
-                      ntohs (message->type),
-                      ntohs (message->size),
-		      GNUNET_i2s (peer));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Received message of type %u and size %u from `%4s', sending to all clients.\n",
+		ntohs (message->type),
+		ntohs (message->size),
+		GNUNET_i2s (peer));
 #endif
       switch (ntohs (message->type))
 	{
@@ -5482,9 +5474,9 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   ret = GNUNET_BANDWIDTH_tracker_get_delay (&n->in_tracker, 0);
   if (ret.rel_value > 0)
     {
-#if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Throttling read (%llu bytes excess at %u b/s), waiting %llums before reading more.\n",
+#if DEBUG_TRANSPORT || 1
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  "Throttling read (%llu bytes excess at %u b/s), waiting %llu ms before reading more.\n",
 		  (unsigned long long) n->in_tracker.consumption_since_last_update__,
 		  (unsigned int) n->in_tracker.available_bytes_per_s__,
 		  (unsigned long long) ret.rel_value);

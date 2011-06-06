@@ -2101,10 +2101,21 @@ handle_tcp_data (void *cls,
 				(GNUNET_YES == session->inbound) ? NULL : session->connect_addr,
 				(GNUNET_YES == session->inbound) ? 0 : session->connect_alen);
   if (delay.rel_value == 0)
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    {
+      GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    }
   else
-    session->receive_delay_task =
-      GNUNET_SCHEDULER_add_delayed (delay, &delayed_done, session);
+    {
+#if DEBUG_TCP || 1
+      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
+		       "tcp",
+		       "Throttling receiving from `%s' for %llu ms\n",
+		       GNUNET_i2s (&session->target),
+		       (unsigned long long) delay.rel_value);
+#endif
+      session->receive_delay_task =
+	GNUNET_SCHEDULER_add_delayed (delay, &delayed_done, session);
+    }
 }
 
 
@@ -2926,18 +2937,20 @@ libgnunet_plugin_transport_tcp_init (void *cls)
     }
 
   if ((bind_address != NULL) && (internal_address != NULL))
-  {
-	  if (0 != strcmp(internal_address, bind_address ))
-	  {
-			  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-					  "tcp","Specific bind address `%s' and internal address `%s' must not differ, forcing internal address to bind address!\n", bind_address, internal_address);
-			  GNUNET_free (internal_address);
-			  internal_address = bind_address;
-			  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-					  "tcp","New internal address `%s'\n", internal_address);
-	  }
-  }
-
+    {
+      if (0 != strcmp(internal_address, bind_address ))
+	{
+	  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+			   "tcp",
+			   "Specific bind address `%s' and internal address `%s' must not differ, forcing internal address to bind address!\n", 
+			   bind_address, internal_address);
+	  GNUNET_free (internal_address);
+	  internal_address = bind_address;
+	  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+			   "tcp","New internal address `%s'\n", internal_address);
+	}
+    }
+  
   aport = 0;
   if ( (GNUNET_OK !=
 	GNUNET_CONFIGURATION_get_value_number (env->cfg,
@@ -2963,13 +2976,13 @@ libgnunet_plugin_transport_tcp_init (void *cls)
 
   use_localaddresses = GNUNET_NO;
   if (GNUNET_CONFIGURATION_have_value (env->cfg,
-		  "transport-tcp", "USE_LOCALADDR"))
+				       "transport-tcp", "USE_LOCALADDR"))
     {
-		  use_localaddresses = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
-								   "transport-tcp",
-							       "USE_LOCALADDR");
+      use_localaddresses = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+								 "transport-tcp",
+								 "USE_LOCALADDR");
     }
-
+  
   if (aport == 0)
     aport = bport;
   if (bport == 0)
