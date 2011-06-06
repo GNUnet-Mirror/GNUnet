@@ -1,19 +1,9 @@
 0.9.0pre3:
-* DATASTORE [CG]
-  - FS datastore lookups requested but callback never happens (timeout
-    was set to 'forever', but still it should not take many minutes);
-    => new warning "Datastore lookup already took 180000 ms!" generated
-       by current fs p2p trust testcase
-* CORE: (both reproduced using current fs p2p trust testcase):
-   - Jun 05 17:10:08 core-15719 ERROR Assertion failed at transport_api_new.c:1458.
-     [ after aborting with CTRL-C ]
-   - Jun 05 17:09:46 transport-15678 WARNING Processing code for message of type 82 did not call GNUNET_SERVER_receive_done after 1002ms
-     [ just before download hangs --- this is a core message, why does transport handle this one? ]
+* TRANSPORT [MW]
+  - perf_gnunet_service_fs_p2p_trust sometimes causes a new 1kb/s quota to appear,
+    in which case the testcase fails (timeout for transmission, which gets too slow)
 * FS [CG]
-  - perf_gnunet_service_fs_p2p_trust causes crashes of the service
-    and assertion failures
   - implement 'SUPPORT_DELAYS'
-
 
 0.9.0:
 * new webpage:
