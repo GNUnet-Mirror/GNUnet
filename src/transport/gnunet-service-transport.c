@@ -1673,16 +1673,8 @@ a2s (const char *plugin,
   if (plugin == NULL)
     return NULL;
   p = find_transport (plugin);
-  if (p == NULL)
+  if ((p == NULL) || (addr_len == 0) || (addr == NULL))
     return NULL;
-  if ((addr_len == 0) || (addr == NULL))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "a2s: malformed address from plugin `%s'\n",
-              p->short_name);
-    GNUNET_assert (addr_len != 0);
-    GNUNET_assert (addr != NULL);
-  }
   return p->api->address_to_string (p->api->cls,
 				    addr,
 				    addr_len);
