@@ -222,6 +222,7 @@ client_request_destroy (void *cls,
  * @param cls user-specified closure
  * @param eval evaluation of the result
  * @param pr handle to the original pending request
+ * @param reply_anonymity_level anonymity level for the reply, UINT32_MAX for "unknown"
  * @param expiration when does 'data' expire? 
  * @param type type of the block
  * @param data response data, NULL on request expiration
@@ -231,6 +232,7 @@ static void
 client_response_handler (void *cls,
 			 enum GNUNET_BLOCK_EvaluationResult eval,
 			 struct GSF_PendingRequest *pr,
+			 uint32_t reply_anonymity_level,
 			 struct GNUNET_TIME_Absolute expiration,
 			 enum GNUNET_BLOCK_Type type,
 			 const void *data,

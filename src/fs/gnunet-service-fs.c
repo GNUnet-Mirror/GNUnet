@@ -128,6 +128,10 @@ struct GNUNET_BLOCK_Context *GSF_block_ctx;
  */
 struct GNUNET_CORE_Handle *GSF_core;
 
+/**
+ * Are we introducing randomized delays for better anonymity?
+ */
+int GSF_enable_randomized_delays;
 
 /* ***************************** locals ******************************* */
 
@@ -235,6 +239,7 @@ handle_p2p_put (void *cls,
       GNUNET_break (0);
       return GNUNET_OK;
     }
+  GSF_cover_content_count++;
   return GSF_handle_p2p_content_ (cp, message);
 }
 
@@ -568,6 +573,7 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GSF_cfg = cfg;
+  GSF_enable_randomized_delays = GNUNET_CONFIGURATION_get_value_yesno (cfg, "fs", "DELAY");
   GSF_dsh = GNUNET_DATASTORE_connect (cfg);
   if (NULL == GSF_dsh)
     {

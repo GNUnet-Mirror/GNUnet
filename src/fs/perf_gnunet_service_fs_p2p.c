@@ -81,6 +81,7 @@ struct StatValues
  */
 static struct StatValues stats[] =
   {
+    { "fs", "# artificial delays introduced (ms)"},
     { "fs", "# queries forwarded"},
     { "fs", "# replies received and matched"},
     { "fs", "# results found locally"},
@@ -93,7 +94,6 @@ static struct StatValues stats[] =
     { "fs", "# P2P searches discarded (queue length bound)"},
     { "fs", "# replies received for local clients"},
     { "fs", "# queries retransmitted to same target"},
-    { "fs", "cummulative artificial delay introduced (ms)"},
     { "core", "# bytes decrypted"},
     { "core", "# bytes encrypted"},
     { "core", "# discarded CORE_SEND requests"},

@@ -126,6 +126,45 @@ struct GSF_PeerTransmitHandle
 
 
 /**
+ * Handle for an entry in our delay list.
+ */
+struct GSF_DelayedHandle
+{
+
+  /**
+   * Kept in a doubly-linked list.
+   */
+  struct GSF_DelayedHandle *next;  
+
+  /**
+   * Kept in a doubly-linked list.
+   */
+  struct GSF_DelayedHandle *prev;
+
+  /**
+   * Peer this transmission belongs to.
+   */
+  struct GSF_ConnectedPeer *cp;
+
+  /**
+   * The PUT that was delayed.
+   */
+  struct PutMessage *pm;
+
+  /**
+   * Task for the delay.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier delay_task;
+
+  /**
+   * Size of the message.
+   */
+  size_t msize;
+  
+};
+
+
+/**
  * Information per peer and request.
  */
 struct PeerRequest
@@ -182,6 +221,18 @@ struct GSF_ConnectedPeer
    * send to this peer in the near future.  Sorted by priority, tail.
    */
   struct GSF_PeerTransmitHandle *pth_tail;
+
+  /**
+   * Messages (replies, queries, content migration) we would like to
+   * send to this peer in the near future.  Sorted by priority, head.
+   */
+  struct GSF_DelayedHandle *delayed_head;
+
+  /**
+   * Messages (replies, queries, content migration) we would like to
+   * send to this peer in the near future.  Sorted by priority, tail.
+   */
+  struct GSF_DelayedHandle *delayed_tail;
 
   /**
    * Migration stop message in our queue, or NULL if we have none pending.
@@ -757,6 +808,61 @@ peer_request_destroy (void *cls,
 
 
 /**
+ * The artificial delay is over, transmit the message now.
+ *
+ * @param cls the 'struct GSF_DelayedHandle' with the message
+ * @param tc scheduler context
+ */
+static void
+transmit_delayed_now (void *cls,
+		      const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GSF_DelayedHandle *dh = cls;
+  struct GSF_ConnectedPeer *cp = dh->cp;
+
+  GNUNET_CONTAINER_DLL_remove (cp->delayed_head,
+			       cp->delayed_tail,
+			       dh);
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+    {
+      GNUNET_free (dh->pm);
+      GNUNET_free (dh);
+      return;
+    }
+  (void) GSF_peer_transmit_ (cp, GNUNET_NO,
+			     UINT32_MAX,
+			     REPLY_TIMEOUT,
+			     dh->msize,
+			     &copy_reply,
+			     dh->pm);
+  GNUNET_free (dh);
+}
+
+
+/**
+ * Get the randomized delay a response should be subjected to.
+ * 
+ * @return desired delay
+ */
+static struct GNUNET_TIME_Relative
+get_randomized_delay ()
+{
+  struct GNUNET_TIME_Relative ret;
+
+  /* FIXME: replace 5000 with something relating to current observed P2P message latency */
+  ret = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+				       GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+								 5000));
+  GNUNET_STATISTICS_update (GSF_stats,
+			    gettext_noop ("# artificial delays introduced (ms)"),
+			    ret.rel_value,
+			    GNUNET_NO);
+
+  return ret;
+}
+
+
+/**
  * Handle a reply to a pending request.  Also called if a request
  * expires (then with data == NULL).  The handler may be called
  * many times (depending on the request type), but will not be
@@ -767,6 +873,7 @@ peer_request_destroy (void *cls,
  * @param cls 'struct PeerRequest' this is an answer for
  * @param eval evaluation of the result
  * @param pr handle to the original pending request
+ * @param reply_anonymity_level anonymity level for the reply, UINT32_MAX for "unknown"
  * @param expiration when does 'data' expire?
  * @param type type of the block
  * @param data response data, NULL on request expiration
@@ -776,6 +883,7 @@ static void
 handle_p2p_reply (void *cls,
 		  enum GNUNET_BLOCK_EvaluationResult eval,
 		  struct GSF_PendingRequest *pr,
+		  uint32_t reply_anonymity_level,
 		  struct GNUNET_TIME_Absolute expiration,
 		  enum GNUNET_BLOCK_Type type,
 		  const void *data,
@@ -825,18 +933,52 @@ handle_p2p_reply (void *cls,
       GNUNET_break (0);
       return;
     }
+  if ( (reply_anonymity_level != UINT32_MAX) &&
+       (reply_anonymity_level > 1) )
+    {
+      if (reply_anonymity_level - 1 > GSF_cover_content_count) 
+	{
+	  GNUNET_STATISTICS_update (GSF_stats,
+				    gettext_noop ("# replies dropped due to insufficient cover traffic"),
+				    1,
+				    GNUNET_NO); 
+	  return;
+	}
+      GSF_cover_content_count -= (reply_anonymity_level - 1);
+    }
+    
   pm = GNUNET_malloc (msize);
   pm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_PUT);
   pm->header.size = htons (msize);
   pm->type = htonl (type);
   pm->expiration = GNUNET_TIME_absolute_hton (expiration);
   memcpy (&pm[1], data, data_len);
-  (void) GSF_peer_transmit_ (cp, GNUNET_NO,
-			     UINT32_MAX,
-			     REPLY_TIMEOUT,
-			     msize,
-			     &copy_reply,
-			     pm);
+  if ( (reply_anonymity_level != UINT32_MAX) &&
+       (reply_anonymity_level != 0) &&
+       (GSF_enable_randomized_delays == GNUNET_YES) )
+    {
+      struct GSF_DelayedHandle *dh;
+
+      dh = GNUNET_malloc (sizeof (struct GSF_DelayedHandle));
+      dh->cp = cp;
+      dh->pm = pm;
+      dh->msize = msize;
+      GNUNET_CONTAINER_DLL_insert (cp->delayed_head,
+				   cp->delayed_tail,
+				   dh);
+      dh->delay_task = GNUNET_SCHEDULER_add_delayed (get_randomized_delay (),
+						     &transmit_delayed_now,
+						     dh);
+    }
+  else
+    {
+      (void) GSF_peer_transmit_ (cp, GNUNET_NO,
+				 UINT32_MAX,
+				 REPLY_TIMEOUT,
+				 msize,
+				 &copy_reply,
+				 pm);
+    }
   if (eval != GNUNET_BLOCK_EVALUATION_OK_LAST)
     return;
   if (GNUNET_SCHEDULER_NO_TASK == peerreq->kill_task)
@@ -1492,6 +1634,7 @@ GSF_peer_disconnect_handler_ (void *cls,
 {
   struct GSF_ConnectedPeer *cp;
   struct GSF_PeerTransmitHandle *pth;
+  struct GSF_DelayedHandle *dh;
 
   cp = GNUNET_CONTAINER_multihashmap_get (cp_map,
 					  &peer->hashPubKey);
@@ -1541,6 +1684,15 @@ GSF_peer_disconnect_handler_ (void *cls,
 				   pth);
       GNUNET_assert (0 == pth->cth_in_progress);
       GNUNET_free (pth);
+    }
+  while (NULL != (dh = cp->delayed_head))
+    {
+      GNUNET_CONTAINER_DLL_remove (cp->delayed_head,
+				   cp->delayed_tail,
+				   dh);
+      GNUNET_SCHEDULER_cancel (dh->delay_task);
+      GNUNET_free (dh->pm);
+      GNUNET_free (dh);
     }
   GNUNET_PEER_change_rc (cp->ppd.pid, -1);
   if (GNUNET_SCHEDULER_NO_TASK != cp->mig_revive_task)

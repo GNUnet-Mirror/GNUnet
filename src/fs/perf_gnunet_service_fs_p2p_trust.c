@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2010,2011 Christian Grothoff (and other contributing authors)
+     (C) 2010, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -33,13 +33,15 @@
  * @author Christian Grothoff
  *
  * Sample output:
- * - 10 MB, 3 peers:
- * Download speed of type `seeder 1' was 6 MiB/s
- * Download speed of type `seeder 2' was 6 MiB/s
- * Download speed of type `leach` was 1051 KiB/s
+ * - 10 MB, 3 peers, with delays:
+ * Download speed of type `seeder 1' was 757 KiB/s
+ * Download speed of type `seeder 2' was 613 KiB/s
+ * Download speed of type `leach` was 539 KiB/s
  * 
- * Analysis: leach squeezed out entirely early, then gets to
- *           take its turn once the main downloads complete
+ * - 10 MB, 3 peers, without delays:
+ * Download speed of type `seeder 1' was 1784 KiB/s
+ * Download speed of type `seeder 2' was 1604 KiB/s
+ * Download speed of type `leach` was 1384 KiB/s
  */
 #include "platform.h"
 #include "fs_test_lib.h"
@@ -114,6 +116,7 @@ struct StatValues
  */
 static struct StatValues stats[] =
   {
+    { "fs", "# artificial delays introduced (ms)"},
     { "fs", "# queries forwarded"},
     { "fs", "# replies received and matched"},
     { "fs", "# results found locally"},
@@ -126,13 +129,10 @@ static struct StatValues stats[] =
     { "fs", "# P2P searches discarded (queue length bound)"},
     { "fs", "# replies received for local clients"},
     { "fs", "# queries retransmitted to same target"},
-    { "fs", "cummulative artificial delay introduced (ms)"},
     { "core", "# bytes decrypted"},
     { "core", "# bytes encrypted"},
     { "core", "# discarded CORE_SEND requests"},
-    { "core", "# discarded CORE_SEND request bytes"},
     { "core", "# discarded lower priority CORE_SEND requests"},
-    { "core", "# discarded lower priority CORE_SEND request bytes"},
     { "transport", "# bytes received via TCP"},
     { "transport", "# bytes transmitted via TCP"},
     { "datacache", "# bytes stored"},
@@ -309,12 +309,12 @@ do_downloads (void *cls,
 			     VERBOSE, 
 			     &do_report, "leach");
   /* mutual downloads of (primary) sharing peers */
-  GNUNET_FS_TEST_download (daemons[NUM_DAEMONS-1],
+  GNUNET_FS_TEST_download (daemons[NUM_DAEMONS-2],
 			   TIMEOUT,
 			   anonymity, SEED1, uri1, 
 			   VERBOSE, 
 			   &do_report, "seeder 2");
-  GNUNET_FS_TEST_download (daemons[NUM_DAEMONS-2],
+  GNUNET_FS_TEST_download (daemons[NUM_DAEMONS-1],
 			   TIMEOUT,
 			   anonymity, SEED2, uri2, 
 			   VERBOSE, 

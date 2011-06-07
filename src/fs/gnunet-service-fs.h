@@ -147,6 +147,10 @@ extern unsigned int GSF_cover_content_count;
  */
 extern struct GNUNET_BLOCK_Context *GSF_block_ctx;
 
+/**
+ * Are we introducing randomized delays for better anonymity?
+ */
+extern int GSF_enable_randomized_delays;
 
 /**
  * Test if the DATABASE (GET) load on this peer is too high

@@ -1,6 +1,5 @@
 0.9.0pre3:
-* FS [CG]
-  - implement 'SUPPORT_DELAYS'
+* crashes in gnunet-service-transport [MW]
 
 0.9.0:
 * new webpage:

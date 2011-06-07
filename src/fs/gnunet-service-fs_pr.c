@@ -366,6 +366,7 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
 	  dpr->rh (dpr->rh_cls,
 		   GNUNET_BLOCK_EVALUATION_REQUEST_VALID,
 		   dpr,
+		   UINT32_MAX,
 		   GNUNET_TIME_UNIT_FOREVER_ABS,
 		   GNUNET_BLOCK_TYPE_ANY,
 		   NULL, 0);
@@ -726,7 +727,7 @@ update_request_performance_data (struct ProcessReplyClosure *prq,
  */
 static int
 process_reply (void *cls,
-	       const GNUNET_HashCode * key,
+	       const GNUNET_HashCode *key,
 	       void *value)
 {
   struct ProcessReplyClosure *prq = cls;
@@ -766,6 +767,7 @@ process_reply (void *cls,
       pr->rh (pr->rh_cls, 	      
 	      prq->eval,
 	      pr,
+	      prq->anonymity_level,
 	      prq->expiration,
 	      prq->type,
 	      prq->data, prq->size);
@@ -825,6 +827,7 @@ process_reply (void *cls,
   pr->rh (pr->rh_cls,
 	  prq->eval,
 	  pr, 
+	  prq->anonymity_level,
 	  prq->expiration,
 	  prq->type,
 	  prq->data, prq->size);
@@ -1426,7 +1429,7 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
   prq.type = type;
   prq.expiration = expiration;
   prq.priority = 0;
-  prq.anonymity_level = 1;
+  prq.anonymity_level = UINT32_MAX;
   prq.request_found = GNUNET_NO;
   GNUNET_CONTAINER_multihashmap_get_multiple (pr_map,
 					      &query,
