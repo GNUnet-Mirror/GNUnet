@@ -417,19 +417,6 @@ disconnect_and_free_peer_entry (void *cls,
   GNUNET_CORE_PeerConfigurationInfoCallback pcic;
   void *pcic_cls;
 
-  while (NULL != (th = pr->pending_head))
-    {
-      GNUNET_CONTAINER_DLL_remove (pr->pending_head,
-				   pr->pending_tail,
-				   th);
-      pr->queue_size--;
-      GNUNET_assert (0 == 
-		     th->get_message (th->get_message_cls,
-				      0, NULL));
-      if (th->cm != NULL)
-	th->cm->th = NULL;
-      GNUNET_free (th);
-    }
   if (NULL != (pcic = pr->pcic))
     {
       pcic_cls = pr->pcic_cls;
@@ -451,7 +438,6 @@ disconnect_and_free_peer_entry (void *cls,
       GNUNET_SCHEDULER_cancel (pr->ntr_task);
       pr->ntr_task = GNUNET_SCHEDULER_NO_TASK;
     }
-  GNUNET_assert (pr->queue_size == 0);
   if ( (pr->prev != NULL) ||
        (pr->next != NULL) ||
        (h->ready_peer_head == pr) )
@@ -460,7 +446,20 @@ disconnect_and_free_peer_entry (void *cls,
 				 pr);
   if (h->disconnects != NULL)
     h->disconnects (h->cls,
-		    &pr->peer);    
+		    &pr->peer);
+  /* all requests should have been cancelled, clean up anyway, just in case */
+  GNUNET_break (pr->queue_size == 0);
+  while (NULL != (th = pr->pending_head))
+    {
+      GNUNET_break (0);
+      GNUNET_CONTAINER_DLL_remove (pr->pending_head,
+				   pr->pending_tail,
+				   th);
+      pr->queue_size--;
+      if (th->cm != NULL)
+	th->cm->th = NULL;
+      GNUNET_free (th);
+    }
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove (h->peers,
 						       key,
