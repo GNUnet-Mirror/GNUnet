@@ -1656,11 +1656,13 @@ handle_client_request_info (void *cls,
   else
     {
       /* Technically, this COULD happen (due to asynchronous behavior),
-	 but it is very odd, so we should at least generate a stern
-	 warning */
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Client asked for preference change with peer `%s', which is not connected!\n",
+	 but it should be rare, so we should generate an info event 
+	 to help diagnosis of serious errors that might be masked by this */
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Client asked for preference change with peer `%s', which is not connected!\n"),
 		  GNUNET_i2s (&rcm->peer));
+      GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      return;
     }
   cim.header.size = htons (sizeof (struct ConfigurationInfoMessage));
   cim.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_CONFIGURATION_INFO);
