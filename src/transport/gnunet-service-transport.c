@@ -5770,8 +5770,8 @@ handle_set_quota (void *cls,
 				GNUNET_NO);
       return;
     }
-#if DEBUG_TRANSPORT || 1
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+#if DEBUG_TRANSPORT 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' request (new quota %u, old quota %u) from client for peer `%4s'\n",
               "SET_QUOTA",
 	      (unsigned int) ntohl (qsm->quota.value__),
