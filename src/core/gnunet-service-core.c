@@ -4577,6 +4577,8 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Core service shutting down.\n");
 #endif
+  GNUNET_TRANSPORT_disconnect (transport);
+  transport = NULL;
   GNUNET_CONTAINER_multihashmap_iterate (neighbours,
 					 &free_neighbour_helper,
 					 NULL);
@@ -4584,8 +4586,6 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   neighbours = NULL;
   GNUNET_STATISTICS_set (stats, gettext_noop ("# neighbour entries allocated"), 0, GNUNET_NO);
   GNUNET_assert (transport != NULL);
-  GNUNET_TRANSPORT_disconnect (transport);
-  transport = NULL;
   GNUNET_SERVER_notification_context_destroy (notifier);
   notifier = NULL;
   while (NULL != (c = clients))
