@@ -1,0 +1,34 @@
+Looking at Module: libmessaging.so
+id_prop_update: assertion `priv->root != NULL' failed
+id_prop_update: assertion `priv->root != NULL' failed
+id_prop_update: assertion `priv->root != NULL' failed
+id_prop_update: assertion `priv->root != NULL' failed
+id_prop_update: assertion `priv->root != NULL' failed
+about to connect to the signals
+/build/buildd/gtk+2.0-2.20.1/gtk/gtkstyle.c:1788: widget class `GtkImage' has no property named `x-ayatana-indicator-dynamic'
+Connected to Application Indicator Service.
+slider parent changed
+Building new application entry: :1.77  with icon: gtk-dialog-authentication
+Signal: Entry Removed
+Building new application entry: :1.77  with icon: gtk-dialog-authentication
+Signal: Entry Removed
+Building new application entry: :1.77  with icon: gtk-dialog-authentication
+/build/buildd/gtk+2.0-2.20.1/gtk/gtkstyle.c:1788: widget class `GtkImage' has no property named `x-ayatana-indicator-dynamic'
+/build/buildd/gtk+2.0-2.20.1/gtk/gtkstyle.c:1788: widget class `GtkImage' has no property named `x-ayatana-indicator-dynamic'
+Signal: Entry Removed
+Building new application entry: :1.77  with icon: gtk-dialog-authentication
+/build/buildd/gtk+2.0-2.20.1/gtk/gtkstyle.c:1788: widget class `GtkImage' has no property named `x-ayatana-indicator-dynamic'
+Signal: Entry Removed
+Building new application entry: :1.77  with icon: gtk-dialog-authentication
+Signal: Entry Removed
+/build/buildd/gtk+2.0-2.20.1/gtk/gtkstyle.c:1788: widget class `GtkImage' has no property named `x-ayatana-indicator-dynamic'
+/build/buildd/gtk+2.0-2.20.1/gtk/gtkstyle.c:1788: widget class `GtkImage' has no property named `x-ayatana-indicator-dynamic'
+/build/buildd/gtk+2.0-2.20.1/gtk/gtkstyle.c:1788: widget class `GtkImage' has no property named `x-ayatana-indicator-dynamic'
+/build/buildd/gtk+2.0-2.20.1/gtk/gtkstyle.c:1788: widget class `GtkImage' has no property named `x-ayatana-indicator-dynamic'
+/build/buildd/gtk+2.0-2.20.1/gtk/gtkstyle.c:1788: widget class `GtkImage' has no property named `x-ayatana-indicator-dynamic'
+/build/buildd/gtk+2.0-2.20.1/gtk/gtkstyle.c:1788: widget class `GtkImage' has no property named `x-ayatana-indicator-dynamic'
+/build/buildd/gtk+2.0-2.20.1/gtk/gtkstyle.c:1788: widget class `GtkImage' has no property named `x-ayatana-indicator-dynamic'
+/build/buildd/gtk+2.0-2.20.1/gtk/gtkstyle.c:1788: widget class `GtkImage' has no property named `x-ayatana-indicator-dynamic'
+Building new application entry: :1.77  with icon: gtk-dialog-authentication
+/build/buildd/gtk+2.0-2.20.1/gtk/gtkstyle.c:1788: widget class `GtkImage' has no property named `x-ayatana-indicator-dynamic'
+Signal: Entry Removed

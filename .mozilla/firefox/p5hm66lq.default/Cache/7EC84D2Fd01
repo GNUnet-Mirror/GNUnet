@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html SYSTEM "http://static.cdn.ubuntu-de.org/xhtml1-strict-uu.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:cc="http://creativecommons.org/ns#"
+      xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+      xmlns:dc="http://purl.org/dc/elements/1.1/"
+      xml:lang="de" lang="de" dir="ltr">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>
+      Entwicklungsumgebungen › Wiki › ubuntuusers.de
+    </title>
+          <link rel="stylesheet" type="text/css" href="http://static.cdn.ubuntu-de.org/style/main-sprite.css" />
+        
+          <link rel="stylesheet" type="text/css" href="http://static.cdn.ubuntu-de.org/style/markup.css" />
+        
+          <link rel="stylesheet" type="text/css" href="http://static.cdn.ubuntu-de.org/style/wiki.css" />
+        
+          <link rel="stylesheet" type="text/css" href="http://static.cdn.ubuntu-de.org/style/highlight.css" />
+        
+      <link rel="stylesheet" type="text/css" href="http://ubuntuusers.de/markup.css/" />
+      <link rel="stylesheet" type="text/css" href="http://static.cdn.ubuntu-de.org/style/print.css" media="print" />
+      <link rel="shortcut icon" href="http://static.cdn.ubuntu-de.org/img/favicon.ico" />
+      <link rel="search" type="application/opensearchdescription+xml" title="ubuntuusers" href="http://ubuntuusers.de/opensearch/portal/" />
+          <link rel="search" type="application/opensearchdescription+xml" title="ubuntuusers - Wiki" href="http://ubuntuusers.de/opensearch/wiki/" />
+      <script type="text/javascript">
+      /*<![CDATA[*/
+        var
+          $STATIC_URL = "http://static.cdn.ubuntu-de.org/",
+          $MEDIA_URL = "http://media.cdn.ubuntu-de.org/",
+          $BASE_DOMAIN_NAME = "ubuntuusers.de",
+          $CURRENT_USER = null,
+          $IS_LOGGED_IN = false,
+          $SIDEBAR_HIDDEN = false;
+      /*]]>*/
+      </script>
+          <script type="text/javascript" src="http://static.cdn.ubuntu-de.org/js/jquery.min.js"></script>
+        
+          <script type="text/javascript" src="http://static.cdn.ubuntu-de.org/js/classy.min.js"></script>
+        
+          <script type="text/javascript" src="http://static.cdn.ubuntu-de.org/js/jquery.extensions.min.js"></script>
+        
+          <script type="text/javascript" src="http://static.cdn.ubuntu-de.org/js/overall.min.js"></script>
+        
+  </head>
+  <body>
+   <div class="wrap"><div class="wrap2"><div class="wrap3"><div class="wrap4"><div class="wrap5">
+    <div class="header">
+      <h1><a href="/"><span>ubuntuusers.de</span></a></h1>
+      <ul class="tabbar">
+        <li class="portal"><a href="http://ubuntuusers.de/">Portal</a></li>
+        <li class="forum"><a href="http://forum.ubuntuusers.de/">Forum</a></li>
+        <li class="wiki active"><a href="http://wiki.ubuntuusers.de/">Wiki</a></li>
+        <li class="ikhaya"><a href="http://ikhaya.ubuntuusers.de/">Ikhaya</a></li>
+        <li class="planet"><a href="http://planet.ubuntuusers.de/">Planet</a></li>
+        <li class="community"><a href="http://wiki.ubuntuusers.de/Mitmachen">Mitmachen</a></li>
+      </ul>
+    </div>
+
+    <div class="body">
+      <div class="appheader">
+        <ul class="mod_navi">
+        </ul>
+        <ul class="navi_global">
+          <li><a href="http://ubuntuusers.de/login/?next=http%3A%2F%2Fwiki.ubuntuusers.de%2Fentwicklungsumgebungen" id="login_link">Login</a></li>
+          <li><a href="http://ubuntuusers.de/register/">Registrieren</a></li>
+        </ul>
+        
+  <h1><a href="http://wiki.ubuntuusers.de/" class="separator">Wiki</a></h1>
+    <h2><a href="http://wiki.ubuntuusers.de/Entwicklungsumgebungen">Entwicklungsumgebungen</a></h2>
+      </div>
+
+      <div class="pathbar">
+
+        <form action="http://ubuntuusers.de/search/" method="get" class="search"><div>
+          <input type="text" name="query" class="search_query" value="" />
+            <select name="area" class="search_area">
+              <option value="all">Überall</option>
+              <option value="forum">Forum</option>
+              <option value="wiki" selected="selected">Wiki</option>
+              <option value="ikhaya">Ikhaya</option>
+              <option value="planet">Planet</option>
+            </select>
+            <input type="submit" value="Suchen" class="search_submit" />
+        </div></form>
+          <div class="dropdown">
+            <ul class="dropdown"><li><a href="http://ubuntuusers.de/search/">Erweiterte Suche</a></li><li><ul>
+              <li><a href="http://wiki.ubuntuusers.de/Wiki/Letzte%20%C3%84nderungen">Letzte Änderungen</a></li>
+              <li><a href="http://wiki.ubuntuusers.de/Wiki/Tags">Tag-Wolke</a></li>
+            </ul></li></ul>
+          </div>
+
+        <a href="http://ubuntuusers.de/">ubuntuusers.de</a> › <a href="http://wiki.ubuntuusers.de/">Wiki</a> › <a href="http://wiki.ubuntuusers.de/Entwicklungsumgebungen">Entwicklungsumgebungen</a>
+
+      </div>
+
+      <div class="page_content">
+        
+        
+        <div class="navi_tabbar navigation">
+    <ul>
+        <li><a href="http://wiki.ubuntuusers.de/Entwicklungsumgebungen" class="active">Artikel</a></li>
+        <li><a href="http://wiki.ubuntuusers.de/Entwicklungsumgebungen?action=edit">Bearbeiten</a></li>
+        <li><a href="http://wiki.ubuntuusers.de/Entwicklungsumgebungen?action=log">Versionen</a></li>
+        <li><a href="http://wiki.ubuntuusers.de/Entwicklungsumgebungen?action=backlinks">Backlinks</a></li>
+        <li><a href="http://wiki.ubuntuusers.de/Entwicklungsumgebungen?action=manage">Weitere Aktionen</a></li>
+      <li><a href="http://forum.ubuntuusers.de/topic/entwicklungsumgebungen-monodevelop/">Diskussion</a></li>
+        <li><a href="http://wiki.ubuntuusers.de/Entwicklungsumgebungen?action=subscribe">Abonnieren</a></li>
+    </ul>
+</div>        
+        <div class="content content_tabbar">
+  <h1 class="pagetitle"><a href="http://wiki.ubuntuusers.de/Entwicklungsumgebungen?action=backlinks">Entwicklungsumgebungen</a></h1>
+
+  
+
+  <div id="page"><p><a href="http://de.wikipedia.org/wiki/Integrierte_Entwicklungsumgebung" class="interwiki interwiki-wikipedia">Entwicklungsumgebungen</a> werden auch als <strong>IDE</strong> bezeichnet, was für <strong>I</strong>ntegrated <strong>D</strong>evelopment <strong>E</strong>nvironments steht. Damit wird nicht nur Software entwickelt, auch für den Bereich der Webprogrammierung existieren mehrere Lösungen.</p><p>Diese Übersicht kann bzw. sollte weiter ausgebaut werden. Dabei sollte jeweils der Name, die unterstützten Sprachen des Werkzeugs, das Ubuntu-Paket, die betreffenden Repositories, sowie die URL der Website des entsprechenden Programms angegeben sein. Auch eine kurze Beschreibung mit jeweiligen Besonderheiten (Stichpunkte) weiter unten ist hilfreich. Die Liste ist dabei alphabetisch sortiert.</p><div class="section_1"><h2 id="bersicht">Übersicht<a href="#bersicht" class="headerlink">¶</a></h2><p>
+</p><table style="width: 95%"><tr style="background-color: #f9eaaf"><td style="width: 15%"> <strong>Name</strong> </td><td style="width: 20%"> <strong>Sprachen</strong> </td><td style="width: 10%"> <strong>Plugins</strong> </td><td style="width: 15%"> <strong>Code Completion</strong> </td><td style="width: 20%"> <strong>Ubuntu-Paket</strong> </td><td style="width: 15%"> <strong>Webseite</strong> </td></tr><tr><td> <a href="http://wiki.ubuntuusers.de/Adobe_Flex" class="internal">Adobe Flex</a> </td><td> Flash </td><td> nein </td><td> nein </td><td> siehe Artikel </td><td> <a href="http://www.adobe.com/de/products/flex/" rel="nofollow" class="external">Adobe Flex</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/09/28/de.png" alt="{de}" /> </td></tr><tr><td> <a href="#Anjuta" class="crosslink">Anjuta</a> </td><td> C, C++, Python, Java </td><td> ja </td><td> ja </td><td> <strong>anjuta</strong> (<em>universe</em>) </td><td> <a href="http://anjuta.sourceforge.net/" rel="nofollow" class="external">Anjuta</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> <a href="#aptana" class="crosslink">Aptana Studio</a> </td><td> professionelle Web 2.0 - IDE </td><td> ja </td><td> ja </td><td> - </td><td> <a href="http://www.aptana.org/" rel="nofollow" class="external">Aptana</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> <a href="http://wiki.ubuntuusers.de/Bluefish" class="internal">Bluefish</a> </td><td> diverse, Schwerpunkt: HTML, JavaScript, CSS, PHP </td><td> ja </td><td> ja </td><td> <strong>bluefish</strong> (<em>universe</em>) </td><td> <a href="http://bluefish.openoffice.nl" rel="nofollow" class="external">Bluefish</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> <a href="http://wiki.ubuntuusers.de/BlueJ" class="internal">BlueJ</a> </td><td> Java </td><td> - </td><td> ja (ab Version 3.0) </td><td>  - </td><td> <a href="http://www.bluej.org/" rel="nofollow" class="external">BlueJ</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> <a href="#Bouml" class="crosslink">Bouml</a> </td><td> C++, Java </td><td> ja </td><td> - </td><td> - </td><td> <a href="http://bouml.free.fr/" rel="nofollow" class="external">Bouml</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> CodeLite </td><td> C, C++ </td><td> ja </td><td> ja </td><td> <strong>codelite</strong> (<em>universe</em>) </td><td> <a href="http://codelite.org/" rel="nofollow" class="external">CodeLite</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> <a href="#CodeBlocks" class="crosslink">Code::Blocks</a> </td><td> C, C++ </td><td> ja </td><td> ja </td><td> <strong>codeblocks</strong> (<em>universe</em>) </td><td> <a href="http://www.codeblocks.org/" rel="nofollow" class="external">Code::Blocks</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> <a href="#Dr" class="crosslink">DrJava</a> </td><td> Java </td><td>  ja </td><td> nein </td><td>  - </td><td>  <a href="http://drjava.org/" rel="nofollow" class="external">DrJava</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> <a href="#Dr" class="crosslink">DrPython</a> </td><td> Python </td><td> ja </td><td> ja (Plugin) </td><td> <strong>drpython</strong> (<em>universe</em>) </td><td> <a href="http://drpython.sourceforge.net/" rel="nofollow" class="external">DrPython</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> <a href="http://wiki.ubuntuusers.de/Eclipse" class="internal">Eclipse</a> </td><td> Java; <a href="http://www.eclipse.org/cdt/" rel="nofollow" class="external">C/C++</a> und <a href="http://www.eclipse-plugins.info/eclipse/plugins.jsp?category=Languages" rel="nofollow" class="external">weitere Sprachen über Plugins</a> </td><td> ja </td><td> ja </td><td> <strong>eclipse</strong> (<em>universe</em>) </td><td> <a href="http://www.eclipse.org" rel="nofollow" class="external">Eclipse</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> <a href="http://wiki.ubuntuusers.de/Emacs" class="internal">Emacs</a> </td><td> diverse </td><td> ja </td><td> ja </td><td> <strong>emacs</strong> (<em>universe</em>), viele weitere Pakete mit anderen Versionen und Erweiterungen </td><td> <a href="http://www.gnu.org/software/emacs/" rel="nofollow" class="external">Emacs</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> <a href="#Eric" class="crosslink">Eric</a> </td><td> Python, Ruby </td><td> ja </td><td> ja </td><td> <strong>eric</strong> (<em>universe</em>) </td><td> <a href="http://eric-ide.python-projects.org/index.html" rel="nofollow" class="external">Eric</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> Gambas </td><td> Basic </td><td> - </td><td> ja </td><td> <strong>gambas2</strong> (<em>universe</em>) </td><td> <a href="http://gambas.sourceforge.net/" rel="nofollow" class="external">Gambas</a>  <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> <a href="http://wiki.ubuntuusers.de/Geany" class="internal">Geany</a> </td><td> diverse </td><td> ja </td><td> ja </td><td> <strong>geany</strong> (<em>universe</em>) </td><td> <a href="http://geany.uvena.de/" rel="nofollow" class="external">Geany</a>  <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> <a href="#GPS" class="crosslink">GPS</a> </td><td> Ada, C, C++, Fortran</td><td> nein </td><td> ja </td><td> <strong>gnat-gps</strong> (<em>universe</em>) </td><td> <a href="http://libre.adacore.com/libre/tools/gps/" rel="nofollow" class="external">Adacore</a>  <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> <a href="#idle" class="crosslink">IDLE</a> </td><td> Python </td><td> nein </td><td> ja </td><td> <strong>idle</strong> </td><td> <a href="http://www.python.org/idle/" rel="nofollow" class="external">Idle Python</a>  <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> <a href="http://wiki.ubuntuusers.de/ISE_WebPACK" class="internal">ISE WebPACK</a> </td><td> VHDL </td><td> nein </td><td> </td><td> - </td><td> <a href="http://www.xilinx.com/ise/logic_design_prod/webpack.htm" rel="nofollow" class="external">Xilinx: ISE WebPACK</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> <a href="#KDevelop" class="crosslink">KDevelop</a> </td><td> C++, PHP (Beta), (weitere via Plugins)</td><td> ja </td><td> ja </td><td> <strong>kdevelop4</strong> (<em>universe</em>) </td><td> <a href="http://www.kdevelop.org" rel="nofollow" class="external">KDevelop</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/09/28/de.png" alt="{de}" /> </td></tr><tr><td> <a href="#KomodoIDE" class="crosslink">Komodo IDE</a> </td><td> kommerzielle Web 2.0 - IDE für Webseiten, AJAX, Skriptsprachen </td><td> ja </td><td> ja </td><td> - </td><td> <a href="http://www.activestate.com/komodo/" rel="nofollow" class="external">Komodo IDE</a>  <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" />  </td></tr><tr><td> Kylix </td><td> C, C++, Delphi </td><td> nein </td><td> ja </td><td> - </td><td> <a href="http://www.borland.de/kylix/open/index.html" rel="nofollow" class="external">Kylix</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/09/28/de.png" alt="{de}" /> </td></tr><tr><td> <a href="http://wiki.ubuntuusers.de/Lazarus" class="internal">Lazarus</a> </td><td> Pascal </td><td> nein </td><td> ja </td><td> <strong>lazarus</strong> (<em>universe</em>) </td><td> <a href="http://www.lazarus.freepascal.org/" rel="nofollow" class="external">Lazarus</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> <a href="#Mono" class="crosslink">MonoDevelop</a> </td><td> C#, Nemerle, ILAsm, Boo, Visual Basic.Net, C/C++, Vala, Java (über Plugin) </td><td> ja </td><td> ja </td><td> <strong>monodevelop</strong> (<em>universe</em>) </td><td> <a href="http://www.monodevelop.com" rel="nofollow" class="external">Monodevelop</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> <a href="http://wiki.ubuntuusers.de/Netbeans" class="internal">Netbeans</a> </td><td> Java, C, C++, Fortran, Ruby, HTML, PHP, CSS </td><td> ja </td><td> ja </td><td><strong> netbeans </strong>(universe) </td><td> <a href="http://netbeans.org" rel="nofollow" class="external">Netbeans</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> Simili </td><td> VHDL </td><td> nein </td><td> nein </td><td> - </td><td> <a href="http://www.symphonyeda.com/default.htm" rel="nofollow" class="external">Simili</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> <a href="#Spe" class="crosslink">spe</a> </td><td> Python </td><td> nein </td><td> ja </td><td> <strong>spe</strong> (<em>universe</em>) </td><td> <a href="http://www.stani.be/python/spe/" rel="nofollow" class="external">SPE</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> <a href="http://wiki.ubuntuusers.de/QDevelop" class="internal">QDevelop</a> </td><td> C++ </td><td> ja </td><td> ja </td><td> <strong>qdevelop</strong> (<em>universe</em>) </td><td> <a href="http://biord-software.org/qdevelop/" rel="nofollow" class="external">QDevelop</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> Qt Creator </td><td> C++ </td><td> ja </td><td> ja </td><td> <strong>qtcreator</strong> (<em>universe</em>) </td><td> <a href="http://qt.nokia.com/products/developer-tools" rel="nofollow" class="external">Qt Creator</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> <a href="http://wiki.ubuntuusers.de/Webeditoren#Quanta" class="internal">Quanta Plus</a> </td><td> HTML, JavaScript, CSS, PHP </td><td> ja </td><td> nein </td><td> <strong>quanta</strong> (<em>universe</em>) </td><td> <a href="http://quanta.kdewebdev.org/" rel="nofollow" class="external">Quanta Plus</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr><tr><td> XML mind </td><td> XML, XSD, RNG, DocBook, DITA, XSL-FO, XSLT </td><td> ja </td><td> ja </td><td> - </td><td> <a href="http://www.xmlmind.com/xmleditor/" rel="nofollow" class="external">XML mind</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/09/28/de.png" alt="{de}" /> </td></tr><tr><td> Zend Studio </td><td> HTML, JavaScript, CSS, PHP, SQL, XML </td><td> nein </td><td> ja </td><td> - </td><td> <a href="http://www.zend.com/products/zend_studio" rel="nofollow" class="external">Zend</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </td></tr></table><p>
+</p></div><div class="section_1"><h2 id="Programme">Programme<a href="#Programme" class="headerlink">¶</a></h2><p>
+</p><div class="box knowledge"><h3 class="box knowledge">Zum Verständnis dieses Artikels sind folgende Seiten hilfreich:</h3><div class="contents"><p>
+</p><ol class="arabic"><li><p><a id="source-1" href="#source-1" class="crosslink anchor"></a> <a href="http://wiki.ubuntuusers.de/Pakete_installieren" class="internal">Installation von Programmen</a> </p></li><li><p><a id="source-2" href="#source-2" class="crosslink anchor"></a> <a href="http://wiki.ubuntuusers.de/Paketquellen_freischalten" class="internal">Bearbeiten von Paketquellen</a> </p></li><li><p><a id="source-3" href="#source-3" class="crosslink anchor"></a> <a href="http://wiki.ubuntuusers.de/Terminal" class="internal">Ein Terminal öffnen</a> </p></li><li><p><a id="source-4" href="#source-4" class="crosslink anchor"></a> <a href="http://wiki.ubuntuusers.de/Paketinstallation_DEB" class="internal">Ein einzelnes Paket manuell installieren</a> </p></li></ol></div></div><p><a id="Anjuta" href="#Anjuta" class="crosslink anchor"></a> 
+</p><div class="section_2"><h3 id="Anjuta">Anjuta<a href="#Anjuta" class="headerlink">¶</a></h3><p>
+Bei <a href="http://wiki.ubuntuusers.de/Anjuta" class="internal">Anjuta</a> handelt es sich um eine freie integrierte Entwicklungsumgebung (IDE) für GNOME. Anjuta ist <em>DIE</em> Alternative zum KDE Projekt KDevelop. Zur Zeit sind unter anderem folgende Features integriert:</p><ul><li><p>Projektgenerierung für C und C++ </p></li><li><p>Wizard zur Projektgenerierung </p></li><li><p>automatische Erstellung von Makefiles </p></li><li><p>automatische Code Vervollständigung, Highlighting und Formatierung (auch für andere Sprachen) </p></li><li><p>integrierter Debugger </p></li></ul><p>Mehr Informationen zum Programm bietet der Wiki-Artikel <a href="http://wiki.ubuntuusers.de/Anjuta" class="internal">Anjuta</a>, in dem in einer kleinen Einführung auch auf die Erstellung grafischer Oberflächen mit Glade eingegangen wird.</p><p><a id="aptana" href="#aptana" class="crosslink anchor"></a> 
+</p></div><div class="section_2"><h3 id="Aptana-Studio">Aptana Studio<a href="#Aptana-Studio" class="headerlink">¶</a></h3><p>
+<a href="http://www.aptana.org/" rel="nofollow" class="external">Aptana Studio</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> ist eine professionelle, plattformübergreifende Web-IDE, die es entweder als Plugin für Eclipse oder als eigenständiges Programm gibt. Sie verfügt über intelligente Code Completion (HTML und CSS komplett, bei JavaScript werden sogar die verlinkten Libraries berücksichtigt). Andere Datenformate werden auch unterstützt, können aber durch zusätzliche Plugins (wie etwa PHPeclipse für PHP, und RADrails für Ruby on Rails) noch komfortabler bearbeitet werden. Eine Überblick liefert die <a href="http://docs.aptana.com/docs/index.php/Main_Page" rel="nofollow" class="external">Aptana Studio Online Help</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> .</p><p>Nachdem man <a href="http://wiki.ubuntuusers.de/Eclipse" class="internal">Eclipse</a> installiert hat, installiert man das Plugin ganz einfach wie <a href="http://aptana.org/docs/index.php/Plugging_Aptana_into_an_existing_Eclipse_configuration" rel="nofollow" class="external">hier</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> beschrieben. Alternativ kann man auch die Standalone-Variante herunterladen.</p></div><div class="section_2"><h3 id="BlueJ">BlueJ<a href="#BlueJ" class="headerlink">¶</a></h3><p>
+<a href="http://www.bluej.org/" rel="nofollow" class="external">BlueJ</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> ist eine freie Java IDE, die darauf ausgerichtet ist, Anfängern Kenntnisse in objektorientierter Programmierung mit Java zu vermitteln. Sie selbst ist in <a href="http://wiki.ubuntuusers.de/Java" class="internal">Java</a> programmiert und steht unter der GPL-Lizenz zur Verfügung. Unter anderem wird BlueJ an den bayerischen Gymnasien eingesetzt. Weiteres: <a href="http://wiki.ubuntuusers.de/BlueJ" class="internal">BlueJ</a></p><p><a id="Bouml" href="#Bouml" class="crosslink anchor"></a> 
+</p></div><div class="section_2"><h3 id="Bouml">Bouml<a href="#Bouml" class="headerlink">¶</a></h3><p>
+Bouml ist ein UML Tool mit Reverse Engineering und Code Generierung von C++ oder Java. Sehr schnell und stabil. Die Bedienung ist etwas ungewöhnlich aber nach kurzer Gewöhnung recht effizient. Von Bouml ist nur eine ältere Version in den UBUNTU Quellen enthalten. Es sollte daher besser selbst kompiliert werden. Wer dies scheut, kann sich auch von einer externen Seite ein deb-Paket holen, eine Übersicht gibt die <a href="http://bouml.free.fr/download.html" rel="nofollow" class="external">Projektseite</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> .</p><p><a id="CodeBlocks" href="#CodeBlocks" class="crosslink anchor"></a></p></div><div class="section_2"><h3 id="Code-Blocks">Code::Blocks<a href="#Code-Blocks" class="headerlink">¶</a></h3><p>
+Code::Blocks ist ein etwas unbekannterer Editor für C++-Projekte mit Unterstützung für grafische Oberflächen wie wxWidgets oder Qt. Er steht den größeren Projekten wie Anjuta, KDevelop und Eclipse in nichts nach und lässt sich sogar etwas einfacher bedienen. Ein großer Vorteil des Editors ist, dass er auf verschiedenen Plattformen läuft, so dass man Projekte leicht austauschen kann. Eine kurze Übersicht der Features:</p><ul><li><p>Syntax Highlighting </p></li><li><p>Code Completion </p></li><li><p>Klassenbrowser </p></li><li><p>vordefinierte Projekteinstellungen </p></li><li><p>Debugger </p></li></ul><p>
+</p><div class="section_3"><h4 id="Installation">Installation<a href="#Installation" class="headerlink">¶</a></h4><p>
+</p><div class="section_4"><h5 id="Aus-Ubuntu-Quellen">Aus Ubuntu-Quellen<a href="#Aus-Ubuntu-Quellen" class="headerlink">¶</a></h5><p>
+Code::Blocks lässt sich direkt aus den Paketquellen von Ubuntu installieren. Für Ubuntu Hardy Heron 8.04 müssen dafür allerdings die Backports freigeschalten werden <sup><a href="#source-2">[2]</a></sup>. Das zu installierende Paket <sup><a href="#source-1">[1]</a></sup> heißt:</p><ul><li><p><strong>codeblocks</strong> (universe<sup><a href="#source-2">[2]</a></sup>)</p></li></ul><p><a href="apt://codeblocks" rel="nofollow" class="external"><img src="http://wiki.ubuntuusers.de/_image?target=Wiki%2FVorlagen%2FInstallbutton%2Fbutton.png" alt="Wiki/Vorlagen/Installbutton/button.png" class="image-default" /></a>
+</p><p>Es besteht die Möglichkeit, Code::Blocks (teilweise) auf Deutsch umzustellen. <a href="http://eviltux.de/index.php?art5gg=weiter&amp;id=1237138256&amp;archive=&amp;start_from=&amp;rub=1&amp;" rel="nofollow" class="external">Diese Anleitung</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/09/28/de.png" alt="{de}" /> veranschaulicht den relativ einfachen Weg dahin.</p></div><div class="section_4"><h5 id="Aktuelle-Code-Blocks-Versionen">Aktuelle Code::Blocks-Versionen<a href="#Aktuelle-Code-Blocks-Versionen" class="headerlink">¶</a></h5><p>
+Zur Zeit gibt es für das stable-Release keine offiziellen deb-Pakete mehr, es sind aber <a href="http://forums.codeblocks.org/index.php/board,20.0.html" rel="nofollow" class="external">&#34;nightly Builds&#34;</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> der aktuellen Entwicklungsversion verfügbar, deren Verwendung von den Code::Blocks-Entwicklern zur Zeit angeraten wird. Es werden fertige DEB-Pakete dieser &#34;nightly Builds&#34; über eine <a href="http://apt.jenslody.de/" rel="nofollow" class="external">inoffizielle Quelle</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> angeboten.
+</p><p>Um aus der <a href="http://wiki.ubuntuusers.de/Fremdquellen" class="internal">Fremdquelle</a> zu installieren, muss man unabhängig von der Ubuntu-Version die folgende <a href="http://wiki.ubuntuusers.de/Paketquellen_freischalten" class="internal">Paketquelle freischalten</a>:
+</p><div class="box warning"><h3 class="box warning">Hinweis!</h3><div class="contents"><p>
+Zusätzliche <a href="http://wiki.ubuntuusers.de/Fremdquellen" class="internal">Fremdquellen</a> können das System gefährden. 
+</p></div></div><p>
+</p><pre>deb http://apt.jenslody.de any main</pre><p>Um die Fremdquelle zu authentifizieren, muss man nur das folgende Paket installieren.</p><ul><li><p><strong>jens-lody-debian-keyring</strong> (<em>ppa</em>)</p></li></ul><p><a href="apt://jens-lody-debian-keyring" rel="nofollow" class="external"><img src="http://wiki.ubuntuusers.de/_image?target=Wiki%2FVorlagen%2FInstallbutton%2Fbutton.png" alt="Wiki/Vorlagen/Installbutton/button.png" class="image-default" /></a>
+</p><p>Auch in dieser Quelle heißt das zu installierende Paket:</p><ul><li><p><strong>codeblocks</strong> (<em>ppa</em>)</p></li></ul><p><a href="apt://codeblocks" rel="nofollow" class="external"><img src="http://wiki.ubuntuusers.de/_image?target=Wiki%2FVorlagen%2FInstallbutton%2Fbutton.png" alt="Wiki/Vorlagen/Installbutton/button.png" class="image-default" /></a>
+</p><p><a id="Dr" href="#Dr" class="crosslink anchor"></a></p></div></div></div><div class="section_2"><h3 id="DrJava-und-DrPython">DrJava und DrPython<a href="#DrJava-und-DrPython" class="headerlink">¶</a></h3><p>
+Bei beiden Programmen handelt es sich um sehr einsteigerfreundliche Oberflächen. Dies betrifft nicht nur die Bedienung, sondern auch die Tatsache, dass beide IDEs eine interaktive Eingabe von Code ermöglichen. Dies ist zwar beim Python-Interpreter nichts Neues, wohl aber in Verbindung mit einer IDE. Damit dies für Java umgesetzt werden konnte, wurde in Dr.Java extra ein Interpreter integriert.</p><p>Wie die Homepage der beiden Programme explizit aufführt, ist die Zielgruppe für beide IDEs im Bereich der Schulen und Hochschulen angesiedelt. Wer also mit der Programmierung anfangen will, ist mit beiden Oberflächen gut bedient.</p><p><a id="Eric" href="#Eric" class="crosslink anchor"></a> 
+</p></div><div class="section_2"><h3 id="Eric">Eric<a href="#Eric" class="headerlink">¶</a></h3><p>
+Eine weitere sehr gute Python IDE, die hier noch genannt werden sollte, ist <a href="http://eric-ide.python-projects.org/" rel="nofollow" class="external">Eric</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> . Vor allem KDE Usern sollte dieses Programm gefallen, da es in Qt geschrieben ist. Es zeichnet sich gegenüber <a href="#SPE" class="crosslink">SPE</a> vor allem durch seine Schnelligkeit aus.</p><p>Es existiert das Paket 
+</p><ul><li><p><strong>eric</strong> (<em>universe</em> <sup><a href="#source-2">[2]</a></sup>)</p></li></ul><p><a href="apt://eric" rel="nofollow" class="external"><img src="http://wiki.ubuntuusers.de/_image?target=Wiki%2FVorlagen%2FInstallbutton%2Fbutton.png" alt="Wiki/Vorlagen/Installbutton/button.png" class="image-default" /></a>
+</p><p>in den Ubuntu-Quellen, das installiert <sup><a href="#source-1">[1]</a></sup> werden muss. Bitte beachten, dass es das Paket <strong>eric</strong> und nicht <strong>eric3</strong> ist.</p><p><a id="GPS" href="#GPS" class="crosslink anchor"></a> 
+</p></div><div class="section_2"><h3 id="GPS">GPS<a href="#GPS" class="headerlink">¶</a></h3><p>
+Das Gnat Programming Studio (GPS) ist eine in GTK-Ada geschriebene IDE von <a href="https://www.adacore.com" rel="nofollow" class="external">Adacore</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> , die auch den Ada-Compiler GNAT pflegen. Es gibt vom Compiler und GPS jeweils eine kommerzielle Version und eine etwas ältere GPL-Version, welche in den Ubuntu-Repositorys enthalten ist. Vorrangig unterstützt GPS noch immer die Programmiersprache Ada. Es werden inzwischen aber auch weitere Programmiersprachen unterstützt. Neben den klassischen IDE-Tugenden wie Syntax Highlighting, Code Completion, Kompilieren und Debuggen beherrscht GPS auch noch Code Folding, Refactoring, eine grafische Anzeige der Include-Hierarchie und noch einiges mehr.</p><p>GPS kann aus den Ubuntu-Quellen installiert werden:</p><ul><li><p><strong>gnat-gps</strong> (<em>universe</em> <sup><a href="#source-2">[2]</a></sup>)</p></li></ul><p><a href="apt://gnat-gps" rel="nofollow" class="external"><img src="http://wiki.ubuntuusers.de/_image?target=Wiki%2FVorlagen%2FInstallbutton%2Fbutton.png" alt="Wiki/Vorlagen/Installbutton/button.png" class="image-default" /></a>
+</p><p>Um die volle Funktionalität nutzen zu können, sollten noch folgende Pakete installiert <sup><a href="#source-1">[1]</a></sup> werden:</p><ul><li><p><strong>asis-programs</strong> (<em>universe</em> )</p></li><li><p><strong>gnat-gdb</strong> (<em>universe</em> )</p></li></ul><p><a href="apt://asis-programs,gnat-gdb" rel="nofollow" class="external"><img src="http://wiki.ubuntuusers.de/_image?target=Wiki%2FVorlagen%2FInstallbutton%2Fbutton.png" alt="Wiki/Vorlagen/Installbutton/button.png" class="image-default" /></a>
+</p><p><a id="idle" href="#idle" class="crosslink anchor"></a></p></div><div class="section_2"><h3 id="IDLE">IDLE<a href="#IDLE" class="headerlink">¶</a></h3><p>
+Die IDLE ist eines der einfachsten Entwicklungswerkzeuge für Python. Dabei sind eine einfache Shell und ein Editor mit Syntax-Highlighting für Python.</p><p>Folgendes Paket muss installiert <sup><a href="#source-1">[1]</a></sup> werden:</p><ul><li><p><strong>idle</strong></p></li></ul><p><a href="apt://idle" rel="nofollow" class="external"><img src="http://wiki.ubuntuusers.de/_image?target=Wiki%2FVorlagen%2FInstallbutton%2Fbutton.png" alt="Wiki/Vorlagen/Installbutton/button.png" class="image-default" /></a>
+</p><p>Gestartet wird es dann mit dem Befehl <sup><a href="#source-3">[3]</a></sup></p><div class="bash"><div class="contents"><pre>idle-python2.4 </pre></div></div><p>
+<a id="KDevelop" href="#KDevelop" class="crosslink anchor"></a></p></div><div class="section_2"><h3 id="KDevelop">KDevelop<a href="#KDevelop" class="headerlink">¶</a></h3><p>
+<a href="http://www.kdevelop.org" rel="nofollow" class="external">KDevelop</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/09/28/de.png" alt="{de}" /> ist die integrierte Entwicklungsumgebung des KDE Projekts. KDevelop bietet Funktionen wie Code Completion, Assistenten für das Erstellen neuer Projekte, Klassen oder auch nur einzelner Dateien. Gleichzeitig stellt KDevelop Frontends für den <a href="http://www.gnu.org/software/gdb/gdb.html" rel="nofollow" class="external">gdb</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> Debugger, den Debugger/Profiler <a href="http://www.valgrind.org/" rel="nofollow" class="external">Valgrind</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> , die <a href="http://gcc.gnu.org/" rel="nofollow" class="external">GNU Compiler Collection</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> , das Dokumentationssystem <a href="http://wiki.ubuntuusers.de/Doxygen" class="internal">Doxygen</a> sowie Versionskontrollsystem wie <a href="http://www.gnu.org/software/cvs/" rel="nofollow" class="external">CVS</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> und <a href="http://subversion.tigris.org/" rel="nofollow" class="external">Subversion</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> zur Verfügung.</p><p>KDevelop unterstützt eine <a href="http://www.kdevelop.org/HEAD/doc/api/html/LangSupportStatus.html" rel="nofollow" class="external">Vielzahl von Programmiersprachen</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> und lässt sich durch Plugins erweitern. Zusätzlich lassen sich externe Programme in die Menüs einbinden.</p><p>KDevelop eignet sich durch seinen Funktionsumfang und seine Erweiterbarkeit auch für große Projekte, macht es aber Anfängern schwer einen Zugang zum gesamten Funktionsumfang der Entwicklungsumgebung zu finden.</p><p>Seit KDevelop4 wird ab der Installation lediglich C++ und PHP (in Beta-Version) unterstützt. Will man andere/weitere Sprachen nutzen, so muss man Plugins nachinstallieren. Diese sind z.Z. noch nicht in den Repositories enthalten.</p><p><a id="KomodoIDE" href="#KomodoIDE" class="crosslink anchor"></a> 
+</p></div><div class="section_2"><h3 id="Komodo-IDE">Komodo IDE<a href="#Komodo-IDE" class="headerlink">¶</a></h3><p>
+Von dieser professionellen IDE existiert eine abgespeckte, frei erhältliche Variante namens <a href="http://wiki.ubuntuusers.de/Webeditoren#Komodo-Edit" class="internal">Komodo Edit</a>. Die IDE selbst ist weiterhin kommerzielle Software.</p><p>Die IDE ist für eine Vielzahl von Sprachen geeignet, was die Code-Completion und das Syntax-Highlighting angeht, hat ihre Stärken aber vor bei der Programmierung mit Skriptsprachen wie Python, Perl, Ruby oder PHP. Auch auf die Programmierung in HTML, CSS und JavaScript wird großen Wert gelegt. Hier spielt das Mozilla-Toolkit, auf dem die Oberfläche programmiert wurde, seine Stärken aus - man kann mit einem Klick die Webseite im eingebetteten Firefox betrachten. Die Community hat sich auf die Fahnen geschrieben, die IDE als Nr. 1 für die Entwicklung von Web 2.0 - Websites und der Arbeit mit Webframeworks zu machen (Django, Ruby on Rails, Turbogears - Unterstützung).</p><p><a id="Mono" href="#Mono" class="crosslink anchor"></a> 
+</p></div><div class="section_2"><h3 id="MonoDevelop">MonoDevelop<a href="#MonoDevelop" class="headerlink">¶</a></h3><p>
+MonoDevelop ist eine freie Entwicklungsumgebung (IDE), die im Rahmen des Mono-Projekts entwickelt wird. Bei Mono handelt es sich um ein Open Source-Projekt unter der Leitung der Firma Ximian. Ziel des Mono-Projektes ist es, eine Reihe von .NET-kompatiblen Entwicklungs-Werkzeugen zu schaffen. Die Erfolgsaussichten von Mono sind nicht unumstritten, da Softwarepatente von Microsoft berührt werden.</p><p>Mehr Infos findet man auf der <a href="http://www.monodevelop.com/" rel="nofollow" class="external">Webseite</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> und in der <a href="http://de.wikipedia.org/wiki/Mono-Projekt" rel="nofollow" class="external">Wikipedia</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/09/28/de.png" alt="{de}" /> .</p></div><div class="section_2"><h3 id="Pure-Data">Pure Data<a href="#Pure-Data" class="headerlink">¶</a></h3><p>
+<a href="http://wiki.ubuntuusers.de/Pure_Data" class="internal">Pure Data</a> ist eine modular aufgebaute grafische Echtzeit-Entwicklungsumgebung, mit der man eigene Multimedia-Anwendungen wie Software-Synthesizer, Sequencer oder visuelle Effekte erstellen kann. Sie ist wegen ihrer Flexibilität vor allem in der Multimediakunst und bei Komponisten und Produzenten elektronischer Musik, insbesondere experimenteller Stilrichtungen, verbreitet. Programmierkenntnisse sind nicht erforderlich.</p><p><a id="Spe" href="#Spe" class="crosslink anchor"></a></p></div><div class="section_2"><h3 id="SPE">SPE<a href="#SPE" class="headerlink">¶</a></h3><p>
+SPE ist eine in Python selbst geschriebene Entwicklungsumgebung, die insbesondere für die Erstellung von Python-Scripts gedacht ist. SPE darf frei heruntergeladen, genutzt und weitergegeben werden.</p><p>SPE, obwohl noch in der Entwicklungsphase, kann sich bereits mit vielen anderen, auch kommerziellen Python Programmierumgebungen (wie WingIDE) messen und ist einer der besten Python IDEs, die es zur Zeit gibt.</p><p>Es existiert das Paket 
+</p><ul><li><p><strong>spe</strong> (<em>universe</em> <sup><a href="#source-2">[2]</a></sup> )</p></li></ul><p><a href="apt://spe" rel="nofollow" class="external"><img src="http://wiki.ubuntuusers.de/_image?target=Wiki%2FVorlagen%2FInstallbutton%2Fbutton.png" alt="Wiki/Vorlagen/Installbutton/button.png" class="image-default" /></a>
+</p><p>in den Ubuntu-Quellen, das installiert <sup><a href="#source-1">[1]</a></sup> werden muss.</p><p>Wenn man die aktuelle Version benutzen will, muss man diese von Hand installieren:</p><ol class="arabic"><li><p>Paket <strong>spe</strong> von <a href="https://developer.berlios.de/projects/python/" rel="nofollow" class="external">Berlios</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> herunterladen. </p></li><li><p>Entpacken und folgenden Befehl im Terminal <sup><a href="#source-3">[3]</a></sup> ausführen: </p></li></ol><p>
+</p><div class="bash"><div class="contents"><pre>sudo python setup.py install </pre></div></div><p>Alternativ gibt es jetzt auch ein Ubuntu-Paket auf der <a href="http://pythonide.stani.be/" rel="nofollow" class="external">Entwicklerseite</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" />. 
+</p><div class="box warning"><h3 class="box warning">Hinweis!</h3><div class="contents"><p>
+<a href="http://wiki.ubuntuusers.de/Fremdquellen" class="internal">Fremdpakete</a> können das System gefährden. 
+</p></div></div><p>
+Danach sollte SPE über den Befehl &#34;<code>spe</code>&#34; startbar sein.</p><p></p></div></div></div>
+
+  <p class="meta">
+    <a href="http://wiki.ubuntuusers.de/Entwicklungsumgebungen?rev=234192">Diese Revision</a> wurde am 15. Mai 2011 um 14:14 Uhr
+    von <a href="http://ubuntuusers.de/user/ignoble/">ignoble</a> erstellt.
+    <br />Dieser Seite wurden folgende Begriffe zugeordnet:
+    <a href="http://wiki.ubuntuusers.de/Wiki/Tags?tag=%C3%9Cbersicht">Übersicht</a>, <a href="http://wiki.ubuntuusers.de/Wiki/Tags?tag=Editor">Editor</a>, <a href="http://wiki.ubuntuusers.de/Wiki/Tags?tag=Programmierung">Programmierung</a>
+  </p>
+</div>
+      </div>
+      <div style="clear: both;"></div>
+    </div>
+
+    <div class="footer" style="clear: both;">
+      <ul>
+        <li class="poweredby">
+          <a href="http://ubuntuusers.de/inyoka/">Inyoka</a> unter der Haube <br />
+            inyoka r5986:157c436bb18f
+          (<a href="http://wiki.ubuntuusers.de/ubuntuusers/Fehler%20melden">Fehler in Inyoka melden</a>)
+        </li>
+        <li class="license">
+          <img src="http://static.cdn.ubuntu-de.org/img/copyleft.png" alt="Copyleft" />
+          2004 – 2011 ubuntuusers.de • Einige Rechte vorbehalten<br />
+          <a href="http://creativecommons.org/licenses/by-nc-sa/2.0/de/deed.de" rel="license">CC</a>
+          <a href="http://ubuntuusers.de/lizenz/" rel="cc:morePermissions">Lizenz</a> •
+          <a href="http://ubuntuusers.de/kontakt/">Kontakt</a> •
+          <a href="http://ubuntuusers.de/datenschutz/">Datenschutz</a> •
+          <a href="http://ubuntuusers.de/impressum/">Impressum</a>
+        </li>
+        <li class="housing">
+          <span title="Unterbringung und Netzanbindung eines Servers">Serverhousing</span> gespendet von<br />
+          <a href="http://www.noris.de/"><img src="http://static.cdn.ubuntu-de.org/img/noris_logo.png" alt="noris network" /></a>
+        </li>
+      </ul>
+    </div>
+    <div style="clear: both;"></div>
+   </div></div></div></div></div>
+    <form action="http://ubuntuusers.de/login/?next=http%3A%2F%2Fwiki.ubuntuusers.de%2Fentwicklungsumgebungen" method="post" id="js_login_form"><div style="display: none"><input type="hidden" name="_form_token" value="540992ed79752335aeaa83fcf3878d19" /></div>
+      <div>
+        <label for="js_login_username">Benutzername</label>
+        <input name="username" id="js_login_username" />
+        <label for="js_login_password">Passwort</label>
+        <input type="password" name="password" id="js_login_password" />
+        <label for="js_login_permanent" title="Wähle dies nicht aus, wenn du dich von einem öffentlichen Computer aus anmeldest">dauerhaft?</label>
+        <input type="checkbox" name="permanent" id="js_login_permanent" />
+        <a href="http://ubuntuusers.de/lost_password/">Passwort vergessen?</a>
+        <input type="submit" value="Login" class="submit" />
+        <input type="hidden" name="redirect" value="http://wiki.ubuntuusers.de/entwicklungsumgebungen" />
+      </div>
+    </form>
+
+    <script type="text/javascript">
+      var input = OpenIDHelper($('input[id="js_login_username"]'), {"openid": {"url": null, "name": "OpenID"}, "google": {"url": "https://www.google.com/accounts/o8/id", "name": "Google"}, "claimid": {"url": "http://claimid.com/{username}", "name": "ClaimID"}, "launchpad": {"url": "https://launchpad.net/~{username}", "name": "Launchpad"}});
+    </script>
+  </body>
+</html>

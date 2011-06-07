@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html SYSTEM "http://static.cdn.ubuntu-de.org/xhtml1-strict-uu.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:cc="http://creativecommons.org/ns#"
+      xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+      xmlns:dc="http://purl.org/dc/elements/1.1/"
+      xml:lang="de" lang="de" dir="ltr">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>
+      Git › Wiki › ubuntuusers.de
+    </title>
+          <link rel="stylesheet" type="text/css" href="http://static.cdn.ubuntu-de.org/style/main-sprite.css" />
+        
+          <link rel="stylesheet" type="text/css" href="http://static.cdn.ubuntu-de.org/style/markup.css" />
+        
+          <link rel="stylesheet" type="text/css" href="http://static.cdn.ubuntu-de.org/style/wiki.css" />
+        
+          <link rel="stylesheet" type="text/css" href="http://static.cdn.ubuntu-de.org/style/highlight.css" />
+        
+      <link rel="stylesheet" type="text/css" href="http://ubuntuusers.de/markup.css/" />
+      <link rel="stylesheet" type="text/css" href="http://static.cdn.ubuntu-de.org/style/print.css" media="print" />
+      <link rel="shortcut icon" href="http://static.cdn.ubuntu-de.org/img/favicon.ico" />
+      <link rel="search" type="application/opensearchdescription+xml" title="ubuntuusers" href="http://ubuntuusers.de/opensearch/portal/" />
+          <link rel="search" type="application/opensearchdescription+xml" title="ubuntuusers - Wiki" href="http://ubuntuusers.de/opensearch/wiki/" />
+      <script type="text/javascript">
+      /*<![CDATA[*/
+        var
+          $STATIC_URL = "http://static.cdn.ubuntu-de.org/",
+          $MEDIA_URL = "http://media.cdn.ubuntu-de.org/",
+          $BASE_DOMAIN_NAME = "ubuntuusers.de",
+          $CURRENT_USER = null,
+          $IS_LOGGED_IN = false,
+          $SIDEBAR_HIDDEN = false;
+      /*]]>*/
+      </script>
+          <script type="text/javascript" src="http://static.cdn.ubuntu-de.org/js/jquery.min.js"></script>
+        
+          <script type="text/javascript" src="http://static.cdn.ubuntu-de.org/js/classy.min.js"></script>
+        
+          <script type="text/javascript" src="http://static.cdn.ubuntu-de.org/js/jquery.extensions.min.js"></script>
+        
+          <script type="text/javascript" src="http://static.cdn.ubuntu-de.org/js/overall.min.js"></script>
+        
+  </head>
+  <body>
+   <div class="wrap"><div class="wrap2"><div class="wrap3"><div class="wrap4"><div class="wrap5">
+    <div class="header">
+      <h1><a href="/"><span>ubuntuusers.de</span></a></h1>
+      <ul class="tabbar">
+        <li class="portal"><a href="http://ubuntuusers.de/">Portal</a></li>
+        <li class="forum"><a href="http://forum.ubuntuusers.de/">Forum</a></li>
+        <li class="wiki active"><a href="http://wiki.ubuntuusers.de/">Wiki</a></li>
+        <li class="ikhaya"><a href="http://ikhaya.ubuntuusers.de/">Ikhaya</a></li>
+        <li class="planet"><a href="http://planet.ubuntuusers.de/">Planet</a></li>
+        <li class="community"><a href="http://wiki.ubuntuusers.de/Mitmachen">Mitmachen</a></li>
+      </ul>
+    </div>
+
+    <div class="body">
+      <div class="appheader">
+        <ul class="mod_navi">
+        </ul>
+        <ul class="navi_global">
+          <li><a href="http://ubuntuusers.de/login/?next=http%3A%2F%2Fwiki.ubuntuusers.de%2FGIT" id="login_link">Login</a></li>
+          <li><a href="http://ubuntuusers.de/register/">Registrieren</a></li>
+        </ul>
+        
+  <h1><a href="http://wiki.ubuntuusers.de/" class="separator">Wiki</a></h1>
+    <h2><a href="http://wiki.ubuntuusers.de/Git">Git</a></h2>
+      </div>
+
+      <div class="pathbar">
+
+        <form action="http://ubuntuusers.de/search/" method="get" class="search"><div>
+          <input type="text" name="query" class="search_query" value="" />
+            <select name="area" class="search_area">
+              <option value="all">Überall</option>
+              <option value="forum">Forum</option>
+              <option value="wiki" selected="selected">Wiki</option>
+              <option value="ikhaya">Ikhaya</option>
+              <option value="planet">Planet</option>
+            </select>
+            <input type="submit" value="Suchen" class="search_submit" />
+        </div></form>
+          <div class="dropdown">
+            <ul class="dropdown"><li><a href="http://ubuntuusers.de/search/">Erweiterte Suche</a></li><li><ul>
+              <li><a href="http://wiki.ubuntuusers.de/Wiki/Letzte%20%C3%84nderungen">Letzte Änderungen</a></li>
+              <li><a href="http://wiki.ubuntuusers.de/Wiki/Tags">Tag-Wolke</a></li>
+            </ul></li></ul>
+          </div>
+
+        <a href="http://ubuntuusers.de/">ubuntuusers.de</a> › <a href="http://wiki.ubuntuusers.de/">Wiki</a> › <a href="http://wiki.ubuntuusers.de/Git">Git</a>
+
+      </div>
+
+      <div class="page_content">
+        
+        
+        <div class="navi_tabbar navigation">
+    <ul>
+        <li><a href="http://wiki.ubuntuusers.de/Git" class="active">Artikel</a></li>
+        <li><a href="http://wiki.ubuntuusers.de/Git?action=edit">Bearbeiten</a></li>
+        <li><a href="http://wiki.ubuntuusers.de/Git?action=log">Versionen</a></li>
+        <li><a href="http://wiki.ubuntuusers.de/Git?action=backlinks">Backlinks</a></li>
+        <li><a href="http://wiki.ubuntuusers.de/Git?action=manage">Weitere Aktionen</a></li>
+      <li><a href="http://forum.ubuntuusers.de/topic/baustelle-git/">Diskussion</a></li>
+        <li><a href="http://wiki.ubuntuusers.de/Git?action=subscribe">Abonnieren</a></li>
+    </ul>
+</div>        
+        <div class="content content_tabbar">
+  <h1 class="pagetitle"><a href="http://wiki.ubuntuusers.de/Git?action=backlinks">Git</a></h1>
+
+  
+
+  <div id="page"><p>
+</p><div class="box tested_for"><h3 class="box tested_for">Dieser Artikel wurde für die folgenden
+Ubuntu-Versionen getestet:</h3><div class="contents"><p>
+</p><ul><li><p><a href="http://wiki.ubuntuusers.de/Maverick_Meerkat" class="internal">Ubuntu Maverick Meerkat 10.10</a></p></li><li><p><a href="http://wiki.ubuntuusers.de/Lucid_Lynx" class="internal">Ubuntu Lucid Lynx 10.04</a></p></li><li><p><a href="http://wiki.ubuntuusers.de/Hardy_Heron" class="internal">Ubuntu Hardy Heron 8.04</a></p></li></ul></div></div><p>
+</p><p> 
+</p><div class="box knowledge"><h3 class="box knowledge">Zum Verständnis dieses Artikels sind folgende Seiten hilfreich:</h3><div class="contents"><p>
+</p><ol class="arabic"><li><p><a id="source-1" href="#source-1" class="crosslink anchor"></a> <a href="http://wiki.ubuntuusers.de/Pakete_installieren" class="internal">Installation von Programmen</a> </p></li><li><p><a id="source-2" href="#source-2" class="crosslink anchor"></a> <a href="http://wiki.ubuntuusers.de/Terminal" class="internal">Ein Terminal öffnen</a> </p></li></ol></div></div><p>
+</p><div class="toc toc-depth-3"><div class="head">Inhaltsverzeichnis</div><ol class="arabic"><li><a href="#Installation" class="crosslink">Installation
+</a></li><li><a href="#Anwendung" class="crosslink">Anwendung
+</a><ol class="arabic"><li><a href="#Quellcode-herunterladen" class="crosslink">Quellcode herunterladen
+</a></li><li><a href="#Entwicklung-mit-Git" class="crosslink">Entwicklung mit Git
+</a><ol class="arabic"><li><a href="#Einrichtung" class="crosslink">Einrichtung
+</a></li><li><a href="#Grundlagen" class="crosslink">Grundlagen
+</a></li><li><a href="#Auslassen-mit-gitignore" class="crosslink">Auslassen mit .gitignore
+</a></li><li><a href="#Branches" class="crosslink">Branches
+</a></li></ol></li><li><a href="#Graphische-Oberflaechen-fuer-Git" class="crosslink">Graphische Oberflächen für Git
+</a><ol class="arabic"><li><a href="#git-gui" class="crosslink">git-gui
+</a></li><li><a href="#qgit" class="crosslink">qgit
+</a></li></ol></li><li><a href="#Git-und-andere-Versionsverwaltungssysteme" class="crosslink">Git und andere Versionsverwaltungssystem...</a></li></ol></li><li><a href="#Links" class="crosslink">Links
+</a></li></ol></div><p><img src="http://wiki.ubuntuusers.de/_image?target=Git%2Flogo.png" alt="logo.png" class="image-left" />
+<a href="http://git.or.cz/" rel="nofollow" class="external">Git</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> ist ein dezentrales <a href="http://wiki.ubuntuusers.de/Versionsverwaltung" class="internal">Versionsverwaltungssystem</a>. Es wurde als Ersatz für das proprietäre Programm <a href="http://www.bitkeeper.com/" rel="nofollow" class="external">BitKeeper</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> von Linux-Maintainer <a href="http://de.wikipedia.org/wiki/Linus%20Torvalds" class="interwiki interwiki-wikipedia">Linus Torvalds</a> im Jahr 2005 geschrieben, da BitKeeper vielen Kernel-Entwicklern durch Lizenzverschärfungen den Zugang zu den Kernelquellen verwehrte. Die erste Version erschien wenige Tage nach der Ankündigung durch Torvalds. Seit dem Entwicklungsstart hat sich Git äußerst rasant entwickelt.</p><p>Git unterscheidet sich als dezentrales System von den traditionellen Programmen wie <a href="http://wiki.ubuntuusers.de/CVS" class="internal">CVS</a> und <a href="http://wiki.ubuntuusers.de/Subversion" class="internal">Subversion</a>. 
+Es hat folgende wichtige Eigenschaften:
+</p><ul><li><p>Einfache und effiziente Arbeitsweise nach <a href="http://de.wikipedia.org/wiki/KISS-Prinzip" class="interwiki interwiki-wikipedia">KISS-Prinzip</a></p></li><li><p>Kein zentraler Server benötigt</p></li><li><p>Unterstützung vieler Übertragungsprotokolle (HTTP, HTTPS, FTP, SSH, rsync)</p></li><li><p>Absicherung durch <a href="http://wiki.ubuntuusers.de/GnuPG" class="internal">GnuPG</a>-Signierung </p></li><li><p>Viel Arbeit ohne Internetzugang möglich</p></li></ul><p>
+</p><div class="section_1"><h2 id="Installation">Installation<a href="#Installation" class="headerlink">¶</a></h2><p>
+Folgendes Paket muss installiert <sup><a href="#source-1">[1]</a></sup> werden:</p><ul><li><p><strong>git-core </strong></p></li></ul><p><a href="apt://git-core" rel="nofollow" class="external"><img src="http://wiki.ubuntuusers.de/_image?target=Wiki%2FVorlagen%2FInstallbutton%2Fbutton.png" alt="Wiki/Vorlagen/Installbutton/button.png" class="image-default" /></a>
+</p></div><div class="section_1"><h2 id="Anwendung">Anwendung<a href="#Anwendung" class="headerlink">¶</a></h2><p>
+</p><div class="section_2"><h3 id="Quellcode-herunterladen">Quellcode herunterladen<a href="#Quellcode-herunterladen" class="headerlink">¶</a></h3><p>
+Will man nur den Quellcode eines Projektes aus dem Git-Repository herunterladen, öffnet man ein Terminal<sup><a href="#source-2">[2]</a></sup> und verwendet den Befehl</p><div class="bash"><div class="contents"><pre>git clone git://ADRESSE  </pre></div></div><p>Um beispielsweise den aktuellen Quellcode des Linux-Kernels in das Verzeichnis <strong>linux</strong> herunterzuladen, braucht man nur diesen Befehl:</p><div class="bash"><div class="contents"><pre>git clone git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git linux </pre></div></div><p>Falls man hinter einer Firewall sitzt und so der Zugriff über den Git-Port(Port 9418) gesperrt ist, kann man versuchen über den fast immer offenen Port 80 auf das Repository zuzugreifen. Der entsprechende Befehl sieht folgendermaßen aus:</p><div class="bash"><div class="contents"><pre>git clone http://ADRESSE  </pre></div></div></div><div class="section_2"><h3 id="Entwicklung-mit-Git">Entwicklung mit Git<a href="#Entwicklung-mit-Git" class="headerlink">¶</a></h3><p>
+</p><div class="section_3"><h4 id="Einrichtung">Einrichtung<a href="#Einrichtung" class="headerlink">¶</a></h4><p>
+Bevor man mit der Arbeit beginnt, sollte man seinen Namen und seine E-Mail-Adresse eintragen:</p><div class="bash"><div class="contents"><pre>git config --global user.name NAME
+git config --global user.email EMAIL@ADRESSE.de </pre></div></div><p>Diese Daten erscheinen in der Beschreibung einer Veränderung und sind, wenn mehrere Entwickler an einem Projekt arbeiten, wichtig um den Autoren einer Revision identifizieren zu können.</p><p>Um die Lesbarkeit zu erhöhen, sollte man die Ausgaben mit den folgenden Befehlen einfärben:</p><div class="bash"><div class="contents"><pre>git config --global color.ui &#34;auto&#34; </pre></div></div><p>Für Computer mit mehreren Prozessor-Kernen empfiehlt sich diese Option:</p><div class="bash"><div class="contents"><pre>git config --global pack.threads &#34;0&#34; </pre></div></div></div><div class="section_3"><h4 id="Grundlagen">Grundlagen<a href="#Grundlagen" class="headerlink">¶</a></h4><p>
+Zuerst erstellt man einen Ordner für das Projekt und wechselt in diesen Ordner.
+Dort führt man nun den Befehl</p><div class="bash"><div class="contents"><pre>git init </pre></div></div><p>aus. Der Befehl erstellt das Git-Repository mit den nötigen Angaben. 
+Nun erstellt man den Quellcode des Programmes und fügt die Datei(en) mit dem Befehl</p><div class="bash"><div class="contents"><pre>git add DATEI </pre></div></div><p>zum Git-Repository hinzu. Hat man nun wieder etwas am Quellcode verändert, erstellt man mit</p><div class="bash"><div class="contents"><pre>git commit -m &#34;ÄNDERUNGSBESCHREIBUNG&#34; </pre></div></div><p>eine Revision. Will man den Quellcode nun auf einen Server laden, führt man diesen Befehl aus:</p><div class="bash"><div class="contents"><pre>git push ADRESSE BRANCHNAME </pre></div></div><p>Hat nun ein anderer Entwickler etwas am Quellcode verändert, kann man die lokale Version mit dem Befehl</p><div class="bash"><div class="contents"><pre>git pull </pre></div></div><p>aktualisieren.</p><p>Wenn man nun etwas am Quellcode verändert oder einen Patch eingespielt hat, dies aber rückgängig machen möchte, benutzt man</p><div class="bash"><div class="contents"><pre>git checkout -f </pre></div></div><p>Dies setzt alle unbestätigten lokalen Veränderungen zurück.</p><p>Hiermit kann man auflisten, welche Dateien versioniert werden
+</p><div class="bash"><div class="contents"><pre>git ls-files </pre></div></div></div><div class="section_3"><h4 id="Auslassen-mit-gitignore">Auslassen mit .gitignore<a href="#Auslassen-mit-gitignore" class="headerlink">¶</a></h4><p>
+Hier ein Beispiel, was für jedes Projekt angepasst werden kann:
+</p><div class="code"><table class="syntaxtable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19</pre></div></td><td class="code"><div class="syntax"><pre><span class="c"># generic files to ignore</span>
+<span class="c"># backup files (*~) and vim swap file (.swp), MacOS dir file (.DS_Store)</span>
+*~
+*.lock
+*.DS_Store
+*.swp
+*.out
+
+<span class="c">#IDE files to ignore (Netbeans, Eclipse)</span>
+nbproject/private/
+.classpath
+.project
+.settings
+
+<span class="c">#ignore generated .class files</span>
+*.class
+
+<span class="c">#except this file</span>
+!.gitignore
+</pre></div>
+</td></tr></table></div></div><div class="section_3"><h4 id="Branches">Branches<a href="#Branches" class="headerlink">¶</a></h4><p>
+Hat man mehrere Entwicklungszweige zu pflegen, wie beispielsweise <strong>stable</strong> oder <strong>testing</strong>, kann man sich der Branches bedienen. Um bestehende Branches anzuzeigen gibt man diesen Befehl ein:</p><div class="bash"><div class="contents"><pre>git branch </pre></div></div><p>Um nun eine neue Branch zu erstellen, muss nur der folgende Befehl eingegeben werden:</p><div class="bash"><div class="contents"><pre>git branch branchname </pre></div></div><p>Um in eine andere Branch zu wechseln verwendet man den diesen Befehl:</p><div class="bash"><div class="contents"><pre>git checkout branchname </pre></div></div></div></div><div class="section_2"><h3 id="Graphische-Oberflaechen-fuer-Git">Graphische Oberflächen für Git<a href="#Graphische-Oberflaechen-fuer-Git" class="headerlink">¶</a></h3><p>
+</p><div class="section_3"><h4 id="git-gui">git-gui<a href="#git-gui" class="headerlink">¶</a></h4><p>
+git-gui ist eine einfache Tk-Oberfläche für Git, die über das Paket</p><ul><li><p><strong>git-gui</strong></p></li></ul><p><a href="apt://git-gui" rel="nofollow" class="external"><img src="http://wiki.ubuntuusers.de/_image?target=Wiki%2FVorlagen%2FInstallbutton%2Fbutton.png" alt="Wiki/Vorlagen/Installbutton/button.png" class="image-default" /></a>
+</p><p>installiert werden kann. 
+Zum Start verwendet man diesen Befehl:
+</p><div class="bash"><div class="contents"><pre>git gui </pre></div></div><p>Mit ihr lassen sich die alltäglichen Aufgaben mit Git komfortabel erledigen. Sie ist ein offizieller Teil des Git-Projektes.</p></div><div class="section_3"><h4 id="qgit">qgit<a href="#qgit" class="headerlink">¶</a></h4><p>
+<a href="http://digilander.libero.it/mcostalba/" rel="nofollow" class="external">qgit</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> ist eine <a href="http://wiki.ubuntuusers.de/Qt" class="internal">Qt</a>-basierte Oberfläche für Git, die nicht vom Git-Projekt, sondern extern entwickelt wird. Installiert wird sie über das Paket:</p><ul><li><p><strong>qgit</strong></p></li></ul><p><a href="apt://qgit" rel="nofollow" class="external"><img src="http://wiki.ubuntuusers.de/_image?target=Wiki%2FVorlagen%2FInstallbutton%2Fbutton.png" alt="Wiki/Vorlagen/Installbutton/button.png" class="image-default" /></a>
+</p><p>Auch mit dieser Oberfläche kann man bequem die alltäglichen Dinge der Versionsverwaltung erledigen.</p></div></div><div class="section_2"><h3 id="Git-und-andere-Versionsverwaltungssysteme">Git und andere Versionsverwaltungssysteme<a href="#Git-und-andere-Versionsverwaltungssysteme" class="headerlink">¶</a></h3><p>
+Falls man gezwungen ist, mit einem <a href="http://wiki.ubuntuusers.de/Subversion" class="internal">Subversion</a>- oder <a href="http://wiki.ubuntuusers.de/CVS" class="internal">CVS</a>-Server zu arbeiten, kann man zur lokalen Verwaltung trotzdem Git einsetzen. Man muss nur das entsprechende Paket installieren. Für Subversion ist das</p><ul><li><p><strong>git-svn</strong></p></li></ul><p><a href="apt://git-svn" rel="nofollow" class="external"><img src="http://wiki.ubuntuusers.de/_image?target=Wiki%2FVorlagen%2FInstallbutton%2Fbutton.png" alt="Wiki/Vorlagen/Installbutton/button.png" class="image-default" /></a>
+</p><p>und für CVS ist das:
+</p><ul><li><p><strong>git-cvs</strong></p></li></ul><p><a href="apt://git-cvs" rel="nofollow" class="external"><img src="http://wiki.ubuntuusers.de/_image?target=Wiki%2FVorlagen%2FInstallbutton%2Fbutton.png" alt="Wiki/Vorlagen/Installbutton/button.png" class="image-default" /></a>
+</p></div></div><div class="section_1"><h2 id="Links">Links<a href="#Links" class="headerlink">¶</a></h2><p>
+</p><ul><li><p><a href="http://git.or.cz/" rel="nofollow" class="external">Projektseite</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /></p></li><li><p><a href="http://live.gnome.org/giggle" rel="nofollow" class="external">Giggle - eine GUI für Git</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /></p></li><li><p><a href="http://www.kernel.org/pub/software/scm/git/docs/user-manual.html" rel="nofollow" class="external">Offizielle Dokumentation</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </p></li><li><p><a href="http://gitref.org/index.html" rel="nofollow" class="external">Git-Referenz für schnellen aber dennoch umfangreichen Einstieg</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /></p></li><li><p><a href="http://www.youtube.com/v/" class="interwiki interwiki-youtube"></a><a href="http://www.youtube.com/watch?v=4XpnKHJAok8" rel="nofollow" class="external">Linus Torvalds über Git</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> 14.5.2007, [1h-10m-15s]</p></li><li><p><a href="http://www.freiesmagazin.de/mobil/freiesMagazin-2008-08-bilder.html#08_08_git" rel="nofollow" class="external">Git Howto im freiesMagazin</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/09/28/de.png" alt="{de}" /> </p></li><li><p><a href="http://www.gitcasts.com/" rel="nofollow" class="external">Screencasts zu Git</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /> </p></li><li><p><a href="http://www.github.com" rel="nofollow" class="external">GitHub bietet kostenlose Git-Repositorys für Open Source-Programme</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /></p></li><li><p><a href="http://www.gitorious.org/" rel="nofollow" class="external">Gitorious bietet kostenlose Git-Repositorys für Open Source-Programme</a> <img src="http://media.cdn.ubuntu-de.org/wiki/attachments/10/28/gb.png" alt="{en}" /></p></li></ul><p>
+</p><hr /><p></p></div></div>
+
+  <p class="meta">
+    <a href="http://wiki.ubuntuusers.de/Git?rev=246972">Diese Revision</a> wurde am 1. Juni 2011 um 20:12 Uhr
+    von <a href="http://ubuntuusers.de/user/Alice_wtfiA/">Alice wtfiA</a> erstellt.
+    <br />Dieser Seite wurden folgende Begriffe zugeordnet:
+    <a href="http://wiki.ubuntuusers.de/Wiki/Tags?tag=Programmierung">Programmierung</a>, <a href="http://wiki.ubuntuusers.de/Wiki/Tags?tag=System">System</a>, <a href="http://wiki.ubuntuusers.de/Wiki/Tags?tag=Shell">Shell</a>
+  </p>
+</div>
+      </div>
+      <div style="clear: both;"></div>
+    </div>
+
+    <div class="footer" style="clear: both;">
+      <ul>
+        <li class="poweredby">
+          <a href="http://ubuntuusers.de/inyoka/">Inyoka</a> unter der Haube <br />
+            inyoka r5986:157c436bb18f
+          (<a href="http://wiki.ubuntuusers.de/ubuntuusers/Fehler%20melden">Fehler in Inyoka melden</a>)
+        </li>
+        <li class="license">
+          <img src="http://static.cdn.ubuntu-de.org/img/copyleft.png" alt="Copyleft" />
+          2004 – 2011 ubuntuusers.de • Einige Rechte vorbehalten<br />
+          <a href="http://creativecommons.org/licenses/by-nc-sa/2.0/de/deed.de" rel="license">CC</a>
+          <a href="http://ubuntuusers.de/lizenz/" rel="cc:morePermissions">Lizenz</a> •
+          <a href="http://ubuntuusers.de/kontakt/">Kontakt</a> •
+          <a href="http://ubuntuusers.de/datenschutz/">Datenschutz</a> •
+          <a href="http://ubuntuusers.de/impressum/">Impressum</a>
+        </li>
+        <li class="housing">
+          <span title="Unterbringung und Netzanbindung eines Servers">Serverhousing</span> gespendet von<br />
+          <a href="http://www.noris.de/"><img src="http://static.cdn.ubuntu-de.org/img/noris_logo.png" alt="noris network" /></a>
+        </li>
+      </ul>
+    </div>
+    <div style="clear: both;"></div>
+   </div></div></div></div></div>
+    <form action="http://ubuntuusers.de/login/?next=http%3A%2F%2Fwiki.ubuntuusers.de%2FGIT" method="post" id="js_login_form"><div style="display: none"><input type="hidden" name="_form_token" value="540992ed79752335aeaa83fcf3878d19" /></div>
+      <div>
+        <label for="js_login_username">Benutzername</label>
+        <input name="username" id="js_login_username" />
+        <label for="js_login_password">Passwort</label>
+        <input type="password" name="password" id="js_login_password" />
+        <label for="js_login_permanent" title="Wähle dies nicht aus, wenn du dich von einem öffentlichen Computer aus anmeldest">dauerhaft?</label>
+        <input type="checkbox" name="permanent" id="js_login_permanent" />
+        <a href="http://ubuntuusers.de/lost_password/">Passwort vergessen?</a>
+        <input type="submit" value="Login" class="submit" />
+        <input type="hidden" name="redirect" value="http://wiki.ubuntuusers.de/GIT" />
+      </div>
+    </form>
+
+    <script type="text/javascript">
+      var input = OpenIDHelper($('input[id="js_login_username"]'), {"openid": {"url": null, "name": "OpenID"}, "google": {"url": "https://www.google.com/accounts/o8/id", "name": "Google"}, "claimid": {"url": "http://claimid.com/{username}", "name": "ClaimID"}, "launchpad": {"url": "https://launchpad.net/~{username}", "name": "Launchpad"}});
+    </script>
+  </body>
+</html>

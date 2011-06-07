@@ -1,0 +1,12 @@
+[2011-06-07T16:06:12-00:00, NetworkManager ] Kabelnetzwerk
+Verbindung getrennt - Sie sind nun offline
+
+[2011-06-07T16:06:57-00:00, NetworkManager ] Auto eth0
+Verbindung hergestellt
+
+[2011-06-07T16:35:42-00:00, NetworkManager ] Kabelnetzwerk
+Verbindung getrennt
+
+[2011-06-07T16:35:43-00:00, NetworkManager replaced] Auto eth0
+Verbindung hergestellt
+

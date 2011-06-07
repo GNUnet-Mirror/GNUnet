@@ -1,0 +1,80 @@
+Generated File. Do not edit.
+
+[HEADER]
+Version:0.11:$
+
+[PLUGINS]
+librhythmbox-itms-detection-plugin.so:$
+/usr/lib/mozilla/plugins/librhythmbox-itms-detection-plugin.so:$
+:$
+1277463660000:1:1:$
+This plug-in detects the presence of iTunes when opening iTunes Store URLs in a web page with Firefox.:$
+iTunes Application Detector:$
+1
+0:application/itunes-plugin:::$
+libtotem-narrowspace-plugin.so:$
+/usr/lib/mozilla/plugins/libtotem-narrowspace-plugin.so:$
+:$
+1274279893000:1:1:$
+The <a href="http://www.gnome.org/projects/totem/">Totem</a> 2.30.2 plugin handles video and audio streams.:$
+QuickTime Plug-in 7.6.6:$
+5
+0:video/quicktime:QuickTime-Video:mov:$
+1:video/mp4:MPEG-4-Video:mp4:$
+2:image/x-macpaint:MacPaint-Bitmap-Datei:pntg:$
+3:image/x-quicktime:Macintosh-Quickdraw/PICT-Zeichnung:pict, pict1, pict2:$
+4:video/x-m4v:MPEG-4-Video:m4v:$
+libtotem-mully-plugin.so:$
+/usr/lib/mozilla/plugins/libtotem-mully-plugin.so:$
+:$
+1274279893000:1:1:$
+DivX Web Player version 1.4.0.233:$
+DivX® Web Player:$
+1
+0:video/divx:AVI-Video:divx:$
+libtotem-gmp-plugin.so:$
+/usr/lib/mozilla/plugins/libtotem-gmp-plugin.so:$
+:$
+1274279893000:1:1:$
+The <a href="http://www.gnome.org/projects/totem/">Totem</a> 2.30.2 plugin handles video and audio streams.:$
+Windows Media Player Plug-in 10 (compatible; Totem):$
+13
+0:application/x-mplayer2:AVI-Video:avi, wma, wmv:$
+1:video/x-ms-asf-plugin:ASF-Video:asf, wmv:$
+2:video/x-msvideo:AVI-Video:asf, wmv:$
+3:video/x-ms-asf:ASF-Video:asf:$
+4:video/x-ms-wmv:Windows-Media-Video:wmv:$
+5:video/x-wmv:Windows-Media-Video:wmv:$
+6:video/x-ms-wvx:Windows-Media-Video:wmv:$
+7:video/x-ms-wm:Windows-Media-Video:wmv:$
+8:video/x-ms-wmp:Windows-Media-Video:wmv:$
+9:application/x-ms-wms:Windows-Media-Video:wms:$
+10:application/x-ms-wmp:Windows-Media-Video:wmp:$
+11:application/asx:Microsoft-ASX-Wiedergabeliste:asx:$
+12:audio/x-ms-wma:Windows-Media-Audio:wma:$
+libtotem-cone-plugin.so:$
+/usr/lib/mozilla/plugins/libtotem-cone-plugin.so:$
+:$
+1274279893000:1:1:$
+The <a href="http://www.gnome.org/projects/totem/">Totem</a> 2.30.2 plugin handles video and audio streams.:$
+VLC Multimedia Plugin (compatible Totem 2.30.2):$
+19
+0:application/x-vlc-plugin:VLC Multimedia Plugin::$
+1:application/vlc:VLC Multimedia Plugin::$
+2:video/x-google-vlc-plugin:VLC Multimedia Plugin::$
+3:application/x-ogg:Ogg-Multimediadatei:ogg:$
+4:application/ogg:Ogg-Multimediadatei:ogg:$
+5:audio/ogg:Ogg-Audio:oga:$
+6:audio/x-ogg:Ogg-Audio:ogg:$
+7:video/ogg:Ogg-Video:ogv:$
+8:video/x-ogg:Ogg-Video:ogg:$
+9:application/annodex:Annodex-Wechselformat:anx:$
+10:audio/annodex:Annodex-Audio:axa:$
+11:video/annodex:Annodex-Video:axv:$
+12:video/mpeg:MPEG-Video:mpg, mpeg, mpe:$
+13:audio/wav:WAV-Audio:wav:$
+14:audio/x-wav:WAV-Audio:wav:$
+15:audio/mpeg:MP3-Audio:mp3:$
+16:application/x-nsv-vp3-mp3:NullSoft-Video:nsv:$
+17:video/flv:Flash-Video:flv:$
+18:application/x-totem-plugin:Totem Multimedia plugin::$

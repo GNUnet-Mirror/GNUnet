@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<gconf>
+	<entry name="window_size" mtime="1307457373" type="pair">
+		<car type="int" value="600"/>
+		<cdr type="int" value="600"/>
+	</entry>
+	<entry name="first_run" mtime="1307455575" type="bool" value="false"/>
+	<entry name="show_details" mtime="1307455529" type="bool" value="false"/>
+	<entry name="launch_time" mtime="1307455528" type="int" value="1307455528"/>
+</gconf>

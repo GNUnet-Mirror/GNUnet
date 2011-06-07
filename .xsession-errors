@@ -1,0 +1,199 @@
+/etc/gdm/Xsession: Beginning session setup...
+Setting IM through im-switch for locale=de_DE.
+Start IM through /etc/X11/xinit/xinput.d/all_ALL linked to /etc/X11/xinit/xinput.d/default.
+GNOME_KEYRING_CONTROL=/tmp/keyring-HBCyRd
+GNOME_KEYRING_CONTROL=/tmp/keyring-HBCyRd
+GNOME_KEYRING_CONTROL=/tmp/keyring-HBCyRd
+SSH_AUTH_SOCK=/tmp/keyring-HBCyRd/ssh
+
+(polkit-gnome-authentication-agent-1:1918): GLib-GObject-WARNING **: cannot register existing type `_PolkitError'
+
+(polkit-gnome-authentication-agent-1:1918): GLib-CRITICAL **: g_once_init_leave: assertion `initialization_value != 0' failed
+** (nm-applet:1917): DEBUG: old state indicates that this was not a disconnect 0
+
+(gnome-power-manager:1916): GLib-GObject-WARNING **: /build/buildd/glib2.0-2.24.1/gobject/gsignal.c:2273: signal `proxy-status' is invalid for instance `0x99d82f8'
+Unable to find a synaptics device.
+Initializing nautilus-gdu extension
+WARNING: Application calling GLX 1.3 function "glXCreatePixmap" when GLX 1.3 is not supported!  This is an application bug!
+Starting gtk-window-decorator
+I/O warning : failed to load external entity "/home/ruppa/.compiz/session/10d6ac1c612e8e67fc130745542688456400000018550026"
+WARNING: Application calling GLX 1.3 function "glXDestroyPixmap" when GLX 1.3 is not supported!  This is an application bug!
+evolution-alarm-notify-Message: Setting timeout for 35735 1307491200 1307455465
+evolution-alarm-notify-Message:  Wed Jun  8 02:00:00 2011
+
+evolution-alarm-notify-Message:  Tue Jun  7 16:04:25 2011
+
+** (update-notifier:2030): DEBUG: --security-updates-unattended: 0
+
+** (update-notifier:2030): DEBUG: Skipping reboot required
+** (nm-applet:1917): DEBUG: foo_client_state_changed_cb
+
+(nm-connection-editor:2098): Gtk-WARNING **: GtkSpinButton: setting an adjustment with non-zero page size is deprecated
+
+** (nm-connection-editor:2098): WARNING **: Invalid setting IPv4-Einstellungen: addresses
+
+** (nm-connection-editor:2098): WARNING **: Invalid setting IPv4-Einstellungen: addresses
+
+** (nm-connection-editor:2098): WARNING **: ui_to_setting: IPv4 address '<none>' missing or invalid!
+
+** (nm-connection-editor:2098): WARNING **: Invalid setting IPv4-Einstellungen
+** (nm-applet:1917): DEBUG: old state indicates that this was not a disconnect 9
+** (nm-applet:1917): DEBUG: foo_client_state_changed_cb
+** (nm-applet:1917): DEBUG: going for offline with icon: notification-network-ethernet-disconnected
+** (nm-applet:1917): DEBUG: going for offline with icon: notification-network-ethernet-disconnected
+
+** (nm-connection-editor:2098): WARNING **: ui_to_setting: IPv4 prefix '<none>' missing!
+
+** (nm-connection-editor:2098): WARNING **: Invalid setting IPv4-Einstellungen
+
+** (nm-connection-editor:2098): WARNING **: Invalid setting IPv4-Einstellungen
+
+** (nm-connection-editor:2098): WARNING **: Invalid setting IPv4-Einstellungen
+
+** (nm-connection-editor:2098): WARNING **: Invalid setting IPv4-Einstellungen
+
+** (nm-connection-editor:2098): WARNING **: Invalid setting IPv4-Einstellungen
+
+** (nm-connection-editor:2098): WARNING **: Invalid setting IPv4-Einstellungen
+
+** (nm-connection-editor:2098): WARNING **: Invalid setting IPv4-Einstellungen
+
+** (nm-connection-editor:2098): WARNING **: Invalid setting IPv4-Einstellungen
+
+** (nm-connection-editor:2098): WARNING **: Invalid setting IPv4-Einstellungen
+
+** (nm-connection-editor:2098): WARNING **: Invalid setting IPv4-Einstellungen
+
+** (nm-connection-editor:2098): WARNING **: Invalid setting IPv4-Einstellungen
+
+** (nm-connection-editor:2098): WARNING **: Invalid setting IPv4-Einstellungen
+
+** (nm-connection-editor:2098): WARNING **: Invalid setting IPv4-Einstellungen
+
+** (nm-connection-editor:2098): WARNING **: Invalid setting IPv4-Einstellungen
+
+** (nm-connection-editor:2098): WARNING **: Invalid setting IPv4-Einstellungen
+
+** (nm-connection-editor:2098): WARNING **: Invalid setting IPv4-Einstellungen
+
+(polkit-gnome-authentication-agent-1:1918): polkit-gnome-1-WARNING **: No icon for themed icon with name 'nm-icon'
+
+** (nm-connection-editor:2098): WARNING **: dispose: CEPolkitButton object 0x8bf1170 disposed twice
+
+** (nm-connection-editor:2098): WARNING **: dispose: CEPolkitButton object 0x8bf10c0 disposed twice
+
+** (nm-connection-editor:2098): WARNING **: dispose: CEPolkitButton object 0x8bf12d0 disposed twice
+
+** (nm-connection-editor:2098): WARNING **: dispose: CEPolkitButton object 0x8bf1220 disposed twice
+
+** (nm-connection-editor:2098): WARNING **: dispose: CEPolkitButton object 0x8bf1430 disposed twice
+
+** (nm-connection-editor:2098): WARNING **: dispose: CEPolkitButton object 0x8bf1380 disposed twice
+
+** (nm-connection-editor:2098): WARNING **: dispose: CEPolkitButton object 0x8bf1590 disposed twice
+
+** (nm-connection-editor:2098): WARNING **: dispose: CEPolkitButton object 0x8bf14e0 disposed twice
+
+** (nm-connection-editor:2098): WARNING **: dispose: CEPolkitButton object 0x8bf16f0 disposed twice
+
+** (nm-connection-editor:2098): WARNING **: dispose: CEPolkitButton object 0x8bf1640 disposed twice
+
+(nm-connection-editor:2098): Gtk-CRITICAL **: gtk_widget_hide: assertion `GTK_IS_WIDGET (widget)' failed
+** (nm-applet:1917): DEBUG: foo_client_state_changed_cb
+
+(gnome-display-properties:2246): Gtk-WARNING **: Ignoring the separator setting
+
+(gnome-display-properties:2246): Gtk-WARNING **: No object called: 
+
+(nm-connection-editor:2253): Gtk-WARNING **: GtkSpinButton: setting an adjustment with non-zero page size is deprecated
+
+(polkit-gnome-authentication-agent-1:1918): polkit-gnome-1-WARNING **: No icon for themed icon with name 'nm-icon'
+** (nm-applet:1917): DEBUG: going for offline with icon: notification-network-ethernet-disconnected
+** (nm-applet:1917): DEBUG: foo_client_state_changed_cb
+Nautilus-Share-Message: Called "net usershare info" but it failed: »net usershare« gab den Fehler 255 zurück: net usershare: cannot open usershare directory /var/lib/samba/usershares. Error Datei oder Verzeichnis nicht gefunden
+Please ask your system administrator to enable user sharing.
+
+ERROR:root:failed to add apt-xapian-index
+Traceback (most recent call last):
+  File "/usr/share/software-center/softwarecenter/db/database.py", line 64, in open
+    axi = xapian.Database("/var/lib/apt-xapian-index/index")
+  File "/usr/lib/python2.6/dist-packages/xapian.py", line 2454, in __init__
+    _xapian.Database_swiginit(self,_xapian.new_Database(*args))
+DatabaseOpeningError: Couldn't detect type of database
+/usr/share/software-center/softwarecenter/apt/aptcache.py:40: GtkWarning: gtk_container_add: assertion `GTK_IS_CONTAINER (container)' failed
+  gtk.main_iteration()
+/usr/share/software-center/softwarecenter/view/appview.py:737: DeprecationWarning: integer argument expected, got float
+  h)
+debconf: DbDriver "passwords" warning: could not open /var/cache/debconf/passwords.dat: Keine Berechtigung
+debconf: DbDriver "passwords" warning: could not open /var/cache/debconf/passwords.dat: Keine Berechtigung
+debconf: DbDriver "passwords" warning: could not open /var/cache/debconf/passwords.dat: Keine Berechtigung
+/usr/share/software-center/softwarecenter/view/catview.py:104: GtkWarning: gtk_container_add: assertion `GTK_IS_CONTAINER (container)' failed
+  gtk.main_iteration()
+debconf: DbDriver "passwords" warning: could not open /var/cache/debconf/passwords.dat: Keine Berechtigung
+debconf: DbDriver "passwords" warning: could not open /var/cache/debconf/passwords.dat: Keine Berechtigung
+debconf: DbDriver "passwords" warning: could not open /var/cache/debconf/passwords.dat: Keine Berechtigung
+
+(polkit-gnome-authentication-agent-1:1918): GLib-GObject-WARNING **: instance of invalid non-instantiatable type `(null)'
+
+(polkit-gnome-authentication-agent-1:1918): GLib-GObject-CRITICAL **: g_signal_emit_valist: assertion `G_TYPE_CHECK_INSTANCE (instance)' failed
+
+(polkit-gnome-authentication-agent-1:1918): GLib-GObject-WARNING **: instance with invalid (NULL) class pointer
+
+(polkit-gnome-authentication-agent-1:1918): GLib-GObject-CRITICAL **: g_signal_emit_valist: assertion `G_TYPE_CHECK_INSTANCE (instance)' failed
+
+(polkit-gnome-authentication-agent-1:1918): GLib-GObject-WARNING **: instance of invalid non-instantiatable type `(null)'
+
+(polkit-gnome-authentication-agent-1:1918): GLib-GObject-CRITICAL **: g_signal_emit_valist: assertion `G_TYPE_CHECK_INSTANCE (instance)' failed
+debconf: DbDriver "passwords" warning: could not open /var/cache/debconf/passwords.dat: Keine Berechtigung
+debconf: DbDriver "passwords" warning: could not open /var/cache/debconf/passwords.dat: Keine Berechtigung
+debconf: DbDriver "passwords" warning: could not open /var/cache/debconf/passwords.dat: Keine Berechtigung
+/usr/share/software-center/softwarecenter/view/appview.py:137: GtkWarning: gtk_container_add: assertion `GTK_IS_CONTAINER (container)' failed
+  gtk.main_iteration()
+
+(polkit-gnome-authentication-agent-1:1918): GLib-GObject-WARNING **: /build/buildd/glib2.0-2.24.1/gobject/gsignal.c:2922: signal id `204' is invalid for instance `0x8eb3168'
+
+(polkit-gnome-authentication-agent-1:1918): GLib-GObject-WARNING **: instance with invalid (NULL) class pointer
+
+(polkit-gnome-authentication-agent-1:1918): GLib-GObject-CRITICAL **: g_signal_emit_valist: assertion `G_TYPE_CHECK_INSTANCE (instance)' failed
+
+(polkit-gnome-authentication-agent-1:1918): GLib-GObject-WARNING **: /build/buildd/glib2.0-2.24.1/gobject/gsignal.c:2922: signal id `204' is invalid for instance `0x8eb2f50'
+
+(polkit-gnome-authentication-agent-1:1918): GLib-GObject-WARNING **: /build/buildd/glib2.0-2.24.1/gobject/gsignal.c:2922: signal id `204' is invalid for instance `0x8eb3240'
+debconf: DbDriver "passwords" warning: could not open /var/cache/debconf/passwords.dat: Keine Berechtigung
+debconf: DbDriver "passwords" warning: could not open /var/cache/debconf/passwords.dat: Keine Berechtigung
+debconf: DbDriver "passwords" warning: could not open /var/cache/debconf/passwords.dat: Keine Berechtigung
+debconf: DbDriver "passwords" warning: could not open /var/cache/debconf/passwords.dat: Keine Berechtigung
+debconf: DbDriver "passwords" warning: could not open /var/cache/debconf/passwords.dat: Keine Berechtigung
+Use of uninitialized value $template in exists at /usr/share/perl5/Debconf/Template.pm line 81, <> line 2.
+Use of uninitialized value $item in exists at /usr/share/perl5/Debconf/DbDriver/Cache.pm line 39, <> line 2.
+Use of uninitialized value $item in exists at /usr/share/perl5/Debconf/DbDriver/Cache.pm line 39, <> line 2.
+debconf: DbDriver "passwords" warning: could not open /var/cache/debconf/passwords.dat: Keine Berechtigung
+Use of uninitialized value $template in exists at /usr/share/perl5/Debconf/Template.pm line 81, <> line 2.
+Use of uninitialized value $item in exists at /usr/share/perl5/Debconf/DbDriver/Cache.pm line 39, <> line 2.
+Use of uninitialized value $item in exists at /usr/share/perl5/Debconf/DbDriver/Cache.pm line 39, <> line 2.
+debconf: DbDriver "passwords" warning: could not open /var/cache/debconf/passwords.dat: Keine Berechtigung
+debconf: DbDriver "passwords" warning: could not open /var/cache/debconf/passwords.dat: Keine Berechtigung
+debconf: DbDriver "passwords" warning: could not open /var/cache/debconf/passwords.dat: Keine Berechtigung
+debconf: DbDriver "passwords" warning: could not open /var/cache/debconf/passwords.dat: Keine Berechtigung
+
+(polkit-gnome-authentication-agent-1:1918): GLib-GObject-WARNING **: instance of invalid non-instantiatable type `(null)'
+
+(polkit-gnome-authentication-agent-1:1918): GLib-GObject-CRITICAL **: g_signal_emit_valist: assertion `G_TYPE_CHECK_INSTANCE (instance)' failed
+
+(polkit-gnome-authentication-agent-1:1918): GLib-GObject-WARNING **: instance with invalid (NULL) class pointer
+
+(polkit-gnome-authentication-agent-1:1918): GLib-GObject-CRITICAL **: g_signal_emit_valist: assertion `G_TYPE_CHECK_INSTANCE (instance)' failed
+
+(polkit-gnome-authentication-agent-1:1918): GLib-GObject-WARNING **: instance of invalid non-instantiatable type `(null)'
+
+(polkit-gnome-authentication-agent-1:1918): GLib-GObject-CRITICAL **: g_signal_emit_valist: assertion `G_TYPE_CHECK_INSTANCE (instance)' failed
+
+(polkit-gnome-authentication-agent-1:1918): GLib-GObject-WARNING **: /build/buildd/glib2.0-2.24.1/gobject/gsignal.c:2922: signal id `204' is invalid for instance `0x8eb3240'
+
+(polkit-gnome-authentication-agent-1:1918): GLib-GObject-WARNING **: instance with invalid (NULL) class pointer
+
+(polkit-gnome-authentication-agent-1:1918): GLib-GObject-CRITICAL **: g_signal_emit_valist: assertion `G_TYPE_CHECK_INSTANCE (instance)' failed
+polkit-agent-helper-1: pam_authenticated failed: Authentication failure
+debconf: DbDriver "passwords" warning: could not open /var/cache/debconf/passwords.dat: Keine Berechtigung
+debconf: DbDriver "passwords" warning: could not open /var/cache/debconf/passwords.dat: Keine Berechtigung
+debconf: DbDriver "passwords" warning: could not open /var/cache/debconf/passwords.dat: Keine Berechtigung

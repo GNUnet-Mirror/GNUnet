@@ -1,0 +1,96 @@
+<?xml version="1.0"?>
+<gconf>
+	<entry name="active_plugins" mtime="1307455460" type="list" ltype="string">
+		<li type="string">
+			<stringvalue>core</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>ccp</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>move</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>resize</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>place</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>decoration</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>dbus</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>mousepoll</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>gnomecompat</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>png</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>svg</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>imgjpeg</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>text</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>commands</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>neg</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>wall</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>snap</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>animation</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>scale</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>scaleaddon</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>expo</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>staticswitcher</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>regex</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>resizeinfo</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>workarounds</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>ezoom</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>vpswitch</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>fade</stringvalue>
+		</li>
+		<li type="string">
+			<stringvalue>session</stringvalue>
+		</li>
+	</entry>
+	<entry name="cursor_size" mtime="1307455452" type="int" value="18"/>
+	<entry name="cursor_theme" mtime="1307455452" type="string">
+		<stringvalue>DMZ-White</stringvalue>
+	</entry>
+</gconf>
