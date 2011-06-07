@@ -196,9 +196,9 @@ TESTS = \
  test_gnunet_service_fs_p2p \
  perf_gnunet_service_fs_p2p \
  perf_gnunet_service_fs_p2p_index \
+ perf_gnunet_service_fs_p2p_trust \
  $(check_SCRIPTS)  
 endif
-# perf_gnunet_service_fs_p2p_trust 
 
 
 

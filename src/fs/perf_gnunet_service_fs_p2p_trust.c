@@ -32,26 +32,20 @@
  *        leachers should see fast download rates as well.
  * @author Christian Grothoff
  *
- * Sample outputs:
- * - 1 MB, 3 peers:
- * Download speed of type `seeder 1' was 3864 KiB/s
- * Download speed of type `seeder 2' was 3764 KiB/s
- * Download speed of type `leach' was 3592 KiB/s
- * Analysis: download too small for trust to go into effect
- * - 100 MB, 3 peers:
- * Download speed of type `seeder 1' was 4018 KiB/s
- * Download speed of type `seeder 2' was 4016 KiB/s
+ * Sample output:
+ * - 10 MB, 3 peers:
+ * Download speed of type `seeder 1' was 6 MiB/s
+ * Download speed of type `seeder 2' was 6 MiB/s
+ * Download speed of type `leach` was 1051 KiB/s
  * 
- * Analysis: leach squeezed out entirely early, then backs off far too
- *           far => fails to ever recover (code needs improvement...)
- *          [system load is initially very high, then drops to 0
- *           after seeders are done]
+ * Analysis: leach squeezed out entirely early, then gets to
+ *           take its turn once the main downloads complete
  */
 #include "platform.h"
 #include "fs_test_lib.h"
 #include "gnunet_testing_lib.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 /**
  * File-size we use for testing.
