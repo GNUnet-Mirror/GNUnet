@@ -1,6 +1,0 @@
-{
-  "version": 1,
-  "bluetooth-manager": { "first-time": "2011-06-07T14:04:13.934200Z", "last-time": "2011-06-07T14:04:13.934202Z", "category": "Hardware"},
-  "gnome-power-manager": { "first-time": "2011-06-07T14:04:13.915173Z", "last-time": "2011-06-07T14:04:13.915181Z", "category": "Hardware"},
-  "PolicyKit-gnome": { "first-time": "2011-06-07T14:06:50.457857Z", "last-time": "2011-06-07T15:38:02.395998Z", "category": "SystemServices"}
-}
