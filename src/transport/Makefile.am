@@ -32,7 +32,6 @@ if USE_COVERAGE
   AM_CFLAGS = --coverage -O0
 endif
 
-if HAVE_PCAP
 if LINUX
  WLAN_BIN = gnunet-transport-wlan-helper
  WLAN_BIN_DUMMY = gnunet-transport-wlan-helper-dummy
@@ -40,7 +39,6 @@ if LINUX
  WLAN_API_TEST = test_transport_api_wlan
  WLAN_REL_TEST = test_transport_api_reliability_wlan
  WLAN_UREL_TEST = test_transport_api_unreliability_wlan
-endif
 endif
 
 if !MINGW
@@ -435,7 +433,6 @@ test_transport_api_unreliability_udp_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
-if HAVE_PCAP
 if LINUX
 test_transport_api_wlan_SOURCES = \
  test_transport_api.c
@@ -443,7 +440,6 @@ test_transport_api_wlan_LDADD = \
  $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  
-endif
 endif
 
 test_quota_compliance_tcp_SOURCES = \
