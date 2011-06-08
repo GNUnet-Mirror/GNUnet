@@ -383,39 +383,6 @@ AM_CONDITIONAL(HAVE_POSTGRES, test x$postgres = xtrue)
 AC_SUBST(POSTGRES_CPPFLAGS)
 AC_SUBST(POSTGRES_LDFLAGS)
 
-# test for pcap
-pcap=0
-AC_MSG_CHECKING(for libpcap)
-AC_ARG_WITH(pcap,
-  [  --with-pcap=PFX       base of pcap installation],
-  [AC_MSG_RESULT("$with_pcap")
-   case $with_pcap in
-   no)
-     ;;
-   yes)
-    AC_CHECK_HEADERS(pcap.h,
-     pcap=1)
-     ;;
-   *)
-    LDFLAGS="-L$with_pcap/lib $LDFLAGS"
-    CPPFLAGS="-I$with_pcap/include $CPPFLAGS"
-    AC_CHECK_HEADERS(pcap.h,
-     EXT_LIB_PATH="-L$with_pcap/lib $EXT_LIB_PATH"
-     PCAP_LDFLAGS="-L$with_pcap/lib"
-     PCAP_CPPFLAGS="-I$with_pcap/include"
-     pcap=1)
-    LDFLAGS=$SAVE_LDFLAGS
-    CPPFLAGS=$SAVE_CPPFLAGS
-    ;;
-   esac
-  ],
-  [AC_MSG_RESULT([--with-pcap not specified])
-    AC_CHECK_HEADERS(pcap.h, pcap=1)])
-AM_CONDITIONAL(HAVE_PCAP, test x$pcap = x1)
-AC_SUBST(PCAP_CPPFLAGS)
-AC_SUBST(PCAP_LDFLAGS)
-
-
 # test for libz (maybe required for linking mysql)
 zlib=1
 AC_CHECK_LIB(z, compress,,zlib=0)
@@ -876,11 +843,6 @@ fi
 if test "x$esmtp" != "x1"
 then
  AC_MSG_NOTICE([NOTICE: libesmtp not found, monkey will not be installed.])
-fi
-
-if test "x$pcap" != "x1"
-then
- AC_MSG_NOTICE([NOTICE: libpcap not found, WiFi support will not be installed.])
 fi
 
 if test "x$openssl" != "x1"
