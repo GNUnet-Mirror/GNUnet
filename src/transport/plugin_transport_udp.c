@@ -2267,8 +2267,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
                                                 &external_address)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Require EXTERNAL_ADDRESS for service `%s' in configuration (either BEHIND_NAT or ALLOW_NAT set to YES)!\n"),
-                  "transport-udp");
+                  _("Require EXTERNAL_ADDRESS in section `%s' in configuration (either BEHIND_NAT or ALLOW_NAT set to YES)!\n"),
+                  "nat");
       return NULL;
     }
 
@@ -2285,8 +2285,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
                                                 &internal_address)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Require INTERNAL_ADDRESS for service `%s' in configuration!\n"),
-		  "transport-udp");
+		  _("Require INTERNAL_ADDRESS in section `%s' in configuration!\n"),
+		  "nat");
       GNUNET_free_non_null(external_address);
       return NULL;
     }
