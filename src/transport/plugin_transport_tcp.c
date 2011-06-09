@@ -641,7 +641,8 @@ add_to_address_list (struct Plugin *plugin,
     }
   if ( (plugin->behind_nat == GNUNET_YES) &&
        (plugin->enable_upnp == GNUNET_YES) )
-    lal->nat = GNUNET_NAT_register (sa, salen,
+    lal->nat = GNUNET_NAT_register (plugin->env->cfg,
+				    sa, salen,
 				    &nat_port_map_callback,
 				    lal);
 }
