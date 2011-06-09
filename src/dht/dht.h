@@ -362,6 +362,8 @@ struct GNUNET_DHT_PutMessage
    */
   struct GNUNET_TIME_AbsoluteNBO expiration;
 
+  /* DATA copied to end of this message */
+
 };
 
 
@@ -451,6 +453,9 @@ struct GNUNET_DHT_GetResultMessage
    * When does this entry expire?
    */
   struct GNUNET_TIME_AbsoluteNBO expiration;
+
+  /* OUTGOING path copied to end of this message */
+  /* DATA result copied to end of this message */
 
 };
 

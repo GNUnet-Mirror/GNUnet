@@ -740,24 +740,24 @@ static unsigned long long revision;
  * been notified about (how many times has topology_callback been called
  * with success?)
  */
-static unsigned int total_connections;
+static uint64_t total_connections;
 
 /**
  * Previous connections, for counting new connections during some duration.
  */
-static unsigned int previous_connections;
+static uint64_t previous_connections;
 
 /**
  * For counting failed connections during some duration.
  */
-static unsigned int previous_failed_connections;
+static uint64_t previous_failed_connections;
 
 /**
  * Global used to count how many failed connections we have
  * been notified about (how many times has topology_callback
  * been called with failure?)
  */
-static unsigned int failed_connections;
+static uint64_t failed_connections;
 
 /**
  * If GNUNET_YES, only log PUT/GET round data to mysql, otherwise
@@ -2950,14 +2950,14 @@ topology_callback(void *cls, const struct GNUNET_PeerIdentity *first,
                   struct GNUNET_TESTING_Daemon *second_daemon, const char *emsg)
 {
   struct TopologyIteratorContext *topo_ctx;
-  unsigned long long duration;
-  unsigned long long total_duration;
-  unsigned int new_connections;
-  unsigned int new_failed_connections;
-  long double conns_per_sec_recent;
-  long double conns_per_sec_total;
-  long double failed_conns_per_sec_recent;
-  long double failed_conns_per_sec_total;
+  uint64_t duration;
+  uint64_t total_duration;
+  uint64_t new_connections;
+  uint64_t new_failed_connections;
+  double conns_per_sec_recent;
+  double conns_per_sec_total;
+  double failed_conns_per_sec_recent;
+  double failed_conns_per_sec_total;
   char *temp_conn_string;
   char *temp_conn_failed_string;
   char *revision_str;
@@ -3009,10 +3009,10 @@ topology_callback(void *cls, const struct GNUNET_PeerIdentity *first,
                                                  GNUNET_TIME_absolute_get ()).rel_value
               / 1000;
 
-      failed_conns_per_sec_recent = (long double) new_failed_connections / duration;
-      failed_conns_per_sec_total = (long double) failed_connections / total_duration;
-      conns_per_sec_recent = (long double) new_connections / duration;
-      conns_per_sec_total = (long double) total_connections / total_duration;
+      failed_conns_per_sec_recent = (double) new_failed_connections / (double) duration;
+      failed_conns_per_sec_total = (double) failed_connections / (double) total_duration;
+      conns_per_sec_recent = (double) new_connections / (double) duration;
+      conns_per_sec_total = (double) total_connections / (double) total_duration;
       GNUNET_log (
                   GNUNET_ERROR_TYPE_WARNING,
                   "Recent: %.2f/s, Total: %.2f/s, Recent failed: %.2f/s, total failed %.2f/s\n",
@@ -3023,7 +3023,7 @@ topology_callback(void *cls, const struct GNUNET_PeerIdentity *first,
       previous_connections = total_connections;
       previous_failed_connections = failed_connections;
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "have %u total_connections, %u failed\n", total_connections,
+                  "have %llu total_connections, %llu failed\n", total_connections,
                   failed_connections);
 #if ONLY_TESTING
       /* These conditions likely mean we've entered the death spiral of doom */
@@ -3114,9 +3114,9 @@ topology_callback(void *cls, const struct GNUNET_PeerIdentity *first,
       GNUNET_asprintf (&revision_str, "%llu", revision);
 
       if (GNUNET_YES == insert_gauger_data)
-        GAUGER_ID("DHT_TESTING", temp_conn_string, (float)conns_per_sec_total, "conns/s", revision_str);
+        GAUGER_ID("DHT_TESTING", temp_conn_string, (long double)conns_per_sec_total, "conns/s", revision_str);
       if (GNUNET_YES == insert_gauger_data)
-        GAUGER_ID("DHT_TESTING", temp_conn_failed_string, (float)failed_conns_per_sec_total, "failed_conns", revision_str);
+        GAUGER_ID("DHT_TESTING", temp_conn_failed_string, (long double)failed_conns_per_sec_total, "failed_conns", revision_str);
 
       GNUNET_free(temp_conn_string);
       GNUNET_free(temp_conn_failed_string);
@@ -3128,9 +3128,9 @@ topology_callback(void *cls, const struct GNUNET_PeerIdentity *first,
                        "DHT Profiler Total Connections failed",
                        trial_to_run);
       if (GNUNET_YES == insert_gauger_data)
-        GAUGER_ID("DHT_TESTING", temp_conn_string, total_connections, "conns", revision_str);
+        GAUGER_ID("DHT_TESTING", temp_conn_string, (double)total_connections, "conns", revision_str);
       if (GNUNET_YES == insert_gauger_data)
-        GAUGER_ID("DHT_TESTING", temp_conn_failed_string, failed_connections, "failed conns", revision_str);
+        GAUGER_ID("DHT_TESTING", temp_conn_failed_string, (double)failed_connections, "failed conns", revision_str);
       GNUNET_free(temp_conn_string);
       GNUNET_free(temp_conn_failed_string);
       GNUNET_free(revision_str);
