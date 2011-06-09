@@ -64,6 +64,17 @@
  * peer disconnects from a tunnel       GNUNET_MESH_PeerControl
  */
 
+/******************************************************************************/
+/**************************       CONSTANTS      ******************************/
+/******************************************************************************/
+
+#define GNUNET_MESH_LOCAL_TUNNEL_ID_MARK 0x80000000
+
+
+/******************************************************************************/
+/**************************        MESSAGES      ******************************/
+/******************************************************************************/
+
 /**
  * Message for a client to register to the service
  */
@@ -88,7 +99,7 @@ struct GNUNET_MESH_ClientConnect {
  * - Local tunnel numbers are >= 0x80000000
  * - Global tunnel numbers are < 0x80000000
  */
-typedef uint32_t MESH_TunnelID;
+typedef uint32_t MESH_TunnelNumber;
 
 /**
  * Message for a client to create and destroy tunnels.
@@ -104,7 +115,7 @@ struct GNUNET_MESH_TunnelMessage {
     /**
      * ID of a tunnel controlled by this client.
      */
-    MESH_TunnelID               tunnel_id GNUNET_PACKED;
+    MESH_TunnelNumber           tunnel_id GNUNET_PACKED;
 };
 
 /**
@@ -130,7 +141,7 @@ struct GNUNET_MESH_PeerControl {
   /**
    * ID of a tunnel controlled by this client.
    */
-   MESH_TunnelID                tunnel_id GNUNET_PACKED;
+   MESH_TunnelNumber            tunnel_id GNUNET_PACKED;
   
   /**
    * Peer to connect/disconnect.
@@ -151,7 +162,7 @@ struct GNUNET_MESH_ConnectPeerByType {
   /**
    * ID of a tunnel controlled by this client.
    */
-   MESH_TunnelID                tunnel_id GNUNET_PACKED;
+   MESH_TunnelNumber            tunnel_id GNUNET_PACKED;
  
   /**
    * Type specification 
@@ -174,7 +185,7 @@ struct GNUNET_MESH_TransmitReady {
     /**
      * ID of a tunnel controlled by this client.
      */
-    MESH_TunnelID               tunnel_id GNUNET_PACKED;
+    MESH_TunnelNumber           tunnel_id GNUNET_PACKED;
 
     /**
      * Size of message we would like to transmit to this tunnel
@@ -197,7 +208,7 @@ struct GNUNET_MESH_Data {
     /**
      * ID of a tunnel controlled by this client.
      */
-    MESH_TunnelID               tunnel_id GNUNET_PACKED;
+    MESH_TunnelNumber           tunnel_id GNUNET_PACKED;
 
     /**
      * Source or destination of the message (depending on direction).
@@ -221,7 +232,7 @@ struct GNUNET_MESH_DataBroadcast {
     /**
      * ID of a tunnel controlled by this client.
      */
-    MESH_TunnelID               tunnel_id GNUNET_PACKED;
+    MESH_TunnelNumber           tunnel_id GNUNET_PACKED;
 
     /* uint8_t data[] */
 };

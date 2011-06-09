@@ -50,12 +50,6 @@ extern "C"
 #include "mesh.h"
 
 /******************************************************************************/
-/**************************       CONSTANTS      ******************************/
-/******************************************************************************/
-
-#define GNUNET_MESH_LOCAL_TUNNEL_ID_MARK 0x80000000
-
-/******************************************************************************/
 /************************      DATA STRUCTURES     ****************************/
 /******************************************************************************/
 
@@ -92,7 +86,7 @@ struct GNUNET_MESH_Handle {
     /**
      * tid of the next tunnel to create (to avoid reusing IDs often)
      */
-    MESH_TunnelID                               next_tid;
+    MESH_TunnelNumber                               next_tid;
 
     /**
      * Callback for tunnel disconnection
@@ -124,7 +118,7 @@ struct GNUNET_MESH_Tunnel {
     /**
      * Local ID of the tunnel
      */
-    MESH_TunnelID                               tid;
+    MESH_TunnelNumber                               tid;
 
     /**
      * Callback to execute when peers connect to the tunnel
@@ -167,7 +161,7 @@ struct GNUNET_MESH_TransmitHandle {
  * @return handle to the required tunnel or NULL if not found
  */
 static struct GNUNET_MESH_Tunnel *
-retrieve_tunnel (struct GNUNET_MESH_Handle *h, MESH_TunnelID tid) 
+retrieve_tunnel (struct GNUNET_MESH_Handle *h, MESH_TunnelNumber tid) 
 {
     struct GNUNET_MESH_Tunnel           *t;
 
@@ -322,7 +316,7 @@ process_tunnel_create(struct GNUNET_MESH_Handle *h,
                       const struct GNUNET_MESH_TunnelMessage *msg)
 {
     struct GNUNET_MESH_Tunnel                   *t;
-    MESH_TunnelID                               tid;
+    MESH_TunnelNumber                               tid;
 
     tid = ntohl(msg->tunnel_id);
     if (tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_MARK) {
