@@ -536,7 +536,7 @@ nat_port_map_callback (void *cls,
     {
     case AF_INET:
       t4.ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
-      t6.t6_port = ((struct sockaddr_in *) addr)->sin_port;
+      t4.t_port = ((struct sockaddr_in *) addr)->sin_port;
       arg = &t4;
       args = sizeof (t4);
       break;

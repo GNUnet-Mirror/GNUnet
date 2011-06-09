@@ -213,9 +213,9 @@ libgnunet_plugin_transport_http_la_LIBADD = \
 libgnunet_plugin_transport_http_la_LDFLAGS = \
  $(GN_LIBMHD) \
  $(GN_PLUGIN_LDFLAGS)
-libgnunet_plugin_transport_https_la_CFLAGS = \
+libgnunet_plugin_transport_http_la_CFLAGS = \
  $(CFLAGS) 
-libgnunet_plugin_transport_https_la_CPPFLAGS = \
+libgnunet_plugin_transport_http_la_CPPFLAGS = \
  @LIBCURL_CPPFLAGS@
 
 libgnunet_plugin_transport_https_la_SOURCES = \
