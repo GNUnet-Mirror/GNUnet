@@ -2278,7 +2278,7 @@ process_interfaces (void *cls,
     case AF_INET6:      
       if ( (IN6_IS_ADDR_LINKLOCAL (&((struct sockaddr_in6 *) addr)->sin6_addr)) || 
 	   (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(plugin->env->cfg, 
-							       "transport-tcp", 
+							       "nat", 
 							       "DISABLEV6")) )
 	{
 	  /* skip link local addresses */
@@ -2829,19 +2829,19 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   struct GNUNET_TIME_Relative idle_timeout;
 
   behind_nat = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
-						     "transport-tcp",
+						     "nat",
 						     "BEHIND_NAT");
   nat_punched = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
-						      "transport-tcp",
+						      "nat",
 						      "NAT_PUNCHED");
   enable_nat_client = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
-							    "transport-tcp",
+							    "nat",
 							    "ENABLE_NAT_CLIENT");
   enable_nat_server = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
-							    "transport-tcp",
+							    "nat",
 							    "ENABLE_NAT_SERVER");
   enable_upnp = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
-						      "transport-tcp",
+						      "nat",
 						      "ENABLE_UPNP");
   
   if ( (GNUNET_YES == enable_nat_server) &&
@@ -2865,11 +2865,11 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   external_address = NULL;
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_have_value (env->cfg,
-				       "transport-tcp",
+				       "nat",
 				       "EXTERNAL_ADDRESS"))
     {
       (void) GNUNET_CONFIGURATION_get_value_string (env->cfg,
-						    "transport-tcp",
+						    "nat",
 						    "EXTERNAL_ADDRESS",
 						    &external_address);
     }
@@ -2902,7 +2902,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
 
   bind_address = NULL;
   if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_string (env->cfg,
-							   "transport-tcp",
+							   "nat",
 							   "BINDTO",
 							   &bind_address))
 	{
@@ -2915,11 +2915,11 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   internal_address = NULL;
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_have_value (env->cfg,
-				       "transport-tcp",
+				       "nat",
 				       "INTERNAL_ADDRESS"))
     {
       (void) GNUNET_CONFIGURATION_get_value_string (env->cfg,
-						    "transport-tcp",
+						    "nat",
 						    "INTERNAL_ADDRESS",
 						    &internal_address);
     }
@@ -2975,14 +2975,11 @@ libgnunet_plugin_transport_tcp_init (void *cls)
       return NULL;
     }
 
-  use_localaddresses = GNUNET_NO;
-  if (GNUNET_CONFIGURATION_have_value (env->cfg,
-				       "transport-tcp", "USE_LOCALADDR"))
-    {
-      use_localaddresses = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
-								 "transport-tcp",
-								 "USE_LOCALADDR");
-    }
+  use_localaddresses = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+							     "transport-tcp",
+							     "USE_LOCALADDR");
+  if (use_localaddresses == GNUNET_SYSERR)
+    use_localaddresses = GNUNET_NO;
   
   if (aport == 0)
     aport = bport;

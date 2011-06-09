@@ -1731,7 +1731,7 @@ udp_transport_server_start (void *cls)
     }
 
   if ( (GNUNET_YES !=
-	GNUNET_CONFIGURATION_get_value_yesno (plugin->env->cfg, "transport-udp",
+	GNUNET_CONFIGURATION_get_value_yesno (plugin->env->cfg, "nat",
 					      "DISABLEV6")))
     {
       plugin->udp_sockv6.desc = GNUNET_NETWORK_socket_create (PF_INET6, SOCK_DGRAM, 0);
@@ -2221,8 +2221,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
   struct IPv4UdpAddress v4_address;
 
   if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
-                                                         "transport-udp",
-                                                         "BEHIND_NAT"))
+							  "nat",
+							  "BEHIND_NAT"))
     {
       /* We are behind nat (according to the user) */
       if (check_gnunet_nat_binary("gnunet-nat-server") == GNUNET_YES)
@@ -2237,8 +2237,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
     behind_nat = GNUNET_NO; /* We are not behind nat! */
 
   if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
-                                                         "transport-udp",
-                                                         "ALLOW_NAT"))
+							  "nat",
+							  "ALLOW_NAT"))
     {
       if (check_gnunet_nat_binary("gnunet-nat-client") == GNUNET_YES)
         allow_nat = GNUNET_YES; /* We will try to connect to NAT'd peers */
@@ -2253,8 +2253,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
     allow_nat = GNUNET_NO; /* We don't want to try to help NAT'd peers */
 
   if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
-                                                           "transport-udp",
-                                                           "ONLY_NAT_ADDRESSES"))
+							  "nat",
+							  "ONLY_NAT_ADDRESSES"))
     only_nat_addresses = GNUNET_YES; /* We will only report our addresses as NAT'd */
   else
     only_nat_addresses = GNUNET_NO; /* We will report our addresses as NAT'd and non-NAT'd */
@@ -2262,7 +2262,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   external_address = NULL;
   if (((GNUNET_YES == behind_nat) || (GNUNET_YES == allow_nat)) && (GNUNET_OK !=
          GNUNET_CONFIGURATION_get_value_string (env->cfg,
-                                                "transport-udp",
+                                                "nat",
                                                 "EXTERNAL_ADDRESS",
                                                 &external_address)))
     {
@@ -2280,13 +2280,13 @@ libgnunet_plugin_transport_udp_init (void *cls)
   internal_address = NULL;
   if ((GNUNET_YES == behind_nat) && (GNUNET_OK !=
          GNUNET_CONFIGURATION_get_value_string (env->cfg,
-                                                "transport-udp",
+                                                "nat",
                                                 "INTERNAL_ADDRESS",
                                                 &internal_address)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                       _("Require INTERNAL_ADDRESS for service `%s' in configuration!\n"),
-                       "transport-udp");
+		  _("Require INTERNAL_ADDRESS for service `%s' in configuration!\n"),
+		  "transport-udp");
       GNUNET_free_non_null(external_address);
       return NULL;
     }
@@ -2325,8 +2325,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
 		  "transport-udp", "USE_LOCALADDR"))
     {
       use_localaddresses = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
-								   "transport-udp",
-							       "USE_LOCALADDR");
+								 "transport-udp",
+								 "USE_LOCALADDR");
     }
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
