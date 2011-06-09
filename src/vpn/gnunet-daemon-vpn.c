@@ -236,11 +236,6 @@ new_ip6addr(unsigned char* buf, const GNUNET_HashCode *peer, const GNUNET_HashCo
 }
 /*}}}*/
 
-char
-max (char a, char b)
-{
-  return a > b ? a : b;
-}
 
 /**
  * Create a new Address from an answer-packet
@@ -266,7 +261,7 @@ new_ip6addr_remote (unsigned char *buf, unsigned char *addr, char addrlen)
 
   int local_length = 16 - ipv6prefix;
 
-  memcpy (buf + ipv6prefix, addr, max (addrlen, local_length));
+  memcpy (buf + ipv6prefix, addr, GNUNET_MAX (addrlen, local_length));
 }
 /*}}}*/
 
