@@ -642,7 +642,8 @@ public class ExpressionExtractorVisitor extends DepthFirstVisitor {
 				NodeSequence ns = (NodeSequence) nc.choice;
 				ns.elementAt(1).accept(this);
 				LineNumberInfo lin = LineNumberInfo.get (ns.elementAt(1));
-				current_expression.commit(lin.lineEnd);
+				if (! current_expression.expression.isEmpty())
+					current_expression.commit(lin.lineEnd);
 				old.push("(");
 				old.push(current_expression.expression);
 				old.push(")");
