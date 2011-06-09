@@ -6,14 +6,14 @@
 * new webpage:
   - write chapter on DHT/block [Nate] 
   - make a NICE download page 
+* NAT/UPNP: [CG/MW]
+  - write NAT library 
 * Transport:
   - UDP fragmentation [MW]
-* NAT/UPNP: [MW]
-  - [#1609] code clean up
-  - testing
-  - integration with transport service:
-    + test TCP
-    + implement UDP, HTTP/HTTPS 
+  - decide how to deal with 'DISABLEV6' option (where does it live?)
+  - integration of new NAT/plugin API with HTTP/HTTPS plugin
+  - fix WLAN plugin for new plugin API (easy)
+  - testing (again)
 * GNUNET-GTK: [CG]
   - figure out where in the GUI we should show active upload operations and allow aborts
   - handle events:
@@ -34,23 +34,9 @@
     queue of size > 2), might be better to have at MOST one message pending
     per plugin/target and only send the next one after the continuation was
     called (or use 'notify_transmit_ready-style API?)
-  - WiFi transport backend [DB]
-  - Implement method of learning our external addresses from
-    other peers; need some kind of threshold-based
-    scheme, limiting both the total number of addresses that we accept 
-    this way as well as requiring multiple confirmations; also, we
-    should possibly try to confirm that the given address works for
-    us ourselves (loopback-style) before adding it to the list
-    + we may be able to simplify WELCOME messages (no need to add 
-      addresses there anymore, but may help to learn them there anyway...).
-    + we probably want some kind of voting/counting for learning IP addresses
-      (maybe including IP addresses in ads proportional to how often others
-       report them? we at least need some protection against >64k HELLOs!),
-    + provide a way to give the user a list of "learned" IP addresses and
-      a way to easily "veto" addresses off the list!
-      => If MiM attacker uses vetoed address, blacklist the specific IP for
-         the presumed neighbour!
-  - need to periodically probe latency/transport cost changes & possibly switch transport
+  - WLAN transport backend [DB]
+  - need to periodically probe latency/transport cost changes & possibly switch transport 
+    (working ATS)
 * DATASTORE: [CG]
   - check indexes / SQL for performance
 * DV: 
@@ -98,14 +84,11 @@
     we have not 'used' (for their public keys) in a while; need a way
     to track actual 'use')
   - make sue we also trigger notifications whenever HELLOs expire
-* TCP:
+* NAT:
   - repeatedly resolve hostname and look up interfaces to determine our own IP
-  - [./transport/plugin_transport_tcp.c:391]: (style) struct or union member 'Plugin::address_update_task' is never used (related to issue above)
-* TRANSPORT:
-  - [./transport/gnunet-service-transport.c:173]: (style) struct or union member 'TransportPlugin::rebuild' is never used (related to TCP not refreshing external addresses?)
-  - WiFi transport backend
-    * nice signal strength adjustment [MW]
-    * energy cost in ATS [MW]
+* WLAN:
+  - nice signal strength adjustment [MW]
+  - energy cost in ATS [MW]
 * BLOCKS:
   - testcase would be nice
 * STATISTICS:
@@ -123,8 +106,6 @@
   - improved batching
   - resource limit integration with ATS
 * VPN 
-  - TCP entry/exit
-  - internal services
-  - "DNS" .gnunet
+  - "DNS" .gnunet [MW]
 * MESH:
   - optimized routes (beyond DHT/DV)
