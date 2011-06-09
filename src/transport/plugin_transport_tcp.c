@@ -1060,9 +1060,7 @@ disconnect_session (struct Session *session)
     session->plugin->sessions = session->next;
   else
     prev->next = session->next;
-  session->plugin->env->session_end (session->plugin->env->cls,
-				     &session->target,
-				     session);
+
   /* clean up state */
   if (session->transmit_handle != NULL)
     {
@@ -1111,6 +1109,11 @@ disconnect_session (struct Session *session)
 			    -1,
 			    GNUNET_NO);
   GNUNET_free_non_null (session->connect_addr);
+
+  session->plugin->env->session_end (session->plugin->env->cls,
+                                     &session->target,
+                                     session);
+
   GNUNET_free (session);
 }
 
