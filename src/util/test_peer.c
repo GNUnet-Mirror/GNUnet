@@ -70,7 +70,7 @@ check ()
       if (pid != (i + 1))
 	{
 	  fprintf (stderr,
-		   "Unexpected Peer ID returned by intern function \n");
+		   "Unexpected Peer ID returned by intern function\n");
 	  return 1;
 	}
     }
@@ -82,7 +82,7 @@ check ()
       if (pid != (i + 1))
 	{
 	  fprintf (stderr,
-		   "Unexpected Peer ID returned by intern function \n");
+		   "Unexpected Peer ID returned by intern function\n");
 	  return 1;
 	}
     }
