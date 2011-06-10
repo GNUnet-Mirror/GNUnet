@@ -110,7 +110,7 @@ gnunet_transport_wlan_helper_SOURCES = \
  wlan/ieee80211_radiotap.h \
  wlan/loopback_helper.h \
  wlan/radiotap-parser.c wlan/radiotap-parser.h \
- gnunet-transport-wlan-helper.c
+ gnunet-transport-wlan-helper.c gnunet-transport-wlan-helper.h
 
 gnunet_transport_wlan_helper_dummy_SOURCES = \
  wlan/radiotap-parser.c \

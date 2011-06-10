@@ -24,6 +24,7 @@ gnunetinclude_HEADERS = \
   gnunet_block_lib.h \
   gnunet_block_plugin.h \
   gnunet_client_lib.h \
+  gnunet_chat_service.h \
   gnunet_common.h \
   gnunet_constants.h \
   gnunet_configuration_lib.h \
@@ -43,6 +44,8 @@ gnunetinclude_HEADERS = \
   gnunet_getopt_lib.h \
   gnunet_hello_lib.h \
   gnunet_load_lib.h \
+  gnunet_mesh_service.h \
+  gnunet_mesh_service_new.h \
   gnunet_nat_lib.h \
   gnunet_network_lib.h \
   gnunet_os_lib.h \
