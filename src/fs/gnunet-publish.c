@@ -667,7 +667,7 @@ main (int argc, char *const *argv)
      1, &GNUNET_GETOPT_set_string, &pseudonym},
     {'r', "replication", "LEVEL",
      gettext_noop ("set the desired replication LEVEL"),
-     0, &GNUNET_GETOPT_set_uint, &bo.replication_level},
+     1, &GNUNET_GETOPT_set_uint, &bo.replication_level},
     {'s', "simulate-only", NULL,
      gettext_noop ("only simulate the process but do not do any "
 		   "actual publishing (useful to compute URIs)"),
