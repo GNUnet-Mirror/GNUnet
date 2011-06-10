@@ -737,7 +737,7 @@ send_other_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   die_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 250), &end_badly, "from send_other_messages");
 }
 
-void
+static void
 topology_callback (void *cls,
                    const struct GNUNET_PeerIdentity *first,
                    const struct GNUNET_PeerIdentity *second,
@@ -1000,10 +1000,11 @@ peers_started_callback (void *cls,
  * @param d the daemon handle (pretty useless at this point, remove?)
  * @param emsg non-null on failure
  */
-void hostkey_callback (void *cls,
-                       const struct GNUNET_PeerIdentity *id,
-                       struct GNUNET_TESTING_Daemon *d,
-                       const char *emsg)
+static void
+hostkey_callback (void *cls,
+		  const struct GNUNET_PeerIdentity *id,
+		  struct GNUNET_TESTING_Daemon *d,
+		  const char *emsg)
 {
   if (emsg != NULL)
     {
