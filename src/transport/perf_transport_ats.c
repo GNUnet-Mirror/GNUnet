@@ -50,21 +50,13 @@ static struct GNUNET_TIME_Absolute end;
 
 void solve_mlp(int presolve)
 {
-  int result, solution;
-
-  glp_iocp opt_mlp;
-  glp_init_iocp(&opt_mlp);
-  opt_mlp.msg_lev = GLP_MSG_OFF;
-  opt_mlp.presolve = GLP_OFF;
-
-  result = glp_intopt (prob, &opt_mlp);
-  solution =  glp_mip_status (prob);
-  GNUNET_assert ((solution == 5) && (result==0));
+make
 }
 
 void solve_lp(int presolve)
 {
-  int result, solution;
+  int result;
+  int solution;
 
   glp_smcp opt_lp;
   glp_init_smcp(&opt_lp);
@@ -97,7 +89,6 @@ void modify_qm(int start, int length, int values_to_change)
     {
             printf("%i = %f \n", ind[c2], val[c2]);
     }
-
     c++;
   }
   //glp_set_mat_row(prob, start, length, ind, val);
@@ -249,14 +240,11 @@ int main (int argc, char *argv[])
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "GLPK not installed, exiting testcase\n");
 	return 0;
 #else
-#if 0
-#endif
+
   int nullfd = OPEN ("/dev/null", O_RDWR | O_APPEND);
   if (nullfd < 0)
     return GNUNET_SYSERR;
-  /* set stdin/stdout to /dev/null */
-  //stdi
-  if (/*(dup2 (nullfd, 0) < 0) || */(dup2 (nullfd, 1) < 0))
+  if (dup2 (nullfd, 1) < 0)
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "dup2");
     (void) CLOSE (nullfd);
