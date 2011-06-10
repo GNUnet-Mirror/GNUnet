@@ -187,8 +187,9 @@ transmit_acknowledge_request (void *cls,
   receipt->header.size = htons (msg_size);
   receipt->header.type =
     htons (GNUNET_MESSAGE_TYPE_CHAT_CONFIRMATION_RECEIPT);
+  receipt->reserved = htonl (0);
   receipt->sequence_number = src->received_msg->sequence_number;
-  receipt->reserved2 = 0;
+  receipt->reserved2 = htonl (0);
   receipt->timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
   GNUNET_CRYPTO_rsa_key_get_public (src->chat_room->my_private_key, &pub_key);
   GNUNET_CRYPTO_hash (&pub_key,
@@ -565,6 +566,7 @@ transmit_join_request (void *cls,
   join_msg->msg_options = htonl (chat_room->msg_options);
   join_msg->room_name_len = htons (room_len);
   join_msg->reserved = htons (0);
+  join_msg->reserved2 = htonl (0);
   GNUNET_CRYPTO_rsa_key_get_public (chat_room->my_private_key, &join_msg->public_key);
   room = (char *) &join_msg[1];
   memcpy (room, chat_room->room_name, room_len);

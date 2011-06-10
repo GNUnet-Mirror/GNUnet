@@ -474,7 +474,7 @@ handle_transmit_request (void *cls,
   p2p_rnmsg->msg_options = trmsg->msg_options;
   p2p_rnmsg->sequence_number = trmsg->sequence_number;
   p2p_rnmsg->timestamp = trmsg->timestamp;
-  p2p_rnmsg->reserved = 0;
+  p2p_rnmsg->reserved = htons (0);
   p2p_rnmsg->sender = rnmsg->sender;
   p2p_rnmsg->target = trmsg->target;
   if (is_anon)
@@ -523,6 +523,7 @@ transmit_join_notification_to_peer (void *cls,
   m->msg_options = htonl (entry->msg_options);
   m->room_name_len = htons (room_len);
   m->reserved = htons (0);
+  m->reserved2 = htonl (0);
   m->public_key = entry->public_key;
   roomptr = (char *) &m[1];
   memcpy (roomptr, entry->room, room_len);
@@ -826,6 +827,7 @@ handle_acknowledge_request (void *cls,
       p2p_crmsg = GNUNET_malloc (sizeof (struct P2PConfirmationReceiptMessage));
       p2p_crmsg->header.size = htons (sizeof (struct P2PConfirmationReceiptMessage));
       p2p_crmsg->header.type = htons (GNUNET_MESSAGE_TYPE_CHAT_P2P_CONFIRMATION_RECEIPT);
+      p2p_crmsg->reserved = htonl (0);
       p2p_crmsg->signature = receipt->signature;
       p2p_crmsg->purpose = receipt->purpose;
       p2p_crmsg->msg_sequence_number = receipt->sequence_number;
@@ -909,7 +911,7 @@ transmit_leave_notification_to_peer (void *cls,
   m = buf;
   m->header.type = htons (GNUNET_MESSAGE_TYPE_CHAT_P2P_LEAVE_NOTIFICATION);
   m->header.size = htons (msg_size);
-  m->reserved = htons (0);
+  m->reserved = htonl (0);
   m->user = *public_key;
   GNUNET_free (public_key);
   return msg_size;
@@ -1336,6 +1338,7 @@ handle_p2p_message_notification (void *cls,
   rnmsg->header.type = htons (GNUNET_MESSAGE_TYPE_CHAT_MESSAGE_NOTIFICATION);
   rnmsg->msg_options = p2p_rnmsg->msg_options;
   rnmsg->sequence_number = p2p_rnmsg->sequence_number;
+  rnmsg->reserved = htonl (0);
   rnmsg->timestamp = p2p_rnmsg->timestamp;
   is_priv = (0 != memcmp (&all_zeros,
                            &p2p_rnmsg->target, sizeof (GNUNET_HashCode)));
