@@ -371,6 +371,7 @@ retrieve_tunnel_by_local_id (struct MeshClient *c, MESH_TunnelNumber tid)
     return GNUNET_CONTAINER_multihashmap_get(c->tunnels, &hash);
 }
 
+#if LATER
 /**
  * Search for a tunnel by global ID
  */
@@ -387,6 +388,7 @@ retrieve_tunnel (struct GNUNET_PeerIdentity *oid, MESH_TunnelNumber tid)
     GNUNET_CRYPTO_hash(&id, sizeof(struct MESH_TunnelID), &hash);
     return GNUNET_CONTAINER_multihashmap_get(tunnels, &hash);
 }
+#endif
 
 /**
  * Destroy the path and free any allocated resources linked to it
@@ -404,6 +406,7 @@ destroy_path(struct MeshTunnel  *t, struct MeshPath *p)
     return GNUNET_OK;
 }
 
+#if LATER
 /**
  * Destroy the peer_info and free any allocated resources linked to it
  * @param t tunnel the path belongs to
@@ -418,6 +421,7 @@ destroy_peer_info(struct MeshTunnel  *t, struct MeshPeerInfo *pi)
     GNUNET_free(pi);
     return GNUNET_OK;
 }
+#endif
 
 /**
  * Destroy the tunnel and free any allocated resources linked to it
@@ -693,6 +697,7 @@ dht_get_response_handler(void *cls,
 
     peer_info = (struct MeshPeerInfo *)cls;
 //     t = peer_info->t;
+    t = NULL; // FIXME
 
     if (NULL == get_path || NULL == put_path) {
         // TODO: find ourselves some alternate initial path to the destination
