@@ -47,7 +47,7 @@ check_PROGRAMS = \
  test_core_quota_compliance_asymmetric_recv_limited \
  test_core_api_send_to_self
 
-if !DISABLE_TEST_RUN
+if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
 endif
 

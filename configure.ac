@@ -714,60 +714,86 @@ AC_SUBST(EXT_LIB_PATH)
 
 # should 'make check' run tests?
 AC_MSG_CHECKING(whether to run tests)
-AC_ARG_ENABLE(testruns,
-   [AS_HELP_STRING([--enable-testruns=yes/no],
-               [disable running tests on make check (default is YES)])],
-   [enable_tests_run=$enableval],
-   [enable_tests_run="yes"])
+AC_ARG_ENABLE([testruns],
+   [AS_HELP_STRING([--disable-testruns], [disable running tests on make check (default is YES)])],
+   [enable_tests_run=${enableval}],
+   [enable_tests_run=yes])
 AC_MSG_RESULT($enable_test_run)
-AM_CONDITIONAL([DISABLE_TEST_RUN], [test "x$enable_tests_run" = "xno"])
+AM_CONDITIONAL([ENABLE_TEST_RUN], [test "x$enable_tests_run" = "xyes"])
+
+# should expensive tests be run?
+AC_MSG_CHECKING(whether to run expensive tests)
+AC_ARG_ENABLE([expensivetests],
+   [AS_HELP_STRING([--enable-expensive-tests], [enable running expensive testcases])],
+   [enable_expensive=${enableval}],
+   [enable_expensive=no])
+AC_MSG_RESULT($enable_expensive)
+AM_CONDITIONAL([HAVE_EXPENSIVE_TESTS], [test "x$enable_expensive" = "xyes"])
+
+# should benchmarks be run?
+AC_MSG_CHECKING(whether to run benchmarks during make check)
+AC_ARG_ENABLE([benchmarks],
+   [AS_HELP_STRING([--enable-benchmarks], [enable running benchmarks during make check])],
+   [enable_benchmarks=${enableval}],
+   [enable_benchmarks=no])
+AC_MSG_RESULT($enable_benchmarks)
+AM_CONDITIONAL([HAVE_BENCHMARKS], [test "x$enable_benchmarks" = "xyes"])
 
 # should experimental code be compiled (code that may not yet compile)?
-disable_experimental=yes
 AC_MSG_CHECKING(whether to compile experimental code)
-AC_ARG_ENABLE(experimental,
-   [AS_HELP_STRING([--enable-experimental],
-               [enable compiling experimental code])],
-   [enable_experimental=$enableval],
-   [enable_experimental="no"])
+AC_ARG_ENABLE([experimental],
+   [AS_HELP_STRING([--enable-experimental], [enable compiling experimental code])],
+   [enable_experimental=${enableval}],
+   [enable_experimental=no])
 AC_MSG_RESULT($enable_experimental)
 AM_CONDITIONAL([HAVE_EXPERIMENTAL], [test "x$enable_experimental" = "xyes"])
 
 # should malicious code be compiled (code used for testing with malicious peers)
-enable_malicious=0
 AC_MSG_CHECKING(whether to compile malicious code)
-AC_ARG_ENABLE(malicious,
-   [AS_HELP_STRING([--enable-malicious],
-               [enable compiling malicious code (only for developers for testing)])],
-   [enable_malicious=1],
-   [enable_malicious=0])
+AC_ARG_ENABLE([malicious],
+   [AS_HELP_STRING([--enable-malicious], [enable compiling malicious code (only for developers for testing)])],
+   [enable_malicious=${enableval}],
+   [enable_malicious=no])
 AC_MSG_RESULT($enable_malicious)
-AM_CONDITIONAL([HAVE_MALICIOUS], [test "x$enable_malicious" = "x1"])
-AC_DEFINE_UNQUOTED([HAVE_MALICIOUS], $enable_malicious, [Compile malicious code])
+AM_CONDITIONAL([HAVE_MALICIOUS], [test "x$enable_malicious" = "xyes"])
+if test "$enable_malicious" = "yes"
+then
+ AC_DEFINE([HAVE_MALICIOUS],[1],[include malicious code])
+else
+ AC_DEFINE([HAVE_MALICIOUS],[0],[disable malicious code])
+fi
 
 # should code be enabled that works around missing OS functionality on Windows?
 # used for test cases
-AC_ARG_ENABLE(windows_workarounds, [AS_HELP_STRING([--enable-windows_workarounds],
-               [enable workarounds used on Windows (only useful for test cases)])])
 if test $build_target = "mingw"
 then
 	workarounds=1
 else
-	if test x$enable_windows_workarounds = "xyes"
-	then
-		workarounds=1
-	else
-		workarounds=0
-	fi
+  AC_MSG_CHECKING(whether to enable windows workarounds)
+  AC_ARG_ENABLE([windows_workarounds], 
+     [AS_HELP_STRING([--enable-windows_workarounds], [enable workarounds used on Windows (only useful for test cases)])],
+     [enable_workarounds=${enableval}],
+     [enable_workarounds=no])
+  AC_MSG_RESULT($enable_workarounds)
+  if test x$enable_windows_workarounds = "xyes"
+  then
+     workarounds=1
+  else
+     workarounds=0
+   fi
 fi
 AC_DEFINE_UNQUOTED([ENABLE_WINDOWS_WORKAROUNDS], $workarounds, [enable workarounds used on Windows (only useful for test cases)])
 
 # gcov compilation
-use_gcov=no
-AC_ARG_ENABLE([coverage], AS_HELP_STRING([--enable-coverage],
-                                        [Compile the library with code coverage support (default is NO)]),
-                                        [use_gcov=yes], [use_gcov=no])
+AC_MSG_CHECKING(whether to compile with support for code coverage analysis)
+AC_ARG_ENABLE([coverage], 
+              AS_HELP_STRING([--enable-coverage],
+                             [compile the library with code coverage support]),
+              [use_gcov=${enableval}], 
+              [use_gcov=no])
+AC_MSG_RESULT($use_gcov)
 AM_CONDITIONAL([USE_COVERAGE], [test "x$use_gcov" = "xyes"])
+
 
 AC_CONFIG_FILES([ 
 Makefile

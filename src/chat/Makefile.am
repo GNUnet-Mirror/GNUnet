@@ -50,7 +50,7 @@ check_PROGRAMS = \
  test_chat_private \
  test_chat_private_p2p
 
-if !DISABLE_TEST_RUN
+if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
 endif
 

@@ -234,10 +234,14 @@ libgnunet_plugin_transport_https_la_CFLAGS = \
 libgnunet_plugin_transport_https_la_CPPFLAGS = \
  @LIBCURL_CPPFLAGS@
 
+if HAVE_BENCHMARKS
+ TRANSPORT_BENCHMARKS = \
+   perf_transport_ats 
+endif
 
 check_PROGRAMS = \
  test_transport_ats \
- perf_transport_ats \
+ $(TRANSPORT_BENCHMARKS) \
  test_transport_api_tcp \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
@@ -266,7 +270,7 @@ check_PROGRAMS = \
  $(WLAN_UREL_TEST)
 # TODO: add tests for nat, etc.
 
-if !DISABLE_TEST_RUN
+if ENABLE_TEST_RUN
 TESTS = \
  test_transport_ats \
  perf_transport_ats \

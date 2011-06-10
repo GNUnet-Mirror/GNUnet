@@ -47,7 +47,7 @@ check_PROGRAMS = \
  test_testing_topology_none \
  test_testing_topology_scale_free
 
-if !DISABLE_TEST_RUN 
+if ENABLE_TEST_RUN 
 TESTS = \
  test_testing \
  test_testing_connect \

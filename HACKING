@@ -13,6 +13,7 @@ include files:
   * gnunet_directories.h --- generated
   * gettext.h            --- external library
 
+
 configuration:
 - paths (that are substituted in all filenames) are in PATHS (have as few as possible)
 - globals for the daemon are in [gnunetd] (for now, have as few as possible!)
@@ -22,10 +23,10 @@ configuration:
   together with the options for the testing module itself
 
 
-
 exported symbols:
 - must start with "GNUNET_modulename_" and be defined in "modulename.c"
 - exceptions: those defined in gnunet_common.h
+
 
 private (library-internal) symbols (including structs & macros):
 - must NOT start with any prefix
@@ -43,7 +44,7 @@ testcases:
 performance tests:
 - must be called "perf_module-under-test_case-description.c"
 - "case-description" maybe omitted if there is only one performance test
-
+- Must only be run if HAVE_BENCHMARKS is satisfied
 
 
 src/ directories:
@@ -52,22 +53,6 @@ src/ directories:
 - libgnunetNAME: accessor library (_service.h-header) or standalone library (_lib.h-header)
 - gnunet-daemon-NAME: daemon process without accessor library (i.e., gnunet-daemon-hostlist) and no GNUnet management port
 - libgnunet_plugin_DIR_NAME: loadable plugins (i.e., libgnunet_plugin_transport_tcp)
-
-
-
-Minimum file-sharing system (in order of dependency):
-gnunet-service-arm
-gnunet-service-transport
-gnunet-service-core
-gnunet-daemon-hostlist
-gnunet-daemon-topology
-gnunet-service-statistics
-gnunet-service-datastore
-gnunet-service-datacache
-gnunet-service-dht
-gnunet-service-fs (or just lib?)
-
-
 
 
 Coding style:
@@ -82,7 +67,6 @@ Coding style:
   int i,j;
 
 
-
 Build-system:
 
 If you have code that is likely not to compile or build rules you might want to not
@@ -92,6 +76,24 @@ it is OK to (temporarily) add non-compiling (or known-to-not-port) code.
 If you want to compile all testcases but NOT run them, run configure with the
 --enable-test-suppression option.
 
+If you want to run all testcases, including those that take a while, run configure with the
+--enable-expensive-testcases option.
+
+If you want to compile and run benchmarks, run configure with the
+--enable-benchmarks option.
+
 If you want to obtain code coverage results, run configure with the
 --enable-coverage option and run the coverage.sh script in contrib/.
 
+
+Minimum file-sharing system (in order of dependency):
+gnunet-service-arm
+gnunet-service-transport
+gnunet-service-core
+gnunet-daemon-hostlist
+gnunet-daemon-topology
+gnunet-service-statistics
+gnunet-service-datastore
+gnunet-service-datacache
+gnunet-service-dht
+gnunet-service-fs

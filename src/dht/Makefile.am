@@ -156,7 +156,7 @@ check_PROGRAMS = \
  test_dhtlog 
 # test_hash_operations
 
-if !DISABLE_TEST_RUN
+if ENABLE_TEST_RUN
 TESTS = test_dht_api $(check_SCRIPTS) \
  test_dht_twopeer \
  test_dht_twopeer_put_get \

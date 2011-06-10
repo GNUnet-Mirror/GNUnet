@@ -92,7 +92,7 @@ check_PROGRAMS = \
     test_monkey_edb
     #test_gnunet_monkey	
 
-if !DISABLE_TEST_RUN
+if ENABLE_TEST_RUN
 # TESTS = $(check_SCRIPTS)
 TESTS = $(check_PROGRAMS)
 endif

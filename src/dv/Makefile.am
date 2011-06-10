@@ -58,7 +58,7 @@ check_PROGRAMS = \
  test_transport_api_dv
 # test_dv_topology
 
-if !DISABLE_TEST_RUN
+if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
 endif
 

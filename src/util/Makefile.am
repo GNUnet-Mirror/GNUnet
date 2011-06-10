@@ -114,6 +114,11 @@ libgnunet_plugin_test_la_SOURCES = \
 libgnunet_plugin_test_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
+if HAVE_BENCHMARKS
+ BENCHMARKS = \
+  perf_crypto_hash 
+endif
+
 check_PROGRAMS = \
  test_bio \
  test_client \
@@ -158,10 +163,10 @@ check_PROGRAMS = \
  test_service \
  test_strings \
  test_time \
- perf_crypto_hash \
+ $(BENCHMARKS) \
  test_os_start_process 
 
-if !DISABLE_TEST_RUN
+if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
 endif
 

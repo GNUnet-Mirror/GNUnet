@@ -59,7 +59,7 @@ check_PROGRAMS = \
 check_SCRIPTS = \
  test_gnunet_arm.sh
 
-if !DISABLE_TEST_RUN
+if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)  $(check_SCRIPTS)
 endif
 

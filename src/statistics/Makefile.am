@@ -49,7 +49,7 @@ check_PROGRAMS = \
  test_statistics_api_loop \
  test_statistics_api_watch 
 
-if !DISABLE_TEST_RUN
+if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
 endif
 

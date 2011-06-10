@@ -37,7 +37,7 @@ check_PROGRAMS = \
  test_gnunet_daemon_hostlist_learning
 
 if HAVE_MHD
-if !DISABLE_TEST_RUN
+if ENABLE_TEST_RUN
 TESTS = \
  test_gnunet_daemon_hostlist \
  test_gnunet_daemon_hostlist_reconnect \

@@ -25,7 +25,7 @@ check_SCRIPTS = \
  test_gnunet_peerinfo.py 
 endif
 
-if !DISABLE_TEST_RUN
+if ENABLE_TEST_RUN
 TESTS = $(check_SCRIPTS)
 endif
 

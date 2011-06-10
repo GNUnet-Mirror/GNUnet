@@ -33,12 +33,16 @@ gnunet_service_peerinfo_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la 
 
+if HAVE_BENCHMARKS
+ PEERINFO_BENCHMARKS = \
+ perf_peerinfo_api
+endif
 
 check_PROGRAMS = \
  test_peerinfo_api \
- perf_peerinfo_api
+ $(PEERINFO_BENCHMARKS) 
 
-if !DISABLE_TEST_RUN
+if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
 endif
 

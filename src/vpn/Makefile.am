@@ -70,7 +70,7 @@ gnunet_daemon_exit_LDADD = \
 #check_PROGRAMS = \
 # test_XXX
 
-if !DISABLE_TEST_RUN
+if ENABLE_TEST_RUN
 #TESTS = \
 # test_transport_api_tcp 
 endif

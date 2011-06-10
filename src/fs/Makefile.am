@@ -134,8 +134,13 @@ gnunet_unindex_LDADD = \
 gnunet_unindex_DEPENDENCIES = \
   libgnunetfs.la
 
-
-
+if HAVE_BENCHMARKS
+ FS_BENCHMARKS = \
+ perf_gnunet_service_fs_p2p \
+ perf_gnunet_service_fs_p2p_dht \
+ perf_gnunet_service_fs_p2p_index \
+ perf_gnunet_service_fs_p2p_trust 
+endif
 
 check_PROGRAMS = \
  test_fs_directory \
@@ -158,10 +163,7 @@ check_PROGRAMS = \
  test_fs_uri \
  test_gnunet_service_fs_migration \
  test_gnunet_service_fs_p2p \
- perf_gnunet_service_fs_p2p \
- perf_gnunet_service_fs_p2p_dht \
- perf_gnunet_service_fs_p2p_index \
- perf_gnunet_service_fs_p2p_trust 
+ $(FS_BENCHMARKS)
 
 
 if HAVE_PYTHON_PEXPECT
@@ -173,7 +175,7 @@ check_SCRIPTS = \
 endif
 
 
-if !DISABLE_TEST_RUN
+if ENABLE_TEST_RUN
 TESTS = \
  test_fs_directory \
  test_fs_download \
