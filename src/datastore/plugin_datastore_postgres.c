@@ -190,6 +190,7 @@ init_connection (struct Plugin *plugin)
                 "  prio INTEGER NOT NULL DEFAULT 0,"
                 "  anonLevel INTEGER NOT NULL DEFAULT 0,"
                 "  expire BIGINT NOT NULL DEFAULT 0,"
+                "  rvalue BIGINT NOT NULL DEFAULT 0,"
                 "  hash BYTEA NOT NULL DEFAULT '',"
                 "  vhash BYTEA NOT NULL DEFAULT '',"
                 "  value BYTEA NOT NULL DEFAULT '')" "WITH OIDS");
@@ -218,14 +219,18 @@ init_connection (struct Plugin *plugin)
           || (GNUNET_OK !=
               pq_exec (plugin, "CREATE INDEX idx_expire ON gn090 (expire)", __LINE__))
           || (GNUNET_OK !=
-              pq_exec (plugin, "CREATE INDEX idx_comb3 ON gn090 (prio,anonLevel)",
+              pq_exec (plugin, "CREATE INDEX idx_prio_anon ON gn090 (prio,anonLevel)",
                        __LINE__))
           || (GNUNET_OK !=
               pq_exec
-              (plugin, "CREATE INDEX idx_comb4 ON gn090 (prio,hash,anonLevel)",
+              (plugin, "CREATE INDEX idx_prio_hash_anon ON gn090 (prio,hash,anonLevel)",
                __LINE__))
           || (GNUNET_OK !=
-              pq_exec (plugin, "CREATE INDEX idx_comb7 ON gn090 (expire,hash)",
+              pq_exec
+              (plugin, "CREATE INDEX idx_repl_rvalue ON gn090 (repl,rvalue)",
+               __LINE__))
+          || (GNUNET_OK !=
+              pq_exec (plugin, "CREATE INDEX idx_expire_hash ON gn090 (expire,hash)",
                        __LINE__)))
         {
           PQclear (ret);
@@ -305,9 +310,9 @@ init_connection (struct Plugin *plugin)
       (GNUNET_OK !=
        pq_prepare (plugin,
 		   "put",
-                   "INSERT INTO gn090 (repl, type, prio, anonLevel, expire, hash, vhash, value) "
-                   "VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-                   8,
+                   "INSERT INTO gn090 (repl, type, prio, anonLevel, expire, rvalue, hash, vhash, value) "
+                   "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+                   9,
                    __LINE__)) ||
       (GNUNET_OK !=
        pq_prepare (plugin,
@@ -472,12 +477,14 @@ postgres_plugin_put (void *cls,
   uint32_t banon = htonl (anonymity);
   uint32_t brepl = htonl (replication);
   uint64_t bexpi = GNUNET_TIME_absolute_hton (expiration).abs_value__;
+  uint64_t rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
   const char *paramValues[] = {
     (const char *) &brepl,
     (const char *) &btype,
     (const char *) &bprio,
     (const char *) &banon,
     (const char *) &bexpi,
+    (const char *) &rvalue,
     (const char *) key,
     (const char *) &vhash,
     (const char *) data
@@ -488,15 +495,16 @@ postgres_plugin_put (void *cls,
     sizeof (bprio),
     sizeof (banon),
     sizeof (bexpi),
+    sizeof (rvalue),
     sizeof (GNUNET_HashCode),
     sizeof (GNUNET_HashCode),
     size
   };
-  const int paramFormats[] = { 1, 1, 1, 1, 1, 1, 1, 1 };
+  const int paramFormats[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 
   GNUNET_CRYPTO_hash (data, size, &vhash);
   ret = PQexecPrepared (plugin->dbh,
-                        "put", 8, paramValues, paramLengths, paramFormats, 1);
+                        "put", 9, paramValues, paramLengths, paramFormats, 1);
   if (GNUNET_OK != check_result (plugin, ret,
                                  PGRES_COMMAND_OK,
                                  "PQexecPrepared", "put", __LINE__))

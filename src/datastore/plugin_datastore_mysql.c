@@ -194,7 +194,7 @@ struct Plugin
   /**
    * Prepared statements.
    */
-#define INSERT_ENTRY "INSERT INTO gn090 (repl,type,prio,anonLevel,expire,hash,vhash,value) VALUES (?,?,?,?,?,?,?,?)"
+#define INSERT_ENTRY "INSERT INTO gn090 (repl,type,prio,anonLevel,expire,rvalue,hash,vhash,value) VALUES (?,?,?,?,?,?,?,?,?)"
   struct GNUNET_MysqlStatementHandle *insert_entry;
   
 #define DELETE_ENTRY_BY_UID "DELETE FROM gn090 WHERE uid=?"
@@ -860,6 +860,7 @@ mysql_plugin_put (void *cls,
   unsigned long hashSize;
   unsigned long hashSize2;
   unsigned long lsize;
+  unsigned long rvalue;
   GNUNET_HashCode vhash;
 
   if (size > MAX_DATUM_SIZE)
@@ -871,6 +872,7 @@ mysql_plugin_put (void *cls,
   hashSize2 = sizeof (GNUNET_HashCode);
   lsize = size;
   GNUNET_CRYPTO_hash (data, size, &vhash);
+  rvalue = (unsigned long) GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
   if (GNUNET_OK !=
       prepared_statement_run (plugin,
 			      plugin->insert_entry,
@@ -880,6 +882,7 @@ mysql_plugin_put (void *cls,
 			      MYSQL_TYPE_LONG, &ipriority, GNUNET_YES,
 			      MYSQL_TYPE_LONG, &ianonymity, GNUNET_YES,
 			      MYSQL_TYPE_LONGLONG, &lexpiration, GNUNET_YES,
+			      MYSQL_TYPE_LONGLONG, &rvalue, GNUNET_YES,
 			      MYSQL_TYPE_BLOB, key, hashSize, &hashSize,
 			      MYSQL_TYPE_BLOB, &vhash, hashSize2, &hashSize2,
 			      MYSQL_TYPE_BLOB, data, lsize, &lsize, 
@@ -1441,6 +1444,7 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
              " prio INT(11) UNSIGNED NOT NULL DEFAULT 0,"
              " anonLevel INT(11) UNSIGNED NOT NULL DEFAULT 0,"
              " expire BIGINT UNSIGNED NOT NULL DEFAULT 0,"
+             " rvalue BIGINT UNSIGNED NOT NULL,"
              " hash BINARY(64) NOT NULL DEFAULT '',"
              " vhash BINARY(64) NOT NULL DEFAULT '',"
              " value BLOB NOT NULL DEFAULT '',"
@@ -1451,7 +1455,7 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
              " INDEX idx_hash_vhash (hash(64),vhash(64)),"
              " INDEX idx_hash_type_uid (hash(64),type,uid),"
              " INDEX idx_prio (prio),"
-             " INDEX idx_repl (repl),"
+             " INDEX idx_repl_rvalue (repl,rvalue),"
              " INDEX idx_expire_prio (expire,prio),"
              " INDEX idx_anonLevel_uid (anonLevel,uid)"
              ") ENGINE=InnoDB") ||
