@@ -38,7 +38,7 @@ libgnunetnat_la_LDFLAGS = \
 check_PROGRAMS = \
   test-nat
 
-if !DISABLE_TEST_RUN
+if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
 endif
 
