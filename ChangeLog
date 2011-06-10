@@ -1,4 +1,3 @@
-Fri Jun 10 11:07:58 CEST 2011
 	Releasing GNUnet 0.9.0pre3.  Instead of listing all that has
 	changed, here is the short list of what is known NOT to work,
 	in order of minor flaws to major issues, by module:
@@ -6,16 +5,16 @@ Fri Jun 10 11:07:58 CEST 2011
 	* FS still has a few missing features, but largely works
 	* DATASTORE is O(n) where it should be O(log n) for some operations
 	* UDP does not work (only messages < 1500 bytes, no fragmentation)
-	* TESTING does not support incremental HELLO changes, hence will
-	          be particularly troublesome with WLAN transport
+	* TESTING does not support incremental HELLO changes
 	* TRANSPORT ATS is not used for actual bandwidth assignment,
 	          important options to make it truly useful are still missing
-	* VPN's service definitions may work, but are not secure
 	* NAT traversal partially works for TCP (ICMP-based method only)
 	* MESH does not work (mock API emulates for VPN)
+	* VPN is experimental
+        * WLAN is experimental
 	* CHAT is experimental, has known bugs and was not reviewed yet
-	* FRAGMENTATION library is not implemented
 	* MONKEY is highly experimental
+	* FRAGMENTATION library is not implemented
 
 	With this release we will finally start with
 	a detailed accounting of changes in the ChangeLog.
