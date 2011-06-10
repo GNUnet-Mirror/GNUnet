@@ -1813,15 +1813,18 @@ handle_tcp_nat_probe (void *cls,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
+
+  tcp_nat_probe = (const struct TCP_NAT_ProbeMessage *)message;
+
   if (0 == memcmp (&tcp_nat_probe->clientIdentity,
-		   plugin->env->my_identity,
-		   sizeof (struct GNUNET_PeerIdentity)))
+                   plugin->env->my_identity,
+                   sizeof (struct GNUNET_PeerIdentity)))
     {
       /* refuse connections from ourselves */
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
-  tcp_nat_probe = (const struct TCP_NAT_ProbeMessage *)message;
+
   session = GNUNET_CONTAINER_multihashmap_get(plugin->nat_wait_conns, 
 					      &tcp_nat_probe->clientIdentity.hashPubKey);
   if (session == NULL)
