@@ -2704,6 +2704,13 @@ notify_clients_connect (const struct GNUNET_PeerIdentity *peer,
   uint32_t ats_count;
   size_t size;
 
+  if (0 == memcmp (peer,
+		   &my_identity,
+		   sizeof (struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_break (0);
+      return;
+    }
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Notifying clients about connection from `%s'\n",
@@ -2717,11 +2724,10 @@ notify_clients_connect (const struct GNUNET_PeerIdentity *peer,
   ats_count = 2;
   size  = sizeof (struct ConnectInfoMessage) + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
   if (size > GNUNET_SERVER_MAX_MESSAGE_SIZE)
-  {
-	  GNUNET_break(0);
-  }
+    {
+      GNUNET_break(0);
+    }
   cim = GNUNET_malloc (size);
-
   cim->header.size = htons (size);
   cim->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
   cim->ats_count = htonl(2);
@@ -2757,6 +2763,13 @@ notify_clients_disconnect (const struct GNUNET_PeerIdentity *peer)
   struct DisconnectInfoMessage dim;
   struct TransportClient *cpos;
 
+  if (0 == memcmp (peer,
+		   &my_identity,
+		   sizeof (struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_break (0);
+      return;
+    }
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Notifying clients about lost connection to `%s'\n",
@@ -3309,6 +3322,14 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer,
   struct TransportPlugin *tp;
   struct ReadyList *rl;
 
+  if (0 == memcmp (peer,
+		   &my_identity,
+		   sizeof (struct GNUNET_PeerIdentity)))
+    {
+      /* refusing to setup a neighbour entry for myself */
+      GNUNET_break (0); 
+      return NULL;
+    }
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Setting up state for neighbour `%4s'\n",
@@ -4346,6 +4367,14 @@ handle_pong (void *cls, const struct GNUNET_MessageHeader *message,
              const char *sender_address,
              size_t sender_address_len)
 {
+  if (0 == memcmp (peer,
+		   &my_identity,
+		   sizeof (struct GNUNET_PeerIdentity)))
+    {
+      /* PONG send to self, ignore */
+      return;
+    }
+
 #if DEBUG_TRANSPORT > 1
   /* we get tons of these that just get discarded, only log
      if we are quite verbose */
