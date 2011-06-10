@@ -132,21 +132,9 @@ void
 GNUNET_CONFIGURATION_destroy (struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct ConfigSection *sec;
-  struct ConfigEntry *ent;
 
   while (NULL != (sec = cfg->sections))
-    {
-      cfg->sections = sec->next;
-      while (NULL != (ent = sec->entries))
-        {
-          sec->entries = ent->next;
-          GNUNET_free (ent->key);
-          GNUNET_free_non_null (ent->val);
-          GNUNET_free (ent);
-        }
-      GNUNET_free (sec->name);
-      GNUNET_free (sec);
-    }
+    GNUNET_CONFIGURATION_remove_section (cfg, sec->name);
   GNUNET_free (cfg);
 }
 
@@ -414,9 +402,56 @@ GNUNET_CONFIGURATION_iterate_sections (const struct GNUNET_CONFIGURATION_Handle 
                                        void *iter_cls)
 {
   struct ConfigSection *spos;
+  struct ConfigSection *next;
 
-  for (spos = cfg->sections; spos != NULL; spos = spos->next)
-    iter (iter_cls, spos->name);
+  next = cfg->sections; 
+  while (next != NULL)
+    {
+      spos = next;
+      next = spos->next;
+      iter (iter_cls, spos->name);
+    }
+}
+
+/**
+ * Remove the given section and all options in it.
+ *
+ * @param cfg configuration to inspect
+ * @param section name of the section to remove
+ */
+void GNUNET_CONFIGURATION_remove_section (struct GNUNET_CONFIGURATION_Handle *cfg,
+					  const char *section)
+{
+  struct ConfigSection *spos;
+  struct ConfigSection *prev;
+  struct ConfigEntry *ent;
+
+  prev = NULL;
+  spos = cfg->sections; 
+  while (spos != NULL) 	 
+    {
+      if (0 == strcmp (section,
+		       spos->name))
+	{
+	  if (prev == NULL)
+	    cfg->sections = spos->next;
+	  else
+	    prev->next = spos->next;
+	  while (NULL != (ent = spos->entries))
+	    {
+	      spos->entries = ent->next;
+	      GNUNET_free (ent->key);
+	      GNUNET_free_non_null (ent->val);
+	      GNUNET_free (ent);
+	      cfg->dirty = GNUNET_YES;
+	    }
+	  GNUNET_free (spos->name);
+	  GNUNET_free (spos);
+	  return;
+	}
+      prev = spos;
+      spos = spos->next;
+    }
 }
 
 

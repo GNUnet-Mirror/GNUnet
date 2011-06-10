@@ -174,6 +174,16 @@ void GNUNET_CONFIGURATION_iterate_sections (const struct GNUNET_CONFIGURATION_Ha
                                             GNUNET_CONFIGURATION_Section_Iterator iter,
                                             void *iter_cls);
 
+
+/**
+ * Remove the given section and all options in it.
+ *
+ * @param cfg configuration to inspect
+ * @param section name of the section to remove
+ */
+void GNUNET_CONFIGURATION_remove_section (struct GNUNET_CONFIGURATION_Handle *cfg,
+					  const char *section);
+
 /**
  * Get a configuration value that should be a number.
  *
