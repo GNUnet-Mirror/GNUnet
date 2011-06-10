@@ -798,6 +798,8 @@ AM_CONDITIONAL([USE_COVERAGE], [test "x$use_gcov" = "xyes"])
 AC_CONFIG_FILES([ 
 Makefile
 contrib/Makefile
+doc/Makefile
+doc/man/Makefile
 m4/Makefile
 po/Makefile.in 
 src/Makefile

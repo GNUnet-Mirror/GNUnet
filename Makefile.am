@@ -1,5 +1,5 @@
 INCLUDES = -I$(top_srcdir)/src/include
-SUBDIRS  = contrib m4 src po pkgconfig
+SUBDIRS  = contrib doc m4 src po pkgconfig
 
 EXTRA_DIST = \
  ABOUT-NLS \
