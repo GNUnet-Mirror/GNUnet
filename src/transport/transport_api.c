@@ -1743,7 +1743,6 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
         }
       break;
     case GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT:
-
       if (size < sizeof (struct ConnectInfoMessage))
         {
           GNUNET_break (0);
@@ -1756,7 +1755,14 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
           GNUNET_break (0);
           break;
         }
-
+      if (0 == memcmp (&cim->id,
+		       &h->self,
+		       sizeof (struct GNUNET_PeerIdentity)))
+	{
+	  /* connect to self!? */
+	  GNUNET_break (0);
+	  break;
+	}
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Receiving `%s' message for `%4s'.\n",
@@ -1783,6 +1789,14 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
         }
       dim = (const struct DisconnectInfoMessage *) msg;
       GNUNET_break (ntohl (dim->reserved) == 0);
+      if (0 == memcmp (&dim->peer,
+		       &h->self,
+		       sizeof (struct GNUNET_PeerIdentity)))
+	{
+	  /* discconnect from self!? */
+	  GNUNET_break (0);
+	  break;
+	}
 #if DEBUG_TRANSPORT_DISCONNECT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Receiving `%s' message for `%4s'.\n",
