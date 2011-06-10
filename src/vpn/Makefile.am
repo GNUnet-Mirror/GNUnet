@@ -82,4 +82,5 @@ endif
 # $(top_builddir)/src/util/libgnunetutil.la  
 
 EXTRA_DIST = \
-  gnunet-vpn-packet.h
+  gnunet-vpn-packet.h \
+  test-conf.conf

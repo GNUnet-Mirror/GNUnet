@@ -57,3 +57,6 @@ test_mesh_api_DEPENDENCIES = \
   libgnunetmeshnew.la
 
 TESTS = test_mesh_api
+
+EXTRA_DIST = \
+  test_mesh.conf

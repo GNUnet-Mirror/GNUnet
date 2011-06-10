@@ -11,6 +11,7 @@ if MINGW
 endif
 
 gnunetinclude_HEADERS = \
+  gauger.h \
   gettext.h \
   platform.h \
   plibc.h \

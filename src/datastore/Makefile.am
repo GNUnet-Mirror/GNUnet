@@ -222,4 +222,7 @@ EXTRA_DIST = \
  test_datastore_api_data_mysql.conf \
  perf_plugin_datastore_data_mysql.conf \
  test_datastore_api_data_postgres.conf \
- perf_plugin_datastore_data_postgres.conf
+ perf_plugin_datastore_data_postgres.conf \
+ test_plugin_datastore_data_mysql.conf \
+ test_plugin_datastore_data_postgres.conf \
+ test_plugin_datastore_data_sqlite.conf

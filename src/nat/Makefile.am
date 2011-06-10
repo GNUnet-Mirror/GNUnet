@@ -49,3 +49,6 @@ test_nat_LDADD = \
  $(top_builddir)/src/nat/libgnunetnat.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  @LIBCURL@
+
+EXTRA_DIST = \
+ test-nat.conf

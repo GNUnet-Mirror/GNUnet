@@ -591,4 +591,8 @@ EXTRA_DIST = \
   test_quota_compliance_udp_peer1.conf \
   test_quota_compliance_udp_peer2.conf \
   test_quota_compliance_unix_peer1.conf \
-  test_quota_compliance_unix_peer2.conf
+  test_quota_compliance_unix_peer2.conf \
+  test_plugin_transport_data_udp.conf \
+  test_transport_ats_1addr.conf \
+  test_transport_ats_2addr.conf \
+  test_transport_ats_4addr.conf

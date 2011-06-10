@@ -112,5 +112,13 @@ test_core_quota_compliance_asymmetric_recv_limited_LDADD = \
 EXTRA_DIST = \
   test_core_api_data.conf \
   test_core_api_peer1.conf \
-  test_core_api_peer2.conf 
-
+  test_core_api_peer2.conf \
+  test_core_api_send_to_self.conf \
+  test_core_quota_asymmetric_recv_limited_peer1.conf \
+  test_core_quota_asymmetric_recv_limited_peer2.conf \
+  test_core_quota_asymmetric_send_limited_peer1.conf \
+  test_core_quota_asymmetric_send_limited_peer2.conf \
+  test_core_quota_asymmetric_send_limit_peer1.conf \
+  test_core_quota_asymmetric_send_limit_peer2.conf \
+  test_core_quota_peer1.conf \
+  test_core_quota_peer2.conf

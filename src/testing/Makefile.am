@@ -237,5 +237,7 @@ EXTRA_DIST = \
  test_testing_data_topology_scale_free.conf \
  test_testing_data_topology_blacklist.conf \
  test_testing_data_topology_churn.conf \
- test_testing_data_topology_none.conf
-
+ test_testing_data_topology_none.conf \
+ test_testing_data_remote.conf \
+ test_testing_data_topology_stability.conf \
+ test_testing_peergroup_data.conf

@@ -87,7 +87,7 @@ bug_bad_memory_access:
 
 bug_assertion_failure:
 	gcc -g -O0 -o bug_assertion_failure bug_assertion_failure.c	
-	
+
 check_PROGRAMS = \
     test_monkey_edb
     #test_gnunet_monkey	
@@ -114,9 +114,9 @@ check_SCRIPTS = \
   #test_gnunet_monkey.sh \
   #test_monkey_npe.sh
 
-#EXTRA_DIST = \
+EXTRA_DIST = \
+  test_gnunet_monkey_data.conf 
 #$(check_SCRIPTS) 
-#test_gnunet_monkey_data.conf 
 
 endif
 endif
