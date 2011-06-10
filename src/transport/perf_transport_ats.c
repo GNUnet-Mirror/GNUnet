@@ -50,7 +50,16 @@ static struct GNUNET_TIME_Absolute end;
 
 void solve_mlp(int presolve)
 {
-make
+  int result, solution;
+  glp_iocp opt_mlp;
+
+  glp_init_iocp(&opt_mlp);
+  opt_mlp.msg_lev = GLP_MSG_OFF;
+  opt_mlp.presolve = GLP_OFF;
+
+  result = glp_intopt (prob, &opt_mlp);
+  solution =  glp_mip_status (prob);
+  GNUNET_assert ((solution == 5) && (result==0));
 }
 
 void solve_lp(int presolve)
