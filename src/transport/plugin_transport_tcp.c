@@ -1810,6 +1810,15 @@ handle_tcp_nat_probe (void *cls,
   if (ntohs(message->size) != sizeof(struct TCP_NAT_ProbeMessage))
     {
       GNUNET_break_op(0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+  if (0 == memcmp (&tcp_nat_probe->clientIdentity,
+		   plugin->env->my_identity,
+		   sizeof (struct GNUNET_PeerIdentity)))
+    {
+      /* refuse connections from ourselves */
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
   tcp_nat_probe = (const struct TCP_NAT_ProbeMessage *)message;
@@ -1921,7 +1930,15 @@ handle_tcp_welcome (void *cls,
   struct IPv6TcpAddress *t6;
   const struct sockaddr_in *s4;
   const struct sockaddr_in6 *s6;
-
+  
+  if (0 == memcmp (&wm->clientIdentity,
+		   plugin->env->my_identity,
+		   sizeof (struct GNUNET_PeerIdentity)))
+    {
+      /* refuse connections from ourselves */
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
 #if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "tcp",

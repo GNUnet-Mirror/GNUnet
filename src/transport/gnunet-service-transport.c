@@ -5332,14 +5332,11 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
 }
 
 
-
-
-
 /**
- * Function called by the plugin for each received message.
- * Update data volumes, possibly notify plugins about
- * reducing the rate at which they read from the socket
- * and generally forward to our receive callback.
+ * Function called by the plugin for each received message.  Update
+ * data volumes, possibly notify plugins about reducing the rate at
+ * which they read from the socket and generally forward to our
+ * receive callback.
  *
  * @param cls the "struct TransportPlugin *" we gave to the plugin
  * @param peer (claimed) identity of the other peer
@@ -5371,6 +5368,14 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   uint32_t distance;
   int c;
 
+  if (0 == memcmp (peer,
+		   &my_identity,
+		   sizeof (struct GNUNET_PeerIdentity)))
+    {
+      /* refuse to receive from myself */
+      GNUNET_break (0); 
+      return GNUNET_TIME_UNIT_FOREVER_REL;
+    }
   if (is_blacklisted (peer, plugin))
     return GNUNET_TIME_UNIT_FOREVER_REL;
   n = find_neighbour (peer);
