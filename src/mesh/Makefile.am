@@ -56,7 +56,9 @@ test_mesh_api_LDADD = \
 test_mesh_api_DEPENDENCIES = \
   libgnunetmeshnew.la
 
+if ENABLE_TEST_RUN
 TESTS = test_mesh_api
+endif
 
 EXTRA_DIST = \
   test_mesh.conf
