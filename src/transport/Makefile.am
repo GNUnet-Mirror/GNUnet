@@ -103,8 +103,13 @@ gnunet_nat_server_SOURCES = \
 
 
 gnunet_transport_wlan_helper_SOURCES = \
- wlan/radiotap-parser.c \
- wlan/helper_common.c \
+ wlan/byteorder.h \
+ wlan/crctable_osdep.h \
+ wlan/helper_common.c wlan/helper_common.h \
+ wlan/ieee80211.h \
+ wlan/ieee80211_radiotap.h \
+ wlan/loopback_helper.h \
+ wlan/radiotap-parser.c wlan/radiotap-parser.h \
  gnunet-transport-wlan-helper.c
 
 gnunet_transport_wlan_helper_dummy_SOURCES = \
@@ -173,7 +178,7 @@ libgnunet_plugin_transport_template_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 libgnunet_plugin_transport_wlan_la_SOURCES = \
-  plugin_transport_wlan.c
+  plugin_transport_wlan.c plugin_transport_wlan.h
 libgnunet_plugin_transport_wlan_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
