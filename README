@@ -21,7 +21,7 @@ Dependencies:
 
 Please note that for many of its dependencies GNUnet requires very
 recent versions of the libraries which are often NOT to be found in
-stable distributions in 2010.  While using older packages may in some
+stable distributions in 2011.  While using older packages may in some
 cases on some operating systems may seem to work in some limited
 fashion, we are in many cases aware of serious problems with older
 packages.  Hence please make sure to use  the versions listed below.
@@ -87,9 +87,10 @@ location of the configuration file in this case.
 Note that additional, per-user configuration files
 (~/.gnunet/gnunet.conf) need to be created by each user (for example,
 by running gnunet-setup).  Note that gnunet-setup is a separate
-download and requires GTK+; you can also edit the configuration file
-by hand, but this is not recommended.  For more general information
-about the GNU build process read the INSTALL file.
+download and requires recent versions of GTK+ and Glade; you can also
+edit the configuration file by hand, but this is not recommended.  For
+more general information about the GNU build process read the INSTALL
+file.
 
 If you are compiling the code from subversion, you have to run
 ". bootstrap" before ./configure.  If you receive an error during the
@@ -143,20 +144,9 @@ to "$SERVICEHOME/data/hosts/" (where $SERVICEHOME is the directory
 specified in the gnunet.conf configuration file).
 
 Now start the local node using "gnunet-arm -s".  GNUnet should run 24/7 if
-you want to maximize your anonymity.  
+you want to maximize your anonymity.
 
-The GTK user interface is shipped separately.  After downloading and
-installing gnunet-gtk, you can invoke the GUI with:
-
-$ gnunet-gtk
-
-// FIXME: gnunet-qt is not yet supported in 0.9.x
-For Qt/KDE users, there is also a QT user interface (also shipped 
-separately).  If you install gnunet-qt, you can invoke the GUI with:
-
-$ gnunet-qt
-
-If you want to use the shell (part of this distribution), use
+You should then be able to access GNUnet using the shell:
 
 $ gnunet-search KEYWORD
 
@@ -168,11 +158,11 @@ to retrieve a file.  The GNUNET_URI is printed by gnunet-search
 together with a description.  To publish files on GNUnet, use the
 "gnunet-publish" command.
 
-// FIXME: auto-share is not yet supported in 0.9.x
-In order to share files, the easiest way is to create a directory
-with the files (and directories) that you want to share and run
 
-$ nohup gnunet-auto-share NAME-OF-THE-DIRECTORY &
+The GTK user interface is shipped separately.  After downloading and
+installing gnunet-gtk, you can invoke the GUI with:
+
+$ gnunet-gtk
 
 For further documentation, see our webpage.
 
@@ -229,17 +219,6 @@ You can do the same trick for the TCP and UDP transports if you want
 to map them to a priviledged port (from the point of view of the
 network).  However, we are not aware of this providing any advantages
 at this point.
-
-
-
-Running the SMTP transport
-==========================
-
-// NOTE: SMTP is not currently available in this version of GNUnet
-Running GNUnet over SMTP (e-mail) is a bit more involved.  Note that
-you do not need to run all transports (only running the NAT transport
-is the only thing that will not work).  If you really want to do
-P2P over SMTP, read the instructions at http://gnunet.org/smtp
 
 
 Stay tuned

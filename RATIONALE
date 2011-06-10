@@ -241,6 +241,8 @@ PROBLEM GROUP 6 (FS-APIs):
   saves to disk on shutdown)
 * FILENAME metadata is killed by ECRS/FSUI to avoid
   exposing HOME, but what if the user set it manually?
+* The DHT was a generic data structure with no
+  support for ECRS-style block validation
 
 SOLUTION:
 * Eliminate threads from FS-APIs
@@ -249,6 +251,10 @@ SOLUTION:
 * Have API to manipulate sharing tree before
   upload; have auto-construction modify FILENAME
   but allow user-modifications afterwards
+* DHT API was extended with a BLOCK API for content
+  validation by block type; validators for FS and
+  DHT block types were written; BLOCK API is also
+  used by gap routing code.
 
 
 PROBLEM GROUP 7 (User experience):
@@ -258,20 +264,34 @@ PROBLEM GROUP 7 (User experience):
   creates thousands of search results for the mime-type keyword
   (problem with DB performance, network transmission, caching,
    end-user display, etc.)
+* Users that wanted to share important content had no way to
+  tell the system to replicate it more; replication was also
+  inefficient (this desired feature was sometimes called
+  "power" publishing or content pushing)
 
-SOLUTION (draft, not done yet, details missing...):
-* Canonicalize keywords (see suggestion on mailinglist end of
-  June 2009: keep consonants and sort those alphabetically);
-  while I think we must have an option to disable this feature
-  (for more private sharing), I do think it would make a reasonable
-  default
+SOLUTION:
+* Have option to canonicalize keywords (see suggestion on mailinglist end of
+  June 2009: keep consonants and sort those alphabetically); not
+  fully implemented yet
 * When sharing directories, extract keywords first and then
   push keywords that are common in all files up to the
   directory level; when processing an AND-ed query and a directory
   is found to match the result, do an inspection on the metadata
   of the files in the directory to possibly produce further results
-  (requires downloading of the directory in the background)
-
+  (requires downloading of the directory in the background);
+  needs more testing
+* A desired replication level can now be specified and is tracked
+  in the datastore; migration prefers content with a high
+  replication level (which decreases as replicase are created)
+  => datastore format changed; we also took out a size field 
+     that was redundant, so the overall overhead remains the same
+* Peers with a full disk (or disabled migration) can now notify 
+  other peers that they are not interested in migration right
+  now; as a result, less bandwidth is wasted pushing content
+  to these peers (and replication counters are not generally
+  decreased based on copies that are just discarded; naturally,
+  there is still no guarantee that the replicas will stay
+  available) 
 
 
 
