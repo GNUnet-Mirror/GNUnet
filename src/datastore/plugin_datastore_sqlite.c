@@ -718,6 +718,8 @@ execute_get (struct Plugin *plugin,
  * the given processor for the item.
  *
  * @param cls our plugin context
+ * @param offset offset of the result (modulo num-results); 
+ *               specific ordering does not matter for the offset
  * @param type entries of which type should be considered?
  *        Use 0 for any type.
  * @param proc function to call on each matching value;

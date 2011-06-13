@@ -529,6 +529,7 @@ postgres_plugin_put (void *cls,
  * @param proc function to call the value (once only).
  * @param proc_cls closure for proc
  * @param res result from exec
+ * @param line line number for error messages
  */
 static void 
 process_result (struct Plugin *plugin,
@@ -663,6 +664,8 @@ process_result (struct Plugin *plugin,
  * in the datastore.
  *
  * @param cls closure
+ * @param offset offset of the result (modulo num-results); 
+ *        specific ordering does not matter for the offset
  * @param key maybe NULL (to match all entries)
  * @param vhash hash of the value, maybe NULL (to
  *        match all values that have the right key).
@@ -671,9 +674,9 @@ process_result (struct Plugin *plugin,
  *        there may be!
  * @param type entries of which type are relevant?
  *     Use 0 for any type.
- * @param iter function to call on each matching value;
- *        will be called once with a NULL value at the end
- * @param iter_cls closure for iter
+ * @param proc function to call on the matching value;
+ *        will be called once with a NULL if no value matches
+ * @param proc_cls closure for iter
  */
 static void
 postgres_plugin_get_key (void *cls,
@@ -820,9 +823,9 @@ postgres_plugin_get_key (void *cls,
  * @param cls our "struct Plugin*"
  * @param type entries of which type should be considered?
  *        Use 0 for any type.
- * @param iter function to call on each matching value;
- *        will be called once with a NULL value at the end
- * @param iter_cls closure for iter
+ * @param proc function to call on the matching value;
+ *        will be called with a NULL if no value matches
+ * @param proc_cls closure for proc
  */
 static void
 postgres_plugin_get_zero_anonymity (void *cls,
@@ -951,7 +954,7 @@ repl_proc (void *cls,
  *
  * @param cls closure
  * @param proc function to call the value (once only).
- * @param proc_cls closure for iter
+ * @param proc_cls closure for proc
  */
 static void
 postgres_plugin_get_replication (void *cls,
@@ -976,11 +979,11 @@ postgres_plugin_get_replication (void *cls,
 
 /**
  * Get a random item for expiration.
- * Call 'iter' with all values ZERO or NULL if the datastore is empty.
+ * Call 'proc' with all values ZERO or NULL if the datastore is empty.
  *
  * @param cls closure
  * @param proc function to call the value (once only).
- * @param proc_cls closure for iter
+ * @param proc_cls closure for proc
  */
 static void
 postgres_plugin_get_expiration (void *cls,

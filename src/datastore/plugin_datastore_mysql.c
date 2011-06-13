@@ -1071,7 +1071,7 @@ execute_select (struct Plugin *plugin,
  * Get one of the results for a particular key in the datastore.
  *
  * @param cls closure
- * @param offset offset of the result (mod #num-results); 
+ * @param offset offset of the result (modulo num-results); 
  *               specific ordering does not matter for the offset
  * @param key key to match, never NULL
  * @param vhash hash of the value, maybe NULL (to
@@ -1081,12 +1081,8 @@ execute_select (struct Plugin *plugin,
  *        there may be!
  * @param type entries of which type are relevant?
  *     Use 0 for any type.
- * @param proc function to call on each matching value; however,
- *        after the first call to "proc", the plugin must wait
- *        until "NextRequest" was called before giving the processor
- *        the next item; finally, the "proc" should be called once
- *        once with a NULL value at the end ("next_cls" should be NULL
- *        for that last call)
+ * @param proc function to call on the matching value, 
+ *        with NULL for if no value matches
  * @param proc_cls closure for proc
  */
 static void
@@ -1234,9 +1230,8 @@ mysql_plugin_get_key (void *cls,
  * @param offset offset of the result
  * @param type entries of which type should be considered?
  *        Use 0 for any type.
- * @param iter function to call on each matching value;
- *        will be called once with a NULL value at the end
- * @param iter_cls closure for iter
+ * @param proc function to call on a matching value or NULL
+ * @param proc_cls closure for iter
  */
 static void
 mysql_plugin_get_zero_anonymity (void *cls,
@@ -1351,7 +1346,7 @@ repl_proc (void *cls,
  *
  * @param cls closure
  * @param proc function to call the value (once only).
- * @param iter_cls closure for proc
+ * @param proc_cls closure for proc
  */
 static void
 mysql_plugin_get_replication (void *cls,

@@ -290,7 +290,6 @@ delete_expired (void *cls,
  * expired items, re-schedule the "delete_expired" task.
  *
  * @param cls not used
- * @param next_cls closure to pass to the "next" function.
  * @param key key for the content
  * @param size number of bytes in data
  * @param data content stored
@@ -383,7 +382,6 @@ delete_expired (void *cls,
  * that deletes until we're happy with respect to our quota.
  *
  * @param cls closure
- * @param next_cls closure to pass to the "next" function.
  * @param key key for the content
  * @param size number of bytes in data
  * @param data content stored
@@ -517,8 +515,6 @@ transmit_callback (void *cls,
  *
  * @param client target of the message
  * @param msg message to transmit, will be freed!
- * @param tc function to call afterwards
- * @param tc_cls closure for tc
  */
 static void
 transmit (struct GNUNET_SERVER_Client *client,
@@ -598,7 +594,6 @@ transmit_status (struct GNUNET_SERVER_Client *client,
  * to the client.
  *
  * @param cls closure, pointer to the client (of type GNUNET_SERVER_Client).
- * @param next_cls closure to use to ask for the next item
  * @param key key for the content
  * @param size number of bytes in data
  * @param data content stored
