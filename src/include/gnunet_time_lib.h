@@ -291,12 +291,12 @@ struct GNUNET_TIME_Relative GNUNET_TIME_absolute_get_difference (struct
  * Get the duration of an operation as the
  * difference of the current time and the given start time "hence".
  *
- * @param hence some absolute time, typically in the past
+ * @param whence some absolute time, typically in the past
  * @return aborts if hence==FOREVER, 0 if hence > now, otherwise now-hence.
  */
 struct GNUNET_TIME_Relative GNUNET_TIME_absolute_get_duration (struct
                                                                GNUNET_TIME_Absolute
-                                                               hence);
+                                                               whence);
 
 
 /**

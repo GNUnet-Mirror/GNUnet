@@ -148,7 +148,7 @@ typedef int (*PluginPut) (void *cls,
  * Get one of the results for a particular key in the datastore.
  *
  * @param cls closure
- * @param offset offset of the result (mod #num-results); 
+ * @param offset offset of the result (modulo num-results); 
  *               specific ordering does not matter for the offset
  * @param key key to match, never NULL
  * @param vhash hash of the value, maybe NULL (to
@@ -175,7 +175,7 @@ typedef void (*PluginGetKey) (void *cls,
  * Get a random item (additional constraints may apply depending on
  * the specific implementation).  Calls 'proc' with all values ZERO or
  * NULL if no item applies, otherwise 'proc' is called once and only
- * once with an item, with the 'next_cls' argument being NULL.
+ * once with an item.
  *
  * @param cls closure
  * @param proc function to call the value (once only).
@@ -220,7 +220,7 @@ typedef int (*PluginUpdate) (void *cls,
  * (among those applicable). 
  *
  * @param cls closure
- * @param offset offset of the result (mod #num-results); 
+ * @param offset offset of the result (modulo num-results); 
  *               specific ordering does not matter for the offset
  * @param type entries of which type should be considered?
  *        Must not be zero (ANY).

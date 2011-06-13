@@ -291,7 +291,7 @@ typedef void (*GNUNET_DATASTORE_DatumProcessor) (void *cls,
  * will only be called once.
  *
  * @param h handle to the datastore
- * @param offset offset of the result (mod #num-results); set to
+ * @param offset offset of the result (modulo num-results); set to
  *               a random 64-bit value initially; then increment by
  *               one each time; detect that all results have been found by uid
  *               being again the first uid ever returned.
@@ -323,7 +323,7 @@ GNUNET_DATASTORE_get_key (struct GNUNET_DATASTORE_Handle *h,
  * Get a single zero-anonymity value from the datastore.
  *
  * @param h handle to the datastore
- * @param offset offset of the result (mod #num-results); set to
+ * @param offset offset of the result (modulo num-results); set to
  *               a random 64-bit value initially; then increment by
  *               one each time; detect that all results have been found by uid
  *               being again the first uid ever returned.
