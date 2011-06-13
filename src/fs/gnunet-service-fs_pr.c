@@ -537,7 +537,7 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
 	    &pr->public_data.namespace, 
 	    sizeof (GNUNET_HashCode));
   if (GNUNET_YES == pr->public_data.has_target)
-    ext[k++] = pr->public_data.target;
+    ext[k++] = pr->public_data.target.hashPubKey;
   if (pr->bf != NULL)
     GNUNET_CONTAINER_bloomfilter_get_raw_data (pr->bf,
 					       (char*) &ext[k],
