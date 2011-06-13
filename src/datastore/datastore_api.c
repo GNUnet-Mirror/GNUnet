@@ -1508,7 +1508,7 @@ GNUNET_DATASTORE_get_key (struct GNUNET_DATASTORE_Handle *h,
   union QueueContext qc;
 
   GNUNET_assert (NULL != proc);
-##if DEBUG_DATASTORE
+#if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Asked to look for data of type %u under key `%s'\n",
 	      (unsigned int) type,
