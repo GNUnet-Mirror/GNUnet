@@ -174,8 +174,6 @@ timeout_error (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Timeout while executing testcase, test failed.\n");
   timeout = GNUNET_YES;
