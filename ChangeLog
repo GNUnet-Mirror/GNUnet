@@ -4,14 +4,14 @@
 
 	* FS still has a few missing features, but largely works
 	* DATASTORE is O(n) where it should be O(log n) for some operations
-	* UDP does not work (only messages < 1500 bytes, no fragmentation)
+	* TRANSPORT-UDP does not work (only messages < 1500 bytes, no fragmentation)
 	* TESTING does not support incremental HELLO changes
 	* TRANSPORT ATS is not used for actual bandwidth assignment,
 	          important options to make it truly useful are still missing
 	* NAT traversal partially works for TCP (ICMP-based method only)
 	* MESH does not work (mock API emulates for VPN)
 	* VPN is experimental
-        * WLAN is experimental
+        * TRANSPORT-WLAN is experimental
 	* CHAT is experimental, has known bugs and was not reviewed yet
 	* MONKEY is highly experimental
 	* FRAGMENTATION library is not implemented

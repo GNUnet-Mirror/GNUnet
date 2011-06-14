@@ -222,7 +222,7 @@ keyword_printer (void *cls,
   fprintf (stdout, 
 	   "\t%s\n",
 	   keyword);
-  return 0;
+  return GNUNET_OK;
 }
 
 
@@ -263,7 +263,7 @@ publish_inspector (void *cls,
     {
       if (*uri != NULL)
 	{
-	  new_uri = GNUNET_FS_uri_ksk_merge (topKeywords,
+ 	  new_uri = GNUNET_FS_uri_ksk_merge (topKeywords,
 					     *uri);
 	  GNUNET_FS_uri_destroy (*uri);	
 	  *uri = new_uri;
