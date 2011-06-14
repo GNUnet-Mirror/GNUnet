@@ -153,7 +153,7 @@ confirm_cb (void *cls, int success)
     {
     case GNUNET_OK:
       if (quiet != GNUNET_YES)
-        fprintf(stdout, _("Service `%s' is now running.\n"), service);
+        fprintf(stdout, _("Service `%s' has been started.\n"), service);
       if ((phase - 1 != 2) && (phase - 1 != 3))
         {
           if (quiet != GNUNET_YES)
@@ -163,7 +163,7 @@ confirm_cb (void *cls, int success)
       break;
     case GNUNET_NO:
       if (quiet != GNUNET_YES)
-        fprintf(stdout, _("Service `%s' is not running.\n"), service);
+        fprintf(stdout, _("Service `%s' has been stopped.\n"), service);
       if ((phase - 1 != 0) && (phase - 1 != 1))
         {
           if (quiet != GNUNET_YES)
