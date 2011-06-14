@@ -560,18 +560,18 @@ GNUNET_NETWORK_socket_send (const struct GNUNET_NETWORK_Handle * desc,
 #ifdef MSG_DONTWAIT
   flags |= MSG_DONTWAIT;
 
-#endif /*  */
+#endif
 #ifdef MSG_NOSIGNAL
   flags |= MSG_NOSIGNAL;
 
-#endif /*  */
+#endif
   ret = send (desc->fd, buffer, length, flags);
 
 #ifdef MINGW
   if (SOCKET_ERROR == ret)
     SetErrnoFromWinsockError (WSAGetLastError ());
 
-#endif /*  */
+#endif
   return ret;
 }
 
