@@ -38,7 +38,7 @@
  * a value times out?  (The update will be lost if the
  * service does not react within this timeframe).  
  */
-#define SET_TRANSMIT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250)
+#define SET_TRANSMIT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2)
 
 
 /**
