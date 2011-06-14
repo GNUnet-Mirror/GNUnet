@@ -346,6 +346,13 @@ GNUNET_FS_handle_index_start (void *cls,
       return;
     }
   ism = (const struct IndexStartMessage*) message;
+  if (0 != ism->reserved)
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client,
+				  GNUNET_SYSERR);
+      return;
+    }
   fn = GNUNET_STRINGS_filename_expand ((const char*) &ism[1]);
   if (fn == NULL)
     {
@@ -472,6 +479,13 @@ GNUNET_FS_handle_unindex (void *cls,
   int found;
 
   um = (const struct UnindexMessage*) message;
+  if (0 != um->reserved)
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client,
+				  GNUNET_SYSERR);
+      return;
+    }
   found = GNUNET_NO;
   prev = NULL;
   pos = indexed_files;
