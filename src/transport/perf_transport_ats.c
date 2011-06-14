@@ -294,9 +294,9 @@ int main (int argc, char *argv[])
   GAUGER ("TRANSPORT",
       "GLPK MLP 100 peers 400 addresses with optimization",
       ((double) mlp_with_opt_avg  / EXECS) / 400, "ms/address");
+  (void) CLOSE (nullfd);
 
 #endif
-  (void) CLOSE (nullfd);
   return ret;
 }
 
