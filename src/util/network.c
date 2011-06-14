@@ -565,14 +565,6 @@ GNUNET_NETWORK_socket_send (const struct GNUNET_NETWORK_Handle * desc,
   flags |= MSG_NOSIGNAL;
 
 #endif
-  if ( (length > 200) && (0 == (3 & (long)buffer)) )
-    {
-      const struct GNUNET_MessageHeader *hdr = buffer;
-      fprintf (stderr, "T: %u, S: %u\n",
-	       ntohs (hdr->type),
-	       ntohs (hdr->size));
-    }
-       
   ret = send (desc->fd, buffer, length, flags);
 
 #ifdef MINGW
