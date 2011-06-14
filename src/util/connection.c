@@ -1420,17 +1420,13 @@ connect_error (void *cls,
   struct GNUNET_CONNECTION_Handle *sock = cls;
   GNUNET_CONNECTION_TransmitReadyNotify notify;
 
+#if DEBUG_CONNECTION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmission request of size %u fails (%d/%s/%u), connection failed (%p).\n",
+              "Transmission request of size %u fails (%s/%u), connection failed (%p).\n",
               sock->nth.notify_size, 
-	      (sock->sock != NULL) ? *(int*) sock->sock : -1,
 	      sock->hostname,
 	      sock->port,
 	      sock);
-#if DEBUG_CONNECTION
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmission request of size %u fails, connection failed (%p).\n",
-              sock->nth.notify_size, sock);
 #endif
   sock->write_task = GNUNET_SCHEDULER_NO_TASK;
   notify = sock->nth.notify_ready;

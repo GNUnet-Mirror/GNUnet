@@ -831,10 +831,11 @@ client_notify (void *cls, size_t size, void *buf)
           return 0;
         }
       /* auto-retry */
+#if DEBUG_CLIENT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Failed to connect to `%s', automatically trying again.\n",
 		  th->sock->service_name);
-
+#endif
       GNUNET_CONNECTION_destroy (th->sock->sock, GNUNET_NO);
       th->sock->sock = do_connect (th->sock->service_name,
 				   th->sock->cfg,
