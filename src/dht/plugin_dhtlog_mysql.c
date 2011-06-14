@@ -459,7 +459,7 @@ iopen (struct GNUNET_DHTLOG_Plugin *plugin)
       PINIT (insert_route, INSERT_ROUTES_STMT) ||
       PINIT (insert_trial, INSERT_TRIALS_STMT) ||
       PINIT (insert_round, INSERT_ROUNDS_STMT) ||
-      PINIT (insert_round, INSERT_ROUND_DETAILS_STMT) ||
+      PINIT (insert_round_details, INSERT_ROUND_DETAILS_STMT) ||
       PINIT (insert_stat, INSERT_STAT_STMT) ||
       PINIT (insert_generic_stat, INSERT_GENERIC_STAT_STMT) ||
       PINIT (insert_node, INSERT_NODES_STMT) ||
