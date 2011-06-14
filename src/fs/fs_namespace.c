@@ -855,9 +855,10 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   uris = GNUNET_FS_uri_to_string (uri);
   slen = strlen (uris) + 1;
   idlen = strlen (identifier);
-  if (update == NULL)
-    update = "";
-  nidlen = strlen (update) + 1;
+  if (update != NULL)
+    nidlen = strlen (update) + 1;
+  else
+    nidlen = 1;
   mdsize = GNUNET_CONTAINER_meta_data_get_serialized_size (mmeta);
   size = sizeof (struct SBlock) + slen + nidlen + mdsize;
   if (size > MAX_SBLOCK_SIZE)
@@ -867,7 +868,10 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
     }
   sb = GNUNET_malloc (sizeof (struct SBlock) + size);
   dest = (char *) &sb[1];
-  memcpy (dest, update, nidlen);
+  if (update != NULL)
+    memcpy (dest, update, nidlen);
+  else
+    memset (dest, 0, 1);
   dest += nidlen;
   memcpy (dest, uris, slen);
   GNUNET_free (uris);
