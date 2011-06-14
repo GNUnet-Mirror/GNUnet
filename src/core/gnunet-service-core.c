@@ -3929,10 +3929,10 @@ deliver_message (void *cls,
 		   sizeof(buf),
 		   gettext_noop ("# bytes of messages of type %u received"),
 		   (unsigned int) type);
-  GNUNET_STATISTICS_set (stats,
-			 buf,
-			 msize,
-			 GNUNET_NO);     
+  GNUNET_STATISTICS_update (stats,
+                            buf,
+                            msize,
+                            GNUNET_NO);
   dropped = GNUNET_YES;
   cpos = clients;
   while (cpos != NULL)
@@ -4135,10 +4135,10 @@ handle_encrypted_message (struct Neighbour *n,
     = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT, 2),
 				    &send_keep_alive,
 				    n);
-  GNUNET_STATISTICS_set (stats,
-			 gettext_noop ("# bytes of payload decrypted"),
-			 size - sizeof (struct EncryptedMessage),
-			 GNUNET_NO);
+  GNUNET_STATISTICS_update (stats,
+                            gettext_noop ("# bytes of payload decrypted"),
+                            size - sizeof (struct EncryptedMessage),
+                            GNUNET_NO);
   handle_peer_status_change (n);
   update_neighbour_performance (n, ats, ats_count);
   if (GNUNET_OK != GNUNET_SERVER_mst_receive (mst, 
