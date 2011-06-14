@@ -83,7 +83,7 @@ libgnunet_plugin_datacache_template_la_LDFLAGS = \
 if HAVE_SQLITE
 if HAVE_BENCHMARKS
  SQLITE_BENCHMARKS = \
-  perf_datacache_postgres
+  perf_datacache_sqlite
 endif
 SQLITE_TESTS = \
  test_datacache_sqlite \
@@ -94,7 +94,7 @@ endif
 if HAVE_MYSQL
 if HAVE_BENCHMARKS
  MYSQL_BENCHMARKS = \
-  perf_datacache_postgres
+  perf_datacache_mysql
 endif
 MYSQL_TESTS = \
  test_datacache_mysql \
