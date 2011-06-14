@@ -615,6 +615,7 @@ schedule_next_hello (void *cls,
   struct GNUNET_TIME_Relative delay;
  
   pl->hello_delay_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_assert (GNUNET_YES == pl->is_connected);    
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return; /* we're out of here */
   if (pl->hello_req != NULL)
@@ -817,6 +818,16 @@ disconnect_notify (void *cls,
     }
   pos->is_connected = GNUNET_NO;
   connection_count--;
+  if (NULL != pos->hello_req)
+    {
+      GNUNET_CORE_notify_transmit_ready_cancel (pos->hello_req);
+      pos->hello_req = NULL;
+    }
+  if (GNUNET_SCHEDULER_NO_TASK != pos->hello_delay_task)
+    {
+      GNUNET_SCHEDULER_cancel (pos->hello_delay_task);
+      pos->hello_delay_tas k = GNUNET_SCHEDULER_NO_TASK;
+    }
   GNUNET_STATISTICS_set (stats,
 			 gettext_noop ("# peers connected"),
 			 connection_count,
