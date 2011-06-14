@@ -105,7 +105,7 @@ struct ClientList
 
 
 /**
- * The notification context is the key datastructure for a conveniance
+ * The notification context is the key datastructure for a convenience
  * API used for transmission of notifications to the client until the
  * client disconnects (or the notification context is destroyed, in
  * which case we disconnect these clients).  Essentially, all
