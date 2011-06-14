@@ -20,7 +20,7 @@
 
 /**
  * @file fs/gnunet-service-fs_lc.c
- * @brief API to handle 'connected peers'
+ * @brief API to handle 'local clients'
  * @author Christian Grothoff
  */
 
