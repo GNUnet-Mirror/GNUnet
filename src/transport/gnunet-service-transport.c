@@ -5840,15 +5840,16 @@ transmit_address_to_client (void *cls, const char *address)
   struct GNUNET_SERVER_TransmitContext *tc = cls;
   size_t slen;
 
-  if (NULL == address)
-    slen = 0;
+  if (NULL != address)
+    {
+      slen = strlen (address) + 1;
+      GNUNET_SERVER_transmit_context_append_data (tc, address, slen,
+						  GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+    }
   else
-    slen = strlen (address) + 1;
-
-  GNUNET_SERVER_transmit_context_append_data (tc, address, slen,
-					      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
-  if (NULL == address)
-    GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
+    {
+      GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
+    }
 }
 
 
@@ -5910,6 +5911,7 @@ handle_address_lookup (void *cls,
       GNUNET_SERVER_transmit_context_run (tc, rtimeout);
       return;
     }
+  GNUNET_SERVER_disable_receive_done_warning (client);
   tc = GNUNET_SERVER_transmit_context_create (client);
   lsPlugin->api->address_pretty_printer (lsPlugin->api->cls,
 					 nameTransport,
