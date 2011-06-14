@@ -422,7 +422,7 @@ GSF_pending_request_update_ (struct GSF_PendingRequest *pr,
       if (GNUNET_NO == refresh_bloomfilter (pr))
 	{
 	  /* bf not recalculated, simply extend it with new bits */
-	  for (i=0;i<pr->replies_seen_count;i++)
+	  for (i=0;i<replies_seen_count;i++)
 	    {
 	      GNUNET_BLOCK_mingle_hash (&replies_seen[i],
 					pr->mingle,
