@@ -110,6 +110,14 @@ GNUNET_MONKEY_EDB_get_expressions (struct GNUNET_MONKEY_EDB_Context *cntxt,
 				   void *iter_cls);
 
 
+int
+GNUNET_MONKEY_EDB_get_sub_expressions (struct GNUNET_MONKEY_EDB_Context *cntxt,
+				   const char *file_name, int start_line_no,
+				   int end_line_no,
+				   GNUNET_MONKEY_ExpressionIterator iter,
+				   void *iter_cls);
+
+
 
 #if 0				/* keep Emacsens' auto-indent happy */
 {

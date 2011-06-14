@@ -36,14 +36,27 @@ extern void sendMail (const char *messageContents, const char *emailAddress);
 static int async_c = 0;
 static struct Expression *expressionListHead = NULL;
 static struct Expression *expressionListTail = NULL;
+static struct WatchInfo *watchInfoListHead = NULL;
+static struct WatchInfo *watchInfoListTail = NULL;
+static struct Expression *faultyExpression = NULL;
 
 struct Expression
 {
   struct Expression *next;
   struct Expression *prev;
   const char *expressionSyntax;
+  const char *expressionValue;
   int lineNo;
 };
+
+struct WatchInfo
+{
+	struct WatchInfo *next;
+	struct WatchInfo *prev;
+	int hitNumber;
+	const char *value;
+};
+
 
 static void
 cb_console (const char *str, void *data)
@@ -90,20 +103,48 @@ cb_async (mi_output * o, void *data)
 
 
 static int
-wait_for_stop (mi_h * h, struct GNUNET_MONKEY_ACTION_Context *cntxt)
+wait_for_stop (struct GNUNET_MONKEY_ACTION_Context *cntxt)
 {
-  while (!mi_get_response (h))
+  while (!mi_get_response (cntxt->gdb_handle))
     usleep (1000);
   /* The end of the async. */
-  cntxt->gdb_stop_reason = mi_res_stop (h);
+  cntxt->gdb_stop_reason = mi_res_stop (cntxt->gdb_handle);
   if (cntxt->gdb_stop_reason)
     {
       if (cntxt->gdb_stop_reason->reason == sr_exited_normally)
-	return GDB_STATE_EXIT_NORMALLY;
-
-      cntxt->gdb_frames = gmi_stack_info_frame (h);
+    	  return GDB_STATE_EXIT_NORMALLY;
+      else if (cntxt->gdb_stop_reason->reason == sr_bkpt_hit) {
+    	  /* We want to inspect an expression */
+    	  /* Set hardware watch at the expression to inspect */
+		  mi_wp *wp = gmi_break_watch(cntxt->gdb_handle, wm_write, cntxt->inspect_expression);
+		  if (NULL == wp)
+			{
+			 printf("Error in setting a watchpoint at expression:%s\n", cntxt->inspect_expression);
+			 return GDB_STATE_ERROR;
+			}
+		  mi_free_wp(wp);
+		  /* continue execution */
+		  gmi_exec_continue(cntxt->gdb_handle);
+		  return wait_for_stop (cntxt);
+      }
+      else if (cntxt->gdb_stop_reason->reason == sr_wp_trigger) {
+    	  static int watchPointHitNumber = 0;
+    	  struct WatchInfo *watchInfo = GNUNET_malloc(sizeof(struct WatchInfo));
+    	  watchInfo->hitNumber = ++watchPointHitNumber;
+    	  watchInfo->value = cntxt->gdb_stop_reason->wp_val;
+    	  GNUNET_CONTAINER_DLL_insert(watchInfoListHead, watchInfoListTail, watchInfo);
+    	  if (watchPointHitNumber == 1023)
+    		  printf("HEY! 1023! WE ARE GETTING OUT OF THE LOOP!\n");
+    	  gmi_exec_continue(cntxt->gdb_handle);
+    	  return wait_for_stop (cntxt);
+      }
+      else if (cntxt->gdb_stop_reason->reason == sr_wp_scope) {
+    	  gmi_exec_continue(cntxt->gdb_handle);
+    	  return wait_for_stop (cntxt);
+      }
+      cntxt->gdb_frames = gmi_stack_info_frame (cntxt->gdb_handle);
       if (NULL == cntxt->gdb_frames)
-	GNUNET_break (0);
+    	  GNUNET_break (0);
 
       if (0 == cntxt->gdb_frames->line)
 	{
@@ -118,6 +159,8 @@ wait_for_stop (mi_h * h, struct GNUNET_MONKEY_ACTION_Context *cntxt)
 	    }
 	  while (0 == cntxt->gdb_frames->line);
 	}
+      /* Change current GDB frame to the one containing source code */
+      gmi_stack_select_frame(cntxt->gdb_handle, cntxt->gdb_frames->level);
 
       return GDB_STATE_STOPPED;
     }
@@ -160,7 +203,6 @@ iterateExpressions (void *cls, int numColumns, char **colValues,
   expression->expressionSyntax = strdup (colValues[0]);
   expression->lineNo = atoi (colValues[1]);
 
-  printf ("Inserting expression:%s", expression->expressionSyntax);
   GNUNET_CONTAINER_DLL_insert (expressionListHead, expressionListTail,
 			       expression);
 
@@ -206,7 +248,6 @@ getFaultyExpression (struct GNUNET_MONKEY_ACTION_Context *cntxt)
 static int
 analyzeSegmentationFault (struct GNUNET_MONKEY_ACTION_Context *cntxt)
 {
-  struct Expression *faultyExpression = NULL;
   struct Expression *tmp;
 
 
@@ -262,26 +303,21 @@ static int
 analyzeCustomFault (struct GNUNET_MONKEY_ACTION_Context *cntxt)
 {
   struct Expression *tmp;
-  struct Expression *faultyExpression = getFaultyExpression (cntxt);
-  struct Variable *variable;
+  faultyExpression = getFaultyExpression (cntxt);
+
+
   if (NULL != faultyExpression)
     {
       tmp = expressionListHead;
       while (NULL != tmp)
 	{
 	  const char *eval;
-	  if (tmp != faultyExpression)
-	    {
 	      eval =
 		gmi_data_evaluate_expression (cntxt->gdb_handle,
 					      tmp->expressionSyntax);
-	      variable = GNUNET_malloc (sizeof (struct Variable));
-	      variable->name = tmp->expressionSyntax;
-	      variable->value = eval;
-	      GNUNET_CONTAINER_DLL_insert (cntxt->variable_list_head,
-					   cntxt->variable_list_tail,
-					   variable);
-	    }
+	      if (NULL != eval) {
+			  tmp->expressionValue = eval;
+	      }
 	  tmp = tmp->next;
 	}
     }
@@ -315,19 +351,23 @@ GNUNET_MONKEY_ACTION_inspect_expression_database (struct
   if (endScope < 0)
     return GNUNET_NO;
 
-  ret = GNUNET_MONKEY_EDB_get_expressions (edbCntxt,
-					   cntxt->gdb_frames->file,
-					   cntxt->gdb_frames->line, endScope,
-					   &iterateExpressions, NULL);
 
   if (strcasecmp (signalMeaning, "Segmentation fault") == 0)
     {
       cntxt->bug_detected = BUG_NULL_POINTER;
+      GNUNET_MONKEY_EDB_get_expressions (edbCntxt,
+     					   cntxt->gdb_frames->file,
+     					   cntxt->gdb_frames->line, endScope,
+     					   &iterateExpressions, NULL);
       ret = analyzeSegmentationFault (cntxt);
     }
   else if (strcasecmp (signalMeaning, "Aborted") == 0)
     {
       cntxt->bug_detected = BUG_CUSTOM;
+      GNUNET_MONKEY_EDB_get_sub_expressions (edbCntxt,
+       					   cntxt->gdb_frames->file,
+       					   cntxt->gdb_frames->line, endScope,
+       					   &iterateExpressions, NULL);
       ret = analyzeCustomFault (cntxt);
     }
 
@@ -341,12 +381,13 @@ int
 GNUNET_MONKEY_ACTION_rerun_with_valgrind (struct GNUNET_MONKEY_ACTION_Context
 					  *cntxt)
 {
-  FILE *valgrindPipe;
-  int size;
   char *valgrindCommand;
+  FILE *valgrindPipe;
+
+  GNUNET_asprintf(&cntxt->valgrind_output_tmp_file_name, "%d", rand());
   cntxt->debug_mode = DEBUG_MODE_VALGRIND;
-  GNUNET_asprintf (&valgrindCommand, "valgrind --leak-check=yes %s",
-		   cntxt->binary_name);
+  GNUNET_asprintf (&valgrindCommand, "valgrind --leak-check=yes --log-file=%s %s",
+		   cntxt->valgrind_output_tmp_file_name, cntxt->binary_name);
   valgrindPipe = popen (valgrindCommand, "r");
   if (NULL == valgrindPipe)
     {
@@ -355,18 +396,8 @@ GNUNET_MONKEY_ACTION_rerun_with_valgrind (struct GNUNET_MONKEY_ACTION_Context
       return GNUNET_NO;
     }
 
-  fscanf (valgrindPipe, "%d", &size);
-
-  /* Read Valgrind stream */
-  cntxt->valgrind_output = GNUNET_malloc (size);
-  fscanf (valgrindPipe, "%s", cntxt->valgrind_output);
-  GNUNET_free (valgrindCommand);
-  if (0 != pclose (valgrindPipe))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Error while closing Valgrind pipe!\n");
-      return GNUNET_NO;
-    }
+  pclose(valgrindPipe);
+  GNUNET_free(valgrindCommand);
   return GNUNET_OK;
 }
 
@@ -375,7 +406,6 @@ int
 GNUNET_MONKEY_ACTION_rerun_with_gdb (struct GNUNET_MONKEY_ACTION_Context
 				     *cntxt)
 {
-  mi_wp *watchPoint;
   cntxt->debug_mode = DEBUG_MODE_GDB;
   /* This is like a file-handle for fopen.
      Here we have all the state of gdb "connection". */
@@ -416,17 +446,17 @@ GNUNET_MONKEY_ACTION_rerun_with_gdb (struct GNUNET_MONKEY_ACTION_Context
       return GNUNET_NO;
     }
 
-  if (NULL != cntxt->inspect_expression)
+  if ((NULL != cntxt->inspect_expression) && (NULL != cntxt->inspect_function))
     {
-      watchPoint =
-	gmi_break_watch (cntxt->gdb_handle, wm_write,
-			 cntxt->inspect_expression);
-      if (NULL == watchPoint)
-	{
-	  printf ("Error in setting watch point\n");
-	  mi_disconnect (cntxt->gdb_handle);
-	  return GNUNET_NO;
-	}
+	  /* Setting a breakpoint at the function containing the expression to inspect */
+	  mi_bkpt *bp = gmi_break_insert_full(cntxt->gdb_handle, 0, 0, NULL, -1, -1, cntxt->inspect_function);
+	  if (NULL == bp)
+	    {
+	     printf("Error setting breakpoint at function:%s\n", cntxt->inspect_function);
+	     mi_disconnect(cntxt->gdb_handle);
+	     return GNUNET_NO;
+	    }
+	  mi_free_bkpt(bp);
     }
 
   /* Run the program. */
@@ -437,31 +467,105 @@ GNUNET_MONKEY_ACTION_rerun_with_gdb (struct GNUNET_MONKEY_ACTION_Context
       return GNUNET_NO;
     }
   /* Here we should be stopped when the program crashes */
-  ret = wait_for_stop (cntxt->gdb_handle, cntxt);
+  ret = wait_for_stop (cntxt);
   if (ret == GDB_STATE_ERROR)
     mi_disconnect (cntxt->gdb_handle);
 
   return ret;
 }
 
-static const char *
-variableListToString (struct Variable *head)
-{
-  char *string = GNUNET_malloc (200 * sizeof (char));
-  char *strTmp;
-  struct Variable *tmp = head;
 
-  GNUNET_asprintf (&strTmp, "%s = %s\n", tmp->name, tmp->value);
+static int
+getExpressionListSize(struct Expression *head)
+{
+	int size, count = 0;
+	struct Expression *tmp = head;
+
+	while (NULL != tmp) {
+		count++;
+		tmp = tmp->next;
+	}
+	/* Since the faulty expression is the longest in the expression list */
+	size = count * strlen(faultyExpression->expressionSyntax) * sizeof(char);
+	return size;
+}
+
+
+static const char *
+expressionListToString (struct Expression *head)
+{
+  char *string = GNUNET_malloc (getExpressionListSize(head));
+  char *strTmp;
+  struct Expression *tmp = head;
+
+  GNUNET_asprintf (&strTmp, "%s = %s\n", tmp->expressionSyntax, NULL == tmp->expressionValue ? "Not evaluated" : tmp->expressionValue);
   strcpy (string, strTmp);
   GNUNET_free (strTmp);
+  tmp = tmp->next;
+
   while (NULL != tmp)
     {
-      GNUNET_asprintf (&strTmp, "%s = %s\n", tmp->name, tmp->value);
+      GNUNET_asprintf (&strTmp, "%s = %s\n", tmp->expressionSyntax, NULL == tmp->expressionValue ? "Not evaluated" : tmp->expressionValue);
       strcat (string, strTmp);
       GNUNET_free (strTmp);
       tmp = tmp->next;
     }
   return string;
+}
+
+
+static int
+getWatchInfoListSize(struct WatchInfo *head)
+{
+	int count = 0;
+	int largestStr = 0;
+	struct WatchInfo *tmp = head;
+
+	while (NULL != tmp) {
+		if (largestStr < strlen(tmp->value))
+			largestStr = strlen(tmp->value);
+		tmp = tmp->next;
+		count++;
+	}
+
+	return count * largestStr;
+}
+
+static const char*
+watchInfoListToString(struct WatchInfo *head)
+{
+	char *string = GNUNET_malloc(getWatchInfoListSize(head));
+	char *strTmp;
+	struct WatchInfo *tmp = head;
+
+	GNUNET_asprintf (&strTmp, "%s\t \t%s\n", tmp->hitNumber, tmp->value);
+	strcpy (string, strTmp);
+	GNUNET_free (strTmp);
+	tmp = tmp->next;
+
+	while (NULL != tmp) {
+		GNUNET_asprintf (&strTmp, "%s\t \t%s\n", tmp->hitNumber, tmp->value);
+		strcat (string, strTmp);
+		GNUNET_free(strTmp);
+		tmp = tmp->next;
+	}
+
+	return string;
+}
+
+static const char* getValgrindOutput(struct GNUNET_MONKEY_ACTION_Context *cntxt)
+{
+	char* valgrindOutput;
+	int size;
+	FILE *valgrindFile = fopen(cntxt->valgrind_output_tmp_file_name, "r");
+	fseek(valgrindFile, 0L, SEEK_END);
+	size = ftell(valgrindFile);
+	fseek(valgrindFile, 0L, SEEK_SET);
+
+	valgrindOutput = GNUNET_malloc(size);
+	fread(valgrindOutput, size, 1, valgrindFile);
+	fclose(valgrindFile);
+	return valgrindOutput;
 }
 
 
@@ -489,45 +593,35 @@ GNUNET_MONKEY_ACTION_format_report (struct GNUNET_MONKEY_ACTION_Context
 	  if (NULL == cntxt->inspect_expression)
 	    {
 	      /* Assertion Failure */
+		  const char *expToString = expressionListToString(expressionListHead);
 	      GNUNET_asprintf (&(cntxt->debug_report),
-			       "Bug detected in file:%s\nfunction:%s\nline:%d\nreason:%s\nreceived signal:%s\n%s\n Details:\n Assertion Failure\n Expression evaluation:\n",
+			       "Bug detected in file:%s\nfunction:%s\nline:%d\nreceived signal:%s\n%s\nDetails:\nAssertion Failure\nExpression evaluation:\n%s\n",
 			       cntxt->gdb_frames->file,
 			       cntxt->gdb_frames->func,
 			       cntxt->gdb_frames->line,
-			       mi_reason_enum_to_str (cntxt->gdb_stop_reason->
-						      reason),
 			       cntxt->gdb_stop_reason->signal_name,
 			       cntxt->gdb_stop_reason->signal_meaning,
-			       variableListToString (cntxt->
-						     variable_list_head));
+			       expToString);
 	    }
 	  else
 	    {
-	      /* Failure in a user-defined expression */
-	      GNUNET_asprintf (&(cntxt->debug_report),
-			       "Bug detected in file:%s\nfunction:%s\nline:%d\nreason:%s\nreceived signal:%s\n%s\n Details:\n Failure in user-defined expression:%s\n Expression evaluation:\n",
-			       cntxt->gdb_frames->file,
-			       cntxt->gdb_frames->func,
-			       cntxt->gdb_frames->line,
-			       mi_reason_enum_to_str (cntxt->gdb_stop_reason->
-						      reason),
-			       cntxt->gdb_stop_reason->signal_name,
-			       cntxt->gdb_stop_reason->signal_meaning,
-			       cntxt->inspect_expression,
-			       variableListToString (cntxt->
-						     variable_list_head));
+	      /* Inspection of user-defined expression */
+		  /*
+	      GNUNET_asprintf(&(cntxt->debug_report),
+	    		  "Inspection of expression: %s in function: %s, file:%s\nHit Number: \t \tValue:\n%s",
+	    		  cntxt->inspect_expression, cntxt->inspect_function, cntxt->binary_name, watchInfoListToString(watchInfoListHead));
+	    		  */
 	    }
 	}
       break;
     case DEBUG_MODE_VALGRIND:
       GNUNET_asprintf (&(cntxt->debug_report),
-		       "Bug detected in file:%s\nfunction:%s\nline:%d\nreason:%s\nreceived signal:%s\n%s\n Details:\n Memory Check from Valgrind:%s\n",
+		       "Bug detected in file:%s\nfunction:%s\nline:%d\nreceived signal:%s\n%s\n Details:\n Memory Check from Valgrind:\n%s",
 		       cntxt->gdb_frames->file, cntxt->gdb_frames->func,
 		       cntxt->gdb_frames->line,
-		       mi_reason_enum_to_str (cntxt->gdb_stop_reason->reason),
 		       cntxt->gdb_stop_reason->signal_name,
 		       cntxt->gdb_stop_reason->signal_meaning,
-		       cntxt->valgrind_output);
+		       getValgrindOutput(cntxt));
       break;
     default:
       break;
@@ -535,6 +629,21 @@ GNUNET_MONKEY_ACTION_format_report (struct GNUNET_MONKEY_ACTION_Context
 
   cntxt->debug_mode = DEBUG_MODE_REPORT_READY;
   return GNUNET_OK;
+}
+
+
+int
+GNUNET_MONKEY_ACTION_delete_context(struct GNUNET_MONKEY_ACTION_Context *cntxt)
+{
+	if (NULL != cntxt->debug_report)
+		GNUNET_free(cntxt->debug_report);
+	if (NULL != cntxt->valgrind_output_tmp_file_name) {
+		remove(cntxt->valgrind_output_tmp_file_name);
+		GNUNET_free(cntxt->valgrind_output_tmp_file_name);
+	}
+
+	GNUNET_free(cntxt);
+	return GNUNET_OK;
 }
 
 

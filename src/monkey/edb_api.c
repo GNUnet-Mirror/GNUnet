@@ -159,3 +159,36 @@ GNUNET_MONKEY_EDB_get_expressions (struct GNUNET_MONKEY_EDB_Context *cntxt,
     }
   return GNUNET_OK;
 }
+
+
+int
+GNUNET_MONKEY_EDB_get_sub_expressions (struct GNUNET_MONKEY_EDB_Context *cntxt,
+				   const char *file_name, int start_line_no,
+				   int end_line_no,
+				   GNUNET_MONKEY_ExpressionIterator iter,
+				   void *iter_cls)
+{
+  int err;
+  char *errMsg;
+  char *query;
+  if (asprintf
+      (&query,
+       "select expr_syntax, start_lineno from Expression where file_name LIKE \'%%/%s\' and start_lineno = %d and end_lineno = %d",
+       file_name, start_line_no, end_line_no) == -1)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Memory allocation problem occurred!\n");
+      return GNUNET_NO;
+    }
+
+  err = sqlite3_exec (cntxt->db_handle, query, iter, iter_cls, &errMsg);
+  if (err)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Error occurred while executing Database query. `%s'",
+		  errMsg);
+      return GNUNET_NO;
+    }
+  return GNUNET_OK;
+}
+

@@ -37,6 +37,7 @@ static const char *emailAddress;
 static const char *edbFilePath;
 static const char *gdbBinaryPath;
 static const char *inspectExpression;
+static const char *inspectFunction;
 static int ret = 0;
 
 /**
@@ -82,6 +83,7 @@ run (void *cls,
   cntxt->expression_database_path = edbFilePath;
   cntxt->gdb_binary_path = gdbBinaryPath;
   cntxt->inspect_expression = inspectExpression;
+  cntxt->inspect_function = inspectFunction;
 
   result = GNUNET_MONKEY_ACTION_rerun_with_gdb (cntxt);
   switch (result)
@@ -144,6 +146,7 @@ run (void *cls,
     default:
       break;
     }
+  GNUNET_MONKEY_ACTION_delete_context(cntxt);
 }
 
 
@@ -170,7 +173,9 @@ main (int argc, char *argv[])
     {'g', "gdb", NULL,
      gettext_noop ("path to gdb binary in use; default is /usr/bin/gdb"),
      GNUNET_YES, &GNUNET_GETOPT_set_string, &gdbBinaryPath},
-    {'i', "inspect", NULL, gettext_noop ("A custom expression to inspect"),
+    {'f', "function", NULL, gettext_noop ("Monkey will set a breakpoint on this function"),
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &inspectFunction},
+    {'i', "inspect", NULL, gettext_noop ("An expression to inspect in the function specified after the argument f"),
      GNUNET_YES, &GNUNET_GETOPT_set_string, &inspectExpression},
     GNUNET_GETOPT_OPTION_END
   };

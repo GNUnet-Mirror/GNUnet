@@ -48,15 +48,6 @@ extern "C"
 #define BUG_CUSTOM 7
 
 
-struct Variable
-{
-  struct Variable *next;
-  struct Variable *prev;
-  const char *name;
-  const char *value;
-};
-
-
 /**
  * Context for the Action API
  */
@@ -67,6 +58,7 @@ struct GNUNET_MONKEY_ACTION_Context
   const char *expression_database_path;
   const char *gdb_binary_path;
   const char *inspect_expression;
+  const char *inspect_function;
   int debug_mode;
   int bug_detected;
   char *debug_report;
@@ -77,11 +69,9 @@ struct GNUNET_MONKEY_ACTION_Context
   mi_stop *gdb_stop_reason;
   mi_frames *gdb_frames;
   const char *gdb_null_variable;
-  struct Variable *variable_list_head;
-  struct Variable *variable_list_tail;
 
   /* Valgrind memcheck attributes */
-  char *valgrind_output;
+  char* valgrind_output_tmp_file_name;
 };
 
 
@@ -99,6 +89,8 @@ int GNUNET_MONKEY_ACTION_rerun_with_valgrind (struct
 					      *cntxt);
 int GNUNET_MONKEY_ACTION_format_report (struct GNUNET_MONKEY_ACTION_Context
 					*cntxt);
+int GNUNET_MONKEY_ACTION_delete_context(struct GNUNET_MONKEY_ACTION_Context *cntxt);
+
 int GNUNET_MONKEY_ACTION_check_bug_redundancy (void);
 
 
