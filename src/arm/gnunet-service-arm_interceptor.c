@@ -1077,9 +1077,8 @@ acceptConnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param serviceName the name of the service in question
  */
 static void
-createListeningSocket (struct sockaddr *sa, 
-		       socklen_t addr_len,
-		       const char *serviceName)
+createListeningSocket(struct sockaddr *sa, socklen_t addr_len,
+                      const char *serviceName)
 {
   const static int on = 1;
   struct GNUNET_NETWORK_Handle *sock;
