@@ -7136,11 +7136,13 @@ ats_calculate_bandwidth_distribution ()
 		return;
 	}
 
-	int dur = 500;
+#if FIXME_WACHS
+	int dur;
 	if (INT_MAX < ats->max_exec_duration.rel_value)
 		dur = INT_MAX;
 	else
 		dur = (int) ats->max_exec_duration.rel_value;
+#endif
 
 	ats->stat.simplex_rerun_required = GNUNET_NO;
 	start = GNUNET_TIME_absolute_get();
