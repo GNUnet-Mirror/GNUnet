@@ -530,8 +530,6 @@ GNUNET_FS_handle_unindex (void *cls,
 }
 
 
-
-
 /**
  * Continuation called from datastore's remove
  * function.
