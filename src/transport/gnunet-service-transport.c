@@ -3322,14 +3322,9 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer,
   struct TransportPlugin *tp;
   struct ReadyList *rl;
 
-  if (0 == memcmp (peer,
-		   &my_identity,
-		   sizeof (struct GNUNET_PeerIdentity)))
-    {
-      /* refusing to setup a neighbour entry for myself */
-      GNUNET_break (0); 
-      return NULL;
-    }
+  GNUNET_assert (0 != memcmp (peer,
+			      &my_identity,
+			      sizeof (struct GNUNET_PeerIdentity)));
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Setting up state for neighbour `%4s'\n",

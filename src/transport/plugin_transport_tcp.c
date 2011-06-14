@@ -1799,7 +1799,7 @@ handle_tcp_nat_probe (void *cls,
 #if DEBUG_TCP_NAT
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, 
 		   "tcp",
-		   "received tcp NAT probe\n");
+		   "received NAT probe\n");
 #endif
   /* We have received a TCP NAT probe, meaning we (hopefully) initiated
    * a connection to this peer by running gnunet-nat-client.  This peer
@@ -2257,7 +2257,7 @@ process_interfaces (void *cls,
 	  {
 #if DEBUG_TCP
           GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-        	   "tcp",
+			   "tcp",
 			   "Not notifying transport of address `%s' (local address)\n",
 			   GNUNET_a2s (addr, addrlen));
 #endif
