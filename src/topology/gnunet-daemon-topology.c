@@ -826,7 +826,7 @@ disconnect_notify (void *cls,
   if (GNUNET_SCHEDULER_NO_TASK != pos->hello_delay_task)
     {
       GNUNET_SCHEDULER_cancel (pos->hello_delay_task);
-      pos->hello_delay_tas k = GNUNET_SCHEDULER_NO_TASK;
+      pos->hello_delay_task = GNUNET_SCHEDULER_NO_TASK;
     }
   GNUNET_STATISTICS_set (stats,
 			 gettext_noop ("# peers connected"),
