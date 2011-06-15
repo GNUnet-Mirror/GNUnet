@@ -29,6 +29,7 @@
 #include <gnunet_mesh_service.h>
 #include <gnunet_core_service.h>
 #include <gnunet_container_lib.h>
+#include <gnunet_applications.h>
 
 struct tunnel_id
 {
@@ -67,10 +68,10 @@ struct GNUNET_MESH_Tunnel
 
   struct GNUNET_MESH_Handle* handle;
 
-  /* The message-type requested for this tunnel. Is only needed for pending
+  /* The application-type requested for this tunnel. Is only needed for pending
    * by_tupe-tunnels
    */
-  uint16_t message_type;
+  uint16_t application_type;
 
   /* The context of the receive-function. */
   void *ctx;
@@ -300,7 +301,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 
 /**
  * Receive a message from core.
- * This is a hello-message, containing the message-types the other peer can receive
+ * This is a hello-message, containing the application-types the other peer can receive
  */
 static int
 receive_hello (void *cls,
@@ -323,7 +324,6 @@ receive_hello (void *cls,
     }
 
   /* TODO: add, not replace! */
-  /* TODO: if this changes anything: send new hello */
   element->num_types = *num;
   element->types = GNUNET_malloc (*num * sizeof (GNUNET_MESH_ApplicationType));
 
@@ -336,7 +336,7 @@ receive_hello (void *cls,
       struct tunnel_list_element *next = tunnel->next;
       for (i = 0; i < *num; i++)
         {
-          if (ntohs (ports[i]) == tunnel->tunnel.message_type)
+          if (ntohs (ports[i]) == tunnel->tunnel.application_type)
             {
               GNUNET_CONTAINER_DLL_remove (handle->pending_tunnels.head,
                                            handle->pending_tunnels.tail,
@@ -353,7 +353,7 @@ receive_hello (void *cls,
               break;
             }
         }
-      if (ntohs (ports[i]) == tunnel->tunnel.message_type)
+      if (ntohs (ports[i]) == tunnel->tunnel.application_type)
         tunnel = next;
       else
         tunnel = tunnel->next;
@@ -434,7 +434,7 @@ core_receive (void *cls,
 struct GNUNET_MESH_Tunnel *
 GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Handle *handle,
                                           struct GNUNET_TIME_Relative timeout,
-                                          GNUNET_MESH_ApplicationType message_type,
+                                          GNUNET_MESH_ApplicationType application_type,
                                           GNUNET_MESH_TunnelConnectHandler
                                           connect_handler,
                                           GNUNET_MESH_TunnelDisconnectHandler
@@ -447,7 +447,7 @@ GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Handle *handle,
     {
       unsigned int i;
       for (i = 0; i < element->num_types; i++)
-        if (message_type == element->types[i])
+        if (application_type == element->types[i])
           return GNUNET_MESH_peer_request_connect_all (handle, timeout, 1,
                                                        &handle->myself,
                                                        connect_handler,
@@ -468,7 +468,7 @@ GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Handle *handle,
   memcpy (&tunnel->tunnel.id.initiator, &handle->myself,
           sizeof (struct GNUNET_PeerIdentity));
   tunnel->tunnel.id.id = current_id++;
-  tunnel->tunnel.message_type = message_type;
+  tunnel->tunnel.application_type = application_type;
 
   GNUNET_CONTAINER_DLL_insert_after (handle->pending_by_type_tunnels.head,
                                      handle->pending_by_type_tunnels.tail,
@@ -635,19 +635,22 @@ GNUNET_MESH_notify_transmit_ready (struct
   return (struct GNUNET_MESH_TransmitHandle*) 1;
 }
 
-void build_hello_message(struct GNUNET_MESH_Handle* handle, int num)
+void build_hello_message(struct GNUNET_MESH_Handle* handle,
+                         const GNUNET_MESH_ApplicationType *stypes)
 {
+  int num = 0;
+  const GNUNET_MESH_ApplicationType *t;
+
+  for (t = stypes; *t != GNUNET_APPLICATION_TYPE_END; t++, num++);
+
   handle->hello_message_size = sizeof(uint16_t) + /* For the number of types */
-    num * sizeof(uint16_t); /* For the types */
+    num * sizeof(GNUNET_MESH_ApplicationType); /* For the types */
 
   uint16_t *nums = GNUNET_malloc(handle->hello_message_size);
-  uint16_t *types = nums + 1;
+  GNUNET_MESH_ApplicationType *types = (GNUNET_MESH_ApplicationType*)(nums + 1);
 
   *nums = num;
-
-  unsigned int i;
-  for(i = 0; i < num; i++)
-    types[i] = handle->handlers[i].type;
+  memcpy(types, stypes, num*sizeof(GNUNET_MESH_ApplicationType));
 
   handle->hello_message = nums;
 }
@@ -684,7 +687,7 @@ GNUNET_MESH_connect (const struct
   memcpy (ret->handlers, handlers,
 	  len * sizeof (struct GNUNET_MESH_MessageHandler));
 
-  build_hello_message(ret, len);
+  build_hello_message(ret, stypes);
 
   const static struct GNUNET_CORE_MessageHandler core_handlers[] = {
     {&core_receive, GNUNET_MESSAGE_TYPE_MESH, 0},
