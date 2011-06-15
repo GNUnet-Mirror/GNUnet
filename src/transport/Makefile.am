@@ -54,7 +54,7 @@ endif
 if LINUX
 NATBIN = gnunet-nat-server gnunet-nat-client
 install-exec-hook:
-	chown root $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client $(bindir)/gnunet-transport-wlan-helper || true
+	chown root:root $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client $(bindir)/gnunet-transport-wlan-helper || true
 	chmod u+s $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client $(bindir)/gnunet-transport-wlan-helper || true
 else
 install-exec-hook:

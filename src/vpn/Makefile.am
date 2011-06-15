@@ -12,9 +12,9 @@ if LINUX
 VPNBIN = gnunet-helper-vpn
 HIJACKBIN = gnunet-helper-hijack-dns
 install-exec-hook:
-	chown root $(bindir)/gnunet-helper-vpn || true
+	chown root:root $(bindir)/gnunet-helper-vpn || true
 	chmod u+s $(bindir)/gnunet-helper-vpn || true
-	chown root $(bindir)/gnunet-helper-hijack-dns || true
+	chown root:root $(bindir)/gnunet-helper-hijack-dns || true
 	chmod u+s $(bindir)/gnunet-helper-hijack-dns || true
 else
 install-exec-hook:
