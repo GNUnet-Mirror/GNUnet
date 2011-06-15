@@ -1135,25 +1135,27 @@ run (void *cls,
     {NULL, NULL, 0, 0}
   };
 
-  static struct GNUNET_MESH_MessageHandler *mesh_handlers;
-
-  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(cfg_, "dns", "PROVIDE_EXIT"))
-    mesh_handlers = (struct GNUNET_MESH_MessageHandler[]) {
-          {receive_mesh_query, GNUNET_MESSAGE_TYPE_REMOTE_QUERY_DNS, 0},
-          {NULL, 0, 0}
-    };
-  else
-    mesh_handlers = (struct GNUNET_MESH_MessageHandler[]) {
-          {receive_mesh_answer, GNUNET_MESSAGE_TYPE_REMOTE_ANSWER_DNS, 0},
-          {NULL, 0, 0}
-    };
-
-  static const GNUNET_MESH_ApplicationType apptypes[] =
-    { GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER,
-    GNUNET_APPLICATION_TYPE_END
+  static const struct GNUNET_MESH_MessageHandler mesh_handlers[] = {
+    {receive_mesh_query, GNUNET_MESSAGE_TYPE_REMOTE_QUERY_DNS, 0},
+    {receive_mesh_answer, GNUNET_MESSAGE_TYPE_REMOTE_ANSWER_DNS, 0},
+    {NULL, 0, 0}
   };
 
-  mesh_handle = GNUNET_MESH_connect (cfg_, NULL, NULL, mesh_handlers, apptypes);
+  static GNUNET_MESH_ApplicationType *apptypes;
+
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno (cfg_, "dns", "PROVIDE_EXIT"))
+    apptypes = (GNUNET_MESH_ApplicationType[])
+    {
+    GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER,
+    GNUNET_APPLICATION_TYPE_END};
+  else
+  apptypes = (GNUNET_MESH_ApplicationType[])
+  {
+  GNUNET_APPLICATION_TYPE_END};
+
+  mesh_handle =
+    GNUNET_MESH_connect (cfg_, NULL, NULL, mesh_handlers, apptypes);
 
   cfg = cfg_;
 
