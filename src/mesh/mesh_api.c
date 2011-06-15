@@ -680,14 +680,22 @@ void build_hello_message(struct GNUNET_MESH_Handle* handle,
 
   for (t = stypes; *t != GNUNET_APPLICATION_TYPE_END; t++, num++);
 
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "I can handle %d app-types.\n", num);
+
   handle->hello_message_size = sizeof(uint16_t) + /* For the number of types */
     num * sizeof(GNUNET_MESH_ApplicationType); /* For the types */
 
   uint16_t *nums = GNUNET_malloc(handle->hello_message_size);
   GNUNET_MESH_ApplicationType *types = (GNUNET_MESH_ApplicationType*)(nums + 1);
 
-  *nums = num;
-  memcpy(types, stypes, num*sizeof(GNUNET_MESH_ApplicationType));
+  *nums = htons(num);
+
+  int i;
+  for (i = 0; i < num; i++)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "I can handle the app-type %d\n", stypes[i]);
+      types[i] = htons(stypes[i]);
+    }
 
   handle->hello_message = nums;
 }
