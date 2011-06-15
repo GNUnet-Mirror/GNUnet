@@ -64,11 +64,6 @@ static struct GNUNET_DHT_Handle *dht;
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
- * The handle to the service-configuration
- */
-static struct GNUNET_CONFIGURATION_Handle *servicecfg;
-
-/**
  * A list of DNS-Responses that have to be sent to the requesting client
  */
 static struct answer_packet_list *head;
@@ -1043,12 +1038,17 @@ publish_name (const char *name, uint64_t ports, uint32_t service_type,
 void
 publish_iterate (void *cls __attribute__((unused)), const char *section)
 {
+  if ((strlen(section) < 8) || (0 != strcmp (".gnunet.", section + (strlen(section) - 8))))
+    return;
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Parsing dns-name %s\n", section);
+
   char *udp_redirects, *tcp_redirects, *alternative_names, *alternative_name,
     *keyfile;
 
-  GNUNET_CONFIGURATION_get_value_string (servicecfg, section,
+  GNUNET_CONFIGURATION_get_value_string (cfg, section,
                                          "UDP_REDIRECTS", &udp_redirects);
-  GNUNET_CONFIGURATION_get_value_string (servicecfg, section, "TCP_REDIRECTS",
+  GNUNET_CONFIGURATION_get_value_string (cfg, section, "TCP_REDIRECTS",
                                          &tcp_redirects);
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "GNUNETD",
@@ -1080,7 +1080,7 @@ publish_iterate (void *cls __attribute__((unused)), const char *section)
 
   publish_name (section, ports, service_type, my_private_key);
 
-  GNUNET_CONFIGURATION_get_value_string (servicecfg, section,
+  GNUNET_CONFIGURATION_get_value_string (cfg, section,
                                          "ALTERNATIVE_NAMES",
                                          &alternative_names);
   for (alternative_name = strtok (alternative_names, " ");
@@ -1102,32 +1102,19 @@ publish_iterate (void *cls __attribute__((unused)), const char *section)
 }
 
 /**
- * Publish a DNS-record in the DHT. This is up to now just for testing.
+ * Publish a DNS-record in the DHT.
  */
 static void
 publish_names (void *cls __attribute__((unused)),
                const struct GNUNET_SCHEDULER_TaskContext *tc) {
-    char *services;
     if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
       return;
 
-    if (NULL != servicecfg)
-      GNUNET_CONFIGURATION_destroy(servicecfg);
-
-    GNUNET_CONFIGURATION_get_value_filename(cfg, "dns", "SERVICES", &services);
-
-    servicecfg = GNUNET_CONFIGURATION_create();
-    if (GNUNET_OK == GNUNET_CONFIGURATION_parse(servicecfg, services))
-      {
-        GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Parsing services %s\n", services);
-        GNUNET_CONFIGURATION_iterate_sections(servicecfg, publish_iterate, NULL);
-      }
-    if (NULL != services)
-      GNUNET_free(services);
+    GNUNET_CONFIGURATION_iterate_sections(cfg, publish_iterate, NULL);
 
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_HOURS,
-				  publish_names,
-				  NULL);
+                                  publish_names,
+                                  NULL);
 }
 
 /**

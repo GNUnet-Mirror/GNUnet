@@ -42,11 +42,6 @@
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
- * The handle to the service-configuration
- */
-static struct GNUNET_CONFIGURATION_Handle *servicecfg;
-
-/**
  * The handle to the helper
  */
 struct GNUNET_VPN_HELPER_Handle *helper_handle;
@@ -459,9 +454,13 @@ message_token (void *cls __attribute__((unused)),
  *         "OFFERED-PORT:HOSTNAME:HOST-PORT" (SPACE &lt;more of those&gt;)*
  */
 static void
-read_service_conf (void *cls __attribute__((unused)), const char *section, const char *option,
-                   const char *value)
+read_service_conf (void *cls __attribute__((unused)), const char *section)
 {
+  if ((strlen(section) < 8) || (0 != strcmp (".gnunet.", section + (strlen(section) - 8))))
+    return;
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Parsing dns-name %d %s %s\n", strlen(section), section, section + (strlen(section) - 8));
+
   char *cpy;
   char *redirect;
   char *hostname;
@@ -473,17 +472,15 @@ read_service_conf (void *cls __attribute__((unused)), const char *section, const
 #define TCP 2
 #define UDP 1
 
-  unsigned int proto;
-  if (0 == strcmp ("UDP_REDIRECTS", option))
-    proto = UDP;
-  else if (0 == strcmp ("TCP_REDIRECTS", option))
-    proto = TCP;
-  else
-    proto = 0;
+  int proto = UDP;
 
-  if (0 != proto)
+  do
     {
-      cpy = GNUNET_strdup (value);
+      if (proto == UDP && (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string(cfg, section, "UDP_REDIRECTS", &cpy)))
+        goto next;
+      else if (proto == TCP && (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string(cfg, section, "TCP_REDIRECTS", &cpy)))
+        goto next;
+
       for (redirect = strtok (cpy, " "); redirect != NULL; redirect = strtok
            (NULL, " "))
         {
@@ -565,7 +562,10 @@ read_service_conf (void *cls __attribute__((unused)), const char *section, const
 
         }
       GNUNET_free (cpy);
+next:
+      proto = (proto == UDP) ? TCP : UDP;
     }
+  while (proto != UDP);
 }
 
 /**
@@ -1255,16 +1255,7 @@ run (void *cls,
   GNUNET_CONFIGURATION_get_value_number (cfg, "exit", "MAX_TCP_CONNECTIONS",
                                          &max_tcp_connections);
 
-  char *services;
-  GNUNET_CONFIGURATION_get_value_filename (cfg, "dns", "SERVICES", &services);
-  servicecfg = GNUNET_CONFIGURATION_create ();
-  if (GNUNET_OK == GNUNET_CONFIGURATION_parse (servicecfg, services))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Parsing services %s\n", services);
-      GNUNET_CONFIGURATION_iterate (servicecfg, read_service_conf, NULL);
-    }
-  if (NULL != services)
-    GNUNET_free (services);
+  GNUNET_CONFIGURATION_iterate_sections (cfg, read_service_conf, NULL);
 
   GNUNET_SCHEDULER_add_now (start_helper_and_schedule, NULL);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);
