@@ -164,9 +164,9 @@ call_connect_handler (void *cls,
 
 static void
 core_startup (void *cls,
-	      struct GNUNET_CORE_Handle *core,
+	      struct GNUNET_CORE_Handle *core __attribute__((unused)),
 	      const struct GNUNET_PeerIdentity *my_identity,
-	      const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
+	      const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey __attribute__((unused)))
 {
   struct GNUNET_MESH_Handle *handle = cls;
   memcpy (&handle->myself, my_identity, sizeof (struct GNUNET_PeerIdentity));
@@ -620,7 +620,7 @@ GNUNET_MESH_notify_transmit_ready (struct
 				   struct
 				   GNUNET_TIME_Relative
 				   maxdelay,
-				   const struct GNUNET_PeerIdentity *target,
+				   const struct GNUNET_PeerIdentity *target __attribute__((unused)),
 				   size_t
 				   notify_size,
 				   GNUNET_CONNECTION_TransmitReadyNotify

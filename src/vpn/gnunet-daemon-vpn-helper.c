@@ -132,7 +132,7 @@ start_helper_and_schedule(void *cls,
  * Send an dns-answer-packet to the helper
  */
 void
-helper_write(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
+helper_write(void* cls __attribute__((unused)), const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
     if (tsdkctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)
       return;
 
@@ -205,8 +205,8 @@ helper_write(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tsdkctx) {
  * Receive packets from the helper-process
  */
 void
-message_token (void *cls,
-               void *client, const struct GNUNET_MessageHeader *message)
+message_token (void *cls __attribute__((unused)),
+               void *client __attribute__((unused)), const struct GNUNET_MessageHeader *message)
 {
   GNUNET_assert (ntohs (message->type) == GNUNET_MESSAGE_TYPE_VPN_HELPER);
 

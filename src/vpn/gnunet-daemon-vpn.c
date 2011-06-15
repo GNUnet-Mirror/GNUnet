@@ -65,7 +65,7 @@ static struct GNUNET_CONTAINER_MultiHashMap *udp_connections;
  *{{{
  */
 static void
-cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
+cleanup(void* cls __attribute__((unused)), const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
     GNUNET_assert (0 != (tskctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN));
 
     /* stop the helper */
@@ -108,7 +108,7 @@ address_mapping_exists(unsigned char addr[]) {
 }
 
 static void
-collect_mappings(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
+collect_mappings(void* cls __attribute__((unused)), const struct GNUNET_SCHEDULER_TaskContext* tc) {
     if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
       return;
 
@@ -126,6 +126,9 @@ collect_mappings(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 
 void
 send_icmp_response(void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
+    if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+      return;
+
     struct ip6_icmp* request = cls;
 
     struct ip6_icmp* response = alloca(ntohs(request->shdr.size));
@@ -188,7 +191,7 @@ port_in_ports (uint64_t ports, uint16_t port)
 void
 send_pkt_to_peer (void *cls, 
 		  const struct GNUNET_PeerIdentity *peer,
-		  const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+		  const struct GNUNET_TRANSPORT_ATS_Information *atsi __attribute__((unused)))
 {
   /* peer == NULL means that all peers in this request are connected */
   if (peer == NULL) return;
@@ -526,11 +529,11 @@ add_additional_port (struct map_entry *me, uint16_t port)
 }
 
 static int
-receive_udp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
-		  void **tunnel_ctx,
-		  const struct GNUNET_PeerIdentity *sender,
+receive_udp_back (void *cls __attribute__((unused)), struct GNUNET_MESH_Tunnel* tunnel,
+		  void **tunnel_ctx __attribute__((unused)),
+		  const struct GNUNET_PeerIdentity *sender __attribute__((unused)),
 		  const struct GNUNET_MessageHeader *message,
-		  const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+		  const struct GNUNET_TRANSPORT_ATS_Information *atsi __attribute__((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct remote_addr* s = (struct remote_addr*)desc;
@@ -609,11 +612,11 @@ receive_udp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
 }
 
 static int
-receive_tcp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
-		  void **tunnel_ctx,
-		  const struct GNUNET_PeerIdentity *sender,
+receive_tcp_back (void *cls __attribute__((unused)), struct GNUNET_MESH_Tunnel* tunnel,
+		  void **tunnel_ctx __attribute__((unused)),
+		  const struct GNUNET_PeerIdentity *sender __attribute__((unused)),
 		  const struct GNUNET_MessageHeader *message,
-		  const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+		  const struct GNUNET_TRANSPORT_ATS_Information *atsi __attribute__((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct remote_addr* s = (struct remote_addr*)desc;
@@ -700,8 +703,8 @@ receive_tcp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
  */
 static void
 run (void *cls,
-     char *const *args,
-     const char *cfgfile,
+     char *const *args __attribute__((unused)),
+     const char *cfgfilep __attribute__((unused)),
      const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
     static const struct GNUNET_MESH_MessageHandler handlers[] = {

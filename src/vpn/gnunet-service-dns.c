@@ -111,7 +111,7 @@ struct receive_dht_cls {
  * Hijack all outgoing DNS-Traffic but for traffic leaving "our" port.
  */
 static void
-hijack (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+hijack (void *cls __attribute__((unused)), const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
@@ -242,7 +242,7 @@ mesh_send (void *cls, size_t size, void *buf)
 }
 
 
-void mesh_connect (void* cls, const struct GNUNET_PeerIdentity* peer, const struct GNUNET_TRANSPORT_ATS_Information *atsi) {
+void mesh_connect (void* cls, const struct GNUNET_PeerIdentity* peer, const struct GNUNET_TRANSPORT_ATS_Information *atsi __attribute__((unused))) {
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connected to peer %x\n", *((unsigned long*)peer));
   struct tunnel_cls *cls_ = (struct tunnel_cls*)cls;
 
@@ -276,12 +276,12 @@ send_mesh_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 static int
-receive_mesh_query (void *cls,
+receive_mesh_query (void *cls __attribute__((unused)),
                     struct GNUNET_MESH_Tunnel *tunnel,
-                    void **ctx,
-                    const struct GNUNET_PeerIdentity *sender,
+                    void **ctx __attribute__((unused)),
+                    const struct GNUNET_PeerIdentity *sender __attribute__((unused)),
                     const struct GNUNET_MessageHeader *message,
-                    const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                    const struct GNUNET_TRANSPORT_ATS_Information *atsi __attribute__((unused)))
 {
   struct dns_pkt *dns = (struct dns_pkt*)(message + 1);
 
@@ -304,12 +304,12 @@ receive_mesh_query (void *cls,
 }
 
 static int
-receive_mesh_answer (void *cls,
+receive_mesh_answer (void *cls __attribute__((unused)),
                      struct GNUNET_MESH_Tunnel *tunnel,
-                     void **ctx,
-                     const struct GNUNET_PeerIdentity *sender,
+                     void **ctx __attribute__((unused)),
+                     const struct GNUNET_PeerIdentity *sender __attribute__((unused)),
                      const struct GNUNET_MessageHeader *message,
-                     const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                     const struct GNUNET_TRANSPORT_ATS_Information *atsi __attribute__((unused)))
 {
   /* TODo: size check */
   struct dns_pkt *dns = (struct dns_pkt *) (message + 1);
@@ -485,10 +485,10 @@ send_rev_query(void * cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
  */
 static void
 receive_dht(void *cls,
-	    struct GNUNET_TIME_Absolute exp,
-	    const GNUNET_HashCode *key,
-	    const struct GNUNET_PeerIdentity *const *get_path,
-	    const struct GNUNET_PeerIdentity *const *put_path,
+	    struct GNUNET_TIME_Absolute exp __attribute__((unused)),
+	    const GNUNET_HashCode *key __attribute__((unused)),
+	    const struct GNUNET_PeerIdentity *const *get_path __attribute__((unused)),
+	    const struct GNUNET_PeerIdentity *const *put_path __attribute__((unused)),
 	    enum GNUNET_BLOCK_Type type,
 	    size_t size,
 	    const void *data) {
@@ -592,9 +592,9 @@ receive_dht(void *cls,
  * This receives a GNUNET_MESSAGE_TYPE_REHIJACK and rehijacks the DNS
  */
 static void
-rehijack(void *cls,
+rehijack(void *cls __attribute__((unused)),
 	 struct GNUNET_SERVER_Client *client,
-	 const struct GNUNET_MessageHeader *message) {
+	 const struct GNUNET_MessageHeader *message __attribute__((unused))) {
     unhijack(dnsoutport);
     GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS, hijack, NULL);
 
@@ -605,7 +605,7 @@ rehijack(void *cls,
  * This receives the dns-payload from the daemon-vpn and sends it on over the udp-socket
  */
 static void
-receive_query(void *cls,
+receive_query(void *cls __attribute__((unused)),
 	      struct GNUNET_SERVER_Client *client,
 	      const struct GNUNET_MessageHeader *message) {
     struct query_packet* pkt = (struct query_packet*)message;
@@ -806,7 +806,7 @@ open_port ()
  * Read a response-packet of the UDP-Socket
  */
 static void
-read_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+read_response (void *cls __attribute__((unused)), const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct sockaddr_in addr;
   socklen_t addrlen = sizeof (addr);
@@ -899,7 +899,7 @@ read_response (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param tc unused
  */
 static void
-cleanup_task (void *cls,
+cleanup_task (void *cls __attribute__((unused)),
 	      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_assert(0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN));
@@ -1041,7 +1041,7 @@ publish_name (const char *name, uint64_t ports, uint32_t service_type,
  * @param section the current section
  */
 void
-publish_iterate (void *cls, const char *section)
+publish_iterate (void *cls __attribute__((unused)), const char *section)
 {
   char *udp_redirects, *tcp_redirects, *alternative_names, *alternative_name,
     *keyfile;
@@ -1105,7 +1105,7 @@ publish_iterate (void *cls, const char *section)
  * Publish a DNS-record in the DHT. This is up to now just for testing.
  */
 static void
-publish_names (void *cls,
+publish_names (void *cls __attribute__((unused)),
                const struct GNUNET_SCHEDULER_TaskContext *tc) {
     char *services;
     if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))

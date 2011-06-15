@@ -52,7 +52,7 @@ struct answer_packet_list *answer_proc_tail;
  * {{{
  */
 size_t
-send_query(void* cls, size_t size, void* buf) {
+send_query(void* cls __attribute__((unused)), size_t size, void* buf) {
     size_t len;
     /*
      * Send the rehijack-message
@@ -109,7 +109,7 @@ send_query(void* cls, size_t size, void* buf) {
  * Connect to the service-dns
  */
 void
-connect_to_service_dns (void *cls,
+connect_to_service_dns (void *cls __attribute__((unused)),
 			const struct GNUNET_SCHEDULER_TaskContext *tc) {
     if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
       return;
@@ -142,7 +142,7 @@ connect_to_service_dns (void *cls,
  * handle it
  */
 void
-dns_answer_handler(void* cls, const struct GNUNET_MessageHeader *msg) {
+dns_answer_handler(void* cls __attribute__((unused)), const struct GNUNET_MessageHeader *msg) {
     /* the service disconnected, reconnect after short wait */
     if (msg == NULL)
       {

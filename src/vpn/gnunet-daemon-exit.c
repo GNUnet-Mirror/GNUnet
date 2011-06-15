@@ -157,7 +157,7 @@ static struct GNUNET_CONTAINER_MultiHashMap *tcp_services;
  * Function that frees everything from a hashmap
  */
 static int
-free_iterate(void* cls, const GNUNET_HashCode* hash, void* value)
+free_iterate(void* cls __attribute__((unused)), const GNUNET_HashCode* hash __attribute__((unused)), void* value)
 {
   GNUNET_free(value);
   return GNUNET_YES;
@@ -167,7 +167,7 @@ free_iterate(void* cls, const GNUNET_HashCode* hash, void* value)
  * Function scheduled as very last function, cleans up after us
  */
 static void
-cleanup(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
+cleanup(void* cls __attribute__((unused)), const struct GNUNET_SCHEDULER_TaskContext* tskctx) {
     GNUNET_assert (0 != (tskctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN));
 
     GNUNET_CONTAINER_multihashmap_iterate(udp_connections,
@@ -407,8 +407,8 @@ tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
  * Receive packets from the helper-process
  */
 static void
-message_token (void *cls,
-               void *client, const struct GNUNET_MessageHeader *message)
+message_token (void *cls __attribute__((unused)),
+               void *client __attribute__((unused)), const struct GNUNET_MessageHeader *message)
 {
   GNUNET_assert (ntohs (message->type) == GNUNET_MESSAGE_TYPE_VPN_HELPER);
 
@@ -459,7 +459,7 @@ message_token (void *cls,
  *         "OFFERED-PORT:HOSTNAME:HOST-PORT" (SPACE &lt;more of those&gt;)*
  */
 static void
-read_service_conf (void *cls, const char *section, const char *option,
+read_service_conf (void *cls __attribute__((unused)), const char *section, const char *option,
                    const char *value)
 {
   char *cpy;
@@ -831,12 +831,12 @@ prepare_ipv6_packet (ssize_t len, ssize_t pktlen, void *payload,
  * The messages are one GNUNET_HashCode for the service followed by a struct tcp_pkt
  */
 static int
-receive_tcp_service (void *cls,
+receive_tcp_service (void *cls __attribute__((unused)),
                      struct GNUNET_MESH_Tunnel *tunnel,
-                     void **tunnel_ctx,
-                     const struct GNUNET_PeerIdentity *sender,
+                     void **tunnel_ctx __attribute__((unused)),
+                     const struct GNUNET_PeerIdentity *sender __attribute__((unused)),
                      const struct GNUNET_MessageHeader *message,
-                     const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                     const struct GNUNET_TRANSPORT_ATS_Information *atsi __attribute__((unused)))
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received TCP-Packet\n");
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
@@ -932,12 +932,12 @@ receive_tcp_service (void *cls,
 }
 
 static int
-receive_tcp_remote (void *cls,
+receive_tcp_remote (void *cls __attribute__((unused)),
                      struct GNUNET_MESH_Tunnel *tunnel,
-                     void **tunnel_ctx,
-                     const struct GNUNET_PeerIdentity *sender,
+                     void **tunnel_ctx __attribute__((unused)),
+                     const struct GNUNET_PeerIdentity *sender __attribute__((unused)),
                      const struct GNUNET_MessageHeader *message,
-                     const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                     const struct GNUNET_TRANSPORT_ATS_Information *atsi __attribute__((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
@@ -1000,12 +1000,12 @@ receive_tcp_remote (void *cls,
 }
 
 static int
-receive_udp_remote (void *cls,
+receive_udp_remote (void *cls __attribute__((unused)),
                     struct GNUNET_MESH_Tunnel *tunnel,
-                    void **tunnel_ctx,
-                    const struct GNUNET_PeerIdentity *sender,
+                    void **tunnel_ctx __attribute__((unused)),
+                    const struct GNUNET_PeerIdentity *sender __attribute__((unused)),
                     const struct GNUNET_MessageHeader *message,
-                    const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                    const struct GNUNET_TRANSPORT_ATS_Information *atsi __attribute__((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
@@ -1078,12 +1078,12 @@ receive_udp_remote (void *cls,
  * The messages are one GNUNET_HashCode for the service, followed by a struct udp_pkt
  */
 static int
-receive_udp_service (void *cls,
+receive_udp_service (void *cls __attribute__((unused)),
                      struct GNUNET_MESH_Tunnel *tunnel,
-                     void **tunnel_ctx,
-                     const struct GNUNET_PeerIdentity *sender,
+                     void **tunnel_ctx __attribute__((unused)),
+                     const struct GNUNET_PeerIdentity *sender __attribute__((unused)),
                      const struct GNUNET_MessageHeader *message,
-                     const struct GNUNET_TRANSPORT_ATS_Information *atsi)
+                     const struct GNUNET_TRANSPORT_ATS_Information *atsi __attribute__((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
   struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
@@ -1184,8 +1184,8 @@ receive_udp_service (void *cls,
  */
 static void
 run (void *cls,
-     char *const *args,
-     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg_)
+     char *const *args __attribute__((unused)),
+     const char *cfgfile __attribute__((unused)), const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
   static const struct GNUNET_MESH_MessageHandler handlers[] = {
     {receive_udp_service, GNUNET_MESSAGE_TYPE_SERVICE_UDP, 0},
