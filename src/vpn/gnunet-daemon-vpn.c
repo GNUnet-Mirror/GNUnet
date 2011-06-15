@@ -190,6 +190,7 @@ send_pkt_to_peer (void *cls,
 		  const struct GNUNET_PeerIdentity *peer,
 		  const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
+  /* peer == NULL means that all peers in this request are connected */
   if (peer == NULL) return;
   struct GNUNET_MESH_Tunnel **tunnel = cls;
   struct GNUNET_MessageHeader *hdr =
