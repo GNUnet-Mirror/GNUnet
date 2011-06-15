@@ -88,15 +88,18 @@ struct tunnel_list
   struct tunnel_list_element *head, *tail;
 };
 
+struct type_list_element
+{
+  GNUNET_MESH_ApplicationType type;
+  struct type_list_element *next, *prev;
+};
+
 struct peer_list_element
 {
   struct GNUNET_PeerIdentity peer;
 
-  /* how many Message-Types can this peer receive */
-  unsigned int num_types;
-
-  /* array of message-types */
-  GNUNET_MESH_ApplicationType *types;
+  /* list of application-types */
+  struct type_list_element *type_head, *type_tail;
 
   struct GNUNET_TRANSPORT_ATS_Information atsi;
   struct peer_list_element *next, *prev;
@@ -280,7 +283,12 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     {
       GNUNET_CONTAINER_DLL_remove (handle->connected_peers.head,
 				   handle->connected_peers.tail, element);
-      GNUNET_free_non_null(element->types);
+      while (element->type_head != NULL)
+        {
+          struct type_list_element* tail = element->type_tail;
+          GNUNET_CONTAINER_DLL_remove(element->type_head, element->type_tail, tail);
+          GNUNET_free(tail);
+        }
       GNUNET_free (element);
     }
 
@@ -341,12 +349,12 @@ receive_hello (void *cls,
       element = element->next;
     }
 
-  /* TODO: add, not replace! */
-  element->num_types = *num;
-  element->types = GNUNET_malloc (*num * sizeof (GNUNET_MESH_ApplicationType));
-
   for (i = 0; i < *num; i++)
-    element->types[i] = (GNUNET_MESH_ApplicationType)ntohs (ports[i]);
+    {
+      struct type_list_element* new_type = GNUNET_malloc(sizeof *new_type);
+      new_type->type = (GNUNET_MESH_ApplicationType)ntohs (ports[i]);
+      GNUNET_CONTAINER_DLL_insert(element->type_head, element->type_tail, new_type);
+    }
 
   struct tunnel_list_element *tunnel = handle->pending_by_type_tunnels.head;
   while (tunnel != NULL)
@@ -472,9 +480,9 @@ GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Handle *handle,
   struct peer_list_element *element = handle->connected_peers.head;
   while (element != NULL)
     {
-      unsigned int i;
-      for (i = 0; i < element->num_types; i++)
-        if (application_type == element->types[i])
+      struct type_list_element* i;
+      for (i = element->type_head; i != NULL; i = i->next)
+        if (application_type == i->type)
           return GNUNET_MESH_peer_request_connect_all (handle, timeout, 1,
                                                        &handle->myself,
                                                        connect_handler,
@@ -747,7 +755,12 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
   while (element != NULL)
     {
       struct peer_list_element *next = element->next;
-      GNUNET_free_non_null(element->types);
+      while (element->type_head != NULL)
+        {
+          struct type_list_element* tail = element->type_tail;
+          GNUNET_CONTAINER_DLL_remove(element->type_head, element->type_tail, tail);
+          GNUNET_free(tail);
+        }
       GNUNET_free (element);
       element = next;
     }
