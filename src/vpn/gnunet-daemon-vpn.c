@@ -619,6 +619,7 @@ receive_tcp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
   size_t size = pktlen + sizeof(struct ip6_tcp) - 1;
 
   struct ip6_tcp* pkt6 = alloca(size);
+  memset(pkt6, 0, size);
 
   GNUNET_assert(pkt6 != NULL);
 
