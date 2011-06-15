@@ -1174,6 +1174,56 @@ receive_udp_service (void *cls __attribute__((unused)),
   return GNUNET_YES;
 }
 
+static void
+connect_to_mesh()
+{
+  int udp, tcp;
+  int handler_idx, app_idx;
+
+  udp = GNUNET_CONFIGURATION_get_value_yesno(cfg, "exit", "ENABLE_UDP");
+  tcp = GNUNET_CONFIGURATION_get_value_yesno(cfg, "exit", "ENABLE_TCP");
+
+  static struct GNUNET_MESH_MessageHandler handlers[] = {
+    {receive_udp_service, GNUNET_MESSAGE_TYPE_SERVICE_UDP, 0},
+    {receive_tcp_service, GNUNET_MESSAGE_TYPE_SERVICE_TCP, 0},
+    {NULL, 0, 0},
+    {NULL, 0, 0},
+    {NULL, 0, 0}
+  };
+
+  static GNUNET_MESH_ApplicationType apptypes[] =
+    {
+      GNUNET_APPLICATION_TYPE_END,
+      GNUNET_APPLICATION_TYPE_END,
+      GNUNET_APPLICATION_TYPE_END
+    };
+
+  app_idx = 0;
+  handler_idx = 2;
+
+  if (GNUNET_YES == udp)
+    {
+      handlers[handler_idx].callback = receive_udp_remote;
+      handlers[handler_idx].expected_size = 0;
+      handlers[handler_idx].type = GNUNET_MESSAGE_TYPE_REMOTE_UDP;
+      apptypes[app_idx] = GNUNET_APPLICATION_TYPE_INTERNET_UDP_GATEWAY;
+      handler_idx++;
+      app_idx++;
+    }
+
+  if (GNUNET_YES == tcp)
+    {
+      handlers[handler_idx].callback = receive_tcp_remote;
+      handlers[handler_idx].expected_size = 0;
+      handlers[handler_idx].type = GNUNET_MESSAGE_TYPE_REMOTE_TCP;
+      apptypes[app_idx] = GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY;
+      handler_idx++;
+      app_idx++;
+    }
+
+  mesh_handle = GNUNET_MESH_connect (cfg, NULL, NULL, handlers, apptypes);
+}
+
 /**
  * @brief Main function that will be run by the scheduler.
  *
@@ -1187,24 +1237,10 @@ run (void *cls,
      char *const *args __attribute__((unused)),
      const char *cfgfile __attribute__((unused)), const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
-  static const struct GNUNET_MESH_MessageHandler handlers[] = {
-    {receive_udp_service, GNUNET_MESSAGE_TYPE_SERVICE_UDP, 0},
-    {receive_tcp_service, GNUNET_MESSAGE_TYPE_SERVICE_TCP, 0},
-    {receive_udp_remote,  GNUNET_MESSAGE_TYPE_REMOTE_UDP, 0},
-    {receive_tcp_remote,  GNUNET_MESSAGE_TYPE_REMOTE_TCP, 0},
-    {NULL, 0, 0}
-  };
-
-  static const GNUNET_MESH_ApplicationType apptypes[] =
-    {
-      GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY,
-      GNUNET_APPLICATION_TYPE_INTERNET_UDP_GATEWAY,
-      GNUNET_APPLICATION_TYPE_END
-    };
-
-  mesh_handle = GNUNET_MESH_connect (cfg_, NULL, NULL, handlers, apptypes);
-
   cfg = cfg_;
+
+  connect_to_mesh();
+
   udp_connections = GNUNET_CONTAINER_multihashmap_create (65536);
   udp_connections_heap =
     GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
