@@ -196,9 +196,9 @@ send_answer(void* cls, size_t size, void* buf) {
 }
 
 struct tunnel_cls {
-    struct GNUNET_MESH_Tunnel *tunnel;
-    struct GNUNET_MessageHeader hdr;
-    struct dns_pkt dns;
+    struct GNUNET_MESH_Tunnel *tunnel GNUNET_PACKED;
+    struct GNUNET_MessageHeader hdr GNUNET_PACKED;
+    struct dns_pkt dns GNUNET_PACKED;
 };
 
 struct tunnel_cls *remote_pending[UINT16_MAX];
@@ -735,7 +735,7 @@ receive_query(void *cls,
         cls_->hdr.size = size - sizeof(struct GNUNET_MESH_Tunnel*);
 
         cls_->hdr.type = ntohs(GNUNET_MESSAGE_TYPE_REMOTE_QUERY_DNS);
-        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "size: %d\n", size)
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "size: %d\n", size);
 
         memcpy(&cls_->dns, dns, cls_->hdr.size);
         GNUNET_SCHEDULER_add_now(send_mesh_query, cls_);
