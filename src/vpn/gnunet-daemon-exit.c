@@ -209,13 +209,14 @@ static void
 hash_redirect_info(GNUNET_HashCode* hash, struct redirect_info* u_i, size_t addrlen)
 {
 
-  /* the gnunet hashmap only uses the first 32bit of the hash
+  /* the gnunet hashmap only uses the first sizeof(unsigned int) of the hash
    *
-   * build the hash out of the last two bytes of the address and the 2 bytes of
+   * build the hash out of the last bytes of the address and the 2 bytes of
    * the port
    */
-  memcpy(&hash, &u_i->pt, sizeof(u_i->pt));
-  memcpy(((unsigned char*)&hash)+2, u_i->addr+(addrlen-2), 2);
+  memcpy(hash, &u_i->pt, sizeof(u_i->pt));
+  memcpy(((unsigned char*)hash)+2, u_i->addr+(addrlen-(sizeof(unsigned int) - 2)), (sizeof(unsigned int) - 2));
+  memset(((unsigned char*)hash)+sizeof(unsigned int), 0, sizeof(GNUNET_HashCode) - sizeof(unsigned int));
 }
 
 /**
