@@ -449,9 +449,6 @@ message_token (void *cls __attribute__((unused)),
  *
  * @param cls unused
  * @param section name of section in config, equal to hostname
- * @param option type of redirect
- * @param value specification of services, format is
- *         "OFFERED-PORT:HOSTNAME:HOST-PORT" (SPACE &lt;more of those&gt;)*
  */
 static void
 read_service_conf (void *cls __attribute__((unused)), const char *section)
