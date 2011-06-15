@@ -58,6 +58,42 @@
 			typedef uint8_t  u_int8_t;
 		#endif
 
+#ifndef htole16
+# if __BYTE_ORDER == __LITTLE_ENDIAN
+#  define htobe16(x) ___my_swab16 (x)
+#  define htole16(x) (x)
+#  define be16toh(x) ___my_swab16 (x)
+#  define le16toh(x) (x)
+
+#  define htobe32(x) ___my_swab32 (x)
+#  define htole32(x) (x)
+#  define be32toh(x) ___my_swab32 (x)
+#  define le32toh(x) (x)
+
+#  define htobe64(x) ___my_swab64 (x)
+#  define htole64(x) (x)
+#  define be64toh(x) ___my_swab64 (x)
+#  define le64toh(x) (x)
+# else
+#  define htobe16(x) (x)
+#  define htole16(x) ___my_swab16 (x)
+#  define be16toh(x) (x)
+#  define le16toh(x) ___my_swab16 (x)
+
+#  define htobe32(x) (x)
+#  define htole32(x) ___my_swab32 (x)
+#  define be32toh(x) (x)
+#  define le32toh(x) ___my_swab32 (x)
+
+#  define htobe64(x) (x)
+#  define htole64(x) ___my_swab64 (x)
+#  define be64toh(x) (x)
+#  define le64toh(x) ___my_swab64 (x)
+# endif
+#endif
+
+
+
 	#endif
 
 	/*
