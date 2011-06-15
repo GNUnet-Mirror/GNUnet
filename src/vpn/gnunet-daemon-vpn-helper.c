@@ -251,6 +251,7 @@ message_token (void *cls __attribute__((unused)),
                                  ntohs (pkt6->ip6_hdr.paylgth));
 
               GNUNET_MESH_ApplicationType app_type;
+              GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "me->addrlen is %d\n", me->addrlen);
               if (me->addrlen == 0)
                 {
                   /* This is a mapping to a gnunet-service */

@@ -423,6 +423,7 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 	value->namelen = namelen;
 	memcpy(name, pkt->data+12, namelen);
 
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Setting addrlen to %d\n", pkt->addrsize);
         value->addrlen = pkt->addrsize;
         memcpy(&value->addr, &pkt->addr, pkt->addrsize);
         memset(value->additional_ports, 0, 8192);
