@@ -46,6 +46,11 @@
 #define EXECINFO GNUNET_NO
 
 /**
+ * Check each file descriptor before adding
+ */
+#define DEBUG_FDS GNUNET_NO
+
+/**
  * Depth of the traces collected via EXECINFO.
  */
 #define MAX_TRACE_DEPTH 50
@@ -1224,6 +1229,42 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
 #if EXECINFO
   t->num_backtrace_strings = backtrace(backtrace_array, MAX_TRACE_DEPTH);
   t->backtrace_strings = backtrace_symbols(backtrace_array, t->num_backtrace_strings);
+#endif
+#ifdef DEBUG_FDS
+  if (-1 != rfd)
+    {
+      int flags = fcntl(rfd, F_GETFD);
+      if (flags == -1 && errno == EBADF)
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Got invalid file descriptor %d!\n", rfd);
+#if EXECINFO
+          int i;
+
+          for (i=0;i<t->num_backtrace_strings;i++)
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                        "Trace: %s\n",
+                        t->backtrace_strings[i]);
+#endif
+          GNUNET_assert(0);
+        }
+    }
+  if (-1 != wfd)
+    {
+      int flags = fcntl(wfd, F_GETFD);
+      if (flags == -1 && errno == EBADF)
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Got invalid file descriptor %d!\n", wfd);
+#if EXECINFO
+          int i;
+
+          for (i=0;i<t->num_backtrace_strings;i++)
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                        "Trace: %s\n",
+                        t->backtrace_strings[i]);
+#endif
+          GNUNET_assert(0);
+        }
+    }
 #endif
   t->read_fd = rfd;
   GNUNET_assert(wfd >= -1);
