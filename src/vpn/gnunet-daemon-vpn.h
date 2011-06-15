@@ -110,4 +110,11 @@ void clearBit (char *bitArray, unsigned int bitIdx);
  */
 int testBit (char *bitArray, unsigned int bitIdx);
 
+struct remote_addr
+{
+  char addrlen;
+  unsigned char addr[16];
+  char proto;
+};
+
 #endif /* end of include guard: GNUNET-DAEMON-VPN_H */

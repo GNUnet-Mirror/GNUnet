@@ -45,13 +45,6 @@
 
 struct GNUNET_VPN_HELPER_Handle *helper_handle;
 
-struct remote_addr
-{
-  char addrlen;
-  unsigned char addr[16];
-  char proto;
-};
-
 /**
  * Start the helper-process
  *

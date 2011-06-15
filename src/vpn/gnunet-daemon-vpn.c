@@ -528,6 +528,7 @@ receive_udp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
 		  const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
+  struct remote_addr* s = (struct remote_addr*)desc;
   struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
   const struct GNUNET_PeerIdentity* other = GNUNET_MESH_get_peer(tunnel);
 
@@ -537,7 +538,10 @@ receive_udp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
 
   GNUNET_assert(pkt6 != NULL);
 
-  new_ip6addr(pkt6->ip6_hdr.sadr, &other->hashPubKey, desc);
+  if (ntohs(message->type) == GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK)
+    new_ip6addr(pkt6->ip6_hdr.sadr, &other->hashPubKey, desc);
+  else
+    new_ip6addr_remote(pkt6->ip6_hdr.sadr, s->addr, s->addrlen);
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Relaying calc:%d gnu:%d udp:%d bytes!\n", size, ntohs(message->size), ntohs(pkt->len));
 
@@ -573,11 +577,14 @@ receive_udp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
   GNUNET_free(key);
 
   GNUNET_assert (me != NULL);
-  GNUNET_assert (me->desc.service_type & htonl(GNUNET_DNS_SERVICE_TYPE_UDP));
-  if (!port_in_ports(me->desc.ports, pkt6->udp_hdr.spt) &&
-      !testBit(me->additional_ports, ntohs(pkt6->udp_hdr.spt))) {
-      add_additional_port(me, ntohs(pkt6->udp_hdr.spt));
-  }
+  if (ntohs(message->type) == GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK)
+    {
+      GNUNET_assert (me->desc.service_type & htonl(GNUNET_DNS_SERVICE_TYPE_UDP));
+      if (!port_in_ports(me->desc.ports, pkt6->udp_hdr.spt) &&
+          !testBit(me->additional_ports, ntohs(pkt6->udp_hdr.spt))) {
+          add_additional_port(me, ntohs(pkt6->udp_hdr.spt));
+      }
+    }
 
   pkt6->udp_hdr.crc = 0;
   uint32_t sum = 0;
@@ -604,6 +611,7 @@ receive_tcp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
 		  const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
+  struct remote_addr* s = (struct remote_addr*)desc;
   struct tcp_pkt *pkt = (struct tcp_pkt *) (desc + 1);
   const struct GNUNET_PeerIdentity* other = GNUNET_MESH_get_peer(tunnel);
 
@@ -614,7 +622,10 @@ receive_tcp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
 
   GNUNET_assert(pkt6 != NULL);
 
-  new_ip6addr(pkt6->ip6_hdr.sadr, &other->hashPubKey, desc);
+  if (ntohs(message->type) == GNUNET_MESSAGE_TYPE_SERVICE_TCP_BACK)
+    new_ip6addr(pkt6->ip6_hdr.sadr, &other->hashPubKey, desc);
+  else
+    new_ip6addr_remote(pkt6->ip6_hdr.sadr, s->addr, s->addrlen);
 
   pkt6->shdr.type = htons(GNUNET_MESSAGE_TYPE_VPN_HELPER);
   pkt6->shdr.size = htons(size);
@@ -648,7 +659,8 @@ receive_tcp_back (void *cls, struct GNUNET_MESH_Tunnel* tunnel,
   GNUNET_free(key);
 
   GNUNET_assert (me != NULL);
-  GNUNET_assert (me->desc.service_type & htonl(GNUNET_DNS_SERVICE_TYPE_TCP));
+  if (ntohs(message->type) == GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK)
+    GNUNET_assert (me->desc.service_type & htonl(GNUNET_DNS_SERVICE_TYPE_TCP));
 
   pkt6->tcp_hdr.crc = 0;
   uint32_t sum = 0;
@@ -689,6 +701,8 @@ run (void *cls,
     const static struct GNUNET_MESH_MessageHandler handlers[] = {
 	  {receive_udp_back, GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK, 0},
 	  {receive_tcp_back, GNUNET_MESSAGE_TYPE_SERVICE_TCP_BACK, 0},
+	  {receive_udp_back, GNUNET_MESSAGE_TYPE_REMOTE_UDP_BACK, 0},
+	  {receive_tcp_back, GNUNET_MESSAGE_TYPE_REMOTE_TCP_BACK, 0},
 	  {NULL, 0, 0}
     };
     mesh_handle = GNUNET_MESH_connect(cfg_,
