@@ -55,6 +55,7 @@ struct GNUNET_VPN_HELPER_Handle *helper_handle;
 void
 start_helper_and_schedule(void *cls,
 			  const struct GNUNET_SCHEDULER_TaskContext *tc) {
+  shs_task = GNUNET_SCHEDULER_NO_TASK;
     if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
       return;
 

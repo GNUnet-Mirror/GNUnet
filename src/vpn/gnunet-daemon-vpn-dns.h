@@ -80,4 +80,6 @@ extern struct answer_packet_list *answer_proc_head;
  */
 extern struct answer_packet_list *answer_proc_tail;
 
+extern GNUNET_SCHEDULER_TaskIdentifier conn_task;
+
 #endif /* end of include guard: GNUNET-DAEMON-VPN-DNS_H */

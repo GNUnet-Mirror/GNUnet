@@ -33,6 +33,8 @@
  */
 extern struct GNUNET_VPN_HELPER_Handle *helper_handle;
 
+extern GNUNET_SCHEDULER_TaskIdentifier shs_task;
+
 /**
  * Start the helper-process
  */

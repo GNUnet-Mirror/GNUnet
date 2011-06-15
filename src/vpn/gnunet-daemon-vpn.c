@@ -61,6 +61,10 @@ static int ret;
  */
 static struct GNUNET_CONTAINER_MultiHashMap *udp_connections;
 
+GNUNET_SCHEDULER_TaskIdentifier conn_task;
+
+GNUNET_SCHEDULER_TaskIdentifier shs_task;
+
 /**
  * Function scheduled as very last function, cleans up after us
  *{{{
@@ -83,6 +87,16 @@ cleanup(void* cls __attribute__((unused)), const struct GNUNET_SCHEDULER_TaskCon
       {
 	GNUNET_MESH_disconnect(mesh_handle);
 	mesh_handle = NULL;
+      }
+    if (GNUNET_SCHEDULER_NO_TASK != shs_task)
+      {
+	GNUNET_SCHEDULER_cancel (shs_task);
+	shs_task = GNUNET_SCHEDULER_NO_TASK;
+      }
+    if (GNUNET_SCHEDULER_NO_TASK != conn_task)
+      {
+	GNUNET_SCHEDULER_cancel (conn_task);
+	conn_task = GNUNET_SCHEDULER_NO_TASK;
       }
 }
 /*}}}*/
@@ -733,8 +747,8 @@ run (void *cls,
     GNUNET_CONFIGURATION_get_value_number (cfg, "vpn", "MAX_MAPPINGg",
                                            &max_mappings);
     udp_connections = GNUNET_CONTAINER_multihashmap_create(65536);
-    GNUNET_SCHEDULER_TaskIdentifier conn_task = GNUNET_SCHEDULER_add_now (connect_to_service_dns, NULL);
-    GNUNET_SCHEDULER_add_after (conn_task, start_helper_and_schedule, NULL);
+    conn_task = GNUNET_SCHEDULER_add_now (connect_to_service_dns, NULL);
+    shs_task = GNUNET_SCHEDULER_add_after (conn_task, start_helper_and_schedule, NULL);
     GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);
 }
 

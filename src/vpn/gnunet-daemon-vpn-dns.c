@@ -111,6 +111,7 @@ send_query(void* cls __attribute__((unused)), size_t size, void* buf) {
 void
 connect_to_service_dns (void *cls __attribute__((unused)),
 			const struct GNUNET_SCHEDULER_TaskContext *tc) {
+    conn_task = GNUNET_SCHEDULER_NO_TASK;
     if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
       return;
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connecting to service-dns\n");
@@ -135,6 +136,7 @@ connect_to_service_dns (void *cls __attribute__((unused)),
       {
 	GNUNET_CLIENT_notify_transmit_ready(dns_connection, sizeof(struct GNUNET_MessageHeader), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
       }
+    conn_task = GNUNET_SCHEDULER_add_now (start_helper_and_schedule, NULL);
 }
 
 /**
@@ -148,9 +150,9 @@ dns_answer_handler(void* cls __attribute__((unused)), const struct GNUNET_Messag
       {
 	GNUNET_CLIENT_disconnect(dns_connection, GNUNET_NO);
 	dns_connection = NULL;
-	GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-				      &connect_to_service_dns,
-				      NULL);
+	conn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+						  &connect_to_service_dns,
+						  NULL);
 	return;
       }
 
@@ -160,8 +162,8 @@ dns_answer_handler(void* cls __attribute__((unused)), const struct GNUNET_Messag
 	GNUNET_break (0);
 	GNUNET_CLIENT_disconnect(dns_connection, GNUNET_NO);
 	dns_connection = NULL;
-	GNUNET_SCHEDULER_add_now (&connect_to_service_dns,
-				  NULL);
+	conn_task = GNUNET_SCHEDULER_add_now (&connect_to_service_dns,
+					      NULL);
 	return;
       }
     void *pkt = GNUNET_malloc(ntohs(msg->size));
