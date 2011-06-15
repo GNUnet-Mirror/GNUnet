@@ -273,6 +273,10 @@ udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen,
     }
   else
     {
+      /* otherwise the answer came from a different port (tftp does this)
+       * add this new port to the list of all services, so that the packets
+       * coming back from the client to this new port will be routed correctly
+       */
       struct redirect_service *serv =
         GNUNET_malloc (sizeof (struct redirect_service));
       memcpy (serv, state->serv, sizeof (struct redirect_service));
