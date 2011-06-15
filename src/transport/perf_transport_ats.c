@@ -47,6 +47,7 @@ static glp_prob * prob;
 static struct GNUNET_TIME_Absolute start;
 static struct GNUNET_TIME_Absolute end;
 
+static int ret = 0;
 
 void solve_mlp(int presolve)
 {
@@ -108,9 +109,17 @@ void modify_qm(int start, int length, int values_to_change)
 void bench_simplex_optimization(char * file, int executions)
 {
   int c;
+  int res;
 
   prob = glp_create_prob();
-  glp_read_lp(prob, NULL, file);
+  res = glp_read_lp(prob, NULL, file);
+  if (res != 0)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Problem file `%s' not found\n",  file);
+    ret = 1;
+    return;
+  }
 
   solve_lp(GNUNET_YES);
 
@@ -134,9 +143,17 @@ void bench_simplex_optimization(char * file, int executions)
 void bench_simplex_no_optimization(char * file, int executions)
 {
   int c;
+  int res;
 
   prob = glp_create_prob();
-  glp_read_lp(prob, NULL, file);
+  res = glp_read_lp(prob, NULL, file);
+  if (res != 0)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Problem file `%s' not found\n",  file);
+    ret = 1;
+    return;
+  }
 
   for (c=0; c<executions;c++)
   {
@@ -158,10 +175,17 @@ void bench_simplex_no_optimization(char * file, int executions)
 void bench_mlp_no_optimization(char * file, int executions)
 {
   int c;
+  int res;
 
   prob = glp_create_prob();
-  glp_read_lp(prob, NULL, file);
-
+  res = glp_read_lp(prob, NULL, file);
+  if (res != 0)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Problem file `%s' not found\n",  file);
+    ret = 1;
+    return;
+  }
   for (c=0; c<executions;c++)
   {
       start = GNUNET_TIME_absolute_get();
@@ -184,8 +208,17 @@ void bench_mlp_no_optimization(char * file, int executions)
 void bench_mlp_with_optimization(char * file, int executions, int changes)
 {
   int c;
+  int res;
+
   prob = glp_create_prob();
-  glp_read_lp(prob, NULL, file);
+  res = glp_read_lp(prob, NULL, file);
+  if (res != 0)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Problem file `%s' not found\n",  file);
+    ret = 1;
+    return;
+  }
 
   solve_lp(GNUNET_YES);
 
@@ -236,7 +269,7 @@ void modify_cr (int start, int length, int count)
 
 int main (int argc, char *argv[])
 {
-  int ret = 0;
+
   GNUNET_log_setup ("perf-transport-ats",
 #if VERBOSE
                     "DEBUG",
@@ -268,27 +301,30 @@ int main (int argc, char *argv[])
   bench_mlp_no_optimization (file, executions);
   bench_mlp_with_optimization (file, executions, 0);
 
+  if (ret != 0)
+    return ret;
+
   // -> 400 addresses
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
       "Simplex, no optimization, average per address: %f\n",
       ((double) sim_no_opt_avg / EXECS) / 400);
   GAUGER ("TRANSPORT","GLPK simplex  no optimization",
       ((double) sim_no_opt_avg  / EXECS) / 400, "ms/address");
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
       "Simplex, with optimization, average per address: %f\n",
       ((double) sim_with_opt_avg / EXECS) / 400);
   GAUGER ("TRANSPORT",
       "GLPK simplex, 100 peers 400 addresses with optimization",
       ((double) sim_with_opt_avg  / EXECS) / 400, "ms/address");
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
       "MLP no optimization average per address: %f\n",
       ((double) mlp_no_opt_avg  / EXECS) / 400);
   GAUGER ("TRANSPORT","GLPK MLP 100 peers 400 addresses no optimization",
       ((double) mlp_no_opt_avg  / EXECS) / 400, "ms/address");
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
       "MLP optimization average per address: %f\n",
       ((double) mlp_with_opt_avg/ EXECS) / 400);
   GAUGER ("TRANSPORT",
