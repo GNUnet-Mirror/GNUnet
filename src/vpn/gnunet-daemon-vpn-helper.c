@@ -309,44 +309,44 @@ message_token (void *cls,
               else
                 {
                   /* This is a mapping to a "real" address */
-                 struct remote_addr *s = (struct remote_addr*) hc;
-                 s->addrlen = me->addrlen;
-                 memcpy(s->addr, me->addr, me->addrlen);
-                 s->proto= pkt6->ip6_hdr.nxthdr;
-                 if (s->proto == 0x11)
-                   {
-                     hdr->type = GNUNET_MESSAGE_TYPE_REMOTE_UDP;
-                     memcpy (hc + 1, &pkt6_udp->udp_hdr,
-                             ntohs (pkt6_udp->udp_hdr.len));
-                     app_type = GNUNET_APPLICATION_TYPE_INTERNET_UDP_GATEWAY;
-                   }
-                 else if (s->proto == 0x06)
-                   {
-                     hdr->type = GNUNET_MESSAGE_TYPE_REMOTE_TCP;
-                     memcpy (hc + 1, &pkt6_tcp->tcp_hdr,
+                  struct remote_addr *s = (struct remote_addr*) hc;
+                  s->addrlen = me->addrlen;
+                  memcpy(s->addr, me->addr, me->addrlen);
+                  s->proto= pkt6->ip6_hdr.nxthdr;
+                  if (s->proto == 0x11)
+                    {
+                      hdr->type = GNUNET_MESSAGE_TYPE_REMOTE_UDP;
+                      memcpy (hc + 1, &pkt6_udp->udp_hdr,
+                              ntohs (pkt6_udp->udp_hdr.len));
+                      app_type = GNUNET_APPLICATION_TYPE_INTERNET_UDP_GATEWAY;
+                    }
+                  else if (s->proto == 0x06)
+                    {
+                      hdr->type = GNUNET_MESSAGE_TYPE_REMOTE_TCP;
+                      memcpy (hc + 1, &pkt6_tcp->tcp_hdr,
                               ntohs (pkt6->ip6_hdr.paylgth));
-                     if (ntohs(pkt6_tcp->tcp_hdr.dpt) == 443)
-                       app_type = GNUNET_APPLICATION_TYPE_INTERNET_HTTPS_GATEWAY;
-                     else if (ntohs(pkt6_tcp->tcp_hdr.dpt) == 80)
-                       app_type = GNUNET_APPLICATION_TYPE_INTERNET_HTTP_GATEWAY;
-                     else
-                       app_type = GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY;
-                   }
-                }
-              if (me->tunnel == NULL && NULL != cls)
-                {
-                  *cls = GNUNET_MESH_peer_request_connect_by_type(mesh_handle,
-                                                                  GNUNET_TIME_UNIT_FOREVER_REL,
-                                                                  app_type,
-                                                                  send_pkt_to_peer,
-                                                                  NULL,
-                                                                  cls);
-                  me->tunnel = *cls;
-                }
-              else if (NULL != cls)
-                {
-                  *cls = me->tunnel;
-                  send_pkt_to_peer(cls, (struct GNUNET_PeerIdentity*) 1, NULL);
+                      if (ntohs(pkt6_tcp->tcp_hdr.dpt) == 443)
+                        app_type = GNUNET_APPLICATION_TYPE_INTERNET_HTTPS_GATEWAY;
+                      else if (ntohs(pkt6_tcp->tcp_hdr.dpt) == 80)
+                        app_type = GNUNET_APPLICATION_TYPE_INTERNET_HTTP_GATEWAY;
+                      else
+                        app_type = GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY;
+                    }
+                  if (me->tunnel == NULL && NULL != cls)
+                    {
+                      *cls = GNUNET_MESH_peer_request_connect_by_type(mesh_handle,
+                                                                      GNUNET_TIME_UNIT_FOREVER_REL,
+                                                                      app_type,
+                                                                      send_pkt_to_peer,
+                                                                      NULL,
+                                                                      cls);
+                      me->tunnel = *cls;
+                    }
+                  else if (NULL != cls)
+                    {
+                      *cls = me->tunnel;
+                      send_pkt_to_peer(cls, (struct GNUNET_PeerIdentity*) 1, NULL);
+                    }
                 }
             }
           break;
