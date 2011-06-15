@@ -356,6 +356,8 @@ tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
   struct redirect_state *state =
     GNUNET_CONTAINER_multihashmap_get (tcp_connections, &hash);
 
+  if (state == NULL) return;
+
   /* Mark this connection as freshly used */
   GNUNET_CONTAINER_heap_update_cost (tcp_connections_heap, state->heap_node,
                                      GNUNET_TIME_absolute_get ().abs_value);
