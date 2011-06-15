@@ -93,7 +93,7 @@ crc_go (unsigned long crc, const char *buf, size_t len)
  * @return the resulting CRC32 checksum
  */
 int32_t
-GNUNET_CRYPTO_crc32_n (const void *buf, size_t len)
+crc32_n (const void *buf, size_t len)
 {
   unsigned long crc;
   crc = crc_go (0L, Z_NULL, 0);
@@ -112,7 +112,7 @@ int main ()
   }
   for (i = 0; i < 1024; i++)
   {
-    printf("%d\n", GNUNET_CRYPTO_crc32_n (&buf[i], 1024 - i));
+    printf("%d\n", crc32_n (&buf[i], 1024 - i));
   }
   return 0;
 }

@@ -513,7 +513,7 @@ expressionListToString (struct Expression *head)
   return string;
 }
 
-
+#if 0
 static int
 getWatchInfoListSize(struct WatchInfo *head)
 {
@@ -552,6 +552,7 @@ watchInfoListToString(struct WatchInfo *head)
 
 	return string;
 }
+#endif
 
 static const char* getValgrindOutput(struct GNUNET_MONKEY_ACTION_Context *cntxt)
 {
