@@ -38,7 +38,7 @@
  * Use lsof to generate file descriptor reports on select error?
  * (turn off for stable releases).
  */
-#define USE_LSOF GNUNET_YES
+#define USE_LSOF GNUNET_NO
 
 /**
  * Obtain trace information for all scheduler calls that schedule tasks.
@@ -1230,7 +1230,7 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
   t->num_backtrace_strings = backtrace(backtrace_array, MAX_TRACE_DEPTH);
   t->backtrace_strings = backtrace_symbols(backtrace_array, t->num_backtrace_strings);
 #endif
-#ifdef DEBUG_FDS
+#if DEBUG_FDS
   if (-1 != rfd)
     {
       int flags = fcntl(rfd, F_GETFD);
