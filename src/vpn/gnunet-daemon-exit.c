@@ -467,7 +467,6 @@ read_service_conf (void *cls, const char *section, const char *option,
   char *redirect;
   char *hostname;
   char *hostport;
-  GNUNET_HashCode hash;
   uint16_t *desc = alloca (sizeof (GNUNET_HashCode) + 2);
   GNUNET_CRYPTO_hash (section, strlen (section) + 1,
                       (GNUNET_HashCode *) (desc + 1));
@@ -554,10 +553,6 @@ read_service_conf (void *cls, const char *section, const char *option,
               GNUNET_assert (0);
             }
           serv->remote_port = atoi (hostport);
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Store with key1 %x\n",
-                      *((unsigned long long *) (desc + 1)));
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Store with key2 %x\n",
-                      *((unsigned long long *) &hash));
           if (UDP == proto)
             GNUNET_assert (GNUNET_OK ==
                            GNUNET_CONTAINER_multihashmap_put (udp_services,
