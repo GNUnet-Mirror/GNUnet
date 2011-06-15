@@ -111,7 +111,6 @@ start_helper_and_schedule(void *cls,
 				 "vpn-gnunet",
 				 start_helper_and_schedule,
 				 message_token,
-				 NULL,
 				 NULL);
 
     GNUNET_free(ipv6addr);

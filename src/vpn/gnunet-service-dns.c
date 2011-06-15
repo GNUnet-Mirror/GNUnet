@@ -113,6 +113,9 @@ struct receive_dht_cls {
 static void
 hijack (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+
   char port_s[6];
   char *virt_dns;
   struct GNUNET_OS_Process *proc;
@@ -197,8 +200,8 @@ send_answer(void* cls, size_t size, void* buf) {
 
 struct tunnel_cls {
     struct GNUNET_MESH_Tunnel *tunnel GNUNET_PACKED;
-    struct GNUNET_MessageHeader hdr GNUNET_PACKED;
-    struct dns_pkt dns GNUNET_PACKED;
+    struct GNUNET_MessageHeader hdr;
+    struct dns_pkt dns;
 };
 
 struct tunnel_cls *remote_pending[UINT16_MAX];
@@ -704,7 +707,7 @@ receive_query(void *cls,
       }
 
     char* virt_dns;
-    int virt_dns_bytes;
+    unsigned int virt_dns_bytes;
     if (GNUNET_SYSERR ==
         GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "VIRTDNS",
                                                &virt_dns))
@@ -899,6 +902,8 @@ static void
 cleanup_task (void *cls,
 	      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_assert(0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN));
+
   unhijack(dnsoutport);
   GNUNET_DHT_disconnect(dht);
 }
@@ -1156,7 +1161,7 @@ run (void *cls,
           {NULL, 0, 0}
     };
 
-  const static GNUNET_MESH_ApplicationType apptypes[] =
+  static const GNUNET_MESH_ApplicationType apptypes[] =
     { GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER,
     GNUNET_APPLICATION_TYPE_END
   };

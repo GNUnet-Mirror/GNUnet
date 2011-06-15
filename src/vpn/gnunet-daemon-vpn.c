@@ -275,6 +275,9 @@ new_ip6addr_remote (unsigned char *buf, unsigned char *addr, char addrlen)
  */
 void
 process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
+    if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+      return;
+
     struct answer_packet* pkt = cls;
     struct answer_packet_list* list;
 
@@ -701,7 +704,7 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
-    const static struct GNUNET_MESH_MessageHandler handlers[] = {
+    static const struct GNUNET_MESH_MessageHandler handlers[] = {
 	  {receive_udp_back, GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK, 0},
 	  {receive_tcp_back, GNUNET_MESSAGE_TYPE_SERVICE_TCP_BACK, 0},
 	  {receive_udp_back, GNUNET_MESSAGE_TYPE_REMOTE_UDP_BACK, 0},

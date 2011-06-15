@@ -243,8 +243,7 @@ send_udp_to_peer_notify_callback (void *cls, size_t size, void *buf)
  * @param version 4 or 6
  */
 static void
-udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen,
-                 unsigned int version)
+udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen)
 {
   struct redirect_info u_i;
   struct GNUNET_MESH_Tunnel *tunnel;
@@ -337,7 +336,7 @@ udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen,
  */
 static void
 tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
-                 unsigned int version, size_t pktlen)
+                 size_t pktlen)
 {
   struct redirect_info u_i;
   struct GNUNET_MESH_Tunnel *tunnel;
@@ -421,10 +420,10 @@ message_token (void *cls,
       struct ip6_pkt *pkt6 = (struct ip6_pkt *) pkt_tun;
       if (0x11 == pkt6->ip6_hdr.nxthdr)
         udp_from_helper (&((struct ip6_udp *) pkt6)->udp_hdr,
-                         (unsigned char *) &pkt6->ip6_hdr.dadr, 16, 6);
+                         (unsigned char *) &pkt6->ip6_hdr.dadr, 16);
       else if (0x06 == pkt6->ip6_hdr.nxthdr)
         tcp_from_helper (&((struct ip6_tcp *) pkt6)->tcp_hdr,
-                         (unsigned char *) &pkt6->ip6_hdr.dadr, 16, 6,
+                         (unsigned char *) &pkt6->ip6_hdr.dadr, 16,
                          ntohs (pkt6->ip6_hdr.paylgth));
     }
   else if (ntohs (pkt_tun->tun.type) == 0x0800)
@@ -433,7 +432,7 @@ message_token (void *cls,
       uint32_t tmp = pkt4->ip_hdr.dadr;
       if (0x11 == pkt4->ip_hdr.proto)
         udp_from_helper (&((struct ip_udp *) pkt4)->udp_hdr,
-                         (unsigned char *) &tmp, 4, 4);
+                         (unsigned char *) &tmp, 4);
       else if (0x06 == pkt4->ip_hdr.proto)
         {
           size_t pktlen = ntohs(pkt4->ip_hdr.tot_lngth);
@@ -441,7 +440,7 @@ message_token (void *cls,
           pktlen -= 4*pkt4->ip_hdr.hdr_lngth;
           GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "-hdr: %d\n", pktlen);
           tcp_from_helper (&((struct ip_tcp *) pkt4)->tcp_hdr,
-                           (unsigned char *) &tmp, 4, 4, pktlen);
+                           (unsigned char *) &tmp, 4, pktlen);
         }
     }
   else
@@ -634,7 +633,6 @@ start_helper_and_schedule(void *cls,
 				 "exit-gnunet",
 				 start_helper_and_schedule,
 				 message_token,
-				 NULL,
 				 NULL);
 
     GNUNET_free(ipv6addr);
@@ -1189,7 +1187,7 @@ run (void *cls,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
-  const static struct GNUNET_MESH_MessageHandler handlers[] = {
+  static const struct GNUNET_MESH_MessageHandler handlers[] = {
     {receive_udp_service, GNUNET_MESSAGE_TYPE_SERVICE_UDP, 0},
     {receive_tcp_service, GNUNET_MESSAGE_TYPE_SERVICE_TCP, 0},
     {receive_udp_remote,  GNUNET_MESSAGE_TYPE_REMOTE_UDP, 0},
@@ -1197,7 +1195,7 @@ run (void *cls,
     {NULL, 0, 0}
   };
 
-  const static GNUNET_MESH_ApplicationType apptypes[] =
+  static const GNUNET_MESH_ApplicationType apptypes[] =
     {
       GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY,
       GNUNET_APPLICATION_TYPE_INTERNET_UDP_GATEWAY,

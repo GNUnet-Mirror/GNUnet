@@ -92,7 +92,6 @@ struct GNUNET_VPN_HELPER_Handle
  * @param restart_task The task called when the helper dies. Will be called with the handle as cls
  * @param cb A callback for messages from the helper
  * @param cb_cls Closure for the callback
- * @param client client_name for the callback
  *
  * @return A pointer to the new Handle, NULL on error
  */
@@ -105,8 +104,7 @@ struct GNUNET_VPN_HELPER_Handle *start_helper (const char *ifname,
                                                GNUNET_SCHEDULER_Task
                                                restart_task,
                                                GNUNET_SERVER_MessageTokenizerCallback
-                                               cb, void *cb_cls,
-                                               void *client);
+                                               cb, void *cb_cls);
 
 /**
  * @brief Kills the helper, closes the pipe and free()s the handle

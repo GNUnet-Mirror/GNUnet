@@ -109,8 +109,7 @@ start_helper (const char *ifname,
               const char *ipv4addr,
               const char *ipv4mask, const char *process_name,
               GNUNET_SCHEDULER_Task restart_task,
-              GNUNET_SERVER_MessageTokenizerCallback cb, void *cb_cls,
-              void *client)
+              GNUNET_SERVER_MessageTokenizerCallback cb, void *cb_cls)
 {
   struct GNUNET_VPN_HELPER_Handle *handle =
     GNUNET_malloc (sizeof (struct GNUNET_VPN_HELPER_Handle));

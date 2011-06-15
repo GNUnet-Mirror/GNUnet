@@ -127,6 +127,9 @@ static void
 send_end_connect(void* cls,
 		     const struct GNUNET_SCHEDULER_TaskContext* tc)
 {
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+    return;
+
   struct GNUNET_MESH_Tunnel* tunnel = cls;
 
   tunnel->connect_handler(tunnel->handler_cls, NULL, NULL);
@@ -136,6 +139,9 @@ static void
 send_self_connect(void* cls,
 		        const struct GNUNET_SCHEDULER_TaskContext* tc)
 {
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+      return;
+
   struct GNUNET_MESH_Tunnel* tunnel = cls;
 
   tunnel->connect_handler(tunnel->handler_cls, &tunnel->handle->myself, NULL);
@@ -146,6 +152,9 @@ static void
 call_connect_handler (void *cls,
                       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+      return;
+
   struct GNUNET_MESH_Tunnel *tunnel = cls;
 
   tunnel->connect_handler (tunnel->handler_cls, &tunnel->peer,
@@ -689,7 +698,7 @@ GNUNET_MESH_connect (const struct
 
   build_hello_message(ret, stypes);
 
-  const static struct GNUNET_CORE_MessageHandler core_handlers[] = {
+  static const struct GNUNET_CORE_MessageHandler core_handlers[] = {
     {&core_receive, GNUNET_MESSAGE_TYPE_MESH, 0},
     {&receive_hello, GNUNET_MESSAGE_TYPE_MESH_HELLO, 0},
     {NULL, 0, 0}
