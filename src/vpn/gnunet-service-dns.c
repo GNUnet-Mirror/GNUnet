@@ -735,6 +735,7 @@ receive_query(void *cls,
         cls_->hdr.size = size - sizeof(struct GNUNET_MESH_Tunnel*);
 
         cls_->hdr.type = ntohs(GNUNET_MESSAGE_TYPE_REMOTE_QUERY_DNS);
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "size: %d\n", size)
 
         memcpy(&cls_->dns, dns, cls_->hdr.size);
         GNUNET_SCHEDULER_add_now(send_mesh_query, cls_);
