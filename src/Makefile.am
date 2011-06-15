@@ -4,8 +4,14 @@
 
 if HAVE_ESMTP
 if HAVE_OPENSSL
+if HAVE_EXPERIMENTAL
  MONKEY_DIR = monkey
 endif
+endif
+endif
+
+if HAVE_EXPERIMENTAL
+ EXP_DIR = fragmentation mesh vpn chat
 endif
 
 SUBDIRS = \
@@ -30,7 +36,4 @@ SUBDIRS = \
   hostlist \
   topology \
   fs \
-  fragmentation \
-  mesh \
-  vpn \
-  chat
+  $(EXP_DIR)
