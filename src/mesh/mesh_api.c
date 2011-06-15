@@ -166,6 +166,7 @@ core_startup (void *cls,
 static size_t
 send_hello_message (void *cls, size_t size, void *buf)
 {
+  if (cls == NULL) return 0;
   struct GNUNET_MESH_Handle *handle = cls;
   struct GNUNET_MessageHeader *hdr = buf;
 
