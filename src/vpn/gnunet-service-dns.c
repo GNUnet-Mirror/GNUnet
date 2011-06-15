@@ -239,7 +239,7 @@ mesh_send (void *cls, size_t size, void *buf)
 
 void mesh_connect (void* cls, const struct GNUNET_PeerIdentity* peer, const struct GNUNET_TRANSPORT_ATS_Information *atsi __attribute__((unused))) {
   if (NULL == peer) return;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connected to peer %x\n", *((unsigned long*)peer));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connected to peer %s\n", GNUNET_i2s(peer));
   struct tunnel_cls *cls_ = (struct tunnel_cls*)cls;
 
   GNUNET_MESH_notify_transmit_ready(cls_->tunnel,
