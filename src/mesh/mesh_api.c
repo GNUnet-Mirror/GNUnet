@@ -177,6 +177,9 @@ static size_t
 send_hello_message (void *cls, size_t size, void *buf)
 {
   if (cls == NULL) return 0;
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sending hello\n");
+
   struct GNUNET_MESH_Handle *handle = cls;
   struct GNUNET_MessageHeader *hdr = buf;
 
@@ -202,6 +205,8 @@ core_connect (void *cls,
 	      const struct GNUNET_TRANSPORT_ATS_Information *atsi)
 {
   struct GNUNET_MESH_Handle *handle = cls;
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Core tells us we are connected to peer %s\n", GNUNET_i2s(peer));
 
   /* Send a hello to this peer */
   GNUNET_CORE_notify_transmit_ready(handle->core,
@@ -260,6 +265,8 @@ static void
 core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct GNUNET_MESH_Handle *handle = cls;
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Core tells us we are no longer connected to peer %s\n", GNUNET_i2s(peer));
 
   struct peer_list_element *element = handle->connected_peers.head;
   while (element != NULL)
@@ -322,6 +329,8 @@ receive_hello (void *cls,
   uint16_t *num = (uint16_t *) (message + 1);
   uint16_t *ports = num + 1;
   unsigned int i;
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "The peer %s tells us he supports %d application-types.\n", GNUNET_i2s(other), *num);
 
   struct peer_list_element *element = handle->connected_peers.head;
   while (element != NULL)
@@ -400,7 +409,11 @@ core_receive (void *cls,
 
   /* If no handler was found, drop the message but keep the channel open */
   if (handler->callback == NULL)
-    return GNUNET_OK;
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received message of type %d from peer %s; dropping it.\n",
+                 ntohs(rmessage->type), GNUNET_i2s(other));
+      return GNUNET_OK;
+    }
 
   struct tunnel_list_element *tunnel = handle->established_tunnels.head;
 
@@ -420,6 +433,8 @@ core_receive (void *cls,
   /* if no tunnel was found: create a new inbound tunnel */
   if (tunnel == NULL)
     {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "New inbound tunnel from peer %s; first message has type %d.\n",
+                 GNUNET_i2s(other), ntohs(rmessage->type));
       tunnel = GNUNET_malloc (sizeof (struct tunnel_list_element));
       tunnel->tunnel.connect_handler = NULL;
       tunnel->tunnel.disconnect_handler = NULL;
@@ -435,6 +450,9 @@ core_receive (void *cls,
 					 handle->established_tunnels.tail,
 					 tunnel);
     }
+  else
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Inbound message from peer %s; type %d.\n",
+               GNUNET_i2s(other), ntohs(rmessage->type));
 
   return handler->callback (handle->cls, &tunnel->tunnel,
 			    &tunnel->tunnel.ctx, other, rmessage, atsi);
@@ -464,6 +482,8 @@ GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Handle *handle,
                                                        handler_cls);
       element = element->next;
     }
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Trying to connect by tupe %d.\n", application_type);
 
   /* Put into pending list */
   struct tunnel_list_element *tunnel =
