@@ -564,7 +564,7 @@ static const char* getValgrindOutput(struct GNUNET_MONKEY_ACTION_Context *cntxt)
 	fseek(valgrindFile, 0L, SEEK_SET);
 
 	valgrindOutput = GNUNET_malloc(size);
-	fread(valgrindOutput, size, 1, valgrindFile);
+	fread(valgrindOutput, size - 1, 1, valgrindFile);
 	fclose(valgrindFile);
 	return valgrindOutput;
 }
