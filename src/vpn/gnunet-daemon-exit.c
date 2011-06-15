@@ -139,6 +139,8 @@ struct redirect_state
   struct GNUNET_CONTAINER_MultiHashMap *hashmap;
   GNUNET_HashCode hash;
 
+  enum { SERVICE, REMOTE } type;
+
   /**
    * The source-address and -port of this connection
    */
@@ -267,42 +269,49 @@ udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen,
 
   tunnel = state->tunnel;
 
-  /* check if spt == serv.remote if yes: set spt = serv.myport ("nat") */
-  if (ntohs (udp->spt) == state->serv->remote_port)
+  if (state->type == SERVICE)
     {
-      udp->spt = htons (state->serv->my_port);
-    }
-  else
-    {
-      /* otherwise the answer came from a different port (tftp does this)
-       * add this new port to the list of all services, so that the packets
-       * coming back from the client to this new port will be routed correctly
-       */
-      struct redirect_service *serv =
-        GNUNET_malloc (sizeof (struct redirect_service));
-      memcpy (serv, state->serv, sizeof (struct redirect_service));
-      serv->my_port = ntohs (udp->spt);
-      serv->remote_port = ntohs (udp->spt);
-      uint16_t *desc = alloca (sizeof (GNUNET_HashCode) + 2);
-      memcpy ((GNUNET_HashCode *) (desc + 1), &state->desc,
-              sizeof (GNUNET_HashCode));
-      *desc = ntohs (udp->spt);
-      GNUNET_assert (GNUNET_OK ==
-                     GNUNET_CONTAINER_multihashmap_put (udp_services,
-                                                        (GNUNET_HashCode*)desc, serv,
-                                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+      /* check if spt == serv.remote if yes: set spt = serv.myport ("nat") */
+      if (ntohs (udp->spt) == state->serv->remote_port)
+        {
+          udp->spt = htons (state->serv->my_port);
+        }
+      else
+        {
+          /* otherwise the answer came from a different port (tftp does this)
+           * add this new port to the list of all services, so that the packets
+           * coming back from the client to this new port will be routed correctly
+           */
+          struct redirect_service *serv =
+            GNUNET_malloc (sizeof (struct redirect_service));
+          memcpy (serv, state->serv, sizeof (struct redirect_service));
+          serv->my_port = ntohs (udp->spt);
+          serv->remote_port = ntohs (udp->spt);
+          uint16_t *desc = alloca (sizeof (GNUNET_HashCode) + 2);
+          memcpy ((GNUNET_HashCode *) (desc + 1), &state->desc,
+                  sizeof (GNUNET_HashCode));
+          *desc = ntohs (udp->spt);
+          GNUNET_assert (GNUNET_OK ==
+                         GNUNET_CONTAINER_multihashmap_put (udp_services,
+                                                            (GNUNET_HashCode*)desc, serv,
+                                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 
-      state->serv = serv;
+          state->serv = serv;
+        }
     }
+
   /* send udp-packet back */
   len =
     sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) +
     ntohs (udp->len);
   msg = GNUNET_malloc (len);
   msg->size = htons (len);
-  msg->type = htons (GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK);
+  msg->type = htons (state->type == SERVICE ? GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK : GNUNET_MESSAGE_TYPE_REMOTE_UDP_BACK);
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (msg + 1);
-  memcpy (desc, &state->desc, sizeof (GNUNET_HashCode));
+  if (state->type == SERVICE)
+    memcpy (desc, &state->desc, sizeof (GNUNET_HashCode));
+  else
+    memcpy (desc, &state->remote, sizeof (struct remote_addr));
   void *_udp = desc + 1;
   memcpy (_udp, udp, ntohs (udp->len));
 
@@ -352,25 +361,32 @@ tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
 
   tunnel = state->tunnel;
 
-  /* check if spt == serv.remote if yes: set spt = serv.myport ("nat") */
-  if (ntohs (tcp->spt) == state->serv->remote_port)
+  if (state->type == SERVICE)
     {
-      tcp->spt = htons (state->serv->my_port);
+      /* check if spt == serv.remote if yes: set spt = serv.myport ("nat") */
+      if (ntohs (tcp->spt) == state->serv->remote_port)
+        {
+          tcp->spt = htons (state->serv->my_port);
+        }
+      else
+        {
+          // This is an illegal packet.
+          return;
+        }
     }
-  else
-    {
-      // This is an illegal packet.
-      return;
-    }
+
   /* send tcp-packet back */
   len =
     sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) + pktlen;
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "len: %d\n", pktlen);
   msg = GNUNET_malloc (len);
   msg->size = htons (len);
-  msg->type = htons (GNUNET_MESSAGE_TYPE_SERVICE_TCP_BACK);
+  msg->type = htons (state->type == SERVICE ? GNUNET_MESSAGE_TYPE_SERVICE_TCP_BACK : GNUNET_MESSAGE_TYPE_REMOTE_TCP_BACK);
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (msg + 1);
-  memcpy (desc, &state->desc, sizeof (GNUNET_HashCode));
+  if (state->type == SERVICE)
+    memcpy (desc, &state->desc, sizeof (GNUNET_HashCode));
+  else
+    memcpy (desc, &state->remote, sizeof (struct remote_addr));
   void *_tcp = desc + 1;
   memcpy (_tcp, tcp, pktlen);
 
@@ -869,6 +885,7 @@ receive_tcp_service (void *cls,
   memset (state, 0, sizeof (struct redirect_state));
   state->tunnel = tunnel;
   state->serv = serv;
+  state->type = SERVICE;
   state->hashmap = tcp_connections;
   memcpy (&state->desc, desc, sizeof (GNUNET_HashCode));
 
@@ -937,6 +954,7 @@ receive_tcp_remote (void *cls,
     GNUNET_malloc (sizeof (struct redirect_state));
   memset (state, 0, sizeof (struct redirect_state));
   state->tunnel = tunnel;
+  state->type = REMOTE;
   state->hashmap = tcp_connections;
   memcpy (&state->remote, s, sizeof (struct remote_addr));
 
@@ -1013,6 +1031,7 @@ receive_udp_remote (void *cls,
   memset (state, 0, sizeof (struct redirect_state));
   state->tunnel = tunnel;
   state->hashmap = udp_connections;
+  state->type = REMOTE;
   memcpy (&state->remote, s, sizeof (struct remote_addr));
 
   len = sizeof (struct GNUNET_MessageHeader) + sizeof (struct pkt_tun) +
@@ -1109,6 +1128,7 @@ receive_udp_service (void *cls,
   memset (state, 0, sizeof (struct redirect_state));
   state->tunnel = tunnel;
   state->serv = serv;
+  state->type = SERVICE;
   state->hashmap = udp_connections;
   memcpy (&state->desc, desc, sizeof (GNUNET_HashCode));
 
