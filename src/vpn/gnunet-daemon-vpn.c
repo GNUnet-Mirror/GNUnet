@@ -357,9 +357,6 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 	  }
 
 	struct map_entry* map_entry = GNUNET_CONTAINER_multihashmap_get(hashmap, &key);
-        GNUNET_CONTAINER_heap_update_cost (heap, map_entry->heap_node,
-                                           GNUNET_TIME_absolute_get ().abs_value);
-
 	uint16_t offset = ntohs(pkt->addroffset);
 
 	if (map_entry == NULL)
@@ -367,6 +364,10 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 	    GNUNET_free(pkt);
 	    return;
 	  }
+
+        GNUNET_CONTAINER_heap_update_cost (heap, map_entry->heap_node,
+                                           GNUNET_TIME_absolute_get ().abs_value);
+
 
         unsigned short namelen = htons(map_entry->namelen);
 	char* name = (char*)(map_entry + 1);
