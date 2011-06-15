@@ -897,6 +897,8 @@ GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *sock,
 
   if (NULL != sock->th)
     {
+      /* If this breaks, you most likley called this function twice without waiting
+       * for completion or canceling the request */
       GNUNET_break (0);
       return NULL;
     }
