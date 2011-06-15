@@ -335,10 +335,10 @@ receive_hello (void *cls,
 {
   struct GNUNET_MESH_Handle *handle = cls;
   uint16_t *num = (uint16_t *) (message + 1);
-  uint16_t *ports = num + 1;
+  GNUNET_MESH_ApplicationType *ports = (GNUNET_MESH_ApplicationType*) (num + 1);
   unsigned int i;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "The peer %s tells us he supports %d application-types.\n", GNUNET_i2s(other), *num);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "The peer %s tells us he supports %d application-types.\n", GNUNET_i2s(other), ntohs(*num));
 
   struct peer_list_element *element = handle->connected_peers.head;
   while (element != NULL)
@@ -349,18 +349,28 @@ receive_hello (void *cls,
       element = element->next;
     }
 
-  for (i = 0; i < *num; i++)
+  GNUNET_assert(NULL != element);
+
+  for (i = 0; i < ntohs(*num); i++)
     {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "The peer %s newly supports the application-type %d\n", GNUNET_i2s(other), ntohs(ports[i]));
+      if (GNUNET_APPLICATION_TYPE_END == ntohs(ports[i])) continue;
       struct type_list_element* new_type = GNUNET_malloc(sizeof *new_type);
       new_type->type = (GNUNET_MESH_ApplicationType)ntohs (ports[i]);
       GNUNET_CONTAINER_DLL_insert(element->type_head, element->type_tail, new_type);
+    }
+
+  struct type_list_element *type;
+  for (type = element->type_head; type != NULL; type = type->next)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "The peer %s supports the application-type %d\n", GNUNET_i2s(other), type->type);
     }
 
   struct tunnel_list_element *tunnel = handle->pending_by_type_tunnels.head;
   while (tunnel != NULL)
     {
       struct tunnel_list_element *next = tunnel->next;
-      for (i = 0; i < *num; i++)
+      for (i = 0; i < ntohs(*num); i++)
         {
           if (ntohs (ports[i]) == tunnel->tunnel.application_type)
             {
