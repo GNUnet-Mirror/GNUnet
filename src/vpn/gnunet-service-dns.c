@@ -239,8 +239,8 @@ mesh_send (void *cls, size_t size, void *buf)
 
 void mesh_connect (void* cls, const struct GNUNET_PeerIdentity* peer, const struct GNUNET_TRANSPORT_ATS_Information *atsi __attribute__((unused))) {
   if (NULL == peer) return;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connected to peer %s\n", GNUNET_i2s(peer));
   struct tunnel_cls *cls_ = (struct tunnel_cls*)cls;
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connected to peer %s, sending query with id %d\n", GNUNET_i2s(peer), ntohs(cls_->dns.s.id));
 
   GNUNET_MESH_notify_transmit_ready(cls_->tunnel,
                                     GNUNET_YES,
@@ -303,7 +303,7 @@ static int
 receive_mesh_answer (void *cls __attribute__((unused)),
                      struct GNUNET_MESH_Tunnel *tunnel,
                      void **ctx __attribute__((unused)),
-                     const struct GNUNET_PeerIdentity *sender __attribute__((unused)),
+                     const struct GNUNET_PeerIdentity *sender,
                      const struct GNUNET_MessageHeader *message,
                      const struct GNUNET_TRANSPORT_ATS_Information *atsi __attribute__((unused)))
 {
@@ -317,6 +317,8 @@ receive_mesh_answer (void *cls __attribute__((unused)),
   if (query_states[dns->s.id].valid != GNUNET_YES)
     return GNUNET_SYSERR;
   query_states[dns->s.id].valid = GNUNET_NO;
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received answer from peer %s, dns-id %d\n", GNUNET_i2s(sender), ntohs(dns->s.id));
 
   size_t len = sizeof (struct answer_packet) - 1 + sizeof (struct dns_static) + query_states[dns->s.id].namelen + sizeof (struct dns_query_line) + 2    /* To hold the pointer (as defined in RFC1035) to the name */
     + sizeof (struct dns_record_line) - 1 + 16; /* To hold the IPv6-Address */
@@ -333,6 +335,7 @@ receive_mesh_answer (void *cls __attribute__((unused)),
 
   if (ntohs(pdns->s.ancount) < 1)
     {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Answer only contains %d answers.\n", ntohs(pdns->s.ancount));
       free_parsed_dns_packet(pdns);
       return GNUNET_OK;
     }
@@ -392,6 +395,8 @@ receive_mesh_answer (void *cls __attribute__((unused)),
                                        GNUNET_TIME_UNIT_FOREVER_REL,
                                        &send_answer,
                                        query_states[dns->s.id].client);
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sent answer on to client\n");
 
   free_parsed_dns_packet(pdns);
   return GNUNET_OK;
