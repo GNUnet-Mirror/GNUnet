@@ -29,6 +29,7 @@
 #include "gnunet-vpn-packet.h"
 #include "gnunet_common.h"
 #include "gnunet_protocols.h"
+#include "gnunet_applications.h"
 #include <gnunet_mesh_service.h>
 #include "gnunet_client_lib.h"
 #include "gnunet_container_lib.h"
@@ -714,11 +715,16 @@ run (void *cls,
 	  {receive_tcp_back, GNUNET_MESSAGE_TYPE_REMOTE_TCP_BACK, 0},
 	  {NULL, 0, 0}
     };
+
+    static const GNUNET_MESH_ApplicationType types[] = {
+        GNUNET_APPLICATION_TYPE_END
+    };
+
     mesh_handle = GNUNET_MESH_connect(cfg_,
 				      NULL,
 				      NULL,
                                       handlers,
-                                      NULL);
+                                      types);
     cfg = cfg_;
     restart_hijack = 0;
     hashmap = GNUNET_CONTAINER_multihashmap_create(65536);
