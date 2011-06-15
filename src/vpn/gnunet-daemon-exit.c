@@ -27,6 +27,7 @@
 #include <gnunet_common.h>
 #include <gnunet_program_lib.h>
 #include <gnunet_protocols.h>
+#include <gnunet_applications.h>
 #include <gnunet_mesh_service.h>
 #include <gnunet_constants.h>
 #include <string.h>
@@ -1177,7 +1178,15 @@ run (void *cls,
     {receive_tcp_remote,  GNUNET_MESSAGE_TYPE_REMOTE_TCP, 0},
     {NULL, 0, 0}
   };
-  mesh_handle = GNUNET_MESH_connect (cfg_, NULL, NULL, handlers, NULL);
+
+  const static GNUNET_MESH_ApplicationType apptypes[] =
+    {
+      GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY,
+      GNUNET_APPLICATION_TYPE_INTERNET_UDP_GATEWAY,
+      GNUNET_APPLICATION_TYPE_END
+    };
+
+  mesh_handle = GNUNET_MESH_connect (cfg_, NULL, NULL, handlers, apptypes);
 
   cfg = cfg_;
   udp_connections = GNUNET_CONTAINER_multihashmap_create (65536);
