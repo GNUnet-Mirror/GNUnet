@@ -496,7 +496,7 @@ GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Handle *handle,
       for (i = element->type_head; i != NULL; i = i->next)
         if (application_type == i->type)
           return GNUNET_MESH_peer_request_connect_all (handle, timeout, 1,
-                                                       &handle->myself,
+                                                       &element->peer,
                                                        connect_handler,
                                                        disconnect_handler,
                                                        handler_cls);
