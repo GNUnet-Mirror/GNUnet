@@ -28,9 +28,10 @@
  * @author Christian Grothoff, Safey A.Halim
  */
 
-#include "assert.h"
-#include "stdlib.h"
-#include "stdio.h"
+#include <assert.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdint.h>
 
 #define Z_NULL  0
 
