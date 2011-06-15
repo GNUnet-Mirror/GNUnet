@@ -58,17 +58,6 @@ struct GNUNET_MESH_ManipulatePath
     uint32_t                    tid GNUNET_PACKED;
 
     /**
-     * Information about speed requirements.  If the tunnel cannot sustain the 
-     * minimum bandwidth, packets are to be dropped.
-     */
-    uint32_t                    speed_min GNUNET_PACKED;
-
-    /**
-     * 64-bit alignment.
-     */
-    uint32_t                    reserved GNUNET_PACKED;
-
-    /**
      * path_length structs defining the *whole* path from the origin [0] to the
      * final destination [path_length-1].
      */
