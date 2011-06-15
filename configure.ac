@@ -268,7 +268,6 @@ then
 	else
 		AM_CONDITIONAL(HAVE_GLPK, [test x$gplk = xtrue])
 		AM_CONDITIONAL(HAVE_LIBGLPK, [test x$gplk = x$gplk])
-		AC_MSG_WARN([GLPK is installed])
 	fi
 else
 	AC_MSG_WARN([ATS disabled])
