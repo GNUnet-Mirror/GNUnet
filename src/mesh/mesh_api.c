@@ -188,6 +188,8 @@ send_hello_message (void *cls, size_t size, void *buf)
 
   size_t sent = sizeof(struct GNUNET_MessageHeader) + handle->hello_message_size;
 
+  if (sent > size) return 0;
+
   hdr->type = htons(GNUNET_MESSAGE_TYPE_MESH_HELLO);
   hdr->size = htons(size);
 
