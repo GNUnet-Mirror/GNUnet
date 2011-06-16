@@ -652,6 +652,7 @@ struct GNUNET_NETWORK_Handle *
 GNUNET_NETWORK_socket_create (int domain, int type, int protocol)
 {
   struct GNUNET_NETWORK_Handle *ret;
+
   ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle));
   ret->af = domain;
   ret->fd = socket (domain, type, protocol);

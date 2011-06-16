@@ -373,8 +373,6 @@ GNUNET_CLIENT_connect (const char *service_name,
 
   sock = do_connect (service_name,
 		     cfg, 0);
-  if (sock == NULL)
-    return NULL;
   ret = GNUNET_malloc (sizeof (struct GNUNET_CLIENT_Connection));
   ret->attempts = 1;
   ret->sock = sock;
@@ -421,14 +419,16 @@ void
 GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock,
 			  int finish_pending_write)
 {
-  GNUNET_assert (sock->sock != NULL);
   if (sock->in_receive == GNUNET_YES)
     {
       GNUNET_CONNECTION_receive_cancel (sock->sock);
       sock->in_receive = GNUNET_NO;
     }
-  GNUNET_CONNECTION_destroy (sock->sock, finish_pending_write);
-  sock->sock = NULL;
+  if (NULL != sock->sock)
+    {
+      GNUNET_CONNECTION_destroy (sock->sock, finish_pending_write);
+      sock->sock = NULL;
+    }
   if (sock->tag != NULL)
     {
       GNUNET_free (sock->tag);
@@ -436,7 +436,10 @@ GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock,
     }
   sock->receiver_handler = NULL;
   if (sock->th != NULL)
-    GNUNET_CLIENT_notify_transmit_ready_cancel (sock->th);
+    {
+      GNUNET_CLIENT_notify_transmit_ready_cancel (sock->th);
+      sock->th = NULL;
+    }
   if (sock->receive_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (sock->receive_task);
@@ -766,6 +769,7 @@ client_delayed_retry (void *cls,
                       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CLIENT_TransmitHandle *th = cls;
+  struct GNUNET_TIME_Relative delay;
 
   th->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
@@ -779,6 +783,30 @@ client_delayed_retry (void *cls,
       GNUNET_free (th);
       return;
     }
+  th->sock->sock = do_connect (th->sock->service_name,
+			       th->sock->cfg,
+			       th->sock->attempts++);
+  if (NULL == th->sock->sock)
+    {
+      /* could happen if we're out of sockets */
+      delay = GNUNET_TIME_relative_min (GNUNET_TIME_absolute_get_remaining (th->timeout), 
+					th->sock->back_off);
+      th->sock->back_off 
+	= GNUNET_TIME_relative_min (GNUNET_TIME_relative_multiply (th->sock->back_off, 2),
+				    GNUNET_TIME_UNIT_SECONDS);
+#if DEBUG_CLIENT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Transmission failed %u times, trying again in %llums.\n",
+                  MAX_ATTEMPTS - th->attempts_left,
+                  (unsigned long long) delay.rel_value);
+#endif
+      th->reconnect_task = GNUNET_SCHEDULER_add_delayed (delay,
+                                                         &client_delayed_retry,
+                                                         th);
+      return;      
+    }
+  GNUNET_CONNECTION_ignore_shutdown (th->sock->sock,
+				     th->sock->ignore_shutdown);
   th->th = GNUNET_CONNECTION_notify_transmit_ready (th->sock->sock,
                                                     th->size,
                                                     GNUNET_TIME_absolute_get_remaining
@@ -837,15 +865,10 @@ client_notify (void *cls, size_t size, void *buf)
 		  th->sock->service_name);
 #endif
       GNUNET_CONNECTION_destroy (th->sock->sock, GNUNET_NO);
-      th->sock->sock = do_connect (th->sock->service_name,
-				   th->sock->cfg,
-				   th->sock->attempts++);
-      GNUNET_assert (NULL != th->sock->sock);
-      GNUNET_CONNECTION_ignore_shutdown (th->sock->sock,
-					 th->sock->ignore_shutdown);
+      th->sock->sock = NULL;
       delay = GNUNET_TIME_relative_min (delay, th->sock->back_off);
       th->sock->back_off 
-	  = GNUNET_TIME_relative_min (GNUNET_TIME_relative_multiply (th->sock->back_off, 2),
+	= GNUNET_TIME_relative_min (GNUNET_TIME_relative_multiply (th->sock->back_off, 2),
 				    GNUNET_TIME_UNIT_SECONDS);
 #if DEBUG_CLIENT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -910,15 +933,25 @@ GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *sock,
   th->notify = notify;
   th->notify_cls = notify_cls;
   th->attempts_left = MAX_ATTEMPTS;
-  th->th = GNUNET_CONNECTION_notify_transmit_ready (sock->sock,
-                                                    size,
-                                                    timeout,
-                                                    &client_notify, th);
-  if (NULL == th->th)
+  if (sock->sock == NULL)
     {
-      GNUNET_break (0);
-      GNUNET_free (th);
-      return NULL;
+      th->reconnect_task = GNUNET_SCHEDULER_add_delayed (sock->back_off,
+                                                         &client_delayed_retry,
+                                                         th);
+      
+    }
+  else
+    {
+      th->th = GNUNET_CONNECTION_notify_transmit_ready (sock->sock,
+							size,
+							timeout,
+							&client_notify, th);
+      if (NULL == th->th)
+	{
+	  GNUNET_break (0);
+	  GNUNET_free (th);
+	  return NULL;
+	}
     }
   sock->th = th;
   return th;
