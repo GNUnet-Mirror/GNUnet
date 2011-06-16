@@ -462,6 +462,11 @@ struct Plugin
    * Handle for (DYN)DNS lookup of our external IP.
    */
   struct GNUNET_RESOLVER_RequestHandle *ext_dns;
+  
+  /**
+   * How many more TCP sessions are we allowed to open right now?
+   */
+  unsigned long long max_connections;
 
   /**
    * ID of task used to update our addresses when one expires.
@@ -505,6 +510,33 @@ struct Plugin
   int enable_upnp;
 
 };
+
+
+/**
+ * Function to check if an inbound connection is acceptable.
+ * Mostly used to limit the total number of open connections 
+ * we can have.
+ *
+ * @param cls the 'struct Plugin'
+ * @param ucred credentials, if available, otherwise NULL
+ * @param addr address
+ * @param addrlen length of address
+ * @return GNUNET_YES to allow, GNUNET_NO to deny, GNUNET_SYSERR
+ *   for unknown address family (will be denied).
+ */
+static int
+plugin_tcp_access_check (void *cls,
+			 const struct GNUNET_CONNECTION_Credentials *ucred,
+			 const struct sockaddr *addr,
+			 socklen_t addrlen)
+{
+  struct Plugin *plugin = cls;
+
+  if (0 == plugin->max_connections)
+    return GNUNET_NO;
+  plugin->max_connections--;
+  return GNUNET_YES;
+}
 
 
 /**
@@ -1387,7 +1419,8 @@ tcp_plugin_send (void *cls,
 
       if ((is_natd == GNUNET_YES) && (addrlen == sizeof (struct IPv6TcpAddress)))
         return -1; /* NAT client only works with IPv4 addresses */
-
+      if (0 == plugin->max_connections)
+	return -1; /* saturated */
 
       if ( (plugin->enable_nat_client == GNUNET_YES) && 
 	   (is_natd == GNUNET_YES) &&
@@ -1460,6 +1493,8 @@ tcp_plugin_send (void *cls,
 				    GNUNET_NO);
 	  return -1;
 	}
+      GNUNET_assert (0 != plugin->max_connections);
+      plugin->max_connections--;
 #if DEBUG_TCP_NAT
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		       "tcp",
@@ -2160,6 +2195,7 @@ disconnect_notify (void *cls,
 
   if (client == NULL)
     return;
+  plugin->max_connections++;
   session = find_session_by_client (plugin, client);
   if (session == NULL)
     return;                     /* unknown, nothing to do */
@@ -2839,6 +2875,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   struct GNUNET_SERVICE_Context *service;
   unsigned long long aport;
   unsigned long long bport;
+  unsigned long long max_connections;
   unsigned int i;
   int behind_nat;
   int nat_punched;
@@ -2975,6 +3012,12 @@ libgnunet_plugin_transport_tcp_init (void *cls)
 			   "tcp","New internal address `%s'\n", internal_address);
 	}
     }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (env->cfg,
+					     "transport-tcp",
+					     "MAX_CONNECTIONS",
+					     &max_connections))
+    max_connections = 128;
   
   aport = 0;
   if ( (GNUNET_OK !=
@@ -3025,6 +3068,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
     service = NULL;
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
+  plugin->max_connections = max_connections;
   plugin->open_port = bport;
   plugin->adv_port = aport;
   plugin->bind_address = bind_address;
@@ -3068,7 +3112,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
 	  GNUNET_free (api);
 	  return NULL;
 	}
-      plugin->server = GNUNET_SERVER_create_with_sockets (NULL, NULL, NULL,
+      plugin->server = GNUNET_SERVER_create_with_sockets (&plugin_tcp_access_check, plugin, NULL,
 							  idle_timeout, GNUNET_YES);
     }
   plugin->handlers = GNUNET_malloc (sizeof (my_handlers));
