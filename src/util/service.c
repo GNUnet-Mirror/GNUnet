@@ -32,6 +32,7 @@
 #include "gnunet_getopt_lib.h"
 #include "gnunet_os_lib.h"
 #include "gnunet_protocols.h"
+#include "gnunet_resolver_service.h"
 #include "gnunet_server_lib.h"
 #include "gnunet_service_lib.h"
 
@@ -1338,7 +1339,7 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_SERVICE_Context *sctx = cls;
   unsigned int i;
 
-  GNUNET_RESOLVER_connect (cc->cfg);
+  GNUNET_RESOLVER_connect (sctx->cfg);
   if (sctx->lsocks != NULL)
     sctx->server = GNUNET_SERVER_create_with_sockets (&check_access,
 						      sctx,
