@@ -778,6 +778,44 @@ copy_reply (void *cls,
 
 
 /**
+ * Cancel all requests associated with the peer.
+ *
+ * @param cls unused
+ * @param query hash code of the request
+ * @param value the 'struct GSF_PendingRequest'
+ * @return GNUNET_YES (continue to iterate)
+ */
+static int
+cancel_pending_request (void *cls,
+			const GNUNET_HashCode *query,
+			void *value)
+{
+  struct PeerRequest *peerreq = value;
+  struct GSF_PendingRequest *pr = peerreq->pr;
+  struct GSF_ConnectedPeer *cp = peerreq->cp;
+  struct GSF_PendingRequestData *prd;
+
+  if (peerreq->kill_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (peerreq->kill_task);
+      peerreq->kill_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  GNUNET_STATISTICS_update (GSF_stats,
+			    gettext_noop ("# P2P searches active"),
+			    -1,
+			    GNUNET_NO);
+  prd = GSF_pending_request_get_data_ (pr);
+  GNUNET_break (GNUNET_OK ==
+		GNUNET_CONTAINER_multihashmap_remove (cp->request_map,
+						      &prd->query,
+						      peerreq));
+  GSF_pending_request_cancel_ (pr);
+  GNUNET_free (peerreq);
+  return GNUNET_OK;
+}
+
+
+/**
  * Free the given request.
  *
  * @param cls the request to free
@@ -789,21 +827,13 @@ peer_request_destroy (void *cls,
 {
   struct PeerRequest *peerreq = cls;
   struct GSF_PendingRequest *pr = peerreq->pr;
-  struct GSF_ConnectedPeer *cp = peerreq->cp;
   struct GSF_PendingRequestData *prd;
 
   peerreq->kill_task = GNUNET_SCHEDULER_NO_TASK;
   prd = GSF_pending_request_get_data_ (pr);
-  GNUNET_STATISTICS_update (GSF_stats,
-			    gettext_noop ("# P2P searches active"),
-			    -1,
-			    GNUNET_NO);
-  GNUNET_break (GNUNET_OK ==
-		GNUNET_CONTAINER_multihashmap_remove (cp->request_map,
-						      &prd->query,
-						      peerreq));
-  GSF_pending_request_cancel_ (pr);
-  GNUNET_free (peerreq);
+  cancel_pending_request (NULL,
+			  &prd->query,
+			  peerreq);
 }
 
 
@@ -982,8 +1012,14 @@ handle_p2p_reply (void *cls,
   if (eval != GNUNET_BLOCK_EVALUATION_OK_LAST)
     return;
   if (GNUNET_SCHEDULER_NO_TASK == peerreq->kill_task)
-    peerreq->kill_task = GNUNET_SCHEDULER_add_now (&peer_request_destroy,
-						   peerreq);
+    {
+      GNUNET_STATISTICS_update (GSF_stats,
+				gettext_noop ("# P2P searches destroyed due to ultimate reply"),
+				1,
+				GNUNET_NO);
+     peerreq->kill_task = GNUNET_SCHEDULER_add_now (&peer_request_destroy,
+						     peerreq);
+    }
 }
 
 
@@ -1595,33 +1631,6 @@ GSF_peer_status_handler_ (void *cls,
 					  &peer->hashPubKey);
   GNUNET_assert (NULL != cp);
   update_atsi (cp, atsi);
-}
-
-
-/**
- * Cancel all requests associated with the peer.
- *
- * @param cls unused
- * @param query hash code of the request
- * @param value the 'struct GSF_PendingRequest'
- * @return GNUNET_YES (continue to iterate)
- */
-static int
-cancel_pending_request (void *cls,
-			const GNUNET_HashCode *query,
-			void *value)
-{
-  struct PeerRequest *peerreq = value;
-  struct GSF_PendingRequest *pr = peerreq->pr;
-
-  GSF_pending_request_cancel_ (pr);
-  if (peerreq->kill_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (peerreq->kill_task);
-      peerreq->kill_task = GNUNET_SCHEDULER_NO_TASK;
-    }
-  GNUNET_free (peerreq);
-  return GNUNET_OK;
 }
 
 
