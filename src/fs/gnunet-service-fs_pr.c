@@ -925,7 +925,7 @@ put_migration_continuation (void *cls,
   if (GNUNET_OK == success)
     return;
   GNUNET_STATISTICS_update (GSF_stats,
-			    gettext_noop ("# datastore 'put' failures"),
+			    gettext_noop ("# Datastore `PUT' failures"),
 			    1,
 			    GNUNET_NO);
 }
@@ -1427,7 +1427,14 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
 				     &process_local_reply,
 				     pr);
   if (NULL != pr->qe)
-    return;
+    {
+      GNUNET_STATISTICS_update (GSF_stats,
+				gettext_noop ("# Datastore lookups concluded (error queueing)"),
+				1,
+				GNUNET_NO);
+      
+      return;
+    }
   GNUNET_SCHEDULER_cancel (pr->warn_task);
   pr->warn_task = GNUNET_SCHEDULER_NO_TASK;
   pr->llc_cont = NULL;
