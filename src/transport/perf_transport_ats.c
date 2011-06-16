@@ -32,6 +32,7 @@
 
 #define EXECS 5
 
+static int ret = 0;
 
 #if HAVE_LIBGLPK
 static int executions = EXECS;
@@ -46,8 +47,6 @@ static glp_prob * prob;
 
 static struct GNUNET_TIME_Absolute start;
 static struct GNUNET_TIME_Absolute end;
-
-static int ret = 0;
 
 void solve_mlp(int presolve)
 {
