@@ -2,14 +2,6 @@
 #  INTLEMU_SUBDIRS = intlemu
 #endif
 
-if HAVE_ESMTP
-if HAVE_OPENSSL
-if HAVE_EXPERIMENTAL
- MONKEY_DIR = monkey
-endif
-endif
-endif
-
 if HAVE_EXPERIMENTAL
  EXP_DIR = fragmentation mesh vpn chat
 endif
@@ -21,7 +13,6 @@ SUBDIRS = \
   block \
   statistics \
   arm \
-  $(MONKEY_DIR) \
   peerinfo \
   datacache \
   datastore \

@@ -584,40 +584,6 @@ else
   AM_CONDITIONAL(HAVE_PYTHON_PEXPECT, 0)
 fi
 
-# libesmtp
-esmtp=0
-AC_MSG_CHECKING([for libesmtp])
-AC_ARG_WITH(esmtp,
-   [  --with-esmtp=PFX        base of libesmtp installation],
-   [AC_MSG_RESULT([$with_esmtp])
-    case $with_esmtp in
-      no)
-        ;;
-      yes)
-        AC_CHECK_HEADERS(libesmtp.h,
-          AC_CHECK_LIB([esmtp], [smtp_start_session],
-            esmtp=1))
-        ;;
-      *)
-        LDFLAGS="-L$with_esmtp/lib $LDFLAGS"
-        CPPFLAGS="-I$with_esmtp/include $CPPFLAGS"
-        AC_CHECK_HEADERS(libesmtp.h,
-          AC_CHECK_LIB([esmtp], [smtp_start_session],
-            EXT_LIB_PATH="-L$with_esmtp/lib $EXT_LIB_PATH"
-              esmtp=1))
-        ;;
-    esac
-   ],
-   [AC_MSG_RESULT([--with-esmtp not specified])
-    AC_CHECK_HEADERS(libesmtp.h,
-      AC_CHECK_LIB([esmtp], [smtp_start_session],
-          esmtp=1))])
-AM_CONDITIONAL(HAVE_ESMTP, test x$esmtp = x1)
-AC_DEFINE_UNQUOTED([HAVE_ESMTP], $esmtp, [We have libesmtp])
-# restore LIBS
-LIBS=$SAVE_LIBS
-
-
 
 # check for gettext
 AM_GNU_GETTEXT([external])
@@ -826,7 +792,6 @@ src/include/Makefile
 src/include/gnunet_directories.h
 src/hostlist/Makefile
 src/mesh/Makefile
-src/monkey/Makefile
 src/nat/Makefile
 src/peerinfo/Makefile
 src/peerinfo-tool/Makefile
