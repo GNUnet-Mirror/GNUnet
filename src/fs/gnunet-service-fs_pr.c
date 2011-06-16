@@ -31,6 +31,10 @@
 #include "gnunet-service-fs_pe.h"
 #include "gnunet-service-fs_pr.h"
 
+/**
+ * Hard limit on the number of results we may get from the datastore per query.
+ */
+#define MAX_RESULTS (100 * 1024)
 
 /**
  * An active request.
@@ -141,7 +145,7 @@ struct GSF_PendingRequest
   /**
    * Do we have a first UID yet?
    */
-  int have_first_uid;
+  unsigned int have_first_uid;
 
 };
 
@@ -1145,7 +1149,7 @@ process_local_reply (void *cls,
   if (GNUNET_NO == pr->have_first_uid)
     {
       pr->first_uid = uid;
-      pr->have_first_uid = GNUNET_YES;
+      pr->have_first_uid = 1;
     }
   else
     {
@@ -1153,6 +1157,15 @@ process_local_reply (void *cls,
 	{
 	  GNUNET_STATISTICS_update (GSF_stats,
 				    gettext_noop ("# Datastore lookups concluded"),
+				    1,
+				    GNUNET_NO);
+	  key = NULL; /* all replies seen! */
+	}
+      pr->have_first_uid++;
+      if (pr->have_first_uid > MAX_RESULTS)
+	{
+	  GNUNET_STATISTICS_update (GSF_stats,
+				    gettext_noop ("# Datastore lookups aborted (more than MAX_RESULTS)"),
 				    1,
 				    GNUNET_NO);
 	  key = NULL; /* all replies seen! */
