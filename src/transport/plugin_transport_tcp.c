@@ -1670,7 +1670,6 @@ tcp_plugin_address_pretty_printer (void *cls,
                                    GNUNET_TRANSPORT_AddressStringCallback asc,
                                    void *asc_cls)
 {
-  struct Plugin *plugin = cls;
   struct PrettyPrinterContext *ppc;
   const void *sb;
   size_t sbs;
@@ -1715,8 +1714,7 @@ tcp_plugin_address_pretty_printer (void *cls,
   ppc->asc = asc;
   ppc->asc_cls = asc_cls;
   ppc->port = port;
-  GNUNET_RESOLVER_hostname_get (plugin->env->cfg,
-                                sb,
+  GNUNET_RESOLVER_hostname_get (sb,
                                 sbs,
                                 !numeric, timeout, &append_port, ppc);
 }
@@ -3167,16 +3165,14 @@ libgnunet_plugin_transport_tcp_init (void *cls)
                      _("TCP transport advertises itself as being on port %llu\n"),
                      aport);
 
-  plugin->hostname_dns = GNUNET_RESOLVER_hostname_resolve (env->cfg,
-                                                           AF_UNSPEC,
+  plugin->hostname_dns = GNUNET_RESOLVER_hostname_resolve (AF_UNSPEC,
                                                            HOSTNAME_RESOLVE_TIMEOUT,
                                                            &process_hostname_ips,
                                                            plugin);
 
   if (plugin->external_address != NULL) 
     {
-      plugin->ext_dns = GNUNET_RESOLVER_ip_get (env->cfg,
-						plugin->external_address,
+      plugin->ext_dns = GNUNET_RESOLVER_ip_get (plugin->external_address,
 						AF_INET,
 						GNUNET_TIME_UNIT_MINUTES,
 						&process_external_ip,

@@ -2001,7 +2001,6 @@ udp_plugin_address_pretty_printer (void *cls,
                                    GNUNET_TRANSPORT_AddressStringCallback asc,
                                    void *asc_cls)
 {
-  struct Plugin *plugin = cls;
   struct PrettyPrinterContext *ppc;
   const void *sb;
   size_t sbs;
@@ -2046,8 +2045,7 @@ udp_plugin_address_pretty_printer (void *cls,
   ppc->asc = asc;
   ppc->asc_cls = asc_cls;
   ppc->port = port;
-  GNUNET_RESOLVER_hostname_get (plugin->env->cfg,
-                                sb,
+  GNUNET_RESOLVER_hostname_get (sb,
                                 sbs,
                                 !numeric, timeout, &append_port, ppc);
 }
@@ -2358,8 +2356,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
       GNUNET_OS_network_interfaces_list (&process_interfaces, plugin);
     }
 
-  plugin->hostname_dns = GNUNET_RESOLVER_hostname_resolve (env->cfg,
-                                                           AF_UNSPEC,
+  plugin->hostname_dns = GNUNET_RESOLVER_hostname_resolve (AF_UNSPEC,
                                                            HOSTNAME_RESOLVE_TIMEOUT,
                                                            &process_hostname_ips,
                                                            plugin);

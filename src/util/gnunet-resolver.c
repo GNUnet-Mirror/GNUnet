@@ -61,8 +61,7 @@ run (void *cls,
 {
   if (args[0] == NULL)
     return;
-  GNUNET_RESOLVER_ip_get (cfg,
-			  args[0],
+  GNUNET_RESOLVER_ip_get (args[0],
 			  AF_UNSPEC,
 			  GET_TIMEOUT,
 			  &printer,

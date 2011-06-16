@@ -1062,7 +1062,6 @@ unix_plugin_address_pretty_printer (void *cls,
                                    GNUNET_TRANSPORT_AddressStringCallback asc,
                                    void *asc_cls)
 {
-  struct Plugin *plugin = cls;
   struct PrettyPrinterContext *ppc;
   const void *sb;
   size_t sbs;
@@ -1107,8 +1106,7 @@ unix_plugin_address_pretty_printer (void *cls,
   ppc->asc = asc;
   ppc->asc_cls = asc_cls;
   ppc->port = port;
-  GNUNET_RESOLVER_hostname_get (plugin->env->cfg,
-                                sb,
+  GNUNET_RESOLVER_hostname_get (sb,
                                 sbs,
                                 !numeric, timeout, &append_port, ppc);
 }

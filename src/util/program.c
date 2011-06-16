@@ -32,6 +32,7 @@
 #include "gnunet_getopt_lib.h"
 #include "gnunet_os_lib.h"
 #include "gnunet_program_lib.h"
+#include "gnunet_resolver_service.h"
 #include "gnunet_scheduler_lib.h"
 #include <gcrypt.h>
 
@@ -77,6 +78,7 @@ program_main (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct CommandContext *cc = cls;
 
+  GNUNET_RESOLVER_connect (cc->cfg);
   cc->task (cc->task_cls, cc->args, cc->cfgfile, cc->cfg);
 }
 
@@ -212,7 +214,6 @@ GNUNET_PROGRAM_run (int argc,
                           loglev,
                           logfile)) ||
        (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cc.cfgfile))))
-
     {
       GNUNET_CONFIGURATION_destroy (cfg);
       GNUNET_free_non_null (cc.cfgfile);
@@ -221,7 +222,7 @@ GNUNET_PROGRAM_run (int argc,
       return GNUNET_SYSERR;
     }
   GNUNET_free (allopts);
-
+  
   /* run */
   cc.args = &argv[ret];
   GNUNET_SCHEDULER_run (&program_main, &cc);

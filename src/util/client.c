@@ -151,9 +151,8 @@ struct GNUNET_CLIENT_Connection
 
   /**
    * Our configuration.
-   * FIXME: why do we DUP the configuration? Avoid this!
    */
-  struct GNUNET_CONFIGURATION_Handle *cfg;
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
    * Name of the service we interact with.
@@ -377,7 +376,7 @@ GNUNET_CLIENT_connect (const char *service_name,
   ret->attempts = 1;
   ret->sock = sock;
   ret->service_name = GNUNET_strdup (service_name);
-  ret->cfg = GNUNET_CONFIGURATION_dup (cfg);
+  ret->cfg = cfg;
   ret->back_off = GNUNET_TIME_UNIT_MILLISECONDS;
   return ret;
 }
@@ -447,7 +446,6 @@ GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock,
     }
   GNUNET_array_grow (sock->received_buf, sock->received_size, 0);
   GNUNET_free (sock->service_name);
-  GNUNET_CONFIGURATION_destroy (sock->cfg);
   GNUNET_free (sock);
 }
 

@@ -58,11 +58,25 @@ typedef void (*GNUNET_RESOLVER_AddressCallback) (void *cls,
  */
 struct GNUNET_RESOLVER_RequestHandle;
 
+/**
+ * Create the connection to the resolver service.
+ *
+ * @param cfg configuration to use
+ */
+void
+GNUNET_RESOLVER_connect (const struct GNUNET_CONFIGURATION_Handle *c);
+
+
+/**
+ * Destroy the connection to the resolver service.
+ */
+void
+GNUNET_RESOLVER_disconnect (void);
+
 
 /**
  * Convert a string to one or more IP addresses.
  *
- * @param cfg configuration to use
  * @param hostname the hostname to resolve
  * @param domain AF_INET or AF_INET6; use AF_UNSPEC for "any"
  * @param callback function to call with addresses
@@ -71,8 +85,7 @@ struct GNUNET_RESOLVER_RequestHandle;
  * @return handle that can be used to cancel the request, NULL on error
  */
 struct GNUNET_RESOLVER_RequestHandle *
-GNUNET_RESOLVER_ip_get (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                        const char *hostname,
+GNUNET_RESOLVER_ip_get (const char *hostname,
                         int domain,
                         struct GNUNET_TIME_Relative timeout,
                         GNUNET_RESOLVER_AddressCallback callback, 
@@ -90,8 +103,7 @@ GNUNET_RESOLVER_ip_get (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return handle that can be used to cancel the request, NULL on error
  */
 struct GNUNET_RESOLVER_RequestHandle *
-GNUNET_RESOLVER_hostname_resolve (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                  int domain,
+GNUNET_RESOLVER_hostname_resolve (int domain,
                                   struct GNUNET_TIME_Relative timeout,
                                   GNUNET_RESOLVER_AddressCallback callback,
                                   void *cls);
@@ -113,7 +125,7 @@ typedef void (*GNUNET_RESOLVER_HostnameCallback) (void *cls,
  * @return local hostname, caller must free
  */
 char *
-GNUNET_RESOLVER_local_fqdn_get ( void );
+GNUNET_RESOLVER_local_fqdn_get (void);
 
 
 /**
@@ -129,8 +141,7 @@ GNUNET_RESOLVER_local_fqdn_get ( void );
  * @return handle that can be used to cancel the request, NULL on error
  */
 struct GNUNET_RESOLVER_RequestHandle * 
-GNUNET_RESOLVER_hostname_get (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			      const struct sockaddr *sa,
+GNUNET_RESOLVER_hostname_get (const struct sockaddr *sa,
 			      socklen_t salen,
 			      int do_resolve,
 			      struct GNUNET_TIME_Relative timeout,
@@ -144,10 +155,10 @@ GNUNET_RESOLVER_hostname_get (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * been completed (i.e, the callback has been called to
  * signal timeout or the final result).
  *
- * @param h handle of request to cancel
+ * @param rh handle of request to cancel
  */
 void
-GNUNET_RESOLVER_request_cancel (struct GNUNET_RESOLVER_RequestHandle *h);
+GNUNET_RESOLVER_request_cancel (struct GNUNET_RESOLVER_RequestHandle *rh);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

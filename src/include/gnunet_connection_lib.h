@@ -81,8 +81,8 @@ struct GNUNET_CONNECTION_Credentials
  */
 typedef int (*GNUNET_CONNECTION_AccessCheck) (void *cls,
 					      const struct GNUNET_CONNECTION_Credentials *ucred,
-                                           const struct sockaddr * addr,
-                                           socklen_t addrlen);
+					      const struct sockaddr * addr,
+					      socklen_t addrlen);
 
 
 /**

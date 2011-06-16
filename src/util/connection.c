@@ -901,8 +901,7 @@ GNUNET_CONNECTION_create_from_connect (const struct
   ret->write_buffer = GNUNET_malloc(ret->write_buffer_size);
   ret->port = port;
   ret->hostname = GNUNET_strdup (hostname);
-  ret->dns_active = GNUNET_RESOLVER_ip_get (cfg,
-                                            ret->hostname,
+  ret->dns_active = GNUNET_RESOLVER_ip_get (ret->hostname,
                                             AF_UNSPEC,
                                             GNUNET_CONNECTION_CONNECT_RETRY_TIMEOUT,
                                             &try_connect_using_address, ret);
