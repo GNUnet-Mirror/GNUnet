@@ -57,8 +57,8 @@ typedef u32 __le32;
 */
 #define	unlikely(x) (x)
 
-#define FIFO_FILE1       "/tmp/MYFIFOin"
-#define FIFO_FILE2       "/tmp/MYFIFOout"
+#define FIFO_FILE1       "/tmp/test-transport/api-wlan-p1/WLAN_FIFO_in"
+#define FIFO_FILE2       "/tmp/test-transport/api-wlan-p1/WLAN_FIFO_out"
 #define MAXLINE         4096
 
 extern int closeprog;
