@@ -103,7 +103,10 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (GNUNET_SCHEDULER_NO_TASK != irc_task)
     GNUNET_SCHEDULER_cancel (irc_task);
   if (GNUNET_SCHEDULER_NO_TASK != ask_task)
-    GNUNET_SCHEDULER_cancel (ask_task);
+    {
+      GNUNET_SCHEDULER_cancel (ask_task);
+      ask_task = GNUNET_SCHEDULER_NO_TASK;
+    }
   GNUNET_CORE_disconnect (p1.ch);
   GNUNET_CORE_disconnect (p2.ch);
   GNUNET_TRANSPORT_disconnect (p1.th);
@@ -233,8 +236,11 @@ connect_notify (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Encrypted connection established to peer `%4s'\n",
 		  GNUNET_i2s (peer));
-      GNUNET_SCHEDULER_cancel (ask_task);
-      ask_task = GNUNET_SCHEDULER_NO_TASK;
+      if (GNUNET_SCHEDULER_NO_TASK != ask_task)
+	{
+	  GNUNET_SCHEDULER_cancel (ask_task);
+	  ask_task = GNUNET_SCHEDULER_NO_TASK;
+	}
       GNUNET_SCHEDULER_cancel (err_task);
       err_task = 
 	GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 120), 
@@ -314,6 +320,8 @@ static void
 ask_connect_task (void *cls,
 		  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (GNUNET_SCHEDULER_NO_TASK != ask_task)
+    GNUNET_SCHEDULER_cancel (ask_task);
   ask_task =
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
 				  &ask_connect_task, NULL);
@@ -366,6 +374,8 @@ init_notify (void *cls,
       err_task = 
 	GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60), 
 				      &terminate_task_error, NULL);
+      if (GNUNET_SCHEDULER_NO_TASK != ask_task)
+	GNUNET_SCHEDULER_cancel (ask_task);
       ask_task =
 	GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
 				      &ask_connect_task, NULL);
