@@ -676,8 +676,7 @@ main (int argc, char *argv[])
                       "`%s' not properly installed, cannot run NAT test!\n",
 		      "gnunet-nat-server");
           return 0;
-        }      GNUNET_free(p1.servicehome);
-        GNUNET_free(p2.servicehome);
+        }
     }
   else if (strstr(argv[0], "udp") != NULL)
     {
