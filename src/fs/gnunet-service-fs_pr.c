@@ -382,6 +382,10 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
 	  GSF_pending_request_cancel_ (dpr);
 	}
     }
+  GNUNET_STATISTICS_update (GSF_stats,
+			    gettext_noop ("# Pending requests active"),
+			    1,
+			    GNUNET_NO);
   return pr;
 }
 
@@ -612,6 +616,14 @@ clean_request (void *cls,
       GNUNET_SCHEDULER_cancel (pr->warn_task);
       pr->warn_task = GNUNET_SCHEDULER_NO_TASK;
     }
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CONTAINER_multihashmap_remove (pr_map,
+						       &pr->public_data.query,
+						       pr));
+  GNUNET_STATISTICS_update (GSF_stats,
+			    gettext_noop ("# Pending requests active"),
+			    -1,
+			    GNUNET_NO);
   GNUNET_free (pr);
   return GNUNET_YES;
 }
@@ -627,10 +639,6 @@ GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr)
 {
   if (NULL == pr_map) 
     return; /* already cleaned up! */
-  GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CONTAINER_multihashmap_remove (pr_map,
-						       &pr->public_data.query,
-						       pr));
   GNUNET_assert (GNUNET_YES ==
 		 clean_request (NULL, &pr->public_data.query, pr));  
 }
