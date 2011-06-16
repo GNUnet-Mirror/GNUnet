@@ -389,6 +389,8 @@ static GNUNET_SCHEDULER_TaskIdentifier http_task_send;
 static char * key_file;
 static char * cert_file;
 
+static char * servicehome;
+
 /**
  * Shutdown testcase
  */
@@ -486,6 +488,13 @@ shutdown_clean ()
   GNUNET_free (cert_file);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Exiting testcase\n");
+
+  if (servicehome != NULL)
+  {
+    GNUNET_DISK_directory_remove (servicehome);
+    GNUNET_free (servicehome);
+  }
+
   exit(fail);
   return;
 }
@@ -1167,6 +1176,10 @@ run (void *cls,
   addr_head = NULL;
   count_str_addr = 0;
   /* parse configuration */
+  if (GNUNET_CONFIGURATION_have_value (c,"PATHS", "SERVICEHOME"))
+      GNUNET_CONFIGURATION_get_value_string (c, "PATHS", "SERVICEHOME", &servicehome);
+
+
   if ((GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_number (c,
                                               "TRANSPORT",
@@ -1388,13 +1401,27 @@ main (int argc, char *const *argv)
 #endif
                     NULL);
 
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+  cfg = GNUNET_CONFIGURATION_create ();
+
+  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (cfg, "test_plugin_transport_data_http.conf"));
+  if (GNUNET_CONFIGURATION_have_value (cfg,"PATHS", "SERVICEHOME"))
+      GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS", "SERVICEHOME", &servicehome);
+  GNUNET_DISK_directory_remove (servicehome);
+  GNUNET_CONFIGURATION_destroy (cfg);
+
   ret = (GNUNET_OK ==
          GNUNET_PROGRAM_run (5,
                              argv_prog,
                              "test_gnunet_transport_plugin.https",
                              "testcase", options, &run, NULL)) ? GNUNET_NO : GNUNET_YES;
-
-  GNUNET_DISK_directory_remove ("/tmp/test_gnunet_transport_plugin.https");
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("\ndelete\n\n"));
+  if (servicehome != NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("\ndelete\n\n"));
+    GNUNET_DISK_directory_remove (servicehome);
+    GNUNET_free (servicehome);
+  }
   if (GNUNET_OK != ret)
     return 1;
   return fail;

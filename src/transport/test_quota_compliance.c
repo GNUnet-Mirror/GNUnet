@@ -33,6 +33,7 @@
 #include "gnunet_server_lib.h"
 #include "gnunet_transport_service.h"
 #include "transport.h"
+#include "transport-testing.h"
 
 #define VERBOSE GNUNET_NO
 
@@ -58,16 +59,6 @@
 
 
 #define MTYPE 11111
-
-struct PeerContext
-{
-  struct GNUNET_CONFIGURATION_Handle *cfg;
-  struct GNUNET_TRANSPORT_Handle *th;
-  struct GNUNET_PeerIdentity id;
-#if START_ARM
-  struct GNUNET_OS_Process *arm_proc;
-#endif
-};
 
 /**
  * Handle for a transmission-ready request.
@@ -655,6 +646,11 @@ static void
 setup_peer (struct PeerContext *p, const char *cfgname)
 {
   p->cfg = GNUNET_CONFIGURATION_create ();
+  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
+  if (GNUNET_CONFIGURATION_have_value (p->cfg,"PATHS", "SERVICEHOME"))
+      GNUNET_CONFIGURATION_get_value_string (p->cfg, "PATHS", "SERVICEHOME", &p->servicehome);
+  GNUNET_DISK_directory_remove (p->servicehome);
+
 #if START_ARM
   p->arm_proc = GNUNET_OS_start_process (NULL, NULL,
 					"gnunet-service-arm",
@@ -665,7 +661,6 @@ setup_peer (struct PeerContext *p, const char *cfgname)
                                         "-c", cfgname, NULL);
 #endif
 
-  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
   p->th = GNUNET_TRANSPORT_connect (p->cfg, NULL,
                                     p,
                                     &notify_receive_new,
@@ -897,9 +892,6 @@ main (int argc, char *argv[])
       GNUNET_asprintf(&logger, "test-quota-compliance-%s-%s","noplugin","none");
     }
 
-  GNUNET_DISK_directory_remove ("/tmp/test_quota_compliance_peer1");
-  GNUNET_DISK_directory_remove ("/tmp/test_quota_compliance_peer2");
-
   fprintf(stderr,  "Running `%s'\n", logger);
   GNUNET_log_setup ("test-quota-compliance",
 #if VERBOSE
@@ -926,9 +918,17 @@ main (int argc, char *argv[])
   ret = ok;
   stop_arm (&p1);
   stop_arm (&p2);
+
+  if ((p1.servicehome != NULL) && (p2.servicehome != NULL))
+  {
+    GNUNET_DISK_directory_remove (p1.servicehome);
+    GNUNET_DISK_directory_remove (p2.servicehome);
+    GNUNET_free(p1.servicehome);
+    GNUNET_free(p2.servicehome);
+  }
+
   GNUNET_free(logger);
-  GNUNET_DISK_directory_remove ("/tmp/test_quota_compliance_peer1");
-  GNUNET_DISK_directory_remove ("/tmp/test_quota_compliance_peer2");
+
   return ret;
 }
 

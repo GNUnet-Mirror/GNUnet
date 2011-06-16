@@ -3147,7 +3147,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   if (GNUNET_CONFIGURATION_have_value (env->cfg,
 				       "transport-https", "KEY_FILE"))
     {
-      GNUNET_CONFIGURATION_get_value_string (env->cfg,
+    GNUNET_CONFIGURATION_get_value_filename (env->cfg,
 					     "transport-https",
 					     "KEY_FILE",
 					     &key_file);
@@ -3158,7 +3158,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   /* Get private key file from config */
   if (GNUNET_CONFIGURATION_have_value (env->cfg,"transport-https", "CERT_FILE"))
     {
-      GNUNET_CONFIGURATION_get_value_string (env->cfg,
+    GNUNET_CONFIGURATION_get_value_filename (env->cfg,
 					     "transport-https",
 					     "CERT_FILE",
 					     &cert_file);
