@@ -1150,33 +1150,43 @@ process_local_reply (void *cls,
   struct ProcessReplyClosure prq;
   GNUNET_HashCode query;
   unsigned int old_rf;
-  
-  pr->qe = NULL;
+
   GNUNET_SCHEDULER_cancel (pr->warn_task);
   pr->warn_task = GNUNET_SCHEDULER_NO_TASK;
-  if (GNUNET_NO == pr->have_first_uid)
+  if (NULL != pr->qe)
     {
-      pr->first_uid = uid;
-      pr->have_first_uid = 1;
-    }
-  else
-    {
-      if (uid == pr->first_uid)
+      pr->qe = NULL;
+      if (NULL == key)
 	{
 	  GNUNET_STATISTICS_update (GSF_stats,
-				    gettext_noop ("# Datastore lookups concluded"),
+				    gettext_noop ("# Datastore lookups concluded (no results)"),
 				    1,
 				    GNUNET_NO);
-	  key = NULL; /* all replies seen! */
 	}
-      pr->have_first_uid++;
-      if (pr->have_first_uid > MAX_RESULTS)
+      if (GNUNET_NO == pr->have_first_uid)
 	{
-	  GNUNET_STATISTICS_update (GSF_stats,
-				    gettext_noop ("# Datastore lookups aborted (more than MAX_RESULTS)"),
-				    1,
-				    GNUNET_NO);
-	  key = NULL; /* all replies seen! */
+	  pr->first_uid = uid;
+	  pr->have_first_uid = 1;
+	}
+      else
+	{
+	  if ( (uid == pr->first_uid) && (key != NULL) )
+	    {
+	      GNUNET_STATISTICS_update (GSF_stats,
+					gettext_noop ("# Datastore lookups concluded (seen all)"),
+					1,
+					GNUNET_NO);
+	      key = NULL; /* all replies seen! */
+	    }
+	  pr->have_first_uid++;
+	  if ( (pr->have_first_uid > MAX_RESULTS) && (key != NULL) )
+	    {
+	      GNUNET_STATISTICS_update (GSF_stats,
+					gettext_noop ("# Datastore lookups aborted (more than MAX_RESULTS)"),
+					1,
+					GNUNET_NO);
+	      key = NULL; /* all replies seen! */
+	    }
 	}
     }
   if (NULL == key)
@@ -1250,7 +1260,13 @@ process_local_reply (void *cls,
 					 &process_local_reply,
 					 pr);
       if (NULL != pr->qe)
-	return; /* we're done */	
+	{
+	  GNUNET_STATISTICS_update (GSF_stats,
+				    gettext_noop ("# Datastore lookups concluded (error queueing)"),
+				    1,
+				    GNUNET_NO);
+	  return; /* we're done */	
+	}
       goto check_error_and_continue;
     }
   old_rf = pr->public_data.results_found;
