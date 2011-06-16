@@ -795,16 +795,14 @@ process_status_message (void *cls,
     {      
       was_transmitted = qe->was_transmitted;
       free_queue_entry (qe);
-      if (NULL == h->client)
-	return; /* forced disconnect */
-      if (rc.cont != NULL)
-	rc.cont (rc.cont_cls, 
-		 GNUNET_SYSERR,
-		 _("Failed to receive status response from database."));
       if (was_transmitted == GNUNET_YES)
 	do_disconnect (h);
       else
 	process_queue (h);
+      if (rc.cont != NULL)
+	rc.cont (rc.cont_cls, 
+		 GNUNET_SYSERR,
+		 _("Failed to receive status response from database."));
       return;
     }
   GNUNET_assert (GNUNET_YES == qe->was_transmitted);
@@ -1256,20 +1254,22 @@ process_result_message (void *cls,
     {
       qe = h->queue_head;
       GNUNET_assert (NULL != qe);
+      rc = qe->qc.rc;
+      free_queue_entry (qe);
       if (qe->was_transmitted == GNUNET_YES)
 	{
-	  rc = qe->qc.rc;
 	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		      _("Failed to receive response from database.\n"));
 	  do_disconnect (h);
-	  free_queue_entry (qe);
-	  if (rc.proc != NULL)
-	    rc.proc (rc.proc_cls,
-		     NULL, 0, NULL, 0, 0, 0, 
-		     GNUNET_TIME_UNIT_ZERO_ABS, 0);    
 	}
       else
-	process_queue (h);
+	{
+	  process_queue (h);
+	}
+      if (rc.proc != NULL)
+	rc.proc (rc.proc_cls,
+		 NULL, 0, NULL, 0, 0, 0, 
+		 GNUNET_TIME_UNIT_ZERO_ABS, 0);    	
       return;
     }
   if (ntohs(msg->type) == GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END) 
