@@ -1317,8 +1317,11 @@ hello_advertising_ready (void *cls,
 				1,
 				GNUNET_NO);    
     }
+
+  if (pl->hello_delay_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(pl->hello_delay_task);
   pl->next_hello_allowed = GNUNET_TIME_relative_to_absolute (HELLO_ADVERTISEMENT_MIN_FREQUENCY);
-  pl->hello_delay_task 
+  pl->hello_delay_task
     = GNUNET_SCHEDULER_add_now (&schedule_next_hello,
 				pl);
   return want;
