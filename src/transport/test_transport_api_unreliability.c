@@ -37,6 +37,7 @@
 #include "gnunet_transport_service.h"
 #include "gauger.h"
 #include "transport.h"
+#include "transport-testing.h"
 
 #define VERBOSE GNUNET_NO
 
@@ -59,16 +60,6 @@
 #define UNRELIABLE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 #define MTYPE 12345
-
-struct PeerContext
-{
-  struct GNUNET_CONFIGURATION_Handle *cfg;
-  struct GNUNET_TRANSPORT_Handle *th;
-  struct GNUNET_PeerIdentity id;
-#if START_ARM
-  struct GNUNET_OS_Process *arm_proc;
-#endif
-};
 
 static struct PeerContext p1;
 
@@ -533,6 +524,13 @@ static void
 setup_peer (struct PeerContext *p, const char *cfgname)
 {
   p->cfg = GNUNET_CONFIGURATION_create ();
+
+  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
+  if (GNUNET_CONFIGURATION_have_value (p->cfg,"PATHS", "SERVICEHOME"))
+      GNUNET_CONFIGURATION_get_value_string (p->cfg, "PATHS", "SERVICEHOME", &p->servicehome);
+  GNUNET_DISK_directory_remove (p->servicehome);
+
+
 #if START_ARM
   p->arm_proc = GNUNET_OS_start_process (NULL, NULL,
 					"gnunet-service-arm",
@@ -542,64 +540,6 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 #endif
                                         "-c", cfgname, NULL);
 #endif
-  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
-
-  if (is_https)
-  {
-	  struct stat sbuf;
-	  if (p==&p1)
-	  {
-		  if (GNUNET_CONFIGURATION_have_value (p->cfg,
-				  	  	  	  	  	  	  	   "transport-https", "KEY_FILE"))
-				GNUNET_CONFIGURATION_get_value_string (p->cfg, "transport-https", "KEY_FILE", &key_file_p1);
-		  if (key_file_p1 == NULL)
-			  GNUNET_asprintf(&key_file_p1,"https_p1.key");
-		  if (0 == stat (key_file_p1, &sbuf ))
-		  {
-			  if (0 == remove(key_file_p1))
-			      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Successfully removed existing private key file `%s'\n",key_file_p1);
-			  else
-				  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to remove private key file `%s'\n",key_file_p1);
-		  }
-		  if (GNUNET_CONFIGURATION_have_value (p->cfg,"transport-https", "CERT_FILE"))
-			  GNUNET_CONFIGURATION_get_value_string (p->cfg, "transport-https", "CERT_FILE", &cert_file_p1);
-		  if (cert_file_p1 == NULL)
-			  GNUNET_asprintf(&cert_file_p1,"https_p1.cert");
-		  if (0 == stat (cert_file_p1, &sbuf ))
-		  {
-			  if (0 == remove(cert_file_p1))
-			      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Successfully removed existing certificate file `%s'\n",cert_file_p1);
-			  else
-				  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to remove existing certificate file `%s'\n",cert_file_p1);
-		  }
-	  }
-	  else if (p==&p2)
-	  {
-		  if (GNUNET_CONFIGURATION_have_value (p->cfg,
-				  	  	  	  	  	  	  	   "transport-https", "KEY_FILE"))
-				GNUNET_CONFIGURATION_get_value_string (p->cfg, "transport-https", "KEY_FILE", &key_file_p2);
-		  if (key_file_p2 == NULL)
-			  GNUNET_asprintf(&key_file_p2,"https_p2.key");
-		  if (0 == stat (key_file_p2, &sbuf ))
-		  {
-			  if (0 == remove(key_file_p2))
-			      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Successfully removed existing private key file `%s'\n",key_file_p2);
-			  else
-				  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to remove private key file `%s'\n",key_file_p2);
-		  }
-		  if (GNUNET_CONFIGURATION_have_value (p->cfg,"transport-https", "CERT_FILE"))
-			  GNUNET_CONFIGURATION_get_value_string (p->cfg, "transport-https", "CERT_FILE", &cert_file_p2);
-		  if (cert_file_p2 == NULL)
-			  GNUNET_asprintf(&cert_file_p2,"https_p2.cert");
-		  if (0 == stat (cert_file_p2, &sbuf ))
-		  {
-			  if (0 == remove(cert_file_p2))
-			      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Successfully removed existing certificate file `%s'\n",cert_file_p2);
-			  else
-				  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to remove existing certificate file `%s'\n",cert_file_p2);
-		  }
-	  }
-  }
 
   p->th = GNUNET_TRANSPORT_connect (p->cfg, NULL,
                                     p,
@@ -864,6 +804,15 @@ check ()
     GNUNET_free(cert_file_p2);
   }
 
+  if ((p1.servicehome != NULL) && (p2.servicehome != NULL))
+  {
+    GNUNET_DISK_directory_remove (p1.servicehome);
+    GNUNET_DISK_directory_remove (p2.servicehome);
+    GNUNET_free(p1.servicehome);
+    GNUNET_free(p2.servicehome);
+  }
+  return ok;
+
   return ok;
 }
 
@@ -921,8 +870,7 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-1");
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-2");
+
   GNUNET_free_non_null(test_name);
   return ret;
 }

@@ -35,6 +35,7 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_transport_service.h"
 #include "transport.h"
+#include "transport-testing.h"
 
 #define VERBOSE GNUNET_NO
 
@@ -53,16 +54,6 @@
 #define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 
 #define MTYPE 12345
-
-struct PeerContext
-{
-  struct GNUNET_CONFIGURATION_Handle *cfg;
-  struct GNUNET_TRANSPORT_Handle *th;
-  struct GNUNET_PeerIdentity id;
-#if START_ARM
-  struct GNUNET_OS_Process *arm_proc;
-#endif
-};
 
 static struct PeerContext p1;
 
@@ -276,6 +267,12 @@ setup_peer (struct PeerContext *p,
 	    const char *cfgname)
 {
   p->cfg = GNUNET_CONFIGURATION_create ();
+
+  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
+  if (GNUNET_CONFIGURATION_have_value (p->cfg,"PATHS", "SERVICEHOME"))
+      GNUNET_CONFIGURATION_get_value_string (p->cfg, "PATHS", "SERVICEHOME", &p->servicehome);
+  GNUNET_DISK_directory_remove (p->servicehome);
+
 #if START_ARM
   p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
                                         "gnunet-service-arm",
@@ -284,7 +281,10 @@ setup_peer (struct PeerContext *p,
 #endif
                                         "-c", cfgname, NULL);
 #endif
-  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
+
+
+  if (GNUNET_CONFIGURATION_have_value (p->cfg,"PATHS", "SERVICEHOME"))
+      GNUNET_CONFIGURATION_get_value_string (p->cfg, "PATHS", "SERVICEHOME", &p->servicehome);
 
   if (is_https)
     {
@@ -514,6 +514,14 @@ check ()
       GNUNET_free(cert_file_p1);
       GNUNET_free(cert_file_p2);
     }
+
+  if ((p1.servicehome != NULL) && (p2.servicehome != NULL))
+  {
+    GNUNET_DISK_directory_remove (p1.servicehome);
+    GNUNET_DISK_directory_remove (p2.servicehome);
+    GNUNET_free(p1.servicehome);
+    GNUNET_free(p2.servicehome);
+  }
   return ok;
 }
 
@@ -668,7 +676,8 @@ main (int argc, char *argv[])
                       "`%s' not properly installed, cannot run NAT test!\n",
 		      "gnunet-nat-server");
           return 0;
-        }
+        }      GNUNET_free(p1.servicehome);
+        GNUNET_free(p2.servicehome);
     }
   else if (strstr(argv[0], "udp") != NULL)
     {
@@ -696,16 +705,6 @@ main (int argc, char *argv[])
     }
 
   ret = check ();
-  if (is_multi_protocol)
-  {
-         GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-multi-peer-1/");
-         GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-multi-peer-2/");
-  }
-  else
-  {
-         GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-1");
-         GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-2");
-  }
 
   return ret;
 }
