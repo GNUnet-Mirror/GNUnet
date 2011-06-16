@@ -1289,6 +1289,7 @@ hello_advertising_ready (void *cls,
   size_t want;
 
   pl->hello_req = NULL;
+  GNUNET_assert (GNUNET_YES == pl->is_connected);    
   /* find applicable HELLOs */
   fah.peer = pl;
   fah.result = NULL;
