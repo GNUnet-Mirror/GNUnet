@@ -437,6 +437,7 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename,
   int i;
   size_t ui;
 
+  GNUNET_assert (NULL != filename);
   if ((k == 0) || (size == 0))
     return NULL;
   if (size < BUFFSIZE)
@@ -448,31 +449,23 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename,
 
   bf = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_BloomFilter));
   /* Try to open a bloomfilter file */
-  if (filename != NULL)
+  bf->fh = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READWRITE
+				  | GNUNET_DISK_OPEN_CREATE,
+				  GNUNET_DISK_PERM_USER_READ |
+				  GNUNET_DISK_PERM_USER_WRITE);
+  if (NULL == bf->fh)
     {
-      bf->fh = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READWRITE
-                                      | GNUNET_DISK_OPEN_CREATE,
-                                      GNUNET_DISK_PERM_USER_READ |
-                                      GNUNET_DISK_PERM_USER_WRITE);
-      if (NULL == bf->fh)
-        {
-          GNUNET_free (bf);
-          return NULL;
-        }
-      bf->filename = GNUNET_strdup (filename);
+      GNUNET_free (bf);
+      return NULL;
     }
-  else
-    {
-      bf->filename = NULL;
-      bf->fh = NULL;
-    }
+  bf->filename = GNUNET_strdup (filename);
   /* Alloc block */
   bf->bitArray = GNUNET_malloc_large (size);
   if (bf->bitArray == NULL)
     {
       if (bf->fh != NULL)
 	GNUNET_DISK_file_close (bf->fh);
-      GNUNET_free_non_null (bf->filename);
+      GNUNET_free (bf->filename);
       GNUNET_free (bf);
       return NULL;
     }
@@ -480,36 +473,33 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename,
   bf->addressesPerElement = k;
   memset (bf->bitArray, 0, bf->bitArraySize);
 
-  if (bf->filename != NULL)
+  /* Read from the file what bits we can */
+  rbuff = GNUNET_malloc (BUFFSIZE);
+  pos = 0;
+  while (pos < size * 8)
     {
-      /* Read from the file what bits we can */
-      rbuff = GNUNET_malloc (BUFFSIZE);
-      pos = 0;
-      while (pos < size * 8)
-        {
-          int res;
-
-          res = GNUNET_DISK_file_read (bf->fh, rbuff, BUFFSIZE);
-          if (res == -1)
-            {
-              GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-                                        "read", bf->filename);
-            }
-          if (res == 0)
-            break;              /* is ok! we just did not use that many bits yet */
-          for (i = 0; i < res; i++)
-            {
-              if ((rbuff[i] & 0x0F) != 0)
-                setBit (bf->bitArray, pos + i * 2);
-              if ((rbuff[i] & 0xF0) != 0)
-                setBit (bf->bitArray, pos + i * 2 + 1);
-            }
-          if (res < BUFFSIZE)
-            break;
-          pos += BUFFSIZE * 2;  /* 2 bits per byte in the buffer */
-        }
-      GNUNET_free (rbuff);
+      int res;
+      
+      res = GNUNET_DISK_file_read (bf->fh, rbuff, BUFFSIZE);
+      if (res == -1)
+	{
+	  GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+				    "read", bf->filename);
+	}
+      if (res == 0)
+	break;              /* is ok! we just did not use that many bits yet */
+      for (i = 0; i < res; i++)
+	{
+	  if ((rbuff[i] & 0x0F) != 0)
+	    setBit (bf->bitArray, pos + i * 2);
+	  if ((rbuff[i] & 0xF0) != 0)
+	    setBit (bf->bitArray, pos + i * 2 + 1);
+	}
+      if (res < BUFFSIZE)
+	break;
+      pos += BUFFSIZE * 2;  /* 2 bits per byte in the buffer */
     }
+  GNUNET_free (rbuff);
   return bf;
 }
 

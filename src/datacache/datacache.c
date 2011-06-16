@@ -163,7 +163,7 @@ GNUNET_DATACACHE_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
     }
   else
     {
-      ret->filter = GNUNET_CONTAINER_bloomfilter_load (NULL, bf_size, 5);  /* approx. 3% false positives at max use */  
+      ret->filter = GNUNET_CONTAINER_bloomfilter_init (NULL, bf_size, 5);  /* approx. 3% false positives at max use */  
     }
   ret->stats = GNUNET_STATISTICS_create ("datacache",
 					 cfg);

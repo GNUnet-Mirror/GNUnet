@@ -1664,7 +1664,10 @@ run (void *cls,
       GNUNET_free_non_null (fn);
       fn = NULL;
     }
-  filter = GNUNET_CONTAINER_bloomfilter_load (fn, bf_size, 5);  /* approx. 3% false positives at max use */  
+  if (fn != NULL)
+    filter = GNUNET_CONTAINER_bloomfilter_load (fn, bf_size, 5);  /* approx. 3% false positives at max use */  
+  else
+    filter = GNUNET_CONTAINER_bloomfilter_init (NULL, bf_size, 5);  /* approx. 3% false positives at max use */  
   GNUNET_free_non_null (fn);
   if (filter == NULL)
     {

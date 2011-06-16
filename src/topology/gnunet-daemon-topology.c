@@ -511,7 +511,7 @@ setup_filter (struct Peer *peer)
      "useless" once a HELLO has been passed on to ~100
      other peers, which is likely more than enough in
      any case; hence 64, 5 as bloomfilter parameters. */
-  peer->filter = GNUNET_CONTAINER_bloomfilter_load (NULL, 64, 5);
+  peer->filter = GNUNET_CONTAINER_bloomfilter_init (NULL, 64, 5);
   peer->filter_expiration = GNUNET_TIME_relative_to_absolute (HELLO_ADVERTISEMENT_MIN_REPEAT_FREQUENCY);
   /* never send a peer its own HELLO */
   GNUNET_CONTAINER_bloomfilter_add (peer->filter, &peer->pid.hashPubKey);
