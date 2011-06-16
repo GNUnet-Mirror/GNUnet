@@ -3071,7 +3071,8 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   plugin->adv_port = aport;
   plugin->bind_address = bind_address;
   plugin->external_address = external_address;
-  plugin->internal_address = GNUNET_strdup(internal_address);
+  if (internal_address != NULL)
+    plugin->internal_address = GNUNET_strdup(internal_address);
   plugin->behind_nat = behind_nat;
   plugin->nat_punched = nat_punched;
   plugin->enable_nat_client = enable_nat_client;
