@@ -320,8 +320,6 @@ static void
 ask_connect_task (void *cls,
 		  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != ask_task)
-    GNUNET_SCHEDULER_cancel (ask_task);
   ask_task =
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
 				  &ask_connect_task, NULL);
