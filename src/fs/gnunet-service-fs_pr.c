@@ -1308,7 +1308,13 @@ process_local_reply (void *cls,
 					 &process_local_reply,
 					 pr);
       if (pr->qe == NULL)	
-	goto check_error_and_continue;	
+	{
+	  GNUNET_STATISTICS_update (GSF_stats,
+				    gettext_noop ("# Datastore lookups concluded (error queueing)"),
+				    1,
+				    GNUNET_NO);
+	  goto check_error_and_continue;	
+	}
       return;
     }
   prq.type = type;
@@ -1321,7 +1327,13 @@ process_local_reply (void *cls,
   process_reply (&prq, key, pr);
   pr->local_result = prq.eval;
   if (prq.eval == GNUNET_BLOCK_EVALUATION_OK_LAST)
-    goto check_error_and_continue;
+    {
+      GNUNET_STATISTICS_update (GSF_stats,
+				gettext_noop ("# Datastore lookups concluded (found ultimate result)"),
+				1,
+				GNUNET_NO);
+      goto check_error_and_continue;
+    }
   if ( (0 == (GSF_PRO_PRIORITY_UNLIMITED & pr->public_data.options)) &&
        ( (GNUNET_YES == GSF_test_get_load_too_high_ (0)) ||
 	 (pr->public_data.results_found > 5 + 2 * pr->public_data.priority) ) )
@@ -1331,7 +1343,7 @@ process_local_reply (void *cls,
 		  "Load too high, done with request\n");
 #endif
       GNUNET_STATISTICS_update (GSF_stats,
-				gettext_noop ("# processing result set cut short due to load"),
+				gettext_noop ("# Datastore lookups concluded (load too high)"),
 				1,
 				GNUNET_NO);
       goto check_error_and_continue;
