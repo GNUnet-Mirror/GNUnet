@@ -1158,6 +1158,10 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
       GNUNET_break_op (0);
       return NULL;
     }
+  GNUNET_STATISTICS_update (GSF_stats,
+			    gettext_noop ("# GET requests received (from other peers)"),
+			    1,
+			    GNUNET_NO);
   gm = (const struct GetMessage*) message;
   type = ntohl (gm->type);
   bm = ntohl (gm->hash_bitmap);

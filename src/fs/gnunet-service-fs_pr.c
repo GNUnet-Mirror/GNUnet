@@ -138,6 +138,11 @@ struct GSF_PendingRequest
    */
   uint32_t mingle;
 
+  /**
+   * Do we have a first UID yet?
+   */
+  int have_first_uid;
+
 };
 
 
@@ -969,6 +974,10 @@ handle_dht_reply (void *cls,
   struct ProcessReplyClosure prq;
   struct PutMigrationContext *pmc;
 
+  GNUNET_STATISTICS_update (GSF_stats,
+			    gettext_noop ("# Replies received from DHT"),
+			    1,
+			    GNUNET_NO);
   memset (&prq, 0, sizeof (prq));
   prq.data = data;
   prq.expiration = exp;
@@ -1133,14 +1142,21 @@ process_local_reply (void *cls,
   pr->qe = NULL;
   GNUNET_SCHEDULER_cancel (pr->warn_task);
   pr->warn_task = GNUNET_SCHEDULER_NO_TASK;
-  if (0 == pr->replies_seen_count)
+  if (GNUNET_NO == pr->have_first_uid)
     {
       pr->first_uid = uid;
+      pr->have_first_uid = GNUNET_YES;
     }
   else
     {
       if (uid == pr->first_uid)
-	key = NULL; /* all replies seen! */
+	{
+	  GNUNET_STATISTICS_update (GSF_stats,
+				    gettext_noop ("# Datastore lookups concluded"),
+				    1,
+				    GNUNET_NO);
+	  key = NULL; /* all replies seen! */
+	}
     }
   if (NULL == key)
     {
@@ -1342,6 +1358,10 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
   pr->warn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
 						&warn_delay_task,
 						pr);
+  GNUNET_STATISTICS_update (GSF_stats,
+			    gettext_noop ("# Datastore lookups initiated"),
+			    1,
+			    GNUNET_NO);
   pr->qe = GNUNET_DATASTORE_get_key (GSF_dsh,
 				     pr->local_result_offset++,
 				     &pr->public_data.query,
@@ -1418,6 +1438,10 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
+  GNUNET_STATISTICS_update (GSF_stats,
+			    gettext_noop ("# GAP PUT messages received"),
+			    1,
+			    GNUNET_NO);
   /* now, lookup 'query' */
   prq.data = (const void*) &put[1];
   if (NULL != cp)
