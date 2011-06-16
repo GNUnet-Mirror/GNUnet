@@ -1295,7 +1295,18 @@ process_result_message (void *cls,
     }
   qe = h->queue_head;
   rc = qe->qc.rc;
-  GNUNET_assert (GNUNET_YES == qe->was_transmitted);
+  if (GNUNET_YES != qe->was_transmitted)
+    {
+      GNUNET_break (0);
+      free_queue_entry (qe);
+      h->retry_time = GNUNET_TIME_UNIT_ZERO;
+      do_disconnect (h);
+      if (rc.proc != NULL)
+	rc.proc (rc.proc_cls,
+		 NULL, 0, NULL, 0, 0, 0, 
+		 GNUNET_TIME_UNIT_ZERO_ABS, 0);
+      return;
+    }
   if ( (ntohs(msg->size) < sizeof(struct DataMessage)) ||
        (ntohs(msg->type) != GNUNET_MESSAGE_TYPE_DATASTORE_DATA) ||
        (ntohs(msg->size) != sizeof(struct DataMessage) + ntohl (((const struct DataMessage*)msg)->size)) )
