@@ -6216,7 +6216,7 @@ static int ats_evaluate_results (int result, int solution, char * problem)
 	switch (solution) {
 		case GLP_UNDEF:
 #if DEBUG_ATS || VERBOSE_ATS
-			GNUNET_log (error_kind, "%s solution is undeﬁned\n", problem);
+			GNUNET_log (error_kind, "%s solution is undefined\n", problem);
 #endif
 			break;
 		case GLP_OPT:
