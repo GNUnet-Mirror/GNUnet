@@ -2608,7 +2608,8 @@ plugin_env_session_end  (void *cls,
                                     gettext_noop ("# try_fast_reconnect thanks to plugin_env_session_end"),
                                     1,
                                     GNUNET_NO);
-          try_fast_reconnect (p, nl);
+	  if (GNUNET_YES == pos->connected)
+	    try_fast_reconnect (p, nl);
         }
       else
         {
@@ -2616,7 +2617,8 @@ plugin_env_session_end  (void *cls,
                                     gettext_noop ("# disconnects due to missing pong"),
                                     1,
                                     GNUNET_NO);
-          disconnect_neighbour (nl, GNUNET_YES);
+	  if (GNUNET_YES == pos->connected)
+	    disconnect_neighbour (nl, GNUNET_YES);
         }
       return;
     }
@@ -2632,6 +2634,12 @@ plugin_env_session_end  (void *cls,
     }
   GNUNET_free_non_null(pos->ressources);
   GNUNET_free_non_null(pos->quality);
+  if (GNUNET_YES != pos->connected)
+    {
+      /* nothing else to do, connection was never up... */
+      GNUNET_free (pos);
+      return; 
+    }
   GNUNET_free (pos);
   ats->stat.recreate_problem = GNUNET_YES;
   if (nl->received_pong == GNUNET_NO)
@@ -2647,7 +2655,7 @@ plugin_env_session_end  (void *cls,
   pos = rl->addresses;
   while (pos != NULL)
     {
-      if (pos->validated)
+      if (GNUNET_YES == pos->validated)
 	{
           GNUNET_STATISTICS_update (stats,
                                     gettext_noop ("# try_fast_reconnect thanks to validated_address"),
