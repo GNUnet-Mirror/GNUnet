@@ -1680,6 +1680,7 @@ GSF_peer_disconnect_handler_ (void *cls,
   GSF_plan_notify_peer_disconnect_ (cp);
   GNUNET_LOAD_value_free (cp->ppd.transmission_delay);
   GNUNET_PEER_decrement_rcs (cp->ppd.last_p2p_replies, P2P_SUCCESS_LIST_SIZE);
+  GSF_push_stop_ (cp);
   while (NULL != (pth = cp->pth_head))
     {
       if (NULL != pth->cth)
@@ -1708,7 +1709,6 @@ GSF_peer_disconnect_handler_ (void *cls,
       GNUNET_free (dh);
     }
   GNUNET_PEER_change_rc (cp->ppd.pid, -1);
-  GSF_push_stop_ (cp);
   if (GNUNET_SCHEDULER_NO_TASK != cp->mig_revive_task)
     {
       GNUNET_SCHEDULER_cancel (cp->mig_revive_task);
