@@ -1627,7 +1627,7 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle
 {
   if (sock->nth.notify_ready != NULL)
     {
-      GNUNET_break (0);
+      GNUNET_assert (0);
       return NULL;
     }
   GNUNET_assert (notify != NULL);
