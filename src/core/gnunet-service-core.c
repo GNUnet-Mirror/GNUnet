@@ -1595,7 +1595,7 @@ handle_client_request_info (void *cls,
   rcm = (const struct RequestInfoMessage *) message;
   n = find_neighbour (&rcm->peer);
   memset (&cim, 0, sizeof (cim));
-  if (n != NULL) 
+  if ( (n != NULL) && (GNUNET_YES == n->is_connected) )
     {
       want_reserv = ntohl (rcm->reserve_inbound);
       if (n->bw_out_internal_limit.value__ != rcm->limit_outbound.value__)
@@ -4190,8 +4190,12 @@ handle_transport_receive (void *cls,
       return;
     }
   n = find_neighbour (peer);
-  if (n == NULL)
-    n = create_neighbour (peer);
+  if ( (n == NULL) || (GNUNET_NO == n->is_connected) )
+    {
+      /* received message from peer that is not connected!? */
+      GNUNET_break (0);
+      return;
+    }
   changed = GNUNET_NO;
   up = (n->status == PEER_STATE_KEY_CONFIRMED);
   type = ntohs (message->type);
