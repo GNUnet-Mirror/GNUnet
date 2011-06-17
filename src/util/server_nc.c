@@ -28,6 +28,7 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_connection_lib.h"
+#include "gnunet_container_lib.h"
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_server_lib.h"
 #include "gnunet_time_lib.h"
@@ -42,9 +43,14 @@ struct PendingMessageList
 {
 
   /**
-   * This is a linked list.
+   * This is a doubly-linked list.
    */ 
   struct PendingMessageList *next;
+
+  /**
+   * This is a doubly-linked list.
+   */ 
+  struct PendingMessageList *prev;
 
   /**
    * Message to transmit (allocated at the end of this
@@ -175,7 +181,9 @@ handle_client_disconnect (void *cls,
     prev->next = pos->next;
   while (NULL != (pml = pos->pending_head))
     {
-      pos->pending_head = pml->next;
+      GNUNET_CONTAINER_DLL_remove (pos->pending_head,
+				   pos->pending_tail,
+				   pml);
       GNUNET_free (pml);
     }
   GNUNET_SERVER_client_drop (client);
@@ -231,7 +239,9 @@ GNUNET_SERVER_notification_context_destroy (struct GNUNET_SERVER_NotificationCon
       GNUNET_SERVER_receive_done (pos->client, GNUNET_NO);
       while (NULL != (pml = pos->pending_head))
 	{
-	  pos->pending_head = pml->next;
+	  GNUNET_CONTAINER_DLL_remove (pos->pending_head,
+				       pos->pending_tail,
+				       pml);
 	  GNUNET_free (pml);
 	}
       GNUNET_free (pos);
@@ -297,15 +307,14 @@ transmit_message (void *cls,
       return 0;
     }
   ret = 0;
-  while (cl->pending_head != NULL)
+  while (NULL != (pml = cl->pending_head) )
     {
-      pml = cl->pending_head;
       msize = ntohs (pml->msg->size);
       if (size < msize)
 	break;
-      cl->pending_head = pml->next;
-      if (pml->next == NULL)
-	cl->pending_tail = NULL;
+      GNUNET_CONTAINER_DLL_remove (cl->pending_head,
+				   cl->pending_tail,
+				   pml);
 #if DEBUG_SERVER_NC
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Copying message of type %u and size %u from pending queue to transmission buffer\n",
@@ -318,7 +327,7 @@ transmit_message (void *cls,
       GNUNET_free (pml);
       cl->num_pending--;
     }
-  if (cl->pending_head != NULL)    
+  if (pml != NULL)    
     {
 #if DEBUG_SERVER_NC
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -326,7 +335,7 @@ transmit_message (void *cls,
 		  cl->num_pending);
 #endif
       cl->th = GNUNET_SERVER_notify_transmit_ready (cl->client,
-						    ntohs (cl->pending_head->msg->size),
+						    ntohs (pml->msg->size),
 						    GNUNET_TIME_UNIT_FOREVER_REL,
 						    &transmit_message,
 						    cl);
@@ -383,11 +392,9 @@ do_unicast (struct GNUNET_SERVER_NotificationContext *nc,
 #endif
   memcpy (&pml[1], msg, size);
   /* append */
-  if (client->pending_tail != NULL)
-    client->pending_tail->next = pml;
-  else
-    client->pending_head = pml;
-  client->pending_tail = pml;
+  GNUNET_CONTAINER_DLL_insert_tail (client->pending_head,
+				    client->pending_tail,
+				    pml);
   if (client->th == NULL)
     client->th = GNUNET_SERVER_notify_transmit_ready (client->client,
 						      ntohs (client->pending_head->msg->size),
