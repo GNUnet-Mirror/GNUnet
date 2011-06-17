@@ -29,6 +29,9 @@
 #include "gnunet_dht_service.h"
 #include "gnunet_mesh_service_new.h"
 
+#define VERBOSE 1
+#define VERBOSE_ARM 0
+
 static struct GNUNET_MESH_MessageHandler        handlers[] = {{NULL, 0, 0}};
 static struct GNUNET_OS_Process                 *arm_pid;
 static struct GNUNET_MESH_Handle                *mesh;
@@ -94,7 +97,9 @@ run (void *cls,
     arm_pid = GNUNET_OS_start_process (NULL, NULL,
                                        "gnunet-service-arm",
                                        "gnunet-service-arm",
+#if VERBOSE_ARM
                                        "-L", "DEBUG",
+#endif
                                        "-c", "test_mesh.conf",
                                        NULL);
 
@@ -116,25 +121,33 @@ main (int argc, char *argv[])
     int ret;
     char *const argv2[] = {"test-mesh-api",
         "-c", "test_mesh.conf",
+#if VERBOSE
         "-L", "DEBUG",
+#endif
         NULL
     };
     struct GNUNET_GETOPT_CommandLineOption options[] = {
         GNUNET_GETOPT_OPTION_END
     };
-      GNUNET_log_setup ("test-dht-api","DEBUG", NULL);
+    GNUNET_log_setup ("test-mesh-api",
+#if VERBOSE
+                    "DEBUG",
+#else
+                    "WARNING",
+#endif
+                    NULL);
     ret = GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1,
                         argv2, "test-mesh-api", "nohelp",
                         options, &run, NULL);
 
     if ( GNUNET_OK != ret ) {
         GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                   "test-mesh-api': run failed with error code %d\n", ret);
+                   "run failed with error code %d\n", ret);
         return 1;
     }
     if ( GNUNET_SYSERR == result ) {
         GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                   "test-mesh-api': test failed\n");
+                   "test failed\n");
         return 1;
     }
     return 0;

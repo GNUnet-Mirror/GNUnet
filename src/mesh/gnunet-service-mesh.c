@@ -30,14 +30,15 @@
  * - MESH NETWORK HANDLES
  * - MESH LOCAL HANDLER HELPERS
  * - MESH LOCAL HANDLES
+ * - PERIODIC FUNCTIONS
  * - MAIN FUNCTIONS (main & run)
  * 
  * TODO:
- * - soft stateing (keep-alive (CHANGE?) / timeout / disconnect) -- not a message issue
  * - error reporting (CREATE/CHANGE/ADD/DEL?) -- new message!
  * - partial disconnect reporting -- same as error reporting?
  * - add vs create? change vs. keep-alive? same msg or different ones? -- thinking...
  * - speed requirement specification (change?) in mesh API -- API call
+ * - add ping message (connection confirmation, others?)
  */
 
 #include "platform.h"
@@ -50,6 +51,10 @@
 #include "mesh.h"
 #include "mesh_protocol.h"
 #include "gnunet_dht_service.h"
+
+#define REFRESH_PATH_TIME GNUNET_TIME_relative_multiply(\
+                                    GNUNET_TIME_UNIT_SECONDS,\
+                                    300)
 
 
 /******************************************************************************/
@@ -127,9 +132,9 @@ struct MeshPeerInfo
     enum MeshPeerState          state;
 
     /**
-     * When to try to establish contact again?
+     * Last time we heard from this peer
      */
-    struct GNUNET_TIME_Absolute next_reconnect_attempt;
+    struct GNUNET_TIME_Absolute last_contact;
 
     /**
      * Number of attempts to reconnect so far
@@ -266,6 +271,7 @@ struct MeshClient
      * Linked list
      */
     struct MeshClient           *next;
+    struct MeshClient           *prev;
 
     /**
      * Tunnels that belong to this client, indexed by local id
@@ -299,6 +305,7 @@ struct MeshClient
  * All the clients
  */
 static struct MeshClient                *clients;
+static struct MeshClient                *clients_t;
 
 /**
  * Tunnels known, indexed by MESH_TunnelID (MeshTunnel)
@@ -496,11 +503,23 @@ send_core_create_path_for_peer (void *cls, size_t size, void *buf)
     struct GNUNET_MESH_ManipulatePath   *msg;
     struct MeshPath                     *p;
     struct GNUNET_PeerIdentity          *peer_ptr;
+    struct GNUNET_PeerIdentity          id;
     size_t                              size_needed;
     int                                 i;
 
     if (0 == size && NULL == buf) {
-        // TODO retry? cancel?
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Retransmitting create path\n");
+        GNUNET_PEER_resolve(peer_info->path->peers[1], &id);
+        GNUNET_CORE_notify_transmit_ready(core_handle,
+                            0,
+                            0,
+                            GNUNET_TIME_UNIT_SECONDS,
+                            &id,
+                            sizeof(struct GNUNET_MESH_ManipulatePath)
+                            + (peer_info->path->length
+                            * sizeof (struct GNUNET_PeerIdentity)),
+                            &send_core_create_path_for_peer,
+                            peer_info);
         return 0;
     }
     p = peer_info->path;
@@ -528,7 +547,7 @@ send_core_create_path_for_peer (void *cls, size_t size, void *buf)
         GNUNET_PEER_resolve(p->peers[i], peer_ptr++);
     }
 
-    peer_info->state = MESH_PEER_WAITING;
+    peer_info->state = MESH_PEER_WAITING; // TODO maybe already ready?
 
     return size_needed;
 }
@@ -655,7 +674,7 @@ delete_tunnel_entry (void *cls, const GNUNET_HashCode * key, void *value) {
 /**
  * notify_client_connection_failure: notify a client that the connection to the
  * requested remote peer is not possible (for instance, no route found)
- * Function called when the socket is ready to queue more data."buf" will be
+ * Function called when the socket is ready to queue more data. "buf" will be
  * NULL and "size" zero if the socket was closed for writing in the meantime.
  *
  * @param cls closure
@@ -796,25 +815,30 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     struct MeshClient   *next;
 
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "MESH: client disconnected\n");
+               "client disconnected\n");
     c = clients;
     while (NULL != c) {
         if (c->handle == client) {
             GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "MESH: matching client found, cleaning\n");
+               " matching client found, cleaning\n");
             GNUNET_CONTAINER_multihashmap_iterate(c->tunnels,
                                                   &delete_tunnel_entry,
                                                   c);
             GNUNET_CONTAINER_multihashmap_destroy(c->tunnels);
             if(0 != c->app_counter) GNUNET_free (c->apps);
             if(0 != c->type_counter) GNUNET_free (c->types);
+            GNUNET_CONTAINER_DLL_remove(clients, clients_t, c);
             next = c->next;
             GNUNET_free (c);
             c = next;
         } else {
+            GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "   ... searching\n");
             c = c->next;
         }
     }
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "   done!\n");
     return;
 }
 
@@ -837,7 +861,7 @@ handle_local_new_client (void *cls,
     uint16_t                            types;
     uint16_t                            apps;
 
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "MESH: new client connected\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "new client connected\n");
     /* Check data sanity */
     size = ntohs(message->size) - sizeof(struct GNUNET_MESH_ClientConnect);
     cc_msg = (struct GNUNET_MESH_ClientConnect *) message;
@@ -867,12 +891,11 @@ handle_local_new_client (void *cls,
                apps * sizeof(GNUNET_MESH_ApplicationType));
     }
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "MESH:  client has %u+%u subscriptions\n",
+               " client has %u+%u subscriptions\n",
                c->type_counter,
                c->app_counter);
 
-    c->next = clients;
-    clients = c;
+    GNUNET_CONTAINER_DLL_insert(clients, clients_t, c);
     c->tunnels = GNUNET_CONTAINER_multihashmap_create(32);
 
     GNUNET_SERVER_receive_done(client, GNUNET_OK);
@@ -926,8 +949,8 @@ handle_local_tunnel_create (void *cls,
     }
 
     t = GNUNET_malloc(sizeof(struct MeshTunnel));
-    // FIXME: what if all 2^32 ID are taken?
-    while (NULL != retrieve_tunnel_by_pi(myid, next_tid)) next_tid++;
+    while (NULL != retrieve_tunnel_by_pi(myid, next_tid))
+        next_tid = (next_tid + 1) % GNUNET_MESH_LOCAL_TUNNEL_ID_MARK;
     t->id.tid = next_tid++;
     t->id.oid = myid;
     t->local_tid = ntohl(t_msg->tunnel_id);
@@ -1412,10 +1435,75 @@ core_disconnect (void *cls,
                 const struct
                 GNUNET_PeerIdentity *peer)
 {
+    GNUNET_PEER_Id      pid;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Peer disconnected\n");
+    pid = GNUNET_PEER_intern(peer);
+    GNUNET_PEER_change_rc(pid, -1);
+    if (myid == pid) {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "     (self)\n");
+    }
     return;
 }
+
+
+/******************************************************************************/
+/**********************      PERIODIC FUNCTIONS      **************************/
+/******************************************************************************/
+
+/**
+ * Iterator over peers to send keepalive packets when needed.
+ *
+ * @param cls unused
+ * @param key current key code
+ * @param value value in the hash map
+ * @return GNUNET_YES if we should continue to iterate, GNUNET_NO if not.
+ */
+int
+path_refresh_peer (void *cls, const GNUNET_HashCode * key, void *value)
+{
+    struct MeshPeerInfo         *pi = cls;
+    struct GNUNET_TIME_Absolute threshold;
+    struct GNUNET_PeerIdentity  id;
+
+    threshold = GNUNET_TIME_absolute_subtract(GNUNET_TIME_absolute_get(),
+                                              REFRESH_PATH_TIME);
+
+    if (pi->last_contact.abs_value < threshold.abs_value) {
+        GNUNET_PEER_resolve(pi->path->peers[1], &id);
+        GNUNET_CORE_notify_transmit_ready(core_handle,
+                                    0,
+                                    0,
+                                    GNUNET_TIME_UNIT_FOREVER_REL,
+                                    &id,
+                                    sizeof(struct GNUNET_MESH_ManipulatePath)
+                                    + (pi->path->length
+                                    * sizeof (struct GNUNET_PeerIdentity)),
+                                    &send_core_create_path_for_peer,
+                                    pi);
+    }
+    return GNUNET_YES;
+}
+
+
+/**
+ * Send keepalive packets for all routes
+ *
+ * @param cls unused
+ * @param tc unused
+ */
+static void
+path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+    if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN) return;
+    GNUNET_CONTAINER_multihashmap_iterate(peers, path_refresh_peer, NULL);
+    GNUNET_SCHEDULER_add_delayed(REFRESH_PATH_TIME,
+                                 &path_refresh,
+                                 NULL);
+    return;
+}
+
 
 /******************************************************************************/
 /************************      MAIN FUNCTIONS      ****************************/
@@ -1431,7 +1519,7 @@ static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MESH shutting down\n");
+                "shutting down\n");
     if (core_handle != NULL) {
         GNUNET_CORE_disconnect (core_handle);
         core_handle = NULL;
@@ -1439,7 +1527,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (dht_handle != NULL) {
         GNUNET_DHT_disconnect (dht_handle);
         dht_handle = NULL;
-    } 
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "shut down\n");
 }
 
 /**
@@ -1455,11 +1545,11 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MESH starting to run\n");
+                "starting to run\n");
     GNUNET_SERVER_add_handlers (server, plugin_handlers);
     GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
     core_handle = GNUNET_CORE_connect (c,               /* Main configuration */
-                            32,                                 /* queue size */
+                            1,                                  /* queue size */
                             NULL,         /* Closure passed to MESH functions */
                             &core_init,      /* Call core_init once connected */
                             &core_connect,                 /* Handle connects */
@@ -1481,11 +1571,20 @@ run (void *cls,
 
     tunnels = GNUNET_CONTAINER_multihashmap_create(32);
     peers = GNUNET_CONTAINER_multihashmap_create(32);
+    clients = NULL;
+    clients_t = NULL;
+
+    /* Path keepalive */
+    GNUNET_SCHEDULER_add_delayed(REFRESH_PATH_TIME,
+                                 &path_refresh,
+                                 NULL);
 
     /* Scheduled the task to clean up when shutdown is called */
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                   &shutdown_task, NULL);
 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "end if run()\n");
 }
 
 /**
@@ -1506,5 +1605,7 @@ main (int argc, char *const *argv)
                                "mesh",
                                GNUNET_SERVICE_OPTION_NONE,
                                &run, NULL)) ? 0 : 1;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "end of main()\n");
     return ret;
 }
