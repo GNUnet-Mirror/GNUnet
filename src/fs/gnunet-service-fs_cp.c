@@ -1708,6 +1708,7 @@ GSF_peer_disconnect_handler_ (void *cls,
       GNUNET_free (dh);
     }
   GNUNET_PEER_change_rc (cp->ppd.pid, -1);
+  GSF_push_stop_ (cp);
   if (GNUNET_SCHEDULER_NO_TASK != cp->mig_revive_task)
     {
       GNUNET_SCHEDULER_cancel (cp->mig_revive_task);
