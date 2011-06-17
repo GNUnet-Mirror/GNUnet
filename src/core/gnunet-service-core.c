@@ -2030,6 +2030,11 @@ process_encrypted_neighbour_queue (struct Neighbour *n)
  
   if (n->th != NULL)
     return;  /* request already pending */
+  if (GNUNET_YES != n->is_connected)
+    {
+      GNUNET_break (0);
+      return;
+    }
   m = n->encrypted_head;
   if (m == NULL)
     {
@@ -4521,6 +4526,11 @@ handle_transport_notify_disconnect (void *cls,
     {
       GNUNET_TRANSPORT_notify_transmit_ready_cancel (n->th);
       n->th = NULL;
+    }
+  if (GNUNET_SCHEDULER_NO_TASK != n->keep_alive_task)
+    {
+      GNUNET_SCHEDULER_cancel (n->keep_alive_task);
+      n->keep_alive_task = GNUNET_SCHEDULER_NO_TASK;
     }
   n->is_connected = GNUNET_NO;
   n->status = PEER_STATE_DOWN;
