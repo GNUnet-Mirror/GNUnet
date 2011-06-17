@@ -1383,7 +1383,7 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle * c)
 {
-  struct GNUNET_CORE_MessageHandler handlers[] =
+  static struct GNUNET_CORE_MessageHandler handlers[] =
     {
       { &handle_encrypted_hello, GNUNET_MESSAGE_TYPE_HELLO, 0},
       { NULL, 0, 0 }
