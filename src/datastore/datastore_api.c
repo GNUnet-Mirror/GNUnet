@@ -1249,14 +1249,16 @@ process_result_message (void *cls,
   struct GNUNET_DATASTORE_QueueEntry *qe;
   struct ResultContext rc;
   const struct DataMessage *dm;
+  int was_transmitted;
 
   if (msg == NULL)
     {
       qe = h->queue_head;
       GNUNET_assert (NULL != qe);
       rc = qe->qc.rc;
+      was_transmitted = qe->was_transmitted;
       free_queue_entry (qe);
-      if (qe->was_transmitted == GNUNET_YES)
+      if (was_transmitted == GNUNET_YES)
 	{
 	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		      _("Failed to receive response from database.\n"));
