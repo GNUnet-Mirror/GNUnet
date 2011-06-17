@@ -481,6 +481,7 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h,
 				    gettext_noop ("# Requests dropped from datastore queue"),
 				    1,
 				    GNUNET_NO);
+	  GNUNET_assert (h->queue_head == pos);
 	  pos->response_proc (h, NULL);
 	  break;
 	}
@@ -1296,6 +1297,7 @@ process_result_message (void *cls,
       return;
     }
   qe = h->queue_head;
+  GNUNET_assert (NULL != qe);
   rc = qe->qc.rc;
   if (GNUNET_YES != qe->was_transmitted)
     {
