@@ -107,7 +107,7 @@ arm_notify (void *cls, int success)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Trying to resolve our own hostname!\n");
   /* connect to the resolver service */
-  if (NULL == GNUNET_RESOLVER_hostname_resolve (cfg, AF_UNSPEC,
+  if (NULL == GNUNET_RESOLVER_hostname_resolve (AF_UNSPEC,
 						TIMEOUT,
 						&hostNameResolveCB,
 						NULL))

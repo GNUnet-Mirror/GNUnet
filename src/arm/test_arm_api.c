@@ -93,8 +93,7 @@ resolver_notify (void *cls, int success)
 #endif
       return;
     }
-  GNUNET_RESOLVER_ip_get (cfg,
-                          "localhost", AF_INET, TIMEOUT, &dns_notify, NULL);
+  GNUNET_RESOLVER_ip_get ("localhost", AF_INET, TIMEOUT, &dns_notify, NULL);
 }
 
 
