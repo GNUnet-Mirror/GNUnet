@@ -1479,6 +1479,7 @@ update_core_preference_finish (void *cls,
 			       uint64_t preference)
 {
   struct PeerInfo *peer_info = cls;
+
   peer_info->info_ctx = NULL;
   GNUNET_SCHEDULER_add_delayed (DHT_DEFAULT_PREFERENCE_INTERVAL,
                                 &update_core_preference, peer_info);
@@ -5263,6 +5264,7 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
       GNUNET_CONTAINER_multihashmap_contains (all_known_peers,
                                               &peer->hashPubKey))
     {
+      GNUNET_break (0);
 #if DEBUG_DHT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "%s:%s: do not have peer `%s' in RT, can't disconnect!\n",
@@ -5276,6 +5278,11 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   to_remove =
     GNUNET_CONTAINER_multihashmap_get (all_known_peers, &peer->hashPubKey);
   GNUNET_assert (to_remove != NULL);
+  if (NULL != to_remove->info_ctx)
+    {
+      GNUNET_CORE_peer_change_preference_cancel (to_remove->info_ctx);
+      to_remove->info_ctx = NULL;
+    }
   GNUNET_assert (0 ==
                  memcmp (peer, &to_remove->id,
                          sizeof (struct GNUNET_PeerIdentity)));
