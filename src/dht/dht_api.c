@@ -706,9 +706,10 @@ GNUNET_DHT_route_start (struct GNUNET_DHT_Handle *handle,
   
   message->header.size = htons (msize);
   message->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE);
-  message->key = *key;
   message->options = htonl ((uint32_t) options);
   message->desired_replication_level = htonl (desired_replication_level);
+  message->reserved = 0;
+  message->key = *key;
   handle->uid_gen++;
   message->unique_id = GNUNET_htonll (handle->uid_gen);
   memcpy (&message[1], enc, esize);
@@ -771,6 +772,7 @@ GNUNET_DHT_route_stop (struct GNUNET_DHT_RouteHandle *route_handle)
       pending->msg = &message->header;
       message->header.size = htons (msize);
       message->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_LOCAL_ROUTE_STOP);
+      message->reserved = 0;
       message->unique_id = GNUNET_htonll (route_handle->uid);
       message->key = route_handle->key;
       pending->handle = handle;
