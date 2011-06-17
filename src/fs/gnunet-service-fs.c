@@ -372,7 +372,7 @@ handle_start_search (void *cls,
   pr = GSF_local_client_start_search_handler_ (client, message);
   if (NULL == pr)
     {
-      /* 'GNUNET_SERVER_receive_done was already called! */
+      /* GNUNET_SERVER_receive_done was already called! */
       return;
     }
   GSF_local_lookup_ (pr, 
