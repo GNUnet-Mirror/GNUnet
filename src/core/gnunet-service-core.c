@@ -2812,7 +2812,11 @@ handle_client_send (void *cls,
   if (msize <
       sizeof (struct SendMessage) + sizeof (struct GNUNET_MessageHeader))
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "about to assert fail, msize is %d, should be at least %d\n", msize, sizeof (struct SendMessage) + sizeof (struct GNUNET_MessageHeader));
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		  "msize is %u, should be at least %u (in %s:%d)\n",
+		  msize,
+		  sizeof (struct SendMessage) + sizeof (struct GNUNET_MessageHeader),
+		  __FILE__, __LINE__);
       GNUNET_break (0);
       if (client != NULL)
         GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -2834,8 +2838,20 @@ handle_client_send (void *cls,
       return;
     }
   n = find_neighbour (&sm->peer);
-  if (n == NULL)
-    n = create_neighbour (&sm->peer);
+  if ( (n == NULL) ||
+       (GNUNET_YES != n->is_connected) ||
+       (n->status != PEER_STATE_KEY_CONFIRMED) )
+    {
+      /* attempt to send message to peer that is not connected anymore 
+	 (can happen due to asynchrony) */      
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# messages discarded (disconnected)"), 
+				1, 
+				GNUNET_NO);
+      if (client != NULL)
+        GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      return;
+    }
 #if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core received `%s' request, queueing %u bytes of plaintext data for transmission to `%4s'.\n",
