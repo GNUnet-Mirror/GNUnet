@@ -91,6 +91,8 @@ static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 static GNUNET_SCHEDULER_TaskIdentifier tct;
 
+struct GNUNET_TRANSPORT_TransmitHandle * th_p2;
+
 static char *key_file_p1;
 static char *cert_file_p1;
 
@@ -167,6 +169,10 @@ end ()
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transports!\n");
 #endif
+  if (th_p2 != NULL)
+    GNUNET_TRANSPORT_notify_transmit_ready_cancel(th_p2);
+  th_p2 = NULL;
+
   GNUNET_TRANSPORT_disconnect (p1.th);
   GNUNET_TRANSPORT_disconnect (p2.th);
 #if VERBOSE
@@ -205,6 +211,9 @@ end_unreliably ()
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transports!\n");
 #endif
+  if (th_p2 != NULL)
+    GNUNET_TRANSPORT_notify_transmit_ready_cancel(th_p2);
+
   GNUNET_TRANSPORT_disconnect (p1.th);
   GNUNET_TRANSPORT_disconnect (p2.th);
 #if VERBOSE
@@ -253,6 +262,11 @@ end_badly (void *cls,
 	      msg_recv, 
 	      msg_recv_expected);
   GNUNET_break (0);
+
+  if (th_p2 != NULL)
+    GNUNET_TRANSPORT_notify_transmit_ready_cancel(th_p2);
+  th_p2 = NULL;
+
   GNUNET_TRANSPORT_disconnect (p1.th);
   GNUNET_TRANSPORT_disconnect (p2.th);
 
@@ -361,6 +375,8 @@ notify_ready (void *cls, size_t size, void *buf)
   unsigned int s;
   unsigned int ret;
 
+  th_p2 = NULL;
+
   if (buf == NULL)
     {
       GNUNET_break (0);
@@ -399,7 +415,7 @@ notify_ready (void *cls, size_t size, void *buf)
   while (size - ret >= s);
   if (n < TOTAL_MSGS)
   {
-    GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
+    th_p2 = GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
 					    &p1.id,
 					    s, 0, TIMEOUT,
 					    &notify_ready,

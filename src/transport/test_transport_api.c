@@ -89,6 +89,8 @@ static char * cert_file_p1;
 static char * key_file_p2;
 static char * cert_file_p2;
 
+struct GNUNET_TRANSPORT_TransmitHandle * th;
+
 #if VERBOSE
 #define OKPP do { ok++; fprintf (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
 #else
@@ -103,6 +105,10 @@ end ()
   GNUNET_SCHEDULER_cancel (die_task);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Disconnecting from transports!\n");
+  if (th != NULL)
+    GNUNET_TRANSPORT_notify_transmit_ready_cancel(th);
+  th = NULL;
+
   GNUNET_TRANSPORT_disconnect (p1.th);
   GNUNET_TRANSPORT_disconnect (p2.th);
   die_task = GNUNET_SCHEDULER_NO_TASK;
@@ -130,6 +136,11 @@ end_badly ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transports!\n");
   GNUNET_break (0);
+
+  if (th != NULL)
+    GNUNET_TRANSPORT_notify_transmit_ready_cancel(th);
+  th = NULL;
+
   GNUNET_TRANSPORT_disconnect (p1.th);
   GNUNET_TRANSPORT_disconnect (p2.th);
   if (GNUNET_SCHEDULER_NO_TASK != tct)
@@ -166,6 +177,8 @@ notify_ready (void *cls, size_t size, void *buf)
 {
   struct PeerContext *p = cls;
   struct GNUNET_MessageHeader *hdr;
+
+  th = NULL;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transmitting message with %u bytes to peer %s\n", 
@@ -244,7 +257,7 @@ notify_connect (void *cls,
       GNUNET_TRANSPORT_get_hello_cancel (p1.th, &exchange_hello, &p1);
       die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT_TRANSMIT,
 					       &end_badly, NULL);
-      GNUNET_TRANSPORT_notify_transmit_ready (p1.th,
+      th = GNUNET_TRANSPORT_notify_transmit_ready (p1.th,
 					      &p2.id,
 					      256, 0, TIMEOUT, &notify_ready,
 					      &p1);
