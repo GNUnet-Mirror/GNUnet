@@ -233,13 +233,13 @@ run(void *cls, char * const *args,
   sa.sin_len = (u_char) sizeof (sa);
 #endif
   sa.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-  GNUNET_RESOLVER_ip_get(cfg, "localhost", AF_INET, timeout, &check_127,
+  GNUNET_RESOLVER_ip_get("localhost", AF_INET, timeout, &check_127,
       cls);
-  GNUNET_RESOLVER_hostname_get(cfg, (const struct sockaddr *) &sa,
+  GNUNET_RESOLVER_hostname_get((const struct sockaddr *) &sa,
       sizeof(struct sockaddr), GNUNET_YES, timeout, &check_localhost, cls);
-  GNUNET_RESOLVER_hostname_get(cfg, (const struct sockaddr *) &sa,
+  GNUNET_RESOLVER_hostname_get((const struct sockaddr *) &sa,
       sizeof(struct sockaddr), GNUNET_NO, timeout, &check_localhost_num, cls);
-  GNUNET_RESOLVER_hostname_resolve(cfg, AF_UNSPEC, timeout,
+  GNUNET_RESOLVER_hostname_resolve(AF_UNSPEC, timeout,
       &check_hostname, cls);
 
 
@@ -298,7 +298,7 @@ run(void *cls, char * const *args,
 #endif
 
   /* Resolve the same using GNUNET */
-  GNUNET_RESOLVER_ip_get(cfg, ROOTSERVER_NAME, AF_INET, timeout,
+  GNUNET_RESOLVER_ip_get(ROOTSERVER_NAME, AF_INET, timeout,
       &check_rootserver_ip, cls);
 
   /*
@@ -354,7 +354,7 @@ run(void *cls, char * const *args,
 #else
   sa.sin_addr.S_un.S_addr = inet_addr(ROOTSERVER_IP);
 #endif
-  GNUNET_RESOLVER_hostname_get(cfg, (const struct sockaddr *) &sa,
+  GNUNET_RESOLVER_hostname_get((const struct sockaddr *) &sa,
       sizeof(struct sockaddr), GNUNET_YES, timeout, &check_rootserver_name, cls);
 }
 
