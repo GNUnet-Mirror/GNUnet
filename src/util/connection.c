@@ -658,6 +658,7 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
       GNUNET_SCHEDULER_cancel (h->nth.timeout_task);
       h->nth.timeout_task = GNUNET_SCHEDULER_NO_TASK;
       h->ccs -= COCO_TRANSMIT_READY;
+      GNUNET_assert (h->nth.notify_ready != NULL);
       GNUNET_assert (h->write_task == GNUNET_SCHEDULER_NO_TASK);
       h->write_task = GNUNET_SCHEDULER_add_now (&transmit_ready, h);
     }
@@ -713,6 +714,7 @@ connect_success_continuation (struct GNUNET_CONNECTION_Handle *h)
       h->nth.timeout_task = GNUNET_SCHEDULER_NO_TASK;
       h->ccs -= COCO_TRANSMIT_READY;
       GNUNET_assert (h->write_task == GNUNET_SCHEDULER_NO_TASK);
+      GNUNET_assert (h->nth.notify_ready != NULL);
       h->write_task =
         GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_absolute_get_remaining
                                         (h->nth.transmit_timeout), h->sock,
@@ -1482,6 +1484,7 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ssize_t ret;
   size_t have;
 
+  GNUNET_assert (sock->nth.notify_ready != NULL);
 #if DEBUG_CONNECTION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "transmit_ready running (%p).\n", sock);
@@ -1596,6 +1599,7 @@ SCHEDULE_WRITE:
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Re-scheduling transmit_ready (more to do) (%p).\n", sock);
 #endif
+  GNUNET_assert (sock->nth.notify_ready != NULL);
   if (sock->write_task == GNUNET_SCHEDULER_NO_TASK)
     sock->write_task =
       GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_absolute_get_remaining
