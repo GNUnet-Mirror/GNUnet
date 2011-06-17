@@ -297,9 +297,9 @@ main (int argc, char *const *argv)
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc,
                               argv,
-                              "gnunet-download",
+                              "gnunet-download [OPTIONS] URI",
                               gettext_noop
-                              ("Download files from GNUnet."),
+                              ("Download files from GNUnet using a GNUnet CHK or LOC URI (gnunet://fs/chk/...)"),
                               options, &run, NULL)) ? ret : 1;
 }
 

@@ -198,9 +198,9 @@ main (int argc, char *const *argv)
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc,
                               argv,
-                              "gnunet-directory",
+                              "gnunet-directory [OPTIONS] FILENAME",
                               gettext_noop
-                              ("Display GNUnet directories."),
+                              ("Display contents of a GNUnet directory"),
                               options, &run, NULL)) ? ret : 1;
 }
 

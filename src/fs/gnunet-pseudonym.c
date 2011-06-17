@@ -354,7 +354,7 @@ main (int argc, char *const *argv)
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc,
                               argv,
-                              "gnunet-pseudonym",
+                              "gnunet-pseudonym [OPTIONS]",
                               gettext_noop
                               ("Manage GNUnet pseudonyms."),
                               options, &run, NULL)) ? ret : 1;

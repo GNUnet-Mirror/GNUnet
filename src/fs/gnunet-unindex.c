@@ -195,9 +195,9 @@ main (int argc, char *const *argv)
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc,
                               argv,
-                              "gnunet-unindex",
+                              "gnunet-unindex [OPTIONS] FILENAME",
                               gettext_noop
-                              ("Unindex files."),
+                              ("Unindex a file that was previously indexed with gnunet-publish."),
                               options, &run, NULL)) ? ret : 1;
 }
 

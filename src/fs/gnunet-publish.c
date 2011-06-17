@@ -689,9 +689,9 @@ main (int argc, char *const *argv)
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc,
                               argv,
-                              "gnunet-publish",
+                              "gnunet-publish [OPTIONS] FILENAME",
                               gettext_noop
-                              ("Publish files on GNUnet."),
+                              ("Publish a file or directory on GNUnet"),
                               options, &run, NULL)) ? ret : 1;
 }
 
