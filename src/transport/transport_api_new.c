@@ -1398,13 +1398,13 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle *handle,
     {
       /* use GNUNET_TRANSPORT_try_connect first, only use this function
 	 once a connection has been established */
-      GNUNET_break (0);
+      GNUNET_assert (0);
       return NULL;
     }
   if (NULL != n->th)
     {
       /* attempt to send two messages at the same time to the same peer */
-      GNUNET_break (0);
+      GNUNET_assert (0);
       return NULL;
     }
   GNUNET_assert (NULL == n->hn);
