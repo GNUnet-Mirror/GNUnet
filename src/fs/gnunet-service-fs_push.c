@@ -642,7 +642,15 @@ GSF_push_stop_ (struct GSF_ConnectedPeer *peer)
 				       peer_tail,
 				       pos);
 	  if (NULL != pos->th)
-	    GSF_peer_transmit_cancel_ (pos->th);
+	    {
+	      GSF_peer_transmit_cancel_ (pos->th);
+	      pos->th = NULL;
+	    }
+	  if (NULL != pos->msg)
+	    {
+	      GNUNET_free (pos->msg);
+	      pos->msg = NULL;
+	    }
 	  GNUNET_free (pos);
 	  return;
 	}
