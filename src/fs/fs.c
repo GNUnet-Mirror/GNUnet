@@ -1477,10 +1477,13 @@ deserialize_publish_file (void *cls,
   
   /* re-start publishing (if needed)... */
   if (pc->all_done != GNUNET_YES)
-    pc->upload_task 
-      = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
-					    &GNUNET_FS_publish_main_,
-					    pc);       
+    {
+      GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pc->upload_task);
+      pc->upload_task 
+	= GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+					      &GNUNET_FS_publish_main_,
+					      pc);       
+    }
   if (GNUNET_OK !=
       GNUNET_BIO_read_close (rh, &emsg))
     {

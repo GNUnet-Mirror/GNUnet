@@ -147,9 +147,8 @@ progress_cb (void *cls,
 	      (unsigned long long) (FILESIZE * 1000 / (1+GNUNET_TIME_absolute_get_duration (start).rel_value) / 1024));
       if (0 == strcmp ("publish-context-dir", 
 		       event->value.publish.cctx))	
-	GNUNET_SCHEDULER_add_continuation (&abort_publish_task,
-					   NULL,
-					   GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+	GNUNET_SCHEDULER_add_now (&abort_publish_task,
+				  NULL);
       break;
     case GNUNET_FS_STATUS_PUBLISH_PROGRESS:
       consider_restart (event->status);
@@ -180,11 +179,8 @@ progress_cb (void *cls,
 	       "Error publishing file: %s\n",
 	       event->value.publish.specifics.error.message);
       err = 1;
-      if (0 == strcmp ("publish-context-dir", 
-		       event->value.publish.cctx))		
-	GNUNET_SCHEDULER_add_continuation (&abort_publish_task,
-					   NULL,
-					   GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      GNUNET_SCHEDULER_add_now (&abort_publish_task,
+				NULL);
       break;
     case GNUNET_FS_STATUS_PUBLISH_START:
       consider_restart (event->status);
