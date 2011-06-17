@@ -315,6 +315,10 @@ GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
 {
   struct GNUNET_DATASTORE_QueueEntry *qe;
 
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Datastore disconnect\n");
+#endif
   if (NULL != h->th)
     {
       GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
@@ -378,6 +382,10 @@ timeout_queue_entry (void *cls,
 			    GNUNET_NO);
   qe->task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (qe->was_transmitted == GNUNET_NO); 
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Timeout of request in datastore queue\n");
+#endif
   qe->response_proc (qe->h, NULL);
 }
 
@@ -471,6 +479,10 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h,
 	  GNUNET_assert (pos->response_proc != NULL);
 	  /* move 'pos' element to head so that it will be 
 	     killed on 'NULL' call below */
+#if DEBUG_DATASTORE
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Dropping request from datastore queue\n");
+#endif
 	  GNUNET_CONTAINER_DLL_remove (h->queue_head,
 				       h->queue_tail,
 				       pos);
@@ -586,6 +598,10 @@ receive_cb (void *cls,
   struct GNUNET_DATASTORE_QueueEntry *qe;
 
   h->in_receive = GNUNET_NO;
+#if DEBUG_DATASTORE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Receiving reply from datastore\n");
+#endif
   if (h->skip_next_messages > 0)
     {
       h->skip_next_messages--;
@@ -987,7 +1003,7 @@ GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h,
     cont = &drop_status_cont;
 #if DEBUG_DATASTORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Asked to reserve %llu bytes of data and %u entries'\n",
+	      "Asked to reserve %llu bytes of data and %u entries\n",
 	      (unsigned long long) amount,
 	      (unsigned int) entries);
 #endif
