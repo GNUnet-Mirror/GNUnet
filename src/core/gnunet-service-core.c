@@ -3883,6 +3883,7 @@ send_p2p_message_to_client (struct Neighbour *sender,
   struct NotifyTrafficMessage *ntm;
   struct GNUNET_TRANSPORT_ATS_Information *ats;
 
+  GNUNET_assert (GNUNET_YES == sender->is_connected);
   if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
     {
       GNUNET_break (0);

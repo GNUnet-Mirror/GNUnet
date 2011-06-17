@@ -417,17 +417,6 @@ disconnect_and_free_peer_entry (void *cls,
   GNUNET_CORE_PeerConfigurationInfoCallback pcic;
   void *pcic_cls;
 
-  if (NULL != (pcic = pr->pcic))
-    {
-      pcic_cls = pr->pcic_cls;
-      GNUNET_CORE_peer_change_preference_cancel (pr->pcic_ptr);
-      pcic (pcic_cls,
-	    &pr->peer,
-	    zero,
-	    0, 
-	    GNUNET_TIME_UNIT_FOREVER_REL,
-	    0);
-    }
   if (pr->timeout_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (pr->timeout_task);
@@ -449,6 +438,18 @@ disconnect_and_free_peer_entry (void *cls,
 		    &pr->peer);
   /* all requests should have been cancelled, clean up anyway, just in case */
   GNUNET_break (pr->queue_size == 0);
+  if (NULL != (pcic = pr->pcic))
+    {
+      GNUNET_break (0);
+      pcic_cls = pr->pcic_cls;
+      GNUNET_CORE_peer_change_preference_cancel (pr->pcic_ptr);
+      pcic (pcic_cls,
+	    &pr->peer,
+	    zero,
+	    0, 
+	    GNUNET_TIME_UNIT_FOREVER_REL,
+	    0);
+    }
   while (NULL != (th = pr->pending_head))
     {
       GNUNET_break (0);
@@ -460,6 +461,7 @@ disconnect_and_free_peer_entry (void *cls,
 	th->cm->th = NULL;
       GNUNET_free (th);
     }
+  /* done with 'voluntary' cleanups, now on to normal freeing */
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove (h->peers,
 						       key,
@@ -1512,6 +1514,7 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
       handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
     }
   GNUNET_CONTAINER_multihashmap_destroy (handle->peers);
+  handle->peers = NULL;
   GNUNET_break (handle->ready_peer_head == NULL);
   GNUNET_free (handle);
 }
@@ -1942,7 +1945,7 @@ GNUNET_CORE_peer_change_preference (struct GNUNET_CORE_Handle *h,
   if (NULL == pr)
     {
       /* attempt to change preference on peer that is not connected */
-      GNUNET_break (0);
+      GNUNET_assert (0);
       return NULL;
     }
   if (pr->pcic != NULL)

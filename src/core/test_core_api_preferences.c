@@ -66,6 +66,8 @@ static int ok;
 
 static struct GNUNET_CORE_InformationRequestContext *irc;
 
+static struct GNUNET_CORE_TransmitHandle *th;
+
 static GNUNET_SCHEDULER_TaskIdentifier irc_task;
 
 static GNUNET_SCHEDULER_TaskIdentifier ask_task;
@@ -99,9 +101,15 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
   GNUNET_break (0);
   if (NULL != irc)
-    GNUNET_CORE_peer_change_preference_cancel (irc);
+    {
+      GNUNET_CORE_peer_change_preference_cancel (irc);
+      irc = NULL;
+    }
   if (GNUNET_SCHEDULER_NO_TASK != irc_task)
-    GNUNET_SCHEDULER_cancel (irc_task);
+    {
+      GNUNET_SCHEDULER_cancel (irc_task);
+      irc_task = GNUNET_SCHEDULER_NO_TASK;
+    }
   if (GNUNET_SCHEDULER_NO_TASK != ask_task)
     {
       GNUNET_SCHEDULER_cancel (ask_task);
@@ -121,6 +129,7 @@ transmit_ready (void *cls, size_t size, void *buf)
   struct PeerContext *p = cls;
   struct GNUNET_MessageHeader *m;
 
+  th = NULL;
   GNUNET_assert (ok == 4);
   OKPP;
   GNUNET_assert (p == &p1);
@@ -203,13 +212,13 @@ preference_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Asking core (1) for transmission to peer `%4s'\n",
 	      GNUNET_i2s (&p2.id));
-  if (NULL == GNUNET_CORE_notify_transmit_ready (p1.ch,
-						 GNUNET_YES,
-						 0,
-						 GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 45),
-						 &p2.id,
-						 sizeof (struct GNUNET_MessageHeader),
-						 &transmit_ready, &p1))
+  if (NULL == (th = GNUNET_CORE_notify_transmit_ready (p1.ch,
+						       GNUNET_YES,
+						       0,
+						       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 45),
+						       &p2.id,
+						       sizeof (struct GNUNET_MessageHeader),
+						       &transmit_ready, &p1)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "RECEIVED NULL when asking core (1) for transmission to peer `%4s'\n",
@@ -261,8 +270,27 @@ disconnect_notify (void *cls,
 		   sizeof (struct GNUNET_PeerIdentity)))
     return;
   pc->connect_status = 0;
+  if (GNUNET_SCHEDULER_NO_TASK != irc_task)
+    {
+      GNUNET_SCHEDULER_cancel (irc_task);
+      irc_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  if (0 == memcmp (peer, &p1.id, sizeof (struct GNUNET_PeerIdentity)))
+    {
+      if (irc != NULL) 
+	{
+	  GNUNET_CORE_peer_change_preference_cancel (irc);
+	  irc = NULL;
+	}
+      if (th != NULL)
+	{
+	  GNUNET_CORE_notify_transmit_ready_cancel (th);
+	  th = NULL;
+	}
+    }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Encrypted connection to `%4s' cut\n", GNUNET_i2s (peer));
+              "Encrypted connection to `%4s' cut\n", 
+	      GNUNET_i2s (peer));
 }
 
 
