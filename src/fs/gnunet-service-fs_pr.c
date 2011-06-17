@@ -328,6 +328,8 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
   pr->sender_pid = sender_pid;
   pr->rh = rh;
   pr->rh_cls = rh_cls;
+  GNUNET_assert ( (sender_pid != 0) ||
+		  (0 == (options & GSF_PRO_FORWARD_ONLY)) );
   if (ttl >= 0)
     pr->public_data.ttl = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
 											   (uint32_t) ttl));
@@ -503,10 +505,10 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
   k = 0;
   bm = 0;
   do_route = (0 == (pr->public_data.options & GSF_PRO_FORWARD_ONLY));
-  if ( (do_route) && (pr->sender_pid == 0))
+  if ( (! do_route) && (pr->sender_pid == 0))
     {
       GNUNET_break (0);
-      do_route = GNUNET_NO;
+      do_route = GNUNET_YES;
     }
   if (! do_route)
     {

@@ -1189,6 +1189,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
   enum GNUNET_BLOCK_Type type;
   GNUNET_PEER_Id spid;
 
+  GNUNET_assert (other != NULL);
   msize = ntohs(message->size);
   if (msize < sizeof (struct GetMessage))
     {
@@ -1299,13 +1300,14 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
   spid = 0;
   if ( (GNUNET_LOAD_get_load (cp->ppd.transmission_delay) > 3 * (1 + priority)) ||
        (GNUNET_LOAD_get_average (cp->ppd.transmission_delay) > 
-	GNUNET_CONSTANTS_MAX_CORK_DELAY.rel_value * 2 + GNUNET_LOAD_get_average (GSF_rt_entry_lifetime)) )
+	GNUNET_CONSTANTS_MAX_CORK_DELAY.rel_value * 2 + GNUNET_LOAD_get_average (GSF_rt_entry_lifetime)) ) 
     {
       /* don't have BW to send to peer, or would likely take longer than we have for it,
 	 so at best indirect the query */
       priority = 0;
       options |= GSF_PRO_FORWARD_ONLY;
       spid = GNUNET_PEER_intern (other);
+      GNUNET_assert (0 != spid);
     }
   ttl = bound_ttl (ntohl (gm->ttl), priority);
   /* decrement ttl (always) */
