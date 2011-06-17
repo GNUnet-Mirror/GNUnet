@@ -2493,7 +2493,7 @@ try_fast_reconnect (struct TransportPlugin *p,
    * GNUNET_NO in the call below makes transport disconnect the peer,
    * even if only a single address (out of say, six) went away.  This
    * function must be careful to ONLY disconnect if the peer is gone,
-   * not just a specifi address.
+   * not just a specific address.
    *
    * More specifically, half the places it was used had it WRONG.
    */
@@ -2504,7 +2504,13 @@ try_fast_reconnect (struct TransportPlugin *p,
             "Disconnecting peer `%4s', %s\n", GNUNET_i2s(&nl->id),
             "try_fast_reconnect");
 #endif
+  GNUNET_STATISTICS_update (stats,
+                            gettext_noop ("# disconnects due to try_fast_reconnect"),
+                            1,
+                            GNUNET_NO);
+#if DISCONNECT
   disconnect_neighbour (nl, GNUNET_YES);
+#endif
 }
 
 
@@ -2563,6 +2569,10 @@ plugin_env_session_end  (void *cls,
 		  "Plugin was associated with peer `%4s'\n", 
 		  GNUNET_i2s(peer));
 #endif
+      GNUNET_STATISTICS_update (stats,
+                                gettext_noop ("# disconnects due to session end"),
+                                1,
+                                GNUNET_NO);
       disconnect_neighbour (nl, GNUNET_YES);
       return;
     }
@@ -2582,6 +2592,10 @@ plugin_env_session_end  (void *cls,
 		  GNUNET_i2s(peer));
 #endif
       //FIXME: This conflicts with inbound tcp connections and tcp nat ... debugging in progress
+      GNUNET_STATISTICS_update (stats,
+                                gettext_noop ("# disconnects due to unready session"),
+                                1,
+                                GNUNET_NO);
       disconnect_neighbour (nl, GNUNET_YES);
       return; /* was never marked as connected */
     }
@@ -2589,9 +2603,21 @@ plugin_env_session_end  (void *cls,
   if (pos->addrlen != 0)
     {
       if (nl->received_pong != GNUNET_NO)
-	try_fast_reconnect (p, nl);
+        {
+          GNUNET_STATISTICS_update (stats,
+                                    gettext_noop ("# try_fast_reconnect thanks to plugin_env_session_end"),
+                                    1,
+                                    GNUNET_NO);
+          try_fast_reconnect (p, nl);
+        }
       else
-	disconnect_neighbour (nl, GNUNET_YES);
+        {
+          GNUNET_STATISTICS_update (stats,
+                                    gettext_noop ("# disconnects due to missing pong"),
+                                    1,
+                                    GNUNET_NO);
+          disconnect_neighbour (nl, GNUNET_YES);
+        }
       return;
     }
   /* was inbound connection, free 'pos' */
@@ -2610,6 +2636,10 @@ plugin_env_session_end  (void *cls,
   ats->stat.recreate_problem = GNUNET_YES;
   if (nl->received_pong == GNUNET_NO)
     {
+      GNUNET_STATISTICS_update (stats,
+                                gettext_noop ("# disconnects due to NO pong"),
+                                1,
+                                GNUNET_NO);
       disconnect_neighbour (nl, GNUNET_YES);
       return; /* nothing to do, never connected... */
     }
@@ -2619,6 +2649,10 @@ plugin_env_session_end  (void *cls,
     {
       if (pos->validated)
 	{
+          GNUNET_STATISTICS_update (stats,
+                                    gettext_noop ("# try_fast_reconnect thanks to validated_address"),
+                                    1,
+                                    GNUNET_NO);
 	  try_fast_reconnect (p, nl);
 	  return;
 	}
@@ -2639,7 +2673,13 @@ plugin_env_session_end  (void *cls,
    * if there are any addresses that work first, so as not to overdo it.
    * --NE
    */
+  GNUNET_STATISTICS_update (stats,
+                            gettext_noop ("# disconnects due to try-fast-reconnect"),
+                            1,
+                            GNUNET_NO);
+#if DISCONNECT
   disconnect_neighbour (nl, GNUNET_YES);
+#endif
 }
 
 
@@ -3672,6 +3712,10 @@ confirm_or_drop_neighbour (void *cls,
               "Disconnecting peer `%4s', %s\n", GNUNET_i2s(&orig->id),
               "confirm_or_drop_neighboUr");
 #endif
+      GNUNET_STATISTICS_update (stats,
+                                gettext_noop ("# disconnects due to blacklist"),
+                                1,
+                                GNUNET_NO);
       disconnect_neighbour (orig, GNUNET_NO);
     }
 }
@@ -5816,6 +5860,10 @@ handle_set_quota (void *cls,
                 "Disconnecting peer `%4s', %s\n", GNUNET_i2s(&n->id),
                 "SET_QUOTA");
 #endif
+      GNUNET_STATISTICS_update (stats,
+                                gettext_noop ("# disconnects due to quota of 0"),
+                                1,
+                                GNUNET_NO);
       disconnect_neighbour (n, GNUNET_NO);
     }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
