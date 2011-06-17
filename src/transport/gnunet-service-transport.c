@@ -2674,12 +2674,10 @@ plugin_env_session_end  (void *cls,
    * --NE
    */
   GNUNET_STATISTICS_update (stats,
-                            gettext_noop ("# disconnects due to try-fast-reconnect"),
+                            gettext_noop ("# disconnects due to plugin_env_session_end"),
                             1,
                             GNUNET_NO);
-#if DISCONNECT
   disconnect_neighbour (nl, GNUNET_YES);
-#endif
 }
 
 

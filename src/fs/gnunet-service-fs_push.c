@@ -345,6 +345,7 @@ score_content (struct MigrationReadyPeer *peer,
   for (i=0;i<MIGRATION_LIST_SIZE;i++)
     if (block->target_list[i] == ppd->pid)
       return -1;
+  GNUNET_assert (0 != ppd->pid);
   GNUNET_PEER_resolve (ppd->pid,
 		       &id);
   dist = GNUNET_CRYPTO_hash_distance_u32 (&block->query,

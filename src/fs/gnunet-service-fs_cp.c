@@ -430,6 +430,7 @@ schedule_transmission (struct GSF_PeerTransmitHandle *pth)
        (0 != pth->cth_in_progress) )
     return; /* already done */
   cp = pth->cp;
+  GNUNET_assert (0 != cp->ppd.pid);
   GNUNET_PEER_resolve (cp->ppd.pid,
 		       &target);
   if ( (GNUNET_YES == pth->is_query) &&
@@ -1789,6 +1790,7 @@ void
 GSF_connected_peer_get_identity_ (const struct GSF_ConnectedPeer *cp,
 				  struct GNUNET_PeerIdentity *id)
 {
+  GNUNET_assert (0 != cp->ppd.pid);
   GNUNET_PEER_resolve (cp->ppd.pid,
 		       id);
 }
@@ -1882,6 +1884,7 @@ flush_trust (void *cls,
 
   if (cp->ppd.trust == cp->disk_trust)
     return GNUNET_OK;                     /* unchanged */
+  GNUNET_assert (0 != cp->ppd.pid);
   GNUNET_PEER_resolve (cp->ppd.pid,
 		       &pid);
   fn = get_trust_filename (&pid);

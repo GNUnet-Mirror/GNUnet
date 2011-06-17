@@ -503,6 +503,11 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
   k = 0;
   bm = 0;
   do_route = (0 == (pr->public_data.options & GSF_PRO_FORWARD_ONLY));
+  if ( (do_route) && (pr->sender_pid == 0))
+    {
+      GNUNET_break (0);
+      do_route = GNUNET_NO;
+    }
   if (! do_route)
     {
       bm |= GET_MESSAGE_BIT_RETURN_TO;
@@ -1055,6 +1060,7 @@ GSF_dht_lookup_ (struct GSF_PendingRequest *pr)
     }
   if (0 != (pr->public_data.options & GSF_PRO_FORWARD_ONLY))
     {
+      GNUNET_assert (0 != pr->sender_pid);
       GNUNET_PEER_resolve (pr->sender_pid,
 			   &pi);
       memcpy (&buf[xquery_size], &pi, sizeof (struct GNUNET_PeerIdentity));
@@ -1531,6 +1537,7 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
       pmc = GNUNET_malloc (sizeof (struct PutMigrationContext));
       pmc->start = GNUNET_TIME_absolute_get ();
       pmc->requested = prq.request_found;
+      GNUNET_assert (0 != GSF_get_peer_performance_data_ (cp)->pid);
       GNUNET_PEER_resolve (GSF_get_peer_performance_data_ (cp)->pid,
 			   &pmc->origin);
       if (NULL ==
