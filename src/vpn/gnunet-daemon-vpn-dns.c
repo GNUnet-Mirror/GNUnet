@@ -136,7 +136,6 @@ connect_to_service_dns (void *cls __attribute__((unused)),
       {
 	GNUNET_CLIENT_notify_transmit_ready(dns_connection, sizeof(struct GNUNET_MessageHeader), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
       }
-    conn_task = GNUNET_SCHEDULER_add_now (start_helper_and_schedule, NULL);
 }
 
 /**
