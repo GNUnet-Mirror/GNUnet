@@ -36,6 +36,8 @@
 #include "gnunet-helper-vpn-api.h"
 #include "gnunet-vpn-checksum.h"
 
+GNUNET_SCHEDULER_TaskIdentifier shs_task;
+
 /**
  * The handle to the configuration used throughout the process
  */

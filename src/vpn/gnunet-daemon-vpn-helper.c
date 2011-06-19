@@ -126,6 +126,8 @@ start_helper_and_schedule(void *cls,
     restart_hijack = 1;
     if (NULL != dns_connection)
       GNUNET_CLIENT_notify_transmit_ready(dns_connection, sizeof(struct GNUNET_MessageHeader), GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &send_query, NULL);
+
+    GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL, helper_handle->fh_to_helper, &helper_write, NULL);
 }
 /*}}}*/
 
@@ -410,5 +412,6 @@ void write_to_helper(void* buf, size_t len)
 
 void schedule_helper_write(struct GNUNET_TIME_Relative time, void* cls)
 {
+  if (GNUNET_SCHEDULER_NO_TASK == shs_task) return;
   GNUNET_SCHEDULER_add_write_file (time, helper_handle->fh_to_helper, &helper_write, cls);
 }

@@ -48,6 +48,8 @@ stop_helper (struct GNUNET_VPN_HELPER_Handle *handle)
   GNUNET_SERVER_mst_destroy(handle->mst);
 }
 
+extern GNUNET_SCHEDULER_TaskIdentifier shs_task;
+
 /**
  * Read from the helper-process
  */
@@ -71,7 +73,7 @@ helper_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tsdkctx)
       stop_helper (handle);
 
       /* Restart the helper */
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+      shs_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                     handle->restart_task, handle);
       return;
     }
@@ -84,7 +86,7 @@ helper_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tsdkctx)
       stop_helper (handle);
 
       /* Restart the helper */
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+      shs_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                     handle->restart_task, handle);
       return;
 
