@@ -140,6 +140,9 @@ helper_write(void* cls __attribute__((unused)), const struct GNUNET_SCHEDULER_Ta
       return;
 
     struct answer_packet_list* ans = answer_proc_head;
+
+    if (NULL == ans) return;
+
     size_t len = ntohs(ans->pkt.hdr.size);
 
     GNUNET_assert(ans->pkt.subtype == GNUNET_DNS_ANSWER_TYPE_IP);
