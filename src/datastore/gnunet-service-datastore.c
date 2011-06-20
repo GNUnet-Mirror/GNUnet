@@ -840,7 +840,7 @@ check_data (const struct GNUNET_MessageHeader *message)
 
 
 /**
- * Context for a put request used to see if the content is
+ * Context for a PUT request used to see if the content is
  * already present.
  */
 struct PutContext
@@ -849,6 +849,10 @@ struct PutContext
    * Client to notify on completion.
    */
   struct GNUNET_SERVER_Client *client;
+
+#if ! HAVE_UNALIGNED_64_ACCESS
+  void *reserved;
+#endif 
   
   /* followed by the 'struct DataMessage' */
 };
