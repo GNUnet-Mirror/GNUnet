@@ -1502,8 +1502,11 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   GNUNET_a2s (sock->addr, sock->addrlen), sock);
 #endif
       notify = sock->nth.notify_ready;
-      sock->nth.notify_ready = NULL;
-      notify (sock->nth.notify_ready_cls, 0, NULL);
+      if (NULL != notify)
+	{
+	  sock->nth.notify_ready = NULL;
+	  notify (sock->nth.notify_ready_cls, 0, NULL);
+	}
       return;
     }
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
@@ -1514,6 +1517,7 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   GNUNET_a2s (sock->addr, sock->addrlen), sock);
 #endif
       notify = sock->nth.notify_ready;
+      GNUNET_assert (NULL != notify);
       sock->nth.notify_ready = NULL;
       notify (sock->nth.notify_ready_cls, 0, NULL);
       return;
@@ -1599,12 +1603,14 @@ SCHEDULE_WRITE:
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Re-scheduling transmit_ready (more to do) (%p).\n", sock);
 #endif
-  GNUNET_assert (sock->nth.notify_ready != NULL);
+  GNUNET_assert ( (sock->nth.notify_ready != NULL) || (have > 0) );
   if (sock->write_task == GNUNET_SCHEDULER_NO_TASK)
     sock->write_task =
-      GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_absolute_get_remaining
-                                      (sock->nth.transmit_timeout),
-                                      sock->sock, &transmit_ready, sock);
+      GNUNET_SCHEDULER_add_write_net ((have > 0) 
+				      ? GNUNET_TIME_UNIT_FOREVER_REL 
+				      : GNUNET_TIME_absolute_get_remaining (sock->nth.transmit_timeout),
+				      sock->sock, 
+				      &transmit_ready, sock);
 }
 
 
