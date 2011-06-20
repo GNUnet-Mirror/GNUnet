@@ -1024,6 +1024,10 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
 	  next = pos->ai_next;
 	  if ( (disablev6) && (pos->ai_family == AF_INET6))
 	    continue;
+	  if (pos->ai_protocol != IPPROTO_TCP)
+	    continue; /* not TCP */
+	  if (pos->ai_socktype != SOCK_STREAM)
+	    continue; /* huh? */
 #if DEBUG_SERVICE
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Service `%s' will bind to `%s'\n",

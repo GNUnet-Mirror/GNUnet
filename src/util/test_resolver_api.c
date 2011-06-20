@@ -359,7 +359,6 @@ run(void *cls, char * const *args,
 
   GNUNET_RESOLVER_ip_get("localhost", AF_INET, timeout, &check_127,
 			 cls);
-  fprintf (stderr, "Trying to get hostname for 127.0.0.1\n");
   GNUNET_RESOLVER_hostname_get((const struct sockaddr *) &sa,
       sizeof(struct sockaddr), GNUNET_YES, timeout, &check_localhost, cls);
 
