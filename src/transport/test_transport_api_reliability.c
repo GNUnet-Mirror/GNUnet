@@ -333,7 +333,8 @@ notify_ready (void *cls, size_t size, void *buf)
   while (size - ret >= s);
   if (n < TOTAL_MSGS)
   {
-    th_p2 = GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
+    if (th_p2 == NULL)
+      th_p2 = GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
 					    &p1.id,
 					    s, 0, TIMEOUT,
 					    &notify_ready,
@@ -360,6 +361,8 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
               "Peer `%4s' disconnected (%p)!\n",
 	      GNUNET_i2s (peer), cls);
 #endif
+  if (th_p2 != NULL)
+    GNUNET_TRANSPORT_notify_transmit_ready_cancel(th_p2);
 }
 
 
