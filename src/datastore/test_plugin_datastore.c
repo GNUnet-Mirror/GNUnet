@@ -269,7 +269,7 @@ test (void *cls,
 	{
 	  put_value (crc->api, j, crc->i);
 	  cs = crc->api->estimate_size (crc->api->cls);
-	  GNUNET_assert (os < cs);
+	  GNUNET_assert (os <= cs);
 	  os = cs;
 	}
       crc->phase++;
