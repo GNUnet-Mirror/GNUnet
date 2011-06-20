@@ -102,7 +102,8 @@ static void
 end ()
 {
   GNUNET_assert (ok == 6);
-  GNUNET_SCHEDULER_cancel (die_task);
+  if (GNUNET_SCHEDULER_NO_TASK != die_task)
+    GNUNET_SCHEDULER_cancel (die_task);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Disconnecting from transports!\n");
   if (th != NULL)
@@ -250,8 +251,10 @@ notify_connect (void *cls,
       GNUNET_assert (ok >= 2);
       OKPP;
       OKPP;
-      GNUNET_SCHEDULER_cancel (die_task);
-      GNUNET_SCHEDULER_cancel (tct);
+      if (GNUNET_SCHEDULER_NO_TASK != die_task)
+        GNUNET_SCHEDULER_cancel (die_task);
+      if (GNUNET_SCHEDULER_NO_TASK != tct)
+        GNUNET_SCHEDULER_cancel (tct);
       tct = GNUNET_SCHEDULER_NO_TASK;
       GNUNET_TRANSPORT_get_hello_cancel (p2.th, &exchange_hello_last, &p2);
       GNUNET_TRANSPORT_get_hello_cancel (p1.th, &exchange_hello, &p1);

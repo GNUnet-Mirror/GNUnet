@@ -114,7 +114,8 @@ end ()
   unsigned long long delta;
   char *value_name;
 
-  GNUNET_SCHEDULER_cancel (die_task);
+  if (die_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (die_task);
   die_task = GNUNET_SCHEDULER_NO_TASK;
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transports!\n");
@@ -227,7 +228,8 @@ notify_receive (void *cls,
 		  n, s,
 		  ntohs (message->size),
 		  ntohl (hdr->num));
-      GNUNET_SCHEDULER_cancel (die_task);
+      if (die_task != GNUNET_SCHEDULER_NO_TASK)
+        GNUNET_SCHEDULER_cancel (die_task);
       die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
       return;
     }
@@ -238,7 +240,8 @@ notify_receive (void *cls,
 		  n, s,
 		  ntohs (message->size),
 		  ntohl (hdr->num));
-      GNUNET_SCHEDULER_cancel (die_task);
+      if (die_task != GNUNET_SCHEDULER_NO_TASK)
+        GNUNET_SCHEDULER_cancel (die_task);
       die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
       return;
     }
@@ -250,7 +253,8 @@ notify_receive (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  "Expected message %u with bits %u, but body did not match\n",
 		  n, (unsigned char) n);
-      GNUNET_SCHEDULER_cancel (die_task);
+      if (die_task != GNUNET_SCHEDULER_NO_TASK)
+        GNUNET_SCHEDULER_cancel (die_task);
       die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
       return;
     }
@@ -267,7 +271,8 @@ notify_receive (void *cls,
   if (0 == (n % (TOTAL_MSGS/100)))
     {
       fprintf (stderr, ".");
-      GNUNET_SCHEDULER_cancel (die_task);
+      if (die_task != GNUNET_SCHEDULER_NO_TASK)
+        GNUNET_SCHEDULER_cancel (die_task);
       die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 					       &end_badly,
 					       NULL);
@@ -420,7 +425,9 @@ notify_connect (void *cls,
     }
   if (2 == connected)
     {
-      GNUNET_SCHEDULER_cancel (die_task);
+      if (die_task != GNUNET_SCHEDULER_NO_TASK)
+        GNUNET_SCHEDULER_cancel (die_task);
+      if (tct != GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel (tct);
       tct = GNUNET_SCHEDULER_NO_TASK;
       GNUNET_TRANSPORT_get_hello_cancel (p2.th, &exchange_hello_last, &p2);
