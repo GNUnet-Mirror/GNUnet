@@ -134,6 +134,13 @@ static unsigned int skip_log;
  */
 static FILE *GNUNET_stderr;
 
+#ifdef WINDOWS
+/**
+ * Contains the number of performance counts per second.
+ */
+LARGE_INTEGER performance_frequency;
+#endif
+
 /**
  * Convert a textual description of a loglevel
  * to the respective GNUNET_GE_KIND.
@@ -173,6 +180,9 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
   int dirwarn;
   char *fn;
 
+#ifdef WINDOWS
+  QueryPerformanceFrequency (&performance_frequency);
+#endif
   GNUNET_free_non_null (component);
   GNUNET_asprintf (&component,
 		   "%s-%d",
@@ -355,7 +365,9 @@ mylog (enum GNUNET_ErrorType kind,
        const char *comp, const char *message, va_list va)
 {
   char date[DATE_STR_SIZE];
+  char date2[DATE_STR_SIZE];
   time_t timetmp;
+  struct timeval timeofday;
   struct tm *tmptr;
   size_t size;
   char *buf;
@@ -378,8 +390,20 @@ mylog (enum GNUNET_ErrorType kind,
   time (&timetmp);
   memset (date, 0, DATE_STR_SIZE);
   tmptr = localtime (&timetmp);
+  gettimeofday(&timeofday, NULL);
   if (NULL != tmptr)
-    strftime (date, DATE_STR_SIZE, "%b %d %H:%M:%S", tmptr);
+  {
+#ifdef WINDOWS
+    LARGE_INTEGER pc;
+    pc.QuadPart = 0;
+    QueryPerformanceCounter (&pc);
+    strftime (date2, DATE_STR_SIZE, "%b %d %H:%M:%S-%%020llu", tmptr);
+    snprintf (date, sizeof (date), date2, (long long) (pc.QuadPart / (performance_frequency.QuadPart / 1000)));
+#else
+    strftime (date2, DATE_STR_SIZE, "%b %d %H:%M:%S-%%06u", tmptr);
+    snprintf (date, sizeof (date), date2, timeofday.tv_usec);
+#endif
+  }
   else
     strcpy (date, "localtime error");
   if ((0 != (kind & GNUNET_ERROR_TYPE_BULK)) &&
