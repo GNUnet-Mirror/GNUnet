@@ -164,7 +164,7 @@ end ()
         }
     }
 
-  if (GNUNET_SCHEDULER_NO_TASK != tct)
+  if (GNUNET_SCHEDULER_NO_TASK != die_task)
     GNUNET_SCHEDULER_cancel (die_task);
   die_task = GNUNET_SCHEDULER_NO_TASK;
 #if VERBOSE
