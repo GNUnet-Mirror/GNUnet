@@ -1501,7 +1501,6 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ssize_t ret;
   size_t have;
 
-  GNUNET_assert (sock->nth.notify_ready != NULL);
 #if DEBUG_CONNECTION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "transmit_ready running (%p).\n", sock);
