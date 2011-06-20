@@ -1024,9 +1024,9 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
 	  next = pos->ai_next;
 	  if ( (disablev6) && (pos->ai_family == AF_INET6))
 	    continue;
-	  if (pos->ai_protocol != IPPROTO_TCP)
+	  if ( (pos->ai_protocol != IPPROTO_TCP) && (pos->ai_protocol != 0) )
 	    continue; /* not TCP */
-	  if (pos->ai_socktype != SOCK_STREAM)
+	  if ( (pos->ai_socktype != SOCK_STREAM) && (pos->ai_socktype != 0) )
 	    continue; /* huh? */
 #if DEBUG_SERVICE
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
