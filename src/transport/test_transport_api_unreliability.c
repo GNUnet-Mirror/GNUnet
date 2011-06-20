@@ -108,6 +108,9 @@ static int msg_sent;
 static int msg_recv_expected;
 static int msg_recv;
 
+static int p1_hello_canceled;
+static int p2_hello_canceled;
+
 /**
  * Sets a bit active in the bitmap.
  *
@@ -529,8 +532,18 @@ notify_connect (void *cls,
       if (GNUNET_SCHEDULER_NO_TASK != die_task)
         GNUNET_SCHEDULER_cancel (tct);
       tct = GNUNET_SCHEDULER_NO_TASK;
-      GNUNET_TRANSPORT_get_hello_cancel (p2.th, &exchange_hello_last, &p2);
-      GNUNET_TRANSPORT_get_hello_cancel (p1.th, &exchange_hello, &p1);
+
+      if (p2_hello_canceled == GNUNET_NO)
+      {
+        GNUNET_TRANSPORT_get_hello_cancel (p2.th, &exchange_hello_last, &p2);
+        p2_hello_canceled = GNUNET_YES;
+      }
+      if (p1_hello_canceled == GNUNET_NO)
+      {
+        GNUNET_TRANSPORT_get_hello_cancel (p1.th, &exchange_hello, &p1);
+        p1_hello_canceled = GNUNET_YES;
+      }
+
       die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 					       &end_badly, NULL);
       GNUNET_TRANSPORT_notify_transmit_ready (p2.th,
@@ -750,7 +763,9 @@ run (void *cls,
   GNUNET_assert(p1.th != NULL);
   GNUNET_assert(p2.th != NULL);
   GNUNET_TRANSPORT_get_hello (p1.th, &exchange_hello, &p1);
+  p1_hello_canceled = GNUNET_NO;
   GNUNET_TRANSPORT_get_hello (p2.th, &exchange_hello_last, &p2);
+  p2_hello_canceled = GNUNET_NO;
   tct = GNUNET_SCHEDULER_add_now (&try_connect, NULL);
 }
 
