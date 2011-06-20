@@ -1170,6 +1170,21 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
 
 
 /**
+ * Disable the "CORK" feature for communication with the given client,
+ * forcing the OS to immediately flush the buffer on transmission
+ * instead of potentially buffering multiple messages.
+ *
+ * @param client handle to the client
+ * @return GNUNET_OK on success
+ */
+int
+GNUNET_SERVER_client_disable_corking (struct GNUNET_SERVER_Client *client)
+{
+  return GNUNET_CONNECTION_disable_corking (client->connection);
+}
+
+
+/**
  * Notify us when the server has enough space to transmit
  * a message of the given size to the given client.
  *

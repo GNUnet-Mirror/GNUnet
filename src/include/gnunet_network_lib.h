@@ -240,6 +240,17 @@ int GNUNET_NETWORK_socket_setsockopt (struct GNUNET_NETWORK_Handle *fd,
 int GNUNET_NETWORK_socket_shutdown (struct GNUNET_NETWORK_Handle *desc,
                                     int how);
 
+/**
+ * Disable the "CORK" feature for communication with the given socket,
+ * forcing the OS to immediately flush the buffer on transmission
+ * instead of potentially buffering multiple messages.  Essentially
+ * reduces the OS send buffers to zero.
+ *
+ * @param desc socket
+ * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ */
+int GNUNET_NETWORK_socket_disable_corking (struct GNUNET_NETWORK_Handle *desc);
+
 
 /**
  * Create a new socket.   Configure it for non-blocking IO and

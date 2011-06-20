@@ -384,6 +384,18 @@ GNUNET_SERVER_ignore_shutdown (struct GNUNET_SERVER_Handle *h,
 
 
 /**
+ * Disable the "CORK" feature for communication with the given client,
+ * forcing the OS to immediately flush the buffer on transmission
+ * instead of potentially buffering multiple messages.
+ *
+ * @param client handle to the client
+ * @return GNUNET_OK on success
+ */
+int
+GNUNET_SERVER_client_disable_corking (struct GNUNET_SERVER_Client *client);
+
+
+/**
  * The tansmit context is the key datastructure for a conveniance API
  * used for transmission of complex results to the client followed
  * ONLY by signaling receive_done with success or error

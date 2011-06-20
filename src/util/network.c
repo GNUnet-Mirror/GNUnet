@@ -722,6 +722,30 @@ GNUNET_NETWORK_socket_shutdown (struct GNUNET_NETWORK_Handle *desc, int how)
 
 
 /**
+ * Disable the "CORK" feature for communication with the given socket,
+ * forcing the OS to immediately flush the buffer on transmission
+ * instead of potentially buffering multiple messages.  Essentially
+ * reduces the OS send buffers to zero.
+ *
+ * @param desc socket
+ * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ */
+int
+GNUNET_NETWORK_socket_disable_corking (struct GNUNET_NETWORK_Handle *desc)
+{
+  int value = 0;
+  int ret = 0;
+
+  if (0 != (ret = setsockopt (desc->fd, SOL_SOCKET, SO_SNDBUF, &value, sizeof (value))))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
+  if (0 != (ret = setsockopt (desc->fd, SOL_SOCKET, SO_RCVBUF, &value, sizeof (value))))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
+
+  return ret == 0 ? GNUNET_OK : GNUNET_SYSERR;
+}
+
+
+/**
  * Reset FD set
  * @param fds fd set
  */

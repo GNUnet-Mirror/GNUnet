@@ -958,6 +958,10 @@ transmit_shutdown_ack (void *cls, size_t size, void *buf)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Transmitting shutdown ACK.\n"));
 
+  /* Make the connection flushing for the purpose of ACK transmitting,
+     needed on W32 to ensure that the message is even received, harmless
+     on other platforms... */
+  GNUNET_break (GNUNET_OK == GNUNET_SERVER_client_disable_corking (client));
   msg = (struct GNUNET_MessageHeader *) buf;
   msg->type = htons (GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN_ACK);
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));

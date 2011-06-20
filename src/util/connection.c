@@ -301,6 +301,23 @@ void GNUNET_CONNECTION_persist_(struct GNUNET_CONNECTION_Handle *sock)
   sock->persist = GNUNET_YES;
 }
 
+
+/**
+ * Disable the "CORK" feature for communication with the given socket,
+ * forcing the OS to immediately flush the buffer on transmission
+ * instead of potentially buffering multiple messages.  Essentially
+ * reduces the OS send buffers to zero.
+ * Used to make sure that the last messages sent through the connection
+ * reach the other side before the process is terminated.
+ *
+ * @param sock the connection to make flushing and blocking
+ * @return GNUNET_OK on success
+ */
+int GNUNET_CONNECTION_disable_corking (struct GNUNET_CONNECTION_Handle *sock)
+{
+  return GNUNET_NETWORK_socket_disable_corking (sock->sock);
+}
+
 /**
  * Create a socket handle by boxing an existing OS socket.  The OS
  * socket should henceforth be no longer used directly.
