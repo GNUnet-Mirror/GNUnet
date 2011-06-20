@@ -1606,7 +1606,7 @@ SCHEDULE_WRITE:
   GNUNET_assert ( (sock->nth.notify_ready != NULL) || (have > 0) );
   if (sock->write_task == GNUNET_SCHEDULER_NO_TASK)
     sock->write_task =
-      GNUNET_SCHEDULER_add_write_net ((have > 0) 
+      GNUNET_SCHEDULER_add_write_net ((sock->nth.notify_ready == NULL) 
 				      ? GNUNET_TIME_UNIT_FOREVER_REL 
 				      : GNUNET_TIME_absolute_get_remaining (sock->nth.transmit_timeout),
 				      sock->sock, 

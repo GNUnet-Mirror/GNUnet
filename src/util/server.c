@@ -375,6 +375,22 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
                         (serverAddr->sa_family == AF_INET) ? "IPv4" : "IPv6");
           eno = 0;
         }
+      else
+	{
+	  if (port != 0)
+	    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+			_
+			("`%s' failed for port %d (%s): address already in use\n"),
+			"bind", port,
+			(serverAddr->sa_family == AF_INET) ? "IPv4" : "IPv6");
+	  else if (serverAddr->sa_family == AF_UNIX)
+	    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+			_
+			("`%s' failed for `%s': address already in use\n"),
+			"bind", 
+			((const struct sockaddr_un*) serverAddr)->sun_path);
+
+	}
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
       errno = eno;
       return NULL;

@@ -23,8 +23,6 @@
  * @brief code to do DNS resolution
  * @author Christian Grothoff
  */
-
-#include <stdlib.h>
 #include "platform.h"
 #include "gnunet_disk_lib.h"
 #include "gnunet_getopt_lib.h"
@@ -440,6 +438,7 @@ handle_get (void *cls,
   uint16_t msize;
   const struct GNUNET_RESOLVER_GetMessage *msg;
   const char *hostname;
+  const struct sockaddr *sa;
   uint16_t size;
   int direction;
   int domain;
@@ -473,11 +472,51 @@ handle_get (void *cls,
     }
   else
     {
-#if DEBUG_RESOLVER
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  _("Resolver asked to look up IP address.\n"));
+#if DEBUG_RESOLVER      
+      char buf[INET6_ADDRSTRLEN] buf;
 #endif
-      get_ip_as_string (client, (const struct sockaddr *) &msg[1], size);
+      sa = (const struct sockaddr*) &msg[1];
+      if (size < sizeof (struct sockaddr_in))
+	{
+	  GNUNET_break (0);
+	  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+	  return;
+	}
+      switch (sa->sa_family)
+	{
+	case AF_INET:
+	  if (size != sizeof (struct sockaddr_in))
+	    {
+	      GNUNET_break (0);
+	      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+	      return;
+	    }
+#if DEBUG_RESOLVER      
+	  inet_ntop (AF_INET, sa, buf, size);
+#endif
+	  break;
+	case AF_INET6:
+	  if (size != sizeof (struct sockaddr_in6))
+	    {
+	      GNUNET_break (0);
+	      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+	      return;
+	    }
+#if DEBUG_RESOLVER      
+	  inet_ntop (AF_INET6, sa, buf, size);
+#endif
+	  break;
+	default:
+	  GNUNET_break (0);
+	  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+	  return;
+	}      
+#if DEBUG_RESOLVER      
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  _("Resolver asked to look up IP address `%s'.\n"),
+		  buf);
+#endif
+      get_ip_as_string (client, sa, size);
     }
 }
 

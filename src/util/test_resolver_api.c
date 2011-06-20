@@ -54,6 +54,7 @@ check_hostname(void *cls, const struct sockaddr *sa, socklen_t salen)
       GNUNET_a2s(sa, salen));
 }
 
+
 static void
 check_localhost_num(void *cls, const char *hostname)
 {
@@ -77,6 +78,7 @@ check_localhost_num(void *cls, const char *hostname)
       GNUNET_break(0);
     }
 }
+
 
 static void
 check_localhost(void *cls, const char *hostname)
@@ -223,7 +225,7 @@ run(void *cls, char * const *args,
   int *ok = cls;
   struct sockaddr_in sa;
   struct GNUNET_TIME_Relative timeout = GNUNET_TIME_relative_multiply(
-      GNUNET_TIME_UNIT_MILLISECONDS, 2500);
+      GNUNET_TIME_UNIT_SECONDS, 30);
   int count_ips = 0;
   char * own_fqdn;
 
@@ -233,15 +235,6 @@ run(void *cls, char * const *args,
   sa.sin_len = (u_char) sizeof (sa);
 #endif
   sa.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-  GNUNET_RESOLVER_ip_get("localhost", AF_INET, timeout, &check_127,
-      cls);
-  GNUNET_RESOLVER_hostname_get((const struct sockaddr *) &sa,
-      sizeof(struct sockaddr), GNUNET_YES, timeout, &check_localhost, cls);
-  GNUNET_RESOLVER_hostname_get((const struct sockaddr *) &sa,
-      sizeof(struct sockaddr), GNUNET_NO, timeout, &check_localhost_num, cls);
-  GNUNET_RESOLVER_hostname_resolve(AF_UNSPEC, timeout,
-      &check_hostname, cls);
-
 
   /*
    * Looking up our own fqdn
@@ -254,7 +247,6 @@ run(void *cls, char * const *args,
    * Testing non-local DNS resolution
    * DNS rootserver to test: a.root-servers.net - 198.41.0.4
    */
-
   const char * rootserver_name = ROOTSERVER_NAME;
   struct hostent *rootserver;
 
@@ -340,10 +332,11 @@ run(void *cls, char * const *args,
   }
 
 #if DEBUG_RESOLVER
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "System's own reverse name resolution is working\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+	      "System's own reverse name resolution is working\n");
 #endif
-  /* Resolve the same using GNUNET */
 
+  /* Resolve the same using GNUNET */
   memset(&sa, 0, sizeof(sa));
   sa.sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN
@@ -356,6 +349,25 @@ run(void *cls, char * const *args,
 #endif
   GNUNET_RESOLVER_hostname_get((const struct sockaddr *) &sa,
       sizeof(struct sockaddr), GNUNET_YES, timeout, &check_rootserver_name, cls);
+
+  memset(&sa, 0, sizeof(sa));
+  sa.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  sa.sin_len = (u_char) sizeof (sa);
+#endif
+  sa.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+  GNUNET_RESOLVER_ip_get("localhost", AF_INET, timeout, &check_127,
+			 cls);
+  fprintf (stderr, "Trying to get hostname for 127.0.0.1\n");
+  GNUNET_RESOLVER_hostname_get((const struct sockaddr *) &sa,
+      sizeof(struct sockaddr), GNUNET_YES, timeout, &check_localhost, cls);
+
+  GNUNET_RESOLVER_hostname_get((const struct sockaddr *) &sa,
+      sizeof(struct sockaddr), GNUNET_NO, timeout, &check_localhost_num, cls);
+  GNUNET_RESOLVER_hostname_resolve(AF_UNSPEC, timeout,
+      &check_hostname, cls);
+
 }
 
 static int

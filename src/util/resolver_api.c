@@ -33,7 +33,6 @@
 #include "gnunet_server_lib.h"
 #include "resolver.h"
 
-
 /**
  * Maximum supported length for a hostname
  */
@@ -239,6 +238,10 @@ GNUNET_RESOLVER_disconnect ()
   GNUNET_assert (NULL == req_tail);
   if (NULL != client)
     {
+#if DEBUG_RESOLVER
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Disconnecting from DNS service\n");
+#endif
       GNUNET_CLIENT_disconnect (client, GNUNET_NO);
       client = NULL;
     }
@@ -339,6 +342,10 @@ handle_response (void *cls,
   const struct sockaddr *sa;
   socklen_t salen;
 
+#if DEBUG_RESOLVER
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Receiving response from DNS service\n");
+#endif
   if (msg == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -437,8 +444,9 @@ handle_response (void *cls,
       {
 	char *ips = no_resolve (sa, salen);
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		    "Resolver returns `%s' for `%s'.\n", ips,
-		    rh->hostname);
+		    "Resolver returns `%s' for `%s'.\n", 
+		    ips,
+		    (const char*) &rh[1]);
 	GNUNET_free (ips);
       }
 #endif
@@ -601,7 +609,10 @@ process_requests ()
   msg->direction = htonl (rh->direction);
   msg->domain = htonl (rh->domain);
   memcpy (&msg[1], &rh[1], rh->data_len);
-
+#if DEBUG_RESOLVER
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmitting DNS resolution request to DNS service\n");
+#endif
   if (GNUNET_OK !=
       GNUNET_CLIENT_transmit_and_get_response (client,
                                                &msg->header,
@@ -633,9 +644,15 @@ reconnect_task (void *cls,
     return; /* no work pending */
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
+#if DEBUG_RESOLVER
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Trying to connect to DNS service\n");
+#endif
   client = GNUNET_CLIENT_connect ("resolver", cfg);
   if (NULL == client)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Failed to connect, will try again later\n");
       reconnect ();
       return;
     }
@@ -677,6 +694,11 @@ reconnect ()
 	  break;
 	}
     }
+#if DEBUG_RESOLVER
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Will try to connect to DNS service in %llu ms\n",
+	      (unsigned long long) backoff.rel_value);
+#endif
   r_task = GNUNET_SCHEDULER_add_delayed (backoff,
 					 &reconnect_task,
 					 NULL);
