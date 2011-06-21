@@ -473,7 +473,7 @@ handle_get (void *cls,
   else
     {
 #if DEBUG_RESOLVER      
-      char buf[INET6_ADDRSTRLEN] buf;
+      char buf[INET6_ADDRSTRLEN];
 #endif
       sa = (const struct sockaddr*) &msg[1];
       if (size < sizeof (struct sockaddr_in))
