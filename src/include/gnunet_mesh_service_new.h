@@ -252,9 +252,7 @@ struct GNUNET_MESH_TransmitHandle;
 
 /**
  * Ask the mesh to call "notify" once it is ready to transmit the
- * given number of bytes to the specified "target".  If we are not yet
- * connected to the specified peer, a call to this function will cause
- * us to try to establish a connection.
+ * given number of bytes to the specified tunnel or target. 
  *
  * @param tunnel tunnel to use for transmission
  * @param cork is corking allowed for this transmission?
