@@ -840,9 +840,6 @@ int
 main (int argc, char *argv[])
 {
   int ret;
-#ifdef MINGW
-  return GNUNET_SYSERR;
-#endif
 
   if (strstr(argv[0], "tcp_nat") != NULL)
     {
