@@ -185,6 +185,22 @@ struct GNUNET_SERVER_Client
   struct GNUNET_TIME_Absolute last_activity;
 
   /**
+   *
+   */
+  GNUNET_CONNECTION_TransmitReadyNotify callback;
+
+  /**
+   * callback
+   */
+  void *callback_cls;
+
+  /**
+   * After how long should an idle connection time
+   * out (on write).
+   */
+  struct GNUNET_TIME_Relative idle_timeout;
+
+  /**
    * Number of external entities with a reference to
    * this client object.
    */
@@ -765,11 +781,11 @@ process_mst (struct GNUNET_SERVER_Client *client,
 	  client->receive_pending = GNUNET_YES;
 #if DEBUG_SERVER
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Server re-enters receive loop.\n");
+		      "Server re-enters receive loop, timeout: %llu.\n", client->server->idle_timeout.rel_value);
 #endif
 	  GNUNET_CONNECTION_receive (client->connection,
 				     GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
-				     client->server->idle_timeout, 
+				     client->idle_timeout,
 				     &process_incoming, client);
 	  break;
 	}
@@ -821,10 +837,29 @@ process_incoming (void *cls,
 {
   struct GNUNET_SERVER_Client *client = cls;
   struct GNUNET_SERVER_Handle *server = client->server;
+  struct GNUNET_TIME_Absolute start;
   int ret;
 
   GNUNET_assert (client->receive_pending == GNUNET_YES);
   client->receive_pending = GNUNET_NO;
+  start = GNUNET_TIME_absolute_subtract(GNUNET_TIME_absolute_get(),client->idle_timeout);
+
+
+  if ((buf == NULL) && (available == 0)  && (addr == NULL) && (errCode == 0) &&
+      (client->last_activity.abs_value == GNUNET_TIME_absolute_max(start, client->last_activity).abs_value))
+    {
+      // wait longer...
+#if DEBUG_SERVER
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Receive time out, but no disconnect due to sending (%p)\n",
+              GNUNET_a2s (addr, addrlen));
+#endif
+      GNUNET_SERVER_client_keep (client);
+      client->last_activity = GNUNET_TIME_absolute_get ();
+      process_mst (client, ret);
+      return;
+    }
+
   if ((buf == NULL) ||
       (available == 0) ||
       (errCode != 0) ||
@@ -879,7 +914,8 @@ restart_processing (void *cls,
       client->receive_pending = GNUNET_YES;
       GNUNET_CONNECTION_receive (client->connection,
 				 GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
-				 client->server->idle_timeout, &process_incoming, client);
+				 client->idle_timeout, &process_incoming, client);
+
       return;
     }
 #if DEBUG_SERVER
@@ -950,12 +986,31 @@ GNUNET_SERVER_connect_socket (struct
   client->server = server;
   client->last_activity = GNUNET_TIME_absolute_get ();
   client->next = server->clients;
+  client->idle_timeout = server->idle_timeout;
   server->clients = client;
   client->receive_pending = GNUNET_YES;
+  client->callback = NULL;
+  client->callback_cls = NULL;
   GNUNET_CONNECTION_receive (client->connection,
 			     GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
-			     server->idle_timeout, &process_incoming, client);
+			     client->idle_timeout, &process_incoming, client);
   return client;
+}
+
+
+/**
+ * Change the timeout for a particular client.  Decreasing the timeout
+ * may not go into effect immediately (only after the previous timeout
+ * times out or activity happens on the socket).
+ *
+ * @param client the client to update
+ * @param timeout new timeout for activities on the socket
+ */
+void
+GNUNET_SERVER_client_set_timeout (struct GNUNET_SERVER_Client *client,
+         struct GNUNET_TIME_Relative timeout)
+{
+  client->idle_timeout = timeout;
 }
 
 
@@ -1183,6 +1238,20 @@ GNUNET_SERVER_client_disable_corking (struct GNUNET_SERVER_Client *client)
   return GNUNET_CONNECTION_disable_corking (client->connection);
 }
 
+size_t transmit_ready_callback_wrapper (void *cls, size_t size, void *buf)
+{
+  int ret;
+  struct GNUNET_SERVER_Client *client = cls;
+
+  GNUNET_CONNECTION_TransmitReadyNotify callback = client->callback;
+  void * callback_cls = client->callback_cls;
+
+  client->last_activity = GNUNET_TIME_absolute_get();
+  client->callback = NULL;
+  client->callback_cls = NULL;
+
+  return callback (callback_cls, size, buf);
+}
 
 /**
  * Notify us when the server has enough space to transmit
@@ -1206,10 +1275,17 @@ GNUNET_SERVER_notify_transmit_ready (struct GNUNET_SERVER_Client *client,
                                      GNUNET_CONNECTION_TransmitReadyNotify
                                      callback, void *callback_cls)
 {
+  GNUNET_assert (client->callback == NULL);
+
+  client->callback_cls = callback_cls;
+  client->callback = callback;
+
   return GNUNET_CONNECTION_notify_transmit_ready (client->connection,
 						  size,
-						  timeout, callback, callback_cls);
+						  timeout, transmit_ready_callback_wrapper, client);
 }
+
+
 
 /**
  * Set the persistent flag on this client, used to setup client connection
