@@ -857,6 +857,7 @@ process_incoming (void *cls,
 		  "Receive time out, but no disconnect due to sending (%p)\n",
 		  GNUNET_a2s (addr, addrlen));
 #endif
+      client->receive_pending = GNUNET_YES;
       GNUNET_CONNECTION_receive (client->connection,
 				 GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
 				 GNUNET_TIME_absolute_get_remaining (end),
