@@ -849,6 +849,9 @@ process_incoming (void *cls,
 				  client->idle_timeout);
 
   if ( (buf == NULL) && (available == 0)  && (addr == NULL) && (errCode == 0) &&
+       (client->shutdown_now != GNUNET_YES) &&
+       (server != NULL) &&
+       (GNUNET_YES == GNUNET_CONNECTION_check (client->connection)) &&
        (end.abs_value > now.abs_value) )
     {
       /* wait longer, timeout changed (i.e. due to us sending) */
