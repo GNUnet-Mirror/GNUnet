@@ -1357,6 +1357,7 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
   handle->my_hello = NULL;
   GNUNET_assert (handle->hwl_head == NULL);
   GNUNET_assert (handle->hwl_tail == NULL);
+  GNUNET_CONTAINER_heap_destroy (handle->ready_heap);
   GNUNET_free (handle);
 }
 
