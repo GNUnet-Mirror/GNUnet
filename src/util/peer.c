@@ -73,6 +73,35 @@ static unsigned int free_list_start;
 
 
 /**
+ * Search for a peer identity. The reference counter is not changed.
+ *
+ * @param pid identity to find
+ * @return the interned identity or 0.
+ */
+GNUNET_PEER_Id
+GNUNET_PEER_search (const struct GNUNET_PeerIdentity *pid)
+{
+  struct PeerEntry *e;
+  long off;
+
+  if (pid == NULL)
+    return 0;
+  if (NULL == map)
+    return 0;
+  off = (long) GNUNET_CONTAINER_multihashmap_get (map, &pid->hashPubKey);
+  e = (off == 0) ? NULL : &table[off];
+  if (e != NULL)
+    {
+      GNUNET_assert (e->rc > 0);
+      return e->pid;
+    }
+  else
+    {
+      return 0;
+    }
+}
+
+/**
  * Intern an peer identity.  If the identity is already known, its
  * reference counter will be increased by one.
  *

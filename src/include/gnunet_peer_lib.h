@@ -48,6 +48,15 @@ typedef unsigned int GNUNET_PEER_Id;
 
 
 /**
+ * Search for a peer identity. The reference counter is not changed.
+ *
+ * @param pid identity to find
+ * @return the interned identity or 0.
+ */
+GNUNET_PEER_Id GNUNET_PEER_search (const struct GNUNET_PeerIdentity *pid);
+
+
+/**
  * Intern an peer identity.  If the identity is already known, its
  * reference counter will be increased by one.
  *
