@@ -458,7 +458,7 @@ retrieve_tunnel_by_pi (GNUNET_PEER_Id pi, MESH_TunnelNumber tid)
 }
 
 
-#if LATER
+
 /**
  * Search for a tunnel by global ID using full PeerIdentities
  * @param oid owner of the tunnel
@@ -483,7 +483,7 @@ retrieve_tunnel (struct GNUNET_PeerIdentity *oid, MESH_TunnelNumber tid)
  * @return GNUNET_OK on success
  */
 static int
-destroy_path(struct MeshTunnel  *t, struct MeshPath *p)
+destroy_path(struct MeshPath *p)
 {
     GNUNET_PEER_decrement_rcs(p->peers, p->length);
     GNUNET_free(p->peers);
@@ -491,7 +491,7 @@ destroy_path(struct MeshTunnel  *t, struct MeshPath *p)
     return GNUNET_OK;
 }
 
-
+#if LATER
 /**
  * Destroy the peer_info and free any allocated resources linked to it
  * @param t tunnel the path belongs to
@@ -522,13 +522,16 @@ destroy_peer_info(struct MeshPeerInfo *pi)
  * @return GNUNET_OK on success
  */
 static int
-destroy_tunnel(struct MeshClient *c, struct MeshTunnel  *t)
+destroy_tunnel(struct MeshTunnel  *t)
 {
 //     struct MeshPath         *path;
-    GNUNET_HashCode         hash;
-    int                     r;
+    struct MeshClient           *c;
+    GNUNET_HashCode             hash;
+    int                         r;
 
     if (NULL == t) return GNUNET_OK;
+
+    c = t->client;
 
     GNUNET_CRYPTO_hash(&t->id, sizeof(struct MESH_TunnelID), &hash);
     if(GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove(tunnels, &hash, t)) {
@@ -667,11 +670,98 @@ handle_mesh_path_create (void *cls,
                               const struct GNUNET_TRANSPORT_ATS_Information
                               *atsi)
 {
-    /* Extract path */
-    /* Find origin & self */
-    /* Search for origin in local tunnels */
-    /* Create tunnel / add path */
-    /* Retransmit to next link in chain, if any (core_notify + callback) */
+    unsigned int                        own_pos;
+    uint16_t                            size;
+    uint16_t                            i;
+    MESH_TunnelNumber                   tid;
+    struct GNUNET_MESH_ManipulatePath   *msg;
+    struct GNUNET_PeerIdentity          *pi;
+    GNUNET_HashCode                     hash;
+    struct MeshPath                     *path;
+    struct MeshPeerInfo                 *peer_info;
+    struct MeshTunnel                   *t;
+
+
+    size = ntohs(message->size);
+    if (size < sizeof(struct GNUNET_MESH_ManipulatePath)) {
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                   "received create path message too short\n");
+        return GNUNET_OK;
+    }
+
+    size -= sizeof(struct GNUNET_MESH_ManipulatePath);
+    if (size < 2 * sizeof(struct GNUNET_PeerIdentity)) {
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                   "create path message lacks enough peers\n");
+        return GNUNET_OK;
+    }
+    if (size % sizeof(struct GNUNET_PeerIdentity)) {
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                   "create path message of wrong size\n");
+        return GNUNET_OK;
+    }
+    msg = (struct GNUNET_MESH_ManipulatePath *) message;
+    size /= sizeof(struct GNUNET_PeerIdentity);
+
+    tid = ntohl(msg->tid);
+    pi = (struct GNUNET_PeerIdentity *) &msg[1];
+    t = retrieve_tunnel(pi, tid);
+
+    if (NULL == t) {
+        t = GNUNET_malloc(sizeof(struct MeshTunnel));
+        t->id.oid = GNUNET_PEER_intern(pi);
+        t->id.tid = tid;
+        t->local_tid = 0;
+        t->client = NULL;
+        t->peers = GNUNET_CONTAINER_multihashmap_create(32);
+
+        GNUNET_CRYPTO_hash(&t->id, sizeof(struct MESH_TunnelID), &hash);
+        if (GNUNET_OK !=
+            GNUNET_CONTAINER_multihashmap_put(tunnels,
+                            &hash,
+                            t,
+                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+        {
+            GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                   "create path: could not store tunnel in hashmap\n");
+            return GNUNET_OK;
+        }
+
+    }
+    peer_info = GNUNET_CONTAINER_multihashmap_get(peers,
+                                                  &pi[size - 1].hashPubKey);
+    if (NULL == peer_info) {
+        peer_info = GNUNET_malloc(sizeof(struct MeshPeerInfo));
+        peer_info->id = GNUNET_PEER_intern(&pi[size - 1]);
+        peer_info->state = MESH_PEER_WAITING;
+        GNUNET_CONTAINER_multihashmap_put(peers,
+                            &pi[size - 1].hashPubKey,
+                            peer_info,
+                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    }
+
+    path = GNUNET_malloc(sizeof(struct MeshPath));
+    path->length = size;
+    path->peers = GNUNET_malloc(size * sizeof(GNUNET_PEER_Id));
+    own_pos = 0;
+    for (i = 0; i < size; i++) {
+        path->peers[i] = GNUNET_PEER_intern(&pi[i]);
+        if (path->peers[i] == myid) own_pos = i;
+    }
+    if (own_pos == 0) { /* cannot be self, must be 'not found' */
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                   "create path: self not found in path through self\n");
+        destroy_path(path);
+        /* FIXME destroy tunnel? leave for timeout? */
+        return 0;
+    }
+    if (own_pos == size - 1) { /* it is for us! */
+        destroy_path(path); /* not needed anymore */
+        /* TODO: send ack? new meesage type? */
+    } else {
+        add_path_to_peer(peer_info, path);
+        /* TODO: Retransmit to next link in chain, if any (core_notify + callback) */
+    }
     return GNUNET_OK;
 }
 
@@ -730,7 +820,7 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
 static int
 delete_tunnel_entry (void *cls, const GNUNET_HashCode * key, void *value) {
     int r;
-    r = destroy_tunnel((struct MeshClient *) cls, (struct MeshTunnel *) value);
+    r = destroy_tunnel((struct MeshTunnel *) value);
     return r;
 }
 
