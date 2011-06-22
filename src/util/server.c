@@ -838,30 +838,31 @@ process_incoming (void *cls,
 {
   struct GNUNET_SERVER_Client *client = cls;
   struct GNUNET_SERVER_Handle *server = client->server;
-  struct GNUNET_TIME_Absolute start;
+  struct GNUNET_TIME_Absolute end;
+  struct GNUNET_TIME_Absolute now;
   int ret;
 
   GNUNET_assert (client->receive_pending == GNUNET_YES);
   client->receive_pending = GNUNET_NO;
-  start = GNUNET_TIME_absolute_subtract(GNUNET_TIME_absolute_get(),client->idle_timeout);
+  now = GNUNET_TIME_absolute_get ();
+  end = GNUNET_TIME_absolute_add (client->last_activity,
+				  client->idle_timeout);
 
-
-  if ((buf == NULL) && (available == 0)  && (addr == NULL) && (errCode == 0) &&
-      (client->last_activity.abs_value == GNUNET_TIME_absolute_max(start, client->last_activity).abs_value))
+  if ( (buf == NULL) && (available == 0)  && (addr == NULL) && (errCode == 0) &&
+       (end.abs_value > now.abs_value) )
     {
-      // wait longer...
+      /* wait longer, timeout changed (i.e. due to us sending) */
 #if DEBUG_SERVER
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Receive time out, but no disconnect due to sending (%p)\n",
-              GNUNET_a2s (addr, addrlen));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Receive time out, but no disconnect due to sending (%p)\n",
+		  GNUNET_a2s (addr, addrlen));
 #endif
-      GNUNET_SERVER_client_keep (client);
-      client->last_activity = GNUNET_TIME_absolute_get ();
-      client->suspended--;
-      process_mst (client, GNUNET_OK);
+      GNUNET_CONNECTION_receive (client->connection,
+				 GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
+				 GNUNET_TIME_absolute_get_remaining (end),
+				 &process_incoming, client);
       return;
     }
-
   if ((buf == NULL) ||
       (available == 0) ||
       (errCode != 0) ||
@@ -880,7 +881,7 @@ process_incoming (void *cls,
 	      GNUNET_a2s (addr, addrlen));
 #endif
   GNUNET_SERVER_client_keep (client);
-  client->last_activity = GNUNET_TIME_absolute_get ();
+  client->last_activity = now;
   ret = GNUNET_SERVER_mst_receive (client->mst, client, buf, available, GNUNET_NO, GNUNET_YES);
   process_mst (client, ret);
 }
@@ -1241,19 +1242,28 @@ GNUNET_SERVER_client_disable_corking (struct GNUNET_SERVER_Client *client)
   return GNUNET_CONNECTION_disable_corking (client->connection);
 }
 
-size_t transmit_ready_callback_wrapper (void *cls, size_t size, void *buf)
+
+/**
+ * Wrapper for transmission notification that calls the original
+ * callback and update the last activity time for our connection.
+ * 
+ * @param cls the 'struct GNUNET_SERVER_Client'
+ * @param size number of bytes we can transmit
+ * @param buf where to copy the message 
+ * @return number of bytes actually transmitted
+ */
+static size_t 
+transmit_ready_callback_wrapper (void *cls, size_t size, void *buf)
 {
   struct GNUNET_SERVER_Client *client = cls;
+  size_t ret;
 
-  GNUNET_CONNECTION_TransmitReadyNotify callback = client->callback;
-  void * callback_cls = client->callback_cls;
-
-  client->last_activity = GNUNET_TIME_absolute_get();
-  client->callback = NULL;
-  client->callback_cls = NULL;
-
-  return callback (callback_cls, size, buf);
+  ret = client->callback (client->callback_cls, size, buf);
+  if (ret > 0)
+    client->last_activity = GNUNET_TIME_absolute_get();
+  return ret;
 }
+
 
 /**
  * Notify us when the server has enough space to transmit
@@ -1277,16 +1287,13 @@ GNUNET_SERVER_notify_transmit_ready (struct GNUNET_SERVER_Client *client,
                                      GNUNET_CONNECTION_TransmitReadyNotify
                                      callback, void *callback_cls)
 {
-  GNUNET_assert (client->callback == NULL);
-
   client->callback_cls = callback_cls;
   client->callback = callback;
-
   return GNUNET_CONNECTION_notify_transmit_ready (client->connection,
 						  size,
-						  timeout, transmit_ready_callback_wrapper, client);
+						  timeout,
+						  &transmit_ready_callback_wrapper, client);
 }
-
 
 
 /**
@@ -1300,6 +1307,7 @@ GNUNET_SERVER_client_persist_ (struct GNUNET_SERVER_Client *client)
 {
   client->persist = GNUNET_YES;
 }
+
 
 /**
  * Resume receiving from this client, we are done processing the
