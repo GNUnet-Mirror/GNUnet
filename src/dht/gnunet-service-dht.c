@@ -1044,6 +1044,15 @@ increment_stats (const char *value)
     }
 }
 
+static void
+decrement_stats (const char *value)
+{
+  if (stats != NULL)
+    {
+      GNUNET_STATISTICS_update (stats, value, -1, GNUNET_NO);
+    }
+}
+
 /**
  *  Try to send another message from our core send list
  */
@@ -1644,6 +1653,7 @@ delete_peer (struct PeerInfo *peer, unsigned int bucket)
                                                        &peer->id.hashPubKey,
                                                        peer));
   GNUNET_free (peer);
+  decrement_stats(STAT_PEERS_KNOWN);
 }
 
 
@@ -5230,7 +5240,9 @@ handle_core_connect (void *cls,
       GNUNET_CONTAINER_multihashmap_put (all_known_peers, &peer->hashPubKey,
                                          ret,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+      increment_stats(STAT_PEERS_KNOWN);
     }
+
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s:%s Adding peer to routing list: %s\n", my_short_id, "DHT",

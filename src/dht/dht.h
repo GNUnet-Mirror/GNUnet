@@ -83,6 +83,7 @@
 #define STAT_DISCONNECTS "# Disconnects received"
 #define STAT_DUPLICATE_UID "# Duplicate UID's encountered (bad if any!)"
 #define STAT_RECENT_SEEN "# recent requests seen again (routing loops, alternate paths)"
+#define STAT_PEERS_KNOWN "# DHT Peers known"
 
 
 /**
