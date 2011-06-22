@@ -678,10 +678,11 @@ GNUNET_SERVER_inject (struct GNUNET_SERVER_Handle *server,
   type = ntohs (message->type);
   size = ntohs (message->size);
 #if DEBUG_SERVER
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Server schedules transmission of %u-byte message of type %u to client.\n",
               size, type);
-#endif
+#endif 0
   pos = server->handlers;
   found = GNUNET_NO;
   while (pos != NULL)
@@ -781,7 +782,7 @@ process_mst (struct GNUNET_SERVER_Client *client,
 	  client->receive_pending = GNUNET_YES;
 #if DEBUG_SERVER
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Server re-enters receive loop, timeout: %llu.\n", client->server->idle_timeout.rel_value);
+		      "Server re-enters receive loop, timeout: %llu.\n", client->idle_timeout.rel_value);
 #endif
 	  GNUNET_CONNECTION_receive (client->connection,
 				     GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
@@ -856,7 +857,8 @@ process_incoming (void *cls,
 #endif
       GNUNET_SERVER_client_keep (client);
       client->last_activity = GNUNET_TIME_absolute_get ();
-      process_mst (client, ret);
+      client->suspended--;
+      process_mst (client, GNUNET_OK);
       return;
     }
 
@@ -946,6 +948,7 @@ client_message_tokenizer_callback (void *cls,
   int ret;
 
 #if DEBUG_SERVER
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Tokenizer gives server message of type %u from client\n",
 	      ntohs (message->type));
@@ -1240,7 +1243,6 @@ GNUNET_SERVER_client_disable_corking (struct GNUNET_SERVER_Client *client)
 
 size_t transmit_ready_callback_wrapper (void *cls, size_t size, void *buf)
 {
-  int ret;
   struct GNUNET_SERVER_Client *client = cls;
 
   GNUNET_CONNECTION_TransmitReadyNotify callback = client->callback;
@@ -1316,6 +1318,7 @@ GNUNET_SERVER_receive_done (struct GNUNET_SERVER_Client *client, int success)
 {
   if (client == NULL)
     return;
+
   GNUNET_assert (client->suspended > 0);
   client->suspended--;
   if (success != GNUNET_OK)
