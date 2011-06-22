@@ -919,7 +919,6 @@ restart_processing (void *cls,
       GNUNET_CONNECTION_receive (client->connection,
 				 GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
 				 client->idle_timeout, &process_incoming, client);
-
       return;
     }
 #if DEBUG_SERVER
@@ -1327,7 +1326,6 @@ GNUNET_SERVER_receive_done (struct GNUNET_SERVER_Client *client, int success)
 {
   if (client == NULL)
     return;
-
   GNUNET_assert (client->suspended > 0);
   client->suspended--;
   if (success != GNUNET_OK)
