@@ -371,7 +371,7 @@ get_peer_info (const struct GNUNET_PeerIdentity *peer)
 }
 
 /**
- * find the first peer whom to send a packet to go down this path
+ * Find the first peer whom to send a packet to go down this path
  * @param path The path to use
  * @return short id of the next peer, myid in case of local delivery,
  * or 0 in case of error
@@ -396,10 +396,66 @@ get_first_hop (struct MeshPath *path)
     return 0;
 }
 
+
+/**
+ * Get the cost of the path.
+ * @param path The path to analyze
+ * @return Number of hops to reach destination, UINT_MAX in case the peer is not
+ * in the path
+ */
+static unsigned int
+get_path_cost(struct MeshPath *path)
+{
+    unsigned int        i;
+
+    if (NULL == path) return UINT_MAX;
+    for (i = 0; i < path->length; i++) {
+        if (path->peers[i] == myid) {
+            return path->length - i;
+        }
+    }
+    return UINT_MAX;
+}
+
+
+/**
+ * Add the path to the peer and update the path used to reach it in case this
+ * is the shortest.
+ * @param peer_info Destination peer to add the path to.
+ * @param path New path to add. Last peer must be the peer in arg 1.
+ */
 static void
 add_path_to_peer(struct MeshPeerInfo *peer_info, struct MeshPath *path)
 {
-    
+    unsigned int        i;
+    unsigned int        new_cost;
+    unsigned int        best_cost;
+    struct MeshPath     *aux;
+    struct MeshPath     *best;
+
+    if (NULL == peer_info || NULL == path) return;
+
+    new_cost = get_path_cost(path);
+    best_cost = UINT_MAX;
+    best = NULL;
+    for (aux = peer_info->path; aux != NULL; aux = aux->next) {
+        if ((i = get_path_cost(aux)) < best_cost) {
+            best = aux;
+            best_cost = i;
+        }
+    }
+    if (best_cost < new_cost) {
+        path->in_use = 0;
+        GNUNET_CONTAINER_DLL_insert_tail(peer_info->path,
+                                         peer_info->path_tail,
+                                         path);
+    } else {
+        if (NULL != best) best->in_use = 0;
+        path->in_use = 1;
+        GNUNET_CONTAINER_DLL_insert(peer_info->path,
+                                    peer_info->path_tail,
+                                    path);
+    }
     return;
 }
 
