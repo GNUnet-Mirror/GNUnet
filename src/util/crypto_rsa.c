@@ -761,7 +761,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
 
 /**
  * Encrypt a block with the public key of another host that uses the
- * same cyper.
+ * same cipher.
  *
  * @param block the block to encrypt
  * @param size the size of block

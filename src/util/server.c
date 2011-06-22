@@ -682,7 +682,7 @@ GNUNET_SERVER_inject (struct GNUNET_SERVER_Handle *server,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Server schedules transmission of %u-byte message of type %u to client.\n",
               size, type);
-#endif 0
+#endif
   pos = server->handlers;
   found = GNUNET_NO;
   while (pos != NULL)
