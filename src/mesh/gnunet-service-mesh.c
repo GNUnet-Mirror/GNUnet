@@ -381,8 +381,15 @@ get_first_hop (struct MeshPath *path)
 {
     unsigned int        i;
 
-    if (NULL == path) return 0;
-    if (path->in_use == 0) return 0;
+    while (NULL != path) {
+        if (path->in_use) break;
+        path = path->next;
+    }
+    if (NULL == path) {
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                   "tried to get the next hop from an invalid path\n");
+        return 0;
+    }
 
     for (i = 0; i < path->length; i++) {
         if (path->peers[i] == myid) {
@@ -524,11 +531,7 @@ retrieve_tunnel_by_pi (GNUNET_PEER_Id pi, MESH_TunnelNumber tid)
 static struct MeshTunnel *
 retrieve_tunnel (struct GNUNET_PeerIdentity *oid, MESH_TunnelNumber tid)
 {
-    GNUNET_PEER_Id              pi;
-
-    pi = GNUNET_PEER_intern(oid);
-    GNUNET_PEER_change_rc(pi, -1);
-    return retrieve_tunnel_by_pi(pi, tid);
+    return retrieve_tunnel_by_pi(GNUNET_PEER_search(oid), tid);
 }
 
 
@@ -580,7 +583,6 @@ destroy_peer_info(struct MeshPeerInfo *pi)
 static int
 destroy_tunnel(struct MeshTunnel  *t)
 {
-//     struct MeshPath         *path;
     struct MeshClient           *c;
     GNUNET_HashCode             hash;
     int                         r;
@@ -823,6 +825,66 @@ handle_mesh_path_create (void *cls,
 
 
 /**
+ * Core handler for mesh network traffic going from the origin to a peer
+ *
+ * @param cls closure
+ * @param message message
+ * @param peer peer identity this notification is about
+ * @param atsi performance data
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+static int
+handle_mesh_data_unicast (void *cls,
+                          const struct GNUNET_PeerIdentity *peer,
+                          const struct GNUNET_MessageHeader *message,
+                          const struct GNUNET_TRANSPORT_ATS_Information
+                          *atsi)
+{
+//     struct GNUNET_MESH_DataMessageFromOrigin    *msg = message;
+
+    if (GNUNET_MESSAGE_TYPE_DATA_MESSAGE_FROM_ORIGIN == ntohs(message->type)) {
+        /* Retransmit to next in path of tunnel identified by message */
+        
+        return GNUNET_OK;
+    } else { /* GNUNET_MESSAGE_TYPE_DATA_MESSAGE_TO_ORIGIN */
+        /* Retransmit to previous in path of tunnel identified by message */
+        return GNUNET_OK;
+    }
+}
+
+
+/**
+ * Core handler for mesh network traffic going from the origin to all peers
+ *
+ * @param cls closure
+ * @param message message
+ * @param peer peer identity this notification is about
+ * @param atsi performance data
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+static int
+handle_mesh_data_multicast (void *cls,
+                          const struct GNUNET_PeerIdentity *peer,
+                          const struct GNUNET_MessageHeader *message,
+                          const struct GNUNET_TRANSPORT_ATS_Information
+                          *atsi)
+{
+//     struct GNUNET_MESH_DataMessageMulticast    *msg = message;
+
+    if (GNUNET_MESSAGE_TYPE_DATA_MESSAGE_FROM_ORIGIN == ntohs(message->type)) {
+        /* Retransmit to next in path of tunnel identified by message */
+        
+        return GNUNET_OK;
+    } else { /* GNUNET_MESSAGE_TYPE_DATA_MESSAGE_TO_ORIGIN */
+        /* Retransmit to previous in path of tunnel identified by message */
+        return GNUNET_OK;
+    }
+}
+
+
+/**
  * Core handler for mesh network traffic
  *
  * @param cls closure
@@ -833,16 +895,19 @@ handle_mesh_path_create (void *cls,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-handle_mesh_network_traffic (void *cls,
-                             const struct GNUNET_PeerIdentity *peer,
-                             const struct GNUNET_MessageHeader *message,
-                             const struct GNUNET_TRANSPORT_ATS_Information
-                             *atsi)
+handle_mesh_data_to_orig (void *cls,
+                          const struct GNUNET_PeerIdentity *peer,
+                          const struct GNUNET_MessageHeader *message,
+                          const struct GNUNET_TRANSPORT_ATS_Information
+                          *atsi)
 {
-    if (GNUNET_MESSAGE_TYPE_MESH_DATA_GO == ntohs(message->type)) {
+//     struct GNUNET_MESH_DataMessageToOrigin    *msg = message;
+
+    if (GNUNET_MESSAGE_TYPE_DATA_MESSAGE_FROM_ORIGIN == ntohs(message->type)) {
         /* Retransmit to next in path of tunnel identified by message */
+        
         return GNUNET_OK;
-    } else { /* GNUNET_MESSAGE_TYPE_MESH_DATA_BACK */
+    } else { /* GNUNET_MESSAGE_TYPE_DATA_MESSAGE_TO_ORIGIN */
         /* Retransmit to previous in path of tunnel identified by message */
         return GNUNET_OK;
     }
@@ -854,8 +919,9 @@ handle_mesh_network_traffic (void *cls,
  */
 static struct GNUNET_CORE_MessageHandler core_handlers[] = {
   {&handle_mesh_path_create, GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE, 0},
-  {&handle_mesh_network_traffic, GNUNET_MESSAGE_TYPE_MESH_DATA_GO, 0},
-  {&handle_mesh_network_traffic, GNUNET_MESSAGE_TYPE_MESH_DATA_BACK, 0},
+  {&handle_mesh_data_unicast, GNUNET_MESSAGE_TYPE_DATA_MESSAGE_FROM_ORIGIN, 0},
+  {&handle_mesh_data_multicast, GNUNET_MESSAGE_TYPE_DATA_MULTICAST, 0},
+  {&handle_mesh_data_to_orig, GNUNET_MESSAGE_TYPE_DATA_MESSAGE_TO_ORIGIN, 0},
   {NULL, 0, 0}
 };
 
@@ -1358,7 +1424,6 @@ handle_local_connect_del (void *cls,
     struct MeshClient                   *c;
     struct MeshTunnel                   *t;
     MESH_TunnelNumber                   tid;
-    GNUNET_PEER_Id                      peer_id;
 
     /* Sanity check for client registration */
     if (NULL == (c = retrieve_client(client))) {
@@ -1393,12 +1458,8 @@ handle_local_connect_del (void *cls,
     }
 
     /* Ok, delete peer from tunnel */
-    peer_id = GNUNET_PEER_intern(&peer_msg->peer);
-
-    /* FIXME Delete paths */
-    /* FIXME Delete peer info */
-
-    GNUNET_PEER_change_rc(peer_id, -1);
+    GNUNET_CONTAINER_multihashmap_remove_all(t->peers,
+                                             &peer_msg->peer.hashPubKey);
 
     GNUNET_SERVER_receive_done(client, GNUNET_OK);
     return;
@@ -1670,8 +1731,7 @@ core_disconnect (void *cls,
     GNUNET_PEER_Id      pid;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Peer disconnected\n");
-    pid = GNUNET_PEER_intern(peer);
-    GNUNET_PEER_change_rc(pid, -1);
+    pid = GNUNET_PEER_search(peer);
     if (myid == pid) {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "     (self)\n");

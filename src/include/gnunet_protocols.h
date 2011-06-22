@@ -816,20 +816,26 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_PATH_CHANGED  259
 
 /**
- * Transport data in the mesh (origin->end)
+ * Transport data in the mesh (origin->end) unicast
  */
-#define GNUNET_MESSAGE_TYPE_MESH_DATA_GO       260
+#define GNUNET_MESSAGE_TYPE_DATA_MESSAGE_FROM_ORIGIN    260
+
+/**
+ * Transport data to all peers in a tunnel
+ */
+#define GNUNET_MESSAGE_TYPE_DATA_MULTICAST              261
 
 /**
  * Transport data back in the mesh (end->origin)
  * (not sure if this is the right way, should be some other solution)
  */
-#define GNUNET_MESSAGE_TYPE_MESH_DATA_BACK     261
+#define GNUNET_MESSAGE_TYPE_DATA_MESSAGE_TO_ORIGIN      262
+
 
 /**
  * We need flow control
  */
-#define GNUNET_MESSAGE_TYPE_MESH_SPEED_NOTIFY  262
+#define GNUNET_MESSAGE_TYPE_MESH_SPEED_NOTIFY  263
 
 /**
  * Connect to the mesh service, specifying subscriptions

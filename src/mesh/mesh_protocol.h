@@ -67,7 +67,7 @@ struct GNUNET_MESH_ManipulatePath
 /**
  * Message for mesh data traffic to all tunnel targets.
  */
-struct GNUNET_MESH_OriginMulticast
+struct GNUNET_MESH_DataMessageMulticast
 {
     /**
      * Type: GNUNET_MESSAGE_TYPE_DATA_MULTICAST
