@@ -666,6 +666,7 @@ transmit_item (void *cls,
 			    1,
 			    GNUNET_NO);
   transmit (client, &dm->header);
+  GNUNET_SERVER_client_drop (client);
   return GNUNET_OK;
 }
 
