@@ -272,28 +272,22 @@ do_transmit (void *cls, size_t size, void *buf)
   size_t ret;
 
   h->th = NULL;
+  if (tqe == NULL)
+    return 0;
   if (buf == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
                   _("Failed to transmit message to `%s' service.\n"),
 		  "PEERINFO");
-      if (tqe != NULL)
-	GNUNET_CONTAINER_DLL_remove (h->tq_head,
-				     h->tq_tail,
-				     tqe);
+      GNUNET_CONTAINER_DLL_remove (h->tq_head,
+				   h->tq_tail,
+				   tqe);
       reconnect (h);
-      if (tqe != NULL)
-	{
-	  if (tqe->cont != NULL)
-	    tqe->cont (tqe->cont_cls, GNUNET_SYSERR);
-	  GNUNET_free (tqe);
-	}
+      if (tqe->cont != NULL)
+	tqe->cont (tqe->cont_cls, GNUNET_SYSERR);
+      GNUNET_free (tqe);
       return 0;
     }
-  /* If it can be NULL above, it can be NULL here to... */
-  if (tqe == NULL)
-    return 0;
-
   ret = tqe->size;
   GNUNET_assert (size >= ret);
   memcpy (buf, &tqe[1], ret);
@@ -445,17 +439,12 @@ peerinfo_handler (void *cls,
   ic->h->in_receive = GNUNET_NO;
   if (msg == NULL)
     {
-      char *err_msg;
-      GNUNET_asprintf(&err_msg,
-		      _("Failed to receive response from `%s' service."), 
-		      "PEERINFO");
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s\n", err_msg);
       reconnect (ic->h);
       if (ic->timeout_task != GNUNET_SCHEDULER_NO_TASK)
 	GNUNET_SCHEDULER_cancel (ic->timeout_task);
       if (ic->callback != NULL)
-    	  ic->callback (ic->callback_cls, NULL, NULL, err_msg);
-      GNUNET_free (err_msg);
+	ic->callback (ic->callback_cls, NULL, NULL, 
+		      _("Failed to receive response from `PEERINFO' service."));
       GNUNET_free (ic);
       return;
     }
@@ -478,16 +467,13 @@ peerinfo_handler (void *cls,
   if ((ms < sizeof (struct InfoMessage)) ||
       (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_PEERINFO_INFO))
     {
-	  char * err_msg;
-	  GNUNET_asprintf(&err_msg,_("Received invalid message from `%s' service.\n"),"PEERINFO");
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,err_msg);
       GNUNET_break (0);
       reconnect (ic->h);
       if (ic->timeout_task != GNUNET_SCHEDULER_NO_TASK)
 	GNUNET_SCHEDULER_cancel (ic->timeout_task);
       if (ic->callback != NULL)
-	ic->callback (ic->callback_cls, NULL, NULL, err_msg);
-      GNUNET_free (err_msg);
+	ic->callback (ic->callback_cls, NULL, NULL, 
+		      _("Received invalid message from `PEERINFO' service.\n"));
       GNUNET_free (ic);
       return;
     }
@@ -499,18 +485,14 @@ peerinfo_handler (void *cls,
       hello = (const struct GNUNET_HELLO_Message *) &im[1];
       if (ms != sizeof (struct InfoMessage) + GNUNET_HELLO_size (hello))
         {
-	  char * err_msg;
-	  GNUNET_asprintf (&err_msg,
-			   _("Received invalid message from `%s' service.\n"),
-			   "PEERINFO");
 	  GNUNET_break (0);
 	  reconnect (ic->h);
 	  if (ic->timeout_task != GNUNET_SCHEDULER_NO_TASK)
 	    GNUNET_SCHEDULER_cancel (ic->timeout_task);
 	  if (ic->callback != NULL)
-	    ic->callback (ic->callback_cls, NULL, NULL, err_msg);
+	    ic->callback (ic->callback_cls, NULL, NULL, 
+			  _("Received invalid message from `PEERINFO' service.\n"));
 	  GNUNET_free (ic);
-	  GNUNET_free (err_msg);
 	  return;
         }
     }
@@ -547,9 +529,6 @@ iterator_start_receive (void *cls,
 
   if (GNUNET_OK != transmit_success)
     {
-      char * err_msg;
-      GNUNET_asprintf(&err_msg,_("Failed to transmit iteration request to `%s' service (%d).\n"),"PEERINFO",transmit_success);
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,err_msg);
       if (ic->timeout_task != GNUNET_SCHEDULER_NO_TASK)
 	{
 	  GNUNET_SCHEDULER_cancel (ic->timeout_task);
@@ -557,8 +536,8 @@ iterator_start_receive (void *cls,
 	}
       reconnect (ic->h);
       if (ic->callback != NULL)
-	ic->callback (ic->callback_cls, NULL, NULL, err_msg);
-      GNUNET_free (err_msg);
+	ic->callback (ic->callback_cls, NULL, NULL,
+		      _("Failed to transmit iteration request to `PEERINFO' service\n"));
       GNUNET_free (ic);
       return;
     }  
@@ -588,21 +567,19 @@ signal_timeout (void *cls,
 		const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_PEERINFO_IteratorContext *ic = cls;
-  char * err_msg;
-
-  GNUNET_asprintf(&err_msg,_("Timeout transmitting iteration request to `%s' service.\n"),
-	      "PEERINFO");
 
   ic->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   if (! ic->in_receive)
     GNUNET_CONTAINER_DLL_remove (ic->h->tq_head,
 				 ic->h->tq_tail,
 				 ic->tqe);
-  reconnect (ic->h);
-  ic->callback (ic->callback_cls, NULL, NULL, err_msg);
+  else
+    reconnect (ic->h);
+  ic->callback (ic->callback_cls,
+		NULL, NULL, 
+		_("Timeout transmitting iteration request to `PEERINFO' service.\n"));
   ic->callback = NULL;
   GNUNET_free_non_null (ic->tqe);
-  GNUNET_free (err_msg);
   GNUNET_free (ic);
 }
 
@@ -685,7 +662,6 @@ GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
 }
 
 
-
 /**
  * Cancel an iteration over peer information.
  *
@@ -700,7 +676,7 @@ GNUNET_PEERINFO_iterate_cancel (struct GNUNET_PEERINFO_IteratorContext *ic)
       ic->timeout_task = GNUNET_SCHEDULER_NO_TASK;
     }
   ic->callback = NULL;
-  if (ic->in_receive)
+  if (GNUNET_YES == ic->in_receive)
     return; /* need to finish processing */
   GNUNET_CONTAINER_DLL_remove (ic->h->tq_head,
 			       ic->h->tq_tail,
