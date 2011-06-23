@@ -686,6 +686,7 @@ revive_migration (void *cls,
 struct GSF_ConnectedPeer *
 GSF_peer_get_ (const struct GNUNET_PeerIdentity *peer)
 {
+  if (NULL == cp_map) return NULL;
   return GNUNET_CONTAINER_multihashmap_get (cp_map,
 					    &peer->hashPubKey);
 }
