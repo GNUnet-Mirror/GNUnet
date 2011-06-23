@@ -335,7 +335,10 @@ do_connect (const char *service_name,
 									unixpath);
 	      GNUNET_free (unixpath);
 	      if (sock != NULL)
-		return sock;	        
+		{
+		  GNUNET_free (hostname);
+		  return sock;	        
+		}
 	    }
 	}
 #endif
