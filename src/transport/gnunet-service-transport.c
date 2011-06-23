@@ -2600,6 +2600,7 @@ plugin_env_session_end  (void *cls,
       return; /* was never marked as connected */
     }
   pos->session = NULL;
+  pos->connected = GNUNET_NO;
   if (pos->addrlen != 0)
     {
       if (nl->received_pong != GNUNET_NO)
