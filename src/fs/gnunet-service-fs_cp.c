@@ -1700,6 +1700,8 @@ GSF_peer_disconnect_handler_ (void *cls,
 				   cp->pth_tail,
 				   pth);
       GNUNET_assert (0 == pth->cth_in_progress);
+      pth->gmc (pth->gmc_cls, 
+		0, NULL);
       GNUNET_free (pth);
     }
   while (NULL != (dh = cp->delayed_head))
