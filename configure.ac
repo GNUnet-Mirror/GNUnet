@@ -837,5 +837,7 @@ configuration file:
 	mkdir $HOME/.gnunet/
 	touch $HOME/.gnunet/gnunet.conf
 	
-Optionally, download and compile gnunet-gtk to get a GUI.
+Optionally, download and compile:
+- gnunet-gtk to get a GUI for file-sharing.
+- gnunet-setup to get a GUI for configuration.
 ********************************************])
