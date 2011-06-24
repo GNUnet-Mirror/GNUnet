@@ -1007,16 +1007,41 @@ handle_mesh_data_unicast (void *cls,
                           const struct GNUNET_TRANSPORT_ATS_Information
                           *atsi)
 {
-//     struct GNUNET_MESH_DataMessageFromOrigin    *msg = message;
+    struct GNUNET_MESH_DataMessageFromOrigin    *msg;
+    struct GNUNET_PeerIdentity                  id;
+    struct MeshTunnel                           *t;
+    struct MeshPeerInfo                         *pi;
+    size_t                                      size;
 
-    if (GNUNET_MESSAGE_TYPE_DATA_MESSAGE_FROM_ORIGIN == ntohs(message->type)) {
-        /* Retransmit to next in path of tunnel identified by message */
-        
-        return GNUNET_OK;
-    } else { /* GNUNET_MESSAGE_TYPE_DATA_MESSAGE_TO_ORIGIN */
-        /* Retransmit to previous in path of tunnel identified by message */
-        return GNUNET_OK;
+    size = ntohs(message->size); 
+    if (size < sizeof(struct GNUNET_MESH_DataMessageFromOrigin)) {
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                "got data from origin packet: too short\n");
+        return GNUNET_OK; // FIXME maybe SYSERR? peer misbehaving?
     }
+    msg = (struct GNUNET_MESH_DataMessageFromOrigin *) message;
+    t = retrieve_tunnel(&msg->oid, ntohl(msg->tid));
+    pi = GNUNET_CONTAINER_multihashmap_get(t->peers,
+                                        &msg->destination.hashPubKey);
+    if (NULL == pi) {
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                   "got invalid data from origin packet: wrong destination\n");
+        /* TODO are we so nice to try to deliver it anyway? maybe we missed
+         * a Create_path packed that added the peer but we have it in the global
+         * peer pool anyway...
+         */
+        return GNUNET_OK; // FIXME maybe SYSERR? peer misbehaving?
+    }
+    GNUNET_PEER_resolve(get_first_hop(pi->path), &id);
+    GNUNET_CORE_notify_transmit_ready(core_handle,
+        0,
+        0,
+        GNUNET_TIME_UNIT_FOREVER_REL,
+        &id,
+        size,
+        &send_core_data_to_origin,
+        msg);
+    return GNUNET_OK;
 }
 
 
@@ -1038,15 +1063,7 @@ handle_mesh_data_multicast (void *cls,
                           *atsi)
 {
 //     struct GNUNET_MESH_DataMessageMulticast    *msg = message;
-
-    if (GNUNET_MESSAGE_TYPE_DATA_MESSAGE_FROM_ORIGIN == ntohs(message->type)) {
-        /* Retransmit to next in path of tunnel identified by message */
-        
-        return GNUNET_OK;
-    } else { /* GNUNET_MESSAGE_TYPE_DATA_MESSAGE_TO_ORIGIN */
-        /* Retransmit to previous in path of tunnel identified by message */
-        return GNUNET_OK;
-    }
+    return GNUNET_OK;
 }
 
 
@@ -1068,15 +1085,7 @@ handle_mesh_data_to_orig (void *cls,
                           *atsi)
 {
 //     struct GNUNET_MESH_DataMessageToOrigin    *msg = message;
-
-    if (GNUNET_MESSAGE_TYPE_DATA_MESSAGE_FROM_ORIGIN == ntohs(message->type)) {
-        /* Retransmit to next in path of tunnel identified by message */
-        
-        return GNUNET_OK;
-    } else { /* GNUNET_MESSAGE_TYPE_DATA_MESSAGE_TO_ORIGIN */
-        /* Retransmit to previous in path of tunnel identified by message */
-        return GNUNET_OK;
-    }
+    return GNUNET_OK;
 }
 
 
