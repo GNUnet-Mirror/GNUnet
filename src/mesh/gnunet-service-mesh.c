@@ -730,7 +730,7 @@ send_core_create_path_for_peer (void *cls, size_t size, void *buf)
  * NULL and "size" zero if the socket was closed for
  * writing in the meantime.
  *
- * @param cls closure (data itself)
+ * @param cls closure (info_for_data_to_origin with all info to build packet)
  * @param size number of bytes available in buf
  * @param buf where the callee should write the message
  * @return number of bytes written to buf
@@ -759,6 +759,35 @@ send_core_data_to_origin (void *cls, size_t size, void *buf)
         memcpy(&msg[1], info->data, info->size);
     }
     GNUNET_free(info);
+    return total_size;
+}
+
+/**
+ * Function called to notify a client about the socket
+ * being ready to queue more data.  "buf" will be
+ * NULL and "size" zero if the socket was closed for
+ * writing in the meantime.
+ *
+ * @param cls closure (data itself)
+ * @param size number of bytes available in buf
+ * @param buf where the callee should write the message
+ * @return number of bytes written to buf
+ */
+static size_t
+send_core_data_from_origin (void *cls, size_t size, void *buf)
+{
+    struct GNUNET_MESH_DataMessageFromOrigin    *msg = cls;
+    size_t                                      total_size;
+
+    GNUNET_assert(NULL != msg);
+    total_size = ntohs(msg->header.size);
+
+    if (total_size > size) {
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                   "not enough buffer to send data futher\n");
+        return 0;
+    }
+    memcpy(msg, buf, total_size);
     return total_size;
 }
 
@@ -1039,7 +1068,7 @@ handle_mesh_data_unicast (void *cls,
         GNUNET_TIME_UNIT_FOREVER_REL,
         &id,
         size,
-        &send_core_data_to_origin,
+        &send_core_data_from_origin,
         msg);
     return GNUNET_OK;
 }
