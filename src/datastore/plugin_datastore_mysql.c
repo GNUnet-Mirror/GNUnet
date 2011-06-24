@@ -311,26 +311,6 @@ get_my_cnf_path (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
 
 /**
- * Free a prepared statement.
- *
- * @param plugin plugin context
- * @param s prepared statement
- */
-static void
-prepared_statement_destroy (struct Plugin *plugin, 
-			    struct GNUNET_MysqlStatementHandle *s)
-{
-  GNUNET_CONTAINER_DLL_remove (plugin->shead,
-			       plugin->stail,
-			       s);
-  if (s->valid)
-    mysql_stmt_close (s->statement);
-  GNUNET_free (s->query);
-  GNUNET_free (s);
-}
-
-
-/**
  * Close database connection and all prepared statements (we got a DB
  * disconnect error).
  * 
@@ -339,9 +319,16 @@ prepared_statement_destroy (struct Plugin *plugin,
 static int
 iclose (struct Plugin *plugin)
 {
-  while (NULL != plugin->shead)
-    prepared_statement_destroy (plugin,
-				plugin->shead);
+  struct GNUNET_MysqlStatementHandle *s;
+
+  for (s = plugin->shead; s != NULL; s = s->next)
+    {
+      if (s->valid)
+	{
+	  mysql_stmt_close (s->statement);
+	  s->valid = GNUNET_NO;
+	}
+    }
   if (plugin->dbf != NULL)
     {
       mysql_close (plugin->dbf);
@@ -377,6 +364,7 @@ iopen (struct Plugin *plugin)
   mysql_options (plugin->dbf, MYSQL_READ_DEFAULT_GROUP, "client");
   reconnect = 0;
   mysql_options (plugin->dbf, MYSQL_OPT_RECONNECT, &reconnect);
+  timeout = 120; /* in seconds */
   mysql_options (plugin->dbf,
                  MYSQL_OPT_CONNECT_TIMEOUT, (const void *) &timeout);
   mysql_options(plugin->dbf, MYSQL_SET_CHARSET_NAME, "UTF8");
@@ -1508,8 +1496,17 @@ libgnunet_plugin_datastore_mysql_done (void *cls)
 {
   struct GNUNET_DATASTORE_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
+  struct GNUNET_MysqlStatementHandle *s;
 
   iclose (plugin);
+  while (NULL != (s = plugin->shead))
+    {
+      GNUNET_CONTAINER_DLL_remove (plugin->shead,
+				   plugin->stail,
+				   s);
+      GNUNET_free (s->query);
+      GNUNET_free (s);
+    }
   GNUNET_free_non_null (plugin->cnffile);
   GNUNET_free (plugin);
   GNUNET_free (api);
