@@ -1619,6 +1619,7 @@ SCHEDULE_WRITE:
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Re-scheduling transmit_ready (more to do) (%p).\n", sock);
 #endif
+  have = sock->write_buffer_off - sock->write_buffer_pos;
   GNUNET_assert ( (sock->nth.notify_ready != NULL) || (have > 0) );
   if (sock->write_task == GNUNET_SCHEDULER_NO_TASK)
     sock->write_task =
