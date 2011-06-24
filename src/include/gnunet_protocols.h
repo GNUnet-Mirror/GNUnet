@@ -835,7 +835,7 @@ extern "C"
 /**
  * We need flow control
  */
-#define GNUNET_MESSAGE_TYPE_MESH_SPEED_NOTIFY  263
+#define GNUNET_MESSAGE_TYPE_MESH_SPEED_NOTIFY           270
 
 /**
  * Connect to the mesh service, specifying subscriptions

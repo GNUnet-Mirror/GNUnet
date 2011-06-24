@@ -468,6 +468,29 @@ add_path_to_peer(struct MeshPeerInfo *peer_info, struct MeshPath *path)
 
 
 /**
+ * Add the path to the peer and update the path used to reach it in case this
+ * is the shortest. The path is given in reverse, the destination peer is
+ * path[0]. The function modifies the path, inverting it to use the origin as
+ * destination.
+ * @param peer_info Destination peer to add the path to.
+ * @param path New path to add. First peer must be the peer in arg 1.
+ */
+static void
+add_path_to_origin(struct MeshPeerInfo *peer_info, struct MeshPath *path)
+{
+    GNUNET_PEER_Id      aux;
+    unsigned int        i;
+
+    for (i = 0; i < path->length/2; i++) {
+        aux = path->peers[i];
+        path->peers[i] = path->peers[path->length - i - 1];
+        path->peers[path->length - i - 1] = aux;
+    }
+    add_path_to_peer(peer_info, path);
+}
+
+
+/**
  * Check if client has registered with the service and has not disconnected
  * @param client the client to check
  * @return non-NULL if client exists in the global DLL
@@ -672,12 +695,115 @@ send_core_create_path_for_peer (void *cls, size_t size, void *buf)
         GNUNET_PEER_resolve(p->peers[i], peer_ptr++);
     }
 
-    peer_info->state = MESH_PEER_WAITING; // TODO maybe already ready?
+    peer_info->state = MESH_PEER_WAITING;
 
     return size_needed;
 }
 
+/**
+ * FIXME / COMMENT
+ * There are several options to send a "data to origin" or similar packet.
+ * The core callback function needs to know at least: ID of tunnel and the
+ * data itself, so one parameter (cls) is not enough.
+ * 1. Build the message inside the original funtction, call core_ntfy_trnsmt_rdy
+ *    passing the created message as cls
+ *    - # memcpy: 2 (function X: to message struct, callback: from cls to buf)
+ *    - Very messy, original function becomes huge and ugly
+ *      (see "handle_mesh_path_create" for example)
+ * 2. Create a helper function to build the packet, then call
+ *    core_ntfy_trnsmt_rdy with message as cls.
+ *    - # memcpy: 2 (in helper function data->msg and in callback cls->buf)
+ * 3- Define new container, pass container with pointers
+ *    - # memcpy = 1 (in callback, cls->buf)
+ *    - Noise: extra containers defined per type of message
+ */
+    struct info_for_data_to_origin
+{
+    struct MESH_TunnelID        *origin;
+    void                        *data;
+    size_t                      size;
+};
+
+/**
+ * Function called to notify a client about the socket
+ * being ready to queue more data.  "buf" will be
+ * NULL and "size" zero if the socket was closed for
+ * writing in the meantime.
+ *
+ * @param cls closure (data itself)
+ * @param size number of bytes available in buf
+ * @param buf where the callee should write the message
+ * @return number of bytes written to buf
+ */
+static size_t
+send_core_data_to_origin (void *cls, size_t size, void *buf)
+{
+    struct info_for_data_to_origin              *info = cls;
+    struct GNUNET_MESH_DataMessageToOrigin      *msg = buf;
+    size_t                                      total_size;
+
+    GNUNET_assert(NULL != info);
+    total_size = sizeof(struct GNUNET_MESH_DataMessageToOrigin) + info->size;
+    GNUNET_assert(total_size < (uint16_t) -1); /* FIXME */
+
+    if (total_size > size) {
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                   "not enough buffer to send data to origin\n");
+        return 0;
+    }
+    msg->header.size = htons(total_size);
+    msg->header.type = htons(GNUNET_MESSAGE_TYPE_DATA_MESSAGE_TO_ORIGIN);
+    GNUNET_PEER_resolve(info->origin->oid, &msg->oid);
+    msg->tid = htonl(info->origin->tid);
+    if (0 != info->size && NULL != info->data) {
+        memcpy(&msg[1], info->data, info->size);
+    }
+    GNUNET_free(info);
+    return total_size;
+}
+
+
 #if LATER
+/**
+ * Function called to notify a client about the socket
+ * being ready to queue more data.  "buf" will be
+ * NULL and "size" zero if the socket was closed for
+ * writing in the meantime.
+ *
+ * @param cls closure (data itself)
+ * @param size number of bytes available in buf
+ * @param buf where the callee should write the message
+ * @return number of bytes written to buf
+ */
+static size_t
+send_core_data_to_peer (void *cls, size_t size, void *buf)
+{
+    struct info_for_data_to_origin              *info = cls;
+    struct GNUNET_MESH_DataMessageToOrigin      *msg = buf;
+    size_t                                      total_size;
+
+    GNUNET_assert(NULL != info);
+    total_size = sizeof(struct GNUNET_MESH_DataMessageToOrigin) + info->size;
+    /* FIXME better constant? short >= 16 bits, not == 16 bits... */
+    GNUNET_assert(total_size < USHRT_MAX);
+
+    if (total_size > size) {
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                   "not enough buffer to send data to origin\n");
+        return 0;
+    }
+    msg->header.size = htons(total_size);
+    msg->header.type = htons(GNUNET_MESSAGE_TYPE_DATA_MESSAGE_TO_ORIGIN);
+    GNUNET_PEER_resolve(info->origin->oid, &msg->oid);
+    msg->tid = htonl(info->origin->tid);
+    if (0 != info->size && NULL != info->data) {
+        memcpy(&msg[1], info->data, info->size);
+    }
+    GNUNET_free(info);
+    return total_size;
+}
+
+
 /**
  * Send another peer a notification to destroy a tunnel
  * @param cls The tunnel to destroy
@@ -734,9 +860,11 @@ handle_mesh_path_create (void *cls,
     MESH_TunnelNumber                   tid;
     struct GNUNET_MESH_ManipulatePath   *msg;
     struct GNUNET_PeerIdentity          *pi;
+    struct GNUNET_PeerIdentity          id;
     GNUNET_HashCode                     hash;
     struct MeshPath                     *path;
-    struct MeshPeerInfo                 *peer_info;
+    struct MeshPeerInfo                 *dest_peer_info;
+    struct MeshPeerInfo                 *orig_peer_info;
     struct MeshTunnel                   *t;
 
 
@@ -786,17 +914,28 @@ handle_mesh_path_create (void *cls,
         }
 
     }
-    peer_info = GNUNET_CONTAINER_multihashmap_get(peers,
+    dest_peer_info = GNUNET_CONTAINER_multihashmap_get(peers,
                                                   &pi[size - 1].hashPubKey);
-    if (NULL == peer_info) {
-        peer_info = GNUNET_malloc(sizeof(struct MeshPeerInfo));
-        peer_info->id = GNUNET_PEER_intern(&pi[size - 1]);
-        peer_info->state = MESH_PEER_WAITING;
+    if (NULL == dest_peer_info) {
+        dest_peer_info = GNUNET_malloc(sizeof(struct MeshPeerInfo));
+        dest_peer_info->id = GNUNET_PEER_intern(&pi[size - 1]);
+        dest_peer_info->state = MESH_PEER_WAITING;
         GNUNET_CONTAINER_multihashmap_put(peers,
                             &pi[size - 1].hashPubKey,
-                            peer_info,
+                            dest_peer_info,
                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
     }
+    orig_peer_info = GNUNET_CONTAINER_multihashmap_get(peers, &pi->hashPubKey);
+    if (NULL == orig_peer_info) {
+        orig_peer_info = GNUNET_malloc(sizeof(struct MeshPeerInfo));
+        orig_peer_info->id = GNUNET_PEER_intern(pi);
+        orig_peer_info->state = MESH_PEER_WAITING;
+        GNUNET_CONTAINER_multihashmap_put(peers,
+                            &pi->hashPubKey,
+                            orig_peer_info,
+                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    }
+
 
     path = GNUNET_malloc(sizeof(struct MeshPath));
     path->length = size;
@@ -810,15 +949,42 @@ handle_mesh_path_create (void *cls,
         GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
                    "create path: self not found in path through self\n");
         destroy_path(path);
-        /* FIXME destroy tunnel? leave for timeout? */
+        /* FIXME error. destroy tunnel? leave for timeout? */
         return 0;
     }
     if (own_pos == size - 1) { /* it is for us! */
-        destroy_path(path); /* not needed anymore */
-        /* TODO: send ack? new meesage type? */
+        add_path_to_origin(orig_peer_info, path);           /* inverts path!  */
+        GNUNET_PEER_resolve(get_first_hop(path), &id); /* path is inverted :) */
+        /* FIXME / COMMENT 
+         * is it allowed/desired to declare variables this way?
+         * (style, best bractices, etc)
+         * This variable is short lived and completely irrelevant for the rest
+         * of the function
+         */
+        struct info_for_data_to_origin *info =
+            GNUNET_malloc(sizeof(struct info_for_data_to_origin));
+        info->origin = &t->id;
+        info->data = NULL;
+        info->size = 0;
+        GNUNET_CORE_notify_transmit_ready(core_handle,
+                                0,
+                                0,
+                                GNUNET_TIME_UNIT_FOREVER_REL,
+                                &id,
+                                sizeof(struct GNUNET_MessageHeader),
+                                &send_core_data_to_origin,
+                                info);
     } else {
-        add_path_to_peer(peer_info, path);
-        /* TODO: Retransmit to next link in chain, if any (core_notify + callback) */
+        add_path_to_peer(dest_peer_info, path);
+        GNUNET_PEER_resolve(get_first_hop(path), &id);
+        GNUNET_CORE_notify_transmit_ready(core_handle,
+                                0,
+                                0,
+                                GNUNET_TIME_UNIT_FOREVER_REL,
+                                &id,
+                                sizeof(struct GNUNET_MessageHeader),
+                                &send_core_create_path_for_peer,
+                                dest_peer_info);
     }
     return GNUNET_OK;
 }
@@ -1540,7 +1706,9 @@ handle_local_network_traffic (void *cls,
 {
     struct MeshClient                           *c;
     struct MeshTunnel                           *t;
+    struct MeshPeerInfo                         *pi;
     struct GNUNET_MESH_Data                     *data_msg;
+    struct GNUNET_PeerIdentity                  next_hop;
     MESH_TunnelNumber                           tid;
 
     /* Sanity check for client registration */
@@ -1568,16 +1736,37 @@ handle_local_network_traffic (void *cls,
         return;
     }
 
-    /* Does client own tunnel? */
-    if (t->client->handle != client) {
+    /*  Is it a local tunnel? Then, does client own the tunnel? */
+    if (t->client->handle != NULL && t->client->handle != client) {
         GNUNET_break(0);
         GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
         return;
     }
 
-    /* TODO */
+    pi = GNUNET_CONTAINER_multihashmap_get(t->peers,
+                                           &data_msg->peer_id.hashPubKey);
+    /* Is the selected peer in the tunnel? */
+    if (NULL == pi) {
+        /* TODO
+         * Are we SO nice that we automatically try to add him to the tunnel?
+         */
+        GNUNET_break(0);
+        GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+        return;
+    }
+    GNUNET_PEER_resolve(get_first_hop(pi->path), &next_hop);
+    GNUNET_CORE_notify_transmit_ready(core_handle,
+                            0,
+                            0,
+                            GNUNET_TIME_UNIT_FOREVER_REL,
+                            &next_hop,
+                            /* FIXME re-check types */
+                            message->size - sizeof(struct GNUNET_MESH_Data)
+                            + sizeof(struct GNUNET_MESH_DataMessageFromOrigin),
+                            &send_core_data_to_origin, /* FIXME re-check */
+                            NULL);
 
-    GNUNET_SERVER_receive_done(client, GNUNET_OK);
+    GNUNET_SERVER_receive_done(client, GNUNET_OK); /* FIXME not yet */
     return;
 }
 

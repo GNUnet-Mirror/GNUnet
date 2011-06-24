@@ -206,7 +206,7 @@ struct GNUNET_MESH_Data {
     struct GNUNET_MessageHeader header;
 
     /**
-     * ID of a tunnel controlled by this client.
+     * ID of a tunnel in which this client participates.
      */
     MESH_TunnelNumber           tunnel_id GNUNET_PACKED;
 
