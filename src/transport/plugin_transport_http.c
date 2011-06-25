@@ -821,19 +821,19 @@ process_interfaces (void *cls,
       t4->ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
       t4->u_port = htons (plugin->port_inbound);
       if (plugin->bind4_address != NULL) {
-    	  if (0 == memcmp(&plugin->bind4_address->sin_addr, &bnd_cmp, sizeof (struct in_addr)))
-	      {
-    	      GNUNET_CONTAINER_DLL_insert(plugin->ipv4_addr_head,
-										  plugin->ipv4_addr_tail,t4);
-			  plugin->env->notify_address(plugin->env->cls,
-										  PROTOCOL_PREFIX,
-										  t4, sizeof (struct IPv4HttpAddress),
-										  GNUNET_TIME_UNIT_FOREVER_REL);
-			  return GNUNET_OK;
-	      }
-    	  GNUNET_free (t4);
-    	  return GNUNET_OK;
+	if (0 == memcmp(&plugin->bind4_address->sin_addr, &bnd_cmp, sizeof (struct in_addr)))
+	  {
+	    GNUNET_CONTAINER_DLL_insert(plugin->ipv4_addr_head,
+					plugin->ipv4_addr_tail,t4);
+	    plugin->env->notify_address(plugin->env->cls,
+					PROTOCOL_PREFIX,
+					t4, sizeof (struct IPv4HttpAddress),
+					GNUNET_TIME_UNIT_FOREVER_REL);
+	    return GNUNET_OK;
 	  }
+	GNUNET_free (t4);
+	return GNUNET_OK;
+      }
       else
 	  {
           GNUNET_CONTAINER_DLL_insert (plugin->ipv4_addr_head,

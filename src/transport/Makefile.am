@@ -13,6 +13,7 @@ else
 endif
 
 if HAVE_MHD
+if HAVE_EXPERIMENTAL
  GN_LIBMHD = -lmicrohttpd
  HTTP_PLUGIN_LA = libgnunet_plugin_transport_http.la
  HTTP_PLUGIN_TEST = test_plugin_transport_http
@@ -26,6 +27,7 @@ if HAVE_MHD
  HTTPS_REL_TEST = test_transport_api_reliability_https
  HTTPS_QUOTA_TEST = test_quota_compliance_https \
 		test_quota_compliance_https_asymmetric_recv_constant
+endif
 endif
 
 if USE_COVERAGE

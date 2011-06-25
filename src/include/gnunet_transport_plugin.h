@@ -123,19 +123,17 @@ typedef struct GNUNET_TIME_Relative (*GNUNET_TRANSPORT_PluginReceiveCallback) (v
  * is aware that it might be reachable under.
  *
  * @param cls closure
- * @param name name of the transport that generated the address
- * @param addr one of the addresses of the host, NULL for the last address
+ * @param add_remove should the address added (YES) or removed (NO) from the
+ *                   set of valid addresses?
+ * @param addr one of the addresses of the host
  *        the specific address format depends on the transport
  * @param addrlen length of the address
- * @param expires when should this address automatically expire?
  */
 typedef void (*GNUNET_TRANSPORT_AddressNotification) (void *cls,
-                                                      const char *name,
+						      int add_remove,
                                                       const void *addr,
-                                                      uint16_t addrlen,
-                                                      struct
-                                                      GNUNET_TIME_Relative
-                                                      expires);
+                                                      size_t addrlen);
+
 
 /**
  * Function that will be called whenever the plugin receives data over

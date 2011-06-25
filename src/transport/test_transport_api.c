@@ -37,7 +37,7 @@
 #include "transport.h"
 #include "transport-testing.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define VERBOSE_ARM GNUNET_NO
 
@@ -385,6 +385,7 @@ try_connect (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Asking peers to connect...\n");
+  /* FIXME: 'pX.id' may still be all-zeros here... */
   GNUNET_TRANSPORT_try_connect (p2.th,
 				&p1.id);
   GNUNET_TRANSPORT_try_connect (p1.th,

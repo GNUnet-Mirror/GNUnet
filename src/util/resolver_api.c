@@ -348,9 +348,14 @@ handle_response (void *cls,
 #endif
   if (msg == NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("Timeout trying to resolve IP address `%s'.\n"),
-		  GNUNET_a2s ((const void*) &rh[1], rh->data_len));
+      if (NULL != rh->name_callback)
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		    _("Timeout trying to resolve IP address `%s'.\n"),
+		    GNUNET_a2s ((const void*) &rh[1], rh->data_len));
+      else
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		    _("Timeout trying to resolve hostname `%s'.\n"),
+		    (const char *) &rh[1]);
       if (rh->was_transmitted != GNUNET_SYSERR)
 	{
 	  if (NULL != rh->name_callback)

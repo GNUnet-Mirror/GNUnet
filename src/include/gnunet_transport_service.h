@@ -558,12 +558,12 @@ struct GNUNET_TRANSPORT_TransmitHandle
 /**
  * Cancel the specified transmission-ready notification.
  *
- * @param h handle of the transmission notification request to cancel
+ * @param th handle of the transmission notification request to cancel
  */
 void
 GNUNET_TRANSPORT_notify_transmit_ready_cancel (struct
                                                GNUNET_TRANSPORT_TransmitHandle
-                                               *h);
+                                               *th);
 
 
 

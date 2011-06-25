@@ -217,29 +217,6 @@ struct RetrySendContext
   struct RetryList *retry_list_entry;
 };
 
-/**
- * Local network addresses (actual unix path follows).
- */
-struct LocalAddrList
-{
-
-  /**
-   * This is a doubly linked list.
-   */
-  struct LocalAddrList *next;
-
-  /**
-   * This is a doubly linked list.
-   */
-  struct LocalAddrList *prev;
-
-  /**
-   * Number of bytes of the address that follow
-   */
-  size_t size;
-
-};
-
 
 /**
  * UNIX NAT "Session"
@@ -338,16 +315,6 @@ struct Plugin
    * Integer to append to unix domain socket.
    */
   uint16_t port;
-
-  /**
-   * List of our IP addresses.
-   */
-  struct LocalAddrList *lal_head;
-
-  /**
-   * Tail of our IP address list.
-   */
-  struct LocalAddrList *lal_tail;
 
   /**
    * FD Read set
@@ -763,30 +730,6 @@ unix_plugin_send (void *cls,
 }
 
 
-static void
-add_to_address_list (struct Plugin *plugin,
-		     const void *arg,
-		     size_t arg_size)
-{
-  struct LocalAddrList *lal;
-
-  lal = plugin->lal_head;
-  while (NULL != lal)
-    {
-      if ( (lal->size == arg_size) &&
-	   (0 == memcmp (&lal[1], arg, arg_size)) )
-	return;
-      lal = lal->next;
-    }
-  lal = GNUNET_malloc (sizeof (struct LocalAddrList) + arg_size);
-  lal->size = arg_size;
-  memcpy (&lal[1], arg, arg_size);
-  GNUNET_CONTAINER_DLL_insert (plugin->lal_head,
-			       plugin->lal_tail,
-			       lal);
-}
-
-
 /**
  * Demultiplexer for UNIX messages
  *
@@ -1197,8 +1140,10 @@ libgnunet_plugin_transport_unix_init (void *cls)
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->port = port;
   plugin->env = env;
-  GNUNET_asprintf(&plugin->unix_socket_path, "/tmp/unix-plugin-sock.%d", plugin->port);
-
+  GNUNET_asprintf (&plugin->unix_socket_path, 
+		   "/tmp/unix-plugin-sock.%d", 
+		   plugin->port);
+  
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
 
@@ -1207,19 +1152,15 @@ libgnunet_plugin_transport_unix_init (void *cls)
   api->address_pretty_printer = &unix_plugin_address_pretty_printer;
   api->address_to_string = &unix_address_to_string;
   api->check_address = &unix_check_address;
-
-  add_to_address_list (plugin, plugin->unix_socket_path, strlen(plugin->unix_socket_path) + 1);
-
   sockets_created = unix_transport_server_start (plugin);
   if (sockets_created == 0)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Failed to open UNIX sockets\n"));
 
   plugin->env->notify_address(plugin->env->cls,
-                              "unix",
+			      GNUNET_YES,
                               plugin->unix_socket_path,
-                              strlen(plugin->unix_socket_path) + 1,
-                              GNUNET_TIME_UNIT_FOREVER_REL);
+                              strlen(plugin->unix_socket_path) + 1);
   return api;
 }
 
@@ -1228,18 +1169,10 @@ libgnunet_plugin_transport_unix_done (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
-  struct LocalAddrList *lal;
 
   unix_transport_server_stop (plugin);
 
   GNUNET_NETWORK_fdset_destroy (plugin->rs);
-  while (NULL != (lal = plugin->lal_head))
-    {
-      GNUNET_CONTAINER_DLL_remove (plugin->lal_head,
-				   plugin->lal_tail,
-				   lal);
-      GNUNET_free (lal);
-    }
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;

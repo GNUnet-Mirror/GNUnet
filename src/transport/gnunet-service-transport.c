@@ -44,9 +44,9 @@
 
 #define DEBUG_BLACKLIST GNUNET_NO
 
-#define DEBUG_PING_PONG GNUNET_NO
+#define DEBUG_PING_PONG GNUNET_YES
 
-#define DEBUG_TRANSPORT_HELLO GNUNET_NO
+#define DEBUG_TRANSPORT_HELLO GNUNET_YES
 
 #define DEBUG_ATS GNUNET_NO
 
@@ -275,12 +275,6 @@ struct OwnAddressList
    * This is a linked list.
    */
   struct OwnAddressList *next;
-
-  /**
-   * How long until we actually auto-expire this address (unless it is
-   * re-confirmed by the transport)?
-   */
-  struct GNUNET_TIME_Absolute expires;
 
   /**
    * How long until the current signature expires? (ZERO if the
@@ -2331,100 +2325,6 @@ refresh_hello ()
 
 
 /**
- * Task used to clean up expired addresses for a plugin.
- *
- * @param cls closure
- * @param tc context
- */
-static void
-expire_address_task (void *cls,
-                     const struct GNUNET_SCHEDULER_TaskContext *tc);
-
-
-/**
- * Update the list of addresses for this plugin,
- * expiring those that are past their expiration date.
- *
- * @param plugin addresses of which plugin should be recomputed?
- * @param fresh set to GNUNET_YES if a new address was added
- *        and we need to regenerate the HELLO even if nobody
- *        expired
- */
-static void
-update_addresses (struct TransportPlugin *plugin,
-		  int fresh)
-{
-  static struct GNUNET_TIME_Absolute last_update;
-  struct GNUNET_TIME_Relative min_remaining;
-  struct GNUNET_TIME_Relative remaining;
-  struct GNUNET_TIME_Absolute now;
-  struct OwnAddressList *pos;
-  struct OwnAddressList *prev;
-  struct OwnAddressList *next;
-  int expired;
-
-  if (plugin->address_update_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (plugin->address_update_task);
-  plugin->address_update_task = GNUNET_SCHEDULER_NO_TASK;
-  now = GNUNET_TIME_absolute_get ();
-  min_remaining = GNUNET_TIME_UNIT_FOREVER_REL;
-  expired = (GNUNET_TIME_absolute_get_duration (last_update).rel_value > (HELLO_ADDRESS_EXPIRATION.rel_value / 4));
-  prev = NULL;
-  pos = plugin->addresses;
-  while (pos != NULL)
-    {
-      next = pos->next;
-      if (pos->expires.abs_value < now.abs_value)
-        {
-          expired = GNUNET_YES;
-          if (prev == NULL)
-            plugin->addresses = pos->next;
-          else
-            prev->next = pos->next;
-          GNUNET_free (pos);
-        }
-      else
-        {
-          remaining = GNUNET_TIME_absolute_get_remaining (pos->expires);
-          if (remaining.rel_value < min_remaining.rel_value)
-            min_remaining = remaining;
-          prev = pos;
-        }
-      pos = next;
-    }
-
-  if (expired || fresh)
-    {
-      last_update = now;
-      refresh_hello ();
-    }
-  min_remaining = GNUNET_TIME_relative_min (min_remaining,
-					    GNUNET_TIME_relative_divide (HELLO_ADDRESS_EXPIRATION,
-									 2));
-  plugin->address_update_task
-    = GNUNET_SCHEDULER_add_delayed (min_remaining,
-				    &expire_address_task, plugin);
-}
-
-
-/**
- * Task used to clean up expired addresses for a plugin.
- *
- * @param cls closure
- * @param tc context
- */
-static void
-expire_address_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct TransportPlugin *plugin = cls;
-
-  plugin->address_update_task = GNUNET_SCHEDULER_NO_TASK;
-  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    update_addresses (plugin, GNUNET_NO);
-}
-
-
-/**
  * Iterator over hash map entries that NULLs the session of validation
  * entries that match the given session.
  *
@@ -2508,7 +2408,7 @@ try_fast_reconnect (struct TransportPlugin *p,
                             gettext_noop ("# disconnects due to try_fast_reconnect"),
                             1,
                             GNUNET_NO);
-#if DISCONNECT
+#if DISCONNECT || 1
   disconnect_neighbour (nl, GNUNET_YES);
 #endif
 }
@@ -2609,8 +2509,8 @@ plugin_env_session_end  (void *cls,
                                     gettext_noop ("# try_fast_reconnect thanks to plugin_env_session_end"),
                                     1,
                                     GNUNET_NO);
-	  if (GNUNET_YES == pos->connected)
-	    try_fast_reconnect (p, nl);
+	  if (GNUNET_YES == pos->connected)	    	     
+	      try_fast_reconnect (p, nl);	    
         }
       else
         {
@@ -2696,45 +2596,51 @@ plugin_env_session_end  (void *cls,
  * provided by the plugin can be reached.
  *
  * @param cls closure
- * @param name name of the transport that generated the address
+ * @param add_remove YES to add, NO to remove the address
  * @param addr one of the addresses of the host, NULL for the last address
  *        the specific address format depends on the transport
  * @param addrlen length of the address
- * @param expires when should this address automatically expire?
  */
 static void
 plugin_env_notify_address (void *cls,
-                           const char *name,
+			   int add_remove,
                            const void *addr,
-                           uint16_t addrlen,
-                           struct GNUNET_TIME_Relative expires)
+                           size_t addrlen)
 {
   struct TransportPlugin *p = cls;
   struct OwnAddressList *al;
-  struct GNUNET_TIME_Absolute abex;
+  struct OwnAddressList *prev;
 
   GNUNET_assert (addr != NULL);
-  abex = GNUNET_TIME_relative_to_absolute (expires);
-  GNUNET_assert (p == find_transport (name));
-  al = p->addresses;
-  while (al != NULL)
+  if (GNUNET_NO == add_remove)
     {
-      if ( (addrlen == al->addrlen) &&
-	   (0 == memcmp (addr, &al[1], addrlen)) )
-        {
-	  al->expires = abex;
-	  update_addresses (p, GNUNET_NO);
-          return;
-        }
-      al = al->next;
+      prev = NULL;
+      al = p->addresses;
+      while (al != NULL)
+	{
+	  if ( (addrlen == al->addrlen) &&
+	       (0 == memcmp (addr, &al[1], addrlen)) )
+	    {
+	      if (prev == NULL)
+		p->addresses = al->next;
+	      else
+		prev->next = al->next;
+	      GNUNET_free (al);
+	      refresh_hello ();
+	      return;
+	    }
+	  prev = al;
+	  al = al->next;
+	}
+      GNUNET_break (0);
+      return;
     }
   al = GNUNET_malloc (sizeof (struct OwnAddressList) + addrlen);
   al->next = p->addresses;
   p->addresses = al;
-  al->expires = abex;
   al->addrlen = addrlen;
   memcpy (&al[1], addr, addrlen);
-  update_addresses (p, GNUNET_YES);
+  refresh_hello ();
 }
 
 
@@ -4365,7 +4271,6 @@ check_pending_validation (void *cls,
       if (GNUNET_NO == n->received_pong)
 	{
 	  n->received_pong = GNUNET_YES;
-
 	  notify_clients_connect (&target, n->latency, n->distance);
 	  if (NULL != (prem = n->pre_connect_message_buffer))
 	    {
@@ -4508,6 +4413,8 @@ transmit_hello_and_ping (void *cls,
       abort_validation (NULL, NULL, va);
       return;
     }
+  if (NULL == our_hello)
+    refresh_hello ();
   hello_size = GNUNET_HELLO_size(our_hello);
   slen = strlen(va->transport_name) + 1;
   tsize = sizeof(struct TransportPingMessage) + hello_size + va->addrlen + slen;
@@ -5004,8 +4911,11 @@ disconnect_neighbour (struct NeighbourList *n, int check)
                 {
 #if DEBUG_TRANSPORT
                   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-			      "NOT Disconnecting from `%4s', still have live addresses!\n",
-			      GNUNET_i2s (&n->id));
+			      "NOT Disconnecting from `%4s', still have live address `%s'!\n",
+			      GNUNET_i2s (&n->id),
+			      a2s (peer_addresses->ready_list->plugin->short_name,
+				   peer_addresses->addr,
+				   peer_addresses->addrlen));
 #endif
                   return;             /* still connected */
                 }
@@ -5289,8 +5199,7 @@ handle_ping(void *cls, const struct GNUNET_MessageHeader *message,
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Creating PONG signature to indicate ownership.\n");
 #endif
-	  oal->pong_sig_expires = GNUNET_TIME_absolute_min (oal->expires,
-							    GNUNET_TIME_relative_to_absolute (PONG_SIGNATURE_LIFETIME));
+	  oal->pong_sig_expires = GNUNET_TIME_relative_to_absolute (PONG_SIGNATURE_LIFETIME);
 	  pong->expiration = GNUNET_TIME_absolute_hton (oal->pong_sig_expires);
 	  GNUNET_assert (GNUNET_OK ==
 			 GNUNET_CRYPTO_rsa_sign (my_private_key,

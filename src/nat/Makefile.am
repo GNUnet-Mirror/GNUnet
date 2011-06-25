@@ -11,25 +11,11 @@ endif
 lib_LTLIBRARIES = libgnunetnat.la
 
 libgnunetnat_la_SOURCES = \
-  upnp.c upnp.h \
-  upnp-commands.c upnp-commands.h \
-  upnp-discover.c upnp-discover.h \
-  upnp-igd-parse.c upnp-igd-parse.h \
-  upnp-minixml.c upnp-minixml.h \
-  upnp-reply-parse.c upnp-reply-parse.h bsdqueue.h \
-  nat.c nat.h \
-  natpmp.h 
-
-libgnunetnat_la_CFLAGS = \
- -DDEBUG_UPNP -g -O0
+  nat.c 
 
 libgnunetnat_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  @LIBCURL@ \
   $(GN_LIBINTL) @EXT_LIBS@ 
-
-libgnunetnat_la_CPPFLAGS = \
-  @LIBCURL_CPPFLAGS@
 
 libgnunetnat_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
@@ -39,7 +25,7 @@ check_PROGRAMS = \
   test-nat
 
 if ENABLE_TEST_RUN
-TESTS = $(check_PROGRAMS)
+ TESTS = $(check_PROGRAMS)
 endif
 
 test_nat_SOURCES = \
@@ -51,4 +37,4 @@ test_nat_LDADD = \
  @LIBCURL@
 
 EXTRA_DIST = \
- test-nat.conf
+ test_nat_data.conf
