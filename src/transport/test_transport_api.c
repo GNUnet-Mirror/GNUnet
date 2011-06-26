@@ -37,7 +37,7 @@
 #include "transport.h"
 #include "transport-testing.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 #define VERBOSE_ARM GNUNET_NO
 
@@ -122,13 +122,54 @@ static void
 stop_arm (struct PeerContext *p)
 {
 #if START_ARM
-  if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  GNUNET_OS_process_wait (p->arm_proc);
-  GNUNET_OS_process_close (p->arm_proc);
-  p->arm_proc = NULL;
+  if (NULL != p->arm_proc)
+    {
+      if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
+	GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+      GNUNET_OS_process_wait (p->arm_proc);
+      GNUNET_OS_process_close (p->arm_proc);
+      p->arm_proc = NULL;
+    }
 #endif
   GNUNET_CONFIGURATION_destroy (p->cfg);
+}
+
+
+
+
+static void
+exchange_hello_last (void *cls,
+                     const struct GNUNET_MessageHeader *message)
+{
+  struct PeerContext *me = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Exchanging HELLO of size %d with peer (%s)!\n", 
+	      (int) GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message),
+	      GNUNET_i2s (&me->id));
+  GNUNET_assert (message != NULL);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
+                                      message, &me->id));
+  GNUNET_TRANSPORT_offer_hello (p1.th, message, NULL, NULL);
+}
+
+
+static void
+exchange_hello (void *cls,
+                const struct GNUNET_MessageHeader *message)
+{
+  struct PeerContext *me = cls;
+
+  GNUNET_assert (message != NULL);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
+                                      message, &me->id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Exchanging HELLO of size %d from peer %s!\n", 
+	      (int) GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message),
+	      GNUNET_i2s (&me->id));
+  GNUNET_TRANSPORT_offer_hello (p2.th, message, NULL, NULL);
 }
 
 
@@ -139,8 +180,15 @@ end_badly ()
   GNUNET_break (0);
 
   if (th != NULL)
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel(th);
-  th = NULL;
+    {
+      GNUNET_TRANSPORT_notify_transmit_ready_cancel(th);
+      th = NULL;
+    }
+  else
+    {
+      GNUNET_TRANSPORT_get_hello_cancel (p2.th, &exchange_hello_last, &p2);
+      GNUNET_TRANSPORT_get_hello_cancel (p1.th, &exchange_hello, &p1);
+    }
 
   GNUNET_TRANSPORT_disconnect (p1.th);
   GNUNET_TRANSPORT_disconnect (p2.th);
@@ -196,44 +244,6 @@ notify_ready (void *cls, size_t size, void *buf)
   }
   return sizeof (struct GNUNET_MessageHeader);
 }
-
-
-static void
-exchange_hello_last (void *cls,
-                     const struct GNUNET_MessageHeader *message)
-{
-  struct PeerContext *me = cls;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Exchanging HELLO of size %d with peer (%s)!\n", 
-	      (int) GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message),
-	      GNUNET_i2s (&me->id));
-  GNUNET_assert (message != NULL);
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
-                                      message, &me->id));
-  GNUNET_TRANSPORT_offer_hello (p1.th, message, NULL, NULL);
-}
-
-
-
-static void
-exchange_hello (void *cls,
-                const struct GNUNET_MessageHeader *message)
-{
-  struct PeerContext *me = cls;
-
-  GNUNET_assert (message != NULL);
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
-                                      message, &me->id));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Exchanging HELLO of size %d from peer %s!\n", 
-	      (int) GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message),
-	      GNUNET_i2s (&me->id));
-  GNUNET_TRANSPORT_offer_hello (p2.th, message, NULL, NULL);
-}
-
 
 
 static void

@@ -38,9 +38,9 @@
 #include "gnunet_transport_plugin.h"
 #include "transport.h"
 
-#define DEBUG_TCP GNUNET_YES
+#define DEBUG_TCP GNUNET_NO
 
-#define DEBUG_TCP_NAT GNUNET_YES
+#define DEBUG_TCP_NAT GNUNET_NO
 
 
 /**
@@ -1517,7 +1517,6 @@ handle_tcp_nat_probe (void *cls,
     }
 
   tcp_nat_probe = (const struct TCP_NAT_ProbeMessage *)message;
-
   if (0 == memcmp (&tcp_nat_probe->clientIdentity,
                    plugin->env->my_identity,
                    sizeof (struct GNUNET_PeerIdentity)))

@@ -178,6 +178,11 @@ struct GNUNET_NAT_Handle
   GNUNET_SCHEDULER_TaskIdentifier server_read_task;
 
   /**
+   * ID of interface IP-scan task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier ifc_task;
+
+  /**
    * The process id of the server process (if behind NAT)
    */
   struct GNUNET_OS_Process *server_proc;
@@ -857,6 +862,27 @@ start_gnunet_nat_server (struct GNUNET_NAT_Handle *h)
 
 
 /**
+ * Task to scan the local network interfaces for IP addresses.
+ *
+ * @param cls the NAT handle
+ * @param tc scheduler context
+ */
+static void
+list_interfaces (void *cls,
+		 const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_NAT_Handle *h = cls;
+
+  h->ifc_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_OS_network_interfaces_list (&process_interfaces, h); 
+#if 0
+  h->ifc_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FIXME,
+					      &list_interfaces, h);
+#endif
+}
+
+
+/**
  * Attempt to enable port redirection and detect public IP address contacting
  * UPnP or NAT-PMP routers on the local network. Use addr to specify to which
  * of the local host's addresses should the external port be mapped. The port
@@ -889,6 +915,10 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct in_addr in_addr;
   unsigned int i;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+	      "Registered with NAT service at port %u with %u IP bound local addresses\n",
+	      (unsigned int) adv_port,
+	      num_addrs);
   h = GNUNET_malloc (sizeof (struct GNUNET_NAT_Handle));
   h->server_retry_delay = GNUNET_TIME_UNIT_SECONDS;
   h->cfg = cfg;
@@ -1016,7 +1046,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   if (NULL != h->address_callback)
     {
-      GNUNET_OS_network_interfaces_list (&process_interfaces, h); 
+      h->ifc_task = GNUNET_SCHEDULER_add_now (&list_interfaces, h);
       h->hostname_dns = GNUNET_RESOLVER_hostname_resolve (AF_UNSPEC,
 							  HOSTNAME_RESOLVE_TIMEOUT,
 							  &process_hostname_ip,
@@ -1052,6 +1082,11 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
     {
       GNUNET_SCHEDULER_cancel (h->server_read_task);
       h->server_read_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  if (GNUNET_SCHEDULER_NO_TASK != h->ifc_task)
+    {
+      GNUNET_SCHEDULER_cancel (h->ifc_task);
+      h->ifc_task = GNUNET_SCHEDULER_NO_TASK;
     }
   if (NULL != h->server_proc)
     {
@@ -1172,7 +1207,7 @@ GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *h,
   struct LocalAddressList *pos;
   const struct sockaddr_in *in4;
   const struct sockaddr_in6 *in6;
-
+  
   if ( (addrlen != sizeof (struct in_addr)) &&
        (addrlen != sizeof (struct in6_addr)) )
     {
@@ -1202,7 +1237,9 @@ GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *h,
 	}
       pos = pos->next;
     }
-  return GNUNET_YES;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+	      "Asked to validate one of my addresses and validation failed!\n");
+  return GNUNET_NO;
 }
 
 

@@ -1028,6 +1028,9 @@ GNUNET_CONNECTION_create_from_sockaddr (int af_family,
     {
       /* maybe refused / unsupported address, try next */
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_INFO, "connect");
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+		  _("Attempt to connect to `%s' failed\n"),
+		  GNUNET_a2s (serv_addr, addrlen));
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (s));
       return NULL;
     }
