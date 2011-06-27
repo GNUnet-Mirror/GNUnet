@@ -510,6 +510,24 @@ retrieve_client (struct GNUNET_SERVER_Client *client)
 
 
 /**
+ * Checks if a given client has subscribed to certain message type
+ * @param message_type Type of message to check
+ * @param c Client to check
+ * @return GNUNET_YES or GNUNET_NO, depending on subscription status
+ */
+static int
+is_client_subscribed(uint16_t message_type, struct MeshClient *c)
+{
+    unsigned int        i;
+
+    for (i = 0; i < c->type_counter; i++) {
+        if (c->types[i] == message_type) return GNUNET_YES;
+    }
+    return GNUNET_NO;
+}
+
+
+/**
  * Search for a tunnel among the tunnels for a client
  * @param client the client whose tunnels to search in
  * @param tid the local id of the tunnel
@@ -888,6 +906,35 @@ send_p2p_tunnel_destroy(void *cls, size_t size, void *buf)
 }
 #endif
 
+
+/**
+ * Function called to notify a client about the socket
+ * begin ready to queue more data.  "buf" will be
+ * NULL and "size" zero if the socket was closed for
+ * writing in the meantime.
+ *
+ * @param cls closure
+ * @param size number of bytes available in buf
+ * @param buf where the callee should write the message
+ * @return number of bytes written to buf
+ */
+size_t
+send_client_raw (void *cls, size_t size, void *buf)
+{
+    GNUNET_MessageHeader        *msg = cls;
+    size_t                      msg_size;
+
+    msg_size = ntohs(msg->size);
+    if (msg_size > size) {
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                   "deliver to client failed: buffer too small\n");
+        return 0;
+    }
+    memcpy(buf, cls, msg_size);
+    return msg_size;
+}
+
+
 /**
  * Iterator over hash map peer entries to resend a data packet to all peers
  * down the tunnel.
@@ -1103,7 +1150,9 @@ handle_mesh_data_unicast (void *cls,
     struct GNUNET_PeerIdentity                  id;
     struct MeshTunnel                           *t;
     struct MeshPeerInfo                         *pi;
+    struct MeshClient                           *c;
     size_t                                      size;
+    uint16_t                                    payload_type;
 
     size = ntohs(message->size);
     if (size < sizeof(struct GNUNET_MESH_DataMessageFromOrigin)) {
@@ -1113,6 +1162,12 @@ handle_mesh_data_unicast (void *cls,
     }
     msg = (struct GNUNET_MESH_DataMessageFromOrigin *) message;
     t = retrieve_tunnel(&msg->oid, ntohl(msg->tid));
+    if (NULL == t) {
+        /* TODO: are we so nice that we try to send it to OID anyway? We *could*
+         * know how to reach it, from the global peer hashmap
+         */
+        return GNUNET_OK;
+    }
     pi = GNUNET_CONTAINER_multihashmap_get(t->peers,
                                         &msg->destination.hashPubKey);
     if (NULL == pi) {
@@ -1122,6 +1177,19 @@ handle_mesh_data_unicast (void *cls,
          * a Create_Path packet that added the peer but we have it in the
          * _global_ peer pool anyway...
          */
+        return GNUNET_OK;
+    }
+    if (pi->id == myid) {
+        payload_type = ntohs(msg[1].header.type);
+        for (c = clients; NULL != c; c = c->next) {
+            if (is_client_subscribed(payload_type, c)) {
+                GNUNET_SERVER_notify_transmit_ready(c,
+                    size - sizeof(struct GNUNET_MESH_DataMessageFromOrigin),
+                    GNUNET_TIME_UNIT_FOREVER_REL,
+                    send_client_raw,
+                    &msg[1]);
+            }
+        }
         return GNUNET_OK;
     }
     GNUNET_PEER_resolve(get_first_hop(pi->path), &id);
@@ -1167,6 +1235,10 @@ handle_mesh_data_multicast (void *cls,
     msg = (struct GNUNET_MESH_DataMessageMulticast *) message;
     t = retrieve_tunnel(&msg->oid, ntohl(msg->tid));
 
+    if (NULL == t) {
+        return GNUNET_OK;
+    }
+
     GNUNET_CONTAINER_multihashmap_iterate(t->peers,
                                           &iterate_resend_multicast,
                                           msg);
@@ -1207,7 +1279,7 @@ handle_mesh_data_to_orig (void *cls,
     msg = (struct GNUNET_MESH_DataMessageToOrigin *) message;
     t = retrieve_tunnel(&msg->oid, ntohl(msg->tid));
 
-    if (NULL == t) { /* don't know tunnel */
+    if (NULL == t) {
         /* TODO: are we so nice that we try to send it to OID anyway? We *could*
          * know how to reach it, from the global peer hashmap
          */
