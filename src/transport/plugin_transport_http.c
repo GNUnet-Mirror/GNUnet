@@ -469,6 +469,16 @@ struct Plugin
   int use_localaddresses;
 
   /**
+   * maximum number of connections
+   */
+  int max_connect_per_transport;
+
+  /**
+   * Current number of connections;
+   */
+  int current_connections;
+
+  /**
    * Closure passed by MHD to the mhd_logger function
    */
   void * mhd_log;
@@ -919,7 +929,11 @@ mhd_termination_cb (void *cls,
   if (ps == NULL)
     return;
   struct HTTP_PeerContext * pc = ps->peercontext;
-        
+  struct Plugin *plugin = cls;
+
+  GNUNET_assert (cls != NULL);
+    plugin->current_connections--;
+
   if (connection==ps->recv_endpoint)
     {
 #if DEBUG_CONNECTIONS
@@ -1028,11 +1042,15 @@ mhd_accept_cb (void *cls,
 	       const struct sockaddr *addr, 
 	       socklen_t addr_len)
 {
-#if 0
   struct Plugin *plugin = cls;
-#endif
-  /* Every connection is accepted, nothing more to do here */
-  return MHD_YES;
+  GNUNET_assert (cls != NULL);
+
+  if (plugin->max_connect_per_transport > plugin->current_connections)
+  {
+    plugin->current_connections ++;
+    return MHD_YES;
+  }
+  else return MHD_NO;
 }
 
 
@@ -1068,6 +1086,7 @@ mhd_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
   
   if (msg!=NULL)
     {
+      /* sending */
       if ((msg->size-msg->pos) <= max)
 	{
 	  memcpy(buf,&msg->buf[msg->pos],(msg->size-msg->pos));
@@ -1081,6 +1100,7 @@ mhd_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
 	  bytes_read = max;
 	}
       
+      /* removing message */
       if (msg->pos==msg->size)
 	{
 	  if (NULL!=msg->transmit_cont)
@@ -1875,8 +1895,6 @@ curl_handle_finished (struct Plugin *plugin)
 		  ps->send_connected = GNUNET_NO;
 		  ps->send_active = GNUNET_NO;
 		  curl_multi_remove_handle(plugin->multi_handle,ps->send_endpoint);
-		  //curl_easy_cleanup(ps->send_endpoint);
-		  //ps->send_endpoint=NULL;
 		  while (ps->pending_msgs_tail != NULL)
 		    {
 		      cur_msg = ps->pending_msgs_tail;
@@ -1901,8 +1919,6 @@ curl_handle_finished (struct Plugin *plugin)
 		  ps->recv_connected = GNUNET_NO;
 		  ps->recv_active = GNUNET_NO;
 		  curl_multi_remove_handle(plugin->multi_handle,ps->recv_endpoint);
-		  //curl_easy_cleanup(ps->recv_endpoint);
-		  //ps->recv_endpoint=NULL;
 		}
 	    }
 	  else
@@ -1941,8 +1957,6 @@ curl_handle_finished (struct Plugin *plugin)
 		  ps->send_connected = GNUNET_NO;
 		  ps->send_active = GNUNET_NO;
 		  curl_multi_remove_handle(plugin->multi_handle,ps->send_endpoint);
-		  //curl_easy_cleanup(ps->send_endpoint);
-		  //ps->send_endpoint =NULL;
 		}
 	      if (msg->easy_handle == ps->recv_endpoint)
 		{
@@ -1957,9 +1971,8 @@ curl_handle_finished (struct Plugin *plugin)
 		  ps->recv_connected = GNUNET_NO;
 		  ps->recv_active = GNUNET_NO;
 		  curl_multi_remove_handle(plugin->multi_handle,ps->recv_endpoint);
-		  //curl_easy_cleanup(ps->recv_endpoint);
-		  //ps->recv_endpoint=NULL;
 		}
+	      plugin->current_connections--;
 	    }
 	  if ((ps->recv_connected == GNUNET_NO) && (ps->send_connected == GNUNET_NO))
 	    remove_session (pc, ps, GNUNET_YES, GNUNET_SYSERR);
@@ -2121,10 +2134,11 @@ send_check_connections (struct Plugin *plugin,
   CURLMcode mret;
   struct GNUNET_TIME_Relative timeout = GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT;
 
-  if (ps->direction == OUTBOUND)
+  if ((ps->direction == OUTBOUND) && (plugin->current_connections < plugin->max_connect_per_transport))
     {
       /* RECV DIRECTION */
       /* Check if session is connected to receive data, otherwise connect to peer */
+
       if (ps->recv_connected == GNUNET_NO)
 	{
 	  int fresh = GNUNET_NO;
@@ -2139,7 +2153,7 @@ send_check_connections (struct Plugin *plugin,
 	  curl_easy_setopt(ps->recv_endpoint, CURLOPT_DEBUGDATA , ps->recv_endpoint);
 #endif
 #if BUILD_HTTPS
-	  curl_easy_setopt (ps->recv_endpoint, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
+	  curl_easy_setopt(ps->recv_endpoint, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
 	  curl_easy_setopt(ps->recv_endpoint, CURLOPT_SSL_VERIFYPEER, 0);
 	  curl_easy_setopt(ps->recv_endpoint, CURLOPT_SSL_VERIFYHOST, 0);
 #endif
@@ -2170,11 +2184,12 @@ send_check_connections (struct Plugin *plugin,
 		  return GNUNET_SYSERR;
 		}
 	    }
-	  if (plugin->http_curl_task !=  GNUNET_SCHEDULER_NO_TASK)
+	  if (plugin->http_curl_task != GNUNET_SCHEDULER_NO_TASK)
 	    {
 	      GNUNET_SCHEDULER_cancel(plugin->http_curl_task);
 	      plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
 	    }
+	  plugin->current_connections ++;
 	  plugin->http_curl_task = GNUNET_SCHEDULER_add_now (&curl_perform, plugin);
 	}
       
@@ -2218,7 +2233,7 @@ send_check_connections (struct Plugin *plugin,
 	    }
 	}
       /* not connected, initiate connection */
-      if (ps->send_connected==GNUNET_NO)
+      if ((ps->send_connected==GNUNET_NO) && (plugin->current_connections < plugin->max_connect_per_transport))
 	{
 	  int fresh = GNUNET_NO;
 	  if (NULL == ps->send_endpoint)
@@ -2279,6 +2294,7 @@ send_check_connections (struct Plugin *plugin,
 	  GNUNET_SCHEDULER_cancel(plugin->http_curl_task);
 	  plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
 	}
+      plugin->current_connections++;
       plugin->http_curl_task = GNUNET_SCHEDULER_add_now (&curl_perform, plugin);
       return GNUNET_YES;
     }
@@ -2990,6 +3006,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct GNUNET_TIME_Relative gn_timeout;
   long long unsigned int port;
+  unsigned long long tneigh;
   char * component_name;
 #if BUILD_HTTPS
   char * key_file = NULL;
@@ -3027,6 +3044,21 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   /* Hashing our identity to use it in URLs */
   GNUNET_CRYPTO_hash_to_enc (&(plugin->env->my_identity->hashPubKey), 
 			     &plugin->my_ascii_hash_ident);
+
+
+  if (GNUNET_CONFIGURATION_have_value (env->cfg, "TRANSPORT", "NEIGHBOUR_LIMIT"))
+  {
+    GNUNET_CONFIGURATION_get_value_number (env->cfg,
+                                         "TRANSPORT",
+                                         "NEIGHBOUR_LIMIT",
+                                         &tneigh);
+  }
+  else
+  {
+    tneigh = -1;
+  }
+  plugin->max_connect_per_transport = tneigh;
+
 
   /* Use IPv6? */
   if (GNUNET_CONFIGURATION_have_value (env->cfg,
@@ -3239,11 +3271,10 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 #endif
 							MHD_USE_IPv6,
 							port,
-							&mhd_accept_cb,
-							plugin , &mhd_access_cb, plugin,
+							&mhd_accept_cb, plugin,
+							&mhd_access_cb, plugin,
 							MHD_OPTION_SOCK_ADDR, tmp,
-							MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 32,
-							//MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 6,
+							MHD_OPTION_CONNECTION_LIMIT, (unsigned int) plugin->max_connect_per_transport,
 #if BUILD_HTTPS
 							MHD_OPTION_HTTPS_PRIORITIES,  plugin->crypto_init,
 							MHD_OPTION_HTTPS_MEM_KEY, plugin->key,
@@ -3251,7 +3282,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 #endif
 							MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) timeout,
 							MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (2 * GNUNET_SERVER_MAX_MESSAGE_SIZE),
-							MHD_OPTION_NOTIFY_COMPLETED, &mhd_termination_cb, NULL,
+							MHD_OPTION_NOTIFY_COMPLETED, &mhd_termination_cb, plugin,
 							MHD_OPTION_EXTERNAL_LOGGER, mhd_logger, plugin->mhd_log,
 							MHD_OPTION_END);
     }
@@ -3268,11 +3299,10 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 #endif
 							MHD_NO_FLAG,
 							port,
-							&mhd_accept_cb,
-							plugin , &mhd_access_cb, plugin,
-							MHD_OPTION_SOCK_ADDR, (struct sockaddr_in *)plugin->bind4_address,
-							MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 32,
-							//MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 6,
+							&mhd_accept_cb, plugin ,
+							&mhd_access_cb, plugin,
+							MHD_OPTION_SOCK_ADDR, (struct sockaddr_in *) plugin->bind4_address,
+                                                        MHD_OPTION_CONNECTION_LIMIT, (unsigned int) plugin->max_connect_per_transport,
 #if BUILD_HTTPS
 							MHD_OPTION_HTTPS_PRIORITIES,  plugin->crypto_init,
 							MHD_OPTION_HTTPS_MEM_KEY, plugin->key,
@@ -3280,7 +3310,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 #endif
 							MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) timeout,
 							MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (2 * GNUNET_SERVER_MAX_MESSAGE_SIZE),
-							MHD_OPTION_NOTIFY_COMPLETED, &mhd_termination_cb, NULL,
+							MHD_OPTION_NOTIFY_COMPLETED, &mhd_termination_cb, plugin,
 							MHD_OPTION_EXTERNAL_LOGGER, mhd_logger, plugin->mhd_log,
 							MHD_OPTION_END);
     }
