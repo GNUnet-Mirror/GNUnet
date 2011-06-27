@@ -921,7 +921,7 @@ send_p2p_tunnel_destroy(void *cls, size_t size, void *buf)
 size_t
 send_client_raw (void *cls, size_t size, void *buf)
 {
-    GNUNET_MessageHeader        *msg = cls;
+    struct GNUNET_MessageHeader *msg = cls;
     size_t                      msg_size;
 
     msg_size = ntohs(msg->size);
@@ -1183,7 +1183,7 @@ handle_mesh_data_unicast (void *cls,
         payload_type = ntohs(msg[1].header.type);
         for (c = clients; NULL != c; c = c->next) {
             if (is_client_subscribed(payload_type, c)) {
-                GNUNET_SERVER_notify_transmit_ready(c,
+                GNUNET_SERVER_notify_transmit_ready(c->handle,
                     size - sizeof(struct GNUNET_MESH_DataMessageFromOrigin),
                     GNUNET_TIME_UNIT_FOREVER_REL,
                     send_client_raw,
