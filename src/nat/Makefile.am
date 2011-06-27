@@ -2,6 +2,35 @@ INCLUDES = -I$(top_srcdir)/src/include
 
 if MINGW
   WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
+  NATBIN = gnunet-nat-server gnunet-nat-client
+  NATSERVER = gnunet-nat-server-windows.c
+  NATCLIENT = gnunet-nat-client-windows.c
+else
+  NATSERVER = gnunet-nat-server.c
+  NATCLIENT = gnunet-nat-client.c
+endif
+
+if LINUX
+NATBIN = gnunet-nat-server gnunet-nat-client
+install-exec-hook:
+	chown root:root $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client $(bindir)/gnunet-transport-wlan-helper || true
+	chmod u+s $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client $(bindir)/gnunet-transport-wlan-helper || true
+else
+install-exec-hook:
+endif
+
+bin_PROGRAMS = \
+ $(NATBIN) 
+
+gnunet_nat_server_SOURCES = \
+ $(NATSERVER)
+
+gnunet_nat_client_SOURCES = \
+ $(NATCLIENT)         
+
+
+if MINGW
+  WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
 endif
 
 if USE_COVERAGE
