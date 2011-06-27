@@ -2,15 +2,6 @@ INCLUDES = -I$(top_srcdir)/src/include
 
 plugindir = $(libdir)/gnunet
 
-if MINGW
-  WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
-  NATBIN = gnunet-nat-server gnunet-nat-client
-  NATSERVER = gnunet-nat-server-windows.c
-  NATCLIENT = gnunet-nat-client-windows.c
-else
-  NATSERVER = gnunet-nat-server.c
-  NATCLIENT = gnunet-nat-client.c
-endif
 
 if HAVE_MHD
 if HAVE_EXPERIMENTAL
@@ -53,15 +44,6 @@ UNIX_QUOTA_TEST = test_quota_compliance_unix \
      test_quota_compliance_unix_asymmetric_recv_constant
 endif
 
-if LINUX
-NATBIN = gnunet-nat-server gnunet-nat-client
-install-exec-hook:
-	chown root:root $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client $(bindir)/gnunet-transport-wlan-helper || true
-	chmod u+s $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client $(bindir)/gnunet-transport-wlan-helper || true
-else
-install-exec-hook:
-endif
-
 #noinst_PROGRAMS = ${check_PROGRAMS}
 
 lib_LTLIBRARIES = \
@@ -96,14 +78,11 @@ libgnunettransport_la_LDFLAGS = \
 bin_PROGRAMS = \
  gnunet-transport \
  $(WLAN_BIN) \
- gnunet-service-transport $(NATBIN) \
+ gnunet-service-transport \
  $(WLAN_BIN_DUMMY)
 
 bin_SCRIPTS = \
  gnunet-transport-certificate-creation
-
-gnunet_nat_server_SOURCES = \
- $(NATSERVER)
 
 
 gnunet_transport_wlan_helper_SOURCES = \
@@ -126,9 +105,6 @@ gnunet_transport_wlan_helper_LDADD = \
 
 gnunet_transport_wlan_helper_dummy_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
-
-gnunet_nat_client_SOURCES = \
- $(NATCLIENT)         
 
 gnunet_transport_SOURCES = \
  gnunet-transport.c         
@@ -161,7 +137,6 @@ plugin_LTLIBRARIES = \
   $(HTTPS_PLUGIN_LA) \
   $(WLAN_PLUGIN_LA) \
   libgnunet_plugin_transport_template.la
-# TODO: add nat, etc.
 
 libgnunet_plugin_transport_tcp_la_SOURCES = \
   plugin_transport_tcp.c
@@ -197,6 +172,7 @@ libgnunet_plugin_transport_udp_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+  $(top_builddir)/src/nat/libgnunetnat.la \
   $(top_builddir)/src/util/libgnunetutil.la 
 libgnunet_plugin_transport_udp_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
@@ -218,6 +194,7 @@ libgnunet_plugin_transport_http_la_LIBADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   @LIBCURL@ \
+  $(top_builddir)/src/nat/libgnunetnat.la \
   $(top_builddir)/src/util/libgnunetutil.la 
 libgnunet_plugin_transport_http_la_LDFLAGS = \
  $(GN_LIBMHD) \
@@ -234,6 +211,7 @@ libgnunet_plugin_transport_https_la_LIBADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   @LIBCURL@ \
+  $(top_builddir)/src/nat/libgnunetnat.la \
   $(top_builddir)/src/util/libgnunetutil.la 
 libgnunet_plugin_transport_https_la_LDFLAGS = \
  $(GN_LIBMHD) \
@@ -277,7 +255,6 @@ check_PROGRAMS = \
  $(WLAN_API_TEST) \
  $(WLAN_REL_TEST) \
  $(WLAN_UREL_TEST)
-# TODO: add tests for nat, etc.
 
 if ENABLE_TEST_RUN
 TESTS = \
