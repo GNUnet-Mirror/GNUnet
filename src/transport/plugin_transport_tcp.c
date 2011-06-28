@@ -651,6 +651,7 @@ do_transmit (void *cls, size_t size, void *buf)
   char *cbuf;
   size_t ret;
 
+  GNUNET_assert (session != NULL);
   session->transmit_handle = NULL;
   plugin = session->plugin;
   if (buf == NULL)
