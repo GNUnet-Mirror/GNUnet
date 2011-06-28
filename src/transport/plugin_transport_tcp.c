@@ -2180,6 +2180,7 @@ libgnunet_plugin_transport_tcp_done (void *cls)
       GNUNET_CONNECTION_destroy (tcp_probe->sock, GNUNET_NO);
       GNUNET_free (tcp_probe);
     }
+  GNUNET_CONTAINER_multihashmap_destroy (plugin->nat_wait_conns);
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;
