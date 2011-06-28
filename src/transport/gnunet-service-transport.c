@@ -489,6 +489,18 @@ struct NeighbourList
   struct MessageQueue *messages_tail;
 
   /**
+   * Head of list of messages of messages we expected the continuation
+   * to be called to destroy the message
+   */
+  struct MessageQueue *cont_head;
+
+  /**
+   * Tail of list of messages of messages we expected the continuation
+   * to be called to destroy the message
+   */
+  struct MessageQueue *cont_tail;
+
+  /**
    * Buffer for at most one payload message used when we receive
    * payload data before our PING-PONG has succeeded.  We then
    * store such messages in this intermediary buffer until the
@@ -1909,6 +1921,12 @@ transmit_send_continuation (void *cls,
   n = find_neighbour(&mq->neighbour_id);
   if (mq->client != NULL)
     transmit_send_ok (mq->client, n, target, result);
+  if (n != NULL)
+  {
+    GNUNET_CONTAINER_DLL_remove (n->cont_head,
+                                 n->cont_tail,
+                                 mq);
+  }
   GNUNET_free (mq);
   if (n != NULL)
     try_transmission_to_peer (n);
@@ -2047,6 +2065,11 @@ try_transmission_to_peer (struct NeighbourList *n)
 			    gettext_noop ("# bytes pending with plugins"),
 			    mq->message_buf_size,
 			    GNUNET_NO);
+
+  GNUNET_CONTAINER_DLL_insert (n->cont_head,
+                               n->cont_tail,
+                               mq);
+
   ret = rl->plugin->api->send (rl->plugin->api->cls,
 			       &mq->neighbour_id,
 			       mq->message_buf,
@@ -5116,6 +5139,19 @@ disconnect_neighbour (struct NeighbourList *n, int check)
 				 sizeof(struct GNUNET_PeerIdentity)));
       GNUNET_free (mq);
     }
+
+  while (NULL != (mq = n->cont_head))
+    {
+
+      GNUNET_CONTAINER_DLL_remove (n->cont_head,
+                                   n->cont_tail,
+                                   mq);
+      GNUNET_assert (0 == memcmp(&mq->neighbour_id,
+                                 &n->id,
+                                 sizeof(struct GNUNET_PeerIdentity)));
+      GNUNET_free (mq);
+    }
+
   if (n->timeout_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (n->timeout_task);
