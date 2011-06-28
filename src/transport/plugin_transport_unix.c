@@ -1173,6 +1173,7 @@ libgnunet_plugin_transport_unix_done (void *cls)
   unix_transport_server_stop (plugin);
 
   GNUNET_NETWORK_fdset_destroy (plugin->rs);
+  GNUNET_free (plugin->unix_socket_path);
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;
