@@ -1070,41 +1070,27 @@ unix_address_to_string (void *cls,
                        const void *addr,
                        size_t addrlen)
 {
-  static char rbuf[INET6_ADDRSTRLEN + 10];
-  char buf[INET6_ADDRSTRLEN];
-  const void *sb;
-  struct in_addr a4;
-  struct in6_addr a6;
-  const struct IPv4UdpAddress *t4;
-  const struct IPv6UdpAddress *t6;
-  int af;
-  uint16_t port;
-
-  if (addrlen == sizeof (struct IPv6UdpAddress))
-    {
-      t6 = addr;
-      af = AF_INET6;
-      port = ntohs (t6->u6_port);
-      memcpy (&a6, &t6->ipv6_addr, sizeof (a6));
-      sb = &a6;
-    }
-  else if (addrlen == sizeof (struct IPv4UdpAddress))
-    {
-      t4 = addr;
-      af = AF_INET;
-      port = ntohs (t4->u_port);
-      memcpy (&a4, &t4->ipv4_addr, sizeof (a4));
-      sb = &a4;
-    }
+  if ((addr != NULL) && (addrlen > 0))
+    return (const char *) addr;
   else
     return NULL;
-  inet_ntop (af, sb, buf, INET6_ADDRSTRLEN);
-  GNUNET_snprintf (rbuf,
-                   sizeof (rbuf),
-                   "%s:%u",
-                   buf,
-                   port);
-  return rbuf;
+}
+
+/**
+ * Notify transport service about address
+ *
+ * @param cls the plugin
+ * @param tc unused
+ */
+static void
+address_notification (void *cls,
+                    const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Plugin *plugin = cls;
+  plugin->env->notify_address(plugin->env->cls,
+                              GNUNET_YES,
+                              plugin->unix_socket_path,
+                              strlen(plugin->unix_socket_path) + 1);
 }
 
 /**
@@ -1157,10 +1143,7 @@ libgnunet_plugin_transport_unix_init (void *cls)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Failed to open UNIX sockets\n"));
 
-  plugin->env->notify_address(plugin->env->cls,
-			      GNUNET_YES,
-                              plugin->unix_socket_path,
-                              strlen(plugin->unix_socket_path) + 1);
+  GNUNET_SCHEDULER_add_now(address_notification, plugin);
   return api;
 }
 

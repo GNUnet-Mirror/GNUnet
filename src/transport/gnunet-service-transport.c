@@ -1681,9 +1681,11 @@ a2s (const char *plugin,
   p = find_transport (plugin);
   if ((p == NULL) || (addr_len == 0) || (addr == NULL))
     return NULL;
-  return p->api->address_to_string (p->api->cls,
+
+  return p->api->address_to_string (NULL,
 				    addr,
 				    addr_len);
+  return NULL;
 }
 
 
@@ -2773,7 +2775,7 @@ plugin_env_session_end  (void *cls,
  * provided by the plugin can be reached.
  *
  * @param cls closure
- * @param add_remove YES to add, NO to remove the address
+ * @param add_remove GNUNET_YES to add, GNUNET_NO to remove the address
  * @param addr one of the addresses of the host, NULL for the last address
  *        the specific address format depends on the transport
  * @param addrlen length of the address
@@ -2787,6 +2789,8 @@ plugin_env_notify_address (void *cls,
   struct TransportPlugin *p = cls;
   struct OwnAddressList *al;
   struct OwnAddressList *prev;
+
+  GNUNET_assert (p->api != NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 	      (add_remove == GNUNET_YES)
