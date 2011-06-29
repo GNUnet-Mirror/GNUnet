@@ -915,7 +915,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct in_addr in_addr;
   unsigned int i;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Registered with NAT service at port %u with %u IP bound local addresses\n",
 	      (unsigned int) adv_port,
 	      num_addrs);

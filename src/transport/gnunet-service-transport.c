@@ -2792,14 +2792,15 @@ plugin_env_notify_address (void *cls,
 
   GNUNET_assert (p->api != NULL);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      (add_remove == GNUNET_YES)
 	      ? "Adding `%s':%s to the set of our addresses\n"
 	      : "Removing `%s':%s from the set of our addresses\n",
 	      a2s (p->short_name,
 		   addr, addrlen),
 	      p->short_name);
-	      
+#endif
   GNUNET_assert (addr != NULL);
   if (GNUNET_NO == add_remove)
     {
