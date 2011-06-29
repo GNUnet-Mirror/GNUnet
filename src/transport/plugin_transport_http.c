@@ -580,7 +580,6 @@ create_url(struct Plugin *plugin,
   GNUNET_asprintf(&url,
                   "%s://%s/%s;%u", PROTOCOL_PREFIX, addr_str,
                   (char *) (&plugin->my_ascii_hash_ident),id);
-  GNUNET_free_non_null(addr_str);
   return url;
 }
 
@@ -2840,9 +2839,9 @@ http_plugin_address_to_string (void *cls,
   struct sockaddr_in a4;
   struct sockaddr_in6 a6;
   char * address;
-  char * ret;
+  static char rbuf[INET6_ADDRSTRLEN + 13];
   uint16_t port;
-  unsigned int res;
+  int res;
 
   if (addrlen == sizeof (struct IPv6HttpAddress))
     {
@@ -2865,10 +2864,16 @@ http_plugin_address_to_string (void *cls,
       /* invalid address */
       return NULL;
     }
-  res = GNUNET_asprintf(&ret,"%s:%u",address,port);
+
+  res = GNUNET_snprintf (rbuf,
+                   sizeof (rbuf),
+                   "%s:%u",
+                   address,
+                   port);
+
   GNUNET_free (address);
   GNUNET_assert(res != 0);
-  return ret;
+  return rbuf;
 }
 
 /**
