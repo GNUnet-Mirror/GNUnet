@@ -3001,8 +3001,9 @@ wlan_process_helper(void *cls, void *client,
         wlan_plugin_address_to_string(cls, &plugin->mac_address,
             sizeof(struct MacAddress)));
 #endif
-    plugin->env->notify_address(plugin->env->cls, "wlan", &plugin->mac_address,
-        sizeof(struct MacAddress), GNUNET_TIME_UNIT_FOREVER_REL);
+    plugin->env->notify_address(plugin->env->cls,
+                                GNUNET_YES,
+                                &plugin->mac_address, sizeof(struct MacAddress));
     break;
   default:
     GNUNET_break (0);

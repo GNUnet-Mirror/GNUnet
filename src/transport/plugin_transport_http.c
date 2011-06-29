@@ -835,10 +835,9 @@ process_interfaces (void *cls,
 	  {
 	    GNUNET_CONTAINER_DLL_insert(plugin->ipv4_addr_head,
 					plugin->ipv4_addr_tail,t4);
-	    plugin->env->notify_address(plugin->env->cls,
-					PROTOCOL_PREFIX,
-					t4, sizeof (struct IPv4HttpAddress),
-					GNUNET_TIME_UNIT_FOREVER_REL);
+	          plugin->env->notify_address(plugin->env->cls,
+	                                      GNUNET_YES,
+	                                      t4, sizeof (struct IPv4HttpAddress));
 	    return GNUNET_OK;
 	  }
 	GNUNET_free (t4);
@@ -849,10 +848,9 @@ process_interfaces (void *cls,
           GNUNET_CONTAINER_DLL_insert (plugin->ipv4_addr_head,
 				       plugin->ipv4_addr_tail,
 				       t4);
-    	  plugin->env->notify_address (plugin->env->cls,
-				       PROTOCOL_PREFIX,
-				       t4, sizeof (struct IPv4HttpAddress), 
-				       GNUNET_TIME_UNIT_FOREVER_REL);
+          plugin->env->notify_address(plugin->env->cls,
+                                      GNUNET_YES,
+                                      t4, sizeof (struct IPv4HttpAddress));
       	  return GNUNET_OK;
 	  }
    }
@@ -874,9 +872,8 @@ process_interfaces (void *cls,
     	              sizeof (struct in6_addr));
     	      t6->u6_port = htons (plugin->port_inbound);
     	      plugin->env->notify_address(plugin->env->cls,
-					  PROTOCOL_PREFIX, t6,
-					  sizeof (struct IPv6HttpAddress), 
-					  GNUNET_TIME_UNIT_FOREVER_REL);
+    	                                  GNUNET_YES,
+    	                                  t6, sizeof (struct IPv6HttpAddress));
     	      GNUNET_CONTAINER_DLL_insert(plugin->ipv6_addr_head,
 					  plugin->ipv6_addr_tail,
 					  t6);
@@ -890,10 +887,10 @@ process_interfaces (void *cls,
     		  sizeof (struct in6_addr));
       t6->u6_port = htons (plugin->port_inbound);
       GNUNET_CONTAINER_DLL_insert(plugin->ipv6_addr_head,plugin->ipv6_addr_tail,t6);
+
       plugin->env->notify_address(plugin->env->cls,
-				  PROTOCOL_PREFIX,
-				  t6, sizeof (struct IPv6HttpAddress), 
-				  GNUNET_TIME_UNIT_FOREVER_REL);
+                                  GNUNET_YES,
+				  t6, sizeof (struct IPv6HttpAddress));
   }
   return GNUNET_OK;
 }
