@@ -874,10 +874,9 @@ send_data(struct HTTP_Transfer * result,
  */
 static void
 notify_address (void *cls,
-                const char *name,
+                int add_remove,
                 const void *addr,
-                uint16_t addrlen,
-                struct GNUNET_TIME_Relative expires)
+                size_t addrlen)
 {
   char address[INET6_ADDRSTRLEN];
   unsigned int port;

@@ -2871,6 +2871,20 @@ http_plugin_address_to_string (void *cls,
   return ret;
 }
 
+/**
+ * Notify transport service about address
+ *
+ * @param cls the plugin
+ * @param tc unused
+ */
+static void
+address_notification (void *cls,
+                    const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Plugin *plugin = cls;
+
+  GNUNET_OS_network_interfaces_list (&process_interfaces, plugin);
+}
 
 /**
  * Exit point from the plugin.
@@ -3380,9 +3394,9 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
     }
   
   plugin->peers = GNUNET_CONTAINER_multihashmap_create (10);
-  GNUNET_OS_network_interfaces_list (&process_interfaces, plugin);
   
   GNUNET_free(component_name);
+  GNUNET_SCHEDULER_add_now(address_notification, plugin);
   return api;
 }
 
