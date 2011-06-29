@@ -1,17 +1,15 @@
 0.9.0pre3:
 * clean buildbots
 
-0.9.0:
-* new webpage:
-  - write chapter on DHT/block [Nate] 
-  - make a NICE download page 
-* NAT/UPNP: [CG/MW]
-  - write NAT library 
+0.9.0pre4:
+* NAT library: [CG/MW]
+  - UPnP support
+  - testcase
+  - more testing
 * Transport:
   - UDP fragmentation [MW]
   - decide how to deal with 'DISABLEV6' option (where does it live?)
   - integration of new NAT/plugin API with HTTP/HTTPS plugin
-  - fix WLAN plugin for new plugin API (easy)
   - testing (again)
 * GNUNET-GTK: [CG]
   - figure out where in the GUI we should show active upload operations and allow aborts
@@ -24,6 +22,11 @@
     + insert
     + download
     + search
+
+0.9.0:
+* new webpage:
+  - write chapter on DHT/block [Nate] 
+  - make a NICE download page 
 * big code review
 * Determine RC bugs and fix those  (release should have no known real bugs)
 
@@ -71,11 +74,6 @@
   - better tracking of which config changes actually need to cause process restarts by ARM.
   - handle gnunet-arm -k in combination with auto-start magic (what is the right thing here?)
   - discover dependencies between services
-* MONKEY: [Safey]
-  - better crash management (attach debugging support, capture and analyze
-    debug output, detect random vs. deterministic crashes)
-  - '-m EMAIL' option for alternative e-mail TO
-  - '-f FILENAME' option to write  report to file instead of e-mail (for testing!)
 
 0.9.2:
 * PEERINFO: [NN]

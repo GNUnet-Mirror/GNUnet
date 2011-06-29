@@ -19,10 +19,10 @@
 */
 
 /**
- * @file src/transport/gnunet-nat-client-windows.c
+ * @file src/nat/gnunet-nat-client-windows.c
  * @brief Tool to help bypass NATs using ICMP method; must run as
- *        root (SUID will do) or administrator on W32
- *        This code will work under GNU/Linux or W32.
+ *        administrator on W32
+ *        This code is forx W32.
  * @author Nathan Evans
  *
  * This program will send ONE ICMP message using RAW sockets

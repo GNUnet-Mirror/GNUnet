@@ -1218,6 +1218,11 @@ static struct GNUNET_CONTAINER_MultiHashMap *validation_map;
 static struct GNUNET_STATISTICS_Handle *stats;
 
 /**
+ * Identifier of 'refresh_hello' task.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier hello_task;
+
+/**
  * Is transport service shutting down ?
  */
 static int shutdown_in_progress;
@@ -2448,15 +2453,20 @@ address_generator (void *cls, size_t max, void *buf)
 /**
  * Construct our HELLO message from all of the addresses of
  * all of the transports.
+ *
+ * @param cls unused
+ * @param tc scheduler context
  */
 static void
-refresh_hello ()
+refresh_hello_task (void *cls,
+		    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_HELLO_Message *hello;
   struct TransportClient *cpos;
   struct NeighbourList *npos;
   struct GeneratorContext gc;
 
+  hello_task = GNUNET_SCHEDULER_NO_TASK;
   gc.plug_pos = plugins;
   gc.addr_pos = plugins != NULL ? plugins->addresses : NULL;
   gc.expiration = GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
@@ -2500,6 +2510,21 @@ refresh_hello ()
 			GNUNET_HELLO_size(our_hello),
                         GNUNET_NO, npos);
     }
+}
+
+
+/**
+ * Schedule task to refresh hello (unless such a
+ * task exists already).
+ */
+static void
+refresh_hello ()
+{
+  if (hello_task != GNUNET_SCHEDULER_NO_TASK)
+    return;
+  hello_task
+    = GNUNET_SCHEDULER_add_now (&refresh_hello_task,
+				NULL);
 }
 
 
@@ -4548,7 +4573,7 @@ transmit_hello_and_ping (void *cls,
       return;
     }
   if (NULL == our_hello)
-    refresh_hello ();
+    refresh_hello_task (NULL, NULL);
   hello_size = GNUNET_HELLO_size(our_hello);
   slen = strlen(va->transport_name) + 1;
   tsize = sizeof(struct TransportPingMessage) + hello_size + va->addrlen + slen;
@@ -6302,6 +6327,11 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_PEERINFO_disconnect (peerinfo);
       peerinfo = NULL;
     }
+  if (GNUNET_SCHEDULER_NO_TASK != hello_task)
+    {
+      GNUNET_SCHEDULER_cancel (hello_task);
+      hello_task = GNUNET_SCHEDULER_NO_TASK;
+    }
   /* Can we assume those are gone by now, or do we need to clean up
      explicitly!? */
   GNUNET_break (bl_head == NULL);
@@ -7743,7 +7773,8 @@ run (void *cls,
   ats_init();
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Transport service ready.\n"));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+	      _("Transport service ready.\n"));
 #endif
   /* If we have a blacklist file, read from it */
   read_blacklist_file(cfg);

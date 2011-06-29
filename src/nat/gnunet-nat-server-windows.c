@@ -19,7 +19,7 @@
 */
 
 /**
- * @file src/transport/gnunet-nat-server-windows.c
+ * @file src/nat/gnunet-nat-server-windows.c
  * @brief Windows tool to help bypass NATs using ICMP method
  *        This code will work under W32 only
  * @author Christian Grothoff

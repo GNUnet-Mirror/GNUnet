@@ -27,13 +27,32 @@
  *
  * TODO:
  * - implement UPnP/PMP support
- * - repeatedly perform certain checks again to notice changes
+ * - make frequency of checks configurable
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_resolver_service.h"
 #include "gnunet_nat_lib.h"
 
+/**
+ * How often do we scan for changes in our IP address from our local
+ * interfaces?
+ * FIXME: make this configurable...
+ */
+#define IFC_SCAN_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
+
+/**
+ * How often do we scan for changes in how our hostname resolves?
+ * FIXME: make this configurable...
+ */
+#define HOSTNAME_DNS_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 20)
+
+
+/**
+ * How often do we scan for changes in how our external (dyndns) hostname resolves?
+ * FIXME: make this configurable...
+ */
+#define DYNDNS_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 7)
 
 /**
  * How long until we give up on transmitting the welcome message?
@@ -52,20 +71,17 @@ enum LocalAddressSource
     /**
      * Address was obtained by DNS resolution of the external hostname
      * given in the configuration (i.e. hole-punched DynDNS setup).
-     * FIXME: repeatedly do the lookup to notice changes!
      */
     LAL_EXTERNAL_IP,
 
     /**
      * Address was obtained by looking up our own hostname in DNS.
-     * FIXME: repeatedly do the lookup to notice changes!
      */
     LAL_HOSTNAME_DNS,
 
     /**
      * Address was obtained by scanning our hosts's network interfaces
      * and taking their address (no DNS involved).
-     * FIXME: repeatedly do the lookup to notice changes!
      */
     LAL_INTERFACE_ADDRESS,
 
@@ -183,6 +199,16 @@ struct GNUNET_NAT_Handle
   GNUNET_SCHEDULER_TaskIdentifier ifc_task;
 
   /**
+   * ID of hostname DNS lookup task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier hostname_task;
+
+  /**
+   * ID of DynDNS lookup task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier dns_task;
+
+  /**
    * The process id of the server process (if behind NAT)
    */
   struct GNUNET_OS_Process *server_proc;
@@ -268,6 +294,38 @@ struct GNUNET_NAT_Handle
  */
 static void
 start_gnunet_nat_server (struct GNUNET_NAT_Handle *h);
+
+
+/**
+ * Remove all addresses from the list of 'local' addresses
+ * that originated from the given source.
+ * 
+ * @param plugin the plugin
+ * @param src source that identifies addresses to remove
+ */
+static void
+remove_from_address_list_by_source (struct GNUNET_NAT_Handle *h,
+				    enum LocalAddressSource src)
+{
+  struct LocalAddressList *pos;
+  struct LocalAddressList *next;
+
+  next = h->lal_head;
+  while (NULL != (pos = next))
+    {
+      next = pos->next;
+      if (pos->source != src)
+	continue;
+      GNUNET_CONTAINER_DLL_remove (h->lal_head,
+				   h->lal_tail,
+				   pos);
+      h->address_callback (h->callback_cls,
+			   GNUNET_NO,
+			   (const struct sockaddr* ) &pos[1],
+			   pos->addrlen);
+      GNUNET_free (pos);
+    }
+}
 
 
 /**
@@ -438,6 +496,18 @@ add_ip_to_address_list (struct GNUNET_NAT_Handle *h,
 
 
 /**
+ * Task to do DNS lookup on our external hostname to
+ * get DynDNS-IP addresses.
+ *
+ * @param cls the NAT handle
+ * @param tc scheduler context
+ */
+static void
+resolve_dns (void *cls,
+	     const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
  * Our (external) hostname was resolved and the configuration says that
  * the NAT was hole-punched.
  *
@@ -455,13 +525,23 @@ process_external_ip (void *cls,
   if (addr == NULL)
     {    
       h->ext_dns = NULL;
-      /* FIXME: schedule task to resolve IP again in the
-	 future, and if the result changes, update the
-	 local address list accordingly */
+      h->dns_task = GNUNET_SCHEDULER_add_delayed (DYNDNS_FREQUENCY,
+						  &resolve_dns, h);
       return;
     }
   add_to_address_list (h, LAL_EXTERNAL_IP, addr, addrlen);
 }
+
+
+/**
+ * Task to do a lookup on our hostname for IP addresses.
+ *
+ * @param cls the NAT handle
+ * @param tc scheduler context
+ */
+static void
+resolve_hostname (void *cls,
+		  const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -482,9 +562,8 @@ process_hostname_ip (void *cls,
   if (addr == NULL)
     {
       h->hostname_dns = NULL;
-      /* FIXME: schedule task to resolve IP again in the
-	 future, and if the result changes, update the
-	 address list accordingly */
+      h->hostname_task = GNUNET_SCHEDULER_add_delayed (HOSTNAME_DNS_FREQUENCY,
+						       &resolve_hostname, h);
       return;
     }
   add_to_address_list (h, LAL_HOSTNAME_DNS, addr, addrlen);
@@ -874,11 +953,54 @@ list_interfaces (void *cls,
   struct GNUNET_NAT_Handle *h = cls;
 
   h->ifc_task = GNUNET_SCHEDULER_NO_TASK;
+  remove_from_address_list_by_source (h, LAL_INTERFACE_ADDRESS);
   GNUNET_OS_network_interfaces_list (&process_interfaces, h); 
-#if 0
-  h->ifc_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FIXME,
+  h->ifc_task = GNUNET_SCHEDULER_add_delayed (IFC_SCAN_FREQUENCY,
 					      &list_interfaces, h);
-#endif
+}
+
+
+/**
+ * Task to do a lookup on our hostname for IP addresses.
+ *
+ * @param cls the NAT handle
+ * @param tc scheduler context
+ */
+static void
+resolve_hostname (void *cls,
+		  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_NAT_Handle *h = cls;
+ 
+  h->hostname_task = GNUNET_SCHEDULER_NO_TASK;
+  remove_from_address_list_by_source (h, LAL_HOSTNAME_DNS);
+  h->hostname_dns = GNUNET_RESOLVER_hostname_resolve (AF_UNSPEC,
+						      HOSTNAME_RESOLVE_TIMEOUT,
+						      &process_hostname_ip,
+						      h);
+}
+
+
+/**
+ * Task to do DNS lookup on our external hostname to
+ * get DynDNS-IP addresses.
+ *
+ * @param cls the NAT handle
+ * @param tc scheduler context
+ */
+static void
+resolve_dns (void *cls,
+	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_NAT_Handle *h = cls;
+ 
+  h->dns_task = GNUNET_SCHEDULER_NO_TASK;
+  remove_from_address_list_by_source (h, LAL_EXTERNAL_IP);
+  h->ext_dns = GNUNET_RESOLVER_ip_get (h->external_address,
+				       AF_INET,
+				       GNUNET_TIME_UNIT_MINUTES,
+				       &process_external_ip,
+				       h);
 }
 
 
@@ -1014,11 +1136,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
        (h->external_address != NULL) &&
        (h->nat_punched == GNUNET_YES) )
     {
-      h->ext_dns = GNUNET_RESOLVER_ip_get (h->external_address,
-					   AF_INET,
-					   GNUNET_TIME_UNIT_MINUTES,
-					   &process_external_ip,
-					   h);
+      h->dns_task = GNUNET_SCHEDULER_add_now (&resolve_dns, h);
       h->enable_nat_server = GNUNET_NO;
       h->enable_upnp = GNUNET_NO;
     }
@@ -1049,10 +1167,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (NULL != h->address_callback)
     {
       h->ifc_task = GNUNET_SCHEDULER_add_now (&list_interfaces, h);
-      h->hostname_dns = GNUNET_RESOLVER_hostname_resolve (AF_UNSPEC,
-							  HOSTNAME_RESOLVE_TIMEOUT,
-							  &process_hostname_ip,
-							  h);
+      h->hostname_task = GNUNET_SCHEDULER_add_now (&resolve_hostname, h);
     }
   return h;
 }
@@ -1089,6 +1204,16 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
     {
       GNUNET_SCHEDULER_cancel (h->ifc_task);
       h->ifc_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  if (GNUNET_SCHEDULER_NO_TASK != h->hostname_task)
+    {
+      GNUNET_SCHEDULER_cancel (h->hostname_task);
+      h->hostname_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  if (GNUNET_SCHEDULER_NO_TASK != h->dns_task)
+    {
+      GNUNET_SCHEDULER_cancel (h->dns_task);
+      h->dns_task = GNUNET_SCHEDULER_NO_TASK;
     }
   if (NULL != h->server_proc)
     {
