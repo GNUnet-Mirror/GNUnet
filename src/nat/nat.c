@@ -934,7 +934,9 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
       h->local_addrlens = GNUNET_malloc (num_addrs * sizeof (socklen_t));
       for (i=0;i<num_addrs;i++)
 	{
-	  h->local_addrlens[i] = addrlens[i];
+          GNUNET_assert (addrlens[i] > 0);
+          GNUNET_assert (addrs[i] != NULL);
+          h->local_addrlens[i] = addrlens[i];
 	  h->local_addrs[i] = GNUNET_malloc (addrlens[i]);
 	  memcpy (h->local_addrs[i], addrs[i], addrlens[i]);
 	}

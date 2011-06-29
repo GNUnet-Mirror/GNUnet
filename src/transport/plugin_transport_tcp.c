@@ -2076,7 +2076,11 @@ libgnunet_plugin_transport_tcp_init (void *cls)
 					 &try_connection_reversal,
 					 plugin);
       while (ret > 0)
-	GNUNET_free (addrs[--ret]);
+      {
+        ret--;
+        GNUNET_assert (addrs[ret] != NULL);
+	GNUNET_free (addrs[ret]);
+      }
       GNUNET_free_non_null (addrs);
       GNUNET_free_non_null (addrlens);
     }
