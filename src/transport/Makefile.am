@@ -7,13 +7,13 @@ if HAVE_MHD
 if HAVE_EXPERIMENTAL
  GN_LIBMHD = -lmicrohttpd
  HTTP_PLUGIN_LA = libgnunet_plugin_transport_http.la
- HTTP_PLUGIN_TEST = test_plugin_transport_http
+# HTTP_PLUGIN_TEST = test_plugin_transport_http
  HTTP_API_TEST = test_transport_api_http
  HTTP_REL_TEST = test_transport_api_reliability_http
  HTTP_QUOTA_TEST = test_quota_compliance_http \
 		   test_quota_compliance_http_asymmetric_recv_constant
  HTTPS_PLUGIN_LA = libgnunet_plugin_transport_https.la
- HTTPS_PLUGIN_TEST = test_plugin_transport_https
+# HTTPS_PLUGIN_TEST = test_plugin_transport_https
  HTTPS_API_TEST = test_transport_api_https
  HTTPS_REL_TEST = test_transport_api_reliability_https
  HTTPS_QUOTA_TEST = test_quota_compliance_https \
@@ -365,13 +365,13 @@ test_transport_api_unix_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la 
 
-test_plugin_transport_http_SOURCES = \
- test_plugin_transport_http.c
-test_plugin_transport_http_LDADD = \
- $(top_builddir)/src/statistics/libgnunetstatistics.la \
- @LIBCURL@ \
- $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/util/libgnunetutil.la  
+#test_plugin_transport_http_SOURCES = \
+# test_plugin_transport_http.c
+#test_plugin_transport_http_LDADD = \
+# $(top_builddir)/src/statistics/libgnunetstatistics.la \
+# @LIBCURL@ \
+# $(top_builddir)/src/hello/libgnunethello.la \
+# $(top_builddir)/src/util/libgnunetutil.la  
 
 test_transport_api_http_SOURCES = \
  test_transport_api.c
@@ -387,13 +387,13 @@ test_transport_api_reliability_http_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
-test_plugin_transport_https_SOURCES = \
- test_plugin_transport_https.c
-test_plugin_transport_https_LDADD = \
- $(top_builddir)/src/statistics/libgnunetstatistics.la \
- @LIBCURL@ \
- $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/util/libgnunetutil.la  
+#test_plugin_transport_https_SOURCES = \
+# test_plugin_transport_https.c
+#test_plugin_transport_https_LDADD = \
+# $(top_builddir)/src/statistics/libgnunetstatistics.la \
+# @LIBCURL@ \
+# $(top_builddir)/src/hello/libgnunethello.la \
+# $(top_builddir)/src/util/libgnunetutil.la  
 
 test_transport_api_https_SOURCES = \
  test_transport_api.c
