@@ -27,7 +27,6 @@
  *
  * TODO:
  * - implement UPnP/PMP support
- * - make frequency of checks configurable
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -37,20 +36,17 @@
 /**
  * How often do we scan for changes in our IP address from our local
  * interfaces?
- * FIXME: make this configurable...
  */
 #define IFC_SCAN_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
 
 /**
  * How often do we scan for changes in how our hostname resolves?
- * FIXME: make this configurable...
  */
 #define HOSTNAME_DNS_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 20)
 
 
 /**
  * How often do we scan for changes in how our external (dyndns) hostname resolves?
- * FIXME: make this configurable...
  */
 #define DYNDNS_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 7)
 
@@ -207,6 +203,22 @@ struct GNUNET_NAT_Handle
    * ID of DynDNS lookup task
    */
   GNUNET_SCHEDULER_TaskIdentifier dns_task;
+
+  /**
+   * How often do we scan for changes in our IP address from our local
+   * interfaces?
+   */
+  struct GNUNET_TIME_Relative ifc_scan_frequency;
+
+  /**
+   * How often do we scan for changes in how our hostname resolves?
+   */
+  struct GNUNET_TIME_Relative hostname_dns_frequency;
+
+  /**
+   * How often do we scan for changes in how our external (dyndns) hostname resolves?
+   */
+  struct GNUNET_TIME_Relative dyndns_frequency;
 
   /**
    * The process id of the server process (if behind NAT)
@@ -521,11 +533,16 @@ process_external_ip (void *cls,
 		     socklen_t addrlen)
 {
   struct GNUNET_NAT_Handle *h = cls;
+  struct in_addr dummy;
 
   if (addr == NULL)
     {    
       h->ext_dns = NULL;
-      h->dns_task = GNUNET_SCHEDULER_add_delayed (DYNDNS_FREQUENCY,
+      if (1 == inet_pton (AF_INET,
+			  h->external_address,
+			  &dummy))
+	return; /* repated lookup pointless: was numeric! */
+      h->dns_task = GNUNET_SCHEDULER_add_delayed (h->dyndns_frequency,
 						  &resolve_dns, h);
       return;
     }
@@ -562,7 +579,7 @@ process_hostname_ip (void *cls,
   if (addr == NULL)
     {
       h->hostname_dns = NULL;
-      h->hostname_task = GNUNET_SCHEDULER_add_delayed (HOSTNAME_DNS_FREQUENCY,
+      h->hostname_task = GNUNET_SCHEDULER_add_delayed (h->hostname_dns_frequency,
 						       &resolve_hostname, h);
       return;
     }
@@ -955,7 +972,7 @@ list_interfaces (void *cls,
   h->ifc_task = GNUNET_SCHEDULER_NO_TASK;
   remove_from_address_list_by_source (h, LAL_INTERFACE_ADDRESS);
   GNUNET_OS_network_interfaces_list (&process_interfaces, h); 
-  h->ifc_task = GNUNET_SCHEDULER_add_delayed (IFC_SCAN_FREQUENCY,
+  h->ifc_task = GNUNET_SCHEDULER_add_delayed (h->ifc_scan_frequency,
 					      &list_interfaces, h);
 }
 
@@ -1128,6 +1145,25 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->disable_ipv6 = GNUNET_CONFIGURATION_get_value_yesno(cfg,
 							 "nat", 
 							 "DISABLEV6");
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (cfg,
+					   "nat",
+					   "DYNDNS_FREQUENCY",
+					   &h->dyndns_frequency))
+    h->dyndns_frequency = DYNDNS_FREQUENCY;
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (cfg,
+					   "nat",
+					   "IFC_SCAN_FREQUENCY",
+					   &h->ifc_scan_frequency))
+    h->ifc_scan_frequency = IFC_SCAN_FREQUENCY;
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (cfg,
+					   "nat",
+					   "HOSTNAME_DNS_FREQUENCY",
+					   &h->hostname_dns_frequency))
+    h->hostname_dns_frequency = HOSTNAME_DNS_FREQUENCY;
+
   if (NULL == reversal_callback)
     h->enable_nat_server = GNUNET_NO;
 
