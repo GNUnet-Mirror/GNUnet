@@ -746,6 +746,8 @@ remove_session (struct HTTP_PeerContext * pc,
   return GNUNET_OK;
 }
 
+
+#if 0
 static int check_localaddress (const struct sockaddr *addr, socklen_t addrlen)
 {
 	uint32_t res = 0;
@@ -784,6 +786,7 @@ static int check_localaddress (const struct sockaddr *addr, socklen_t addrlen)
     }
 	return local;
 }
+
 
 /**
  * Add the IP of our network interface to the list of
@@ -899,7 +902,7 @@ process_interfaces (void *cls,
   }
   return GNUNET_OK;
 }
-
+#endif
 
 /**
  * External logging function for MHD
@@ -2899,6 +2902,159 @@ try_connection_reversal (void *cls,
 
 }
 
+static void
+tcp_nat_cb_add_addr (void *cls,
+                         int add_remove,
+                         const struct sockaddr *addr,
+                         socklen_t addrlen)
+{
+  struct Plugin *plugin = cls;
+  struct IPv4HttpAddress * t4 = NULL;
+  struct IPv6HttpAddress * t6 = NULL;
+  int af;
+
+  af = addr->sa_family;
+  switch (af)
+  {
+  case AF_INET:
+    return;
+    t4 = plugin->ipv4_addr_head;
+    while (t4 != NULL)
+    {
+      int res = memcmp(&t4->ipv4_addr,
+                       &((struct sockaddr_in *) addr)->sin_addr,
+                       sizeof (struct in_addr));
+      if (0 == res)
+        break;
+      t4 = t4->next;
+    }
+    if (t4 == NULL)
+    {
+      t4 = GNUNET_malloc(sizeof(struct IPv4HttpAddress));
+      memcpy (&t4->ipv4_addr,
+            &((struct sockaddr_in *) addr)->sin_addr,
+            sizeof (struct in_addr));
+      t4->u_port = htons (plugin->port_inbound);
+
+      GNUNET_CONTAINER_DLL_insert(plugin->ipv4_addr_head,
+                                  plugin->ipv4_addr_tail,t4);
+    }
+    plugin->env->notify_address(plugin->env->cls,
+                                add_remove,
+                                t4, sizeof (struct IPv4HttpAddress));
+
+    break;
+  case AF_INET6:
+    t6 = plugin->ipv6_addr_head;
+    while (t6 != NULL)
+    {
+      int res = memcmp(&t6->ipv6_addr,
+                       &((struct sockaddr_in6 *) addr)->sin6_addr,
+                       sizeof (struct in6_addr));
+      if (0 == res)
+        {
+        GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                         "tcp",
+                         "FOUND\n");
+        break;
+        }
+      t6 = t6->next;
+    }
+    if (t6 == NULL)
+    {
+    t6 = GNUNET_malloc(sizeof(struct IPv6HttpAddress));
+
+    memcpy (&t6->ipv6_addr,
+            &((struct sockaddr_in6 *) addr)->sin6_addr,
+            sizeof (struct in6_addr));
+    t6->u6_port = htons (plugin->port_inbound);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                     "tcp",
+                     "Added `%s' to our address set\n", http_plugin_address_to_string(NULL, t6, sizeof (struct IPv6HttpAddress)));
+    GNUNET_CONTAINER_DLL_insert(plugin->ipv6_addr_head,
+                                plugin->ipv6_addr_tail,t6);
+    }
+    plugin->env->notify_address(plugin->env->cls,
+                                add_remove,
+                                t6, sizeof (struct IPv6HttpAddress));
+    break;
+  default:
+    return;
+  }
+
+}
+
+static void
+tcp_nat_cb_remove_addr (void *cls,
+                         int add_remove,
+                         const struct sockaddr *addr,
+                         socklen_t addrlen)
+{
+  struct Plugin *plugin = cls;
+  struct IPv4HttpAddress * t4;
+  struct IPv6HttpAddress * t6;
+  int af;
+
+  af = addr->sa_family;
+  switch (af)
+  {
+  case AF_INET:
+    return;
+      t4 = plugin->ipv4_addr_head;
+      while (t4 != NULL)
+      {
+        int res = memcmp(&t4->ipv4_addr,
+                         &((struct sockaddr_in *) addr)->sin_addr,
+                         sizeof (struct in_addr));
+        if (0 == res)
+          break;
+        t4 = t4->next;
+      }
+      if (t4 == NULL)
+        return;
+      plugin->env->notify_address(plugin->env->cls,
+                                add_remove,
+                                t4, sizeof (struct IPv4HttpAddress));
+
+      GNUNET_CONTAINER_DLL_remove(plugin->ipv4_addr_head,
+                                  plugin->ipv4_addr_tail,t4);
+      GNUNET_free (t4);
+    break;
+  case AF_INET6:
+    t6 = plugin->ipv6_addr_head;
+    while (t6 != NULL)
+    {
+      int res = memcmp(&t6->ipv6_addr,
+                       &((struct sockaddr_in6 *) addr)->sin6_addr,
+                       sizeof (struct in6_addr));
+      if (0 == res)
+        {
+        GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                         "tcp",
+                         "FOUND\n");
+        break;
+        }
+      t6 = t6->next;
+    }
+    if (t6 == NULL)
+      return;
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                     "tcp",
+                     "Removing `%s' from our address set\n", http_plugin_address_to_string(NULL, t6, sizeof (struct IPv6HttpAddress)));
+    plugin->env->notify_address(plugin->env->cls,
+                              add_remove,
+                              t6, sizeof (struct IPv6HttpAddress));
+
+    GNUNET_CONTAINER_DLL_remove(plugin->ipv6_addr_head,
+                                plugin->ipv6_addr_tail,t6);
+    GNUNET_free (t6);
+    break;
+  default:
+    return;
+  }
+
+}
+
 /**
  * Our external IP address/port mapping has changed.
  *
@@ -2914,14 +3070,6 @@ tcp_nat_port_map_callback (void *cls,
                            const struct sockaddr *addr,
                            socklen_t addrlen)
 {
-
-  struct Plugin *plugin = cls;
-  struct IPv4HttpAddress t4;
-  struct IPv6HttpAddress t6;
-  void *arg;
-  size_t args;
-  int af;
-
   GNUNET_assert(cls !=NULL );
   GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
                    "tcp",
@@ -2930,35 +3078,18 @@ tcp_nat_port_map_callback (void *cls,
                    GNUNET_a2s (addr, addrlen));
 
   /* convert 'addr' to our internal format */
-  return;
-
-  af = addr->sa_family;
-  switch (af)
+  switch (add_remove)
   {
-  case AF_INET:
-      t4.ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
-      memcpy (&t4.ipv4_addr,
-              &((struct sockaddr_in *) addr)->sin_addr.s_addr,
-              sizeof (struct in_addr));
-      t4.u_port = htons (plugin->port_inbound);
-      plugin->env->notify_address(plugin->env->cls,
-                                  add_remove,
-                                  &t4, sizeof (struct IPv6HttpAddress));
+  case GNUNET_YES:
+    tcp_nat_cb_add_addr (cls, add_remove, addr, addrlen);
     break;
-  case AF_INET6:
-      memcpy (&t6.ipv6_addr,
-            &((struct sockaddr_in6 *) addr)->sin6_addr,
-            sizeof (struct in6_addr));
-      t6.u6_port = htons (plugin->port_inbound);
-      plugin->env->notify_address(plugin->env->cls,
-                                  add_remove,
-                                  &t6, sizeof (struct IPv6HttpAddress));
+  case GNUNET_NO:
+    tcp_nat_cb_remove_addr (cls, add_remove, addr, addrlen);
     break;
-  default:
-    return;
   }
 }
 
+#if 0
 /**
  * Notify transport service about address
  *
@@ -2973,6 +3104,7 @@ address_notification (void *cls,
 
   GNUNET_OS_network_interfaces_list (&process_interfaces, plugin);
 }
+#endif
 
 /**
  * Exit point from the plugin.
@@ -2986,6 +3118,10 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   struct IPv4HttpAddress * ipv4addr;
   struct IPv6HttpAddress * ipv6addr;
   GNUNET_assert(cls !=NULL);
+
+  if (plugin->nat != NULL)
+    GNUNET_NAT_unregister (plugin->nat);
+
 
   if (plugin->http_server_daemon_v4 != NULL)
     {
@@ -3046,8 +3182,6 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
       plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
     }
   
-  if (plugin->nat != NULL)
-    GNUNET_NAT_unregister (plugin->nat);
 
   GNUNET_free_non_null (plugin->bind4_address);
   GNUNET_free_non_null (plugin->bind6_address);
@@ -3408,6 +3542,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
                                                         MHD_OPTION_CONNECTION_LIMIT, (unsigned int) plugin->max_connect_per_transport,
 #if BUILD_HTTPS
 							MHD_OPTION_HTTPS_PRIORITIES,  plugin->crypto_init,
+
 							MHD_OPTION_HTTPS_MEM_KEY, plugin->key,
 							MHD_OPTION_HTTPS_MEM_CERT, plugin->cert,
 #endif
@@ -3547,7 +3682,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   plugin->peers = GNUNET_CONTAINER_multihashmap_create (10);
   
   GNUNET_free(component_name);
-  GNUNET_SCHEDULER_add_now(address_notification, plugin);
+  //GNUNET_SCHEDULER_add_now(address_notification, plugin);
   return api;
 }
 
