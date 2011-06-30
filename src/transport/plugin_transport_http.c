@@ -2914,6 +2914,7 @@ tcp_nat_port_map_callback (void *cls,
                            const struct sockaddr *addr,
                            socklen_t addrlen)
 {
+
   struct Plugin *plugin = cls;
   struct IPv4HttpAddress *t4;
   struct IPv6HttpAddress *t6;
@@ -2928,7 +2929,7 @@ tcp_nat_port_map_callback (void *cls,
                    add_remove,
                    GNUNET_a2s (addr, addrlen));
   /* convert 'addr' to our internal format */
-
+  return;
   GNUNET_assert(cls !=NULL);
   af = addr->sa_family;
   if ((af == AF_INET) &&
@@ -3566,7 +3567,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
         tmp = addrs[counter];
       }
 
-    /*
+
       plugin->nat = GNUNET_NAT_register (env->cfg,
                                          GNUNET_YES,
                                          port,
@@ -3576,7 +3577,6 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
                                          &tcp_nat_port_map_callback,
                                          &try_connection_reversal,
                                          plugin);
-      */
       while (ret > 0)
       {
         ret--;
