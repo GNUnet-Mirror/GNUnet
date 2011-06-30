@@ -2922,7 +2922,7 @@ tcp_nat_port_map_callback (void *cls,
   int af;
 
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
                    "tcp",
                    "NPMC called with %d for address `%s'\n",
                    add_remove,
@@ -3545,17 +3545,27 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   struct sockaddr **addrs;
   socklen_t *addrlens;
   int ret;
+  ret = GNUNET_SERVICE_get_server_addresses ("transport-http",
+                          env->cfg,
+                          &addrs,
+                          &addrlens);
 
-  if   (GNUNET_SYSERR !=
-        (ret = GNUNET_SERVICE_get_server_addresses ("transport-http",
-                                                    env->cfg,
-                                                    &addrs,
-                                                    &addrlens)))
-    {
-
+  if (ret != GNUNET_SYSERR)
+  {
+    int counter = 0;
+    struct sockaddr *tmp = addrs[counter];
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
                      component_name,
                       "addresses %u\n",ret);
+    while (tmp!= NULL)
+      {
+        GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+            component_name,
+            "address[%u] %s\n",counter, (tmp->sa_family == AF_INET) ? "AF_INET" : "AF_INET6" );
+        counter++;
+        tmp = addrs[counter];
+      }
+
     /*
       plugin->nat = GNUNET_NAT_register (env->cfg,
                                          GNUNET_YES,
@@ -3566,7 +3576,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
                                          &tcp_nat_port_map_callback,
                                          &try_connection_reversal,
                                          plugin);
-
+      */
       while (ret > 0)
       {
         ret--;
@@ -3574,18 +3584,18 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
         GNUNET_free (addrs[ret]);
       }
       GNUNET_free_non_null (addrs);
-      GNUNET_free_non_null (addrlens);*/
-    }
+      GNUNET_free_non_null (addrlens);
+  }
   else
-    {
-      plugin->nat = GNUNET_NAT_register (env->cfg,
-                                         GNUNET_YES,
-                                         0,
-                                         0, NULL, NULL,
-                                         NULL,
-                                         &try_connection_reversal,
-                                         plugin);
-    }
+  {
+    plugin->nat = GNUNET_NAT_register (env->cfg,
+         GNUNET_YES,
+         0,
+         0, NULL, NULL,
+         NULL,
+         &try_connection_reversal,
+         plugin);
+  }
 
   plugin->peers = GNUNET_CONTAINER_multihashmap_create (10);
   
