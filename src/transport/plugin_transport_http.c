@@ -37,6 +37,7 @@
 #include "gnunet_container_lib.h"
 #include "gnunet_transport_plugin.h"
 #include "gnunet_os_lib.h"
+#include "gnunet_nat_lib.h"
 #include "microhttpd.h"
 #include <curl/curl.h>
 
@@ -411,6 +412,11 @@ struct Plugin
    * cURL Multihandle
    */
   CURLM * multi_handle;
+
+  /**
+   * Our handle to the NAT module.
+   */
+  struct GNUNET_NAT_Handle *nat;
 
   /**
    * ipv4 DLL head
@@ -2877,6 +2883,135 @@ http_plugin_address_to_string (void *cls,
 }
 
 /**
+ * Function called by the NAT subsystem suggesting another peer wants
+ * to connect to us via connection reversal.  Try to connect back to the
+ * given IP.
+ *
+ * @param cls closure
+ * @param addr address to try
+ * @param addrlen number of bytes in addr
+ */
+static void
+try_connection_reversal (void *cls,
+                         const struct sockaddr *addr,
+                         socklen_t addrlen)
+{
+
+}
+
+/**
+ * Our external IP address/port mapping has changed.
+ *
+ * @param cls closure, the 'struct LocalAddrList'
+ * @param add_remove GNUNET_YES to mean the new public IP address, GNUNET_NO to mean
+ *     the previous (now invalid) one
+ * @param addr either the previous or the new public IP address
+ * @param addrlen actual lenght of the address
+ */
+static void
+tcp_nat_port_map_callback (void *cls,
+                           int add_remove,
+                           const struct sockaddr *addr,
+                           socklen_t addrlen)
+{
+  struct Plugin *plugin = cls;
+  struct IPv4HttpAddress *t4;
+  struct IPv6HttpAddress *t6;
+  void *arg;
+  size_t args;
+  int af;
+
+
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                   "tcp",
+                   "NPMC called with %d for address `%s'\n",
+                   add_remove,
+                   GNUNET_a2s (addr, addrlen));
+  /* convert 'addr' to our internal format */
+
+  GNUNET_assert(cls !=NULL);
+  af = addr->sa_family;
+  if ((af == AF_INET) &&
+      (plugin->use_ipv4 == GNUNET_YES) &&
+      (plugin->bind6_address == NULL) ) {
+
+          struct in_addr bnd_cmp = ((struct sockaddr_in *) addr)->sin_addr;
+      t4 = GNUNET_malloc(sizeof(struct IPv4HttpAddress));
+     // Not skipping loopback addresses
+
+
+      t4->ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
+      t4->u_port = htons (plugin->port_inbound);
+      if (plugin->bind4_address != NULL) {
+        if (0 == memcmp(&plugin->bind4_address->sin_addr, &bnd_cmp, sizeof (struct in_addr)))
+          {
+            GNUNET_CONTAINER_DLL_insert(plugin->ipv4_addr_head,
+                                        plugin->ipv4_addr_tail,t4);
+                  plugin->env->notify_address(plugin->env->cls,
+                                              GNUNET_YES,
+                                              t4, sizeof (struct IPv4HttpAddress));
+            return;
+          }
+        GNUNET_free (t4);
+        return;
+      }
+      else
+          {
+          GNUNET_CONTAINER_DLL_insert (plugin->ipv4_addr_head,
+                                       plugin->ipv4_addr_tail,
+                                       t4);
+          plugin->env->notify_address(plugin->env->cls,
+                                      GNUNET_YES,
+                                      t4, sizeof (struct IPv4HttpAddress));
+          return;
+          }
+   }
+   if ((af == AF_INET6) &&
+            (plugin->use_ipv6 == GNUNET_YES) &&
+            (plugin->bind4_address == NULL) ) {
+
+          struct in6_addr bnd_cmp6 = ((struct sockaddr_in6 *) addr)->sin6_addr;
+
+      t6 = GNUNET_malloc(sizeof(struct IPv6HttpAddress));
+      GNUNET_assert(t6 != NULL);
+
+      if (plugin->bind6_address != NULL) {
+          if (0 == memcmp(&plugin->bind6_address->sin6_addr,
+                                                  &bnd_cmp6,
+                                                 sizeof (struct in6_addr))) {
+              memcpy (&t6->ipv6_addr,
+                      &((struct sockaddr_in6 *) addr)->sin6_addr,
+                      sizeof (struct in6_addr));
+              t6->u6_port = htons (plugin->port_inbound);
+              plugin->env->notify_address(plugin->env->cls,
+                                          GNUNET_YES,
+                                          t6, sizeof (struct IPv6HttpAddress));
+              GNUNET_CONTAINER_DLL_insert(plugin->ipv6_addr_head,
+                                          plugin->ipv6_addr_tail,
+                                          t6);
+              return;
+              }
+          GNUNET_free (t6);
+          return;
+          }
+      memcpy (&t6->ipv6_addr,
+                  &((struct sockaddr_in6 *) addr)->sin6_addr,
+                  sizeof (struct in6_addr));
+      t6->u6_port = htons (plugin->port_inbound);
+      GNUNET_CONTAINER_DLL_insert(plugin->ipv6_addr_head,plugin->ipv6_addr_tail,t6);
+
+      plugin->env->notify_address(plugin->env->cls,
+                                  GNUNET_YES,
+                                  t6, sizeof (struct IPv6HttpAddress));
+   }
+
+  /* modify our published address list */
+  plugin->env->notify_address (plugin->env->cls,
+                               add_remove,
+                               arg, args);
+}
+
+/**
  * Notify transport service about address
  *
  * @param cls the plugin
@@ -2963,6 +3098,9 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
       plugin->http_curl_task = GNUNET_SCHEDULER_NO_TASK;
     }
   
+  if (plugin->nat != NULL)
+    GNUNET_NAT_unregister (plugin->nat);
+
   GNUNET_free_non_null (plugin->bind4_address);
   GNUNET_free_non_null (plugin->bind6_address);
   GNUNET_free_non_null(plugin->bind_hostname);
@@ -3023,6 +3161,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   struct GNUNET_TIME_Relative gn_timeout;
   long long unsigned int port;
   unsigned long long tneigh;
+  int addr_count = 0;
   char * component_name;
 #if BUILD_HTTPS
   char * key_file = NULL;
@@ -3398,6 +3537,56 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
       return NULL;
     }
   
+  if (plugin->bind4_address != NULL)
+     addr_count++;
+  if (plugin->bind6_address != NULL)
+     addr_count++;
+
+  struct sockaddr **addrs;
+  socklen_t *addrlens;
+  int ret;
+
+  if   (GNUNET_SYSERR !=
+        (ret = GNUNET_SERVICE_get_server_addresses ("transport-http",
+                                                    env->cfg,
+                                                    &addrs,
+                                                    &addrlens)))
+    {
+
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                     component_name,
+                      "addresses %u\n",ret);
+    /*
+      plugin->nat = GNUNET_NAT_register (env->cfg,
+                                         GNUNET_YES,
+                                         port,
+                                         (unsigned int) ret,
+                                         (const struct sockaddr **) addrs,
+                                         addrlens,
+                                         &tcp_nat_port_map_callback,
+                                         &try_connection_reversal,
+                                         plugin);
+
+      while (ret > 0)
+      {
+        ret--;
+        GNUNET_assert (addrs[ret] != NULL);
+        GNUNET_free (addrs[ret]);
+      }
+      GNUNET_free_non_null (addrs);
+      GNUNET_free_non_null (addrlens);*/
+    }
+  else
+    {
+      plugin->nat = GNUNET_NAT_register (env->cfg,
+                                         GNUNET_YES,
+                                         0,
+                                         0, NULL, NULL,
+                                         NULL,
+                                         &try_connection_reversal,
+                                         plugin);
+    }
+
   plugin->peers = GNUNET_CONTAINER_multihashmap_create (10);
   
   GNUNET_free(component_name);
