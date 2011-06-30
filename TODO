@@ -17,7 +17,6 @@
     + search error
     + publish error
 * FS [CG]
-  - consider re-issue GSF_dht_lookup_ after non-DHT reply received 
   - implement multi-peer FS performance tests + gauger them!
     + insert
     + download
