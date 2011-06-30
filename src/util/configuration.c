@@ -690,13 +690,22 @@ GNUNET_CONFIGURATION_get_value_time (const struct GNUNET_CONFIGURATION_Handle
                                      const char *option,
                                      struct GNUNET_TIME_Relative *time)
 {
+  struct ConfigEntry *e;
   unsigned long long num;
-  int ret;
 
-  ret = GNUNET_CONFIGURATION_get_value_number (cfg, section, option, &num);
-  if (ret == GNUNET_OK)
-    time->rel_value = (uint64_t) num;
-  return ret;
+  e = findEntry (cfg, section, option);
+  if (e == NULL)
+    return GNUNET_SYSERR;
+  if ( (0 == strcasecmp (e->val, "infinity")) ||
+       (0 == strcasecmp (e->val, "forever")) )
+    {
+      *time = GNUNET_TIME_UNIT_FOREVER_REL;
+      return GNUNET_OK;
+    }
+  if (1 != SSCANF (e->val, "%llu", &num))
+    return GNUNET_SYSERR;
+  time->rel_value = (uint64_t) num;
+  return GNUNET_OK;
 }
 
 
