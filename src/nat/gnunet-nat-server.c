@@ -22,7 +22,6 @@
  * @file src/nat/gnunet-nat-server.c
  * @brief Daemon to run on 'gnunet.org' to help test NAT traversal code
  * @author Christian Grothoff
- *
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"

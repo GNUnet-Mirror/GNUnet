@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2007, 2008, 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2007, 2008, 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -137,6 +137,54 @@ GNUNET_NAT_run_client (struct GNUNET_NAT_Handle *h,
  */
 void 
 GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h);
+
+
+/**
+ * Handle to a NAT test.
+ */
+struct GNUNET_NAT_Test;
+
+/**
+ * Function called to report success or failure for
+ * NAT configuration test.
+ *
+ * @param cls closure
+ * @param success GNUNET_OK on success, GNUNET_NO on failure,
+ *                GNUNET_SYSERR if the test could not be 
+ *                properly started (internal failure)
+ */
+typedef void (*GNUNET_NAT_TestCallback)(void *cls,
+					int success);
+
+/**
+ * Start testing if NAT traversal works using the
+ * given configuration (IPv4-only).
+ *
+ * @param cfg configuration for the NAT traversal
+ * @param is_tcp GNUNET_YES to test TCP, GNUNET_NO to test UDP
+ * @param bnd_port port to bind to
+ * @param adv_port externally advertised port to use
+ * @param report function to call with the result of the test
+ * @param report_cls closure for report
+ * @return handle to cancel NAT test
+ */
+struct GNUNET_NAT_Test *
+GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
+		       int is_tcp,
+		       uint16_t bnd_port,
+		       uint16_t adv_port,
+		       GNUNET_NAT_TestCallback report,
+		       void *report_cls);
+
+
+/**
+ * Stop an active NAT test.
+ *
+ * @param tst test to stop.
+ */
+void
+GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst);
+
 
 #endif 
 
