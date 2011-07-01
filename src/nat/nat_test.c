@@ -126,9 +126,8 @@ struct GNUNET_NAT_Test
 
 
 /**
- * Function called from GNUNET_NAT_register
- * whenever someone asks us to do connection
- * reversal.
+ * Function called from GNUNET_NAT_register whenever someone asks us
+ * to do connection reversal.
  *
  * @param cls closure, our 'struct GNUNET_NAT_Handle'
  * @param addr public IP address of the other peer
