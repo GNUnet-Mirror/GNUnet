@@ -162,7 +162,7 @@ typedef void (*GNUNET_NAT_TestCallback)(void *cls,
  *
  * @param cfg configuration for the NAT traversal
  * @param is_tcp GNUNET_YES to test TCP, GNUNET_NO to test UDP
- * @param bnd_port port to bind to
+ * @param bnd_port port to bind to, 0 for connection reversal
  * @param adv_port externally advertised port to use
  * @param report function to call with the result of the test
  * @param report_cls closure for report

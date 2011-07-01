@@ -331,10 +331,11 @@ remove_from_address_list_by_source (struct GNUNET_NAT_Handle *h,
       GNUNET_CONTAINER_DLL_remove (h->lal_head,
 				   h->lal_tail,
 				   pos);
-      h->address_callback (h->callback_cls,
-			   GNUNET_NO,
-			   (const struct sockaddr* ) &pos[1],
-			   pos->addrlen);
+      if (NULL != h->address_callback)
+	h->address_callback (h->callback_cls,
+			     GNUNET_NO,
+			     (const struct sockaddr* ) &pos[1],
+			     pos->addrlen);
       GNUNET_free (pos);
     }
 }
@@ -369,10 +370,11 @@ add_to_address_list_as_is (struct GNUNET_NAT_Handle *h,
 		   "Adding address `%s' from source %d\n",
 		   GNUNET_a2s (arg, arg_size),
 		   src);
-  h->address_callback (h->callback_cls,
-		       GNUNET_YES,
-		       arg,
-		       arg_size);
+  if (NULL != h->address_callback)
+    h->address_callback (h->callback_cls,
+			 GNUNET_YES,
+			 arg,
+			 arg_size);
 }
 
 
@@ -1273,10 +1275,11 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
       GNUNET_CONTAINER_DLL_remove (h->lal_head,
 				   h->lal_tail,
 				   lal);
-      h->address_callback (h->callback_cls,
-			   GNUNET_NO,
-			   (const struct sockaddr*) &lal[1],
-			   lal->addrlen);
+      if (NULL != h->address_callback)
+	h->address_callback (h->callback_cls,
+			     GNUNET_NO,
+			     (const struct sockaddr*) &lal[1],
+			     lal->addrlen);
       GNUNET_free (lal);
     }
   for (i=0;i<h->num_local_addrs;i++)   
