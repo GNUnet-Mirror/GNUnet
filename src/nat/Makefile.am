@@ -2,36 +2,38 @@ INCLUDES = -I$(top_srcdir)/src/include
 
 if MINGW
   WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
-  NATBIN = gnunet-nat-server gnunet-nat-client
-  NATSERVER = gnunet-nat-server-windows.c
-  NATCLIENT = gnunet-nat-client-windows.c
-else
-  NATSERVER = gnunet-nat-server.c
-  NATCLIENT = gnunet-nat-client.c
+  NATBIN = gnunet-helper-nat-server gnunet-helper-nat-client
+  NATSERVER = gnunet-helper-nat-server-windows.c
+  NATCLIENT = gnunet-helper-nat-client-windows.c
 endif
 
 if LINUX
-NATBIN = gnunet-nat-server gnunet-nat-client
+NATBIN = gnunet-helper-nat-server gnunet-helper-nat-client
+NATSERVER = gnunet-helper-nat-server.c
+NATCLIENT = gnunet-helper-nat-client.c
 install-exec-hook:
-	chown root:root $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client $(bindir)/gnunet-transport-wlan-helper || true
-	chmod u+s $(bindir)/gnunet-nat-server $(bindir)/gnunet-nat-client $(bindir)/gnunet-transport-wlan-helper || true
+	chown root:root $(bindir)/gnunet-helper-nat-server $(bindir)/gnunet-helper-nat-client || true
+	chmod u+s $(bindir)/gnunet-helper-nat-server $(bindir)/gnunet-helper-nat-client || true
 else
 install-exec-hook:
 endif
 
 bin_PROGRAMS = \
+ gnunet-nat-server \
  $(NATBIN) 
 
 gnunet_nat_server_SOURCES = \
+ gnunet-nat-server.c
+gnunet_nat_server_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la 
+
+gnunet_helper_nat_server_SOURCES = \
  $(NATSERVER)
 
-gnunet_nat_client_SOURCES = \
+gnunet_helper_nat_client_SOURCES = \
  $(NATCLIENT)         
 
 
-if MINGW
-  WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
-endif
 
 if USE_COVERAGE
   AM_CFLAGS = -fprofile-arcs -ftest-coverage

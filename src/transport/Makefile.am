@@ -36,6 +36,14 @@ if HAVE_EXPERIMENTAL
 endif
 endif
 
+if LINUX
+install-exec-hook:
+	chown root:root $(bindir)/gnunet-transport-wlan-helper || true
+	chmod u+s $(bindir)/gnunet-transport-wlan-helper || true
+else
+install-exec-hook:
+endif
+
 if !MINGW
 UNIX_PLUGIN_LA = libgnunet_plugin_transport_unix.la
 UNIX_PLUGIN_TEST = test_transport_api_unix 

@@ -19,7 +19,7 @@
 */
 
 /**
- * @file src/nat/gnunet-nat-client.c
+ * @file src/nat/gnunet-helper-nat-client.c
  * @brief Tool to help bypass NATs using ICMP method; must run as root (SUID will do)
  *        This code will work under GNU/Linux only.
  * @author Christian Grothoff
@@ -524,4 +524,4 @@ main (int argc, char *const *argv)
   return 0;
 }
 
-/* end of gnunet-nat-client.c */
+/* end of gnunet-helper-nat-client.c */

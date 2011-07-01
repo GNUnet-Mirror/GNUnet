@@ -19,7 +19,7 @@
 */
 
 /**
- * @file src/nat/gnunet-nat-client-windows.c
+ * @file src/nat/gnunet-helper-nat-client-windows.c
  * @brief Tool to help bypass NATs using ICMP method; must run as
  *        administrator on W32
  *        This code is forx W32.
@@ -547,4 +547,4 @@ main (int argc, char *const *argv)
   return 0;
 }
 
-/* end of gnunet-nat-client-windows.c */
+/* end of gnunet-helper-nat-client-windows.c */

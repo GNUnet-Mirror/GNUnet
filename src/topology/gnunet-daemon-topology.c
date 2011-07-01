@@ -1482,7 +1482,7 @@ main (int argc, char *const *argv)
   ret = (GNUNET_OK ==
          GNUNET_PROGRAM_run (argc,
                              argv,
-                             "topology",
+                             "gnunet-daemon-topology",
 			     _("GNUnet topology control (maintaining P2P mesh and F2F constraints)"),
 			     options,
 			     &run, NULL)) ? 0 : 1;

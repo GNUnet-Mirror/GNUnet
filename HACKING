@@ -14,6 +14,15 @@ include files:
   * gettext.h            --- external library
 
 
+binaries:
+- gnunet-service-xxx: service process (has listen socket)
+- gnunet-daemon-xxx: daemon process (no listen socket)
+- gnunet-helper-xxx[-yyy]: SUID helper for module xxx
+- gnunet-yyy: command-line tool for end-users
+- libgnunet_plugin_xxx_yyy.so: plugin for API xxx
+- libgnunetxxx.so: library for API xxx
+
+
 configuration:
 - paths (that are substituted in all filenames) are in PATHS (have as few as possible)
 - globals for the daemon are in [gnunetd] (for now, have as few as possible!)

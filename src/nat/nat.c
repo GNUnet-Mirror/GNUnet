@@ -160,12 +160,12 @@ struct GNUNET_NAT_Handle
   struct GNUNET_RESOLVER_RequestHandle *hostname_dns;
 
   /**
-   * stdout pipe handle for the gnunet-nat-server process
+   * stdout pipe handle for the gnunet-helper-nat-server process
    */
   struct GNUNET_DISK_PipeHandle *server_stdout;
 
   /**
-   * stdout file handle (for reading) for the gnunet-nat-server process
+   * stdout file handle (for reading) for the gnunet-helper-nat-server process
    */
   const struct GNUNET_DISK_FileHandle *server_stdout_handle;
 
@@ -180,12 +180,12 @@ struct GNUNET_NAT_Handle
   struct LocalAddressList *lal_tail;
 
   /**
-   * How long do we wait for restarting a crashed gnunet-nat-server?
+   * How long do we wait for restarting a crashed gnunet-helper-nat-server?
    */
   struct GNUNET_TIME_Relative server_retry_delay;
 
   /**
-   * ID of select gnunet-nat-server stdout read task
+   * ID of select gnunet-helper-nat-server stdout read task
    */
   GNUNET_SCHEDULER_TaskIdentifier server_read_task;
 
@@ -266,7 +266,7 @@ struct GNUNET_NAT_Handle
   int enable_nat_client;
 
   /**
-   * Should we run the gnunet-nat-server?
+   * Should we run the gnunet-helper-nat-server?
    */
   int enable_nat_server;
 
@@ -299,7 +299,7 @@ struct GNUNET_NAT_Handle
 
 
 /**
- * Try to start the gnunet-nat-server (if it is not
+ * Try to start the gnunet-helper-nat-server (if it is not
  * already running).
  *
  * @param h handle to NAT
@@ -380,7 +380,7 @@ add_to_address_list_as_is (struct GNUNET_NAT_Handle *h,
  * Add the given address to the list of 'local' addresses, thereby
  * making it a 'legal' address for this peer to have.   Set the
  * port number in the process to the advertised port and possibly
- * also to zero (if we have the gnunet-nat-server).
+ * also to zero (if we have the gnunet-helper-nat-server).
  * 
  * @param plugin the plugin
  * @param src where did the local address originate from?
@@ -773,7 +773,7 @@ check_gnunet_nat_binary (const char *binary)
 
 
 /**
- * Task that restarts the gnunet-nat-server process after a crash
+ * Task that restarts the gnunet-helper-nat-server process after a crash
  * after a certain delay.
  *
  * @param cls the 'struct GNUNET_NAT_Handle'
@@ -793,7 +793,7 @@ restart_nat_server (void *cls,
 
 
 /**
- * We have been notified that gnunet-nat-server has written something to stdout.
+ * We have been notified that gnunet-helper-nat-server has written something to stdout.
  * Handle the output, then reschedule this function to be called again once
  * more is available.
  *
@@ -870,10 +870,10 @@ nat_server_read (void *cls,
        (1 != sscanf (port_start, "%d", &port)) ||
        (-1 == inet_pton(AF_INET, mybuf, &sin_addr.sin_addr)) )
     {
-      /* should we restart gnunet-nat-server? */
+      /* should we restart gnunet-helper-nat-server? */
       GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
 		       "nat",
-		       _("gnunet-nat-server generated malformed address `%s'\n"),
+		       _("gnunet-helper-nat-server generated malformed address `%s'\n"),
 		       mybuf);
       h->server_read_task 
 	= GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
@@ -886,7 +886,7 @@ nat_server_read (void *cls,
 #if DEBUG_NAT
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "nat",
-		   "gnunet-nat-server read: %s:%d\n", 
+		   "gnunet-helper-nat-server read: %s:%d\n", 
 		   mybuf, port);
 #endif
   h->reversal_callback (h->callback_cls,
@@ -901,7 +901,7 @@ nat_server_read (void *cls,
 
 
 /**
- * Try to start the gnunet-nat-server (if it is not
+ * Try to start the gnunet-helper-nat-server (if it is not
  * already running).
  *
  * @param h handle to NAT
@@ -920,14 +920,14 @@ start_gnunet_nat_server (struct GNUNET_NAT_Handle *h)
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		       "nat"
 		       "Starting %s at `%s'\n",
-		       "gnunet-nat-server", 
+		       "gnunet-helper-nat-server", 
 		       h->internal_address);
 #endif
       /* Start the server process */
       h->server_proc = GNUNET_OS_start_process (NULL,
 						h->server_stdout,
-						"gnunet-nat-server", 
-						"gnunet-nat-server", 
+						"gnunet-helper-nat-server", 
+						"gnunet-helper-nat-server", 
 						h->internal_address, 
 						NULL);
       if (h->server_proc == NULL)
@@ -935,7 +935,7 @@ start_gnunet_nat_server (struct GNUNET_NAT_Handle *h)
 	  GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
 			   "nat",
 			   _("Failed to start %s\n"),
-			   "gnunet-nat-server");
+			   "gnunet-helper-nat-server");
 	  GNUNET_DISK_pipe_close (h->server_stdout);
 	  h->server_stdout = NULL;
 	}
@@ -1180,20 +1180,20 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   /* Test for SUID binaries */
   if ( (h->behind_nat == GNUNET_YES) &&
        (GNUNET_YES == h->enable_nat_server) &&
-       (GNUNET_YES != check_gnunet_nat_binary("gnunet-nat-server")) )
+       (GNUNET_YES != check_gnunet_nat_binary("gnunet-helper-nat-server")) )
     {
       h->enable_nat_server = GNUNET_NO;
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Configuration requires `%s', but binary is not installed properly (SUID bit not set).  Option disabled.\n"),
-		  "gnunet-nat-server");        
+		  "gnunet-helper-nat-server");        
     }
   if ( (GNUNET_YES == h->enable_nat_client) &&
-       (GNUNET_YES != check_gnunet_nat_binary("gnunet-nat-client")) )
+       (GNUNET_YES != check_gnunet_nat_binary("gnunet-helper-nat-client")) )
     {
       h->enable_nat_client = GNUNET_NO;
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Configuration requires `%s', but binary is not installed properly (SUID bit not set).  Option disabled.\n"),
-		  "gnunet-nat-client");	
+		  "gnunet-helper-nat-client");	
     }
 
   start_gnunet_nat_server (h);
@@ -1291,7 +1291,7 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
 
 /**
  * We learned about a peer (possibly behind NAT) so run the
- * gnunet-nat-client to send dummy ICMP responses to cause
+ * gnunet-helper-nat-client to send dummy ICMP responses to cause
  * that peer to connect to us (connection reversal).
  *
  * @param h NAT handle for us (largely used for configuration)
@@ -1330,22 +1330,22 @@ GNUNET_NAT_run_client (struct GNUNET_NAT_Handle *h,
 #if DEBUG_TCP_NAT
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "nat",
-		   _("Running gnunet-nat-client %s %s %u\n"), 
+		   _("Running gnunet-helper-nat-client %s %s %u\n"), 
 		   h->internal_address,
 		   inet4,
 		   (unsigned int) h->adv_port);
 #endif
   proc = GNUNET_OS_start_process (NULL, 
 				  NULL, 
-				  "gnunet-nat-client",
-				  "gnunet-nat-client",
+				  "gnunet-helper-nat-client",
+				  "gnunet-helper-nat-client",
 				  h->internal_address, 
 				  inet4,
 				  port_as_string, 
 				  NULL);
   if (NULL == proc)
     return;
-  /* we know that the gnunet-nat-client will terminate virtually
+  /* we know that the gnunet-helper-nat-client will terminate virtually
      instantly */
   GNUNET_OS_process_wait (proc);
   GNUNET_OS_process_close (proc);
