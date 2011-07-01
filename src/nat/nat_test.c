@@ -169,16 +169,30 @@ do_read (void *cls,
 {
   struct NatActivity *na = cls;
   struct GNUNET_NAT_Test *tst;
+  uint16_t data;
 
   na->rtask = GNUNET_SCHEDULER_NO_TASK;
   tst = na->h;
   GNUNET_CONTAINER_DLL_remove (tst->head,
 			       tst->tail,
 			       na);
-  if (1)
+  if ( (NULL != tc->write_ready) &&
+       (GNUNET_NETWORK_fdset_isset (tc->read_ready, 
+				    na->sock)) &&
+       (sizeof (data) ==
+	GNUNET_NETWORK_socket_recv (na->sock,
+				    &data,
+				    sizeof (data))) )
     {
-      // fimxe: read from socket...
+      if (data == tst->data)
+	tst->report (tst->report_cls, GNUNET_OK);
+      else
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "Received data mismatches expected value\n");
     }
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Failed to receive data from inbound connection\n");
   GNUNET_NETWORK_socket_close (na->sock);
   GNUNET_free (na);
 }
@@ -208,7 +222,12 @@ do_accept (void *cls,
 					      tst);
   s = GNUNET_NETWORK_socket_accept (tst->lsock, NULL, NULL);
   if (NULL == s)
-    return; /* odd error */
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_INFO, "accept");
+      return; /* odd error */
+    }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Got an inbound connection, waiting for data\n");
   wl = GNUNET_malloc (sizeof (struct NatActivity));
   wl->sock = s;
   wl->h = tst;
