@@ -107,7 +107,7 @@ struct IPv4HttpAddress
 };
 
 /**
- * Wrapper for IPv4 addresses.
+ * Wrapper to manage IPv4 addresses
  */
 struct IPv4HttpAddressWrapper
 {
@@ -3027,9 +3027,10 @@ tcp_nat_cb_remove_addr (void *cls,
                                 add_remove,
                                 w_t4->addr, sizeof (struct IPv4HttpAddress));
 
-/*      GNUNET_CONTAINER_DLL_remove(plugin->ipv4_addr_head,
-                                  plugin->ipv4_addr_tail,t4);
-      GNUNET_free (t4);*/
+      GNUNET_CONTAINER_DLL_remove(plugin->ipv4_addr_head,
+                                  plugin->ipv4_addr_tail,w_t4);
+      GNUNET_free (w_t4->addr);
+      GNUNET_free (w_t4);
     break;
   case AF_INET6:
     w_t6 = plugin->ipv6_addr_head;
@@ -3048,9 +3049,10 @@ tcp_nat_cb_remove_addr (void *cls,
                               add_remove,
                               w_t6->addr, sizeof (struct IPv6HttpAddress));
 
-/*    GNUNET_CONTAINER_DLL_remove(plugin->ipv6_addr_head,
-                                plugin->ipv6_addr_tail,t6);
-    GNUNET_free (t6);*/
+    GNUNET_CONTAINER_DLL_remove(plugin->ipv6_addr_head,
+                                plugin->ipv6_addr_tail,w_t6);
+    GNUNET_free (w_t6->addr);
+    GNUNET_free (w_t6);
     break;
   default:
     return;
@@ -3118,8 +3120,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
   CURLMcode mret;
-  struct IPv4HttpAddressWrapper * ipv4addr;
-  struct IPv6HttpAddressWrapper * ipv6addr;
+  struct IPv4HttpAddressWrapper * w_t4;
+  struct IPv6HttpAddressWrapper * w_t6;
   GNUNET_assert(cls !=NULL);
 
   if (plugin->nat != NULL)
@@ -3145,21 +3147,21 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
       GNUNET_SCHEDULER_cancel(plugin->http_server_task_v6);
       plugin->http_server_task_v6 = GNUNET_SCHEDULER_NO_TASK;
     }
-  
+
   while (plugin->ipv4_addr_head!=NULL)
     {
-      ipv4addr = plugin->ipv4_addr_head;
-      GNUNET_CONTAINER_DLL_remove(plugin->ipv4_addr_head,plugin->ipv4_addr_tail,ipv4addr);
-      GNUNET_free(ipv4addr->addr);
-      GNUNET_free(ipv4addr);
+      w_t4 = plugin->ipv4_addr_head;
+      GNUNET_CONTAINER_DLL_remove(plugin->ipv4_addr_head,plugin->ipv4_addr_tail,w_t4);
+      GNUNET_free(w_t4->addr);
+      GNUNET_free(w_t4);
     }
   
   while (plugin->ipv6_addr_head!=NULL)
     {
-      ipv6addr = plugin->ipv6_addr_head;
-      GNUNET_CONTAINER_DLL_remove(plugin->ipv6_addr_head,plugin->ipv6_addr_tail,ipv6addr);
-      GNUNET_free(ipv4addr->addr);
-      GNUNET_free(ipv6addr);
+      w_t6 = plugin->ipv6_addr_head;
+      GNUNET_CONTAINER_DLL_remove(plugin->ipv6_addr_head,plugin->ipv6_addr_tail,w_t6);
+      GNUNET_free(w_t6->addr);
+      GNUNET_free(w_t6);
     }
   
   /* free all peer information */
