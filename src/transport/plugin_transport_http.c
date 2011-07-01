@@ -2917,7 +2917,6 @@ tcp_nat_cb_add_addr (void *cls,
   switch (af)
   {
   case AF_INET:
-    return;
     t4 = plugin->ipv4_addr_head;
     while (t4 != NULL)
     {
@@ -2952,12 +2951,7 @@ tcp_nat_cb_add_addr (void *cls,
                        &((struct sockaddr_in6 *) addr)->sin6_addr,
                        sizeof (struct in6_addr));
       if (0 == res)
-        {
-        GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-                         "tcp",
-                         "FOUND\n");
         break;
-        }
       t6 = t6->next;
     }
     if (t6 == NULL)
@@ -2968,9 +2962,6 @@ tcp_nat_cb_add_addr (void *cls,
             &((struct sockaddr_in6 *) addr)->sin6_addr,
             sizeof (struct in6_addr));
     t6->u6_port = htons (plugin->port_inbound);
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-                     "tcp",
-                     "Added `%s' to our address set\n", http_plugin_address_to_string(NULL, t6, sizeof (struct IPv6HttpAddress)));
     GNUNET_CONTAINER_DLL_insert(plugin->ipv6_addr_head,
                                 plugin->ipv6_addr_tail,t6);
     }
@@ -2999,7 +2990,6 @@ tcp_nat_cb_remove_addr (void *cls,
   switch (af)
   {
   case AF_INET:
-    return;
       t4 = plugin->ipv4_addr_head;
       while (t4 != NULL)
       {
@@ -3028,19 +3018,11 @@ tcp_nat_cb_remove_addr (void *cls,
                        &((struct sockaddr_in6 *) addr)->sin6_addr,
                        sizeof (struct in6_addr));
       if (0 == res)
-        {
-        GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-                         "tcp",
-                         "FOUND\n");
         break;
-        }
       t6 = t6->next;
     }
     if (t6 == NULL)
       return;
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-                     "tcp",
-                     "Removing `%s' from our address set\n", http_plugin_address_to_string(NULL, t6, sizeof (struct IPv6HttpAddress)));
     plugin->env->notify_address(plugin->env->cls,
                               add_remove,
                               t6, sizeof (struct IPv6HttpAddress));
@@ -3071,12 +3053,12 @@ tcp_nat_port_map_callback (void *cls,
                            socklen_t addrlen)
 {
   GNUNET_assert(cls !=NULL );
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-                   "tcp",
-                   "NPMC called with %d for address `%s'\n",
-                   add_remove,
+#if DEBUG_HTTP
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                   "NPMC called to %s address `%s'\n",
+                   (add_remove == GNUNET_YES) ? "remove" : "add",
                    GNUNET_a2s (addr, addrlen));
-
+#endif
   /* convert 'addr' to our internal format */
   switch (add_remove)
   {
@@ -3243,7 +3225,9 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   struct GNUNET_TIME_Relative gn_timeout;
   long long unsigned int port;
   unsigned long long tneigh;
-  int addr_count = 0;
+  struct sockaddr **addrs;
+  socklen_t *addrlens;
+  int ret;
   char * component_name;
 #if BUILD_HTTPS
   char * key_file = NULL;
@@ -3620,14 +3604,6 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
       return NULL;
     }
   
-  if (plugin->bind4_address != NULL)
-     addr_count++;
-  if (plugin->bind6_address != NULL)
-     addr_count++;
-
-  struct sockaddr **addrs;
-  socklen_t *addrlens;
-  int ret;
   ret = GNUNET_SERVICE_get_server_addresses (component_name,
                           env->cfg,
                           &addrs,
@@ -3635,22 +3611,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 
   if (ret != GNUNET_SYSERR)
   {
-    int counter = 0;
-    struct sockaddr *tmp = addrs[counter];
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-                     component_name,
-                      "addresses %u\n",ret);
-    while (tmp!= NULL)
-      {
-        GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-            component_name,
-            "address[%u] %s\n",counter, (tmp->sa_family == AF_INET) ? "AF_INET" : "AF_INET6" );
-        counter++;
-        tmp = addrs[counter];
-      }
-
-
-      plugin->nat = GNUNET_NAT_register (env->cfg,
+    plugin->nat = GNUNET_NAT_register (env->cfg,
                                          GNUNET_YES,
                                          port,
                                          (unsigned int) ret,
