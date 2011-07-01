@@ -28,36 +28,38 @@
 #include "gnunet_nat_lib.h"
 #include "nat.h"
 
+
 /**
- *
+ * Entry we keep for each incoming connection.
  */
 struct NatActivity
 {
   /**
-   *
+   * This is a doubly-linked list.
    */
   struct NatActivity *next;
 
   /**
-   *
+   * This is a doubly-linked list.
    */
   struct NatActivity *prev;
 
   /**
-   *
+   * Socket of the incoming connection.
    */
   struct GNUNET_NETWORK_Handle *sock;
 
   /**
-   *
+   * Handle of the master context.
    */
   struct GNUNET_NAT_Test *h;
 
   /**
-   *
+   * Task reading from the incoming connection.
    */
   GNUNET_SCHEDULER_TaskIdentifier rtask;
 };
+
 
 /**
  * Handle to a NAT test.
@@ -66,57 +68,57 @@ struct GNUNET_NAT_Test
 {
 
   /**
-   *
+   * Configuration used
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
-   *
+   * Function to call with success report
    */
   GNUNET_NAT_TestCallback report;
   
   /**
-   *
+   * Closure for 'report'.
    */
   void *report_cls;
 
   /**
-   *
+   * Handle to NAT traversal in use
    */
   struct GNUNET_NAT_Handle *nat;
 
   /**
-   *
+   * Handle to listen socket, or NULL
    */
   struct GNUNET_NETWORK_Handle *lsock;
 
   /**
-   *
+   * Head of list of nat activities.
    */
   struct NatActivity *head;
 
   /**
-   *
+   * Tail of list of nat activities.
    */
   struct NatActivity *tail;
 
   /**
-   *
+   * Identity of task for the listen socket (if any)
    */
   GNUNET_SCHEDULER_TaskIdentifier ltask;
 
   /**
-   *
+   * GNUNET_YES if we're testing TCP
    */
   int is_tcp;
 
   /**
-   *
+   * Data that should be transmitted or source-port.
    */
   uint16_t data;
 
   /**
-   *
+   * Advertised port to the other peer.
    */
   uint16_t adv_port;
 
