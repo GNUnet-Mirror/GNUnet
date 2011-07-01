@@ -90,22 +90,11 @@
  */
 #define HTTP_CONNECT_TIMEOUT 30
 
-
 /**
  * Network format for IPv4 addresses.
  */
 struct IPv4HttpAddress
 {
-  /**
-   * Linked list next
-   */
-  struct IPv4HttpAddress * next;
-
-  /**
-   * Linked list previous
-   */
-  struct IPv4HttpAddress * prev;
-
   /**
    * IPv4 address, in network byte order.
    */
@@ -115,25 +104,31 @@ struct IPv4HttpAddress
    * Port number, in network byte order.
    */
   uint16_t u_port GNUNET_PACKED;
-
 };
 
+/**
+ * Wrapper for IPv4 addresses.
+ */
+struct IPv4HttpAddressWrapper
+{
+  /**
+   * Linked list next
+   */
+  struct IPv4HttpAddressWrapper * next;
+
+  /**
+   * Linked list previous
+   */
+  struct IPv4HttpAddressWrapper * prev;
+
+  struct IPv4HttpAddress * addr;
+};
 
 /**
  * Network format for IPv6 addresses.
  */
 struct IPv6HttpAddress
 {
-  /**
-   * Linked list next
-   */
-  struct IPv6HttpAddress * next;
-
-  /**
-   * Linked list previous
-   */
-  struct IPv6HttpAddress * prev;
-
   /**
    * IPv6 address.
    */
@@ -146,6 +141,23 @@ struct IPv6HttpAddress
 
 };
 
+/**
+ * Wrapper for IPv4 addresses.
+ */
+struct IPv6HttpAddressWrapper
+{
+  /**
+   * Linked list next
+   */
+  struct IPv6HttpAddressWrapper * next;
+
+  /**
+   * Linked list previous
+   */
+  struct IPv6HttpAddressWrapper * prev;
+
+  struct IPv6HttpAddress * addr;
+};
 
 /**
  *  Message to send using http
@@ -421,22 +433,22 @@ struct Plugin
   /**
    * ipv4 DLL head
    */
-  struct IPv4HttpAddress * ipv4_addr_head;
+  struct IPv4HttpAddressWrapper * ipv4_addr_head;
 
   /**
    * ipv4 DLL tail
    */
-  struct IPv4HttpAddress * ipv4_addr_tail;
+  struct IPv4HttpAddressWrapper * ipv4_addr_tail;
 
   /**
    * ipv6 DLL head
    */
-  struct IPv6HttpAddress * ipv6_addr_head;
+  struct IPv6HttpAddressWrapper * ipv6_addr_head;
 
   /**
    * ipv6 DLL tail
    */
-  struct IPv6HttpAddress * ipv6_addr_tail;
+  struct IPv6HttpAddressWrapper * ipv6_addr_tail;
 
   /**
    * Our ASCII encoded, hashed peer identity
@@ -2774,8 +2786,8 @@ http_plugin_address_suggested (void *cls,
   struct Plugin *plugin = cls;
   struct IPv4HttpAddress *v4;
   struct IPv6HttpAddress *v6;
-  struct IPv4HttpAddress *tv4 = plugin->ipv4_addr_head;
-  struct IPv6HttpAddress *tv6 = plugin->ipv6_addr_head;
+  struct IPv4HttpAddressWrapper *w_tv4 = plugin->ipv4_addr_head;
+  struct IPv6HttpAddressWrapper *w_tv6 = plugin->ipv6_addr_head;
 
   GNUNET_assert(cls !=NULL);
   if ((addrlen != sizeof (struct IPv4HttpAddress)) &&
@@ -2791,13 +2803,13 @@ http_plugin_address_suggested (void *cls,
     	  else
 	    return GNUNET_SYSERR;
 	}
-      while (tv4!=NULL)
+      while (w_tv4!=NULL)
 	{
-    	  if (0==memcmp (&tv4->ipv4_addr, &v4->ipv4_addr, sizeof(uint32_t)))
+    	  if (0==memcmp (&w_tv4->addr->ipv4_addr, &v4->ipv4_addr, sizeof(uint32_t)))
 	    break;
-    	  tv4 = tv4->next;
+    	  w_tv4 = w_tv4->next;
 	}
-      if (tv4 != NULL)
+      if (w_tv4 != NULL)
         return GNUNET_OK;
       else
 	return GNUNET_SYSERR;
@@ -2812,13 +2824,13 @@ http_plugin_address_suggested (void *cls,
     	  else
 	    return GNUNET_SYSERR;
 	}
-      while (tv6!=NULL)
+      while (w_tv6!=NULL)
 	{
-    	  if (0 == memcmp (&tv6->ipv6_addr, &v6->ipv6_addr, sizeof(struct in6_addr)))
+    	  if (0 == memcmp (&w_tv6->addr->ipv6_addr, &v6->ipv6_addr, sizeof(struct in6_addr)))
 	    break;
-    	  tv6 = tv6->next;
+    	  w_tv6 = w_tv6->next;
 	}
-      if (tv6 !=NULL)
+      if (w_tv6 !=NULL)
         return GNUNET_OK;
       else
 	return GNUNET_SYSERR;
@@ -2910,64 +2922,73 @@ tcp_nat_cb_add_addr (void *cls,
 {
   struct Plugin *plugin = cls;
   struct IPv4HttpAddress * t4 = NULL;
+  struct IPv4HttpAddressWrapper * w_t4 = NULL;
   struct IPv6HttpAddress * t6 = NULL;
+  struct IPv6HttpAddressWrapper * w_t6 = NULL;
   int af;
 
   af = addr->sa_family;
   switch (af)
   {
   case AF_INET:
-    t4 = plugin->ipv4_addr_head;
-    while (t4 != NULL)
+    w_t4 = plugin->ipv4_addr_head;
+    while (w_t4 != NULL)
     {
-      int res = memcmp(&t4->ipv4_addr,
+      int res = memcmp(&w_t4->addr->ipv4_addr,
                        &((struct sockaddr_in *) addr)->sin_addr,
                        sizeof (struct in_addr));
       if (0 == res)
         break;
-      t4 = t4->next;
+      w_t4 = w_t4->next;
     }
-    if (t4 == NULL)
+    if (w_t4 == NULL)
     {
+      w_t4 = GNUNET_malloc(sizeof(struct IPv4HttpAddressWrapper));
       t4 = GNUNET_malloc(sizeof(struct IPv4HttpAddress));
       memcpy (&t4->ipv4_addr,
             &((struct sockaddr_in *) addr)->sin_addr,
             sizeof (struct in_addr));
       t4->u_port = htons (plugin->port_inbound);
 
+      w_t4->addr = t4;
+
       GNUNET_CONTAINER_DLL_insert(plugin->ipv4_addr_head,
-                                  plugin->ipv4_addr_tail,t4);
+                                  plugin->ipv4_addr_tail,w_t4);
     }
     plugin->env->notify_address(plugin->env->cls,
                                 add_remove,
-                                t4, sizeof (struct IPv4HttpAddress));
+                                w_t4->addr, sizeof (struct IPv4HttpAddress));
 
     break;
   case AF_INET6:
-    t6 = plugin->ipv6_addr_head;
-    while (t6 != NULL)
+    w_t6 = plugin->ipv6_addr_head;
+    while (w_t6)
     {
-      int res = memcmp(&t6->ipv6_addr,
+      int res = memcmp(&w_t6->addr->ipv6_addr,
                        &((struct sockaddr_in6 *) addr)->sin6_addr,
                        sizeof (struct in6_addr));
       if (0 == res)
         break;
-      t6 = t6->next;
+      w_t6 = w_t6->next;
     }
-    if (t6 == NULL)
+    if (w_t6 == NULL)
     {
+    w_t6 = GNUNET_malloc(sizeof(struct IPv6HttpAddressWrapper));
     t6 = GNUNET_malloc(sizeof(struct IPv6HttpAddress));
 
     memcpy (&t6->ipv6_addr,
             &((struct sockaddr_in6 *) addr)->sin6_addr,
             sizeof (struct in6_addr));
     t6->u6_port = htons (plugin->port_inbound);
+
+    w_t6->addr = t6;
+
     GNUNET_CONTAINER_DLL_insert(plugin->ipv6_addr_head,
-                                plugin->ipv6_addr_tail,t6);
+                                plugin->ipv6_addr_tail,w_t6);
     }
     plugin->env->notify_address(plugin->env->cls,
                                 add_remove,
-                                t6, sizeof (struct IPv6HttpAddress));
+                                w_t6->addr, sizeof (struct IPv6HttpAddress));
     break;
   default:
     return;
@@ -2982,54 +3003,54 @@ tcp_nat_cb_remove_addr (void *cls,
                          socklen_t addrlen)
 {
   struct Plugin *plugin = cls;
-  struct IPv4HttpAddress * t4;
-  struct IPv6HttpAddress * t6;
+  struct IPv4HttpAddressWrapper * w_t4 = NULL;
+  struct IPv6HttpAddressWrapper * w_t6 = NULL;
   int af;
 
   af = addr->sa_family;
   switch (af)
   {
   case AF_INET:
-      t4 = plugin->ipv4_addr_head;
-      while (t4 != NULL)
+    w_t4 = plugin->ipv4_addr_head;
+      while (w_t4 != NULL)
       {
-        int res = memcmp(&t4->ipv4_addr,
+        int res = memcmp(&w_t4->addr->ipv4_addr,
                          &((struct sockaddr_in *) addr)->sin_addr,
                          sizeof (struct in_addr));
         if (0 == res)
           break;
-        t4 = t4->next;
+        w_t4 = w_t4->next;
       }
-      if (t4 == NULL)
+      if (w_t4 == NULL)
         return;
       plugin->env->notify_address(plugin->env->cls,
                                 add_remove,
-                                t4, sizeof (struct IPv4HttpAddress));
+                                w_t4->addr, sizeof (struct IPv4HttpAddress));
 
-      GNUNET_CONTAINER_DLL_remove(plugin->ipv4_addr_head,
+/*      GNUNET_CONTAINER_DLL_remove(plugin->ipv4_addr_head,
                                   plugin->ipv4_addr_tail,t4);
-      GNUNET_free (t4);
+      GNUNET_free (t4);*/
     break;
   case AF_INET6:
-    t6 = plugin->ipv6_addr_head;
-    while (t6 != NULL)
+    w_t6 = plugin->ipv6_addr_head;
+    while (w_t6 != NULL)
     {
-      int res = memcmp(&t6->ipv6_addr,
+      int res = memcmp(&w_t6->addr->ipv6_addr,
                        &((struct sockaddr_in6 *) addr)->sin6_addr,
                        sizeof (struct in6_addr));
       if (0 == res)
         break;
-      t6 = t6->next;
+      w_t6 = w_t6->next;
     }
-    if (t6 == NULL)
+    if (w_t6 == NULL)
       return;
     plugin->env->notify_address(plugin->env->cls,
                               add_remove,
-                              t6, sizeof (struct IPv6HttpAddress));
+                              w_t6->addr, sizeof (struct IPv6HttpAddress));
 
-    GNUNET_CONTAINER_DLL_remove(plugin->ipv6_addr_head,
+/*    GNUNET_CONTAINER_DLL_remove(plugin->ipv6_addr_head,
                                 plugin->ipv6_addr_tail,t6);
-    GNUNET_free (t6);
+    GNUNET_free (t6);*/
     break;
   default:
     return;
@@ -3097,13 +3118,12 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
   CURLMcode mret;
-  struct IPv4HttpAddress * ipv4addr;
-  struct IPv6HttpAddress * ipv6addr;
+  struct IPv4HttpAddressWrapper * ipv4addr;
+  struct IPv6HttpAddressWrapper * ipv6addr;
   GNUNET_assert(cls !=NULL);
 
   if (plugin->nat != NULL)
     GNUNET_NAT_unregister (plugin->nat);
-
 
   if (plugin->http_server_daemon_v4 != NULL)
     {
@@ -3130,6 +3150,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
     {
       ipv4addr = plugin->ipv4_addr_head;
       GNUNET_CONTAINER_DLL_remove(plugin->ipv4_addr_head,plugin->ipv4_addr_tail,ipv4addr);
+      GNUNET_free(ipv4addr->addr);
       GNUNET_free(ipv4addr);
     }
   
@@ -3137,6 +3158,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
     {
       ipv6addr = plugin->ipv6_addr_head;
       GNUNET_CONTAINER_DLL_remove(plugin->ipv6_addr_head,plugin->ipv6_addr_tail,ipv6addr);
+      GNUNET_free(ipv4addr->addr);
       GNUNET_free(ipv6addr);
     }
   
