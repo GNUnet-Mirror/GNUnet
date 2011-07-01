@@ -2847,6 +2847,7 @@ plugin_env_notify_address (void *cls,
 	  prev = al;
 	  al = al->next;
 	}
+      GNUNET_break (0);
       return;
     }
   al = GNUNET_malloc (sizeof (struct OwnAddressList) + addrlen);
@@ -6249,6 +6250,7 @@ static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct TransportPlugin *plug;
+  struct TransportPlugin *tmp;
   struct OwnAddressList *al;
   struct CheckHelloValidatedContext *chvc;
 
@@ -6266,9 +6268,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transport service is unloading plugins...\n");
 #endif
-  while (NULL != (plug = plugins))
+  plug = plugins;
+  while (plug != NULL)
     {
-      plugins = plug->next;
       if (plug->address_update_task != GNUNET_SCHEDULER_NO_TASK)
 	{
 	  GNUNET_SCHEDULER_cancel (plug->address_update_task);
@@ -6282,7 +6284,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           plug->addresses = al->next;
           GNUNET_free (al);
         }
+      tmp = plug->next;
       GNUNET_free (plug);
+      plug = tmp;
     }
   if (my_private_key != NULL)
     GNUNET_CRYPTO_rsa_key_free (my_private_key);
