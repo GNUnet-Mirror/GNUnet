@@ -1056,6 +1056,7 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
 	}
       GNUNET_free (hostname);
       freeaddrinfo (res);
+      resi = i;
     }
   else
     {
