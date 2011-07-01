@@ -309,6 +309,11 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_ATS 61
 
 /**
+ * Message to ask NAT server to perform traversal test
+ */
+#define GNUNET_MESSAGE_TYPE_NAT_TEST 63
+
+/**
  * Initial setup message from core client to core.
  */
 #define GNUNET_MESSAGE_TYPE_CORE_INIT 64

@@ -23,9 +23,10 @@ bin_PROGRAMS = \
  $(NATBIN) 
 
 gnunet_nat_server_SOURCES = \
- gnunet-nat-server.c
+ gnunet-nat-server.c nat.h
 gnunet_nat_server_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la 
+  $(top_builddir)/src/nat/libgnunetnat.la \
+  $(top_builddir)/src/util/libgnunetutil.la
 
 gnunet_helper_nat_server_SOURCES = \
  $(NATSERVER)

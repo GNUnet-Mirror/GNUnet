@@ -392,7 +392,6 @@ GNUNET_NETWORK_socket_connect (const struct GNUNET_NETWORK_Handle *desc,
 
 #ifdef MINGW
   if (SOCKET_ERROR == ret)
-
     {
       SetErrnoFromWinsockError (WSAGetLastError ());
       if (errno == EWOULDBLOCK)

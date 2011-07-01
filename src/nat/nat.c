@@ -1323,10 +1323,10 @@ GNUNET_NAT_run_client (struct GNUNET_NAT_Handle *h,
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "inet_ntop");
       return;
     }
-  GNUNET_snprintf(port_as_string, 
-		  sizeof (port_as_string),
-		  "%d", 
-		  h->adv_port);
+  GNUNET_snprintf (port_as_string, 
+		   sizeof (port_as_string),
+		   "%d", 
+		   h->adv_port);
 #if DEBUG_TCP_NAT
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "nat",
