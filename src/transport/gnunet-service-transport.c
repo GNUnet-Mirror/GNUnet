@@ -2847,7 +2847,6 @@ plugin_env_notify_address (void *cls,
 	  prev = al;
 	  al = al->next;
 	}
-      GNUNET_break (0);
       return;
     }
   al = GNUNET_malloc (sizeof (struct OwnAddressList) + addrlen);
