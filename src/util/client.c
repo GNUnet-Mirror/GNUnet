@@ -527,7 +527,8 @@ receive_helper (void *cls,
   if (remaining.rel_value == 0)
     {
       /* signal timeout! */
-      conn->receiver_handler (conn->receiver_handler_cls, NULL);
+      if (NULL != conn->receiver_handler)
+	conn->receiver_handler (conn->receiver_handler_cls, NULL);
       return;
     }
   /* back to receive -- either for more data or to call callback! */
@@ -593,7 +594,8 @@ GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
     {
       /* already disconnected, fail instantly! */
       GNUNET_break (0);         /* this should not happen in well-written code! */
-      handler (handler_cls, NULL);
+      if (NULL != handler)
+	handler (handler_cls, NULL);
       return;
     }
   sock->receiver_handler = handler;
@@ -1009,7 +1011,8 @@ transmit_for_response (void *cls, size_t size, void *buf)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  _("Could not submit request, not expecting to receive a response.\n"));
 #endif
-      tc->rn (tc->rn_cls, NULL);
+      if (NULL != tc->rn)
+	tc->rn (tc->rn_cls, NULL);
       GNUNET_free (tc);
       return 0;
     }

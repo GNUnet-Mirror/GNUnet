@@ -62,6 +62,29 @@ struct NatActivity
 
 
 /**
+ * Entry we keep for each connection to the gnunet-nat-service.
+ */
+struct ClientActivity
+{
+  /**
+   * This is a doubly-linked list.
+   */
+  struct ClientActivity *next;
+
+  /**
+   * This is a doubly-linked list.
+   */
+  struct ClientActivity *prev;
+
+  /**
+   * Socket of the incoming connection.
+   */
+  struct GNUNET_CLIENT_Connection *client;
+
+};
+
+
+/**
  * Handle to a NAT test.
  */
 struct GNUNET_NAT_Test
@@ -95,12 +118,22 @@ struct GNUNET_NAT_Test
   /**
    * Head of list of nat activities.
    */
-  struct NatActivity *head;
+  struct NatActivity *na_head;
 
   /**
    * Tail of list of nat activities.
    */
-  struct NatActivity *tail;
+  struct NatActivity *na_tail;
+
+  /**
+   * Head of list of client activities.
+   */
+  struct ClientActivity *ca_head;
+
+  /**
+   * Tail of list of client activities.
+   */
+  struct ClientActivity *ca_tail;
 
   /**
    * Identity of task for the listen socket (if any)
@@ -172,8 +205,8 @@ do_read (void *cls,
 
   na->rtask = GNUNET_SCHEDULER_NO_TASK;
   tst = na->h;
-  GNUNET_CONTAINER_DLL_remove (tst->head,
-			       tst->tail,
+  GNUNET_CONTAINER_DLL_remove (tst->na_head,
+			       tst->na_tail,
 			       na);
   if ( (NULL != tc->write_ready) &&
        (GNUNET_NETWORK_fdset_isset (tc->read_ready, 
@@ -234,8 +267,8 @@ do_accept (void *cls,
 					     wl->sock,
 					     &do_read,
 					     wl);
-  GNUNET_CONTAINER_DLL_insert (tst->head,
-			       tst->tail,
+  GNUNET_CONTAINER_DLL_insert (tst->na_head,
+			       tst->na_tail,
 			       wl);
 }
 
@@ -256,6 +289,7 @@ addr_cb (void *cls,
 	 socklen_t addrlen)
 {
   struct GNUNET_NAT_Test *h = cls;
+  struct ClientActivity *ca;
   struct GNUNET_CLIENT_Connection *client;
   struct GNUNET_NAT_TestMessage msg;
   const struct sockaddr_in *sa;
@@ -264,6 +298,9 @@ addr_cb (void *cls,
     return;
   if (addrlen != sizeof (struct sockaddr_in))
     return; /* ignore IPv6 here */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Asking gnunet-nat-server to connect to `%s'\n",
+	      GNUNET_a2s (addr, addrlen));
   sa = (const struct sockaddr_in*) addr;
   msg.header.size = htons (sizeof(struct GNUNET_NAT_TestMessage));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_NAT_TEST);
@@ -274,13 +311,19 @@ addr_cb (void *cls,
 
   client = GNUNET_CLIENT_connect ("gnunet-nat-server",
 				  h->cfg);
+  if (NULL == client)
+    return;
+  ca = GNUNET_malloc (sizeof (struct ClientActivity));
+  ca->client = client;
+  GNUNET_CONTAINER_DLL_insert (h->ca_head,
+			       h->ca_tail,
+			       ca);
   GNUNET_break (GNUNET_OK ==
 		GNUNET_CLIENT_transmit_and_get_response (client,
 							 &msg.header,
 							 GNUNET_TIME_UNIT_SECONDS,
 							 GNUNET_YES,
 							 NULL, NULL));
-  GNUNET_CLIENT_disconnect (client, GNUNET_YES);  
 }
 
 
@@ -369,11 +412,20 @@ void
 GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst)
 {
   struct NatActivity *pos;
+  struct ClientActivity *cpos;
 
-  while (NULL != (pos = tst->head))
+  while (NULL != (cpos = tst->ca_head))
     {
-      GNUNET_CONTAINER_DLL_remove (tst->head,
-				   tst->tail,
+      GNUNET_CONTAINER_DLL_remove (tst->ca_head,
+				   tst->ca_tail,
+				   cpos);
+      GNUNET_CLIENT_disconnect (cpos->client, GNUNET_NO);  
+      GNUNET_free (cpos);
+    }
+  while (NULL != (pos = tst->na_head))
+    {
+      GNUNET_CONTAINER_DLL_remove (tst->na_head,
+				   tst->na_tail,
 				   pos);
       GNUNET_SCHEDULER_cancel (pos->rtask);
       GNUNET_NETWORK_socket_close (pos->sock);

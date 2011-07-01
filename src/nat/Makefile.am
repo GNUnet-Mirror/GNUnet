@@ -54,7 +54,8 @@ libgnunetnat_la_LDFLAGS = \
   -version-info 0:0:0		
 
 check_PROGRAMS = \
-  test-nat
+  test_nat \
+  test_nat_test
 
 if ENABLE_TEST_RUN
  TESTS = $(check_PROGRAMS)
@@ -62,11 +63,18 @@ endif
 
 test_nat_SOURCES = \
   test_nat.c
-
 test_nat_LDADD = \
  $(top_builddir)/src/nat/libgnunetnat.la \
- $(top_builddir)/src/util/libgnunetutil.la \
- @LIBCURL@
+ $(top_builddir)/src/util/libgnunetutil.la 
+
+
+test_nat_test_SOURCES = \
+  test_nat_test.c
+test_nat_test_LDADD = \
+ $(top_builddir)/src/nat/libgnunetnat.la \
+ $(top_builddir)/src/util/libgnunetutil.la 
+
 
 EXTRA_DIST = \
- test_nat_data.conf
+ test_nat_data.conf \
+ test_nat_test_data.conf 

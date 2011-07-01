@@ -219,7 +219,10 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle));
   ret->fd = accept (desc->fd, address, address_len);
-  ret->af = address->sa_family;
+  if (address != NULL)
+    ret->af = address->sa_family;
+  else
+    ret->af = desc->af;
   if (ret->fd == INVALID_SOCKET)
     {
 #ifdef MINGW
@@ -256,7 +259,7 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
   socket_set_nosigpipe (ret);
 #endif
 #ifdef AF_UNIX
-  if (address->sa_family != AF_UNIX)
+  if (ret->af != AF_UNIX)
 #endif
     socket_set_nodelay (ret);
   return ret;

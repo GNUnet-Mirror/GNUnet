@@ -144,6 +144,8 @@ GNUNET_PROGRAM_run (int argc,
   };
   struct GNUNET_GETOPT_CommandLineOption *allopts;
   const char *gargs;
+  char *lpfx;
+  char *spc;
 
   logfile = NULL;
   gargs = getenv ("GNUNET_ARGS");
@@ -206,11 +208,14 @@ GNUNET_PROGRAM_run (int argc,
          &cmd_sorter);
   loglev = GNUNET_strdup ("WARNING");
   cc.cfgfile = GNUNET_strdup (GNUNET_DEFAULT_USER_CONFIG_FILE);
+  lpfx = GNUNET_strdup (binaryName);
+  if (NULL != (spc = strstr (lpfx, " ")))
+    *spc = '\0';
   if ((-1 == (ret = GNUNET_GETOPT_run (binaryName,
                                        allopts,
                                        (unsigned int) argc, argv))) ||
       ((GNUNET_OK !=
-        GNUNET_log_setup (binaryName,
+        GNUNET_log_setup (lpfx,
                           loglev,
                           logfile)) ||
        (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cc.cfgfile))))
@@ -219,9 +224,11 @@ GNUNET_PROGRAM_run (int argc,
       GNUNET_free_non_null (cc.cfgfile);
       GNUNET_free (loglev);
       GNUNET_free (allopts);
+      GNUNET_free (lpfx);
       return GNUNET_SYSERR;
     }
   GNUNET_free (allopts);
+  GNUNET_free (lpfx);
   
   /* run */
   cc.args = &argv[ret];

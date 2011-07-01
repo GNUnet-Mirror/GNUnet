@@ -39,6 +39,7 @@ static struct GNUNET_SERVER_Handle *server;
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+
 /**
  * Try contacting the peer using autonomous
  * NAT traveral method.
@@ -55,12 +56,17 @@ try_anat (uint32_t dst_ipv4,
   struct GNUNET_NAT_Handle *h;
   struct sockaddr_in sa;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Asking for connection reversal with %x and code %u\n",
+	      (unsigned int) dst_ipv4,
+	      (unsigned int) dport);
   h = GNUNET_NAT_register (cfg,
 			   is_tcp,
 			   dport,
 			   0, NULL, NULL,
 			   NULL, NULL, NULL);
   memset (&sa, 0, sizeof (sa));
+  sa.sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN
   sa.sin_len = sizeof (sa);
 #endif
@@ -105,7 +111,7 @@ tcp_send (void *cls,
 				    ctx->s)) )
     {
       if (-1 == GNUNET_NETWORK_socket_send (ctx->s, &ctx->data, sizeof (ctx->data)))
-	GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "send");
+	GNUNET_log_strerror (GNUNET_ERROR_TYPE_DEBUG, "send");
       GNUNET_NETWORK_socket_shutdown (ctx->s, SHUT_RDWR);
     }
   GNUNET_NETWORK_socket_close (ctx->s);
@@ -130,18 +136,22 @@ try_send_tcp (uint32_t dst_ipv4,
   struct sockaddr_in sa;
   struct TcpContext *ctx;
 
-  s = GNUNET_NETWORK_socket_create (AF_UNIX, SOCK_STREAM, 0);
+  s = GNUNET_NETWORK_socket_create (AF_INET, SOCK_STREAM, 0);
   if (NULL == s)
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "socket");
       return;
     }
   memset (&sa, 0, sizeof (sa));
+  sa.sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN
   sa.sin_len = sizeof (sa);
 #endif
   sa.sin_addr.s_addr = dst_ipv4; 
   sa.sin_port = htons (dport);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending TCP message to `%s'\n",
+	      GNUNET_a2s ((struct sockaddr*) &sa, sizeof (sa)));
   if ( (GNUNET_OK != 
 	GNUNET_NETWORK_socket_connect (s, 
 				       (const struct sockaddr*) &sa, sizeof (sa))) &&
@@ -176,19 +186,25 @@ try_send_udp (uint32_t dst_ipv4,
   struct GNUNET_NETWORK_Handle *s;
   struct sockaddr_in sa;
 
-  s = GNUNET_NETWORK_socket_create (AF_UNIX, SOCK_DGRAM, 0);
+  s = GNUNET_NETWORK_socket_create (AF_INET, SOCK_DGRAM, 0);
   if (NULL == s)
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "socket");
       return;
     }
   memset (&sa, 0, sizeof (sa));
+  sa.sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN
   sa.sin_len = sizeof (sa);
 #endif
   sa.sin_addr.s_addr = dst_ipv4; 
   sa.sin_port = htons (dport);
-  if (-1 == GNUNET_NETWORK_socket_sendto (s, &data, sizeof(data), (const struct sockaddr*) &sa, sizeof (sa)))
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending UDP packet to `%s'\n",
+	      GNUNET_a2s ((struct sockaddr*) &sa, sizeof (sa)));
+  if (-1 == GNUNET_NETWORK_socket_sendto (s, 
+					  &data, sizeof(data),
+					  (const struct sockaddr*) &sa, sizeof (sa)))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "sendto");
   GNUNET_NETWORK_socket_close (s);
 }
@@ -210,6 +226,8 @@ test (void *cls,
   const struct GNUNET_NAT_TestMessage *tm;
   uint16_t dport;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received test request\n");
   tm = (const struct GNUNET_NAT_TestMessage*) msg;
   dport = ntohs (tm->dport);
   if (0 == dport)
@@ -279,15 +297,18 @@ run (void *cls,
   if ( (args[0] == NULL) || 
        (1 != SSCANF (args[0], "%u", &port)) ||
        (0 == port) ||
-       (65536 >= port) )
+       (65536 <= port) )
     {
       fprintf (stderr,
-	       _("Please pass valid port number as the first argument!\n"));
+	       _("Please pass valid port number as the first argument! (got `%s')\n"),
+	       args[0]);
       return;
     }
   memset (&in4, 0, sizeof (in4)); 
   memset (&in6, 0, sizeof (in6)); 
+  in4.sin_family = AF_INET;
   in4.sin_port = htons ((uint16_t) port);
+  in6.sin6_family = AF_INET6;
   in6.sin6_port = htons ((uint16_t) port);
 #if HAVE_SOCKADDR_IN_SIN_LEN
   in4.sin_len = sizeof (in);

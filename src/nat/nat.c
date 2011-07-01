@@ -51,9 +51,9 @@
 #define DYNDNS_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 7)
 
 /**
- * How long until we give up on transmitting the welcome message?
+ * How long until we give up trying to resolve our own hostname?
  */
-#define HOSTNAME_RESOLVE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define HOSTNAME_RESOLVE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 
 /**
