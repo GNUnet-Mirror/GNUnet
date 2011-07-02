@@ -868,18 +868,20 @@ disconnect_session (struct Session *session)
 	GNUNET_SERVER_receive_done (session->client,
 				    GNUNET_SYSERR);	
     }
-  else if (session->client != NULL)
-    GNUNET_SERVER_client_drop (session->client);
+  if (session->client != NULL)
+    {
+      GNUNET_SERVER_client_drop (session->client);
+      session->client = NULL;
+    }
   GNUNET_STATISTICS_update (session->plugin->env->stats,
 			    gettext_noop ("# TCP sessions active"),
 			    -1,
 			    GNUNET_NO);
   GNUNET_free_non_null (session->connect_addr);
-
   session->plugin->env->session_end (session->plugin->env->cls,
                                      &session->target,
                                      session);
-
+  GNUNET_assert (NULL == session->transmit_handle);
   GNUNET_free (session);
 }
 
