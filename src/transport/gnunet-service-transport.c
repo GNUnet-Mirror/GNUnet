@@ -1854,6 +1854,22 @@ static void
 mark_address_connected (struct ForeignAddressList *fal);
 
 
+
+/**
+ * We should re-try transmitting to the given peer,
+ * hopefully we've learned something in the meantime.
+ */
+static void
+retry_transmission_task (void *cls,
+			 const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct NeighbourList *n = cls;
+
+  n->retry_task = GNUNET_SCHEDULER_NO_TASK;
+  try_transmission_to_peer (n);
+}
+
+
 /**
  * Function called by the GNUNET_TRANSPORT_TransmitFunction
  * upon "completion" of a send request.  This tells the API
@@ -1925,33 +1941,24 @@ transmit_send_continuation (void *cls,
       if (! mq->internal_msg)
 	mq->specific_address->in_transmit = GNUNET_NO;
     }
-  n = find_neighbour(&mq->neighbour_id);
+  n = find_neighbour (&mq->neighbour_id);
   if (mq->client != NULL)
     transmit_send_ok (mq->client, n, target, result);
   if (n != NULL)
-  {
-    GNUNET_CONTAINER_DLL_remove (n->cont_head,
-                                 n->cont_tail,
-                                 mq);
-  }
+    {
+      GNUNET_CONTAINER_DLL_remove (n->cont_head,
+				   n->cont_tail,
+				   mq);
+    }
   GNUNET_free (mq);
-  if (n != NULL)
-    try_transmission_to_peer (n);
-}
-
-
-/**
- * We should re-try transmitting to the given peer,
- * hopefully we've learned something in the meantime.
- */
-static void
-retry_transmission_task (void *cls,
-			 const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct NeighbourList *n = cls;
-
-  n->retry_task = GNUNET_SCHEDULER_NO_TASK;
-  try_transmission_to_peer (n);
+  if (n != NULL) 
+    {
+      if (result == GNUNET_OK) 
+	try_transmission_to_peer (n);
+      else if (GNUNET_SCHEDULER_NO_TASK == n->retry_task)
+	n->retry_task = GNUNET_SCHEDULER_add_now (&retry_transmission_task,
+						  n);
+    }	
 }
 
 
@@ -2030,8 +2037,8 @@ try_transmission_to_peer (struct NeighbourList *n)
       if (n->retry_task != GNUNET_SCHEDULER_NO_TASK)
 	GNUNET_SCHEDULER_cancel (n->retry_task);
       n->retry_task = GNUNET_SCHEDULER_add_delayed (timeout,
-							    &retry_transmission_task,
-							    n);
+						    &retry_transmission_task,
+						    n);
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "No validated destination address available to transmit message of size %u to peer `%4s', will wait %llums to find an address.\n",
