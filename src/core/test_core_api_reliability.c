@@ -141,14 +141,26 @@ static void
 terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_break (0);
-  GNUNET_CORE_disconnect (p1.ch);
-  p1.ch = NULL;
-  GNUNET_CORE_disconnect (p2.ch);
-  p2.ch = NULL;
-  GNUNET_TRANSPORT_disconnect (p1.th);
-  p1.th = NULL;
-  GNUNET_TRANSPORT_disconnect (p2.th);
-  p2.th = NULL;
+  if (p1.ch != NULL)
+    {
+      GNUNET_CORE_disconnect (p1.ch);
+      p1.ch = NULL;
+    }
+  if (p2.ch != NULL)
+    {
+      GNUNET_CORE_disconnect (p2.ch);
+      p2.ch = NULL;
+    }
+  if (p1.th != NULL)
+    {
+      GNUNET_TRANSPORT_disconnect (p1.th);
+      p1.th = NULL;
+    }
+  if (p2.th != NULL)
+    {
+      GNUNET_TRANSPORT_disconnect (p2.th);
+      p2.th = NULL;
+    }
   ok = 42;
 }
 
@@ -238,6 +250,7 @@ connect_notify (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Asking core (1) for transmission to peer `%4s'\n",
                   GNUNET_i2s (&p2.id));
+      GNUNET_SCHEDULER_cancel (err_task);
       err_task = 
 	GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 				      &terminate_task_error, 
@@ -475,6 +488,10 @@ run (void *cls,
   OKPP;
   setup_peer (&p1, "test_core_api_peer1.conf");
   setup_peer (&p2, "test_core_api_peer2.conf");
+  err_task = 
+    GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+				  &terminate_task_error, 
+				  NULL);
   GNUNET_CORE_connect (p1.cfg, 1,
                        &p1,
                        &init_notify,
