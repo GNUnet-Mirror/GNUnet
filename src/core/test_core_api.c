@@ -107,12 +107,28 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   fprintf(stderr, "ENDING ANGRILY %u\n", ok);
 #endif
   GNUNET_break (0);
-  GNUNET_CORE_disconnect (p1.ch);
-  GNUNET_CORE_disconnect (p2.ch);
-  GNUNET_TRANSPORT_get_hello_cancel (p1.th, &process_hello, &p1);
-  GNUNET_TRANSPORT_get_hello_cancel (p2.th, &process_hello, &p2);
-  GNUNET_TRANSPORT_disconnect (p1.th);
-  GNUNET_TRANSPORT_disconnect (p2.th);
+  if (NULL != p1.ch)
+    {
+      GNUNET_CORE_disconnect (p1.ch);
+      p1.ch = NULL;
+    }
+  if (NULL != p2.ch)
+    {
+      GNUNET_CORE_disconnect (p2.ch);
+      p2.ch = NULL;
+    }
+  if (p1.th != NULL)
+    {
+      GNUNET_TRANSPORT_get_hello_cancel (p1.th, &process_hello, &p1);
+      GNUNET_TRANSPORT_disconnect (p1.th);
+      p1.th = NULL;
+    }
+  if (p2.th != NULL)
+    {
+      GNUNET_TRANSPORT_get_hello_cancel (p2.th, &process_hello, &p2);
+      GNUNET_TRANSPORT_disconnect (p2.th);
+      p2.th = NULL;
+    }
   ok = 42;
 }
 
