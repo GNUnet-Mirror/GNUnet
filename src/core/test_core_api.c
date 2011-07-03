@@ -35,6 +35,7 @@
 #include "gnunet_transport_service.h"
 
 #define VERBOSE GNUNET_NO
+
 #define START_ARM GNUNET_YES
 
 #define MTYPE 12345
