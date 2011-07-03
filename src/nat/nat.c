@@ -1144,6 +1144,8 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->use_localaddresses = GNUNET_CONFIGURATION_get_value_yesno (cfg,
 								"nat",
 								"USE_LOCALADDR");
+  if (h->use_localaddresses)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "USE LOCALADDR enabled!\n");
   h->disable_ipv6 = GNUNET_CONFIGURATION_get_value_yesno(cfg,
 							 "nat", 
 							 "DISABLEV6");
