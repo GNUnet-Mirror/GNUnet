@@ -38,8 +38,18 @@
 #include "gnunet_hello_lib.h"
 
 #define DEBUG_TESTING GNUNET_NO
-#define DEBUG_TESTING_RECONNECT GNUNET_YES
+
+#define DEBUG_TESTING_RECONNECT GNUNET_NO
+
 #define WAIT_FOR_HELLO GNUNET_NO
+
+/**
+ * Hack to deal with initial HELLO's being often devoid of addresses.
+ * This hack causes 'process_hello' to ignore HELLOs without addresses.
+ * The correct implementation would continue with 'process_hello' until
+ * the connection could be established...
+ */
+#define EMPTY_HACK GNUNET_YES
 
 /**
  * How long do we wait after starting gnunet-service-arm
@@ -55,6 +65,20 @@
 
 static struct GNUNET_CORE_MessageHandler no_handlers[] = { {NULL, 0, 0} };
 
+#if EMPTY_HACK
+static int
+test_address  (void *cls,
+	       const char *tname,
+	       struct GNUNET_TIME_Absolute expiration,
+	       const void *addr, 
+	       uint16_t addrlen)
+{
+  int *empty = cls;
+  *empty = GNUNET_NO;
+  return GNUNET_OK;
+}
+#endif
+
 /**
  * Receive the HELLO from one peer, give it to the other
  * and ask them to connect.
@@ -67,11 +91,27 @@ process_hello (void *cls,
 	       const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_TESTING_Daemon *daemon = cls;
+  int msize;
 #if WAIT_FOR_HELLO
   GNUNET_TESTING_NotifyDaemonRunning cb;
 #endif
+#if EMPTY_HACK
+  int empty;
 
-  int msize;
+  empty = GNUNET_YES;
+  GNUNET_HELLO_iterate_addresses ((const struct GNUNET_HELLO_Message*) message,
+				  GNUNET_NO,
+				  &test_address,
+				  &empty);
+  if (GNUNET_YES == empty)
+    {
+#if DEBUG_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Skipping empty HELLO address\n");
+#endif
+      return;
+    }
+#endif
   if (daemon == NULL)
     return;
 
@@ -702,7 +742,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
 
       GNUNET_TRANSPORT_get_hello (d->th, &process_hello, d);
-      GNUNET_SCHEDULER_add_now(&notify_daemon_started, d);
+      GNUNET_SCHEDULER_add_now (&notify_daemon_started, d);
       /*cb = d->cb;
       d->cb = NULL;
       if (NULL != cb)
