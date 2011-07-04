@@ -281,6 +281,11 @@ struct GNUNET_NAT_Handle
   int use_localaddresses;
 
   /**
+   * Should we do a DNS lookup of our hostname to find out our own IP?
+   */
+  int use_hostname;
+
+  /**
    * Is using IPv6 disabled?
    */
   int disable_ipv6;
@@ -1144,6 +1149,9 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->use_localaddresses = GNUNET_CONFIGURATION_get_value_yesno (cfg,
 								"nat",
 								"USE_LOCALADDR");
+  h->use_hostname = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+							  "nat",
+							  "USE_HOSTNAME");
   if (h->use_localaddresses)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "USE LOCALADDR enabled!\n");
   h->disable_ipv6 = GNUNET_CONFIGURATION_get_value_yesno(cfg,
@@ -1206,8 +1214,9 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   if (NULL != h->address_callback)
     {
-      h->ifc_task = GNUNET_SCHEDULER_add_now (&list_interfaces, h);
-      h->hostname_task = GNUNET_SCHEDULER_add_now (&resolve_hostname, h);
+      h->ifc_task = GNUNET_SCHEDULER_add_now (&list_interfaces, h);    
+      if (GNUNET_YES == h->use_hostname)
+	h->hostname_task = GNUNET_SCHEDULER_add_now (&resolve_hostname, h);
     }
   return h;
 }
