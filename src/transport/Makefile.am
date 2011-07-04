@@ -235,7 +235,6 @@ endif
 check_PROGRAMS = \
  test_transport_ats \
  $(TRANSPORT_BENCHMARKS) \
- test_transport_api_localaddr \
  test_transport_api_tcp \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
@@ -268,7 +267,6 @@ if ENABLE_TEST_RUN
 TESTS = \
  test_transport_ats \
  perf_transport_ats \
- test_transport_api_localaddr \
  test_transport_api_tcp \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
