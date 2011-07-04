@@ -2489,6 +2489,8 @@ refresh_hello_task (void *cls,
   cpos = clients;
   while (cpos != NULL)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Transmitting my HELLO to client!\n");
       transmit_to_client (cpos,
                           (const struct GNUNET_MessageHeader *) hello,
                           GNUNET_NO);
@@ -2527,6 +2529,10 @@ refresh_hello_task (void *cls,
 static void
 refresh_hello ()
 {
+#if DEBUG_TRANSPORT_HELLO
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "refresh_hello() called!\n");
+#endif
   if (hello_task != GNUNET_SCHEDULER_NO_TASK)
     return;
   hello_task
@@ -2823,7 +2829,6 @@ plugin_env_notify_address (void *cls,
   struct OwnAddressList *prev;
 
   GNUNET_assert (p->api != NULL);
-
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      (add_remove == GNUNET_YES)
@@ -5745,7 +5750,7 @@ handle_start (void *cls,
   clients = c;
   c->client = client;
   if (our_hello != NULL)
-  {
+    {
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Sending our own `%s' to new client\n", "HELLO");
@@ -5757,9 +5762,9 @@ handle_start (void *cls,
       ats_count = 2;
       size  = sizeof (struct ConnectInfoMessage) + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
       if (size > GNUNET_SERVER_MAX_MESSAGE_SIZE)
-      {
+	{
     	  GNUNET_break(0);
-      }
+	}
       cim = GNUNET_malloc (size);
       cim->header.size = htons (size);
       cim->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
@@ -5768,20 +5773,28 @@ handle_start (void *cls,
       (&(cim->ats))[2].value = htonl (0);
       n = neighbours;
       while (n != NULL)
-	  {
-		  if (GNUNET_YES == n->received_pong)
-		  {
-			  (&(cim->ats))[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
-			  (&(cim->ats))[0].value = htonl (n->distance);
-			  (&(cim->ats))[1].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY);
-			  (&(cim->ats))[1].value = htonl ((uint32_t) n->latency.rel_value);
-			  cim->id = n->id;
-			  transmit_to_client (c, &cim->header, GNUNET_NO);
-		  }
-	    n = n->next;
-      }
+	{
+	  if (GNUNET_YES == n->received_pong)
+	    {
+	      (&(cim->ats))[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+	      (&(cim->ats))[0].value = htonl (n->distance);
+	      (&(cim->ats))[1].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY);
+	      (&(cim->ats))[1].value = htonl ((uint32_t) n->latency.rel_value);
+	      cim->id = n->id;
+	      transmit_to_client (c, &cim->header, GNUNET_NO);
+	    }
+	  n = n->next;
+	}
       GNUNET_free (cim);
-  }
+    }
+  else
+    {
+#if DEBUG_TRANSPORT_HELLO
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "No HELLO created yet, will transmit HELLO to client later!\n");
+#endif
+      refresh_hello ();
+    }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 

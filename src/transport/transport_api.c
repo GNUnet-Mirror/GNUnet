@@ -1018,7 +1018,13 @@ GNUNET_TRANSPORT_get_hello (struct GNUNET_TRANSPORT_Handle *handle,
   hwl->rec = rec;
   hwl->rec_cls = rec_cls;
   if (handle->my_hello == NULL)
-    return;
+    {
+#if DEBUG_TRANSPORT_HELLO
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "No HELLO yet, waiting to receive it from transport service\n");
+#endif
+      return;
+    }
   rec (rec_cls, (const struct GNUNET_MessageHeader *) handle->my_hello);
 }
 
