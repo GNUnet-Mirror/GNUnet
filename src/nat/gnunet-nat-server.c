@@ -311,7 +311,7 @@ run (void *cls,
   in6.sin6_family = AF_INET6;
   in6.sin6_port = htons ((uint16_t) port);
 #if HAVE_SOCKADDR_IN_SIN_LEN
-  in4.sin_len = sizeof (in);
+  in4.sin_len = sizeof (in4);
   in6.sin6_len = sizeof (in6);
 #endif
   server = GNUNET_SERVER_create (NULL, NULL,
