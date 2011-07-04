@@ -80,6 +80,11 @@ enum LocalAddressSource
      * and taking their address (no DNS involved).
      */
     LAL_INTERFACE_ADDRESS,
+    
+    /**
+     * Addresses we were explicitly bound to.
+     */
+    LAL_BINDTO_ADDRESS,
 
     /* TODO: add UPnP, etc. */
 
@@ -203,6 +208,11 @@ struct GNUNET_NAT_Handle
    * ID of DynDNS lookup task
    */
   GNUNET_SCHEDULER_TaskIdentifier dns_task;
+
+  /**
+   * ID of task to add addresses from bind.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier bind_task;
 
   /**
    * How often do we scan for changes in our IP address from our local
@@ -1029,6 +1039,55 @@ resolve_dns (void *cls,
 
 
 /**
+ * Task to add addresses from original bind to set of valid addrs.
+ *
+ * @param cls the NAT handle
+ * @param tc scheduler context
+ */
+static void
+add_from_bind (void *cls,
+	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  static struct in6_addr any = IN6ADDR_ANY_INIT;
+  struct GNUNET_NAT_Handle *h = cls;
+  unsigned int i;
+  struct sockaddr *sa;
+
+  h->bind_task = GNUNET_SCHEDULER_NO_TASK;
+  for (i=0;i<h->num_local_addrs;i++)
+    {
+      sa = h->local_addrs[i];
+      switch (sa->sa_family)
+	{
+	case AF_INET:
+	  if (sizeof (struct sockaddr_in) != h->local_addrlens[i])
+	    {
+	      GNUNET_break (0);
+	      break;
+	    }
+	  if (0 != ((const struct sockaddr_in*) sa)->sin_addr.s_addr)
+	    add_to_address_list (h, LAL_BINDTO_ADDRESS, sa, sizeof (struct sockaddr_in));
+	  break;
+	case AF_INET6:
+	  if (sizeof (struct sockaddr_in6) != h->local_addrlens[i])
+	    {
+	      GNUNET_break (0);
+	      break;
+	    }
+	  if (0 != memcmp (&((const struct sockaddr_in6*) sa)->sin6_addr,
+			   &any,
+			   sizeof (struct in6_addr)))
+	    add_to_address_list (h, LAL_BINDTO_ADDRESS, sa, sizeof (struct sockaddr_in6));
+	  break;
+	default:
+	  break;
+	}	
+    }
+}
+
+
+
+/**
  * Attempt to enable port redirection and detect public IP address contacting
  * UPnP or NAT-PMP routers on the local network. Use addr to specify to which
  * of the local host's addresses should the external port be mapped. The port
@@ -1087,7 +1146,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
 	  memcpy (h->local_addrs[i], addrs[i], addrlens[i]);
 	}
     }
-
+  h->bind_task = GNUNET_SCHEDULER_add_now (&add_from_bind, h);
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_have_value (cfg,
 				       "nat",
@@ -1218,6 +1277,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
       if (GNUNET_YES == h->use_hostname)
 	h->hostname_task = GNUNET_SCHEDULER_add_now (&resolve_hostname, h);
     }
+
   return h;
 }
 
@@ -1248,6 +1308,11 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
     {
       GNUNET_SCHEDULER_cancel (h->server_read_task);
       h->server_read_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  if (GNUNET_SCHEDULER_NO_TASK != h->bind_task)
+    {
+      GNUNET_SCHEDULER_cancel (h->bind_task);
+      h->bind_task = GNUNET_SCHEDULER_NO_TASK;
     }
   if (GNUNET_SCHEDULER_NO_TASK != h->ifc_task)
     {
