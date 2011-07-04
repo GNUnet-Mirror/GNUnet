@@ -235,6 +235,7 @@ endif
 check_PROGRAMS = \
  test_transport_ats \
  $(TRANSPORT_BENCHMARKS) \
+ test_transport_api_localaddr \
  test_transport_api_tcp \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
@@ -251,6 +252,7 @@ check_PROGRAMS = \
  $(UNIX_REL_TEST) \
  $(HTTP_REL_TEST) \
  $(HTTPS_REL_TEST) \
+ test_transport_api_multiaddress_tcp \
  test_quota_compliance_tcp \
  test_quota_compliance_tcp_asymmetric_recv_constant \
  test_quota_compliance_udp \
@@ -266,6 +268,7 @@ if ENABLE_TEST_RUN
 TESTS = \
  test_transport_ats \
  perf_transport_ats \
+ test_transport_api_localaddr \
  test_transport_api_tcp \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
@@ -275,6 +278,7 @@ TESTS = \
  $(HTTP_API_TEST) \
  $(HTTPS_PLUGIN_TEST) \
  $(HTTPS_API_TEST) \
+ test_transport_api_multiaddress_tcp \
  test_transport_api_multi \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
@@ -329,6 +333,13 @@ test_transport_api_reliability_tcp_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
+test_transport_api_multiaddress_tcp_SOURCES = \
+ test_transport_api_multiaddress.c
+test_transport_api_multiaddress_tcp_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransportnew.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
 test_transport_api_reliability_tcp_nat_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_tcp_nat_LDADD = \
@@ -367,6 +378,13 @@ test_transport_api_udp_nat_LDADD = \
 test_transport_api_unix_SOURCES = \
  test_transport_api.c
 test_transport_api_unix_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransportnew.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la 
+
+test_transport_api_localaddr_SOURCES = \
+ test_transport_api.c
+test_transport_api_localaddr_LDADD = \
  $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la 
