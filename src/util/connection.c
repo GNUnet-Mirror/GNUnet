@@ -1089,6 +1089,7 @@ GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *sock,
 	  sock->write_task = GNUNET_SCHEDULER_NO_TASK;
 	  sock->write_buffer_off = 0;
 	}
+      sock->nth.notify_ready = NULL;
     }
   if ((sock->write_buffer_off == 0) && (sock->dns_active != NULL))
     {
