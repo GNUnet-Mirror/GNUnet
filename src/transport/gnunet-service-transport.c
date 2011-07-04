@@ -2708,11 +2708,25 @@ plugin_env_session_end  (void *cls,
 		  "Session was never marked as ready for peer `%4s'\n", 
 		  GNUNET_i2s(peer));
 #endif
+
+      int validations_pending = GNUNET_CONTAINER_multihashmap_contains (validation_map, &peer->hashPubKey);
+
+      /* No session was marked as ready, but we have pending validations so do not disconnect from neighbour */
+      if (validations_pending ==GNUNET_YES)
+        {
+#if DEBUG_TRANSPORT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Not disconnecting from peer `%4s due to pending address validations\n", GNUNET_i2s(peer));
+#endif
+        return;
+        }
+
       //FIXME: This conflicts with inbound tcp connections and tcp nat ... debugging in progress
       GNUNET_STATISTICS_update (stats,
                                 gettext_noop ("# disconnects due to unready session"),
                                 1,
                                 GNUNET_NO);
+
       disconnect_neighbour (nl, GNUNET_YES);
       return; /* was never marked as connected */
     }
@@ -5110,6 +5124,7 @@ disconnect_neighbour (struct NeighbourList *n, int check)
               "Disconnecting from `%4s'\n",
 	      GNUNET_i2s (&n->id));
 #endif
+
   /* remove n from neighbours list */
   nprev = NULL;
   npos = neighbours;
