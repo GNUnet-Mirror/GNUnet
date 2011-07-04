@@ -51,8 +51,9 @@ static struct GNUNET_TESTING_Daemon *last;
 /**
  * Check whether peers successfully shut down.
  */
-void shutdown_callback (void *cls,
-                        const char *emsg)
+static void 
+shutdown_callback (void *cls,
+		   const char *emsg)
 {
   if (emsg != NULL)
     {
@@ -71,6 +72,7 @@ void shutdown_callback (void *cls,
 #endif
     }
 }
+
 
 static void
 clean_up_task (void *cls,
@@ -112,11 +114,12 @@ notify_connect_complete(void *cls,
 }
 
 
-static void my_cb(void *cls,
-		   const struct GNUNET_PeerIdentity *id,
-		   const struct GNUNET_CONFIGURATION_Handle *cfg,
-		   struct GNUNET_TESTING_Daemon *d,
-		   const char *emsg)
+static 
+void my_cb(void *cls,
+	   const struct GNUNET_PeerIdentity *id,
+	   const struct GNUNET_CONFIGURATION_Handle *cfg,
+	   struct GNUNET_TESTING_Daemon *d,
+	   const char *emsg)
 {
   GNUNET_assert (id != NULL);
   peers_left--;  
@@ -164,10 +167,12 @@ run (void *cls,
   GNUNET_assert (pg != NULL);
 }
 
+
 static int
 check ()
 {
-  char *const argv[] = { "test-testing",
+  char *const argv[] = { 
+    "test-gnunet-daemon-topology",
     "-c",
     "test_gnunet_daemon_topology_data.conf",
 #if VERBOSE
@@ -184,6 +189,7 @@ check ()
   return ok;
 }
 
+
 int
 main (int argc, char *argv[])
 {
@@ -197,7 +203,6 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
-  sleep (1); /* FIXME: needed? */
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-topology");
   return ret;
 }
