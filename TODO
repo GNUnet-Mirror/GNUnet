@@ -4,7 +4,7 @@
   so that some of the 'local' IPs do not work due to the bindto);  the result
   seems to be that the plugin tries some of the broken addresses, fails and the
   transport-level connection never comes up.
-* topology [connect error], fs [connect errors?], dht [cfg error?], core [non-deterministic]
+* core [non-deterministic]
 * clean buildbots
 
 0.9.0pre4:
