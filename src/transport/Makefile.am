@@ -380,13 +380,6 @@ test_transport_api_unix_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la 
 
-test_transport_api_localaddr_SOURCES = \
- test_transport_api.c
-test_transport_api_localaddr_LDADD = \
- $(top_builddir)/src/transport/libgnunettransportnew.la \
- $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/util/libgnunetutil.la 
-
 #test_plugin_transport_http_SOURCES = \
 # test_plugin_transport_http.c
 #test_plugin_transport_http_LDADD = \
