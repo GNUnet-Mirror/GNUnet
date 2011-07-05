@@ -116,6 +116,7 @@ main (int argc, char *const argv[])
 				 "-L",
 				 "DEBUG",
 #endif
+				 "-c", "test_nat_test_data.conf",
 				 "12345",
 				 NULL);
   GNUNET_assert (NULL != gns);
