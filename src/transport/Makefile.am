@@ -126,7 +126,7 @@ if HAVE_LIBGLPK
 endif
 
 gnunet_service_transport_SOURCES = \
- gnunet-service-transport.c
+ gnunet-service-transport.c transport_ats.c
 gnunet_service_transport_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
