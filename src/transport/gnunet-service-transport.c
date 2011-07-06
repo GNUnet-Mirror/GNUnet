@@ -927,7 +927,7 @@ static int shutdown_in_progress;
 /**
  * Handle for ats information
  */
-static struct ATS_info *ats;
+static struct ATS_Handle *ats;
 
 /**
  * The peer specified by the given neighbour has timed-out or a plugin
@@ -973,33 +973,34 @@ find_neighbour (const struct GNUNET_PeerIdentity *key)
 
 static int update_addr_value (struct ForeignAddressList *fal, uint32_t value , int ats_index)
 {
-	int c;
-	int set = GNUNET_NO;
-	for (c=0; c<available_quality_metrics; c++)
-	{
-	  if (ats_index == qm[c].atis_index)
-	  {
-		  fal->quality[c].values[0] = fal->quality[c].values[1];
-		  fal->quality[c].values[1] = fal->quality[c].values[2];
-		  fal->quality[c].values[2] = value;
-		  set = GNUNET_YES;
-		  ats->stat.modified_quality = GNUNET_YES;
-	  }
-	}
-	if (set == GNUNET_NO)
-	{
-	  for (c=0; c<available_ressources; c++)
-	  {
-		  if (ats_index == ressources[c].atis_index)
-		  {
-			  fal->ressources[c].c = value;
-			  set = GNUNET_YES;
-			  ats->stat.modified_resources = GNUNET_YES;
-		  }
-	  }
-	}
-
-	return set;
+  int c;
+  int set = GNUNET_NO;
+  for (c=0; c<available_quality_metrics; c++)
+  {
+    if (ats_index == qm[c].atis_index)
+    {
+      fal->quality[c].values[0] = fal->quality[c].values[1];
+      fal->quality[c].values[1] = fal->quality[c].values[2];
+      fal->quality[c].values[2] = value;
+      set = GNUNET_YES;
+      if (ats != NULL)
+        ats->stat.modified_quality = GNUNET_YES;
+    }
+  }
+  if (set == GNUNET_NO)
+  {
+    for (c=0; c<available_ressources; c++)
+    {
+      if (ats_index == ressources[c].atis_index)
+      {
+        fal->ressources[c].c = value;
+        set = GNUNET_YES;
+        if (ats != NULL)
+          ats->stat.modified_resources = GNUNET_YES;
+      }
+    }
+  }
+  return set;
 }
 
 static int
@@ -2436,7 +2437,8 @@ plugin_env_session_end  (void *cls,
       return; 
     }
   GNUNET_free (pos);
-  ats->stat.recreate_problem = GNUNET_YES;
+  if (ats != NULL)
+    ats->stat.recreate_problem = GNUNET_YES;
   if (nl->received_pong == GNUNET_NO)
     {
       GNUNET_STATISTICS_update (stats,
@@ -2598,7 +2600,7 @@ notify_clients_connect (const struct GNUNET_PeerIdentity *peer,
 
   /* notify ats about connecting peer */
   /* notify ats about connecting peer */
-  if (shutdown_in_progress == GNUNET_NO)
+  if ((ats != NULL) && (shutdown_in_progress == GNUNET_NO))
   {
     ats->stat.recreate_problem = GNUNET_YES;
     ats_calculate_bandwidth_distribution (ats, stats, neighbours);
@@ -2647,7 +2649,7 @@ notify_clients_disconnect (const struct GNUNET_PeerIdentity *peer)
   memcpy (&dim.peer, peer, sizeof (struct GNUNET_PeerIdentity));
 
   /* notify ats about connecting peer */
-  if (shutdown_in_progress == GNUNET_NO)
+  if ((ats != NULL) && (shutdown_in_progress == GNUNET_NO))
   {
     ats->stat.recreate_problem = GNUNET_YES;
     ats_calculate_bandwidth_distribution (ats, stats, neighbours);
@@ -4843,7 +4845,8 @@ disconnect_neighbour (struct NeighbourList *n, int check)
 	  GNUNET_free(peer_pos->quality);
 	  peer_pos->ressources = NULL;
 	  GNUNET_free(peer_pos);
-	  ats->stat.recreate_problem = GNUNET_YES;
+	  if (ats != NULL)
+	    ats->stat.recreate_problem = GNUNET_YES;
         }
       GNUNET_free (rpos);
     }
@@ -5316,19 +5319,19 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     	uint32_t value =  ntohl(*((uint32_t *) &message[1]));
     	//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "GNUNET_MESSAGE_TYPE_TRANSPORT_ATS: %i \n", value);
     	/* Force ressource and quality update */
-    	if (value == 4)
+    	if ((value == 4) && (ats != NULL))
 	  {
 	    ats->stat.modified_resources = GNUNET_YES;
 	    ats->stat.modified_quality = GNUNET_YES;
 	  }
     	/* Force cost update */
-    	if (value == 3)
+    	if ((value == 3) && (ats != NULL))
 	  ats->stat.modified_resources = GNUNET_YES;
     	/* Force quality update */
-    	if (value == 2)
+    	if ((value == 2) && (ats != NULL))
 	  ats->stat.modified_quality = GNUNET_YES;
     	/* Force full rebuild */
-    	if (value == 1)
+    	if ((value == 1) && (ats != NULL))
 	  ats->stat.recreate_problem = GNUNET_YES;
       }
     
@@ -6002,7 +6005,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CONTAINER_multihashmap_destroy (validation_map);
   validation_map = NULL;
 
-  ats_shutdown (ats);
+  if (ats != NULL)
+    ats_shutdown (ats);
 
   /* free 'chvc' data structure */
   while (NULL != (chvc = chvc_head))
@@ -6050,7 +6054,7 @@ static void
 schedule_ats (void *cls,
 			  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct ATS_info *ats = (struct ATS_info *) cls;
+  struct ATS_Handle *ats = (struct ATS_Handle *) cls;
   if (ats==NULL)
     return;
 
@@ -6204,8 +6208,9 @@ run (void *cls,
     refresh_hello ();
 
   ats = ats_init (cfg);
-  GNUNET_assert (ats != NULL);
-  ats->ats_task = GNUNET_SCHEDULER_add_now (&schedule_ats, ats);
+  if (ats != NULL)
+    ats->ats_task = GNUNET_SCHEDULER_add_now (&schedule_ats, ats);
+
 
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, 

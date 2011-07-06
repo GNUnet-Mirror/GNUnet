@@ -234,6 +234,7 @@ endif
 
 check_PROGRAMS = \
  test_transport_ats \
+ test_transport_ats_multiple_peers \
  $(TRANSPORT_BENCHMARKS) \
  test_transport_api_tcp \
  test_transport_api_tcp_nat \
@@ -266,6 +267,7 @@ check_PROGRAMS = \
 if ENABLE_TEST_RUN
 TESTS = \
  test_transport_ats \
+ test_transport_ats_multiple_peers \
  perf_transport_ats \
  test_transport_api_tcp \
  test_transport_api_tcp_nat \
@@ -297,8 +299,17 @@ TESTS = \
 endif
 
 test_transport_ats_SOURCES = \
- test_transport_ats.c
+ test_transport_ats.c transport_ats.c
 test_transport_ats_LDADD = -lm \
+ $(top_builddir)/src/transport/libgnunettransportnew.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(GN_GLPK)
+
+test_transport_ats_multiple_peers_SOURCES = \
+ test_transport_ats_multiple_peers.c
+test_transport_ats_multiple_peers_LDADD = -lm \
  $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
