@@ -30,6 +30,12 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_container_lib.h"
 
+
+/*
+ * Temporary included structs and defines
+ */
+
+
 /**
  * FIXME to be removed
  * Entry in linked list of all of our current neighbours.
@@ -256,7 +262,9 @@ struct ForeignAddressList
 
   /**
    * Are we currently connected via this address?  The first time we
-   * successfully transmit or receive data to a peer via a particular
+   * successfully transmit or receive data to a peer via a particularcurl:
+   * (56) Recv failure: Connection reset by peer
+   *
    * address, we set this to GNUNET_YES.  If we later get an error
    * (disconnect notification, transmission failure, timeout), we set
    * it back to GNUNET_NO.
@@ -308,6 +316,8 @@ struct ReadyList
   struct NeighbourList *neighbour;
 };
 
+
+#if !HAVE_LIBGLPK
 /* optimization direction flag: */
 #define GLP_MIN            1  /* minimization */
 #define GLP_MAX            2  /* maximization */
@@ -356,6 +366,7 @@ struct ReadyList
 /* enable/disable flag: */
 #define GLP_ON             1  /* enable something */
 #define GLP_OFF            0  /* disable something */
+
 
 typedef struct
 {     /* simplex method control parameters */
@@ -428,143 +439,325 @@ typedef struct
 #endif
       double foo_bar[29];     /* (reserved) */
 } glp_iocp;
+#endif
 
+
+/*
+ * Wrappers for GLPK Functions
+ */
+
+
+void * _lp_create_prob ( void )
+{
+#if HAVE_LIBGLPK
+  return glp_create_prob( );
+#else
+  // Function not implemented
+  GNUNET_break (0);
+#endif
+  return NULL;
+}
+
+void _lp_set_obj_dir (void *P, int dir)
+{
+#if HAVE_LIBGLPK
+  return glp_set_obj_dir (P, dir);
+#else
+  // Function not implemented
+  GNUNET_break (0);
+#endif
+}
 
 void _lp_set_prob_name (void *P, const char *name)
 {
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
   glp_set_prob_name(P, name);
+#else
+  // Function not implemented
+  GNUNET_break (0);
 #endif
 }
 
 int _lp_add_cols (void *P, int ncs)
 {
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
   return glp_add_cols(P, ncs);
+#else
+  // Function not implemented
+  GNUNET_break (0);
 #endif
   return 0;
 }
 
+int _lp_add_rows (void *P, int nrs)
+{
+#if HAVE_LIBGLPK
+  return glp_add_rows (P, nrs);
+#else
+  // Function not implemented
+  GNUNET_break (0);
+#endif
+  return 0;
+}
+
+
 void _lp_set_row_bnds (void *P, int i, int type, double lb, double ub)
 {
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
   glp_set_row_bnds(P, i , type, lb, ub);
+#else
+  // Function not implemented
+  GNUNET_break (0);
 #endif
 }
 
 void _lp_init_smcp (void * parm)
 {
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
   glp_init_smcp(parm);
+#else
+  // Function not implemented
+  GNUNET_break (0);
 #endif
 }
 
 void _lp_set_col_name (void *P, int j, const char *name)
 {
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
   glp_set_col_name (P, j, name);
+#else
+  // Function not implemented
+  GNUNET_break (0);
 #endif
 }
 
 void _lp_set_col_bnds (void *P, int j, int type, double lb,
       double ub)
 {
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
   glp_set_col_bnds(P, j, type, lb, ub);
+#else
+  // Function not implemented
+  GNUNET_break (0);
 #endif
 }
 
 void _lp_set_obj_coef(void *P, int j, double coef)
 {
-#if HAVE_GLPK
-  _lp_set_obj_coef(P, j, coef);
+#if HAVE_LIBGLPK
+  glp_set_obj_coef(P, j, coef);
+#else
+  // Function not implemented
+  GNUNET_break (0);
 #endif
 }
 
 void _lp_delete_prob (void * P)
 {
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
   glp_delete_prob (P);
+#else
+  // Function not implemented
+  GNUNET_break (0);
 #endif
 }
 
-int _lp_simplex(void *P, void *parm)
+static int _lp_simplex(void *P, void *parm)
 {
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
   return glp_simplex (P, parm);
+#else
+  // Function not implemented
+  GNUNET_break (0);
 #endif
   return 0;
 }
 
-void _lp_load_matrix (void *P, int ne, const int ia[],
+static void _lp_load_matrix (void *P, int ne, const int ia[],
       const int ja[], const double ar[])
 {
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
   glp_load_matrix(P, ne, ia, ja, ar);
+#else
+  // Function not implemented
+  GNUNET_break (0);
 #endif
 }
 
-void _lp_set_mat_row (void *P, int i, int len, const int ind[],
+static void _lp_set_mat_row (void *P, int i, int len, const int ind[],
       const double val[])
 {
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
   glp_set_mat_row (P, i, len, ind, val);
+#else
+  // Function not implemented
+  GNUNET_break (0);
 #endif
 }
 
-int _lp_write_lp (void * *P, const void *parm, const char *fname)
+static int _lp_write_lp (void *P, const void *parm, const char *fname)
 {
-#if HAVE_GLPK
-  return glp_write_lp (P, parm, fname);
+#if HAVE_LIBGLPK
+  return glp_write_lp ( P, parm, fname);
+#else
+  // Function not implemented
+  GNUNET_break (0);
 #endif
   return 0;
 }
 
-void _lp_init_iocp (void *parm)
+static void _lp_init_iocp (void *parm)
 {
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
   glp_init_iocp (parm);
+#else
+  // Function not implemented
+  GNUNET_break (0);
 #endif
 }
 
-int _lp_intopt (void *P, const void *parm)
+static int _lp_intopt (void *P, const void *parm)
 {
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
   return glp_intopt (P, parm);
+#else
+  // Function not implemented
+  GNUNET_break (0);
 #endif
   return 0;
 }
 
-int _lp_get_status (void *P)
+static int _lp_get_status (void *P)
 {
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
   return glp_get_status (P);
+#else
+  // Function not implemented
+  GNUNET_break (0);
 #endif
   return 0;
 }
 
-int _lp_mip_status(void *P)
+static int _lp_mip_status (void *P)
 {
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
   return glp_mip_status (P);
+#else
+  // Function not implemented
+  GNUNET_break (0);
 #endif
   return 0;
 }
 
-
-struct ATS_info * ats_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
+static void _lp_set_col_kind (void *P, int j, int kind)
 {
+#if HAVE_LIBGLPK
+  glp_set_col_kind (P, j, kind);
+#else
+  // Function not implemented
+  GNUNET_break (0);
+#endif
+}
+
+static void _lp_free_env (void)
+{
+#if HAVE_LIBGLPK
+  glp_free_env ();
+#else
+  // Function not implemented
+  GNUNET_break (0);
+#endif
+}
+
+static const char * _lp_get_col_name ( void *P, int j)
+{
+#if HAVE_LIBGLPK
+  return glp_get_col_name (P, j);
+#else
+  // Function not implemented
+  GNUNET_break (0);
+#endif
+  return NULL;
+}
+
+static double _lp_mip_obj_val (void *P)
+{
+#if HAVE_LIBGLPK
+  return glp_mip_obj_val (P);
+#else
+  // Function not implemented
+  GNUNET_break (0);
+#endif
+  return 0.0;
+}
+
+
+static double _lp_get_col_prim (void *P, int j)
+{
+#if HAVE_LIBGLPK
+  return glp_get_col_prim (P , j);
+#else
+  // Function not implemented
+  GNUNET_break (0);
+#endif
+  return 0.0;
+}
+
+static int _lp_print_sol(void *P, const char *fname)
+{
+#if HAVE_LIBGLPK
+  return glp_print_sol (P, fname);
+#else
+  // Function not implemented
+  GNUNET_break (0);
+#endif
+  return 0;
+}
+
+/*
+ * Dummy functions for CFLAGS
+ */
+
+static void _dummy2 ();
+static void _dummy ()
+{
+  return;
+  _lp_get_col_name (NULL, 0);
+  _lp_mip_obj_val (NULL);
+  _lp_get_col_prim (NULL, 0);
+  _dummy2();
+}
+
+static void _dummy2 ()
+{
+   _dummy();
+}
+
+/*
+ * ATS Functions
+ */
+
+
+/**
+ * Initialize ATS
+ * @param cfg configuration handle to retrieve configuration (to be removed)
+ * @return
+ */
+
+struct ATS_Handle * ats_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+
 #if !HAVE_LIBGLPK
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS not active\n");
-        return NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS not active\n");
+  return NULL;
 #endif
 
-  struct ATS_info * ats = NULL;
+  struct ATS_Handle * ats = NULL;
   int c = 0;
   unsigned long long  value;
   char * section;
 
-  ats = GNUNET_malloc(sizeof (struct ATS_info));
+  ats = GNUNET_malloc(sizeof (struct ATS_Handle));
 
   ats->prob = NULL;
 
@@ -627,43 +820,56 @@ struct ATS_info * ats_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
   }
 
   if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "DUMP_MLP"))
-          ats->save_mlp = GNUNET_CONFIGURATION_get_value_yesno (cfg, "transport","DUMP_MLP");
+      ats->save_mlp = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                             "transport","DUMP_MLP");
 
   if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "DUMP_SOLUTION"))
-          ats->save_solution = GNUNET_CONFIGURATION_get_value_yesno (cfg, "transport","DUMP_SOLUTION");
+      ats->save_solution = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                  "transport","DUMP_SOLUTION");
   if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "DUMP_OVERWRITE"))
-          ats->dump_overwrite = GNUNET_CONFIGURATION_get_value_yesno (cfg, "transport","DUMP_OVERWRITE");
+      ats->dump_overwrite = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                  "transport","DUMP_OVERWRITE");
   if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "DUMP_MIN_PEERS"))
   {
-          GNUNET_CONFIGURATION_get_value_number(cfg, "transport","DUMP_MIN_PEERS", &value);
+          GNUNET_CONFIGURATION_get_value_number(cfg,
+              "transport","DUMP_MIN_PEERS", &value);
           ats->dump_min_peers= value;
   }
-  if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "DUMP_MIN_ADDRS"))
+  if (GNUNET_CONFIGURATION_have_value(cfg,
+      "transport", "DUMP_MIN_ADDRS"))
   {
-          GNUNET_CONFIGURATION_get_value_number(cfg, "transport","DUMP_MIN_ADDRS", &value);
-          ats->dump_min_addr= value;
+      GNUNET_CONFIGURATION_get_value_number(cfg,
+        "transport","DUMP_MIN_ADDRS", &value);
+      ats->dump_min_addr= value;
   }
-  if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "DUMP_OVERWRITE"))
+  if (GNUNET_CONFIGURATION_have_value(cfg,
+      "transport", "DUMP_OVERWRITE"))
   {
-          GNUNET_CONFIGURATION_get_value_number(cfg, "transport","DUMP_OVERWRITE", &value);
-          ats->min_delta.rel_value = value;
-  }
-
-  if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "ATS_MIN_INTERVAL"))
-  {
-          GNUNET_CONFIGURATION_get_value_number(cfg, "transport","ATS_MIN_INTERVAL", &value);
-          ats->min_delta.rel_value = value;
+      GNUNET_CONFIGURATION_get_value_number(cfg,
+          "transport","DUMP_OVERWRITE", &value);
+      ats->min_delta.rel_value = value;
   }
 
-  if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "ATS_EXEC_INTERVAL"))
+  if (GNUNET_CONFIGURATION_have_value(cfg,
+      "transport", "ATS_MIN_INTERVAL"))
   {
-          GNUNET_CONFIGURATION_get_value_number(cfg, "transport","ATS_EXEC_INTERVAL", &value);
-          ats->exec_interval.rel_value = value;
+      GNUNET_CONFIGURATION_get_value_number(cfg,
+          "transport","ATS_MIN_INTERVAL", &value);
+      ats->min_delta.rel_value = value;
+  }
+
+  if (GNUNET_CONFIGURATION_have_value(cfg,
+      "transport", "ATS_EXEC_INTERVAL"))
+  {
+      GNUNET_CONFIGURATION_get_value_number(cfg,
+          "transport","ATS_EXEC_INTERVAL", &value);
+      ats->exec_interval.rel_value = value;
   }
   if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "ATS_MIN_INTERVAL"))
   {
-          GNUNET_CONFIGURATION_get_value_number(cfg, "transport","ATS_MIN_INTERVAL", &value);
-          ats->min_delta.rel_value = value;
+      GNUNET_CONFIGURATION_get_value_number(cfg,
+          "transport","ATS_MIN_INTERVAL", &value);
+      ats->min_delta.rel_value = value;
   }
   return ats;
 }
@@ -680,16 +886,21 @@ struct ATS_info * ats_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param stat result struct
  * @return GNUNET_SYSERR if glpk is not available, number of mechanisms used
  */
-int ats_create_problem (struct ATS_info *ats, struct NeighbourList *neighbours, double D, double U, double R, int v_b_min, int v_n_min, struct ATS_stat *stat)
+int ats_create_problem (struct ATS_Handle *ats,
+                        struct NeighbourList *neighbours,
+                        double D,
+                        double U,
+                        double R,
+                        int v_b_min,
+                        int v_n_min,
+                        struct ATS_stat *stat)
 {
 #if !HAVE_LIBGLPK
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS not active\n");
   return GNUNET_SYSERR;
 #endif
 
-#if HAVE_LIBGLPK
-  ats->prob = glp_create_prob();
-#endif
+  ats->prob = _lp_create_prob();
 
   int c;
   int c_peers = 0;
@@ -728,7 +939,9 @@ int ats_create_problem (struct ATS_info *ats, struct NeighbourList *neighbours, 
   if (c_mechs==0)
   {
 #if DEBUG_ATS
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No addresses for bw distribution available\n", c_peers);
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "No addresses for bw distribution available\n",
+              c_peers);
 #endif
           stat->valid = GNUNET_NO;
           stat->c_peers = 0;
@@ -750,38 +963,40 @@ int ats_create_problem (struct ATS_info *ats, struct NeighbourList *neighbours, 
   next = neighbours;
   while (next!=NULL)
   {
-          int found_addresses = GNUNET_NO;
-          struct ReadyList *r_next = next->plugins;
-          while (r_next != NULL)
-          {
-                  struct ForeignAddressList * a_next = r_next->addresses;
-                  while (a_next != NULL)
-                  {
-                          if (found_addresses == GNUNET_NO)
-                          {
-                                  peers[c_peers].peer = next->id;
-                                  peers[c_peers].m_head = NULL;
-                                  peers[c_peers].m_tail = NULL;
-                                  peers[c_peers].f = 1.0 / c_mechs;
-                          }
+    int found_addresses = GNUNET_NO;
+    struct ReadyList *r_next = next->plugins;
+    while (r_next != NULL)
+    {
+        struct ForeignAddressList * a_next = r_next->addresses;
+        while (a_next != NULL)
+        {
+            if (found_addresses == GNUNET_NO)
+            {
+              peers[c_peers].peer = next->id;
+              peers[c_peers].m_head = NULL;
+              peers[c_peers].m_tail = NULL;
+              peers[c_peers].f = 1.0 / c_mechs;
+            }
 
-                          mechanisms[c_mechs].addr = a_next;
-                          mechanisms[c_mechs].col_index = c_mechs;
-                          mechanisms[c_mechs].peer = &peers[c_peers];
-                          mechanisms[c_mechs].next = NULL;
-                          mechanisms[c_mechs].plugin = r_next->plugin;
+            mechanisms[c_mechs].addr = a_next;
+            mechanisms[c_mechs].col_index = c_mechs;
+            mechanisms[c_mechs].peer = &peers[c_peers];
+            mechanisms[c_mechs].next = NULL;
+            mechanisms[c_mechs].plugin = r_next->plugin;
 
-                          GNUNET_CONTAINER_DLL_insert_tail(peers[c_peers].m_head, peers[c_peers].m_tail, &mechanisms[c_mechs]);
-                          found_addresses = GNUNET_YES;
-                          c_mechs++;
+            GNUNET_CONTAINER_DLL_insert_tail(peers[c_peers].m_head,
+                                             peers[c_peers].m_tail,
+                                             &mechanisms[c_mechs]);
+            found_addresses = GNUNET_YES;
+            c_mechs++;
 
-                          a_next = a_next->next;
-                  }
-                  r_next = r_next->next;
-          }
-          if (found_addresses == GNUNET_YES)
-                  c_peers++;
-          next = next->next;
+            a_next = a_next->next;
+        }
+        r_next = r_next->next;
+    }
+    if (found_addresses == GNUNET_YES)
+        c_peers++;
+    next = next->next;
   }
   c_mechs--;
   c_peers--;
@@ -790,21 +1005,23 @@ int ats_create_problem (struct ATS_info *ats, struct NeighbourList *neighbours, 
           v_n_min = c_peers;
 
 #if VERBOSE_ATS
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Creating problem with: %i peers, %i mechanisms, %i resource entries, %i quality metrics \n", c_peers, c_mechs, c_c_ressources, c_q_metrics);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Creating problem with: %i peers, %i mechanisms, %i resource entries, %i quality metrics \n",
+      c_peers,
+      c_mechs,
+      c_c_ressources,
+      c_q_metrics);
 #endif
 
-  int size =  1 + 3 + 10 *c_mechs + c_peers + (c_q_metrics*c_mechs)+ c_q_metrics + c_c_ressources * c_mechs ;
+  int size =  1 + 3 + 10 *c_mechs + c_peers +
+              (c_q_metrics*c_mechs)+ c_q_metrics + c_c_ressources * c_mechs ;
   int row_index;
   int array_index=1;
   int * ia = GNUNET_malloc (size * sizeof (int));
   int * ja = GNUNET_malloc (size * sizeof (int));
   double * ar = GNUNET_malloc(size* sizeof (double));
 
-
   _lp_set_prob_name (ats->prob, "gnunet ats bandwidth distribution");
-#if HAVE_LIBGLPK
-  glp_set_obj_dir(ats->prob, GLP_MAX);
-#endif
+  _lp_set_obj_dir(ats->prob, GLP_MAX);
 
   /* adding columns */
   char * name;
@@ -812,97 +1029,104 @@ int ats_create_problem (struct ATS_info *ats, struct NeighbourList *neighbours, 
   /* adding b_t cols */
   for (c=1; c <= c_mechs; c++)
   {
-#if HAVE_LIBGLPK
-          GNUNET_asprintf(&name, "p_%s_b%i",GNUNET_i2s(&(mechanisms[c].peer->peer)), c);
-          _lp_set_col_name(ats->prob, c, name);
-          GNUNET_free (name);
-          _lp_set_col_bnds(ats->prob, c, GLP_LO, 0.0, 0.0);
-          glp_set_col_kind(ats->prob, c, GLP_CV);
-          _lp_set_obj_coef(ats->prob, c, 0);
-#endif
-
+    GNUNET_asprintf(&name,
+        "p_%s_b%i",GNUNET_i2s(&(mechanisms[c].peer->peer)), c);
+    _lp_set_col_name(ats->prob, c, name);
+    GNUNET_free (name);
+    _lp_set_col_bnds(ats->prob, c, GLP_LO, 0.0, 0.0);
+    _lp_set_col_kind(ats->prob, c, GLP_CV);
+    //_lp_set_obj_coef(ats->prob, c, 0);
   }
+
   /* adding n_t cols */
   for (c=c_mechs+1; c <= 2*c_mechs; c++)
   {
-#if HAVE_LIBGLPK
-          GNUNET_asprintf(&name, "p_%s_n%i",GNUNET_i2s(&(mechanisms[c-c_mechs].peer->peer)),(c-c_mechs));
-          _lp_set_col_name(ats->prob, c, name);
-          GNUNET_free (name);
-          _lp_set_col_bnds(ats->prob, c, GLP_DB, 0.0, 1.0);
-          glp_set_col_kind(ats->prob, c, GLP_IV);
-          _lp_set_obj_coef(ats->prob, c, 0);
-#endif
+    GNUNET_asprintf(&name,
+        "p_%s_n%i",GNUNET_i2s(&(mechanisms[c-c_mechs].peer->peer)),(c-c_mechs));
+    _lp_set_col_name(ats->prob, c, name);
+    GNUNET_free (name);
+    _lp_set_col_bnds(ats->prob, c, GLP_DB, 0.0, 1.0);
+    _lp_set_col_kind(ats->prob, c, GLP_IV);
+    _lp_set_obj_coef(ats->prob, c, 0);
   }
 
   /* feasibility constraints */
   /* Constraint 1: one address per peer*/
   row_index = 1;
-#if HAVE_LIBGLPK
-  glp_add_rows(ats->prob, c_peers);
-#endif
+
+  _lp_add_rows(ats->prob, c_peers);
+
   for (c=1; c<=c_peers; c++)
   {
 #if VERBOSE_ATS
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bounds [row]=[%i] \n",row_index);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bounds [row]=[%i] \n",
+          row_index);
 #endif
-#if HAVE_LIBGLPK
-          _lp_set_row_bnds(ats->prob, row_index, GLP_FX, 1.0, 1.0);
-#endif
-          struct ATS_mechanism *m = peers[c].m_head;
-          while (m!=NULL)
-          {
-                  ia[array_index] = row_index;
-                  ja[array_index] = (c_mechs + m->col_index);
-                  ar[array_index] = 1;
+
+      _lp_set_row_bnds(ats->prob, row_index, GLP_FX, 1.0, 1.0);
+      struct ATS_mechanism *m = peers[c].m_head;
+      while (m!=NULL)
+      {
+        ia[array_index] = row_index;
+        ja[array_index] = (c_mechs + m->col_index);
+        ar[array_index] = 1;
 #if VERBOSE_ATS
-                  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",
+            array_index,
+            ia[array_index],
+            ja[array_index],
+            ar[array_index]);
 #endif
-                  array_index++;
-                  m = m->next;
-          }
-          row_index++;
+        array_index++;
+        m = m->next;
+      }
+      row_index++;
   }
 
   /* Constraint 2: only active mechanism gets bandwidth assigned */
-#if HAVE_LIBGLPK
-  glp_add_rows(ats->prob, c_mechs);
-#endif
+  _lp_add_rows(ats->prob, c_mechs);
   for (c=1; c<=c_mechs; c++)
   {
           /* b_t - n_t * M <= 0 */
 #if VERBOSE_ATS
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bounds [row]=[%i] \n",row_index);
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bounds [row]=[%i] \n",
+              row_index);
 #endif
-#if HAVE_LIBGLPK
           _lp_set_row_bnds(ats->prob, row_index, GLP_UP, 0.0, 0.0);
-#endif
           ia[array_index] = row_index;
           ja[array_index] = mechanisms[c].col_index;
           ar[array_index] = 1;
 #if VERBOSE_ATS
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",
+              array_index,
+              ia[array_index],
+              ja[array_index],
+              ar[array_index]);
 #endif
           array_index++;
           ia[array_index] = row_index;
           ja[array_index] = c_mechs + mechanisms[c].col_index;
           ar[array_index] = -M;
 #if VERBOSE_ATS
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",
+              array_index,
+              ia[array_index],
+              ja[array_index],
+              ar[array_index]);
 #endif
           array_index++;
           row_index ++;
   }
 
   /* Constraint 3: minimum bandwidth*/
-#if HAVE_LIBGLPK
-  glp_add_rows(ats->prob, c_mechs);
-#endif
+  _lp_add_rows(ats->prob, c_mechs);
+
   for (c=1; c<=c_mechs; c++)
   {
           /* b_t - n_t * b_min <= 0 */
 #if VERBOSE_ATS
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bounds [row]=[%i] \n",row_index);
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bounds [row]=[%i] \n",
+              row_index);
 #endif
 #if HAVE_LIBGLPK
           _lp_set_row_bnds(ats->prob, row_index, GLP_LO, 0.0, 0.0);
@@ -911,25 +1135,34 @@ int ats_create_problem (struct ATS_info *ats, struct NeighbourList *neighbours, 
           ja[array_index] = mechanisms[c].col_index;
           ar[array_index] = 1;
 #if VERBOSE_ATS
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",
+              array_index,
+              ia[array_index],
+              ja[array_index],
+              ar[array_index]);
 #endif
           array_index++;
           ia[array_index] = row_index;
           ja[array_index] = c_mechs + mechanisms[c].col_index;
           ar[array_index] = -v_b_min;
 #if VERBOSE_ATS
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",
+              array_index,
+              ia[array_index],
+              ja[array_index],
+              ar[array_index]);
 #endif
           array_index++;
           row_index ++;
   }
   int c2;
+
   /* Constraint 4: max ressource capacity */
   /* V cr: bt * ct_r <= cr_max
    * */
-#if HAVE_LIBGLPK
-  glp_add_rows(ats->prob, available_ressources);
-#endif
+
+  _lp_add_rows(ats->prob, available_ressources);
+
   double ct_max = VERY_BIG_DOUBLE_VALUE;
   double ct_min = 0.0;
 
@@ -937,48 +1170,56 @@ int ats_create_problem (struct ATS_info *ats, struct NeighbourList *neighbours, 
 
   for (c=0; c<available_ressources; c++)
   {
-          ct_max = ressources[c].c_max;
-          ct_min = ressources[c].c_min;
+      ct_max = ressources[c].c_max;
+      ct_min = ressources[c].c_min;
 #if VERBOSE_ATS
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bounds [row]=[%i] %f..%f\n",row_index, ct_min, ct_max);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bounds [row]=[%i] %f..%f\n",
+          row_index,
+          ct_min,
+          ct_max);
 #endif
 #if HAVE_LIBGLPK
-          _lp_set_row_bnds(ats->prob, row_index, GLP_DB, ct_min, ct_max);
+      _lp_set_row_bnds(ats->prob, row_index, GLP_DB, ct_min, ct_max);
 #endif
-          for (c2=1; c2<=c_mechs; c2++)
-          {
-                  double value = 0;
-                  ia[array_index] = row_index;
-                  ja[array_index] = c2;
-                  value = mechanisms[c2].addr->ressources[c].c;
-                  ar[array_index] = value;
+      for (c2=1; c2<=c_mechs; c2++)
+      {
+          double value = 0;
+          ia[array_index] = row_index;
+          ja[array_index] = c2;
+          value = mechanisms[c2].addr->ressources[c].c;
+          ar[array_index] = value;
 #if VERBOSE_ATS
-                  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",
+              array_index, ia[array_index],
+              ja[array_index],
+              ar[array_index]);
 #endif
-                  array_index++;
-          }
-          row_index ++;
+          array_index++;
+      }
+      row_index ++;
   }
   stat->end_cr = array_index--;
 
   /* Constraint 5: min number of connections*/
-#if HAVE_LIBGLPK
-  glp_add_rows(ats->prob, 1);
-#endif
+  _lp_add_rows(ats->prob, 1);
+
   for (c=1; c<=c_mechs; c++)
   {
           // b_t - n_t * b_min >= 0
 #if VERBOSE_ATS
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bounds [row]=[%i] \n",row_index);
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bounds [row]=[%i] \n",
+              row_index);
 #endif
-#if HAVE_LIBGLPK
           _lp_set_row_bnds(ats->prob, row_index, GLP_LO, v_n_min, 0.0);
-#endif
           ia[array_index] = row_index;
           ja[array_index] = c_mechs + mechanisms[c].col_index;
           ar[array_index] = 1;
 #if VERBOSE_ATS
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",
+              array_index,
+              ia[array_index],
+              ja[array_index],
+              ar[array_index]);
 #endif
           array_index++;
   }
@@ -990,38 +1231,44 @@ int ats_create_problem (struct ATS_info *ats, struct NeighbourList *neighbours, 
 
   // Constraint 6: optimize for diversity
   int col_d;
-
   col_d = _lp_add_cols(ats->prob, 1);
-#if HAVE_LIBGLPK
+
   _lp_set_col_name(ats->prob, col_d, "d");
   _lp_set_obj_coef(ats->prob, col_d, D);
   _lp_set_col_bnds(ats->prob, col_d, GLP_LO, 0.0, 0.0);
-  glp_add_rows(ats->prob, 1);
+  _lp_add_rows(ats->prob, 1);
   _lp_set_row_bnds(ats->prob, row_index, GLP_FX, 0.0, 0.0);
-#endif
+
   stat->col_d = col_d;
 #if VERBOSE_ATS
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bounds [row]=[%i] \n",row_index);
 #endif
   for (c=1; c<=c_mechs; c++)
   {
-          ia[array_index] = row_index;
-          ja[array_index] = c_mechs + mechanisms[c].col_index;
-          ar[array_index] = 1;
+    ia[array_index] = row_index;
+    ja[array_index] = c_mechs + mechanisms[c].col_index;
+    ar[array_index] = 1;
 #if VERBOSE_ATS
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",
+        array_index,
+        ia[array_index],
+        ja[array_index],
+        ar[array_index]);
 #endif
-          array_index++;
+    array_index++;
   }
   ia[array_index] = row_index;
   ja[array_index] = col_d;
   ar[array_index] = -1;
 #if VERBOSE_ATS
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",
+      array_index,
+      ia[array_index],
+      ja[array_index],
+      ar[array_index]);
 #endif
   array_index++;
   row_index ++;
-
 
   // Constraint 7: optimize for quality
   int col_qm;
@@ -1031,72 +1278,78 @@ int ats_create_problem (struct ATS_info *ats, struct NeighbourList *neighbours, 
   //GNUNET_assert (col_qm == (2*c_mechs) + 3 + 1);
   for (c=0; c< c_q_metrics; c++)
   {
-          GNUNET_asprintf(&name, "Q_%s",qm[c].name);
-          _lp_set_col_name (ats->prob, col_qm + c, name);
-          _lp_set_col_bnds (ats->prob, col_qm + c, GLP_LO, 0.0, 0.0);
-          GNUNET_free (name);
-          _lp_set_obj_coef (ats->prob, col_qm + c, Q[c]);
+    GNUNET_asprintf(&name, "Q_%s",qm[c].name);
+    _lp_set_col_name (ats->prob, col_qm + c, name);
+    _lp_set_col_bnds (ats->prob, col_qm + c, GLP_LO, 0.0, 0.0);
+    GNUNET_free (name);
+    _lp_set_obj_coef (ats->prob, col_qm + c, Q[c]);
   }
-#if HAVE_LIBGLPK
-  glp_add_rows(ats->prob, available_quality_metrics);
-#endif
+
+  _lp_add_rows(ats->prob, available_quality_metrics);
+
   stat->begin_qm = row_index;
   for (c=1; c <= c_q_metrics; c++)
   {
 #if VERBOSE_ATS
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bounds [row]=[%i] \n",row_index);
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bounds [row]=[%i] \n",
+              row_index);
 #endif
-          double value = 1;
-#if HAVE_LIBGLPK
-          _lp_set_row_bnds(ats->prob, row_index, GLP_FX, 0.0, 0.0);
-#endif
-          for (c2=1; c2<=c_mechs; c2++)
-          {
-
-                  ia[array_index] = row_index;
-                  ja[array_index] = c2;
-                  if (qm[c-1].atis_index  == GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY)
-                  {
-                          double v0 = 0, v1 = 0, v2 = 0;
-                          v0 = mechanisms[c2].addr->quality[c-1].values[0];
-                          if (v1 < 1) v0 = 0.1;
-                          v1 = mechanisms[c2].addr->quality[c-1].values[1];
-                          if (v1 < 1) v0 = 0.1;
-                          v2 = mechanisms[c2].addr->quality[c-1].values[2];
-                          if (v1 < 1) v0 = 0.1;
-                          value = 100.0 / ((v0 + 2 * v1 + 3 * v2) / 6.0);
-                          value = 1;
-                  }
-                  if (qm[c-1].atis_index  == GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE)
-                  {
-                          double v0 = 0, v1 = 0, v2 = 0;
-                          v0 = mechanisms[c2].addr->quality[c-1].values[0];
-                          if (v0 < 1) v0 = 1;
-                          v1 = mechanisms[c2].addr->quality[c-1].values[1];
-                          if (v1 < 1) v1 = 1;
-                          v2 = mechanisms[c2].addr->quality[c-1].values[2];
-                          if (v2 < 1) v2 = 1;
-                          value =  (v0 + 2 * v1 + 3 * v2) / 6.0;
-                          if (value >= 1)
-                                  value =  (double) 10 / value;
-                          else
-                                  value = 10;
-                  }
-                  ar[array_index] = (mechanisms[c2].peer->f) * value ;
-#if VERBOSE_ATS
-                  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: %s [%i,%i]=%f \n",array_index, qm[c-1].name, ia[array_index], ja[array_index], ar[array_index]);
-#endif
-                  array_index++;
-          }
-
+      double value = 1;
+      _lp_set_row_bnds(ats->prob, row_index, GLP_FX, 0.0, 0.0);
+      for (c2=1; c2<=c_mechs; c2++)
+      {
           ia[array_index] = row_index;
-          ja[array_index] = col_qm + c - 1;
-          ar[array_index] = -1;
+          ja[array_index] = c2;
+          if (qm[c-1].atis_index  == GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY)
+          {
+            double v0 = 0, v1 = 0, v2 = 0;
+            v0 = mechanisms[c2].addr->quality[c-1].values[0];
+            if (v1 < 1) v0 = 0.1;
+              v1 = mechanisms[c2].addr->quality[c-1].values[1];
+            if (v1 < 1) v0 = 0.1;
+              v2 = mechanisms[c2].addr->quality[c-1].values[2];
+            if (v1 < 1) v0 = 0.1;
+              value = 100.0 / ((v0 + 2 * v1 + 3 * v2) / 6.0);
+            value = 1;
+          }
+          if (qm[c-1].atis_index  == GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE)
+          {
+            double v0 = 0, v1 = 0, v2 = 0;
+            v0 = mechanisms[c2].addr->quality[c-1].values[0];
+            if (v0 < 1) v0 = 1;
+              v1 = mechanisms[c2].addr->quality[c-1].values[1];
+            if (v1 < 1) v1 = 1;
+              v2 = mechanisms[c2].addr->quality[c-1].values[2];
+            if (v2 < 1) v2 = 1;
+              value =  (v0 + 2 * v1 + 3 * v2) / 6.0;
+            if (value >= 1)
+              value =  (double) 10 / value;
+            else
+              value = 10;
+          }
+          ar[array_index] = (mechanisms[c2].peer->f) * value ;
 #if VERBOSE_ATS
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: %s [%i,%i]=%f \n",
+              array_index,
+              qm[c-1].name,
+              ia[array_index],
+              ja[array_index],
+              ar[array_index]);
 #endif
           array_index++;
-          row_index++;
+      }
+      ia[array_index] = row_index;
+      ja[array_index] = col_qm + c - 1;
+      ar[array_index] = -1;
+#if VERBOSE_ATS
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",
+          array_index,
+          ia[array_index],
+          ja[array_index],
+          ar[array_index]);
+#endif
+      array_index++;
+      row_index++;
   }
   stat->end_qm = row_index-1;
 
@@ -1104,12 +1357,11 @@ int ats_create_problem (struct ATS_info *ats, struct NeighbourList *neighbours, 
   int col_u;
 
   col_u = _lp_add_cols(ats->prob, 1);
-#if HAVE_LIBGLPK
+
   _lp_set_col_name(ats->prob, col_u, "u");
   _lp_set_obj_coef(ats->prob, col_u, U);
   _lp_set_col_bnds(ats->prob, col_u, GLP_LO, 0.0, 0.0);
-  glp_add_rows(ats->prob, 1);
-#endif
+  _lp_add_rows(ats->prob, 1);
   stat->col_u = col_u;
 #if VERBOSE_ATS
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bounds [row]=[%i] \n",row_index);
@@ -1117,19 +1369,26 @@ int ats_create_problem (struct ATS_info *ats, struct NeighbourList *neighbours, 
   _lp_set_row_bnds(ats->prob, row_index, GLP_FX, 0.0, 0.0);
   for (c=1; c<=c_mechs; c++)
   {
-          ia[array_index] = row_index;
-          ja[array_index] = c;
-          ar[array_index] = mechanisms[c].peer->f;
+    ia[array_index] = row_index;
+    ja[array_index] = c;
+    ar[array_index] = mechanisms[c].peer->f;
 #if VERBOSE_ATS
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",
+        array_index,
+        ia[array_index],
+        ja[array_index],
+        ar[array_index]);
 #endif
-          array_index++;
+    array_index++;
   }
   ia[array_index] = row_index;
   ja[array_index] = col_u;
   ar[array_index] = -1;
 #if VERBOSE_ATS
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",
+      array_index, ia[array_index],
+      ja[array_index],
+      ar[array_index]);
 #endif
 
   array_index++;
@@ -1139,37 +1398,44 @@ int ats_create_problem (struct ATS_info *ats, struct NeighbourList *neighbours, 
   int col_r;
 
   col_r = _lp_add_cols(ats->prob, 1);
-#if HAVE_LIBGLPK
+
   _lp_set_col_name(ats->prob, col_r, "r");
   _lp_set_obj_coef(ats->prob, col_r, R);
   _lp_set_col_bnds(ats->prob, col_r, GLP_LO, 0.0, 0.0);
-  glp_add_rows(ats->prob, c_peers);
-#endif
+  _lp_add_rows(ats->prob, c_peers);
+
   stat->col_r = col_r;
   for (c=1; c<=c_peers; c++)
   {
-          _lp_set_row_bnds(ats->prob, row_index, GLP_LO, 0.0, 0.0);
-
-          struct ATS_mechanism *m = peers[c].m_head;
-          while (m!=NULL)
-          {
-                  ia[array_index] = row_index;
-                  ja[array_index] = m->col_index;
-                  ar[array_index] = 1 / mechanisms[c].peer->f;
+    _lp_set_row_bnds(ats->prob, row_index, GLP_LO, 0.0, 0.0);
+    struct ATS_mechanism *m = peers[c].m_head;
+    while (m!=NULL)
+    {
+      ia[array_index] = row_index;
+      ja[array_index] = m->col_index;
+      ar[array_index] = 1 / mechanisms[c].peer->f;
 #if VERBOSE_ATS
-                  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",
+          array_index,
+          ia[array_index],
+          ja[array_index],
+          ar[array_index]);
 #endif
-                  array_index++;
-                  m = m->next;
-          }
-          ia[array_index] = row_index;
-          ja[array_index] = col_r;
-          ar[array_index] = -1;
+      array_index++;
+      m = m->next;
+    }
+    ia[array_index] = row_index;
+    ja[array_index] = col_r;
+    ar[array_index] = -1;
 #if VERBOSE_ATS
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, ia[array_index], ja[array_index], ar[array_index]);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",
+        array_index,
+        ia[array_index],
+        ja[array_index],
+        ar[array_index]);
 #endif
-          array_index++;
-          row_index++;
+    array_index++;
+    row_index++;
   }
 
   /* Loading the matrix */
@@ -1189,8 +1455,13 @@ int ats_create_problem (struct ATS_info *ats, struct NeighbourList *neighbours, 
 }
 
 
-void ats_delete_problem (struct ATS_info * ats)
+void ats_delete_problem (struct ATS_Handle * ats)
 {
+#if !HAVE_LIBGLPK
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS not active\n");
+  return;
+#endif
+
 #if DEBUG_ATS
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Deleting problem\n");
 #endif
@@ -1198,24 +1469,22 @@ void ats_delete_problem (struct ATS_info * ats)
 
   for (c=0; c< (ats->stat).c_mechs; c++)
           GNUNET_free_non_null (ats->mechanisms[c].rc);
-
-
   if (ats->mechanisms!=NULL)
   {
-          GNUNET_free(ats->mechanisms);
-          ats->mechanisms = NULL;
+    GNUNET_free(ats->mechanisms);
+    ats->mechanisms = NULL;
   }
 
   if (ats->peers!=NULL)
   {
-          GNUNET_free(ats->peers);
-          ats->peers = NULL;
+    GNUNET_free(ats->peers);
+    ats->peers = NULL;
   }
 
   if (ats->prob != NULL)
   {
-          _lp_delete_prob(ats->prob);
-          ats->prob = NULL;
+    _lp_delete_prob(ats->prob);
+    ats->prob = NULL;
   }
 
   ats->stat.begin_cr = GNUNET_SYSERR;
@@ -1230,591 +1499,691 @@ void ats_delete_problem (struct ATS_info * ats)
 
 
 
-void ats_solve_problem (struct ATS_info * ats, unsigned int max_it, unsigned int  max_dur, unsigned int c_peers, unsigned int  c_mechs, struct ATS_stat *stat)
+void ats_solve_problem (struct ATS_Handle * ats,
+    unsigned int max_it,
+    unsigned int  max_dur,
+    unsigned int c_peers,
+    unsigned int  c_mechs,
+    struct ATS_stat *stat)
 {
-        int result = GNUNET_SYSERR;
-        int lp_solution = GNUNET_SYSERR;
-        int mlp_solution = GNUNET_SYSERR;
+#if !HAVE_LIBGLPK
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS not active\n");
+  return;
+#endif
 
-        // Solving simplex
 
-        glp_smcp opt_lp;
+  int result = GNUNET_SYSERR;
+  int lp_solution = GNUNET_SYSERR;
+  int mlp_solution = GNUNET_SYSERR;
 
-        _lp_init_smcp(&opt_lp);
+  // Solving simplex
+
+  glp_smcp opt_lp;
+  _lp_init_smcp(&opt_lp);
 #if VERBOSE_ATS
-        opt_lp.msg_lev = GLP_MSG_ALL;
+  opt_lp.msg_lev = GLP_MSG_ALL;
 #else
-        opt_lp.msg_lev = GLP_MSG_OFF;
+  opt_lp.msg_lev = GLP_MSG_OFF;
 #endif
+  // setting iteration limit
+  opt_lp.it_lim = max_it;
+  // maximum duration
+  opt_lp.tm_lim = max_dur;
 
-        // setting iteration limit
-        opt_lp.it_lim = max_it;
-        // maximum duration
-        opt_lp.tm_lim = max_dur;
+  if (ats->stat.recreate_problem == GNUNET_YES)
+     opt_lp.presolve = GLP_ON;
 
-        if (ats->stat.recreate_problem == GNUNET_YES)
-                opt_lp.presolve = GLP_ON;
-        result = _lp_simplex(ats->prob, &opt_lp);
-        lp_solution =  _lp_get_status (ats->prob);
+  result = _lp_simplex(ats->prob, &opt_lp);
+  lp_solution =  _lp_get_status (ats->prob);
 
-        if ((result == GLP_ETMLIM) || (result == GLP_EITLIM))
-        {
-                ats->stat.valid = GNUNET_NO;
-                GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ATS exceeded time or iteration limit!\n");
-                return;
-        }
+  if ((result == GLP_ETMLIM) || (result == GLP_EITLIM))
+  {
+    ats->stat.valid = GNUNET_NO;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "ATS exceeded time or iteration limit!\n");
+    return;
+  }
 
-        if (ats_evaluate_results(result, lp_solution, "LP") == GNUNET_YES)
-        {
-                        stat->valid = GNUNET_YES;
-        }
-        else
-        {
-                ats->stat.simplex_rerun_required = GNUNET_YES;
-                opt_lp.presolve = GLP_ON;
-                result = _lp_simplex(ats->prob, &opt_lp);
-                lp_solution =  _lp_get_status (ats->prob);
+  if (ats_evaluate_results(result, lp_solution, "LP") == GNUNET_YES)
+  {
+    stat->valid = GNUNET_YES;
+  }
+  else
+  {
+    ats->stat.simplex_rerun_required = GNUNET_YES;
+    opt_lp.presolve = GLP_ON;
+    result = _lp_simplex(ats->prob, &opt_lp);
+    lp_solution =  _lp_get_status (ats->prob);
 
-                // TODO: Remove if this does not appear until release
-                GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "EXECUTED SIMPLEX WITH PRESOLVER! %i \n", lp_solution);
+    // TODO: Remove if this does not appear until release
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, ""
+        "EXECUTED SIMPLEX WITH PRESOLVER! %i \n",
+        lp_solution);
 
-                if (ats_evaluate_results(result, lp_solution, "LP") != GNUNET_YES)
-                {
-                        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "After execution simplex with presolver: STILL INVALID!\n");
-                        char * filename;
-                        GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i_%llu.mlp",ats->stat.c_peers, ats->stat.c_mechs, GNUNET_TIME_absolute_get().abs_value);
-                        _lp_write_lp (ats->prob, NULL, filename);
-                        GNUNET_free (filename);
-                        stat->valid = GNUNET_NO;
-                        ats->stat.recreate_problem = GNUNET_YES;
-                        return;
-                }
-                stat->valid = GNUNET_YES;
-        }
+    if (ats_evaluate_results(result, lp_solution, "LP") != GNUNET_YES)
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+            "After execution simplex with presolver: STILL INVALID!\n");
+        char * filename;
+        GNUNET_asprintf (&filename,
+            "ats_mlp_p%i_m%i_%llu.mlp",
+            ats->stat.c_peers,
+            ats->stat.c_mechs,
+            GNUNET_TIME_absolute_get().abs_value);
+        _lp_write_lp ((void *)ats->prob, NULL, filename);
+        GNUNET_free (filename);
+        stat->valid = GNUNET_NO;
+        ats->stat.recreate_problem = GNUNET_YES;
+        return;
+    }
+    stat->valid = GNUNET_YES;
+  }
 
-        // Solving mlp
-        glp_iocp opt_mlp;
-        _lp_init_iocp(&opt_mlp);
-        // maximum duration
-        opt_mlp.tm_lim = max_dur;
-        // output level
+  // Solving mlp
+  glp_iocp opt_mlp;
+  _lp_init_iocp(&opt_mlp);
+  // maximum duration
+  opt_mlp.tm_lim = max_dur;
+  // output level
 #if VERBOSE_ATS
-        opt_mlp.msg_lev = GLP_MSG_ALL;
+  opt_mlp.msg_lev = GLP_MSG_ALL;
 #else
-        opt_mlp.msg_lev = GLP_MSG_OFF;
+  opt_mlp.msg_lev = GLP_MSG_OFF;
 #endif
 
-        result = _lp_intopt (ats->prob, &opt_mlp);
-        mlp_solution =  _lp_mip_status (ats->prob);
-        stat->solution = mlp_solution;
+  result = _lp_intopt (ats->prob, &opt_mlp);
+  mlp_solution =  _lp_mip_status (ats->prob);
+  stat->solution = mlp_solution;
 
-        if (ats_evaluate_results(result, mlp_solution, "MLP") == GNUNET_YES)
-        {
-                stat->valid = GNUNET_YES;
-        }
-        else
-        {
-                // TODO: Remove if this does not appear until release
-                GNUNET_log (GNUNET_ERROR_TYPE_ERROR,  "MLP solution for %i peers, %i mechs is invalid: %i\n", ats->stat.c_peers, ats->stat.c_mechs, mlp_solution);
-                stat->valid = GNUNET_NO;
-        }
-
-/*
-        int check;
-        int error = GNUNET_NO;
-        double bw;
-        struct ATS_mechanism *t = NULL;
-        for (c=1; c<= (c_peers); c++ )
-        {
-                check = GNUNET_NO;
-                t = peers[c].m_head;
-                while (t!=NULL)
-                {
-                        bw = glp_get_col_prim(prob, t->col_index);
-                        if (bw > 1.0)
-                        {
-#if VERBOSE_ATS
-                                GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[%i][%i] `%s' %s %s %f\n", c, t->col_index, GNUNET_h2s(&peers[c].peer.hashPubKey), t->plugin->short_name, glp_get_col_name(prob,t->col_index), bw);
-#endif
-                                if (check ==GNUNET_YES)
-                                {
-                                        glp_write_sol(prob, "invalid_solution.mlp");
-                                        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid solution, check invalid_solution.mlp");
-                                        GNUNET_STATISTICS_update (stats, "ATS invalid solutions", 1, GNUNET_NO);
-                                        error = GNUNET_YES;
-                                }
-                                if (check ==GNUNET_NO)
-                                        check = GNUNET_YES;
-                        }
-                        t = t->next;
-                }
-        }*/
+  if (ats_evaluate_results(result, mlp_solution, "MLP") == GNUNET_YES)
+  {
+      stat->valid = GNUNET_YES;
+  }
+  else
+  {
+      // TODO: Remove if this does not appear until release
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+          "MLP solution for %i peers, %i mechs is invalid: %i\n",
+          ats->stat.c_peers,
+          ats->stat.c_mechs,
+          mlp_solution);
+      stat->valid = GNUNET_NO;
+  }
 
 #if VERBOSE_ATS
-        if (glp_get_col_prim(ats->prob,2*c_mechs+1) != 1)
-        {
-        int c;
-        for (c=1; c<= available_quality_metrics; c++ )
-        {
-                GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n", glp_get_col_name(ats->prob,2*c_mechs+3+c), glp_get_col_prim(ats->prob,2*c_mechs+3+c));
-        }
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n", glp_get_col_name(ats->prob,2*c_mechs+1), glp_get_col_prim(ats->prob,2*c_mechs+1));
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n", glp_get_col_name(ats->prob,2*c_mechs+2), glp_get_col_prim(ats->prob,2*c_mechs+2));
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n", glp_get_col_name(ats->prob,2*c_mechs+3), glp_get_col_prim(ats->prob,2*c_mechs+3));
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "objective value:  %f\n", glp_mip_obj_val(ats->prob));
-        }
+  if (_lp_get_col_prim(ats->prob,2*c_mechs+1) != 1)
+  {
+  int c;
+  for (c=1; c<= available_quality_metrics; c++ )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n",
+        _lp_get_col_name(ats->prob,2*c_mechs+3+c),
+        _lp_get_col_prim(ats->prob,2*c_mechs+3+c));
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n",
+      _lp_get_col_name(ats->prob,2*c_mechs+1),
+      _lp_get_col_prim(ats->prob,2*c_mechs+1));
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n",
+      _lp_get_col_name(ats->prob,2*c_mechs+2),
+      _lp_get_col_prim(ats->prob,2*c_mechs+2));
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s %f\n",
+      _lp_get_col_name(ats->prob,2*c_mechs+3),
+      _lp_get_col_prim(ats->prob,2*c_mechs+3));
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "objective value:  %f\n",
+      _lp_mip_obj_val(ats->prob));
+  }
 #endif
 }
 
 
-void ats_shutdown (struct ATS_info * ats)
+void ats_shutdown (struct ATS_Handle * ats)
 {
-#if DEBUG_ATS
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ats_destroy\n");
+#if !HAVE_LIBGLPK
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS not active\n");
+  return;
 #endif
-        if (ats->ats_task != GNUNET_SCHEDULER_NO_TASK)
-                GNUNET_SCHEDULER_cancel(ats->ats_task);
-        ats->ats_task = GNUNET_SCHEDULER_NO_TASK;
 
-#if HAVE_LIBGLPK
-        ats_delete_problem (ats);
-        glp_free_env();
+#if DEBUG_ATS
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ATS shutdown\n");
 #endif
-        GNUNET_free (ats);
+  if (ats->ats_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(ats->ats_task);
+  ats->ats_task = GNUNET_SCHEDULER_NO_TASK;
+  ats_delete_problem (ats);
+  _lp_free_env();
+
+  GNUNET_free (ats);
 }
 
-void ats_update_problem_qm (struct ATS_info * ats)
+void ats_update_problem_qm (struct ATS_Handle * ats)
 {
-        int array_index;
-        int row_index;
-        int c, c2;
-        int c_q_metrics = available_quality_metrics;
+#if !HAVE_LIBGLPK
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS not active\n");
+  return;
+#endif
 
-        int *ja    = GNUNET_malloc ((1 + ats->stat.c_mechs*2 + 3 + available_quality_metrics) * sizeof (int));
-        double *ar = GNUNET_malloc ((1 + ats->stat.c_mechs*2 + 3 + available_quality_metrics) * sizeof (double));
+    int array_index;
+    int row_index;
+    int c, c2;
+    int c_q_metrics = available_quality_metrics;
+
+    int *ja = GNUNET_malloc ((1 + ats->stat.c_mechs*2 + 3 +
+       available_quality_metrics) * sizeof (int));
+    double *ar = GNUNET_malloc ((1 + ats->stat.c_mechs*2 + 3 +
+       available_quality_metrics) * sizeof (double));
 #if DEBUG_ATS
-                GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Updating problem quality metrics\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Updating problem quality metrics\n");
 #endif
-        row_index = ats->stat.begin_qm;
+    row_index = ats->stat.begin_qm;
 
-        for (c=1; c <= c_q_metrics; c++)
+    for (c=1; c <= c_q_metrics; c++)
+    {
+      array_index = 1;
+      double value = 1;
+#if VERBOSE_ATS
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bounds [row]=[%i] \n",row_index);
+#endif
+        _lp_set_row_bnds(ats->prob, row_index, GLP_FX, 0.0, 0.0);
+        for (c2=1; c2<=ats->stat.c_mechs; c2++)
         {
-                array_index = 1;
-                double value = 1;
+          ja[array_index] = c2;
+          GNUNET_assert (ats->mechanisms[c2].addr != NULL);
+          GNUNET_assert (ats->mechanisms[c2].peer != NULL);
+
+          if (qm[c-1].atis_index  == GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY)
+          {
+              double v0 = 0, v1 = 0, v2 = 0;
+
+              v0 = ats->mechanisms[c2].addr->quality[c-1].values[0];
+              if (v1 < 1) v0 = 0.1;
+              v1 = ats->mechanisms[c2].addr->quality[c-1].values[1];
+              if (v1 < 1) v0 = 0.1;
+              v2 = ats->mechanisms[c2].addr->quality[c-1].values[2];
+              if (v1 < 1) v0 = 0.1;
+              value = 100.0 / ((v0 + 2 * v1 + 3 * v2) / 6.0);
+              //value = 1;
+          }
+          if (qm[c-1].atis_index  == GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE)
+          {
+              double v0 = 0, v1 = 0, v2 = 0;
+              v0 = ats->mechanisms[c2].addr->quality[c-1].values[0];
+              if (v0 < 1) v0 = 1;
+              v1 = ats->mechanisms[c2].addr->quality[c-1].values[1];
+              if (v1 < 1) v1 = 1;
+              v2 = ats->mechanisms[c2].addr->quality[c-1].values[2];
+              if (v2 < 1) v2 = 1;
+              value =  (v0 + 2 * v1 + 3 * v2) / 6.0;
+              if (value >= 1)
+                      value =  (double) 10 / value;
+              else
+                      value = 10;
+          }
+          ar[array_index] = (ats->mechanisms[c2].peer->f) * value;
 #if VERBOSE_ATS
-                GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bounds [row]=[%i] \n",row_index);
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: %s [%i,%i]=%f \n",
+              array_index,
+              qm[c-1].name,
+              row_index,
+              ja[array_index],
+              ar[array_index]);
 #endif
-
-                _lp_set_row_bnds(ats->prob, row_index, GLP_FX, 0.0, 0.0);
-                for (c2=1; c2<=ats->stat.c_mechs; c2++)
-                {
-                        ja[array_index] = c2;
-
-                        GNUNET_assert (ats->mechanisms[c2].addr != NULL);
-                        GNUNET_assert (ats->mechanisms[c2].peer != NULL);
-
-                        if (qm[c-1].atis_index  == GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY)
-                        {
-                                double v0 = 0, v1 = 0, v2 = 0;
-
-                                v0 = ats->mechanisms[c2].addr->quality[c-1].values[0];
-                                if (v1 < 1) v0 = 0.1;
-                                v1 = ats->mechanisms[c2].addr->quality[c-1].values[1];
-                                if (v1 < 1) v0 = 0.1;
-                                v2 = ats->mechanisms[c2].addr->quality[c-1].values[2];
-                                if (v1 < 1) v0 = 0.1;
-                                value = 100.0 / ((v0 + 2 * v1 + 3 * v2) / 6.0);
-                                //value = 1;
-                        }
-                        if (qm[c-1].atis_index  == GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE)
-                        {
-                                double v0 = 0, v1 = 0, v2 = 0;
-                                v0 = ats->mechanisms[c2].addr->quality[c-1].values[0];
-                                if (v0 < 1) v0 = 1;
-                                v1 = ats->mechanisms[c2].addr->quality[c-1].values[1];
-                                if (v1 < 1) v1 = 1;
-                                v2 = ats->mechanisms[c2].addr->quality[c-1].values[2];
-                                if (v2 < 1) v2 = 1;
-                                value =  (v0 + 2 * v1 + 3 * v2) / 6.0;
-                                if (value >= 1)
-                                        value =  (double) 10 / value;
-                                else
-                                        value = 10;
-                        }
-                        ar[array_index] = (ats->mechanisms[c2].peer->f) * value;
-#if VERBOSE_ATS
-                        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: %s [%i,%i]=%f \n",array_index, qm[c-1].name, row_index, ja[array_index], ar[array_index]);
-#endif
-                        array_index++;
-                }
-                ja[array_index] = ats->stat.col_qm + c - 1;
-                ar[array_index] = -1;
-
-#if VERBOSE_ATS
-                GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, row_index, ja[array_index], ar[array_index]);
-#endif
-                _lp_set_mat_row (ats->prob, row_index, array_index, ja, ar);
-
-                array_index = 1;
-                row_index++;
+          array_index++;
         }
+      ja[array_index] = ats->stat.col_qm + c - 1;
+      ar[array_index] = -1;
 
-        GNUNET_free_non_null (ja);
-        GNUNET_free_non_null (ar);
+#if VERBOSE_ATS
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",
+            array_index,
+            row_index,
+            ja[array_index],
+            ar[array_index]);
+#endif
+      _lp_set_mat_row (ats->prob, row_index, array_index, ja, ar);
+      array_index = 1;
+      row_index++;
+    }
+    GNUNET_free_non_null (ja);
+    GNUNET_free_non_null (ar);
 }
 
 
 void
-ats_calculate_bandwidth_distribution (struct ATS_info * ats,  struct GNUNET_STATISTICS_Handle *stats, struct NeighbourList *neighbours)
+ats_calculate_bandwidth_distribution (struct ATS_Handle * ats,
+    struct GNUNET_STATISTICS_Handle *stats,
+    struct NeighbourList *neighbours)
 {
-#if HAVE_LIBGLPK
-
-        struct GNUNET_TIME_Absolute start;
-        struct GNUNET_TIME_Relative creation;
-        struct GNUNET_TIME_Relative solving;
-        char *text = "unmodified";
-
-        struct GNUNET_TIME_Relative delta = GNUNET_TIME_absolute_get_difference (ats->last, GNUNET_TIME_absolute_get());
-        if (delta.rel_value < ats->min_delta.rel_value)
-        {
-#if DEBUG_ATS
-                GNUNET_log (GNUNET_ERROR_TYPE_BULK, "Minimum time between cycles not reached\n");
+#if !HAVE_LIBGLPK
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS not active\n");
+  return;
 #endif
-                return;
-        }
+
+    struct GNUNET_TIME_Absolute start;
+    struct GNUNET_TIME_Relative creation;
+    struct GNUNET_TIME_Relative solving;
+    char *text = "unmodified";
+
+    struct GNUNET_TIME_Relative delta = GNUNET_TIME_absolute_get_difference (ats->last,
+        GNUNET_TIME_absolute_get());
+    if (delta.rel_value < ats->min_delta.rel_value)
+    {
+#if DEBUG_ATS
+      GNUNET_log (GNUNET_ERROR_TYPE_BULK,
+          "Minimum time between cycles not reached\n");
+#endif
+            return;
+    }
 
 #if FIXME_WACHS
-        int dur;
-        if (INT_MAX < ats->max_exec_duration.rel_value)
-                dur = INT_MAX;
+    int dur;
+    if (INT_MAX < ats->max_exec_duration.rel_value)
+            dur = INT_MAX;
+    else
+            dur = (int) ats->max_exec_duration.rel_value;
+#endif
+
+    ats->stat.simplex_rerun_required = GNUNET_NO;
+    start = GNUNET_TIME_absolute_get();
+    if ((ats->stat.recreate_problem == GNUNET_YES) ||
+        (ats->prob==NULL) ||
+        (ats->stat.valid == GNUNET_NO))
+    {
+      text = "new";
+      ats->stat.recreate_problem = GNUNET_YES;
+      ats_delete_problem (ats);
+      ats_create_problem (ats,
+          neighbours,
+          ats->D,
+          ats->U,
+          ats->R,
+          ats->v_b_min,
+          ats->v_n_min,
+          &ats->stat);
+#if DEBUG_ATS
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+          "Peers/Addresses were modified... new problem: %i peer, %i mechs\n",
+          ats->stat.c_peers,
+          ats->stat.c_mechs);
+#endif
+    }
+
+    else if ((ats->stat.recreate_problem == GNUNET_NO) &&
+        (ats->stat.modified_resources == GNUNET_YES) &&
+        (ats->stat.valid == GNUNET_YES))
+    {
+      text = "modified resources";
+      ats_update_problem_cr (ats);
+    }
+    else if ((ats->stat.recreate_problem == GNUNET_NO) &&
+        (ats->stat.modified_quality == GNUNET_YES) &&
+        (ats->stat.valid == GNUNET_YES))
+    {
+      text = "modified quality";
+      ats_update_problem_qm (ats);
+        //ats_update_problem_qm_TEST ();
+    }
+#if DEBUG_ATS
+    else GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Problem is unmodified\n");
+#endif
+
+    creation = GNUNET_TIME_absolute_get_difference(start,GNUNET_TIME_absolute_get());
+    start = GNUNET_TIME_absolute_get();
+
+    ats->stat.solution = GLP_UNDEF;
+    if (ats->stat.valid == GNUNET_YES)
+    {
+      ats_solve_problem(ats,
+          ats->max_iterations,
+          ats->max_exec_duration.rel_value,
+          ats->stat.c_peers,
+          ats->stat.c_mechs,
+          &ats->stat);
+    }
+    solving = GNUNET_TIME_absolute_get_difference(start,GNUNET_TIME_absolute_get());
+
+    if (ats->stat.valid == GNUNET_YES)
+    {
+      int msg_type = GNUNET_ERROR_TYPE_DEBUG;
+#if DEBUG_ATS
+      msg_type = GNUNET_ERROR_TYPE_ERROR;
+#endif
+      GNUNET_log (msg_type,
+          "MLP %s: creation time: %llu, execution time: %llu, %i mechanisms, simplex rerun: %s, solution %s\n",
+          text,
+          creation.rel_value,
+          solving.rel_value,
+          ats->stat.c_mechs,
+          (ats->stat.simplex_rerun_required == GNUNET_NO) ? "NO" : "YES",
+          (ats->stat.solution == 5) ? "OPTIMAL" : "INVALID");
+      ats->successful_executions ++;
+      GNUNET_STATISTICS_set (stats, "# ATS successful executions",
+          ats->successful_executions,
+          GNUNET_NO);
+
+      if ((ats->stat.recreate_problem == GNUNET_YES) || (ats->prob==NULL))
+          GNUNET_STATISTICS_set (stats, "ATS state",ATS_NEW, GNUNET_NO);
+      else if ((ats->stat.modified_resources == GNUNET_YES) &&
+              (ats->stat.modified_quality == GNUNET_NO))
+        GNUNET_STATISTICS_set (stats, "ATS state", ATS_C_UPDATED, GNUNET_NO);
+      else if ((ats->stat.modified_resources == GNUNET_NO) &&
+              (ats->stat.modified_quality == GNUNET_YES) &&
+              (ats->stat.simplex_rerun_required == GNUNET_NO))
+        GNUNET_STATISTICS_set (stats, "ATS state", ATS_Q_UPDATED, GNUNET_NO);
+      else if ((ats->stat.modified_resources == GNUNET_YES) &&
+              (ats->stat.modified_quality == GNUNET_YES) &&
+              (ats->stat.simplex_rerun_required == GNUNET_NO))
+        GNUNET_STATISTICS_set (stats, "ATS state", ATS_QC_UPDATED, GNUNET_NO);
+      else if (ats->stat.simplex_rerun_required == GNUNET_NO)
+        GNUNET_STATISTICS_set (stats, "ATS state", ATS_UNMODIFIED, GNUNET_NO);
+    }
+    else
+    {
+      if (ats->stat.c_peers != 0)
+      {
+        ats->invalid_executions ++;
+        GNUNET_STATISTICS_set (stats, "# ATS invalid executions",
+            ats->invalid_executions, GNUNET_NO);
+      }
+      else
+      {
+        GNUNET_STATISTICS_set (stats, "# ATS successful executions",
+            ats->successful_executions, GNUNET_NO);
+      }
+    }
+
+    GNUNET_STATISTICS_set (stats,
+        "ATS duration", solving.rel_value + creation.rel_value, GNUNET_NO);
+    GNUNET_STATISTICS_set (stats,
+        "ATS mechanisms", ats->stat.c_mechs, GNUNET_NO);
+    GNUNET_STATISTICS_set (stats,
+        "ATS peers", ats->stat.c_peers, GNUNET_NO);
+    GNUNET_STATISTICS_set (stats,
+        "ATS solution", ats->stat.solution, GNUNET_NO);
+    GNUNET_STATISTICS_set (stats,
+        "ATS timestamp", start.abs_value, GNUNET_NO);
+
+    if ((ats->save_mlp == GNUNET_YES) &&
+        (ats->stat.c_mechs >= ats->dump_min_peers) &&
+        (ats->stat.c_mechs >= ats->dump_min_addr))
+    {
+        char * filename;
+        if (ats->dump_overwrite == GNUNET_NO)
+        {
+          GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i_%s_%llu.mlp",
+              ats->stat.c_peers,
+              ats->stat.c_mechs,
+              text,
+              GNUNET_TIME_absolute_get().abs_value);
+          _lp_write_lp ((void *) ats->prob, NULL, filename);
+        }
         else
-                dur = (int) ats->max_exec_duration.rel_value;
-#endif
-
-        ats->stat.simplex_rerun_required = GNUNET_NO;
-        start = GNUNET_TIME_absolute_get();
-        if ((ats->stat.recreate_problem == GNUNET_YES) || (ats->prob==NULL) || (ats->stat.valid == GNUNET_NO))
         {
-                text = "new";
-                ats->stat.recreate_problem = GNUNET_YES;
-                ats_delete_problem (ats);
-                ats_create_problem (ats, neighbours, ats->D, ats->U, ats->R, ats->v_b_min, ats->v_n_min, &ats->stat);
-#if DEBUG_ATS
-                GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peers/Addresses were modified... new problem: %i peer, %i mechs\n", ats->stat.c_peers, ats->stat.c_mechs);
-#endif
+          GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i.mlp",
+          ats->stat.c_peers, ats->stat.c_mechs );
+          _lp_write_lp ((void *) ats->prob, NULL, filename);
         }
-
-        else if ((ats->stat.recreate_problem == GNUNET_NO) && (ats->stat.modified_resources == GNUNET_YES) && (ats->stat.valid == GNUNET_YES))
+        GNUNET_free (filename);
+    }
+    if ((ats->save_solution == GNUNET_YES) &&
+        (ats->stat.c_mechs >= ats->dump_min_peers) &&
+        (ats->stat.c_mechs >= ats->dump_min_addr))
+    {
+        char * filename;
+        if (ats->dump_overwrite == GNUNET_NO)
         {
-                text = "modified resources";
-                ats_update_problem_cr (ats);
-        }
-        else if ((ats->stat.recreate_problem == GNUNET_NO) && (ats->stat.modified_quality == GNUNET_YES) && (ats->stat.valid == GNUNET_YES))
-        {
-                text = "modified quality";
-                ats_update_problem_qm (ats);
-                //ats_update_problem_qm_TEST ();
-
-        }
-#if DEBUG_ATS
-        else GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Problem is unmodified\n");
-#endif
-
-        creation = GNUNET_TIME_absolute_get_difference(start,GNUNET_TIME_absolute_get());
-        start = GNUNET_TIME_absolute_get();
-
-        ats->stat.solution = GLP_UNDEF;
-        if (ats->stat.valid == GNUNET_YES)
-        {
-                ats_solve_problem(ats, ats->max_iterations, ats->max_exec_duration.rel_value, ats->stat.c_peers, ats->stat.c_mechs, &ats->stat);
-        }
-        solving = GNUNET_TIME_absolute_get_difference(start,GNUNET_TIME_absolute_get());
-
-        if (ats->stat.valid == GNUNET_YES)
-        {
-                int msg_type = GNUNET_ERROR_TYPE_DEBUG;
-#if DEBUG_ATS
-                msg_type = GNUNET_ERROR_TYPE_ERROR;
-#endif
-                GNUNET_log (msg_type, "MLP %s: creation time: %llu, execution time: %llu, %i mechanisms, simplex rerun: %s, solution %s\n",
-                                text, creation.rel_value, solving.rel_value,
-                                ats->stat.c_mechs,
-                                (ats->stat.simplex_rerun_required == GNUNET_NO) ? "NO" : "YES", (ats->stat.solution == 5) ? "OPTIMAL" : "INVALID");
-                ats->successful_executions ++;
-                GNUNET_STATISTICS_set (stats, "# ATS successful executions", ats->successful_executions, GNUNET_NO);
-
-                if ((ats->stat.recreate_problem == GNUNET_YES) || (ats->prob==NULL))
-                        GNUNET_STATISTICS_set (stats, "ATS state",ATS_NEW, GNUNET_NO);
-                else if ((ats->stat.modified_resources == GNUNET_YES) &&
-                                (ats->stat.modified_quality == GNUNET_NO))
-                        GNUNET_STATISTICS_set (stats, "ATS state", ATS_C_UPDATED, GNUNET_NO);
-                else if ((ats->stat.modified_resources == GNUNET_NO) &&
-                                (ats->stat.modified_quality == GNUNET_YES) &&
-                                (ats->stat.simplex_rerun_required == GNUNET_NO))
-                        GNUNET_STATISTICS_set (stats, "ATS state", ATS_Q_UPDATED, GNUNET_NO);
-                else if ((ats->stat.modified_resources == GNUNET_YES) &&
-                                (ats->stat.modified_quality == GNUNET_YES) &&
-                                (ats->stat.simplex_rerun_required == GNUNET_NO))
-                        GNUNET_STATISTICS_set (stats, "ATS state", ATS_QC_UPDATED, GNUNET_NO);
-                else if (ats->stat.simplex_rerun_required == GNUNET_NO)
-                        GNUNET_STATISTICS_set (stats, "ATS state", ATS_UNMODIFIED, GNUNET_NO);
+          GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i_%s_%llu.sol",
+              ats->stat.c_peers,
+              ats->stat.c_mechs,
+              text,
+              GNUNET_TIME_absolute_get().abs_value);
+          _lp_print_sol (ats->prob, filename);
         }
         else
         {
-                if (ats->stat.c_peers != 0)
-                {
-                        ats->invalid_executions ++;
-                        GNUNET_STATISTICS_set (stats, "# ATS invalid executions", ats->invalid_executions, GNUNET_NO);
-                }
-                else
-                {
-                        GNUNET_STATISTICS_set (stats, "# ATS successful executions", ats->successful_executions, GNUNET_NO);
-                }
+          GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i.sol",
+          ats->stat.c_peers, ats->stat.c_mechs);
+          _lp_print_sol (ats->prob, filename);
         }
-
-        GNUNET_STATISTICS_set (stats, "ATS duration", solving.rel_value + creation.rel_value, GNUNET_NO);
-        GNUNET_STATISTICS_set (stats, "ATS mechanisms", ats->stat.c_mechs, GNUNET_NO);
-        GNUNET_STATISTICS_set (stats, "ATS peers", ats->stat.c_peers, GNUNET_NO);
-        GNUNET_STATISTICS_set (stats, "ATS solution", ats->stat.solution, GNUNET_NO);
-        GNUNET_STATISTICS_set (stats, "ATS timestamp", start.abs_value, GNUNET_NO);
-
-        if ((ats->save_mlp == GNUNET_YES) && (ats->stat.c_mechs >= ats->dump_min_peers) && (ats->stat.c_mechs >= ats->dump_min_addr))
-        {
-                char * filename;
-                if (ats->dump_overwrite == GNUNET_NO)
-                {
-                        GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i_%s_%llu.mlp",
-                        ats->stat.c_peers, ats->stat.c_mechs, text, GNUNET_TIME_absolute_get().abs_value);
-                        _lp_write_lp (ats->prob, NULL, filename);
-                }
-                else
-                {
-                        GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i.mlp",
-                        ats->stat.c_peers, ats->stat.c_mechs );
-                        _lp_write_lp (ats->prob, NULL, filename);
-                }
-                GNUNET_free (filename);
-        }
-        if ((ats->save_solution == GNUNET_YES) && (ats->stat.c_mechs >= ats->dump_min_peers) && (ats->stat.c_mechs >= ats->dump_min_addr))
-        {
-                char * filename;
-                if (ats->dump_overwrite == GNUNET_NO)
-                {
-                        GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i_%s_%llu.sol",
-                        ats->stat.c_peers, ats->stat.c_mechs, text, GNUNET_TIME_absolute_get().abs_value);
-                        glp_print_sol (ats->prob, filename);
-                }
-                else
-                {
-                        GNUNET_asprintf (&filename, "ats_mlp_p%i_m%i.sol",
-                        ats->stat.c_peers, ats->stat.c_mechs);
-                        glp_print_sol (ats->prob, filename);
-                }
-                GNUNET_free (filename);
-        }
-
-        ats->last = GNUNET_TIME_absolute_get();
-        ats->stat.recreate_problem = GNUNET_NO;
-        ats->stat.modified_resources = GNUNET_NO;
-        ats->stat.modified_quality = GNUNET_NO;
-#endif
+        GNUNET_free (filename);
+    }
+    ats->last = GNUNET_TIME_absolute_get();
+    ats->stat.recreate_problem = GNUNET_NO;
+    ats->stat.modified_resources = GNUNET_NO;
+    ats->stat.modified_quality = GNUNET_NO;
 }
+
+/**
+ * Evaluate the result of the last simplex or mlp solving
+ * @param result return value returned by the solver
+ * @param solution solution state
+ * @param problem mlp or lp
+ * @return GNUNET_NO if solution is invalid, GNUNET_YES if solution is
+ *      valid
+ */
 
 int ats_evaluate_results (int result, int solution, char * problem)
 {
-        int cont = GNUNET_NO;
+#if !HAVE_LIBGLPK
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS not active\n");
+  return GNUNET_NO;
+#endif
+
+    int cont = GNUNET_NO;
 #if DEBUG_ATS || VERBOSE_ATS
-        int error_kind = GNUNET_ERROR_TYPE_DEBUG;
+    int error_kind = GNUNET_ERROR_TYPE_DEBUG;
 #endif
 #if VERBOSE_ATS
-        error_kind = GNUNET_ERROR_TYPE_ERROR;
+    error_kind = GNUNET_ERROR_TYPE_ERROR;
 #endif
-
-        switch (result) {
-        case GNUNET_SYSERR : /* GNUNET problem, not GLPK related */
+    switch (result) {
+    case GNUNET_SYSERR : /* GNUNET problem, not GLPK related */
 #if DEBUG_ATS || VERBOSE_ATS
-                GNUNET_log (error_kind, "%s , GLPK solving not executed\n", problem);
+        GNUNET_log (error_kind,
+            "%s, GLPK solving not executed\n", problem);
 #endif
-                break;
-        case GLP_ESTOP  :    /* search terminated by application */
+         break;
+      case GLP_ESTOP  :    /* search terminated by application */
 #if DEBUG_ATS || VERBOSE_ATS
-                GNUNET_log (error_kind, "%s , Search terminated by application\n", problem);
-#endif
-                break;
-        case GLP_EITLIM :    /* iteration limit exceeded */
-#if DEBUG_ATS || VERBOSE_ATS
-                GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%s Iteration limit exceeded\n", problem);
-#endif
-                break;
-        case GLP_ETMLIM :    /* time limit exceeded */
-#if DEBUG_ATS || VERBOSE_ATS
-                GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%s Time limit exceeded\n", problem);
+        GNUNET_log (error_kind,
+            "%s , Search terminated by application\n", problem);
 #endif
         break;
-        case GLP_ENOPFS :    /* no primal feasible solution */
-        case GLP_ENODFS :    /* no dual feasible solution */
+      case GLP_EITLIM :    /* iteration limit exceeded */
 #if DEBUG_ATS || VERBOSE_ATS
-                GNUNET_log (error_kind, "%s No feasible solution\n", problem);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+          "%s Iteration limit exceeded\n", problem);
 #endif
         break;
-
-        case GLP_EBADB  :    /* invalid basis */
-        case GLP_ESING  :    /* singular matrix */
-        case GLP_ECOND  :    /* ill-conditioned matrix */
-        case GLP_EBOUND :    /* invalid bounds */
-        case GLP_EFAIL  :    /* solver failed */
-        case GLP_EOBJLL :    /* objective lower limit reached */
-        case GLP_EOBJUL :    /* objective upper limit reached */
-        case GLP_EROOT  :    /* root LP optimum not provided */
+     case GLP_ETMLIM :    /* time limit exceeded */
 #if DEBUG_ATS || VERBOSE_ATS
-                GNUNET_log (error_kind, "%s Invalid Input data: %i\n", problem, result);
+       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+           "%s Time limit exceeded\n", problem);
+#endif
+       break;
+     case GLP_ENOPFS :    /* no primal feasible solution */
+     case GLP_ENODFS :    /* no dual feasible solution */
+#if DEBUG_ATS || VERBOSE_ATS
+        GNUNET_log (error_kind,
+            "%s No feasible solution\n", problem);
 #endif
         break;
-
-        case 0:
+     case GLP_EBADB  :    /* invalid basis */
+     case GLP_ESING  :    /* singular matrix */
+     case GLP_ECOND  :    /* ill-conditioned matrix */
+     case GLP_EBOUND :    /* invalid bounds */
+     case GLP_EFAIL  :    /* solver failed */
+     case GLP_EOBJLL :    /* objective lower limit reached */
+     case GLP_EOBJUL :    /* objective upper limit reached */
+     case GLP_EROOT  :    /* root LP optimum not provided */
 #if DEBUG_ATS || VERBOSE_ATS
-                        GNUNET_log (error_kind, "%s Problem has been solved\n", problem);
+        GNUNET_log (error_kind,
+            "%s Invalid Input data: %i\n",
+            problem, result);
 #endif
         break;
-        }
+     case 0:
+#if DEBUG_ATS || VERBOSE_ATS
+        GNUNET_log (error_kind,
+            "%s Problem has been solved\n", problem);
+#endif
+    break;
+  }
 
-        switch (solution) {
-                case GLP_UNDEF:
+  switch (solution) {
+      case GLP_UNDEF:
 #if DEBUG_ATS || VERBOSE_ATS
-                        GNUNET_log (error_kind, "%s solution is undefined\n", problem);
+        GNUNET_log (error_kind,
+            "%s solution is undefined\n", problem);
 #endif
-                        break;
-                case GLP_OPT:
+        break;
+      case GLP_OPT:
 #if DEBUG_ATS || VERBOSE_ATS
-                        GNUNET_log (error_kind, "%s solution is optimal\n", problem);
+        GNUNET_log (error_kind,
+            "%s solution is optimal\n", problem);
 #endif
-                        cont=GNUNET_YES;
-                        break;
-                case GLP_FEAS:
+        cont=GNUNET_YES;
+        break;
+      case GLP_FEAS:
 #if DEBUG_ATS || VERBOSE_ATS
-                        GNUNET_log (error_kind, "%s solution is %s feasible, however, its optimality (or non-optimality) has not been proven, \n", problem, (0==strcmp(problem,"LP")?"":"integer"));
+        GNUNET_log (error_kind,
+            "%s solution is %s feasible, however, its optimality (or non-optimality) has not been proven\n",
+            problem, (0==strcmp(problem,"LP")?"":"integer"));
 #endif
-                        cont=GNUNET_YES;
-                        break;
-                case GLP_NOFEAS:
+        cont=GNUNET_YES;
+        break;
+      case GLP_NOFEAS:
 #if DEBUG_ATS || VERBOSE_ATS
-                        GNUNET_log (error_kind, "%s problem has no %sfeasible solution\n", problem,  (0==strcmp(problem,"LP")?"":"integer "));
+        GNUNET_log (error_kind, "%s problem has no %sfeasible solution\n",
+            problem,  (0==strcmp(problem,"LP")?"":"integer "));
 #endif
-                        break;
-                case GLP_INFEAS:
+        break;
+      case GLP_INFEAS:
 #if DEBUG_ATS || VERBOSE_ATS
-                        GNUNET_log (error_kind, "%s problem is infeasible \n", problem);
+        GNUNET_log (error_kind, "%s problem is infeasible \n", problem);
 #endif
-                        break;
-                case GLP_UNBND:
+        break;
+      case GLP_UNBND:
 #if DEBUG_ATS || VERBOSE_ATS
-                        GNUNET_log (error_kind, "%s problem is unbounded \n", problem);
+        GNUNET_log (error_kind, "%s problem is unbounded \n", problem);
 #endif
-                default:
-                        break;
-        }
+      default:
+        break;
+  }
 return cont;
 }
 
-void ats_update_problem_cr (struct ATS_info * ats)
+void ats_update_problem_cr (struct ATS_Handle * ats)
 {
-
-        int array_index;
-        int row_index;
-        int c, c2;
-        double ct_max, ct_min;
-
-        int *ja    = GNUNET_malloc ((1 + ats->stat.c_mechs*2 + 3 + available_quality_metrics) * sizeof (int));
-        double *ar = GNUNET_malloc ((1 + ats->stat.c_mechs*2 + 3 + available_quality_metrics) * sizeof (double));
-
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Updating problem quality metrics\n");
-        row_index = ats->stat.begin_cr;
-        array_index = 1;
-
-        for (c=0; c<available_ressources; c++)
-        {
-                ct_max = ressources[c].c_max;
-                ct_min = ressources[c].c_min;
-#if VERBOSE_ATS
-                GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bounds [row]=[%i] %f..%f\n",row_index, ct_min, ct_max);
+#if !HAVE_LIBGLPK
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS not active\n");
+  return;
 #endif
-                _lp_set_row_bnds(ats->prob, row_index, GLP_DB, ct_min, ct_max);
 
-                for (c2=1; c2<=ats->stat.c_mechs; c2++)
-                {
-                        double value = 0;
+    int array_index;
+    int row_index;
+    int c, c2;
+    double ct_max, ct_min;
 
-                        GNUNET_assert (ats->mechanisms[c2].addr != NULL);
-                        GNUNET_assert (ats->mechanisms[c2].peer != NULL);
+    int *ja    = GNUNET_malloc ((1 + ats->stat.c_mechs*2 + 3 +
+        available_quality_metrics) * sizeof (int));
+    double *ar = GNUNET_malloc ((1 + ats->stat.c_mechs*2 + 3 +
+        available_quality_metrics) * sizeof (double));
 
-                        ja[array_index] = c2;
-                        value = ats->mechanisms[c2].addr->ressources[c].c;
-                        ar[array_index] = value;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Updating problem quality metrics\n");
+    row_index = ats->stat.begin_cr;
+    array_index = 1;
+
+    for (c=0; c<available_ressources; c++)
+    {
+      ct_max = ressources[c].c_max;
+      ct_min = ressources[c].c_min;
 #if VERBOSE_ATS
-                        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",array_index, row_index, ja[array_index], ar[array_index]);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "bounds [row]=[%i] %f..%f\n",
+          row_index,
+          ct_min,
+          ct_max);
 #endif
-                        array_index++;
-                }
-                _lp_set_mat_row (ats->prob, row_index, array_index, ja, ar);
+      _lp_set_row_bnds(ats->prob, row_index, GLP_DB, ct_min, ct_max);
+      for (c2=1; c2<=ats->stat.c_mechs; c2++)
+      {
+          double value = 0;
+          GNUNET_assert (ats->mechanisms[c2].addr != NULL);
+          GNUNET_assert (ats->mechanisms[c2].peer != NULL);
 
-                row_index ++;
-        }
-
-
-        GNUNET_free_non_null (ja);
-        GNUNET_free_non_null (ar);
+          ja[array_index] = c2;
+          value = ats->mechanisms[c2].addr->ressources[c].c;
+          ar[array_index] = value;
+#if VERBOSE_ATS
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: [%i,%i]=%f \n",
+              array_index,
+              row_index,
+              ja[array_index],
+              ar[array_index]);
+#endif
+          array_index++;
+      }
+      _lp_set_mat_row (ats->prob, row_index, array_index, ja, ar);
+      row_index ++;
+    }
+    GNUNET_free_non_null (ja);
+    GNUNET_free_non_null (ar);
 }
 
 #if 0
 static void ats_update_problem_qm_TEST ()
 {
-        int row_index;
-        int c, c2;
+    int row_index;
+    int c
+    int c2;
+    int c_old;
+    int changed = 0;
 
-        int old_ja[ats->stat.c_mechs + 2];
-        double old_ar[ats->stat.c_mechs + 2];
-        int c_old;
-        int changed = 0;
+    int old_ja[ats->stat.c_mechs + 2];
+    double old_ar[ats->stat.c_mechs + 2];
 
-        int *ja    = GNUNET_malloc ((1 + ats->stat.c_mechs*2 + 3 + available_quality_metrics) * sizeof (int));
-        double *ar = GNUNET_malloc ((1 + ats->stat.c_mechs*2 + 3 + available_quality_metrics) * sizeof (double));
+    int *ja    = GNUNET_malloc ((1 + ats->stat.c_mechs*2 + 3 +
+        available_quality_metrics) * sizeof (int));
+    double *ar = GNUNET_malloc ((1 + ats->stat.c_mechs*2 + 3 +
+        available_quality_metrics) * sizeof (double));
 #if DEBUG_ATS
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Updating problem quality metrics TEST\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Updating problem quality metrics TEST\n");
 #endif
-        if (ats->stat.begin_qm >0)
-                row_index = ats->stat.begin_qm;
-        else
-                return;
-
-
-        for (c=0; c<available_quality_metrics; c++)
+    if (ats->stat.begin_qm >0)
+        row_index = ats->stat.begin_qm;
+    else
+        return;
+    for (c=0; c<available_quality_metrics; c++)
+    {
+      c_old = _lp_get_mat_row (ats->prob, row_index, old_ja, old_ar);
+      _lp_set_row_bnds(ats->prob, row_index, GLP_FX, 0.0, 0.0);
+      for (c2=1; c2<=c_old; c2++)
+      {
+        ja[c2] = old_ja[c2];
+        if ((changed < 3) && (c2>2) && (old_ar[c2] != -1))
         {
-
-                c_old = glp_get_mat_row (ats->prob, row_index, old_ja, old_ar);
-
-                _lp_set_row_bnds(ats->prob, row_index, GLP_FX, 0.0, 0.0);
-
-                for (c2=1; c2<=c_old; c2++)
-                {
-                        ja[c2] = old_ja[c2];
-                        if ((changed < 3) && (c2>2) && (old_ar[c2] != -1))
-                        {
-                                ar[c2] = old_ar[c2] + 5 - changed;
-                                changed ++;
-                        }
-                        else
-                                ar[c2] = old_ar[c2];
-#if VERBOSE_ATS
-                        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "[index]=[%i]: old [%i,%i]=%f  new [%i,%i]=%f\n",c2, row_index, old_ja[c2], old_ar[c2], row_index, ja[c2], ar[c2]);
-#endif
-                }
-                _lp_set_mat_row (ats->prob, row_index, c_old, ja, ar);
-
-                row_index ++;
+          ar[c2] = old_ar[c2] + 5 - changed;
+          changed ++;
         }
-
-        GNUNET_free_non_null (ja);
-        GNUNET_free_non_null (ar);
+        else
+          ar[c2] = old_ar[c2];
+#if VERBOSE_ATS
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+            "[index]=[%i]: old [%i,%i]=%f  new [%i,%i]=%f\n",
+            c2,
+            row_index,
+            old_ja[c2],
+            old_ar[c2],
+            row_index,
+            ja[c2],
+            ar[c2]);
+#endif
+       }
+     _lp_set_mat_row (ats->prob, row_index, c_old, ja, ar);
+     row_index ++;
+    }
+    GNUNET_free_non_null (ja);
+    GNUNET_free_non_null (ar);
 }
 #endif
 
