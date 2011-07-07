@@ -1086,7 +1086,8 @@ send_hello (void *cls, size_t size, void *buf)
                   "Timeout while trying to transmit `%s' request.\n",
                   "HELLO");
 #endif
-      GNUNET_SCHEDULER_add_now(hc->cont, hc->cont_cls);
+      if (NULL != hc->cont)
+	GNUNET_SCHEDULER_add_now(hc->cont, hc->cont_cls);
       GNUNET_free (hc);
       return 0;
     }
