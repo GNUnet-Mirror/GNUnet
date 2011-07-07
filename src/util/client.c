@@ -426,10 +426,20 @@ GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock,
       GNUNET_CONNECTION_receive_cancel (sock->sock);
       sock->in_receive = GNUNET_NO;
     }
+  if (sock->th != NULL)
+    {
+      GNUNET_CLIENT_notify_transmit_ready_cancel (sock->th);
+      sock->th = NULL;
+    }
   if (NULL != sock->sock)
     {
       GNUNET_CONNECTION_destroy (sock->sock, finish_pending_write);
       sock->sock = NULL;
+    }
+  if (sock->receive_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (sock->receive_task);
+      sock->receive_task = GNUNET_SCHEDULER_NO_TASK;
     }
   if (sock->tag != NULL)
     {
@@ -437,16 +447,6 @@ GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock,
       sock->tag = NULL;
     }
   sock->receiver_handler = NULL;
-  if (sock->th != NULL)
-    {
-      GNUNET_CLIENT_notify_transmit_ready_cancel (sock->th);
-      sock->th = NULL;
-    }
-  if (sock->receive_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (sock->receive_task);
-      sock->receive_task = GNUNET_SCHEDULER_NO_TASK;
-    }
   GNUNET_array_grow (sock->received_buf, sock->received_size, 0);
   GNUNET_free (sock->service_name);
   GNUNET_free (sock);
