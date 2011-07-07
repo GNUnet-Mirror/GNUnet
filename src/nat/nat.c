@@ -675,121 +675,6 @@ process_interfaces (void *cls,
 
 
 /**
- * Return the actual path to a file found in the current
- * PATH environment variable.
- *
- * @param binary the name of the file to find
- * @return path to binary, NULL if not found
- */
-static char *
-get_path_from_PATH (const char *binary)
-{
-  char *path;
-  char *pos;
-  char *end;
-  char *buf;
-  const char *p;
-
-  p = getenv ("PATH");
-  if (p == NULL)
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-		       "tcp",
-		       _("PATH environment variable is unset.\n"));
-      return NULL;
-    }
-  path = GNUNET_strdup (p);     /* because we write on it */
-  buf = GNUNET_malloc (strlen (path) + 20);
-  pos = path;
-
-  while (NULL != (end = strchr (pos, PATH_SEPARATOR)))
-    {
-      *end = '\0';
-      sprintf (buf, "%s/%s", pos, binary);
-      if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
-        {
-          GNUNET_free (path);
-          return buf;
-        }
-      pos = end + 1;
-    }
-  sprintf (buf, "%s/%s", pos, binary);
-  if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
-    {
-      GNUNET_free (path);
-      return buf;
-    }
-  GNUNET_free (buf);
-  GNUNET_free (path);
-  return NULL;
-}
-
-
-/**
- * Check whether the suid bit is set on a file.
- * Attempts to find the file using the current
- * PATH environment variable as a search path.
- *
- * @param binary the name of the file to check
- * @return GNUNET_YES if the file is SUID, 
- *         GNUNET_NO if not, 
- *         GNUNET_SYSERR on error
- */
-static int
-check_gnunet_nat_binary (const char *binary)
-{
-  struct stat statbuf;
-  char *p;
-#ifdef MINGW
-  SOCKET rawsock;
-  char *binaryexe;
-
-  GNUNET_asprintf (&binaryexe, "%s.exe", binary);
-  p = get_path_from_PATH (binaryexe);
-  free (binaryexe);
-#else
-  p = get_path_from_PATH (binary);
-#endif
-  if (p == NULL)
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-		       "tcp",
-		       _("Could not find binary `%s' in PATH!\n"),
-		       binary);
-      return GNUNET_NO;
-    }
-  if (0 != STAT (p, &statbuf))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
-		  _("stat (%s) failed: %s\n"), 
-		  p,
-		  STRERROR (errno));
-      GNUNET_free (p);
-      return GNUNET_SYSERR;
-    }
-  GNUNET_free (p);
-#ifndef MINGW
-  if ( (0 != (statbuf.st_mode & S_ISUID)) &&
-       (statbuf.st_uid == 0) )
-    return GNUNET_YES;
-  return GNUNET_NO;
-#else
-  rawsock = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
-  if (INVALID_SOCKET == rawsock)
-    {
-      DWORD err = GetLastError ();
-      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, 
-		       "tcp",
-		       "socket (AF_INET, SOCK_RAW, IPPROTO_ICMP) failed! GLE = %d\n", err);
-      return GNUNET_NO; /* not running as administrator */
-    }
-  closesocket (rawsock);
-  return GNUNET_YES;
-#endif
-}
-
-
-/**
  * Task that restarts the gnunet-helper-nat-server process after a crash
  * after a certain delay.
  *
@@ -1251,7 +1136,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   /* Test for SUID binaries */
   if ( (h->behind_nat == GNUNET_YES) &&
        (GNUNET_YES == h->enable_nat_server) &&
-       (GNUNET_YES != check_gnunet_nat_binary("gnunet-helper-nat-server")) )
+       (GNUNET_YES != GNUNET_OS_check_helper_binary("gnunet-helper-nat-server")) )
     {
       h->enable_nat_server = GNUNET_NO;
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -1259,7 +1144,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
 		  "gnunet-helper-nat-server");        
     }
   if ( (GNUNET_YES == h->enable_nat_client) &&
-       (GNUNET_YES != check_gnunet_nat_binary("gnunet-helper-nat-client")) )
+       (GNUNET_YES != GNUNET_OS_check_helper_binary("gnunet-helper-nat-client")) )
     {
       h->enable_nat_client = GNUNET_NO;
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,

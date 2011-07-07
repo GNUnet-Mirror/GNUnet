@@ -193,8 +193,15 @@ get_path_from_dyld_image ()
 }
 #endif
 
+/**
+ * Return the actual path to a file found in the current
+ * PATH environment variable.
+ *
+ * @param binary the name of the file to find
+ * @return path to binary, NULL if not found
+ */
 static char *
-get_path_from_PATH ()
+get_path_from_PATH (const char *binary)
 {
   char *path;
   char *pos;
@@ -212,7 +219,7 @@ get_path_from_PATH ()
   while (NULL != (end = strchr (pos, PATH_SEPARATOR)))
     {
       *end = '\0';
-      sprintf (buf, "%s/%s", pos, "gnunet-arm");
+      sprintf (buf, "%s/%s", pos, binary);
       if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
         {
           pos = GNUNET_strdup (pos);
@@ -222,7 +229,7 @@ get_path_from_PATH ()
         }
       pos = end + 1;
     }
-  sprintf (buf, "%s/%s", pos, "gnunet-arm");
+  sprintf (buf, "%s/%s", pos, binary);
   if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
     {
       pos = GNUNET_strdup (pos);
@@ -281,7 +288,7 @@ os_get_gnunet_path ()
   if (ret != NULL)
     return ret;
 #endif
-  ret = get_path_from_PATH ();
+  ret = get_path_from_PATH ("gnunet-arm");
   if (ret != NULL)
     return ret;
   /* other attempts here */
@@ -429,5 +436,70 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
   GNUNET_free (execpath);
   return tmp;
 }
+
+
+/**
+ * Check whether the suid bit is set on a file.
+ * Attempts to find the file using the current
+ * PATH environment variable as a search path.
+ *
+ * @param binary the name of the file to check
+ * @return GNUNET_YES if the file is SUID, 
+ *         GNUNET_NO if not, 
+ *         GNUNET_SYSERR on error
+ */
+int
+GNUNET_OS_check_helper_binary (const char *binary)
+{
+  struct stat statbuf;
+  char *p;
+#ifdef MINGW
+  SOCKET rawsock;
+  char *binaryexe;
+
+  GNUNET_asprintf (&binaryexe, "%s.exe", binary);
+  p = get_path_from_PATH (binaryexe);
+  free (binaryexe);
+#else
+  p = get_path_from_PATH (binary);
+#endif
+  if (p == NULL)
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+		       "tcp",
+		       _("Could not find binary `%s' in PATH!\n"),
+		       binary);
+      return GNUNET_NO;
+    }
+  if (0 != STAT (p, &statbuf))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
+		  _("stat (%s) failed: %s\n"), 
+		  p,
+		  STRERROR (errno));
+      GNUNET_free (p);
+      return GNUNET_SYSERR;
+    }
+  GNUNET_free (p);
+#ifndef MINGW
+  if ( (0 != (statbuf.st_mode & S_ISUID)) &&
+       (statbuf.st_uid == 0) )
+    return GNUNET_YES;
+  return GNUNET_NO;
+#else
+  rawsock = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
+  if (INVALID_SOCKET == rawsock)
+    {
+      DWORD err = GetLastError ();
+      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, 
+		       "tcp",
+		       "socket (AF_INET, SOCK_RAW, IPPROTO_ICMP) failed! GLE = %d\n", err);
+      return GNUNET_NO; /* not running as administrator */
+    }
+  closesocket (rawsock);
+  return GNUNET_YES;
+#endif
+}
+
 
 /* end of os_installation.c */

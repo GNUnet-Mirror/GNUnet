@@ -282,6 +282,22 @@ GNUNET_OS_install_parent_control_handler (void *cls,
                                           const struct
                                           GNUNET_SCHEDULER_TaskContext * tc);
 
+
+/**
+ * Check whether the suid bit is set on a file.  Attempts to find the
+ * file using the current PATH environment variable as a search path.
+ * On W32, if the binary exists, this function tests if we are running
+ * with administrative rights (sufficient to create RAW sockets).
+ *
+ * @param binary the name of the file to check
+ * @return GNUNET_YES if the file is SUID, 
+ *         GNUNET_NO if not, 
+ *         GNUNET_SYSERR on error
+ */
+int
+GNUNET_OS_check_helper_binary (const char *binary);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
