@@ -353,7 +353,6 @@ struct ATS_quality_entry
  * ATS ressources
  */
 
-#define available_ressources 3
 
 static struct ATS_ressource ressources[] =
 {
@@ -368,6 +367,8 @@ static struct ATS_ressource ressources[] =
     {7, 7, "COST_NETWORK_OVERHEAD", VERY_BIG_DOUBLE_VALUE},*/
 };
 
+#define available_ressources (sizeof(ressources)/sizeof(*ressources))
+
 /*
  * ATS quality metrics
  */
@@ -378,7 +379,8 @@ static struct ATS_quality_metric qm[] =
   {2, 1034, "QUALITY_NET_DELAY"},
 };
 
-#define available_quality_metrics 2
+#define available_quality_metrics (sizeof(qm)/sizeof(*qm))
+
 
 /*
  * ATS functions

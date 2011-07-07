@@ -533,6 +533,16 @@ connect_peers()
   shutdown_task = GNUNET_SCHEDULER_add_delayed(DELAY, &delay, NULL);
 }
 
+
+/* To make compiler happy */
+void dummy(void)
+{
+  struct ATS_quality_metric * q = qm;
+  q = NULL;
+  struct ATS_ressource * r = ressources;
+  r = NULL;
+}
+
 static size_t 
 send_dummy_data_task (void *cls, size_t size, void *buf)
 {
