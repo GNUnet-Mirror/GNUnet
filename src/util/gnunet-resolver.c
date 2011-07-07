@@ -81,6 +81,14 @@ main (int argc, char *const *argv)
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
+  GNUNET_PROGRAM_run (argc,
+		      argv,
+		      "gnunet-resolver [hostname]",
+		      gettext_noop
+		      ("Test GNUnet DNS resolver code."),
+		      options, &run, NULL);
+  fprintf (stderr, "again...\n");
+
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc,
                               argv,

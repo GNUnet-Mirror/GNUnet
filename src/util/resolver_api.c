@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -224,6 +224,7 @@ void
 GNUNET_RESOLVER_connect (const struct GNUNET_CONFIGURATION_Handle *c)
 {
   check_config (c);
+  backoff = GNUNET_TIME_UNIT_MILLISECONDS;
   cfg = c;
 }
 
@@ -255,6 +256,7 @@ GNUNET_RESOLVER_disconnect ()
       GNUNET_SCHEDULER_cancel (s_task);
       s_task = GNUNET_SCHEDULER_NO_TASK;
     }
+  cfg = NULL;
 }
 
 
@@ -707,8 +709,7 @@ reconnect ()
   r_task = GNUNET_SCHEDULER_add_delayed (backoff,
 					 &reconnect_task,
 					 NULL);
-  backoff = GNUNET_TIME_relative_max (GNUNET_TIME_UNIT_SECONDS,
-				      GNUNET_TIME_relative_multiply (backoff, 2));
+  backoff = GNUNET_TIME_relative_multiply (backoff, 2);
 }
 
 
