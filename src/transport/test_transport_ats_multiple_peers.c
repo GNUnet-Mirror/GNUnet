@@ -26,6 +26,7 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_scheduler_lib.h"
 #include "gauger.h"
+#include "transport_ats.h"
 
 #define VERBOSE GNUNET_NO
 
@@ -35,12 +36,6 @@
 #define DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
 #define SEND_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
-
-#define ATS_NEW 0
-#define ATS_Q_UPDATED 1
-#define ATS_C_UPDATED 2
-#define ATS_QC_UPDATED 3
-#define ATS_UNMODIFIED 4
 
 static int ok;
 
@@ -290,7 +285,9 @@ stats_cb (void *cls,
 	  int is_persistent)
 {
   static int printed = GNUNET_NO;
-  //GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s = %llu\n", name ,value);
+#if VERBOSE_ATS
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s = %llu\n", name ,value);
+#endif
   if (0 == strcmp (name,"ATS invalid solutions"))
     {
       if (stats_task != GNUNET_SCHEDULER_NO_TASK)
@@ -386,7 +383,7 @@ stats_cb (void *cls,
 		    }
 		  
 		}
-	      if (current.state == ATS_Q_UPDATED)
+	      if (current.state == ATS_QUALITY_UPDATED)
 		{
 		  if (c_modified < MEASUREMENTS)
 		    {
@@ -469,11 +466,11 @@ stats_cb (void *cls,
 	  char * cont;
 	  if (value == ATS_NEW)
 	    cont = "NEW";
-	  if (value == ATS_C_UPDATED)
+	  if (value == ATS_COST_UPDATED)
 	    cont = "C_UPDATED";
-	  if (value == ATS_Q_UPDATED)
+	  if (value == ATS_QUALITY_UPDATED)
 	    cont = "Q_UPDATED";
-	  if (value == ATS_QC_UPDATED)
+	  if (value == ATS_QUALITY_COST_UPDATED)
 	    cont = "QC_UPDATED";
 	  if (value == ATS_UNMODIFIED)
 	    cont = "UNMODIFIED";

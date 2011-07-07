@@ -30,11 +30,40 @@
 
 #define VERY_BIG_DOUBLE_VALUE 100000000000LL
 
-#define ATS_NEW 0
-#define ATS_Q_UPDATED 1
-#define ATS_C_UPDATED 2
-#define ATS_QC_UPDATED 3
-#define ATS_UNMODIFIED 4
+enum ATS_problem_state
+{
+  /**
+   * Problem is new / unmodified
+   */
+  ATS_NEW = 0,
+
+  /**
+   * Problem quality properties were modified
+   */
+  ATS_QUALITY_UPDATED = 1,
+
+  /**
+   * Problem ressource properties were modified
+   */
+  ATS_COST_UPDATED = 2,
+
+  /**
+   * Problem quality and ressource properties were modified
+   */
+  ATS_QUALITY_COST_UPDATED = 3,
+
+  /**
+   * Problem is modified and needs to be completely recalculated
+   * due to e.g. connecting or disconnecting peers
+   */
+  ATS_MODIFIED = 4,
+
+  /**
+   * Problem is modified and needs to be completely recalculated
+   * due to e.g. connecting or disconnecting peers
+   */
+  ATS_UNMODIFIED = 8
+};
 
 /*
 *  ATS data structures
@@ -161,11 +190,6 @@ struct ATS_Handle
 #else
     void * prob;
 #endif
-
-    /**
-     * task to recalculate the bandwidth assignment
-     */
-    GNUNET_SCHEDULER_TaskIdentifier ats_task;
 
     /**
      * Current state of the GLPK problem
@@ -377,6 +401,9 @@ ats_create_problem (struct ATS_Handle * ats,
                     int v_b_min,
                     int v_n_min,
                     struct ATS_stat *stat);
+
+void ats_modify_problem_state (struct ATS_Handle * ats,
+    enum ATS_problem_state s);
 
 void
 ats_calculate_bandwidth_distribution (struct ATS_Handle * ats,

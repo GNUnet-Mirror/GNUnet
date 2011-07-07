@@ -730,7 +730,10 @@ static void _dummy ()
 
 static void _dummy2 ()
 {
+  ats_modify_problem_state (NULL, 0);
    _dummy();
+   int t = ATS_COST_UPDATED + ATS_MODIFIED + ATS_NEW;
+   t = 0;
 }
 
 /*
@@ -765,7 +768,6 @@ struct ATS_Handle * ats_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
   ats->exec_interval = ATS_EXEC_INTERVAL;
   ats->max_exec_duration = ATS_MAX_EXEC_DURATION;
   ats->max_iterations = ATS_MAX_ITERATIONS;
-  ats->ats_task = GNUNET_SCHEDULER_NO_TASK;
 
   ats->D = 1.0;
   ats->U = 1.0;
@@ -1497,7 +1499,37 @@ void ats_delete_problem (struct ATS_Handle * ats)
   ats->stat.valid = GNUNET_SYSERR;
 }
 
+void ats_modify_problem_state (struct ATS_Handle * ats, enum ATS_problem_state s)
+{
+  if (ats == NULL)
+    return;
+  switch (s)
+  {
+  case ATS_NEW :
+    ats->stat.recreate_problem = GNUNET_NO;
+    ats->stat.modified_quality = GNUNET_NO;
+    ats->stat.modified_resources = GNUNET_NO;
+    break;
+  case ATS_MODIFIED:
+    ats->stat.recreate_problem = GNUNET_YES;
+    break;
+  case ATS_QUALITY_UPDATED :
+    ats->stat.modified_quality = GNUNET_YES;
+    break;
+  case ATS_COST_UPDATED :
+    ats->stat.modified_resources = GNUNET_YES;
+    break;
+  case ATS_QUALITY_COST_UPDATED:
+    ats->stat.modified_resources = GNUNET_YES;
+    ats->stat.modified_quality = GNUNET_YES;
+    break;
+  default:
+    return;
+  }
 
+
+
+}
 
 void ats_solve_problem (struct ATS_Handle * ats,
     unsigned int max_it,
@@ -1646,9 +1678,6 @@ void ats_shutdown (struct ATS_Handle * ats)
 #if DEBUG_ATS
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ATS shutdown\n");
 #endif
-  if (ats->ats_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel(ats->ats_task);
-  ats->ats_task = GNUNET_SCHEDULER_NO_TASK;
   ats_delete_problem (ats);
   _lp_free_env();
 
@@ -1864,15 +1893,15 @@ ats_calculate_bandwidth_distribution (struct ATS_Handle * ats,
           GNUNET_STATISTICS_set (stats, "ATS state",ATS_NEW, GNUNET_NO);
       else if ((ats->stat.modified_resources == GNUNET_YES) &&
               (ats->stat.modified_quality == GNUNET_NO))
-        GNUNET_STATISTICS_set (stats, "ATS state", ATS_C_UPDATED, GNUNET_NO);
+        GNUNET_STATISTICS_set (stats, "ATS state", ATS_COST_UPDATED, GNUNET_NO);
       else if ((ats->stat.modified_resources == GNUNET_NO) &&
               (ats->stat.modified_quality == GNUNET_YES) &&
               (ats->stat.simplex_rerun_required == GNUNET_NO))
-        GNUNET_STATISTICS_set (stats, "ATS state", ATS_Q_UPDATED, GNUNET_NO);
+        GNUNET_STATISTICS_set (stats, "ATS state", ATS_QUALITY_UPDATED, GNUNET_NO);
       else if ((ats->stat.modified_resources == GNUNET_YES) &&
               (ats->stat.modified_quality == GNUNET_YES) &&
               (ats->stat.simplex_rerun_required == GNUNET_NO))
-        GNUNET_STATISTICS_set (stats, "ATS state", ATS_QC_UPDATED, GNUNET_NO);
+        GNUNET_STATISTICS_set (stats, "ATS state", ATS_QUALITY_COST_UPDATED, GNUNET_NO);
       else if (ats->stat.simplex_rerun_required == GNUNET_NO)
         GNUNET_STATISTICS_set (stats, "ATS state", ATS_UNMODIFIED, GNUNET_NO);
     }

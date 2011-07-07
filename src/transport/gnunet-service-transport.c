@@ -920,6 +920,11 @@ static struct GNUNET_STATISTICS_Handle *stats;
 static GNUNET_SCHEDULER_TaskIdentifier hello_task;
 
 /**
+ * Identifier of ats scheduler task.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier ats_task;
+
+/**
  * Is transport service shutting down ?
  */
 static int shutdown_in_progress;
@@ -983,8 +988,7 @@ static int update_addr_value (struct ForeignAddressList *fal, uint32_t value , i
       fal->quality[c].values[1] = fal->quality[c].values[2];
       fal->quality[c].values[2] = value;
       set = GNUNET_YES;
-      if (ats != NULL)
-        ats->stat.modified_quality = GNUNET_YES;
+      ats_modify_problem_state (ats, ATS_QUALITY_UPDATED);
     }
   }
   if (set == GNUNET_NO)
@@ -995,8 +999,7 @@ static int update_addr_value (struct ForeignAddressList *fal, uint32_t value , i
       {
         fal->ressources[c].c = value;
         set = GNUNET_YES;
-        if (ats != NULL)
-          ats->stat.modified_resources = GNUNET_YES;
+        ats_modify_problem_state (ats, ATS_COST_UPDATED);
       }
     }
   }
@@ -2430,8 +2433,8 @@ plugin_env_session_end  (void *cls,
     }
   GNUNET_free_non_null(pos->ressources);
   GNUNET_free_non_null(pos->quality);
-  if (ats != NULL)
-    ats->stat.recreate_problem = GNUNET_YES;
+  ats_modify_problem_state (ats, ATS_MODIFIED);
+
   if (GNUNET_YES != pos->connected)
     {
       /* nothing else to do, connection was never up... */
@@ -2603,7 +2606,7 @@ notify_clients_connect (const struct GNUNET_PeerIdentity *peer,
   /* notify ats about connecting peer */
   if ((ats != NULL) && (shutdown_in_progress == GNUNET_NO))
   {
-    ats->stat.recreate_problem = GNUNET_YES;
+    ats_modify_problem_state(ats, ATS_MODIFIED);
     ats_calculate_bandwidth_distribution (ats, stats, neighbours);
   }
 
@@ -2652,7 +2655,7 @@ notify_clients_disconnect (const struct GNUNET_PeerIdentity *peer)
   /* notify ats about connecting peer */
   if ((ats != NULL) && (shutdown_in_progress == GNUNET_NO))
   {
-    ats->stat.recreate_problem = GNUNET_YES;
+    ats_modify_problem_state(ats, ATS_MODIFIED);
     ats_calculate_bandwidth_distribution (ats, stats, neighbours);
   }
 
@@ -4817,8 +4820,7 @@ disconnect_neighbour (struct NeighbourList *n, int check)
   if (GNUNET_YES == n->received_pong)
     notify_clients_disconnect (&n->id);
 
-  if (ats != NULL)
-      ats->stat.recreate_problem = GNUNET_YES;
+  ats_modify_problem_state(ats, ATS_QUALITY_COST_UPDATED);
 
   /* clean up all plugins, cancel connections and pending transmissions */
   while (NULL != (rpos = n->plugins))
@@ -5322,19 +5324,16 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     	//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "GNUNET_MESSAGE_TYPE_TRANSPORT_ATS: %i \n", value);
     	/* Force ressource and quality update */
     	if ((value == 4) && (ats != NULL))
-	  {
-	    ats->stat.modified_resources = GNUNET_YES;
-	    ats->stat.modified_quality = GNUNET_YES;
-	  }
+            ats_modify_problem_state(ats, ATS_QUALITY_COST_UPDATED);
     	/* Force cost update */
     	if ((value == 3) && (ats != NULL))
-	  ats->stat.modified_resources = GNUNET_YES;
+          ats_modify_problem_state(ats, ATS_COST_UPDATED);
     	/* Force quality update */
     	if ((value == 2) && (ats != NULL))
-	  ats->stat.modified_quality = GNUNET_YES;
+          ats_modify_problem_state(ats, ATS_QUALITY_UPDATED);
     	/* Force full rebuild */
     	if ((value == 1) && (ats != NULL))
-	  ats->stat.recreate_problem = GNUNET_YES;
+          ats_modify_problem_state(ats, ATS_MODIFIED);
       }
     
 #if DEBUG_PING_PONG
@@ -6007,6 +6006,13 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CONTAINER_multihashmap_destroy (validation_map);
   validation_map = NULL;
 
+  if (ats_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel(ats_task);
+    ats_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+
   if (ats != NULL)
     ats_shutdown (ats);
 
@@ -6060,7 +6066,7 @@ schedule_ats (void *cls,
   if (ats==NULL)
     return;
 
-  ats->ats_task = GNUNET_SCHEDULER_NO_TASK;
+  ats_task = GNUNET_SCHEDULER_NO_TASK;
   if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
       return;
   if (shutdown_in_progress == GNUNET_YES)
@@ -6069,7 +6075,7 @@ schedule_ats (void *cls,
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Running scheduled calculation\n");
 #endif
   ats_calculate_bandwidth_distribution (ats, stats, neighbours);
-  ats->ats_task = GNUNET_SCHEDULER_add_delayed (ats->exec_interval,
+  ats_task = GNUNET_SCHEDULER_add_delayed (ats->exec_interval,
                                   &schedule_ats, ats);
 }
 
@@ -6211,7 +6217,7 @@ run (void *cls,
 
   ats = ats_init (cfg);
   if (ats != NULL)
-    ats->ats_task = GNUNET_SCHEDULER_add_now (&schedule_ats, ats);
+    ats_task = GNUNET_SCHEDULER_add_now (&schedule_ats, ats);
 
 
 #if DEBUG_TRANSPORT
