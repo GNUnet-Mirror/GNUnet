@@ -2430,6 +2430,8 @@ plugin_env_session_end  (void *cls,
     }
   GNUNET_free_non_null(pos->ressources);
   GNUNET_free_non_null(pos->quality);
+  if (ats != NULL)
+    ats->stat.recreate_problem = GNUNET_YES;
   if (GNUNET_YES != pos->connected)
     {
       /* nothing else to do, connection was never up... */
@@ -2437,8 +2439,7 @@ plugin_env_session_end  (void *cls,
       return; 
     }
   GNUNET_free (pos);
-  if (ats != NULL)
-    ats->stat.recreate_problem = GNUNET_YES;
+
   if (nl->received_pong == GNUNET_NO)
     {
       GNUNET_STATISTICS_update (stats,
@@ -4816,6 +4817,9 @@ disconnect_neighbour (struct NeighbourList *n, int check)
   if (GNUNET_YES == n->received_pong)
     notify_clients_disconnect (&n->id);
 
+  if (ats != NULL)
+      ats->stat.recreate_problem = GNUNET_YES;
+
   /* clean up all plugins, cancel connections and pending transmissions */
   while (NULL != (rpos = n->plugins))
     {
@@ -4845,8 +4849,6 @@ disconnect_neighbour (struct NeighbourList *n, int check)
 	  GNUNET_free(peer_pos->quality);
 	  peer_pos->ressources = NULL;
 	  GNUNET_free(peer_pos);
-	  if (ats != NULL)
-	    ats->stat.recreate_problem = GNUNET_YES;
         }
       GNUNET_free (rpos);
     }
