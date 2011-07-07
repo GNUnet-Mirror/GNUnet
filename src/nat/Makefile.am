@@ -43,7 +43,9 @@ endif
 lib_LTLIBRARIES = libgnunetnat.la
 
 libgnunetnat_la_SOURCES = \
-  nat.c nat_test.c nat.h
+  nat.c nat.h \
+  nat_test.c \
+  nat_mini.c
 
 libgnunetnat_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
