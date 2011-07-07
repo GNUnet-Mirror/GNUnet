@@ -1195,7 +1195,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
 							"BEHIND_NAT");
   h->nat_punched = GNUNET_CONFIGURATION_get_value_yesno (cfg,
 							 "nat",
-							 "NAT_PUNCHED");
+							 "PUNCHED_NAT");
   h->enable_nat_client = GNUNET_CONFIGURATION_get_value_yesno (cfg,
 							       "nat",
 							       "ENABLE_NAT_CLIENT");
