@@ -350,7 +350,11 @@ addr_cb (void *cls,
   client = GNUNET_CLIENT_connect ("gnunet-nat-server",
 				  h->cfg);
   if (NULL == client)
-    return;
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Failed to connect to `gnunet-nat-server'\n"));
+      return;
+    }
   ca = GNUNET_malloc (sizeof (struct ClientActivity));
   ca->client = client;
   GNUNET_CONTAINER_DLL_insert (h->ca_head,
@@ -391,6 +395,7 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   const socklen_t addrlens[] = { sizeof (sa) };
 
   memset (&sa, 0, sizeof (sa));
+  sa.sin_family = AF_INET;
   sa.sin_port = htons (bnd_port);
 #if HAVE_SOCKADDR_IN_SIN_LEN
   sa.sin_len = sizeof (sa);
@@ -422,7 +427,10 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 						     sizeof (sa))) )
 	{
 	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		      _("Failed to create listen socket for NAT test\n"));
+		      _("Failed to create listen socket bound to `%s' for NAT test: %s\n"),
+		      GNUNET_a2s ((const struct sockaddr*)&sa,
+				  sizeof(sa)),
+		      STRERROR (errno));
 	  if (NULL != ret->lsock)
 	    GNUNET_NETWORK_socket_close (ret->lsock);
 	  GNUNET_free (ret);
