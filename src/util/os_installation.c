@@ -214,8 +214,7 @@ get_path_from_PATH (const char *binary)
     return NULL;
   path = GNUNET_strdup (p);     /* because we write on it */
   buf = GNUNET_malloc (strlen (path) + 20);
-  pos = path;
-
+  pos = path;  
   while (NULL != (end = strchr (pos, PATH_SEPARATOR)))
     {
       *end = '\0';
@@ -453,15 +452,28 @@ GNUNET_OS_check_helper_binary (const char *binary)
 {
   struct stat statbuf;
   char *p;
+  char *pf;
 #ifdef MINGW
   SOCKET rawsock;
   char *binaryexe;
 
   GNUNET_asprintf (&binaryexe, "%s.exe", binary);
   p = get_path_from_PATH (binaryexe);
+  if (p != NULL)
+    {
+      GNUNET_asprintf (&pf, "%s/%s", p, binaryexe);
+      GNUNET_free (p);
+      p = pf;
+    }
   free (binaryexe);
 #else
   p = get_path_from_PATH (binary);
+  if (p != NULL)
+    {
+      GNUNET_asprintf (&pf, "%s/%s", p, binary);
+      GNUNET_free (p);
+      p = pf;
+    }
 #endif
   if (p == NULL)
     {
