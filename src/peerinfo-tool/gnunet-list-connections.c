@@ -32,8 +32,12 @@
 #include "gnunet_core_service.h"
 #include "gnunet_program_lib.h"
 
+#define VERBOSE 0
 static int no_resolve;
 
+#if VERBOSE
+  static unsigned int peer_count;
+#endif
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
@@ -127,6 +131,7 @@ connected_peer_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
     {
 #if VERBOSE
       fprintf(stderr, "Learned about peer %s\n", GNUNET_i2s(peer));
+      peer_count++;
 #endif
       pc = GNUNET_malloc (sizeof (struct PrintContext));
       pc->peer = *peer;
@@ -134,6 +139,12 @@ connected_peer_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
                                             GNUNET_TIME_UNIT_MINUTES,
                                             &process_resolved_address, pc);
     }
+#if VERBOSE
+  else
+    {
+      fprintf(stderr, "Counted %u total connected peers.\n", peer_count);
+    }
+#endif
 }
 
 
