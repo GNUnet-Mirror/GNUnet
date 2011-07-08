@@ -86,7 +86,10 @@ enum LocalAddressSource
      */
     LAL_BINDTO_ADDRESS,
 
-    /* TODO: add UPnP, etc. */
+    /**
+     * Addresses from UPnP or PMP
+     */
+    LAL_UPNP,
 
     /**
      * End of the list.
@@ -124,6 +127,35 @@ struct LocalAddressList
    * Origin of the local address.
    */
   enum LocalAddressSource source;
+};
+
+
+/**
+ * Handle for miniupnp-based NAT traversal actions.
+ */
+struct MiniList
+{
+
+  /**
+   * Doubly-linked list.
+   */
+  struct MiniList *next;
+
+  /**
+   * Doubly-linked list.
+   */
+  struct MiniList *prev;
+
+  /**
+   * Handle to mini-action.
+   */
+  struct GNUNET_NAT_MiniHandle *mini;
+
+  /**
+   * Local port number that was mapped.
+   */
+  uint16_t port;
+
 };
 
 
@@ -244,6 +276,18 @@ struct GNUNET_NAT_Handle
    * Length of the 'local_addrs'.
    */
   socklen_t *local_addrlens;
+
+  /**
+   * List of handles for UPnP-traversal, one per local port (if
+   * not IPv6-only).
+   */
+  struct MiniList *mini_head;
+
+  /**
+   * List of handles for UPnP-traversal, one per local port (if
+   * not IPv6-only).
+   */
+  struct MiniList *mini_tail;
 
   /**
    * Number of entries in 'local_addrs' array.
@@ -924,6 +968,89 @@ resolve_dns (void *cls,
 
 
 /**
+ * Add or remove UPnP-mapped addresses.
+ *
+ * @param cls the GNUNET_NAT_Handle
+ * @param add_remove GNUNET_YES to mean the new public IP address, GNUNET_NO to mean
+ *     the previous (now invalid) one
+ * @param addr either the previous or the new public IP address
+ * @param addrlen actual lenght of the address
+ */
+static void 
+upnp_add (void *cls, 
+	  int add_remove,
+	  const struct sockaddr *addr,
+	  socklen_t addrlen)
+{
+  struct GNUNET_NAT_Handle *h = cls;
+  struct LocalAddressList *pos;
+  struct LocalAddressList *next;
+
+  if (GNUNET_YES == add_remove)
+    {
+      add_to_address_list (h, 
+			   LAL_UPNP,
+			   addr, addrlen);
+      return;
+    }
+  /* remove address */
+  next = h->lal_head;
+  while (NULL != (pos = next))
+    {
+      next = pos->next;
+      if ( (pos->source != LAL_UPNP) ||
+	   (pos->addrlen != addrlen) ||
+	   (0 != memcmp (&pos[1],
+			 addr,
+			 addrlen)) )
+	continue;
+      GNUNET_CONTAINER_DLL_remove (h->lal_head,
+				   h->lal_tail,
+				   pos);
+      if (NULL != h->address_callback)
+	h->address_callback (h->callback_cls,
+			     GNUNET_NO,
+			     (const struct sockaddr* ) &pos[1],
+			     pos->addrlen);
+      GNUNET_free (pos);
+      return; /* only remove once */
+    } 
+  /* asked to remove address that does not exist */
+  GNUNET_break (0);
+}
+
+
+/**
+ * Try to add a port mapping using UPnP.
+ *
+ * @param h overall NAT handle
+ * @param port port to map with UPnP
+ */
+static void
+add_minis (struct GNUNET_NAT_Handle *h,
+	   uint16_t port)
+{
+  struct MiniList *ml;
+
+  ml = h->mini_head;
+  while (NULL != ml)
+    {
+      if (port == ml->port)
+	return; /* already got this port */
+      ml = ml->next;
+    }
+  ml = GNUNET_malloc (sizeof (struct MiniList));
+  ml->port = port;
+  ml->mini = GNUNET_NAT_mini_map_start (port,
+					h->is_tcp,
+					&upnp_add, h);
+  GNUNET_CONTAINER_DLL_insert (h->mini_head,
+			       h->mini_tail,
+			       ml);					
+}
+
+
+/**
  * Task to add addresses from original bind to set of valid addrs.
  *
  * @param cls the NAT handle
@@ -931,12 +1058,13 @@ resolve_dns (void *cls,
  */
 static void
 add_from_bind (void *cls,
-	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   static struct in6_addr any = IN6ADDR_ANY_INIT;
   struct GNUNET_NAT_Handle *h = cls;
   unsigned int i;
   struct sockaddr *sa;
+  const struct sockaddr_in *v4;
 
   h->bind_task = GNUNET_SCHEDULER_NO_TASK;
   for (i=0;i<h->num_local_addrs;i++)
@@ -950,8 +1078,11 @@ add_from_bind (void *cls,
 	      GNUNET_break (0);
 	      break;
 	    }
-	  if (0 != ((const struct sockaddr_in*) sa)->sin_addr.s_addr)
+	  v4 = (const struct sockaddr_in*) sa;
+	  if (0 != v4->sin_addr.s_addr)
 	    add_to_address_list (h, LAL_BINDTO_ADDRESS, sa, sizeof (struct sockaddr_in));
+	  if (h->enable_upnp)
+	    add_minis (h, ntohs (v4->sin_port));
 	  break;
 	case AF_INET6:
 	  if (sizeof (struct sockaddr_in6) != h->local_addrlens[i])
@@ -1178,7 +1309,16 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
 {
   unsigned int i;
   struct LocalAddressList *lal;
+  struct MiniList *ml;
 
+  while (NULL != (ml = h->mini_head))
+    {
+      GNUNET_CONTAINER_DLL_remove (h->mini_head,
+				   h->mini_tail,
+				   ml);
+      GNUNET_NAT_mini_map_stop (ml->mini);
+      GNUNET_free (ml);
+    }
   if (h->ext_dns != NULL)
     {
       GNUNET_RESOLVER_request_cancel (h->ext_dns);

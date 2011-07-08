@@ -8,8 +8,6 @@
 
 0.9.0pre4:
 * NAT library: [CG/MW]
-  - UPnP support
-  - testcase
   - more testing
 * Transport:
   - UDP fragmentation [MW]
