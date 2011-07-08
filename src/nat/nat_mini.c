@@ -20,7 +20,7 @@
 
 /**
  * @file nat/nat_mini.c
- * @brief functions for interaction with miniupnp
+ * @brief functions for interaction with miniupnp; tested with miniupnpc 1.5
  * @author Christian Grothoff
  */
 #include "platform.h"
@@ -33,7 +33,6 @@
  */
 #define MAP_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
-
 /**
  * How long do we give upnpc to remove a mapping?
  */
@@ -42,7 +41,7 @@
 /**
  * How often do we check for changes in the mapping?
  */
-#define MAP_REFRESH_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
+#define MAP_REFRESH_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 
 /**
@@ -158,6 +157,11 @@ struct GNUNET_NAT_MiniHandle
   int did_map;
 
   /**
+   * Did we find our mapping during refresh scan?
+   */ 
+  int found;
+
+  /**
    * Which port are we mapping?
    */
   uint16_t port;
@@ -177,6 +181,17 @@ do_refresh (void *cls,
 
 
 /**
+ * Process the output from the 'upnpc -r' command.
+ *
+ * @param cls the 'struct GNUNET_NAT_MiniHandle'
+ * @param line line of output, NULL at the end
+ */
+static void
+process_map_output (void *cls,
+		    const char *line);
+
+
+/**
  * Process the output from 'upnpc -l' to see if our
  * external mapping changed.  If so, do the notifications.
  *
@@ -188,20 +203,105 @@ process_refresh_output (void *cls,
 			const char *line)
 {
   struct GNUNET_NAT_MiniHandle *mini = cls;
+  char pstr[9];
+  const char *s;
+  unsigned int nport;
+  struct in_addr exip;
 
   if (NULL == line)
     {
       GNUNET_OS_command_stop (mini->refresh_cmd);
       mini->refresh_cmd = NULL;
+      if (mini->found == GNUNET_NO)
+	{
+	  /* mapping disappeared, try to re-create */
+	  if (mini->did_map)
+	    {
+	      mini->ac (mini->ac_cls, GNUNET_NO,
+			(const struct sockaddr*) &mini->current_addr,
+			sizeof (mini->current_addr));
+	      mini->did_map = GNUNET_NO;
+	    }
+	  GNUNET_snprintf (pstr, sizeof (pstr),
+			   "%u",
+			   (unsigned int) mini->port);
+	  mini->map_cmd = GNUNET_OS_command_run (&process_map_output,
+						 mini,
+						 MAP_TIMEOUT,
+						 "upnpc",
+						 "upnpc",
+						 "-r", pstr, 
+						 mini->is_tcp ? "tcp" : "udp",
+						 NULL);
+	  if (NULL != mini->map_cmd)
+	    return;
+	}
       mini->refresh_task = GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ,
 							 &do_refresh,
 							 mini);
       return;
     }
-  /* FIXME: parse 'line' */
-  fprintf (stderr,
-	   "Refresh output: `%s'\n",
-	   line);
+  if (! mini->did_map)
+    return; /* never mapped, won't find our mapping anyway */
+
+  /* we're looking for output of the form:
+     "ExternalIPAddress = 12.134.41.124" */
+
+  s = strstr (line, "ExternalIPAddress = ");
+  if (NULL != s)
+    {
+      s += strlen ("ExternalIPAddress = ");
+      if (1 != inet_pton (AF_INET,
+			  s, &exip))
+	return; /* skip */
+      if (exip.s_addr == mini->current_addr.sin_addr.s_addr)
+	return; /* no change */
+      /* update mapping */
+      mini->ac (mini->ac_cls, GNUNET_NO,
+		(const struct sockaddr*) &mini->current_addr,
+		sizeof (mini->current_addr));
+      mini->current_addr.sin_addr = exip;
+      mini->ac (mini->ac_cls, GNUNET_YES,
+		(const struct sockaddr*) &mini->current_addr,
+		sizeof (mini->current_addr));     
+      return;
+    }
+  /*
+    we're looking for output of the form:
+     
+     "0 TCP  3000->192.168.2.150:3000  'libminiupnpc' ''"
+     "1 UDP  3001->192.168.2.150:3001  'libminiupnpc' ''"
+
+    the pattern we look for is:
+
+     "%s TCP  PORT->STRING:OURPORT *" or
+     "%s UDP  PORT->STRING:OURPORT *"
+  */
+  GNUNET_snprintf (pstr, sizeof (pstr),
+		   ":%u ",
+		   mini->port);
+  if (NULL == (s = strstr (line, "->")))
+    return; /* skip */
+  if (NULL == (s = strstr (s, pstr)))
+    return; /* skip */
+  if (1 != sscanf (line,
+		   (mini->is_tcp) 
+		   ? "%*u TCP  %u->%*s:%*u %*s" 
+		   : "%*u UDP  %u->%*s:%*u %*s",
+		   &nport))
+    return; /* skip */
+  mini->found = GNUNET_YES;
+  if (nport == ntohs (mini->current_addr.sin_port))
+    return; /* no change */    
+
+  /* external port changed, update mapping */
+  mini->ac (mini->ac_cls, GNUNET_NO,
+	    (const struct sockaddr*) &mini->current_addr,
+	    sizeof (mini->current_addr));
+  mini->current_addr.sin_port = htons ((uint16_t) nport);
+  mini->ac (mini->ac_cls, GNUNET_YES,
+	    (const struct sockaddr*) &mini->current_addr,
+	    sizeof (mini->current_addr));     
 }
 
 
@@ -218,6 +318,7 @@ do_refresh (void *cls,
   struct GNUNET_NAT_MiniHandle *mini = cls;
 
   mini->refresh_task = GNUNET_SCHEDULER_NO_TASK;
+  mini->found = GNUNET_NO;
   mini->refresh_cmd = GNUNET_OS_command_run (&process_refresh_output,
 					     mini,
 					     MAP_TIMEOUT,
@@ -248,10 +349,9 @@ process_map_output (void *cls,
     {
       GNUNET_OS_command_stop (mini->map_cmd);
       mini->map_cmd = NULL;
-      if (mini->did_map == GNUNET_YES)
-	mini->refresh_task = GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ,
-							   &do_refresh,
-							   mini);
+      mini->refresh_task = GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ,
+							 &do_refresh,
+							 mini);
       return;
     }
   /*
@@ -263,9 +363,6 @@ process_map_output (void *cls,
        (NULL == (pstr = strstr (ipaddr, ":"))) ||
        (1 != sscanf (pstr + 1, "%u", &port)) )
     {
-      fprintf (stderr,
-	       "Skipping output `%s'\n",
-	       line);
       return; /* skip line */
     }
   ipa = GNUNET_strdup (ipaddr + 1);
@@ -275,9 +372,6 @@ process_map_output (void *cls,
 		      &mini->current_addr.sin_addr))
     {
       GNUNET_free (ipa);
-      fprintf (stderr,
-	       "Skipping output `%s'\n",
-	       line);
       return; /* skip line */
     }
   GNUNET_free (ipa);	      
@@ -332,7 +426,12 @@ GNUNET_NAT_mini_map_start (uint16_t port,
 					"-r", pstr, 
 					is_tcp ? "tcp" : "udp",
 					NULL);
-  
+  if (NULL != ret->map_cmd)
+    return ret;
+  ret->refresh_task = GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ,
+						    &do_refresh,
+						    ret);
+
   return ret;
 }
 
@@ -396,9 +495,12 @@ GNUNET_NAT_mini_map_stop (struct GNUNET_NAT_MiniHandle *mini)
   mini->ac (mini->ac_cls, GNUNET_NO,
 	    (const struct sockaddr*) &mini->current_addr,
 	    sizeof (mini->current_addr));
+  /* Note: oddly enough, deletion uses the external port whereas
+     addition uses the internal port; this rarely matters since they
+     often are the same, but it might... */
   GNUNET_snprintf (pstr, sizeof (pstr),
 		   "%u",
-		   (unsigned int) mini->port);
+		   (unsigned int) mini->current_addr.sin_port);
   mini->unmap_cmd = GNUNET_OS_command_run (&process_unmap_output,
 					   mini,
 					   UNMAP_TIMEOUT,
