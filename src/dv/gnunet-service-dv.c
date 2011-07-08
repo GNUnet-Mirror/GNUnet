@@ -2426,7 +2426,6 @@ addUpdateNeighbor (const struct GNUNET_PeerIdentity * peer,
                                                   &update_matching_neighbors,
                                                   neighbor_update) != GNUNET_SYSERR))
     {
-
 #if AT_MOST_ONE
     if ((neighbor != NULL) && (cost < neighbor->cost)) /* New cost is less than old, remove old */
       {
@@ -2954,9 +2953,7 @@ handle_core_connect (void *cls,
       {
         sent = GNUNET_CONTAINER_multihashmap_iterate(direct_neighbors, &add_distant_all_direct_neighbors, about);
         if (stats != NULL)
-          {
-            GNUNET_STATISTICS_update (stats, "# direct peers gossiped to new direct neighbors", sent, GNUNET_NO);
-          }
+          GNUNET_STATISTICS_update (stats, "# direct peers gossiped to new direct neighbors", sent, GNUNET_NO);
       }
 #if DEBUG_DV
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -3098,7 +3095,7 @@ run (void *cls,
   coreMST = GNUNET_SERVER_mst_create (&tokenized_message_handler,
                                       NULL);
 
-   peerinfo_handle = GNUNET_PEERINFO_connect(cfg);
+  peerinfo_handle = GNUNET_PEERINFO_connect(cfg);
 
    if (peerinfo_handle == NULL)
      {
