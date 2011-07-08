@@ -41,7 +41,7 @@ extern "C"
 
 
 /**
- * FIXME: document.
+ * Default republication frequency for stored data in the DHT.
  */
 #define GNUNET_DHT_DEFAULT_REPUBLISH_FREQUENCY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 60)
 

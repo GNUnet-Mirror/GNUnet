@@ -59,7 +59,8 @@ lib_LTLIBRARIES = \
 libgnunettransportnew_la_SOURCES = \
   transport_api_new.c transport.h \
   transport_api_blacklist.c \
-  transport_api_address_lookup.c 
+  transport_api_address_lookup.c \
+  transport_api_peer_address_lookup.c
 libgnunettransportnew_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -71,7 +72,8 @@ libgnunettransportnew_la_LDFLAGS = \
 libgnunettransport_la_SOURCES = \
   transport_api.c transport.h \
   transport_api_blacklist.c \
-  transport_api_address_lookup.c 
+  transport_api_address_lookup.c \
+  transport_api_peer_address_lookup.c  
 libgnunettransport_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/util/libgnunetutil.la \

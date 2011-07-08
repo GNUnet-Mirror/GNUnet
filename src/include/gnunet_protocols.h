@@ -102,7 +102,6 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_FRAGMENT 18
 
-
 /**
  * Message from the core saying that the transport
  * server should start giving it messages.  This
@@ -297,6 +296,11 @@ extern "C"
  * needs to keep the hole alive
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_NAT_PROBE_KEEPALIVE 58
+
+/**
+ * Request to look up addresses of peers.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_PEER_ADDRESS_LOOKUP 59
 
 /**
  * Welcome message between TCP transports.
@@ -912,6 +916,10 @@ extern "C"
 
 
 
+/*******************************************************************************
+ * CHAT message types START
+ ******************************************************************************/
+
 /**
  * Message sent from client to join a chat room.
  */
@@ -977,6 +985,28 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_CHAT_P2P_CONFIRMATION_RECEIPT 311
 
+/*******************************************************************************
+ * CHAT message types END
+ ******************************************************************************/
+
+/*******************************************************************************
+ * NSE (network size estimation) message types START
+ ******************************************************************************/
+
+/**
+ * client->service message indicating start
+ */
+#define GNUNET_MESSAGE_TYPE_NSE_START 321
+
+/**
+ * P2P message sent from nearest peer
+ */
+#define GNUNET_MESSAGE_TYPE_NSE_P2P_FLOOD 322
+
+/**
+ * service->client message indicating
+ */
+#define GNUNET_MESSAGE_TYPE_NSE_ESTIMATE 323
 
 /**
  * Type used to match 'all' message types.

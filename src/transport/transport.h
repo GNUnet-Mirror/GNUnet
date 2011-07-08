@@ -312,7 +312,27 @@ struct AddressLookupMessage
      followed by the 0-terminated name of the transport */
 };
 
+/**
+ * Message from the library to the transport service
+ * asking for human readable addresses known for a peer.
+ */
+struct PeerAddressLookupMessage
+{
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_PEER_ADDRESS_LOOKUP
+   */
+  struct GNUNET_MessageHeader header;
 
+  /**
+   * timeout to give up.
+   */
+  struct GNUNET_TIME_AbsoluteNBO timeout;
+
+  /**
+   * The identity of the peer to look up.
+   */
+  struct GNUNET_PeerIdentity peer;
+};
 
 /**
  * Change in blacklisting (either request or notification,

@@ -119,7 +119,7 @@ address_response_processor (void *cls,
  * @param aluc_cls closure for aluc
  */
 void
-GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle  *cfg,
+GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
 				 const char *address,
 				 size_t addressLen,
 				 int numeric,
