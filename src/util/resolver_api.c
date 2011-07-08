@@ -227,7 +227,6 @@ GNUNET_RESOLVER_connect (const struct GNUNET_CONFIGURATION_Handle *c)
   check_config (c);
   backoff = GNUNET_TIME_UNIT_MILLISECONDS;
   cfg = c;
-  fprintf (stderr, "connect setting cfg to %p\n", cfg);
 }
 
 
