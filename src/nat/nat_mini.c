@@ -53,6 +53,8 @@ GNUNET_NAT_mini_get_external_ipv4 (struct in_addr *addr)
   opipe = GNUNET_DISK_pipe (GNUNET_YES,
 			    GNUNET_NO,
 			    GNUNET_YES);
+  if (NULL == opipe)
+    return GNUNET_SYSERR;
   eip = GNUNET_OS_start_process (NULL,
 				 opipe,
 				 "external-ip",
@@ -85,5 +87,7 @@ GNUNET_NAT_mini_get_external_ipv4 (struct in_addr *addr)
   GNUNET_DISK_pipe_close (opipe);
   return iret; 
 }
+
+
 
 /* end of nat_mini.c */
