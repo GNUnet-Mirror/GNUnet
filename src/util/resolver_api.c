@@ -223,9 +223,11 @@ check_config (const struct GNUNET_CONFIGURATION_Handle *cfg)
 void
 GNUNET_RESOLVER_connect (const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  GNUNET_assert (NULL != c);
   check_config (c);
   backoff = GNUNET_TIME_UNIT_MILLISECONDS;
   cfg = c;
+  fprintf (stderr, "connect setting cfg to %p\n", cfg);
 }
 
 
@@ -256,7 +258,6 @@ GNUNET_RESOLVER_disconnect ()
       GNUNET_SCHEDULER_cancel (s_task);
       s_task = GNUNET_SCHEDULER_NO_TASK;
     }
-  cfg = NULL;
 }
 
 
@@ -706,6 +707,7 @@ reconnect ()
 	      "Will try to connect to DNS service in %llu ms\n",
 	      (unsigned long long) backoff.rel_value);
 #endif
+  GNUNET_assert (NULL != cfg);
   r_task = GNUNET_SCHEDULER_add_delayed (backoff,
 					 &reconnect_task,
 					 NULL);
