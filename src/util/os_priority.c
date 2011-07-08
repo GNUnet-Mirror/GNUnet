@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2002, 2003, 2004, 2005, 2006 Christian Grothoff (and other contributing authors)
+     (C) 2002, 2003, 2004, 2005, 2006, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -453,21 +453,21 @@ CreateCustomEnvTable (char **vars)
 }
 #endif
 
+
 /**
  * Start a process.
  *
  * @param pipe_stdin pipe to use to send input to child process (or NULL)
  * @param pipe_stdout pipe to use to get output from child process (or NULL)
  * @param filename name of the binary
- * @param ... NULL-terminated list of arguments to the process
- *
+ * @param va NULL-terminated list of arguments to the process
  * @return pointer to process structure of the new process, NULL on error
- *
  */
 struct GNUNET_OS_Process *
-GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin, 
-			 struct GNUNET_DISK_PipeHandle *pipe_stdout,
-			 const char *filename, ...)
+GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin, 
+			    struct GNUNET_DISK_PipeHandle *pipe_stdout,
+			    const char *filename, 
+			    va_list va)
 {
   va_list ap;
 #if ENABLE_WINDOWS_WORKAROUNDS
@@ -494,13 +494,13 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
 #endif
 
   argc = 0;
-  va_start (ap, filename);
+  va_copy (ap, va);
   while (NULL != va_arg (ap, char *))
       argc++;
   va_end (ap);
   argv = GNUNET_malloc (sizeof (char *) * (argc + 1));
   argc = 0;
-  va_start (ap, filename);
+  va_copy (ap, va);
   while (NULL != (argv[argc] = va_arg (ap, char *)))
     argc++;
   va_end (ap);
@@ -649,7 +649,7 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
   GNUNET_free (non_const_filename);
  
   cmdlen = 0;
-  va_start (ap, filename);
+  va_copy (ap, va);
   while (NULL != (arg = va_arg (ap, char *)))
   {
       if (cmdlen == 0)
@@ -660,7 +660,7 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
   va_end (ap);
 
   cmd = idx = GNUNET_malloc (sizeof (char) * (cmdlen + 1));
-  va_start (ap, filename);
+  va_copy (ap, va);
   while (NULL != (arg = va_arg (ap, char *)))
   {
       if (idx == cmd)
@@ -698,7 +698,9 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
     return NULL;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Opened the parent end of the pipe `%s'\n", childpipename);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Opened the parent end of the pipe `%s'\n", 
+	      childpipename);
 
   GNUNET_asprintf (&our_env[0], "%s=", GNUNET_OS_CONTROL_PIPE);
   GNUNET_asprintf (&our_env[1], "%s", childpipename);
@@ -734,9 +736,36 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
 
   return gnunet_proc;
 #endif
-
 }
 
+
+/**
+ * Start a process.
+ *
+ * @param pipe_stdin pipe to use to send input to child process (or NULL)
+ * @param pipe_stdout pipe to use to get output from child process (or NULL)
+ * @param filename name of the binary
+ * @param ... NULL-terminated list of arguments to the process
+ *
+ * @return pointer to process structure of the new process, NULL on error
+ *
+ */
+struct GNUNET_OS_Process *
+GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin, 
+			 struct GNUNET_DISK_PipeHandle *pipe_stdout,
+			 const char *filename, ...)
+{
+  struct GNUNET_OS_Process *ret;
+  va_list ap;
+
+  va_start (ap, filename);
+  ret = GNUNET_OS_start_process_va (pipe_stdin,
+				    pipe_stdout,
+				    filename,
+				    ap);
+  va_end (ap);
+  return ret;
+}
 
 
 /**
@@ -1184,6 +1213,210 @@ GNUNET_OS_process_wait (struct GNUNET_OS_Process *proc)
   return ret;
 #endif
 }
+
+
+/**
+ * Handle to a command.
+ */
+struct GNUNET_OS_CommandHandle
+{
+
+  /**
+   * Process handle.
+   */
+  struct GNUNET_OS_Process *eip;
+
+  /**
+   * Handle to the output pipe.
+   */
+  struct GNUNET_DISK_PipeHandle *opipe;
+  
+  /**
+   * Read-end of output pipe.
+   */
+  const struct GNUNET_DISK_FileHandle *r;
+
+  /**
+   * Function to call on each line of output.
+   */
+  GNUNET_OS_LineProcessor proc;
+
+  /**
+   * Closure for 'proc'.
+   */
+  void *proc_cls;
+		       
+  /**
+   * Buffer for the output.
+   */
+  char buf[1024];
+  
+  /**
+   * Task reading from pipe.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier rtask;
+
+  /**
+   * When to time out.
+   */
+  struct GNUNET_TIME_Absolute timeout;
+
+  /**
+   * Current read offset in buf.
+   */
+  size_t off;
+};
+
+
+/**
+ * Stop/kill a command.  Must ONLY be called either from
+ * the callback after 'NULL' was passed for 'line' *OR*
+ * from an independent task (not within the line processor).
+ *
+ * @param cmd handle to the process
+ * @param type status type
+ * @param code return code/signal number
+ * @return GNUNET_OK on success, GNUNET_NO if we killed the process
+ */
+int
+GNUNET_OS_command_stop (struct GNUNET_OS_CommandHandle *cmd,
+			enum GNUNET_OS_ProcessStatusType *type, 
+			unsigned long *code)
+{
+  int killed;
+
+  if (cmd->proc != NULL)
+    {
+      GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != cmd->rtask);
+      GNUNET_SCHEDULER_cancel (cmd->rtask);
+    }
+  killed = GNUNET_OS_process_kill (cmd->eip, SIGKILL);
+  GNUNET_break (GNUNET_OK ==
+		GNUNET_OS_process_status (cmd->eip,
+					  type, code));
+  GNUNET_OS_process_close (cmd->eip);
+  GNUNET_DISK_pipe_close (cmd->opipe);
+  GNUNET_free (cmd);
+  if (GNUNET_OK == killed)
+    return GNUNET_NO;
+  return GNUNET_OK;  
+}
+
+
+/**
+ * Read from the process and call the line processor.
+ *
+ * @param cls the 'struct GNUNET_OS_CommandHandle'
+ * @param tc scheduler context
+ */
+static void
+cmd_read (void *cls,
+	  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_OS_CommandHandle *cmd = cls;
+  GNUNET_OS_LineProcessor proc;
+  char *end;
+  ssize_t ret;
+
+  cmd->rtask = GNUNET_SCHEDULER_NO_TASK;
+  if (GNUNET_YES !=
+      GNUNET_NETWORK_fdset_handle_isset (tc->read_ready,
+					 cmd->r))
+    {
+      /* timeout, shutdown, etc. */
+      proc = cmd->proc;
+      cmd->proc = NULL;
+      proc (cmd->proc_cls, NULL);
+      return;
+    }					 
+  ret = GNUNET_DISK_file_read (cmd->r,
+			       &cmd->buf[cmd->off], 
+			       sizeof (cmd->buf)-cmd->off);
+  if (ret <= 0)
+    {
+      if ( (cmd->off > 0) && (cmd->off < sizeof (cmd->buf)) )
+	{
+	  cmd->buf[cmd->off] = '\0';
+	  cmd->proc (cmd->proc_cls, cmd->buf);
+	}
+      proc = cmd->proc;
+      cmd->proc = NULL;
+      proc (cmd->proc_cls, NULL);
+      return;
+    }    
+  end = memchr (&cmd->buf[cmd->off], '\n', ret);
+  cmd->off += ret;
+  while (end != NULL)
+    {
+      *end = '\0';
+      cmd->proc (cmd->proc_cls, cmd->buf);
+      memmove (cmd->buf, 
+	       end + 1, 
+	       cmd->off - (end + 1 - cmd->buf));
+      cmd->off -= (end + 1 - cmd->buf);
+      end = memchr (cmd->buf, '\n', cmd->off);
+    }    
+  cmd->rtask = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_absolute_get_remaining (cmd->timeout),
+					       cmd->r,
+					       &cmd_read,
+					       cmd);
+}
+
+
+/**
+ * Run the given command line and call the given function
+ * for each line of the output.
+ *
+ * @param proc function to call for each line of the output
+ * @param proc_cls closure for proc
+ * @param timeout when to time out
+ * @param binary command to run
+ * @param ... arguments to command
+ * @return NULL on error
+ */
+struct GNUNET_OS_CommandHandle *
+GNUNET_OS_command_run (GNUNET_OS_LineProcessor proc,
+		       void *proc_cls,
+		       struct GNUNET_TIME_Relative timeout,
+		       const char *binary,
+		       ...)
+{
+  struct GNUNET_OS_CommandHandle *cmd;
+  struct GNUNET_OS_Process *eip;
+  struct GNUNET_DISK_PipeHandle *opipe;
+  va_list ap;
+
+  opipe = GNUNET_DISK_pipe (GNUNET_YES,
+			    GNUNET_NO,
+			    GNUNET_YES);
+  if (NULL == opipe)
+    return NULL;
+  va_start (ap, binary);
+  eip = GNUNET_OS_start_process_va (NULL, opipe,
+				    binary, ap);
+  va_end (ap);
+  if (NULL == eip)
+    {
+      GNUNET_DISK_pipe_close (opipe);
+      return NULL;
+    }
+  GNUNET_DISK_pipe_close_end (opipe, GNUNET_DISK_PIPE_END_WRITE);
+  cmd = GNUNET_malloc (sizeof (struct GNUNET_OS_CommandHandle));
+  cmd->timeout = GNUNET_TIME_relative_to_absolute (timeout);
+  cmd->eip = eip;
+  cmd->opipe = opipe;
+  cmd->proc = proc;
+  cmd->proc_cls = proc_cls;
+  cmd->r = GNUNET_DISK_pipe_handle (opipe,
+				     GNUNET_DISK_PIPE_END_READ);
+  cmd->rtask = GNUNET_SCHEDULER_add_read_file (timeout,
+					       cmd->r,
+					       &cmd_read,
+					       cmd);
+  return cmd;
+}
+
+
 
 
 /* end of os_priority.c */

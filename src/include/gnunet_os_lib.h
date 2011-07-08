@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006 Christian Grothoff (and other contributing authors)
+     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -243,6 +243,21 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
 /**
  * Start a process.
  *
+ * @param pipe_stdin pipe to use to send input to child process (or NULL)
+ * @param pipe_stdout pipe to use to get output from child process (or NULL)
+ * @param filename name of the binary
+ * @param va NULL-terminated list of arguments to the process
+ * @return pointer to process structure of the new process, NULL on error
+ */
+struct GNUNET_OS_Process *
+GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin, 
+			    struct GNUNET_DISK_PipeHandle *pipe_stdout,
+			    const char *filename, 
+			    va_list va);
+
+/**
+ * Start a process.
+ *
  * @param lsocks array of listen sockets to dup systemd-style (or NULL);
  *         must be NULL on platforms where dup is not supported
  * @param filename name of the binary
@@ -253,6 +268,53 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
 struct GNUNET_OS_Process *
 GNUNET_OS_start_process_v (const int *lsocks, const char *filename,
 			   char *const argv[]);
+
+
+/**
+ * Handle to a command action.
+ */
+struct GNUNET_OS_CommandHandle;
+
+/**
+ * Type of a function to process a line of output.
+ *
+ * @param cls closure
+ * @param line line of output from a command, NULL for the end
+ */
+typedef void (*GNUNET_OS_LineProcessor)(void *cls,
+					const char *line);
+
+/**
+ * Stop/kill a command.
+ *
+ * @param cmd handle to the process
+ * @param type status type
+ * @param code return code/signal number
+ * @return GNUNET_OK on success, GNUNET_NO if we killed the process
+ */
+int
+GNUNET_OS_command_stop (struct GNUNET_OS_CommandHandle *cmd,
+			enum GNUNET_OS_ProcessStatusType *type, 
+			unsigned long *code);
+
+
+/**
+ * Run the given command line and call the given function
+ * for each line of the output.
+ *
+ * @param proc function to call for each line of the output
+ * @param proc_cls closure for proc
+ * @param timeout when to time out
+ * @param binary command to run
+ * @param ... arguments to command
+ * @return NULL on error
+ */
+struct GNUNET_OS_CommandHandle *
+GNUNET_OS_command_run (GNUNET_OS_LineProcessor proc,
+		       void *proc_cls,
+		       struct GNUNET_TIME_Relative timeout,
+		       const char *binary,
+		       ...);
 
 
 /**
