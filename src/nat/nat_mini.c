@@ -188,13 +188,10 @@ process_refresh_output (void *cls,
 			const char *line)
 {
   struct GNUNET_NAT_MiniHandle *mini = cls;
-  enum GNUNET_OS_ProcessStatusType type;
-  unsigned long code;
 
   if (NULL == line)
     {
-      GNUNET_OS_command_stop (mini->refresh_cmd,
-			      &type, &code);
+      GNUNET_OS_command_stop (mini->refresh_cmd);
       mini->refresh_cmd = NULL;
       mini->refresh_task = GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ,
 							 &do_refresh,
@@ -242,8 +239,6 @@ process_map_output (void *cls,
 		    const char *line)
 {
   struct GNUNET_NAT_MiniHandle *mini = cls;
-  enum GNUNET_OS_ProcessStatusType type;
-  unsigned long code;
   const char *ipaddr;
   char *ipa;
   const char *pstr;
@@ -251,8 +246,7 @@ process_map_output (void *cls,
 
   if (NULL == line)
     {
-      GNUNET_OS_command_stop (mini->map_cmd,
-			      &type, &code);
+      GNUNET_OS_command_stop (mini->map_cmd);
       mini->map_cmd = NULL;
       if (mini->did_map == GNUNET_YES)
 	mini->refresh_task = GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ,
@@ -354,13 +348,10 @@ process_unmap_output (void *cls,
 		      const char *line)
 {
   struct GNUNET_NAT_MiniHandle *mini = cls;
-  enum GNUNET_OS_ProcessStatusType type;
-  unsigned long code;
 
   if (NULL == line)
     {
-      GNUNET_OS_command_stop (mini->unmap_cmd,
-			      &type, &code);
+      GNUNET_OS_command_stop (mini->unmap_cmd);
       mini->unmap_cmd = NULL;
       GNUNET_free (mini);
       return;
@@ -381,15 +372,12 @@ void
 GNUNET_NAT_mini_map_stop (struct GNUNET_NAT_MiniHandle *mini)
 {
   char pstr[6];
-  enum GNUNET_OS_ProcessStatusType type;
-  unsigned long code;
 
   if (! mini->did_map)
     {
       if (mini->map_cmd != NULL)
 	{
-	  GNUNET_OS_command_stop (mini->map_cmd, 
-				  &type, &code);
+	  GNUNET_OS_command_stop (mini->map_cmd);
 	  mini->map_cmd = NULL;
 	}
       GNUNET_free (mini);
@@ -402,8 +390,7 @@ GNUNET_NAT_mini_map_stop (struct GNUNET_NAT_MiniHandle *mini)
     }
   if (mini->refresh_cmd != NULL)
     {
-      GNUNET_OS_command_stop (mini->refresh_cmd,
-			      &type, &code);
+      GNUNET_OS_command_stop (mini->refresh_cmd);
       mini->refresh_cmd = NULL;
     }
   mini->ac (mini->ac_cls, GNUNET_NO,

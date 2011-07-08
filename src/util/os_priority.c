@@ -1275,14 +1275,9 @@ struct GNUNET_OS_CommandHandle
  * from an independent task (not within the line processor).
  *
  * @param cmd handle to the process
- * @param type status type
- * @param code return code/signal number
- * @return GNUNET_OK on success, GNUNET_NO if we killed the process
  */
-int
-GNUNET_OS_command_stop (struct GNUNET_OS_CommandHandle *cmd,
-			enum GNUNET_OS_ProcessStatusType *type, 
-			unsigned long *code)
+void
+GNUNET_OS_command_stop (struct GNUNET_OS_CommandHandle *cmd)
 {
   int killed;
 
@@ -1293,14 +1288,10 @@ GNUNET_OS_command_stop (struct GNUNET_OS_CommandHandle *cmd,
     }
   killed = GNUNET_OS_process_kill (cmd->eip, SIGKILL);
   GNUNET_break (GNUNET_OK ==
-		GNUNET_OS_process_status (cmd->eip,
-					  type, code));
+		GNUNET_OS_process_wait (cmd->eip));
   GNUNET_OS_process_close (cmd->eip);
   GNUNET_DISK_pipe_close (cmd->opipe);
   GNUNET_free (cmd);
-  if (GNUNET_OK == killed)
-    return GNUNET_NO;
-  return GNUNET_OK;  
 }
 
 

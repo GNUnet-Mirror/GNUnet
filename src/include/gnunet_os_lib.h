@@ -288,14 +288,9 @@ typedef void (*GNUNET_OS_LineProcessor)(void *cls,
  * Stop/kill a command.
  *
  * @param cmd handle to the process
- * @param type status type
- * @param code return code/signal number
- * @return GNUNET_OK on success, GNUNET_NO if we killed the process
  */
-int
-GNUNET_OS_command_stop (struct GNUNET_OS_CommandHandle *cmd,
-			enum GNUNET_OS_ProcessStatusType *type, 
-			unsigned long *code);
+void
+GNUNET_OS_command_stop (struct GNUNET_OS_CommandHandle *cmd);
 
 
 /**

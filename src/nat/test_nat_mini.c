@@ -38,13 +38,8 @@
 
 #define VERBOSE GNUNET_YES
 
-
 /* Time to wait before stopping NAT, in seconds */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
-
-
-
-
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
  * Function called on each address that the NAT service
