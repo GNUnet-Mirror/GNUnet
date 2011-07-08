@@ -9,6 +9,25 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
+if HAVE_EXPENSIVE_TESTS
+  EXPENSIVE_TESTS = \
+   test_testing_topology_stability \
+   test_testing_topology_clique_random \
+   test_testing_topology_clique_minimum \
+   test_testing_topology_clique_dfs \
+   test_testing_topology_churn \
+   test_testing_topology_line
+   test_testing_topology_blacklist \
+   test_testing_group_remote \
+   test_testing_topology_ring \
+   test_testing_topology_2d_torus \
+   test_testing_topology_small_world_ring \
+   test_testing_topology_small_world_torus \
+   test_testing_topology_erdos_renyi \
+   test_testing_topology_internat \
+   test_testing_topology_scale_free
+endif
+
 lib_LTLIBRARIES = libgnunettesting.la
 
 libgnunettesting_la_SOURCES = \
@@ -55,21 +74,6 @@ TESTS = \
  test_testing_group \
  test_testing_peergroup \
  test_testing_topology_clique
-# test_testing_topology_stability \
-# test_testing_topology_clique_random \
-# test_testing_topology_clique_minimum \
-# test_testing_topology_clique_dfs \
-# test_testing_topology_churn \
-# test_testing_topology_line
-# test_testing_topology_blacklist \
-# test_testing_group_remote \
-# test_testing_topology_ring \
-# test_testing_topology_2d_torus \
-# test_testing_topology_small_world_ring \
-# test_testing_topology_small_world_torus \
-# test_testing_topology_erdos_renyi \
-# test_testing_topology_internat \
-# test_testing_topology_scale_free
 endif
 
 test_testing_SOURCES = \
