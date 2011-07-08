@@ -201,6 +201,44 @@ int
 GNUNET_NAT_mini_get_external_ipv4 (struct in_addr *addr);
 
 
+/**
+ * Handle to a mapping created with upnpc.
+ */ 
+struct GNUNET_NAT_MiniHandle;
+
+
+/**
+ * Start mapping the given port using (mini)upnpc.  This function
+ * should typically not be used directly (it is used within the
+ * general-purpose 'GNUNET_NAT_register' code).  However, it can be
+ * used if specifically UPnP-based NAT traversal is to be used or
+ * tested.
+ * 
+ * @param port port to map
+ * @param is_tcp GNUNET_YES to map TCP, GNUNET_NO for UDP
+ * @param ac function to call with mapping result
+ * @param ac_cls closure for 'ac'
+ * @return NULL on error
+ */
+struct GNUNET_NAT_MiniHandle *
+GNUNET_NAT_mini_map_start (uint16_t port,
+			   int is_tcp,
+			   GNUNET_NAT_AddressCallback ac,
+			   void *ac_cls);
+
+
+/**
+ * Remove a mapping created with (mini)upnpc.  Calling
+ * this function will give 'upnpc' 1s to remove tha mapping,
+ * so while this function is non-blocking, a task will be
+ * left with the scheduler for up to 1s past this call.
+ * 
+ * @param mini the handle
+ */
+void
+GNUNET_NAT_mini_map_stop (struct GNUNET_NAT_MiniHandle *mini);
+
+
 #endif 
 
 /* end of gnunet_nat_lib.h */

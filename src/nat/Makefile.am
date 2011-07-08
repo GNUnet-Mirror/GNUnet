@@ -57,6 +57,7 @@ libgnunetnat_la_LDFLAGS = \
 
 check_PROGRAMS = \
   test_nat \
+  test_nat_mini \
   test_nat_test
 
 if ENABLE_TEST_RUN
@@ -66,6 +67,12 @@ endif
 test_nat_SOURCES = \
   test_nat.c
 test_nat_LDADD = \
+ $(top_builddir)/src/nat/libgnunetnat.la \
+ $(top_builddir)/src/util/libgnunetutil.la 
+
+test_nat_mini_SOURCES = \
+  test_nat_mini.c
+test_nat_mini_LDADD = \
  $(top_builddir)/src/nat/libgnunetnat.la \
  $(top_builddir)/src/util/libgnunetutil.la 
 
