@@ -1,7 +1,36 @@
+/*
+     This file is part of GNUnet.
+     (C) 2009 Christian Grothoff (and other contributing authors)
+
+     GNUnet is free software; you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published
+     by the Free Software Foundation; either version 3, or (at your
+     option) any later version.
+
+     GNUnet is distributed in the hope that it will be useful, but
+     WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     General Public License for more details.
+
+     You should have received a copy of the GNU General Public License
+     along with GNUnet; see the file COPYING.  If not, write to the
+     Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+     Boston, MA 02111-1307, USA.
+*/
+
+/**
+ * @file transport/transport_ats.h
+ * @brief common internal definitions for transport service's ats code
+ * @author Matthias Wachs
+ */
+#ifndef TRANSPORT_ATS_H
+#define TRANSPORT_ATS_H
+
 #include "platform.h"
 #include "gnunet_constants.h"
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_statistics_service.h"
+#include "gnunet_time_lib.h"
 
 
 #if HAVE_LIBGLPK
@@ -30,10 +59,26 @@
 
 #define VERY_BIG_DOUBLE_VALUE 100000000000LL
 
+
+/*
+ * Callback Functions
+ */
+
+struct ATS_mechanism;
+struct ATS_peer;
+
+typedef void (*GNUNET_TRANSPORT_ATS_AddressNotification)
+             (struct ATS_peer **peers,
+              int * c_p,
+              struct ATS_mechanism ** mechanisms,
+              int * c_m );
+
+typedef void (*GNUNET_TRANSPORT_ATS_ResultCallback) (void);
+
 enum ATS_problem_state
 {
   /**
-   * Problem is new / unmodified
+   * Problem is new
    */
   ATS_NEW = 0,
 
@@ -59,8 +104,7 @@ enum ATS_problem_state
   ATS_MODIFIED = 4,
 
   /**
-   * Problem is modified and needs to be completely recalculated
-   * due to e.g. connecting or disconnecting peers
+   * Problem is unmodified
    */
   ATS_UNMODIFIED = 8
 };
@@ -69,7 +113,7 @@ enum ATS_problem_state
 *  ATS data structures
 */
 
-struct ATS_stat
+struct ATS_internals
 {
     /**
      * result of last GLPK run
@@ -163,19 +207,14 @@ struct ATS_stat
 
 struct ATS_Handle
 {
+    /*
+     *  Callback functions
+     */
 
-    /**
-     * Time of last execution
-     */
-    struct GNUNET_TIME_Absolute last;
-    /**
-     * Minimum intervall between two executions
-     */
-    struct GNUNET_TIME_Relative min_delta;
-    /**
-     * Regular intervall when execution is triggered
-     */
-    struct GNUNET_TIME_Relative exec_interval;
+    GNUNET_TRANSPORT_ATS_AddressNotification addr_notification;
+
+    GNUNET_TRANSPORT_ATS_ResultCallback result_cb;
+
     /**
      * Maximum execution time per calculation
      */
@@ -192,9 +231,9 @@ struct ATS_Handle
 #endif
 
     /**
-     * Current state of the GLPK problem
+     * Internal information state of the GLPK problem
      */
-    struct ATS_stat stat;
+    struct ATS_internals internal;
 
     /**
      * mechanisms used in current problem
@@ -207,6 +246,13 @@ struct ATS_Handle
      * needed for problem modification
      */
     struct ATS_peer * peers;
+
+    /**
+     * State of the MLP problem
+     * value of ATS_problem_state
+     *
+     */
+    int state;
 
     /**
      * number of successful executions
@@ -223,30 +269,11 @@ struct ATS_Handle
      */
     int max_iterations;
 
-    /**
-     * Dump problem to a file?
-     */
-    int save_mlp;
 
-    /**
-     * Dump solution to a file
+    /*
+     * ATS configuration
      */
-    int save_solution;
 
-    /**
-     * Dump solution when minimum peers:
-     */
-    int dump_min_peers;
-
-    /**
-     * Dump solution when minimum addresses:
-     */
-    int dump_min_addr;
-
-    /**
-     * Dump solution overwrite file:
-     */
-    int dump_overwrite;
 
     /**
      * Diversity weight
@@ -272,6 +299,37 @@ struct ATS_Handle
      * Minimum number of connections per peer
      */
     int v_n_min;
+
+
+    /**
+     * Logging related variables
+     */
+
+
+    /**
+     * Dump problem to a file?
+     */
+    int save_mlp;
+
+    /**
+     * Dump solution to a file
+     */
+    int save_solution;
+
+    /**
+     * Dump solution when minimum peers:
+     */
+    int dump_min_peers;
+
+    /**
+     * Dump solution when minimum addresses:
+     */
+    int dump_min_addr;
+
+    /**
+     * Dump solution overwrite file:
+     */
+    int dump_overwrite;
 };
 
 struct ATS_mechanism
@@ -279,6 +337,8 @@ struct ATS_mechanism
     struct ATS_mechanism * prev;
     struct ATS_mechanism * next;
     struct ForeignAddressList * addr;
+    struct ATS_quality_entry * quality;
+    struct ATS_ressource_entry * ressources;
     struct TransportPlugin * plugin;
     struct ATS_peer * peer;
     int col_index;
@@ -386,7 +446,15 @@ static struct ATS_quality_metric qm[] =
  * ATS functions
  */
 struct ATS_Handle *
-ats_init (const struct GNUNET_CONFIGURATION_Handle *cfg);
+ats_init (double D,
+          double U,
+          double R,
+          int v_b_min,
+          int v_n_min,
+          int max_iterations,
+          struct GNUNET_TIME_Relative max_duration,
+          GNUNET_TRANSPORT_ATS_AddressNotification address_not,
+          GNUNET_TRANSPORT_ATS_ResultCallback res_cb);
 
 void
 ats_shutdown (struct ATS_Handle * ats);
@@ -395,22 +463,19 @@ void
 ats_delete_problem (struct ATS_Handle * ats);
 
 int
-ats_create_problem (struct ATS_Handle * ats,
-                    struct NeighbourList *n,
-                    double D,
-                    double U,
-                    double R,
-                    int v_b_min,
-                    int v_n_min,
-                    struct ATS_stat *stat);
+ats_create_problem (struct ATS_Handle *ats,
+                    struct ATS_internals *stat,
+                    struct ATS_peer *peers,
+                    int c_p,
+                    struct ATS_mechanism *mechanisms,
+                    int c_m);
 
 void ats_modify_problem_state (struct ATS_Handle * ats,
     enum ATS_problem_state s);
 
 void
 ats_calculate_bandwidth_distribution (struct ATS_Handle * ats,
-    struct GNUNET_STATISTICS_Handle *stats,
-    struct NeighbourList *neighbours);
+    struct GNUNET_STATISTICS_Handle *stats);
 
 void
 ats_solve_problem (struct ATS_Handle * ats,
@@ -418,7 +483,7 @@ ats_solve_problem (struct ATS_Handle * ats,
     unsigned int  max_dur,
     unsigned int c_peers,
     unsigned int  c_mechs,
-    struct ATS_stat *stat);
+    struct ATS_internals *stat);
 
 int
 ats_evaluate_results (int result,
@@ -432,3 +497,13 @@ void
 ats_update_problem_cr (struct ATS_Handle * ats);
 
 
+void
+ats_set_logging_options (struct ATS_Handle * ats,
+                        int minimum_addresses,
+                        int minimum_peers,
+                        int overwrite_dump,
+                        int log_solution,
+                        int log_problem);
+
+#endif
+/* end of file transport_ats.h */

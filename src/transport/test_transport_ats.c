@@ -31,12 +31,40 @@ struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static struct ATS_Handle * ats;
 
+void ats_result_cb ()
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "ATS Result callback\n");
+}
+
+
+void create_ats_information (struct ATS_peer **p, int * c_p,
+                             struct ATS_mechanism ** m, int * c_m)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "ATS needs addresses\n");
+  (*c_m) = 100;
+  (*c_p) = 10;
+}
+
+int run_ats (void)
+{
+  int ret = 0;
+
+  ats_calculate_bandwidth_distribution(ats, NULL);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Running ATS: %s \n", (ret==0)? "SUCCESFULL": "FAILED");
+  return ret;
+}
 
 int init_ats (void)
 {
   int ret = 0;
 
-  //ats = ats_init(cfg);
+  ats = ats_init(1.0, 1.0, 1.0, 50000, 5, 10, ATS_MAX_EXEC_DURATION,
+                create_ats_information,
+                ats_result_cb);
   //GNUNET_assert (ats != NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -93,6 +121,7 @@ main (int argc, char *argv[])
   /* Testing */
   ats = NULL;
   ret += init_ats ();
+  ret += run_ats ();
   ret += shutdown_ats ();
 
   /* Shutdown */

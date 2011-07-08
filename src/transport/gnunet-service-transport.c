@@ -935,6 +935,19 @@ static int shutdown_in_progress;
 static struct ATS_Handle *ats;
 
 /**
+ * Time of last ats execution
+ */
+struct GNUNET_TIME_Absolute last_ats_execution;
+/**
+ * Minimum interval between two ATS executions
+ */
+struct GNUNET_TIME_Relative ats_minimum_interval;
+/**
+ * Regular interval when ATS execution is triggered
+ */
+struct GNUNET_TIME_Relative ats_regular_interval;
+
+/**
  * The peer specified by the given neighbour has timed-out or a plugin
  * has disconnected.  We may either need to do nothing (other plugins
  * still up), or trigger a full disconnect and clean up.  This
@@ -2284,10 +2297,11 @@ try_fast_reconnect (struct TransportPlugin *p,
 
   /* No reconnect, signal disconnect instead! */
 #if DEBUG_TRANSPORT
+#endif
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
             "Disconnecting peer `%4s', %s\n", GNUNET_i2s(&nl->id),
             "try_fast_reconnect");
-#endif
+
   GNUNET_STATISTICS_update (stats,
                             gettext_noop ("# disconnects due to try_fast_reconnect"),
                             1,
@@ -2416,11 +2430,18 @@ plugin_env_session_end  (void *cls,
                                     gettext_noop ("# disconnects due to missing pong"),
                                     1,
                                     GNUNET_NO);
+          /* FIXME this is never true?! See: line 2416*/
 	  if (GNUNET_YES == pos->connected)
 	    disconnect_neighbour (nl, GNUNET_YES);
         }
       return;
     }
+
+  GNUNET_STATISTICS_update (stats,
+                              gettext_noop ("# connected addresses"),
+                              -1,
+                              GNUNET_NO);
+
   /* was inbound connection, free 'pos' */
   if (prev == NULL)
     rl->addresses = pos->next;
@@ -2607,7 +2628,7 @@ notify_clients_connect (const struct GNUNET_PeerIdentity *peer,
   if ((ats != NULL) && (shutdown_in_progress == GNUNET_NO))
   {
     ats_modify_problem_state(ats, ATS_MODIFIED);
-    ats_calculate_bandwidth_distribution (ats, stats, neighbours);
+    ats_calculate_bandwidth_distribution (ats, stats);
   }
 
 
@@ -2656,7 +2677,7 @@ notify_clients_disconnect (const struct GNUNET_PeerIdentity *peer)
   if ((ats != NULL) && (shutdown_in_progress == GNUNET_NO))
   {
     ats_modify_problem_state(ats, ATS_MODIFIED);
-    ats_calculate_bandwidth_distribution (ats, stats, neighbours);
+    ats_calculate_bandwidth_distribution (ats, stats);
   }
 
   cpos = clients;
@@ -4820,7 +4841,7 @@ disconnect_neighbour (struct NeighbourList *n, int check)
   if (GNUNET_YES == n->received_pong)
     notify_clients_disconnect (&n->id);
 
-  ats_modify_problem_state(ats, ATS_QUALITY_COST_UPDATED);
+  ats_modify_problem_state(ats, ATS_MODIFIED);
 
   /* clean up all plugins, cancel connections and pending transmissions */
   while (NULL != (rpos = n->plugins))
@@ -6006,13 +6027,12 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CONTAINER_multihashmap_destroy (validation_map);
   validation_map = NULL;
 
+
   if (ats_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel(ats_task);
     ats_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
-
   if (ats != NULL)
     ats_shutdown (ats);
 
@@ -6058,9 +6078,127 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+void ats_result_cb ()
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "ATS Result callback\n");
+}
+
+
+void create_ats_information ( struct ATS_peer **p,
+                              int * c_p,
+                              struct ATS_mechanism ** m,
+                              int * c_m )
+{
+#if VERBOSE_ATS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "ATS requires clean address information\n");
+#endif
+  struct ATS_mechanism * mechanisms;
+  struct ATS_peer *peers;
+
+  int connected_addresses = 0;
+  int c_peers = 0;
+  int c_mechs = 0;
+  struct NeighbourList *next = neighbours;
+
+  while (next!=NULL)
+  {
+    int found_addresses = GNUNET_NO;
+    struct ReadyList *r_next = next->plugins;
+    while (r_next != NULL)
+    {
+        struct ForeignAddressList * a_next = r_next->addresses;
+        while (a_next != NULL)
+        {
+            c_mechs++;
+            found_addresses = GNUNET_YES;
+            a_next = a_next->next;
+        }
+        r_next = r_next->next;
+    }
+    if (found_addresses) c_peers++;
+    next = next->next;
+  }
+
+#if VERBOSE_ATS
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      "Found %u peers with % u transport mechanisms\n", c_peers, c_mechs);
+#endif
+
+  if ((c_peers == 0) && (c_mechs == 0))
+  {
+    peers = NULL;
+    (*c_p) = 0;
+    mechanisms = NULL;
+    (*c_m) = 0;
+    return;
+  }
+
+  mechanisms = GNUNET_malloc((1+c_mechs) * sizeof (struct ATS_mechanism));
+  peers =  GNUNET_malloc((1+c_peers) * sizeof (struct ATS_peer));
+
+  c_mechs = 1;
+  c_peers = 1;
+
+  next = neighbours;
+  while (next!=NULL)
+  {
+    int found_addresses = GNUNET_NO;
+    struct ReadyList *r_next = next->plugins;
+    while (r_next != NULL)
+    {
+        struct ForeignAddressList * a_next = r_next->addresses;
+        while (a_next != NULL)
+        {
+            if (a_next->connected == GNUNET_YES)
+              connected_addresses ++;
+            if (found_addresses == GNUNET_NO)
+            {
+              peers[c_peers].peer = next->id;
+              peers[c_peers].m_head = NULL;
+              peers[c_peers].m_tail = NULL;
+              peers[c_peers].f = 1.0 / c_mechs;
+            }
+
+            mechanisms[c_mechs].addr = a_next;
+            mechanisms[c_mechs].col_index = c_mechs;
+            mechanisms[c_mechs].peer = &peers[c_peers];
+            mechanisms[c_mechs].next = NULL;
+            mechanisms[c_mechs].plugin = r_next->plugin;
+            mechanisms[c_mechs].ressources = a_next->ressources;
+            mechanisms[c_mechs].quality = a_next->quality;
+
+            GNUNET_CONTAINER_DLL_insert_tail(peers[c_peers].m_head,
+                                             peers[c_peers].m_tail,
+                                             &mechanisms[c_mechs]);
+            found_addresses = GNUNET_YES;
+            c_mechs++;
+
+            a_next = a_next->next;
+        }
+        r_next = r_next->next;
+    }
+    if (found_addresses == GNUNET_YES)
+        c_peers++;
+    next = next->next;
+  }
+  c_mechs--;
+  c_peers--;
+  (*c_m) = c_mechs;
+  (*c_p) = c_peers;
+  (*p) = peers;
+  (*m) = mechanisms;
+
+  GNUNET_STATISTICS_set(stats,
+                        gettext_noop ("# connected addresses"),
+                        connected_addresses,
+                        GNUNET_NO);
+}
+
 static void
 schedule_ats (void *cls,
-			  const struct GNUNET_SCHEDULER_TaskContext *tc)
+              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ATS_Handle *ats = (struct ATS_Handle *) cls;
   if (ats==NULL)
@@ -6069,13 +6207,28 @@ schedule_ats (void *cls,
   ats_task = GNUNET_SCHEDULER_NO_TASK;
   if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
       return;
+
   if (shutdown_in_progress == GNUNET_YES)
           return;
+
+  struct GNUNET_TIME_Relative delta =
+      GNUNET_TIME_absolute_get_difference (last_ats_execution, GNUNET_TIME_absolute_get());
+  if (delta.rel_value < ats_minimum_interval.rel_value)
+  {
 #if DEBUG_ATS
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Running scheduled calculation\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_BULK,
+        "Minimum time between cycles not reached\n");
 #endif
-  ats_calculate_bandwidth_distribution (ats, stats, neighbours);
-  ats_task = GNUNET_SCHEDULER_add_delayed (ats->exec_interval,
+    return;
+  }
+
+#if DEBUG_ATS
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Running scheduled calculation\n");
+#endif
+  ats_calculate_bandwidth_distribution (ats, stats);
+  last_ats_execution = GNUNET_TIME_absolute_get();
+
+  ats_task = GNUNET_SCHEDULER_add_delayed (ats_regular_interval,
                                   &schedule_ats, ats);
 }
 
@@ -6215,9 +6368,134 @@ run (void *cls,
   if (no_transports)
     refresh_hello ();
 
-  ats = ats_init (cfg);
+  /* Initializing ATS */
+  int co;
+  char * section;
+  unsigned long long  value;
+
+  double D = 1.0;
+  double U = 1.0;
+  double R = 1.0;
+  int v_b_min = 64000;
+  int v_n_min = 5;
+
+  ats_minimum_interval = ATS_MIN_INTERVAL;
+  ats_regular_interval = ATS_EXEC_INTERVAL;
+
+  /* loading cost ressources */
+  for (co=0; co<available_ressources; co++)
+  {
+    GNUNET_asprintf(&section,"%s_UP",ressources[co].cfg_param);
+    if (GNUNET_CONFIGURATION_have_value(cfg, "transport", section))
+    {
+      if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number(cfg,
+          "transport",
+          section,
+          &value))
+      {
+#if DEBUG_ATS
+              GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Found ressource cost: [%s] = %llu\n",
+                  section, value);
+#endif
+              ressources[co].c_max = value;
+      }
+    }
+    GNUNET_free (section);
+    GNUNET_asprintf(&section,"%s_DOWN",ressources[co].cfg_param);
+    if (GNUNET_CONFIGURATION_have_value(cfg, "transport", section))
+    {
+      if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number(cfg,
+          "transport",
+          section,
+          &value))
+      {
+#if DEBUG_ATS
+              GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Found ressource cost: [%s] = %llu\n",
+                  section, value);
+#endif
+              ressources[co].c_min = value;
+      }
+    }
+    GNUNET_free (section);
+  }
+
+  ats = ats_init (D, U, R, v_b_min, v_n_min,
+                  ATS_MAX_ITERATIONS, ATS_MAX_EXEC_DURATION,
+                  create_ats_information,
+                  ats_result_cb);
+
+  int log_problem = GNUNET_NO;
+  int log_solution = GNUNET_NO;
+  int overwrite_dump = GNUNET_NO;
+  int minimum_peers = 0;
+  int minimum_addresses = 0;
+
+  if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "DUMP_MLP"))
+    log_problem = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                             "transport","DUMP_MLP");
+
+  if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "DUMP_SOLUTION"))
+    log_solution = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                  "transport","DUMP_SOLUTION");
+  if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "DUMP_OVERWRITE"))
+    overwrite_dump = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                  "transport","DUMP_OVERWRITE");
+  if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "DUMP_MIN_PEERS"))
+  {
+          GNUNET_CONFIGURATION_get_value_number(cfg,
+              "transport","DUMP_MIN_PEERS", &value);
+          minimum_peers = value;
+  }
+  if (GNUNET_CONFIGURATION_have_value(cfg,
+      "transport", "DUMP_MIN_ADDRS"))
+  {
+      GNUNET_CONFIGURATION_get_value_number(cfg,
+        "transport","DUMP_MIN_ADDRS", &value);
+      minimum_addresses= value;
+  }
+  if (GNUNET_CONFIGURATION_have_value(cfg,
+      "transport", "DUMP_OVERWRITE"))
+  {
+      GNUNET_CONFIGURATION_get_value_number(cfg,
+          "transport","DUMP_OVERWRITE", &value);
+      overwrite_dump = value;
+  }
+
+  if (GNUNET_CONFIGURATION_have_value(cfg,
+      "transport", "ATS_MIN_INTERVAL"))
+  {
+      GNUNET_CONFIGURATION_get_value_number(cfg,
+          "transport","ATS_MIN_INTERVAL", &value);
+      ats_minimum_interval.rel_value = value;
+  }
+
+  if (GNUNET_CONFIGURATION_have_value(cfg,
+      "transport", "ATS_EXEC_INTERVAL"))
+  {
+      GNUNET_CONFIGURATION_get_value_number(cfg,
+          "transport","ATS_EXEC_INTERVAL", &value);
+      ats_regular_interval.rel_value = value;
+  }
+  if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "ATS_MIN_INTERVAL"))
+  {
+      GNUNET_CONFIGURATION_get_value_number(cfg,
+          "transport","ATS_MIN_INTERVAL", &value);
+      ats_minimum_interval.rel_value = value;
+  }
+
+  ats_set_logging_options (ats,
+                          minimum_addresses,
+                          minimum_peers,
+                          overwrite_dump,
+                          log_solution,
+                          log_problem);
+
   if (ats != NULL)
     ats_task = GNUNET_SCHEDULER_add_now (&schedule_ats, ats);
+
+
 
 
 #if DEBUG_TRANSPORT
