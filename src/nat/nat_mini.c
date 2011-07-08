@@ -450,6 +450,8 @@ process_unmap_output (void *cls,
 
   if (NULL == line)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "UPnP unmap done\n");
       GNUNET_OS_command_stop (mini->unmap_cmd);
       mini->unmap_cmd = NULL;
       GNUNET_free (mini);
@@ -500,7 +502,10 @@ GNUNET_NAT_mini_map_stop (struct GNUNET_NAT_MiniHandle *mini)
      often are the same, but it might... */
   GNUNET_snprintf (pstr, sizeof (pstr),
 		   "%u",
-		   (unsigned int) mini->current_addr.sin_port);
+		   (unsigned int) ntohs (mini->current_addr.sin_port));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Unmapping port %u\n",
+	      ntohs (mini->current_addr.sin_port));
   mini->unmap_cmd = GNUNET_OS_command_run (&process_unmap_output,
 					   mini,
 					   UNMAP_TIMEOUT,
