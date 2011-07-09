@@ -46,6 +46,13 @@ struct FragmentAcknowledgement
 
   struct GNUNET_MessageHeader header;
 
+  /**
+   * Bits that are being acknowledged, in big-endian.
+   * (bits that are set correspond to fragments that
+   * have not yet been received).
+   */
+  uint64_t bits;
+
 };
 
 
