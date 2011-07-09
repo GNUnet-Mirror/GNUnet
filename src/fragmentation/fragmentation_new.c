@@ -22,10 +22,11 @@
  * @brief library to help fragment messages
  * @author Christian Grothoff
  */
-
 #include "platform.h"
 #include "gnunet_fragmentation_lib.h"
+#include "gnunet_protocols.h"
 #include "fragmentation.h"
+
 
 /**
  * Fragmentation context.
@@ -76,6 +77,11 @@ struct GNUNET_FRAGMENT_Context
    * Task performing work for the fragmenter.
    */
   GNUNET_SCHEDULER_TaskIdentifier task;
+
+  /**
+   * Our fragmentation ID. (chosen at random)
+   */
+  uint32_t fragment_id;
 
   /**
    * Round-robin selector for the next transmission.
@@ -150,7 +156,9 @@ transmit_next (void *cls,
   fh = (struct FragmentHeader*) msg;
   fh->header.size = htons (fsize);
   fh->header.type = htons (GNUNET_MESSAGE_TYPE_FRAGMENT);
-  /* FIXME: add specific ID info... */
+  fh->fragment_id = htonl (fc->fragment_id);
+  fh->total_size = fc->msg->size; /* already in big-endian */
+  fh->offset = htons (fc->mtu * bit);
   memcpy (&fc[1],
 	  &mbuf[bit * (fc->mtu - sizeof (struct FragmentHeader))], 
 	  fsize - sizeof (struct FragmentHeader));
@@ -236,6 +244,8 @@ GNUNET_FRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
   fc->msg = (const struct GNUNET_MessageHeader*)&fc[1];
   fc->proc = proc;
   fc->proc_cls = proc_cls;
+  fc->fragment_id = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+					      UINT32_MAX);
   memcpy (&fc[1], msg, size);
   bits = (size + mtu - 1) / (mtu - sizeof (struct FragmentHeader));
   GNUNET_assert (bits <= 64);
@@ -275,9 +285,9 @@ GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
       return GNUNET_SYSERR;
     }
   fa = (const struct FragmentAcknowledgement *) msg;
+  if (ntohl (fa->fragment_id) != fc->fragment_id)
+    return GNUNET_SYSERR; /* not our ACK */
   abits = GNUNET_ntohll (fa->bits);
-  /* FIXME: match FA to us... */
-
   if (GNUNET_YES == fc->wack)
     {
       /* normal ACK, can update running average of delay... */
@@ -325,6 +335,7 @@ GNUNET_FRAGMENT_context_destroy (struct GNUNET_FRAGMENT_Context *fc)
   GNUNET_free (fc);
   return ret;
 }
+
 
 /* end of fragmentation_new.c */
 

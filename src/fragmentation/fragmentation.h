@@ -28,12 +28,32 @@
 #include "gnunet_fragmentation_lib.h"
 
 /**
- * Header for a message fragment.
+ * Header for a message fragment.  Followed by the
+ * original message.
  */
 struct FragmentHeader
 {
 
+  /**
+   * Message header.
+   */
   struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique fragment ID.
+   */
+  uint32_t fragment_id;
+
+  /**
+   * Total message size of the original message.
+   */
+  uint16_t total_size;
+
+  /**
+   * Absolute offset (in bytes) of this fragment in the original
+   * message.  Will be a multiple of the MTU.
+   */
+  uint16_t offset;
 
 };
 
@@ -44,7 +64,15 @@ struct FragmentHeader
 struct FragmentAcknowledgement
 {
 
+  /**
+   * Message header.
+   */
   struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique fragment ID.
+   */
+  uint32_t fragment_id;
 
   /**
    * Bits that are being acknowledged, in big-endian.
