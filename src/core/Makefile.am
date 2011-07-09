@@ -25,7 +25,8 @@ libgnunetcore_la_LDFLAGS = \
 
 
 bin_PROGRAMS = \
- gnunet-service-core
+ gnunet-service-core \
+ gnunet-core-list-connections
 
 gnunet_service_core_SOURCES = \
  gnunet-service-core.c 
@@ -36,6 +37,16 @@ gnunet_service_core_LDADD = \
   $(top_builddir)/src/transport/libgnunettransportnew.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
+
+
+gnunet_core_list_connections_SOURCES = \
+ gnunet-core-list-connections.c         
+gnunet_core_list_connections_LDADD = \
+  $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/transport/libgnunettransport.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+
 
 check_PROGRAMS = \
  test_core_api_start_only \

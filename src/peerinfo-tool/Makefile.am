@@ -10,16 +10,7 @@ if USE_COVERAGE
 endif
 
 bin_PROGRAMS = \
- gnunet-peerinfo \
- gnunet-list-connections
-
-gnunet_list_connections_SOURCES = \
- gnunet-list-connections.c         
-gnunet_list_connections_LDADD = \
-  $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/transport/libgnunettransport.la \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  $(top_builddir)/src/util/libgnunetutil.la
+ gnunet-peerinfo 
 
 gnunet_peerinfo_SOURCES = \
  gnunet-peerinfo.c         

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2006, 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -19,9 +19,9 @@
 */
 
 /**
- * @file peerinfo-tool/gnunet-list-connections.c
+ * @file core/gnunet-core-list-connections.c
  * @brief Print information about other known _connected_ peers.
- * @author Christian Grothoff
+ * @author Nathan Evans
  */
 #include "platform.h"
 #include "gnunet_crypto_lib.h"
@@ -203,4 +203,4 @@ main (int argc, char *const *argv)
                               options, &run, NULL)) ? 0 : 1;
 }
 
-/* end of gnunet-peerinfo.c */
+/* end of gnunet-core-list-connections.c */
