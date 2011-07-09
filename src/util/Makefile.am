@@ -240,7 +240,7 @@ test_crypto_aes_weak_SOURCES = \
  test_crypto_aes_weak.c
 test_crypto_aes_weak_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  \
- -lgcrypt
+ $(LIBGCRYPT_LIBS)
 
 test_crypto_crc_SOURCES = \
  test_crypto_crc.c
