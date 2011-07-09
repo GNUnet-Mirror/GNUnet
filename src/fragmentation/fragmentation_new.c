@@ -18,42 +18,82 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file include/gnunet_fragmentation_lib.h
+ * @file src/fragmentation/fragmentation_new.c
  * @brief library to help fragment messages
  * @author Christian Grothoff
  */
 
-#ifndef GNUNET_FRAGMENTATION_LIB_H
-#define GNUNET_FRAGMENTATION_LIB_H
-
-#include "gnunet_util_lib.h"
-#include "gnunet_bandwidth_lib.h"
-#include "gnunet_statistics_service.h"
-
-#ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
-}
-#endif
-#endif
-
+#include "platform.h"
+#include "gnunet_fragmentation_lib.h"
+#include "fragmentation.h"
 
 /**
  * Fragmentation context.
  */
-struct GNUNET_FRAGMENT_Context;
+struct GNUNET_FRAGMENT_Context
+{
+  /**
+   * Statistics to use.
+   */
+  struct GNUNET_STATISTICS_Handle *stats;
+
+  /**
+   * Tracker for flow control.
+   */
+  struct GNUNET_BANDWIDTH_Tracker *tracker;
+
+  /**
+   * Current expected delay for ACKs.
+   */
+  struct GNUNET_TIME_Relative delay;
+
+  /**
+   * Message to fragment (allocated at the end of this struct).
+   */
+  const struct GNUNET_MessageHeader *msg;
+
+  /**
+   * Function to call for transmissions.
+   */
+  GNUNET_FRAGMENT_MessageProcessor proc;
+
+  /**
+   * Closure for 'proc'.
+   */
+  void *proc_cls;
+
+  /**
+   * Bitfield, set to 1 for each unacknowledged fragment.
+   */
+  uint64_t acks;
+
+  /**
+   * Task performing work for the fragmenter.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier task;
+
+  /**
+   * Target fragment size.
+   */
+  uint16_t mtu;
+  
+};
 
 
 /**
- * Function that is called with messages
- * created by the fragmentation module.
+ * Transmit the next fragment to the other peer.
  *
- * @param cls closure
- * @param msg the message that was created
+ * @param cls the 'struct GNUNET_FRAGMENT_Context'
+ * @param tc scheduler context
  */
-typedef void (*GNUNET_FRAGMENT_MessageProcessor) (void *cls,
-                                                  const struct GNUNET_MessageHeader *msg);
+static void
+transmit_next (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_FRAGMENT_Context *fc = cls;
+
+  fc->task = GNUNET_SCHEDULER_NO_TASK;
+}
 
 
 /**
@@ -81,7 +121,35 @@ GNUNET_FRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
 				struct GNUNET_TIME_Relative delay,
 				const struct GNUNET_MessageHeader *msg,
 				GNUNET_FRAGMENT_MessageProcessor proc,
-				void *proc_cls);
+				void *proc_cls)
+{
+  struct GNUNET_FRAGMENT_Context *fc;
+  size_t size;
+  uint64_t bits;
+  
+  GNUNET_assert (mtu >= 1024 + sizeof (struct FragmentHeader));
+  size = ntohs (msg->size);
+  GNUNET_assert (size > mtu);
+  fc = GNUNET_malloc (sizeof (struct GNUNET_FRAGMENT_Context) + size);
+  fc->stats = stats;
+  fc->mtu = mtu;
+  fc->tracker = tracker;
+  fc->delay = delay;
+  fc->msg = (const struct GNUNET_MessageHeader*)&fc[1];
+  fc->proc = proc;
+  fc->proc_cls = proc_cls;
+  memcpy (&fc[1], msg, size);
+  bits = (size + mtu - 1) / (mtu - sizeof (struct FragmentHeader));
+  GNUNET_assert (bits <= 64);
+  if (bits == 64)
+    fc->acks = UINT64_MAX;      /* set all 64 bit */
+  else
+    fc->acks = (1 << bits) - 1; /* set lowest 'bits' bit */
+  fc->task = GNUNET_SCHEDULER_add_delayed (GNUNET_BANDWIDTH_tracker_get_delay (tracker, mtu),
+					   &transmit_next,
+					   fc);
+  return fc;
+}
 
 
 /**
@@ -95,8 +163,12 @@ GNUNET_FRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
  *         GNUNET_NO if more messages are pending
  *         GNUNET_SYSERR if this ack is not valid for this fc
  */
-int GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
-				 const struct GNUNET_MessageHeader *msg);
+int 
+GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
+			     const struct GNUNET_MessageHeader *msg)
+{
+  return GNUNET_SYSERR;
+}
 
 
 /**
@@ -108,58 +180,16 @@ int GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
  *         last message, FOREVER if the message was not fully transmitted
  */
 struct GNUNET_TIME_Relative
-GNUNET_FRAGMENT_context_destroy (struct GNUNET_FRAGMENT_Context *fc);
-
-
-/**
- * Defragmentation context.
- */
-struct GNUNET_DEFRAGMENT_Context;
-
-
-/**
- * Create a defragmentation context.
- *
- * @param stats statistics context
- * @param cls closure for proc and ackp
- * @param proc function to call with defragmented messages
- * @param ackp function to call with acknowledgements (to send
- *             back to the other side)
- * @return the defragmentation context
- */
-struct GNUNET_DEFRAGMENT_Context *
-GNUNET_DEFRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
-				  void *cls,
-				  GNUNET_FRAGMENT_MessageProcessor proc,
-				  GNUNET_FRAGMENT_MessageProcessor ackp);
-
-
-/**
- * Destroy the given defragmentation context.
- *
- * @param dc defragmentation context
- */
-void
-GNUNET_DEFRAGMENT_context_destroy (struct GNUNET_DEFRAGMENT_Context *dc);
-
-
-/**
- * We have received a fragment.  Process it.
- *
- * @param dc the context
- * @param msg the message that was received
- */
-void
-GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
-				    const struct GNUNET_MessageHeader *msg);
-
-
-#if 0                           /* keep Emacsens' auto-indent happy */
+GNUNET_FRAGMENT_context_destroy (struct GNUNET_FRAGMENT_Context *fc)
 {
-#endif
-#ifdef __cplusplus
-}
-#endif
+  struct GNUNET_TIME_Relative ret;
 
-/* end of gnunet_fragmentation_lib.h */
-#endif
+  if (fc->task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (fc->task);
+  ret = fc->delay;
+  GNUNET_free (fc);
+  return ret;
+}
+
+/* end of fragmentation_new.c */
+
