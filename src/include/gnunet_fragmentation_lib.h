@@ -112,7 +112,7 @@ GNUNET_FRAGMENT_context_destroy (struct GNUNET_FRAGMENT_Context *fc);
 
 
 /**
- * Defragmentation context.
+ * Defragmentation context (one per connection).
  */
 struct GNUNET_DEFRAGMENT_Context;
 
@@ -121,6 +121,9 @@ struct GNUNET_DEFRAGMENT_Context;
  * Create a defragmentation context.
  *
  * @param stats statistics context
+ * @param mtu the maximum message size for each fragment 
+ * @param num_msgs how many fragmented messages
+ *                 to we defragment at most at the same time?
  * @param cls closure for proc and ackp
  * @param proc function to call with defragmented messages
  * @param ackp function to call with acknowledgements (to send
@@ -129,6 +132,8 @@ struct GNUNET_DEFRAGMENT_Context;
  */
 struct GNUNET_DEFRAGMENT_Context *
 GNUNET_DEFRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
+				  uint16_t mtu,
+				  unsigned int num_msgs,
 				  void *cls,
 				  GNUNET_FRAGMENT_MessageProcessor proc,
 				  GNUNET_FRAGMENT_MessageProcessor ackp);

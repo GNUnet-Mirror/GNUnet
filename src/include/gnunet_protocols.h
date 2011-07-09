@@ -103,6 +103,12 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_FRAGMENT 18
 
 /**
+ * Acknowledgement of a FRAGMENT of a larger message.
+ * Managed by libgnunetfragment.
+ */
+#define GNUNET_MESSAGE_TYPE_FRAGMENT_ACK 19
+
+/**
  * Message from the core saying that the transport
  * server should start giving it messages.  This
  * should automatically trigger the transmission of
