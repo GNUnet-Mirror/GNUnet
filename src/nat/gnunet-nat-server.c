@@ -29,6 +29,8 @@
 #include "gnunet_protocols.h"
 #include "nat.h"
 
+#define DEBUG_NAT GNUNET_NO
+
 /**
  * Our server.
  */
@@ -56,10 +58,12 @@ try_anat (uint32_t dst_ipv4,
   struct GNUNET_NAT_Handle *h;
   struct sockaddr_in sa;
 
+#if DEBUG_NAT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Asking for connection reversal with %x and code %u\n",
 	      (unsigned int) dst_ipv4,
 	      (unsigned int) dport);
+#endif
   h = GNUNET_NAT_register (cfg,
 			   is_tcp,
 			   dport,
@@ -111,7 +115,11 @@ tcp_send (void *cls,
 				    ctx->s)) )
     {
       if (-1 == GNUNET_NETWORK_socket_send (ctx->s, &ctx->data, sizeof (ctx->data)))
-	GNUNET_log_strerror (GNUNET_ERROR_TYPE_DEBUG, "send");
+	{
+#if DEBUG_NAT
+	  GNUNET_log_strerror (GNUNET_ERROR_TYPE_DEBUG, "send");
+#endif
+	}
       GNUNET_NETWORK_socket_shutdown (ctx->s, SHUT_RDWR);
     }
   GNUNET_NETWORK_socket_close (ctx->s);
@@ -149,9 +157,11 @@ try_send_tcp (uint32_t dst_ipv4,
 #endif
   sa.sin_addr.s_addr = dst_ipv4; 
   sa.sin_port = htons (dport);
+#if DEBUG_NAT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending TCP message to `%s'\n",
 	      GNUNET_a2s ((struct sockaddr*) &sa, sizeof (sa)));
+#endif
   if ( (GNUNET_OK != 
 	GNUNET_NETWORK_socket_connect (s, 
 				       (const struct sockaddr*) &sa, sizeof (sa))) &&
@@ -199,9 +209,11 @@ try_send_udp (uint32_t dst_ipv4,
 #endif
   sa.sin_addr.s_addr = dst_ipv4; 
   sa.sin_port = htons (dport);
+#if DEBUG_NAT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending UDP packet to `%s'\n",
 	      GNUNET_a2s ((struct sockaddr*) &sa, sizeof (sa)));
+#endif
   if (-1 == GNUNET_NETWORK_socket_sendto (s, 
 					  &data, sizeof(data),
 					  (const struct sockaddr*) &sa, sizeof (sa)))
@@ -226,8 +238,10 @@ test (void *cls,
   const struct GNUNET_NAT_TestMessage *tm;
   uint16_t dport;
 
+#if DEBUG_NAT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received test request\n");
+#endif
   tm = (const struct GNUNET_NAT_TestMessage*) msg;
   dport = ntohs (tm->dport);
   if (0 == dport)

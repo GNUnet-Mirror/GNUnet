@@ -82,7 +82,6 @@ run (void *cls,
 {
   struct GNUNET_NAT_MiniHandle *mini;
 
-  GNUNET_log_setup ("test-nat-mini", "DEBUG", NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Requesting NAT redirection for port %u...\n",
               PORT);

@@ -423,11 +423,13 @@ add_to_address_list_as_is (struct GNUNET_NAT_Handle *h,
   GNUNET_CONTAINER_DLL_insert (h->lal_head,
 			       h->lal_tail,
 			       lal);
+#if DEBUG_NAT
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "nat",
 		   "Adding address `%s' from source %d\n",
 		   GNUNET_a2s (arg, arg_size),
 		   src);
+#endif
   if (NULL != h->address_callback)
     h->address_callback (h->callback_cls,
 			 GNUNET_YES,
@@ -1229,8 +1231,6 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->use_hostname = GNUNET_CONFIGURATION_get_value_yesno (cfg,
 							  "nat",
 							  "USE_HOSTNAME");
-  if (h->use_localaddresses)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "USE LOCALADDR enabled!\n");
   h->disable_ipv6 = GNUNET_CONFIGURATION_get_value_yesno(cfg,
 							 "nat", 
 							 "DISABLEV6");

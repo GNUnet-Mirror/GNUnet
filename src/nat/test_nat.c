@@ -129,7 +129,6 @@ run (void *cls,
   struct addr_cls data;
   struct sockaddr *addr;
 
-  GNUNET_log_setup ("test-nat", "DEBUG", NULL);
   data.addr = NULL;
   GNUNET_OS_network_interfaces_list (process_if, &data);
   if (NULL == data.addr)
