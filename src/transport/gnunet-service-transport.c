@@ -1932,14 +1932,10 @@ mark_address_connected (struct ForeignAddressList *fal)
     return; /* nothing to do */
   cnt = GNUNET_YES;
   pos = fal->ready_list->addresses;
+
   while (pos != NULL)
     {
-      /* Always prefer inbound addresses, provided they are still live */
-      if ((GNUNET_YES == pos->connected) && (0 == pos->addrlen))
-        {
-          return;
-        }
-      else if (GNUNET_YES == pos->connected)
+      if (GNUNET_YES == pos->connected)
 	{
 #if DEBUG_TRANSPORT
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1958,6 +1954,7 @@ mark_address_connected (struct ForeignAddressList *fal)
 	}
       pos = pos->next;
     }
+
   fal->connected = GNUNET_YES;
   if (GNUNET_YES == cnt)
     {
@@ -2082,7 +2079,6 @@ find_ready_address(struct NeighbourList *neighbour)
     }
 
   return best_address;
-
 }
 
 
@@ -3649,6 +3645,11 @@ send_periodic_ping (void *cls,
   caec.tname = tp->short_name;
   caec.session = peer_address->session;
   caec.exists = GNUNET_NO;
+
+  /* Inbound address, we won't have in validation map! */
+  if (0 == peer_address->addrlen)
+    fprintf(stderr, "Sending periodic ping to inbound address!??\n");
+
   GNUNET_CONTAINER_multihashmap_iterate (validation_map,
                                          &check_address_exists,
                                          &caec);
@@ -5983,7 +5984,10 @@ handle_address_iterate (void *cls,
                                      "<inbound>",
                                      (foreign_address_iterator->connected
                                          == GNUNET_YES) ? "CONNECTED"
-                                         : "DISCONNECTED");
+                                         : "DISCONNECTED",
+                                     (foreign_address_iterator->validated
+                                         == GNUNET_YES) ? "VALIDATED"
+                                         : "UNVALIDATED");
                   transmit_address_to_client (tc, addr_buf);
                   GNUNET_free(addr_buf);
                 }
