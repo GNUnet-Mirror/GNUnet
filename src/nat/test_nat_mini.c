@@ -49,11 +49,11 @@ static void
 addr_callback (void *cls, int add_remove,
                const struct sockaddr *addr, socklen_t addrlen)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-	      "Address changed: %s `%s' (%u bytes)\n",
-              add_remove == GNUNET_YES ? "added" : "removed",
-              GNUNET_a2s (addr, addrlen),
-	      (unsigned int) addrlen);
+  fprintf (stderr,
+	   "Address changed: %s `%s' (%u bytes)\n",
+	   add_remove == GNUNET_YES ? "added" : "removed",
+	   GNUNET_a2s (addr, addrlen),
+	   (unsigned int) addrlen);
 }
 
 
