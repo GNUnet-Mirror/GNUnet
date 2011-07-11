@@ -21,6 +21,9 @@
  * @file include/gnunet_fragmentation_lib.h
  * @brief library to help fragment messages
  * @author Christian Grothoff
+ *
+ * TODO: consider additional flow-control for sending from
+ *       fragmentation based on continuations.
  */
 
 #ifndef GNUNET_FRAGMENTATION_LIB_H

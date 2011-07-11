@@ -26,7 +26,6 @@
 #include "gnunet_fragmentation_lib.h"
 #include "fragmentation.h"
 
-
 /**
  * Timestamps for fragments.
  */
@@ -102,6 +101,11 @@ struct MessageContext
    * Unique ID for this message.
    */
   uint32_t fragment_id;
+
+  /**
+   * Which 'bit' did the last fragment we received correspond to?
+   */
+  unsigned int last_bit;
 
   /**
    * For the current ACK round, which is the first relevant
@@ -271,6 +275,126 @@ send_ack (void *cls,
 
 
 /**
+ * This function is from the GNU Scientific Library, linear/fit.c,
+ * (C) 2000 Brian Gough
+ */
+static void
+gsl_fit_mul (const double *x, const size_t xstride,
+             const double *y, const size_t ystride,
+             const size_t n, 
+             double *c1, double *cov_11, double *sumsq)
+{
+  double m_x = 0, m_y = 0, m_dx2 = 0, m_dxdy = 0;
+
+  size_t i;
+
+  for (i = 0; i < n; i++)
+    {
+      m_x += (x[i * xstride] - m_x) / (i + 1.0);
+      m_y += (y[i * ystride] - m_y) / (i + 1.0);
+    }
+
+  for (i = 0; i < n; i++)
+    {
+      const double dx = x[i * xstride] - m_x;
+      const double dy = y[i * ystride] - m_y;
+
+      m_dx2 += (dx * dx - m_dx2) / (i + 1.0);
+      m_dxdy += (dx * dy - m_dxdy) / (i + 1.0);
+    }
+
+  /* In terms of y =  b x */
+
+  {
+    double s2 = 0, d2 = 0;
+    double b = (m_x * m_y + m_dxdy) / (m_x * m_x + m_dx2);
+
+    *c1 = b;
+
+    /* Compute chi^2 = \sum (y_i -  b * x_i)^2 */
+
+    for (i = 0; i < n; i++)
+      {
+        const double dx = x[i * xstride] - m_x;
+        const double dy = y[i * ystride] - m_y;
+        const double d = (m_y - b * m_x) + dy - b * dx;
+        d2 += d * d;
+      }
+
+    s2 = d2 / (n - 1.0);        /* chisq per degree of freedom */
+
+    *cov_11 = s2 * 1.0 / (n * (m_x * m_x + m_dx2));
+
+    *sumsq = d2;
+  }
+}
+
+
+/**
+ * Estimate the latency between messages based on the most recent
+ * message time stamps.
+ *
+ * @param mc context with time stamps
+ * @return average delay between time stamps (based on least-squares fit)
+ */
+static struct GNUNET_TIME_Relative
+estimate_latency (struct MessageContext *mc)
+{
+  struct FragTimes *first;
+  size_t total = mc->frag_times_write_offset - mc->frag_times_start_offset;
+  double x[total];
+  double y[total];
+  size_t i;
+  double c1;
+  double cov11;
+  double sumsq;
+  struct GNUNET_TIME_Relative ret;
+
+  first = &mc->frag_times[mc->frag_times_start_offset];
+  GNUNET_assert (total > 1);
+  for (i=0;i<total;i++)
+    {
+      x[i] = (double) i;
+      y[i] = (double) (first[i].time.abs_value - first[0].time.abs_value);
+    }
+  gsl_fit_mul (x, 1, y, 1, total,  &c1, &cov11, &sumsq);
+  ret.rel_value = (uint64_t) c1;
+  return ret;
+};
+
+
+/**
+ * Discard the message context that was inactive for the longest time.
+ *
+ * @param dc defragmentation context
+ */
+static void
+discard_oldest_mc (struct GNUNET_DEFRAGMENT_Context *dc)
+{
+  struct MessageContext *old;
+  struct MessageContext *pos;
+
+  old = NULL;
+  pos = dc->head;
+  while (NULL != pos)
+    {
+      if ( (old == NULL) ||
+	   (old->last_update.abs_value > pos->last_update.abs_value) )
+	old = pos;
+      pos = pos->next;
+    }
+  GNUNET_assert (NULL != old);
+  GNUNET_CONTAINER_DLL_remove (dc->head,
+			       dc->tail,
+			       old);
+  dc->list_size--;
+  if (GNUNET_SCHEDULER_NO_TASK != old->ack_task)
+    GNUNET_SCHEDULER_cancel (old->ack_task);
+  GNUNET_free (old);
+}
+
+
+/**
  * We have received a fragment.  Process it.
  *
  * @param dc the context
@@ -289,6 +413,8 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
   unsigned int bit;
   struct GNUNET_TIME_Absolute now;
   struct GNUNET_TIME_Relative delay;
+  unsigned int bc;
+  unsigned int b;
 
   if (ntohs(msg->size) < sizeof (struct FragmentHeader))
     {
@@ -346,9 +472,7 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
 				   mc);
       dc->list_size++;
       if (dc->list_size > dc->num_msgs)
-	{
-	  /* FIXME: discard oldest entry... */
-	}
+	discard_oldest_mc (dc);
     }
 
   /* copy data to 'mc' */
@@ -360,6 +484,9 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
 	      &fh[1],
 	      ntohs (msg->size) - sizeof (struct FragmentHeader));
       mc->last_update = now;
+      if (bit < mc->last_bit)
+	mc->frag_times_start_offset = mc->frag_times_write_offset;
+      mc->last_bit = bit;
       mc->frag_times[mc->frag_times_write_offset].time = now;
       mc->frag_times[mc->frag_times_write_offset].bit = bit;
       mc->frag_times_write_offset++;
@@ -382,19 +509,15 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
 				GNUNET_NO);
     }
 
-  /* FIXME: update ACK timer (if 0==mc->bits, always ACK now!) */
-  delay = GNUNET_TIME_UNIT_SECONDS; /* FIXME: bad! */
-  if (mc->frag_times_write_offset == 1)
-    {
-      /* FIXME: use number-of-fragments * dc->delay */
-    }
-  else
-    {
-      /* FIXME: use best-fit regression */
-    }
-  /* FIXME: update dc->latency! */
-
-  if (0 == mc->bits)
+  /* count number of missing fragments */
+  bc = 0;
+  for (b=0;b<64;b++)
+    if (0 != (mc->bits & (1 << b))) bc++;
+  if (mc->frag_times_write_offset - mc->frag_times_start_offset > 1)
+    dc->latency = estimate_latency (mc);
+  delay = GNUNET_TIME_relative_multiply (dc->latency,
+					 bc + 1);
+  if (0 == mc->bits) /* message complete, ACK now! */
     delay = GNUNET_TIME_UNIT_ZERO;
   if (GNUNET_SCHEDULER_NO_TASK != mc->ack_task)
     GNUNET_SCHEDULER_cancel (mc->ack_task);
