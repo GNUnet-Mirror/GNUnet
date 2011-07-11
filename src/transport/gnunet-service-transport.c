@@ -1934,7 +1934,12 @@ mark_address_connected (struct ForeignAddressList *fal)
   pos = fal->ready_list->addresses;
   while (pos != NULL)
     {
-      if (GNUNET_YES == pos->connected)
+      /* Always prefer inbound addresses, provided they are still live */
+      if ((GNUNET_YES == pos->connected) && (0 == pos->addrlen))
+        {
+          return;
+        }
+      else if (GNUNET_YES == pos->connected)
 	{
 #if DEBUG_TRANSPORT
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -3786,7 +3791,10 @@ schedule_next_ping (struct ForeignAddressList *fal)
   struct GNUNET_TIME_Relative delay;
 
   if (fal->revalidate_task != GNUNET_SCHEDULER_NO_TASK)
-    return;
+    {
+      GNUNET_SCHEDULER_cancel(fal->revalidate_task);
+      fal->revalidate_task = GNUNET_SCHEDULER_NO_TASK;
+    }
   delay = GNUNET_TIME_absolute_get_remaining (fal->expires);
   delay.rel_value /= 2; /* do before expiration */
   delay = GNUNET_TIME_relative_min (delay,
@@ -3796,6 +3804,7 @@ schedule_next_ping (struct ForeignAddressList *fal)
       delay = GNUNET_TIME_UNIT_ZERO;
       fal->estimated = GNUNET_YES;
     }
+
   if (GNUNET_YES == fal->connected)
     {
       delay = GNUNET_TIME_relative_min (delay,
@@ -5953,14 +5962,17 @@ handle_address_iterate (void *cls,
               transport_plugin = foreign_address_iterator->ready_list->plugin;
               if (foreign_address_iterator->addr != NULL)
                 {
-                  GNUNET_asprintf (&addr_buf, "%s:%s --- %s",
+                  GNUNET_asprintf (&addr_buf, "%s:%s --- %s, %s",
                                    GNUNET_i2s(&neighbor_iterator->id),
                                    a2s (transport_plugin->short_name,
                                         foreign_address_iterator->addr,
                                         foreign_address_iterator->addrlen),
                                    (foreign_address_iterator->connected
                                        == GNUNET_YES) ? "CONNECTED"
-                                       : "DISCONNECTED");
+                                       : "DISCONNECTED",
+                                   (foreign_address_iterator->validated
+                                       == GNUNET_YES) ? "VALIDATED"
+                                       : "UNVALIDATED");
                   transmit_address_to_client (tc, addr_buf);
                   GNUNET_free(addr_buf);
                 }
