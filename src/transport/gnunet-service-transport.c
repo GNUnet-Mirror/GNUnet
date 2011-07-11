@@ -577,12 +577,6 @@ struct NeighbourList
    * Performance data for the peer.
    */
   struct GNUNET_TRANSPORT_ATS_Information *ats;
-
-  /**
-   * Identity of the neighbour.
-   */
-  struct GNUNET_PeerIdentity peer;
-
 };
 
 /**
@@ -2818,7 +2812,7 @@ add_peer_address (struct NeighbourList *neighbour,
 	  r[c].c = ressources[c].c_default;
 	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		      "Assigning default cost to peer `%s' addr plugin `%s'! This should not happen!\n",
-		      GNUNET_i2s(&neighbour->peer), 
+		      GNUNET_i2s(&neighbour->id),
 		      neighbour->plugins->plugin->short_name);
 	}
     }
@@ -5961,7 +5955,7 @@ handle_address_iterate (void *cls,
               if (foreign_address_iterator->addr != NULL)
                 {
                   GNUNET_asprintf (&addr_buf, "%s:%s --- %s",
-                                   GNUNET_i2s(&neighbor_iterator->peer),
+                                   GNUNET_i2s(&neighbor_iterator->id),
                                    a2s (transport_plugin->short_name,
                                         foreign_address_iterator->addr,
                                         foreign_address_iterator->addrlen),
