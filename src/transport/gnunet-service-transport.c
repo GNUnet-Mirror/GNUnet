@@ -47,6 +47,8 @@
 
 #define DEBUG_TRANSPORT_HELLO GNUNET_NO
 
+#define DEBUG_INBOUND GNUNET_YES
+
 /**
  * Should we do some additional checks (to validate behavior
  * of clients)?
@@ -825,6 +827,11 @@ struct CheckHelloValidatedContext
   unsigned int ve_count;
 };
 
+
+/**
+ * All zero hash for comparison.
+ */
+static GNUNET_HashCode null_hash;
 
 /**
  * Our HELLO message.
@@ -1922,46 +1929,101 @@ transmit_plain_ping (struct NeighbourList *n)
  * @param fal address to set to 'connected'
  */
 static void
-mark_address_connected (struct ForeignAddressList *fal)
+mark_address_connected(struct ForeignAddressList *fal)
 {
   struct ForeignAddressList *pos;
+  struct ForeignAddressList *inbound;
+  struct ForeignAddressList *outbound;
   int cnt;
 
   GNUNET_assert (GNUNET_YES == fal->validated);
   if (fal->connected == GNUNET_YES)
     return; /* nothing to do */
   cnt = GNUNET_YES;
-  pos = fal->ready_list->addresses;
+  inbound = NULL;
+  outbound = NULL;
 
+  pos = fal->ready_list->addresses;
   while (pos != NULL)
     {
-      if (GNUNET_YES == pos->connected)
-	{
-#if DEBUG_TRANSPORT
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Marking address `%s' as no longer connected (due to connect on other address)\n",
-		      a2s (pos->ready_list->plugin->short_name,
-			   pos->addr,
-			   pos->addrlen));
+      /* Already have inbound address, and this is also an inbound address, don't switch!! */
+      if ((GNUNET_YES == pos->connected) && (0 == pos->addrlen) && (0
+          == fal->addrlen))
+        return;
+      else if ((0 == pos->addrlen) && (GNUNET_YES == pos->connected))
+        inbound = pos;
+      pos = pos->next;
+    }
+
+  pos = fal->ready_list->addresses;
+  while (pos != NULL)
+    {
+      /* Already have outbound address, and this is also an outbound address, don't switch!! */
+      if ((GNUNET_YES == pos->connected) && (0 < pos->addrlen) && (0
+          < fal->addrlen))
+        return;
+      else if ((0 < pos->addrlen) && (GNUNET_YES == pos->connected))
+        outbound = pos;
+      pos = pos->next;
+    }
+
+#if DEBUG_INBOUND
+  if (inbound != NULL)
+    fprintf(stderr, "Peer: %s, have inbound connection.\n", GNUNET_i2s(&my_identity));
+  if (outbound != NULL)
+    fprintf(stderr, "Peer: %s, have outbound connection.\n", GNUNET_i2s(&my_identity));
 #endif
-	  GNUNET_break (cnt == GNUNET_YES);
-	  cnt = GNUNET_NO;
-	  pos->connected = GNUNET_NO;
-	  GNUNET_STATISTICS_update (stats,
-				    gettext_noop ("# connected addresses"),
-				    -1,
-				    GNUNET_NO);
-	}
+
+  /* Have an inbound connection to this peer which is valid; our id is lower, ignore outbound connection! */
+  if ((inbound != NULL) && (0 != fal->addrlen) && (1
+      == GNUNET_CRYPTO_hash_xorcmp (&inbound->ready_list->neighbour->id.hashPubKey,
+                                    &my_identity.hashPubKey, &null_hash)))
+    {
+#if DEBUG_INBOUND
+      fprintf(stderr, "Peer: %s, had inbound connection, ignoring outbound!\n", GNUNET_i2s(&my_identity));
+#endif
+      return;
+    }
+  else if ((outbound != NULL) && (0 == fal->addrlen) && ((-1
+      == GNUNET_CRYPTO_hash_xorcmp (&outbound->ready_list->neighbour->id.hashPubKey,
+                                    &my_identity.hashPubKey, &null_hash))))
+    {
+#if DEBUG_INBOUND
+      fprintf(stderr, "Peer: %s, have outbound connection, ignoring inbound!\n", GNUNET_i2s(&my_identity));
+#endif
+      return;
+    }
+
+  pos = fal->ready_list->addresses;
+  while (pos != NULL)
+    {
+      if ((GNUNET_YES == pos->connected) && (0 < pos->addrlen))
+        {
+#if DEBUG_TRANSPORT
+          GNUNET_log (
+                      GNUNET_ERROR_TYPE_DEBUG,
+                      "Marking address `%s' as no longer connected (due to connect on other address)\n",
+                      a2s (pos->ready_list->plugin->short_name, pos->addr,
+                           pos->addrlen));
+#endif
+          GNUNET_break (cnt == GNUNET_YES);
+          cnt = GNUNET_NO;
+#if DEBUG_INBOUND
+          fprintf(stderr, "Peer: %s, setting %s connection to disconnected.\n", GNUNET_i2s(&my_identity), (0 == pos->addrlen) ? "INBOUND" : "OUTBOUND");
+#endif
+          pos->connected = GNUNET_NO;
+          GNUNET_STATISTICS_update (stats,
+                                    gettext_noop ("# connected addresses"), -1,
+                                    GNUNET_NO);
+        }
       pos = pos->next;
     }
 
   fal->connected = GNUNET_YES;
   if (GNUNET_YES == cnt)
     {
-      GNUNET_STATISTICS_update (stats,
-				gettext_noop ("# connected addresses"),
-				1,
-				GNUNET_NO);
+      GNUNET_STATISTICS_update (stats, gettext_noop ("# connected addresses"),
+                                1, GNUNET_NO);
     }
 }
 
@@ -3645,10 +3707,6 @@ send_periodic_ping (void *cls,
   caec.tname = tp->short_name;
   caec.session = peer_address->session;
   caec.exists = GNUNET_NO;
-
-  /* Inbound address, we won't have in validation map! */
-  if (0 == peer_address->addrlen)
-    fprintf(stderr, "Sending periodic ping to inbound address!??\n");
 
   GNUNET_CONTAINER_multihashmap_iterate (validation_map,
                                          &check_address_exists,
@@ -5889,16 +5947,22 @@ handle_peer_address_lookup (void *cls,
                                     foreign_address_iterator->addrlen),
                                (foreign_address_iterator->connected
                                    == GNUNET_YES) ? "CONNECTED"
-                                   : "DISCONNECTED");
+                                   : "DISCONNECTED",
+                               (foreign_address_iterator->validated
+                                   == GNUNET_YES) ? "VALIDATED"
+                                   : "UNVALIDATED");
               transmit_address_to_client(tc, addr_buf);
               GNUNET_free(addr_buf);
             }
           else if (foreign_address_iterator->addrlen == 0)
             {
-              GNUNET_asprintf (&addr_buf, "%s --- %s", "<inbound>",
+              GNUNET_asprintf (&addr_buf, "%s --- %s, %s", "<inbound>",
                                (foreign_address_iterator->connected
                                    == GNUNET_YES) ? "CONNECTED"
-                                   : "DISCONNECTED");
+                                   : "DISCONNECTED",
+                               (foreign_address_iterator->validated
+                                   == GNUNET_YES) ? "VALIDATED"
+                                   : "UNVALIDATED");
               transmit_address_to_client (tc, addr_buf);
               GNUNET_free(addr_buf);
             }
@@ -5979,7 +6043,7 @@ handle_address_iterate (void *cls,
                 }
               else if (foreign_address_iterator->addrlen == 0)
                 {
-                  GNUNET_asprintf (&addr_buf, "%s:%s --- %s",
+                  GNUNET_asprintf (&addr_buf, "%s:%s --- %s, %s",
                                      GNUNET_i2s (&neighbor_iterator->id),
                                      "<inbound>",
                                      (foreign_address_iterator->connected
