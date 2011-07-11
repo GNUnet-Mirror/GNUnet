@@ -28,6 +28,8 @@
 #include "gnunet_nat_lib.h"
 #include "nat.h"
 
+#define DEBUG_NAT GNUNET_NO
+
 /**
  * How long do we give upnpc to create a mapping?
  */
@@ -453,8 +455,11 @@ process_unmap_output (void *cls,
 
   if (NULL == line)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "UPnP unmap done\n");
+#if DEBUG_NAT
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		       "nat",
+		       "UPnP unmap done\n");
+#endif
       GNUNET_OS_command_stop (mini->unmap_cmd);
       mini->unmap_cmd = NULL;
       GNUNET_free (mini);
@@ -506,9 +511,12 @@ GNUNET_NAT_mini_map_stop (struct GNUNET_NAT_MiniHandle *mini)
   GNUNET_snprintf (pstr, sizeof (pstr),
 		   "%u",
 		   (unsigned int) ntohs (mini->current_addr.sin_port));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Unmapping port %u\n",
-	      ntohs (mini->current_addr.sin_port));
+#if DEBUG_NAT
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		   "nat",
+		   "Unmapping port %u with UPnP\n",
+		   ntohs (mini->current_addr.sin_port));
+#endif
   mini->unmap_cmd = GNUNET_OS_command_run (&process_unmap_output,
 					   mini,
 					   UNMAP_TIMEOUT,

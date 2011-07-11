@@ -179,8 +179,11 @@ reversal_cb (void *cls,
   sa = (const struct sockaddr_in *) addr;
   if (h->data != sa->sin_port)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Received connection reversal request for wrong port\n");
+#if DEBUG_NAT
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		       "nat",
+		       "Received connection reversal request for wrong port\n");
+#endif
       return; /* wrong port */
     }
   /* report success */
@@ -216,13 +219,19 @@ do_udp_read (void *cls,
     {
       if (data == tst->data)
 	tst->report (tst->report_cls, GNUNET_OK);
+#if DEBUG_NAT
       else
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		    "Received data mismatches expected value\n");
+	GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+			 "nat",
+			 "Received data mismatches expected value\n");
+#endif
     }
+#if DEBUG_NAT
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Failed to receive data from inbound connection\n");
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		     "nat",
+		     "Failed to receive data from inbound connection\n");
+#endif
 }
 
 
@@ -256,13 +265,19 @@ do_read (void *cls,
     {
       if (data == tst->data)
 	tst->report (tst->report_cls, GNUNET_OK);
+#if DEBUG_NAT
       else
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		    "Received data mismatches expected value\n");
+	GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+			 "nat"
+			 "Received data mismatches expected value\n");
+#endif
     }
+#if DEBUG_NAT
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Failed to receive data from inbound connection\n");
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		     "nat",
+		     "Failed to receive data from inbound connection\n");
+#endif
   GNUNET_NETWORK_socket_close (na->sock);
   GNUNET_free (na);
 }
@@ -296,8 +311,11 @@ do_accept (void *cls,
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_INFO, "accept");
       return; /* odd error */
     }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Got an inbound connection, waiting for data\n");
+#if DEBUG_NAT 
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		   "nat",
+		   "Got an inbound connection, waiting for data\n");
+#endif
   wl = GNUNET_malloc (sizeof (struct NatActivity));
   wl->sock = s;
   wl->h = tst;
@@ -336,9 +354,12 @@ addr_cb (void *cls,
     return;
   if (addrlen != sizeof (struct sockaddr_in))
     return; /* ignore IPv6 here */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Asking gnunet-nat-server to connect to `%s'\n",
-	      GNUNET_a2s (addr, addrlen));
+#if DEBUG_NAT
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		   "nat",
+		   "Asking gnunet-nat-server to connect to `%s'\n",
+		   GNUNET_a2s (addr, addrlen));
+#endif
   sa = (const struct sockaddr_in*) addr;
   msg.header.size = htons (sizeof(struct GNUNET_NAT_TestMessage));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_NAT_TEST);

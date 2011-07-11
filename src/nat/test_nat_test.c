@@ -31,7 +31,7 @@
 #include "gnunet_nat_lib.h"
 
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 
 
 /**

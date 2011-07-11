@@ -24,14 +24,13 @@
  *     external IP address retrieval
  * @author Milan Bouchet-Valat
  * @author Christian Grothoff
- *
- * TODO:
- * - implement UPnP/PMP support
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_resolver_service.h"
 #include "gnunet_nat_lib.h"
+
+#define DEBUG_NAT GNUNET_NO
 
 /**
  * How often do we scan for changes in our IP address from our local
@@ -767,7 +766,7 @@ nat_server_read (void *cls,
 				sizeof(mybuf));
   if (bytes < 1)
     {
-#if DEBUG_TCP_NAT
+#if DEBUG_NAT
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		       "nat",
 		       "Finished reading from server stdout with code: %d\n", 
@@ -1136,10 +1135,13 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct in_addr in_addr;
   unsigned int i;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Registered with NAT service at port %u with %u IP bound local addresses\n",
-	      (unsigned int) adv_port,
-	      num_addrs);
+#if DEBUG_NAT
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+		   "nat",
+		   "Registered with NAT service at port %u with %u IP bound local addresses\n",
+		   (unsigned int) adv_port,
+		   num_addrs);
+#endif
   h = GNUNET_malloc (sizeof (struct GNUNET_NAT_Handle));
   h->server_retry_delay = GNUNET_TIME_UNIT_SECONDS;
   h->cfg = cfg;
@@ -1432,7 +1434,7 @@ GNUNET_NAT_run_client (struct GNUNET_NAT_Handle *h,
 		   sizeof (port_as_string),
 		   "%d", 
 		   h->adv_port);
-#if DEBUG_TCP_NAT
+#if DEBUG_NAT
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "nat",
 		   _("Running gnunet-helper-nat-client %s %s %u\n"), 
