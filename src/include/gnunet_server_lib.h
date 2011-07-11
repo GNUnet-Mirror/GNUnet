@@ -226,6 +226,20 @@ GNUNET_SERVER_client_persist_ (struct GNUNET_SERVER_Client *client);
 void
 GNUNET_SERVER_receive_done (struct GNUNET_SERVER_Client *client, int success);
 
+
+/**
+ * Change the timeout for a particular client.  Decreasing the timeout
+ * may not go into effect immediately (only after the previous timeout
+ * times out or activity happens on the socket).
+ *
+ * @param client the client to update
+ * @param timeout new timeout for activities on the socket
+ */
+void
+GNUNET_SERVER_client_set_timeout (struct GNUNET_SERVER_Client *client,
+         struct GNUNET_TIME_Relative timeout);
+
+
 /**
  * Disable the warning the server issues if a message is not acknowledged
  * in a timely fashion.  Use this call if a client is intentionally delayed
