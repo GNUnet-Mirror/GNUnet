@@ -42,7 +42,6 @@
 
 #define DEBUG_TCP_NAT GNUNET_NO
 
-
 /**
  * Initial handshake message for a session.
  */
@@ -1191,6 +1190,8 @@ tcp_plugin_send (void *cls,
     }
   GNUNET_assert (session != NULL);
   GNUNET_assert (session->client != NULL);
+
+  GNUNET_SERVER_client_set_timeout(session->client, CONNECTED_LATENCY_EVALUATION_MAX_DELAY);
   GNUNET_STATISTICS_update (plugin->env->stats,
 			    gettext_noop ("# bytes currently in TCP buffers"),
 			    msgbuf_size,
@@ -1739,6 +1740,7 @@ handle_tcp_welcome (void *cls,
     }
   session->last_activity = GNUNET_TIME_absolute_get ();
   session->expecting_welcome = GNUNET_NO;
+  GNUNET_SERVER_client_set_timeout(client, CONNECTED_LATENCY_EVALUATION_MAX_DELAY);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 

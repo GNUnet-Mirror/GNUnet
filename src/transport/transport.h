@@ -49,6 +49,16 @@
 #define MIN_QUOTA_REFRESH_TIME 2000
 
 /**
+ * Maximum frequency for re-evaluating latencies for all transport addresses.
+ */
+#define LATENCY_EVALUATION_MAX_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 1)
+
+/**
+ * Maximum frequency for re-evaluating latencies for connected addresses.
+ */
+#define CONNECTED_LATENCY_EVALUATION_MAX_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1)
+
+/**
  * Message from the transport service to the library
  * asking to check if both processes agree about this
  * peers identity.

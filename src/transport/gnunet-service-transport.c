@@ -138,16 +138,6 @@
 #define HELLO_REVALIDATION_START_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 1)
 
 /**
- * Maximum frequency for re-evaluating latencies for all transport addresses.
- */
-#define LATENCY_EVALUATION_MAX_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 1)
-
-/**
- * Maximum frequency for re-evaluating latencies for connected addresses.
- */
-#define CONNECTED_LATENCY_EVALUATION_MAX_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1)
-
-/**
  * List of addresses of other peers
  */
 struct ForeignAddressList
