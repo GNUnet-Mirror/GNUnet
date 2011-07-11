@@ -309,14 +309,19 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_PEER_ADDRESS_LOOKUP 59
 
 /**
+ * Request to iterate over all known addresses.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE 60
+
+/**
  * Welcome message between TCP transports.
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME 60
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME 61
 
 /**
  * Message to force transport to update bandwidth assignment
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_ATS 61
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_ATS 62
 
 /**
  * Message to ask NAT server to perform traversal test

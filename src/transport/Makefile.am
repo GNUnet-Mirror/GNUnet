@@ -60,7 +60,8 @@ libgnunettransportnew_la_SOURCES = \
   transport_api_new.c transport.h \
   transport_api_blacklist.c \
   transport_api_address_lookup.c \
-  transport_api_peer_address_lookup.c
+  transport_api_peer_address_lookup.c \
+  transport_api_address_iterate.c
 libgnunettransportnew_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -73,7 +74,8 @@ libgnunettransport_la_SOURCES = \
   transport_api.c transport.h \
   transport_api_blacklist.c \
   transport_api_address_lookup.c \
-  transport_api_peer_address_lookup.c  
+  transport_api_peer_address_lookup.c \
+  transport_api_address_iterate.c
 libgnunettransport_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -87,6 +89,7 @@ bin_PROGRAMS = \
  gnunet-transport \
  $(WLAN_BIN) \
  gnunet-service-transport \
+ gnunet-transport-list-connections \
  $(WLAN_BIN_DUMMY)
 
 bin_SCRIPTS = \
@@ -113,6 +116,15 @@ gnunet_transport_wlan_helper_LDADD = \
 
 gnunet_transport_wlan_helper_dummy_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
+  
+gnunet_transport_list_connections_SOURCES = \
+ gnunet-transport-list-connections.c         
+gnunet_transport_list_connections_LDADD = \
+  $(top_builddir)/src/transport/libgnunettransportnew.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+gnunet_transport_list_connections_DEPENDENCIES = \
+  libgnunettransportnew.la
 
 gnunet_transport_SOURCES = \
  gnunet-transport.c         
@@ -136,7 +148,7 @@ gnunet_service_transport_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_GLPK) \
   $(GN_LIBINTL)
-
+  
 plugin_LTLIBRARIES = \
   libgnunet_plugin_transport_tcp.la \
   libgnunet_plugin_transport_udp.la \

@@ -19,14 +19,14 @@
 */
 
 /**
- * @file transport/transport_api_peer_address_lookup.c
- * @brief given a peer id, get all known addresses from transport service
+ * @file transport/transport_api_address_iterate.c
+ * @brief api for asking transport service to iterate over all
+ *        known addresses
  *
- * This api provides the ability to query the transport service about
- * the status of connections to a specific peer.  Calls back with a
- * pretty printed string of the address, as formatted by the appropriate
- * transport plugin, and whether or not the address given is currently
- * in the 'connected' state (according to the transport service).
+ * This api provides a single function call to ask the transport
+ * service to list all peers and their known addresses, as pretty
+ * printed by the appropriate plugin.  Reports whether or not the
+ * address is connected as well.
  */
 
 #include "platform.h"
@@ -71,7 +71,7 @@ struct AddressLookupCtx
  *
  * @param cls our 'struct AddressLookupCtx*'
  * @param msg NULL on timeout or error, otherwise presumably a
- *        message with the human-readable address
+ *        message with the human-readable peer and address
  */
 static void
 peer_address_response_processor (void *cls,
@@ -121,19 +121,17 @@ peer_address_response_processor (void *cls,
  * Return all the known addresses for a peer.
  *
  * @param cfg configuration to use
- * @param peer peer identity to look up the addresses of
  * @param timeout how long is the lookup allowed to take at most
  * @param peer_address_callback function to call with the results
  * @param peer_address_callback_cls closure for peer_address_callback
  */
 void
-GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                      const struct GNUNET_PeerIdentity *peer,
-                                      struct GNUNET_TIME_Relative timeout,
-                                      GNUNET_TRANSPORT_AddressLookUpCallback peer_address_callback,
-                                      void *peer_address_callback_cls)
+GNUNET_TRANSPORT_address_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                  struct GNUNET_TIME_Relative timeout,
+                                  GNUNET_TRANSPORT_AddressLookUpCallback peer_address_callback,
+                                  void *peer_address_callback_cls)
 {
-  struct PeerAddressLookupMessage msg;
+  struct AddressIterateMessage msg;
   struct GNUNET_TIME_Absolute abs_timeout;
   struct AddressLookupCtx *peer_address_lookup_cb;
   struct GNUNET_CLIENT_Connection *client;
@@ -146,10 +144,9 @@ GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle *
     }
   abs_timeout = GNUNET_TIME_relative_to_absolute (timeout);
 
-  msg.header.size = htons (sizeof(struct PeerAddressLookupMessage));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_PEER_ADDRESS_LOOKUP);
+  msg.header.size = htons (sizeof(struct AddressLookupMessage));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE);
   msg.timeout = GNUNET_TIME_absolute_hton (abs_timeout);
-  memcpy(&msg.peer, peer, sizeof(struct GNUNET_PeerIdentity));
   peer_address_lookup_cb = GNUNET_malloc (sizeof (struct AddressLookupCtx));
   peer_address_lookup_cb->cb = peer_address_callback;
   peer_address_lookup_cb->cb_cls = peer_address_callback_cls;
@@ -164,4 +161,4 @@ GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle *
 							  peer_address_lookup_cb));
 }
 
-/* end of transport_api_peer_address_lookup.c */
+/* end of transport_api_address_iterate.c */

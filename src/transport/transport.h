@@ -335,6 +335,23 @@ struct PeerAddressLookupMessage
 };
 
 /**
+ * Message from the library to the transport service
+ * asking for human readable addresses known for a peer.
+ */
+struct AddressIterateMessage
+{
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * timeout to give up.
+   */
+  struct GNUNET_TIME_AbsoluteNBO timeout;
+};
+
+/**
  * Change in blacklisting (either request or notification,
  * depending on which direction it is going).
  */

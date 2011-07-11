@@ -662,6 +662,19 @@ GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle *
                                       void *peer_address_callback_cls);
 
 
+/**
+ * Return all the known addresses for a peer.
+ *
+ * @param cfg configuration to use
+ * @param timeout how long is the lookup allowed to take at most
+ * @param peer_address_callback function to call with the results
+ * @param peer_address_callback_cls closure for peer_address_callback
+ */
+void
+GNUNET_TRANSPORT_address_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                  struct GNUNET_TIME_Relative timeout,
+                                  GNUNET_TRANSPORT_AddressLookUpCallback peer_address_callback,
+                                  void *peer_address_callback_cls);
 
 /**
  * Handle for blacklisting peers.

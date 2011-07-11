@@ -5824,7 +5824,7 @@ handle_address_lookup (void *cls,
 }
 
 /**
- * Handle AddressLookup-message.
+ * Handle PeerAddressLookupMessage.
  *
  * @param cls closure (always NULL)
  * @param client identification of the client
@@ -5904,6 +5904,81 @@ handle_peer_address_lookup (void *cls,
         }
       ready_iterator = ready_iterator->next;
     }
+  GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
+                                              GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+  GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
+}
+
+/**
+ * Handle AddressIterateMessage
+ *
+ * @param cls closure (always NULL)
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_address_iterate (void *cls,
+                        struct GNUNET_SERVER_Client *client,
+                        const struct GNUNET_MessageHeader *message)
+{
+  const struct AddressIterateMessage *address_iterate;
+  struct NeighbourList *neighbor_iterator;
+  struct ReadyList *ready_iterator;
+  struct ForeignAddressList *foreign_address_iterator;
+  struct TransportPlugin *transport_plugin;
+
+  uint16_t size;
+  struct GNUNET_SERVER_TransmitContext *tc;
+  struct GNUNET_TIME_Absolute timeout;
+  struct GNUNET_TIME_Relative rtimeout;
+  char *addr_buf;
+
+  size = ntohs (message->size);
+  if (size < sizeof (struct AddressIterateMessage))
+    {
+      GNUNET_break_op (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+  address_iterate = (const struct AddressIterateMessage *) message;
+
+  timeout = GNUNET_TIME_absolute_ntoh (address_iterate->timeout);
+  rtimeout = GNUNET_TIME_absolute_get_remaining (timeout);
+
+  GNUNET_SERVER_disable_receive_done_warning (client);
+  tc = GNUNET_SERVER_transmit_context_create (client);
+
+  neighbor_iterator = neighbours;
+  while (neighbor_iterator != NULL)
+    {
+      ready_iterator = neighbor_iterator->plugins;
+      while (ready_iterator != NULL)
+        {
+          foreign_address_iterator = ready_iterator->addresses;
+          while (foreign_address_iterator != NULL)
+            {
+              transport_plugin = foreign_address_iterator->ready_list->plugin;
+              if (foreign_address_iterator->addr != NULL)
+                {
+                  GNUNET_asprintf (&addr_buf, "%s:%s --- %s",
+                                   GNUNET_i2s(&neighbor_iterator->peer),
+                                   a2s (transport_plugin->short_name,
+                                        foreign_address_iterator->addr,
+                                        foreign_address_iterator->addrlen),
+                                   (foreign_address_iterator->connected
+                                       == GNUNET_YES) ? "CONNECTED"
+                                       : "DISCONNECTED");
+                  transmit_address_to_client (tc, addr_buf);
+                  GNUNET_free(addr_buf);
+                }
+
+              foreign_address_iterator = foreign_address_iterator->next;
+            }
+          ready_iterator = ready_iterator->next;
+        }
+      neighbor_iterator = neighbor_iterator->next;
+    }
+
   GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
                                               GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
@@ -6352,6 +6427,9 @@ run (void *cls,
      0},
     {&handle_peer_address_lookup, NULL,
      GNUNET_MESSAGE_TYPE_TRANSPORT_PEER_ADDRESS_LOOKUP,
+     0},
+    {&handle_address_iterate, NULL,
+     GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE,
      0},
     {&handle_blacklist_init, NULL,
      GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_INIT, sizeof (struct GNUNET_MessageHeader)},
