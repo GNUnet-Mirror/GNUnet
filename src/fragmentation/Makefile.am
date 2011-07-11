@@ -14,18 +14,20 @@ libgnunetfragmentation_la_SOURCES = \
   fragmentation_new.c \
   defragmentation_new.c 
 libgnunetfragmentation_la_LIBADD = \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
-#check_PROGRAMS = \
-# test_fragmentation
+check_PROGRAMS = \
+ test_fragmentation
 
-#if ENABLE_TEST_RUN
-#TESTS = $(check_PROGRAMS)
-#endif
+if ENABLE_TEST_RUN
+TESTS = $(check_PROGRAMS)
+endif
 
-#test_fragmentation_SOURCES = \
-# test_frag_ji.c
-#test_fragmentation_LDADD = \
-# $(top_builddir)/src/fragmentation/libgnunetfragmentation.la \
-# $(top_builddir)/src/util/libgnunetutil.la  
+test_fragmentation_SOURCES = \
+ test_fragmentation.c
+test_fragmentation_LDADD = \
+ $(top_builddir)/src/fragmentation/libgnunetfragmentation.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
 
+EXTRA_DIST = test_fragmentation_data.conf

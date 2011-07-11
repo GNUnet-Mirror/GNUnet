@@ -138,12 +138,14 @@ transmit_next (void *cls,
     fsize = size % (fc->mtu - sizeof (struct FragmentHeader)) + sizeof (struct FragmentHeader);
   else
     fsize = fc->mtu;
-  delay = GNUNET_BANDWIDTH_tracker_get_delay (fc->tracker,
-					      fsize);
+  if (fc->tracker != NULL)
+    delay = GNUNET_BANDWIDTH_tracker_get_delay (fc->tracker,
+						fsize);
+  else
+    delay = GNUNET_TIME_UNIT_ZERO;
   if (delay.rel_value > 0)
     {
-      fc->task = GNUNET_SCHEDULER_add_delayed (GNUNET_BANDWIDTH_tracker_get_delay (fc->tracker,
-										   fc->mtu),
+      fc->task = GNUNET_SCHEDULER_add_delayed (delay,
 					       &transmit_next,
 					       fc);
       return;
@@ -163,7 +165,8 @@ transmit_next (void *cls,
 	  &mbuf[bit * (fc->mtu - sizeof (struct FragmentHeader))], 
 	  fsize - sizeof (struct FragmentHeader));
   fc->proc (fc->proc_cls, &fh->header);
-  GNUNET_BANDWIDTH_tracker_consume (fc->tracker, fsize);
+  if (NULL != fc->tracker)
+    GNUNET_BANDWIDTH_tracker_consume (fc->tracker, fsize);
   GNUNET_STATISTICS_update (fc->stats,
 			    _("Fragments transmitted"),
 			    1, GNUNET_NO);
@@ -179,8 +182,11 @@ transmit_next (void *cls,
     fsize = size % (fc->mtu - sizeof (struct FragmentHeader));
   else
     fsize = fc->mtu;
-  delay = GNUNET_BANDWIDTH_tracker_get_delay (fc->tracker,
-					      fsize);
+  if (NULL != fc->tracker)
+    delay = GNUNET_BANDWIDTH_tracker_get_delay (fc->tracker,
+						fsize);
+  else
+    delay = GNUNET_TIME_UNIT_ZERO;
   if (wrap)
     {
       /* full round transmitted wait 2x delay for ACK before going again */
@@ -189,8 +195,7 @@ transmit_next (void *cls,
       fc->last_round = GNUNET_TIME_absolute_get ();
       fc->wack = GNUNET_YES;
     }
-  fc->task = GNUNET_SCHEDULER_add_delayed (GNUNET_BANDWIDTH_tracker_get_delay (fc->tracker,
-									       fc->mtu),
+  fc->task = GNUNET_SCHEDULER_add_delayed (delay,
 					   &transmit_next,
 					   fc);
 }

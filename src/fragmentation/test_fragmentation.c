@@ -22,418 +22,141 @@
  * @brief test for fragmentation.c
  * @author Christian Grothoff
  */
-
-/**
- * Testcase for defragmentation code.
- * We have testcases for:
- * - 2 fragments, aligned, [0,16),[16,32)
- * - n (50) fragments, [i*16,(i+1)*16)
- * - n (50) fragments, [0,i*16) + [50*16,51*16)
- * - n (100) fragments, inserted in interleaved order (holes in sequence)
- * - holes in sequence
- * - other overlaps
- * - timeouts
- * - multiple entries in GNUNET_hash-list
- * - id collisions in GNUNET_hash-list
- */
-
 #include "platform.h"
 #include "gnunet_fragmentation_lib.h"
 
-#if 0
+#define NUM_MSGS 1
 
-/* -- to speed up the testcases -- */
-#define DEFRAGMENTATION_TIMEOUT (1 * GNUNET_CRON_SECONDS)
+#define MTU 1111
 
+static int ret = 1; 
 
-static GNUNET_PeerIdentity mySender;
-static char *myMsg;
-static unsigned short myMsgLen;
+static struct GNUNET_DEFRAGMENT_Context *defrag;
 
-/* static buffers to avoid lots of malloc/free */
-static char masterBuffer[65536];
-static char resultBuffer[65536];
+static struct GNUNET_FRAGMENT_Context *frags[NUM_MSGS];
 
 static void
-handleHelper (const GNUNET_PeerIdentity * sender,
-              const char *msg,
-              const unsigned int len, int wasEncrypted, GNUNET_TSession * ts)
+proc_msgs (void *cls,
+	   const struct GNUNET_MessageHeader *hdr)
 {
-  GNUNET_GE_ASSERT (NULL,
-                    0 == memcmp (sender, &mySender,
-                                 sizeof (GNUNET_PeerIdentity)));
-  myMsg = resultBuffer;
-  memcpy (resultBuffer, msg, len);
-  myMsgLen = len;
+  static unsigned int total;
+
+  fprintf (stderr, "!");
+  total++;
+  if (total == NUM_MSGS)
+    {
+      ret = 0;
+      GNUNET_DEFRAGMENT_context_destroy (defrag);
+      defrag = NULL;
+    }
 }
 
 /**
- * Wait long enough to force all fragments to timeout.
+ * Process ACK (by passing to fragmenter)
  */
 static void
-makeTimeout ()
+proc_acks (void *cls,
+	   const struct GNUNET_MessageHeader *hdr)
 {
-  GNUNET_thread_sleep (DEFRAGMENTATION_TIMEOUT * 2);
-  defragmentationPurgeCron (NULL);
+  unsigned int i;
+  int ret;
+
+  fprintf (stderr, "@");
+  for (i=0;i<NUM_MSGS;i++)
+    {
+      if (frags[i] == NULL)
+	return;     
+      ret = GNUNET_FRAGMENT_process_ack (frags[i],
+					 hdr);
+      if (ret == GNUNET_OK)
+	{
+	  GNUNET_FRAGMENT_context_destroy (frags[i]);
+	  frags[i] = NULL;
+	  return;
+	}
+      if (ret == GNUNET_NO)
+	return;
+    }
+  fprintf (stderr, "Got ACK that nobody feels responsible for...\n");
 }
+
 
 /**
- * Create a fragment. The data-portion will be filled
- * with a sequence of numbers from start+id to start+len-1+id.
- *
- * @param pep pointer to the ethernet frame/buffer
- * @param ip pointer to the ip-header
- * @param start starting-offset
- * @param length of the data portion
- * @param id the identity of the fragment
+ * Process fragment (by passing to defrag).
  */
-static GNUNET_MessageHeader *
-makeFragment (unsigned short start,
-              unsigned short size, unsigned short tot, int id)
+static void
+proc_frac (void *cls,
+	   const struct GNUNET_MessageHeader *hdr)
 {
-  P2P_fragmentation_MESSAGE *frag;
-  int i;
-
-  frag = (P2P_fragmentation_MESSAGE *) masterBuffer;
-  frag->id = htonl (id);
-  frag->off = htons (start);
-  frag->len = htons (tot);
-  frag->header.size = htons (sizeof (P2P_fragmentation_MESSAGE) + size);
-
-  for (i = 0; i < size; i++)
-    ((char *) &frag[1])[i] = (char) i + id + start;
-  return &frag->header;
+  fprintf (stderr, ".");
+  if (NULL == defrag)
+    return;
+  GNUNET_DEFRAGMENT_process_fragment (defrag, hdr);
 }
+
 
 /**
- * Check that the packet received is what we expected to
- * get.
- * @param id the expected id
- * @param len the expected length
+ * Main function run with scheduler.
  */
 static void
-checkPacket (int id, unsigned int len)
+run (void *cls,
+     char *const *args,
+     const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  int i;
+  unsigned int i;
+  struct GNUNET_MessageHeader *msg;
+  char buf[MTU + 32 * 1024];
 
-  GNUNET_GE_ASSERT (NULL, myMsg != NULL);
-  GNUNET_GE_ASSERT (NULL, myMsgLen == len);
-  for (i = 0; i < len; i++)
-    GNUNET_GE_ASSERT (NULL, myMsg[i] == (char) (i + id));
-  myMsgLen = 0;
-  myMsg = NULL;
-}
-
-
-/* **************** actual testcases ***************** */
-
-static void
-testSimpleFragment ()
-{
-  GNUNET_MessageHeader *pep;
-
-  pep = makeFragment (0, 16, 32, 42);
-  processFragment (&mySender, pep);
-  GNUNET_GE_ASSERT (NULL, myMsg == NULL);
-  pep = makeFragment (16, 16, 32, 42);
-  processFragment (&mySender, pep);
-  checkPacket (42, 32);
-}
-
-static void
-testSimpleFragmentTimeout ()
-{
-  GNUNET_MessageHeader *pep;
-
-  pep = makeFragment (0, 16, 32, 42);
-  processFragment (&mySender, pep);
-  GNUNET_GE_ASSERT (NULL, myMsg == NULL);
-  makeTimeout ();
-  pep = makeFragment (16, 16, 32, 42);
-  processFragment (&mySender, pep);
-  GNUNET_GE_ASSERT (NULL, myMsg == NULL);
-  pep = makeFragment (0, 16, 32, 42);
-  processFragment (&mySender, pep);
-  checkPacket (42, 32);
-}
-
-static void
-testSimpleFragmentReverse ()
-{
-  GNUNET_MessageHeader *pep;
-
-  pep = makeFragment (16, 16, 32, 42);
-  processFragment (&mySender, pep);
-  GNUNET_GE_ASSERT (NULL, myMsg == NULL);
-  pep = makeFragment (0, 16, 32, 42);
-  processFragment (&mySender, pep);
-  checkPacket (42, 32);
-}
-
-static void
-testManyFragments ()
-{
-  GNUNET_MessageHeader *pep;
-  int i;
-
-  for (i = 0; i < 50; i++)
+  defrag = GNUNET_DEFRAGMENT_context_create (NULL,
+					     MTU,
+					     NUM_MSGS /* enough space for all */,
+					     NULL,
+					     &proc_msgs,
+					     &proc_acks);
+  for (i=0;i<sizeof(buf);i++)
+    buf[i] = (char) i;
+  msg = (struct GNUNET_MessageHeader* ) buf;
+  for (i=0;i<NUM_MSGS;i++)
     {
-      pep = makeFragment (i * 16, 16, 51 * 16, 42);
-      processFragment (&mySender, pep);
-      GNUNET_GE_ASSERT (NULL, myMsg == NULL);
-    }
-  pep = makeFragment (50 * 16, 16, 51 * 16, 42);
-  processFragment (&mySender, pep);
-  checkPacket (42, 51 * 16);
-}
-
-static void
-testManyFragmentsMegaLarge ()
-{
-  GNUNET_MessageHeader *pep;
-  int i;
-
-  for (i = 0; i < 4000; i++)
-    {
-      pep = makeFragment (i * 16, 16, 4001 * 16, 42);
-      processFragment (&mySender, pep);
-      GNUNET_GE_ASSERT (NULL, myMsg == NULL);
-    }
-  pep = makeFragment (4000 * 16, 16, 4001 * 16, 42);
-  processFragment (&mySender, pep);
-  checkPacket (42, 4001 * 16);
-}
-
-static void
-testLastFragmentEarly ()
-{
-  GNUNET_MessageHeader *pep;
-  int i;
-
-  for (i = 0; i < 5; i++)
-    {
-      pep = makeFragment (i * 16, 8, 6 * 16 + 8, 42);
-      processFragment (&mySender, pep);
-      GNUNET_GE_ASSERT (NULL, myMsg == NULL);
-    }
-  pep = makeFragment (5 * 16, 24, 6 * 16 + 8, 42);
-  processFragment (&mySender, pep);
-  for (i = 0; i < 5; i++)
-    {
-      pep = makeFragment (i * 16 + 8, 8, 6 * 16 + 8, 42);
-      processFragment (&mySender, pep);
-    }
-  checkPacket (42, 6 * 16 + 8);
-}
-
-static void
-testManyInterleavedFragments ()
-{
-  GNUNET_MessageHeader *pep;
-  int i;
-
-  for (i = 0; i < 50; i++)
-    {
-      pep = makeFragment (i * 16, 8, 51 * 16 + 8, 42);
-      processFragment (&mySender, pep);
-      GNUNET_GE_ASSERT (NULL, myMsg == NULL);
-    }
-  for (i = 0; i < 50; i++)
-    {
-      pep = makeFragment (i * 16 + 8, 8, 51 * 16 + 8, 42);
-      processFragment (&mySender, pep);
-      GNUNET_GE_ASSERT (NULL, myMsg == NULL);
-    }
-  pep = makeFragment (50 * 16, 24, 51 * 16 + 8, 42);
-  processFragment (&mySender, pep);
-  checkPacket (42, 51 * 16 + 8);
-}
-
-static void
-testManyInterleavedOverlappingFragments ()
-{
-  GNUNET_MessageHeader *pep;
-  int i;
-
-  for (i = 0; i < 50; i++)
-    {
-      pep = makeFragment (i * 32, 16, 51 * 32, 42);
-      processFragment (&mySender, pep);
-      GNUNET_GE_ASSERT (NULL, myMsg == NULL);
-    }
-  for (i = 0; i < 50; i++)
-    {
-      pep = makeFragment (i * 32 + 8, 24, 51 * 32, 42);
-      processFragment (&mySender, pep);
-      GNUNET_GE_ASSERT (NULL, myMsg == NULL);
-    }
-  pep = makeFragment (50 * 32, 32, 51 * 32, 42);
-  processFragment (&mySender, pep);
-  checkPacket (42, 51 * 32);
-}
-
-static void
-testManyOverlappingFragments ()
-{
-  GNUNET_MessageHeader *pep;
-  int i;
-
-  for (i = 0; i < 50; i++)
-    {
-      pep = makeFragment (0, i * 16 + 16, 51 * 16, 42);
-      processFragment (&mySender, pep);
-      GNUNET_GE_ASSERT (NULL, myMsg == NULL);
-    }
-  pep = makeFragment (50 * 16, 16, 51 * 16, 42);
-  processFragment (&mySender, pep);
-  checkPacket (42, 51 * 16);
-}
-
-static void
-testManyOverlappingFragmentsTimeout ()
-{
-  GNUNET_MessageHeader *pep;
-  int i;
-
-  for (i = 0; i < 50; i++)
-    {
-      pep = makeFragment (0, i * 16 + 16, 51 * 16 + 8, 42);
-      processFragment (&mySender, pep);
-      GNUNET_GE_ASSERT (NULL, myMsg == NULL);
-    }
-  makeTimeout ();
-  pep = makeFragment (50 * 16, 24, 51 * 16 + 8, 42);
-  processFragment (&mySender, pep);
-  GNUNET_GE_ASSERT (NULL, myMsg == NULL);
-  for (i = 0; i < 50; i++)
-    {
-      pep = makeFragment (0, i * 16 + 16, 51 * 16 + 8, 42);
-      processFragment (&mySender, pep);
-    }
-  checkPacket (42, 51 * 16 + 8);
-}
-
-static void
-testManyFragmentsMultiId ()
-{
-  GNUNET_MessageHeader *pep;
-  int i;
-  int id;
-
-  for (i = 0; i < 50; i++)
-    {
-      for (id = 0; id < DEFRAG_BUCKET_COUNT; id++)
-        {
-          pep = makeFragment (i * 16, 16, 51 * 16, id + 5);
-          mySender.hashPubKey.bits[0] = id;
-          processFragment (&mySender, pep);
-          GNUNET_GE_ASSERT (NULL, myMsg == NULL);
-        }
-    }
-  for (id = 0; id < DEFRAG_BUCKET_COUNT; id++)
-    {
-      pep = makeFragment (50 * 16, 16, 51 * 16, id + 5);
-      mySender.hashPubKey.bits[0] = id;
-      processFragment (&mySender, pep);
-      checkPacket (id + 5, 51 * 16);
+      msg->type = htons ((uint16_t) i);
+      msg->size = htons (MTU + 1 + i % (32 * 1024));
+      frags[i] = GNUNET_FRAGMENT_context_create (NULL /* no stats */, 
+						 MTU,
+						 NULL /* no tracker -- infinite BW */,
+						 GNUNET_TIME_UNIT_MILLISECONDS,
+						 msg,
+						 &proc_frac,
+						 NULL);
     }
 }
 
-static void
-testManyFragmentsMultiIdCollisions ()
-{
-  GNUNET_MessageHeader *pep;
-  int i;
-  int id;
-
-  for (i = 0; i < 5; i++)
-    {
-      for (id = 0; id < DEFRAG_BUCKET_COUNT * 4; id++)
-        {
-          pep = makeFragment (i * 16, 16, 6 * 16, id + 5);
-          mySender.hashPubKey.bits[0] = id;
-          processFragment (&mySender, pep);
-          GNUNET_GE_ASSERT (NULL, myMsg == NULL);
-        }
-    }
-  for (id = 0; id < DEFRAG_BUCKET_COUNT * 4; id++)
-    {
-      pep = makeFragment (5 * 16, 16, 6 * 16, id + 5);
-      mySender.hashPubKey.bits[0] = id;
-      processFragment (&mySender, pep);
-      checkPacket (id + 5, 6 * 16);
-    }
-}
-
-/* ************* driver ****************** */
-
-static int
-p2p_register_handler (const unsigned short type,
-                      GNUNET_P2PRequestHandler callback)
-{
-  return GNUNET_OK;
-}
-
-static int
-p2p_unregister_handler (const unsigned short type,
-                        GNUNET_P2PRequestHandler callback)
-{
-  return GNUNET_OK;
-}
-
-
-static void *
-request_service (const char *name)
-{
-  return NULL;
-}
-
-#endif
 
 int
 main (int argc, char *argv[])
 {
-  fprintf (stderr, "WARNING: testcase not yet ported to new API.\n");
-#if 0
-  GNUNET_CoreAPIForPlugins capi;
-
-  memset (&capi, 0, sizeof (GNUNET_CoreAPIForPlugins));
-  capi.cron = GNUNET_cron_create (NULL);
-  capi.loopback_send = &handleHelper;
-  capi.service_request = &request_service;
-  capi.p2p_ciphertext_handler_register = &p2p_register_handler;
-  capi.p2p_ciphertext_handler_unregister = &p2p_unregister_handler;
-  provide_module_fragmentation (&capi);
-
-  fprintf (stderr, ".");
-  testSimpleFragment ();
-  fprintf (stderr, ".");
-  testSimpleFragmentTimeout ();
-  fprintf (stderr, ".");
-  testSimpleFragmentReverse ();
-  fprintf (stderr, ".");
-  testManyFragments ();
-  fprintf (stderr, ".");
-  testManyFragmentsMegaLarge ();
-  fprintf (stderr, ".");
-  testManyFragmentsMultiId ();
-  fprintf (stderr, ".");
-
-  testManyInterleavedFragments ();
-  fprintf (stderr, ".");
-  testManyInterleavedOverlappingFragments ();
-  fprintf (stderr, ".");
-  testManyOverlappingFragments ();
-  fprintf (stderr, ".");
-  testManyOverlappingFragmentsTimeout ();
-  fprintf (stderr, ".");
-  testLastFragmentEarly ();
-  fprintf (stderr, ".");
-  testManyFragmentsMultiIdCollisions ();
-  fprintf (stderr, ".");
-  release_module_fragmentation ();
-  fprintf (stderr, "\n");
-  GNUNET_cron_destroy (capi.cron);
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_END
+  };
+  char *const argv_prog[] = {
+    "test-fragmentation",
+    "-c",
+    "test_fragmentation_data.conf",
+    "-L",
+#if VERBOSE
+    "DEBUG",
+#else
+    "WARNING",
 #endif
-  return 0;                     /* testcase passed */
+    NULL
+  };
+
+  GNUNET_log_setup ("test-fragmentation",
+#if VERBOSE
+                    "DEBUG",
+#else
+                    "WARNING",
+#endif
+                    NULL);
+  GNUNET_PROGRAM_run (5, argv_prog, "test-fragmentation", "nohelp", options, &run, NULL);
+  return ret;
 }
