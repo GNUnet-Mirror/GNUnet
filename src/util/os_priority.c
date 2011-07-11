@@ -1279,14 +1279,13 @@ struct GNUNET_OS_CommandHandle
 void
 GNUNET_OS_command_stop (struct GNUNET_OS_CommandHandle *cmd)
 {
-  int killed;
 
   if (cmd->proc != NULL)
     {
       GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != cmd->rtask);
       GNUNET_SCHEDULER_cancel (cmd->rtask);
     }
-  killed = GNUNET_OS_process_kill (cmd->eip, SIGKILL);
+  (void) GNUNET_OS_process_kill (cmd->eip, SIGKILL);
   GNUNET_break (GNUNET_OK ==
 		GNUNET_OS_process_wait (cmd->eip));
   GNUNET_OS_process_close (cmd->eip);
