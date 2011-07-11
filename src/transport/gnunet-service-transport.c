@@ -4792,7 +4792,7 @@ disconnect_neighbour (struct NeighbourList *n, int check)
           peer_addresses = rpos->addresses;
           while (peer_addresses != NULL)
             {
-        	  // Do not disconnect if: an address is connected or an inbound address exists
+              // Do not disconnect if: an address is connected or an inbound address exists
               if ((GNUNET_YES == peer_addresses->connected) || (peer_addresses->addrlen == 0))
                 {
 #if DEBUG_TRANSPORT
@@ -5962,6 +5962,17 @@ handle_address_iterate (void *cls,
                                    (foreign_address_iterator->connected
                                        == GNUNET_YES) ? "CONNECTED"
                                        : "DISCONNECTED");
+                  transmit_address_to_client (tc, addr_buf);
+                  GNUNET_free(addr_buf);
+                }
+              else if (foreign_address_iterator->addrlen == 0)
+                {
+                  GNUNET_asprintf (&addr_buf, "%s:%s --- %s",
+                                     GNUNET_i2s (&neighbor_iterator->id),
+                                     "<inbound>",
+                                     (foreign_address_iterator->connected
+                                         == GNUNET_YES) ? "CONNECTED"
+                                         : "DISCONNECTED");
                   transmit_address_to_client (tc, addr_buf);
                   GNUNET_free(addr_buf);
                 }
