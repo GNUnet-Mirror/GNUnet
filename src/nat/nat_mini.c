@@ -399,7 +399,7 @@ process_map_output (void *cls,
  * @param is_tcp GNUNET_YES to map TCP, GNUNET_NO for UDP
  * @param ac function to call with mapping result
  * @param ac_cls closure for 'ac'
- * @return NULL on error
+ * @return NULL on error (no 'upnpc' installed)
  */
 struct GNUNET_NAT_MiniHandle *
 GNUNET_NAT_mini_map_start (uint16_t port,
@@ -410,6 +410,9 @@ GNUNET_NAT_mini_map_start (uint16_t port,
   struct GNUNET_NAT_MiniHandle *ret;
   char pstr[6];
 
+  if (GNUNET_SYSERR ==
+      GNUNET_OS_check_helper_binary ("upnpc"))
+    return NULL;
   ret = GNUNET_malloc (sizeof (struct GNUNET_NAT_MiniHandle));
   ret->ac = ac;
   ret->ac_cls = ac_cls;
@@ -474,16 +477,6 @@ GNUNET_NAT_mini_map_stop (struct GNUNET_NAT_MiniHandle *mini)
 {
   char pstr[6];
 
-  if (! mini->did_map)
-    {
-      if (mini->map_cmd != NULL)
-	{
-	  GNUNET_OS_command_stop (mini->map_cmd);
-	  mini->map_cmd = NULL;
-	}
-      GNUNET_free (mini);
-      return;
-    }
   if (GNUNET_SCHEDULER_NO_TASK != mini->refresh_task)
     {
       GNUNET_SCHEDULER_cancel (mini->refresh_task);
@@ -493,6 +486,16 @@ GNUNET_NAT_mini_map_stop (struct GNUNET_NAT_MiniHandle *mini)
     {
       GNUNET_OS_command_stop (mini->refresh_cmd);
       mini->refresh_cmd = NULL;
+    }
+  if (! mini->did_map)
+    {
+      if (mini->map_cmd != NULL)
+	{
+	  GNUNET_OS_command_stop (mini->map_cmd);
+	  mini->map_cmd = NULL;
+	}
+      GNUNET_free (mini);
+      return;
     }
   mini->ac (mini->ac_cls, GNUNET_NO,
 	    (const struct sockaddr*) &mini->current_addr,
