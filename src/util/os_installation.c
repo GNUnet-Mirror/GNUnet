@@ -438,14 +438,15 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
 
 
 /**
- * Check whether the suid bit is set on a file.
+ * Check whether an executable exists and possibly
+ * if the suid bit is set on the file.
  * Attempts to find the file using the current
  * PATH environment variable as a search path.
  *
  * @param binary the name of the file to check
  * @return GNUNET_YES if the file is SUID, 
- *         GNUNET_NO if not, 
- *         GNUNET_SYSERR on error
+ *         GNUNET_NO if not SUID (but binary exists)
+ *         GNUNET_SYSERR on error (no such binary or not executable)
  */
 int
 GNUNET_OS_check_helper_binary (const char *binary)
@@ -477,11 +478,10 @@ GNUNET_OS_check_helper_binary (const char *binary)
 #endif
   if (p == NULL)
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-		       "tcp",
-		       _("Could not find binary `%s' in PATH!\n"),
-		       binary);
-      return GNUNET_NO;
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Could not find binary `%s' in PATH!\n"),
+		  binary);
+      return GNUNET_SYSERR;
     }
   if (0 != STAT (p, &statbuf))
     {
@@ -492,20 +492,28 @@ GNUNET_OS_check_helper_binary (const char *binary)
       GNUNET_free (p);
       return GNUNET_SYSERR;
     }
-  GNUNET_free (p);
 #ifndef MINGW
   if ( (0 != (statbuf.st_mode & S_ISUID)) &&
        (statbuf.st_uid == 0) )
-    return GNUNET_YES;
-  return GNUNET_NO;
+    {
+      GNUNET_free (p);
+      return GNUNET_YES;
+    }
+  if (0 == ACCESS (p, X_OK))
+    {
+      GNUNET_free (p);
+      return GNUNET_NO;
+    }
+  GNUNET_free (p);
+  return GNUNET_SYSERR;
 #else
+  GNUNET_free (p);
   rawsock = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
   if (INVALID_SOCKET == rawsock)
     {
       DWORD err = GetLastError ();
-      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, 
-		       "tcp",
-		       "socket (AF_INET, SOCK_RAW, IPPROTO_ICMP) failed! GLE = %d\n", err);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+		  "socket (AF_INET, SOCK_RAW, IPPROTO_ICMP) failed! GLE = %d\n", err);
       return GNUNET_NO; /* not running as administrator */
     }
   closesocket (rawsock);
