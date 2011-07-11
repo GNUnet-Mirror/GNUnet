@@ -156,8 +156,9 @@ GNUNET_DEFRAGMENT_context_destroy (struct GNUNET_DEFRAGMENT_Context *dc);
  *
  * @param dc the context
  * @param msg the message that was received
+ * @return GNUNET_OK on success, GNUNET_NO if this was a duplicate, GNUNET_SYSERR on error
  */
-void
+int
 GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
 				    const struct GNUNET_MessageHeader *msg);
 
