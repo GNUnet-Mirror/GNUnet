@@ -129,10 +129,32 @@ struct Plugin;
 
 struct PrettyPrinterContext
 {
+  /**
+   * Function to call with the result.
+   */
   GNUNET_TRANSPORT_AddressStringCallback asc;
+
+  /**
+   * Clsoure for 'asc'.
+   */
   void *asc_cls;
+
+  /**
+   * The address
+   */
+  void * addr;
+
+  /**
+   * address length
+   */
+  size_t addr_len;
+
+  /**
+   * Port to add after the IP address.
+   */
   uint16_t port;
 };
+
 
 struct MessageQueue
 {
@@ -1256,6 +1278,61 @@ udp_plugin_check_address (void *cls,
 
 
 /**
+ * Function called for a quick conversion of the binary address to
+ * a numeric address.  Note that the caller must not free the
+ * address and that the next call to this function is allowed
+ * to override the address again.
+ *
+ * @param cls closure
+ * @param addr binary address
+ * @param addrlen length of the address
+ * @return string representing the same address
+ */
+static const char*
+udp_address_to_string (void *cls,
+                       const void *addr,
+                       size_t addrlen)
+{
+  static char rbuf[INET6_ADDRSTRLEN + 10];
+  char buf[INET6_ADDRSTRLEN];
+  const void *sb;
+  struct in_addr a4;
+  struct in6_addr a6;
+  const struct IPv4UdpAddress *t4;
+  const struct IPv6UdpAddress *t6;
+  int af;
+  uint16_t port;
+
+  if (addrlen == sizeof (struct IPv6UdpAddress))
+    {
+      t6 = addr;
+      af = AF_INET6;
+      port = ntohs (t6->u6_port);
+      memcpy (&a6, &t6->ipv6_addr, sizeof (a6));
+      sb = &a6;
+    }
+  else if (addrlen == sizeof (struct IPv4UdpAddress))
+    {
+      t4 = addr;
+      af = AF_INET;
+      port = ntohs (t4->u4_port);
+      memcpy (&a4, &t4->ipv4_addr, sizeof (a4));
+      sb = &a4;
+    }
+  else
+    return NULL;
+  inet_ntop (af, sb, buf, INET6_ADDRSTRLEN);
+  GNUNET_snprintf (rbuf,
+                   sizeof (rbuf),
+                   "%s:%u",
+                   buf,
+                   port);
+  return rbuf;
+}
+
+
+
+/**
  * Append our port and forward the result.
  */
 static void
@@ -1266,7 +1343,9 @@ append_port (void *cls, const char *hostname)
 
   if (hostname == NULL)
     {
-      ppc->asc (ppc->asc_cls, NULL);
+      ret = strdup(udp_address_to_string(NULL, ppc->addr, ppc->addr_len));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Error in name resolution: `%s'\n",ret);
+      ppc->asc (ppc->asc_cls, ret);
       GNUNET_free (ppc);
       return;
     }
@@ -1340,67 +1419,16 @@ udp_plugin_address_pretty_printer (void *cls,
       asc (asc_cls, NULL);
       return;
     }
-  ppc = GNUNET_malloc (sizeof (struct PrettyPrinterContext));
+  ppc = GNUNET_malloc (sizeof (struct PrettyPrinterContext) + addrlen);
   ppc->asc = asc;
   ppc->asc_cls = asc_cls;
   ppc->port = port;
+  ppc->addr = &ppc[1];
+  ppc->addr_len = addrlen;
+  memcpy(ppc->addr, addr, addrlen);
   GNUNET_RESOLVER_hostname_get (sb,
                                 sbs,
                                 !numeric, timeout, &append_port, ppc);
-}
-
-
-/**
- * Function called for a quick conversion of the binary address to
- * a numeric address.  Note that the caller must not free the
- * address and that the next call to this function is allowed
- * to override the address again.
- *
- * @param cls closure
- * @param addr binary address
- * @param addrlen length of the address
- * @return string representing the same address
- */
-static const char*
-udp_address_to_string (void *cls,
-                       const void *addr,
-                       size_t addrlen)
-{
-  static char rbuf[INET6_ADDRSTRLEN + 10];
-  char buf[INET6_ADDRSTRLEN];
-  const void *sb;
-  struct in_addr a4;
-  struct in6_addr a6;
-  const struct IPv4UdpAddress *t4;
-  const struct IPv6UdpAddress *t6;
-  int af;
-  uint16_t port;
-
-  if (addrlen == sizeof (struct IPv6UdpAddress))
-    {
-      t6 = addr;
-      af = AF_INET6;
-      port = ntohs (t6->u6_port);
-      memcpy (&a6, &t6->ipv6_addr, sizeof (a6));
-      sb = &a6;
-    }
-  else if (addrlen == sizeof (struct IPv4UdpAddress))
-    {
-      t4 = addr;
-      af = AF_INET;
-      port = ntohs (t4->u4_port);
-      memcpy (&a4, &t4->ipv4_addr, sizeof (a4));
-      sb = &a4;
-    }
-  else
-    return NULL;
-  inet_ntop (af, sb, buf, INET6_ADDRSTRLEN);
-  GNUNET_snprintf (rbuf,
-                   sizeof (rbuf),
-                   "%s:%u",
-                   buf,
-                   port);
-  return rbuf;
 }
 
 

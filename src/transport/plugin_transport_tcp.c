@@ -1294,6 +1294,16 @@ struct PrettyPrinterContext
   void *asc_cls;
 
   /**
+   * The address
+   */
+  void * addr;
+
+  /**
+   * address length
+   */
+  size_t addr_len;
+
+  /**
    * Port to add after the IP address.
    */
   uint16_t port;
@@ -1314,7 +1324,9 @@ append_port (void *cls, const char *hostname)
 
   if (hostname == NULL)
     {
-      ppc->asc (ppc->asc_cls, NULL);
+      ret = strdup(tcp_address_to_string(NULL, ppc->addr, ppc->addr_len));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Error in name resolution: `%s'\n",ret);
+      ppc->asc (ppc->asc_cls, ret);
       GNUNET_free (ppc);
       return;
     }
@@ -1388,10 +1400,13 @@ tcp_plugin_address_pretty_printer (void *cls,
       asc (asc_cls, NULL);
       return;
     }
-  ppc = GNUNET_malloc (sizeof (struct PrettyPrinterContext));
+  ppc = GNUNET_malloc (sizeof (struct PrettyPrinterContext) + addrlen);
   ppc->asc = asc;
   ppc->asc_cls = asc_cls;
   ppc->port = port;
+  ppc->addr = &ppc[1];
+  ppc->addr_len = addrlen;
+  memcpy(ppc->addr, addr, addrlen);
   GNUNET_RESOLVER_hostname_get (sb,
                                 sbs,
                                 !numeric, timeout, &append_port, ppc);
