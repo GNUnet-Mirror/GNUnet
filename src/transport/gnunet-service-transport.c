@@ -2459,6 +2459,12 @@ plugin_env_session_end  (void *cls,
     }
   pos->session = NULL;
   pos->connected = GNUNET_NO;
+  if (GNUNET_SCHEDULER_NO_TASK != pos->revalidate_task)
+    {
+      GNUNET_SCHEDULER_cancel (pos->revalidate_task);
+      pos->revalidate_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+
   if (pos->addrlen != 0)
     {
       if (nl->received_pong != GNUNET_NO)
@@ -3879,6 +3885,8 @@ schedule_next_ping (struct ForeignAddressList *fal)
 				    GNUNET_TIME_UNIT_SECONDS);
   /* randomize a bit (to avoid doing all at the same time) */
   delay.rel_value += GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 1000);
+
+  GNUNET_assert (fal->revalidate_task == GNUNET_SCHEDULER_NO_TASK);
   fal->revalidate_task = GNUNET_SCHEDULER_add_delayed(delay,
 						      &send_periodic_ping,
 						      fal);
