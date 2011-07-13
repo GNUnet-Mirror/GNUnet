@@ -49,8 +49,10 @@ struct GNUNET_FRAGMENT_Context;
 
 
 /**
- * Function that is called with messages
- * created by the fragmentation module.
+ * Function that is called with messages created by the fragmentation
+ * module.  In the case of the 'proc' callback of the
+ * GNUNET_FRAGMENT_context_create function, this function must
+ * eventually call 'GNUNET_FRAGMENT_context_transmission_done'.
  *
  * @param cls closure
  * @param msg the message that was created
@@ -88,6 +90,17 @@ GNUNET_FRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
 
 
 /**
+ * Continuation to call from the 'proc' function after the fragment
+ * has been transmitted (and hence the next fragment can now be
+ * given to proc).
+ *
+ * @param fc fragmentation context
+ */
+void
+GNUNET_FRAGMENT_context_transmission_done (struct GNUNET_FRAGMENT_Context *fc);
+
+
+/**
  * Process an acknowledgement message we got from the other
  * side (to control re-transmits).
  *
@@ -121,6 +134,21 @@ struct GNUNET_DEFRAGMENT_Context;
 
 
 /**
+ * Function that is called with acknowledgement messages created by
+ * the fragmentation module.  Acknowledgements are cummulative,
+ * so it is OK to only transmit the 'latest' ack message for the same
+ * message ID.
+ *
+ * @param cls closure
+ * @param id unique message ID (modulo collisions)
+ * @param msg the message that was created
+ */
+typedef void (*GNUNET_DEFRAGMENT_AckProcessor) (void *cls,
+						uint32_t id,
+						const struct GNUNET_MessageHeader *msg);
+
+
+/**
  * Create a defragmentation context.
  *
  * @param stats statistics context
@@ -139,7 +167,7 @@ GNUNET_DEFRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
 				  unsigned int num_msgs,
 				  void *cls,
 				  GNUNET_FRAGMENT_MessageProcessor proc,
-				  GNUNET_FRAGMENT_MessageProcessor ackp);
+				  GNUNET_DEFRAGMENT_AckProcessor ackp);
 
 
 /**

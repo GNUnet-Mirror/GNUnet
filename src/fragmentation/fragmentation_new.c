@@ -89,9 +89,14 @@ struct GNUNET_FRAGMENT_Context
   unsigned int next_transmission;
 
   /**
+   * GNUNET_YES if we called 'proc' and are now waiting for 'GNUNET_FRAGMENT_transmission_done'
+   */
+  int8_t proc_busy;
+
+  /**
    * GNUNET_YES if we are waiting for an ACK.
    */
-  int wack;
+  int8_t wack;
 
   /**
    * Target fragment size.
@@ -122,6 +127,7 @@ transmit_next (void *cls,
   int wrap;
 
   fc->task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_assert (GNUNET_NO == fc->proc_busy);
   if (0 == fc->acks)
     return; /* all done */
 
@@ -194,9 +200,7 @@ transmit_next (void *cls,
       fc->last_round = GNUNET_TIME_absolute_get ();
       fc->wack = GNUNET_YES;
     }
-  fc->task = GNUNET_SCHEDULER_add_delayed (delay,
-					   &transmit_next,
-					   fc);
+  fc->proc_busy = GNUNET_YES;
   fc->proc (fc->proc_cls, &fh->header);
 }
 
@@ -261,6 +265,24 @@ GNUNET_FRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
   fc->task = GNUNET_SCHEDULER_add_now (&transmit_next,
 				       fc);
   return fc;
+}
+
+
+/**
+ * Continuation to call from the 'proc' function after the fragment
+ * has been transmitted (and hence the next fragment can now be
+ * given to proc).
+ *
+ * @param fc fragmentation context
+ */
+void
+GNUNET_FRAGMENT_context_transmission_done (struct GNUNET_FRAGMENT_Context *fc)
+{
+  GNUNET_assert (fc->proc_busy == GNUNET_YES);
+  fc->proc_busy = GNUNET_NO;
+  GNUNET_assert (fc->task == GNUNET_SCHEDULER_NO_TASK);
+  fc->task = GNUNET_SCHEDULER_add_now (&transmit_next,
+				       fc);
 }
 
 

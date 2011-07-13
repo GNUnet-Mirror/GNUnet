@@ -42,7 +42,7 @@
 /**
  * Simulate dropping of 1 out of how many messages? (must be > 1)
  */
-#define DROPRATE 2
+#define DROPRATE 10
 
 static int ret = 1; 
 
@@ -102,6 +102,7 @@ proc_msgs (void *cls,
  */
 static void
 proc_acks (void *cls,
+	   uint32_t msg_id,
 	   const struct GNUNET_MessageHeader *hdr)
 {
   unsigned int i;
@@ -150,8 +151,10 @@ static void
 proc_frac (void *cls,
 	   const struct GNUNET_MessageHeader *hdr)
 {
+  struct GNUNET_FRAGMENT_Context **fc = cls;
   int ret;
 
+  GNUNET_FRAGMENT_context_transmission_done (*fc);
   if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, DROPRATE))
     {
       frag_drops++;
@@ -211,7 +214,7 @@ run (void *cls,
 						 GNUNET_TIME_UNIT_SECONDS,
 						 msg,
 						 &proc_frac,
-						 NULL);
+						 &frags[i]);
     }
 }
 

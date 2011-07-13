@@ -161,7 +161,7 @@ struct GNUNET_DEFRAGMENT_Context
   /**
    * Function to call with acknowledgements.
    */
-  GNUNET_FRAGMENT_MessageProcessor ackp;
+  GNUNET_DEFRAGMENT_AckProcessor ackp;
 
   /**
    * Running average of the latency (delay between messages) for this
@@ -207,7 +207,7 @@ GNUNET_DEFRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
 				  unsigned int num_msgs,
 				  void *cls,
 				  GNUNET_FRAGMENT_MessageProcessor proc,
-				  GNUNET_FRAGMENT_MessageProcessor ackp)
+				  GNUNET_DEFRAGMENT_AckProcessor ackp)
 {
   struct GNUNET_DEFRAGMENT_Context *dc;
 
@@ -270,7 +270,7 @@ send_ack (void *cls,
   fa.header.type = htons (GNUNET_MESSAGE_TYPE_FRAGMENT_ACK);
   fa.fragment_id = htonl (mc->fragment_id);
   fa.bits = GNUNET_htonll (mc->bits);
-  dc->ackp (dc->cls, &fa.header);
+  dc->ackp (dc->cls, mc->fragment_id, &fa.header);
 }
 
 
