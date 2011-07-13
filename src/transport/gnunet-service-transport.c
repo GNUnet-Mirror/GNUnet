@@ -3691,9 +3691,12 @@ send_periodic_ping (void *cls,
   size_t slen;
   size_t tsize;
 
-  peer_address->revalidate_task = GNUNET_SCHEDULER_NO_TASK;
   if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
+
+  GNUNET_assert (peer_address != NULL);
+  peer_address->revalidate_task = GNUNET_SCHEDULER_NO_TASK;
+
   tp = peer_address->ready_list->plugin;
   neighbour = peer_address->ready_list->neighbour;
   if (GNUNET_YES != neighbour->public_key_valid)
