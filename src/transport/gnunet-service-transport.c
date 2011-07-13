@@ -47,7 +47,7 @@
 
 #define DEBUG_TRANSPORT_HELLO GNUNET_NO
 
-#define DEBUG_INBOUND GNUNET_YES
+#define DEBUG_INBOUND GNUNET_NO
 
 /**
  * Should we do some additional checks (to validate behavior
