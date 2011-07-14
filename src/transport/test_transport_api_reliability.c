@@ -80,6 +80,8 @@ static int is_wlan;
 
 static int connected;
 
+static int test_failed;
+
 static unsigned long long total_bytes;
 
 static struct GNUNET_TIME_Absolute start_time;
@@ -163,14 +165,18 @@ stop_arm (struct PeerContext *p)
 
 static void
 end_badly (void *cls,
-	   const struct GNUNET_SCHEDULER_TaskContext *tc)
+           const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-	      "Reliability failed: Last message sent %u, Next message scheduled %u, Last message received %u, Message expected %u\n",
-	      msg_sent, 
-	      msg_scheduled, 
-	      msg_recv, 
-	      msg_recv_expected);
+  if (test_failed == GNUNET_NO)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Testcase timeout\n");
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Reliability failed: Last message sent %u, Next message scheduled %u, Last message received %u, Message expected %u\n",
+              msg_sent,
+              msg_scheduled,
+              msg_recv,
+              msg_recv_expected);
   if (th_p2 != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel(th_p2);
   th_p2 = NULL;
@@ -185,6 +191,7 @@ end_badly (void *cls,
     }
   ok = 1;
 }
+
 
 
 struct TestMessage
@@ -233,6 +240,7 @@ notify_receive (void *cls,
 		  ntohl (hdr->num));
       if (die_task != GNUNET_SCHEDULER_NO_TASK)
         GNUNET_SCHEDULER_cancel (die_task);
+      test_failed = GNUNET_YES;
       die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
       return;
     }
@@ -245,6 +253,7 @@ notify_receive (void *cls,
 		  ntohl (hdr->num));
       if (die_task != GNUNET_SCHEDULER_NO_TASK)
         GNUNET_SCHEDULER_cancel (die_task);
+      test_failed = GNUNET_YES;
       die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
       return;
     }
@@ -258,6 +267,7 @@ notify_receive (void *cls,
 		  n, (unsigned char) n);
       if (die_task != GNUNET_SCHEDULER_NO_TASK)
         GNUNET_SCHEDULER_cancel (die_task);
+      test_failed = GNUNET_YES;
       die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
       return;
     }
@@ -843,6 +853,8 @@ int
 main (int argc, char *argv[])
 {
   int ret;
+
+  test_failed = GNUNET_NO;
 
   if (strstr(argv[0], "tcp_nat") != NULL)
     {
