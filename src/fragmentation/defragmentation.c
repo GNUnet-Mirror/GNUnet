@@ -270,6 +270,10 @@ send_ack (void *cls,
   fa.header.type = htons (GNUNET_MESSAGE_TYPE_FRAGMENT_ACK);
   fa.fragment_id = htonl (mc->fragment_id);
   fa.bits = GNUNET_htonll (mc->bits);
+  GNUNET_STATISTICS_update (mc->dc->stats,
+			    _("# acknowledgements sent for fragment"),
+			    1,
+			    GNUNET_NO);
   dc->ackp (dc->cls, mc->fragment_id, &fa.header);
 }
 
@@ -445,7 +449,7 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
       return GNUNET_SYSERR;
     }
   GNUNET_STATISTICS_update (dc->stats,
-			    _("Fragments received"),
+			    _("# fragments received"),
 			    1,
 			    GNUNET_NO);
   mc = dc->head;
@@ -509,7 +513,7 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
     {
       duplicate = GNUNET_YES;
       GNUNET_STATISTICS_update (dc->stats,
-				_("Duplicate fragments received"),
+				_("# duplicate fragments received"),
 				1,
 				GNUNET_NO);
     }
@@ -533,7 +537,7 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
        (0 == mc->bits) )
     {
       GNUNET_STATISTICS_update (dc->stats,
-				_("Messages defragmented"),
+				_("# messages defragmented"),
 				1,
 				GNUNET_NO);
       /* message complete, notify! */

@@ -49,6 +49,11 @@ struct GNUNET_FRAGMENT_Context
   struct GNUNET_TIME_Relative delay;
 
   /**
+   * Next allowed transmission time.
+   */
+  struct GNUNET_TIME_Absolute delay_until;
+
+  /**
    * Time we transmitted the last message of the last round.
    */
   struct GNUNET_TIME_Absolute last_round;
@@ -173,11 +178,11 @@ transmit_next (void *cls,
   if (NULL != fc->tracker)
     GNUNET_BANDWIDTH_tracker_consume (fc->tracker, fsize);    
   GNUNET_STATISTICS_update (fc->stats,
-			    _("Fragments transmitted"),
+			    _("# fragments transmitted"),
 			    1, GNUNET_NO);
   if (0 != fc->last_round.abs_value)
     GNUNET_STATISTICS_update (fc->stats,
-			      _("Fragments retransmitted"),
+			      _("# fragments retransmitted"),
 			      1, GNUNET_NO);
 
   /* select next message to calculate delay */
@@ -201,6 +206,7 @@ transmit_next (void *cls,
       fc->wack = GNUNET_YES;
     }
   fc->proc_busy = GNUNET_YES;
+  fc->delay_until = GNUNET_TIME_relative_to_absolute (delay);
   fc->proc (fc->proc_cls, &fh->header);
 }
 
@@ -237,12 +243,12 @@ GNUNET_FRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
   uint64_t bits;
   
   GNUNET_STATISTICS_update (stats,
-			    _("Messages fragmented"),
+			    _("# messages fragmented"),
 			    1, GNUNET_NO);
   GNUNET_assert (mtu >= 1024 + sizeof (struct FragmentHeader));
   size = ntohs (msg->size);
   GNUNET_STATISTICS_update (stats,
-			    _("Total size of fragmented messages"),
+			    _("# total size of fragmented messages"),
 			    size, GNUNET_NO);
   GNUNET_assert (size > mtu);
   fc = GNUNET_malloc (sizeof (struct GNUNET_FRAGMENT_Context) + size);
@@ -281,8 +287,9 @@ GNUNET_FRAGMENT_context_transmission_done (struct GNUNET_FRAGMENT_Context *fc)
   GNUNET_assert (fc->proc_busy == GNUNET_YES);
   fc->proc_busy = GNUNET_NO;
   GNUNET_assert (fc->task == GNUNET_SCHEDULER_NO_TASK);
-  fc->task = GNUNET_SCHEDULER_add_now (&transmit_next,
-				       fc);
+  fc->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining (fc->delay_until),
+					   &transmit_next,
+					   fc);
 }
 
 
@@ -322,11 +329,15 @@ GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
       ndelay = GNUNET_TIME_absolute_get_duration (fc->last_round);
       fc->delay.rel_value = (ndelay.rel_value + 3 * fc->delay.rel_value) / 4;
     }
+  GNUNET_STATISTICS_update (fc->stats,
+			    _("# fragment acknowledgements received"),
+			    1,
+			    GNUNET_NO);
   if (abits != (fc->acks & abits))
     {
       /* ID collission or message reordering, count! This should be rare! */
       GNUNET_STATISTICS_update (fc->stats,
-				_("Bits removed from ACK"),
+				_("# bits removed from fragmentation ACKs"),
 				1, GNUNET_NO);
     }
   fc->acks = abits;
@@ -340,6 +351,10 @@ GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
     }
 
   /* all done */
+  GNUNET_STATISTICS_update (fc->stats,
+			    _("# fragmentation transmissions completed"),
+			    1,
+			    GNUNET_NO);
   if (fc->task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (fc->task);
