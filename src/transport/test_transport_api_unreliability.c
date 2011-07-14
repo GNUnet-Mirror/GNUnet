@@ -466,7 +466,10 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 	      GNUNET_i2s (peer), cls);
 #endif
   if (th_p2 != NULL)
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel(th_p2);
+    {
+      GNUNET_TRANSPORT_notify_transmit_ready_cancel (th_p2);
+      th_p2 = NULL;
+    }
 }
 
 
