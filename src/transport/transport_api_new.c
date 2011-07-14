@@ -347,10 +347,11 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
   GNUNET_BANDWIDTH_tracker_init (&n->out_tracker,
 				 GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
 				 MAX_BANDWIDTH_CARRY_S);
-  GNUNET_CONTAINER_multihashmap_put (h->neighbours,
-                                     &pid->hashPubKey,
-                                     n,
-                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CONTAINER_multihashmap_put (h->neighbours,
+						    &pid->hashPubKey,
+						    n,
+						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   return n;
 }
 
