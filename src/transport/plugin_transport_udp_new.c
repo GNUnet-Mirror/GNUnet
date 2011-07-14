@@ -236,6 +236,11 @@ struct Plugin
   struct GNUNET_SERVER_MessageStreamTokenizer *mst;
 
   /**
+   * Bandwidth tracker to limit global UDP traffic.
+   */
+  struct GNUNET_BANDWIDTH_Tracker tracker;
+
+  /**
    * Address we were told to bind to exclusively (IPv4).
    */
   char *bind4_address;
@@ -264,6 +269,11 @@ struct Plugin
    * The read socket for IPv6
    */
   struct GNUNET_NETWORK_Handle *sockv6;
+
+  /**
+   * expected delay for ACKs 
+   */
+  struct GNUNET_TIME_Relative last_expected_delay;
 
   /**
    * Port we listen on.
@@ -314,7 +324,7 @@ udp_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
 		 GNUNET_CONTAINER_multihashmap_remove (plugin->sessions,
 						       &target->hashPubKey,
 						       session));
-  (void) GNUNET_FRAGMENT_context_destroy (session->frag);
+  plugin->last_expected_delay = GNUNET_FRAGMENT_context_destroy (session->frag);
   session->cont (session->cont_cls, target, GNUNET_SYSERR);
   GNUNET_free (session);
 }
@@ -518,8 +528,8 @@ udp_plugin_send (void *cls,
 							GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
       peer_session->frag = GNUNET_FRAGMENT_context_create (plugin->env->stats,
 							   UDP_MTU,
-							   NULL /* tracker; FIXME: add later to limit send rate... */,
-							   GNUNET_TIME_UNIT_SECONDS /* expected delay for ACKs */,
+							   &plugin->tracker,
+							   plugin->last_expected_delay,
 							   &udp->header,
 							   &send_fragment,
 							   peer_session);
@@ -1313,6 +1323,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   socklen_t addrlens[2];
   socklen_t addrlen;
   unsigned int tries;
+  unsigned long long udp_max_bps;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (env->cfg,
@@ -1320,6 +1331,12 @@ libgnunet_plugin_transport_udp_init (void *cls)
 					     "PORT",
 					     &port))
     port = 2086;
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (env->cfg,
+					     "transport-udp",
+					     "MAX_BPS",
+					     &udp_max_bps))
+    udp_max_bps = 1024 * 1024 * 100; /* 100 MB/s == infinity for practical purposes */
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (env->cfg,
 					     "transport-udp",
@@ -1339,6 +1356,10 @@ libgnunet_plugin_transport_udp_init (void *cls)
   memset (&serverAddrv4, 0, sizeof (serverAddrv4));
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
+  GNUNET_BANDWIDTH_tracker_init (&plugin->tracker,
+				 GNUNET_BANDWIDTH_value_init ((uint32_t) udp_max_bps),
+				 30);
+  plugin->last_expected_delay = GNUNET_TIME_UNIT_SECONDS;
   plugin->port = port;
   plugin->aport = aport;
   plugin->env = env;
