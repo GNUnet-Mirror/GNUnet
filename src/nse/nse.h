@@ -32,14 +32,6 @@
 
 #define DEBUG_NSE GNUNET_YES
 
-#define SIGNED_TIMESTAMP_SIZE sizeof(struct GNUNET_TIME_Absolute)
-
-/** FIXME: define NSE message types here. */
-
-struct GNUNET_Signed_Timestamp
-{
-  char data[SIGNED_TIMESTAMP_SIZE];
-};
 
 /**
  * Network size estimate sent from the service
@@ -95,25 +87,45 @@ struct GNUNET_NSE_ClientMessage
  * doesn't allow us to verify that the
  * public/private key pair were generated, right?
  */
-struct GNUNET_NSE_ReplyMessage
+struct GNUNET_NSE_FloodMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_NSE_REPLY
+   * Type: GNUNET_MESSAGE_TYPE_NSE_P2P_FLOOD
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * The current timestamp value (which all
-   * peers should agree on) signed by the
-   * private key of the initiating peer.
+   * Magic header code(?)
    */
-  struct GNUNET_Signed_Timestamp timestamp;
+  uint16_t enc_type;
 
   /**
-   * Public key of the originator, signed timestamp
-   * is decrypted by this.
+   * Number of matching bits between the hash
+   * of timestamp and the initiator's public
+   * key.
+   */
+  uint16_t distance;
+
+  /**
+   * The current timestamp value (which all
+   * peers should agree on).
+   */
+  struct GNUNET_TIME_AbsoluteNBO timestamp;
+
+  /**
+   * Public key of the originator.
    */
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
+
+  /**
+   * FIXME: use, document.
+   */
+  uint32_t proof_of_work;
+
+  /**
+   * FIXME: use, document.
+   */
+  struct GNUNET_CRYPTO_RsaSignature signature;
 };
 
 #endif

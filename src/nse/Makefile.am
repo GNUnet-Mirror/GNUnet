@@ -40,6 +40,7 @@ gnunet_service_nse_LDADD = \
   $(top_builddir)/src/nse/libgnunetnse.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/core/libgnunetcore.la \
+  -lm \
   $(GN_LIBINTL)
 gnunet_service_nse_DEPENDENCIES = \
   libgnunetnse.la				 
