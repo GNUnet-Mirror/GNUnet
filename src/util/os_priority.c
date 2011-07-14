@@ -146,25 +146,68 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
     else
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
           "Failed to write into control pipe , errno is %d\n", errno);
-#if WINDOWS
-    res = 0;
+#if WINDOWS && !defined(__CYGWIN__)
     TerminateProcess (proc->handle, 0);
 #else
-    res = PLIBC_KILL (proc->pid, sig);
+    PLIBC_KILL (proc->pid, sig);
 #endif
   }
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
         "Wrote control code into control pipe, now waiting\n");
-    WaitForSingleObject (proc->handle, 5000);
+
 #if WINDOWS
-    TerminateProcess (proc->handle, 0);
-#else
-    PLIBC_KILL (proc->pid, sig);
-#endif
+    /* Give it 3 seconds to die, then kill it in a nice Windows-specific way */
+    if (WaitForSingleObject (proc->handle, 3000) != WAIT_OBJECT_0)
+      TerminateProcess (proc->handle, 0);
     res = 0;
+#else
+    struct GNUNET_NETWORK_FDSet *rfds;
+    struct GNUNET_NETWORK_FDSet *efds;
+
+    rfds = GNUNET_NETWORK_fdset_create ();
+    efds = GNUNET_NETWORK_fdset_create ();
+
+    GNUNET_NETWORK_fdset_handle_set (rfds, proc->control_pipe);
+    GNUNET_NETWORK_fdset_handle_set (efds, proc->control_pipe);
+
+    /* Ndurner thought this up, and i have no idea what it does.
+     * There's have never been any code to answer the shutdown call
+     * (write a single int into the pipe, so that this function can read it).
+     * On *nix select() will probably tell that pipe is ready
+     * for reading, once the other process shuts down,
+     * but the read () call will fail, triggering a kill ()
+     * on the pid that is already dead. This will probably result in non-0
+     * return from kill(), and therefore from this function.
+     */
+    while (1)
+    {
+      ret = GNUNET_NETWORK_socket_select (rfds, NULL, efds,
+          GNUNET_TIME_relative_multiply (GNUNET_TIME_relative_get_unit (),
+              5000));
+
+      if (ret < 1 || GNUNET_NETWORK_fdset_handle_isset (efds,
+          proc->control_pipe))
+        {
+          /* Just to be sure */
+          PLIBC_KILL (proc->pid, sig);
+          res = 0;
+          break;
+        }
+      else
+        {
+          if (GNUNET_DISK_file_read (proc->control_pipe, &ret,
+              sizeof(ret)) != GNUNET_OK)
+            res = PLIBC_KILL (proc->pid, sig);
+
+          /* Child signaled shutdown is in progress */
+          continue;
+        }
+     }
+#endif
   }
+
   return res;
 #else
   return kill (proc->pid, sig);
