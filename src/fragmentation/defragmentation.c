@@ -393,7 +393,10 @@ discard_oldest_mc (struct GNUNET_DEFRAGMENT_Context *dc)
 			       old);
   dc->list_size--;
   if (GNUNET_SCHEDULER_NO_TASK != old->ack_task)
-    GNUNET_SCHEDULER_cancel (old->ack_task);
+    {
+      GNUNET_SCHEDULER_cancel (old->ack_task);
+      old->ack_task = GNUNET_SCHEDULER_NO_TASK;
+    }
   GNUNET_free (old);
 }
 
@@ -483,12 +486,12 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
 	mc->bits = UINT64_MAX;      /* set all 64 bit */
       else
 	mc->bits = (1LL << n) - 1; /* set lowest 'bits' bit */
+      if (dc->list_size >= dc->num_msgs)
+	discard_oldest_mc (dc);
       GNUNET_CONTAINER_DLL_insert (dc->head,
 				   dc->tail,
 				   mc);
       dc->list_size++;
-      if (dc->list_size > dc->num_msgs)
-	discard_oldest_mc (dc);
     }
 
   /* copy data to 'mc' */
