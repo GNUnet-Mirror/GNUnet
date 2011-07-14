@@ -155,6 +155,7 @@ typedef struct GNUNET_TIME_Relative (*GNUNET_TRANSPORT_TrafficReport) (void *cls
                                                                       GNUNET_PeerIdentity *peer,
                                                                       size_t amount_recved);
 
+
 /**
  * Function called whenever the plugin has to notify ATS about costs for using this transport
  *
@@ -173,6 +174,7 @@ typedef void (*GNUNET_TRANSPORT_CostReport) (void *cls,
                                              const void *addr,
                                              uint16_t addrlen,
 					     struct GNUNET_TRANSPORT_ATS_Information * cost);
+
 
 /**
  * The transport service will pass a pointer to a struct
@@ -440,9 +442,7 @@ struct GNUNET_TRANSPORT_PluginFunctions
   /**
    * Function that can be used to force the plugin to disconnect from
    * the given peer and cancel all previous transmissions (and their
-   * continuations).  Note that if the transport does not have
-   * sessions / persistent connections (for example, UDP), this
-   * function may very well do nothing.
+   * continuations).  
    */
   GNUNET_TRANSPORT_DisconnectFunction disconnect;
 
