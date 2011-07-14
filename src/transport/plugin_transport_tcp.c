@@ -1113,6 +1113,7 @@ tcp_plugin_send (void *cls,
                                     target,
                                     NULL, 
 				    GNUNET_YES);
+          GNUNET_assert (session != NULL);
 
           /* create new message entry */
           pm = GNUNET_malloc (sizeof (struct PendingMessage) + msgbuf_size);
@@ -1189,8 +1190,17 @@ tcp_plugin_send (void *cls,
 	      addrlen);
       session->connect_alen = addrlen;
     }
+  else  /* session != NULL */
+    {
+      /* check if session is valid */
+      struct Session * ses = plugin->sessions;
+      while ((ses != NULL) && (ses != session))
+        ses = ses->next;
+      GNUNET_assert (ses != NULL);
+    }
   GNUNET_assert (session != NULL);
   GNUNET_assert (session->client != NULL);
+
 
   GNUNET_SERVER_client_set_timeout(session->client, GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
   GNUNET_STATISTICS_update (plugin->env->stats,
