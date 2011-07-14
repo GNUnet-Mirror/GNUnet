@@ -29,7 +29,9 @@
 #include "disk.h"
 #include "gnunet_container_lib.h"
 
-#define DEBUG_NETWORK GNUNET_YES
+#define DEBUG_NETWORK GNUNET_NO
+
+#define DEBUG_W32_CYCLES GNUNET_NO
 
 #ifndef INVALID_SOCKET
 #define INVALID_SOCKET -1
@@ -1106,6 +1108,8 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   struct timeval tvslice;
   int retcode;
   DWORD ms_total;
+  /* Number of milliseconds per cycle. Adapted on the fly */
+  static unsigned int cycle_delay = 20;
 
 #define SAFE_FD_ISSET(fd, set)  (set != NULL && FD_ISSET(fd, set))
 
@@ -1145,6 +1149,12 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   FD_ZERO (&aread);
   FD_ZERO (&awrite);
   FD_ZERO (&aexcept);
+
+#if DEBUG_W32_CYCLES
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Starting a cycle, delay is %dms\n", cycle_delay);
+#endif
+
   limit = GetTickCount () + ms_total;
 
   do
@@ -1160,7 +1170,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
           FD_COPY (&sock_write, &awrite);
           FD_COPY (&sock_except, &aexcept);
           tvslice.tv_sec = 0;
-          tvslice.tv_usec = 100000;
+          tvslice.tv_usec = cycle_delay;
           if ((retcode =
                select (nfds + 1, &aread, &awrite, &aexcept,
                        &tvslice)) == SOCKET_ERROR)
@@ -1301,8 +1311,26 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
             }
         }
     select_loop_end:
+      if (retcode == 0)
+      {
+        /* Missed an I/O - double the cycle time */
+        cycle_delay = cycle_delay * 2 > 250 ? 250 : cycle_delay * 1.4;
+#if DEBUG_W32_CYCLES
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "The cycle missed, increased the delay to %dms\n", cycle_delay);
+#endif
+      }
+      else
+      {
+        /* Successfully selected something - decrease the cycle time */
+        cycle_delay -= cycle_delay > 2 ? 2 : 0;
+#if DEBUG_W32_CYCLES
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "The cycle hit, decreased the delay to %dms\n", cycle_delay);
+#endif
+      }
       if (retcode == 0 && nfds == 0)
-        Sleep (GNUNET_MIN (100, limit - GetTickCount ()));
+        Sleep (GNUNET_MIN (cycle_delay * 1000, limit - GetTickCount ()));
     }
   while (retcode == 0 && (ms_total == INFINITE || GetTickCount () < limit));
 
