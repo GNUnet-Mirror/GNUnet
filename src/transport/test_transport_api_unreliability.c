@@ -257,6 +257,45 @@ stop_arm (struct PeerContext *p)
 }
 
 
+
+static void
+exchange_hello_last (void *cls,
+                     const struct GNUNET_MessageHeader *message)
+{
+  struct PeerContext *me = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Exchanging HELLO of size %d with peer (%s)!\n", 
+	      (int) GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message),
+	      GNUNET_i2s (&me->id));
+  GNUNET_assert (message != NULL);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
+                                      message, &me->id));
+  GNUNET_TRANSPORT_offer_hello (p1.th, message, NULL, NULL);
+}
+
+
+
+static void
+exchange_hello (void *cls,
+                const struct GNUNET_MessageHeader *message)
+{
+  struct PeerContext *me = cls;
+
+  GNUNET_assert (message != NULL);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
+                                      message, &me->id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Exchanging HELLO of size %d from peer %s!\n", 
+	      (int) GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message),
+	      GNUNET_i2s (&me->id));
+  GNUNET_TRANSPORT_offer_hello (p2.th, message, NULL, NULL);
+}
+
+
+
 static void
 end_badly (void *cls,
            const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -264,18 +303,30 @@ end_badly (void *cls,
   if (test_failed == GNUNET_NO)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Testcase timeout\n");
-    else
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Reliability failed: Last message sent %u, Next message scheduled %u, Last message received %u, Message expected %u\n",
-              msg_sent,
-              msg_scheduled,
-              msg_recv,
-              msg_recv_expected);
-  if (th_p2 != NULL)
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel(th_p2);
-  th_p2 = NULL;
-
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Reliability failed: Last message sent %u, Next message scheduled %u, Last message received %u, Message expected %u\n",
+		msg_sent,
+		msg_scheduled,
+		msg_recv,
+		msg_recv_expected);
+  
   GNUNET_break (0);
+  if (th_p2 != NULL)
+    {
+      GNUNET_TRANSPORT_notify_transmit_ready_cancel(th_p2);
+      th_p2 = NULL;
+    }
+  if (p2_hello_canceled == GNUNET_NO)
+    {
+      GNUNET_TRANSPORT_get_hello_cancel (p2.th, &exchange_hello_last, &p2);
+      p2_hello_canceled = GNUNET_YES;
+    }
+  if (p1_hello_canceled == GNUNET_NO)
+    {
+      GNUNET_TRANSPORT_get_hello_cancel (p1.th, &exchange_hello, &p1);
+      p1_hello_canceled = GNUNET_YES;
+    }
   GNUNET_TRANSPORT_disconnect (p1.th);
   GNUNET_TRANSPORT_disconnect (p2.th);
   if (GNUNET_SCHEDULER_NO_TASK != tct)
@@ -472,43 +523,6 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     }
 }
 
-
-
-static void
-exchange_hello_last (void *cls,
-                     const struct GNUNET_MessageHeader *message)
-{
-  struct PeerContext *me = cls;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Exchanging HELLO of size %d with peer (%s)!\n", 
-	      (int) GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message),
-	      GNUNET_i2s (&me->id));
-  GNUNET_assert (message != NULL);
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
-                                      message, &me->id));
-  GNUNET_TRANSPORT_offer_hello (p1.th, message, NULL, NULL);
-}
-
-
-
-static void
-exchange_hello (void *cls,
-                const struct GNUNET_MessageHeader *message)
-{
-  struct PeerContext *me = cls;
-
-  GNUNET_assert (message != NULL);
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
-                                      message, &me->id));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Exchanging HELLO of size %d from peer %s!\n", 
-	      (int) GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message),
-	      GNUNET_i2s (&me->id));
-  GNUNET_TRANSPORT_offer_hello (p2.th, message, NULL, NULL);
-}
 
 
 static void
