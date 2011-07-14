@@ -530,10 +530,14 @@ notify_connect (void *cls,
   if (2 == connected)
     {
       if (GNUNET_SCHEDULER_NO_TASK != die_task)
-        GNUNET_SCHEDULER_cancel (die_task);
-      if (GNUNET_SCHEDULER_NO_TASK != die_task)
-        GNUNET_SCHEDULER_cancel (tct);
-      tct = GNUNET_SCHEDULER_NO_TASK;
+	{
+	  GNUNET_SCHEDULER_cancel (die_task);	  
+	}
+      if (GNUNET_SCHEDULER_NO_TASK != tct)
+	{
+	  GNUNET_SCHEDULER_cancel (tct);
+	  tct = GNUNET_SCHEDULER_NO_TASK;
+	}
 
       if (p2_hello_canceled == GNUNET_NO)
       {
@@ -775,7 +779,7 @@ run (void *cls,
 static int
 check ()
 {
-  char *const argv[] = { "test-transport-api-reliability",
+  char *const argv[] = { "test-transport-api-unreliability",
     "-c",
     "test_transport_api_data.conf",
 #if VERBOSE
@@ -799,7 +803,7 @@ check ()
     }
 
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-transport-api-reliability", "nohelp",
+                      argv, "test-transport-api-unreliability", "nohelp",
                       options, &run, &ok);
   stop_arm (&p1);
   stop_arm (&p2);
@@ -902,7 +906,7 @@ main (int argc, char *argv[])
     {
        is_wlan = GNUNET_YES;
     }
-  GNUNET_log_setup ("test-transport-api-reliability",
+  GNUNET_log_setup ("test-transport-api-unreliability",
 #if VERBOSE
                     "DEBUG",
 #else
@@ -915,4 +919,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of test_transport_api_reliability.c */
+/* end of test_transport_api_unreliability.c */
