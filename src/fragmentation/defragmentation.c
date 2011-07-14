@@ -395,7 +395,6 @@ discard_oldest_mc (struct GNUNET_DEFRAGMENT_Context *dc)
   if (GNUNET_SCHEDULER_NO_TASK != old->ack_task)
     GNUNET_SCHEDULER_cancel (old->ack_task);
   GNUNET_free (old);
-  fprintf (stderr, "D");
 }
 
 
