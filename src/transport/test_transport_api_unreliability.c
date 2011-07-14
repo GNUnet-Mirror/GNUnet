@@ -111,6 +111,8 @@ static int msg_recv;
 static int p1_hello_canceled;
 static int p2_hello_canceled;
 
+static int test_failed;
+
 /**
  * Sets a bit active in the bitmap.
  *
@@ -257,23 +259,25 @@ stop_arm (struct PeerContext *p)
 
 static void
 end_badly (void *cls,
-	   const struct GNUNET_SCHEDULER_TaskContext *tc)
+           const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-	      "Reliability failed: Last message sent %u Next message scheduled %u Last message received %u Message expected %u\n", 
-	      msg_sent,
-	      msg_scheduled,
-	      msg_recv, 
-	      msg_recv_expected);
-  GNUNET_break (0);
-
+  if (test_failed == GNUNET_NO)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Testcase timeout\n");
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Reliability failed: Last message sent %u, Next message scheduled %u, Last message received %u, Message expected %u\n",
+              msg_sent,
+              msg_scheduled,
+              msg_recv,
+              msg_recv_expected);
   if (th_p2 != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel(th_p2);
   th_p2 = NULL;
 
+  GNUNET_break (0);
   GNUNET_TRANSPORT_disconnect (p1.th);
   GNUNET_TRANSPORT_disconnect (p2.th);
-
   if (GNUNET_SCHEDULER_NO_TASK != tct)
     {
       GNUNET_SCHEDULER_cancel (tct);
@@ -281,6 +285,7 @@ end_badly (void *cls,
     }
   ok = 1;
 }
+
 
 
 struct TestMessage
@@ -331,6 +336,7 @@ notify_receive (void *cls,
 		  ntohl (hdr->num));
       if (GNUNET_SCHEDULER_NO_TASK != die_task)
         GNUNET_SCHEDULER_cancel (die_task);
+      test_failed = GNUNET_YES;
       die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
       return;
     }
@@ -345,6 +351,7 @@ notify_receive (void *cls,
 		  ntohl(hdr->num), (unsigned char) n);
       if (GNUNET_SCHEDULER_NO_TASK != die_task)
         GNUNET_SCHEDULER_cancel (die_task);
+      test_failed = GNUNET_YES;
       die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
       return;
     }
@@ -364,6 +371,7 @@ notify_receive (void *cls,
       fprintf (stderr, ".");
       if (GNUNET_SCHEDULER_NO_TASK != die_task)
         GNUNET_SCHEDULER_cancel (die_task);
+      test_failed = GNUNET_YES;
       die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 					       &end_badly,
 					       NULL);
@@ -867,6 +875,8 @@ main (int argc, char *argv[])
 #ifdef MINGW
   return GNUNET_SYSERR;
 #endif
+
+  test_failed = GNUNET_NO;
 
   GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-1");
   GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-transport-peer-2");
