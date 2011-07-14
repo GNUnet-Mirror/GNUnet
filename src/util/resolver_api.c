@@ -139,6 +139,9 @@ struct GNUNET_RESOLVER_RequestHandle
 
   /**
    * Has this request been transmitted to the service?
+   * GNUNET_YES if transmitted
+   * GNUNET_YES if not transmitted
+   * GNUNET_SYSERR when request was canceled
    */
   int was_transmitted;
 
@@ -363,13 +366,16 @@ handle_response (void *cls,
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		    _("Timeout trying to resolve hostname `%s'.\n"),
 		    (const char *) &rh[1]);
+      /* check if request was canceled */
       if (rh->was_transmitted != GNUNET_SYSERR)
 	{
 	  if (NULL != rh->name_callback)
 	    {
+              /* no reverse lookup was successful, return ip as string */
               if (rh->received_response == GNUNET_NO)
                 rh->name_callback (rh->cls,
                     no_resolve ((const struct sockaddr *) &rh[1], rh->data_len));
+              /* at least one reverse lookup was successful */
               else
                 rh->name_callback (rh->cls, NULL);
 	    }
@@ -394,8 +400,10 @@ handle_response (void *cls,
       return;
     }
   size = ntohs (msg->size);
+  /* message contains not data, just header */
   if (size == sizeof (struct GNUNET_MessageHeader))
     {
+      /* check if request was canceled */
       if (rh->was_transmitted != GNUNET_SYSERR)
 	{
 	  if (NULL != rh->name_callback)
@@ -410,6 +418,7 @@ handle_response (void *cls,
       process_requests ();
       return;
     }
+  /* return reverse lookup results to caller */
   if (NULL != rh->name_callback)
     {
       hostname = (const char *) &msg[1];
@@ -441,6 +450,7 @@ handle_response (void *cls,
 			     rh,
 			     GNUNET_TIME_absolute_get_remaining (rh->timeout));
     }
+  /* return lookup results to caller */
   if (NULL != rh->addr_callback)
     {
       sa = (const struct sockaddr *) &msg[1];
@@ -834,6 +844,7 @@ numeric_reverse (void *cls,
  * @param do_resolve use GNUNET_NO to return numeric hostname
  * @param timeout how long to try resolving
  * @param callback function to call with hostnames
+ *        last callback is NULL when finished
  * @param cls closure for callback
  * @return handle that can be used to cancel the request
  */
