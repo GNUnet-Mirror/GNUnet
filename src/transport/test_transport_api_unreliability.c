@@ -538,17 +538,16 @@ notify_connect (void *cls,
 	  GNUNET_SCHEDULER_cancel (tct);
 	  tct = GNUNET_SCHEDULER_NO_TASK;
 	}
-
       if (p2_hello_canceled == GNUNET_NO)
-      {
-        GNUNET_TRANSPORT_get_hello_cancel (p2.th, &exchange_hello_last, &p2);
-        p2_hello_canceled = GNUNET_YES;
-      }
+	{
+	  GNUNET_TRANSPORT_get_hello_cancel (p2.th, &exchange_hello_last, &p2);
+	  p2_hello_canceled = GNUNET_YES;
+	}
       if (p1_hello_canceled == GNUNET_NO)
-      {
-        GNUNET_TRANSPORT_get_hello_cancel (p1.th, &exchange_hello, &p1);
-        p1_hello_canceled = GNUNET_YES;
-      }
+	{
+	  GNUNET_TRANSPORT_get_hello_cancel (p1.th, &exchange_hello, &p1);
+	  p1_hello_canceled = GNUNET_YES;
+	}
 
       die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 					       &end_badly, NULL);
