@@ -153,6 +153,11 @@ struct GNUNET_RESOLVER_RequestHandle
   int direction;
 
   /**
+   * GNUNET_YES if a response was received
+   */
+  int received_response;
+
+  /**
    * Length of the data that follows this struct.
    */
   size_t data_len;
@@ -361,7 +366,13 @@ handle_response (void *cls,
       if (rh->was_transmitted != GNUNET_SYSERR)
 	{
 	  if (NULL != rh->name_callback)
-	    rh->name_callback (rh->cls, NULL);      
+	    {
+              if (rh->received_response == GNUNET_NO)
+                rh->name_callback (rh->cls,
+                    no_resolve ((const struct sockaddr *) &rh[1], rh->data_len));
+              else
+                rh->name_callback (rh->cls, NULL);
+	    }
 	  if (NULL != rh->addr_callback)
 	    rh->addr_callback (rh->cls, NULL, 0);
 	}
@@ -388,7 +399,7 @@ handle_response (void *cls,
       if (rh->was_transmitted != GNUNET_SYSERR)
 	{
 	  if (NULL != rh->name_callback)
-	    rh->name_callback (rh->cls, NULL);      
+	    rh->name_callback (rh->cls, NULL);
 	  if (NULL != rh->addr_callback)
 	    rh->addr_callback (rh->cls, NULL, 0);
 	}
@@ -424,6 +435,7 @@ handle_response (void *cls,
 #endif
       if (rh->was_transmitted != GNUNET_SYSERR)
 	rh->name_callback (rh->cls, hostname);
+      rh->received_response = GNUNET_YES;
       GNUNET_CLIENT_receive (client,
 			     &handle_response,
 			     rh,
@@ -843,6 +855,7 @@ GNUNET_RESOLVER_hostname_get (const struct sockaddr *sa,
   memcpy (&rh[1], sa, salen);
   rh->data_len = salen;
   rh->direction = GNUNET_YES;
+  rh->received_response = GNUNET_NO;
   if (GNUNET_NO == do_resolve)
     {
       rh->task = GNUNET_SCHEDULER_add_now (&numeric_reverse, rh);
