@@ -772,7 +772,8 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
   struct GNUNET_TIME_Relative timeout;
   int i;
 
-  if (h == NULL) return;
+  if (h == NULL) 
+    return;
   if (GNUNET_SCHEDULER_NO_TASK != h->backoff_task)
     GNUNET_SCHEDULER_cancel (h->backoff_task);
   if (sync_first)
