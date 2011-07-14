@@ -566,6 +566,11 @@ struct NeighbourList
   int public_key_valid;
 
   /**
+   * Are we already in the process of disconnecting this neighbour?
+   */
+  int in_disconnect;
+
+  /**
    * Performance data for the peer.
    */
   struct GNUNET_TRANSPORT_ATS_Information *ats;
@@ -1614,21 +1619,16 @@ transmit_send_continuation (void *cls,
   n = find_neighbour (&mq->neighbour_id);
   if (mq->client != NULL)
     transmit_send_ok (mq->client, n, target, result);
-  if (n != NULL)
-    {
-      GNUNET_CONTAINER_DLL_remove (n->cont_head,
-				   n->cont_tail,
-				   mq);
-    }
+  GNUNET_assert (n != NULL);
+  GNUNET_CONTAINER_DLL_remove (n->cont_head,
+			       n->cont_tail,
+			       mq);
   GNUNET_free (mq);
-  if (n != NULL) 
-    {
-      if (result == GNUNET_OK) 
-	try_transmission_to_peer (n);
-      else if (GNUNET_SCHEDULER_NO_TASK == n->retry_task)
-	n->retry_task = GNUNET_SCHEDULER_add_now (&retry_transmission_task,
-						  n);
-    }	
+  if (result == GNUNET_OK) 
+    try_transmission_to_peer (n);
+  else if (GNUNET_SCHEDULER_NO_TASK == n->retry_task)
+    n->retry_task = GNUNET_SCHEDULER_add_now (&retry_transmission_task,
+					      n);
 }
 
 
@@ -4853,6 +4853,8 @@ disconnect_neighbour (struct NeighbourList *n, int check)
   struct ForeignAddressList *peer_addresses;
   struct ForeignAddressList *peer_pos;
 
+  if (GNUNET_YES == n->in_disconnect)
+    return;
   if (GNUNET_YES == check)
     {
       rpos = n->plugins;
@@ -4861,7 +4863,7 @@ disconnect_neighbour (struct NeighbourList *n, int check)
           peer_addresses = rpos->addresses;
           while (peer_addresses != NULL)
             {
-              // Do not disconnect if: an address is connected or an inbound address exists
+              /* Do not disconnect if: an address is connected or an inbound address exists */
               if ((GNUNET_YES == peer_addresses->connected) || (peer_addresses->addrlen == 0))
                 {
 #if DEBUG_TRANSPORT
@@ -4884,20 +4886,7 @@ disconnect_neighbour (struct NeighbourList *n, int check)
               "Disconnecting from `%4s'\n",
 	      GNUNET_i2s (&n->id));
 #endif
-
-  /* remove n from neighbours list */
-  nprev = NULL;
-  npos = neighbours;
-  while ((npos != NULL) && (npos != n))
-    {
-      nprev = npos;
-      npos = npos->next;
-    }
-  GNUNET_assert (npos != NULL);
-  if (nprev == NULL)
-    neighbours = n->next;
-  else
-    nprev->next = n->next;
+  n->in_disconnect = GNUNET_YES; /* prevent recursive entry */
 
   /* notify all clients about disconnect */
   if (GNUNET_YES == n->received_pong)
@@ -4989,6 +4978,21 @@ disconnect_neighbour (struct NeighbourList *n, int check)
                                 GNUNET_NO);
       n->piter = NULL;
     }
+
+  /* remove n from neighbours list */
+  nprev = NULL;
+  npos = neighbours;
+  while ((npos != NULL) && (npos != n))
+    {
+      nprev = npos;
+      npos = npos->next;
+    }
+  GNUNET_assert (npos != NULL);
+  if (nprev == NULL)
+    neighbours = n->next;
+  else
+    nprev->next = n->next;
+
   /* finally, free n itself */
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# active neighbours"),
