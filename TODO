@@ -8,9 +8,8 @@
 
 0.9.0pre4:
 * NAT library: [CG/MW]
-  - more testing
+  - make code used by gnunet-setup asynchronous, add timeout (external-ip can hang!)
 * Transport:
-  - UDP fragmentation [MW]
   - integration of new NAT/plugin API with HTTP/HTTPS plugin
   - testing (again)
 * GNUNET-GTK: [CG]
