@@ -490,11 +490,15 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
   struct PeerRecord *pr;
 
   GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
+  if (NULL != h->cth)
+    {
+      GNUNET_CLIENT_notify_transmit_ready_cancel (h->cth);
+      h->cth = NULL;
+    }
   if (h->client != NULL)
     {
       GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
       h->client = NULL;
-      h->cth = NULL;
     }
   h->currently_down = GNUNET_YES;
   GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
