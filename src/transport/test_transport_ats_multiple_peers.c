@@ -567,11 +567,13 @@ send_dummy_data_task (void *cls, size_t size, void *buf)
   hdr.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ATS);
   if (force_rebuild)
     hdr.num = htonl (1);
-  if (force_q_updates)
+  else if (force_q_updates)
     hdr.num = htonl (2);
-  memcpy (buf,&hdr, s);
+  else
+    hdr.num = htonl (0); 
+  memcpy (buf, &hdr, s);
   // GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Sent bytes: %i of %i\n", s, s);
-  t  = NULL;
+  t = NULL;
   return s;
 }
 
