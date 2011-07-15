@@ -34,7 +34,7 @@
 #include "gnunet_crypto_lib.h"
 #include "disk.h"
 
-#define DEBUG_NPIPE GNUNET_YES
+#define DEBUG_NPIPE GNUNET_NO
 
 /**
  * Block size for IO for copying files.
@@ -1990,6 +1990,7 @@ GNUNET_DISK_npipe_create (char **fn,
   return GNUNET_DISK_file_open(*fn, flags, perm);
 #endif
 }
+
 
 /**
  * Opens already existing named pipe/FIFO

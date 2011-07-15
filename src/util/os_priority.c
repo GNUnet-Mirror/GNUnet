@@ -47,67 +47,98 @@ static struct GNUNET_OS_Process current_process;
 
 /**
  * This handler is called when there are control data to be read on the pipe
+ *
+ * @param cls the 'struct GNUNET_DISK_FileHandle' of the control pipe
+ * @param tc scheduler context
  */
-void
-GNUNET_OS_parent_control_handler (void *cls,
-                                  const struct
-                                  GNUNET_SCHEDULER_TaskContext * tc)
+static void
+parent_control_handler (void *cls,
+			const struct
+			GNUNET_SCHEDULER_TaskContext * tc)
 {
   struct GNUNET_DISK_FileHandle *control_pipe = (struct GNUNET_DISK_FileHandle *) cls;
   int sig;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' invoked because of %d\n", __FUNCTION__, tc->reason);
-
+#if DEBUG_OS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "`%s' invoked because of %d\n",
+	      __FUNCTION__,
+	      tc->reason);
+#endif
   if (tc->reason & (GNUNET_SCHEDULER_REASON_SHUTDOWN | GNUNET_SCHEDULER_REASON_TIMEOUT | GNUNET_SCHEDULER_REASON_PREREQ_DONE))
-  {
-    GNUNET_DISK_npipe_close (control_pipe);
-  }
-  else
-  {
-    if (GNUNET_DISK_file_read (control_pipe, &sig, sizeof (sig)) != sizeof (sig))
     {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "GNUNET_DISK_file_read");
       GNUNET_DISK_npipe_close (control_pipe);
     }
-    else
+  else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got control code %d from parent\n", sig);
-      raise (sig);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Re-scheduling the parent control handler pipe\n");
-      GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, control_pipe, GNUNET_OS_parent_control_handler, control_pipe);
+      if (GNUNET_DISK_file_read (control_pipe, 
+				 &sig, 
+				 sizeof (sig)) != sizeof (sig))
+	{
+	  GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+			       "GNUNET_DISK_file_read");
+	  GNUNET_DISK_npipe_close (control_pipe);
+	}
+      else
+	{
+#if DEBUG_OS
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		      "Got control code %d from parent\n", sig);
+#endif
+	  raise (sig);
+#if DEBUG_OS
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		      "Re-scheduling the parent control handler pipe\n");
+#endif
+	  GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, 
+					  control_pipe, 
+					  &parent_control_handler, control_pipe);
+	}
     }
-  }
 }
 
+
 /**
- * Connects this process to its parent via pipe
+ * Task that connects this process to its parent via pipe
  */
 void
 GNUNET_OS_install_parent_control_handler (void *cls,
                                           const struct
                                           GNUNET_SCHEDULER_TaskContext * tc)
 {
-  char *env_buf;
-  struct GNUNET_DISK_FileHandle *control_pipe = NULL;
+  const char *env_buf;
+  struct GNUNET_DISK_FileHandle *control_pipe;
 
   env_buf = getenv (GNUNET_OS_CONTROL_PIPE);
-  if (env_buf == NULL || strlen (env_buf) <= 0)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not installing a handler because %s=%s\n", GNUNET_OS_CONTROL_PIPE, env_buf);
-    return;
-  }
-
-  control_pipe = GNUNET_DISK_npipe_open (env_buf, GNUNET_DISK_OPEN_READ,
-        GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
+  if ( (env_buf == NULL) || (strlen (env_buf) <= 0) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+		  _("Not installing a handler because $%s=%s\n"), 
+		  GNUNET_OS_CONTROL_PIPE, 
+		  env_buf);
+      return;
+    }
+  control_pipe = GNUNET_DISK_npipe_open (env_buf,
+					 GNUNET_DISK_OPEN_READ,
+					 GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
   if (control_pipe == NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to open the pipe `%s'\n", env_buf);
-    return;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding parent control handler pipe `%s' to the scheduler\n", env_buf);
-  GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, control_pipe, GNUNET_OS_parent_control_handler, control_pipe);
+    {
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+				"open",
+				env_buf);
+      return;
+    }
+#if DEBUG_OS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Adding parent control handler pipe `%s' to the scheduler\n", 
+	      env_buf);
+#endif
+  GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, 
+				  control_pipe, 
+				  &parent_control_handler, 
+				  control_pipe);
 }
+
 
 /**
  * Get process structure for current process
@@ -128,6 +159,7 @@ GNUNET_OS_process_current ()
 #endif
   return &current_process;
 }
+
 
 int
 GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
@@ -226,6 +258,7 @@ GNUNET_OS_process_get_pid (struct GNUNET_OS_Process *proc)
 {
   return proc->pid;
 }
+
 
 void
 GNUNET_OS_process_close (struct GNUNET_OS_Process *proc)
