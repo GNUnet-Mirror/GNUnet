@@ -553,7 +553,7 @@ check ()
     GNUNET_DISK_directory_remove (p1.servicehome);
     GNUNET_free(p1.servicehome);
     }
-  if.servicehome != NULL)
+  if (p2.servicehome != NULL)
     {
       GNUNET_DISK_directory_remove (p2.servicehome);
       GNUNET_free(p2.servicehome);
