@@ -1473,10 +1473,9 @@ transmit_to_client (struct TransportClient *client,
   GNUNET_assert (msize >= sizeof (struct GNUNET_MessageHeader));
   q = GNUNET_malloc (sizeof (struct ClientMessageQueueEntry) + msize);
   memcpy (&q[1], msg, msize);
-  GNUNET_CONTAINER_DLL_insert_after (client->message_queue_head,
-				     client->message_queue_tail,
-				     client->message_queue_tail,
-				     q);
+  GNUNET_CONTAINER_DLL_insert_tail (client->message_queue_head,
+				    client->message_queue_tail,
+				    q);
   client->message_count++;
   if (client->th == NULL)
     {
