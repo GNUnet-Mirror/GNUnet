@@ -37,8 +37,9 @@
 #include "gnunet_service_lib.h"
 #include "gnunet_signatures.h"
 #include "gnunet_transport_plugin.h"
+#include "gnunet_transport_ats.h"
 #include "transport.h"
-#include "transport_ats.h"
+
 
 
 #define DEBUG_BLACKLIST GNUNET_NO
@@ -5369,7 +5370,10 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 	  
 	  peer_address->distance = distance;
 	  if (GNUNET_YES == peer_address->validated)
+	  {
 	    mark_address_connected (peer_address);
+	    schedule_next_ping (peer_address);
+	  }
 	  else
 	  {
 #if DEBUG_TRANSPORT
@@ -5382,10 +5386,10 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 	       peer_address->revalidate_task = GNUNET_SCHEDULER_NO_TASK;
 	     }
 	     peer_address->revalidate_task = GNUNET_SCHEDULER_add_now (&send_periodic_ping, peer_address);
+
 	  }
 	  peer_address->timeout
 	    = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-	  schedule_next_ping (peer_address);
 	}
       /* update traffic received amount ... */
       msize = ntohs (message->size);
