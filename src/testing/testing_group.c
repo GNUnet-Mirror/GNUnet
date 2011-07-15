@@ -2949,7 +2949,6 @@ create_and_copy_blacklist_files(struct GNUNET_TESTING_PeerGroup *pg,
   unsigned int i;
   char *pos;
   char *temp_transports;
-  int entry_count;
 #if OLD
   struct GNUNET_CRYPTO_HashAsciiEncoded peer_enc;
   struct PeerConnection *conn_iter;
@@ -2987,15 +2986,14 @@ create_and_copy_blacklist_files(struct GNUNET_TESTING_PeerGroup *pg,
                                              &peer_enc);
                   fprintf (temp_file_handle, "%s:%s\n", pos, (char *) &peer_enc);
                   conn_iter = conn_iter->next;
-                  entry_count++;
                 }
 #else
               blacklist_ctx.transport = pos;
-              entry_count = GNUNET_CONTAINER_multihashmap_iterate (pg->
-                  peers
-                  [pg_iter].blacklisted_peers,
-                  &blacklist_file_iterator,
-                  &blacklist_ctx);
+              (void) GNUNET_CONTAINER_multihashmap_iterate (pg->
+							    peers
+							    [pg_iter].blacklisted_peers,
+							    &blacklist_file_iterator,
+							    &blacklist_ctx);
 #endif
               pos = NULL;
             } /* At beginning of actual string */
