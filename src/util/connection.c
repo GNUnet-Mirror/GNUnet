@@ -1712,8 +1712,9 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle
 
 
 /**
- * Cancel the specified transmission-ready
- * notification.
+ * Cancel the specified transmission-ready notification.
+ *
+ * @param th notification to cancel
  */
 void
 GNUNET_CONNECTION_notify_transmit_ready_cancel (struct
