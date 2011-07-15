@@ -2568,79 +2568,80 @@ create_from_file(struct GNUNET_TESTING_PeerGroup *pg, char *filename,
 
       switch (curr_state)
         {
-      case NUM_PEERS:
-        errno = 0;
-        total_peers = strtoul(&buf[count], NULL, 10);
-        if (errno != 0)
-          {
-            GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                        "Failed to read number of peers from topology file!\n");
-            GNUNET_free_non_null(data);
-            return connect_attempts;
-          }
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    "Read %u total peers in topology\n", total_peers);
-        GNUNET_assert(total_peers == pg->total);
-        curr_state = PEER_INDEX;
-        while ((buf[count] != '\n') && (count < frstat.st_size - 1))
-          count++;
-        count++;
-        break;
-      case PEER_INDEX:
-        errno = 0;
-        first_peer_index = strtoul(&buf[count], NULL, 10);
-        if (errno != 0)
-          {
-            GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                        "Failed to read peer index from topology file!\n");
-            GNUNET_free_non_null(data);
-            return connect_attempts;
-          }
-        while ((buf[count] != ':') && (count < frstat.st_size - 1))
-          count++;
-        count++;
-        curr_state = OTHER_PEER_INDEX;
-        break;
-      case COLON:
-        if (1 == sscanf (&buf[count], ":"))
-          curr_state = OTHER_PEER_INDEX;
-        count++;
-        break;
-      case OTHER_PEER_INDEX:
-        errno = 0;
-        second_peer_index = strtoul(&buf[count], NULL, 10);
-        if (errno != 0)
-          {
-            GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                        "Failed to peer index from topology file!\n");
-            GNUNET_free_non_null(data);
-            return connect_attempts;
-          }
-        /* Assume file is written with first peer 1, but array index is 0 */
-        connect_attempts += proc (pg, first_peer_index - 1, second_peer_index
-                                  - 1, list, GNUNET_YES);
-        while ((buf[count] != '\n') && (buf[count] != ',') && (count
-            < frstat.st_size - 1))
-          count++;
-        if (buf[count] == '\n')
-          {
-            curr_state = PEER_INDEX;
-          }
-        else if (buf[count] != ',')
-          {
-            curr_state = OTHER_PEER_INDEX;
-          }
-        count++;
-        break;
-      default:
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "Found bad data in topology file while in state %d!\n",
-                    curr_state);
-        GNUNET_break(0);
-        return connect_attempts;
+	case NUM_PEERS:
+	  errno = 0;
+	  total_peers = strtoul(&buf[count], NULL, 10);
+	  if (errno != 0)
+	    {
+	      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+			  "Failed to read number of peers from topology file!\n");
+	      GNUNET_free (data);
+	      return connect_attempts;
+	    }
+	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		      "Read %u total peers in topology\n", total_peers);
+	  GNUNET_assert(total_peers == pg->total);
+	  curr_state = PEER_INDEX;
+	  while ((buf[count] != '\n') && (count < frstat.st_size - 1))
+	    count++;
+	  count++;
+	  break;
+	case PEER_INDEX:
+	  errno = 0;
+	  first_peer_index = strtoul(&buf[count], NULL, 10);
+	  if (errno != 0)
+	    {
+	      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+			  "Failed to read peer index from topology file!\n");
+	      GNUNET_free (data);
+	      return connect_attempts;
+	    }
+	  while ((buf[count] != ':') && (count < frstat.st_size - 1))
+	    count++;
+	  count++;
+	  curr_state = OTHER_PEER_INDEX;
+	  break;
+	case COLON:
+	  if (1 == sscanf (&buf[count], ":"))
+	    curr_state = OTHER_PEER_INDEX;
+	  count++;
+	  break;
+	case OTHER_PEER_INDEX:
+	  errno = 0;
+	  second_peer_index = strtoul(&buf[count], NULL, 10);
+	  if (errno != 0)
+	    {
+	      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+			  "Failed to peer index from topology file!\n");
+	      GNUNET_free (data);
+	      return connect_attempts;
+	    }
+	  /* Assume file is written with first peer 1, but array index is 0 */
+	  connect_attempts += proc (pg, first_peer_index - 1, second_peer_index
+				    - 1, list, GNUNET_YES);
+	  while ((buf[count] != '\n') && (buf[count] != ',') && (count
+								 < frstat.st_size - 1))
+	    count++;
+	  if (buf[count] == '\n')
+	    {
+	      curr_state = PEER_INDEX;
+	    }
+	  else if (buf[count] != ',')
+	    {
+	      curr_state = OTHER_PEER_INDEX;
+	    }
+	  count++;
+	  break;
+	default:
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      "Found bad data in topology file while in state %d!\n",
+		      curr_state);
+	  GNUNET_break(0);
+	  GNUNET_free (data);
+	  return connect_attempts;
         }
-
     }
+  GNUNET_free (data);
   return connect_attempts;
 }
 
