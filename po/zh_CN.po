@@ -1,0 +1,4922 @@
+# Chinese simplified translation for GNUnet.
+# Copyright (C) 2011 Christian Grothoff
+# This file is distributed under the same license as the GNUnet package.
+# Wylmer Wang <wantinghard@gmail.com>, 2011.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: gnunet-0.8.1\n"
+"Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
+"POT-Creation-Date: 2009-12-29 12:23+0100\n"
+"PO-Revision-Date: 2011-07-09 12:12+0800\n"
+"Last-Translator: Wylmer Wang <wantinghard@gmail.com>\n"
+"Language-Team: Chinese (simplified) <i18n-zh@googlegroups.com>\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/setup/ncurses/wizard_curs.c:72 src/setup/lib/wizard_util.c:155
+#: src/setup/lib/wizard_util.c:210
+msgid "Error"
+msgstr "错误"
+
+#: src/setup/ncurses/wizard_curs.c:80
+msgid "Help"
+msgstr "帮助"
+
+#: src/setup/ncurses/wizard_curs.c:87
+msgid "Error!"
+msgstr "错误！"
+
+#: src/setup/ncurses/wizard_curs.c:101 src/applications/vpn/cs.c:94
+msgid "No"
+msgstr "否"
+
+#: src/setup/ncurses/wizard_curs.c:102 src/applications/vpn/cs.c:94
+msgid "Yes"
+msgstr "是"
+
+#: src/setup/ncurses/wizard_curs.c:118 src/setup/ncurses/wizard_curs.c:183
+#: src/setup/ncurses/wizard_curs.c:299 src/setup/ncurses/mconf.c:189
+#: src/setup/ncurses/mconf.c:286 src/setup/ncurses/mconf.c:366
+#: src/setup/ncurses/mconf.c:457
+msgid "Internal error! (Choice invalid?)"
+msgstr "内部错误！(选择无效？)"
+
+#: src/setup/ncurses/wizard_curs.c:150
+msgid "Abort"
+msgstr "中止"
+
+#: src/setup/ncurses/wizard_curs.c:151
+msgid "Ok"
+msgstr "确定"
+
+#: src/setup/ncurses/wizard_curs.c:218 src/setup/ncurses/wizard_curs.c:284
+#: src/setup/ncurses/wizard_curs.c:425
+msgid "GNUnet configuration"
+msgstr "GNUnet 配置"
+
+#: src/setup/ncurses/wizard_curs.c:220
+msgid ""
+"Welcome to GNUnet!\n"
+"\n"
+"This assistant will ask you a few basic questions in order to configure GNUnet.\n"
+"\n"
+"Please visit our homepage at\n"
+"\thttp://gnunet.org/\n"
+"and join our community at\n"
+"\thttp://gnunet.org/drupal/\n"
+"\n"
+"Have a lot of fun,\n"
+"\n"
+"the GNUnet team"
+msgstr ""
+"欢迎使用 GNUnet！\n"
+"\n"
+"此助手将询问您几个基本问题，以配置 GNUnet。\n"
+"\n"
+"请访问我们的主页\n"
+"\thttp://gnunet.org/\n"
+"并欢迎加入我们的社区\n"
+"\thttp://gnunet.org/drupal/\n"
+"\n"
+"祝您使用愉快，\n"
+"\n"
+"GNUnet 团队"
+
+#: src/setup/ncurses/wizard_curs.c:286
+msgid "Choose the network interface that connects your computer to the internet from the list below."
+msgstr "请从下面的列表中选择计算机联网的网络接口。"
+
+#: src/setup/ncurses/wizard_curs.c:304 src/setup/ncurses/wizard_curs.c:318
+msgid "The \"Network interface\" is the device that connects your computer to the internet. This is usually a modem, an ISDN card or a network card in case you are using DSL."
+msgstr "“网络接口”是将您的计算机连接到互联网的设备。该设备通常为一台调制解调器、一张 ISDN 卡或一张网卡(若您使用 DSL 网络)。"
+
+#: src/setup/ncurses/wizard_curs.c:315
+msgid "Network configuration: interface"
+msgstr "网络配置：接口"
+
+#: src/setup/ncurses/wizard_curs.c:317
+msgid "What is the name of the network interface that connects your computer to the Internet?"
+msgstr "您的计算机联网所使用的网络接口的名称是什么？"
+
+#: src/setup/ncurses/wizard_curs.c:328
+msgid "Network configuration: IP"
+msgstr "网络配置：IP"
+
+#: src/setup/ncurses/wizard_curs.c:330
+msgid "What is this computer's public IP address or hostname?"
+msgstr "这台计算机的公网 IP 地址或主机名是什么？"
+
+#: src/setup/ncurses/wizard_curs.c:331
+msgid ""
+"If your provider always assigns the same IP-Address to you (a \"static\" IP-Address), enter it into the \"IP-Address\" field. If your IP-Address changes every now and then (\"dynamic\" IP-Address) but there's a hostname that always points to your actual IP-Address (\"Dynamic DNS\"), you can also enter it here.\n"
+"If left empty, GNUnet will try to automatically detect the IP.\n"
+"You can specify a hostname, GNUnet will then use DNS to resolve it.\n"
+"If in doubt, leave this empty."
+msgstr ""
+"如果您的网络运营商总是分配固定的 IP 地址给您(“静态” IP 地址)，请将它输入“IP 地址”字段。如果您的 IP 是不时变化的(“动态” IP 地址)但有一个总是指向您的实际 IP 地址的主机名(“动态 DNS”)，也可以将这个主机名填到这里。\n"
+"如果不填，GNUnet 将尝试自动检测此 IP。\n"
+"您可以指定一个主机名，GNUnet 将使用 DNS 来解析它。\n"
+"如果不明白，请不填。"
+
+#: src/setup/ncurses/wizard_curs.c:346
+msgid "Bandwidth configuration: upload"
+msgstr "带宽配置：上传"
+
+#: src/setup/ncurses/wizard_curs.c:348
+msgid "How much upstream bandwidth (in bytes/s) may be used?"
+msgstr "可以使用多少上行带宽(单位为字节/秒)？"
+
+#: src/setup/ncurses/wizard_curs.c:349
+msgid ""
+"You can limit GNUnet's resource usage here.\n"
+"\n"
+"The \"upstream\" is the data channel through which data is *sent* to the internet. The limit is the maximum amount which GNUnet is allowed to use. If you have a flatrate, you can set it to the maximum speed of your internet connection. You should not use a value that is higher than what your actual connection allows."
+msgstr ""
+"您可以在此限制 GNUnet 的资源占用。\n"
+"\n"
+"“上行”是向互联网“发送”数据的数据通道。限制是 GNUnet 可使用的最大数据流量。如果您的网速很平稳，您可以将该限制设置为网速的最大值。您不应该使用超过实际连接速度极限的值。"
+
+#: src/setup/ncurses/wizard_curs.c:361
+msgid "Bandwidth configuration: download"
+msgstr "带宽配置：下载"
+
+#: src/setup/ncurses/wizard_curs.c:363
+msgid "How much downstream bandwidth (in bytes/s) may be used?"
+msgstr "可以使用多少下行带宽(单位为字节/秒)？"
+
+#: src/setup/ncurses/wizard_curs.c:364
+msgid ""
+"You can limit GNUnet's resource usage here.\n"
+"\n"
+"The \"downstream\" is the data channel through which data is *received* from the internet. The limit is the maximum amount which GNUnet is allowed to use. If you have a flatrate, you can set it to the maximum speed of your internet connection. You should not use a value that is higher than what your actual connection allows."
+msgstr ""
+"您可以在此限制 GNUnet 的资源占用。\n"
+"\n"
+"“下行”是数据从互联网“接收”数据的数据通道。限制是 GNUnet 可使用的最大数据流量。如果您的网速很平稳，您可以将该限制设置为网速的最大值。您不应该使用超过实际连接速度极限的值。"
+
+#: src/setup/ncurses/wizard_curs.c:376
+msgid "Quota configuration"
+msgstr "配额配置"
+
+#: src/setup/ncurses/wizard_curs.c:377
+msgid "What is the maximum size of the datastore in MB?"
+msgstr "数据仓库的最大尺寸是多少(MB)？"
+
+#: src/setup/ncurses/wizard_curs.c:378
+msgid "The GNUnet datastore contains all content that GNUnet needs to store (indexed, inserted and migrated content)."
+msgstr "GNUnet 数据仓库包含了 GNUnet 需要保存的所有内容(索引的、插入的和合并的内容)。"
+
+#: src/setup/ncurses/wizard_curs.c:390
+msgid "Daemon configuration: user account"
+msgstr "守护程序配置：用户账户"
+
+#: src/setup/ncurses/wizard_curs.c:391
+msgid "As which user should gnunetd be run?"
+msgstr "以什么用户身份运行 gnunetd？"
+
+#: src/setup/ncurses/wizard_curs.c:393
+#, fuzzy
+msgid ""
+"For security reasons, it is a good idea to let this setup create a new user account under which the GNUnet service is started at system startup.\n"
+"\n"
+"However, GNUnet may not be able to access files other than its own. This includes files you want to publish in GNUnet. You'll have to grant read permissions to the user specified below.\n"
+"\n"
+"Leave the field empty to run GNUnet with system privileges.\n"
+msgstr ""
+"出于安全考虑，让设置助手创建一个专门用于在系统启动时启动 GNUnet 服务的账户是个不错的主意。\n"
+"\n"
+"但是，GNUnet 可能无法访问不属于自己账户的文件。这包括您想通过 GNUnet 发布的文件。您必须对以下用户赋予读权限。\n"
+"\n"
+"不填此字段则以系统权限运行 GNUnet。\n"
+
+#: src/setup/ncurses/wizard_curs.c:410
+msgid "Daemon configuration: group account"
+msgstr "守护程序配置：组账户"
+
+#: src/setup/ncurses/wizard_curs.c:411
+msgid "As which group should gnunetd be run?"
+msgstr "以什么用户组身份运行 gnunetd？"
+
+#: src/setup/ncurses/wizard_curs.c:413
+msgid ""
+"For security reasons, it is a good idea to let this setup create a new group for the chosen user account.\n"
+"\n"
+"You can also specify a already existent group here.\n"
+"\n"
+"Only members of this group will be allowed to start and stop the the GNUnet server and have access to GNUnet server data.\n"
+msgstr ""
+"出于安全考虑，让设置助手为选择的用户创建一个新组是个不错的主意。\n"
+"\n"
+"您也可以在此指定一个现有的组。\n"
+"\n"
+"只有该组的成员可以启动和停止 GNUnet 服务器和访问 GNUnet 服务器数据。\n"
+
+#: src/setup/ncurses/wizard_curs.c:427
+msgid "Do you want to automatically launch GNUnet as a system service?"
+msgstr "您想将 GNUnet 作为系统服务自动启动吗？"
+
+#: src/setup/ncurses/wizard_curs.c:429
+msgid "If you say \"yes\" here, the GNUnet background process will be automatically started when you turn on your computer. If you say \"no\" here, you have to launch GNUnet yourself each time you want to use it."
+msgstr "如果您回答“是”，GNUnet 后台进程将在开机时自动启动。如果您回答“否”，则需要在每次使用 GNUnet 时自己启动它。"
+
+#: src/setup/ncurses/wizard_curs.c:452 src/setup/gtk/wizard_gtk.c:414
+#, c-format
+msgid "Unable to save configuration file `%s':"
+msgstr "无法保存配置文件“%s”："
+
+#: src/setup/ncurses/wizard_curs.c:472
+msgid "Unable to create user account for daemon."
+msgstr "无法为守护程序创建用户账户。"
+
+#: src/setup/ncurses/wizard_curs.c:483
+msgid "Unable to setup autostart for daemon."
+msgstr "无法将守护进程设置为自动启动。"
+
+#: src/setup/ncurses/wizard_curs.c:498
+msgid "Save configuration?"
+msgstr "保存配置？"
+
+#: src/setup/ncurses/wizard_curs.c:499
+msgid "Save configuration now?"
+msgstr "立即保存配置？"
+
+#: src/setup/ncurses/wizard_curs.c:539 src/setup/ncurses/mconf.c:501
+msgid "GNUnet Configuration"
+msgstr "GNUnet 配置"
+
+#: src/setup/ncurses/wizard_curs.c:543
+msgid "Back"
+msgstr "后退"
+
+#: src/setup/ncurses/mconf.c:96
+msgid "Exit"
+msgstr "退出"
+
+#: src/setup/ncurses/mconf.c:99
+msgid "Up"
+msgstr "向上"
+
+#: src/setup/ncurses/mconf.c:102
+msgid "Cancel"
+msgstr "取消"
+
+#: src/setup/ncurses/mconf.c:222 src/setup/ncurses/mconf.c:409
+msgid "Internal error! (Value invalid?)"
+msgstr "内部错误！(值无效？)"
+
+#: src/setup/ncurses/mconf.c:399
+msgid "Invalid input, expecting floating point value."
+msgstr "无效输入，应为浮点值。"
+
+#: src/setup/ncurses/mconf.c:440
+msgid "Invalid input, expecting integer."
+msgstr "无效输入，应为整数。"
+
+#: src/setup/ncurses/mconf.c:447
+msgid "Value is not in legal range."
+msgstr "值不在合法范围内。"
+
+#: src/setup/ncurses/mconf.c:513 src/setup/text/conf.c:569
+#, c-format
+msgid "Configuration unchanged, no need to save.\n"
+msgstr "配置未更改，无须保存。\n"
+
+#: src/setup/ncurses/mconf.c:519
+msgid "Do you wish to save your new configuration?"
+msgstr "您想保存新配置吗？"
+
+#: src/setup/ncurses/mconf.c:533
+#, c-format
+msgid ""
+"\n"
+"End of configuration.\n"
+msgstr ""
+"\n"
+"结束配置。\n"
+
+#: src/setup/ncurses/mconf.c:538
+#, c-format
+msgid ""
+"\n"
+"Your configuration changes were NOT saved.\n"
+msgstr ""
+"\n"
+"您的配置更改没有保存。\n"
+
+#: src/setup/gnunet-win-tool.c:52
+msgid "list all network adapters"
+msgstr "列出所有网络适配器"
+
+#: src/setup/gnunet-win-tool.c:55
+msgid "install GNUnet as Windows service"
+msgstr "以 Windows 服务方式安装 GNUnet"
+
+#: src/setup/gnunet-win-tool.c:58
+msgid "uninstall GNUnet service"
+msgstr "卸载 GNUnet 服务"
+
+#: src/setup/gnunet-win-tool.c:61
+msgid "increase the maximum number of TCP/IP connections"
+msgstr "增加 TCP/IP 的最大连接数"
+
+#: src/setup/gnunet-win-tool.c:64
+msgid "display a file's hash value"
+msgstr "显示一个文件的散列值"
+
+#: src/setup/gnunet-win-tool.c:125
+#, c-format
+msgid "GNUnet service installed successfully.\n"
+msgstr "GNUnet 服务安装成功。\n"
+
+#: src/setup/gnunet-win-tool.c:128 src/setup/gnunet-win-tool.c:156
+#, c-format
+msgid "This version of Windows doesn't support services.\n"
+msgstr "此版本的 Windows 不支持服务。\n"
+
+#: src/setup/gnunet-win-tool.c:132 src/setup/gnunet-win-tool.c:160
+#, c-format
+msgid "Error: can't open Service Control Manager: %s\n"
+msgstr "错误：无法打开服务控制管理器：%s\n"
+
+#: src/setup/gnunet-win-tool.c:137
+#, c-format
+msgid "Error: can't create service: %s\n"
+msgstr "错误：无法创建服务：%s\n"
+
+#: src/setup/gnunet-win-tool.c:140 src/setup/gnunet-win-tool.c:172
+#, c-format
+msgid "Unknown error.\n"
+msgstr "未知错误。\n"
+
+#: src/setup/gnunet-win-tool.c:153
+#, c-format
+msgid "Service deleted.\n"
+msgstr "服务已删除。\n"
+
+#: src/setup/gnunet-win-tool.c:165
+#, c-format
+msgid "Error: can't access service: %s\n"
+msgstr "错误：无法访问服务：%s\n"
+
+#: src/setup/gnunet-win-tool.c:169
+#, c-format
+msgid "Error: can't delete service: %s\n"
+msgstr "错误：无法删除服务：%s\n"
+
+#: src/setup/gtk/ngconf.c:389
+msgid "Configuration saved."
+msgstr "配置已保存"
+
+#: src/setup/gtk/ngconf.c:399
+msgid "Failed to save configuration."
+msgstr "保存配置失败。"
+
+#: src/setup/gtk/ngconf.c:424
+msgid "Configuration changed. Save?"
+msgstr "配置已更改。保存吗？"
+
+#: src/setup/gtk/ngconf.c:437
+msgid "Error saving configuration."
+msgstr "保存配置出错。"
+
+#: src/setup/gtk/wizard_gtk.c:141
+msgid "(unknown connection)"
+msgstr "(未知连接)"
+
+#: src/setup/gtk/wizard_gtk.c:438
+msgid "Do you want to save the new configuration?"
+msgstr "您想保存新配置吗？"
+
+#: src/setup/gtk/wizard_gtk.c:470
+msgid "Unable to create user account:"
+msgstr "无法创建用户账户："
+
+#: src/setup/gtk/wizard_gtk.c:480
+msgid "Unable to change startup process:"
+msgstr "无法更改启动进程："
+
+#: src/setup/gtk/wizard_gtk.c:495
+msgid ""
+"Running gnunet-update failed.\n"
+"This maybe due to insufficient permissions, please check your configuration.\n"
+"Finally, run gnunet-update manually."
+msgstr ""
+"运行 gnunet-update 失败。\n"
+"这可能是权限不足造成的，请检查您的配置。\n"
+"最后，手动运行 gnunet-update。"
+
+#: src/setup/gtk/glade_support.c:133
+msgid "Could not determine UI definition filename."
+msgstr "无法确定用户界面定义文件。"
+
+#: src/setup/gnunet-setup.c:65
+#, c-format
+msgid "Can only set one option per invocation.\n"
+msgstr "每次调用只能设置一个选项。\n"
+
+#: src/setup/gnunet-setup.c:73
+#, c-format
+msgid "Invalid syntax, argument to 'set' must have the format SECTION:OPTION=VALUE.\n"
+msgstr "语法无效，“set”的参数必须为 SECTION:OPTION=VALUE 的格式。\n"
+
+#: src/setup/gnunet-setup.c:87
+#, c-format
+msgid "Can only display one option per invocation.\n"
+msgstr "每次调用只能显示一个选项。\n"
+
+#: src/setup/gnunet-setup.c:94
+#, c-format
+msgid "Invalid syntax, argument to 'get' must have the format SECTION:OPTION.\n"
+msgstr "语法无效，“get”的参数必须为 SECTION:OPTION 的格式。\n"
+
+#: src/setup/gnunet-setup.c:108
+msgid "generate configuration for gnunetd, the GNUnet daemon"
+msgstr "为 GNUnet 守护程序 gnunetd 生成配置"
+
+#: src/setup/gnunet-setup.c:111 src/setup/gnunet-setup.c:127
+#: src/server/gnunet-update.c:268
+msgid "print a value from the configuration file to stdout"
+msgstr "打印配置文件中的一个值到标准输出"
+
+#: src/setup/gnunet-setup.c:113 src/setup/gnunet-setup.c:129
+msgid "Tool to setup GNUnet."
+msgstr "设置 GNUnet 的工具。"
+
+#: src/setup/gnunet-setup.c:115 src/setup/gnunet-setup.c:131
+msgid "update a value in the configuration file"
+msgstr "更改配置文件中的一个值"
+
+#: src/setup/gnunet-setup.c:349
+#, c-format
+msgid "Too many arguments.\n"
+msgstr "参数过多。\n"
+
+#: src/setup/gnunet-setup.c:355
+msgid "No interface specified, using default.\n"
+msgstr "没有指定接口，将使用默认。\n"
+
+#: src/setup/gnunet-setup.c:403
+#, c-format
+msgid "Configuration file `%s' must be a filename (but is a directory).\n"
+msgstr "配置文件“%s”必须是一个文件名(但是一个目录)。\n"
+
+#: src/setup/gnunet-setup.c:415 src/server/gnunetd.c:67
+#, c-format
+msgid "Failed to parse configuration file `%s'\n"
+msgstr "解析配置文件“%s”失败\n"
+
+#: src/setup/gnunet-setup.c:453
+#, c-format
+msgid "Undefined option.\n"
+msgstr "未定义的选项。\n"
+
+#: src/setup/gnunet-setup.c:510
+#, c-format
+msgid "`%s' is not available.\n"
+msgstr "“%s”不可用。\n"
+
+#: src/setup/gnunet-setup.c:530
+#, c-format
+msgid "Unknown operation '%s'.\n"
+msgstr "未知操作“%s”。\n"
+
+#: src/setup/gnunet-setup.c:531 src/util/getopt/getopt.c:1072
+#, c-format
+msgid "Use --help to get a list of options.\n"
+msgstr "请使用 --help 获取选项列表。\n"
+
+#: src/setup/text/conf.c:79
+msgid "yes"
+msgstr "是"
+
+#: src/setup/text/conf.c:80
+msgid "no"
+msgstr "否"
+
+#: src/setup/text/conf.c:106
+#, c-format
+msgid "\tEnter yes (%s), no (%s) or help (%s): "
+msgstr "\t输入 yes (%s)、no (%s) 或 help (%s)："
+
+#: src/setup/text/conf.c:115
+msgid "\tPossible choices:\n"
+msgstr "\t可用选项：\n"
+
+#: src/setup/text/conf.c:123
+msgid "\tUse single space prefix to avoid conflicts with hotkeys!\n"
+msgstr "\t使用一个空格前缀来避免与快捷键冲突！\n"
+
+#: src/setup/text/conf.c:125
+#, c-format
+msgid "\tEnter string (type '%s' for default value `%s'): "
+msgstr "\t输入字符串(输入“%s”以使用默认值“%s”)："
+
+#: src/setup/text/conf.c:143
+#, c-format
+msgid "\t Enter choice (default is %c): "
+msgstr "\t 输入选择(默认为 %c)："
+
+#: src/setup/text/conf.c:147
+#, c-format
+msgid "\tEnter floating point (type '%s' for default value %f): "
+msgstr "\t输入浮点数(输入“%s”以使用默认值 %f)："
+
+#: src/setup/text/conf.c:153
+#, c-format
+msgid "\tEnter unsigned integer in interval [%llu,%llu] (type '%s' for default value %llu): "
+msgstr "\t输入区间 [%llu,%llu] 内的无符号整数(输入“%s”以使用默认值 %llu)："
+
+#: src/setup/text/conf.c:187
+#, c-format
+msgid "Yes\n"
+msgstr "是\n"
+
+#: src/setup/text/conf.c:192
+#, c-format
+msgid "No\n"
+msgstr "否\n"
+
+#: src/setup/text/conf.c:195 src/setup/text/conf.c:236
+#: src/setup/text/conf.c:266 src/setup/text/conf.c:329
+#: src/setup/text/conf.c:387
+#, c-format
+msgid "Help\n"
+msgstr "帮助\n"
+
+#: src/setup/text/conf.c:198 src/setup/text/conf.c:213
+#: src/setup/text/conf.c:276 src/setup/text/conf.c:307
+#: src/setup/text/conf.c:365
+#, c-format
+msgid "Abort\n"
+msgstr "中止\n"
+
+#: src/setup/text/conf.c:354 src/setup/text/conf.c:416
+#, c-format
+msgid ""
+"\n"
+"Invalid entry, try again (use '?' for help): "
+msgstr ""
+"\n"
+"无效条目，请重试(使用“?”获取帮助)："
+
+#: src/setup/text/conf.c:422
+#, c-format
+msgid "Unknown kind %x (internal error).  Skipping option.\n"
+msgstr "未知的类型 %x (内部错误)。将跳过选项。\n"
+
+#: src/setup/text/conf.c:484
+#, fuzzy
+msgid "\tDescend? (y/n/?) "
+msgstr "\t下降(y/n/?) "
+
+#: src/setup/text/conf.c:493
+msgid "Aborted.\n"
+msgstr "已中止。\n"
+
+#: src/setup/text/conf.c:506
+msgid "Invalid entry.\n"
+msgstr "无效条目。\n"
+
+#: src/setup/text/conf.c:524
+#, c-format
+msgid "Unknown kind %x (internal error).  Aborting.\n"
+msgstr "未知的类型 %x (内部错误)。将中止。\n"
+
+#: src/setup/text/conf.c:556
+#, c-format
+msgid "You can always press ENTER to keep the current value.\n"
+msgstr "您可以随便按 ENTER 键来保持当前值。\n"
+
+#: src/setup/text/conf.c:557
+#, c-format
+msgid "Use the '%s' key to abort.\n"
+msgstr "使用“%s”键来中止。\n"
+
+#: src/setup/text/conf.c:575
+#, c-format
+msgid "Save configuration?  Answer 'y' for yes, 'n' for no, 'r' to repeat configuration. "
+msgstr "保存配置？回答“y”表示是，“n”表示否，“r”表示重复配置。"
+
+#: src/setup/text/conf.c:590
+#, c-format
+msgid "Configuration was unchanged, no need to save.\n"
+msgstr "配置未更改，无须保存。\n"
+
+#: src/setup/text/conf.c:599
+#, c-format
+msgid "Configuration file `%s' written.\n"
+msgstr "配置文件“%s”已写入。\n"
+
+#: src/setup/lib/tree.c:191
+#, c-format
+msgid "Internal error: entry `%s' in section `%s' not found for visibility change!\n"
+msgstr "内部错误：找不到“%2$s”节的条目“%1$s”以进行可视化更改！\n"
+
+#: src/setup/lib/wizard_util.c:126
+msgid "Can't open Service Control Manager"
+msgstr "无法打开服务控制管理器"
+
+#: src/setup/lib/wizard_util.c:132
+msgid "Can't create service"
+msgstr "无法创建服务"
+
+#: src/setup/lib/wizard_util.c:136
+msgid "Error changing the permissions of the GNUnet directory"
+msgstr "更改 GNUnet 目录的权限出错"
+
+#: src/setup/lib/wizard_util.c:141
+msgid "Cannot write to the registry"
+msgstr "无法写入该注册表"
+
+#: src/setup/lib/wizard_util.c:144
+msgid "Can't access the service"
+msgstr "无法访问该服务"
+
+#: src/setup/lib/wizard_util.c:147
+msgid "Can't delete the service"
+msgstr "无法删除该服务"
+
+#: src/setup/lib/wizard_util.c:150
+msgid "Unknown error"
+msgstr "未知错误"
+
+#: src/setup/lib/wizard_util.c:186
+msgid "This version of Windows does not support multiple users."
+msgstr "此版本的 Windows 不支持多用户。"
+
+#: src/setup/lib/wizard_util.c:190
+msgid "Error creating user"
+msgstr "创建用户出错"
+
+#: src/setup/lib/wizard_util.c:194
+msgid "Error accessing local security policy"
+msgstr "访问本地安全策略出错"
+
+#: src/setup/lib/wizard_util.c:199
+msgid "Error granting service right to user"
+msgstr "向用户授予服务权限出错"
+
+#: src/setup/lib/wizard_util.c:204
+msgid "Unknown error while creating a new user"
+msgstr "在创建新用户时发生未知错误"
+
+#: src/setup/lib/gns.c:297
+#, c-format
+msgid "Configuration does not satisfy constraints of configuration specification file `%s'!\n"
+msgstr "配置不满足配置规范文件“%s”的约束！\n"
+
+#: src/util/disk/storage.c:172
+#, fuzzy, c-format
+msgid "`%s' failed for drive `%s': %u\n"
+msgstr "对驱动器“%2$s”的“%1$s”操作失败：%3$u\n"
+
+#: src/util/disk/storage.c:524
+#, c-format
+msgid "Expected `%s' to be a directory!\n"
+msgstr "“%s”应为目录！\n"
+
+#: src/util/error/error.c:152
+#, c-format
+msgid "Message `%.*s' repeated %u times in the last %llus\n"
+msgstr "消息“%.*s”重复了 %u 次，在最近 %llu 秒内\n"
+
+#: src/util/error/error.c:254
+#, c-format
+msgid ""
+"\n"
+"Press any key to continue\n"
+msgstr ""
+"\n"
+"按任意键继续\n"
+
+#: src/util/error/error.c:336 src/util/error/error.c:371
+msgid "DEBUG"
+msgstr "调试"
+
+#: src/util/error/error.c:338 src/util/error/error.c:373
+msgid "STATUS"
+msgstr "状态"
+
+#: src/util/error/error.c:340 src/util/error/error.c:377
+msgid "WARNING"
+msgstr "警告"
+
+#: src/util/error/error.c:342 src/util/error/error.c:379
+msgid "ERROR"
+msgstr "错误"
+
+#: src/util/error/error.c:344 src/util/error/error.c:381
+msgid "FATAL"
+msgstr "致命"
+
+#: src/util/error/error.c:346 src/util/error/error.c:383
+msgid "USER"
+msgstr "用户"
+
+#: src/util/error/error.c:348 src/util/error/error.c:385
+msgid "ADMIN"
+msgstr "管理员"
+
+#: src/util/error/error.c:350 src/util/error/error.c:387
+msgid "DEVELOPER"
+msgstr "开发者"
+
+#: src/util/error/error.c:352 src/util/error/error.c:389
+msgid "REQUEST"
+msgstr "请求"
+
+#: src/util/error/error.c:354 src/util/error/error.c:391
+msgid "BULK"
+msgstr "批量"
+
+#: src/util/error/error.c:356 src/util/error/error.c:393
+msgid "IMMEDIATE"
+msgstr "立即"
+
+#: src/util/error/error.c:358
+msgid "ALL"
+msgstr "所有"
+
+#: src/util/error/error.c:375
+msgid "INFO"
+msgstr "信息"
+
+#: src/util/error/error.c:394
+msgid "NOTHING"
+msgstr "无"
+
+#: src/util/network_client/tcpio.c:98 src/util/network_client/tcpio.c:154
+msgid "Could not find valid value for HOST in section NETWORK.\n"
+msgstr "在 NETWORK(网络) 节中找不到 HOST(主机) 的有效值。\n"
+
+#: src/util/network_client/tcpio.c:123
+#, c-format
+msgid "Syntax error in configuration entry HOST in section NETWORK: `%s'\n"
+msgstr "在 NETWORK 节的配置条目 HOST 中有语法错误：“%s”\n"
+
+#: src/util/network_client/tcpio.c:335
+#, c-format
+msgid "Error connecting to %s:%u. Is the daemon running?\n"
+msgstr "连接 %s:%u 出错。守护程序在运行吗？\n"
+
+#: src/util/network_client/tcpio.c:398 src/util/network/io.c:164
+#, c-format
+msgid "Cannot connect to %s:%u: %s\n"
+msgstr "无法连接到 %s:%u：%s\n"
+
+#: src/util/network_client/tcpio.c:636
+msgid "Reading result from gnunetd failed, reply invalid!\n"
+msgstr "从 gnunetd 读取结果失败，应答无效！\n"
+
+#: src/util/getopt/setoption.c:59
+#, c-format
+msgid "Setting option `%s' in section `%s' to `%s' when processing command line option `%s' was denied.\n"
+msgstr "在处理命令行选项“%4$s”时，将“%2$s”节的选项“%1$s”设置为“%3$s”被拒绝。\n"
+
+#: src/util/getopt/setoption.c:138 src/util/getopt/setoption.c:155
+#, c-format
+msgid "You must pass a number to the `%s' option.\n"
+msgstr "您必须向“%s”选项传递一个数字。\n"
+
+#: src/util/getopt/printhelp.c:49
+#, c-format
+msgid "Arguments mandatory for long options are also mandatory for short options.\n"
+msgstr "长选项的必选参数对短选项也是必选的。\n"
+
+#: src/util/getopt/getopt.c:684
+#, c-format
+msgid "%s: option `%s' is ambiguous\n"
+msgstr "%s：选项“%s”有歧义\n"
+
+#: src/util/getopt/getopt.c:710
+#, c-format
+msgid "%s: option `--%s' does not allow an argument\n"
+msgstr "%s：选项“--%s”不允许有参数\n"
+
+#: src/util/getopt/getopt.c:716
+#, c-format
+msgid "%s: option `%c%s' does not allow an argument\n"
+msgstr "%s：选项“%c%s”不允许有参数\n"
+
+#: src/util/getopt/getopt.c:737 src/util/getopt/getopt.c:909
+#, c-format
+msgid "%s: option `%s' requires an argument\n"
+msgstr "%s：选项“%s”要求有一个参数\n"
+
+#: src/util/getopt/getopt.c:767
+#, c-format
+msgid "%s: unrecognized option `--%s'\n"
+msgstr "%s：无法识别的选项“--%s”\n"
+
+#: src/util/getopt/getopt.c:771
+#, c-format
+msgid "%s: unrecognized option `%c%s'\n"
+msgstr "%s：无法识别的选项“%c%s”\n"
+
+#: src/util/getopt/getopt.c:797
+#, c-format
+msgid "%s: illegal option -- %c\n"
+msgstr "%s：非法选项 -- %c\n"
+
+#: src/util/getopt/getopt.c:799
+#, c-format
+msgid "%s: invalid option -- %c\n"
+msgstr "%s：无效选项 -- %c\n"
+
+#: src/util/getopt/getopt.c:828 src/util/getopt/getopt.c:958
+#, c-format
+msgid "%s: option requires an argument -- %c\n"
+msgstr "%s：选项要求有一个参数 -- %c\n"
+
+#: src/util/getopt/getopt.c:876
+#, c-format
+msgid "%s: option `-W %s' is ambiguous\n"
+msgstr "%s：选项“-W %s”有歧义\n"
+
+#: src/util/getopt/getopt.c:894
+#, c-format
+msgid "%s: option `-W %s' does not allow an argument\n"
+msgstr "%s：选项“-W %s” 不允许有参数\n"
+
+#: src/util/network/ip.c:96 src/util/network/ip.c:160 src/transports/ip.c:260
+#, c-format
+msgid "No interface specified in section `%s' under `%s'!\n"
+msgstr "“%2$s”下的“%1$s”节中没有指定接口！\n"
+
+#: src/util/network/ip.c:127 src/util/network/ip.c:246 src/transports/ip.c:291
+#, c-format
+msgid "Could not obtain IP for interface `%s' using `%s'.\n"
+msgstr "无法利用“%2$s”获取接口“%1$s”的 IP。\n"
+
+#: src/util/network/ip.c:216
+#, c-format
+msgid "Could not find interface `%s' using `%s', trying to find another interface.\n"
+msgstr "无法利用“%2$s”找到接口“%1$s”，尝试查找另一个接口。\n"
+
+#: src/util/network/ip.c:295
+#, c-format
+msgid "Could not find an IP address for interface `%s'.\n"
+msgstr "找不到接口“%s”的一个 IP 地址。\n"
+
+#: src/util/network/ip.c:306
+#, c-format
+msgid ""
+"There is more than one IP address specified for interface `%s'.\n"
+"GNUnet will use %s.\n"
+msgstr ""
+"为“%s”接口指定了超过一个 IP 地址。\n"
+"GNUnet 将使用 %s。\n"
+
+#: src/util/network/ip.c:330
+#, c-format
+msgid "Could not resolve `%s' to determine our IP address: %s\n"
+msgstr "无法解析“%s”来确定已方的 IP 地址：%s\n"
+
+#: src/util/network/ip.c:363
+#, c-format
+msgid "GNUnet now uses the IP address %s.\n"
+msgstr "GNUnet 现在使用 IP 地址 %s。\n"
+
+#: src/util/network/ipcheck.c:106 src/util/network/ipcheck.c:136
+#: src/util/network/ipcheck.c:186 src/util/network/ipcheck.c:211
+#: src/util/network/ipcheck.c:219
+#, c-format
+msgid "Invalid format for IP: `%s'\n"
+msgstr "IP 格式无效：“%s”\n"
+
+#: src/util/network/ipcheck.c:167
+#, c-format
+msgid "Invalid network notation ('/%d' is not legal in IPv4 CIDR)."
+msgstr "网络表示法无效(“/%d” 在 IPv4 CIDR 中是非法的)。"
+
+#: src/util/network/ipcheck.c:269
+#, c-format
+msgid "Invalid network notation (does not end with ';': `%s')\n"
+msgstr "无效的网络表示法(没有以“;”结尾：“%s”)\n"
+
+#: src/util/network/ipcheck.c:306
+#, c-format
+msgid "Wrong format `%s' for netmask\n"
+msgstr "网络掩码的格式“%s”错误\n"
+
+#: src/util/network/ipcheck.c:338
+#, c-format
+msgid "Wrong format `%s' for network\n"
+msgstr "网络的格式“%s”错误\n"
+
+#: src/util/network/dns.c:472
+#, c-format
+msgid "Could not resolve `%s' (%s): %s\n"
+msgstr "无法解析“%s”(%s)：%s\n"
+
+#: src/util/network/dns.c:523 src/util/network/dns.c:591
+#, c-format
+msgid "Could not find IP of host `%s': %s\n"
+msgstr "找不到主机“%s”的 IP：%s\n"
+
+#: src/util/network/select.c:326
+msgid "Received malformed message (too small) from connection. Closing.\n"
+msgstr "从连接收到损坏的消息(过小)。关闭。\n"
+
+#: src/util/network/select.c:525
+#, fuzzy, c-format
+msgid "select listen socket for `%s' not valid!\n"
+msgstr "选择“%s”的监听套接字无效！\n"
+
+#: src/util/network/select.c:720
+#, c-format
+msgid "OS tells us about very large message (%u bytes) pending on UDP socket, truncating at 64k\n"
+msgstr "操作系统通知，在 UPnP 套接字上有大量消息待处理(%u 字节)，将截短为64k\n"
+
+#: src/util/config/config.c:296
+#, c-format
+msgid "Syntax error in configuration file `%s' at line %d.\n"
+msgstr "配置文件“%s”第 %d 行有语法错误。\n"
+
+#: src/util/config/config.c:592
+#, c-format
+msgid "Configuration value '%llu' for '%s' in section '%s' is out of legal bounds [%llu,%llu]\n"
+msgstr ""
+
+#: src/util/config/config.c:602
+#, c-format
+msgid "Configuration value '%s' for '%s' in section '%s' should be a number\n"
+msgstr ""
+
+#: src/util/config/config.c:688
+#, c-format
+msgid "Configuration value '%s' for '%s' in section '%s' is not in set of legal choices\n"
+msgstr ""
+
+#: src/util/crypto/locking_gcrypt.c:80
+#, c-format
+msgid "libgcrypt has not the expected version (version %s is required).\n"
+msgstr "libgcrypt 的版本不符合预期(要求版本 %s)。\n"
+
+#: src/util/crypto/symcipher_gcrypt.c:46 src/util/crypto/symcipher_gcrypt.c:53
+#: src/util/crypto/hostkey_gcrypt.c:64 src/util/crypto/hostkey_gcrypt.c:71
+#: src/util/loggers/file.c:266 src/util/loggers/file.c:284
+#: src/applications/sqstore_sqlite/sqlite.c:45
+#: src/applications/sqstore_sqlite/sqlite.c:52
+#: src/applications/kvstore_sqlite/kv_sqlite.c:44
+#: src/applications/kvstore_sqlite/kv_sqlite.c:51
+#: src/applications/kvstore_mysql/kv_mysql.c:44
+#: src/applications/kvstore_mysql/kv_mysql.c:51
+#: src/applications/dstore_sqlite/dstore.c:94
+#: src/applications/dstore_sqlite/dstore.c:101
+#: src/applications/dstore_sqlite/dstore.c:222
+#: src/applications/dstore_sqlite/dstore.c:259
+#: src/applications/dstore_sqlite/dstore.c:285
+#: src/applications/dstore_sqlite/dstore.c:345
+#: src/applications/dstore_sqlite/dstore.c:366
+#: src/applications/dstore_sqlite/dstore.c:378
+#: src/applications/dstore_sqlite/dstore.c:407
+#: src/applications/dstore_sqlite/dstore.c:511
+#: src/applications/dstore_sqlite/dstore.c:555
+#: src/include/gnunet_util_error.h:249 src/include/gnunet_util_error.h:256
+#: src/include/gnunet_util_error.h:263
+#, fuzzy, c-format
+msgid "`%s' failed at %s:%d with error: %s\n"
+msgstr "“%s”于 %s:%d 处失败，错误为：%s\n"
+
+#: src/util/crypto/hostkey_gcrypt.c:907
+#, c-format
+msgid "RSA signature verification failed at %s:%d: %s\n"
+msgstr ""
+
+#: src/util/os/user.c:167 src/util/os/user.c:482 src/util/os/user.c:499
+#, c-format
+msgid "`%s' returned with error code %u"
+msgstr "“%s”返回了错误码 %u"
+
+#: src/util/os/user.c:298 src/util/os/user.c:345
+msgid "Error while parsing dscl output.\n"
+msgstr "解析 dscl 输出时出错。\n"
+
+#: src/util/os/user.c:320
+#, c-format
+msgid "Couldn't find a group (`%s') for the new user and none was specified.\n"
+msgstr "找不到新用户的组(“%s”)且没有指定用户组。\n"
+
+#: src/util/os/user.c:375
+msgid "Failed to find a free system id for the new group.\n"
+msgstr "无法为新组找到一个空闲的系统标识。\n"
+
+#: src/util/os/user.c:392
+msgid "Failed to find a free system id for the new user.\n"
+msgstr "无法为新用户找到一个个空闲的系统标识。\n"
+
+#: src/util/os/user.c:529 src/util/os/user.c:574
+#, c-format
+msgid "Cannot obtain information about user `%s': %s\n"
+msgstr "无法获取有关用户“%s”的信息：%s\n"
+
+#: src/util/os/user.c:530
+msgid "No such user"
+msgstr "无此用户"
+
+#: src/util/os/user.c:545
+#, c-format
+msgid "Cannot change user/group to `%s': %s\n"
+msgstr "无法更改用户/组为“%s”：%s\n"
+
+#: src/util/os/semaphore.c:227
+#, c-format
+msgid "Can't create semaphore: %i"
+msgstr "无法创建信号量：%i"
+
+#: src/util/os/cpustatus.c:464
+msgid "Cannot query the CPU usage (Windows NT).\n"
+msgstr "无法查询 CPU 使用率(Windows NT)。\n"
+
+#: src/util/os/cpustatus.c:487
+msgid "Cannot query the CPU usage (Win 9x)\n"
+msgstr "无法查询 CPU 使用率(Windows 9x)。\n"
+
+#: src/util/os/dso.c:59
+#, c-format
+msgid "Initialization of plugin mechanism failed: %s!\n"
+msgstr "插件机构初始化失败：%s！\n"
+
+#: src/util/os/dso.c:120
+#, c-format
+msgid "`%s' failed for library `%s' with error: %s\n"
+msgstr ""
+
+#: src/util/os/dso.c:162
+#, c-format
+msgid "`%s' failed to resolve method '%s' with error: %s\n"
+msgstr ""
+
+#: src/util/os/statuscalls.c:197 src/util/os/statuscalls.c:342
+#, c-format
+msgid "Failed to parse interface data from `%s'.\n"
+msgstr ""
+
+#: src/util/os/statuscalls.c:390 src/util/os/statuscalls.c:400
+#, c-format
+msgid "No network interfaces defined in configuration section `%s' under `%s'!\n"
+msgstr ""
+
+#: src/util/os/osconfig.c:153
+msgid "Setting open descriptor limit not supported.\n"
+msgstr "不支持设置打开描述符限制。\n"
+
+#: src/util/os/osconfig.c:451 src/util/os/osconfig.c:593
+#: src/util/os/osconfig.c:622
+#, c-format
+msgid "Command `%s' failed with error code %u\n"
+msgstr "命令“%s”失败，错误码 %u\n"
+
+#: src/util/os/priority.c:78
+#, c-format
+msgid "Invalid process priority `%s'\n"
+msgstr "无效的进程优先级“%s”\n"
+
+#: src/util/threads/semaphore.c:168 src/util/threads/pthread.c:157
+#: src/util/threads/mutex.c:146
+#, c-format
+msgid "Real-time delay violation (%llu ms) at %s:%u\n"
+msgstr "实时延迟冲突(%llu 毫秒)，于 %s:%u\n"
+
+#: src/util/threads/pthread.c:169 src/util/threads/pthread.c:176
+#: src/util/threads/pthread.c:183 src/util/threads/pthread.c:279
+#, c-format
+msgid "`%s' failed with error code %s: %s\n"
+msgstr "“%s”以错误码 %s 失败：%s\n"
+
+#: src/util/threads/pthread.c:190 src/util/threads/pthread.c:289
+#, c-format
+msgid "`%s' failed with error code %d: %s\n"
+msgstr "“%s”以错误码 %d 失败：%s\n"
+
+#: src/util/threads/mutex.c:155 src/util/threads/mutex.c:201
+#, c-format
+msgid "Invalid argument for `%s'.\n"
+msgstr "“%s”的参数无效。\n"
+
+#: src/util/threads/mutex.c:160
+#, c-format
+msgid "Deadlock due to `%s'.\n"
+msgstr "“%s”造成了死锁。\n"
+
+#: src/util/threads/mutex.c:187
+#, c-format
+msgid "Lock acquired for too long (%llu ms) at %s:%u\n"
+msgstr ""
+
+#: src/util/threads/mutex.c:207
+#, c-format
+msgid "Permission denied for `%s'.\n"
+msgstr ""
+
+#: src/util/boot/startup.c:279
+#, c-format
+msgid "Failed to determine installation path.   Try setting `%s'\n"
+msgstr "无法确定安装路径。请尝试设置“%s”\n"
+
+#: src/util/boot/startup.c:294
+#, c-format
+msgid "Failed to run %s: %s %d\n"
+msgstr "运行 %s失败：%s %d\n"
+
+#: src/util/string/string.c:55
+msgid "ms"
+msgstr "毫秒"
+
+#: src/util/string/string.c:61
+msgid "s"
+msgstr "秒"
+
+#: src/util/string/string.c:65
+msgid "m"
+msgstr "分"
+
+#: src/util/string/string.c:69
+msgid "h"
+msgstr "时"
+
+#: src/util/string/string.c:73
+msgid " days"
+msgstr " 天"
+
+#: src/util/string/string.c:89
+msgid "b"
+msgstr "b"
+
+#: src/util/string/string.c:95
+msgid "KiB"
+msgstr "KiB"
+
+#: src/util/string/string.c:99
+msgid "MiB"
+msgstr "MiB"
+
+#: src/util/string/string.c:103
+msgid "GiB"
+msgstr "GiB"
+
+#: src/util/string/string.c:107
+msgid "TiB"
+msgstr "TiB"
+
+#: src/util/string/string.c:226
+msgid "Failed to expand `$HOME': environment variable `HOME' not set"
+msgstr "扩展“$HOME”失败：没有设置环境变量“HOME”"
+
+#: src/util/loggers/file.c:224
+#, c-format
+msgid "Failed to open log-file `%s': %s\n"
+msgstr "打开日志文件“%s”失败：%s\n"
+
+#: src/util/loggers/file.c:245
+msgid "GNUnet error log"
+msgstr "GNUnet 错误日志"
+
+#: src/util/loggers/memory.c:72
+#, fuzzy
+msgid "Out of memory (for logging)\n"
+msgstr "(用于日志的)内存耗尽\n"
+
+#: src/util/pseudonym/names.c:79
+msgid "no-name"
+msgstr "无名称"
+
+#: src/applications/datastore/datastore.c:183
+#: src/applications/datastore/datastore.c:202
+#, c-format
+msgid "Availability test failed for `%s' at %s:%d.\n"
+msgstr ""
+
+#: src/applications/datastore/datastore.c:404
+msgid "# requests filtered by bloom filter"
+msgstr ""
+
+#: src/applications/datastore/datastore.c:406
+msgid "# bloom filter false positives"
+msgstr ""
+
+#: src/applications/datastore/datastore.c:409
+msgid "# bytes allowed in datastore"
+msgstr ""
+
+#: src/applications/datastore/datastore.c:426
+msgid "Failed to load state service. Trying to do without.\n"
+msgstr ""
+
+#: src/applications/datastore/datastore.c:532
+#, c-format
+msgid "Datastore conversion at approximately %u%%\n"
+msgstr ""
+
+#: src/applications/datastore/datastore.c:579
+#, c-format
+msgid "Starting datastore conversion (this may take a while).\n"
+msgstr "正在启动数据仓库转换(可能需要一段时间)。\n"
+
+#: src/applications/datastore/datastore.c:587
+#, c-format
+msgid "Completed datastore conversion.\n"
+msgstr "已完成数据仓库轮换。\n"
+
+#: src/applications/datastore/datastore.c:595
+msgid "Failed to load sqstore service.  Check your configuration!\n"
+msgstr "加载 sqstore 服务失败。检查您的配置！\n"
+
+#: src/applications/rpc/rpc.c:339
+#, c-format
+msgid "%s:%d - RPC %s:%p could not be registered: another callback is already using this name (%p)\n"
+msgstr "%s:%d - 无法注册 RPC %s:%p：另一调用正在使用此名称(%p)\n"
+
+#: src/applications/rpc/rpc.c:398
+#, c-format
+msgid "%s:%d - async RPC %s:%p could not be unregistered: not found\n"
+msgstr "%s:%d - 异步 RPC %s:%p 无法解除注册：找不到\n"
+
+#: src/applications/rpc/rpc.c:953
+#, c-format
+msgid "`%s' registering handlers %d %d %d\n"
+msgstr ""
+
+#: src/applications/rpc/rpc.c:974
+#, c-format
+msgid "Failed to initialize `%s' service.\n"
+msgstr "初始化“%s”服务失败。\n"
+
+#: src/applications/tbench/tbenchtest.c:53
+#, c-format
+msgid "Using %u messages of size %u for %u times.\n"
+msgstr ""
+
+#: src/applications/tbench/tbenchtest.c:85
+#, c-format
+msgid "Times: max %16llu  min %16llu  mean %12.3f  variance %12.3f\n"
+msgstr ""
+
+#: src/applications/tbench/tbenchtest.c:89
+#, c-format
+msgid "Loss:  max %16u  min %16u  mean %12.3f  variance %12.3f\n"
+msgstr ""
+
+#: src/applications/tbench/tbenchtest.c:95
+#, c-format
+msgid ""
+"\n"
+"Failed to receive reply from gnunetd.\n"
+msgstr ""
+
+#: src/applications/tbench/tbenchtest.c:149
+#, c-format
+msgid "Running benchmark...\n"
+msgstr ""
+
+#: src/applications/tbench/tbench.c:438
+msgid "allows profiling of direct peer-to-peer connections"
+msgstr ""
+
+#: src/applications/tbench/gnunet-tbench.c:63
+#: src/applications/tracekit/gnunet-tracekit.c:303
+msgid "Start GNUnet transport benchmarking tool."
+msgstr ""
+
+#: src/applications/tbench/gnunet-tbench.c:65
+msgid "output in gnuplot format"
+msgstr "以 gnuplot 格式输出"
+
+#: src/applications/tbench/gnunet-tbench.c:69
+msgid "number of iterations"
+msgstr "迭代次数"
+
+#: src/applications/tbench/gnunet-tbench.c:73
+msgid "number of messages to use per iteration"
+msgstr "每次迭代所使用的消息数量"
+
+#: src/applications/tbench/gnunet-tbench.c:76
+msgid "receiver host identifier (ENC file name)"
+msgstr "接收方主机标识(ENC 文件名)"
+
+#: src/applications/tbench/gnunet-tbench.c:79
+msgid "message size"
+msgstr "消息尺寸"
+
+#: src/applications/tbench/gnunet-tbench.c:82
+msgid "sleep for SPACE ms after each a message block"
+msgstr ""
+
+#: src/applications/tbench/gnunet-tbench.c:85
+msgid "time to wait for the completion of an iteration (in ms)"
+msgstr "等待一次迭代完成的时间(毫秒)"
+
+#: src/applications/tbench/gnunet-tbench.c:90
+msgid "number of messages in a message block"
+msgstr "一个消息块中的消息数量"
+
+#: src/applications/tbench/gnunet-tbench.c:126
+#: src/applications/tracekit/gnunet-tracekit.c:353
+#: src/applications/tracekit/tracekittest.c:133
+#: src/applications/template/gnunet-template.c:95
+#: src/applications/stats/gnunet-stats.c:121
+#: src/applications/vpn/gnunet-vpn.c:154
+#, c-format
+msgid "Error establishing connection with gnunetd.\n"
+msgstr "通过 gnunetd 建立连接失败。\n"
+
+#: src/applications/tbench/gnunet-tbench.c:142
+#, c-format
+msgid "You must specify a receiver!\n"
+msgstr "您必须指定一个接收方！\n"
+
+#: src/applications/tbench/gnunet-tbench.c:152
+#, c-format
+msgid "Invalid receiver peer ID specified (`%s' is not valid name).\n"
+msgstr ""
+
+#: src/applications/tbench/gnunet-tbench.c:189
+#, c-format
+msgid "Time:\n"
+msgstr "时间：\n"
+
+#: src/applications/tbench/gnunet-tbench.c:190
+#, c-format
+msgid "\tmax      %llums\n"
+msgstr "\t最长      %llu毫秒\n"
+
+#: src/applications/tbench/gnunet-tbench.c:191
+#, c-format
+msgid "\tmin      %llums\n"
+msgstr "\t最短      %llu毫秒\n"
+
+#: src/applications/tbench/gnunet-tbench.c:192
+#, c-format
+msgid "\tmean     %8.4fms\n"
+msgstr "\t平均     %8.4f毫秒\n"
+
+#: src/applications/tbench/gnunet-tbench.c:193
+#, fuzzy, c-format
+msgid "\tvariance %8.4fms\n"
+msgstr "\t波动 %8.4f毫秒\n"
+
+#: src/applications/tbench/gnunet-tbench.c:195
+#, c-format
+msgid "Loss:\n"
+msgstr "丢失：\n"
+
+#: src/applications/tbench/gnunet-tbench.c:196
+#, c-format
+msgid "\tmax      %u\n"
+msgstr "\t最多      %u\n"
+
+#: src/applications/tbench/gnunet-tbench.c:197
+#, c-format
+msgid "\tmin      %u\n"
+msgstr "\t最少      %u\n"
+
+#: src/applications/tbench/gnunet-tbench.c:198
+#, c-format
+msgid "\tmean     %8.4f\n"
+msgstr "\t平均     %8.4f\n"
+
+#: src/applications/tbench/gnunet-tbench.c:199
+#, fuzzy, c-format
+msgid "\tvariance %8.4f\n"
+msgstr "\t波动 %8.4f\n"
+
+#: src/applications/tbench/gnunet-tbench.c:205
+#, c-format
+msgid "Output format not known, this should not happen.\n"
+msgstr "输出格式未知，不应出现这种情况。\n"
+
+#: src/applications/tbench/gnunet-tbench.c:211
+#, c-format
+msgid ""
+"\n"
+"Did not receive the message from gnunetd. Is gnunetd running?\n"
+msgstr ""
+"\n"
+"没有从 gnunetd 接收到消息。gnunetd 在运行吗？\n"
+
+#: src/applications/traffic/traffic.c:454
+#, c-format
+msgid "# bytes transmitted of type %d"
+msgstr ""
+
+#: src/applications/traffic/traffic.c:470
+#, c-format
+msgid "# bytes received of type %d"
+msgstr ""
+
+#: src/applications/traffic/traffic.c:489
+#, c-format
+msgid "# bytes received in plaintext of type %d"
+msgstr ""
+
+#: src/applications/traffic/traffic.c:652
+msgid "tracks bandwidth utilization by gnunetd"
+msgstr ""
+
+#: src/applications/sqstore_sqlite/sqlite.c:218
+#, c-format
+msgid "Unable to initialize SQLite: %s.\n"
+msgstr "无法初始化 SQLite：%s。\n"
+
+#: src/applications/sqstore_sqlite/sqlite.c:434
+#: src/applications/sqstore_sqlite/sqlite.c:469
+#, c-format
+msgid "Invalid data in %s.  Trying to fix (by deletion).\n"
+msgstr "%s 中有无效数据。请尝试修复(删除之)。\n"
+
+#: src/applications/sqstore_sqlite/sqlite.c:435
+#: src/applications/sqstore_sqlite/sqlite.c:470
+msgid "sqlite datastore"
+msgstr "sqlite 数据仓库"
+
+#: src/applications/sqstore_sqlite/sqlite.c:1476
+#: src/applications/sqstore_mysql/mysql.c:1085
+msgid "# bytes in datastore"
+msgstr ""
+
+#: src/applications/sqstore_sqlite/sqlite.c:1478
+msgid "# bytes allocated by SQLite"
+msgstr ""
+
+#: src/applications/sqstore_mysql/mysql.c:1092
+#: src/applications/sqstore_mysql/mysql.c:1167
+msgid "Failed to load MySQL database module.  Check that MySQL is running and configured properly!\n"
+msgstr "加载 MySQL 数据库模块失败。请检查 MySQL 是否运行和是否配置正确！\n"
+
+#: src/applications/tracekit/gnunet-tracekit.c:104
+#, c-format
+msgid "`%s' connected to `%s'.\n"
+msgstr "“%s”已连接到“%s”。\n"
+
+#: src/applications/tracekit/gnunet-tracekit.c:110
+#: src/applications/tracekit/tracekittest.c:67
+#, c-format
+msgid "`%s' is not connected to any peer.\n"
+msgstr ""
+
+#: src/applications/tracekit/gnunet-tracekit.c:296
+msgid "probe network to the given DEPTH"
+msgstr ""
+
+#: src/applications/tracekit/gnunet-tracekit.c:300
+msgid "specify output format; 0 for human readable output, 1 for dot, 2 for vcg"
+msgstr ""
+
+#: src/applications/tracekit/gnunet-tracekit.c:307
+msgid "use PRIORITY for the priority of the trace request"
+msgstr ""
+
+#: src/applications/tracekit/gnunet-tracekit.c:311
+msgid "wait DELAY seconds for replies"
+msgstr ""
+
+#: src/applications/tracekit/gnunet-tracekit.c:345
+#, c-format
+msgid "Format specification invalid. Use 0 for user-readable, 1 for dot, 2 for vcg.\n"
+msgstr ""
+
+#: src/applications/tracekit/tracekittest.c:60
+#, c-format
+msgid "`%.*s' connected to `%.*s'.\n"
+msgstr ""
+
+#: src/applications/tracekit/tracekit.c:440
+msgid "allows mapping of the network topology"
+msgstr ""
+
+#: src/applications/advertising/advertising_test.c:47
+#: src/applications/hostlist/hostlisttest.c:40
+#: src/applications/session/sessiontest.c:40
+#: src/applications/session/sessiontest_nat_http.c:40
+#: src/applications/session/sessiontest_nat.c:40
+#: src/applications/stats/statistics.c:251
+msgid "# of connected peers"
+msgstr ""
+
+#: src/applications/advertising/advertising.c:194
+#, c-format
+msgid "HELLO message from `%s' has an invalid signature. Dropping.\n"
+msgstr ""
+
+#: src/applications/advertising/advertising.c:205
+msgid "HELLO message has expiration too far in the future. Dropping.\n"
+msgstr ""
+
+#: src/applications/advertising/advertising.c:406
+msgid "Could not send HELLO+PING, ping buffer full.\n"
+msgstr ""
+
+#: src/applications/advertising/advertising.c:429
+msgid "Failed to create an advertisement for this peer. Will not send PING.\n"
+msgstr ""
+
+#: src/applications/advertising/advertising.c:581
+#, c-format
+msgid "Advertising my transport %d to selected peers.\n"
+msgstr ""
+
+#: src/applications/advertising/advertising.c:590
+msgid "Announcing ourselves pointless: no other peers are known to us so far.\n"
+msgstr ""
+
+#: src/applications/advertising/advertising.c:868
+msgid "# Peer advertisements received"
+msgstr ""
+
+#: src/applications/advertising/advertising.c:871
+msgid "# Peer advertisements of type NAT received"
+msgstr ""
+
+#: src/applications/advertising/advertising.c:874
+msgid "# Peer advertisements confirmed via PONG"
+msgstr ""
+
+#: src/applications/advertising/advertising.c:877
+msgid "# Peer advertisements updating earlier HELLOs"
+msgstr ""
+
+#: src/applications/advertising/advertising.c:880
+msgid "# Peer advertisements discarded due to load"
+msgstr ""
+
+#: src/applications/advertising/advertising.c:883
+msgid "# Peer advertisements for unsupported transport"
+msgstr ""
+
+#: src/applications/advertising/advertising.c:886
+msgid "# Peer advertisements not confirmed due to ping busy"
+msgstr ""
+
+#: src/applications/advertising/advertising.c:889
+msgid "# Peer advertisements not confirmed due to lack of self ad"
+msgstr ""
+
+#: src/applications/advertising/advertising.c:892
+msgid "# Peer advertisements not confirmed due to send error"
+msgstr ""
+
+#: src/applications/advertising/advertising.c:894
+msgid "# Self advertisments transmitted"
+msgstr ""
+
+#: src/applications/advertising/advertising.c:896
+msgid "# Foreign advertisements forwarded"
+msgstr ""
+
+#: src/applications/advertising/advertising.c:898
+#: src/applications/pingpong/pingpong.c:528
+msgid "# plaintext PING messages sent"
+msgstr ""
+
+#: src/applications/advertising/advertising.c:904
+#: src/applications/session/connect.c:932
+#, c-format
+msgid "`%s' registering handler %d (plaintext and ciphertext)\n"
+msgstr ""
+
+#: src/applications/advertising/advertising.c:922
+msgid "ensures that this peer is known by other peers and discovers other peers"
+msgstr ""
+
+#: src/applications/fragmentation/fragmentation.c:578
+msgid "# messages defragmented"
+msgstr ""
+
+#: src/applications/fragmentation/fragmentation.c:580
+msgid "# messages fragmented"
+msgstr ""
+
+#: src/applications/fragmentation/fragmentation.c:581
+msgid "# fragments discarded"
+msgstr ""
+
+#: src/applications/fragmentation/fragmentation.c:592
+#, c-format
+msgid "`%s' registering handler %d\n"
+msgstr ""
+
+#: src/applications/topology_default/topology.c:478
+#, c-format
+msgid "Could not read friends list `%s'\n"
+msgstr ""
+
+#: src/applications/topology_default/topology.c:506
+#, c-format
+msgid "Failed to read friends list from `%s'\n"
+msgstr ""
+
+#: src/applications/topology_default/topology.c:526
+msgid "Syntax error in topology specification, skipping bytes.\n"
+msgstr ""
+
+#: src/applications/topology_default/topology.c:545
+#, c-format
+msgid "Syntax error in topology specification, skipping bytes `%s'.\n"
+msgstr ""
+
+#: src/applications/topology_default/topology.c:558
+msgid "Fewer friends specified than required by minimum friend count. Will only connect to friends.\n"
+msgstr ""
+
+#: src/applications/topology_default/topology.c:566
+msgid "More friendly connections required than target total number of connections.\n"
+msgstr ""
+
+#: src/applications/topology_default/topology.c:749
+msgid "maintains GNUnet default mesh topology"
+msgstr ""
+
+#: src/applications/chat/tools/gnunet-chat.c:107
+msgid "anonymous"
+msgstr "匿名"
+
+#: src/applications/chat/tools/gnunet-chat.c:113
+#, c-format
+msgid "`%s' said: %s\n"
+msgstr "“%s”说：%s\n"
+
+#: src/applications/chat/tools/gnunet-chat.c:116
+#: src/applications/chat/tools/gnunet-chat.c:119
+#, c-format
+msgid "`%s' said to you: %s\n"
+msgstr "“%s”对您说：%s\n"
+
+#: src/applications/chat/tools/gnunet-chat.c:122
+#, c-format
+msgid "`%s' said for sure: %s\n"
+msgstr ""
+
+#: src/applications/chat/tools/gnunet-chat.c:125
+#, c-format
+msgid "`%s' said to you for sure: %s\n"
+msgstr ""
+
+#: src/applications/chat/tools/gnunet-chat.c:128
+#, c-format
+msgid "`%s' was confirmed that you received: %s\n"
+msgstr ""
+
+#: src/applications/chat/tools/gnunet-chat.c:131
+#, c-format
+msgid "`%s' was confirmed that you and only you received: %s\n"
+msgstr ""
+
+#: src/applications/chat/tools/gnunet-chat.c:134
+#, c-format
+msgid "`%s' was confirmed that you received from him or her: %s\n"
+msgstr ""
+
+#: src/applications/chat/tools/gnunet-chat.c:139
+#, c-format
+msgid "`%s' was confirmed that you and only you received from him or her: %s\n"
+msgstr ""
+
+#: src/applications/chat/tools/gnunet-chat.c:142
+#, c-format
+msgid "`%s' said off the record: %s\n"
+msgstr ""
+
+#: src/applications/chat/tools/gnunet-chat.c:145
+#, c-format
+msgid "<%s> said using an unknown message type: %s\n"
+msgstr ""
+
+#: src/applications/chat/tools/gnunet-chat.c:167
+#, c-format
+msgid "`%s' entered the room\n"
+msgstr "“%s”进入了房间\n"
+
+#: src/applications/chat/tools/gnunet-chat.c:167
+#, c-format
+msgid "`%s' left the room\n"
+msgstr "“%s”离开了房间\n"
+
+#: src/applications/chat/tools/gnunet-chat.c:239
+#: src/applications/chat/tools/gnunet-chat.c:348
+#, c-format
+msgid "Failed to send message.\n"
+msgstr "发送消息失败。\n"
+
+#: src/applications/chat/tools/gnunet-chat.c:265
+#: src/applications/chat/tools/gnunet-chat.c:525
+#, c-format
+msgid "Joined room `%s' as user `%s'.\n"
+msgstr ""
+
+#: src/applications/chat/tools/gnunet-chat.c:293
+#, c-format
+msgid "Changed username to `%s'.\n"
+msgstr "已将用户名改为“%s”。\n"
+
+#: src/applications/chat/tools/gnunet-chat.c:301
+#, c-format
+msgid "Unknown command `%s'.\n"
+msgstr "未知的命令“%s”。\n"
+
+#: src/applications/chat/tools/gnunet-chat.c:316
+#, c-format
+msgid "Syntax: /msg USERNAME MESSAGE"
+msgstr "语法：/msg 用户名 消息"
+
+#: src/applications/chat/tools/gnunet-chat.c:324
+#, c-format
+msgid "Unknown user `%s'\n"
+msgstr "未知的用户“%s”\n"
+
+#: src/applications/chat/tools/gnunet-chat.c:339
+#, c-format
+msgid "User `%s' is currently not in the room!\n"
+msgstr "用户“%s”当前不在房间里！\n"
+
+#: src/applications/chat/tools/gnunet-chat.c:362
+#, c-format
+msgid "Users in room `%s': "
+msgstr "房间“%s”中的用户："
+
+#: src/applications/chat/tools/gnunet-chat.c:391
+msgid "Use `/join #roomname' to join a chat room. Joining a room will cause you to leave the current room"
+msgstr ""
+
+#: src/applications/chat/tools/gnunet-chat.c:394
+msgid "Use `/nick nickname' to change your nickname.  This will cause you to leave the current room and immediately rejoin it with the new name."
+msgstr ""
+
+#: src/applications/chat/tools/gnunet-chat.c:397
+msgid "Use `/msg nickname message' to send a private message to the specified user"
+msgstr ""
+
+#: src/applications/chat/tools/gnunet-chat.c:399
+msgid "The `/notice' command is an alias for `/msg'"
+msgstr ""
+
+#: src/applications/chat/tools/gnunet-chat.c:401
+msgid "The `/query' command is an alias for `/msg'"
+msgstr ""
+
+#: src/applications/chat/tools/gnunet-chat.c:403
+msgid "Use `/quit' to terminate gnunet-chat"
+msgstr ""
+
+#: src/applications/chat/tools/gnunet-chat.c:405
+msgid "The `/leave' command is an alias for `/quit'"
+msgstr ""
+
+#: src/applications/chat/tools/gnunet-chat.c:408
+msgid "Use `/names' to list all of the current members in the chat room"
+msgstr ""
+
+#: src/applications/chat/tools/gnunet-chat.c:410
+msgid "Use `/help command' to get help for a specific command"
+msgstr ""
+
+#: src/applications/chat/tools/gnunet-chat.c:458
+msgid "Join a chat on GNUnet."
+msgstr ""
+
+#: src/applications/chat/tools/gnunet-chat.c:462
+msgid "set the nickname to use (required)"
+msgstr "设置要使用的昵称(必须)"
+
+#: src/applications/chat/tools/gnunet-chat.c:465
+msgid "set the chat room to join"
+msgstr "设置要加入的聊天室"
+
+#: src/applications/chat/tools/gnunet-chat.c:496
+#, c-format
+msgid "You must specify a nickname\n"
+msgstr "您必须指定一个昵称\n"
+
+#: src/applications/chat/tools/gnunet-chat.c:516
+#, c-format
+msgid "Failed to join room `%s'\n"
+msgstr ""
+
+#: src/applications/chat/module/chat.c:325
+#, c-format
+msgid "`%s' registering CS handlers %d and %d\n"
+msgstr ""
+
+#: src/applications/chat/module/chat.c:347
+msgid "enables P2P-chat (incomplete)"
+msgstr ""
+
+#: src/applications/chat/lib/messaging.c:353
+#: src/applications/identity/hostkey.c:122
+#, c-format
+msgid "Failed to access GNUnet home directory `%s'\n"
+msgstr ""
+
+#: src/applications/chat/lib/messaging.c:389
+#, c-format
+msgid "Existing key in file `%s' failed format check, creating new key.\n"
+msgstr ""
+
+#: src/applications/chat/lib/messaging.c:399
+msgid "Creating new key for this nickname (this may take a while).\n"
+msgstr ""
+
+#: src/applications/chat/lib/messaging.c:411
+msgid "Done creating key.\n"
+msgstr ""
+
+#: src/applications/dstore_mysql/dstore_mysql.c:471
+msgid "Failed to initialize MySQL database connection for dstore.\n"
+msgstr ""
+
+#: src/applications/dstore_mysql/dstore_mysql.c:494
+#: src/applications/dstore_sqlite/dstore.c:636
+msgid "# bytes in dstore"
+msgstr ""
+
+#: src/applications/dstore_mysql/dstore_mysql.c:496
+#: src/applications/dstore_sqlite/dstore.c:638
+msgid "# max bytes allowed in dstore"
+msgstr ""
+
+#: src/applications/transport/transport.c:191
+#, c-format
+msgid "Converting peer address to string failed, transport type %d not supported\n"
+msgstr ""
+
+#: src/applications/transport/transport.c:246
+#, c-format
+msgid "Transport connection attempt failed, transport type %d not supported\n"
+msgstr ""
+
+#: src/applications/transport/transport.c:299
+#, c-format
+msgid "Transport failed to connect to peer `%s' (%u HELLOs known, none worked)\n"
+msgstr ""
+
+#: src/applications/transport/transport.c:376
+#, c-format
+msgid "Transmission attempt failed, transport type %d unknown.\n"
+msgstr ""
+
+#: src/applications/transport/transport.c:500
+#, c-format
+msgid "No transport of type %d known.\n"
+msgstr ""
+
+#: src/applications/transport/transport.c:560
+msgid "No transport succeeded in creating a hello!\n"
+msgstr ""
+
+#: src/applications/transport/transport.c:761
+#, c-format
+msgid "Loading transports `%s'\n"
+msgstr ""
+
+#: src/applications/transport/transport.c:781
+#, c-format
+msgid "Could not load transport plugin `%s'\n"
+msgstr ""
+
+#: src/applications/transport/transport.c:795
+#, c-format
+msgid "Transport library `%s' did not provide required function '%s%s'.\n"
+msgstr ""
+
+#: src/applications/transport/transport.c:824
+#, c-format
+msgid "Loaded transport `%s'\n"
+msgstr ""
+
+#: src/applications/transport/transport.c:836
+#: src/server/gnunet-peer-info.c:252
+#, c-format
+msgid "I am peer `%s'.\n"
+msgstr ""
+
+#: src/applications/identity/hostkey.c:155
+#, c-format
+msgid "Existing hostkey in file `%s' failed format check, creating new hostkey.\n"
+msgstr ""
+
+#: src/applications/identity/hostkey.c:164
+msgid "Creating new hostkey (this may take a while).\n"
+msgstr ""
+
+#: src/applications/identity/hostkey.c:176
+msgid "Done creating hostkey.\n"
+msgstr ""
+
+#: src/applications/identity/identity.c:333
+#, c-format
+msgid "File `%s' in directory `%s' does not match naming convention. Removed.\n"
+msgstr ""
+
+#: src/applications/identity/identity.c:408
+#, c-format
+msgid "Still no peers found in `%s'!\n"
+msgstr ""
+
+#: src/applications/identity/identity.c:731
+#: src/applications/identity/identity.c:757
+#, c-format
+msgid "Removed file `%s' containing invalid HELLO data.\n"
+msgstr ""
+
+#: src/applications/identity/identity.c:809
+#, c-format
+msgid "Signature failed verification: peer `%s' not known.\n"
+msgstr ""
+
+#: src/applications/identity/identity.c:819
+msgid "Signature failed verification: signature invalid.\n"
+msgstr ""
+
+#: src/applications/identity/identity.c:935
+#: src/applications/identity/identity.c:1058
+#, c-format
+msgid "Peer `%s' is currently strictly blacklisted (for another %llums).\n"
+msgstr ""
+
+#: src/applications/identity/identity.c:1061
+#, c-format
+msgid "Peer `%s' is currently blacklisted (for another %llums).\n"
+msgstr ""
+
+#: src/applications/pingpong/pingpong.c:134
+#: src/applications/pingpong/pingpong.c:203
+#: src/applications/pingpong/pingpong.c:273
+#: src/applications/pingpong/pingpong.c:345
+#, c-format
+msgid "Received malformed `%s' message. Dropping.\n"
+msgstr ""
+
+#: src/applications/pingpong/pingpong.c:146
+msgid "Received ping for another peer. Dropping.\n"
+msgstr ""
+
+#: src/applications/pingpong/pingpong.c:215
+#, c-format
+msgid "Received PING from `%s' not destined for us!\n"
+msgstr ""
+
+#: src/applications/pingpong/pingpong.c:315
+#: src/applications/pingpong/pingpong.c:381
+msgid "Could not match PONG against any PING. Try increasing MAX_PING_PONG constant.\n"
+msgstr ""
+
+#: src/applications/pingpong/pingpong.c:425
+msgid "Cannot create PING, table full. Try increasing MAX_PING_PONG.\n"
+msgstr ""
+
+#: src/applications/pingpong/pingpong.c:518
+msgid "# encrypted PONG messages received"
+msgstr ""
+
+#: src/applications/pingpong/pingpong.c:520
+msgid "# plaintext PONG messages received"
+msgstr ""
+
+#: src/applications/pingpong/pingpong.c:522
+msgid "# encrypted PING messages received"
+msgstr ""
+
+#: src/applications/pingpong/pingpong.c:524
+msgid "# PING messages created"
+msgstr ""
+
+#: src/applications/pingpong/pingpong.c:526
+#: src/applications/session/connect.c:926
+msgid "# encrypted PONG messages sent"
+msgstr ""
+
+#: src/applications/pingpong/pingpong.c:530
+#: src/applications/session/connect.c:924
+msgid "# encrypted PING messages sent"
+msgstr ""
+
+#: src/applications/pingpong/pingpong.c:532
+msgid "# plaintext PONG messages sent"
+msgstr ""
+
+#: src/applications/pingpong/pingpong.c:536
+msgid "# plaintext PONG transmissions failed"
+msgstr ""
+
+#: src/applications/pingpong/pingpong.c:546
+#, c-format
+msgid "`%s' registering handlers %d %d (plaintext and ciphertext)\n"
+msgstr ""
+
+#: src/applications/hostlist/hostlist.c:167
+msgid "# hostlist requests received"
+msgstr ""
+
+#: src/applications/hostlist/hostlist.c:169
+msgid "# hostlist HELLOs returned"
+msgstr ""
+
+#: src/applications/hostlist/hostlist.c:171
+msgid "# hostlist bytes returned"
+msgstr ""
+
+#: src/applications/hostlist/hostlist.c:215
+msgid "integrated HTTP hostlist server"
+msgstr ""
+
+#: src/applications/session/connect.c:238
+#, c-format
+msgid "Session key from peer `%s' could not be verified.\n"
+msgstr ""
+
+#: src/applications/session/connect.c:282
+#, c-format
+msgid "Cannot encrypt sessionkey, peer `%s' not known!\n"
+msgstr ""
+
+#: src/applications/session/connect.c:489
+#, c-format
+msgid "Could not create any HELLO for myself (have transports `%s')!\n"
+msgstr ""
+
+#: src/applications/session/connect.c:599
+#, c-format
+msgid "Session key received from peer `%s' has invalid format (discarded).\n"
+msgstr ""
+
+#: src/applications/session/connect.c:632
+#, c-format
+msgid "Session key received from peer `%s' is for `%s' and not for me!\n"
+msgstr ""
+
+#: src/applications/session/connect.c:659
+#, c-format
+msgid "Invalid `%s' message received from peer `%s'.\n"
+msgstr ""
+
+#: src/applications/session/connect.c:670
+#, c-format
+msgid "setkey `%s' from `%s' fails CRC check (have: %u, want %u).\n"
+msgstr ""
+
+#: src/applications/session/connect.c:728
+#, c-format
+msgid "Error parsing encrypted session key from `%s', given message part size is invalid.\n"
+msgstr ""
+
+#: src/applications/session/connect.c:741
+#, c-format
+msgid "Unknown type in embedded message from `%s': %u (size: %u)\n"
+msgstr ""
+
+#: src/applications/session/connect.c:916
+msgid "# session keys sent"
+msgstr ""
+
+#: src/applications/session/connect.c:918
+msgid "# session keys rejected"
+msgstr ""
+
+#: src/applications/session/connect.c:920
+msgid "# session keys accepted"
+msgstr ""
+
+#: src/applications/session/connect.c:922
+msgid "# sessions established"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:72
+#: src/applications/fs/tools/gnunet-auto-share.c:199
+#: src/applications/fs/tools/gnunet-insert.c:246
+#: src/applications/fs/tools/gnunet-search.c:142
+#: src/applications/fs/tools/gnunet-download.c:77
+msgid "set the desired LEVEL of sender-anonymity"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:75
+msgid "automate creation of a namespace by starting a collection"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:79
+msgid "create a new pseudonym under the given NICKNAME"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:82
+msgid "delete the pseudonym with the given NICKNAME"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:85
+msgid "end automated building of a namespace (ends collection)"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:87
+msgid "Create new pseudonyms, delete pseudonyms or list existing pseudonyms."
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:91
+msgid "only display local namespaces"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:95
+msgid "use the given keyword to advertise the namespace (use when creating a new pseudonym)"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:98
+msgid "specify metadata describing the namespace or collection"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:102
+msgid "do not generate an advertisement for this namespace (use when creating a new pseudonym)"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:105
+#: src/applications/fs/tools/gnunet-auto-share.c:221
+#: src/applications/fs/tools/gnunet-insert.c:290
+msgid "specify the priority of the content"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:108
+msgid "do not list the pseudonyms from the pseudonym database"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:112
+msgid "specify IDENTIFIER to be the address of the entrypoint to content in the namespace (use when creating a new pseudonym)"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:115
+msgid "set the rating of a namespace"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:156
+#, c-format
+msgid "Namespace `%s' has rating %d.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:158
+#, c-format
+msgid "Namespace `%s' (%s) has rating %d.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:187
+#, c-format
+msgid "\tRating (after update): %d\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:225
+#, c-format
+msgid "Collection stopped.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:227
+#, c-format
+msgid "Failed to stop collection (not active?).\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:239
+#, c-format
+msgid "Pseudonym `%s' deleted.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:244
+#, c-format
+msgid "Error deleting pseudonym `%s' (does not exist?).\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:250
+#: src/applications/fs/tools/gnunet-insert.c:101
+#, c-format
+msgid "\tUnknown namespace `%s'\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:266
+msgid "Started collection.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:270
+msgid "Failed to start collection.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:307
+msgid "Could not create namespace.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:315
+#, c-format
+msgid "Namespace `%s' created (root: %s).\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:317
+#, c-format
+msgid "Note that a number was appended to your selected name to ensure uniqueness on your system.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:335
+#, c-format
+msgid "You must specify a name for the collection (`%s' option).\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-pseudonym.c:345
+#, c-format
+msgid "Could not access namespace information.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-directory.c:84
+#, c-format
+msgid "==> Directory `%s':\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-directory.c:88
+#, c-format
+msgid "=\tError reading directory.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-directory.c:118
+#, c-format
+msgid "File format error (not a GNUnet directory?)\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-directory.c:120
+#, c-format
+msgid "%d files found in directory.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-directory.c:135
+msgid "Perform directory related operations."
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-directory.c:138
+msgid "remove all entries from the directory database and stop tracking URIs"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-directory.c:142
+msgid "list entries from the directory database"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-directory.c:145
+msgid "start tracking entries for the directory database"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-directory.c:168
+#, c-format
+msgid "Listed %d matching entries.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-auto-share.c:117
+#, c-format
+msgid "Upload of `%s' at %llu out of %llu bytes.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-auto-share.c:130
+#, c-format
+msgid "Upload of `%s' complete, URI is `%s'.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-auto-share.c:139
+#, c-format
+msgid "Upload aborted.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-auto-share.c:145
+#, c-format
+msgid "Error uploading file: %s\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-auto-share.c:154
+#, c-format
+msgid "Starting upload of `%s'.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-auto-share.c:164
+#, c-format
+msgid "Uploading suspended.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-auto-share.c:179
+#, c-format
+msgid "Uploading `%s' resumed.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-auto-share.c:186
+#, c-format
+msgid "Unexpected event: %d\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-auto-share.c:205
+msgid "run in debug mode; gnunet-auto-share will not daemonize and error messages will be written to stderr instead of a logfile"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-auto-share.c:211
+#: src/applications/fs/tools/gnunet-insert.c:259
+msgid "do not use libextractor to add additional references to directory entries and/or the published file"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-auto-share.c:213
+msgid "Automatically share a directory."
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-auto-share.c:216
+#: src/applications/fs/tools/gnunet-insert.c:273
+msgid "add an additional keyword for all files and directories (this option can be specified multiple times)"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-auto-share.c:470
+#: src/applications/fs/tools/gnunet-auto-share.c:910
+#, c-format
+msgid "Could not access `%s': %s\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-auto-share.c:549
+#, c-format
+msgid "Unknown keyword type `%s' in metadata configuration\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-auto-share.c:654
+#, c-format
+msgid "Failed to stop running gnunet-auto-share.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-auto-share.c:672
+#, c-format
+msgid "Failed to connect to gnunetd.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-auto-share.c:696
+#, c-format
+msgid "Failed to parse meta data information file `%s'\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-auto-share.c:925
+#, c-format
+msgid "Directory `%s' is already on the list of shared directories.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-auto-share.c:946
+msgid "The specified directories were added to the list of shared directories.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-auto-share.c:968
+#, c-format
+msgid "Could not open logfile `%s': %s\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:115
+#, c-format
+msgid "Created entry `%s' in namespace `%s'\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:120
+#, c-format
+msgid "Failed to add entry to namespace `%s' (does it exist?)\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:135
+#, c-format
+msgid "Keywords for file `%s':\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:144
+msgid "filename"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:146
+msgid "mimetype"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:186
+#, c-format
+msgid "%16llu of %16llu bytes inserted (estimating %6s to completion) - %s\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:198
+#, c-format
+msgid "Upload of `%s' complete, %llu bytes took %llu seconds (%8.3f KiB/s).\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:209
+#, c-format
+msgid "File `%s' has URI: %s\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:220
+#, c-format
+msgid ""
+"\n"
+"Upload aborted.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:225
+#, c-format
+msgid ""
+"\n"
+"Error uploading file: %s"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:234
+#, c-format
+msgid ""
+"\n"
+"Unexpected event: %d\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:250
+msgid "even if gnunetd is running on the local machine, force the creation of a copy instead of making a link to the GNUnet share directory"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:255
+msgid "disable adding the creation time to the metadata of the uploaded file"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:263
+msgid "print list of extracted keywords that would be used, but do not perform upload"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:265
+msgid "Make files available to GNUnet for sharing."
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:269
+msgid "add an additional keyword for the top-level file or directory (this option can be specified multiple times)"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:278
+msgid "set the meta-data for the given TYPE to the given VALUE"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:281
+msgid "do not index, perform full insertion (stores entire file in encrypted form in GNUnet database)"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:286
+msgid "specify ID of an updated version to be published in the future (for namespace insertions only)"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:294
+msgid "publish the files under the pseudonym NAME (place file into namespace)"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:297
+msgid "only simulate the process but do not do any actual publishing (useful to compute URIs)"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:301
+msgid "set the ID of this version of the publication (for namespace insertions only)"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:305
+msgid "URI to be published (can be used instead of passing a file to add keywords to the file with the respective URI)"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:342
+#, c-format
+msgid "You must specify one and only one filename for insertion.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:348
+#, c-format
+msgid "You must NOT specify an URI and a filename.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:354
+#, c-format
+msgid "Cannot extract metadata from a URI!\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:400
+#, c-format
+msgid "Could not access namespace `%s' (does not exist?).\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:408
+#, c-format
+msgid "Option `%s' is required when using option `%s'.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-insert.c:419
+#: src/applications/fs/tools/gnunet-insert.c:427
+#, c-format
+msgid "Option `%s' makes no sense without option `%s'.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-search.c:145
+msgid "Search GNUnet for files."
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-search.c:149
+msgid "write encountered (decrypted) search results to FILENAME"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-search.c:186
+#, c-format
+msgid "Error converting arguments to URI!\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-unindex.c:61
+#, c-format
+msgid "%16llu of %16llu bytes unindexed (estimating %llu seconds to completion)                "
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-unindex.c:73
+#, c-format
+msgid ""
+"\n"
+"Unindexing of `%s' complete, %llu bytes took %llu seconds (%8.3f KiB/s).\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-unindex.c:88
+#, c-format
+msgid ""
+"\n"
+"Error unindexing file: %s\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-unindex.c:108
+msgid "Unindex files."
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-unindex.c:145
+msgid "Not enough arguments. You must specify a filename.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-unindex.c:163
+#, c-format
+msgid "`%s' failed.  Is `%s' a file?\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-download.c:82
+msgid "download a GNUnet directory that has already been downloaded.  Requires that a filename of an existing file is specified instead of the URI.  The download will only download the top-level files in the directory unless the `-R' option is also specified."
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-download.c:85
+msgid "delete incomplete downloads (when aborted with CTRL-C)"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-download.c:87
+msgid "Download files from GNUnet."
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-download.c:91
+msgid "write the file to FILENAME"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-download.c:95
+msgid "set the maximum number of parallel downloads that are allowed"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-download.c:98
+msgid "download a GNUnet directory recursively"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-download.c:119
+#, c-format
+msgid "Download of file `%s' at %16llu out of %16llu bytes (%8.3f KiB/s)\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-download.c:133
+#, c-format
+msgid "Download aborted.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-download.c:139
+#, c-format
+msgid "Error downloading: %s\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-download.c:145
+#, c-format
+msgid "Download of file `%s' complete.  Speed was %8.3f KiB per second.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-download.c:191
+msgid "no name given"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-download.c:197
+#, c-format
+msgid "Starting download `%s'\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-download.c:242
+msgid "Not enough arguments. You must specify a GNUnet file URI\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-download.c:271
+#, c-format
+msgid "URI `%s' invalid for gnunet-download.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-download.c:314
+#, c-format
+msgid "No filename specified, using `%s' instead (for now).\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-download.c:356
+#, c-format
+msgid "Could not access gnunet-directory file `%s'\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-download.c:377
+#, c-format
+msgid "Downloading %d files from directory `%s'.\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-download.c:380
+#, c-format
+msgid "Did not find any files in directory `%s'\n"
+msgstr ""
+
+#: src/applications/fs/tools/gnunet-download.c:418
+#, c-format
+msgid "File stored as `%s'.\n"
+msgstr ""
+
+#: src/applications/fs/uritrack/file_info.c:98
+msgid "Collecting file identifiers disabled.\n"
+msgstr ""
+
+#: src/applications/fs/uritrack/file_info.c:377
+#, c-format
+msgid "Deleted corrupt URI database in `%s'."
+msgstr ""
+
+#: src/applications/fs/ecrs/upload.c:158
+#, c-format
+msgid "`%s' is not a file.\n"
+msgstr ""
+
+#: src/applications/fs/ecrs/upload.c:166
+#, c-format
+msgid "Cannot get size of file `%s'"
+msgstr ""
+
+#: src/applications/fs/ecrs/upload.c:175
+msgid "Failed to connect to gnunetd."
+msgstr ""
+
+#: src/applications/fs/ecrs/upload.c:187
+#, c-format
+msgid "Cannot hash `%s'.\n"
+msgstr ""
+
+#: src/applications/fs/ecrs/upload.c:221
+#, c-format
+msgid "Initialization for indexing file `%s' failed.\n"
+msgstr ""
+
+#: src/applications/fs/ecrs/upload.c:229
+#, c-format
+msgid "Indexing file `%s' failed. Suggestion: try to insert the file.\n"
+msgstr ""
+
+#: src/applications/fs/ecrs/upload.c:243
+#, c-format
+msgid "Cannot open file `%s': `%s'"
+msgstr ""
+
+#: src/applications/fs/ecrs/upload.c:328
+#, c-format
+msgid "Indexing data of file `%s' failed at position %llu.\n"
+msgstr ""
+
+#: src/applications/fs/ecrs/helper.c:91
+msgid "No keywords specified!\n"
+msgstr ""
+
+#: src/applications/fs/ecrs/helper.c:99
+msgid "Number of double-quotes not balanced!\n"
+msgstr ""
+
+#: src/applications/fs/ecrs/helper.c:407
+#, c-format
+msgid "Renaming of file `%s' to `%s' failed: %s\n"
+msgstr ""
+
+#: src/applications/fs/ecrs/helper.c:417
+#, c-format
+msgid "Could not rename file `%s' to `%s': file exists\n"
+msgstr ""
+
+#: src/applications/fs/ecrs/parser.c:165
+#, c-format
+msgid "Unknown metadata type in metadata option `%s'.  Using metadata type `unknown' instead.\n"
+msgstr ""
+
+#: src/applications/fs/ecrs/search.c:147
+msgid "CHK URI not allowed for search.\n"
+msgstr ""
+
+#: src/applications/fs/ecrs/search.c:202
+msgid "LOC URI not allowed for search.\n"
+msgstr ""
+
+#: src/applications/fs/ecrs/namespace.c:371
+#, c-format
+msgid "File `%s' does not contain a pseudonym.\n"
+msgstr ""
+
+#: src/applications/fs/ecrs/namespace.c:382
+#, c-format
+msgid "Format of pseudonym `%s' is invalid.\n"
+msgstr ""
+
+#: src/applications/fs/ecrs/namespace.c:541
+#: src/applications/fs/ecrs/namespace.c:553
+#: src/applications/fs/ecrs/namespace.c:565
+#, c-format
+msgid "Format of file `%s' is invalid, trying to remove.\n"
+msgstr ""
+
+#: src/applications/fs/ecrs/download.c:604
+msgid "Decrypted content does not match key. This is either a bug or a maliciously inserted file. Download aborted.\n"
+msgstr ""
+
+#: src/applications/fs/ecrs/download.c:614
+msgid "IO error."
+msgstr ""
+
+#: src/applications/fs/collection/collection.c:562
+#: src/applications/fs/collection/collection.c:565
+#, c-format
+msgid "Revision %u"
+msgstr ""
+
+#: src/applications/fs/fsui/upload.c:331
+msgid "Application aborted."
+msgstr ""
+
+#: src/applications/fs/fsui/upload.c:345
+msgid "Failed to create temporary directory."
+msgstr ""
+
+#: src/applications/fs/fsui/deserialize.c:927
+#, c-format
+msgid "FSUI state file `%s' had syntax error at offset %u.\n"
+msgstr ""
+
+#: src/applications/fs/fsui/unindex.c:114
+msgid "Unindexing failed (no reason given)"
+msgstr ""
+
+#: src/applications/fs/gap/plan.c:960
+msgid "# gap requests total sent"
+msgstr ""
+
+#: src/applications/fs/gap/plan.c:962
+msgid "# gap query total planned"
+msgstr ""
+
+#: src/applications/fs/gap/plan.c:964
+msgid "# gap query foreign planned"
+msgstr ""
+
+#: src/applications/fs/gap/plan.c:966
+msgid "# gap routes succeeded"
+msgstr ""
+
+#: src/applications/fs/gap/plan.c:967
+msgid "# trust spent"
+msgstr ""
+
+#: src/applications/fs/gap/fs.c:167
+msgid "Datastore full.\n"
+msgstr ""
+
+#: src/applications/fs/gap/fs.c:1007
+msgid "# gap requests total received"
+msgstr ""
+
+#: src/applications/fs/gap/fs.c:1009
+msgid "# gap requests dropped due to load"
+msgstr ""
+
+#: src/applications/fs/gap/fs.c:1011
+msgid "# gap content total received"
+msgstr ""
+
+#: src/applications/fs/gap/fs.c:1013
+msgid "# gap total trust awarded"
+msgstr ""
+
+#: src/applications/fs/gap/fs.c:1015
+msgid "# gap replies sent via dv"
+msgstr ""
+
+#: src/applications/fs/gap/fs.c:1044
+#, c-format
+msgid "`%s' registering client handlers %d %d %d %d %d %d %d %d and P2P handlers %d %d\n"
+msgstr ""
+
+#: src/applications/fs/gap/fs.c:1103
+msgid "enables (anonymous) file-sharing"
+msgstr ""
+
+#: src/applications/fs/gap/ondemand.c:175
+#, c-format
+msgid "Because the file `%s' has been unavailable for 3 days it got removed from your share.  Please unindex files before deleting them as the index now contains invalid references!\n"
+msgstr ""
+
+#: src/applications/fs/gap/ondemand.c:467
+msgid "Indexed content changed (does not match its hash).\n"
+msgstr ""
+
+#: src/applications/fs/gap/ondemand.c:585
+#, c-format
+msgid "Unindexed ODB block `%s' from offset %llu already missing from datastore.\n"
+msgstr ""
+
+#: src/applications/fs/gap/pid_table.c:177
+msgid "# distinct interned peer IDs in pid table"
+msgstr ""
+
+#: src/applications/fs/gap/pid_table.c:180
+msgid "# total RC of interned peer IDs in pid table"
+msgstr ""
+
+#: src/applications/fs/gap/querymanager.c:802
+msgid "# gap client queries received"
+msgstr ""
+
+#: src/applications/fs/gap/querymanager.c:804
+msgid "# gap replies sent to clients"
+msgstr ""
+
+#: src/applications/fs/gap/querymanager.c:806
+msgid "# gap client requests tracked"
+msgstr ""
+
+#: src/applications/fs/gap/querymanager.c:808
+msgid "# gap client requests injected"
+msgstr ""
+
+#: src/applications/fs/gap/querymanager.c:811
+msgid "# gap query bloomfilter resizing updates"
+msgstr ""
+
+#: src/applications/fs/gap/querymanager.c:813
+msgid "# dv gap requests sent"
+msgstr ""
+
+#: src/applications/fs/gap/migration.c:439
+msgid "# blocks migrated"
+msgstr ""
+
+#: src/applications/fs/gap/migration.c:441
+msgid "# blocks injected for migration"
+msgstr ""
+
+#: src/applications/fs/gap/migration.c:443
+msgid "# blocks fetched for migration"
+msgstr ""
+
+#: src/applications/fs/gap/migration.c:445
+msgid "# on-demand fetches for migration"
+msgstr ""
+
+#: src/applications/fs/gap/gap.c:688
+msgid "# gap queries dropped (table full)"
+msgstr ""
+
+#: src/applications/fs/gap/gap.c:690
+msgid "# gap queries dropped (redundant)"
+msgstr ""
+
+#: src/applications/fs/gap/gap.c:692
+msgid "# gap queries routed"
+msgstr ""
+
+#: src/applications/fs/gap/gap.c:694
+msgid "# gap content found locally"
+msgstr ""
+
+#: src/applications/fs/gap/gap.c:697
+msgid "# gap queries refreshed existing record"
+msgstr ""
+
+#: src/applications/fs/gap/gap.c:698
+msgid "# trust earned"
+msgstr ""
+
+#: src/applications/fs/gap/anonymity.c:56
+msgid "Failed to get traffic stats.\n"
+msgstr ""
+
+#: src/applications/testing/remote.c:106
+#, c-format
+msgid "cp command is : %s \n"
+msgstr ""
+
+#: src/applications/testing/remote.c:135 src/applications/testing/remote.c:167
+#: src/applications/testing/remote.c:206 src/applications/testing/remote.c:241
+#: src/applications/testing/remote.c:282
+#, c-format
+msgid "exec command is : %s \n"
+msgstr ""
+
+#: src/applications/testing/remote.c:214 src/applications/testing/remote.c:291
+#, c-format
+msgid "Got pid %d\n"
+msgstr ""
+
+#: src/applications/testing/remote.c:1251
+#, c-format
+msgid "NOT connecting peer %s:%d pid=%d to peer %s:%d pid=%d (already connected!)\n"
+msgstr ""
+
+#: src/applications/testing/remote.c:1263
+#, c-format
+msgid "connecting peer %s:%d pid=%d to peer %s:%d pid=%d\n"
+msgstr ""
+
+#: src/applications/testing/remote.c:1355
+#, c-format
+msgid "Creating clique topology (may take a bit!)\n"
+msgstr ""
+
+#: src/applications/testing/remote.c:1361
+#, c-format
+msgid "Creating small world topology (may take a bit!)\n"
+msgstr ""
+
+#: src/applications/testing/remote.c:1369
+#, c-format
+msgid "Creating ring topology (may take a bit!)\n"
+msgstr ""
+
+#: src/applications/testing/remote.c:1373
+#, c-format
+msgid "Creating 2d torus topology (may take a bit!)\n"
+msgstr ""
+
+#: src/applications/testing/remote.c:1380
+#, c-format
+msgid "Creating Erdos-Renyi topology (may take a bit!)\n"
+msgstr ""
+
+#: src/applications/testing/remote.c:1386
+#, c-format
+msgid "Creating InterNAT topology (may take a bit!)\n"
+msgstr ""
+
+#: src/applications/testing/remote.c:1420
+#, c-format
+msgid "Friend list of %s:%d\n"
+msgstr ""
+
+#: src/applications/testing/remote.c:1474
+#, c-format
+msgid "scp command for friend file copy is : %s \n"
+msgstr ""
+
+#: src/applications/testing/remote.c:1550
+#, c-format
+msgid "connect didn't return well!\n"
+msgstr ""
+
+#: src/applications/testing/remote.c:1555
+#: src/applications/testing/remotetopologies.c:539
+#, c-format
+msgid "Total connections: %d!\n"
+msgstr ""
+
+#: src/applications/testing/remote.c:1556
+#, c-format
+msgid "Total failed connections: %d!\n"
+msgstr ""
+
+#: src/applications/testing/remotetest.c:39
+msgid "Set up multiple gnunetd daemons across multiple hosts."
+msgstr ""
+
+#: src/applications/testing/remotetest.c:44
+msgid "set number of daemons to start"
+msgstr ""
+
+#: src/applications/testing/remotetest.c:49
+msgid "set output file for a dot input file which represents the graph of the connected nodes"
+msgstr ""
+
+#: src/applications/testing/testing.c:268
+#: src/applications/testing/remotetopologies.c:602
+#, c-format
+msgid "Waiting for peers to connect"
+msgstr ""
+
+#: src/applications/testing/remotetopologies.c:176
+#, c-format
+msgid "rand is %f probability is %f\n"
+msgstr ""
+
+#: src/applications/testing/remotetopologies.c:265
+#: src/applications/testing/remotetopologies.c:347
+#, c-format
+msgid "Connecting nodes in 2d torus topology: %u rows %u columns\n"
+msgstr ""
+
+#: src/applications/testing/remotetopologies.c:283
+#: src/applications/testing/remotetopologies.c:297
+#: src/applications/testing/remotetopologies.c:367
+#: src/applications/testing/remotetopologies.c:380
+#: src/applications/testing/remotetopologies.c:525
+#, c-format
+msgid "connecting node %u to %u\n"
+msgstr ""
+
+#: src/applications/testing/remotetopologies.c:390
+#, c-format
+msgid "natural log of %d is %d, will run %d iterations\n"
+msgstr ""
+
+#: src/applications/testing/remotetopologies.c:392
+#, c-format
+msgid "Total connections added thus far: %u!\n"
+msgstr ""
+
+#: src/applications/testing/remotetopologies.c:429
+#: src/applications/testing/remotetopologies.c:537
+#, c-format
+msgid "Total connections added for small world: %d!\n"
+msgstr ""
+
+#: src/applications/testing/remotetopologies.c:483
+#, c-format
+msgid "For peer %d, number must be less than %d or greater than %d (%d)\n"
+msgstr ""
+
+#: src/applications/testing/remotetopologies.c:503
+#, c-format
+msgid "NOT connecting node %u to %u (already existing connection!)\n"
+msgstr ""
+
+#: src/applications/testing/remotetopologies.c:511
+#, c-format
+msgid "connecting node (rewire) %u to %u\n"
+msgstr ""
+
+#: src/applications/testing/remotetopologies.c:582
+#, c-format
+msgid "Setting config 1 to host %s\n"
+msgstr ""
+
+#: src/applications/testing/remotetopologies.c:589
+#, c-format
+msgid "Setting config 2 to host %s\n"
+msgstr ""
+
+#: src/applications/testing/remotetopologies.c:649
+#, c-format
+msgid ""
+"\n"
+"Failed to connect `%s' and `%s'\n"
+msgstr ""
+
+#: src/applications/testing/remotetopologies.c:651
+#: src/applications/testing/remotetopologies.c:654
+#, c-format
+msgid "Connections of `%s':\n"
+msgstr ""
+
+#: src/applications/testing/remotetopologies.c:677
+#: src/applications/testing/remotetopologies.c:746
+#: src/applications/testing/remotetopologies.c:801
+#, c-format
+msgid "Failed to establish connection with peers.\n"
+msgstr ""
+
+#: src/applications/bootstrap_http/http.c:113
+#, c-format
+msgid "Bootstrap data obtained from `%s' is invalid.\n"
+msgstr ""
+
+#: src/applications/bootstrap_http/http.c:126
+#: src/applications/bootstrap_http/http.c:278
+#: src/applications/bootstrap_http/http.c:295
+#: src/applications/bootstrap_http/http.c:334
+#: src/applications/bootstrap_http/http.c:353
+#: src/applications/bootstrap_http/http.c:366
+#: src/applications/bootstrap_http/http.c:376
+#: src/applications/bootstrap_http/http.c:386 src/transports/upnp/upnp.c:356
+#: src/transports/upnp/upnp.c:541 src/transports/http.c:1099
+#: src/transports/http.c:1223 src/transports/http.c:1391
+#: src/transports/http.c:1787 src/transports/http.c:1837
+#, c-format
+msgid "%s failed at %s:%d: `%s'\n"
+msgstr ""
+
+#: src/applications/bootstrap_http/http.c:185
+msgid "No hostlist URL specified in configuration, will not bootstrap.\n"
+msgstr ""
+
+#: src/applications/bootstrap_http/http.c:226
+#, c-format
+msgid "Bootstrapping using `%s'.\n"
+msgstr ""
+
+#: src/applications/bootstrap_http/http.c:255
+#, c-format
+msgid "Trying to download hostlist from `%s'\n"
+msgstr ""
+
+#: src/applications/bootstrap_http/http.c:392
+#, c-format
+msgid "Downloaded %llu bytes from `%s'.\n"
+msgstr ""
+
+#: src/applications/bootstrap_http/http.c:426
+msgid "# HELLOs downloaded via http"
+msgstr ""
+
+#: src/applications/getoption/getoption.c:79
+#, c-format
+msgid "`%s' registering client handler %d\n"
+msgstr ""
+
+#: src/applications/getoption/getoption.c:89
+msgid "allows clients to determine gnunetd's configuration"
+msgstr ""
+
+#: src/applications/template/template.c:70
+#, c-format
+msgid "`%s' registering client handler %d and %d\n"
+msgstr ""
+
+#: src/applications/template/gnunet-template.c:42
+msgid "Template description."
+msgstr ""
+
+#: src/applications/stats/clientapi.c:346
+msgid "Uptime (seconds)"
+msgstr ""
+
+#: src/applications/stats/sqstats.c:151
+msgid "# Any-Blocks"
+msgstr ""
+
+#: src/applications/stats/sqstats.c:152
+msgid "# DBlocks"
+msgstr ""
+
+#: src/applications/stats/sqstats.c:153
+msgid "# SBlocks"
+msgstr ""
+
+#: src/applications/stats/sqstats.c:154
+msgid "# KBlocks"
+msgstr ""
+
+#: src/applications/stats/sqstats.c:155
+msgid "# NBlocks"
+msgstr ""
+
+#: src/applications/stats/sqstats.c:156
+msgid "# KNBlocks"
+msgstr ""
+
+#: src/applications/stats/sqstats.c:157
+msgid "# OnDemand-Blocks"
+msgstr ""
+
+#: src/applications/stats/sqstats.c:158
+msgid "# Unknown-Blocks"
+msgstr ""
+
+#: src/applications/stats/sqstats.c:159
+msgid "# expired"
+msgstr ""
+
+#: src/applications/stats/sqstats.c:160
+msgid "# expire in 1h"
+msgstr ""
+
+#: src/applications/stats/sqstats.c:161
+msgid "# expire in 24h"
+msgstr ""
+
+#: src/applications/stats/sqstats.c:162
+msgid "# expire in 1 week"
+msgstr ""
+
+#: src/applications/stats/sqstats.c:163
+msgid "# expire in 1 month"
+msgstr ""
+
+#: src/applications/stats/sqstats.c:164
+msgid "# zero priority"
+msgstr ""
+
+#: src/applications/stats/sqstats.c:165
+msgid "# priority one"
+msgstr ""
+
+#: src/applications/stats/sqstats.c:166
+msgid "# priority larger than one"
+msgstr ""
+
+#: src/applications/stats/sqstats.c:167
+msgid "# no anonymity"
+msgstr ""
+
+#: src/applications/stats/sqstats.c:168
+msgid "# anonymity one"
+msgstr ""
+
+#: src/applications/stats/sqstats.c:169
+msgid "# anonymity larger than one"
+msgstr ""
+
+#: src/applications/stats/statistics.c:242
+#, no-c-format
+msgid "% of allowed network load (up)"
+msgstr ""
+
+#: src/applications/stats/statistics.c:244
+#, no-c-format
+msgid "% of allowed network load (down)"
+msgstr ""
+
+#: src/applications/stats/statistics.c:247
+#, no-c-format
+msgid "% of allowed cpu load"
+msgstr ""
+
+#: src/applications/stats/statistics.c:250
+#, no-c-format
+msgid "% of allowed io load"
+msgstr ""
+
+#: src/applications/stats/statistics.c:253
+msgid "# bytes of noise received"
+msgstr ""
+
+#: src/applications/stats/statistics.c:255
+msgid "# plibc handles"
+msgstr ""
+
+#: src/applications/stats/statistics.c:256
+msgid "# plibc socks"
+msgstr ""
+
+#: src/applications/stats/statistics.c:257
+msgid "# plibc maps"
+msgstr ""
+
+#: src/applications/stats/statistics.c:449
+#, c-format
+msgid "`%s' registering client handlers %d %d %d and p2p handler %d\n"
+msgstr ""
+
+#: src/applications/stats/statistics.c:471
+msgid "keeps statistics about gnunetd's operation"
+msgstr ""
+
+#: src/applications/stats/gnunet-stats.c:61
+#, c-format
+msgid "Supported peer-to-peer messages:\n"
+msgstr ""
+
+#: src/applications/stats/gnunet-stats.c:64
+#, c-format
+msgid "Supported client-server messages:\n"
+msgstr ""
+
+#: src/applications/stats/gnunet-stats.c:83
+#: src/applications/vpn/gnunet-vpn.c:59
+msgid "Print statistics about GNUnet operations."
+msgstr ""
+
+#: src/applications/stats/gnunet-stats.c:87
+msgid "prints supported protocol messages"
+msgstr ""
+
+#: src/applications/stats/gnunet-stats.c:136
+#, c-format
+msgid "Error reading information from gnunetd.\n"
+msgstr ""
+
+#: src/applications/vpn/gnunet-vpn.c:63
+msgid "Suppress display of asynchronous log messages"
+msgstr ""
+
+#: src/applications/vpn/p2p.c:75
+msgid "VPN IP src not anonymous. drop..\n"
+msgstr ""
+
+#: src/applications/vpn/p2p.c:83
+msgid "VPN IP not anonymous, drop.\n"
+msgstr ""
+
+#: src/applications/vpn/p2p.c:92
+msgid "VPN Received, not anonymous, drop.\n"
+msgstr ""
+
+#: src/applications/vpn/p2p.c:97
+#, c-format
+msgid "VPN Received unknown IP version %d...\n"
+msgstr ""
+
+#: src/applications/vpn/p2p.c:110
+#, c-format
+msgid "<- GNUnet(%d) : %s\n"
+msgstr ""
+
+#: src/applications/vpn/p2p.c:139
+msgid "Could not write the tunnelled IP to the OS... Did to setup a tunnel?\n"
+msgstr ""
+
+#: src/applications/vpn/p2p.c:183
+msgid "Receive route request\n"
+msgstr ""
+
+#: src/applications/vpn/p2p.c:193
+#, c-format
+msgid "Prepare route announcement level %d\n"
+msgstr ""
+
+#: src/applications/vpn/p2p.c:208
+#, c-format
+msgid "Send route announcement %d with route announce\n"
+msgstr ""
+
+#: src/applications/vpn/p2p.c:217
+#, c-format
+msgid "Send outside table info %d\n"
+msgstr ""
+
+#: src/applications/vpn/p2p.c:239
+msgid "Receive route announce.\n"
+msgstr ""
+
+#: src/applications/vpn/p2p.c:247
+msgid "Going to try insert route into local table.\n"
+msgstr ""
+
+#: src/applications/vpn/p2p.c:256
+#, c-format
+msgid "Inserting with hops %d\n"
+msgstr ""
+
+#: src/applications/vpn/p2p.c:273
+#, c-format
+msgid "Request level %d from peer %d\n"
+msgstr ""
+
+#: src/applications/vpn/p2p.c:300
+#, c-format
+msgid "Receive table limit on peer reached %d\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:180
+#, c-format
+msgid "Not storing route to myself from peer %d\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:194
+#, c-format
+msgid "Duplicate route to node from peer %d, choosing minimum hops"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:230
+#, c-format
+msgid "Inserting route from peer %d in route table at location %d\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:247
+#, c-format
+msgid "RFC4193 Frame length %d is too big for GNUnet!\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:254
+#, c-format
+msgid "RFC4193 Frame length %d too small\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:273
+#, c-format
+msgid "RFC4193 Ethertype %x and IP version %x do not match!\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:289
+#, c-format
+msgid "RFC4193 Going to try and make a tunnel in slot %d\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:295
+#, c-format
+msgid "Cannot open tunnel device: %s"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:331
+#, c-format
+msgid "RFC4193 Create skips gnu%d as we are already using it\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:346
+#, c-format
+msgid "Cannot set tunnel name to %s because of %s\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:356
+#, c-format
+msgid "Configured tunnel name to %s\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:398
+#, c-format
+msgid "Cannot get socket flags for gnu%d because %s\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:408
+#, c-format
+msgid "Cannot set socket flags for gnu%d because %s\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:418
+#, c-format
+msgid "Cannot set MTU for gnu%d because %s\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:426
+#, c-format
+msgid "Cannot get interface index for gnu%d because %s\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:440
+#, c-format
+msgid "IPv6 ifaddr gnu%d - %x:%x:%x:%x:%x:%x:%x:%x/%d\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:455
+#, c-format
+msgid "Cannot set interface IPv6 address for gnu%d because %s\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:471
+#, c-format
+msgid "IPv6 route gnu%d - destination %x:%x:%x:%x:%x:%x:%x:%x/%d\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:485
+#, c-format
+msgid "Cannot add route IPv6 address for gnu%s because %s\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:528
+msgid "RFC4193 We have run out of memory and so I can't store a tunnel for this peer.\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:579
+#, c-format
+msgid "RFC4193 Thread running (frame %d tunnel %d f2f %d) ...\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:661
+#, c-format
+msgid "VPN dropping connection %x\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:670
+#, c-format
+msgid "VPN cannot drop connection %x\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:690
+msgid "RFC4193 Thread exiting\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:712
+msgid "realise alloc ram\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:735
+msgid "realise add routes\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:849
+msgid "realise copy table\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:898
+#, c-format
+msgid "`%s' initialising RFC4913 module  %d and %d\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:903
+#, c-format
+msgid "RFC4193 my First 4 hex digits of host id are %x\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:942
+msgid "enables IPv6 over GNUnet (incomplete)"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:963
+msgid "RFC4193 Waiting for tun thread to end\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:978
+msgid "RFC4193 The tun thread has ended\n"
+msgstr ""
+
+#: src/applications/vpn/vpn.c:996
+#, c-format
+msgid "RFC4193 Closing tunnel %d fd %d\n"
+msgstr ""
+
+#: src/server/core.c:119 src/server/core.c:318
+#, c-format
+msgid "Configuration value `%s' under [MODULES] for `%s' is invalid!\n"
+msgstr ""
+
+#: src/server/core.c:140
+#, c-format
+msgid "Application module `%s' already initialized!\n"
+msgstr ""
+
+#: src/server/core.c:194
+#, c-format
+msgid "Failed to load plugin `%s' at %s:%d.  Unloading plugin.\n"
+msgstr ""
+
+#: src/server/core.c:244
+#, c-format
+msgid "Could not shutdown `%s': application not loaded\n"
+msgstr ""
+
+#: src/server/core.c:255
+#, c-format
+msgid "Could not shutdown application `%s': not initialized\n"
+msgstr ""
+
+#: src/server/core.c:265
+#, c-format
+msgid "Could not find '%s%s' method in library `%s'.\n"
+msgstr ""
+
+#: src/server/core.c:422
+#, c-format
+msgid "Could not release %p: service not loaded\n"
+msgstr ""
+
+#: src/server/core.c:531
+#, c-format
+msgid "Could not properly shutdown application `%s'.\n"
+msgstr ""
+
+#: src/server/core.c:676
+#, c-format
+msgid "Could not properly unload service `%s'!\n"
+msgstr ""
+
+#: src/server/gnunet-update.c:146
+#, c-format
+msgid "Updating data for module `%s'\n"
+msgstr ""
+
+#: src/server/gnunet-update.c:151
+#, c-format
+msgid "Failed to update data for module `%s'\n"
+msgstr ""
+
+#: src/server/gnunet-update.c:225 src/server/gnunetd.c:130
+msgid "Core initialization failed.\n"
+msgstr ""
+
+#: src/server/gnunet-update.c:270
+msgid "Updates GNUnet datastructures after version change."
+msgstr ""
+
+#: src/server/gnunet-update.c:274 src/server/gnunet-transport-check.c:376
+msgid "run as user LOGIN"
+msgstr ""
+
+#: src/server/gnunet-update.c:278
+msgid "run in client mode (for getting client configuration values)"
+msgstr ""
+
+#: src/server/version.c:125
+msgid "Failed to determine filename used to store GNUnet version information!\n"
+msgstr ""
+
+#: src/server/gnunetd.c:91
+#, c-format
+msgid "`%s' startup complete.\n"
+msgstr ""
+
+#: src/server/gnunetd.c:95
+#, c-format
+msgid "`%s' is shutting down.\n"
+msgstr ""
+
+#: src/server/gnunetd.c:185
+msgid "do not daemonize (run gnunetd as a foreground process)"
+msgstr ""
+
+#: src/server/gnunetd.c:188
+msgid "run in debug mode; gnunetd will not daemonize and error messages will be written to stderr instead of a logfile"
+msgstr ""
+
+#: src/server/gnunetd.c:192
+msgid "Starts the gnunetd daemon."
+msgstr ""
+
+#: src/server/gnunetd.c:195
+msgid "disable padding with random data (experimental)"
+msgstr ""
+
+#: src/server/gnunetd.c:199
+msgid "print all log messages to the console (only works together with -d)"
+msgstr ""
+
+#: src/server/gnunetd.c:203
+msgid "specify username as which gnunetd should run"
+msgstr ""
+
+#: src/server/gnunetd.c:284
+#, c-format
+msgid "Configuration or GNUnet version changed.  You need to run `%s'!\n"
+msgstr ""
+
+#: src/server/tcpserver.c:121
+#, c-format
+msgid "The `%s' request received from client is malformed.\n"
+msgstr ""
+
+#: src/server/tcpserver.c:409
+#, c-format
+msgid "`%s' failed for port %d. Is gnunetd already running?\n"
+msgstr ""
+
+#: src/server/tcpserver.c:487 src/server/tcpserver.c:512
+#, c-format
+msgid "Malformed network specification in the configuration in section `%s' for entry `%s': %s\n"
+msgstr ""
+
+#: src/server/tcpserver.c:572
+#, c-format
+msgid "Registering failed, message type %d already in use.\n"
+msgstr ""
+
+#: src/server/startup.c:219
+#, c-format
+msgid "Unable to obtain filesystem information for `%s': %u\n"
+msgstr ""
+
+#: src/server/startup.c:237
+#, c-format
+msgid "Filesystem `%s' of partition `%s' is unknown. Please contact gnunet-developers@gnu.org!"
+msgstr ""
+
+#: src/server/startup.c:252
+#, c-format
+msgid "Limiting datastore size to %llu GB, because the `%s' filesystem does not support larger files. Please consider storing the database on a NTFS partition!\n"
+msgstr ""
+
+#: src/server/startup.c:291
+#, c-format
+msgid "Insufficient access permissions for `%s': %s\n"
+msgstr ""
+
+#: src/server/gnunet-peer-info.c:55
+msgid "Print information about GNUnet peers."
+msgstr ""
+
+#: src/server/gnunet-peer-info.c:59
+msgid "don't resolve host names"
+msgstr ""
+
+#: src/server/gnunet-peer-info.c:62
+msgid "output only the identity strings"
+msgstr ""
+
+#: src/server/gnunet-peer-info.c:65
+msgid "output our own identity only"
+msgstr ""
+
+#: src/server/gnunet-peer-info.c:130 src/server/gnunet-peer-info.c:164
+#, c-format
+msgid "Could not get address of peer `%s'.\n"
+msgstr ""
+
+#: src/server/gnunet-peer-info.c:143
+#, c-format
+msgid "`%s' message invalid (signature invalid).\n"
+msgstr ""
+
+#: src/server/gnunet-peer-info.c:168
+#, c-format
+msgid "Peer `%s' with trust %8u\n"
+msgstr ""
+
+#: src/server/gnunet-peer-info.c:175
+#, c-format
+msgid "Peer `%s' with trust %8u and address `%s'\n"
+msgstr ""
+
+#: src/server/connection.c:1338
+#, c-format
+msgid "`%s' selected %d out of %d messages (MTU: %d).\n"
+msgstr ""
+
+#: src/server/connection.c:1348
+#, c-format
+msgid "Message details: %u: length %d, priority: %d\n"
+msgstr ""
+
+#: src/server/connection.c:3171
+#, c-format
+msgid "Message from `%s' discarded: invalid format.\n"
+msgstr ""
+
+#: src/server/connection.c:3260
+#, c-format
+msgid "Invalid sequence number %u <= %u, dropping message.\n"
+msgstr ""
+
+#: src/server/connection.c:3282
+msgid "Message received more than one day old. Dropped.\n"
+msgstr ""
+
+#: src/server/connection.c:3805
+msgid "# outgoing messages dropped"
+msgstr ""
+
+#: src/server/connection.c:3808
+msgid "# bytes of outgoing messages dropped"
+msgstr ""
+
+#: src/server/connection.c:3810
+msgid "# connections closed (HANGUP sent)"
+msgstr ""
+
+#: src/server/connection.c:3814
+msgid "# connections closed (transport issue)"
+msgstr ""
+
+#: src/server/connection.c:3817
+msgid "# bytes encrypted"
+msgstr ""
+
+#: src/server/connection.c:3821
+msgid "# bytes transmitted"
+msgstr ""
+
+#: src/server/connection.c:3825
+msgid "# bytes received"
+msgstr ""
+
+#: src/server/connection.c:3827
+msgid "# bytes decrypted"
+msgstr ""
+
+#: src/server/connection.c:3828
+msgid "# bytes noise sent"
+msgstr ""
+
+#: src/server/connection.c:3831
+msgid "# total bytes per second send limit"
+msgstr ""
+
+#: src/server/connection.c:3834
+msgid "# total bytes per second receive limit"
+msgstr ""
+
+#: src/server/connection.c:3837
+msgid "# total number of messages in send buffers"
+msgstr ""
+
+#: src/server/connection.c:3840
+msgid "# total number of bytes we were allowed to send but did not"
+msgstr ""
+
+#: src/server/connection.c:3843
+msgid "# total number of bytes we were allowed to sent"
+msgstr ""
+
+#: src/server/connection.c:3846
+msgid "# total number of bytes we are currently allowed to send"
+msgstr ""
+
+#: src/server/connection.c:3849
+msgid "# transports switched to stream transport"
+msgstr ""
+
+#: src/server/connection.c:3852
+msgid "# average connection lifetime (in ms)"
+msgstr ""
+
+#: src/server/connection.c:3855
+msgid "# conn. shutdown: other peer sent too much"
+msgstr ""
+
+#: src/server/connection.c:3858
+msgid "# conn. shutdown: we lacked bandwidth"
+msgstr ""
+
+#: src/server/connection.c:3861
+msgid "# conn. shutdown: other peer timed out"
+msgstr ""
+
+#: src/server/connection.c:3864
+msgid "# conn. shutdown: timed out during connect"
+msgstr ""
+
+#: src/server/connection.c:3867
+msgid "# conn. shutdown: other peer requested it"
+msgstr ""
+
+#: src/server/handler.c:442
+#, c-format
+msgid "Received corrupt message from peer `%s' in %s:%d.\n"
+msgstr ""
+
+#: src/server/gnunet-transport-check.c:121
+#, c-format
+msgid "`%s': Could not create hello.\n"
+msgstr ""
+
+#: src/server/gnunet-transport-check.c:129
+#, c-format
+msgid "`%s': Could not connect.\n"
+msgstr ""
+
+#: src/server/gnunet-transport-check.c:163
+#, c-format
+msgid "`%s': Could not send.\n"
+msgstr ""
+
+#: src/server/gnunet-transport-check.c:179
+#, c-format
+msgid "`%s': Did not receive message within %llu ms.\n"
+msgstr ""
+
+#: src/server/gnunet-transport-check.c:192
+#, c-format
+msgid "`%s': Could not disconnect.\n"
+msgstr ""
+
+#: src/server/gnunet-transport-check.c:200
+#, c-format
+msgid "`%s' transport OK.  It took %ums to transmit %llu messages of %llu bytes each.\n"
+msgstr ""
+
+#: src/server/gnunet-transport-check.c:231
+#, c-format
+msgid " Transport %d is not being tested\n"
+msgstr ""
+
+#: src/server/gnunet-transport-check.c:261
+#, c-format
+msgid ""
+"\n"
+"Contacting `%s'."
+msgstr ""
+
+#: src/server/gnunet-transport-check.c:286
+#, c-format
+msgid " Connection failed\n"
+msgstr ""
+
+#: src/server/gnunet-transport-check.c:292
+#, c-format
+msgid " Connection failed (bug?)\n"
+msgstr ""
+
+#: src/server/gnunet-transport-check.c:330
+#, c-format
+msgid "Timeout after %llums.\n"
+msgstr ""
+
+#: src/server/gnunet-transport-check.c:332
+#, c-format
+msgid "OK!\n"
+msgstr ""
+
+#: src/server/gnunet-transport-check.c:357
+msgid "Tool to test if GNUnet transport services are operational."
+msgstr ""
+
+#: src/server/gnunet-transport-check.c:361
+msgid "ping peers from HOSTLISTURL that match transports"
+msgstr ""
+
+#: src/server/gnunet-transport-check.c:364
+msgid "send COUNT messages"
+msgstr ""
+
+#: src/server/gnunet-transport-check.c:367
+msgid "send messages with SIZE bytes payload"
+msgstr ""
+
+#: src/server/gnunet-transport-check.c:370
+msgid "specifies which TRANSPORT should be tested"
+msgstr ""
+
+#: src/server/gnunet-transport-check.c:373
+msgid "specifies after how many MS to time-out"
+msgstr ""
+
+#: src/server/gnunet-transport-check.c:381
+msgid "repeat each test X times"
+msgstr ""
+
+#: src/server/gnunet-transport-check.c:449
+#, c-format
+msgid "Testing transport(s) %s\n"
+msgstr ""
+
+#: src/server/gnunet-transport-check.c:451
+#, c-format
+msgid "Available transport(s): %s\n"
+msgstr ""
+
+#: src/server/gnunet-transport-check.c:501
+#, c-format
+msgid ""
+"\n"
+"%d out of %d peers contacted successfully (%d times transport unavailable).\n"
+msgstr ""
+
+#: src/transports/common.c:370
+#, c-format
+msgid "Port is 0, will only send using %s.\n"
+msgstr ""
+
+#: src/transports/smtp.c:367 src/transports/udp.c:107 src/transports/tcp.c:306
+#: src/transports/tcp.c:326
+#, c-format
+msgid "Received malformed message via %s. Ignored.\n"
+msgstr ""
+
+#: src/transports/smtp.c:459
+msgid "SMTP filter string to invalid, lacks ': '\n"
+msgstr ""
+
+#: src/transports/smtp.c:469
+#, c-format
+msgid "SMTP filter string to long, capped to `%s'\n"
+msgstr ""
+
+#: src/transports/smtp.c:564 src/transports/smtp.c:575
+#: src/transports/smtp.c:589 src/transports/smtp.c:609
+#: src/transports/smtp.c:634 src/transports/smtp.c:643
+#: src/transports/smtp.c:657 src/transports/smtp.c:669
+#, c-format
+msgid "SMTP: `%s' failed: %s.\n"
+msgstr ""
+
+#: src/transports/smtp.c:814
+msgid "No email-address specified, can not start SMTP transport.\n"
+msgstr ""
+
+#: src/transports/smtp.c:831
+msgid "# bytes received via SMTP"
+msgstr ""
+
+#: src/transports/smtp.c:832
+msgid "# bytes sent via SMTP"
+msgstr ""
+
+#: src/transports/smtp.c:834
+msgid "# bytes dropped by SMTP (outgoing)"
+msgstr ""
+
+#: src/transports/upnp/upnp.c:431
+#, c-format
+msgid "%s failed for url `%s' and post-data `%s' at %s:%d: `%s'\n"
+msgstr ""
+
+#: src/transports/upnp/upnp.c:476
+#, c-format
+msgid "upnp: NAT Returned IP: %s\n"
+msgstr ""
+
+#: src/transports/http.c:2029 src/transports/tcp.c:876
+#, c-format
+msgid "The UPnP service could not be loaded. To disable UPnP, set the configuration option \"UPNP\" in section \"%s\" to \"NO\"\n"
+msgstr ""
+
+#: src/transports/http.c:2038
+msgid "# bytes received via HTTP"
+msgstr ""
+
+#: src/transports/http.c:2039
+msgid "# bytes sent via HTTP"
+msgstr ""
+
+#: src/transports/http.c:2041
+msgid "# bytes dropped by HTTP (outgoing)"
+msgstr ""
+
+#: src/transports/http.c:2042
+msgid "# HTTP GET issued"
+msgstr ""
+
+#: src/transports/http.c:2044
+msgid "# HTTP GET received"
+msgstr ""
+
+#: src/transports/http.c:2045
+msgid "# HTTP PUT issued"
+msgstr ""
+
+#: src/transports/http.c:2047
+msgid "# HTTP PUT received"
+msgstr ""
+
+#: src/transports/http.c:2049
+msgid "# HTTP select calls"
+msgstr ""
+
+#: src/transports/http.c:2051
+msgid "# HTTP send calls"
+msgstr ""
+
+#: src/transports/http.c:2054
+msgid "# HTTP curl send callbacks"
+msgstr ""
+
+#: src/transports/http.c:2056
+msgid "# HTTP curl receive callbacks"
+msgstr ""
+
+#: src/transports/http.c:2058
+msgid "# HTTP mhd access callbacks"
+msgstr ""
+
+#: src/transports/http.c:2060
+msgid "# HTTP mhd read callbacks"
+msgstr ""
+
+#: src/transports/http.c:2062
+msgid "# HTTP mhd close callbacks"
+msgstr ""
+
+#: src/transports/http.c:2064
+msgid "# HTTP connect calls"
+msgstr ""
+
+#: src/transports/ip.c:70 src/transports/ip.c:365
+#, c-format
+msgid "Failed to obtain my (external) %s address!\n"
+msgstr ""
+
+#: src/transports/udp.c:472 src/transports/tcp.c:793
+#, c-format
+msgid "Failed to bind to %s port %d.\n"
+msgstr ""
+
+#: src/transports/udp.c:538
+#, c-format
+msgid "MTU %llu for `%s' is probably too low!\n"
+msgstr ""
+
+#: src/transports/udp.c:562
+msgid "# bytes received via UDP"
+msgstr ""
+
+#: src/transports/udp.c:563
+msgid "# bytes sent via UDP"
+msgstr ""
+
+#: src/transports/udp.c:565
+msgid "# bytes dropped by UDP (outgoing)"
+msgstr ""
+
+#: src/transports/udp.c:567
+msgid "# UDP connections (right now)"
+msgstr ""
+
+#: src/transports/tcp.c:886
+msgid "# bytes received via TCP"
+msgstr ""
+
+#: src/transports/tcp.c:887
+msgid "# bytes sent via TCP"
+msgstr ""
+
+#: src/transports/tcp.c:889
+msgid "# bytes dropped by TCP (outgoing)"
+msgstr ""
+
+#: src/include/gnunet_util_getopt.h:154
+msgid "print this help"
+msgstr ""
+
+#: src/include/gnunet_util_getopt.h:163
+msgid "print the version number"
+msgstr ""
+
+#: src/include/gnunet_util_getopt.h:169
+msgid "configure logging to use LOGLEVEL"
+msgstr ""
+
+#: src/include/gnunet_util_getopt.h:175
+msgid "be verbose"
+msgstr ""
+
+#: src/include/gnunet_util_getopt.h:181
+msgid "use configuration file FILENAME"
+msgstr ""
+
+#: src/include/gnunet_util_getopt.h:187
+msgid "specify host on which gnunetd is running"
+msgstr ""
+
+#: src/include/gnunet_util_error.h:219 src/include/gnunet_util_error.h:224
+#: src/include/gnunet_util_error.h:230 src/include/gnunet_util_error.h:232
+#, c-format
+msgid "Internal error: assertion failed at %s:%d.\n"
+msgstr ""
+
+#: src/include/gnunet_util_error.h:242
+#, c-format
+msgid "External protocol violation: assertion failed at %s:%d (no need to panic, we can handle this).\n"
+msgstr ""
+
+#: src/include/gnunet_util_error.h:270 src/include/gnunet_util_error.h:277
+#, c-format
+msgid "`%s' failed on file `%s' at %s:%d with error: %s\n"
+msgstr ""
+
+#: contrib/config-daemon.scm:39 contrib/config-client.scm:40
+msgid "No help available."
+msgstr ""
+
+#: contrib/config-daemon.scm:42
+msgid "You can use 'make check' in src/transports/upnp/ to find out if your NAT supports UPnP.  You should disable this option if you are sure that you are not behind a NAT.  If your NAT box does not support UPnP, having this on will not do much harm (only cost a small amount of resources)."
+msgstr ""
+
+#: contrib/config-daemon.scm:54 contrib/config-client.scm:53
+msgid "Prompt for development and/or incomplete code"
+msgstr ""
+
+#: contrib/config-daemon.scm:56 contrib/config-client.scm:55
+msgid ""
+"If EXPERIMENTAL is set to NO, options for experimental code are not shown.  If in doubt, use NO.\n"
+"\n"
+"Some options apply to experimental code that maybe in a state of development where the functionality, stability, or the level of testing is not yet high enough for general use.  These features are said to be of \"alpha\" quality.  If a feature is currently in alpha, uninformed use is discouraged (since the developers then do not fancy \"Why doesn't this work?\" type messages).\n"
+"\n"
+"However, active testing and qualified feedback of these features is always welcome.  Users should just be aware that alpha features may not meet the normal level of reliability or it may fail to work in some special cases.  Bug reports are usually welcomed by the developers, but please read the documents <file://README> and <http://gnunet.org/faq.php3> and use <https://gnunet.org/mantis/> for how to report problems."
+msgstr ""
+
+#: contrib/config-daemon.scm:71 contrib/config-client.scm:70
+msgid "Show options for advanced users"
+msgstr ""
+
+#: contrib/config-daemon.scm:73 contrib/config-client.scm:72
+msgid "These are options that maybe difficult to understand for the beginner. These options typically refer to features that allow tweaking of the installation.  If in a hurry, say NO."
+msgstr ""
+
+#: contrib/config-daemon.scm:84 contrib/config-client.scm:83
+msgid "Show rarely used options"
+msgstr ""
+
+#: contrib/config-daemon.scm:86 contrib/config-client.scm:85
+msgid "These are options that hardly anyone actually needs.  If you plan on doing development on GNUnet, you may want to look into these.  If in doubt or in a hurry, say NO."
+msgstr ""
+
+#: contrib/config-daemon.scm:97 contrib/config-client.scm:96
+msgid "Meta-configuration"
+msgstr ""
+
+#: contrib/config-daemon.scm:98 contrib/config-client.scm:97
+msgid "Which level of configuration should be available"
+msgstr ""
+
+#: contrib/config-daemon.scm:115
+msgid "Full pathname of GNUnet HOME directory"
+msgstr ""
+
+#: contrib/config-daemon.scm:117
+msgid "This gives the root-directory of the GNUnet installation. Make sure there is some space left in that directory. :-)  Users inserting or indexing files will be able to store data in this directory up to the (global) quota specified below.  Having a few gigabytes of free space is recommended."
+msgstr ""
+
+#: contrib/config-daemon.scm:130
+msgid "Full pathname of GNUnet directory for file-sharing data"
+msgstr ""
+
+#: contrib/config-daemon.scm:142
+msgid "Full pathname to the directory with the key-value database"
+msgstr ""
+
+#: contrib/config-daemon.scm:143
+msgid "Note that the kvstore is currently not used."
+msgstr ""
+
+#: contrib/config-daemon.scm:154
+msgid "Full pathname of GNUnet directory for indexed files symbolic links"
+msgstr ""
+
+#: contrib/config-daemon.scm:166
+msgid "How many minutes should peer advertisements last?"
+msgstr ""
+
+#: contrib/config-daemon.scm:168
+msgid "How many minutes is the current IP valid?  (GNUnet will sign HELLO messages with this expiration timeline. If you are on dialup, 60 (for 1 hour) is suggested. If you have a static IP address, you may want to set this to a large value (say 14400).  The default is 1440 (1 day). If your IP changes periodically, you will want to choose an expiry period smaller than the frequency with which your IP changes."
+msgstr ""
+
+#: contrib/config-daemon.scm:179
+msgid "Where can GNUnet find an initial list of peers?"
+msgstr ""
+
+#: contrib/config-daemon.scm:181
+msgid ""
+"GNUnet can automatically update the hostlist from the web. While GNUnet internally communicates which hosts are online, it is typically a good idea to get a fresh hostlist whenever gnunetd starts from the WEB. By setting this option, you can specify from which server gnunetd should try to download the hostlist. The default should be fine for now.\n"
+"\t\t\n"
+"The general format is a list of space-separated URLs.  Each URL must have the format http://HOSTNAME/FILENAME\n"
+"\t\t\n"
+"If you want to setup an alternate hostlist server, you must run a permanent node and \"cat data/hosts/* > hostlist\" every few minutes to keep the list up-to-date.\n"
+"\t\t\n"
+"If you do not specify a HOSTLISTURL, you must copy valid hostkeys to data/hosts manually."
+msgstr ""
+
+#: contrib/config-daemon.scm:198
+msgid "HTTP Proxy Server"
+msgstr ""
+
+#: contrib/config-daemon.scm:200
+msgid "If you have to use a proxy for outbound HTTP connections, specify the proxy configuration here.  Default is no proxy."
+msgstr ""
+
+#: contrib/config-daemon.scm:212
+msgid "Name of the directory where gnunetd should store contact information about peers"
+msgstr ""
+
+#: contrib/config-daemon.scm:214
+msgid "Unless you want to share the directory directly using a webserver, the default is most likely just fine."
+msgstr ""
+
+#: contrib/config-daemon.scm:240 contrib/config-client.scm:140
+msgid "How long should logs be kept?"
+msgstr ""
+
+#: contrib/config-daemon.scm:242 contrib/config-client.scm:142
+msgid "How long should logs be kept? If you specify a value greater than zero, a log is created each day with the date appended to its filename. These logs are deleted after $KEEPLOG days.\tTo keep logs forever, set this value to 0."
+msgstr ""
+
+#: contrib/config-daemon.scm:253
+msgid "What maximum number of open file descriptors should be requested from the OS?"
+msgstr ""
+
+#: contrib/config-daemon.scm:255
+msgid "The default of 1024 should be fine for most systems.  If your system can support more, increasing the number might help support additional clients on machines with plenty of bandwidth.  For embedded systems, a smaller number might be acceptable.  A value of 0 will leave the descriptor limit untouched.  This option is mostly for OS X systems where the default is too low.  Note that if gnunetd cannot obtain the desired number of file descriptors from the operating system, it will print a warning and try to run with what it is given."
+msgstr ""
+
+#: contrib/config-daemon.scm:266
+msgid "Where should gnunetd write the logs?"
+msgstr ""
+
+#: contrib/config-daemon.scm:278
+msgid "Enable for extra-verbose logging."
+msgstr ""
+
+#: contrib/config-daemon.scm:290 contrib/config-client.scm:165
+msgid "Logging"
+msgstr ""
+
+#: contrib/config-daemon.scm:291 contrib/config-client.scm:166
+msgid "Specify which system messages should be logged how"
+msgstr ""
+
+#: contrib/config-daemon.scm:296 contrib/config-client.scm:170
+msgid "Logging of events for users"
+msgstr ""
+
+#: contrib/config-daemon.scm:297 contrib/config-client.scm:171
+msgid "Logging of events for the system administrator"
+msgstr ""
+
+#: contrib/config-daemon.scm:309
+msgid "Where should gnunetd write the PID?"
+msgstr ""
+
+#: contrib/config-daemon.scm:310
+msgid "The default is no longer /var/run/gnunetd.pid since we could not delete the file on shutdown at that location."
+msgstr ""
+
+#: contrib/config-daemon.scm:322
+msgid "As which user should gnunetd run?"
+msgstr ""
+
+#: contrib/config-daemon.scm:324
+msgid "Empty means \"current user\". On computer startup, it is root/SYSTEM.  Under Windows, this setting affects the creation of a new system service only."
+msgstr ""
+
+#: contrib/config-daemon.scm:337
+msgid "Should gnunetd be automatically started when the system boots?"
+msgstr ""
+
+#: contrib/config-daemon.scm:338
+msgid "Set to YES if gnunetd should be automatically started on boot.  If this option is set, gnunet-setup will install a script to start the daemon upon completion.  This option may not work on all systems."
+msgstr ""
+
+#: contrib/config-daemon.scm:350
+msgid "Which transport mechanisms should GNUnet use?"
+msgstr ""
+
+#: contrib/config-daemon.scm:352
+msgid ""
+"Use a space-separated list of modules, e.g.  \"udp smtp tcp\".  The available transports are udp, tcp, http, smtp and nat.\n"
+"\t\t\n"
+"Loading the 'nat' and 'tcp' modules is required for peers behind NAT boxes that cannot directly be reached from the outside.  Peers that are NOT behind a NAT box and that want to *allow* peers that ARE behind a NAT box to connect must ALSO load the 'nat' module.  Note that the actual transfer will always be via tcp initiated by the peer behind the NAT box.  The nat transport requires the use of tcp, http and/or smtp in addition to nat itself."
+msgstr ""
+
+#: contrib/config-daemon.scm:366
+msgid "Which applications should gnunetd support?"
+msgstr ""
+
+#: contrib/config-daemon.scm:368
+msgid ""
+"Whenever this option is changed, you MUST run gnunet-update. Currently, the available applications are:\n"
+"\n"
+"advertising: advertises your peer to other peers. Without it, your peer will not participate in informing peers about other peers.  You should always load this module.\n"
+"\n"
+"getoption:  allows clients to query gnunetd about the values of various configuration options.  Many tools need this.  You should always load this module.\n"
+"\n"
+"stats: allows tools like gnunet-stats and gnunet-gtk to query gnunetd about various statistics.  This information is usually quite useful to diagnose errors, hence it is recommended that you load this module.\n"
+"\n"
+"traffic: keeps track of how many messages were recently received and transmitted.  This information can then be used to establish how much cover traffic is currently available.  The amount of cover traffic becomes important if you want to make anonymous requests with an anonymity level that is greater than one.  It is recommended that you load this module.\n"
+"\n"
+"fs: needed for anonymous file sharing. You should always load this module.\n"
+"\n"
+"hostlist: integrated hostlist HTTP server.  Useful if you want to offer a hostlist and running Apache would be overkill.\n"
+"\n"
+"chat: broadcast chat (demo-application, ALPHA quality).\tRequired for gnunet-chat.  Note that the current implementation of chat is not considered to be secure.\n"
+"\n"
+"tbench: benchmark transport performance.  Required for gnunet-tbench.  Note that tbench allows other users to abuse your resources.\n"
+"\n"
+"tracekit: topology visualization toolkit.  Required for gnunet-tracekit. Note that loading tracekit will make it slightly easier for an adversary to compromise your anonymity.\n"
+"\n"
+"vpn: Experimental extension that is not yet working.  Do not use."
+msgstr ""
+
+#: contrib/config-daemon.scm:401
+msgid "Disable client-server connections"
+msgstr ""
+
+#: contrib/config-daemon.scm:402
+msgid "This option can be used to tell gnunetd not to open the client port.  When run like this, gnunetd will participate as a peer in the network but not support any user interfaces.  This may be useful for headless systems that are never expected to have end-user interactions.  Note that this will also prevent you from running diagnostic tools like gnunet-stats!"
+msgstr ""
+
+#: contrib/config-daemon.scm:414
+msgid "YES disables IPv6 support, NO enables IPv6 support"
+msgstr ""
+
+#: contrib/config-daemon.scm:415
+msgid "This option may be useful on peers where the kernel does not support IPv6.  You might also want to set this option if you do not have an IPv6 network connection."
+msgstr ""
+
+#: contrib/config-daemon.scm:427
+msgid "Disable peer discovery"
+msgstr ""
+
+#: contrib/config-daemon.scm:428
+msgid "The option 'PRIVATE-NETWORK' can be used to limit the connections of this peer to peers of which the hostkey has been copied by hand to data/hosts;  if this option is given, GNUnet will not accept advertisements of peers that the local node does not already know about.  Note that in order for this option to work, HOSTLISTURL should either not be set at all or be set to a trusted peer that only advertises the private network. Also, the option does NOT work at the moment if the NAT transport is loaded; for that, a couple of lines above would need some minor editing :-)."
+msgstr ""
+
+#: contrib/config-daemon.scm:439
+msgid "Disable advertising this peer to other peers"
+msgstr ""
+
+#: contrib/config-daemon.scm:451
+msgid "Disable automatic establishment of connections"
+msgstr ""
+
+#: contrib/config-daemon.scm:452
+msgid "If this option is enabled, GNUnet will not automatically establish connections to other peers, but instead wait for applications to specifically request connections to other peers (or for other peers to connect to us)."
+msgstr ""
+
+#: contrib/config-daemon.scm:463
+msgid "Enable advertising of other peers by this peer"
+msgstr ""
+
+#: contrib/config-daemon.scm:464
+msgid "This option may be useful during testing, but turning it off is dangerous! If in any doubt, set it to YES (which is the default)."
+msgstr ""
+
+#: contrib/config-daemon.scm:475
+msgid "Port for communication with GNUnet user interfaces"
+msgstr ""
+
+#: contrib/config-daemon.scm:476
+msgid "Which is the client-server port that is used between gnunetd and the clients (TCP only).  You may firewall this port for non-local machines (but you do not have to since GNUnet will perform access control and only allow connections from machines that are listed under TRUSTED)."
+msgstr ""
+
+#: contrib/config-daemon.scm:487
+msgid "Port for the integrated hostlist HTTP server"
+msgstr ""
+
+#: contrib/config-daemon.scm:499
+msgid "IPv4 networks allowed to use gnunetd server"
+msgstr ""
+
+#: contrib/config-daemon.scm:500 contrib/config-daemon.scm:512
+msgid "This option specifies which hosts are trusted enough to connect as clients (to the TCP port).  This is useful if you run gnunetd on one host of your network and want to allow all other hosts to use this node as their server.  By default, this is set to 'loopback only'.  The format is IP/NETMASK where the IP is specified in dotted-decimal and the netmask either in CIDR notation (/16) or in dotted decimal (255.255.0.0). Several entries must be separated by a semicolon, spaces are not allowed."
+msgstr ""
+
+#: contrib/config-daemon.scm:511
+msgid "IPv6 networks allowed to use gnunetd server"
+msgstr ""
+
+#: contrib/config-daemon.scm:524
+msgid "Limit connections to the specfied set of peers."
+msgstr ""
+
+#: contrib/config-daemon.scm:525
+msgid "If this option is not set, any peer is allowed to connect.  If it is set, only the specified peers are allowed. Specify the list of peer IDs (not IPs!)"
+msgstr ""
+
+#: contrib/config-daemon.scm:536
+msgid "Run gnunetd as this group."
+msgstr ""
+
+#: contrib/config-daemon.scm:537
+msgid "When started as root, gnunetd will change permissions to the given group."
+msgstr ""
+
+#: contrib/config-daemon.scm:548
+msgid "Prevent the specfied set of peers from connecting."
+msgstr ""
+
+#: contrib/config-daemon.scm:549
+msgid "If this option is not set, any peer is allowed to connect.  If the ID of a peer is listed here, connections from that peer will be refused.  Specify the list of peer IDs (not IPs!)"
+msgstr ""
+
+#: contrib/config-daemon.scm:560
+msgid "Topology Maintenance"
+msgstr ""
+
+#: contrib/config-daemon.scm:561
+msgid "Rarely used settings for peer advertisements and connections"
+msgstr ""
+
+#: contrib/config-daemon.scm:581
+msgid "General settings"
+msgstr ""
+
+#: contrib/config-daemon.scm:582
+msgid "Settings that change the behavior of GNUnet in general"
+msgstr ""
+
+#: contrib/config-daemon.scm:609
+msgid "Modules"
+msgstr ""
+
+#: contrib/config-daemon.scm:610
+msgid "Settings that select specific implementations for GNUnet modules"
+msgstr ""
+
+#: contrib/config-daemon.scm:628
+msgid "Fundamentals"
+msgstr ""
+
+#: contrib/config-daemon.scm:648
+msgid "Which database should be used?"
+msgstr ""
+
+#: contrib/config-daemon.scm:650
+msgid ""
+"Which database should be used?  The options are \"sqstore_sqlite\", \"sqstore_postgres\" and \"sqstore_mysql\".  You must run gnunet-update after changing this value!\n"
+"\t\t\t\n"
+"In order to use MySQL or Postgres, you must configure the respective database, which is relatively simple.  Read the file doc/README.mysql or doc/README.postgres for how to setup the respective database."
+msgstr ""
+
+#: contrib/config-daemon.scm:663 contrib/config-daemon.scm:676
+msgid "Which topology should be used?"
+msgstr ""
+
+#: contrib/config-daemon.scm:664
+msgid "Which database should be used for the temporary datastore of the DHT?"
+msgstr ""
+
+#: contrib/config-daemon.scm:678
+msgid "Which topology should be used?  The only option at the moment is \"topology_default\""
+msgstr ""
+
+#: contrib/config-daemon.scm:692
+msgid "The minimum number of connected friends before this peer is allowed to connect to peers that are not listed as friends"
+msgstr ""
+
+#: contrib/config-daemon.scm:693
+msgid "Note that this option does not guarantee that the peer will be able to connect to the specified number of friends.  Also, if the peer had connected to a sufficient number of friends and then established non-friend connections, some of the friends may drop out of the network, temporarily resulting in having fewer than the specified number of friends connected while being connected to non-friends.  However, it is guaranteed that the peer itself will never choose to drop a friend's connection if this would result in dropping below the specified number of friends (unless that number is higher than the overall connection target)."
+msgstr ""
+
+#: contrib/config-daemon.scm:704
+msgid "If set to YES, the peer is only allowed to connect to other peers that are explicitly specified as friends"
+msgstr ""
+
+#: contrib/config-daemon.scm:705
+msgid "Use YES only if you have (trustworthy) friends that use GNUnet and are afraid of establishing (direct) connections to unknown peers"
+msgstr ""
+
+#: contrib/config-daemon.scm:716
+msgid "List of friends for friend-to-friend topology"
+msgstr ""
+
+#: contrib/config-daemon.scm:717
+msgid "Specifies the name of a file which contains a list of GNUnet peer IDs that are friends.  If used with the friend-to-friend topology, this will ensure that GNUnet only connects to these peers (via any available transport)."
+msgstr ""
+
+#: contrib/config-daemon.scm:728
+msgid "Friend-to-Friend Topology Specification"
+msgstr ""
+
+#: contrib/config-daemon.scm:729
+msgid "Settings for restricting connections to friends"
+msgstr ""
+
+#: contrib/config-daemon.scm:746
+msgid "Name of the MySQL database GNUnet should use"
+msgstr ""
+
+#: contrib/config-daemon.scm:758
+msgid "Configuration file that specifies the MySQL username and password"
+msgstr ""
+
+#: contrib/config-daemon.scm:770
+msgid "Configuration of the MySQL database"
+msgstr ""
+
+#: contrib/config-daemon.scm:789
+msgid "MB of diskspace GNUnet can use for anonymous file sharing"
+msgstr ""
+
+#: contrib/config-daemon.scm:791
+msgid ""
+"How much disk space (MB) is GNUnet allowed to use for anonymous file sharing?  This does not take indexed files into account, only the space directly used by GNUnet is accounted for.  GNUnet will gather content from the network if the current space-consumption is below the number given here (and if content migration is allowed below).\n"
+"\n"
+"Note that if you change the quota, you need to run gnunet-update afterwards."
+msgstr ""
+
+#: contrib/config-daemon.scm:805
+msgid "Number of entries in the migration buffer"
+msgstr ""
+
+#: contrib/config-daemon.scm:806
+msgid "Each entry uses about 32k of memory.  More entries can reduce disk IO and CPU usage at the expense of having gnunetd use more memory. Very large values may again increase CPU usage.  A value of 0 will prevent your peer from sending unsolicited responses."
+msgstr ""
+
+#: contrib/config-daemon.scm:818
+msgid "Size of the routing table for anonymous routing."
+msgstr ""
+
+#: contrib/config-daemon.scm:830
+msgid "Size of the routing table for DHT routing."
+msgstr ""
+
+#: contrib/config-daemon.scm:843
+msgid "Allow migrating content to this peer."
+msgstr ""
+
+#: contrib/config-daemon.scm:845
+msgid ""
+"If you say yes here, GNUnet will migrate content to your server, and you will not be able to control what data is stored on your machine. \n"
+"\t\t\t\n"
+"If you activate it, you can claim for *all* the non-indexed (-n to gnunet-insert) content that you did not know what it was even if an adversary takes control of your machine.  If you do not activate it, it is obvious that you have knowledge of all the content that is hosted on your machine and thus can be considered liable for it."
+msgstr ""
+
+#: contrib/config-daemon.scm:859
+msgid "MB of diskspace GNUnet can use for caching DHT index data (the data will be stored in /tmp)"
+msgstr ""
+
+#: contrib/config-daemon.scm:860
+msgid ""
+"DHT index data is inherently small and expires comparatively quickly.  It is deleted whenever gnunetd is shut down.\n"
+"\n"
+"The size of the DSTORE QUOTA is specified in MB."
+msgstr ""
+
+#: contrib/config-daemon.scm:874
+msgid "Options for anonymous file sharing"
+msgstr ""
+
+#: contrib/config-daemon.scm:893
+msgid "Applications"
+msgstr ""
+
+#: contrib/config-daemon.scm:909
+msgid "Is this machine unreachable behind a NAT?"
+msgstr ""
+
+#: contrib/config-daemon.scm:910
+msgid "Set to YES if this machine is behind a NAT that limits connections from the outside to the GNUnet port and that cannot be traversed using UPnP. Note that if you have configured your NAT box to allow direct connections from other machines to the GNUnet ports or if GNUnet can open ports using UPnP, you should set the option to NO. Set this only to YES if other peers cannot contact you directly. You can use 'make check' in src/transports/upnp/ to find out if your NAT supports UPnP. You can also use gnunet-transport-check with the '-p' option in order to determine which setting results in more connections.  Use YES only if you get no connections otherwise. Set to AUTO to use YES if the local IP is belongs to a private IP network and NO otherwise."
+msgstr ""
+
+#: contrib/config-daemon.scm:921
+msgid "Which port should be used by the TCP IPv4 transport?"
+msgstr ""
+
+#: contrib/config-daemon.scm:933 contrib/config-daemon.scm:1026
+#: contrib/config-daemon.scm:1176
+msgid "Should we try to determine our external IP using UPnP?"
+msgstr ""
+
+#: contrib/config-daemon.scm:945
+msgid "Which IP(v4)s are not allowed to connect?"
+msgstr ""
+
+#: contrib/config-daemon.scm:957
+msgid "Which IP(v4)s are allowed to connect? Leave empty to use the IP of your primary network interface."
+msgstr ""
+
+#: contrib/config-daemon.scm:969 contrib/config-daemon.scm:1224
+msgid "Which IPv6s are not allowed to connect?"
+msgstr ""
+
+#: contrib/config-daemon.scm:981 contrib/config-daemon.scm:1236
+msgid "Which IPv6s are allowed to connect? Leave empty to allow any IP to connect."
+msgstr ""
+
+#: contrib/config-daemon.scm:994
+msgid "TCP transport"
+msgstr ""
+
+#: contrib/config-daemon.scm:1014
+msgid "Which port should be used by the HTTP transport?"
+msgstr ""
+
+#: contrib/config-daemon.scm:1038
+msgid "Which is the external port of the HTTP transport?"
+msgstr ""
+
+#: contrib/config-daemon.scm:1039
+msgid "Use this option if your firewall maps, say, port 80 to your real HTTP port.  This can be useful in making the HTTP messages appear even more legit (without needing to run gnunetd as root due to the use of a privileged port)."
+msgstr ""
+
+#: contrib/config-daemon.scm:1050
+msgid "HTTP transport"
+msgstr ""
+
+#: contrib/config-daemon.scm:1069
+msgid "What is the maximum transfer unit for SMTP?"
+msgstr ""
+
+#: contrib/config-daemon.scm:1081
+msgid "What is the maximum number of e-mails that gnunetd would be allowed to send per hour?"
+msgstr ""
+
+#: contrib/config-daemon.scm:1082
+msgid "Use 0 for unlimited"
+msgstr ""
+
+#: contrib/config-daemon.scm:1093
+msgid "Which e-mail address should be used to send e-mail to this peer?"
+msgstr ""
+
+#: contrib/config-daemon.scm:1094
+msgid "You must make sure that e-mail received at this address is forwarded to the PIPE which is read by gnunetd.  Use the FILTER option to filter e-mail with procmail and the PIPE option to set the name of the pipe."
+msgstr ""
+
+#: contrib/config-daemon.scm:1105
+msgid "Which header line should other peers include in e-mails to enable filtering?"
+msgstr ""
+
+#: contrib/config-daemon.scm:1106
+msgid "You can specify a header line here which can then be used by procmail to filter GNUnet e-mail from your inbox and forward it to gnunetd."
+msgstr ""
+
+#: contrib/config-daemon.scm:1117
+msgid "What is the filename of the pipe where gnunetd can read its e-mail?"
+msgstr ""
+
+#: contrib/config-daemon.scm:1118
+msgid "Have a look at contrib/dot-procmailrc for an example .procmailrc file."
+msgstr ""
+
+#: contrib/config-daemon.scm:1129
+msgid "What is the name and port of the server for outgoing e-mail?"
+msgstr ""
+
+#: contrib/config-daemon.scm:1130
+msgid "The basic format is HOSTNAME:PORT."
+msgstr ""
+
+#: contrib/config-daemon.scm:1141
+msgid "SMTP transport"
+msgstr ""
+
+#: contrib/config-daemon.scm:1164
+msgid "Which port should be used by the UDP IPv4 transport?"
+msgstr ""
+
+#: contrib/config-daemon.scm:1188
+msgid "What is the maximum transfer unit for UDP?"
+msgstr ""
+
+#: contrib/config-daemon.scm:1200
+msgid "Which IPs are not allowed to connect?"
+msgstr ""
+
+#: contrib/config-daemon.scm:1212
+msgid "Which IPs are allowed to connect? Leave empty to allow connections from any IP."
+msgstr ""
+
+#: contrib/config-daemon.scm:1248
+msgid "UDP transport"
+msgstr ""
+
+#: contrib/config-daemon.scm:1270
+msgid "Network interface"
+msgstr ""
+
+#: contrib/config-daemon.scm:1282
+msgid "External IP address (leave empty to try auto-detection)"
+msgstr ""
+
+#: contrib/config-daemon.scm:1294
+msgid "External IPv6 address (leave empty to try auto-detection)"
+msgstr ""
+
+#: contrib/config-daemon.scm:1306
+msgid "Transports"
+msgstr ""
+
+#: contrib/config-daemon.scm:1328
+msgid "What is the maximum number of bytes per second that we may receive?"
+msgstr ""
+
+#: contrib/config-daemon.scm:1340
+msgid "What is the maximum number of bytes per second that we may send?"
+msgstr ""
+
+#: contrib/config-daemon.scm:1352
+msgid "What is the maximum CPU load (percentage)?"
+msgstr ""
+
+#: contrib/config-daemon.scm:1353
+msgid "The highest tolerable CPU load. Load here always refers to the total system load, that is it includes CPU utilization by other processes.  A value of 50 means that once your 1 minute-load average goes over 50% non-idle, GNUnet will try to reduce CPU consumption until the load goes under the threshold.  Reasonable values are typically between 50 and 100.  Multiprocessors may use values above 100."
+msgstr ""
+
+#: contrib/config-daemon.scm:1364
+msgid "What is the maximum IO load (permille)?"
+msgstr ""
+
+#: contrib/config-daemon.scm:1366
+msgid "The highest tolerable IO load.  Load here refers to the percentage of CPU cycles wasted waiting for IO for the entire system, that is it includes disk utilization by other processes.  A value of 10 means that once the average number of cycles wasted waiting for IO is more than 10% non-idle, GNUnet will try to reduce IO until the load goes under the threshold.  Reasonable values are typically between 10 and 75."
+msgstr ""
+
+#: contrib/config-daemon.scm:1377
+msgid "What is the maximum CPU load (hard limit)?"
+msgstr ""
+
+#: contrib/config-daemon.scm:1378
+msgid "The highest tolerable CPU load.  This is the hard limit, so once it is reached, gnunetd will start to massively drop data to reduce the load.  Use with caution."
+msgstr ""
+
+#: contrib/config-daemon.scm:1389
+msgid "What is the maximum upstream bandwidth (hard limit)?"
+msgstr ""
+
+#: contrib/config-daemon.scm:1390
+msgid "The limit is given as a percentage of the MAXNETUPBPS limit.  Use 100 to have MAXNETUPBPS be the hard limit.  Use zero for no limit."
+msgstr ""
+
+#: contrib/config-daemon.scm:1402
+msgid "What priority should gnunetd use to run?"
+msgstr ""
+
+#: contrib/config-daemon.scm:1403
+msgid "You can specify priorities like NORMAL, ABOVE NORMAL, BELOW NORMAL, HIGH and IDLE or a numerical integer value (man nice).  The default is IDLE, which should result in gnunetd only using resources that would otherwise be idle."
+msgstr ""
+
+#: contrib/config-daemon.scm:1415
+msgid "Should we disable random padding (experimental option)?"
+msgstr ""
+
+#: contrib/config-daemon.scm:1427
+msgid "Use basic bandwidth limitation? (YES/NO).  If in doubt, say YES."
+msgstr ""
+
+#: contrib/config-daemon.scm:1429
+msgid ""
+"Basic bandwidth limitation (YES) means simply that the bandwidth limits specified apply to GNUnet and only to GNUnet.  If set to YES, you simply specify the maximum bandwidth (upstream and downstream) that GNUnet is allowed to use and GNUnet will stick to those limitations.  This is useful if your overall bandwidth is so large that the limit is mostly used to ensure that enough capacity is left for other applications.  Even if you want to dedicate your entire connection to GNUnet you should not set the limits to values higher than what you have since GNUnet uses those limits to determine for example the number of connections to establish (and it would be inefficient if that computation yields a number that is far too high).  \n"
+"\n"
+"While basic bandwidth limitation is simple and always works, there are some situations where it is not perfect.  Suppose you are running another application which performs a larger download. During that particular time, it would be nice if GNUnet would throttle its bandwidth consumption (automatically) and resume using more bandwidth after the download is complete.  This is obviously advanced magic since GNUnet will have to monitor the behavior of other applications. Another scenario is a monthly cap on bandwidth imposed by your ISP, which you would want to ensure is obeyed.  Here, you may want GNUnet to monitor the traffic from other applications to ensure that the combined long-term traffic is within the pre-set bounds.  Note that you should probably not set the bounds tightly since GNUnet may observe that the bounds are about to be broken but would be unable to stop other applications from continuing to use bandwidth.\n"
+"\n"
+"If either of these two scenarios applies, set BASICLIMITING to NO. Then set the bandwidth limits to the COMBINED amount of traffic that is acceptable for both GNUnet and other applications.  GNUnet will then immediately throttle bandwidth consumption if the short-term average is above the limit, and it will also try to ensure that the long-term average is below the limit.  Note however that using NO can have the effect of GNUnet (almost) ceasing operations after other applications perform high-volume downloads that are beyond the defined limits.  GNUnet would reduce consumption until the long-term limits are again within bounds.\n"
+"\n"
+"NO only works on platforms where GNUnet can monitor the amount of traffic that the local host puts out on the network.  This is only implemented for Linux and Win32.  In order for the code to work, GNUnet needs to know the specific network interface that is used for the external connection (after all, the amount of traffic on loopback or on the LAN should never be counted since it is irrelevant)."
+msgstr ""
+
+#: contrib/config-daemon.scm:1446
+msgid "Network interface to monitor"
+msgstr ""
+
+#: contrib/config-daemon.scm:1447
+msgid "For which interfaces should we do accounting?  GNUnet will evaluate the total traffic (not only the GNUnet related traffic) and adjust its bandwidth usage accordingly. You can currently only specify a single interface. GNUnet will also use this interface to determine the IP to use. Typical values are eth0, ppp0, eth1, wlan0, etc.  'ifconfig' will tell you what you have.  Never use 'lo', that just won't work.  Under Windows, specify the index number reported by  'gnunet-win-tool -n'."
+msgstr ""
+
+#: contrib/config-daemon.scm:1458
+msgid "Load management"
+msgstr ""
+
+#: contrib/config-daemon.scm:1484 contrib/config-client.scm:413
+msgid "Root node"
+msgstr ""
+
+#: contrib/config-client.scm:153
+msgid "Where should gnunet-clients write their logs?"
+msgstr ""
+
+#: contrib/config-client.scm:185
+msgid "On which machine and port is gnunetd running (for clients)?"
+msgstr ""
+
+#: contrib/config-client.scm:186
+msgid "This is equivalent to the -H option.  The format is IP:PORT."
+msgstr ""
+
+#: contrib/config-client.scm:197
+msgid "What is the path to the configuration file for gnunetd?"
+msgstr ""
+
+#: contrib/config-client.scm:198
+msgid "This option is used when clients need to start gnunetd."
+msgstr ""
+
+#: contrib/config-client.scm:210
+msgid "General options"
+msgstr ""
+
+#: contrib/config-client.scm:227
+msgid "Do not add metadata listing the creation time for inserted content"
+msgstr ""
+
+#: contrib/config-client.scm:239
+msgid "Which non-default extractors should GNUnet use for keyword extractors"
+msgstr ""
+
+#: contrib/config-client.scm:240
+msgid ""
+"Specify which additional extractor libraries should be used.  gnunet-insert uses libextractor to extract keywords from files. libextractor can be dynamically extended to handle additional file formats. If you want to use more than the default set of extractors, specify additional extractor libraries here.  The format is [[-]LIBRARYNAME[:[-]LIBRARYNAME]*].\n"
+"\n"
+"The default is to use filenames and to break larger words at spaces (and underscores, etc.).  This should be just fine for most people. The '-' before a library name indicates that this should be executed last and makes only sense for the split-library."
+msgstr ""
+
+#: contrib/config-client.scm:253
+msgid "How many entries should the URI DB table have?"
+msgstr ""
+
+#: contrib/config-client.scm:254
+msgid "GNUnet uses two bytes per entry on the disk.  This database is used to keep track of how a particular URI has been used in the past.  For example, GNUnet may remember that a particular URI has been found in a search previously or corresponds to a file uploaded by the user.  This information can then be used by user-interfaces to filter URI lists, such as search results.  If the database is full, older entries will be discarded.  The default value should be sufficient without causing undue disk utilization."
+msgstr ""
+
+#: contrib/config-client.scm:265
+msgid "Location of the file specifying metadata for the auto-share directory"
+msgstr ""
+
+#: contrib/config-client.scm:277
+msgid "Location of the file with the PID of any running gnunet-auto-share daemon process"
+msgstr ""
+
+#: contrib/config-client.scm:289
+msgid "Location of the log file for gnunet-auto-share"
+msgstr ""
+
+#: contrib/config-client.scm:301
+msgid "File-Sharing options"
+msgstr ""
+
+#: contrib/config-client.scm:319
+msgid "Which plugins should be loaded by gnunet-gtk?"
+msgstr ""
+
+#: contrib/config-client.scm:320
+msgid "Load the about plugin for the about dialog.  The daemon plugin allows starting and stopping of gnunetd and displays information about gnunetd.  The fs plugin provides the file-sharing functionality.  The stats plugin displays various statistics about gnunetd."
+msgstr ""
+
+#: contrib/config-client.scm:331
+msgid "How frequently (in milli-seconds) should the statistics update?"
+msgstr ""
+
+#: contrib/config-client.scm:332
+msgid "Each pixel in the stats dialog corresponds to the time interval specified here."
+msgstr ""
+
+#: contrib/config-client.scm:344
+msgid "Do not show thumbnail previews from meta-data in search results"
+msgstr ""
+
+#: contrib/config-client.scm:345
+msgid "This option is useful for people who maybe offended by some previews or use gnunet-gtk at work and would like to avoid bad surprises."
+msgstr ""
+
+#: contrib/config-client.scm:356
+msgid "Do not show search results for files that were uploaded by us"
+msgstr ""
+
+#: contrib/config-client.scm:357
+msgid "This option is useful to eliminate files that the user already has from the search.  Naturally, enabling this option maybe confusing because some obviously expected search results would no longer show up.  This option only works if the URI_DB_SIZE option under FS is not zero (since the URI DB is used to determine which files the user is sharing)"
+msgstr ""
+
+#: contrib/config-client.scm:369
+msgid "To which directory should gnunet-gtk save downloads to?"
+msgstr ""
+
+#: contrib/config-client.scm:381
+msgid "Options related to gnunet-gtk"
+msgstr ""
+
+#: contrib/config-client.scm:401
+msgid "Full pathname of GNUnet client HOME directory"
+msgstr ""
+
+#: contrib/config-client.scm:402
+msgid "The directory for GNUnet files that belong to the user."
+msgstr ""
