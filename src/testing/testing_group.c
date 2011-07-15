@@ -2861,6 +2861,9 @@ create_and_copy_friend_files(struct GNUNET_TESTING_PeerGroup *pg)
 	    {
 	      /* FIXME: free contents of 'procarr' array */
 	      GNUNET_free (procarr);
+	      GNUNET_free (temp_service_path);
+	      GNUNET_free (mytemp);
+	      GNUNET_free (arg);
 	      return ret;
 	    }
           procarr[pg_iter] = NULL;
