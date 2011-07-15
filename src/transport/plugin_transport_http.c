@@ -1022,10 +1022,11 @@ mhd_write_mst_cb (void *cls,
 		  const struct GNUNET_MessageHeader *message)
 {
   struct Session *ps  = cls; 
-  struct HTTP_PeerContext *pc = ps->peercontext;
+  struct HTTP_PeerContext *pc;
   struct GNUNET_TIME_Relative delay;
 
   GNUNET_assert(ps != NULL);
+  pc = ps->peercontext;
   GNUNET_assert(pc != NULL);
 #if DEBUG_HTTP
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
