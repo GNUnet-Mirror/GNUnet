@@ -2659,10 +2659,7 @@ notify_clients_connect (const struct GNUNET_PeerIdentity *peer,
 
   ats_count = 2;
   size  = sizeof (struct ConnectInfoMessage) + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
-  if (size > GNUNET_SERVER_MAX_MESSAGE_SIZE)
-    {
-      GNUNET_break(0);
-    }
+  GNUNET_assert (size < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   cim = GNUNET_malloc (size);
   cim->header.size = htons (size);
   cim->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
