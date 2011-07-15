@@ -874,7 +874,7 @@ GNUNET_NETWORK_fdset_copy_native (struct GNUNET_NETWORK_FDSet *to,
 void GNUNET_NETWORK_fdset_set_native (struct GNUNET_NETWORK_FDSet *to,
 				      int nfd)
 {
-  GNUNET_assert((nfd >= 0) && (nfd <= FD_SETSIZE));
+  GNUNET_assert((nfd >= 0) && (nfd < FD_SETSIZE));
   FD_SET (nfd, &to->sds);
   to->nsds = GNUNET_MAX (nfd + 1, to->nsds);
 }
