@@ -2525,7 +2525,7 @@ create_from_file(struct GNUNET_TESTING_PeerGroup *pg, char *filename,
   struct stat frstat;
   int count;
   char *data;
-  char *buf;
+  const char *buf;
   unsigned int total_peers;
   enum States curr_state;
 
