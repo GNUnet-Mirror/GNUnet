@@ -2676,7 +2676,6 @@ notify_clients_connect (const struct GNUNET_PeerIdentity *peer,
   memcpy (&cim->id, peer, sizeof (struct GNUNET_PeerIdentity));
 
   /* notify ats about connecting peer */
-  /* notify ats about connecting peer */
   if ((ats != NULL) && (shutdown_in_progress == GNUNET_NO))
     {
       ats_modify_problem_state(ats, ATS_MODIFIED);
