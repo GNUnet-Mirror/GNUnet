@@ -430,9 +430,9 @@ process_hello (void *cls,
   if ((p == &p2) && (p1.th != NULL))
     GNUNET_TRANSPORT_offer_hello (p1.th, message, NULL, NULL);
 
-  if ((p == &p1) && (p2.hello != NULL))
+  if ((p == &p1) && (p2.hello != NULL) && (p1.th != NULL))
     GNUNET_TRANSPORT_offer_hello (p1.th, p2.hello, NULL, NULL);
-  if ((p == &p2) && (p1.hello != NULL))
+  if ((p == &p2) && (p1.hello != NULL) && (p2.th != NULL))
     GNUNET_TRANSPORT_offer_hello (p2.th, p1.hello, NULL, NULL);
 }
 
