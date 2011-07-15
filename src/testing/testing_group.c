@@ -2809,19 +2809,18 @@ create_and_copy_friend_files(struct GNUNET_TESTING_PeerGroup *pg)
       fclose (temp_friend_handle);
 
       if (GNUNET_OK
-          != GNUNET_CONFIGURATION_get_value_string (
-                                                    pg->peers[pg_iter]. daemon->cfg,
+          != GNUNET_CONFIGURATION_get_value_string (pg->peers[pg_iter]. 
+						    daemon->cfg,
                                                     "PATHS", "SERVICEHOME",
                                                     &temp_service_path))
         {
-          GNUNET_log (
-                      GNUNET_ERROR_TYPE_WARNING,
-                      _
-                      ("No `%s' specified in peer configuration in section `%s', cannot copy friends file!\n"),
+          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                      _("No `%s' specified in peer configuration in section `%s', cannot copy friends file!\n"),
                       "SERVICEHOME", "PATHS");
           if (UNLINK (mytemp) != 0)
-            GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink",
-                mytemp);
+            GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+				      "unlink",
+				      mytemp);
           GNUNET_free (mytemp);
           break;
         }
@@ -2834,7 +2833,9 @@ create_and_copy_friend_files(struct GNUNET_TESTING_PeerGroup *pg)
           GNUNET_assert(procarr[pg_iter] != NULL);
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("Copying file with command cp %s %s\n"), mytemp, arg);
+		      "Copying file with command cp %s %s\n", 
+		      mytemp, 
+		      arg);
 #endif
           ret = GNUNET_OS_process_wait (procarr[pg_iter]); /* FIXME: schedule this, throttle! */
           GNUNET_OS_process_close (procarr[pg_iter]);
@@ -2857,12 +2858,17 @@ create_and_copy_friend_files(struct GNUNET_TESTING_PeerGroup *pg)
           ret = GNUNET_OS_process_wait (procarr[pg_iter]); /* FIXME: schedule this, throttle! */
           GNUNET_OS_process_close (procarr[pg_iter]);
           if (ret != GNUNET_OK)
-            return ret;
+	    {
+	      /* FIXME: free contents of 'procarr' array */
+	      GNUNET_free (procarr);
+	      return ret;
+	    }
           procarr[pg_iter] = NULL;
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("Copying file with command scp %s %s\n"), mytemp,
-              arg);
+		      "Copying file with command scp %s %s\n",
+		      mytemp,
+		      arg);
 #endif
           GNUNET_free (arg);
         }
@@ -2880,7 +2886,8 @@ create_and_copy_friend_files(struct GNUNET_TESTING_PeerGroup *pg)
         {
 #if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("Checking copy status of file %d\n"), pg_iter);
+		      "Checking copy status of file %d\n",
+		      pg_iter);
 #endif
           if (procarr[pg_iter] != NULL) /* Check for already completed! */
             {
@@ -2900,7 +2907,8 @@ create_and_copy_friend_files(struct GNUNET_TESTING_PeerGroup *pg)
                   procarr[pg_iter] = NULL;
 #if VERBOSE_TESTING
                   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      _("File %d copied\n"), pg_iter);
+			      "File %d copied\n",
+			      pg_iter);
 #endif
                 }
             }
