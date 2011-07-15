@@ -885,7 +885,7 @@ udp_read (struct Plugin *plugin,
 		     GNUNET_CONTAINER_multihashmap_remove (plugin->sessions,
 							   &udp->sender.hashPubKey,
 							   peer_session));
-      GNUNET_FRAGMENT_context_destroy (peer_session->frag);
+      plugin->last_expected_delay = GNUNET_FRAGMENT_context_destroy (peer_session->frag);
       peer_session->cont (peer_session->cont_cls,
 			  &udp->sender, 
 			  GNUNET_OK);
