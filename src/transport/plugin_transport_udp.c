@@ -966,11 +966,13 @@ udp_plugin_select (void *cls,
   plugin->select_task = GNUNET_SCHEDULER_NO_TASK;
   if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
-  if (GNUNET_NETWORK_fdset_isset (tc->read_ready,
-				  plugin->sockv4))
+  if ( (NULL != plugin->sockv4) &&
+       (GNUNET_NETWORK_fdset_isset (tc->read_ready,
+				    plugin->sockv4)) )
     udp_read (plugin, plugin->sockv4);
-  if (GNUNET_NETWORK_fdset_isset (tc->read_ready,
-				       plugin->sockv6))
+  if ( (NULL != plugin->sockv6) &&
+       (GNUNET_NETWORK_fdset_isset (tc->read_ready,
+				    plugin->sockv6)) )
     udp_read (plugin, plugin->sockv6);
   plugin->select_task =
     GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
