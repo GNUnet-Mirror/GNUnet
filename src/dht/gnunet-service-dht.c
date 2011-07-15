@@ -4988,10 +4988,6 @@ handle_dht_p2p_route_result (void *cls,
 
   memset (&msg_ctx, 0, sizeof (struct DHT_MessageContext));
   // FIXME: call GNUNET_BLOCK_evaluate (...) -- instead of doing your own bloomfilter!
-  msg_ctx.bloom =
-    GNUNET_CONTAINER_bloomfilter_init (incoming->bloomfilter, DHT_BLOOM_SIZE,
-                                       DHT_BLOOM_K);
-  GNUNET_assert (msg_ctx.bloom != NULL);
   memcpy (&msg_ctx.key, &incoming->key, sizeof (GNUNET_HashCode));
   msg_ctx.unique_id = GNUNET_ntohll (incoming->unique_id);
   msg_ctx.msg_options = ntohl (incoming->options);
@@ -5004,10 +5000,15 @@ handle_dht_p2p_route_result (void *cls,
       if (ntohs(message->size) - sizeof(struct GNUNET_DHT_P2PRouteResultMessage) - ntohs(enc_msg->size) !=
           ntohl (incoming->outgoing_path_length) * sizeof(struct GNUNET_PeerIdentity))
         {
-          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Return message indicated a path was included, but sizes are wrong!\nTotal message size %d, enc_msg size %d, left over %d, expected %d\n",
-                                                 ntohs(message->size), ntohs(enc_msg->size),
-                                                 ntohs(message->size) - sizeof(struct GNUNET_DHT_P2PRouteResultMessage) - ntohs(enc_msg->size),
-                                                 ntohl(incoming->outgoing_path_length) * sizeof(struct GNUNET_PeerIdentity));
+#if DEBUG_DHT
+          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
+		     "Return message indicated a path was included, but sizes are wrong: Total size %d, enc size %d, left %d, expected %d\n",
+		     ntohs(message->size),
+		     ntohs(enc_msg->size),
+		     ntohs(message->size) - sizeof(struct GNUNET_DHT_P2PRouteResultMessage) - ntohs(enc_msg->size),
+		     ntohl(incoming->outgoing_path_length) * sizeof(struct GNUNET_PeerIdentity));
+#endif
+	  GNUNET_break_op (0);
           return GNUNET_NO;
         }
       msg_ctx.path_history = (char *)&incoming[1];
@@ -5017,10 +5018,18 @@ handle_dht_p2p_route_result (void *cls,
       for (i = 0; i < msg_ctx.path_history_len; i++)
         {
           path_offset = &msg_ctx.path_history[i * sizeof(struct GNUNET_PeerIdentity)];
-          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "(handle_p2p_route_result) Key %s Found peer %d:%s\n", GNUNET_h2s(&msg_ctx.key), i, GNUNET_i2s((struct GNUNET_PeerIdentity *)path_offset));
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "(handle_p2p_route_result) Key %s Found peer %d:%s\n", 
+		      GNUNET_h2s(&msg_ctx.key),
+		      i, 
+		      GNUNET_i2s((struct GNUNET_PeerIdentity *)path_offset));
         }
 #endif
     }
+  msg_ctx.bloom =
+    GNUNET_CONTAINER_bloomfilter_init (incoming->bloomfilter, DHT_BLOOM_SIZE,
+                                       DHT_BLOOM_K);
+  GNUNET_assert (msg_ctx.bloom != NULL);
   route_result_message (enc_msg, &msg_ctx);
   return GNUNET_YES;
 }
