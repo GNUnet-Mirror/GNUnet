@@ -5946,7 +5946,7 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
                       "Found file size %llu for hostkeys, expect hostkeys to be size %d\n",
                       fs, HOSTKEYFILESIZE);
 
-          if (fs % HOSTKEYFILESIZE != 0)
+          if (0 != (fs % HOSTKEYFILESIZE))
             {
               GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                           "File size %llu seems incorrect for hostkeys...\n",
@@ -5960,8 +5960,8 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
 			  total_hostkeys);
               pg->hostkey_data = GNUNET_malloc_large (fs);
               GNUNET_assert (fs == GNUNET_DISK_file_read (fd, pg->hostkey_data, fs));
-              GNUNET_assert(GNUNET_OK == GNUNET_DISK_file_close(fd));
             }
+	  GNUNET_assert(GNUNET_OK == GNUNET_DISK_file_close(fd));
         }
       GNUNET_free(hostkeys_file);
     }
