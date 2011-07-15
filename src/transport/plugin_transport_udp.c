@@ -1388,6 +1388,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
 	{
 	  GNUNET_free (plugin->bind4_address);
 	  GNUNET_free (plugin);
+	  GNUNET_free (api);
 	  return NULL;
 	}
     }
