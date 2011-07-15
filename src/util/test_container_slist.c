@@ -28,8 +28,6 @@
 #include "gnunet_common.h"
 #include "gnunet_container_lib.h"
 
-#define CHECK(c) do { if (! (c)) { fprintf(stderr, "Error at %s:%d\n", __FILE__, __LINE__); GNUNET_CONTAINER_slist_destroy (l); return 1; } } while (0)
-
 int
 main (int argc, char *argv[])
 {
@@ -44,14 +42,14 @@ main (int argc, char *argv[])
   GNUNET_log_setup ("test-container-slist", "WARNING", NULL);
 
   l = GNUNET_CONTAINER_slist_create ();
-  CHECK (l != NULL);
-  CHECK (GNUNET_CONTAINER_slist_count (l) == 0);
+  GNUNET_assert (l != NULL);
+  GNUNET_assert (GNUNET_CONTAINER_slist_count (l) == 0);
 
   for (i = 0; i < 100; i++)
     GNUNET_CONTAINER_slist_add (l,
                                 GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
                                 &i, sizeof (i));
-  CHECK (GNUNET_CONTAINER_slist_count (l) == 100);
+  GNUNET_assert (GNUNET_CONTAINER_slist_count (l) == 100);
 
   for (it = GNUNET_CONTAINER_slist_begin (l), i = 99;
        GNUNET_CONTAINER_slist_end (it) != GNUNET_YES;
@@ -64,7 +62,7 @@ main (int argc, char *argv[])
 	   (s != sizeof (i)) )
 	{
 	  GNUNET_CONTAINER_slist_iter_destroy (it);
-	  CHECK (0);
+	  GNUNET_assert (0);
 	}
       j *= 2;
       GNUNET_CONTAINER_slist_insert (it,
@@ -72,39 +70,39 @@ main (int argc, char *argv[])
                                      &j, sizeof (j));
     }
   GNUNET_CONTAINER_slist_iter_destroy (it);
-  CHECK (GNUNET_CONTAINER_slist_count (l) == 200);
+  GNUNET_assert (GNUNET_CONTAINER_slist_count (l) == 200);
   i = 198;
-  CHECK (GNUNET_CONTAINER_slist_contains (l, &i, sizeof (i)));
+  GNUNET_assert (GNUNET_CONTAINER_slist_contains (l, &i, sizeof (i)));
 
   for (it = GNUNET_CONTAINER_slist_begin (l);
        GNUNET_CONTAINER_slist_end (it) != GNUNET_YES;)
     {
       p = GNUNET_CONTAINER_slist_get (it, &s);
-      CHECK (p != NULL);
-      CHECK (s == sizeof (i));
+      GNUNET_assert (p != NULL);
+      GNUNET_assert (s == sizeof (i));
       i = *(int *) p;
 
-      CHECK (GNUNET_CONTAINER_slist_next (it) == GNUNET_YES);
-      CHECK (GNUNET_CONTAINER_slist_end (it) != GNUNET_YES);
+      GNUNET_assert (GNUNET_CONTAINER_slist_next (it) == GNUNET_YES);
+      GNUNET_assert (GNUNET_CONTAINER_slist_end (it) != GNUNET_YES);
 
       p = GNUNET_CONTAINER_slist_get (it, &s);
-      CHECK (p != NULL);
-      CHECK (s == sizeof (j));
+      GNUNET_assert (p != NULL);
+      GNUNET_assert (s == sizeof (j));
       j = *(int *) p;
 
-      CHECK (j * 2 == i);
+      GNUNET_assert (j * 2 == i);
 
       GNUNET_CONTAINER_slist_erase (it);
     }
   GNUNET_CONTAINER_slist_iter_destroy (it);
-  CHECK (GNUNET_CONTAINER_slist_count (l) == 100);
+  GNUNET_assert (GNUNET_CONTAINER_slist_count (l) == 100);
   i = 99;
-  CHECK (GNUNET_CONTAINER_slist_contains (l, &i, sizeof (i)) == GNUNET_NO);
+  GNUNET_assert (GNUNET_CONTAINER_slist_contains (l, &i, sizeof (i)) == GNUNET_NO);
   i = 198;
-  CHECK (GNUNET_CONTAINER_slist_contains (l, &i, sizeof (i)) == GNUNET_YES);
+  GNUNET_assert (GNUNET_CONTAINER_slist_contains (l, &i, sizeof (i)) == GNUNET_YES);
 
   GNUNET_CONTAINER_slist_clear (l);
-  CHECK (GNUNET_CONTAINER_slist_count (l) == 0);
+  GNUNET_assert (GNUNET_CONTAINER_slist_count (l) == 0);
 
   for (i = 0; i < 100; i++)
     GNUNET_CONTAINER_slist_add (l,
@@ -112,7 +110,7 @@ main (int argc, char *argv[])
                                 &i, sizeof (i));
   /*check slist_append*/
   GNUNET_CONTAINER_slist_append(l,l);
-  CHECK (GNUNET_CONTAINER_slist_count (l) == 200);
+  GNUNET_assert (GNUNET_CONTAINER_slist_count (l) == 200);
 
   GNUNET_CONTAINER_slist_destroy (l);
 
@@ -123,7 +121,7 @@ main (int argc, char *argv[])
                                 GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
                                 &i, sizeof (i));
 
-  CHECK (GNUNET_CONTAINER_slist_count (l) == 100);
+  GNUNET_assert (GNUNET_CONTAINER_slist_count (l) == 100);
 
   for (it = GNUNET_CONTAINER_slist_begin (l), i = 0;
        GNUNET_CONTAINER_slist_end (it) != GNUNET_YES;
@@ -136,7 +134,7 @@ main (int argc, char *argv[])
         (s != sizeof (i)))
     {
       GNUNET_CONTAINER_slist_iter_destroy (it);
-      CHECK (0);
+      GNUNET_assert (0);
     }
   }
 
@@ -156,15 +154,15 @@ main (int argc, char *argv[])
   //creat_add
   it = GNUNET_CONTAINER_slist_begin (l);
   p = GNUNET_CONTAINER_slist_get (it, &s);
-  CHECK (p != NULL);
+  GNUNET_assert (p != NULL);
   //slist_erase
-  CHECK (GNUNET_CONTAINER_slist_next (it) == GNUNET_YES); 
+  GNUNET_assert (GNUNET_CONTAINER_slist_next (it) == GNUNET_YES); 
   GNUNET_CONTAINER_slist_erase (it);
   GNUNET_CONTAINER_slist_iter_destroy (it);
-  CHECK (GNUNET_CONTAINER_slist_count (l) == 99);
+  GNUNET_assert (GNUNET_CONTAINER_slist_count (l) == 99);
   //slist_clear
   GNUNET_CONTAINER_slist_clear(l);
-  CHECK (GNUNET_CONTAINER_slist_count (l) == 0);
+  GNUNET_assert (GNUNET_CONTAINER_slist_count (l) == 0);
   GNUNET_CONTAINER_slist_destroy (l);
 
   return 0;

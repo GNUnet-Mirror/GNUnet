@@ -475,13 +475,13 @@ handle_get (void *cls,
 #if DEBUG_RESOLVER      
       char buf[INET6_ADDRSTRLEN];
 #endif
-      sa = (const struct sockaddr*) &msg[1];
-      if (size < sizeof (struct sockaddr_in))
+      if (size < sizeof (struct sockaddr))
 	{
 	  GNUNET_break (0);
 	  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
 	  return;
 	}
+      sa = (const struct sockaddr*) &msg[1];
       switch (sa->sa_family)
 	{
 	case AF_INET:
