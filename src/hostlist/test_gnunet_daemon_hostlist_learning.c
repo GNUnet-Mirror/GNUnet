@@ -333,6 +333,7 @@ ad_arrive_handler (void *cls,
   char *expected_uri;
   unsigned long long port;
   const struct GNUNET_MessageHeader * incoming;
+  const char *end;
 
   if (-1 == GNUNET_CONFIGURATION_get_value_number (adv_peer.cfg,
                                                    "HOSTLIST",
@@ -354,7 +355,13 @@ ad_arrive_handler (void *cls,
 		   hostname != NULL ? hostname : "localhost",
 		   (unsigned int) port);   
   incoming = (const struct GNUNET_MessageHeader *) message;
-  current_adv_uri = strdup ((char*) &incoming[1]);
+  end = (const char*) &incoming[1];
+  if ('\0' != end[ntohs(message->size) - sizeof (struct GNUNET_MessageHeader) - 1])
+    {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+    }
+  current_adv_uri = GNUNET_strdup (end);
   if ( 0 == strcmp( expected_uri, current_adv_uri ) )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
