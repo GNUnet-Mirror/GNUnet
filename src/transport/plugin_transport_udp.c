@@ -1336,7 +1336,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
 					     "transport-udp",
 					     "MAX_BPS",
 					     &udp_max_bps))
-    udp_max_bps = 1024 * 1024 * 100; /* 100 MB/s == infinity for practical purposes */
+    udp_max_bps = 1024 * 1024 * 50; /* 50 MB/s == infinity for practical purposes */
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (env->cfg,
 					     "transport-udp",

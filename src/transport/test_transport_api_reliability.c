@@ -49,7 +49,7 @@
  * 'MAX_PENDING' in 'gnunet-service-transport.c', otherwise
  * messages may be dropped even for a reliable transport.
  */
-#define TOTAL_MSGS (10000 * 2)
+#define TOTAL_MSGS (1024 * 2)
 
 /**
  * How long until we give up on transmitting the message?
@@ -206,8 +206,6 @@ get_size (unsigned int iter)
 {
   unsigned int ret;
 
-  if (iter < 60000)
-    return iter + sizeof (struct TestMessage);
   ret = (iter * iter * iter);
   return sizeof (struct TestMessage) + (ret % 60000);
 }

@@ -50,7 +50,7 @@
  * 'MAX_PENDING' in 'gnunet-service-transport.c', otherwise
  * messages may be dropped even for a reliable transport.
  */
-#define TOTAL_MSGS (80000 * 3) /* Total messages should be divisible by 8, so we can make a nice bitmap */
+#define TOTAL_MSGS (1024 * 3) /* Total messages should be divisible by 8, so we can make a nice bitmap */
 
 /**
  * How long until we give up on transmitting the message?
@@ -351,8 +351,6 @@ get_size (unsigned int iter)
 {
   unsigned int ret;
 
-  if (iter < 60000)
-    return iter + sizeof (struct TestMessage);
   ret = (iter * iter * iter);
   return sizeof (struct TestMessage) + (ret % 60000);
 }
@@ -417,7 +415,7 @@ notify_receive (void *cls,
 #endif
   n++;
   set_bit(ntohl(hdr->num));
-  if (0 == (n % (5000)))
+  if (0 == (n % (TOTAL_MSGS / 100)))
     {
       fprintf (stderr, ".");
       if (GNUNET_SCHEDULER_NO_TASK != die_task)
