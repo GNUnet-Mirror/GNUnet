@@ -1157,7 +1157,7 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
             GNUNET_asprintf (&arg, "%s@%s:%s", username, hostname, baseservicehome);
           else
             GNUNET_asprintf (&arg, "%s:%s", hostname, baseservicehome);
-
+          GNUNET_free(baseservicehome);
           if (ret->ssh_port_str == NULL)
             {
               ret->proc = GNUNET_OS_start_process (NULL, NULL, "scp", "scp", "-r",
@@ -1166,7 +1166,10 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 #endif
                                                    servicehome, arg, NULL);
 #if DEBUG_TESTING
-              GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "copying directory with command scp -r %s %s\n", servicehome, arg);
+              GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
+			 "copying directory with command scp -r %s %s\n",
+			 servicehome, 
+			 arg);
 #endif
             }
           else
@@ -1206,7 +1209,6 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
             = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_EXEC_WAIT,
                                             &start_fsm, ret);
           GNUNET_free_non_null(hostkeyfile);
-          GNUNET_free(baseservicehome);
           GNUNET_free(servicehome);
           return ret;
         }
