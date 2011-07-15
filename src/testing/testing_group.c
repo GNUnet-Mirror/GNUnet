@@ -5913,15 +5913,28 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
                                                            &hostkeys_file))
     {
       if (GNUNET_YES != GNUNET_DISK_file_test (hostkeys_file))
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Couldn't read hostkeys file!\n");
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
+		    _("Could not read hostkeys file!\n"));
       else
         {
           /* Check hostkey file size, read entire thing into memory */
-          fd = GNUNET_DISK_file_open (hostkeys_file, GNUNET_DISK_OPEN_READ,
+          fd = GNUNET_DISK_file_open (hostkeys_file,
+				      GNUNET_DISK_OPEN_READ,
                                       GNUNET_DISK_PERM_NONE);
           if (NULL == fd)
             {
-              GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", hostkeys_file);
+              GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, 
+					"open", 
+					hostkeys_file);
+	      GNUNET_free (hostkeys_file);
+	      for (i=0;i<pg->num_hosts;i++)
+		{
+		  GNUNET_free (pg->hosts[i].hostname);
+		  GNUNET_free_non_null (pg->hosts[i].username);
+		}
+	      GNUNET_free (pg->peers);
+	      GNUNET_free (pg->hosts);
+	      GNUNET_free (pg);
               return NULL;
             }
 
@@ -5929,8 +5942,7 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
                                                    GNUNET_YES))
             fs = 0;
 
-          GNUNET_log (
-                      GNUNET_ERROR_TYPE_DEBUG,
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Found file size %llu for hostkeys, expect hostkeys to be size %d\n",
                       fs, HOSTKEYFILESIZE);
 
@@ -5944,7 +5956,8 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
             {
               total_hostkeys = fs / HOSTKEYFILESIZE;
               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                          "Will read %llu hostkeys from file\n", total_hostkeys);
+                          "Will read %llu hostkeys from file\n",
+			  total_hostkeys);
               pg->hostkey_data = GNUNET_malloc_large (fs);
               GNUNET_assert (fs == GNUNET_DISK_file_read (fd, pg->hostkey_data, fs));
               GNUNET_assert(GNUNET_OK == GNUNET_DISK_file_close(fd));
@@ -6104,8 +6117,7 @@ GNUNET_TESTING_daemon_get(struct GNUNET_TESTING_PeerGroup *pg,
 {
   if (position < pg->total)
     return pg->peers[position].daemon;
-  else
-    return NULL;
+  return NULL;
 }
 
 /*
@@ -6129,7 +6141,6 @@ GNUNET_TESTING_daemon_get_by_id(struct GNUNET_TESTING_PeerGroup *pg,
                        sizeof(struct GNUNET_PeerIdentity)))
         return pg->peers[i].daemon;
     }
-
   return NULL;
 }
 
@@ -6143,7 +6154,7 @@ GNUNET_TESTING_daemon_get_by_id(struct GNUNET_TESTING_PeerGroup *pg,
  * @param d handle to the daemon that was restarted
  * @param emsg NULL on success
  */
-void
+static void
 restart_callback(void *cls, const struct GNUNET_PeerIdentity *id,
                  const struct GNUNET_CONFIGURATION_Handle *cfg,
                  struct GNUNET_TESTING_Daemon *d, const char *emsg)
@@ -6182,7 +6193,7 @@ restart_callback(void *cls, const struct GNUNET_PeerIdentity *id,
  * @param emsg NULL on success, non-NULL on failure
  *
  */
-void
+static void
 churn_stop_callback(void *cls, const char *emsg)
 {
   struct ShutdownContext *shutdown_ctx = cls;
@@ -6285,6 +6296,7 @@ schedule_churn_shutdown_task(void *cls,
       GNUNET_free (peer_shutdown_ctx);
     }
 }
+
 
 /**
  * Simulate churn by stopping some peers (and possibly
@@ -6481,6 +6493,7 @@ GNUNET_TESTING_daemons_churn(struct GNUNET_TESTING_PeerGroup *pg,
   GNUNET_free_non_null (stopped_permute);
 }
 
+
 /**
  * Restart all peers in the given group.
  *
@@ -6511,6 +6524,7 @@ GNUNET_TESTING_daemons_restart(struct GNUNET_TESTING_PeerGroup *pg,
         }
     }
 }
+
 
 /**
  * Start or stop an individual peer from the given group.
@@ -6568,13 +6582,14 @@ GNUNET_TESTING_daemons_vary(struct GNUNET_TESTING_PeerGroup *pg,
     GNUNET_break (0);
 }
 
+
 /**
  * Callback for shutting down peers in a peer group.
  *
  * @param cls closure (struct ShutdownContext)
  * @param emsg NULL on success
  */
-void
+static void
 internal_shutdown_callback(void *cls, const char *emsg)
 {
   struct PeerShutdownContext *peer_shutdown_ctx = cls;
@@ -6624,6 +6639,7 @@ internal_shutdown_callback(void *cls, const char *emsg)
   GNUNET_free(peer_shutdown_ctx);
 }
 
+
 /**
  * Task to rate limit the number of outstanding peer shutdown
  * requests.  This is necessary for making sure we don't do
@@ -6662,6 +6678,7 @@ schedule_shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                   &schedule_shutdown_task, peer_shutdown_ctx);
 
 }
+
 
 /**
  * Shutdown all peers started in the given group.
@@ -6741,12 +6758,12 @@ GNUNET_TESTING_daemons_stop(struct GNUNET_TESTING_PeerGroup *pg,
         }
 #else
       if (pg->peers[off].allowed_peers != NULL)
-      GNUNET_CONTAINER_multihashmap_destroy (pg->peers[off].allowed_peers);
+	GNUNET_CONTAINER_multihashmap_destroy (pg->peers[off].allowed_peers);
       if (pg->peers[off].connect_peers != NULL)
-      GNUNET_CONTAINER_multihashmap_destroy (pg->peers[off].connect_peers);
+	GNUNET_CONTAINER_multihashmap_destroy (pg->peers[off].connect_peers);
       if (pg->peers[off].blacklisted_peers != NULL)
-      GNUNET_CONTAINER_multihashmap_destroy (pg->
-          peers[off].blacklisted_peers);
+	GNUNET_CONTAINER_multihashmap_destroy (pg->
+					       peers[off].blacklisted_peers);
 #endif
     }
 }
