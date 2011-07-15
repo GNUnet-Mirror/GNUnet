@@ -202,6 +202,9 @@ transmit_next (void *cls,
       /* full round transmitted wait 2x delay for ACK before going again */
       delay = GNUNET_TIME_relative_max (GNUNET_TIME_relative_multiply (delay, 2),
 					fc->delay);
+      /* never use zero, need some time for ACK always */
+      delay = GNUNET_TIME_relative_max (GNUNET_TIME_UNIT_MILLISECONDS,
+					delay);
       fc->last_round = GNUNET_TIME_absolute_get ();
       fc->wack = GNUNET_YES;
     }
