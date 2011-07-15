@@ -879,7 +879,7 @@ static void all_connect_handler (void *cls,
 {
   struct GNUNET_TESTING_Daemon *d = cls;
   struct GNUNET_TESTING_Daemon *second_daemon;
-  char *second_shortname = strdup(GNUNET_i2s(peer));
+  char *second_shortname;
 #if !TEST_ALL
   struct TestMessageContext *temp_context;
 #endif
@@ -887,21 +887,23 @@ static void all_connect_handler (void *cls,
 
   if (0 == memcmp(&d->id, peer, sizeof(struct GNUNET_PeerIdentity)))
     return;
-
+  second_shortname = GNUNET_strdup (GNUNET_i2s(peer));
   distance = get_atsi_distance(atsi);
 
 #if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "connected peer %s to peer %s, distance %u\n",
-           d->shortname,
-           second_shortname,
-           distance);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "connected peer %s to peer %s, distance %u\n",
+	      d->shortname,
+	      second_shortname,
+	      distance);
 #endif
 
   second_daemon = GNUNET_CONTAINER_multihashmap_get(peer_daemon_hash, &peer->hashPubKey);
 
   if (second_daemon == NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Couldn't find second peer!\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
+		  "Couldn't find second peer!\n");
       GNUNET_free(second_shortname);
       return;
     }
