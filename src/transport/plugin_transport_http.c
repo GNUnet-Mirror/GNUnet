@@ -103,7 +103,7 @@ struct IPv4HttpAddress
   /**
    * Port number, in network byte order.
    */
-  uint16_t u_port GNUNET_PACKED;
+  uint16_t port GNUNET_PACKED;
 };
 
 /**
@@ -137,7 +137,7 @@ struct IPv6HttpAddress
   /**
    * Port number, in network byte order.
    */
-  uint16_t u6_port GNUNET_PACKED;
+  uint16_t port GNUNET_PACKED;
 
 };
 
@@ -514,6 +514,27 @@ struct Plugin
 #endif
 };
 
+/**
+ * Context for address to string conversion.
+ */
+struct PrettyPrinterContext
+{
+  /**
+   * Function to call with the result.
+   */
+  GNUNET_TRANSPORT_AddressStringCallback asc;
+
+  /**
+   * Clsoure for 'asc'.
+   */
+  void *asc_cls;
+
+  /**
+   * Port to add after the IP address.
+   */
+  uint16_t port;
+};
+
 
 /**
  * Function called for a quick conversion of the binary address to
@@ -849,7 +870,7 @@ process_interfaces (void *cls,
 
 
       t4->ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
-      t4->u_port = htons (plugin->port_inbound);
+      t4->port = htons (plugin->port_inbound);
       if (plugin->bind4_address != NULL) {
 	if (0 == memcmp(&plugin->bind4_address->sin_addr, &bnd_cmp, sizeof (struct in_addr)))
 	  {
@@ -890,7 +911,7 @@ process_interfaces (void *cls,
     	      memcpy (&t6->ipv6_addr,
     	              &((struct sockaddr_in6 *) addr)->sin6_addr,
     	              sizeof (struct in6_addr));
-    	      t6->u6_port = htons (plugin->port_inbound);
+    	      t6->port = htons (plugin->port_inbound);
     	      plugin->env->notify_address(plugin->env->cls,
     	                                  GNUNET_YES,
     	                                  t6, sizeof (struct IPv6HttpAddress));
@@ -905,7 +926,7 @@ process_interfaces (void *cls,
       memcpy (&t6->ipv6_addr,
     		  &((struct sockaddr_in6 *) addr)->sin6_addr,
     		  sizeof (struct in6_addr));
-      t6->u6_port = htons (plugin->port_inbound);
+      t6->port = htons (plugin->port_inbound);
       GNUNET_CONTAINER_DLL_insert(plugin->ipv6_addr_head,plugin->ipv6_addr_tail,t6);
 
       plugin->env->notify_address(plugin->env->cls,
@@ -1245,7 +1266,7 @@ mhd_access_cb (void *cls,
 	  addrin = (const struct sockaddr_in*) client_addr;
 	  inet_ntop(addrin->sin_family, &(addrin->sin_addr),address,INET_ADDRSTRLEN);
 	  memcpy(&ipv4addr.ipv4_addr,&(addrin->sin_addr),sizeof(struct in_addr));
-	  ipv4addr.u_port = addrin->sin_port;
+	  ipv4addr.port = addrin->sin_port;
 	  addr = &ipv4addr;
 	  addr_len = sizeof(struct IPv4HttpAddress);
 	}
@@ -1255,7 +1276,7 @@ mhd_access_cb (void *cls,
 	  addrin6 = (const struct sockaddr_in6 *) client_addr;
 	  inet_ntop(addrin6->sin6_family, &(addrin6->sin6_addr),address,INET6_ADDRSTRLEN);
 	  memcpy(&ipv6addr.ipv6_addr,&(addrin6->sin6_addr),sizeof(struct in6_addr));
-	  ipv6addr.u6_port = addrin6->sin6_port;
+	  ipv6addr.port = addrin6->sin6_port;
 	  addr = &ipv6addr;
 	  addr_len = sizeof(struct IPv6HttpAddress);
 	}
@@ -2702,6 +2723,32 @@ http_plugin_disconnect (void *cls,
 
 
 /**
+ * Append our port and forward the result.
+ *
+ * @param cls the 'struct PrettyPrinterContext*'
+ * @param hostname hostname part of the address
+ */
+static void
+append_port (void *cls, const char *hostname)
+{
+  struct PrettyPrinterContext *ppc = cls;
+  char *ret;
+
+  if (hostname == NULL)
+    {
+      ppc->asc (ppc->asc_cls, NULL);
+      GNUNET_free (ppc);
+      return;
+    }
+  GNUNET_asprintf (&ret, "%s://%s:%d", PROTOCOL_PREFIX, hostname, ppc->port);
+
+  ppc->asc (ppc->asc_cls, ret);
+  GNUNET_free (ret);
+}
+
+
+
+/**
  * Convert the transports address to a nice, human-readable
  * format.
  *
@@ -2725,31 +2772,38 @@ http_plugin_address_pretty_printer (void *cls,
                                         GNUNET_TRANSPORT_AddressStringCallback
                                         asc, void *asc_cls)
 {
+  struct PrettyPrinterContext *ppc;
+  const void *sb;
+  size_t sbs;
+  struct sockaddr_in  a4;
+  struct sockaddr_in6 a6;
   const struct IPv4HttpAddress *t4;
   const struct IPv6HttpAddress *t6;
-  struct sockaddr_in a4;
-  struct sockaddr_in6 a6;
-  char * address;
-  char * ret;
-  unsigned int port;
-  unsigned int res;
+  uint16_t port;
 
-  GNUNET_assert(cls !=NULL);
   if (addrlen == sizeof (struct IPv6HttpAddress))
     {
-      address = GNUNET_malloc (INET6_ADDRSTRLEN);
       t6 = addr;
-      a6.sin6_addr = t6->ipv6_addr;
-      inet_ntop(AF_INET6, &(a6.sin6_addr),address,INET6_ADDRSTRLEN);
-      port = ntohs(t6->u6_port);
+      memset (&a6, 0, sizeof (a6));
+      a6.sin6_family = AF_INET6;
+      a6.sin6_port = t6->port;
+      memcpy (&a6.sin6_addr,
+              &t6->ipv6_addr,
+              sizeof (struct in6_addr));
+      port = ntohs (t6->port);
+      sb = &a6;
+      sbs = sizeof (a6);
     }
   else if (addrlen == sizeof (struct IPv4HttpAddress))
     {
-      address = GNUNET_malloc (INET_ADDRSTRLEN);
       t4 = addr;
-      a4.sin_addr.s_addr =  t4->ipv4_addr;
-      inet_ntop(AF_INET, &(a4.sin_addr),address,INET_ADDRSTRLEN);
-      port = ntohs(t4->u_port);
+      memset (&a4, 0, sizeof (a4));
+      a4.sin_family = AF_INET;
+      a4.sin_port = t4->port;
+      a4.sin_addr.s_addr = t4->ipv4_addr;
+      port = ntohs (t4->ipv4_addr);
+      sb = &a4;
+      sbs = sizeof (a4);
     }
   else
     {
@@ -2758,11 +2812,13 @@ http_plugin_address_pretty_printer (void *cls,
       asc (asc_cls, NULL);
       return;
     }
-  res = GNUNET_asprintf(&ret,"%s://%s:%u/", PROTOCOL_PREFIX, address, port);
-  GNUNET_free (address);
-  GNUNET_assert(res != 0);
-  asc (asc_cls, ret);
-  GNUNET_free_non_null (ret);
+  ppc = GNUNET_malloc (sizeof (struct PrettyPrinterContext));
+  ppc->asc = asc;
+  ppc->asc_cls = asc_cls;
+  ppc->port = port;
+  GNUNET_RESOLVER_hostname_get (sb,
+                                sbs,
+                                !numeric, timeout, &append_port, ppc);
 }
 
 
@@ -2870,7 +2926,7 @@ http_plugin_address_to_string (void *cls,
       t6 = addr;
       a6.sin6_addr = t6->ipv6_addr;
       inet_ntop(AF_INET6, &(a6.sin6_addr),address,INET6_ADDRSTRLEN);
-      port = ntohs(t6->u6_port);
+      port = ntohs(t6->port);
     }
   else if (addrlen == sizeof (struct IPv4HttpAddress))
     {
@@ -2878,7 +2934,7 @@ http_plugin_address_to_string (void *cls,
       t4 = addr;
       a4.sin_addr.s_addr =  t4->ipv4_addr;
       inet_ntop(AF_INET, &(a4.sin_addr),address,INET_ADDRSTRLEN);
-      port = ntohs(t4->u_port);
+      port = ntohs(t4->port);
     }
   else
     {
@@ -2948,7 +3004,7 @@ tcp_nat_cb_add_addr (void *cls,
       memcpy (&t4->ipv4_addr,
             &((struct sockaddr_in *) addr)->sin_addr,
             sizeof (struct in_addr));
-      t4->u_port = htons (plugin->port_inbound);
+      t4->port = htons (plugin->port_inbound);
 
       w_t4->addr = t4;
 
@@ -2979,7 +3035,7 @@ tcp_nat_cb_add_addr (void *cls,
     memcpy (&t6->ipv6_addr,
             &((struct sockaddr_in6 *) addr)->sin6_addr,
             sizeof (struct in6_addr));
-    t6->u6_port = htons (plugin->port_inbound);
+    t6->port = htons (plugin->port_inbound);
 
     w_t6->addr = t6;
 
