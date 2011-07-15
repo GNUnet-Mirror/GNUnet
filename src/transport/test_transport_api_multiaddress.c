@@ -101,11 +101,11 @@ exchange_hello_last (void *cls,
 {
   struct PeerContext *me = cls;
 
+  GNUNET_assert (message != NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Exchanging HELLO of size %d with peer (%s)!\n", 
 	      (int) GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message),
 	      GNUNET_i2s (&me->id));
-  GNUNET_assert (message != NULL);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
                                       message, &me->id));
