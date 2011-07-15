@@ -5381,7 +5381,7 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 	       GNUNET_SCHEDULER_cancel (peer_address->revalidate_task);
 	       peer_address->revalidate_task = GNUNET_SCHEDULER_NO_TASK;
 	     }
-	     GNUNET_SCHEDULER_add_now (send_periodic_ping, peer_address);
+	     peer_address->revalidate_task = GNUNET_SCHEDULER_add_now (&send_periodic_ping, peer_address);
 	  }
 	  peer_address->timeout
 	    = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
