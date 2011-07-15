@@ -475,8 +475,13 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   p->cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
   if (GNUNET_CONFIGURATION_have_value (p->cfg,"PATHS", "SERVICEHOME"))
-      GNUNET_CONFIGURATION_get_value_string (p->cfg, "PATHS", "SERVICEHOME", &p->servicehome);
-  GNUNET_DISK_directory_remove (p->servicehome);
+    {
+      GNUNET_assert (GNUNET_OK ==
+		     GNUNET_CONFIGURATION_get_value_string (p->cfg, 
+							    "PATHS", "SERVICEHOME",
+							    &p->servicehome));
+      GNUNET_DISK_directory_remove (p->servicehome);
+    }
 
 #if START_ARM
   p->arm_proc = GNUNET_OS_start_process (NULL, NULL,
@@ -839,8 +844,6 @@ check ()
     GNUNET_free(key_file_p2);
     GNUNET_free(cert_file_p1);
     GNUNET_free(cert_file_p2);
-    GNUNET_free(p1.servicehome);
-    GNUNET_free(p2.servicehome);
   }
 
   return ok;
@@ -896,8 +899,16 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
-  GNUNET_DISK_directory_remove (p1.servicehome);
-  GNUNET_DISK_directory_remove (p2.servicehome);
+  if (p1.servicehome != NULL)
+    {
+      GNUNET_DISK_directory_remove (p1.servicehome);
+      GNUNET_free (p1.servicehome);
+    }
+  if (p2.servicehome != NULL)
+    {   
+      GNUNET_free_non_null (p2.servicehome);
+      GNUNET_DISK_directory_remove (p2.servicehome);
+    }
   return ret;
 }
 
