@@ -362,7 +362,10 @@ estimate_latency (struct MessageContext *mc)
       y[i] = (double) (first[i].time.abs_value - first[0].time.abs_value);
     }
   gsl_fit_mul (x, 1, y, 1, total,  &c1, &cov11, &sumsq);
+  c1 += sqrt (sumsq); /* add 1 std dev */
   ret.rel_value = (uint64_t) c1;
+  if (ret.rel_value == 0)
+    ret = GNUNET_TIME_UNIT_MILLISECONDS; /* always at least 1 */
   return ret;
 };
 
