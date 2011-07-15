@@ -463,20 +463,34 @@ stats_cb (void *cls,
       if (0 == strcmp (name,"ATS state"))
 	{
 	  current.state = value;
-	  char * cont;
-	  if (value == ATS_NEW)
-	    cont = "NEW";
-	  if (value == ATS_COST_UPDATED)
-	    cont = "C_UPDATED";
-	  if (value == ATS_QUALITY_UPDATED)
-	    cont = "Q_UPDATED";
-	  if (value == ATS_QUALITY_COST_UPDATED)
-	    cont = "QC_UPDATED";
-	  if (value == ATS_UNMODIFIED)
-	    cont = "UNMODIFIED";
+	  const char * cont;
+	  switch (value)
+	    {
+	    case ATS_NEW:
+	      cont = "NEW";
+	      break;
+	    case ATS_COST_UPDATED:
+	      cont = "C_UPDATED";
+	      break;
+	    case ATS_QUALITY_UPDATED:
+	      cont = "Q_UPDATED";
+	      break;
+	    case ATS_QUALITY_COST_UPDATED:
+	      cont = "QC_UPDATED";
+	      break;
+	    case ATS_UNMODIFIED:
+	      cont = "UNMODIFIED";
+	      break;
+	    default:
+	      GNUNET_break (0);
+	      cont = "<undefined>";
+	      break;
+	    }
 	  if (printed == GNUNET_NO) 
 	    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-			"[%i] ATS state: %s\n", count, cont);
+			"[%i] ATS state: %s\n", 
+			count, 
+			cont);
 	}
     }
   return GNUNET_OK;
