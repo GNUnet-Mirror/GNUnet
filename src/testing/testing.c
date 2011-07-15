@@ -99,6 +99,7 @@ process_hello (void *cls,
   int empty;
 
   empty = GNUNET_YES;
+  GNUNET_assert (message != NULL);
   GNUNET_HELLO_iterate_addresses ((const struct GNUNET_HELLO_Message*) message,
 				  GNUNET_NO,
 				  &test_address,
@@ -134,7 +135,6 @@ process_hello (void *cls,
       daemon->server = NULL;
     }
 
-  GNUNET_assert (message != NULL);
   msize = ntohs (message->size);
   if (msize < 1)
     {
