@@ -938,6 +938,7 @@ udp_read (struct Plugin *plugin,
 	{
 	  /* remove 'rc' that was inactive the longest */
 	  rc = GNUNET_CONTAINER_heap_remove_root (plugin->defrags);
+	  GNUNET_assert (NULL != rc);
 	  GNUNET_DEFRAGMENT_context_destroy (rc->defrag);
 	  GNUNET_free (rc);
 	}      

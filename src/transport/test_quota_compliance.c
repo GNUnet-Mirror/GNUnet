@@ -559,11 +559,11 @@ exchange_hello_last (void *cls,
 {
   struct PeerContext *me = cls;
 
+  GNUNET_assert (message != NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Exchanging HELLO of size %d with peer (%s)!\n", 
 	      (int) GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message),
 	      GNUNET_i2s (&me->id));
-  GNUNET_assert (message != NULL);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
                                       message, &me->id));
@@ -648,8 +648,10 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   p->cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
   if (GNUNET_CONFIGURATION_have_value (p->cfg,"PATHS", "SERVICEHOME"))
+    {
       GNUNET_CONFIGURATION_get_value_string (p->cfg, "PATHS", "SERVICEHOME", &p->servicehome);
-  GNUNET_DISK_directory_remove (p->servicehome);
+      GNUNET_DISK_directory_remove (p->servicehome);
+    }
 
 #if START_ARM
   p->arm_proc = GNUNET_OS_start_process (NULL, NULL,
@@ -922,16 +924,17 @@ main (int argc, char *argv[])
   stop_arm (&p1);
   stop_arm (&p2);
 
-  if ((p1.servicehome != NULL) && (p2.servicehome != NULL))
-  {
-    GNUNET_DISK_directory_remove (p1.servicehome);
-    GNUNET_DISK_directory_remove (p2.servicehome);
-    GNUNET_free(p1.servicehome);
-    GNUNET_free(p2.servicehome);
-  }
-
+  if (p1.servicehome != NULL)
+    {
+      GNUNET_DISK_directory_remove (p1.servicehome);
+      GNUNET_free(p1.servicehome);
+    }
+  if (p2.servicehome != NULL)
+    {
+      GNUNET_DISK_directory_remove (p2.servicehome);
+      GNUNET_free(p2.servicehome);
+    }
   GNUNET_free(logger);
-
   return ret;
 }
 
