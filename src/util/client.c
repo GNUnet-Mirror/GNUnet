@@ -275,11 +275,12 @@ do_connect (const char *service_name,
   if (0 == (attempt % 2))
     {
       /* on even rounds, try UNIX */
-      if ((GNUNET_OK ==
-	  GNUNET_CONFIGURATION_get_value_string (cfg,
-						 service_name,
-						 "UNIXPATH", &unixpath)) &&
-          (0 < strlen (unixpath))) /* We have a non-NULL unixpath, does that mean it's valid? */
+      unixpath = NULL;
+      if ( (GNUNET_OK ==
+	    GNUNET_CONFIGURATION_get_value_string (cfg,
+						   service_name,
+						   "UNIXPATH", &unixpath)) &&
+	   (0 < strlen (unixpath)) ) /* We have a non-NULL unixpath, does that mean it's valid? */
 	{
           sock = GNUNET_CONNECTION_create_from_connect_to_unixpath (cfg, unixpath);
 	  if (sock != NULL)
@@ -325,21 +326,23 @@ do_connect (const char *service_name,
       if (0 != (attempt % 2))
 	{
 	  /* try UNIX */
-	  if ((GNUNET_OK ==
-	      GNUNET_CONFIGURATION_get_value_string (cfg,
-						     service_name,
-						     "UNIXPATH", &unixpath)) &&
-              (0 < strlen (unixpath)))
+	  unixpath = NULL;
+	  if ( (GNUNET_OK ==
+		GNUNET_CONFIGURATION_get_value_string (cfg,
+						       service_name,
+						       "UNIXPATH", &unixpath)) &&
+	       (0 < strlen (unixpath)))
 	    {
 	      sock = GNUNET_CONNECTION_create_from_connect_to_unixpath (cfg,
 									unixpath);
-	      GNUNET_free (unixpath);
 	      if (sock != NULL)
 		{
+		  GNUNET_free (unixpath);
 		  GNUNET_free (hostname);
 		  return sock;	        
 		}
 	    }
+	  GNUNET_free_non_null (unixpath);
 	}
 #endif
 #if DEBUG_CLIENT
