@@ -1196,7 +1196,8 @@ tcp_plugin_send (void *cls,
       struct Session * ses = plugin->sessions;
       while ((ses != NULL) && (ses != session))
         ses = ses->next;
-      GNUNET_assert (ses != NULL);
+      if (ses == NULL)
+        return -1;
     }
   GNUNET_assert (session != NULL);
   GNUNET_assert (session->client != NULL);
