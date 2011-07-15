@@ -3,7 +3,7 @@
 #endif
 
 if HAVE_EXPERIMENTAL
- EXP_DIR = fragmentation mesh vpn chat
+ EXP_DIR = mesh vpn chat
 endif
 
 SUBDIRS = \
