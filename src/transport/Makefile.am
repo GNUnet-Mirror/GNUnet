@@ -116,7 +116,7 @@ gnunet_transport_wlan_helper_LDADD = \
 
 gnunet_transport_wlan_helper_dummy_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
-  
+
 gnunet_transport_list_connections_SOURCES = \
  gnunet-transport-list-connections.c         
 gnunet_transport_list_connections_LDADD = \
@@ -148,7 +148,7 @@ gnunet_service_transport_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_GLPK) \
   $(GN_LIBINTL)
-  
+
 plugin_LTLIBRARIES = \
   libgnunet_plugin_transport_tcp.la \
   libgnunet_plugin_transport_udp.la \

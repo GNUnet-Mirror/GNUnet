@@ -18,6 +18,7 @@ SUBDIRS = \
   datastore \
   template \
   nat \
+  fragmentation \
   transport \
   peerinfo-tool \
   core \
