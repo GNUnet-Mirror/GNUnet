@@ -2228,7 +2228,7 @@ refresh_hello_task (void *cls,
   GNUNET_PEERINFO_add_peer (peerinfo, our_hello);
   for (npos = neighbours; npos != NULL; npos = npos->next)
     {
-      if (! npos->received_pong)
+      if (GNUNET_YES != npos->received_pong)
 	continue;
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
@@ -4883,7 +4883,10 @@ disconnect_neighbour (struct NeighbourList *n, int check)
 
   /* notify all clients about disconnect */
   if (GNUNET_YES == n->received_pong)
-    notify_clients_disconnect (&n->id);
+    {
+      n->received_pong = GNUNET_NO;
+      notify_clients_disconnect (&n->id);
+    }
 
   ats_modify_problem_state(ats, ATS_MODIFIED);
 
@@ -5450,7 +5453,7 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 	  break;
 	case GNUNET_MESSAGE_TYPE_TRANSPORT_PING:
 	  handle_ping (plugin, message, peer, session, sender_address, sender_address_len);
-	  if (! n->received_pong)
+	  if (GNUNET_YES != n->received_pong)
 	    transmit_plain_ping (n);
 	  break;
 	case GNUNET_MESSAGE_TYPE_TRANSPORT_PONG:
@@ -5560,10 +5563,10 @@ handle_start (void *cls,
 	{
 	  if (GNUNET_YES == n->received_pong)
 	    {
-	      (&(cim->ats))[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
-	      (&(cim->ats))[0].value = htonl (n->distance);
-	      (&(cim->ats))[1].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY);
-	      (&(cim->ats))[1].value = htonl ((uint32_t) n->latency.rel_value);
+	      (&cim->ats)[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+	      (&cim->ats)[0].value = htonl (n->distance);
+	      (&cim->ats)[1].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY);
+	      (&cim->ats)[1].value = htonl ((uint32_t) n->latency.rel_value);
 	      cim->id = n->id;
 	      transmit_to_client (c, &cim->header, GNUNET_NO);
 	    }
