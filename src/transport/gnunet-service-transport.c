@@ -2667,30 +2667,27 @@ notify_clients_connect (const struct GNUNET_PeerIdentity *peer,
   cim->header.size = htons (size);
   cim->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
   cim->ats_count = htonl(2);
-  (&(cim->ats))[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
-  (&(cim->ats))[0].value = htonl (distance);
-  (&(cim->ats))[1].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY);
-  (&(cim->ats))[1].value = htonl ((uint32_t) latency.rel_value);
-  (&(cim->ats))[2].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
-  (&(cim->ats))[2].value = htonl (0);
+  (&cim->ats)[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+  (&cim->ats)[0].value = htonl (distance);
+  (&cim->ats)[1].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY);
+  (&cim->ats)[1].value = htonl ((uint32_t) latency.rel_value);
+  (&cim->ats)[2].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+  (&cim->ats)[2].value = htonl (0);
   memcpy (&cim->id, peer, sizeof (struct GNUNET_PeerIdentity));
 
   /* notify ats about connecting peer */
   /* notify ats about connecting peer */
   if ((ats != NULL) && (shutdown_in_progress == GNUNET_NO))
-  {
-    ats_modify_problem_state(ats, ATS_MODIFIED);
-    ats_calculate_bandwidth_distribution (ats, stats);
-  }
-
-
+    {
+      ats_modify_problem_state(ats, ATS_MODIFIED);
+      ats_calculate_bandwidth_distribution (ats, stats);
+    }
   cpos = clients;
   while (cpos != NULL)
     {
-      transmit_to_client (cpos, &(cim->header), GNUNET_NO);
+      transmit_to_client (cpos, &cim->header, GNUNET_NO);
       cpos = cpos->next;
     }
-
   GNUNET_free (cim);
 }
 
