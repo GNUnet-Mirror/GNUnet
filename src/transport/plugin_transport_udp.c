@@ -1155,7 +1155,7 @@ append_port (void *cls, const char *hostname)
 
   if (hostname == NULL)
     {
-      ppc->asc (NULL, ret);
+      ppc->asc (ppc->asc_cls, NULL);
       GNUNET_free (ppc);
       return;
     }
