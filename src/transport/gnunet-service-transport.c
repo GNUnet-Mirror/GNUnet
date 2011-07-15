@@ -6163,6 +6163,8 @@ client_disconnect_notification (void *cls,
   struct ClientMessageQueueEntry *mqe;
   struct Blacklisters *bl;
   struct BlacklistCheck *bc;
+  struct NeighbourList *n;
+  struct MessageQueue *mq;
 
   if (client == NULL)
     return;
@@ -6220,6 +6222,14 @@ client_disconnect_notification (void *cls,
 				   mqe);
       pos->message_count--;
       GNUNET_free (mqe);
+    }
+  for (n = neighbours; n != NULL; n = n->next)
+    {
+      for (mq = n->messages_head; mq != NULL; mq = mq->next)
+	{
+	  if (mq->client == pos)
+	    mq->client = NULL; /* do not use anymore! */
+	}
     }
   if (prev == NULL)
     clients = pos->next;
