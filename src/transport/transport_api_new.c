@@ -379,9 +379,10 @@ neighbour_delete (void *cls,
 		   &n->id);
   GNUNET_assert (NULL == n->th);
   GNUNET_assert (NULL == n->hn);
-  GNUNET_CONTAINER_multihashmap_remove (handle->neighbours,
-					key,
-					n);
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_remove (handle->neighbours,
+						       key,
+						       n));
   GNUNET_free (n);
   return GNUNET_YES;
 }
