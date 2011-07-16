@@ -27,19 +27,23 @@
 
 #define VERBOSE GNUNET_YES
 
+#if HAVE_LIBGLPK
+
 struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static struct ATS_Handle * ats;
 
-void ats_result_cb ()
+static void 
+ats_result_cb ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
       "ATS Result callback\n");
 }
 
 
-void create_ats_information (struct ATS_peer **p, int * c_p,
-                             struct ATS_mechanism ** m, int * c_m)
+static void 
+create_ats_information (struct ATS_peer **p, int * c_p,
+			struct ATS_mechanism ** m, int * c_m)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
       "ATS needs addresses\n");
@@ -47,7 +51,8 @@ void create_ats_information (struct ATS_peer **p, int * c_p,
   (*c_p) = 10;
 }
 
-int run_ats (void)
+static int 
+run_ats ()
 {
   int ret = 0;
 
@@ -58,7 +63,8 @@ int run_ats (void)
   return ret;
 }
 
-int init_ats (void)
+static int 
+init_ats ()
 {
   int ret = 0;
 
@@ -73,7 +79,8 @@ int init_ats (void)
 }
 
 
-int shutdown_ats (void)
+static int 
+shutdown_ats ()
 {
   int ret = 0;
 
@@ -85,13 +92,16 @@ int shutdown_ats (void)
 }
 
 /* To make compiler happy */
-void dummy(void)
+static void 
+dummy()
 {
   struct ATS_quality_metric * q = qm;
   q = NULL;
   struct ATS_ressource * r = ressources;
   r = NULL;
 }
+
+#endif
 
 int
 main (int argc, char *argv[])
@@ -112,7 +122,7 @@ main (int argc, char *argv[])
 
 #if !HAVE_LIBGLPK
   return ret;
-#endif
+#else
 
 
   cfg = GNUNET_CONFIGURATION_create();
@@ -127,7 +137,7 @@ main (int argc, char *argv[])
   /* Shutdown */
   GNUNET_CONFIGURATION_destroy(cfg);
   return ret;
-
+#endif
 }
 
 /* end of test_transport_ats.c*/
