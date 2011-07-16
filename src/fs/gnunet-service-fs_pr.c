@@ -559,9 +559,10 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
   if (GNUNET_YES == pr->public_data.has_target)
     ext[k++] = pr->public_data.target.hashPubKey;
   if (pr->bf != NULL)
-    GNUNET_CONTAINER_bloomfilter_get_raw_data (pr->bf,
-					       (char*) &ext[k],
-					       bf_size);
+    GNUNET_assert (GNUNET_SYSERR !=
+		   GNUNET_CONTAINER_bloomfilter_get_raw_data (pr->bf,
+							      (char*) &ext[k],
+							      bf_size));
   memcpy (buf, gm, msize);
   return msize;
 }
