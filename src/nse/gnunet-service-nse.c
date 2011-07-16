@@ -366,8 +366,13 @@ update_network_size_estimate(struct GNUNET_NSE_FloodMessage *message)
           = htons (sizeof(struct GNUNET_NSE_ClientMessage));
       current_estimate_message.header.type
           = htons (GNUNET_MESSAGE_TYPE_NSE_ESTIMATE);
+#if AVERAGE_SQUARE
       current_estimate_message.size_estimate = average;
       current_estimate_message.std_deviation = std_dev;
+#else
+      current_estimate_message.size_estimate = pow(2, average);
+      current_estimate_message.std_deviation = pow(2, std_dev);
+#endif
       /* Finally, broadcast the current estimate to all clients */
 #if DEBUG_NSE
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
