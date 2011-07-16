@@ -807,7 +807,7 @@ cancel_pending_request (void *cls,
 			    -1,
 			    GNUNET_NO);
   prd = GSF_pending_request_get_data_ (pr);
-  GNUNET_break (GNUNET_OK ==
+  GNUNET_break (GNUNET_YES ==
 		GNUNET_CONTAINER_multihashmap_remove (cp->request_map,
 						      &prd->query,
 						      peerreq));
@@ -936,7 +936,7 @@ handle_p2p_reply (void *cls,
 				gettext_noop ("# P2P searches active"),
 				-1,
 				GNUNET_NO);
-      GNUNET_break (GNUNET_OK ==
+      GNUNET_break (GNUNET_YES ==
 		    GNUNET_CONTAINER_multihashmap_remove (cp->request_map,
 							  &prd->query,
 							  peerreq));
@@ -1658,9 +1658,10 @@ GSF_peer_disconnect_handler_ (void *cls,
   if (NULL == cp)
     return; /* must have been disconnect from core with
 	       'peer' == my_id, ignore */
-  GNUNET_CONTAINER_multihashmap_remove (cp_map,
-					&peer->hashPubKey,
-					cp);
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_remove (cp_map,
+						       &peer->hashPubKey,
+						       cp));
   if (NULL != cp->migration_pth)
     {
       GSF_peer_transmit_cancel_ (cp->migration_pth);
