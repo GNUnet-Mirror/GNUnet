@@ -159,10 +159,10 @@ init_connection (struct Plugin *plugin)
 
   /* Open database and precompile statements */
   conninfo = NULL;
-  GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
-					 "datastore-postgres",
-					 "CONFIG",
-					 &conninfo);
+  (void) GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
+						"datastore-postgres",
+						"CONFIG",
+						&conninfo);
   plugin->dbh = PQconnectdb (conninfo == NULL ? "" : conninfo);
   if (NULL == plugin->dbh)
     {
