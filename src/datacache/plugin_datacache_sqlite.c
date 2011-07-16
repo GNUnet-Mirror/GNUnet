@@ -203,9 +203,15 @@ sqlite_plugin_get (void *cls,
 		  sqlite3_errmsg (plugin->dbh));
       return 0;
     }
-  if (GNUNET_OK != 
-      sqlite3_bind_blob (stmt, 1, key, sizeof (GNUNET_HashCode),
-			 SQLITE_TRANSIENT))
+  ntime = (int64_t) now.abs_value;
+  GNUNET_assert (ntime >= 0);
+  if ( (SQLITE_OK != 
+	sqlite3_bind_blob (stmt, 1, key, sizeof (GNUNET_HashCode),
+			   SQLITE_TRANSIENT)) ||
+       (SQLITE_OK != 
+	sqlite3_bind_int (stmt, 2, type)) ||
+       (SQLITE_OK !=
+	sqlite3_bind_int64 (stmt, 3, now.abs_value)) )	
     {
       LOG_SQLITE (plugin->dbh,
                   GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, 
@@ -213,10 +219,7 @@ sqlite_plugin_get (void *cls,
       sqlite3_finalize (stmt);
       return 0;
     }
-  sqlite3_bind_int (stmt, 2, type);
-  ntime = (int64_t) now.abs_value;
-  GNUNET_assert (ntime >= 0);
-  sqlite3_bind_int64 (stmt, 3, now.abs_value);
+
   if (SQLITE_ROW != sqlite3_step (stmt))
     {
       LOG_SQLITE (plugin->dbh,
@@ -247,10 +250,20 @@ sqlite_plugin_get (void *cls,
 		      sqlite3_errmsg (plugin->dbh));
           return cnt;
         }
-      sqlite3_bind_blob (stmt, 1, key, sizeof (GNUNET_HashCode),
-                         SQLITE_TRANSIENT);
-      sqlite3_bind_int (stmt, 2, type);
-      sqlite3_bind_int64 (stmt, 3, now.abs_value);
+      if ( (SQLITE_OK !=
+	    sqlite3_bind_blob (stmt, 1, key, sizeof (GNUNET_HashCode),
+			       SQLITE_TRANSIENT)) ||
+	   (SQLITE_OK !=
+	    sqlite3_bind_int (stmt, 2, type)) ||
+	   (SQLITE_OK != 
+	    sqlite3_bind_int64 (stmt, 3, now.abs_value)) )
+	{
+	  LOG_SQLITE (plugin->dbh,
+		      GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, 
+		      "sqlite3_bind_xxx");
+          sqlite3_finalize (stmt);
+	  return cnt;
+	}
       if (sqlite3_step (stmt) != SQLITE_ROW)
         break;
       size = sqlite3_column_bytes (stmt, 0);
