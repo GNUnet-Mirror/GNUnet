@@ -40,13 +40,15 @@ gnunet_service_nse_LDADD = \
   $(top_builddir)/src/nse/libgnunetnse.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
   -lm \
   $(GN_LIBINTL)
 gnunet_service_nse_DEPENDENCIES = \
   libgnunetnse.la				 
 
 check_PROGRAMS = \
- test_nse_api
+ test_nse_api \
+ test_nse_multipeer
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
@@ -58,9 +60,15 @@ test_nse_api_LDADD = \
   $(top_builddir)/src/nse/libgnunetnse.la \
   $(top_builddir)/src/util/libgnunetutil.la 
 
+test_nse_multipeer_SOURCES = \
+ test_nse_multipeer.c
+test_nse_multipeer_LDADD = \
+  $(top_builddir)/src/nse/libgnunetnse.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la
 
 EXTRA_DIST = \
-  test_nse_api_data.conf \
+  test_nse.conf \
   $(check_SCRIPTS) 
 
 

@@ -71,9 +71,9 @@ static void end_test (void *cls,
  * @param estimate the value of the current network size estimate
  * @param std_dev standard deviation (rounded down to nearest integer)
  *                of the size estimation values seen
- * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ *
  */
-static int
+static void
 check_nse_message (void *cls, double estimate, double std_dev)
 {
   int *ok = cls;
@@ -87,7 +87,6 @@ check_nse_message (void *cls, double estimate, double std_dev)
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel(die_task);
   GNUNET_SCHEDULER_add_now(&end_test, NULL);
-  return GNUNET_OK;
 }
 
 static void

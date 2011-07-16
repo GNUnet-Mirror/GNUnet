@@ -30,7 +30,9 @@
 
 #include "gnunet_common.h"
 
-#define DEBUG_NSE GNUNET_YES
+#define DEBUG_NSE GNUNET_NO
+
+#define VERIFY_CRYPTO GNUNET_NO
 
 
 /**
@@ -95,16 +97,16 @@ struct GNUNET_NSE_FloodMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Magic header code(?)
+   * Purpose.
    */
-  uint16_t enc_type;
+  struct GNUNET_CRYPTO_RsaSignaturePurpose purpose;
 
   /**
    * Number of matching bits between the hash
    * of timestamp and the initiator's public
    * key.
    */
-  uint16_t distance;
+  uint32_t distance;
 
   /**
    * The current timestamp value (which all

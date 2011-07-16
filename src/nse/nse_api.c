@@ -105,6 +105,9 @@ void message_handler (void *cls,
   struct GNUNET_NSE_Handle *h = cls;
   struct GNUNET_NSE_ClientMessage *client_msg;
 
+  if (msg == NULL) /* Error, timeout, death */
+    return;
+
   if ((ntohs (msg->size) < sizeof(struct GNUNET_NSE_ClientMessage))
       || (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_NSE_ESTIMATE))
     {
