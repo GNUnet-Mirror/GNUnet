@@ -1418,7 +1418,10 @@ static void save_hostlist_file ( int shutdown )
       return;
     }
   if (GNUNET_SYSERR == GNUNET_DISK_directory_create_for_file (filename))
-    return;
+    {
+      GNUNET_free (filename);
+      return;
+    }
   wh = GNUNET_BIO_write_open (filename);
   if ( NULL == wh)
     {
