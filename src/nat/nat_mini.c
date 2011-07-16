@@ -284,7 +284,7 @@ process_refresh_output (void *cls,
 		   mini->port);
   if (NULL == (s = strstr (line, "->")))
     return; /* skip */
-  if (NULL == (s = strstr (s, pstr)))
+  if (NULL == strstr (s, pstr))
     return; /* skip */
   if (1 != sscanf (line,
 		   (mini->is_tcp) 
