@@ -461,10 +461,12 @@ static void _dummy2 ()
    t = 0;
 }
 
+
+
+
 /*
  * ATS Functions
  */
-
 
 /**
  * Initialize ATS
@@ -1009,7 +1011,8 @@ int ats_create_problem (struct ATS_Handle *ats,
 }
 
 
-void ats_delete_problem (struct ATS_Handle * ats)
+void 
+ats_delete_problem (struct ATS_Handle * ats)
 {
 #if !HAVE_LIBGLPK
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS not active\n");

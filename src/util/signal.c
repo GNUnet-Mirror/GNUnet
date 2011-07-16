@@ -55,6 +55,7 @@ GNUNET_SIGNAL_handler_install (int signum, GNUNET_SIGNAL_Handler handler)
   ret->sig = signum;
   ret->method = handler;
 #ifndef MINGW
+  memset (&sig, 0, sizeof (sig));
   sig.sa_handler = (void *) handler;
   sigemptyset (&sig.sa_mask);
 #ifdef SA_INTERRUPT
