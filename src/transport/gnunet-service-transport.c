@@ -6719,59 +6719,43 @@ run (void *cls,
   int minimum_peers = 0;
   int minimum_addresses = 0;
 
-  if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "DUMP_MLP"))
-    log_problem = GNUNET_CONFIGURATION_get_value_yesno (cfg,
-                             "transport","DUMP_MLP");
-
-  if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "DUMP_SOLUTION"))
-    log_solution = GNUNET_CONFIGURATION_get_value_yesno (cfg,
-                                  "transport","DUMP_SOLUTION");
-  if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "DUMP_OVERWRITE"))
-    overwrite_dump = GNUNET_CONFIGURATION_get_value_yesno (cfg,
-                                  "transport","DUMP_OVERWRITE");
-  if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "DUMP_MIN_PEERS"))
-  {
-          GNUNET_CONFIGURATION_get_value_number(cfg,
-              "transport","DUMP_MIN_PEERS", &value);
-          minimum_peers = value;
-  }
-  if (GNUNET_CONFIGURATION_have_value(cfg,
-      "transport", "DUMP_MIN_ADDRS"))
-  {
+  log_problem = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+						      "transport",
+						      "DUMP_MLP");
+  log_solution = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+						       "transport",
+						       "DUMP_SOLUTION");
+  overwrite_dump = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+							 "transport",
+							 "DUMP_OVERWRITE");
+  if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_number(cfg,
-        "transport","DUMP_MIN_ADDRS", &value);
-      minimum_addresses= value;
-  }
-  if (GNUNET_CONFIGURATION_have_value(cfg,
-      "transport", "DUMP_OVERWRITE"))
-  {
+					    "transport",
+					    "DUMP_MIN_PEERS", 
+					    &value))
+    minimum_peers = (int) value;
+  if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_number(cfg,
-          "transport","DUMP_OVERWRITE", &value);
-      overwrite_dump = value;
-  }
-
-  if (GNUNET_CONFIGURATION_have_value(cfg,
-      "transport", "ATS_MIN_INTERVAL"))
-  {
+					    "transport",
+					    "DUMP_MIN_ADDRS", 
+					    &value))
+    minimum_addresses = (int) value;
+  if (GNUNET_OK == 
       GNUNET_CONFIGURATION_get_value_number(cfg,
-          "transport","ATS_MIN_INTERVAL", &value);
-      ats_minimum_interval.rel_value = value;
-  }
-
-  if (GNUNET_CONFIGURATION_have_value(cfg,
-      "transport", "ATS_EXEC_INTERVAL"))
-  {
-      GNUNET_CONFIGURATION_get_value_number(cfg,
-          "transport","ATS_EXEC_INTERVAL", &value);
-      ats_regular_interval.rel_value = value;
-  }
-  if (GNUNET_CONFIGURATION_have_value(cfg, "transport", "ATS_MIN_INTERVAL"))
-  {
-      GNUNET_CONFIGURATION_get_value_number(cfg,
-          "transport","ATS_MIN_INTERVAL", &value);
-      ats_minimum_interval.rel_value = value;
-  }
-
+					    "transport",
+					    "DUMP_OVERWRITE",
+					    &value))
+    overwrite_dump = (int) value;
+  GNUNET_break (GNUNET_OK ==
+		GNUNET_CONFIGURATION_get_value_time (cfg,
+						     "transport",
+						     "ATS_EXEC_INTERVAL", 
+						     &ats_regular_interval));
+  GNUNET_break (GNUNET_OK ==
+		GNUNET_CONFIGURATION_get_value_time (cfg,
+						     "transport",
+						     "ATS_MIN_INTERVAL", 
+						     &ats_minimum_interval));
   ats_set_logging_options (ats,
                           minimum_addresses,
                           minimum_peers,
