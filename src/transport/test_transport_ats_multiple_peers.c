@@ -23,12 +23,12 @@
  */
 
 #include "platform.h"
+#include "gnunet_util_lib.h"
 
 #if HAVE_LIBGLPK && HAVE_GLPK
 
 #include "gnunet_testing_lib.h"
 #include "gnunet_transport_service.h"
-#include "gnunet_scheduler_lib.h"
 #include "gauger.h"
 #include "transport_ats.h"
 
