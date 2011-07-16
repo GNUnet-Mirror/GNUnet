@@ -389,9 +389,10 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
 					  &id.hashPubKey);
   if (NULL == pp)
     return; /* nothing was ever planned for this peer */
-  GNUNET_CONTAINER_multihashmap_remove (plans,
-					&id.hashPubKey,
-					pp);
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CONTAINER_multihashmap_remove (plans,
+						       &id.hashPubKey,
+						       pp));
   if (NULL != pp->pth)
     GSF_peer_transmit_cancel_ (pp->pth);
   if (GNUNET_SCHEDULER_NO_TASK != pp->task)
