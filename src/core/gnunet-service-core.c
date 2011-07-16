@@ -1721,9 +1721,10 @@ free_neighbour (struct Neighbour *n)
       GNUNET_CONTAINER_DLL_remove (n->active_client_request_head,
 				   n->active_client_request_tail,
 				   car);
-      GNUNET_CONTAINER_multihashmap_remove (car->client->requests,
-					    &n->peer.hashPubKey,
-					    car);
+      GNUNET_assert (GNUNET_YES ==
+		     GNUNET_CONTAINER_multihashmap_remove (car->client->requests,
+							   &n->peer.hashPubKey,
+							   car));
       GNUNET_free (car);
     }
   if (NULL != n->th)
@@ -1924,7 +1925,7 @@ consider_free_neighbour (struct Neighbour *n)
       return;
     }
   /* actually free the neighbour... */
-  GNUNET_assert (GNUNET_OK ==
+  GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove (neighbours,
 						       &n->peer.hashPubKey,
 						       n));
@@ -4560,9 +4561,10 @@ handle_transport_notify_disconnect (void *cls,
       GNUNET_CONTAINER_DLL_remove (n->active_client_request_head,
 				   n->active_client_request_tail,
 				   car);
-      GNUNET_CONTAINER_multihashmap_remove (car->client->requests,
-					    &n->peer.hashPubKey,
-					    car);
+      GNUNET_assert (GNUNET_YES ==
+		     GNUNET_CONTAINER_multihashmap_remove (car->client->requests,
+							   &n->peer.hashPubKey,
+							   car));
       GNUNET_free (car);
     }
 
