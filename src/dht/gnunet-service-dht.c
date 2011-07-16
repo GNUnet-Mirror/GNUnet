@@ -3030,7 +3030,7 @@ handle_dht_put (const struct GNUNET_MessageHeader *msg,
         }
 
       ret = GNUNET_DATACACHE_put (datacache, &msg_ctx->key, put_size,
-                                  (char *) put_entry, put_type,
+                                  (const char *) put_entry, put_type,
                                   GNUNET_TIME_absolute_ntoh
                                   (put_msg->expiration));
       GNUNET_free (put_entry);
