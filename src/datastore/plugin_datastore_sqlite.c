@@ -589,8 +589,10 @@ sqlite_plugin_update (void *cls,
   sqlite3_bind_int64 (plugin->updPrio, 2, expire.abs_value);
   sqlite3_bind_int64 (plugin->updPrio, 3, uid);
   n = sqlite3_step (plugin->updPrio);
-  sqlite3_reset (plugin->updPrio);
-  switch (n)
+  if (SQLITE_OK != sqlite3_reset (plugin->updPrio))
+    LOG_SQLITE (plugin, NULL,
+		GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "sqlite3_reset");
+   switch (n)
     {
     case SQLITE_DONE:
 #if DEBUG_SQLITE
