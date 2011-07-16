@@ -21,7 +21,11 @@
  * @file testing/test_transport_ats_multiple_peers.c
  * @brief testcase for ats functionality by starting multiple peers
  */
+
 #include "platform.h"
+
+#if HAVE_LIBGLPK && HAVE_GLPK
+
 #include "gnunet_testing_lib.h"
 #include "gnunet_transport_service.h"
 #include "gnunet_scheduler_lib.h"
@@ -785,6 +789,7 @@ check ()
   return ok;
 }
 
+#endif
 
 int
 main (int argc, char *argv[])
@@ -803,7 +808,7 @@ main (int argc, char *argv[])
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
 	      "GLPK not installed, exiting testcase\n");
   return 0;
-#endif
+#else
 
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-testing");
   machine_parsable = GNUNET_NO;
@@ -846,6 +851,7 @@ main (int argc, char *argv[])
    */
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-testing");
   return ret;
+#endif
 }
 
 /* end of test_transport_ats_multiple_peers.c*/
