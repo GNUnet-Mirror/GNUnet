@@ -348,14 +348,16 @@ check()
       GNUNET_CONTAINER_meta_data_destroy(meta2);
       ABORT(meta);
     }
-
+  GNUNET_CONTAINER_meta_data_destroy (meta2);
   //check meta_data_duplicate
-  GNUNET_CONTAINER_meta_data_duplicate(meta);
-  if (200 == GNUNET_CONTAINER_meta_data_iterate (meta, NULL, NULL))
+  meta2 = GNUNET_CONTAINER_meta_data_duplicate(meta);
+  if (200 == GNUNET_CONTAINER_meta_data_iterate (meta2, NULL, NULL))
     {
       GNUNET_CONTAINER_meta_data_destroy(meta2);
       ABORT(meta);
     }
+  GNUNET_CONTAINER_meta_data_destroy(meta2);
+  GNUNET_CONTAINER_meta_data_destroy(meta);
   return 0; 
 }
 
