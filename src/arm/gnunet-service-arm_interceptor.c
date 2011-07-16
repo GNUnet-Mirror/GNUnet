@@ -846,7 +846,10 @@ start_forwarding (void *cls,
 	{
 	  /* connect to [::1] and 127.0.0.1 instead of [::] and 0.0.0.0 */
 	  memset (&target_ipv4, 0, sizeof (target_ipv4));
-	  inet_pton (AF_INET, "127.0.0.1", &target_ipv4.sin_addr);
+	  GNUNET_assert (1 == 
+			 inet_pton (AF_INET, 
+				    "127.0.0.1",
+				    &target_ipv4.sin_addr));
 	  target_ipv4.sin_family = AF_INET;
 	  target_ipv4.sin_port = v4->sin_port;
 	  v4 = &target_ipv4;
