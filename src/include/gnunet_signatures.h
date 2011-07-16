@@ -112,6 +112,11 @@ extern "C"
  */
 #define GNUNET_SIGNATURE_PURPOSE_CHAT_RECEIPT 13
 
+/**
+ * Signature of a network size estimate message.
+ */
+#define GNUNET_SIGNATURE_PURPOSE_NSE_SEND 14
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

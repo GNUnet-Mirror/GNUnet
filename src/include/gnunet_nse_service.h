@@ -56,7 +56,19 @@ extern "C"
  *
  * There are 86400000 milliseconds in a day.
  */
-#define GNUNET_NSE_INTERVAL 3600000 /* Once per hour */
+/*#define GNUNET_NSE_INTERVAL 360000*/ /* Every six minutes */
+#define GNUNET_NSE_INTERVAL 30000 /* Every minute */
+
+/**
+ * How much clock skew (in milliseconds) will we allow
+ * for received messages.  We check our current time
+ * with the timestamp received as part of the message
+ * and if the difference is greater than this tolerance
+ * we will discard the message as invalid.
+ *
+ * There are 86400000 milliseconds in a day.
+ */
+#define GNUNET_NSE_DRIFT_TOLERANCE 600000 /* Ten minutes. */
 
 /**
  * Number of bits
@@ -76,9 +88,9 @@ struct GNUNET_NSE_Handle;
  * @param estimate the value of the current network size estimate
  * @param std_dev standard deviation (rounded down to nearest integer)
  *                of the size estimation values seen
- * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ *
  */
-typedef int
+typedef void
 (*GNUNET_NSE_Callback) (void *cls, double estimate, double std_dev);
 
 /**
