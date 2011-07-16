@@ -203,8 +203,16 @@ sqlite_plugin_get (void *cls,
 		  sqlite3_errmsg (plugin->dbh));
       return 0;
     }
-  sqlite3_bind_blob (stmt, 1, key, sizeof (GNUNET_HashCode),
-                     SQLITE_TRANSIENT);
+  if (GNUNET_OK != 
+      sqlite3_bind_blob (stmt, 1, key, sizeof (GNUNET_HashCode),
+			 SQLITE_TRANSIENT))
+    {
+      LOG_SQLITE (plugin->dbh,
+                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, 
+		  "sqlite3_bind_xxx");
+      sqlite3_finalize (stmt);
+      return 0;
+    }
   sqlite3_bind_int (stmt, 2, type);
   ntime = (int64_t) now.abs_value;
   GNUNET_assert (ntime >= 0);

@@ -94,7 +94,7 @@ main (int argc, char *argv[])
     {
       /*  int setpgrp(pid_t pid, pid_t pgid); is not working on this machine */
       //setpgrp (0, pid_t gpid);
-      if (-1 !- gpid)
+      if (-1 != gpid)
 	setpgid (0, gpid);
       execvp (argv[2], &argv[2]);
       exit (1);
