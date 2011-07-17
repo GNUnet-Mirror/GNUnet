@@ -30,6 +30,7 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_testing_lib.h"
 #include "gnunet_core_service.h"
+#include "gnunet_disk_lib.h"
 
 /** Globals **/
 #define DEFAULT_CONNECT_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
@@ -100,6 +101,11 @@ struct PeerGroupStartupContext
    * The total number of connections that have failed so far.
    */
   unsigned int failed_connections;
+
+  /**
+   * File handle to write out topology in dot format.
+   */
+  struct GNUNET_DISK_FileHandle *topology_output_file;
 };
 
 /**
@@ -296,6 +302,9 @@ internal_topology_callback(
                            const char *emsg)
 {
   struct PeerGroupStartupContext *pg_start_ctx = cls;
+  char *temp_str;
+  char *second_str;
+  int temp;
 #if TIMING
   unsigned long long duration;
   unsigned long long total_duration;
@@ -358,6 +367,15 @@ internal_topology_callback(
           second_daemon->shortname,
           distance);
 #endif
+      if (pg_start_ctx->topology_output_file != NULL)
+        {
+          second_str = GNUNET_strdup(GNUNET_i2s(second));
+          temp = GNUNET_asprintf(&temp_str, "\t\"%s\" -> \"%s\"\n", GNUNET_i2s(first), second_str);
+          GNUNET_free(second_str);
+          if (temp > 0)
+            GNUNET_DISK_file_write(pg_start_ctx->topology_output_file, temp_str, temp);
+          GNUNET_free(temp_str);
+        }
     }
   else
     {
@@ -413,6 +431,15 @@ internal_topology_callback(
       /* Call final callback, signifying that the peer group has been started and connected */
       if (pg_start_ctx->peergroup_cb != NULL)
         pg_start_ctx->peergroup_cb(pg_start_ctx->cls, NULL);
+
+      if (pg_start_ctx->topology_output_file != NULL)
+        {
+          temp = GNUNET_asprintf(&temp_str, "}\n");
+          if (temp > 0)
+            GNUNET_DISK_file_write(pg_start_ctx->topology_output_file, temp_str, temp);
+          GNUNET_free(temp_str);
+          GNUNET_DISK_file_close(pg_start_ctx->topology_output_file);
+        }
     }
 }
 
@@ -580,6 +607,7 @@ GNUNET_TESTING_peergroup_start(
   struct PeerGroupStartupContext *pg_start_ctx;
   unsigned long long temp_config_number;
   char *temp_str;
+  int temp;
   GNUNET_assert(total > 0);
   GNUNET_assert(cfg != NULL);
 
@@ -652,6 +680,22 @@ GNUNET_TESTING_peergroup_start(
       pg_start_ctx->topology = GNUNET_TESTING_TOPOLOGY_CLIQUE; /* Defaults to NONE, so set better default here */
     }
   GNUNET_free_non_null(temp_str);
+
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_string(cfg, "testing", "topology_output_file", &temp_str))
+    {
+      pg_start_ctx->topology_output_file = GNUNET_DISK_file_open (temp_str, GNUNET_DISK_OPEN_READWRITE
+                                                                  | GNUNET_DISK_OPEN_CREATE,
+                                                                  GNUNET_DISK_PERM_USER_READ |
+                                                                  GNUNET_DISK_PERM_USER_WRITE);
+      if (pg_start_ctx->topology_output_file != NULL)
+        {
+          GNUNET_free(temp_str);
+          temp = GNUNET_asprintf(&temp_str, "digraph G {\n");
+          if (temp > 0)
+            GNUNET_DISK_file_write(pg_start_ctx->topology_output_file, temp_str, temp);
+        }
+      GNUNET_free(temp_str);
+    }
 
   if (GNUNET_OK
       != GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "percentage",
