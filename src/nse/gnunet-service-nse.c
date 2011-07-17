@@ -56,6 +56,8 @@
 
 #define DEFAULT_NSE_PRIORITY 5
 
+#define DO_FORWARD GNUNET_YES
+
 /**
  * Entry in the list of clients which
  * should be notified upon a new network
