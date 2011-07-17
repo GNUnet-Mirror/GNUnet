@@ -66,28 +66,6 @@ struct GNUNET_NSE_ClientMessage
  * Network size estimate reply; sent when "this"
  * peer's timer has run out before receiving a
  * valid reply from another peer.
- *
- * FIXME: Is this the right way to do this?
- * I think we need to include both the public
- * key and the timestamp signed by the private
- * key.  This way a recipient
- * can verify that the peer at least generated
- * the public/private key pair, and that the
- * timestamp matches what the current peer
- * believes it should be.  The receiving peer
- * would then check whether the XOR of the peer
- * identity and the timestamp is within a
- * reasonable range of the current time
- * (+/- N seconds).  If a closer message which
- * also verifies hasn't been received (or this
- * message is a duplicate), the peer
- * calculates the size estimate and forwards
- * the request to all other peers.
- *
- * Hmm... Is it enought to *just* send the peer
- * identity?  Obviously this is smaller, but it
- * doesn't allow us to verify that the
- * public/private key pair were generated, right?
  */
 struct GNUNET_NSE_FloodMessage
 {
