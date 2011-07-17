@@ -59,6 +59,8 @@ static int peers_left;
 
 static unsigned int num_peers;
 
+static unsigned int total_connections;
+
 static struct GNUNET_TESTING_PeerGroup *pg;
 
 /**
@@ -157,9 +159,45 @@ my_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer Group started successfully, connecting to NSE service for each peer!\n");
 #endif
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Have %u connections\n", total_connections);
 
   GNUNET_SCHEDULER_add_now(&connect_nse_service, NULL);
 }
+
+/**
+ * Prototype of a function that will be called whenever
+ * two daemons are connected by the testing library.
+ *
+ * @param cls closure
+ * @param first peer id for first daemon
+ * @param second peer id for the second daemon
+ * @param distance distance between the connected peers
+ * @param first_cfg config for the first daemon
+ * @param second_cfg config for the second daemon
+ * @param first_daemon handle for the first daemon
+ * @param second_daemon handle for the second daemon
+ * @param emsg error message (NULL on success)
+ */
+void connect_cb (void *cls,
+                 const struct GNUNET_PeerIdentity *first,
+                 const struct GNUNET_PeerIdentity *second,
+                 uint32_t distance,
+                 const struct GNUNET_CONFIGURATION_Handle *first_cfg,
+                 const struct GNUNET_CONFIGURATION_Handle *second_cfg,
+                 struct GNUNET_TESTING_Daemon *first_daemon,
+                 struct GNUNET_TESTING_Daemon *second_daemon,
+                 const char *emsg)
+{
+  char *second_id;
+
+  second_id = GNUNET_strdup(GNUNET_i2s(second));
+  if (emsg == NULL)
+    {
+      fprintf(stderr, "Connected %s -> %s\n", GNUNET_i2s(first), second_id);
+      total_connections++;
+    }
+}
+
 
 
 static void
@@ -186,7 +224,7 @@ run (void *cls,
   pg = GNUNET_TESTING_peergroup_start(testing_cfg,
                                       peers_left,
                                       TIMEOUT,
-                                      NULL,
+                                      &connect_cb,
                                       &my_cb, NULL,
                                       NULL);
   GNUNET_assert (pg != NULL);
