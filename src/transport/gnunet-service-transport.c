@@ -6260,7 +6260,6 @@ static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct TransportPlugin *plug;
-  struct TransportPlugin *tmp;
   struct OwnAddressList *al;
   struct CheckHelloValidatedContext *chvc;
 
