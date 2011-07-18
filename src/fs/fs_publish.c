@@ -38,33 +38,6 @@
 
 
 /**
- * Context for "ds_put_cont".
- */
-struct PutContCtx
-{
-  /**
-   * Current publishing context.
-   */
-  struct GNUNET_FS_PublishContext *pc;
-
-  /**
-   * Specific file with the block.
-   */
-  struct GNUNET_FS_FileInformation *p;
-
-  /**
-   * Function to run next, if any (can be NULL).
-   */
-  GNUNET_SCHEDULER_Task cont;
-
-  /**
-   * Closure for cont.
-   */
-  void *cont_cls;
-};
-
-
-/**
  * Fill in all of the generic fields for 
  * a publish event and call the callback.
  *
@@ -150,7 +123,7 @@ publish_cleanup (void *cls,
  * Function called by the datastore API with
  * the result from the PUT request.
  *
- * @param cls our closure
+ * @param cls the 'struct GNUNET_FS_PublishContext'
  * @param success GNUNET_OK on success
  * @param msg error message (or NULL)
  */
@@ -159,49 +132,44 @@ ds_put_cont (void *cls,
 	     int success,
  	     const char *msg)
 {
-  struct PutContCtx *pcc = cls;
+  struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_ProgressInfo pi;
 
-  pcc->pc->qre = NULL;
-  if (GNUNET_SYSERR == pcc->pc->in_network_wait)
+  pc->qre = NULL;
+  if (GNUNET_SYSERR == pc->in_network_wait)
     {
       /* we were aborted in the meantime, finish shutdown! */
       GNUNET_SCHEDULER_add_continuation (&publish_cleanup,
-					 pcc->pc,
+					 pc,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-      GNUNET_free (pcc);
       return;
     }
-  GNUNET_assert (GNUNET_YES == pcc->pc->in_network_wait);
-  pcc->pc->in_network_wait = GNUNET_NO;
+  GNUNET_assert (GNUNET_YES == pc->in_network_wait);
+  pc->in_network_wait = GNUNET_NO;
   if (GNUNET_SYSERR == success)
     {
-      GNUNET_asprintf (&pcc->p->emsg, 
+      GNUNET_asprintf (&pc->fi_pos->emsg, 
 		       _("Publishing failed: %s"),
 		       msg);
       pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
       pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
-      pi.value.publish.specifics.error.message = pcc->p->emsg;
-      pcc->p->client_info = GNUNET_FS_publish_make_status_ (&pi, pcc->pc, pcc->p, 0);
-      if ( (pcc->p->is_directory == GNUNET_NO) &&
-	   (pcc->p->filename != NULL) &&
-	   (pcc->p->data.file.do_index == GNUNET_YES) )
+      pi.value.publish.specifics.error.message = pc->fi_pos->emsg;
+      pc->fi_pos->client_info = GNUNET_FS_publish_make_status_ (&pi, pc, pc->fi_pos, 0);
+      if ( (pc->fi_pos->is_directory == GNUNET_NO) &&
+	   (pc->fi_pos->filename != NULL) &&
+	   (pc->fi_pos->data.file.do_index == GNUNET_YES) )
 	{
 	  /* run unindex to clean up */
-	  GNUNET_FS_unindex_start (pcc->pc->h,
-				   pcc->p->filename,
+	  GNUNET_FS_unindex_start (pc->h,
+				   pc->fi_pos->filename,
 				   NULL);
 	}	   
     }
-  if (NULL != pcc->cont)
-    {
-      GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pcc->pc->upload_task);
-      pcc->pc->upload_task 
-	= GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
-					      pcc->cont,
-					      pcc->cont_cls);
-    }
-  GNUNET_free (pcc);
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pc->upload_task);
+  pc->upload_task 
+    = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+					  &GNUNET_FS_publish_main_,
+					  pc);
 }
 
 
@@ -546,7 +514,6 @@ block_proc (void *cls,
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_FileInformation *p;
-  struct PutContCtx * dpc_cls;
   struct OnDemandBlock odb;
 
   p = pc->fi_pos;
@@ -566,11 +533,6 @@ block_proc (void *cls,
   
   GNUNET_assert (GNUNET_NO == pc->in_network_wait);
   pc->in_network_wait = GNUNET_YES;
-  dpc_cls = GNUNET_malloc(sizeof(struct PutContCtx));
-  dpc_cls->cont = &GNUNET_FS_publish_main_;
-  dpc_cls->cont_cls = pc;
-  dpc_cls->pc = pc;
-  dpc_cls->p = p;
   if ( (! p->is_directory) &&
        (GNUNET_YES == p->data.file.do_index) &&
        (type == GNUNET_BLOCK_TYPE_FS_DBLOCK) )
@@ -598,7 +560,7 @@ block_proc (void *cls,
 				      -2, 1,
 				      GNUNET_CONSTANTS_SERVICE_TIMEOUT,
 				      &ds_put_cont,
-				      dpc_cls);	  
+				      pc);	  
       return;
     }
 #if DEBUG_PUBLISH
@@ -622,7 +584,7 @@ block_proc (void *cls,
 				  -2, 1,
 				  GNUNET_CONSTANTS_SERVICE_TIMEOUT,
 				  &ds_put_cont,
-				  dpc_cls);
+				  pc);
 }
 
 
