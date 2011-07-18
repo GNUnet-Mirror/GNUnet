@@ -1611,7 +1611,6 @@ libgnunet_plugin_dhtlog_mysql_init (void * cls)
   plugin->dhtlog_api->update_topology = &update_current_topology;
   plugin->dhtlog_api->insert_extended_topology = &add_extended_topology;
   plugin->dhtlog_api->set_malicious = &set_malicious;
-  plugin->dhtlog_api->add_generic_stat = &add_generic_stat;
   get_current_trial (&current_trial);
 
   return plugin;
