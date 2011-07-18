@@ -850,6 +850,7 @@ libgnunet_plugin_dhtlog_mysql_dump_init (void * cls)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("Failed to create file for dhtlog.\n"));
+      fclose (outfile);
       return NULL;
     }
   GNUNET_assert(plugin->dhtlog_api == NULL);
