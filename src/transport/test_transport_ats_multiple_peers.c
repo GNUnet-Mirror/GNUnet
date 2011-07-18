@@ -25,12 +25,12 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
-#if HAVE_LIBGLPK && HAVE_GLPK
+#if HAVE_LIBGLPK
 
 #include "gnunet_testing_lib.h"
 #include "gnunet_transport_service.h"
 #include "gauger.h"
-#include "transport_ats.h"
+#include "gnunet_transport_ats.h"
 
 #define VERBOSE GNUNET_NO
 
@@ -784,7 +784,7 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                      argv, "test-transport-ats", "nohelp",
+                      argv, "test_transport_ats_multiple_peers", "nohelp",
                       options, &run, &ok);
   return ok;
 }
@@ -794,7 +794,7 @@ check ()
 int
 main (int argc, char *argv[])
 {
-  int ret;
+  int ret = 0;
 
   GNUNET_log_setup ("test-transport-ats-multiple-peers",
 #if VERBOSE
@@ -804,12 +804,11 @@ main (int argc, char *argv[])
 #endif
                     NULL);
 
-#if !HAVE_LIBGLPK && !HAVE_GLPK
+#if !HAVE_LIBGLPK
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
 	      "GLPK not installed, exiting testcase\n");
-  return 0;
+  return ret;
 #else
-
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-testing");
   machine_parsable = GNUNET_NO;
   peers = NUM_PEERS;
@@ -838,8 +837,6 @@ main (int argc, char *argv[])
 	    }
 	 }
     }
-
-
 
   ret = check ();
   /**
