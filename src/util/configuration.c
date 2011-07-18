@@ -390,6 +390,39 @@ GNUNET_CONFIGURATION_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
+ * Iterate over values of a section in the configuration.
+ *
+ * @param cfg configuration to inspect
+ * @param section the section
+ * @param iter function to call on each option
+ * @param iter_cls closure for iter
+ */
+void
+GNUNET_CONFIGURATION_iterate_section_values (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                              const char *section,
+                              GNUNET_CONFIGURATION_Iterator iter,
+                              void *iter_cls)
+{
+  struct ConfigSection *spos;
+  struct ConfigEntry *epos;
+
+  spos = cfg->sections;
+  while ((spos != NULL) && (0 != strcmp (spos->name, section)))
+    spos = spos->next;
+
+  if (spos == NULL)
+    return;
+
+  epos = spos->entries;
+  while (epos != NULL)
+    {
+      iter (iter_cls, spos->name, epos->key, epos->val);
+      epos = epos->next;
+    }
+}
+
+
+/**
  * Iterate over all sections in the configuration.
  *
  * @param cfg configuration to inspect

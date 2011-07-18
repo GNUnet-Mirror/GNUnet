@@ -277,6 +277,20 @@ int GNUNET_CONFIGURATION_iterate_value_filenames (const struct
                                                   cb, void *cb_cls);
 
 /**
+ * Iterate over values of a section in the configuration.
+ *
+ * @param cfg configuration to inspect
+ * @param section the section
+ * @param iter function to call on each option
+ * @param iter_cls closure for iter
+ */
+void
+GNUNET_CONFIGURATION_iterate_section_values (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                              const char *section,
+                              GNUNET_CONFIGURATION_Iterator iter,
+                              void *iter_cls);
+
+/**
  * Get a configuration value that should be in a set of
  * predefined strings
  *
