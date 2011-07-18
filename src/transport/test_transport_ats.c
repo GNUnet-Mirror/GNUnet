@@ -96,9 +96,9 @@ void create_ats_information (struct ATS_peer **p, int * c_p,
 int run_ats (void)
 {
   int ret = 0;
-
+#if HAVE_LIBGLPK
   ats_calculate_bandwidth_distribution(ats, NULL);
-
+#endif
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Running ATS: %s \n", (ret==0)? "SUCCESSFUL": "FAILED");
   return ret;
@@ -107,10 +107,11 @@ int run_ats (void)
 int init_ats (void)
 {
   int ret = 0;
-
+#if HAVE_LIBGLPK
   ats = ats_init(1.0, 1.0, 1.0, 50000, 5, 10, ATS_MAX_EXEC_DURATION,
                 create_ats_information,
                 ats_result_cb);
+#endif
   //GNUNET_assert (ats != NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -122,9 +123,10 @@ int init_ats (void)
 int shutdown_ats (void)
 {
   int ret = 0;
-
+#if HAVE_LIBGLPK
   ats_delete_problem (ats);
   ats_shutdown (ats);
+#endif
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Shutdown ATS: %s \n", (ret==0)? "SUCCESSFUL": "FAILED");
   return ret;
