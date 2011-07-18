@@ -470,6 +470,7 @@ GNUNET_FS_unindex_signal_suspend_ (void *cls)
   GNUNET_break (NULL == uc->client_info);
   GNUNET_free (uc->filename);
   GNUNET_free_non_null (uc->serialization);
+  GNUNET_free_non_null (uc->emsg);
   GNUNET_free (uc);
 }
 
