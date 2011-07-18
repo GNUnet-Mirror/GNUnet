@@ -6754,12 +6754,6 @@ run (void *cls,
 					    "DUMP_MIN_ADDRS", 
 					    &value))
     minimum_addresses = (int) value;
-  if (GNUNET_OK == 
-      GNUNET_CONFIGURATION_get_value_number(cfg,
-					    "transport",
-					    "DUMP_OVERWRITE",
-					    &value))
-    overwrite_dump = (int) value;
   GNUNET_break (GNUNET_OK ==
 		GNUNET_CONFIGURATION_get_value_time (cfg,
 						     "transport",
