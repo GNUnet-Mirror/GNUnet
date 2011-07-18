@@ -686,7 +686,6 @@ get_node_uid (unsigned long long *nodeuid, const GNUNET_HashCode * peerHash)
   struct GNUNET_CRYPTO_HashAsciiEncoded encPeer;
   unsigned long long p_len;
 
-  int ret;
   memset (rbind, 0, sizeof (rbind));
   rbind[0].buffer_type = MYSQL_TYPE_LONGLONG;
   rbind[0].buffer = nodeuid;
@@ -695,7 +694,7 @@ get_node_uid (unsigned long long *nodeuid, const GNUNET_HashCode * peerHash)
   GNUNET_CRYPTO_hash_to_enc (peerHash, &encPeer);
   p_len = strlen ((char *) &encPeer);
 
-  if (1 != (ret = prepared_statement_run_select (get_nodeuid,
+  if (1 != prepared_statement_run_select (get_nodeuid,
                                                               1,
                                                               rbind,
                                                               return_ok,
@@ -706,7 +705,7 @@ get_node_uid (unsigned long long *nodeuid, const GNUNET_HashCode * peerHash)
                                                               MYSQL_TYPE_VAR_STRING,
                                                               &encPeer,
                                                               max_varchar_len,
-                                                              &p_len, -1)))
+                                                              &p_len, -1))
     {
 #if DEBUG_DHTLOG
       fprintf (stderr, "FAILED\n");
