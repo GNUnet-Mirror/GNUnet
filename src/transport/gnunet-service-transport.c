@@ -6278,8 +6278,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transport service is unloading plugins...\n");
 #endif
-  plug = plugins;
-  while (plug != NULL)
+  while (NULL != (plug = plugins))
     {
       if (plug->address_update_task != GNUNET_SCHEDULER_NO_TASK)
 	{
@@ -6294,9 +6293,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           plug->addresses = al->next;
           GNUNET_free (al);
         }
-      tmp = plug->next;
+      plugins = plug->next;
       GNUNET_free (plug);
-      plug = tmp;
     }
   if (my_private_key != NULL)
     GNUNET_CRYPTO_rsa_key_free (my_private_key);
