@@ -1050,7 +1050,7 @@ process_result_with_request (void *cls,
   size_t bs;
   size_t app;
   int i;
-  struct ContentHashKey *chk;
+  struct ContentHashKey *chkarr;
 
 #if DEBUG_DOWNLOAD
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1245,14 +1245,14 @@ process_result_with_request (void *cls,
 	      (unsigned long long) dr->offset);
 #endif
   GNUNET_assert (0 == (prc->size % sizeof(struct ContentHashKey)));
-  chk = (struct ContentHashKey*) pt;
+  chkarr = (struct ContentHashKey*) pt;
   for (i=(prc->size / sizeof(struct ContentHashKey))-1;i>=0;i--)
     {
       drc = dr->children[i];
       switch (drc->state)
 	{
 	case BRS_INIT:
-	  drc->chk = chk[i];
+	  drc->chk = chkarr[i];
 	  drc->state = BRS_CHK_SET;
 	  schedule_block_download (dc, drc);
 	  break;
