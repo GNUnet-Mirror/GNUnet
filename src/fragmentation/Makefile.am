@@ -13,7 +13,7 @@ lib_LTLIBRARIES = libgnunetfragmentation.la
 libgnunetfragmentation_la_SOURCES = \
   fragmentation.c \
   defragmentation.c 
-libgnunetfragmentation_la_LIBADD = \
+libgnunetfragmentation_la_LIBADD = -lm \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
