@@ -348,15 +348,15 @@ struct ATS_mechanism
 
 struct ATS_peer
 {
-    int id;
     struct GNUNET_PeerIdentity peer;
-    struct NeighbourList * n;
+
     struct ATS_mechanism * m_head;
     struct ATS_mechanism * m_tail;
 
     /* preference value f */
     double f;
-    int     t;
+
+    //struct NeighbourList * n;
 };
 
 struct ATS_ressource
