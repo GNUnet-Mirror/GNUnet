@@ -457,9 +457,12 @@ static void _dummy ()
   _dummy2();
 }
 
+
+
 static void _dummy2 ()
 {
   ats_modify_problem_state (NULL, 0);
+  qm[1].atis_index = 0;
    _dummy();
    int t = ATS_COST_UPDATED + ATS_MODIFIED + ATS_NEW;
    t = 0;
@@ -1303,8 +1306,7 @@ void ats_update_problem_qm (struct ATS_Handle * ats)
 
 
 void
-ats_calculate_bandwidth_distribution (struct ATS_Handle * ats,
-    struct GNUNET_STATISTICS_Handle *stats)
+ats_calculate_bandwidth_distribution (struct ATS_Handle * ats)
 {
     struct GNUNET_TIME_Absolute start;
     struct GNUNET_TIME_Relative creation;
@@ -1401,50 +1403,50 @@ ats_calculate_bandwidth_distribution (struct ATS_Handle * ats,
           (ats->internal.simplex_rerun_required == GNUNET_NO) ? "NO" : "YES",
           (ats->internal.solution == 5) ? "OPTIMAL" : "INVALID");
       ats->successful_executions ++;
-      GNUNET_STATISTICS_set (stats, "# ATS successful executions",
+      GNUNET_STATISTICS_set (ats->stats, "# ATS successful executions",
           ats->successful_executions,
           GNUNET_NO);
 
       if ((ats->internal.recreate_problem == GNUNET_YES) || (ats->prob==NULL))
-          GNUNET_STATISTICS_set (stats, "ATS state",ATS_NEW, GNUNET_NO);
+          GNUNET_STATISTICS_set (ats->stats, "ATS state",ATS_NEW, GNUNET_NO);
       else if ((ats->internal.modified_resources == GNUNET_YES) &&
               (ats->internal.modified_quality == GNUNET_NO))
-        GNUNET_STATISTICS_set (stats, "ATS state", ATS_COST_UPDATED, GNUNET_NO);
+        GNUNET_STATISTICS_set (ats->stats, "ATS state", ATS_COST_UPDATED, GNUNET_NO);
       else if ((ats->internal.modified_resources == GNUNET_NO) &&
               (ats->internal.modified_quality == GNUNET_YES) &&
               (ats->internal.simplex_rerun_required == GNUNET_NO))
-        GNUNET_STATISTICS_set (stats, "ATS state", ATS_QUALITY_UPDATED, GNUNET_NO);
+        GNUNET_STATISTICS_set (ats->stats, "ATS state", ATS_QUALITY_UPDATED, GNUNET_NO);
       else if ((ats->internal.modified_resources == GNUNET_YES) &&
               (ats->internal.modified_quality == GNUNET_YES) &&
               (ats->internal.simplex_rerun_required == GNUNET_NO))
-        GNUNET_STATISTICS_set (stats, "ATS state", ATS_QUALITY_COST_UPDATED, GNUNET_NO);
+        GNUNET_STATISTICS_set (ats->stats, "ATS state", ATS_QUALITY_COST_UPDATED, GNUNET_NO);
       else if (ats->internal.simplex_rerun_required == GNUNET_NO)
-        GNUNET_STATISTICS_set (stats, "ATS state", ATS_UNMODIFIED, GNUNET_NO);
+        GNUNET_STATISTICS_set (ats->stats, "ATS state", ATS_UNMODIFIED, GNUNET_NO);
     }
     else
     {
       if (ats->internal.c_peers != 0)
       {
         ats->invalid_executions ++;
-        GNUNET_STATISTICS_set (stats, "# ATS invalid executions",
+        GNUNET_STATISTICS_set (ats->stats, "# ATS invalid executions",
             ats->invalid_executions, GNUNET_NO);
       }
       else
       {
-        GNUNET_STATISTICS_set (stats, "# ATS successful executions",
+        GNUNET_STATISTICS_set (ats->stats, "# ATS successful executions",
             ats->successful_executions, GNUNET_NO);
       }
     }
 
-    GNUNET_STATISTICS_set (stats,
+    GNUNET_STATISTICS_set (ats->stats,
         "ATS duration", solving.rel_value + creation.rel_value, GNUNET_NO);
-    GNUNET_STATISTICS_set (stats,
+    GNUNET_STATISTICS_set (ats->stats,
         "ATS mechanisms", ats->internal.c_mechs, GNUNET_NO);
-    GNUNET_STATISTICS_set (stats,
+    GNUNET_STATISTICS_set (ats->stats,
         "ATS peers", ats->internal.c_peers, GNUNET_NO);
-    GNUNET_STATISTICS_set (stats,
+    GNUNET_STATISTICS_set (ats->stats,
         "ATS solution", ats->internal.solution, GNUNET_NO);
-    GNUNET_STATISTICS_set (stats,
+    GNUNET_STATISTICS_set (ats->stats,
         "ATS timestamp", start.abs_value, GNUNET_NO);
 
     if ((ats->save_mlp == GNUNET_YES) &&
@@ -1666,6 +1668,7 @@ void ats_update_problem_cr (struct ATS_Handle * ats)
 }
 
 void ats_set_logging_options (struct ATS_Handle * ats,
+                              struct GNUNET_STATISTICS_Handle * stats,
                               int minimum_addresses,
                               int minimum_peers,
                               int overwrite_dump,
@@ -1674,7 +1677,7 @@ void ats_set_logging_options (struct ATS_Handle * ats,
 {
   if (ats == NULL)
     return;
-
+  ats->stats = stats;
   ats->dump_min_addr = minimum_addresses;
   ats->dump_min_peers = minimum_peers;
   ats->dump_overwrite = overwrite_dump;

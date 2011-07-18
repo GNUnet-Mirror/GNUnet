@@ -215,6 +215,12 @@ struct ATS_Handle
 
     GNUNET_TRANSPORT_ATS_ResultCallback result_cb;
 
+
+    /**
+     * Statistics handle
+     */
+    struct GNUNET_STATISTICS_Handle *stats;
+
     /**
      * Maximum execution time per calculation
      */
@@ -474,8 +480,7 @@ void ats_modify_problem_state (struct ATS_Handle * ats,
     enum ATS_problem_state s);
 
 void
-ats_calculate_bandwidth_distribution (struct ATS_Handle * ats,
-    struct GNUNET_STATISTICS_Handle *stats);
+ats_calculate_bandwidth_distribution (struct ATS_Handle * ats);
 
 void
 ats_solve_problem (struct ATS_Handle * ats,
@@ -499,6 +504,7 @@ ats_update_problem_cr (struct ATS_Handle * ats);
 
 void
 ats_set_logging_options (struct ATS_Handle * ats,
+                        struct GNUNET_STATISTICS_Handle *stats,
                         int minimum_addresses,
                         int minimum_peers,
                         int overwrite_dump,

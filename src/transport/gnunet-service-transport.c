@@ -997,7 +997,7 @@ static int update_addr_value (struct ForeignAddressList *fal, uint32_t value , i
       fal->quality[c].values[1] = fal->quality[c].values[2];
       fal->quality[c].values[2] = value;
       set = GNUNET_YES;
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
       ats_modify_problem_state (ats, ATS_QUALITY_UPDATED);
 #endif
     }
@@ -1010,7 +1010,7 @@ static int update_addr_value (struct ForeignAddressList *fal, uint32_t value , i
       {
         fal->ressources[c].c = value;
         set = GNUNET_YES;
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
         ats_modify_problem_state (ats, ATS_COST_UPDATED);
 #endif
       }
@@ -2510,7 +2510,7 @@ plugin_env_session_end  (void *cls,
     }
   GNUNET_free_non_null(pos->ressources);
   GNUNET_free_non_null(pos->quality);
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
   ats_modify_problem_state (ats, ATS_MODIFIED);
 #endif
   if (GNUNET_YES != pos->connected)
@@ -2680,9 +2680,9 @@ notify_clients_connect (const struct GNUNET_PeerIdentity *peer,
   /* notify ats about connecting peer */
   if ((ats != NULL) && (shutdown_in_progress == GNUNET_NO))
     {
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
       ats_modify_problem_state(ats, ATS_MODIFIED);
-      ats_calculate_bandwidth_distribution (ats, stats);
+      ats_calculate_bandwidth_distribution (ats);
 #endif
     }
   cpos = clients;
@@ -2728,9 +2728,9 @@ notify_clients_disconnect (const struct GNUNET_PeerIdentity *peer)
   /* notify ats about connecting peer */
   if ((ats != NULL) && (shutdown_in_progress == GNUNET_NO))
   {
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
     ats_modify_problem_state(ats, ATS_MODIFIED);
-    ats_calculate_bandwidth_distribution (ats, stats);
+    ats_calculate_bandwidth_distribution (ats);
 #endif
   }
 
@@ -4896,7 +4896,7 @@ disconnect_neighbour (struct NeighbourList *n, int check)
       n->received_pong = GNUNET_NO;
       notify_clients_disconnect (&n->id);
     }
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
   ats_modify_problem_state(ats, ATS_MODIFIED);
 #endif
   /* clean up all plugins, cancel connections and pending transmissions */
@@ -5428,7 +5428,7 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     if ((ntohs(message->type) == GNUNET_MESSAGE_TYPE_TRANSPORT_ATS) &&
     	(ntohs(message->size) == (sizeof (struct GNUNET_MessageHeader) + sizeof (uint32_t))))
       {
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
     	uint32_t value =  ntohl(*((uint32_t *) &message[1]));
     	//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "GNUNET_MESSAGE_TYPE_TRANSPORT_ATS: %i \n", value);
     	/* Force ressource and quality update */
@@ -6322,7 +6322,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_cancel(ats_task);
     ats_task = GNUNET_SCHEDULER_NO_TASK;
   }
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
   if (ats != NULL)
     ats_shutdown (ats);
 #endif
@@ -6516,8 +6516,8 @@ schedule_ats (void *cls,
 #if DEBUG_ATS
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Running scheduled calculation\n");
 #endif
-#if HAVE_GLPK
-  ats_calculate_bandwidth_distribution (ats, stats);
+#if HAVE_LIBGLPK
+  ats_calculate_bandwidth_distribution (ats);
 #endif
   last_ats_execution = GNUNET_TIME_absolute_get();
 
@@ -6671,7 +6671,7 @@ run (void *cls,
   int co;
   char * section;
   unsigned long long  value;
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
   double D = 1.0;
   double U = 1.0;
   double R = 1.0;
@@ -6720,7 +6720,7 @@ run (void *cls,
     }
     GNUNET_free (section);
   }
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
   ats = ats_init (D, U, R, v_b_min, v_n_min,
                   ATS_MAX_ITERATIONS, ATS_MAX_EXEC_DURATION,
                   create_ats_information,
@@ -6764,8 +6764,9 @@ run (void *cls,
 						     "transport",
 						     "ATS_MIN_INTERVAL", 
 						     &ats_minimum_interval));
-#if HAVE_GLPK
+#if HAVE_LIBGLPK
   ats_set_logging_options (ats,
+                          stats,
                           minimum_addresses,
                           minimum_peers,
                           overwrite_dump,
