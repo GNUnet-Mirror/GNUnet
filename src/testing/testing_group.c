@@ -5879,8 +5879,9 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
     }
 
   /* Create the servicehome directory for each remote peer */
-  GNUNET_assert(GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS", "SERVICEHOME",
-                                                                    &baseservicehome));
+  GNUNET_assert(GNUNET_OK ==
+		GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS", "SERVICEHOME",
+						       &baseservicehome));
   for (i = 0; i < pg->num_hosts; i++)
     {
       ssh_entry = GNUNET_malloc(sizeof(struct OutstandingSSH));
@@ -5916,6 +5917,7 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
       GNUNET_OS_process_close(proc);
     }
   GNUNET_free(baseservicehome);
+  baseservicehome = NULL;
 
   if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_string (cfg, "TESTING",
                                                            "HOSTKEYSFILE",
@@ -5995,9 +5997,10 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
 
       if (NULL == pcfg)
         {
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _
-          ("Could not create configuration for peer number %u on `%s'!\n"),
-                      off, hostname == NULL ? "localhost" : hostname);
+          GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
+		      _("Could not create configuration for peer number %u on `%s'!\n"),
+                      off, 
+		      hostname == NULL ? "localhost" : hostname);
           continue;
         }
 
@@ -6010,9 +6013,8 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
             GNUNET_asprintf (&newservicehome, "%s/%s/%d/", baseservicehome, hostname, off);
           else
             GNUNET_asprintf (&newservicehome, "%s/%d/", baseservicehome, off);
-#if !USE_START_HELPER
           GNUNET_free (baseservicehome);
-#endif
+	  baseservicehome = NULL;
         }
       else
         {
@@ -6048,17 +6050,18 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
 #else
       if ((pg->hostkey_data != NULL) && (hostcnt > 0))
         {
-          pg->peers[off].daemon = GNUNET_TESTING_daemon_start (pcfg,
-                                       timeout,
-                                       GNUNET_YES,
-                                       hostname,
-                                       username,
-                                       sshport,
-                                       pg->peers[off].internal_context.hostkey,
-                                       &internal_hostkey_callback,
-                                       &pg->peers[off].internal_context,
-                                       &internal_startup_callback,
-                                       &pg->peers[off].internal_context);
+          pg->peers[off].daemon
+	    = GNUNET_TESTING_daemon_start (pcfg,
+					   timeout,
+					   GNUNET_YES,
+					   hostname,
+					   username,
+					   sshport,
+					   pg->peers[off].internal_context.hostkey,
+					   &internal_hostkey_callback,
+					   &pg->peers[off].internal_context,
+					   &internal_startup_callback,
+					   &pg->peers[off].internal_context);
           /**
            * At this point, given that we had a hostkeyfile,
            * we can call the hostkey callback!
@@ -6083,25 +6086,42 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
     {
       for (off = 0; off < hostcnt; off++)
         {
-          GNUNET_asprintf(&newservicehome, "%s/%s/", baseservicehome, pg->hosts[off].hostname);
+	  /* FIXME: grab baseservicehome! */
+          GNUNET_asprintf (&newservicehome, 
+			   "%s/%s/",
+			   baseservicehome, 
+			   pg->hosts[off].hostname);
 
           if (NULL != username)
-            GNUNET_asprintf (&arg, "%s@%s:%s/%s", username, pg->hosts[off].hostname, baseservicehome, pg->hosts[off].hostname);
+            GNUNET_asprintf (&arg, 
+			     "%s@%s:%s/%s", 
+			     username, 
+			     pg->hosts[off].hostname, 
+			     baseservicehome, 
+			     pg->hosts[off].hostname);
           else
-            GNUNET_asprintf (&arg, "%s:%s/%s", pg->hosts[off].hostname, baseservicehome, pg->hosts[off].hostname);
-
+            GNUNET_asprintf (&arg, 
+			     "%s:%s/%s", 
+			     pg->hosts[off].hostname,
+			     baseservicehome, 
+			     pg->hosts[off].hostname);
+	  
+	  // FIXME: free--- GNUNET_free (baseservicehome);
+	  
           /* FIXME: Doesn't support ssh_port option! */
-          proc = GNUNET_OS_start_process (NULL, NULL, "rsync", "rsync", "-r", newservicehome, arg, NULL);
+          proc = GNUNET_OS_start_process (NULL, NULL,
+					  "rsync",
+					  "rsync", "-r", newservicehome, arg, NULL);
 
-          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "copying directory with command rsync -r %s %s\n", newservicehome, arg);
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		      "copying directory with command rsync -r %s %s\n", 
+		      newservicehome, arg);
 
           GNUNET_free (arg);
           if (NULL == proc)
             {
-              GNUNET_log (
-                          GNUNET_ERROR_TYPE_ERROR,
-                          _
-                          ("Could not start `%s' process to copy configuration directory.\n"),
+              GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                          _("Could not start `%s' process to copy configuration directory.\n"),
                           "scp");
               GNUNET_assert(0);
             }
@@ -6109,9 +6129,8 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
           GNUNET_OS_process_close (proc);
         }
       /* Now all the configuration files and hostkeys are copied to the remote host.  Call the hostkey callback for each peer! */
-      GNUNET_SCHEDULER_add_now(&call_hostkey_callbacks, pg);
+      GNUNET_SCHEDULER_add_now (&call_hostkey_callbacks, pg);
     }
-  GNUNET_free (baseservicehome);
 #endif
   return pg;
 }
