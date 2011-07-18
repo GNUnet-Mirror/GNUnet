@@ -3154,23 +3154,6 @@ tcp_nat_port_map_callback (void *cls,
   }
 }
 
-#if 0
-/**
- * Notify transport service about address
- *
- * @param cls the plugin
- * @param tc unused
- */
-static void
-address_notification (void *cls,
-                    const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct Plugin *plugin = cls;
-
-  GNUNET_OS_network_interfaces_list (&process_interfaces, plugin);
-}
-#endif
-
 /**
  * Exit point from the plugin.
  */
