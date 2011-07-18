@@ -6760,16 +6760,25 @@ run (void *cls,
 					    "DUMP_OVERWRITE",
 					    &value))
     overwrite_dump = (int) value;
-  GNUNET_break (GNUNET_OK ==
-		GNUNET_CONFIGURATION_get_value_time (cfg,
-						     "transport",
-						     "ATS_EXEC_INTERVAL", 
-						     &ats_regular_interval));
-  GNUNET_break (GNUNET_OK ==
-		GNUNET_CONFIGURATION_get_value_time (cfg,
-						     "transport",
-						     "ATS_MIN_INTERVAL", 
-						     &ats_minimum_interval));
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_have_value (cfg, "transport",
+                                            "ATS_EXEC_INTERVAL"))
+    {
+        GNUNET_CONFIGURATION_get_value_time (cfg,
+                                             "transport",
+                                             "ATS_EXEC_INTERVAL",
+                                             &ats_regular_interval);
+    }
+
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_have_value (cfg, "transport",
+                                            "ATS_MIN_INTERVAL"))
+    {
+        GNUNET_CONFIGURATION_get_value_time (cfg,
+                                             "transport",
+                                             "ATS_MIN_INTERVAL",
+                                             &ats_minimum_interval);
+    }
 #if HAVE_GLPK
   ats_set_logging_options (ats,
                           minimum_addresses,
