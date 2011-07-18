@@ -37,7 +37,7 @@
 #include "gnunet_service_lib.h"
 #include "gnunet_signatures.h"
 #include "gnunet_transport_plugin.h"
-#include "gnunet_transport_ats.h"
+#include "gnunet-service-transport_ats.h"
 #include "transport.h"
 
 

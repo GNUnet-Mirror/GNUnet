@@ -25,10 +25,14 @@
  *
  */
 
-#include "gnunet_transport_ats.h"
+
+#include "gnunet-service-transport_ats.h"
 #include "gnunet_transport_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_container_lib.h"
+
+
+
 
 
 /* LP/MIP problem object */
@@ -482,12 +486,6 @@ struct ATS_Handle * ats_init (double D,
                               GNUNET_TRANSPORT_ATS_AddressNotification address_not,
                               GNUNET_TRANSPORT_ATS_ResultCallback res_cb)
 {
-
-#if !HAVE_LIBGLPK
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS not active\n");
-  return NULL;
-#endif
-
   struct ATS_Handle * ats = NULL;
 
   ats = GNUNET_malloc(sizeof (struct ATS_Handle));
@@ -535,11 +533,6 @@ int ats_create_problem (struct ATS_Handle *ats,
                         struct ATS_mechanism *mechanisms,
                         int c_m)
 {
-#if !HAVE_LIBGLPK
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS not active\n");
-  return GNUNET_SYSERR;
-#endif
-
   if ((c_p == 0) || (c_m == 0))
     return GNUNET_SYSERR;
 
@@ -1011,11 +1004,6 @@ int ats_create_problem (struct ATS_Handle *ats,
 
 void ats_delete_problem (struct ATS_Handle * ats)
 {
-#if !HAVE_LIBGLPK
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS not active\n");
-  return;
-#endif
-
 #if DEBUG_ATS
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Deleting problem\n");
 #endif
@@ -1090,12 +1078,6 @@ void ats_solve_problem (struct ATS_Handle * ats,
     unsigned int  c_mechs,
     struct ATS_internals *stat)
 {
-#if !HAVE_LIBGLPK
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS not active\n");
-  return;
-#endif
-
-
   int result = GNUNET_SYSERR;
   int lp_solution = GNUNET_SYSERR;
   int mlp_solution = GNUNET_SYSERR;
@@ -1222,11 +1204,6 @@ void ats_solve_problem (struct ATS_Handle * ats,
 
 void ats_shutdown (struct ATS_Handle * ats)
 {
-#if !HAVE_LIBGLPK
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS not active\n");
-  return;
-#endif
-
 #if DEBUG_ATS
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ATS shutdown\n");
 #endif
@@ -1238,11 +1215,6 @@ void ats_shutdown (struct ATS_Handle * ats)
 
 void ats_update_problem_qm (struct ATS_Handle * ats)
 {
-#if !HAVE_LIBGLPK
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS not active\n");
-  return;
-#endif
-
     int array_index;
     int row_index;
     int c, c2;
@@ -1334,11 +1306,6 @@ void
 ats_calculate_bandwidth_distribution (struct ATS_Handle * ats,
     struct GNUNET_STATISTICS_Handle *stats)
 {
-#if !HAVE_LIBGLPK
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS not active\n");
-  return;
-#endif
-
     struct GNUNET_TIME_Absolute start;
     struct GNUNET_TIME_Relative creation;
     struct GNUNET_TIME_Relative solving;
@@ -1541,11 +1508,6 @@ ats_calculate_bandwidth_distribution (struct ATS_Handle * ats,
 
 int ats_evaluate_results (int result, int solution, char * problem)
 {
-#if !HAVE_LIBGLPK
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS not active\n");
-  return GNUNET_NO;
-#endif
-
     int cont = GNUNET_NO;
 #if DEBUG_ATS || VERBOSE_ATS
     int error_kind = GNUNET_ERROR_TYPE_DEBUG;
@@ -1652,11 +1614,6 @@ return cont;
 
 void ats_update_problem_cr (struct ATS_Handle * ats)
 {
-#if !HAVE_LIBGLPK
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS not active\n");
-  return;
-#endif
-
     int array_index;
     int row_index;
     int c, c2;

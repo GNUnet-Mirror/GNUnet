@@ -22,7 +22,7 @@
  * @brief testcase for ats functionality without starting peers
  */
 #include "platform.h"
-#include "gnunet_transport_ats.h"
+#include "gnunet-service-transport_ats.h"
 #include "gnunet_configuration_lib.h"
 #include "gnunet_crypto_lib.h"
 

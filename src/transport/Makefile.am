@@ -20,7 +20,7 @@ if HAVE_MHD
 endif
 
 if HAVE_LIBGLPK
- TRANSPORT_ATS_SRC = gnunet_transport_ats.c
+ TRANSPORT_ATS_SRC = gnunet-service-transport_ats.c
 endif
 
 if USE_COVERAGE
@@ -318,7 +318,7 @@ TESTS = \
 endif
 
 test_transport_ats_SOURCES = \
- test_transport_ats.c gnunet_transport_ats.c
+ test_transport_ats.c $(TRANSPORT_ATS_SRC)
 test_transport_ats_LDADD = -lm \
  $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \

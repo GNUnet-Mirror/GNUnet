@@ -30,7 +30,7 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_transport_service.h"
 #include "gauger.h"
-#include "gnunet_transport_ats.h"
+#include "gnunet-service-transport_ats.h"
 
 #define VERBOSE GNUNET_NO
 
