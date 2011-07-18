@@ -19,6 +19,10 @@ if HAVE_MHD
 		test_quota_compliance_https_asymmetric_recv_constant
 endif
 
+if HAVE_LIBGLPK
+ TRANSPORT_ATS_SRC = gnunet_transport_ats.c
+endif
+
 if USE_COVERAGE
   AM_CFLAGS = --coverage -O0
 endif
@@ -140,7 +144,7 @@ if HAVE_LIBGLPK
 endif
 
 gnunet_service_transport_SOURCES = \
- gnunet-service-transport.c gnunet_transport_ats.c
+ gnunet-service-transport.c $(TRANSPORT_ATS_SRC)
 gnunet_service_transport_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
