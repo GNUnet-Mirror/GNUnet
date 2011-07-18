@@ -50,7 +50,7 @@
 #include "gnunet_nse_service.h"
 #include "nse.h"
 
-#define DEFAULT_HISTORY_SIZE 50
+#define DEFAULT_HISTORY_SIZE 10
 
 #define DEFAULT_CORE_QUEUE_SIZE 32
 

@@ -23,16 +23,18 @@ libgnunetnse_la_LDFLAGS = \
 
 
 bin_PROGRAMS = \
- gnunet-service-nse
+ gnunet-service-nse \
+ nse-profiler
 
-# gnunet_nse_SOURCES = \
-# gnunet-nse.c         
-# gnunet_nse_LDADD = \
-#  $(top_builddir)/src/nse/libgnunetnse.la \
-#  $(top_builddir)/src/util/libgnunetutil.la \
-#  $(GN_LIBINTL)
-# gnunet_nse_DEPENDENCIES = \
-#  libgnunetnse.la				 
+nse_profiler_SOURCES = \
+ nse-profiler.c         
+nse_profiler_LDADD = \
+  $(top_builddir)/src/nse/libgnunetnse.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la
+  $(GN_LIBINTL)
+nse_profiler_DEPENDENCIES = \
+  libgnunetnse.la				 
 
 gnunet_service_nse_SOURCES = \
  gnunet-service-nse.c         
