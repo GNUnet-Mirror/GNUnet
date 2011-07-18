@@ -3248,7 +3248,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
 
   GNUNET_free_non_null (plugin->bind4_address);
   GNUNET_free_non_null (plugin->bind6_address);
-  GNUNET_free_non_null(plugin->bind_hostname);
+  GNUNET_free_non_null (plugin->bind_hostname);
 #if BUILD_HTTPS
   GNUNET_free_non_null (plugin->crypto_init);
   GNUNET_free_non_null (plugin->cert);
@@ -3272,8 +3272,8 @@ load_certificate( const char * file )
   struct stat fstat;
   char * text = NULL;
 
-  if (0!=STAT(file, &fstat))
-	  return NULL;
+  if (0 != STAT(file, &fstat))
+    return NULL;
   text = GNUNET_malloc (fstat.st_size+1);
   gn_file = GNUNET_DISK_file_open(file, GNUNET_DISK_OPEN_READ, GNUNET_DISK_PERM_USER_READ);
   if (gn_file==NULL)
@@ -3281,14 +3281,14 @@ load_certificate( const char * file )
       GNUNET_free(text);
       return NULL;
     }
-  if (GNUNET_SYSERR == GNUNET_DISK_file_read(gn_file, text, fstat.st_size))
+  if (GNUNET_SYSERR == GNUNET_DISK_file_read (gn_file, text, fstat.st_size))
     {
-      GNUNET_free(text);
-      GNUNET_DISK_file_close(gn_file);
+      GNUNET_free (text);
+      GNUNET_DISK_file_close (gn_file);
       return NULL;
     }
   text[fstat.st_size] = '\0';
-  GNUNET_DISK_file_close(gn_file);
+  GNUNET_DISK_file_close (gn_file);
   return text;
 }
 #endif
@@ -3463,67 +3463,63 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   
 #if BUILD_HTTPS
   /* Reading HTTPS crypto related configuration */
-  /* Get crypto init string from config */
-  if (GNUNET_CONFIGURATION_have_value (env->cfg,
-				       "transport-https", "CRYPTO_INIT"))
+  /* Get crypto init string from config */  
+  if ( (GNUNET_OK !=
+	GNUNET_CONFIGURATION_get_value_string (env->cfg,
+					       "transport-https",
+					       "CRYPTO_INIT",
+					       &plugin->crypto_init)) ||
+       (GNUNET_OK !=
+	GNUNET_CONFIGURATION_get_value_filename (env->cfg,
+						 "transport-https",
+						 "KEY_FILE",
+						 &key_file)) ||
+       (GNUNET_OK !=
+	GNUNET_CONFIGURATION_get_value_filename (env->cfg,
+						 "transport-https",
+						 "CERT_FILE",
+						 &cert_file)) )
     {
-      GNUNET_CONFIGURATION_get_value_string (env->cfg,
-					     "transport-https",
-					     "CRYPTO_INIT",
-					     &plugin->crypto_init);
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+		       "https",
+		       _("Required configuration options missing in section `%s'\n"),
+		       "transport-https");
+      GNUNET_free (component_name);
+      GNUNET_free_non_null (key_file);
+      GNUNET_free_non_null (cert_file);
+      LIBGNUNET_PLUGIN_TRANSPORT_DONE (api);
+      return NULL;   
     }
-  else
-    {
-      GNUNET_asprintf(&plugin->crypto_init,"NORMAL");
-    }
-  
-  /* Get private key file from config */
-  if (GNUNET_CONFIGURATION_have_value (env->cfg,
-				       "transport-https", "KEY_FILE"))
-    {
-    GNUNET_CONFIGURATION_get_value_filename (env->cfg,
-					     "transport-https",
-					     "KEY_FILE",
-					     &key_file);
-    }
-  if (key_file==NULL)
-    GNUNET_asprintf(&key_file,"https.key");
-  
-  /* Get private key file from config */
-  if (GNUNET_CONFIGURATION_have_value (env->cfg,"transport-https", "CERT_FILE"))
-    {
-    GNUNET_CONFIGURATION_get_value_filename (env->cfg,
-					     "transport-https",
-					     "CERT_FILE",
-					     &cert_file);
-    }
-  if (cert_file==NULL)
-    GNUNET_asprintf(&cert_file,"https.cert");
-  
+ 
   /* read key & certificates from file */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Loading TLS certificate `%s' `%s'\n", 
 	      key_file, cert_file);
 
-  plugin->key = load_certificate( key_file );
-  plugin->cert = load_certificate( cert_file );
+  plugin->key = load_certificate (key_file);
+  plugin->cert = load_certificate (cert_file);
 
-  if ((plugin->key==NULL) || (plugin->cert==NULL))
+  if ( (plugin->key==NULL) || (plugin->cert==NULL) )
     {
       char * cmd;
       int ret = 0;
+
+      GNUNET_free_non_null (plugin->key);
+      plugin->key = NULL;
+      GNUNET_free_non_null (plugin->cert);
+      plugin->cert = NULL;
       GNUNET_asprintf(&cmd,
 		      "gnunet-transport-certificate-creation %s %s", 
 		      key_file, cert_file);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "No usable TLS certificate found, creating certificate \n");
+		  "No usable TLS certificate found, creating certificate\n");
       ret = system(cmd);
       if (ret != 0)
 	{
 	  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
 			   "https",
-			   _("Could not create a new TLS certificate, shell script `%s' failed!\n"),cmd,
-			   "transport-https");
+			   _("Could not create a new TLS certificate, shell script `%s' failed!\n"),
+			   cmd);
 	  GNUNET_free (key_file);
 	  GNUNET_free (cert_file);
 	  GNUNET_free (component_name);
@@ -3531,20 +3527,19 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 	  GNUNET_free (cmd);
 	  return NULL;
 	}
-      GNUNET_free (cmd);
-      plugin->key = load_certificate( key_file );
-      plugin->cert = load_certificate( cert_file );
+      GNUNET_free (cmd);      
+      plugin->key = load_certificate (key_file);
+      plugin->cert = load_certificate (cert_file);
       if ((plugin->key==NULL) || (plugin->cert==NULL))
 	{
 	  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
 			   "https",
-			   _("No usable TLS certificate found and creating one failed! \n"),
+			   _("No usable TLS certificate found and creating one failed!\n"),
 			   "transport-https");
 	  GNUNET_free (key_file);
 	  GNUNET_free (cert_file);
-	  GNUNET_free (component_name);
-	  
-	  LIBGNUNET_PLUGIN_TRANSPORT_DONE(api);
+	  GNUNET_free (component_name);	  
+	  LIBGNUNET_PLUGIN_TRANSPORT_DONE (api);
 	  return NULL;
 	}
     }
@@ -3552,7 +3547,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   GNUNET_free (cert_file);
   
   GNUNET_assert((plugin->key!=NULL) && (plugin->cert!=NULL));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "TLS certificate loaded\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "TLS certificate loaded\n");
 #endif
 
   GNUNET_assert ((port > 0) && (port <= 65535));
