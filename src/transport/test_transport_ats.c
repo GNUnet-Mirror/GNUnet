@@ -97,7 +97,7 @@ int run_ats (void)
 {
   int ret = 0;
 #if HAVE_LIBGLPK
-  ats_calculate_bandwidth_distribution(ats, NULL);
+  ats_calculate_bandwidth_distribution (ats);
 #endif
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Running ATS: %s \n", (ret==0)? "SUCCESSFUL": "FAILED");
