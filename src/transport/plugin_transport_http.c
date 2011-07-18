@@ -664,7 +664,10 @@ remove_peer_context_Iterator (void *cls,
 	      "Freeing context for peer `%s'\n",
 	      GNUNET_i2s(&pc->identity));
 #endif
-  GNUNET_CONTAINER_multihashmap_remove (plugin->peers, &pc->identity.hashPubKey, pc);
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_remove (plugin->peers, 
+						       &pc->identity.hashPubKey, 
+						       pc));
   while (ps!=NULL)
     {
       plugin->env->session_end(plugin, &pc->identity, ps);
