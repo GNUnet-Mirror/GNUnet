@@ -140,7 +140,7 @@ if HAVE_LIBGLPK
 endif
 
 gnunet_service_transport_SOURCES = \
- gnunet-service-transport.c transport_ats.c
+ gnunet-service-transport.c gnunet_transport_ats.c
 gnunet_service_transport_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
@@ -314,7 +314,7 @@ TESTS = \
 endif
 
 test_transport_ats_SOURCES = \
- test_transport_ats.c transport_ats.c
+ test_transport_ats.c gnunet_transport_ats.c
 test_transport_ats_LDADD = -lm \
  $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
