@@ -1074,6 +1074,7 @@ transmit_search_request (void *cls,
 	sm->options = htonl (0);      	  
       sm->type = htonl (GNUNET_BLOCK_TYPE_ANY);
       sm->anonymity_level = htonl (sc->anonymity);
+      memset (&sm->target, 0, sizeof (GNUNET_HashCode));
       sm->query = sc->requests[sc->keyword_offset].query;
       msize += sizeof (GNUNET_HashCode) * mbc.put_cnt;
       GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
