@@ -3348,17 +3348,12 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 			     &plugin->my_ascii_hash_ident);
 
 
-  if (GNUNET_CONFIGURATION_have_value (env->cfg, "TRANSPORT", "NEIGHBOUR_LIMIT"))
-  {
-    GNUNET_CONFIGURATION_get_value_number (env->cfg,
-                                         "TRANSPORT",
-                                         "NEIGHBOUR_LIMIT",
-                                         &tneigh);
-  }
-  else
-  {
-    tneigh = -1;
-  }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (env->cfg,
+					     component_name,
+					     "MAX_CONNECTIONS",
+					     &tneigh))
+    tneigh = 128;
   plugin->max_connect_per_transport = tneigh;
 
 
