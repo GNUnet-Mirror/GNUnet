@@ -359,6 +359,8 @@ ad_arrive_handler (void *cls,
   if ('\0' != end[ntohs(message->size) - sizeof (struct GNUNET_MessageHeader) - 1])
     {
       GNUNET_break (0);
+      GNUNET_free (expected_uri);
+      GNUNET_free_non_null (hostname);
       return GNUNET_SYSERR;
     }
   current_adv_uri = GNUNET_strdup (end);
