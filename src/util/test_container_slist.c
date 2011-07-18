@@ -137,7 +137,7 @@ main (int argc, char *argv[])
       GNUNET_assert (0);
     }
   }
-
+  GNUNET_CONTAINER_slist_iter_destroy (it);
   GNUNET_CONTAINER_slist_destroy (l);
 
   /*check if disp = GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC*/
