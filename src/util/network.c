@@ -1152,7 +1152,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 
 #if DEBUG_W32_CYCLES
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Starting a cycle, delay is %dms\n", cycle_delay);
+              "Starting a cycle, delay is %dms. nfds is %d.\n", cycle_delay, nfds);
 #endif
 
   limit = GetTickCount () + ms_total;
@@ -1171,6 +1171,30 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
           FD_COPY (&sock_except, &aexcept);
           tvslice.tv_sec = 0;
           tvslice.tv_usec = cycle_delay;
+#if DEBUG_W32_CYCLES
+          {
+            for (i = 0; i < nfds; i++)
+            {
+              if (SAFE_FD_ISSET (i, &sock_read))
+              {
+                GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                     "Going to select socket %d for reading\n", i);
+              }
+              if (SAFE_FD_ISSET (i, &sock_write))
+              {
+                GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                     "Going to select socket %d for writing\n", i);
+              }
+              if (SAFE_FD_ISSET (i, &sock_except))
+              {
+                GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                     "Going to select socket %d for exceptions\n", i);
+              }
+            }
+          }
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                     "Waiting for %d microseconds, %d left\n", cycle_delay, (limit - GetTickCount ())*1000);
+#endif
           if ((retcode =
                select (nfds + 1, &aread, &awrite, &aexcept,
                        &tvslice)) == SOCKET_ERROR)
@@ -1186,13 +1210,20 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 #endif
               goto select_loop_end;
             }
+#if DEBUG_W32_CYCLES
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                     "Select () returned %d, GLE is %d\n", retcode, GetLastError ());
+#endif
         }
 
       /* Poll read pipes */
       if (rfds)
-
         {
           struct GNUNET_CONTAINER_SList_Iterator *i;
+#if DEBUG_W32_CYCLES
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                     "Polling rfds for readable pipes\n");
+#endif
           for (i = GNUNET_CONTAINER_slist_begin (rfds->handles);
                GNUNET_CONTAINER_slist_end (i) != GNUNET_YES;
                GNUNET_CONTAINER_slist_next (i))
@@ -1203,6 +1234,10 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
               fh = (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (i, NULL);
               if (fh->type == GNUNET_PIPE)
                 {
+#if DEBUG_W32_CYCLES
+                  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                     "Polling pipe 0x%x (0x%x)\n", fh, fh->h);
+#endif
                   if (!PeekNamedPipe (fh->h, NULL, 0, NULL, &dwBytes, NULL))
                     {
                       DWORD error_code = GetLastError ();
@@ -1250,6 +1285,10 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
       if (efds)
 
         {
+#if DEBUG_W32_CYCLES
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                     "Polling efds for broken pipes\n");
+#endif
           struct GNUNET_CONTAINER_SList_Iterator *i;
           for (i = GNUNET_CONTAINER_slist_begin (efds->handles);
                GNUNET_CONTAINER_slist_end (i) != GNUNET_YES;
@@ -1262,6 +1301,10 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
               fh = (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (i, NULL);
               if (fh->type == GNUNET_PIPE)
                 {
+#if DEBUG_W32_CYCLES
+                  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                              "Polling pipe 0x%x (0x%x)\n", fh, fh->h);
+#endif
                   if (!PeekNamedPipe (fh->h, NULL, 0, NULL, &dwBytes, NULL))
 
                     {
@@ -1313,8 +1356,13 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
     select_loop_end:
       if (retcode == 0)
       {
+        /* For pipes, there have been no select() call, so the poll is
+         * more likely to miss first time around. For now just don't increase
+         * the delay for pipes only.
+         */
+        if (nfds != 0)
+          cycle_delay = cycle_delay * 2 > 250000 ? 250000 : cycle_delay * 1.4;
         /* Missed an I/O - double the cycle time */
-        cycle_delay = cycle_delay * 2 > 250 ? 250 : cycle_delay * 1.4;
 #if DEBUG_W32_CYCLES
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "The cycle missed, increased the delay to %dms\n", cycle_delay);
@@ -1323,14 +1371,25 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
       else
       {
         /* Successfully selected something - decrease the cycle time */
-        cycle_delay -= cycle_delay > 2 ? 2 : 0;
+        /* Minimum is 5 microseconds. Decrease the delay by half,
+         * or by 5000 - whichever is higher.
+         */
+        cycle_delay -= cycle_delay > 5000 ? GNUNET_MAX (5000, cycle_delay / 2) : cycle_delay - 5;
 #if DEBUG_W32_CYCLES
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "The cycle hit, decreased the delay to %dms\n", cycle_delay);
 #endif
       }
       if (retcode == 0 && nfds == 0)
-        Sleep (GNUNET_MIN (cycle_delay * 1000, limit - GetTickCount ()));
+      {
+        long long diff = limit - GetTickCount ();
+        diff = diff > 0 ? diff : 0;
+#if DEBUG_W32_CYCLES
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "No sockets, sleeping for %d or %d ms\n", cycle_delay / 1000, diff);
+#endif
+        Sleep (GNUNET_MIN (cycle_delay / 1000, diff));
+      }
     }
   while (retcode == 0 && (ms_total == INFINITE || GetTickCount () < limit));
 
