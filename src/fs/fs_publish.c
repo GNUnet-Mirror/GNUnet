@@ -683,6 +683,9 @@ publish_content (struct GNUNET_FS_PublishContext *pc)
 	      GNUNET_free_non_null (raw_data);
 	      dirpos = dirpos->next;
 	    }
+	  GNUNET_free_non_null (p->data.dir.dir_data);
+	  p->data.dir.dir_data = NULL;
+	  p->data.dir.dir_size = 0;
 	  GNUNET_FS_directory_builder_finish (db,
 					      &p->data.dir.dir_size,
 					      &p->data.dir.dir_data);
