@@ -1601,7 +1601,7 @@ transmit_send_continuation (void *cls,
 	}
       else
 	{
-	  if (mq->specific_address->connected != GNUNET_NO)
+	  if (mq->specific_address->connected == GNUNET_YES)
 	    {
 #if DEBUG_TRANSPORT
 	      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1938,12 +1938,10 @@ mark_address_connected(struct ForeignAddressList *fal)
   struct ForeignAddressList *pos;
   struct ForeignAddressList *inbound;
   struct ForeignAddressList *outbound;
-  int cnt;
 
   GNUNET_assert (GNUNET_YES == fal->validated);
   if (fal->connected == GNUNET_YES)
     return; /* nothing to do */
-  cnt = GNUNET_YES;
   inbound = NULL;
   outbound = NULL;
 
@@ -1951,10 +1949,12 @@ mark_address_connected(struct ForeignAddressList *fal)
   while (pos != NULL)
     {
       /* Already have inbound address, and this is also an inbound address, don't switch!! */
-      if ((GNUNET_YES == pos->connected) && (0 == pos->addrlen) && (0
-          == fal->addrlen))
+      if ( (GNUNET_YES == pos->connected) && 
+	   (0 == pos->addrlen) && 
+	   (0 == fal->addrlen) )
         return;
-      else if ((0 == pos->addrlen) && (GNUNET_YES == pos->connected))
+      if ( (0 == pos->addrlen) && 
+	   (GNUNET_YES == pos->connected) )
         inbound = pos;
       pos = pos->next;
     }
@@ -1963,10 +1963,11 @@ mark_address_connected(struct ForeignAddressList *fal)
   while (pos != NULL)
     {
       /* Already have outbound address, and this is also an outbound address, don't switch!! */
-      if ((GNUNET_YES == pos->connected) && (0 < pos->addrlen) && (0
-          < fal->addrlen))
+      if ( (GNUNET_YES == pos->connected) && 
+	   (0 < pos->addrlen) && 
+	   (0 < fal->addrlen) )
         return;
-      else if ((0 < pos->addrlen) && (GNUNET_YES == pos->connected))
+      if ( (0 < pos->addrlen) && (GNUNET_YES == pos->connected) )
         outbound = pos;
       pos = pos->next;
     }
@@ -2004,16 +2005,16 @@ mark_address_connected(struct ForeignAddressList *fal)
       if ((GNUNET_YES == pos->connected) && (0 < pos->addrlen))
         {
 #if DEBUG_TRANSPORT
-          GNUNET_log (
-                      GNUNET_ERROR_TYPE_DEBUG,
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Marking address `%s' as no longer connected (due to connect on other address)\n",
                       a2s (pos->ready_list->plugin->short_name, pos->addr,
                            pos->addrlen));
 #endif
-          GNUNET_break (cnt == GNUNET_YES);
-          cnt = GNUNET_NO;
 #if DEBUG_INBOUND
-          fprintf(stderr, "Peer: %s, setting %s connection to disconnected.\n", GNUNET_i2s(&my_identity), (0 == pos->addrlen) ? "INBOUND" : "OUTBOUND");
+          fprintf(stderr, 
+		  "Peer: %s, setting %s connection to disconnected.\n", 
+		  GNUNET_i2s(&my_identity),
+		  (0 == pos->addrlen) ? "INBOUND" : "OUTBOUND");
 #endif
           pos->connected = GNUNET_NO;
           GNUNET_STATISTICS_update (stats,
@@ -2022,13 +2023,10 @@ mark_address_connected(struct ForeignAddressList *fal)
         }
       pos = pos->next;
     }
-
+  GNUNET_assert (GNUNET_NO == fal->connected);
   fal->connected = GNUNET_YES;
-  if (GNUNET_YES == cnt)
-    {
-      GNUNET_STATISTICS_update (stats, gettext_noop ("# connected addresses"),
-                                1, GNUNET_NO);
-    }
+  GNUNET_STATISTICS_update (stats, gettext_noop ("# connected addresses"),
+			    1, GNUNET_NO);
 }
 
 
@@ -2462,7 +2460,14 @@ plugin_env_session_end  (void *cls,
       return; /* was never marked as connected */
     }
   pos->session = NULL;
-  pos->connected = GNUNET_NO;
+  if (GNUNET_YES == pos->connected)
+    {
+      pos->connected = GNUNET_NO;      
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# connected addresses"),
+				-1,
+				GNUNET_NO);
+    }
   if (GNUNET_SCHEDULER_NO_TASK != pos->revalidate_task)
     {
       GNUNET_SCHEDULER_cancel (pos->revalidate_task);
@@ -2492,11 +2497,6 @@ plugin_env_session_end  (void *cls,
         }
       return;
     }
-
-  GNUNET_STATISTICS_update (stats,
-                              gettext_noop ("# connected addresses"),
-                              -1,
-                              GNUNET_NO);
 
   /* was inbound connection, free 'pos' */
   if (prev == NULL)
@@ -4907,10 +4907,13 @@ disconnect_neighbour (struct NeighbourList *n, int check)
           peer_pos = rpos->addresses;
           rpos->addresses = peer_pos->next;
 	  if (peer_pos->connected == GNUNET_YES)
-	    GNUNET_STATISTICS_update (stats,
-				      gettext_noop ("# connected addresses"),
-				      -1,
-				      GNUNET_NO);
+	    {
+	      GNUNET_STATISTICS_update (stats,
+					gettext_noop ("# connected addresses"),
+					-1,
+					GNUNET_NO);
+	      peer_pos->connected = GNUNET_NO;
+	    }
 	  if (GNUNET_YES == peer_pos->validated)
 	    GNUNET_STATISTICS_update (stats,
 				      gettext_noop ("# peer addresses considered valid"),
@@ -6378,8 +6381,6 @@ create_ats_information ( struct ATS_peer **p,
 #endif
   struct ATS_mechanism * mechanisms;
   struct ATS_peer *peers;
-
-  int connected_addresses = 0;
   int c_peers = 0;
   int c_mechs = 0;
   struct NeighbourList *next = neighbours;
@@ -6425,58 +6426,49 @@ create_ats_information ( struct ATS_peer **p,
 
   next = neighbours;
   while (next!=NULL)
-  {
-    int found_addresses = GNUNET_NO;
-    struct ReadyList *r_next = next->plugins;
-    while (r_next != NULL)
     {
-        struct ForeignAddressList * a_next = r_next->addresses;
-        while (a_next != NULL)
-        {
-            if (a_next->connected == GNUNET_YES)
-              connected_addresses ++;
-            if (found_addresses == GNUNET_NO)
-            {
-              peers[c_peers].peer = next->id;
-              peers[c_peers].m_head = NULL;
-              peers[c_peers].m_tail = NULL;
-              peers[c_peers].f = 1.0 / c_mechs;
-            }
-
-            mechanisms[c_mechs].addr = a_next;
-            mechanisms[c_mechs].col_index = c_mechs;
-            mechanisms[c_mechs].peer = &peers[c_peers];
-            mechanisms[c_mechs].next = NULL;
-            mechanisms[c_mechs].plugin = r_next->plugin;
-            mechanisms[c_mechs].ressources = a_next->ressources;
-            mechanisms[c_mechs].quality = a_next->quality;
-
-            GNUNET_CONTAINER_DLL_insert_tail(peers[c_peers].m_head,
-                                             peers[c_peers].m_tail,
-                                             &mechanisms[c_mechs]);
-            found_addresses = GNUNET_YES;
-            c_mechs++;
-
-            a_next = a_next->next;
-        }
-        r_next = r_next->next;
-    }
-    if (found_addresses == GNUNET_YES)
+      int found_addresses = GNUNET_NO;
+      struct ReadyList *r_next = next->plugins;
+      while (r_next != NULL)
+	{
+	  struct ForeignAddressList * a_next = r_next->addresses;
+	  while (a_next != NULL)
+	    {
+	      if (found_addresses == GNUNET_NO)
+		{
+		  peers[c_peers].peer = next->id;
+		  peers[c_peers].m_head = NULL;
+		  peers[c_peers].m_tail = NULL;
+		  peers[c_peers].f = 1.0 / c_mechs;
+		}
+	      mechanisms[c_mechs].addr = a_next;
+	      mechanisms[c_mechs].col_index = c_mechs;
+	      mechanisms[c_mechs].peer = &peers[c_peers];
+	      mechanisms[c_mechs].next = NULL;
+	      mechanisms[c_mechs].plugin = r_next->plugin;
+	      mechanisms[c_mechs].ressources = a_next->ressources;
+	      mechanisms[c_mechs].quality = a_next->quality;
+	      GNUNET_CONTAINER_DLL_insert_tail(peers[c_peers].m_head,
+					       peers[c_peers].m_tail,
+					       &mechanisms[c_mechs]);
+	      found_addresses = GNUNET_YES;
+	      c_mechs++;	      
+	      a_next = a_next->next;
+	    }
+	  r_next = r_next->next;
+	}
+      if (found_addresses == GNUNET_YES)
         c_peers++;
-    next = next->next;
-  }
+      next = next->next;
+    }
   c_mechs--;
   c_peers--;
   (*c_m) = c_mechs;
   (*c_p) = c_peers;
   (*p) = peers;
   (*m) = mechanisms;
-
-  GNUNET_STATISTICS_set(stats,
-                        gettext_noop ("# connected addresses"),
-                        connected_addresses,
-                        GNUNET_NO);
 }
+
 
 static void
 schedule_ats (void *cls,
