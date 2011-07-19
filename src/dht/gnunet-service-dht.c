@@ -4998,6 +4998,15 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                          NULL);
       GNUNET_TRANSPORT_disconnect (transport_handle);
     }
+  if (coreAPI != NULL)
+    {
+#if DEBUG_DHT
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%s:%s Disconnecting core!\n", my_short_id, "DHT");
+#endif
+      GNUNET_CORE_disconnect (coreAPI);
+      coreAPI = NULL;
+    }
   for (bucket_count = lowest_bucket; bucket_count < MAX_BUCKETS;
        bucket_count++)
     {
@@ -5011,15 +5020,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
           delete_peer (pos, bucket_count);
         }
-    }
-  if (coreAPI != NULL)
-    {
-#if DEBUG_DHT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%s:%s Disconnecting core!\n", my_short_id, "DHT");
-#endif
-      GNUNET_CORE_disconnect (coreAPI);
-      coreAPI = NULL;
     }
   if (datacache != NULL)
     {
