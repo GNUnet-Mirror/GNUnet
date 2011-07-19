@@ -1321,6 +1321,7 @@ inverse_distance (const GNUNET_HashCode * target,
   return ((unsigned int) -1) - distance (target, have);
 }
 
+
 /**
  * Find the optimal bucket for this key, regardless
  * of the current number of buckets in use.
@@ -1341,6 +1342,7 @@ find_bucket (const GNUNET_HashCode * hc)
   return MAX_BUCKETS - bits - 1;
 }
 
+
 /**
  * Find which k-bucket this peer should go into,
  * taking into account the size of the k-bucket
@@ -1357,14 +1359,13 @@ static int
 find_current_bucket (const GNUNET_HashCode * hc)
 {
   int actual_bucket;
+  
   actual_bucket = find_bucket (hc);
-
   if (actual_bucket == GNUNET_SYSERR)   /* hc and our peer identity match! */
     return lowest_bucket;
-  else if (actual_bucket < lowest_bucket)       /* actual_bucket not yet used */
+  if (actual_bucket < lowest_bucket)       /* actual_bucket not yet used */
     return lowest_bucket;
-  else
-    return actual_bucket;
+  return actual_bucket;
 }
 
 #if EXTRA_CHECKS
@@ -1528,51 +1529,6 @@ update_core_preference (void *cls,
                                                        peer);
 }
 
-/**
- * Really add a peer to a bucket (only do assertions
- * on size, etc.)
- *
- * @param peer GNUNET_PeerIdentity of the peer to add
- * @param bucket the already figured out bucket to add
- *        the peer to
- * @param atsi performance information
- *
- * @return the newly added PeerInfo
- */
-static struct PeerInfo *
-add_peer (const struct GNUNET_PeerIdentity *peer,
-          unsigned int bucket,
-          const struct GNUNET_TRANSPORT_ATS_Information *atsi)
-{
-  struct PeerInfo *new_peer;
-  GNUNET_assert (bucket < MAX_BUCKETS);
-  GNUNET_assert (peer != NULL);
-  new_peer = GNUNET_malloc (sizeof (struct PeerInfo));
-#if 0
-  new_peer->latency = latency;
-  new_peer->distance = distance;
-#endif
-
-  memcpy (&new_peer->id, peer, sizeof (struct GNUNET_PeerIdentity));
-
-  GNUNET_CONTAINER_DLL_insert_after (k_buckets[bucket].head,
-                                     k_buckets[bucket].tail,
-                                     k_buckets[bucket].tail, new_peer);
-  k_buckets[bucket].peers_size++;
-
-#if DO_UPDATE_PREFERENCE
-  if ((GNUNET_CRYPTO_hash_matching_bits
-       (&my_identity.hashPubKey, &peer->hashPubKey) > 0)
-      && (k_buckets[bucket].peers_size <= bucket_size))
-    {
-
-      new_peer->preference_task =
-        GNUNET_SCHEDULER_add_now (&update_core_preference, new_peer);
-    }
-#endif
-
-  return new_peer;
-}
 
 /**
  * Given a peer and its corresponding bucket,
@@ -1902,40 +1858,6 @@ schedule_ping_messages ()
     }
 }
 #endif
-
-/**
- * Attempt to add a peer to our k-buckets.
- *
- * @param peer the peer identity of the peer being added
- * @param bucket the bucket that we want this peer to go in
- * @param atsi transport ATS information
- *
- * @return NULL if the peer was not added,
- *         pointer to PeerInfo for new peer otherwise
- */
-static struct PeerInfo *
-try_add_peer (const struct GNUNET_PeerIdentity *peer,
-              unsigned int bucket,
-              const struct GNUNET_TRANSPORT_ATS_Information *atsi)
-{
-  int peer_bucket;
-  struct PeerInfo *new_peer;
-
-  if (0 == memcmp (&my_identity, peer, sizeof (struct GNUNET_PeerIdentity)))
-    return NULL;
-
-  peer_bucket = find_current_bucket (&peer->hashPubKey);
-
-  GNUNET_assert (peer_bucket >= lowest_bucket);
-  new_peer = add_peer (peer, peer_bucket, atsi);
-
-  if ((k_buckets[lowest_bucket].peers_size) >= bucket_size)
-    enable_next_bucket ();
-#if DO_PING
-  schedule_ping_messages ();
-#endif
-  return new_peer;
-}
 
 
 /**
@@ -5206,6 +5128,8 @@ handle_core_connect (void *cls,
 {
   struct PeerInfo *ret;
   struct DHTPutEntry *put_entry;
+  int peer_bucket;
+
   /* Check for connect to self message */
   if (0 == memcmp(&my_identity, peer, sizeof(struct GNUNET_PeerIdentity)))
     return;
@@ -5225,6 +5149,7 @@ handle_core_connect (void *cls,
                   "%s:%s Received %s message for peer %s, but already have peer in RT!",
                   my_short_id, "DHT", "CORE CONNECT", GNUNET_i2s (peer));
 #endif
+      GNUNET_break (0);
       return;
     }
 
@@ -5242,15 +5167,38 @@ handle_core_connect (void *cls,
     }
   else if (datacache == NULL)
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "DHT has no connection to datacache!\n");
-  ret = try_add_peer (peer, find_current_bucket (&peer->hashPubKey), atsi);
-  if (ret != NULL)
-    {
-      newly_found_peers++;
-      GNUNET_CONTAINER_multihashmap_put (all_known_peers, &peer->hashPubKey,
-                                         ret,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-      increment_stats(STAT_PEERS_KNOWN);
-    }
+
+  peer_bucket = find_current_bucket (&peer->hashPubKey);
+  GNUNET_assert (peer_bucket >= lowest_bucket);
+  GNUNET_assert (peer_bucket < MAX_BUCKETS);
+  ret = GNUNET_malloc (sizeof (struct PeerInfo));
+#if 0
+  ret->latency = latency;
+  ret->distance = distance;
+#endif
+  ret->id = *peer;
+  GNUNET_CONTAINER_DLL_insert_after (k_buckets[peer_bucket].head,
+                                     k_buckets[peer_bucket].tail,
+                                     k_buckets[peer_bucket].tail, 
+				     ret);
+  k_buckets[peer_bucket].peers_size++;
+#if DO_UPDATE_PREFERENCE
+  if ( (GNUNET_CRYPTO_hash_matching_bits
+	(&my_identity.hashPubKey, &peer->hashPubKey) > 0) &&
+       (k_buckets[peer_bucket].peers_size <= bucket_size) )
+    ret->preference_task = GNUNET_SCHEDULER_add_now (&update_core_preference, 
+						     ret);
+#endif
+  if ((k_buckets[lowest_bucket].peers_size) >= bucket_size)
+    enable_next_bucket ();
+#if DO_PING
+  schedule_ping_messages ();
+#endif
+  newly_found_peers++;
+  GNUNET_CONTAINER_multihashmap_put (all_known_peers, &peer->hashPubKey,
+				     ret,
+				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  increment_stats (STAT_PEERS_KNOWN);    
 
 #if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
