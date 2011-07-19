@@ -1962,7 +1962,7 @@ GNUNET_FS_file_information_create_empty_directory (struct GNUNET_FS_Handle *h,
  * @return GNUNET_YES if so, GNUNET_NO if not
  */
 int
-GNUNET_FS_file_information_is_directory (struct GNUNET_FS_FileInformation *ent);
+GNUNET_FS_file_information_is_directory (const struct GNUNET_FS_FileInformation *ent);
 
 
 /**
