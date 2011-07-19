@@ -6024,7 +6024,6 @@ handle_address_iterate (void *cls,
                         struct GNUNET_SERVER_Client *client,
                         const struct GNUNET_MessageHeader *message)
 {
-  const struct AddressIterateMessage *address_iterate;
   struct NeighbourList *neighbor_iterator;
   struct ReadyList *ready_iterator;
   struct ForeignAddressList *foreign_address_iterator;
@@ -6032,8 +6031,6 @@ handle_address_iterate (void *cls,
 
   uint16_t size;
   struct GNUNET_SERVER_TransmitContext *tc;
-  struct GNUNET_TIME_Absolute timeout;
-  struct GNUNET_TIME_Relative rtimeout;
   char *addr_buf;
 
   size = ntohs (message->size);
@@ -6043,11 +6040,6 @@ handle_address_iterate (void *cls,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
-  address_iterate = (const struct AddressIterateMessage *) message;
-
-  timeout = GNUNET_TIME_absolute_ntoh (address_iterate->timeout);
-  rtimeout = GNUNET_TIME_absolute_get_remaining (timeout);
-
   GNUNET_SERVER_disable_receive_done_warning (client);
   tc = GNUNET_SERVER_transmit_context_create (client);
 
