@@ -6474,7 +6474,6 @@ create_ats_information ( struct ATS_peer **p,
   (*p) = peers;
   (*m) = mechanisms;
 }
-#endif
 
 
 static void
@@ -6514,6 +6513,8 @@ schedule_ats (void *cls,
   ats_task = GNUNET_SCHEDULER_add_delayed (ats_regular_interval,
                                   &schedule_ats, ats);
 }
+#endif
+
 
 struct ForeignAddressList * get_preferred_ats_address (
 		struct NeighbourList *n)
