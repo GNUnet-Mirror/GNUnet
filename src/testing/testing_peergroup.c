@@ -652,7 +652,8 @@ GNUNET_TESTING_peergroup_topology_to_file(struct GNUNET_TESTING_PeerGroup *pg,
                                                               GNUNET_DISK_PERM_USER_WRITE);
   if (topo_ctx->file == NULL)
     {
-      notify_cb(notify_cb_cls, "Failed to open output file!");
+      notify_cb (notify_cb_cls, "Failed to open output file!");
+      GNUNET_free (topo_ctx);
       return;
     }
 
@@ -661,7 +662,6 @@ GNUNET_TESTING_peergroup_topology_to_file(struct GNUNET_TESTING_PeerGroup *pg,
     GNUNET_DISK_file_write(topo_ctx->file, temp_str, temp);
   GNUNET_free_non_null(temp_str);
   GNUNET_TESTING_get_topology(pg, &write_topology_cb, topo_ctx);
-  return;
 }
 
 /**
