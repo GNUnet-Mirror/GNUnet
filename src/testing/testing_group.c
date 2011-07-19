@@ -1308,6 +1308,10 @@ update_config(void *cls, const char *section, const char *option,
               % num_per_host);
           value = cval;
         }
+
+      /* FIXME: REMOVE FOREVER HACK HACK HACK */
+      if (0 == strcasecmp (section, "transport-tcp"))
+        GNUNET_CONFIGURATION_set_value_string (ctx->ret, section, "ADVERTISED_PORT", value);
     }
 
   if (0 == strcmp (option, "UNIXPATH"))
@@ -4100,17 +4104,6 @@ GNUNET_TESTING_create_topology(struct GNUNET_TESTING_PeerGroup *pg,
 #endif
     unblacklisted_connections
         = create_line (pg, &remove_connections, BLACKLIST);
-    break;
-  case GNUNET_TESTING_TOPOLOGY_NONE: /* Fall through */
-  case GNUNET_TESTING_TOPOLOGY_FROM_FILE:
-#if VERBOSE_TESTING
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-        _
-        ("Creating no blacklist topology (all peers can connect at transport level)\n"));
-#endif
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _
-    ("Creating blacklist topology from allowed\n"));
-    unblacklisted_connections = copy_allowed (pg, &remove_connections);
   default:
     break;
     }

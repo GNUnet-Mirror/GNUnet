@@ -108,6 +108,13 @@ struct PeerGroupStartupContext
   struct GNUNET_DISK_FileHandle *topology_output_file;
 };
 
+struct TopologyOutputContext
+{
+  struct GNUNET_DISK_FileHandle *file;
+  GNUNET_TESTING_NotifyCompletion notify_cb;
+  void *notify_cb_cls;
+};
+
 /**
  * Simple struct to keep track of progress, and print a
  * percentage meter for long running tasks.
@@ -578,6 +585,86 @@ internal_hostkey_callback(void *cls, const struct GNUNET_PeerIdentity *id,
 
 
 /**
+ * Prototype of a callback function indicating that two peers
+ * are currently connected.
+ *
+ * @param cls closure
+ * @param first peer id for first daemon
+ * @param second peer id for the second daemon
+ * @param distance distance between the connected peers
+ * @param emsg error message (NULL on success)
+ */
+void
+write_topology_cb (void *cls,
+                   const struct GNUNET_PeerIdentity *first,
+                   const struct GNUNET_PeerIdentity *second,
+                   const char *emsg)
+{
+  struct TopologyOutputContext *topo_ctx;
+  int temp;
+  char *temp_str;
+  char *temp_pid2;
+
+  topo_ctx = (struct TopologyOutputContext *)cls;
+  GNUNET_assert(topo_ctx->file != NULL);
+  if (emsg == NULL)
+    {
+      GNUNET_assert(first != NULL);
+      GNUNET_assert(second != NULL);
+      temp_pid2 = GNUNET_strdup(GNUNET_i2s(second));
+      temp = GNUNET_asprintf(&temp_str, "\t%s -> %s\n", GNUNET_i2s(first), temp_pid2);
+      GNUNET_free(temp_pid2);
+      GNUNET_DISK_file_write(topo_ctx->file, temp_str, temp);
+    }
+  else
+    {
+      temp = GNUNET_asprintf(&temp_str, "}\n");
+      GNUNET_DISK_file_write(topo_ctx->file, temp_str, temp);
+      GNUNET_DISK_file_close(topo_ctx->file);
+      topo_ctx->notify_cb(topo_ctx->notify_cb_cls, NULL);
+      GNUNET_free(topo_ctx);
+    }
+}
+
+/**
+ * Print current topology to a graphviz readable file.
+ *
+ * @param pg a currently running peergroup to print to file
+ * @param output_filename the file to write the topology to
+ * @param notify_cb callback to call upon completion or failure
+ * @param notify_cb_cls closure for notify_cb
+ *
+ */
+void
+GNUNET_TESTING_peergroup_topology_to_file(struct GNUNET_TESTING_PeerGroup *pg,
+                                          char *output_filename,
+                                          GNUNET_TESTING_NotifyCompletion notify_cb,
+                                          void *notify_cb_cls)
+{
+  struct TopologyOutputContext *topo_ctx;
+  int temp;
+  char *temp_str;
+  topo_ctx = GNUNET_malloc(sizeof(struct TopologyOutputContext));
+
+  topo_ctx->file = GNUNET_DISK_file_open (temp_str, GNUNET_DISK_OPEN_READWRITE
+                                                              | GNUNET_DISK_OPEN_CREATE,
+                                                              GNUNET_DISK_PERM_USER_READ |
+                                                              GNUNET_DISK_PERM_USER_WRITE);
+  if (topo_ctx->file == NULL)
+    {
+      notify_cb(notify_cb_cls, "Failed to open output file!");
+      return;
+    }
+
+  temp = GNUNET_asprintf(&temp_str, "digraph G {\n");
+  if (temp > 0)
+    GNUNET_DISK_file_write(topo_ctx->file, temp_str, temp);
+  GNUNET_free_non_null(temp_str);
+  GNUNET_TESTING_get_topology(pg, &write_topology_cb, topo_ctx);
+  return;
+}
+
+/**
  * Start a peer group with a given number of peers.  Notify
  * on completion of peer startup and connection based on given
  * topological constraints.  Optionally notify on each
@@ -595,8 +682,7 @@ internal_hostkey_callback(void *cls, const struct GNUNET_PeerIdentity *id,
  * @return NULL on error, otherwise handle to control peer group
  */
 struct GNUNET_TESTING_PeerGroup *
-GNUNET_TESTING_peergroup_start(
-                               const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_TESTING_peergroup_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
                                unsigned int total,
                                struct GNUNET_TIME_Relative timeout,
                                GNUNET_TESTING_NotifyConnection connect_cb,
@@ -749,8 +835,7 @@ GNUNET_TESTING_peergroup_start(
   GNUNET_free_non_null(temp_str);
 
   if (GNUNET_YES
-      == GNUNET_CONFIGURATION_get_value_string (
-                                                cfg,
+      == GNUNET_CONFIGURATION_get_value_string (cfg,
                                                 "testing",
                                                 "connect_topology_option_modifier",
                                                 &temp_str))
