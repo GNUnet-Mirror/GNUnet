@@ -604,6 +604,7 @@ clean_request (void *cls,
       pr->bf = NULL;
     }
   GNUNET_PEER_change_rc (pr->sender_pid, -1);
+  pr->sender_pid = 0;
   if (NULL != pr->hnode)
     {
       GNUNET_CONTAINER_heap_remove_node (pr->hnode);
