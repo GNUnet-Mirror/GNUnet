@@ -118,6 +118,8 @@ static GNUNET_SCHEDULER_TaskIdentifier shutdown_handle;
  */
 static GNUNET_SCHEDULER_TaskIdentifier churn_task;
 
+char *topology_file;
+
 /**
  * Check whether peers successfully shut down.
  */
@@ -261,20 +263,41 @@ disconnect_nse_peers (void *cls,
  * Prototype of a function that will be called when a
  * particular operation was completed the testing library.
  *
+ * @param cls unused
+ * @param emsg NULL on success
+ */
+void topology_output_callback (void *cls, const char *emsg)
+{
+  disconnect_task = GNUNET_SCHEDULER_add_delayed(wait_time, &disconnect_nse_peers, NULL);
+  GNUNET_SCHEDULER_add_now(&connect_nse_service, NULL);
+}
+
+
+/**
+ * Prototype of a function that will be called when a
+ * particular operation was completed the testing library.
+ *
  * @param cls closure
  * @param emsg NULL on success
  */
 static void
 churn_callback (void *cls, const char *emsg)
 {
+  char *temp_output_file;
+
   if (emsg == NULL) /* Everything is okay! */
     {
       peers_running = GNUNET_TESTING_daemons_running(pg);
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Round %lu, churn finished successfully.\n", current_round);
       GNUNET_assert(disconnect_task == GNUNET_SCHEDULER_NO_TASK);
-      disconnect_task = GNUNET_SCHEDULER_add_delayed(wait_time, &disconnect_nse_peers, NULL);
-      GNUNET_SCHEDULER_add_now(&connect_nse_service, NULL);
+      GNUNET_asprintf(&temp_output_file, "%s%lu.dot", topology_file, current_round);
+      GNUNET_TESTING_peergroup_topology_to_file(pg,
+                                                temp_output_file,
+                                                &topology_output_callback,
+                                                NULL);
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Writing topology to file %s\n", temp_output_file);
+      GNUNET_free(temp_output_file);
     }
   else
     {
@@ -324,7 +347,6 @@ churn_peers (void *cls,
                                     NULL);
     }
 }
-
 
 
 static void
@@ -409,14 +431,21 @@ run (void *cls,
       GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Option nse-profiler:wait_time is required!\n");
       return;
     }
+
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (testing_cfg, "nse-profiler", "topology_output_file", &topology_file))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Option nse-profiler:topology_output_file is required!\n");
+      return;
+    }
+
   wait_time = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, temp_wait);
 
   if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_string(cfg, "nse-profiler", "output_file", &temp_str))
     {
       output_file = GNUNET_DISK_file_open (temp_str, GNUNET_DISK_OPEN_READWRITE
-                                                                  | GNUNET_DISK_OPEN_CREATE,
-                                                                  GNUNET_DISK_PERM_USER_READ |
-                                                                  GNUNET_DISK_PERM_USER_WRITE);
+                                                      | GNUNET_DISK_OPEN_CREATE,
+                                                      GNUNET_DISK_PERM_USER_READ |
+                                                      GNUNET_DISK_PERM_USER_WRITE);
       if (output_file == NULL)
         GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Failed to open %s for output!\n", temp_str);
     }
