@@ -645,7 +645,7 @@ write_topology_cb (void *cls,
  */
 void
 GNUNET_TESTING_peergroup_topology_to_file(struct GNUNET_TESTING_PeerGroup *pg,
-                                          char *output_filename,
+                                          const char *output_filename,
                                           GNUNET_TESTING_NotifyCompletion notify_cb,
                                           void *notify_cb_cls)
 {
@@ -654,7 +654,7 @@ GNUNET_TESTING_peergroup_topology_to_file(struct GNUNET_TESTING_PeerGroup *pg,
   char *temp_str;
   topo_ctx = GNUNET_malloc(sizeof(struct TopologyOutputContext));
 
-  topo_ctx->file = GNUNET_DISK_file_open (temp_str, GNUNET_DISK_OPEN_READWRITE
+  topo_ctx->file = GNUNET_DISK_file_open (output_filename, GNUNET_DISK_OPEN_READWRITE
                                                               | GNUNET_DISK_OPEN_CREATE,
                                                               GNUNET_DISK_PERM_USER_READ |
                                                               GNUNET_DISK_PERM_USER_WRITE);
