@@ -2424,6 +2424,7 @@ unblacklist_iterator (void *cls,
   }
 #endif
 
+#if !OLD
 /**
  * Create a blacklist topology based on the allowed topology
  * which disallows any connections not in the allowed topology
@@ -2437,8 +2438,8 @@ unblacklist_iterator (void *cls,
  *
  */
 static unsigned int
-copy_allowed(struct GNUNET_TESTING_PeerGroup *pg,
-             GNUNET_TESTING_ConnectionProcessor proc)
+copy_allowed (struct GNUNET_TESTING_PeerGroup *pg,
+              GNUNET_TESTING_ConnectionProcessor proc)
 {
   unsigned int count;
   unsigned int total;
@@ -2471,6 +2472,7 @@ copy_allowed(struct GNUNET_TESTING_PeerGroup *pg,
 	      total);
   return total;
 }
+#endif
 
 /**
  * Create a topology given a peer group (set of running peers)
