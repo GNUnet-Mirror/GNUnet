@@ -2508,8 +2508,8 @@ plugin_env_session_end  (void *cls,
       GNUNET_SCHEDULER_cancel (pos->revalidate_task);
       pos->revalidate_task = GNUNET_SCHEDULER_NO_TASK;
     }
-  GNUNET_free_non_null(pos->ressources);
-  GNUNET_free_non_null(pos->quality);
+  GNUNET_free_non_null (pos->ressources);
+  GNUNET_free_non_null (pos->quality);
 #if HAVE_LIBGLPK
   ats_modify_problem_state (ats, ATS_MODIFIED);
 #endif
@@ -2519,6 +2519,11 @@ plugin_env_session_end  (void *cls,
       GNUNET_free (pos);
       return; 
     }
+  pos->connected = GNUNET_NO;
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# connected addresses"),
+			    -1,
+			    GNUNET_NO);
   GNUNET_free (pos);
 
   if (nl->received_pong == GNUNET_NO)
@@ -3842,7 +3847,7 @@ send_periodic_ping (void *cls,
                     HELLO_VERIFICATION_TIMEOUT,
                     message_buf, tsize,
                     GNUNET_YES, neighbour);
-  GNUNET_free(message_buf);
+  GNUNET_free (message_buf);
   schedule_next_ping (peer_address);
 }
 
@@ -4400,7 +4405,7 @@ transmit_hello_and_ping (void *cls,
 		    HELLO_VERIFICATION_TIMEOUT,
 		    message_buf, tsize,
 		    GNUNET_YES, neighbour);
-  GNUNET_free(message_buf);
+  GNUNET_free (message_buf);
 }
 
 
@@ -4792,8 +4797,8 @@ process_hello (struct TransportPlugin *plugin,
 #if DEBUG_TRANSPORT_HELLO > 2
   if (plugin != NULL)
     {
-      my_id = GNUNET_strdup(GNUNET_i2s(plugin->env.my_identity));
 #if DEBUG_TRANSPORT
+      my_id = GNUNET_strdup(GNUNET_i2s(plugin->env.my_identity));
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "%s: Starting validation of `%s' message for `%4s' via '%s' of size %u\n",
                   my_id,
@@ -4801,8 +4806,8 @@ process_hello (struct TransportPlugin *plugin,
                   GNUNET_i2s (&target),
                   plugin->short_name,
                   GNUNET_HELLO_size(hello));
+      GNUNET_free (my_id);
 #endif
-      GNUNET_free(my_id);
     }
 #endif
   chvc = GNUNET_malloc (sizeof (struct CheckHelloValidatedContext) + hsize);
@@ -4924,11 +4929,11 @@ disconnect_neighbour (struct NeighbourList *n, int check)
 	      GNUNET_SCHEDULER_cancel (peer_pos->revalidate_task);
 	      peer_pos->revalidate_task = GNUNET_SCHEDULER_NO_TASK;
 	    }
-	  GNUNET_free(peer_pos->ressources);
+	  GNUNET_free (peer_pos->ressources);
 	  peer_pos->ressources = NULL;
-	  GNUNET_free(peer_pos->quality);
+	  GNUNET_free (peer_pos->quality);
 	  peer_pos->ressources = NULL;
-	  GNUNET_free(peer_pos);
+	  GNUNET_free (peer_pos);
         }
       GNUNET_free (rpos);
     }
@@ -5991,7 +5996,7 @@ handle_peer_address_lookup (void *cls,
                                    == GNUNET_YES) ? "VALIDATED"
                                    : "UNVALIDATED");
               transmit_address_to_client(tc, addr_buf);
-              GNUNET_free(addr_buf);
+              GNUNET_free (addr_buf);
             }
           else if (foreign_address_iterator->addrlen == 0)
             {
@@ -6003,7 +6008,7 @@ handle_peer_address_lookup (void *cls,
                                    == GNUNET_YES) ? "VALIDATED"
                                    : "UNVALIDATED");
               transmit_address_to_client (tc, addr_buf);
-              GNUNET_free(addr_buf);
+              GNUNET_free (addr_buf);
             }
 
           foreign_address_iterator = foreign_address_iterator->next;
@@ -6070,7 +6075,7 @@ handle_address_iterate (void *cls,
                                        == GNUNET_YES) ? "VALIDATED"
                                        : "UNVALIDATED");
                   transmit_address_to_client (tc, addr_buf);
-                  GNUNET_free(addr_buf);
+                  GNUNET_free (addr_buf);
                 }
               else if (foreign_address_iterator->addrlen == 0)
                 {
@@ -6084,7 +6089,7 @@ handle_address_iterate (void *cls,
                                          == GNUNET_YES) ? "VALIDATED"
                                          : "UNVALIDATED");
                   transmit_address_to_client (tc, addr_buf);
-                  GNUNET_free(addr_buf);
+                  GNUNET_free (addr_buf);
                 }
 
               foreign_address_iterator = foreign_address_iterator->next;
