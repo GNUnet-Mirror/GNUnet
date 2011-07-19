@@ -241,7 +241,7 @@ notify_receive_new (void *cls,
 {
   const struct TestMessage *hdr;
 
-  GNUNET_assert (msg != NULL);
+  GNUNET_assert (message != NULL);
   hdr = (const struct TestMessage*) message;
   if (measurement_running == GNUNET_NO)
 	  return;
