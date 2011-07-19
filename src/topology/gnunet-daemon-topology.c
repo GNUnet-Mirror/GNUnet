@@ -1424,7 +1424,8 @@ run (void *cls,
 	      minimum_friend_count,
 	      autoconnect ? "autoconnect enabled" : "autoconnect disabled");
 #endif       
-  if (friend_count < minimum_friend_count) 
+  if ( (friend_count < minimum_friend_count) &&
+       (blacklist == NULL) )
     blacklist = GNUNET_TRANSPORT_blacklist (cfg,
 					    &blacklist_check, NULL);
   transport = GNUNET_TRANSPORT_connect (cfg,
