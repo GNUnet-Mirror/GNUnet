@@ -6,9 +6,11 @@
   transport-level connection never comes up.
 * Mantis:
   - 1694 --- try to reproduce (non-deterministic, w. testcase, need core/valgrind)
-  - 1725 --- try to reproduce (non-deterministic, w. testcase, need core)
   - 1724 --- try to reproduce
-  - 1705 --- try to reproduce (Nate)
+  - 1725 --- try to reproduce (non-deterministic, w. testcase, need core)
+  - 1728 --- investigate 
+  - 1736 --- investigate
+  - 1737 --- investigate
 * clean buildbots
 
 0.9.0pre4:
