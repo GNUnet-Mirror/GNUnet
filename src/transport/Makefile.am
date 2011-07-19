@@ -21,6 +21,14 @@ endif
 
 if HAVE_LIBGLPK
  TRANSPORT_ATS_SRC = gnunet-service-transport_ats.c
+ TEST_TRANSPORT_ATS = \
+   test_transport_ats \
+   test_transport_ats_multiple_peers 
+  GN_GLPK = -lglpk
+if HAVE_BENCHMARKS
+ ATS_TRANSPORT_BENCHMARKS = \
+   perf_transport_ats 
+endif
 endif
 
 if USE_COVERAGE
@@ -139,10 +147,6 @@ gnunet_transport_LDADD = \
 gnunet_transport_DEPENDENCIES = \
   libgnunettransportnew.la				
 
-if HAVE_LIBGLPK
-  GN_GLPK = -lglpk
-endif
-
 gnunet_service_transport_SOURCES = \
  gnunet-service-transport.c $(TRANSPORT_ATS_SRC)
 gnunet_service_transport_LDADD = \
@@ -246,15 +250,10 @@ libgnunet_plugin_transport_https_la_CFLAGS = \
 libgnunet_plugin_transport_https_la_CPPFLAGS = \
  @LIBCURL_CPPFLAGS@
 
-if HAVE_BENCHMARKS
- TRANSPORT_BENCHMARKS = \
-   perf_transport_ats 
-endif
 
 check_PROGRAMS = \
- test_transport_ats \
- test_transport_ats_multiple_peers \
- $(TRANSPORT_BENCHMARKS) \
+ $(TEST_TRANSPORT_ATS) \
+ $(ATS_TRANSPORT_BENCHMARKS) \
  test_transport_api_tcp \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
@@ -285,8 +284,7 @@ check_PROGRAMS = \
 
 if ENABLE_TEST_RUN
 TESTS = \
- test_transport_ats \
- test_transport_ats_multiple_peers \
+ $(TEST_TRANSPORT_ATS) \
  perf_transport_ats \
  test_transport_api_tcp \
  test_transport_api_tcp_nat \
@@ -327,7 +325,7 @@ test_transport_ats_LDADD = -lm \
  $(GN_GLPK)
 
 test_transport_ats_multiple_peers_SOURCES = \
- test_transport_ats_multiple_peers.c
+ test_transport_ats_multiple_peers.c $(TRANSPORT_ATS_SRC)
 test_transport_ats_multiple_peers_LDADD = -lm \
  $(top_builddir)/src/transport/libgnunettransportnew.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -337,7 +335,7 @@ test_transport_ats_multiple_peers_LDADD = -lm \
 perf_transport_ats_SOURCES = \
  perf_transport_ats.c
 perf_transport_ats_LDADD = \
- $(GN_GLPK) \
+ -lglpk \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_transport_api_tcp_SOURCES = \

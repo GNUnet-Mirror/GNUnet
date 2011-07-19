@@ -18,15 +18,13 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file testing/per_transport_ats.c
+ * @file transport/perf_transport_ats.c
  * @brief testcase for ats functionality
  */
 #include "platform.h"
 #include "gnunet_time_lib.h"
 #include "gauger.h"
-#if HAVE_LIBGLPK
 #include <glpk.h>
-#endif
 
 #define VERBOSE GNUNET_NO
 
@@ -34,7 +32,6 @@
 
 static int ret = 0;
 
-#if HAVE_LIBGLPK
 static int executions = EXECS;
 static uint64_t exec_time[EXECS];
 
@@ -48,7 +45,8 @@ static glp_prob * prob;
 static struct GNUNET_TIME_Absolute start;
 static struct GNUNET_TIME_Absolute end;
 
-void solve_mlp(int presolve)
+static void 
+solve_mlp(int presolve)
 {
   int result, solution;
   glp_iocp opt_mlp;
@@ -62,7 +60,8 @@ void solve_mlp(int presolve)
   GNUNET_assert ((solution == 5) && (result==0));
 }
 
-void solve_lp(int presolve)
+static void
+solve_lp(int presolve)
 {
   int result;
   int solution;
@@ -79,8 +78,10 @@ void solve_lp(int presolve)
   GNUNET_assert ((solution == 5) && (result==0));
 }
 
+#if 0
 /* Modify quality constraint */
-void modify_qm(int start, int length, int values_to_change)
+static void 
+modify_qm(int start, int length, int values_to_change)
 {
   //int * ind = GNUNET_malloc (length * sizeof (int));
   //double *val = GNUNET_malloc (length * sizeof (double));
@@ -102,10 +103,12 @@ void modify_qm(int start, int length, int values_to_change)
   }
   //glp_set_mat_row(prob, start, length, ind, val);
 }
+#endif
 
 
 
-void bench_simplex_optimization(char * file, int executions)
+static void 
+bench_simplex_optimization(char * file, int executions)
 {
   int c;
   int res;
@@ -139,7 +142,8 @@ void bench_simplex_optimization(char * file, int executions)
 }
 
 
-void bench_simplex_no_optimization(char * file, int executions)
+static void
+bench_simplex_no_optimization(char * file, int executions)
 {
   int c;
   int res;
@@ -171,7 +175,8 @@ void bench_simplex_no_optimization(char * file, int executions)
   glp_delete_prob(prob);
 }
 
-void bench_mlp_no_optimization(char * file, int executions)
+static void
+bench_mlp_no_optimization(char * file, int executions)
 {
   int c;
   int res;
@@ -204,7 +209,8 @@ void bench_mlp_no_optimization(char * file, int executions)
 }
 
 
-void bench_mlp_with_optimization(char * file, int executions, int changes)
+static void 
+bench_mlp_with_optimization(char * file, int executions, int changes)
 {
   int c;
   int res;
@@ -264,7 +270,7 @@ void modify_cr (int start, int length, int count)
   //glp_set_mat_row(prob, start, length, ind, val);
 }
 #endif
-#endif
+
 
 int main (int argc, char *argv[])
 {
@@ -276,12 +282,6 @@ int main (int argc, char *argv[])
                     "INFO",
 #endif
                     NULL);
-
-#if !HAVE_LIBGLPK
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "GLPK not installed, exiting testcase\n");
-	return 0;
-#else
-
   int nullfd = OPEN ("/dev/null", O_RDWR | O_APPEND);
   if (nullfd < 0)
     return GNUNET_SYSERR;
@@ -330,10 +330,8 @@ int main (int argc, char *argv[])
       "GLPK MLP 100 peers 400 addresses with optimization",
       ((double) mlp_with_opt_avg  / EXECS) / 400, "ms/address");
   (void) CLOSE (nullfd);
-
-#endif
   return ret;
 }
 
-/* end of per_transport_ats.c*/
+/* end of perf_transport_ats.c*/
 

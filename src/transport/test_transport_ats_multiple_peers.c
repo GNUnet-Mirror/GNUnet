@@ -25,8 +25,6 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
-#if HAVE_LIBGLPK
-
 #include "gnunet_testing_lib.h"
 #include "gnunet_transport_service.h"
 #include "gauger.h"
@@ -557,8 +555,10 @@ void dummy(void)
 {
   struct ATS_quality_metric * q = qm;
   q = NULL;
+  q++;
   struct ATS_ressource * r = ressources;
   r = NULL;
+  r++;
 }
 
 static size_t 
@@ -789,8 +789,6 @@ check ()
   return ok;
 }
 
-#endif
-
 int
 main (int argc, char *argv[])
 {
@@ -804,11 +802,6 @@ main (int argc, char *argv[])
 #endif
                     NULL);
 
-#if !HAVE_LIBGLPK
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-	      "GLPK not installed, exiting testcase\n");
-  return ret;
-#else
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-testing");
   machine_parsable = GNUNET_NO;
   peers = NUM_PEERS;
@@ -848,7 +841,6 @@ main (int argc, char *argv[])
    */
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-testing");
   return ret;
-#endif
 }
 
 /* end of test_transport_ats_multiple_peers.c*/

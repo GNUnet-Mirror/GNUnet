@@ -29,9 +29,14 @@
 #define VERBOSE GNUNET_YES
 
 static struct ATS_Handle * ats;
+
 static struct GNUNET_CONFIGURATION_Handle * cfg;
 
-void ats_result_cb ()
+static struct TransportConfiguration *tc;
+
+
+static void 
+ats_result_cb ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
       "ATS Result callback\n");
@@ -49,40 +54,11 @@ struct TransportConfiguration
   struct ATS_mechanism * m_tail;
 };
 
-struct TransportConfiguration *tc;
 
-/*
-void create_topology (int c_peers, int c_mechanisms)
-{
-  int c;
-  peers = GNUNET_malloc ( c_peers * sizeof (struct ATS_peer));
-  for (c=0 ; c<c_peers; c++)
-    {
-      peers[c].f = 1.0 / c_peers;
-      GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &peers[c].peer.hashPubKey);
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peer %s \n", GNUNET_i2s (&peers[c].peer));
-      peers[c].m_head = NULL;
-      peers[c].m_tail = NULL;
-    }
-  mechanisms = GNUNET_malloc ( c_mechanisms * sizeof (struct ATS_mechanism));
-  for (c=0 ; c<c_mechanisms; c++)
-    {
-       mechanisms[c].peer = &peers[c];
-    }
-}
-
-
-void delete_topology (void)
-{
-  GNUNET_free (peers);
-  GNUNET_free (mechanisms);
-}*/
-
-
-void create_ats_information (struct ATS_peer **p, int * c_p,
-                             struct ATS_mechanism ** m, int * c_m)
-{
-
+static void 
+create_ats_information (struct ATS_peer **p, int * c_p,
+			struct ATS_mechanism ** m, int * c_m)
+{ 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
       "ATS needs addresses\n");
 
@@ -90,28 +66,27 @@ void create_ats_information (struct ATS_peer **p, int * c_p,
  (*c_p) = tc->mechanisms;
  (*m) = tc->m_head;
  (*c_m) = tc->mechanisms;
-
 }
 
-int run_ats (void)
+
+static
+int run_ats ()
 {
   int ret = 0;
-#if HAVE_LIBGLPK
   ats_calculate_bandwidth_distribution (ats);
-#endif
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Running ATS: %s \n", (ret==0)? "SUCCESSFUL": "FAILED");
   return ret;
 }
 
-int init_ats (void)
+
+static int
+init_ats ()
 {
   int ret = 0;
-#if HAVE_LIBGLPK
   ats = ats_init(1.0, 1.0, 1.0, 50000, 5, 10, ATS_MAX_EXEC_DURATION,
                 create_ats_information,
                 ats_result_cb);
-#endif
   //GNUNET_assert (ats != NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -120,49 +95,56 @@ int init_ats (void)
 }
 
 
-int shutdown_ats (void)
+static int 
+shutdown_ats ()
 {
   int ret = 0;
-#if HAVE_LIBGLPK
   ats_delete_problem (ats);
   ats_shutdown (ats);
-#endif
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Shutdown ATS: %s \n", (ret==0)? "SUCCESSFUL": "FAILED");
   return ret;
 }
 
+
 /* To make compiler happy */
-void dummy(void)
+void 
+dummy()
 {
   struct ATS_quality_metric * q = qm;
   q = NULL;
   struct ATS_ressource * r = ressources;
   r = NULL;
+  q++; 
+  r++;
 }
 
-void iterate_peer_values (void *cls,
-                      const char *section,
-                      const char *option,
-                      const char *value)
+
+static void 
+iterate_peer_values (void *cls,
+		     const char *section,
+		     const char *option,
+		     const char *value)
 {
   if (strcmp (option, "f") == 0)
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "\t %s %s\n", option, value);
 }
 
-void iterate_mech_values (void *cls,
-                      const char *section,
-                      const char *option,
-                      const char *value)
+static void
+iterate_mech_values (void *cls,
+		     const char *section,
+		     const char *option,
+		     const char *value)
 {
   if (strcmp (option, "f") == 0)
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "\t %s %s\n", option, value);
 }
 
-void iterate_sections (void *cls,
-                        const char *section)
+static void 
+iterate_sections (void *cls,
+		  const char *section)
 {
   struct TransportConfiguration * tc = cls;
   /* Peer definition */
@@ -183,21 +165,21 @@ void iterate_sections (void *cls,
     }
 }
 
-void destroy_transport_configuration (char * filename)
-{
-  GNUNET_CONFIGURATION_destroy (cfg);
 
-}
-
-struct TransportConfiguration * load_transport_configuration (char * filename)
+static struct TransportConfiguration * 
+load_transport_configuration (char * filename)
 {
   struct TransportConfiguration * ret = GNUNET_malloc(sizeof (struct TransportConfiguration));
-  cfg = GNUNET_CONFIGURATION_create();
-  GNUNET_CONFIGURATION_load(cfg, filename);
-  GNUNET_CONFIGURATION_iterate_sections(cfg, iterate_sections, ret);
 
+  cfg = GNUNET_CONFIGURATION_create();
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CONFIGURATION_load(cfg, filename));
+  GNUNET_CONFIGURATION_iterate_sections (cfg, iterate_sections, ret);
+  GNUNET_CONFIGURATION_destroy (cfg);
+  cfg = NULL;
   return ret;
 }
+
 
 int
 main (int argc, char *argv[])
@@ -211,29 +193,11 @@ main (int argc, char *argv[])
                     "INFO",
 #endif
                     NULL);
-#if !HAVE_LIBGLPK
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "HAVE_LIBGLPK not set, exiting testcase\n");
-#endif
-
-#if !HAVE_LIBGLPK
-  return ret;
-#endif
-
-  return 0;
-
   tc = load_transport_configuration ("test.ats");
-
-  return ret;
-
-  /* Testing */
   ats = NULL;
-
   ret += init_ats ();
   ret += run_ats ();
   ret += shutdown_ats ();
-
-  /* Shutdown */
   return ret;
 
 }

@@ -19,7 +19,7 @@
 */
 
 /**
- * @file transport/transport_ats.h
+ * @file transport/gnunet-service-transport_ats.h
  * @brief common internal definitions for transport service's ats code
  * @author Matthias Wachs
  */
@@ -512,4 +512,4 @@ ats_set_logging_options (struct ATS_Handle * ats,
                         int log_problem);
 
 #endif
-/* end of file transport_ats.h */
+/* end of file gnunet-service-transport_ats.h */
