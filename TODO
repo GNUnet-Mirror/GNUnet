@@ -5,13 +5,9 @@
   seems to be that the plugin tries some of the broken addresses, fails and the
   transport-level connection never comes up.
 * Mantis:
-  - 1727 --- investigate (NEW)
   - 1694 --- try to reproduce (non-deterministic, w. testcase, need core/valgrind)
   - 1725 --- try to reproduce (non-deterministic, w. testcase, need core)
   - 1724 --- try to reproduce
-  - 1709 --- need more data (Nate)
-  - 1717 --- need more data (Nate)
-  - 1701 --- try to reproduce (Nate)
   - 1705 --- try to reproduce (Nate)
 * clean buildbots
 
