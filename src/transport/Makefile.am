@@ -302,15 +302,16 @@ endif
 test_transport_ats_SOURCES = \
  test_transport_ats.c $(TRANSPORT_ATS_SRC)
 test_transport_ats_LDADD = -lm \
+ -lglpk \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
- $(top_builddir)/src/util/libgnunetutil.la \
- $(GN_GLPK)
+ $(top_builddir)/src/util/libgnunetutil.la 
 
 test_transport_ats_multiple_peers_SOURCES = \
  test_transport_ats_multiple_peers.c $(TRANSPORT_ATS_SRC)
 test_transport_ats_multiple_peers_LDADD = -lm \
+ -lglpk \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
