@@ -997,6 +997,21 @@ GNUNET_TESTING_peergroup_start(
                                void *peergroup_cls,
                                const struct GNUNET_TESTING_Host *hostnames);
 
+/**
+ * Print current topology to a graphviz readable file.
+ *
+ * @param pg a currently running peergroup to print to file
+ * @param output_filename the file to write the topology to
+ * @param notify_cb callback to call upon completion or failure
+ * @param notify_cb_cls closure for notify_cb
+ *
+ */
+void
+GNUNET_TESTING_peergroup_topology_to_file(struct GNUNET_TESTING_PeerGroup *pg,
+                                          const char *output_filename,
+                                          GNUNET_TESTING_NotifyCompletion notify_cb,
+                                          void *notify_cb_cls);
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
