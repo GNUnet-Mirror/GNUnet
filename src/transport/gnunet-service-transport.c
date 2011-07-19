@@ -6374,10 +6374,11 @@ void ats_result_cb ()
 }
 
 
-void create_ats_information ( struct ATS_peer **p,
-                              int * c_p,
-                              struct ATS_mechanism ** m,
-                              int * c_m )
+static void
+create_ats_information ( struct ATS_peer **p,
+			 int * c_p,
+			 struct ATS_mechanism ** m,
+			 int * c_m )
 {
 #if VERBOSE_ATS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
