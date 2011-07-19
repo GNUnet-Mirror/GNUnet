@@ -699,7 +699,7 @@ process_interfaces (void *cls,
       break;
     default:
       GNUNET_break (0);
-      break;
+      return GNUNET_OK;
     }
   if ( (h->internal_address == NULL) &&
        (h->server_proc == NULL) &&
