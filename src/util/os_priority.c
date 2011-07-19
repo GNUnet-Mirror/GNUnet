@@ -428,7 +428,7 @@ CreateCustomEnvTable (char **vars)
     return NULL;
   for (c = 0, var_ptr = vars; *var_ptr; var_ptr += 2, c++);
   n_var = c;
-  index = GNUNET_malloc (n_var);
+  index = GNUNET_malloc (sizeof (char *) * n_var);
   for (c = 0; c < n_var; c++)
     index[c] = 0;
   for (items_count = 0, ptr = win32_env_table; ptr[0] != 0; items_count++)
