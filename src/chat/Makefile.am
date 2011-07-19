@@ -37,6 +37,8 @@ gnunet_chat_LDADD = \
   $(top_builddir)/src/chat/libgnunetchat.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
+gnunet_chat_DEPENDENCIES = \
+  libgnunetchat.la
 
 check_PROGRAMS = \
  test_chat \

@@ -27,6 +27,8 @@ gnunet_nat_server_SOURCES = \
 gnunet_nat_server_LDADD = \
   $(top_builddir)/src/nat/libgnunetnat.la \
   $(top_builddir)/src/util/libgnunetutil.la
+gnunet_nat_server_DEPENDENCIES = \
+  libgnunetnat.la
 
 gnunet_helper_nat_server_SOURCES = \
  $(NATSERVER)

@@ -46,7 +46,8 @@ gnunet_core_list_connections_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/util/libgnunetutil.la
-
+gnunet_core_list_connections_DEPENDENCIES = \
+  libgnunetcore.la
 
 check_PROGRAMS = \
  test_core_api_start_only \
