@@ -463,9 +463,9 @@ static void _dummy2 ()
 {
   ats_modify_problem_state (NULL, 0);
   qm[1].atis_index = 0;
-   _dummy();
-   int t = ATS_COST_UPDATED + ATS_MODIFIED + ATS_NEW;
-   t = 0;
+  _dummy();
+  int t = ATS_COST_UPDATED + ATS_MODIFIED + ATS_NEW;
+  t++;
 }
 
 /*
@@ -1669,14 +1669,40 @@ void ats_update_problem_cr (struct ATS_Handle * ats)
 
 void ats_set_logging_options (struct ATS_Handle * ats,
                               struct GNUNET_STATISTICS_Handle * stats,
-                              int minimum_addresses,
-                              int minimum_peers,
-                              int overwrite_dump,
-                              int log_solution,
-                              int log_problem)
+			      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  int minimum_addresses;
+  int minimum_peers;
+  int overwrite_dump;
+  int log_solution;
+  int log_problem;
+  unsigned long long  value;
+
   if (ats == NULL)
     return;
+  log_problem = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+						      "transport",
+						      "DUMP_MLP");
+  log_solution = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+						       "transport",
+						       "DUMP_SOLUTION");
+  overwrite_dump = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+							 "transport",
+							 "DUMP_OVERWRITE");
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_number(cfg,
+					    "transport",
+					    "DUMP_MIN_PEERS", 
+					    &value))
+    minimum_peers = (int) value;
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_number(cfg,
+					    "transport",
+					    "DUMP_MIN_ADDRS", 
+					    &value))
+    minimum_addresses = (int) value;
+
+
   ats->stats = stats;
   ats->dump_min_addr = minimum_addresses;
   ats->dump_min_peers = minimum_peers;

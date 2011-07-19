@@ -504,12 +504,8 @@ ats_update_problem_cr (struct ATS_Handle * ats);
 
 void
 ats_set_logging_options (struct ATS_Handle * ats,
-                        struct GNUNET_STATISTICS_Handle *stats,
-                        int minimum_addresses,
-                        int minimum_peers,
-                        int overwrite_dump,
-                        int log_solution,
-                        int log_problem);
+			 struct GNUNET_STATISTICS_Handle *stats,
+			 const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 #endif
 /* end of file gnunet-service-transport_ats.h */

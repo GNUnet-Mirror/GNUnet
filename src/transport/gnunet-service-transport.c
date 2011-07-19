@@ -6715,35 +6715,9 @@ run (void *cls,
                   ATS_MAX_ITERATIONS, ATS_MAX_EXEC_DURATION,
                   &create_ats_information,
                   ats_result_cb);
-#endif
-
-  int log_problem = GNUNET_NO;
-  int log_solution = GNUNET_NO;
-  int overwrite_dump = GNUNET_NO;
-  int minimum_peers = 0;
-  int minimum_addresses = 0;
-
-  log_problem = GNUNET_CONFIGURATION_get_value_yesno (cfg,
-						      "transport",
-						      "DUMP_MLP");
-  log_solution = GNUNET_CONFIGURATION_get_value_yesno (cfg,
-						       "transport",
-						       "DUMP_SOLUTION");
-  overwrite_dump = GNUNET_CONFIGURATION_get_value_yesno (cfg,
-							 "transport",
-							 "DUMP_OVERWRITE");
-  if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_number(cfg,
-					    "transport",
-					    "DUMP_MIN_PEERS", 
-					    &value))
-    minimum_peers = (int) value;
-  if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_number(cfg,
-					    "transport",
-					    "DUMP_MIN_ADDRS", 
-					    &value))
-    minimum_addresses = (int) value;
+  ats_set_logging_options (ats,
+			   stats,
+			   cfg);
   GNUNET_break (GNUNET_OK ==
 		GNUNET_CONFIGURATION_get_value_time (cfg,
 						     "transport",
@@ -6754,19 +6728,9 @@ run (void *cls,
 						     "transport",
 						     "ATS_MIN_INTERVAL", 
 						     &ats_minimum_interval));
-#if HAVE_LIBGLPK
-  ats_set_logging_options (ats,
-                          stats,
-                          minimum_addresses,
-                          minimum_peers,
-                          overwrite_dump,
-                          log_solution,
-                          log_problem);
-#endif
   if (ats != NULL)
     ats_task = GNUNET_SCHEDULER_add_now (&schedule_ats, ats);
-
-
+#endif
 
 
 #if DEBUG_TRANSPORT
