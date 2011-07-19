@@ -1604,9 +1604,13 @@ void
 GSF_peer_update_responder_peer_ (struct GSF_ConnectedPeer *cp,
 				 const struct GSF_ConnectedPeer *initiator_peer)
 {
-  GNUNET_PEER_change_rc (cp->ppd.last_p2p_replies[cp->last_p2p_replies_woff % P2P_SUCCESS_LIST_SIZE], -1);
-  cp->ppd.last_p2p_replies[cp->last_p2p_replies_woff++ % P2P_SUCCESS_LIST_SIZE] = initiator_peer->ppd.pid;
+  unsigned int woff;
+
+  woff = cp->last_p2p_replies_woff % P2P_SUCCESS_LIST_SIZE;
+  GNUNET_PEER_change_rc (cp->ppd.last_p2p_replies[woff], -1);
+  cp->ppd.last_p2p_replies[woff] = initiator_peer->ppd.pid;
   GNUNET_PEER_change_rc (initiator_peer->ppd.pid, 1);
+  cp->last_p2p_replies_woff = (woff + 1) % P2P_SUCCESS_LIST_SIZE;
 }
 
 
@@ -1685,6 +1689,7 @@ GSF_peer_disconnect_handler_ (void *cls,
   GSF_plan_notify_peer_disconnect_ (cp);
   GNUNET_LOAD_value_free (cp->ppd.transmission_delay);
   GNUNET_PEER_decrement_rcs (cp->ppd.last_p2p_replies, P2P_SUCCESS_LIST_SIZE);
+  memset (cp->ppd.last_p2p_replies, 0, sizeof (cp->ppd.last_p2p_replies));
   GSF_push_stop_ (cp);
   while (NULL != (pth = cp->pth_head))
     {
