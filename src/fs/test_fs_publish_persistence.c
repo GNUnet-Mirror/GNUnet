@@ -74,6 +74,8 @@ static char *fn2;
 
 static int err;
 
+static GNUNET_SCHEDULER_TaskIdentifier rtask;
+
 static void
 abort_publish_task (void *cls,
 		    const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -86,6 +88,13 @@ abort_publish_task (void *cls,
   GNUNET_DISK_directory_remove (fn2);
   GNUNET_free (fn2);
   fn2 = NULL;
+  GNUNET_FS_stop (fs);
+  fs = NULL;
+  if (GNUNET_SCHEDULER_NO_TASK != rtask)
+    {
+      GNUNET_SCHEDULER_cancel (rtask);
+      rtask = GNUNET_SCHEDULER_NO_TASK;
+    }
 }
 
 
@@ -98,6 +107,7 @@ static void
 restart_fs_task (void *cls,
 		 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  rtask = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_FS_stop (fs);
   fs = GNUNET_FS_start (cfg,
 			"test-fs-publish-persistence",
@@ -125,9 +135,9 @@ consider_restart (int ev)
     if (prev[i] == ev)
       return;
   prev[off++] = ev;
-  GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_URGENT,
-				      &restart_fs_task,
-				      NULL);
+  rtask = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_URGENT,
+					      &restart_fs_task,
+					      NULL);
 }
 
 
@@ -144,7 +154,7 @@ progress_cb (void *cls,
       consider_restart (event->status);
       ret = event->value.publish.cctx;
       printf ("Publish complete,  %llu kbps.\n",
-	      (unsigned long long) (FILESIZE * 1000 / (1+GNUNET_TIME_absolute_get_duration (start).rel_value) / 1024));
+	      (unsigned long long) (FILESIZE * 1000LL / (1+GNUNET_TIME_absolute_get_duration (start).rel_value) / 1024));
       if (0 == strcmp ("publish-context-dir", 
 		       event->value.publish.cctx))	
 	GNUNET_SCHEDULER_add_now (&abort_publish_task,
@@ -169,6 +179,8 @@ progress_cb (void *cls,
     case GNUNET_FS_STATUS_PUBLISH_RESUME:
       if (NULL == publish)
 	{
+	  GNUNET_assert (GNUNET_YES ==
+			 GNUNET_FS_file_information_is_directory (event->value.publish.fi));
 	  publish = event->value.publish.pc;
 	  return "publish-context-dir";
 	}
