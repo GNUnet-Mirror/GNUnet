@@ -377,7 +377,7 @@ internal_topology_callback(
       if (pg_start_ctx->topology_output_file != NULL)
         {
           second_str = GNUNET_strdup(GNUNET_i2s(second));
-          temp = GNUNET_asprintf(&temp_str, "\t\"%s\" -> \"%s\"\n", GNUNET_i2s(first), second_str);
+          temp = GNUNET_asprintf(&temp_str, "\t\"%s\" -- \"%s\"\n", GNUNET_i2s(first), second_str);
           GNUNET_free(second_str);
           if (temp > 0)
             GNUNET_DISK_file_write(pg_start_ctx->topology_output_file, temp_str, temp);
@@ -607,21 +607,29 @@ write_topology_cb (void *cls,
 
   topo_ctx = (struct TopologyOutputContext *)cls;
   GNUNET_assert(topo_ctx->file != NULL);
-  if (emsg == NULL)
+  if ((emsg == NULL) && (first != NULL) && (second != NULL))
     {
       GNUNET_assert(first != NULL);
       GNUNET_assert(second != NULL);
       temp_pid2 = GNUNET_strdup(GNUNET_i2s(second));
-      temp = GNUNET_asprintf(&temp_str, "\t%s -> %s\n", GNUNET_i2s(first), temp_pid2);
+      temp = GNUNET_asprintf(&temp_str, "\t\"%s\" -- \"%s\"\n", GNUNET_i2s(first), temp_pid2);
       GNUNET_free(temp_pid2);
       GNUNET_DISK_file_write(topo_ctx->file, temp_str, temp);
+    }
+  else if ((emsg == NULL) && (first == NULL) && (second == NULL))
+    {
+      temp = GNUNET_asprintf(&temp_str, "}\n");
+      GNUNET_DISK_file_write(topo_ctx->file, temp_str, temp);
+      GNUNET_DISK_file_close(topo_ctx->file);
+      topo_ctx->notify_cb(topo_ctx->notify_cb_cls, NULL);
+      GNUNET_free(topo_ctx);
     }
   else
     {
       temp = GNUNET_asprintf(&temp_str, "}\n");
       GNUNET_DISK_file_write(topo_ctx->file, temp_str, temp);
       GNUNET_DISK_file_close(topo_ctx->file);
-      topo_ctx->notify_cb(topo_ctx->notify_cb_cls, NULL);
+      topo_ctx->notify_cb(topo_ctx->notify_cb_cls, emsg);
       GNUNET_free(topo_ctx);
     }
 }
@@ -657,7 +665,7 @@ GNUNET_TESTING_peergroup_topology_to_file(struct GNUNET_TESTING_PeerGroup *pg,
       return;
     }
 
-  temp = GNUNET_asprintf(&temp_str, "digraph G {\n");
+  temp = GNUNET_asprintf(&temp_str, "strict graph G {\n");
   if (temp > 0)
     GNUNET_DISK_file_write(topo_ctx->file, temp_str, temp);
   GNUNET_free_non_null(temp_str);
@@ -776,7 +784,7 @@ GNUNET_TESTING_peergroup_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
       if (pg_start_ctx->topology_output_file != NULL)
         {
           GNUNET_free(temp_str);
-          temp = GNUNET_asprintf(&temp_str, "digraph G {\n");
+          temp = GNUNET_asprintf(&temp_str, "strict graph G {\n");
           if (temp > 0)
             GNUNET_DISK_file_write(pg_start_ctx->topology_output_file, temp_str, temp);
         }
