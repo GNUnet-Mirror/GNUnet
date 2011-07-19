@@ -6374,6 +6374,7 @@ void ats_result_cb ()
 }
 
 
+#if HAVE_LIBGLPK
 static void
 create_ats_information ( struct ATS_peer **p,
 			 int * c_p,
@@ -6473,6 +6474,7 @@ create_ats_information ( struct ATS_peer **p,
   (*p) = peers;
   (*m) = mechanisms;
 }
+#endif
 
 
 static void
@@ -6711,7 +6713,7 @@ run (void *cls,
 #if HAVE_LIBGLPK
   ats = ats_init (D, U, R, v_b_min, v_n_min,
                   ATS_MAX_ITERATIONS, ATS_MAX_EXEC_DURATION,
-                  create_ats_information,
+                  &create_ats_information,
                   ats_result_cb);
 #endif
 
