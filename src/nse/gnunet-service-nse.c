@@ -275,7 +275,7 @@ transmit_ready(void *cls, size_t size, void *buf)
 
   size_t msize;
   peer_entry->th = NULL;
-#if DEBUG_NSE
+#if DEBUG_NSE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%s: transmit_ready called\n",
       GNUNET_i2s (&my_identity));
 #endif
@@ -298,7 +298,7 @@ transmit_ready(void *cls, size_t size, void *buf)
   msize = ntohs (peer_entry->pending_message->size);
   if (msize <= size)
     memcpy (cbuf, peer_entry->pending_message, msize);
-#if DEBUG_NSE
+#if DEBUG_NSE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
       "%s: transmit_ready called (transmit %d bytes)\n",
       GNUNET_i2s (&my_identity), msize);
@@ -441,7 +441,7 @@ schedule_flood_message(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       * GNUNET_NSE_INTERVAL;
   /* Find the next interval start time */
   next_timestamp.abs_value = previous_timestamp.abs_value + GNUNET_NSE_INTERVAL;
-#if DEBUG_NSE
+#if DEBUG_NSE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
       "%s: curr_time %lu, prev timestamp %lu, next timestamp %lu\n",
       GNUNET_i2s (&my_identity), curr_time.abs_value,
@@ -474,7 +474,7 @@ schedule_flood_message(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   millisecond_offset = ((double) GNUNET_NSE_INTERVAL / (double) 2)
       - ((GNUNET_NSE_INTERVAL / M_PI) * atan (matching_bits
           - current_size_estimate));
-#if DEBUG_NSE
+#if DEBUG_NSE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
       "%s: id matches %d bits, offset is %lu\n\n",
       GNUNET_i2s (&my_identity), matching_bits,
@@ -495,8 +495,8 @@ schedule_flood_message(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #if DEBUG_NSE
   GNUNET_log (
       GNUNET_ERROR_TYPE_WARNING,
-      "%s: milliseconds until next timestamp %lu, sending flood in %lu\n",
-      GNUNET_i2s (&my_identity),
+      "%s: %u bits match, %lu milliseconds to timestamp , sending flood in %lu\n",
+      GNUNET_i2s (&my_identity), matching_bits,
       GNUNET_TIME_absolute_get_remaining (next_timestamp).rel_value,
       offset.rel_value);
 #endif
@@ -618,7 +618,7 @@ handle_p2p_size_estimate(void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_TIME_Absolute curr_time;
   uint64_t drift;
 
-#if DEBUG_NSE
+#if DEBUG_NSE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%s: received flood message!\n",
       GNUNET_i2s (&my_identity));
 #endif
@@ -748,7 +748,7 @@ send_flood_message(void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
       if (peer_entry->th == NULL)
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                     "%s: transmit handle is null!\n", GNUNET_i2s (&my_identity));
-#if DEBUG_NSE
+#if DEBUG_NSE > 1
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
           "%s: Sending flood message (distance %d) to %s!\n",
           GNUNET_i2s (&my_identity), ntohl (to_send->distance),
@@ -820,6 +820,7 @@ handle_core_disconnect(void *cls, const struct GNUNET_PeerIdentity *peer)
   while ((NULL != pos) && (0 != memcmp (&pos->id, peer,
                                         sizeof(struct GNUNET_PeerIdentity))))
     pos = pos->next;
+
   if (pos == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -827,12 +828,6 @@ handle_core_disconnect(void *cls, const struct GNUNET_PeerIdentity *peer)
       GNUNET_break(0); /* Should never receive a disconnect message for a peer we don't know about... */
       return;
     }
-
-  /* TODO: decide whether to copy the message, or always use the static pointer */
-#if TODO
-  if (pos->pending_message != NULL)
-  GNUNET_free(pos->pending_message);
-#endif
 
   if (pos->th != NULL)
     GNUNET_CORE_notify_transmit_ready_cancel (pos->th);

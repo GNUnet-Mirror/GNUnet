@@ -193,7 +193,7 @@ void connect_cb (void *cls,
   second_id = GNUNET_strdup(GNUNET_i2s(second));
   if (emsg == NULL)
     {
-      fprintf(stderr, "Connected %s -> %s\n", GNUNET_i2s(first), second_id);
+      //fprintf(stderr, "Connected %s -> %s\n", GNUNET_i2s(first), second_id);
       total_connections++;
     }
 }

@@ -42,6 +42,14 @@ struct NSEPeer
   struct GNUNET_NSE_Handle *nse_handle;
 };
 
+struct StatsContext
+{
+  GNUNET_SCHEDULER_Task task;
+  GNUNET_SCHEDULER_TaskIdentifier *task_id;
+  void *task_cls;
+  unsigned long long total_nse_bytes;
+};
+
 struct NSEPeer *peer_head;
 
 struct NSEPeer *peer_tail;
@@ -99,6 +107,11 @@ static struct GNUNET_TESTING_PeerGroup *pg;
 static struct GNUNET_DISK_FileHandle *output_file;
 
 /**
+ * File to log connection info, statistics to.
+ */
+static struct GNUNET_DISK_FileHandle *data_file;
+
+/**
  * How many data points to capture before triggering next round?
  */
 static struct GNUNET_TIME_Relative wait_time;
@@ -118,7 +131,9 @@ static GNUNET_SCHEDULER_TaskIdentifier shutdown_handle;
  */
 static GNUNET_SCHEDULER_TaskIdentifier churn_task;
 
-char *topology_file;
+static char *topology_file;
+
+static char *data_filename;
 
 /**
  * Check whether peers successfully shut down.
@@ -166,6 +181,8 @@ shutdown_task (void *cls,
       GNUNET_free(pos);
     }
 
+  if (data_file != NULL)
+    GNUNET_DISK_file_close(data_file);
   GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
 }
 
@@ -196,7 +213,6 @@ handle_estimate (void *cls, double estimate, double std_dev)
 
 }
 
-
 static void
 connect_nse_service (void *cls,
                      const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -224,12 +240,85 @@ static void
 churn_peers (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc);
 
+/**
+ * Continuation called by the "get_all" and "get" functions.
+ *
+ * @param cls struct StatsContext
+ * @param success GNUNET_OK if statistics were
+ *        successfully obtained, GNUNET_SYSERR if not.
+ */
+static void stats_finished_callback (void *cls, int success)
+{
+  struct StatsContext *stats_context = (struct StatsContext *)cls;
+  char *buf;
+  int buf_len;
+
+  if ((GNUNET_OK == success) && (data_file != NULL)) /* Stats lookup successful, write out data */
+    {
+      buf = NULL;
+      buf_len = GNUNET_asprintf(&buf, "TOTAL_NSE_BYTES: %u\n", stats_context->total_nse_bytes);
+      if (buf_len > 0)
+        {
+          GNUNET_DISK_file_write(data_file, buf, buf_len);
+        }
+      GNUNET_free_non_null(buf);
+    }
+
+  if (stats_context->task != NULL)
+    (*stats_context->task_id) = GNUNET_SCHEDULER_add_now(stats_context->task, stats_context->task_cls);
+
+  GNUNET_free(stats_context);
+}
+
+/**
+ * Callback function to process statistic values.
+ *
+ * @param cls struct StatsContext
+ * @param peer the peer the statistics belong to
+ * @param subsystem name of subsystem that created the statistic
+ * @param name the name of the datum
+ * @param value the current value
+ * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
+ * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ */
+static int statistics_iterator (void *cls,
+                                const struct GNUNET_PeerIdentity *peer,
+                                const char *subsystem,
+                                const char *name,
+                                uint64_t value,
+                                int is_persistent)
+{
+  struct StatsContext *stats_context = (struct StatsContext *)cls;
+  char *buf;
+
+  GNUNET_assert(0 < GNUNET_asprintf(&buf, "bytes of messages of type %d received", GNUNET_MESSAGE_TYPE_NSE_P2P_FLOOD));
+  if ((0 == strstr(subsystem, "core")) && (0 == strstr(name, buf)))
+    {
+      stats_context->total_nse_bytes += value;
+    }
+  GNUNET_free(buf);
+  return GNUNET_OK;
+}
+
+/**
+ * @param cls struct StatsContext
+ * @param tc task context
+ */
+static void
+get_statistics (void *cls,
+                const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct StatsContext *stats_context = (struct StatsContext *)cls;
+  GNUNET_TESTING_get_statistics(pg, &stats_finished_callback, &statistics_iterator, stats_context);
+}
+
 static void
 disconnect_nse_peers (void *cls,
                       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct NSEPeer *pos;
   char *buf;
+  struct StatsContext *stats_context;
   disconnect_task = GNUNET_SCHEDULER_NO_TASK;
   pos = peer_head;
 
@@ -253,8 +342,14 @@ disconnect_nse_peers (void *cls,
     }
   else /* No more rounds, let's shut it down! */
     {
+      stats_context = GNUNET_malloc(sizeof(struct StatsContext));
       GNUNET_SCHEDULER_cancel(shutdown_handle);
-      shutdown_handle = GNUNET_SCHEDULER_add_now(&shutdown_task, NULL);
+      shutdown_handle = GNUNET_SCHEDULER_NO_TASK;
+      stats_context->task = &shutdown_task;
+      stats_context->task_cls = NULL;
+      stats_context->task_id = &shutdown_handle;
+      GNUNET_SCHEDULER_add_now(&get_statistics, stats_context);
+      //shutdown_handle = GNUNET_SCHEDULER_add_now(&shutdown_task, NULL);
     }
   GNUNET_free(buf);
 }
@@ -268,6 +363,9 @@ disconnect_nse_peers (void *cls,
  */
 void topology_output_callback (void *cls, const char *emsg)
 {
+  struct StatsContext *stats_context;
+  stats_context = GNUNET_malloc(sizeof(struct StatsContext));
+
   disconnect_task = GNUNET_SCHEDULER_add_delayed(wait_time, &disconnect_nse_peers, NULL);
   GNUNET_SCHEDULER_add_now(&connect_nse_service, NULL);
 }
@@ -353,6 +451,8 @@ static void
 my_cb (void *cls,
        const char *emsg)
 {
+  char *buf;
+  int buf_len;
   if (emsg != NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -367,6 +467,14 @@ my_cb (void *cls,
               "Peer Group started successfully, connecting to NSE service for each peer!\n");
 #endif
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Have %u connections\n", total_connections);
+  if (data_file != NULL)
+    {
+      buf = NULL;
+      buf_len = GNUNET_asprintf(&buf, "CONNECTIONS_0: %u\n", total_connections);
+      if (buf_len > 0)
+        GNUNET_DISK_file_write(data_file, buf, buf_len);
+      GNUNET_free_non_null(buf);
+    }
   peers_running = GNUNET_TESTING_daemons_running(pg);
   GNUNET_SCHEDULER_add_now(&connect_nse_service, NULL);
   disconnect_task = GNUNET_SCHEDULER_add_delayed(wait_time, &disconnect_nse_peers, NULL);
@@ -437,6 +545,21 @@ run (void *cls,
       GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Option nse-profiler:topology_output_file is required!\n");
       return;
     }
+
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (testing_cfg, "nse-profiler", "data_output_file", &data_filename))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Option nse-profiler:data_output_file is required!\n");
+      return;
+    }
+
+
+  data_file = GNUNET_DISK_file_open (data_filename, GNUNET_DISK_OPEN_READWRITE
+                                                  | GNUNET_DISK_OPEN_CREATE,
+                                                  GNUNET_DISK_PERM_USER_READ |
+                                                  GNUNET_DISK_PERM_USER_WRITE);
+  if (data_file == NULL)
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Failed to open %s for output!\n", data_filename);
+  GNUNET_free(data_filename);
 
   wait_time = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, temp_wait);
 

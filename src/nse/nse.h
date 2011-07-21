@@ -30,7 +30,7 @@
 
 #include "gnunet_common.h"
 
-#define DEBUG_NSE GNUNET_NO
+#define DEBUG_NSE GNUNET_YES
 
 #define VERIFY_CRYPTO GNUNET_NO
 
