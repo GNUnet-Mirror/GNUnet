@@ -56,9 +56,14 @@ extern "C"
  *
  * There are 86400000 milliseconds in a day.
  */
-/*#define GNUNET_NSE_INTERVAL 360000*/ /* Every six minutes */
-#define GNUNET_NSE_INTERVAL 30000 /* Every minute */
-
+#if 0
+#define GNUNET_NSE_INTERVAL 60000 /* Every minute */
+#define GNUNET_NSE_INTERVAL 180000 /* Every three minutes */
+#define GNUNET_NSE_INTERVAL 360000 /* Every six minutes */
+#define GNUNET_NSE_INTERVAL 600000 /* Every ten minutes */
+#define GNUNET_NSE_INTERVAL 1200000 /* Every twenty minutes */
+#endif
+#define GNUNET_NSE_INTERVAL 360000 /* Every ten minutes */
 /**
  * How much clock skew (in milliseconds) will we allow
  * for received messages.  We check our current time
