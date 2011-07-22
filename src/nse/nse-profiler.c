@@ -31,6 +31,8 @@
 
 #define VERBOSE GNUNET_NO
 
+#define CONNECT_LIMIT GNUNET_YES
+
 struct NSEPeer
 {
   struct NSEPeer *prev;
@@ -135,6 +137,8 @@ static char *topology_file;
 
 static char *data_filename;
 
+static uint64_t clock_skew;
+
 /**
  * Check whether peers successfully shut down.
  */
@@ -225,6 +229,10 @@ connect_nse_service (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "TEST_NSE_MULTIPEER: connecting to nse service of peers\n");
   for (i = 0; i < num_peers; i++)
     {
+#if CONNECT_LIMIT
+      if (i % 50 != 0)
+        continue;
+#endif
       current_peer = GNUNET_malloc(sizeof(struct NSEPeer));
       current_peer->daemon = GNUNET_TESTING_daemon_get(pg, i);
       if (GNUNET_YES == GNUNET_TESTING_daemon_running(GNUNET_TESTING_daemon_get(pg, i)))
@@ -323,14 +331,15 @@ disconnect_nse_peers (void *cls,
   pos = peer_head;
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "TEST_NSE_MULTIPEER: disconnecting nse service of peers\n");
-  while (pos != NULL)
+  while (NULL != (pos = peer_head))
     {
       if (pos->nse_handle != NULL)
         {
           GNUNET_NSE_disconnect(pos->nse_handle);
           pos->nse_handle = NULL;
         }
-      pos = pos->next;
+      GNUNET_CONTAINER_DLL_remove(peer_head, peer_tail, pos);
+      GNUNET_free(pos);
     }
 
   GNUNET_asprintf(&buf, "round%llu", current_round);
@@ -550,6 +559,12 @@ run (void *cls,
     {
       GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Option nse-profiler:data_output_file is required!\n");
       return;
+    }
+
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (testing_cfg, "nse-profiler", "skew_clock"))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Setting our clock as skewed...\n");
+      clock_skew = GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_WEAK, GNUNET_TIME_UNIT_MINUTES.rel_value);
     }
 
 
