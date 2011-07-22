@@ -147,6 +147,7 @@ static CURLM *multi;
  * How many bytes did we download from the current hostlist URL?
  */
 static uint32_t stat_bytes_downloaded;
+
 /**
  * Amount of time we wait between hostlist downloads.
  */
@@ -263,9 +264,9 @@ static unsigned int stat_connection_count;
  */
 static size_t
 callback_download (void *ptr, 
-			     size_t size, 
-			     size_t nmemb, 
-			     void *ctx)
+		   size_t size, 
+		   size_t nmemb, 
+		   void *ctx)
 {
   static char download_buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
   const char * cbuf = ptr;
@@ -462,7 +463,8 @@ download_get_url ()
     current_hostlist = NULL;
     return get_bootstrap_server();
   }
-  index = GNUNET_CRYPTO_random_u32 ( GNUNET_CRYPTO_QUALITY_WEAK, linked_list_size);
+  index = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
+				    linked_list_size);
   counter = 0;
   pos = linked_list_head;
   while ( counter < index )
@@ -479,11 +481,13 @@ download_get_url ()
 
 #define CURL_EASY_SETOPT(c, a, b) do { ret = curl_easy_setopt(c, a, b); if (ret != CURLE_OK) GNUNET_log(GNUNET_ERROR_TYPE_WARNING, _("%s failed at %s:%d: `%s'\n"), "curl_easy_setopt", __FILE__, __LINE__, curl_easy_strerror(ret)); } while (0)
 
+
 /**
  * Method to save hostlist to a file during hostlist client shutdown
  * @param shutdown set if called because of shutdown, entries in linked list will be destroyed
  */
 static void save_hostlist_file ( int shutdown );
+
 
 /**
  * add val2 to val1 with overflow check
@@ -512,7 +516,9 @@ static uint64_t checked_add (uint64_t val1, uint64_t val2)
  * @param val2 value 2
  * @return result
  */
-static uint64_t checked_sub (uint64_t val1, uint64_t val2)
+static uint64_t 
+checked_sub (uint64_t val1, 
+	     uint64_t val2)
 {
   if ( val1 <= val2)
     return 0;
@@ -566,10 +572,12 @@ linked_list_get_lowest_quality ( )
 
 
 /**
- * Method to insert a hostlist into the datastore. If datastore contains maximum number of elements, the elements with lowest quality is dismissed
+ * Method to insert a hostlist into the datastore. If datastore
+ * contains maximum number of elements, the elements with lowest
+ * quality is dismissed
  */
 static void
-insert_hostlist ( )
+insert_hostlist ()
 {
   struct Hostlist * lowest_quality;
 
@@ -655,15 +663,18 @@ clean_up ()
 {
   CURLMcode mret;
 
-  if ( ( stat_testing_hostlist == GNUNET_YES ) && ( GNUNET_NO == stat_download_successful) && (NULL != hostlist_to_test))
+  if ( (stat_testing_hostlist == GNUNET_YES) && 
+       (GNUNET_NO == stat_download_successful) &&
+       (NULL != hostlist_to_test))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Advertised hostlist with URI `%s' could not be downloaded. Advertised URI gets dismissed.\n"),hostlist_to_test->hostlist_uri);
+                _("Advertised hostlist with URI `%s' could not be downloaded. Advertised URI gets dismissed.\n"),
+		hostlist_to_test->hostlist_uri);
   }
 
-  if ( stat_testing_hostlist == GNUNET_YES )
+  if (stat_testing_hostlist == GNUNET_YES)
     {
-    stat_testing_hostlist = GNUNET_NO;
+      stat_testing_hostlist = GNUNET_NO;
     }
   if ( NULL != hostlist_to_test)
   {
@@ -700,6 +711,7 @@ clean_up ()
   stat_download_in_progress = GNUNET_NO;
 }
 
+
 /**
  * Task that is run when we are ready to receive more data from the hostlist
  * server.
@@ -709,7 +721,8 @@ clean_up ()
  */
 static void
 task_download (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc);
+	       const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 
 /**
  * Ask CURL for the select set and then schedule the
@@ -785,9 +798,8 @@ download_prepare ()
  */
 static void
 task_download (void *cls,
-	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-
   int running;
   struct CURLMsg *msg;
   CURLMcode mret;
@@ -824,7 +836,8 @@ task_download (void *cls,
       if (stat_bytes_downloaded > MAX_BYTES_PER_HOSTLISTS)
         {
         GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                                  _("Download limit of %u bytes exceeded, stopping download\n"),MAX_BYTES_PER_HOSTLISTS);
+		    _("Download limit of %u bytes exceeded, stopping download\n"),
+		    MAX_BYTES_PER_HOSTLISTS);
         clean_up();
         return;
         }
@@ -833,8 +846,6 @@ task_download (void *cls,
 	{
 	  do
 	    {
-
-
 	      msg = curl_multi_info_read (multi, &running);
 	      GNUNET_break (msg != NULL);
 	      if (msg == NULL)
@@ -860,8 +871,9 @@ task_download (void *cls,
 	            update_hostlist();
 		    if (GNUNET_YES == stat_testing_hostlist)
 		     {
-                      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                                        _("Adding successfully tested hostlist `%s' datastore.\n"),current_url);
+		       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+				   _("Adding successfully tested hostlist `%s' datastore.\n"),
+				   current_url);
 		      insert_hostlist();
 		      hostlist_to_test = NULL;
 		      stat_testing_hostlist = GNUNET_NO;
@@ -1090,10 +1102,12 @@ task_check (void *cls,
                                                NULL);
 }
 
+
 /**
  * This tasks sets hostlist testing to allowed after intervall between to testings is reached
- * cls closure
- * tc TaskContext
+ *
+ * @param cls closure
+ * @param tc TaskContext
  */
 static void
 task_testing_intervall_reset (void *cls,
@@ -1110,8 +1124,9 @@ task_testing_intervall_reset (void *cls,
 
 /**
  * Task that writes hostlist entries to a file on a regular base
- * cls closure
- * tc TaskContext
+ *
+ * @param cls closure
+ * @param tc TaskContext
  */
 static void
 task_hostlist_saving (void *cls,
@@ -1131,6 +1146,7 @@ task_hostlist_saving (void *cls,
                                                &task_hostlist_saving,
                                                NULL);
 }
+
 
 /**
  * Method called whenever a given peer connects.
@@ -1172,6 +1188,7 @@ handler_disconnect (void *cls,
 			    -1,
 			    GNUNET_NO);
 }
+
 
 /**
  * Method called whenever an advertisement message arrives.
@@ -1536,8 +1553,8 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
               _("Hostlists will be saved to file again in  %llums\n"),
               (unsigned long long) SAVING_INTERVALL.rel_value);
     ti_saving_task = GNUNET_SCHEDULER_add_delayed (SAVING_INTERVALL,
-                                               &task_hostlist_saving,
-                                               NULL);
+						   &task_hostlist_saving,
+						   NULL);
   }
   else
   {
@@ -1554,10 +1571,12 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
         result = remove (filename);
         if (result == 0)
         GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Since learning is not enabled on this peer, hostlist file `%s' was removed\n"),filename);
+		    _("Since learning is not enabled on this peer, hostlist file `%s' was removed\n"),
+		    filename);
         else
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Hostlist file `%s' could not be removed\n"),filename);
+		      _("Hostlist file `%s' could not be removed\n"),
+		      filename);
       }
     }
     GNUNET_free ( filename );
