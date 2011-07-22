@@ -31,8 +31,6 @@
 
 #define VERBOSE GNUNET_NO
 
-#define CONNECT_LIMIT GNUNET_YES
-
 struct NSEPeer
 {
   struct NSEPeer *prev;
@@ -92,6 +90,11 @@ static unsigned long long current_round;
  * Peers desired in the next round.
  */
 static unsigned long long peers_next_round;
+
+/**
+ * Maximum number of connections to NSE services.
+ */
+static unsigned long long connection_limit;
 
 /**
  * Total number of connections in the whole network.
@@ -229,10 +232,8 @@ connect_nse_service (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "TEST_NSE_MULTIPEER: connecting to nse service of peers\n");
   for (i = 0; i < num_peers; i++)
     {
-#if CONNECT_LIMIT
-      if (i % 50 != 0)
+      if ((connection_limit > 0) && (i % (num_peers / connection_limit) != 0))
         continue;
-#endif
       current_peer = GNUNET_malloc(sizeof(struct NSEPeer));
       current_peer->daemon = GNUNET_TESTING_daemon_get(pg, i);
       if (GNUNET_YES == GNUNET_TESTING_daemon_running(GNUNET_TESTING_daemon_get(pg, i)))
@@ -547,6 +548,11 @@ run (void *cls,
     {
       GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Option nse-profiler:wait_time is required!\n");
       return;
+    }
+
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (testing_cfg, "nse-profiler", "connection_limit", &connection_limit))
+    {
+      connection_limit = 0;
     }
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (testing_cfg, "nse-profiler", "topology_output_file", &topology_file))
