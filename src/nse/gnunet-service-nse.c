@@ -40,16 +40,12 @@
  * - handle messages for future round (one into the future, see FIXME)
  */
 #include "platform.h"
-#include "gnunet_client_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_constants.h"
-#include "gnunet_container_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_signatures.h"
-#include "gnunet_service_lib.h"
-#include "gnunet_server_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_core_service.h"
-#include "gnunet_time_lib.h"
 #include "gnunet_nse_service.h"
 #include "nse.h"
 
@@ -992,8 +988,11 @@ shutdown_task(void *cls,
       GNUNET_SCHEDULER_cancel (flood_task);
       flood_task = GNUNET_SCHEDULER_NO_TASK;
     }
-  GNUNET_SERVER_notification_context_destroy (nc);
-  nc = NULL;
+  if (nc != NULL)
+    {
+      GNUNET_SERVER_notification_context_destroy (nc);
+      nc = NULL;
+    }
   if (coreAPI != NULL)
     {
       GNUNET_CORE_disconnect (coreAPI);
@@ -1003,6 +1002,11 @@ shutdown_task(void *cls,
     {
       GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
       stats = NULL;
+    }
+  if (peers != NULL)
+    {
+      GNUNET_CONTAINER_multihashmap_destroy (peers);
+      peers = NULL;
     }
 }
 
@@ -1016,9 +1020,9 @@ shutdown_task(void *cls,
  * @param publicKey the public key of this peer
  */
 void
-core_init(void *cls, struct GNUNET_CORE_Handle *server,
-          const struct GNUNET_PeerIdentity *identity,
-          const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
+core_init (void *cls, struct GNUNET_CORE_Handle *server,
+	   const struct GNUNET_PeerIdentity *identity,
+	   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
 {
   struct GNUNET_TIME_Absolute now;
   struct GNUNET_TIME_Absolute prev_time;
@@ -1030,7 +1034,7 @@ core_init(void *cls, struct GNUNET_CORE_Handle *server,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		  "Connection to core FAILED!\n");
 #endif
-      GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+      GNUNET_SCHEDULER_shutdown ();
       return;
     }
   my_identity = *identity;
@@ -1096,6 +1100,7 @@ run(void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
+  peers = GNUNET_CONTAINER_multihashmap_create (128);
   GNUNET_SERVER_add_handlers (server, handlers);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   /* Connect to core service and register core handlers */
@@ -1111,9 +1116,11 @@ run(void *cls, struct GNUNET_SERVER_Handle *server,
 				 NULL, /* Don't want notified about all outbound messages */
 				 GNUNET_NO, /* For header only outbound notification */
 				 core_handlers); /* Register these handlers */
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+				&shutdown_task, NULL);
   if (coreAPI == NULL)
     {
-      GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+      GNUNET_SCHEDULER_shutdown ();
       return;
     }
   stats = GNUNET_STATISTICS_create ("NSE", cfg);

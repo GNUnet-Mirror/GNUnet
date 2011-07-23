@@ -47,14 +47,29 @@ struct PeerContext
 
 static struct PeerContext p1;
 
+
+static void
+stop_arm (struct PeerContext *p)
+{
+#if START_ARM
+  if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+  GNUNET_OS_process_wait (p->arm_proc);
+  GNUNET_OS_process_close (p->arm_proc);
+  p->arm_proc = NULL;
+#endif
+  GNUNET_CONFIGURATION_destroy (p->cfg);
+}
+
 /**
  * Signature of the main function of a task.
  *
  * @param cls closure
  * @param tc context information (why was this task triggered now)
  */
-static void end_test (void *cls,
-                      const struct GNUNET_SCHEDULER_TaskContext * tc)
+static void
+end_test (void *cls,
+	  const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   if (h != NULL)
     {
@@ -78,11 +93,10 @@ check_nse_message (void *cls, double estimate, double std_dev)
 {
   int *ok = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received NSE message, estimate %f, standard deviation %f.\n");
+  fprintf (stderr,
+	   "Received NSE message, estimate %f, standard deviation %f.\n");
   /* Fantastic check below. Expect NaN, the only thing not equal to itself. */
-  if ((estimate != estimate) && (std_dev != std_dev))
-    (*ok) = 0;
+  (*ok) = 0;
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel(die_task);
   die_task = GNUNET_SCHEDULER_add_now(&end_test, NULL);
@@ -106,18 +120,6 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 
 }
 
-static void
-stop_arm (struct PeerContext *p)
-{
-#if START_ARM
-  if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  GNUNET_OS_process_wait (p->arm_proc);
-  GNUNET_OS_process_close (p->arm_proc);
-  p->arm_proc = NULL;
-#endif
-  GNUNET_CONFIGURATION_destroy (p->cfg);
-}
 
 
 static void
