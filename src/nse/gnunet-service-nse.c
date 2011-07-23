@@ -870,6 +870,7 @@ handle_p2p_size_estimate(void *cls,
 	      if (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK)
 		{
 		  GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
+		  peer_entry->transmit_task = GNUNET_SCHEDULER_NO_TASK;
 		  peer_entry->previous_round = GNUNET_NO;
 		}
 	      if (peer_entry->th != NULL)
@@ -1019,7 +1020,7 @@ shutdown_task(void *cls,
  * @param identity the public identity of this peer
  * @param publicKey the public key of this peer
  */
-void
+static void
 core_init (void *cls, struct GNUNET_CORE_Handle *server,
 	   const struct GNUNET_PeerIdentity *identity,
 	   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *publicKey)
@@ -1046,7 +1047,7 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
   
   for (i=0;i<HISTORY_SIZE;i++)
     {
-      prev_time.abs_value = next_timestamp.abs_value - (HISTORY_SIZE - i - 1) * GNUNET_NSE_INTERVAL.rel_value;
+      prev_time.abs_value = current_timestamp.abs_value - (HISTORY_SIZE - i - 1) * GNUNET_NSE_INTERVAL.rel_value;
       setup_flood_message (i, prev_time);
     }
   estimate_index = HISTORY_SIZE - 1;

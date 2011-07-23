@@ -66,13 +66,15 @@ static struct GNUNET_TESTING_PeerGroup *pg;
 /**
  * Check whether peers successfully shut down.
  */
-void
+static void
 shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
     {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed!\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Shutdown of peers failed: %s!\n",
+		  emsg);
 #endif
       if (ok == 0)
         ok = 666;
@@ -119,8 +121,16 @@ static void
 handle_estimate (void *cls, double estimate, double std_dev)
 {
   struct NSEPeer *peer = cls;
-  fprintf(stderr, "Received network size estimate from peer %s. Size: %f std.dev. %f\n", GNUNET_i2s(&peer->daemon->id), estimate, std_dev);
+
+  fprintf (stderr,
+	   "Received network size estimate from peer %s. logSize: %f std.dev. %f (%f/%u)\n", 
+	   GNUNET_i2s(&peer->daemon->id), 
+	   estimate, 
+	   std_dev,
+	   GNUNET_NSE_log_estimate_to_n (estimate),
+	   num_peers);
 }
+
 
 static void
 connect_nse_service (void *cls,
@@ -135,12 +145,14 @@ connect_nse_service (void *cls,
     {
       current_peer = GNUNET_malloc(sizeof(struct NSEPeer));
       current_peer->daemon = GNUNET_TESTING_daemon_get(pg, i);
-      current_peer->nse_handle = GNUNET_NSE_connect (current_peer->daemon->cfg, &handle_estimate, current_peer);
+      current_peer->nse_handle = GNUNET_NSE_connect (current_peer->daemon->cfg,
+						     &handle_estimate, 
+						     current_peer);
       GNUNET_assert(current_peer->nse_handle != NULL);
-
       GNUNET_CONTAINER_DLL_insert (peer_head, peer_tail, current_peer);
     }
 }
+
 
 static void
 my_cb (void *cls,
@@ -159,13 +171,15 @@ my_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer Group started successfully, connecting to NSE service for each peer!\n");
 #endif
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Have %u connections\n", total_connections);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
+	      "Have %u connections\n", total_connections);
 
   GNUNET_SCHEDULER_add_now(&connect_nse_service, NULL);
 }
 
+
 /**
- * Prototype of a function that will be called whenever
+ * Function that will be called whenever
  * two daemons are connected by the testing library.
  *
  * @param cls closure
@@ -178,15 +192,16 @@ my_cb (void *cls,
  * @param second_daemon handle for the second daemon
  * @param emsg error message (NULL on success)
  */
-void connect_cb (void *cls,
-                 const struct GNUNET_PeerIdentity *first,
-                 const struct GNUNET_PeerIdentity *second,
-                 uint32_t distance,
-                 const struct GNUNET_CONFIGURATION_Handle *first_cfg,
-                 const struct GNUNET_CONFIGURATION_Handle *second_cfg,
-                 struct GNUNET_TESTING_Daemon *first_daemon,
-                 struct GNUNET_TESTING_Daemon *second_daemon,
-                 const char *emsg)
+static void 
+connect_cb (void *cls,
+	    const struct GNUNET_PeerIdentity *first,
+	    const struct GNUNET_PeerIdentity *second,
+	    uint32_t distance,
+	    const struct GNUNET_CONFIGURATION_Handle *first_cfg,
+	    const struct GNUNET_CONFIGURATION_Handle *second_cfg,
+	    struct GNUNET_TESTING_Daemon *first_daemon,
+	    struct GNUNET_TESTING_Daemon *second_daemon,
+	    const char *emsg)
 {
   char *second_id;
 
@@ -207,16 +222,22 @@ run (void *cls,
 {
   struct GNUNET_CONFIGURATION_Handle *testing_cfg;
   unsigned long long total_peers;
+
   ok = 1;
   testing_cfg = GNUNET_CONFIGURATION_create();
   GNUNET_assert(GNUNET_OK == GNUNET_CONFIGURATION_load(testing_cfg, cfgfile));
+
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemons.\n");
-  GNUNET_CONFIGURATION_set_value_string (testing_cfg, "testing",
-                                           "use_progressbars",
-                                           "YES");
+  GNUNET_CONFIGURATION_set_value_string (testing_cfg,
+					 "testing",
+					 "use_progressbars",
+					 "YES");
 #endif
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (testing_cfg, "testing", "num_peers", &total_peers))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (testing_cfg, 
+							  "testing",
+							  "num_peers",
+							  &total_peers))
     total_peers = NUM_PEERS;
 
   peers_left = total_peers;
@@ -230,6 +251,7 @@ run (void *cls,
   GNUNET_assert (pg != NULL);
   GNUNET_SCHEDULER_add_delayed (TIMEOUT, &shutdown_task, NULL);
 }
+
 
 static int
 check ()
