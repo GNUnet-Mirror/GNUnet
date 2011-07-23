@@ -45,6 +45,8 @@
 #include "gnunet_nse_service.h"
 #include "nse.h"
 
+#define DEBUG_NSE GNUNET_YES
+
 /**
  * Over how many values do we calculate the weighted average?
  */
@@ -63,17 +65,17 @@
 /**
  * Amount of work required (W-bit collisions) for NSE proofs, in collision-bits.
  */
-#define NSE_WORK_REQUIRED 0
+#define NSE_WORK_REQUIRED 8
 
 /**
  * Interval for sending network size estimation flood requests.
  */
-#define GNUNET_NSE_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+#define GNUNET_NSE_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 
 /**
  * Interval between proof find runs.
  */
-#define PROOF_FIND_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 50)
+#define PROOF_FIND_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 5)
 
 
 /**
@@ -357,12 +359,12 @@ static double
 get_matching_bits_delay (uint32_t matching_bits)
 {
   /* Calculated as: S + f/2 - (f / pi) * (atan(x - p'))*/  
-  // S is next_timestamp
+  // S is next_timestamp (ignored in return value)
   // f is frequency (GNUNET_NSE_INTERVAL)
   // x is matching_bits
   // p' is current_size_estimate
-  return ((double) GNUNET_NSE_INTERVAL.rel_value / (double) 2)
-    - ((GNUNET_NSE_INTERVAL.rel_value / M_PI) * atan (matching_bits - current_size_estimate));
+  return ((double) GNUNET_NSE_INTERVAL.rel_value / (double) 2.0)
+    - ((GNUNET_NSE_INTERVAL.rel_value / M_PI) * atan (current_size_estimate - matching_bits));
 }
 
 
@@ -786,15 +788,38 @@ find_proof (void *cls,
       if (NSE_WORK_REQUIRED <= count_leading_zeroes(&result))
 	{
 	  my_proof = counter;
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		      _("Proof of work found: %llu!\n"),
+		      (unsigned long long) GNUNET_ntohll (counter));
+	  for (i=0;i<HISTORY_SIZE;i++)	    
+	    if (ntohl (size_estimate_messages[i].hop_count) == 0) 
+	      {
+		size_estimate_messages[i].proof_of_work = my_proof;
+		GNUNET_CRYPTO_rsa_sign (my_private_key, 
+					&size_estimate_messages[i].purpose,
+					&size_estimate_messages[i].signature);
+	      }
 	  write_proof ();
 	  return;
 	}
       counter++;
       i++;
     }
-  my_proof = counter;
-  if (0 == (my_proof % 100 * ROUND_SIZE))
-    write_proof (); /* remember progress every 100 rounds */
+  if (my_proof / (100 * ROUND_SIZE) < counter / (100 * ROUND_SIZE))
+    {
+#if DEBUG_NSE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Testing proofs currently at %llu\n",
+		  (unsigned long long) counter);
+#endif
+      /* remember progress every 100 rounds */
+      my_proof = counter;
+      write_proof (); 
+    }
+  else
+    {
+      my_proof = counter;
+    }
   proof_task = GNUNET_SCHEDULER_add_delayed (PROOF_FIND_DELAY,
 					     &find_proof,
 					     NULL);
@@ -818,6 +843,9 @@ verify_message_crypto(const struct GNUNET_NSE_FloodMessage *incoming_flood)
       check_proof_of_work (&incoming_flood->pkey,
 			   incoming_flood->proof_of_work))
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Proof of work invalid: %llu!\n"),
+		  (unsigned long long) GNUNET_ntohll (incoming_flood->proof_of_work));
       GNUNET_break_op (0);
       return GNUNET_NO;
     }
@@ -903,6 +931,31 @@ handle_p2p_size_estimate(void *cls,
 			    1,
 			    GNUNET_NO);
   matching_bits = ntohl (incoming_flood->matching_bits);
+#if DEBUG_NSE
+  {
+    char origin[5];
+    char pred[5];
+    struct GNUNET_PeerIdentity os;
+
+    GNUNET_CRYPTO_hash (&incoming_flood->pkey,
+			sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+			&os.hashPubKey);
+    GNUNET_snprintf (origin, sizeof (origin),
+		     "%s",
+		     GNUNET_i2s (&os));
+    GNUNET_snprintf (pred, sizeof (pred),
+		     "%s",
+		     GNUNET_i2s (peer));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Flood at %llu from `%s' via `%s' at `%s' with bits %u\n",
+		(unsigned long long) GNUNET_TIME_absolute_ntoh (incoming_flood->timestamp).abs_value,
+		origin,
+		pred,
+		GNUNET_i2s (&my_identity),
+		(unsigned int) matching_bits);
+  }
+#endif  
+
   peer_entry = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
   if (NULL == peer_entry)
     {
@@ -1018,6 +1071,11 @@ handle_core_connect(void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct NSEPeerEntry *peer_entry;
 
+ #if DEBUG_NSE
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
+	     "Peer `%s' connected to us\n",
+	     GNUNET_i2s (peer));
+#endif
   peer_entry = GNUNET_malloc(sizeof(struct NSEPeerEntry));
   peer_entry->id = *peer;
   GNUNET_CONTAINER_multihashmap_put (peers,
@@ -1041,7 +1099,12 @@ handle_core_disconnect(void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct NSEPeerEntry *pos;
 
-  pos = GNUNET_CONTAINER_multihashmap_get (peers,
+ #if DEBUG_NSE
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
+	     "Peer `%s' disconnected from us\n",
+	     GNUNET_i2s (peer));
+#endif
+ pos = GNUNET_CONTAINER_multihashmap_get (peers,
 					   &peer->hashPubKey);
   if (NULL == pos)
     {
@@ -1214,10 +1277,11 @@ run(void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
-  if (sizeof (my_proof) !=
-      GNUNET_DISK_fn_read (proof,
-			   &my_proof,
-			   sizeof (my_proof)))
+  if ( (GNUNET_YES != GNUNET_DISK_file_test (proof)) ||
+       (sizeof (my_proof) !=
+	GNUNET_DISK_fn_read (proof,
+			     &my_proof,
+			     sizeof (my_proof))) )
     my_proof = 0; 
   GNUNET_free (proof);
   proof_task = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
