@@ -72,7 +72,7 @@
 /**
  * Interval for sending network size estimation flood requests.
  */
-#define GNUNET_NSE_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+#define GNUNET_NSE_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
 
 /**
@@ -209,6 +209,11 @@ static struct GNUNET_NSE_FloodMessage size_estimate_messages[HISTORY_SIZE];
 static unsigned int estimate_index;
 
 /**
+ * Number of valid entries in the history.
+ */
+static unsigned int estimate_count;
+
+/**
  * Task scheduled to update our flood message for the next round.
  */
 static GNUNET_SCHEDULER_TaskIdentifier flood_task;
@@ -274,10 +279,10 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   mean = 0.0;
   sum = 0.0;
   sumweight = 0.0;
-  for (i=0; i<HISTORY_SIZE; i++)
+  for (i=0;i<estimate_count; i++)
     {
-      val = htonl (size_estimate_messages[i].matching_bits);
-      weight = HISTORY_SIZE - ((estimate_index + HISTORY_SIZE - i) % HISTORY_SIZE);
+      val = htonl (size_estimate_messages[(estimate_index - i + HISTORY_SIZE) % HISTORY_SIZE].matching_bits);
+      weight = estimate_count + 1 - i;
 
       temp = weight + sumweight;
       q = val - mean;
@@ -300,7 +305,7 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   em->size_estimate = mean - 0.5;
   em->std_deviation = std_dev;
   GNUNET_STATISTICS_set (stats, 
-			 "Current network size estimate",
+			 "# nodes in the network (estimate)",
 			 (uint64_t) pow (2, mean - 0.5), GNUNET_NO);
 }
 
@@ -625,6 +630,8 @@ update_flood_message(void *cls,
   next_timestamp = GNUNET_TIME_absolute_add (current_timestamp,
 					     GNUNET_NSE_INTERVAL);
   estimate_index = (estimate_index + 1) % HISTORY_SIZE;
+  if (estimate_count < HISTORY_SIZE)
+    estimate_count++;
   setup_flood_message (estimate_index, current_timestamp);
   hop_count_max = 0;
   for (i=0;i<HISTORY_SIZE;i++)
@@ -1051,6 +1058,7 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
       setup_flood_message (i, prev_time);
     }
   estimate_index = HISTORY_SIZE - 1;
+  estimate_count = 2;
   flood_task
     = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining (next_timestamp),
 				    &update_flood_message, NULL);
@@ -1124,7 +1132,7 @@ run(void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
-  stats = GNUNET_STATISTICS_create ("NSE", cfg);
+  stats = GNUNET_STATISTICS_create ("nse", cfg);
 }
 
 

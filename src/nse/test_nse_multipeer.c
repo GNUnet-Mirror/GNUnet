@@ -49,9 +49,9 @@ struct NSEPeer *peer_head;
 struct NSEPeer *peer_tail;
 
 /**
- * How long until we give up on connecting the peers?
+ * How long do we run the test?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1500)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 static int ok;
 
