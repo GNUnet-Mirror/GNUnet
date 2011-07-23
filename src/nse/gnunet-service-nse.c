@@ -643,20 +643,20 @@ update_flood_message(void *cls,
 
 
 /**
- * Count the trailing zeroes in hash.
+ * Count the leading zeroes in hash.
  *
  * @param hash
- * @return the number of trailing zero bits.
+ * @return the number of leading zero bits.
  */
 static unsigned int 
-count_trailing_zeroes(const GNUNET_HashCode *hash)
+count_leading_zeroes(const GNUNET_HashCode *hash)
 {
   unsigned int hash_count;
   
-  hash_count = sizeof(GNUNET_HashCode) * 8;
+  hash_count = 0;
   while ((0 == GNUNET_CRYPTO_hash_get_bit(hash, hash_count)))
-    hash_count--;
-  return (sizeof(GNUNET_HashCode) * 8) - hash_count;
+    hash_count++;
+  return hash_count;
 }
 
 
@@ -683,13 +683,13 @@ check_proof_of_work(const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pkey,
 	  pkey, 
 	  sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
   GNUNET_CRYPTO_hash (buf, sizeof (buf), &result);
-  return (count_trailing_zeroes (&result) >= NSE_WORK_REQUIRED) ? GNUNET_YES : GNUNET_NO;
+  return (count_leading_zeroes (&result) >= NSE_WORK_REQUIRED) ? GNUNET_YES : GNUNET_NO;
 }
 
 
 /**
  * Given a public key, find an integer such that the hash of the key
- * concatenated with the integer has NSE_WORK_REQUIRED trailing 0
+ * concatenated with the integer has NSE_WORK_REQUIRED leading 0
  * bits.  FIXME: this is a synchronous function... bad
  *
  * @param pkey the public key
@@ -712,7 +712,7 @@ find_proof_of_work(const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pkey)
 	      &counter, 
 	      sizeof(uint64_t));
       GNUNET_CRYPTO_hash (buf, sizeof (buf), &result);
-      if (NSE_WORK_REQUIRED <= count_trailing_zeroes(&result))
+      if (NSE_WORK_REQUIRED <= count_leading_zeroes(&result))
         break;
       counter++;
     }
@@ -1131,7 +1131,7 @@ int
 main(int argc, char * const *argv)
 {
   return (GNUNET_OK == GNUNET_SERVICE_run (argc, argv, 
-					   "gnunet-service-nse",
+					   "nse",
                                            GNUNET_SERVICE_OPTION_NONE, &run,
                                            NULL)) ? 0 : 1;
 }
