@@ -45,8 +45,6 @@
 #include "gnunet_nse_service.h"
 #include "nse.h"
 
-#define DEBUG_NSE GNUNET_YES
-
 /**
  * Over how many values do we calculate the weighted average?
  */
@@ -106,7 +104,8 @@ struct NSEPeerEntry
 
   /**
    * Did we receive or send a message about the previous round
-   * to this peer yet?  
+   * to this peer yet?   GNUNET_YES if the previous round has
+   * been taken care of.
    */
   int previous_round;
 };
@@ -338,6 +337,7 @@ handle_start_message(void *cls, struct GNUNET_SERVER_Client *client,
                      const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_NSE_ClientMessage em;
+
 #if DEBUG_NSE
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
 	     "Received START message from client\n");
@@ -364,7 +364,7 @@ get_matching_bits_delay (uint32_t matching_bits)
   // x is matching_bits
   // p' is current_size_estimate
   return ((double) GNUNET_NSE_INTERVAL.rel_value / (double) 2.0)
-    - ((GNUNET_NSE_INTERVAL.rel_value / M_PI) * atan (current_size_estimate - matching_bits));
+    - ((GNUNET_NSE_INTERVAL.rel_value / M_PI) * atan (matching_bits - current_size_estimate));
 }
 
 
@@ -430,6 +430,11 @@ get_transmit_delay (int round_offset)
       /* previous round is randomized between 0 and 50 ms */
       ret.rel_value = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
 						50);
+#if DEBUG_NSE
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
+		 "Transmitting previous round behind schedule in %llu ms\n",
+		 (unsigned long long) ret.rel_value);
+#endif
       return ret;
     case 0:
       /* current round is based on best-known matching_bits */
@@ -437,6 +442,13 @@ get_transmit_delay (int round_offset)
       dist_delay = get_matching_bits_delay (matching_bits);
       dist_delay += get_delay_randomization (matching_bits).rel_value;
       ret.rel_value = (uint64_t) dist_delay;
+#if DEBUG_NSE
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
+		 "For round %llu, delay for %u matching bits is %llu ms\n",
+		 (unsigned long long) current_timestamp.abs_value,
+		 (unsigned int) matching_bits,
+		 (unsigned long long) ret.rel_value);
+#endif
       /* now consider round start time and add delay to it */
       tgt = GNUNET_TIME_absolute_add (current_timestamp, ret);
       return GNUNET_TIME_absolute_get_remaining (tgt);
@@ -479,16 +491,11 @@ transmit_ready (void *cls, size_t size, void *buf)
       return 0;
     }
   GNUNET_assert (size >= sizeof (struct GNUNET_NSE_FloodMessage));
-#if DEBUG_NSE > 1
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
-	      "Sending size estimate to `%s'\n",
-	      GNUNET_i2s (&peer_entry->id));
-#endif
   idx = estimate_index;
-  if (peer_entry->previous_round == GNUNET_YES)
+  if (peer_entry->previous_round == GNUNET_NO)
     {
-      idx = (idx + HISTORY_SIZE -1) % HISTORY_SIZE;
-      peer_entry->previous_round = GNUNET_NO;
+      idx = (idx + HISTORY_SIZE - 1) % HISTORY_SIZE;
+      peer_entry->previous_round = GNUNET_YES;
       peer_entry->transmit_task = GNUNET_SCHEDULER_add_delayed (get_transmit_delay (0),
 								&transmit_task,
 								peer_entry);
@@ -502,6 +509,13 @@ transmit_ready (void *cls, size_t size, void *buf)
 				GNUNET_NO);
       return 0; 
     }
+#if DEBUG_NSE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "In round %llu, sending to `%s' estimate with %u bits\n",
+	      (unsigned long long) GNUNET_TIME_absolute_ntoh (size_estimate_messages[idx].timestamp).abs_value,
+	      GNUNET_i2s (&peer_entry->id),
+	      (unsigned int) ntohl (size_estimate_messages[idx].matching_bits));
+#endif
   if (ntohl (size_estimate_messages[idx].hop_count) == 0) 
     GNUNET_STATISTICS_update (stats, 
 			      "# flood messages started", 
@@ -884,7 +898,7 @@ update_flood_times (void *cls,
     return GNUNET_OK; /* already active */
   if (peer_entry == exclude)
     return GNUNET_OK; /* trigger of the update */
-  if (peer_entry->previous_round == GNUNET_YES)
+  if (peer_entry->previous_round == GNUNET_NO)
     {
       /* still stuck in previous round, no point to update, check that 
 	 we are active here though... */
@@ -1003,14 +1017,13 @@ handle_p2p_size_estimate(void *cls,
       /* cancel transmission from us to this peer for this round */
       if (idx == estimate_index)
 	{
-	  if (peer_entry->previous_round == GNUNET_NO)
+	  if (peer_entry->previous_round == GNUNET_YES)
 	    {
 	      /* cancel any activity for current round */
 	      if (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK)
 		{
 		  GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
 		  peer_entry->transmit_task = GNUNET_SCHEDULER_NO_TASK;
-		  peer_entry->previous_round = GNUNET_NO;
 		}
 	      if (peer_entry->th != NULL)
 		{
@@ -1022,9 +1035,8 @@ handle_p2p_size_estimate(void *cls,
       else
 	{
 	  /* cancel previous round only */
-	  peer_entry->previous_round = GNUNET_NO;
-	}
- 
+	  peer_entry->previous_round = GNUNET_YES;
+	} 
     }
   if (matching_bits <= ntohl (size_estimate_messages[idx].matching_bits)) 
     {
