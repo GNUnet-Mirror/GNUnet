@@ -45,11 +45,16 @@
 struct GNUNET_NSE_ClientMessage
 {
   /**
-   * Type:  GNUNET_MESSAGE_TYPE_NSE_UPDATE
+   * Type: GNUNET_MESSAGE_TYPE_NSE_UPDATE
    */
   struct GNUNET_MessageHeader header;
 
-  /*
+  /**
+   * For alignment.
+   */
+  uint32_t reserved;
+
+  /**
    * The current estimated network size.
    */
   double size_estimate;
@@ -62,50 +67,5 @@ struct GNUNET_NSE_ClientMessage
   double std_deviation;
 };
 
-/**
- * Network size estimate reply; sent when "this"
- * peer's timer has run out before receiving a
- * valid reply from another peer.
- */
-struct GNUNET_NSE_FloodMessage
-{
-  /**
-   * Type: GNUNET_MESSAGE_TYPE_NSE_P2P_FLOOD
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Purpose.
-   */
-  struct GNUNET_CRYPTO_RsaSignaturePurpose purpose;
-
-  /**
-   * Number of matching bits between the hash
-   * of timestamp and the initiator's public
-   * key.
-   */
-  uint32_t distance;
-
-  /**
-   * The current timestamp value (which all
-   * peers should agree on).
-   */
-  struct GNUNET_TIME_AbsoluteNBO timestamp;
-
-  /**
-   * Public key of the originator.
-   */
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
-
-  /**
-   * FIXME: use, document.
-   */
-  uint32_t proof_of_work;
-
-  /**
-   * FIXME: use, document.
-   */
-  struct GNUNET_CRYPTO_RsaSignature signature;
-};
 
 #endif

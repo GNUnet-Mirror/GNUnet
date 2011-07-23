@@ -755,6 +755,7 @@ src/include/gnunet_directories.h
 src/hostlist/Makefile
 src/mesh/Makefile
 src/nat/Makefile
+src/nse/Makefile
 src/peerinfo/Makefile
 src/peerinfo-tool/Makefile
 src/statistics/Makefile

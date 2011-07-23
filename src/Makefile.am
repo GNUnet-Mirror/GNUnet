@@ -23,6 +23,7 @@ SUBDIRS = \
   peerinfo-tool \
   core \
   testing \
+  nse \
   dv \
   dht \
   hostlist \

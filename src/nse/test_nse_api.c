@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -35,7 +35,7 @@
 
 static struct GNUNET_NSE_Handle *h;
 
-GNUNET_SCHEDULER_TaskIdentifier die_task;
+static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 struct PeerContext
 {
@@ -83,18 +83,19 @@ check_nse_message (void *cls, double estimate, double std_dev)
   /* Fantastic check below. Expect NaN, the only thing not equal to itself. */
   if ((estimate != estimate) && (std_dev != std_dev))
     (*ok) = 0;
-
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel(die_task);
-  GNUNET_SCHEDULER_add_now(&end_test, NULL);
+  die_task = GNUNET_SCHEDULER_add_now(&end_test, NULL);
 }
+
 
 static void
 setup_peer (struct PeerContext *p, const char *cfgname)
 {
   p->cfg = GNUNET_CONFIGURATION_create ();
 #if START_ARM
-  p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+  p->arm_proc = GNUNET_OS_start_process (NULL, NULL,
+					 "gnunet-service-arm",
                                         "gnunet-service-arm",
 #if VERBOSE_ARM
                                         "-L", "DEBUG",
@@ -118,6 +119,7 @@ stop_arm (struct PeerContext *p)
   GNUNET_CONFIGURATION_destroy (p->cfg);
 }
 
+
 static void
 run (void *cls,
      char *const *args,
@@ -134,6 +136,7 @@ run (void *cls,
               "Connecting to NSE service.\n");
   GNUNET_assert (h != NULL);
 }
+
 
 static int
 check ()
@@ -160,6 +163,7 @@ check ()
   stop_arm (&p1);
   return ok;
 }
+
 
 int
 main (int argc, char *argv[])

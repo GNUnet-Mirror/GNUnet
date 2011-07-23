@@ -22,8 +22,6 @@
  * @file nse/nse_api.c
  * @brief api to get information from the network size estimation service
  * @author Nathan Evans
- *
- * TODO:
  */
 #include "platform.h"
 #include "gnunet_client_lib.h"
@@ -69,17 +67,6 @@ struct GNUNET_NSE_Handle
   struct GNUNET_TIME_Relative reconnect_delay;
 
   /**
-   * Should this handle auto-destruct once all actions have
-   * been processed?
-   */
-  int do_destroy;
-
-  /**
-   * Are we currently receiving from the service?
-   */
-  int receiving;
-
-  /**
    * Callback function to call when message is received.
    */
   GNUNET_NSE_Callback recv_cb;
@@ -93,45 +80,57 @@ struct GNUNET_NSE_Handle
 
 
 /**
+ * Try again to connect to network size estimation service.
+ *
+ * @param cls the handle to the transport service
+ * @param tc scheduler context
+ */
+static void
+reconnect (void *cls,
+           const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
  * Type of a function to call when we receive a message
  * from the service.
  *
  * @param cls closure
  * @param msg message received, NULL on timeout or fatal error
  */
-void message_handler (void *cls,
-                      const struct GNUNET_MessageHeader * msg)
+static void 
+message_handler (void *cls,
+		 const struct GNUNET_MessageHeader * msg)
 {
   struct GNUNET_NSE_Handle *h = cls;
-  struct GNUNET_NSE_ClientMessage *client_msg;
+  const struct GNUNET_NSE_ClientMessage *client_msg;
 
-  if (msg == NULL) /* Error, timeout, death */
-    return;
-
-  if ((ntohs (msg->size) < sizeof(struct GNUNET_NSE_ClientMessage))
-      || (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_NSE_ESTIMATE))
+  if (msg == NULL)
     {
-#if DEBUG_NSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%s: received incorrect message (size %d < %d) from service!",
-                  "NSE API", ntohs (msg->size),
-                  sizeof(struct GNUNET_NSE_ClientMessage));
-#endif
+      /* Error, timeout, death */
+      GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+      h->client = NULL;
+      h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->reconnect_delay,
+							&reconnect,
+							h);
       return;
     }
-
-  client_msg = (struct GNUNET_NSE_ClientMessage *)msg;
-
-  h->recv_cb (h->recv_cb_cls, client_msg->size_estimate,
+  if ( (ntohs (msg->size) != sizeof(struct GNUNET_NSE_ClientMessage)) || 
+       (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_NSE_ESTIMATE) )
+    {
+      GNUNET_break (0);
+      return;
+    }
+  client_msg = (const struct GNUNET_NSE_ClientMessage *)msg;
+  h->recv_cb (h->recv_cb_cls, 
+	      client_msg->size_estimate,
               client_msg->std_deviation);
-
   GNUNET_CLIENT_receive (h->client,
-                         &message_handler, h, GNUNET_TIME_UNIT_FOREVER_REL);
+                         &message_handler,
+			 h, 
+			 GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
-static void
-reconnect (void *cls,
-           const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 
 /**
  * Reschedule a connect attempt to the service.
@@ -174,6 +173,7 @@ reschedule_connect (struct GNUNET_NSE_Handle *h)
     }
 }
 
+
 /**
  * Transmit START message to service.
  *
@@ -214,6 +214,7 @@ send_start (void *cls, size_t size, void *buf)
   return sizeof (struct GNUNET_MessageHeader);
 }
 
+
 /**
  * Try again to connect to network size estimation service.
  *
@@ -250,6 +251,7 @@ reconnect (void *cls,
   GNUNET_assert(h->th != NULL);
 }
 
+
 /**
  * Connect to the network size estimation service.
  *
@@ -265,11 +267,8 @@ GNUNET_NSE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   struct GNUNET_NSE_Handle *ret;
 
+  GNUNET_assert (func != NULL);
   ret = GNUNET_malloc (sizeof (struct GNUNET_NSE_Handle));
-
-  if (func == NULL)
-    return NULL;
-
   ret->cfg = cfg;
   ret->recv_cb = func;
   ret->recv_cb_cls = func_cls;
@@ -278,11 +277,11 @@ GNUNET_NSE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   return ret;
 }
 
+
 /**
  * Disconnect from network size estimation service
  *
  * @param h handle to destroy
- *
  */
 void
 GNUNET_NSE_disconnect (struct GNUNET_NSE_Handle *h)
@@ -294,9 +293,16 @@ GNUNET_NSE_disconnect (struct GNUNET_NSE_Handle *h)
       h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
     }
   if (h->th != NULL)
-    GNUNET_CLIENT_notify_transmit_ready_cancel(h->th);
+    {
+      GNUNET_CLIENT_notify_transmit_ready_cancel(h->th);
+      h->th = NULL;
+    }
   if (h->client != NULL)
-    GNUNET_CLIENT_disconnect(h->client, GNUNET_NO);
-
+    {
+      GNUNET_CLIENT_disconnect(h->client, GNUNET_NO);
+      h->client = NULL;
+    }
   GNUNET_free(h);
 }
+
+/* end of nse_api.c */

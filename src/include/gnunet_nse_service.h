@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      (C) 2009, 2010 Christian Grothoff (and other contributing authors)
+      (C) 2011 Christian Grothoff (and other contributing authors)
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -48,55 +48,31 @@ extern "C"
 #define GNUNET_NSE_VERSION 0x00000000
 
 /**
- * Interval for sending network size estimation flood requests.
- * Number is in milliseconds.
- * This needs to be a factor of the number milliseconds in
- * a day, as the base time used is midnight each day offset
- * by this amount.
- *
- * There are 86400000 milliseconds in a day.
- */
-#if 0
-#define GNUNET_NSE_INTERVAL 60000 /* Every minute */
-#define GNUNET_NSE_INTERVAL 180000 /* Every three minutes */
-#define GNUNET_NSE_INTERVAL 360000 /* Every six minutes */
-#define GNUNET_NSE_INTERVAL 600000 /* Every ten minutes */
-#define GNUNET_NSE_INTERVAL 1200000 /* Every twenty minutes */
-#endif
-#define GNUNET_NSE_INTERVAL 360000 /* Every ten minutes */
-/**
- * How much clock skew (in milliseconds) will we allow
- * for received messages.  We check our current time
- * with the timestamp received as part of the message
- * and if the difference is greater than this tolerance
- * we will discard the message as invalid.
- *
- * There are 86400000 milliseconds in a day.
- */
-#define GNUNET_NSE_DRIFT_TOLERANCE 600000 /* Ten minutes. */
-
-/**
- * Number of bits
- */
-#define GNUNET_NSE_BITS
-
-/**
  * Handle for the network size estimation service.
  */
 struct GNUNET_NSE_Handle;
-
 
 /**
  * Callback to call when network size estimate is updated.
  *
  * @param cls closure
- * @param estimate the value of the current network size estimate
- * @param std_dev standard deviation (rounded down to nearest integer)
- *                of the size estimation values seen
+ * @param logestimate the log(Base 2) value of the current network size estimate
+ * @param std_dev standard deviation for the estimate
  *
  */
-typedef void
-(*GNUNET_NSE_Callback) (void *cls, double estimate, double std_dev);
+typedef void (*GNUNET_NSE_Callback) (void *cls,
+				     double logestimate, 
+				     double std_dev);
+
+
+/**
+ * Convert the logarithmic estimated returned to the 'GNUNET_NSE_Callback'
+ * into an absolute estimate in terms of the number of peers in the network.
+ *
+ * @param loge logarithmic estimate 
+ * @return absolute number of peers in the network (estimated)
+ */
+#define GNUNET_NSE_log_estimate_to_n(loge) pow(2.0, (loge))
 
 /**
  * Connect to the network size estimation service.
