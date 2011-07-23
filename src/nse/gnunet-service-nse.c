@@ -37,7 +37,6 @@
  *
  * TODO:
  * - generate proof-of-work asynchronously, store it on disk & load it back
- * - handle messages for future round (one into the future, see FIXME)
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -197,6 +196,11 @@ static double current_std_dev = NAN;
  * Current hop counter estimate (estimate for network diameter).
  */
 static uint32_t hop_count_max;
+
+/**
+ * Message for the next round, if we got any.
+ */
+static struct GNUNET_NSE_FloodMessage next_message;
 
 /**
  * Array of recent size estimate messages.
@@ -632,7 +636,17 @@ update_flood_message(void *cls,
   estimate_index = (estimate_index + 1) % HISTORY_SIZE;
   if (estimate_count < HISTORY_SIZE)
     estimate_count++;
-  setup_flood_message (estimate_index, current_timestamp);
+  if (next_timestamp.abs_value == 
+      GNUNET_TIME_absolute_ntoh (next_message.timestamp).abs_value)
+    {
+      /* we received a message for this round way early, use it! */
+      size_estimate_messages[estimate_index] = next_message;
+      size_estimate_messages[estimate_index].hop_count 
+	= htonl (1 + ntohl (next_message.hop_count));
+    }
+  else
+    setup_flood_message (estimate_index, current_timestamp);
+  next_message.matching_bits = htonl (0); /* reset for 'next' round */
   hop_count_max = 0;
   for (i=0;i<HISTORY_SIZE;i++)
     hop_count_max = GNUNET_MAX (ntohl (size_estimate_messages[i].hop_count),
@@ -838,14 +852,15 @@ handle_p2p_size_estimate(void *cls,
     idx = (estimate_index + HISTORY_SIZE - 1) % HISTORY_SIZE;
   else if (ts.abs_value == next_timestamp.abs_value - GNUNET_NSE_INTERVAL.rel_value)
     {
+      if (matching_bits <= ntohl (next_message.matching_bits))
+	return GNUNET_OK; /* ignore, simply too early */      
       if (GNUNET_YES !=
 	  verify_message_crypto (incoming_flood))
 	{
 	  GNUNET_break_op (0);
 	  return GNUNET_OK;
 	}
-      /* FIXME: keep in special 'future' buffer until next round starts for us! */
-      GNUNET_break (0); /* not implemented */
+      next_message = *incoming_flood;
       return GNUNET_OK;
     }
   else
