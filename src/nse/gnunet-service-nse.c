@@ -34,9 +34,6 @@
  * those peer from sending their messages at a later duration.  So
  * every peer should receive the same nearest peer message, and from
  * this can calculate the expected number of peers in the network.
- *
- * TODO:
- * - generate proof-of-work asynchronously, store it on disk & load it back
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -72,6 +69,11 @@
  * Interval for sending network size estimation flood requests.
  */
 #define GNUNET_NSE_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+
+/**
+ * Interval between proof find runs.
+ */
+#define PROOF_FIND_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 50)
 
 
 /**
@@ -221,6 +223,11 @@ static unsigned int estimate_count;
  * Task scheduled to update our flood message for the next round.
  */
 static GNUNET_SCHEDULER_TaskIdentifier flood_task;
+
+/**
+ * Task scheduled to compute our proof.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier proof_task;
 
 /**
  * Notification context, simplifies client broadcasts.
@@ -484,6 +491,24 @@ transmit_ready (void *cls, size_t size, void *buf)
 								&transmit_task,
 								peer_entry);
     }
+  if ( (ntohl (size_estimate_messages[idx].hop_count) == 0) &&
+       (GNUNET_SCHEDULER_NO_TASK != proof_task) )
+    {
+      GNUNET_STATISTICS_update (stats, 
+				"# flood messages not generated (no proof yet)", 
+				1,
+				GNUNET_NO);
+      return 0; 
+    }
+  if (ntohl (size_estimate_messages[idx].hop_count) == 0) 
+    GNUNET_STATISTICS_update (stats, 
+			      "# flood messages started", 
+			      1,
+			      GNUNET_NO);
+  GNUNET_STATISTICS_update (stats, 
+			    "# flood messages transmitted", 
+			    1,
+			    GNUNET_NO);
   memcpy (buf,
 	  &size_estimate_messages[idx],
 	  sizeof (struct GNUNET_NSE_FloodMessage));
@@ -705,35 +730,74 @@ check_proof_of_work(const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pkey,
 
 
 /**
- * Given a public key, find an integer such that the hash of the key
- * concatenated with the integer has NSE_WORK_REQUIRED leading 0
- * bits.  FIXME: this is a synchronous function... bad
- *
- * @param pkey the public key
- * @return 64 bit number that satisfies the requirements
+ * Write our current proof to disk.
  */
-static uint64_t 
-find_proof_of_work(const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pkey)
+static void
+write_proof ()
 {
+  char *proof;
+
+  if (GNUNET_OK != 
+      GNUNET_CONFIGURATION_get_value_filename (cfg,
+					       "NSE", "PROOFFILE",
+					       &proof))
+    return;    
+  if (sizeof (my_proof) !=
+      GNUNET_DISK_fn_write (proof,
+			    &my_proof,
+			    sizeof (my_proof),
+			    GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE))
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+			      "write",
+			      proof);   
+  GNUNET_free (proof);
+
+}
+
+
+/**
+ * Find our proof of work.
+ *
+ * @param cls closure (unused)
+ * @param tc task context
+ */
+static void
+find_proof (void *cls,
+	    const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+#define ROUND_SIZE 10
   uint64_t counter;
   char buf[sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) + sizeof(uint64_t)];
   GNUNET_HashCode result;
+  unsigned int i;  
   
+  proof_task = GNUNET_SCHEDULER_NO_TASK;
   memcpy (&buf[sizeof(uint64_t)],
-	  pkey, 
+	  &my_public_key, 
 	  sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
-  counter = 0;
-  while (counter != UINT64_MAX)
+  i = 0;
+  counter = my_proof;
+  while ( (counter != UINT64_MAX) && (i < ROUND_SIZE) )
     {
       memcpy (buf,
 	      &counter, 
 	      sizeof(uint64_t));
       GNUNET_CRYPTO_hash (buf, sizeof (buf), &result);
       if (NSE_WORK_REQUIRED <= count_leading_zeroes(&result))
-        break;
+	{
+	  my_proof = counter;
+	  write_proof ();
+	  return;
+	}
       counter++;
+      i++;
     }
-  return counter;
+  my_proof = counter;
+  if (0 == (my_proof % 100 * ROUND_SIZE))
+    write_proof (); /* remember progress every 100 rounds */
+  proof_task = GNUNET_SCHEDULER_add_delayed (PROOF_FIND_DELAY,
+					     &find_proof,
+					     NULL);
 }
 
 
@@ -1011,6 +1075,12 @@ shutdown_task(void *cls,
       GNUNET_SCHEDULER_cancel (flood_task);
       flood_task = GNUNET_SCHEDULER_NO_TASK;
     }
+  if (proof_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (proof_task);
+      proof_task = GNUNET_SCHEDULER_NO_TASK;
+      write_proof (); /* remember progress */
+    }
   if (nc != NULL)
     {
       GNUNET_SERVER_notification_context_destroy (nc);
@@ -1030,6 +1100,11 @@ shutdown_task(void *cls,
     {
       GNUNET_CONTAINER_multihashmap_destroy (peers);
       peers = NULL;
+    }
+  if (my_private_key != NULL)
+    {
+      GNUNET_CRYPTO_rsa_key_free (my_private_key);
+      my_private_key = NULL;
     }
 }
 
@@ -1060,9 +1135,7 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
-  my_identity = *identity;
-  my_public_key = *publicKey;
-
+  GNUNET_assert (0 == memcmp (&my_identity, identity, sizeof (struct GNUNET_PeerIdentity)));
   now = GNUNET_TIME_absolute_get ();
   current_timestamp.abs_value = (now.abs_value / GNUNET_NSE_INTERVAL.rel_value) * GNUNET_NSE_INTERVAL.rel_value;
   next_timestamp.abs_value = current_timestamp.abs_value + GNUNET_NSE_INTERVAL.rel_value;
@@ -1077,7 +1150,6 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
   flood_task
     = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining (next_timestamp),
 				    &update_flood_message, NULL);
-  my_proof = find_proof_of_work (&my_public_key);
 }
 
 
@@ -1093,6 +1165,7 @@ run(void *cls, struct GNUNET_SERVER_Handle *server,
     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *keyfile;
+  char *proof;
 
   static const struct GNUNET_SERVER_MessageHandler handlers[] =
     {
@@ -1124,6 +1197,33 @@ run(void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
+  GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
+  GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key), &my_identity.hashPubKey);
+  if (GNUNET_OK != 
+      GNUNET_CONFIGURATION_get_value_filename (cfg,
+					       "NSE", "PROOFFILE",
+					       &proof))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		  _ ("NSE service is lacking key configuration settings.  Exiting.\n"));
+      if (my_private_key != NULL)
+	{
+	  GNUNET_CRYPTO_rsa_key_free (my_private_key);
+	  my_private_key = NULL;
+	}
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+  if (sizeof (my_proof) !=
+      GNUNET_DISK_fn_read (proof,
+			   &my_proof,
+			   sizeof (my_proof)))
+    my_proof = 0; 
+  GNUNET_free (proof);
+  proof_task = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
+						   &find_proof,
+						   NULL);
+
   peers = GNUNET_CONTAINER_multihashmap_create (128);
   GNUNET_SERVER_add_handlers (server, handlers);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
