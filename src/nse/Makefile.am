@@ -23,7 +23,9 @@ libgnunetnse_la_LDFLAGS = \
 
 
 bin_PROGRAMS = \
- gnunet-service-nse \
+ gnunet-service-nse 
+
+noinst_PROGRAMS = \
  nse-profiler
 
 nse_profiler_SOURCES = \
@@ -48,12 +50,17 @@ gnunet_service_nse_LDADD = \
 gnunet_service_nse_DEPENDENCIES = \
   libgnunetnse.la				 
 
+if HAVE_BENCHMARKS
+  MULTIPEER_TEST = test_nse_multipeer
+endif
+
 check_PROGRAMS = \
  test_nse_api \
- test_nse_multipeer
+ $(MULTIPEER_TEST)
+
 
 if ENABLE_TEST_RUN
-TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
+TESTS = $(check_PROGRAMS) 
 endif
 
 test_nse_api_SOURCES = \
@@ -70,7 +77,6 @@ test_nse_multipeer_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la
 
 EXTRA_DIST = \
-  test_nse.conf \
-  $(check_SCRIPTS) 
+  test_nse.conf 
 
 
