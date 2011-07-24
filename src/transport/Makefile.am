@@ -269,7 +269,7 @@ check_PROGRAMS = \
 if ENABLE_TEST_RUN
 TESTS = \
  $(TEST_TRANSPORT_ATS) \
- perf_transport_ats \
+ $(ATS_TRANSPORT_BENCHMARKS) \
  test_transport_api_tcp \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
