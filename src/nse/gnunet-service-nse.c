@@ -63,17 +63,17 @@
 /**
  * Amount of work required (W-bit collisions) for NSE proofs, in collision-bits.
  */
-#define NSE_WORK_REQUIRED 8
+static unsigned long long nse_work_required;
 
 /**
  * Interval for sending network size estimation flood requests.
  */
-#define GNUNET_NSE_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+static struct GNUNET_TIME_Relative gnunet_nse_interval;
 
 /**
  * Interval between proof find runs.
  */
-#define PROOF_FIND_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 5)
+static struct GNUNET_TIME_Relative proof_find_delay;
 
 
 /**
@@ -360,11 +360,11 @@ get_matching_bits_delay (uint32_t matching_bits)
 {
   /* Calculated as: S + f/2 - (f / pi) * (atan(x - p'))*/  
   // S is next_timestamp (ignored in return value)
-  // f is frequency (GNUNET_NSE_INTERVAL)
+  // f is frequency (gnunet_nse_interval)
   // x is matching_bits
   // p' is current_size_estimate
-  return ((double) GNUNET_NSE_INTERVAL.rel_value / (double) 2.0)
-    - ((GNUNET_NSE_INTERVAL.rel_value / M_PI) * atan (matching_bits - current_size_estimate));
+  return ((double) gnunet_nse_interval.rel_value / (double) 2.0)
+    - ((gnunet_nse_interval.rel_value / M_PI) * atan (matching_bits - current_size_estimate));
 }
 
 
@@ -673,7 +673,7 @@ update_flood_message(void *cls,
     }
   current_timestamp = next_timestamp;
   next_timestamp = GNUNET_TIME_absolute_add (current_timestamp,
-					     GNUNET_NSE_INTERVAL);
+					     gnunet_nse_interval);
   estimate_index = (estimate_index + 1) % HISTORY_SIZE;
   if (estimate_count < HISTORY_SIZE)
     estimate_count++;
@@ -741,7 +741,7 @@ check_proof_of_work(const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pkey,
 	  pkey, 
 	  sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
   GNUNET_CRYPTO_hash (buf, sizeof (buf), &result);
-  return (count_leading_zeroes (&result) >= NSE_WORK_REQUIRED) ? GNUNET_YES : GNUNET_NO;
+  return (count_leading_zeroes (&result) >= nse_work_required) ? GNUNET_YES : GNUNET_NO;
 }
 
 
@@ -799,7 +799,7 @@ find_proof (void *cls,
 	      &counter, 
 	      sizeof(uint64_t));
       GNUNET_CRYPTO_hash (buf, sizeof (buf), &result);
-      if (NSE_WORK_REQUIRED <= count_leading_zeroes(&result))
+      if (nse_work_required <= count_leading_zeroes(&result))
 	{
 	  my_proof = counter;
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -834,7 +834,7 @@ find_proof (void *cls,
     {
       my_proof = counter;
     }
-  proof_task = GNUNET_SCHEDULER_add_delayed (PROOF_FIND_DELAY,
+  proof_task = GNUNET_SCHEDULER_add_delayed (proof_find_delay,
 					     &find_proof,
 					     NULL);
 }
@@ -979,9 +979,9 @@ handle_p2p_size_estimate(void *cls,
   ts = GNUNET_TIME_absolute_ntoh (incoming_flood->timestamp);
   if (ts.abs_value == current_timestamp.abs_value)
     idx = estimate_index;
-  else if (ts.abs_value == current_timestamp.abs_value - GNUNET_NSE_INTERVAL.rel_value)
+  else if (ts.abs_value == current_timestamp.abs_value - gnunet_nse_interval.rel_value)
     idx = (estimate_index + HISTORY_SIZE - 1) % HISTORY_SIZE;
-  else if (ts.abs_value == next_timestamp.abs_value - GNUNET_NSE_INTERVAL.rel_value)
+  else if (ts.abs_value == next_timestamp.abs_value - gnunet_nse_interval.rel_value)
     {
       if (matching_bits <= ntohl (next_message.matching_bits))
 	return GNUNET_OK; /* ignore, simply too early */      
@@ -1212,12 +1212,12 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
     }
   GNUNET_assert (0 == memcmp (&my_identity, identity, sizeof (struct GNUNET_PeerIdentity)));
   now = GNUNET_TIME_absolute_get ();
-  current_timestamp.abs_value = (now.abs_value / GNUNET_NSE_INTERVAL.rel_value) * GNUNET_NSE_INTERVAL.rel_value;
-  next_timestamp.abs_value = current_timestamp.abs_value + GNUNET_NSE_INTERVAL.rel_value;
+  current_timestamp.abs_value = (now.abs_value / gnunet_nse_interval.rel_value) * gnunet_nse_interval.rel_value;
+  next_timestamp.abs_value = current_timestamp.abs_value + gnunet_nse_interval.rel_value;
   
   for (i=0;i<HISTORY_SIZE;i++)
     {
-      prev_time.abs_value = current_timestamp.abs_value - (HISTORY_SIZE - i - 1) * GNUNET_NSE_INTERVAL.rel_value;
+      prev_time.abs_value = current_timestamp.abs_value - (HISTORY_SIZE - i - 1) * gnunet_nse_interval.rel_value;
       setup_flood_message (i, prev_time);
     }
   estimate_index = HISTORY_SIZE - 1;
@@ -1253,6 +1253,34 @@ run(void *cls, struct GNUNET_SERVER_Handle *server,
       { NULL, 0, 0 } 
     };
   cfg = c;
+
+  if ( (GNUNET_OK != 
+	GNUNET_CONFIGURATION_get_value_time (cfg,
+					     "NSE", "INTERVAL",
+					     &gnunet_nse_interval)) ||
+       (GNUNET_OK != 
+	GNUNET_CONFIGURATION_get_value_time (cfg,
+					     "NSE", "WORKDELAY",
+					     &proof_find_delay)) ||
+       (GNUNET_OK != 
+	GNUNET_CONFIGURATION_get_value_number (cfg,
+					       "NSE", "WORKBITS",
+					       &nse_work_required)) )       
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		  _ ("NSE service is lacking key configuration settings.  Exiting.\n"));
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+  if (nse_work_required >= sizeof (GNUNET_HashCode) * 8)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		  _ ("Invalid work requirement for NSE service. Exiting.\n"));
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+
+
   if (GNUNET_OK != 
       GNUNET_CONFIGURATION_get_value_filename (cfg,
 					       "GNUNETD", "HOSTKEY",
