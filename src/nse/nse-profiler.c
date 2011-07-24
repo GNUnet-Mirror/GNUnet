@@ -50,9 +50,9 @@ struct StatsContext
   unsigned long long total_nse_bytes;
 };
 
-struct NSEPeer *peer_head;
+static struct NSEPeer *peer_head;
 
-struct NSEPeer *peer_tail;
+static struct NSEPeer *peer_tail;
 
 /**
  * How long until we give up on connecting the peers?
@@ -74,7 +74,7 @@ static unsigned long long num_peers;
 /**
  * Global configuration file
  */
-struct GNUNET_CONFIGURATION_Handle *testing_cfg;
+static struct GNUNET_CONFIGURATION_Handle *testing_cfg;
 
 /**
  * Total number of currently running peers.
