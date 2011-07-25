@@ -45,6 +45,8 @@
 #include "gnunet_nse_service.h"
 #include "nse.h"
 
+#define ENABLE_HISTOGRAM GNUNET_YES
+
 /**
  * Over how many values do we calculate the weighted average?
  */
@@ -74,6 +76,11 @@ static struct GNUNET_TIME_Relative gnunet_nse_interval;
  * Interval between proof find runs.
  */
 static struct GNUNET_TIME_Relative proof_find_delay;
+
+
+#if ENABLE_HISTOGRAM
+static struct GNUNET_BIO_WriteHandle *wh;
+#endif
 
 
 /**
@@ -939,6 +946,10 @@ handle_p2p_size_estimate(void *cls,
   uint32_t matching_bits;  
   unsigned int idx;
 
+#if ENABLE_HISTOGRAM
+  if (NULL != wh)
+    GNUNET_BIO_write_int64 (wh, GNUNET_htonll (GNUNET_TIME_absolute_get ().abs_value));
+#endif
   incoming_flood = (const struct GNUNET_NSE_FloodMessage *) message;
   GNUNET_STATISTICS_update (stats, 
 			    "# flood messages received", 
@@ -1181,6 +1192,13 @@ shutdown_task(void *cls,
       GNUNET_CRYPTO_rsa_key_free (my_private_key);
       my_private_key = NULL;
     }
+#if ENABLE_HISTOGRAM
+  if (wh != NULL)
+    {
+      GNUNET_BIO_write_close (wh);
+      wh = NULL;
+    }
+#endif
 }
 
 
@@ -1346,6 +1364,16 @@ run(void *cls, struct GNUNET_SERVER_Handle *server,
 				 core_handlers); /* Register these handlers */
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&shutdown_task, NULL);
+#if ENABLE_HISTOGRAM
+  if (GNUNET_OK == 
+      GNUNET_CONFIGURATION_get_value_filename (cfg,
+					       "NSE", "HISTOGRAM",
+					       &proof))
+    {
+      wh = GNUNET_BIO_write_open (proof);
+      GNUNET_free (proof);
+    }
+#endif
   if (coreAPI == NULL)
     {
       GNUNET_SCHEDULER_shutdown ();
