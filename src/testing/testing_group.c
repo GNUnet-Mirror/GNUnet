@@ -234,6 +234,11 @@ struct ShutdownContext
    * Closure for cb
    */
   void *cb_cls;
+
+  /**
+   * Should we delete all of the files from the peers?
+   */
+  int delete_files;
 };
 
 /**
@@ -6711,7 +6716,7 @@ schedule_shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_TESTING_daemon_stop (peer_shutdown_ctx->daemon,
                                   shutdown_ctx->timeout,
                                   &internal_shutdown_callback, peer_shutdown_ctx,
-                                  GNUNET_YES, GNUNET_NO);
+                                  shutdown_ctx->delete_files, GNUNET_NO);
     }
   else
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
@@ -6745,6 +6750,9 @@ GNUNET_TESTING_daemons_stop(struct GNUNET_TESTING_PeerGroup *pg,
   GNUNET_assert (pg->total > 0);
 
   shutdown_ctx = GNUNET_malloc (sizeof (struct ShutdownContext));
+  shutdown_ctx->delete_files = GNUNET_CONFIGURATION_get_value_yesno (pg->cfg,
+								     "TESTING",
+								     "DELETE_FILES");
   shutdown_ctx->cb = cb;
   shutdown_ctx->cb_cls = cb_cls;
   shutdown_ctx->total_peers = pg->total;
