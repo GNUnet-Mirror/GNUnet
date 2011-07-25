@@ -1372,6 +1372,8 @@ make_config(const struct GNUNET_CONFIGURATION_Handle *cfg, uint32_t off,
   uint16_t orig;
   char *control_host;
   char *allowed_hosts;
+  unsigned long long skew_variance;
+  unsigned long long skew_offset;
 
   orig = *port;
   uc.nport = *port;
@@ -1387,6 +1389,16 @@ make_config(const struct GNUNET_CONFIGURATION_Handle *cfg, uint32_t off,
       *port = orig;
       GNUNET_CONFIGURATION_destroy (uc.ret);
       return NULL;
+    }
+
+  if ((GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (cfg, "testing",
+                                                           "skew_variance",
+                                                           &skew_variance))
+      && (skew_variance > 0))
+    {
+      skew_variance *= 2;
+      skew_offset = GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_WEAK, skew_variance + 1);
+      GNUNET_CONFIGURATION_set_value_number(uc.ret, "testing", "skew_offset", skew_offset);
     }
 
   if (GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "control_host",
