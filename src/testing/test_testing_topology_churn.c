@@ -173,28 +173,28 @@ static void
 churn_peers_both ()
 {
   churn_ctx.next_task = &finish_testing;
-  GNUNET_TESTING_daemons_churn (pg, 1, 1, TIMEOUT, &churn_callback, NULL);
+  GNUNET_TESTING_daemons_churn (pg, NULL, 1, 1, TIMEOUT, &churn_callback, NULL);
 }
 
 static void
 churn_peers_off_again ()
 {
   churn_ctx.next_task = &churn_peers_both;
-  GNUNET_TESTING_daemons_churn (pg, 2, 0, TIMEOUT, &churn_callback, NULL);
+  GNUNET_TESTING_daemons_churn (pg, NULL, 2, 0, TIMEOUT, &churn_callback, NULL);
 }
 
 static void
 churn_peers_on ()
 {
   churn_ctx.next_task = &churn_peers_off_again;
-  GNUNET_TESTING_daemons_churn (pg, 0, 2, TIMEOUT, &churn_callback, NULL);
+  GNUNET_TESTING_daemons_churn (pg, NULL, 0, 2, TIMEOUT, &churn_callback, NULL);
 }
 
 static void
 churn_peers_off ()
 {
   churn_ctx.next_task = &churn_peers_on;
-  GNUNET_TESTING_daemons_churn (pg, 2, 0, TIMEOUT, &churn_callback, NULL);
+  GNUNET_TESTING_daemons_churn (pg, NULL, 2, 0, TIMEOUT, &churn_callback, NULL);
 }
 
 static void

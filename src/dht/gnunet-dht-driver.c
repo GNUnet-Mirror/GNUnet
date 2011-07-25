@@ -1901,7 +1901,7 @@ churn_peers(void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
               "churn_peers: want %u total, %u running, starting %u, stopping %u\n",
               churn_array[current_churn_round], count_running, churn_up,
               churn_down);
-  GNUNET_TESTING_daemons_churn (pg, churn_down, churn_up, timeout,
+  GNUNET_TESTING_daemons_churn (pg, NULL, churn_down, churn_up, timeout,
                                 &churn_complete, find_peer_context);
   current_churn_round++;
 }

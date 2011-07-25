@@ -784,6 +784,87 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     case SP_START_DONE:
       GNUNET_break (0);
       break;
+    case SP_SERVICE_START:
+      /* confirm gnunet-arm exited */
+      if (GNUNET_OK != GNUNET_OS_process_status (d->proc, &type, &code))
+        {
+          if (GNUNET_TIME_absolute_get_remaining (d->max_timeout).rel_value ==
+              0)
+            {
+              cb = d->cb;
+              d->cb = NULL;
+              if (NULL != cb)
+                cb (d->cb_cls,
+                    NULL,
+                    d->cfg,
+                    d,
+                    (NULL == d->hostname)
+                    ? _("`gnunet-arm' does not seem to terminate.\n")
+                    : _("`ssh' does not seem to terminate.\n"));
+              return;
+            }
+          /* wait some more */
+          d->task
+            = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_EXEC_WAIT,
+                                            &start_fsm, d);
+          return;
+        }
+      if ((type != GNUNET_OS_PROCESS_EXITED) || (code != 0))
+        {
+          cb = d->cb;
+          d->cb = NULL;
+          if (NULL != cb)
+            cb (d->cb_cls,
+                NULL,
+                d->cfg,
+                d,
+                (NULL == d->hostname)
+                ? _("`gnunet-arm' does not seem to terminate.\n")
+                : _("`ssh' does not seem to terminate.\n"));
+          return;
+        }
+#if DEBUG_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Service startup complete!\n");
+#endif
+      cb = d->cb;
+      d->cb = NULL;
+      d->phase = SP_START_DONE;
+      if (NULL != cb)
+        cb (d->cb_cls, &d->id, d->cfg, d, NULL);
+      break;
+    case SP_SERVICE_SHUTDOWN_START:
+      /* confirm copying complete */
+      if (GNUNET_OK != GNUNET_OS_process_status (d->proc, &type, &code))
+        {
+          if (GNUNET_TIME_absolute_get_remaining (d->max_timeout).rel_value ==
+              0)
+            {
+              if (NULL != d->dead_cb)
+                d->dead_cb (d->dead_cb_cls,
+                            _
+                            ("either `gnunet-arm' or `ssh' does not seem to terminate.\n"));
+              return;
+            }
+          /* wait some more */
+          d->task
+            = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_EXEC_WAIT,
+                                            &start_fsm, d);
+          return;
+        }
+      if ((type != GNUNET_OS_PROCESS_EXITED) || (code != 0))
+        {
+          if (NULL != d->dead_cb)
+            d->dead_cb (d->dead_cb_cls,
+                        _
+                        ("shutdown (either `gnunet-arm' or `ssh') did not complete cleanly.\n"));
+          return;
+        }
+#if DEBUG_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Service shutdown complete.\n");
+#endif
+      if (NULL != d->dead_cb)
+        d->dead_cb (d->dead_cb_cls, NULL);
+      break;
     case SP_SHUTDOWN_START:
       /* confirm copying complete */
       if (GNUNET_OK != GNUNET_OS_process_status (d->proc, &type, &code))
@@ -956,6 +1037,94 @@ GNUNET_TESTING_daemon_running (struct GNUNET_TESTING_Daemon *daemon)
   return GNUNET_NO;
 }
 
+
+/**
+ * Stops a GNUnet daemon.
+ *
+ * @param d the daemon for which the service should be started
+ * @param service the name of the service to start
+ * @param timeout how long to wait for process for shutdown to complete
+ * @param cb function called once the daemon was stopped
+ * @param cb_cls closure for cb
+ */
+void
+GNUNET_TESTING_daemon_start_stopped_service (struct GNUNET_TESTING_Daemon *d,
+                                              char *service,
+                                              struct GNUNET_TIME_Relative timeout,
+                                              GNUNET_TESTING_NotifyDaemonRunning cb, void *cb_cls)
+{
+  char *arg;
+  d->cb = cb;
+  d->cb_cls = cb_cls;
+
+  GNUNET_assert(d->running == GNUNET_YES);
+
+  if (d->phase == SP_CONFIG_UPDATE)
+    {
+      GNUNET_SCHEDULER_cancel (d->task);
+      d->phase = SP_START_DONE;
+    }
+
+#if DEBUG_TESTING
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              _("Terminating peer `%4s'\n"), GNUNET_i2s (&d->id));
+#endif
+  if (d->churned_services == NULL)
+    {
+      d->dead_cb(d->dead_cb_cls, "No service has been churned off yet!!");
+      return;
+    }
+  d->phase = SP_SERVICE_START;
+  GNUNET_free(d->churned_services);
+
+  /* Check if this is a local or remote process */
+  if (NULL != d->hostname)
+    {
+#if DEBUG_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Starting gnunet-arm with config `%s' on host `%s'.\n",
+                  d->cfgfile, d->hostname);
+#endif
+
+      if (d->username != NULL)
+        GNUNET_asprintf (&arg, "%s@%s", d->username, d->hostname);
+      else
+        arg = GNUNET_strdup (d->hostname);
+
+      d->proc = GNUNET_OS_start_process (NULL, NULL, "ssh", "ssh",
+#if !DEBUG_TESTING
+                                         "-q",
+#endif
+                                         arg, "gnunet-arm",
+#if DEBUG_TESTING
+                                         "-L", "DEBUG",
+#endif
+                                         "-c", d->cfgfile, "-i", service, "-q",
+                                         NULL);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Starting gnunet-arm with command ssh %s gnunet-arm -c %s -i %s -q\n",
+                  arg, "gnunet-arm", d->cfgfile, service);
+      GNUNET_free (arg);
+    }
+  else
+    {
+#if DEBUG_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Starting gnunet-arm with config `%s' locally.\n",
+                  d->cfgfile);
+#endif
+      d->proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-arm",
+                                         "gnunet-arm",
+#if DEBUG_TESTING
+                                         "-L", "DEBUG",
+#endif
+                                         "-c", d->cfgfile, "-i", service, "-q",
+                                         NULL);
+    }
+
+  d->max_timeout = GNUNET_TIME_relative_to_absolute (timeout);
+  d->task = GNUNET_SCHEDULER_add_now (&start_fsm, d);
+}
 
 /**
  * Start a peer that has previously been stopped using the daemon_stop
@@ -1326,6 +1495,99 @@ GNUNET_TESTING_daemon_restart (struct GNUNET_TESTING_Daemon *d,
     = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_EXEC_WAIT,
                                     &start_fsm, d);
 
+}
+
+
+/**
+ * Stops a GNUnet daemon.
+ *
+ * @param d the daemon that should be stopped
+ * @param service the name of the service to stop
+ * @param timeout how long to wait for process for shutdown to complete
+ * @param cb function called once the daemon was stopped
+ * @param cb_cls closure for cb
+ * @param delete_files GNUNET_YES to remove files, GNUNET_NO
+ *        to leave them
+ * @param allow_restart GNUNET_YES to restart peer later (using this API)
+ *        GNUNET_NO to kill off and clean up for good
+ */
+void
+GNUNET_TESTING_daemon_stop_service (struct GNUNET_TESTING_Daemon *d,
+                                    char *service,
+                                    struct GNUNET_TIME_Relative timeout,
+                                    GNUNET_TESTING_NotifyCompletion cb, void *cb_cls)
+{
+  char *arg;
+  d->dead_cb = cb;
+  d->dead_cb_cls = cb_cls;
+
+  GNUNET_assert(d->running == GNUNET_YES);
+
+  if (d->phase == SP_CONFIG_UPDATE)
+    {
+      GNUNET_SCHEDULER_cancel (d->task);
+      d->phase = SP_START_DONE;
+    }
+
+#if DEBUG_TESTING
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              _("Terminating peer `%4s'\n"), GNUNET_i2s (&d->id));
+#endif
+  if (d->churned_services != NULL)
+    {
+      d->dead_cb(d->dead_cb_cls, "A service has already been turned off!!");
+      return;
+    }
+  d->phase = SP_SERVICE_SHUTDOWN_START;
+  d->churned_services = GNUNET_strdup(service);
+
+  /* Check if this is a local or remote process */
+  if (NULL != d->hostname)
+    {
+#if DEBUG_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Stopping gnunet-arm with config `%s' on host `%s'.\n",
+                  d->cfgfile, d->hostname);
+#endif
+
+      if (d->username != NULL)
+        GNUNET_asprintf (&arg, "%s@%s", d->username, d->hostname);
+      else
+        arg = GNUNET_strdup (d->hostname);
+
+      d->proc = GNUNET_OS_start_process (NULL, NULL, "ssh", "ssh",
+#if !DEBUG_TESTING
+                                         "-q",
+#endif
+                                         arg, "gnunet-arm",
+#if DEBUG_TESTING
+                                         "-L", "DEBUG",
+#endif
+                                         "-c", d->cfgfile, "-k", service, "-q",
+                                         NULL);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Stopping gnunet-arm with command ssh %s gnunet-arm -c %s -k %s -q\n",
+                  arg, "gnunet-arm", d->cfgfile, service);
+      GNUNET_free (arg);
+    }
+  else
+    {
+#if DEBUG_TESTING
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Stopping gnunet-arm with config `%s' locally.\n",
+                  d->cfgfile);
+#endif
+      d->proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-arm",
+                                         "gnunet-arm",
+#if DEBUG_TESTING
+                                         "-L", "DEBUG",
+#endif
+                                         "-c", d->cfgfile, "-k", service, "-q",
+                                         NULL);
+    }
+
+  d->max_timeout = GNUNET_TIME_relative_to_absolute (timeout);
+  d->task = GNUNET_SCHEDULER_add_now (&start_fsm, d);
 }
 
 

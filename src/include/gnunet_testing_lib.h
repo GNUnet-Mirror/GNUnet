@@ -176,6 +176,18 @@ enum GNUNET_TESTING_StartPhase
   SP_SHUTDOWN_START,
 
   /**
+   * We should shutdown a *single* service via gnunet-arm.  Call the dead_cb
+   * upon notification from gnunet-arm that the service has been stopped.
+   */
+  SP_SERVICE_SHUTDOWN_START,
+
+  /**
+   * We should start a *single* service via gnunet-arm.  Call the daemon cb
+   * upon notification from gnunet-arm that the service has been started.
+   */
+  SP_SERVICE_START,
+
+  /**
    * We've received a configuration update and are currently waiting for
    * the copy process for the update to complete.  Once it is, we will
    * return to "SP_START_DONE" (and rely on ARM to restart all affected
@@ -362,6 +374,14 @@ struct GNUNET_TESTING_Daemon
    * (if it's going to be restarted later)
    */
   int churn;
+
+  /**
+   * Currently, a single char * pointing to a service
+   * that has been churned off.
+   *
+   * FIXME: make this a linked list of services that have been churned off!!!
+   */
+  char *churned_services;
 };
 
 
@@ -494,6 +514,21 @@ GNUNET_TESTING_daemon_start_stopped (struct GNUNET_TESTING_Daemon *daemon,
                                      void *cb_cls);
 
 /**
+ * Stops a GNUnet daemon.
+ *
+ * @param d the daemon for which the service should be started
+ * @param service the name of the service to start
+ * @param timeout how long to wait for process for shutdown to complete
+ * @param cb function called once the daemon was stopped
+ * @param cb_cls closure for cb
+ */
+void
+GNUNET_TESTING_daemon_start_stopped_service (struct GNUNET_TESTING_Daemon *d,
+                                             char *service,
+                                             struct GNUNET_TIME_Relative timeout,
+                                             GNUNET_TESTING_NotifyDaemonRunning cb, void *cb_cls);
+
+/**
  * Get a certain testing daemon handle.
  *
  * @param pg handle to the set of running peers
@@ -548,6 +583,24 @@ void GNUNET_TESTING_daemon_reconfigure (struct GNUNET_TESTING_Daemon *d,
 					struct GNUNET_CONFIGURATION_Handle *cfg,
 					GNUNET_TESTING_NotifyCompletion cb,
 					void * cb_cls);
+
+/**
+ * Stops a single service of a GNUnet daemon.  Used like daemon_stop,
+ * only doesn't stop the entire peer in any case.  If the service
+ * is not currently running, this call is likely to fail after
+ * timeout!
+ *
+ * @param d the daemon that should be stopped
+ * @param service the name of the service to stop
+ * @param timeout how long to wait for process for shutdown to complete
+ * @param cb function called once the service was stopped
+ * @param cb_cls closure for cb
+ */
+void
+GNUNET_TESTING_daemon_stop_service (struct GNUNET_TESTING_Daemon *d,
+                                    char *service,
+                                    struct GNUNET_TIME_Relative timeout,
+                                    GNUNET_TESTING_NotifyCompletion cb, void *cb_cls);
 
 
 /**
@@ -677,6 +730,7 @@ GNUNET_TESTING_daemons_running (struct GNUNET_TESTING_PeerGroup *pg);
  * running even though the "peer" is being varied offline.
  *
  * @param pg handle for the peer group
+ * @param service the service to churn on/off, NULL for all
  * @param voff number of peers that should go offline
  * @param von number of peers that should come back online;
  *            must be zero on first call (since "testbed_start"
@@ -688,6 +742,7 @@ GNUNET_TESTING_daemons_running (struct GNUNET_TESTING_PeerGroup *pg);
  */
 void
 GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
+                              char *service,
                               unsigned int voff,
                               unsigned int von,
                               struct GNUNET_TIME_Relative timeout,

@@ -496,7 +496,7 @@ churn_peers (void *cls,
                       - peers_next_round : 0,
                   (peers_next_round > peers_running) ? peers_next_round
                       - peers_running : 0);
-      GNUNET_TESTING_daemons_churn (pg,
+      GNUNET_TESTING_daemons_churn (pg, "nse",
                                     (peers_running > peers_next_round) ? peers_running
                                         - peers_next_round
                                         : 0,

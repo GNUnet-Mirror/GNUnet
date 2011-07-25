@@ -103,6 +103,12 @@ struct ChurnContext
   struct GNUNET_TESTING_PeerGroup *pg;
 
   /**
+   * Name of the service to churn on/off, NULL
+   * to churn entire peer.
+   */
+  char *service;
+
+  /**
    * Callback used to notify of churning finished
    */
   GNUNET_TESTING_NotifyCompletion cb;
@@ -5576,9 +5582,15 @@ schedule_churn_restart(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                   &schedule_churn_restart, peer_restart_ctx);
   else
     {
-      GNUNET_TESTING_daemon_start_stopped (peer_restart_ctx->daemon,
-                                           startup_ctx->timeout,
-                                           &churn_start_callback, startup_ctx);
+      if (startup_ctx->churn_ctx->service != NULL)
+        GNUNET_TESTING_daemon_start_stopped_service (peer_restart_ctx->daemon,
+                                                     startup_ctx->churn_ctx->service,
+                                                     startup_ctx->timeout,
+                                                     &churn_start_callback, startup_ctx);
+      else
+        GNUNET_TESTING_daemon_start_stopped (peer_restart_ctx->daemon,
+                                             startup_ctx->timeout,
+                                             &churn_start_callback, startup_ctx);
       GNUNET_free (peer_restart_ctx);
     }
 }
@@ -6336,9 +6348,15 @@ schedule_churn_shutdown_task(void *cls,
   else
     {
       shutdown_ctx->outstanding++;
-      GNUNET_TESTING_daemon_stop (peer_shutdown_ctx->daemon,
-                                  shutdown_ctx->timeout, shutdown_ctx->cb,
-                                  shutdown_ctx, GNUNET_NO, GNUNET_YES);
+      if (churn_ctx->service != NULL)
+        GNUNET_TESTING_daemon_stop_service (peer_shutdown_ctx->daemon,
+                                            churn_ctx->service,
+                                            shutdown_ctx->timeout, shutdown_ctx->cb,
+                                            shutdown_ctx);
+      else
+        GNUNET_TESTING_daemon_stop (peer_shutdown_ctx->daemon,
+                                    shutdown_ctx->timeout, shutdown_ctx->cb,
+                                    shutdown_ctx, GNUNET_NO, GNUNET_YES);
       GNUNET_free (peer_shutdown_ctx);
     }
 }
@@ -6355,6 +6373,7 @@ schedule_churn_shutdown_task(void *cls,
  * completion.
  *
  * @param pg handle for the peer group
+ * @param service the service to churn off/on, NULL to churn peer
  * @param voff number of peers that should go offline
  * @param von number of peers that should come back online;
  *            must be zero on first call (since "testbed_start"
@@ -6366,6 +6385,7 @@ schedule_churn_shutdown_task(void *cls,
  */
 void
 GNUNET_TESTING_daemons_churn(struct GNUNET_TESTING_PeerGroup *pg,
+                             char *service,
                              unsigned int voff, unsigned int von,
                              struct GNUNET_TIME_Relative timeout,
                              GNUNET_TESTING_NotifyCompletion cb, void *cb_cls)
@@ -6385,6 +6405,7 @@ GNUNET_TESTING_daemons_churn(struct GNUNET_TESTING_PeerGroup *pg,
   unsigned int *stopped_arr;
   unsigned int *running_permute;
   unsigned int *stopped_permute;
+  char *pos;
 
   shutdown_ctx = NULL;
   peer_shutdown_ctx = NULL;
@@ -6402,15 +6423,39 @@ GNUNET_TESTING_daemons_churn(struct GNUNET_TESTING_PeerGroup *pg,
 
   for (i = 0; i < pg->total; i++)
     {
-      if (pg->peers[i].daemon->running == GNUNET_YES)
+      if (service == NULL)
         {
-          GNUNET_assert (running != -1);
-          running++;
+          if (pg->peers[i].daemon->running == GNUNET_YES)
+            {
+              GNUNET_assert (running != -1);
+              running++;
+            }
+          else
+            {
+              GNUNET_assert (stopped != -1);
+              stopped++;
+            }
         }
       else
         {
-          GNUNET_assert (stopped != -1);
-          stopped++;
+          /* FIXME: make churned services a list! */
+          pos = pg->peers[i].daemon->churned_services;
+          /* FIXME: while (pos != NULL) */
+          if (pos != NULL)
+            {
+              if (0 == strcasecmp(pos, service))
+                {
+                  GNUNET_assert (stopped != -1);
+                  stopped++;
+                  break;
+                }
+              /* FIXME: pos = pos->next; */
+            }
+          if (pos == NULL)
+            {
+              GNUNET_assert (running != -1);
+              running++;
+            }
         }
     }
 
@@ -6463,17 +6508,43 @@ GNUNET_TESTING_daemons_churn(struct GNUNET_TESTING_PeerGroup *pg,
 
   for (i = 0; i < pg->total; i++)
     {
-      if (pg->peers[i].daemon->running == GNUNET_YES)
+      if (service == NULL)
         {
-          GNUNET_assert ((running_arr != NULL) && (total_running > running));
-          running_arr[running] = i;
-          running++;
+          if (pg->peers[i].daemon->running == GNUNET_YES)
+            {
+              GNUNET_assert ((running_arr != NULL) && (total_running > running));
+              running_arr[running] = i;
+              running++;
+            }
+          else
+            {
+              GNUNET_assert ((stopped_arr != NULL) && (total_stopped > stopped));
+              stopped_arr[stopped] = i;
+              stopped++;
+            }
         }
       else
         {
-          GNUNET_assert ((stopped_arr != NULL) && (total_stopped > stopped));
-          stopped_arr[stopped] = i;
-          stopped++;
+          /* FIXME: make churned services a list! */
+          pos = pg->peers[i].daemon->churned_services;
+          /* FIXME: while (pos != NULL) */
+          if (pos != NULL)
+            {
+              if (0 == strcasecmp(pos, service))
+                {
+                  GNUNET_assert ((stopped_arr != NULL) && (total_stopped > stopped));
+                  stopped_arr[stopped] = i;
+                  stopped++;
+                  break;
+                }
+              /* FIXME: pos = pos->next; */
+            }
+          if (pos == NULL)
+            {
+              GNUNET_assert ((running_arr != NULL) && (total_running > running));
+              running_arr[running] = i;
+              running++;
+            }
         }
     }
 
@@ -6500,12 +6571,6 @@ GNUNET_TESTING_daemons_churn(struct GNUNET_TESTING_PeerGroup *pg,
       peer_shutdown_ctx->shutdown_ctx = shutdown_ctx;
       GNUNET_SCHEDULER_add_now (&schedule_churn_shutdown_task,
                                 peer_shutdown_ctx);
-
-      /*
-       GNUNET_TESTING_daemon_stop (pg->peers[running_arr[running_permute[i]]].daemon,
-       timeout,
-       &churn_stop_callback, churn_ctx,
-       GNUNET_NO, GNUNET_YES); */
     }
 
   GNUNET_assert (stopped >= von);
@@ -6528,9 +6593,6 @@ GNUNET_TESTING_daemons_churn(struct GNUNET_TESTING_PeerGroup *pg,
       peer_restart_ctx->daemon
           = pg->peers[stopped_arr[stopped_permute[i]]].daemon;
       GNUNET_SCHEDULER_add_now (&schedule_churn_restart, peer_restart_ctx);
-      /*
-       GNUNET_TESTING_daemon_start_stopped(pg->peers[stopped_arr[stopped_permute[i]]].daemon,
-       timeout, &churn_start_callback, churn_ctx); */
     }
 
   GNUNET_free_non_null (running_arr);
