@@ -819,7 +819,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                 d->cfg,
                 d,
                 (NULL == d->hostname)
-                ? _("`gnunet-arm' does not seem to terminate.\n")
+                ? _("`gnunet-arm' terminated with non-zero exit status (or timed out)!\n")
                 : _("`ssh' does not seem to terminate.\n"));
           return;
         }
@@ -1076,6 +1076,7 @@ GNUNET_TESTING_daemon_start_stopped_service (struct GNUNET_TESTING_Daemon *d,
     }
   d->phase = SP_SERVICE_START;
   GNUNET_free(d->churned_services);
+  d->churned_services = NULL;
 
   /* Check if this is a local or remote process */
   if (NULL != d->hostname)
