@@ -715,6 +715,11 @@ typedef int (*GNUNET_TESTING_STATISTICS_Iterator) (void *cls,
 /**
  * Iterate over all (running) peers in the peer group, retrieve
  * all statistics from each.
+ *
+ * @param pg the peergroup to iterate statistics of
+ * @param cont continuation to call once call is completed(?)
+ * @param proc processing function for each statistic retrieved
+ * @param cls closure to pass to proc
  */
 void
 GNUNET_TESTING_get_statistics (struct GNUNET_TESTING_PeerGroup *pg,
