@@ -51,7 +51,7 @@ struct NSEPeer *peer_tail;
 /**
  * How long do we run the test?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 30)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 60)
 
 static int ok;
 
@@ -269,6 +269,7 @@ check ()
                       options, &run, &ok);
   return ok;
 }
+
 
 int
 main (int argc, char *argv[])

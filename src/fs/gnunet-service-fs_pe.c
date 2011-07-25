@@ -159,10 +159,13 @@ plan (struct PeerPlan *pp,
 			 total_delay * 1000LL / plan_count,
 			 GNUNET_NO);
   prd = GSF_pending_request_get_data_ (rp->pr);
-  // FIXME: calculate 'rp->earliest_transmission'!
-  // FIXME: claculate 'rp->priority'!  
-  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-					 rp->transmission_counter);
+  // FIXME: calculate 'rp->priority'!  
+  if (rp->transmission_counter < 32)
+    delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+					   1LL << rp->transmission_counter);
+  else
+    delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+					   UINT_MAX);
   rp->earliest_transmission 
     = GNUNET_TIME_relative_to_absolute (delay);
 #if DEBUG_FS

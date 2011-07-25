@@ -305,6 +305,10 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
 	      GNUNET_h2s (query),
 	      type);
 #endif 
+  GNUNET_STATISTICS_update (GSF_stats,
+			    gettext_noop ("# Pending requests created"),
+			    1,
+			    GNUNET_NO);
   pr = GNUNET_malloc (sizeof (struct GSF_PendingRequest));
   pr->local_result_offset = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
 						      UINT64_MAX);							 
