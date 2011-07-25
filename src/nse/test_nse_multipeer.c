@@ -51,7 +51,7 @@ struct NSEPeer *peer_tail;
 /**
  * How long do we run the test?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 2)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 30)
 
 static int ok;
 
@@ -283,7 +283,7 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
-  GNUNET_DISK_directory_remove ("/tmp/test-nse-multipeer");
+  // GNUNET_DISK_directory_remove ("/tmp/test-nse-multipeer");
   return ret;
 }
 

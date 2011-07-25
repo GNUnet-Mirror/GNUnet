@@ -1016,7 +1016,6 @@ handle_p2p_size_estimate(void *cls,
                                 "# flood messages discarded (clock skew too large)",
 				1,
                                 GNUNET_NO);
-      GNUNET_break_op (0);
       return GNUNET_OK;
     }
   if (0 == (memcmp (peer, &my_identity, sizeof(struct GNUNET_PeerIdentity))))
