@@ -953,7 +953,7 @@ handle_p2p_size_estimate(void *cls,
 
 #if ENABLE_HISTOGRAM
   if (NULL != wh)
-    GNUNET_BIO_write_int64 (wh, GNUNET_htonll (GNUNET_TIME_absolute_get ().abs_value));
+    GNUNET_BIO_write_int64 (wh, GNUNET_TIME_absolute_get ().abs_value);
 #endif
   incoming_flood = (const struct GNUNET_NSE_FloodMessage *) message;
   GNUNET_STATISTICS_update (stats, 
