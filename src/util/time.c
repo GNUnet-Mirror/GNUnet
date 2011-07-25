@@ -26,6 +26,18 @@
 #include "platform.h"
 #include "gnunet_time_lib.h"
 
+static long long timestamp_offset;
+
+/**
+ * Set the timestamp offset for this instance.
+ *
+ * @param offset the offset to skew the locale time by
+ */
+void
+GNUNET_TIME_set_offset(long long offset)
+{
+  timestamp_offset = offset;
+}
 
 /**
  * Get the current time (works just as "time", just that we use the
@@ -42,7 +54,7 @@ GNUNET_TIME_absolute_get ()
   GETTIMEOFDAY (&tv, NULL);
   ret.abs_value =
     (uint64_t) (((uint64_t) tv.tv_sec * 1000LL) +
-                ((uint64_t) tv.tv_usec / 1000LL));
+                ((uint64_t) tv.tv_usec / 1000LL)) + timestamp_offset;
   return ret;
 }
 

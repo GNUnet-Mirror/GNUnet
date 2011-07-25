@@ -134,6 +134,9 @@ GNUNET_PROGRAM_run (int argc,
   char *logfile;
   int ret;
   unsigned int cnt;
+  unsigned long long skew_offset;
+  unsigned long long skew_variance;
+  long long clock_offset;
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_GETOPT_CommandLineOption defoptions[] = {
     GNUNET_GETOPT_OPTION_CFG_FILE (&cc.cfgfile),
@@ -229,7 +232,11 @@ GNUNET_PROGRAM_run (int argc,
     }
   GNUNET_free (allopts);
   GNUNET_free (lpfx);
-  
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number(cc.cfg, "testing", "skew_offset", &skew_offset) &&
+      (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number(cc.cfg, "testing", "skew_variance", &skew_variance)))
+    {
+      clock_offset = skew_offset - skew_variance;
+    }
   /* run */
   cc.args = &argv[ret];
   GNUNET_SCHEDULER_run (&program_main, &cc);

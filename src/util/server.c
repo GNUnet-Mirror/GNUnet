@@ -1014,8 +1014,8 @@ GNUNET_SERVER_connect_socket (struct
  * @param timeout new timeout for activities on the socket
  */
 void
-GNUNET_SERVER_client_set_timeout (struct GNUNET_SERVER_Client *client,
-         struct GNUNET_TIME_Relative timeout)
+GNUNET_SERVER_client_set_timeout(struct GNUNET_SERVER_Client *client,
+                                 struct GNUNET_TIME_Relative timeout)
 {
   client->idle_timeout = timeout;
 }

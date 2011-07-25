@@ -1577,6 +1577,9 @@ GNUNET_SERVICE_run (int argc,
   char *logfile;
   int do_daemonize;
   unsigned int i;
+  unsigned long long skew_offset;
+  unsigned long long skew_variance;
+  long long clock_offset;
   struct GNUNET_SERVICE_Context sctx;
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_GETOPT_CommandLineOption service_options[] = {
@@ -1623,6 +1626,14 @@ GNUNET_SERVICE_run (int argc,
               "Service `%s' runs with configuration from `%s'\n",
               serviceName, cfg_fn);
 #endif
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number(sctx.cfg, "testing", "skew_offset", &skew_offset) &&
+      (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number(sctx.cfg, "testing", "skew_variance", &skew_variance)))
+    {
+      clock_offset = skew_offset - skew_variance;
+#if 1
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Skewing clock by %ll\n", clock_offset);
+#endif
+    }
   /* actually run service */
   GNUNET_SCHEDULER_run (&service_task, &sctx);
 
