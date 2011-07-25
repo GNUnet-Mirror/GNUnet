@@ -203,9 +203,6 @@ connect_cb (void *cls,
 	    struct GNUNET_TESTING_Daemon *second_daemon,
 	    const char *emsg)
 {
-  char *second_id;
-
-  second_id = GNUNET_strdup(GNUNET_i2s(second));
   if (emsg == NULL)
     {
       //fprintf(stderr, "Connected %s -> %s\n", GNUNET_i2s(first), second_id);
