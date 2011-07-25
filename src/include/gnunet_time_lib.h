@@ -421,6 +421,14 @@ struct GNUNET_TIME_Absolute GNUNET_TIME_absolute_ntoh (struct
                                                        GNUNET_TIME_AbsoluteNBO
                                                        a);
 
+/**
+ * Set the timestamp offset for this instance.
+ *
+ * @param offset the offset to skew the locale time by
+ */
+void
+GNUNET_TIME_set_offset(long long offset);
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
