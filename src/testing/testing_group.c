@@ -5548,11 +5548,6 @@ churn_start_callback(void *cls, const struct GNUNET_PeerIdentity *id,
       churn_ctx->num_to_start--;
     }
 
-#if DEBUG_CHURN
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-      "Started peer, %d left.\n", churn_ctx->num_to_start);
-#endif
-
   total_left = (churn_ctx->num_to_stop - churn_ctx->num_failed_stop)
       + (churn_ctx->num_to_start - churn_ctx->num_failed_start);
 
@@ -6276,10 +6271,6 @@ churn_stop_callback(void *cls, const char *emsg)
       churn_ctx->num_to_stop--;
     }
 
-#if DEBUG_CHURN
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-      "Stopped peer, %d left.\n", churn_ctx->num_to_stop);
-#endif
   total_left = (churn_ctx->num_to_stop - churn_ctx->num_failed_stop)
       + (churn_ctx->num_to_start - churn_ctx->num_failed_start);
 
@@ -6446,12 +6437,15 @@ GNUNET_TESTING_daemons_churn(struct GNUNET_TESTING_PeerGroup *pg,
           /* FIXME: while (pos != NULL) */
           if (pos != NULL)
             {
-              if (0 == strcasecmp(pos, service))
+#if FIXME
+               if (0 == strcasecmp(pos, service))
                 {
-                  GNUNET_assert (stopped != -1);
-                  stopped++;
+
                   break;
                 }
+#endif
+                  GNUNET_assert (stopped != -1);
+                  stopped++;
               /* FIXME: pos = pos->next; */
             }
           if (pos == NULL)
@@ -6465,7 +6459,7 @@ GNUNET_TESTING_daemons_churn(struct GNUNET_TESTING_PeerGroup *pg,
   if (voff > running)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Trying to stop more peers than are currently running!\n");
+                  "Trying to stop more peers (%d) than are currently running (%d)!\n", voff, running);
       cb (cb_cls, "Trying to stop more peers than are currently running!");
       return;
     }
@@ -6473,13 +6467,15 @@ GNUNET_TESTING_daemons_churn(struct GNUNET_TESTING_PeerGroup *pg,
   if (von > stopped)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Trying to start more peers than are currently stopped!\n");
+                  "Trying to start more peers (%d) than are currently stopped (%d)!\n", von, stopped);
       cb (cb_cls, "Trying to start more peers than are currently stopped!");
       return;
     }
 
   churn_ctx = GNUNET_malloc (sizeof (struct ChurnContext));
 
+  if (service != NULL)
+    churn_ctx->service = GNUNET_strdup(service);
   running_arr = NULL;
   if (running > 0)
     running_arr = GNUNET_malloc (running * sizeof (unsigned int));
@@ -6533,13 +6529,9 @@ GNUNET_TESTING_daemons_churn(struct GNUNET_TESTING_PeerGroup *pg,
           /* FIXME: while (pos != NULL) */
           if (pos != NULL)
             {
-              if (0 == strcasecmp(pos, service))
-                {
-                  GNUNET_assert ((stopped_arr != NULL) && (total_stopped > stopped));
-                  stopped_arr[stopped] = i;
-                  stopped++;
-                  break;
-                }
+              GNUNET_assert ((stopped_arr != NULL) && (total_stopped > stopped));
+              stopped_arr[stopped] = i;
+              stopped++;
               /* FIXME: pos = pos->next; */
             }
           if (pos == NULL)
@@ -6564,8 +6556,7 @@ GNUNET_TESTING_daemons_churn(struct GNUNET_TESTING_PeerGroup *pg,
   for (i = 0; i < voff; i++)
     {
 #if DEBUG_CHURN
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Stopping peer %d!\n",
-          running_permute[i]);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Stopping peer %d!\n", running_arr[running_permute[i]]);
 #endif
       GNUNET_assert (running_arr != NULL);
       peer_shutdown_ctx = GNUNET_malloc (sizeof (struct PeerShutdownContext));
@@ -6587,8 +6578,7 @@ GNUNET_TESTING_daemons_churn(struct GNUNET_TESTING_PeerGroup *pg,
   for (i = 0; i < von; i++)
     {
 #if DEBUG_CHURN
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Starting up peer %d!\n",
-          stopped_permute[i]);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Starting up peer %d!\n", stopped_arr[stopped_permute[i]]);
 #endif
       GNUNET_assert (stopped_arr != NULL);
       peer_restart_ctx = GNUNET_malloc (sizeof (struct PeerRestartContext));
