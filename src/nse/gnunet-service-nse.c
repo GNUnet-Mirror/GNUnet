@@ -45,6 +45,11 @@
 #include "gnunet_nse_service.h"
 #include "nse.h"
 
+/**
+ * Should we generate a histogram with the time stamps of when we received
+ * NSE messages to disk? (for performance evaluation only, not useful in
+ * production)
+ */
 #define ENABLE_HISTOGRAM GNUNET_YES
 
 /**
