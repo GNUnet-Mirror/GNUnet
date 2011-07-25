@@ -5985,7 +5985,7 @@ handle_peer_address_lookup (void *cls,
           transport_plugin = foreign_address_iterator->ready_list->plugin;
           if (foreign_address_iterator->addr != NULL)
             {
-              GNUNET_asprintf (&addr_buf, "%s --- %s",
+              GNUNET_asprintf (&addr_buf, "%s --- %s, %s",
                                a2s (transport_plugin->short_name,
                                     foreign_address_iterator->addr,
                                     foreign_address_iterator->addrlen),
