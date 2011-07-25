@@ -814,9 +814,11 @@ find_proof (void *cls,
       if (nse_work_required <= count_leading_zeroes(&result))
 	{
 	  my_proof = counter;
-	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		      _("Proof of work found: %llu!\n"),
+#if DEBUG_NSE
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Proof of work found: %llu!\n",
 		      (unsigned long long) GNUNET_ntohll (counter));
+#endif
 	  for (i=0;i<HISTORY_SIZE;i++)	    
 	    if (ntohl (size_estimate_messages[i].hop_count) == 0) 
 	      {
