@@ -984,7 +984,7 @@ handle_p2p_size_estimate(void *cls,
   else if (ts.abs_value == next_timestamp.abs_value - gnunet_nse_interval.rel_value)
     {
       if (matching_bits <= ntohl (next_message.matching_bits))
-	return GNUNET_OK; /* ignore, simply too early */      
+	return GNUNET_OK; /* ignore, simply too early/late */
       if (GNUNET_YES !=
 	  verify_message_crypto (incoming_flood))
 	{

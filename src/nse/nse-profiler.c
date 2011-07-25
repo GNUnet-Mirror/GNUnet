@@ -246,6 +246,7 @@ connect_nse_service (void *cls,
     {
       if ((connection_limit > 0) && (i % (num_peers / connection_limit) != 0))
         continue;
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "TEST_NSE_MULTIPEER: connecting to nse service of peer %d\n", i);
       current_peer = GNUNET_malloc(sizeof(struct NSEPeer));
       current_peer->daemon = GNUNET_TESTING_daemon_get(pg, i);
       if (GNUNET_YES == GNUNET_TESTING_daemon_running(GNUNET_TESTING_daemon_get(pg, i)))
@@ -438,7 +439,7 @@ churn_callback (void *cls, const char *emsg)
 		  current_round);
       GNUNET_assert(disconnect_task == GNUNET_SCHEDULER_NO_TASK);
       GNUNET_asprintf(&temp_output_file, 
-		      "%s%lu.dot", 
+		      "%s_%lu.dot",
 		      topology_file, 
 		      current_round);
       GNUNET_TESTING_peergroup_topology_to_file(pg,
