@@ -212,7 +212,7 @@ handle_estimate (void *cls, double estimate, double std_dev)
   if (output_file != NULL)
     {
       size = GNUNET_asprintf(&output_buffer, 
-			     "%s %d %f %f %f\n",
+			     "%s %u %f %f %f\n",
 			     GNUNET_i2s(&peer->daemon->id),
 			     peers_running,
 			     pow(2, estimate),
