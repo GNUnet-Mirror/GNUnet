@@ -871,6 +871,7 @@ GNUNET_TESTING_peergroup_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
                                                 &pg_start_ctx->restrict_transports))
     pg_start_ctx->restrict_transports = NULL;
 
+  pg_start_ctx->restrict_topology = GNUNET_TESTING_TOPOLOGY_NONE;
   if ((GNUNET_YES
       == GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
                                                 "blacklist_topology",
@@ -882,6 +883,7 @@ GNUNET_TESTING_peergroup_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
                   "Invalid topology `%s' given for section %s option %s\n",
                   temp_str, "TESTING", "BLACKLIST_TOPOLOGY");
     }
+
   GNUNET_free_non_null(temp_str);
 
   pg_start_ctx->cfg = cfg;
