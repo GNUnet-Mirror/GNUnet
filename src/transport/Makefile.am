@@ -174,6 +174,7 @@ libgnunet_plugin_transport_wlan_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+  $(top_builddir)/src/fragmentation/libgnunetfragmentation.la \
   $(top_builddir)/src/util/libgnunetutil.la 
 libgnunet_plugin_transport_wlan_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS)

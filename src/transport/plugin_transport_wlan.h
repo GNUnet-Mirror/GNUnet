@@ -41,32 +41,6 @@ struct Wlan_Helper_Control_Message
   struct MacAddress mac;
 };
 
-/**
- * Header for messages which need fragmentation
- */
-struct FragmentationHeader
-{
-
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * ID of message, to distinguish between the messages, picked randomly.
-   */
-  uint32_t message_id GNUNET_PACKED;
-
-  /**
-   * Offset or number of this fragment, for fragmentation/segmentation (design choice, TBD)
-   */
-  uint16_t fragment_off_or_num GNUNET_PACKED;
-
-  /**
-   * CRC of fragment (for error checking)
-   */
-  uint16_t message_crc GNUNET_PACKED;
-
-// followed by payload
-
-};
 
 /**
  * Header for messages which need fragmentation
