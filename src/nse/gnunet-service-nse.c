@@ -326,11 +326,11 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   em->header.type
     = htons (GNUNET_MESSAGE_TYPE_NSE_ESTIMATE);
   em->reserved = htonl (0);
-  em->size_estimate = mean - 0.5;
+  em->size_estimate = mean - 1.0/3.0;
   em->std_deviation = std_dev;
   GNUNET_STATISTICS_set (stats, 
 			 "# nodes in the network (estimate)",
-			 (uint64_t) pow (2, mean - 0.5), GNUNET_NO);
+			 (uint64_t) pow (2, mean - 1.0/3.0), GNUNET_NO);
 }
 
 
