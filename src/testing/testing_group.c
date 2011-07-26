@@ -1426,6 +1426,10 @@ make_config(const struct GNUNET_CONFIGURATION_Handle *cfg, uint32_t off,
 
       GNUNET_CONFIGURATION_set_value_string (uc.ret, "core", "ACCEPT_FROM",
                                              allowed_hosts);
+
+      GNUNET_CONFIGURATION_set_value_string (uc.ret, "nse", "ACCEPT_FROM",
+                                             allowed_hosts);
+
       GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport",
                                              "ACCEPT_FROM", allowed_hosts);
       GNUNET_CONFIGURATION_set_value_string (uc.ret, "dht", "ACCEPT_FROM",
