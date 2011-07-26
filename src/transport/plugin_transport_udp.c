@@ -360,6 +360,8 @@ udp_send (struct Plugin *plugin,
   switch (sa->sa_family)
     {
     case AF_INET:
+      if (NULL == plugin->sockv4)
+	return 0;
       sent =
 	GNUNET_NETWORK_socket_sendto (plugin->sockv4,
 				      msg,
@@ -368,6 +370,8 @@ udp_send (struct Plugin *plugin,
 				      slen = sizeof (struct sockaddr_in));
       break;
     case AF_INET6:
+      if (NULL == plugin->sockv6)
+	return 0;
       sent =
 	GNUNET_NETWORK_socket_sendto (plugin->sockv6,
 				      msg,
@@ -474,6 +478,11 @@ udp_plugin_send (void *cls,
   switch (addrlen)
     {
     case sizeof(struct IPv4UdpAddress):   
+      if (NULL == plugin->sockv4)
+	{
+	  cont (cont_cls, target, GNUNET_SYSERR);
+	  return 0;
+	}
       t4 = addr;
       peer_session = GNUNET_malloc (sizeof (struct PeerSession) + sizeof (struct sockaddr_in));
       v4 = (struct sockaddr_in*) &peer_session[1];
@@ -485,6 +494,11 @@ udp_plugin_send (void *cls,
       v4->sin_addr.s_addr = t4->ipv4_addr;
       break;
     case sizeof(struct IPv6UdpAddress):
+      if (NULL == plugin->sockv6)
+	{
+	  cont (cont_cls, target, GNUNET_SYSERR);
+	  return 0;
+	}
       t6 = addr;
       peer_session = GNUNET_malloc (sizeof (struct PeerSession) + sizeof (struct sockaddr_in6));
       v6 = (struct sockaddr_in6*) &peer_session[1];
