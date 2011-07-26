@@ -13,8 +13,7 @@ lib_LTLIBRARIES = libgnunetpeerinfo.la
 
 libgnunetpeerinfo_la_SOURCES = \
   peerinfo_api.c peerinfo.h \
-  peerinfo_api_notify.c \
-  standalone-peerinfo.c
+  peerinfo_api_notify.c
 libgnunetpeerinfo_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/util/libgnunetutil.la \
