@@ -44,8 +44,6 @@ static struct GNUNET_PEERINFO_Handle *h;
 
 static unsigned int retries;
 
-struct GNUNET_PeerIdentity pid;
-
 static int
 check_it (void *cls,
           const char *tname,
@@ -85,6 +83,7 @@ static void
 add_peer ()
 {
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
+  struct GNUNET_PeerIdentity pid;
   struct GNUNET_HELLO_Message *h2;
   size_t agc;
 
@@ -92,7 +91,7 @@ add_peer ()
   memset (&pkey, 32, sizeof (pkey));
   GNUNET_CRYPTO_hash (&pkey, sizeof (pkey), &pid.hashPubKey);
   h2 = GNUNET_HELLO_create (&pkey, &address_generator, &agc);
-  GNUNET_PEERINFO_standalone_add_peer (h, h2);
+  GNUNET_PEERINFO_add_peer (h, h2);
   GNUNET_free (h2);
 
 }
@@ -109,7 +108,7 @@ process (void *cls,
 
   if (err_msg != NULL)
   {
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		      _("Error in communication with PEERINFO service\n"));
   }
 
@@ -122,8 +121,8 @@ process (void *cls,
 	  /* try again */
 	  retries++;	  
 	  add_peer ();
-	  ic = GNUNET_PEERINFO_standalone_iterate (h,
-					&pid,
+	  ic = GNUNET_PEERINFO_iterate (h,
+					NULL,
 					GNUNET_TIME_relative_multiply
 					(GNUNET_TIME_UNIT_SECONDS, 15), 
 					&process, cls);
@@ -131,7 +130,7 @@ process (void *cls,
 	}
       GNUNET_assert (peer == NULL);
       GNUNET_assert (2 == *ok);
-      GNUNET_PEERINFO_standalone_disconnect (h);
+      GNUNET_PEERINFO_disconnect (h);
       h = NULL;
       *ok = 0;
       return;
@@ -154,11 +153,11 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   cfg = c;
-  h = GNUNET_PEERINFO_standalone_connect (cfg);
+  h = GNUNET_PEERINFO_connect (cfg);
   GNUNET_assert (h != NULL);
   add_peer ();
-  ic = GNUNET_PEERINFO_standalone_iterate (h,
-                                &pid,
+  ic = GNUNET_PEERINFO_iterate (h,
+				NULL,
 				GNUNET_TIME_relative_multiply
 				(GNUNET_TIME_UNIT_SECONDS, 15),
 				&process, cls);
