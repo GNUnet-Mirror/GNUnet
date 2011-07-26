@@ -602,31 +602,17 @@ GNUNET_TESTING_daemon_stop_service (struct GNUNET_TESTING_Daemon *d,
                                     struct GNUNET_TIME_Relative timeout,
                                     GNUNET_TESTING_NotifyCompletion cb, void *cb_cls);
 
-
 /**
- * Establish a connection between two GNUnet daemons.
+ * Read a testing hosts file based on a configuration.
+ * Returns a DLL of hosts (caller must free!) on success
+ * or NULL on failure.
  *
- * @param d1 handle for the first daemon
- * @param d2 handle for the second daemon
- * @param timeout how long is the connection attempt
- *        allowed to take?
- * @param max_connect_attempts how many times should we try to reconnect
- *        (within timeout)
- * @param send_hello GNUNET_YES to send the HELLO, GNUNET_NO to assume
- *                   the HELLO has already been exchanged
- * @param cb function to call at the end
- * @param cb_cls closure for cb
+ * @param cfg a configuration with a testing section
+ *
+ * @return DLL of hosts on success, NULL on failure
  */
-void
-GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
-                                struct GNUNET_TESTING_Daemon *d2,
-                                struct GNUNET_TIME_Relative timeout,
-                                unsigned int max_connect_attempts,
-                                int send_hello,
-                                GNUNET_TESTING_NotifyConnection cb,
-                                void *cb_cls);
-
-
+struct GNUNET_TESTING_Host *
+GNUNET_TESTING_hosts_load (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -678,6 +664,31 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 void
 GNUNET_TESTING_daemons_continue_startup(struct GNUNET_TESTING_PeerGroup *pg);
+
+
+/**
+ * Establish a connection between two GNUnet daemons.
+ *
+ * @param d1 handle for the first daemon
+ * @param d2 handle for the second daemon
+ * @param timeout how long is the connection attempt
+ *        allowed to take?
+ * @param max_connect_attempts how many times should we try to reconnect
+ *        (within timeout)
+ * @param send_hello GNUNET_YES to send the HELLO, GNUNET_NO to assume
+ *                   the HELLO has already been exchanged
+ * @param cb function to call at the end
+ * @param cb_cls closure for cb
+ */
+void
+GNUNET_TESTING_daemons_connect (struct GNUNET_TESTING_Daemon *d1,
+                                struct GNUNET_TESTING_Daemon *d2,
+                                struct GNUNET_TIME_Relative timeout,
+                                unsigned int max_connect_attempts,
+                                int send_hello,
+                                GNUNET_TESTING_NotifyConnection cb,
+                                void *cb_cls);
+
 
 /**
  * Restart all peers in the given group.

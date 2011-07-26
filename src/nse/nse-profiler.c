@@ -580,6 +580,7 @@ run (void *cls,
 {
   char *temp_str;
   unsigned long long temp_wait;
+  struct GNUNET_TESTING_Host *hosts;
 
   ok = 1;
   testing_cfg = GNUNET_CONFIGURATION_create();
@@ -673,12 +674,14 @@ run (void *cls,
     }
   GNUNET_free_non_null(temp_str);
 
+  hosts = GNUNET_TESTING_hosts_load (testing_cfg);
+
   pg = GNUNET_TESTING_peergroup_start(testing_cfg,
                                       num_peers,
                                       TIMEOUT,
                                       &connect_cb,
                                       &my_cb, NULL,
-                                      NULL);
+                                      hosts);
   GNUNET_assert (pg != NULL);
   shutdown_handle = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_get_forever(),
 						  &shutdown_task,

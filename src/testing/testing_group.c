@@ -6811,6 +6811,105 @@ schedule_shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 }
 
+/**
+ * Read a testing hosts file based on a configuration.
+ * Returns a DLL of hosts (caller must free!) on success
+ * or NULL on failure.
+ *
+ * @param cfg a configuration with a testing section
+ *
+ * @return DLL of hosts on success, NULL on failure
+ */
+struct GNUNET_TESTING_Host *
+GNUNET_TESTING_hosts_load (const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  struct GNUNET_TESTING_Host *hosts;
+  struct GNUNET_TESTING_Host *temphost;
+  char *data;
+  char *buf;
+  char *hostfile;
+  struct stat frstat;
+  int count;
+  int ret;
+
+  /* Check for a hostfile containing user@host:port triples */
+  if (GNUNET_OK
+      != GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "hostfile",
+                                                &hostfile))
+    return NULL;
+
+  hosts = NULL;
+  temphost = NULL;
+  data = NULL;
+  if (hostfile != NULL)
+    {
+      if (GNUNET_OK != GNUNET_DISK_file_test (hostfile))
+        GNUNET_DISK_fn_write (hostfile, NULL, 0, GNUNET_DISK_PERM_USER_READ
+            | GNUNET_DISK_PERM_USER_WRITE);
+      if ((0 != STAT (hostfile, &frstat)) || (frstat.st_size == 0))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      "Could not open file specified for host list, ending test!");
+          GNUNET_free(hostfile);
+          return NULL;
+        }
+
+      data = GNUNET_malloc_large (frstat.st_size);
+      GNUNET_assert(data != NULL);
+      if (frstat.st_size
+          != GNUNET_DISK_fn_read (hostfile, data, frstat.st_size))
+        {
+          GNUNET_log (
+                      GNUNET_ERROR_TYPE_ERROR,
+                      "Could not read file %s specified for host list, ending test!",
+                      hostfile);
+          GNUNET_free (hostfile);
+          GNUNET_free (data);
+          return NULL;
+        }
+
+      GNUNET_free_non_null(hostfile);
+
+      buf = data;
+      count = 0;
+      while (count < frstat.st_size - 1)
+        {
+          count++;
+          if (((data[count] == '\n')) && (buf != &data[count]))
+            {
+              data[count] = '\0';
+              temphost = GNUNET_malloc(sizeof(struct GNUNET_TESTING_Host));
+              ret = sscanf (buf, "%a[a-zA-Z0-9_]@%a[a-zA-Z0-9.]:%hd",
+                            &temphost->username, &temphost->hostname,
+                            &temphost->port);
+              if (3 == ret)
+                {
+                  GNUNET_log (
+                              GNUNET_ERROR_TYPE_DEBUG,
+                              "Successfully read host %s, port %d and user %s from file\n",
+                              temphost->hostname, temphost->port,
+                              temphost->username);
+                }
+              else
+                {
+                  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                              "Error reading line `%s' in hostfile\n", buf);
+                  GNUNET_free(temphost);
+                  buf = &data[count + 1];
+                  continue;
+                }
+              temphost->next = hosts;
+              hosts = temphost;
+              buf = &data[count + 1];
+            }
+          else if ((data[count] == '\n') || (data[count] == '\0'))
+            buf = &data[count + 1];
+        }
+    }
+  GNUNET_free_non_null(data);
+
+  return hosts;
+}
 
 /**
  * Shutdown all peers started in the given group.
