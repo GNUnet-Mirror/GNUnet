@@ -385,7 +385,7 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
 		   GNUNET_TIME_UNIT_FOREVER_ABS,
 		   GNUNET_BLOCK_TYPE_ANY,
 		   NULL, 0);
-	  GSF_pending_request_cancel_ (dpr);
+	  GSF_pending_request_cancel_ (dpr, GNUNET_YES);
 	}
     }
   GNUNET_STATISTICS_update (GSF_stats,
@@ -407,6 +407,33 @@ GSF_pending_request_get_data_ (struct GSF_PendingRequest *pr)
 {
   return &pr->public_data;
 }
+
+
+/**
+ * Test if two pending requests are compatible (would generate
+ * the same query modulo filters and should thus be processed
+ * jointly).
+ * 
+ * @param pra a pending request
+ * @param pra another pending request
+ * @return GNUNET_OK if the requests are compatible
+ */
+int
+GSF_pending_request_is_compatible_ (struct GSF_PendingRequest *pra,
+				    struct GSF_PendingRequest *prb)
+{
+  if ( (pra->public_data.type != prb->public_data.type) ||
+       (0 != memcmp (&pra->public_data.query,
+		     &prb->public_data.query,
+		     sizeof (GNUNET_HashCode))) ||
+       ( (pra->public_data.type == GNUNET_BLOCK_TYPE_FS_SBLOCK) &&
+	 (0 != memcmp (&pra->public_data.namespace,
+		       &prb->public_data.namespace,
+		       sizeof (GNUNET_HashCode))) ) )
+    return GNUNET_NO;
+  return GNUNET_OK;
+}
+
 
 
 /**
@@ -646,12 +673,47 @@ clean_request (void *cls,
  * Explicitly cancel a pending request.
  *
  * @param pr request to cancel
+ * @param full_cleanup fully purge the request
  */
 void
-GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr)
+GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr,
+			     int full_cleanup)
 {
+  GSF_LocalLookupContinuation cont;
+
   if (NULL == pr_map) 
     return; /* already cleaned up! */
+  if (GNUNET_YES != full_cleanup)
+    {
+      /* make request inactive (we're no longer interested in more results),
+	 but do NOT remove from our data-structures, we still need it there
+	 to prevent the request from looping */
+      pr->rh = NULL;
+      if (NULL != (cont = pr->llc_cont))
+	{
+	  pr->llc_cont = NULL;
+	  cont (pr->llc_cont_cls,
+		pr,
+		pr->local_result);
+	}       
+      GSF_plan_notify_request_done_ (pr);
+      if (NULL != pr->qe)
+	{
+	  GNUNET_DATASTORE_cancel (pr->qe);
+	  pr->qe = NULL;
+	}
+      if (NULL != pr->gh)
+	{
+	  GNUNET_DHT_get_stop (pr->gh);
+	  pr->gh = NULL;
+	}
+      if (GNUNET_SCHEDULER_NO_TASK != pr->warn_task)
+	{
+	  GNUNET_SCHEDULER_cancel (pr->warn_task);
+	  pr->warn_task = GNUNET_SCHEDULER_NO_TASK;
+	}
+      return;
+    }
   GNUNET_assert (GNUNET_YES ==
 		 clean_request (NULL, &pr->public_data.query, pr));  
 }
@@ -763,6 +825,8 @@ process_reply (void *cls,
   struct GSF_PendingRequest *pr = value;
   GNUNET_HashCode chash;
 
+  if (NULL == pr->rh)
+    return GNUNET_YES;
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Matched result (type %u) for query `%s' with pending request\n",

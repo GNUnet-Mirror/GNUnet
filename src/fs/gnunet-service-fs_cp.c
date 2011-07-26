@@ -811,7 +811,7 @@ cancel_pending_request (void *cls,
 		GNUNET_CONTAINER_multihashmap_remove (cp->request_map,
 						      &prd->query,
 						      peerreq));
-  GSF_pending_request_cancel_ (pr);
+  GSF_pending_request_cancel_ (pr, GNUNET_NO);
   GNUNET_free (peerreq);
   return GNUNET_OK;
 }
@@ -1368,7 +1368,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
 				    -1,
 				    GNUNET_NO);
 	  priority += prd->priority;
-	  GSF_pending_request_cancel_ (pr);
+	  GSF_pending_request_cancel_ (pr, GNUNET_YES);
 	  GNUNET_assert (GNUNET_YES ==
 			 GNUNET_CONTAINER_multihashmap_remove (cp->request_map,
 							       &gm->query,

@@ -31,6 +31,72 @@
 
 
 /**
+ * List of GSF_PendingRequests this request plan 
+ * participates with.
+ */
+struct PendingRequestList;
+
+
+/**
+ * DLL of request plans a particular pending request is
+ * involved with.
+ */
+struct GSF_RequestPlanReference
+{
+  
+  /**
+   * This is a doubly-linked list.
+   */
+  struct GSF_RequestPlanReference *next;
+
+  /**
+   * This is a doubly-linked list.
+   */
+  struct GSF_RequestPlanReference *prev;
+
+  /**
+   * Associated request plan.
+   */
+  struct GSF_RequestPlan *rp;
+
+  /**
+   * Corresponding PendingRequestList.
+   */
+  struct PendingRequestList *prl;
+};
+
+
+/**
+ * List of GSF_PendingRequests this request plan 
+ * participates with.
+ */
+struct PendingRequestList
+{
+
+  /**
+   * This is a doubly-linked list.
+   */
+  struct PendingRequestList *next;
+
+  /**
+   * This is a doubly-linked list.
+   */
+  struct PendingRequestList *prev;
+
+  /**
+   * Array of associated pending requests.
+   */
+  struct GSF_PendingRequest *pr;
+
+  /**
+   * Corresponding GSF_RequestPlanReference.
+   */
+  struct GSF_RequestPlanReference *rpr;
+
+};
+
+
+/**
  * Information we keep per request per peer.  This is a doubly-linked
  * list (with head and tail in the 'struct GSF_PendingRequestData')
  * with one entry in each heap of each 'struct PeerPlan'.  Each
@@ -55,9 +121,14 @@ struct GSF_RequestPlan
   struct GNUNET_CONTAINER_HeapNode *hn;
 
   /**
-   * Array of associated pending requests.
+   * Head of list of associated pending requests.
    */
-  struct GSF_PendingRequest **prs;  
+  struct PendingRequestList *prl_head;  
+
+  /**
+   * Tail of list of associated pending requests.
+   */
+  struct PendingRequestList *prl_tail;  
 
   /**
    * Earliest time we'd be happy to (re)transmit this request.
@@ -68,11 +139,6 @@ struct GSF_RequestPlan
    * When was the last time we transmitted this request to this peer? 0 for never.
    */
   struct GNUNET_TIME_Absolute last_transmission;
-
-  /**
-   * Number of entries in 'prs'.
-   */
-  unsigned int prs_length;
 
   /**
    * Current priority for this request for this target.
@@ -163,7 +229,7 @@ plan (struct PeerPlan *pp,
 			 gettext_noop ("# average retransmission delay (ms)"),
 			 total_delay * 1000LL / plan_count,
 			 GNUNET_NO);
-  prd = GSF_pending_request_get_data_ (rp->prs[0]);
+  prd = GSF_pending_request_get_data_ (rp->prl_head->pr);
   // FIXME: calculate 'rp->priority'!  
   if (rp->transmission_counter < 32)
     delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
@@ -192,6 +258,32 @@ plan (struct PeerPlan *pp,
   if (GNUNET_SCHEDULER_NO_TASK != pp->task)
     GNUNET_SCHEDULER_cancel (pp->task);
   pp->task = GNUNET_SCHEDULER_add_now (&schedule_peer_transmission, pp);
+}
+
+
+/**
+ * Get the pending request with the highest TTL from the given plan.
+ *
+ * @param rp plan to investigate
+ * @return pending request with highest TTL
+ */
+struct GSF_PendingRequest *
+get_latest (const struct GSF_RequestPlan *rp)
+{
+  struct GSF_PendingRequest *ret;
+  struct PendingRequestList *prl;
+
+  prl = rp->prl_head;
+  ret = prl->pr;
+  prl = prl->next;
+  while (NULL != prl)
+    {
+      if (GSF_pending_request_get_data_ (prl->pr)->ttl.abs_value >
+	  GSF_pending_request_get_data_ (ret)->ttl.abs_value)
+	ret = prl->pr;
+      prl = prl->next;
+    }
+  return ret;  
 }
 
 
@@ -225,7 +317,7 @@ transmit_message_callback (void *cls,
       pp->task = GNUNET_SCHEDULER_add_now (&schedule_peer_transmission, pp);
       return 0;
     }
-  msize = GSF_pending_request_get_message_ (rp->prs[0], buf_size, buf);
+  msize = GSF_pending_request_get_message_ (get_latest (rp), buf_size, buf);
   if (msize > buf_size)
     {
       /* buffer to small (message changed), try again */
@@ -314,7 +406,7 @@ schedule_peer_transmission (void *cls,
 	      rp);
 #endif    
   GNUNET_assert (NULL != rp);
-  msize = GSF_pending_request_get_message_ (rp->prs[0], 0, NULL);
+  msize = GSF_pending_request_get_message_ (get_latest (rp), 0, NULL);
   pp->pth = GSF_peer_transmit_ (pp->cp,
 				GNUNET_YES,
 				rp->priority,
@@ -323,6 +415,79 @@ schedule_peer_transmission (void *cls,
 				&transmit_message_callback,
 				pp);
   GNUNET_assert (NULL != pp->pth);
+}
+
+
+/**
+ * Closure for 'merge_pr'.
+ */
+struct MergeContext
+{
+
+  struct GSF_PendingRequest *pr;
+
+  int merged;
+
+};
+
+
+/**
+ * Iterator that checks if an equivalent request is already
+ * present for this peer.
+ *
+ * @param cls closure
+ * @param node internal node of the heap (ignored)
+ * @param element request plan stored at the node
+ * @param cost cost associated with the node (ignored)
+ * @return GNUNET_YES if we should continue to iterate,
+ *         GNUNET_NO if not (merge success)
+ */
+static int
+merge_pr (void *cls,
+	  struct GNUNET_CONTAINER_HeapNode *node,
+	  void *element,
+	  GNUNET_CONTAINER_HeapCostType cost)
+{
+  struct MergeContext *mpr = cls;
+  struct GSF_RequestPlan *rp = element;
+  struct GSF_PendingRequestData *prd;
+  struct GSF_RequestPlanReference *rpr;
+  struct PendingRequestList *prl;
+  struct GSF_PendingRequest *latest;
+
+  if (GNUNET_OK !=
+      GSF_pending_request_is_compatible_ (mpr->pr, 
+					  rp->prl_head->pr))
+    return GNUNET_YES;
+  /* merge new request with existing request plan */
+  rpr = GNUNET_malloc (sizeof (struct GSF_RequestPlanReference));  
+  prl = GNUNET_malloc (sizeof (struct PendingRequestList));  
+  rpr->rp = rp;
+  rpr->prl = prl;
+  prl->rpr = rpr;
+  prl->pr = mpr->pr;
+  prd = GSF_pending_request_get_data_ (mpr->pr);
+  GNUNET_CONTAINER_DLL_insert (prd->rpr_head,
+			       prd->rpr_tail,
+			       rpr);
+  GNUNET_CONTAINER_DLL_insert (rp->prl_head,
+			       rp->prl_tail,
+			       prl);
+  mpr->merged = GNUNET_YES;
+  GNUNET_STATISTICS_update (GSF_stats,
+			    gettext_noop ("# requests merged"),
+			    1,
+			    GNUNET_NO);  
+  latest = get_latest (rp);
+  if (GSF_pending_request_get_data_ (latest)->ttl.abs_value < prd->ttl.abs_value)
+    {
+      GNUNET_STATISTICS_update (GSF_stats,
+				gettext_noop ("# requests refreshed"),
+				1,
+				GNUNET_NO);  
+      rp->transmission_counter = 0; /* reset */		
+    }
+  return GNUNET_NO;
 }
 
 
@@ -340,7 +505,9 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
   struct PeerPlan *pp;
   struct GSF_PendingRequestData *prd;
   struct GSF_RequestPlan *rp;
-  unsigned int i;
+  struct GSF_RequestPlanReference *rpr;
+  struct PendingRequestList *prl;
+  struct MergeContext mpc;
   size_t msize;
 
   GNUNET_assert (NULL != cp);
@@ -359,52 +526,39 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
 					 GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
     }
   msize = GSF_pending_request_get_message_ (pr, 0, NULL);
-  prd = GSF_pending_request_get_data_ (pr);
-  for (rp = prd->rp_head; NULL != rp; rp = rp->next)
-    {
-      char mbuf[msize];
-      char xbuf[msize];
-      
-      GNUNET_assert (msize == GSF_pending_request_get_message_ (pr, msize, mbuf));
-      if ( (msize == GSF_pending_request_get_message_ (rp->prs[0], msize, xbuf)) &&
-	   (0 == memcmp (xbuf, mbuf, msize)) )
-	{
-	  /* add request to existing plan */
-	  GNUNET_array_append (rp->prs, 
-			       rp->prs_length,
-			       pr);
-	  for (i=0;i<rp->prs_length;i++)
-	    if (GSF_pending_request_get_data_ (rp->prs[0])->ttl.abs_value < prd->ttl.abs_value)
-	      {
-		GNUNET_STATISTICS_update (GSF_stats,
-					  gettext_noop ("# requests refreshed"),
-					  1,
-					  GNUNET_NO);  
-		rp->transmission_counter = 0; /* reset */		
-		break;
-	      }
-	  return;
-	}
-    }
+  mpc.merged = GNUNET_NO;
+  mpc.pr = pr;
+  GNUNET_CONTAINER_heap_iterate (pp->priority_heap, &merge_pr, &mpc);
+  if (mpc.merged != GNUNET_NO)
+    return;
+  GNUNET_CONTAINER_heap_iterate (pp->delay_heap, &merge_pr, &mpc);
+  if (mpc.merged != GNUNET_NO)
+    return;
   plan_count++;
   GNUNET_STATISTICS_update (GSF_stats,
 			    gettext_noop ("# query plan entries"),
 			    1,
 			    GNUNET_NO);  
-  rp = GNUNET_malloc (sizeof (struct GSF_RequestPlan));
+  prd = GSF_pending_request_get_data_ (pr);
 #if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Planning transmission of query `%s' to peer `%s' (%p)\n",
+	      "Planning transmission of query `%s' to peer `%s'\n",
 	      GNUNET_h2s (&prd->query),
-	      GNUNET_i2s (&id), 
-	      rp);
+	      GNUNET_i2s (&id));
 #endif    
-  GNUNET_array_append (rp->prs,
-		       rp->prs_length,
-		       pr);
-  GNUNET_CONTAINER_DLL_insert (prd->rp_head,
-			       prd->rp_tail,
-			       rp);
+  rp = GNUNET_malloc (sizeof (struct GSF_RequestPlan));
+  rpr = GNUNET_malloc (sizeof (struct GSF_RequestPlanReference));  
+  prl = GNUNET_malloc (sizeof (struct PendingRequestList));  
+  rpr->rp = rp;
+  rpr->prl = prl;
+  prl->rpr = rpr;
+  prl->pr = pr;
+  GNUNET_CONTAINER_DLL_insert (prd->rpr_head,
+			       prd->rpr_tail,
+			       rpr);
+  GNUNET_CONTAINER_DLL_insert (rp->prl_head,
+			       rp->prl_tail,
+			       prl);
   plan (pp, rp);
 }
 
@@ -422,7 +576,7 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
   struct PeerPlan *pp;
   struct GSF_RequestPlan *rp;
   struct GSF_PendingRequestData *prd;
-  unsigned int i;
+  struct PendingRequestList *prl;
 
   GSF_connected_peer_get_identity_ (cp, &id);
   pp = GNUNET_CONTAINER_multihashmap_get (plans,
@@ -442,29 +596,35 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
     }
   while (NULL != (rp = GNUNET_CONTAINER_heap_remove_root (pp->priority_heap)))
     {
-      for (i=0;i<rp->prs_length;i++)
+      while (NULL != (prl = rp->prl_head))
 	{
-	  prd = GSF_pending_request_get_data_ (rp->prs[i]);
-	  GNUNET_CONTAINER_DLL_remove (prd->rp_head,
-				       prd->rp_tail,
-				       rp);
+	  GNUNET_CONTAINER_DLL_remove (rp->prl_head,
+				       rp->prl_tail,
+				       prl);
+	  prd = GSF_pending_request_get_data_ (prl->pr);
+	  GNUNET_CONTAINER_DLL_remove (prd->rpr_head,
+				       prd->rpr_tail,
+				       prl->rpr);
+	  GNUNET_free (prl->rpr);
+	  GNUNET_free (prl);
 	}
-      plan_count--;
-      GNUNET_array_grow (rp->prs, rp->prs_length, 0);
       GNUNET_free (rp);
     }
   GNUNET_CONTAINER_heap_destroy (pp->priority_heap);
   while (NULL != (rp = GNUNET_CONTAINER_heap_remove_root (pp->delay_heap)))
     {
-      for (i=0;i<rp->prs_length;i++)
+      while (NULL != (prl = rp->prl_head))
 	{
-	  prd = GSF_pending_request_get_data_ (rp->prs[i]);
-	  GNUNET_CONTAINER_DLL_remove (prd->rp_head,
-				       prd->rp_tail,
-				       rp);
+	  GNUNET_CONTAINER_DLL_remove (rp->prl_head,
+				       rp->prl_tail,
+				       prl);
+	  prd = GSF_pending_request_get_data_ (prl->pr);
+	  GNUNET_CONTAINER_DLL_remove (prd->rpr_head,
+				       prd->rpr_tail,
+				       prl->rpr);
+	  GNUNET_free (prl->rpr);
+	  GNUNET_free (prl);
 	}
-      plan_count--;
-      GNUNET_array_grow (rp->prs, rp->prs_length, 0);
       GNUNET_free (rp);
     }
   GNUNET_STATISTICS_set (GSF_stats,
@@ -488,28 +648,25 @@ GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr)
 {
   struct GSF_RequestPlan *rp;
   struct GSF_PendingRequestData *prd;
-  unsigned int i;
+  struct GSF_RequestPlanReference *rpr;
 
   prd = GSF_pending_request_get_data_ (pr);
-  while (NULL != (rp = prd->rp_head))
+  while (NULL != (rpr = prd->rpr_head))
     {
-      for (i=0;i<rp->prs_length;i++)
+      GNUNET_CONTAINER_DLL_remove (prd->rpr_head,
+				   prd->rpr_tail,
+				   rpr);
+      rp = rpr->rp;
+      GNUNET_CONTAINER_DLL_remove (rp->prl_head,
+				   rp->prl_tail,
+				   rpr->prl);
+      GNUNET_free (rpr->prl);
+      GNUNET_free (rpr);
+      if (rp->prl_head == 0)
 	{
-	  if (rp->prs[i] == pr)
-	    {	      
-	      rp->prs[i] = rp->prs[rp->prs_length - 1];
-	      GNUNET_array_grow (rp->prs, rp->prs_length, rp->prs_length-1);
-	      if (rp->prs_length == 0)
-		{
-		  GNUNET_CONTAINER_heap_remove_node (rp->hn);
-		  GNUNET_CONTAINER_DLL_remove (prd->rp_head,
-					       prd->rp_tail,
-					       rp);
-		  plan_count--;
-		  GNUNET_free (rp);
-		  break;
-		}
-	    }
+	  GNUNET_CONTAINER_heap_remove_node (rp->hn);
+	  plan_count--;
+	  GNUNET_free (rp);
 	}
     }
   GNUNET_STATISTICS_set (GSF_stats,

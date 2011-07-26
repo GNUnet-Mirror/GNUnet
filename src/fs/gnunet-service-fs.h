@@ -88,6 +88,12 @@ struct GSF_LocalClient;
 struct GSF_RequestPlan;
 
 /**
+ * DLL of request plans a particular pending request is
+ * involved with.
+ */
+struct GSF_RequestPlanReference;
+
+/**
  * Our connection to the datastore.
  */
 extern struct GNUNET_DATASTORE_Handle *GSF_dsh;

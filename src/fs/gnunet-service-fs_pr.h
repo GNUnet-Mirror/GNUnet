@@ -94,12 +94,12 @@ struct GSF_PendingRequestData
   /**
    * Fields for the plan module to track a DLL with the request.
    */
-  struct GSF_RequestPlan *rp_head;
+  struct GSF_RequestPlanReference *rpr_head;
 
   /**
    * Fields for the plan module to track a DLL with the request.
    */
-  struct GSF_RequestPlan *rp_tail;
+  struct GSF_RequestPlanReference *rpr_tail;
 
   /**
    * Current TTL for the request.
@@ -242,6 +242,20 @@ GSF_pending_request_get_data_ (struct GSF_PendingRequest *pr);
 
 
 /**
+ * Test if two pending requests are compatible (would generate
+ * the same query modulo filters and should thus be processed
+ * jointly).
+ * 
+ * @param pra a pending request
+ * @param pra another pending request
+ * @return GNUNET_OK if the requests are compatible
+ */
+int
+GSF_pending_request_is_compatible_ (struct GSF_PendingRequest *pra,
+				    struct GSF_PendingRequest *prb);
+
+
+/**
  * Generate the message corresponding to the given pending request for
  * transmission to other peers (or at least determine its size).
  *
@@ -260,9 +274,11 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
  * Explicitly cancel a pending request.
  *
  * @param pr request to cancel
+ * @param full_cleanup fully purge the request
  */
 void
-GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr);
+GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr,
+			     int full_cleanup);
 
 
 /**

@@ -347,7 +347,7 @@ start_p2p_processing (void *cls,
     return; /* we're done, 'pr' was already destroyed... */
   if (0 != (GSF_PRO_LOCAL_ONLY & prd->options) )
     {
-      GSF_pending_request_cancel_ (pr);
+      GSF_pending_request_cancel_ (pr, GNUNET_YES);
       return;
     }
   GSF_dht_lookup_ (pr);

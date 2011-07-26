@@ -202,7 +202,7 @@ client_request_destroy (void *cls,
   GNUNET_CONTAINER_DLL_remove (lc->cr_head,
 			       lc->cr_tail,
 			       cr);
-  GSF_pending_request_cancel_ (cr->pr);
+  GSF_pending_request_cancel_ (cr->pr, GNUNET_NO);
   GNUNET_STATISTICS_update (GSF_stats,
 			    gettext_noop ("# client searches active"),
 			    - 1,
@@ -514,7 +514,7 @@ GSF_client_disconnect_handler_ (void *cls,
       GNUNET_CONTAINER_DLL_remove (pos->cr_head,
 				   pos->cr_tail,
 				   cr);
-      GSF_pending_request_cancel_ (cr->pr);
+      GSF_pending_request_cancel_ (cr->pr, GNUNET_NO);
       GNUNET_STATISTICS_update (GSF_stats,
 				gettext_noop ("# client searches active"),
 				- 1,
