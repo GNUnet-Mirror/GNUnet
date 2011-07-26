@@ -525,7 +525,7 @@ my_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer Group started successfully, connecting to NSE service for each peer!\n");
 #endif
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 	      "Have %u connections\n", total_connections);
   if (data_file != NULL)
     {
