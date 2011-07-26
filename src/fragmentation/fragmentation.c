@@ -253,7 +253,7 @@ GNUNET_FRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
   GNUNET_STATISTICS_update (stats,
 			    _("# total size of fragmented messages"),
 			    size, GNUNET_NO);
-  GNUNET_assert (size > mtu);
+  //GNUNET_assert (size > mtu);
   fc = GNUNET_malloc (sizeof (struct GNUNET_FRAGMENT_Context) + size);
   fc->stats = stats;
   fc->mtu = mtu;
@@ -347,6 +347,7 @@ GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
   if (0 != fc->acks)
     {
       /* more to transmit, do so right now (if tracker permits...) */
+      GNUNET_assert(fc->task != GNUNET_SCHEDULER_NO_TASK);
       GNUNET_SCHEDULER_cancel (fc->task);
       fc->task = GNUNET_SCHEDULER_add_now (&transmit_next,
 					   fc);
