@@ -51,8 +51,6 @@
  */
 #define DATA_HOST_CLEAN_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 60)
 
-#define WRITE_TO_DISK GNUNET_NO
-
 /**
  * In-memory cache of known hosts.
  */
@@ -115,7 +113,6 @@ make_info_message (const struct HostEntry *he)
 }
 
 
-#if WRITE_TO_DISK
 /**
  * Address iterator that causes expired entries to be discarded.
  *
@@ -160,7 +157,6 @@ get_host_filename (const struct GNUNET_PeerIdentity *id)
                    "%s%s%s", networkIdDirectory, DIR_SEPARATOR_STR, &fil);
   return fn;
 }
-#endif
 
 
 /**
@@ -191,14 +187,12 @@ static void
 add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
 {
   struct HostEntry *entry;
-#if WRITE_TO_DISK
   char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
   const struct GNUNET_HELLO_Message *hello;
   struct GNUNET_HELLO_Message *hello_clean;
   int size;
   struct GNUNET_TIME_Absolute now;
   char *fn;
-#endif
 
   entry = GNUNET_CONTAINER_multihashmap_get (hostmap,
 					     &identity->hashPubKey);
@@ -210,7 +204,7 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
 			    GNUNET_NO);
   entry = GNUNET_malloc (sizeof (struct HostEntry));
   entry->identity = *identity;
-#if WRITE_TO_DISK
+
   fn = get_host_filename (identity);
   if (GNUNET_DISK_file_test (fn) == GNUNET_YES)
     {
@@ -236,7 +230,6 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
 	}
     }
   GNUNET_free (fn);
-#endif
   GNUNET_CONTAINER_multihashmap_put (hostmap,
 				     &identity->hashPubKey,
 				     entry,
@@ -244,7 +237,7 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
   notify_all (entry);
 }
 
-#if WRITE_TO_DISK
+
 /**
  * Remove a file that should not be there.  LOG
  * success or failure.
@@ -326,7 +319,7 @@ cron_scan_directory_data_hosts (void *cls,
   GNUNET_SCHEDULER_add_delayed (DATA_HOST_FREQ,
                                 &cron_scan_directory_data_hosts, NULL);
 }
-#endif
+
 
 /**
  * Bind a host address (hello) to a hostId.
@@ -338,9 +331,7 @@ static void
 bind_address (const struct GNUNET_PeerIdentity *peer,
               const struct GNUNET_HELLO_Message *hello)
 {
-#if WRITE_TO_DISK
   char *fn;
-#endif
   struct HostEntry *host;
   struct GNUNET_HELLO_Message *mrg;
   struct GNUNET_TIME_Absolute delta;
@@ -368,7 +359,6 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
       GNUNET_free (host->hello);
       host->hello = mrg;
     }
-#if WRITE_TO_DISK
   fn = get_host_filename (peer);
   if (GNUNET_OK == GNUNET_DISK_directory_create_for_file (fn))
     {
@@ -384,7 +374,6 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
 	
     }
   GNUNET_free (fn);
-#endif
   notify_all (host);
 }
 
@@ -428,7 +417,7 @@ add_to_tc (void *cls,
   return GNUNET_YES;
 }
 
-#if WRITE_TO_DISK
+
 /**
  * @brief delete expired HELLO entries in data/hosts/
  */
@@ -489,7 +478,6 @@ cron_clean_data_hosts (void *cls,
   GNUNET_SCHEDULER_add_delayed (DATA_HOST_CLEAN_FREQ,
                                 &cron_clean_data_hosts, NULL);
 }
-#endif
 
 
 /**
@@ -695,7 +683,6 @@ run (void *cls,
   hostmap = GNUNET_CONTAINER_multihashmap_create (1024);
   stats = GNUNET_STATISTICS_create ("peerinfo", cfg);
   notify_list = GNUNET_SERVER_notification_context_create (server, 0);
-#if WRITE_TO_DISK
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_filename (cfg,
                                                           "peerinfo",
@@ -706,7 +693,6 @@ run (void *cls,
 				      &cron_scan_directory_data_hosts, NULL);
   GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
 				      &cron_clean_data_hosts, NULL);
-#endif
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&shutdown_task, NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
