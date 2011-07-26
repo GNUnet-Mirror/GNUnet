@@ -6137,7 +6137,7 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
             }
 
           if (GNUNET_YES
-              == GNUNET_CONFIGURATION_get_value_string (pg->peers[off].cfg, "PATHS",
+              == GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS",
                                                         "SERVICEHOME",
                                                         &baseservicehome))
             {
