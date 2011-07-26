@@ -809,6 +809,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                             &start_fsm, d);
           return;
         }
+#if EXTRA_CHECKS
       if ((type != GNUNET_OS_PROCESS_EXITED) || (code != 0))
         {
           cb = d->cb;
@@ -823,6 +824,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                 : _("`ssh' does not seem to terminate.\n"));
           return;
         }
+#endif
 #if DEBUG_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Service startup complete!\n");
 #endif
