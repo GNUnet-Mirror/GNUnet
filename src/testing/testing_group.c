@@ -279,6 +279,33 @@ struct PeerRestartContext
   struct GNUNET_TESTING_Daemon *daemon;
 };
 
+struct ServiceStartContext
+{
+  struct GNUNET_TESTING_PeerGroup *pg;
+  unsigned int remaining;
+  GNUNET_TESTING_NotifyCompletion cb;
+  unsigned int outstanding;
+  char *service;
+  struct GNUNET_TIME_Relative timeout;
+  void *cb_cls;
+};
+
+/**
+ * Individual shutdown context for a particular peer.
+ */
+struct PeerServiceStartContext
+{
+  /**
+   * Pointer to the high level start context.
+   */
+  struct ServiceStartContext *start_ctx;
+
+  /**
+   * The daemon handle for the peer to start the service on.
+   */
+  struct GNUNET_TESTING_Daemon *daemon;
+};
+
 struct CreateTopologyContext
 {
 
@@ -5605,6 +5632,66 @@ schedule_churn_restart(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
 }
 
+/**
+ * Callback for informing us about a successful
+ * or unsuccessful churn start call.
+ *
+ * @param cls a struct ServiceStartContext *startup_ctx
+ * @param id the peer identity of the started peer
+ * @param cfg the handle to the configuration of the peer
+ * @param d handle to the daemon for the peer
+ * @param emsg NULL on success, non-NULL on failure
+ *
+ */
+void
+service_start_callback(void *cls,
+                       const struct GNUNET_PeerIdentity *id,
+                       const struct GNUNET_CONFIGURATION_Handle *cfg,
+                       struct GNUNET_TESTING_Daemon *d,
+                       const char *emsg)
+{
+  struct ServiceStartContext *startup_ctx = (struct ServiceStartContext *)cls;
+
+  if (emsg != NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Service start failed with error `%s'\n", emsg);
+    }
+
+  startup_ctx->outstanding--;
+  startup_ctx->remaining--;
+
+  if (startup_ctx->remaining == 0)
+    {
+      startup_ctx->cb (startup_ctx->cb_cls, NULL);
+      GNUNET_free (startup_ctx->service);
+      GNUNET_free (startup_ctx);
+    }
+}
+
+static void
+schedule_service_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct PeerServiceStartContext *peer_ctx = cls;
+  struct ServiceStartContext *startup_ctx = peer_ctx->start_ctx;
+
+  if (startup_ctx->outstanding > startup_ctx->pg->max_concurrent_ssh)
+    GNUNET_SCHEDULER_add_delayed (
+                                  GNUNET_TIME_relative_multiply (
+                                                                 GNUNET_TIME_UNIT_MILLISECONDS,
+                                                                 100),
+                                  &schedule_service_start, peer_ctx);
+  else
+    {
+
+      GNUNET_TESTING_daemon_start_service (peer_ctx->daemon,
+                                           startup_ctx->service,
+                                           startup_ctx->timeout,
+                                           &service_start_callback, startup_ctx);
+      GNUNET_free (peer_ctx);
+    }
+}
+
 
 static void
 internal_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -6635,6 +6722,48 @@ GNUNET_TESTING_daemons_churn(struct GNUNET_TESTING_PeerGroup *pg,
   GNUNET_free_non_null (stopped_permute);
 }
 
+/*
+ * Start a given service for each of the peers in the peer group.
+ *
+ * @param pg handle for the peer group
+ * @param service the service to start
+ * @param timeout how long to wait for operations to finish before
+ *        giving up
+ * @param cb function to call once finished
+ * @param cb_cls closure for cb
+ *
+ */
+void
+GNUNET_TESTING_daemons_start_service (struct GNUNET_TESTING_PeerGroup *pg,
+                                      char *service,
+                                      struct GNUNET_TIME_Relative timeout,
+                                      GNUNET_TESTING_NotifyCompletion cb,
+                                      void *cb_cls)
+{
+  struct ServiceStartContext *start_ctx;
+  struct PeerServiceStartContext *peer_start_ctx;
+  unsigned int i;
+
+  GNUNET_assert(service != NULL);
+
+  start_ctx = GNUNET_malloc(sizeof(struct ServiceStartContext));
+  start_ctx->pg = pg;
+  start_ctx->remaining = pg->total;
+  start_ctx->cb = cb;
+  start_ctx->cb_cls = cb_cls;
+  start_ctx->service = GNUNET_strdup(service);
+
+  for (i = 0; i < pg->total; i++)
+    {
+#if DEBUG_START
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Starting up service %s on peer %d!\n", service, stopped_arr[stopped_permute[i]]);
+#endif
+      peer_start_ctx = GNUNET_malloc (sizeof (struct PeerServiceStartContext));
+      peer_start_ctx->start_ctx = start_ctx;
+      peer_start_ctx->daemon = pg->peers[i].daemon;
+      GNUNET_SCHEDULER_add_now (&schedule_service_start, peer_start_ctx);
+    }
+}
 
 /**
  * Restart all peers in the given group.

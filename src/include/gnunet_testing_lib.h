@@ -514,12 +514,27 @@ GNUNET_TESTING_daemon_start_stopped (struct GNUNET_TESTING_Daemon *daemon,
                                      void *cb_cls);
 
 /**
- * Stops a GNUnet daemon.
+ * Starts a GNUnet daemon's service.
  *
  * @param d the daemon for which the service should be started
  * @param service the name of the service to start
- * @param timeout how long to wait for process for shutdown to complete
- * @param cb function called once the daemon was stopped
+ * @param timeout how long to wait for process for startup
+ * @param cb function called once gnunet-arm returns
+ * @param cb_cls closure for cb
+ */
+void
+GNUNET_TESTING_daemon_start_service (struct GNUNET_TESTING_Daemon *d,
+                                     char *service,
+                                     struct GNUNET_TIME_Relative timeout,
+                                     GNUNET_TESTING_NotifyDaemonRunning cb, void *cb_cls);
+
+/**
+ * Starts a GNUnet daemon's service which has been previously turned off.
+ *
+ * @param d the daemon for which the service should be started
+ * @param service the name of the service to start
+ * @param timeout how long to wait for process for startup
+ * @param cb function called once gnunet-arm returns
  * @param cb_cls closure for cb
  */
 void
@@ -759,6 +774,23 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
                               struct GNUNET_TIME_Relative timeout,
                               GNUNET_TESTING_NotifyCompletion cb,
                               void *cb_cls);
+/*
+ * Start a given service for each of the peers in the peer group.
+ *
+ * @param pg handle for the peer group
+ * @param service the service to start
+ * @param timeout how long to wait for operations to finish before
+ *        giving up
+ * @param cb function to call once finished
+ * @param cb_cls closure for cb
+ *
+ */
+void
+GNUNET_TESTING_daemons_start_service (struct GNUNET_TESTING_PeerGroup *pg,
+                                      char *service,
+                                      struct GNUNET_TIME_Relative timeout,
+                                      GNUNET_TESTING_NotifyCompletion cb,
+                                      void *cb_cls);
 
 /**
  * Callback function to process statistic values.

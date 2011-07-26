@@ -22,6 +22,7 @@ SUBDIRS = \
   transport \
   peerinfo-tool \
   core \
+  nse \
   testing \
   nse \
   dv \

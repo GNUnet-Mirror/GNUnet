@@ -1630,8 +1630,8 @@ GNUNET_SERVICE_run (int argc,
       (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number(sctx.cfg, "testing", "skew_variance", &skew_variance)))
     {
       clock_offset = skew_offset - skew_variance;
-#if 1
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Skewing clock by %ll\n", clock_offset);
+#if DEBUG_SERVICE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Skewing clock by %dll\n", clock_offset);
 #endif
     }
   /* actually run service */

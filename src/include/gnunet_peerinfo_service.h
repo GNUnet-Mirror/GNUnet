@@ -89,6 +89,45 @@ GNUNET_PEERINFO_add_peer (struct GNUNET_PEERINFO_Handle *h,
 
 
 /**
+ * Connect to the peerinfo service.
+ *
+ * @param cfg configuration to use
+ * @return NULL on error (configuration related, actual connection
+ *         etablishment may happen asynchronously).
+ */
+struct GNUNET_PEERINFO_Handle *
+GNUNET_PEERINFO_standalone_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
+
+
+/**
+ * Disconnect from the peerinfo service.  Note that all iterators must
+ * have completed or have been cancelled by the time this function is
+ * called (otherwise, calling this function is a serious error).
+ * Furthermore, if 'GNUNET_PEERINFO_add_peer' operations are still
+ * pending, they will be cancelled silently on disconnect.
+ *
+ * @param h handle to disconnect
+ */
+void
+GNUNET_PEERINFO_standalone_disconnect (struct GNUNET_PEERINFO_Handle *h);
+
+
+/**
+ * Add a host to the persistent list.  This method operates in
+ * semi-reliable mode: if the transmission is not completed by
+ * the time 'GNUNET_PEERINFO_disconnect' is called, it will be
+ * aborted.  Furthermore, if a second HELLO is added for the
+ * same peer before the first one was transmitted, PEERINFO may
+ * merge the two HELLOs prior to transmission to the service.
+ *
+ * @param h handle to the peerinfo service
+ * @param hello the verified (!) HELLO message
+ */
+void
+GNUNET_PEERINFO_standalone_add_peer (struct GNUNET_PEERINFO_Handle *h,
+                          const struct GNUNET_HELLO_Message *hello);
+
+/**
  * Type of an iterator over the hosts.  Note that each
  * host will be called with each available protocol.
  *
@@ -144,7 +183,39 @@ GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
 void
 GNUNET_PEERINFO_iterate_cancel (struct GNUNET_PEERINFO_IteratorContext *ic);
 
+/**
+ * Call a method for each known matching host and change its trust
+ * value.  The callback method will be invoked once for each matching
+ * host and then finally once with a NULL pointer.  After that final
+ * invocation, the iterator context must no longer be used.
+ *
+ * Instead of calling this function with 'peer == NULL'
+ * it is often better to use 'GNUNET_PEERINFO_notify'.
+ *
+ * @param h handle to the peerinfo service
+ * @param peer restrict iteration to this peer only (can be NULL)
+ * @param timeout how long to wait until timing out
+ * @param callback the method to call for each peer
+ * @param callback_cls closure for callback
+ * @return NULL on error (in this case, 'callback' is never called!),
+ *         otherwise an iterator context
+ */
+struct GNUNET_PEERINFO_IteratorContext *
+GNUNET_PEERINFO_standalone_iterate (struct GNUNET_PEERINFO_Handle *h,
+                         const struct GNUNET_PeerIdentity *peer,
+                         struct GNUNET_TIME_Relative timeout,
+                         GNUNET_PEERINFO_Processor callback,
+                         void *callback_cls);
 
+
+
+/**
+ * Cancel an iteration over peer information.
+ *
+ * @param ic context of the iterator to cancel
+ */
+void
+GNUNET_PEERINFO_standalone_iterate_cancel (struct GNUNET_PEERINFO_IteratorContext *ic);
 
 /**
  * Handle for notifications about changes to the set of known peers.

@@ -3354,8 +3354,8 @@ hostkey_callback(void *cls, const struct GNUNET_PeerIdentity *id,
 }
 
 static void
-run(void *cls, char * const *args, const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char * const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct stat frstat;
   struct GNUNET_DHTLOG_TrialInfo trial_info;

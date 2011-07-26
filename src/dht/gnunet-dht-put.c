@@ -149,18 +149,11 @@ run (void *cls,
                                        expiration_seconds));
 
   if (verbose)
-    fprintf (stderr,
-	     _("Issuing put request for `%s' with data `%s'!\n"),
+    fprintf (stderr, _("Issuing put request for `%s' with data `%s'!\n"),
              query_key, data);
-  GNUNET_DHT_put (dht_handle,
-		  &key, 
-		  DEFAULT_PUT_REPLICATION,
-		  GNUNET_DHT_RO_NONE,
-		  query_type, 
-		  strlen (data), data,
-                  expiration, 
-		  timeout,
-		  &message_sent_cont, NULL);
+  GNUNET_DHT_put (dht_handle, &key, DEFAULT_PUT_REPLICATION,
+                  GNUNET_DHT_RO_NONE, query_type, strlen (data), data,
+                  expiration, timeout, &message_sent_cont, NULL);
 
 }
 

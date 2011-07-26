@@ -507,6 +507,13 @@ churn_peers (void *cls,
 
 
 static void
+nse_started_cb(void *cls, const char *emsg)
+{
+  GNUNET_SCHEDULER_add_now(&connect_nse_service, NULL);
+  disconnect_task = GNUNET_SCHEDULER_add_delayed(wait_time, &disconnect_nse_peers, NULL);
+}
+
+static void
 my_cb (void *cls,
        const char *emsg)
 {
@@ -538,10 +545,13 @@ my_cb (void *cls,
       GNUNET_free (buf);
     }
   peers_running = GNUNET_TESTING_daemons_running(pg);
-  GNUNET_SCHEDULER_add_now(&connect_nse_service, NULL);
-  disconnect_task = GNUNET_SCHEDULER_add_delayed(wait_time, &disconnect_nse_peers, NULL);
-}
+  GNUNET_TESTING_daemons_start_service (pg,
+                                        "nse",
+                                        wait_time,
+                                        &nse_started_cb,
+                                        NULL);
 
+}
 
 /**
  * Function that will be called whenever two daemons are connected by
