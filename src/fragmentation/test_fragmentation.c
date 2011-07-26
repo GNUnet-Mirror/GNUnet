@@ -32,7 +32,7 @@
 /**
  * Number of messages to transmit (note: each uses ~32k memory!)
  */
-#define NUM_MSGS 500
+#define NUM_MSGS 5000
 
 /**
  * MTU to force on fragmentation (must be > 1k + 12)
@@ -208,7 +208,7 @@ run (void *cls,
   for (i=0;i<NUM_MSGS;i++)
     {
       msg->type = htons ((uint16_t) i);
-      msg->size = htons (MTU + 1 + (17 * i) % (32 * 1024));
+      msg->size = htons ( 1 + (17 * i) % (32 * 1024));
       frags[i] = GNUNET_FRAGMENT_context_create (NULL /* no stats */, 
 						 MTU,
 						 &trackers[i],
