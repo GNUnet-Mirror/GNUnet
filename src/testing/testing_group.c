@@ -6128,8 +6128,6 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
               hostname = pg->hosts[off % hostcnt].hostname;
               username = pg->hosts[off % hostcnt].username;
               sshport = pg->hosts[off % hostcnt].sshport;
-              pcfg = make_config (cfg, off, &pg->hosts[off % hostcnt].minport,
-                                  &upnum, hostname, &fdnum);
             }
           else
             {
@@ -6144,9 +6142,9 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
                                                         &baseservicehome))
             {
               if (hostname != NULL)
-                GNUNET_asprintf (&newservicehome, "%s/%s/%d/", baseservicehome, hostname, off);
+                GNUNET_asprintf (&newservicehome, "%s/%s/", baseservicehome, hostname);
               else
-                GNUNET_asprintf (&newservicehome, "%s/%d/", baseservicehome, off);
+                GNUNET_asprintf (&newservicehome, "%s/", baseservicehome);
               GNUNET_free (baseservicehome);
               baseservicehome = NULL;
             }
@@ -6155,26 +6153,24 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
               tmpdir = getenv ("TMPDIR");
               tmpdir = tmpdir ? tmpdir : "/tmp";
               if (hostname != NULL)
-                GNUNET_asprintf (&newservicehome, "%s/%s/%s/%d/", tmpdir, hostname,
-                                 "gnunet-testing-test-test", off);
+                GNUNET_asprintf (&newservicehome, "%s/%s/%s/", tmpdir, hostname,
+                                 "gnunet-testing-test-test");
               else
-                GNUNET_asprintf (&newservicehome, "%s/%s/%d/", tmpdir,
+                GNUNET_asprintf (&newservicehome, "%s/%s/", tmpdir,
                                  "gnunet-testing-test-test", off);
             }
 
           if (NULL != username)
             GNUNET_asprintf (&arg, 
-			     "%s@%s:%s/%s", 
+			     "%s@%s:%s",
 			     username, 
 			     pg->hosts[off].hostname, 
-			     newservicehome,
-			     pg->hosts[off].hostname);
+			     newservicehome);
           else
             GNUNET_asprintf (&arg, 
-			     "%s:%s/%s", 
+			     "%s:%s",
 			     pg->hosts[off].hostname,
-			     newservicehome,
-			     pg->hosts[off].hostname);
+			     newservicehome);
 	  
           /* FIXME: Doesn't support ssh_port option! */
           proc = GNUNET_OS_start_process (NULL, NULL,
