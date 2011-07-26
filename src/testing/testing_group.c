@@ -6137,10 +6137,11 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
             }
 
           if (GNUNET_YES
-              == GNUNET_CONFIGURATION_get_value_string (pcfg, "PATHS",
+              == GNUNET_CONFIGURATION_get_value_string (pg->peers[off].cfg, "PATHS",
                                                         "SERVICEHOME",
                                                         &baseservicehome))
             {
+              GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "baseservice home is %s\n", baseservicehome);
               if (hostname != NULL)
                 GNUNET_asprintf (&newservicehome, "%s/%s/", baseservicehome, hostname);
               else
