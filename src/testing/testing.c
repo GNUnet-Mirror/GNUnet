@@ -853,6 +853,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                             &start_fsm, d);
           return;
         }
+#if EXTRA_CHECKS
       if ((type != GNUNET_OS_PROCESS_EXITED) || (code != 0))
         {
           if (NULL != d->dead_cb)
@@ -861,6 +862,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                         ("shutdown (either `gnunet-arm' or `ssh') did not complete cleanly.\n"));
           return;
         }
+#endif
 #if DEBUG_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Service shutdown complete.\n");
 #endif
