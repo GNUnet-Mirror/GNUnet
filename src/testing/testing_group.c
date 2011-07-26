@@ -6123,6 +6123,21 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
       for (off = 0; off < hostcnt; off++)
         {
 
+          if (hostcnt > 0)
+            {
+              hostname = pg->hosts[off % hostcnt].hostname;
+              username = pg->hosts[off % hostcnt].username;
+              sshport = pg->hosts[off % hostcnt].sshport;
+              pcfg = make_config (cfg, off, &pg->hosts[off % hostcnt].minport,
+                                  &upnum, hostname, &fdnum);
+            }
+          else
+            {
+              hostname = NULL;
+              username = NULL;
+              sshport = 0;
+            }
+
           if (GNUNET_YES
               == GNUNET_CONFIGURATION_get_value_string (pcfg, "PATHS",
                                                         "SERVICEHOME",
@@ -6146,36 +6161,30 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
                 GNUNET_asprintf (&newservicehome, "%s/%s/%d/", tmpdir,
                                  "gnunet-testing-test-test", off);
             }
-          GNUNET_asprintf (&newservicehome, 
-			   "%s/%s/",
-			   baseservicehome, 
-			   pg->hosts[off].hostname);
 
           if (NULL != username)
             GNUNET_asprintf (&arg, 
 			     "%s@%s:%s/%s", 
 			     username, 
 			     pg->hosts[off].hostname, 
-			     baseservicehome, 
+			     newservicehome,
 			     pg->hosts[off].hostname);
           else
             GNUNET_asprintf (&arg, 
 			     "%s:%s/%s", 
 			     pg->hosts[off].hostname,
-			     baseservicehome, 
+			     newservicehome,
 			     pg->hosts[off].hostname);
-	  
-	  GNUNET_free (baseservicehome);
 	  
           /* FIXME: Doesn't support ssh_port option! */
           proc = GNUNET_OS_start_process (NULL, NULL,
 					  "rsync",
 					  "rsync", "-r", newservicehome, arg, NULL);
 
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		      "copying directory with command rsync -r %s %s\n", 
 		      newservicehome, arg);
-
+          GNUNET_free(newservicehome);
           GNUNET_free (arg);
           if (NULL == proc)
             {
