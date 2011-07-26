@@ -56,10 +56,8 @@
 
 /**
  * What delay do we request from the core service for transmission?
- * Any value smaller than the CORK delay will disable CORKing, which
- * is what we want here.
  */
-#define FAST_TIMEOUT GNUNET_TIME_relative_divide (GNUNET_CONSTANTS_MAX_CORK_DELAY, 2)
+#define FAST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 #define MTYPE 12345
 #define MESSAGESIZE 1024
