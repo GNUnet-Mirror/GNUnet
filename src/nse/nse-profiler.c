@@ -247,7 +247,9 @@ connect_nse_service (void *cls,
     {
       if ((connection_limit > 0) && (i % (num_peers / connection_limit) != 0))
         continue;
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "TEST_NSE_MULTIPEER: connecting to nse service of peer %d\n", i);
+#if VERBOSE
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "nse-profiler: connecting to nse service of peer %d\n", i);
+#endif
       current_peer = GNUNET_malloc(sizeof(struct NSEPeer));
       current_peer->daemon = GNUNET_TESTING_daemon_get(pg, i);
       if (GNUNET_YES == GNUNET_TESTING_daemon_running(GNUNET_TESTING_daemon_get(pg, i)))
@@ -321,16 +323,12 @@ statistics_iterator (void *cls,
 		     int is_persistent)
 {
   struct StatsContext *stats_context = cls;
-  char *buf;
 
-  GNUNET_assert(0 < GNUNET_asprintf(&buf, 
-				    "bytes of messages of type %d received", 
-				    GNUNET_MESSAGE_TYPE_NSE_P2P_FLOOD));
-  if ((0 == strstr(subsystem, "core")) && (0 == strstr(name, buf)))
+  if ((0 == strstr(subsystem, "nse")) && (0 == strstr(name, "# flood messages received")))
     {
       stats_context->total_nse_bytes += value;
     }
-  GNUNET_free(buf);
+
   return GNUNET_OK;
 }
 
@@ -434,7 +432,7 @@ churn_callback (void *cls, const char *emsg)
 
   if (emsg == NULL) /* Everything is okay! */
     {
-      peers_running = GNUNET_TESTING_daemons_running(pg);
+      peers_running = peers_next_round;
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Round %lu, churn finished successfully.\n",
 		  current_round);
@@ -467,7 +465,7 @@ static void
 churn_peers (void *cls,
 	     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  peers_running = GNUNET_TESTING_daemons_running(pg);
+  /* peers_running = GNUNET_TESTING_daemons_running(pg); */
   churn_task = GNUNET_SCHEDULER_NO_TASK;
   if (peers_next_round == peers_running)
     {
@@ -476,7 +474,7 @@ churn_peers (void *cls,
       GNUNET_assert(disconnect_task == GNUNET_SCHEDULER_NO_TASK);
       disconnect_task = GNUNET_SCHEDULER_add_delayed(wait_time, 
 						     &disconnect_nse_peers, NULL);
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
 		 "Round %lu, doing nothing!\n", 
 		 current_round);
     }
@@ -485,7 +483,7 @@ churn_peers (void *cls,
       if (peers_next_round > num_peers)
         {
           GNUNET_log(GNUNET_ERROR_TYPE_ERROR, 
-		     "Asked to turn on more peers than have!!\n");
+		     "Asked to turn on more peers than we have!!\n");
           GNUNET_SCHEDULER_cancel(shutdown_handle);
           GNUNET_SCHEDULER_add_now(&shutdown_task, NULL);
         }
