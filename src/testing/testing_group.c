@@ -1453,10 +1453,14 @@ make_config(const struct GNUNET_CONFIGURATION_Handle *cfg, uint32_t off,
   if (hostname != NULL)
     {
       GNUNET_asprintf (&allowed_hosts, "%s; 127.0.0.1;", hostname);
-      GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport-udp", "BINDTO",
+      GNUNET_CONFIGURATION_set_value_string (uc.ret, "nat", "BINDTO",
                                              hostname);
-      GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport-tcp", "BINDTO",
+      GNUNET_CONFIGURATION_set_value_string (uc.ret, "nat", "INTERNAL_ADDRESS",
                                              hostname);
+      GNUNET_CONFIGURATION_set_value_string (uc.ret, "nat", "EXTERNAL_ADDRESS",
+                                             hostname);
+      GNUNET_CONFIGURATION_set_value_string (uc.ret, "disablev6", "BINDTO",
+                                             "YES");
       GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport-tcp", "USE_LOCALADDR",
                                              "YES");
       GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport-udp", "USE_LOCALADDR",
@@ -1467,13 +1471,17 @@ make_config(const struct GNUNET_CONFIGURATION_Handle *cfg, uint32_t off,
     }
   else
     {
-      GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport-tcp", "BINDTO",
-                                             "127.0.0.1");
-      GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport-udp", "BINDTO",
-                                             "127.0.0.1");
       GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport-tcp", "USE_LOCALADDR",
                                              "YES");
       GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport-udp", "USE_LOCALADDR",
+                                             "YES");
+      GNUNET_CONFIGURATION_set_value_string (uc.ret, "nat", "BINDTO",
+                                             "127.0.0.1");
+      GNUNET_CONFIGURATION_set_value_string (uc.ret, "nat", "INTERNAL_ADDRESS",
+                                             "127.0.0.1");
+      GNUNET_CONFIGURATION_set_value_string (uc.ret, "nat", "EXTERNAL_ADDRESS",
+                                             "127.0.0.1");
+      GNUNET_CONFIGURATION_set_value_string (uc.ret, "disablev6", "BINDTO",
                                              "YES");
     }
 
@@ -6114,7 +6122,30 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
     {
       for (off = 0; off < hostcnt; off++)
         {
-	  /* FIXME: grab baseservicehome! */
+
+          if (GNUNET_YES
+              == GNUNET_CONFIGURATION_get_value_string (pcfg, "PATHS",
+                                                        "SERVICEHOME",
+                                                        &baseservicehome))
+            {
+              if (hostname != NULL)
+                GNUNET_asprintf (&newservicehome, "%s/%s/%d/", baseservicehome, hostname, off);
+              else
+                GNUNET_asprintf (&newservicehome, "%s/%d/", baseservicehome, off);
+              GNUNET_free (baseservicehome);
+              baseservicehome = NULL;
+            }
+          else
+            {
+              tmpdir = getenv ("TMPDIR");
+              tmpdir = tmpdir ? tmpdir : "/tmp";
+              if (hostname != NULL)
+                GNUNET_asprintf (&newservicehome, "%s/%s/%s/%d/", tmpdir, hostname,
+                                 "gnunet-testing-test-test", off);
+              else
+                GNUNET_asprintf (&newservicehome, "%s/%s/%d/", tmpdir,
+                                 "gnunet-testing-test-test", off);
+            }
           GNUNET_asprintf (&newservicehome, 
 			   "%s/%s/",
 			   baseservicehome, 
@@ -6134,7 +6165,7 @@ GNUNET_TESTING_daemons_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
 			     baseservicehome, 
 			     pg->hosts[off].hostname);
 	  
-	  // FIXME: free--- GNUNET_free (baseservicehome);
+	  GNUNET_free (baseservicehome);
 	  
           /* FIXME: Doesn't support ssh_port option! */
           proc = GNUNET_OS_start_process (NULL, NULL,
