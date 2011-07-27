@@ -408,7 +408,11 @@ tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
   struct redirect_state *state =
     GNUNET_CONTAINER_multihashmap_get (tcp_connections, &hash);
 
-  if (state == NULL) return;
+  if (state == NULL)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "No mapping for this connection; hash is %x\n", *((uint32_t*)&hash));
+      return;
+    }
 
   /* Mark this connection as freshly used */
   GNUNET_CONTAINER_heap_update_cost (tcp_connections_heap, state->heap_node,
@@ -1051,19 +1055,21 @@ receive_tcp_remote (void *cls __attribute__((unused)),
 
   hash_redirect_info (&state->hash, &state->redirect_info, s->addrlen);
 
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Packet from remote; hash is %x\n", *((uint32_t*)&state->hash));
+
   if (GNUNET_NO ==
-      GNUNET_CONTAINER_multihashmap_contains (udp_connections, &state->hash))
+      GNUNET_CONTAINER_multihashmap_contains (tcp_connections, &state->hash))
     {
-      GNUNET_CONTAINER_multihashmap_put (udp_connections, &state->hash, state,
+      GNUNET_CONTAINER_multihashmap_put (tcp_connections, &state->hash, state,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
 
       state->heap_node =
-        GNUNET_CONTAINER_heap_insert (udp_connections_heap, state,
+        GNUNET_CONTAINER_heap_insert (tcp_connections_heap, state,
                                       GNUNET_TIME_absolute_get ().abs_value);
 
-      if (GNUNET_CONTAINER_heap_get_size (udp_connections_heap) >
-          max_udp_connections)
-        GNUNET_SCHEDULER_add_now (collect_connections, udp_connections_heap);
+      if (GNUNET_CONTAINER_heap_get_size (tcp_connections_heap) >
+          max_tcp_connections)
+        GNUNET_SCHEDULER_add_now (collect_connections, tcp_connections_heap);
     }
   else
     GNUNET_free (state);
