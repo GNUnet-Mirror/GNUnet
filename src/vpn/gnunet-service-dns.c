@@ -468,15 +468,24 @@ receive_mesh_answer (void *cls __attribute__((unused)),
   struct dns_query_line *dque =
     (struct dns_query_line *) (dpkt->data +
                                (query_states[dns->s.id].namelen));
+
+  struct dns_record_line *drec_data =
+    (struct dns_record_line *) (dpkt->data +
+                                (query_states[dns->s.id].namelen) +
+                                sizeof (struct dns_query_line) + 2);
   if (16 == answer->pkt.addrsize)
     {
       answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_REMOTE_AAAA;
       dque->type = htons (28);      /* AAAA */
+      drec_data->type = htons (28); /* AAAA */
+      drec_data->data_len = htons (16);
     }
   else
     {
       answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_REMOTE_A;
       dque->type = htons (1);      /* A */
+      drec_data->type = htons (1); /* A*/
+      drec_data->data_len = htons (4);
     }
   dque->class = htons (1);      /* IN */
 
@@ -484,16 +493,9 @@ receive_mesh_answer (void *cls __attribute__((unused)),
     (char *) (dpkt->data + (query_states[dns->s.id].namelen) +
               sizeof (struct dns_query_line));
   memcpy (anname, "\xc0\x0c", 2);
-
-  struct dns_record_line *drec_data =
-    (struct dns_record_line *) (dpkt->data +
-                                (query_states[dns->s.id].namelen) +
-                                sizeof (struct dns_query_line) + 2);
-  drec_data->type = htons (28); /* AAAA */
   drec_data->class = htons (1); /* IN */
 
   drec_data->ttl = pdns->answers[0]->ttl;
-  drec_data->data_len = htons (16);
 
   /* Calculate at which offset in the packet the IPv6-Address belongs, it is
    * filled in by the daemon-vpn */

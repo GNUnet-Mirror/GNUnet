@@ -113,7 +113,7 @@ cleanup(void* cls __attribute__((unused)), const struct GNUNET_SCHEDULER_TaskCon
  * @return the hash of the IP-Address if a mapping exists, NULL otherwise
  */
 GNUNET_HashCode*
-address_mapping_exists(unsigned char addr[]) {
+address6_mapping_exists(unsigned char addr[]) {
     GNUNET_HashCode* key = GNUNET_malloc(sizeof(GNUNET_HashCode));
     unsigned char* k = (unsigned char*)key;
     memset(key, 0, sizeof(GNUNET_HashCode));
@@ -128,6 +128,34 @@ address_mapping_exists(unsigned char addr[]) {
 	GNUNET_free(key);
 	return NULL;
       }
+}
+
+/**
+ * @return the hash of the IP-Address if a mapping exists, NULL otherwise
+ */
+GNUNET_HashCode *
+address4_mapping_exists (uint32_t addr)
+{
+  GNUNET_HashCode *key = GNUNET_malloc (sizeof (GNUNET_HashCode));
+  memset (key, 0, sizeof (GNUNET_HashCode));
+  unsigned char *c = (unsigned char *) &addr;
+  unsigned char *k = (unsigned char *) key;
+  unsigned int i;
+  for (i = 0; i < 4; i++)
+    k[3 - i] = c[i];
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "a4_m_e: getting with key %08x, addr is %08x, %d.%d.%d.%d\n",
+              *((uint32_t *) (key)), addr, c[0], c[1], c[2], c[3]);
+
+  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (hashmap, key))
+    return key;
+  else
+    {
+      GNUNET_free (key);
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Mapping not found!\n");
+      return NULL;
+    }
 }
 
 static void
@@ -148,7 +176,47 @@ collect_mappings(void* cls __attribute__((unused)), const struct GNUNET_SCHEDULE
 }
 
 void
-send_icmp_response(void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
+send_icmp4_response(void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
+    if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+      return;
+
+    struct ip_icmp* request = cls;
+
+    struct ip_icmp* response = alloca(ntohs(request->shdr.size));
+    GNUNET_assert(response != NULL);
+    memset(response, 0, ntohs(request->shdr.size));
+
+    response->shdr.size = request->shdr.size;
+    response->shdr.type = htons(GNUNET_MESSAGE_TYPE_VPN_HELPER);
+
+    response->tun.flags = 0;
+    response->tun.type = htons(0x0800);
+
+    response->ip_hdr.hdr_lngth = 5;
+    response->ip_hdr.version = 4;
+    response->ip_hdr.proto = 0x01;
+    response->ip_hdr.dadr = request->ip_hdr.sadr;
+    response->ip_hdr.sadr = request->ip_hdr.dadr;
+    response->ip_hdr.tot_lngth = request->ip_hdr.tot_lngth;
+
+    response->ip_hdr.chks = calculate_ip_checksum((uint16_t*)&response->ip_hdr, 20);
+
+    response->icmp_hdr.code = 0;
+    response->icmp_hdr.type = 0x0;
+
+    /* Magic, more Magic! */
+    response->icmp_hdr.chks = request->icmp_hdr.chks + 0x8;
+
+    /* Copy the rest of the packet */
+    memcpy(response+1, request+1, ntohs(request->shdr.size) - sizeof(struct ip_icmp));
+
+    write_to_helper(response, ntohs(response->shdr.size));
+
+    GNUNET_free(request);
+}
+
+void
+send_icmp6_response(void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
     if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
       return;
 
@@ -626,6 +694,8 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
                                                GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
             value->heap_node = GNUNET_CONTAINER_heap_insert (heap, value,
                                                              GNUNET_TIME_absolute_get ().abs_value);
+            GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Mapping is saved in the hashmap with key %08x.\n",
+                       *((uint32_t*)(&key)));
             if (GNUNET_CONTAINER_heap_get_size(heap) > max_mappings)
               GNUNET_SCHEDULER_add_now(collect_mappings, NULL);
           }
@@ -766,7 +836,7 @@ receive_udp_back (void *cls __attribute__((unused)), struct GNUNET_MESH_Tunnel* 
   }
   memcpy(&pkt6->udp_hdr, pkt, ntohs(pkt->len));
 
-  GNUNET_HashCode* key = address_mapping_exists(pkt6->ip6_hdr.sadr);
+  GNUNET_HashCode* key = address6_mapping_exists(pkt6->ip6_hdr.sadr);
   GNUNET_assert (key != NULL);
 
   struct map_entry *me = GNUNET_CONTAINER_multihashmap_get(hashmap, key);
@@ -849,7 +919,7 @@ receive_tcp_back (void *cls __attribute__((unused)), struct GNUNET_MESH_Tunnel* 
   }
   memcpy(&pkt6->tcp_hdr, pkt, pktlen);
 
-  GNUNET_HashCode* key = address_mapping_exists(pkt6->ip6_hdr.sadr);
+  GNUNET_HashCode* key = address6_mapping_exists(pkt6->ip6_hdr.sadr);
   GNUNET_assert (key != NULL);
 
   struct map_entry *me = GNUNET_CONTAINER_multihashmap_get(hashmap, key);

@@ -38,13 +38,14 @@
 void
 process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc);
 
-void
-send_icmp_response(void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+void send_icmp6_response(void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+void send_icmp4_response(void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 size_t
 send_udp_service (void *cls, size_t size, void *buf);
 
-GNUNET_HashCode* address_mapping_exists(unsigned char addr[]);
+GNUNET_HashCode* address6_mapping_exists(unsigned char addr[]);
+GNUNET_HashCode* address4_mapping_exists(uint32_t addr);
 
 unsigned int port_in_ports (uint64_t ports, uint16_t port);
 

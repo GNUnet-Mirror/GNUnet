@@ -223,6 +223,7 @@ message_token (void *cls __attribute__((unused)),
   GNUNET_assert (ntohs (message->type) == GNUNET_MESSAGE_TYPE_VPN_HELPER);
 
   struct tun_pkt *pkt_tun = (struct tun_pkt *) message;
+  GNUNET_HashCode *key;
 
   /* ethertype is ipv6 */
   if (ntohs (pkt_tun->tun.type) == 0x86dd)
@@ -232,7 +233,6 @@ message_token (void *cls __attribute__((unused)),
       struct ip6_tcp *pkt6_tcp;
       struct ip6_udp *pkt6_udp;
       struct ip6_icmp *pkt6_icmp;
-      GNUNET_HashCode *key;
 
       switch (pkt6->ip6_hdr.nxthdr)
         {
@@ -241,7 +241,7 @@ message_token (void *cls __attribute__((unused)),
           pkt6_tcp = (struct ip6_tcp *) pkt6;
           pkt6_udp = (struct ip6_udp *) pkt6;
 
-          if ((key = address_mapping_exists (pkt6->ip6_hdr.dadr)) != NULL)
+          if ((key = address6_mapping_exists (pkt6->ip6_hdr.dadr)) != NULL)
             {
               struct map_entry *me =
                 GNUNET_CONTAINER_multihashmap_get (hashmap, key);
@@ -389,12 +389,12 @@ message_token (void *cls __attribute__((unused)),
           pkt6_icmp = (struct ip6_icmp *) pkt6;
           /* If this packet is an icmp-echo-request and a mapping exists, answer */
           if (pkt6_icmp->icmp_hdr.type == 0x80
-              && (key = address_mapping_exists (pkt6->ip6_hdr.dadr)) != NULL)
+              && (key = address6_mapping_exists (pkt6->ip6_hdr.dadr)) != NULL)
             {
               GNUNET_free (key);
               pkt6_icmp = GNUNET_malloc (ntohs (pkt6->shdr.size));
               memcpy (pkt6_icmp, pkt6, ntohs (pkt6->shdr.size));
-              GNUNET_SCHEDULER_add_now (&send_icmp_response, pkt6_icmp);
+              GNUNET_SCHEDULER_add_now (&send_icmp6_response, pkt6_icmp);
             }
           break;
         }
@@ -404,6 +404,9 @@ message_token (void *cls __attribute__((unused)),
     {
       struct ip_pkt *pkt = (struct ip_pkt *) message;
       struct ip_udp *udp = (struct ip_udp *) message;
+      struct ip_tcp *pkt_tcp;
+      struct ip_udp *pkt_udp;
+      struct ip_icmp *pkt_icmp;
       GNUNET_assert (pkt->ip_hdr.version == 4);
 
       /* Send dns-packets to the service-dns */
@@ -432,6 +435,41 @@ message_token (void *cls __attribute__((unused)),
                                                  GNUNET_TIME_UNIT_FOREVER_REL,
                                                  GNUNET_YES,
                                                  &send_query, NULL);
+        }
+      else
+        {
+          uint32_t dadr = pkt->ip_hdr.dadr;
+          unsigned char *c = (unsigned char*)&dadr;
+          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Packet to %d.%d.%d.%d, proto %x\n",
+                     c[0],
+                     c[1],
+                     c[2],
+                     c[3],
+                     pkt->ip_hdr.proto);
+          switch (pkt->ip_hdr.proto)
+            {
+            case 0x06: /* TCP */
+            case 0x11: /* UDP */
+              pkt_tcp = (struct ip_tcp*) pkt;
+              pkt_udp = (struct ip_udp*) pkt;
+
+              if ((key = address4_mapping_exists (dadr)) != NULL)
+                {
+                }
+              break;
+            case 0x01:
+              /* ICMP */
+              pkt_icmp = (struct ip_icmp*)pkt;
+              if (pkt_icmp->icmp_hdr.type == 0x8 &&
+                (key = address4_mapping_exists (dadr)) != NULL)
+                {
+                  GNUNET_free(key);
+                  pkt_icmp = GNUNET_malloc(ntohs(pkt->shdr.size));
+                  memcpy(pkt_icmp, pkt, ntohs(pkt->shdr.size));
+                  GNUNET_SCHEDULER_add_now (&send_icmp4_response, pkt_icmp);
+                }
+              break;
+            }
         }
     }
 }

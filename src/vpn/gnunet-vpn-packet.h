@@ -215,4 +215,11 @@ struct ip_tcp {
 	unsigned char data[1];
 };
 
+struct ip_icmp {
+    struct GNUNET_MessageHeader shdr;
+    struct pkt_tun tun;
+    struct ip_hdr ip_hdr;
+    struct icmp_hdr icmp_hdr;
+};
+
 #endif
