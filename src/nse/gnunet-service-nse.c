@@ -46,6 +46,11 @@
 #include "nse.h"
 
 /**
+ * Send messages on connect.
+ */
+#define SEND_ON_CONNECT GNUNET_YES
+
+/**
  * Should we generate a histogram with the time stamps of when we received
  * NSE messages to disk? (for performance evaluation only, not useful in
  * production)
@@ -303,9 +308,10 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   mean = 0.0;
   sum = 0.0;
   sumweight = 0.0;
-  for (i=0;i<estimate_count; i++)
+  for (i = 0; i < estimate_count; i++)
     {
-      val = htonl (size_estimate_messages[(estimate_index - i + HISTORY_SIZE) % HISTORY_SIZE].matching_bits);
+      val = htonl (size_estimate_messages[(estimate_index - i + HISTORY_SIZE)
+          % HISTORY_SIZE].matching_bits);
       weight = estimate_count + 1 - i;
 
       temp = weight + sumweight;
@@ -701,7 +707,7 @@ update_flood_message(void *cls,
     setup_flood_message (estimate_index, current_timestamp);
   next_message.matching_bits = htonl (0); /* reset for 'next' round */
   hop_count_max = 0;
-  for (i=0;i<HISTORY_SIZE;i++)
+  for (i = 0; i < HISTORY_SIZE; i++)
     hop_count_max = GNUNET_MAX (ntohl (size_estimate_messages[i].hop_count),
 				hop_count_max);
   GNUNET_CONTAINER_multihashmap_iterate (peers,
@@ -996,7 +1002,9 @@ handle_p2p_size_estimate(void *cls,
       GNUNET_break (0);
       return GNUNET_OK;
     }
+
   ts = GNUNET_TIME_absolute_ntoh (incoming_flood->timestamp);
+
   if (ts.abs_value == current_timestamp.abs_value)
     idx = estimate_index;
   else if (ts.abs_value == current_timestamp.abs_value - gnunet_nse_interval.rel_value)
@@ -1243,7 +1251,7 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
   current_timestamp.abs_value = (now.abs_value / gnunet_nse_interval.rel_value) * gnunet_nse_interval.rel_value;
   next_timestamp.abs_value = current_timestamp.abs_value + gnunet_nse_interval.rel_value;
   
-  for (i=0;i<HISTORY_SIZE;i++)
+  for (i = 0; i < HISTORY_SIZE; i++)
     {
       prev_time.abs_value = current_timestamp.abs_value - (HISTORY_SIZE - i - 1) * gnunet_nse_interval.rel_value;
       setup_flood_message (i, prev_time);
