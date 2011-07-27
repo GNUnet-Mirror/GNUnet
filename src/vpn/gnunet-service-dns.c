@@ -346,8 +346,8 @@ receive_mesh_answer (void *cls __attribute__((unused)),
       return GNUNET_OK;
     }
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "The first answer has the length %d\n", pdns->answers[0]->data_len);
-  answer->pkt.addrsize = pdns->answers[0]->data_len;
+  answer->pkt.addrsize = ntohs(pdns->answers[0]->data_len);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "The first answer has the addrlen %d\n", answer->pkt.addrsize);
   memcpy(answer->pkt.addr, pdns->answers[0]->data, ntohs(pdns->answers[0]->data_len));
 
   answer->pkt.from = query_states[dns->s.id].remote_ip;
