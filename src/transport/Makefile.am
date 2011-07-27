@@ -62,8 +62,6 @@ UNIX_QUOTA_TEST = test_quota_compliance_unix \
      test_quota_compliance_unix_asymmetric_recv_constant
 endif
 
-#noinst_PROGRAMS = ${check_PROGRAMS}
-
 lib_LTLIBRARIES = \
   libgnunettransport.la 
 
@@ -85,7 +83,10 @@ bin_PROGRAMS = \
  gnunet-transport \
  $(WLAN_BIN) \
  gnunet-service-transport \
- gnunet-transport-list-connections \
+ gnunet-transport-list-connections 
+
+#noinst_PROGRAMS = ${check_PROGRAMS}
+noinst_PROGRAMS = \
  $(WLAN_BIN_DUMMY)
 
 bin_SCRIPTS = \

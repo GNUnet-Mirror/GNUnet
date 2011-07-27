@@ -33,7 +33,6 @@
  * @param mac pointer to the mac address
  * @return number of bytes written
  */
-
 int
 send_mac_to_plugin(char * buffer, uint8_t * mac)
 {

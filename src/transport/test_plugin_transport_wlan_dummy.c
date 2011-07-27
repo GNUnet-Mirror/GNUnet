@@ -52,7 +52,7 @@
 #include "wlan/loopback_helper.h"
 #include "wlan/helper_common.h"
 
-int first;
+static int first;
 
 static void
 sigfunc(int sig)
@@ -63,17 +63,15 @@ sigfunc(int sig)
 }
 
 static void
-stdin_send(void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
+stdin_send(void *cls, void *client, 
+	   const struct GNUNET_MessageHeader *hdr)
 {
   struct sendbuf *write_pout = cls;
   int sendsize;
   struct GNUNET_MessageHeader newheader;
-  unsigned char * from_data;
-  unsigned char * to_data;
-  //unsigned char * from_radiotap;
-  unsigned char * to_radiotap;
-  //unsigned char * from_start;
-  unsigned char * to_start;
+  char * to_data;
+  char * to_radiotap;
+  char * to_start;
 
   sendsize = ntohs(hdr->size) - sizeof(struct Radiotap_Send)
       + sizeof(struct Radiotap_rx);
@@ -93,21 +91,18 @@ stdin_send(void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   newheader.type = htons(GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
 
   to_start = write_pout->buf + write_pout->size;
-  to_radiotap = to_start + sizeof(struct GNUNET_MessageHeader);
-  to_data = to_radiotap + sizeof(struct Radiotap_rx);
-
-  from_data = ((unsigned char *) hdr) + sizeof(struct Radiotap_Send)
-      + sizeof(struct GNUNET_MessageHeader);
-
   memcpy(to_start, &newheader, sizeof(struct GNUNET_MessageHeader));
   write_pout->size += sizeof(struct GNUNET_MessageHeader);
 
+  to_radiotap = to_start + sizeof(struct GNUNET_MessageHeader);
+  memset(to_radiotap, 0, sizeof (struct Radiotap_rx));
   write_pout->size += sizeof(struct Radiotap_rx);
 
-  memcpy(to_data, from_data, ntohs(hdr->size) - sizeof(struct Radiotap_Send)
-      - sizeof(struct GNUNET_MessageHeader));
-  write_pout->size += ntohs(hdr->size) - sizeof(struct Radiotap_Send)
-      - sizeof(struct GNUNET_MessageHeader);
+  to_data = to_radiotap + sizeof(struct Radiotap_rx);
+  memcpy(to_data, 
+	 ((char *) hdr) + sizeof(struct Radiotap_Send) + sizeof(struct GNUNET_MessageHeader),
+	 ntohs(hdr->size) - sizeof(struct Radiotap_Send) - sizeof(struct GNUNET_MessageHeader));
+  write_pout->size += ntohs(hdr->size) - sizeof(struct Radiotap_Send) - sizeof(struct GNUNET_MessageHeader);
 }
 
 static void
@@ -283,7 +278,7 @@ testmode(int argc, char *argv[])
   macaddr.mac[4] = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_STRONG, 256);
   macaddr.mac[5] = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_NONCE, 256);
 
-  write_std.size = send_mac_to_plugin((char *) write_std.buf, macaddr.mac);
+  write_std.size = send_mac_to_plugin(write_std.buf, macaddr.mac);
 
   while (0 == closeprog)
     {
@@ -335,9 +330,9 @@ testmode(int argc, char *argv[])
 
       if (FD_ISSET(STDOUT_FILENO, &wfds))
         {
-          ret = write(STDOUT_FILENO, write_std.buf + write_std.pos,
-              write_std.size - write_std.pos);
-
+          ret = write(STDOUT_FILENO, 
+		      write_std.buf + write_std.pos,
+		      write_std.size - write_std.pos);
           if (0 > ret)
             {
               closeprog = 1;
@@ -358,9 +353,10 @@ testmode(int argc, char *argv[])
 
       if (FD_ISSET(fdpout, &wfds))
         {
-          ret = write(fdpout, write_pout.buf + write_pout.pos, write_pout.size
-              - write_pout.pos);
-
+          ret = write(fdpout,
+		      write_pout.buf + write_pout.pos, 
+		      write_pout.size - write_pout.pos);
+	  
           if (0 > ret)
             {
               closeprog = 1;

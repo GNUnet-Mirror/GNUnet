@@ -67,7 +67,7 @@ struct sendbuf
 {
   unsigned int pos;
   unsigned int size;
-  unsigned char buf[MAXLINE * 2];
+  char buf[MAXLINE * 2];
 };
 
 
