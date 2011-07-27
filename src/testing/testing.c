@@ -576,7 +576,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #if DEBUG_TESTING
                                              "-L", "DEBUG",
 #endif
-                                             "-s", "-q", NULL);
+                                             "-s", "-q", "-T", GNUNET_TIME_relative_to_string(GNUNET_TIME_absolute_get_remaining(d->max_timeout)), NULL);
         }
       else
         {
@@ -602,6 +602,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                  "-L", "DEBUG",
 #endif
                                                  "-c", d->cfgfile, "-s", "-q",
+                                                 "-T", GNUNET_TIME_relative_to_string(GNUNET_TIME_absolute_get_remaining(d->max_timeout)),
                                                  NULL);
             }
           else
@@ -617,6 +618,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                  "-L", "DEBUG",
 #endif
                                                  "-c", d->cfgfile, "-s", "-q",
+                                                 "-T", GNUNET_TIME_relative_to_string(GNUNET_TIME_absolute_get_remaining(d->max_timeout)),
                                                  NULL);
             }
           GNUNET_free (dst);
@@ -1101,6 +1103,7 @@ GNUNET_TESTING_daemon_start_stopped_service (struct GNUNET_TESTING_Daemon *d,
                                          "-L", "DEBUG",
 #endif
                                          "-c", d->cfgfile, "-i", service, "-q",
+                                         "-T", GNUNET_TIME_relative_to_string(timeout),
                                          NULL);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Starting gnunet-arm with command ssh %s gnunet-arm -c %s -i %s -q\n",
@@ -1120,6 +1123,7 @@ GNUNET_TESTING_daemon_start_stopped_service (struct GNUNET_TESTING_Daemon *d,
                                          "-L", "DEBUG",
 #endif
                                          "-c", d->cfgfile, "-i", service, "-q",
+                                         "-T", GNUNET_TIME_relative_to_string(timeout),
                                          NULL);
     }
 
@@ -1180,6 +1184,7 @@ GNUNET_TESTING_daemon_start_service (struct GNUNET_TESTING_Daemon *d,
                                          "-L", "DEBUG",
 #endif
                                          "-c", d->cfgfile, "-i", service, "-q",
+                                         "-T", GNUNET_TIME_relative_to_string(timeout),
                                          NULL);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Starting gnunet-arm with command ssh %s gnunet-arm -c %s -i %s -q\n",
@@ -1199,6 +1204,7 @@ GNUNET_TESTING_daemon_start_service (struct GNUNET_TESTING_Daemon *d,
                                          "-L", "DEBUG",
 #endif
                                          "-c", d->cfgfile, "-i", service, "-q",
+                                         "-T", GNUNET_TIME_relative_to_string(timeout),
                                          NULL);
     }
 
@@ -1644,6 +1650,7 @@ GNUNET_TESTING_daemon_stop_service (struct GNUNET_TESTING_Daemon *d,
                                          "-L", "DEBUG",
 #endif
                                          "-c", d->cfgfile, "-k", service, "-q",
+                                         "-T", GNUNET_TIME_relative_to_string(timeout),
                                          NULL);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Stopping gnunet-arm with command ssh %s gnunet-arm -c %s -k %s -q\n",
@@ -1663,6 +1670,7 @@ GNUNET_TESTING_daemon_stop_service (struct GNUNET_TESTING_Daemon *d,
                                          "-L", "DEBUG",
 #endif
                                          "-c", d->cfgfile, "-k", service, "-q",
+                                         "-T", GNUNET_TIME_relative_to_string(timeout),
                                          NULL);
     }
 
@@ -1781,6 +1789,7 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
                                          "-L", "DEBUG",
 #endif
                                          "-c", d->cfgfile, "-e", "-q",
+                                         "-T", GNUNET_TIME_relative_to_string(timeout),
                                          del_arg, NULL);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Stopping gnunet-arm with command ssh %s gnunet-arm -c %s -e -q %s\n",
@@ -1801,6 +1810,7 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
                                          "-L", "DEBUG",
 #endif
                                          "-c", d->cfgfile, "-e", "-q",
+                                         "-T", GNUNET_TIME_relative_to_string(timeout),
                                          del_arg, NULL);
     }
 

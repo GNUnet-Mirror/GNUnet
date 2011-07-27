@@ -486,6 +486,25 @@ GNUNET_TIME_absolute_ntoh (struct GNUNET_TIME_AbsoluteNBO a)
 
 }
 
+/**
+ * Convert a relative time to a string.
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant!
+ *
+ * @param time the time to print
+ *
+ * @return string form of the time (as milliseconds)
+ */
+const char *
+GNUNET_TIME_relative_to_string (struct GNUNET_TIME_Relative time)
+{
+  static char time_string[21];
+  memset(time_string, 0, sizeof(time_string));
+
+  sprintf(time_string, "%lu", time.rel_value);
+  return (const char *) time_string;
+}
+
 
 
 /* end of time.c */

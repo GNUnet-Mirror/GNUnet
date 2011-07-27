@@ -422,6 +422,17 @@ struct GNUNET_TIME_Absolute GNUNET_TIME_absolute_ntoh (struct
                                                        a);
 
 /**
+ * Convert a relative time to a string.
+ * NOT reentrant!
+ *
+ * @param time the time to print
+ *
+ * @return string form of the time (as milliseconds)
+ */
+const char *
+GNUNET_TIME_relative_to_string (struct GNUNET_TIME_Relative time);
+
+/**
  * Set the timestamp offset for this instance.
  *
  * @param offset the offset to skew the locale time by
