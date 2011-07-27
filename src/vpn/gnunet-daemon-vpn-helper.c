@@ -327,7 +327,7 @@ message_token (void *cls __attribute__((unused)),
                   s->proto= pkt6->ip6_hdr.nxthdr;
                   if (s->proto == 0x11)
                     {
-                      hdr->type = GNUNET_MESSAGE_TYPE_REMOTE_UDP;
+                      hdr->type = htons(GNUNET_MESSAGE_TYPE_REMOTE_UDP);
                       memcpy (hc + 1, &pkt6_udp->udp_hdr,
                               ntohs (pkt6_udp->udp_hdr.len));
                       app_type = GNUNET_APPLICATION_TYPE_INTERNET_UDP_GATEWAY;
@@ -336,7 +336,7 @@ message_token (void *cls __attribute__((unused)),
                     }
                   else if (s->proto == 0x06)
                     {
-                      hdr->type = GNUNET_MESSAGE_TYPE_REMOTE_TCP;
+                      hdr->type = htons(GNUNET_MESSAGE_TYPE_REMOTE_TCP);
                       memcpy (hc + 1, &pkt6_tcp->tcp_hdr,
                               ntohs (pkt6->ip6_hdr.paylgth));
                       app_type = GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY;
