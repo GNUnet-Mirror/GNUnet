@@ -126,6 +126,13 @@ hijack (void *cls __attribute__((unused)), const struct GNUNET_SCHEDULER_TaskCon
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
+  if (0 == dnsoutport)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Delaying the hijacking, port is still %d!\n", dnsoutport);
+      GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS, hijack, NULL);
+      return;
+    }
+
   char port_s[6];
   char *virt_dns;
   struct GNUNET_OS_Process *proc;
@@ -378,6 +385,7 @@ receive_mesh_query (void *cls __attribute__((unused)),
   /* TODO: read from config */
   inet_pton(AF_INET, "8.8.8.8", &dest.sin_addr);
 
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Querying for remote, id=%d\n", ntohs(dns->s.id));
   query_states[dns->s.id].tunnel = tunnel;
   query_states[dns->s.id].valid = GNUNET_YES;
 
@@ -863,25 +871,26 @@ out:
 static void read_response (void *cls,
                            const struct GNUNET_SCHEDULER_TaskContext *tc);
 
-static void
+static int
 open_port ()
 {
   struct sockaddr_in addr;
 
   dnsout = GNUNET_NETWORK_socket_create (AF_INET, SOCK_DGRAM, 0);
   if (dnsout == NULL)
-    return;
+    return GNUNET_SYSERR;
   memset (&addr, 0, sizeof (struct sockaddr_in));
 
+  addr.sin_family = AF_INET;
   int err = GNUNET_NETWORK_socket_bind (dnsout,
                                         (struct sockaddr *) &addr,
                                         sizeof (struct sockaddr_in));
 
-  if (err != GNUNET_YES)
+  if (err != GNUNET_OK)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Could not bind a port, exiting\n");
-      return;
+                  "Could not bind a port: %m\n");
+      return GNUNET_SYSERR;
     }
 
   /* Read the port we bound to */
@@ -891,8 +900,12 @@ open_port ()
 
   dnsoutport = htons (addr.sin_port);
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Bound to port %d.\n", dnsoutport);
+
   GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, dnsout,
                                  &read_response, NULL);
+
+  return GNUNET_YES;
 }
 
 /**
@@ -917,8 +930,8 @@ read_response (void *cls
   if (0 != ioctl (GNUNET_NETWORK_get_fd (dnsout), FIONREAD, &len))
     {
       unhijack (dnsoutport);
-      open_port ();
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, hijack, NULL);
+      if (GNUNET_YES == open_port ())
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, hijack, NULL);
       return;
     }
 #else
@@ -937,15 +950,18 @@ read_response (void *cls
     if (r < 0)
       {
         unhijack (dnsoutport);
-        open_port ();
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, hijack, NULL);
+        if (GNUNET_YES == open_port ())
+          GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, hijack, NULL);
         return;
       }
+
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Answer to query %d\n", ntohs(dns->s.id));
 
     if (query_states[dns->s.id].valid == GNUNET_YES)
       {
         if (query_states[dns->s.id].tunnel != NULL)
           {
+            GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Answer to query %d for a remote peer!\n", ntohs(dns->s.id));
             /* This response should go through a tunnel */
             uint32_t *c = GNUNET_malloc (4 + sizeof(struct GNUNET_MESH_Tunnel*) + r);
             *c = r;
@@ -1271,6 +1287,12 @@ run (void *cls,
 
   static GNUNET_MESH_ApplicationType *apptypes;
 
+  if (GNUNET_YES != open_port ())
+    {
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
+
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (cfg_, "dns", "PROVIDE_EXIT"))
     apptypes = (GNUNET_MESH_ApplicationType[])
@@ -1294,8 +1316,6 @@ run (void *cls,
     }
 
   dht = GNUNET_DHT_connect (cfg, 1024);
-
-  open_port ();
 
   GNUNET_SCHEDULER_add_now (publish_names, NULL);
 
