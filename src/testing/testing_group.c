@@ -6752,6 +6752,7 @@ GNUNET_TESTING_daemons_start_service (struct GNUNET_TESTING_PeerGroup *pg,
   start_ctx->cb = cb;
   start_ctx->cb_cls = cb_cls;
   start_ctx->service = GNUNET_strdup(service);
+  start_ctx->timeout = timeout;
 
   for (i = 0; i < pg->total; i++)
     {

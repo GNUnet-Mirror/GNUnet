@@ -1079,7 +1079,7 @@ GNUNET_TESTING_daemon_start_stopped_service (struct GNUNET_TESTING_Daemon *d,
   d->phase = SP_SERVICE_START;
   GNUNET_free(d->churned_services);
   d->churned_services = NULL;
-
+  d->max_timeout = GNUNET_TIME_relative_to_absolute(timeout);
   /* Check if this is a local or remote process */
   if (NULL != d->hostname)
     {
@@ -1160,7 +1160,7 @@ GNUNET_TESTING_daemon_start_service (struct GNUNET_TESTING_Daemon *d,
 #endif
 
   d->phase = SP_SERVICE_START;
-
+  d->max_timeout = GNUNET_TIME_relative_to_absolute(timeout);
   /* Check if this is a local or remote process */
   if (NULL != d->hostname)
     {
@@ -1187,8 +1187,8 @@ GNUNET_TESTING_daemon_start_service (struct GNUNET_TESTING_Daemon *d,
                                          "-T", GNUNET_TIME_relative_to_string(timeout),
                                          NULL);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Starting gnunet-arm with command ssh %s gnunet-arm -c %s -i %s -q\n",
-                  arg, "gnunet-arm", d->cfgfile, service);
+                  "Starting gnunet-arm with command ssh %s gnunet-arm -c %s -i %s -q -T %s\n",
+                  arg, "gnunet-arm", d->cfgfile, service, GNUNET_TIME_relative_to_string(timeout));
       GNUNET_free (arg);
     }
   else
@@ -1206,6 +1206,9 @@ GNUNET_TESTING_daemon_start_service (struct GNUNET_TESTING_Daemon *d,
                                          "-c", d->cfgfile, "-i", service, "-q",
                                          "-T", GNUNET_TIME_relative_to_string(timeout),
                                          NULL);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Starting gnunet-arm with command %s -c %s -i %s -q -T %s\n",
+                  "gnunet-arm", d->cfgfile, service, GNUNET_TIME_relative_to_string(timeout));
     }
 
   d->max_timeout = GNUNET_TIME_relative_to_absolute (timeout);
@@ -1626,7 +1629,7 @@ GNUNET_TESTING_daemon_stop_service (struct GNUNET_TESTING_Daemon *d,
     }
   d->phase = SP_SERVICE_SHUTDOWN_START;
   d->churned_services = GNUNET_strdup(service);
-
+  d->max_timeout = GNUNET_TIME_relative_to_absolute(timeout);
   /* Check if this is a local or remote process */
   if (NULL != d->hostname)
     {
