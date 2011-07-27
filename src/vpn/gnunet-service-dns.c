@@ -1060,6 +1060,7 @@ cleanup_task (void *cls __attribute__((unused)),
 
   unhijack(dnsoutport);
   GNUNET_DHT_disconnect(dht);
+  GNUNET_MESH_disconnect(mesh_handle);
 }
 
 /**
