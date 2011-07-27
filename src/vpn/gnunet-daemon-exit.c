@@ -237,7 +237,6 @@ send_udp_to_peer_notify_callback (void *cls, size_t size, void *buf)
   GNUNET_assert (size >= ntohs (hdr->size));
   memcpy (buf, hdr, ntohs (hdr->size));
   size = ntohs(hdr->size);
-  GNUNET_free (cls);
 
   if (NULL != GNUNET_MESH_tunnel_get_head(*tunnel))
     {
@@ -261,6 +260,8 @@ send_udp_to_peer_notify_callback (void *cls, size_t size, void *buf)
       /* save the handle */
       GNUNET_MESH_tunnel_set_data(*tunnel, th);
     }
+
+  GNUNET_free (cls);
 
   return size;
 }

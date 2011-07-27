@@ -455,6 +455,120 @@ message_token (void *cls __attribute__((unused)),
 
               if ((key = address4_mapping_exists (dadr)) != NULL)
                 {
+                  struct map_entry *me =
+                    GNUNET_CONTAINER_multihashmap_get (hashmap, key);
+                  GNUNET_assert (me != NULL);
+                  GNUNET_free (key);
+
+                  size_t size =
+                    sizeof (struct GNUNET_MESH_Tunnel *) +
+                    sizeof (struct GNUNET_MessageHeader) +
+                    sizeof (GNUNET_HashCode) + ntohs (pkt->ip_hdr.tot_lngth) - 4*pkt->ip_hdr.hdr_lngth;
+
+                  struct GNUNET_MESH_Tunnel **cls = GNUNET_malloc (size);
+                  struct GNUNET_MessageHeader *hdr =
+                    (struct GNUNET_MessageHeader *) (cls + 1);
+                  GNUNET_HashCode *hc = (GNUNET_HashCode *) (hdr + 1);
+
+                  hdr->size = htons (sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) + ntohs (pkt->ip_hdr.tot_lngth) - 4*pkt->ip_hdr.hdr_lngth);
+
+                  GNUNET_MESH_ApplicationType app_type;
+                  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "me->addrlen is %d\n", me->addrlen);
+                  if (me->addrlen == 0)
+                    {
+                      /* This is a mapping to a gnunet-service */
+                      memcpy (hc, &me->desc.service_descriptor,
+                              sizeof (GNUNET_HashCode));
+
+                      if (0x11 == pkt->ip_hdr.proto
+                          && (me->desc.
+                              service_type & htonl (GNUNET_DNS_SERVICE_TYPE_UDP))
+                          && (port_in_ports (me->desc.ports, pkt_udp->udp_hdr.dpt)
+                              || testBit (me->additional_ports,
+                                          ntohs (pkt_udp->udp_hdr.dpt))))
+                        {
+                          hdr->type = ntohs (GNUNET_MESSAGE_TYPE_SERVICE_UDP);
+
+                          memcpy (hc + 1, &pkt_udp->udp_hdr,
+                                  ntohs (pkt_udp->udp_hdr.len));
+
+                        }
+                      else if (0x06 == pkt->ip_hdr.proto
+                               && (me->desc.
+                                   service_type & htonl (GNUNET_DNS_SERVICE_TYPE_TCP))
+                               &&
+                               (port_in_ports (me->desc.ports, pkt_tcp->tcp_hdr.dpt)))
+                        {
+                          hdr->type = ntohs (GNUNET_MESSAGE_TYPE_SERVICE_TCP);
+
+                          memcpy (hc + 1, &pkt_tcp->tcp_hdr,
+                                  ntohs (pkt->ip_hdr.tot_lngth) - 4*pkt->ip_hdr.hdr_lngth);
+
+                        }
+                      if (me->tunnel == NULL && NULL != cls)
+                        {
+                          *cls =
+                            GNUNET_MESH_peer_request_connect_all (mesh_handle,
+                                                                  GNUNET_TIME_UNIT_FOREVER_REL,
+                                                                  1,
+                                                                  (struct
+                                                                   GNUNET_PeerIdentity
+                                                                   *) &me->desc.peer,
+                                                                  send_pkt_to_peer,
+                                                                  NULL, cls);
+                          me->tunnel = *cls;
+                        }
+                      else if (NULL != cls)
+                        {
+                          *cls = me->tunnel;
+                          send_pkt_to_peer (cls, (struct GNUNET_PeerIdentity *) 1,
+                                            NULL);
+                          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                                      "Queued to send to peer %x, type %d\n",
+                                      *((unsigned int *) &me->desc.peer), ntohs(hdr->type));
+                        }
+                    }
+                  else
+                    {
+                      /* This is a mapping to a "real" address */
+                      struct remote_addr *s = (struct remote_addr*) hc;
+                      s->addrlen = me->addrlen;
+                      memcpy(s->addr, me->addr, me->addrlen);
+                      s->proto= pkt->ip_hdr.proto;
+                      if (s->proto == 0x11)
+                        {
+                          hdr->type = htons(GNUNET_MESSAGE_TYPE_REMOTE_UDP);
+                          memcpy (hc + 1, &pkt_udp->udp_hdr,
+                                  ntohs (pkt_udp->udp_hdr.len));
+                          app_type = GNUNET_APPLICATION_TYPE_INTERNET_UDP_GATEWAY;
+                        }
+                      else if (s->proto == 0x06)
+                        {
+                          hdr->type = htons(GNUNET_MESSAGE_TYPE_REMOTE_TCP);
+                          memcpy (hc + 1, &pkt_tcp->tcp_hdr,
+                              ntohs (pkt->ip_hdr.tot_lngth) - 4*pkt->ip_hdr.hdr_lngth);
+                          app_type = GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY;
+                        }
+                      if (me->tunnel == NULL && NULL != cls)
+                        {
+                          *cls = GNUNET_MESH_peer_request_connect_by_type(mesh_handle,
+                                                                          GNUNET_TIME_UNIT_FOREVER_REL,
+                                                                          app_type,
+                                                                          send_pkt_to_peer,
+                                                                          NULL,
+                                                                          cls);
+                          me->tunnel = *cls;
+                        }
+                      else if (NULL != cls)
+                        {
+                          *cls = me->tunnel;
+                          send_pkt_to_peer(cls, (struct GNUNET_PeerIdentity*) 1, NULL);
+                        }
+                    }
+                }
+              else
+                {
+                  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Packet to %x which has no mapping\n", dadr);
                 }
               break;
             case 0x01:
