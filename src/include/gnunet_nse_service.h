@@ -62,7 +62,7 @@ struct GNUNET_NSE_Handle;
  *
  */
 typedef void (*GNUNET_NSE_Callback) (void *cls,
-                                     struct GNUNET_TIME_AbsoluteNBO timestamp,
+                                     struct GNUNET_TIME_Absolute timestamp,
 				     double logestimate, 
 				     double std_dev);
 

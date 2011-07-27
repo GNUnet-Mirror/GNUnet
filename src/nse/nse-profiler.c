@@ -204,7 +204,7 @@ shutdown_task (void *cls,
  *
  */
 static void
-handle_estimate (void *cls, struct GNUNET_TIME_AbsoluteNBO timestamp, double estimate, double std_dev)
+handle_estimate (void *cls, struct GNUNET_TIME_Absolute timestamp, double estimate, double std_dev)
 {
   struct NSEPeer *peer = cls;
   char *output_buffer;
@@ -216,7 +216,7 @@ handle_estimate (void *cls, struct GNUNET_TIME_AbsoluteNBO timestamp, double est
 			     "%s %u %llu %f %f %f\n",
 			     GNUNET_i2s(&peer->daemon->id),
 			     peers_running,
-			     GNUNET_TIME_absolute_ntoh(timestamp).abs_value,
+			     timestamp.abs_value,
 			     pow(2, estimate),
 			     estimate, 
 			     std_dev);

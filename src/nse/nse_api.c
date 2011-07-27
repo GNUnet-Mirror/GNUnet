@@ -122,7 +122,7 @@ message_handler (void *cls,
     }
   client_msg = (const struct GNUNET_NSE_ClientMessage *)msg;
   h->recv_cb (h->recv_cb_cls, 
-              client_msg->timestamp,
+              GNUNET_TIME_absolute_ntoh(client_msg->timestamp),
 	      client_msg->size_estimate,
               client_msg->std_deviation);
   GNUNET_CLIENT_receive (h->client,
