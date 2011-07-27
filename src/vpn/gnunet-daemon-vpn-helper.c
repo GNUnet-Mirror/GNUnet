@@ -46,6 +46,12 @@
 struct GNUNET_VPN_HELPER_Handle *helper_handle;
 
 /**
+ * The tunnels that will be used to send tcp- and udp-packets
+ */
+static struct GNUNET_MESH_Tunnel* tcp_tunnel;
+static struct GNUNET_MESH_Tunnel* udp_tunnel;
+
+/**
  * Start the helper-process
  *
  * If cls != NULL it is assumed that this function is called as a result of a dying
@@ -325,6 +331,8 @@ message_token (void *cls __attribute__((unused)),
                       memcpy (hc + 1, &pkt6_udp->udp_hdr,
                               ntohs (pkt6_udp->udp_hdr.len));
                       app_type = GNUNET_APPLICATION_TYPE_INTERNET_UDP_GATEWAY;
+                      if (NULL != udp_tunnel)
+                        me->tunnel = udp_tunnel;
                     }
                   else if (s->proto == 0x06)
                     {
@@ -332,6 +340,8 @@ message_token (void *cls __attribute__((unused)),
                       memcpy (hc + 1, &pkt6_tcp->tcp_hdr,
                               ntohs (pkt6->ip6_hdr.paylgth));
                       app_type = GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY;
+                      if (NULL != tcp_tunnel)
+                        me->tunnel = tcp_tunnel;
                     }
                   if (me->tunnel == NULL && NULL != cls)
                     {
@@ -342,6 +352,10 @@ message_token (void *cls __attribute__((unused)),
                                                                       NULL,
                                                                       cls);
                       me->tunnel = *cls;
+                      if (GNUNET_APPLICATION_TYPE_INTERNET_UDP_GATEWAY == app_type)
+                        udp_tunnel = *cls;
+                      else if (GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY == app_type)
+                        tcp_tunnel = *cls;
                     }
                   else if (NULL != cls)
                     {
