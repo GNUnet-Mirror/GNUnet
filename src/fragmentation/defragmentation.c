@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file src/fragmentation/defragmentation_new.c
+ * @file src/fragmentation/defragmentation.c
  * @brief library to help defragment messages
  * @author Christian Grothoff
  */
@@ -441,6 +441,11 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
     }
   fh = (const struct FragmentHeader*) msg;
   msize = ntohs (fh->total_size);
+  if (msize < sizeof (struct GNUNET_MessageHeader))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
   fid = ntohl (fh->fragment_id);
   foff = ntohs (fh->offset);
   if (foff >= msize)
@@ -554,5 +559,5 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
   return GNUNET_YES;
 }
 
-/* end of defragmentation_new.c */
+/* end of defragmentation.c */
 

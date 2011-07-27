@@ -208,7 +208,7 @@ run (void *cls,
   for (i=0;i<NUM_MSGS;i++)
     {
       msg->type = htons ((uint16_t) i);
-      msg->size = htons ( 1 + (17 * i) % (32 * 1024));
+      msg->size = htons (sizeof (struct GNUNET_MessageHeader) + (17 * i) % (32 * 1024));
       frags[i] = GNUNET_FRAGMENT_context_create (NULL /* no stats */, 
 						 MTU,
 						 &trackers[i],

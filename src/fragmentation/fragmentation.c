@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file src/fragmentation/fragmentation_new.c
+ * @file src/fragmentation/fragmentation.c
  * @brief library to help fragment messages
  * @author Christian Grothoff
  */
@@ -249,11 +249,11 @@ GNUNET_FRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
 			    _("# messages fragmented"),
 			    1, GNUNET_NO);
   GNUNET_assert (mtu >= 1024 + sizeof (struct FragmentHeader));
-  size = ntohs (msg->size);
+  size = ntohs (msg->size); 
   GNUNET_STATISTICS_update (stats,
 			    _("# total size of fragmented messages"),
 			    size, GNUNET_NO);
-  //GNUNET_assert (size > mtu);
+  GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   fc = GNUNET_malloc (sizeof (struct GNUNET_FRAGMENT_Context) + size);
   fc->stats = stats;
   fc->mtu = mtu;
@@ -398,5 +398,5 @@ GNUNET_FRAGMENT_context_destroy (struct GNUNET_FRAGMENT_Context *fc)
 }
 
 
-/* end of fragmentation_new.c */
+/* end of fragmentation.c */
 
