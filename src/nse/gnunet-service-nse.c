@@ -332,6 +332,7 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   em->header.type
     = htons (GNUNET_MESSAGE_TYPE_NSE_ESTIMATE);
   em->reserved = htonl (0);
+  em->timestamp = GNUNET_TIME_absolute_hton(GNUNET_TIME_absolute_get());
   em->size_estimate = mean - 1.0/3.0;
   em->std_deviation = std_dev;
   GNUNET_STATISTICS_set (stats, 

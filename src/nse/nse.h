@@ -55,6 +55,11 @@ struct GNUNET_NSE_ClientMessage
   uint32_t reserved;
 
   /**
+   * Timestamp at which the server received the message.
+   */
+  struct GNUNET_TIME_AbsoluteNBO timestamp;
+
+  /**
    * The current estimated network size.
    */
   double size_estimate;

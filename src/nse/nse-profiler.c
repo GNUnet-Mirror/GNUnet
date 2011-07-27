@@ -197,13 +197,14 @@ shutdown_task (void *cls,
  * Callback to call when network size estimate is updated.
  *
  * @param cls closure
+ * @param timestamp server timestamp
  * @param estimate the value of the current network size estimate
  * @param std_dev standard deviation (rounded down to nearest integer)
  *                of the size estimation values seen
  *
  */
 static void
-handle_estimate (void *cls, double estimate, double std_dev)
+handle_estimate (void *cls, struct GNUNET_TIME_AbsoluteNBO timestamp, double estimate, double std_dev)
 {
   struct NSEPeer *peer = cls;
   char *output_buffer;
@@ -212,9 +213,10 @@ handle_estimate (void *cls, double estimate, double std_dev)
   if (output_file != NULL)
     {
       size = GNUNET_asprintf(&output_buffer, 
-			     "%s %u %f %f %f\n",
+			     "%s %u %llu %f %f %f\n",
 			     GNUNET_i2s(&peer->daemon->id),
 			     peers_running,
+			     GNUNET_TIME_absolute_ntoh(timestamp).abs_value,
 			     pow(2, estimate),
 			     estimate, 
 			     std_dev);
