@@ -56,11 +56,13 @@ struct GNUNET_NSE_Handle;
  * Callback to call when network size estimate is updated.
  *
  * @param cls closure
+ * @param timestamp time when the estimate was received from the server (or created by the server)
  * @param logestimate the log(Base 2) value of the current network size estimate
  * @param std_dev standard deviation for the estimate
  *
  */
 typedef void (*GNUNET_NSE_Callback) (void *cls,
+                                     struct GNUNET_TIME_AbsoluteNBO timestamp,
 				     double logestimate, 
 				     double std_dev);
 
