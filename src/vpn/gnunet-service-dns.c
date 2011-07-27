@@ -403,7 +403,7 @@ receive_mesh_answer (void *cls __attribute__((unused)),
                                        &send_answer,
                                        query_states[dns->s.id].client);
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sent answer on to client\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sent answer of length %d on to client, addroffset = %d\n", len, answer->pkt.addroffset);
 
   free_parsed_dns_packet(pdns);
   return GNUNET_OK;
