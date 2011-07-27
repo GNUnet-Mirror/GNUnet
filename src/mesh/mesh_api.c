@@ -73,6 +73,8 @@ struct GNUNET_MESH_Tunnel
    */
   uint16_t application_type;
 
+  struct GNUNET_MESH_TransmitHandle* notify_handle;
+
   /* The context of the receive-function. */
   void *ctx;
 };
@@ -611,6 +613,7 @@ core_notify(void* cls, size_t size, void* buf)
 {
   struct notify_cls *ncls = cls;
   struct GNUNET_MESH_Tunnel *tunnel = ncls->tunnel;
+  tunnel->notify_handle = NULL;
   struct tunnel_message* message = buf;
   void* cbuf = (void*) &message[1];
   GNUNET_assert(NULL != ncls->notify);
@@ -653,35 +656,47 @@ core_notify(void* cls, size_t size, void* buf)
  */
 struct GNUNET_MESH_TransmitHandle *
 GNUNET_MESH_notify_transmit_ready (struct
-				   GNUNET_MESH_Tunnel
-				   *tunnel,
-				   int cork,
-				   uint32_t priority,
-				   struct
-				   GNUNET_TIME_Relative
-				   maxdelay,
-				   const struct GNUNET_PeerIdentity *target __attribute__((unused)),
-				   size_t
-				   notify_size,
-				   GNUNET_CONNECTION_TransmitReadyNotify
-				   notify, void *notify_cls)
+                                   GNUNET_MESH_Tunnel
+                                   *tunnel,
+                                   int cork,
+                                   uint32_t priority,
+                                   struct
+                                   GNUNET_TIME_Relative
+                                   maxdelay,
+                                   const struct GNUNET_PeerIdentity *target
+                                   __attribute__ ((unused)),
+                                   size_t notify_size,
+                                   GNUNET_CONNECTION_TransmitReadyNotify
+                                   notify, void *notify_cls)
 {
-  struct notify_cls *cls = GNUNET_malloc(sizeof(struct notify_cls));
+  if (NULL != tunnel->notify_handle)
+    {
+      GNUNET_break(0);
+      return NULL;
+    }
+
+  struct notify_cls *cls = GNUNET_malloc (sizeof (struct notify_cls));
   cls->notify_cls = notify_cls;
-  GNUNET_assert(NULL != notify);
+  GNUNET_assert (NULL != notify);
   cls->notify = notify;
   cls->tunnel = tunnel;
-  GNUNET_CORE_notify_transmit_ready(tunnel->handle->core,
-				    cork,
-				    priority,
-				    maxdelay,
-				    &tunnel->peer,
-				    notify_size + sizeof(struct tunnel_message),
-				    &core_notify,
-				    (void*)cls);
 
-  /* aborting is not implemented yet */
-  return (struct GNUNET_MESH_TransmitHandle*) 1;
+  tunnel->notify_handle = (struct GNUNET_MESH_TransmitHandle *)
+    GNUNET_CORE_notify_transmit_ready (tunnel->handle->core, cork, priority,
+                                       maxdelay, &tunnel->peer,
+                                       notify_size +
+                                       sizeof (struct tunnel_message),
+                                       &core_notify, (void *) cls);
+
+  return tunnel->notify_handle;
+}
+
+void
+GNUNET_MESH_notify_transmit_ready_cancel (struct GNUNET_MESH_TransmitHandle
+                                          *th)
+{
+  GNUNET_CORE_notify_transmit_ready_cancel ((struct GNUNET_CORE_TransmitHandle
+                                             *) th);
 }
 
 void build_hello_message(struct GNUNET_MESH_Handle* handle,
