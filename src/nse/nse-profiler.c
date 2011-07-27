@@ -730,7 +730,9 @@ main (int argc, char *argv[])
                       argv, "nse-profiler", gettext_noop
                       ("Run a test of the NSE service."),
                       options, &run, &ok);
+#if REMOVE_DIR
   GNUNET_DISK_directory_remove ("/tmp/nse-profiler");
+#endif
   return ret;
 }
 
