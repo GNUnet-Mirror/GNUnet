@@ -1013,7 +1013,7 @@ receive_tcp_remote (void *cls __attribute__((unused)),
                      const struct GNUNET_TRANSPORT_ATS_Information *atsi __attribute__((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
-  struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
+  struct tcp_pkt *pkt = (struct tcp_pkt *) (desc + 1);
   struct remote_addr *s = (struct remote_addr *) desc;
   char *buf;
   size_t len;
@@ -1036,11 +1036,11 @@ receive_tcp_remote (void *cls __attribute__((unused)),
   switch (s->addrlen)
     {
     case 4:
-      prepare_ipv4_packet (len, ntohs (pkt->len), pkt, 0x06,    /* TCP */
+      prepare_ipv4_packet (len, pkt_len, pkt, 0x06,    /* TCP */
                            &s->addr, tunnel, state, (struct ip_pkt *) buf);
       break;
     case 16:
-      prepare_ipv6_packet (len, ntohs (pkt->len), pkt, 0x06,    /* TCP */
+      prepare_ipv6_packet (len, pkt_len, pkt, 0x06,    /* TCP */
                            &s->addr, tunnel, state, (struct ip6_pkt *) buf);
       break;
     default:

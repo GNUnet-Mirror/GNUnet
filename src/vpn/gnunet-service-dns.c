@@ -241,7 +241,6 @@ mesh_send_response (void *cls, size_t size, void *buf)
   GNUNET_assert (size >= (*sz + sizeof (struct GNUNET_MessageHeader)));
 
   memcpy (hdr + 1, dns, *sz);
-  GNUNET_free (cls);
 
   if (NULL != GNUNET_MESH_tunnel_get_head(*tunnel))
     {
@@ -264,6 +263,9 @@ mesh_send_response (void *cls, size_t size, void *buf)
       /* save the handle */
       GNUNET_MESH_tunnel_set_data(*tunnel, th);
     }
+
+  GNUNET_free (cls);
+
   return ntohs (hdr->size);
 }
 
@@ -302,7 +304,6 @@ mesh_send (void *cls, size_t size, void *buf)
       GNUNET_MESH_tunnel_set_data(cls_->tunnel, th);
     }
 
-  GNUNET_free(cls);
   return size;
 }
 
@@ -412,7 +413,11 @@ receive_mesh_answer (void *cls __attribute__((unused)),
   /* They sent us a packet we were not waiting for */
   if (remote_pending[dns->s.id] == NULL
       || remote_pending[dns->s.id]->tunnel != tunnel)
-    return GNUNET_SYSERR;
+    return GNUNET_OK;
+
+  GNUNET_free(remote_pending[dns->s.id]);
+  remote_pending[dns->s.id] = NULL;
+
   if (query_states[dns->s.id].valid != GNUNET_YES)
     return GNUNET_SYSERR;
   query_states[dns->s.id].valid = GNUNET_NO;
@@ -428,7 +433,6 @@ receive_mesh_answer (void *cls __attribute__((unused)),
 
   answer->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_LOCAL_RESPONSE_DNS);
   answer->pkt.hdr.size = htons (len);
-  answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_REMOTE;
 
   struct dns_pkt_parsed* pdns = parse_dns_packet(dns);
 
@@ -464,7 +468,16 @@ receive_mesh_answer (void *cls __attribute__((unused)),
   struct dns_query_line *dque =
     (struct dns_query_line *) (dpkt->data +
                                (query_states[dns->s.id].namelen));
-  dque->type = htons (28);      /* AAAA */
+  if (16 == answer->pkt.addrsize)
+    {
+      answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_REMOTE_AAAA;
+      dque->type = htons (28);      /* AAAA */
+    }
+  else
+    {
+      answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_REMOTE_A;
+      dque->type = htons (1);      /* A */
+    }
   dque->class = htons (1);      /* IN */
 
   char *anname =

@@ -200,7 +200,6 @@ send_pkt_to_peer_notify_callback (void *cls, size_t size, void *buf)
   GNUNET_assert (size >= ntohs (hdr->size));
   memcpy (buf, hdr, ntohs (hdr->size));
   size = ntohs(hdr->size);
-  GNUNET_free (cls);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent!\n");
 
   if (NULL != GNUNET_MESH_tunnel_get_head(*tunnel))
@@ -225,6 +224,7 @@ send_pkt_to_peer_notify_callback (void *cls, size_t size, void *buf)
       /* save the handle */
       GNUNET_MESH_tunnel_set_data(*tunnel, th);
     }
+  GNUNET_free (cls);
 
   return size;
 }
@@ -331,7 +331,60 @@ new_ip6addr_remote (unsigned char *buf, unsigned char *addr, char addrlen)
 
   int local_length = 16 - ipv6prefix;
 
-  memcpy (buf + ipv6prefix, addr, GNUNET_MAX (addrlen, local_length));
+  memcpy (buf + ipv6prefix, addr, GNUNET_MIN (addrlen, local_length));
+}
+/*}}}*/
+
+/**
+ * Create a new Address from an answer-packet
+ */
+void
+new_ip4addr_remote (unsigned char *buf, unsigned char *addr, char addrlen)
+{                               /* {{{ */
+  char *ipv4addr;
+  char *ipv4mask;
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONFIGURATION_get_value_string (cfg, "vpn",
+                                                        "IPV4ADDR",
+                                                        &ipv4addr));
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONFIGURATION_get_value_string (cfg, "vpn",
+                                                        "IPV4MASK",
+                                                        &ipv4mask));
+  uint32_t mask;
+  inet_pton (AF_INET, ipv4addr, buf);
+  int r = inet_pton (AF_INET, ipv4mask, &mask);
+  mask = htonl(mask);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "inet_pton: %d; %m; mask: %08x\n", r, mask);
+
+  GNUNET_free (ipv4addr);
+
+  int c;
+
+  if (mask)
+    {
+      mask = (mask ^ (mask - 1)) >> 1;
+      for (c = 0; mask; c++)
+        {
+          mask >>= 1;
+        }
+    }
+  else
+    {
+      c = CHAR_BIT * sizeof(mask);
+    }
+
+  c = 32-c;
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "The mask %s has %d leading 1s.\n", ipv4mask, c);
+
+  GNUNET_free (ipv4mask);
+
+  if (c % 8 == 0)
+    c = c / 8;
+  else
+    GNUNET_assert(0);
+
+  memcpy (buf + c, addr, GNUNET_MIN (addrlen, c));
 }
 /*}}}*/
 
@@ -463,7 +516,7 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 	list = GNUNET_malloc(htons(pkt->hdr.size) + 2*sizeof(struct answer_packet_list*));
 	memcpy(&list->pkt, pkt, htons(pkt->hdr.size));
       }
-    else if (pkt->subtype == GNUNET_DNS_ANSWER_TYPE_REMOTE)
+    else if (pkt->subtype == GNUNET_DNS_ANSWER_TYPE_REMOTE_AAAA)
       {
 	pkt->subtype = GNUNET_DNS_ANSWER_TYPE_IP;
 
@@ -496,6 +549,60 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 	unsigned int i;
 	for (i = 0; i < 16; i++)
 	    k[15-i] = c[i];
+
+	uint16_t namelen = strlen((char*)pkt->data+12)+1;
+
+	struct map_entry* value = GNUNET_malloc(sizeof(struct map_entry) + namelen);
+	char* name = (char*)(value +1);
+
+	value->namelen = namelen;
+	memcpy(name, pkt->data+12, namelen);
+
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Setting addrlen to %d\n", pkt->addrsize);
+        value->addrlen = pkt->addrsize;
+        memcpy(&value->addr, &pkt->addr, pkt->addrsize);
+        memset(value->additional_ports, 0, 8192);
+
+        memcpy(&value->hash, &key, sizeof(GNUNET_HashCode));
+
+        if (GNUNET_NO ==
+            GNUNET_CONTAINER_multihashmap_contains (hashmap, &key))
+          {
+            GNUNET_CONTAINER_multihashmap_put (hashmap, &key, value,
+                                               GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+            value->heap_node = GNUNET_CONTAINER_heap_insert (heap, value,
+                                                             GNUNET_TIME_absolute_get ().abs_value);
+            if (GNUNET_CONTAINER_heap_get_size(heap) > max_mappings)
+              GNUNET_SCHEDULER_add_now(collect_mappings, NULL);
+          }
+        else
+          GNUNET_free(value);
+
+	list = GNUNET_malloc(htons(pkt->hdr.size) + 2*sizeof(struct answer_packet_list*));
+
+	memcpy(&list->pkt, pkt, htons(pkt->hdr.size));
+      }
+    else if (pkt->subtype == GNUNET_DNS_ANSWER_TYPE_REMOTE_A)
+      {
+	pkt->subtype = GNUNET_DNS_ANSWER_TYPE_IP;
+
+	GNUNET_HashCode key;
+	memset(&key, 0, sizeof(GNUNET_HashCode));
+
+	unsigned char* c = ((unsigned char*)pkt)+ntohs(pkt->addroffset);
+        new_ip4addr_remote(c, pkt->addr, pkt->addrsize);
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "New mapping to %d.%d.%d.%d\n",
+                   c[0],
+                   c[1],
+                   c[2],
+                   c[3]);
+	unsigned char* k = (unsigned char*)&key;
+	/*
+	 * Copy the newly generated ip-address to the key backwards (as only the first part is used in the hash-table)
+	 */
+	unsigned int i;
+	for (i = 0; i < 4; i++)
+	    k[3-i] = c[i];
 
 	uint16_t namelen = strlen((char*)pkt->data+12)+1;
 

@@ -47,10 +47,16 @@ enum GNUNET_DNS_ANSWER_Subtype {
     GNUNET_DNS_ANSWER_TYPE_REV,
 
     /**
-     * Answers of this type contains an IP-Address but traffic to this IP should
+     * Answers of this type contains an IP6-Address but traffic to this IP should
      * be routed through the GNUNet.
      */
-    GNUNET_DNS_ANSWER_TYPE_REMOTE
+    GNUNET_DNS_ANSWER_TYPE_REMOTE_AAAA,
+
+    /**
+     * Answers of this type contains an IP4-Address but traffic to this IP should
+     * be routed through the GNUNet.
+     */
+    GNUNET_DNS_ANSWER_TYPE_REMOTE_A
 };
 
 struct GNUNET_vpn_service_descriptor {
