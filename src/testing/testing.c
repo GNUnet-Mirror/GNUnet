@@ -1206,7 +1206,7 @@ GNUNET_TESTING_daemon_start_service (struct GNUNET_TESTING_Daemon *d,
                                          "-c", d->cfgfile, "-i", service, "-q",
                                          "-T", GNUNET_TIME_relative_to_string(timeout),
                                          NULL);
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Starting gnunet-arm with command %s -c %s -i %s -q -T %s\n",
                   "gnunet-arm", d->cfgfile, service, GNUNET_TIME_relative_to_string(timeout));
     }
