@@ -790,84 +790,170 @@ add_additional_port (struct map_entry *me, uint16_t port)
 }
 
 static int
-receive_udp_back (void *cls __attribute__((unused)), struct GNUNET_MESH_Tunnel* tunnel,
-		  void **tunnel_ctx __attribute__((unused)),
-		  const struct GNUNET_PeerIdentity *sender __attribute__((unused)),
-		  const struct GNUNET_MessageHeader *message,
-		  const struct GNUNET_TRANSPORT_ATS_Information *atsi __attribute__((unused)))
+receive_udp_back (void *cls
+                  __attribute__ ((unused)), struct GNUNET_MESH_Tunnel *tunnel,
+                  void **tunnel_ctx __attribute__ ((unused)),
+                  const struct GNUNET_PeerIdentity *sender __attribute__ ((unused)),
+                  const struct GNUNET_MessageHeader *message,
+                  const struct GNUNET_TRANSPORT_ATS_Information *atsi __attribute__ ((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
-  struct remote_addr* s = (struct remote_addr*)desc;
+  struct remote_addr *s = (struct remote_addr *) desc;
   struct udp_pkt *pkt = (struct udp_pkt *) (desc + 1);
-  const struct GNUNET_PeerIdentity* other = GNUNET_MESH_get_peer(tunnel);
+  const struct GNUNET_PeerIdentity *other = GNUNET_MESH_get_peer (tunnel);
 
-  size_t size = sizeof(struct ip6_udp) + ntohs(pkt->len) - 1 - sizeof(struct udp_pkt);
-
-  struct ip6_udp* pkt6 = alloca(size);
-
-  GNUNET_assert(pkt6 != NULL);
-
-  if (ntohs(message->type) == GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK)
-    new_ip6addr(pkt6->ip6_hdr.sadr, &other->hashPubKey, desc);
-  else
-    new_ip6addr_remote(pkt6->ip6_hdr.sadr, s->addr, s->addrlen);
-
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Relaying calc:%d gnu:%d udp:%d bytes!\n", size, ntohs(message->size), ntohs(pkt->len));
-
-  pkt6->shdr.type = htons(GNUNET_MESSAGE_TYPE_VPN_HELPER);
-  pkt6->shdr.size = htons(size);
-
-  pkt6->tun.flags = 0;
-  pkt6->tun.type = htons(0x86dd);
-
-  pkt6->ip6_hdr.version = 6;
-  pkt6->ip6_hdr.tclass_h = 0;
-  pkt6->ip6_hdr.tclass_l = 0;
-  pkt6->ip6_hdr.flowlbl = 0;
-  pkt6->ip6_hdr.paylgth = pkt->len;
-  pkt6->ip6_hdr.nxthdr = 0x11;
-  pkt6->ip6_hdr.hoplmt = 0xff;
-
-  {
-    char* ipv6addr;
-    GNUNET_assert(GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "vpn", "IPV6ADDR", &ipv6addr));
-    inet_pton (AF_INET6, ipv6addr, pkt6->ip6_hdr.dadr);
-    GNUNET_free(ipv6addr);
-  }
-  memcpy(&pkt6->udp_hdr, pkt, ntohs(pkt->len));
-
-  GNUNET_HashCode* key = address6_mapping_exists(pkt6->ip6_hdr.sadr);
-  GNUNET_assert (key != NULL);
-
-  struct map_entry *me = GNUNET_CONTAINER_multihashmap_get(hashmap, key);
-  GNUNET_CONTAINER_heap_update_cost (heap, me->heap_node,
-                                     GNUNET_TIME_absolute_get ().abs_value);
-
-  GNUNET_free(key);
-
-  GNUNET_assert (me != NULL);
-  if (ntohs(message->type) == GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK)
+  if (16 == s->addrlen)
     {
-      GNUNET_assert (me->desc.service_type & htonl(GNUNET_DNS_SERVICE_TYPE_UDP));
-      if (!port_in_ports(me->desc.ports, pkt6->udp_hdr.spt) &&
-          !testBit(me->additional_ports, ntohs(pkt6->udp_hdr.spt))) {
-          add_additional_port(me, ntohs(pkt6->udp_hdr.spt));
+      size_t size =
+        sizeof (struct ip6_udp) + ntohs (pkt->len) - 1 - sizeof (struct udp_pkt);
+
+      struct ip6_udp *pkt6 = alloca (size);
+
+      GNUNET_assert (pkt6 != NULL);
+
+      if (ntohs (message->type) == GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK)
+        new_ip6addr (pkt6->ip6_hdr.sadr, &other->hashPubKey, desc);
+      else
+        new_ip6addr_remote (pkt6->ip6_hdr.sadr, s->addr, s->addrlen);
+
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Relaying calc:%d gnu:%d udp:%d bytes!\n", size,
+                  ntohs (message->size), ntohs (pkt->len));
+
+      pkt6->shdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
+      pkt6->shdr.size = htons (size);
+
+      pkt6->tun.flags = 0;
+      pkt6->tun.type = htons (0x86dd);
+
+      pkt6->ip6_hdr.version = 6;
+      pkt6->ip6_hdr.tclass_h = 0;
+      pkt6->ip6_hdr.tclass_l = 0;
+      pkt6->ip6_hdr.flowlbl = 0;
+      pkt6->ip6_hdr.paylgth = pkt->len;
+      pkt6->ip6_hdr.nxthdr = 0x11;
+      pkt6->ip6_hdr.hoplmt = 0xff;
+
+      {
+        char *ipv6addr;
+        GNUNET_assert (GNUNET_OK ==
+                       GNUNET_CONFIGURATION_get_value_string (cfg, "vpn",
+                                                              "IPV6ADDR",
+                                                              &ipv6addr));
+        inet_pton (AF_INET6, ipv6addr, pkt6->ip6_hdr.dadr);
+        GNUNET_free (ipv6addr);
       }
+      memcpy (&pkt6->udp_hdr, pkt, ntohs (pkt->len));
+
+      GNUNET_HashCode *key = address6_mapping_exists (pkt6->ip6_hdr.sadr);
+      GNUNET_assert (key != NULL);
+
+      struct map_entry *me = GNUNET_CONTAINER_multihashmap_get (hashmap, key);
+      GNUNET_CONTAINER_heap_update_cost (heap, me->heap_node,
+                                         GNUNET_TIME_absolute_get ().
+                                         abs_value);
+
+      GNUNET_free (key);
+
+      GNUNET_assert (me != NULL);
+      if (ntohs (message->type) == GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK)
+        {
+          GNUNET_assert (me->desc.
+                         service_type & htonl (GNUNET_DNS_SERVICE_TYPE_UDP));
+          if (!port_in_ports (me->desc.ports, pkt6->udp_hdr.spt)
+              && !testBit (me->additional_ports, ntohs (pkt6->udp_hdr.spt)))
+            {
+              add_additional_port (me, ntohs (pkt6->udp_hdr.spt));
+            }
+        }
+
+      pkt6->udp_hdr.crc = 0;
+      uint32_t sum = 0;
+      sum =
+        calculate_checksum_update (sum, (uint16_t *) & pkt6->ip6_hdr.sadr,
+                                   16);
+      sum =
+        calculate_checksum_update (sum, (uint16_t *) & pkt6->ip6_hdr.dadr,
+                                   16);
+      uint32_t tmp = (pkt6->udp_hdr.len & 0xffff);
+      sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+      tmp = htons (((pkt6->ip6_hdr.nxthdr & 0x00ff)));
+      sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+
+      sum =
+        calculate_checksum_update (sum, (uint16_t *) & pkt6->udp_hdr,
+                                   ntohs (pkt->len));
+      pkt6->udp_hdr.crc = calculate_checksum_end (sum);
+
+      write_to_helper (pkt6, size);
     }
+  else
+    {
+      size_t size =
+        sizeof (struct ip_udp) + ntohs (pkt->len) - 1 - sizeof (struct udp_pkt);
 
-  pkt6->udp_hdr.crc = 0;
-  uint32_t sum = 0;
-  sum = calculate_checksum_update(sum, (uint16_t*)&pkt6->ip6_hdr.sadr, 16);
-  sum = calculate_checksum_update(sum, (uint16_t*)&pkt6->ip6_hdr.dadr, 16);
-  uint32_t tmp = (pkt6->udp_hdr.len & 0xffff);
-  sum = calculate_checksum_update(sum, (uint16_t*)&tmp, 4);
-  tmp = htons(((pkt6->ip6_hdr.nxthdr & 0x00ff)));
-  sum = calculate_checksum_update(sum, (uint16_t*)&tmp, 4);
+      struct ip_udp *pkt4 = alloca (size);
 
-  sum = calculate_checksum_update(sum, (uint16_t*)&pkt6->udp_hdr, ntohs(pkt->len));
-  pkt6->udp_hdr.crc = calculate_checksum_end(sum);
+      GNUNET_assert (pkt4 != NULL);
 
-  write_to_helper(pkt6, size);
+      GNUNET_assert (ntohs (message->type) == GNUNET_MESSAGE_TYPE_REMOTE_UDP_BACK);
+      uint32_t sadr;
+      new_ip4addr_remote ((unsigned char*)&sadr, s->addr, s->addrlen);
+      pkt4->ip_hdr.sadr = sadr;
+
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Relaying calc:%d gnu:%d udp:%d bytes!\n", size,
+                  ntohs (message->size), ntohs (pkt->len));
+
+      pkt4->shdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
+      pkt4->shdr.size = htons (size);
+
+      pkt4->tun.flags = 0;
+      pkt4->tun.type = htons (0x0800);
+
+      pkt4->ip_hdr.version = 4;
+      pkt4->ip_hdr.hdr_lngth = 5;
+      pkt4->ip_hdr.diff_serv = 0;
+      pkt4->ip_hdr.tot_lngth = htons (20 + ntohs(pkt->len));
+      pkt4->ip_hdr.ident = 0;
+      pkt4->ip_hdr.flags = 0;
+      pkt4->ip_hdr.frag_off = 0;
+      pkt4->ip_hdr.ttl = 255;
+      pkt4->ip_hdr.proto = 0x11;
+      pkt4->ip_hdr.chks = 0;        /* Will be calculated later */
+
+      {
+        char *ipv4addr;
+        uint32_t dadr;
+        GNUNET_assert (GNUNET_OK ==
+                       GNUNET_CONFIGURATION_get_value_string (cfg, "vpn",
+                                                              "IPV4ADDR",
+                                                              &ipv4addr));
+        inet_pton (AF_INET, ipv4addr, &dadr);
+        GNUNET_free (ipv4addr);
+        pkt4->ip_hdr.dadr = dadr;
+      }
+      memcpy (&pkt4->udp_hdr, pkt, ntohs (pkt->len));
+
+      GNUNET_HashCode *key = address4_mapping_exists (pkt4->ip_hdr.sadr);
+      GNUNET_assert (key != NULL);
+
+      struct map_entry *me = GNUNET_CONTAINER_multihashmap_get (hashmap, key);
+      GNUNET_CONTAINER_heap_update_cost (heap, me->heap_node,
+                                         GNUNET_TIME_absolute_get ().
+                                         abs_value);
+
+      GNUNET_free (key);
+
+      GNUNET_assert (me != NULL);
+
+      pkt4->udp_hdr.crc = 0; /* Optional for IPv4 */
+
+      pkt4->ip_hdr.chks =
+        calculate_ip_checksum ((uint16_t *) & pkt4->ip_hdr, 5 * 4);
+
+      write_to_helper (pkt4, size);
+    }
 
   return GNUNET_OK;
 }
@@ -880,76 +966,169 @@ receive_tcp_back (void *cls __attribute__((unused)), struct GNUNET_MESH_Tunnel* 
 		  const struct GNUNET_TRANSPORT_ATS_Information *atsi __attribute__((unused)))
 {
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (message + 1);
-  struct remote_addr* s = (struct remote_addr*)desc;
+  struct remote_addr *s = (struct remote_addr *) desc;
   struct tcp_pkt *pkt = (struct tcp_pkt *) (desc + 1);
-  const struct GNUNET_PeerIdentity* other = GNUNET_MESH_get_peer(tunnel);
+  const struct GNUNET_PeerIdentity *other = GNUNET_MESH_get_peer (tunnel);
 
-  size_t pktlen = ntohs(message->size) - sizeof(struct GNUNET_MessageHeader) - sizeof(GNUNET_HashCode);
-  size_t size = pktlen + sizeof(struct ip6_tcp) - 1;
+  size_t pktlen =
+    ntohs (message->size) - sizeof (struct GNUNET_MessageHeader) -
+    sizeof (GNUNET_HashCode);
 
-  struct ip6_tcp* pkt6 = alloca(size);
-  memset(pkt6, 0, size);
+  if (s->addrlen == 16)
+    {
+      size_t size = pktlen + sizeof (struct ip6_tcp) - 1;
 
-  GNUNET_assert(pkt6 != NULL);
+      struct ip6_tcp *pkt6 = alloca (size);
+      memset (pkt6, 0, size);
 
-  if (ntohs(message->type) == GNUNET_MESSAGE_TYPE_SERVICE_TCP_BACK)
-    new_ip6addr(pkt6->ip6_hdr.sadr, &other->hashPubKey, desc);
+      GNUNET_assert (pkt6 != NULL);
+
+      if (ntohs (message->type) == GNUNET_MESSAGE_TYPE_SERVICE_TCP_BACK)
+        new_ip6addr (pkt6->ip6_hdr.sadr, &other->hashPubKey, desc);
+      else
+        new_ip6addr_remote (pkt6->ip6_hdr.sadr, s->addr, s->addrlen);
+
+      pkt6->shdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
+      pkt6->shdr.size = htons (size);
+
+      pkt6->tun.flags = 0;
+      pkt6->tun.type = htons (0x86dd);
+
+      pkt6->ip6_hdr.version = 6;
+      pkt6->ip6_hdr.tclass_h = 0;
+      pkt6->ip6_hdr.tclass_l = 0;
+      pkt6->ip6_hdr.flowlbl = 0;
+      pkt6->ip6_hdr.paylgth = htons (pktlen);
+      pkt6->ip6_hdr.nxthdr = 0x06;
+      pkt6->ip6_hdr.hoplmt = 0xff;
+
+      {
+        char *ipv6addr;
+        GNUNET_assert (GNUNET_OK ==
+                       GNUNET_CONFIGURATION_get_value_string (cfg, "vpn",
+                                                              "IPV6ADDR",
+                                                              &ipv6addr));
+        inet_pton (AF_INET6, ipv6addr, pkt6->ip6_hdr.dadr);
+        GNUNET_free (ipv6addr);
+      }
+      memcpy (&pkt6->tcp_hdr, pkt, pktlen);
+
+      GNUNET_HashCode *key = address6_mapping_exists (pkt6->ip6_hdr.sadr);
+      GNUNET_assert (key != NULL);
+
+      struct map_entry *me = GNUNET_CONTAINER_multihashmap_get (hashmap, key);
+      GNUNET_CONTAINER_heap_update_cost (heap, me->heap_node,
+                                         GNUNET_TIME_absolute_get ().
+                                         abs_value);
+
+      GNUNET_free (key);
+
+      GNUNET_assert (me != NULL);
+      if (ntohs (message->type) == GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK)
+        GNUNET_assert (me->desc.
+                       service_type & htonl (GNUNET_DNS_SERVICE_TYPE_TCP));
+
+      pkt6->tcp_hdr.crc = 0;
+      uint32_t sum = 0;
+      uint32_t tmp;
+      sum =
+        calculate_checksum_update (sum, (uint16_t *) & pkt6->ip6_hdr.sadr,
+                                   16);
+      sum =
+        calculate_checksum_update (sum, (uint16_t *) & pkt6->ip6_hdr.dadr,
+                                   16);
+      tmp = htonl (pktlen);
+      sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+      tmp = htonl (((pkt6->ip6_hdr.nxthdr & 0x000000ff)));
+      sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+
+      sum =
+        calculate_checksum_update (sum, (uint16_t *) & pkt6->tcp_hdr,
+                                   ntohs (pkt6->ip6_hdr.paylgth));
+      pkt6->tcp_hdr.crc = calculate_checksum_end (sum);
+
+      write_to_helper (pkt6, size);
+    }
   else
-    new_ip6addr_remote(pkt6->ip6_hdr.sadr, s->addr, s->addrlen);
+    {
+      size_t size = pktlen + sizeof (struct ip_tcp) - 1;
 
-  pkt6->shdr.type = htons(GNUNET_MESSAGE_TYPE_VPN_HELPER);
-  pkt6->shdr.size = htons(size);
+      struct ip_tcp *pkt4 = alloca (size);
+      GNUNET_assert (pkt4 != NULL);
+      memset (pkt4, 0, size);
 
-  pkt6->tun.flags = 0;
-  pkt6->tun.type = htons(0x86dd);
+      GNUNET_assert (ntohs (message->type) == GNUNET_MESSAGE_TYPE_REMOTE_TCP_BACK);
+      uint32_t sadr;
+      new_ip4addr_remote ((unsigned char*)&sadr, s->addr, s->addrlen);
+      pkt4->ip_hdr.sadr = sadr;
 
-  pkt6->ip6_hdr.version = 6;
-  pkt6->ip6_hdr.tclass_h = 0;
-  pkt6->ip6_hdr.tclass_l = 0;
-  pkt6->ip6_hdr.flowlbl = 0;
-  pkt6->ip6_hdr.paylgth = htons(pktlen);
-  pkt6->ip6_hdr.nxthdr = 0x06;
-  pkt6->ip6_hdr.hoplmt = 0xff;
+      pkt4->shdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_HELPER);
+      pkt4->shdr.size = htons (size);
 
-  {
-    char* ipv6addr;
-    GNUNET_assert(GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "vpn", "IPV6ADDR", &ipv6addr));
-    inet_pton (AF_INET6, ipv6addr, pkt6->ip6_hdr.dadr);
-    GNUNET_free(ipv6addr);
-  }
-  memcpy(&pkt6->tcp_hdr, pkt, pktlen);
+      pkt4->tun.flags = 0;
+      pkt4->tun.type = htons (0x0800);
 
-  GNUNET_HashCode* key = address6_mapping_exists(pkt6->ip6_hdr.sadr);
-  GNUNET_assert (key != NULL);
+      pkt4->ip_hdr.version = 4;
+      pkt4->ip_hdr.hdr_lngth = 5;
+      pkt4->ip_hdr.diff_serv = 0;
+      pkt4->ip_hdr.tot_lngth = htons (20 + pktlen);
+      pkt4->ip_hdr.ident = 0;
+      pkt4->ip_hdr.flags = 0;
+      pkt4->ip_hdr.frag_off = 0;
+      pkt4->ip_hdr.ttl = 255;
+      pkt4->ip_hdr.proto = 0x06;
+      pkt4->ip_hdr.chks = 0;        /* Will be calculated later */
 
-  struct map_entry *me = GNUNET_CONTAINER_multihashmap_get(hashmap, key);
-  GNUNET_CONTAINER_heap_update_cost (heap, me->heap_node,
-                                     GNUNET_TIME_absolute_get ().abs_value);
+      {
+        char *ipv4addr;
+        uint32_t dadr;
+        GNUNET_assert (GNUNET_OK ==
+                       GNUNET_CONFIGURATION_get_value_string (cfg, "vpn",
+                                                              "IPV4ADDR",
+                                                              &ipv4addr));
+        inet_pton (AF_INET, ipv4addr, &dadr);
+        GNUNET_free (ipv4addr);
+        pkt4->ip_hdr.dadr = dadr;
+      }
 
-  GNUNET_free(key);
+      memcpy (&pkt4->tcp_hdr, pkt, pktlen);
 
-  GNUNET_assert (me != NULL);
-  if (ntohs(message->type) == GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK)
-    GNUNET_assert (me->desc.service_type & htonl(GNUNET_DNS_SERVICE_TYPE_TCP));
+      GNUNET_HashCode *key = address4_mapping_exists (pkt4->ip_hdr.sadr);
+      GNUNET_assert (key != NULL);
 
-  pkt6->tcp_hdr.crc = 0;
-  uint32_t sum = 0;
-  uint32_t tmp;
-  sum =
-    calculate_checksum_update (sum, (uint16_t *) & pkt6->ip6_hdr.sadr, 16);
-  sum =
-    calculate_checksum_update (sum, (uint16_t *) & pkt6->ip6_hdr.dadr, 16);
-  tmp = htonl(pktlen);
-  sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
-  tmp = htonl (((pkt6->ip6_hdr.nxthdr & 0x000000ff)));
-  sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+      struct map_entry *me = GNUNET_CONTAINER_multihashmap_get (hashmap, key);
+      GNUNET_CONTAINER_heap_update_cost (heap, me->heap_node,
+                                         GNUNET_TIME_absolute_get ().
+                                         abs_value);
 
-  sum =
-    calculate_checksum_update (sum, (uint16_t *) & pkt6->tcp_hdr,
-                               ntohs (pkt6->ip6_hdr.paylgth));
-  pkt6->tcp_hdr.crc = calculate_checksum_end (sum);
+      GNUNET_free (key);
 
-  write_to_helper(pkt6, size);
+      GNUNET_assert (me != NULL);
+      pkt4->tcp_hdr.crc = 0;
+      uint32_t sum = 0;
+      uint32_t tmp;
+      tmp = pkt4->ip_hdr.sadr;
+      sum =
+        calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+      tmp = pkt4->ip_hdr.dadr;
+      sum =
+        calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+
+      tmp = (0x06 << 16) | (0xffff & pktlen);
+
+      tmp = htonl(tmp);
+
+      sum = calculate_checksum_update (sum, (uint16_t *) & tmp, 4);
+
+      sum =
+        calculate_checksum_update (sum, (uint16_t *) & pkt4->tcp_hdr, pktlen);
+      pkt4->tcp_hdr.crc = calculate_checksum_end (sum);
+
+      pkt4->ip_hdr.chks =
+        calculate_ip_checksum ((uint16_t *) & pkt4->ip_hdr, 5 * 4);
+
+      write_to_helper (pkt4, size);
+    }
 
   return GNUNET_OK;
 }
