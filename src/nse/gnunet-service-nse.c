@@ -1066,6 +1066,8 @@ handle_p2p_size_estimate(void *cls,
 	  peer_entry->previous_round = GNUNET_YES;
 	} 
     }
+  if (matching_bits == ntohl (size_estimate_messages[idx].matching_bits))
+    return GNUNET_OK;
   if (matching_bits <= ntohl (size_estimate_messages[idx].matching_bits)) 
     {
       if ( (idx < estimate_index) &&
