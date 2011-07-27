@@ -77,6 +77,13 @@ struct GNUNET_MESH_Tunnel
 
   /* The context of the receive-function. */
   void *ctx;
+
+  /* A list, usable by application-code (for queues) */
+  void* app_head;
+  void* app_tail;
+
+  /* A pointer, usable by application-code */
+  void* app_data;
 };
 
 struct tunnel_list_element
@@ -698,6 +705,43 @@ GNUNET_MESH_notify_transmit_ready_cancel (struct GNUNET_MESH_TransmitHandle
   GNUNET_CORE_notify_transmit_ready_cancel ((struct GNUNET_CORE_TransmitHandle
                                              *) th);
 }
+
+void
+GNUNET_MESH_tunnel_set_head (struct GNUNET_MESH_Tunnel *tunnel, void *head)
+{
+  tunnel->app_head = head;
+}
+
+void
+GNUNET_MESH_tunnel_set_tail (struct GNUNET_MESH_Tunnel *tunnel, void *tail)
+{
+  tunnel->app_tail = tail;
+}
+
+void *
+GNUNET_MESH_tunnel_get_head (struct GNUNET_MESH_Tunnel *tunnel)
+{
+  return tunnel->app_head;
+}
+
+void *
+GNUNET_MESH_tunnel_get_tail (struct GNUNET_MESH_Tunnel *tunnel)
+{
+  return tunnel->app_head;
+}
+
+void
+GNUNET_MESH_tunnel_set_data (struct GNUNET_MESH_Tunnel *tunnel, void *data)
+{
+  tunnel->app_data = data;
+}
+
+void *
+GNUNET_MESH_tunnel_get_data (struct GNUNET_MESH_Tunnel *tunnel)
+{
+  return tunnel->app_data;
+}
+
 
 void build_hello_message(struct GNUNET_MESH_Handle* handle,
                          const GNUNET_MESH_ApplicationType *stypes)

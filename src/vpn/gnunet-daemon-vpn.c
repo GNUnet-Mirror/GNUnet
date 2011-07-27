@@ -45,6 +45,14 @@ struct GNUNET_MESH_Handle *mesh_handle;
 struct GNUNET_CONTAINER_MultiHashMap* hashmap;
 static struct GNUNET_CONTAINER_Heap *heap;
 
+struct tunnel_notify_queue
+{
+  struct tunnel_notify_queue* next;
+  struct tunnel_notify_queue* prev;
+  size_t len;
+  void* cls;
+};
+
 /**
  * If there are at least this many address-mappings, old ones will be removed
  */
@@ -185,6 +193,7 @@ static size_t
 send_pkt_to_peer_notify_callback (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MESH_Tunnel **tunnel = cls;
+  GNUNET_MESH_tunnel_set_data(*tunnel, NULL);
   struct GNUNET_MessageHeader *hdr =
     (struct GNUNET_MessageHeader *) (tunnel + 1);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "send_pkt_to_peer_notify_callback: buf = %x; size = %u;\n", buf, size);
@@ -193,6 +202,30 @@ send_pkt_to_peer_notify_callback (void *cls, size_t size, void *buf)
   size = ntohs(hdr->size);
   GNUNET_free (cls);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent!\n");
+
+  if (NULL != GNUNET_MESH_tunnel_get_head(*tunnel))
+    {
+      struct tunnel_notify_queue* element = GNUNET_MESH_tunnel_get_head(*tunnel);
+      struct tunnel_notify_queue* head = GNUNET_MESH_tunnel_get_head(*tunnel);
+      struct tunnel_notify_queue* tail = GNUNET_MESH_tunnel_get_tail(*tunnel);
+
+      GNUNET_CONTAINER_DLL_remove(head, tail, element);
+
+      GNUNET_MESH_tunnel_set_head(*tunnel, head);
+      GNUNET_MESH_tunnel_set_tail(*tunnel, tail);
+
+      struct GNUNET_MESH_TransmitHandle* th = GNUNET_MESH_notify_transmit_ready (*tunnel,
+                                                                                 GNUNET_NO,
+                                                                                 42,
+                                                                                 GNUNET_TIME_relative_divide
+                                                                                 (GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
+                                                                                 (const struct GNUNET_PeerIdentity *)
+                                                                                 NULL, element->len,
+                                                                                 send_pkt_to_peer_notify_callback, element->cls);
+      /* save the handle */
+      GNUNET_MESH_tunnel_set_data(*tunnel, th);
+    }
+
   return size;
 }
 
@@ -217,14 +250,32 @@ send_pkt_to_peer (void *cls,
   GNUNET_assert(NULL != tunnel);
   GNUNET_assert(NULL != *tunnel);
 
-  GNUNET_MESH_notify_transmit_ready (*tunnel,
-				     GNUNET_NO,
-				     42,
-				     GNUNET_TIME_relative_divide(GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
-                                     (const struct GNUNET_PeerIdentity *)NULL,
-                                     ntohs(hdr->size),
-				     send_pkt_to_peer_notify_callback,
-				     cls);
+  if (NULL == GNUNET_MESH_tunnel_get_data(*tunnel))
+    {
+      struct GNUNET_MESH_TransmitHandle* th = GNUNET_MESH_notify_transmit_ready (*tunnel,
+                                                                                 GNUNET_NO,
+                                                                                 42,
+                                                                                 GNUNET_TIME_relative_divide(GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
+                                                                                 (const struct GNUNET_PeerIdentity *)NULL,
+                                                                                 ntohs(hdr->size),
+                                                                                 send_pkt_to_peer_notify_callback,
+                                                                                 cls);
+      GNUNET_MESH_tunnel_set_data(*tunnel, th);
+    }
+  else
+    {
+     struct tunnel_notify_queue* head = GNUNET_MESH_tunnel_get_head(*tunnel);
+     struct tunnel_notify_queue* tail = GNUNET_MESH_tunnel_get_tail(*tunnel);
+     struct tunnel_notify_queue* element = GNUNET_malloc(sizeof *element);
+
+     element->cls = cls;
+     element->len = ntohs(hdr->size);
+
+     GNUNET_CONTAINER_DLL_insert_tail(head, tail, element);
+
+     GNUNET_MESH_tunnel_set_head(*tunnel, head);
+     GNUNET_MESH_tunnel_set_tail(*tunnel, tail);
+    }
 }
 
 /**

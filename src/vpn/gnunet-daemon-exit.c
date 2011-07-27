@@ -150,6 +150,14 @@ struct redirect_state
 static struct GNUNET_CONTAINER_MultiHashMap *udp_services;
 static struct GNUNET_CONTAINER_MultiHashMap *tcp_services;
 
+struct tunnel_notify_queue
+{
+  struct tunnel_notify_queue* next;
+  struct tunnel_notify_queue* prev;
+  void* cls;
+  size_t len;
+};
+
 /**
  * Function that frees everything from a hashmap
  */
@@ -223,11 +231,37 @@ hash_redirect_info(GNUNET_HashCode* hash, struct redirect_info* u_i, size_t addr
 static size_t
 send_udp_to_peer_notify_callback (void *cls, size_t size, void *buf)
 {
-  struct GNUNET_MessageHeader *hdr = cls;
+  struct GNUNET_MESH_Tunnel** tunnel = cls;
+  GNUNET_MESH_tunnel_set_data(*tunnel, NULL);
+  struct GNUNET_MessageHeader *hdr = (struct GNUNET_MessageHeader*)(tunnel + 1);
   GNUNET_assert (size >= ntohs (hdr->size));
   memcpy (buf, hdr, ntohs (hdr->size));
   size = ntohs(hdr->size);
   GNUNET_free (cls);
+
+  if (NULL != GNUNET_MESH_tunnel_get_head(*tunnel))
+    {
+      struct tunnel_notify_queue* element = GNUNET_MESH_tunnel_get_head(*tunnel);
+      struct tunnel_notify_queue* head = GNUNET_MESH_tunnel_get_head(*tunnel);
+      struct tunnel_notify_queue* tail = GNUNET_MESH_tunnel_get_tail(*tunnel);
+
+      GNUNET_CONTAINER_DLL_remove(head, tail, element);
+
+      GNUNET_MESH_tunnel_set_head(*tunnel, head);
+      GNUNET_MESH_tunnel_set_tail(*tunnel, tail);
+
+      struct GNUNET_MESH_TransmitHandle* th = GNUNET_MESH_notify_transmit_ready (*tunnel,
+                                                                                 GNUNET_NO,
+                                                                                 42,
+                                                                                 GNUNET_TIME_relative_divide
+                                                                                 (GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
+                                                                                 (const struct GNUNET_PeerIdentity *)
+                                                                                 NULL, element->len,
+                                                                                 send_udp_to_peer_notify_callback, element->cls);
+      /* save the handle */
+      GNUNET_MESH_tunnel_set_data(*tunnel, th);
+    }
+
   return size;
 }
 
@@ -301,7 +335,9 @@ udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen)
   len =
     sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) +
     ntohs (udp->len);
-  msg = GNUNET_malloc (len);
+  struct GNUNET_MESH_Tunnel** ctunnel = GNUNET_malloc (sizeof(struct GNUNET_MESH_TUNNEL*) + len);
+  *ctunnel = tunnel;
+  msg = (struct GNUNET_MessageHeader*)(ctunnel + 1);
   msg->size = htons (len);
   msg->type = htons (state->type == SERVICE ? GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK : GNUNET_MESSAGE_TYPE_REMOTE_UDP_BACK);
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (msg + 1);
@@ -312,14 +348,33 @@ udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen)
   void *_udp = desc + 1;
   memcpy (_udp, udp, ntohs (udp->len));
 
-  GNUNET_MESH_notify_transmit_ready (tunnel,
-                                     GNUNET_NO,
-                                     42,
-                                     GNUNET_TIME_relative_divide
-                                     (GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
-                                     (const struct GNUNET_PeerIdentity *)
-                                     NULL, len,
-                                     send_udp_to_peer_notify_callback, msg);
+  if (NULL == GNUNET_MESH_tunnel_get_data(tunnel))
+    {
+      /* No notify is pending */
+      struct GNUNET_MESH_TransmitHandle* th = GNUNET_MESH_notify_transmit_ready (tunnel,
+                                                                                 GNUNET_NO,
+                                                                                 42,
+                                                                                 GNUNET_TIME_relative_divide
+                                                                                 (GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
+                                                                                 (const struct GNUNET_PeerIdentity *)
+                                                                                 NULL, len,
+                                                                                 send_udp_to_peer_notify_callback, ctunnel);
+      /* save the handle */
+      GNUNET_MESH_tunnel_set_data(tunnel, th);
+    }
+  else
+    {
+      struct tunnel_notify_queue* head = GNUNET_MESH_tunnel_get_head(tunnel);
+      struct tunnel_notify_queue* tail = GNUNET_MESH_tunnel_get_tail(tunnel);
+
+      struct tunnel_notify_queue* element = GNUNET_malloc(sizeof(struct tunnel_notify_queue));
+      element->cls = ctunnel;
+      element->len = len;
+
+      GNUNET_CONTAINER_DLL_insert_tail(head, tail, element);
+      GNUNET_MESH_tunnel_set_head(tunnel, head);
+      GNUNET_MESH_tunnel_set_tail(tunnel, tail);
+    }
 }
 
 /**
@@ -378,7 +433,9 @@ tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
   len =
     sizeof (struct GNUNET_MessageHeader) + sizeof (GNUNET_HashCode) + pktlen;
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "len: %d\n", pktlen);
-  msg = GNUNET_malloc (len);
+  struct GNUNET_MESH_Tunnel** ctunnel = GNUNET_malloc (sizeof(struct GNUNET_MESH_TUNNEL*) + len);
+  *ctunnel = tunnel;
+  msg = (struct GNUNET_MessageHeader*)(ctunnel + 1);
   msg->size = htons (len);
   msg->type = htons (state->type == SERVICE ? GNUNET_MESSAGE_TYPE_SERVICE_TCP_BACK : GNUNET_MESSAGE_TYPE_REMOTE_TCP_BACK);
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (msg + 1);
@@ -389,14 +446,31 @@ tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
   void *_tcp = desc + 1;
   memcpy (_tcp, tcp, pktlen);
 
-  GNUNET_MESH_notify_transmit_ready (tunnel,
+  if (NULL == GNUNET_MESH_tunnel_get_data(tunnel))
+    {
+      /* No notify is pending */
+      struct GNUNET_MESH_TransmitHandle* th = GNUNET_MESH_notify_transmit_ready (tunnel,
                                      GNUNET_NO,
                                      42,
                                      GNUNET_TIME_relative_divide
                                      (GNUNET_CONSTANTS_MAX_CORK_DELAY, 2),
                                      (const struct GNUNET_PeerIdentity *)NULL,
                                      len, send_udp_to_peer_notify_callback,
-                                     msg);
+                                     ctunnel);
+      /* save the handle */
+      GNUNET_MESH_tunnel_set_data(tunnel, th);
+    }
+  else
+    {
+      struct tunnel_notify_queue* head = GNUNET_MESH_tunnel_get_head(tunnel);
+      struct tunnel_notify_queue* tail = GNUNET_MESH_tunnel_get_tail(tunnel);
+
+      struct tunnel_notify_queue* element = GNUNET_malloc(sizeof(struct tunnel_notify_queue));
+      element->cls = ctunnel;
+      element->len = len;
+
+      GNUNET_CONTAINER_DLL_insert_tail(head, tail, element);
+    }
 }
 
 

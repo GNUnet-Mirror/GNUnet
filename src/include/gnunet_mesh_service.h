@@ -359,6 +359,13 @@ void
 GNUNET_MESH_notify_transmit_ready_cancel (struct GNUNET_MESH_TransmitHandle
                                           *th);
 
+void GNUNET_MESH_tunnel_set_head(struct GNUNET_MESH_Tunnel* tunnel, void* head);
+void GNUNET_MESH_tunnel_set_tail(struct GNUNET_MESH_Tunnel* tunnel, void* tail);
+void* GNUNET_MESH_tunnel_get_head(struct GNUNET_MESH_Tunnel* tunnel);
+void* GNUNET_MESH_tunnel_get_tail(struct GNUNET_MESH_Tunnel* tunnel);
+
+void GNUNET_MESH_tunnel_set_data(struct GNUNET_MESH_Tunnel* tunnel, void* data);
+void* GNUNET_MESH_tunnel_get_data(struct GNUNET_MESH_Tunnel* tunnel);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
