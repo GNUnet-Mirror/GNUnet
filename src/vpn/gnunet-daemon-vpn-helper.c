@@ -443,6 +443,6 @@ void write_to_helper(void* buf, size_t len)
 
 void schedule_helper_write(struct GNUNET_TIME_Relative time, void* cls)
 {
-  if (GNUNET_SCHEDULER_NO_TASK == shs_task) return;
+  if (GNUNET_SCHEDULER_NO_TASK != shs_task) return;
   GNUNET_SCHEDULER_add_write_file (time, helper_handle->fh_to_helper, &helper_write, cls);
 }
