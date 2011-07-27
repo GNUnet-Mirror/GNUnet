@@ -1068,6 +1068,14 @@ handle_p2p_size_estimate(void *cls,
     }
   if (matching_bits <= ntohl (size_estimate_messages[idx].matching_bits)) 
     {
+      if ( (idx < estimate_index) &&
+	   (peer_entry->previous_round == GNUNET_YES) )
+	peer_entry->previous_round = GNUNET_NO;
+      /* push back our result now, that peer is spreading bad information... */
+      if (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK)
+	GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
+      peer_entry->transmit_task = GNUNET_SCHEDULER_add_now (&transmit_task,
+							    peer_entry);	  
       /* Not closer than our most recent message, no need to do work here */
       GNUNET_STATISTICS_update (stats,
                                 "# flood messages ignored (had closer already)",
