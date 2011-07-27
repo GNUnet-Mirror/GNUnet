@@ -312,7 +312,7 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
     {
       val = htonl (size_estimate_messages[(estimate_index - i + HISTORY_SIZE)
           % HISTORY_SIZE].matching_bits);
-      weight = estimate_count + 1 - i;
+      weight = 1; /* was: estimate_count + 1 - i; */
 
       temp = weight + sumweight;
       q = val - mean;
