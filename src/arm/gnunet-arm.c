@@ -389,7 +389,7 @@ main (int argc, char *const *argv)
     {'q', "quiet", NULL, gettext_noop ("don't print status messages"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &quiet},
     {'T', "timeout", NULL, gettext_noop ("timeout for completing current operation"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &temp_timeout_ms},
+     GNUNET_YES, &GNUNET_GETOPT_set_ulong, &temp_timeout_ms},
     GNUNET_GETOPT_OPTION_END
   };
 
