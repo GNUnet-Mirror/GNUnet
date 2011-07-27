@@ -347,10 +347,19 @@ GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
   if (0 != fc->acks)
     {
       /* more to transmit, do so right now (if tracker permits...) */
-      GNUNET_assert(fc->task != GNUNET_SCHEDULER_NO_TASK);
-      GNUNET_SCHEDULER_cancel (fc->task);
-      fc->task = GNUNET_SCHEDULER_add_now (&transmit_next,
-					   fc);
+      if (fc->task != GNUNET_SCHEDULER_NO_TASK)
+	{
+	  /* schedule next transmission now, no point in waiting... */
+	  GNUNET_SCHEDULER_cancel (fc->task);
+	  fc->task = GNUNET_SCHEDULER_add_now (&transmit_next,
+					       fc);
+	}
+      else
+	{
+	  /* only case where there is no task should be if we're waiting
+	     for the right to transmit again (proc_busy set to YES) */
+	  GNUNET_assert (GNUNET_YES == fc->proc_busy);
+	}
       return GNUNET_NO;
     }
 
