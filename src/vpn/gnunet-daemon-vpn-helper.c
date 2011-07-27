@@ -364,6 +364,25 @@ message_token (void *cls __attribute__((unused)),
                     }
                 }
             }
+          else
+            {
+              GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Packet to %02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x, which has no mapping\n", pkt6->ip6_hdr.dadr[0],
+                         pkt6->ip6_hdr.dadr[1],
+                         pkt6->ip6_hdr.dadr[2],
+                         pkt6->ip6_hdr.dadr[3],
+                         pkt6->ip6_hdr.dadr[4],
+                         pkt6->ip6_hdr.dadr[5],
+                         pkt6->ip6_hdr.dadr[6],
+                         pkt6->ip6_hdr.dadr[7],
+                         pkt6->ip6_hdr.dadr[8],
+                         pkt6->ip6_hdr.dadr[9],
+                         pkt6->ip6_hdr.dadr[10],
+                         pkt6->ip6_hdr.dadr[11],
+                         pkt6->ip6_hdr.dadr[12],
+                         pkt6->ip6_hdr.dadr[13],
+                         pkt6->ip6_hdr.dadr[14],
+                         pkt6->ip6_hdr.dadr[15]);
+            }
           break;
         case 0x3a:
           /* ICMPv6 */

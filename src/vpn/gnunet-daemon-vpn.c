@@ -421,6 +421,23 @@ process_answer(void* cls, const struct GNUNET_SCHEDULER_TaskContext* tc) {
 
 	unsigned char* c = ((unsigned char*)pkt)+ntohs(pkt->addroffset);
         new_ip6addr_remote(c, pkt->addr, pkt->addrsize);
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "New mapping to %02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x\n",
+                   c[0],
+                   c[1],
+                   c[2],
+                   c[3],
+                   c[4],
+                   c[5],
+                   c[6],
+                   c[7],
+                   c[8],
+                   c[9],
+                   c[10],
+                   c[11],
+                   c[12],
+                   c[13],
+                   c[14],
+                   c[15]);
 	unsigned char* k = (unsigned char*)&key;
 	/*
 	 * Copy the newly generated ip-address to the key backwards (as only the first part is used in the hash-table)
