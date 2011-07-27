@@ -69,8 +69,10 @@ extern struct GNUNET_MESH_Handle *mesh_handle;
 extern struct GNUNET_CONTAINER_MultiHashMap* hashmap;
 
 struct map_entry {
+    /** The description of the service (used for service) */
     struct GNUNET_vpn_service_descriptor desc;
 
+    /** The real address of the service (used for remote) */
     char addrlen;
     char addr[16];
 
