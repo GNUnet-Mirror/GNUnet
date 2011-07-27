@@ -331,12 +331,7 @@ message_token (void *cls __attribute__((unused)),
                       hdr->type = GNUNET_MESSAGE_TYPE_REMOTE_TCP;
                       memcpy (hc + 1, &pkt6_tcp->tcp_hdr,
                               ntohs (pkt6->ip6_hdr.paylgth));
-                      if (ntohs(pkt6_tcp->tcp_hdr.dpt) == 443)
-                        app_type = GNUNET_APPLICATION_TYPE_INTERNET_HTTPS_GATEWAY;
-                      else if (ntohs(pkt6_tcp->tcp_hdr.dpt) == 80)
-                        app_type = GNUNET_APPLICATION_TYPE_INTERNET_HTTP_GATEWAY;
-                      else
-                        app_type = GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY;
+                      app_type = GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY;
                     }
                   if (me->tunnel == NULL && NULL != cls)
                     {
