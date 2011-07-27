@@ -125,6 +125,11 @@ const struct GNUNET_CONFIGURATION_Handle *cfg;
  */
 static unsigned int phase;
 
+/**
+ * User defined timestamp for completing operations.
+ */
+static struct GNUNET_TIME_Relative timeout;
+
 
 /**
  * Main continuation-passing-style loop.  Runs the various
@@ -291,35 +296,35 @@ cps_loop (void *cls,
 	case 0:
 	  if (term != NULL)
 	    {
-	      GNUNET_ARM_stop_service (h, term, STOP_TIMEOUT, &confirm_cb, term);
+	      GNUNET_ARM_stop_service (h, term, (0 == timeout.rel_value) ? STOP_TIMEOUT : timeout, &confirm_cb, term);
 	      return;
 	    }
 	  break;
 	case 1:
 	  if ((end) || (restart))
 	    {
-	      GNUNET_ARM_stop_service (h, "arm", STOP_TIMEOUT_ARM, &confirm_cb, "arm");
+	      GNUNET_ARM_stop_service (h, "arm", (0 == timeout.rel_value) ? STOP_TIMEOUT_ARM : timeout, &confirm_cb, "arm");
 	      return;
 	    }
 	  break;
 	case 2:
 	  if (start)
 	    {
-	      GNUNET_ARM_start_service (h, "arm", START_TIMEOUT, &confirm_cb, "arm");
+	      GNUNET_ARM_start_service (h, "arm", (0 == timeout.rel_value) ? START_TIMEOUT : timeout, &confirm_cb, "arm");
 	      return;
 	    }
 	  break;
 	case 3:
 	  if (init != NULL)
 	    {
-	      GNUNET_ARM_start_service (h, init, START_TIMEOUT, &confirm_cb, init);
+	      GNUNET_ARM_start_service (h, init, (0 == timeout.rel_value) ? START_TIMEOUT : timeout, &confirm_cb, init);
 	      return;
 	    }
 	  break;
 	case 4:
 	  if (test != NULL)
 	    {
-	      GNUNET_CLIENT_service_test (test, cfg, TEST_TIMEOUT, &confirm_task, test);
+	      GNUNET_CLIENT_service_test (test, cfg, (0 == timeout.rel_value) ? TEST_TIMEOUT : timeout, &confirm_task, test);
 	      return;
 	    }
 	  break;
@@ -363,6 +368,8 @@ cps_loop (void *cls,
 int
 main (int argc, char *const *argv)
 {
+  static unsigned long long temp_timeout_ms;
+
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'e', "end", NULL, gettext_noop ("stop all GNUnet services"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &end},
@@ -381,8 +388,13 @@ main (int argc, char *const *argv)
      GNUNET_NO, &GNUNET_GETOPT_set_one, &delete},
     {'q', "quiet", NULL, gettext_noop ("don't print status messages"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &quiet},
+    {'T', "timeout", NULL, gettext_noop ("timeout for completing current operation"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &temp_timeout_ms},
     GNUNET_GETOPT_OPTION_END
   };
+
+  if (temp_timeout_ms > 0)
+    timeout.rel_value = temp_timeout_ms;
 
   if (GNUNET_OK == GNUNET_PROGRAM_run (argc,
                       argv,
