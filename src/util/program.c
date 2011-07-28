@@ -236,6 +236,7 @@ GNUNET_PROGRAM_run (int argc,
       (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number(cc.cfg, "testing", "skew_variance", &skew_variance)))
     {
       clock_offset = skew_offset - skew_variance;
+      GNUNET_TIME_set_offset(clock_offset);
     }
   /* run */
   cc.args = &argv[ret];
