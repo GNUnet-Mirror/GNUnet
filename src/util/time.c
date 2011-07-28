@@ -501,7 +501,7 @@ GNUNET_TIME_relative_to_string (struct GNUNET_TIME_Relative time)
   static char time_string[21];
   memset(time_string, 0, sizeof(time_string));
 
-  sprintf(time_string, "%lu", time.rel_value);
+  sprintf(time_string, "%llu", (unsigned long long) time.rel_value);
   return (const char *) time_string;
 }
 
