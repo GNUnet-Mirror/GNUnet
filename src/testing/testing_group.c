@@ -1470,6 +1470,8 @@ make_config(const struct GNUNET_CONFIGURATION_Handle *cfg, uint32_t off,
       GNUNET_CONFIGURATION_set_value_string (uc.ret, "dht", "UNIXPATH", "");
       GNUNET_CONFIGURATION_set_value_string (uc.ret, "statistics", "UNIXPATH",
                                              "");
+      GNUNET_CONFIGURATION_set_value_string (uc.ret, "nse", "UNIXPATH", "");
+      GNUNET_CONFIGURATION_set_value_string (uc.ret, "arm", "UNIXPATH", "");
 
       GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport-tcp", "USE_LOCALADDR",
                                              "YES");
