@@ -923,9 +923,8 @@ update_flood_times (void *cls,
     {
       /* still stuck in previous round, no point to update, check that 
 	 we are active here though... */
-#if DEBUG_NSE
-      GNUNET_break (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK);
-#endif
+      GNUNET_break ( (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK) ||
+		     (peer_entry->th != NULL) );
       return GNUNET_OK; 
     }
   if (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK)
