@@ -343,7 +343,7 @@ static void
 get_statistics (void *cls,
                 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct StatsContext *stats_context = cls;
+  struct StatsContext *stats_context = (struct StatsContext *)cls;
 
   GNUNET_TESTING_get_statistics(pg, 
 				&stats_finished_callback, 
