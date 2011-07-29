@@ -573,6 +573,7 @@ transmit_task (void *cls,
   struct NSEPeerEntry *peer_entry = cls;
  
   peer_entry->transmit_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_assert (NULL == peer_entry->th);
   peer_entry->th
     = GNUNET_CORE_notify_transmit_ready (coreAPI,
 					 GNUNET_NO,
@@ -1078,10 +1079,13 @@ handle_p2p_size_estimate(void *cls,
 	   (peer_entry->previous_round == GNUNET_YES) )
 	peer_entry->previous_round = GNUNET_NO;
       /* push back our result now, that peer is spreading bad information... */
-      if (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK)
-	GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
-      peer_entry->transmit_task = GNUNET_SCHEDULER_add_now (&transmit_task,
-							    peer_entry);	  
+      if (NULL == peer_entry->th)
+	{
+	  if (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK)
+	    GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
+	  peer_entry->transmit_task = GNUNET_SCHEDULER_add_now (&transmit_task,
+								peer_entry);	  
+	}
       /* Not closer than our most recent message, no need to do work here */
       GNUNET_STATISTICS_update (stats,
                                 "# flood messages ignored (had closer already)",
@@ -1172,7 +1176,10 @@ handle_core_disconnect(void *cls, const struct GNUNET_PeerIdentity *peer)
   if (pos->transmit_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (pos->transmit_task);
   if (pos->th != NULL)
-    GNUNET_CORE_notify_transmit_ready_cancel (pos->th);
+    {
+      GNUNET_CORE_notify_transmit_ready_cancel (pos->th);
+      pos->th = NULL;
+    }
   GNUNET_free(pos);
 }
 
