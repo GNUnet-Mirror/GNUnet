@@ -45,6 +45,8 @@
 #include "gnunet_nse_service.h"
 #include "nse.h"
 
+#define NODELAYS GNUNET_YES
+
 /**
  * Send messages on connect.
  */
@@ -396,6 +398,9 @@ get_matching_bits_delay (uint32_t matching_bits)
 static struct GNUNET_TIME_Relative 
 get_delay_randomization (uint32_t matching_bits)
 {
+#if NODELAYS
+  return GNUNET_TIME_UNIT_ZERO;
+#else
   struct GNUNET_TIME_Relative ret;
 
   if (matching_bits == 0)
@@ -403,6 +408,7 @@ get_delay_randomization (uint32_t matching_bits)
   ret.rel_value = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
 					    (uint32_t) (get_matching_bits_delay (matching_bits - 1) / (double) (hop_count_max + 1)));
   return ret;
+#endif
 }
 
 
@@ -447,8 +453,12 @@ get_transmit_delay (int round_offset)
     {
     case -1:
       /* previous round is randomized between 0 and 50 ms */
+#if NODELAYS
+      ret = GNUNET_TIME_UNIT_ZERO;
+#else
       ret.rel_value = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
 						50);
+#endif
 #if DEBUG_NSE
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
 		 "Transmitting previous round behind schedule in %llu ms\n",
