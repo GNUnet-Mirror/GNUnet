@@ -48,11 +48,6 @@
 #define NODELAYS GNUNET_YES
 
 /**
- * Send messages on connect.
- */
-#define SEND_ON_CONNECT GNUNET_YES
-
-/**
  * Should we generate a histogram with the time stamps of when we received
  * NSE messages to disk? (for performance evaluation only, not useful in
  * production)
@@ -1141,11 +1136,9 @@ handle_core_connect(void *cls, const struct GNUNET_PeerIdentity *peer,
 				     &peer->hashPubKey,
 				     peer_entry,
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-#if SEND_ON_CONNECT
   peer_entry->transmit_task = GNUNET_SCHEDULER_add_delayed (get_transmit_delay (-1),
 							    &transmit_task,
 							    peer_entry);
-#endif
 }
 
 
