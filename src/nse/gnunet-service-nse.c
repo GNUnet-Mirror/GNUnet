@@ -45,14 +45,14 @@
 #include "gnunet_nse_service.h"
 #include "nse.h"
 
-#define NODELAYS GNUNET_YES
+#define NODELAYS GNUNET_NO
 
 /**
  * Should we generate a histogram with the time stamps of when we received
  * NSE messages to disk? (for performance evaluation only, not useful in
  * production)
  */
-#define ENABLE_HISTOGRAM GNUNET_YES
+#define ENABLE_HISTOGRAM GNUNET_NO
 
 /**
  * Over how many values do we calculate the weighted average?
