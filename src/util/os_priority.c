@@ -85,14 +85,10 @@ parent_control_handler (void *cls,
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		      "Got control code %d from parent\n", sig);
 #endif
-	  raise (sig);
-#if DEBUG_OS
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		      "Re-scheduling the parent control handler pipe\n");
-#endif
 	  GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, 
 					  control_pipe, 
 					  &parent_control_handler, control_pipe);
+	  raise (sig);
 	}
     }
 }
