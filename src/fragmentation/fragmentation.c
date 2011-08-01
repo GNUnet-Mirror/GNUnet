@@ -79,6 +79,12 @@ struct GNUNET_FRAGMENT_Context
   uint64_t acks;
 
   /**
+   * Bitfield with all possible bits for 'acks' (used to mask the
+   * ack we get back).
+   */
+  uint64_t acks_mask;
+
+  /**
    * Task performing work for the fragmenter.
    */
   GNUNET_SCHEDULER_TaskIdentifier task;
@@ -268,9 +274,10 @@ GNUNET_FRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
   bits = (size + mtu - sizeof (struct FragmentHeader) - 1) / (mtu - sizeof (struct FragmentHeader));
   GNUNET_assert (bits <= 64);
   if (bits == 64)
-    fc->acks = UINT64_MAX;      /* set all 64 bit */
+    fc->acks_mask = UINT64_MAX;      /* set all 64 bit */
   else
-    fc->acks = (1LL << bits) - 1; /* set lowest 'bits' bit */
+    fc->acks_mask = (1LL << bits) - 1; /* set lowest 'bits' bit */
+  fc->acks = fc->acks_mask;
   fc->task = GNUNET_SCHEDULER_add_now (&transmit_next,
 				       fc);
   return fc;
@@ -343,7 +350,7 @@ GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
 				_("# bits removed from fragmentation ACKs"),
 				1, GNUNET_NO);
     }
-  fc->acks = abits;
+  fc->acks = abits & fc->acks_mask;
   if (0 != fc->acks)
     {
       /* more to transmit, do so right now (if tracker permits...) */
