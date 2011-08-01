@@ -161,18 +161,29 @@ int
 GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
 {
 #if ENABLE_WINDOWS_WORKAROUNDS
-  int res;
-  int ret;
+  int res = 0;
+  int ret = 0;
 
   ret = GNUNET_DISK_file_write (proc->control_pipe, &sig, sizeof(sig));
   if (ret != sizeof(sig))
   {
     if (errno == ECOMM)
+    {
       /* Child process is not controllable via pipe */
+#if DEBUG_OS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
           "Child process is not controllable, will kill it directly\n");
+#endif
+    }
+    else if (errno == EPIPE)
+    {
+#if DEBUG_OS
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+          "Failed to write into control pipe, because pipe is invalid (the child is most likely dead)\n");
+#endif
+    }
     else
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
           "Failed to write into control pipe , errno is %d\n", errno);
 #if WINDOWS && !defined(__CYGWIN__)
     TerminateProcess (proc->handle, 0);
@@ -182,8 +193,10 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
   }
   else
   {
+#if DEBUG_OS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
         "Wrote control code into control pipe, now waiting\n");
+#endif
 
 #if WINDOWS
     /* Give it 3 seconds to die, then kill it in a nice Windows-specific way */
@@ -400,8 +413,10 @@ GNUNET_OS_set_process_priority (struct GNUNET_OS_Process *proc,
         }
     }
 #else
+#if DEBUG_OS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
 	      "Priority management not availabe for this platform\n");
+#endif
 #endif
   return GNUNET_OK;
 }
@@ -750,9 +765,11 @@ GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
     return NULL;
   }
 
+#if DEBUG_OS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Opened the parent end of the pipe `%s'\n", 
 	      childpipename);
+#endif
 
   GNUNET_asprintf (&our_env[0], "%s=", GNUNET_OS_CONTROL_PIPE);
   GNUNET_asprintf (&our_env[1], "%s", childpipename);
@@ -1090,7 +1107,9 @@ GNUNET_OS_start_process_v (const int *lsocks,
     return NULL;
   }
 
+#if DEBUG_OS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Opened the parent end of the pipe `%s'\n", childpipename);
+#endif
 
   GNUNET_asprintf (&our_env[0], "%s=", GNUNET_OS_CONTROL_PIPE);
   GNUNET_asprintf (&our_env[1], "%s", childpipename);
