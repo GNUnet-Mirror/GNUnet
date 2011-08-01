@@ -351,7 +351,7 @@ kill_task (void *cbData,
 #if LOG_BACKOFF
       fprintf(killLogFilePtr, 
 	      "Waited for: %llu ms\n", 
-	      (unsigned long long) waitedFor.abs_value);
+	      (unsigned long long) waitedFor.rel_value);
 #endif
     }
   else
