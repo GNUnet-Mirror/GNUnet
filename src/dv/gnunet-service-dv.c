@@ -2903,10 +2903,7 @@ handle_core_connect (void *cls,
   struct DistantNeighbor *about;
   struct PeerIteratorContext *peerinfo_iterator;
   int sent;
-#if DEBUG_DV
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%s: Receives core connect message for peer %s distance %d!\n", "dv", GNUNET_i2s(peer), distance);
-#endif
+
   uint32_t distance;
 
   /* Check for connect to self message */
