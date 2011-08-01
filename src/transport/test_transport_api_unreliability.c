@@ -587,6 +587,7 @@ notify_connect (void *cls,
 static void
 setup_peer (struct PeerContext *p, const char *cfgname)
 {
+  memset (p, 0, sizeof (*p));
   p->cfg = GNUNET_CONFIGURATION_create ();
 
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
