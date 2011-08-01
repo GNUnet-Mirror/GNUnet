@@ -63,7 +63,8 @@ if ! $getexe -k testkey -T 5 -t 8 > $out ; then
   stop_arm
   exit 1
 fi
-if ! diff -q $out $checkout ; then
+
+if ! diff --strip-trailing-cr -q $out $checkout ; then
   echo "FAIL: $out and $checkout differ"
   stop_arm
   exit 1
