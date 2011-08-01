@@ -515,9 +515,6 @@ int
 main (int argc, char *argv[])
 {
   int ret;
-#ifdef MINGW
-  return GNUNET_SYSERR;
-#endif
 
   GNUNET_log_setup ("test-dht-api",
 #if VERBOSE
