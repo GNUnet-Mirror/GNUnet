@@ -3482,7 +3482,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 
   if ( (plugin->key==NULL) || (plugin->cert==NULL) )
     {
-      struct GNUNET_OS_Process *certcreation = NULL;
+      struct GNUNET_OS_Process *certcreation;
       enum GNUNET_OS_ProcessStatusType status_type = GNUNET_OS_PROCESS_UNKNOWN;
       unsigned long code = 0;
       int ret = 0;
@@ -3491,15 +3491,21 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
       plugin->key = NULL;
       GNUNET_free_non_null (plugin->cert);
       plugin->cert = NULL;
+#if DEBUG_HTTP
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "No usable TLS certificate found, creating certificate\n");
+#endif
       errno = 0;
-      certcreation = GNUNET_OS_start_process (NULL, NULL, "gnunet-transport-certificate-creation", "gnunet-transport-certificate-creation", key_file, cert_file, NULL);
-      if (certcreation == NULL
-          || (ret = 1) != 1 || GNUNET_OS_process_wait (certcreation) != GNUNET_OK
-          || (ret = 2) != 2 || (GNUNET_OS_process_status (certcreation, &status_type, &code) != GNUNET_OK
-              || (ret = 3) != 3 || status_type != GNUNET_OS_PROCESS_EXITED
-              || (ret = 4) != 4 || code != 0))
+      certcreation = GNUNET_OS_start_process (NULL, NULL,
+					      "gnunet-transport-certificate-creation", 
+					      "gnunet-transport-certificate-creation", 
+					      key_file, cert_file,
+					      NULL);
+      if ( (certcreation == NULL) || 
+	   (1 != (ret = 1) ) || (GNUNET_OS_process_wait (certcreation) != GNUNET_OK) ||
+	   (2 != (ret = 2) ) || (GNUNET_OS_process_status (certcreation, &status_type, &code) != GNUNET_OK) ||
+	   (3 != (ret = 3) ) || (status_type != GNUNET_OS_PROCESS_EXITED) ||
+	   (4 != (ret = 4) ) || (code != 0) )
 	{
 	  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
 			   "https",
@@ -3509,11 +3515,11 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 	  GNUNET_free (cert_file);
 	  GNUNET_free (component_name);
           if (certcreation != NULL)
-          {
-            GNUNET_OS_process_kill (certcreation, SIGTERM);
-            GNUNET_OS_process_close (certcreation);
-          }
-	  LIBGNUNET_PLUGIN_TRANSPORT_DONE(api);
+	    {
+	      GNUNET_OS_process_kill (certcreation, SIGTERM);
+	      GNUNET_OS_process_close (certcreation);
+	    }
+	  LIBGNUNET_PLUGIN_TRANSPORT_DONE (api);
 	  return NULL;
 	}
       GNUNET_OS_process_close (certcreation);
@@ -3537,8 +3543,10 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   GNUNET_free (cert_file);
   
   GNUNET_assert((plugin->key!=NULL) && (plugin->cert!=NULL));
+#if DEBUG_HTTP
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "TLS certificate loaded\n");
+#endif
 #endif
 
   GNUNET_assert ((port > 0) && (port <= 65535));
