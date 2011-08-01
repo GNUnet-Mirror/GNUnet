@@ -122,6 +122,7 @@ test_core_quota_compliance_asymmetric_recv_limited_LDADD = \
  $(top_builddir)/src/statistics/libgnunetstatistics.la
 
 EXTRA_DIST = \
+  test_core_defaults.conf \
   test_core_api_data.conf \
   test_core_api_peer1.conf \
   test_core_api_peer2.conf \
