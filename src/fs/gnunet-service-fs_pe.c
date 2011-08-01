@@ -508,7 +508,6 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
   struct GSF_RequestPlanReference *rpr;
   struct PendingRequestList *prl;
   struct MergeContext mpc;
-  size_t msize;
 
   GNUNET_assert (NULL != cp);
   GSF_connected_peer_get_identity_ (cp, &id);
@@ -525,7 +524,6 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
 					 pp,
 					 GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
     }
-  msize = GSF_pending_request_get_message_ (pr, 0, NULL);
   mpc.merged = GNUNET_NO;
   mpc.pr = pr;
   GNUNET_CONTAINER_heap_iterate (pp->priority_heap, &merge_pr, &mpc);
