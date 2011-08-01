@@ -112,13 +112,16 @@ shutdown_task (void *cls,
  * Callback to call when network size estimate is updated.
  *
  * @param cls closure
+ * @param timestamp server timestamp
  * @param estimate the value of the current network size estimate
  * @param std_dev standard deviation (rounded down to nearest integer)
  *                of the size estimation values seen
  *
  */
 static void
-handle_estimate (void *cls, double estimate, double std_dev)
+handle_estimate (void *cls,
+		 struct GNUNET_TIME_Absolute timestamp,
+		 double estimate, double std_dev)
 {
   struct NSEPeer *peer = cls;
 
