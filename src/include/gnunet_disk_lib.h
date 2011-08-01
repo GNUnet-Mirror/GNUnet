@@ -572,8 +572,9 @@ GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, off_t lockStart,
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
-GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, off_t unlockStart,
-    off_t unlockEnd);
+GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, 
+			 off_t unlockStart,
+			 off_t unlockEnd);
 
 
 /**
