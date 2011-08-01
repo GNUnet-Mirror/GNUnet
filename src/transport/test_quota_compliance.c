@@ -799,9 +799,6 @@ main (int argc, char *argv[])
   if (strstr(argv[0], "tcp_nat") != NULL)
     {
       is_tcp_nat = GNUNET_YES;
-#ifdef MINGW
-      return 0;
-#endif
     }
   else if (strstr(argv[0], "tcp") != NULL)
     {
@@ -810,9 +807,6 @@ main (int argc, char *argv[])
   else if (strstr(argv[0], "https") != NULL)
     {
       is_https = GNUNET_YES;
-#ifdef MINGW
-      return 0;
-#endif
     }
   else if (strstr(argv[0], "http") != NULL)
     {

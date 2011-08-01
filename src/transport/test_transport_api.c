@@ -688,9 +688,6 @@ main (int argc, char *argv[])
   if (strstr(argv[0], "tcp_nat") != NULL)
     {
       is_tcp_nat = GNUNET_YES;
-#ifdef MINGW
-      return 0;
-#endif
       if (GNUNET_YES != check_gnunet_nat_binary("gnunet-nat-server"))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -706,9 +703,6 @@ main (int argc, char *argv[])
   else if (strstr(argv[0], "udp_nat") != NULL)
     {
       is_udp_nat = GNUNET_YES;
-#ifdef MINGW
-      return 0;
-#endif
       if (GNUNET_YES != check_gnunet_nat_binary("gnunet-nat-server"))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -728,9 +722,6 @@ main (int argc, char *argv[])
   else if (strstr(argv[0], "https") != NULL)
     {
       is_https = GNUNET_YES;
-#ifdef MINGW
-      return 0;
-#endif
     }
   else if (strstr(argv[0], "http") != NULL)
     {
