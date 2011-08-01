@@ -352,11 +352,11 @@ GNUNET_DISK_mktemp (const char *t)
   char *fn;
 
   if ( (t[0] != '/') &&
-       (t[0] != '\\') &&
+       (t[0] != '\\') 
 #if WINDOWS
-       !(t[0] >= 'A' && t[0] <= 'z' && t[0] != 0 && t[1] == ':')
+       && ! (isalpha ((int) t[0]) && (t[0] != '\0') && (t[1] == ':'))
 #endif
-)
+       )
     {
       tmpdir = getenv ("TMPDIR");
       tmpdir = tmpdir ? tmpdir : "/tmp";
