@@ -893,9 +893,6 @@ int
 main (int argc, char *argv[])
 {
   int ret;
-#ifdef MINGW
-  return GNUNET_SYSERR;
-#endif
 
   test_failed = GNUNET_NO;
 
