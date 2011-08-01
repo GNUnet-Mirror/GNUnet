@@ -566,6 +566,7 @@ test_transport_api_multi_LDADD = \
 EXTRA_DIST = \
   gnunet-transport-certificate-creation \
   ats_mlp_p100_m400.problem \
+  test_transport_defaults.conf \
   test_transport_api_data.conf \
   test_transport_api_tcp_peer1.conf \
   test_transport_api_tcp_peer2.conf \
