@@ -554,8 +554,13 @@ main (int argc, char *argv[])
                     "WARNING",
 #endif
                     NULL);
+#if !WINDOWS
   system ("gnunet-peerinfo -s -c test_learning_adv_peer.conf > /dev/null");
   system ("gnunet-peerinfo -s -c test_learning_learn_peer.conf > /dev/null");
+#else
+  system ("gnunet-peerinfo -s -c test_learning_adv_peer.conf > NUL");
+  system ("gnunet-peerinfo -s -c test_learning_learn_peer.conf > NUL");
+#endif
   ret = check ();
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-1");
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-2");
