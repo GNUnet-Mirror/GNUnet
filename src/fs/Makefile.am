@@ -388,6 +388,7 @@ test_gnunet_fs_idx.py: test_gnunet_fs_idx.py.in Makefile
 
 
 EXTRA_DIST = \
+  test_fs_defaults.conf \
   fs_test_lib_data.conf \
   test_fs_data.conf \
   test_fs_download_data.conf \
