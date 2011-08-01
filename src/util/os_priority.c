@@ -51,7 +51,7 @@ static struct GNUNET_OS_Process current_process;
  * @param cls the 'struct GNUNET_DISK_FileHandle' of the control pipe
  * @param tc scheduler context
  */
-static void
+void
 parent_control_handler (void *cls,
 			const struct
 			GNUNET_SCHEDULER_TaskContext * tc)

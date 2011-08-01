@@ -339,6 +339,13 @@ GNUNET_OS_install_parent_control_handler (void *cls,
                                           const struct
                                           GNUNET_SCHEDULER_TaskContext * tc);
 
+/**
+ * Called everty time the parent process sends a signal
+ */
+void
+parent_control_handler (void *cls,
+			const struct
+			GNUNET_SCHEDULER_TaskContext * tc);
 
 /**
  * Check whether an executable exists and possibly

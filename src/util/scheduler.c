@@ -751,7 +751,11 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
 #endif
   last_tr = 0;
   busy_wait_warning = 0;
-  while ((pending != NULL) ||
+  while ((pending != NULL
+#if ENABLE_WINDOWS_WORKAROUNDS
+          && (pending->callback != parent_control_handler || pending->next != NULL)
+#endif
+         ) ||
 	 (pending_timeout != NULL) ||
 	 (ready_count > 0))
     {
