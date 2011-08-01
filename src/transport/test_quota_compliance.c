@@ -303,10 +303,11 @@ notify_ready (void *cls, size_t size, void *buf)
       ret += sizeof (struct TestMessage);
       memset (&cbuf[ret], last_msg_sent, s - sizeof (struct TestMessage));
       ret += s - sizeof (struct TestMessage);
-
+#if DEBUG_MEASUREMENT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Sending message %u\n",last_msg_sent);
-
+                  "Sending message %u\n",
+		  last_msg_sent);
+#endif
       s = get_size ();
       if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16))
 	break; /* sometimes pack buffer full, sometimes not */
@@ -554,10 +555,12 @@ exchange_hello_last (void *cls,
   struct PeerContext *me = cls;
 
   GNUNET_assert (message != NULL);
+#if DEBUG_CONNECTIONS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Exchanging HELLO of size %d with peer (%s)!\n", 
 	      (int) GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message),
 	      GNUNET_i2s (&me->id));
+#endif
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
                                       message, &me->id));
@@ -576,10 +579,12 @@ exchange_hello (void *cls,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
                                       message, &me->id));
+#if DEBUG_CONNECTIONS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Exchanging HELLO of size %d from peer %s!\n", 
 	      (int) GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message),
 	      GNUNET_i2s (&me->id));
+#endif
   GNUNET_TRANSPORT_offer_hello (p2.th, message, NULL, NULL);
 }
 
@@ -670,8 +675,10 @@ static void
 try_connect (void *cls,
 	     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+#if DEBUG_CONNECTIONS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Asking peers to connect...\n");
+#endif
   GNUNET_TRANSPORT_try_connect (p2.th,
 				&p1.id);
   GNUNET_TRANSPORT_try_connect (p1.th,
