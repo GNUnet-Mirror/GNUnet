@@ -83,18 +83,22 @@ end_test (void *cls,
  * Callback to call when network size estimate is updated.
  *
  * @param cls unused
+ * @param timestamp time when the estimate was received from the server (or created by the server)
  * @param estimate the value of the current network size estimate
  * @param std_dev standard deviation (rounded down to nearest integer)
  *                of the size estimation values seen
  *
  */
 static void
-check_nse_message (void *cls, double estimate, double std_dev)
+check_nse_message (void *cls, 
+		   struct GNUNET_TIME_Absolute timestamp,
+		   double estimate, double std_dev)
 {
   int *ok = cls;
 
   fprintf (stderr,
-	   "Received NSE message, estimate %f, standard deviation %f.\n");
+	   "Received NSE message, estimate %f, standard deviation %f.\n",
+	   estimate, std_dev);
   /* Fantastic check below. Expect NaN, the only thing not equal to itself. */
   (*ok) = 0;
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
