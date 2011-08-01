@@ -3482,33 +3482,42 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 
   if ( (plugin->key==NULL) || (plugin->cert==NULL) )
     {
-      char * cmd;
+      struct GNUNET_OS_Process *certcreation = NULL;
+      enum GNUNET_OS_ProcessStatusType status_type = GNUNET_OS_PROCESS_UNKNOWN;
+      unsigned long code = 0;
       int ret = 0;
 
       GNUNET_free_non_null (plugin->key);
       plugin->key = NULL;
       GNUNET_free_non_null (plugin->cert);
       plugin->cert = NULL;
-      GNUNET_asprintf(&cmd,
-		      "gnunet-transport-certificate-creation %s %s", 
-		      key_file, cert_file);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "No usable TLS certificate found, creating certificate\n");
-      ret = system(cmd);
-      if (ret != 0)
+      errno = 0;
+      certcreation = GNUNET_OS_start_process (NULL, NULL, "gnunet-transport-certificate-creation", "gnunet-transport-certificate-creation", key_file, cert_file, NULL);
+      if (certcreation == NULL
+          || (ret = 1) != 1 || GNUNET_OS_process_wait (certcreation) != GNUNET_OK
+          || (ret = 2) != 2 || (GNUNET_OS_process_status (certcreation, &status_type, &code) != GNUNET_OK
+              || (ret = 3) != 3 || status_type != GNUNET_OS_PROCESS_EXITED
+              || (ret = 4) != 4 || code != 0))
 	{
 	  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
 			   "https",
-			   _("Could not create a new TLS certificate, shell script `%s' failed!\n"),
-			   cmd);
+			   _("Could not create a new TLS certificate, program `gnunet-transport-certificate-creation' failed with errno %d, if-code %d, status %d, return value %d!\n"),
+			   errno, ret, status_type, code);
 	  GNUNET_free (key_file);
 	  GNUNET_free (cert_file);
 	  GNUNET_free (component_name);
+          if (certcreation != NULL)
+          {
+            GNUNET_OS_process_kill (certcreation, SIGTERM);
+            GNUNET_OS_process_close (certcreation);
+          }
 	  LIBGNUNET_PLUGIN_TRANSPORT_DONE(api);
-	  GNUNET_free (cmd);
 	  return NULL;
 	}
-      GNUNET_free (cmd);      
+      GNUNET_OS_process_close (certcreation);
+
       plugin->key = load_certificate (key_file);
       plugin->cert = load_certificate (cert_file);
       if ((plugin->key==NULL) || (plugin->cert==NULL))

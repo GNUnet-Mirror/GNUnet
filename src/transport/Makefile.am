@@ -62,6 +62,11 @@ UNIX_QUOTA_TEST = test_quota_compliance_unix \
      test_quota_compliance_unix_asymmetric_recv_constant
 endif
 
+<<<<<<< HEAD
+=======
+noinst_PROGRAMS = ${check_PROGRAMS} gnunet-transport-certificate-creation
+
+>>>>>>> Let gnunet-transport-certificate-creation be a program
 lib_LTLIBRARIES = \
   libgnunettransport.la 
 
@@ -83,15 +88,20 @@ bin_PROGRAMS = \
  gnunet-transport \
  $(WLAN_BIN) \
  gnunet-service-transport \
- gnunet-transport-list-connections 
+ gnunet-transport-list-connections \
+ gnunet-transport-certificate-creation
 
 #noinst_PROGRAMS = ${check_PROGRAMS}
 noinst_PROGRAMS = \
  $(WLAN_BIN_DUMMY)
 
-bin_SCRIPTS = \
- gnunet-transport-certificate-creation
+#bin_SCRIPTS = \
+# gnunet-transport-certificate-creation
 
+gnunet_transport_certificate_creation_SOURCES = \
+ gnunet-transport-certificate-creation.c
+gnunet_transport_certificate_creation_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la
 
 gnunet_transport_wlan_helper_SOURCES = \
  wlan/byteorder.h \
