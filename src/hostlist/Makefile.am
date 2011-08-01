@@ -66,6 +66,7 @@ test_gnunet_daemon_hostlist_learning_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la  
 
 EXTRA_DIST = \
+  test_hostlist_defaults.conf \
   test_gnunet_daemon_hostlist_data.conf \
   test_gnunet_daemon_hostlist_peer1.conf \
   test_gnunet_daemon_hostlist_peer2.conf \
