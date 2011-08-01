@@ -25,6 +25,15 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
+noinst_PROGRAMS = \
+ gnunet-config-diff
+
+gnunet_config_diff_SOURCES = \
+ gnunet-config-diff.c
+gnunet_config_diff_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+
 lib_LTLIBRARIES = libgnunetutil.la
 
 libgnunetutil_la_SOURCES = \
