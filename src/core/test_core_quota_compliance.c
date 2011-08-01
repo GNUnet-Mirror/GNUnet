@@ -114,11 +114,15 @@ struct TestMessage
   uint32_t num;
 };
 
+static void process_hello (void *cls, const struct GNUNET_MessageHeader *message);
+
 static void
 terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CORE_Handle *ch;
 
+  GNUNET_TRANSPORT_get_hello_cancel (p2.th, &process_hello, &p2);
+  GNUNET_TRANSPORT_get_hello_cancel (p1.th, &process_hello, &p1);
   ch = p1.ch;
   p1.ch = NULL;
   GNUNET_CORE_disconnect (ch);
@@ -141,6 +145,9 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (measure_task != GNUNET_SCHEDULER_NO_TASK)
 	  GNUNET_SCHEDULER_cancel(measure_task);
+
+  GNUNET_TRANSPORT_get_hello_cancel (p1.th, &process_hello, &p1);
+  GNUNET_TRANSPORT_get_hello_cancel (p2.th, &process_hello, &p2);
 
   GNUNET_CORE_disconnect (p1.ch);
   p1.ch = NULL;
@@ -572,7 +579,6 @@ process_hello (void *cls,
 {
   struct PeerContext *p = cls;
 
-  GNUNET_TRANSPORT_get_hello_cancel (p->th, &process_hello, p);
 
 #if DEBUG_TRANSMISSION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

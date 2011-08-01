@@ -112,12 +112,15 @@ get_size (unsigned int iter)
   return sizeof (struct TestMessage) + (ret % 60000);
 }
 
+static void process_hello (void *cls, const struct GNUNET_MessageHeader *message);
 
 static void
 terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned long long delta;
 
+  GNUNET_TRANSPORT_get_hello_cancel (p1.th, &process_hello, &p1);
+  GNUNET_TRANSPORT_get_hello_cancel (p2.th, &process_hello, &p2);
   GNUNET_CORE_disconnect (p1.ch);
   p1.ch = NULL;
   GNUNET_CORE_disconnect (p2.ch);
@@ -151,11 +154,13 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
   if (p1.th != NULL)
     {
+      GNUNET_TRANSPORT_get_hello_cancel (p1.th, &process_hello, &p1);
       GNUNET_TRANSPORT_disconnect (p1.th);
       p1.th = NULL;
     }
   if (p2.th != NULL)
     {
+      GNUNET_TRANSPORT_get_hello_cancel (p2.th, &process_hello, &p2);
       GNUNET_TRANSPORT_disconnect (p2.th);
       p2.th = NULL;
     }
@@ -437,7 +442,6 @@ process_hello (void *cls,
 {
   struct PeerContext *p = cls;
 
-  GNUNET_TRANSPORT_get_hello_cancel (p->th, &process_hello, p);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received (my) `%s' from transport service\n",
               "HELLO");

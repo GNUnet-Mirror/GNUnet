@@ -75,6 +75,7 @@ static GNUNET_SCHEDULER_TaskIdentifier ask_task;
 static unsigned int total_reserve = 5;
 
 
+static void process_hello (void *cls, const struct GNUNET_MessageHeader *message);
 
 static void
 terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -84,6 +85,8 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
   GNUNET_assert (ok == 6);
   GNUNET_assert (NULL == irc);
+  GNUNET_TRANSPORT_get_hello_cancel (p1.th, &process_hello, &p1);
+  GNUNET_TRANSPORT_get_hello_cancel (p2.th, &process_hello, &p2);
   GNUNET_CORE_disconnect (p1.ch);
   GNUNET_CORE_disconnect (p2.ch);
   GNUNET_TRANSPORT_disconnect (p1.th);
@@ -115,6 +118,8 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_SCHEDULER_cancel (ask_task);
       ask_task = GNUNET_SCHEDULER_NO_TASK;
     }
+  GNUNET_TRANSPORT_get_hello_cancel (p1.th, &process_hello, &p1);
+  GNUNET_TRANSPORT_get_hello_cancel (p2.th, &process_hello, &p2);
   GNUNET_CORE_disconnect (p1.ch);
   GNUNET_CORE_disconnect (p2.ch);
   GNUNET_TRANSPORT_disconnect (p1.th);
@@ -418,7 +423,6 @@ process_hello (void *cls,
 {
   struct PeerContext *p = cls;
 
-  GNUNET_TRANSPORT_get_hello_cancel (p->th, &process_hello, p);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received (my) `%s' from transport service\n",
               "HELLO");
