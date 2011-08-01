@@ -228,54 +228,7 @@ setup_peer (struct PeerContext *p,
   p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
                                         "gnunet-service-arm",
 #if VERBOSE_ARM
-
-                                        if (is_https)
-                                          {
-                                            struct stat sbuf;
-                                            if (0 == stat (cert_file_p1, &sbuf ))
-                                              {
-                                                if (0 == remove(cert_file_p1))
-                                                  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                                                              "Successfully removed existing certificate file `%s'\n",cert_file_p1);
-                                                else
-                                                  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                                                              "Failed to remove certfile `%s'\n",cert_file_p1);
-                                              }
-
-                                            if (0 == stat (key_file_p1, &sbuf ))
-                                              {
-                                                if (0 == remove(key_file_p1))
-                                                  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                                                              "Successfully removed private key file `%s'\n",key_file_p1);
-                                                else
-                                                  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                                                              "Failed to private key file `%s'\n",key_file_p1);
-                                              }
-
-                                            if (0 == stat (cert_file_p2, &sbuf ))
-                                              {
-                                                if (0 == remove(cert_file_p2))
-                                                  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                                                              "Successfully removed existing certificate file `%s'\n",cert_file_p2);
-                                                else
-                                                  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                                                              "Failed to remove certfile `%s'\n",cert_file_p2);
-                                              }
-
-                                            if (0 == stat (key_file_p2, &sbuf ))
-                                              {
-                                                if (0 == remove(key_file_p2))
-                                                  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                                                              "Successfully removed private key file `%s'\n",key_file_p2);
-                                                else
-                                                  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                                                              "Failed to private key file `%s'\n",key_file_p2);
-                                              }
-                                            GNUNET_free(key_file_p1);
-                                            GNUNET_free(key_file_p2);
-                                            GNUNET_free(cert_file_p1);
-                                            GNUNET_free(cert_file_p2);
-                                          }                                 "-L", "DEBUG",
+                                        "-L", "DEBUG",
 #endif
                                         "-c", cfgname, NULL);
 #endif

@@ -303,16 +303,9 @@ notify_ready (void *cls, size_t size, void *buf)
       ret += sizeof (struct TestMessage);
       memset (&cbuf[ret], last_msg_sent, s - sizeof (struct TestMessage));
       ret += s - sizeof (struct TestMessage);
-#if DEBUG_MEASUREMENT
-      if (n % 5000 == 0)
-       {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Sending message %u\n",n);
-       }
-#endif
 
-    /*      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Sending message %u\n",last_msg_sent);*/
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Sending message %u\n",last_msg_sent);
 
       s = get_size ();
       if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16))
