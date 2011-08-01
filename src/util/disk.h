@@ -45,6 +45,16 @@ struct GNUNET_DISK_FileHandle
    * Type
    */
   enum {GNUNET_DISK_FILE, GNUNET_PIPE} type;
+
+  /**
+   * Structure for overlapped reading (for pipes)
+   */
+  OVERLAPPED *oOverlapRead;
+
+  /**
+   * Structure for overlapped writing (for pipes)
+   */
+  OVERLAPPED *oOverlapWrite;
 #else
 
   /**

@@ -36,6 +36,8 @@
 
 #define DEBUG_NPIPE GNUNET_NO
 
+#define DEBUG_PIPE GNUNET_NO
+
 /**
  * Block size for IO for copying files.
  */
@@ -55,6 +57,10 @@
 #include <sys/statvfs.h>
 #else
 #ifdef MINGW
+#ifndef PIPE_BUF
+#define PIPE_BUF        512
+ULONG PipeSerialNumber;
+#endif
 #define  	_IFMT		0170000 /* type of file */
 #define  	_IFLNK		0120000 /* symbolic link */
 #define  S_ISLNK(m)	(((m)&_IFMT) == _IFLNK)
@@ -643,11 +649,26 @@ GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle * h, void *result,
 #ifdef MINGW
   DWORD bytesRead;
 
-  if (!ReadFile (h->h, result, len, &bytesRead, NULL))
+  if(h->type != GNUNET_PIPE)
+  {
+    if (!ReadFile (h->h, result, len, &bytesRead, NULL))
     {
       SetErrnoFromWinError (GetLastError ());
       return GNUNET_SYSERR;
     }
+  }
+  else
+  {
+    if (!ReadFile (h->h, result, len, NULL, h->oOverlapRead))
+    {
+      if(GetLastError () != ERROR_IO_PENDING )
+      {
+        SetErrnoFromWinError (GetLastError ());
+        return GNUNET_SYSERR;
+      }
+    }
+    GetOverlappedResult(h->h, h->oOverlapRead, &bytesRead, TRUE);
+  }
   return bytesRead;
 #else
   return read (h->fd, result, len);
@@ -700,11 +721,35 @@ GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle * h,
 #ifdef MINGW
   DWORD bytesWritten;
 
-  if (!WriteFile (h->h, buffer, n, &bytesWritten, NULL))
+  if(h->type != GNUNET_PIPE)
+  {
+    if (!WriteFile (h->h, buffer, n, &bytesWritten, NULL))
     {
       SetErrnoFromWinError (GetLastError ());
       return GNUNET_SYSERR;
     }
+  }
+  else
+  {
+#if DEBUG_PIPE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "It is a pipe trying to write\n");
+#endif
+    if (!WriteFile (h->h, buffer, n, NULL, h->oOverlapWrite))
+    {
+      if(GetLastError () != ERROR_IO_PENDING )
+      {
+        SetErrnoFromWinError (GetLastError ());
+#if DEBUG_PIPE
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Error writing to pipe\n");
+#endif
+	return GNUNET_SYSERR;
+      }
+    }
+#if DEBUG_PIPE
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Will get overlapped result\n");
+#endif
+    GetOverlappedResult(h->h, h->oOverlapWrite, &bytesWritten, TRUE);
+  }
   return bytesWritten;
 #else
   return write (h->fd, buffer, n);
@@ -1388,6 +1433,8 @@ GNUNET_DISK_file_close (struct GNUNET_DISK_FileHandle *h)
     {
       SetErrnoFromWinError (GetLastError ());
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "close");
+      GNUNET_free (h->oOverlapRead);
+      GNUNET_free (h->oOverlapWrite);
       GNUNET_free (h);
       return GNUNET_SYSERR;
     }
@@ -1647,6 +1694,148 @@ GNUNET_DISK_file_sync (const struct GNUNET_DISK_FileHandle *h)
 #endif
 }
 
+#if WINDOWS
+/* Copyright Bob Byrnes  <byrnes <at> curl.com>
+   http://permalink.gmane.org/gmane.os.cygwin.patches/2121
+*/
+/* Create a pipe, and return handles to the read and write ends,
+   just like CreatePipe, but ensure that the write end permits
+   FILE_READ_ATTRIBUTES access, on later versions of win32 where
+   this is supported.  This access is needed by NtQueryInformationFile,
+   which is used to implement select and nonblocking writes.
+   Note that the return value is either NO_ERROR or GetLastError,
+   unlike CreatePipe, which returns a bool for success or failure.  */
+static int
+create_selectable_pipe (PHANDLE read_pipe_ptr,
+                        PHANDLE write_pipe_ptr,
+                        LPSECURITY_ATTRIBUTES sa_ptr,
+                        DWORD psize,
+                        DWORD dwReadMode,
+                        DWORD dwWriteMode)
+{
+  /* Default to error. */
+  *read_pipe_ptr = *write_pipe_ptr = INVALID_HANDLE_VALUE;
+
+  HANDLE read_pipe = INVALID_HANDLE_VALUE, write_pipe = INVALID_HANDLE_VALUE;
+
+  /* Ensure that there is enough pipe buffer space for atomic writes.  */
+  if (psize < PIPE_BUF)
+    psize = PIPE_BUF;
+
+  char pipename[MAX_PATH];
+
+  /* Retry CreateNamedPipe as long as the pipe name is in use.
+     Retrying will probably never be necessary, but we want
+     to be as robust as possible.  */
+  while (1)
+    {
+      static volatile LONG pipe_unique_id;
+
+      snprintf (pipename, sizeof pipename, "\\\\.\\pipe\\gnunet-%d-%ld",
+                getpid (), InterlockedIncrement ((LONG *)&pipe_unique_id));
+#if DEBUG_PIPE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CreateNamedPipe: name = %s, size = %lu\n", pipename, psize);
+#endif
+      /* Use CreateNamedPipe instead of CreatePipe, because the latter
+         returns a write handle that does not permit FILE_READ_ATTRIBUTES
+         access, on versions of win32 earlier than WinXP SP2.
+         CreatePipe also stupidly creates a full duplex pipe, which is
+         a waste, since only a single direction is actually used.
+         It's important to only allow a single instance, to ensure that
+         the pipe was not created earlier by some other process, even if
+         the pid has been reused.  We avoid FILE_FLAG_FIRST_PIPE_INSTANCE
+         because that is only available for Win2k SP2 and WinXP.  */
+      read_pipe = CreateNamedPipeA (pipename,
+                                   PIPE_ACCESS_INBOUND | dwReadMode,
+                                   PIPE_TYPE_BYTE | PIPE_READMODE_BYTE,
+                                   1,       /* max instances */
+                                   psize,   /* output buffer size */
+                                   psize,   /* input buffer size */
+                                   NMPWAIT_USE_DEFAULT_WAIT,
+                                   sa_ptr);
+
+      if (read_pipe != INVALID_HANDLE_VALUE)
+        {
+#if DEBUG_PIPE
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "pipe read handle = %p\n", read_pipe);
+#endif
+          break;
+        }
+
+      DWORD err = GetLastError ();
+      switch (err)
+        {
+        case ERROR_PIPE_BUSY:
+          /* The pipe is already open with compatible parameters.
+             Pick a new name and retry.  */
+#if DEBUG_PIPE
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "pipe busy, retrying\n");
+#endif
+          continue;
+        case ERROR_ACCESS_DENIED:
+          /* The pipe is already open with incompatible parameters.
+             Pick a new name and retry.  */
+#if DEBUG_PIPE
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "pipe access denied, retrying\n");
+#endif
+          continue;
+        case ERROR_CALL_NOT_IMPLEMENTED:
+          /* We are on an older Win9x platform without named pipes.
+             Return an anonymous pipe as the best approximation.  */
+#if DEBUG_PIPE
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CreateNamedPipe not implemented, resorting to "
+              "CreatePipe: size = %lu\n", psize);
+#endif
+          if (CreatePipe (read_pipe_ptr, write_pipe_ptr, sa_ptr, psize))
+            {
+#if DEBUG_PIPE
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "pipe read handle = %p\n", *read_pipe_ptr);
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "pipe write handle = %p\n", *write_pipe_ptr);
+#endif
+              return GNUNET_OK;
+            }
+          err = GetLastError ();
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "CreatePipe failed: %d\n", err);
+          return err;
+        default:
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "CreateNamedPipe failed: %d\n", err);
+          return err;
+        }
+      /* NOTREACHED */
+    }
+#if DEBUG_PIPE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CreateFile: name = %s\n", pipename);
+#endif
+
+  /* Open the named pipe for writing.
+     Be sure to permit FILE_READ_ATTRIBUTES access.  */
+  write_pipe = CreateFileA (pipename,
+                           GENERIC_WRITE | FILE_READ_ATTRIBUTES,
+                           0,       /* share mode */
+                           sa_ptr,
+                           OPEN_EXISTING,
+                           dwWriteMode,       /* flags and attributes */
+                           0);      /* handle to template file */
+
+  if (write_pipe == INVALID_HANDLE_VALUE)
+    {
+      /* Failure. */
+      DWORD err = GetLastError ();
+#if DEBUG_PIPE
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CreateFile failed: %d\n", err);
+#endif
+      CloseHandle (read_pipe);
+      return err;
+    }
+#if DEBUG_PIPE
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "pipe write handle = %p\n", write_pipe);
+#endif
+  /* Success. */
+  *read_pipe_ptr = read_pipe;
+  *write_pipe_ptr = write_pipe;
+  return GNUNET_OK;
+}
+#endif
 
 /**
  * Creates an interprocess channel
@@ -1720,7 +1909,7 @@ GNUNET_DISK_pipe (int blocking, int inherit_read, int inherit_write)
   BOOL ret;
   HANDLE tmp_handle;
 
-  ret = CreatePipe (&p->fd[0]->h, &p->fd[1]->h, NULL, 0);
+  ret = create_selectable_pipe (&p->fd[0]->h, &p->fd[1]->h, NULL, 0, FILE_FLAG_OVERLAPPED, FILE_FLAG_OVERLAPPED);
   if (!ret)
     {
       GNUNET_free (p);
@@ -1763,6 +1952,18 @@ GNUNET_DISK_pipe (int blocking, int inherit_read, int inherit_write)
     }
   p->fd[0]->type = GNUNET_PIPE;
   p->fd[1]->type = GNUNET_PIPE;
+
+  p->fd[0]->oOverlapRead = GNUNET_malloc (sizeof (OVERLAPPED));
+  p->fd[0]->oOverlapWrite = GNUNET_malloc (sizeof (OVERLAPPED));
+  p->fd[1]->oOverlapRead = GNUNET_malloc (sizeof (OVERLAPPED));
+  p->fd[1]->oOverlapWrite = GNUNET_malloc (sizeof (OVERLAPPED));
+
+  p->fd[0]->oOverlapRead->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
+  p->fd[0]->oOverlapWrite->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
+
+  p->fd[1]->oOverlapRead->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
+  p->fd[1]->oOverlapWrite->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
+
 #endif
   return p;
 }
@@ -1965,6 +2166,12 @@ GNUNET_DISK_npipe_create (char **fn,
   ret->h = h;
   ret->type = GNUNET_PIPE;
 
+  ret->oOverlapRead = GNUNET_malloc (sizeof (OVERLAPPED));
+  ret->oOverlapWrite = GNUNET_malloc (sizeof (OVERLAPPED));
+
+  ret->oOverlapRead->hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+  ret->oOverlapWrite->hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+
   return ret;
 #else
   if (*fn == NULL)
@@ -2029,6 +2236,10 @@ GNUNET_DISK_npipe_open (const char *fn,
   ret = GNUNET_malloc(sizeof(*ret));
   ret->h = h;
   ret->type = GNUNET_PIPE;
+  ret->oOverlapRead = GNUNET_malloc (sizeof (OVERLAPPED));
+  ret->oOverlapWrite = GNUNET_malloc (sizeof (OVERLAPPED));
+  ret->oOverlapRead->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
+  ret->oOverlapWrite->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
 
   return ret;
 #else
