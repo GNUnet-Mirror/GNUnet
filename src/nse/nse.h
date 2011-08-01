@@ -30,10 +30,10 @@
 
 #include "gnunet_common.h"
 
+/**
+ * Generate debug-level log messages?
+ */
 #define DEBUG_NSE GNUNET_NO
-
-#define VERIFY_CRYPTO GNUNET_NO
-
 
 /**
  * Network size estimate sent from the service

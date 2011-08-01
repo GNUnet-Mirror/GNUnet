@@ -45,12 +45,18 @@
 #include "gnunet_nse_service.h"
 #include "nse.h"
 
-#define NODELAYS GNUNET_NO
+/**
+ * Should messages be delayed randomly?  This option should be set to
+ * GNUNET_NO only for experiments, not in production.  It should also
+ * be removed once the initial experiments have been completed.
+ */
+#define USE_RANDOM_DELAYS GNUNET_YES
 
 /**
  * Should we generate a histogram with the time stamps of when we received
  * NSE messages to disk? (for performance evaluation only, not useful in
- * production)
+ * production).  The associated code should also probably be removed
+ * once we're done with experiments.
  */
 #define ENABLE_HISTOGRAM GNUNET_NO
 
@@ -84,8 +90,10 @@ static struct GNUNET_TIME_Relative gnunet_nse_interval;
  */
 static struct GNUNET_TIME_Relative proof_find_delay;
 
-
 #if ENABLE_HISTOGRAM
+/**
+ * Handle for writing when we received messages to disk.
+ */
 static struct GNUNET_BIO_WriteHandle *wh;
 #endif
 
@@ -393,9 +401,7 @@ get_matching_bits_delay (uint32_t matching_bits)
 static struct GNUNET_TIME_Relative 
 get_delay_randomization (uint32_t matching_bits)
 {
-#if NODELAYS
-  return GNUNET_TIME_UNIT_ZERO;
-#else
+#if USE_RANDOM_DELAYS
   struct GNUNET_TIME_Relative ret;
 
   if (matching_bits == 0)
@@ -403,6 +409,8 @@ get_delay_randomization (uint32_t matching_bits)
   ret.rel_value = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
 					    (uint32_t) (get_matching_bits_delay (matching_bits - 1) / (double) (hop_count_max + 1)));
   return ret;
+#else
+  return GNUNET_TIME_UNIT_ZERO;
 #endif
 }
 
@@ -448,11 +456,11 @@ get_transmit_delay (int round_offset)
     {
     case -1:
       /* previous round is randomized between 0 and 50 ms */
-#if NODELAYS
-      ret = GNUNET_TIME_UNIT_ZERO;
-#else
+#if USE_RANDOM_DELAYS
       ret.rel_value = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
 						50);
+#else
+      ret = GNUNET_TIME_UNIT_ZERO;
 #endif
 #if DEBUG_NSE
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
