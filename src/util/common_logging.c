@@ -179,6 +179,9 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
   FILE *altlog;
   int dirwarn;
   char *fn;
+  const char *env_loglevel;
+  int env_minlevel = 0;
+  int env_min_force_level = 100000;
 
 #ifdef WINDOWS
   QueryPerformanceFrequency (&performance_frequency);
@@ -188,7 +191,17 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
 		   "%s-%d",
 		   comp,
 		   getpid());
+  env_loglevel = getenv ("GNUNET_LOGLEVEL");
+  if (env_loglevel != NULL)
+    env_minlevel = get_type (env_loglevel);
+  env_loglevel = getenv ("GNUNET_FORCE_LOGLEVEL");
+  if (env_loglevel != NULL)
+    env_min_force_level = get_type (env_loglevel);
   min_level = get_type (loglevel);
+  if (env_minlevel > min_level)
+    min_level = env_minlevel;
+  if (env_min_force_level < min_level)
+    min_level = env_min_force_level;
   if (logfile == NULL)
     return GNUNET_OK;
   fn = GNUNET_STRINGS_filename_expand (logfile);
