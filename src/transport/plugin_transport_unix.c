@@ -1112,17 +1112,6 @@ libgnunet_plugin_transport_unix_init (void *cls)
 					     "PORT",
 					     &port))
     port = UNIX_NAT_DEFAULT_PORT;
-  else if (port > 65535)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("Given `%s' option is out of range: %llu > %u\n"),
-                  "PORT",
-                  port,
-                  65535);
-      return NULL;
-    }
-
-
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->port = port;
   plugin->env = env;
