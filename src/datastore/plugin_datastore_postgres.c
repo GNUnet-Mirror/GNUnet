@@ -311,7 +311,7 @@ init_connection (struct Plugin *plugin)
        pq_prepare (plugin,
 		   "put",
                    "INSERT INTO gn090 (repl, type, prio, anonLevel, expire, rvalue, hash, vhash, value) "
-                   "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+                   "VALUES ($1, $2, $3, $4, $5, RANDOM(), $6, $7, $8)",
                    9,
                    __LINE__)) ||
       (GNUNET_OK !=
@@ -477,14 +477,12 @@ postgres_plugin_put (void *cls,
   uint32_t banon = htonl (anonymity);
   uint32_t brepl = htonl (replication);
   uint64_t bexpi = GNUNET_TIME_absolute_hton (expiration).abs_value__;
-  uint64_t rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
   const char *paramValues[] = {
     (const char *) &brepl,
     (const char *) &btype,
     (const char *) &bprio,
     (const char *) &banon,
     (const char *) &bexpi,
-    (const char *) &rvalue,
     (const char *) key,
     (const char *) &vhash,
     (const char *) data
@@ -495,16 +493,15 @@ postgres_plugin_put (void *cls,
     sizeof (bprio),
     sizeof (banon),
     sizeof (bexpi),
-    sizeof (rvalue),
     sizeof (GNUNET_HashCode),
     sizeof (GNUNET_HashCode),
     size
   };
-  const int paramFormats[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+  const int paramFormats[] = { 1, 1, 1, 1, 1, 1, 1, 1 };
 
   GNUNET_CRYPTO_hash (data, size, &vhash);
   ret = PQexecPrepared (plugin->dbh,
-                        "put", 9, paramValues, paramLengths, paramFormats, 1);
+                        "put", 8, paramValues, paramLengths, paramFormats, 1);
   if (GNUNET_OK != check_result (plugin, ret,
                                  PGRES_COMMAND_OK,
                                  "PQexecPrepared", "put", __LINE__))
