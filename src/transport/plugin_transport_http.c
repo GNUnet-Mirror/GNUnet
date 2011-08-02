@@ -3483,9 +3483,6 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   if ( (plugin->key==NULL) || (plugin->cert==NULL) )
     {
       struct GNUNET_OS_Process *certcreation;
-      enum GNUNET_OS_ProcessStatusType status_type = GNUNET_OS_PROCESS_UNKNOWN;
-      unsigned long code = 0;
-      int ret = 0;
 
       GNUNET_free_non_null (plugin->key);
       plugin->key = NULL;
@@ -3501,48 +3498,36 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 					      "gnunet-transport-certificate-creation", 
 					      key_file, cert_file,
 					      NULL);
-      if ( (certcreation == NULL) || 
-	   (1 != (ret = 1) ) || (GNUNET_OS_process_wait (certcreation) != GNUNET_OK) ||
-	   (2 != (ret = 2) ) || (GNUNET_OS_process_status (certcreation, &status_type, &code) != GNUNET_OK) ||
-	   (3 != (ret = 3) ) || (status_type != GNUNET_OS_PROCESS_EXITED) ||
-	   (4 != (ret = 4) ) || (code != 0) )
+      if (certcreation == NULL) 
 	{
 	  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
 			   "https",
-			   _("Could not create a new TLS certificate, program `gnunet-transport-certificate-creation' failed with errno %d, if-code %d, status %d, return value %d!\n"),
-			   errno, ret, status_type, code);
+			   _("Could not create a new TLS certificate, program `gnunet-transport-certificate-creation' could not be started!\n"));
 	  GNUNET_free (key_file);
 	  GNUNET_free (cert_file);
 	  GNUNET_free (component_name);
-          if (certcreation != NULL)
-	    {
-	      GNUNET_OS_process_kill (certcreation, SIGTERM);
-	      GNUNET_OS_process_close (certcreation);
-	    }
 	  LIBGNUNET_PLUGIN_TRANSPORT_DONE (api);
 	  return NULL;
 	}
+      GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (certcreation));
       GNUNET_OS_process_close (certcreation);
-
       plugin->key = load_certificate (key_file);
       plugin->cert = load_certificate (cert_file);
-      if ((plugin->key==NULL) || (plugin->cert==NULL))
-	{
-	  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-			   "https",
-			   _("No usable TLS certificate found and creating one failed!\n"),
-			   "transport-https");
-	  GNUNET_free (key_file);
-	  GNUNET_free (cert_file);
-	  GNUNET_free (component_name);	  
-	  LIBGNUNET_PLUGIN_TRANSPORT_DONE (api);
-	  return NULL;
-	}
     }
+  if ( (plugin->key==NULL) || (plugin->cert==NULL) )
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+		       "https",
+		       _("No usable TLS certificate found and creating one failed!\n"),
+		       "transport-https");
+      GNUNET_free (key_file);
+      GNUNET_free (cert_file);
+      GNUNET_free (component_name);	  
+      LIBGNUNET_PLUGIN_TRANSPORT_DONE (api);
+      return NULL;
+    }    
   GNUNET_free (key_file);
   GNUNET_free (cert_file);
-  
-  GNUNET_assert((plugin->key!=NULL) && (plugin->cert!=NULL));
 #if DEBUG_HTTP
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "TLS certificate loaded\n");
