@@ -1053,7 +1053,7 @@ GNUNET_DISK_directory_remove (const char *fileName)
 
   if (0 != LSTAT (fileName, &istat))
     return GNUNET_NO;           /* file may not exist... */
-  CHMOD (fileName, S_IWUSR | S_IRUSR);
+  CHMOD (fileName, S_IWUSR | S_IRUSR | S_IXUSR);
   if (UNLINK (fileName) == 0)
     return GNUNET_OK;
   if ((errno != EISDIR) &&
