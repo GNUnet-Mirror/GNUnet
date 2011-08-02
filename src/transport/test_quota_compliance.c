@@ -632,6 +632,14 @@ notify_connect (void *cls,
 static void
 notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
+  if (cls == &p2)
+    {
+      if (NULL != transmit_handle)
+	{
+	  GNUNET_TRANSPORT_notify_transmit_ready_cancel (transmit_handle);
+	  transmit_handle = NULL;
+	}
+    }
   connected--;
 #if DEBUG_CONNECTIONS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
