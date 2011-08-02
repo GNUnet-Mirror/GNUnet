@@ -394,6 +394,7 @@ receive_hello (void *cls,
                                                  tail,
                                                  handle->established_tunnels.
                                                  tail, tunnel);
+              memcpy(&tunnel->tunnel.peer, other, sizeof(struct GNUNET_PeerIdentity));
               tunnel->tunnel.connect_handler (tunnel->tunnel.handler_cls,
                                               &tunnel->tunnel.peer, atsi);
               GNUNET_SCHEDULER_add_now (send_end_connect, tunnel);
