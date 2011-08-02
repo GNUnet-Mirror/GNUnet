@@ -194,7 +194,7 @@ struct Plugin
   /**
    * Prepared statements.
    */
-#define INSERT_ENTRY "INSERT INTO gn090 (repl,type,prio,anonLevel,expire,rvalue,hash,vhash,value) VALUES (?,?,?,?,?,?,?,?,?)"
+#define INSERT_ENTRY "INSERT INTO gn090 (repl,type,prio,anonLevel,expire,rvalue,hash,vhash,value) VALUES (?,?,?,?,?,RAND(),?,?,?)"
   struct GNUNET_MysqlStatementHandle *insert_entry;
   
 #define DELETE_ENTRY_BY_UID "DELETE FROM gn090 WHERE uid=?"
@@ -242,7 +242,16 @@ struct Plugin
   "ORDER BY expire ASC LIMIT 1"
   struct GNUNET_MysqlStatementHandle *select_expiration;
 
-#define SELECT_IT_REPLICATION "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 ORDER BY repl DESC,RAND() LIMIT 1"
+  // select type from (select rand() as v) AS t1 INNER JOIN gn090 ON expire>=t1.v limit 1;
+
+#define SELECT_IT_REPLICATION "SELECT type,prio,anonLevel,expire,hash,value,uid FROM "\
+  "(SELECT RAND() AS v) AS t1 INNER JOIN "\
+  "(SELECT MAX(repl) AS m FROM gn090) AS t2 INNER JOIN "\
+  "gn090 ON repl=t2.m AND"\
+  "       (rvalue>=t1.v OR"\
+  "        NOT EXISTS (SELECT 1 FROM gn090 WHERE repl=t2.m AND rvalue>=t1.v))"\
+  "ORDER BY rvalue ASC "\
+  "LIMIT 1"
   struct GNUNET_MysqlStatementHandle *select_replication;
 
 };
@@ -848,7 +857,6 @@ mysql_plugin_put (void *cls,
   unsigned long hashSize;
   unsigned long hashSize2;
   unsigned long lsize;
-  unsigned long rvalue;
   GNUNET_HashCode vhash;
 
   if (size > MAX_DATUM_SIZE)
@@ -860,7 +868,6 @@ mysql_plugin_put (void *cls,
   hashSize2 = sizeof (GNUNET_HashCode);
   lsize = size;
   GNUNET_CRYPTO_hash (data, size, &vhash);
-  rvalue = (unsigned long) GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
   if (GNUNET_OK !=
       prepared_statement_run (plugin,
 			      plugin->insert_entry,
@@ -870,7 +877,6 @@ mysql_plugin_put (void *cls,
 			      MYSQL_TYPE_LONG, &ipriority, GNUNET_YES,
 			      MYSQL_TYPE_LONG, &ianonymity, GNUNET_YES,
 			      MYSQL_TYPE_LONGLONG, &lexpiration, GNUNET_YES,
-			      MYSQL_TYPE_LONGLONG, &rvalue, GNUNET_YES,
 			      MYSQL_TYPE_BLOB, key, hashSize, &hashSize,
 			      MYSQL_TYPE_BLOB, &vhash, hashSize2, &hashSize2,
 			      MYSQL_TYPE_BLOB, data, lsize, &lsize, 
@@ -1427,7 +1433,7 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
              " prio INT(11) UNSIGNED NOT NULL DEFAULT 0,"
              " anonLevel INT(11) UNSIGNED NOT NULL DEFAULT 0,"
              " expire BIGINT UNSIGNED NOT NULL DEFAULT 0,"
-             " rvalue BIGINT UNSIGNED NOT NULL,"
+             " rvalue DOUBLE UNSIGNED NOT NULL,"
              " hash BINARY(64) NOT NULL DEFAULT '',"
              " vhash BINARY(64) NOT NULL DEFAULT '',"
              " value BLOB NOT NULL DEFAULT '',"
