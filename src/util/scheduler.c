@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      (C) 2009 Christian Grothoff (and other contributing authors)
+      (C) 2009, 2011 Christian Grothoff (and other contributing authors)
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -786,9 +786,11 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
                                      task_cls,
                                      GNUNET_SCHEDULER_REASON_STARTUP);
 #if ENABLE_WINDOWS_WORKAROUNDS
+  active_task = (void*) (long) -1; /* force passing of sanity check */
   GNUNET_SCHEDULER_add_now_with_lifeness (GNUNET_NO,
 					  &GNUNET_OS_install_parent_control_handler,
 					  NULL);
+  active_task = NULL;
 #endif
   last_tr = 0;
   busy_wait_warning = 0;
