@@ -167,19 +167,32 @@ static void
 create_indices (sqlite3 * dbh)
 {
   /* create indices */
-  sqlite3_exec (dbh,
-                "CREATE INDEX idx_hash ON gn090 (hash)", NULL, NULL, NULL);
-  sqlite3_exec (dbh,
-                "CREATE INDEX idx_hash_vhash ON gn090 (hash,vhash)", NULL,
-                NULL, NULL);
-  sqlite3_exec (dbh, "CREATE INDEX idx_expire_repl ON gn090 (expire ASC,repl DESC)", NULL, NULL,
-                NULL);
-  sqlite3_exec (dbh, "CREATE INDEX idx_comb ON gn090 (anonLevel ASC,expire ASC,prio,type,hash)",
-                NULL, NULL, NULL);
-  sqlite3_exec (dbh, "CREATE INDEX idx_expire ON gn090 (expire)",
-                NULL, NULL, NULL);
-  sqlite3_exec (dbh, "CREATE INDEX idx_repl_rvalue ON gn090 (repl,rvalue)",
-                NULL, NULL, NULL);
+  if ( (SQLITE_OK !=
+	sqlite3_exec (dbh,
+		      "CREATE INDEX IF NOT EXISTS idx_hash ON gn090 (hash)", NULL, NULL, NULL)) ||
+       (SQLITE_OK !=
+	sqlite3_exec (dbh,
+		      "CREATE INDEX IF NOT EXISTS idx_hash_vhash ON gn090 (hash,vhash)", NULL,
+		      NULL, NULL)) ||
+       (SQLITE_OK !=
+	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS idx_expire_repl ON gn090 (expire ASC,repl DESC)", NULL, NULL,
+		      NULL)) ||
+       (SQLITE_OK != 
+	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS idx_comb ON gn090 (anonLevel ASC,expire ASC,prio,type,hash)",
+		      NULL, NULL, NULL)) ||
+       (SQLITE_OK != 
+	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS idx_expire ON gn090 (expire)",
+		      NULL, NULL, NULL)) ||
+       (SQLITE_OK !=
+	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS idx_repl_rvalue ON gn090 (repl,rvalue)",
+		      NULL, NULL, NULL)) ||
+       (SQLITE_OK !=
+	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS idx_repl ON gn090 (repl DESC)",
+		      NULL, NULL, NULL)) )
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+		     "sqlite",
+		     "Failed to create indices: %s\n",
+		     sqlite3_errmsg (dbh));
 }
 
 
@@ -313,10 +326,42 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
       (sq_prepare (plugin->dbh,
                    "UPDATE gn090 SET repl = MAX (0, repl - 1) WHERE _ROWID_ = ?",
                    &plugin->updRepl) != SQLITE_OK) ||
+#if 1
+      /* FIXME: this is the O(n) version */
+       (sq_prepare (plugin->dbh,
+		    "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn090"
+		    " ORDER BY repl DESC, Random() LIMIT 1",
+		    &plugin->selRepl) != SQLITE_OK) ||
+#elif 0
+      /* FIXME: this gives O(n) queries, presumably because the LEFT JOIN generates
+	 a temporary table with all matching expressions before the ORDER BY and LIMIT
+	 clauses are applied */
       (sq_prepare (plugin->dbh,
-		   "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn090"
-		   " ORDER BY repl DESC, Random() LIMIT 1",
+		   "SELECT type,prio,anonLevel,expire,hash,value,gn090._ROWID_ "
+		   "FROM (SELECT random() AS v) AS t1,"
+		   "     (SELECT MAX(repl) AS m FROM gn090 INDEXED BY idx_repl) AS t2 "
+		   "     LEFT JOIN gn090 INDEXED BY idx_repl_rvalue"
+		   "     ON repl=t2.m AND"
+		   "        (rvalue>=t1.v OR"
+		   "        NOT EXISTS (SELECT 1 FROM gn090 INDEXED BY idx_repl_rvalue WHERE repl=t2.m AND rvalue>=t1.v))"
+		   "     ORDER BY rvalue ASC"
+		   "     LIMIT 1 ",
                    &plugin->selRepl) != SQLITE_OK) ||
+#else
+      /* NOTE: this fails, because sqlite doesn't link the t2.m (or the t1.v) to the temporary result from before 
+	 (parse error during preparation) */
+      (sq_prepare (plugin->dbh,
+		   "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ "
+		   "FROM (SELECT random() AS v) AS t1,"
+		   "     (SELECT MAX(repl) AS m FROM gn090 INDEXED BY idx_repl) AS t2, "
+		   "     (SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn090 INDEXED BY idx_repl_rvalue"
+		   "        WHERE repl=t2.m AND" /* "no such column: t2.m" */
+		   "           (rvalue>=t1.v OR"
+		   "               NOT EXISTS (SELECT 1 FROM gn090 INDEXED BY idx_repl_rvalue WHERE repl=t2.m AND rvalue>=t1.v))"
+		   "      ORDER BY rvalue ASC"
+		   "      LIMIT 1)",
+                   &plugin->selRepl) != SQLITE_OK) ||
+#endif
       (sq_prepare (plugin->dbh,
 		   "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn090 "
 		   " WHERE NOT EXISTS (SELECT 1 FROM gn090 WHERE expire < ?1 LIMIT 1) OR expire < ?1 "
