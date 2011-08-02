@@ -1050,7 +1050,7 @@ receive_tcp_remote (void *cls __attribute__((unused)),
                            &s->addr, tunnel, state, (struct ip6_pkt *) buf);
       break;
     default:
-      GNUNET_assert (0);
+      return GNUNET_SYSERR;
       break;
     }
 
