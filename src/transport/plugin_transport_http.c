@@ -2613,7 +2613,7 @@ http_plugin_send (void *cls,
 	  ps->send_force_disconnect = GNUNET_NO;
 	  ps->pending_msgs_head = NULL;
 	  ps->pending_msgs_tail = NULL;
-	  ps->peercontext=pc;
+	  ps->peercontext = pc;
 	  ps->session_id = pc->session_id_counter;
 	  ps->queue_length_cur = 0;
 	  ps->queue_length_max = GNUNET_SERVER_MAX_MESSAGE_SIZE;

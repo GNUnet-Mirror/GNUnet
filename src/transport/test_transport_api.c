@@ -296,14 +296,9 @@ setup_peer (struct PeerContext *p,
 
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
   if (GNUNET_CONFIGURATION_have_value (p->cfg,"PATHS", "SERVICEHOME"))
-    {
-      GNUNET_assert (GNUNET_OK == 
-		     GNUNET_CONFIGURATION_get_value_string (p->cfg,
-							    "PATHS",
-							    "SERVICEHOME", 
-							    &p->servicehome));
-      GNUNET_DISK_directory_remove (p->servicehome);
-    }
+      GNUNET_CONFIGURATION_get_value_string (p->cfg, "PATHS", "SERVICEHOME", &p->servicehome);
+  if (NULL != p->servicehome)
+    GNUNET_DISK_directory_remove (p->servicehome);    
 
 #if START_ARM
   p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
@@ -315,8 +310,6 @@ setup_peer (struct PeerContext *p,
 #endif
 
 
-  if (GNUNET_CONFIGURATION_have_value (p->cfg,"PATHS", "SERVICEHOME"))
-      GNUNET_CONFIGURATION_get_value_string (p->cfg, "PATHS", "SERVICEHOME", &p->servicehome);
 
   if (is_https)
     {
