@@ -385,8 +385,8 @@ receive_hello (void *cls,
         {
           if (ntohs (ports[i]) == tunnel->tunnel.application_type)
             {
-              GNUNET_CONTAINER_DLL_remove (handle->pending_tunnels.head,
-                                           handle->pending_tunnels.tail,
+              GNUNET_CONTAINER_DLL_remove (handle->pending_by_type_tunnels.head,
+                                           handle->pending_by_type_tunnels.tail,
                                            tunnel);
               GNUNET_CONTAINER_DLL_insert_after (handle->established_tunnels.
                                                  head,
