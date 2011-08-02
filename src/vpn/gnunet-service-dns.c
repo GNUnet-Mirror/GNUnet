@@ -302,6 +302,7 @@ mesh_send (void *cls, size_t size, void *buf)
                                                                                  element->cb, element->cls);
       /* save the handle */
       GNUNET_MESH_tunnel_set_data(cls_->tunnel, th);
+      GNUNET_free(element);
     }
 
   return size;
@@ -734,6 +735,8 @@ receive_query(void *cls __attribute__((unused)),
     query_states[dns->s.id].local_port = pkt->src_port;
     query_states[dns->s.id].remote_ip = pkt->orig_to;
     query_states[dns->s.id].namelen = strlen((char*)dns->data) + 1;
+    if (query_states[dns->s.id].name != NULL)
+      GNUNET_free(query_states[dns->s.id].name);
     query_states[dns->s.id].name = GNUNET_malloc(query_states[dns->s.id].namelen);
     memcpy(query_states[dns->s.id].name, dns->data, query_states[dns->s.id].namelen);
 
@@ -859,7 +862,7 @@ receive_query(void *cls __attribute__((unused)),
         memcpy(&cls_->dns, dns, cls_->hdr.size - sizeof(struct GNUNET_MessageHeader));
         GNUNET_SCHEDULER_add_now(send_mesh_query, cls_);
 
-        goto out;
+        goto outfree;
       }
 
 

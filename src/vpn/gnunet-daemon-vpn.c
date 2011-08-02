@@ -291,6 +291,7 @@ send_pkt_to_peer_notify_callback (void *cls, size_t size, void *buf)
                                                                                  send_pkt_to_peer_notify_callback, element->cls);
       /* save the handle */
       GNUNET_MESH_tunnel_set_data(*tunnel, th);
+      GNUNET_free(element);
     }
   GNUNET_free (cls);
 
