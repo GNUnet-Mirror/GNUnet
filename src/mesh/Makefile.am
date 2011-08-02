@@ -45,7 +45,8 @@ libgnunetmeshnew_la_LDFLAGS = \
   -version-info 0:0:0
 
 check_PROGRAMS = \
- test_mesh_api
+ test_mesh_api \
+ test_mesh_small
 
 test_mesh_api_SOURCES = \
  test_mesh_api.c
@@ -54,6 +55,15 @@ test_mesh_api_LDADD = \
  $(top_builddir)/src/mesh/libgnunetmeshnew.la \
  $(top_builddir)/src/dht/libgnunetdht.la
 test_mesh_api_DEPENDENCIES = \
+  libgnunetmeshnew.la
+
+test_mesh_small_SOURCES = \
+ test_mesh_small.c
+test_mesh_small_LDADD = \
+  $(top_builddir)/src/mesh/libgnunetmeshnew.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la
+test_mesh_small_DEPENDENCIES = \
   libgnunetmeshnew.la
 
 if ENABLE_TEST_RUN
