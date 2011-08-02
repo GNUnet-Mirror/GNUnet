@@ -778,6 +778,8 @@ pkgconfig/gnunetdv.pc
 pkgconfig/gnunetfragmentation.pc
 pkgconfig/gnunetfs.pc
 pkgconfig/gnunethello.pc
+pkgconfig/gnunetnat.pc
+pkgconfig/gnunetnse.pc
 pkgconfig/gnunetpeerinfo.pc
 pkgconfig/gnunetstatistics.pc
 pkgconfig/gnunettesting.pc
