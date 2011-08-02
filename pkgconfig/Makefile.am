@@ -10,6 +10,7 @@ pcfiles = \
        gnunetfragmentation.pc \
        gnunetfs.pc \
        gnunethello.pc \
+       gnunetnse.pc \
        gnunetpeerinfo.pc \
        gnunetstatistics.pc \
        gnunettesting.pc \
@@ -40,6 +41,7 @@ EXTRA_DIST = \
        gnunetfragmentation.pc.in \
        gnunetfs.pc.in \
        gnunethello.pc.in \
+       gnunetnse.pc.in \
        gnunetpeerinfo.pc.in \
        gnunetstatistics.pc.in \
        gnunettesting.pc.in \
