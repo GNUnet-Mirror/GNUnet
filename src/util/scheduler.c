@@ -788,7 +788,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
 #if ENABLE_WINDOWS_WORKAROUNDS
   GNUNET_SCHEDULER_add_now_with_lifeness (GNUNET_NO,
 					  &GNUNET_OS_install_parent_control_handler,
-					  NULL, GNUNET_SCHEDULER_REASON_STARTUP);
+					  NULL);
 #endif
   last_tr = 0;
   busy_wait_warning = 0;
