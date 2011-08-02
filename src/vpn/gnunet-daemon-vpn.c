@@ -453,7 +453,7 @@ new_ip4addr_remote (unsigned char *buf, unsigned char *addr, char addrlen)
   else
     GNUNET_assert(0);
 
-  memcpy (buf + c, addr, GNUNET_MIN (addrlen, c));
+  memcpy (buf + c, addr, GNUNET_MIN (addrlen, 4-c));
 }
 /*}}}*/
 
