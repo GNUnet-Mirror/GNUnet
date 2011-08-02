@@ -326,13 +326,13 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
       (sq_prepare (plugin->dbh,
                    "UPDATE gn090 SET repl = MAX (0, repl - 1) WHERE _ROWID_ = ?",
                    &plugin->updRepl) != SQLITE_OK) ||
-#if 1
+#if 0
       /* FIXME: this is the O(n) version */
        (sq_prepare (plugin->dbh,
 		    "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn090"
 		    " ORDER BY repl DESC, Random() LIMIT 1",
 		    &plugin->selRepl) != SQLITE_OK) ||
-#elif 0
+#elif 1
       /* FIXME: this gives O(n) queries, presumably because the LEFT JOIN generates
 	 a temporary table with all matching expressions before the ORDER BY and LIMIT
 	 clauses are applied */
@@ -375,7 +375,7 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
       (sq_prepare (plugin->dbh,
                    "INSERT INTO gn090 (repl, type, prio, "
                    "anonLevel, expire, rvalue, hash, vhash, value) "
-                   "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                   "VALUES (?, ?, ?, ?, ?, RANDOM(), ?, ?, ?)",
                    &plugin->insertContent) != SQLITE_OK) ||
       (sq_prepare (plugin->dbh,
                    "DELETE FROM gn090 WHERE _ROWID_ = ?",
@@ -524,7 +524,6 @@ sqlite_plugin_put (void *cls,
   int ret;
   sqlite3_stmt *stmt;
   GNUNET_HashCode vhash;
-  uint64_t rvalue;
 
   if (size > MAX_ITEM_SIZE)
     return GNUNET_SYSERR;
@@ -540,21 +539,19 @@ sqlite_plugin_put (void *cls,
 #endif
   GNUNET_CRYPTO_hash (data, size, &vhash);
   stmt = plugin->insertContent;
-  rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
   if ((SQLITE_OK != sqlite3_bind_int (stmt, 1, replication)) ||
       (SQLITE_OK != sqlite3_bind_int (stmt, 2, type)) ||
       (SQLITE_OK != sqlite3_bind_int (stmt, 3, priority)) ||
       (SQLITE_OK != sqlite3_bind_int (stmt, 4, anonymity)) ||
       (SQLITE_OK != sqlite3_bind_int64 (stmt, 5, expiration.abs_value)) ||
-      (SQLITE_OK != sqlite3_bind_int64 (stmt, 6, rvalue)) ||
       (SQLITE_OK !=
-       sqlite3_bind_blob (stmt, 7, key, sizeof (GNUNET_HashCode),
+       sqlite3_bind_blob (stmt, 6, key, sizeof (GNUNET_HashCode),
                           SQLITE_TRANSIENT)) ||
       (SQLITE_OK !=
-       sqlite3_bind_blob (stmt, 8, &vhash, sizeof (GNUNET_HashCode),
+       sqlite3_bind_blob (stmt, 7, &vhash, sizeof (GNUNET_HashCode),
                           SQLITE_TRANSIENT))
       || (SQLITE_OK !=
-          sqlite3_bind_blob (stmt, 9, data, size,
+          sqlite3_bind_blob (stmt, 8, data, size,
                              SQLITE_TRANSIENT)))
     {
       LOG_SQLITE (plugin,
