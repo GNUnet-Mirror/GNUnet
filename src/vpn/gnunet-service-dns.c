@@ -44,11 +44,6 @@
 struct GNUNET_MESH_Handle *mesh_handle;
 
 /**
- * The tunnel to send queries
- */
-static struct GNUNET_MESH_Tunnel* dns_tunnel;
-
-/**
  * The UDP-Socket through which DNS-Resolves will be sent if they are not to be
  * sent through gnunet. The port of this socket will not be hijacked.
  */
@@ -360,14 +355,13 @@ send_mesh_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   struct tunnel_cls *cls_ = (struct tunnel_cls*)cls;
 
-  if (NULL == dns_tunnel)
-    dns_tunnel = GNUNET_MESH_peer_request_connect_by_type(mesh_handle,
-                                                          GNUNET_TIME_UNIT_HOURS,
-                                                          GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER,
-                                                          mesh_connect,
-                                                          NULL,
-                                                          cls_);
-  cls_->tunnel = dns_tunnel;
+  cls_->tunnel = GNUNET_MESH_peer_request_connect_by_type(mesh_handle,
+                                           GNUNET_TIME_UNIT_HOURS,
+                                           GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER,
+                                           mesh_connect,
+                                           NULL,
+                                           cls_);
+
   remote_pending[cls_->dns.s.id] = cls_;
 }
 
