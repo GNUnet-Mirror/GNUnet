@@ -48,6 +48,8 @@ struct GNUNET_MESH_Handle *mesh_handle;
  */
 static struct GNUNET_MESH_Tunnel* dns_tunnel;
 
+char dns_tunnel_connected;
+
 /**
  * The UDP-Socket through which DNS-Resolves will be sent if they are not to be
  * sent through gnunet. The port of this socket will not be hijacked.
@@ -230,6 +232,7 @@ mesh_send_response (void *cls, size_t size, void *buf)
   struct GNUNET_MessageHeader *hdr = buf;
   uint32_t *sz = cls;
   struct GNUNET_MESH_Tunnel **tunnel = (struct GNUNET_MESH_Tunnel**)(sz+1);
+  GNUNET_MESH_tunnel_set_data(*tunnel, NULL);
   struct dns_pkt *dns = (struct dns_pkt *) (tunnel + 1);
   hdr->type = htons (GNUNET_MESSAGE_TYPE_REMOTE_ANSWER_DNS);
   hdr->size = htons (*sz + sizeof (struct GNUNET_MessageHeader));
@@ -314,12 +317,17 @@ mesh_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
               const struct GNUNET_TRANSPORT_ATS_Information *atsi
               __attribute__ ((unused)))
 {
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "mesh_connect called with %x, %x\n", cls, peer);
+    return;
   if (NULL == peer)
     return;
   struct tunnel_cls *cls_ = (struct tunnel_cls *) cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connected to peer %s, sending query with id %d\n",
-              GNUNET_i2s (peer), ntohs (cls_->dns.s.id));
+  if ((struct GNUNET_PeerIdentity*)1 != peer)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Connected to peer %s, sending query with id %d\n",
+                GNUNET_i2s (peer), ntohs (cls_->dns.s.id));
+
+  dns_tunnel_connected = 1;
 
   if (NULL == GNUNET_MESH_tunnel_get_data (cls_->tunnel))
     {
@@ -351,6 +359,15 @@ mesh_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
     }
 }
 
+static void
+call_mesh_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+
+  mesh_connect (cls, (struct GNUNET_PeerIdentity *) 1, NULL);
+}
+
 
 static void
 send_mesh_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -360,13 +377,18 @@ send_mesh_query (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   struct tunnel_cls *cls_ = (struct tunnel_cls*)cls;
 
-  if (NULL == dns_tunnel)
-    dns_tunnel = GNUNET_MESH_peer_request_connect_by_type(mesh_handle,
+  if (NULL == dns_tunnel || dns_tunnel_connected == 0)
+    {
+      dns_tunnel = GNUNET_MESH_peer_request_connect_by_type(mesh_handle,
                                                           GNUNET_TIME_UNIT_HOURS,
                                                           GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER,
                                                           mesh_connect,
                                                           NULL,
                                                           cls_);
+    }
+  else
+    GNUNET_SCHEDULER_add_now(call_mesh_connect, cls_);
+
   cls_->tunnel = dns_tunnel;
   remote_pending[cls_->dns.s.id] = cls_;
 }
@@ -410,6 +432,8 @@ receive_mesh_answer (void *cls __attribute__((unused)),
 {
   /* TODo: size check */
   struct dns_pkt *dns = (struct dns_pkt *) (message + 1);
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "received dns-answer via %x, id=%d/%\nd\n", tunnel, dns->s.id, ntohs(dns->s.id));
 
   /* They sent us a packet we were not waiting for */
   if (remote_pending[dns->s.id] == NULL
