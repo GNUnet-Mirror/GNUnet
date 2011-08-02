@@ -615,8 +615,11 @@ notify_connect (void *cls,
     }
   if (connected == 2)
     {
-      GNUNET_SCHEDULER_cancel (tct);
-      tct = GNUNET_SCHEDULER_NO_TASK;
+      if (GNUNET_SCHEDULER_NO_TASK != tct)
+	{
+	  GNUNET_SCHEDULER_cancel (tct);
+	  tct = GNUNET_SCHEDULER_NO_TASK;
+	}
       GNUNET_TRANSPORT_get_hello_cancel (p2.th, &exchange_hello_last, &p2);
       GNUNET_TRANSPORT_get_hello_cancel (p1.th, &exchange_hello, &p1);
       if (is_asymmetric_send_constant == GNUNET_YES)
