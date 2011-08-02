@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      (C) 2009 Christian Grothoff (and other contributing authors)
+      (C) 2009, 2011 Christian Grothoff (and other contributing authors)
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -320,6 +320,26 @@ GNUNET_SCHEDULER_add_with_priority (enum GNUNET_SCHEDULER_Priority prio,
 GNUNET_SCHEDULER_TaskIdentifier
 GNUNET_SCHEDULER_add_now (GNUNET_SCHEDULER_Task task,
 			  void *task_cls);
+
+
+/**
+ * Schedule a new task to be run as soon as possible with the
+ * (transitive) ignore-shutdown flag either explicitly set or
+ * explicitly enabled.  This task (and all tasks created from it,
+ * other than by another call to this function) will either count or
+ * not count for the 'lifeness' of the process.  This API is only
+ * useful in a few special cases.
+ *
+ * @param lifeness GNUNET_YES if the task counts for lifeness, GNUNET_NO if not.
+ * @param task main function of the task
+ * @param task_cls closure of task
+ * @return unique task identifier for the job
+ *         only valid until "task" is started!
+ */
+GNUNET_SCHEDULER_TaskIdentifier
+GNUNET_SCHEDULER_add_now_with_lifeness (int lifeness,
+					GNUNET_SCHEDULER_Task task,
+					void *task_cls);
 
 
 /**

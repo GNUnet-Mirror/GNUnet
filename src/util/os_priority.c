@@ -51,7 +51,7 @@ static struct GNUNET_OS_Process current_process;
  * @param cls the 'struct GNUNET_DISK_FileHandle' of the control pipe
  * @param tc scheduler context
  */
-void
+static void
 parent_control_handler (void *cls,
 			const struct
 			GNUNET_SCHEDULER_TaskContext * tc)
@@ -718,12 +718,12 @@ GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
   cmdlen = 0;
   va_copy (ap, va);
   while (NULL != (arg = va_arg (ap, char *)))
-  {
+    {
       if (cmdlen == 0)
         cmdlen = cmdlen + strlen (path) + 3;
       else
         cmdlen = cmdlen + strlen (arg) + 3;
-  }
+    }
   va_end (ap);
 
   cmd = idx = GNUNET_malloc (sizeof (char) * (cmdlen + 1));
@@ -1243,6 +1243,7 @@ GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
 
   return GNUNET_OK;
 }
+
 
 /**
  * Wait for a process

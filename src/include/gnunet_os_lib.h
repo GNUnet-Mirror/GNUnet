@@ -313,7 +313,8 @@ GNUNET_OS_command_run (GNUNET_OS_LineProcessor proc,
 
 
 /**
- * Retrieve the status of a process
+ * Retrieve the status of a process.  Nonblocking version.
+ *
  * @param proc pointer to process structure
  * @param type status type
  * @param code return code/signal number
@@ -324,7 +325,12 @@ int GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
 
 
 /**
- * Wait for a process
+ * Wait for a process to terminate.  The return code is discarded.
+ * You must not use 'GNUNET_OS_process_status' on the same process
+ * after calling this function!  This function is blocking and should
+ * thus only be used if the child process is known to have terminated
+ * or to terminate very soon.
+ *
  * @param proc pointer to process structure of the process to wait for
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
@@ -339,13 +345,6 @@ GNUNET_OS_install_parent_control_handler (void *cls,
                                           const struct
                                           GNUNET_SCHEDULER_TaskContext * tc);
 
-/**
- * Called everty time the parent process sends a signal
- */
-void
-parent_control_handler (void *cls,
-			const struct
-			GNUNET_SCHEDULER_TaskContext * tc);
 
 /**
  * Check whether an executable exists and possibly

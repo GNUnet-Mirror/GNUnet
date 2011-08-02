@@ -149,6 +149,12 @@ struct Task
    * Set if we only wait for writing to a single FD, otherwise -1.
    */
   int write_fd;
+  
+  /**
+   * Should the existence of this task in the queue be counted as
+   * reason to not shutdown the scheduler?
+   */
+  int lifeness;
 
 #if EXECINFO
   /**
@@ -234,6 +240,10 @@ static enum GNUNET_SCHEDULER_Priority current_priority;
  */
 static enum GNUNET_SCHEDULER_Priority max_priority_added;
 
+/**
+ * Value of the 'lifeness' flag for the current task.
+ */
+static int current_lifeness;
 
 /**
  * Check that the given priority is legal (and return it).
@@ -614,6 +624,7 @@ run_ready (struct GNUNET_NETWORK_FDSet *rs,
 	  (void) GNUNET_OS_set_process_priority (GNUNET_OS_process_current (), 
 						 pos->priority);
 	}
+      current_lifeness = pos->lifeness;
       active_task = pos;
 #if PROFILE_DELAYS
       if (GNUNET_TIME_absolute_get_duration (pos->start_time).rel_value >
@@ -694,6 +705,34 @@ sighandler_shutdown ()
 
 
 /**
+ * Check if the system is still life. Trigger shutdown if we
+ * have tasks, but none of them give us lifeness.  
+ *
+ * @return GNUNET_OK to continue the main loop,
+ *         GNUNET_NO to exit
+ */
+static int
+check_lifeness()
+{
+  struct Task *t;
+  if (ready_count > 0)
+    return GNUNET_OK;
+  for (t = pending; NULL != t; t = t->next)
+    if (t->lifeness == GNUNET_YES)
+      return GNUNET_OK;
+  for (t = pending_timeout; NULL != t; t = t->next)
+    if (t->lifeness == GNUNET_YES)
+	return GNUNET_OK;
+  if ( (NULL != pending) || (NULL != pending_timeout) )
+    {
+      GNUNET_SCHEDULER_shutdown ();
+      return GNUNET_OK;
+    }
+  return GNUNET_NO;
+}
+
+
+/**
  * Initialize and run scheduler.  This function will return when all
  * tasks have completed.  On systems with signals, receiving a SIGTERM
  * (and other similar signals) will cause "GNUNET_SCHEDULER_shutdown"
@@ -742,22 +781,18 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
   shc_hup = GNUNET_SIGNAL_handler_install (SIGHUP, &sighandler_shutdown);
 #endif
   current_priority = GNUNET_SCHEDULER_PRIORITY_DEFAULT;
+  current_lifeness = GNUNET_YES;
   GNUNET_SCHEDULER_add_continuation (task,
                                      task_cls,
                                      GNUNET_SCHEDULER_REASON_STARTUP);
 #if ENABLE_WINDOWS_WORKAROUNDS
-  GNUNET_SCHEDULER_add_continuation (&GNUNET_OS_install_parent_control_handler,
-                                     NULL, GNUNET_SCHEDULER_REASON_STARTUP);
+  GNUNET_SCHEDULER_add_now_with_lifeness (GNUNET_NO,
+					  &GNUNET_OS_install_parent_control_handler,
+					  NULL, GNUNET_SCHEDULER_REASON_STARTUP);
 #endif
   last_tr = 0;
   busy_wait_warning = 0;
-  while ((pending != NULL
-#if ENABLE_WINDOWS_WORKAROUNDS
-          && (pending->callback != parent_control_handler || pending->next != NULL)
-#endif
-         ) ||
-	 (pending_timeout != NULL) ||
-	 (ready_count > 0))
+  while (GNUNET_OK == check_lifeness ())
     {
       GNUNET_NETWORK_fdset_zero (rs);
       GNUNET_NETWORK_fdset_zero (ws);
@@ -1008,6 +1043,7 @@ GNUNET_SCHEDULER_add_continuation (GNUNET_SCHEDULER_Task task,
 #endif
   t->reason = reason;
   t->priority = current_priority;
+  t->lifeness = current_lifeness;
 #if DEBUG_TASKS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Adding continuation task: %llu / %p\n",
@@ -1109,6 +1145,7 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_TIME_Relative delay,
 #endif
   t->timeout = GNUNET_TIME_relative_to_absolute (delay);
   t->priority = current_priority;
+  t->lifeness = current_lifeness;
   /* try tail first (optimization in case we are
      appending to a long list of tasks with timeouts) */
   prev = pending_timeout_last;
@@ -1176,12 +1213,43 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_TIME_Relative delay,
  */
 GNUNET_SCHEDULER_TaskIdentifier
 GNUNET_SCHEDULER_add_now (GNUNET_SCHEDULER_Task task,
-						  void *task_cls)
+			  void *task_cls)
 {
   return GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_KEEP,
                                       GNUNET_SCHEDULER_NO_TASK,
 				      GNUNET_TIME_UNIT_ZERO,
                                       NULL, NULL, task, task_cls);
+}
+
+
+/**
+ * Schedule a new task to be run as soon as possible with the
+ * (transitive) ignore-shutdown flag either explicitly set or
+ * explicitly enabled.  This task (and all tasks created from it,
+ * other than by another call to this function) will either count or
+ * not count for the 'lifeness' of the process.  This API is only
+ * useful in a few special cases.
+ *
+ * @param lifeness GNUNET_YES if the task counts for lifeness, GNUNET_NO if not.
+ * @param task main function of the task
+ * @param task_cls closure of task
+ * @return unique task identifier for the job
+ *         only valid until "task" is started!
+ */
+GNUNET_SCHEDULER_TaskIdentifier
+GNUNET_SCHEDULER_add_now_with_lifeness (int lifeness,
+					GNUNET_SCHEDULER_Task task,
+					void *task_cls)
+{
+  GNUNET_SCHEDULER_TaskIdentifier ret;
+
+  ret = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_KEEP,
+				     GNUNET_SCHEDULER_NO_TASK,
+				     GNUNET_TIME_UNIT_ZERO,
+				     NULL, NULL, task, task_cls);
+  GNUNET_assert (pending->id == ret);
+  pending->lifeness = lifeness;
+  return ret;
 }
 
 
@@ -1280,6 +1348,7 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
   t->prereq_id = GNUNET_SCHEDULER_NO_TASK;
   t->timeout = GNUNET_TIME_relative_to_absolute (delay);
   t->priority = check_priority (current_priority);
+  t->lifeness = current_lifeness;
   t->next = pending;
   pending = t;
   max_priority_added = GNUNET_MAX (max_priority_added,
@@ -1564,10 +1633,11 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
     check_priority ((prio ==
                      GNUNET_SCHEDULER_PRIORITY_KEEP) ? current_priority
                     : prio);
+  t->lifeness = current_lifeness;
   t->next = pending;
   pending = t;
   max_priority_added = GNUNET_MAX (max_priority_added,
-					  t->priority);
+				   t->priority);
 #if DEBUG_TASKS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Adding task: %llu / %p\n", t->id, t->callback_cls);
