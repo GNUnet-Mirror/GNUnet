@@ -313,8 +313,8 @@ mesh_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
     return;
   struct tunnel_cls *cls_ = (struct tunnel_cls *) cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connected to peer %s, sending query with id %d\n",
-              GNUNET_i2s (peer), ntohs (cls_->dns.s.id));
+              "Connected to peer %s, %x, sending query with id %d\n",
+              GNUNET_i2s (peer), peer, ntohs (cls_->dns.s.id));
 
   if (NULL == GNUNET_MESH_tunnel_get_data (cls_->tunnel))
     {
