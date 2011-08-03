@@ -762,7 +762,7 @@ send_core_data_to_origin (void *cls, size_t size, void *buf)
 
     GNUNET_assert(NULL != info);
     total_size = sizeof(struct GNUNET_MESH_DataMessageToOrigin) + info->size;
-    GNUNET_assert(total_size < (uint16_t) -1); /* FIXME */
+    GNUNET_assert(total_size < 65536); /* UNIT16_MAX */
 
     if (total_size > size) {
         GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
@@ -805,7 +805,7 @@ send_core_data_raw (void *cls, size_t size, void *buf)
                    "not enough buffer to send data futher\n");
         return 0;
     }
-    memcpy(msg, buf, total_size);
+    memcpy(buf, msg, total_size);
     return total_size;
 }
 

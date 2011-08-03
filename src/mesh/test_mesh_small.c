@@ -581,7 +581,7 @@ run (void *cls,
 				     GNUNET_DISK_PERM_USER_WRITE);
   if (data_file == NULL)
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING, 
-	       "Failed to open %s for output!\n", 
+	       "Failed to open %s for output!\n",
 	       data_filename);
   GNUNET_free(data_filename);
 
@@ -651,4 +651,4 @@ main (int argc, char *argv[])
   return ok;
 }
 
-/* end of nse-profiler.c */
+/* end of test_mesh_small.c */
