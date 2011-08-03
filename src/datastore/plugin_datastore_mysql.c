@@ -1555,7 +1555,7 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
              " INDEX idx_hash (hash(64)),"
              " INDEX idx_hash_uid (hash(64),uid),"
              " INDEX idx_hash_vhash (hash(64),vhash(64)),"
-             " INDEX idx_hash_type_rvalue (hash(64),type,rvalue),"
+             " INDEX idx_hash_type_uid (hash(64),type,rvalue),"
              " INDEX idx_prio (prio),"
              " INDEX idx_repl_rvalue (repl,rvalue),"
              " INDEX idx_expire (expire),"
