@@ -186,7 +186,7 @@ create_indices (sqlite3 * dbh)
 	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS idx_comb ON gn090 (anonLevel ASC,expire ASC,prio,type,hash)",
 		      NULL, NULL, NULL)) ||
        (SQLITE_OK != 
-	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS idx_anon_type_exp ON gn090 (anonLevel ASC,type,hash)",
+	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS idx_anon_type_hash ON gn090 (anonLevel ASC,type,hash)",
 		      NULL, NULL, NULL)) ||
        (SQLITE_OK != 
 	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS idx_expire ON gn090 (expire ASC)",
@@ -357,7 +357,7 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
                    &plugin->selExpi) != SQLITE_OK) ||
       (sq_prepare (plugin->dbh, 
 		   "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ "
-		   "FROM gn090 INDEXED BY idx_anon_type_exp "
+		   "FROM gn090 INDEXED BY idx_anon_type_hash "
 		   "WHERE (anonLevel = 0 AND type=?1) "
 		   "ORDER BY hash DESC LIMIT 1 OFFSET ?2",
 		   &plugin->selZeroAnon) != SQLITE_OK) ||

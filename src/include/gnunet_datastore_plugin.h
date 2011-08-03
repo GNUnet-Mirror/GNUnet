@@ -284,6 +284,9 @@ struct GNUNET_DATASTORE_PluginFunctions
 
   /**
    * Get datum (of the specified type) with anonymity level zero.
+   * This function is allowed to ignore the 'offset' argument
+   * and instead return a random result (with zero anonymity of
+   * the correct type) if implementing an offset is expensive.
    */
   PluginGetType get_zero_anonymity;
 
@@ -297,8 +300,9 @@ struct GNUNET_DATASTORE_PluginFunctions
   PluginGetRandom get_replication;
 
   /**
-   * Function to get a random expired item or, if none are expired, one
-   * with a low priority.
+   * Function to get a random expired item or, if none are expired,
+   * either the oldest entry or one with a low priority (depending
+   * on what was efficiently implementable).
    */
   PluginGetRandom get_expiration;
 

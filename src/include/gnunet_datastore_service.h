@@ -321,6 +321,10 @@ GNUNET_DATASTORE_get_key (struct GNUNET_DATASTORE_Handle *h,
 
 /**
  * Get a single zero-anonymity value from the datastore.
+ * Note that some implementations can ignore the 'offset' and
+ * instead return a random zero-anonymity value.  In that case,
+ * detecting the wrap-around based on a repeating UID is at best
+ * probabilistic.
  *
  * @param h handle to the datastore
  * @param offset offset of the result (modulo num-results); set to
