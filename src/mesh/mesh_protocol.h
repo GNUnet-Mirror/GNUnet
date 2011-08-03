@@ -151,6 +151,31 @@ struct GNUNET_MESH_DataMessageToOrigin
      */
 };
 
+
+/**
+ * Message for ack'ing a path
+ */
+struct GNUNET_MESH_PathACK
+{
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_PATH_ACK
+     */
+    struct GNUNET_MessageHeader header;
+
+    /**
+     * TID of the tunnel
+     */
+    uint32_t                    tid GNUNET_PACKED;
+
+    /**
+     * OID of the tunnel
+     */
+    struct GNUNET_PeerIdentity  oid;
+
+    /* TODO: signature */
+};
+
+
 /**
  * Message for mesh flow control
  */

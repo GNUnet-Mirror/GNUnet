@@ -825,6 +825,10 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_DATA_MESSAGE_TO_ORIGIN      262
 
+/**
+ * Send origin an ACK that the path is complete
+ */
+#define GNUNET_MESSAGE_TYPE_PATH_ACK                    263
 
 /**
  * We need flow control
