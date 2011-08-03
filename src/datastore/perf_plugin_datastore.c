@@ -37,7 +37,7 @@
  * those take too long to run them in the usual "make check"
  * sequence.  Hence the value used for shipping is tiny.
  */
-#define MAX_SIZE 1024LL * 1024 * 16
+#define MAX_SIZE 1024LL * 1024 * 16 * 1
 
 #define ITERATIONS 2
 
@@ -429,7 +429,6 @@ test (void *cls,
 				crc);
       break;
     case RP_DONE:
-      exit (0);
       crc->api->drop (crc->api->cls);
       ok = 0;
       GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,

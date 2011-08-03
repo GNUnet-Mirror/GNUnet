@@ -93,6 +93,11 @@ struct Plugin
   sqlite3_stmt *updPrio;
 
   /**
+   * Get maximum repl value in database.
+   */
+  sqlite3_stmt *maxRepl;
+
+  /**
    * Precompiled SQL for replication decrement.
    */
   sqlite3_stmt *updRepl;
@@ -181,7 +186,10 @@ create_indices (sqlite3 * dbh)
 	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS idx_comb ON gn090 (anonLevel ASC,expire ASC,prio,type,hash)",
 		      NULL, NULL, NULL)) ||
        (SQLITE_OK != 
-	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS idx_expire ON gn090 (expire)",
+	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS idx_anon_type_exp ON gn090 (anonLevel ASC,type,hash)",
+		      NULL, NULL, NULL)) ||
+       (SQLITE_OK != 
+	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS idx_expire ON gn090 (expire ASC)",
 		      NULL, NULL, NULL)) ||
        (SQLITE_OK !=
 	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS idx_repl_rvalue ON gn090 (repl,rvalue)",
@@ -321,61 +329,42 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
   create_indices (plugin->dbh);
 
   if ((sq_prepare (plugin->dbh,
-                   "UPDATE gn090 SET prio = prio + ?, expire = MAX(expire,?) WHERE _ROWID_ = ?",
+                   "UPDATE gn090 "
+		   "SET prio = prio + ?, expire = MAX(expire,?) WHERE _ROWID_ = ?",
                    &plugin->updPrio) != SQLITE_OK) ||
       (sq_prepare (plugin->dbh,
-                   "UPDATE gn090 SET repl = MAX (0, repl - 1) WHERE _ROWID_ = ?",
+                   "UPDATE gn090 "
+		   "SET repl = MAX (0, repl - 1) WHERE _ROWID_ = ?",
                    &plugin->updRepl) != SQLITE_OK) ||
-#if 0
-      /* FIXME: this is the O(n) version */
-       (sq_prepare (plugin->dbh,
-		    "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn090"
-		    " ORDER BY repl DESC, Random() LIMIT 1",
-		    &plugin->selRepl) != SQLITE_OK) ||
-#elif 1
-      /* FIXME: this gives O(n) queries, presumably because the LEFT JOIN generates
-	 a temporary table with all matching expressions before the ORDER BY and LIMIT
-	 clauses are applied */
-      (sq_prepare (plugin->dbh,
-		   "SELECT type,prio,anonLevel,expire,hash,value,gn090._ROWID_ "
-		   "FROM (SELECT random() AS v) AS t1,"
-		   "     (SELECT MAX(repl) AS m FROM gn090 INDEXED BY idx_repl) AS t2 "
-		   "     LEFT JOIN gn090 INDEXED BY idx_repl_rvalue"
-		   "     ON repl=t2.m AND"
-		   "        (rvalue>=t1.v OR"
-		   "        NOT EXISTS (SELECT 1 FROM gn090 INDEXED BY idx_repl_rvalue WHERE repl=t2.m AND rvalue>=t1.v))"
-		   "     ORDER BY rvalue ASC"
-		   "     LIMIT 1 ",
-                   &plugin->selRepl) != SQLITE_OK) ||
-#else
-      /* NOTE: this fails, because sqlite doesn't link the t2.m (or the t1.v) to the temporary result from before 
-	 (parse error during preparation) */
       (sq_prepare (plugin->dbh,
 		   "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ "
-		   "FROM (SELECT random() AS v) AS t1,"
-		   "     (SELECT MAX(repl) AS m FROM gn090 INDEXED BY idx_repl) AS t2, "
-		   "     (SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn090 INDEXED BY idx_repl_rvalue"
-		   "        WHERE repl=t2.m AND" /* "no such column: t2.m" */
-		   "           (rvalue>=t1.v OR"
-		   "               NOT EXISTS (SELECT 1 FROM gn090 INDEXED BY idx_repl_rvalue WHERE repl=t2.m AND rvalue>=t1.v))"
-		   "      ORDER BY rvalue ASC"
-		   "      LIMIT 1)",
+		   "FROM gn090 INDEXED BY idx_repl_rvalue "
+		   "WHERE repl=?2 AND"
+		   "      (rvalue>=?1 OR"
+		   "        NOT EXISTS (SELECT 1 FROM gn090 INDEXED BY idx_repl_rvalue WHERE repl=?2 AND rvalue>=?1 LIMIT 1))"
+		   "     ORDER BY rvalue ASC"
+		   "     LIMIT 1",
                    &plugin->selRepl) != SQLITE_OK) ||
-#endif
       (sq_prepare (plugin->dbh,
-		   "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn090 "
-		   " WHERE NOT EXISTS (SELECT 1 FROM gn090 WHERE expire < ?1 LIMIT 1) OR expire < ?1 "
-		   " ORDER BY prio ASC LIMIT 1",
+		   "SELECT MAX(repl) "
+		   "FROM gn090 INDEXED BY idx_repl_rvalue",
+                   &plugin->maxRepl) != SQLITE_OK) ||
+      (sq_prepare (plugin->dbh,
+		   "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ "
+		   "FROM gn090 INDEXED BY idx_expire"
+		   " WHERE NOT EXISTS (SELECT 1 FROM gn090 WHERE expire < ?1 LIMIT 1) OR (expire < ?1) "
+		   " ORDER BY expire ASC LIMIT 1",
                    &plugin->selExpi) != SQLITE_OK) ||
       (sq_prepare (plugin->dbh, 
-		   "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ FROM gn090 "
+		   "SELECT type,prio,anonLevel,expire,hash,value,_ROWID_ "
+		   "FROM gn090 INDEXED BY idx_anon_type_exp "
 		   "WHERE (anonLevel = 0 AND type=?1) "
 		   "ORDER BY hash DESC LIMIT 1 OFFSET ?2",
 		   &plugin->selZeroAnon) != SQLITE_OK) ||
       (sq_prepare (plugin->dbh,
                    "INSERT INTO gn090 (repl, type, prio, "
                    "anonLevel, expire, rvalue, hash, vhash, value) "
-                   "VALUES (?, ?, ?, ?, ?, RANDOM(), ?, ?, ?)",
+                   "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                    &plugin->insertContent) != SQLITE_OK) ||
       (sq_prepare (plugin->dbh,
                    "DELETE FROM gn090 WHERE _ROWID_ = ?",
@@ -411,6 +400,8 @@ database_shutdown (struct Plugin *plugin)
     sqlite3_finalize (plugin->updRepl);
   if (plugin->selRepl != NULL)
     sqlite3_finalize (plugin->selRepl);
+  if (plugin->maxRepl != NULL)
+    sqlite3_finalize (plugin->maxRepl);
   if (plugin->selExpi != NULL)
     sqlite3_finalize (plugin->selExpi);
   if (plugin->selZeroAnon != NULL)
@@ -524,6 +515,7 @@ sqlite_plugin_put (void *cls,
   int ret;
   sqlite3_stmt *stmt;
   GNUNET_HashCode vhash;
+  uint64_t rvalue;
 
   if (size > MAX_ITEM_SIZE)
     return GNUNET_SYSERR;
@@ -539,19 +531,21 @@ sqlite_plugin_put (void *cls,
 #endif
   GNUNET_CRYPTO_hash (data, size, &vhash);
   stmt = plugin->insertContent;
+  rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
   if ((SQLITE_OK != sqlite3_bind_int (stmt, 1, replication)) ||
       (SQLITE_OK != sqlite3_bind_int (stmt, 2, type)) ||
       (SQLITE_OK != sqlite3_bind_int (stmt, 3, priority)) ||
       (SQLITE_OK != sqlite3_bind_int (stmt, 4, anonymity)) ||
       (SQLITE_OK != sqlite3_bind_int64 (stmt, 5, expiration.abs_value)) ||
+      (SQLITE_OK != sqlite3_bind_int64 (stmt, 6, rvalue)) ||
       (SQLITE_OK !=
-       sqlite3_bind_blob (stmt, 6, key, sizeof (GNUNET_HashCode),
+       sqlite3_bind_blob (stmt, 7, key, sizeof (GNUNET_HashCode),
                           SQLITE_TRANSIENT)) ||
       (SQLITE_OK !=
-       sqlite3_bind_blob (stmt, 7, &vhash, sizeof (GNUNET_HashCode),
+       sqlite3_bind_blob (stmt, 8, &vhash, sizeof (GNUNET_HashCode),
                           SQLITE_TRANSIENT))
       || (SQLITE_OK !=
-          sqlite3_bind_blob (stmt, 8, data, size,
+          sqlite3_bind_blob (stmt, 9, data, size,
                              SQLITE_TRANSIENT)))
     {
       LOG_SQLITE (plugin,
@@ -1040,6 +1034,9 @@ sqlite_plugin_get_replication (void *cls,
 {
   struct Plugin *plugin = cls;
   struct ReplCtx rc;
+  uint64_t rvalue;
+  uint32_t repl;
+  sqlite3_stmt *stmt;
 
 #if DEBUG_SQLITE
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
@@ -1049,7 +1046,48 @@ sqlite_plugin_get_replication (void *cls,
   rc.have_uid = GNUNET_NO;
   rc.proc = proc;
   rc.proc_cls = proc_cls;
-  execute_get (plugin, plugin->selRepl, &repl_proc, &rc); 
+  stmt = plugin->maxRepl;
+  if (SQLITE_ROW != sqlite3_step (stmt))
+    {
+      if (SQLITE_OK != sqlite3_reset (stmt))
+	LOG_SQLITE (plugin, NULL,
+		    GNUNET_ERROR_TYPE_ERROR |
+		    GNUNET_ERROR_TYPE_BULK, "sqlite3_reset");
+      /* DB empty */
+      proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 
+	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
+      return;
+    }
+  repl = sqlite3_column_int (stmt, 0);
+  if (SQLITE_OK != sqlite3_reset (stmt))
+    LOG_SQLITE (plugin, NULL,
+		GNUNET_ERROR_TYPE_ERROR |
+		GNUNET_ERROR_TYPE_BULK, "sqlite3_reset");
+  stmt = plugin->selRepl;
+  rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
+  if (SQLITE_OK != sqlite3_bind_int64 (stmt, 1, rvalue))
+    {
+      LOG_SQLITE (plugin, NULL,		  
+                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "sqlite3_bind_XXXX");
+      if (SQLITE_OK != sqlite3_reset (stmt))
+        LOG_SQLITE (plugin, NULL,
+                    GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "sqlite3_reset");
+      proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 
+	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
+      return;
+    }
+  if (SQLITE_OK != sqlite3_bind_int (stmt, 2, repl))
+    {
+      LOG_SQLITE (plugin, NULL,		  
+                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "sqlite3_bind_XXXX");
+      if (SQLITE_OK != sqlite3_reset (stmt))
+        LOG_SQLITE (plugin, NULL,
+                    GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "sqlite3_reset");
+      proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 
+	    GNUNET_TIME_UNIT_ZERO_ABS, 0);
+      return;
+    }
+  execute_get (plugin, stmt, &repl_proc, &rc); 
   if (GNUNET_YES == rc.have_uid)
     {
       if (SQLITE_OK !=
