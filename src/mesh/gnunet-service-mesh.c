@@ -718,6 +718,7 @@ send_core_create_path_for_peer (void *cls, size_t size, void *buf)
     return size_needed;
 }
 
+
 /**
  * FIXME / COMMENT
  * There are several options to send a "data to origin" or similar packet.
@@ -731,15 +732,29 @@ send_core_create_path_for_peer (void *cls, size_t size, void *buf)
  * 2. Create a helper function to build the packet, then call
  *    core_ntfy_trnsmt_rdy with message as cls.
  *    - # memcpy: 2 (in helper function data->msg and in callback cls->buf)
- * 3- Define new container, pass container with pointers
+ * 3. Define new container, pass container with pointers
  *    - # memcpy = 1 (in callback, cls->buf)
  *    - Noise: extra containers defined per type of message
+ * 4. Define a generic container with all possible fields, pass container
+ *    - # memcpy = 1 (in callback, cls->buf)
+ *    - Slight memory waste in malloc'ing the container with extra fields
  */
-struct info_for_data_to_origin
+struct MeshDataDescriptor
 {
+    /** ID of the tunnel this packet travels in */
     struct MESH_TunnelID        *origin;
+    
+    /** Ultimate destination of the packet */
+    GNUNET_PEER_Id              destination;
+    
+    /** Pointer to the data to transmit */
     void                        *data;
+    
+    /** Size of the data */
     size_t                      size;
+    
+    /** Client that asked for the transmission */
+    struct GNUNET_SERVER_Client *client;
 };
 
 /**
@@ -748,7 +763,7 @@ struct info_for_data_to_origin
  * NULL and "size" zero if the socket was closed for
  * writing in the meantime.
  *
- * @param cls closure (info_for_data_to_origin with all info to build packet)
+ * @param cls closure (MeshDataDescriptor with all info to build packet)
  * @param size number of bytes available in buf
  * @param buf where the callee should write the message
  * @return number of bytes written to buf
@@ -756,7 +771,7 @@ struct info_for_data_to_origin
 static size_t
 send_core_data_to_origin (void *cls, size_t size, void *buf)
 {
-    struct info_for_data_to_origin              *info = cls;
+    struct MeshDataDescriptor                   *info = cls;
     struct GNUNET_MESH_DataMessageToOrigin      *msg = buf;
     size_t                                      total_size;
 
@@ -776,9 +791,56 @@ send_core_data_to_origin (void *cls, size_t size, void *buf)
     if (0 != info->size && NULL != info->data) {
         memcpy(&msg[1], info->data, info->size);
     }
+    if (NULL != info->client) {
+        GNUNET_SERVER_receive_done(info->client, GNUNET_OK);
+    }
     GNUNET_free(info);
     return total_size;
 }
+
+
+/**
+ * Function called to notify a client about the socket
+ * being ready to queue more data.  "buf" will be
+ * NULL and "size" zero if the socket was closed for
+ * writing in the meantime.
+ *
+ * @param cls closure (data itself)
+ * @param size number of bytes available in buf
+ * @param buf where the callee should write the message
+ * @return number of bytes written to buf
+ */
+static size_t
+send_core_data_to_peer (void *cls, size_t size, void *buf)
+{
+    struct MeshDataDescriptor                   *info = cls;
+    struct GNUNET_MESH_DataMessageFromOrigin    *msg = buf;
+    size_t                                      total_size;
+
+    GNUNET_assert(NULL != info);
+    total_size = sizeof(struct GNUNET_MESH_DataMessageFromOrigin) + info->size;
+    GNUNET_assert(total_size < 65536); /* UNIT16_MAX */
+
+    if (total_size > size) {
+        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                   "not enough buffer to send data to peer\n");
+        return 0;
+    }
+    msg->header.size = htons(total_size);
+    msg->header.type = htons(GNUNET_MESSAGE_TYPE_DATA_MESSAGE_FROM_ORIGIN);
+    GNUNET_PEER_resolve(info->origin->oid, &msg->oid);
+    GNUNET_PEER_resolve(info->destination, &msg->destination);
+    msg->tid = htonl(info->origin->tid);
+    if (0 != info->size && NULL != info->data) {
+        memcpy(&msg[1], info->data, info->size);
+    }
+    if (NULL != info->client) {
+        GNUNET_SERVER_receive_done(info->client, GNUNET_OK);
+    }
+    GNUNET_free(info);
+    return total_size;
+}
+
 
 /**
  * Function called to notify a client about the socket
@@ -837,46 +899,6 @@ send_core_data_multicast (void *cls, size_t size, void *buf)
         return 0;
     }
     memcpy(msg, buf, total_size);
-    return total_size;
-}
-
-
-/**
- * Function called to notify a client about the socket
- * being ready to queue more data.  "buf" will be
- * NULL and "size" zero if the socket was closed for
- * writing in the meantime.
- *
- * @param cls closure (data itself)
- * @param size number of bytes available in buf
- * @param buf where the callee should write the message
- * @return number of bytes written to buf
- */
-static size_t
-send_core_data_to_peer (void *cls, size_t size, void *buf)
-{
-    struct info_for_data_to_origin              *info = cls;
-    struct GNUNET_MESH_DataMessageToOrigin      *msg = buf;
-    size_t                                      total_size;
-
-    GNUNET_assert(NULL != info);
-    total_size = sizeof(struct GNUNET_MESH_DataMessageToOrigin) + info->size;
-    /* FIXME better constant? short >= 16 bits, not == 16 bits... */
-    GNUNET_assert(total_size < USHRT_MAX);
-
-    if (total_size > size) {
-        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                   "not enough buffer to send data to origin\n");
-        return 0;
-    }
-    msg->header.size = htons(total_size);
-    msg->header.type = htons(GNUNET_MESSAGE_TYPE_DATA_MESSAGE_TO_ORIGIN);
-    GNUNET_PEER_resolve(info->origin->oid, &msg->oid);
-    msg->tid = htonl(info->origin->tid);
-    if (0 != info->size && NULL != info->data) {
-        memcpy(&msg[1], info->data, info->size);
-    }
-    GNUNET_free(info);
     return total_size;
 }
 
@@ -1095,16 +1117,17 @@ handle_mesh_path_create (void *cls,
         add_path_to_origin(orig_peer_info, path);           /* inverts path!  */
         GNUNET_PEER_resolve(get_first_hop(path), &id); /* path is inverted :) */
         /* FIXME / COMMENT 
-         * is it allowed/desired to declare variables this way?
+         * is it ok to declare variables this way?
          * (style, best practices, etc)
          * This variable is short lived and completely irrelevant for the rest
          * of the function
          */
-        struct info_for_data_to_origin *info =
-            GNUNET_malloc(sizeof(struct info_for_data_to_origin));
+        struct MeshDataDescriptor *info =
+            GNUNET_malloc(sizeof(struct MeshDataDescriptor     ));
         info->origin = &t->id;
         info->data = NULL;
         info->size = 0;
+        info->client = NULL;
         GNUNET_CORE_notify_transmit_ready(core_handle,
                                 0,
                                 0,
@@ -1944,6 +1967,7 @@ handle_local_network_traffic (void *cls,
     struct MeshPeerInfo                         *pi;
     struct GNUNET_MESH_Data                     *data_msg;
     struct GNUNET_PeerIdentity                  next_hop;
+    struct MeshDataDescriptor                   *info;
     MESH_TunnelNumber                           tid;
 
     /* Sanity check for client registration */
@@ -1954,7 +1978,7 @@ handle_local_network_traffic (void *cls,
     }
     data_msg = (struct GNUNET_MESH_Data *)message;
     /* Sanity check for message size */
-    if (sizeof(struct GNUNET_MESH_PeerControl) !=
+    if (sizeof(struct GNUNET_MESH_Data) >
             ntohs(data_msg->header.size))
     {
         GNUNET_break(0);
@@ -1990,6 +2014,12 @@ handle_local_network_traffic (void *cls,
         return;
     }
     GNUNET_PEER_resolve(get_first_hop(pi->path), &next_hop);
+    info = GNUNET_malloc(sizeof(struct MeshDataDescriptor));
+    info->data = &data_msg[1];
+    info->destination = pi->id;
+    info->origin = &t->id;
+    info->size = ntohs(data_msg->header.size) - sizeof(struct GNUNET_MESH_Data);
+    info->client = client;
     GNUNET_CORE_notify_transmit_ready(core_handle,
                             0,
                             0,
@@ -1998,10 +2028,8 @@ handle_local_network_traffic (void *cls,
                             /* FIXME re-check types */
                             message->size - sizeof(struct GNUNET_MESH_Data)
                             + sizeof(struct GNUNET_MESH_DataMessageFromOrigin),
-                            &send_core_data_to_origin, /* FIXME re-check */
-                            NULL);
-
-    GNUNET_SERVER_receive_done(client, GNUNET_OK); /* FIXME not yet */
+                            &send_core_data_to_peer,
+                            info);
     return;
 }
 
