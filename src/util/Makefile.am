@@ -32,6 +32,8 @@ gnunet_config_diff_SOURCES = \
  gnunet-config-diff.c
 gnunet_config_diff_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
+gnunet_config_diff_DEPENDENCIES = \
+ libgnunetutil.la
 
 
 lib_LTLIBRARIES = libgnunetutil.la

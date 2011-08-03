@@ -62,7 +62,7 @@ UNIX_QUOTA_TEST = test_quota_compliance_unix \
      test_quota_compliance_unix_asymmetric_recv_constant
 endif
 
-noinst_PROGRAMS = ${check_PROGRAMS} $(WLAN_BIN_DUMMY)
+noinst_PROGRAMS = $(WLAN_BIN_DUMMY)
 
 
 lib_LTLIBRARIES = \
