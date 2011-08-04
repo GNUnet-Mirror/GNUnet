@@ -74,7 +74,8 @@ test_nse_multipeer_SOURCES = \
 test_nse_multipeer_LDADD = \
   $(top_builddir)/src/nse/libgnunetnse.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  -lm
 
 EXTRA_DIST = \
   test_nse.conf 
