@@ -1228,6 +1228,8 @@ broadcast_my_type_map ()
 {  
   struct GNUNET_MessageHeader *hdr;
 
+  if (NULL == neighbours)
+    return;
   hdr = compute_type_map_message ();
   GNUNET_CONTAINER_multihashmap_iterate (neighbours,
 					 &send_type_map_to_neighbour,
