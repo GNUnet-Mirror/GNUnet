@@ -172,6 +172,11 @@ struct GNUNET_MESH_PathACK
      */
     struct GNUNET_PeerIdentity  oid;
 
+    /**
+     * ID of the endpoint
+     */
+    struct GNUNET_PeerIdentity  peer_id;
+
     /* TODO: signature */
 };
 

@@ -1450,6 +1450,79 @@ handle_mesh_data_to_orig (void *cls,
 
 
 /**
+ * Core handler for path ACKs
+ *
+ * @param cls closure
+ * @param message message
+ * @param peer peer identity this notification is about
+ * @param atsi performance data
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+static int
+handle_mesh_path_ack (void *cls,
+                          const struct GNUNET_PeerIdentity *peer,
+                          const struct GNUNET_MessageHeader *message,
+                          const struct GNUNET_TRANSPORT_ATS_Information
+                          *atsi)
+{
+    struct GNUNET_MESH_PathACK                  *msg;
+    struct GNUNET_PeerIdentity                  id;
+    struct MeshTunnel                           *t;
+    struct MeshPeerInfo                         *peer_info;
+
+    msg = (struct GNUNET_MESH_PathACK *) message;
+    t = retrieve_tunnel(&msg->oid, msg->tid);
+    if (NULL == t) {
+        /* TODO notify that we don't know the tunnel */
+        return GNUNET_OK;
+    }
+
+    /* Message for us? */
+    if (GNUNET_PEER_search(&msg->oid) == myid) {
+        struct GNUNET_MESH_PeerControl  pc;
+        if (NULL == t->client) {
+            GNUNET_break(0);
+            return GNUNET_OK;
+        }
+        peer_info = get_peer_info(&msg->peer_id);
+        if (NULL == peer_info) {
+            GNUNET_break_op(0);
+            return GNUNET_OK;
+        }
+        peer_info->state = MESH_PEER_READY;
+        pc.header.type = htons(GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_CONNECTED);
+        pc.header.size = htons(sizeof(struct GNUNET_MESH_PeerControl));
+        pc.tunnel_id = htonl(t->local_tid);
+        GNUNET_PEER_resolve(peer_info->id, &pc.peer);
+        GNUNET_SERVER_notification_context_unicast(nc,
+                                                   t->client->handle,
+                                                   &pc.header,
+                                                   GNUNET_NO);
+        return GNUNET_OK;
+    }
+
+    peer_info = get_peer_info(&msg->oid);
+    if (NULL == peer_info) {
+        /* If we know the tunnel, we should DEFINITELY know the peer */
+        GNUNET_break(0);
+        return GNUNET_OK;
+    }
+    GNUNET_PEER_resolve(get_first_hop(peer_info->path), &id);
+    msg = GNUNET_malloc(sizeof(struct GNUNET_MESH_PathACK));
+    memcpy(msg, message, sizeof(struct GNUNET_MESH_PathACK));
+    GNUNET_CORE_notify_transmit_ready(core_handle,
+                                      0,
+                                      0,
+                                      GNUNET_TIME_UNIT_FOREVER_REL,
+                                      &id,
+                                      sizeof(struct GNUNET_MESH_PathACK),
+                                      &send_core_data_raw,
+                                      msg);
+}
+
+
+/**
  * Functions to handle messages from core
  */
 static struct GNUNET_CORE_MessageHandler core_handlers[] = {
@@ -1457,6 +1530,8 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
   {&handle_mesh_data_unicast, GNUNET_MESSAGE_TYPE_DATA_MESSAGE_FROM_ORIGIN, 0},
   {&handle_mesh_data_multicast, GNUNET_MESSAGE_TYPE_DATA_MULTICAST, 0},
   {&handle_mesh_data_to_orig, GNUNET_MESSAGE_TYPE_DATA_MESSAGE_TO_ORIGIN, 0},
+  {&handle_mesh_path_ack, GNUNET_MESSAGE_TYPE_PATH_ACK,
+                          sizeof(struct GNUNET_MESH_PathACK)},
   {NULL, 0, 0}
 };
 
