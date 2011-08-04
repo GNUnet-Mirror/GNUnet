@@ -345,6 +345,11 @@ advertisement_cont (void *cls,
       GNUNET_SCHEDULER_add_continuation (&do_disconnect,
 					 ac->dsh,
 					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      if (msg == NULL)
+	{
+	  GNUNET_break (0);
+	  msg = _("Unknown error");
+	}
       if (ac->cont != NULL)
 	ac->cont (ac->cont_cls, NULL, msg);
       GNUNET_FS_uri_destroy (ac->ksk_uri);
