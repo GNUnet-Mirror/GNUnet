@@ -193,7 +193,7 @@ main (int argc, char *argv[])
                     "INFO",
 #endif
                     NULL);
-  tc = load_transport_configuration ("test.ats");
+  tc = load_transport_configuration ("test_transport_ats.data");
   ats = NULL;
   ret += init_ats ();
   ret += run_ats ();
