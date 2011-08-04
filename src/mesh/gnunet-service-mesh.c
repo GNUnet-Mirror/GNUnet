@@ -833,7 +833,7 @@ send_core_data_to_origin (void *cls, size_t size, void *buf)
  * @return number of bytes written to buf
  */
 static size_t
-send_core_data_to_peer (void *cls, size_t size, void *buf)
+send_core_data_unicast (void *cls, size_t size, void *buf)
 {
     struct MeshDataDescriptor                   *info = cls;
     struct GNUNET_MESH_DataMessageFromOrigin    *msg = buf;
@@ -849,7 +849,7 @@ send_core_data_to_peer (void *cls, size_t size, void *buf)
         return 0;
     }
     msg->header.size = htons(total_size);
-    msg->header.type = htons(GNUNET_MESSAGE_TYPE_DATA_MESSAGE_FROM_ORIGIN);
+    msg->header.type = htons(GNUNET_MESSAGE_TYPE_MESH_UNICAST);
     GNUNET_PEER_resolve(info->origin->oid, &msg->oid);
     GNUNET_PEER_resolve(info->destination, &msg->destination);
     msg->tid = htonl(info->origin->tid);
@@ -894,7 +894,7 @@ send_core_data_multicast (void *cls, size_t size, void *buf)
                    "not enough buffer to send data futher\n");
         return 0;
     }
-    msg->header.type = htons(GNUNET_MESSAGE_TYPE_DATA_MULTICAST);
+    msg->header.type = htons(GNUNET_MESSAGE_TYPE_MESH_MULTICAST);
     msg->header.size = htons(total_size);
     GNUNET_PEER_resolve(info->origin->oid, &msg->oid);
     msg->tid = htonl(info->origin->tid);
@@ -934,7 +934,7 @@ send_core_path_ack (void *cls, size_t size, void *buf) {
         return 0;
     }
     msg->header.size = htons(sizeof(struct GNUNET_MESH_PathACK));
-    msg->header.type = htons(GNUNET_MESSAGE_TYPE_PATH_ACK);
+    msg->header.type = htons(GNUNET_MESSAGE_TYPE_MESH_PATH_ACK);
     GNUNET_PEER_resolve(info->origin->oid, &msg->oid);
     msg->tid = htonl(info->origin->tid);
     GNUNET_PEER_resolve(myid, &msg->peer_id);
@@ -1526,10 +1526,10 @@ handle_mesh_path_ack (void *cls,
  */
 static struct GNUNET_CORE_MessageHandler core_handlers[] = {
   {&handle_mesh_path_create, GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE, 0},
-  {&handle_mesh_data_unicast, GNUNET_MESSAGE_TYPE_DATA_MESSAGE_FROM_ORIGIN, 0},
-  {&handle_mesh_data_multicast, GNUNET_MESSAGE_TYPE_DATA_MULTICAST, 0},
-  {&handle_mesh_data_to_orig, GNUNET_MESSAGE_TYPE_DATA_MESSAGE_TO_ORIGIN, 0},
-  {&handle_mesh_path_ack, GNUNET_MESSAGE_TYPE_PATH_ACK,
+  {&handle_mesh_data_unicast, GNUNET_MESSAGE_TYPE_MESH_UNICAST, 0},
+  {&handle_mesh_data_multicast, GNUNET_MESSAGE_TYPE_MESH_MULTICAST, 0},
+  {&handle_mesh_data_to_orig, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN, 0},
+  {&handle_mesh_path_ack, GNUNET_MESSAGE_TYPE_MESH_PATH_ACK,
                           sizeof(struct GNUNET_MESH_PathACK)},
   {NULL, 0, 0}
 };
@@ -2217,7 +2217,7 @@ handle_local_network_traffic (void *cls,
                             /* FIXME re-check types */
                             message->size - sizeof(struct GNUNET_MESH_Data)
                             + sizeof(struct GNUNET_MESH_DataMessageFromOrigin),
-                            &send_core_data_to_peer,
+                            &send_core_data_unicast,
                             info);
     return;
 }
@@ -2298,9 +2298,11 @@ static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_BY_TYPE,
    sizeof(struct GNUNET_MESH_ConnectPeerByType)},
   {&handle_local_network_traffic, NULL,
-   GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA, 0},
+   GNUNET_MESSAGE_TYPE_MESH_UNICAST, 0},
+  {&handle_local_network_traffic, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN, 0},
   {&handle_local_network_traffic_bcast, NULL,
-   GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA_BROADCAST, 0},
+   GNUNET_MESSAGE_TYPE_MESH_MULTICAST, 0},
   {NULL, NULL, 0, 0}
 };
 

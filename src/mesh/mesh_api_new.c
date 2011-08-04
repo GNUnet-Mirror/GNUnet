@@ -118,7 +118,12 @@ struct GNUNET_MESH_Tunnel {
     /**
      * Local ID of the tunnel
      */
-    MESH_TunnelNumber                               tid;
+    MESH_TunnelNumber                           tid;
+
+    /**
+     * Owner of the tunnel
+     */
+    GNUNET_PEER_Id                              owner;
 
     /**
      * Callback to execute when peers connect to the tunnel
@@ -309,7 +314,7 @@ send_tunnel_create_packet (void *cls, size_t size, void *buf)
  * Process the new tunnel notification and add it to the tunnels in the handle
  * 
  * @param h     The mesh handle
- * @param msh   A message with the details of the new incoming tunnel
+ * @param msg   A message with the details of the new incoming tunnel
  */
 static void
 process_tunnel_create(struct GNUNET_MESH_Handle *h, 
@@ -320,9 +325,10 @@ process_tunnel_create(struct GNUNET_MESH_Handle *h,
 
     tid = ntohl(msg->tunnel_id);
     if (tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_MARK) {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
             "MESH: received an incoming tunnel with tid in local range (%X)\n",
             tid);
+        GNUNET_break_op(0);
         return; //FIXME abort? reconnect?
     }
     t = GNUNET_malloc(sizeof(struct GNUNET_MESH_Tunnel));
@@ -343,7 +349,7 @@ process_tunnel_create(struct GNUNET_MESH_Handle *h,
  * @param msh   A message encapsulating the data
  */
 static void
-process_incoming_data(struct GNUNET_MESH_Handle *h, 
+process_incoming_data(struct GNUNET_MESH_Handle *h,
                       const struct GNUNET_MESH_Data *msg)
 {
     const struct GNUNET_MESH_Data               *payload;
@@ -409,7 +415,9 @@ msg_received (void *cls, const struct GNUNET_MessageHeader * msg)
         case GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_DISCONNECTED:
             break;
         /* Notify of a new data packet in the tunnel */
-        case GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA:
+        case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
+        case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
+        case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
             process_incoming_data(h, (struct GNUNET_MESH_Data *)msg);
             break;
         /* We shouldn't get any other packages, log and ignore */

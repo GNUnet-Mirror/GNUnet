@@ -796,49 +796,49 @@ extern "C"
 
 
 /*******************************************************************************
- * MESH message types (WiP)
+ * MESH message types START (WiP)
  ******************************************************************************/
 
 /**
  * Request the creation of a path
  */
-#define GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE   256
+#define GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE            256
 
 /**
  * Request the modification of an existing path
  */
-#define GNUNET_MESSAGE_TYPE_MESH_PATH_CHANGE   257
+#define GNUNET_MESSAGE_TYPE_MESH_PATH_CHANGE            257
 
 /**
  * Request the addition to a new branch to a path
  */
-#define GNUNET_MESSAGE_TYPE_MESH_PATH_ADD      258
+#define GNUNET_MESSAGE_TYPE_MESH_PATH_ADD               258
 
 /**
  * At some point, the route will spontaneously change
  */
-#define GNUNET_MESSAGE_TYPE_MESH_PATH_CHANGED  259
+#define GNUNET_MESSAGE_TYPE_MESH_PATH_CHANGED           259
 
 /**
  * Transport data in the mesh (origin->end) unicast
  */
-#define GNUNET_MESSAGE_TYPE_DATA_MESSAGE_FROM_ORIGIN    260
+#define GNUNET_MESSAGE_TYPE_MESH_UNICAST                260
 
 /**
  * Transport data to all peers in a tunnel
  */
-#define GNUNET_MESSAGE_TYPE_DATA_MULTICAST              261
+#define GNUNET_MESSAGE_TYPE_MESH_MULTICAST              261
 
 /**
  * Transport data back in the mesh (end->origin)
  * (not sure if this is the right way, should be some other solution)
  */
-#define GNUNET_MESSAGE_TYPE_DATA_MESSAGE_TO_ORIGIN      262
+#define GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN              262
 
 /**
  * Send origin an ACK that the path is complete
  */
-#define GNUNET_MESSAGE_TYPE_PATH_ACK                    263
+#define GNUNET_MESSAGE_TYPE_MESH_PATH_ACK               263
 
 /**
  * We need flow control
@@ -848,27 +848,27 @@ extern "C"
 /**
  * Connect to the mesh service, specifying subscriptions
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT                  272
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT          272
 
 /**
  * Ask the mesh service to create a new tunnel
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE            273
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE    273
 
 /**
  * Ask the mesh service to destroy a tunnel
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY           274
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY   274
 
 /**
  * Ask the mesh service to add a peer to an existing tunnel
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD         275
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_ADD 275
 
 /**
  * Ask the mesh service to remove a peer from a tunnel
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_DEL         276
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_DEL 276
 
 /**
  * Ask the mesh service to add a peer offering a service to an existing tunnel
@@ -890,19 +890,6 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_DISCONNECTED        280
 
-/* FIXME needed? */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_REQUEST_TRANSMIT_READY   281
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_NOTIFY_TRANSMIT_READY    282
-
-/**
- * Message client <-> mesh service to transport payload
- */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA                     283
-
-/**
- * Message client->mesh to send data to all peers connected to a tunnel
- */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA_BROADCAST           284
 
 /**
  * 640kb should be enough for everybody
