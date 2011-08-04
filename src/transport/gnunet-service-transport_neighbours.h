@@ -31,10 +31,7 @@
 #include "gnunet_util_lib.h"
 
 // TODO:
-// - have a way to access the currently 'connected' session
-//   (for sending and to notice disconnect of it!)
-// - have a way to access/update bandwidth/quota information per peer
-//   (for CostReport/TrafficReport callbacks)
+// - ATS and similar info is a bit lacking in the API right now...
 
 
 
@@ -75,6 +72,42 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target);
  */
 int
 GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target);
+
+
+/**
+ * Function called after the transmission is done.
+ *
+ * @param cls closure
+ * @param success GNUNET_OK on success, GNUNET_NO on failure
+ */
+typedef void (*GST_NeighbourSendContinuation)(void *cls,
+					      int success);
+
+
+/**
+ * Transmit a message to the given target using the active connection.
+ *
+ * @param target destination
+ * @param msg message to send
+ * @param cont function to call when done
+ * @param cont_cls closure for 'cont'
+ */
+void
+GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
+		     const struct GNUNET_MessageHeader *msg,
+		     GST_NeighbourSendContinuation cont,
+		     void *cont_cls);
+
+/**
+ * Change the quota for the given peer.
+ * FIXME: inbound or outbound quota?
+ *
+ * @param neighbour identity of peer to change qutoa for
+ * @param quota new quota FIXME: fix type!
+ */
+void
+GST_neighbours_set_quota (const struct GNUNET_PeerIdentity *neighbour,
+			  const float quota);
 
 
 /**
