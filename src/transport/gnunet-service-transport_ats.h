@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2010,2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -23,8 +23,8 @@
  * @brief common internal definitions for transport service's ats code
  * @author Matthias Wachs
  */
-#ifndef TRANSPORT_ATS_H
-#define TRANSPORT_ATS_H
+#ifndef GNUNET_SERVICE_TRANSPORT_ATS_H
+#define GNUNET_SERVICE_TRANSPORT_ATS_H
 
 #include "platform.h"
 #include "gnunet_constants.h"
