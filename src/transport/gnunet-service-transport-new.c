@@ -27,6 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_peerinfo_service.h"
 #include "gnunet-service-transport.h"
 #include "gnunet-service-transport_blacklist.h"
 #include "gnunet-service-transport_clients.h"
@@ -53,14 +54,39 @@ const struct GNUNET_CONFIGURATION_Handle *GST_cfg;
 struct GNUNET_PeerIdentity GST_my_identity;
 
 /**
- * Our private key.
+ * Handle to peerinfo service.
  */
-static struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
+struct GNUNET_PEERINFO_Handle *GST_peerinfo;
 
 /**
  * Our public key.
  */
-static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded my_public_key;
+struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded GST_my_public_key;
+
+/**
+ * Our private key.
+ */
+static struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
+
+
+/**
+ * My HELLO has changed. Tell everyone who should know.
+ *
+ * @param cls unused
+ * @param hello new HELLO
+ */
+static void
+process_hello_update (void *cls,
+		      const struct GNUNET_MessageHeader *hello)
+{
+  GST_clients_broadcast (hello);
+#if 0
+  GNUNET_CONTAINER_multihashmap_iterate (neighbours,
+					 &transmit_our_hello_if_pong,
+					 NULL);
+#endif
+}
+
 
 /**
  * Function called when the service shuts down.  Unloads our plugins
@@ -73,6 +99,13 @@ static void
 shutdown_task (void *cls, 
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GST_hello_stop ();
+
+  if (GST_peerinfo != NULL)
+    {
+      GNUNET_PEERINFO_disconnect (GST_peerinfo);
+      GST_peerinfo = NULL;
+    }
   if (GST_stats != NULL)
     {
       GNUNET_STATISTICS_destroy (GST_stats, GNUNET_NO);
@@ -128,11 +161,20 @@ run (void *cls,
       return;
     }
   GST_stats = GNUNET_STATISTICS_create ("transport", c);
-  GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
-  GNUNET_CRYPTO_hash (&my_public_key,
-                      sizeof (my_public_key), &GST_my_identity.hashPubKey);
+  GST_peerinfo = GNUNET_PEERINFO_connect (c);
+  GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &GST_my_public_key);
+  GNUNET_CRYPTO_hash (&GST_my_public_key,
+                      sizeof (GST_my_public_key), &GST_my_identity.hashPubKey);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &shutdown_task, NULL);
+  if (GST_peerinfo == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Could not access PEERINFO service.  Exiting.\n"));
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+  GST_hello_start (&process_hello_update, NULL);
 }
 
 

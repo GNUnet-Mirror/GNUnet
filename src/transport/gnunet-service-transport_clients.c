@@ -19,15 +19,12 @@
 */
 
 /**
- * @file transport/gnunet-service-transport_clients.h
+ * @file transport/gnunet-service-transport_clients.c
  * @brief plugin management API
  * @author Christian Grothoff
  */
-#ifndef GNUNET_SERVICE_TRANSPORT_CLIENTS_H
-#define GNUNET_SERVICE_TRANSPORT_CLIENTS_H
-
-#include "gnunet_statistics_service.h"
-#include "gnunet_util_lib.h"
+#include "platform.h"
+#include "gnunet-service-transport_clients.h"
 
 
 /**
@@ -36,14 +33,18 @@
  * @param server server used to accept clients from.
  */
 void 
-GST_clients_start (struct GNUNET_SERVER_Handle *server);
+GST_clients_start (struct GNUNET_SERVER_Handle *server)
+{
+}
 
 
 /**
  * Stop processing clients.
  */
 void
-GST_clients_stop (void);
+GST_clients_stop ()
+{
+}
 
 
 /**
@@ -52,9 +53,10 @@ GST_clients_stop (void);
  * @param msg message to broadcast
  */
 void
-GST_clients_broadcast (const struct GNUNET_MessageHeader *msg);
+GST_clients_broadcast (const struct GNUNET_MessageHeader *msg)
+{
+  
+}
 
 
-
-#endif
-/* end of file gnunet-service-transport_clients.h */
+/* end of file gnunet-service-transport_clients.c */

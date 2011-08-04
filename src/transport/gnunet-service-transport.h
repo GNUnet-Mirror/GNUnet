@@ -45,6 +45,15 @@ extern const struct GNUNET_CONFIGURATION_Handle *GST_cfg;
  */
 extern struct GNUNET_PeerIdentity GST_my_identity;
 
+/**
+ * Handle to peerinfo service.
+ */
+extern struct GNUNET_PEERINFO_Handle *GST_peerinfo;
+
+/**
+ * Our public key.
+ */
+extern struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded GST_my_public_key;
 
 #endif
 /* end of file gnunet-service-transport_plugins.h */

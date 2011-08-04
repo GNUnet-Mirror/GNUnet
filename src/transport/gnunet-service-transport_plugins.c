@@ -19,17 +19,12 @@
 */
 
 /**
- * @file transport/gnunet-service-transport_plugins.h
- * @brief plugin management API
+ * @file transport/gnunet-service-transport_plugins.c
+ * @brief plugin management
  * @author Christian Grothoff
  */
-#ifndef GNUNET_SERVICE_TRANSPORT_PLUGINS_H
-#define GNUNET_SERVICE_TRANSPORT_PLUGINS_H
-
-#include "gnunet_statistics_service.h"
-#include "gnunet_transport_service.h"
-#include "gnunet_transport_plugin.h"
-#include "gnunet_util_lib.h"
+#include "platform.h"
+#include "gnunet-service-transport_plugins.h"
 
 
 /**
@@ -50,14 +45,19 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
 		  GNUNET_TRANSPORT_AddressNotification address_cb,
 		  GNUNET_TRANSPORT_TrafficReport traffic_cb,
 		  GNUNET_TRANSPORT_SessionEnd session_end_cb,
-		  GNUNET_TRANSPORT_CostReport cost_cb);
+		  GNUNET_TRANSPORT_CostReport cost_cb)
+{
+  return GNUNET_SYSERR;
+}
 
 
 /**
  * Unload all plugins
  */
 void
-GST_plugins_unload (void);
+GST_plugins_unload ()
+{
+}
 
 
 /**
@@ -67,7 +67,10 @@ GST_plugins_unload (void);
  * @return the plugin's API, NULL if the plugin is not loaded
  */
 struct GNUNET_TRANSPORT_PluginFunctions *
-GST_plugins_find (const char *name);
+GST_plugins_find (const char *name)
+{
+  return NULL;
+}
 
 
 /**
@@ -82,8 +85,10 @@ GST_plugins_find (const char *name);
 const char *
 GST_plugins_a2s (const char *name,
 		 const void *addr,
-		 size_t addrlen);
+		 size_t addrlen)
+{
+  return "FIXME";
+}
 
 
-#endif
-/* end of file gnunet-service-transport_plugins.h */
+/* end of file gnunet-service-transport_plugins.c */
