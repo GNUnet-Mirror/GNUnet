@@ -30,37 +30,52 @@
 #include "gnunet_util_lib.h"
 
 /**
+ * Start blacklist subsystem.
  *
+ * @param server server used to accept clients from
  */
 void
-GST_blacklist_start (void);
+GST_blacklist_start (struct GNUNET_SERVER_Handle *server);
 
 
 /**
- *
+ * Stop blacklist subsystem.
  */
 void
 GST_blacklist_stop (void);
 
 
 /**
+ * Initialize a blacklisting client.  We got a blacklist-init
+ * message from this client, add him to the list of clients
+ * to query for blacklisting.
  *
+ * @param cls unused
+ * @param client the client
+ * @param message the blacklist-init message that was sent
  */
 void
 GST_blacklist_handle_init (void *cls,
-			   const struct GNUNET_SERVER_Client *client,
+			   struct GNUNET_SERVER_Client *client,
 			   const struct GNUNET_MessageHeader *message);
 
 /**
+ * A blacklisting client has sent us reply. Process it.
  *
+ * @param cls unused
+ * @param client the client
+ * @param message the blacklist-init message that was sent
  */
 void
 GST_blacklist_handle_reply (void *cls,
-			    const struct GNUNET_SERVER_Client *client,
+			    struct GNUNET_SERVER_Client *client,
 			    const struct GNUNET_MessageHeader *message);
 
 /**
- *
+ * Add the given peer to the blacklist (for the given transport).
+ * 
+ * @param peer peer to blacklist
+ * @param transport_name transport to blacklist for this peer, NULL for all
  */
 void
 GST_blacklist_add_peer (const struct GNUNET_PeerIdentity *peer,
@@ -68,11 +83,31 @@ GST_blacklist_add_peer (const struct GNUNET_PeerIdentity *peer,
 							
 
 /**
+ * Continuation called from a blacklist test.
  *
+ * @param cls closure
+ * @param peer identity of peer that was tested
+ * @param result GNUNET_OK if the connection is allowed,
+ *               GNUNET_NO if not
  */
-int
-GST_blacklist_test (const struct GNUNET_PeerIdentity *peer,
-		    const char *transport_name);
+typedef void (*GST_BlacklistTestContinuation)(void *cls,
+					      const struct GNUNET_PeerIdentity *peer,
+					      int result);
+
+
+/**
+ * Test if a peer/transport combination is blacklisted.
+ *
+ * @param peer the identity of the peer to test
+ * @param transport_name name of the transport to test, never NULL
+ * @param cont function to call with result
+ * @param cont_cls closure for 'cont'
+ */
+void
+GST_blacklist_test_allowed (const struct GNUNET_PeerIdentity *peer,
+			    const char *transport_name,
+			    GST_BlacklistTestContinuation cont,
+			    void *cont_cls);
 		    				 
 
 

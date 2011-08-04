@@ -19,16 +19,13 @@
 */
 
 /**
- * @file transport/gnunet-service-transport_neighbours.h
- * @brief neighbour management API
+ * @file transport/gnunet-service-transport_neighbours.c
+ * @brief neighbour management
  * @author Christian Grothoff
  */
-#ifndef GNUNET_SERVICE_TRANSPORT_NEIGHBOURS_H
-#define GNUNET_SERVICE_TRANSPORT_NEIGHBOURS_H
-
-#include "gnunet_statistics_service.h"
-#include "gnunet_transport_service.h"
-#include "gnunet_util_lib.h"
+#include "platform.h"
+#include "gnunet-service-transport_neighbours.h"
+#include "gnunet-service-transport.h"
 
 // TODO:
 // - have a way to access the currently 'connected' session
@@ -48,14 +45,18 @@
 void 
 GST_neighbours_start (void *cls,
 		      GNUNET_TRANSPORT_NotifyConnect connect_cb,
-		      GNUNET_TRANSPORT_NotifyDisconnect disconnect_cb);
+		      GNUNET_TRANSPORT_NotifyDisconnect disconnect_cb)
+{
+}
 
 
 /**
  * Cleanup the neighbours subsystem.
  */
 void
-GST_neighbours_stop (void);
+GST_neighbours_stop ()
+{
+}
 
 
 /**
@@ -64,7 +65,9 @@ GST_neighbours_stop (void);
  * @param target peer to try to connect to
  */
 void
-GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target);
+GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
+{
+}
 
 
 /**
@@ -74,7 +77,10 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target);
  * @return GNUNET_YES if we are connected, GNUNET_NO if not
  */
 int
-GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target);
+GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target)
+{
+  return GNUNET_NO;
+}
 
 
 /**
@@ -83,17 +89,9 @@ GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target);
  * @param target peer to disconnect from
  */
 void
-GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target);
-
-
-/**
- * Function called for each connected neighbour.
- *
- * @param cls closure
- * @param neighbour identity of the neighbour
- */
-typedef void (*GST_NeighbourIterator)(void *cls,
-				      const struct GNUNET_PeerIdentity *neighbour);
+GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target)
+{
+}
 
 
 /**
@@ -104,7 +102,9 @@ typedef void (*GST_NeighbourIterator)(void *cls,
  */
 void
 GST_neighbours_iterate (GST_NeighbourIterator cb,
-			void *cb_cls);
+			void *cb_cls)
+{
+}
 
 
 /**
@@ -123,7 +123,10 @@ GST_neighbours_handle_pong (const struct GNUNET_PeerIdentity *sender,
 			    const struct GNUNET_MessageHeader *hdr,
 			    const char *plugin_name,
 			    const void *sender_address,
-			    size_t sender_address_len);
+			    size_t sender_address_len)
+{
+  return GNUNET_SYSERR;
+}
 
 
 /**
@@ -142,7 +145,10 @@ GST_neighbours_handle_connect (const struct GNUNET_PeerIdentity *sender,
 			       const struct GNUNET_MessageHeader *hdr,
 			       const char *plugin_name,
 			       const void *sender_address,
-			       size_t sender_address_len);
+			       size_t sender_address_len)
+{
+  return GNUNET_SYSERR;
+}
 
 
 /**
@@ -161,8 +167,10 @@ GST_neighbours_handle_disconnect (const struct GNUNET_PeerIdentity *sender,
 				  const struct GNUNET_MessageHeader *hdr,
 				  const char *plugin_name,
 				  const void *sender_address,
-				  size_t sender_address_len);
+				  size_t sender_address_len)
+{
+  return GNUNET_SYSERR;
+}
 
 
-#endif
-/* end of file gnunet-service-transport_neighbours.h */
+/* end of file gnunet-service-transport_neighbours.c */
