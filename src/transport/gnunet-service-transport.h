@@ -27,7 +27,6 @@
 #define GNUNET_SERVICE_TRANSPORT_H
 
 #include "gnunet_statistics_service.h"
-#include "gnunet_transport_plugins.h"
 #include "gnunet_transport_service.h"
 #include "gnunet_util_lib.h"
 

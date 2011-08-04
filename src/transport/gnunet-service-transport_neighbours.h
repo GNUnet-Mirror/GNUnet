@@ -77,7 +77,7 @@ GST_neighbours_iterate (GST_NeighbourIterator cb,
  *
  */
 int
-GST_neighbours_handle_pong (const GNUNET_PeerIdentity *sender,
+GST_neighbours_handle_pong (const struct GNUNET_PeerIdentity *sender,
 			    const struct GNUNET_MessageHeader *hdr,
 			    const char *plugin_name,
 			    const void *sender_address,
@@ -87,7 +87,7 @@ GST_neighbours_handle_pong (const GNUNET_PeerIdentity *sender,
  *
  */
 int
-GST_neighbours_handle_connect (const GNUNET_PeerIdentity *sender,
+GST_neighbours_handle_connect (const struct GNUNET_PeerIdentity *sender,
 			       const struct GNUNET_MessageHeader *hdr,
 			       const char *plugin_name,
 			       const void *sender_address,
@@ -97,7 +97,7 @@ GST_neighbours_handle_connect (const GNUNET_PeerIdentity *sender,
  *
  */
 int
-GST_neighbours_handle_disconnect (const GNUNET_PeerIdentity *sender,
+GST_neighbours_handle_disconnect (const struct GNUNET_PeerIdentity *sender,
 				  const struct GNUNET_MessageHeader *hdr,
 				  const char *plugin_name,
 				  const void *sender_address,

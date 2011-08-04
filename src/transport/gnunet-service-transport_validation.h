@@ -27,7 +27,6 @@
 #define GNUNET_SERVICE_TRANSPORT_VALIDATION_H
 
 #include "gnunet_statistics_service.h"
-#include "gnunet_transport_validation.h"
 #include "gnunet_util_lib.h"
 
 
@@ -49,7 +48,7 @@ GST_validation_stop (void);
  *
  */
 int
-GST_validation_handle_ping (const GNUNET_PeerIdentity *sender,
+GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
 			    const struct GNUNET_MessageHeader *hdr,
 			    const char *plugin_name,
 			    const void *sender_address,
@@ -59,7 +58,7 @@ GST_validation_handle_ping (const GNUNET_PeerIdentity *sender,
  *
  */
 int
-GST_validation_handle_pong (const GNUNET_PeerIdentity *sender,
+GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
 			    const struct GNUNET_MessageHeader *hdr,
 			    const char *plugin_name,
 			    const void *sender_address,
@@ -84,7 +83,7 @@ struct GST_ValidationIteratorContext;
  *                          is a time in the future if we're currently denying re-validation
  */
 typedef void (*GST_ValidationAddressCallback)(void *cls,
-					      const GNUNET_PeerIdentity *target,
+					      const struct GNUNET_PeerIdentity *target,
 					      struct GNUNET_TIME_Absolute last_validated_at,
 					      struct GNUNET_TIME_Absolute validation_block,
 					      const char *plugin_name,
@@ -92,7 +91,7 @@ typedef void (*GST_ValidationAddressCallback)(void *cls,
 					      size_t plugin_address_len);
 
 struct GST_ValidationIteratorContext *
-GST_validation_get_addresses (const GNUNET_PeerIdentity *target,
+GST_validation_get_addresses (const struct GNUNET_PeerIdentity *target,
 			      GST_ValidationAddressCallback cb,
 			      void *cb_cls);
 

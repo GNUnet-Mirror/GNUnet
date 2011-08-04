@@ -86,6 +86,7 @@ bin_PROGRAMS = \
  gnunet-transport \
  $(WLAN_BIN) \
  gnunet-service-transport \
+ gnunet-service-transport-new \
  gnunet-transport-list-connections \
  gnunet-transport-certificate-creation
 
@@ -139,6 +140,22 @@ gnunet_transport_DEPENDENCIES = \
 gnunet_service_transport_SOURCES = \
  gnunet-service-transport.c $(TRANSPORT_ATS_SRC)
 gnunet_service_transport_LDADD = \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_GLPK) \
+  $(GN_LIBINTL)
+
+gnunet_service_transport_new_SOURCES = \
+ gnunet-service-transport-new.c gnunet-service-transport.h \
+ gnunet-service-transport_blacklist.h \
+ gnunet-service-transport_clients.h \
+ gnunet-service-transport_hello.h \
+ gnunet-service-transport_neighbours.h \
+ gnunet-service-transport_plugins.h \
+ gnunet-service-transport_validation.h 
+gnunet_service_transport_new_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
