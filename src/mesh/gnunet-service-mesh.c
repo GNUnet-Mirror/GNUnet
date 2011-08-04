@@ -967,6 +967,7 @@ send_core_data_raw (void *cls, size_t size, void *buf)
         return 0;
     }
     memcpy(buf, msg, total_size);
+    GNUNET_free(cls);
     return total_size;
 }
 
@@ -1271,6 +1272,8 @@ handle_mesh_data_unicast (void *cls,
         return GNUNET_OK;
     }
     GNUNET_PEER_resolve(get_first_hop(pi->path), &id);
+    msg = GNUNET_malloc(size);
+    memcpy(msg, message, size);
     GNUNET_CORE_notify_transmit_ready(core_handle,
         0,
         0,
@@ -1402,34 +1405,37 @@ handle_mesh_data_to_orig (void *cls,
                + sizeof(struct GNUNET_MessageHeader))
     {
         GNUNET_break_op (0);
-        return GNUNET_OK; // FIXME maybe SYSERR? peer misbehaving?
+        return GNUNET_OK;
     }
     msg = (struct GNUNET_MESH_DataMessageToOrigin *) message;
     t = retrieve_tunnel(&msg->oid, ntohl(msg->tid));
 
     if (NULL == t) {
-        /* TODO: are we so nice that we try to send it to OID anyway? We *could*
-         * know how to reach it, from the global peer hashmap
-         */
+        /* TODO notify that we dont know this tunnel (whom)? */
         return GNUNET_OK;
     }
 
     if (t->id.oid == myid) {
         if (NULL == t->client) {
             /* got data packet for ownerless tunnel */
-            GNUNET_break (0);
+            GNUNET_break_op (0);
             return GNUNET_OK;
         }
-        //         TODO retransmit to client owner
+        GNUNET_SERVER_notification_context_unicast(nc,
+                                                   t->client->handle,
+                                                   message,
+                                                   GNUNET_YES);
         return GNUNET_OK;
     }
     peer_info = get_peer_info(&msg->oid);
     if (NULL == peer_info) {
         /* unknown origin of tunnel */
-            GNUNET_break (0);
+        GNUNET_break (0);
         return GNUNET_OK;
     }
     GNUNET_PEER_resolve(get_first_hop(peer_info->path), &id);
+    msg = GNUNET_malloc(size);
+    memcpy(msg, message, size);
     GNUNET_CORE_notify_transmit_ready(core_handle,
                                       0,
                                       0,
