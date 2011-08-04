@@ -126,6 +126,7 @@ shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 
+  GST_blacklist_stop ();
   GST_plugins_unload ();
   GST_hello_stop ();
 
@@ -205,6 +206,7 @@ run (void *cls,
   
   /* start subsystems */
   GST_hello_start (&process_hello_update, NULL);
+  GST_blacklist_start (server);
   GST_plugins_load (NULL,  // FIXME...
 		    &plugin_env_address_change_notification, 
 		    NULL, // FIXME...
