@@ -4,13 +4,9 @@
   so that some of the 'local' IPs do not work due to the bindto);  the result
   seems to be that the plugin tries some of the broken addresses, fails and the
   transport-level connection never comes up.
-* Mantis:
-  - 1694 --- try to reproduce (non-deterministic, w. testcase, need core/valgrind)
-  - 1724 --- try to reproduce
-  - 1725 --- try to reproduce (non-deterministic, w. testcase, need core)
-  - 1728 --- investigate 
-  - 1736 --- investigate
-  - 1737 --- investigate
+  [still an issue?]
+* transport: explicit CONNECT/DISCONNECT handshake to diff from addr confirmation?
+* core: application bitmask exchange for heterogeneous service support?
 * clean buildbots
 
 0.9.0pre4:
@@ -46,8 +42,6 @@
   - WLAN transport backend [DB]
   - need to periodically probe latency/transport cost changes & possibly switch transport 
     (working ATS)
-* DATASTORE: [CG]
-  - check indexes / SQL for performance
 * DV: 
   - proper bandwidth allocation
   - performance tests
@@ -88,8 +82,6 @@
     we have not 'used' (for their public keys) in a while; need a way
     to track actual 'use')
   - make sue we also trigger notifications whenever HELLOs expire
-* NAT:
-  - repeatedly resolve hostname and look up interfaces to determine our own IP
 * WLAN:
   - nice signal strength adjustment [MW]
   - energy cost in ATS [MW]
