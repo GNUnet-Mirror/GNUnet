@@ -43,9 +43,8 @@
  * @param traffic_cb function to call for flow control
  * @param session_end_cb function to call when a session was terminated
  * @param cost_cb function to call about ATS cost changes
- * @return GNUNET_OK on success
  */
-int 
+void 
 GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
 		  GNUNET_TRANSPORT_AddressNotification address_cb,
 		  GNUNET_TRANSPORT_TrafficReport traffic_cb,

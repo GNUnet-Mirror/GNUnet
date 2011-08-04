@@ -26,6 +26,56 @@
 #include "platform.h"
 #include "gnunet-service-transport_plugins.h"
 
+/**
+ * Entry in doubly-linked list of all of our plugins.
+ */
+struct TransportPlugin
+{
+  /**
+   * This is a doubly-linked list.
+   */
+  struct TransportPlugin *next;
+
+  /**
+   * This is a doubly-linked list.
+   */
+  struct TransportPlugin *prev;
+
+  /**
+   * API of the transport as returned by the plugin's
+   * initialization function.
+   */
+  struct GNUNET_TRANSPORT_PluginFunctions *api;
+
+  /**
+   * Short name for the plugin (i.e. "tcp").
+   */
+  char *short_name;
+
+  /**
+   * Name of the library (i.e. "gnunet_plugin_transport_tcp").
+   */
+  char *lib_name;
+
+  /**
+   * Environment this transport service is using
+   * for this plugin.
+   */
+  struct GNUNET_TRANSPORT_PluginEnvironment env;
+
+};
+
+/**
+ * Head of DLL of all loaded plugins.
+ */
+static struct TransportPlugin *plugins_head;
+
+/**
+ * Head of DLL of all loaded plugins.
+ */
+// static struct TransportPlugin *plugins_tail;
+
+
 
 /**
  * Load and initialize all plugins.  The respective functions will be
@@ -38,16 +88,64 @@
  * @param traffic_cb function to call for flow control
  * @param session_end_cb function to call when a session was terminated
  * @param cost_cb function to call about ATS cost changes
- * @return GNUNET_OK on success
  */
-int 
+void 
 GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
 		  GNUNET_TRANSPORT_AddressNotification address_cb,
 		  GNUNET_TRANSPORT_TrafficReport traffic_cb,
 		  GNUNET_TRANSPORT_SessionEnd session_end_cb,
 		  GNUNET_TRANSPORT_CostReport cost_cb)
 {
-  return GNUNET_SYSERR;
+#if 0
+  struct TransportPlugin *plug;
+  char *libname;
+
+  /* load plugins... */
+  no_transports = 1;
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_string (c,
+                                             "TRANSPORT", "PLUGINS", &plugs))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  _("Starting transport plugins `%s'\n"), plugs);
+      pos = strtok (plugs, " ");
+      while (pos != NULL)
+        {
+	  
+	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		      _("Loading `%s' transport plugin\n"), name);
+	  GNUNET_asprintf (&libname, "libgnunet_plugin_transport_%s", name);
+	  plug = GNUNET_malloc (sizeof (struct TransportPlugin));
+	  plug->short_name = GNUNET_strdup (name);
+	  plug->lib_name = libname;
+	  plug->env.cfg = cfg;
+	  plug->env.my_identity = &my_identity;
+	  plug->env.our_hello = &our_hello;
+	  plug->env.cls = plug->short_name;
+	  plug->env.receive = &plugin_env_receive;
+	  plug->env.notify_address = &plugin_env_notify_address;
+	  plug->env.session_end = &plugin_env_session_end;
+	  plug->env.max_connections = max_connect_per_transport;
+	  plug->env.stats = stats;
+	  plug->next = plugins;
+	  plugins = plug;
+	  plug->api = GNUNET_PLUGIN_load (libname, &plug->env);
+	  if (plug->api == NULL)
+	    {
+	      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+			  _("Failed to load transport plugin for `%s'\n"), name);
+	      GNUNET_free (plug->short_name);
+	      plugins = plug->next;
+	      GNUNET_free (libname);
+	      GNUNET_free (plug);
+	    }
+          start_transport (server, pos);
+          no_transports = 0;
+          pos = strtok (NULL, " ");
+        }
+      GNUNET_free (plugs);
+    }
+#endif
 }
 
 
@@ -57,6 +155,26 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
 void
 GST_plugins_unload ()
 {
+#if 0
+  while (NULL != (plug = plugins))
+    {
+      if (plug->address_update_task != GNUNET_SCHEDULER_NO_TASK)
+	{
+	  GNUNET_SCHEDULER_cancel (plug->address_update_task);
+	  plug->address_update_task = GNUNET_SCHEDULER_NO_TASK;
+	}
+      GNUNET_break (NULL == GNUNET_PLUGIN_unload (plug->lib_name, plug->api));
+      GNUNET_free (plug->lib_name);
+      GNUNET_free (plug->short_name);
+      while (NULL != (al = plug->addresses))
+        {
+          plug->addresses = al->next;
+          GNUNET_free (al);
+        }
+      plugins = plug->next;
+      GNUNET_free (plug);
+    }
+#endif
 }
 
 
@@ -69,7 +187,13 @@ GST_plugins_unload ()
 struct GNUNET_TRANSPORT_PluginFunctions *
 GST_plugins_find (const char *name)
 {
-  return NULL;
+  struct TransportPlugin *head = plugins_head;
+
+  while ((head != NULL) && (0 != strcmp (name, head->short_name)))
+    head = head->next;
+  if (NULL == head)
+    return NULL;
+  return head->api;
 }
 
 
@@ -87,7 +211,16 @@ GST_plugins_a2s (const char *name,
 		 const void *addr,
 		 size_t addrlen)
 {
-  return "FIXME";
+  struct GNUNET_TRANSPORT_PluginFunctions *api;
+
+  if (name == NULL)
+    return NULL;
+  api = GST_plugins_find (name);
+  if ( (api == NULL) || (addrlen == 0) || (addr == NULL) )
+    return NULL;
+  return api->address_to_string (NULL,
+				 addr,
+				 addrlen);
 }
 
 

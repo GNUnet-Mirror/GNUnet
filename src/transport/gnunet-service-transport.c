@@ -1356,11 +1356,9 @@ a2s (const char *plugin,
   p = find_transport (plugin);
   if ((p == NULL) || (addr_len == 0) || (addr == NULL))
     return NULL;
-
   return p->api->address_to_string (NULL,
 				    addr,
 				    addr_len);
-  return NULL;
 }
 
 
