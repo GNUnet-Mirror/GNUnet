@@ -194,6 +194,10 @@ struct ForwardedConnection
    */
   int first_write_done;
 
+  /**
+   * Reference count (the structure is freed when it reaches zero)
+   */
+  int reference_count;
 };
 
 /**
@@ -289,14 +293,8 @@ closeClientAndServiceSockets (struct ForwardedConnection *fc,
     {      
 #if DEBUG_SERVICE_MANAGER
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Stopping forwarding from service to client\n",
-		  fc->listen_info->serviceName);
+		  "Stopping forwarding from service to client\n");
 #endif
-      if (fc->service_to_client_task != GNUNET_SCHEDULER_NO_TASK)
-	{
-	  GNUNET_SCHEDULER_cancel (fc->service_to_client_task);
-	  fc->service_to_client_task = GNUNET_SCHEDULER_NO_TASK;
-	}
       if (fc->armClientSocket != NULL)
 	GNUNET_NETWORK_socket_shutdown (fc->armClientSocket,
 					SHUT_WR);
@@ -308,14 +306,8 @@ closeClientAndServiceSockets (struct ForwardedConnection *fc,
     {
 #if DEBUG_SERVICE_MANAGER
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Stopping forwarding from client to service\n",
-		  fc->listen_info->serviceName);
+		  "Stopping forwarding from client to service\n");
 #endif
-      if (fc->client_to_service_task != GNUNET_SCHEDULER_NO_TASK) 
-	{
-	  GNUNET_SCHEDULER_cancel (fc->client_to_service_task);
-	  fc->client_to_service_task = GNUNET_SCHEDULER_NO_TASK;
-	}
       if (fc->armClientSocket != NULL)
 	GNUNET_NETWORK_socket_shutdown (fc->armClientSocket,
 					SHUT_RD);
@@ -323,27 +315,44 @@ closeClientAndServiceSockets (struct ForwardedConnection *fc,
 	GNUNET_NETWORK_socket_shutdown (fc->armServiceSocket,
 					SHUT_WR);
     }
-  if ( (fc->client_to_service_task != GNUNET_SCHEDULER_NO_TASK) ||
-       (fc->service_to_client_task != GNUNET_SCHEDULER_NO_TASK) )
-    return;
 #if DEBUG_SERVICE_MANAGER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Closing forwarding connection (done with both directions)\n");
 #endif
-  if (fc->start_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (fc->start_task);
-  if ( (NULL != fc->armClientSocket) &&
-       (GNUNET_SYSERR ==
+  fc->reference_count -= 1;
+  if (fc->reference_count <= 0)
+  {
+    if ( (NULL != fc->armClientSocket) &&
+         (GNUNET_SYSERR ==
 	GNUNET_NETWORK_socket_close (fc->armClientSocket)) )
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "close");
-  if ( (NULL != fc->armServiceSocket) &&
-       (GNUNET_SYSERR ==
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "close");
+      fc->armClientSocket = NULL;
+    }
+    if ( (NULL != fc->armServiceSocket) &&
+         (GNUNET_SYSERR ==
 	GNUNET_NETWORK_socket_close (fc->armServiceSocket)) )
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "close");
-  GNUNET_free (fc->listen_info->serviceName);		   
-  GNUNET_free (fc->listen_info->service_addr);
-  GNUNET_free (fc->listen_info);	
-  GNUNET_free (fc);
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "close");
+      fc->armServiceSocket = NULL;
+    }
+    if (fc->listen_info != NULL)
+    {
+      if (fc->listen_info->serviceName != NULL)
+      {
+        GNUNET_free (fc->listen_info->serviceName);
+        fc->listen_info->serviceName = NULL;
+      }
+      if (fc->listen_info->service_addr != NULL)
+      {
+        GNUNET_free (fc->listen_info->service_addr);
+        fc->listen_info->service_addr = NULL;
+      }
+      GNUNET_free (fc->listen_info);
+      fc->listen_info = NULL;
+    }
+    GNUNET_free (fc);
+  }
 }
 
 
@@ -703,6 +712,11 @@ receiveFromClient (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 				      GNUNET_TIME_UNIT_FOREVER_REL,
 				      fc->armServiceSocket,
 				      &forwardToService, fc);
+  else
+  /* We have not added any task with fc as a closure, so we're
+   * dropping our reference to fc
+   */
+    fc->reference_count -= 1;
 }
 
 
@@ -728,6 +742,12 @@ fc_acceptConnection (void *cls,
   GNUNET_free (fc->listen_info->service_addr);
   fc->listen_info->service_addr = sli->service_addr;
   fc->listen_info->service_addr_len = sli->service_addr_len;
+  /* Drop fc reference count prematurely, it'll be incremented
+   * once or twice in the following conditional branches.
+   * This is, apparently, the place where reference count increases
+   * past 1.
+   */
+  fc->reference_count -= 1;
   if (fc->client_to_service_task == GNUNET_SCHEDULER_NO_TASK)
     {
       if (fc->client_to_service_bufferDataLength == 0) 
@@ -740,6 +760,7 @@ fc_acceptConnection (void *cls,
 	  GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
 					  fc->armServiceSocket,
 					  &forwardToService, fc);
+      fc->reference_count += 1;
     }
   if (fc->service_to_client_task == GNUNET_SCHEDULER_NO_TASK)
     {
@@ -753,6 +774,7 @@ fc_acceptConnection (void *cls,
 	  GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
 					  fc->armClientSocket,
 					  &forwardToClient, fc);
+      fc->reference_count += 1;
     }
   GNUNET_free (sli);
 }
@@ -951,6 +973,7 @@ accept_and_forward (struct ServiceListeningInfo *serviceListeningInfo)
   struct ForwardedConnection *fc;
 
   fc = GNUNET_malloc (sizeof (struct ForwardedConnection));
+  fc->reference_count = 1;
   fc->listen_info = serviceListeningInfo;
   fc->service_to_client_bufferPos = fc->service_to_client_buffer;
   fc->client_to_service_bufferPos = fc->client_to_service_buffer;
@@ -988,6 +1011,10 @@ accept_and_forward (struct ServiceListeningInfo *serviceListeningInfo)
 				   fc->armClientSocket,
 				   &receiveFromClient, fc);
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == fc->start_task);
+  /* We're creating another chain of tasks for this fc that
+   * will have its own reference to it.
+   */
+  fc->reference_count += 1;
   fc->start_task 
     = GNUNET_SCHEDULER_add_now (&start_forwarding,
 				fc);
