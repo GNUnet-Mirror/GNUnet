@@ -937,6 +937,8 @@ send_core_path_ack (void *cls, size_t size, void *buf) {
     msg->header.type = htons(GNUNET_MESSAGE_TYPE_PATH_ACK);
     GNUNET_PEER_resolve(info->origin->oid, &msg->oid);
     msg->tid = htonl(info->origin->tid);
+    GNUNET_PEER_resolve(myid, &msg->peer_id);
+    /* TODO add signature */
 
     return sizeof(struct GNUNET_MESH_PathACK);
 }
@@ -1175,8 +1177,8 @@ handle_mesh_path_create (void *cls,
         if (path->peers[i] == myid) own_pos = i;
     }
     if (own_pos == 0) { /* cannot be self, must be 'not found' */
-        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                   "create path: self not found in path through self\n");
+        /* create path: self not found in path through self */
+        GNUNET_break_op(0);
         destroy_path(path);
         /* FIXME error. destroy tunnel? leave for timeout? */
         return 0;
@@ -1244,9 +1246,7 @@ handle_mesh_data_unicast (void *cls,
     struct GNUNET_PeerIdentity                  id;
     struct MeshTunnel                           *t;
     struct MeshPeerInfo                         *pi;
-    struct MeshClient                           *c;
     size_t                                      size;
-    uint16_t                                    payload_type;
 
     size = ntohs(message->size);
     if (size < sizeof(struct GNUNET_MESH_DataMessageFromOrigin)
@@ -1306,11 +1306,9 @@ handle_mesh_data_multicast (void *cls,
     struct GNUNET_MESH_DataMessageMulticast    *msg;
     struct GNUNET_PeerIdentity                  id;
     struct MeshTunnel                           *t;
-    struct MeshClient                           *c;
-    struct MeshDataDescriptor                   *dd;
+    struct MeshDataDescriptor                   *info;
     GNUNET_PEER_Id                              *neighbors;
     size_t                                      size;
-    uint16_t                                    type;
     uint16_t                                    i;
     uint16_t                                    j;
 
@@ -1346,24 +1344,24 @@ handle_mesh_data_multicast (void *cls,
         return GNUNET_OK;
     }
     size -= sizeof(struct GNUNET_MESH_DataMessageMulticast);
-    dd = GNUNET_malloc(sizeof(struct MeshDataDescriptor) + size);
-    dd->origin = &t->id;
-    dd->copies = 0;
+    info = GNUNET_malloc(sizeof(struct MeshDataDescriptor) + size);
+    info->origin = &t->id;
+    info->copies = 0;
     for (i = 0; 0 != neighbors[i]; i++) {
         GNUNET_PEER_resolve(neighbors[i], &id);
-        dd->copies++;
-        dd->destination = neighbors[i];
-        dd->peer = GNUNET_CONTAINER_multihashmap_get(peers, &id.hashPubKey);
-        GNUNET_assert(dd->peer);
-        for (j = 0; dd->peer->core_transmit[j]; j++) {
+        info->copies++;
+        info->destination = neighbors[i];
+        info->peer = GNUNET_CONTAINER_multihashmap_get(peers, &id.hashPubKey);
+        GNUNET_assert(info->peer);
+        for (j = 0; info->peer->core_transmit[j]; j++) {
             if (j == 9) {
                 GNUNET_break(0);
                 return GNUNET_OK;
             }
         }
-        dd->handler_n = j;
-        dd->peer->infos[j] = dd;
-        dd->peer->core_transmit[j] = GNUNET_CORE_notify_transmit_ready(
+        info->handler_n = j;
+        info->peer->infos[j] = info;
+        info->peer->core_transmit[j] = GNUNET_CORE_notify_transmit_ready(
                                         core_handle,
                                         0,
                                         0,
@@ -1371,7 +1369,7 @@ handle_mesh_data_multicast (void *cls,
                                         &id,
                                         ntohs(msg->header.size),
                                         &send_core_data_multicast,
-                                        dd);
+                                        info);
     }
     return GNUNET_OK;
 }
@@ -1519,6 +1517,7 @@ handle_mesh_path_ack (void *cls,
                                       sizeof(struct GNUNET_MESH_PathACK),
                                       &send_core_data_raw,
                                       msg);
+    return GNUNET_OK;
 }
 
 
