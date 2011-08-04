@@ -79,7 +79,7 @@ static void
 process_hello_update (void *cls,
 		      const struct GNUNET_MessageHeader *hello)
 {
-  GST_clients_broadcast (hello);
+  GST_clients_broadcast (hello, GNUNET_NO);
 #if 0
   GNUNET_CONTAINER_multihashmap_iterate (neighbours,
 					 &transmit_our_hello_if_pong,
