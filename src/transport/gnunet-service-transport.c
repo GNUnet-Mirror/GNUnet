@@ -6275,9 +6275,10 @@ client_disconnect_notification (void *cls,
       pos->message_count--;
       GNUNET_free (mqe);
     }
-  GNUNET_CONTAINER_multihashmap_iterate (neighbours,
-					 &null_mq_client_pointers,
-					 pos);
+  if (NULL != neighbours)
+    GNUNET_CONTAINER_multihashmap_iterate (neighbours,
+					   &null_mq_client_pointers,
+					   pos);
   if (prev == NULL)
     clients = pos->next;
   else
