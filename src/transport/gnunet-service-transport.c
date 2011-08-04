@@ -6131,6 +6131,13 @@ handle_address_iterate (void *cls,
 }
 
 
+static const struct GNUNET_MessageHeader *
+do_get_our_hello ()
+{
+  return (const struct GNUNET_MessageHeader*) our_hello;
+}
+
+
 /**
  * Setup the environment for this plugin.
  */
@@ -6139,7 +6146,7 @@ create_environment (struct TransportPlugin *plug)
 {
   plug->env.cfg = cfg;
   plug->env.my_identity = &my_identity;
-  plug->env.our_hello = &our_hello;
+  plug->env.get_our_hello = &do_get_our_hello;
   plug->env.cls = plug;
   plug->env.receive = &plugin_env_receive;
   plug->env.notify_address = &plugin_env_notify_address;

@@ -89,6 +89,32 @@ process_hello_update (void *cls,
 
 
 /**
+ * Function that will be called for each address the transport
+ * is aware that it might be reachable under.  Update our HELLO.
+ *
+ * @param cls name of the plugin (const char*)
+ * @param add_remove should the address added (YES) or removed (NO) from the
+ *                   set of valid addresses?
+ * @param addr one of the addresses of the host
+ *        the specific address format depends on the transport
+ * @param addrlen length of the address
+ */
+static void 
+plugin_env_address_change_notification (void *cls,
+					int add_remove,
+					const void *addr,
+					size_t addrlen)
+{
+  const char *plugin_name = cls;
+
+  GST_hello_modify_addresses (add_remove,
+			      plugin_name,
+			      addr,
+			      addrlen);
+}
+
+
+/**
  * Function called when the service shuts down.  Unloads our plugins
  * and cancels pending validations.
  *
@@ -99,6 +125,8 @@ static void
 shutdown_task (void *cls, 
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+
+  GST_plugins_unload ();
   GST_hello_stop ();
 
   if (GST_peerinfo != NULL)
@@ -174,7 +202,14 @@ run (void *cls,
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
+  
+  /* start subsystems */
   GST_hello_start (&process_hello_update, NULL);
+  GST_plugins_load (NULL,  // FIXME...
+		    &plugin_env_address_change_notification, 
+		    NULL, // FIXME...
+		    NULL, // FIXME...
+		    NULL); // FIXME...
 }
 
 

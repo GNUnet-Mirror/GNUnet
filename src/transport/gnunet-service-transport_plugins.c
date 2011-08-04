@@ -24,6 +24,8 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#include "gnunet-service-transport.h"
+#include "gnunet-service-transport_hello.h"
 #include "gnunet-service-transport_plugins.h"
 
 /**
@@ -73,7 +75,7 @@ static struct TransportPlugin *plugins_head;
 /**
  * Head of DLL of all loaded plugins.
  */
-// static struct TransportPlugin *plugins_tail;
+static struct TransportPlugin *plugins_tail;
 
 
 
@@ -96,56 +98,66 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
 		  GNUNET_TRANSPORT_SessionEnd session_end_cb,
 		  GNUNET_TRANSPORT_CostReport cost_cb)
 {
-#if 0
   struct TransportPlugin *plug;
+  unsigned long long tneigh;
   char *libname;
+  char *plugs;
+  char *pos;
 
-  /* load plugins... */
-  no_transports = 1;
-  if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_string (c,
-                                             "TRANSPORT", "PLUGINS", &plugs))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (GST_cfg,
+					     "TRANSPORT",
+					     "NEIGHBOUR_LIMIT",
+					     &tneigh))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("Starting transport plugins `%s'\n"), plugs);
-      pos = strtok (plugs, " ");
-      while (pos != NULL)
-        {
-	  
-	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		      _("Loading `%s' transport plugin\n"), name);
-	  GNUNET_asprintf (&libname, "libgnunet_plugin_transport_%s", name);
-	  plug = GNUNET_malloc (sizeof (struct TransportPlugin));
-	  plug->short_name = GNUNET_strdup (name);
-	  plug->lib_name = libname;
-	  plug->env.cfg = cfg;
-	  plug->env.my_identity = &my_identity;
-	  plug->env.our_hello = &our_hello;
-	  plug->env.cls = plug->short_name;
-	  plug->env.receive = &plugin_env_receive;
-	  plug->env.notify_address = &plugin_env_notify_address;
-	  plug->env.session_end = &plugin_env_session_end;
-	  plug->env.max_connections = max_connect_per_transport;
-	  plug->env.stats = stats;
-	  plug->next = plugins;
-	  plugins = plug;
-	  plug->api = GNUNET_PLUGIN_load (libname, &plug->env);
-	  if (plug->api == NULL)
-	    {
-	      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-			  _("Failed to load transport plugin for `%s'\n"), name);
-	      GNUNET_free (plug->short_name);
-	      plugins = plug->next;
-	      GNUNET_free (libname);
-	      GNUNET_free (plug);
-	    }
-          start_transport (server, pos);
-          no_transports = 0;
-          pos = strtok (NULL, " ");
-        }
-      GNUNET_free (plugs);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Transport service is lacking NEIGHBOUR_LIMIT option.\n"));
+      return;
     }
-#endif
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (GST_cfg,
+                                             "TRANSPORT", "PLUGINS", &plugs))
+    return;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      _("Starting transport plugins `%s'\n"),
+	      plugs);
+  for (pos = strtok (plugs, " "); pos != NULL; pos = strtok (NULL, " "))
+    {	  
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Loading `%s' transport plugin\n"), pos);
+      GNUNET_asprintf (&libname, 
+		       "libgnunet_plugin_transport_%s",
+		       pos);
+      plug = GNUNET_malloc (sizeof (struct TransportPlugin));
+      plug->short_name = GNUNET_strdup (pos);
+      plug->lib_name = libname;
+      plug->env.cfg = GST_cfg;
+      plug->env.my_identity = &GST_my_identity;
+      plug->env.get_our_hello = &GST_hello_get;
+      plug->env.cls = plug->short_name;
+      plug->env.receive = recv_cb;
+      plug->env.notify_address = address_cb;
+      plug->env.session_end = session_end_cb;
+      plug->env.max_connections = tneigh;
+      plug->env.stats = GST_stats;
+      GNUNET_CONTAINER_DLL_insert (plugins_head,
+				   plugins_tail,
+				   plug);
+      plug->api = GNUNET_PLUGIN_load (libname, &plug->env);
+      if (plug->api == NULL)
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      _("Failed to load transport plugin for `%s'\n"), 
+		      pos);
+	  GNUNET_CONTAINER_DLL_remove (plugins_head,
+				       plugins_tail,
+				       plug);
+	  GNUNET_free (plug->short_name);
+	  GNUNET_free (plug->lib_name);
+	  GNUNET_free (plug);
+	}
+    }
+  GNUNET_free (plugs);
 }
 
 
@@ -155,26 +167,18 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
 void
 GST_plugins_unload ()
 {
-#if 0
-  while (NULL != (plug = plugins))
+  struct TransportPlugin *plug;
+
+  while (NULL != (plug = plugins_head))
     {
-      if (plug->address_update_task != GNUNET_SCHEDULER_NO_TASK)
-	{
-	  GNUNET_SCHEDULER_cancel (plug->address_update_task);
-	  plug->address_update_task = GNUNET_SCHEDULER_NO_TASK;
-	}
       GNUNET_break (NULL == GNUNET_PLUGIN_unload (plug->lib_name, plug->api));
       GNUNET_free (plug->lib_name);
       GNUNET_free (plug->short_name);
-      while (NULL != (al = plug->addresses))
-        {
-          plug->addresses = al->next;
-          GNUNET_free (al);
-        }
-      plugins = plug->next;
+      GNUNET_CONTAINER_DLL_remove (plugins_head,
+				   plugins_tail,
+				   plug);
       GNUNET_free (plug);
     }
-#endif
 }
 
 

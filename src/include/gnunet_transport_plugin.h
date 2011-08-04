@@ -177,6 +177,12 @@ typedef void (*GNUNET_TRANSPORT_CostReport) (void *cls,
 
 
 /**
+ * Function that returns a HELLO message.
+ */ 
+typedef const struct GNUNET_MessageHeader * (*GNUNET_TRANSPORT_GetHelloCallback)(void);
+
+
+/**
  * The transport service will pass a pointer to a struct
  * of this type as the first and only argument to the
  * entry point of each transport plugin.
@@ -194,12 +200,6 @@ struct GNUNET_TRANSPORT_PluginEnvironment
   const struct GNUNET_PeerIdentity *my_identity;
 
   /**
-   * Pointer (!) to our HELLO message.  Note that the address
-   * referred to "*our_hello" might change over time.
-   */
-  struct GNUNET_HELLO_Message *const*our_hello;
-
-  /**
    * Closure for the various callbacks.
    */
   void *cls;
@@ -214,6 +214,12 @@ struct GNUNET_TRANSPORT_PluginEnvironment
    * whenever a message is received.
    */
   GNUNET_TRANSPORT_PluginReceiveCallback receive;
+
+
+  /**
+   * Function that returns our HELLO.
+   */
+  GNUNET_TRANSPORT_GetHelloCallback get_our_hello;
 
   /**
    * Function that must be called by each plugin to notify the
