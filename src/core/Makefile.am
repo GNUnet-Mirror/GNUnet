@@ -30,7 +30,7 @@ bin_PROGRAMS = \
 
 gnunet_service_core_SOURCES = \
  gnunet-service-core.c 
-gnunet_service_core_LDADD = \
+gnunet_service_core_LDADD = -lz \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \

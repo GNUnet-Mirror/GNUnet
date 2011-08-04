@@ -417,6 +417,16 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CORE_HANGUP 85
 
 /**
+ * gzip-compressed type map of the sender
+ */
+#define GNUNET_MESSAGE_TYPE_CORE_COMPRESSED_TYPE_MAP 86
+
+/**
+ * uncompressed type map of the sender
+ */
+#define GNUNET_MESSAGE_TYPE_CORE_BINARY_TYPE_MAP 87
+
+/**
  * Message sent by datastore client on join.
  */
 #define GNUNET_MESSAGE_TYPE_DATASTORE_RESERVE 92
