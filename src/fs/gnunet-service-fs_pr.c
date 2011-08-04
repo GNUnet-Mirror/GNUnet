@@ -997,8 +997,9 @@ put_migration_continuation (void *cls,
     }
   GNUNET_free (pmc);
   /* FIXME: should we really update the load value on failure? */
-  GNUNET_LOAD_update (datastore_put_load,
-		      delay.rel_value);
+  if (NULL != datastore_put_load)
+    GNUNET_LOAD_update (datastore_put_load,
+			delay.rel_value);
   if (GNUNET_OK == success)
     return;
   GNUNET_STATISTICS_update (GSF_stats,
@@ -1021,6 +1022,8 @@ test_put_load_too_high (uint32_t priority)
 {
   double ld;
 
+  if (NULL == datastore_put_load)
+    return GNUNET_NO;
   if (GNUNET_LOAD_get_average (datastore_put_load) < 50)
     return GNUNET_NO; /* very fast */
   ld = GNUNET_LOAD_get_load (datastore_put_load);
