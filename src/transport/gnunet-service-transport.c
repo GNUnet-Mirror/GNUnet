@@ -439,15 +439,10 @@ struct ReadyList
 
 
 /**
- * Entry in linked list of all of our current neighbours.
+ * Entry in neighbours. (not a 'List' -- bad name!)
  */
 struct NeighbourList
 {
-
-  /**
-   * This is a linked list.
-   */
-  struct NeighbourList *next;
 
   /**
    * Which of our transports is connected to this peer
@@ -882,7 +877,7 @@ static struct GNUNET_PEERINFO_Handle *peerinfo;
 /**
  * All known neighbours and their HELLOs.
  */
-static struct NeighbourList *neighbours;
+static struct GNUNET_CONTAINER_MultiHashMap *neighbours;
 
 /**
  * Number of neighbours we'd like to have.
@@ -977,12 +972,7 @@ struct ForeignAddressList * get_preferred_ats_address (
 static struct NeighbourList *
 find_neighbour (const struct GNUNET_PeerIdentity *key)
 {
-  struct NeighbourList *head = neighbours;
-
-  while ((head != NULL) &&
-        (0 != memcmp (key, &head->id, sizeof (struct GNUNET_PeerIdentity))))
-    head = head->next;
-  return head;
+  return GNUNET_CONTAINER_multihashmap_get (neighbours, &key->hashPubKey);
 }
 
 static int update_addr_value (struct ForeignAddressList *fal, uint32_t value , int ats_index)
@@ -2185,6 +2175,34 @@ address_generator (void *cls, size_t max, void *buf)
 }
 
 
+
+static int
+transmit_our_hello_if_pong (void *cls,
+			    const GNUNET_HashCode *key,
+			    void *value)
+{
+  struct NeighbourList *npos = value;
+
+  if (GNUNET_YES != npos->received_pong)
+    return GNUNET_OK;
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+	      "Transmitting updated `%s' to neighbour `%4s'\n",
+	      "HELLO", GNUNET_i2s (&npos->id));
+#endif
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# transmitted my HELLO to other peers"),
+			    1,
+			    GNUNET_NO);
+  transmit_to_peer (NULL, NULL, 0,
+		    HELLO_ADDRESS_EXPIRATION,
+		    (const char *) our_hello,
+		    GNUNET_HELLO_size(our_hello),
+		    GNUNET_NO, npos);
+  return GNUNET_OK;
+}
+
+
 /**
  * Construct our HELLO message from all of the addresses of
  * all of the transports.
@@ -2198,7 +2216,6 @@ refresh_hello_task (void *cls,
 {
   struct GNUNET_HELLO_Message *hello;
   struct TransportClient *cpos;
-  struct NeighbourList *npos;
   struct GeneratorContext gc;
 
   hello_task = GNUNET_SCHEDULER_NO_TASK;
@@ -2228,25 +2245,9 @@ refresh_hello_task (void *cls,
   GNUNET_free_non_null (our_hello);
   our_hello = hello;
   GNUNET_PEERINFO_add_peer (peerinfo, our_hello);
-  for (npos = neighbours; npos != NULL; npos = npos->next)
-    {
-      if (GNUNET_YES != npos->received_pong)
-	continue;
-#if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-                  "Transmitting updated `%s' to neighbour `%4s'\n",
-                  "HELLO", GNUNET_i2s (&npos->id));
-#endif
-      GNUNET_STATISTICS_update (stats,
-				gettext_noop ("# transmitted my HELLO to other peers"),
-				1,
-				GNUNET_NO);
-      transmit_to_peer (NULL, NULL, 0,
-			HELLO_ADDRESS_EXPIRATION,
-                        (const char *) our_hello,
-			GNUNET_HELLO_size(our_hello),
-                        GNUNET_NO, npos);
-    }
+  GNUNET_CONTAINER_multihashmap_iterate (neighbours,
+					 &transmit_our_hello_if_pong,
+					 NULL);
 }
 
 
@@ -3221,8 +3222,6 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer,
 			    1,
 			    GNUNET_NO);
   n = GNUNET_malloc (sizeof (struct NeighbourList));
-  n->next = neighbours;
-  neighbours = n;
   n->id = *peer;
   n->peer_timeout =
     GNUNET_TIME_relative_to_absolute
@@ -3248,6 +3247,10 @@ setup_new_neighbour (const struct GNUNET_PeerIdentity *peer,
   n->distance = -1;
   n->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                                   &neighbour_timeout_task, n);
+  GNUNET_CONTAINER_multihashmap_put (neighbours,
+				     &n->id.hashPubKey,
+				     n,
+				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   if (do_hello)
     {
       GNUNET_STATISTICS_update (stats,
@@ -3567,6 +3570,43 @@ confirm_or_drop_neighbour (void *cls,
 }
 
 
+struct TestConnectionContext
+{
+  int first;
+
+  struct Blacklisters *bl;
+};
+
+
+static int
+test_connection_ok (void *cls,
+		    const GNUNET_HashCode *key,
+		    void *value)
+{
+  struct TestConnectionContext *tcc = cls;
+  struct NeighbourList *n = value;
+  struct BlacklistCheck *bc;
+
+  
+  bc = GNUNET_malloc (sizeof (struct BlacklistCheck));
+  GNUNET_CONTAINER_DLL_insert (bc_head, bc_tail, bc);
+  bc->peer = n->id;
+  bc->do_hello = GNUNET_NO;
+  bc->cont = &confirm_or_drop_neighbour;
+  bc->cont_cls = n;
+  bc->bl_pos = tcc->bl;
+  if (GNUNET_YES == tcc->first)
+    { 
+      /* all would wait for the same client, no need to
+	 create more than just the first task right now */
+      bc->task = GNUNET_SCHEDULER_add_now (&do_blacklist_check,
+					   bc);
+      tcc->first = GNUNET_NO;
+    }
+  return GNUNET_OK;
+}
+
+
 /**
  * Handle a request to start a blacklist.
  *
@@ -3580,8 +3620,7 @@ handle_blacklist_init (void *cls,
 		       const struct GNUNET_MessageHeader *message)
 {
   struct Blacklisters *bl;
-  struct BlacklistCheck *bc;
-  struct NeighbourList *n;
+  struct TestConnectionContext tcc;
 
   bl = bl_head;
   while (bl != NULL)
@@ -3599,22 +3638,11 @@ handle_blacklist_init (void *cls,
   GNUNET_SERVER_client_keep (client);
   GNUNET_CONTAINER_DLL_insert_after (bl_head, bl_tail, bl_tail, bl);
   /* confirm that all existing connections are OK! */
-  n = neighbours;
-  while (NULL != n)
-    {
-      bc = GNUNET_malloc (sizeof (struct BlacklistCheck));
-      GNUNET_CONTAINER_DLL_insert (bc_head, bc_tail, bc);
-      bc->peer = n->id;
-      bc->do_hello = GNUNET_NO;
-      bc->cont = &confirm_or_drop_neighbour;
-      bc->cont_cls = n;
-      bc->bl_pos = bl;
-      if (n == neighbours) /* all would wait for the same client, no need to
-			      create more than just the first task right now */
-	bc->task = GNUNET_SCHEDULER_add_now (&do_blacklist_check,
-					     bc);
-      n = n->next;
-    }
+  tcc.bl = bl;
+  tcc.first = GNUNET_YES;
+  GNUNET_CONTAINER_multihashmap_iterate (neighbours,
+					 &test_connection_ok,
+					 &tcc);
 }
 
 
@@ -4852,8 +4880,6 @@ static void
 disconnect_neighbour (struct NeighbourList *n, int check)
 {
   struct ReadyList *rpos;
-  struct NeighbourList *npos;
-  struct NeighbourList *nprev;
   struct MessageQueue *mq;
   struct ForeignAddressList *peer_addresses;
   struct ForeignAddressList *peer_pos;
@@ -4990,20 +5016,10 @@ disconnect_neighbour (struct NeighbourList *n, int check)
       n->piter = NULL;
     }
 
-  /* remove n from neighbours list */
-  nprev = NULL;
-  npos = neighbours;
-  while ((npos != NULL) && (npos != n))
-    {
-      nprev = npos;
-      npos = npos->next;
-    }
-  GNUNET_assert (npos != NULL);
-  if (nprev == NULL)
-    neighbours = n->next;
-  else
-    nprev->next = n->next;
-
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CONTAINER_multihashmap_remove (neighbours,
+						       &n->id.hashPubKey,
+						       n));
   /* finally, free n itself */
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# active neighbours"),
@@ -5501,6 +5517,44 @@ plugin_env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   return ret;
 }
 
+
+static int
+notify_client_about_neighbour (void *cls,
+			       const GNUNET_HashCode *key,
+			       void *value)
+{
+  struct TransportClient *c = cls;
+  struct NeighbourList *n = value;
+  struct ConnectInfoMessage * cim;
+  uint32_t ats_count;
+  size_t size;
+
+  if (GNUNET_YES != n->received_pong)
+    return GNUNET_OK;
+
+  ats_count = 2;
+  size  = sizeof (struct ConnectInfoMessage) + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
+  GNUNET_assert (size < GNUNET_SERVER_MAX_MESSAGE_SIZE);
+  cim = GNUNET_malloc (size);
+  cim->header.size = htons (size);
+  cim->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
+  cim->ats_count = htonl(ats_count);
+  (&(cim->ats))[2].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+  (&(cim->ats))[2].value = htonl (0); 
+  if (GNUNET_YES == n->received_pong)
+    {
+      (&cim->ats)[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
+      (&cim->ats)[0].value = htonl (n->distance);
+      (&cim->ats)[1].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY);
+      (&cim->ats)[1].value = htonl ((uint32_t) n->latency.rel_value);
+      cim->id = n->id;
+      transmit_to_client (c, &cim->header, GNUNET_NO);
+    }
+  GNUNET_free (cim);
+  return GNUNET_OK;
+}
+
+
 /**
  * Handle START-message.  This is the first message sent to us
  * by any client which causes us to add it to our list.
@@ -5516,10 +5570,6 @@ handle_start (void *cls,
 {
   const struct StartMessage *start;
   struct TransportClient *c;
-  struct ConnectInfoMessage * cim;
-  struct NeighbourList *n;
-  uint32_t ats_count;
-  size_t size;
 
   start = (const struct StartMessage*) message;
 #if DEBUG_TRANSPORT
@@ -5563,33 +5613,9 @@ handle_start (void *cls,
                           (const struct GNUNET_MessageHeader *) our_hello,
                           GNUNET_NO);
       /* tell new client about all existing connections */
-      ats_count = 2;
-      size  = sizeof (struct ConnectInfoMessage) + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information);
-      if (size > GNUNET_SERVER_MAX_MESSAGE_SIZE)
-	{
-    	  GNUNET_break(0);
-	}
-      cim = GNUNET_malloc (size);
-      cim->header.size = htons (size);
-      cim->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
-      cim->ats_count = htonl(ats_count);
-      (&(cim->ats))[2].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
-      (&(cim->ats))[2].value = htonl (0);
-      n = neighbours;
-      while (n != NULL)
-	{
-	  if (GNUNET_YES == n->received_pong)
-	    {
-	      (&cim->ats)[0].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DISTANCE);
-	      (&cim->ats)[0].value = htonl (n->distance);
-	      (&cim->ats)[1].type = htonl (GNUNET_TRANSPORT_ATS_QUALITY_NET_DELAY);
-	      (&cim->ats)[1].value = htonl ((uint32_t) n->latency.rel_value);
-	      cim->id = n->id;
-	      transmit_to_client (c, &cim->header, GNUNET_NO);
-	    }
-	  n = n->next;
-	}
-      GNUNET_free (cim);
+      GNUNET_CONTAINER_multihashmap_iterate (neighbours,
+					     &notify_client_about_neighbour,
+					     c);
     }
   else
     {
@@ -5955,13 +5981,7 @@ handle_peer_address_lookup (void *cls,
   timeout = GNUNET_TIME_absolute_ntoh (peer_address_lookup->timeout);
   rtimeout = GNUNET_TIME_absolute_get_remaining (timeout);
 
-  neighbor_iterator = neighbours;
-  while (neighbor_iterator != NULL)
-    {
-      if (0 == memcmp(&neighbor_iterator->id, &peer_address_lookup->peer, sizeof(struct GNUNET_PeerIdentity)))
-        break;
-      neighbor_iterator = neighbor_iterator->next;
-    }
+  neighbor_iterator = find_neighbour (&peer_address_lookup->peer);
 
   /* Found no neighbor matching this peer id (shouldn't be possible, but...) */
   if (neighbor_iterator == NULL)
@@ -6020,6 +6040,66 @@ handle_peer_address_lookup (void *cls,
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
+
+
+static int
+output_addresses (void *cls,
+		  const GNUNET_HashCode *key,
+		  void *value)
+{
+  struct GNUNET_SERVER_TransmitContext *tc = cls;
+  struct NeighbourList *neighbor_iterator = value;
+  struct ForeignAddressList *foreign_address_iterator;
+  struct TransportPlugin *transport_plugin;
+  struct ReadyList *ready_iterator;
+  char *addr_buf;
+
+  ready_iterator = neighbor_iterator->plugins;
+  while (ready_iterator != NULL)
+    {
+      foreign_address_iterator = ready_iterator->addresses;
+      while (foreign_address_iterator != NULL)
+	{
+	  transport_plugin = foreign_address_iterator->ready_list->plugin;
+	  if (foreign_address_iterator->addr != NULL)
+	    {
+	      GNUNET_asprintf (&addr_buf, "%s:%s --- %s, %s",
+			       GNUNET_i2s(&neighbor_iterator->id),
+			       a2s (transport_plugin->short_name,
+				    foreign_address_iterator->addr,
+				    foreign_address_iterator->addrlen),
+			       (foreign_address_iterator->connected
+				== GNUNET_YES) ? "CONNECTED"
+			       : "DISCONNECTED",
+			       (foreign_address_iterator->validated
+				== GNUNET_YES) ? "VALIDATED"
+			       : "UNVALIDATED");
+	      transmit_address_to_client (tc, addr_buf);
+	      GNUNET_free (addr_buf);
+	    }
+	  else if (foreign_address_iterator->addrlen == 0)
+	    {
+	      GNUNET_asprintf (&addr_buf, "%s:%s --- %s, %s",
+			       GNUNET_i2s (&neighbor_iterator->id),
+			       "<inbound>",
+			       (foreign_address_iterator->connected
+				== GNUNET_YES) ? "CONNECTED"
+			       : "DISCONNECTED",
+			       (foreign_address_iterator->validated
+				== GNUNET_YES) ? "VALIDATED"
+			       : "UNVALIDATED");
+	      transmit_address_to_client (tc, addr_buf);
+	      GNUNET_free (addr_buf);
+	    }
+	  
+	  foreign_address_iterator = foreign_address_iterator->next;
+	}
+      ready_iterator = ready_iterator->next;
+    }
+  return GNUNET_OK;
+}
+
+
 /**
  * Handle AddressIterateMessage
  *
@@ -6032,14 +6112,8 @@ handle_address_iterate (void *cls,
                         struct GNUNET_SERVER_Client *client,
                         const struct GNUNET_MessageHeader *message)
 {
-  struct NeighbourList *neighbor_iterator;
-  struct ReadyList *ready_iterator;
-  struct ForeignAddressList *foreign_address_iterator;
-  struct TransportPlugin *transport_plugin;
-
-  uint16_t size;
   struct GNUNET_SERVER_TransmitContext *tc;
-  char *addr_buf;
+  uint16_t size;
 
   size = ntohs (message->size);
   if (size < sizeof (struct AddressIterateMessage))
@@ -6050,55 +6124,9 @@ handle_address_iterate (void *cls,
     }
   GNUNET_SERVER_disable_receive_done_warning (client);
   tc = GNUNET_SERVER_transmit_context_create (client);
-
-  neighbor_iterator = neighbours;
-  while (neighbor_iterator != NULL)
-    {
-      ready_iterator = neighbor_iterator->plugins;
-      while (ready_iterator != NULL)
-        {
-          foreign_address_iterator = ready_iterator->addresses;
-          while (foreign_address_iterator != NULL)
-            {
-              transport_plugin = foreign_address_iterator->ready_list->plugin;
-              if (foreign_address_iterator->addr != NULL)
-                {
-                  GNUNET_asprintf (&addr_buf, "%s:%s --- %s, %s",
-                                   GNUNET_i2s(&neighbor_iterator->id),
-                                   a2s (transport_plugin->short_name,
-                                        foreign_address_iterator->addr,
-                                        foreign_address_iterator->addrlen),
-                                   (foreign_address_iterator->connected
-                                       == GNUNET_YES) ? "CONNECTED"
-                                       : "DISCONNECTED",
-                                   (foreign_address_iterator->validated
-                                       == GNUNET_YES) ? "VALIDATED"
-                                       : "UNVALIDATED");
-                  transmit_address_to_client (tc, addr_buf);
-                  GNUNET_free (addr_buf);
-                }
-              else if (foreign_address_iterator->addrlen == 0)
-                {
-                  GNUNET_asprintf (&addr_buf, "%s:%s --- %s, %s",
-                                     GNUNET_i2s (&neighbor_iterator->id),
-                                     "<inbound>",
-                                     (foreign_address_iterator->connected
-                                         == GNUNET_YES) ? "CONNECTED"
-                                         : "DISCONNECTED",
-                                     (foreign_address_iterator->validated
-                                         == GNUNET_YES) ? "VALIDATED"
-                                         : "UNVALIDATED");
-                  transmit_address_to_client (tc, addr_buf);
-                  GNUNET_free (addr_buf);
-                }
-
-              foreign_address_iterator = foreign_address_iterator->next;
-            }
-          ready_iterator = ready_iterator->next;
-        }
-      neighbor_iterator = neighbor_iterator->next;
-    }
-
+  GNUNET_CONTAINER_multihashmap_iterate (neighbours,
+					 &output_addresses,
+					 tc);
   GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
                                               GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
@@ -6155,6 +6183,24 @@ start_transport (struct GNUNET_SERVER_Handle *server,
 }
 
 
+static int
+null_mq_client_pointers (void *cls,
+			 const GNUNET_HashCode *key,
+			 void *value)
+{
+  struct TransportClient *pos = cls;
+  struct NeighbourList *n = value;
+  struct MessageQueue *mq;
+
+  for (mq = n->messages_head; mq != NULL; mq = mq->next)
+    {
+      if (mq->client == pos)
+	mq->client = NULL; /* do not use anymore! */
+    }
+  return GNUNET_OK;
+}
+
+
 /**
  * Called whenever a client is disconnected.  Frees our
  * resources associated with that client.
@@ -6171,8 +6217,6 @@ client_disconnect_notification (void *cls,
   struct ClientMessageQueueEntry *mqe;
   struct Blacklisters *bl;
   struct BlacklistCheck *bc;
-  struct NeighbourList *n;
-  struct MessageQueue *mq;
 
   if (client == NULL)
     return;
@@ -6231,14 +6275,9 @@ client_disconnect_notification (void *cls,
       pos->message_count--;
       GNUNET_free (mqe);
     }
-  for (n = neighbours; n != NULL; n = n->next)
-    {
-      for (mq = n->messages_head; mq != NULL; mq = mq->next)
-	{
-	  if (mq->client == pos)
-	    mq->client = NULL; /* do not use anymore! */
-	}
-    }
+  GNUNET_CONTAINER_multihashmap_iterate (neighbours,
+					 &null_mq_client_pointers,
+					 pos);
   if (prev == NULL)
     clients = pos->next;
   else
@@ -6258,6 +6297,24 @@ client_disconnect_notification (void *cls,
 }
 
 
+static int
+disconnect_all_neighbours (void *cls,
+			   const GNUNET_HashCode *key,
+			   void *value)
+{
+  struct NeighbourList *n = value;
+
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Disconnecting peer `%4s', %s\n",
+	      GNUNET_i2s(&n->id),
+	      "SHUTDOWN_TASK");
+#endif
+  disconnect_neighbour (n, GNUNET_NO);
+  return GNUNET_OK;
+}
+
+
 /**
  * Function called when the service shuts down.  Unloads our plugins
  * and cancels pending validations.
@@ -6273,15 +6330,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct CheckHelloValidatedContext *chvc;
 
   shutdown_in_progress = GNUNET_YES;
-  while (neighbours != NULL)
-    {
-#if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Disconnecting peer `%4s', %s\n", GNUNET_i2s(&neighbours->id),
-		  "SHUTDOWN_TASK");
-#endif
-      disconnect_neighbour (neighbours, GNUNET_NO);
-    }
+  GNUNET_CONTAINER_multihashmap_iterate (neighbours,
+					 &disconnect_all_neighbours,
+					 NULL);
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transport service is unloading plugins...\n");
@@ -6364,6 +6415,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
      explicitly!? */
   GNUNET_break (bl_head == NULL);
   GNUNET_break (bc_head == NULL);
+  GNUNET_CONTAINER_multihashmap_destroy (neighbours);
+  neighbours = NULL;
 }
 
 
@@ -6375,104 +6428,130 @@ void ats_result_cb ()
 
 
 #if HAVE_LIBGLPK
+struct AtsBuildContext
+{
+  struct ATS_mechanism * mechanisms;
+  struct ATS_peer *peers;
+  int c_peers;
+  int c_mechs;
+};
+
+
+static int
+find_and_count_addresses (void *cls,
+			  const GNUNET_HashCode *key,
+			  void *value)
+{
+  struct AtsBuildContext *abc = cls;
+  struct NeighbourList *next = value;  
+  int found_addresses = GNUNET_NO;
+  
+  struct ReadyList *r_next = next->plugins;
+  while (r_next != NULL)
+    {
+      struct ForeignAddressList * a_next = r_next->addresses;
+      while (a_next != NULL)
+        {
+	  abc->c_mechs++;
+	  found_addresses = GNUNET_YES;
+	  a_next = a_next->next;
+        }
+      r_next = r_next->next;
+    }
+  if (found_addresses) 
+    abc->c_peers++;
+  return GNUNET_OK;
+}
+
+
+static int
+setup_ats_problem (void *cls,
+		   const GNUNET_HashCode *key,
+		   void *value)
+{
+  struct AtsBuildContext *abc = cls;
+  struct NeighbourList *next = value;  
+
+  int found_addresses = GNUNET_NO;
+  struct ReadyList *r_next = next->plugins;
+  while (r_next != NULL)
+    {
+      struct ForeignAddressList * a_next = r_next->addresses;
+      while (a_next != NULL)
+	{
+	  if (found_addresses == GNUNET_NO)
+	    {
+	      abc->peers[abc->c_peers].peer = next->id;
+	      abc->peers[abc->c_peers].m_head = NULL;
+	      abc->peers[abc->c_peers].m_tail = NULL;
+	      abc->peers[abc->c_peers].f = 1.0 / abc->c_mechs;
+	    }
+	  abc->mechanisms[abc->c_mechs].addr = a_next;
+	  abc->mechanisms[abc->c_mechs].col_index = abc->c_mechs;
+	  abc->mechanisms[abc->c_mechs].peer = &abc->peers[abc->c_peers];
+	  abc->mechanisms[abc->c_mechs].next = NULL;
+	  abc->mechanisms[abc->c_mechs].plugin = r_next->plugin;
+	  abc->mechanisms[abc->c_mechs].ressources = a_next->ressources;
+	  abc->mechanisms[abc->c_mechs].quality = a_next->quality;
+	  GNUNET_CONTAINER_DLL_insert_tail(abc->peers[abc->c_peers].m_head,
+					   abc->peers[abc->c_peers].m_tail,
+					   &abc->mechanisms[abc->c_mechs]);
+	  found_addresses = GNUNET_YES;
+	  abc->c_mechs++;	      
+	  a_next = a_next->next;
+	}
+      r_next = r_next->next;
+    }
+  if (found_addresses == GNUNET_YES)
+    abc->c_peers++;
+  return GNUNET_OK;
+}
+
+
 static void
 create_ats_information ( struct ATS_peer **p,
 			 int * c_p,
 			 struct ATS_mechanism ** m,
 			 int * c_m )
 {
+  struct AtsBuildContext abc;
+
 #if VERBOSE_ATS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
       "ATS requires clean address information\n");
 #endif
-  struct ATS_mechanism * mechanisms;
-  struct ATS_peer *peers;
-  int c_peers = 0;
-  int c_mechs = 0;
-  struct NeighbourList *next = neighbours;
-
-  while (next!=NULL)
-  {
-    int found_addresses = GNUNET_NO;
-    struct ReadyList *r_next = next->plugins;
-    while (r_next != NULL)
-    {
-        struct ForeignAddressList * a_next = r_next->addresses;
-        while (a_next != NULL)
-        {
-            c_mechs++;
-            found_addresses = GNUNET_YES;
-            a_next = a_next->next;
-        }
-        r_next = r_next->next;
-    }
-    if (found_addresses) c_peers++;
-    next = next->next;
-  }
-
+  abc.c_peers = 0;
+  abc.c_mechs = 0;
+  GNUNET_CONTAINER_multihashmap_iterate (neighbours,
+					 &find_and_count_addresses,
+					 &abc);
 #if VERBOSE_ATS
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
       "Found %u peers with % u transport mechanisms\n", c_peers, c_mechs);
 #endif
 
-  if ((c_peers == 0) && (c_mechs == 0))
-  {
-    peers = NULL;
-    (*c_p) = 0;
-    mechanisms = NULL;
-    (*c_m) = 0;
-    return;
-  }
-
-  mechanisms = GNUNET_malloc((1+c_mechs) * sizeof (struct ATS_mechanism));
-  peers =  GNUNET_malloc((1+c_peers) * sizeof (struct ATS_peer));
-
-  c_mechs = 1;
-  c_peers = 1;
-
-  next = neighbours;
-  while (next!=NULL)
+  if ( (abc.c_peers == 0) && (abc.c_mechs == 0) )
     {
-      int found_addresses = GNUNET_NO;
-      struct ReadyList *r_next = next->plugins;
-      while (r_next != NULL)
-	{
-	  struct ForeignAddressList * a_next = r_next->addresses;
-	  while (a_next != NULL)
-	    {
-	      if (found_addresses == GNUNET_NO)
-		{
-		  peers[c_peers].peer = next->id;
-		  peers[c_peers].m_head = NULL;
-		  peers[c_peers].m_tail = NULL;
-		  peers[c_peers].f = 1.0 / c_mechs;
-		}
-	      mechanisms[c_mechs].addr = a_next;
-	      mechanisms[c_mechs].col_index = c_mechs;
-	      mechanisms[c_mechs].peer = &peers[c_peers];
-	      mechanisms[c_mechs].next = NULL;
-	      mechanisms[c_mechs].plugin = r_next->plugin;
-	      mechanisms[c_mechs].ressources = a_next->ressources;
-	      mechanisms[c_mechs].quality = a_next->quality;
-	      GNUNET_CONTAINER_DLL_insert_tail(peers[c_peers].m_head,
-					       peers[c_peers].m_tail,
-					       &mechanisms[c_mechs]);
-	      found_addresses = GNUNET_YES;
-	      c_mechs++;	      
-	      a_next = a_next->next;
-	    }
-	  r_next = r_next->next;
-	}
-      if (found_addresses == GNUNET_YES)
-        c_peers++;
-      next = next->next;
+      *p = NULL;
+      (*c_p) = 0;
+      *m = NULL;
+      (*c_m) = 0;
+      return;
     }
-  c_mechs--;
-  c_peers--;
-  (*c_m) = c_mechs;
-  (*c_p) = c_peers;
-  (*p) = peers;
-  (*m) = mechanisms;
+
+  abc.mechanisms = GNUNET_malloc((1+abc.c_mechs) * sizeof (struct ATS_mechanism));
+  abc.peers =  GNUNET_malloc((1+abc.c_peers) * sizeof (struct ATS_peer));
+  abc.c_mechs = 1;
+  abc.c_peers = 1;
+  GNUNET_CONTAINER_multihashmap_iterate (neighbours,
+					 &setup_ats_problem,
+					 &abc);
+  abc.c_mechs--;
+  abc.c_peers--;
+  (*c_m) = abc.c_mechs;
+  (*c_p) = abc.c_peers;
+  (*p) = abc.peers;
+  (*m) = abc.mechanisms;
 }
 
 
@@ -6571,6 +6650,7 @@ run (void *cls,
   cfg = c;
   stats = GNUNET_STATISTICS_create ("transport", cfg);
   validation_map = GNUNET_CONTAINER_multihashmap_create (64);
+  neighbours = GNUNET_CONTAINER_multihashmap_create (256);
   /* parse configuration */
   if ((GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_number (c,
@@ -6593,6 +6673,8 @@ run (void *cls,
 	}
       GNUNET_CONTAINER_multihashmap_destroy (validation_map);
       validation_map = NULL;
+      GNUNET_CONTAINER_multihashmap_destroy (neighbours);
+      neighbours = NULL;
       return;
     }
 
@@ -6610,6 +6692,8 @@ run (void *cls,
 	}
       GNUNET_CONTAINER_multihashmap_destroy (validation_map);
       validation_map = NULL;
+      GNUNET_CONTAINER_multihashmap_destroy (neighbours);
+      neighbours = NULL;
       GNUNET_free (keyfile);
       return;
     }
@@ -6628,6 +6712,8 @@ run (void *cls,
 	}
       GNUNET_CONTAINER_multihashmap_destroy (validation_map);
       validation_map = NULL;
+      GNUNET_CONTAINER_multihashmap_destroy (neighbours);
+      neighbours = NULL;
       return;
     }
   GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
