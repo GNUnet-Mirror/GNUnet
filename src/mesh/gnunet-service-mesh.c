@@ -121,6 +121,40 @@ enum MeshPeerState
 };
 
 
+/** FWD declaration */
+struct MeshPeerInfo;
+
+/**
+ * Struct containing all info possibly needed to build a package when called
+ * back by core.
+ */
+struct MeshDataDescriptor
+{
+    /** ID of the tunnel this packet travels in */
+    struct MESH_TunnelID        *origin;
+
+    /** Ultimate destination of the packet */
+    GNUNET_PEER_Id              destination;
+
+    /** Number of identical messages sent to different hops (multicast) */
+    unsigned int                copies;
+
+    /** Size of the data */
+    size_t                      size;
+
+    /** Client that asked for the transmission, if any */
+    struct GNUNET_SERVER_Client *client;
+
+    /** Who was is message being sent to */
+    struct MeshPeerInfo         *peer;
+
+    /** Which handler was used to request the transmission */
+    unsigned int                handler_n;
+
+    /* Data at the end */
+};
+
+
 /**
  * Struct containing all information regarding a given peer
  */
@@ -156,11 +190,16 @@ struct MeshPeerInfo
      * Handle to stop the DHT search for a path to this peer
      */
     struct GNUNET_DHT_GetHandle         *dhtget;
-    
+
     /**
      * Handles to stop queued transmissions for this peer
      */
     struct GNUNET_CORE_TransmitHandle   *core_transmit[CORE_QUEUE_SIZE];
+
+    /**
+     * Pointer to info stuctures used as cls for queued transmissions
+     */
+    struct MeshDataDescriptor           *infos[CORE_QUEUE_SIZE];
 };
 
 
@@ -529,7 +568,7 @@ retrieve_client (struct GNUNET_SERVER_Client *client)
  * @param c Client to check
  * @return GNUNET_YES or GNUNET_NO, depending on subscription status
  */
-static int
+static int /* FIXME inline? */
 is_client_subscribed(uint16_t message_type, struct MeshClient *c)
 {
     unsigned int        i;
@@ -732,35 +771,6 @@ send_core_create_path_for_peer (void *cls, size_t size, void *buf)
     return size_needed;
 }
 
-
-/**
- * TODO: build msg and use raw?
- */
-struct MeshDataDescriptor
-{
-    /** ID of the tunnel this packet travels in */
-    struct MESH_TunnelID        *origin;
-
-    /** Ultimate destination of the packet */
-    GNUNET_PEER_Id              destination;
-
-    /** Number of identical messages sent to different hops (multicast) */
-    unsigned int                copies;
-
-    /** Size of the data */
-    size_t                      size;
-
-    /** Client that asked for the transmission, if any */
-    struct GNUNET_SERVER_Client *client;
-
-    /** Who was this message directed to */
-    struct MeshPeerInfo         *peer;
-
-    /** Which handler was used to request the transmission */
-    unsigned int                handler_n;
-
-    /* Data at the end */
-};
 
 #if LATER
 /**
@@ -1234,31 +1244,26 @@ handle_mesh_data_unicast (void *cls,
 
     size = ntohs(message->size);
     if (size < sizeof(struct GNUNET_MESH_DataMessageFromOrigin)) {
-        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                "got data from origin packet: too short\n");
-        return GNUNET_OK; // FIXME maybe SYSERR? peer misbehaving?
+        GNUNET_break(0);
+        return GNUNET_OK;
     }
     msg = (struct GNUNET_MESH_DataMessageFromOrigin *) message;
     t = retrieve_tunnel(&msg->oid, ntohl(msg->tid));
     if (NULL == t) {
-        /* TODO: are we so nice that we try to send it to OID anyway? We *could*
-         * know how to reach it, from the global peer hashmap
-         */
+        /* TODO notify back: we don't know this tunnel */
         return GNUNET_OK;
     }
     pi = GNUNET_CONTAINER_multihashmap_get(t->peers,
                                         &msg->destination.hashPubKey);
     if (NULL == pi) {
-        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                   "got invalid data from origin packet: wrong destination\n");
-        /* TODO maybe feedback, log to statistics
-         */
+        /* TODO maybe feedback, log to statistics */
         return GNUNET_OK;
     }
     if (pi->id == myid) {
         payload_type = ntohs(msg[1].header.type);
         for (c = clients; NULL != c; c = c->next) {
             if (is_client_subscribed(payload_type, c)) {
+                /* FIXME copy data to buffer (info), msg will expire */
                 GNUNET_SERVER_notify_transmit_ready(c->handle,
                     size - sizeof(struct GNUNET_MESH_DataMessageFromOrigin),
                     GNUNET_TIME_UNIT_FOREVER_REL,
@@ -1327,14 +1332,16 @@ handle_mesh_data_multicast (void *cls,
     GNUNET_PEER_resolve(myid, &id);
     if (GNUNET_CONTAINER_multihashmap_contains(t->peers, &id.hashPubKey)) {
         type = ntohs(msg[1].header.type);
-        nc = GNUNET_SERVER_notification_context_create(server_handle, 10U);
+        nc = GNUNET_SERVER_notification_context_create(server_handle,
+                                                       CORE_QUEUE_SIZE);
         for (c = clients; c != NULL; c = c->next) {
-            for (i = 0; i < c->type_counter; i++) {
-                if (c->types[i] == type) {
-                    GNUNET_SERVER_notification_context_add(nc, c->handle);
-                }
+            if (is_client_subscribed(type, c)) {
+                GNUNET_SERVER_notification_context_add(nc, c->handle);
             }
         }
+        GNUNET_SERVER_notification_context_broadcast(nc, message, GNUNET_NO);
+        GNUNET_SERVER_notification_context_destroy(nc);
+        /* FIXME is this right? better to do like in core retransmissions? */
     }
 
     /* Retransmit to other peers */
@@ -1363,6 +1370,7 @@ handle_mesh_data_multicast (void *cls,
             }
         }
         dd->handler_n = j;
+        dd->peer->infos[j] = dd;
         dd->peer->core_transmit[j] = GNUNET_CORE_notify_transmit_ready(
                                         core_handle,
                                         0,
@@ -2288,11 +2296,24 @@ core_disconnect (void *cls,
                 const struct
                 GNUNET_PeerIdentity *peer)
 {
-    GNUNET_PEER_Id      pid;
+    struct MeshPeerInfo         *pi;
+    unsigned int                i;
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Peer disconnected\n");
-    pid = GNUNET_PEER_search(peer);
-    if (myid == pid) {
+    pi = GNUNET_CONTAINER_multihashmap_get(peers, &peer->hashPubKey);
+    if (!pi) {
+        GNUNET_break(0);
+        return;
+    }
+    for (i = 0; i < CORE_QUEUE_SIZE; i++) {
+        if (pi->core_transmit[i]) {
+            GNUNET_CORE_notify_transmit_ready_cancel(pi->core_transmit[i]);
+            /* TODO: notify that tranmission has failed */
+            GNUNET_free(pi->infos[i]);
+        }
+    }
+    if (myid == pi->id) {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "     (self)\n");
     }
