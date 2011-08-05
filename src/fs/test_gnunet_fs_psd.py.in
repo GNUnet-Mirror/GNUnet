@@ -18,31 +18,62 @@
 #    Boston, MA 02111-1307, USA.
 #
 # Testcase for file-sharing command-line tools (publish, search, download)
-import pexpect
+import sys
 import os
-import signal
+import subprocess
 import re
+import shutil
 
-os.system ('rm -rf /tmp/gnunet-test-fs-py-psd/')
-os.system ('gnunet-arm -sq -c test_gnunet_fs_psd_data.conf')
-try:
+srcdir = "../.."
+gnunet_pyexpect_dir = os.path.join (srcdir, "contrib", "gnunet_pyexpect")
+if gnunet_pyexpect_dir not in sys.path:
+  sys.path.append (gnunet_pyexpect_dir)
+
+from gnunet_pyexpect import pexpect
+
+if os.name == 'posix':
+  download = 'gnunet-download'
+  gnunetarm = 'gnunet-arm'
+  publish = 'gnunet-publish'
+  unindex = 'gnunet-unindex'
+  search = 'gnunet-search'
+elif os.name == 'nt':
+  download = 'gnunet-download.exe'
+  gnunetarm = 'gnunet-arm.exe'
+  publish = 'gnunet-publish.exe'
+  unindex = 'gnunet-unindex.exe'
+  search = 'gnunet-search.exe'
+
+if os.name == "nt":
+  shutil.rmtree (os.path.join (os.getenv ("TEMP"), "gnunet-test-fs-py-psd"), True)
+else:
+  shutil.rmtree ("/tmp/gnunet-test-fs-py-psd", True)
+
+arm = subprocess.Popen ([gnunetarm, '-sq', '-c', 'test_gnunet_fs_psd_data.conf'])
+arm.communicate ()
+
 # first, basic publish-search-download run
-  pub = pexpect.spawn ('gnunet-publish -n -c test_gnunet_fs_psd_data.conf -m "description:The GNU Public License" -k gpl ../../COPYING')
-  pub.expect ('Publishing `../../COPYING\' done.\r')
-  pub.expect ("URI is `gnunet://fs/chk/PC0M19QMQC0BPSHR6BGA228PP6INER1D610MGEMOMEM87222FN8HVUO7PQGO0O9HD2GVLHF2N5IDHEQUNK6LKE428FPO96SKQEA486O.PG7K85JGQ6N599MD5HEP3CHEVFPKQD9JB6NPSLVA3T1SKDS66CFI499VS6MGQ88B0QUAVT1282TCRD4GGFVUKDLGI8F0SPIANA3J2LG.35147'.\r")
-  pub.expect (pexpect.EOF)
+try:
+  pub = pexpect ()
+  pub.spawn (None, [publish, '-c', 'test_gnunet_fs_psd_data.conf', '-n', '-m', "description:The GNU Public License", '-k', 'gpl', '../../COPYING'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  pub.expect ("stdout", re.compile (r"Publishing `\.\./\.\./COPYING' done\.\r?\n"))
+  pub.expect ("stdout", re.compile (r"URI is `gnunet://fs/chk/PC0M19QMQC0BPSHR6BGA228PP6INER1D610MGEMOMEM87222FN8HVUO7PQGO0O9HD2GVLHF2N5IDHEQUNK6LKE428FPO96SKQEA486O\.PG7K85JGQ6N599MD5HEP3CHEVFPKQD9JB6NPSLVA3T1SKDS66CFI499VS6MGQ88B0QUAVT1282TCRD4GGFVUKDLGI8F0SPIANA3J2LG\.35147'\.\r?\n"))
 
-  search = pexpect.spawn ('gnunet-search -V -c test_gnunet_fs_psd_data.conf gpl')
-  search.expect ("gnunet-download -o \"COPYING\" gnunet://fs/chk/PC0M19QMQC0BPSHR6BGA228PP6INER1D610MGEMOMEM87222FN8HVUO7PQGO0O9HD2GVLHF2N5IDHEQUNK6LKE428FPO96SKQEA486O.PG7K85JGQ6N599MD5HEP3CHEVFPKQD9JB6NPSLVA3T1SKDS66CFI499VS6MGQ88B0QUAVT1282TCRD4GGFVUKDLGI8F0SPIANA3J2LG.35147\r")
-  search.expect (re.compile (" *description: The GNU Public License\r"));
-  search.kill (signal.SIGTERM)
-  search.expect (pexpect.EOF)
+  s = pexpect ()
+  s.spawn (None, [search, '-V', '-t', '1000', '-N', '1', '-c', 'test_gnunet_fs_psd_data.conf', 'gpl'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  s.expect ("stdout", re.compile (r'#0:\r?\n'))
+  s.expect ("stdout", re.compile (r'gnunet-download -o "COPYING" gnunet://fs/chk/PC0M19QMQC0BPSHR6BGA228PP6INER1D610MGEMOMEM87222FN8HVUO7PQGO0O9HD2GVLHF2N5IDHEQUNK6LKE428FPO96SKQEA486O\.PG7K85JGQ6N599MD5HEP3CHEVFPKQD9JB6NPSLVA3T1SKDS66CFI499VS6MGQ88B0QUAVT1282TCRD4GGFVUKDLGI8F0SPIANA3J2LG\.35147\r?\n'))
+  s.expect ("stdout", re.compile (r"\s*description: The GNU Public License\r?\n"))
   
-  down = pexpect.spawn ('gnunet-download -c test_gnunet_fs_psd_data.conf -o \"COPYING\" gnunet://fs/chk/PC0M19QMQC0BPSHR6BGA228PP6INER1D610MGEMOMEM87222FN8HVUO7PQGO0O9HD2GVLHF2N5IDHEQUNK6LKE428FPO96SKQEA486O.PG7K85JGQ6N599MD5HEP3CHEVFPKQD9JB6NPSLVA3T1SKDS66CFI499VS6MGQ88B0QUAVT1282TCRD4GGFVUKDLGI8F0SPIANA3J2LG.35147')
-  down.expect (re.compile ("Downloading `COPYING\' done \(.*\).\r"));
-  down.expect (pexpect.EOF);
-  os.system ('rm COPYING');
+  down = pexpect ()
+  down.spawn (None, [download, '-c', 'test_gnunet_fs_psd_data.conf', '-o', 'COPYING', 'gnunet://fs/chk/PC0M19QMQC0BPSHR6BGA228PP6INER1D610MGEMOMEM87222FN8HVUO7PQGO0O9HD2GVLHF2N5IDHEQUNK6LKE428FPO96SKQEA486O.PG7K85JGQ6N599MD5HEP3CHEVFPKQD9JB6NPSLVA3T1SKDS66CFI499VS6MGQ88B0QUAVT1282TCRD4GGFVUKDLGI8F0SPIANA3J2LG.35147'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  down.expect ("stdout", re.compile (r"Downloading `COPYING' done (.*).\r?\n"))
+  os.remove ("COPYING")
 
 finally:
-  os.system ('gnunet-arm -c test_gnunet_fs_psd_data.conf -eq')
-  os.system ('rm -rf /tmp/gnunet-test-fs-py-psd/')
+  arm = subprocess.Popen ([gnunetarm, '-eq', '-c', 'test_gnunet_fs_psd_data.conf'])
+  arm.communicate ()
+  if os.name == "nt":
+    shutil.rmtree (os.path.join (os.getenv ("TEMP"), "gnunet-test-fs-py-psd"), True)
+  else:
+    shutil.rmtree ("/tmp/gnunet-test-fs-py-psd", True)

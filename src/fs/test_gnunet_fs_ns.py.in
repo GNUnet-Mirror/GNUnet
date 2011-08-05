@@ -18,33 +18,63 @@
 #    Boston, MA 02111-1307, USA.
 #
 # Testcase for file-sharing command-line tools (namespaces)
-import pexpect
+import sys
 import os
-import signal
+import subprocess
 import re
+import shutil
 
-os.system ('rm -rf /tmp/gnunet-test-fs-py-ns/')
-os.system ('gnunet-arm -sq -c test_gnunet_fs_ns_data.conf')
+srcdir = "../.."
+gnunet_pyexpect_dir = os.path.join (srcdir, "contrib", "gnunet_pyexpect")
+if gnunet_pyexpect_dir not in sys.path:
+  sys.path.append (gnunet_pyexpect_dir)
+
+from gnunet_pyexpect import pexpect
+
+if os.name == 'posix':
+  pseudonym = 'gnunet-pseudonym'
+  gnunetarm = 'gnunet-arm'
+  publish = 'gnunet-publish'
+  unindex = 'gnunet-unindex'
+  search = 'gnunet-search'
+elif os.name == 'nt':
+  pseudonym = 'gnunet-pseudonym.exe'
+  gnunetarm = 'gnunet-arm.exe'
+  publish = 'gnunet-publish.exe'
+  unindex = 'gnunet-unindex.exe'
+  search = 'gnunet-search.exe'
+
+if os.name == "nt":
+  shutil.rmtree (os.path.join (os.getenv ("TEMP"), "gnunet-test-fs-py-ns"), True)
+else:
+  shutil.rmtree ("/tmp/gnunet-test-fs-py-ns", True)
+
+arm = subprocess.Popen ([gnunetarm, '-sq', '-c', 'test_gnunet_fs_ns_data.conf'])
+arm.communicate ()
+
 try:
-  pseu = pexpect.spawn ('gnunet-pseudonym -c test_gnunet_fs_ns_data.conf -C licenses -k gplad -m "description:Free Software Licenses" -R myroot')
-  pseu.expect (pexpect.EOF)
-  pseu = pexpect.spawn ('gnunet-pseudonym -c test_gnunet_fs_ns_data.conf -o')
-  pseu.expect (re.compile("licenses \(.*\)\r"))
-  pseu.expect (pexpect.EOF)
+  pseu = pexpect ()
+  pseu.spawn (None, [pseudonym, '-c', 'test_gnunet_fs_ns_data.conf', '-C', 'licenses', '-k', 'gplad', '-m', 'description:Free Software Licenses', '-R', 'myroot'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  pseu.spawn (None, [pseudonym, '-c', 'test_gnunet_fs_ns_data.conf', '-o'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  pseu.expect ("stdout", re.compile (r"licenses (.*)\r?\n"))
 
-  pub = pexpect.spawn ('gnunet-publish -c test_gnunet_fs_ns_data.conf -k licenses -P licenses -u gnunet://fs/chk/PC0M19QMQC0BPSHR6BGA228PP6INER1D610MGEMOMEM87222FN8HVUO7PQGO0O9HD2GVLHF2N5IDHEQUNK6LKE428FPO96SKQEA486O.PG7K85JGQ6N599MD5HEP3CHEVFPKQD9JB6NPSLVA3T1SKDS66CFI499VS6MGQ88B0QUAVT1282TCRD4GGFVUKDLGI8F0SPIANA3J2LG.35147 -t gpl -N gpl3')
-  pub.expect (pexpect.EOF)
+  pub = pexpect ()
+  pub.spawn (None, [publish, '-c', 'test_gnunet_fs_ns_data.conf', '-k', 'licenses', '-P', 'licenses', '-u', 'gnunet://fs/chk/PC0M19QMQC0BPSHR6BGA228PP6INER1D610MGEMOMEM87222FN8HVUO7PQGO0O9HD2GVLHF2N5IDHEQUNK6LKE428FPO96SKQEA486O.PG7K85JGQ6N599MD5HEP3CHEVFPKQD9JB6NPSLVA3T1SKDS66CFI499VS6MGQ88B0QUAVT1282TCRD4GGFVUKDLGI8F0SPIANA3J2LG.35147', '-t', 'gpl', '-N', 'gpl3'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-  search = pexpect.spawn ('gnunet-search -V -c test_gnunet_fs_ns_data.conf gplad')
-  search.expect (re.compile ("gnunet-download gnunet://fs/sks/.*/myroot\r"))
-  search.expect (re.compile (" *description: Free Software Licenses\r"))
-  search.kill (signal.SIGTERM)
-  search.expect (pexpect.EOF)
+  s = pexpect ()
+  s.spawn (None, [search, '-V', '-t', '1000', '-N', '1', '-c', 'test_gnunet_fs_ns_data.conf', 'gplad'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  s.expect ("stdout", re.compile (r'#0:\r?\n'))
+  s.expect ("stdout", re.compile (r'gnunet-download gnunet://fs/sks/.*/myroot\r?\n'))
+  s.expect ("stdout", re.compile (r'\s*description: Free Software Licenses\r?\n'))
 
-  pseu = pexpect.spawn ('gnunet-pseudonym -c test_gnunet_fs_ns_data.conf')
-  pseu.expect (re.compile ("Free Software Licenses.*:\r"))
-  pseu.expect (pexpect.EOF)
+  pseu = pexpect ()
+  pseu.spawn (None, [pseudonym, '-c', 'test_gnunet_fs_ns_data.conf'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  pseu.expect ("stdout", re.compile (r'Free Software Licenses.*:\r?\n'))
 
 finally:
-  os.system ('gnunet-arm -c test_gnunet_fs_ns_data.conf -eq')
-  os.system ('rm -rf /tmp/gnunet-test-fs-py-ns/')
+  arm = subprocess.Popen ([gnunetarm, '-eq', '-c', 'test_gnunet_fs_ns_data.conf'])
+  arm.communicate ()
+  if os.name == "nt":
+    shutil.rmtree (os.path.join (os.getenv ("TEMP"), "gnunet-test-fs-py-ns"), True)
+  else:
+    shutil.rmtree ("/tmp/gnunet-test-fs-py-ns", True)

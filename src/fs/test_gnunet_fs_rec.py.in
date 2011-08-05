@@ -18,36 +18,75 @@
 #    Boston, MA 02111-1307, USA.
 #
 # Testcase for file-sharing command-line tools (recursive publishing & download)
-import pexpect
+import sys
 import os
-import signal
+import subprocess
 import re
+import shutil
 
-os.system ('rm -rf /tmp/gnunet-test-fs-py-rec/')
-os.system ('gnunet-arm -sq -c test_gnunet_fs_rec_data.conf')
+srcdir = "../.."
+gnunet_pyexpect_dir = os.path.join (srcdir, "contrib", "gnunet_pyexpect")
+if gnunet_pyexpect_dir not in sys.path:
+  sys.path.append (gnunet_pyexpect_dir)
+
+from gnunet_pyexpect import pexpect
+
+if os.name == 'posix':
+  download = 'gnunet-download'
+  gnunetarm = 'gnunet-arm'
+  publish = 'gnunet-publish'
+  unindex = 'gnunet-unindex'
+  search = 'gnunet-search'
+  directory = 'gnunet-directory'
+elif os.name == 'nt':
+  download = 'gnunet-download.exe'
+  gnunetarm = 'gnunet-arm.exe'
+  publish = 'gnunet-publish.exe'
+  unindex = 'gnunet-unindex.exe'
+  search = 'gnunet-search.exe'
+  directory = 'gnunet-directory.exe'
+
+if os.name == "nt":
+  shutil.rmtree (os.path.join (os.getenv ("TEMP"), "gnunet-test-fs-py-rec"), True)
+else:
+  shutil.rmtree ("/tmp/gnunet-test-fs-py-rec", True)
+
+arm = subprocess.Popen ([gnunetarm, '-sq', '-c', 'test_gnunet_fs_rec_data.conf'])
+arm.communicate ()
+
+# pray that `tar' is in PATH
 os.system ('tar xfz test_gnunet_fs_rec_data.tgz')
+# first, basic publish-search-download run
 try:
-  pub = pexpect.spawn ('gnunet-publish -c test_gnunet_fs_rec_data.conf -d -k testdir dir/')
-  pub.expect ('Publishing `dir/\' done.\r')
-  pub.expect ("URI is `gnunet://fs/chk/M2I80IUI2DM4L6G93KL15AHAO7MIMS5JKP1L3LQFVN50CT7AKRQDSF594BC9TD97JJIT3COF6B5O524CMIOG9EJO8UK1560M54JRI70.GBRE5M4QJ7NA0QIN88FMSC78NNOQMVT5DH8FP37OIR5SGGHFEB9ESDNBRKT9PFE9N2GOI81UN8GGBR6KH9GRTV1T04JFSJURF2U0VE8.20182'.")
-  pub.expect (pexpect.EOF)
+  pub = pexpect ()
+  pub.spawn (None, [publish, '-c', 'test_gnunet_fs_rec_data.conf', '-d', '-k', 'testdir', 'dir/'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  pub.expect ("stdout", re.compile (r"Publishing `dir/' done\.\r?\n"))
+  pub.expect ("stdout", re.compile (r"URI is `gnunet://fs/chk/M2I80IUI2DM4L6G93KL15AHAO7MIMS5JKP1L3LQFVN50CT7AKRQDSF594BC9TD97JJIT3COF6B5O524CMIOG9EJO8UK1560M54JRI70\.GBRE5M4QJ7NA0QIN88FMSC78NNOQMVT5DH8FP37OIR5SGGHFEB9ESDNBRKT9PFE9N2GOI81UN8GGBR6KH9GRTV1T04JFSJURF2U0VE8\.20182'\.\r?\n"))
 
-  down = pexpect.spawn ('gnunet-download -c test_gnunet_fs_rec_data.conf -R -o rdir.gnd gnunet://fs/chk/M2I80IUI2DM4L6G93KL15AHAO7MIMS5JKP1L3LQFVN50CT7AKRQDSF594BC9TD97JJIT3COF6B5O524CMIOG9EJO8UK1560M54JRI70.GBRE5M4QJ7NA0QIN88FMSC78NNOQMVT5DH8FP37OIR5SGGHFEB9ESDNBRKT9PFE9N2GOI81UN8GGBR6KH9GRTV1T04JFSJURF2U0VE8.20182')
-  down.expect (re.compile ("Downloading `rdir.gnd\' done \(.*\).\r"));
-  down.expect (pexpect.EOF);
+  down = pexpect ()
+  down.spawn (None, [download, '-c', 'test_gnunet_fs_rec_data.conf', '-R', '-o', 'rdir.gnd', 'gnunet://fs/chk/M2I80IUI2DM4L6G93KL15AHAO7MIMS5JKP1L3LQFVN50CT7AKRQDSF594BC9TD97JJIT3COF6B5O524CMIOG9EJO8UK1560M54JRI70.GBRE5M4QJ7NA0QIN88FMSC78NNOQMVT5DH8FP37OIR5SGGHFEB9ESDNBRKT9PFE9N2GOI81UN8GGBR6KH9GRTV1T04JFSJURF2U0VE8.20182'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  down.expect ("stdout", re.compile (r"Downloading `rdir.gnd' done (.*).\r?\n"))
 
-  dir = pexpect.spawn ('gnunet-directory -c test_gnunet_fs_rec_data.conf  rdir/a.gnd')
-  dir.expect (re.compile ("Directory `a/' meta data:"));
-  dir.expect (re.compile ("Directory `a/' contents:"));
-  dir.expect (re.compile ("COPYING (.*)"));
-  dir.expect (re.compile ("INSTALL (.*)"));
-  dir.expect (pexpect.EOF)
+  d = pexpect ()
+  d.spawn (None, [directory, '-c', 'test_gnunet_fs_rec_data.conf', 'rdir/a.gnd'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  d.expect ("stdout", re.compile (r"Directory `a/' meta data:\r?\n"))
+  d.expect ("stdout", re.compile (r"Directory `a/' contents:\r?\n"))
+  d.expect ("stdout", re.compile (r"COPYING (.*)\r?\n"))
+  d.expect ("stdout", re.compile (r"INSTALL (.*)\r?\n"))
 
-  os.system ('rm -r rdir/b.gnd rdir/a.gnd')
-  if (0 != os.system ("diff -r dir rdir")):
+  os.remove ("rdir/b.gnd")
+  os.remove ("rdir/a.gnd")
+  if 0 != os.system ("diff -r dir rdir"):
     raise Exception ("Unexpected difference between source directory and downloaded result")
   
+
 finally:
-  os.system ('gnunet-arm -c test_gnunet_fs_rec_data.conf -eq')
-  os.system ('rm -r dir rdir rdir.gnd')
-  os.system ('rm -rf /tmp/gnunet-test-fs-py-rec/')
+  arm = subprocess.Popen ([gnunetarm, '-eq', '-c', 'test_gnunet_fs_rec_data.conf'])
+  arm.communicate ()
+  if os.name == "nt":
+    shutil.rmtree (os.path.join (os.getenv ("TEMP"), "gnunet-test-fs-py-rec"), True)
+  else:
+    shutil.rmtree ("/tmp/gnunet-test-fs-py-rec", True)
+  shutil.rmtree ("dir", True)
+  shutil.rmtree ("rdir", True)
+  shutil.rmtree ("rdir.gnd", True)
