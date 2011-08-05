@@ -48,6 +48,7 @@ extern "C"
 #include "gnunet_peer_lib.h"
 #include "gnunet_mesh_service_new.h"
 #include "mesh.h"
+#include "mesh_protocol.h"
 
 /******************************************************************************/
 /************************      DATA STRUCTURES     ****************************/
@@ -350,18 +351,22 @@ process_tunnel_create(struct GNUNET_MESH_Handle *h,
  */
 static void
 process_incoming_data(struct GNUNET_MESH_Handle *h,
-                      const struct GNUNET_MESH_Data *msg)
+                      const struct GNUNET_MessageHeader *message)
 {
-    const struct GNUNET_MESH_Data               *payload;
+    const struct GNUNET_MessageHeader           *payload;
     const struct GNUNET_MESH_MessageHandler     *handler;
+    struct GNUNET_MESH_Unicast                  *ucast;
     struct GNUNET_MESH_Tunnel                   *t;
     uint16_t                                    type;
     int                                         i;
 
-    t = retrieve_tunnel(h, ntohl(msg->tunnel_id));
-
-    payload = (struct GNUNET_MESH_Data *) &msg[1];
-    type = ntohs(payload->header.type);
+    type = ntohs(message->type);
+    switch (type) {
+        case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
+            ucast = message;
+            t = retrieve_tunnel(h, ntohl(ucast->tid));
+            
+    }
     for (i = 0; i < h->n_handlers; i++) {
         handler = &h->message_handlers[i];
         if (handler->type == type) {
@@ -398,8 +403,7 @@ msg_received (void *cls, const struct GNUNET_MessageHeader * msg)
     struct GNUNET_MESH_Handle                   *h = cls;
 
     if (msg == NULL) {
-        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "received a NULL message from mesh\n");
+        GNUNET_break_op(0);
         return;
     }
 
@@ -418,7 +422,7 @@ msg_received (void *cls, const struct GNUNET_MessageHeader * msg)
         case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
         case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
         case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
-            process_incoming_data(h, (struct GNUNET_MESH_Data *)msg);
+            process_incoming_data(h, msg);
             break;
         /* We shouldn't get any other packages, log and ignore */
         default:

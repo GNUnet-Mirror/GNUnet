@@ -67,10 +67,10 @@ struct GNUNET_MESH_ManipulatePath
 /**
  * Message for mesh data traffic to all tunnel targets.
  */
-struct GNUNET_MESH_DataMessageMulticast
+struct GNUNET_MESH_Multicast
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_DATA_MULTICAST
+     * Type: GNUNET_MESSAGE_TYPE_MESH_MULTICAST
      */
     struct GNUNET_MessageHeader header;
 
@@ -93,10 +93,10 @@ struct GNUNET_MESH_DataMessageMulticast
 /**
  * Message for mesh data traffic to a particular destination from origin.
  */
-struct GNUNET_MESH_DataMessageFromOrigin
+struct GNUNET_MESH_Unicast
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_DATA_MESSAGE_FROM_ORIGIN
+     * Type: GNUNET_MESSAGE_TYPE_MESH_UNICAST
      */
     struct GNUNET_MessageHeader header;
 
@@ -124,10 +124,10 @@ struct GNUNET_MESH_DataMessageFromOrigin
 /**
  * Message for mesh data traffic from a tunnel participant to origin.
  */
-struct GNUNET_MESH_DataMessageToOrigin
+struct GNUNET_MESH_ToOrigin
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_DATA_MESSAGE_TO_ORIGIN
+     * Type: GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN
      */
     struct GNUNET_MessageHeader header;
 

@@ -794,11 +794,11 @@ static size_t
 send_core_data_to_origin (void *cls, size_t size, void *buf)
 {
     struct MeshDataDescriptor                   *info = cls;
-    struct GNUNET_MESH_DataMessageToOrigin      *msg = buf;
+    struct GNUNET_MESH_ToOrigin                 *msg = buf;
     size_t                                      total_size;
 
     GNUNET_assert(NULL != info);
-    total_size = sizeof(struct GNUNET_MESH_DataMessageToOrigin) + info->size;
+    total_size = sizeof(struct GNUNET_MESH_ToOrigin) + info->size;
     GNUNET_assert(total_size < 65536); /* UNIT16_MAX */
 
     if (total_size > size) {
@@ -836,11 +836,11 @@ static size_t
 send_core_data_unicast (void *cls, size_t size, void *buf)
 {
     struct MeshDataDescriptor                   *info = cls;
-    struct GNUNET_MESH_DataMessageFromOrigin    *msg = buf;
+    struct GNUNET_MESH_Unicast                  *msg = buf;
     size_t                                      total_size;
 
     GNUNET_assert(NULL != info);
-    total_size = sizeof(struct GNUNET_MESH_DataMessageFromOrigin) + info->size;
+    total_size = sizeof(struct GNUNET_MESH_Unicast) + info->size;
     GNUNET_assert(total_size < 65536); /* UNIT16_MAX */
 
     if (total_size > size) {
@@ -879,11 +879,11 @@ static size_t
 send_core_data_multicast (void *cls, size_t size, void *buf)
 {
     struct MeshDataDescriptor                   *info = cls;
-    struct GNUNET_MESH_DataMessageMulticast     *msg = buf;
+    struct GNUNET_MESH_Multicast                *msg = buf;
     size_t                                      total_size;
 
     GNUNET_assert(NULL != info);
-    total_size = info->size + sizeof(struct GNUNET_MESH_DataMessageMulticast);
+    total_size = info->size + sizeof(struct GNUNET_MESH_Multicast);
     GNUNET_assert(total_size < GNUNET_SERVER_MAX_MESSAGE_SIZE); 
 
     if (info->peer) {
@@ -1242,20 +1242,20 @@ handle_mesh_data_unicast (void *cls,
                           const struct GNUNET_TRANSPORT_ATS_Information
                           *atsi)
 {
-    struct GNUNET_MESH_DataMessageFromOrigin    *msg;
+    struct GNUNET_MESH_Unicast                  *msg;
     struct GNUNET_PeerIdentity                  id;
     struct MeshTunnel                           *t;
     struct MeshPeerInfo                         *pi;
     size_t                                      size;
 
     size = ntohs(message->size);
-    if (size < sizeof(struct GNUNET_MESH_DataMessageFromOrigin)
+    if (size < sizeof(struct GNUNET_MESH_Unicast)
                + sizeof(struct GNUNET_MessageHeader))
     {
         GNUNET_break(0);
         return GNUNET_OK;
     }
-    msg = (struct GNUNET_MESH_DataMessageFromOrigin *) message;
+    msg = (struct GNUNET_MESH_Unicast *) message;
     t = retrieve_tunnel(&msg->oid, ntohl(msg->tid));
     if (NULL == t) {
         /* TODO notify back: we don't know this tunnel */
@@ -1303,7 +1303,7 @@ handle_mesh_data_multicast (void *cls,
                           const struct GNUNET_TRANSPORT_ATS_Information
                           *atsi)
 {
-    struct GNUNET_MESH_DataMessageMulticast    *msg;
+    struct GNUNET_MESH_Multicast                *msg;
     struct GNUNET_PeerIdentity                  id;
     struct MeshTunnel                           *t;
     struct MeshDataDescriptor                   *info;
@@ -1314,13 +1314,13 @@ handle_mesh_data_multicast (void *cls,
 
 
     size = ntohs(message->size);
-    if (size < sizeof(struct GNUNET_MESH_DataMessageMulticast)
+    if (size < sizeof(struct GNUNET_MESH_Multicast)
                + sizeof(struct GNUNET_MessageHeader))
     {
         GNUNET_break_op (0);
         return GNUNET_OK; 
     }
-    msg = (struct GNUNET_MESH_DataMessageMulticast *) message;
+    msg = (struct GNUNET_MESH_Multicast *) message;
     t = retrieve_tunnel(&msg->oid, ntohl(msg->tid));
 
     if (NULL == t) {
@@ -1343,7 +1343,7 @@ handle_mesh_data_multicast (void *cls,
     if (!neighbors[0]) {
         return GNUNET_OK;
     }
-    size -= sizeof(struct GNUNET_MESH_DataMessageMulticast);
+    size -= sizeof(struct GNUNET_MESH_Multicast);
     info = GNUNET_malloc(sizeof(struct MeshDataDescriptor) + size);
     info->origin = &t->id;
     info->copies = 0;
@@ -1392,20 +1392,20 @@ handle_mesh_data_to_orig (void *cls,
                           const struct GNUNET_TRANSPORT_ATS_Information
                           *atsi)
 {
-    struct GNUNET_MESH_DataMessageToOrigin      *msg;
+    struct GNUNET_MESH_ToOrigin                 *msg;
     struct GNUNET_PeerIdentity                  id;
     struct MeshTunnel                           *t;
     struct MeshPeerInfo                         *peer_info;
     size_t                                      size;
 
     size = ntohs(message->size);
-    if (size < sizeof(struct GNUNET_MESH_DataMessageToOrigin)
+    if (size < sizeof(struct GNUNET_MESH_ToOrigin)
                + sizeof(struct GNUNET_MessageHeader))
     {
         GNUNET_break_op (0);
         return GNUNET_OK;
     }
-    msg = (struct GNUNET_MESH_DataMessageToOrigin *) message;
+    msg = (struct GNUNET_MESH_ToOrigin *) message;
     t = retrieve_tunnel(&msg->oid, ntohl(msg->tid));
 
     if (NULL == t) {
@@ -2145,14 +2145,14 @@ handle_local_connect_by_type (void *cls,
  * @param message the actual message
  */
 static void
-handle_local_network_traffic (void *cls,
-                         struct GNUNET_SERVER_Client *client,
-                         const struct GNUNET_MessageHeader *message)
+handle_local_unicast (void *cls,
+                      struct GNUNET_SERVER_Client *client,
+                      const struct GNUNET_MessageHeader *message)
 {
     struct MeshClient                           *c;
     struct MeshTunnel                           *t;
     struct MeshPeerInfo                         *pi;
-    struct GNUNET_MESH_Data                     *data_msg;
+    struct GNUNET_MESH_Unicast                  *data_msg;
     struct GNUNET_PeerIdentity                  next_hop;
     struct MeshDataDescriptor                   *info;
     MESH_TunnelNumber                           tid;
@@ -2164,10 +2164,10 @@ handle_local_network_traffic (void *cls,
         GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
         return;
     }
-    data_msg = (struct GNUNET_MESH_Data *)message;
+    data_msg = (struct GNUNET_MESH_Unicast *)message;
     /* Sanity check for message size */
-    if (sizeof(struct GNUNET_MESH_Data) >
-            ntohs(data_msg->header.size))
+    if (sizeof(struct GNUNET_MESH_Unicast) + sizeof(struct GNUNET_MessageHeader)
+        > ntohs(data_msg->header.size))
     {
         GNUNET_break(0);
         GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
@@ -2175,7 +2175,7 @@ handle_local_network_traffic (void *cls,
     }
 
     /* Tunnel exists? */
-    tid = ntohl(data_msg->tunnel_id);
+    tid = ntohl(data_msg->tid);
     t = retrieve_tunnel_by_local_id(c, tid);
     if (NULL == t) {
         GNUNET_break(0);
@@ -2191,7 +2191,7 @@ handle_local_network_traffic (void *cls,
     }
 
     pi = GNUNET_CONTAINER_multihashmap_get(t->peers,
-                                           &data_msg->peer_id.hashPubKey);
+                                           &data_msg->destination.hashPubKey);
     /* Is the selected peer in the tunnel? */
     if (NULL == pi) {
         /* TODO
@@ -2202,7 +2202,7 @@ handle_local_network_traffic (void *cls,
         return;
     }
     GNUNET_PEER_resolve(get_first_hop(pi->path), &next_hop);
-    data_size = ntohs(message->size) - sizeof(struct GNUNET_MESH_Data);
+    data_size = ntohs(message->size) - sizeof(struct GNUNET_MESH_Unicast);
     info = GNUNET_malloc(sizeof(struct MeshDataDescriptor) + data_size);
     memcpy(&info[1], &data_msg[1], data_size);
     info->destination = pi->id;
@@ -2215,8 +2215,7 @@ handle_local_network_traffic (void *cls,
                             GNUNET_TIME_UNIT_FOREVER_REL,
                             &next_hop,
                             /* FIXME re-check types */
-                            message->size - sizeof(struct GNUNET_MESH_Data)
-                            + sizeof(struct GNUNET_MESH_DataMessageFromOrigin),
+                            data_size + sizeof(struct GNUNET_MESH_Unicast),
                             &send_core_data_unicast,
                             info);
     return;
@@ -2230,13 +2229,13 @@ handle_local_network_traffic (void *cls,
  * @param message the actual message
  */
 static void
-handle_local_network_traffic_bcast (void *cls,
-                                    struct GNUNET_SERVER_Client *client,
-                                    const struct GNUNET_MessageHeader *message)
+handle_local_multicast (void *cls,
+                        struct GNUNET_SERVER_Client *client,
+                        const struct GNUNET_MessageHeader *message)
 {
     struct MeshClient                           *c;
     struct MeshTunnel                           *t;
-    struct GNUNET_MESH_DataBroadcast            *data_msg;
+    struct GNUNET_MESH_Multicast                *data_msg;
     MESH_TunnelNumber                           tid;
 
     /* Sanity check for client registration */
@@ -2245,7 +2244,7 @@ handle_local_network_traffic_bcast (void *cls,
         GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
         return;
     }
-    data_msg = (struct GNUNET_MESH_DataBroadcast *)message;
+    data_msg = (struct GNUNET_MESH_Multicast *)message;
     /* Sanity check for message size */
     if (sizeof(struct GNUNET_MESH_PeerControl)
         != ntohs(data_msg->header.size))
@@ -2256,7 +2255,7 @@ handle_local_network_traffic_bcast (void *cls,
     }
 
     /* Tunnel exists? */
-    tid = ntohl(data_msg->tunnel_id);
+    tid = ntohl(data_msg->tid);
     t = retrieve_tunnel_by_local_id(c, tid);
     if (NULL == t) {
         GNUNET_break(0);
@@ -2297,11 +2296,11 @@ static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
   {&handle_local_connect_by_type, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_BY_TYPE,
    sizeof(struct GNUNET_MESH_ConnectPeerByType)},
-  {&handle_local_network_traffic, NULL,
+  {&handle_local_unicast, NULL,
    GNUNET_MESSAGE_TYPE_MESH_UNICAST, 0},
-  {&handle_local_network_traffic, NULL,
+  {&handle_local_unicast, NULL,
    GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN, 0},
-  {&handle_local_network_traffic_bcast, NULL,
+  {&handle_local_multicast, NULL,
    GNUNET_MESSAGE_TYPE_MESH_MULTICAST, 0},
   {NULL, NULL, 0, 0}
 };

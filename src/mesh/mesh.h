@@ -49,15 +49,14 @@
  * peer_request_connect_del             GNUNET_MESH_PeerControl
  * peer_request_connect_by_type         GNUNET_MESH_ConnectPeerByType
  *
- * notify_transmit_ready                GNUNET_MESH_TransmitReady
+ * notify_transmit_ready                *GNUNET_MESH_TransmitReady?*
  * notify_transmit_ready_cancel         None (clear of internal data structures)
  * 
  * 
  * 
  * EVENT                                MESSAGE USED
  * -----                                ------------
- * notify_transmit_ready reply          GNUNET_MESH_TransmitReady
- * notify_transmit_ready data           GNUNET_MESH_Data OR
+ * data                                 GNUNET_MESH_Data OR
  *                                      GNUNET_MESH_DataBroadcast
  * new incoming tunnel                  GNUNET_MESH_PeerControl
  * peer connects to a tunnel            GNUNET_MESH_PeerControl
@@ -169,73 +168,5 @@ struct GNUNET_MESH_ConnectPeerByType {
    */
     GNUNET_MESH_ApplicationType type GNUNET_PACKED;
 };
-
-
-/**
- *  Message for notifying the service that the client wants to send data or
- * notifying a client that the service is ready to accept data.
- */
-struct GNUNET_MESH_TransmitReady {
-    /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_REQUEST_TRANSMIT_READY
-     *       GNUNET_MESSAGE_TYPE_MESH_LOCAL_NOTIFY_TRANSMIT_READY
-     */
-    struct GNUNET_MessageHeader header;
-
-    /**
-     * ID of a tunnel controlled by this client.
-     */
-    MESH_TunnelNumber           tunnel_id GNUNET_PACKED;
-
-    /**
-     * Size of message we would like to transmit to this tunnel
-     */
-    uint32_t                    msg_size GNUNET_PACKED; 
-};
-
-
-/**
- * Message to encapsulate data transmitted to/from the service
- */
-struct GNUNET_MESH_Data {
-    /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA
-     *       (client to service, or service to client)
-     * Size: sizeof(struct GNUNET_MESH_Data) + sizeof (data)
-     */
-    struct GNUNET_MessageHeader header;
-
-    /**
-     * ID of a tunnel in which this client participates.
-     */
-    MESH_TunnelNumber           tunnel_id GNUNET_PACKED;
-
-    /**
-     * Source or destination of the message (depending on direction).
-     */
-    struct GNUNET_PeerIdentity  peer_id;
-
-    /* uint8_t data[] */
-};
-
-/**
- * Message to encapsulate broadcast data transmitted to the service
- */
-struct GNUNET_MESH_DataBroadcast {
-    /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA_BROADCAST
-     *       (client to service only, client created tunnel)
-     * Size: sizeof(struct GNUNET_MESH_DataBroadcast) + sizeof (data)
-     */
-    struct GNUNET_MessageHeader header;
-
-    /**
-     * ID of a tunnel controlled by this client.
-     */
-    MESH_TunnelNumber           tunnel_id GNUNET_PACKED;
-
-    /* uint8_t data[] */
-};
-
 
 #endif
