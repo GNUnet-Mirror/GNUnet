@@ -181,8 +181,9 @@ progress_cb (void *cls,
       fflush(stdout);
       GNUNET_free_non_null (filename);
       GNUNET_free (uri);
-      results += 1;
-      if (results_limit > 0 && results >= results_limit)
+      results++;
+      if ( (results_limit > 0) &&
+	   (results >= results_limit) )
         GNUNET_SCHEDULER_shutdown ();
       break;
     case GNUNET_FS_STATUS_SEARCH_UPDATE:
