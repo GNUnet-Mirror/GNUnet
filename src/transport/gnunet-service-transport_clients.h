@@ -47,18 +47,18 @@ GST_clients_stop (void);
 
 
 /**
- * Initialize a normal client.  We got an init message from this
+ * Initialize a normal client.  We got a start message from this
  * client, add him to the list of clients for broadcasting of inbound
  * messages.
  *
  * @param cls unused
  * @param client the client
- * @param message the init message that was sent
+ * @param message the start message that was sent
  */
 void
-GST_clients_handle_init (void *cls,
-			 struct GNUNET_SERVER_Client *client,
-			 const struct GNUNET_MessageHeader *message);
+GST_clients_handle_start (void *cls,
+			  struct GNUNET_SERVER_Client *client,
+			  const struct GNUNET_MessageHeader *message);
 
 
 /**
@@ -132,11 +132,11 @@ GST_clients_handle_address_iterate (void *cls,
  * Broadcast the given message to all of our clients.
  *
  * @param msg message to broadcast
- * @param candrop GNUNET_YES if the message can be dropped
+ * @param may_drop GNUNET_YES if the message can be dropped
  */
 void
 GST_clients_broadcast (const struct GNUNET_MessageHeader *msg,
-		       int candrop);
+		       int may_drop);
 
 
 /**
@@ -144,12 +144,12 @@ GST_clients_broadcast (const struct GNUNET_MessageHeader *msg,
  *
  * @param client target of the message
  * @param msg message to transmit
- * @param candrop GNUNET_YES if the message can be dropped
+ * @param may_drop GNUNET_YES if the message can be dropped
  */
 void
 GST_clients_unicast (struct GNUNET_SERVER_Client *client,
 		     const struct GNUNET_MessageHeader *msg,
-		     int candrop);
+		     int may_drop);
 
 
 

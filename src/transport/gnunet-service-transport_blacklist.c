@@ -562,10 +562,14 @@ struct TestConnectionContext
  *
  * @param cls the 'struct TestConnectionContest'
  * @param pid neighbour's identity
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
  */
 static void
 test_connection_ok (void *cls,
-		    const struct GNUNET_PeerIdentity *neighbour)
+		    const struct GNUNET_PeerIdentity *neighbour,
+		    const struct GNUNET_TRANSPORT_ATS_Information *ats,
+		    uint32_t ats_count)
 {
   struct TestConnectionContext *tcc = cls;
   struct BlacklistCheck *bc;
