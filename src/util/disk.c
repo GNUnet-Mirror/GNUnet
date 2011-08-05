@@ -1369,6 +1369,7 @@ GNUNET_DISK_file_open (const char *fn,
     }
   else if (flags & GNUNET_DISK_OPEN_CREATE)
     {
+      (void) GNUNET_DISK_directory_create_for_file (expfn);
       if (flags & GNUNET_DISK_OPEN_TRUNCATE)
         disp = CREATE_ALWAYS;
       else
