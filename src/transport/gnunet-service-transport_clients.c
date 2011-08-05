@@ -548,17 +548,16 @@ GST_clients_handle_address_lookup (void *cls,
     }
   rtimeout = GNUNET_TIME_relative_ntoh (alum->timeout);
   numeric = ntohl (alum->numeric_only);
+  tc = GNUNET_SERVER_transmit_context_create (client);
   papi = GST_plugins_find (plugin_name);
   if (NULL == papi)
     {
-      tc = GNUNET_SERVER_transmit_context_create (client);
       GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
 						  GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
       GNUNET_SERVER_transmit_context_run (tc, rtimeout);
       return;
     }
   GNUNET_SERVER_disable_receive_done_warning (client);
-  tc = GNUNET_SERVER_transmit_context_create (client);
   papi->address_pretty_printer (papi->cls,
 				plugin_name,
 				address, address_len,
