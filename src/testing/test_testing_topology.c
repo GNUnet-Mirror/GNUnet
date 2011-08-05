@@ -1250,6 +1250,9 @@ main (int argc, char *argv[])
   topology_string = strstr (topology_string, "_");
   GNUNET_assert (topology_string != NULL);
   topology_string++;
+  topology_string = GNUNET_strdup (topology_string);
+  if (strstr (topology_string, ".exe"))
+    topology_string[strstr (topology_string, ".exe") - topology_string] = 0;
 
   GNUNET_asprintf (&our_binary_name, "test-testing-topology_%s",
                    topology_string);
@@ -1263,6 +1266,7 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   ret = check ();
+  GNUNET_free (topology_string);
 
   /**
    * Need to remove base directory, subdirectories taken care
