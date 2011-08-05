@@ -1241,6 +1241,7 @@ main (int argc, char *argv[])
   int ret;
   char *binary_start_pos;
   char *our_binary_name;
+  char *dotexe;
 
   binary_start_pos = strchr (argv[0], '/');
   GNUNET_assert (binary_start_pos != NULL);
@@ -1251,9 +1252,8 @@ main (int argc, char *argv[])
   GNUNET_assert (topology_string != NULL);
   topology_string++;
   topology_string = GNUNET_strdup (topology_string);
-  if (strstr (topology_string, ".exe"))
-    topology_string[strstr (topology_string, ".exe") - topology_string] = 0;
-
+  if (NULL != (dotexe = strstr (topology_string, ".exe")))
+    dotexe[0] = '\0';
   GNUNET_asprintf (&our_binary_name, "test-testing-topology_%s",
                    topology_string);
   GNUNET_asprintf (&dotOutFileName, "topology_%s.dot", topology_string);
