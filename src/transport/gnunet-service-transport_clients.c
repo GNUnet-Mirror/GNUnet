@@ -28,6 +28,7 @@
 #include "gnunet-service-transport_hello.h"
 #include "gnunet-service-transport_neighbours.h"
 #include "gnunet-service-transport_plugins.h"
+#include "gnunet-service-transport_validation.h"
 #include "gnunet-service-transport.h"
 #include "transport.h"
 
@@ -427,6 +428,23 @@ GST_clients_handle_start (void *cls,
 
 
 /**
+ * Client sent us a HELLO.  Process the request.
+ *
+ * @param cls unused
+ * @param client the client
+ * @param message the HELLO message
+ */
+void
+GST_clients_handle_hello (void *cls,
+			  struct GNUNET_SERVER_Client *client,
+			  const struct GNUNET_MessageHeader *message)
+{
+  GST_validation_handle_hello (message);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
  * Client asked for transmission to a peer.  Process the request.
  *
  * @param cls unused
@@ -438,6 +456,8 @@ GST_clients_handle_send (void *cls,
 			 struct GNUNET_SERVER_Client *client,
 			 const struct GNUNET_MessageHeader *message)
 {
+  /* FIXME */
+  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
 }
 
 
@@ -568,8 +588,52 @@ GST_clients_handle_address_lookup (void *cls,
 
 
 /**
+ * Send an address to the client.
+ *
+ * @param cls our 'struct GNUNET_SERVER_TransmitContext' (for sending)
+ * @param target peer this change is about, never NULL
+ * @param last_validated_at is FOREVER if the address has not been validated (we're currently checking)
+ *                          is ZERO if the address was validated a long time ago (from PEERINFO)
+ *                          is a time in the past if this process validated the address
+ * @param validation_block  is FOREVER if the address is for an unsupported plugin (from PEERINFO)
+ *                          is ZERO if the address is considered valid (no validation needed)
+ *                          is a time in the future if we're currently denying re-validation
+ * @param plugin_name name of the plugin
+ * @param plugin_address binary address
+ * @param plugin_address_len length of address
+ */
+static void
+send_address_to_client (void *cls,
+			const struct GNUNET_PeerIdentity *target,
+			struct GNUNET_TIME_Absolute last_validated_at,
+			struct GNUNET_TIME_Absolute validation_block,
+			const char *plugin_name,
+			const void *plugin_address,
+			size_t plugin_address_len)
+{
+  struct GNUNET_SERVER_TransmitContext *tc = cls;
+  char *addr_buf;
+
+  /* FIXME: move to a binary format!!! */
+  GNUNET_asprintf (&addr_buf, "%s --- %s, %s",
+		   GST_plugins_a2s (plugin_name,
+				    plugin_address,
+				    plugin_address_len),
+		   (GNUNET_YES == GST_neighbours_test_connected (target))
+		   ? "CONNECTED"
+		   : "DISCONNECTED",
+		   (last_validated_at.abs_value < GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
+		   ? "VALIDATED"
+		   : "UNVALIDATED");
+  transmit_address_to_client (tc, addr_buf);
+  GNUNET_free (addr_buf);
+}
+
+
+/**
  * Client asked to obtain information about a peer's addresses.
  * Process the request.
+ * FIXME: use better name!
  *
  * @param cls unused
  * @param client the client
@@ -580,12 +644,54 @@ GST_clients_handle_peer_address_lookup (void *cls,
 					struct GNUNET_SERVER_Client *client,
 					const struct GNUNET_MessageHeader *message)
 {
+  const struct PeerAddressLookupMessage *peer_address_lookup;
+  struct GNUNET_SERVER_TransmitContext *tc;
+
+  peer_address_lookup = (const struct PeerAddressLookupMessage *) message;
+  GNUNET_break (ntohl (peer_address_lookup->reserved) == 0);
+  tc = GNUNET_SERVER_transmit_context_create (client);
+  (void) GST_validation_get_addresses (&peer_address_lookup->peer,
+				       GNUNET_YES,
+				       &send_address_to_client,
+				       tc);
+  GNUNET_SERVER_transmit_context_append_data (tc,
+					      NULL, 0,
+					      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+  GNUNET_SERVER_transmit_context_run (tc, 
+				      GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 
 /**
- * Client asked to obtain information about all addresses.
- * Process the request.
+ * Output the active address of connected neighbours to the given client.
+ *
+ * @param cls the 'struct GNUNET_SERVER_TransmitContext' for transmission to the client
+ * @param neighbour identity of the neighbour
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
+ */
+static void
+output_addresses (void *cls,
+		  const struct GNUNET_PeerIdentity *neighbour,
+		  const struct GNUNET_TRANSPORT_ATS_Information *ats,
+		  uint32_t ats_count)
+{
+  struct GNUNET_SERVER_TransmitContext *tc = cls;
+  char *addr_buf;
+
+  /* FIXME: move to a binary format!!! */
+  GNUNET_asprintf (&addr_buf, 
+		   "%s: %s",
+		   GNUNET_i2s(neighbour),
+		   GST_plugins_a2s ("FIXME", NULL, 0));
+  transmit_address_to_client (tc, addr_buf);
+  GNUNET_free (addr_buf);
+}
+
+
+/**
+ * Client asked to obtain information about all actively used addresses.
+ * Process the request.  FIXME: use better name!
  *
  * @param cls unused
  * @param client the client
@@ -595,7 +701,16 @@ void
 GST_clients_handle_address_iterate (void *cls,
 				    struct GNUNET_SERVER_Client *client,
 				    const struct GNUNET_MessageHeader *message)
-{
+{ 
+  struct GNUNET_SERVER_TransmitContext *tc;
+
+  GNUNET_SERVER_disable_receive_done_warning (client);
+  tc = GNUNET_SERVER_transmit_context_create (client);
+  GST_neighbours_iterate (&output_addresses,
+			  tc);
+  GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
+                                              GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+  GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 

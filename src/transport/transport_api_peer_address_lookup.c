@@ -134,7 +134,6 @@ GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle *
                                       void *peer_address_callback_cls)
 {
   struct PeerAddressLookupMessage msg;
-  struct GNUNET_TIME_Absolute abs_timeout;
   struct AddressLookupCtx *peer_address_lookup_cb;
   struct GNUNET_CLIENT_Connection *client;
 
@@ -144,16 +143,14 @@ GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle *
       peer_address_callback (peer_address_callback_cls, NULL);
       return;
     }
-  abs_timeout = GNUNET_TIME_relative_to_absolute (timeout);
-
   msg.header.size = htons (sizeof(struct PeerAddressLookupMessage));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_PEER_ADDRESS_LOOKUP);
-  msg.timeout = GNUNET_TIME_absolute_hton (abs_timeout);
+  msg.timeout = GNUNET_TIME_relative_hton (timeout);
   memcpy(&msg.peer, peer, sizeof(struct GNUNET_PeerIdentity));
   peer_address_lookup_cb = GNUNET_malloc (sizeof (struct AddressLookupCtx));
   peer_address_lookup_cb->cb = peer_address_callback;
   peer_address_lookup_cb->cb_cls = peer_address_callback_cls;
-  peer_address_lookup_cb->timeout = abs_timeout;
+  peer_address_lookup_cb->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   peer_address_lookup_cb->client = client;
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CLIENT_transmit_and_get_response (client,

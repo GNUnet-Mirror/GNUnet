@@ -154,7 +154,7 @@ gnunet_service_transport_new_SOURCES = \
  gnunet-service-transport_hello.h gnunet-service-transport_hello.c \
  gnunet-service-transport_neighbours.h gnunet-service-transport_neighbours.c \
  gnunet-service-transport_plugins.h gnunet-service-transport_plugins.c \
- gnunet-service-transport_validation.h 
+ gnunet-service-transport_validation.h gnunet-service-transport_validation.c 
 gnunet_service_transport_new_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \

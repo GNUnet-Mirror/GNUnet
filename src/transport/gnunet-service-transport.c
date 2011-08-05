@@ -5963,7 +5963,6 @@ handle_peer_address_lookup (void *cls,
 
   uint16_t size;
   struct GNUNET_SERVER_TransmitContext *tc;
-  struct GNUNET_TIME_Absolute timeout;
   struct GNUNET_TIME_Relative rtimeout;
   char *addr_buf;
 
@@ -5976,8 +5975,7 @@ handle_peer_address_lookup (void *cls,
     }
   peer_address_lookup = (const struct PeerAddressLookupMessage *) message;
 
-  timeout = GNUNET_TIME_absolute_ntoh (peer_address_lookup->timeout);
-  rtimeout = GNUNET_TIME_absolute_get_remaining (timeout);
+  rtimeout = GNUNET_TIME_relative_ntoh (peer_address_lookup->timeout);
 
   neighbor_iterator = find_neighbour (&peer_address_lookup->peer);
 

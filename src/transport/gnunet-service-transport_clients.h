@@ -62,6 +62,19 @@ GST_clients_handle_start (void *cls,
 
 
 /**
+ * Client sent us a HELLO.  Process the request.
+ *
+ * @param cls unused
+ * @param client the client
+ * @param message the HELLO message
+ */
+void
+GST_clients_handle_hello (void *cls,
+			  struct GNUNET_SERVER_Client *client,
+			  const struct GNUNET_MessageHeader *message);
+
+
+/**
  * Client asked for transmission to a peer.  Process the request.
  *
  * @param cls unused

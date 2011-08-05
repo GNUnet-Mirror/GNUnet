@@ -19,29 +19,30 @@
 */
 
 /**
- * @file transport/gnunet-service-transport_validation.h
- * @brief address validation API
+ * @file transport/gnunet-service-transport_validation.c
+ * @brief address validation subsystem
  * @author Christian Grothoff
  */
-#ifndef GNUNET_SERVICE_TRANSPORT_VALIDATION_H
-#define GNUNET_SERVICE_TRANSPORT_VALIDATION_H
-
-#include "gnunet_statistics_service.h"
-#include "gnunet_util_lib.h"
+#include "platform.h"
+#include "gnunet-service-transport_validation.h"
 
 
 /**
  * Start the validation subsystem.
  */
 void 
-GST_validation_start (void);
+GST_validation_start ()
+{
+}
 
 
 /**
  * Stop the validation subsystem.
  */
 void
-GST_validation_stop (void);
+GST_validation_stop ()
+{
+}
 
 
 /**
@@ -59,7 +60,9 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
 			    const struct GNUNET_MessageHeader *hdr,
 			    const char *plugin_name,
 			    const void *sender_address,
-			    size_t sender_address_len);
+			    size_t sender_address_len)
+{
+}
 
 
 /**
@@ -78,7 +81,9 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
 			    const struct GNUNET_MessageHeader *hdr,
 			    const char *plugin_name,
 			    const void *sender_address,
-			    size_t sender_address_len);
+			    size_t sender_address_len)
+{
+}
 
 
 /**
@@ -88,38 +93,17 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
  * @param hello the HELLO we received
  */
 void
-GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello);
+GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello)
+{
+}
 
 
 /**
  * Opaque handle to stop incremental validation address callbacks.
  */
-struct GST_ValidationIteratorContext;
-
-
-/**
- * Function called for each address (or address status change) that
- * the validation module is aware of (for the given target).
- *
- * @param cls closure
- * @param target peer this change is about, never NULL
- * @param last_validated_at is FOREVER if the address has not been validated (we're currently checking)
- *                          is ZERO if the address was validated a long time ago (from PEERINFO)
- *                          is a time in the past if this process validated the address
- * @param validation_block  is FOREVER if the address is for an unsupported plugin (from PEERINFO)
- *                          is ZERO if the address is considered valid (no validation needed)
- *                          is a time in the future if we're currently denying re-validation
- * @param plugin_name name of the plugin
- * @param plugin_address binary address
- * @param plugin_address_len length of address
- */
-typedef void (*GST_ValidationAddressCallback)(void *cls,
-					      const struct GNUNET_PeerIdentity *target,
-					      struct GNUNET_TIME_Absolute last_validated_at,
-					      struct GNUNET_TIME_Absolute validation_block,
-					      const char *plugin_name,
-					      const void *plugin_address,
-					      size_t plugin_address_len);
+struct GST_ValidationIteratorContext
+{
+};
 
 
 /**
@@ -138,7 +122,10 @@ struct GST_ValidationIteratorContext *
 GST_validation_get_addresses (const struct GNUNET_PeerIdentity *target,
 			      int snapshot_only,
 			      GST_ValidationAddressCallback cb,
-			      void *cb_cls);
+			      void *cb_cls)
+{
+  return NULL;
+}
 
 
 /**
@@ -147,9 +134,10 @@ GST_validation_get_addresses (const struct GNUNET_PeerIdentity *target,
  * @param ctx the context of the operation that is cancelled
  */
 void
-GST_validation_get_addresses_cancel (struct GST_ValidationIteratorContext *ctx);
+GST_validation_get_addresses_cancel (struct GST_ValidationIteratorContext *ctx)
+{
+  GNUNET_break (0);
+}
 
 
-
-#endif
-/* end of file gnunet-service-transport_validation.h */
+/* end of file gnunet-service-transport_validation.c */

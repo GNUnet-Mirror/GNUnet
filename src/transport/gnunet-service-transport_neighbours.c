@@ -174,6 +174,8 @@ GST_neighbours_iterate (GST_NeighbourIterator cb,
  * @param sender_address address of the other peer, NULL if other peer
  *                       connected to us
  * @param sender_address_len number of bytes in sender_address
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
  * @return GNUNET_OK if the message was well-formed, GNUNET_SYSERR if not
  */
 int
@@ -181,7 +183,9 @@ GST_neighbours_handle_pong (const struct GNUNET_PeerIdentity *sender,
 			    const struct GNUNET_MessageHeader *hdr,
 			    const char *plugin_name,
 			    const void *sender_address,
-			    size_t sender_address_len)
+			    size_t sender_address_len,
+			    const struct GNUNET_TRANSPORT_ATS_Information *ats,
+			    uint32_t ats_count)
 {
   return GNUNET_SYSERR;
 }
@@ -196,6 +200,8 @@ GST_neighbours_handle_pong (const struct GNUNET_PeerIdentity *sender,
  * @param sender_address address of the other peer, NULL if other peer
  *                       connected to us
  * @param sender_address_len number of bytes in sender_address
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
  * @return GNUNET_OK if the message was well-formed, GNUNET_SYSERR if not
  */
 int
@@ -203,7 +209,9 @@ GST_neighbours_handle_connect (const struct GNUNET_PeerIdentity *sender,
 			       const struct GNUNET_MessageHeader *hdr,
 			       const char *plugin_name,
 			       const void *sender_address,
-			       size_t sender_address_len)
+			       size_t sender_address_len,
+			       const struct GNUNET_TRANSPORT_ATS_Information *ats,
+			       uint32_t ats_count)
 {
   return GNUNET_SYSERR;
 }
