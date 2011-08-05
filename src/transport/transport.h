@@ -165,8 +165,8 @@ struct TransportRequestConnectMessage
 };
 
 /**
- * Message used to set a particular bandwidth quota.  Send TO the
- * service to set an incoming quota, send FROM the service to update
+ * Message used to set a particular bandwidth quota.  Sent TO the
+ * service to set an incoming quota, sent FROM the service to update
  * an outgoing quota.
  */
 struct QuotaSetMessage
@@ -311,7 +311,7 @@ struct AddressLookupMessage
   /**
    * timeout to give up.
    */
-  struct GNUNET_TIME_AbsoluteNBO timeout;
+  struct GNUNET_TIME_RelativeNBO timeout;
 
   /**
    * Length of the (binary) address in bytes, in big-endian.

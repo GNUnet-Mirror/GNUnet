@@ -5870,6 +5870,8 @@ transmit_address_to_client (void *cls, const char *address)
     }
   else
     {
+      GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
+						  GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
       GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
     }
 }
@@ -5893,7 +5895,6 @@ handle_address_lookup (void *cls,
   const char *address;
   uint16_t size;
   struct GNUNET_SERVER_TransmitContext *tc;
-  struct GNUNET_TIME_Absolute timeout;
   struct GNUNET_TIME_Relative rtimeout;
   int32_t numeric;
 
@@ -5921,8 +5922,7 @@ handle_address_lookup (void *cls,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
-  timeout = GNUNET_TIME_absolute_ntoh (alum->timeout);
-  rtimeout = GNUNET_TIME_absolute_get_remaining (timeout);
+  rtimeout = GNUNET_TIME_relative_ntoh (alum->timeout);
   numeric = ntohl (alum->numeric_only);
   lsPlugin = find_transport (nameTransport);
   if (NULL == lsPlugin)

@@ -27,6 +27,7 @@
 #include "gnunet-service-transport_clients.h"
 #include "gnunet-service-transport_hello.h"
 #include "gnunet-service-transport_neighbours.h"
+#include "gnunet-service-transport_plugins.h"
 #include "gnunet-service-transport.h"
 #include "transport.h"
 
@@ -473,6 +474,33 @@ GST_clients_handle_set_quota (void *cls,
 
 
 /**
+ * Take the given address and append it to the set of results sent back to
+ * the client.
+ *
+ * @param cls the transmission context used ('struct GNUNET_SERVER_TransmitContext*')
+ * @param address the resolved name, NULL to indicate the last response
+ */
+static void
+transmit_address_to_client (void *cls, 
+			    const char *address)
+{
+  struct GNUNET_SERVER_TransmitContext *tc = cls;
+
+  if (NULL == address)
+    {
+      GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
+						  GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+      GNUNET_SERVER_transmit_context_run (tc,
+					  GNUNET_TIME_UNIT_FOREVER_REL);
+      return;
+    }
+  GNUNET_SERVER_transmit_context_append_data (tc, 
+					      address, strlen (address) + 1,
+					      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+}
+
+
+/**
  * Client asked to resolve an address.  Process the request.
  *
  * @param cls unused
@@ -484,6 +512,59 @@ GST_clients_handle_address_lookup (void *cls,
 				   struct GNUNET_SERVER_Client *client,
 				   const struct GNUNET_MessageHeader *message)
 {
+  const struct AddressLookupMessage *alum;
+  struct GNUNET_TRANSPORT_PluginFunctions *papi;
+  const char *plugin_name;
+  const char *address;
+  uint32_t address_len;
+  uint16_t size;
+  struct GNUNET_SERVER_TransmitContext *tc;
+  struct GNUNET_TIME_Relative rtimeout;
+  int32_t numeric;
+
+  size = ntohs (message->size);
+  if (size < sizeof (struct AddressLookupMessage))
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+  alum = (const struct AddressLookupMessage *) message;
+  address_len = ntohl (alum->addrlen);
+  if (size <= sizeof (struct AddressLookupMessage) + address_len)
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+  address = (const char *) &alum[1];
+  plugin_name = (const char *) &address[address_len];
+  if (plugin_name
+      [size - sizeof (struct AddressLookupMessage) - address_len - 1] != '\0')
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+  rtimeout = GNUNET_TIME_relative_ntoh (alum->timeout);
+  numeric = ntohl (alum->numeric_only);
+  papi = GST_plugins_find (plugin_name);
+  if (NULL == papi)
+    {
+      tc = GNUNET_SERVER_transmit_context_create (client);
+      GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
+						  GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
+      GNUNET_SERVER_transmit_context_run (tc, rtimeout);
+      return;
+    }
+  GNUNET_SERVER_disable_receive_done_warning (client);
+  tc = GNUNET_SERVER_transmit_context_create (client);
+  papi->address_pretty_printer (papi->cls,
+				plugin_name,
+				address, address_len,
+				numeric,
+				rtimeout,
+				&transmit_address_to_client, tc);
 }
 
 

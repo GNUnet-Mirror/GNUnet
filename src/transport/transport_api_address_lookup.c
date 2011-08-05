@@ -131,7 +131,6 @@ GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
   size_t slen;
   size_t len;
   struct AddressLookupMessage *msg;
-  struct GNUNET_TIME_Absolute abs_timeout;
   struct AddressLookupCtx *aluCB;
   struct GNUNET_CLIENT_Connection *client;
   char *addrbuf;
@@ -150,12 +149,11 @@ GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
       aluc (aluc_cls, NULL);
       return;
     }
-  abs_timeout = GNUNET_TIME_relative_to_absolute (timeout);
   msg = GNUNET_malloc (len);
   msg->header.size = htons (len);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP);
   msg->numeric_only = htonl (numeric);
-  msg->timeout = GNUNET_TIME_absolute_hton (abs_timeout);
+  msg->timeout = GNUNET_TIME_relative_hton (timeout);
   msg->addrlen = htonl (addressLen);
   addrbuf = (char *) &msg[1];
   memcpy (addrbuf, address, addressLen);
@@ -163,7 +161,7 @@ GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
   aluCB = GNUNET_malloc (sizeof (struct AddressLookupCtx));
   aluCB->cb = aluc;
   aluCB->cb_cls = aluc_cls;
-  aluCB->timeout = abs_timeout;
+  aluCB->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   aluCB->client = client;
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CLIENT_transmit_and_get_response (client,
