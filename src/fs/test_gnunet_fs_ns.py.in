@@ -25,7 +25,7 @@ import re
 import shutil
 
 srcdir = "../.."
-gnunet_pyexpect_dir = os.path.join (srcdir, "contrib", "gnunet_pyexpect")
+gnunet_pyexpect_dir = os.path.join (srcdir, "contrib")
 if gnunet_pyexpect_dir not in sys.path:
   sys.path.append (gnunet_pyexpect_dir)
 
