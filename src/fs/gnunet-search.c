@@ -44,6 +44,10 @@ static unsigned int anonymity = 1;
 
 static unsigned long long timeout;
 
+static unsigned int results_limit;
+
+static unsigned int results = 0;
+
 static int verbose;
 
 static int local_only;
@@ -177,6 +181,9 @@ progress_cb (void *cls,
       fflush(stdout);
       GNUNET_free_non_null (filename);
       GNUNET_free (uri);
+      results += 1;
+      if (results_limit > 0 && results >= results_limit)
+        GNUNET_SCHEDULER_shutdown ();
       break;
     case GNUNET_FS_STATUS_SEARCH_UPDATE:
       break;
@@ -320,12 +327,16 @@ main (int argc, char *const *argv)
      ("write search results to file starting with PREFIX"),
      1, &GNUNET_GETOPT_set_string, &output_filename}, 
     {'t', "timeout", "VALUE",
-     gettext_noop 
+     gettext_noop
      ("automatically terminate search after VALUE ms"),
      1, &GNUNET_GETOPT_set_ulong, &timeout},
     {'V', "verbose", NULL,
      gettext_noop ("be verbose (print progress information)"),
      0, &GNUNET_GETOPT_set_one, &verbose},
+    {'N', "results", "VALUE",
+     gettext_noop
+     ("automatically terminate search after VALUE results are found"),
+     1, &GNUNET_GETOPT_set_ulong, &results_limit},
     GNUNET_GETOPT_OPTION_END
   }; 
   return (GNUNET_OK ==
