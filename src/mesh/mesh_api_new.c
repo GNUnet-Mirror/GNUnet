@@ -334,12 +334,45 @@ process_tunnel_create(struct GNUNET_MESH_Handle *h,
     }
     t = GNUNET_malloc(sizeof(struct GNUNET_MESH_Tunnel));
     t->cls = h->cls;
-    t->connect_handler = NULL;
-    t->disconnect_handler = NULL;
     t->mesh = h;
     t->tid = tid;
 
     return;
+}
+
+
+/**
+ * Process the new peer event and notify the upper level of it
+ * 
+ * @param h     The mesh handle
+ * @param msg   A message with the details of the peer event
+ */
+static void
+process_peer_event(struct GNUNET_MESH_Handle *h, 
+                      const struct GNUNET_MESH_PeerControl *msg)
+{
+    struct GNUNET_MESH_Tunnel           *t;
+    uint16_t                            size;
+
+    size = ntohs(msg->header.size);
+    if (size != sizeof(struct GNUNET_MESH_PeerControl)) {
+        GNUNET_break_op(0);
+        return;
+    }
+    t = retrieve_tunnel(h, ntohl(msg->tunnel_id));
+    if (NULL == t) {
+        GNUNET_break_op(0);
+        return;
+    }
+    if (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_CONNECTED == msg->header.type) {
+        if (NULL != t->connect_handler) {
+            t->connect_handler(t->cls, &msg->peer, NULL); /* FIXME atsi */
+        }
+    } else {
+        if (NULL != t->disconnect_handler) {
+            t->disconnect_handler(t->cls, &msg->peer);
+        }
+    }
 }
 
 
@@ -355,7 +388,10 @@ process_incoming_data(struct GNUNET_MESH_Handle *h,
 {
     const struct GNUNET_MessageHeader           *payload;
     const struct GNUNET_MESH_MessageHandler     *handler;
+    const struct GNUNET_PeerIdentity            *peer;
     struct GNUNET_MESH_Unicast                  *ucast;
+    struct GNUNET_MESH_Multicast                *mcast;
+    struct GNUNET_MESH_ToOrigin                 *to_orig;
     struct GNUNET_MESH_Tunnel                   *t;
     uint16_t                                    type;
     int                                         i;
@@ -363,25 +399,45 @@ process_incoming_data(struct GNUNET_MESH_Handle *h,
     type = ntohs(message->type);
     switch (type) {
         case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
-            ucast = message;
+            ucast = (struct GNUNET_MESH_Unicast *) message;
             t = retrieve_tunnel(h, ntohl(ucast->tid));
-            
+            payload = (struct GNUNET_MessageHeader *) &ucast[1];
+            peer = &ucast->oid;
+            break;
+        case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
+            mcast = (struct GNUNET_MESH_Multicast *) message;
+            t = retrieve_tunnel(h, ntohl(mcast->tid));
+            payload = (struct GNUNET_MessageHeader *) &mcast[1];
+            peer = &mcast->oid;
+            break;
+        case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
+            to_orig = (struct GNUNET_MESH_ToOrigin *) message;
+            t = retrieve_tunnel(h, ntohl(to_orig->tid));
+            payload = (struct GNUNET_MessageHeader *) &to_orig[1];
+            peer = &to_orig->sender;
+            break;
+        default:
+            GNUNET_break_op(0);
+            return;
+    }
+    if (NULL == t) {
+        GNUNET_break_op(0);
+        return;
     }
     for (i = 0; i < h->n_handlers; i++) {
         handler = &h->message_handlers[i];
         if (handler->type == type) {
-            /* FIXME */
             if (GNUNET_OK == handler->callback (h->cls,
                                                 t,
-                                                NULL,
-                                                NULL,
-                                                NULL,
-                                                NULL))
+                                                NULL,           /* FIXME ctx */
+                                                peer,
+                                                payload,
+                                                NULL))          /* FIXME atsi */
             {
                 GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                             "MESH: callback completed successfully\n");
             } else {
-                GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                             "MESH: callback caused disconnection\n");
                 GNUNET_MESH_disconnect(h);
             }
@@ -412,11 +468,10 @@ msg_received (void *cls, const struct GNUNET_MessageHeader * msg)
         case GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE:
             process_tunnel_create(h, (struct GNUNET_MESH_TunnelMessage *)msg);
             break;
-        /* Notify of a new peer in the tunnel */
+        /* Notify of a new peer or a peer disconnect in the tunnel*/
         case GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_CONNECTED:
-            break;
-        /* Notify of a peer leaving the tunnel */
         case GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_DISCONNECTED:
+            process_peer_event(h, (struct GNUNET_MESH_PeerControl *)msg);
             break;
         /* Notify of a new data packet in the tunnel */
         case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
