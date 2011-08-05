@@ -149,6 +149,9 @@ GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
   struct GNUNET_FS_FileInformation *ret;
   const char *fn;
   const char *ss;
+#if WINDOWS
+  char fn_conv[MAX_PATH];
+#endif
 
   if (0 != STAT (filename, &sbuf))
     {
@@ -176,7 +179,12 @@ GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
     return NULL;
   ret->h = h;
   ret->filename = GNUNET_strdup (filename);
+#if !WINDOWS
   fn = filename;
+#else
+  plibc_conv_to_win_path (filename, fn_conv);
+  fn = fn_conv;
+#endif
   while (NULL != (ss = strstr (fn,
 			       DIR_SEPARATOR_STR)))
     fn = ss + 1;
