@@ -99,15 +99,14 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
 		     void *cont_cls);
 
 /**
- * Change the quota for the given peer.
- * FIXME: inbound or outbound quota?
+ * Change the incoming quota for the given peer.
  *
  * @param neighbour identity of peer to change qutoa for
- * @param quota new quota FIXME: fix type!
+ * @param quota new quota 
  */
 void
-GST_neighbours_set_quota (const struct GNUNET_PeerIdentity *neighbour,
-			  const float quota);
+GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
+				   struct GNUNET_BANDWIDTH_Value32NBO quota);
 
 
 /**

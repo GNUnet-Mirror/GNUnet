@@ -84,6 +84,64 @@ GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target)
 
 
 /**
+ * Transmit a message to the given target using the active connection.
+ *
+ * @param target destination
+ * @param msg message to send
+ * @param cont function to call when done
+ * @param cont_cls closure for 'cont'
+ */
+void
+GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
+		     const struct GNUNET_MessageHeader *msg,
+		     GST_NeighbourSendContinuation cont,
+		     void *cont_cls)
+{
+}
+
+
+/**
+ * Change the incoming quota for the given peer.
+ *
+ * @param neighbour identity of peer to change qutoa for
+ * @param quota new quota 
+ */
+void
+GST_neighbours_set_quota (const struct GNUNET_PeerIdentity *neighbour,
+			  struct GNUNET_BANDWIDTH_Value32NBO quota)
+{
+#if 0
+
+  n = find_neighbour (neighbour);
+  if (n == NULL)
+    {
+      GNUNET_STATISTICS_update (stats,
+				gettext_noop ("# SET QUOTA messages ignored (no such peer)"),
+				1,
+				GNUNET_NO);
+      return;
+    }
+  GNUNET_BANDWIDTH_tracker_update_quota (&n->in_tracker,
+					 quota);
+  if (0 != ntohl (qsm->quota.value__))
+    return;
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Disconnecting peer `%4s' due to `%s'\n",
+	      GNUNET_i2s(&n->id),
+	      "SET_QUOTA");
+#endif
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# disconnects due to quota of 0"),
+			    1,
+			    GNUNET_NO);
+  GST_neighbours_force_disconnect (neighbour);
+
+#endif
+}
+
+
+/**
  * If we have an active connection to the given target, it must be shutdown.
  *
  * @param target peer to disconnect from

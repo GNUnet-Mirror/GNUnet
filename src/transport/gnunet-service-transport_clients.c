@@ -452,6 +452,23 @@ GST_clients_handle_set_quota (void *cls,
 			      struct GNUNET_SERVER_Client *client,
 			      const struct GNUNET_MessageHeader *message)
 {
+  const struct QuotaSetMessage *qsm;
+
+  qsm = (const struct QuotaSetMessage *) message;
+  GNUNET_STATISTICS_update (stats,
+			    gettext_noop ("# SET QUOTA messages received"),
+			    1,
+			    GNUNET_NO);
+#if DEBUG_TRANSPORT 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s' request (new quota %u) from client for peer `%4s'\n",
+              "SET_QUOTA",
+	      (unsigned int) ntohl (qsm->quota.value__),
+	      GNUNET_i2s (&qsm->peer));
+#endif
+  GST_neighbours_set_incoming_quota (&qsm->peer,
+				     qsm->quota);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
