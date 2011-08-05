@@ -1446,6 +1446,15 @@ transmit_to_client (struct TransportClient *client,
   struct ClientMessageQueueEntry *q;
   uint16_t msize;
 
+  /* Client==NULL when GNUNET_SERVER_Client disconnected and was
+   * freed in client_disconnect_notification
+   */
+  if (client->client == NULL)
+    {
+      GNUNET_break (0);
+      return;
+    }
+
   if ((client->message_count >= MAX_PENDING) && (GNUNET_YES == may_drop))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
