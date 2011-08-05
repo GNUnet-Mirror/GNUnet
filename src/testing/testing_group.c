@@ -6881,6 +6881,10 @@ internal_shutdown_callback(void *cls, const char *emsg)
     }
   else
     {
+#if VERBOSE_TESTING
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "internal_shutdown_callback",
+          "Failed to stop a peer: %s\n", emsg);
+#endif
       shutdown_ctx->peers_failed++;
     }
 
