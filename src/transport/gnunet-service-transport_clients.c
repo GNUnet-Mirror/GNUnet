@@ -455,7 +455,7 @@ GST_clients_handle_set_quota (void *cls,
   const struct QuotaSetMessage *qsm;
 
   qsm = (const struct QuotaSetMessage *) message;
-  GNUNET_STATISTICS_update (stats,
+  GNUNET_STATISTICS_update (GST_stats,
 			    gettext_noop ("# SET QUOTA messages received"),
 			    1,
 			    GNUNET_NO);

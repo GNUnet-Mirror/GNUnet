@@ -107,8 +107,8 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
  * @param quota new quota 
  */
 void
-GST_neighbours_set_quota (const struct GNUNET_PeerIdentity *neighbour,
-			  struct GNUNET_BANDWIDTH_Value32NBO quota)
+GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
+				   struct GNUNET_BANDWIDTH_Value32NBO quota)
 {
 #if 0
 
