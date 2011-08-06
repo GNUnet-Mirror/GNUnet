@@ -190,10 +190,24 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_PONG 33
 
 /**
- * Message for TRANSPORT asking that a connection
- * be initiated with a peer.
+ * Message for transport service from a client asking that a
+ * connection be initiated with another peer.
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_CONNECT 34
+
+/**
+ * Transport CONNECT message exchanged between transport services to
+ * indicate that a session should be marked as 'connected'.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT 35
+
+/**
+ * Transport DISCONNECT message exchanged between transport services to
+ * indicate that a connection should be dropped.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT 36
+
+
 
 /**
  * Request update and listing of a peer.
