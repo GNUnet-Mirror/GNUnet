@@ -54,6 +54,15 @@
 #include "mesh_protocol.h"
 #include "gnunet_dht_service.h"
 
+#define MESH_DEBUG              0
+
+#if MESH_DEBUG
+static void
+mesh_debug (const char *s)
+{
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s", s);
+}
+#endif
 
 #define CORE_QUEUE_SIZE         10
 #define LOCAL_QUEUE_SIZE        100
@@ -1098,7 +1107,7 @@ handle_mesh_path_create (void *cls,
     struct MeshPeerInfo                 *orig_peer_info;
     struct MeshTunnel                   *t;
 
-
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received a MESH path create msg\n");
     size = ntohs(message->size);
     if (size < sizeof(struct GNUNET_MESH_ManipulatePath)) {
         GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
@@ -1125,11 +1134,10 @@ handle_mesh_path_create (void *cls,
     t = retrieve_tunnel(pi, tid);
 
     if (NULL == t) {
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Creating tunnel\n");
         t = GNUNET_malloc(sizeof(struct MeshTunnel));
         t->id.oid = GNUNET_PEER_intern(pi);
         t->id.tid = tid;
-        t->local_tid = 0;
-        t->client = NULL;
         t->peers = GNUNET_CONTAINER_multihashmap_create(32);
 
         GNUNET_CRYPTO_hash(&t->id, sizeof(struct MESH_TunnelID), &hash);
@@ -1139,8 +1147,7 @@ handle_mesh_path_create (void *cls,
                             t,
                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
         {
-            GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                   "create path: could not store tunnel in hashmap\n");
+            GNUNET_break(0);
             return GNUNET_OK;
         }
 
@@ -2324,6 +2331,27 @@ core_init (void *cls,
                 "Core init\n");
     core_handle = server;
     myid = GNUNET_PEER_intern(identity);
+    /* TODO
+     * - Repeat every X seconds to avoid churn induced failures,
+     * increase replication and diversify routes.
+     * - Set data expiration in function of X
+     * - Adapt X to churn
+     */
+    GNUNET_DHT_put(dht_handle,                                  /* DHT handle */
+                   &identity->hashPubKey,                       /* Key to use */
+                   10U,                                  /* Replication level */
+                   GNUNET_DHT_RO_RECORD_ROUTE,                 /* DHT options */
+                   GNUNET_BLOCK_TYPE_ANY,                       /* Block type */
+                   0,                                     /* Size of the data */
+                   NULL,                                       /* Data itself */
+                   GNUNET_TIME_absolute_get_forever(),     /* Data expiration */
+                   GNUNET_TIME_UNIT_FOREVER_REL,                /* Retry time */
+#if MESH_DEBUG
+
+#else
+                   NULL,                                      /* Continuation */
+                   NULL);                             /* Continuation closure */
+#endif
     return;
 }
 
@@ -2460,8 +2488,14 @@ run (void *cls,
     }
     dht_handle = GNUNET_DHT_connect(c, 64);
     if (dht_handle == NULL) {
+        GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                   "Error connecting to DHT.\
+                   Running without DHT has a severe\
+                   impact in MESH capabilities.\n\
+                   Plase check your configuretion and enable DHT.\n");
         GNUNET_break(0);
     }
+
     next_tid = 0;
 
     tunnels = GNUNET_CONTAINER_multihashmap_create(32);
@@ -2476,7 +2510,7 @@ run (void *cls,
                                   &shutdown_task, NULL);
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "end if run()\n");
+                "end of run()\n");
 }
 
 /**
