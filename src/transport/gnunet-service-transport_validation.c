@@ -538,7 +538,9 @@ validate_address (void *cls,
   struct TransportPingMessage ping;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   ssize_t ret;
-   
+  size_t tsize;
+  size_t slen;
+
   if (GNUNET_TIME_absolute_get_remaining (expiration).rel_value == 0)
     return GNUNET_OK; /* expired */
   ve = find_validation_entry (pid, tname, addr, addrlen);
@@ -547,32 +549,48 @@ validate_address (void *cls,
   if (GNUNET_TIME_absolute_get_remaining (ve->valid_until).rel_value > 0)
     return GNUNET_OK; /* valid */
   ve->validation_block = GNUNET_TIME_relative_to_absolute (MAX_REVALIDATION_FREQUENCY);
-  
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmitting plain PING to `%s'\n",
+	      GNUNET_i2s (pid));  
   ping.header.size = htons(sizeof(struct TransportPingMessage));
   ping.header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_PING);
   ping.challenge = htonl(ve->challenge);
   ping.target = *pid;
-  GNUNET_STATISTICS_update (GST_stats,
-			    gettext_noop ("# PING without HELLO messages sent"),
-			    1,
-			    GNUNET_NO);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Transmitting plain PING to `%s'\n",
-	      GNUNET_i2s (pid));
-  papi = GST_plugins_find (ve->transport_name);
-  ret = papi->send (papi->cls,
-		    pid,
-		    (const char*) &ping,
-		    sizeof (struct TransportPingMessage),
-		    PING_PRIORITY,
-		    HELLO_VERIFICATION_TIMEOUT,
-		    NULL /* no session */,
-		    ve->addr,
-		    ve->addrlen,
-		    GNUNET_YES,
-		    NULL, NULL);
+  
+  slen = strlen(ve->transport_name) + 1;
+  tsize = sizeof(struct TransportPingMessage) + ve->addrlen + slen;
+  {
+    char message_buf[tsize];
+
+    memcpy(message_buf, &ping, sizeof (struct TransportPingMessage));
+    memcpy(&message_buf[sizeof (struct TransportPingMessage)],
+	   ve->transport_name,
+	   slen);
+    memcpy(&message_buf[sizeof (struct TransportPingMessage) + slen],
+	   ve->addr,
+	   ve->addrlen);
+    papi = GST_plugins_find (ve->transport_name);
+    ret = papi->send (papi->cls,
+		      pid,
+		      message_buf,
+		      tsize,
+		      PING_PRIORITY,
+		      HELLO_VERIFICATION_TIMEOUT,
+		      NULL /* no session */,
+		      ve->addr,
+		      ve->addrlen,
+		      GNUNET_YES,
+		      NULL, NULL);
+  }
   if (-1 != ret)
-    ve->send_time = GNUNET_TIME_absolute_get ();
+    {
+      ve->send_time = GNUNET_TIME_absolute_get ();
+      GNUNET_STATISTICS_update (GST_stats,
+				gettext_noop ("# PING without HELLO messages sent"),
+				1,
+				GNUNET_NO);
+    }
   return GNUNET_OK;
 }
 
