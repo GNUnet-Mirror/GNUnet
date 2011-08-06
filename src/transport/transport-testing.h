@@ -25,6 +25,16 @@
  * @author Matthias Wachs
  */
 
+#include "platform.h"
+#include "gnunet_common.h"
+#include "gnunet_hello_lib.h"
+#include "gnunet_getopt_lib.h"
+#include "gnunet_os_lib.h"
+#include "gnunet_program_lib.h"
+#include "gnunet_transport_service.h"
+#include "transport.h"
+
+
 struct PeerContext
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -33,5 +43,19 @@ struct PeerContext
   struct GNUNET_OS_Process *arm_proc;
   char * servicehome;
 };
+
+typedef (*GNUNET_TRANSPORT_TESTING_connect_cb) (struct PeerContext * p1, struct PeerContext * p2, void *cls);
+
+static struct PeerContext *
+GNUNET_TRANSPORT_TESTING_start_peer (const char * cfgname);
+
+static void
+GNUNET_TRANSPORT_TESTING_stop_peer (struct PeerContext * pc);
+
+static void
+GNUNET_TRANSPORT_TESTING_connect_peers (struct PeerContext * p1,
+    struct PeerContext * p2,
+    GNUNET_TRANSPORT_TESTING_connect_cb * cb,
+    void * cls);
 
 /* end of transport_testing.h */

@@ -66,7 +66,11 @@ noinst_PROGRAMS = $(WLAN_BIN_DUMMY)
 
 
 lib_LTLIBRARIES = \
-  libgnunettransport.la 
+  libgnunettransport.la \
+  libgnunettransporttesting.la
+ 
+libgnunettransporttesting_la_SOURCES = \
+	transport-testing.c
 
 libgnunettransport_la_SOURCES = \
   transport_api.c transport.h \
@@ -259,6 +263,7 @@ libgnunet_plugin_transport_https_la_CPPFLAGS = \
 
 
 check_PROGRAMS = \
+ test_transport_api_disconnect \
  $(TEST_TRANSPORT_ATS) \
  $(ATS_TRANSPORT_BENCHMARKS) \
  test_transport_api_tcp \
@@ -291,6 +296,7 @@ check_PROGRAMS = \
 
 if ENABLE_TEST_RUN
 TESTS = \
+ test_transport_api_disconnect \
  $(TEST_TRANSPORT_ATS) \
  $(ATS_TRANSPORT_BENCHMARKS) \
  test_transport_api_tcp \
@@ -321,6 +327,16 @@ TESTS = \
  $(WLAN_REL_TEST) \
  $(WLAN_UREL_TEST)
 endif
+
+
+test_transport_api_disconnect_SOURCES = \
+ test_transport_api_disconnect.c
+test_transport_api_disconnect_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la 
+
 
 test_transport_ats_SOURCES = \
  test_transport_ats.c $(TRANSPORT_ATS_SRC)
