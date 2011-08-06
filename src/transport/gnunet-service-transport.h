@@ -55,5 +55,10 @@ extern struct GNUNET_PEERINFO_Handle *GST_peerinfo;
  */
 extern struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded GST_my_public_key;
 
+/**
+ * Our private key.
+ */
+extern struct GNUNET_CRYPTO_RsaPrivateKey *GST_my_private_key;
+
 #endif
 /* end of file gnunet-service-transport_plugins.h */

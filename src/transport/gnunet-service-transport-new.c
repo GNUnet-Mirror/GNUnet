@@ -66,7 +66,7 @@ struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded GST_my_public_key;
 /**
  * Our private key.
  */
-static struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
+struct GNUNET_CRYPTO_RsaPrivateKey *GST_my_private_key;
 
 
 /**
@@ -140,10 +140,10 @@ shutdown_task (void *cls,
       GNUNET_STATISTICS_destroy (GST_stats, GNUNET_NO);
       GST_stats = NULL;
     }  
-  if (my_private_key != NULL)
+  if (GST_my_private_key != NULL)
     {
-      GNUNET_CRYPTO_rsa_key_free (my_private_key);
-      my_private_key = NULL;
+      GNUNET_CRYPTO_rsa_key_free (GST_my_private_key);
+      GST_my_private_key = NULL;
     }
 }
 
@@ -180,9 +180,9 @@ run (void *cls,
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
-  my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+  GST_my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
-  if (my_private_key == NULL)
+  if (GST_my_private_key == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Transport service could not access hostkey.  Exiting.\n"));
@@ -191,7 +191,7 @@ run (void *cls,
     }
   GST_stats = GNUNET_STATISTICS_create ("transport", c);
   GST_peerinfo = GNUNET_PEERINFO_connect (c);
-  GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &GST_my_public_key);
+  GNUNET_CRYPTO_rsa_key_get_public (GST_my_private_key, &GST_my_public_key);
   GNUNET_CRYPTO_hash (&GST_my_public_key,
                       sizeof (GST_my_public_key), &GST_my_identity.hashPubKey);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,

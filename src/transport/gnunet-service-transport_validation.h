@@ -27,6 +27,7 @@
 #define GNUNET_SERVICE_TRANSPORT_VALIDATION_H
 
 #include "gnunet_statistics_service.h"
+#include "gnunet_transport_plugin.h"
 #include "gnunet_util_lib.h"
 
 
@@ -50,6 +51,7 @@ GST_validation_stop (void);
  * @param sender peer sending the PING
  * @param hdr the PING
  * @param plugin_name name of plugin that received the PING
+ * @param session session we got the PING from
  * @param sender_address address of the sender as known to the plugin, NULL
  *                       if we did not initiate the connection
  * @param sender_address_len number of bytes in sender_address
@@ -58,6 +60,7 @@ void
 GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
 			    const struct GNUNET_MessageHeader *hdr,
 			    const char *plugin_name,
+			    struct Session *session,
 			    const void *sender_address,
 			    size_t sender_address_len);
 
