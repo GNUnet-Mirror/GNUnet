@@ -18,7 +18,6 @@ EXTRA_DIST = \
  hostlist.cgi \
  hostlist.php \
  report.sh \
- __init__.py \
  gnunet_pyexpect.py.in
 
 do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
@@ -26,7 +25,6 @@ do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
 gnunet_pyexpect.py: gnunet_pyexpect.py.in Makefile
 	$(do_subst) < $(srcdir)/gnunet_pyexpect.py.in > gnunet_pyexpect.py
 	chmod +x gnunet_pyexpect.py
-	chmod +x __init__.py
 
 
 # init_gnunet_redhat \
