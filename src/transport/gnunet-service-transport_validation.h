@@ -103,9 +103,8 @@ struct GST_ValidationIteratorContext;
  *
  * @param cls closure
  * @param target peer this change is about, never NULL
- * @param last_validated_at is FOREVER if the address has not been validated (we're currently checking)
- *                          is ZERO if the address was validated a long time ago (from PEERINFO)
- *                          otherwise a time in the past if this process validated the address
+ * @param valid_until is ZERO if we never validated the address,
+ *                    otherwise a time up to when we consider it (or was) valid
  * @param validation_block  is FOREVER if the address is for an unsupported plugin (from PEERINFO)
  *                          is ZERO if the address is considered valid (no validation needed)
  *                          otherwise a time in the future if we're currently denying re-validation
@@ -115,7 +114,7 @@ struct GST_ValidationIteratorContext;
  */
 typedef void (*GST_ValidationAddressCallback)(void *cls,
 					      const struct GNUNET_PeerIdentity *target,
-					      struct GNUNET_TIME_Absolute last_validated_at,
+					      struct GNUNET_TIME_Absolute valid_until,
 					      struct GNUNET_TIME_Absolute validation_block,
 					      const char *plugin_name,
 					      const void *plugin_address,

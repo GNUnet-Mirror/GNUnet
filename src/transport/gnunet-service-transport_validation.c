@@ -25,9 +25,11 @@
  */
 #include "platform.h"
 #include "gnunet-service-transport_validation.h"
+#include "gnunet-service-transport_plugins.h"
 #include "gnunet-service-transport.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_peerinfo_service.h"
+
 
 /**
  * How long until a HELLO verification attempt should time out?
@@ -55,7 +57,6 @@
  */
 #define HELLO_ADDRESS_EXPIRATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 12)
 
-
 /**
  * How long before an existing address expires should we again try to
  * validate it?  Must be (significantly) smaller than
@@ -64,9 +65,105 @@
 #define HELLO_REVALIDATION_START_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 1)
 
 /**
+ * How long before we try to check an address again (if it turned out to
+ * be invalid the first time)?
+ */
+#define MAX_REVALIDATION_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 1)
+
+/**
  * Size of the validation map hashmap.
  */
 #define VALIDATION_MAP_SIZE 256
+
+/**
+ * Priority to use for PINGs and PONGs
+ */ 
+#define PING_PRIORITY 1
+
+/**
+ * Message used to ask a peer to validate receipt (to check an address
+ * from a HELLO).  Followed by the address we are trying to validate,
+ * or an empty address if we are just sending a PING to confirm that a
+ * connection which the receiver (of the PING) initiated is still valid.
+ */
+struct TransportPingMessage
+{
+
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_PING
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Challenge code (to ensure fresh reply).
+   */
+  uint32_t challenge GNUNET_PACKED;
+
+  /**
+   * Who is the intended recipient?
+   */
+  struct GNUNET_PeerIdentity target;
+
+};
+
+
+/**
+ * Message used to validate a HELLO.  The challenge is included in the
+ * confirmation to make matching of replies to requests possible.  The
+ * signature signs our public key, an expiration time and our address.<p>
+ *
+ * This message is followed by our transport address that the PING tried
+ * to confirm (if we liked it).  The address can be empty (zero bytes)
+ * if the PING had not address either (and we received the request via
+ * a connection that we initiated).
+ */
+struct TransportPongMessage
+{
+
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_PONG
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Challenge code from PING (showing freshness).  Not part of what
+   * is signed so that we can re-use signatures.
+   */
+  uint32_t challenge GNUNET_PACKED;
+
+  /**
+   * Signature.
+   */
+  struct GNUNET_CRYPTO_RsaSignature signature;
+
+  /**
+   * What are we signing and why?  Two possible reason codes can be here:
+   * GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN to confirm that this is a
+   * plausible address for this peer (pid is set to identity of signer); or
+   * GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_USING to confirm that this is
+   * an address we used to connect to the peer with the given pid.
+   */
+  struct GNUNET_CRYPTO_RsaSignaturePurpose purpose;
+
+  /**
+   * When does this signature expire?
+   */
+  struct GNUNET_TIME_AbsoluteNBO expiration;
+
+  /**
+   * Either the identity of the peer Who signed this message, or the
+   * identity of the peer that we're connected to using the given
+   * address (depending on purpose.type).
+   */
+  struct GNUNET_PeerIdentity pid;
+
+  /**
+   * Size of address appended to this message (part of what is
+   * being signed, hence not redundant).
+   */
+  uint32_t addrlen;
+
+};
 
 
 /**
@@ -102,12 +199,10 @@ struct ValidationEntry
   struct GNUNET_TIME_Absolute send_time;
 
   /**
-   * When did we last succeed with validating this address?
-   * FOREVER if the address has not been validated (we're currently checking)
-   * ZERO if the address was validated a long time ago (from PEERINFO)
-   * otherwise a time in the past if this process validated the address
+   * Until when is this address valid?
+   * ZERO if it is not currently considered valid.
    */
-  struct GNUNET_TIME_Absolute last_validated_at;
+  struct GNUNET_TIME_Absolute valid_until;
 
   /**
    * How long until we can try to validate this address again?
@@ -367,9 +462,10 @@ find_validation_entry (struct GNUNET_PeerIdentity *neighbour,
   ve->transport_name = GNUNET_strdup (tname);
   ve->addr = (void*) &ve[1];
   ve->pid = *neighbour;
+  ve->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
+					    UINT32_MAX);					    
   memcpy (&ve[1], addr, addrlen);
   ve->addrlen = addrlen;
-  ve->last_validated_at = GNUNET_TIME_UNIT_FOREVER_ABS;
   GNUNET_CONTAINER_multihashmap_put (validation_map,
 				     &neighbour->hashPubKey,
 				     ve,
@@ -439,12 +535,44 @@ validate_address (void *cls,
 {
   struct GNUNET_PeerIdentity *pid = cls;
   struct ValidationEntry *ve;
-  
+  struct TransportPingMessage ping;
+  struct GNUNET_TRANSPORT_PluginFunctions *papi;
+  ssize_t ret;
+   
   if (GNUNET_TIME_absolute_get_remaining (expiration).rel_value == 0)
     return GNUNET_OK; /* expired */
   ve = find_validation_entry (pid, tname, addr, addrlen);
-  // FIXME: check if validated/blocked, if not start validation...
-  ve++; // make compiler happy
+  if (GNUNET_TIME_absolute_get_remaining (ve->validation_block).rel_value > 0)
+    return GNUNET_OK; /* blocked */
+  if (GNUNET_TIME_absolute_get_remaining (ve->valid_until).rel_value > 0)
+    return GNUNET_OK; /* valid */
+  ve->validation_block = GNUNET_TIME_relative_to_absolute (MAX_REVALIDATION_FREQUENCY);
+  
+  ping.header.size = htons(sizeof(struct TransportPingMessage));
+  ping.header.type = htons(GNUNET_MESSAGE_TYPE_TRANSPORT_PING);
+  ping.challenge = htonl(ve->challenge);
+  ping.target = *pid;
+  GNUNET_STATISTICS_update (GST_stats,
+			    gettext_noop ("# PING without HELLO messages sent"),
+			    1,
+			    GNUNET_NO);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmitting plain PING to `%s'\n",
+	      GNUNET_i2s (pid));
+  papi = GST_plugins_find (ve->transport_name);
+  ret = papi->send (papi->cls,
+		    pid,
+		    (const char*) &ping,
+		    sizeof (struct TransportPingMessage),
+		    PING_PRIORITY,
+		    HELLO_VERIFICATION_TIMEOUT,
+		    NULL /* no session */,
+		    ve->addr,
+		    ve->addrlen,
+		    GNUNET_YES,
+		    NULL, NULL);
+  if (-1 != ret)
+    ve->send_time = GNUNET_TIME_absolute_get ();
   return GNUNET_OK;
 }
 
@@ -517,7 +645,7 @@ iterate_addresses (void *cls,
 
   vic->cb (vic->cb_cls,
 	   &ve->pid,
-	   ve->last_validated_at,
+	   ve->valid_until,
 	   ve->validation_block,
 	   ve->transport_name,
 	   ve->addr,

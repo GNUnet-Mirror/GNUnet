@@ -592,9 +592,7 @@ GST_clients_handle_address_lookup (void *cls,
  *
  * @param cls our 'struct GNUNET_SERVER_TransmitContext' (for sending)
  * @param target peer this change is about, never NULL
- * @param last_validated_at is FOREVER if the address has not been validated (we're currently checking)
- *                          is ZERO if the address was validated a long time ago (from PEERINFO)
- *                          is a time in the past if this process validated the address
+ * @param valid_until until what time do we consider the address valid?
  * @param validation_block  is FOREVER if the address is for an unsupported plugin (from PEERINFO)
  *                          is ZERO if the address is considered valid (no validation needed)
  *                          is a time in the future if we're currently denying re-validation
@@ -605,7 +603,7 @@ GST_clients_handle_address_lookup (void *cls,
 static void
 send_address_to_client (void *cls,
 			const struct GNUNET_PeerIdentity *target,
-			struct GNUNET_TIME_Absolute last_validated_at,
+			struct GNUNET_TIME_Absolute valid_until,
 			struct GNUNET_TIME_Absolute validation_block,
 			const char *plugin_name,
 			const void *plugin_address,
@@ -622,7 +620,7 @@ send_address_to_client (void *cls,
 		   (GNUNET_YES == GST_neighbours_test_connected (target))
 		   ? "CONNECTED"
 		   : "DISCONNECTED",
-		   (last_validated_at.abs_value < GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
+		   (GNUNET_TIME_absolute_get_remaining (valid_until).rel_value > 0)
 		   ? "VALIDATED"
 		   : "UNVALIDATED");
   transmit_address_to_client (tc, addr_buf);
