@@ -177,6 +177,11 @@ static struct CheckHelloValidatedContext *chvc_tail;
  */
 static struct GNUNET_CONTAINER_MultiHashMap *validation_map;
 
+/**
+ * Map of PeerIdentities to 'struct GST_ValidationIteratorContext's.
+ */
+static struct GNUNET_CONTAINER_MultiHashMap *notify_map;
+
 
 /**
  * Start the validation subsystem.
@@ -185,6 +190,7 @@ void
 GST_validation_start ()
 {
   validation_map = GNUNET_CONTAINER_multihashmap_create (VALIDATION_MAP_SIZE);
+  notify_map = GNUNET_CONTAINER_multihashmap_create (VALIDATION_MAP_SIZE);
 }
 
 
@@ -227,6 +233,9 @@ GST_validation_stop ()
 					 NULL);
   GNUNET_CONTAINER_multihashmap_destroy (validation_map);
   validation_map = NULL;
+  GNUNET_assert (GNUNET_CONTAINER_multihashmap_size (notify_map) == 0);
+  GNUNET_CONTAINER_multihashmap_destroy (notify_map);
+  notify_map = NULL;
   while (NULL != (chvc = chvc_head))
     {
       GNUNET_CONTAINER_DLL_remove (chvc_head,
@@ -482,6 +491,11 @@ struct GST_ValidationIteratorContext
    * Closure for 'cb'.
    */
   void *cb_cls;
+
+  /**
+   * Which peer are we monitoring?
+   */   
+  struct GNUNET_PeerIdentity target;
 };
 
 
@@ -535,6 +549,7 @@ GST_validation_get_addresses (const struct GNUNET_PeerIdentity *target,
   vic = GNUNET_malloc (sizeof (struct GST_ValidationIteratorContext));
   vic->cb = cb;
   vic->cb_cls = cb_cls;
+  vic->target = *target;
   GNUNET_CONTAINER_multihashmap_get_multiple (validation_map,
 					      &target->hashPubKey,
 					      &iterate_addresses,
@@ -544,7 +559,10 @@ GST_validation_get_addresses (const struct GNUNET_PeerIdentity *target,
       GNUNET_free (vic);
       return NULL;
     }
-  /* FIXME: install 'vic' somewhere */
+  GNUNET_CONTAINER_multihashmap_put (notify_map,
+				     &target->hashPubKey,
+				     vic,
+				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   return vic;
 }
 
@@ -557,7 +575,10 @@ GST_validation_get_addresses (const struct GNUNET_PeerIdentity *target,
 void
 GST_validation_get_addresses_cancel (struct GST_ValidationIteratorContext *ctx)
 {
-  /* FIXME: remove 'vic' from DS */
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CONTAINER_multihashmap_remove (notify_map,
+						       &ctx->target.hashPubKey,
+						       ctx));
   GNUNET_free (ctx);
 }
 
