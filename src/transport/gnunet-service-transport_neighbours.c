@@ -321,8 +321,12 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
 {
   struct MessageQueue *mq;
 
-  disconnect_notify_cb (callback_cls,
-			&n->id);
+  if (n->is_connected)
+    {
+      disconnect_notify_cb (callback_cls,
+			    &n->id);
+      n->is_connected = GNUNET_NO;
+    }
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove (neighbours,
 						       &n->id.hashPubKey,
@@ -667,6 +671,23 @@ GST_neighbours_iterate (GST_NeighbourIterator cb,
 
 
 /**
+ * Peer has been idle for too long. Disconnect.
+ *
+ * @param cls the 'struct NeighbourMapEntry' of the neighbour that went idle
+ * @param tc scheduler context
+ */
+static void
+neighbour_idle_timeout_task (void *cls,
+			     const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct NeighbourMapEntry *n = cls;
+
+  n->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  disconnect_neighbour (n);
+}
+
+
+/**
  * We have received a CONNECT.  Set the peer to connected.
  *
  * @param sender peer sending the PONG
@@ -697,7 +718,7 @@ GST_neighbours_handle_connect (const struct GNUNET_PeerIdentity *sender,
     {
       GNUNET_break (0);
       return GNUNET_SYSERR;
-    }
+    } 
   n = lookup_neighbour (sender);
   if ( (NULL != n) ||
        (n->is_connected == GNUNET_YES) )
@@ -745,7 +766,13 @@ GST_neighbours_handle_connect (const struct GNUNET_PeerIdentity *sender,
       // FIXME: ATS: switch session!?
       // n->session = session;
     }
-  n->is_connected = GNUNET_YES;
+  n->peer_timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+  if (GNUNET_SCHEDULER_NO_TASK != n->timeout_task)
+    GNUNET_SCHEDULER_cancel (n->timeout_task);
+  n->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+						  &neighbour_idle_timeout_task,
+						  n);
+  n->is_connected = GNUNET_YES;  
   connect_notify_cb (callback_cls,
 		     sender,
 		     n->ats,
