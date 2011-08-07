@@ -26,6 +26,7 @@
 #include "platform.h"
 #include "gnunet-service-transport_neighbours.h"
 #include "gnunet-service-transport.h"
+#include "gnunet_peerinfo_service.h"
 #include "gnunet_constants.h"
 
 
@@ -100,7 +101,6 @@ struct MessageQueue
   unsigned int priority;
 
 };
-
 
 
 /**
@@ -191,6 +191,11 @@ struct NeighbourMapEntry
    * DV distance to this peer (1 if no DV is used).
    */
   uint32_t distance;
+  
+  /**
+   * Number of values in 'ats' array.
+   */
+  unsigned int ats_count;
 
   /**
    * Have we seen an PONG from this neighbour in the past (and
@@ -230,6 +235,20 @@ static GNUNET_TRANSPORT_NotifyConnect connect_notify_cb;
  * Function to call when we disconnected from a neighbour.
  */
 static GNUNET_TRANSPORT_NotifyDisconnect disconnect_notify_cb;
+
+
+/**
+ * Lookup a neighbour entry in the neighbours hash map.
+ *
+ * @param pid identity of the peer to look up
+ * @return the entry, NULL if there is no existing record
+ */
+static struct NeighbourMapEntry *
+lookup_neighbour (const struct GNUNET_PeerIdentity *pid)
+{
+  return GNUNET_CONTAINER_multihashmap_get (neighbours,
+					    &pid->hashPubKey);
+}
 
 
 #if 0
@@ -555,6 +574,41 @@ GST_neighbours_start (void *cls,
 
 
 /**
+ * Disconnect from the given neighbour, clean up the record.
+ *
+ * @param n neighbour to disconnect from
+ */
+static void
+disconnect_neighbour (struct NeighbourMapEntry *n)
+{
+  struct MessageQueue *mq;
+
+  disconnect_notify_cb (callback_cls,
+			&n->id);
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_remove (neighbours,
+						       &n->id.hashPubKey,
+						       n));
+  while (NULL != (mq = n->messages_head))
+    {
+      GNUNET_CONTAINER_DLL_remove (n->messages_head,
+				   n->messages_tail,
+				   mq);
+      GNUNET_free (mq);
+    }
+  if (NULL != n->piter)
+    {
+      GNUNET_PEERINFO_iterate_cancel (n->piter);
+      n->piter = NULL;
+    }
+  GNUNET_array_grow (n->ats,
+		     n->ats_count,
+		     0);
+  GNUNET_free (n);
+}
+
+
+/**
  * Disconnect from the given neighbour.
  *
  * @param cls unused
@@ -574,9 +628,7 @@ disconnect_all_neighbours (void *cls,
 	      GNUNET_i2s(&n->id),
 	      "SHUTDOWN_TASK");
 #endif
-  // FIXME:
-  // disconnect_neighbour (n);
-  n++; 
+  disconnect_neighbour (n);
   return GNUNET_OK;
 }
 
@@ -649,12 +701,12 @@ void
 GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
 				   struct GNUNET_BANDWIDTH_Value32NBO quota)
 {
-#if 0
+  struct NeighbourMapEntry *n;
 
-  n = find_neighbour (neighbour);
+  n = lookup_neighbour (neighbour);
   if (n == NULL)
     {
-      GNUNET_STATISTICS_update (stats,
+      GNUNET_STATISTICS_update (GST_stats,
 				gettext_noop ("# SET QUOTA messages ignored (no such peer)"),
 				1,
 				GNUNET_NO);
@@ -662,7 +714,7 @@ GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
     }
   GNUNET_BANDWIDTH_tracker_update_quota (&n->in_tracker,
 					 quota);
-  if (0 != ntohl (qsm->quota.value__))
+  if (0 != ntohl (quota.value__))
     return;
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -670,13 +722,11 @@ GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
 	      GNUNET_i2s(&n->id),
 	      "SET_QUOTA");
 #endif
-  GNUNET_STATISTICS_update (stats,
+  GNUNET_STATISTICS_update (GST_stats,
 			    gettext_noop ("# disconnects due to quota of 0"),
 			    1,
 			    GNUNET_NO);
-  GST_neighbours_force_disconnect (neighbour);
-
-#endif
+  disconnect_neighbour (n);
 }
 
 
@@ -688,6 +738,54 @@ GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
 void
 GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target)
 {
+  struct NeighbourMapEntry *n;
+
+  n = lookup_neighbour (target);
+  disconnect_neighbour (n);
+}
+
+
+/**
+ * Closure for the neighbours_iterate function.
+ */
+struct IteratorContext
+{
+  /**
+   * Function to call on each connected neighbour.
+   */
+  GST_NeighbourIterator cb;
+
+  /**
+   * Closure for 'cb'.
+   */
+  void *cb_cls;
+};
+
+
+/**
+ * Call the callback from the closure for each connected neighbour.
+ *
+ * @param cls the 'struct IteratorContext'
+ * @param key the hash of the public key of the neighbour
+ * @param value the 'struct NeighbourMapEntry'
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int
+neighbours_iterate (void *cls,
+		    const GNUNET_HashCode *key,
+		    void *value)
+{
+  struct IteratorContext *ic = cls;
+  struct NeighbourMapEntry *n = value;
+
+  if (GNUNET_TIME_absolute_get_remaining (n->peer_timeout).rel_value == 0)
+    return GNUNET_OK; /* not connected */
+  GNUNET_assert (n->ats_count > 0);
+  ic->cb (ic->cb_cls,
+	  &n->id,
+	  n->ats,
+	  n->ats_count - 1);
+  return GNUNET_OK;
 }
 
 
@@ -701,6 +799,13 @@ void
 GST_neighbours_iterate (GST_NeighbourIterator cb,
 			void *cb_cls)
 {
+  struct IteratorContext ic;
+
+  ic.cb = cb;
+  ic.cb_cls = cb_cls;
+  GNUNET_CONTAINER_multihashmap_iterate (neighbours,
+					 &neighbours_iterate,
+					 &ic);
 }
 
 
