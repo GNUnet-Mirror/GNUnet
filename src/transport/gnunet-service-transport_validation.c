@@ -244,11 +244,6 @@ struct CheckHelloValidatedContext
    */
   const struct GNUNET_HELLO_Message *hello;
 
-  /**
-   * Context for peerinfo iteration.
-   */
-  struct GNUNET_PEERINFO_IteratorContext *piter;
-
 };
 
 
@@ -274,95 +269,10 @@ static struct GNUNET_CONTAINER_MultiHashMap *validation_map;
  */
 static struct GNUNET_CONTAINER_MultiHashMap *notify_map;
 
-
 /**
- * Start the validation subsystem.
+ * Context for peerinfo iteration.
  */
-void 
-GST_validation_start ()
-{
-  validation_map = GNUNET_CONTAINER_multihashmap_create (VALIDATION_MAP_SIZE);
-  notify_map = GNUNET_CONTAINER_multihashmap_create (VALIDATION_MAP_SIZE);
-}
-
-
-/**
- * Iterate over validation entries and free them.
- *
- * @param cls (unused)
- * @param key peer identity (unused)
- * @param value a 'struct ValidationEntry' to clean up
- * @return GNUNET_YES (continue to iterate)
- */
-static int
-cleanup_validation_entry (void *cls,
-			  const GNUNET_HashCode *key,
-			  void *value)
-{
-  struct ValidationEntry *ve = value;
-    
-  GNUNET_free (ve->transport_name);
-  if (GNUNET_SCHEDULER_NO_TASK != ve->timeout_task)
-    {
-      GNUNET_SCHEDULER_cancel (ve->timeout_task);
-      ve->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-    }
-  GNUNET_free (ve);
-  return GNUNET_OK;
-}
-
-
-/**
- * Stop the validation subsystem.
- */
-void
-GST_validation_stop ()
-{
-  struct CheckHelloValidatedContext *chvc;
-
-  GNUNET_CONTAINER_multihashmap_iterate (validation_map,
-					 &cleanup_validation_entry,
-					 NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (validation_map);
-  validation_map = NULL;
-  GNUNET_assert (GNUNET_CONTAINER_multihashmap_size (notify_map) == 0);
-  GNUNET_CONTAINER_multihashmap_destroy (notify_map);
-  notify_map = NULL;
-  while (NULL != (chvc = chvc_head))
-    {
-      GNUNET_CONTAINER_DLL_remove (chvc_head,
-				   chvc_tail,
-				   chvc);
-      GNUNET_PEERINFO_iterate_cancel (chvc->piter);      
-      GNUNET_free (chvc);
-    }
-}
-
-
-/**
- * Address validation cleanup task (record no longer needed).
- *
- * @param cls the 'struct ValidationEntry'
- * @param tc scheduler context (unused)
- */
-static void
-timeout_hello_validation (void *cls, 
-			  const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct ValidationEntry *va = cls;
-
-  va->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_STATISTICS_update (GST_stats,
-			    gettext_noop ("# address records discarded"),
-			    1,
-			    GNUNET_NO);
-  GNUNET_break (GNUNET_OK ==
-                GNUNET_CONTAINER_multihashmap_remove (validation_map,
-						      &va->pid.hashPubKey,
-						      va));
-  GNUNET_free (va->transport_name);
-  GNUNET_free (va);
-}
+static struct GNUNET_PEERINFO_NotifyContext *pnc;
 
 
 /**
@@ -472,6 +382,165 @@ find_validation_entry (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pub
 				     ve,
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   return ve;
+}
+
+
+/**
+ * Iterator which adds the given address to the set of validated
+ * addresses.
+ *
+ * @param cls original HELLO message
+ * @param tname name of the transport
+ * @param expiration expiration time
+ * @param addr the address
+ * @param addrlen length of the address
+ * @return GNUNET_OK (keep the address)
+ */
+static int
+add_valid_address (void *cls,
+		   const char *tname,
+		   struct GNUNET_TIME_Absolute expiration,
+		   const void *addr, 
+		   uint16_t addrlen)
+{
+  const struct GNUNET_HELLO_Message *hello = cls;
+  struct ValidationEntry *ve;
+  struct GNUNET_PeerIdentity pid;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;
+
+  if (GNUNET_TIME_absolute_get_remaining (expiration).rel_value == 0)
+    return GNUNET_OK; /* expired */
+  if ( (GNUNET_OK !=
+	GNUNET_HELLO_get_id (hello, &pid)) ||
+       (GNUNET_OK !=
+	GNUNET_HELLO_get_key (hello, &public_key)) )
+    {
+      GNUNET_break (0);
+      return GNUNET_OK; /* invalid HELLO !? */
+    }
+    
+  ve = find_validation_entry (&public_key, &pid, tname, addr, addrlen);
+  ve->valid_until = GNUNET_TIME_absolute_max (ve->valid_until,
+					      expiration);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Function called for any HELLO known to PEERINFO. 
+ *
+ * @param cls unused
+ * @param peer id of the peer, NULL for last call
+ * @param hello hello message for the peer (can be NULL)
+ * @param error message
+ */
+static void
+process_peerinfo_hello (void *cls,
+			const struct GNUNET_PeerIdentity *peer,
+			const struct GNUNET_HELLO_Message *hello,
+			const char *err_msg)
+{
+  GNUNET_assert (NULL != peer);
+  if (NULL == hello)
+    return;
+  GNUNET_assert (NULL ==
+		 GNUNET_HELLO_iterate_addresses (hello,
+						 GNUNET_NO,
+						 &add_valid_address,
+						 (void*) hello));  
+}
+
+
+/**
+ * Start the validation subsystem.
+ */
+void 
+GST_validation_start ()
+{
+  validation_map = GNUNET_CONTAINER_multihashmap_create (VALIDATION_MAP_SIZE);
+  notify_map = GNUNET_CONTAINER_multihashmap_create (VALIDATION_MAP_SIZE);
+  pnc = GNUNET_PEERINFO_notify (GST_cfg,
+				&process_peerinfo_hello,
+				NULL);
+}
+
+
+/**
+ * Iterate over validation entries and free them.
+ *
+ * @param cls (unused)
+ * @param key peer identity (unused)
+ * @param value a 'struct ValidationEntry' to clean up
+ * @return GNUNET_YES (continue to iterate)
+ */
+static int
+cleanup_validation_entry (void *cls,
+			  const GNUNET_HashCode *key,
+			  void *value)
+{
+  struct ValidationEntry *ve = value;
+    
+  GNUNET_free (ve->transport_name);
+  if (GNUNET_SCHEDULER_NO_TASK != ve->timeout_task)
+    {
+      GNUNET_SCHEDULER_cancel (ve->timeout_task);
+      ve->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  GNUNET_free (ve);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Stop the validation subsystem.
+ */
+void
+GST_validation_stop ()
+{
+  struct CheckHelloValidatedContext *chvc;
+
+  GNUNET_CONTAINER_multihashmap_iterate (validation_map,
+					 &cleanup_validation_entry,
+					 NULL);
+  GNUNET_CONTAINER_multihashmap_destroy (validation_map);
+  validation_map = NULL;
+  GNUNET_assert (GNUNET_CONTAINER_multihashmap_size (notify_map) == 0);
+  GNUNET_CONTAINER_multihashmap_destroy (notify_map);
+  notify_map = NULL;
+  while (NULL != (chvc = chvc_head))
+    {
+      GNUNET_CONTAINER_DLL_remove (chvc_head,
+				   chvc_tail,
+				   chvc);
+      GNUNET_free (chvc);
+    }
+  GNUNET_PEERINFO_notify_cancel (pnc);
+}
+
+
+/**
+ * Address validation cleanup task (record no longer needed).
+ *
+ * @param cls the 'struct ValidationEntry'
+ * @param tc scheduler context (unused)
+ */
+static void
+timeout_hello_validation (void *cls, 
+			  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct ValidationEntry *va = cls;
+
+  va->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_STATISTICS_update (GST_stats,
+			    gettext_noop ("# address records discarded"),
+			    1,
+			    GNUNET_NO);
+  GNUNET_break (GNUNET_OK ==
+                GNUNET_CONTAINER_multihashmap_remove (validation_map,
+						      &va->pid.hashPubKey,
+						      va));
+  GNUNET_free (va->transport_name);
+  GNUNET_free (va);
 }
 
 
