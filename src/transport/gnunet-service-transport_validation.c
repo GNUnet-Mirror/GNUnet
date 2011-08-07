@@ -612,7 +612,8 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   const struct TransportPingMessage *ping;
   struct TransportPongMessage *pong;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
-  struct SessionHeader *session_header;
+  struct GNUNET_CRYPTO_RsaSignature *sig_cache;
+  struct GNUNET_TIME_Absolute *sig_cache_exp;
   const char *addr;
   const char *addrend;
   size_t alen;
@@ -629,17 +630,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
                    &GST_my_identity,
                    sizeof (struct GNUNET_PeerIdentity)))
     {
-#if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  _("Received `%s' message from `%s' destined for `%s' which is not me!\n"),
-		  "PING",
-		  (sender_address != NULL)
-		  ? GST_plugin_a2s (plugin_name,
-				    sender_address,
-				    sender_address_len)
-		  : "<inbound>",
-		  GNUNET_i2s (&ping->target));
-#endif
+      GNUNET_break_op (0);
       return;
     }
 #if DEBUG_TRANSPORT
@@ -658,133 +649,67 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
 			    GNUNET_NO);
   addr = (const char*) &ping[1];
   alen = ntohs (hdr->size) - sizeof (struct TransportPingMessage);
-  if (alen == 0)
+  /* peer wants to confirm that this is one of our addresses, this is what is
+     used for address validation */
+  
+  addrend = memchr (addr, '\0', alen);
+  if (NULL == addrend)
     {
-      /* peer wants to confirm that we have an outbound connection to him; 
-	 we handle this case here even though it has nothing to do with
-	 address validation (!) */
-      if ( (sender_address == NULL) || (session == NULL) )
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		      _("Refusing to create PONG since I do initiate the session with `%s'.\n"),
-		      GNUNET_i2s (sender));
-	  return;
-	}
-      session_header = (struct SessionHeader *)session;
+      GNUNET_break_op (0);
+      return;
+    }
+  addrend++;
+  slen = strlen(addr);
+  alen -= slen;
+  
+  if (GNUNET_YES !=
+      GST_hello_test_address (addr,
+			      addrend,
+			      alen,
+			      &sig_cache,
+			      &sig_cache_exp))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  _("Not confirming PING with address `%s' since I cannot confirm having this address.\n"),
+		  GST_plugins_a2s (addr,
+				   addrend,
+				   alen));
+      return;
+    }
+  
+  pong = GNUNET_malloc (sizeof (struct TransportPongMessage) + alen + slen);
+  pong->header.size = htons (sizeof (struct TransportPongMessage) + alen + slen);
+  pong->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_PONG);
+  pong->purpose.size =
+    htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) +
+	   sizeof (uint32_t) +
+	   sizeof (struct GNUNET_TIME_AbsoluteNBO) +
+	   sizeof (struct GNUNET_PeerIdentity) + alen + slen);
+  pong->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN);
+  pong->challenge = ping->challenge;
+  pong->addrlen = htonl(alen + slen);
+  pong->pid = GST_my_identity;
+  memcpy (&pong[1], addr, slen);
+  memcpy (&((char*)&pong[1])[slen], addrend, alen);
+  if (GNUNET_TIME_absolute_get_remaining (*sig_cache_exp).rel_value < PONG_SIGNATURE_LIFETIME.rel_value / 4)
+    {
+      /* create / update cached sig */
 #if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Creating PONG indicating that we initiated a connection to peer `%s' using address `%s' \n",
-		  GNUNET_i2s (peer),
-		  GST_plugin_a2s (plugin_name,
-				  sender_address,
-				  sender_address_len));
+		  "Creating PONG signature to indicate ownership.\n");
 #endif
-      slen = strlen (plugin_name) + 1;
-      pong = GNUNET_malloc (sizeof (struct TransportPongMessage) + sender_address_len + slen);
-      pong->header.size = htons (sizeof (struct TransportPongMessage) + sender_address_len + slen);
-      pong->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_PONG);
-      pong->purpose.size =
-	htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) +
-	       sizeof (uint32_t) +
-	       sizeof (struct GNUNET_TIME_AbsoluteNBO) +
-	       sizeof (struct GNUNET_PeerIdentity) + sender_address_len + slen);
-      pong->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_USING);
-      pong->challenge = ping->challenge;
-      pong->addrlen = htonl(sender_address_len + slen);
-      pong->pid = *sender;
-      memcpy (&pong[1],
-	      plugin_name,
-	      slen);
-      memcpy (&((char*)&pong[1])[slen],
-	      sender_address,
-	      sender_address_len);
-      if (GNUNET_TIME_absolute_get_remaining (session_header->pong_sig_expires).rel_value < 
-	  PONG_SIGNATURE_LIFETIME.rel_value / 4)
-	{
-	  /* create / update cached sig */
-#if DEBUG_TRANSPORT
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Creating PONG signature to indicate active connection.\n");
-#endif
-	  session_header->pong_sig_expires = GNUNET_TIME_relative_to_absolute (PONG_SIGNATURE_LIFETIME);
-	  pong->expiration = GNUNET_TIME_absolute_hton (session_header->pong_sig_expires);
-	  GNUNET_assert (GNUNET_OK ==
-			 GNUNET_CRYPTO_rsa_sign (GST_my_private_key,
-						 &pong->purpose,
-						 &session_header->pong_signature));
-	}
-      else
-	{
-	  pong->expiration = GNUNET_TIME_absolute_hton (session_header->pong_sig_expires);
-	}
-      pong->signature = session_header->pong_signature;
+      *sig_cache_exp = GNUNET_TIME_relative_to_absolute (PONG_SIGNATURE_LIFETIME);
+      pong->expiration = GNUNET_TIME_absolute_hton (*sig_cache_exp);
+      GNUNET_assert (GNUNET_OK ==
+		     GNUNET_CRYPTO_rsa_sign (GST_my_private_key,
+					     &pong->purpose,
+					     sig_cache));
     }
   else
     {
-      /* peer wants to confirm that this is one of our addresses, this is what is
-	 used for address validation */
-      struct GNUNET_CRYPTO_RsaSignature *sig_cache;
-      struct GNUNET_TIME_Absolute *sig_cache_exp;
-
-      addrend = memchr (addr, '\0', alen);
-      if (NULL == addrend)
-	{
-	  GNUNET_break_op (0);
-	  return;
-	}
-      addrend++;
-      slen = strlen(addr);
-      alen -= slen;
-
-      if (GNUNET_YES !=
-	  GST_hello_test_address (addr,
-				  addrend,
-				  alen,
-				  &sig_cache,
-				  &sig_cache_exp))
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		      _("Not confirming PING with address `%s' since I cannot confirm having this address.\n"),
-		      GST_plugins_a2s (addr,
-				       addrend,
-				       alen));
-	  return;
-	}
-
-      pong = GNUNET_malloc (sizeof (struct TransportPongMessage) + alen + slen);
-      pong->header.size = htons (sizeof (struct TransportPongMessage) + alen + slen);
-      pong->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_PONG);
-      pong->purpose.size =
-	htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) +
-	       sizeof (uint32_t) +
-	       sizeof (struct GNUNET_TIME_AbsoluteNBO) +
-	       sizeof (struct GNUNET_PeerIdentity) + alen + slen);
-      pong->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN);
-      pong->challenge = ping->challenge;
-      pong->addrlen = htonl(alen + slen);
-      pong->pid = GST_my_identity;
-      memcpy (&pong[1], addr, slen);
-      memcpy (&((char*)&pong[1])[slen], addrend, alen);
-      if (GNUNET_TIME_absolute_get_remaining (*sig_cache_exp).rel_value < PONG_SIGNATURE_LIFETIME.rel_value / 4)
-	{
-	  /* create / update cached sig */
-#if DEBUG_TRANSPORT
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Creating PONG signature to indicate ownership.\n");
-#endif
-	  *sig_cache_exp = GNUNET_TIME_relative_to_absolute (PONG_SIGNATURE_LIFETIME);
-	  pong->expiration = GNUNET_TIME_absolute_hton (*sig_cache_exp);
-	  GNUNET_assert (GNUNET_OK ==
-			 GNUNET_CRYPTO_rsa_sign (GST_my_private_key,
-						 &pong->purpose,
-						 sig_cache));
-	}
-      else
-	{
-	  pong->expiration = GNUNET_TIME_absolute_hton (*sig_cache_exp);
-	}
-      pong->signature = *sig_cache;
+      pong->expiration = GNUNET_TIME_absolute_hton (*sig_cache_exp);
     }
+  pong->signature = *sig_cache;
 
   /* first see if the session we got this PING from can be used to transmit
      a response reliably */
@@ -1039,8 +964,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
                    sender,
                    sizeof (struct GNUNET_PeerIdentity)))
     {
-      /* PONG is validating inbound session, not an address, not the case
-	 used for address validation, ignore here! */
+      GNUNET_break_op (0);
       return;
     }
 #if DEBUG_TRANSPORT

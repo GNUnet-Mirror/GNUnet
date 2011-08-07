@@ -147,29 +147,6 @@ GST_neighbours_iterate (GST_NeighbourIterator cb,
 
 
 /**
- * We have received a PONG.  Update lifeness of the neighbour.
- *
- * @param sender peer sending the PONG
- * @param hdr the PONG message (presumably)
- * @param plugin_name name of transport that delivered the PONG
- * @param sender_address address of the other peer, NULL if other peer
- *                       connected to us
- * @param sender_address_len number of bytes in sender_address
- * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
- * @return GNUNET_OK if the message was well-formed, GNUNET_SYSERR if not
- */
-int
-GST_neighbours_handle_pong (const struct GNUNET_PeerIdentity *sender,
-			    const struct GNUNET_MessageHeader *hdr,
-			    const char *plugin_name,
-			    const void *sender_address,
-			    size_t sender_address_len,
-			    const struct GNUNET_TRANSPORT_ATS_Information *ats,
-			    uint32_t ats_count);
-
-
-/**
  * We have received a CONNECT.  Set the peer to connected.
  *
  * @param sender peer sending the PONG

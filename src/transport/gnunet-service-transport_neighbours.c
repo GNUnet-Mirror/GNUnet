@@ -216,6 +216,12 @@ struct NeighbourMapEntry
    */
   int in_disconnect;
 
+  /**
+   * Do we currently consider this neighbour connected? (as far as
+   * the connect/disconnect callbacks are concerned)?
+   */
+  int is_connected;
+
 };
 
 
@@ -264,11 +270,9 @@ lookup_neighbour (const struct GNUNET_PeerIdentity *pid)
 static void
 try_transmission_to_peer (struct NeighbourMapEntry *n)
 {
-  struct ReadyList *rl;
   struct MessageQueue *mq;
   struct GNUNET_TIME_Relative timeout;
   ssize_t ret;
-  int force_address;
 
   if (n->messages_head == NULL)
     {
@@ -279,115 +283,21 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
 #endif
       return;                     /* nothing to do */
     }
-  rl = NULL;
   mq = n->messages_head;
-  force_address = GNUNET_YES;
-  if (mq->specific_address == NULL)
-    {
-      /* TODO: ADD ATS */
-      mq->specific_address = get_preferred_ats_address(n);
-      GNUNET_STATISTICS_update (stats,
-				gettext_noop ("# transport selected peer address freely"),
-				1,
-				GNUNET_NO);
-      force_address = GNUNET_NO;
-    }
-  if (mq->specific_address == NULL)
-    {
-      GNUNET_STATISTICS_update (stats,
-				gettext_noop ("# transport failed to selected peer address"),
-				1,
-				GNUNET_NO);
-      timeout = GNUNET_TIME_absolute_get_remaining (mq->timeout);
-      if (timeout.rel_value == 0)
-	{
-#if DEBUG_TRANSPORT
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "No destination address available to transmit message of size %u to peer `%4s'\n",
-		      mq->message_buf_size,
-		      GNUNET_i2s (&mq->neighbour_id));
-#endif
-	  GNUNET_STATISTICS_update (stats,
-				    gettext_noop ("# bytes in message queue for other peers"),
-				    - (int64_t) mq->message_buf_size,
-				    GNUNET_NO);
-	  GNUNET_STATISTICS_update (stats,
-				    gettext_noop ("# bytes discarded (no destination address available)"),
-				    mq->message_buf_size,
-				    GNUNET_NO);
-	  if (mq->client != NULL)
-	    transmit_send_ok (mq->client, n, &n->id, GNUNET_NO);
-	  GNUNET_CONTAINER_DLL_remove (n->messages_head,
-				       n->messages_tail,
-				       mq);
-	  GNUNET_free (mq);
-	  return;               /* nobody ready */
-	}
-      GNUNET_STATISTICS_update (stats,
-				gettext_noop ("# message delivery deferred (no address)"),
-				1,
-				GNUNET_NO);
-      if (n->retry_task != GNUNET_SCHEDULER_NO_TASK)
-	GNUNET_SCHEDULER_cancel (n->retry_task);
-      n->retry_task = GNUNET_SCHEDULER_add_delayed (timeout,
-						    &retry_transmission_task,
-						    n);
-#if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "No validated destination address available to transmit message of size %u to peer `%4s', will wait %llums to find an address.\n",
-		  mq->message_buf_size,
-		  GNUNET_i2s (&mq->neighbour_id),
-		  timeout.rel_value);
-#endif
-      /* FIXME: might want to trigger peerinfo lookup here
-	 (unless that's already pending...) */
-      return;
-    }
   GNUNET_CONTAINER_DLL_remove (n->messages_head,
 			       n->messages_tail,
 			       mq);
-  if (mq->specific_address->connected == GNUNET_NO)
-    mq->specific_address->connect_attempts++;
-  rl = mq->specific_address->ready_list;
-  mq->plugin = rl->plugin;
-  if (!mq->internal_msg)
-    mq->specific_address->in_transmit = GNUNET_YES;
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending message of size %u for `%4s' to `%s' via plugin `%s'\n",
-              mq->message_buf_size,
-              GNUNET_i2s (&n->id),
-	      (mq->specific_address->addr != NULL)
-	      ? a2s (mq->plugin->short_name,
-		     mq->specific_address->addr,
-		     mq->specific_address->addrlen)
-	      : "<inbound>",
-	      rl->plugin->short_name);
-#endif
-  GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# bytes in message queue for other peers"),
-			    - (int64_t) mq->message_buf_size,
-			    GNUNET_NO);
-  GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# bytes pending with plugins"),
-			    mq->message_buf_size,
-			    GNUNET_NO);
-
-  GNUNET_CONTAINER_DLL_insert (n->cont_head,
-                               n->cont_tail,
-                               mq);
-
-  ret = rl->plugin->api->send (rl->plugin->api->cls,
-			       &mq->neighbour_id,
-			       mq->message_buf,
-			       mq->message_buf_size,
-			       mq->priority,
-			       GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-			       mq->specific_address->session,
-			       mq->specific_address->addr,
-			       mq->specific_address->addrlen,
-			       force_address,
-			       &transmit_send_continuation, mq);
+  ret = papi->send (papi->cls,
+		    &n->pid,
+		    mq->message_buf,
+		    mq->message_buf_size,
+		    mq->priority,
+		    GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+		    n->session,
+		    n->addr,
+		    n->addrlen,
+		    GNUNET_YES /*?*/,
+		    &transmit_send_continuation, mq);
   if (ret == -1)
     {
       /* failure, but 'send' would not call continuation in this case,
@@ -777,32 +687,6 @@ GST_neighbours_iterate (GST_NeighbourIterator cb,
 
 
 /**
- * We have received a PONG.  Update lifeness of the neighbour.
- *
- * @param sender peer sending the PONG
- * @param hdr the PONG message (presumably)
- * @param plugin_name name of transport that delivered the PONG
- * @param sender_address address of the other peer, NULL if other peer
- *                       connected to us
- * @param sender_address_len number of bytes in sender_address
- * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
- * @return GNUNET_OK if the message was well-formed, GNUNET_SYSERR if not
- */
-int
-GST_neighbours_handle_pong (const struct GNUNET_PeerIdentity *sender,
-			    const struct GNUNET_MessageHeader *hdr,
-			    const char *plugin_name,
-			    const void *sender_address,
-			    size_t sender_address_len,
-			    const struct GNUNET_TRANSPORT_ATS_Information *ats,
-			    uint32_t ats_count)
-{
-  return GNUNET_SYSERR;
-}
-
-
-/**
  * We have received a CONNECT.  Set the peer to connected.
  *
  * @param sender peer sending the PONG
@@ -836,10 +720,14 @@ GST_neighbours_handle_connect (const struct GNUNET_PeerIdentity *sender,
     }
   n = lookup_neighbour (sender);
   if ( (NULL != n) ||
-       (GNUNET_TIME_absolute_get_remaining (n->peer_timeout).rel_value > 0) )
+       (n->is_connected == GNUNET_YES) )
     {
       /* already connected */
-      // FIXME: switch session!?
+      if (session != NULL)
+	{
+	  // FIXME: ATS: switch session!?
+	  // FIXME: merge/update ats?
+	}
       return GNUNET_OK; 
     }
   if (n == NULL)
@@ -858,9 +746,32 @@ GST_neighbours_handle_connect (const struct GNUNET_PeerIdentity *sender,
 							&n->id.hashPubKey,
 							n,
 							GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+      if (NULL == ats)
+	{
+	  GNUNET_array_grow (n->ats,
+			     n->ats_count,
+			     1);
+	}
+      else
+	{
+	  GNUNET_array_grow (n->ats,
+			     n->ats_count,
+			     ats_count);
+	  memcpy (n->ats,
+		  ats, 
+		  sizeof (struct GNUNET_TRANSPORT_ATS_Information) * ats_count);
+	}
     }
-  // FIXME: mark connected, etc?
-
+  if (session != NULL)
+    {
+      // FIXME: ATS: switch session!?
+      // n->session = session;
+    }
+  n->is_connected = GNUNET_YES;
+  connect_notify_cb (callback_cls,
+		     sender,
+		     n->ats,
+		     n->ats_count);
   return GNUNET_OK;
 }
 
