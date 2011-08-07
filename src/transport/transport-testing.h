@@ -44,15 +44,15 @@ struct PeerContext
   char * servicehome;
 };
 
-typedef (*GNUNET_TRANSPORT_TESTING_connect_cb) (struct PeerContext * p1, struct PeerContext * p2, void *cls);
+typedef void (*GNUNET_TRANSPORT_TESTING_connect_cb) (struct PeerContext * p1, struct PeerContext * p2, void *cls);
 
-static struct PeerContext *
+struct PeerContext *
 GNUNET_TRANSPORT_TESTING_start_peer (const char * cfgname);
 
-static void
+void
 GNUNET_TRANSPORT_TESTING_stop_peer (struct PeerContext * pc);
 
-static void
+void
 GNUNET_TRANSPORT_TESTING_connect_peers (struct PeerContext * p1,
     struct PeerContext * p2,
     GNUNET_TRANSPORT_TESTING_connect_cb * cb,

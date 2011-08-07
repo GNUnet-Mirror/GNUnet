@@ -94,7 +94,7 @@ try_connect (void *cls,
                                       cc);
 }
 
-static struct PeerContext *
+struct PeerContext *
 GNUNET_TRANSPORT_TESTING_start_peer (const char * cfgname)
 {
   struct PeerContext * p = GNUNET_malloc (sizeof (struct PeerContext));
@@ -112,7 +112,7 @@ GNUNET_TRANSPORT_TESTING_start_peer (const char * cfgname)
   return p;
 }
 
-static void
+void
 GNUNET_TRANSPORT_TESTING_stop_peer (struct PeerContext * p)
 {
   if (NULL != p->arm_proc)
@@ -131,7 +131,7 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct PeerContext * p)
     }
 }
 
-static void
+void
 GNUNET_TRANSPORT_TESTING_connect_peers (struct PeerContext * p1,
                                         struct PeerContext * p2,
                                         GNUNET_TRANSPORT_TESTING_connect_cb * cb,
