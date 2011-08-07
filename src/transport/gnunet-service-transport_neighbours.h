@@ -78,7 +78,7 @@ GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target);
  * Function called after the transmission is done.
  *
  * @param cls closure
- * @param success GNUNET_OK on success, GNUNET_NO on failure
+ * @param success GNUNET_OK on success, GNUNET_NO on failure, GNUNET_SYSERR if we're not connected
  */
 typedef void (*GST_NeighbourSendContinuation)(void *cls,
 					      int success);
@@ -89,12 +89,14 @@ typedef void (*GST_NeighbourSendContinuation)(void *cls,
  *
  * @param target destination
  * @param msg message to send
+ * @param timeout when to fail with timeout
  * @param cont function to call when done
  * @param cont_cls closure for 'cont'
  */
 void
 GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
 		     const struct GNUNET_MessageHeader *msg,
+		     struct GNUNET_TIME_Relative timeout,
 		     GST_NeighbourSendContinuation cont,
 		     void *cont_cls);
 

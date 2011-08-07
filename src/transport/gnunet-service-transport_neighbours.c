@@ -397,76 +397,6 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
 
 
 /**
- * Send the specified message to the specified peer.
- *
- * @param client source of the transmission request (can be NULL)
- * @param peer_address ForeignAddressList where we should send this message
- * @param priority how important is the message
- * @param timeout how long do we have to transmit?
- * @param message_buf message(s) to send GNUNET_MessageHeader(s)
- * @param message_buf_size total size of all messages in message_buf
- * @param is_internal is this an internal message; these are pre-pended and
- *                    also do not count for plugins being "ready" to transmit
- * @param neighbour handle to the neighbour for transmission
- */
-static void
-transmit_to_peer (struct TransportClient *client,
-                  struct ForeignAddressList *peer_address,
-                  unsigned int priority,
-		  struct GNUNET_TIME_Relative timeout,
-                  const char *message_buf,
-                  size_t message_buf_size,
-                  int is_internal, struct NeighbourMapEntry *neighbour)
-{
-  struct MessageQueue *mq;
-
-#if EXTRA_CHECKS
-  if (client != NULL)
-    {
-      /* check for duplicate submission */
-      mq = neighbour->messages_head;
-      while (NULL != mq)
-        {
-          if (mq->client == client)
-            {
-              /* client transmitted to same peer twice
-                 before getting SEND_OK! */
-              GNUNET_break (0);
-              return;
-            }
-          mq = mq->next;
-        }
-    }
-#endif
-  GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# bytes in message queue for other peers"),
-			    message_buf_size,
-			    GNUNET_NO);
-  mq = GNUNET_malloc (sizeof (struct MessageQueue) + message_buf_size);
-  mq->specific_address = peer_address;
-  mq->client = client;
-  /* FIXME: this memcpy can be up to 7% of our total runtime! */
-  memcpy (&mq[1], message_buf, message_buf_size);
-  mq->message_buf = (const char*) &mq[1];
-  mq->message_buf_size = message_buf_size;
-  memcpy(&mq->neighbour_id, &neighbour->id, sizeof(struct GNUNET_PeerIdentity));
-  mq->internal_msg = is_internal;
-  mq->priority = priority;
-  mq->timeout = GNUNET_TIME_relative_to_absolute (timeout);
-  if (is_internal)
-    GNUNET_CONTAINER_DLL_insert (neighbour->messages_head,
-				 neighbour->messages_tail,
-				 mq);
-  else
-    GNUNET_CONTAINER_DLL_insert_after (neighbour->messages_head,
-				       neighbour->messages_tail,
-				       neighbour->messages_tail,
-				       mq);
-  try_transmission_to_peer (neighbour);
-}
-
-
-/**
  * Create a fresh entry in our neighbour list for the given peer.
  * Will try to transmit our current HELLO to the new neighbour.
  * Do not call this function directly, use 'setup_peer_check_blacklist.
@@ -670,7 +600,13 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
 int
 GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target)
 {
-  return GNUNET_NO;
+  struct NeighbourMapEntry *n;
+
+  n = lookup_neighbour (target);
+  if ( (NULL == n) ||
+       (GNUNET_TIME_absolute_get_remaining (n->peer_timeout).rel_value == 0) )
+       return GNUNET_NO; /* not connected */
+  return GNUNET_YES;
 }
 
 
@@ -679,15 +615,50 @@ GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target)
  *
  * @param target destination
  * @param msg message to send
+ * @param timeout when to fail with timeout
  * @param cont function to call when done
  * @param cont_cls closure for 'cont'
  */
 void
 GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
 		     const struct GNUNET_MessageHeader *msg,
+		     struct GNUNET_TIME_Relative timeout,
 		     GST_NeighbourSendContinuation cont,
 		     void *cont_cls)
 {
+  struct NeighbourMapEntry *n;
+  struct MessageQueue *mq;
+  uint16_t message_buf_size;
+
+  n = lookup_neighbour (target);
+  if ( (n == NULL) ||
+       (GNUNET_TIME_absolute_get_remaining (n->peer_timeout).rel_value == 0) ) 
+    {
+      GNUNET_STATISTICS_update (GST_stats,
+				gettext_noop ("# SET QUOTA messages ignored (no such peer)"),
+				1,
+				GNUNET_NO);
+      if (NULL != cont)
+	cont (cont_cls,
+	      GNUNET_SYSERR);
+      return;
+    }
+  message_buf_size = ntohs (msg->size);
+  GNUNET_assert (message_buf_size >= sizeof (struct GNUNET_MessageHeader));
+  GNUNET_STATISTICS_update (GST_stats,
+			    gettext_noop ("# bytes in message queue for other peers"),
+			    message_buf_size,
+			    GNUNET_NO);
+  mq = GNUNET_malloc (sizeof (struct MessageQueue) + message_buf_size);
+  /* FIXME: this memcpy can be up to 7% of our total runtime! */
+  memcpy (&mq[1], msg, message_buf_size);
+  mq->message_buf = (const char*) &mq[1];
+  mq->message_buf_size = message_buf_size;
+  mq->timeout = GNUNET_TIME_relative_to_absolute (timeout);
+  GNUNET_CONTAINER_DLL_insert_tail (n->messages_head,
+				    n->messages_tail,
+				    mq);
+  // try_transmission_to_peer (n);
 }
 
 
