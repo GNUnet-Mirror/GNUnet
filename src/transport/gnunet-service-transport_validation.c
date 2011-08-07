@@ -548,6 +548,7 @@ timeout_hello_validation (void *cls,
  * Send the given PONG to the given address.
  *
  * @param cls the PONG message
+ * @param public_key public key for the peer, never NULL
  * @param target peer this change is about, never NULL
  * @param valid_until is ZERO if we never validated the address,
  *                    otherwise a time up to when we consider it (or was) valid
@@ -560,6 +561,7 @@ timeout_hello_validation (void *cls,
  */
 static void
 multicast_pong (void *cls,
+		const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
 		const struct GNUNET_PeerIdentity *target,
 		struct GNUNET_TIME_Absolute valid_until,
 		struct GNUNET_TIME_Absolute validation_block,
@@ -1188,6 +1190,7 @@ iterate_addresses (void *cls,
   struct ValidationEntry *ve = value;
 
   vic->cb (vic->cb_cls,
+	   &ve->public_key,
 	   &ve->pid,
 	   ve->valid_until,
 	   ve->validation_block,

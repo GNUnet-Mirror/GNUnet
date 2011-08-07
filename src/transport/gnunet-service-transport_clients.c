@@ -591,6 +591,7 @@ GST_clients_handle_address_lookup (void *cls,
  * Send an address to the client.
  *
  * @param cls our 'struct GNUNET_SERVER_TransmitContext' (for sending)
+ * @param public_key public key for the peer, never NULL
  * @param target peer this change is about, never NULL
  * @param valid_until until what time do we consider the address valid?
  * @param validation_block  is FOREVER if the address is for an unsupported plugin (from PEERINFO)
@@ -602,6 +603,7 @@ GST_clients_handle_address_lookup (void *cls,
  */
 static void
 send_address_to_client (void *cls,
+			const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
 			const struct GNUNET_PeerIdentity *target,
 			struct GNUNET_TIME_Absolute valid_until,
 			struct GNUNET_TIME_Absolute validation_block,

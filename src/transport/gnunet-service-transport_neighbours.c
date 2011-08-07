@@ -25,15 +25,18 @@
  */
 #include "platform.h"
 #include "gnunet-service-transport_neighbours.h"
+#include "gnunet-service-transport_validation.h"
 #include "gnunet-service-transport.h"
 #include "gnunet_peerinfo_service.h"
 #include "gnunet_constants.h"
+#include "transport.h"
 
 
 /**
  * Size of the neighbour hash map.
  */
 #define NEIGHBOUR_TABLE_SIZE 256
+
 
 
 // TODO:
@@ -122,10 +125,10 @@ struct NeighbourMapEntry
   struct MessageQueue *messages_tail;
 
   /**
-   * Context for peerinfo iteration.
-   * NULL after we are done processing peerinfo's information.
+   * Context for validation address iteration.
+   * NULL after we are connected.
    */
-  struct GNUNET_PEERINFO_IteratorContext *piter;
+  struct GST_ValidationIteratorContext *vic;
 
   /**
    * Performance data for the peer.
@@ -135,7 +138,7 @@ struct NeighbourMapEntry
   /**
    * Public key for this peer.  Valid only if the respective flag is set below.
    */
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded publicKey;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;
 
   /**
    * Identity of this neighbour.
@@ -394,93 +397,6 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
 				  GNUNET_SYSERR);
     }
 }
-
-
-/**
- * Create a fresh entry in our neighbour list for the given peer.
- * Will try to transmit our current HELLO to the new neighbour.
- * Do not call this function directly, use 'setup_peer_check_blacklist.
- *
- * @param peer the peer for which we create the entry
- * @param do_hello should we schedule transmitting a HELLO
- * @return the new neighbour list entry
- */
-static struct NeighbourMapEntry *
-setup_new_neighbour (const struct GNUNET_PeerIdentity *peer,
-		     int do_hello)
-{
-  struct NeighbourMapEntry *n;
-  struct TransportPlugin *tp;
-  struct ReadyList *rl;
-
-  GNUNET_assert (0 != memcmp (peer,
-			      &my_identity,
-			      sizeof (struct GNUNET_PeerIdentity)));
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Setting up state for neighbour `%4s'\n",
-	      GNUNET_i2s (peer));
-#endif
-  GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# active neighbours"),
-			    1,
-			    GNUNET_NO);
-  n = GNUNET_malloc (sizeof (struct NeighbourMapEntry));
-  n->id = *peer;
-  n->peer_timeout =
-    GNUNET_TIME_relative_to_absolute
-    (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-  GNUNET_BANDWIDTH_tracker_init (&n->in_tracker,
-				 GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
-				 MAX_BANDWIDTH_CARRY_S);
-  tp = plugins;
-  while (tp != NULL)
-    {
-      if ((tp->api->send != NULL) && (!is_blacklisted(peer, tp)))
-        {
-          rl = GNUNET_malloc (sizeof (struct ReadyList));
-	  rl->neighbour = n;
-          rl->next = n->plugins;
-          n->plugins = rl;
-          rl->plugin = tp;
-          rl->addresses = NULL;
-        }
-      tp = tp->next;
-    }
-  n->latency = GNUNET_TIME_UNIT_FOREVER_REL;
-  n->distance = -1;
-  n->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-                                                  &neighbour_timeout_task, n);
-  GNUNET_CONTAINER_multihashmap_put (neighbours,
-				     &n->id.hashPubKey,
-				     n,
-				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-  if (do_hello)
-    {
-      GNUNET_STATISTICS_update (stats,
-                                gettext_noop ("# peerinfo new neighbor iterate requests"),
-                                1,
-                                GNUNET_NO);
-      GNUNET_STATISTICS_update (stats,
-                                gettext_noop ("# outstanding peerinfo iterate requests"),
-                                1,
-                                GNUNET_NO);
-      n->piter = GNUNET_PEERINFO_iterate (peerinfo, peer,
-					  GNUNET_TIME_UNIT_FOREVER_REL,
-					  &add_hello_for_peer, n);
-
-      GNUNET_STATISTICS_update (stats,
-                                gettext_noop ("# HELLO's sent to new neighbors"),
-                                1,
-                                GNUNET_NO);
-      if (NULL != our_hello)
-	transmit_to_peer (NULL, NULL, 0,
-			  HELLO_ADDRESS_EXPIRATION,
-			  (const char *) our_hello, GNUNET_HELLO_size(our_hello),
-			  GNUNET_NO, n);
-    }
-  return n;
-}
 #endif
 
 
@@ -526,10 +442,10 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
 				   mq);
       GNUNET_free (mq);
     }
-  if (NULL != n->piter)
+  if (NULL != n->vic)
     {
-      GNUNET_PEERINFO_iterate_cancel (n->piter);
-      n->piter = NULL;
+      GST_validation_get_addresses_cancel (n->vic);
+      n->vic = NULL;
     }
   GNUNET_array_grow (n->ats,
 		     n->ats_count,
@@ -581,6 +497,69 @@ GST_neighbours_stop ()
 
 
 /**
+ * Try to connect to the target peer using the given address
+ * (if is valid).
+ *
+ * @param cls the 'struct NeighbourMapEntry' of the target
+ * @param public_key public key for the peer, never NULL
+ * @param target identity of the target peer
+ * @param valid_until is ZERO if we never validated the address,
+ *                    otherwise a time up to when we consider it (or was) valid
+ * @param validation_block  is FOREVER if the address is for an unsupported plugin (from PEERINFO)
+ *                          is ZERO if the address is considered valid (no validation needed)
+ *                          otherwise a time in the future if we're currently denying re-validation
+ * @param plugin_name name of the plugin
+ * @param plugin_address binary address
+ * @param plugin_address_len length of address
+ */
+static void
+try_connect_using_address (void *cls,
+			   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
+			   const struct GNUNET_PeerIdentity *target,
+			   struct GNUNET_TIME_Absolute valid_until,
+			   struct GNUNET_TIME_Absolute validation_block,
+			   const char *plugin_name,
+			   const void *plugin_address,
+			   size_t plugin_address_len)
+{
+  struct NeighbourMapEntry *n = cls;
+
+  if (n->public_key_valid == GNUNET_NO)
+    {
+      n->public_key = *public_key;
+      n->public_key_valid = GNUNET_YES;
+    }
+  if (GNUNET_TIME_absolute_get_remaining (valid_until).rel_value == 0)
+    return; /* address is not valid right now */
+  /* FIXME: do ATS here! */
+
+}
+
+
+/**
+ * We've tried to connect but waited long enough and failed.  Clean up.
+ *
+ * @param cls the 'struct NeighbourMapEntry' of the neighbour that failed to connect
+ * @param tc scheduler context
+ */
+static void
+neighbour_connect_timeout_task (void *cls,
+				const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct NeighbourMapEntry *n = cls;
+
+  n->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_remove (neighbours,
+						       &n->id.hashPubKey,
+						       n));
+  GNUNET_assert (NULL == n->messages_head);
+  GNUNET_assert (NULL == n->ats);
+  GNUNET_free (n);
+}
+
+
+/**
  * Try to create a connection to the given target (eventually).
  *
  * @param target peer to try to connect to
@@ -588,6 +567,38 @@ GST_neighbours_stop ()
 void
 GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
 {
+  struct NeighbourMapEntry *n;
+
+  GNUNET_assert (0 != memcmp (target,
+			      &GST_my_identity,
+			      sizeof (struct GNUNET_PeerIdentity)));
+  n = lookup_neighbour (target);
+  if ( (NULL != n) ||
+       (GNUNET_TIME_absolute_get_remaining (n->peer_timeout).rel_value > 0) )
+    return; /* already connected */
+  if (n == NULL)
+    {
+      n = GNUNET_malloc (sizeof (struct NeighbourMapEntry));
+      n->id = *target;
+      GNUNET_BANDWIDTH_tracker_init (&n->in_tracker,
+				     GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
+				     MAX_BANDWIDTH_CARRY_S);
+      n->latency = GNUNET_TIME_UNIT_FOREVER_REL;
+      n->distance = UINT32_MAX;
+      n->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+						      &neighbour_connect_timeout_task, n);
+      GNUNET_assert (GNUNET_OK ==
+		     GNUNET_CONTAINER_multihashmap_put (neighbours,
+							&n->id.hashPubKey,
+							n,
+							GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    }
+  if (n->vic != NULL)
+    return; /* already trying */
+  n->vic = GST_validation_get_addresses (target,
+					 GNUNET_NO,
+					 &try_connect_using_address,
+					 n); 
 }
 
 
@@ -702,21 +713,6 @@ GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
 
 
 /**
- * If we have an active connection to the given target, it must be shutdown.
- *
- * @param target peer to disconnect from
- */
-void
-GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target)
-{
-  struct NeighbourMapEntry *n;
-
-  n = lookup_neighbour (target);
-  disconnect_neighbour (n);
-}
-
-
-/**
  * Closure for the neighbours_iterate function.
  */
 struct IteratorContext
@@ -825,10 +821,63 @@ GST_neighbours_handle_connect (const struct GNUNET_PeerIdentity *sender,
 			       const char *plugin_name,
 			       const void *sender_address,
 			       size_t sender_address_len,
+			       struct Session *session,
 			       const struct GNUNET_TRANSPORT_ATS_Information *ats,
 			       uint32_t ats_count)
+{  
+  struct NeighbourMapEntry *n;
+
+  if (0 == memcmp (sender,
+		   &GST_my_identity,
+		   sizeof (struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+    }
+  n = lookup_neighbour (sender);
+  if ( (NULL != n) ||
+       (GNUNET_TIME_absolute_get_remaining (n->peer_timeout).rel_value > 0) )
+    {
+      /* already connected */
+      // FIXME: switch session!?
+      return GNUNET_OK; 
+    }
+  if (n == NULL)
+    {
+      n = GNUNET_malloc (sizeof (struct NeighbourMapEntry));
+      n->id = *sender;
+      GNUNET_BANDWIDTH_tracker_init (&n->in_tracker,
+				     GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
+				     MAX_BANDWIDTH_CARRY_S);
+      n->latency = GNUNET_TIME_UNIT_FOREVER_REL;
+      n->distance = UINT32_MAX;
+      n->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+						      &neighbour_connect_timeout_task, n);
+      GNUNET_assert (GNUNET_OK ==
+		     GNUNET_CONTAINER_multihashmap_put (neighbours,
+							&n->id.hashPubKey,
+							n,
+							GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    }
+  // FIXME: mark connected, etc?
+
+  return GNUNET_OK;
+}
+
+
+/**
+ * If we have an active connection to the given target, it must be shutdown.
+ *
+ * @param target peer to disconnect from
+ */
+void
+GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target)
 {
-  return GNUNET_SYSERR;
+  struct NeighbourMapEntry *n;
+
+  n = lookup_neighbour (target);
+  /* FIXME: send disconnect message to target... */
+  disconnect_neighbour (n);
 }
 
 
@@ -850,7 +899,12 @@ GST_neighbours_handle_disconnect (const struct GNUNET_PeerIdentity *sender,
 				  const void *sender_address,
 				  size_t sender_address_len)
 {
-  return GNUNET_SYSERR;
+  struct NeighbourMapEntry *n;
+
+  n = lookup_neighbour (sender);
+  /* FIXME: should disconnects have a signature that we should check here? */
+  disconnect_neighbour (n);
+  return GNUNET_OK;
 }
 
 

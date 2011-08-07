@@ -105,6 +105,7 @@ struct GST_ValidationIteratorContext;
  * the validation module is aware of (for the given target).
  *
  * @param cls closure
+ * @param public_key public key for the peer, never NULL
  * @param target peer this change is about, never NULL
  * @param valid_until is ZERO if we never validated the address,
  *                    otherwise a time up to when we consider it (or was) valid
@@ -116,6 +117,7 @@ struct GST_ValidationIteratorContext;
  * @param plugin_address_len length of address
  */
 typedef void (*GST_ValidationAddressCallback)(void *cls,
+					      const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
 					      const struct GNUNET_PeerIdentity *target,
 					      struct GNUNET_TIME_Absolute valid_until,
 					      struct GNUNET_TIME_Absolute validation_block,

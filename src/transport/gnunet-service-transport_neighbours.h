@@ -28,6 +28,7 @@
 
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_transport_plugin.h"
 #include "gnunet_util_lib.h"
 
 // TODO:
@@ -187,6 +188,7 @@ GST_neighbours_handle_connect (const struct GNUNET_PeerIdentity *sender,
 			       const char *plugin_name,
 			       const void *sender_address,
 			       size_t sender_address_len,
+			       struct Session *session,
 			       const struct GNUNET_TRANSPORT_ATS_Information *ats,
 			       uint32_t ats_count);
 
