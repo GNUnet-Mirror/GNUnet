@@ -32,12 +32,39 @@
 #define VERBOSE 1
 #define VERBOSE_ARM 0
 
-static struct GNUNET_MESH_MessageHandler        handlers[] = {{NULL, 0, 0}};
 static struct GNUNET_OS_Process                 *arm_pid;
 static struct GNUNET_MESH_Handle                *mesh;
 static int                                      result;
 GNUNET_SCHEDULER_TaskIdentifier                 abort_task;
 GNUNET_SCHEDULER_TaskIdentifier                 test_task;
+
+/**
+ * Function is called whenever a message is received.
+ *
+ * @param cls closure (set from GNUNET_MESH_connect)
+ * @param tunnel connection to the other end
+ * @param tunnel_ctx place to store local state associated with the tunnel
+ * @param sender who sent the message
+ * @param message the actual message
+ * @param atsi performance data for the connection
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+static int
+callback(void *cls,
+        struct GNUNET_MESH_Tunnel *tunnel,
+        void **tunnel_ctx,
+        const struct GNUNET_PeerIdentity *sender,
+        const struct GNUNET_MessageHeader *message,
+        const struct GNUNET_TRANSPORT_ATS_Information
+        *atsi)
+{
+    return 0;
+}
+
+static struct GNUNET_MESH_MessageHandler        handlers[] = {{&callback, 1, 0},
+                                                              {NULL, 0, 0}};
+
 
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -70,10 +97,12 @@ static void
 test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
     struct GNUNET_CONFIGURATION_Handle  *cfg = cls;
-    GNUNET_MESH_ApplicationType         app;
+    GNUNET_MESH_ApplicationType         app[3];
 
     test_task = (GNUNET_SCHEDULER_TaskIdentifier) 0;
-    app = (GNUNET_MESH_ApplicationType) 0;
+    app[0] = (GNUNET_MESH_ApplicationType) 1;
+    app[1] = (GNUNET_MESH_ApplicationType) 2;
+    app[2] = (GNUNET_MESH_ApplicationType) 0;
     mesh = GNUNET_MESH_connect(cfg, NULL, NULL, handlers, &app);
     if(NULL == mesh) {
         GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Couldn't connect to mesh :(\n");
@@ -104,7 +133,7 @@ run (void *cls,
                                        NULL);
 
     abort_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
-                                                GNUNET_TIME_UNIT_SECONDS, 5),
+                                                GNUNET_TIME_UNIT_SECONDS, 20),
                                                 &do_abort,
                                                 NULL);
     test_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(

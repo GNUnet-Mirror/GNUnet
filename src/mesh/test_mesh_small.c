@@ -88,11 +88,6 @@ static unsigned long long current_round;
 static unsigned long long peers_next_round;
 
 /**
- * Maximum number of connections to NSE services.
- */
-static unsigned long long connection_limit;
-
-/**
  * Total number of connections in the whole network.
  */
 static unsigned int total_connections;
@@ -202,7 +197,7 @@ connect_mesh_service (void *cls,
 #endif
   for (i = 0; i < num_peers; i++)
     {
-      if ((connection_limit > 0) && (i % (num_peers / connection_limit) != 0))
+//       if ((connection_limit > 0) && (i % (num_peers / connection_limit) != 0))
         continue;
 #if VERBOSE
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "test_mesh_small: connecting to mesh service of peer %d\n", i);
@@ -547,13 +542,6 @@ run (void *cls,
       GNUNET_log(GNUNET_ERROR_TYPE_ERROR, 
 		 "Option nsetest_mesh_small:wait_time is required!\n");
       return;
-    }
-
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (testing_cfg, 
-							  "test_mesh_small", "connection_limit",
-							  &connection_limit))
-    {
-      connection_limit = 0;
     }
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (testing_cfg, 

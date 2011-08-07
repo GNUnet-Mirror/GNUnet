@@ -135,6 +135,7 @@ typedef uint32_t GNUNET_MESH_ApplicationType;
  *                note that the mesh is allowed to drop notifications about
  *                inbound messages if the client does not process them fast
  *                enough (for this notification type, a bounded queue is used)
+ * @param stypes list of the applications that this client claims to provide
  * @return handle to the mesh service NULL on error
  *         (in this case, init is never called)
  */
