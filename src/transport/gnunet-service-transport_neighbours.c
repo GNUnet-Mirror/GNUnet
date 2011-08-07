@@ -171,30 +171,12 @@ struct NeighbourMapEntry
   struct GNUNET_BANDWIDTH_Tracker in_tracker;
 
   /**
-   * The latency we have seen for this particular address for
-   * this particular peer.  This latency may have been calculated
-   * over multiple transports.  This value reflects how long it took
-   * us to receive a response when SENDING via this particular
-   * transport/neighbour/address combination!
-   *
-   * FIXME: we need to periodically send PINGs to update this
-   * latency (at least more often than the current "huge" (11h?)
-   * update interval).
-   */
-  struct GNUNET_TIME_Relative latency;
-
-  /**
    * How often has the other peer (recently) violated the inbound
    * traffic limit?  Incremented by 10 per violation, decremented by 1
    * per non-violation (for each time interval).
    */
   unsigned int quota_violation_count;
 
-  /**
-   * DV distance to this peer (1 if no DV is used).
-   */
-  uint32_t distance;
-  
   /**
    * Number of values in 'ats' array.
    */
@@ -493,8 +475,6 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
       GNUNET_BANDWIDTH_tracker_init (&n->in_tracker,
 				     GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
 				     MAX_BANDWIDTH_CARRY_S);
-      n->latency = GNUNET_TIME_UNIT_FOREVER_REL;
-      n->distance = UINT32_MAX;
       n->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
 						      &neighbour_connect_timeout_task, n);
       GNUNET_assert (GNUNET_OK ==
@@ -737,8 +717,6 @@ GST_neighbours_handle_connect (const struct GNUNET_PeerIdentity *sender,
       GNUNET_BANDWIDTH_tracker_init (&n->in_tracker,
 				     GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
 				     MAX_BANDWIDTH_CARRY_S);
-      n->latency = GNUNET_TIME_UNIT_FOREVER_REL;
-      n->distance = UINT32_MAX;
       n->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
 						      &neighbour_connect_timeout_task, n);
       GNUNET_assert (GNUNET_OK ==
