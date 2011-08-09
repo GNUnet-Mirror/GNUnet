@@ -640,13 +640,15 @@ GNUNET_TRANSPORT_address_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                  const char * address,
                                  size_t addressLen,
 				 int numeric,
-                                 const char * nameTrans,
+                                 const char *nameTrans,
 				 struct GNUNET_TIME_Relative timeout,
 				 GNUNET_TRANSPORT_AddressLookUpCallback aluc,
 				 void *aluc_cls);
 
+
 /**
- * Return all the known addresses for a peer.
+ * Return all the known addresses for a peer. FIXME: document better!
+ * FIXME: use better name!
  *
  * @param cfg configuration to use
  * @param peer peer identity to look up the addresses of
@@ -663,7 +665,8 @@ GNUNET_TRANSPORT_peer_address_lookup (const struct GNUNET_CONFIGURATION_Handle *
 
 
 /**
- * Return all the known addresses for a peer.
+ * Return all the known addresses. FIXME: document better!
+ * FIXME: use better name!
  *
  * @param cfg configuration to use
  * @param timeout how long is the lookup allowed to take at most
@@ -675,6 +678,7 @@ GNUNET_TRANSPORT_address_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                   struct GNUNET_TIME_Relative timeout,
                                   GNUNET_TRANSPORT_AddressLookUpCallback peer_address_callback,
                                   void *peer_address_callback_cls);
+
 
 /**
  * Handle for blacklisting peers.

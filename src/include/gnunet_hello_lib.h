@@ -174,6 +174,7 @@ typedef int
  *         otherwise NULL will be returned
  * @param it iterator to call on each address
  * @param it_cls closure for it
+ * @return the modified HELLO or NULL
  */
 struct GNUNET_HELLO_Message *GNUNET_HELLO_iterate_addresses (const struct
                                                              GNUNET_HELLO_Message
