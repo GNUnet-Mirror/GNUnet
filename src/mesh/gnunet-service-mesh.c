@@ -2558,7 +2558,7 @@ handle_local_unicast (void *cls,
         struct GNUNET_MESH_Unicast      copy;
         memcpy(&copy, data_msg, sizeof(struct GNUNET_MESH_Unicast));
 
-        handle_mesh_data_unicast(NULL, NULL, copy, NULL);
+        handle_mesh_data_unicast(NULL, NULL, &copy.header, NULL);
         return;
     }
     GNUNET_PEER_resolve(get_first_hop(pi->path), &next_hop);
