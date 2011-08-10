@@ -1356,7 +1356,7 @@ send_hello_beacon(struct Plugin * plugin)
   const struct GNUNET_MessageHeader *hello;
 
   hello = plugin->env->get_our_hello ();
-  hallo_size = GNUNET_HELLO_size(hello);
+  hallo_size = GNUNET_HELLO_size((struct GNUNET_HELLO_Message*)hello);
   GNUNET_assert(sizeof(struct WlanHeader) + hallo_size <= WLAN_MTU);
   size = sizeof(struct GNUNET_MessageHeader) + sizeof(struct Radiotap_Send)
       + sizeof(struct ieee80211_frame) + sizeof(struct GNUNET_MessageHeader)
@@ -1372,7 +1372,7 @@ send_hello_beacon(struct Plugin * plugin)
   getWlanHeader(ieeewlanheader, &bc_all_mac, plugin, size);
 
   msgheader2 = (struct GNUNET_MessageHeader*) &ieeewlanheader[1];
-  msgheader2->size = htons(GNUNET_HELLO_size(hello)
+  msgheader2->size = htons(GNUNET_HELLO_size((struct GNUNET_HELLO_Message*)hello)
           + sizeof(struct GNUNET_MessageHeader));
 
   msgheader2->type = htons(GNUNET_MESSAGE_TYPE_WLAN_ADVERTISEMENT);
