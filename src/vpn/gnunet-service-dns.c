@@ -459,6 +459,7 @@ receive_mesh_answer (void *cls __attribute__((unused)),
   memcpy (dpkt->data, query_states[dns->s.id].name,
           query_states[dns->s.id].namelen);
   GNUNET_free (query_states[dns->s.id].name);
+  query_states[dns->s.id].name = NULL;
 
   struct dns_query_line *dque =
     (struct dns_query_line *) (dpkt->data +
