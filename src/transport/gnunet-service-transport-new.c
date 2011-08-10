@@ -125,7 +125,9 @@ static void
 shutdown_task (void *cls, 
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-
+  GST_validation_stop ();
+  GST_neighbours_stop ();
+  GST_clients_stop ();
   GST_blacklist_stop ();
   GST_plugins_unload ();
   GST_hello_stop ();
@@ -212,6 +214,11 @@ run (void *cls,
 		    NULL, // FIXME...
 		    NULL, // FIXME...
 		    NULL); // FIXME...
+  GST_neighbours_start (NULL, // FIXME...
+			NULL, // FIXME...
+			NULL); // FIXME...
+  GST_clients_start (server);
+  GST_validation_start ();
 }
 
 
