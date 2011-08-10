@@ -3,7 +3,7 @@
 #endif
 
 if HAVE_EXPERIMENTAL
- EXP_DIR = mesh vpn chat
+ EXP_DIR = chat
 endif
 
 SUBDIRS = \
@@ -29,4 +29,6 @@ SUBDIRS = \
   hostlist \
   topology \
   fs \
-  $(EXP_DIR)
+  mesh \
+  vpn \
+  $(EXP_DIR) 
