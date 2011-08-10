@@ -392,7 +392,7 @@ unsigned long long GNUNET_htonll (unsigned long long n);
  * allocated with GNUNET_array_grow using GNUNET_array_grow(mem, size, 0) instead of GNUNET_free.
  *
  * @param ptr location where to free the memory. ptr must have
- *     been returned by GNUNET_strdup, GNUNET_malloc or GNUNET_array_grow earlier.
+ *     been returned by GNUNET_strdup, GNUNET_strndup, GNUNET_malloc or GNUNET_array_grow earlier.
  */
 #define GNUNET_free(ptr) GNUNET_xfree_(ptr, __FILE__, __LINE__)
 
@@ -412,6 +412,16 @@ unsigned long long GNUNET_htonll (unsigned long long n);
  * @return a copy of the string including zero-termination
  */
 #define GNUNET_strdup(a) GNUNET_xstrdup_(a,__FILE__,__LINE__)
+
+/**
+ * Wrapper around GNUNET_strndup.  Makes a partial copy of the string
+ * pointed to by a.
+ *
+ * @param a pointer to a string
+ * @param length of the string to duplicate
+ * @return a partial copy of the string including zero-termination
+ */
+#define GNUNET_strndup(a,b) GNUNET_xstrndup_(a,b,__FILE__,__LINE__)
 
 /**
  * Grow a well-typed (!) array.  This is a convenience
@@ -550,6 +560,16 @@ void GNUNET_xfree_ (void *ptr, const char *filename, int linenumber);
  * @return the duplicated string
  */
 char *GNUNET_xstrdup_ (const char *str, const char *filename, int linenumber);
+
+/**
+ * Dup partially a string. Don't call GNUNET_xstrndup_ directly. Use the GNUNET_strndup macro.
+ * @param str string to duplicate
+ * @param len lenght of the string to duplicate
+ * @param filename where is this call being made (for debugging)
+ * @param linenumber line where this call is being made (for debugging)
+ * @return the duplicated string
+ */
+char *GNUNET_xstrndup_ (const char *str, size_t len, const char *filename, int linenumber);
 
 /**
  * Grow an array, the new elements are zeroed out.

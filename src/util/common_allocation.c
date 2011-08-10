@@ -215,6 +215,30 @@ GNUNET_xstrdup_ (const char *str, const char *filename, int linenumber)
   return res;
 }
 
+
+/**
+ * Dup partially a string (same semantics as strndup).
+ *
+ * @param str the string to dup
+ * @param len the lenght of the string to dup
+ * @param filename where in the code was the call to GNUNET_strndup
+ * @param linenumber where in the code was the call to GNUNET_strndup
+ * @return strndup(str,len)
+ */
+char *
+GNUNET_xstrndup_ (const char *str, size_t len, const char *filename, int linenumber)
+{
+  char *res;
+
+  GNUNET_assert_at (str != NULL, filename, linenumber);
+  len = GNUNET_MIN(len,strlen(str));
+  res = GNUNET_xmalloc_ (len + 1, filename, linenumber);
+  memcpy (res, str, len);
+  res[len] = '\0';
+  return res;
+}
+
+
 /**
  * Grow an array.  Grows old by (*oldCount-newCount)*elementSize bytes
  * and sets *oldCount to newCount.
