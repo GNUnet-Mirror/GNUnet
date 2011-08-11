@@ -102,8 +102,23 @@ struct GST_AtsHandle
    */
   struct GNUNET_CONTAINER_MultiHashMap *peers;
 
+  /**
+   * Task scheduled to update our bandwidth assignment.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier ba_task;
 };
 
+
+static void
+update_bandwidth_task (void *cls,
+		       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GST_AtsHandle *atc = cls;
+
+  atc->ba_task = GNUNET_SCHEDULER_NO_TASK;
+  /* FIXME: update calculations! */
+
+}
 
 
 /**
@@ -116,7 +131,10 @@ static void
 update_bandwidth_assignment (struct GST_AtsHandle *atc,
 			     struct AllocationRecord *change)
 {
-  
+  /* FIXME: based on the 'change', update the problem... */
+  if (atc->ba_task == GNUNET_SCHEDULER_NO_TASK)
+    atc->ba_task = GNUNET_SCHEDULER_add_now (&update_bandwidth_task,
+					     atc);
 }
 
 
@@ -174,6 +192,11 @@ destroy_allocation_record (void *cls,
 void
 GST_ats_shutdown (struct GST_AtsHandle *atc)
 {
+  if (GNUNET_SCHEDULER_NO_TASK != atc->ba_task)
+    {
+      GNUNET_SCHEDULER_cancel (atc->ba_task);
+      atc->ba_task = GNUNET_SCHEDULER_NO_TASK;
+    }
   GNUNET_CONTAINER_multihashmap_iterate (atc->peers,
 					 &destroy_allocation_record,
 					 NULL);
@@ -287,6 +310,31 @@ create_allocation_record (const char *plugin_name,
 
 
 /**
+ * Mark all matching allocation records as not connected.
+ *
+ * @param cls 'struct GTS_AtsHandle'
+ * @param key identity of the peer associated with the record
+ * @param value the 'struct AllocationRecord' to clear the 'connected' flag
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int
+disconnect_peer (void *cls,
+		 const GNUNET_HashCode *key,
+		 void *value)
+{
+  struct GST_AtsHandle *atc = cls;
+  struct AllocationRecord *ar = value;
+
+  if (GNUNET_YES == ar->connected)
+    {
+      ar->connected = GNUNET_NO;     
+      update_bandwidth_assignment (atc, ar);
+    }
+  return GNUNET_OK;
+}
+
+
+/**
  * We established a new connection with a peer (for example, because
  * core asked for it or because the other peer connected to us).
  * Calculate bandwidth assignments including the new peer.
@@ -313,6 +361,9 @@ GST_ats_peer_connect (struct GST_AtsHandle *atc,
   struct AllocationRecord *ar;
   struct UpdateSessionContext usc;
 
+  (void) GNUNET_CONTAINER_multihashmap_iterate (atc->peers,
+						&disconnect_peer,
+						atc);
   ar = create_allocation_record (plugin_name,
 				 session,
 				 plugin_addr,
@@ -339,31 +390,6 @@ GST_ats_peer_connect (struct GST_AtsHandle *atc,
 
 
 /**
- * Mark all matching allocation records as not connected.
- *
- * @param cls 'struct GTS_AtsHandle'
- * @param key identity of the peer associated with the record
- * @param value the 'struct AllocationRecord' to clear the 'connected' flag
- * @return GNUNET_OK (continue to iterate)
- */
-static int
-disconnect_peer (void *cls,
-		 const GNUNET_HashCode *key,
-		 void *value)
-{
-  struct GST_AtsHandle *atc = cls;
-  struct AllocationRecord *ar = value;
-
-  if (GNUNET_YES == ar->connected)
-    {
-      ar->connected = GNUNET_NO;     
-      update_bandwidth_assignment (atc, ar);
-    }
-  return GNUNET_OK;
-}
-
-
-/**
  * We disconnected from the given peer (for example, because ats, core
  * or blacklist asked for it or because the other peer disconnected).
  * Calculate bandwidth assignments without the peer.
@@ -375,9 +401,10 @@ void
 GST_ats_peer_disconnect (struct GST_AtsHandle *atc,
 			 const struct GNUNET_PeerIdentity *peer)
 {
-  (void) GNUNET_CONTAINER_multihashmap_iterate (atc->peers,
-						&disconnect_peer,
-						atc);
+  (void) GNUNET_CONTAINER_multihashmap_get_multiple (atc->peers,
+						     &peer->hashPubKey,
+						     &disconnect_peer,
+						     atc);
 }
 
 
