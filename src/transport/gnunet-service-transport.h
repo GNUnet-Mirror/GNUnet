@@ -60,5 +60,11 @@ extern struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded GST_my_public_key;
  */
 extern struct GNUNET_CRYPTO_RsaPrivateKey *GST_my_private_key;
 
+/**
+ * ATS handle.
+ */
+extern struct GST_AtsHandle *GST_ats;
+
+
 #endif
 /* end of file gnunet-service-transport_plugins.h */

@@ -29,6 +29,7 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_peerinfo_service.h"
 #include "gnunet-service-transport.h"
+#include "gnunet-service-transport_ats.h"
 #include "gnunet-service-transport_blacklist.h"
 #include "gnunet-service-transport_clients.h"
 #include "gnunet-service-transport_hello.h"
@@ -67,6 +68,11 @@ struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded GST_my_public_key;
  * Our private key.
  */
 struct GNUNET_CRYPTO_RsaPrivateKey *GST_my_private_key;
+
+/**
+ * ATS handle.
+ */
+struct GST_AtsHandle *GST_ats;
 
 
 /**
@@ -124,9 +130,10 @@ plugin_env_address_change_notification (void *cls,
 static void
 shutdown_task (void *cls, 
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
+{  
   GST_validation_stop ();
   GST_neighbours_stop ();
+  GST_ats_stop (GST_ats); GST_ats = NULL;
   GST_clients_stop ();
   GST_blacklist_stop ();
   GST_plugins_unload ();
@@ -214,6 +221,9 @@ run (void *cls,
 		    NULL, // FIXME...
 		    NULL, // FIXME...
 		    NULL); // FIXME...
+  GST_ats = GST_ats_init (cfg,
+			  NULL, // FIXME...
+			  NULL); // FIXME...
   GST_neighbours_start (NULL, // FIXME...
 			NULL, // FIXME...
 			NULL); // FIXME...
