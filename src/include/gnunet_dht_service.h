@@ -154,7 +154,6 @@ GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle);
  * @param timeout how long to wait for transmission of this request
  * @param cont continuation to call when done (transmitting request to service)
  * @param cont_cls closure for cont
- * @return GNUNET_YES if put message is queued for transmission
  */
 void
 GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
