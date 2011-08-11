@@ -41,13 +41,23 @@ struct PeerContext
   struct GNUNET_TRANSPORT_Handle *th;
   struct GNUNET_PeerIdentity id;
   struct GNUNET_OS_Process *arm_proc;
+
+  GNUNET_TRANSPORT_ReceiveCallback rec;
+  GNUNET_TRANSPORT_NotifyConnect nc;
+  GNUNET_TRANSPORT_NotifyDisconnect nd;
+  void * cb_cls;
+
   char * servicehome;
 };
 
 typedef void (*GNUNET_TRANSPORT_TESTING_connect_cb) (struct PeerContext * p1, struct PeerContext * p2, void *cls);
 
 struct PeerContext *
-GNUNET_TRANSPORT_TESTING_start_peer (const char * cfgname);
+GNUNET_TRANSPORT_TESTING_start_peer (const char * cfgname,
+    GNUNET_TRANSPORT_ReceiveCallback rec,
+    GNUNET_TRANSPORT_NotifyConnect nc,
+    GNUNET_TRANSPORT_NotifyDisconnect nd,
+    void * cb_cls);
 
 void
 GNUNET_TRANSPORT_TESTING_stop_peer (struct PeerContext * pc);

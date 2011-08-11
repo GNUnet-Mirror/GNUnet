@@ -34,6 +34,51 @@ struct ConnectingContext
   GNUNET_SCHEDULER_TaskIdentifier tct;
 };
 
+static void
+notify_connect (void *cls,
+                const struct GNUNET_PeerIdentity *peer,
+                const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                uint32_t ats_count)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%s' connected \n",
+       GNUNET_i2s (peer));
+
+  struct PeerContext * p = cls;
+  if (p == NULL)
+    return;
+  if (p->nc != NULL)
+    p->nc (p->cb_cls, peer, ats, ats_count);
+}
+
+static void
+notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%s' disconnected \n",
+       GNUNET_i2s (peer));
+
+  struct PeerContext * p = cls;
+  if (p == NULL)
+    return;
+  if (p->nd != NULL)
+    p->nd (p->cb_cls, peer);
+}
+
+static void
+notify_receive (void *cls,
+                const struct GNUNET_PeerIdentity *peer,
+                const struct GNUNET_MessageHeader *message,
+                const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                uint32_t ats_count)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receiving\n");
+
+  struct PeerContext * p = cls;
+  if (p == NULL)
+    return;
+  if (p->rec != NULL)
+    p->rec (p->cb_cls, peer, message, ats, ats_count);
+}
+
 
 static void
 exchange_hello_last (void *cls,
@@ -95,7 +140,11 @@ try_connect (void *cls,
 }
 
 struct PeerContext *
-GNUNET_TRANSPORT_TESTING_start_peer (const char * cfgname)
+GNUNET_TRANSPORT_TESTING_start_peer (const char * cfgname,
+    GNUNET_TRANSPORT_ReceiveCallback rec,
+    GNUNET_TRANSPORT_NotifyConnect nc,
+    GNUNET_TRANSPORT_NotifyDisconnect nd,
+    void * cb_cls)
 {
   struct PeerContext * p = GNUNET_malloc (sizeof (struct PeerContext));
 
@@ -109,12 +158,26 @@ GNUNET_TRANSPORT_TESTING_start_peer (const char * cfgname)
   p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
                                         "gnunet-service-arm",
                                         "-c", cfgname, NULL);
+  p->nc = nc;
+  p->nd = nd;
+  p->rec = rec;
+  p->cb_cls = cb_cls;
+
+  p->th = GNUNET_TRANSPORT_connect(p->cfg, NULL,
+                            p,
+                            &notify_receive,
+                            &notify_connect,
+                            &notify_disconnect);
+  GNUNET_assert (p->th != NULL);
   return p;
 }
 
 void
 GNUNET_TRANSPORT_TESTING_stop_peer (struct PeerContext * p)
 {
+  if (p->th != NULL)
+    GNUNET_TRANSPORT_disconnect(p->th);
+
   if (NULL != p->arm_proc)
     {
       if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
@@ -129,6 +192,7 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct PeerContext * p)
     GNUNET_DISK_directory_remove (p->servicehome);
     GNUNET_free(p->servicehome);
     }
+  GNUNET_free (p);
 }
 
 void

@@ -84,31 +84,24 @@ run (void *cls,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting peer\n");
-  p = GNUNET_TRANSPORT_TESTING_start_peer("test_quota_compliance_tcp_peer1.conf");
+  p = GNUNET_TRANSPORT_TESTING_start_peer("test_quota_compliance_tcp_peer1.conf",
+      &notify_receive,
+      &notify_connect,
+      &notify_disconnect,
+      NULL);
 
   if (p != NULL)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer was successfully started\n");
   else
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer was not started successfully\n");
   GNUNET_assert (p != NULL);
-
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\tConnecting to transport service\n");
-  GNUNET_assert (p->th == NULL);
-  p->th = GNUNET_TRANSPORT_connect(p->cfg, NULL,
-                            NULL,
-                            &notify_receive,
-                            &notify_connect,
-                            &notify_disconnect);
   GNUNET_assert (p->th != NULL);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\tDisconnecting to transport service\n");
-  GNUNET_TRANSPORT_disconnect(p->th);
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peer\n");
+
   GNUNET_TRANSPORT_TESTING_stop_peer(p);
 
-  GNUNET_free (p);
+
 }
 
 int
