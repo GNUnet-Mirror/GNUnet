@@ -333,6 +333,7 @@ test_transport_api_disconnect_SOURCES = \
  test_transport_api_disconnect.c
 test_transport_api_disconnect_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la 

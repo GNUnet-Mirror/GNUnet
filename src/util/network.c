@@ -321,7 +321,7 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
     SetErrnoFromWinsockError (WSAGetLastError ());
 #endif
   if (ret != 0)
-	  return GNUNET_SYSERR;
+    return GNUNET_SYSERR;
 #ifndef MINGW
 #ifndef LINUX
   desc->addr = GNUNET_malloc (address_len);

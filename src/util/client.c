@@ -666,6 +666,15 @@ confirm_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 }
 
 
+/**
+ * Send the 'TEST' message to the service.  If successful, prepare to
+ * receive the reply.
+ *
+ * @param cls the 'struct GNUNET_CLIENT_Connection' of the connection to test
+ * @param size number of bytes available in buf
+ * @param buf where to write the message
+ * @return number of bytes written to buf
+ */
 static size_t
 write_test (void *cls, size_t size, void *buf)
 {
@@ -698,11 +707,13 @@ write_test (void *cls, size_t size, void *buf)
 
 
 /**
- * Wait until the service is running.
+ * Test if the service is running.  If we are given a UNIXPATH or a local address,
+ * we do this NOT by trying to connect to the service, but by trying to BIND to
+ * the same port.  If the BIND fails, we know the service is running.
  *
  * @param service name of the service to wait for
  * @param cfg configuration to use
- * @param timeout how long to wait at most in ms
+ * @param timeout how long to wait at most 
  * @param task task to run if service is running
  *        (reason will be "PREREQ_DONE" (service running)
  *         or "TIMEOUT" (service not known to be running))
@@ -714,12 +725,171 @@ GNUNET_CLIENT_service_test (const char *service,
                             struct GNUNET_TIME_Relative timeout,
                             GNUNET_SCHEDULER_Task task, void *task_cls)
 {
+  char *hostname;
+  unsigned long long port;
+  struct GNUNET_NETWORK_Handle *sock;
   struct GNUNET_CLIENT_Connection *conn;
 
 #if DEBUG_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Testing if service `%s' is running.\n", service);
 #endif
+#ifdef AF_UNIX
+  {
+    /* probe UNIX support */
+    struct sockaddr_un s_un;
+    size_t slen;
+    char *unixpath;
+    
+    unixpath = NULL;
+    if ( (GNUNET_OK ==
+	  GNUNET_CONFIGURATION_get_value_string (cfg,
+						 service,
+						 "UNIXPATH", &unixpath)) &&
+	 (0 < strlen (unixpath)) ) /* We have a non-NULL unixpath, does that mean it's valid? */
+      {
+	if (strlen(unixpath) >= sizeof(s_un.sun_path))
+	  {
+	    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+			_("UNIXPATH `%s' too long, maximum length is %llu\n"),
+			unixpath, 
+			sizeof(s_un.sun_path));
+	  }
+	else
+	  {
+	    sock =  GNUNET_NETWORK_socket_create (PF_UNIX, SOCK_STREAM, 0);
+	    if (sock != NULL)
+	      {
+		memset (&s_un, 0, sizeof (s_un));
+		s_un.sun_family = AF_UNIX;
+		slen = strlen (unixpath) + 1;
+		if (slen >= sizeof (s_un.sun_path))
+		  slen = sizeof (s_un.sun_path) - 1;
+		memcpy (s_un.sun_path,
+			unixpath,
+			slen);
+		s_un.sun_path[slen] = '\0';
+		slen = sizeof (struct sockaddr_un);
+#if LINUX
+		s_un.sun_path[0] = '\0';
+#endif
+#if HAVE_SOCKADDR_IN_SIN_LEN
+		s_un.sun_len = (u_char) slen;
+#endif
+		if (GNUNET_OK !=
+		    GNUNET_NETWORK_socket_bind (sock,
+						(const struct sockaddr*) &s_un,
+						slen))
+		  {
+		    /* failed to bind => service must be running */
+		    GNUNET_free (unixpath);
+		    (void) GNUNET_NETWORK_socket_close (sock);
+		    GNUNET_SCHEDULER_add_continuation (task,
+						       task_cls,
+						       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+		    return;
+		  }
+		(void) GNUNET_NETWORK_socket_close (sock);
+	      }
+	    /* let's try IP */
+	  }
+      }
+    GNUNET_free_non_null (unixpath);
+  }
+#endif
+
+  hostname = NULL;
+  if ((GNUNET_OK !=
+       GNUNET_CONFIGURATION_get_value_number (cfg,
+                                              service,
+                                              "PORT",
+                                              &port)) ||
+      (port > 65535) ||
+      (GNUNET_OK !=
+       GNUNET_CONFIGURATION_get_value_string (cfg,
+                                              service,
+                                              "HOSTNAME", &hostname)))
+    {
+      /* UNIXPATH failed (if possible) AND IP failed => error */
+      service_test_error (task, task_cls);
+      return;
+    }
+  
+  if (0 == strcmp ("localhost", hostname)) 
+    {
+      /* can test using 'bind' */
+      struct sockaddr_in s_in;
+      
+      memset (&s_in, 0, sizeof (s_in));
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      s_in.sin_len = saddrlens[1];
+#endif
+      s_in.sin_family = AF_INET;
+      s_in.sin_port = htons (port);
+
+      sock =  GNUNET_NETWORK_socket_create (AF_INET, SOCK_STREAM, 0);
+      if (sock != NULL)
+	{
+	  if (GNUNET_OK !=
+	      GNUNET_NETWORK_socket_bind (sock,
+					  (const struct sockaddr*) &s_in,
+					  sizeof (s_in)))
+	    {
+	      /* failed to bind => service must be running */
+	      GNUNET_free (hostname);
+	      (void) GNUNET_NETWORK_socket_close (sock);
+	      GNUNET_SCHEDULER_add_continuation (task,
+						 task_cls,
+						 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+	      return;
+	    }
+	  (void) GNUNET_NETWORK_socket_close (sock);
+	}        
+    }
+
+  if (0 == strcmp ("ip6-localhost", hostname)) 
+    {
+      /* can test using 'bind' */
+      struct sockaddr_in6 s_in6;
+      
+      memset (&s_in6, 0, sizeof (s_in6));
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      s_in6.sin6_len = saddrlens[1];
+#endif
+      s_in6.sin6_family = AF_INET6;
+      s_in6.sin6_port = htons (port);
+
+      sock =  GNUNET_NETWORK_socket_create (AF_INET6, SOCK_STREAM, 0);
+      if (sock != NULL)
+	{
+	  if (GNUNET_OK !=
+	      GNUNET_NETWORK_socket_bind (sock,
+					  (const struct sockaddr*) &s_in6,
+					  sizeof (s_in6)))
+	    {
+	      /* failed to bind => service must be running */
+	      GNUNET_free (hostname);
+	      (void) GNUNET_NETWORK_socket_close (sock);
+	      GNUNET_SCHEDULER_add_continuation (task,
+						 task_cls,
+						 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+	      return;
+	    }
+	  (void) GNUNET_NETWORK_socket_close (sock);
+	}        
+    }
+
+  if ( (0 == strcmp ("localhost", hostname)) ||
+       (0 == strcmp ("ip6-localhost", hostname)) )
+    {
+      /* all binds succeeded => claim service not running right now */
+      GNUNET_free_non_null (hostname);
+      service_test_error (task, task_cls);
+      return;
+    }   
+  GNUNET_free_non_null (hostname);
+
+  /* non-localhost, try 'connect' method */
   conn = GNUNET_CLIENT_connect (service, cfg);
   if (conn == NULL)
     {

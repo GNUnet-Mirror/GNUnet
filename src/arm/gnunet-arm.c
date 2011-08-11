@@ -46,7 +46,7 @@
  * (by checking if running before starting, so really this time is always waited on
  * startup (annoying)).
  */
-#define START_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 1000)
+#define START_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 /**
  * Timeout for starting services, very short because of the strange way start works

@@ -379,8 +379,6 @@ arm_service_report (void *cls,
 	      "Looks like `%s' is not running, will start it.\n",
 	      "gnunet-service-arm");
 #endif
-  /* FIXME: should we check that HOSTNAME for 'arm' is localhost? */
-
  if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (pos->h->cfg,
 					     "arm", "PREFIX", &loprefix))
@@ -621,6 +619,7 @@ GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h,
   struct RequestContext *sctx;
   struct GNUNET_CLIENT_Connection *client;
   size_t slen;
+
 #if DEBUG_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               _("Asked to start service `%s' within %llu ms\n"), service_name,
