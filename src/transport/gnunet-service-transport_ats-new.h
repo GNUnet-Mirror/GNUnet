@@ -19,9 +19,14 @@
 */
 /**
  * @file transport/gnunet-service-transport_ats-new.h
- * @brief automatic transport selection API
+ * @brief automatic transport selection and outbound bandwidth determination
  * @author Christian Grothoff
  * @author Matthias Wachs
+ *
+ * TODO:
+ * - turn into service
+ * - extend API to express communication preferences to ATS 
+ *   (to be called DIRECTLY from apps, not from transport/core!)
  */
 #ifndef GNUNET_SERVICE_TRANSPORT_ATS_H
 #define GNUNET_SERVICE_TRANSPORT_ATS_H
@@ -51,7 +56,7 @@ struct GST_AtsHandle;
  * @param session session to use (if available)
  * @param plugin_addr address to use (if available)
  * @param plugin_addr_len number of bytes in addr
- * @param bandwidth assigned bandwidth for the connection
+ * @param bandwidth assigned outbound bandwidth for the connection
  */
 typedef void (*GNUNET_TRANSPORT_ATS_AllocationNotification)(void *cls,
 							    const struct GNUNET_PeerIdentity *peer,

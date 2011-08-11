@@ -106,18 +106,108 @@ struct GST_AtsHandle
    * Task scheduled to update our bandwidth assignment.
    */
   GNUNET_SCHEDULER_TaskIdentifier ba_task;
+
+  /**
+   * Total bandwidth per configuration.
+   */
+  unsigned long long total_bps;
 };
 
 
+
+/**
+ * Count number of connected records.
+ *
+ * @param cls pointer to counter
+ * @param key identity of the peer associated with the records
+ * @param value a 'struct AllocationRecord' 
+ * @return GNUNET_YES (continue iteration)
+ */
+static int
+count_connections (void *cls,
+		   const GNUNET_HashCode *key,
+		   void *value)
+{
+  unsigned int *ac = cls;
+  struct AllocationRecord *ar = value;
+  
+  if (GNUNET_YES == ar->connected)
+    (*ac)++;
+  return GNUNET_YES;
+}
+
+struct SetBandwidthContext
+{
+  struct GST_AtsHandle *atc;
+  struct GNUNET_BANDWIDTH_Value32NBO bw;
+};
+
+/**
+ * Set bandwidth based on record.
+ *
+ * @param cls 'struct SetBandwidthContext'
+ * @param key identity of the peer associated with the records
+ * @param value a 'struct AllocationRecord' 
+ * @return GNUNET_YES (continue iteration)
+ */
+static int
+set_bw_connections (void *cls,
+		    const GNUNET_HashCode *key,
+		    void *value)
+{
+  struct SetBandwidthContext *sbc = cls;
+  struct AllocationRecord *ar = value;
+  
+  if (GNUNET_YES == ar->connected)
+    {
+      ar->bandwidth = sbc->bw;
+      sbc->atc->alloc_cb (sbc->atc->alloc_cb_cls,
+			  (const struct GNUNET_PeerIdentity*) key,
+			  ar->plugin_name,
+			  ar->session,
+			  ar->plugin_addr,
+			  ar->plugin_addr_len,
+			  ar->bandwidth);
+    }
+  else if (ntohl(ar->bandwidth.value__) > 0)
+    {
+      ar->bandwidth = GNUNET_BANDWIDTH_value_init (0);
+      sbc->atc->alloc_cb (sbc->atc->alloc_cb_cls,
+			  (const struct GNUNET_PeerIdentity*) key,
+			  ar->plugin_name,
+			  ar->session,
+			  ar->plugin_addr,
+			  ar->plugin_addr_len,
+			  ar->bandwidth);
+    }
+  return GNUNET_YES;
+}
+
+
+/**
+ * Task run to update bandwidth assignments.
+ *
+ * @param cls the 'struct GST_AtsHandle'
+ * @param tc scheduler context
+ */ 
 static void
 update_bandwidth_task (void *cls,
 		       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GST_AtsHandle *atc = cls;
+  unsigned int ac;
+  struct SetBandwidthContext bwc;
 
   atc->ba_task = GNUNET_SCHEDULER_NO_TASK;
-  /* FIXME: update calculations! */
-
+  /* FIXME: update calculations NICELY; what follows is a naive version */
+  GNUNET_CONTAINER_multihashmap_iterate (atc->peers,
+					 &count_connections,
+					 &ac);
+  bwc.atc = atc;
+  bwc.bw = GNUNET_BANDWIDTH_value_init (atc->total_bps / ac);
+  GNUNET_CONTAINER_multihashmap_iterate (atc->peers,
+					 &set_bw_connections,
+					 &bwc);
 }
 
 
@@ -158,6 +248,10 @@ GST_ats_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   atc->alloc_cb = alloc_cb;
   atc->alloc_cb_cls = alloc_cb_cls;
   atc->peers = GNUNET_CONTAINER_multihashmap_create (256);
+  GNUNET_CONFIGURATION_get_value_number (cfg,
+					 "core",
+					 "TOTAL_QUOTA_OUT",
+					 &atc->total_bps);
   return atc;
 }
 
