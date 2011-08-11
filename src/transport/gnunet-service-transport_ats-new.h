@@ -29,6 +29,7 @@
 #include "gnunet_constants.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_transport_plugin.h"
 
 
 /**
@@ -47,13 +48,15 @@ struct GST_AtsHandle;
  * @param cls closure
  * @param peer identity of the peer
  * @param plugin_name name of the transport plugin, NULL to disconnect
- * @param plugin_addr address to use, NULL to disconnect
+ * @param session session to use (if available)
+ * @param plugin_addr address to use (if available)
  * @param plugin_addr_len number of bytes in addr
  * @param bandwidth assigned bandwidth for the connection
  */
 typedef void (*GNUNET_TRANSPORT_ATS_AllocationNotification)(void *cls,
 							    const struct GNUNET_PeerIdentity *peer,
 							    const char *plugin_name,
+							    struct Session *session,
 							    const void *plugin_addr,
 							    size_t plugin_addr_len,
 							    struct GNUNET_BANDWIDTH_Value32NBO bandwidth);
@@ -89,7 +92,8 @@ GST_ats_shutdown (struct GST_AtsHandle *atc);
  * @param atc handle
  * @param peer identity of the new peer
  * @param plugin_name name of the currently used transport plugin
- * @param plugin_addr address in use
+ * @param session session in use (if available)
+ * @param plugin_addr address in use (if available)
  * @param plugin_addr_len number of bytes in plugin_addr
  * @param ats performance data for the connection
  * @param ats_count number of performance records in 'ats'
@@ -98,6 +102,7 @@ void
 GST_ats_peer_connect (struct GST_AtsHandle *atc,
 		      const struct GNUNET_PeerIdentity *peer,
 		      const char *plugin_name,
+		      struct Session *session,
 		      const void *plugin_addr,
 		      size_t plugin_addr_len,
 		      const struct GNUNET_TRANSPORT_ATS_Information *ats,
@@ -110,11 +115,24 @@ GST_ats_peer_connect (struct GST_AtsHandle *atc,
  * Calculate bandwidth assignments without the peer.
  *
  * @param atc handle
- * @param peer identity of the new peer
+ * @param peer identity of the peer
  */
 void
 GST_ats_peer_disconnect (struct GST_AtsHandle *atc,
 			 const struct GNUNET_PeerIdentity *peer);
+
+
+/**
+ * A session got destroyed, stop including it as a valid address.
+ *
+ * @param atc handle
+ * @param peer identity of the peer
+ * @param session session handle that is no longer valid
+ */
+void
+GST_ats_session_destroyed (struct GST_AtsHandle *atc,
+			   const struct GNUNET_PeerIdentity *peer,
+			   const struct Session *session);
 
 
 /**
@@ -128,7 +146,8 @@ GST_ats_peer_disconnect (struct GST_AtsHandle *atc,
  * @param atc handle
  * @param peer identity of the new peer
  * @param plugin_name name of the transport plugin
- * @param plugin_addr address 
+ * @param session session handle (if available)
+ * @param plugin_addr address  (if available)
  * @param plugin_addr_len number of bytes in plugin_addr
  * @param ats performance data for the address
  * @param ats_count number of performance records in 'ats'
@@ -137,6 +156,7 @@ void
 GST_ats_address_update (struct GST_AtsHandle *atc,
 			const struct GNUNET_PeerIdentity *peer,
 			const char *plugin_name,
+			struct Session *session,
 			const void *plugin_addr,
 			size_t plugin_addr_len,
 			const struct GNUNET_TRANSPORT_ATS_Information *ats,
