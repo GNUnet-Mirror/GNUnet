@@ -40,9 +40,6 @@ notify_connect (void *cls,
                 const struct GNUNET_TRANSPORT_ATS_Information *ats,
                 uint32_t ats_count)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%s' connected \n",
-       GNUNET_i2s (peer));
-
   struct PeerContext * p = cls;
   if (p == NULL)
     return;
@@ -53,9 +50,6 @@ notify_connect (void *cls,
 static void
 notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%s' disconnected \n",
-       GNUNET_i2s (peer));
-
   struct PeerContext * p = cls;
   if (p == NULL)
     return;
@@ -70,8 +64,6 @@ notify_receive (void *cls,
                 const struct GNUNET_TRANSPORT_ATS_Information *ats,
                 uint32_t ats_count)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receiving\n");
-
   struct PeerContext * p = cls;
   if (p == NULL)
     return;
@@ -97,6 +89,7 @@ exchange_hello_last (void *cls,
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
                                       message, &me->id));
   GNUNET_TRANSPORT_offer_hello (p1->th, message, NULL, NULL);
+  GNUNET_TRANSPORT_get_hello_cancel (me->th, &exchange_hello_last, cc);
 }
 
 
@@ -117,6 +110,7 @@ exchange_hello (void *cls,
               (int) GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message),
               GNUNET_i2s (&me->id));
   GNUNET_TRANSPORT_offer_hello (p2->th, message, NULL, NULL);
+  GNUNET_TRANSPORT_get_hello_cancel (me->th, &exchange_hello, cc);
 }
 
 static void
@@ -134,9 +128,9 @@ try_connect (void *cls,
                                 &p1->id);
   GNUNET_TRANSPORT_try_connect (p1->th,
                                 &p2->id);
-  cc->tct = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                      &try_connect,
-                                      cc);
+//  cc->tct = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+//                                      &try_connect,
+//                                      cc);
 }
 
 struct PeerContext *
@@ -157,7 +151,13 @@ GNUNET_TRANSPORT_TESTING_start_peer (const char * cfgname,
     GNUNET_DISK_directory_remove (p->servicehome);
   p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
                                         "gnunet-service-arm",
-                                        "-c", cfgname, NULL);
+                                        "-c", cfgname,
+#if VERBOSE_PEERS
+                                        "-L", "DEBUG",
+#else
+                                        "-L", "ERROR",
+#endif
+                                        NULL);
   p->nc = nc;
   p->nd = nd;
   p->rec = rec;

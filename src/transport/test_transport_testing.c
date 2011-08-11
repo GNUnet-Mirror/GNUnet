@@ -48,7 +48,44 @@
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
-static struct PeerContext * p;
+GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+static struct PeerContext * p1;
+static struct PeerContext * p2;
+
+static int connected = GNUNET_NO;
+
+static int ret = 0;
+
+static void
+end ()
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
+
+  if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(timeout_task);
+
+  GNUNET_TRANSPORT_TESTING_stop_peer(p1);
+  GNUNET_TRANSPORT_TESTING_stop_peer(p2);
+}
+
+static void
+end_badly ()
+{
+  timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
+
+  GNUNET_TRANSPORT_TESTING_stop_peer(p1);
+  GNUNET_TRANSPORT_TESTING_stop_peer(p2);
+
+  ret = GNUNET_SYSERR;
+}
+
+static void
+testing_connect_cb (struct PeerContext * p1, struct PeerContext * p2, void *cls)
+{
+  end();
+}
 
 static void
 notify_connect (void *cls,
@@ -58,6 +95,10 @@ notify_connect (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%s' connected \n",
        GNUNET_i2s (peer));
+  connected++;
+
+  if (connected == 2)
+    end ();
 }
 
 static void
@@ -83,32 +124,43 @@ run (void *cls,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  timeout_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_MINUTES, &end_badly, NULL);
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting peer\n");
-  p = GNUNET_TRANSPORT_TESTING_start_peer("test_quota_compliance_tcp_peer1.conf",
+  p1 = GNUNET_TRANSPORT_TESTING_start_peer("test_transport_api_tcp_peer1.conf",
       &notify_receive,
       &notify_connect,
       &notify_disconnect,
-      NULL);
+      p1);
 
-  if (p != NULL)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer was successfully started\n");
+  p2 = GNUNET_TRANSPORT_TESTING_start_peer("test_transport_api_tcp_peer2.conf",
+      &notify_receive,
+      &notify_connect,
+      &notify_disconnect,
+      p2);
+
+  if (p1 != NULL)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer1 was successfully started\n");
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer was not started successfully\n");
-  GNUNET_assert (p != NULL);
-  GNUNET_assert (p->th != NULL);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer1 was not started successfully\n");
+  GNUNET_assert (p1 != NULL);
+  GNUNET_assert (p1->th != NULL);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peer\n");
+  if (p2 != NULL)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer2 was successfully started\n");
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer2 was not started successfully\n");
+  GNUNET_assert (p2 != NULL);
+  GNUNET_assert (p2->th != NULL);
 
-  GNUNET_TRANSPORT_TESTING_stop_peer(p);
 
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting peers\n");
+  GNUNET_TRANSPORT_TESTING_connect_peers(p1, p2, NULL, NULL);
 }
 
 int
 main (int argc, char *argv[])
 {
-  int ret = 0;
-
   GNUNET_log_setup ("test_transport_testing",
 #if VERBOSE
                     "DEBUG",
