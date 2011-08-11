@@ -18,45 +18,26 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file transport/gnunet-service-transport_ats-new.h
+ * @file transport/gnunet-service-transport_ats-new.c
  * @brief automatic transport selection API
  * @author Christian Grothoff
  * @author Matthias Wachs
  */
-#ifndef GNUNET_SERVICE_TRANSPORT_ATS_H
-#define GNUNET_SERVICE_TRANSPORT_ATS_H
-
-#include "gnunet_constants.h"
-#include "gnunet_util_lib.h"
-#include "gnunet_transport_service.h"
+#include "platform.h"
+#include "gnunet-service-transport_ats-new.h"
 
 
 /**
  * Handle to the ATS subsystem.
  */
-struct GST_AtsHandle;
+struct GST_AtsHandle
+{
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+  GNUNET_TRANSPORT_ATS_AllocationNotification alloc_cb;
 
-/**
- * Signature of a function called by ATS to notify the callee that the
- * assigned bandwidth or address for a given peer was changed.  If the
- * callback is called with address/bandwidth assignments of zero, the
- * ATS disconnect function will still be called once the disconnect 
- * actually happened.
- *
- * @param cls closure
- * @param peer identity of the peer
- * @param plugin_name name of the transport plugin, NULL to disconnect
- * @param plugin_addr address to use, NULL to disconnect
- * @param plugin_addr_len number of bytes in addr
- * @param bandwidth assigned bandwidth for the connection
- */
-typedef void (*GNUNET_TRANSPORT_ATS_AllocationNotification)(void *cls,
-							    const struct GNUNET_PeerIdentity *peer,
-							    const char *plugin_name,
-							    const void *plugin_addr,
-							    size_t plugin_addr_len,
-							    struct GNUNET_BANDWIDTH_Value32NBO bandwidth);
+  void *alloc_cb_cls;
+};
 
 
 /**
@@ -70,7 +51,17 @@ typedef void (*GNUNET_TRANSPORT_ATS_AllocationNotification)(void *cls,
 struct GST_AtsHandle *
 GST_ats_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 	      GNUNET_TRANSPORT_ATS_AllocationNotification alloc_cb,
-	      void *alloc_cb_cls);
+	      void *alloc_cb_cls)
+{
+  struct GST_AtsHandle *atc;
+
+  atc = GNUNET_malloc (sizeof (struct GST_AtsHandle));
+  atc->cfg = cfg;
+  atc->alloc_cb = alloc_cb;
+  atc->alloc_cb_cls = alloc_cb_cls;
+  return atc;
+}
+
 
 /**
  * Shutdown the ATS subsystem.
@@ -78,7 +69,10 @@ GST_ats_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param atc handle
  */
 void
-GST_ats_shutdown (struct GST_AtsHandle *atc);
+GST_ats_shutdown (struct GST_AtsHandle *atc)
+{
+  GNUNET_free (atc);
+}
 
 
 /**
@@ -101,7 +95,9 @@ GST_ats_peer_connect (struct GST_AtsHandle *atc,
 		      const void *plugin_addr,
 		      size_t plugin_addr_len,
 		      const struct GNUNET_TRANSPORT_ATS_Information *ats,
-		      uint32_t ats_count);
+		      uint32_t ats_count)
+{
+}
 
 
 /**
@@ -114,7 +110,9 @@ GST_ats_peer_connect (struct GST_AtsHandle *atc,
  */
 void
 GST_ats_peer_disconnect (struct GST_AtsHandle *atc,
-			 const struct GNUNET_PeerIdentity *peer);
+			 const struct GNUNET_PeerIdentity *peer)
+{
+}
 
 
 /**
@@ -140,8 +138,8 @@ GST_ats_address_update (struct GST_AtsHandle *atc,
 			const void *plugin_addr,
 			size_t plugin_addr_len,
 			const struct GNUNET_TRANSPORT_ATS_Information *ats,
-			uint32_t ats_count);
+			uint32_t ats_count)
+{
+}
 
-
-#endif
-/* end of file gnunet-service-transport_ats.h */
+/* end of file gnunet-service-transport_ats.c */

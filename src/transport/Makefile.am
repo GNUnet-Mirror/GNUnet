@@ -153,6 +153,7 @@ gnunet_service_transport_LDADD = \
 
 gnunet_service_transport_new_SOURCES = \
  gnunet-service-transport-new.c gnunet-service-transport.h \
+ gnunet-service-transport_ats-new.h gnunet-service-transport_ats-new.c \
  gnunet-service-transport_blacklist.h gnunet-service-transport_blacklist.c \
  gnunet-service-transport_clients.h gnunet-service-transport_clients.c \
  gnunet-service-transport_hello.h gnunet-service-transport_hello.c \
