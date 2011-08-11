@@ -105,6 +105,21 @@ struct GST_AtsHandle
 };
 
 
+
+/**
+ * Calculate an updated bandwidth assignment and notify.
+ *
+ * @param ats handle
+ * @param change which allocation record changed?
+ */
+static void
+update_bandwidth_assignment (struct GST_AtsHandle *atc,
+			     struct AllocationRecord *change)
+{
+  
+}
+
+
 /**
  * Initialize the ATS subsystem.
  *
@@ -168,6 +183,23 @@ GST_ats_shutdown (struct GST_AtsHandle *atc)
 
 
 /**
+ * Closure for 'update_session'
+ */
+struct UpdateSessionContext
+{
+  /**
+   * Ats handle.
+   */
+  struct GST_AtsHandle *atc;
+
+  /**
+   * Allocation record with new information.
+   */
+  struct AllocationRecord *arnew;
+};
+
+
+/**
  * Update an allocation record, merging with the new information
  *
  * @param cls a new 'struct AllocationRecord'
@@ -181,8 +213,10 @@ update_session (void *cls,
 		const GNUNET_HashCode *key,
 		void *value)
 {
-  struct AllocationRecord *arnew = cls;
+  struct UpdateSessionContext *usc = cls;
+  struct AllocationRecord *arnew = usc->arnew;
   struct AllocationRecord *arold = value;
+  int change;
 
   if (0 != strcmp (arnew->plugin_name, arold->plugin_name))
     return GNUNET_YES;
@@ -193,12 +227,24 @@ update_session (void *cls,
 		       arnew->plugin_addr,
 		       arnew->plugin_addr_len)) ) )
     {
+      change = GNUNET_NO;
       /* records match */
-      arold->session = arnew->session;
-      if (arnew->connected == GNUNET_YES)
-	arold->connected = GNUNET_YES;
+      if (arnew->session != arold->session) 
+	{
+	  arold->session = arnew->session;
+	  change = GNUNET_YES;
+	}
+      if ( (arnew->connected == GNUNET_YES) &&
+	   (arold->connected == GNUNET_NO) )
+	{
+	  arold->connected = GNUNET_YES;
+	  change = GNUNET_YES;
+	}
       // FIXME: merge ats arrays of (arold, arnew);
-      return GNUNET_NO;
+      
+      if (GNUNET_YES == change)
+	update_bandwidth_assignment (usc->atc, arold);
+      return GNUNET_NO;      
     }
   return GNUNET_YES;
 }
@@ -265,6 +311,7 @@ GST_ats_peer_connect (struct GST_AtsHandle *atc,
 		      uint32_t ats_count)
 {
   struct AllocationRecord *ar;
+  struct UpdateSessionContext usc;
 
   ar = create_allocation_record (plugin_name,
 				 session,
@@ -273,10 +320,12 @@ GST_ats_peer_connect (struct GST_AtsHandle *atc,
 				 ats,
 				 ats_count);
   ar->connected = GNUNET_YES;
+  usc.atc = atc;
+  usc.arnew = ar;
   if (GNUNET_SYSERR ==
       GNUNET_CONTAINER_multihashmap_iterate (atc->peers,
 					     &update_session,
-					     ar))
+					     &usc))
     {     
       destroy_allocation_record (NULL, &peer->hashPubKey, ar);
       return;
@@ -292,7 +341,7 @@ GST_ats_peer_connect (struct GST_AtsHandle *atc,
 /**
  * Mark all matching allocation records as not connected.
  *
- * @param cls unused
+ * @param cls 'struct GTS_AtsHandle'
  * @param key identity of the peer associated with the record
  * @param value the 'struct AllocationRecord' to clear the 'connected' flag
  * @return GNUNET_OK (continue to iterate)
@@ -302,9 +351,14 @@ disconnect_peer (void *cls,
 		 const GNUNET_HashCode *key,
 		 void *value)
 {
+  struct GST_AtsHandle *atc = cls;
   struct AllocationRecord *ar = value;
 
-  ar->connected = GNUNET_NO;
+  if (GNUNET_YES == ar->connected)
+    {
+      ar->connected = GNUNET_NO;     
+      update_bandwidth_assignment (atc, ar);
+    }
   return GNUNET_OK;
 }
 
@@ -323,7 +377,7 @@ GST_ats_peer_disconnect (struct GST_AtsHandle *atc,
 {
   (void) GNUNET_CONTAINER_multihashmap_iterate (atc->peers,
 						&disconnect_peer,
-						NULL);
+						atc);
 }
 
 
@@ -369,6 +423,11 @@ destroy_session (void *cls,
 		 GNUNET_CONTAINER_multihashmap_remove (sdc->atc->peers,
 						       key,
 						       ar));
+  if (GNUNET_YES == ar->connected);
+    {
+      /* FIXME: is this supposed to be allowed? What to do then? */
+      GNUNET_break (0);
+    }
   destroy_allocation_record (NULL, key, ar);
   return GNUNET_OK;
 }
@@ -424,6 +483,7 @@ GST_ats_address_update (struct GST_AtsHandle *atc,
 			uint32_t ats_count)
 {
   struct AllocationRecord *ar;
+  struct UpdateSessionContext usc;
 
   ar = create_allocation_record (plugin_name,
 				 session,
@@ -431,11 +491,12 @@ GST_ats_address_update (struct GST_AtsHandle *atc,
 				 plugin_addr_len,
 				 ats,
 				 ats_count);
-  
+  usc.atc = atc;
+  usc.arnew = ar;    
   if (GNUNET_SYSERR ==
       GNUNET_CONTAINER_multihashmap_iterate (atc->peers,
 					     &update_session,
-					     ar))
+					     &usc))
     {     
       destroy_allocation_record (NULL, &peer->hashPubKey, ar);
       return;
