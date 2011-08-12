@@ -248,6 +248,28 @@ struct CheckHelloValidatedContext
 
 
 /**
+ * Opaque handle to stop incremental validation address callbacks.
+ */
+struct GST_ValidationIteratorContext
+{
+  /**
+   * Function to call on each address.
+   */
+  GST_ValidationAddressCallback cb;
+
+  /**
+   * Closure for 'cb'.
+   */
+  void *cb_cls;
+
+  /**
+   * Which peer are we monitoring?
+   */   
+  struct GNUNET_PeerIdentity target;
+};
+
+
+/**
  * Head of linked list of HELLOs awaiting validation.
  */
 static struct CheckHelloValidatedContext *chvc_head;
@@ -386,6 +408,34 @@ find_validation_entry (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pub
 
 
 /**
+ * Notify validation watcher that an entry is now valid
+ *
+ * @param cls 'struct ValidationEntry' that is now valid
+ * @param key peer identity (unused)
+ * @param value a 'GST_ValidationIteratorContext' to notify
+ * @return GNUNET_YES (continue to iterate)
+ */
+static int
+notify_valid (void *cls,
+	      const GNUNET_HashCode *key,
+	      void *value)
+{
+  struct ValidationEntry *ve = cls;
+  struct GST_ValidationIteratorContext *vic = value;
+
+  vic->cb (vic->cb_cls,
+	   &ve->public_key,
+	   &vic->target,
+	   ve->valid_until,
+	   ve->validation_block,
+	   ve->transport_name,
+	   ve->addr,
+	   ve->addrlen);	   
+  return GNUNET_OK;
+}
+
+
+/**
  * Iterator which adds the given address to the set of validated
  * addresses.
  *
@@ -418,10 +468,13 @@ add_valid_address (void *cls,
       GNUNET_break (0);
       return GNUNET_OK; /* invalid HELLO !? */
     }
-    
   ve = find_validation_entry (&public_key, &pid, tname, addr, addrlen);
   ve->valid_until = GNUNET_TIME_absolute_max (ve->valid_until,
 					      expiration);
+  GNUNET_CONTAINER_multihashmap_get_multiple (notify_map,
+					      &pid.hashPubKey,
+					      &notify_valid,
+					      ve);
   return GNUNET_OK;
 }
 
@@ -1089,28 +1142,6 @@ GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello)
 						 &validate_address,
 						 &vac));
 }
-
-
-/**
- * Opaque handle to stop incremental validation address callbacks.
- */
-struct GST_ValidationIteratorContext
-{
-  /**
-   * Function to call on each address.
-   */
-  GST_ValidationAddressCallback cb;
-
-  /**
-   * Closure for 'cb'.
-   */
-  void *cb_cls;
-
-  /**
-   * Which peer are we monitoring?
-   */   
-  struct GNUNET_PeerIdentity target;
-};
 
 
 /**
