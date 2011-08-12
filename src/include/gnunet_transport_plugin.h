@@ -71,7 +71,9 @@ struct SessionHeader
  * cleans up a session pointer and hence the service needs to
  * discard all of those sessions as well.  Plugins that do not
  * use sessions can simply omit calling this function and always
- * use NULL wherever a session pointer is needed.
+ * use NULL wherever a session pointer is needed.  This function
+ * should be called BEFORE a potential "TransmitContinuation"
+ * from the "TransmitFunction".
  * 
  * @param cls closure
  * @param peer which peer was the session for 
