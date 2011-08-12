@@ -186,6 +186,7 @@ testing_connect_cb (struct PeerContext * p1, struct PeerContext * p2, void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected: %s <-> %s\n",
        p1_c,
        GNUNET_i2s (&p2->id));
+  GNUNET_free (p1_c);
 
   // FIXME: THIS IS REQUIRED! SEEMS TO BE A BUG!
   GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS, &sendtask, NULL);
@@ -364,6 +365,7 @@ main (int argc, char *argv[])
                     NULL);
 
   char * pch = strdup(argv[0]);
+  char * backup = pch;
   char * filename = NULL;
   char *dotexe;
 
@@ -375,19 +377,15 @@ main (int argc, char *argv[])
     if (pch != NULL)
       filename = pch;
   }
-
   /* remove "lt-" */
-
   filename = strstr(filename, "tes");
   if (NULL != (dotexe = strstr (filename, ".exe")))
     dotexe[0] = '\0';
 
-  //filename = &filename[1];
-  //GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-  //            "`%s'\n",filename);
   /* create cfg filename */
   GNUNET_asprintf(&cfg_file_p1, "%s_peer1.conf",filename);
   GNUNET_asprintf(&cfg_file_p2, "%s_peer2.conf", filename);
+  GNUNET_free (backup);
 
   if (strstr(argv[0], "tcp_nat") != NULL)
     {
@@ -410,10 +408,12 @@ main (int argc, char *argv[])
         }
     }
 
+
   ret = check ();
 
   GNUNET_free (cfg_file_p1);
   GNUNET_free (cfg_file_p2);
+
 
   return ret;
 }
