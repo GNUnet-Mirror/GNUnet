@@ -65,7 +65,7 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct PeerContext * pc);
 void
 GNUNET_TRANSPORT_TESTING_connect_peers (struct PeerContext * p1,
     struct PeerContext * p2,
-    GNUNET_TRANSPORT_TESTING_connect_cb * cb,
+    GNUNET_TRANSPORT_TESTING_connect_cb cb,
     void * cls);
 
 /* end of transport_testing.h */

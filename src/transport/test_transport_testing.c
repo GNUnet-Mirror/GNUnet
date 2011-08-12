@@ -84,6 +84,11 @@ end_badly ()
 static void
 testing_connect_cb (struct PeerContext * p1, struct PeerContext * p2, void *cls)
 {
+  char * p1_c = strdup (GNUNET_i2s(&p1->id));
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peers connected: %s <-> %s\n",
+       p1_c,
+       GNUNET_i2s (&p2->id));
+  GNUNET_free(p1_c);
   end();
 }
 
@@ -96,9 +101,6 @@ notify_connect (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%s' connected \n",
        GNUNET_i2s (peer));
   connected++;
-
-  if (connected == 2)
-    end ();
 }
 
 static void
@@ -155,7 +157,7 @@ run (void *cls,
 
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting peers\n");
-  GNUNET_TRANSPORT_TESTING_connect_peers(p1, p2, NULL, NULL);
+  GNUNET_TRANSPORT_TESTING_connect_peers(p1, p2, &testing_connect_cb, NULL);
 }
 
 int

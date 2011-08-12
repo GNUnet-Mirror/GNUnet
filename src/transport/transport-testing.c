@@ -32,7 +32,54 @@ struct ConnectingContext
   struct PeerContext * p1;
   struct PeerContext * p2;
   GNUNET_SCHEDULER_TaskIdentifier tct;
+  GNUNET_TRANSPORT_TESTING_connect_cb cb;
+  void * cb_cls;
+
+  struct GNUNET_TRANSPORT_Handle *th_p1;
+  struct GNUNET_TRANSPORT_Handle *th_p2;
+  int c;
 };
+
+static void
+exchange_hello_last (void *cls,
+                     const struct GNUNET_MessageHeader *message);
+static void
+exchange_hello (void *cls,
+                     const struct GNUNET_MessageHeader *message);
+
+static void
+notify_connect_internal (void *cls,
+                const struct GNUNET_PeerIdentity *peer,
+                const struct GNUNET_TRANSPORT_ATS_Information *ats,
+                uint32_t ats_count)
+{
+  struct ConnectingContext * cc = cls;
+//  /void * cb_cls = cc->cb_cls;
+
+  GNUNET_assert(cc != NULL);
+  cc->c++;
+
+  if (cc->c == 2)
+  {
+     /* clean up */
+    GNUNET_TRANSPORT_get_hello_cancel (cc->th_p2, &exchange_hello_last, cc);
+    GNUNET_TRANSPORT_get_hello_cancel (cc->th_p1, &exchange_hello, cc);
+
+    if (cc->tct != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel(cc->tct);
+
+    cc->tct = GNUNET_SCHEDULER_NO_TASK;
+
+    GNUNET_TRANSPORT_disconnect( cc->th_p1);
+    GNUNET_TRANSPORT_disconnect( cc->th_p2);
+
+    if (cc->cb != NULL)
+      cc->cb (cc->p1, cc->p2, cc->cb_cls);
+
+    GNUNET_free(cc);
+  }
+
+}
 
 static void
 notify_connect (void *cls,
@@ -78,7 +125,7 @@ exchange_hello_last (void *cls,
 {
   struct ConnectingContext * cc = cls;
   struct PeerContext *me = cc->p2;
-  struct PeerContext *p1 = cc->p1;
+  //struct PeerContext *p1 = cc->p1;
 
   GNUNET_assert (message != NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -88,8 +135,7 @@ exchange_hello_last (void *cls,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
                                       message, &me->id));
-  GNUNET_TRANSPORT_offer_hello (p1->th, message, NULL, NULL);
-  GNUNET_TRANSPORT_get_hello_cancel (me->th, &exchange_hello_last, cc);
+  GNUNET_TRANSPORT_offer_hello (cc->th_p1, message, NULL, NULL);
 }
 
 
@@ -99,7 +145,7 @@ exchange_hello (void *cls,
 {
   struct ConnectingContext * cc = cls;
   struct PeerContext *me = cc->p1;
-  struct PeerContext *p2 = cc->p2;
+  //struct PeerContext *p2 = cc->p2;
 
   GNUNET_assert (message != NULL);
   GNUNET_assert (GNUNET_OK ==
@@ -109,8 +155,7 @@ exchange_hello (void *cls,
               "Exchanging HELLO of size %d from peer %s!\n",
               (int) GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message),
               GNUNET_i2s (&me->id));
-  GNUNET_TRANSPORT_offer_hello (p2->th, message, NULL, NULL);
-  GNUNET_TRANSPORT_get_hello_cancel (me->th, &exchange_hello, cc);
+  GNUNET_TRANSPORT_offer_hello (cc->th_p2, message, NULL, NULL);
 }
 
 static void
@@ -121,16 +166,21 @@ try_connect (void *cls,
   struct PeerContext *p1 = cc->p1;
   struct PeerContext *p2 = cc->p2;
 
+  cc->tct = GNUNET_SCHEDULER_NO_TASK;
+  if ( (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+    return;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking peers to connect...\n");
   /* FIXME: 'pX.id' may still be all-zeros here... */
-  GNUNET_TRANSPORT_try_connect (p2->th,
-                                &p1->id);
-  GNUNET_TRANSPORT_try_connect (p1->th,
+  GNUNET_TRANSPORT_try_connect (cc->th_p1,
                                 &p2->id);
-//  cc->tct = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-//                                      &try_connect,
-//                                      cc);
+  GNUNET_TRANSPORT_try_connect (cc->th_p2,
+                                &p1->id);
+
+  cc->tct = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                      &try_connect,
+                                      cc);
 }
 
 struct PeerContext *
@@ -198,21 +248,37 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct PeerContext * p)
 void
 GNUNET_TRANSPORT_TESTING_connect_peers (struct PeerContext * p1,
                                         struct PeerContext * p2,
-                                        GNUNET_TRANSPORT_TESTING_connect_cb * cb,
+                                        GNUNET_TRANSPORT_TESTING_connect_cb cb,
                                         void * cls)
 {
   struct ConnectingContext * cc = GNUNET_malloc (sizeof (struct ConnectingContext));
 
   GNUNET_assert (p1 != NULL);
-  GNUNET_assert (p1->th != NULL);
-
   GNUNET_assert (p2 != NULL);
-  GNUNET_assert (p2->th != NULL);
 
   cc->p1 = p1;
   cc->p2 = p2;
-  GNUNET_TRANSPORT_get_hello (p1->th, &exchange_hello, cc);
-  GNUNET_TRANSPORT_get_hello (p2->th, &exchange_hello_last, cc);
+
+  cc->cb = cb;
+  cc->cb_cls = cls;
+
+  cc->th_p1 = GNUNET_TRANSPORT_connect(cc->p1->cfg, NULL,
+                            cc,
+                            NULL,
+                            &notify_connect_internal,
+                            NULL);
+
+  cc->th_p2 = GNUNET_TRANSPORT_connect(cc->p2->cfg, NULL,
+                            cc,
+                            NULL,
+                            &notify_connect_internal,
+                            NULL);
+
+  GNUNET_assert (cc->th_p1 != NULL);
+  GNUNET_assert (cc->th_p2 != NULL);
+
+  GNUNET_TRANSPORT_get_hello (cc->th_p1, &exchange_hello, cc);
+  GNUNET_TRANSPORT_get_hello (cc->th_p2, &exchange_hello_last, cc);
 
   cc->tct = GNUNET_SCHEDULER_add_now (&try_connect, cc);
 }
