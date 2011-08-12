@@ -179,11 +179,23 @@ count_connections (void *cls,
   return GNUNET_YES;
 }
 
+
+/**
+ * Closure for 'set_bw_connections'.
+ */
 struct SetBandwidthContext
 {
+  /**
+   * ATS handle.
+   */
   struct GNUNET_ATS_Handle *atc;
+
+  /**
+   * Bandwidth to assign.
+   */
   struct GNUNET_BANDWIDTH_Value32NBO bw;
 };
+
 
 /**
  * Set bandwidth based on record.
@@ -303,9 +315,9 @@ suggest_address (void *cls,
  */
 struct GNUNET_ATS_SuggestionContext *
 GNUNET_ATS_suggest_address (struct GNUNET_ATS_Handle *atc,
-			 const struct GNUNET_PeerIdentity *peer,
-			 GNUNET_ATS_AddressSuggestionCallback cb,
-			 void *cb_cls)
+			    const struct GNUNET_PeerIdentity *peer,
+			    GNUNET_ATS_AddressSuggestionCallback cb,
+			    void *cb_cls)
 {
   struct GNUNET_ATS_SuggestionContext *asc;
 
@@ -357,8 +369,8 @@ GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SuggestionContext *asc)
  */
 struct GNUNET_ATS_Handle *
 GNUNET_ATS_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-	      GNUNET_TRANSPORT_ATS_AllocationNotification alloc_cb,
-	      void *alloc_cb_cls)
+		 GNUNET_TRANSPORT_ATS_AllocationNotification alloc_cb,
+		 void *alloc_cb_cls)
 {
   struct GNUNET_ATS_Handle *atc;
 
@@ -690,8 +702,8 @@ destroy_session (void *cls,
  */
 void
 GNUNET_ATS_session_destroyed (struct GNUNET_ATS_Handle *atc,
-			   const struct GNUNET_PeerIdentity *peer,
-			   const struct Session *session)
+			      const struct GNUNET_PeerIdentity *peer,
+			      const struct Session *session)
 {
   struct SessionDestroyContext sdc;
 
@@ -741,6 +753,7 @@ notify_valid (void *cls,
  * @param atc handle
  * @param public_key public key of the peer
  * @param peer identity of the peer
+ * @param valid_until how long is the address valid?
  * @param plugin_name name of the transport plugin
  * @param session session handle (if available)
  * @param plugin_addr address  (if available)
@@ -752,6 +765,7 @@ void
 GNUNET_ATS_address_update (struct GNUNET_ATS_Handle *atc,
 			   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
 			   const struct GNUNET_PeerIdentity *peer,
+			   struct GNUNET_TIME_Absolute valid_until,
 			   const char *plugin_name,
 			   struct Session *session,
 			   const void *plugin_addr,

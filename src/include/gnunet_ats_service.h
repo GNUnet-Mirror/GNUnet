@@ -207,6 +207,7 @@ GNUNET_ATS_session_destroyed (struct GNUNET_ATS_Handle *atc,
  * @param atc handle
  * @param public_key public key of the peer
  * @param peer identity of the new peer
+ * @param valid_until how long is the address valid?
  * @param plugin_name name of the transport plugin
  * @param session session handle (if available)
  * @param plugin_addr address  (if available)
@@ -218,6 +219,7 @@ void
 GNUNET_ATS_address_update (struct GNUNET_ATS_Handle *atc,
 			   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
 			   const struct GNUNET_PeerIdentity *peer,
+			   struct GNUNET_TIME_Absolute valid_until,
 			   const char *plugin_name,
 			   struct Session *session,
 			   const void *plugin_addr,

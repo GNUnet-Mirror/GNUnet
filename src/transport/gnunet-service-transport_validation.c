@@ -419,13 +419,14 @@ add_valid_address (void *cls,
   ve->valid_until = GNUNET_TIME_absolute_max (ve->valid_until,
 					      expiration);
   GNUNET_ATS_address_update (GST_ats,
-			  &public_key,
-			  &pid,
-			  tname,
-			  NULL,
-			  addr,
-			  addrlen,
-			  NULL, 0);
+			     &public_key,
+			     &pid,
+			     ve->valid_until,
+			     tname,
+			     NULL,
+			     addr,
+			     addrlen,
+			     NULL, 0);
   return GNUNET_OK;
 }
 
@@ -1038,13 +1039,14 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   /* validity achieved, remember it! */
   ve->valid_until = GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
   GNUNET_ATS_address_update (GST_ats,
-			  &ve->public_key,
-			  &ve->pid,
-			  ve->transport_name,
-			  NULL,
-			  ve->addr,
-			  ve->addrlen,
-			  NULL, 0); /* FIXME: compute and add latency here... */
+			     &ve->public_key,
+			     &ve->pid,
+			     ve->valid_until,
+			     ve->transport_name,
+			     NULL,
+			     ve->addr,
+			     ve->addrlen,
+			     NULL, 0); /* FIXME: compute and add latency here... */
 
   /* build HELLO to store in PEERINFO */
   hello = GNUNET_HELLO_create (&ve->public_key,
