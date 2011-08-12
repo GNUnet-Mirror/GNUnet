@@ -45,18 +45,9 @@
 #define START_ARM GNUNET_YES
 
 /**
- * Note that this value must not significantly exceed
- * 'MAX_PENDING' in 'gnunet-service-transport.c', otherwise
- * messages may be dropped even for a reliable transport.
- */
-#define TOTAL_MSGS (1024 * 2)
-
-/**
  * How long until we give up on transmitting the message?
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1500)
-
-#define MTYPE 12345
 
 static int ok;
 
@@ -75,6 +66,15 @@ char * cfg_file_p2;
 /*
  * Testcase specific declarations
  */
+
+/**
+ * Note that this value must not significantly exceed
+ * 'MAX_PENDING' in 'gnunet-service-transport.c', otherwise
+ * messages may be dropped even for a reliable transport.
+ */
+#define TOTAL_MSGS (1024 * 2)
+
+#define MTYPE 12345
 
 struct TestMessage
 {
@@ -309,6 +309,10 @@ notify_ready (void *cls, size_t size, void *buf)
                   ret);
     }
   total_bytes += ret;
+  if (n == TOTAL_MSGS)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"All messages sent\n");
+  }
   return ret;
 }
 
