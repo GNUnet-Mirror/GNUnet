@@ -28,8 +28,8 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
 #include "gnunet_peerinfo_service.h"
+#include "gnunet_ats_service.h"
 #include "gnunet-service-transport.h"
-#include "gnunet-service-transport_ats-new.h"
 #include "gnunet-service-transport_blacklist.h"
 #include "gnunet-service-transport_clients.h"
 #include "gnunet-service-transport_hello.h"
@@ -72,7 +72,7 @@ struct GNUNET_CRYPTO_RsaPrivateKey *GST_my_private_key;
 /**
  * ATS handle.
  */
-struct GST_AtsHandle *GST_ats;
+struct GNUNET_ATS_Handle *GST_ats;
 
 
 /**
@@ -133,7 +133,7 @@ shutdown_task (void *cls,
 {  
   GST_validation_stop ();
   GST_neighbours_stop ();
-  GST_ats_shutdown (GST_ats); GST_ats = NULL;
+  GNUNET_ATS_shutdown (GST_ats); GST_ats = NULL;
   GST_clients_stop ();
   GST_blacklist_stop ();
   GST_plugins_unload ();
@@ -221,7 +221,7 @@ run (void *cls,
 		    NULL, // FIXME...
 		    NULL, // FIXME...
 		    NULL); // FIXME...
-  GST_ats = GST_ats_init (GST_cfg,
+  GST_ats = GNUNET_ATS_init (GST_cfg,
 			  NULL, // FIXME...
 			  NULL); // FIXME...
   GST_neighbours_start (NULL, // FIXME...

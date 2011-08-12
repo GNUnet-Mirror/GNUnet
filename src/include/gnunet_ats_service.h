@@ -18,18 +18,18 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file transport/gnunet-service-transport_ats-new.h
+ * @file include/gnunet_ats_service.h
  * @brief automatic transport selection and outbound bandwidth determination
  * @author Christian Grothoff
  * @author Matthias Wachs
  *
  * TODO:
- * - turn into service
+ * - move GNUNET_TRANSPORT_ATS* in here and rename...
  * - extend API to express communication preferences to ATS 
  *   (to be called DIRECTLY from apps, not from transport/core!)
  */
-#ifndef GNUNET_SERVICE_TRANSPORT_ATS_H
-#define GNUNET_SERVICE_TRANSPORT_ATS_H
+#ifndef GNUNET_ATS_SERVICE_H
+#define GNUNET_ATS_SERVICE_H
 
 #include "gnunet_constants.h"
 #include "gnunet_util_lib.h"
@@ -40,7 +40,7 @@
 /**
  * Handle to the ATS subsystem.
  */
-struct GST_AtsHandle;
+struct GNUNET_ATS_Handle;
 
 
 /**
@@ -75,10 +75,10 @@ typedef void (*GNUNET_TRANSPORT_ATS_AllocationNotification)(void *cls,
  * @param alloc_cb_cls closure for 'alloc_cb'
  * @return ats context
  */
-struct GST_AtsHandle *
-GST_ats_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-	      GNUNET_TRANSPORT_ATS_AllocationNotification alloc_cb,
-	      void *alloc_cb_cls);
+struct GNUNET_ATS_Handle *
+GNUNET_ATS_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
+		 GNUNET_TRANSPORT_ATS_AllocationNotification alloc_cb,
+		 void *alloc_cb_cls);
 
 
 /**
@@ -87,7 +87,7 @@ GST_ats_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param atc handle
  */
 void
-GST_ats_shutdown (struct GST_AtsHandle *atc);
+GNUNET_ATS_shutdown (struct GNUNET_ATS_Handle *atc);
 
 
 /**
@@ -102,20 +102,20 @@ GST_ats_shutdown (struct GST_AtsHandle *atc);
  * @param ats performance data for the address (as far as known)
  * @param ats_count number of performance records in 'ats'
  */
-typedef void (*GST_AtsAddressSuggestionCallback)(void *cls,
-						 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
-						 const struct GNUNET_PeerIdentity *peer,
-						 const char *plugin_name,
-						 const void *plugin_addr,
-						 size_t plugin_addr_len,
-						 const struct GNUNET_TRANSPORT_ATS_Information *ats,
-						 uint32_t ats_count);
+typedef void (*GNUNET_ATS_AddressSuggestionCallback)(void *cls,
+						     const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
+						     const struct GNUNET_PeerIdentity *peer,
+						     const char *plugin_name,
+						     const void *plugin_addr,
+						     size_t plugin_addr_len,
+						     const struct GNUNET_TRANSPORT_ATS_Information *ats,
+						     uint32_t ats_count);
 
 
 /**
  * Handle to cancel suggestion request.
  */
-struct GST_AtsSuggestionContext;
+struct GNUNET_ATS_SuggestionContext;
 
 
 /**
@@ -127,11 +127,11 @@ struct GST_AtsSuggestionContext;
  * @param cb function to call with the address
  * @param cb_cls closure for cb
  */
-struct GST_AtsSuggestionContext *
-GST_ats_suggest_address (struct GST_AtsHandle *atc,
-			 const struct GNUNET_PeerIdentity *peer,
-			 GST_AtsAddressSuggestionCallback cb,
-			 void *cb_cls);
+struct GNUNET_ATS_SuggestionContext *
+GNUNET_ATS_suggest_address (struct GNUNET_ATS_Handle *atc,
+			    const struct GNUNET_PeerIdentity *peer,
+			    GNUNET_ATS_AddressSuggestionCallback cb,
+			    void *cb_cls);
 
 
 /**
@@ -140,7 +140,7 @@ GST_ats_suggest_address (struct GST_AtsHandle *atc,
  * @param asc handle of the request to cancel
  */
 void
-GST_ats_suggest_address_cancel (struct GST_AtsSuggestionContext *asc);
+GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SuggestionContext *asc);
 
 
 /**
@@ -159,15 +159,15 @@ GST_ats_suggest_address_cancel (struct GST_AtsSuggestionContext *asc);
  * @param ats_count number of performance records in 'ats'
  */
 void
-GST_ats_peer_connect (struct GST_AtsHandle *atc,
-		      const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
-		      const struct GNUNET_PeerIdentity *peer,
-		      const char *plugin_name,
-		      struct Session *session,
-		      const void *plugin_addr,
-		      size_t plugin_addr_len,
-		      const struct GNUNET_TRANSPORT_ATS_Information *ats,
-		      uint32_t ats_count);
+GNUNET_ATS_peer_connect (struct GNUNET_ATS_Handle *atc,
+			 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
+			 const struct GNUNET_PeerIdentity *peer,
+			 const char *plugin_name,
+			 struct Session *session,
+			 const void *plugin_addr,
+			 size_t plugin_addr_len,
+			 const struct GNUNET_TRANSPORT_ATS_Information *ats,
+			 uint32_t ats_count);
 
 
 /**
@@ -179,8 +179,8 @@ GST_ats_peer_connect (struct GST_AtsHandle *atc,
  * @param peer identity of the peer
  */
 void
-GST_ats_peer_disconnect (struct GST_AtsHandle *atc,
-			 const struct GNUNET_PeerIdentity *peer);
+GNUNET_ATS_peer_disconnect (struct GNUNET_ATS_Handle *atc,
+			    const struct GNUNET_PeerIdentity *peer);
 
 
 /**
@@ -191,9 +191,9 @@ GST_ats_peer_disconnect (struct GST_AtsHandle *atc,
  * @param session session handle that is no longer valid
  */
 void
-GST_ats_session_destroyed (struct GST_AtsHandle *atc,
-			   const struct GNUNET_PeerIdentity *peer,
-			   const struct Session *session);
+GNUNET_ATS_session_destroyed (struct GNUNET_ATS_Handle *atc,
+			      const struct GNUNET_PeerIdentity *peer,
+			      const struct Session *session);
 
 
 /**
@@ -215,15 +215,15 @@ GST_ats_session_destroyed (struct GST_AtsHandle *atc,
  * @param ats_count number of performance records in 'ats'
  */
 void
-GST_ats_address_update (struct GST_AtsHandle *atc,
-			const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
-			const struct GNUNET_PeerIdentity *peer,
-			const char *plugin_name,
-			struct Session *session,
-			const void *plugin_addr,
-			size_t plugin_addr_len,
-			const struct GNUNET_TRANSPORT_ATS_Information *ats,
-			uint32_t ats_count);
+GNUNET_ATS_address_update (struct GNUNET_ATS_Handle *atc,
+			   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
+			   const struct GNUNET_PeerIdentity *peer,
+			   const char *plugin_name,
+			   struct Session *session,
+			   const void *plugin_addr,
+			   size_t plugin_addr_len,
+			   const struct GNUNET_TRANSPORT_ATS_Information *ats,
+			   uint32_t ats_count);
 
 
 #endif

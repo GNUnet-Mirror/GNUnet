@@ -17,6 +17,7 @@ SUBDIRS = \
   datacache \
   datastore \
   template \
+  ats \
   nat \
   fragmentation \
   transport \

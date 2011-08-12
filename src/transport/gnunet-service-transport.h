@@ -63,7 +63,7 @@ extern struct GNUNET_CRYPTO_RsaPrivateKey *GST_my_private_key;
 /**
  * ATS handle.
  */
-extern struct GST_AtsHandle *GST_ats;
+extern struct GNUNET_ATS_Handle *GST_ats;
 
 
 #endif

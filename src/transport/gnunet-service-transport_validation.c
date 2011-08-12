@@ -27,9 +27,9 @@
 #include "gnunet-service-transport_validation.h"
 #include "gnunet-service-transport_plugins.h"
 #include "gnunet-service-transport_hello.h"
-#include "gnunet-service-transport_ats-new.h"
 #include "gnunet-service-transport.h"
 #include "gnunet_hello_lib.h"
+#include "gnunet_ats_service.h"
 #include "gnunet_peerinfo_service.h"
 #include "gnunet_signatures.h"
 
@@ -418,7 +418,7 @@ add_valid_address (void *cls,
   ve = find_validation_entry (&public_key, &pid, tname, addr, addrlen);
   ve->valid_until = GNUNET_TIME_absolute_max (ve->valid_until,
 					      expiration);
-  GST_ats_address_update (GST_ats,
+  GNUNET_ATS_address_update (GST_ats,
 			  &public_key,
 			  &pid,
 			  tname,
@@ -1037,7 +1037,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   
   /* validity achieved, remember it! */
   ve->valid_until = GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
-  GST_ats_address_update (GST_ats,
+  GNUNET_ATS_address_update (GST_ats,
 			  &ve->public_key,
 			  &ve->pid,
 			  ve->transport_name,

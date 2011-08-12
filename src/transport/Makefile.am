@@ -153,7 +153,6 @@ gnunet_service_transport_LDADD = \
 
 gnunet_service_transport_new_SOURCES = \
  gnunet-service-transport-new.c gnunet-service-transport.h \
- gnunet-service-transport_ats-new.h gnunet-service-transport_ats-new.c \
  gnunet-service-transport_blacklist.h gnunet-service-transport_blacklist.c \
  gnunet-service-transport_clients.h gnunet-service-transport_clients.c \
  gnunet-service-transport_hello.h gnunet-service-transport_hello.c \
@@ -161,6 +160,7 @@ gnunet_service_transport_new_SOURCES = \
  gnunet-service-transport_plugins.h gnunet-service-transport_plugins.c \
  gnunet-service-transport_validation.h gnunet-service-transport_validation.c 
 gnunet_service_transport_new_LDADD = \
+  $(top_builddir)/src/ats/libgnunetats.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \

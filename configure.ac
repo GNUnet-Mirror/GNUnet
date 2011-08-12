@@ -741,6 +741,7 @@ m4/Makefile
 po/Makefile.in 
 src/Makefile
 src/arm/Makefile
+src/ats/Makefile
 src/block/Makefile
 src/core/Makefile
 src/datacache/Makefile

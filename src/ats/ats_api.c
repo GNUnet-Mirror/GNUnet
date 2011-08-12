@@ -18,14 +18,18 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file transport/gnunet-service-transport_ats-new.c
+ * @file ats/ats_api.c
  * @brief automatic transport selection API
  * @author Christian Grothoff
  * @author Matthias Wachs
  */
 #include "platform.h"
-#include "gnunet-service-transport_ats-new.h"
+#include "gnunet_ats_service.h"
 
+// NOTE: this implementation is simply supposed
+// to implement a simplistic strategy in-process;
+// in the future, we plan to replace it with a real
+// service implementation
 
 /**
  * Allocation record for a peer's address.
@@ -84,13 +88,13 @@ struct AllocationRecord
 /**
  * Opaque handle to stop incremental validation address callbacks.
  */
-struct GST_AtsSuggestionContext
+struct GNUNET_ATS_SuggestionContext
 {
 
   /**
    * Function to call with our final suggestion.
    */
-  GST_AtsAddressSuggestionCallback cb;
+  GNUNET_ATS_AddressSuggestionCallback cb;
 
   /**
    * Closure for 'cb'.
@@ -100,7 +104,7 @@ struct GST_AtsSuggestionContext
   /**
    * Global ATS handle.
    */ 
-  struct GST_AtsHandle *atc;
+  struct GNUNET_ATS_Handle *atc;
 
   /**
    * Which peer are we monitoring?
@@ -113,7 +117,7 @@ struct GST_AtsSuggestionContext
 /**
  * Handle to the ATS subsystem.
  */
-struct GST_AtsHandle
+struct GNUNET_ATS_Handle
 {
   /**
    * Configuration.
@@ -137,7 +141,7 @@ struct GST_AtsHandle
   struct GNUNET_CONTAINER_MultiHashMap *peers;
 
   /**
-   * Map of PeerIdentities to 'struct GST_AtsSuggestionContext's.
+   * Map of PeerIdentities to 'struct GNUNET_ATS_SuggestionContext's.
    */
   struct GNUNET_CONTAINER_MultiHashMap *notify_map;
 
@@ -177,7 +181,7 @@ count_connections (void *cls,
 
 struct SetBandwidthContext
 {
-  struct GST_AtsHandle *atc;
+  struct GNUNET_ATS_Handle *atc;
   struct GNUNET_BANDWIDTH_Value32NBO bw;
 };
 
@@ -226,14 +230,14 @@ set_bw_connections (void *cls,
 /**
  * Task run to update bandwidth assignments.
  *
- * @param cls the 'struct GST_AtsHandle'
+ * @param cls the 'struct GNUNET_ATS_Handle'
  * @param tc scheduler context
  */ 
 static void
 update_bandwidth_task (void *cls,
 		       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GST_AtsHandle *atc = cls;
+  struct GNUNET_ATS_Handle *atc = cls;
   unsigned int ac;
   struct SetBandwidthContext bwc;
 
@@ -257,7 +261,7 @@ update_bandwidth_task (void *cls,
  * @param change which allocation record changed?
  */
 static void
-update_bandwidth_assignment (struct GST_AtsHandle *atc,
+update_bandwidth_assignment (struct GNUNET_ATS_Handle *atc,
 			     struct AllocationRecord *change)
 {
   /* FIXME: based on the 'change', update the LP-problem... */
@@ -270,7 +274,7 @@ update_bandwidth_assignment (struct GST_AtsHandle *atc,
 /**
  * Function called with feasbile addresses we might want to suggest.
  *
- * @param cls the 'struct GST_AtsSuggestionContext'
+ * @param cls the 'struct GNUNET_ATS_SuggestionContext'
  * @param key identity of the peer
  * @param value a 'struct AllocationRecord' for the peer
  * @return GNUNET_NO if we're done, GNUNET_YES if we did not suggest an address yet
@@ -280,7 +284,7 @@ suggest_address (void *cls,
 		 const GNUNET_HashCode *key,
 		 void *value)
 {
-  struct GST_AtsSuggestionContest *asc = cls;
+  struct GNUNET_ATS_SuggestionContest *asc = cls;
   struct AllocationRecord *ar = value;
 
   // FIXME...
@@ -297,15 +301,15 @@ suggest_address (void *cls,
  * @param cb function to call with the address
  * @param cb_cls closure for cb
  */
-struct GST_AtsSuggestionContext *
-GST_ats_suggest_address (struct GST_AtsHandle *atc,
+struct GNUNET_ATS_SuggestionContext *
+GNUNET_ATS_suggest_address (struct GNUNET_ATS_Handle *atc,
 			 const struct GNUNET_PeerIdentity *peer,
-			 GST_AtsAddressSuggestionCallback cb,
+			 GNUNET_ATS_AddressSuggestionCallback cb,
 			 void *cb_cls)
 {
-  struct GST_AtsSuggestionContext *asc;
+  struct GNUNET_ATS_SuggestionContext *asc;
 
-  asc = GNUNET_malloc (sizeof (struct GST_AtsSuggestionContext));
+  asc = GNUNET_malloc (sizeof (struct GNUNET_ATS_SuggestionContext));
   asc->cb = cb;
   asc->cb_cls = cb_cls;
   asc->atc = atc;
@@ -333,7 +337,7 @@ GST_ats_suggest_address (struct GST_AtsHandle *atc,
  * @param asc handle of the request to cancel
  */
 void
-GST_ats_suggest_address_cancel (struct GST_AtsSuggestionContext *asc)
+GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SuggestionContext *asc)
 {
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CONTAINER_multihashmap_remove (asc->atc->notify_map,
@@ -351,14 +355,14 @@ GST_ats_suggest_address_cancel (struct GST_AtsSuggestionContext *asc)
  * @param alloc_cb_cls closure for 'alloc_cb'
  * @return ats context
  */
-struct GST_AtsHandle *
-GST_ats_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
+struct GNUNET_ATS_Handle *
+GNUNET_ATS_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 	      GNUNET_TRANSPORT_ATS_AllocationNotification alloc_cb,
 	      void *alloc_cb_cls)
 {
-  struct GST_AtsHandle *atc;
+  struct GNUNET_ATS_Handle *atc;
 
-  atc = GNUNET_malloc (sizeof (struct GST_AtsHandle));
+  atc = GNUNET_malloc (sizeof (struct GNUNET_ATS_Handle));
   atc->cfg = cfg;
   atc->alloc_cb = alloc_cb;
   atc->alloc_cb_cls = alloc_cb_cls;
@@ -399,7 +403,7 @@ destroy_allocation_record (void *cls,
  * @param atc handle
  */
 void
-GST_ats_shutdown (struct GST_AtsHandle *atc)
+GNUNET_ATS_shutdown (struct GNUNET_ATS_Handle *atc)
 {
   if (GNUNET_SCHEDULER_NO_TASK != atc->ba_task)
     {
@@ -425,7 +429,7 @@ struct UpdateSessionContext
   /**
    * Ats handle.
    */
-  struct GST_AtsHandle *atc;
+  struct GNUNET_ATS_Handle *atc;
 
   /**
    * Allocation record with new information.
@@ -536,7 +540,7 @@ disconnect_peer (void *cls,
 		 const GNUNET_HashCode *key,
 		 void *value)
 {
-  struct GST_AtsHandle *atc = cls;
+  struct GNUNET_ATS_Handle *atc = cls;
   struct AllocationRecord *ar = value;
 
   if (GNUNET_YES == ar->connected)
@@ -564,15 +568,15 @@ disconnect_peer (void *cls,
  * @param ats_count number of performance records in 'ats'
  */
 void
-GST_ats_peer_connect (struct GST_AtsHandle *atc,
-		      const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
-		      const struct GNUNET_PeerIdentity *peer,
-		      const char *plugin_name,
-		      struct Session *session,
-		      const void *plugin_addr,
-		      size_t plugin_addr_len,
-		      const struct GNUNET_TRANSPORT_ATS_Information *ats,
-		      uint32_t ats_count)
+GNUNET_ATS_peer_connect (struct GNUNET_ATS_Handle *atc,
+			 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
+			 const struct GNUNET_PeerIdentity *peer,
+			 const char *plugin_name,
+			 struct Session *session,
+			 const void *plugin_addr,
+			 size_t plugin_addr_len,
+			 const struct GNUNET_TRANSPORT_ATS_Information *ats,
+			 uint32_t ats_count)
 {
   struct AllocationRecord *ar;
   struct UpdateSessionContext usc;
@@ -615,7 +619,7 @@ GST_ats_peer_connect (struct GST_AtsHandle *atc,
  * @param peer identity of the new peer
  */
 void
-GST_ats_peer_disconnect (struct GST_AtsHandle *atc,
+GNUNET_ATS_peer_disconnect (struct GNUNET_ATS_Handle *atc,
 			 const struct GNUNET_PeerIdentity *peer)
 {
   (void) GNUNET_CONTAINER_multihashmap_get_multiple (atc->peers,
@@ -633,7 +637,7 @@ struct SessionDestroyContext
   /**
    * Ats handle.
    */
-  struct GST_AtsHandle *atc;
+  struct GNUNET_ATS_Handle *atc;
 
   /**
    * Session being destroyed.
@@ -685,7 +689,7 @@ destroy_session (void *cls,
  * @param session session handle that is no longer valid
  */
 void
-GST_ats_session_destroyed (struct GST_AtsHandle *atc,
+GNUNET_ATS_session_destroyed (struct GNUNET_ATS_Handle *atc,
 			   const struct GNUNET_PeerIdentity *peer,
 			   const struct Session *session)
 {
@@ -713,7 +717,7 @@ notify_valid (void *cls,
 	      void *value)
 {
   struct AllocationRecord *ar = cls;
-  struct GST_AtsSuggestionContext *asc = value;
+  struct GNUNET_ATS_SuggestionContext *asc = value;
 
   asc->cb (asc->cb_cls,
 	   &ar->public_key,
@@ -745,15 +749,15 @@ notify_valid (void *cls,
  * @param ats_count number of performance records in 'ats'
  */
 void
-GST_ats_address_update (struct GST_AtsHandle *atc,
-			const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
-			const struct GNUNET_PeerIdentity *peer,
-			const char *plugin_name,
-			struct Session *session,
-			const void *plugin_addr,
-			size_t plugin_addr_len,
-			const struct GNUNET_TRANSPORT_ATS_Information *ats,
-			uint32_t ats_count)
+GNUNET_ATS_address_update (struct GNUNET_ATS_Handle *atc,
+			   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
+			   const struct GNUNET_PeerIdentity *peer,
+			   const char *plugin_name,
+			   struct Session *session,
+			   const void *plugin_addr,
+			   size_t plugin_addr_len,
+			   const struct GNUNET_TRANSPORT_ATS_Information *ats,
+			   uint32_t ats_count)
 {
   struct AllocationRecord *ar;
   struct UpdateSessionContext usc;

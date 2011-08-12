@@ -24,7 +24,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet-service-transport_ats-new.h"
+#include "gnunet_ats_service.h"
 #include "gnunet-service-transport_neighbours.h"
 #include "gnunet-service-transport_validation.h"
 #include "gnunet-service-transport.h"
@@ -129,7 +129,7 @@ struct NeighbourMapEntry
    * Context for address suggestion.
    * NULL after we are connected.
    */
-  struct GST_AtsSuggestionContext *asc;
+  struct GNUNET_ATS_SuggestionContext *asc;
 
   /**
    * Performance data for the peer.
@@ -341,7 +341,7 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
     }
   if (NULL != n->asc)
     {
-      GST_ats_suggest_address_cancel (n->asc);
+      GNUNET_ATS_suggest_address_cancel (n->asc);
       n->asc = NULL;
     }
   GNUNET_array_grow (n->ats,
@@ -486,10 +486,10 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
     }
   if (n->asc != NULL)
     return; /* already trying */
-  n->asc = GST_ats_suggest_address (GST_ats,
-				    target,
-				    &try_connect_using_address,
-				    n); 
+  n->asc = GNUNET_ATS_suggest_address (GST_ats,
+				       target,
+				       &try_connect_using_address,
+				       n); 
 }
 
 
