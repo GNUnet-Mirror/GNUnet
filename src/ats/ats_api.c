@@ -38,11 +38,6 @@ struct AllocationRecord
 {
 
   /**
-   * Public key of the peer.
-   */
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;                                                
-
-  /**
    * Performance information associated with this address (array).
    */
   struct GNUNET_TRANSPORT_ATS_Information *ats;
@@ -512,8 +507,7 @@ update_session (void *cls,
  * @param ats_count number of performance records in 'ats'
  */
 static struct AllocationRecord *
-create_allocation_record (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
-			  const char *plugin_name,
+create_allocation_record (const char *plugin_name,
 			  struct Session *session,
 			  const void *plugin_addr,
 			  size_t plugin_addr_len,
@@ -523,7 +517,6 @@ create_allocation_record (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *
   struct AllocationRecord *ar;
 
   ar = GNUNET_malloc (sizeof (struct AllocationRecord) + plugin_addr_len);
-  ar->public_key = *public_key;
   ar->plugin_name = GNUNET_strdup (plugin_name);
   ar->plugin_addr = &ar[1];
   memcpy (&ar[1], plugin_addr, plugin_addr_len);
@@ -570,7 +563,6 @@ disconnect_peer (void *cls,
  * Calculate bandwidth assignments including the new peer.
  *
  * @param atc handle
- * @param public_key public key of the peer
  * @param peer identity of the new peer
  * @param plugin_name name of the currently used transport plugin
  * @param session session in use (if available)
@@ -581,7 +573,6 @@ disconnect_peer (void *cls,
  */
 void
 GNUNET_ATS_peer_connect (struct GNUNET_ATS_Handle *atc,
-			 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
 			 const struct GNUNET_PeerIdentity *peer,
 			 const char *plugin_name,
 			 struct Session *session,
@@ -596,8 +587,7 @@ GNUNET_ATS_peer_connect (struct GNUNET_ATS_Handle *atc,
   (void) GNUNET_CONTAINER_multihashmap_iterate (atc->peers,
 						&disconnect_peer,
 						atc);
-  ar = create_allocation_record (public_key,
-				 plugin_name,
+  ar = create_allocation_record (plugin_name,
 				 session,
 				 plugin_addr,
 				 plugin_addr_len,
@@ -732,7 +722,6 @@ notify_valid (void *cls,
   struct GNUNET_ATS_SuggestionContext *asc = value;
 
   asc->cb (asc->cb_cls,
-	   &ar->public_key,
 	   &asc->target,
 	   ar->plugin_name,
 	   ar->plugin_addr,
@@ -752,7 +741,6 @@ notify_valid (void *cls,
  * for later use).  Update bandwidth assignments.
  *
  * @param atc handle
- * @param public_key public key of the peer
  * @param peer identity of the peer
  * @param valid_until how long is the address valid?
  * @param plugin_name name of the transport plugin
@@ -764,7 +752,6 @@ notify_valid (void *cls,
  */
 void
 GNUNET_ATS_address_update (struct GNUNET_ATS_Handle *atc,
-			   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
 			   const struct GNUNET_PeerIdentity *peer,
 			   struct GNUNET_TIME_Absolute valid_until,
 			   const char *plugin_name,
@@ -777,8 +764,7 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_Handle *atc,
   struct AllocationRecord *ar;
   struct UpdateSessionContext usc;
 
-  ar = create_allocation_record (public_key,
-				 plugin_name,				 
+  ar = create_allocation_record (plugin_name,				 
 				 session,
 				 plugin_addr,
 				 plugin_addr_len,

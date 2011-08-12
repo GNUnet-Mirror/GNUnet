@@ -94,7 +94,6 @@ GNUNET_ATS_shutdown (struct GNUNET_ATS_Handle *atc);
  * Signature of a function that takes an address suggestion 
  *
  * @param cls closure
- * @param public_key public key of the peer
  * @param peer identity of the new peer
  * @param plugin_name name of the plugin, NULL if we have no suggestion
  * @param plugin_addr suggested address, NULL if we have no suggestion
@@ -104,7 +103,6 @@ GNUNET_ATS_shutdown (struct GNUNET_ATS_Handle *atc);
  * @param ats_count number of performance records in 'ats'
  */
 typedef void (*GNUNET_ATS_AddressSuggestionCallback)(void *cls,
-						     const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
 						     const struct GNUNET_PeerIdentity *peer,
 						     const char *plugin_name,
 						     const void *plugin_addr,
@@ -151,7 +149,6 @@ GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SuggestionContext *asc);
  * Calculate bandwidth assignments including the new peer.
  *
  * @param atc handle
- * @param public_key public key of the peer
  * @param peer identity of the new peer
  * @param plugin_name name of the currently used transport plugin
  * @param session session in use (if available)
@@ -162,7 +159,6 @@ GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SuggestionContext *asc);
  */
 void
 GNUNET_ATS_peer_connect (struct GNUNET_ATS_Handle *atc,
-			 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
 			 const struct GNUNET_PeerIdentity *peer,
 			 const char *plugin_name,
 			 struct Session *session,
@@ -207,7 +203,6 @@ GNUNET_ATS_session_destroyed (struct GNUNET_ATS_Handle *atc,
  * for later use).  Update bandwidth assignments.
  *
  * @param atc handle
- * @param public_key public key of the peer
  * @param peer identity of the new peer
  * @param valid_until how long is the address valid?
  * @param plugin_name name of the transport plugin
@@ -219,7 +214,6 @@ GNUNET_ATS_session_destroyed (struct GNUNET_ATS_Handle *atc,
  */
 void
 GNUNET_ATS_address_update (struct GNUNET_ATS_Handle *atc,
-			   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
 			   const struct GNUNET_PeerIdentity *peer,
 			   struct GNUNET_TIME_Absolute valid_until,
 			   const char *plugin_name,

@@ -419,7 +419,6 @@ add_valid_address (void *cls,
   ve->valid_until = GNUNET_TIME_absolute_max (ve->valid_until,
 					      expiration);
   GNUNET_ATS_address_update (GST_ats,
-			     &public_key,
 			     &pid,
 			     ve->valid_until,
 			     tname,
@@ -1039,7 +1038,6 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   /* validity achieved, remember it! */
   ve->valid_until = GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
   GNUNET_ATS_address_update (GST_ats,
-			     &ve->public_key,
 			     &ve->pid,
 			     ve->valid_until,
 			     ve->transport_name,

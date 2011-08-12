@@ -103,6 +103,21 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
 		     GST_NeighbourSendContinuation cont,
 		     void *cont_cls);
 
+
+/**
+ * We have received a message from the given sender.
+ * How long should we delay before receiving more?
+ * (Also used to keep the peer marked as live).
+ *
+ * @param sender sender of the message
+ * @param size size of the message
+ * @return how long to wait before reading more from this sender
+ */
+struct GNUNET_TIME_Relative
+GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity *sender,
+					ssize_t size);
+
+
 /**
  * Change the incoming quota for the given peer.
  *
@@ -149,32 +164,8 @@ GST_neighbours_iterate (GST_NeighbourIterator cb,
 
 
 /**
- * We have received a CONNECT.  Set the peer to connected.
- *
- * @param sender peer sending the PONG
- * @param hdr the PONG message (presumably)
- * @param plugin_name name of transport that delivered the PONG
- * @param sender_address address of the other peer, NULL if other peer
- *                       connected to us
- * @param sender_address_len number of bytes in sender_address
- * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
- * @return GNUNET_OK if the message was well-formed, GNUNET_SYSERR if not
- */
-int
-GST_neighbours_handle_connect (const struct GNUNET_PeerIdentity *sender,
-			       const struct GNUNET_MessageHeader *hdr,
-			       const char *plugin_name,
-			       const void *sender_address,
-			       size_t sender_address_len,
-			       struct Session *session,
-			       const struct GNUNET_TRANSPORT_ATS_Information *ats,
-			       uint32_t ats_count);
-
-
-/**
  * For an existing neighbour record, set the active connection to
- * the given address.
+ * use the given address.
  *
  * @param plugin_name name of transport that delivered the PONG
  * @param address address of the other peer, NULL if other peer
@@ -191,25 +182,6 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
 				  struct Session *session,
 				  const struct GNUNET_TRANSPORT_ATS_Information *ats,
 				  uint32_t ats_count);
-
-
-/**
- * We have received a DISCONNECT.  Set the peer to disconnected.
- *
- * @param sender peer sending the PONG
- * @param hdr the PONG message (presumably)
- * @param plugin_name name of transport that delivered the PONG
- * @param sender_address address of the other peer, NULL if other peer
- *                       connected to us
- * @param sender_address_len number of bytes in sender_address
- * @return GNUNET_OK if the message was well-formed, GNUNET_SYSERR if not
- */
-int
-GST_neighbours_handle_disconnect (const struct GNUNET_PeerIdentity *sender,
-				  const struct GNUNET_MessageHeader *hdr,
-				  const char *plugin_name,
-				  const void *sender_address,
-				  size_t sender_address_len);
 
 
 #endif
