@@ -445,6 +445,48 @@ GST_clients_handle_hello (void *cls,
 
 
 /**
+ * Closure for 'handle_send_transmit_continuation'
+ */
+struct SendTransmitContinuationContext
+{
+  /**
+   * Client that made the request.
+   */
+  struct GNUNET_SERVER_Client *client;
+
+  /**
+   * Peer that was the target.
+   */
+  struct GNUNET_PeerIdentity target;
+};
+
+
+/**
+ * Function called after the transmission is done.  Notify the client that it is
+ * OK to send the next message.
+ *
+ * @param cls closure
+ * @param success GNUNET_OK on success, GNUNET_NO on failure, GNUNET_SYSERR if we're not connected
+ */
+static void
+handle_send_transmit_continuation (void *cls,
+				   int success)
+{
+  struct SendTransmitContinuationContext *stcc = cls;
+  struct SendOkMessage send_ok_msg;
+
+  send_ok_msg.header.size = htons (sizeof (send_ok_msg));
+  send_ok_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
+  send_ok_msg.success = htonl (success);
+  send_ok_msg.latency = GNUNET_TIME_relative_hton (GNUNET_TIME_UNIT_FOREVER_REL);
+  send_ok_msg.peer = stcc->target;
+  GST_clients_unicast (stcc->client, &send_ok_msg.header, GNUNET_NO); 
+  GNUNET_SERVER_client_drop (stcc->client);
+  GNUNET_free (stcc);
+}
+
+
+/**
  * Client asked for transmission to a peer.  Process the request.
  *
  * @param cls unused
@@ -456,8 +498,61 @@ GST_clients_handle_send (void *cls,
 			 struct GNUNET_SERVER_Client *client,
 			 const struct GNUNET_MessageHeader *message)
 {
-  /* FIXME */
-  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+  const struct OutboundMessage *obm;
+  const struct GNUNET_MessageHeader *obmm;
+  struct SendTransmitContinuationContext *stcc;
+  uint16_t size;
+  uint16_t msize;
+
+  size = ntohs (message->size);
+  if (size < sizeof (struct OutboundMessage) + sizeof (struct GNUNET_MessageHeader))
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+  obm = (const struct OutboundMessage *) message;
+  obmm = (const struct GNUNET_MessageHeader *) &obm[1];
+  msize = size - sizeof (struct OutboundMessage);
+  if (msize < sizeof (struct GNUNET_MessageHeader))
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+  GNUNET_STATISTICS_update (GST_stats,
+			    gettext_noop ("# bytes payload received for other peers"),
+			    msize,
+			    GNUNET_NO);
+#if DEBUG_TRANSPORT
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s' request from client with target `%4s' and first message of type %u and total size %u\n",
+              "SEND", 
+	      GNUNET_i2s (&obm->peer),
+              ntohs (obmm->type),
+              msize);
+#endif
+  if (GNUNET_NO == 
+      GST_neighbours_test_connected (&obm->peer))
+    {
+      /* not connected, not allowed to send; can happen due to asynchronous operations */
+      GNUNET_STATISTICS_update (GST_stats,
+				gettext_noop ("# bytes payload dropped (other peer was not connected)"),
+				msize,
+				GNUNET_NO);
+      GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      return;      
+    }
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  stcc = GNUNET_malloc (sizeof (struct SendTransmitContinuationContext));
+  stcc->target = obm->peer;
+  stcc->client = client;
+  GNUNET_SERVER_client_keep (client);
+  GST_neighbours_send (&obm->peer,
+		       obmm, msize,
+		       GNUNET_TIME_relative_ntoh (obm->timeout),
+		       &handle_send_transmit_continuation,
+		       stcc);
 }
 
 

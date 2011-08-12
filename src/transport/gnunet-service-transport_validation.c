@@ -32,6 +32,7 @@
 #include "gnunet_peerinfo_service.h"
 #include "gnunet_signatures.h"
 
+// TODO: observe latency between PING/PONG and give information to ATS!
 
 /**
  * How long is a PONG signature valid?  We'll recycle a signature until

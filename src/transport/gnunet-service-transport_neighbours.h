@@ -90,13 +90,15 @@ typedef void (*GST_NeighbourSendContinuation)(void *cls,
  *
  * @param target destination
  * @param msg message to send
+ * @param msg_size number of bytes in msg
  * @param timeout when to fail with timeout
  * @param cont function to call when done
  * @param cont_cls closure for 'cont'
  */
 void
 GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
-		     const struct GNUNET_MessageHeader *msg,
+		     const void *msg,
+		     size_t msg_size,
 		     struct GNUNET_TIME_Relative timeout,
 		     GST_NeighbourSendContinuation cont,
 		     void *cont_cls);

@@ -521,20 +521,21 @@ GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target)
  *
  * @param target destination
  * @param msg message to send
+ * @param msg_size number of bytes in msg
  * @param timeout when to fail with timeout
  * @param cont function to call when done
  * @param cont_cls closure for 'cont'
  */
 void
 GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
-		     const struct GNUNET_MessageHeader *msg,
+		     const void *msg,
+		     size_t msg_size,
 		     struct GNUNET_TIME_Relative timeout,
 		     GST_NeighbourSendContinuation cont,
 		     void *cont_cls)
 {
   struct NeighbourMapEntry *n;
   struct MessageQueue *mq;
-  uint16_t message_buf_size;
 
   n = lookup_neighbour (target);
   if ( (n == NULL) ||
@@ -549,17 +550,16 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
 	      GNUNET_SYSERR);
       return;
     }
-  message_buf_size = ntohs (msg->size);
-  GNUNET_assert (message_buf_size >= sizeof (struct GNUNET_MessageHeader));
+  GNUNET_assert (msg_size >= sizeof (struct GNUNET_MessageHeader));
   GNUNET_STATISTICS_update (GST_stats,
 			    gettext_noop ("# bytes in message queue for other peers"),
-			    message_buf_size,
+			    msg_size,
 			    GNUNET_NO);
-  mq = GNUNET_malloc (sizeof (struct MessageQueue) + message_buf_size);
+  mq = GNUNET_malloc (sizeof (struct MessageQueue) + msg_size);
   /* FIXME: this memcpy can be up to 7% of our total runtime! */
-  memcpy (&mq[1], msg, message_buf_size);
+  memcpy (&mq[1], msg, msg_size);
   mq->message_buf = (const char*) &mq[1];
-  mq->message_buf_size = message_buf_size;
+  mq->message_buf_size = msg_size;
   mq->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   GNUNET_CONTAINER_DLL_insert_tail (n->messages_head,
 				    n->messages_tail,
