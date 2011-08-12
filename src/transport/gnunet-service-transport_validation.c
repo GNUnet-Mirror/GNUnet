@@ -32,7 +32,6 @@
 #include "gnunet_peerinfo_service.h"
 #include "gnunet_signatures.h"
 
-// TODO: send our HELLO with the PING!
 
 /**
  * How long is a PONG signature valid?  We'll recycle a signature until
@@ -154,7 +153,7 @@ struct TransportPongMessage
    * Size of address appended to this message (part of what is
    * being signed, hence not redundant).
    */
-  uint32_t addrlen;
+  uint32_t addrlen GNUNET_PACKED;
 
 };
 
@@ -796,9 +795,11 @@ validate_address (void *cls,
   struct ValidationEntry *ve;
   struct TransportPingMessage ping;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
+  const struct GNUNET_MessageHeader *hello;
   ssize_t ret;
   size_t tsize;
   size_t slen;
+  uint16_t hsize;
 
   if (GNUNET_TIME_absolute_get_remaining (expiration).rel_value == 0)
     return GNUNET_OK; /* expired */
@@ -823,15 +824,29 @@ validate_address (void *cls,
   ping.target = *pid;
   
   slen = strlen(ve->transport_name) + 1;
-  tsize = sizeof(struct TransportPingMessage) + ve->addrlen + slen;
+  hello = GST_hello_get ();
+  hsize = ntohs (hello->size);
+  tsize = sizeof(struct TransportPingMessage) + ve->addrlen + slen + hsize;
+  if (tsize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Not transmitting `%s' with `%s', message too big (%u bytes!). This should not happen.\n"),
+		  "HELLO",
+		  "PING",
+		  (unsigned int) tsize);
+      /* message too big (!?), get rid of HELLO */
+      hsize = 0;
+      tsize = sizeof(struct TransportPingMessage) + ve->addrlen + slen + hsize;
+    }
   {
     char message_buf[tsize];
 
-    memcpy(message_buf, &ping, sizeof (struct TransportPingMessage));
-    memcpy(&message_buf[sizeof (struct TransportPingMessage)],
+    memcpy(message_buf, hello, hsize);
+    memcpy(&message_buf[hsize], &ping, sizeof (struct TransportPingMessage));
+    memcpy(&message_buf[sizeof (struct TransportPingMessage) + hsize],
 	   ve->transport_name,
 	   slen);
-    memcpy(&message_buf[sizeof (struct TransportPingMessage) + slen],
+    memcpy(&message_buf[sizeof (struct TransportPingMessage) + slen + hsize],
 	   ve->addr,
 	   ve->addrlen);
     papi = GST_plugins_find (ve->transport_name);
