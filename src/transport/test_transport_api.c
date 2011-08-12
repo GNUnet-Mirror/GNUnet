@@ -365,6 +365,7 @@ main (int argc, char *argv[])
 
   char * pch = strdup(argv[0]);
   char * filename = NULL;
+  char *dotexe;
 
   /* get executable filename */
   pch = strtok (pch,"/");
@@ -378,6 +379,9 @@ main (int argc, char *argv[])
   /* remove "lt-" */
 
   filename = strstr(filename, "tes");
+  if (NULL != (dotexe = strstr (filename, ".exe")))
+    dotexe[0] = '\0';
+
   //filename = &filename[1];
   //GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
   //            "`%s'\n",filename);
