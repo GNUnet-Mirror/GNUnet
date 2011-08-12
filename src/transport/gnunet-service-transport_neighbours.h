@@ -173,6 +173,27 @@ GST_neighbours_handle_connect (const struct GNUNET_PeerIdentity *sender,
 
 
 /**
+ * For an existing neighbour record, set the active connection to
+ * the given address.
+ *
+ * @param plugin_name name of transport that delivered the PONG
+ * @param address address of the other peer, NULL if other peer
+ *                       connected to us
+ * @param address_len number of bytes in address
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
+ */
+void
+GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
+				  const char *plugin_name,
+				  const void *address,
+				  size_t address_len,
+				  struct Session *session,
+				  const struct GNUNET_TRANSPORT_ATS_Information *ats,
+				  uint32_t ats_count);
+
+
+/**
  * We have received a DISCONNECT.  Set the peer to disconnected.
  *
  * @param sender peer sending the PONG

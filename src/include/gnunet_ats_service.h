@@ -99,6 +99,7 @@ GNUNET_ATS_shutdown (struct GNUNET_ATS_Handle *atc);
  * @param plugin_name name of the plugin, NULL if we have no suggestion
  * @param plugin_addr suggested address, NULL if we have no suggestion
  * @param plugin_addr_len number of bytes in plugin_addr
+ * @param bandwidth assigned outbound bandwidth for the connection
  * @param ats performance data for the address (as far as known)
  * @param ats_count number of performance records in 'ats'
  */
@@ -108,6 +109,7 @@ typedef void (*GNUNET_ATS_AddressSuggestionCallback)(void *cls,
 						     const char *plugin_name,
 						     const void *plugin_addr,
 						     size_t plugin_addr_len,
+						     struct GNUNET_BANDWIDTH_Value32NBO bandwidth,
 						     const struct GNUNET_TRANSPORT_ATS_Information *ats,
 						     uint32_t ats_count);
 

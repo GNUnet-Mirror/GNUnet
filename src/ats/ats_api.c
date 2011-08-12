@@ -737,6 +737,7 @@ notify_valid (void *cls,
 	   ar->plugin_name,
 	   ar->plugin_addr,
 	   ar->plugin_addr_len,
+	   GNUNET_BANDWIDTH_value_init (asc->atc->total_bps / 32),
 	   ar->ats, ar->ats_count);
   return GNUNET_OK;
 }

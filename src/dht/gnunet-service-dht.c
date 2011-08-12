@@ -2281,6 +2281,7 @@ route_result_message (struct GNUNET_MessageHeader *msg,
   return 0;
 }
 
+
 /**
  * Iterator for local get request results,
  *
