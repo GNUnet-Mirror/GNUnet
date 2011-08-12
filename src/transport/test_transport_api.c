@@ -55,41 +55,19 @@
 
 #define MTYPE 12345
 
-static struct PeerContext p1;
-
-static struct PeerContext p2;
-
 static int ok;
-
-static int is_tcp;
-
-static int is_tcp_nat;
-
-static int is_udp;
-
-static int is_unix;
-
-static int is_udp_nat;
-
-static int is_http;
-
-static int is_https;
-
-static int is_multi_protocol;
-
-static int is_wlan;
 
 static  GNUNET_SCHEDULER_TaskIdentifier die_task;
 
-static  GNUNET_SCHEDULER_TaskIdentifier tct;
+struct PeerContext * p1;
 
-static char * key_file_p1;
-static char * cert_file_p1;
-
-static char * key_file_p2;
-static char * cert_file_p2;
+struct PeerContext * p2;
 
 struct GNUNET_TRANSPORT_TransmitHandle * th;
+
+char * cfg_file_p1;
+
+char * cfg_file_p2;
 
 #if VERBOSE
 #define OKPP do { ok++; fprintf (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
@@ -101,103 +79,29 @@ struct GNUNET_TRANSPORT_TransmitHandle * th;
 static void
 end ()
 {
-  GNUNET_assert (ok == 6);
-  if (GNUNET_SCHEDULER_NO_TASK != die_task)
-    GNUNET_SCHEDULER_cancel (die_task);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Disconnecting from transports!\n");
-  if (th != NULL)
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel(th);
-  th = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
 
-  GNUNET_TRANSPORT_disconnect (p1.th);
-  GNUNET_TRANSPORT_disconnect (p2.th);
-  die_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Transports disconnected, returning success!\n");
+  if (die_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(die_task);
+
+  GNUNET_TRANSPORT_TESTING_stop_peer(p1);
+  GNUNET_TRANSPORT_TESTING_stop_peer(p2);
+
   ok = 0;
 }
 
 static void
-stop_arm (struct PeerContext *p)
-{
-#if START_ARM
-  if (NULL != p->arm_proc)
-    {
-      if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
-	GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-      GNUNET_OS_process_wait (p->arm_proc);
-      GNUNET_OS_process_close (p->arm_proc);
-      p->arm_proc = NULL;
-    }
-#endif
-  GNUNET_CONFIGURATION_destroy (p->cfg);
-}
-
-
-
-
-static void
-exchange_hello_last (void *cls,
-                     const struct GNUNET_MessageHeader *message)
-{
-  struct PeerContext *me = cls;
-
-  GNUNET_assert (message != NULL);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Exchanging HELLO of size %d with peer (%s)!\n", 
-	      (int) GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message),
-	      GNUNET_i2s (&me->id));
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
-                                      message, &me->id));
-  GNUNET_TRANSPORT_offer_hello (p1.th, message, NULL, NULL);
-}
-
-
-static void
-exchange_hello (void *cls,
-                const struct GNUNET_MessageHeader *message)
-{
-  struct PeerContext *me = cls;
-
-  GNUNET_assert (message != NULL);
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
-                                      message, &me->id));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Exchanging HELLO of size %d from peer %s!\n", 
-	      (int) GNUNET_HELLO_size((const struct GNUNET_HELLO_Message *)message),
-	      GNUNET_i2s (&me->id));
-  GNUNET_TRANSPORT_offer_hello (p2.th, message, NULL, NULL);
-}
-
-
-static void
 end_badly ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from transports!\n");
-  GNUNET_break (0);
+  die_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
 
-  if (th != NULL)
-    {
-      GNUNET_TRANSPORT_notify_transmit_ready_cancel(th);
-      th = NULL;
-    }
-  else
-    {
-      GNUNET_TRANSPORT_get_hello_cancel (p2.th, &exchange_hello_last, &p2);
-      GNUNET_TRANSPORT_get_hello_cancel (p1.th, &exchange_hello, &p1);
-    }
+  if (p1 != NULL)
+    GNUNET_TRANSPORT_TESTING_stop_peer(p1);
+  if (p2 != NULL)
+    GNUNET_TRANSPORT_TESTING_stop_peer(p2);
 
-  GNUNET_TRANSPORT_disconnect (p1.th);
-  GNUNET_TRANSPORT_disconnect (p2.th);
-  if (GNUNET_SCHEDULER_NO_TASK != tct)
-    {
-      GNUNET_SCHEDULER_cancel (tct);
-      tct = GNUNET_SCHEDULER_NO_TASK;
-    }
-  ok = 1;
+  ok = GNUNET_SYSERR;
 }
 
 
@@ -212,8 +116,7 @@ notify_receive (void *cls,
 	      "Received message of type %d from peer %s!\n",
 	      ntohs(message->type), 
 	      GNUNET_i2s (peer));
-  GNUNET_assert (ok == 5);
-  OKPP;
+
   GNUNET_assert (MTYPE == ntohs (message->type));
   GNUNET_assert (sizeof (struct GNUNET_MessageHeader) ==
                  ntohs (message->size));
@@ -234,8 +137,7 @@ notify_ready (void *cls, size_t size, void *buf)
 	      sizeof (struct GNUNET_MessageHeader),
 	      GNUNET_i2s (&p->id));
   GNUNET_assert (size >= 256);
-  GNUNET_assert (ok == 4);
-  OKPP;
+
   if (buf != NULL)
   {
     hdr = buf;
@@ -256,25 +158,6 @@ notify_connect (void *cls,
               "Peer `%4s' connected to us (%p)!\n", 
 	      GNUNET_i2s (peer), 
 	      cls);
-  if (cls == &p1)
-    {
-      GNUNET_assert (ok >= 2);
-      OKPP;
-      OKPP;
-      if (GNUNET_SCHEDULER_NO_TASK != die_task)
-        GNUNET_SCHEDULER_cancel (die_task);
-      if (GNUNET_SCHEDULER_NO_TASK != tct)
-        GNUNET_SCHEDULER_cancel (tct);
-      tct = GNUNET_SCHEDULER_NO_TASK;
-      GNUNET_TRANSPORT_get_hello_cancel (p2.th, &exchange_hello_last, &p2);
-      GNUNET_TRANSPORT_get_hello_cancel (p1.th, &exchange_hello, &p1);
-      die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT_TRANSMIT,
-					       &end_badly, NULL);
-      th = GNUNET_TRANSPORT_notify_transmit_ready (p1.th,
-					      &p2.id,
-					      256, 0, TIMEOUT, &notify_ready,
-					      &p1);
-    }
 }
 
 
@@ -287,185 +170,47 @@ notify_disconnect (void *cls,
 	      GNUNET_i2s (peer), cls);
 }
 
-
 static void
-setup_peer (struct PeerContext *p, 
-	    const char *cfgname)
+sendtask ()
 {
-  p->cfg = GNUNET_CONFIGURATION_create ();
-
-  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
-  if (GNUNET_CONFIGURATION_have_value (p->cfg,"PATHS", "SERVICEHOME"))
-      GNUNET_CONFIGURATION_get_value_string (p->cfg, "PATHS", "SERVICEHOME", &p->servicehome);
-  if (NULL != p->servicehome)
-    GNUNET_DISK_directory_remove (p->servicehome);    
-
-#if START_ARM
-  p->arm_proc = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
-                                        "gnunet-service-arm",
-#if VERBOSE_ARM
-                                        "-L", "DEBUG",
-#endif
-                                        "-c", cfgname, NULL);
-#endif
-
-
-
-  if (is_https)
-    {
-      struct stat sbuf;
-      if (p==&p1)
-	{
-	  if (GNUNET_CONFIGURATION_have_value (p->cfg,
-					       "transport-https", "KEY_FILE"))
-	    GNUNET_CONFIGURATION_get_value_string (p->cfg, "transport-https", "KEY_FILE", &key_file_p1);
-	  if (key_file_p1==NULL)
-	    GNUNET_asprintf(&key_file_p1,"https.key");
-	  if (0 == stat (key_file_p1, &sbuf ))
-	    {
-	      if (0 == remove(key_file_p1))
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-			    "Successfully removed existing private key file `%s'\n",key_file_p1);
-	      else
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-			    "Failed to remove private key file `%s'\n",key_file_p1);
-	    }
-	  if (GNUNET_CONFIGURATION_have_value (p->cfg,"transport-https", "CERT_FILE"))
-	    GNUNET_CONFIGURATION_get_value_string (p->cfg, "transport-https", "CERT_FILE", &cert_file_p1);
-	  if (cert_file_p1==NULL)
-	    GNUNET_asprintf(&cert_file_p1,"https.cert");
-	  if (0 == stat (cert_file_p1, &sbuf ))
-	    {
-	      if (0 == remove(cert_file_p1))
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-			    "Successfully removed existing certificate file `%s'\n",
-			    cert_file_p1);
-	      else
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-			    "Failed to remove existing certificate file `%s'\n",
-			    cert_file_p1);
-	    }
-	}
-      else if (p==&p2)
-	{
-	  if (GNUNET_CONFIGURATION_have_value (p->cfg,
-					       "transport-https", "KEY_FILE"))
-	    GNUNET_CONFIGURATION_get_value_string (p->cfg, "transport-https", "KEY_FILE", &key_file_p2);
-	  if (key_file_p2==NULL)
-	    GNUNET_asprintf(&key_file_p2,"https.key");
-	  if (0 == stat (key_file_p2, &sbuf ))
-	    {
-	      if (0 == remove(key_file_p2))
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-			    "Successfully removed existing private key file `%s'\n",
-			    key_file_p2);
-	      else
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-			    "Failed to remove private key file `%s'\n",
-			    key_file_p2);
-	    }
-	  if (GNUNET_CONFIGURATION_have_value (p->cfg,"transport-https", "CERT_FILE"))
-	    GNUNET_CONFIGURATION_get_value_string (p->cfg, "transport-https", "CERT_FILE", &cert_file_p2);
-	  if (cert_file_p2==NULL)
-	    GNUNET_asprintf(&cert_file_p2,"https.cert");
-	  if (0 == stat (cert_file_p2, &sbuf ))
-	    {
-	      if (0 == remove(cert_file_p2))
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-			    "Successfully removed existing certificate file `%s'\n",cert_file_p2);
-	      else
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-			    "Failed to remove existing certificate file `%s'\n",cert_file_p2);
-	    }
-	}
-    }
-  
-  p->th = GNUNET_TRANSPORT_connect (p->cfg,
-                                    NULL, p,
-                                    &notify_receive,
-                                    &notify_connect, &notify_disconnect);
-  GNUNET_assert (p->th != NULL);
+  th = GNUNET_TRANSPORT_notify_transmit_ready (p1->th,
+                                              &p2->id,
+                                              256, 0, TIMEOUT, &notify_ready,
+                                              &p1);
 }
 
-
 static void
-try_connect (void *cls,
-	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+testing_connect_cb (struct PeerContext * p1, struct PeerContext * p2, void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Asking peers to connect...\n");
-  /* FIXME: 'pX.id' may still be all-zeros here... */
-  GNUNET_TRANSPORT_try_connect (p2.th,
-				&p1.id);
-  GNUNET_TRANSPORT_try_connect (p1.th,
-				&p2.id);
-  tct = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-				      &try_connect,
-				      NULL);
-}
+  char * p1_c = strdup (GNUNET_i2s(&p1->id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected: %s <-> %s\n",
+       p1_c,
+       GNUNET_i2s (&p2->id));
 
+  // FIXME: THIS IS REQUIRED! SEEMS TO BE A BUG!
+  GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS, &sendtask, NULL);
+}
 
 static void
 run (void *cls,
      char *const *args,
      const char *cfgfile, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_assert (ok == 1);
-  OKPP;
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 					   &end_badly, NULL);
 
-  if (is_udp)
-    {
-      setup_peer (&p1, "test_transport_api_udp_peer1.conf");
-      setup_peer (&p2, "test_transport_api_udp_peer2.conf");
-    }
-  if (is_unix)
-    {
-      setup_peer (&p1, "test_transport_api_unix_peer1.conf");
-      setup_peer (&p2, "test_transport_api_unix_peer2.conf");
-    }
-  if (is_multi_protocol)
-    {
-      setup_peer (&p1, "test_transport_api_multi_peer1.conf");
-      setup_peer (&p2, "test_transport_api_multi_peer2.conf");
-    }
-  else if (is_tcp)
-    {
-      setup_peer (&p1, "test_transport_api_tcp_peer1.conf");
-      setup_peer (&p2, "test_transport_api_tcp_peer2.conf");
-    }
-  else if (is_tcp_nat)
-    {
-      setup_peer (&p1, "test_transport_api_tcp_nat_peer1.conf");
-      setup_peer (&p2, "test_transport_api_tcp_nat_peer2.conf");
-    }
-  else if (is_udp_nat)
-    {
-      setup_peer (&p1, "test_transport_api_udp_nat_peer1.conf");
-      setup_peer (&p2, "test_transport_api_udp_nat_peer2.conf");
-    }
-  else if (is_http)
-    {
-      setup_peer (&p1, "test_transport_api_http_peer1.conf");
-      setup_peer (&p2, "test_transport_api_http_peer2.conf");
-    }
-  else if (is_https)
-    {
-      setup_peer (&p1, "test_transport_api_https_peer1.conf");
-      setup_peer (&p2, "test_transport_api_https_peer2.conf");
-    }
-  else if (is_wlan)
-    {
-      setup_peer (&p1, "test_transport_api_wlan_peer1.conf");
-      setup_peer (&p2, "test_transport_api_wlan_peer2.conf");
-    }
-  GNUNET_assert(p1.th != NULL);
-  GNUNET_assert(p2.th != NULL);
+  p1 = GNUNET_TRANSPORT_TESTING_start_peer(cfg_file_p1,
+      &notify_receive,
+      &notify_connect,
+      &notify_disconnect,
+      NULL);
+  p2 = GNUNET_TRANSPORT_TESTING_start_peer(cfg_file_p2,
+      &notify_receive,
+      &notify_connect,
+      &notify_disconnect,
+      NULL);
 
-  GNUNET_TRANSPORT_get_hello (p1.th, &exchange_hello, &p1);
-  GNUNET_TRANSPORT_get_hello (p2.th, &exchange_hello_last, &p2);
-  tct = GNUNET_SCHEDULER_add_now (&try_connect, NULL);
+  GNUNET_TRANSPORT_TESTING_connect_peers(p1, p2, &testing_connect_cb, NULL);
 }
 
 static int
@@ -490,67 +235,7 @@ check ()
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
                       argv, "test-transport-api", "nohelp",
                       options, &run, &ok);
-  stop_arm (&p1);
-  stop_arm (&p2);
 
-  if (is_https)
-    {
-      struct stat sbuf;
-      if (0 == stat (cert_file_p1, &sbuf ))
-	{
-	  if (0 == remove(cert_file_p1))
-	    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-			"Successfully removed existing certificate file `%s'\n",cert_file_p1);
-	  else
-	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-			"Failed to remove certfile `%s'\n",cert_file_p1);
-	}
-      
-      if (0 == stat (key_file_p1, &sbuf ))
-	{
-	  if (0 == remove(key_file_p1))
-	    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-			"Successfully removed private key file `%s'\n",key_file_p1);
-	  else
-	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-			"Failed to private key file `%s'\n",key_file_p1);
-	}
-      
-      if (0 == stat (cert_file_p2, &sbuf ))
-	{
-	  if (0 == remove(cert_file_p2))
-	    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-			"Successfully removed existing certificate file `%s'\n",cert_file_p2);
-	  else
-	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-			"Failed to remove certfile `%s'\n",cert_file_p2);
-	}
-      
-      if (0 == stat (key_file_p2, &sbuf ))
-	{
-	  if (0 == remove(key_file_p2))
-	    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-			"Successfully removed private key file `%s'\n",key_file_p2);
-	  else
-	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-			"Failed to private key file `%s'\n",key_file_p2);
-	}
-      GNUNET_free(key_file_p1);
-      GNUNET_free(key_file_p2);
-      GNUNET_free(cert_file_p1);
-      GNUNET_free(cert_file_p2);
-    }
-
-  if (p1.servicehome != NULL)
-    {
-    GNUNET_DISK_directory_remove (p1.servicehome);
-    GNUNET_free(p1.servicehome);
-    }
-  if (p2.servicehome != NULL)
-    {
-      GNUNET_DISK_directory_remove (p2.servicehome);
-      GNUNET_free(p2.servicehome);
-    }
   return ok;
 }
 
@@ -678,9 +363,30 @@ main (int argc, char *argv[])
 #endif
                     NULL);
 
+  char * pch = strdup(argv[0]);
+  char * filename = NULL;
+
+  /* get executable filename */
+  pch = strtok (pch,"/");
+  while (pch != NULL)
+  {
+    pch = strtok (NULL, "/");
+    if (pch != NULL)
+      filename = pch;
+  }
+
+  /* remove "lt-" */
+
+  filename = strstr(filename, "tes");
+  //filename = &filename[1];
+  //GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  //            "`%s'\n",filename);
+  /* create cfg filename */
+  GNUNET_asprintf(&cfg_file_p1, "%s_peer1.conf",filename);
+  GNUNET_asprintf(&cfg_file_p2, "%s_peer2.conf", filename);
+
   if (strstr(argv[0], "tcp_nat") != NULL)
     {
-      is_tcp_nat = GNUNET_YES;
       if (GNUNET_YES != check_gnunet_nat_binary("gnunet-nat-server"))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -689,13 +395,8 @@ main (int argc, char *argv[])
           return 0;
         }
     }
-  else if (strstr(argv[0], "tcp") != NULL)
-    {
-      is_tcp = GNUNET_YES;
-    }
   else if (strstr(argv[0], "udp_nat") != NULL)
     {
-      is_udp_nat = GNUNET_YES;
       if (GNUNET_YES != check_gnunet_nat_binary("gnunet-nat-server"))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -704,32 +405,11 @@ main (int argc, char *argv[])
           return 0;
         }
     }
-  else if (strstr(argv[0], "udp") != NULL)
-    {
-      is_udp = GNUNET_YES;
-    }
-  else if (strstr(argv[0], "unix") != NULL)
-    {
-      is_unix = GNUNET_YES;
-    }
-  else if (strstr(argv[0], "https") != NULL)
-    {
-      is_https = GNUNET_YES;
-    }
-  else if (strstr(argv[0], "http") != NULL)
-    {
-      is_http = GNUNET_YES;
-    }
-  else if (strstr(argv[0], "wlan") != NULL)
-    {
-       is_wlan = GNUNET_YES;
-    }
-  else if (strstr(argv[0], "multi") != NULL)
-    {
-       is_multi_protocol = GNUNET_YES;
-    }
 
   ret = check ();
+
+  GNUNET_free (cfg_file_p1);
+  GNUNET_free (cfg_file_p2);
 
   return ret;
 }

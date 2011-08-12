@@ -28,6 +28,7 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_getopt_lib.h"
+#include "gnunet_hello_lib.h"
 #include "gnunet_os_lib.h"
 #include "gnunet_program_lib.h"
 #include "gnunet_transport_service.h"

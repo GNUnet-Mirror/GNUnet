@@ -37,7 +37,8 @@ struct ConnectingContext
 
   struct GNUNET_TRANSPORT_Handle *th_p1;
   struct GNUNET_TRANSPORT_Handle *th_p2;
-  int c;
+  int p1_c;
+  int p2_c;
 };
 
 static void
@@ -54,12 +55,21 @@ notify_connect_internal (void *cls,
                 uint32_t ats_count)
 {
   struct ConnectingContext * cc = cls;
-//  /void * cb_cls = cc->cb_cls;
 
   GNUNET_assert(cc != NULL);
-  cc->c++;
 
-  if (cc->c == 2)
+  if (0 == memcmp (&(*peer).hashPubKey, &cc->p1->id.hashPubKey, sizeof (GNUNET_HashCode)))
+    {
+    if (cc->p1_c == GNUNET_NO)
+      cc->p1_c = GNUNET_YES;
+    }
+  if (0 == memcmp (&(*peer).hashPubKey, &cc->p2->id.hashPubKey, sizeof (GNUNET_HashCode)))
+    {
+    if (cc->p2_c == GNUNET_NO)
+      cc->p2_c = GNUNET_YES;
+    }
+
+  if ((cc->p2_c == GNUNET_YES) && (cc->p2_c == GNUNET_YES))
   {
      /* clean up */
     GNUNET_TRANSPORT_get_hello_cancel (cc->th_p2, &exchange_hello_last, cc);
@@ -70,15 +80,14 @@ notify_connect_internal (void *cls,
 
     cc->tct = GNUNET_SCHEDULER_NO_TASK;
 
-    GNUNET_TRANSPORT_disconnect( cc->th_p1);
-    GNUNET_TRANSPORT_disconnect( cc->th_p2);
+    GNUNET_TRANSPORT_disconnect (cc->th_p1);
+    GNUNET_TRANSPORT_disconnect (cc->th_p2);
 
     if (cc->cb != NULL)
       cc->cb (cc->p1, cc->p2, cc->cb_cls);
 
     GNUNET_free(cc);
   }
-
 }
 
 static void
