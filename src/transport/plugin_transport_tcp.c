@@ -834,6 +834,9 @@ disconnect_session (struct Session *session)
         (session->transmit_handle);
       session->transmit_handle = NULL;
     }
+  session->plugin->env->session_end (session->plugin->env->cls,
+                                     &session->target,
+                                     session);
   while (NULL != (pm = session->pending_messages_head))
     {
 #if DEBUG_TCP
@@ -878,9 +881,6 @@ disconnect_session (struct Session *session)
 			    -1,
 			    GNUNET_NO);
   GNUNET_free_non_null (session->connect_addr);
-  session->plugin->env->session_end (session->plugin->env->cls,
-                                     &session->target,
-                                     session);
   GNUNET_assert (NULL == session->transmit_handle);
   GNUNET_free (session);
 }
