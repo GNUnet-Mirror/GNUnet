@@ -67,6 +67,16 @@ struct MessageQueue
   struct MessageQueue *prev;
 
   /**
+   * Function to call once we're done.
+   */
+  GST_NeighbourSendContinuation cont;
+
+  /**
+   * Closure for 'cont'
+   */
+  void *cont_cls;
+
+  /**
    * The message(s) we want to transmit, GNUNET_MessageHeader(s)
    * stuck together in memory.  Allocated at the end of this struct.
    */
@@ -78,31 +88,9 @@ struct MessageQueue
   size_t message_buf_size;
 
   /**
-   * Client responsible for queueing the message; used to check that a
-   * client has no two messages pending for the same target and to
-   * notify the client of a successful transmission; NULL if this is
-   * an internal message.
-   */
-  struct TransportClient *client;
-
-  /**
    * At what time should we fail?
    */
   struct GNUNET_TIME_Absolute timeout;
-
-  /**
-   * Internal message of the transport system that should not be
-   * included in the usual SEND-SEND_OK transmission confirmation
-   * traffic management scheme.  Typically, "internal_msg" will
-   * be set whenever "client" is NULL (but it is not strictly
-   * required).
-   */
-  int internal_msg;
-
-  /**
-   * How important is the message?
-   */
-  unsigned int priority;
 
 };
 
@@ -207,7 +195,7 @@ struct NeighbourMapEntry
    * Have we seen an PONG from this neighbour in the past (and
    * not had a disconnect since)?
    */
-  int received_pong;
+  // int received_pong;
 
   /**
    * Do we have a valid public key for this neighbour?
@@ -217,7 +205,7 @@ struct NeighbourMapEntry
   /**
    * Are we already in the process of disconnecting this neighbour?
    */
-  int in_disconnect;
+  // int in_disconnect;
 
   /**
    * Do we currently consider this neighbour connected? (as far as
@@ -471,7 +459,6 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
 
 /**
  * Try to connect to the target peer using the given address
- * (if is valid).
  *
  * @param cls the 'struct NeighbourMapEntry' of the target
  * @param public_key public key for the peer, never NULL
@@ -641,6 +628,8 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
 			    msg_size,
 			    GNUNET_NO);
   mq = GNUNET_malloc (sizeof (struct MessageQueue) + msg_size);
+  mq->cont = cont;
+  mq->cont_cls = cont_cls;
   /* FIXME: this memcpy can be up to 7% of our total runtime! */
   memcpy (&mq[1], msg, msg_size);
   mq->message_buf = (const char*) &mq[1];
