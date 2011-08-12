@@ -41,10 +41,10 @@ struct ConnectingContext
 };
 
 static void
-exchange_hello_last (void *cls,
+exchange_hello_last (void *cb_cls,
                      const struct GNUNET_MessageHeader *message);
 static void
-exchange_hello (void *cls,
+exchange_hello (void *cb_cls,
                      const struct GNUNET_MessageHeader *message);
 
 static void
@@ -120,10 +120,10 @@ notify_receive (void *cls,
 
 
 static void
-exchange_hello_last (void *cls,
+exchange_hello_last (void *cb_cls,
                      const struct GNUNET_MessageHeader *message)
 {
-  struct ConnectingContext * cc = cls;
+  struct ConnectingContext * cc = cb_cls;
   struct PeerContext *me = cc->p2;
   //struct PeerContext *p1 = cc->p1;
 
@@ -140,10 +140,10 @@ exchange_hello_last (void *cls,
 
 
 static void
-exchange_hello (void *cls,
+exchange_hello (void *cb_cls,
                 const struct GNUNET_MessageHeader *message)
 {
-  struct ConnectingContext * cc = cls;
+  struct ConnectingContext * cc = cb_cls;
   struct PeerContext *me = cc->p1;
   //struct PeerContext *p2 = cc->p2;
 
@@ -183,6 +183,15 @@ try_connect (void *cls,
                                       cc);
 }
 
+
+/**
+ * Start a peer with the given configuration
+ * @param rec receive callback
+ * @param nc connect callback
+ * @param nd disconnect callback
+ * @param cb_cls closure for callback
+ * @return the peer context
+ */
 struct PeerContext *
 GNUNET_TRANSPORT_TESTING_start_peer (const char * cfgname,
     GNUNET_TRANSPORT_ReceiveCallback rec,
@@ -222,6 +231,10 @@ GNUNET_TRANSPORT_TESTING_start_peer (const char * cfgname,
   return p;
 }
 
+/**
+ * shutdown the given peer
+ * @param p the peer
+ */
 void
 GNUNET_TRANSPORT_TESTING_stop_peer (struct PeerContext * p)
 {
@@ -245,11 +258,20 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct PeerContext * p)
   GNUNET_free (p);
 }
 
+/**
+ * Connect the two given peers and call the callback when both peers report the
+ * inbound connect. Remarks: start_peer's notify_connect callback can be called
+ * before.
+ * @param p1 peer 1
+ * @param p2 peer 2
+ * @param cb the callback to call
+ * @param cb_cls callback cls
+ */
 void
 GNUNET_TRANSPORT_TESTING_connect_peers (struct PeerContext * p1,
                                         struct PeerContext * p2,
                                         GNUNET_TRANSPORT_TESTING_connect_cb cb,
-                                        void * cls)
+                                        void * cb_cls)
 {
   struct ConnectingContext * cc = GNUNET_malloc (sizeof (struct ConnectingContext));
 
@@ -260,7 +282,7 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct PeerContext * p1,
   cc->p2 = p2;
 
   cc->cb = cb;
-  cc->cb_cls = cls;
+  cc->cb_cls = cb_cls;
 
   cc->th_p1 = GNUNET_TRANSPORT_connect(cc->p1->cfg, NULL,
                             cc,
