@@ -745,10 +745,9 @@ GST_clients_handle_peer_address_lookup (void *cls,
   peer_address_lookup = (const struct PeerAddressLookupMessage *) message;
   GNUNET_break (ntohl (peer_address_lookup->reserved) == 0);
   tc = GNUNET_SERVER_transmit_context_create (client);
-  (void) GST_validation_get_addresses (&peer_address_lookup->peer,
-				       GNUNET_YES,
-				       &send_address_to_client,
-				       tc);
+  GST_validation_get_addresses (&peer_address_lookup->peer,
+				&send_address_to_client,
+				tc);
   GNUNET_SERVER_transmit_context_append_data (tc,
 					      NULL, 0,
 					      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);

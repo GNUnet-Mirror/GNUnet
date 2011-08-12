@@ -126,10 +126,10 @@ struct NeighbourMapEntry
   struct MessageQueue *messages_tail;
 
   /**
-   * Context for validation address iteration.
+   * Context for address suggestion.
    * NULL after we are connected.
    */
-  struct GST_ValidationIteratorContext *vic;
+  struct GST_AtsSuggestionContext *asc;
 
   /**
    * Performance data for the peer.
@@ -339,10 +339,10 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
 				   mq);
       GNUNET_free (mq);
     }
-  if (NULL != n->vic)
+  if (NULL != n->asc)
     {
-      GST_validation_get_addresses_cancel (n->vic);
-      n->vic = NULL;
+      GST_ats_suggest_address_cancel (n->asc);
+      n->asc = NULL;
     }
   GNUNET_array_grow (n->ats,
 		     n->ats_count,
@@ -400,35 +400,31 @@ GST_neighbours_stop ()
  * @param cls the 'struct NeighbourMapEntry' of the target
  * @param public_key public key for the peer, never NULL
  * @param target identity of the target peer
- * @param valid_until is ZERO if we never validated the address,
- *                    otherwise a time up to when we consider it (or was) valid
- * @param validation_block  is FOREVER if the address is for an unsupported plugin (from PEERINFO)
- *                          is ZERO if the address is considered valid (no validation needed)
- *                          otherwise a time in the future if we're currently denying re-validation
  * @param plugin_name name of the plugin
  * @param plugin_address binary address
  * @param plugin_address_len length of address
+ * @param ats performance data for the address (as far as known)
+ * @param ats_count number of performance records in 'ats'
  */
 static void
 try_connect_using_address (void *cls,
 			   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
 			   const struct GNUNET_PeerIdentity *target,
-			   struct GNUNET_TIME_Absolute valid_until,
-			   struct GNUNET_TIME_Absolute validation_block,
 			   const char *plugin_name,
 			   const void *plugin_address,
-			   size_t plugin_address_len)
+			   size_t plugin_address_len,
+			   const struct GNUNET_TRANSPORT_ATS_Information *ats,
+			   uint32_t ats_count)
 {
   struct NeighbourMapEntry *n = cls;
 
+  n->asc = NULL;
   if (n->public_key_valid == GNUNET_NO)
     {
       n->public_key = *public_key;
       n->public_key_valid = GNUNET_YES;
     }
-  if (GNUNET_TIME_absolute_get_remaining (valid_until).rel_value == 0)
-    return; /* address is not valid right now */
-  /* FIXME: do ATS here! */
+  /* FIXME: do connect! */
 
 }
 
@@ -488,12 +484,12 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
 							n,
 							GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     }
-  if (n->vic != NULL)
+  if (n->asc != NULL)
     return; /* already trying */
-  n->vic = GST_validation_get_addresses (target,
-					 GNUNET_NO,
-					 &try_connect_using_address,
-					 n); 
+  n->asc = GST_ats_suggest_address (GST_ats,
+				    target,
+				    &try_connect_using_address,
+				    n); 
 }
 
 

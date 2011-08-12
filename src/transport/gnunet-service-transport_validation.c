@@ -27,6 +27,7 @@
 #include "gnunet-service-transport_validation.h"
 #include "gnunet-service-transport_plugins.h"
 #include "gnunet-service-transport_hello.h"
+#include "gnunet-service-transport_ats-new.h"
 #include "gnunet-service-transport.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_peerinfo_service.h"
@@ -249,28 +250,6 @@ struct CheckHelloValidatedContext
 
 
 /**
- * Opaque handle to stop incremental validation address callbacks.
- */
-struct GST_ValidationIteratorContext
-{
-  /**
-   * Function to call on each address.
-   */
-  GST_ValidationAddressCallback cb;
-
-  /**
-   * Closure for 'cb'.
-   */
-  void *cb_cls;
-
-  /**
-   * Which peer are we monitoring?
-   */   
-  struct GNUNET_PeerIdentity target;
-};
-
-
-/**
  * Head of linked list of HELLOs awaiting validation.
  */
 static struct CheckHelloValidatedContext *chvc_head;
@@ -286,11 +265,6 @@ static struct CheckHelloValidatedContext *chvc_tail;
  * or are blocked from re-validation for a while).
  */
 static struct GNUNET_CONTAINER_MultiHashMap *validation_map;
-
-/**
- * Map of PeerIdentities to 'struct GST_ValidationIteratorContext's.
- */
-static struct GNUNET_CONTAINER_MultiHashMap *notify_map;
 
 /**
  * Context for peerinfo iteration.
@@ -409,34 +383,6 @@ find_validation_entry (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pub
 
 
 /**
- * Notify validation watcher that an entry is now valid
- *
- * @param cls 'struct ValidationEntry' that is now valid
- * @param key peer identity (unused)
- * @param value a 'GST_ValidationIteratorContext' to notify
- * @return GNUNET_YES (continue to iterate)
- */
-static int
-notify_valid (void *cls,
-	      const GNUNET_HashCode *key,
-	      void *value)
-{
-  struct ValidationEntry *ve = cls;
-  struct GST_ValidationIteratorContext *vic = value;
-
-  vic->cb (vic->cb_cls,
-	   &ve->public_key,
-	   &vic->target,
-	   ve->valid_until,
-	   ve->validation_block,
-	   ve->transport_name,
-	   ve->addr,
-	   ve->addrlen);	   
-  return GNUNET_OK;
-}
-
-
-/**
  * Iterator which adds the given address to the set of validated
  * addresses.
  *
@@ -472,10 +418,14 @@ add_valid_address (void *cls,
   ve = find_validation_entry (&public_key, &pid, tname, addr, addrlen);
   ve->valid_until = GNUNET_TIME_absolute_max (ve->valid_until,
 					      expiration);
-  GNUNET_CONTAINER_multihashmap_get_multiple (notify_map,
-					      &pid.hashPubKey,
-					      &notify_valid,
-					      ve);
+  GST_ats_address_update (GST_ats,
+			  &public_key,
+			  &pid,
+			  tname,
+			  NULL,
+			  addr,
+			  addrlen,
+			  NULL, 0);
   return GNUNET_OK;
 }
 
@@ -512,7 +462,6 @@ void
 GST_validation_start ()
 {
   validation_map = GNUNET_CONTAINER_multihashmap_create (VALIDATION_MAP_SIZE);
-  notify_map = GNUNET_CONTAINER_multihashmap_create (VALIDATION_MAP_SIZE);
   pnc = GNUNET_PEERINFO_notify (GST_cfg,
 				&process_peerinfo_hello,
 				NULL);
@@ -558,9 +507,6 @@ GST_validation_stop ()
 					 NULL);
   GNUNET_CONTAINER_multihashmap_destroy (validation_map);
   validation_map = NULL;
-  GNUNET_assert (GNUNET_CONTAINER_multihashmap_size (notify_map) == 0);
-  GNUNET_CONTAINER_multihashmap_destroy (notify_map);
-  notify_map = NULL;
   while (NULL != (chvc = chvc_head))
     {
       GNUNET_CONTAINER_DLL_remove (chvc_head,
@@ -801,10 +747,9 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
 			    gettext_noop ("# PONGs multicast to all available addresses"),
 			    1,
 			    GNUNET_NO);
-  (void) GST_validation_get_addresses (sender,
-				       GNUNET_YES,
-				       &multicast_pong,
-				       pong);
+  GST_validation_get_addresses (sender,
+				&multicast_pong,
+				pong);
   GNUNET_free (pong);
 }
 
@@ -1092,6 +1037,14 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   
   /* validity achieved, remember it! */
   ve->valid_until = GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
+  GST_ats_address_update (GST_ats,
+			  &ve->public_key,
+			  &ve->pid,
+			  ve->transport_name,
+			  NULL,
+			  ve->addr,
+			  ve->addrlen,
+			  NULL, 0); /* FIXME: compute and add latency here... */
 
   /* build HELLO to store in PEERINFO */
   hello = GNUNET_HELLO_create (&ve->public_key,
@@ -1146,6 +1099,24 @@ GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello)
 
 
 /**
+ * Closure for 'iterate_addresses'
+ */
+struct IteratorContext
+{
+  /**
+   * Function to call on each address.
+   */
+  GST_ValidationAddressCallback cb;
+
+  /**
+   * Closure for 'cb'.
+   */
+  void *cb_cls;
+
+};
+
+
+/**
  * Call the callback in the closure for each validation entry.
  *
  * @param cls the 'struct GST_ValidationIteratorContext'
@@ -1158,17 +1129,17 @@ iterate_addresses (void *cls,
 		   const GNUNET_HashCode *key,
 		   void *value)
 {
-  struct GST_ValidationIteratorContext *vic = cls;
+  struct IteratorContext *ic = cls;
   struct ValidationEntry *ve = value;
 
-  vic->cb (vic->cb_cls,
-	   &ve->public_key,
-	   &ve->pid,
-	   ve->valid_until,
-	   ve->validation_block,
-	   ve->transport_name,
-	   ve->addr,
-	   ve->addrlen);
+  ic->cb (ic->cb_cls,
+	  &ve->public_key,
+	  &ve->pid,
+	  ve->valid_until,
+	  ve->validation_block,
+	  ve->transport_name,
+	  ve->addr,
+	  ve->addrlen);
   return GNUNET_OK;
 }
 
@@ -1185,48 +1156,19 @@ iterate_addresses (void *cls,
  * @param cb_cls closure for 'cb'
  * @return context to cancel, NULL if 'snapshot_only' is GNUNET_YES
  */
-struct GST_ValidationIteratorContext *
+void
 GST_validation_get_addresses (const struct GNUNET_PeerIdentity *target,
-			      int snapshot_only,
 			      GST_ValidationAddressCallback cb,
 			      void *cb_cls)
 {
-  struct GST_ValidationIteratorContext *vic;
+  struct IteratorContext  ic;
 
-  vic = GNUNET_malloc (sizeof (struct GST_ValidationIteratorContext));
-  vic->cb = cb;
-  vic->cb_cls = cb_cls;
-  vic->target = *target;
+  ic.cb = cb;
+  ic.cb_cls = cb_cls;
   GNUNET_CONTAINER_multihashmap_get_multiple (validation_map,
 					      &target->hashPubKey,
 					      &iterate_addresses,
-					      vic);
-  if (GNUNET_YES == snapshot_only)
-    {
-      GNUNET_free (vic);
-      return NULL;
-    }
-  GNUNET_CONTAINER_multihashmap_put (notify_map,
-				     &target->hashPubKey,
-				     vic,
-				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  return vic;
-}
-
-
-/**
- * Cancel an active validation address iteration.
- *
- * @param ctx the context of the operation that is cancelled
- */
-void
-GST_validation_get_addresses_cancel (struct GST_ValidationIteratorContext *ctx)
-{
-  GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CONTAINER_multihashmap_remove (notify_map,
-						       &ctx->target.hashPubKey,
-						       ctx));
-  GNUNET_free (ctx);
+					      &ic);
 }
 
 

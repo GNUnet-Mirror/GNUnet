@@ -80,6 +80,7 @@ GST_ats_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 	      GNUNET_TRANSPORT_ATS_AllocationNotification alloc_cb,
 	      void *alloc_cb_cls);
 
+
 /**
  * Shutdown the ATS subsystem.
  *
@@ -90,11 +91,65 @@ GST_ats_shutdown (struct GST_AtsHandle *atc);
 
 
 /**
+ * Signature of a function that takes an address suggestion 
+ *
+ * @param cls closure
+ * @param public_key public key of the peer
+ * @param peer identity of the new peer
+ * @param plugin_name name of the plugin, NULL if we have no suggestion
+ * @param plugin_addr suggested address, NULL if we have no suggestion
+ * @param plugin_addr_len number of bytes in plugin_addr
+ * @param ats performance data for the address (as far as known)
+ * @param ats_count number of performance records in 'ats'
+ */
+typedef void (*GST_AtsAddressSuggestionCallback)(void *cls,
+						 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
+						 const struct GNUNET_PeerIdentity *peer,
+						 const char *plugin_name,
+						 const void *plugin_addr,
+						 size_t plugin_addr_len,
+						 const struct GNUNET_TRANSPORT_ATS_Information *ats,
+						 uint32_t ats_count);
+
+
+/**
+ * Handle to cancel suggestion request.
+ */
+struct GST_AtsSuggestionContext;
+
+
+/**
+ * We would like to establish a new connection with a peer.
+ * ATS should suggest a good address to begin with.
+ *
+ * @param atc handle
+ * @param peer identity of the new peer
+ * @param cb function to call with the address
+ * @param cb_cls closure for cb
+ */
+struct GST_AtsSuggestionContext *
+GST_ats_suggest_address (struct GST_AtsHandle *atc,
+			 const struct GNUNET_PeerIdentity *peer,
+			 GST_AtsAddressSuggestionCallback cb,
+			 void *cb_cls);
+
+
+/**
+ * Cancel suggestion request.
+ *
+ * @param asc handle of the request to cancel
+ */
+void
+GST_ats_suggest_address_cancel (struct GST_AtsSuggestionContext *asc);
+
+
+/**
  * We established a new connection with a peer (for example, because
  * core asked for it or because the other peer connected to us).
  * Calculate bandwidth assignments including the new peer.
  *
  * @param atc handle
+ * @param public_key public key of the peer
  * @param peer identity of the new peer
  * @param plugin_name name of the currently used transport plugin
  * @param session session in use (if available)
@@ -105,6 +160,7 @@ GST_ats_shutdown (struct GST_AtsHandle *atc);
  */
 void
 GST_ats_peer_connect (struct GST_AtsHandle *atc,
+		      const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
 		      const struct GNUNET_PeerIdentity *peer,
 		      const char *plugin_name,
 		      struct Session *session,
@@ -149,6 +205,7 @@ GST_ats_session_destroyed (struct GST_AtsHandle *atc,
  * for later use).  Update bandwidth assignments.
  *
  * @param atc handle
+ * @param public_key public key of the peer
  * @param peer identity of the new peer
  * @param plugin_name name of the transport plugin
  * @param session session handle (if available)
@@ -159,6 +216,7 @@ GST_ats_session_destroyed (struct GST_AtsHandle *atc,
  */
 void
 GST_ats_address_update (struct GST_AtsHandle *atc,
+			const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
 			const struct GNUNET_PeerIdentity *peer,
 			const char *plugin_name,
 			struct Session *session,

@@ -95,12 +95,6 @@ GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello);
 
 
 /**
- * Opaque handle to stop incremental validation address callbacks.
- */
-struct GST_ValidationIteratorContext;
-
-
-/**
  * Function called for each address (or address status change) that
  * the validation module is aware of (for the given target).
  *
@@ -128,31 +122,17 @@ typedef void (*GST_ValidationAddressCallback)(void *cls,
 
 /**
  * Call the given function for each address for the given target.
- * Can either give a snapshot (synchronous API) or be continuous.
  *
  * @param target peer information is requested for
- * @param snapshot_only GNUNET_YES to iterate over addresses once, GNUNET_NO to
- *                      continue to give information about addresses as it evolves
  * @param cb function to call; will not be called after this function returns
  *                             if snapshot_only is GNUNET_YES
  * @param cb_cls closure for 'cb'
  * @return context to cancel, NULL if 'snapshot_only' is GNUNET_YES
  */
-struct GST_ValidationIteratorContext *
+void
 GST_validation_get_addresses (const struct GNUNET_PeerIdentity *target,
-			      int snapshot_only,
 			      GST_ValidationAddressCallback cb,
 			      void *cb_cls);
-
-
-/**
- * Cancel an active validation address iteration.
- *
- * @param ctx the context of the operation that is cancelled
- */
-void
-GST_validation_get_addresses_cancel (struct GST_ValidationIteratorContext *ctx);
-
 
 
 #endif
