@@ -229,7 +229,10 @@ GNUNET_TRANSPORT_TESTING_start_peer (const char * cfgname,
   p->nc = nc;
   p->nd = nd;
   p->rec = rec;
-  p->cb_cls = cb_cls;
+  if (cb_cls != NULL)
+    p->cb_cls = cb_cls;
+  else
+    p->cb_cls = p;
 
   p->th = GNUNET_TRANSPORT_connect(p->cfg, NULL,
                             p,

@@ -525,7 +525,8 @@ test_transport_api_wlan_SOURCES = \
 test_transport_api_wlan_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/util/libgnunetutil.la  
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la  
 endif
 
 test_quota_compliance_tcp_SOURCES = \

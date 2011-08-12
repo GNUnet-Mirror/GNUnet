@@ -71,6 +71,7 @@ typedef void (*GNUNET_TRANSPORT_TESTING_connect_cb) (struct PeerContext * p1, st
  * @param nc connect callback
  * @param nd disconnect callback
  * @param cb_cls closure for callback
+ *   if NULL passed the PeerContext * will be used!
  * @return the peer context
  */
 struct PeerContext *

@@ -84,17 +84,26 @@ end ()
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel(die_task);
 
+  if (th != NULL)
+    GNUNET_TRANSPORT_notify_transmit_ready_cancel(th);
+  th = NULL;
+
   GNUNET_TRANSPORT_TESTING_stop_peer(p1);
   GNUNET_TRANSPORT_TESTING_stop_peer(p2);
-
-  ok = 0;
 }
 
 static void
 end_badly ()
 {
+  if (die_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(die_task);
+
   die_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
+
+  if (th != NULL)
+    GNUNET_TRANSPORT_notify_transmit_ready_cancel(th);
+  th = NULL;
 
   if (p1 != NULL)
     GNUNET_TRANSPORT_TESTING_stop_peer(p1);
@@ -117,10 +126,18 @@ notify_receive (void *cls,
 	      ntohs(message->type), 
 	      GNUNET_i2s (peer));
 
-  GNUNET_assert (MTYPE == ntohs (message->type));
-  GNUNET_assert (sizeof (struct GNUNET_MessageHeader) ==
-                 ntohs (message->size));
-  end ();
+  if ((MTYPE == ntohs (message->type)) &&
+      (sizeof (struct GNUNET_MessageHeader) == ntohs (message->size)))
+  {
+    ok = 0;
+    end();
+  }
+  else
+  {
+    GNUNET_break (0);
+    ok = 1;
+    end();
+  }
 }
 
 
@@ -408,12 +425,10 @@ main (int argc, char *argv[])
         }
     }
 
-
   ret = check ();
 
   GNUNET_free (cfg_file_p1);
   GNUNET_free (cfg_file_p2);
-
 
   return ret;
 }
