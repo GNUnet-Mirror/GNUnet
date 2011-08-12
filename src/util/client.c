@@ -815,7 +815,11 @@ GNUNET_CLIENT_service_test (const char *service,
       return;
     }
   
-  if (0 == strcmp ("localhost", hostname)) 
+  if (0 == strcmp ("localhost", hostname)
+#if WINDOWS
+      && 0
+#endif
+  )
     {
       /* can test using 'bind' */
       struct sockaddr_in s_in;
@@ -847,7 +851,11 @@ GNUNET_CLIENT_service_test (const char *service,
 	}        
     }
 
-  if (0 == strcmp ("ip6-localhost", hostname)) 
+  if (0 == strcmp ("ip6-localhost", hostname)
+#if WINDOWS
+      && 0
+#endif
+  )
     {
       /* can test using 'bind' */
       struct sockaddr_in6 s_in6;
@@ -879,8 +887,12 @@ GNUNET_CLIENT_service_test (const char *service,
 	}        
     }
 
-  if ( (0 == strcmp ("localhost", hostname)) ||
-       (0 == strcmp ("ip6-localhost", hostname)) )
+  if (( (0 == strcmp ("localhost", hostname)) ||
+       (0 == strcmp ("ip6-localhost", hostname)))
+#if WINDOWS
+      && 0
+#endif
+  )
     {
       /* all binds succeeded => claim service not running right now */
       GNUNET_free_non_null (hostname);
