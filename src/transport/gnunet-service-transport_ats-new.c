@@ -114,7 +114,6 @@ struct GST_AtsHandle
 };
 
 
-
 /**
  * Count number of connected records.
  *
@@ -221,7 +220,7 @@ static void
 update_bandwidth_assignment (struct GST_AtsHandle *atc,
 			     struct AllocationRecord *change)
 {
-  /* FIXME: based on the 'change', update the problem... */
+  /* FIXME: based on the 'change', update the LP-problem... */
   if (atc->ba_task == GNUNET_SCHEDULER_NO_TASK)
     atc->ba_task = GNUNET_SCHEDULER_add_now (&update_bandwidth_task,
 					     atc);

@@ -334,6 +334,7 @@ endif
 test_transport_testing_SOURCES = \
  test_transport_testing.c
 test_transport_testing_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
