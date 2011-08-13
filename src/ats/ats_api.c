@@ -24,6 +24,7 @@
  * @author Matthias Wachs
  *
  * TODO:
+ * - write test case
  * - extend API to get performance data
  * - implement simplistic strategy based on say 'lowest latency' or strict ordering
  * - extend API to get peer preferences, implement proportional bandwidth assignment
