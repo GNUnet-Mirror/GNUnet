@@ -49,7 +49,7 @@ extern "C"
  * After how long do we consider a connection to a peer dead
  * if we don't receive messages from the peer?
  */
-#define GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 3)
+#define GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 /**
  * After how long do we consider a connection to a peer dead

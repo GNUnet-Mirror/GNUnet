@@ -231,12 +231,6 @@ struct GNUNET_TRANSPORT_PluginEnvironment
   GNUNET_TRANSPORT_AddressNotification notify_address;
 
   /**
-   * Inform service about traffic received, get information
-   * about when we might be willing to receive more.
-   */
-  GNUNET_TRANSPORT_TrafficReport traffic_report;
-
-  /**
    * Function that must be called by the plugin when a non-NULL
    * session handle stops being valid (is destroyed).
    */

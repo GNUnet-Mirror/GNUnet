@@ -47,7 +47,6 @@
 void 
 GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
 		  GNUNET_TRANSPORT_AddressNotification address_cb,
-		  GNUNET_TRANSPORT_TrafficReport traffic_cb,
 		  GNUNET_TRANSPORT_SessionEnd session_end_cb,
 		  GNUNET_TRANSPORT_CostReport cost_cb);
 

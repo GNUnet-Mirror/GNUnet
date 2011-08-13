@@ -94,6 +94,47 @@ process_hello_update (void *cls,
 }
 
 
+
+/**
+ * Function called by the transport for each received message.
+ * This function should also be called with "NULL" for the
+ * message to signal that the other peer disconnected.
+ *
+ * @param cls closure
+ * @param peer (claimed) identity of the other peer
+ * @param message the message, NULL if we only care about
+ *                learning about the delay until we should receive again -- FIXME!
+ * @param distance in overlay hops; use 1 unless DV (or 0 if message == NULL)
+ * @param session identifier used for this session (NULL for plugins
+ *                that do not offer bi-directional communication to the sender
+ *                using the same "connection")
+ * @param sender_address binary address of the sender (if we established the
+ *                connection or are otherwise sure of it; should be NULL
+ *                for inbound TCP/UDP connections since it it not clear
+ *                that we could establish ourselves a connection to that
+ *                IP address and get the same system)
+ * @param sender_address_len number of bytes in sender_address
+ * @return how long the plugin should wait until receiving more data
+ *         (plugins that do not support this, can ignore the return value)
+ */
+static struct GNUNET_TIME_Relative 
+plugin_env_receive_callback (void *cls,
+			     const struct
+			     GNUNET_PeerIdentity *
+			     peer,
+			     const struct
+			     GNUNET_MessageHeader *
+			     message,
+			     const struct GNUNET_TRANSPORT_ATS_Information *ats,
+			     uint32_t ats_count,
+			     struct Session *session,
+			     const char *sender_address,
+			     uint16_t sender_address_len)
+{
+  return GNUNET_TIME_UNIT_ZERO;
+}
+
+
 /**
  * Function that will be called for each address the transport
  * is aware that it might be reachable under.  Update our HELLO.
@@ -117,6 +158,50 @@ plugin_env_address_change_notification (void *cls,
 			      plugin_name,
 			      addr,
 			      addrlen);
+}
+
+
+/**
+ * Function that will be called whenever the plugin internally
+ * cleans up a session pointer and hence the service needs to
+ * discard all of those sessions as well.  Plugins that do not
+ * use sessions can simply omit calling this function and always
+ * use NULL wherever a session pointer is needed.  This function
+ * should be called BEFORE a potential "TransmitContinuation"
+ * from the "TransmitFunction".
+ * 
+ * @param cls closure
+ * @param peer which peer was the session for 
+ * @param session which session is being destoyed
+ */
+static void
+plugin_env_session_end (void *cls,
+			const struct GNUNET_PeerIdentity *peer,
+			struct Session *session)
+{
+}
+
+
+/**
+ * Function called whenever the plugin has to notify ATS about costs for using this transport
+ *
+ * The cost will be passed as struct GNUNET_TRANSPORT_ATS_Cost_Information[]
+ * This array is 0-terminated, so the last element will be a pair:
+ * ((cost->cost_type==GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR) && cost->cost_value==0))
+ *
+ * @param cls closure
+ * @param peer peer
+ * @param addr peer address
+ * @param addrlen address length
+ * @param cost pointer to the first element of struct GNUNET_TRANSPORT_ATS_Cost_Information[]
+ */
+static void 
+plugin_env_cost_notification (void *cls,
+			      const struct GNUNET_PeerIdentity *peer,
+			      const void *addr,
+			      uint16_t addrlen,
+			      struct GNUNET_TRANSPORT_ATS_Information * cost)
+{
 }
 
 
@@ -216,11 +301,10 @@ run (void *cls,
   /* start subsystems */
   GST_hello_start (&process_hello_update, NULL);
   GST_blacklist_start (server);
-  GST_plugins_load (NULL,  // FIXME...
+  GST_plugins_load (&plugin_env_receive_callback,
 		    &plugin_env_address_change_notification, 
-		    NULL, // FIXME...
-		    NULL, // FIXME...
-		    NULL); // FIXME...
+		    &plugin_env_session_end,
+		    &plugin_env_cost_notification);
   GST_ats = GNUNET_ATS_init (GST_cfg,
 			  NULL, // FIXME...
 			  NULL); // FIXME...
