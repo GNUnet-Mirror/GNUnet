@@ -354,11 +354,6 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-#if 0
-  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    {NULL, NULL, 0, 0}
-  };
-#endif
   char *keyfile;
 
   /* setup globals */

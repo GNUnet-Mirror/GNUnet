@@ -326,29 +326,6 @@ client_disconnect_notification (void *cls,
 
 
 /**
- * Start handling requests from clients.
- *
- * @param server server used to accept clients from.
- */
-void 
-GST_clients_start (struct GNUNET_SERVER_Handle *server)
-{
-  GNUNET_SERVER_disconnect_notify (server,
-                                   &client_disconnect_notification, NULL);
-}
-
-
-/**
- * Stop processing clients.
- */
-void
-GST_clients_stop ()
-{
-  /* nothing to do */
-}
-
-
-/**
  * Function called for each of our connected neighbours.  Notify the
  * client about the existing neighbour.
  *
@@ -391,10 +368,10 @@ notify_client_about_neighbour (void *cls,
  * @param client the client
  * @param message the start message that was sent
  */
-void
-GST_clients_handle_start (void *cls,
-			  struct GNUNET_SERVER_Client *client,
-			  const struct GNUNET_MessageHeader *message)
+static void
+clients_handle_start (void *cls,
+		      struct GNUNET_SERVER_Client *client,
+		      const struct GNUNET_MessageHeader *message)
 {
   const struct StartMessage *start;
   struct TransportClient *tc;
@@ -434,10 +411,10 @@ GST_clients_handle_start (void *cls,
  * @param client the client
  * @param message the HELLO message
  */
-void
-GST_clients_handle_hello (void *cls,
-			  struct GNUNET_SERVER_Client *client,
-			  const struct GNUNET_MessageHeader *message)
+static void
+clients_handle_hello (void *cls,
+		      struct GNUNET_SERVER_Client *client,
+		      const struct GNUNET_MessageHeader *message)
 {
   GST_validation_handle_hello (message);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -493,10 +470,10 @@ handle_send_transmit_continuation (void *cls,
  * @param client the client
  * @param message the send message that was sent
  */
-void
-GST_clients_handle_send (void *cls,
-			 struct GNUNET_SERVER_Client *client,
-			 const struct GNUNET_MessageHeader *message)
+static void
+clients_handle_send (void *cls,
+		     struct GNUNET_SERVER_Client *client,
+		     const struct GNUNET_MessageHeader *message)
 {
   const struct OutboundMessage *obm;
   const struct GNUNET_MessageHeader *obmm;
@@ -563,10 +540,10 @@ GST_clients_handle_send (void *cls,
  * @param client the client
  * @param message the quota changing message
  */
-void
-GST_clients_handle_set_quota (void *cls,
-			      struct GNUNET_SERVER_Client *client,
-			      const struct GNUNET_MessageHeader *message)
+static void
+clients_handle_set_quota (void *cls,
+			  struct GNUNET_SERVER_Client *client,
+			  const struct GNUNET_MessageHeader *message)
 {
   const struct QuotaSetMessage *qsm;
 
@@ -622,10 +599,10 @@ transmit_address_to_client (void *cls,
  * @param client the client
  * @param message the resolution request
  */
-void
-GST_clients_handle_address_lookup (void *cls,
-				   struct GNUNET_SERVER_Client *client,
-				   const struct GNUNET_MessageHeader *message)
+static void
+clients_handle_address_lookup (void *cls,
+			       struct GNUNET_SERVER_Client *client,
+			       const struct GNUNET_MessageHeader *message)
 {
   const struct AddressLookupMessage *alum;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
@@ -734,10 +711,10 @@ send_address_to_client (void *cls,
  * @param client the client
  * @param message the peer address information request
  */
-void
-GST_clients_handle_peer_address_lookup (void *cls,
-					struct GNUNET_SERVER_Client *client,
-					const struct GNUNET_MessageHeader *message)
+static void
+clients_handle_peer_address_lookup (void *cls,
+				    struct GNUNET_SERVER_Client *client,
+				    const struct GNUNET_MessageHeader *message)
 {
   const struct PeerAddressLookupMessage *peer_address_lookup;
   struct GNUNET_SERVER_TransmitContext *tc;
@@ -791,10 +768,10 @@ output_addresses (void *cls,
  * @param client the client
  * @param message the peer address information request
  */
-void
-GST_clients_handle_address_iterate (void *cls,
-				    struct GNUNET_SERVER_Client *client,
-				    const struct GNUNET_MessageHeader *message)
+static void
+clients_handle_address_iterate (void *cls,
+				struct GNUNET_SERVER_Client *client,
+				const struct GNUNET_MessageHeader *message)
 { 
   struct GNUNET_SERVER_TransmitContext *tc;
 
@@ -805,6 +782,40 @@ GST_clients_handle_address_iterate (void *cls,
   GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
                                               GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_REPLY);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
+}
+
+
+/**
+ * Start handling requests from clients.
+ *
+ * @param server server used to accept clients from.
+ */
+void 
+GST_clients_start (struct GNUNET_SERVER_Handle *server)
+{
+  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
+    { &clients_handle_start, NULL, sizeof (struct StartMessage)},
+    { &clients_handle_hello, NULL, 0},
+    { &clients_handle_send,  NULL, 0},
+    { &clients_handle_set_quota, NULL, sizeof (struct QuotaSetMessage)},
+    { &clients_handle_address_lookup, NULL, 0},
+    { &clients_handle_peer_address_lookup, NULL, sizeof (struct PeerAddressLookupMessage)},
+    { &clients_handle_address_iterate, NULL, sizeof (struct GNUNET_MessageHeader)},
+    {NULL, NULL, 0, 0}
+  };
+  GNUNET_SERVER_add_handlers (server, handlers);
+  GNUNET_SERVER_disconnect_notify (server,
+                                   &client_disconnect_notification, NULL);
+}
+
+
+/**
+ * Stop processing clients.
+ */
+void
+GST_clients_stop ()
+{
+  /* nothing to do */
 }
 
 
