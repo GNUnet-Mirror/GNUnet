@@ -32,6 +32,14 @@
 
 
 /**
+ * After how long do we expire an address in a HELLO that we just
+ * validated?  This value is also used for our own addresses when we
+ * create a HELLO.
+ */
+#define GST_HELLO_ADDRESS_EXPIRATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 12)
+
+
+/**
  * Signature of a function to call whenever our hello changes.
  *
  * @param cls closure

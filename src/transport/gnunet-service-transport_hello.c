@@ -31,12 +31,6 @@
 #include "gnunet-service-transport.h"
 #include "gnunet-service-transport_plugins.h"
 
-/**
- * After how long do we expire an address in a HELLO that we just
- * validated?  This value is also used for our own addresses when we
- * create a HELLO.
- */
-#define HELLO_ADDRESS_EXPIRATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 12)
 
 /**
  * How often do we refresh our HELLO (due to expiration concerns)?
@@ -172,7 +166,7 @@ refresh_hello_task (void *cls,
 
   hello_task = GNUNET_SCHEDULER_NO_TASK;
   gc.addr_pos = oal_head;
-  gc.expiration = GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
+  gc.expiration = GNUNET_TIME_relative_to_absolute (GST_HELLO_ADDRESS_EXPIRATION);
   GNUNET_free (our_hello);
   our_hello = GNUNET_HELLO_create (&GST_my_public_key, 
 				   &address_generator, 

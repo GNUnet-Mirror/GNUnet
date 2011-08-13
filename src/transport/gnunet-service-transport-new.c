@@ -77,6 +77,30 @@ struct GNUNET_ATS_Handle *GST_ats;
 
 
 /**
+ * Transmit our HELLO message to the given (connected) neighbour.
+ *
+ * @param cls the 'HELLO' message
+ * @param target a connected neighbour
+ * @param ats performance information (unused)
+ * @param ats_count number of records in ats (unused)
+ */
+static void
+transmit_our_hello (void *cls,
+		    const struct GNUNET_PeerIdentity *target,
+		    const struct GNUNET_TRANSPORT_ATS_Information *ats, 
+		    uint32_t ats_count)
+{
+  const struct GNUNET_MessageHeader *hello = cls;
+
+  GST_neighbours_send (target,
+		       (const char*) hello,
+		       ntohs (hello->size),
+		       GST_HELLO_ADDRESS_EXPIRATION,
+		       NULL, NULL);
+}
+
+
+/**
  * My HELLO has changed. Tell everyone who should know.
  *
  * @param cls unused
@@ -87,12 +111,8 @@ process_hello_update (void *cls,
 		      const struct GNUNET_MessageHeader *hello)
 {
   GST_clients_broadcast (hello, GNUNET_NO);
-  GNUNET_break (0); // FIXME
-#if 0
-  GNUNET_CONTAINER_multihashmap_iterate (neighbours,
-					 &transmit_our_hello_if_pong,
-					 NULL);
-#endif
+  GST_neighbours_iterate (&transmit_our_hello,
+			  (void*) hello);
 }
 
 
