@@ -86,6 +86,7 @@ process_hello_update (void *cls,
 		      const struct GNUNET_MessageHeader *hello)
 {
   GST_clients_broadcast (hello, GNUNET_NO);
+  GNUNET_break (0); // FIXME
 #if 0
   GNUNET_CONTAINER_multihashmap_iterate (neighbours,
 					 &transmit_our_hello_if_pong,
@@ -131,6 +132,7 @@ plugin_env_receive_callback (void *cls,
 			     const char *sender_address,
 			     uint16_t sender_address_len)
 {
+  GNUNET_break (0); // FIXME
   return GNUNET_TIME_UNIT_ZERO;
 }
 
@@ -179,6 +181,69 @@ plugin_env_session_end (void *cls,
 			const struct GNUNET_PeerIdentity *peer,
 			struct Session *session)
 {
+  GNUNET_break (0); // FIXME
+}
+
+
+/**
+ * Function called by ATS to notify the callee that the
+ * assigned bandwidth or address for a given peer was changed.  If the
+ * callback is called with address/bandwidth assignments of zero, the
+ * ATS disconnect function will still be called once the disconnect 
+ * actually happened.
+ *
+ * @param cls closure
+ * @param peer identity of the peer
+ * @param plugin_name name of the transport plugin, NULL to disconnect
+ * @param session session to use (if available)
+ * @param plugin_addr address to use (if available)
+ * @param plugin_addr_len number of bytes in addr
+ * @param bandwidth assigned outbound bandwidth for the connection
+ */
+static void 
+ats_request_address_change (void *cls,
+			    const struct GNUNET_PeerIdentity *peer,
+			    const char *plugin_name,
+			    struct Session *session,
+			    const void *plugin_addr,
+			    size_t plugin_addr_len,
+			    struct GNUNET_BANDWIDTH_Value32NBO bandwidth)
+{
+  GNUNET_break (0); // FIXME
+}
+
+
+/**
+ * Function called to notify transport users that another
+ * peer connected to us.
+ *
+ * @param cls closure
+ * @param peer the peer that connected
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
+ */
+static void
+neighbours_connect_notification (void *cls,
+				 const struct GNUNET_PeerIdentity * peer,
+				 const struct GNUNET_TRANSPORT_ATS_Information *ats,
+				 uint32_t ats_count)
+{
+  GNUNET_break (0); // FIXME
+}
+
+
+/**
+ * Function called to notify transport users that another
+ * peer disconnected from us.
+ *
+ * @param cls closure
+ * @param peer the peer that disconnected
+ */
+static void
+neighbours_disconnect_notification (void *cls,
+				    const struct GNUNET_PeerIdentity *peer)
+{
+  GNUNET_break (0); // FIXME
 }
 
 
@@ -282,11 +347,11 @@ run (void *cls,
 		    &plugin_env_address_change_notification, 
 		    &plugin_env_session_end);
   GST_ats = GNUNET_ATS_init (GST_cfg,
-			  NULL, // FIXME...
-			  NULL); // FIXME...
-  GST_neighbours_start (NULL, // FIXME...
-			NULL, // FIXME...
-			NULL); // FIXME...
+			     &ats_request_address_change, 
+			     NULL);
+  GST_neighbours_start (NULL,
+			&neighbours_connect_notification,
+			&neighbours_disconnect_notification);
   GST_clients_start (server);
   GST_validation_start ();
 }
