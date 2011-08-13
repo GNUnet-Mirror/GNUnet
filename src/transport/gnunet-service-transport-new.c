@@ -183,29 +183,6 @@ plugin_env_session_end (void *cls,
 
 
 /**
- * Function called whenever the plugin has to notify ATS about costs for using this transport
- *
- * The cost will be passed as struct GNUNET_TRANSPORT_ATS_Cost_Information[]
- * This array is 0-terminated, so the last element will be a pair:
- * ((cost->cost_type==GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR) && cost->cost_value==0))
- *
- * @param cls closure
- * @param peer peer
- * @param addr peer address
- * @param addrlen address length
- * @param cost pointer to the first element of struct GNUNET_TRANSPORT_ATS_Cost_Information[]
- */
-static void 
-plugin_env_cost_notification (void *cls,
-			      const struct GNUNET_PeerIdentity *peer,
-			      const void *addr,
-			      uint16_t addrlen,
-			      struct GNUNET_TRANSPORT_ATS_Information * cost)
-{
-}
-
-
-/**
  * Function called when the service shuts down.  Unloads our plugins
  * and cancels pending validations.
  *
@@ -303,8 +280,7 @@ run (void *cls,
   GST_blacklist_start (server);
   GST_plugins_load (&plugin_env_receive_callback,
 		    &plugin_env_address_change_notification, 
-		    &plugin_env_session_end,
-		    &plugin_env_cost_notification);
+		    &plugin_env_session_end);
   GST_ats = GNUNET_ATS_init (GST_cfg,
 			  NULL, // FIXME...
 			  NULL); // FIXME...

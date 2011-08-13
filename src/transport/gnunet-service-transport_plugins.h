@@ -40,15 +40,12 @@
  *
  * @param recv_cb function to call when data is received
  * @param address_cb function to call when our public addresses changed
- * @param traffic_cb function to call for flow control
  * @param session_end_cb function to call when a session was terminated
- * @param cost_cb function to call about ATS cost changes
  */
 void 
 GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
 		  GNUNET_TRANSPORT_AddressNotification address_cb,
-		  GNUNET_TRANSPORT_SessionEnd session_end_cb,
-		  GNUNET_TRANSPORT_CostReport cost_cb);
+		  GNUNET_TRANSPORT_SessionEnd session_end_cb);
 
 
 /**

@@ -159,26 +159,6 @@ typedef struct GNUNET_TIME_Relative (*GNUNET_TRANSPORT_TrafficReport) (void *cls
 
 
 /**
- * Function called whenever the plugin has to notify ATS about costs for using this transport
- *
- * The cost will be passed as struct GNUNET_TRANSPORT_ATS_Cost_Information[]
- * This array is 0-terminated, so the last element will be a pair:
- * ((cost->cost_type==GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR) && cost->cost_value==0))
- *
- * @param cls closure
- * @param peer peer
- * @param addr peer address
- * @param addrlen address length
- * @param cost pointer to the first element of struct GNUNET_TRANSPORT_ATS_Cost_Information[]
- */
-typedef void (*GNUNET_TRANSPORT_CostReport) (void *cls,
-					     const struct GNUNET_PeerIdentity *peer,
-                                             const void *addr,
-                                             uint16_t addrlen,
-					     struct GNUNET_TRANSPORT_ATS_Information * cost);
-
-
-/**
  * Function that returns a HELLO message.
  */ 
 typedef const struct GNUNET_MessageHeader * (*GNUNET_TRANSPORT_GetHelloCallback)(void);
@@ -235,11 +215,6 @@ struct GNUNET_TRANSPORT_PluginEnvironment
    * session handle stops being valid (is destroyed).
    */
   GNUNET_TRANSPORT_SessionEnd session_end;
-
-  /**
-   * Inform service about costs for using this transport plugin
-   */
-  GNUNET_TRANSPORT_CostReport cost_report;
 
   /**
    * What is the maximum number of connections that this transport
