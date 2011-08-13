@@ -22,6 +22,12 @@
  * @brief automatic transport selection API
  * @author Christian Grothoff
  * @author Matthias Wachs
+ *
+ * TODO:
+ * - extend API to get performance data
+ * - implement simplistic strategy based on say 'lowest latency' or strict ordering
+ * - extend API to get peer preferences, implement proportional bandwidth assignment
+ * - re-implement API against a real ATS service (!)
  */
 #include "platform.h"
 #include "gnunet_ats_service.h"
