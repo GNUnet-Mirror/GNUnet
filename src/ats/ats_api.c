@@ -81,7 +81,7 @@ struct AllocationRecord
 
 
 /**
- * Opaque handle to stop incremental validation address callbacks.
+ * Opaque handle to obtain address suggestions.
  */
 struct GNUNET_ATS_SuggestionContext
 {
@@ -291,11 +291,19 @@ suggest_address (void *cls,
 		 const GNUNET_HashCode *key,
 		 void *value)
 {
-  struct GNUNET_ATS_SuggestionContest *asc = cls;
+  struct GNUNET_ATS_SuggestionContext *asc = cls;
   struct AllocationRecord *ar = value;
-
-  // FIXME...
-  return GNUNET_YES;
+  
+  /* trivial strategy: pick first available address... */
+  asc->cb (asc->cb_cls,
+	   &asc->target,
+	   ar->plugin_name,
+	   ar->plugin_addr,
+	   ar->plugin_addr_len,
+	   GNUNET_BANDWIDTH_value_init (asc->atc->total_bps / 32),
+	   ar->ats, ar->ats_count);
+  asc->cb = NULL;
+  return GNUNET_NO;
 }
 
 
@@ -728,6 +736,7 @@ notify_valid (void *cls,
 	   ar->plugin_addr_len,
 	   GNUNET_BANDWIDTH_value_init (asc->atc->total_bps / 32),
 	   ar->ats, ar->ats_count);
+  GNUNET_ATS_suggest_address_cancel (asc);
   return GNUNET_OK;
 }
 
