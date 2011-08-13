@@ -165,7 +165,7 @@ GNUNET_xrealloc_ (void *ptr,
   mem_used = mem_used - *((size_t *) ptr) + n;
 #endif
   ptr = realloc (ptr, n);
-  if (!ptr)
+  if ( (NULL == ptr) && (n > 0) )
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "realloc");
       abort ();
