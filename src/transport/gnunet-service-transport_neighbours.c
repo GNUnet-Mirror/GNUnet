@@ -514,13 +514,35 @@ GST_neighbours_stop ()
 
 
 /**
+ * A session was terminated. Take note.
+ *
+ * @param peer identity of the peer where the session died
+ * @param session session that is gone
+ */
+void
+GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
+				   struct Session *session)
+{
+  struct NeighbourMapEntry *n;
+
+  n = lookup_neighbour (peer);
+  if (NULL == n)
+    return;
+  if (session == n->session)
+    n->session = NULL;
+}
+
+
+/**
  * For an existing neighbour record, set the active connection to
  * the given address.
  *
+ * @param peer identity of the peer to switch the address for
  * @param plugin_name name of transport that delivered the PONG
  * @param address address of the other peer, NULL if other peer
  *                       connected to us
  * @param address_len number of bytes in address
+ * @param session session to use (or NULL)
  * @param ats performance data
  * @param ats_count number of entries in ats (excluding 0-termination)
  */

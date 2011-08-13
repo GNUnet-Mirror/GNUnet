@@ -36,6 +36,7 @@
 #include "gnunet-service-transport_neighbours.h"
 #include "gnunet-service-transport_plugins.h"
 #include "gnunet-service-transport_validation.h"
+#include "transport.h"
 
 /* globals */
 
@@ -101,11 +102,12 @@ process_hello_update (void *cls,
  * This function should also be called with "NULL" for the
  * message to signal that the other peer disconnected.
  *
- * @param cls closure
+ * @param cls closure, const char* with the name of the plugin we received the message from
  * @param peer (claimed) identity of the other peer
  * @param message the message, NULL if we only care about
  *                learning about the delay until we should receive again -- FIXME!
- * @param distance in overlay hops; use 1 unless DV (or 0 if message == NULL)
+ * @param ats performance information
+ * @param ats_count number of records in ats
  * @param session identifier used for this session (NULL for plugins
  *                that do not offer bi-directional communication to the sender
  *                using the same "connection")
@@ -120,20 +122,29 @@ process_hello_update (void *cls,
  */
 static struct GNUNET_TIME_Relative 
 plugin_env_receive_callback (void *cls,
-			     const struct
-			     GNUNET_PeerIdentity *
-			     peer,
-			     const struct
-			     GNUNET_MessageHeader *
-			     message,
-			     const struct GNUNET_TRANSPORT_ATS_Information *ats,
-			     uint32_t ats_count,
+			     const struct GNUNET_PeerIdentity *peer,
+			     const struct GNUNET_MessageHeader *message,
+			     const struct GNUNET_TRANSPORT_ATS_Information *ats, uint32_t ats_count,
 			     struct Session *session,
 			     const char *sender_address,
 			     uint16_t sender_address_len)
 {
-  GNUNET_break (0); // FIXME
-  return GNUNET_TIME_UNIT_ZERO;
+  const char *plugin_name = cls;
+			       
+  if (NULL != message)
+    GST_clients_broadcast (message, GNUNET_YES);
+  GNUNET_ATS_address_update (GST_ats,
+			     peer,
+			     GNUNET_TIME_absolute_get (), /* valid at least until right now... */
+			     plugin_name,
+			     session,
+			     sender_address,
+			     sender_address_len,
+			     ats, ats_count);
+  return GST_neighbours_calculate_receive_delay (peer,
+						 (message == NULL) 
+						 ? 0 
+						 : ntohs (message->size));
 }
 
 
@@ -181,7 +192,8 @@ plugin_env_session_end (void *cls,
 			const struct GNUNET_PeerIdentity *peer,
 			struct Session *session)
 {
-  GNUNET_break (0); // FIXME
+  GST_neighbours_session_terminated (peer, 
+				     session);
 }
 
 
@@ -209,7 +221,14 @@ ats_request_address_change (void *cls,
 			    size_t plugin_addr_len,
 			    struct GNUNET_BANDWIDTH_Value32NBO bandwidth)
 {
-  GNUNET_break (0); // FIXME
+  GST_neighbours_switch_to_address (peer, 
+				    plugin_name,
+				    plugin_addr,
+				    plugin_addr_len,
+				    session,
+				    NULL, 0);
+  GST_neighbours_set_incoming_quota (peer,
+				     bandwidth);
 }
 
 
@@ -228,7 +247,19 @@ neighbours_connect_notification (void *cls,
 				 const struct GNUNET_TRANSPORT_ATS_Information *ats,
 				 uint32_t ats_count)
 {
-  GNUNET_break (0); // FIXME
+  char buf[sizeof(struct ConnectInfoMessage) + ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information)];
+  struct ConnectInfoMessage *connect_msg = (struct ConnectInfoMessage*) buf;
+  struct GNUNET_TRANSPORT_ATS_Information *atsm = &connect_msg->ats;
+
+  connect_msg->header.size = htons (sizeof (buf));
+  connect_msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
+  connect_msg->ats_count = htonl (ats_count);
+  connect_msg->id = *peer;
+  memcpy (&connect_msg->ats, ats, ats_count * sizeof (struct GNUNET_TRANSPORT_ATS_Information));
+  atsm[ats_count].type = htonl (GNUNET_TRANSPORT_ATS_ARRAY_TERMINATOR);
+  atsm[ats_count].value = htonl (0);
+  GST_clients_broadcast (&connect_msg->header,
+			 GNUNET_NO);
 }
 
 
@@ -243,7 +274,14 @@ static void
 neighbours_disconnect_notification (void *cls,
 				    const struct GNUNET_PeerIdentity *peer)
 {
-  GNUNET_break (0); // FIXME
+  struct DisconnectInfoMessage disconnect_msg;
+
+  disconnect_msg.header.size = htons (sizeof (struct DisconnectInfoMessage));
+  disconnect_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT);
+  disconnect_msg.reserved = htonl (0);
+  disconnect_msg.peer = *peer;
+  GST_clients_broadcast (&disconnect_msg.header,
+			 GNUNET_NO);
 }
 
 

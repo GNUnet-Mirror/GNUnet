@@ -164,13 +164,26 @@ GST_neighbours_iterate (GST_NeighbourIterator cb,
 
 
 /**
+ * A session was terminated. Take note.
+ *
+ * @param peer identity of the peer where the session died
+ * @param session session that is gone
+ */
+void
+GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
+				   struct Session *session);
+
+
+/**
  * For an existing neighbour record, set the active connection to
  * use the given address.
  *
+ * @param peer identity of the peer to switch the address for
  * @param plugin_name name of transport that delivered the PONG
  * @param address address of the other peer, NULL if other peer
  *                       connected to us
  * @param address_len number of bytes in address
+ * @param session session to use (or NULL)
  * @param ats performance data
  * @param ats_count number of entries in ats (excluding 0-termination)
  */
