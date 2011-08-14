@@ -705,6 +705,10 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_DHT_MALICIOUS_DROP  156
 
+/*******************************************************************************
+ * HOSTLIST message types 
+ ******************************************************************************/
+
 /**
  * Hostlist advertisement message
  */
