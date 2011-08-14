@@ -39,7 +39,7 @@
 /**
  * Context we use when performing a blacklist check.
  */
-struct BlacklistCheck;
+struct GST_BlacklistCheck;
 
 
 /**
@@ -64,9 +64,15 @@ struct Blacklisters
   struct GNUNET_SERVER_Client *client;
 
   /**
-   * Blacklist check that we're currently performing.
+   * Blacklist check that we're currently performing (or NULL
+   * if we're performing one that has been cancelled).
    */
-  struct BlacklistCheck *bc;
+  struct GST_BlacklistCheck *bc;
+
+  /**
+   * Set to GNUNET_YES if we're currently waiting for a reply.
+   */
+  int waiting_for_reply;
 
 };
 
@@ -75,18 +81,18 @@ struct Blacklisters
 /**
  * Context we use when performing a blacklist check.
  */
-struct BlacklistCheck
+struct GST_BlacklistCheck
 {
 
   /**
    * This is a linked list.
    */
-  struct BlacklistCheck *next;
+  struct GST_BlacklistCheck *next;
 
   /**
    * This is a linked list.
    */
-  struct BlacklistCheck *prev;
+  struct GST_BlacklistCheck *prev;
 
   /**
    * Peer being checked.
@@ -125,12 +131,12 @@ struct BlacklistCheck
 /**
  * Head of DLL of active blacklisting queries.
  */
-static struct BlacklistCheck *bc_head;
+static struct GST_BlacklistCheck *bc_head;
 
 /**
  * Tail of DLL of active blacklisting queries.
  */
-static struct BlacklistCheck *bc_tail;
+static struct GST_BlacklistCheck *bc_tail;
 
 /**
  * Head of DLL of blacklisting clients.
@@ -172,7 +178,7 @@ client_disconnect_notification (void *cls,
                                 struct GNUNET_SERVER_Client *client)
 {
   struct Blacklisters *bl;
-  struct BlacklistCheck *bc;
+  struct GST_BlacklistCheck *bc;
 
   if (client == NULL)
     return;
@@ -435,7 +441,7 @@ GST_blacklist_stop ()
 /**
  * Transmit blacklist query to the client.
  *
- * @param cls the 'struct BlacklistCheck'
+ * @param cls the 'struct GST_BlacklistCheck'
  * @param size number of bytes allowed
  * @param buf where to copy the message
  * @return number of bytes copied to buf
@@ -445,7 +451,7 @@ transmit_blacklist_message (void *cls,
 			    size_t size,
 			    void *buf)
 {
-  struct BlacklistCheck *bc = cls;
+  struct GST_BlacklistCheck *bc = cls;
   struct Blacklisters *bl;
   struct BlacklistMessage bm;
 
@@ -472,6 +478,7 @@ transmit_blacklist_message (void *cls,
   bm.peer = bc->peer;
   memcpy (buf, &bm, sizeof (bm));
   GNUNET_SERVER_receive_done (bl->client, GNUNET_OK);
+  bl->waiting_for_reply = GNUNET_YES;
   return sizeof (bm);
 }
 
@@ -479,14 +486,14 @@ transmit_blacklist_message (void *cls,
 /**
  * Perform next action in the blacklist check.
  *
- * @param cls the 'struct BlacklistCheck*'
+ * @param cls the 'struct GST_BlacklistCheck*'
  * @param tc unused
  */
 static void
 do_blacklist_check (void *cls,
 		    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct BlacklistCheck *bc = cls;
+  struct GST_BlacklistCheck *bc = cls;
   struct Blacklisters *bl;
 
   bc->task = GNUNET_SCHEDULER_NO_TASK;
@@ -504,7 +511,8 @@ do_blacklist_check (void *cls,
       GNUNET_free (bc);
       return;
     }
-  if (bl->bc != NULL)
+  if ( (bl->bc != NULL) ||
+       (bl->waiting_for_reply != GNUNET_NO) )
     return; /* someone else busy with this client */
   bl->bc = bc;
   bc->th = GNUNET_SERVER_notify_transmit_ready (bl->client,
@@ -572,9 +580,9 @@ test_connection_ok (void *cls,
 		    uint32_t ats_count)
 {
   struct TestConnectionContext *tcc = cls;
-  struct BlacklistCheck *bc;
+  struct GST_BlacklistCheck *bc;
 
-  bc = GNUNET_malloc (sizeof (struct BlacklistCheck));
+  bc = GNUNET_malloc (sizeof (struct GST_BlacklistCheck));
   GNUNET_CONTAINER_DLL_insert (bc_head, bc_tail, bc);
   bc->peer = *neighbour;
   bc->cont = &confirm_or_drop_neighbour;
@@ -647,7 +655,7 @@ GST_blacklist_handle_reply (void *cls,
 {
   const struct BlacklistMessage *msg = (const struct BlacklistMessage*) message;
   struct Blacklisters *bl;
-  struct BlacklistCheck *bc;
+  struct GST_BlacklistCheck *bc;
 
   bl = bl_head;
   while ( (bl != NULL) &&
@@ -665,36 +673,42 @@ GST_blacklist_handle_reply (void *cls,
     }
   bc = bl->bc;
   bl->bc = NULL;
-  if (ntohl (msg->is_allowed) == GNUNET_SYSERR)
+  bl->waiting_for_reply = GNUNET_NO;
+  if (NULL != bc)
     {
+      /* only run this if the blacklist check has not been 
+	 cancelled in the meantime... */
+      if (ntohl (msg->is_allowed) == GNUNET_SYSERR)
+	{
 #if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Blacklist check failed, peer not allowed\n");
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Blacklist check failed, peer not allowed\n");
 #endif
-      bc->cont (bc->cont_cls, &bc->peer, GNUNET_NO);
-      GNUNET_CONTAINER_DLL_remove (bc_head, bc_tail, bc);
-      GNUNET_free (bc);
-    }
-  else
-    {
+	  bc->cont (bc->cont_cls, &bc->peer, GNUNET_NO);
+	  GNUNET_CONTAINER_DLL_remove (bc_head, bc_tail, bc);
+	  GNUNET_free (bc);
+	}
+      else
+	{
 #if DEBUG_TRANSPORT
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Blacklist check succeeded, continuing with checks\n");
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Blacklist check succeeded, continuing with checks\n");
 #endif
-      bc->bl_pos = bc->bl_pos->next;
-      bc->task = GNUNET_SCHEDULER_add_now (&do_blacklist_check,
-					   bc);
+	  bc->bl_pos = bc->bl_pos->next;
+	  bc->task = GNUNET_SCHEDULER_add_now (&do_blacklist_check,
+					       bc);
+	}
     }
   /* check if any other bc's are waiting for this blacklister */
   bc = bc_head;
-  while (bc != NULL)
-    {
-      if ( (bc->bl_pos == bl) &&
-	   (GNUNET_SCHEDULER_NO_TASK == bc->task) )
+  for (bc = bc_head; bc != NULL; bc = bc->next)
+    if ( (bc->bl_pos == bl) &&
+	 (GNUNET_SCHEDULER_NO_TASK == bc->task) )
+      {
 	bc->task = GNUNET_SCHEDULER_add_now (&do_blacklist_check,
 					     bc);
-      bc = bc->next;
-    }
+	break;
+      }
 }
 
 
@@ -754,14 +768,15 @@ test_blacklisted (void *cls,
  * @param transport_name name of the transport to test, never NULL
  * @param cont function to call with result
  * @param cont_cls closure for 'cont'
+ * @return handle to the blacklist check
  */
-void
+struct GST_BlacklistCheck *
 GST_blacklist_test_allowed (const struct GNUNET_PeerIdentity *peer,
 			    const char *transport_name,
 			    GST_BlacklistTestContinuation cont,
 			    void *cont_cls)
 {
-  struct BlacklistCheck *bc;
+  struct GST_BlacklistCheck *bc;
   
   if ( (blacklist != NULL) &&
        (GNUNET_SYSERR ==
@@ -789,7 +804,7 @@ GST_blacklist_test_allowed (const struct GNUNET_PeerIdentity *peer,
     }
 
   /* need to query blacklist clients */
-  bc = GNUNET_malloc (sizeof (struct BlacklistCheck));
+  bc = GNUNET_malloc (sizeof (struct GST_BlacklistCheck));
   GNUNET_CONTAINER_DLL_insert (bc_head, bc_tail, bc);
   bc->peer = *peer;
   bc->cont = cont;
@@ -797,8 +812,39 @@ GST_blacklist_test_allowed (const struct GNUNET_PeerIdentity *peer,
   bc->bl_pos = bl_head;
   bc->task = GNUNET_SCHEDULER_add_now (&do_blacklist_check,
 				       bc);
+  return bc;
 }
-		    				 
+	    				 
+
+/**
+ * Cancel a blacklist check.
+ * 
+ * @param bc check to cancel
+ */
+void
+GST_blacklist_test_cancel (struct GST_BlacklistCheck *bc)
+{
+  GNUNET_CONTAINER_DLL_remove (bc_head, bc_tail, bc);
+  if (bc->bl_pos != NULL)
+    {
+      if (bc->bl_pos->bc == bc)
+	{
+	  /* we're at the head of the queue, remove us! */
+	  bc->bl_pos->bc = NULL;
+	}
+    }
+  if (GNUNET_SCHEDULER_NO_TASK != bc->task)
+    {
+      GNUNET_SCHEDULER_cancel (bc->task);
+      bc->task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  if (NULL != bc->th)
+    {
+      GNUNET_CONNECTION_notify_transmit_ready_cancel (bc->th);
+      bc->th = NULL;
+    }
+  GNUNET_free (bc);
+}	    				 
 
 
 /* end of file gnunet-service-transport_blacklist.c */

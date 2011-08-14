@@ -178,6 +178,11 @@ struct ValidationEntry
   const void *addr;
 
   /**
+   * Handle to the blacklist check (if we're currently in it).
+   */
+  struct GST_BlacklistCheck *bc;
+
+  /**
    * Public key of the peer.
    */
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;                                                
@@ -483,6 +488,15 @@ cleanup_validation_entry (void *cls,
 {
   struct ValidationEntry *ve = value;
     
+  if (NULL != ve->bc)
+    {
+      GST_blacklist_test_cancel (ve->bc);
+      ve->bc = NULL;
+    }
+  GNUNET_break (GNUNET_OK ==
+                GNUNET_CONTAINER_multihashmap_remove (validation_map,
+						      &va->pid.hashPubKey,
+						      va));
   GNUNET_free (ve->transport_name);
   if (GNUNET_SCHEDULER_NO_TASK != ve->timeout_task)
     {
@@ -528,19 +542,14 @@ static void
 timeout_hello_validation (void *cls, 
 			  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct ValidationEntry *va = cls;
+  struct ValidationEntry *ve = cls;
 
-  va->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  ve->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_STATISTICS_update (GST_stats,
 			    gettext_noop ("# address records discarded"),
 			    1,
 			    GNUNET_NO);
-  GNUNET_break (GNUNET_OK ==
-                GNUNET_CONTAINER_multihashmap_remove (validation_map,
-						      &va->pid.hashPubKey,
-						      va));
-  GNUNET_free (va->transport_name);
-  GNUNET_free (va);
+  cleanup_validation_entry (NULL, &ve->pid.hashPubKey, ve);
 }
 
 
@@ -772,26 +781,19 @@ struct ValidateAddressContext
 
 
 /**
- * Iterator callback to go over all addresses and try to validate them
- * (unless blocked or already validated).
+ * Function called with the result from blacklisting.
+ * Send a PING to the other peer if a communication is allowed.
  *
- * @param cls pointer to a 'struct ValidateAddressContext'
- * @param tname name of the transport
- * @param expiration expiration time
- * @param addr the address
- * @param addrlen length of the address
- * @return GNUNET_OK (keep the address)
+ * @param cls ou r'struct ValidationEntry'
+ * @param pid identity of the other peer
+ * @param result GNUNET_OK if the connection is allowed, GNUNET_NO if not
  */
-static int
-validate_address (void *cls,
-		  const char *tname,
-		  struct GNUNET_TIME_Absolute expiration,
-		  const void *addr, 
-		  uint16_t addrlen)
+static void
+transmit_ping_if_allowed (void *cls,
+			  const struct GNUNET_PeerIdentity *pid,
+			  int result)
 {
-  const struct ValidateAddressContext *vac = cls;
-  const struct GNUNET_PeerIdentity *pid = &vac->pid;
-  struct ValidationEntry *ve;
+  struct ValidationEntry *ve = cls;
   struct TransportPingMessage ping;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   const struct GNUNET_MessageHeader *hello;
@@ -800,20 +802,7 @@ validate_address (void *cls,
   size_t slen;
   uint16_t hsize;
 
-  if (GNUNET_TIME_absolute_get_remaining (expiration).rel_value == 0)
-    return GNUNET_OK; /* expired */
-  ve = find_validation_entry (&vac->public_key, pid, tname, addr, addrlen);
-  if (GNUNET_TIME_absolute_get_remaining (ve->validation_block).rel_value > 0)
-    return GNUNET_OK; /* blocked */
-  if ( (GNUNET_SCHEDULER_NO_TASK != ve->timeout_task) &&
-       (GNUNET_TIME_absolute_get_remaining (ve->valid_until).rel_value > 0) )
-    return GNUNET_OK; /* revalidation task already scheduled & still  valid */
-  ve->validation_block = GNUNET_TIME_relative_to_absolute (HELLO_REVALIDATION_START_TIME);
-  if (GNUNET_SCHEDULER_NO_TASK != ve->timeout_task)
-    GNUNET_SCHEDULER_cancel (ve->timeout_task);
-  ve->timeout_task = GNUNET_SCHEDULER_add_delayed (HELLO_REVALIDATION_START_TIME,
-						   &timeout_hello_validation,
-						   ve);
+  ve->bc = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Transmitting plain PING to `%s'\n",
 	      GNUNET_i2s (pid));  
@@ -872,6 +861,49 @@ validate_address (void *cls,
 				1,
 				GNUNET_NO);
     }
+}
+
+
+/**
+ * Iterator callback to go over all addresses and try to validate them
+ * (unless blocked or already validated).
+ *
+ * @param cls pointer to a 'struct ValidateAddressContext'
+ * @param tname name of the transport
+ * @param expiration expiration time
+ * @param addr the address
+ * @param addrlen length of the address
+ * @return GNUNET_OK (keep the address)
+ */
+static int
+validate_address (void *cls,
+		  const char *tname,
+		  struct GNUNET_TIME_Absolute expiration,
+		  const void *addr, 
+		  uint16_t addrlen)
+{
+  const struct ValidateAddressContext *vac = cls;
+  const struct GNUNET_PeerIdentity *pid = &vac->pid;
+  struct ValidationEntry *ve;
+
+  if (GNUNET_TIME_absolute_get_remaining (expiration).rel_value == 0)
+    return GNUNET_OK; /* expired */
+  ve = find_validation_entry (&vac->public_key, pid, tname, addr, addrlen);
+  if (GNUNET_TIME_absolute_get_remaining (ve->validation_block).rel_value > 0)
+    return GNUNET_OK; /* blocked */
+  if ( (GNUNET_SCHEDULER_NO_TASK != ve->timeout_task) &&
+       (GNUNET_TIME_absolute_get_remaining (ve->valid_until).rel_value > 0) )
+    return GNUNET_OK; /* revalidation task already scheduled & still  valid */  
+  ve->validation_block = GNUNET_TIME_relative_to_absolute (HELLO_REVALIDATION_START_TIME);
+  if (GNUNET_SCHEDULER_NO_TASK != ve->timeout_task)
+    GNUNET_SCHEDULER_cancel (ve->timeout_task);
+  ve->timeout_task = GNUNET_SCHEDULER_add_delayed (HELLO_REVALIDATION_START_TIME,
+						   &timeout_hello_validation,
+						   ve);
+  ve->bc = GST_blacklist_test_allowed (pid,
+				       tname,
+				       &transmit_ping_if_allowed,
+				       ve);
   return GNUNET_OK;
 }
 

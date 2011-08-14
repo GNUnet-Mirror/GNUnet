@@ -71,6 +71,13 @@ lib_LTLIBRARIES = \
  
 libgnunettransporttesting_la_SOURCES = \
 	transport-testing.c
+libgnunettransporttesting_la_LIBADD = \
+  $(top_builddir)/src/transport/libgnunettransport.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL) 
+libgnunettransporttesting_la_DEPENDS = \
+  libgnunettransport.la
 
 libgnunettransport_la_SOURCES = \
   transport_api.c transport.h \

@@ -80,7 +80,13 @@ GST_blacklist_handle_reply (void *cls,
 void
 GST_blacklist_add_peer (const struct GNUNET_PeerIdentity *peer,
 			const char *transport_name);
-							
+
+
+/**
+ * Handle to an active blacklist check.
+ */
+struct GST_BlacklistCheck;	
+						
 
 /**
  * Continuation called from a blacklist test.
@@ -102,14 +108,22 @@ typedef void (*GST_BlacklistTestContinuation)(void *cls,
  * @param transport_name name of the transport to test, never NULL
  * @param cont function to call with result
  * @param cont_cls closure for 'cont'
+ * @return handle to the blacklist check
  */
-void
+struct GST_BlacklistCheck *
 GST_blacklist_test_allowed (const struct GNUNET_PeerIdentity *peer,
 			    const char *transport_name,
 			    GST_BlacklistTestContinuation cont,
 			    void *cont_cls);
 		    				 
 
+/**
+ * Cancel a blacklist check.
+ * 
+ * @param bc check to cancel
+ */
+void
+GST_blacklist_test_cancel (struct GST_BlacklistCheck *bc);
 
 #endif
 /* end of file gnunet-service-transport_blacklist.h */

@@ -24,6 +24,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#include "gnunet-service-transport_blacklist.h"
 #include "gnunet-service-transport_clients.h"
 #include "gnunet-service-transport_hello.h"
 #include "gnunet-service-transport_neighbours.h"
@@ -801,6 +802,8 @@ GST_clients_start (struct GNUNET_SERVER_Handle *server)
     { &clients_handle_address_lookup, NULL, 0},
     { &clients_handle_peer_address_lookup, NULL, sizeof (struct PeerAddressLookupMessage)},
     { &clients_handle_address_iterate, NULL, sizeof (struct GNUNET_MessageHeader)},
+    { &GST_blacklist_handle_init, NULL, sizeof (struct GNUNET_MessageHeader)},
+    { &GST_blacklist_handle_reply, NULL, sizeof (struct BlacklistMessage)},
     {NULL, NULL, 0, 0}
   };
   GNUNET_SERVER_add_handlers (server, handlers);

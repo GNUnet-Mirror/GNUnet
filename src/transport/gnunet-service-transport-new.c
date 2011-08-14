@@ -150,7 +150,8 @@ plugin_env_receive_callback (void *cls,
 			     uint16_t sender_address_len)
 {
   const char *plugin_name = cls;
-			       
+
+  
   if (NULL != message)
     GST_clients_broadcast (message, GNUNET_YES);
   GNUNET_ATS_address_update (GST_ats,
