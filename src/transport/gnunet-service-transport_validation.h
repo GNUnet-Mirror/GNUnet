@@ -71,17 +71,10 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
  *
  * @param sender peer sending the PONG
  * @param hdr the PONG
- * @param plugin_name name of plugin that received the PONG
- * @param sender_address address of the sender as known to the plugin, NULL
- *                       if we did not initiate the connection
- * @param sender_address_len number of bytes in sender_address
  */
 void
 GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
-			    const struct GNUNET_MessageHeader *hdr,
-			    const char *plugin_name,
-			    const void *sender_address,
-			    size_t sender_address_len);
+			    const struct GNUNET_MessageHeader *hdr);
 
 
 /**

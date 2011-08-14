@@ -618,7 +618,6 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
 			    const void *sender_address,
 			    size_t sender_address_len)
 {
-
   const struct TransportPingMessage *ping;
   struct TransportPongMessage *pong;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
@@ -979,17 +978,10 @@ add_valid_peer_address (void *cls,
  *
  * @param sender peer sending the PONG
  * @param hdr the PONG
- * @param plugin_name name of plugin that received the PONG
- * @param sender_address address of the sender as known to the plugin, NULL
- *                       if we did not initiate the connection
- * @param sender_address_len number of bytes in sender_address
  */
 void
 GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
-			    const struct GNUNET_MessageHeader *hdr,
-			    const char *plugin_name,
-			    const void *sender_address,
-			    size_t sender_address_len)
+			    const struct GNUNET_MessageHeader *hdr)
 {
   const struct TransportPongMessage *pong;
   struct ValidationEntry *ve;
@@ -1018,16 +1010,6 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
       GNUNET_break_op (0);
       return;
     }
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-	      "Processing `%s' from `%s'\n",
-	      "PONG",
-	      (sender_address != NULL)
-	      ? GST_plugin_a2s (plugin_name,
-				sender_address,
-				sender_address_len)
-	      : "<inbound>");
-#endif
   addr = (const char*) &pong[1];
   alen = ntohs (hdr->size) - sizeof (struct TransportPongMessage);
   addrend = memchr (addr, '\0', alen);

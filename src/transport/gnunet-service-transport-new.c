@@ -116,6 +116,25 @@ process_hello_update (void *cls,
 }
 
 
+/**
+ * Try to initiate a connection to the given peer if the blacklist
+ * allowed it.
+ *
+ * @param cls closure (unused, NULL)
+ * @param peer identity of peer that was tested
+ * @param result GNUNET_OK if the connection is allowed,
+ *               GNUNET_NO if not
+ */
+static void
+try_connect_if_allowed (void *cls,
+			const struct GNUNET_PeerIdentity *peer,
+			int result)
+{
+  if (GNUNET_OK != result)
+    return; /* not allowed */
+  GST_neighbours_try_connect (peer);
+}
+
 
 /**
  * Function called by the transport for each received message.
@@ -152,17 +171,74 @@ plugin_env_receive_callback (void *cls,
   const char *plugin_name = cls;
   int do_forward;
   struct GNUNET_TIME_Relative ret;
+  uint16_t type;
 
-  do_forward = GNUNET_SYSERR;
-  ret = GST_neighbours_calculate_receive_delay (peer,
-						(message == NULL) 
-						? 0 
-						: ntohs (message->size),
-						&do_forward);
-  /* FIXME: look at the type of the message (PING, PONG, CONNECT, payload...) */
-  if ( (NULL != message) &&
-       (do_forward == GNUNET_YES) )
-    GST_clients_broadcast (message, GNUNET_YES);
+
+  ret = GNUNET_TIME_UNIT_ZERO;
+  if (NULL != message)
+    {
+      type = ntohs (message->type);           
+      switch (type)
+	{
+	case GNUNET_MESSAGE_TYPE_HELLO:
+	  GST_validation_handle_hello (message);
+	  break;
+	case GNUNET_MESSAGE_TYPE_TRANSPORT_PING:
+#if DEBUG_TRANSPORT
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+		      "Processing `%s' from `%s'\n",
+		      "PING",
+		      (sender_address != NULL)
+		      ? GST_plugins_a2s (plugin_name,
+					 sender_address,
+					 sender_address_len)
+		      : "<inbound>");
+#endif
+	  GST_validation_handle_ping (peer, 
+				      message, 
+				      plugin_name,
+				      session,
+				      sender_address, sender_address_len);
+	  break;
+	case GNUNET_MESSAGE_TYPE_TRANSPORT_PONG:
+#if DEBUG_TRANSPORT
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+		      "Processing `%s' from `%s'\n",
+		      "PONG",
+		      (sender_address != NULL)
+		      ? GST_plugins_a2s (plugin_name,
+					 sender_address,
+					 sender_address_len)
+		      : "<inbound>");
+#endif
+	  GST_validation_handle_pong (peer, 
+				      message);
+	  break;
+	case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT:
+	  (void) GST_blacklist_test_allowed (peer, 
+					     NULL,
+					     &try_connect_if_allowed, NULL);
+	  /* TODO: if 'session != NULL', maybe notify ATS that this is now the preferred 
+	     way to communicate with this peer (other peer switched transport) */
+	  break;
+	case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT:
+	  /* TODO: do some validation to prevent an attacker from sending
+	     a fake disconnect message... */
+	  GST_neighbours_force_disconnect (peer);
+	  break;
+	default:   
+	  /* should be payload */
+	  do_forward = GNUNET_SYSERR;
+	  ret = GST_neighbours_calculate_receive_delay (peer,
+							(message == NULL) 
+							? 0 
+							: ntohs (message->size),
+							&do_forward);
+	  if (do_forward == GNUNET_YES)
+	    GST_clients_broadcast (message, GNUNET_YES);
+	  break;
+	}
+    }
   GNUNET_ATS_address_update (GST_ats,
 			     peer,
 			     GNUNET_TIME_absolute_get (), /* valid at least until right now... */
@@ -171,6 +247,7 @@ plugin_env_receive_callback (void *cls,
 			     sender_address,
 			     sender_address_len,
 			     ats, ats_count);
+
   return ret;
 }
 

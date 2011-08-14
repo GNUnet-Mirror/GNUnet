@@ -532,7 +532,6 @@ clients_handle_send (void *cls,
 		       &handle_send_transmit_continuation,
 		       stcc);
 }
-
 			
 
 /**
