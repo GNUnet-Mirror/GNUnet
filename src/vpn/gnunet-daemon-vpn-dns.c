@@ -156,7 +156,7 @@ dns_answer_handler(void* cls __attribute__((unused)), const struct GNUNET_Messag
       }
 
     /* the service did something strange, reconnect immediately */
-    if (msg->type != htons(GNUNET_MESSAGE_TYPE_LOCAL_RESPONSE_DNS))
+    if (msg->type != htons(GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_RESPONSE_DNS))
       {
 	GNUNET_break (0);
 	GNUNET_CLIENT_disconnect(dns_connection, GNUNET_NO);

@@ -341,7 +341,7 @@ udp_from_helper (struct udp_pkt *udp, unsigned char *dadr, size_t addrlen)
   *ctunnel = tunnel;
   msg = (struct GNUNET_MessageHeader*)(ctunnel + 1);
   msg->size = htons (len);
-  msg->type = htons (state->type == SERVICE ? GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK : GNUNET_MESSAGE_TYPE_REMOTE_UDP_BACK);
+  msg->type = htons (state->type == SERVICE ? GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP_BACK : GNUNET_MESSAGE_TYPE_VPN_REMOTE_UDP_BACK);
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (msg + 1);
   if (state->type == SERVICE)
     memcpy (desc, &state->desc, sizeof (GNUNET_HashCode));
@@ -443,7 +443,7 @@ tcp_from_helper (struct tcp_pkt *tcp, unsigned char *dadr, size_t addrlen,
   *ctunnel = tunnel;
   msg = (struct GNUNET_MessageHeader*)(ctunnel + 1);
   msg->size = htons (len);
-  msg->type = htons (state->type == SERVICE ? GNUNET_MESSAGE_TYPE_SERVICE_TCP_BACK : GNUNET_MESSAGE_TYPE_REMOTE_TCP_BACK);
+  msg->type = htons (state->type == SERVICE ? GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP_BACK : GNUNET_MESSAGE_TYPE_VPN_REMOTE_TCP_BACK);
   GNUNET_HashCode *desc = (GNUNET_HashCode *) (msg + 1);
   if (state->type == SERVICE)
     memcpy (desc, &state->desc, sizeof (GNUNET_HashCode));
@@ -1265,8 +1265,8 @@ connect_to_mesh()
   tcp = GNUNET_CONFIGURATION_get_value_yesno(cfg, "exit", "ENABLE_TCP");
 
   static struct GNUNET_MESH_MessageHandler handlers[] = {
-    {receive_udp_service, GNUNET_MESSAGE_TYPE_SERVICE_UDP, 0},
-    {receive_tcp_service, GNUNET_MESSAGE_TYPE_SERVICE_TCP, 0},
+    {receive_udp_service, GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP, 0},
+    {receive_tcp_service, GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP, 0},
     {NULL, 0, 0},
     {NULL, 0, 0},
     {NULL, 0, 0}
@@ -1286,7 +1286,7 @@ connect_to_mesh()
     {
       handlers[handler_idx].callback = receive_udp_remote;
       handlers[handler_idx].expected_size = 0;
-      handlers[handler_idx].type = GNUNET_MESSAGE_TYPE_REMOTE_UDP;
+      handlers[handler_idx].type = GNUNET_MESSAGE_TYPE_VPN_REMOTE_UDP;
       apptypes[app_idx] = GNUNET_APPLICATION_TYPE_INTERNET_UDP_GATEWAY;
       handler_idx++;
       app_idx++;
@@ -1296,7 +1296,7 @@ connect_to_mesh()
     {
       handlers[handler_idx].callback = receive_tcp_remote;
       handlers[handler_idx].expected_size = 0;
-      handlers[handler_idx].type = GNUNET_MESSAGE_TYPE_REMOTE_TCP;
+      handlers[handler_idx].type = GNUNET_MESSAGE_TYPE_VPN_REMOTE_TCP;
       apptypes[app_idx] = GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY;
       handler_idx++;
       app_idx++;

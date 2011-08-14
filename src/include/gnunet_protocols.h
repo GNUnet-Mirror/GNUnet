@@ -759,42 +759,42 @@ extern "C"
 /**
  * Type of messages containing an UDP packet for a service
  */
-#define GNUNET_MESSAGE_TYPE_SERVICE_UDP 186
+#define GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP 186
 
 /**
  * Type of messages containing an UDP packet from a service
  */
-#define GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK 187
+#define GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP_BACK 187
 
 /**
  * Type of messages containing an TCP packet for a service
  */
-#define GNUNET_MESSAGE_TYPE_SERVICE_TCP 188
+#define GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP 188
 
 /**
  * Type of messages containing an TCP packet from a service
  */
-#define GNUNET_MESSAGE_TYPE_SERVICE_TCP_BACK 189
+#define GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP_BACK 189
 
 /**
  * Type of messages containing an UDP packet for a remote host
  */
-#define GNUNET_MESSAGE_TYPE_REMOTE_UDP 190
+#define GNUNET_MESSAGE_TYPE_VPN_REMOTE_UDP 190
 
 /**
  * Type of messages containing an UDP packet from a remote host
  */
-#define GNUNET_MESSAGE_TYPE_REMOTE_UDP_BACK 191
+#define GNUNET_MESSAGE_TYPE_VPN_REMOTE_UDP_BACK 191
 
 /**
  * Type of messages containing an TCP packet for a remote host
  */
-#define GNUNET_MESSAGE_TYPE_REMOTE_TCP 192
+#define GNUNET_MESSAGE_TYPE_VPN_REMOTE_TCP 192
 
 /**
  * Type of messages containing an TCP packet from a remote host
  */
-#define GNUNET_MESSAGE_TYPE_REMOTE_TCP_BACK 193
+#define GNUNET_MESSAGE_TYPE_VPN_REMOTE_TCP_BACK 193
 
 
 /*******************************************************************************
@@ -804,11 +804,11 @@ extern "C"
 /**
  * Type of messages to query the local service-dns
  */
-#define GNUNET_MESSAGE_TYPE_LOCAL_QUERY_DNS 205
+#define GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_QUERY_DNS 205
 /**
  * Type of messages the local service-dns responds with
  */
-#define GNUNET_MESSAGE_TYPE_LOCAL_RESPONSE_DNS 206
+#define GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_RESPONSE_DNS 206
 /**
  * Type of messages to instruct the local service-dns to rehijack the dns
  */
@@ -816,11 +816,11 @@ extern "C"
 /**
  * Type of messages to send a DNS-query to another peer
  */
-#define GNUNET_MESSAGE_TYPE_REMOTE_QUERY_DNS 208
+#define GNUNET_MESSAGE_TYPE_VPN_REMOTE_QUERY_DNS 208
 /**
  * Type of messages to send a DNS-answer to another peer
  */
-#define GNUNET_MESSAGE_TYPE_REMOTE_ANSWER_DNS 209
+#define GNUNET_MESSAGE_TYPE_VPN_REMOTE_ANSWER_DNS 209
 
 
 
@@ -1059,7 +1059,12 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_PEERINFO_NOTIFY 334
 
-
+/*******************************************************************************
+ * TODO: we need a way to register message types centrally (via some webpage).
+ * For now: unofficial extensions should start at 48k, internal extensions
+ * define here should leave some room (4-10 additional messages to the previous
+ * extension).
+ ******************************************************************************/
 
 /**
  * Type used to match 'all' message types.

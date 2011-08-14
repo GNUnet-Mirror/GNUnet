@@ -277,7 +277,7 @@ message_token (void *cls __attribute__((unused)),
                           || testBit (me->additional_ports,
                                       ntohs (pkt6_udp->udp_hdr.dpt))))
                     {
-                      hdr->type = ntohs (GNUNET_MESSAGE_TYPE_SERVICE_UDP);
+                      hdr->type = ntohs (GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP);
 
                       memcpy (hc + 1, &pkt6_udp->udp_hdr,
                               ntohs (pkt6_udp->udp_hdr.len));
@@ -289,7 +289,7 @@ message_token (void *cls __attribute__((unused)),
                            &&
                            (port_in_ports (me->desc.ports, pkt6_tcp->tcp_hdr.dpt)))
                     {
-                      hdr->type = ntohs (GNUNET_MESSAGE_TYPE_SERVICE_TCP);
+                      hdr->type = ntohs (GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP);
 
                       memcpy (hc + 1, &pkt6_tcp->tcp_hdr,
                               ntohs (pkt6->ip6_hdr.paylgth));
@@ -327,7 +327,7 @@ message_token (void *cls __attribute__((unused)),
                   s->proto= pkt6->ip6_hdr.nxthdr;
                   if (s->proto == 0x11)
                     {
-                      hdr->type = htons(GNUNET_MESSAGE_TYPE_REMOTE_UDP);
+                      hdr->type = htons(GNUNET_MESSAGE_TYPE_VPN_REMOTE_UDP);
                       memcpy (hc + 1, &pkt6_udp->udp_hdr,
                               ntohs (pkt6_udp->udp_hdr.len));
                       app_type = GNUNET_APPLICATION_TYPE_INTERNET_UDP_GATEWAY;
@@ -336,7 +336,7 @@ message_token (void *cls __attribute__((unused)),
                     }
                   else if (s->proto == 0x06)
                     {
-                      hdr->type = htons(GNUNET_MESSAGE_TYPE_REMOTE_TCP);
+                      hdr->type = htons(GNUNET_MESSAGE_TYPE_VPN_REMOTE_TCP);
                       memcpy (hc + 1, &pkt6_tcp->tcp_hdr,
                               ntohs (pkt6->ip6_hdr.paylgth));
                       app_type = GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY;
@@ -418,7 +418,7 @@ message_token (void *cls __attribute__((unused)),
 
           struct query_packet_list *query =
             GNUNET_malloc (len + 2 * sizeof (struct query_packet_list *));
-          query->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_LOCAL_QUERY_DNS);
+          query->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_QUERY_DNS);
           query->pkt.hdr.size = htons (len);
           query->pkt.orig_to = pkt->ip_hdr.dadr;
           query->pkt.orig_from = pkt->ip_hdr.sadr;
@@ -487,7 +487,7 @@ message_token (void *cls __attribute__((unused)),
                               || testBit (me->additional_ports,
                                           ntohs (pkt_udp->udp_hdr.dpt))))
                         {
-                          hdr->type = ntohs (GNUNET_MESSAGE_TYPE_SERVICE_UDP);
+                          hdr->type = ntohs (GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP);
 
                           memcpy (hc + 1, &pkt_udp->udp_hdr,
                                   ntohs (pkt_udp->udp_hdr.len));
@@ -499,7 +499,7 @@ message_token (void *cls __attribute__((unused)),
                                &&
                                (port_in_ports (me->desc.ports, pkt_tcp->tcp_hdr.dpt)))
                         {
-                          hdr->type = ntohs (GNUNET_MESSAGE_TYPE_SERVICE_TCP);
+                          hdr->type = ntohs (GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP);
 
                           memcpy (hc + 1, &pkt_tcp->tcp_hdr,
                                   ntohs (pkt->ip_hdr.tot_lngth) - 4*pkt->ip_hdr.hdr_lngth);
@@ -537,14 +537,14 @@ message_token (void *cls __attribute__((unused)),
                       s->proto= pkt->ip_hdr.proto;
                       if (s->proto == 0x11)
                         {
-                          hdr->type = htons(GNUNET_MESSAGE_TYPE_REMOTE_UDP);
+                          hdr->type = htons(GNUNET_MESSAGE_TYPE_VPN_REMOTE_UDP);
                           memcpy (hc + 1, &pkt_udp->udp_hdr,
                                   ntohs (pkt_udp->udp_hdr.len));
                           app_type = GNUNET_APPLICATION_TYPE_INTERNET_UDP_GATEWAY;
                         }
                       else if (s->proto == 0x06)
                         {
-                          hdr->type = htons(GNUNET_MESSAGE_TYPE_REMOTE_TCP);
+                          hdr->type = htons(GNUNET_MESSAGE_TYPE_VPN_REMOTE_TCP);
                           memcpy (hc + 1, &pkt_tcp->tcp_hdr,
                               ntohs (pkt->ip_hdr.tot_lngth) - 4*pkt->ip_hdr.hdr_lngth);
                           app_type = GNUNET_APPLICATION_TYPE_INTERNET_TCP_GATEWAY;

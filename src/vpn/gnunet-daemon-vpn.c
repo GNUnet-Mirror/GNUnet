@@ -812,7 +812,7 @@ receive_udp_back (void *cls
 
       GNUNET_assert (pkt6 != NULL);
 
-      if (ntohs (message->type) == GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK)
+      if (ntohs (message->type) == GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP_BACK)
         new_ip6addr (pkt6->ip6_hdr.sadr, &other->hashPubKey, desc);
       else
         new_ip6addr_remote (pkt6->ip6_hdr.sadr, s->addr, s->addrlen);
@@ -857,7 +857,7 @@ receive_udp_back (void *cls
       GNUNET_free (key);
 
       GNUNET_assert (me != NULL);
-      if (ntohs (message->type) == GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK)
+      if (ntohs (message->type) == GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP_BACK)
         {
           GNUNET_assert (me->desc.
                          service_type & htonl (GNUNET_DNS_SERVICE_TYPE_UDP));
@@ -897,7 +897,7 @@ receive_udp_back (void *cls
 
       GNUNET_assert (pkt4 != NULL);
 
-      GNUNET_assert (ntohs (message->type) == GNUNET_MESSAGE_TYPE_REMOTE_UDP_BACK);
+      GNUNET_assert (ntohs (message->type) == GNUNET_MESSAGE_TYPE_VPN_REMOTE_UDP_BACK);
       uint32_t sadr;
       new_ip4addr_remote ((unsigned char*)&sadr, s->addr, s->addrlen);
       pkt4->ip_hdr.sadr = sadr;
@@ -984,7 +984,7 @@ receive_tcp_back (void *cls __attribute__((unused)), struct GNUNET_MESH_Tunnel* 
 
       GNUNET_assert (pkt6 != NULL);
 
-      if (ntohs (message->type) == GNUNET_MESSAGE_TYPE_SERVICE_TCP_BACK)
+      if (ntohs (message->type) == GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP_BACK)
         new_ip6addr (pkt6->ip6_hdr.sadr, &other->hashPubKey, desc);
       else
         new_ip6addr_remote (pkt6->ip6_hdr.sadr, s->addr, s->addrlen);
@@ -1025,7 +1025,7 @@ receive_tcp_back (void *cls __attribute__((unused)), struct GNUNET_MESH_Tunnel* 
       GNUNET_free (key);
 
       GNUNET_assert (me != NULL);
-      if (ntohs (message->type) == GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK)
+      if (ntohs (message->type) == GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP_BACK)
         GNUNET_assert (me->desc.
                        service_type & htonl (GNUNET_DNS_SERVICE_TYPE_TCP));
 
@@ -1058,7 +1058,7 @@ receive_tcp_back (void *cls __attribute__((unused)), struct GNUNET_MESH_Tunnel* 
       GNUNET_assert (pkt4 != NULL);
       memset (pkt4, 0, size);
 
-      GNUNET_assert (ntohs (message->type) == GNUNET_MESSAGE_TYPE_REMOTE_TCP_BACK);
+      GNUNET_assert (ntohs (message->type) == GNUNET_MESSAGE_TYPE_VPN_REMOTE_TCP_BACK);
       uint32_t sadr;
       new_ip4addr_remote ((unsigned char*)&sadr, s->addr, s->addrlen);
       pkt4->ip_hdr.sadr = sadr;
@@ -1149,10 +1149,10 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
     static const struct GNUNET_MESH_MessageHandler handlers[] = {
-	  {receive_udp_back, GNUNET_MESSAGE_TYPE_SERVICE_UDP_BACK, 0},
-	  {receive_tcp_back, GNUNET_MESSAGE_TYPE_SERVICE_TCP_BACK, 0},
-	  {receive_udp_back, GNUNET_MESSAGE_TYPE_REMOTE_UDP_BACK, 0},
-	  {receive_tcp_back, GNUNET_MESSAGE_TYPE_REMOTE_TCP_BACK, 0},
+	  {receive_udp_back, GNUNET_MESSAGE_TYPE_VPN_SERVICE_UDP_BACK, 0},
+	  {receive_tcp_back, GNUNET_MESSAGE_TYPE_VPN_SERVICE_TCP_BACK, 0},
+	  {receive_udp_back, GNUNET_MESSAGE_TYPE_VPN_REMOTE_UDP_BACK, 0},
+	  {receive_tcp_back, GNUNET_MESSAGE_TYPE_VPN_REMOTE_TCP_BACK, 0},
 	  {NULL, 0, 0}
     };
 

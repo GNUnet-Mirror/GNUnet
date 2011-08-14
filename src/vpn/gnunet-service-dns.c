@@ -226,7 +226,7 @@ mesh_send_response (void *cls, size_t size, void *buf)
   uint32_t *sz = cls;
   struct GNUNET_MESH_Tunnel **tunnel = (struct GNUNET_MESH_Tunnel**)(sz+1);
   struct dns_pkt *dns = (struct dns_pkt *) (tunnel + 1);
-  hdr->type = htons (GNUNET_MESSAGE_TYPE_REMOTE_ANSWER_DNS);
+  hdr->type = htons (GNUNET_MESSAGE_TYPE_VPN_REMOTE_ANSWER_DNS);
   hdr->size = htons (*sz + sizeof (struct GNUNET_MessageHeader));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -426,7 +426,7 @@ receive_mesh_answer (void *cls __attribute__((unused)),
     GNUNET_malloc (len + 2 * sizeof (struct answer_packet_list *));
   memset (answer, 0, len + 2 * sizeof (struct answer_packet_list *));
 
-  answer->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_LOCAL_RESPONSE_DNS);
+  answer->pkt.hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_RESPONSE_DNS);
   answer->pkt.hdr.size = htons (len);
 
   struct dns_pkt_parsed* pdns = parse_dns_packet(dns);
@@ -541,7 +541,7 @@ send_rev_query(void * cls, const struct GNUNET_SCHEDULER_TaskContext *tc) {
     struct answer_packet_list* answer = GNUNET_malloc(len + 2*sizeof(struct answer_packet_list*));
     memset(answer, 0, len + 2*sizeof(struct answer_packet_list*));
 
-    answer->pkt.hdr.type = htons(GNUNET_MESSAGE_TYPE_LOCAL_RESPONSE_DNS);
+    answer->pkt.hdr.type = htons(GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_RESPONSE_DNS);
     answer->pkt.hdr.size = htons(len);
     answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_REV;
 
@@ -633,7 +633,7 @@ receive_dht(void *cls,
     struct answer_packet_list* answer = GNUNET_malloc(len + 2*sizeof(struct answer_packet_list*));
     memset(answer, 0, len + 2*sizeof(struct answer_packet_list*));
 
-    answer->pkt.hdr.type = htons(GNUNET_MESSAGE_TYPE_LOCAL_RESPONSE_DNS);
+    answer->pkt.hdr.type = htons(GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_RESPONSE_DNS);
     answer->pkt.hdr.size = htons(len);
     answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_SERVICE;
 
@@ -851,7 +851,7 @@ receive_query(void *cls __attribute__((unused)),
         struct tunnel_cls *cls_ =  GNUNET_malloc(size);
         cls_->hdr.size = size - sizeof(struct GNUNET_MESH_Tunnel*);
 
-        cls_->hdr.type = ntohs(GNUNET_MESSAGE_TYPE_REMOTE_QUERY_DNS);
+        cls_->hdr.type = ntohs(GNUNET_MESSAGE_TYPE_VPN_REMOTE_QUERY_DNS);
         GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "size: %d\n", size);
 
         memcpy(&cls_->dns, dns, cls_->hdr.size - sizeof(struct GNUNET_MessageHeader));
@@ -1020,7 +1020,7 @@ read_response (void *cls
             struct answer_packet_list *answer =
               GNUNET_malloc (len + 2 * sizeof (struct answer_packet_list *));
             answer->pkt.hdr.type =
-              htons (GNUNET_MESSAGE_TYPE_LOCAL_RESPONSE_DNS);
+              htons (GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_RESPONSE_DNS);
             answer->pkt.hdr.size = htons (len);
             answer->pkt.subtype = GNUNET_DNS_ANSWER_TYPE_IP;
             answer->pkt.from = addr.sin_addr.s_addr;
@@ -1287,15 +1287,15 @@ run (void *cls,
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     /* callback, cls, type, size */
-    {&receive_query, NULL, GNUNET_MESSAGE_TYPE_LOCAL_QUERY_DNS, 0},
+    {&receive_query, NULL, GNUNET_MESSAGE_TYPE_VPN_DNS_LOCAL_QUERY_DNS, 0},
     {&rehijack, NULL, GNUNET_MESSAGE_TYPE_REHIJACK,
      sizeof (struct GNUNET_MessageHeader)},
     {NULL, NULL, 0, 0}
   };
 
   static const struct GNUNET_MESH_MessageHandler mesh_handlers[] = {
-    {receive_mesh_query, GNUNET_MESSAGE_TYPE_REMOTE_QUERY_DNS, 0},
-    {receive_mesh_answer, GNUNET_MESSAGE_TYPE_REMOTE_ANSWER_DNS, 0},
+    {receive_mesh_query, GNUNET_MESSAGE_TYPE_VPN_REMOTE_QUERY_DNS, 0},
+    {receive_mesh_answer, GNUNET_MESSAGE_TYPE_VPN_REMOTE_ANSWER_DNS, 0},
     {NULL, 0, 0}
   };
 
