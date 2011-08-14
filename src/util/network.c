@@ -65,28 +65,6 @@ struct GNUNET_NETWORK_Handle
 };
 
 
-struct GNUNET_NETWORK_FDSet
-{
-
-  /**
-   * Maximum number of any socket socket descriptor in the set (plus one)
-   */
-  int nsds;
-
-  /**
-   * Bitset with the descriptors.
-   */
-  fd_set sds;
-
-#ifdef WINDOWS
-  /**
-   * Linked list of handles
-   */
-  struct GNUNET_CONTAINER_SList *handles;
-#endif
-
-};
-
 #ifndef FD_COPY
 #define FD_COPY(s, d) (memcpy ((d), (s), sizeof (fd_set)))
 #endif
@@ -1619,6 +1597,5 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 #endif
     return 0;
 }
-
 
 /* end of network.c */

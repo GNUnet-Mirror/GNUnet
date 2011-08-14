@@ -36,6 +36,48 @@ struct GNUNET_DISK_FileHandle;
 struct GNUNET_DISK_PipeHandle;
 
 
+enum GNUNET_FILE_Type {
+  GNUNET_DISK_FILE, GNUNET_PIPE
+};
+
+/**
+ * Handle used to access files (and pipes).
+ */
+struct GNUNET_DISK_FileHandle
+{
+
+#if WINDOWS
+  /**
+   * File handle under W32.
+   */
+  HANDLE h;
+
+  /**
+   * Type
+   */
+  enum GNUNET_FILE_Type type;
+
+  /**
+   * Structure for overlapped reading (for pipes)
+   */
+  OVERLAPPED *oOverlapRead;
+
+  /**
+   * Structure for overlapped writing (for pipes)
+   */
+  OVERLAPPED *oOverlapWrite;
+#else
+
+  /**
+   * File handle on other OSes.
+   */
+  int fd;
+
+#endif                          /*
+ */
+};
+
+
 /* we need size_t, and since it can be both unsigned int
    or unsigned long long, this IS platform dependent;
    but "stdlib.h" should be portable 'enough' to be

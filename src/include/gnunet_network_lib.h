@@ -45,7 +45,28 @@ struct GNUNET_NETWORK_Handle;
 /**
  * @brief collection of IO descriptors
  */
-struct GNUNET_NETWORK_FDSet;
+struct GNUNET_NETWORK_FDSet
+{
+
+  /**
+   * Maximum number of any socket socket descriptor in the set (plus one)
+   */
+  int nsds;
+
+  /**
+   * Bitset with the descriptors.
+   */
+  fd_set sds;
+
+#ifdef WINDOWS
+  /**
+   * Linked list of handles
+   */
+  struct GNUNET_CONTAINER_SList *handles;
+#endif
+
+};
+
 
 
 #include "gnunet_disk_lib.h"

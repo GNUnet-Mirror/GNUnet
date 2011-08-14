@@ -195,6 +195,20 @@ typedef void (*GNUNET_SCHEDULER_Task) (void *cls,
 
 
 /**
+ * Signature of the select function used by the scheduler.
+ * GNUNET_NETWORK_socket_select matches it.
+ *
+ * @param rfds set of sockets to be checked for readability
+ * @param wfds set of sockets to be checked for writability
+ * @param efds set of sockets to be checked for exceptions
+ * @param timeout relative value when to return
+ * @return number of selected sockets, GNUNET_SYSERR on error
+ */
+typedef int (*GNUNET_SCHEDULER_select) (struct GNUNET_NETWORK_FDSet *rfds,
+                                  struct GNUNET_NETWORK_FDSet *wfds,
+                                  struct GNUNET_NETWORK_FDSet *efds,
+                                  struct GNUNET_TIME_Relative timeout);
+/**
  * Initialize and run scheduler.  This function will return when all
  * tasks have completed.  On systems with signals, receiving a SIGTERM
  * (and other similar signals) will cause "GNUNET_SCHEDULER_shutdown"
@@ -493,6 +507,23 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
 			     const struct GNUNET_NETWORK_FDSet * ws,
                              GNUNET_SCHEDULER_Task task, 
 			     void *task_cls);
+
+/**
+ * Sets the select function to use in the scheduler (scheduler_select).
+ *
+ * @param new_select new select function to use
+ * @return previously used select function
+ */
+GNUNET_SCHEDULER_select
+GNUNET_SCHEDULER_set_select (GNUNET_SCHEDULER_select new_select);
+
+/**
+ * Gets the select function currently used in the scheduler.
+ *
+ * @return currently used select function
+ */
+GNUNET_SCHEDULER_select
+GNUNET_SCHEDULER_get_select ();
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

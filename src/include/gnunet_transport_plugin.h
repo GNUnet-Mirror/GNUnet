@@ -92,8 +92,7 @@ typedef void (*GNUNET_TRANSPORT_SessionEnd) (void *cls,
  * @param cls closure
  * @param peer (claimed) identity of the other peer
  * @param message the message, NULL if we only care about
- *                learning about the delay until we should receive again -- FIXME!
- * @param distance in overlay hops; use 1 unless DV (or 0 if message == NULL)
+ *                learning about the delay until we should receive again
  * @param session identifier used for this session (NULL for plugins
  *                that do not offer bi-directional communication to the sender
  *                using the same "connection")

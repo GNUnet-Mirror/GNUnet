@@ -246,6 +246,39 @@ static enum GNUNET_SCHEDULER_Priority max_priority_added;
 static int current_lifeness;
 
 /**
+ * Function to use as a select() in the scheduler.
+ * Defaults to GNUNET_NETWORK_socket_select ()
+ */
+GNUNET_SCHEDULER_select scheduler_select = GNUNET_NETWORK_socket_select;
+
+/**
+ * Sets the select function to use in the scheduler (scheduler_select).
+ *
+ * @param new_select new select function to use
+ * @return previously used select function
+ */
+GNUNET_SCHEDULER_select
+GNUNET_SCHEDULER_set_select (GNUNET_SCHEDULER_select new_select)
+{
+  GNUNET_SCHEDULER_select old_select = scheduler_select;
+  scheduler_select = new_select;
+  if (scheduler_select == NULL)
+    scheduler_select = GNUNET_NETWORK_socket_select;
+  return old_select;
+}
+
+/**
+ * Gets the select function currently used in the scheduler.
+ *
+ * @return currently used select function
+ */
+GNUNET_SCHEDULER_select
+GNUNET_SCHEDULER_get_select ()
+{
+  return scheduler_select;
+}
+
+/**
  * Check that the given priority is legal (and return it).
  *
  * @param p priority value to check
@@ -806,7 +839,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
           /* no blocking, more work already ready! */
           timeout = GNUNET_TIME_UNIT_ZERO;
         }
-      ret = GNUNET_NETWORK_socket_select (rs, ws, NULL, timeout);
+      ret = scheduler_select (rs, ws, NULL, timeout);
       if (ret == GNUNET_SYSERR)
         {
           if (errno == EINTR)
