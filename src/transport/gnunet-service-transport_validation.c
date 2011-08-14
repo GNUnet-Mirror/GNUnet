@@ -886,6 +886,7 @@ validate_address (void *cls,
   const struct ValidateAddressContext *vac = cls;
   const struct GNUNET_PeerIdentity *pid = &vac->pid;
   struct ValidationEntry *ve;
+  struct GST_BlacklistCheck *bc;
 
   if (GNUNET_TIME_absolute_get_remaining (expiration).rel_value == 0)
     return GNUNET_OK; /* expired */
@@ -901,10 +902,12 @@ validate_address (void *cls,
   ve->timeout_task = GNUNET_SCHEDULER_add_delayed (HELLO_REVALIDATION_START_TIME,
 						   &timeout_hello_validation,
 						   ve);
-  ve->bc = GST_blacklist_test_allowed (pid,
-				       tname,
-				       &transmit_ping_if_allowed,
-				       ve);
+  bc = GST_blacklist_test_allowed (pid,
+				   tname,
+				   &transmit_ping_if_allowed,
+				   ve);
+  if (NULL != bc)
+    ve->bc = bc;
   return GNUNET_OK;
 }
 

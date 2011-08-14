@@ -111,11 +111,14 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
  *
  * @param sender sender of the message
  * @param size size of the message
+ * @param do_forward set to GNUNET_YES if the message should be forwarded to clients
+ *                   GNUNET_NO if the neighbour is not connected or violates the quota
  * @return how long to wait before reading more from this sender
  */
 struct GNUNET_TIME_Relative
 GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity *sender,
-					ssize_t size);
+					ssize_t size,
+					int *do_forward);
 
 
 /**

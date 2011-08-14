@@ -150,9 +150,18 @@ plugin_env_receive_callback (void *cls,
 			     uint16_t sender_address_len)
 {
   const char *plugin_name = cls;
+  int do_forward;
+  struct GNUNET_TIME_Relative ret;
 
-  
-  if (NULL != message)
+  do_forward = GNUNET_SYSERR;
+  ret = GST_neighbours_calculate_receive_delay (peer,
+						(message == NULL) 
+						? 0 
+						: ntohs (message->size),
+						&do_forward);
+  /* FIXME: look at the type of the message (PING, PONG, CONNECT, payload...) */
+  if ( (NULL != message) &&
+       (do_forward == GNUNET_YES) )
     GST_clients_broadcast (message, GNUNET_YES);
   GNUNET_ATS_address_update (GST_ats,
 			     peer,
@@ -162,10 +171,7 @@ plugin_env_receive_callback (void *cls,
 			     sender_address,
 			     sender_address_len,
 			     ats, ats_count);
-  return GST_neighbours_calculate_receive_delay (peer,
-						 (message == NULL) 
-						 ? 0 
-						 : ntohs (message->size));
+  return ret;
 }
 
 

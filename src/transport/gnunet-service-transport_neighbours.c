@@ -756,18 +756,24 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
  *
  * @param sender sender of the message
  * @param size size of the message
+ * @param do_forward set to GNUNET_YES if the message should be forwarded to clients
+ *                   GNUNET_NO if the neighbour is not connected or violates the quota
  * @return how long to wait before reading more from this sender
  */
 struct GNUNET_TIME_Relative
 GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity *sender,
-					ssize_t size)
+					ssize_t size,
+					int *do_forward)
 {
   struct NeighbourMapEntry *n;
   struct GNUNET_TIME_Relative ret;
 
   n = lookup_neighbour (sender);
   if (n == NULL)
-    return GNUNET_TIME_UNIT_ZERO;
+    {
+      *do_forward = GNUNET_NO;
+      return GNUNET_TIME_UNIT_ZERO;
+    }
   if (GNUNET_YES == GNUNET_BANDWIDTH_tracker_consume (&n->in_tracker,
 						      size))
     {
@@ -802,8 +808,10 @@ GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity *sender
 				gettext_noop ("# bandwidth quota violations by other peers"),
 				1,
 				GNUNET_NO);
+      *do_forward = GNUNET_NO;
       return GNUNET_CONSTANTS_QUOTA_VIOLATION_TIMEOUT;
     }
+  *do_forward = GNUNET_YES;
   ret = GNUNET_BANDWIDTH_tracker_get_delay (&n->in_tracker, 0);
   if (ret.rel_value > 0)
     {

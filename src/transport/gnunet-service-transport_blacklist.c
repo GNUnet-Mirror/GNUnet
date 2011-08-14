@@ -768,7 +768,8 @@ test_blacklisted (void *cls,
  * @param transport_name name of the transport to test, never NULL
  * @param cont function to call with result
  * @param cont_cls closure for 'cont'
- * @return handle to the blacklist check
+ * @return handle to the blacklist check, NULL if the decision
+ *        was made instantly and 'cont' was already called
  */
 struct GST_BlacklistCheck *
 GST_blacklist_test_allowed (const struct GNUNET_PeerIdentity *peer,
