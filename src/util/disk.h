@@ -23,12 +23,12 @@
  * @brief Internal DISK related helper functions
  * @author Nils Durner
  */ 
-  
+  
 #ifndef GNUNET_DISK_H_
 #define GNUNET_DISK_H_
   
 #include "gnunet_disk_lib.h"
-  
+  
 /**
  * Handle used to access files (and pipes).  
  */ 
@@ -64,7 +64,7 @@ struct GNUNET_DISK_FileHandle
    
 #endif                          /*  */
 };
-
+
 /**
  * Retrieve OS file handle
  *
@@ -76,5 +76,5 @@ struct GNUNET_DISK_FileHandle
  */ 
 int GNUNET_DISK_internal_file_handle_ (const struct GNUNET_DISK_FileHandle
                                        *fh, void *dst, size_t dst_len);
-
+
 #endif  /* GNUNET_DISK_H_ */
