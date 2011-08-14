@@ -44,7 +44,7 @@ def get_process_list ():
   else:
     pids = [pid for pid in os.listdir('/proc') if pid.isdigit ()]
     for pid in pids:
-      result.append ((pid, open (os.path.join ('/proc', pid, 'comm'), 'rb').read ()
+      result.append ((pid, open (os.path.join ('/proc', pid, 'comm'), 'rb').read ()))
   return result
 
 def main ():
