@@ -533,6 +533,57 @@ clients_handle_send (void *cls,
 		       stcc);
 }
 
+			
+
+/**
+ * Try to initiate a connection to the given peer if the blacklist
+ * allowed it.
+ *
+ * @param cls closure (unused, NULL)
+ * @param peer identity of peer that was tested
+ * @param result GNUNET_OK if the connection is allowed,
+ *               GNUNET_NO if not
+ */
+static void
+try_connect_if_allowed (void *cls,
+			const struct GNUNET_PeerIdentity *peer,
+			int result)
+{
+  if (GNUNET_OK != result)
+    return; /* not allowed */
+  GST_neighbours_try_connect (peer);
+}
+
+
+/**
+ * Handle request connect message
+ *
+ * @param cls closure (always NULL)
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+clients_handle_request_connect (void *cls,
+				struct GNUNET_SERVER_Client *client,
+				const struct GNUNET_MessageHeader *message)
+{
+  const struct TransportRequestConnectMessage *trcm =
+    (const struct TransportRequestConnectMessage *) message;
+
+  GNUNET_STATISTICS_update (GST_stats,
+                            gettext_noop ("# REQUEST CONNECT messages received"),
+                            1,
+                            GNUNET_NO);
+#if DEBUG_TRANSPORT
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
+	     "Received a request connect message for peer `%s'\n", 
+	     GNUNET_i2s(&trcm->peer));
+#endif
+  (void) GST_blacklist_test_allowed (&trcm->peer, NULL,
+				     &try_connect_if_allowed, NULL);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
 
 /**
  * Client asked for a quota change for a particular peer.  Process the request.
@@ -795,15 +846,26 @@ void
 GST_clients_start (struct GNUNET_SERVER_Handle *server)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    { &clients_handle_start, NULL, sizeof (struct StartMessage)},
-    { &clients_handle_hello, NULL, 0},
-    { &clients_handle_send,  NULL, 0},
-    { &clients_handle_set_quota, NULL, sizeof (struct QuotaSetMessage)},
-    { &clients_handle_address_lookup, NULL, 0},
-    { &clients_handle_peer_address_lookup, NULL, sizeof (struct PeerAddressLookupMessage)},
-    { &clients_handle_address_iterate, NULL, sizeof (struct GNUNET_MessageHeader)},
-    { &GST_blacklist_handle_init, NULL, sizeof (struct GNUNET_MessageHeader)},
-    { &GST_blacklist_handle_reply, NULL, sizeof (struct BlacklistMessage)},
+    { &clients_handle_start, NULL, 
+      GNUNET_MESSAGE_TYPE_TRANSPORT_START, sizeof (struct StartMessage)},
+    { &clients_handle_hello, NULL, 
+      GNUNET_MESSAGE_TYPE_HELLO, 0},
+    { &clients_handle_send,  NULL, 
+      GNUNET_MESSAGE_TYPE_TRANSPORT_SEND , 0},
+    { &clients_handle_request_connect, NULL,  
+      GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_CONNECT, sizeof (struct TransportRequestConnectMessage)},
+    { &clients_handle_set_quota, NULL, 
+      GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA, sizeof (struct QuotaSetMessage)},
+    { &clients_handle_address_lookup, NULL,
+      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP , 0},
+    { &clients_handle_peer_address_lookup, NULL, 
+      GNUNET_MESSAGE_TYPE_TRANSPORT_PEER_ADDRESS_LOOKUP, sizeof (struct PeerAddressLookupMessage)},
+    { &clients_handle_address_iterate, NULL,
+      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE, sizeof (struct GNUNET_MessageHeader)},
+    { &GST_blacklist_handle_init, NULL,
+      GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_INIT, sizeof (struct GNUNET_MessageHeader)},
+    { &GST_blacklist_handle_reply, NULL,
+      GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_REPLY, sizeof (struct BlacklistMessage)},
     {NULL, NULL, 0, 0}
   };
   GNUNET_SERVER_add_handlers (server, handlers);
