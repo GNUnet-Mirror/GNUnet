@@ -7,7 +7,8 @@ timeout_watchdog_SOURCES = \
 endif
 
 noinst_SCRIPTS = \
- gnunet_pyexpect.py
+ gnunet_pyexpect.py \
+ gnunet_janitor.py
 
 dist_pkgdata_DATA = \
  gnunet-logo-color.png \
@@ -18,14 +19,14 @@ EXTRA_DIST = \
  hostlist.cgi \
  hostlist.php \
  report.sh \
- gnunet_pyexpect.py.in
+ gnunet_pyexpect.py.in \
+ gnunet_janitor.py.in
 
 do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
 
-gnunet_pyexpect.py: gnunet_pyexpect.py.in Makefile
-	$(do_subst) < $(srcdir)/gnunet_pyexpect.py.in > gnunet_pyexpect.py
-	chmod +x gnunet_pyexpect.py
-
+%.py: %.py.in Makefile
+	$(do_subst) < $(srcdir)/$< > $@
+	chmod +x $@
 
 # init_gnunet_redhat \
 # init_gnunet_ubuntu \
