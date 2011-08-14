@@ -642,16 +642,6 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
       GNUNET_break_op (0);
       return;
     }
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-	      "Processing `%s' from `%s'\n",
-	      "PING",
-	      (sender_address != NULL)
-	      ? GST_plugin_a2s (plugin_name,
-				sender_address,
-				sender_address_len)
-	      : "<inbound>");
-#endif
   GNUNET_STATISTICS_update (GST_stats,
 			    gettext_noop ("# PING messages received"),
 			    1,

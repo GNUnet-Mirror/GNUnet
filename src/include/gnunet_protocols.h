@@ -35,23 +35,32 @@ extern "C"
 #endif
 #endif
 
+/*******************************************************************************
+ * UTIL message types 
+ ******************************************************************************/
+
 /**
  * Test if service is online.
  */
 #define GNUNET_MESSAGE_TYPE_TEST 1
 
+/*******************************************************************************
+ * RESOLVER message types 
+ ******************************************************************************/
 
 /**
  * Request DNS resolution.
  */
-#define GNUNET_MESSAGE_TYPE_RESOLVER_REQUEST 2
+#define GNUNET_MESSAGE_TYPE_RESOLVER_REQUEST 4
 
 /**
  * Response to a DNS resolution request.
  */
-#define GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE 3
+#define GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE 5
 
-
+/*******************************************************************************
+ * ARM message types 
+ ******************************************************************************/
 
 /**
  * Request to ARM to start a service.
@@ -90,11 +99,19 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN_ACK 14
 
+/*******************************************************************************
+ * HELLO message types 
+ ******************************************************************************/
+
 /**
  * HELLO message used for communicating peer addresses.
  * Managed by libgnunethello.
  */
 #define GNUNET_MESSAGE_TYPE_HELLO 16
+
+/*******************************************************************************
+ * FRAGMENTATION message types 
+ ******************************************************************************/
 
 /**
  * FRAGMENT of a larger message.
@@ -107,6 +124,10 @@ extern "C"
  * Managed by libgnunetfragment.
  */
 #define GNUNET_MESSAGE_TYPE_FRAGMENT_ACK 19
+
+/*******************************************************************************
+ * TRANSPORT message types 
+ ******************************************************************************/
 
 /**
  * Message from the core saying that the transport
@@ -134,11 +155,10 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_SEND 23
 
 /**
- * Confirmation from TRANSPORT that message for
- * transmission has been queued (and that the next
- * message to this peer can now be passed to the
- * service).  Note that this confirmation does NOT
- * imply that the message was fully transmitted.
+ * Confirmation from TRANSPORT that message for transmission has been
+ * queued (and that the next message to this peer can now be passed to
+ * the service).  Note that this confirmation does NOT imply that the
+ * message was fully transmitted.
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK 24
 
@@ -173,7 +193,6 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY 30
 
-
 /**
  * Reply from blacklisting client (answer to blacklist query).
  */
@@ -207,33 +226,51 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT 36
 
-
+/**
+ * Request to look up addresses of peers.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_PEER_ADDRESS_LOOKUP 37
 
 /**
- * Request update and listing of a peer.
+ * Request to iterate over all known addresses.
  */
-#define GNUNET_MESSAGE_TYPE_PEERINFO_GET 37
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE 38
 
 /**
- * Request update and listing of all peers.
+ * Message send by a peer to notify the other to keep the session alive.
  */
-#define GNUNET_MESSAGE_TYPE_PEERINFO_GET_ALL 38
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE 39
+
+/*******************************************************************************
+ * Transport-WLAN message types 
+ ******************************************************************************/
 
 /**
- * Information about one of the peers.
+ * Type of messages between the gnunet-wlan-helper and the daemon
+ *
  */
-#define GNUNET_MESSAGE_TYPE_PEERINFO_INFO 39
+#define GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA 40
 
 /**
- * End of information about other peers.
+ * Control messages between the gnunet-wlan-helper and the daemon
  */
-#define GNUNET_MESSAGE_TYPE_PEERINFO_INFO_END 40
+
+#define GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL 41
 
 /**
- * Start notifying this client about all changes to
- * the known peers until it disconnects.
+ * Type of messages for advertisement over wlan
  */
-#define GNUNET_MESSAGE_TYPE_PEERINFO_NOTIFY 41
+#define GNUNET_MESSAGE_TYPE_WLAN_ADVERTISEMENT 42
+
+/**
+ * Type of messages for data over the wlan
+ */
+#define GNUNET_MESSAGE_TYPE_WLAN_DATA 43
+
+
+/*******************************************************************************
+ * Transport-DV message types 
+ ******************************************************************************/
 
 /**
  * DV service to DV Plugin message, when a message is
@@ -275,31 +312,29 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_DV_DISCONNECT 50
 
-/**
- * TCP NAT probe message, send from NAT'd peer to
- * other peer to establish bi-directional communication
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_NAT_PROBE 51
+/*******************************************************************************
+ * Transport-UDP message types 
+ ******************************************************************************/
 
 /**
  * Normal UDP message type.
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_MESSAGE 52
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_MESSAGE 56
 
 /**
  * UDP ACK.
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_ACK 53
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_ACK 57
+
+/*******************************************************************************
+ * Transport-TCP message types 
+ ******************************************************************************/
 
 /**
- * Request to look up addresses of peers.
+ * TCP NAT probe message, send from NAT'd peer to
+ * other peer to establish bi-directional communication
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_PEER_ADDRESS_LOOKUP 59
-
-/**
- * Request to iterate over all known addresses.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE 60
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_NAT_PROBE 60
 
 /**
  * Welcome message between TCP transports.
@@ -307,14 +342,22 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME 61
 
 /**
- * Message to force transport to update bandwidth assignment
+ * Message to force transport to update bandwidth assignment (LEGACY)
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_ATS 62
+
+/*******************************************************************************
+ * NAT message types 
+ ******************************************************************************/
 
 /**
  * Message to ask NAT server to perform traversal test
  */
 #define GNUNET_MESSAGE_TYPE_NAT_TEST 63
+
+/*******************************************************************************
+ * CORE message types 
+ ******************************************************************************/
 
 /**
  * Initial setup message from core client to core.
@@ -440,6 +483,10 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_CORE_BINARY_TYPE_MAP 87
 
+/*******************************************************************************
+ * DATASTORE message types 
+ ******************************************************************************/
+
 /**
  * Message sent by datastore client on join.
  */
@@ -506,6 +553,10 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_DATASTORE_DROP 103
 
 
+/*******************************************************************************
+ * FS message types 
+ ******************************************************************************/
+
 /**
  * Message sent by fs client to start indexing.
  */
@@ -569,9 +620,9 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_FS_MIGRATION_STOP 139
 
 
-/**
- * DHT Message Types
- */
+/*******************************************************************************
+ * DHT message types 
+ ******************************************************************************/
 
 /**
  * Local DHT route request type
@@ -660,6 +711,10 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT 160
 
 
+/*******************************************************************************
+ * STATISTICS message types 
+ ******************************************************************************/
+
 /**
  * Set a statistical value.
  */
@@ -691,6 +746,10 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_STATISTICS_WATCH_VALUE 173
 
+
+/*******************************************************************************
+ * VPN message types 
+ ******************************************************************************/
 
 /**
  * Type of messages between the gnunet-vpn-helper and the daemon
@@ -738,42 +797,9 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_REMOTE_TCP_BACK 193
 
 
-/**
- * Type of messages between the gnunet-wlan-helper and the daemon
- *
- */
-
-#define GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA 195
-
-/**
- * Control messages between the gnunet-wlan-helper and the daemon
- */
-
-#define GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL 196
-
-/**
- * Type of messages for advertisement over wlan
- */
-#define GNUNET_MESSAGE_TYPE_WLAN_ADVERTISEMENT 197
-
-/**
- * Type of messages for data over the wlan
- */
-
-#define GNUNET_MESSAGE_TYPE_WLAN_DATA 198
-
-/**
- * Fragment of a message
- */
-
-#define GNUNET_MESSAGE_TYPE_WLAN_FRAGMENT 199
-
-/**
- * Fragment ack of a message
- */
-
-#define GNUNET_MESSAGE_TYPE_WLAN_FRAGMENT_ACK 200
-
+/*******************************************************************************
+ * VPN-DNS message types 
+ ******************************************************************************/
 
 /**
  * Type of messages to query the local service-dns
@@ -797,21 +823,22 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_REMOTE_ANSWER_DNS 209
 
 
+
+/*******************************************************************************
+ * MESH message types
+ ******************************************************************************/
+
 /**
- * Type of message used to transport messages throug a MESH-tunnel
+ * Type of message used to transport messages throug a MESH-tunnel (LEGACY)
  */
 #define GNUNET_MESSAGE_TYPE_MESH 215
 
 /**
  * Type of message used to send another peer which messages we want to receive
- * through a mesh-tunnel.
+ * through a mesh-tunnel (LEGACY)
  */
 #define GNUNET_MESSAGE_TYPE_MESH_HELLO 216
 
-
-/*******************************************************************************
- * MESH message types START (WiP)
- ******************************************************************************/
 
 /**
  * Request the creation of a path
@@ -910,10 +937,6 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_MESH_RESERVE_END   288
 
-/*******************************************************************************
- * MESH message types END
- ******************************************************************************/
-
 
 
 /*******************************************************************************
@@ -985,12 +1008,9 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_CHAT_P2P_CONFIRMATION_RECEIPT 311
 
-/*******************************************************************************
- * CHAT message types END
- ******************************************************************************/
 
 /*******************************************************************************
- * NSE (network size estimation) message types START
+ * NSE (network size estimation) message types
  ******************************************************************************/
 
 /**
@@ -1008,46 +1028,43 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_NSE_ESTIMATE 323
 
+
+/*******************************************************************************
+ * PEERINFO message types
+ ******************************************************************************/
+
+/**
+ * Request update and listing of a peer.
+ */
+#define GNUNET_MESSAGE_TYPE_PEERINFO_GET 330
+
+/**
+ * Request update and listing of all peers.
+ */
+#define GNUNET_MESSAGE_TYPE_PEERINFO_GET_ALL 331
+
+/**
+ * Information about one of the peers.
+ */
+#define GNUNET_MESSAGE_TYPE_PEERINFO_INFO 332
+
+/**
+ * End of information about other peers.
+ */
+#define GNUNET_MESSAGE_TYPE_PEERINFO_INFO_END 333
+
+/**
+ * Start notifying this client about all changes to
+ * the known peers until it disconnects.
+ */
+#define GNUNET_MESSAGE_TYPE_PEERINFO_NOTIFY 334
+
+
+
 /**
  * Type used to match 'all' message types.
  */
 #define GNUNET_MESSAGE_TYPE_ALL 65535
-
-/*
-  TODO:
-  - applications (FS, VPN, TRACEKIT, TBENCH)
-*/
-
-
-
-
-/* BELOW: experimental student-DHT protocol codes */
-
-/**
- * Request to join a CAN DHT
- */
-#define GNUNET_MESSAGE_TYPE_DHT_CAN_JOIN_REQUEST 1174
-
-/**
- * Response to join request of a CAN DHT
- */
-#define GNUNET_MESSAGE_TYPE_DHT_CAN_JOIN_REPLY 1175
-
-/**
- * Messages for swapping locations
- */
-#define GNUNET_MESSAGE_TYPE_DHT_GET_NEIGHBOURLIST_REQUEST 1180
-
-#define GNUNET_MESSAGE_TYPE_DHT_GET_NEIGHBOURLIST_RESULT 1181
-
-#define GNUNET_MESSAGE_TYPE_DHT_SWAP_LOCATION_REQUEST 1182
-
-#define GNUNET_MESSAGE_TYPE_DHT_SWAP_LOCATION_ACK 1183
-
-/**
- * Freenet hello message
- */
-#define GNUNET_MESSAGE_TYPE_DHT_FREENET_HELLO 1184
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
