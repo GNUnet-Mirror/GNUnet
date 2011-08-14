@@ -792,7 +792,7 @@ GST_blacklist_test_allowed (const struct GNUNET_PeerIdentity *peer,
                                 GNUNET_NO);
       if (cont != NULL)
 	cont (cont_cls, peer, GNUNET_NO);
-      return;
+      return NULL;
     }
 
   if (bl_head == NULL)
@@ -800,7 +800,7 @@ GST_blacklist_test_allowed (const struct GNUNET_PeerIdentity *peer,
       /* no blacklist clients, approve instantly */
       if (cont != NULL)
         cont (cont_cls, peer, GNUNET_OK);
-      return;
+      return NULL;
     }
 
   /* need to query blacklist clients */
