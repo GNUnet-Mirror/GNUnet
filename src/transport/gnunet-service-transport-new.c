@@ -226,6 +226,9 @@ plugin_env_receive_callback (void *cls,
 	     a fake disconnect message... */
 	  GST_neighbours_force_disconnect (peer);
 	  break;
+	case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE:
+	  GST_neighbours_keepalive (peer);
+	  break;
 	default:   
 	  /* should be payload */
 	  do_forward = GNUNET_SYSERR;

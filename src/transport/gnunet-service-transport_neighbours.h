@@ -122,6 +122,16 @@ GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity *sender
 
 
 /**
+ * Keep the connection to the given neighbour alive longer,
+ * we received a KEEPALIVE (or equivalent).
+ *
+ * @param neighbour neighbour to keep alive
+ */
+void
+GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour);
+
+
+/**
  * Change the incoming quota for the given peer.
  *
  * @param neighbour identity of peer to change qutoa for

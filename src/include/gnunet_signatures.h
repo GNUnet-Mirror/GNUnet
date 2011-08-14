@@ -49,7 +49,7 @@ extern "C"
 
 /**
  * Signature for confirming that this peer connected to another peer
- * using a particular address.
+ * using a particular address (LEGACY)
  */
 #define GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_USING 2
 

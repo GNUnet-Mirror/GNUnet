@@ -129,7 +129,8 @@ struct Plugin;
 
 
 /**
- * Session with another peer.
+ * Session with another peer.  FIXME: why not make this into
+ * a regular 'struct Session' and pass it around!?
  */
 struct PeerSession
 {

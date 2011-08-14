@@ -132,11 +132,8 @@ struct TransportPongMessage
   struct GNUNET_CRYPTO_RsaSignature signature;
 
   /**
-   * What are we signing and why?  Two possible reason codes can be here:
    * GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN to confirm that this is a
-   * plausible address for this peer (pid is set to identity of signer); or
-   * GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_USING to confirm that this is
-   * an address we used to connect to the peer with the given pid.
+   * plausible address for the signing peer.
    */
   struct GNUNET_CRYPTO_RsaSignaturePurpose purpose;
 
@@ -144,13 +141,6 @@ struct TransportPongMessage
    * When does this signature expire?
    */
   struct GNUNET_TIME_AbsoluteNBO expiration;
-
-  /**
-   * Either the identity of the peer Who signed this message, or the
-   * identity of the peer that we're connected to using the given
-   * address (depending on purpose.type).
-   */
-  struct GNUNET_PeerIdentity pid;
 
   /**
    * Size of address appended to this message (part of what is
@@ -683,11 +673,10 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
     htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) +
 	   sizeof (uint32_t) +
 	   sizeof (struct GNUNET_TIME_AbsoluteNBO) +
-	   sizeof (struct GNUNET_PeerIdentity) + alen + slen);
+	   alen + slen);
   pong->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN);
   pong->challenge = ping->challenge;
   pong->addrlen = htonl(alen + slen);
-  pong->pid = GST_my_identity;
   memcpy (&pong[1], addr, slen);
   memcpy (&((char*)&pong[1])[slen], addrend, alen);
   if (GNUNET_TIME_absolute_get_remaining (*sig_cache_exp).rel_value < PONG_SIGNATURE_LIFETIME.rel_value / 4)
@@ -993,13 +982,6 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
 			    1,
 			    GNUNET_NO);
   pong = (const struct TransportPongMessage *) hdr;
-  if (0 != memcmp (&pong->pid,
-                   sender,
-                   sizeof (struct GNUNET_PeerIdentity)))
-    {
-      GNUNET_break_op (0);
-      return;
-    }
   addr = (const char*) &pong[1];
   alen = ntohs (hdr->size) - sizeof (struct TransportPongMessage);
   addrend = memchr (addr, '\0', alen);
@@ -1025,6 +1007,14 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
       return;
     }
   /* now check that PONG is well-formed */
+  if (0 != memcmp (&ve->pid,
+                   sender,
+                   sizeof (struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_break_op (0);
+      return;
+    }
+
   if (GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh (pong->expiration)).rel_value == 0)
     {
       GNUNET_STATISTICS_update (GST_stats,

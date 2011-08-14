@@ -815,10 +815,6 @@ GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity *sender
 	  n->quota_violation_count--;
 	}
     }
-  GNUNET_SCHEDULER_cancel (n->timeout_task);
-  n->timeout_task =
-    GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-				  &neighbour_timeout_task, n);
   if (n->quota_violation_count > QUOTA_VIOLATION_DROP_THRESHOLD)
     {
       GNUNET_STATISTICS_update (GST_stats,
@@ -845,6 +841,33 @@ GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity *sender
 				GNUNET_NO);
     }
   return ret;
+}
+
+
+/**
+ * Keep the connection to the given neighbour alive longer,
+ * we received a KEEPALIVE (or equivalent).
+ *
+ * @param neighbour neighbour to keep alive
+ */
+void
+GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour)
+{
+  struct NeighbourMapEntry *n;
+
+  n = lookup_neighbour (neighbour);
+  if (NULL == n)
+    {
+      GNUNET_STATISTICS_update (GST_stats,
+				gettext_noop ("# KEEPALIVE messages discarded (not connected)"),
+				1,
+				GNUNET_NO);
+      return;
+    }
+  GNUNET_SCHEDULER_cancel (n->timeout_task);
+  n->timeout_task =
+    GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+				  &neighbour_timeout_task, n);  
 }
 
 
