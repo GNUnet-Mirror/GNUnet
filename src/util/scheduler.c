@@ -247,36 +247,29 @@ static int current_lifeness;
 
 /**
  * Function to use as a select() in the scheduler.
- * Defaults to GNUNET_NETWORK_socket_select ()
+ * If NULL, we use GNUNET_NETWORK_socket_select ().
  */
-GNUNET_SCHEDULER_select scheduler_select = GNUNET_NETWORK_socket_select;
+static GNUNET_SCHEDULER_select scheduler_select;
+
+/**
+ * Closure for 'scheduler_select'.
+ */
+static void *scheduler_select_cls;
 
 /**
  * Sets the select function to use in the scheduler (scheduler_select).
  *
  * @param new_select new select function to use
- * @return previously used select function
+ * @return previously used select function, NULL for default
  */
-GNUNET_SCHEDULER_select
-GNUNET_SCHEDULER_set_select (GNUNET_SCHEDULER_select new_select)
+void
+GNUNET_SCHEDULER_set_select (GNUNET_SCHEDULER_select new_select,
+			     void *new_select_cls)
 {
-  GNUNET_SCHEDULER_select old_select = scheduler_select;
   scheduler_select = new_select;
-  if (scheduler_select == NULL)
-    scheduler_select = GNUNET_NETWORK_socket_select;
-  return old_select;
+  scheduler_select_cls = new_select_cls;
 }
 
-/**
- * Gets the select function currently used in the scheduler.
- *
- * @return currently used select function
- */
-GNUNET_SCHEDULER_select
-GNUNET_SCHEDULER_get_select ()
-{
-  return scheduler_select;
-}
 
 /**
  * Check that the given priority is legal (and return it).
@@ -839,7 +832,12 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
           /* no blocking, more work already ready! */
           timeout = GNUNET_TIME_UNIT_ZERO;
         }
-      ret = scheduler_select (rs, ws, NULL, timeout);
+      if (NULL == scheduler_select)
+	ret = GNUNET_NETWORK_socket_select (rs, ws, NULL, timeout);
+      else
+	ret = scheduler_select (scheduler_select_cls,
+				rs, ws, NULL, 
+				timeout);
       if (ret == GNUNET_SYSERR)
         {
           if (errno == EINTR)

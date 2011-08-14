@@ -28,8 +28,6 @@
   
 #include "gnunet_disk_lib.h"
 
-};
-
 /**
  * Retrieve OS file handle
  *
