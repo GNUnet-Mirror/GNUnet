@@ -27,6 +27,7 @@
 #include "gnunet-service-transport_validation.h"
 #include "gnunet-service-transport_plugins.h"
 #include "gnunet-service-transport_hello.h"
+#include "gnunet-service-transport_blacklist.h"
 #include "gnunet-service-transport.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_ats_service.h"
@@ -495,8 +496,8 @@ cleanup_validation_entry (void *cls,
     }
   GNUNET_break (GNUNET_OK ==
                 GNUNET_CONTAINER_multihashmap_remove (validation_map,
-						      &va->pid.hashPubKey,
-						      va));
+						      &ve->pid.hashPubKey,
+						      ve));
   GNUNET_free (ve->transport_name);
   if (GNUNET_SCHEDULER_NO_TASK != ve->timeout_task)
     {
