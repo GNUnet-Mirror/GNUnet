@@ -13,6 +13,9 @@ lib_LTLIBRARIES = libgnunetats.la
 libgnunetats_la_SOURCES = \
   ats_api.c
 
+libgnunetats_la_LIBADD = \
+ $(top_builddir)/src/util/libgnunetutil.la
+
 
 #bin_PROGRAMS = \
 # gnunet-service-ats
