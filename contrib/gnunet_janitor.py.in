@@ -18,6 +18,10 @@
 #    Boston, MA 02111-1307, USA.
 #
 # Finds any gnunet processes still running in the system and kills them
+#
+# gnunet janitor can be used by invoking `make' like this:
+# TESTS_ENVIRONMENT='${top_srcdir}/contrib/gnunet_janitor.py &&' make check
+
 from __future__ import print_function
 import os
 import re
