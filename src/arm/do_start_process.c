@@ -30,8 +30,10 @@ do_start_process (const int *lsocks,
   va_start (ap, first_arg);
   arg = first_arg;
   last = NULL;
+/* *INDENT-OFF* */
   do
     {
+/* *INDENT-ON* */
       rpos = arg;
       while ('\0' != *rpos)
 	{
@@ -50,8 +52,10 @@ do_start_process (const int *lsocks,
 	}      
       if (last != NULL)
 	argv_size++;
+/* *INDENT-OFF* */
     }
   while (NULL != (arg = (va_arg (ap, const char*))));
+/* *INDENT-ON* */
   va_end (ap);
 
   argv = GNUNET_malloc (argv_size * sizeof (char *));
@@ -59,8 +63,10 @@ do_start_process (const int *lsocks,
   va_start (ap, first_arg);
   arg = first_arg;
   last = NULL;
+/* *INDENT-OFF* */
   do
     {
+/* *INDENT-ON* */
       cp = GNUNET_strdup (arg);
       pos = cp;
       while ('\0' != *pos)
@@ -84,8 +90,10 @@ do_start_process (const int *lsocks,
 	argv[argv_size++] = GNUNET_strdup (last);
       last = NULL;
       GNUNET_free (cp);
+/* *INDENT-OFF* */
     }
   while (NULL != (arg = (va_arg (ap, const char*))));
+/* *INDENT-ON* */
   va_end (ap);
   argv[argv_size] = NULL;
   proc = GNUNET_OS_start_process_v (lsocks, argv[0], argv);
