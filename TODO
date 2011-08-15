@@ -5,7 +5,9 @@
   seems to be that the plugin tries some of the broken addresses, fails and the
   transport-level connection never comes up.
   [still an issue?]
-* transport: explicit CONNECT/DISCONNECT handshake to diff from addr confirmation?
+* transport:
+  - explicit CONNECT: add timestamp
+  - explicit DISCONNECT: add signature
 * clean buildbots
 
 0.9.0pre4:
@@ -14,6 +16,8 @@
   - handle events:
     + search error
     + publish error
+* NAT:
+  - support HOSTNAME given for external-IP address (dyndns!)
 * FS [CG]
   - implement multi-peer FS performance tests + gauger them!
     + insert
